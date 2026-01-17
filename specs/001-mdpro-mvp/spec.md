@@ -28,6 +28,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - Q: MVP scope exclusions? → A: Exclude cloud sync and plugins; include basic HTML export
 - Q: Top toolbar vs native menu? → A: macOS native menu hosts file/edit/view/theme actions; in-app toolbar stays minimal (title/status only)
 - Q: Preview mode editability? → A: Preview-only mode allows direct inline editing (Typora-like), clicking text places the caret and edits in-place
+- Q: Finder integration? → A: mdpro registers .md/.markdown associations, supports “Open With” and double-click to open documents on launch
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -195,6 +196,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - **FR-018**: 系统必须支持将文档导出为HTML格式（包含内联样式）
 - **FR-019**: 系统必须在macOS使用原生菜单提供文件/编辑/视图/主题等操作入口
 - **FR-020**: 系统必须支持在预览模式内直接点击并编辑文本（Typora式体验）
+- **FR-021**: 系统必须注册.md/.markdown文件关联并支持Finder“Open With”打开文件
 
 ### Key Entities
 

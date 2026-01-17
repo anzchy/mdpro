@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { SplitView } from "./components/Editor/SplitView";
 import { WysiwygView } from "./components/Editor/WysiwygView";
 import { Sidebar } from "./components/Sidebar/Sidebar";
@@ -76,6 +77,9 @@ function App() {
   const closeTargetRef = useRef<PendingClose>(null);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
   const hasUnsavedRef = useRef(false);
+  const openDialogLockRef = useRef(false);
+  const allowWindowCloseRef = useRef(false);
+  const openDialogCooldownRef = useRef(0);
   const { event: fileChangeEvent, clearEvent } = useFileWatcher(
     activeDocument?.path ?? null,
   );
@@ -188,6 +192,10 @@ function App() {
         appWindowRef.current = currentWindow;
         unlisten = await currentWindow.onCloseRequested((event) => {
           void saveWindowState();
+          if (allowWindowCloseRef.current) {
+            allowWindowCloseRef.current = false;
+            return;
+          }
           if (hasUnsavedRef.current) {
             event.preventDefault();
             closeTargetRef.current = "window";
@@ -250,14 +258,20 @@ function App() {
   }, [clearLargeFileWarning, largeFileWarning, showToast]);
 
   const handleOpenDialog = useCallback(async () => {
+    if (openDialogLockRef.current) return;
+    if (Date.now() < openDialogCooldownRef.current) return;
+    openDialogLockRef.current = true;
     setBusyLabel("Opening file...");
     try {
       const doc = await openDocumentFromDialog();
       if (doc?.path) {
         updateRecentFiles(doc.path);
+      } else {
+        openDialogCooldownRef.current = Date.now() + 500;
       }
     } finally {
       setBusyLabel(null);
+      openDialogLockRef.current = false;
     }
   }, [openDocumentFromDialog, updateRecentFiles]);
 
@@ -271,6 +285,22 @@ function App() {
         }
       } finally {
         setBusyLabel(null);
+      }
+    },
+    [openDocumentFromPath, updateRecentFiles],
+  );
+
+  const openPaths = useCallback(
+    async (paths: string[]) => {
+      for (const path of paths) {
+        try {
+          const doc = await openDocumentFromPath(path);
+          if (doc?.path) {
+            updateRecentFiles(doc.path);
+          }
+        } catch {
+          // Ignore launch open errors.
+        }
       }
     },
     [openDocumentFromPath, updateRecentFiles],
@@ -414,6 +444,7 @@ function App() {
 
     if (target === "window") {
       await saveWindowState();
+      allowWindowCloseRef.current = true;
       appWindowRef.current?.close();
       return;
     }
@@ -458,6 +489,34 @@ function App() {
     onViewModeChange: setViewMode,
     onThemeModeChange: (mode) => void setThemeMode(mode),
   });
+
+  useEffect(() => {
+    invoke<string[]>("get_launch_paths")
+      .then((paths) => {
+        if (!paths || paths.length === 0) return;
+        void openPaths(paths);
+      })
+      .catch(() => {
+        // Ignore if running outside Tauri.
+      });
+  }, [openPaths]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    listen<string[]>("file:open", (event) => {
+      if (!event.payload || event.payload.length === 0) return;
+      void openPaths(event.payload);
+    })
+      .then((fn) => {
+        unlisten = fn;
+      })
+      .catch(() => {
+        // Ignore if running outside Tauri.
+      });
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [openPaths]);
 
   return (
     <div

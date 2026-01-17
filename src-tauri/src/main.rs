@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 fn main() {
     tauri::Builder::default()
@@ -12,8 +12,18 @@ fn main() {
             app.manage(tauri_app_lib::menu::MenuState::default());
             let menu = tauri_app_lib::menu::build_menu(&app.handle(), &[])?;
             app.set_menu(menu)?;
+            let launch_state = tauri_app_lib::launch::LaunchState::default();
+            let args = tauri_app_lib::launch::filter_launch_paths(std::env::args().skip(1));
+            launch_state.set_paths(args);
+            app.manage(launch_state);
             Ok(())
         })
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            let paths = tauri_app_lib::launch::filter_launch_paths(args);
+            if !paths.is_empty() {
+                let _ = app.emit("file:open", paths);
+            }
+        }))
         .on_menu_event(|app, event| {
             tauri_app_lib::menu::handle_menu_event(app, event);
         })

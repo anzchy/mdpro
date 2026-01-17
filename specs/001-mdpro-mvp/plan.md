@@ -11,6 +11,8 @@ UI上采用macOS原生菜单承载主要操作（文件、编辑、视图、主�
 
 Preview-only模式支持直接点击编辑（Typora式体验），与WYSIWYG共享同一套CM6装饰逻辑。
 
+应用需注册.md/.markdown文件关联，并在启动时读取传入路径以自动打开对应文档。
+
 ## Technical Context
 
 **Language/Version**: Rust 1.75+ (backend), TypeScript 5.x (frontend)

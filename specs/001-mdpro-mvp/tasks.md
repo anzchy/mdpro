@@ -348,6 +348,9 @@
 - [x] T141 Fix CodeMirror dark theme styling for editor background/contrast in src/styles/globals.css
 - [x] T142 Enable inline editing in preview-only mode (Typora-like) in src/components/Editor/SplitView.tsx
 - [x] T143 Adjust WYSIWYG/preview styling (gutter/line numbers) to match preview-only editing in src/components/Editor/WysiwygView.tsx
+- [x] T144 Prevent repeated open-file dialogs after cancel in src/App.tsx
+- [x] T145 Add launch file handling (Open With / double-click) via startup paths in src-tauri/src and src/App.tsx
+- [x] T146 Register .md/.markdown file associations in src-tauri/tauri.conf.json
 
 ---
 
@@ -507,7 +510,7 @@ With 2+ developers:
 
 | Category | Count |
 |----------|-------|
-| Total Tasks | 143 |
+| Total Tasks | 146 |
 | Phase 1 (Setup) | 8 |
 | Phase 2 (Foundational) | 18 |
 | Phase 3 → US1 (文件操作) | 17 |
@@ -521,7 +524,7 @@ With 2+ developers:
 | Phase 11 (Auto-save) | 8 |
 | Phase 12 (Export) | 4 |
 | Phase 13 (File Watch) | 4 |
-| Phase 14 (Polish) | 12 |
+| Phase 14 (Polish) | 15 |
 | Phase 16 (Native Menu) | 4 |
 | Phase 15 (Testing) | 20 |
 
