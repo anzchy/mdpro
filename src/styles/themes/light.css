@@ -1,0 +1,12 @@
+.theme-light {
+  --color-bg: #ffffff;
+  --color-surface: #f6f7fb;
+  --color-panel: #ffffff;
+  --color-text: #1a1a1a;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-accent: #2563eb;
+  --color-editor-bg: #ffffff;
+  --color-preview-bg: #fafafa;
+  --color-code-bg: #f4f4f4;
+}

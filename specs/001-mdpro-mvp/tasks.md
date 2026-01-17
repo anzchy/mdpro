@@ -46,36 +46,36 @@
 
 ### Backend Models & Types
 
-- [ ] T009 [P] Create Document model in src-tauri/src/models/document.rs per data-model.md
-- [ ] T010 [P] Create Draft model in src-tauri/src/models/draft.rs per data-model.md
-- [ ] T011 [P] Create UserPreferences model in src-tauri/src/models/preferences.rs per data-model.md
-- [ ] T012 Create models/mod.rs exporting all models in src-tauri/src/models/mod.rs
+- [x] T009 [P] Create Document model in src-tauri/src/models/document.rs per data-model.md
+- [x] T010 [P] Create Draft model in src-tauri/src/models/draft.rs per data-model.md
+- [x] T011 [P] Create UserPreferences model in src-tauri/src/models/preferences.rs per data-model.md
+- [x] T012 Create models/mod.rs exporting all models in src-tauri/src/models/mod.rs
 
 ### Frontend Types
 
-- [ ] T013 [P] Create Document types in src/types/document.ts per data-model.md
-- [ ] T014 [P] Create EditorState types in src/types/editor.ts per data-model.md
-- [ ] T015 [P] Create Theme types in src/types/theme.ts per data-model.md
-- [ ] T016 [P] Create UserPreferences types in src/types/preferences.ts per data-model.md
+- [x] T013 [P] Create Document types in src/types/document.ts per data-model.md
+- [x] T014 [P] Create EditorState types in src/types/editor.ts per data-model.md
+- [x] T015 [P] Create Theme types in src/types/theme.ts per data-model.md
+- [x] T016 [P] Create UserPreferences types in src/types/preferences.ts per data-model.md
 
 ### State Management
 
-- [ ] T017 [P] Create documentStore with Zustand in src/stores/documentStore.ts
-- [ ] T018 [P] Create editorStore with Zustand in src/stores/editorStore.ts
-- [ ] T019 [P] Create themeStore with Zustand in src/stores/themeStore.ts
+- [x] T017 [P] Create documentStore with Zustand in src/stores/documentStore.ts
+- [x] T018 [P] Create editorStore with Zustand in src/stores/editorStore.ts
+- [x] T019 [P] Create themeStore with Zustand in src/stores/themeStore.ts
 
 ### Base UI Components
 
-- [ ] T020 Create App shell layout with sidebar, toolbar, main area in src/App.tsx
-- [ ] T021 [P] Create global CSS styles and CSS variables in src/styles/globals.css
-- [ ] T022 [P] Create light theme CSS in src/styles/themes/light.css
-- [ ] T023 [P] Create dark theme CSS in src/styles/themes/dark.css
+- [x] T020 Create App shell layout with sidebar, toolbar, main area in src/App.tsx
+- [x] T021 [P] Create global CSS styles and CSS variables in src/styles/globals.css
+- [x] T022 [P] Create light theme CSS in src/styles/themes/light.css
+- [x] T023 [P] Create dark theme CSS in src/styles/themes/dark.css
 
 ### Tauri Configuration
 
-- [ ] T024 Configure tauri.conf.json with window settings, app name, security CSP in src-tauri/tauri.conf.json
-- [ ] T025 Setup main.rs with Tauri builder and command registration in src-tauri/src/main.rs
-- [ ] T026 Create lib.rs with command exports in src-tauri/src/lib.rs
+- [x] T024 Configure tauri.conf.json with window settings, app name, security CSP in src-tauri/tauri.conf.json
+- [x] T025 Setup main.rs with Tauri builder and command registration in src-tauri/src/main.rs
+- [x] T026 Create lib.rs with command exports in src-tauri/src/lib.rs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
