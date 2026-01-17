@@ -16,6 +16,7 @@ import { useAutoSave } from "./hooks/useAutoSave";
 import { useEditor } from "./hooks/useEditor";
 import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
@@ -63,7 +64,7 @@ function App() {
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
   const { viewMode, setViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
-  const { mode: themeMode, resolvedTheme, setThemeMode, cycleThemeMode } = useTheme();
+  const { resolvedTheme, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState(0);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   const [autoSaveInterval, setAutoSaveInterval] = useState(30);
@@ -95,6 +96,12 @@ function App() {
     },
     [],
   );
+
+  useEffect(() => {
+    invoke("set_recent_files_menu", { recentFiles }).catch(() => {
+      // Ignore if running outside Tauri or menu is unavailable.
+    });
+  }, [recentFiles]);
 
   const handleToggleSidebar = useCallback(() => {
     const next = !showSidebar;
@@ -388,22 +395,6 @@ function App() {
     ],
   );
 
-  useKeyboardShortcuts({
-    onNew: () => void createDocument(),
-    onHighlight: () => setHighlightRequest((prev) => prev + 1),
-    onOpen: () => void handleOpenDialog(),
-    onSave: () => void handleSave(),
-    onClose: () => {
-      if (!activeDocument) return;
-      if (activeDocument.isModified) {
-        closeTargetRef.current = "document";
-        setPendingClose("document");
-      } else {
-        void closeActiveDocument(true);
-      }
-    },
-  });
-
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const file = event.dataTransfer.files?.[0] as File & { path?: string };
@@ -436,6 +427,37 @@ function App() {
     closeTargetRef.current = null;
   };
 
+  const handleCloseRequest = useCallback(() => {
+    if (!activeDocument) return;
+    if (activeDocument.isModified) {
+      closeTargetRef.current = "document";
+      setPendingClose("document");
+    } else {
+      void closeActiveDocument(true);
+    }
+  }, [activeDocument, closeActiveDocument]);
+
+  useKeyboardShortcuts({
+    onNew: () => void createDocument(),
+    onHighlight: () => setHighlightRequest((prev) => prev + 1),
+    onOpen: () => void handleOpenDialog(),
+    onSave: () => void handleSave(),
+    onClose: handleCloseRequest,
+  });
+
+  useMenuEvents({
+    onNew: () => void createDocument(),
+    onOpen: () => void handleOpenDialog(),
+    onSave: () => void handleSave(),
+    onClose: handleCloseRequest,
+    onExportHtml: () => void handleExportHtml(),
+    onOpenRecent: handleOpenRecent,
+    onToggleSidebar: handleToggleSidebar,
+    onHighlight: () => setHighlightRequest((prev) => prev + 1),
+    onViewModeChange: setViewMode,
+    onThemeModeChange: (mode) => void setThemeMode(mode),
+  });
+
   return (
     <div
       className={`app-shell${showSidebar ? "" : " no-sidebar"}`}
@@ -454,19 +476,6 @@ function App() {
         <Toolbar
           title={activeDocumentTitle}
           isModified={hasUnsavedChanges}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onNew={() => void createDocument()}
-          onOpen={() => void handleOpenDialog()}
-          onSave={() => void handleSave()}
-          onHighlight={() => setHighlightRequest((prev) => prev + 1)}
-          showSidebar={showSidebar}
-          onToggleSidebar={handleToggleSidebar}
-          themeMode={themeMode}
-          onThemeToggle={cycleThemeMode}
-          recentFiles={recentFiles}
-          onOpenRecent={handleOpenRecent}
-          onExportHtml={handleExportHtml}
         />
         {busyLabel ? (
           <div className="busy-indicator">

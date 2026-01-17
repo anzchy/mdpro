@@ -348,6 +348,17 @@
 
 ---
 
+## Phase 16: Native macOS Menu
+
+**Purpose**: Move primary actions into the native macOS menu bar
+
+- [x] T137 [P] Build native menu (File/Edit/View/Format/Theme/Window/Help) in src-tauri/src/menu.rs
+- [x] T138 [P] Wire menu events to frontend via app emit in src-tauri/src/main.rs and src-tauri/src/menu.rs
+- [x] T139 [P] Add menu event listener in frontend and route actions in src/App.tsx
+- [x] T140 [P] Simplify toolbar UI to title/status only in src/components/Toolbar/Toolbar.tsx and styles
+
+---
+
 ## Phase 15: Testing
 
 **Purpose**: Unit tests, integration tests, and E2E tests per plan.md testing strategy
@@ -407,7 +418,8 @@
   - Phase 10 → US8 (主题切换): Can run parallel with any P1 story
 - **Phase 11-13 (Cross-cutting)**: Depend on relevant user stories
 - **Phase 14 (Polish)**: Depends on all desired user stories being complete
-- **Phase 15 (Testing)**: Depends on Phase 14 completion
+- **Phase 16 (Native Menu)**: Depends on Phase 14 completion
+- **Phase 15 (Testing)**: Depends on Phase 16 completion
 
 ### User Story Dependencies
 
@@ -492,7 +504,7 @@ With 2+ developers:
 
 | Category | Count |
 |----------|-------|
-| Total Tasks | 136 |
+| Total Tasks | 140 |
 | Phase 1 (Setup) | 8 |
 | Phase 2 (Foundational) | 18 |
 | Phase 3 → US1 (文件操作) | 17 |
@@ -507,6 +519,7 @@ With 2+ developers:
 | Phase 12 (Export) | 4 |
 | Phase 13 (File Watch) | 4 |
 | Phase 14 (Polish) | 9 |
+| Phase 16 (Native Menu) | 4 |
 | Phase 15 (Testing) | 20 |
 
 **Suggested MVP Scope**: Phase 1 + Phase 2 + Phase 3 (US1) = 43 tasks

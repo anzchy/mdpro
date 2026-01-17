@@ -26,6 +26,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - Q: Auto-save behavior for data loss prevention? → A: Auto-save drafts locally every 30 seconds, with explicit Cmd+S for file save
 - Q: Editor mode style (split-pane vs WYSIWYG)? → A: Both modes available, user can switch between split-pane and WYSIWYG inline editing
 - Q: MVP scope exclusions? → A: Exclude cloud sync and plugins; include basic HTML export
+- Q: Top toolbar vs native menu? → A: macOS native menu hosts file/edit/view/theme actions; in-app toolbar stays minimal (title/status only)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -190,6 +191,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - **FR-016**: 系统必须每30秒自动保存草稿到本地临时位置，用户显式Cmd+S时保存到原文件
 - **FR-017**: 系统必须支持WYSIWYG内联编辑模式（Typora风格），Markdown语法在非编辑行自动渲染
 - **FR-018**: 系统必须支持将文档导出为HTML格式（包含内联样式）
+- **FR-019**: 系统必须在macOS使用原生菜单提供文件/编辑/视图/主题等操作入口
 
 ### Key Entities
 

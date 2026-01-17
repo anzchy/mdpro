@@ -1,5 +1,6 @@
 pub mod export;
 pub mod file;
+pub mod menu;
 pub mod preferences;
 pub mod draft;
 
@@ -20,6 +21,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         preferences::set_preferences,
         preferences::get_system_theme,
         preferences::save_window_state,
+        menu::set_recent_files_menu,
         draft::save_draft,
         draft::get_draft,
         draft::list_drafts,

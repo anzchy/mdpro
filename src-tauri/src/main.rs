@@ -9,7 +9,13 @@ fn main() {
             let watcher =
                 tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone());
             app.manage(watcher);
+            app.manage(tauri_app_lib::menu::MenuState::default());
+            let menu = tauri_app_lib::menu::build_menu(&app.handle(), &[])?;
+            app.set_menu(menu)?;
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            tauri_app_lib::menu::handle_menu_event(app, event);
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::ThemeChanged(theme) = event {

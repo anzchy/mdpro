@@ -7,6 +7,8 @@
 
 mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的WYSIWYG体验和bm.md的现代化设计。技术方案采用Tauri 2.0框架（Rust后端 + Web前端），前端使用React + TypeScript + CodeMirror 6实现编辑器，支持分屏预览和WYSIWYG两种模式。
 
+UI上采用macOS原生菜单承载主要操作（文件、编辑、视图、主题），应用内顶部栏仅保留标题/状态，减少重复入口。
+
 ## Technical Context
 
 **Language/Version**: Rust 1.75+ (backend), TypeScript 5.x (frontend)
@@ -71,6 +73,7 @@ src-tauri/                    # Rust backend (Tauri)
 │   │   ├── file.rs          # Open, save, create file operations
 │   │   ├── export.rs        # HTML export
 │   │   └── preferences.rs   # User preferences
+│   ├── menu.rs              # Native menu builder + event routing
 │   ├── services/            # Business logic
 │   │   ├── mod.rs
 │   │   ├── markdown.rs      # Markdown parsing (pulldown-cmark)
@@ -102,6 +105,7 @@ src/                          # Frontend (React + TypeScript)
 ├── hooks/                   # Custom React hooks
 │   ├── useDocument.ts
 │   ├── useEditor.ts
+│   ├── useMenuEvents.ts
 │   ├── useTheme.ts
 │   └── useAutoSave.ts
 ├── services/                # Tauri IPC wrappers
