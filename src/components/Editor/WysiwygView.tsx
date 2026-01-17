@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import type { EditorView } from "@codemirror/view";
-import { keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { redo, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
@@ -39,6 +38,7 @@ export function WysiwygView({
           markdownExtension,
           syntaxHighlightingExtension,
           wysiwygExtension,
+          EditorView.viewportMargin.of(200),
           keymap.of([
             { key: "Mod-z", run: undo },
             { key: "Mod-Shift-z", run: redo },

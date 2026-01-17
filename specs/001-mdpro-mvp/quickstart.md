@@ -115,14 +115,11 @@ mdpro/
 # Dev server only (no Tauri)
 pnpm dev
 
-# Type checking
-pnpm type-check
+# Build web bundle
+pnpm build
 
-# Lint
-pnpm lint
-
-# Format
-pnpm format
+# Preview production build
+pnpm preview
 ```
 
 ### Backend (Rust)
@@ -151,12 +148,6 @@ pnpm tauri dev
 
 # Build for production
 pnpm tauri build
-
-# Run unit tests
-pnpm test
-
-# Run E2E tests
-pnpm test:e2e
 ```
 
 ---
@@ -172,8 +163,9 @@ pnpm create tauri-app mdpro --template react-ts
 cd mdpro
 
 # Add dependencies
-pnpm add @uiw/react-codemirror @codemirror/lang-markdown @codemirror/view
-pnpm add marked dompurify zustand
+pnpm add @uiw/react-codemirror @codemirror/lang-markdown @codemirror/commands
+pnpm add @codemirror/language @codemirror/state @codemirror/view
+pnpm add marked dompurify zustand highlight.js
 pnpm add -D @types/dompurify tailwindcss postcss autoprefixer
 pnpm add -D vitest @testing-library/react playwright
 

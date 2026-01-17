@@ -3,6 +3,11 @@
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            let watcher = tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle());
+            app.manage(watcher);
+            Ok(())
+        })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::ThemeChanged(theme) = event {
                 tauri_app_lib::services::file_watcher::emit_theme_changed(

@@ -14,6 +14,9 @@ interface ToolbarProps {
   onToggleSidebar: () => void;
   themeMode: UserPreferences["themeMode"];
   onThemeToggle: () => void;
+  recentFiles: string[];
+  onOpenRecent: (path: string) => void;
+  onExportHtml: () => void;
 }
 
 export function Toolbar({
@@ -29,6 +32,9 @@ export function Toolbar({
   onToggleSidebar,
   themeMode,
   onThemeToggle,
+  recentFiles,
+  onOpenRecent,
+  onExportHtml,
 }: ToolbarProps) {
   return (
     <header className="toolbar">
@@ -60,6 +66,25 @@ export function Toolbar({
           <button className="toolbar-button" type="button" onClick={onToggleSidebar}>
             {showSidebar ? "Hide Sidebar" : "Show Sidebar"}
           </button>
+          <details className="toolbar-recent">
+            <summary className="toolbar-button">Recent</summary>
+            <div className="toolbar-recent-list">
+              {recentFiles.length === 0 ? (
+                <div className="toolbar-recent-empty">No recent files</div>
+              ) : (
+                recentFiles.map((path) => (
+                  <button
+                    key={path}
+                    className="toolbar-recent-item"
+                    type="button"
+                    onClick={() => onOpenRecent(path)}
+                  >
+                    {path}
+                  </button>
+                ))
+              )}
+            </div>
+          </details>
           <button className="toolbar-button" type="button" onClick={onNew}>
             New
           </button>
@@ -68,6 +93,9 @@ export function Toolbar({
           </button>
           <button className="toolbar-button" type="button" onClick={onSave}>
             Save
+          </button>
+          <button className="toolbar-button" type="button" onClick={onExportHtml}>
+            Export HTML
           </button>
           <button className="toolbar-button" type="button" onClick={onHighlight}>
             Highlight

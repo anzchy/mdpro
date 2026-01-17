@@ -9,6 +9,7 @@ interface DocumentStore {
   upsertDocument: (document: Document) => void;
   updateDocumentContent: (id: string, content: string) => void;
   markDocumentModified: (id: string, isModified: boolean) => void;
+  updateDocumentPath: (id: string, path: string) => void;
   closeDocument: (id: string) => void;
 }
 
@@ -37,6 +38,12 @@ export const useDocumentStore = create<DocumentStore>((set) => ({
     set((state) => ({
       documents: state.documents.map((doc) =>
         doc.id === id ? { ...doc, isModified } : doc,
+      ),
+    })),
+  updateDocumentPath: (id, path) =>
+    set((state) => ({
+      documents: state.documents.map((doc) =>
+        doc.id === id ? { ...doc, path } : doc,
       ),
     })),
   closeDocument: (id) =>

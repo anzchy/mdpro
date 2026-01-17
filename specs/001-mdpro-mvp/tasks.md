@@ -289,17 +289,17 @@
 
 ### Draft Management
 
-- [ ] T092 Implement save_draft command in src-tauri/src/commands/draft.rs per draft-commands.md
-- [ ] T093 Implement list_drafts command in src-tauri/src/commands/draft.rs per draft-commands.md
-- [ ] T094 Implement recover_draft command in src-tauri/src/commands/draft.rs per draft-commands.md
-- [ ] T095 Implement delete_draft command in src-tauri/src/commands/draft.rs per draft-commands.md
-- [ ] T096 Create draft service for file operations in src-tauri/src/services/draft.rs
+- [x] T092 Implement save_draft command in src-tauri/src/commands/draft.rs per draft-commands.md
+- [x] T093 Implement list_drafts command in src-tauri/src/commands/draft.rs per draft-commands.md
+- [x] T094 Implement recover_draft command in src-tauri/src/commands/draft.rs per draft-commands.md
+- [x] T095 Implement delete_draft command in src-tauri/src/commands/draft.rs per draft-commands.md
+- [x] T096 Create draft service for file operations in src-tauri/src/services/draft.rs
 
 ### Frontend Auto-save
 
-- [ ] T097 Create useAutoSave hook with 30s interval in src/hooks/useAutoSave.ts per draft-commands.md
-- [ ] T098 Create RecoveryDialog component in src/components/common/RecoveryDialog.tsx
-- [ ] T099 Check for unrecovered drafts on app startup in src/App.tsx
+- [x] T097 Create useAutoSave hook with 30s interval in src/hooks/useAutoSave.ts per draft-commands.md
+- [x] T098 Create RecoveryDialog component in src/components/common/RecoveryDialog.tsx
+- [x] T099 Check for unrecovered drafts on app startup in src/App.tsx
 
 ---
 
@@ -309,13 +309,13 @@
 
 ### Export Backend
 
-- [ ] T100 Implement export_html command in src-tauri/src/commands/export.rs per export-commands.md
-- [ ] T101 Create HTML template with inline CSS in src-tauri/src/services/html_template.rs
+- [x] T100 Implement export_html command in src-tauri/src/commands/export.rs per export-commands.md
+- [x] T101 Create HTML template with inline CSS in src-tauri/src/services/html_template.rs
 
 ### Export Frontend
 
-- [ ] T102 Add export_html to exportService in src/services/exportService.ts
-- [ ] T103 Add "Export HTML" button to File menu in src/components/Toolbar/Toolbar.tsx
+- [x] T102 Add export_html to exportService in src/services/exportService.ts
+- [x] T103 Add "Export HTML" button to File menu in src/components/Toolbar/Toolbar.tsx
 
 ---
 
@@ -325,10 +325,10 @@
 
 ### File Watcher
 
-- [ ] T104 Implement file watcher service with notify crate in src-tauri/src/services/file_watcher.rs per events.md
-- [ ] T105 Create useFileWatcher hook for change events in src/hooks/useFileWatcher.ts per events.md
-- [ ] T106 Create ReloadDialog component for external changes in src/components/common/ReloadDialog.tsx
-- [ ] T107 Implement check_file_modified and reload_file commands in src-tauri/src/commands/file.rs
+- [x] T104 Implement file watcher service with notify crate in src-tauri/src/services/file_watcher.rs per events.md
+- [x] T105 Create useFileWatcher hook for change events in src/hooks/useFileWatcher.ts per events.md
+- [x] T106 Create ReloadDialog component for external changes in src/components/common/ReloadDialog.tsx
+- [x] T107 Implement check_file_modified and reload_file commands in src-tauri/src/commands/file.rs
 
 ---
 
@@ -336,15 +336,15 @@
 
 **Purpose**: Final improvements affecting multiple user stories
 
-- [ ] T108 Add loading states for file operations in src/components/common/LoadingSpinner.tsx
-- [ ] T109 Add error toast notifications for failed operations in src/components/common/Toast.tsx
-- [ ] T110 Implement large file warning (>10MB) in src/hooks/useDocument.ts
-- [ ] T111 Save and restore window dimensions on close/open in src/App.tsx
-- [ ] T112 Add recent files list to File menu in src/components/Toolbar/Toolbar.tsx
-- [ ] T113 Performance optimization: virtual scrolling for large documents in src/components/Editor/Editor.tsx
-- [ ] T114 Implement file encoding detection with fallback prompt in src-tauri/src/services/encoding.rs
-- [ ] T115 Create EncodingDialog component for manual encoding selection in src/components/common/EncodingDialog.tsx
-- [ ] T116 Run quickstart.md validation: verify all setup steps work
+- [x] T108 Add loading states for file operations in src/components/common/LoadingSpinner.tsx
+- [x] T109 Add error toast notifications for failed operations in src/components/common/Toast.tsx
+- [x] T110 Implement large file warning (>10MB) in src/hooks/useDocument.ts
+- [x] T111 Save and restore window dimensions on close/open in src/App.tsx
+- [x] T112 Add recent files list to File menu in src/components/Toolbar/Toolbar.tsx
+- [x] T113 Performance optimization: virtual scrolling for large documents in src/components/Editor/Editor.tsx
+- [x] T114 Implement file encoding detection with fallback prompt in src-tauri/src/services/encoding.rs
+- [x] T115 Create EncodingDialog component for manual encoding selection in src/components/common/EncodingDialog.tsx
+- [x] T116 Run quickstart.md validation: verify all setup steps work
 
 ---
 

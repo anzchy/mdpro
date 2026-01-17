@@ -1,7 +1,7 @@
 use tauri::Theme;
 use tauri::Window;
 
-use crate::models::UserPreferences;
+use crate::models::{UserPreferences, WindowState};
 use crate::services::preferences::{
     load_preferences, merge_preferences, save_preferences, PartialPreferences, PreferencesError,
 };
@@ -28,4 +28,14 @@ pub fn get_system_theme(window: Window) -> String {
         Theme::Dark => "dark".to_string(),
         _ => "light".to_string(),
     }
+}
+
+#[tauri::command]
+pub async fn save_window_state(window_state: WindowState) -> Result<(), PreferencesError> {
+    let current = load_preferences().unwrap_or_default();
+    let next = UserPreferences {
+        window_state,
+        ..current
+    };
+    save_preferences(&next)
 }

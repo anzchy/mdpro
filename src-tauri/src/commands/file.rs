@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
-use tauri::Window;
+use std::sync::{Mutex, OnceLock};
+use tauri::{State, Window};
 
 use crate::models::{Document, Draft};
+use crate::services::{encoding, file_watcher::FileWatcher};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 
@@ -68,7 +71,12 @@ fn to_file_error(error: std::io::Error, path: &str) -> FileError {
     }
 }
 
-fn open_file_from_path(path: &str) -> Result<OpenFileResult, FileError> {
+fn mtime_cache() -> &'static Mutex<HashMap<String, i64>> {
+    static CACHE: OnceLock<Mutex<HashMap<String, i64>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<OpenFileResult, FileError> {
     let path_buf = PathBuf::from(path);
     if !path_buf.exists() {
         return Err(FileError::FileNotFound {
@@ -84,8 +92,26 @@ fn open_file_from_path(path: &str) -> Result<OpenFileResult, FileError> {
         });
     }
 
-    let content = std::fs::read_to_string(&path_buf).map_err(|err| to_file_error(err, path))?;
-    let document = Document::from_path(path_buf, content);
+    if let Ok(modified) = metadata.modified() {
+        if let Ok(duration) = modified.duration_since(std::time::SystemTime::UNIX_EPOCH) {
+            if let Ok(mut cache) = mtime_cache().lock() {
+                cache.insert(path.to_string(), duration.as_millis() as i64);
+            }
+        }
+    }
+
+    let bytes = std::fs::read(&path_buf).map_err(|err| to_file_error(err, path))?;
+    let detected = encoding::detect_encoding(&bytes);
+    let encoding_value = encoding_hint.clone().unwrap_or_else(|| detected.clone());
+    let content = encoding::decode_bytes(&bytes, &encoding_value).map_err(|_| {
+        FileError::EncodingError {
+            path: path.to_string(),
+            detected,
+        }
+    })?;
+
+    let mut document = Document::from_path(path_buf, content);
+    document.encoding = encoding_value;
 
     Ok(OpenFileResult {
         document,
@@ -94,8 +120,14 @@ fn open_file_from_path(path: &str) -> Result<OpenFileResult, FileError> {
 }
 
 #[tauri::command]
-pub async fn open_file(path: String) -> Result<OpenFileResult, FileError> {
-    open_file_from_path(&path)
+pub async fn open_file(
+    path: String,
+    encoding: Option<String>,
+    watcher: State<'_, FileWatcher>,
+) -> Result<OpenFileResult, FileError> {
+    let result = open_file_from_path(&path, encoding)?;
+    watcher.watch(&PathBuf::from(&path));
+    Ok(result)
 }
 
 #[tauri::command]
@@ -104,7 +136,10 @@ pub fn create_document() -> Document {
 }
 
 #[tauri::command]
-pub async fn open_file_dialog(_window: Window) -> Result<Option<OpenFileResult>, FileError> {
+pub async fn open_file_dialog(
+    _window: Window,
+    watcher: State<'_, FileWatcher>,
+) -> Result<Option<OpenFileResult>, FileError> {
     let picked = rfd::FileDialog::new()
         .add_filter("Markdown", &["md", "markdown"])
         .pick_file();
@@ -113,7 +148,10 @@ pub async fn open_file_dialog(_window: Window) -> Result<Option<OpenFileResult>,
         return Ok(None);
     };
 
-    open_file_from_path(&path.to_string_lossy()).map(Some)
+    let path_string = path.to_string_lossy().to_string();
+    let result = open_file_from_path(&path_string, None)?;
+    watcher.watch(&PathBuf::from(&path_string));
+    Ok(Some(result))
 }
 
 #[tauri::command]
@@ -191,15 +229,31 @@ pub async fn check_file_modified(path: String) -> Result<FileModifiedResult, Fil
         })?
         .as_millis() as i64;
 
+    let mut cache = mtime_cache()
+        .lock()
+        .map_err(|_| FileError::IoError {
+            message: "mtime cache locked".to_string(),
+        })?;
+    let stored = cache.entry(path.clone()).or_insert(mtime);
+
     Ok(FileModifiedResult {
-        modified: false,
+        modified: mtime > *stored,
         last_modified: mtime,
-        current_mtime: mtime,
+        current_mtime: *stored,
     })
 }
 
 #[tauri::command]
 pub async fn reload_file(path: String) -> Result<Document, FileError> {
-    let result = open_file_from_path(&path)?;
+    let result = open_file_from_path(&path, None)?;
+    if let Ok(mut cache) = mtime_cache().lock() {
+        if let Ok(metadata) = std::fs::metadata(&path) {
+            if let Ok(modified) = metadata.modified() {
+                if let Ok(duration) = modified.duration_since(std::time::SystemTime::UNIX_EPOCH) {
+                    cache.insert(path.clone(), duration.as_millis() as i64);
+                }
+            }
+        }
+    }
     Ok(result.document)
 }

@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { fileService } from "../services/fileService";
 import type { Document } from "../types/document";
 import { useDocumentStore } from "../stores/documentStore";
@@ -22,6 +23,19 @@ const getTitleFromPath = (path: string | null) => {
   return parts[parts.length - 1] || "Untitled";
 };
 
+const LARGE_FILE_BYTES = 10 * 1024 * 1024;
+
+const parseEncodingError = (error: unknown) => {
+  if (!error || typeof error !== "object") return null;
+  const maybe = error as { EncodingError?: { path: string; detected: string } };
+  if (maybe.EncodingError) return maybe.EncodingError;
+  const message = (error as { message?: string }).message;
+  if (message && message.includes("EncodingError")) {
+    return { path: "", detected: "unknown" };
+  }
+  return null;
+};
+
 export function useDocument() {
   const {
     documents,
@@ -33,6 +47,11 @@ export function useDocument() {
     closeDocument,
   } = useDocumentStore();
   const setEditorActiveDocumentId = useEditorStore((state) => state.setActiveDocumentId);
+  const [largeFileWarning, setLargeFileWarning] = useState<string | null>(null);
+  const [encodingIssue, setEncodingIssue] = useState<{
+    path: string;
+    detected: string;
+  } | null>(null);
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -41,11 +60,25 @@ export function useDocument() {
 
   const openDocumentFromPath = useCallback(
     async (path: string) => {
-      const result = await fileService.openFile(path);
-      upsertDocument(result.document);
-      setActiveDocumentId(result.document.id);
-      setEditorActiveDocumentId(result.document.id);
-      return result.document;
+      try {
+        const result = await fileService.openFile(path);
+        upsertDocument(result.document);
+        setActiveDocumentId(result.document.id);
+        setEditorActiveDocumentId(result.document.id);
+        if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
+          setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
+        }
+        return result.document;
+      } catch (error) {
+        const encodingError = parseEncodingError(error);
+        if (encodingError) {
+          setEncodingIssue({
+            path: encodingError.path || path,
+            detected: encodingError.detected || "unknown",
+          });
+        }
+        return null;
+      }
     },
     [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument],
   );
@@ -59,13 +92,39 @@ export function useDocument() {
   );
 
   const openDocumentFromDialog = useCallback(async () => {
-    const result = await fileService.openFileDialog();
-    if (!result) return null;
-    upsertDocument(result.document);
-    setActiveDocumentId(result.document.id);
-    setEditorActiveDocumentId(result.document.id);
-    return result.document;
+    try {
+      const result = await fileService.openFileDialog();
+      if (!result) return null;
+      upsertDocument(result.document);
+      setActiveDocumentId(result.document.id);
+      setEditorActiveDocumentId(result.document.id);
+      if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
+        setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
+      }
+      return result.document;
+    } catch (error) {
+      const encodingError = parseEncodingError(error);
+      if (encodingError) {
+        setEncodingIssue({
+          path: encodingError.path || "",
+          detected: encodingError.detected || "unknown",
+        });
+      }
+      return null;
+    }
   }, [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument]);
+
+  const openDocumentWithEncoding = useCallback(
+    async (path: string, encoding: string) => {
+      const result = await fileService.openFile(path, encoding);
+      upsertDocument(result.document);
+      setActiveDocumentId(result.document.id);
+      setEditorActiveDocumentId(result.document.id);
+      setEncodingIssue(null);
+      return result.document;
+    },
+    [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument],
+  );
 
   const createDocument = useCallback(async () => {
     let document = createEmptyDocument();
@@ -79,6 +138,22 @@ export function useDocument() {
     setEditorActiveDocumentId(document.id);
     return document;
   }, [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument]);
+
+  const upsertAndActivateDocument = useCallback(
+    (document: Document) => {
+      upsertDocument(document);
+      setActiveDocumentId(document.id);
+      setEditorActiveDocumentId(document.id);
+    },
+    [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument],
+  );
+
+  const replaceDocument = useCallback(
+    (document: Document) => {
+      upsertDocument(document);
+    },
+    [upsertDocument],
+  );
 
   const updateActiveDocumentContent = useCallback(
     (content: string) => {
@@ -104,6 +179,7 @@ export function useDocument() {
         lastSaved: result.savedAt,
       });
       markDocumentModified(activeDocument.id, false);
+      void invoke("delete_draft", { documentId: activeDocument.id });
     }
     return result;
   }, [activeDocument, markDocumentModified, upsertDocument]);
@@ -126,6 +202,7 @@ export function useDocument() {
         lastSaved: result.savedAt,
       });
       markDocumentModified(activeDocument.id, false);
+      void invoke("delete_draft", { documentId: activeDocument.id });
     }
     return result;
   }, [activeDocument, markDocumentModified, saveActiveDocumentAs, upsertDocument]);
@@ -161,12 +238,19 @@ export function useDocument() {
       : "mdpro",
     openDocumentFromPath,
     openDocumentFromDialog,
+    openDocumentWithEncoding,
     createDocument,
+    upsertAndActivateDocument,
+    replaceDocument,
     updateActiveDocumentContent,
     saveActiveDocument,
     saveActiveDocumentAs,
     closeActiveDocument,
     setActiveDocumentById,
     closeDocumentById,
+    largeFileWarning,
+    clearLargeFileWarning: () => setLargeFileWarning(null),
+    encodingIssue,
+    clearEncodingIssue: () => setEncodingIssue(null),
   };
 }

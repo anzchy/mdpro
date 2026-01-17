@@ -32,8 +32,8 @@ export interface FileModifiedResult {
 }
 
 export const fileService = {
-  async openFile(path: string): Promise<OpenFileResult> {
-    return invoke("open_file", { path });
+  async openFile(path: string, encoding?: string): Promise<OpenFileResult> {
+    return invoke("open_file", { path, encoding });
   },
 
   async openFileDialog(): Promise<OpenFileResult | null> {
