@@ -12,6 +12,8 @@ interface WysiwygViewProps {
   onChange: (value: string) => void;
   readOnly?: boolean;
   highlightRequest?: number;
+  showLineNumbers?: boolean;
+  className?: string;
 }
 
 export function WysiwygView({
@@ -19,6 +21,8 @@ export function WysiwygView({
   onChange,
   readOnly = false,
   highlightRequest,
+  showLineNumbers = true,
+  className,
 }: WysiwygViewProps) {
   const viewRef = useRef<EditorView | null>(null);
 
@@ -30,7 +34,7 @@ export function WysiwygView({
   }, [highlightRequest]);
 
   return (
-    <div className="editor-shell">
+    <div className={`editor-shell${className ? ` ${className}` : ""}`}>
       <CodeMirror
         value={value}
         height="100%"
@@ -55,7 +59,7 @@ export function WysiwygView({
         }}
         editable={!readOnly}
         basicSetup={{
-          lineNumbers: true,
+          lineNumbers: showLineNumbers,
           highlightActiveLine: true,
           highlightSelectionMatches: true,
         }}

@@ -27,6 +27,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - Q: Editor mode style (split-pane vs WYSIWYG)? → A: Both modes available, user can switch between split-pane and WYSIWYG inline editing
 - Q: MVP scope exclusions? → A: Exclude cloud sync and plugins; include basic HTML export
 - Q: Top toolbar vs native menu? → A: macOS native menu hosts file/edit/view/theme actions; in-app toolbar stays minimal (title/status only)
+- Q: Preview mode editability? → A: Preview-only mode allows direct inline editing (Typora-like), clicking text places the caret and edits in-place
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -60,6 +61,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 1. **Given** 编辑区域为空, **When** 用户输入`# 标题`, **Then** 预览区域立即显示一级标题样式
 2. **Given** 用户正在编辑, **When** 用户输入任何Markdown语法, **Then** 预览区域在100ms内更新渲染结果
 3. **Given** 编辑区域和预览区域同时可见, **When** 用户滚动编辑区域, **Then** 预览区域同步滚动到对应位置
+4. **Given** 用户处于预览模式, **When** 用户点击预览内容并输入, **Then** 内容可以直接编辑并更新
 
 ---
 
@@ -192,6 +194,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - **FR-017**: 系统必须支持WYSIWYG内联编辑模式（Typora风格），Markdown语法在非编辑行自动渲染
 - **FR-018**: 系统必须支持将文档导出为HTML格式（包含内联样式）
 - **FR-019**: 系统必须在macOS使用原生菜单提供文件/编辑/视图/主题等操作入口
+- **FR-020**: 系统必须支持在预览模式内直接点击并编辑文本（Typora式体验）
 
 ### Key Entities
 

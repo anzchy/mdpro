@@ -9,6 +9,8 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的WYSIWYG体�
 
 UI上采用macOS原生菜单承载主要操作（文件、编辑、视图、主题），应用内顶部栏仅保留标题/状态，减少重复入口。
 
+Preview-only模式支持直接点击编辑（Typora式体验），与WYSIWYG共享同一套CM6装饰逻辑。
+
 ## Technical Context
 
 **Language/Version**: Rust 1.75+ (backend), TypeScript 5.x (frontend)

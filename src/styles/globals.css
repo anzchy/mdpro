@@ -213,6 +213,47 @@ a {
   min-height: 0;
 }
 
+.editor-shell .cm-editor {
+  height: 100%;
+  background: var(--color-editor-bg);
+  color: var(--color-text);
+}
+
+.editor-shell .cm-scroller {
+  background: var(--color-editor-bg);
+}
+
+.editor-shell .cm-content {
+  caret-color: var(--color-accent);
+}
+
+.editor-shell .cm-gutters {
+  background: var(--color-editor-bg);
+  color: var(--color-muted);
+  border-right: 1px solid var(--color-border);
+}
+
+.editor-shell .cm-activeLine {
+  background: var(--color-surface);
+}
+
+.editor-shell .cm-selectionBackground {
+  background: rgba(96, 165, 250, 0.25);
+}
+
+.editor-shell .cm-cursor {
+  border-left-color: var(--color-accent);
+}
+
+.wysiwyg-preview .cm-gutters {
+  display: none;
+}
+
+.wysiwyg-preview .cm-content {
+  padding-left: 12px;
+  font-family: var(--font-sans);
+}
+
 .toolbar-buttons {
   display: flex;
   gap: 8px;

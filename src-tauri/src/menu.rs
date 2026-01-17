@@ -148,7 +148,13 @@ pub fn build_menu(app: &AppHandle<Wry>, recent_files: &[String]) -> tauri::Resul
     let view_wysiwyg =
         MenuItem::with_id(app, MENU_VIEW_WYSIWYG, "WYSIWYG", true, Some("CmdOrCtrl+4"))?;
     let view_toggle_sidebar =
-        MenuItem::with_id(app, MENU_VIEW_TOGGLE_SIDEBAR, "Toggle Sidebar", true, None::<&str>)?;
+        MenuItem::with_id(
+            app,
+            MENU_VIEW_TOGGLE_SIDEBAR,
+            "Toggle Sidebar",
+            true,
+            Some("CmdOrCtrl+Shift+B"),
+        )?;
 
     let view_menu = SubmenuBuilder::new(app, "View")
         .item(&view_split)

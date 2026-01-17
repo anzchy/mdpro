@@ -345,6 +345,9 @@
 - [x] T114 Implement file encoding detection with fallback prompt in src-tauri/src/services/encoding.rs
 - [x] T115 Create EncodingDialog component for manual encoding selection in src/components/common/EncodingDialog.tsx
 - [x] T116 Run quickstart.md validation: verify all setup steps work
+- [x] T141 Fix CodeMirror dark theme styling for editor background/contrast in src/styles/globals.css
+- [x] T142 Enable inline editing in preview-only mode (Typora-like) in src/components/Editor/SplitView.tsx
+- [x] T143 Adjust WYSIWYG/preview styling (gutter/line numbers) to match preview-only editing in src/components/Editor/WysiwygView.tsx
 
 ---
 
@@ -504,7 +507,7 @@ With 2+ developers:
 
 | Category | Count |
 |----------|-------|
-| Total Tasks | 140 |
+| Total Tasks | 143 |
 | Phase 1 (Setup) | 8 |
 | Phase 2 (Foundational) | 18 |
 | Phase 3 → US1 (文件操作) | 17 |
@@ -518,7 +521,7 @@ With 2+ developers:
 | Phase 11 (Auto-save) | 8 |
 | Phase 12 (Export) | 4 |
 | Phase 13 (File Watch) | 4 |
-| Phase 14 (Polish) | 9 |
+| Phase 14 (Polish) | 12 |
 | Phase 16 (Native Menu) | 4 |
 | Phase 15 (Testing) | 20 |
 

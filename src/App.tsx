@@ -443,6 +443,7 @@ function App() {
     onOpen: () => void handleOpenDialog(),
     onSave: () => void handleSave(),
     onClose: handleCloseRequest,
+    onToggleSidebar: handleToggleSidebar,
   });
 
   useMenuEvents({

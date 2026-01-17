@@ -6,6 +6,7 @@ interface ShortcutHandlers {
   onClose?: () => void;
   onNew?: () => void;
   onHighlight?: () => void;
+  onToggleSidebar?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -14,6 +15,7 @@ export function useKeyboardShortcuts({
   onClose,
   onNew,
   onHighlight,
+  onToggleSidebar,
 }: ShortcutHandlers) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -28,6 +30,10 @@ export function useKeyboardShortcuts({
       if (key === "h" && event.shiftKey && onHighlight && !inCodeMirror) {
         event.preventDefault();
         onHighlight();
+      }
+      if (key === "b" && event.shiftKey && onToggleSidebar) {
+        event.preventDefault();
+        onToggleSidebar();
       }
       if (key === "o" && onOpen) {
         event.preventDefault();
@@ -45,5 +51,5 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, onHighlight, onNew, onOpen, onSave]);
+  }, [onClose, onHighlight, onNew, onOpen, onSave, onToggleSidebar]);
 }

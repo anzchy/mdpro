@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Editor } from "./Editor";
+import { WysiwygView } from "./WysiwygView";
 import { Preview } from "../Preview/Preview";
 import { useScrollSync } from "../../hooks/useScrollSync";
 import type { ViewMode } from "../../types/editor";
@@ -71,8 +72,15 @@ export function SplitView({
       <div className="split-view" ref={containerRef}>
         <div className="split-pane" style={{ width: "100%" }}>
           <div className="pane-title">Preview</div>
-          <div className="pane-content preview-scroll" ref={previewRef}>
-            <Preview markdown={markdown} />
+          <div className="pane-content" ref={previewRef}>
+            <WysiwygView
+              value={markdown}
+              onChange={onChange}
+              readOnly={readOnly}
+              highlightRequest={highlightRequest}
+              showLineNumbers={false}
+              className="wysiwyg-preview"
+            />
           </div>
         </div>
       </div>
