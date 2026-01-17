@@ -26,25 +26,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Prepare App Store Connect API key
-        if: ${{ secrets.APPLE_API_KEY_P8 != '' }}
-        run: |
-          mkdir -p private_keys
-          echo "${{ secrets.APPLE_API_KEY_P8 }}" | base64 --decode > "private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8"
-
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_P8 != '' && format('private_keys/AuthKey_{0}.p8', secrets.APPLE_API_KEY) || '' }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "mdpro ${{ github.ref_name }}"
