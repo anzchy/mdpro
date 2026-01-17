@@ -44,6 +44,56 @@ Tests are not wired yet. When added:
 - Backend: `cargo test` in `src-tauri/`
 - E2E: `pnpm playwright test`
 
+## Shipping DMG via GitHub Actions
+
+This repo ships macOS DMG files on tag pushes using `.github/workflows/release.yml`.
+
+Steps:
+1. Commit and push your changes.
+2. Create a version tag (example):
+   - `git tag v0.1.1`
+   - `git push origin v0.1.1`
+3. GitHub Actions builds on `macos-latest` and publishes a GitHub Release with the DMG attached.
+
+Notes:
+- The workflow only runs on tags that match `v*`.
+- The bundle targets in `src-tauri/tauri.conf.json` must include `dmg` and `app`.
+- For public distribution, add signing/notarization later (not configured yet).
+
+## Release Checklist
+
+- Update version numbers (`src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`).
+- Run `pnpm tauri build` locally to sanity-check.
+- Push commits to `main` or `master`.
+- Tag a release (example):
+  - `git tag v0.1.1`
+  - `git push origin v0.1.1`
+- Verify the GitHub Release assets include the `.dmg` and `.app`.
+
+## macOS Signing and Notarization (CI)
+
+Tauri can sign and notarize on GitHub Actions using environment variables. Add these
+GitHub repository secrets and the workflow will use them if present.
+
+Required for signing:
+- `APPLE_CERTIFICATE`: base64 of your `.p12` signing certificate.
+- `APPLE_CERTIFICATE_PASSWORD`: password for the `.p12` file.
+- `APPLE_SIGNING_IDENTITY`: certificate name shown by `security find-identity -v -p codesigning`.
+
+Required for notarization (choose one option):
+1) Apple ID:
+   - `APPLE_ID`
+   - `APPLE_PASSWORD` (app-specific password)
+   - `APPLE_TEAM_ID`
+2) App Store Connect API key:
+   - `APPLE_API_ISSUER`
+   - `APPLE_API_KEY`
+   - `APPLE_API_KEY_P8` (base64 of the `.p8` key file)
+
+Notes:
+- Notarization is required for Developer ID distribution.
+- Secrets are referenced in `.github/workflows/release.yml`.
+
 ## Troubleshooting
 
 - **Tauri build fails**: ensure Rust toolchain is installed (`rustup show`) and `pnpm install` has run.
