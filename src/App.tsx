@@ -96,6 +96,12 @@ function App() {
     [],
   );
 
+  const handleToggleSidebar = useCallback(() => {
+    const next = !showSidebar;
+    toggleSidebar();
+    void preferencesService.setPreferences({ showSidebar: next });
+  }, [showSidebar, toggleSidebar]);
+
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
     window.setTimeout(() => setToastMessage(null), 3000);
@@ -139,9 +145,9 @@ function App() {
 
   useEffect(() => {
     const baseTitle = activeDocumentTitle;
-    const suffix = hasUnsavedChanges ? " •" : "";
+    const suffix = hasUnsavedChanges ? " *" : "";
     document.title =
-      baseTitle === "mdpro" ? "mdpro" : `${baseTitle}${suffix} — mdpro`;
+      baseTitle === "mdpro" ? "mdpro" : `${baseTitle}${suffix} - mdpro`;
   }, [activeDocumentTitle, hasUnsavedChanges]);
 
   useEffect(() => {
@@ -238,20 +244,26 @@ function App() {
 
   const handleOpenDialog = useCallback(async () => {
     setBusyLabel("Opening file...");
-    const doc = await openDocumentFromDialog();
-    setBusyLabel(null);
-    if (doc?.path) {
-      updateRecentFiles(doc.path);
+    try {
+      const doc = await openDocumentFromDialog();
+      if (doc?.path) {
+        updateRecentFiles(doc.path);
+      }
+    } finally {
+      setBusyLabel(null);
     }
   }, [openDocumentFromDialog, updateRecentFiles]);
 
   const handleOpenPath = useCallback(
     async (path: string) => {
       setBusyLabel("Opening file...");
-      const doc = await openDocumentFromPath(path);
-      setBusyLabel(null);
-      if (doc?.path) {
-        updateRecentFiles(doc.path);
+      try {
+        const doc = await openDocumentFromPath(path);
+        if (doc?.path) {
+          updateRecentFiles(doc.path);
+        }
+      } finally {
+        setBusyLabel(null);
       }
     },
     [openDocumentFromPath, updateRecentFiles],
@@ -266,13 +278,16 @@ function App() {
 
   const handleSave = useCallback(async () => {
     setBusyLabel("Saving...");
-    const result = await saveActiveDocument();
-    setBusyLabel(null);
-    if (result?.path) {
-      updateRecentFiles(result.path);
-    }
-    if (result?.success) {
-      showToast("Saved");
+    try {
+      const result = await saveActiveDocument();
+      if (result?.path) {
+        updateRecentFiles(result.path);
+      }
+      if (result?.success) {
+        showToast("Saved");
+      }
+    } finally {
+      setBusyLabel(null);
     }
   }, [saveActiveDocument, showToast, updateRecentFiles]);
 
@@ -352,14 +367,25 @@ function App() {
     async (encoding: string) => {
       if (!encodingIssue?.path) return;
       setBusyLabel("Opening file...");
-      const doc = await openDocumentWithEncoding(encodingIssue.path, encoding);
-      setBusyLabel(null);
-      if (doc?.path) {
-        updateRecentFiles(doc.path);
+      try {
+        const doc = await openDocumentWithEncoding(encodingIssue.path, encoding);
+        if (doc?.path) {
+          updateRecentFiles(doc.path);
+        }
+        clearEncodingIssue();
+      } catch {
+        showToast("Failed to open with selected encoding");
+      } finally {
+        setBusyLabel(null);
       }
-      clearEncodingIssue();
     },
-    [clearEncodingIssue, encodingIssue, openDocumentWithEncoding, updateRecentFiles],
+    [
+      clearEncodingIssue,
+      encodingIssue,
+      openDocumentWithEncoding,
+      showToast,
+      updateRecentFiles,
+    ],
   );
 
   useKeyboardShortcuts({
@@ -435,7 +461,7 @@ function App() {
           onSave={() => void handleSave()}
           onHighlight={() => setHighlightRequest((prev) => prev + 1)}
           showSidebar={showSidebar}
-          onToggleSidebar={toggleSidebar}
+          onToggleSidebar={handleToggleSidebar}
           themeMode={themeMode}
           onThemeToggle={cycleThemeMode}
           recentFiles={recentFiles}

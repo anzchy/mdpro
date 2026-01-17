@@ -80,7 +80,13 @@ export function useDocument() {
         return null;
       }
     },
-    [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument],
+    [
+      setActiveDocumentId,
+      setEditorActiveDocumentId,
+      setEncodingIssue,
+      setLargeFileWarning,
+      upsertDocument,
+    ],
   );
 
   const setActiveDocumentById = useCallback(
@@ -120,10 +126,19 @@ export function useDocument() {
       upsertDocument(result.document);
       setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
+      if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
+        setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
+      }
       setEncodingIssue(null);
       return result.document;
     },
-    [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument],
+    [
+      setActiveDocumentId,
+      setEditorActiveDocumentId,
+      setEncodingIssue,
+      setLargeFileWarning,
+      upsertDocument,
+    ],
   );
 
   const createDocument = useCallback(async () => {
@@ -137,7 +152,13 @@ export function useDocument() {
     setActiveDocumentId(document.id);
     setEditorActiveDocumentId(document.id);
     return document;
-  }, [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument]);
+  }, [
+    setActiveDocumentId,
+    setEditorActiveDocumentId,
+    setEncodingIssue,
+    setLargeFileWarning,
+    upsertDocument,
+  ]);
 
   const upsertAndActivateDocument = useCallback(
     (document: Document) => {
@@ -213,7 +234,7 @@ export function useDocument() {
       await fileService.closeDocument(activeDocument.id, discardChanges);
       closeDocument(activeDocument.id);
       setEditorActiveDocumentId(null);
-      return true;
+      return;
     },
     [activeDocument, closeDocument, setEditorActiveDocumentId],
   );
@@ -225,7 +246,7 @@ export function useDocument() {
       if (activeDocumentId === id) {
         setEditorActiveDocumentId(null);
       }
-      return true;
+      return;
     },
     [activeDocumentId, closeDocument, setEditorActiveDocumentId],
   );

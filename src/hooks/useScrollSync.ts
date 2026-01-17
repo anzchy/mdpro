@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import type { RefObject } from "react";
 
 export function useScrollSync(
-  editorRef: RefObject<HTMLElement>,
-  previewRef: RefObject<HTMLElement>,
+  editorRef: RefObject<HTMLElement | null>,
+  previewRef: RefObject<HTMLElement | null>,
   enabled = true,
 ) {
   useEffect(() => {

@@ -38,7 +38,6 @@ export function WysiwygView({
           markdownExtension,
           syntaxHighlightingExtension,
           wysiwygExtension,
-          EditorView.viewportMargin.of(200),
           keymap.of([
             { key: "Mod-z", run: undo },
             { key: "Mod-Shift-z", run: redo },

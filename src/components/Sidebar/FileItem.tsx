@@ -19,14 +19,14 @@ export function FileItem({ document, isActive, onSelect, onClose }: FileItemProp
       <button className="file-item-button" type="button" onClick={onSelect}>
         <span className="file-item-title">
           {getTitle(document.path)}
-          {document.isModified ? " •" : ""}
+          {document.isModified ? " *" : ""}
         </span>
         <span className="file-item-path">
           {document.path ? document.path : "Unsaved"}
         </span>
       </button>
       <button className="file-item-close" type="button" onClick={onClose}>
-        ×
+        x
       </button>
     </div>
   );

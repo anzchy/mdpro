@@ -36,7 +36,6 @@ export function Editor({
         extensions={[
           markdownExtension,
           syntaxHighlightingExtension,
-          EditorView.viewportMargin.of(200),
           keymap.of([
             { key: "Mod-z", run: undo },
             { key: "Mod-Shift-z", run: redo },

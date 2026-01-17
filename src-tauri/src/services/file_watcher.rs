@@ -3,9 +3,9 @@ use serde::Serialize;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
-use tauri::{AppHandle, Manager, Theme};
+use tauri::{AppHandle, Emitter, Theme};
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileChangedEvent {
     pub path: String,
@@ -14,7 +14,7 @@ pub struct FileChangedEvent {
     pub timestamp: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ThemeChangedEvent {
     pub theme: String,
@@ -70,7 +70,7 @@ impl FileWatcher {
 }
 
 fn emit_file_changed(app_handle: &AppHandle, event: FileChangedEvent) {
-    let _ = app_handle.emit_all("file:changed", event);
+    let _ = app_handle.emit("file:changed", event);
 }
 
 fn handle_event(app_handle: &AppHandle, event: Event) {
@@ -128,7 +128,7 @@ pub fn emit_theme_changed(app_handle: &AppHandle, theme: &Theme) {
         Theme::Dark => "dark",
         _ => "light",
     };
-    let _ = app_handle.emit_all(
+    let _ = app_handle.emit(
         "theme:changed",
         ThemeChangedEvent {
             theme: value.to_string(),

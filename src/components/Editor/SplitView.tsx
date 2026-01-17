@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import type { MouseEvent } from "react";
 import { Editor } from "./Editor";
 import { Preview } from "../Preview/Preview";
 import { useScrollSync } from "../../hooks/useScrollSync";
@@ -27,13 +26,13 @@ export function SplitView({
 
   useScrollSync(editorRef, previewRef, viewMode === "split");
 
-  const startDrag = (event: MouseEvent<HTMLDivElement>) => {
+  const startDrag = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     const container = containerRef.current;
     if (!container) return;
     const containerRect = container.getBoundingClientRect();
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
+    const handleMouseMove = (moveEvent: globalThis.MouseEvent) => {
       const offset = moveEvent.clientX - containerRect.left;
       const ratio = (offset / containerRect.width) * 100;
       const clamped = Math.min(70, Math.max(30, ratio));

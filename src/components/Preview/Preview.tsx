@@ -34,7 +34,7 @@ export function Preview({ markdown }: PreviewProps) {
       event.preventDefault();
       const href = link.href;
       import("@tauri-apps/plugin-opener")
-        .then(({ open }) => open(href))
+        .then(({ openUrl }) => openUrl(href))
         .catch(() => window.open(href, "_blank", "noopener,noreferrer"));
     };
 
@@ -44,7 +44,7 @@ export function Preview({ markdown }: PreviewProps) {
 
   return (
     <div className="preview-body">
-      {isRendering ? <div className="preview-loading">Rendering…</div> : null}
+      {isRendering ? <div className="preview-loading">Rendering...</div> : null}
       <div
         className="preview-content"
         ref={containerRef}

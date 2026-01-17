@@ -13,7 +13,7 @@ const FALLBACK_SVG =
   );
 
 interface ImageRendererProps {
-  containerRef: RefObject<HTMLElement>;
+  containerRef: RefObject<HTMLElement | null>;
   html: string;
 }
 

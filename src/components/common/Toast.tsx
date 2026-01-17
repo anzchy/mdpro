@@ -12,7 +12,7 @@ export function Toast({ message, visible, onClose }: ToastProps) {
       <span>{message}</span>
       {onClose ? (
         <button className="toast-close" type="button" onClick={onClose}>
-          ×
+          x
         </button>
       ) : null}
     </div>

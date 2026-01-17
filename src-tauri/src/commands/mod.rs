@@ -3,7 +3,7 @@ pub mod file;
 pub mod preferences;
 pub mod draft;
 
-pub fn handlers() -> impl Fn(tauri::ipc::Invoke) {
+pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
     tauri::generate_handler![
         export::render_markdown,
         export::export_html,

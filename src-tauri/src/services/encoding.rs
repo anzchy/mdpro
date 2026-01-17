@@ -36,8 +36,16 @@ fn decode_utf16(bytes: &[u8], little_endian: bool) -> Result<String, String> {
     if bytes.len() < 2 {
         return Ok(String::new());
     }
-    let mut u16s = Vec::with_capacity(bytes.len() / 2);
-    let mut iter = bytes.iter();
+    let trimmed = if little_endian && bytes.starts_with(&[0xFF, 0xFE]) {
+        &bytes[2..]
+    } else if !little_endian && bytes.starts_with(&[0xFE, 0xFF]) {
+        &bytes[2..]
+    } else {
+        bytes
+    };
+
+    let mut u16s = Vec::with_capacity(trimmed.len() / 2);
+    let mut iter = trimmed.iter();
     while let (Some(lo), Some(hi)) = (iter.next(), iter.next()) {
         let value = if little_endian {
             u16::from_le_bytes([*lo, *hi])

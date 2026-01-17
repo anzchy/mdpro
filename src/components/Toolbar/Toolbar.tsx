@@ -40,7 +40,7 @@ export function Toolbar({
     <header className="toolbar">
       <div className="toolbar-title">
         {title}
-        {isModified ? " •" : ""}
+        {isModified ? " *" : ""}
       </div>
       <div className="toolbar-actions">
         <div className="toolbar-modes">
