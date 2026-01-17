@@ -25,14 +25,14 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create Tauri 2.0 + React + TypeScript project using `pnpm create tauri-app`
-- [ ] T002 Configure Cargo.toml with dependencies: pulldown-cmark, serde, serde_json, notify, chrono, uuid in src-tauri/Cargo.toml
-- [ ] T003 [P] Configure package.json with dependencies: @uiwjs/react-codemirror, @codemirror/lang-markdown, marked, dompurify, zustand in package.json
-- [ ] T004 [P] Configure TailwindCSS with darkMode: 'class' in tailwind.config.js
-- [ ] T005 [P] Configure Vite with Tauri plugin in vite.config.ts
-- [ ] T006 [P] Configure TypeScript strict mode in tsconfig.json
-- [ ] T007 Create directory structure per plan.md (src/components/, src/hooks/, src/services/, src/stores/, src/types/, src/styles/)
-- [ ] T008 Create Rust directory structure (src-tauri/src/commands/, src-tauri/src/services/, src-tauri/src/models/)
+- [x] T001 Create Tauri 2.0 + React + TypeScript project using `pnpm create tauri-app`
+- [x] T002 Configure Cargo.toml with dependencies: pulldown-cmark, serde, serde_json, notify, chrono, uuid in src-tauri/Cargo.toml
+- [x] T003 [P] Configure package.json with dependencies: @uiwjs/react-codemirror, @codemirror/lang-markdown, marked, dompurify, zustand in package.json
+- [x] T004 [P] Configure TailwindCSS with darkMode: 'class' in tailwind.config.js
+- [x] T005 [P] Configure Vite with Tauri plugin in vite.config.ts
+- [x] T006 [P] Configure TypeScript strict mode in tsconfig.json
+- [x] T007 Create directory structure per plan.md (src/components/, src/hooks/, src/services/, src/stores/, src/types/, src/styles/)
+- [x] T008 Create Rust directory structure (src-tauri/src/commands/, src-tauri/src/services/, src-tauri/src/models/)
 
 **Checkpoint**: Project structure ready for development
 
