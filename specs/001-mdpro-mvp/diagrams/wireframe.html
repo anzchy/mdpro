@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mdpro MVP - 界面线框图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .wireframe {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+        .wireframe-title {
+            background: #e0e0e0;
+            padding: 10px 15px;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 1px solid #ccc;
+        }
+
+        /* macOS Window Chrome */
+        .window-chrome {
+            background: linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 100%);
+            height: 38px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            border-bottom: 1px solid #b0b0b0;
+        }
+        .window-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .window-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .window-btn.close { background: #ff5f56; }
+        .window-btn.minimize { background: #ffbd2e; }
+        .window-btn.maximize { background: #27ca3f; }
+        .window-title {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Menu Bar */
+        .menu-bar {
+            background: #f8f8f8;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 15px;
+            font-size: 13px;
+            border-bottom: 1px solid #ddd;
+        }
+        .menu-item {
+            color: #333;
+            cursor: pointer;
+        }
+        .menu-item:hover {
+            color: #007aff;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: #fafafa;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            gap: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .toolbar-btn {
+            width: 32px;
+            height: 32px;
+            background: #e8e8e8;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #555;
+            cursor: pointer;
+        }
+        .toolbar-btn:hover {
+            background: #ddd;
+        }
+        .toolbar-btn.active {
+            background: #007aff;
+            color: white;
+        }
+        .toolbar-separator {
+            width: 1px;
+            height: 24px;
+            background: #ddd;
+            margin: 0 8px;
+        }
+        .view-toggle {
+            display: flex;
+            background: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-left: auto;
+        }
+        .view-toggle-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #555;
+        }
+        .view-toggle-btn.active {
+            background: #007aff;
+            color: white;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: flex;
+            height: 500px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: #f0f0f0;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 12px 15px;
+            font-weight: 600;
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #ddd;
+        }
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .file-item {
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .file-item:hover {
+            background: #e0e0e0;
+        }
+        .file-item.active {
+            background: #007aff;
+            color: white;
+        }
+        .file-icon {
+            width: 16px;
+            height: 16px;
+            background: #ccc;
+            border-radius: 3px;
+        }
+        .file-item.active .file-icon {
+            background: rgba(255,255,255,0.3);
+        }
+        .file-name {
+            font-size: 13px;
+            flex: 1;
+        }
+        .file-modified {
+            width: 6px;
+            height: 6px;
+            background: #ff9500;
+            border-radius: 50%;
+        }
+
+        /* Editor and Preview Panes */
+        .editor-preview {
+            flex: 1;
+            display: flex;
+        }
+        .editor-pane, .preview-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .editor-pane {
+            border-right: 1px solid #ddd;
+        }
+        .pane-header {
+            padding: 8px 15px;
+            background: #f5f5f5;
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .editor-content {
+            flex: 1;
+            padding: 20px;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #fff;
+            color: #333;
+            overflow-y: auto;
+        }
+        .preview-content {
+            flex: 1;
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.7;
+            background: #fff;
+            overflow-y: auto;
+        }
+
+        /* Editor Syntax Highlighting Mock */
+        .md-heading { color: #0066cc; font-weight: bold; }
+        .md-bold { font-weight: bold; }
+        .md-code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; color: #c41a16; }
+        .md-link { color: #007aff; }
+        .md-list { color: #666; }
+        .md-highlight { background: #FF5582A6; padding: 1px 3px; }
+
+        /* Preview Rendered Mock */
+        .preview-content h1 {
+            font-size: 28px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .preview-content h2 {
+            font-size: 22px;
+            margin: 20px 0 12px;
+        }
+        .preview-content p {
+            margin-bottom: 12px;
+        }
+        .preview-content ul {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+        .preview-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .preview-content mark {
+            background: #FF5582A6;
+            padding: 1px 4px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            height: 24px;
+            background: #f0f0f0;
+            border-top: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 11px;
+            color: #666;
+            gap: 20px;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Annotations */
+        .annotations {
+            padding: 20px;
+            background: #fff3cd;
+            border-top: 1px solid #ffc107;
+        }
+        .annotation-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+        .annotation-list {
+            font-size: 13px;
+            color: #856404;
+        }
+        .annotation-list li {
+            margin-bottom: 5px;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>mdpro MVP - 界面线框图</h1>
+
+        <!-- Main Window Wireframe -->
+        <div class="wireframe">
+            <div class="wireframe-title">主界面 - 分屏编辑模式</div>
+
+            <!-- macOS Window Chrome -->
+            <div class="window-chrome">
+                <div class="window-buttons">
+                    <div class="window-btn close"></div>
+                    <div class="window-btn minimize"></div>
+                    <div class="window-btn maximize"></div>
+                </div>
+                <div class="window-title">README.md — mdpro</div>
+            </div>
+
+            <!-- Menu Bar -->
+            <div class="menu-bar">
+                <span class="menu-item"><strong>mdpro</strong></span>
+                <span class="menu-item">文件</span>
+                <span class="menu-item">编辑</span>
+                <span class="menu-item">格式</span>
+                <span class="menu-item">视图</span>
+                <span class="menu-item">帮助</span>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="toolbar-btn" title="新建">📄</div>
+                <div class="toolbar-btn" title="打开">📂</div>
+                <div class="toolbar-btn" title="保存">💾</div>
+                <div class="toolbar-separator"></div>
+                <div class="toolbar-btn" title="撤销">↩️</div>
+                <div class="toolbar-btn" title="重做">↪️</div>
+                <div class="toolbar-separator"></div>
+                <div class="toolbar-btn" title="加粗">B</div>
+                <div class="toolbar-btn" title="斜体">I</div>
+                <div class="toolbar-btn" title="高亮">🖍</div>
+                <div class="view-toggle">
+                    <div class="view-toggle-btn">编辑</div>
+                    <div class="view-toggle-btn active">分屏</div>
+                    <div class="view-toggle-btn">预览</div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <div class="sidebar-header">打开的文件</div>
+                    <div class="file-list">
+                        <div class="file-item active">
+                            <div class="file-icon"></div>
+                            <span class="file-name">README.md</span>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-icon"></div>
+                            <span class="file-name">notes.md</span>
+                            <div class="file-modified"></div>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-icon"></div>
+                            <span class="file-name">meeting-2026-01.md</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Editor and Preview -->
+                <div class="editor-preview">
+                    <!-- Editor Pane -->
+                    <div class="editor-pane">
+                        <div class="pane-header">Markdown 编辑器</div>
+                        <div class="editor-content">
+                            <div><span class="md-heading"># mdpro 项目说明</span></div>
+                            <br>
+                            <div>这是一个 <span class="md-bold">**本地Markdown编辑器**</span> 项目。</div>
+                            <br>
+                            <div><span class="md-heading">## 主要功能</span></div>
+                            <br>
+                            <div><span class="md-list">-</span> 实时预览</div>
+                            <div><span class="md-list">-</span> 语法高亮</div>
+                            <div><span class="md-list">-</span> <span class="md-highlight">&lt;mark&gt;文本高亮&lt;/mark&gt;</span></div>
+                            <br>
+                            <div>使用 <span class="md-code">`Cmd+S`</span> 保存文档。</div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Pane -->
+                    <div class="preview-pane">
+                        <div class="pane-header">实时预览</div>
+                        <div class="preview-content">
+                            <h1>mdpro 项目说明</h1>
+                            <p>这是一个 <strong>本地Markdown编辑器</strong> 项目。</p>
+                            <h2>主要功能</h2>
+                            <ul>
+                                <li>实时预览</li>
+                                <li>语法高亮</li>
+                                <li><mark>文本高亮</mark></li>
+                            </ul>
+                            <p>使用 <code>Cmd+S</code> 保存文档。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="status-item">行 12, 列 5</span>
+                <span class="status-item">UTF-8</span>
+                <span class="status-item">Markdown</span>
+                <span class="status-item" style="margin-left: auto;">字数: 156</span>
+                <span class="status-item">阅读时间: 1分钟</span>
+            </div>
+
+            <!-- Annotations -->
+            <div class="annotations">
+                <div class="annotation-title">界面说明</div>
+                <ul class="annotation-list">
+                    <li><strong>标题栏</strong>: 显示当前文件名和应用名称</li>
+                    <li><strong>工具栏</strong>: 常用操作快捷按钮，右侧为视图切换（编辑/分屏/预览）</li>
+                    <li><strong>侧边栏</strong>: 已打开文件列表，橙点表示未保存更改</li>
+                    <li><strong>编辑区</strong>: 支持Markdown语法高亮的纯文本编辑器</li>
+                    <li><strong>预览区</strong>: 实时渲染的HTML预览，支持双向滚动同步</li>
+                    <li><strong>状态栏</strong>: 显示光标位置、编码、字数统计等信息</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title">图例说明</div>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #007aff;"></div>
+                    <span>当前选中/激活状态</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff9500;"></div>
+                    <span>未保存更改指示</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF5582A6;"></div>
+                    <span>文本高亮效果</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

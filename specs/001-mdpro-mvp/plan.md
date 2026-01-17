@@ -155,3 +155,46 @@ No complexity violations. Architecture follows standard Tauri patterns.
 | Styling | TailwindCSS | Rapid UI development, consistent design |
 | Build | Vite | Fast HMR, optimized builds |
 | Testing | Vitest + Playwright | Modern, fast, good Tauri integration |
+| Syntax Highlighting | highlight.js | Wide language support, lightweight, customizable themes |
+
+## Code Syntax Highlighting Languages
+
+Per FR-010, the following 20+ languages are supported for code block syntax highlighting:
+
+### Tier 1 - Primary Languages (10)
+| Language | highlight.js ID | Notes |
+|----------|-----------------|-------|
+| JavaScript | `javascript` / `js` | Includes ES6+ |
+| TypeScript | `typescript` / `ts` | |
+| Python | `python` / `py` | |
+| Rust | `rust` / `rs` | |
+| Go | `go` / `golang` | |
+| Java | `java` | |
+| C/C++ | `c` / `cpp` | |
+| Swift | `swift` | macOS native development |
+| Kotlin | `kotlin` | |
+| Ruby | `ruby` / `rb` | |
+
+### Tier 2 - Web & Scripting (8)
+| Language | highlight.js ID | Notes |
+|----------|-----------------|-------|
+| HTML | `html` / `xml` | |
+| CSS | `css` | Includes SCSS/LESS |
+| JSON | `json` | |
+| YAML | `yaml` / `yml` | |
+| Bash/Shell | `bash` / `shell` | |
+| SQL | `sql` | |
+| Markdown | `markdown` / `md` | Meta! |
+| PHP | `php` | |
+
+### Tier 3 - Additional (6)
+| Language | highlight.js ID | Notes |
+|----------|-----------------|-------|
+| C# | `csharp` / `cs` | |
+| Objective-C | `objectivec` | Legacy macOS |
+| Scala | `scala` | |
+| Lua | `lua` | |
+| R | `r` | Data science |
+| Dockerfile | `dockerfile` | |
+
+**Total: 24 languages** (exceeds FR-010 minimum of 20)

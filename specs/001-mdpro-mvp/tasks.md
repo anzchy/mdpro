@@ -342,7 +342,51 @@
 - [ ] T111 Save and restore window dimensions on close/open in src/App.tsx
 - [ ] T112 Add recent files list to File menu in src/components/Toolbar/Toolbar.tsx
 - [ ] T113 Performance optimization: virtual scrolling for large documents in src/components/Editor/Editor.tsx
-- [ ] T114 Run quickstart.md validation: verify all setup steps work
+- [ ] T114 Implement file encoding detection with fallback prompt in src-tauri/src/services/encoding.rs
+- [ ] T115 Create EncodingDialog component for manual encoding selection in src/components/common/EncodingDialog.tsx
+- [ ] T116 Run quickstart.md validation: verify all setup steps work
+
+---
+
+## Phase 15: Testing
+
+**Purpose**: Unit tests, integration tests, and E2E tests per plan.md testing strategy
+
+**Frameworks**: Vitest (frontend unit), cargo test (backend), Playwright (E2E)
+
+### Backend Unit Tests (Rust)
+
+- [ ] T117 [P] Create unit tests for Document model in src-tauri/src/models/document.rs
+- [ ] T118 [P] Create unit tests for Draft model in src-tauri/src/models/draft.rs
+- [ ] T119 [P] Create unit tests for markdown rendering service in src-tauri/src/services/markdown.rs
+- [ ] T120 [P] Create unit tests for file operations commands in src-tauri/src/commands/file.rs
+- [ ] T121 [P] Create unit tests for encoding detection service in src-tauri/src/services/encoding.rs
+
+### Frontend Unit Tests (Vitest)
+
+- [ ] T122 [P] Create unit tests for documentStore in tests/unit/stores/documentStore.test.ts
+- [ ] T123 [P] Create unit tests for editorStore in tests/unit/stores/editorStore.test.ts
+- [ ] T124 [P] Create unit tests for themeStore in tests/unit/stores/themeStore.test.ts
+- [ ] T125 [P] Create unit tests for useDocument hook in tests/unit/hooks/useDocument.test.ts
+- [ ] T126 [P] Create unit tests for useAutoSave hook in tests/unit/hooks/useAutoSave.test.ts
+
+### Frontend Component Tests (Vitest + React Testing Library)
+
+- [ ] T127 [P] Create component tests for Editor in tests/unit/components/Editor.test.tsx
+- [ ] T128 [P] Create component tests for Preview in tests/unit/components/Preview.test.tsx
+- [ ] T129 [P] Create component tests for Toolbar in tests/unit/components/Toolbar.test.tsx
+- [ ] T130 [P] Create component tests for Sidebar in tests/unit/components/Sidebar.test.tsx
+
+### E2E Tests (Playwright)
+
+- [ ] T131 Create E2E test for file open/edit/save flow in tests/e2e/file-operations.spec.ts
+- [ ] T132 Create E2E test for new document creation in tests/e2e/new-document.spec.ts
+- [ ] T133 Create E2E test for live preview rendering in tests/e2e/preview.spec.ts
+- [ ] T134 Create E2E test for theme switching in tests/e2e/theme.spec.ts
+- [ ] T135 Create E2E test for HTML export in tests/e2e/export.spec.ts
+- [ ] T136 Create E2E test for auto-save and recovery in tests/e2e/autosave.spec.ts
+
+**Checkpoint**: All tests passing, ready for release
 
 ---
 
@@ -350,19 +394,20 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Stories (Phase 3-10)**: All depend on Foundational phase completion
-  - US1 (Phase 3): No story dependencies - RECOMMENDED MVP
-  - US2 (Phase 4): Benefits from US1 but can be tested independently
-  - US3 (Phase 5): Can run parallel with US1/US2
-  - US4 (Phase 6): Builds on US2 preview but testable independently
-  - US5 (Phase 7): Extends US4 markdown support
-  - US6 (Phase 8): Requires US1 editor and US2 preview
-  - US7 (Phase 9): Requires US1 document handling
-  - US8 (Phase 10): Can run parallel with any P1 story
-- **Cross-cutting (Phase 11-13)**: Depend on relevant user stories
-- **Polish (Phase 14)**: Depends on all desired user stories being complete
+- **Phase 1 (Setup)**: No dependencies - can start immediately
+- **Phase 2 (Foundational)**: Depends on Phase 1 completion - BLOCKS all user stories
+- **Phase 3-10 (User Stories)**: All depend on Phase 2 completion
+  - Phase 3 → US1 (文件操作): No story dependencies - RECOMMENDED MVP
+  - Phase 4 → US2 (实时预览): Benefits from US1 but can be tested independently
+  - Phase 5 → US3 (新建文档): Can run parallel with US1/US2
+  - Phase 6 → US4 (Markdown语法): Builds on US2 preview but testable independently
+  - Phase 7 → US5 (高亮标记): Extends US4 markdown support
+  - Phase 8 → US6 (视图模式): Requires US1 editor and US2 preview
+  - Phase 9 → US7 (侧边栏): Requires US1 document handling
+  - Phase 10 → US8 (主题切换): Can run parallel with any P1 story
+- **Phase 11-13 (Cross-cutting)**: Depend on relevant user stories
+- **Phase 14 (Polish)**: Depends on all desired user stories being complete
+- **Phase 15 (Testing)**: Depends on Phase 14 completion
 
 ### User Story Dependencies
 
@@ -447,21 +492,22 @@ With 2+ developers:
 
 | Category | Count |
 |----------|-------|
-| Total Tasks | 114 |
+| Total Tasks | 136 |
 | Phase 1 (Setup) | 8 |
 | Phase 2 (Foundational) | 18 |
-| US1 (P1 - Files) | 17 |
-| US2 (P1 - Preview) | 8 |
-| US3 (P1 - New Docs) | 5 |
-| US4 (P1 - Syntax) | 7 |
-| US5 (P2 - Highlight) | 4 |
-| US6 (P2 - View Modes) | 7 |
-| US7 (P3 - Sidebar) | 6 |
-| US8 (P3 - Themes) | 11 |
-| Cross-cutting (Auto-save) | 8 |
-| Cross-cutting (Export) | 4 |
-| Cross-cutting (File Watch) | 4 |
-| Polish | 7 |
+| Phase 3 → US1 (文件操作) | 17 |
+| Phase 4 → US2 (实时预览) | 8 |
+| Phase 5 → US3 (新建文档) | 5 |
+| Phase 6 → US4 (Markdown语法) | 7 |
+| Phase 7 → US5 (高亮标记) | 4 |
+| Phase 8 → US6 (视图模式) | 7 |
+| Phase 9 → US7 (侧边栏) | 6 |
+| Phase 10 → US8 (主题切换) | 11 |
+| Phase 11 (Auto-save) | 8 |
+| Phase 12 (Export) | 4 |
+| Phase 13 (File Watch) | 4 |
+| Phase 14 (Polish) | 9 |
+| Phase 15 (Testing) | 20 |
 
 **Suggested MVP Scope**: Phase 1 + Phase 2 + Phase 3 (US1) = 43 tasks
 

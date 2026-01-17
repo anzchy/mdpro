@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mdpro MVP - 用户旅程流程图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: white;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 40px;
+        }
+
+        /* Flow Diagram Container */
+        .flow-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+
+        /* Flow Section */
+        .flow-section {
+            margin-bottom: 50px;
+        }
+        .flow-section:last-child {
+            margin-bottom: 0;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-icon {
+            font-size: 24px;
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Flow Nodes */
+        .flow-node {
+            position: relative;
+            text-align: center;
+        }
+        .node-box {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 120px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Node Types */
+        .node-start .node-box {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border-radius: 25px;
+        }
+        .node-end .node-box {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+            border-radius: 25px;
+        }
+        .node-action .node-box {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+        }
+        .node-decision .node-box {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+            transform: rotate(0deg);
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            padding: 20px 30px;
+            min-width: 100px;
+        }
+        .node-decision .node-content {
+            font-size: 11px;
+        }
+        .node-page .node-box {
+            background: white;
+            border: 2px solid #805ad5;
+            color: #553c9a;
+        }
+        .node-system .node-box {
+            background: #f7fafc;
+            border: 2px dashed #a0aec0;
+            color: #4a5568;
+        }
+
+        /* Arrows */
+        .arrow {
+            display: flex;
+            align-items: center;
+            color: #a0aec0;
+            font-size: 20px;
+            padding: 0 5px;
+        }
+        .arrow-down {
+            transform: rotate(90deg);
+        }
+        .arrow-label {
+            font-size: 10px;
+            color: #718096;
+            position: absolute;
+            white-space: nowrap;
+        }
+
+        /* Branch Container */
+        .branch-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .branch-options {
+            display: flex;
+            gap: 40px;
+        }
+        .branch-path {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .branch-label {
+            font-size: 11px;
+            color: #718096;
+            background: #f7fafc;
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+
+        /* Vertical Flow */
+        .vertical-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .v-arrow {
+            color: #a0aec0;
+            font-size: 18px;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        .legend-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .legend-box {
+            width: 30px;
+            height: 20px;
+            border-radius: 5px;
+        }
+        .legend-box.start { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); border-radius: 10px; }
+        .legend-box.action { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); }
+        .legend-box.decision { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); }
+        .legend-box.page { background: white; border: 2px solid #805ad5; }
+        .legend-box.system { background: #f7fafc; border: 2px dashed #a0aec0; }
+        .legend-box.end { background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); border-radius: 10px; }
+
+        /* Sub-flows */
+        .sub-flow {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .sub-flow-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>mdpro MVP - 用户旅程流程图</h1>
+        <p class="subtitle">User Journey Flow Diagram</p>
+
+        <div class="flow-container">
+
+            <!-- Flow 1: App Launch -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">🚀</span>
+                    应用启动流程
+                </h3>
+                <div class="flow-diagram">
+                    <div class="flow-node node-start">
+                        <div class="node-box">启动 mdpro</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-system">
+                        <div class="node-box">加载配置</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-system">
+                        <div class="node-box">恢复窗口状态</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-page">
+                        <div class="node-box">主编辑界面</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow 2: Create New Document -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">📝</span>
+                    新建文档流程
+                </h3>
+                <div class="flow-diagram">
+                    <div class="flow-node node-action">
+                        <div class="node-box">Cmd+N / 文件→新建</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-page">
+                        <div class="node-box">空白编辑器</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-action">
+                        <div class="node-box">用户编辑内容</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-action">
+                        <div class="node-box">Cmd+S 保存</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-system">
+                        <div class="node-box">保存对话框</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-end">
+                        <div class="node-box">文件已保存</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow 3: Open Document -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">📂</span>
+                    打开文档流程
+                </h3>
+                <div class="vertical-flow">
+                    <div class="flow-diagram">
+                        <div class="flow-node node-action">
+                            <div class="node-box">Cmd+O / 拖拽文件</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-node node-system">
+                            <div class="node-box">读取文件内容</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-node node-system">
+                            <div class="node-box">检测编码</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-node node-page">
+                            <div class="node-box">显示编辑器</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-node node-page">
+                            <div class="node-box">更新侧边栏</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow 4: Edit and Preview -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">✏️</span>
+                    编辑与预览流程
+                </h3>
+                <div class="flow-diagram">
+                    <div class="flow-node node-action">
+                        <div class="node-box">用户输入文本</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-system">
+                        <div class="node-box">Markdown 解析</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-page">
+                        <div class="node-box">实时预览更新</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-system">
+                        <div class="node-box">滚动同步</div>
+                    </div>
+                </div>
+                <div class="sub-flow">
+                    <div class="sub-flow-title">文档状态变化</div>
+                    <div class="flow-diagram">
+                        <div class="flow-node node-system">
+                            <div class="node-box">内容变更</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-node node-system">
+                            <div class="node-box">标记未保存</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-node node-page">
+                            <div class="node-box">标题栏显示 •</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow 5: Save Document -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">💾</span>
+                    保存文档流程
+                </h3>
+                <div class="vertical-flow">
+                    <div class="flow-diagram">
+                        <div class="flow-node node-action">
+                            <div class="node-box">Cmd+S 保存</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="branch-container">
+                            <div class="branch-options">
+                                <div class="branch-path">
+                                    <span class="branch-label">已有路径</span>
+                                    <div class="flow-node node-system">
+                                        <div class="node-box">直接保存</div>
+                                    </div>
+                                </div>
+                                <div class="branch-path">
+                                    <span class="branch-label">新文档</span>
+                                    <div class="flow-node node-system">
+                                        <div class="node-box">保存对话框</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-node node-end">
+                            <div class="node-box">保存成功</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow 6: Close Document -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">❌</span>
+                    关闭文档流程
+                </h3>
+                <div class="vertical-flow">
+                    <div class="flow-diagram">
+                        <div class="flow-node node-action">
+                            <div class="node-box">关闭窗口/文件</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="branch-container">
+                            <div class="branch-options">
+                                <div class="branch-path">
+                                    <span class="branch-label">有未保存更改</span>
+                                    <div class="flow-node node-system">
+                                        <div class="node-box">保存确认对话框</div>
+                                    </div>
+                                    <span class="v-arrow">↓</span>
+                                    <div class="branch-options" style="gap: 20px;">
+                                        <div class="branch-path">
+                                            <span class="branch-label">保存</span>
+                                            <div class="flow-node node-action" style="font-size: 11px;">
+                                                <div class="node-box">执行保存</div>
+                                            </div>
+                                        </div>
+                                        <div class="branch-path">
+                                            <span class="branch-label">不保存</span>
+                                            <div class="flow-node node-action" style="font-size: 11px;">
+                                                <div class="node-box">放弃更改</div>
+                                            </div>
+                                        </div>
+                                        <div class="branch-path">
+                                            <span class="branch-label">取消</span>
+                                            <div class="flow-node node-page" style="font-size: 11px;">
+                                                <div class="node-box">返回编辑</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="branch-path">
+                                    <span class="branch-label">无更改</span>
+                                    <div class="flow-node node-end">
+                                        <div class="node-box">直接关闭</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow 7: View Mode Switch -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">👁️</span>
+                    视图切换流程
+                </h3>
+                <div class="flow-diagram">
+                    <div class="flow-node node-page">
+                        <div class="node-box">当前视图模式</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-action">
+                        <div class="node-box">点击视图切换</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="branch-container">
+                        <div class="branch-options">
+                            <div class="branch-path">
+                                <span class="branch-label">仅编辑</span>
+                                <div class="flow-node node-page">
+                                    <div class="node-box">编辑器全屏</div>
+                                </div>
+                            </div>
+                            <div class="branch-path">
+                                <span class="branch-label">分屏</span>
+                                <div class="flow-node node-page">
+                                    <div class="node-box">左右分屏</div>
+                                </div>
+                            </div>
+                            <div class="branch-path">
+                                <span class="branch-label">仅预览</span>
+                                <div class="flow-node node-page">
+                                    <div class="node-box">预览全屏</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow 8: Theme Switch -->
+            <div class="flow-section">
+                <h3 class="section-title">
+                    <span class="section-icon">🎨</span>
+                    主题切换流程
+                </h3>
+                <div class="flow-diagram">
+                    <div class="flow-node node-action">
+                        <div class="node-box">打开偏好设置</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-action">
+                        <div class="node-box">选择主题选项</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="branch-container">
+                        <div class="branch-options">
+                            <div class="branch-path">
+                                <span class="branch-label">浅色</span>
+                                <div class="flow-node node-page">
+                                    <div class="node-box">应用浅色主题</div>
+                                </div>
+                            </div>
+                            <div class="branch-path">
+                                <span class="branch-label">深色</span>
+                                <div class="flow-node node-page">
+                                    <div class="node-box">应用深色主题</div>
+                                </div>
+                            </div>
+                            <div class="branch-path">
+                                <span class="branch-label">跟随系统</span>
+                                <div class="flow-node node-system">
+                                    <div class="node-box">监听系统主题</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-node node-system">
+                        <div class="node-box">保存偏好</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-title">图例说明</div>
+                <div class="legend-grid">
+                    <div class="legend-item">
+                        <div class="legend-box start"></div>
+                        <span>开始节点</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box action"></div>
+                        <span>用户操作</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box page"></div>
+                        <span>页面/界面状态</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box system"></div>
+                        <span>系统处理</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box end"></div>
+                        <span>结束节点</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

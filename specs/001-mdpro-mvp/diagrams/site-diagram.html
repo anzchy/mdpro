@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mdpro MVP - 应用架构图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f8;
+            padding: 40px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #1a365d;
+        }
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+
+        /* Architecture Diagram */
+        .architecture {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        /* Layer Containers */
+        .layer {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .layer-label {
+            position: absolute;
+            left: -120px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100px;
+            text-align: center;
+        }
+        .layer-content {
+            margin-left: 0;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            background: #fafbfc;
+        }
+
+        /* Component Boxes */
+        .components {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .component {
+            background: white;
+            border-radius: 10px;
+            padding: 16px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 2px solid #e2e8f0;
+            min-width: 160px;
+            text-align: center;
+        }
+        .component-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .component-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+        .component-desc {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        /* Component Types */
+        .component.frontend {
+            border-color: #4299e1;
+            background: linear-gradient(135deg, #ebf8ff 0%, #fff 100%);
+        }
+        .component.backend {
+            border-color: #48bb78;
+            background: linear-gradient(135deg, #f0fff4 0%, #fff 100%);
+        }
+        .component.storage {
+            border-color: #9f7aea;
+            background: linear-gradient(135deg, #faf5ff 0%, #fff 100%);
+        }
+        .component.native {
+            border-color: #ed8936;
+            background: linear-gradient(135deg, #fffaf0 0%, #fff 100%);
+        }
+
+        /* Arrows */
+        .arrow-container {
+            display: flex;
+            justify-content: center;
+            padding: 15px 0;
+        }
+        .arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #a0aec0;
+        }
+        .arrow-line {
+            width: 2px;
+            height: 30px;
+            background: #cbd5e0;
+        }
+        .arrow-head {
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 10px solid #cbd5e0;
+        }
+        .arrow-label {
+            font-size: 11px;
+            color: #718096;
+            margin-top: 5px;
+        }
+        .arrow.bidirectional .arrow-line {
+            position: relative;
+        }
+        .arrow.bidirectional::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 8px solid #cbd5e0;
+            margin-bottom: -2px;
+        }
+
+        /* Data Flow Section */
+        .data-flow {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+        .data-flow h3 {
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .flow-step {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .flow-step-num {
+            background: #4299e1;
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .flow-arrow {
+            color: #a0aec0;
+            font-size: 18px;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        /* Tech Stack */
+        .tech-stack {
+            margin-top: 40px;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .tech-stack h3 {
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .tech-item {
+            padding: 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+        .tech-item strong {
+            color: #2d3748;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .tech-item span {
+            font-size: 13px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>mdpro MVP - 应用架构图</h1>
+        <p class="subtitle">Tauri Desktop Application Architecture</p>
+
+        <div class="architecture">
+            <!-- Presentation Layer -->
+            <div class="layer">
+                <div class="layer-content">
+                    <h4 style="text-align: center; color: #4299e1; margin-bottom: 15px;">前端 Web UI 层 (Frontend)</h4>
+                    <div class="components">
+                        <div class="component frontend">
+                            <div class="component-icon">📝</div>
+                            <div class="component-title">编辑器组件</div>
+                            <div class="component-desc">Markdown文本编辑<br>语法高亮</div>
+                        </div>
+                        <div class="component frontend">
+                            <div class="component-icon">👁️</div>
+                            <div class="component-title">预览组件</div>
+                            <div class="component-desc">实时HTML渲染<br>滚动同步</div>
+                        </div>
+                        <div class="component frontend">
+                            <div class="component-icon">📂</div>
+                            <div class="component-title">侧边栏组件</div>
+                            <div class="component-desc">文件列表<br>文件切换</div>
+                        </div>
+                        <div class="component frontend">
+                            <div class="component-icon">🎨</div>
+                            <div class="component-title">主题系统</div>
+                            <div class="component-desc">明暗主题<br>样式管理</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow-container">
+                <div class="arrow bidirectional">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-head"></div>
+                    <div class="arrow-label">Tauri IPC (invoke/events)</div>
+                </div>
+            </div>
+
+            <!-- Backend/Core Layer -->
+            <div class="layer">
+                <div class="layer-content">
+                    <h4 style="text-align: center; color: #48bb78; margin-bottom: 15px;">Tauri 后端核心层 (Rust Backend)</h4>
+                    <div class="components">
+                        <div class="component backend">
+                            <div class="component-icon">📄</div>
+                            <div class="component-title">文件服务</div>
+                            <div class="component-desc">读取/写入文件<br>编码检测</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-icon">⚙️</div>
+                            <div class="component-title">Markdown解析器</div>
+                            <div class="component-desc">语法解析<br>HTML转换</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-icon">🔧</div>
+                            <div class="component-title">配置管理</div>
+                            <div class="component-desc">用户偏好<br>窗口状态</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-icon">📋</div>
+                            <div class="component-title">菜单/快捷键</div>
+                            <div class="component-desc">原生菜单<br>快捷键绑定</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow-container">
+                <div class="arrow bidirectional">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-head"></div>
+                    <div class="arrow-label">系统调用</div>
+                </div>
+            </div>
+
+            <!-- Native/System Layer -->
+            <div class="layer">
+                <div class="layer-content">
+                    <h4 style="text-align: center; color: #ed8936; margin-bottom: 15px;">macOS 系统层 (Native APIs)</h4>
+                    <div class="components">
+                        <div class="component native">
+                            <div class="component-icon">💾</div>
+                            <div class="component-title">文件系统</div>
+                            <div class="component-desc">本地文件访问<br>文件监听</div>
+                        </div>
+                        <div class="component native">
+                            <div class="component-icon">🪟</div>
+                            <div class="component-title">窗口管理</div>
+                            <div class="component-desc">窗口状态<br>拖拽处理</div>
+                        </div>
+                        <div class="component native">
+                            <div class="component-icon">🌙</div>
+                            <div class="component-title">系统主题</div>
+                            <div class="component-desc">外观模式<br>主题检测</div>
+                        </div>
+                        <div class="component native">
+                            <div class="component-icon">📢</div>
+                            <div class="component-title">系统通知</div>
+                            <div class="component-desc">对话框<br>提示信息</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow-container">
+                <div class="arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-head"></div>
+                    <div class="arrow-label">持久化</div>
+                </div>
+            </div>
+
+            <!-- Storage Layer -->
+            <div class="layer">
+                <div class="layer-content">
+                    <h4 style="text-align: center; color: #9f7aea; margin-bottom: 15px;">数据存储层 (Storage)</h4>
+                    <div class="components">
+                        <div class="component storage">
+                            <div class="component-icon">📁</div>
+                            <div class="component-title">Markdown文件</div>
+                            <div class="component-desc">.md / .markdown<br>用户文档</div>
+                        </div>
+                        <div class="component storage">
+                            <div class="component-icon">⚙️</div>
+                            <div class="component-title">配置文件</div>
+                            <div class="component-desc">preferences.json<br>应用设置</div>
+                        </div>
+                        <div class="component storage">
+                            <div class="component-icon">🕐</div>
+                            <div class="component-title">缓存数据</div>
+                            <div class="component-desc">最近文件<br>窗口状态</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Flow -->
+        <div class="data-flow">
+            <h3>核心数据流</h3>
+            <div class="flow-diagram">
+                <div class="flow-step">
+                    <span class="flow-step-num">1</span>
+                    用户编辑文本
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <span class="flow-step-num">2</span>
+                    前端发送内容
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <span class="flow-step-num">3</span>
+                    Markdown解析
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <span class="flow-step-num">4</span>
+                    返回HTML
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <span class="flow-step-num">5</span>
+                    预览区渲染
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #4299e1; background: #ebf8ff;"></div>
+                <span>前端组件 (Web UI)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #48bb78; background: #f0fff4;"></div>
+                <span>后端服务 (Rust)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #ed8936; background: #fffaf0;"></div>
+                <span>系统API (macOS)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #9f7aea; background: #faf5ff;"></div>
+                <span>数据存储</span>
+            </div>
+        </div>
+
+        <!-- Tech Stack Reference -->
+        <div class="tech-stack">
+            <h3>技术栈参考</h3>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <strong>框架</strong>
+                    <span>Tauri 2.x (Rust + WebView)</span>
+                </div>
+                <div class="tech-item">
+                    <strong>前端</strong>
+                    <span>React/Vue/Svelte + TypeScript</span>
+                </div>
+                <div class="tech-item">
+                    <strong>编辑器</strong>
+                    <span>CodeMirror 6 / Monaco</span>
+                </div>
+                <div class="tech-item">
+                    <strong>Markdown</strong>
+                    <span>pulldown-cmark / marked.js</span>
+                </div>
+                <div class="tech-item">
+                    <strong>目标平台</strong>
+                    <span>macOS 13+ (Apple Silicon)</span>
+                </div>
+                <div class="tech-item">
+                    <strong>构建工具</strong>
+                    <span>Vite + Cargo</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
