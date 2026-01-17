@@ -2,8 +2,11 @@ import { create } from "zustand";
 import type { CursorPosition, EditorState, ScrollPosition, SelectionRange, ViewMode } from "../types/editor";
 
 interface EditorStore extends EditorState {
+  showSidebar: boolean;
   setActiveDocumentId: (id: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
+  setShowSidebar: (show: boolean) => void;
+  toggleSidebar: () => void;
   setCursor: (cursor: CursorPosition) => void;
   setSelection: (selection: SelectionRange | null) => void;
   setEditorScroll: (scroll: ScrollPosition) => void;
@@ -26,6 +29,7 @@ const defaultCursor: CursorPosition = {
 export const useEditorStore = create<EditorStore>((set) => ({
   activeDocumentId: null,
   viewMode: "split",
+  showSidebar: true,
   cursor: { ...defaultCursor },
   selection: null,
   editorScroll: { ...defaultScroll },
@@ -35,6 +39,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   redoDepth: 0,
   setActiveDocumentId: (id) => set({ activeDocumentId: id }),
   setViewMode: (mode) => set({ viewMode: mode }),
+  setShowSidebar: (show) => set({ showSidebar: show }),
+  toggleSidebar: () => set((state) => ({ showSidebar: !state.showSidebar })),
   setCursor: (cursor) => set({ cursor }),
   setSelection: (selection) => set({ selection }),
   setEditorScroll: (scroll) => set({ editorScroll: scroll }),

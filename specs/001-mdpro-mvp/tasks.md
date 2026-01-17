@@ -89,35 +89,35 @@
 
 ### Backend Commands (US1)
 
-- [ ] T027 [P] [US1] Implement open_file command in src-tauri/src/commands/file.rs per file-commands.md
-- [ ] T028 [P] [US1] Implement open_file_dialog command in src-tauri/src/commands/file.rs per file-commands.md
-- [ ] T029 [P] [US1] Implement save_file command in src-tauri/src/commands/file.rs per file-commands.md
-- [ ] T030 [P] [US1] Implement save_file_dialog command in src-tauri/src/commands/file.rs per file-commands.md
-- [ ] T031 [P] [US1] Implement close_document command in src-tauri/src/commands/file.rs per file-commands.md
-- [ ] T032 [US1] Create commands/mod.rs and register file commands in src-tauri/src/commands/mod.rs
+- [x] T027 [P] [US1] Implement open_file command in src-tauri/src/commands/file.rs per file-commands.md
+- [x] T028 [P] [US1] Implement open_file_dialog command in src-tauri/src/commands/file.rs per file-commands.md
+- [x] T029 [P] [US1] Implement save_file command in src-tauri/src/commands/file.rs per file-commands.md
+- [x] T030 [P] [US1] Implement save_file_dialog command in src-tauri/src/commands/file.rs per file-commands.md
+- [x] T031 [P] [US1] Implement close_document command in src-tauri/src/commands/file.rs per file-commands.md
+- [x] T032 [US1] Create commands/mod.rs and register file commands in src-tauri/src/commands/mod.rs
 
 ### Frontend Services (US1)
 
-- [ ] T033 [US1] Create fileService with IPC wrappers in src/services/fileService.ts per file-commands.md
+- [x] T033 [US1] Create fileService with IPC wrappers in src/services/fileService.ts per file-commands.md
 
 ### Editor Component (US1)
 
-- [ ] T034 [US1] Create base Editor component with CodeMirror 6 in src/components/Editor/Editor.tsx
-- [ ] T035 [US1] Configure CodeMirror markdown language extension in src/components/Editor/extensions/markdown.ts
-- [ ] T036 [US1] Create useDocument hook for document state in src/hooks/useDocument.ts
-- [ ] T037 [US1] Create useEditor hook for editor state in src/hooks/useEditor.ts
+- [x] T034 [US1] Create base Editor component with CodeMirror 6 in src/components/Editor/Editor.tsx
+- [x] T035 [US1] Configure CodeMirror markdown language extension in src/components/Editor/extensions/markdown.ts
+- [x] T036 [US1] Create useDocument hook for document state in src/hooks/useDocument.ts
+- [x] T037 [US1] Create useEditor hook for editor state in src/hooks/useEditor.ts
 
 ### File Menu & Shortcuts (US1)
 
-- [ ] T038 [US1] Create Toolbar component with File menu (Open, Save, New) in src/components/Toolbar/Toolbar.tsx
-- [ ] T039 [US1] Implement Cmd+O, Cmd+S, Cmd+W keyboard shortcuts in src/hooks/useKeyboardShortcuts.ts
-- [ ] T040 [US1] Implement drag-and-drop file opening in src/App.tsx
+- [x] T038 [US1] Create Toolbar component with File menu (Open, Save, New) in src/components/Toolbar/Toolbar.tsx
+- [x] T039 [US1] Implement Cmd+O, Cmd+S, Cmd+W keyboard shortcuts in src/hooks/useKeyboardShortcuts.ts
+- [x] T040 [US1] Implement drag-and-drop file opening in src/App.tsx
 
 ### Unsaved Changes (US1)
 
-- [ ] T041 [US1] Add unsaved changes indicator in title bar in src/components/Toolbar/Toolbar.tsx
-- [ ] T042 [US1] Implement close confirmation dialog for unsaved changes in src/components/common/ConfirmDialog.tsx
-- [ ] T043 [US1] Handle window close event with unsaved check in src/App.tsx
+- [x] T041 [US1] Add unsaved changes indicator in title bar in src/components/Toolbar/Toolbar.tsx
+- [x] T042 [US1] Implement close confirmation dialog for unsaved changes in src/components/common/ConfirmDialog.tsx
+- [x] T043 [US1] Handle window close event with unsaved check in src/App.tsx
 
 **Checkpoint**: User Story 1 complete - can open, edit, save files independently
 
@@ -131,20 +131,20 @@
 
 ### Backend Rendering (US2)
 
-- [ ] T044 [US2] Implement render_markdown command with pulldown-cmark in src-tauri/src/services/markdown.rs
-- [ ] T045 [US2] Add render_markdown to export commands in src-tauri/src/commands/export.rs
+- [x] T044 [US2] Implement render_markdown command with pulldown-cmark in src-tauri/src/services/markdown.rs
+- [x] T045 [US2] Add render_markdown to export commands in src-tauri/src/commands/export.rs
 
 ### Frontend Preview (US2)
 
-- [ ] T046 [US2] Create exportService with renderMarkdown wrapper in src/services/exportService.ts
-- [ ] T047 [US2] Create Preview component with markdown rendering in src/components/Preview/Preview.tsx
-- [ ] T048 [US2] Create preview styles (typography, code blocks) in src/components/Preview/styles/preview.css
-- [ ] T049 [US2] Implement debounced preview updates (100ms) in src/hooks/usePreview.ts
+- [x] T046 [US2] Create exportService with renderMarkdown wrapper in src/services/exportService.ts
+- [x] T047 [US2] Create Preview component with markdown rendering in src/components/Preview/Preview.tsx
+- [x] T048 [US2] Create preview styles (typography, code blocks) in src/components/Preview/styles/preview.css
+- [x] T049 [US2] Implement debounced preview updates (100ms) in src/hooks/usePreview.ts
 
 ### Split View (US2)
 
-- [ ] T050 [US2] Create SplitView component with resizable panes in src/components/Editor/SplitView.tsx
-- [ ] T051 [US2] Implement scroll sync between editor and preview in src/hooks/useScrollSync.ts
+- [x] T050 [US2] Create SplitView component with resizable panes in src/components/Editor/SplitView.tsx
+- [x] T051 [US2] Implement scroll sync between editor and preview in src/hooks/useScrollSync.ts
 
 **Checkpoint**: User Story 2 complete - live preview works independently
 
@@ -158,14 +158,14 @@
 
 ### Backend Commands (US3)
 
-- [ ] T052 [US3] Implement create_document command in src-tauri/src/commands/file.rs per file-commands.md
+- [x] T052 [US3] Implement create_document command in src-tauri/src/commands/file.rs per file-commands.md
 
 ### Frontend Implementation (US3)
 
-- [ ] T053 [US3] Add createDocument to fileService in src/services/fileService.ts
-- [ ] T054 [US3] Implement Cmd+N shortcut for new document in src/hooks/useKeyboardShortcuts.ts
-- [ ] T055 [US3] Add "New" button to Toolbar/File menu in src/components/Toolbar/Toolbar.tsx
-- [ ] T056 [US3] Handle first-time save (Save As dialog) for new documents in src/hooks/useDocument.ts
+- [x] T053 [US3] Add createDocument to fileService in src/services/fileService.ts
+- [x] T054 [US3] Implement Cmd+N shortcut for new document in src/hooks/useKeyboardShortcuts.ts
+- [x] T055 [US3] Add "New" button to Toolbar/File menu in src/components/Toolbar/Toolbar.tsx
+- [x] T056 [US3] Handle first-time save (Save As dialog) for new documents in src/hooks/useDocument.ts
 
 **Checkpoint**: User Story 3 complete - can create new documents independently
 
@@ -179,16 +179,16 @@
 
 ### Markdown Syntax Support (US4)
 
-- [ ] T057 [US4] Configure GFM extensions in pulldown-cmark (tables, task lists, strikethrough) in src-tauri/src/services/markdown.rs
-- [ ] T058 [US4] Add code syntax highlighting with highlight.js or shiki in src/components/Preview/Preview.tsx
-- [ ] T059 [US4] Style tables, blockquotes, lists in preview CSS in src/components/Preview/styles/preview.css
-- [ ] T060 [US4] Handle image rendering with fallback for failed loads in src/components/Preview/ImageRenderer.tsx
-- [ ] T061 [US4] Make links clickable (open in external browser) in src/components/Preview/Preview.tsx
+- [x] T057 [US4] Configure GFM extensions in pulldown-cmark (tables, task lists, strikethrough) in src-tauri/src/services/markdown.rs
+- [x] T058 [US4] Add code syntax highlighting with highlight.js or shiki in src/components/Preview/Preview.tsx
+- [x] T059 [US4] Style tables, blockquotes, lists in preview CSS in src/components/Preview/styles/preview.css
+- [x] T060 [US4] Handle image rendering with fallback for failed loads in src/components/Preview/ImageRenderer.tsx
+- [x] T061 [US4] Make links clickable (open in external browser) in src/components/Preview/Preview.tsx
 
 ### Editor Enhancements (US4)
 
-- [ ] T062 [US4] Add CodeMirror syntax highlighting for markdown in src/components/Editor/extensions/syntax.ts
-- [ ] T063 [US4] Implement Cmd+Z / Cmd+Shift+Z undo/redo in src/components/Editor/Editor.tsx
+- [x] T062 [US4] Add CodeMirror syntax highlighting for markdown in src/components/Editor/extensions/syntax.ts
+- [x] T063 [US4] Implement Cmd+Z / Cmd+Shift+Z undo/redo in src/components/Editor/Editor.tsx
 
 **Checkpoint**: User Story 4 complete - full markdown syntax works independently
 
@@ -202,10 +202,10 @@
 
 ### Custom Syntax Support (US5)
 
-- [ ] T064 [US5] Configure pulldown-cmark to allow HTML tags (mark, u) in src-tauri/src/services/markdown.rs
-- [ ] T065 [US5] Style mark and underline elements in preview CSS in src/components/Preview/styles/preview.css
-- [ ] T066 [US5] Implement Cmd+Shift+H shortcut to wrap selection in mark tag in src/hooks/useKeyboardShortcuts.ts
-- [ ] T067 [US5] Add highlight button to toolbar in src/components/Toolbar/Toolbar.tsx
+- [x] T064 [US5] Configure pulldown-cmark to allow HTML tags (mark, u) in src-tauri/src/services/markdown.rs
+- [x] T065 [US5] Style mark and underline elements in preview CSS in src/components/Preview/styles/preview.css
+- [x] T066 [US5] Implement Cmd+Shift+H shortcut to wrap selection in mark tag in src/hooks/useKeyboardShortcuts.ts
+- [x] T067 [US5] Add highlight button to toolbar in src/components/Toolbar/Toolbar.tsx
 
 **Checkpoint**: User Story 5 complete - highlighting works independently
 
@@ -219,16 +219,16 @@
 
 ### View Mode Controls (US6)
 
-- [ ] T068 [US6] Add view mode buttons to Toolbar (Split, Editor, Preview, WYSIWYG) in src/components/Toolbar/Toolbar.tsx
-- [ ] T069 [US6] Implement editor-only mode (hide preview) in src/components/Editor/SplitView.tsx
-- [ ] T070 [US6] Implement preview-only mode (hide editor) in src/components/Editor/SplitView.tsx
+- [x] T068 [US6] Add view mode buttons to Toolbar (Split, Editor, Preview, WYSIWYG) in src/components/Toolbar/Toolbar.tsx
+- [x] T069 [US6] Implement editor-only mode (hide preview) in src/components/Editor/SplitView.tsx
+- [x] T070 [US6] Implement preview-only mode (hide editor) in src/components/Editor/SplitView.tsx
 
 ### WYSIWYG Mode (US6)
 
-- [ ] T071 [US6] Create WysiwygView component with CM6 decorations in src/components/Editor/WysiwygView.tsx
-- [ ] T072 [US6] Implement markdown syntax hiding on unfocused lines in src/components/Editor/extensions/wysiwyg.ts
-- [ ] T073 [US6] Create widget decorations for headings, lists, code blocks in src/components/Editor/extensions/widgets.ts
-- [ ] T074 [US6] Implement cursor-aware syntax reveal in src/components/Editor/extensions/wysiwyg.ts
+- [x] T071 [US6] Create WysiwygView component with CM6 decorations in src/components/Editor/WysiwygView.tsx
+- [x] T072 [US6] Implement markdown syntax hiding on unfocused lines in src/components/Editor/extensions/wysiwyg.ts
+- [x] T073 [US6] Create widget decorations for headings, lists, code blocks in src/components/Editor/extensions/widgets.ts
+- [x] T074 [US6] Implement cursor-aware syntax reveal in src/components/Editor/extensions/wysiwyg.ts
 
 **Checkpoint**: User Story 6 complete - all view modes work independently
 
@@ -242,12 +242,12 @@
 
 ### Sidebar Component (US7)
 
-- [ ] T075 [US7] Create Sidebar component in src/components/Sidebar/Sidebar.tsx
-- [ ] T076 [US7] Create FileItem component for sidebar entries in src/components/Sidebar/FileItem.tsx
-- [ ] T077 [US7] Track open documents in documentStore in src/stores/documentStore.ts
-- [ ] T078 [US7] Implement document switching on sidebar click in src/components/Sidebar/Sidebar.tsx
-- [ ] T079 [US7] Add close button to FileItem with confirmation in src/components/Sidebar/FileItem.tsx
-- [ ] T080 [US7] Add sidebar toggle button to toolbar in src/components/Toolbar/Toolbar.tsx
+- [x] T075 [US7] Create Sidebar component in src/components/Sidebar/Sidebar.tsx
+- [x] T076 [US7] Create FileItem component for sidebar entries in src/components/Sidebar/FileItem.tsx
+- [x] T077 [US7] Track open documents in documentStore in src/stores/documentStore.ts
+- [x] T078 [US7] Implement document switching on sidebar click in src/components/Sidebar/Sidebar.tsx
+- [x] T079 [US7] Add close button to FileItem with confirmation in src/components/Sidebar/FileItem.tsx
+- [x] T080 [US7] Add sidebar toggle button to toolbar in src/components/Toolbar/Toolbar.tsx
 
 **Checkpoint**: User Story 7 complete - sidebar works independently
 
@@ -261,23 +261,23 @@
 
 ### Theme Backend (US8)
 
-- [ ] T081 [US8] Implement get_system_theme command in src-tauri/src/commands/preferences.rs
-- [ ] T082 [US8] Implement theme change event listener in src-tauri/src/services/file_watcher.rs
+- [x] T081 [US8] Implement get_system_theme command in src-tauri/src/commands/preferences.rs
+- [x] T082 [US8] Implement theme change event listener in src-tauri/src/services/file_watcher.rs
 
 ### Theme Frontend (US8)
 
-- [ ] T083 [US8] Create preferencesService with get/set preferences in src/services/preferencesService.ts
-- [ ] T084 [US8] Create useTheme hook for theme management in src/hooks/useTheme.ts
-- [ ] T085 [US8] Add theme toggle to toolbar/settings in src/components/Toolbar/Toolbar.tsx
-- [ ] T086 [US8] Implement system theme detection and auto-switch in src/hooks/useTheme.ts
-- [ ] T087 [US8] Apply theme class to document root in src/App.tsx
+- [x] T083 [US8] Create preferencesService with get/set preferences in src/services/preferencesService.ts
+- [x] T084 [US8] Create useTheme hook for theme management in src/hooks/useTheme.ts
+- [x] T085 [US8] Add theme toggle to toolbar/settings in src/components/Toolbar/Toolbar.tsx
+- [x] T086 [US8] Implement system theme detection and auto-switch in src/hooks/useTheme.ts
+- [x] T087 [US8] Apply theme class to document root in src/App.tsx
 
 ### Preferences Persistence (US8)
 
-- [ ] T088 [US8] Implement get_preferences command in src-tauri/src/commands/preferences.rs
-- [ ] T089 [US8] Implement set_preferences command in src-tauri/src/commands/preferences.rs
-- [ ] T090 [US8] Create ~/.mdpro/config.json on first launch in src-tauri/src/services/preferences.rs
-- [ ] T091 [US8] Load preferences on app startup in src/App.tsx
+- [x] T088 [US8] Implement get_preferences command in src-tauri/src/commands/preferences.rs
+- [x] T089 [US8] Implement set_preferences command in src-tauri/src/commands/preferences.rs
+- [x] T090 [US8] Create ~/.mdpro/config.json on first launch in src-tauri/src/services/preferences.rs
+- [x] T091 [US8] Load preferences on app startup in src/App.tsx
 
 **Checkpoint**: User Story 8 complete - themes work independently
 

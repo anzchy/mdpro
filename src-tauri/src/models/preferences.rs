@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserPreferences {
     /// Theme mode preference
     pub theme_mode: ThemeMode,
@@ -19,6 +20,7 @@ pub struct UserPreferences {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ThemeMode {
     Light,
     Dark,
@@ -26,6 +28,7 @@ pub enum ThemeMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ViewMode {
     Split,
     EditorOnly,
@@ -34,6 +37,7 @@ pub enum ViewMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WindowState {
     pub width: u32,
     pub height: u32,

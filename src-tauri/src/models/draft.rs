@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Draft {
     /// Hash-based identifier
     pub id: String,
@@ -16,6 +17,7 @@ pub struct Draft {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DraftMetadata {
     /// Original file path
     pub original_path: Option<String>,
