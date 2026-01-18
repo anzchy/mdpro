@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::{ThemeMode, UserPreferences, ViewMode, WindowState};
+use crate::models::{KeyboardShortcuts, ThemeMode, UserPreferences, ViewMode, WindowState};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,6 +14,7 @@ pub struct PartialPreferences {
     pub enable_scroll_sync: Option<bool>,
     pub recent_files: Option<Vec<String>>,
     pub window_state: Option<WindowState>,
+    pub keyboard_shortcuts: Option<KeyboardShortcuts>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -88,5 +89,8 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
             .unwrap_or(current.enable_scroll_sync),
         recent_files: updates.recent_files.unwrap_or(current.recent_files),
         window_state: updates.window_state.unwrap_or(current.window_state),
+        keyboard_shortcuts: updates
+            .keyboard_shortcuts
+            .unwrap_or(current.keyboard_shortcuts),
     }
 }

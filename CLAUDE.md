@@ -11,57 +11,57 @@ mdpro is a local Markdown editor for macOS, combining Typora's WYSIWYG experienc
 ## Development Commands
 
 ```bash
-# Start development (frontend + Tauri)
-pnpm tauri dev
-
-# Frontend only (no Tauri window)
-pnpm dev
-
-# Build production app
-pnpm tauri build
-
-# Type checking
-pnpm type-check
-
-# Frontend tests
-pnpm test
-
-# E2E tests
-pnpm test:e2e
+pnpm install              # Install dependencies
+pnpm tauri dev            # Start development (frontend + Tauri window)
+pnpm dev                  # Frontend only (Vite dev server, no Tauri)
+pnpm build                # Build frontend (runs tsc + vite build)
+pnpm tauri build          # Build production app (.dmg)
 ```
 
 ### Rust Backend Commands
 
 ```bash
 cd src-tauri
-
-cargo check        # Check compilation
-cargo test         # Run unit tests
-cargo fmt          # Format code
-cargo clippy       # Lint
+cargo check               # Check compilation
+cargo test                # Run unit tests
+cargo fmt                 # Format code
+cargo clippy              # Lint
 ```
 
 ## Architecture
 
 ```
-src-tauri/          # Rust backend (Tauri 2.0)
+src-tauri/              # Rust backend (Tauri 2.0)
 ├── src/
-│   ├── main.rs     # Entry point, window setup
-│   ├── lib.rs      # Tauri command exports
-│   ├── commands/   # IPC command handlers (file.rs, export.rs, preferences.rs)
-│   ├── services/   # Business logic (markdown.rs, file_watcher.rs, draft.rs)
-│   └── models/     # Data structures (document.rs, preferences.rs)
+│   ├── main.rs         # Entry point, app setup, event handlers
+│   ├── lib.rs          # Module exports
+│   ├── menu.rs         # Native macOS menu bar (File, Edit, View, Theme menus)
+│   ├── launch.rs       # File association & single-instance handling
+│   ├── commands/       # IPC command handlers
+│   │   ├── file.rs     # File operations (open, save, close, reload)
+│   │   ├── export.rs   # HTML export & markdown rendering
+│   │   ├── draft.rs    # Auto-save draft recovery
+│   │   └── preferences.rs
+│   ├── services/       # Business logic
+│   │   ├── file_watcher.rs  # External file change detection (notify crate)
+│   │   ├── encoding.rs      # Character encoding detection
+│   │   └── markdown.rs      # pulldown-cmark rendering
+│   └── models/         # Data structures (Document, Draft, Preferences)
 
-src/                # React frontend
-├── components/     # UI components (Editor/, Preview/, Sidebar/, Toolbar/)
-├── hooks/          # Custom hooks (useDocument, useEditor, useTheme, useAutoSave)
-├── services/       # Tauri IPC wrappers (fileService, exportService)
-├── stores/         # Zustand state (documentStore, editorStore, themeStore)
-├── types/          # TypeScript types
-└── styles/         # CSS & themes
-
-specs/              # Feature specifications
-└── 001-mdpro-mvp/  # Current MVP spec, plan, tasks, contracts
+src/                    # React frontend
+├── App.tsx             # Main app shell, orchestrates all features
+├── components/
+│   ├── Editor/         # CodeMirror editor (SplitView, WysiwygView)
+│   ├── Preview/        # Markdown preview pane
+│   ├── Sidebar/        # Document tabs
+│   └── Toolbar/        # Title bar
+├── hooks/
+│   ├── useDocument.ts  # Document CRUD operations
+│   ├── useMenuEvents.ts # Listens to menu:action events from Rust
+│   ├── useFileWatcher.ts # Handles external file changes
+│   └── useAutoSave.ts  # Draft auto-save timer
+├── services/           # Tauri IPC wrappers (typed invoke calls)
+└── stores/             # Zustand state (documentStore, editorStore, themeStore)
 ```
 
 ## Key Technologies
@@ -69,51 +69,76 @@ specs/              # Feature specifications
 | Layer | Technology |
 |-------|------------|
 | Framework | Tauri 2.0 |
-| Frontend | React 18 + TypeScript + Vite |
-| Editor | CodeMirror 6 |
-| Markdown (Rust) | pulldown-cmark |
-| Markdown (JS) | marked + DOMPurify |
+| Frontend | React 19 + TypeScript + Vite 7 |
+| Editor | CodeMirror 6 (@uiw/react-codemirror) |
+| Markdown | pulldown-cmark (Rust), marked + DOMPurify (JS preview) |
 | State | Zustand |
-| Styling | TailwindCSS |
-| Testing | Vitest (unit), Playwright (E2E), cargo test (Rust) |
+| File dialogs | rfd (Rust) |
+| File watching | notify (Rust) |
 
-## IPC Pattern
+## IPC & Event System
 
-Frontend calls Rust via Tauri commands defined in `src-tauri/src/commands/`. Wrappers in `src/services/` provide typed interfaces.
+### Commands (Frontend → Rust)
+
+Frontend calls Rust via `invoke()`. Commands are registered in `src-tauri/src/commands/mod.rs`:
 
 ```typescript
-// Frontend: src/services/fileService.ts
+// src/services/fileService.ts
 import { invoke } from '@tauri-apps/api/core';
-const doc = await invoke<Document>('open_file', { path: '/path/to/file.md' });
+const result = await invoke<OpenFileResult>('open_file', { path, encoding });
 ```
 
-```rust
-// Backend: src-tauri/src/commands/file.rs
-#[tauri::command]
-pub fn open_file(path: String) -> Result<Document, String> { ... }
+Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `save_draft`, `get_preferences`
+
+### Events (Rust → Frontend)
+
+Rust emits events that frontend listens to via `listen()`:
+
+| Event | Payload | Source |
+|-------|---------|--------|
+| `menu:action` | `{ action, value }` | Native menu clicks (menu.rs) |
+| `file:open` | `string[]` | Single-instance file open (launch.rs) |
+| `file:changed` | `{ path, changeType }` | External file modification (file_watcher.rs) |
+| `theme:changed` | `"light" \| "dark"` | System theme change |
+
+### Adding a New IPC Command
+
+1. Define the command in `src-tauri/src/commands/<module>.rs`
+2. Register it in `src-tauri/src/commands/mod.rs` → `handlers()`
+3. Create typed wrapper in `src/services/<service>.ts`
+
+## Menu System
+
+Native macOS menu defined in `src-tauri/src/menu.rs`. Menu events are handled via `menu:action` event:
+
+- File: New (⌘N), Open (⌘O), Save (⌘S), Export HTML (⌘⇧E), Close (⌘W)
+- View: Split (⌘1), Editor (⌘2), Preview (⌘3), WYSIWYG (⌘4), Toggle Sidebar (⌘⇧B)
+- Format: Highlight Selection (⌘⇧H)
+- Theme: Light, Dark, System
+
+## Release Workflow
+
+```bash
+# 1. Update versions in src-tauri/Cargo.toml and src-tauri/tauri.conf.json
+# 2. Test locally
+pnpm tauri build
+
+# 3. Tag and push (triggers GitHub Actions → builds DMG)
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 ## Spec-Driven Development
 
-This project uses speckit workflow. Key documents in `specs/001-mdpro-mvp/`:
-
-- `spec.md` - Feature requirements and user stories
-- `plan.md` - Technical architecture and decisions
-- `tasks.md` - Implementation tasks (136 total)
-- `data-model.md` - Data structures (Rust + TypeScript)
+Feature specifications live in `specs/001-mdpro-mvp/`:
+- `spec.md` - Requirements and user stories
+- `plan.md` - Technical architecture
+- `tasks.md` - Implementation tasks
 - `contracts/` - IPC command definitions
 
-Use `/speckit.implement` to execute tasks from tasks.md.
-
-## Performance Targets
-
-- App startup: < 2 seconds
-- Preview latency: < 100ms
-- Editing: 60fps smooth
-- Memory: < 500MB
-
-## MVP Constraints
+## Constraints
 
 - Local files only (no cloud sync)
 - No plugin system
 - HTML export only (no PDF/Word)
+- Max file size: 10MB

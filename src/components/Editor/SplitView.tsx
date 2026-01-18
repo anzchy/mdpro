@@ -52,46 +52,7 @@ export function SplitView({
   if (viewMode === "editor-only") {
     return (
       <div className="split-view" ref={containerRef}>
-        <div className="split-pane" style={{ width: "100%" }}>
-          <div className="pane-title">Editor</div>
-          <div className="pane-content" ref={editorRef}>
-            <Editor
-              value={markdown}
-              onChange={onChange}
-              readOnly={readOnly}
-              highlightRequest={highlightRequest}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (viewMode === "preview-only") {
-    return (
-      <div className="split-view" ref={containerRef}>
-        <div className="split-pane" style={{ width: "100%" }}>
-          <div className="pane-title">Preview</div>
-          <div className="pane-content" ref={previewRef}>
-            <WysiwygView
-              value={markdown}
-              onChange={onChange}
-              readOnly={readOnly}
-              highlightRequest={highlightRequest}
-              showLineNumbers={false}
-              className="wysiwyg-preview"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="split-view" ref={containerRef}>
-      <div className="split-pane" style={{ width: `${splitRatio}%` }}>
-        <div className="pane-title">Editor</div>
-        <div className="pane-content" ref={editorRef}>
+        <div className="split-pane full-pane" ref={editorRef}>
           <Editor
             value={markdown}
             onChange={onChange}
@@ -100,12 +61,40 @@ export function SplitView({
           />
         </div>
       </div>
-      <div className="split-divider" onMouseDown={startDrag} />
-      <div className="split-pane" style={{ width: `${100 - splitRatio}%` }}>
-        <div className="pane-title">Preview</div>
-        <div className="pane-content preview-scroll" ref={previewRef}>
-          <Preview markdown={markdown} />
+    );
+  }
+
+  if (viewMode === "preview-only") {
+    // Typora-style: WYSIWYG editing in preview mode (editable rendered view)
+    return (
+      <div className="split-view" ref={containerRef}>
+        <div className="split-pane full-pane" ref={previewRef}>
+          <WysiwygView
+            value={markdown}
+            onChange={onChange}
+            readOnly={readOnly}
+            highlightRequest={highlightRequest}
+            showLineNumbers={false}
+            className="wysiwyg-preview"
+          />
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="split-view" ref={containerRef}>
+      <div className="split-pane" style={{ width: `${splitRatio}%` }} ref={editorRef}>
+        <Editor
+          value={markdown}
+          onChange={onChange}
+          readOnly={readOnly}
+          highlightRequest={highlightRequest}
+        />
+      </div>
+      <div className="split-divider" onMouseDown={startDrag} />
+      <div className="split-pane preview-scroll" style={{ width: `${100 - splitRatio}%` }} ref={previewRef}>
+        <Preview markdown={markdown} />
       </div>
     </div>
   );

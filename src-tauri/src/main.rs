@@ -1,10 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, RunEvent};
 
 fn main() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .setup(|app| {
             let watcher =
                 tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone());
@@ -37,6 +37,47 @@ fn main() {
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri_app_lib::commands::handlers())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        // Handle macOS "Open With" file associations
+        if let RunEvent::Opened { urls } = event {
+            let paths: Vec<String> = urls
+                .iter()
+                .filter_map(|url| {
+                    if url.scheme() == "file" {
+                        url.to_file_path().ok().and_then(|p| {
+                            let path_str = p.to_string_lossy().to_string();
+                            let ext = p.extension()?.to_str()?;
+                            if ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown") {
+                                Some(path_str)
+                            } else {
+                                None
+                            }
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if !paths.is_empty() {
+                // Store in launch state if app just started, otherwise emit event
+                if let Some(state) = app_handle.try_state::<tauri_app_lib::launch::LaunchState>() {
+                    let existing = state.take_paths();
+                    if existing.is_empty() {
+                        // App just started, store for initial load
+                        state.set_paths(paths);
+                    } else {
+                        // Restore existing and emit new paths
+                        state.set_paths(existing);
+                        let _ = app_handle.emit("file:open", paths);
+                    }
+                } else {
+                    let _ = app_handle.emit("file:open", paths);
+                }
+            }
+        }
+    });
 }

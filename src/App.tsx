@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DragEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { SplitView } from "./components/Editor/SplitView";
 import { WysiwygView } from "./components/Editor/WysiwygView";
 import { Sidebar } from "./components/Sidebar/Sidebar";
-import { Toolbar } from "./components/Toolbar/Toolbar";
+import { TitleBar } from "./components/TitleBar";
 import { ConfirmDialog } from "./components/common/ConfirmDialog";
+import { SettingsDialog } from "./components/common/SettingsDialog";
 import { RecoveryDialog } from "./components/common/RecoveryDialog";
 import { ReloadDialog } from "./components/common/ReloadDialog";
 import { EncodingDialog } from "./components/common/EncodingDialog";
@@ -23,7 +23,8 @@ import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { fileService } from "./services/fileService";
 import type { Document } from "./types/document";
-import type { WindowState } from "./types/preferences";
+import type { KeyboardShortcuts, WindowState } from "./types/preferences";
+import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 
 type PendingClose = "document" | "window" | null;
@@ -74,6 +75,8 @@ function App() {
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
   const closeTargetRef = useRef<PendingClose>(null);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
   const hasUnsavedRef = useRef(false);
@@ -154,11 +157,29 @@ function App() {
     }
   }, []);
 
+  // Update window title to show document name (or "mdpro" if no document)
   useEffect(() => {
-    const baseTitle = activeDocumentTitle;
-    const suffix = hasUnsavedChanges ? " *" : "";
-    document.title =
-      baseTitle === "mdpro" ? "mdpro" : `${baseTitle}${suffix} - mdpro`;
+    const updateWindowTitle = async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const currentWindow = getCurrentWindow();
+        if (activeDocumentTitle && activeDocumentTitle !== "mdpro") {
+          const suffix = hasUnsavedChanges ? " *" : "";
+          await currentWindow.setTitle(`${activeDocumentTitle}${suffix}`);
+          document.title = `${activeDocumentTitle}${suffix}`;
+        } else {
+          await currentWindow.setTitle("mdpro");
+          document.title = "mdpro";
+        }
+      } catch {
+        // Fallback for web preview
+        const baseTitle = activeDocumentTitle;
+        const suffix = hasUnsavedChanges ? " *" : "";
+        document.title =
+          baseTitle === "mdpro" ? "mdpro" : `${baseTitle}${suffix}`;
+      }
+    };
+    void updateWindowTitle();
   }, [activeDocumentTitle, hasUnsavedChanges]);
 
   useEffect(() => {
@@ -171,6 +192,10 @@ function App() {
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
         setRecentFiles(prefs.recentFiles ?? []);
+        // Merge loaded shortcuts with defaults to ensure all keys exist
+        if (prefs.keyboardShortcuts && Object.keys(prefs.keyboardShortcuts).length > 0) {
+          setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
+        }
         await applyWindowState(prefs.windowState);
         await setThemeMode(prefs.themeMode);
       } catch {
@@ -182,6 +207,23 @@ function App() {
       mounted = false;
     };
   }, [applyWindowState, setShowSidebar, setThemeMode, setViewMode]);
+
+  // Handle ?open= URL parameter (for new windows opened via drag-drop)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openPath = params.get("open");
+    if (openPath) {
+      // Use preview-only mode for drag-drop opened files
+      setViewMode("preview-only");
+      void openDocumentFromPath(openPath).then((doc) => {
+        if (doc?.path) {
+          updateRecentFiles(doc.path);
+        }
+      });
+      // Clean up the URL to prevent re-opening on refresh
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [openDocumentFromPath, setViewMode, updateRecentFiles]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -348,6 +390,23 @@ function App() {
     }
   }, [activeDocument, activeDocumentTitle, resolvedTheme, showToast]);
 
+  const handleOpenSettings = useCallback(() => {
+    setSettingsOpen(true);
+  }, []);
+
+  const handleSaveShortcuts = useCallback(
+    async (shortcuts: KeyboardShortcuts) => {
+      setKeyboardShortcuts(shortcuts);
+      try {
+        await preferencesService.setPreferences({ keyboardShortcuts: shortcuts });
+        showToast("Shortcuts saved");
+      } catch {
+        showToast("Failed to save shortcuts");
+      }
+    },
+    [showToast],
+  );
+
   const handleReloadFile = useCallback(async () => {
     if (!fileChangeEvent?.path) return;
     setBusyLabel("Reloading...");
@@ -425,17 +484,76 @@ function App() {
     ],
   );
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files?.[0] as File & { path?: string };
-    if (file?.path) {
-      void handleOpenPath(file.path);
-    }
-  };
+  // Handle files dropped via Tauri's drag-drop
+  const handleFileDrop = useCallback(
+    async (paths: string[]) => {
+      if (paths.length === 0) return;
 
-  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-  };
+      // Filter for markdown files only
+      const mdPaths = paths.filter((p) => {
+        const ext = p.split(".").pop()?.toLowerCase();
+        return ext === "md" || ext === "markdown";
+      });
+
+      if (mdPaths.length === 0) return;
+
+      // If there's already a document open, open the new file in a new window
+      if (documents.length > 0) {
+        try {
+          const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+          for (const filePath of mdPaths) {
+            const windowLabel = `mdpro-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            new WebviewWindow(windowLabel, {
+              title: "mdpro",
+              width: 1200,
+              height: 800,
+              center: true,
+              dragDropEnabled: true,
+              url: `index.html?open=${encodeURIComponent(filePath)}`,
+            });
+          }
+        } catch {
+          // Fall back to opening in current window
+          setViewMode("preview-only");
+          for (const filePath of mdPaths) {
+            await handleOpenPath(filePath);
+          }
+        }
+      } else {
+        // No document open, open in current window with preview mode
+        setViewMode("preview-only");
+        for (const filePath of mdPaths) {
+          await handleOpenPath(filePath);
+        }
+      }
+    },
+    [documents.length, handleOpenPath, setViewMode],
+  );
+
+  // Set up Tauri drag-drop event listener
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+
+    const setupDragDrop = async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const currentWindow = getCurrentWindow();
+        unlisten = await currentWindow.onDragDropEvent((event) => {
+          if (event.payload.type === "drop") {
+            const paths = event.payload.paths;
+            void handleFileDrop(paths);
+          }
+        });
+      } catch {
+        // Drag-drop not available in web preview
+      }
+    };
+
+    setupDragDrop();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [handleFileDrop]);
 
   const handleConfirmClose = async () => {
     const target = closeTargetRef.current;
@@ -468,6 +586,26 @@ function App() {
     }
   }, [activeDocument, closeActiveDocument]);
 
+  // Cycle through view modes: preview -> split -> editor -> preview
+  const cycleViewMode = useCallback(() => {
+    switch (viewMode) {
+      case "preview-only":
+        setViewMode("split");
+        break;
+      case "split":
+        setViewMode("editor-only");
+        break;
+      case "editor-only":
+        setViewMode("preview-only");
+        break;
+      case "wysiwyg":
+        setViewMode("preview-only");
+        break;
+      default:
+        setViewMode("preview-only");
+    }
+  }, [viewMode, setViewMode]);
+
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
     onHighlight: () => setHighlightRequest((prev) => prev + 1),
@@ -475,6 +613,8 @@ function App() {
     onSave: () => void handleSave(),
     onClose: handleCloseRequest,
     onToggleSidebar: handleToggleSidebar,
+    onCycleViewMode: cycleViewMode,
+    onOpenPreferences: handleOpenSettings,
   });
 
   useMenuEvents({
@@ -487,24 +627,30 @@ function App() {
     onToggleSidebar: handleToggleSidebar,
     onHighlight: () => setHighlightRequest((prev) => prev + 1),
     onViewModeChange: setViewMode,
+    onCycleViewMode: cycleViewMode,
     onThemeModeChange: (mode) => void setThemeMode(mode),
+    onOpenPreferences: handleOpenSettings,
   });
 
   useEffect(() => {
     invoke<string[]>("get_launch_paths")
       .then((paths) => {
         if (!paths || paths.length === 0) return;
+        // When opening from Finder/command line, use preview-only mode
+        setViewMode("preview-only");
         void openPaths(paths);
       })
       .catch(() => {
         // Ignore if running outside Tauri.
       });
-  }, [openPaths]);
+  }, [openPaths, setViewMode]);
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
     listen<string[]>("file:open", (event) => {
       if (!event.payload || event.payload.length === 0) return;
+      // When opening from Finder while app is running, use preview-only mode
+      setViewMode("preview-only");
       void openPaths(event.payload);
     })
       .then((fn) => {
@@ -516,14 +662,10 @@ function App() {
     return () => {
       if (unlisten) unlisten();
     };
-  }, [openPaths]);
+  }, [openPaths, setViewMode]);
 
   return (
-    <div
-      className={`app-shell${showSidebar ? "" : " no-sidebar"}`}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-    >
+    <div className={`app-shell${showSidebar ? "" : " no-sidebar"}`}>
       {showSidebar ? (
         <Sidebar
           documents={documents}
@@ -533,9 +675,10 @@ function App() {
         />
       ) : null}
       <div className="main">
-        <Toolbar
+        <TitleBar
           title={activeDocumentTitle}
           isModified={hasUnsavedChanges}
+          viewMode={viewMode}
         />
         {busyLabel ? (
           <div className="busy-indicator">
@@ -588,6 +731,12 @@ function App() {
         cancelLabel="Keep editing"
         onConfirm={handleConfirmClose}
         onCancel={handleCancelClose}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        shortcuts={keyboardShortcuts}
+        onSave={handleSaveShortcuts}
+        onClose={() => setSettingsOpen(false)}
       />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />
     </div>

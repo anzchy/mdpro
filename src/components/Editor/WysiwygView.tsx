@@ -6,6 +6,17 @@ import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
 import { highlightCommand } from "./extensions/highlight";
 import { wysiwygExtension } from "./extensions/wysiwyg";
+import {
+  heading1Command,
+  heading2Command,
+  heading3Command,
+  heading4Command,
+  heading5Command,
+  heading6Command,
+  paragraphCommand,
+  increaseHeadingCommand,
+  decreaseHeadingCommand,
+} from "./extensions/heading";
 
 interface WysiwygViewProps {
   value: string;
@@ -47,6 +58,16 @@ export function WysiwygView({
             { key: "Mod-Shift-z", run: redo },
             { key: "Mod-y", run: redo },
             { key: "Mod-Shift-h", run: highlightCommand },
+            // Heading shortcuts (Typora-style)
+            { key: "Mod-1", run: heading1Command },
+            { key: "Mod-2", run: heading2Command },
+            { key: "Mod-3", run: heading3Command },
+            { key: "Mod-4", run: heading4Command },
+            { key: "Mod-5", run: heading5Command },
+            { key: "Mod-6", run: heading6Command },
+            { key: "Mod-0", run: paragraphCommand },
+            { key: "Mod-=", run: increaseHeadingCommand },
+            { key: "Mod--", run: decreaseHeadingCommand },
           ]),
         ]}
         onChange={(nextValue) => {

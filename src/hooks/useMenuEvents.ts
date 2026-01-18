@@ -18,7 +18,9 @@ interface MenuHandlers {
   onToggleSidebar?: () => void;
   onHighlight?: () => void;
   onViewModeChange?: (mode: ViewMode) => void;
+  onCycleViewMode?: () => void;
   onThemeModeChange?: (mode: UserPreferences["themeMode"]) => void;
+  onOpenPreferences?: () => void;
 }
 
 export function useMenuEvents(handlers: MenuHandlers) {
@@ -43,8 +45,14 @@ export function useMenuEvents(handlers: MenuHandlers) {
         case "file.export_html":
           handlers.onExportHtml?.();
           break;
+        case "file.preferences":
+          handlers.onOpenPreferences?.();
+          break;
         case "file.open_recent":
           if (value) handlers.onOpenRecent?.(value);
+          break;
+        case "view.cycle":
+          handlers.onCycleViewMode?.();
           break;
         case "view.split":
           handlers.onViewModeChange?.("split");
@@ -89,10 +97,12 @@ export function useMenuEvents(handlers: MenuHandlers) {
     };
   }, [
     handlers.onClose,
+    handlers.onCycleViewMode,
     handlers.onExportHtml,
     handlers.onHighlight,
     handlers.onNew,
     handlers.onOpen,
+    handlers.onOpenPreferences,
     handlers.onOpenRecent,
     handlers.onSave,
     handlers.onToggleSidebar,

@@ -12,7 +12,7 @@
   --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
   --font-sans: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --toolbar-height: 56px;
+  --title-bar-height: 38px;
   --sidebar-width: 240px;
 }
 
@@ -54,6 +54,7 @@ a {
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
   padding: 16px;
+  padding-top: calc(var(--title-bar-height) + 8px); /* Space for traffic lights */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -135,8 +136,62 @@ a {
   min-width: 0;
 }
 
+/* Custom Title Bar (Typora-style) */
+.title-bar {
+  height: var(--title-bar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--color-bg);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.title-bar-left {
+  width: 70px; /* Space for traffic lights */
+  flex-shrink: 0;
+}
+
+.title-bar-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  -webkit-app-region: drag;
+}
+
+.title-bar-icon {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.title-bar-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.title-bar-right {
+  width: 70px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.title-bar-mode {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  padding: 3px 8px;
+  background: var(--color-surface);
+  border-radius: 4px;
+  -webkit-app-region: no-drag;
+}
+
+/* Legacy toolbar (kept for compatibility) */
 .toolbar {
-  height: var(--toolbar-height);
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -151,6 +206,10 @@ a {
   background: var(--color-panel);
 }
 
+.toolbar-spacer {
+  flex: 1;
+}
+
 .toolbar-title {
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -162,6 +221,16 @@ a {
   gap: 16px;
   color: var(--color-muted);
   font-size: 14px;
+}
+
+.toolbar-view-mode {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+  padding: 4px 10px;
+  background: var(--color-surface);
+  border-radius: 6px;
 }
 
 .workspace {
@@ -181,7 +250,11 @@ a {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 20px 24px;
+  overflow: hidden;
+}
+
+.split-pane.full-pane {
+  width: 100%;
 }
 
 .split-divider {
@@ -494,6 +567,159 @@ a {
 
 .wysiwyg-heading {
   font-weight: 600;
+}
+
+/* Settings Dialog */
+.settings-dialog {
+  width: min(800px, 90vw);
+  height: min(600px, 80vh);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.settings-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--color-muted);
+  line-height: 1;
+}
+
+.settings-close:hover {
+  color: var(--color-text);
+}
+
+.settings-content {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.settings-sidebar {
+  width: 180px;
+  border-right: 1px solid var(--color-border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-surface);
+}
+
+.settings-sidebar-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+  margin-bottom: 8px;
+}
+
+.settings-category-btn {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.settings-category-btn:hover {
+  background: var(--color-panel);
+}
+
+.settings-category-btn.is-active {
+  background: var(--color-accent);
+  color: white;
+}
+
+.settings-main {
+  flex: 1;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shortcut-label {
+  font-size: 14px;
+}
+
+.shortcut-value {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  min-width: 140px;
+  text-align: center;
+}
+
+.shortcut-value:hover {
+  border-color: var(--color-accent);
+}
+
+.shortcut-value.is-editing {
+  border-color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-accent);
+}
+
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-button.primary {
+  background: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+.toolbar-button.primary:hover {
+  background: #1d4ed8;
 }
 
 @media (max-width: 960px) {
