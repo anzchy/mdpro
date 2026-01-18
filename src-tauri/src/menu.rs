@@ -10,7 +10,9 @@ const MENU_FILE_SAVE: &str = "menu.file.save";
 const MENU_FILE_CLOSE: &str = "menu.file.close";
 const MENU_FILE_EXPORT_HTML: &str = "menu.file.export_html";
 const MENU_FILE_RECENT_PREFIX: &str = "menu.file.recent.";
+const MENU_FILE_PREFERENCES: &str = "menu.file.preferences";
 
+const MENU_VIEW_CYCLE: &str = "menu.view.cycle";
 const MENU_VIEW_SPLIT: &str = "menu.view.split";
 const MENU_VIEW_EDITOR: &str = "menu.view.editor";
 const MENU_VIEW_PREVIEW: &str = "menu.view.preview";
@@ -93,8 +95,18 @@ pub fn build_menu(app: &AppHandle<Wry>, recent_files: &[String]) -> tauri::Resul
     let app_name = app.package_info().name.clone();
     let about = PredefinedMenuItem::about(app, None, None)?;
 
+    let preferences_item = MenuItem::with_id(
+        app,
+        MENU_FILE_PREFERENCES,
+        "Preferences...",
+        true,
+        Some("CmdOrCtrl+,"),
+    )?;
+
     let app_menu = SubmenuBuilder::new(app, app_name)
         .item(&about)
+        .separator()
+        .item(&preferences_item)
         .separator()
         .item(&PredefinedMenuItem::services(app, None)?)
         .separator()
@@ -140,23 +152,32 @@ pub fn build_menu(app: &AppHandle<Wry>, recent_files: &[String]) -> tauri::Resul
         .item(&PredefinedMenuItem::select_all(app, None)?)
         .build()?;
 
-    let view_split = MenuItem::with_id(app, MENU_VIEW_SPLIT, "Split", true, Some("CmdOrCtrl+1"))?;
+    // Cmd+/ to cycle through view modes (Typora-style)
+    let view_cycle = MenuItem::with_id(
+        app,
+        MENU_VIEW_CYCLE,
+        "Cycle View Mode",
+        true,
+        Some("CmdOrCtrl+/"),
+    )?;
+    let view_split = MenuItem::with_id(app, MENU_VIEW_SPLIT, "Split", true, None::<&str>)?;
     let view_editor =
-        MenuItem::with_id(app, MENU_VIEW_EDITOR, "Editor Only", true, Some("CmdOrCtrl+2"))?;
+        MenuItem::with_id(app, MENU_VIEW_EDITOR, "Editor Only", true, None::<&str>)?;
     let view_preview =
-        MenuItem::with_id(app, MENU_VIEW_PREVIEW, "Preview Only", true, Some("CmdOrCtrl+3"))?;
+        MenuItem::with_id(app, MENU_VIEW_PREVIEW, "Preview Only", true, None::<&str>)?;
     let view_wysiwyg =
-        MenuItem::with_id(app, MENU_VIEW_WYSIWYG, "WYSIWYG", true, Some("CmdOrCtrl+4"))?;
-    let view_toggle_sidebar =
-        MenuItem::with_id(
-            app,
-            MENU_VIEW_TOGGLE_SIDEBAR,
-            "Toggle Sidebar",
-            true,
-            Some("CmdOrCtrl+Shift+B"),
-        )?;
+        MenuItem::with_id(app, MENU_VIEW_WYSIWYG, "WYSIWYG", true, None::<&str>)?;
+    let view_toggle_sidebar = MenuItem::with_id(
+        app,
+        MENU_VIEW_TOGGLE_SIDEBAR,
+        "Toggle Sidebar",
+        true,
+        Some("CmdOrCtrl+Shift+L"),
+    )?;
 
     let view_menu = SubmenuBuilder::new(app, "View")
+        .item(&view_cycle)
+        .separator()
         .item(&view_split)
         .item(&view_editor)
         .item(&view_preview)
@@ -216,6 +237,8 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_FILE_SAVE => emit_menu_action(app, "file.save", None),
         MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),
         MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
+        MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
+        MENU_VIEW_CYCLE => emit_menu_action(app, "view.cycle", None),
         MENU_VIEW_SPLIT => emit_menu_action(app, "view.split", None),
         MENU_VIEW_EDITOR => emit_menu_action(app, "view.editor_only", None),
         MENU_VIEW_PREVIEW => emit_menu_action(app, "view.preview_only", None),

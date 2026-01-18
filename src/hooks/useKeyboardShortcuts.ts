@@ -7,6 +7,8 @@ interface ShortcutHandlers {
   onNew?: () => void;
   onHighlight?: () => void;
   onToggleSidebar?: () => void;
+  onCycleViewMode?: () => void;
+  onOpenPreferences?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -16,6 +18,8 @@ export function useKeyboardShortcuts({
   onNew,
   onHighlight,
   onToggleSidebar,
+  onCycleViewMode,
+  onOpenPreferences,
 }: ShortcutHandlers) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -23,33 +27,50 @@ export function useKeyboardShortcuts({
       const key = event.key.toLowerCase();
       const target = event.target as HTMLElement | null;
       const inCodeMirror = target?.closest?.(".cm-editor");
-      if (key === "n" && onNew) {
+
+      // Cmd+N - New document
+      if (key === "n" && !event.shiftKey && onNew) {
         event.preventDefault();
         onNew();
       }
+      // Cmd+Shift+H - Highlight (not in CodeMirror)
       if (key === "h" && event.shiftKey && onHighlight && !inCodeMirror) {
         event.preventDefault();
         onHighlight();
       }
-      if (key === "b" && event.shiftKey && onToggleSidebar) {
+      // Cmd+Shift+L - Toggle Sidebar (Typora convention)
+      if (key === "l" && event.shiftKey && onToggleSidebar) {
         event.preventDefault();
         onToggleSidebar();
       }
-      if (key === "o" && onOpen) {
+      // Cmd+O - Open file
+      if (key === "o" && !event.shiftKey && onOpen) {
         event.preventDefault();
         onOpen();
       }
-      if (key === "s" && onSave) {
+      // Cmd+S - Save
+      if (key === "s" && !event.shiftKey && onSave) {
         event.preventDefault();
         onSave();
       }
+      // Cmd+W - Close document
       if (key === "w" && onClose) {
         event.preventDefault();
         onClose();
+      }
+      // Cmd+/ - Cycle view mode (Typora: Source Code Mode toggle)
+      if (key === "/" && onCycleViewMode) {
+        event.preventDefault();
+        onCycleViewMode();
+      }
+      // Cmd+, - Open Preferences
+      if (key === "," && onOpenPreferences) {
+        event.preventDefault();
+        onOpenPreferences();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, onHighlight, onNew, onOpen, onSave, onToggleSidebar]);
+  }, [onClose, onCycleViewMode, onHighlight, onNew, onOpen, onOpenPreferences, onSave, onToggleSidebar]);
 }

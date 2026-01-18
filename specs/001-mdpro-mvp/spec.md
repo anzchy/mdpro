@@ -28,7 +28,10 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - Q: MVP scope exclusions? → A: Exclude cloud sync and plugins; include basic HTML export
 - Q: Top toolbar vs native menu? → A: macOS native menu hosts file/edit/view/theme actions; in-app toolbar stays minimal (title/status only)
 - Q: Preview mode editability? → A: Preview-only mode allows direct inline editing (Typora-like), clicking text places the caret and edits in-place
-- Q: Finder integration? → A: mdpro registers .md/.markdown associations, supports “Open With” and double-click to open documents on launch
+- Q: Finder integration? → A: mdpro registers .md/.markdown associations, supports "Open With" and double-click to open documents on launch
+- Q: Default view mode when opening files from Finder? → A: Preview-only mode by default (not split view), provides immersive reading experience with inline editing capability
+- Q: Preview-only mode appearance? → A: Uses WYSIWYG (Typora-style) editing - displays formatted content that can be edited inline directly, without switching to a separate editor view
+- Q: Drag-drop behavior with existing document? → A: When dragging a file to mdpro window that already has a document open, open the new file in a new window instead of replacing current document
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -44,8 +47,10 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 
 1. **Given** 用户启动应用, **When** 用户通过"文件→打开"选择一个.md文件, **Then** 文件内容显示在编辑区域
 2. **Given** 编辑区域显示文件内容, **When** 用户修改文本并按Cmd+S, **Then** 文件保存成功，标题栏显示已保存状态
-3. **Given** 用户在Finder中有.md文件, **When** 用户将文件拖拽到应用窗口, **Then** 文件自动打开并显示内容
+3. **Given** 用户在Finder中有.md文件, **When** 用户将文件拖拽到空白的应用窗口, **Then** 文件自动打开并显示内容
 4. **Given** 用户正在编辑未保存的内容, **When** 用户尝试关闭窗口, **Then** 系统提示是否保存更改
+5. **Given** 用户在Finder中右键选择.md文件用mdpro打开, **When** 文件打开后, **Then** 默认以Preview模式显示（全屏渲染效果，支持点击编辑）
+6. **Given** 用户已在mdpro中打开了一个文档, **When** 用户将另一个.md文件拖拽到窗口, **Then** 新文件在新窗口中打开
 
 ---
 
@@ -127,9 +132,10 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 **Acceptance Scenarios**:
 
 1. **Given** 当前为分屏模式, **When** 用户点击"仅编辑器"按钮, **Then** 预览区域隐藏，编辑区域占满窗口
-2. **Given** 当前为分屏模式, **When** 用户点击"仅预览"按钮, **Then** 编辑区域隐藏，预览区域占满窗口
+2. **Given** 当前为分屏模式, **When** 用户点击"仅预览"按钮, **Then** 编辑区域隐藏，显示WYSIWYG编辑器（Typora风格），可直接点击输入编辑
 3. **Given** 当前为单一视图, **When** 用户点击"分屏"按钮, **Then** 编辑区域和预览区域并排显示
 4. **Given** 当前为分屏模式, **When** 用户切换到"所见即所得"模式, **Then** 显示Typora风格的内联预览编辑器，Markdown语法在非编辑行自动隐藏并渲染
+5. **Given** 当前为预览模式, **When** 用户点击内容任意位置并输入, **Then** 内容直接被编辑更新（无需切换模式）
 
 ---
 
@@ -187,7 +193,7 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - **FR-009**: 系统必须支持下划线标记语法
 - **FR-010**: 系统必须支持代码块语法高亮（至少支持20种常用语言）
 - **FR-011**: 系统必须支持明暗主题切换
-- **FR-012**: 系统必须支持通过拖拽方式打开文件
+- **FR-012**: 系统必须支持通过拖拽方式打开文件；若当前窗口已有文档打开，则在新窗口打开拖入的文件
 - **FR-013**: 系统必须在文件有未保存更改时提示用户
 - **FR-014**: 系统必须支持常用编辑快捷键（Cmd+S保存、Cmd+N新建、Cmd+O打开）
 - **FR-015**: 系统必须支持撤销/重做操作（Cmd+Z、Cmd+Shift+Z）
@@ -195,8 +201,9 @@ mdpro是一款面向macOS的本地Markdown编辑器，结合Typora的无缝实�
 - **FR-017**: 系统必须支持WYSIWYG内联编辑模式（Typora风格），Markdown语法在非编辑行自动渲染
 - **FR-018**: 系统必须支持将文档导出为HTML格式（包含内联样式）
 - **FR-019**: 系统必须在macOS使用原生菜单提供文件/编辑/视图/主题等操作入口
-- **FR-020**: 系统必须支持在预览模式内直接点击并编辑文本（Typora式体验）
-- **FR-021**: 系统必须注册.md/.markdown文件关联并支持Finder“Open With”打开文件
+- **FR-020**: 系统必须支持在预览模式内直接点击并编辑文本（Typora式体验），预览模式外观需与分屏模式右侧预览一致
+- **FR-021**: 系统必须注册.md/.markdown文件关联并支持Finder"Open With"打开文件
+- **FR-022**: 系统必须在通过Finder/命令行打开文件时默认使用Preview模式展示
 
 ### Key Entities
 

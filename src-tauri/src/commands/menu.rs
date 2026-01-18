@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, State, Wry};
+use tauri::{AppHandle, State, Wry};
 
 use crate::menu::{build_menu, MenuState};
 
