@@ -40,6 +40,7 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
+    #[cfg(target_os = "macos")]
     app.run(|app_handle, event| {
         // Handle macOS "Open With" file associations
         if let RunEvent::Opened { urls } = event {
@@ -80,4 +81,7 @@ fn main() {
             }
         }
     });
+
+    #[cfg(not(target_os = "macos"))]
+    app.run(|_, _| {});
 }
