@@ -94,9 +94,18 @@ Notes:
 
 * For public distribution, add signing/notarization later (not configured yet).
 
+## Version Management
+
+Update version numbers in **both** files before release:
+
+| File | Field |
+|------|-------|
+| `src-tauri/Cargo.toml` | `version = "x.y.z"` (line 3) |
+| `src-tauri/tauri.conf.json` | `"version": "x.y.z"` (line 4) |
+
 ## Release Checklist
 
-* Update version numbers (`src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`).
+* Update version numbers (see [Version Management](#version-management)).
 
 * Run `pnpm tauri build` locally to sanity-check.
 
