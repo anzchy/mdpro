@@ -20,11 +20,13 @@ These shortcuts work across all view modes.
 
 | Shortcut | Action | Target Mode |
 |----------|--------|-------------|
-| ⌘1 | Split View | `split` |
-| ⌘2 | Editor Only | `editor-only` |
-| ⌘3 | Preview Only | `preview-only` |
-| ⌘4 | WYSIWYG | `wysiwyg` |
+| ⌃1 | Split View | `split` |
+| ⌃2 | Editor Only | `editor-only` |
+| ⌃3 | Preview Only | `preview-only` |
+| ⌃4 | WYSIWYG | `wysiwyg` |
 | ⌘/ | Cycle View Mode | Next in order |
+
+> **Note**: View mode shortcuts use **Control** (⌃) key to avoid conflicts with Typora-style heading shortcuts (⌘1-6).
 
 ### UI Toggles
 
@@ -36,6 +38,17 @@ These shortcuts work across all view modes.
 ## WYSIWYG Mode Shortcuts (Milkdown)
 
 These shortcuts work only in WYSIWYG mode via the Typora-style keymap.
+
+### Typora-style Inline Editing
+
+When the cursor is positioned inside certain inline elements, they expand to show their raw Markdown syntax:
+
+| Element | Collapsed | Expanded (when cursor inside) |
+|---------|-----------|-------------------------------|
+| Link | [test link](blue, underlined) | `[test link](https://example.com)` |
+| Inline Code | `code` (styled) | `` `code` `` (with backticks) |
+
+This allows editing the URL or code content directly without switching to Editor mode.
 
 ### Headings
 
@@ -49,7 +62,7 @@ These shortcuts work only in WYSIWYG mode via the Typora-style keymap.
 | ⌘6 | Heading 6 |
 | ⌘0 | Paragraph (remove heading) |
 
-> **Note**: In WYSIWYG mode, ⌘1-6 are heading shortcuts. Use the View menu or ⌘/ to switch view modes.
+> **Note**: In WYSIWYG mode, ⌘1-6 are heading shortcuts. Use ⌃1-4 or ⌘/ to switch view modes.
 
 ### Text Formatting
 
@@ -231,9 +244,9 @@ Shortcuts are handled differently based on focus:
 │   ⌘S    Save         ⌘W    Close          │
 │   ⌘⇧E   Export HTML                       │
 ├────────────────────────────────────────────┤
-│ VIEW                                       │
-│   ⌘1    Split        ⌘2    Editor         │
-│   ⌘3    Preview      ⌘4    WYSIWYG        │
+│ VIEW (uses Control key)                    │
+│   ⌃1    Split        ⌃2    Editor         │
+│   ⌃3    Preview      ⌃4    WYSIWYG        │
 │   ⌘/    Cycle        ⌘⇧B   Sidebar        │
 ├────────────────────────────────────────────┤
 │ WYSIWYG FORMATTING                         │

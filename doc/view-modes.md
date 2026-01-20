@@ -6,10 +6,12 @@ mdpro supports 4 view modes to accommodate different editing workflows.
 
 | Mode | Shortcut | Description | Engine |
 |------|----------|-------------|--------|
-| **Split** | ⌘1 | Editor + Preview side-by-side | CodeMirror + marked |
-| **Editor Only** | ⌘2 | Source editing only | CodeMirror |
-| **Preview Only** | ⌘3 | Read-only preview | marked + DOMPurify |
-| **WYSIWYG** | ⌘4 | Rich text editing | Milkdown |
+| **Split** | ⌃1 | Editor + Preview side-by-side | CodeMirror + marked |
+| **Editor Only** | ⌃2 | Source editing only | CodeMirror |
+| **Preview Only** | ⌃3 | Read-only preview | marked + DOMPurify |
+| **WYSIWYG** | ⌃4 | Rich text editing | Milkdown |
+
+> **Note**: View mode shortcuts use **Control** (⌃) key to avoid conflicts with Typora-style heading shortcuts (⌘1-6).
 
 ## Type Definition
 
@@ -20,7 +22,7 @@ export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
 
 ## Mode Details
 
-### Split Mode (⌘1)
+### Split Mode (⌃1)
 
 ```
 ┌──────────────────┬──────────────────┐
@@ -36,7 +38,7 @@ export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
 - Real-time preview updates as you type
 - Resizable split (drag divider)
 
-### Editor Only Mode (⌘2)
+### Editor Only Mode (⌃2)
 
 ```
 ┌─────────────────────────────────────┐
@@ -51,7 +53,7 @@ export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
 - Syntax highlighting
 - Used automatically for large files (>500KB)
 
-### Preview Only Mode (⌘3)
+### Preview Only Mode (⌃3)
 
 ```
 ┌─────────────────────────────────────┐
@@ -66,7 +68,7 @@ export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
 - Default mode when opening files via Finder/drag-drop
 - Ideal for reading documentation
 
-### WYSIWYG Mode (⌘4)
+### WYSIWYG Mode (⌃4)
 
 ```
 ┌─────────────────────────────────────┐

@@ -6,16 +6,21 @@ interface DevToolbarProps {
 
 /**
  * Development-only toolbar for testing in browser without Tauri.
- * Only visible when running in browser (not in Tauri window).
+ * Only visible when running `pnpm dev` (browser mode), hidden in:
+ * - `pnpm tauri dev` (Tauri development)
+ * - Built macOS app (production)
  */
 export function DevToolbar({ onOpenFile }: DevToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if running in Tauri (window.__TAURI__ exists)
+  // Check if running in Tauri environment
   const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
 
-  // Don't render in Tauri environment
-  if (isTauri) {
+  // Only show in development mode AND not in Tauri
+  // - pnpm dev: DEV=true, isTauri=false → show
+  // - pnpm tauri dev: DEV=true, isTauri=true → hide
+  // - built app: DEV=false, isTauri=true → hide
+  if (!import.meta.env.DEV || isTauri) {
     return null;
   }
 
