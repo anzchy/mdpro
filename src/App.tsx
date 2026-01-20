@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { DevToolbar } from "./components/DevToolbar";
 import { SplitView } from "./components/Editor/SplitView";
-import { WysiwygView } from "./components/Editor/WysiwygView";
+import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
+import { Preview } from "./components/Preview/Preview";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TitleBar } from "./components/TitleBar";
 import { ConfirmDialog } from "./components/common/ConfirmDialog";
@@ -65,7 +67,7 @@ function App() {
     clearEncodingIssue,
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
-  const { viewMode, setViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
+  const { viewMode, setViewMode, cycleViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
   const { resolvedTheme, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState(0);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
@@ -77,6 +79,7 @@ function App() {
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
   const hasUnsavedRef = useRef(false);
@@ -105,10 +108,10 @@ function App() {
   );
 
   useEffect(() => {
-    invoke("set_recent_files_menu", { recentFiles }).catch(() => {
+    invoke("set_recent_files_menu", { recentFiles, viewMode }).catch(() => {
       // Ignore if running outside Tauri or menu is unavailable.
     });
-  }, [recentFiles]);
+  }, [recentFiles, viewMode]);
 
   const handleToggleSidebar = useCallback(() => {
     const next = !showSidebar;
@@ -120,6 +123,7 @@ function App() {
     setToastMessage(message);
     window.setTimeout(() => setToastMessage(null), 3000);
   }, []);
+
 
   const applyWindowState = useCallback(async (state: WindowState) => {
     try {
@@ -188,7 +192,7 @@ function App() {
       try {
         const prefs = await preferencesService.getPreferences();
         if (!mounted) return;
-        setViewMode(prefs.defaultViewMode);
+        setViewMode(prefs.lastViewMode ?? prefs.defaultViewMode);
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
         setRecentFiles(prefs.recentFiles ?? []);
@@ -200,6 +204,8 @@ function App() {
         await setThemeMode(prefs.themeMode);
       } catch {
         // Ignore preference loading errors in web preview.
+      } finally {
+        if (mounted) setPreferencesLoaded(true);
       }
     };
     void loadPreferences();
@@ -207,6 +213,11 @@ function App() {
       mounted = false;
     };
   }, [applyWindowState, setShowSidebar, setThemeMode, setViewMode]);
+
+  useEffect(() => {
+    if (!preferencesLoaded) return;
+    void preferencesService.setPreferences({ lastViewMode: viewMode });
+  }, [preferencesLoaded, viewMode]);
 
   // Handle ?open= URL parameter (for new windows opened via drag-drop)
   useEffect(() => {
@@ -299,23 +310,40 @@ function App() {
     }
   }, [clearLargeFileWarning, largeFileWarning, showToast]);
 
+  useEffect(() => {
+    if (viewMode !== "wysiwyg") return;
+    if (!activeDocument) return;
+    const bytes =
+      activeDocument.fileSize ??
+      new TextEncoder().encode(activeDocument.content).length;
+    if (bytes <= 500 * 1024) return;
+    showToast("Document exceeds 500KB. Switched to Editor mode for performance.");
+    setViewMode("editor-only");
+  }, [activeDocument, setViewMode, showToast, viewMode]);
+
   const handleOpenDialog = useCallback(async () => {
     if (openDialogLockRef.current) return;
     if (Date.now() < openDialogCooldownRef.current) return;
     openDialogLockRef.current = true;
     setBusyLabel("Opening file...");
     try {
+      console.log("[DEBUG] handleOpenDialog - calling openDocumentFromDialog");
       const doc = await openDocumentFromDialog();
+      console.log("[DEBUG] handleOpenDialog - result:", doc?.id, "content length:", doc?.content?.length);
       if (doc?.path) {
         updateRecentFiles(doc.path);
-      } else {
+      } else if (!doc) {
+        // File dialog was cancelled or an error occurred
         openDialogCooldownRef.current = Date.now() + 500;
       }
+    } catch (error) {
+      console.error("[DEBUG] handleOpenDialog error:", error);
+      showToast("Failed to open file");
     } finally {
       setBusyLabel(null);
       openDialogLockRef.current = false;
     }
-  }, [openDocumentFromDialog, updateRecentFiles]);
+  }, [openDocumentFromDialog, showToast, updateRecentFiles]);
 
   const handleOpenPath = useCallback(
     async (path: string) => {
@@ -555,6 +583,24 @@ function App() {
     };
   }, [handleFileDrop]);
 
+  // Handler for DevToolbar (browser-only file open)
+  const handleDevOpenFile = useCallback(
+    (content: string, fileName: string) => {
+      console.log("[DEV] Opening file from browser:", fileName, "content length:", content.length);
+      const document: Document = {
+        id: `dev-${Date.now()}`,
+        path: fileName,
+        content,
+        encoding: "UTF-8",
+        isModified: false,
+        lastSaved: null,
+        fileSize: content.length,
+      };
+      upsertAndActivateDocument(document);
+    },
+    [upsertAndActivateDocument],
+  );
+
   const handleConfirmClose = async () => {
     const target = closeTargetRef.current;
     setPendingClose(null);
@@ -585,26 +631,6 @@ function App() {
       void closeActiveDocument(true);
     }
   }, [activeDocument, closeActiveDocument]);
-
-  // Cycle through view modes: preview -> split -> editor -> preview
-  const cycleViewMode = useCallback(() => {
-    switch (viewMode) {
-      case "preview-only":
-        setViewMode("split");
-        break;
-      case "split":
-        setViewMode("editor-only");
-        break;
-      case "editor-only":
-        setViewMode("preview-only");
-        break;
-      case "wysiwyg":
-        setViewMode("preview-only");
-        break;
-      default:
-        setViewMode("preview-only");
-    }
-  }, [viewMode, setViewMode]);
 
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
@@ -666,6 +692,7 @@ function App() {
 
   return (
     <div className={`app-shell${showSidebar ? "" : " no-sidebar"}`}>
+      <DevToolbar onOpenFile={handleDevOpenFile} />
       {showSidebar ? (
         <Sidebar
           documents={documents}
@@ -686,13 +713,18 @@ function App() {
           </div>
         ) : null}
         <section className="workspace">
-          {viewMode === "wysiwyg" ? (
-            <WysiwygView
-              value={activeDocument?.content ?? ""}
-              onChange={updateActiveDocumentContent}
-              readOnly={!activeDocument}
-              highlightRequest={highlightRequest}
-            />
+          {(() => {
+            console.log("[DEBUG] Rendering workspace - viewMode:", viewMode, "activeDocument:", activeDocument?.id, "content length:", activeDocument?.content?.length);
+            return null;
+          })()}
+          {viewMode === "preview-only" ? (
+            <div className="split-view">
+              <div className="split-pane full-pane preview-scroll">
+                <Preview markdown={activeDocument?.content ?? ""} />
+              </div>
+            </div>
+          ) : viewMode === "wysiwyg" ? (
+            <MilkdownEditor />
           ) : (
             <SplitView
               markdown={activeDocument?.content ?? ""}

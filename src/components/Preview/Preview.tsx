@@ -10,7 +10,9 @@ interface PreviewProps {
 }
 
 export function Preview({ markdown }: PreviewProps) {
+  console.log("[DEBUG] Preview - markdown length:", markdown.length, "first 100 chars:", markdown.slice(0, 100));
   const { html, isRendering } = usePreview(markdown, 100);
+  console.log("[DEBUG] Preview - html length:", html.length, "isRendering:", isRendering);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

@@ -1,7 +1,9 @@
 use serde::Serialize;
 use std::path::Path;
 use std::sync::Mutex;
-use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder};
+use tauri::menu::{
+    CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder,
+};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
 const MENU_FILE_NEW: &str = "menu.file.new";
@@ -90,7 +92,11 @@ fn build_recent_submenu(app: &AppHandle<Wry>, recent_files: &[String]) -> tauri:
     builder.build()
 }
 
-pub fn build_menu(app: &AppHandle<Wry>, recent_files: &[String]) -> tauri::Result<Menu<Wry>> {
+pub fn build_menu(
+    app: &AppHandle<Wry>,
+    recent_files: &[String],
+    active_view_mode: Option<&str>,
+) -> tauri::Result<Menu<Wry>> {
     let menu = Menu::new(app)?;
     let app_name = app.package_info().name.clone();
     let about = PredefinedMenuItem::about(app, None, None)?;
@@ -160,13 +166,39 @@ pub fn build_menu(app: &AppHandle<Wry>, recent_files: &[String]) -> tauri::Resul
         true,
         Some("CmdOrCtrl+/"),
     )?;
-    let view_split = MenuItem::with_id(app, MENU_VIEW_SPLIT, "Split", true, None::<&str>)?;
-    let view_editor =
-        MenuItem::with_id(app, MENU_VIEW_EDITOR, "Editor Only", true, None::<&str>)?;
-    let view_preview =
-        MenuItem::with_id(app, MENU_VIEW_PREVIEW, "Preview Only", true, None::<&str>)?;
-    let view_wysiwyg =
-        MenuItem::with_id(app, MENU_VIEW_WYSIWYG, "WYSIWYG", true, None::<&str>)?;
+    let is_active = |mode: &str| active_view_mode == Some(mode);
+    let view_split = CheckMenuItem::with_id(
+        app,
+        MENU_VIEW_SPLIT,
+        "Split",
+        true,
+        is_active("split"),
+        Some("Ctrl+1"),
+    )?;
+    let view_editor = CheckMenuItem::with_id(
+        app,
+        MENU_VIEW_EDITOR,
+        "Editor Only",
+        true,
+        is_active("editor-only"),
+        Some("Ctrl+2"),
+    )?;
+    let view_preview = CheckMenuItem::with_id(
+        app,
+        MENU_VIEW_PREVIEW,
+        "Preview Only",
+        true,
+        is_active("preview-only"),
+        Some("Ctrl+3"),
+    )?;
+    let view_wysiwyg = CheckMenuItem::with_id(
+        app,
+        MENU_VIEW_WYSIWYG,
+        "WYSIWYG",
+        true,
+        is_active("wysiwyg"),
+        Some("Ctrl+4"),
+    )?;
     let view_toggle_sidebar = MenuItem::with_id(
         app,
         MENU_VIEW_TOGGLE_SIDEBAR,
@@ -238,11 +270,11 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),
         MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
         MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
-        MENU_VIEW_CYCLE => emit_menu_action(app, "view.cycle", None),
-        MENU_VIEW_SPLIT => emit_menu_action(app, "view.split", None),
-        MENU_VIEW_EDITOR => emit_menu_action(app, "view.editor_only", None),
-        MENU_VIEW_PREVIEW => emit_menu_action(app, "view.preview_only", None),
-        MENU_VIEW_WYSIWYG => emit_menu_action(app, "view.wysiwyg", None),
+        MENU_VIEW_CYCLE => emit_menu_action(app, "cycle-view-mode", None),
+        MENU_VIEW_SPLIT => emit_menu_action(app, "set-view-mode", Some("split".to_string())),
+        MENU_VIEW_EDITOR => emit_menu_action(app, "set-view-mode", Some("editor-only".to_string())),
+        MENU_VIEW_PREVIEW => emit_menu_action(app, "set-view-mode", Some("preview-only".to_string())),
+        MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
         MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
         MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
         MENU_THEME_LIGHT => emit_menu_action(app, "theme.light", None),

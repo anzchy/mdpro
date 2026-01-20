@@ -54,6 +54,22 @@ export function useMenuEvents(handlers: MenuHandlers) {
         case "view.cycle":
           handlers.onCycleViewMode?.();
           break;
+        case "cycle-view-mode":
+          handlers.onCycleViewMode?.();
+          break;
+        case "set-view-mode": {
+          if (!value) break;
+          const mode = value as ViewMode;
+          if (
+            mode === "split" ||
+            mode === "editor-only" ||
+            mode === "preview-only" ||
+            mode === "wysiwyg"
+          ) {
+            handlers.onViewModeChange?.(mode);
+          }
+          break;
+        }
         case "view.split":
           handlers.onViewModeChange?.("split");
           break;

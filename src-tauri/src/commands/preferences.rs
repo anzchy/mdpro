@@ -35,6 +35,7 @@ pub async fn save_window_state(window_state: WindowState) -> Result<(), Preferen
     let current = load_preferences().unwrap_or_default();
     let next = UserPreferences {
         window_state,
+        last_view_mode: current.last_view_mode,
         ..current
     };
     save_preferences(&next)

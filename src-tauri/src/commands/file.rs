@@ -77,8 +77,10 @@ fn mtime_cache() -> &'static Mutex<HashMap<String, i64>> {
 }
 
 fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<OpenFileResult, FileError> {
+    println!("[DEBUG] open_file_from_path called with: {}", path);
     let path_buf = PathBuf::from(path);
     if !path_buf.exists() {
+        println!("[DEBUG] File not found: {}", path);
         return Err(FileError::FileNotFound {
             path: path.to_string(),
         });
@@ -101,6 +103,7 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
     }
 
     let bytes = std::fs::read(&path_buf).map_err(|err| to_file_error(err, path))?;
+    println!("[DEBUG] Read {} bytes from file", bytes.len());
     let detected = encoding::detect_encoding(&bytes);
     let encoding_value = encoding_hint.clone().unwrap_or_else(|| detected.clone());
     let content = encoding::decode_bytes(&bytes, &encoding_value).map_err(|_| {
@@ -109,9 +112,11 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
             detected,
         }
     })?;
+    println!("[DEBUG] Decoded content length: {} chars", content.len());
 
     let mut document = Document::from_path(path_buf, content);
     document.encoding = encoding_value;
+    println!("[DEBUG] Created document with id: {}", document.id);
 
     Ok(OpenFileResult {
         document,
@@ -140,16 +145,20 @@ pub async fn open_file_dialog(
     _window: Window,
     watcher: State<'_, FileWatcher>,
 ) -> Result<Option<OpenFileResult>, FileError> {
+    println!("[DEBUG] open_file_dialog called");
     let picked = rfd::FileDialog::new()
         .add_filter("Markdown", &["md", "markdown"])
         .pick_file();
 
     let Some(path) = picked else {
+        println!("[DEBUG] open_file_dialog: No file picked (dialog cancelled)");
         return Ok(None);
     };
 
     let path_string = path.to_string_lossy().to_string();
+    println!("[DEBUG] open_file_dialog: File picked: {}", path_string);
     let result = open_file_from_path(&path_string, None)?;
+    println!("[DEBUG] open_file_dialog: File read successfully, content length: {}", result.document.content.len());
     watcher.watch(&PathBuf::from(&path_string));
     Ok(Some(result))
 }

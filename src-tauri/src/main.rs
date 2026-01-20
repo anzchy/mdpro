@@ -10,7 +10,7 @@ fn main() {
                 tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone());
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
-            let menu = tauri_app_lib::menu::build_menu(&app.handle(), &[])?;
+            let menu = tauri_app_lib::menu::build_menu(&app.handle(), &[], None)?;
             app.set_menu(menu)?;
             let launch_state = tauri_app_lib::launch::LaunchState::default();
             let args = tauri_app_lib::launch::filter_launch_paths(std::env::args().skip(1));

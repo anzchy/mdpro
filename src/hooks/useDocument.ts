@@ -60,8 +60,11 @@ export function useDocument() {
 
   const openDocumentFromPath = useCallback(
     async (path: string) => {
+      console.log("[DEBUG] openDocumentFromPath called with:", path);
       try {
         const result = await fileService.openFile(path);
+        console.log("[DEBUG] fileService.openFile result:", result);
+        console.log("[DEBUG] document content length:", result.document.content?.length);
         upsertDocument(result.document);
         setActiveDocumentId(result.document.id);
         setEditorActiveDocumentId(result.document.id);
@@ -70,6 +73,7 @@ export function useDocument() {
         }
         return result.document;
       } catch (error) {
+        console.error("[DEBUG] openDocumentFromPath error:", error);
         const encodingError = parseEncodingError(error);
         if (encodingError) {
           setEncodingIssue({
@@ -98,23 +102,37 @@ export function useDocument() {
   );
 
   const openDocumentFromDialog = useCallback(async () => {
+    console.log("[DEBUG] openDocumentFromDialog called");
     try {
       const result = await fileService.openFileDialog();
-      if (!result) return null;
+      console.log("[DEBUG] openFileDialog result:", result);
+      if (!result) {
+        console.log("[DEBUG] openFileDialog returned null (dialog cancelled)");
+        return null;
+      }
+      console.log("[DEBUG] document id:", result.document.id);
+      console.log("[DEBUG] document path:", result.document.path);
+      console.log("[DEBUG] document content length:", result.document.content?.length);
+      console.log("[DEBUG] document content first 100 chars:", result.document.content?.slice(0, 100));
       upsertDocument(result.document);
       setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
+      console.log("[DEBUG] document stored and activated");
       if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
         setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
       }
       return result.document;
     } catch (error) {
+      console.error("[DEBUG] openDocumentFromDialog error:", error);
       const encodingError = parseEncodingError(error);
       if (encodingError) {
         setEncodingIssue({
           path: encodingError.path || "",
           detected: encodingError.detected || "unknown",
         });
+      } else {
+        // Re-throw non-encoding errors so the caller can handle them
+        throw error;
       }
       return null;
     }

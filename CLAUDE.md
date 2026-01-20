@@ -142,3 +142,10 @@ Feature specifications live in `specs/001-mdpro-mvp/`:
 - No plugin system
 - HTML export only (no PDF/Word)
 - Max file size: 10MB
+
+## Active Technologies
+- TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4 (002-polish-wysiwyg)
+- N/A (local file system via Tauri) (002-polish-wysiwyg)
+
+## Recent Changes
+- 002-polish-wysiwyg: Added TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4

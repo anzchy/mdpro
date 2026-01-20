@@ -6,16 +6,10 @@ import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
 import { highlightCommand } from "./extensions/highlight";
 import {
-  heading1Command,
-  heading2Command,
-  heading3Command,
-  heading4Command,
-  heading5Command,
-  heading6Command,
-  paragraphCommand,
   increaseHeadingCommand,
   decreaseHeadingCommand,
 } from "./extensions/heading";
+import { useEditorStore } from "../../stores/editorStore";
 
 interface EditorProps {
   value: string;
@@ -30,7 +24,9 @@ export function Editor({
   readOnly = false,
   highlightRequest,
 }: EditorProps) {
+  console.log("[DEBUG] Editor - value length:", value.length, "first 100 chars:", value.slice(0, 100));
   const viewRef = useRef<EditorView | null>(null);
+  const setEditorView = useEditorStore((state) => state.setEditorView);
 
   useEffect(() => {
     if (highlightRequest === undefined) return;
@@ -38,6 +34,12 @@ export function Editor({
       highlightCommand(viewRef.current);
     }
   }, [highlightRequest]);
+
+  useEffect(() => {
+    return () => {
+      setEditorView(null);
+    };
+  }, [setEditorView]);
 
   return (
     <div className="editor-shell">
@@ -52,14 +54,6 @@ export function Editor({
             { key: "Mod-Shift-z", run: redo },
             { key: "Mod-y", run: redo },
             { key: "Mod-Shift-h", run: highlightCommand },
-            // Heading shortcuts (Typora-style)
-            { key: "Mod-1", run: heading1Command },
-            { key: "Mod-2", run: heading2Command },
-            { key: "Mod-3", run: heading3Command },
-            { key: "Mod-4", run: heading4Command },
-            { key: "Mod-5", run: heading5Command },
-            { key: "Mod-6", run: heading6Command },
-            { key: "Mod-0", run: paragraphCommand },
             { key: "Mod-=", run: increaseHeadingCommand },
             { key: "Mod--", run: decreaseHeadingCommand },
           ]),
@@ -71,6 +65,7 @@ export function Editor({
         }}
         onCreateEditor={(view) => {
           viewRef.current = view;
+          setEditorView(view);
         }}
         editable={!readOnly}
         basicSetup={{

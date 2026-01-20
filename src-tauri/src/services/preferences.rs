@@ -10,6 +10,7 @@ pub struct PartialPreferences {
     pub theme_mode: Option<ThemeMode>,
     pub auto_save_interval: Option<u32>,
     pub default_view_mode: Option<ViewMode>,
+    pub last_view_mode: Option<ViewMode>,
     pub show_sidebar: Option<bool>,
     pub enable_scroll_sync: Option<bool>,
     pub recent_files: Option<Vec<String>>,
@@ -83,6 +84,9 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
         default_view_mode: updates
             .default_view_mode
             .unwrap_or(current.default_view_mode),
+        last_view_mode: updates
+            .last_view_mode
+            .unwrap_or(current.last_view_mode),
         show_sidebar: updates.show_sidebar.unwrap_or(current.show_sidebar),
         enable_scroll_sync: updates
             .enable_scroll_sync

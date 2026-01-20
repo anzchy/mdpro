@@ -9,6 +9,9 @@ pub struct UserPreferences {
     pub auto_save_interval: u32,
     /// Default view mode on startup
     pub default_view_mode: ViewMode,
+    /// Last view mode used before app close
+    #[serde(default = "default_last_view_mode")]
+    pub last_view_mode: ViewMode,
     /// Show sidebar on startup
     pub show_sidebar: bool,
     /// Enable scroll sync between editor and preview
@@ -187,6 +190,7 @@ fn default_toggle_sidebar() -> String { "Cmd+Shift+L".to_string() }
 fn default_cycle_view_mode() -> String { "Cmd+/".to_string() }
 fn default_toggle_fullscreen() -> String { "Cmd+Option+F".to_string() }
 fn default_switch_documents() -> String { "Cmd+`".to_string() }
+fn default_last_view_mode() -> ViewMode { ViewMode::Split }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -221,6 +225,7 @@ impl Default for UserPreferences {
             theme_mode: ThemeMode::System,
             auto_save_interval: 30,
             default_view_mode: ViewMode::Split,
+            last_view_mode: ViewMode::Split,
             show_sidebar: true,
             enable_scroll_sync: true,
             recent_files: Vec::new(),

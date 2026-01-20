@@ -3,6 +3,7 @@ import { useEditorStore } from "../stores/editorStore";
 export function useEditor() {
   const viewMode = useEditorStore((state) => state.viewMode);
   const setViewMode = useEditorStore((state) => state.setViewMode);
+  const cycleViewMode = useEditorStore((state) => state.cycleViewMode);
   const showSidebar = useEditorStore((state) => state.showSidebar);
   const toggleSidebar = useEditorStore((state) => state.toggleSidebar);
   const setShowSidebar = useEditorStore((state) => state.setShowSidebar);
@@ -12,6 +13,7 @@ export function useEditor() {
   return {
     viewMode,
     setViewMode,
+    cycleViewMode,
     showSidebar,
     toggleSidebar,
     setShowSidebar,

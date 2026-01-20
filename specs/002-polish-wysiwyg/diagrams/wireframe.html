@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mdpro - View Modes Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .wireframe-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .wireframe-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .wireframe-title {
+            background: #333;
+            color: white;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .shortcut {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .wireframe-content {
+            padding: 20px;
+            background: #fafafa;
+            min-height: 350px;
+        }
+
+        /* App Shell */
+        .app-shell {
+            display: flex;
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        .sidebar {
+            width: 180px;
+            background: #f0f0f0;
+            border-right: 1px solid #ddd;
+            padding: 12px;
+        }
+        .sidebar-header {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .tab-item {
+            background: white;
+            padding: 8px 10px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            border: 1px solid #e0e0e0;
+        }
+        .tab-item.active {
+            background: #007AFF;
+            color: white;
+            border-color: #007AFF;
+        }
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .title-bar {
+            height: 36px;
+            background: #f8f8f8;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .workspace {
+            flex: 1;
+            display: flex;
+        }
+
+        /* Editor Pane */
+        .editor-pane {
+            flex: 1;
+            background: white;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            color: #333;
+            overflow: hidden;
+        }
+        .editor-line {
+            display: flex;
+            gap: 12px;
+        }
+        .line-number {
+            color: #999;
+            width: 20px;
+            text-align: right;
+            user-select: none;
+        }
+        .line-content {
+            flex: 1;
+        }
+        .md-heading { color: #1a73e8; font-weight: bold; }
+        .md-bold { font-weight: bold; }
+        .md-code { background: #f5f5f5; padding: 1px 4px; border-radius: 3px; color: #d73a49; }
+        .md-list { color: #666; }
+
+        /* Preview Pane */
+        .preview-pane {
+            flex: 1;
+            background: white;
+            padding: 16px;
+            font-size: 12px;
+            line-height: 1.6;
+            overflow: hidden;
+            border-left: 1px solid #eee;
+        }
+        .preview-pane h1 { font-size: 20px; margin-bottom: 12px; color: #333; }
+        .preview-pane p { margin-bottom: 10px; color: #444; }
+        .preview-pane ul { margin-left: 20px; margin-bottom: 10px; }
+        .preview-pane code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 11px; }
+
+        /* WYSIWYG Pane */
+        .wysiwyg-pane {
+            flex: 1;
+            background: white;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .wysiwyg-pane h1 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: #333;
+            border-bottom: none;
+        }
+        .wysiwyg-pane p { margin-bottom: 12px; color: #333; }
+        .wysiwyg-pane strong { font-weight: 600; }
+        .wysiwyg-pane ul { margin-left: 24px; margin-bottom: 12px; }
+        .wysiwyg-pane code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .wysiwyg-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 18px;
+            background: #007AFF;
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Divider */
+        .split-divider {
+            width: 4px;
+            background: #e0e0e0;
+            cursor: col-resize;
+        }
+        .split-divider:hover {
+            background: #007AFF;
+        }
+
+        /* Mode Indicator */
+        .mode-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .wireframe-content {
+            position: relative;
+        }
+
+        /* Annotations */
+        .annotation {
+            font-size: 11px;
+            color: #666;
+            margin-top: 12px;
+            padding: 8px;
+            background: #fff9e6;
+            border-radius: 4px;
+            border-left: 3px solid #f0ad4e;
+        }
+
+        /* Cycle diagram */
+        .cycle-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            margin-top: 30px;
+        }
+        .cycle-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+        }
+        .cycle-node {
+            position: absolute;
+            width: 100px;
+            height: 60px;
+            background: white;
+            border: 2px solid #007AFF;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .cycle-node.active {
+            background: #007AFF;
+            color: white;
+        }
+        .cycle-arrow {
+            position: absolute;
+            color: #007AFF;
+            font-size: 24px;
+        }
+        .cycle-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .cycle-shortcut {
+            background: #333;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        .cycle-label {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>mdpro View Modes - Wireframe Diagrams</h1>
+
+    <div class="wireframe-grid">
+        <!-- Split View -->
+        <div class="wireframe-card">
+            <div class="wireframe-title">
+                <span>1. Split View (Default)</span>
+                <span class="shortcut">⌃1</span>
+            </div>
+            <div class="wireframe-content">
+                <div class="app-shell">
+                    <div class="sidebar">
+                        <div class="sidebar-header">Documents</div>
+                        <div class="tab-item active">README.md</div>
+                        <div class="tab-item">notes.md</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="title-bar">README.md</div>
+                        <div class="workspace">
+                            <div class="editor-pane" style="flex: 1;">
+                                <div class="editor-line"><span class="line-number">1</span><span class="line-content"><span class="md-heading"># Hello World</span></span></div>
+                                <div class="editor-line"><span class="line-number">2</span><span class="line-content"></span></div>
+                                <div class="editor-line"><span class="line-number">3</span><span class="line-content">This is <span class="md-bold">**bold**</span> text.</span></div>
+                                <div class="editor-line"><span class="line-number">4</span><span class="line-content"></span></div>
+                                <div class="editor-line"><span class="line-number">5</span><span class="line-content"><span class="md-list">-</span> Item one</span></div>
+                                <div class="editor-line"><span class="line-number">6</span><span class="line-content"><span class="md-list">-</span> Item two</span></div>
+                            </div>
+                            <div class="split-divider"></div>
+                            <div class="preview-pane" style="flex: 1;">
+                                <h1>Hello World</h1>
+                                <p>This is <strong>bold</strong> text.</p>
+                                <ul>
+                                    <li>Item one</li>
+                                    <li>Item two</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="annotation">
+                    <strong>Split View:</strong> Editor on left, rendered preview on right. Draggable divider. Synchronized scrolling.
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor Only -->
+        <div class="wireframe-card">
+            <div class="wireframe-title">
+                <span>2. Editor Only</span>
+                <span class="shortcut">⌃2</span>
+            </div>
+            <div class="wireframe-content">
+                <div class="app-shell">
+                    <div class="sidebar">
+                        <div class="sidebar-header">Documents</div>
+                        <div class="tab-item active">README.md</div>
+                        <div class="tab-item">notes.md</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="title-bar">README.md</div>
+                        <div class="workspace">
+                            <div class="editor-pane">
+                                <div class="editor-line"><span class="line-number">1</span><span class="line-content"><span class="md-heading"># Hello World</span></span></div>
+                                <div class="editor-line"><span class="line-number">2</span><span class="line-content"></span></div>
+                                <div class="editor-line"><span class="line-number">3</span><span class="line-content">This is <span class="md-bold">**bold**</span> text.</span></div>
+                                <div class="editor-line"><span class="line-number">4</span><span class="line-content"></span></div>
+                                <div class="editor-line"><span class="line-number">5</span><span class="line-content"><span class="md-list">-</span> Item one</span></div>
+                                <div class="editor-line"><span class="line-number">6</span><span class="line-content"><span class="md-list">-</span> Item two</span></div>
+                                <div class="editor-line"><span class="line-number">7</span><span class="line-content"></span></div>
+                                <div class="editor-line"><span class="line-number">8</span><span class="line-content">Use <span class="md-code">`code`</span> for inline.</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="annotation">
+                    <strong>Editor Only:</strong> Full-width source code editor with syntax highlighting. Line numbers visible. No preview pane.
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Only (NEW BEHAVIOR) -->
+        <div class="wireframe-card">
+            <div class="wireframe-title">
+                <span>3. Preview Only (NEW)</span>
+                <span class="shortcut">⌃3</span>
+            </div>
+            <div class="wireframe-content">
+                <div class="app-shell">
+                    <div class="sidebar">
+                        <div class="sidebar-header">Documents</div>
+                        <div class="tab-item active">README.md</div>
+                        <div class="tab-item">notes.md</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="title-bar">README.md</div>
+                        <div class="workspace">
+                            <div class="preview-pane" style="border-left: none;">
+                                <h1>Hello World</h1>
+                                <p>This is <strong>bold</strong> text.</p>
+                                <ul>
+                                    <li>Item one</li>
+                                    <li>Item two</li>
+                                </ul>
+                                <p>Use <code>code</code> for inline.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="annotation">
+                    <strong>Preview Only (NEW):</strong> Full-width <em>read-only</em> rendered HTML. Same styling as Split view right pane. No editing. Links clickable.
+                </div>
+            </div>
+        </div>
+
+        <!-- WYSIWYG Mode -->
+        <div class="wireframe-card">
+            <div class="wireframe-title">
+                <span>4. WYSIWYG Mode (Milkdown)</span>
+                <span class="shortcut">⌃4</span>
+            </div>
+            <div class="wireframe-content">
+                <div class="app-shell">
+                    <div class="sidebar">
+                        <div class="sidebar-header">Documents</div>
+                        <div class="tab-item active">README.md</div>
+                        <div class="tab-item">notes.md</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="title-bar">README.md</div>
+                        <div class="workspace">
+                            <div class="wysiwyg-pane">
+                                <h1>Hello World</h1>
+                                <p>This is <strong>bold</strong> text.<span class="wysiwyg-cursor"></span></p>
+                                <ul>
+                                    <li>Item one</li>
+                                    <li>Item two</li>
+                                </ul>
+                                <p>Use <code>code</code> for inline.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="annotation">
+                    <strong>WYSIWYG (Milkdown):</strong> True rich-text editing. Type "# " for heading, "**text**" auto-converts to bold. Markdown syntax hidden. Cursor visible.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Mode Cycle Diagram -->
+    <div class="wireframe-card" style="max-width: 600px; margin: 30px auto;">
+        <div class="wireframe-title">
+            <span>View Mode Cycling (⌘/)</span>
+        </div>
+        <div class="wireframe-content" style="min-height: 280px;">
+            <svg viewBox="0 0 400 240" style="width: 100%; max-width: 400px; margin: 0 auto; display: block;">
+                <!-- Nodes -->
+                <rect x="150" y="10" width="100" height="40" rx="8" fill="white" stroke="#007AFF" stroke-width="2"/>
+                <text x="200" y="30" text-anchor="middle" font-size="12" fill="#333">Split</text>
+                <text x="200" y="44" text-anchor="middle" font-size="9" fill="#666" font-family="monospace">⌃1</text>
+
+                <rect x="280" y="80" width="100" height="40" rx="8" fill="white" stroke="#007AFF" stroke-width="2"/>
+                <text x="330" y="100" text-anchor="middle" font-size="12" fill="#333">Editor</text>
+                <text x="330" y="114" text-anchor="middle" font-size="9" fill="#666" font-family="monospace">⌃2</text>
+
+                <rect x="150" y="180" width="100" height="40" rx="8" fill="white" stroke="#007AFF" stroke-width="2"/>
+                <text x="200" y="200" text-anchor="middle" font-size="12" fill="#333">Preview</text>
+                <text x="200" y="214" text-anchor="middle" font-size="9" fill="#666" font-family="monospace">⌃3</text>
+
+                <rect x="20" y="80" width="100" height="40" rx="8" fill="white" stroke="#007AFF" stroke-width="2"/>
+                <text x="70" y="100" text-anchor="middle" font-size="12" fill="#333">WYSIWYG</text>
+                <text x="70" y="114" text-anchor="middle" font-size="9" fill="#666" font-family="monospace">⌃4</text>
+
+                <!-- Arrows -->
+                <path d="M 250 30 Q 290 30 290 70" fill="none" stroke="#007AFF" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 330 120 Q 330 160 260 190" fill="none" stroke="#007AFF" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 150 200 Q 100 200 100 130" fill="none" stroke="#007AFF" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 70 80 Q 70 40 140 30" fill="none" stroke="#007AFF" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- Arrow marker -->
+                <defs>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#007AFF"/>
+                    </marker>
+                </defs>
+
+                <!-- Center shortcut -->
+                <rect x="160" y="95" width="80" height="35" rx="6" fill="#333"/>
+                <text x="200" y="118" text-anchor="middle" font-size="14" fill="white" font-family="monospace">⌘/</text>
+            </svg>
+            <div class="annotation" style="text-align: center;">
+                Press <code>⌘/</code> to cycle, or use <code>⌃1-4</code> for direct access. <br>
+                <small style="color: #888;">⌘1-6 reserved for Typora-style heading shortcuts</small>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

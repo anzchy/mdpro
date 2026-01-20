@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Editor } from "./Editor";
-import { WysiwygView } from "./WysiwygView";
 import { Preview } from "../Preview/Preview";
 import { useScrollSync } from "../../hooks/useScrollSync";
 import type { ViewMode } from "../../types/editor";
@@ -20,6 +19,7 @@ export function SplitView({
   viewMode = "split",
   highlightRequest,
 }: SplitViewProps) {
+  console.log("[DEBUG] SplitView - viewMode:", viewMode, "markdown length:", markdown.length, "readOnly:", readOnly);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -65,18 +65,10 @@ export function SplitView({
   }
 
   if (viewMode === "preview-only") {
-    // Typora-style: WYSIWYG editing in preview mode (editable rendered view)
     return (
       <div className="split-view" ref={containerRef}>
-        <div className="split-pane full-pane" ref={previewRef}>
-          <WysiwygView
-            value={markdown}
-            onChange={onChange}
-            readOnly={readOnly}
-            highlightRequest={highlightRequest}
-            showLineNumbers={false}
-            className="wysiwyg-preview"
-          />
+        <div className="split-pane full-pane preview-scroll" ref={previewRef}>
+          <Preview markdown={markdown} />
         </div>
       </div>
     );

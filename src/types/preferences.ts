@@ -10,6 +10,9 @@ export interface UserPreferences {
   /** Default view mode on startup */
   defaultViewMode: ViewMode;
 
+  /** Last view mode used before app close */
+  lastViewMode: ViewMode;
+
   /** Show sidebar on startup */
   showSidebar: boolean;
 

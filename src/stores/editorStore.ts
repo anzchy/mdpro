@@ -1,10 +1,14 @@
 import { create } from "zustand";
+import type { EditorView } from "@codemirror/view";
 import type { CursorPosition, EditorState, ScrollPosition, SelectionRange, ViewMode } from "../types/editor";
 
 interface EditorStore extends EditorState {
   showSidebar: boolean;
   setActiveDocumentId: (id: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
+  cycleViewMode: () => void;
+  editorView: EditorView | null;
+  setEditorView: (view: EditorView | null) => void;
   setShowSidebar: (show: boolean) => void;
   toggleSidebar: () => void;
   setCursor: (cursor: CursorPosition) => void;
@@ -30,6 +34,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   activeDocumentId: null,
   viewMode: "split",
   showSidebar: true,
+  editorView: null,
   cursor: { ...defaultCursor },
   selection: null,
   editorScroll: { ...defaultScroll },
@@ -39,6 +44,19 @@ export const useEditorStore = create<EditorStore>((set) => ({
   redoDepth: 0,
   setActiveDocumentId: (id) => set({ activeDocumentId: id }),
   setViewMode: (mode) => set({ viewMode: mode }),
+  cycleViewMode: () =>
+    set((state) => {
+      const order: ViewMode[] = [
+        "split",
+        "editor-only",
+        "preview-only",
+        "wysiwyg",
+      ];
+      const currentIndex = order.indexOf(state.viewMode);
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;
+      return { viewMode: order[nextIndex] };
+    }),
+  setEditorView: (view) => set({ editorView: view }),
   setShowSidebar: (show) => set({ showSidebar: show }),
   toggleSidebar: () => set((state) => ({ showSidebar: !state.showSidebar })),
   setCursor: (cursor) => set({ cursor }),

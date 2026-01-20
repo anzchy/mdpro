@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mdpro - Architecture & Data Flow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .diagram-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .section-content {
+            padding: 30px;
+        }
+
+        /* Architecture diagram */
+        .arch-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .arch-layer {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .arch-box {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px 24px;
+            min-width: 140px;
+            text-align: center;
+        }
+        .arch-box.frontend {
+            border-color: #007AFF;
+            background: #e8f4ff;
+        }
+        .arch-box.backend {
+            border-color: #28a745;
+            background: #e8f8ed;
+        }
+        .arch-box.new {
+            border-color: #ff6b35;
+            background: #fff3ed;
+            border-style: dashed;
+        }
+        .arch-box.modified {
+            border-color: #ffc107;
+            background: #fff9e6;
+        }
+        .arch-box-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .arch-box-desc {
+            font-size: 11px;
+            color: #666;
+        }
+        .arch-arrow {
+            display: flex;
+            justify-content: center;
+            color: #999;
+            font-size: 20px;
+        }
+        .layer-label {
+            background: #333;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 16px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        /* Data flow */
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .flow-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+        }
+        .flow-box {
+            background: white;
+            border: 2px solid #007AFF;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .flow-box.store {
+            background: #e8f4ff;
+        }
+        .flow-box.component {
+            background: #f0f8ff;
+        }
+        .flow-box.milkdown {
+            border-color: #ff6b35;
+            background: #fff3ed;
+        }
+        .flow-arrow {
+            color: #007AFF;
+            font-size: 16px;
+        }
+        .flow-label {
+            font-size: 10px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+        .legend-box.existing { border-color: #007AFF; background: #e8f4ff; }
+        .legend-box.new { border-color: #ff6b35; background: #fff3ed; border-style: dashed; }
+        .legend-box.modified { border-color: #ffc107; background: #fff9e6; }
+
+        /* Component diagram */
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .component-group {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .component-group-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .component-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 12px;
+        }
+        .component-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .component-icon.existing { background: #007AFF; }
+        .component-icon.new { background: #ff6b35; }
+        .component-icon.modified { background: #ffc107; }
+        .component-name {
+            font-family: monospace;
+            color: #333;
+        }
+        .component-status {
+            font-size: 10px;
+            color: #666;
+            margin-left: auto;
+        }
+
+        /* Milkdown integration */
+        .milkdown-arch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+        .milkdown-layer {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .milkdown-box {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px 20px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .milkdown-box.core {
+            border-color: #ff6b35;
+            background: #fff3ed;
+        }
+        .milkdown-box.plugin {
+            border-color: #28a745;
+            background: #e8f8ed;
+        }
+        .milkdown-box.wrapper {
+            border-color: #007AFF;
+            background: #e8f4ff;
+        }
+        .milkdown-title {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        .milkdown-desc {
+            font-size: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>mdpro Architecture - Polish WYSIWYG Feature</h1>
+    <p class="subtitle">Component architecture and data flow for view mode cycling and Milkdown integration</p>
+
+    <div class="diagram-container">
+        <!-- High-level Architecture -->
+        <div class="section">
+            <div class="section-header">High-Level Architecture</div>
+            <div class="section-content">
+                <div class="arch-diagram">
+                    <div class="arch-layer">
+                        <span class="layer-label">Frontend</span>
+                        <div class="arch-box frontend">
+                            <div class="arch-box-title">App.tsx</div>
+                            <div class="arch-box-desc">Main orchestrator</div>
+                        </div>
+                        <div class="arch-box frontend modified">
+                            <div class="arch-box-title">SplitView.tsx</div>
+                            <div class="arch-box-desc">MODIFIED: Preview mode</div>
+                        </div>
+                        <div class="arch-box frontend new">
+                            <div class="arch-box-title">MilkdownEditor.tsx</div>
+                            <div class="arch-box-desc">NEW: WYSIWYG component</div>
+                        </div>
+                        <div class="arch-box frontend">
+                            <div class="arch-box-title">Preview.tsx</div>
+                            <div class="arch-box-desc">Rendered HTML view</div>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">↓ State Management ↓</div>
+                    <div class="arch-layer">
+                        <span class="layer-label">Stores</span>
+                        <div class="arch-box frontend">
+                            <div class="arch-box-title">documentStore</div>
+                            <div class="arch-box-desc">Document content</div>
+                        </div>
+                        <div class="arch-box frontend modified">
+                            <div class="arch-box-title">editorStore</div>
+                            <div class="arch-box-desc">MODIFIED: View mode</div>
+                        </div>
+                        <div class="arch-box frontend">
+                            <div class="arch-box-title">themeStore</div>
+                            <div class="arch-box-desc">Theme preferences</div>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">↓ IPC Events ↓</div>
+                    <div class="arch-layer">
+                        <span class="layer-label">Backend</span>
+                        <div class="arch-box backend">
+                            <div class="arch-box-title">menu.rs</div>
+                            <div class="arch-box-desc">Native menu (⌃1-4)</div>
+                        </div>
+                        <div class="arch-box backend">
+                            <div class="arch-box-title">preferences.rs</div>
+                            <div class="arch-box-desc">Store view mode</div>
+                        </div>
+                        <div class="arch-box backend">
+                            <div class="arch-box-title">file.rs</div>
+                            <div class="arch-box-desc">File operations</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-box existing"></div> Existing component</div>
+                    <div class="legend-item"><div class="legend-box modified"></div> Modified component</div>
+                    <div class="legend-item"><div class="legend-box new"></div> New component</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dual-Engine Architecture -->
+        <div class="section">
+            <div class="section-header">Dual-Engine Architecture</div>
+            <div class="section-content">
+                <div style="display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;">
+                    <!-- CodeMirror Engine -->
+                    <div style="flex: 1; min-width: 280px; max-width: 400px;">
+                        <div style="background: #e8f4ff; border: 2px solid #007AFF; border-radius: 12px; padding: 20px;">
+                            <div style="font-weight: 700; font-size: 16px; color: #007AFF; margin-bottom: 12px; text-align: center;">
+                                CodeMirror
+                            </div>
+                            <div style="font-size: 11px; color: #666; text-align: center; margin-bottom: 16px;">
+                                Plain text with decorations
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <div style="background: white; border: 1px solid #007AFF; border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 500;">
+                                    Split View
+                                </div>
+                                <div style="background: white; border: 1px solid #007AFF; border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 500;">
+                                    Editor View
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px; font-size: 11px; color: #555; background: white; padding: 10px; border-radius: 6px;">
+                                <strong>Best for:</strong> Source editing, syntax highlighting, line numbers, code folding
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Flow Center -->
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px;">
+                        <div style="font-size: 20px; color: #999;">←</div>
+                        <div style="background: #333; color: white; padding: 12px 16px; border-radius: 8px; text-align: center; min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: 600;">Markdown Content</div>
+                            <div style="font-size: 10px; opacity: 0.8; margin-top: 4px;">Zustand Store</div>
+                        </div>
+                        <div style="font-size: 20px; color: #999;">→</div>
+                    </div>
+
+                    <!-- Milkdown Engine -->
+                    <div style="flex: 1; min-width: 280px; max-width: 400px;">
+                        <div style="background: #fff3ed; border: 2px solid #ff6b35; border-radius: 12px; padding: 20px;">
+                            <div style="font-weight: 700; font-size: 16px; color: #ff6b35; margin-bottom: 12px; text-align: center;">
+                                Milkdown (ProseMirror)
+                            </div>
+                            <div style="font-size: 11px; color: #666; text-align: center; margin-bottom: 16px;">
+                                Structured document tree
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <div style="background: white; border: 1px solid #ff6b35; border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 500;">
+                                    WYSIWYG View
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px; font-size: 11px; color: #555; background: white; padding: 10px; border-radius: 6px;">
+                                <strong>Best for:</strong> True rich-text editing, Typora-like experience, automatic syntax hiding
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Mode Note -->
+                <div style="margin-top: 24px; padding: 16px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #007AFF;">
+                    <strong style="font-size: 13px;">Preview Mode:</strong>
+                    <span style="font-size: 12px; color: #333; margin-left: 8px;">
+                        Read-only HTML rendering (no editor engine) — identical to Split view right pane
+                    </span>
+                </div>
+
+                <!-- Synchronization Flow -->
+                <div style="margin-top: 24px; padding: 20px; background: #fafafa; border-radius: 8px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px;">Data Synchronization on Mode Switch:</div>
+                    <div style="display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; font-size: 11px;">
+                            <strong>Editor → WYSIWYG:</strong><br>
+                            <span style="color: #666;">Markdown string → Milkdown parses → ProseMirror doc</span>
+                        </div>
+                        <div style="font-size: 16px; color: #999;">⇄</div>
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; font-size: 11px;">
+                            <strong>WYSIWYG → Editor:</strong><br>
+                            <span style="color: #666;">ProseMirror doc → Milkdown serializes → Markdown string</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Flow for View Mode Cycling -->
+        <div class="section">
+            <div class="section-header">Data Flow: View Mode Cycling (⌘/)</div>
+            <div class="section-content">
+                <div class="flow-diagram">
+                    <div class="flow-row">
+                        <div class="flow-box">User presses ⌘/</div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-box component">useKeyboardShortcuts</div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-box component">cycleViewMode()</div>
+                    </div>
+                    <div class="flow-row">
+                        <span class="flow-arrow">↓</span>
+                    </div>
+                    <div class="flow-row">
+                        <div class="flow-box store">editorStore.setViewMode()</div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-label">Zustand state update</div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-box store">viewMode: "split" | "editor-only" | "preview-only" | "wysiwyg"</div>
+                    </div>
+                    <div class="flow-row">
+                        <span class="flow-arrow">↓</span>
+                    </div>
+                    <div class="flow-row">
+                        <div class="flow-box component">App.tsx re-renders</div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-label">Conditional render</div>
+                        <span class="flow-arrow">→</span>
+                        <div class="flow-box">SplitView / Preview / MilkdownEditor</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; padding: 16px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #007AFF;">
+                    <strong style="font-size: 13px;">Cycle Order:</strong>
+                    <code style="display: block; margin-top: 8px; font-size: 12px; color: #333;">
+                        split → editor-only → preview-only → wysiwyg → split (repeat)
+                    </code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Milkdown Integration Architecture -->
+        <div class="section">
+            <div class="section-header">Milkdown Integration Architecture</div>
+            <div class="section-content">
+                <div class="milkdown-arch">
+                    <div class="milkdown-layer">
+                        <div class="milkdown-box wrapper">
+                            <div class="milkdown-title">MilkdownProvider</div>
+                            <div class="milkdown-desc">React context wrapper</div>
+                        </div>
+                    </div>
+                    <div style="color: #666; font-size: 12px;">↓ provides editor context ↓</div>
+                    <div class="milkdown-layer">
+                        <div class="milkdown-box wrapper">
+                            <div class="milkdown-title">MilkdownEditor</div>
+                            <div class="milkdown-desc">Custom React component</div>
+                        </div>
+                    </div>
+                    <div style="color: #666; font-size: 12px;">↓ uses hooks ↓</div>
+                    <div class="milkdown-layer">
+                        <div class="milkdown-box core">
+                            <div class="milkdown-title">useEditor()</div>
+                            <div class="milkdown-desc">@milkdown/react</div>
+                        </div>
+                        <div class="milkdown-box core">
+                            <div class="milkdown-title">useInstance()</div>
+                            <div class="milkdown-desc">Get editor instance</div>
+                        </div>
+                    </div>
+                    <div style="color: #666; font-size: 12px;">↓ configured with plugins ↓</div>
+                    <div class="milkdown-layer">
+                        <div class="milkdown-box plugin">
+                            <div class="milkdown-title">commonmark</div>
+                            <div class="milkdown-desc">Markdown syntax</div>
+                        </div>
+                        <div class="milkdown-box plugin">
+                            <div class="milkdown-title">history</div>
+                            <div class="milkdown-desc">Undo/Redo</div>
+                        </div>
+                        <div class="milkdown-box plugin">
+                            <div class="milkdown-title">listener</div>
+                            <div class="milkdown-desc">Content changes</div>
+                        </div>
+                        <div class="milkdown-box plugin">
+                            <div class="milkdown-title">theme</div>
+                            <div class="milkdown-desc">Custom styling</div>
+                        </div>
+                    </div>
+                    <div style="color: #666; font-size: 12px;">↓ powered by ↓</div>
+                    <div class="milkdown-layer">
+                        <div class="milkdown-box">
+                            <div class="milkdown-title">ProseMirror</div>
+                            <div class="milkdown-desc">Rich-text engine</div>
+                        </div>
+                        <div class="milkdown-box">
+                            <div class="milkdown-title">Remark</div>
+                            <div class="milkdown-desc">Markdown parser</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 16px; background: #fff3ed; border-radius: 8px; border-left: 4px solid #ff6b35;">
+                    <strong style="font-size: 13px;">Key Integration Points:</strong>
+                    <ul style="margin-top: 8px; margin-left: 20px; font-size: 12px; color: #333; line-height: 1.8;">
+                        <li><code>@milkdown/react</code> - React bindings (MilkdownProvider, useEditor, Milkdown)</li>
+                        <li><code>@milkdown/kit</code> - Core + preset bundles (commonmark, history)</li>
+                        <li><code>listener plugin</code> - Sync content with documentStore on change</li>
+                        <li><code>getMarkdown()</code> - Extract Markdown when switching view modes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Component Changes Summary -->
+        <div class="section">
+            <div class="section-header">Component Changes Summary</div>
+            <div class="section-content">
+                <div class="component-grid">
+                    <div class="component-group">
+                        <div class="component-group-title">New Components</div>
+                        <div class="component-item">
+                            <span class="component-icon new"></span>
+                            <span class="component-name">MilkdownEditor.tsx</span>
+                            <span class="component-status">CREATE</span>
+                        </div>
+                        <div class="component-item">
+                            <span class="component-icon new"></span>
+                            <span class="component-name">useMilkdown.ts</span>
+                            <span class="component-status">CREATE</span>
+                        </div>
+                    </div>
+                    <div class="component-group">
+                        <div class="component-group-title">Modified Components</div>
+                        <div class="component-item">
+                            <span class="component-icon modified"></span>
+                            <span class="component-name">SplitView.tsx</span>
+                            <span class="component-status">MODIFY</span>
+                        </div>
+                        <div class="component-item">
+                            <span class="component-icon modified"></span>
+                            <span class="component-name">App.tsx</span>
+                            <span class="component-status">MODIFY</span>
+                        </div>
+                        <div class="component-item">
+                            <span class="component-icon modified"></span>
+                            <span class="component-name">useKeyboardShortcuts.ts</span>
+                            <span class="component-status">MODIFY</span>
+                        </div>
+                    </div>
+                    <div class="component-group">
+                        <div class="component-group-title">Deprecated Components</div>
+                        <div class="component-item">
+                            <span class="component-icon existing"></span>
+                            <span class="component-name">WysiwygView.tsx</span>
+                            <span class="component-status">REMOVE</span>
+                        </div>
+                        <div class="component-item">
+                            <span class="component-icon existing"></span>
+                            <span class="component-name">wysiwyg.ts (extension)</span>
+                            <span class="component-status">REMOVE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+                    <strong style="font-size: 13px;">NPM Dependencies to Add:</strong>
+                    <code style="display: block; margin-top: 8px; font-size: 12px; color: #333; background: white; padding: 12px; border-radius: 4px; font-family: monospace;">
+                        npm install @milkdown/react @milkdown/kit
+                    </code>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
