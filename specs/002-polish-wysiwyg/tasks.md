@@ -9,6 +9,7 @@
 | US1 | View Mode Switching & Cycling | P1 | Press ⌘/ to cycle, ⌃1-4 for direct access |
 | US2 | Preview Mode Shows Rendered Output | P2 | Switch to Preview (⌃3), verify read-only HTML |
 | US3 | True WYSIWYG Editing with Milkdown | P3 | Type `# Hello` in WYSIWYG, verify heading renders |
+| US4 | Typora-style Inline Editing | P4 | Click inside link to see `[text](url)`, click away to collapse |
 
 ---
 
@@ -151,6 +152,56 @@
 
 ---
 
+## Phase 7: User Story 4 - Typora-style Inline Editing (P4)
+
+**Goal**: Implement cursor-aware inline element expansion for links and inline code, providing Typora-like editing experience.
+
+**Independent Test**: In WYSIWYG mode, click inside a rendered link to see `[text](url)`. Click inside inline code to see backticks. Move cursor away to collapse back to rendered form.
+
+**Technical Approach**: Use ProseMirror's NodeView API to create custom views for `link` and `inlineCode` marks that:
+1. Track cursor position via `decorations` or selection state
+2. Render expanded (raw Markdown) form when cursor is inside
+3. Render collapsed (styled) form when cursor is outside
+4. Preserve edits during collapse/expand transitions
+
+### Custom NodeView Plugin
+
+- [ ] T051 [US4] Create `src/components/Editor/plugins/inlineEditPlugin.ts` with ProseMirror plugin skeleton
+- [ ] T052 [US4] Implement `LinkNodeView` class extending ProseMirror NodeView for link marks
+- [ ] T053 [US4] Implement `InlineCodeNodeView` class for inline code marks
+- [ ] T054 [US4] Add cursor position tracking using ProseMirror selection state
+
+### Link Expansion/Collapse
+
+- [ ] T055 [US4] Implement link expanded state: render `[text](url)` with editable text and URL
+- [ ] T056 [US4] Implement link collapsed state: render styled link (blue, underlined)
+- [ ] T057 [US4] Add transition logic: expand when cursor enters, collapse when cursor leaves
+- [ ] T058 [US4] Handle URL editing: parse and update href attribute on collapse
+
+### Inline Code Expansion/Collapse
+
+- [ ] T059 [US4] Implement inline code expanded state: render `` `code` `` with visible backticks
+- [ ] T060 [US4] Implement inline code collapsed state: render styled code (monospace, background)
+- [ ] T061 [US4] Add transition logic: expand when cursor enters, collapse when cursor leaves
+- [ ] T062 [US4] Handle content editing: preserve changes on collapse
+
+### Integration with Milkdown
+
+- [ ] T063 [US4] Register custom NodeView plugin with Milkdown editor in `useMilkdown.ts`
+- [ ] T064 [US4] Ensure plugin works with existing Typora keymap (⌘K for links)
+- [ ] T065 [US4] Add CSS styles for expanded/collapsed states in `globals.css`
+
+### Verification
+
+- [ ] T066 [US4] Manual test: Click inside link shows `[text](url)`, click away collapses
+- [ ] T067 [US4] Manual test: Click inside inline code shows backticks, click away collapses
+- [ ] T068 [US4] Manual test: Edit URL in expanded link, verify changes preserved
+- [ ] T069 [US4] Manual test: Edit content in expanded inline code, verify changes preserved
+- [ ] T070 [US4] Manual test: Arrow key navigation into/out of inline elements works correctly
+- [ ] T071 [US4] Manual test: Multiple inline elements on same line expand independently
+
+---
+
 ## Dependencies
 
 ```
@@ -168,6 +219,10 @@ View Cycling      Preview Fix       Milkdown                 │
                        │                                     │
                        ▼                                     │
                 Phase 6 (Polish) ◀───────────────────────────┘
+                       │
+                       ▼
+                Phase 7 (US4)
+              Typora-style Inline
 ```
 
 ### Story Dependencies
@@ -177,8 +232,9 @@ View Cycling      Preview Fix       Milkdown                 │
 | US1 (View Cycling) | Phase 2 | T009 complete |
 | US2 (Preview Fix) | Phase 2 | T009 complete |
 | US3 (Milkdown) | Phase 2 | T009 complete |
+| US4 (Inline Editing) | Phase 5 (US3) | T044 complete |
 
-**Note**: US1, US2, and US3 can be implemented in parallel after Phase 2 is complete.
+**Note**: US1, US2, and US3 can be implemented in parallel after Phase 2 is complete. US4 depends on Milkdown being functional (US3).
 
 ---
 
@@ -202,6 +258,12 @@ T005 (cycleViewMode)            ─┴─▶ T008-T009 (App.tsx prefs)
                               │
                               ▼
                     Phase 6: T045-T050
+                              │
+                              ▼
+                ┌─────────────────────────┐
+                │ US4: T051-T071          │
+                │ (Typora-style Inline)   │
+                └─────────────────────────┘
 ```
 
 ---
@@ -222,6 +284,7 @@ T005 (cycleViewMode)            ─┴─▶ T008-T009 (App.tsx prefs)
 2. **Increment 2**: US2 (Preview Fix) → Fixes UX inconsistency
 3. **Increment 3**: US3 (Milkdown) → Full feature complete
 4. **Increment 4**: Phase 6 (Polish) → Production ready
+5. **Increment 5**: US4 (Typora-style Inline) → Premium WYSIWYG experience
 
 ---
 
@@ -235,7 +298,8 @@ T005 (cycleViewMode)            ─┴─▶ T008-T009 (App.tsx prefs)
 | US2 (P2) | 6 | 0 |
 | US3 (P3) | 19 | 0 |
 | Polish | 6 | 0 |
-| **Total** | **50** | **2** |
+| US4 (P4) | 21 | 0 |
+| **Total** | **71** | **2** |
 
 ### Tasks by User Story
 
@@ -244,3 +308,4 @@ T005 (cycleViewMode)            ─┴─▶ T008-T009 (App.tsx prefs)
 | US1 | 10 | T010-T019 |
 | US2 | 6 | T020-T025 |
 | US3 | 19 | T026-T044 |
+| US4 | 21 | T051-T071 |

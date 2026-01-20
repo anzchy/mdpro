@@ -18,6 +18,7 @@ import {
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { $useKeymap } from "@milkdown/kit/utils";
+import { inlineEditPlugin } from "../components/Editor/plugins/inlineEditPlugin";
 
 interface UseMilkdownOptions {
   markdown: string;
@@ -148,7 +149,8 @@ export function useMilkdown({
         .use(commonmark)
         .use(history)
         .use(listener)
-        .use(typoraKeymap),
+        .use(typoraKeymap)
+        .use(inlineEditPlugin),
     [documentId],
   );
 
