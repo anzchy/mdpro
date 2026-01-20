@@ -863,6 +863,53 @@ a {
   background: #d97706;
 }
 
+/* Typora-style Inline Editing - Expanded States */
+
+/* Base expanded state - remove default styling */
+.milkdown-inline-expanded {
+  transition: none;
+}
+
+/* Expanded link - show [text](url) format */
+.milkdown-editor .ProseMirror .milkdown-link-expanded {
+  color: var(--color-text);
+  text-decoration: none;
+  cursor: text;
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.milkdown-editor .ProseMirror .milkdown-link-expanded::before {
+  content: "[";
+  color: var(--color-muted);
+  font-weight: normal;
+}
+
+.milkdown-editor .ProseMirror .milkdown-link-expanded::after {
+  content: "](" attr(data-href) ")";
+  color: var(--color-muted);
+  font-weight: normal;
+  word-break: break-all;
+}
+
+/* Expanded inline code - show `code` with backticks */
+.milkdown-editor .ProseMirror .milkdown-code-expanded {
+  background: transparent;
+  font-family: var(--font-mono);
+  padding: 0;
+}
+
+.milkdown-editor .ProseMirror .milkdown-code-expanded::before {
+  content: "\`";
+  color: var(--color-muted);
+}
+
+.milkdown-editor .ProseMirror .milkdown-code-expanded::after {
+  content: "\`";
+  color: var(--color-muted);
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;

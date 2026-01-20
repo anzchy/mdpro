@@ -147,12 +147,36 @@ As a user who prefers visual editing, I want WYSIWYG mode to provide a true Typo
 
 ---
 
+### User Story 4 - Typora-style Inline Editing (Priority: P4)
+
+As a user editing in WYSIWYG mode, I want inline elements (links, inline code) to reveal their raw Markdown syntax when my cursor is inside them, so that I can easily edit the underlying markup without switching to Editor mode—just like Typora.
+
+**Why this priority**: This enhances the WYSIWYG experience by providing contextual editing for inline elements. It builds upon the basic Milkdown integration (P3) and provides the polish expected from a Typora-like editor.
+
+**Independent Test**: In WYSIWYG mode, click inside a rendered link to see `[text](url)` appear. Click inside inline code to see backticks `` `code` ``. Move cursor away to see rendered form again.
+
+**Acceptance Scenarios**:
+
+1. **Given** WYSIWYG mode with a document containing `[example](https://example.com)`, **When** user clicks inside the link text "example", **Then** the link transforms to show raw Markdown `[example](https://example.com)` with the cursor positioned inside
+2. **Given** WYSIWYG mode with a document containing `` `code` ``, **When** user clicks inside the rendered inline code, **Then** it transforms to show `` `code` `` with visible backticks and the cursor positioned inside
+3. **Given** the cursor is inside an expanded link showing raw Markdown, **When** user moves cursor outside the link (clicks elsewhere), **Then** the link collapses back to rendered form (blue underlined text)
+4. **Given** the cursor is inside an expanded inline code showing backticks, **When** user moves cursor outside, **Then** the inline code collapses back to styled rendered form
+5. **Given** an expanded link showing `[text](url)`, **When** user edits the URL portion, **Then** the changes are preserved when the link collapses
+6. **Given** an expanded inline code showing `` `code` ``, **When** user edits the code content, **Then** the changes are preserved when it collapses
+7. **Given** WYSIWYG mode, **When** user uses arrow keys to navigate into a link or inline code, **Then** the element expands to show raw Markdown (same as clicking)
+8. **Given** multiple inline elements on the same line, **When** user clicks inside one, **Then** only that specific element expands (others remain rendered)
+
+---
+
 ### Edge Cases
 
 - What happens when user presses ⌘/ or ⌃1-4 with no document open? → View mode cycling should still work (affecting the default/welcome view state)
 - What happens when Milkdown encounters malformed Markdown? → Render unparseable sections as plain text blocks; content is preserved and remains editable; no crash or data loss
 - What happens when switching from WYSIWYG to Editor mode mid-edit? → Cursor position should be approximately preserved; unsaved changes are maintained in memory
 - What happens when the document is very large (>500KB) in WYSIWYG mode? → System auto-switches to Editor mode with a toast notification explaining the size limitation; user can continue editing in Editor/Split modes
+- What happens when cursor is at the boundary between link text and URL? → The entire link element should be expanded; cursor can move freely within the expanded `[text](url)` structure
+- What happens when user deletes all text inside an expanded link? → The link node should be removed, leaving just the cursor position
+- What happens when user types backtick inside expanded inline code? → The backtick should be escaped or the inline code should be split appropriately
 
 ## Requirements *(mandatory)*
 
@@ -182,6 +206,14 @@ As a user who prefers visual editing, I want WYSIWYG mode to provide a true Typo
 **Editor Mode Capabilities**
 - **FR-014**: Editor mode MUST also support Typora-style heading shortcuts (⌘1-6, ⌘0) and ⌘K (link) for consistency across modes
 
+**Typora-style Inline Editing**
+- **FR-017**: WYSIWYG mode MUST expand link elements to show raw Markdown `[text](url)` when cursor is positioned inside
+- **FR-018**: WYSIWYG mode MUST expand inline code elements to show backticks `` `code` `` when cursor is positioned inside
+- **FR-019**: Expanded inline elements MUST collapse back to rendered form when cursor moves outside
+- **FR-020**: Edits made to expanded inline elements MUST be preserved when the element collapses
+- **FR-021**: Arrow key navigation into inline elements MUST trigger expansion (same behavior as clicking)
+- **FR-022**: Multiple inline elements on the same line MUST expand independently (only the focused element expands)
+
 **System Integration**
 - **FR-015**: System MUST update the native menu bar to reflect the current view mode state
 - **FR-016**: System MUST persist the last-used view mode in user preferences
@@ -207,6 +239,9 @@ As a user who prefers visual editing, I want WYSIWYG mode to provide a true Typo
 - **EditorContent**: The Markdown text content being edited, synchronized across all view modes (single source of truth)
 - **CodeMirrorEditor**: The source code editor used in Split and Editor modes (syntax highlighting, line numbers)
 - **MilkdownEditor**: The WYSIWYG editor instance powered by ProseMirror that manages rich-text editing and Markdown conversion
+- **InlineEditPlugin**: ProseMirror plugin that manages cursor-aware expansion/collapse of inline elements (links, inline code)
+- **LinkNodeView**: Custom ProseMirror NodeView for link marks that renders expanded `[text](url)` or collapsed styled link based on cursor position
+- **InlineCodeNodeView**: Custom ProseMirror NodeView for inline code marks that renders expanded `` `code` `` or collapsed styled code based on cursor position
 
 ## Success Criteria *(mandatory)*
 
@@ -220,6 +255,10 @@ As a user who prefers visual editing, I want WYSIWYG mode to provide a true Typo
 - **SC-006**: Document content remains consistent when switching between any two view modes (no content corruption)
 - **SC-007**: WYSIWYG mode handles documents up to 500KB with acceptable performance (no noticeable input lag)
 - **SC-008**: Typora users can use familiar shortcuts (⌘1-6 for headings) without relearning
+- **SC-009**: Inline element expansion/collapse completes within 50ms (imperceptible transition)
+- **SC-010**: Users can click into a link, edit the URL, click away, and see the updated link render correctly
+- **SC-011**: Users can click into inline code, modify content, click away, and see the updated code render correctly
+- **SC-012**: Typora users recognize and can use the inline editing behavior without instruction
 
 ## Assumptions
 
@@ -236,3 +275,9 @@ As a user who prefers visual editing, I want WYSIWYG mode to provide a true Typo
 **Keyboard Shortcuts**
 - Users familiar with Typora will expect ⌘1-6 for headings; using ⌃1-4 for view modes avoids conflict
 - ⌃ (Control) key is less commonly used in macOS apps, making it suitable for view mode switching without conflicting with standard shortcuts
+
+**Typora-style Inline Editing**
+- ProseMirror's NodeView API provides sufficient control to implement cursor-aware rendering for marks
+- Custom NodeViews can track cursor position via ProseMirror selection state and decorations
+- The expand/collapse transition can be implemented without full document re-parsing
+- Milkdown's architecture allows registering custom NodeView plugins alongside existing plugins
