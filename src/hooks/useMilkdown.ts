@@ -99,9 +99,15 @@ const typoraKeymap = $useKeymap("typora", {
     command: (ctx) => {
       const commands = ctx.get(commandsCtx);
       return () => {
-        const href = window.prompt("Enter URL");
-        if (href === null) return false;
-        return commands.call(toggleLinkCommand.key, { href });
+        const href = window.prompt("Enter URL (e.g., https://example.com)");
+        // User cancelled or entered empty string
+        if (href === null || href.trim() === "") return false;
+        // Add https:// if no protocol specified
+        let url = href.trim();
+        if (!/^https?:\/\//i.test(url) && !url.startsWith("mailto:")) {
+          url = "https://" + url;
+        }
+        return commands.call(toggleLinkCommand.key, { href: url });
       };
     },
   },
