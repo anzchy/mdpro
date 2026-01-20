@@ -1,0 +1,252 @@
+# Keyboard Shortcuts
+
+mdpro provides comprehensive keyboard shortcuts inspired by Typora and other popular Markdown editors.
+
+## Global Shortcuts
+
+These shortcuts work across all view modes.
+
+### File Operations
+
+| Shortcut | Action | Handler |
+|----------|--------|---------|
+| ⌘N | New document | `createDocument()` |
+| ⌘O | Open file | `openDocumentFromDialog()` |
+| ⌘S | Save | `saveActiveDocument()` |
+| ⌘W | Close document | `handleCloseRequest()` |
+| ⌘⇧E | Export HTML | `exportHtml()` |
+
+### View Mode
+
+| Shortcut | Action | Target Mode |
+|----------|--------|-------------|
+| ⌘1 | Split View | `split` |
+| ⌘2 | Editor Only | `editor-only` |
+| ⌘3 | Preview Only | `preview-only` |
+| ⌘4 | WYSIWYG | `wysiwyg` |
+| ⌘/ | Cycle View Mode | Next in order |
+
+### UI Toggles
+
+| Shortcut | Action |
+|----------|--------|
+| ⌘⇧B | Toggle Sidebar |
+| ⌘, | Open Preferences |
+
+## WYSIWYG Mode Shortcuts (Milkdown)
+
+These shortcuts work only in WYSIWYG mode via the Typora-style keymap.
+
+### Headings
+
+| Shortcut | Action |
+|----------|--------|
+| ⌘1 | Heading 1 |
+| ⌘2 | Heading 2 |
+| ⌘3 | Heading 3 |
+| ⌘4 | Heading 4 |
+| ⌘5 | Heading 5 |
+| ⌘6 | Heading 6 |
+| ⌘0 | Paragraph (remove heading) |
+
+> **Note**: In WYSIWYG mode, ⌘1-6 are heading shortcuts. Use the View menu or ⌘/ to switch view modes.
+
+### Text Formatting
+
+| Shortcut | Action | Markdown |
+|----------|--------|----------|
+| ⌘B | Bold | `**text**` |
+| ⌘I | Italic | `*text*` |
+| ⌘K | Insert Link | `[text](url)` |
+
+### Built-in ProseMirror
+
+| Shortcut | Action |
+|----------|--------|
+| ⌘Z | Undo |
+| ⌘⇧Z | Redo |
+| Tab | Indent (in lists) |
+| ⇧Tab | Outdent (in lists) |
+| Enter | New line / continue list |
+
+## CodeMirror Mode Shortcuts
+
+These shortcuts work in split and editor-only modes.
+
+### Selection
+
+| Shortcut | Action |
+|----------|--------|
+| ⌘⇧H | Highlight selection |
+| ⌘A | Select all |
+| ⌘D | Select word |
+
+### Editing
+
+| Shortcut | Action |
+|----------|--------|
+| ⌘Z | Undo |
+| ⌘⇧Z | Redo |
+| ⌘/ | Toggle comment |
+| Tab | Indent |
+| ⇧Tab | Outdent |
+
+## Implementation
+
+### Global Shortcuts (useKeyboardShortcuts.ts)
+
+```typescript
+export function useKeyboardShortcuts({
+  onNew,
+  onOpen,
+  onSave,
+  onClose,
+  onHighlight,
+  onToggleSidebar,
+  onCycleViewMode,
+  onOpenPreferences,
+}: UseKeyboardShortcutsOptions) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMod = event.metaKey || event.ctrlKey;
+
+      if (isMod && event.key === "n") {
+        event.preventDefault();
+        onNew();
+      }
+      // ... more shortcuts
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [/* dependencies */]);
+}
+```
+
+### Milkdown Keymap (useMilkdown.ts)
+
+```typescript
+const typoraKeymap = $useKeymap("typora", {
+  heading1: {
+    shortcuts: "Mod-1",
+    command: (ctx) => {
+      const commands = ctx.get(commandsCtx);
+      return () => commands.call(wrapInHeadingCommand.key, 1);
+    },
+  },
+  bold: {
+    shortcuts: "Mod-b",
+    command: (ctx) => {
+      const commands = ctx.get(commandsCtx);
+      return () => commands.call(toggleStrongCommand.key);
+    },
+  },
+  // ... more shortcuts
+});
+```
+
+### Menu Integration (menu.rs)
+
+Rust-side menu with accelerators:
+
+```rust
+MenuItem::with_id_and_accelerator(app, "new", "New", "CmdOrCtrl+N")?;
+MenuItem::with_id_and_accelerator(app, "open", "Open...", "CmdOrCtrl+O")?;
+MenuItem::with_id_and_accelerator(app, "save", "Save", "CmdOrCtrl+S")?;
+```
+
+## Shortcut Customization
+
+Shortcuts can be customized via the Settings dialog:
+
+```typescript
+interface KeyboardShortcuts {
+  newDocument: string;
+  openDocument: string;
+  saveDocument: string;
+  closeDocument: string;
+  toggleSidebar: string;
+  cycleViewMode: string;
+  highlightSelection: string;
+}
+
+const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
+  newDocument: "meta+n",
+  openDocument: "meta+o",
+  saveDocument: "meta+s",
+  closeDocument: "meta+w",
+  toggleSidebar: "meta+shift+b",
+  cycleViewMode: "meta+/",
+  highlightSelection: "meta+shift+h",
+};
+```
+
+Customizations are persisted via preferences.
+
+## Conflict Resolution
+
+### ⌘1-6 in WYSIWYG Mode
+
+In WYSIWYG mode, ⌘1-6 are bound to headings (Typora behavior).
+Global view mode shortcuts are disabled to prevent conflicts.
+
+**Workaround**: Use View menu or ⌘/ to cycle modes.
+
+### Focus-Based Routing
+
+Shortcuts are handled differently based on focus:
+
+```
+┌─────────────────────┐
+│  Key Event          │
+└─────────────────────┘
+          │
+          ▼
+┌─────────────────────┐
+│  Is editor focused? │──Yes──▶ Editor handles (Milkdown/CM)
+└─────────────────────┘
+          │ No
+          ▼
+┌─────────────────────┐
+│  Global handler     │
+│  (useKeyboard-      │
+│   Shortcuts)        │
+└─────────────────────┘
+```
+
+## Platform Considerations
+
+- `Mod` = ⌘ (Command) on macOS
+- `Mod` = Ctrl on Windows/Linux (future)
+- All shortcuts use `event.metaKey` check on macOS
+
+## Quick Reference Card
+
+```
+┌────────────────────────────────────────────┐
+│              mdpro Shortcuts               │
+├────────────────────────────────────────────┤
+│ FILE                                       │
+│   ⌘N    New          ⌘O    Open           │
+│   ⌘S    Save         ⌘W    Close          │
+│   ⌘⇧E   Export HTML                       │
+├────────────────────────────────────────────┤
+│ VIEW                                       │
+│   ⌘1    Split        ⌘2    Editor         │
+│   ⌘3    Preview      ⌘4    WYSIWYG        │
+│   ⌘/    Cycle        ⌘⇧B   Sidebar        │
+├────────────────────────────────────────────┤
+│ WYSIWYG FORMATTING                         │
+│   ⌘B    Bold         ⌘I    Italic         │
+│   ⌘K    Link         ⌘0-6  Headings       │
+├────────────────────────────────────────────┤
+│ EDITING                                    │
+│   ⌘Z    Undo         ⌘⇧Z   Redo           │
+│   ⌘⇧H   Highlight                         │
+└────────────────────────────────────────────┘
+```
+
+## Related Documentation
+
+- [View Modes](./view-modes.md)
+- [Milkdown Integration](./milkdown-integration.md)

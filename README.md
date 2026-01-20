@@ -2,6 +2,15 @@
 
 A local Markdown editor built with Tauri 2 + React + TypeScript.
 
+## Features
+
+- **4 View Modes**: Split, Editor-only, Preview-only, WYSIWYG
+- **Dual-Engine Architecture**: CodeMirror for source editing, Milkdown for WYSIWYG
+- **Typora-style Shortcuts**: ⌘B/I/K for formatting, ⌘1-6 for headings
+- **Native macOS Menu**: File, Edit, View, Theme integration
+- **Auto-save Drafts**: Recover unsaved work
+- **External File Watching**: Detect changes made outside the app
+
 ## File Structure
 
 ```
@@ -18,7 +27,8 @@ A local Markdown editor built with Tauri 2 + React + TypeScript.
 |       |-- commands/    # IPC commands (file, export, etc.)
 |       |-- models/      # Data models
 |       `-- services/    # Backend services
-|-- specs/001-mdpro-mvp/ # Product spec, plan, and tasks
+|-- doc/                 # Technical documentation
+|-- specs/               # Feature specifications
 |-- public/              # Static assets
 `-- package.json
 ```
@@ -103,6 +113,47 @@ Notes:
 - **File dialogs not working**: confirm native dialog permissions (macOS Security & Privacy).
 - **IPC errors**: verify commands are registered in `src-tauri/src/commands/mod.rs` and `src-tauri/src/main.rs`.
 - **Type errors after dependency changes**: delete `node_modules`, re-run `pnpm install`.
+
+## WYSIWYG Architecture
+
+mdpro uses a **dual-engine architecture** for editing:
+
+| Engine | View Modes | Description |
+|--------|------------|-------------|
+| **CodeMirror 6** | Split, Editor-only | Source editing with syntax highlighting |
+| **Milkdown** | WYSIWYG | True rich-text editing (ProseMirror-based) |
+| **marked** | Preview-only, Split | Markdown rendering |
+
+### View Modes
+
+| Mode | Shortcut | Description |
+|------|----------|-------------|
+| Split | ⌘1 | Editor + Preview side-by-side |
+| Editor Only | ⌘2 | Full-width source editing |
+| Preview Only | ⌘3 | Read-only rendered view |
+| WYSIWYG | ⌘4 | Rich-text editing like Typora |
+
+### Keyboard Shortcuts
+
+**Global:**
+- ⌘N/O/S/W - New/Open/Save/Close
+- ⌘1-4 - Switch view modes
+- ⌘/ - Cycle view modes
+- ⌘⇧B - Toggle sidebar
+
+**WYSIWYG Mode:**
+- ⌘B/I/K - Bold/Italic/Link
+- ⌘0-6 - Paragraph/Headings
+
+### Technical Documentation
+
+Detailed technical documentation is available in the [`doc/`](./doc/) folder:
+
+- [Architecture Overview](./doc/architecture.md) - System design and data flow
+- [Milkdown Integration](./doc/milkdown-integration.md) - WYSIWYG editor implementation
+- [View Modes](./doc/view-modes.md) - How view mode switching works
+- [State Management](./doc/state-management.md) - Zustand stores architecture
+- [Keyboard Shortcuts](./doc/keyboard-shortcuts.md) - Complete shortcut reference
 
 ## Recommended IDE Setup
 
