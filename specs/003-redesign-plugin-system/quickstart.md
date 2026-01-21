@@ -126,6 +126,11 @@ export const defaultPluginConfig: MdproPluginConfig = {
 };
 ```
 
+## Additional Example Plugins
+
+- **Typewriter Mode** (`src/plugins/codemirror/typewriterModePlugin.ts`): keeps the current line vertically centered while typing.
+- **Spell Check Stub** (`src/plugins/codemirror/spellCheckPlugin.ts`): no-op plugin with TODOs for future dictionary integration.
+
 ## Plugin Types
 
 ### CodeMirror-Only Plugin

@@ -419,11 +419,11 @@ VMark includes a standalone MCP server as an external binary, enabling AI assist
 | **State Management** | Zustand 5 | Zustand 4 |
 | **Styling** | Tailwind CSS 4 | CSS Variables |
 | **View Modes** | WYSIWYG, Source | Editor, Preview, Split, WYSIWYG |
-| **Plugins** | 40+ | ~10 |
+| **Plugins** | 40+ | 9 (unified plugin system) |
 | **MCP Support** | Yes (WebSocket bridge) | No |
-| **Focus Mode** | Yes | No |
-| **Typewriter Mode** | Yes | No |
-| **Spell Check** | Yes | No |
+| **Focus Mode** | Yes | Yes (plugin, disabled by default) |
+| **Typewriter Mode** | Yes | Yes (plugin, disabled by default) |
+| **Spell Check** | Yes | Stub only (plugin placeholder) |
 | **LaTeX Math** | Yes (KaTeX) | Planned |
 | **Mermaid Diagrams** | Yes | Planned |
 | **Multi-Window** | Yes | No |
@@ -465,15 +465,18 @@ mdpro Architecture:
 │         OR                              │
 │    Milkdown (WYSIWYG Mode)              │
 └─────────────────────────────────────────┘
+         ↑
+┌─────────────────────────────────────────┐
+│      pluginRegistry (unified)           │
+│   CodeMirror + Milkdown plugins         │
+└─────────────────────────────────────────┘
 ```
 
 ### Feature Gap Analysis
 
 **VMark has, mdpro lacks:**
 - MCP/AI assistant integration
-- Focus mode (dim non-focused paragraphs)
-- Typewriter mode (keep cursor centered)
-- Spell checking
+- Spell checking (full implementation)
 - LaTeX math rendering
 - Mermaid diagram support
 - Multi-window support
@@ -486,16 +489,17 @@ mdpro Architecture:
 - Split view (editor + preview)
 - Draft auto-save recovery
 - HTML export with pulldown-cmark
+- Unified plugin system spanning CodeMirror + Milkdown
 
 ### Recommendation for mdpro
 
 Based on VMark's implementation, consider:
 
-1. **WYSIWYG Plugin System**: Milkdown supports ProseMirror plugins similar to Tiptap
-2. **Focus Mode**: Can be implemented with CSS opacity on non-focused blocks
-3. **MCP Integration**: Consider WebSocket bridge pattern for AI assistant support
-4. **Math/Diagrams**: KaTeX and Mermaid integration would enhance technical writing
+1. **Spell Check Backend**: Wire spell check plugin stub to a dictionary engine
+2. **MCP Integration**: Consider WebSocket bridge pattern for AI assistant support
+3. **Math/Diagrams**: KaTeX and Mermaid integration would enhance technical writing
+4. **Plugin Coverage**: Continue migrating editor behaviors into plugins for consistency
 
 ---
 
-*Generated: 2025-01-21*
+*Generated: 2026-01-21*

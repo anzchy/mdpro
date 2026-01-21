@@ -37,7 +37,7 @@ These shortcuts work across all view modes.
 
 ## WYSIWYG Mode Shortcuts (Milkdown)
 
-These shortcuts work only in WYSIWYG mode via the Typora-style keymap.
+These shortcuts work only in WYSIWYG mode via the Typora-style keymap plugin.
 
 ### Typora-style Inline Editing
 
@@ -136,10 +136,11 @@ export function useKeyboardShortcuts({
 }
 ```
 
-### Milkdown Keymap (useMilkdown.ts)
+### Milkdown Keymap Plugin (src/plugins/milkdown/typoraKeymapPlugin.ts)
 
 ```typescript
-const typoraKeymap = $useKeymap("typora", {
+const createTyporaKeymap = () =>
+  $useKeymap("typora", {
   heading1: {
     shortcuts: "Mod-1",
     command: (ctx) => {
@@ -157,6 +158,11 @@ const typoraKeymap = $useKeymap("typora", {
   // ... more shortcuts
 });
 ```
+
+### CodeMirror Keymaps (src/plugins/codemirror/*)
+
+CodeMirror shortcuts are defined inside individual plugins (e.g. heading, link,
+highlight) and loaded via `pluginRegistry.getCodemirrorExtensions()`.
 
 ### Menu Integration (menu.rs)
 
@@ -202,6 +208,7 @@ Customizations are persisted via preferences.
 
 In WYSIWYG mode, ⌘1-6 are bound to headings (Typora behavior).
 Global view mode shortcuts are disabled to prevent conflicts.
+Conflicts between plugin shortcuts follow plugin priority order.
 
 **Workaround**: Use View menu or ⌘/ to cycle modes.
 

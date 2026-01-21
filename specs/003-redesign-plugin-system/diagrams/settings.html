@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings Wireframe - Keyboard Shortcuts</title>
+  <style>
+    :root {
+      --bg: #0f1116;
+      --panel: #141924;
+      --panel-2: #11151f;
+      --border: #252b3a;
+      --text: #e6e9ef;
+      --muted: #9aa3b2;
+      --accent: #6aa8ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "SF Pro Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .window {
+      width: min(980px, 100%);
+      min-height: 620px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+    }
+
+    .titlebar h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .close {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 0;
+    }
+
+    .sidebar {
+      padding: 20px 16px;
+      border-right: 1px solid var(--border);
+      background: #121722;
+    }
+
+    .nav-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(106, 168, 255, 0.18);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .main {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow: auto;
+    }
+
+    .section {
+      display: grid;
+      gap: 12px;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+    }
+
+    .shortcut-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(37, 43, 58, 0.6);
+    }
+
+    .shortcut-row:last-child {
+      border-bottom: none;
+    }
+
+    .shortcut-label {
+      font-size: 15px;
+    }
+
+    .shortcut-input {
+      min-width: 160px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f141f;
+      color: var(--muted);
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--panel-2);
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: transparent;
+      color: #0a0f18;
+      font-weight: 600;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="window" role="img" aria-label="Settings wireframe showing a single left nav item for keyboard shortcuts and grouped sections on the right.">
+    <div class="titlebar">
+      <h1>Settings</h1>
+      <div class="close">×</div>
+    </div>
+
+    <div class="content">
+      <aside class="sidebar">
+        <div class="nav-title">Keyboard Shortcuts</div>
+        <div class="nav-item">Keyboard Shortcuts</div>
+      </aside>
+
+      <main class="main">
+        <section class="section">
+          <h2>File</h2>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Open File</div>
+            <div class="shortcut-input">⌘O</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Save</div>
+            <div class="shortcut-input">⌘S</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Close Document</div>
+            <div class="shortcut-input">⌘W</div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Edit</h2>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Toggle Sidebar</div>
+            <div class="shortcut-input">⌘⇧B</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Cycle View Mode</div>
+            <div class="shortcut-input">⌘/</div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Paragraph</h2>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Heading 1</div>
+            <div class="shortcut-input">⌘1</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Heading 2</div>
+            <div class="shortcut-input">⌘2</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Paragraph</div>
+            <div class="shortcut-input">⌘0</div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>Format</h2>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Bold</div>
+            <div class="shortcut-input">⌘B</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Italic</div>
+            <div class="shortcut-input">⌘I</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Insert Link</div>
+            <div class="shortcut-input">⌘K</div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>View</h2>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Toggle Fullscreen</div>
+            <div class="shortcut-input">⌃⌘F</div>
+          </div>
+          <div class="shortcut-row">
+            <div class="shortcut-label">Switch Documents</div>
+            <div class="shortcut-input">⌘`</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="footer">
+      <button class="btn">Reset to Defaults</button>
+      <div class="btn-row">
+        <button class="btn">Cancel</button>
+        <button class="btn primary">Save</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -151,3 +151,11 @@ Feature specifications live in `specs/001-mdpro-mvp/`:
 
 ## Recent Changes
 - 002-polish-wysiwyg: Added TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4
+
+## Plugin System (003-redesign-plugin-system)
+
+- Plugin definitions live in `src/plugins/` with `core/`, `codemirror/`, and `milkdown/` subfolders.
+- Register plugins in `src/plugins/index.ts` and configure defaults in `src/plugins/core/pluginConfig.ts`.
+- Use `codemirrorExtension` for source mode and `milkdownPlugin` for WYSIWYG mode; plugins may support both.
+- Plugin lifecycle is managed by `pluginRegistry` (initialized in `src/components/Editor/Editor.tsx` and `src/hooks/useMilkdown.ts`).
+- Editor events (doc/selection/focus) are emitted via `pluginRegistry.emitEvent` and consumed through `EditorContext.events`.

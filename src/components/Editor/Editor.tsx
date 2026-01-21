@@ -1,15 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
 import { redo, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
-import { highlightCommand } from "./extensions/highlight";
-import {
-  increaseHeadingCommand,
-  decreaseHeadingCommand,
-} from "./extensions/heading";
 import { useEditorStore } from "../../stores/editorStore";
+import { pluginRegistry } from "../../plugins";
+import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
 
 interface EditorProps {
   value: string;
@@ -26,7 +23,27 @@ export function Editor({
 }: EditorProps) {
   console.log("[DEBUG] Editor - value length:", value.length, "first 100 chars:", value.slice(0, 100));
   const viewRef = useRef<EditorView | null>(null);
+  const initializedRef = useRef(false);
   const setEditorView = useEditorStore((state) => state.setEditorView);
+  const pluginExtensions = useMemo(() => pluginRegistry.getCodemirrorExtensions(), []);
+  const pluginEventExtension = useMemo(
+    () =>
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          pluginRegistry.emitEvent("docChange", { mode: "codemirror" });
+        }
+        if (update.selectionSet) {
+          pluginRegistry.emitEvent("selectionChange", { mode: "codemirror" });
+        }
+        if (update.focusChanged) {
+          pluginRegistry.emitEvent("focusChange", {
+            mode: "codemirror",
+            focused: update.view.hasFocus,
+          });
+        }
+      }),
+    [],
+  );
 
   useEffect(() => {
     if (highlightRequest === undefined) return;
@@ -38,6 +55,10 @@ export function Editor({
   useEffect(() => {
     return () => {
       setEditorView(null);
+      if (initializedRef.current) {
+        pluginRegistry.cleanup();
+        initializedRef.current = false;
+      }
     };
   }, [setEditorView]);
 
@@ -49,13 +70,12 @@ export function Editor({
         extensions={[
           markdownExtension,
           syntaxHighlightingExtension,
+          pluginEventExtension,
+          ...pluginExtensions,
           keymap.of([
             { key: "Mod-z", run: undo },
             { key: "Mod-Shift-z", run: redo },
             { key: "Mod-y", run: redo },
-            { key: "Mod-Shift-h", run: highlightCommand },
-            { key: "Mod-=", run: increaseHeadingCommand },
-            { key: "Mod--", run: decreaseHeadingCommand },
           ]),
         ]}
         onChange={(nextValue) => {
@@ -66,6 +86,13 @@ export function Editor({
         onCreateEditor={(view) => {
           viewRef.current = view;
           setEditorView(view);
+          pluginRegistry.setCodemirrorView(view);
+          if (!initializedRef.current) {
+            pluginRegistry.initialize({ currentMode: "codemirror", codemirrorView: view });
+            initializedRef.current = true;
+          } else {
+            pluginRegistry.onModeChange("codemirror");
+          }
         }}
         editable={!readOnly}
         basicSetup={{

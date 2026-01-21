@@ -1,3 +1,4 @@
+// TODO(003-redesign-plugin-system): Deprecated. Use src/plugins/codemirror/wysiwygDecorationsPlugin.ts instead.
 import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin } from "@codemirror/view";
 import type { ViewUpdate } from "@codemirror/view";

@@ -10,6 +10,8 @@ A local Markdown editor built with Tauri 2 + React + TypeScript.
 
 * **Typora-style Shortcuts**: ⌘B/I/K for formatting, ⌘1-6 for headings
 
+* **Plugin System**: Unified plugin architecture for CodeMirror + Milkdown features
+
 * **Native macOS Menu**: File, Edit, View, Theme integration
 
 * **Auto-save Drafts**: Recover unsaved work
@@ -23,6 +25,7 @@ A local Markdown editor built with Tauri 2 + React + TypeScript.
 |-- src/                 # React UI
 |   |-- components/      # UI components (Editor, Toolbar, etc.)
 |   |-- hooks/           # Custom hooks (useDocument, shortcuts, etc.)
+|   |-- plugins/         # Editor plugin system (CodeMirror + Milkdown)
 |   |-- services/        # Tauri IPC wrappers
 |   |-- stores/          # Zustand state stores
 |   |-- styles/          # Global + theme styles
@@ -182,6 +185,12 @@ mdpro uses a **dual-engine architecture** for editing:
 | **CodeMirror 6** | Split, Editor-only | Source editing with syntax highlighting |
 | **Milkdown** | WYSIWYG | True rich-text editing (ProseMirror-based) |
 | **marked** | Preview-only, Split | Markdown rendering |
+
+### Plugin System
+
+Editor features are implemented as plugins registered via `src/plugins/` and
+loaded per editor mode (CodeMirror or Milkdown). This keeps feature code
+decoupled from core editor components and allows enable/disable via config.
 
 ### View Modes
 
