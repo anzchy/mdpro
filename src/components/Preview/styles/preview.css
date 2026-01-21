@@ -10,6 +10,10 @@
 }
 
 .preview-content {
+  max-width: var(--content-max-width);
+  padding-left: var(--content-padding);
+  padding-right: var(--content-padding);
+  margin: 0 auto;
   font-family: var(--font-sans);
   color: var(--color-text);
   line-height: 1.6;

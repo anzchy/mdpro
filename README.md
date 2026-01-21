@@ -62,6 +62,10 @@ Common commands:
 
 * `pnpm tauri build --bundles app`: build only the `.app` bundle (skip DMG)
 
+
+
+Mac OS cannot open app, use this command:`sudo find "/Applications/mdpro.app" -exec xattr -d com.apple.quarantine {} \;`
+
 ## How to Test
 
 Tests are not wired yet. When added:

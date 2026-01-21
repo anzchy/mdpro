@@ -168,6 +168,27 @@ As a user editing in WYSIWYG mode, I want inline elements (links, inline code) t
 
 ---
 
+---
+
+### User Story 5 - Content Layout Constraints (Priority: P5)
+
+As a user reading or editing documents, I want the text content area to have a maximum width of 780pt with minimum 40pt margins on both sides, so that long lines remain readable and the layout looks professional regardless of window size.
+
+**Why this priority**: This is a visual polish feature that improves readability and matches professional Markdown editors like Typora. It applies to all view modes and enhances the overall user experience.
+
+**Independent Test**: Resize the window from narrow to wide. Verify that: (1) text content never exceeds 780pt width, (2) minimum 40pt margins are maintained on both sides, (3) content remains centered when window is wider than 860pt (780 + 40×2).
+
+**Acceptance Scenarios**:
+
+1. **Given** any view mode (Editor, Preview, WYSIWYG, Split), **When** window width is ≥860pt, **Then** text content area is 780pt wide and centered with equal margins
+2. **Given** any view mode, **When** window width is <860pt, **Then** text content area shrinks to fit with 40pt margins on each side
+3. **Given** Preview mode with a long paragraph, **When** viewing at any window width, **Then** text wraps within the content width constraints
+4. **Given** Editor mode (CodeMirror), **When** window width is ≥860pt, **Then** the code content area is centered with max-width 780pt
+5. **Given** WYSIWYG mode (Milkdown), **When** window width is ≥860pt, **Then** the editing area is centered with max-width 780pt
+6. **Given** Split view mode, **When** each pane has sufficient width, **Then** both editor and preview panes apply the same layout constraints independently
+
+---
+
 ### Edge Cases
 
 - What happens when user presses ⌘/ or ⌃1-4 with no document open? → View mode cycling should still work (affecting the default/welcome view state)
@@ -218,6 +239,14 @@ As a user editing in WYSIWYG mode, I want inline elements (links, inline code) t
 - **FR-015**: System MUST update the native menu bar to reflect the current view mode state
 - **FR-016**: System MUST persist the last-used view mode in user preferences
 
+**Content Layout Constraints**
+- **FR-023**: All view modes (Editor, Preview, WYSIWYG, Split panes) MUST apply consistent content width constraints
+- **FR-024**: Text content area MUST have a maximum width of 780pt (pixels)
+- **FR-025**: Text content area MUST have minimum horizontal padding of 40pt on each side
+- **FR-026**: When window/pane width ≥860pt, content MUST be horizontally centered with equal margins
+- **FR-027**: When window/pane width <860pt, content width MUST shrink while maintaining 40pt minimum side padding
+- **FR-028**: Layout constraints MUST be implemented via CSS variables for consistency and maintainability
+
 ### Keyboard Shortcut Summary
 
 | Shortcut | Action | Context |
@@ -242,6 +271,7 @@ As a user editing in WYSIWYG mode, I want inline elements (links, inline code) t
 - **InlineEditPlugin**: ProseMirror plugin that manages cursor-aware expansion/collapse of inline elements (links, inline code)
 - **LinkNodeView**: Custom ProseMirror NodeView for link marks that renders expanded `[text](url)` or collapsed styled link based on cursor position
 - **InlineCodeNodeView**: Custom ProseMirror NodeView for inline code marks that renders expanded `` `code` `` or collapsed styled code based on cursor position
+- **ContentLayoutVariables**: CSS custom properties (`--content-max-width: 780px`, `--content-padding: 40px`) that define consistent layout constraints across all view modes
 
 ## Success Criteria *(mandatory)*
 
@@ -259,6 +289,9 @@ As a user editing in WYSIWYG mode, I want inline elements (links, inline code) t
 - **SC-010**: Users can click into a link, edit the URL, click away, and see the updated link render correctly
 - **SC-011**: Users can click into inline code, modify content, click away, and see the updated code render correctly
 - **SC-012**: Typora users recognize and can use the inline editing behavior without instruction
+- **SC-013**: Content layout constraints are visually consistent across all four view modes
+- **SC-014**: Text content never exceeds 780pt width regardless of window size
+- **SC-015**: Minimum 40pt margins are maintained on both sides even at narrow window widths
 
 ## Assumptions
 
