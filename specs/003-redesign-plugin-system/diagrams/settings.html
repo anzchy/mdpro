@@ -79,6 +79,18 @@
       padding: 20px 16px;
       border-right: 1px solid var(--border);
       background: #121722;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .search {
+      border: 1px solid var(--border);
+      background: #0f141f;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
     }
 
     .nav-title {
@@ -86,7 +98,7 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--muted);
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .nav-item {
@@ -95,8 +107,11 @@
       gap: 10px;
       padding: 10px 12px;
       border-radius: 10px;
-      background: rgba(106, 168, 255, 0.18);
       color: var(--text);
+    }
+
+    .nav-item.is-active {
+      background: rgba(106, 168, 255, 0.18);
       font-weight: 600;
     }
 
@@ -106,6 +121,13 @@
       flex-direction: column;
       gap: 20px;
       overflow: auto;
+    }
+
+    .section-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: rgba(15, 20, 31, 0.7);
     }
 
     .section {
@@ -189,12 +211,21 @@
 
     <div class="content">
       <aside class="sidebar">
-        <div class="nav-title">Keyboard Shortcuts</div>
-        <div class="nav-item">Keyboard Shortcuts</div>
+        <input class="search" placeholder="Search..." />
+        <div>
+          <div class="nav-title">Settings</div>
+          <div class="nav-item">General</div>
+          <div class="nav-item">Editor</div>
+          <div class="nav-item">Markdown</div>
+          <div class="nav-item">Image</div>
+          <div class="nav-item">Export</div>
+          <div class="nav-item">Appearance</div>
+          <div class="nav-item is-active">Keyboard Shortcuts</div>
+        </div>
       </aside>
 
       <main class="main">
-        <section class="section">
+        <section class="section section-card">
           <h2>File</h2>
           <div class="shortcut-row">
             <div class="shortcut-label">Open File</div>
@@ -210,7 +241,7 @@
           </div>
         </section>
 
-        <section class="section">
+        <section class="section section-card">
           <h2>Edit</h2>
           <div class="shortcut-row">
             <div class="shortcut-label">Toggle Sidebar</div>
@@ -222,7 +253,7 @@
           </div>
         </section>
 
-        <section class="section">
+        <section class="section section-card">
           <h2>Paragraph</h2>
           <div class="shortcut-row">
             <div class="shortcut-label">Heading 1</div>
@@ -238,7 +269,7 @@
           </div>
         </section>
 
-        <section class="section">
+        <section class="section section-card">
           <h2>Format</h2>
           <div class="shortcut-row">
             <div class="shortcut-label">Bold</div>
@@ -254,7 +285,7 @@
           </div>
         </section>
 
-        <section class="section">
+        <section class="section section-card">
           <h2>View</h2>
           <div class="shortcut-row">
             <div class="shortcut-label">Toggle Fullscreen</div>

@@ -17,6 +17,58 @@ interface ShortcutCategory {
   }>;
 }
 
+interface SettingsPage {
+  id: string;
+  label: string;
+  description: string;
+  placeholderItems: string[];
+}
+
+const SETTINGS_PAGES: SettingsPage[] = [
+  {
+    id: "general",
+    label: "General",
+    description: "App behavior, language, and startup preferences.",
+    placeholderItems: ["Default view mode", "Autosave frequency", "Language"],
+  },
+  {
+    id: "editor",
+    label: "Editor",
+    description: "Editor defaults, typography, and editing behaviors.",
+    placeholderItems: ["Font size", "Line height", "Caret width"],
+  },
+  {
+    id: "markdown",
+    label: "Markdown",
+    description: "Markdown syntax preferences and extensions.",
+    placeholderItems: ["Auto pair", "GFM tables", "Footnotes"],
+  },
+  {
+    id: "image",
+    label: "Image",
+    description: "Image handling and paste behavior.",
+    placeholderItems: ["Default save location", "Compression", "Retina export"],
+  },
+  {
+    id: "export",
+    label: "Export",
+    description: "Export formats and output settings.",
+    placeholderItems: ["Default export folder", "PDF preset", "HTML styles"],
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    description: "Themes, layout density, and UI styling.",
+    placeholderItems: ["Theme", "Sidebar density", "Accent color"],
+  },
+  {
+    id: "keyboard-shortcuts",
+    label: "Keyboard Shortcuts",
+    description: "Customize shortcuts across the app.",
+    placeholderItems: [],
+  },
+];
+
 const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
     name: "File",
@@ -101,7 +153,8 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
   const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts>(shortcuts);
   const [editingKey, setEditingKey] = useState<keyof KeyboardShortcuts | null>(null);
-  const [activeCategory, setActiveCategory] = useState(0);
+  const [activePage, setActivePage] = useState("keyboard-shortcuts");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     setLocalShortcuts(shortcuts);
@@ -164,6 +217,12 @@ export function SettingsDialog({
 
   if (!open) return null;
 
+  const filteredPages = SETTINGS_PAGES.filter((page) =>
+    page.label.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+  const currentPage =
+    SETTINGS_PAGES.find((page) => page.id === activePage) ?? SETTINGS_PAGES[0];
+
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div
@@ -179,34 +238,73 @@ export function SettingsDialog({
 
         <div className="settings-content">
           <div className="settings-sidebar">
-            <div className="settings-sidebar-title">Keyboard Shortcuts</div>
-            {SHORTCUT_CATEGORIES.map((category, index) => (
+            <input
+              className="settings-search"
+              type="search"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+            <div className="settings-sidebar-title">Settings</div>
+            {filteredPages.map((page) => (
               <button
-                key={category.name}
-                className={`settings-category-btn ${activeCategory === index ? "is-active" : ""}`}
-                onClick={() => setActiveCategory(index)}
+                key={page.id}
+                className={`settings-category-btn ${
+                  activePage === page.id ? "is-active" : ""
+                }`}
+                onClick={() => setActivePage(page.id)}
               >
-                {category.name}
+                {page.label}
               </button>
             ))}
           </div>
 
           <div className="settings-main">
-            <div className="shortcuts-list">
-              {SHORTCUT_CATEGORIES[activeCategory].shortcuts.map((item) => (
-                <div key={item.key} className="shortcut-row">
-                  <span className="shortcut-label">{item.label}</span>
-                  <button
-                    className={`shortcut-value ${editingKey === item.key ? "is-editing" : ""}`}
-                    onClick={() => setEditingKey(item.key)}
-                  >
-                    {editingKey === item.key
-                      ? "Press keys..."
-                      : localShortcuts[item.key]}
-                  </button>
+            {currentPage.id === "keyboard-shortcuts" ? (
+              <div className="shortcuts-layout">
+                <div className="shortcuts-header">
+                  <h3>Keyboard Shortcuts</h3>
+                  <p>Group shortcuts by intent instead of separate menu pages.</p>
                 </div>
-              ))}
-            </div>
+                {SHORTCUT_CATEGORIES.map((category) => (
+                  <section key={category.name} className="shortcuts-section">
+                    <h4>{category.name}</h4>
+                    <div className="shortcuts-list">
+                      {category.shortcuts.map((item) => (
+                        <div key={item.key} className="shortcut-row">
+                          <span className="shortcut-label">{item.label}</span>
+                          <button
+                            className={`shortcut-value ${
+                              editingKey === item.key ? "is-editing" : ""
+                            }`}
+                            onClick={() => setEditingKey(item.key)}
+                          >
+                            {editingKey === item.key
+                              ? "Press keys..."
+                              : localShortcuts[item.key]}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="settings-placeholder">
+                <h3>{currentPage.label}</h3>
+                <p>{currentPage.description}</p>
+                <div className="settings-placeholder-grid">
+                  {currentPage.placeholderItems.map((item) => (
+                    <div key={item} className="settings-placeholder-card">
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="settings-placeholder-note">
+                  Placeholder layout aligned with Typora-style settings sections.
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
