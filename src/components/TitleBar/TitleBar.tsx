@@ -25,7 +25,7 @@ export function TitleBar({ title, isModified, viewMode }: TitleBarProps) {
   return (
     <div className="title-bar" data-tauri-drag-region>
       {/* Left spacer for traffic lights */}
-      <div className="title-bar-left" />
+      <div className="title-bar-left" data-tauri-drag-region />
 
       {/* Center: Document name */}
       <div className="title-bar-center" data-tauri-drag-region>
@@ -37,8 +37,10 @@ export function TitleBar({ title, isModified, viewMode }: TitleBarProps) {
       </div>
 
       {/* Right: View mode indicator */}
-      <div className="title-bar-right">
-        <span className="title-bar-mode">{getViewModeLabel(viewMode)}</span>
+      <div className="title-bar-right" data-tauri-drag-region>
+        <span className="title-bar-mode" data-tauri-drag-region="false">
+          {getViewModeLabel(viewMode)}
+        </span>
       </div>
     </div>
   );

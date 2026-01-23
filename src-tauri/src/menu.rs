@@ -7,6 +7,7 @@ use tauri::menu::{
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
 const MENU_FILE_NEW: &str = "menu.file.new";
+const MENU_FILE_NEW_WINDOW: &str = "menu.file.new_window";
 const MENU_FILE_OPEN: &str = "menu.file.open";
 const MENU_FILE_SAVE: &str = "menu.file.save";
 const MENU_FILE_CLOSE: &str = "menu.file.close";
@@ -124,6 +125,13 @@ pub fn build_menu(
         .build()?;
 
     let file_new = MenuItem::with_id(app, MENU_FILE_NEW, "New", true, Some("CmdOrCtrl+N"))?;
+    let file_new_window = MenuItem::with_id(
+        app,
+        MENU_FILE_NEW_WINDOW,
+        "New Window",
+        true,
+        Some("CmdOrCtrl+Shift+N"),
+    )?;
     let file_open = MenuItem::with_id(app, MENU_FILE_OPEN, "Open...", true, Some("CmdOrCtrl+O"))?;
     let file_save = MenuItem::with_id(app, MENU_FILE_SAVE, "Save", true, Some("CmdOrCtrl+S"))?;
     let file_export = MenuItem::with_id(
@@ -138,6 +146,7 @@ pub fn build_menu(
 
     let file_menu = SubmenuBuilder::new(app, "File")
         .item(&file_new)
+        .item(&file_new_window)
         .item(&file_open)
         .item(&recent_menu)
         .separator()
@@ -265,6 +274,7 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
     let id = event.id().as_ref();
     match id {
         MENU_FILE_NEW => emit_menu_action(app, "file.new", None),
+        MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
         MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),
         MENU_FILE_SAVE => emit_menu_action(app, "file.save", None),
         MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),

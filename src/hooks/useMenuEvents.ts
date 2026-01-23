@@ -10,6 +10,7 @@ interface MenuActionPayload {
 
 interface MenuHandlers {
   onNew?: () => void;
+  onNewWindow?: () => void;
   onOpen?: () => void;
   onSave?: () => void;
   onClose?: () => void;
@@ -27,11 +28,26 @@ export function useMenuEvents(handlers: MenuHandlers) {
   useEffect(() => {
     let unlisten: (() => void) | null = null;
 
-    listen<MenuActionPayload>("menu:action", (event) => {
-      const { action, value } = event.payload;
+    const shouldHandleMenuAction = async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const currentWindow = getCurrentWindow();
+        const isFocused = await currentWindow.isFocused();
+        return isFocused;
+      } catch {
+        return true;
+      }
+    };
+
+    const handleMenuAction = async ({ action, value }: MenuActionPayload) => {
+      const canHandle = await shouldHandleMenuAction();
+      if (!canHandle) return;
       switch (action) {
         case "file.new":
           handlers.onNew?.();
+          break;
+        case "file.new_window":
+          handlers.onNewWindow?.();
           break;
         case "file.open":
           handlers.onOpen?.();
@@ -100,6 +116,10 @@ export function useMenuEvents(handlers: MenuHandlers) {
         default:
           break;
       }
+    };
+
+    listen<MenuActionPayload>("menu:action", (event) => {
+      void handleMenuAction(event.payload);
     })
       .then((fn) => {
         unlisten = fn;
@@ -116,6 +136,7 @@ export function useMenuEvents(handlers: MenuHandlers) {
     handlers.onCycleViewMode,
     handlers.onExportHtml,
     handlers.onHighlight,
+    handlers.onNewWindow,
     handlers.onNew,
     handlers.onOpen,
     handlers.onOpenPreferences,

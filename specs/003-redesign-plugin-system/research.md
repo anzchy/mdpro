@@ -1,147 +1,70 @@
-# Research: Plugin System Design
+# Research: Window Dragging, Multi-Window, WYSIWYG Tables
 
 **Feature**: 003-redesign-plugin-system
-**Date**: 2025-01-21
+**Date**: 2026-01-23
 
 ## Research Questions
 
-### 1. How to create a unified plugin interface for CodeMirror and Milkdown?
+### 1. How to enable window dragging with a custom topbar?
 
-**Decision**: Use a wrapper interface that produces editor-specific extensions
+**Decision**: Use Tauri drag regions on non-interactive topbar elements.
 
-**Rationale**: CodeMirror uses `Extension` type and Milkdown uses ProseMirror plugins via `$prose()`. Rather than forcing a common abstraction, the plugin interface should:
-- Accept a plugin definition with metadata (name, priority, enabled state)
-- Provide factory methods that return the appropriate extension type for each editor
-- Let plugins implement one or both editor integrations
+**Rationale**:
+- Tauri supports custom draggable regions via `data-tauri-drag-region`.
+- Keeping the existing visual layout avoids UI churn.
+- Interactive elements should be explicitly excluded from drag regions.
 
 **Alternatives Considered**:
-1. **Single abstract class** - Rejected: Would require complex adapter patterns
-2. **Separate plugin systems** - Rejected: Defeats the purpose of unification
-3. **Runtime adapter** - Rejected: Adds complexity without benefit
+1. **Native titlebar** - Rejected: would change layout and require redesign.
+2. **Full-window drag** - Rejected: breaks editor text selection.
 
-**Reference**: VMark uses Tiptap which has a similar pattern - Extensions can provide both ProseMirror plugins and custom commands through a unified interface.
+### 2. How to support multiple independent windows?
 
-### 2. How should plugin priority/ordering work?
-
-**Decision**: Use numeric priority with higher numbers loading first
+**Decision**: Use Tauri window APIs to create additional windows and scope editor state per window instance.
 
 **Rationale**:
-- Simple numeric priority (e.g., 100 = high, 50 = normal, 10 = low)
-- Plugins with same priority load in registration order
-- Priority affects: keyboard shortcut precedence, decoration layering
+- Each Tauri window runs the same frontend bundle with isolated in-memory state.
+- Using window labels allows routing open-file actions to specific windows.
+- Existing file watcher reload prompt can handle same-file edits across windows.
 
 **Alternatives Considered**:
-1. **Dependency graph** - Rejected: Over-engineering for current scope (plugins should be independent)
-2. **Alphabetical order** - Rejected: Not flexible enough
-3. **String-based priorities** ("high", "normal", "low") - Rejected: Less precise than numeric
+1. **Tabs only** - Rejected: user explicitly requested multiple windows.
+2. **Single shared store** - Rejected: would leak state across windows.
 
-### 3. How should plugin configuration work?
+### 3. How to render Markdown tables in WYSIWYG mode?
 
-**Decision**: TypeScript configuration object with plugin-specific options
-
-**Rationale**:
-- Type-safe configuration at build time
-- Each plugin defines its config schema via TypeScript interface
-- Global config object merges default + user overrides
-- No runtime JSON parsing needed
-
-**Configuration Structure**:
-```typescript
-interface PluginConfig {
-  enabled: boolean;
-  priority?: number;
-  options?: Record<string, unknown>;
-}
-
-interface MdproPluginConfig {
-  highlight: PluginConfig & { highlightColor?: string };
-  heading: PluginConfig;
-  link: PluginConfig;
-  // ... etc
-}
-```
-
-### 4. How should plugin lifecycle hooks work?
-
-**Decision**: Minimal lifecycle with init/destroy hooks
+**Decision**: Enable GFM table support in Milkdown configuration.
 
 **Rationale**:
-- `init(context: EditorContext)`: Called when editor mounts, receives shared context
-- `destroy()`: Called when editor unmounts, for cleanup
-- No complex lifecycle (beforeMount, afterMount, etc.) - YAGNI
+- CommonMark does not include tables.
+- Milkdown provides GFM/table presets that parse and render pipe tables.
+- Aligns WYSIWYG output with existing preview rendering expectations.
 
-**Editor Context Provides**:
-- CodeMirror `EditorView` reference (for CM plugins)
-- Milkdown `Editor` instance (for Milkdown plugins)
-- Access to Zustand stores if needed
-- Command dispatch function
+**Alternatives Considered**:
+1. **Custom ProseMirror schema** - Rejected: higher complexity and maintenance.
+2. **Render tables only in preview** - Rejected: user explicitly needs WYSIWYG tables.
 
-### 5. How to handle keyboard shortcut conflicts?
+## Technology Notes
 
-**Decision**: First registered plugin with matching shortcut wins (priority-based)
+### Tauri Window Drag Regions
 
-**Rationale**:
-- Plugins are loaded in priority order
-- CodeMirror and Milkdown both support keymap ordering
-- If two plugins define same shortcut, higher priority plugin takes precedence
-- Console warning logged for conflicts in development mode
+- Apply `data-tauri-drag-region` to draggable DOM nodes.
+- Avoid placing drag regions over buttons or input controls.
 
-**Alternative Considered**:
-- **Shortcut namespacing** (e.g., `plugin:highlight:toggle`) - Rejected: Complicates UX
+### Multi-Window Events
 
-### 6. What happens when a plugin fails to initialize?
+- Use app menu and custom events to open files in new windows.
+- Preserve existing single-instance behavior for external file open events.
 
-**Decision**: Log error, skip plugin, continue loading others
+### Milkdown Tables
 
-**Rationale**:
-- Wrap plugin.init() in try/catch
-- Log error with plugin name and stack trace
-- Set plugin state to "error" in registry
-- Continue loading remaining plugins
-- Editor remains functional with reduced features
-
-### 7. How to handle mode-specific plugins during mode switch?
-
-**Decision**: Plugins declare supported modes; registry activates/deactivates appropriately
-
-**Rationale**:
-- Plugin interface includes `supportedModes: ('codemirror' | 'milkdown')[]`
-- When user switches mode, registry:
-  1. Calls `destroy()` on plugins that don't support new mode
-  2. Calls `init()` on plugins that support new mode but were inactive
-- Plugin state persists across mode switches (e.g., configuration)
-
-## Technology Best Practices
-
-### CodeMirror 6 Extension Patterns
-
-- Use `ViewPlugin` for decorations that need to update on selection/document changes
-- Use `StateField` for persistent state across transactions
-- Use `keymap.of()` for keyboard shortcuts
-- Return `Extension[]` from factory functions for composability
-
-### Milkdown Plugin Patterns
-
-- Use `$prose()` utility to wrap ProseMirror plugins
-- Use `$useKeymap()` for keyboard shortcuts
-- Use Milkdown's context system (`ctx.get()`) for accessing editor state
-- Use `listener` plugin for document/selection change events
-
-### React Integration
-
-- Plugin registry as a singleton (created once at app startup)
-- Use `useEffect` cleanup for plugin destruction
-- Pass EditorView/Editor instance to registry after creation
-- Avoid re-creating plugins on React re-renders
+- Prefer official GFM/table preset for schema + keymaps.
+- Validate Markdown round-trip: table edits update source text correctly.
 
 ## Decisions Summary
 
 | Question | Decision |
 |----------|----------|
-| Unified interface | Wrapper with editor-specific factory methods |
-| Priority system | Numeric (higher = first), same priority = registration order |
-| Configuration | TypeScript config object, type-safe |
-| Lifecycle | Minimal: init/destroy only |
-| Shortcut conflicts | Priority-based, first wins, log warning |
-| Init failures | Log error, skip, continue loading |
-| Mode switching | Plugins declare supported modes, registry manages activation |
+| Drag region | Tauri drag region on topbar only |
+| Multi-window | Tauri window API + per-window state |
+| WYSIWYG tables | Enable Milkdown GFM table support |

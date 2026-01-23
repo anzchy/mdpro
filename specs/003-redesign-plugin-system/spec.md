@@ -1,245 +1,137 @@
-# Feature Specification: Redesign Plugin System
+# Feature Specification: Window Dragging, Multi-Window Docs, WYSIWYG Tables
 
 **Feature Branch**: `003-redesign-plugin-system`
-**Created**: 2025-01-21
+**Created**: 2026-01-23
 **Status**: Draft
-**Input**: User description: "我也希望尽可能把很多功能都以plugins或者extensions的模式实现，看看要对当前代码进行怎样的重构，列出开发思路"
+**Input**: User description: "希望鼠标左键按着app的topbar可以随意拖拽页面移动界面的位置；希望可以同时多个窗口打开不同的md文档，各个窗口互不影响；wysiwyg模式下支持渲染markdown表格语法。"
 
 ## Overview
 
-Redesign mdpro's architecture to use a modular plugin/extension system for all editor features. Currently, mdpro has scattered extensions for CodeMirror and minimal Milkdown plugins, with functionality tightly coupled to the core application. This refactoring will establish a unified plugin architecture that:
+This update improves mdpro's desktop usability and WYSIWYG parity with Markdown by adding three capabilities:
 
-1. **Standardizes** how features are implemented across both CodeMirror (source mode) and Milkdown (WYSIWYG mode)
-2. **Decouples** features from core application code
-3. **Enables** easy addition, removal, and configuration of features
-4. **Aligns** with industry patterns (similar to VSCode extensions, Tiptap/VMark plugins)
+1. **Draggable topbar**: Users can drag the window by holding the left mouse button on the app's topbar.
+2. **Multi-window documents**: Users can open multiple app windows, each with an independent document session.
+3. **WYSIWYG table rendering**: Markdown table syntax renders as tables in WYSIWYG mode.
 
 ### Current State Analysis
 
-**CodeMirror Extensions (Source Mode)**:
-- `markdownExtension` - markdown language support
-- `syntaxHighlightingExtension` - syntax highlighting
-- `wysiwygExtension` - visual decorations (heading, list, quote widgets)
-- `highlight.ts` - highlight selection command
-- `heading.ts` - heading level commands
-- `link.ts` - link insertion command
-
-**Milkdown Plugins (WYSIWYG Mode)**:
-- Built-in: `commonmark`, `history`, `listener`
-- Custom: `inlineEditPlugin` (Typora-style inline editing)
-
-**Problems with Current Architecture**:
-- No unified plugin interface across editor modes
-- Features scattered across different files without consistent patterns
-- Hard to enable/disable specific features
-- No plugin configuration system
-- Tight coupling between features and core code
+- **Window dragging**: The app uses a custom topbar, but dragging does not move the window reliably.
+- **Multi-window**: The app runs as a single window with tabs/documents in one session only.
+- **WYSIWYG tables**: WYSIWYG mode does not render pipe-based Markdown tables.
 
 ## Visual Design
 
-- **Site Diagram**: [site-diagram.html](./diagrams/site-diagram.html) - 应用架构和数据流图
-
-*Note: This is primarily an architectural refactoring with no UI changes, so wireframe and user-flow diagrams are not applicable.*
+- **Topbar**: The existing topbar remains visually unchanged; only drag behavior is added.
+- **Window management**: Add a "New Window" entry in the app menu and allow opening files into a new window.
+- **WYSIWYG tables**: Tables should match Markdown preview styling and be readable/editable.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Developer Adds New Editor Feature (Priority: P1)
+### User Story 1 - Drag Window from Topbar (Priority: P1)
 
-As a developer, I want to add a new editor feature (e.g., spell checking, focus mode) by creating a self-contained plugin file, without modifying core editor code.
+As a user, I want to drag the app window by holding the left mouse button on the topbar so I can reposition the window quickly.
 
-**Why this priority**: This is the core value proposition - making the codebase extensible and maintainable.
-
-**Independent Test**: Developer can create a new plugin file following the documented pattern, register it, and see it working in the editor without touching existing code.
+**Independent Test**: Click and drag on the topbar area moves the window without selecting text or interacting with controls.
 
 **Acceptance Scenarios**:
 
-1. **Given** the plugin system is implemented, **When** a developer creates a new plugin following the standard interface, **Then** the plugin can be loaded and activated without modifying core files
-2. **Given** a plugin is registered, **When** the editor initializes, **Then** the plugin's functionality is available in the appropriate editor mode(s)
-3. **Given** a plugin has both CodeMirror and Milkdown implementations, **When** user switches between Source and WYSIWYG modes, **Then** the feature works consistently in both modes
+1. **Given** the app is running, **When** the user drags the topbar, **Then** the window moves on screen.
+2. **Given** the topbar has interactive elements (buttons/menus), **When** the user clicks them, **Then** those actions trigger and do not start dragging.
+3. **Given** the user drags from any non-interactive topbar region, **When** dragging, **Then** the cursor does not select content underneath.
 
 ---
 
-### User Story 2 - Developer Configures Plugin Behavior (Priority: P2)
+### User Story 2 - Open Multiple Independent Windows (Priority: P1)
 
-As a developer, I want to configure plugin options (enable/disable, customize behavior) through a centralized configuration, without editing plugin source code.
+As a user, I want to open multiple app windows so I can work on different Markdown documents side-by-side without them affecting each other.
 
-**Why this priority**: Configuration flexibility is important for customization but depends on the core plugin system being in place.
-
-**Independent Test**: Developer can modify a configuration file to disable a plugin and verify the feature is no longer available in the editor.
+**Independent Test**: Open two windows with different files; edits, view mode, and sidebar state are independent.
 
 **Acceptance Scenarios**:
 
-1. **Given** a plugin is disabled in configuration, **When** the editor loads, **Then** the plugin's features are not available
-2. **Given** a plugin has customizable options, **When** options are changed in configuration, **Then** the plugin behavior reflects the new settings
-3. **Given** an invalid plugin configuration, **When** the editor loads, **Then** a helpful error message is shown and other plugins still work
+1. **Given** the app is open, **When** the user chooses "New Window", **Then** a new window opens with a fresh session.
+2. **Given** two windows are open with different documents, **When** the user edits one document, **Then** the other window remains unchanged.
+3. **Given** window A has unsaved changes, **When** window B is closed, **Then** window A remains open and unaffected.
+4. **Given** the same file is opened in two windows, **When** one window saves, **Then** the other window detects the file change and shows the existing reload prompt behavior.
 
 ---
 
-### User Story 3 - Migrate Existing Features to Plugins (Priority: P1)
+### User Story 3 - WYSIWYG Table Rendering (Priority: P1)
 
-As a developer, I want to refactor existing scattered features (highlight, heading, link, wysiwyg decorations) into the new plugin architecture to establish consistency.
+As a user, I want Markdown table syntax to render as tables in WYSIWYG mode so the editing experience matches the preview.
 
-**Why this priority**: Migration of existing code proves the architecture works and provides reference implementations.
-
-**Independent Test**: Each migrated feature continues to work exactly as before, but now lives in a standardized plugin structure.
+**Independent Test**: A Markdown document containing a pipe table renders as a table in WYSIWYG mode.
 
 **Acceptance Scenarios**:
 
-1. **Given** the highlight command exists as a plugin, **When** user presses Cmd+Shift+H, **Then** selected text is wrapped with highlight markup (same as current behavior)
-2. **Given** the heading plugin exists, **When** user presses Cmd+1 through Cmd+6, **Then** the line becomes the corresponding heading level
-3. **Given** the WYSIWYG decorations plugin exists, **When** user is in source mode with WYSIWYG enabled, **Then** markdown syntax is visually hidden (same as current behavior)
-
----
-
-### User Story 4 - Add Future Features as Plugins (Priority: P3)
-
-As a developer, I want a clear pattern for implementing future features (focus mode, typewriter mode, spell check, math, mermaid) as plugins.
-
-**Why this priority**: Future extensibility is valuable but depends on the core system and migration being complete.
-
-**Independent Test**: Sample plugins (focus mode, typewriter mode, spell check stub) can be implemented following the documented pattern and work correctly.
-
-**Acceptance Scenarios**:
-
-1. **Given** the plugin architecture documentation exists, **When** a developer follows it to create a focus mode plugin, **Then** the plugin dims non-focused paragraphs correctly
-2. **Given** multiple feature plugins are enabled, **When** the editor runs, **Then** all plugins coexist without conflicts
-3. **Given** a typewriter mode plugin exists, **When** enabled, **Then** the current line remains vertically centered while typing
-4. **Given** a spell check plugin stub exists, **When** enabled, **Then** it loads without errors and documents TODO integration points
+1. **Given** a document with a standard Markdown table, **When** switching to WYSIWYG mode, **Then** the table renders with rows and columns.
+2. **Given** a table in WYSIWYG mode, **When** the user edits cell text, **Then** changes persist in the underlying Markdown.
+3. **Given** a document without tables, **When** switching to WYSIWYG, **Then** rendering is unchanged and no errors occur.
 
 ---
 
 ### Edge Cases
 
-- What happens when a plugin fails to initialize?
-  - The plugin state is set to "error" with the caught Error object stored
-  - Console.error logs: `[mdpro] Plugin "${name}" failed to initialize: ${error.message}`
-  - Other plugins continue loading normally
-  - No user-facing notification (errors are developer-facing only)
-- What happens when two plugins conflict (e.g., both try to handle the same keyboard shortcut)? Plugin priority/order should determine precedence.
-- What happens when a plugin is configured but its file is missing? Clear error message should be shown.
-- What happens during mode switch (Source ↔ WYSIWYG) with plugins that only support one mode? The plugin should gracefully do nothing in unsupported modes.
+- Dragging should not interfere with double-click selection or topbar buttons.
+- New window should open even when no document is currently loaded.
+- Opening many windows should not corrupt shared preferences (recent files, theme, shortcuts).
+- When the same file is open in multiple windows, existing file watcher conflict resolution should still apply.
+- Table rendering should handle alignment markers (`:---`, `---:`) and empty cells gracefully.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-**Plugin Interface & Registration**
+**Window Dragging**
 
-- **FR-001**: System MUST define a standard plugin interface that works for both CodeMirror and Milkdown plugins
-- **FR-002**: System MUST provide a plugin registry where plugins are registered by name
-- **FR-003**: System MUST support plugins that target: CodeMirror only, Milkdown only, or both editors
-- **FR-004**: System MUST load plugins in a defined order with configurable priority
+- **FR-001**: The topbar MUST define a draggable region that moves the window on macOS.
+- **FR-002**: Interactive controls inside the topbar MUST remain clickable and not start dragging.
+- **FR-003**: Dragging MUST not interfere with editor interactions below the topbar.
 
-**Plugin Capabilities**
+**Multi-Window**
 
-- **FR-005**: Plugins MUST be able to add keyboard shortcuts
-- **FR-006**: Plugins MUST be able to add editor commands (callable from menu/toolbar)
-- **FR-007**: Plugins MUST be able to add decorations/widgets to the editor (CodeMirror ViewPlugin, Milkdown Decoration)
-- **FR-008**: Plugins MUST be able to listen to editor events (document change, selection change, focus)
-- **FR-009**: Plugins MUST be able to access and modify editor state through a controlled API
+- **FR-010**: The app MUST provide a "New Window" action to open a new window.
+- **FR-011**: Each window MUST maintain its own document session state (active doc, view mode, sidebar state).
+- **FR-012**: Closing one window MUST NOT close or reset other windows.
+- **FR-013**: Opening a file in a new window MUST load that file without affecting other windows.
+- **FR-014**: Window titles MUST reflect the active document in each window.
 
-**Plugin Configuration**
+**WYSIWYG Tables**
 
-- **FR-010**: System MUST allow plugins to be enabled/disabled via configuration
-- **FR-011**: System MUST allow plugins to define their own configuration options
-- **FR-012**: System MUST provide default configurations that can be overridden
-
-**Plugin Lifecycle**
-
-- **FR-013**: System MUST call plugin initialization when editor mounts
-- **FR-014**: System MUST call plugin cleanup when editor unmounts
-- **FR-015**: System MUST handle plugin initialization errors gracefully without crashing the editor
-
-**Migration Requirements**
-
-- **FR-016**: Existing highlight command MUST be migrated to a plugin
-- **FR-017**: Existing heading commands MUST be migrated to a plugin
-- **FR-018**: Existing link command MUST be migrated to a plugin
-- **FR-019**: Existing WYSIWYG decorations (heading/list/quote/code widgets) MUST be migrated to a plugin
-- **FR-020**: Existing Milkdown inlineEditPlugin MUST be integrated into the plugin system
-- **FR-021**: All migrated plugins MUST maintain backward compatibility with current behavior
+- **FR-020**: WYSIWYG mode MUST render Markdown table syntax as tables.
+- **FR-021**: Edits made inside a WYSIWYG table MUST persist in the Markdown source.
+- **FR-022**: Table rendering MUST support basic alignment markers and header rows.
 
 ### Key Entities
 
-- **Plugin**: A self-contained feature module with defined interface, configuration, and lifecycle hooks
-- **Plugin Registry**: Central store managing all registered plugins and their state
-- **Plugin Configuration**: Settings that control plugin behavior and enabled/disabled state
-- **Editor Context**: Shared context providing access to editor views, state, and commands
+- **Window Session**: A single app window with its own editor state and active document.
+- **Window Manager**: Frontend logic that creates new windows and routes open-file actions.
+- **Table Renderer**: WYSIWYG plugin/preset that enables Markdown table support.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: All existing editor features (highlight, heading, link, WYSIWYG decorations, inline edit) work identically after migration to plugin architecture
-- **SC-002**: A new plugin can be added to the system by creating a single file and adding one line to the plugin registry
-- **SC-003**: Disabling a plugin removes its functionality without affecting other features
-- **SC-004**: Plugin initialization errors do not crash the editor; other plugins continue to work
-- **SC-005**: Developer documentation exists with at least 3 example plugins covering different use cases
-- **SC-006**: No regression in editor startup time (within 10% of current performance)
+- **SC-001**: Users can drag the window from the topbar on macOS in all view modes.
+- **SC-002**: Two or more windows can be open simultaneously with independent state.
+- **SC-003**: A Markdown table displays correctly in WYSIWYG mode and edits persist.
+- **SC-004**: No regression to existing file watcher reload prompts when the same file is open in multiple windows.
 
 ## Assumptions
 
-- Milkdown's `$prose()` utility will continue to be the primary way to create ProseMirror plugins
-- CodeMirror's Extension system will remain the primary way to add functionality to source mode
-- The plugin system is internal (developer-facing) and does not require end-user plugin management UI
-- Plugin configuration will be stored in code (TypeScript config file) rather than user-editable settings file
+- Tauri multi-window APIs are available and supported in the current build.
+- The custom topbar remains in use; no native titlebar swap is required.
+- WYSIWYG mode continues to be powered by Milkdown.
 
 ## Out of Scope
 
-- End-user plugin marketplace or installation UI
-- Runtime plugin loading (hot-reload)
-- Plugin sandboxing or security isolation
-- Cross-plugin communication/dependencies (plugins should be independent)
-- Persistent plugin state (plugins can use existing Zustand stores if needed)
+- Collaborative real-time syncing across windows.
+- Cross-window undo/redo.
+- Table editing UI beyond basic text editing (e.g., add/remove row buttons).
+- Windows on other OS platforms beyond current macOS target.
 
-## Refactoring Approach
+## Implementation Approach (High-Level)
 
-### Phase 1: Define Plugin Architecture
-
-1. Design the unified plugin interface that supports both CodeMirror and Milkdown
-2. Create the plugin registry with lifecycle management
-3. Implement plugin configuration system
-
-### Phase 2: Migrate Existing Features
-
-1. Migrate CodeMirror extensions to plugins:
-   - `highlightPlugin` (from `highlight.ts`)
-   - `headingPlugin` (from `heading.ts`)
-   - `linkPlugin` (from `link.ts`)
-   - `wysiwygDecorationsPlugin` (from `wysiwyg.ts`, `widgets.ts`)
-
-2. Integrate Milkdown plugins:
-   - `inlineEditPlugin` (already exists, needs registry integration)
-   - `typoraKeymapPlugin` (from `useMilkdown.ts` keymap)
-
-### Phase 3: Establish Patterns
-
-1. Document plugin development patterns
-2. Create example plugins for future features (focus mode, typewriter mode, spell check stub)
-3. Update CLAUDE.md with plugin development guidelines
-
-### Proposed Directory Structure
-
-```
-src/
-├── plugins/
-│   ├── core/
-│   │   ├── pluginRegistry.ts      # Central plugin management
-│   │   ├── pluginTypes.ts         # TypeScript interfaces
-│   │   └── pluginConfig.ts        # Default configuration
-│   ├── codemirror/
-│   │   ├── highlightPlugin.ts
-│   │   ├── headingPlugin.ts
-│   │   ├── linkPlugin.ts
-│   │   └── wysiwygDecorationsPlugin.ts
-│   │   ├── focusModePlugin.ts
-│   │   ├── typewriterModePlugin.ts
-│   │   └── spellCheckPlugin.ts
-│   ├── milkdown/
-│   │   ├── inlineEditPlugin.ts    # (moved from components/Editor/plugins/)
-│   │   └── typoraKeymapPlugin.ts
-├── components/
-│   └── Editor/
-│       ├── Editor.tsx             # Uses plugin registry
-│       └── MilkdownEditor.tsx     # Uses plugin registry
-```
+1. Mark the topbar as a drag region while preserving interactive elements.
+2. Add window creation flow and per-window initialization behavior.
+3. Enable GFM table support in Milkdown WYSIWYG mode and ensure Markdown round-trip.

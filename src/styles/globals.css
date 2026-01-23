@@ -428,6 +428,25 @@ a {
   margin: 0 0 12px 20px;
 }
 
+.milkdown-editor .ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.milkdown-editor .ProseMirror th,
+.milkdown-editor .ProseMirror td {
+  border: 1px solid var(--color-border);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.milkdown-editor .ProseMirror th {
+  background: var(--color-surface);
+  font-weight: 600;
+}
+
 .milkdown-editor .ProseMirror a {
   color: var(--color-accent);
   text-decoration: underline;

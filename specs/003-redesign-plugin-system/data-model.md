@@ -1,149 +1,89 @@
-# Data Model: Plugin System
+# Data Model: Window Sessions & WYSIWYG Tables
 
 **Feature**: 003-redesign-plugin-system
-**Date**: 2025-01-21
+**Date**: 2026-01-23
 
 ## Entities
 
-### Plugin
+### WindowSession
 
-A self-contained feature module that extends editor functionality.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | `string` | Unique identifier (e.g., "highlight", "heading") |
-| `displayName` | `string` | Human-readable name for logging/debugging |
-| `supportedModes` | `EditorMode[]` | Which editor modes this plugin supports |
-| `priority` | `number` | Loading order (higher = earlier, default: 50) |
-| `codemirrorExtension` | `() => Extension \| Extension[]` | Factory for CodeMirror extension(s) |
-| `milkdownPlugin` | `() => MilkdownPlugin` | Factory for Milkdown/ProseMirror plugin |
-| `init` | `(ctx: EditorContext) => void` | Lifecycle hook called on editor mount |
-| `destroy` | `() => void` | Lifecycle hook called on editor unmount |
-| `defaultConfig` | `PluginConfig` | Default configuration for this plugin |
-
-### PluginRegistry
-
-Central store managing all registered plugins and their runtime state.
+Represents a single app window with its own editor state and active document.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `plugins` | `Map<string, RegisteredPlugin>` | All registered plugins by name |
-| `activePlugins` | `Set<string>` | Currently active plugin names |
-| `config` | `MdproPluginConfig` | Merged configuration (defaults + overrides) |
-| `editorContext` | `EditorContext \| null` | Shared context once editor mounts |
+| `windowId` | `string` | Unique identifier for the window (Tauri label) |
+| `activeDocumentId` | `string | null` | Currently active document ID |
+| `viewMode` | `ViewMode` | Current view mode (split/editor/preview/wysiwyg) |
+| `sidebarOpen` | `boolean` | Sidebar visibility for this window |
+| `lastOpenedPaths` | `string[]` | Recent files for this window (optional) |
 
-### RegisteredPlugin
+### DocumentSession
 
-Runtime state for a single plugin.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `plugin` | `MdproPlugin` | The plugin definition |
-| `state` | `PluginState` | Current state: "pending" \| "active" \| "inactive" \| "error" |
-| `error` | `Error \| null` | Error if initialization failed |
-| `configOverrides` | `Partial<PluginConfig>` | User config overrides for this plugin |
-
-### PluginConfig
-
-Configuration for a single plugin.
+A document instance loaded within a window.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `enabled` | `boolean` | Whether plugin is enabled (default: true) |
-| `priority` | `number \| undefined` | Override default priority |
-| `options` | `Record<string, unknown>` | Plugin-specific options |
+| `id` | `string` | Document ID (UUID) |
+| `path` | `string | null` | File path if saved to disk |
+| `title` | `string` | Display name |
+| `content` | `string` | Current markdown content |
+| `isModified` | `boolean` | Unsaved changes |
+| `encoding` | `string | null` | File encoding (if known) |
 
-### EditorContext
+### WindowManager
 
-Shared context providing access to editor state and utilities.
+Frontend service that creates and routes windows.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `codemirrorView` | `EditorView \| null` | CodeMirror editor view |
-| `milkdownEditor` | `Editor \| null` | Milkdown editor instance |
-| `currentMode` | `EditorMode` | Current active mode |
-| `dispatchCommand` | `(cmd: string, args?: unknown) => void` | Execute a registered command |
-| `getStore` | `<T>(store: StoreApi<T>) => T` | Access Zustand stores |
+| `openWindow` | `(options) => Promise<void>` | Opens a new window with optional file path |
+| `getWindowLabel` | `() => string` | Returns current window label |
+| `broadcast` | `(event, payload) => void` | Emits events to specific windows |
 
-## Enums
+### TableRenderer
 
-### EditorMode
+WYSIWYG plugin configuration enabling Markdown tables.
 
-```typescript
-type EditorMode = 'codemirror' | 'milkdown';
-```
-
-### PluginState
-
-```typescript
-type PluginState = 'pending' | 'active' | 'inactive' | 'error';
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `preset` | `"gfm" | "table"` | Milkdown preset used for table support |
+| `enabled` | `boolean` | Whether table rendering is active |
 
 ## Relationships
 
 ```
 ┌─────────────────┐
-│ PluginRegistry  │
+│ WindowManager   │
 │                 │
-│ plugins ────────┼──► Map<string, RegisteredPlugin>
-│ activePlugins   │
-│ config          │
-│ editorContext ──┼──► EditorContext
+│ openWindow ─────┼──► Creates WindowSession
 └─────────────────┘
          │
          ▼
 ┌─────────────────┐
-│ RegisteredPlugin│
+│ WindowSession   │
 │                 │
-│ plugin ─────────┼──► MdproPlugin
-│ state           │
-│ error           │
-│ configOverrides │
-└─────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│  MdproPlugin    │
-│                 │
-│ name            │
-│ supportedModes  │
-│ priority        │
-│ codemirrorExt   │
-│ milkdownPlugin  │
-│ init/destroy    │
-│ defaultConfig   │
+│ activeDocument ─┼──► DocumentSession
+│ viewMode        │
+│ sidebarOpen     │
 └─────────────────┘
 ```
 
 ## State Transitions
 
-### Plugin Lifecycle
+### Window Lifecycle
 
 ```
-                    register()
-    ┌─────────────────────────────────┐
-    │                                 │
-    ▼                                 │
-┌─────────┐  editorMount()  ┌────────┐│  editorUnmount()  ┌──────────┐
-│ pending │ ───────────────►│ active │├─────────────────►│ inactive │
-└─────────┘                 └────────┘│                   └──────────┘
-    │                           │     │                        │
-    │                           │     │                        │
-    │      init() throws        │     │    modeSwitch()        │
-    │           │               │     │         │              │
-    │           ▼               │     │         ▼              │
-    │       ┌───────┐           │     │   (re-init if          │
-    └──────►│ error │◄──────────┘     │   mode supported)      │
-            └───────┘                 │         │              │
-                                      │         ▼              │
-                                      │    ┌────────┐          │
-                                      └───►│ active │◄─────────┘
-                                           └────────┘
+create window -> initialize session -> open document -> edit/save -> close window
+```
+
+### Document Lifecycle
+
+```
+create/open -> edit -> save -> close
 ```
 
 ## Validation Rules
 
-1. **Plugin Name**: Must be unique, lowercase, alphanumeric with hyphens only
-2. **Priority**: Must be positive integer (0-100 recommended)
-3. **Supported Modes**: Must include at least one mode
-4. **Extension Factory**: Must return valid Extension or throw (not return null)
+1. **Window IDs**: Must match Tauri window labels and be unique per window.
+2. **Document Ownership**: Each DocumentSession belongs to exactly one WindowSession.
+3. **Table Rendering**: Only enabled in WYSIWYG mode; source mode unaffected.

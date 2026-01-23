@@ -4,3 +4,4 @@ pub mod file_watcher;
 pub mod draft;
 pub mod html_template;
 pub mod encoding;
+pub mod logger;
