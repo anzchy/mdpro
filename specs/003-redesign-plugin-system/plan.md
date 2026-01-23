@@ -1,41 +1,36 @@
-# Implementation Plan: Redesign Plugin System
+# Implementation Plan: Window Dragging, Multi-Window Docs, WYSIWYG Tables
 
-**Branch**: `003-redesign-plugin-system` | **Date**: 2025-01-21 | **Spec**: [spec.md](./spec.md)
+**Branch**: `003-redesign-plugin-system` | **Date**: 2026-01-23 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/003-redesign-plugin-system/spec.md`
 
 ## Summary
 
-Refactor mdpro's editor architecture to use a unified plugin system that standardizes feature implementation across both CodeMirror (source mode) and Milkdown (WYSIWYG mode). The approach involves:
+Deliver three user-facing improvements:
 
-1. Creating a plugin interface that abstracts over CodeMirror Extensions and Milkdown/ProseMirror plugins
-2. Building a central plugin registry with lifecycle management, event hooks, and controlled editor APIs
-3. Migrating existing scattered features (highlight, heading, link, wysiwyg decorations, inline edit) to the new plugin architecture
-4. Establishing patterns and documentation for future plugin development, including example plugins (focus mode, typewriter mode, spell check stub)
+1. Make the custom topbar draggable to move the window.
+2. Allow multiple independent app windows, each with its own document session.
+3. Enable Markdown table rendering in WYSIWYG mode.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.8 (frontend), Rust 2021 Edition (backend - unchanged)
-**Primary Dependencies**: React 19, Tauri 2.0, CodeMirror 6 (@codemirror/*), Milkdown 7.18 (@milkdown/kit, @milkdown/react), Zustand 4
-**Storage**: N/A (no new storage requirements)
-**Testing**: Manual testing (existing project has no test framework configured)
+**Language/Version**: TypeScript 5.8 (frontend), Rust 2021 Edition (backend)
+**Primary Dependencies**: React 19, Tauri 2.0, CodeMirror 6, Milkdown 7.18, Zustand 4
 **Target Platform**: macOS 13+ (Apple Silicon), Tauri desktop app
-**Project Type**: Single desktop application with React frontend
-**Performance Goals**: No regression in editor startup time (within 10% of current baseline per SC-006)
-**Constraints**: Must maintain backward compatibility with all existing keyboard shortcuts and behaviors
-**Scale/Scope**: ~6 plugins to migrate, plugin registry managing 10-20 plugins max
+**Testing**: Manual testing (no automated test framework configured)
+**Constraints**:
+- Preserve existing document open/save and file watcher reload behavior
+- Maintain current visual layout of the topbar
+- Keep WYSIWYG editor stable while adding table support
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+No custom constitution detected. Proceeding with standard practices:
 
-The project constitution is not yet customized (template placeholders present). Proceeding with standard development practices:
+- [x] **Simplicity**: Minimal changes to topbar and window lifecycle
+- [x] **Backward Compatibility**: Existing file open/save flows remain intact
+- [x] **Testable**: Each capability has a clear manual test
 
-- [x] **Simplicity**: Start with minimal plugin interface, avoid over-abstraction
-- [x] **Backward Compatibility**: All migrated features must work identically
-- [x] **No Breaking Changes**: Existing keyboard shortcuts preserved
-- [x] **Testable**: Each plugin can be enabled/disabled independently for testing
-
-**Gate Status**: PASS (no constitution violations)
+**Gate Status**: PASS
 
 ## Project Structure
 
@@ -43,59 +38,51 @@ The project constitution is not yet customized (template placeholders present). 
 
 ```text
 specs/003-redesign-plugin-system/
-├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output (TypeScript interfaces)
-└── tasks.md             # Phase 2 output (/speckit.tasks command)
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
+├── tasks.md
+└── checklists/requirements.md
 ```
 
-### Source Code (repository root)
+### Source Code (expected touch points)
 
 ```text
 src/
-├── plugins/
-│   ├── core/
-│   │   ├── pluginTypes.ts         # MdproPlugin interface & types
-│   │   ├── pluginRegistry.ts      # Central registry with lifecycle
-│   │   └── pluginConfig.ts        # Default configuration
-│   ├── codemirror/
-│   │   ├── highlightPlugin.ts     # Migrated from extensions/highlight.ts
-│   │   ├── headingPlugin.ts       # Migrated from extensions/heading.ts
-│   │   ├── linkPlugin.ts          # Migrated from extensions/link.ts
-│   │   └── wysiwygDecorationsPlugin.ts  # Migrated from extensions/wysiwyg.ts
-│   │   ├── focusModePlugin.ts     # Example plugin
-│   │   ├── typewriterModePlugin.ts # Example plugin
-│   │   └── spellCheckPlugin.ts    # Example plugin stub
-│   ├── milkdown/
-│   │   ├── inlineEditPlugin.ts    # Moved from components/Editor/plugins/
-│   │   └── typoraKeymapPlugin.ts  # Extracted from useMilkdown.ts
-│   └── index.ts                   # All plugins export
 ├── components/
-│   └── Editor/
-│       ├── Editor.tsx             # Updated to use plugin registry
-│       ├── MilkdownEditor.tsx     # Updated to use plugin registry
-│       └── extensions/            # To be deprecated after migration
-└── hooks/
-    └── useMilkdown.ts             # Updated to use plugin registry
+│   └── TitleBar/TitleBar.tsx        # Drag region behavior
+├── hooks/
+│   ├── useMenuEvents.ts             # New window event handling
+│   └── useDocument.ts               # Window-scoped document session
+├── services/
+│   ├── windowService.ts             # Create/track windows (new)
+│   └── fileService.ts               # Open file in new window
+├── stores/
+│   └── documentStore.ts             # Per-window store instance
+└── styles/globals.css               # Topbar drag region tweaks
 
-# Files to be deprecated/removed after migration:
-# - src/components/Editor/extensions/highlight.ts
-# - src/components/Editor/extensions/heading.ts
-# - src/components/Editor/extensions/link.ts
-# - src/components/Editor/extensions/wysiwyg.ts
-# - src/components/Editor/extensions/widgets.ts
-# - src/components/Editor/plugins/inlineEditPlugin.ts
+src-tauri/
+├── src/
+│   ├── main.rs                      # New window command/event
+│   └── menu.rs                      # Menu item: New Window
+└── tauri.conf.json                  # Window options (if needed)
 ```
 
-**Structure Decision**: Single project structure maintained. New `src/plugins/` directory created alongside existing `src/components/` and `src/hooks/`. Existing extensions deprecated in place after migration completes.
+**Structure Decision**: Keep a single React app bundle; window-specific state is isolated per window instance.
 
-## Complexity Tracking
+## Rollout Plan
 
-No complexity violations identified. The plugin system adds a thin abstraction layer without introducing unnecessary complexity:
+1. **Topbar drag region**: Ensure drag region applied to non-interactive topbar elements.
+2. **Multi-window**: Add menu entry + window creation flow + per-window state isolation.
+3. **WYSIWYG tables**: Enable GFM table support in Milkdown configuration.
+4. **Manual verification**: Confirm all acceptance scenarios.
 
-- Single plugin interface (not separate interfaces per editor type)
-- Configuration via TypeScript (not runtime/JSON)
-- No cross-plugin dependencies
-- No dynamic loading
+## Risks & Mitigations
+
+- **Risk**: Drag region interferes with clickable elements.
+  - **Mitigation**: Mark interactive elements as non-draggable and test clicks.
+- **Risk**: Multi-window creates shared state collisions.
+  - **Mitigation**: Scope Zustand stores per window; avoid singletons for document state.
+- **Risk**: Table plugin conflicts with existing Milkdown configuration.
+  - **Mitigation**: Add table support via official preset and test WYSIWYG mode switching.

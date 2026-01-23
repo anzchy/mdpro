@@ -5,7 +5,7 @@ use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
 use crate::models::{Document, Draft};
-use crate::services::{encoding, file_watcher::FileWatcher};
+use crate::services::{encoding, file_watcher::FileWatcher, logger};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 
@@ -77,17 +77,28 @@ fn mtime_cache() -> &'static Mutex<HashMap<String, i64>> {
 }
 
 fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<OpenFileResult, FileError> {
-    println!("[DEBUG] open_file_from_path called with: {}", path);
+    logger::log_line(&format!("open_file_from_path: {}", path));
     let path_buf = PathBuf::from(path);
     if !path_buf.exists() {
-        println!("[DEBUG] File not found: {}", path);
+        logger::log_line(&format!("open_file_from_path: file not found {}", path));
         return Err(FileError::FileNotFound {
             path: path.to_string(),
         });
     }
 
-    let metadata = std::fs::metadata(&path_buf).map_err(|err| to_file_error(err, path))?;
+    let metadata = std::fs::metadata(&path_buf).map_err(|err| {
+        logger::log_line(&format!(
+            "open_file_from_path: metadata error {}: {}",
+            path, err
+        ));
+        to_file_error(err, path)
+    })?;
     if metadata.len() > MAX_FILE_SIZE {
+        logger::log_line(&format!(
+            "open_file_from_path: file too large {} size={}",
+            path,
+            metadata.len()
+        ));
         return Err(FileError::FileTooLarge {
             path: path.to_string(),
             size: metadata.len(),
@@ -102,21 +113,37 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
         }
     }
 
-    let bytes = std::fs::read(&path_buf).map_err(|err| to_file_error(err, path))?;
-    println!("[DEBUG] Read {} bytes from file", bytes.len());
+    let bytes = std::fs::read(&path_buf).map_err(|err| {
+        logger::log_line(&format!("open_file_from_path: read error {}: {}", path, err));
+        to_file_error(err, path)
+    })?;
+    logger::log_line(&format!(
+        "open_file_from_path: read bytes {}",
+        bytes.len()
+    ));
     let detected = encoding::detect_encoding(&bytes);
     let encoding_value = encoding_hint.clone().unwrap_or_else(|| detected.clone());
     let content = encoding::decode_bytes(&bytes, &encoding_value).map_err(|_| {
+        logger::log_line(&format!(
+            "open_file_from_path: encoding error {} detected={}",
+            path, detected
+        ));
         FileError::EncodingError {
             path: path.to_string(),
             detected,
         }
     })?;
-    println!("[DEBUG] Decoded content length: {} chars", content.len());
+    logger::log_line(&format!(
+        "open_file_from_path: decoded chars {}",
+        content.len()
+    ));
 
     let mut document = Document::from_path(path_buf, content);
     document.encoding = encoding_value;
-    println!("[DEBUG] Created document with id: {}", document.id);
+    logger::log_line(&format!(
+        "open_file_from_path: created document id {}",
+        document.id
+    ));
 
     Ok(OpenFileResult {
         document,
@@ -130,8 +157,13 @@ pub async fn open_file(
     encoding: Option<String>,
     watcher: State<'_, FileWatcher>,
 ) -> Result<OpenFileResult, FileError> {
+    logger::log_line(&format!(
+        "command open_file: path={} encoding={:?}",
+        path, encoding
+    ));
     let result = open_file_from_path(&path, encoding)?;
     watcher.watch(&PathBuf::from(&path));
+    logger::log_line(&format!("command open_file: watch {}", path));
     Ok(result)
 }
 
@@ -145,21 +177,31 @@ pub async fn open_file_dialog(
     _window: Window,
     watcher: State<'_, FileWatcher>,
 ) -> Result<Option<OpenFileResult>, FileError> {
-    println!("[DEBUG] open_file_dialog called");
+    logger::log_line("command open_file_dialog: invoked");
     let picked = rfd::FileDialog::new()
         .add_filter("Markdown", &["md", "markdown"])
         .pick_file();
 
     let Some(path) = picked else {
-        println!("[DEBUG] open_file_dialog: No file picked (dialog cancelled)");
+        logger::log_line("command open_file_dialog: cancelled");
         return Ok(None);
     };
 
     let path_string = path.to_string_lossy().to_string();
-    println!("[DEBUG] open_file_dialog: File picked: {}", path_string);
+    logger::log_line(&format!(
+        "command open_file_dialog: picked {}",
+        path_string
+    ));
     let result = open_file_from_path(&path_string, None)?;
-    println!("[DEBUG] open_file_dialog: File read successfully, content length: {}", result.document.content.len());
+    logger::log_line(&format!(
+        "command open_file_dialog: read ok, chars {}",
+        result.document.content.len()
+    ));
     watcher.watch(&PathBuf::from(&path_string));
+    logger::log_line(&format!(
+        "command open_file_dialog: watch {}",
+        path_string
+    ));
     Ok(Some(result))
 }
 

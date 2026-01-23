@@ -513,6 +513,49 @@ function App() {
     ],
   );
 
+  const shouldHandleWindowEvent = useCallback(async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const currentWindow = getCurrentWindow();
+      const isFocused = await currentWindow.isFocused();
+      return isFocused;
+    } catch {
+      return true;
+    }
+  }, []);
+
+  const openNewWindow = useCallback(
+    async (openPath?: string, notifyOnError = true) => {
+      try {
+        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        const windowLabel = `mdpro-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const url = openPath
+          ? `index.html?open=${encodeURIComponent(openPath)}`
+          : "index.html";
+        new WebviewWindow(windowLabel, {
+          title: "mdpro",
+          width: 1200,
+          height: 800,
+          minWidth: 400,
+          minHeight: 640,
+          center: true,
+          dragDropEnabled: true,
+          titleBarStyle: "overlay",
+          hiddenTitle: true,
+          url,
+        });
+        return true;
+      } catch (error) {
+        console.error("[DEBUG] Failed to open new window:", error);
+        if (notifyOnError) {
+          showToast("Failed to open new window");
+        }
+        return false;
+      }
+    },
+    [showToast],
+  );
+
   // Handle files dropped via Tauri's drag-drop
   const handleFileDrop = useCallback(
     async (paths: string[]) => {
@@ -528,23 +571,10 @@ function App() {
 
       // If there's already a document open, open the new file in a new window
       if (documents.length > 0) {
-        try {
-          const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-          for (const filePath of mdPaths) {
-            const windowLabel = `mdpro-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            new WebviewWindow(windowLabel, {
-              title: "mdpro",
-              width: 1200,
-              height: 800,
-              center: true,
-              dragDropEnabled: true,
-              url: `index.html?open=${encodeURIComponent(filePath)}`,
-            });
-          }
-        } catch {
-          // Fall back to opening in current window
-          setViewMode("preview-only");
-          for (const filePath of mdPaths) {
+        for (const filePath of mdPaths) {
+          const opened = await openNewWindow(filePath, false);
+          if (!opened) {
+            setViewMode("preview-only");
             await handleOpenPath(filePath);
           }
         }
@@ -556,7 +586,7 @@ function App() {
         }
       }
     },
-    [documents.length, handleOpenPath, setViewMode],
+    [documents.length, handleOpenPath, openNewWindow, setViewMode],
   );
 
   // Set up Tauri drag-drop event listener
@@ -646,6 +676,7 @@ function App() {
 
   useMenuEvents({
     onNew: () => void createDocument(),
+    onNewWindow: () => void openNewWindow(),
     onOpen: () => void handleOpenDialog(),
     onSave: () => void handleSave(),
     onClose: handleCloseRequest,
@@ -672,13 +703,22 @@ function App() {
       });
   }, [openPaths, setViewMode]);
 
+  const handleFileOpenEvent = useCallback(
+    async (paths: string[]) => {
+      if (!paths || paths.length === 0) return;
+      const canHandle = await shouldHandleWindowEvent();
+      if (!canHandle) return;
+      // When opening from Finder while app is running, use preview-only mode
+      setViewMode("preview-only");
+      void openPaths(paths);
+    },
+    [openPaths, setViewMode, shouldHandleWindowEvent],
+  );
+
   useEffect(() => {
     let unlisten: (() => void) | null = null;
     listen<string[]>("file:open", (event) => {
-      if (!event.payload || event.payload.length === 0) return;
-      // When opening from Finder while app is running, use preview-only mode
-      setViewMode("preview-only");
-      void openPaths(event.payload);
+      void handleFileOpenEvent(event.payload);
     })
       .then((fn) => {
         unlisten = fn;
@@ -689,7 +729,7 @@ function App() {
     return () => {
       if (unlisten) unlisten();
     };
-  }, [openPaths, setViewMode]);
+  }, [handleFileOpenEvent]);
 
   return (
     <div className={`app-shell${showSidebar ? "" : " no-sidebar"}`}>

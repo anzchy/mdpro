@@ -65,6 +65,18 @@ Common commands:
 
 * `pnpm tauri build --bundles app`: build only the `.app` bundle (skip DMG)
 
+## Debug Logging (macOS Open With)
+
+When you need to debug why `.md` files do not open from Finder ("Open With" or double-click), mdpro writes a backend log to:
+
+* `~/.mdpro/mdpro.log`
+
+Useful commands:
+
+* `tail -f ~/.mdpro/mdpro.log` (follow live logs)
+
+The log includes launch args, macOS `RunEvent::Opened` URLs, filtered markdown paths, and `open_file` calls.
+
 
 
 Mac OS cannot open app, use this command:`sudo find "/Applications/mdpro.app" -exec xattr -d com.apple.quarantine {} \;`

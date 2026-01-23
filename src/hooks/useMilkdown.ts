@@ -7,7 +7,7 @@ import {
   rootCtx,
   serializerCtx,
 } from "@milkdown/kit/core";
-import { commonmark } from "@milkdown/kit/preset/commonmark";
+import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { pluginRegistry } from "../plugins";
@@ -62,7 +62,7 @@ export function useMilkdown({
             ctx.set(rootCtx, root);
             ctx.set(defaultValueCtx, initialMarkdown);
           })
-          .use(commonmark)
+          .use(gfm)
           .use(history)
           .use(listener),
       ),
