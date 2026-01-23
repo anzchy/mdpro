@@ -39,6 +39,15 @@ This document describes the technical architecture behind mdpro's WYSIWYG editin
 │  │  - syntax highlight │     │  - rich text editing            │   │
 │  └─────────────────────┘     └─────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Plugin System                                │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ pluginRegistry manages plugin lifecycle and exposes editor     │  │
+│  │ events (doc/selection/focus) to plugins.                        │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Dual-Engine Design
@@ -56,6 +65,15 @@ mdpro uses a **dual-engine architecture** to provide the best editing experience
 1. **CodeMirror excels at source editing**: Fast, syntax highlighting, familiar to developers
 2. **Milkdown excels at WYSIWYG**: ProseMirror-based, renders markdown as rich text in-place
 3. **Content is shared**: Both engines read/write to the same Zustand store
+
+## Plugin System
+
+Editor features (keymaps, commands, decorations) are implemented as plugins
+registered via `src/plugins/index.ts`. The plugin registry:
+
+- Loads mode-specific extensions for CodeMirror and Milkdown
+- Manages plugin lifecycle, priority ordering, and errors
+- Exposes editor events (doc/selection/focus) through `EditorContext`
 
 ## Data Flow
 
@@ -115,6 +133,10 @@ src/
 │   │   └── MilkdownEditor.tsx   # Milkdown WYSIWYG component
 │   └── Preview/
 │       └── Preview.tsx          # Markdown preview (marked + DOMPurify)
+├── plugins/
+│   ├── core/                    # Plugin registry, types, config
+│   ├── codemirror/              # Source mode plugins
+│   └── milkdown/                # WYSIWYG plugins
 ├── hooks/
 │   ├── useEditor.ts             # View mode management
 │   └── useMilkdown.ts           # Milkdown integration hook

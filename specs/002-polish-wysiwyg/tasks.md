@@ -10,6 +10,7 @@
 | US2 | Preview Mode Shows Rendered Output | P2 | Switch to Preview (⌃3), verify read-only HTML |
 | US3 | True WYSIWYG Editing with Milkdown | P3 | Type `# Hello` in WYSIWYG, verify heading renders |
 | US4 | Typora-style Inline Editing | P4 | Click inside link to see `[text](url)`, click away to collapse |
+| US5 | Content Layout Constraints | P5 | Resize window, verify 780pt max-width and 40pt min margins |
 
 ---
 
@@ -202,6 +203,31 @@
 
 ---
 
+## Phase 8: User Story 5 - Content Layout Constraints (P5)
+
+**Goal**: Implement consistent content width constraints across all view modes for improved readability.
+
+**Independent Test**: Resize the window. Verify text content area has max-width 780pt, minimum 40pt side margins, and is centered when window is wider than 860pt.
+
+### CSS Implementation
+
+- [ ] T072 [US5] Add CSS variables `--content-max-width: 780px` and `--content-padding: 40px` to `:root` in `src/styles/globals.css`
+- [ ] T073 [US5] Apply layout constraints to `.preview-content` (Preview mode): `max-width`, `padding-left/right`, `margin: 0 auto`
+- [ ] T074 [US5] Apply layout constraints to `.milkdown-editor .ProseMirror` (WYSIWYG mode): `max-width`, `padding-left/right`, `margin: 0 auto`
+- [ ] T075 [US5] Apply layout constraints to `.editor-shell .cm-content` (Editor mode): `max-width`, `padding-left/right`, `margin: 0 auto`
+- [ ] T076 [US5] Ensure CodeMirror scroller background extends full width while content is constrained
+
+### Verification
+
+- [ ] T077 [US5] Manual test: Preview mode - verify max-width 780pt and 40pt margins
+- [ ] T078 [US5] Manual test: WYSIWYG mode - verify max-width 780pt and 40pt margins
+- [ ] T079 [US5] Manual test: Editor mode - verify max-width 780pt and 40pt margins
+- [ ] T080 [US5] Manual test: Split view - verify both panes apply constraints independently
+- [ ] T081 [US5] Manual test: Resize window narrow (<860pt) - verify 40pt margins maintained
+- [ ] T082 [US5] Manual test: Resize window wide (≥860pt) - verify content centered
+
+---
+
 ## Dependencies
 
 ```
@@ -220,9 +246,10 @@ View Cycling      Preview Fix       Milkdown                 │
                        ▼                                     │
                 Phase 6 (Polish) ◀───────────────────────────┘
                        │
-                       ▼
-                Phase 7 (US4)
-              Typora-style Inline
+                       ├───────────────────┐
+                       ▼                   ▼
+                Phase 7 (US4)        Phase 8 (US5)
+              Typora-style Inline    Content Layout
 ```
 
 ### Story Dependencies
@@ -233,8 +260,9 @@ View Cycling      Preview Fix       Milkdown                 │
 | US2 (Preview Fix) | Phase 2 | T009 complete |
 | US3 (Milkdown) | Phase 2 | T009 complete |
 | US4 (Inline Editing) | Phase 5 (US3) | T044 complete |
+| US5 (Content Layout) | Phase 6 (Polish) | T050 complete |
 
-**Note**: US1, US2, and US3 can be implemented in parallel after Phase 2 is complete. US4 depends on Milkdown being functional (US3).
+**Note**: US1, US2, and US3 can be implemented in parallel after Phase 2 is complete. US4 depends on Milkdown being functional (US3). US5 (Content Layout) can be done independently after Phase 6, and can run in parallel with US4.
 
 ---
 
@@ -285,6 +313,7 @@ T005 (cycleViewMode)            ─┴─▶ T008-T009 (App.tsx prefs)
 3. **Increment 3**: US3 (Milkdown) → Full feature complete
 4. **Increment 4**: Phase 6 (Polish) → Production ready
 5. **Increment 5**: US4 (Typora-style Inline) → Premium WYSIWYG experience
+6. **Increment 6**: US5 (Content Layout) → Professional reading/editing experience
 
 ---
 
@@ -299,7 +328,8 @@ T005 (cycleViewMode)            ─┴─▶ T008-T009 (App.tsx prefs)
 | US3 (P3) | 19 | 0 |
 | Polish | 6 | 0 |
 | US4 (P4) | 21 | 0 |
-| **Total** | **71** | **2** |
+| US5 (P5) | 11 | 0 |
+| **Total** | **82** | **2** |
 
 ### Tasks by User Story
 
@@ -309,3 +339,4 @@ T005 (cycleViewMode)            ─┴─▶ T008-T009 (App.tsx prefs)
 | US2 | 6 | T020-T025 |
 | US3 | 19 | T026-T044 |
 | US4 | 21 | T051-T071 |
+| US5 | 11 | T072-T082 |

@@ -82,6 +82,7 @@ export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
 - Edit rendered markdown directly
 - Typora-like experience
 - Keyboard shortcuts for formatting (⌘B, ⌘I, etc.)
+- WYSIWYG features are loaded via the Milkdown plugin registry
 
 ## Implementation
 
@@ -116,6 +117,11 @@ export const useEditorStore = create<EditorStore>((set) => ({
   />
 )}
 ```
+
+### Plugin Mode Switching
+
+When switching between source and WYSIWYG modes, the plugin registry updates
+the active mode and loads mode-specific extensions for CodeMirror or Milkdown.
 
 ### useEditor Hook
 

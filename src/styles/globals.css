@@ -14,6 +14,9 @@
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --title-bar-height: 38px;
   --sidebar-width: 240px;
+  /* Content layout constraints */
+  --content-max-width: 780px;
+  --content-padding: 40px;
 }
 
 * {
@@ -297,6 +300,10 @@ a {
 }
 
 .editor-shell .cm-content {
+  max-width: var(--content-max-width);
+  padding-left: var(--content-padding);
+  padding-right: var(--content-padding);
+  margin: 0 auto;
   caret-color: var(--color-accent);
 }
 
@@ -340,7 +347,9 @@ a {
 
 .milkdown-editor .ProseMirror {
   min-height: 100%;
-  padding: 16px;
+  max-width: var(--content-max-width);
+  padding: 16px var(--content-padding);
+  margin: 0 auto;
   outline: none;
   font-family: var(--font-sans);
   line-height: 1.6;
@@ -718,13 +727,27 @@ a {
 }
 
 .settings-sidebar {
-  width: 180px;
+  width: 220px;
   border-right: 1px solid var(--color-border);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: var(--color-surface);
+  background: linear-gradient(180deg, rgba(17, 22, 32, 0.92), rgba(14, 18, 26, 0.98));
+}
+
+.settings-search {
+  border: 1px solid var(--color-border);
+  background: rgba(15, 18, 28, 0.9);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.settings-search::placeholder {
+  color: var(--color-muted);
 }
 
 .settings-sidebar-title {
@@ -733,6 +756,7 @@ a {
   letter-spacing: 0.08em;
   color: var(--color-muted);
   margin-bottom: 8px;
+  margin-top: 8px;
 }
 
 .settings-category-btn {
@@ -747,18 +771,50 @@ a {
 }
 
 .settings-category-btn:hover {
-  background: var(--color-panel);
+  background: rgba(37, 99, 235, 0.12);
 }
 
 .settings-category-btn.is-active {
-  background: var(--color-accent);
-  color: white;
+  background: rgba(37, 99, 235, 0.28);
+  color: var(--color-text);
 }
 
 .settings-main {
   flex: 1;
   padding: 16px 20px;
   overflow-y: auto;
+}
+
+.shortcuts-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shortcuts-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.shortcuts-header p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.shortcuts-section {
+  background: rgba(15, 18, 28, 0.6);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.shortcuts-section h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
 }
 
 .shortcuts-list {
@@ -780,7 +836,7 @@ a {
 }
 
 .shortcut-value {
-  background: var(--color-surface);
+  background: rgba(12, 16, 26, 0.9);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 6px 12px;
@@ -799,6 +855,38 @@ a {
   border-color: var(--color-accent);
   background: rgba(37, 99, 235, 0.1);
   color: var(--color-accent);
+}
+
+.settings-placeholder h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.settings-placeholder p {
+  margin: 6px 0 16px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.settings-placeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-placeholder-card {
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--color-muted);
+  font-size: 13px;
+  background: rgba(14, 18, 28, 0.4);
+}
+
+.settings-placeholder-note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--color-muted);
 }
 
 .settings-footer {
@@ -861,6 +949,58 @@ a {
 
 .dev-toolbar-button:hover {
   background: #d97706;
+}
+
+/* Layout Debug Toolbar */
+.layout-debug-toolbar {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background: #dbeafe;
+  border: 1px solid #3b82f6;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.layout-debug-label {
+  font-weight: 600;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.layout-debug-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #1e40af;
+}
+
+.layout-debug-item label {
+  font-weight: 500;
+}
+
+.layout-debug-item input[type="number"] {
+  width: 60px;
+  padding: 2px 6px;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  background: white;
+}
+
+.layout-debug-item input[type="number"]:focus {
+  outline: none;
+  border-color: #3b82f6;
 }
 
 /* Typora-style Inline Editing - Expanded States */

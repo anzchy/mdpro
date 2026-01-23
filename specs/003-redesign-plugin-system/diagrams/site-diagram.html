@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin System Architecture - mdpro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #fff;
+      font-size: 24px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 40px;
+      font-size: 14px;
+    }
+    .diagram-container {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #4ecdc4;
+      margin-bottom: 15px;
+      padding-left: 10px;
+      border-left: 3px solid #4ecdc4;
+    }
+    .architecture-row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .box {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 200px;
+      border: 1px solid #0f3460;
+    }
+    .box-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #fff;
+    }
+    .box-content {
+      font-size: 12px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+    .box-content ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .box-content li {
+      padding: 4px 0;
+      padding-left: 16px;
+      position: relative;
+    }
+    .box-content li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: #4ecdc4;
+    }
+    .highlight {
+      border-color: #4ecdc4;
+      background: linear-gradient(135deg, #16213e 0%, #1a3a4a 100%);
+    }
+    .new {
+      border-color: #ff6b6b;
+      background: linear-gradient(135deg, #16213e 0%, #2a1a3a 100%);
+    }
+    .new .box-title::after {
+      content: " (NEW)";
+      color: #ff6b6b;
+      font-size: 10px;
+    }
+    .arrow-container {
+      display: flex;
+      justify-content: center;
+      padding: 10px 0;
+    }
+    .arrow {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4ecdc4;
+      font-size: 24px;
+    }
+    .flow-diagram {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 30px;
+      border: 1px solid #0f3460;
+    }
+    .flow-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    .flow-box {
+      background: #0f3460;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: center;
+      min-width: 120px;
+    }
+    .flow-box.registry {
+      background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+      color: #000;
+      font-weight: 600;
+    }
+    .flow-box.plugin {
+      background: #2a1a3a;
+      border: 1px solid #ff6b6b;
+    }
+    .flow-box.editor {
+      background: #1a3a4a;
+      border: 1px solid #4ecdc4;
+    }
+    .flow-arrow {
+      color: #4ecdc4;
+      font-size: 20px;
+    }
+    .legend {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #888;
+    }
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+    .legend-color.existing {
+      background: #16213e;
+      border: 1px solid #0f3460;
+    }
+    .legend-color.new-item {
+      background: #2a1a3a;
+      border: 1px solid #ff6b6b;
+    }
+    .legend-color.core {
+      background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+    }
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .comparison-box {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #0f3460;
+    }
+    .comparison-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #0f3460;
+    }
+    .comparison-title.before {
+      color: #888;
+    }
+    .comparison-title.after {
+      color: #4ecdc4;
+    }
+    @media (max-width: 768px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Plugin System Architecture</h1>
+  <p class="subtitle">mdpro Editor - Proposed Refactoring</p>
+
+  <div class="diagram-container">
+    <!-- Before/After Comparison -->
+    <div>
+      <div class="section-title">Architecture Comparison</div>
+      <div class="comparison">
+        <div class="comparison-box">
+          <div class="comparison-title before">Current Architecture</div>
+          <div class="box-content">
+            <ul>
+              <li>Extensions scattered in components/Editor/extensions/</li>
+              <li>No unified plugin interface</li>
+              <li>Hard-coded in Editor.tsx and useMilkdown.ts</li>
+              <li>Features tightly coupled to core</li>
+              <li>No enable/disable mechanism</li>
+              <li>Different patterns for CodeMirror vs Milkdown</li>
+            </ul>
+          </div>
+        </div>
+        <div class="comparison-box">
+          <div class="comparison-title after">Proposed Architecture</div>
+          <div class="box-content">
+            <ul>
+              <li>All features in src/plugins/</li>
+              <li>Standard MdproPlugin interface</li>
+              <li>Central Plugin Registry</li>
+              <li>Features decoupled from core</li>
+              <li>Configuration-based enable/disable</li>
+              <li>Unified patterns across both editors</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Plugin System -->
+    <div>
+      <div class="section-title">Plugin System Core (NEW)</div>
+      <div class="flow-diagram">
+        <div class="flow-row">
+          <div class="flow-box registry">Plugin Registry</div>
+        </div>
+        <div class="flow-row">
+          <span class="flow-arrow">↓</span>
+        </div>
+        <div class="flow-row">
+          <div class="flow-box">pluginTypes.ts<br><small>Interface definitions</small></div>
+          <div class="flow-box">pluginConfig.ts<br><small>Configuration</small></div>
+          <div class="flow-box">pluginRegistry.ts<br><small>Lifecycle management</small></div>
+        </div>
+        <div class="flow-row">
+          <span class="flow-arrow">↓</span>
+        </div>
+        <div class="flow-row">
+          <div class="flow-box editor">CodeMirror Editor</div>
+          <div class="flow-box editor">Milkdown Editor</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plugin Categories -->
+    <div>
+      <div class="section-title">Plugin Categories</div>
+      <div class="architecture-row">
+        <div class="box new">
+          <div class="box-title">CodeMirror Plugins</div>
+          <div class="box-content">
+            <ul>
+              <li>highlightPlugin</li>
+              <li>headingPlugin</li>
+              <li>linkPlugin</li>
+              <li>wysiwygDecorationsPlugin</li>
+              <li>syntaxHighlightPlugin</li>
+            </ul>
+          </div>
+        </div>
+        <div class="box new">
+          <div class="box-title">Milkdown Plugins</div>
+          <div class="box-content">
+            <ul>
+              <li>inlineEditPlugin</li>
+              <li>typoraKeymapPlugin</li>
+              <li>commonmark (built-in)</li>
+              <li>history (built-in)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="box new">
+          <div class="box-title">Shared Plugins</div>
+          <div class="box-content">
+            <ul>
+              <li>focusModePlugin (future)</li>
+              <li>typewriterModePlugin (future)</li>
+              <li>spellCheckPlugin (future)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Flow -->
+    <div>
+      <div class="section-title">Plugin Data Flow</div>
+      <div class="flow-diagram">
+        <div class="flow-row">
+          <div class="flow-box plugin">Plugin Definition</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box registry">Registry.register()</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box">Config Check</div>
+        </div>
+        <div class="flow-row">
+          <span class="flow-arrow">↓</span>
+        </div>
+        <div class="flow-row">
+          <div class="flow-box">Plugin.init()</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box editor">Editor Context</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box">Active Plugin</div>
+        </div>
+        <div class="flow-row">
+          <span class="flow-arrow">↓</span>
+        </div>
+        <div class="flow-row">
+          <div class="flow-box">Commands</div>
+          <div class="flow-box">Keymaps</div>
+          <div class="flow-box">Decorations</div>
+          <div class="flow-box">Events</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Directory Structure -->
+    <div>
+      <div class="section-title">Proposed Directory Structure</div>
+      <div class="architecture-row">
+        <div class="box highlight" style="min-width: 400px;">
+          <div class="box-title">src/plugins/</div>
+          <div class="box-content" style="font-family: monospace; font-size: 11px;">
+            <pre style="color: #aaa; line-height: 1.8;">
+├── core/
+│   ├── pluginRegistry.ts    # Central management
+│   ├── pluginTypes.ts       # TypeScript interfaces
+│   └── pluginConfig.ts      # Default config
+├── codemirror/
+│   ├── highlightPlugin.ts
+│   ├── headingPlugin.ts
+│   ├── linkPlugin.ts
+│   └── wysiwygDecorationsPlugin.ts
+├── milkdown/
+│   ├── inlineEditPlugin.ts
+│   └── typoraKeymapPlugin.ts
+└── shared/
+    └── index.ts             # Cross-editor plugins
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color existing"></div>
+        <span>Existing (to migrate)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color new-item"></div>
+        <span>New components</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color core"></div>
+        <span>Core system</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { DevToolbar } from "./components/DevToolbar";
+import { LayoutDebugToolbar } from "./components/LayoutDebugToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
 import { Preview } from "./components/Preview/Preview";
@@ -693,6 +694,7 @@ function App() {
   return (
     <div className={`app-shell${showSidebar ? "" : " no-sidebar"}`}>
       <DevToolbar onOpenFile={handleDevOpenFile} />
+      <LayoutDebugToolbar />
       {showSidebar ? (
         <Sidebar
           documents={documents}

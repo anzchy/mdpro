@@ -1,3 +1,4 @@
+// TODO(003-redesign-plugin-system): Deprecated. Use src/plugins/codemirror/wysiwygDecorationsPlugin.ts instead.
 import { WidgetType } from "@codemirror/view";
 
 class InlineMarkerWidget extends WidgetType {

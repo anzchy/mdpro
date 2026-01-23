@@ -31,8 +31,8 @@ Unlike CodeMirror (which shows markdown source), Milkdown renders markdown as ri
 │                     useMilkdown.ts                           │
 │                                                              │
 │  - Creates Milkdown Editor instance                          │
-│  - Configures plugins (commonmark, history, listener)        │
-│  - Sets up Typora-style keymap                              │
+│  - Configures core plugins (commonmark, history, listener)   │
+│  - Loads Milkdown plugins from pluginRegistry                │
 │  - Handles markdown change events                            │
 │  - Provides getMarkdown() for serialization                  │
 └─────────────────────────────────────────────────────────────┘
@@ -81,7 +81,8 @@ export function useMilkdown({
 | `commonmark` | Standard Markdown syntax support |
 | `history` | Undo/redo functionality |
 | `listener` | Document change notifications |
-| `typoraKeymap` | Custom keyboard shortcuts |
+| `typoraKeymap` | Custom keyboard shortcuts (plugin) |
+| `inlineEdit` | Typora-style inline editing (plugin) |
 
 ## Content Synchronization
 
@@ -111,10 +112,11 @@ instance.action((ctx) => {
 
 ## Typora-Style Keymap
 
-Custom keymap providing familiar shortcuts:
+Custom keymap providing familiar shortcuts via `src/plugins/milkdown/typoraKeymapPlugin.ts`:
 
 ```tsx
-const typoraKeymap = $useKeymap("typora", {
+const createTyporaKeymap = () =>
+  $useKeymap("typora", {
   heading1: { shortcuts: "Mod-1", command: ... },
   heading2: { shortcuts: "Mod-2", command: ... },
   // ... heading3-6
@@ -140,15 +142,17 @@ const typoraKeymap = $useKeymap("typora", {
 ```tsx
 const editor = useEditor(
   (root) =>
-    Editor.make()
-      .config((ctx) => {
-        ctx.set(rootCtx, root);
-        ctx.set(defaultValueCtx, initialMarkdown);
-      })
-      .use(commonmark)
-      .use(history)
-      .use(listener)
-      .use(typoraKeymap),
+    pluginRegistry.getMilkdownPlugins().reduce(
+      (builder, plugin) => builder.use(plugin),
+      Editor.make()
+        .config((ctx) => {
+          ctx.set(rootCtx, root);
+          ctx.set(defaultValueCtx, initialMarkdown);
+        })
+        .use(commonmark)
+        .use(history)
+        .use(listener),
+    ),
   [documentId],  // Recreate when document changes
 );
 ```

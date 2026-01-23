@@ -26,6 +26,10 @@ mdpro uses [Zustand](https://github.com/pmndrs/zustand) for state management wit
 └─────────────────────────┘    └─────────────────────────────┘
 ```
 
+> Note: Editor feature plugins are managed by `pluginRegistry` and are not part
+> of Zustand state. The registry holds editor view references and emits
+> doc/selection/focus events to plugins via `EditorContext`.
+
 ## documentStore
 
 Manages document content and metadata.

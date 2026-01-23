@@ -88,3 +88,45 @@ src-tauri/                    # Rust backend
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | Dual-engine (CodeMirror + Milkdown) | Each engine optimal for its mode | Single engine cannot provide both source editing with line numbers AND true WYSIWYG |
+
+## Content Layout Implementation
+
+### CSS Variables Strategy
+
+All content layout constraints are implemented via CSS custom properties in `globals.css`:
+
+```css
+:root {
+  --content-max-width: 780px;  /* Maximum text content width */
+  --content-padding: 40px;      /* Minimum side padding */
+}
+```
+
+### Layout Application by Component
+
+| Component | CSS Selector | Layout Application |
+|-----------|-------------|-------------------|
+| Preview | `.preview-content` | `max-width`, `padding`, `margin: 0 auto` |
+| WYSIWYG (Milkdown) | `.milkdown-editor .ProseMirror` | `max-width`, `padding`, `margin: 0 auto` |
+| Editor (CodeMirror) | `.editor-shell .cm-content` | `max-width`, `padding`, `margin: 0 auto` |
+
+### Responsive Behavior
+
+```
+Window width ≥ 860px (780 + 40×2):
+┌──────────────────────────────────────────────────┐
+│         │◄─── 780px max ───►│         │
+│  ≥40px  │    Text Content    │  ≥40px  │
+│         │                    │         │
+└──────────────────────────────────────────────────┘
+
+Window width < 860px:
+┌─────────────────────────────┐
+│ 40px │◄─ auto ─►│ 40px │
+│      │  Content  │      │
+└─────────────────────────────┘
+```
+
+### Files to Modify
+
+- `src/styles/globals.css` - Add CSS variables and layout rules for all components

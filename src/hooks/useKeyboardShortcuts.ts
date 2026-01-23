@@ -9,8 +9,8 @@ import {
   heading5Command,
   heading6Command,
   paragraphCommand,
-} from "../components/Editor/extensions/heading";
-import { insertLinkCommand } from "../components/Editor/extensions/link";
+} from "../plugins/codemirror/headingPlugin";
+import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
 
 interface ShortcutHandlers {
   onOpen?: () => void;
