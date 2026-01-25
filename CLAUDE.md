@@ -148,6 +148,8 @@ Feature specifications live in `specs/001-mdpro-mvp/`:
 - N/A (local file system via Tauri) (002-polish-wysiwyg)
 - TypeScript 5.8 (frontend), Rust 2021 Edition (backend - unchanged) + React 19, Tauri 2.0, CodeMirror 6 (@codemirror/*), Milkdown 7.18 (@milkdown/kit, @milkdown/react), Zustand 4 (003-redesign-plugin-system)
 - N/A (no new storage requirements) (003-redesign-plugin-system)
+- TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + Tauri 2.0, React 19, Zustand 4, CodeMirror 6, Milkdown 7 (004-minor-fix)
+- Local filesystem (via Tauri), JSON preferences file (004-minor-fix)
 
 ## Recent Changes
 - 002-polish-wysiwyg: Added TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4

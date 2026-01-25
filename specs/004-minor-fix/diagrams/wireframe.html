@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireframe - Multi-Window Support & UI Improvements</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+        }
+        .wireframe-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+        }
+        .wireframe-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 600px;
+        }
+        .wireframe-section h2 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 18px;
+            border-bottom: 2px solid #007AFF;
+            padding-bottom: 8px;
+        }
+        .window-frame {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            margin: 16px 0;
+        }
+        .title-bar {
+            background: linear-gradient(to bottom, #e8e8e8, #d0d0d0);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #bbb;
+            cursor: move;
+        }
+        .title-bar.dark {
+            background: linear-gradient(to bottom, #3a3a3c, #2c2c2e);
+            border-bottom-color: #1c1c1e;
+        }
+        .traffic-lights {
+            display: flex;
+            gap: 6px;
+        }
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .traffic-light.red { background: #ff5f56; }
+        .traffic-light.yellow { background: #ffbd2e; }
+        .traffic-light.green { background: #27c93f; }
+        .title-text {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            color: #333;
+        }
+        .title-text.dark {
+            color: #fff;
+        }
+        .window-content {
+            min-height: 200px;
+            padding: 16px;
+            background: #fafafa;
+        }
+        .window-content.dark {
+            background: #1c1c1e;
+            color: #fff;
+        }
+        .drag-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            color: #999;
+            pointer-events: none;
+        }
+        .multi-window-demo {
+            position: relative;
+            height: 350px;
+            background: #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .mini-window {
+            position: absolute;
+            border: 1px solid #999;
+            border-radius: 6px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .mini-window .mini-title {
+            background: #e0e0e0;
+            padding: 4px 8px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .mini-window .mini-content {
+            padding: 8px;
+            font-size: 9px;
+            color: #666;
+            background: #fff;
+        }
+        .mini-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .settings-panel {
+            display: flex;
+            gap: 16px;
+        }
+        .settings-sidebar {
+            width: 120px;
+            background: #2c2c2e;
+            border-radius: 8px 0 0 8px;
+            padding: 12px;
+        }
+        .settings-sidebar-item {
+            padding: 8px;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .settings-sidebar-item.active {
+            background: #007AFF;
+            color: white;
+        }
+        .settings-content {
+            flex: 1;
+            padding: 16px;
+        }
+        .settings-content h3 {
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .setting-row.dark {
+            background: #3a3a3c;
+            color: #fff;
+        }
+        .setting-label {
+            font-size: 13px;
+        }
+        .setting-select {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 12px;
+        }
+        .comparison {
+            display: flex;
+            gap: 20px;
+            margin-top: 16px;
+        }
+        .comparison-item {
+            flex: 1;
+            text-align: center;
+        }
+        .comparison-item h4 {
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+        .bad-contrast {
+            background: #4a4a4c;
+            color: #6a6a6c;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        .good-contrast {
+            background: #1c1c1e;
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        .annotation {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 12px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>Wireframe Diagram</h1>
+    <p class="subtitle">Multi-Window Support & UI Improvements - 004-minor-fix</p>
+
+    <div class="wireframe-container">
+        <!-- Multi-Window Layout -->
+        <div class="wireframe-section">
+            <h2>1. Multi-Window Layout</h2>
+            <div class="annotation">
+                Each window is independent. Users can open multiple documents simultaneously.
+            </div>
+            <div class="multi-window-demo">
+                <!-- Window 1 -->
+                <div class="mini-window" style="top: 20px; left: 20px; width: 220px;">
+                    <div class="mini-title">
+                        <span class="mini-dot" style="background: #ff5f56;"></span>
+                        <span class="mini-dot" style="background: #ffbd2e;"></span>
+                        <span class="mini-dot" style="background: #27c93f;"></span>
+                        <span style="flex:1; text-align:center;">README.md</span>
+                    </div>
+                    <div class="mini-content">
+                        # Project README<br>
+                        This is document 1...
+                    </div>
+                </div>
+                <!-- Window 2 -->
+                <div class="mini-window" style="top: 80px; left: 180px; width: 220px;">
+                    <div class="mini-title">
+                        <span class="mini-dot" style="background: #ff5f56;"></span>
+                        <span class="mini-dot" style="background: #ffbd2e;"></span>
+                        <span class="mini-dot" style="background: #27c93f;"></span>
+                        <span style="flex:1; text-align:center;">notes.md</span>
+                    </div>
+                    <div class="mini-content">
+                        ## Meeting Notes<br>
+                        Document 2 content...
+                    </div>
+                </div>
+                <!-- Window 3 -->
+                <div class="mini-window" style="top: 160px; left: 100px; width: 220px;">
+                    <div class="mini-title">
+                        <span class="mini-dot" style="background: #ff5f56;"></span>
+                        <span class="mini-dot" style="background: #ffbd2e;"></span>
+                        <span class="mini-dot" style="background: #27c93f;"></span>
+                        <span style="flex:1; text-align:center;">Untitled</span>
+                    </div>
+                    <div class="mini-content" style="color: #999;">
+                        New empty document...<br>
+                        (created via Cmd+N)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Window Title Bar (Draggable) -->
+        <div class="wireframe-section">
+            <h2>2. Window Title Bar - Draggable Area</h2>
+            <div class="annotation">
+                The title bar area supports native macOS window dragging.
+            </div>
+            <div class="window-frame">
+                <div class="title-bar" style="position: relative;">
+                    <div class="traffic-lights">
+                        <div class="traffic-light red"></div>
+                        <div class="traffic-light yellow"></div>
+                        <div class="traffic-light green"></div>
+                    </div>
+                    <div class="title-text">document.md - mdpro</div>
+                    <div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: #007AFF; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; margin-top: 4px;">
+                        Click + Drag to move window
+                    </div>
+                </div>
+                <div class="window-content" style="min-height: 100px;">
+                    <div style="color: #999; font-size: 12px;">Editor content area...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page - Default View Mode -->
+        <div class="wireframe-section">
+            <h2>3. Settings > General - Default View Mode</h2>
+            <div class="annotation">
+                New setting added to General section for default view mode selection.
+            </div>
+            <div class="window-frame">
+                <div class="title-bar dark">
+                    <div class="traffic-lights">
+                        <div class="traffic-light red"></div>
+                        <div class="traffic-light yellow"></div>
+                        <div class="traffic-light green"></div>
+                    </div>
+                    <div class="title-text dark">Settings</div>
+                </div>
+                <div class="settings-panel">
+                    <div class="settings-sidebar">
+                        <div class="settings-sidebar-item active">General</div>
+                        <div class="settings-sidebar-item">Editor</div>
+                        <div class="settings-sidebar-item">Markdown</div>
+                        <div class="settings-sidebar-item">Image</div>
+                        <div class="settings-sidebar-item">Export</div>
+                    </div>
+                    <div class="settings-content">
+                        <h3>General</h3>
+                        <div class="setting-row">
+                            <span class="setting-label">Default view mode</span>
+                            <select class="setting-select">
+                                <option>Editor</option>
+                                <option>Preview</option>
+                                <option selected>Split</option>
+                                <option>WYSIWYG</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Autosave frequency</span>
+                            <select class="setting-select">
+                                <option>30 seconds</option>
+                                <option selected>1 minute</option>
+                                <option>5 minutes</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Language</span>
+                            <select class="setting-select">
+                                <option selected>English</option>
+                                <option>Chinese</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Theme Contrast Fix -->
+        <div class="wireframe-section">
+            <h2>4. Settings Page Theme - Contrast Fix</h2>
+            <div class="annotation">
+                Current issue: Poor contrast in dark mode. Fix: Proper theme inheritance.
+            </div>
+            <div class="comparison">
+                <div class="comparison-item">
+                    <h4>Before (Poor Contrast)</h4>
+                    <div class="bad-contrast">
+                        Default view mode<br>
+                        Autosave frequency<br>
+                        Language<br>
+                        <span style="font-size: 10px; color: #555;">(Text barely visible)</span>
+                    </div>
+                </div>
+                <div class="comparison-item">
+                    <h4>After (Fixed)</h4>
+                    <div class="good-contrast">
+                        Default view mode<br>
+                        Autosave frequency<br>
+                        Language<br>
+                        <span style="font-size: 10px; color: #aaa;">(Clear, readable text)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Flow -->
+        <div class="wireframe-section">
+            <h2>5. Save Document Flow (Cmd+S)</h2>
+            <div class="annotation">
+                Existing file: Save directly. New/untitled: Show save dialog.
+            </div>
+            <div style="display: flex; gap: 20px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px;">Existing File:</div>
+                    <div class="window-frame" style="border-color: #27c93f;">
+                        <div class="title-bar">
+                            <div class="traffic-lights">
+                                <div class="traffic-light red"></div>
+                                <div class="traffic-light yellow"></div>
+                                <div class="traffic-light green"></div>
+                            </div>
+                            <div class="title-text">notes.md</div>
+                        </div>
+                        <div class="window-content" style="min-height: 60px; font-size: 11px;">
+                            Cmd+S -> Save to disk<br>
+                            <span style="color: #27c93f;">Saved!</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px;">New/Untitled:</div>
+                    <div class="window-frame" style="border-color: #007AFF;">
+                        <div class="title-bar">
+                            <div class="traffic-lights">
+                                <div class="traffic-light red"></div>
+                                <div class="traffic-light yellow"></div>
+                                <div class="traffic-light green"></div>
+                            </div>
+                            <div class="title-text">Untitled</div>
+                        </div>
+                        <div class="window-content" style="min-height: 60px; font-size: 11px;">
+                            Cmd+S -> Save dialog<br>
+                            <span style="color: #007AFF;">Choose location...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

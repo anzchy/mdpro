@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Diagram - Multi-Window Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            padding: 40px;
+            color: #eee;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+        }
+        .diagram-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .layer {
+            margin-bottom: 30px;
+        }
+        .layer-title {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            padding-left: 8px;
+            border-left: 3px solid #007AFF;
+        }
+        .components {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .component {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 200px;
+            text-align: center;
+        }
+        .component.highlight {
+            border-color: #00d9ff;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        }
+        .component.new {
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+        .component.modified {
+            border-color: #ffaa00;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.2);
+        }
+        .component-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        .component-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .component-desc {
+            font-size: 12px;
+            color: #888;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+        .badge.new { background: #00ff88; color: #000; }
+        .badge.modified { background: #ffaa00; color: #000; }
+        .badge.existing { background: #555; color: #fff; }
+        .arrow-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #555;
+            font-size: 12px;
+        }
+        .arrow-line {
+            width: 2px;
+            height: 30px;
+            background: #555;
+        }
+        .arrow-head {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #555;
+        }
+        .flow-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 30px 0;
+        }
+        .flow-section h3 {
+            color: #00d9ff;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .flow-box {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .flow-arrow {
+            color: #555;
+            font-size: 20px;
+        }
+        .data-flow {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .data-entity {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 16px;
+            min-width: 180px;
+        }
+        .data-entity h4 {
+            color: #00d9ff;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .data-entity ul {
+            list-style: none;
+            font-size: 11px;
+            color: #aaa;
+        }
+        .data-entity li {
+            padding: 4px 0;
+            border-bottom: 1px solid #1a1a2e;
+        }
+        .data-entity li:last-child {
+            border-bottom: none;
+        }
+        .legend {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+        .legend-color.new { border-color: #00ff88; }
+        .legend-color.modified { border-color: #ffaa00; }
+        .legend-color.existing { border-color: #0f3460; }
+    </style>
+</head>
+<body>
+    <h1>Application Architecture Diagram</h1>
+    <p class="subtitle">Multi-Window Support & UI Improvements - 004-minor-fix</p>
+
+    <div class="diagram-container">
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color new"></div>
+                <span>New Component</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color modified"></div>
+                <span>Modified Component</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color existing"></div>
+                <span>Existing Component</span>
+            </div>
+        </div>
+
+        <!-- Frontend Layer -->
+        <div class="layer">
+            <div class="layer-title">Frontend (React + TypeScript)</div>
+            <div class="components">
+                <div class="component modified">
+                    <div class="component-icon">🪟</div>
+                    <div class="component-name">App.tsx</div>
+                    <div class="component-desc">Main app shell per window</div>
+                    <span class="badge modified">Modified</span>
+                </div>
+                <div class="component modified">
+                    <div class="component-icon">⚙️</div>
+                    <div class="component-name">SettingsPage</div>
+                    <div class="component-desc">Theme sync + new setting</div>
+                    <span class="badge modified">Modified</span>
+                </div>
+                <div class="component">
+                    <div class="component-icon">📝</div>
+                    <div class="component-name">Editor</div>
+                    <div class="component-desc">CodeMirror/Milkdown</div>
+                    <span class="badge existing">Existing</span>
+                </div>
+                <div class="component modified">
+                    <div class="component-icon">🎨</div>
+                    <div class="component-name">themeStore</div>
+                    <div class="component-desc">Theme state management</div>
+                    <span class="badge modified">Modified</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow-container">
+            <div class="arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-head"></div>
+                <span style="margin-top: 4px;">IPC (invoke/listen)</span>
+            </div>
+        </div>
+
+        <!-- Backend Layer -->
+        <div class="layer">
+            <div class="layer-title">Backend (Rust + Tauri 2.0)</div>
+            <div class="components">
+                <div class="component modified">
+                    <div class="component-icon">🚀</div>
+                    <div class="component-name">main.rs</div>
+                    <div class="component-desc">App setup, window management</div>
+                    <span class="badge modified">Modified</span>
+                </div>
+                <div class="component modified">
+                    <div class="component-icon">📋</div>
+                    <div class="component-name">menu.rs</div>
+                    <div class="component-desc">Native menu (Cmd+N, Cmd+S)</div>
+                    <span class="badge modified">Modified</span>
+                </div>
+                <div class="component modified">
+                    <div class="component-icon">📂</div>
+                    <div class="component-name">launch.rs</div>
+                    <div class="component-desc">File association handling</div>
+                    <span class="badge modified">Modified</span>
+                </div>
+                <div class="component">
+                    <div class="component-icon">💾</div>
+                    <div class="component-name">file.rs</div>
+                    <div class="component-desc">File operations</div>
+                    <span class="badge existing">Existing</span>
+                </div>
+                <div class="component modified">
+                    <div class="component-icon">⚙️</div>
+                    <div class="component-name">preferences.rs</div>
+                    <div class="component-desc">User preferences</div>
+                    <span class="badge modified">Modified</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Window Management Flow -->
+        <div class="flow-section">
+            <h3>Window Creation Flow (Cmd+N)</h3>
+            <div class="flow-diagram">
+                <div class="flow-box">User presses<br>⌘N</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">menu.rs<br>emits action</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box" style="border: 2px solid #00ff88;">main.rs<br>create_window()</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">New Tauri<br>WebviewWindow</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">App.tsx<br>initializes</div>
+            </div>
+        </div>
+
+        <!-- External File Open Flow -->
+        <div class="flow-section">
+            <h3>External File Open Flow (Finder double-click)</h3>
+            <div class="flow-diagram">
+                <div class="flow-box">User double-clicks<br>.md in Finder</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box" style="border: 2px solid #ffaa00;">launch.rs<br>receives path</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">Check if app<br>has documents</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box" style="border: 2px solid #00ff88;">Create new<br>window</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">Open file<br>in new window</div>
+            </div>
+        </div>
+
+        <!-- Save Flow -->
+        <div class="flow-section">
+            <h3>Save Document Flow (Cmd+S)</h3>
+            <div class="flow-diagram">
+                <div class="flow-box">User presses<br>⌘S</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">menu.rs<br>emits save</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">Check if<br>file exists</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">file.rs<br>save_file()</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">Write to<br>disk</div>
+            </div>
+        </div>
+
+        <!-- Data Entities -->
+        <div class="layer" style="margin-top: 40px;">
+            <div class="layer-title">Data Entities</div>
+            <div class="data-flow">
+                <div class="data-entity">
+                    <h4>Window</h4>
+                    <ul>
+                        <li>window_id: String</li>
+                        <li>document: Document</li>
+                        <li>position: (x, y)</li>
+                        <li>size: (w, h)</li>
+                        <li>view_mode: ViewMode</li>
+                    </ul>
+                </div>
+                <div class="data-entity">
+                    <h4>Document</h4>
+                    <ul>
+                        <li>path: Option&lt;PathBuf&gt;</li>
+                        <li>content: String</li>
+                        <li>is_modified: bool</li>
+                        <li>encoding: String</li>
+                    </ul>
+                </div>
+                <div class="data-entity" style="border: 2px solid #ffaa00;">
+                    <h4>Preferences (Modified)</h4>
+                    <ul>
+                        <li>theme: Theme</li>
+                        <li>font_size: u32</li>
+                        <li style="color: #00ff88;">default_view_mode: ViewMode</li>
+                        <li>autosave_interval: u32</li>
+                        <li>language: String</li>
+                    </ul>
+                </div>
+                <div class="data-entity">
+                    <h4>ViewMode (Enum)</h4>
+                    <ul>
+                        <li>Editor</li>
+                        <li>Preview</li>
+                        <li>Split</li>
+                        <li>WYSIWYG</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- IPC Commands -->
+        <div class="flow-section">
+            <h3>IPC Commands (Frontend ↔ Backend)</h3>
+            <div class="components" style="gap: 12px;">
+                <div class="flow-box">open_file</div>
+                <div class="flow-box">save_file</div>
+                <div class="flow-box" style="border: 2px solid #00ff88;">create_window</div>
+                <div class="flow-box">get_preferences</div>
+                <div class="flow-box" style="border: 2px solid #ffaa00;">set_default_view_mode</div>
+                <div class="flow-box">export_html</div>
+            </div>
+        </div>
+
+        <!-- Events -->
+        <div class="flow-section">
+            <h3>Events (Backend → Frontend)</h3>
+            <div class="components" style="gap: 12px;">
+                <div class="flow-box">menu:action</div>
+                <div class="flow-box" style="border: 2px solid #ffaa00;">file:open (modified)</div>
+                <div class="flow-box">file:changed</div>
+                <div class="flow-box">theme:changed</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
