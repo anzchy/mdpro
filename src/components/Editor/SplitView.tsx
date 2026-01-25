@@ -19,7 +19,6 @@ export function SplitView({
   viewMode = "split",
   highlightRequest,
 }: SplitViewProps) {
-  console.log("[DEBUG] SplitView - viewMode:", viewMode, "markdown length:", markdown.length, "readOnly:", readOnly);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);

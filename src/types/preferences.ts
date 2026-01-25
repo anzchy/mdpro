@@ -27,6 +27,9 @@ export interface UserPreferences {
 
   /** Custom keyboard shortcuts */
   keyboardShortcuts: KeyboardShortcuts;
+
+  /** Per-file window states for position/size persistence */
+  windowStates: Record<string, WindowGeometry>;
 }
 
 export interface WindowState {
@@ -35,6 +38,15 @@ export interface WindowState {
   x: number;
   y: number;
   isMaximized: boolean;
+}
+
+/** Per-file window geometry for position/size persistence */
+export interface WindowGeometry {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  lastAccessed?: number;
 }
 
 /** Keyboard shortcut definitions matching Typora conventions */

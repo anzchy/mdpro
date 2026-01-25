@@ -21,7 +21,6 @@ export function Editor({
   readOnly = false,
   highlightRequest,
 }: EditorProps) {
-  console.log("[DEBUG] Editor - value length:", value.length, "first 100 chars:", value.slice(0, 100));
   const viewRef = useRef<EditorView | null>(null);
   const initializedRef = useRef(false);
   const setEditorView = useEditorStore((state) => state.setEditorView);

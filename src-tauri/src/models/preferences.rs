@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -23,6 +24,22 @@ pub struct UserPreferences {
     /// Custom keyboard shortcuts (action -> shortcut)
     #[serde(default)]
     pub keyboard_shortcuts: KeyboardShortcuts,
+
+    /// Per-file window states for position/size persistence
+    #[serde(default)]
+    pub window_states: HashMap<String, WindowGeometry>,
+}
+
+/// Window geometry for per-file window position/size persistence
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowGeometry {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+    #[serde(default)]
+    pub last_accessed: i64,
 }
 
 /// Keyboard shortcut definitions
@@ -190,7 +207,7 @@ fn default_toggle_sidebar() -> String { "Cmd+Shift+L".to_string() }
 fn default_cycle_view_mode() -> String { "Cmd+/".to_string() }
 fn default_toggle_fullscreen() -> String { "Cmd+Option+F".to_string() }
 fn default_switch_documents() -> String { "Cmd+`".to_string() }
-fn default_last_view_mode() -> ViewMode { ViewMode::Split }
+fn default_last_view_mode() -> ViewMode { ViewMode::Wysiwyg }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -224,8 +241,8 @@ impl Default for UserPreferences {
         Self {
             theme_mode: ThemeMode::System,
             auto_save_interval: 30,
-            default_view_mode: ViewMode::Split,
-            last_view_mode: ViewMode::Split,
+            default_view_mode: ViewMode::Wysiwyg,
+            last_view_mode: ViewMode::Wysiwyg,
             show_sidebar: true,
             enable_scroll_sync: true,
             recent_files: Vec::new(),
@@ -237,6 +254,13 @@ impl Default for UserPreferences {
                 is_maximized: false,
             },
             keyboard_shortcuts: KeyboardShortcuts::default(),
+            window_states: HashMap::new(),
         }
+    }
+}
+
+impl Default for ViewMode {
+    fn default() -> Self {
+        ViewMode::Wysiwyg
     }
 }

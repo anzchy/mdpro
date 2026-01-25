@@ -17,6 +17,14 @@
   /* Content layout constraints */
   --content-max-width: 780px;
   --content-padding: 40px;
+
+  /* Settings dialog specific (light theme defaults) */
+  --settings-sidebar-bg: linear-gradient(180deg, rgba(246, 247, 251, 0.95), rgba(240, 241, 245, 0.98));
+  --settings-input-bg: rgba(255, 255, 255, 0.9);
+  --settings-card-bg: rgba(246, 247, 251, 0.8);
+  --settings-card-border: 1px dashed rgba(0, 0, 0, 0.12);
+  --settings-btn-hover-bg: rgba(37, 99, 235, 0.08);
+  --settings-btn-active-bg: rgba(37, 99, 235, 0.15);
 }
 
 * {
@@ -147,8 +155,8 @@ a {
   justify-content: space-between;
   padding: 0 16px;
   background: var(--color-bg);
-  -webkit-app-region: drag;
   user-select: none;
+  /* Dragging handled by data-tauri-drag-region attribute in TitleBar.tsx */
 }
 
 .title-bar-left {
@@ -160,7 +168,6 @@ a {
   display: flex;
   align-items: center;
   gap: 6px;
-  -webkit-app-region: drag;
 }
 
 .title-bar-icon {
@@ -189,7 +196,6 @@ a {
   padding: 3px 8px;
   background: var(--color-surface);
   border-radius: 4px;
-  -webkit-app-region: no-drag;
 }
 
 /* Legacy toolbar (kept for compatibility) */
@@ -752,12 +758,12 @@ a {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: linear-gradient(180deg, rgba(17, 22, 32, 0.92), rgba(14, 18, 26, 0.98));
+  background: var(--settings-sidebar-bg);
 }
 
 .settings-search {
   border: 1px solid var(--color-border);
-  background: rgba(15, 18, 28, 0.9);
+  background: var(--settings-input-bg);
   color: var(--color-text);
   border-radius: 10px;
   padding: 8px 12px;
@@ -790,11 +796,11 @@ a {
 }
 
 .settings-category-btn:hover {
-  background: rgba(37, 99, 235, 0.12);
+  background: var(--settings-btn-hover-bg);
 }
 
 .settings-category-btn.is-active {
-  background: rgba(37, 99, 235, 0.28);
+  background: var(--settings-btn-active-bg);
   color: var(--color-text);
 }
 
@@ -822,7 +828,7 @@ a {
 }
 
 .shortcuts-section {
-  background: rgba(15, 18, 28, 0.6);
+  background: var(--settings-card-bg);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 12px 14px;
@@ -855,7 +861,7 @@ a {
 }
 
 .shortcut-value {
-  background: rgba(12, 16, 26, 0.9);
+  background: var(--settings-input-bg);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 6px 12px;
@@ -864,6 +870,7 @@ a {
   cursor: pointer;
   min-width: 140px;
   text-align: center;
+  color: var(--color-text);
 }
 
 .shortcut-value:hover {
@@ -894,18 +901,74 @@ a {
 }
 
 .settings-placeholder-card {
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border: var(--settings-card-border);
   border-radius: 12px;
   padding: 16px;
   color: var(--color-muted);
   font-size: 13px;
-  background: rgba(14, 18, 28, 0.4);
+  background: var(--settings-card-bg);
 }
 
 .settings-placeholder-note {
   margin-top: 16px;
   font-size: 12px;
   color: var(--color-muted);
+}
+
+/* Settings General Page */
+.settings-general h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.settings-general p {
+  margin: 6px 0 16px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--settings-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.settings-form-row label {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.settings-select {
+  background: var(--settings-input-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.settings-form-hint {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0;
+  padding-left: 2px;
 }
 
 .settings-footer {

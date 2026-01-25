@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import type { KeyboardShortcuts } from "../../types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../../types/preferences";
+import type { ViewMode } from "../../types/editor";
+import { useThemeStore } from "../../stores/themeStore";
 
 interface SettingsDialogProps {
   open: boolean;
   shortcuts: KeyboardShortcuts;
+  defaultViewMode: ViewMode;
   onSave: (shortcuts: KeyboardShortcuts) => void;
+  onDefaultViewModeChange: (mode: ViewMode) => void;
   onClose: () => void;
 }
 
@@ -145,16 +149,26 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   },
 ];
 
+const VIEW_MODE_OPTIONS: { value: ViewMode; label: string }[] = [
+  { value: "editor-only", label: "Editor" },
+  { value: "preview-only", label: "Preview" },
+  { value: "split", label: "Split" },
+  { value: "wysiwyg", label: "WYSIWYG" },
+];
+
 export function SettingsDialog({
   open,
   shortcuts,
+  defaultViewMode,
   onSave,
+  onDefaultViewModeChange,
   onClose,
 }: SettingsDialogProps) {
   const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts>(shortcuts);
   const [editingKey, setEditingKey] = useState<keyof KeyboardShortcuts | null>(null);
-  const [activePage, setActivePage] = useState("keyboard-shortcuts");
+  const [activePage, setActivePage] = useState("general");
   const [searchTerm, setSearchTerm] = useState("");
+  const { resolvedTheme } = useThemeStore();
 
   useEffect(() => {
     setLocalShortcuts(shortcuts);
@@ -226,7 +240,7 @@ export function SettingsDialog({
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div
-        className="settings-dialog"
+        className={`settings-dialog theme-${resolvedTheme}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="settings-header">
@@ -288,6 +302,31 @@ export function SettingsDialog({
                     </div>
                   </section>
                 ))}
+              </div>
+            ) : currentPage.id === "general" ? (
+              <div className="settings-general">
+                <h3>General</h3>
+                <p>App behavior, language, and startup preferences.</p>
+                <div className="settings-form">
+                  <div className="settings-form-row">
+                    <label htmlFor="default-view-mode">Default View Mode</label>
+                    <select
+                      id="default-view-mode"
+                      className="settings-select"
+                      value={defaultViewMode}
+                      onChange={(e) => onDefaultViewModeChange(e.target.value as ViewMode)}
+                    >
+                      {VIEW_MODE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="settings-form-hint">
+                    New documents will open in this view mode.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="settings-placeholder">

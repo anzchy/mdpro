@@ -26,6 +26,7 @@ import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { fileService } from "./services/fileService";
 import type { Document } from "./types/document";
+import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
@@ -80,6 +81,7 @@ function App() {
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
+  const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
@@ -157,10 +159,21 @@ function App() {
         y: position.y,
         isMaximized,
       });
+
+      // Save per-file geometry if document has a path (T038)
+      if (activeDocument?.path) {
+        const { windowService } = await import("./services/windowService");
+        await windowService.saveWindowGeometry(activeDocument.path, {
+          x: position.x,
+          y: position.y,
+          width: size.width,
+          height: size.height,
+        });
+      }
     } catch {
       // Ignore persistence errors in web preview.
     }
-  }, []);
+  }, [activeDocument]);
 
   // Update window title to show document name (or "mdpro" if no document)
   useEffect(() => {
@@ -194,6 +207,7 @@ function App() {
         const prefs = await preferencesService.getPreferences();
         if (!mounted) return;
         setViewMode(prefs.lastViewMode ?? prefs.defaultViewMode);
+        setDefaultViewMode(prefs.defaultViewMode ?? "wysiwyg");
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
         setRecentFiles(prefs.recentFiles ?? []);
@@ -328,17 +342,14 @@ function App() {
     openDialogLockRef.current = true;
     setBusyLabel("Opening file...");
     try {
-      console.log("[DEBUG] handleOpenDialog - calling openDocumentFromDialog");
       const doc = await openDocumentFromDialog();
-      console.log("[DEBUG] handleOpenDialog - result:", doc?.id, "content length:", doc?.content?.length);
       if (doc?.path) {
         updateRecentFiles(doc.path);
       } else if (!doc) {
         // File dialog was cancelled or an error occurred
         openDialogCooldownRef.current = Date.now() + 500;
       }
-    } catch (error) {
-      console.error("[DEBUG] handleOpenDialog error:", error);
+    } catch {
       showToast("Failed to open file");
     } finally {
       setBusyLabel(null);
@@ -436,6 +447,18 @@ function App() {
     [showToast],
   );
 
+  const handleDefaultViewModeChange = useCallback(
+    async (mode: ViewMode) => {
+      setDefaultViewMode(mode);
+      try {
+        await preferencesService.setPreferences({ defaultViewMode: mode });
+      } catch {
+        showToast("Failed to save preference");
+      }
+    },
+    [showToast],
+  );
+
   const handleReloadFile = useCallback(async () => {
     if (!fileChangeEvent?.path) return;
     setBusyLabel("Reloading...");
@@ -527,26 +550,10 @@ function App() {
   const openNewWindow = useCallback(
     async (openPath?: string, notifyOnError = true) => {
       try {
-        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-        const windowLabel = `mdpro-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const url = openPath
-          ? `index.html?open=${encodeURIComponent(openPath)}`
-          : "index.html";
-        new WebviewWindow(windowLabel, {
-          title: "mdpro",
-          width: 1200,
-          height: 800,
-          minWidth: 400,
-          minHeight: 640,
-          center: true,
-          dragDropEnabled: true,
-          titleBarStyle: "overlay",
-          hiddenTitle: true,
-          url,
-        });
+        const { windowService } = await import("./services/windowService");
+        await windowService.createWindow(openPath);
         return true;
-      } catch (error) {
-        console.error("[DEBUG] Failed to open new window:", error);
+      } catch {
         if (notifyOnError) {
           showToast("Failed to open new window");
         }
@@ -755,10 +762,6 @@ function App() {
           </div>
         ) : null}
         <section className="workspace">
-          {(() => {
-            console.log("[DEBUG] Rendering workspace - viewMode:", viewMode, "activeDocument:", activeDocument?.id, "content length:", activeDocument?.content?.length);
-            return null;
-          })()}
           {viewMode === "preview-only" ? (
             <div className="split-view">
               <div className="split-pane full-pane preview-scroll">
@@ -809,7 +812,9 @@ function App() {
       <SettingsDialog
         open={settingsOpen}
         shortcuts={keyboardShortcuts}
+        defaultViewMode={defaultViewMode}
         onSave={handleSaveShortcuts}
+        onDefaultViewModeChange={handleDefaultViewModeChange}
         onClose={() => setSettingsOpen(false)}
       />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />

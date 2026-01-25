@@ -1,9 +1,10 @@
+pub mod draft;
 pub mod export;
 pub mod file;
 pub mod launch;
 pub mod menu;
 pub mod preferences;
-pub mod draft;
+pub mod window;
 
 pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
     tauri::generate_handler![
@@ -29,6 +30,9 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         draft::list_drafts,
         draft::recover_draft,
         draft::delete_draft,
-        draft::cleanup_old_drafts
+        draft::cleanup_old_drafts,
+        window::create_window,
+        window::save_window_geometry,
+        window::get_window_geometry
     ]
 }

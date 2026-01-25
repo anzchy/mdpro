@@ -25,9 +25,6 @@ function MilkdownEditorInner() {
     [activeDocumentId],
   );
 
-  // Debug logging for black screen issue
-  console.log("[DEBUG] MilkdownEditorInner - activeDocumentId:", activeDocumentId, "initialMarkdown length:", initialMarkdown.length);
-
   const handleMarkdownChange = useCallback(
     (markdown: string) => {
       if (!activeDocumentId) return;
