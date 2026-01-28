@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { EditorView } from "@codemirror/view";
 import type { CursorPosition, EditorState, ScrollPosition, SelectionRange, ViewMode } from "../types/editor";
+import { loggingService } from "../services/loggingService";
 
 interface EditorStore extends EditorState {
   showSidebar: boolean;
@@ -43,7 +44,23 @@ export const useEditorStore = create<EditorStore>((set) => ({
   undoDepth: 0,
   redoDepth: 0,
   setActiveDocumentId: (id) => set({ activeDocumentId: id }),
-  setViewMode: (mode) => set({ viewMode: mode }),
+  setViewMode: (mode) =>
+    set((state) => {
+      if (state.viewMode !== mode) {
+        loggingService.logEventSync({
+          level: "info",
+          event: "view.mode.change",
+          status: "success",
+          actionId: loggingService.generateActionId(),
+          context: {
+            fromMode: state.viewMode,
+            toMode: mode,
+            source: "setViewMode",
+          },
+        });
+      }
+      return { viewMode: mode };
+    }),
   cycleViewMode: () =>
     set((state) => {
       const order: ViewMode[] = [
@@ -53,8 +70,23 @@ export const useEditorStore = create<EditorStore>((set) => ({
         "wysiwyg",
       ];
       const currentIndex = order.indexOf(state.viewMode);
-      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;
-      return { viewMode: order[nextIndex] };
+      const nextIndex =
+        currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;
+      const nextMode = order[nextIndex];
+      if (nextMode !== state.viewMode) {
+        loggingService.logEventSync({
+          level: "info",
+          event: "view.mode.change",
+          status: "success",
+          actionId: loggingService.generateActionId(),
+          context: {
+            fromMode: state.viewMode,
+            toMode: nextMode,
+            source: "cycleViewMode",
+          },
+        });
+      }
+      return { viewMode: nextMode };
     }),
   setEditorView: (view) => set({ editorView: view }),
   setShowSidebar: (show) => set({ showSidebar: show }),

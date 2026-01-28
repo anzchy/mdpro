@@ -201,6 +201,55 @@ loggingService.logEventSync({
 - Format: JSONL (one JSON object per line)
 - Verify with: `tail -f ~/.mdpro/mdpro.log | jq .`
 
+## Debugging Strategies
+
+### When to use `pnpm dev` (localhost:1420)
+
+Use browser-based debugging for **frontend-only issues**:
+
+- **React/UI bugs**: Component rendering, state management, CSS issues
+- **Editor issues**: Milkdown/CodeMirror initialization, schema errors, plugin conflicts
+- **Console errors**: JavaScript exceptions, React warnings, unhandled promises
+- **Network inspection**: API calls, timing issues (DevTools Network tab)
+- **DOM inspection**: Element structure, computed styles, event listeners
+- **Hot reload**: Faster iteration when making frequent UI changes
+
+**Advantages**: Chrome DevTools, breakpoints, React DevTools extension, instant feedback
+
+**Limitations**: No Tauri APIs (file dialogs, native menus, window management)
+
+### When to use `pnpm tauri dev` + JSONL logs
+
+Use Tauri + log files for **integration and Tauri-specific issues**:
+
+- **File operations**: Open, save, encoding detection, file watcher
+- **IPC debugging**: Frontend ↔ Rust communication, invoke/event flow
+- **Native features**: Menu events, window lifecycle, drag-drop from Finder
+- **App startup**: Launch paths, single-instance handling, preferences loading
+- **Production simulation**: Testing behavior closer to the built app
+- **Race conditions**: Async timing issues between Tauri and React
+
+**Commands**:
+```bash
+# Watch logs in real-time
+tail -f ~/.mdpro/mdpro.log | jq .
+
+# Filter by event type
+tail -f ~/.mdpro/mdpro.log | jq 'select(.event | startswith("file."))'
+
+# Filter by level
+tail -f ~/.mdpro/mdpro.log | jq 'select(.level == "error")'
+```
+
+### Debug Workflow
+
+1. **Start with localhost** if unsure - faster iteration, better tooling
+2. **Switch to Tauri dev** when:
+   - Issue only reproduces in Tauri window
+   - Need to test file/menu/window operations
+   - Debugging IPC or Rust backend
+3. **Use both simultaneously**: localhost for UI, logs for backend correlation
+
 ## Active Technologies
 - TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4 (002-polish-wysiwyg)
 - N/A (local file system via Tauri) (002-polish-wysiwyg)

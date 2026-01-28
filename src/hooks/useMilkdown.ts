@@ -4,6 +4,7 @@ import {
   defaultValueCtx,
   Editor,
   editorViewCtx,
+  parserCtx,
   rootCtx,
   serializerCtx,
 } from "@milkdown/kit/core";
@@ -11,6 +12,7 @@ import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { pluginRegistry } from "../plugins";
+import { loggingService } from "../services/loggingService";
 
 interface UseMilkdownOptions {
   markdown: string;
@@ -36,6 +38,7 @@ export function useMilkdown({
   const onMarkdownChangeRef = useRef(onMarkdownChange);
   const onDirtyRef = useRef(onDirty);
   const lastMarkdownRef = useRef(markdown);
+  const lastAppliedDocIdRef = useRef<string | null>(null);
   const editorInstanceRef = useRef<Editor | null>(null);
   const initializedRef = useRef(false);
 
@@ -54,20 +57,88 @@ export function useMilkdown({
   }, [initialMarkdown]);
 
   const editor = useEditor(
-    (root) =>
-      milkdownPlugins.reduce(
-        (builder, plugin) => builder.use(plugin),
-        Editor.make()
-          .config((ctx) => {
-            ctx.set(rootCtx, root);
-            ctx.set(defaultValueCtx, initialMarkdown);
-          })
-          .use(gfm)
-          .use(history)
-          .use(listener),
-      ),
+    (root) => {
+      loggingService.logEventSync({
+        level: "info",
+        event: "editor.milkdown.factory",
+        status: "start",
+        actionId: loggingService.generateActionId(),
+        context: {
+          hasRoot: !!root,
+          rootTagName: root?.tagName ?? null,
+          initialMarkdownLength: initialMarkdown.length,
+          pluginsCount: milkdownPlugins.length,
+        },
+      });
+      try {
+        const result = milkdownPlugins.reduce(
+          (builder, plugin) => builder.use(plugin),
+          Editor.make()
+            .config((ctx) => {
+              ctx.set(rootCtx, root);
+              ctx.set(defaultValueCtx, initialMarkdown);
+            })
+            .use(gfm)
+            .use(history)
+            .use(listener),
+        );
+        loggingService.logEventSync({
+          level: "info",
+          event: "editor.milkdown.factory",
+          status: "success",
+          actionId: loggingService.generateActionId(),
+          context: { editorCreated: true },
+        });
+        return result;
+      } catch (error) {
+        loggingService.logEventSync({
+          level: "error",
+          event: "editor.milkdown.factory",
+          status: "fail",
+          actionId: loggingService.generateActionId(),
+          context: {},
+          error: String(error),
+        });
+        throw error;
+      }
+    },
     [documentId],
   );
+
+  // Log editor state for debugging - check immediately and after delay
+  useEffect(() => {
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.milkdown.state",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: {
+        documentId,
+        markdownLength: markdown.length,
+        initialMarkdownLength: initialMarkdown.length,
+        editorLoading: editor.loading,
+        hasEditorInstance: !!editor.get(),
+        checkTime: "immediate",
+      },
+    });
+    // Check again after a delay to see if instance becomes available
+    const timer = setTimeout(() => {
+      const instance = editor.get();
+      loggingService.logEventSync({
+        level: "info",
+        event: "editor.milkdown.state.delayed",
+        status: instance ? "success" : "fail",
+        actionId: loggingService.generateActionId(),
+        context: {
+          documentId,
+          editorLoading: editor.loading,
+          hasEditorInstance: !!instance,
+          checkTime: "500ms",
+        },
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [documentId, markdown.length, initialMarkdown.length, editor.loading]);
 
   const getMarkdown = useCallback(() => {
     const instance = editor.get();
@@ -116,6 +187,65 @@ export function useMilkdown({
       });
     });
   }, [editor]);
+
+  useEffect(() => {
+    const instance = editor.get();
+    // Log sync effect state for debugging
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.milkdown.sync.check",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: {
+        documentId,
+        hasInstance: !!instance,
+        editorLoading: editor.loading,
+        lastAppliedDocId: lastAppliedDocIdRef.current,
+        markdownLength: markdown.length,
+        lastMarkdownLength: lastMarkdownRef.current?.length ?? 0,
+      },
+    });
+    if (!instance || !documentId || editor.loading) return;
+    const shouldApply =
+      lastAppliedDocIdRef.current !== documentId ||
+      markdown !== lastMarkdownRef.current;
+    if (!shouldApply) return;
+
+    let applied = false;
+    instance.action((ctx) => {
+      const parser = ctx.get(parserCtx);
+      const view = ctx.get(editorViewCtx);
+      const doc = parser(markdown);
+      if (!doc) return;
+
+      const tr = view.state.tr.replaceWith(
+        0,
+        view.state.doc.content.size,
+        doc.content,
+      );
+      view.dispatch(tr);
+      applied = true;
+    });
+
+    const reason =
+      lastAppliedDocIdRef.current !== documentId
+        ? "document_switch"
+        : "external_update";
+    lastAppliedDocIdRef.current = documentId;
+    lastMarkdownRef.current = markdown;
+    loggingService.logEventSync({
+      level: applied ? "info" : "error",
+      event: "editor.milkdown.sync",
+      status: applied ? "success" : "fail",
+      actionId: loggingService.generateActionId(),
+      context: {
+        documentId,
+        contentLength: markdown.length,
+        reason,
+      },
+      error: applied ? undefined : "parser returned null",
+    });
+  }, [documentId, editor, editor.loading, markdown]);
 
   useEffect(() => {
     return () => {

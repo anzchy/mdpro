@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { DevToolbar } from "./components/DevToolbar";
-import { LayoutDebugToolbar } from "./components/LayoutDebugToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
 import { Preview } from "./components/Preview/Preview";
@@ -86,6 +85,7 @@ function App() {
   const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
   const hasUnsavedRef = useRef(false);
@@ -210,7 +210,8 @@ function App() {
       try {
         const prefs = await preferencesService.getPreferences();
         if (!mounted) return;
-        setViewMode(prefs.lastViewMode ?? prefs.defaultViewMode);
+        // Don't set viewMode here - defer until launch paths are complete
+        // to avoid race condition with Finder/CLI file opens
         setDefaultViewMode(prefs.defaultViewMode ?? "wysiwyg");
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
@@ -243,13 +244,30 @@ function App() {
     setRecentFiles,
     setShowSidebar,
     setThemeMode,
-    setViewMode,
   ]);
 
   useEffect(() => {
     if (!preferencesLoaded) return;
     void preferencesService.setPreferences({ lastViewMode: viewMode });
   }, [preferencesLoaded, viewMode]);
+
+  // Apply preferred viewMode after launch paths have been processed
+  // This prevents race condition where viewMode changes to wysiwyg before documents load
+  useEffect(() => {
+    if (!launchPathsComplete || !preferencesLoaded) return;
+    // If a document was loaded from launch paths, keep the mode that was set (preview-only)
+    if (activeDocument) return;
+    // No document loaded, apply user's preferred viewMode
+    const applyPreferredViewMode = async () => {
+      try {
+        const prefs = await preferencesService.getPreferences();
+        setViewMode(prefs.lastViewMode ?? prefs.defaultViewMode);
+      } catch {
+        // Ignore errors
+      }
+    };
+    void applyPreferredViewMode();
+  }, [launchPathsComplete, preferencesLoaded, activeDocument, setViewMode]);
 
   // Handle ?open= URL parameter (for new windows opened via Finder/drag-drop)
   useEffect(() => {
@@ -846,14 +864,19 @@ function App() {
             window.setTimeout(() => {
               void checkLaunchPaths();
             }, 300);
+          } else {
+            // No launch paths after retry, mark complete
+            setLaunchPathsComplete(true);
           }
           return;
         }
         // When opening from Finder/command line, use preview-only mode
         setViewMode("preview-only");
-        void openPaths(paths);
+        await openPaths(paths);
+        setLaunchPathsComplete(true);
       } catch {
-        // Ignore if running outside Tauri.
+        // Ignore if running outside Tauri, mark complete
+        setLaunchPathsComplete(true);
       }
     };
     void checkLaunchPaths();
@@ -889,9 +912,12 @@ function App() {
 
   return (
     <div className={`app-shell${showSidebar ? "" : " no-sidebar"}`}>
-      <DevToolbar onOpenFile={handleDevOpenFile} />
-      <LayoutDebugToolbar />
-      {showSidebar ? (
+      <DevToolbar
+        onOpenFile={handleDevOpenFile}
+        onNewDocument={createDocument}
+        onOpenDialog={handleOpenDialog}
+      />
+            {showSidebar ? (
         <Sidebar
           documents={documents}
           activeDocumentId={activeDocument?.id ?? null}

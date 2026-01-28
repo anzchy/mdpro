@@ -3,25 +3,29 @@ import { loggingService } from "../services/loggingService";
 
 interface DevToolbarProps {
   onOpenFile: (content: string, fileName: string) => void;
+  onNewDocument?: () => void;
+  onOpenDialog?: () => void;
 }
 
 /**
- * Development-only toolbar for testing in browser without Tauri.
- * Only visible when running `pnpm dev` (browser mode), hidden in:
- * - `pnpm tauri dev` (Tauri development)
+ * Development-only toolbar for testing/debugging.
+ * Visible when running in development mode:
+ * - `pnpm dev` (browser mode) - uses browser file input
+ * - `pnpm tauri dev` (Tauri development) - uses Tauri native dialogs
+ * Hidden in:
  * - Built macOS app (production)
  */
-export function DevToolbar({ onOpenFile }: DevToolbarProps) {
+export function DevToolbar({ onOpenFile, onNewDocument, onOpenDialog }: DevToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check if running in Tauri environment
   const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
 
-  // Only show in development mode AND not in Tauri
-  // - pnpm dev: DEV=true, isTauri=false → show
-  // - pnpm tauri dev: DEV=true, isTauri=true → hide
-  // - built app: DEV=false, isTauri=true → hide
-  if (!import.meta.env.DEV || isTauri) {
+  // Only show in development mode (both browser and Tauri dev)
+  // - pnpm dev: DEV=true, isTauri=false → show (browser file input)
+  // - pnpm tauri dev: DEV=true, isTauri=true → show (Tauri native dialogs)
+  // - built app: DEV=false → hide
+  if (!import.meta.env.DEV) {
     return null;
   }
 
@@ -45,14 +49,28 @@ export function DevToolbar({ onOpenFile }: DevToolbarProps) {
 
   const handleOpenClick = () => {
     loggingService.logButtonClick("dev.toolbar.open_file");
-    fileInputRef.current?.click();
+    if (isTauri && onOpenDialog) {
+      // In Tauri dev mode, use native file dialog
+      onOpenDialog();
+    } else {
+      // In browser mode, use file input
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleNewClick = () => {
+    loggingService.logButtonClick("dev.toolbar.new_document");
+    onNewDocument?.();
   };
 
   return (
     <div className="dev-toolbar">
       <span className="dev-toolbar-label">DEV MODE</span>
+      <button className="dev-toolbar-button" onClick={handleNewClick}>
+        New
+      </button>
       <button className="dev-toolbar-button" onClick={handleOpenClick}>
-        Open File
+        Open
       </button>
       <input
         ref={fileInputRef}
