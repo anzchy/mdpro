@@ -1,4 +1,5 @@
 import type { ViewMode } from "./editor";
+import type { LogSettings } from "./logging";
 
 export interface UserPreferences {
   /** Theme mode preference */
@@ -27,6 +28,9 @@ export interface UserPreferences {
 
   /** Custom keyboard shortcuts */
   keyboardShortcuts: KeyboardShortcuts;
+
+  /** Logging settings */
+  logging: LogSettings;
 
   /** Per-file window states for position/size persistence */
   windowStates: Record<string, WindowGeometry>;

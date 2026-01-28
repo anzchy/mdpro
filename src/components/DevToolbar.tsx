@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { loggingService } from "../services/loggingService";
 
 interface DevToolbarProps {
   onOpenFile: (content: string, fileName: string) => void;
@@ -43,6 +44,7 @@ export function DevToolbar({ onOpenFile }: DevToolbarProps) {
   };
 
   const handleOpenClick = () => {
+    loggingService.logButtonClick("dev.toolbar.open_file");
     fileInputRef.current?.click();
   };
 

@@ -25,11 +25,13 @@ import { useTheme } from "./hooks/useTheme";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { fileService } from "./services/fileService";
+import { loggingService } from "./services/loggingService";
 import type { Document } from "./types/document";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
+import { useLoggingStore } from "./stores/loggingStore";
 
 type PendingClose = "document" | "window" | null;
 
@@ -69,6 +71,7 @@ function App() {
     clearEncodingIssue,
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
+  const setLoggingSettings = useLoggingStore((state) => state.setSettings);
   const { viewMode, setViewMode, cycleViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
   const { resolvedTheme, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState(0);
@@ -89,6 +92,7 @@ function App() {
   const openDialogLockRef = useRef(false);
   const allowWindowCloseRef = useRef(false);
   const openDialogCooldownRef = useRef(0);
+  const launchPathsRetryRef = useRef(0);
   const { event: fileChangeEvent, clearEvent } = useFileWatcher(
     activeDocument?.path ?? null,
   );
@@ -116,7 +120,7 @@ function App() {
     });
   }, [recentFiles, viewMode]);
 
-  const handleToggleSidebar = useCallback(() => {
+  const handleToggleSidebar = useCallback((_actionId?: string) => {
     const next = !showSidebar;
     toggleSidebar();
     void preferencesService.setPreferences({ showSidebar: next });
@@ -211,6 +215,9 @@ function App() {
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
         setRecentFiles(prefs.recentFiles ?? []);
+        if (prefs.logging) {
+          setLoggingSettings(prefs.logging);
+        }
         // Merge loaded shortcuts with defaults to ensure all keys exist
         if (prefs.keyboardShortcuts && Object.keys(prefs.keyboardShortcuts).length > 0) {
           setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
@@ -227,28 +234,86 @@ function App() {
     return () => {
       mounted = false;
     };
-  }, [applyWindowState, setShowSidebar, setThemeMode, setViewMode]);
+  }, [
+    applyWindowState,
+    setAutoSaveInterval,
+    setDefaultViewMode,
+    setKeyboardShortcuts,
+    setLoggingSettings,
+    setRecentFiles,
+    setShowSidebar,
+    setThemeMode,
+    setViewMode,
+  ]);
 
   useEffect(() => {
     if (!preferencesLoaded) return;
     void preferencesService.setPreferences({ lastViewMode: viewMode });
   }, [preferencesLoaded, viewMode]);
 
-  // Handle ?open= URL parameter (for new windows opened via drag-drop)
+  // Handle ?open= URL parameter (for new windows opened via Finder/drag-drop)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const openPath = params.get("open");
-    if (openPath) {
-      // Use preview-only mode for drag-drop opened files
-      setViewMode("preview-only");
-      void openDocumentFromPath(openPath).then((doc) => {
+    const checkUrlParam = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const openPath = params.get("open");
+
+      // Get window label for logging
+      let windowLabel = "unknown";
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        windowLabel = getCurrentWindow().label;
+      } catch {
+        // Ignore
+      }
+
+      // Log URL parameter check for debugging (info level to ensure visibility)
+      loggingService.logEventSync({
+        level: "info",
+        event: "app.url_param_check",
+        status: "success",
+        actionId: loggingService.generateActionId(),
+        context: {
+          windowLabel,
+          hasOpenParam: !!openPath,
+          openPath: openPath || null,
+          fullUrl: window.location.href,
+        },
+      });
+
+      if (openPath) {
+        const actionId = loggingService.generateActionId();
+        loggingService.logEventSync({
+          level: "info",
+          event: "file.open.url_param",
+          status: "start",
+          actionId,
+          context: { windowLabel, filePath: openPath },
+        });
+
+        // Use preview-only mode for externally opened files
+        setViewMode("preview-only");
+        const doc = await openDocumentFromPath(openPath, actionId);
+        loggingService.logEventSync({
+          level: doc ? "info" : "error",
+          event: "file.open.url_param",
+          status: doc ? "success" : "fail",
+          actionId,
+          context: {
+            windowLabel,
+            filePath: openPath,
+            documentId: doc?.id || null,
+            hasContent: doc ? doc.content.length > 0 : false,
+          },
+          error: doc ? undefined : "openDocumentFromPath returned null",
+        });
         if (doc?.path) {
           updateRecentFiles(doc.path);
         }
-      });
-      // Clean up the URL to prevent re-opening on refresh
-      window.history.replaceState({}, "", window.location.pathname);
-    }
+        // Clean up the URL to prevent re-opening on refresh
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    };
+    void checkUrlParam();
   }, [openDocumentFromPath, setViewMode, updateRecentFiles]);
 
   useEffect(() => {
@@ -259,15 +324,50 @@ function App() {
         const currentWindow = getCurrentWindow();
         appWindowRef.current = currentWindow;
         unlisten = await currentWindow.onCloseRequested((event) => {
+          const windowLabel = currentWindow.label;
+          loggingService.logEventSync({
+            level: "info",
+            event: "window.close_requested",
+            status: "start",
+            actionId: loggingService.generateActionId(),
+            context: {
+              windowLabel,
+              hasUnsavedChanges: hasUnsavedRef.current,
+              allowWindowClose: allowWindowCloseRef.current,
+            },
+          });
+
           void saveWindowState();
           if (allowWindowCloseRef.current) {
             allowWindowCloseRef.current = false;
+            loggingService.logEventSync({
+              level: "info",
+              event: "window.close_requested",
+              status: "success",
+              actionId: loggingService.generateActionId(),
+              context: { windowLabel, action: "allowed_close" },
+            });
             return;
           }
           if (hasUnsavedRef.current) {
             event.preventDefault();
             closeTargetRef.current = "window";
             setPendingClose("window");
+            loggingService.logEventSync({
+              level: "info",
+              event: "window.close_requested",
+              status: "cancel",
+              actionId: loggingService.generateActionId(),
+              context: { windowLabel, action: "prevented_showing_dialog" },
+            });
+          } else {
+            loggingService.logEventSync({
+              level: "info",
+              event: "window.close_requested",
+              status: "success",
+              actionId: loggingService.generateActionId(),
+              context: { windowLabel, action: "no_unsaved_closing" },
+            });
           }
         });
       } catch {
@@ -336,13 +436,13 @@ function App() {
     setViewMode("editor-only");
   }, [activeDocument, setViewMode, showToast, viewMode]);
 
-  const handleOpenDialog = useCallback(async () => {
+  const handleOpenDialog = useCallback(async (actionId?: string) => {
     if (openDialogLockRef.current) return;
     if (Date.now() < openDialogCooldownRef.current) return;
     openDialogLockRef.current = true;
     setBusyLabel("Opening file...");
     try {
-      const doc = await openDocumentFromDialog();
+      const doc = await openDocumentFromDialog(actionId);
       if (doc?.path) {
         updateRecentFiles(doc.path);
       } else if (!doc) {
@@ -358,13 +458,14 @@ function App() {
   }, [openDocumentFromDialog, showToast, updateRecentFiles]);
 
   const handleOpenPath = useCallback(
-    async (path: string) => {
+    async (path: string, actionId?: string) => {
       setBusyLabel("Opening file...");
       try {
-        const doc = await openDocumentFromPath(path);
+        const doc = await openDocumentFromPath(path, actionId);
         if (doc?.path) {
           updateRecentFiles(doc.path);
         }
+        return doc;
       } finally {
         setBusyLabel(null);
       }
@@ -389,16 +490,16 @@ function App() {
   );
 
   const handleOpenRecent = useCallback(
-    async (path: string) => {
-      await handleOpenPath(path);
+    async (path: string, actionId?: string) => {
+      await handleOpenPath(path, actionId);
     },
     [handleOpenPath],
   );
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (actionId?: string) => {
     setBusyLabel("Saving...");
     try {
-      const result = await saveActiveDocument();
+      const result = await saveActiveDocument(actionId);
       if (result?.path) {
         updateRecentFiles(result.path);
       }
@@ -410,7 +511,7 @@ function App() {
     }
   }, [saveActiveDocument, showToast, updateRecentFiles]);
 
-  const handleExportHtml = useCallback(async () => {
+  const handleExportHtml = useCallback(async (_actionId?: string) => {
     if (!activeDocument) return;
     setBusyLabel("Exporting HTML...");
     try {
@@ -430,7 +531,7 @@ function App() {
     }
   }, [activeDocument, activeDocumentTitle, resolvedTheme, showToast]);
 
-  const handleOpenSettings = useCallback(() => {
+  const handleOpenSettings = useCallback((_actionId?: string) => {
     setSettingsOpen(true);
   }, []);
 
@@ -574,26 +675,48 @@ function App() {
         return ext === "md" || ext === "markdown";
       });
 
-      if (mdPaths.length === 0) return;
+      if (mdPaths.length === 0) {
+        loggingService.logEventSync({
+          level: "warn",
+          event: "file.open.drop",
+          status: "cancel",
+          actionId: loggingService.generateActionId(),
+          context: {
+            reason: "unsupported_extension",
+            fileCount: paths.length,
+            dropTarget: "window",
+          },
+        });
+        return;
+      }
 
-      // If there's already a document open, open the new file in a new window
-      if (documents.length > 0) {
-        for (const filePath of mdPaths) {
-          const opened = await openNewWindow(filePath, false);
-          if (!opened) {
-            setViewMode("preview-only");
-            await handleOpenPath(filePath);
-          }
-        }
-      } else {
-        // No document open, open in current window with preview mode
-        setViewMode("preview-only");
-        for (const filePath of mdPaths) {
-          await handleOpenPath(filePath);
-        }
+      // Always open dropped files in the current window (no extra untitled window).
+      setViewMode("preview-only");
+      for (const filePath of mdPaths) {
+        const actionId = loggingService.generateActionId();
+        loggingService.logEventSync({
+          level: "info",
+          event: "file.open.drop",
+          status: "start",
+          actionId,
+          context: {
+            filePath,
+            fileCount: mdPaths.length,
+            dropTarget: "window",
+          },
+        });
+        const doc = await handleOpenPath(filePath, actionId);
+        loggingService.logEventSync({
+          level: doc ? "info" : "error",
+          event: "file.open.drop",
+          status: doc ? "success" : "fail",
+          actionId,
+          context: { filePath, openedInNewWindow: false },
+          error: doc ? undefined : "open failed",
+        });
       }
     },
-    [documents.length, handleOpenPath, openNewWindow, setViewMode],
+    [handleOpenPath, setViewMode],
   );
 
   // Set up Tauri drag-drop event listener
@@ -660,7 +783,7 @@ function App() {
     closeTargetRef.current = null;
   };
 
-  const handleCloseRequest = useCallback(() => {
+  const handleCloseRequest = useCallback((_actionId?: string) => {
     if (!activeDocument) return;
     if (activeDocument.isModified) {
       closeTargetRef.current = "document";
@@ -673,8 +796,8 @@ function App() {
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
     onHighlight: () => setHighlightRequest((prev) => prev + 1),
-    onOpen: () => void handleOpenDialog(),
-    onSave: () => void handleSave(),
+    onOpen: (actionId) => void handleOpenDialog(actionId),
+    onSave: (actionId) => void handleSave(actionId),
     onClose: handleCloseRequest,
     onToggleSidebar: handleToggleSidebar,
     onCycleViewMode: cycleViewMode,
@@ -684,10 +807,10 @@ function App() {
   useMenuEvents({
     onNew: () => void createDocument(),
     onNewWindow: () => void openNewWindow(),
-    onOpen: () => void handleOpenDialog(),
-    onSave: () => void handleSave(),
+    onOpen: (actionId) => void handleOpenDialog(actionId),
+    onSave: (actionId) => void handleSave(actionId),
     onClose: handleCloseRequest,
-    onExportHtml: () => void handleExportHtml(),
+    onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpenRecent: handleOpenRecent,
     onToggleSidebar: handleToggleSidebar,
     onHighlight: () => setHighlightRequest((prev) => prev + 1),
@@ -698,16 +821,42 @@ function App() {
   });
 
   useEffect(() => {
-    invoke<string[]>("get_launch_paths")
-      .then((paths) => {
-        if (!paths || paths.length === 0) return;
+    const checkLaunchPaths = async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const windowLabel = getCurrentWindow().label;
+
+        const paths = await invoke<string[]>("get_launch_paths");
+
+        loggingService.logEventSync({
+          level: "debug",
+          event: "app.launch_paths_check",
+          status: "success",
+          actionId: loggingService.generateActionId(),
+          context: {
+            windowLabel,
+            pathCount: paths?.length || 0,
+            paths: paths || [],
+          },
+        });
+
+        if (!paths || paths.length === 0) {
+          if (launchPathsRetryRef.current < 1) {
+            launchPathsRetryRef.current += 1;
+            window.setTimeout(() => {
+              void checkLaunchPaths();
+            }, 300);
+          }
+          return;
+        }
         // When opening from Finder/command line, use preview-only mode
         setViewMode("preview-only");
         void openPaths(paths);
-      })
-      .catch(() => {
+      } catch {
         // Ignore if running outside Tauri.
-      });
+      }
+    };
+    void checkLaunchPaths();
   }, [openPaths, setViewMode]);
 
   const handleFileOpenEvent = useCallback(

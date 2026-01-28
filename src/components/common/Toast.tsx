@@ -1,3 +1,5 @@
+import { loggingService } from "../../services/loggingService";
+
 interface ToastProps {
   message: string;
   visible: boolean;
@@ -11,7 +13,14 @@ export function Toast({ message, visible, onClose }: ToastProps) {
     <div className="toast" role="status" aria-live="polite">
       <span>{message}</span>
       {onClose ? (
-        <button className="toast-close" type="button" onClick={onClose}>
+        <button
+          className="toast-close"
+          type="button"
+          onClick={() => {
+            loggingService.logButtonClick("toast.close", { message });
+            onClose();
+          }}
+        >
           x
         </button>
       ) : null}

@@ -32,28 +32,34 @@ export interface FileModifiedResult {
 }
 
 export const fileService = {
-  async openFile(path: string, encoding?: string): Promise<OpenFileResult> {
-    return invoke("open_file", { path, encoding });
+  async openFile(path: string, encoding?: string, actionId?: string): Promise<OpenFileResult> {
+    return invoke("open_file", { path, encoding, actionId });
   },
 
-  async openFileDialog(): Promise<OpenFileResult | null> {
-    return invoke("open_file_dialog", {});
+  async openFileDialog(actionId?: string): Promise<OpenFileResult | null> {
+    return invoke("open_file_dialog", { actionId });
   },
 
   async createDocument(): Promise<Document> {
     return invoke("create_document", {});
   },
 
-  async saveFile(documentId: string, content: string, path?: string): Promise<SaveResult> {
-    return invoke("save_file", { documentId, content, path });
+  async saveFile(
+    documentId: string,
+    content: string,
+    path?: string,
+    actionId?: string,
+  ): Promise<SaveResult> {
+    return invoke("save_file", { documentId, content, path, actionId });
   },
 
   async saveFileDialog(
     documentId: string,
     content: string,
     suggestedName?: string,
+    actionId?: string,
   ): Promise<SaveResult | null> {
-    return invoke("save_file_dialog", { documentId, content, suggestedName });
+    return invoke("save_file_dialog", { documentId, content, suggestedName, actionId });
   },
 
   async closeDocument(documentId: string, discardChanges: boolean): Promise<CloseResult> {

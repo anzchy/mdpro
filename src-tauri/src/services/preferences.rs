@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::{KeyboardShortcuts, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
+use crate::models::{KeyboardShortcuts, LogSettings, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,6 +18,7 @@ pub struct PartialPreferences {
     pub window_state: Option<WindowState>,
     pub keyboard_shortcuts: Option<KeyboardShortcuts>,
     pub window_states: Option<HashMap<String, WindowGeometry>>,
+    pub logging: Option<LogSettings>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,5 +100,6 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
             .keyboard_shortcuts
             .unwrap_or(current.keyboard_shortcuts),
         window_states: updates.window_states.unwrap_or(current.window_states),
+        logging: updates.logging.unwrap_or(current.logging),
     }
 }

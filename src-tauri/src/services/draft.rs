@@ -12,6 +12,20 @@ pub enum DraftError {
     ParseError { message: String },
 }
 
+impl std::fmt::Display for DraftError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DraftError::IoError { message } => write!(f, "io error: {message}"),
+            DraftError::NotFound { document_id } => {
+                write!(f, "draft not found: {document_id}")
+            }
+            DraftError::ParseError { message } => write!(f, "parse error: {message}"),
+        }
+    }
+}
+
+impl std::error::Error for DraftError {}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DraftSaveResult {

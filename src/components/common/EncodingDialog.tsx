@@ -1,3 +1,5 @@
+import { loggingService } from "../../services/loggingService";
+
 interface EncodingDialogProps {
   open: boolean;
   path: string;
@@ -25,12 +27,24 @@ export function EncodingDialog({ open, path, detected, onSelect, onCancel }: Enc
               key={encoding}
               className="toolbar-button"
               type="button"
-              onClick={() => onSelect(encoding)}
+              onClick={() => {
+                loggingService.logDialogAction("dialog.encoding.select", "success", {
+                  encoding,
+                });
+                onSelect(encoding);
+              }}
             >
               {encoding}
             </button>
           ))}
-          <button className="toolbar-button" type="button" onClick={onCancel}>
+          <button
+            className="toolbar-button"
+            type="button"
+            onClick={() => {
+              loggingService.logDialogAction("dialog.encoding.cancel", "cancel");
+              onCancel();
+            }}
+          >
             Cancel
           </button>
         </div>

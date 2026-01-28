@@ -1,3 +1,5 @@
+import { loggingService } from "../../services/loggingService";
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -27,10 +29,24 @@ export function ConfirmDialog({
         <h3 className="dialog-title">{title}</h3>
         <p className="dialog-message">{message}</p>
         <div className="dialog-actions">
-          <button className="toolbar-button" onClick={onCancel} type="button">
+          <button
+            className="toolbar-button"
+            onClick={() => {
+              loggingService.logDialogAction("dialog.confirm.cancel", "cancel", { title });
+              onCancel();
+            }}
+            type="button"
+          >
             {cancelLabel}
           </button>
-          <button className="toolbar-button" onClick={onConfirm} type="button">
+          <button
+            className="toolbar-button"
+            onClick={() => {
+              loggingService.logDialogAction("dialog.confirm.confirm", "success", { title });
+              onConfirm();
+            }}
+            type="button"
+          >
             {confirmLabel}
           </button>
         </div>

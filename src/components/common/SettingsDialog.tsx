@@ -3,6 +3,9 @@ import type { KeyboardShortcuts } from "../../types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../../types/preferences";
 import type { ViewMode } from "../../types/editor";
 import { useThemeStore } from "../../stores/themeStore";
+import { useLoggingStore } from "../../stores/loggingStore";
+import type { LogLevel } from "../../types/logging";
+import { loggingService } from "../../services/loggingService";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -156,6 +159,13 @@ const VIEW_MODE_OPTIONS: { value: ViewMode; label: string }[] = [
   { value: "wysiwyg", label: "WYSIWYG" },
 ];
 
+const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string }[] = [
+  { value: "debug", label: "Debug" },
+  { value: "info", label: "Info" },
+  { value: "warn", label: "Warn" },
+  { value: "error", label: "Error" },
+];
+
 export function SettingsDialog({
   open,
   shortcuts,
@@ -169,6 +179,7 @@ export function SettingsDialog({
   const [activePage, setActivePage] = useState("general");
   const [searchTerm, setSearchTerm] = useState("");
   const { resolvedTheme } = useThemeStore();
+  const { enabled: loggingEnabled, level: loggingLevel, setEnabled, setLevel } = useLoggingStore();
 
   useEffect(() => {
     setLocalShortcuts(shortcuts);
@@ -221,12 +232,32 @@ export function SettingsDialog({
   }, [editingKey, handleKeyCapture]);
 
   const handleReset = () => {
+    loggingService.logButtonClick("settings.shortcuts.reset");
     setLocalShortcuts(DEFAULT_KEYBOARD_SHORTCUTS);
   };
 
   const handleSave = () => {
+    loggingService.logButtonClick("settings.shortcuts.save");
     onSave(localShortcuts);
     onClose();
+  };
+
+  const handleLoggingToggle = async (next: boolean) => {
+    loggingService.logUiEvent("ui.toggle.change", {
+      controlId: "settings.general.logging.enabled",
+      newValue: next,
+    });
+    setEnabled(next);
+    await loggingService.setLoggingSettings({ enabled: next, level: loggingLevel });
+  };
+
+  const handleLogLevelChange = async (next: LogLevel) => {
+    loggingService.logUiEvent("ui.select.change", {
+      controlId: "settings.general.logging.level",
+      newValue: next,
+    });
+    setLevel(next);
+    await loggingService.setLoggingSettings({ enabled: loggingEnabled, level: next });
   };
 
   if (!open) return null;
@@ -238,14 +269,26 @@ export function SettingsDialog({
     SETTINGS_PAGES.find((page) => page.id === activePage) ?? SETTINGS_PAGES[0];
 
   return (
-    <div className="dialog-backdrop" onClick={onClose}>
+    <div
+      className="dialog-backdrop"
+      onClick={() => {
+        loggingService.logDialogAction("settings.dialog.backdrop", "cancel");
+        onClose();
+      }}
+    >
       <div
         className={`settings-dialog theme-${resolvedTheme}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="settings-header">
           <h2 className="settings-title">Settings</h2>
-          <button className="settings-close" onClick={onClose}>
+          <button
+            className="settings-close"
+            onClick={() => {
+              loggingService.logButtonClick("settings.close");
+              onClose();
+            }}
+          >
             &times;
           </button>
         </div>
@@ -266,7 +309,10 @@ export function SettingsDialog({
                 className={`settings-category-btn ${
                   activePage === page.id ? "is-active" : ""
                 }`}
-                onClick={() => setActivePage(page.id)}
+                onClick={() => {
+                  loggingService.logButtonClick(`settings.category.${page.id}`);
+                  setActivePage(page.id);
+                }}
               >
                 {page.label}
               </button>
@@ -291,7 +337,12 @@ export function SettingsDialog({
                             className={`shortcut-value ${
                               editingKey === item.key ? "is-editing" : ""
                             }`}
-                            onClick={() => setEditingKey(item.key)}
+                            onClick={() => {
+                              loggingService.logButtonClick(
+                                `settings.shortcuts.edit.${String(item.key)}`,
+                              );
+                              setEditingKey(item.key);
+                            }}
                           >
                             {editingKey === item.key
                               ? "Press keys..."
@@ -314,7 +365,14 @@ export function SettingsDialog({
                       id="default-view-mode"
                       className="settings-select"
                       value={defaultViewMode}
-                      onChange={(e) => onDefaultViewModeChange(e.target.value as ViewMode)}
+                      onChange={(e) => {
+                        const next = e.target.value as ViewMode;
+                        loggingService.logUiEvent("ui.select.change", {
+                          controlId: "settings.general.default_view_mode",
+                          newValue: next,
+                        });
+                        onDefaultViewModeChange(next);
+                      }}
                     >
                       {VIEW_MODE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -326,6 +384,30 @@ export function SettingsDialog({
                   <p className="settings-form-hint">
                     New documents will open in this view mode.
                   </p>
+                  <div className="settings-form-row">
+                    <label htmlFor="logging-enabled">Enable Logging</label>
+                    <input
+                      id="logging-enabled"
+                      type="checkbox"
+                      checked={loggingEnabled}
+                      onChange={(e) => void handleLoggingToggle(e.target.checked)}
+                    />
+                  </div>
+                  <div className="settings-form-row">
+                    <label htmlFor="logging-level">Log Level</label>
+                    <select
+                      id="logging-level"
+                      className="settings-select"
+                      value={loggingLevel}
+                      onChange={(e) => void handleLogLevelChange(e.target.value as LogLevel)}
+                    >
+                      {LOG_LEVEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -352,7 +434,13 @@ export function SettingsDialog({
             Reset to Defaults
           </button>
           <div className="settings-footer-right">
-            <button className="toolbar-button" onClick={onClose}>
+            <button
+              className="toolbar-button"
+              onClick={() => {
+                loggingService.logButtonClick("settings.cancel");
+                onClose();
+              }}
+            >
               Cancel
             </button>
             <button className="toolbar-button primary" onClick={handleSave}>

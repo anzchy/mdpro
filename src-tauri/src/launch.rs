@@ -1,6 +1,9 @@
-use std::sync::Mutex;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
+use serde_json::json;
+
+use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
 
 #[derive(Default)]
@@ -11,11 +14,16 @@ pub struct LaunchState {
 impl LaunchState {
     pub fn set_paths(&self, paths: Vec<String>) {
         if let Ok(mut data) = self.paths.lock() {
-            logger::log_line(&format!(
-                "launch_state.set_paths: count={} paths={:?}",
-                paths.len(),
-                paths
-            ));
+            let paths_for_log = paths.clone();
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Info,
+                event: "app.launch_state.set".to_string(),
+                status: LogStatus::Success,
+                action_id: None,
+                context: Some(json!({ "count": paths_for_log.len(), "paths": paths_for_log })),
+                duration_ms: None,
+                error: None,
+            });
             *data = paths;
         }
     }
@@ -24,11 +32,16 @@ impl LaunchState {
         if let Ok(mut data) = self.paths.lock() {
             let paths = data.clone();
             data.clear();
-            logger::log_line(&format!(
-                "launch_state.take_paths: count={} paths={:?}",
-                paths.len(),
-                paths
-            ));
+            let paths_for_log = paths.clone();
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Info,
+                event: "app.launch_state.take".to_string(),
+                status: LogStatus::Success,
+                action_id: None,
+                context: Some(json!({ "count": paths_for_log.len(), "paths": paths_for_log })),
+                duration_ms: None,
+                error: None,
+            });
             return paths;
         }
         Vec::new()

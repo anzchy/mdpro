@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
-use crate::models::{Document, Draft};
+use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus};
 use crate::services::{encoding, file_watcher::FileWatcher, logger};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
@@ -74,6 +75,42 @@ fn to_file_error(error: std::io::Error, path: &str) -> FileError {
 fn mtime_cache() -> &'static Mutex<HashMap<String, i64>> {
     static CACHE: OnceLock<Mutex<HashMap<String, i64>>> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn file_error_message(error: &FileError) -> String {
+    match error {
+        FileError::FileNotFound { path } => format!("file not found: {path}"),
+        FileError::PermissionDenied { path } => format!("permission denied: {path}"),
+        FileError::EncodingError { path, detected } => {
+            format!("encoding error: {path} detected={detected}")
+        }
+        FileError::FileTooLarge { path, size } => {
+            format!("file too large: {path} size={size}")
+        }
+        FileError::DiskFull => "disk full".to_string(),
+        FileError::InvalidPath { path } => format!("invalid path: {path}"),
+        FileError::IoError { message } => message.clone(),
+    }
+}
+
+fn log_file_event(
+    event: &str,
+    status: LogStatus,
+    level: LogLevel,
+    action_id: Option<&str>,
+    context: serde_json::Value,
+    duration_ms: Option<u64>,
+    error: Option<String>,
+) {
+    logger::log_event(LogEntryPayload {
+        level,
+        event: event.to_string(),
+        status,
+        action_id: action_id.map(|value| value.to_string()),
+        context: Some(context),
+        duration_ms,
+        error,
+    });
 }
 
 fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<OpenFileResult, FileError> {
@@ -155,15 +192,47 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
 pub async fn open_file(
     path: String,
     encoding: Option<String>,
+    action_id: Option<String>,
     watcher: State<'_, FileWatcher>,
 ) -> Result<OpenFileResult, FileError> {
-    logger::log_line(&format!(
-        "command open_file: path={} encoding={:?}",
-        path, encoding
-    ));
-    let result = open_file_from_path(&path, encoding)?;
+    let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let start = std::time::Instant::now();
+    log_file_event(
+        "file.open",
+        LogStatus::Start,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({ "filePath": path.as_str(), "encodingHint": encoding.as_deref() }),
+        None,
+        None,
+    );
+    let path_for_error = path.clone();
+    let result = open_file_from_path(&path, encoding).map_err(|err| {
+        log_file_event(
+            "file.open",
+            LogStatus::Fail,
+            LogLevel::Error,
+            Some(&action_id),
+            json!({ "filePath": path_for_error }),
+            Some(start.elapsed().as_millis() as u64),
+            Some(file_error_message(&err)),
+        );
+        err
+    })?;
     watcher.watch(&PathBuf::from(&path));
-    logger::log_line(&format!("command open_file: watch {}", path));
+    log_file_event(
+        "file.open",
+        LogStatus::Success,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({
+            "filePath": path.as_str(),
+            "fileSizeBytes": result.document.file_size,
+            "encoding": result.document.encoding
+        }),
+        Some(start.elapsed().as_millis() as u64),
+        None,
+    );
     Ok(result)
 }
 
@@ -176,32 +245,65 @@ pub fn create_document() -> Document {
 pub async fn open_file_dialog(
     _window: Window,
     watcher: State<'_, FileWatcher>,
+    action_id: Option<String>,
 ) -> Result<Option<OpenFileResult>, FileError> {
-    logger::log_line("command open_file_dialog: invoked");
+    let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let start = std::time::Instant::now();
+    log_file_event(
+        "file.open",
+        LogStatus::Start,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({ "source": "dialog" }),
+        None,
+        None,
+    );
     let picked = rfd::FileDialog::new()
         .add_filter("Markdown", &["md", "markdown"])
         .pick_file();
 
     let Some(path) = picked else {
-        logger::log_line("command open_file_dialog: cancelled");
+        log_file_event(
+            "file.open",
+            LogStatus::Cancel,
+            LogLevel::Warn,
+            Some(&action_id),
+            json!({ "source": "dialog" }),
+            Some(start.elapsed().as_millis() as u64),
+            None,
+        );
         return Ok(None);
     };
 
     let path_string = path.to_string_lossy().to_string();
-    logger::log_line(&format!(
-        "command open_file_dialog: picked {}",
-        path_string
-    ));
-    let result = open_file_from_path(&path_string, None)?;
-    logger::log_line(&format!(
-        "command open_file_dialog: read ok, chars {}",
-        result.document.content.len()
-    ));
+    let path_for_error = path_string.clone();
+    let result = open_file_from_path(&path_string, None).map_err(|err| {
+        log_file_event(
+            "file.open",
+            LogStatus::Fail,
+            LogLevel::Error,
+            Some(&action_id),
+            json!({ "filePath": path_for_error }),
+            Some(start.elapsed().as_millis() as u64),
+            Some(file_error_message(&err)),
+        );
+        err
+    })?;
     watcher.watch(&PathBuf::from(&path_string));
-    logger::log_line(&format!(
-        "command open_file_dialog: watch {}",
-        path_string
-    ));
+    log_file_event(
+        "file.open",
+        LogStatus::Success,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({
+            "filePath": path_string.as_str(),
+            "fileSizeBytes": result.document.file_size,
+            "encoding": result.document.encoding,
+            "source": "dialog"
+        }),
+        Some(start.elapsed().as_millis() as u64),
+        None,
+    );
     Ok(Some(result))
 }
 
@@ -210,20 +312,70 @@ pub async fn save_file(
     _document_id: String,
     content: String,
     path: Option<String>,
+    action_id: Option<String>,
 ) -> Result<SaveResult, FileError> {
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
         path: "missing path".to_string(),
     })?;
+    let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let start = std::time::Instant::now();
+    log_file_event(
+        "file.save",
+        LogStatus::Start,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({ "filePath": path_value.as_str() }),
+        None,
+        None,
+    );
 
     let path_buf = PathBuf::from(&path_value);
     if let Some(parent) = path_buf.parent() {
         if !parent.exists() {
-            std::fs::create_dir_all(parent).map_err(|err| to_file_error(err, &path_value))?;
+            let path_for_error = path_value.clone();
+            std::fs::create_dir_all(parent).map_err(|err| {
+                let mapped = to_file_error(err, &path_value);
+                log_file_event(
+                    "file.save",
+                    LogStatus::Fail,
+                    LogLevel::Error,
+                    Some(&action_id),
+                    json!({ "filePath": path_for_error }),
+                    Some(start.elapsed().as_millis() as u64),
+                    Some(file_error_message(&mapped)),
+                );
+                mapped
+            })?;
         }
     }
 
-    std::fs::write(&path_buf, content).map_err(|err| to_file_error(err, &path_value))?;
+    let path_for_error = path_value.clone();
+    std::fs::write(&path_buf, content.as_bytes()).map_err(|err| {
+        let mapped = to_file_error(err, &path_value);
+        log_file_event(
+            "file.save",
+            LogStatus::Fail,
+            LogLevel::Error,
+            Some(&action_id),
+            json!({ "filePath": path_for_error }),
+            Some(start.elapsed().as_millis() as u64),
+            Some(file_error_message(&mapped)),
+        );
+        mapped
+    })?;
 
+    log_file_event(
+        "file.save",
+        LogStatus::Success,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({
+            "filePath": path_value.as_str(),
+            "fileSizeBytes": content.as_bytes().len()
+        }),
+        Some(start.elapsed().as_millis() as u64),
+        None,
+    );
     Ok(SaveResult {
         success: true,
         path: path_value,
@@ -237,17 +389,33 @@ pub async fn save_file_dialog(
     document_id: String,
     content: String,
     suggested_name: Option<String>,
+    action_id: Option<String>,
 ) -> Result<Option<SaveResult>, FileError> {
+    let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let mut dialog = rfd::FileDialog::new().add_filter("Markdown", &["md", "markdown"]);
     if let Some(name) = suggested_name {
         dialog = dialog.set_file_name(&name);
     }
 
     let Some(path) = dialog.save_file() else {
+        log_file_event(
+            "file.save",
+            LogStatus::Cancel,
+            LogLevel::Warn,
+            Some(&action_id),
+            json!({ "source": "dialog" }),
+            None,
+            None,
+        );
         return Ok(None);
     };
 
-    save_file(document_id, content, Some(path.to_string_lossy().to_string()))
+    save_file(
+        document_id,
+        content,
+        Some(path.to_string_lossy().to_string()),
+        Some(action_id),
+    )
         .await
         .map(Some)
 }

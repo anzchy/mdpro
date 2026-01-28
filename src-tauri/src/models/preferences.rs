@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::models::LogSettings;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPreferences {
@@ -24,6 +26,10 @@ pub struct UserPreferences {
     /// Custom keyboard shortcuts (action -> shortcut)
     #[serde(default)]
     pub keyboard_shortcuts: KeyboardShortcuts,
+
+    /// Logging settings (enabled + minimum level)
+    #[serde(default)]
+    pub logging: LogSettings,
 
     /// Per-file window states for position/size persistence
     #[serde(default)]
@@ -254,6 +260,7 @@ impl Default for UserPreferences {
                 is_maximized: false,
             },
             keyboard_shortcuts: KeyboardShortcuts::default(),
+            logging: LogSettings::default(),
             window_states: HashMap::new(),
         }
     }

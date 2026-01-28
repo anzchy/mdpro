@@ -1,3 +1,5 @@
+import { loggingService } from "../../services/loggingService";
+
 interface ReloadDialogProps {
   open: boolean;
   message: string;
@@ -14,10 +16,24 @@ export function ReloadDialog({ open, message, onReload, onIgnore }: ReloadDialog
         <h3 className="dialog-title">External change detected</h3>
         <p className="dialog-message">{message}</p>
         <div className="dialog-actions">
-          <button className="toolbar-button" type="button" onClick={onIgnore}>
+          <button
+            className="toolbar-button"
+            type="button"
+            onClick={() => {
+              loggingService.logDialogAction("dialog.reload.ignore", "cancel");
+              onIgnore();
+            }}
+          >
             Ignore
           </button>
-          <button className="toolbar-button" type="button" onClick={onReload}>
+          <button
+            className="toolbar-button"
+            type="button"
+            onClick={() => {
+              loggingService.logDialogAction("dialog.reload.reload", "success");
+              onReload();
+            }}
+          >
             Reload
           </button>
         </div>

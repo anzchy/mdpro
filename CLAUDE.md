@@ -143,6 +143,64 @@ Feature specifications live in `specs/001-mdpro-mvp/`:
 - HTML export only (no PDF/Word)
 - Max file size: 10MB
 
+## Logging Rules
+
+After implementing any new feature, **always add structured logging** to enable debugging in production builds:
+
+### Rust Backend (src-tauri/)
+```rust
+use tauri_app_lib::models::{LogEntryPayload, LogLevel, LogStatus};
+use tauri_app_lib::services::logger;
+
+// Log operation start
+logger::log_event(LogEntryPayload {
+    level: LogLevel::Info,
+    event: "feature.action".to_string(),  // e.g., "file.open", "window.create"
+    status: LogStatus::Start,
+    action_id: None,
+    context: Some(json!({ "key": "value" })),
+    duration_ms: None,
+    error: None,
+});
+
+// Log success/failure
+logger::log_event(LogEntryPayload {
+    level: LogLevel::Info,  // or LogLevel::Error for failures
+    event: "feature.action".to_string(),
+    status: LogStatus::Success,  // or LogStatus::Fail
+    action_id: None,
+    context: Some(json!({ "result": "details" })),
+    duration_ms: Some(elapsed_ms),
+    error: None,  // or Some(error_message) for failures
+});
+```
+
+### TypeScript Frontend (src/)
+```typescript
+import { loggingService } from './services/loggingService';
+
+// Log UI events
+loggingService.logEventSync({
+    level: 'info',
+    event: 'ui.component.action',  // e.g., "ui.button.click", "tab.switch"
+    status: 'success',
+    actionId: loggingService.generateActionId(),
+    context: { screen: 'editor', controlId: 'button-id' },
+});
+```
+
+### Event Naming Convention
+- UI events: `ui.<component>.<action>` (e.g., `ui.button.click`, `ui.menu.select`)
+- File events: `file.<action>` (e.g., `file.open`, `file.save`, `file.open.external`)
+- App events: `app.<action>` (e.g., `app.launch`, `app.ready`, `app.quit`)
+- Window events: `window.<action>` (e.g., `window.open`, `window.close`, `window.focus`)
+- Tab events: `tab.<action>` (e.g., `tab.open`, `tab.close`, `tab.switch`)
+
+### Log File Location
+- Path: `~/.mdpro/mdpro.log`
+- Format: JSONL (one JSON object per line)
+- Verify with: `tail -f ~/.mdpro/mdpro.log | jq .`
+
 ## Active Technologies
 - TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4 (002-polish-wysiwyg)
 - N/A (local file system via Tauri) (002-polish-wysiwyg)

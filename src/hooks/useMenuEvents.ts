@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { ViewMode } from "../types/editor";
 import type { UserPreferences } from "../types/preferences";
+import { loggingService } from "../services/loggingService";
 
 interface MenuActionPayload {
   action: string;
@@ -9,19 +10,19 @@ interface MenuActionPayload {
 }
 
 interface MenuHandlers {
-  onNew?: () => void;
-  onNewWindow?: () => void;
-  onOpen?: () => void;
-  onSave?: () => void;
-  onClose?: () => void;
-  onExportHtml?: () => void;
-  onOpenRecent?: (path: string) => void;
-  onToggleSidebar?: () => void;
-  onHighlight?: () => void;
-  onViewModeChange?: (mode: ViewMode) => void;
-  onCycleViewMode?: () => void;
-  onThemeModeChange?: (mode: UserPreferences["themeMode"]) => void;
-  onOpenPreferences?: () => void;
+  onNew?: (actionId?: string) => void;
+  onNewWindow?: (actionId?: string) => void;
+  onOpen?: (actionId?: string) => void;
+  onSave?: (actionId?: string) => void;
+  onClose?: (actionId?: string) => void;
+  onExportHtml?: (actionId?: string) => void;
+  onOpenRecent?: (path: string, actionId?: string) => void;
+  onToggleSidebar?: (actionId?: string) => void;
+  onHighlight?: (actionId?: string) => void;
+  onViewModeChange?: (mode: ViewMode, actionId?: string) => void;
+  onCycleViewMode?: (actionId?: string) => void;
+  onThemeModeChange?: (mode: UserPreferences["themeMode"], actionId?: string) => void;
+  onOpenPreferences?: (actionId?: string) => void;
 }
 
 export function useMenuEvents(handlers: MenuHandlers) {
@@ -44,34 +45,39 @@ export function useMenuEvents(handlers: MenuHandlers) {
       if (!canHandle) return;
       switch (action) {
         case "file.new":
-          handlers.onNew?.();
+          handlers.onNew?.(loggingService.logMenuSelect("menu.file.new"));
           break;
         case "file.new_window":
-          handlers.onNewWindow?.();
+          handlers.onNewWindow?.(loggingService.logMenuSelect("menu.file.new_window"));
           break;
         case "file.open":
-          handlers.onOpen?.();
+          handlers.onOpen?.(loggingService.logMenuSelect("menu.file.open"));
           break;
         case "file.save":
-          handlers.onSave?.();
+          handlers.onSave?.(loggingService.logMenuSelect("menu.file.save"));
           break;
         case "file.close":
-          handlers.onClose?.();
+          handlers.onClose?.(loggingService.logMenuSelect("menu.file.close"));
           break;
         case "file.export_html":
-          handlers.onExportHtml?.();
+          handlers.onExportHtml?.(loggingService.logMenuSelect("menu.file.export_html"));
           break;
         case "file.preferences":
-          handlers.onOpenPreferences?.();
+          handlers.onOpenPreferences?.(loggingService.logMenuSelect("menu.file.preferences"));
           break;
         case "file.open_recent":
-          if (value) handlers.onOpenRecent?.(value);
+          if (value) {
+            const actionId = loggingService.logMenuSelect("menu.file.open_recent", {
+              filePath: value,
+            });
+            handlers.onOpenRecent?.(value, actionId);
+          }
           break;
         case "view.cycle":
-          handlers.onCycleViewMode?.();
+          handlers.onCycleViewMode?.(loggingService.logMenuSelect("menu.view.cycle"));
           break;
         case "cycle-view-mode":
-          handlers.onCycleViewMode?.();
+          handlers.onCycleViewMode?.(loggingService.logMenuSelect("menu.view.cycle"));
           break;
         case "set-view-mode": {
           if (!value) break;
@@ -82,36 +88,60 @@ export function useMenuEvents(handlers: MenuHandlers) {
             mode === "preview-only" ||
             mode === "wysiwyg"
           ) {
-            handlers.onViewModeChange?.(mode);
+            handlers.onViewModeChange?.(
+              mode,
+              loggingService.logMenuSelect("menu.view.set_mode", { mode }),
+            );
           }
           break;
         }
         case "view.split":
-          handlers.onViewModeChange?.("split");
+          handlers.onViewModeChange?.(
+            "split",
+            loggingService.logMenuSelect("menu.view.split"),
+          );
           break;
         case "view.editor_only":
-          handlers.onViewModeChange?.("editor-only");
+          handlers.onViewModeChange?.(
+            "editor-only",
+            loggingService.logMenuSelect("menu.view.editor_only"),
+          );
           break;
         case "view.preview_only":
-          handlers.onViewModeChange?.("preview-only");
+          handlers.onViewModeChange?.(
+            "preview-only",
+            loggingService.logMenuSelect("menu.view.preview_only"),
+          );
           break;
         case "view.wysiwyg":
-          handlers.onViewModeChange?.("wysiwyg");
+          handlers.onViewModeChange?.(
+            "wysiwyg",
+            loggingService.logMenuSelect("menu.view.wysiwyg"),
+          );
           break;
         case "view.toggle_sidebar":
-          handlers.onToggleSidebar?.();
+          handlers.onToggleSidebar?.(loggingService.logMenuSelect("menu.view.toggle_sidebar"));
           break;
         case "format.highlight":
-          handlers.onHighlight?.();
+          handlers.onHighlight?.(loggingService.logMenuSelect("menu.format.highlight"));
           break;
         case "theme.light":
-          handlers.onThemeModeChange?.("light");
+          handlers.onThemeModeChange?.(
+            "light",
+            loggingService.logMenuSelect("menu.theme.light"),
+          );
           break;
         case "theme.dark":
-          handlers.onThemeModeChange?.("dark");
+          handlers.onThemeModeChange?.(
+            "dark",
+            loggingService.logMenuSelect("menu.theme.dark"),
+          );
           break;
         case "theme.system":
-          handlers.onThemeModeChange?.("system");
+          handlers.onThemeModeChange?.(
+            "system",
+            loggingService.logMenuSelect("menu.theme.system"),
+          );
           break;
         default:
           break;

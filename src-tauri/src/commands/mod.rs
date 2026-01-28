@@ -2,6 +2,7 @@ pub mod draft;
 pub mod export;
 pub mod file;
 pub mod launch;
+pub mod logging;
 pub mod menu;
 pub mod preferences;
 pub mod window;
@@ -19,6 +20,9 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         file::close_document,
         file::check_file_modified,
         file::reload_file,
+        logging::log_event,
+        logging::get_logging_settings,
+        logging::set_logging_settings,
         preferences::get_preferences,
         preferences::set_preferences,
         preferences::get_system_theme,

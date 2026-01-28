@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { EditorView } from "@codemirror/view";
 import { useEditorStore } from "../stores/editorStore";
+import { loggingService } from "../services/loggingService";
 import {
   heading1Command,
   heading2Command,
@@ -13,14 +14,14 @@ import {
 import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
 
 interface ShortcutHandlers {
-  onOpen?: () => void;
-  onSave?: () => void;
-  onClose?: () => void;
-  onNew?: () => void;
-  onHighlight?: () => void;
-  onToggleSidebar?: () => void;
-  onCycleViewMode?: () => void;
-  onOpenPreferences?: () => void;
+  onOpen?: (actionId?: string) => void;
+  onSave?: (actionId?: string) => void;
+  onClose?: (actionId?: string) => void;
+  onNew?: (actionId?: string) => void;
+  onHighlight?: (actionId?: string) => void;
+  onToggleSidebar?: (actionId?: string) => void;
+  onCycleViewMode?: (actionId?: string) => void;
+  onOpenPreferences?: (actionId?: string) => void;
 }
 
 export function useKeyboardShortcuts({
@@ -44,16 +45,19 @@ export function useKeyboardShortcuts({
       if (inCodeMirror && editorView) {
         if (key === "k") {
           event.preventDefault();
+          loggingService.logShortcut("Cmd+K", { action: "format.hyperlink" });
           insertLinkCommand(editorView);
           return;
         }
         if (key === "0") {
           event.preventDefault();
+          loggingService.logShortcut("Cmd+0", { action: "paragraph.paragraph" });
           paragraphCommand(editorView);
           return;
         }
         if (key >= "1" && key <= "6") {
           event.preventDefault();
+          loggingService.logShortcut(`Cmd+${key}`, { action: `paragraph.heading${key}` });
           const commandMap: Record<string, (view: EditorView) => boolean> = {
             "1": heading1Command,
             "2": heading2Command,
@@ -71,42 +75,50 @@ export function useKeyboardShortcuts({
       // Cmd+N - New document
       if (key === "n" && !event.shiftKey && onNew) {
         event.preventDefault();
-        onNew();
+        const actionId = loggingService.logShortcut("Cmd+N", { action: "file.new" });
+        onNew(actionId);
       }
       // Cmd+Shift+H - Highlight (not in CodeMirror)
       if (key === "h" && event.shiftKey && onHighlight && !inCodeMirror) {
         event.preventDefault();
-        onHighlight();
+        const actionId = loggingService.logShortcut("Cmd+Shift+H", { action: "format.highlight" });
+        onHighlight(actionId);
       }
       // Cmd+Shift+L - Toggle Sidebar (Typora convention)
       if (key === "l" && event.shiftKey && onToggleSidebar) {
         event.preventDefault();
-        onToggleSidebar();
+        const actionId = loggingService.logShortcut("Cmd+Shift+L", { action: "view.toggle_sidebar" });
+        onToggleSidebar(actionId);
       }
       // Cmd+O - Open file
       if (key === "o" && !event.shiftKey && onOpen) {
         event.preventDefault();
-        onOpen();
+        const actionId = loggingService.logShortcut("Cmd+O", { action: "file.open" });
+        onOpen(actionId);
       }
       // Cmd+S - Save
       if (key === "s" && !event.shiftKey && onSave) {
         event.preventDefault();
-        onSave();
+        const actionId = loggingService.logShortcut("Cmd+S", { action: "file.save" });
+        onSave(actionId);
       }
       // Cmd+W - Close document
       if (key === "w" && onClose) {
         event.preventDefault();
-        onClose();
+        const actionId = loggingService.logShortcut("Cmd+W", { action: "file.close" });
+        onClose(actionId);
       }
       // Cmd+/ - Cycle view mode (Typora: Source Code Mode toggle)
       if (key === "/" && onCycleViewMode) {
         event.preventDefault();
-        onCycleViewMode();
+        const actionId = loggingService.logShortcut("Cmd+/", { action: "view.cycle" });
+        onCycleViewMode(actionId);
       }
       // Cmd+, - Open Preferences
       if (key === "," && onOpenPreferences) {
         event.preventDefault();
-        onOpenPreferences();
+        const actionId = loggingService.logShortcut("Cmd+,", { action: "file.preferences" });
+        onOpenPreferences(actionId);
       }
     };
 

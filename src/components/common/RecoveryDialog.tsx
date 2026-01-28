@@ -6,6 +6,8 @@ interface DraftMetadata {
   title: string;
 }
 
+import { loggingService } from "../../services/loggingService";
+
 interface RecoveryDialogProps {
   drafts: DraftMetadata[];
   onRecover: (draftId: string) => void;
@@ -33,10 +35,28 @@ export function RecoveryDialog({ drafts, onRecover, onDiscard }: RecoveryDialogP
                 <div className="recovery-time">{draft.lastModified}</div>
               </div>
               <div className="recovery-actions">
-                <button className="toolbar-button" type="button" onClick={() => onRecover(draft.id)}>
+                <button
+                  className="toolbar-button"
+                  type="button"
+                  onClick={() => {
+                    loggingService.logDialogAction("dialog.recovery.recover", "success", {
+                      draftId: draft.id,
+                    });
+                    onRecover(draft.id);
+                  }}
+                >
                   Recover
                 </button>
-                <button className="toolbar-button" type="button" onClick={() => onDiscard(draft.id)}>
+                <button
+                  className="toolbar-button"
+                  type="button"
+                  onClick={() => {
+                    loggingService.logDialogAction("dialog.recovery.discard", "cancel", {
+                      draftId: draft.id,
+                    });
+                    onDiscard(draft.id);
+                  }}
+                >
                   Discard
                 </button>
               </div>

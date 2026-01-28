@@ -59,9 +59,9 @@ export function useDocument() {
   );
 
   const openDocumentFromPath = useCallback(
-    async (path: string) => {
+    async (path: string, actionId?: string) => {
       try {
-        const result = await fileService.openFile(path);
+        const result = await fileService.openFile(path, undefined, actionId);
         upsertDocument(result.document);
         setActiveDocumentId(result.document.id);
         setEditorActiveDocumentId(result.document.id);
@@ -97,9 +97,9 @@ export function useDocument() {
     [setActiveDocumentId, setEditorActiveDocumentId],
   );
 
-  const openDocumentFromDialog = useCallback(async () => {
+  const openDocumentFromDialog = useCallback(async (actionId?: string) => {
     try {
-      const result = await fileService.openFileDialog();
+      const result = await fileService.openFileDialog(actionId);
       if (!result) {
         return null;
       }
@@ -126,8 +126,8 @@ export function useDocument() {
   }, [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument]);
 
   const openDocumentWithEncoding = useCallback(
-    async (path: string, encoding: string) => {
-      const result = await fileService.openFile(path, encoding);
+    async (path: string, encoding: string, actionId?: string) => {
+      const result = await fileService.openFile(path, encoding, actionId);
       upsertDocument(result.document);
       setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
@@ -189,13 +189,14 @@ export function useDocument() {
     [activeDocument, updateDocumentContent],
   );
 
-  const saveActiveDocumentAs = useCallback(async () => {
+  const saveActiveDocumentAs = useCallback(async (actionId?: string) => {
     if (!activeDocument) return null;
     const suggestedName = getTitleFromPath(activeDocument.path);
     const result = await fileService.saveFileDialog(
       activeDocument.id,
       activeDocument.content,
       suggestedName,
+      actionId,
     );
     if (result?.success) {
       upsertDocument({
@@ -210,15 +211,16 @@ export function useDocument() {
     return result;
   }, [activeDocument, markDocumentModified, upsertDocument]);
 
-  const saveActiveDocument = useCallback(async () => {
+  const saveActiveDocument = useCallback(async (actionId?: string) => {
     if (!activeDocument) return null;
     if (!activeDocument.path) {
-      return saveActiveDocumentAs();
+      return saveActiveDocumentAs(actionId);
     }
     const result = await fileService.saveFile(
       activeDocument.id,
       activeDocument.content,
       activeDocument.path,
+      actionId,
     );
     if (result?.success) {
       upsertDocument({

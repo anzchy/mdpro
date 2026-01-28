@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tauri::Window;
 
+use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::{html_template, markdown};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -39,6 +41,18 @@ pub async fn export_html(
     title: String,
     theme: String,
 ) -> Result<ExportResult, ExportError> {
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let start = std::time::Instant::now();
+    crate::services::logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "file.export".to_string(),
+        status: LogStatus::Start,
+        action_id: Some(action_id.clone()),
+        context: Some(json!({ "title": title.as_str(), "theme": theme.as_str() })),
+        duration_ms: None,
+        error: None,
+    });
+
     let html_fragment = markdown::render_markdown(&content);
     let html = html_template::build_html(&html_fragment, &title, &theme);
 
@@ -47,10 +61,31 @@ pub async fn export_html(
         .set_file_name(format!("{title}.html"))
         .save_file()
     else {
+        crate::services::logger::log_event(LogEntryPayload {
+            level: LogLevel::Warn,
+            event: "file.export".to_string(),
+            status: LogStatus::Cancel,
+            action_id: Some(action_id),
+            context: Some(json!({ "title": title.as_str() })),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            error: None,
+        });
         return Err(ExportError::Cancelled);
     };
 
-    std::fs::write(&path, html.as_bytes()).map_err(|err| match err.kind() {
+    let path_string = path.to_string_lossy().to_string();
+    let path_for_error = path_string.clone();
+    std::fs::write(&path, html.as_bytes()).map_err(|err| {
+        crate::services::logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "file.export".to_string(),
+            status: LogStatus::Fail,
+            action_id: Some(action_id.clone()),
+            context: Some(json!({ "path": path_for_error })),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            error: Some(err.to_string()),
+        });
+        match err.kind() {
         std::io::ErrorKind::PermissionDenied => ExportError::PermissionDenied {
             path: path.to_string_lossy().to_string(),
         },
@@ -58,8 +93,21 @@ pub async fn export_html(
         _ => ExportError::ExportFailed {
             message: err.to_string(),
         },
+        }
     })?;
 
+    crate::services::logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "file.export".to_string(),
+        status: LogStatus::Success,
+        action_id: Some(action_id),
+        context: Some(json!({
+            "path": path_string,
+            "htmlSize": html.len() as u64
+        })),
+        duration_ms: Some(start.elapsed().as_millis() as u64),
+        error: None,
+    });
     Ok(ExportResult {
         success: true,
         path: path.to_string_lossy().to_string(),
