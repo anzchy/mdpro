@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "vmark.excludeFolders": [
+      ".git",
+      "node_modules",
+      ".vmark"
+    ],
+    "vmark.showHiddenFiles": false,
+    "vmark.lastOpenTabs": [
+      "/Users/jackcheng/Documents/01_Coding/mac-app/mdpro/specs/005-add-concrete-logging/spec.md"
+    ],
+    "vmark.identity": {
+      "id": "08e951ea-9752-4d0f-bd68-8f8331f569eb",
+      "createdAt": 1769604436455,
+      "trustLevel": "untrusted"
+    }
+  }
+}

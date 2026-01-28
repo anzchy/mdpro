@@ -16,13 +16,12 @@ function MilkdownEditorInner() {
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
     [documents, activeDocumentId],
   );
-  // Note: We intentionally depend only on activeDocumentId here because
-  // Milkdown creates a fresh editor instance when the document changes.
-  // Including activeDocument would cause unnecessary re-renders during typing.
+  // Depend on activeDocument?.content to ensure content is available when document switches.
+  // This is safe because useMilkdown only recreates the editor when documentId changes,
+  // not when initialMarkdown changes during typing.
   const initialMarkdown = useMemo(
     () => activeDocument?.content ?? "",
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeDocumentId],
+    [activeDocument?.content],
   );
 
   const handleMarkdownChange = useCallback(

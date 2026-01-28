@@ -150,6 +150,7 @@ Feature specifications live in `specs/001-mdpro-mvp/`:
 - N/A (no new storage requirements) (003-redesign-plugin-system)
 - TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + Tauri 2.0, React 19, Zustand 4, CodeMirror 6, Milkdown 7 (004-minor-fix)
 - Local filesystem (via Tauri), JSON preferences file (004-minor-fix)
+- JSONL file at `~/.mdpro/mdpro.log`, preferences in existing `preferences.json` (005-add-concrete-logging)
 
 ## Recent Changes
 - 002-polish-wysiwyg: Added TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4
