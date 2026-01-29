@@ -203,6 +203,45 @@ loggingService.logEventSync({
 
 ## Debugging Strategies
 
+### Tauri Dev WebView DevTools
+
+**In `pnpm tauri dev`, right-click anywhere in the window → "Inspect Element"** to open WebView DevTools with full Chrome DevTools capabilities:
+
+- Elements / DOM inspection
+- Console logs
+- Network requests
+- Sources with breakpoints
+- Performance profiling
+
+This is often overlooked but provides the best of both worlds: full DevTools + Tauri APIs.
+
+### Enable DevTools in Production Builds (for internal testing)
+
+Add to `tauri.conf.json` for test builds:
+```json
+{
+  "app": {
+    "windows": [{
+      "devtools": true
+    }]
+  }
+}
+```
+
+Or trigger via keyboard shortcut (add to Rust backend):
+```rust
+#[tauri::command]
+fn toggle_devtools(window: tauri::Window) {
+    if window.is_devtools_open() {
+        window.close_devtools();
+    } else {
+        window.open_devtools();
+    }
+}
+```
+
+**Note**: Disable DevTools in public releases for security.
+
 ### When to use `pnpm dev` (localhost:1420)
 
 Use browser-based debugging for **frontend-only issues**:
