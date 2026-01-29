@@ -308,8 +308,8 @@ function App() {
           context: { windowLabel, filePath: openPath },
         });
 
-        // Use preview-only mode for externally opened files
-        setViewMode("preview-only");
+        // Use default view mode from preferences for externally opened files
+        setViewMode(defaultViewMode);
         const doc = await openDocumentFromPath(openPath, actionId);
         loggingService.logEventSync({
           level: doc ? "info" : "error",
@@ -332,7 +332,7 @@ function App() {
       }
     };
     void checkUrlParam();
-  }, [openDocumentFromPath, setViewMode, updateRecentFiles]);
+  }, [defaultViewMode, openDocumentFromPath, setViewMode, updateRecentFiles]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -709,7 +709,7 @@ function App() {
       }
 
       // Always open dropped files in the current window (no extra untitled window).
-      setViewMode("preview-only");
+      setViewMode(defaultViewMode);
       for (const filePath of mdPaths) {
         const actionId = loggingService.generateActionId();
         loggingService.logEventSync({
@@ -734,7 +734,7 @@ function App() {
         });
       }
     },
-    [handleOpenPath, setViewMode],
+    [defaultViewMode, handleOpenPath, setViewMode],
   );
 
   // Set up Tauri drag-drop event listener
@@ -839,6 +839,10 @@ function App() {
   });
 
   useEffect(() => {
+    // Wait for preferences to load before processing launch paths
+    // This ensures defaultViewMode has the correct value from user preferences
+    if (!preferencesLoaded) return;
+
     const checkLaunchPaths = async () => {
       try {
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
@@ -855,6 +859,7 @@ function App() {
             windowLabel,
             pathCount: paths?.length || 0,
             paths: paths || [],
+            defaultViewMode,
           },
         });
 
@@ -870,8 +875,8 @@ function App() {
           }
           return;
         }
-        // When opening from Finder/command line, use preview-only mode
-        setViewMode("preview-only");
+        // When opening from Finder/command line, use default view mode from preferences
+        setViewMode(defaultViewMode);
         await openPaths(paths);
         setLaunchPathsComplete(true);
       } catch {
@@ -880,18 +885,18 @@ function App() {
       }
     };
     void checkLaunchPaths();
-  }, [openPaths, setViewMode]);
+  }, [defaultViewMode, openPaths, preferencesLoaded, setViewMode]);
 
   const handleFileOpenEvent = useCallback(
     async (paths: string[]) => {
       if (!paths || paths.length === 0) return;
       const canHandle = await shouldHandleWindowEvent();
       if (!canHandle) return;
-      // When opening from Finder while app is running, use preview-only mode
-      setViewMode("preview-only");
+      // When opening from Finder while app is running, use default view mode from preferences
+      setViewMode(defaultViewMode);
       void openPaths(paths);
     },
-    [openPaths, setViewMode, shouldHandleWindowEvent],
+    [defaultViewMode, openPaths, setViewMode, shouldHandleWindowEvent],
   );
 
   useEffect(() => {
