@@ -8,8 +8,57 @@ import {
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../../stores/documentStore";
 import { loggingService } from "../../services/loggingService";
+
+// Image path resolution helpers
+function isRemoteUrl(src: string): boolean {
+  return src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:");
+}
+
+function isAssetUrl(src: string): boolean {
+  return src.startsWith("asset://") || src.startsWith("tauri://");
+}
+
+function resolveImagePath(src: string, documentPath: string | null): string {
+  if (isRemoteUrl(src) || isAssetUrl(src)) return src;
+
+  if (src.startsWith("/")) {
+    try {
+      return convertFileSrc(src);
+    } catch {
+      return src;
+    }
+  }
+
+  if (documentPath) {
+    const docDir = documentPath.substring(0, documentPath.lastIndexOf("/"));
+    let resolvedPath: string;
+
+    if (src.startsWith("./")) {
+      resolvedPath = `${docDir}/${src.substring(2)}`;
+    } else if (src.startsWith("../")) {
+      const parts = docDir.split("/");
+      let srcParts = src.split("/");
+      while (srcParts[0] === "..") {
+        parts.pop();
+        srcParts = srcParts.slice(1);
+      }
+      resolvedPath = `${parts.join("/")}/${srcParts.join("/")}`;
+    } else {
+      resolvedPath = `${docDir}/${src}`;
+    }
+
+    try {
+      return convertFileSrc(resolvedPath);
+    } catch {
+      return src;
+    }
+  }
+
+  return src;
+}
 
 function MilkdownEditorInner() {
   const { documents, activeDocumentId } = useDocumentStore(
@@ -107,6 +156,48 @@ function MilkdownEditorInner() {
     });
   }, [editor.loading]);
 
+  // Process images after Milkdown renders to resolve local paths
+  useEffect(() => {
+    if (editor.loading) return;
+
+    const documentPath = activeDocument?.filePath ?? null;
+
+    // Small delay to ensure Milkdown has rendered the content
+    const timer = setTimeout(() => {
+      const container = document.getElementById("milkdown-container");
+      if (!container) return;
+
+      const images = container.querySelectorAll("img");
+      images.forEach((img) => {
+        const originalSrc = img.getAttribute("src");
+        if (!originalSrc) return;
+
+        // Skip if already processed (has asset:// or http(s)://)
+        if (isAssetUrl(originalSrc) || (isRemoteUrl(originalSrc) && !originalSrc.startsWith("data:"))) {
+          return;
+        }
+
+        const resolvedSrc = resolveImagePath(originalSrc, documentPath);
+        if (resolvedSrc !== originalSrc) {
+          img.setAttribute("src", resolvedSrc);
+          loggingService.logEventSync({
+            level: "info",
+            event: "editor.milkdown.image.resolve",
+            status: "success",
+            actionId: loggingService.generateActionId(),
+            context: {
+              originalSrc,
+              resolvedSrc,
+              documentPath,
+            },
+          });
+        }
+      });
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [editor.loading, activeDocument?.filePath, activeDocumentId]);
+
   return <Milkdown />;
 }
 
@@ -115,7 +206,7 @@ export function MilkdownEditor() {
   const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
 
   return (
-    <div className="milkdown-editor">
+    <div id="milkdown-container" className="milkdown-editor">
       {/* Key forces MilkdownProvider to recreate when document changes */}
       <MilkdownProvider key={activeDocumentId ?? "empty"}>
         <MilkdownEditorInner />

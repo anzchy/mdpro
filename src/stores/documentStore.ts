@@ -12,9 +12,17 @@ interface DocumentStore {
   markDocumentModified: (id: string, isModified: boolean) => void;
   updateDocumentPath: (id: string, path: string) => void;
   closeDocument: (id: string) => void;
+  /** Get a document by its ID */
+  getDocumentById: (id: string) => Document | undefined;
+  /** Set the active document (switches focus) */
+  setActiveDocument: (id: string) => void;
+  /** Get the currently active document */
+  getActiveDocument: () => Document | undefined;
+  /** Check if a document with the given path is already open */
+  getDocumentByPath: (path: string) => Document | undefined;
 }
 
-export const useDocumentStore = create<DocumentStore>((set) => ({
+export const useDocumentStore = create<DocumentStore>((set, get) => ({
   documents: [],
   activeDocumentId: null,
   setDocuments: (documents) => set({ documents }),
@@ -106,4 +114,40 @@ export const useDocumentStore = create<DocumentStore>((set) => ({
       activeDocumentId:
         state.activeDocumentId === id ? null : state.activeDocumentId,
     })),
+
+  getDocumentById: (id) => {
+    return get().documents.find((doc) => doc.id === id);
+  },
+
+  setActiveDocument: (id) => {
+    const state = get();
+    const doc = state.documents.find((d) => d.id === id);
+    if (!doc) return;
+
+    if (id !== state.activeDocumentId) {
+      loggingService.logEventSync({
+        level: "info",
+        event: "document.activate",
+        status: "success",
+        actionId: loggingService.generateActionId(),
+        context: {
+          fromDocumentId: state.activeDocumentId,
+          toDocumentId: id,
+          filePath: doc.path,
+        },
+      });
+    }
+
+    set({ activeDocumentId: id });
+  },
+
+  getActiveDocument: () => {
+    const state = get();
+    if (!state.activeDocumentId) return undefined;
+    return state.documents.find((doc) => doc.id === state.activeDocumentId);
+  },
+
+  getDocumentByPath: (path) => {
+    return get().documents.find((doc) => doc.path === path);
+  },
 }));
