@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend Architecture - mdpro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rust: '#dea584',
+            react: '#61dafb',
+            tauri: '#ffc131',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-text {
+      background: linear-gradient(135deg, #61dafb 0%, #667eea 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-lg">M</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-gray-900">mdpro</h1>
+            <p class="text-sm text-gray-500">Architecture Documentation</p>
+          </div>
+        </div>
+        <nav class="flex space-x-4">
+          <a href="index.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Overview</a>
+          <a href="frontend.html" class="px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md">Frontend</a>
+          <a href="backend.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Backend</a>
+          <a href="ipc-events.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">IPC & Events</a>
+          <a href="plugins.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Plugins</a>
+          <a href="data-flow.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Data Flow</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Page Title -->
+    <section class="mb-8">
+      <h2 class="text-3xl font-bold gradient-text mb-2">Frontend Architecture</h2>
+      <p class="text-gray-600">React 19 + TypeScript 5.8 + CodeMirror 6 + Milkdown 7.18</p>
+    </section>
+
+    <!-- Component Tree -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Component Hierarchy</h3>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="font-mono text-sm">
+          <div class="border-l-4 border-purple-500 pl-4 py-2 bg-purple-50 rounded-r mb-2">
+            <span class="font-bold text-purple-700">App.tsx</span>
+            <span class="text-gray-500 ml-2">— Root orchestrator, manages lifecycle</span>
+          </div>
+          <div class="ml-8 space-y-2">
+            <div class="border-l-4 border-blue-400 pl-4 py-2 bg-blue-50 rounded-r">
+              <span class="font-bold text-blue-700">TitleBar.tsx</span>
+              <span class="text-gray-500 ml-2">— Native macOS title bar</span>
+            </div>
+            <div class="border-l-4 border-green-400 pl-4 py-2 bg-green-50 rounded-r">
+              <span class="font-bold text-green-700">Sidebar.tsx</span>
+              <span class="text-gray-500 ml-2">— Document tabs</span>
+              <div class="ml-4 mt-2 text-gray-600">└─ FileItem.tsx — Individual tab</div>
+            </div>
+            <div class="border-l-4 border-orange-400 pl-4 py-2 bg-orange-50 rounded-r">
+              <span class="font-bold text-orange-700">Editor Views</span>
+              <span class="text-gray-500 ml-2">— Based on viewMode</span>
+              <div class="ml-4 mt-2 space-y-1 text-gray-600">
+                <div>├─ SplitView.tsx (split mode)</div>
+                <div>│  ├─ Editor.tsx (CodeMirror)</div>
+                <div>│  └─ Preview.tsx</div>
+                <div>├─ Editor.tsx (editor-only mode)</div>
+                <div>├─ Preview.tsx (preview-only mode)</div>
+                <div>└─ MilkdownEditor.tsx (wysiwyg mode)</div>
+              </div>
+            </div>
+            <div class="border-l-4 border-pink-400 pl-4 py-2 bg-pink-50 rounded-r">
+              <span class="font-bold text-pink-700">Dialogs</span>
+              <span class="text-gray-500 ml-2">— Modal overlays</span>
+              <div class="ml-4 mt-2 space-y-1 text-gray-600">
+                <div>├─ SettingsDialog.tsx</div>
+                <div>├─ EncodingDialog.tsx</div>
+                <div>├─ RecoveryDialog.tsx</div>
+                <div>├─ ReloadDialog.tsx</div>
+                <div>└─ ConfirmDialog.tsx</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Components Detail -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Component Details</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Editor Component -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">EDITOR</span>
+          </div>
+          <h4 class="font-semibold text-lg mb-3">Editor.tsx</h4>
+          <p class="text-sm text-gray-600 mb-4">CodeMirror 6 wrapper for source editing with Markdown extensions.</p>
+          <div class="space-y-2 text-sm">
+            <div class="font-medium text-gray-700">Key Features:</div>
+            <ul class="list-disc list-inside text-gray-600 space-y-1">
+              <li>Markdown syntax highlighting</li>
+              <li>Line numbers and folding</li>
+              <li>Plugin system integration</li>
+              <li>Undo/redo tracking</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <div class="text-xs text-gray-500">Location: <code>src/components/Editor/Editor.tsx</code></div>
+          </div>
+        </div>
+
+        <!-- MilkdownEditor Component -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">WYSIWYG</span>
+          </div>
+          <h4 class="font-semibold text-lg mb-3">MilkdownEditor.tsx</h4>
+          <p class="text-sm text-gray-600 mb-4">Milkdown-based WYSIWYG editor with Typora-like experience.</p>
+          <div class="space-y-2 text-sm">
+            <div class="font-medium text-gray-700">Key Features:</div>
+            <ul class="list-disc list-inside text-gray-600 space-y-1">
+              <li>Rich text editing</li>
+              <li>Inline markdown preview</li>
+              <li>Typora-style keyboard shortcuts</li>
+              <li>Plugin extension support</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <div class="text-xs text-gray-500">Location: <code>src/components/Editor/MilkdownEditor.tsx</code></div>
+          </div>
+        </div>
+
+        <!-- Preview Component -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">PREVIEW</span>
+          </div>
+          <h4 class="font-semibold text-lg mb-3">Preview.tsx</h4>
+          <p class="text-sm text-gray-600 mb-4">Rendered Markdown preview with syntax highlighting.</p>
+          <div class="space-y-2 text-sm">
+            <div class="font-medium text-gray-700">Technologies:</div>
+            <ul class="list-disc list-inside text-gray-600 space-y-1">
+              <li>marked (Markdown parsing)</li>
+              <li>DOMPurify (XSS protection)</li>
+              <li>highlight.js (code blocks)</li>
+              <li>Scroll sync with editor</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <div class="text-xs text-gray-500">Location: <code>src/components/Preview/Preview.tsx</code></div>
+          </div>
+        </div>
+
+        <!-- Sidebar Component -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">NAVIGATION</span>
+          </div>
+          <h4 class="font-semibold text-lg mb-3">Sidebar.tsx</h4>
+          <p class="text-sm text-gray-600 mb-4">Document tab management and navigation.</p>
+          <div class="space-y-2 text-sm">
+            <div class="font-medium text-gray-700">Features:</div>
+            <ul class="list-disc list-inside text-gray-600 space-y-1">
+              <li>Multi-document tabs</li>
+              <li>Modified indicator</li>
+              <li>Close/switch documents</li>
+              <li>Toggle visibility (⌘⇧B)</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <div class="text-xs text-gray-500">Location: <code>src/components/Sidebar/Sidebar.tsx</code></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hooks -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Custom Hooks</h3>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hook</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key Methods</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useDocument</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Document CRUD & file operations</td>
+              <td class="px-6 py-4 text-sm text-gray-500">openDocument, saveActiveDocument, closeDocument</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useEditor</td>
+              <td class="px-6 py-4 text-sm text-gray-600">View mode & sidebar state</td>
+              <td class="px-6 py-4 text-sm text-gray-500">setViewMode, cycleViewMode, toggleSidebar</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useMenuEvents</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Listen to native menu actions</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Handles menu:action events from Rust</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useFileWatcher</td>
+              <td class="px-6 py-4 text-sm text-gray-600">External file change detection</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Triggers ReloadDialog on changes</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useAutoSave</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Periodic draft saving</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Auto-saves every N seconds</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useMilkdown</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Milkdown editor setup</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Editor initialization & plugins</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useTheme</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Theme switching</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Light/dark/system mode</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">useScrollSync</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Scroll synchronization</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Sync editor & preview scroll</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Stores -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Zustand Stores</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Document Store -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold text-lg">documentStore</h4>
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">STATE</span>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1">State</div>
+              <pre class="text-sm bg-gray-50 rounded p-2 font-mono text-gray-700">documents: Document[]
+activeDocumentId: string | null</pre>
+            </div>
+            <div>
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1">Actions</div>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>• setDocuments</li>
+                <li>• upsertDocument</li>
+                <li>• updateDocumentContent</li>
+                <li>• markDocumentModified</li>
+                <li>• closeDocument</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor Store -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold text-lg">editorStore</h4>
+            <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">STATE</span>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1">State</div>
+              <pre class="text-sm bg-gray-50 rounded p-2 font-mono text-gray-700">viewMode: "split" | "editor-only" | "preview-only" | "wysiwyg"
+showSidebar: boolean
+cursor, selection, editorScroll, previewScroll
+isFocused: boolean
+undoDepth, redoDepth: number</pre>
+            </div>
+            <div>
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1">Actions</div>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>• setViewMode / cycleViewMode</li>
+                <li>• toggleSidebar</li>
+                <li>• setCursor / setSelection</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Store -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold text-lg">themeStore</h4>
+            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">STATE</span>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1">State</div>
+              <pre class="text-sm bg-gray-50 rounded p-2 font-mono text-gray-700">themeMode: "light" | "dark" | "system"
+resolvedTheme: "light" | "dark"</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logging Store -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold text-lg">loggingStore</h4>
+            <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">STATE</span>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1">State</div>
+              <pre class="text-sm bg-gray-50 rounded p-2 font-mono text-gray-700">settings: LogSettings</pre>
+            </div>
+            <div>
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1">Actions</div>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>• setSettings</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Services (IPC Wrappers)</h3>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Methods</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">fileService.ts</td>
+              <td class="px-6 py-4 text-sm text-gray-600">File operations</td>
+              <td class="px-6 py-4 text-sm text-gray-500">openFile, saveFile, closeDocument, reloadFile</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">exportService.ts</td>
+              <td class="px-6 py-4 text-sm text-gray-600">HTML export</td>
+              <td class="px-6 py-4 text-sm text-gray-500">exportHtml, renderMarkdown</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">preferencesService.ts</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Settings CRUD</td>
+              <td class="px-6 py-4 text-sm text-gray-500">getPreferences, setPreferences</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">loggingService.ts</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Structured logging</td>
+              <td class="px-6 py-4 text-sm text-gray-500">logEventSync, generateActionId</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-purple-600">windowService.ts</td>
+              <td class="px-6 py-4 text-sm text-gray-600">Window management</td>
+              <td class="px-6 py-4 text-sm text-gray-500">createWindow, saveWindowGeometry</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Directory Structure -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Directory Structure</h3>
+      <div class="bg-gray-900 rounded-xl p-6 text-gray-100 font-mono text-sm overflow-x-auto">
+        <pre>src/
+├── App.tsx                  <span class="text-gray-500"># Root component, orchestrates all features</span>
+├── main.tsx                 <span class="text-gray-500"># Entry point</span>
+├── App.css                  <span class="text-gray-500"># Root styles</span>
+│
+├── <span class="text-react">components/</span>              <span class="text-gray-500"># UI components</span>
+│   ├── Editor/
+│   │   ├── Editor.tsx       <span class="text-gray-500"># CodeMirror wrapper</span>
+│   │   ├── MilkdownEditor.tsx  <span class="text-gray-500"># WYSIWYG editor</span>
+│   │   ├── SplitView.tsx    <span class="text-gray-500"># Split mode (editor + preview)</span>
+│   │   ├── extensions/      <span class="text-gray-500"># CodeMirror custom extensions</span>
+│   │   └── plugins/         <span class="text-gray-500"># Editor-specific plugins</span>
+│   │
+│   ├── Preview/
+│   │   ├── Preview.tsx      <span class="text-gray-500"># Markdown preview pane</span>
+│   │   └── ImageRenderer.tsx <span class="text-gray-500"># Image rendering</span>
+│   │
+│   ├── Sidebar/
+│   │   ├── Sidebar.tsx      <span class="text-gray-500"># Document tabs container</span>
+│   │   └── FileItem.tsx     <span class="text-gray-500"># Individual tab</span>
+│   │
+│   ├── TitleBar/
+│   │   └── TitleBar.tsx     <span class="text-gray-500"># Native macOS title bar</span>
+│   │
+│   ├── Toolbar/
+│   │   └── Toolbar.tsx      <span class="text-gray-500"># Top toolbar</span>
+│   │
+│   ├── common/
+│   │   ├── ConfirmDialog.tsx
+│   │   ├── EncodingDialog.tsx
+│   │   ├── RecoveryDialog.tsx
+│   │   ├── SettingsDialog.tsx
+│   │   ├── ReloadDialog.tsx
+│   │   ├── LoadingSpinner.tsx
+│   │   └── Toast.tsx
+│   │
+│   └── DevToolbar.tsx       <span class="text-gray-500"># Dev-only debugging</span>
+│
+├── <span class="text-blue-400">hooks/</span>                   <span class="text-gray-500"># Custom React hooks</span>
+│   ├── useDocument.ts
+│   ├── useEditor.ts
+│   ├── useAutoSave.ts
+│   ├── useMenuEvents.ts
+│   ├── useKeyboardShortcuts.ts
+│   ├── useFileWatcher.ts
+│   ├── useMilkdown.ts
+│   ├── useTheme.ts
+│   ├── usePreview.ts
+│   └── useScrollSync.ts
+│
+├── <span class="text-green-400">plugins/</span>                 <span class="text-gray-500"># Editor plugin system</span>
+│   ├── core/
+│   │   ├── pluginRegistry.ts
+│   │   ├── pluginTypes.ts
+│   │   └── pluginConfig.ts
+│   ├── codemirror/
+│   │   └── ...plugins
+│   ├── milkdown/
+│   │   └── ...plugins
+│   └── index.ts
+│
+├── <span class="text-yellow-400">stores/</span>                  <span class="text-gray-500"># Zustand state stores</span>
+│   ├── documentStore.ts
+│   ├── editorStore.ts
+│   ├── themeStore.ts
+│   └── loggingStore.ts
+│
+├── <span class="text-purple-400">services/</span>                <span class="text-gray-500"># Tauri IPC wrappers</span>
+│   ├── fileService.ts
+│   ├── exportService.ts
+│   ├── preferencesService.ts
+│   ├── loggingService.ts
+│   └── windowService.ts
+│
+├── <span class="text-orange-400">types/</span>                   <span class="text-gray-500"># TypeScript definitions</span>
+│   ├── document.ts
+│   ├── editor.ts
+│   ├── preferences.ts
+│   ├── theme.ts
+│   └── logging.ts
+│
+├── styles/                  <span class="text-gray-500"># Global styles</span>
+├── assets/                  <span class="text-gray-500"># Images, icons</span>
+└── vite-env.d.ts           <span class="text-gray-500"># Vite environment types</span></pre>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-200 bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between text-sm text-gray-500">
+        <span>mdpro Architecture Documentation</span>
+        <div class="flex space-x-4">
+          <a href="backend.html" class="text-purple-600 hover:text-purple-800">Next: Backend →</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

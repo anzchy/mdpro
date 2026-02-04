@@ -34,6 +34,18 @@ pub struct UserPreferences {
     /// Per-file window states for position/size persistence
     #[serde(default)]
     pub window_states: HashMap<String, WindowGeometry>,
+
+    /// Auto-save configuration
+    #[serde(default)]
+    pub auto_save: AutoSaveConfig,
+
+    /// Tab bar configuration
+    #[serde(default)]
+    pub tab_bar: TabBarConfig,
+
+    /// Image configuration
+    #[serde(default)]
+    pub image: ImageConfig,
 }
 
 /// Window geometry for per-file window position/size persistence
@@ -242,6 +254,99 @@ pub struct WindowState {
     pub is_maximized: bool,
 }
 
+/// Auto-save configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoSaveConfig {
+    /// Whether auto-save is enabled
+    pub enabled: bool,
+    /// Auto-save interval in milliseconds (5000, 15000, 60000)
+    pub interval_ms: u32,
+    /// Debounce delay before saving after typing stops
+    pub debounce_ms: u32,
+    /// Whether to save on window blur
+    pub save_on_blur: bool,
+}
+
+impl Default for AutoSaveConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            interval_ms: 15000,
+            debounce_ms: 1500,
+            save_on_blur: true,
+        }
+    }
+}
+
+/// Tab bar configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TabBarConfig {
+    /// Position of tab bar (top or bottom)
+    pub position: TabBarPosition,
+    /// Maximum number of visible tabs before scrolling
+    pub max_visible_tabs: u32,
+    /// Whether to show close button on hover only
+    pub show_close_on_hover: bool,
+    /// Focus behavior when closing active tab
+    pub close_focus_behavior: CloseFocusBehavior,
+}
+
+impl Default for TabBarConfig {
+    fn default() -> Self {
+        Self {
+            position: TabBarPosition::Top,
+            max_visible_tabs: 10,
+            show_close_on_hover: true,
+            close_focus_behavior: CloseFocusBehavior::Mru,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TabBarPosition {
+    Top,
+    Bottom,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CloseFocusBehavior {
+    /// Most recently used tab
+    Mru,
+    /// Tab to the right
+    Right,
+    /// Tab to the left
+    Left,
+}
+
+/// Image configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageConfig {
+    /// Default folder for uploaded images (relative to document)
+    pub asset_folder: String,
+    /// Whether to copy external images to asset folder
+    pub copy_external_images: bool,
+    /// Whether to show preview before paste
+    pub show_paste_preview: bool,
+    /// Maximum dimension for auto-resize (None = no limit)
+    pub max_dimension: Option<u32>,
+}
+
+impl Default for ImageConfig {
+    fn default() -> Self {
+        Self {
+            asset_folder: "./assets".to_string(),
+            copy_external_images: true,
+            show_paste_preview: true,
+            max_dimension: None,
+        }
+    }
+}
+
 impl Default for UserPreferences {
     fn default() -> Self {
         Self {
@@ -262,6 +367,9 @@ impl Default for UserPreferences {
             keyboard_shortcuts: KeyboardShortcuts::default(),
             logging: LogSettings::default(),
             window_states: HashMap::new(),
+            auto_save: AutoSaveConfig::default(),
+            tab_bar: TabBarConfig::default(),
+            image: ImageConfig::default(),
         }
     }
 }

@@ -5,7 +5,9 @@ import { DevToolbar } from "./components/DevToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
 import { Preview } from "./components/Preview/Preview";
-import { Sidebar } from "./components/Sidebar/Sidebar";
+import { TOCSidebarContainer } from "./components/Sidebar";
+import { BottomTabs } from "./components/BottomTabs";
+import { useTOC } from "./hooks/useTOC";
 import { TitleBar } from "./components/TitleBar";
 import { ConfirmDialog } from "./components/common/ConfirmDialog";
 import { SettingsDialog } from "./components/common/SettingsDialog";
@@ -93,7 +95,7 @@ function App() {
   const allowWindowCloseRef = useRef(false);
   const openDialogCooldownRef = useRef(0);
   const launchPathsRetryRef = useRef(0);
-  const { event: fileChangeEvent, clearEvent } = useFileWatcher(
+  const { event: fileChangeEvent, clearEvent, markSaveInProgress } = useFileWatcher(
     activeDocument?.path ?? null,
   );
 
@@ -101,6 +103,19 @@ function App() {
   hasUnsavedRef.current = hasUnsavedChanges;
 
   useAutoSave(autoSaveInterval);
+
+  // TOC hook for sidebar Table of Contents
+  const {
+    hierarchy: tocHierarchy,
+    activeEntryId: activeTocEntryId,
+    collapsedIds: collapsedTocIds,
+    navigateToEntry: navigateToTocEntry,
+    toggleCollapsed: toggleTocCollapsed,
+  } = useTOC({
+    content: activeDocument?.content ?? "",
+    containerId: viewMode === "wysiwyg" ? "milkdown-container" : "preview-container",
+    enableSpyScrolling: viewMode !== "editor-only",
+  });
 
   const updateRecentFiles = useCallback(
     (path: string) => {
@@ -516,6 +531,8 @@ function App() {
 
   const handleSave = useCallback(async (actionId?: string) => {
     setBusyLabel("Saving...");
+    // Mark save in progress to suppress external change detection
+    markSaveInProgress();
     try {
       const result = await saveActiveDocument(actionId);
       if (result?.path) {
@@ -527,7 +544,7 @@ function App() {
     } finally {
       setBusyLabel(null);
     }
-  }, [saveActiveDocument, showToast, updateRecentFiles]);
+  }, [markSaveInProgress, saveActiveDocument, showToast, updateRecentFiles]);
 
   const handleExportHtml = useCallback(async (_actionId?: string) => {
     if (!activeDocument) return;
@@ -923,11 +940,12 @@ function App() {
         onOpenDialog={handleOpenDialog}
       />
             {showSidebar ? (
-        <Sidebar
-          documents={documents}
-          activeDocumentId={activeDocument?.id ?? null}
-          onSelect={setActiveDocumentById}
-          onClose={closeDocumentById}
+        <TOCSidebarContainer
+          tocEntries={tocHierarchy}
+          activeTocEntryId={activeTocEntryId}
+          collapsedTocIds={collapsedTocIds}
+          onTocEntryClick={navigateToTocEntry}
+          onTocToggleCollapse={toggleTocCollapsed}
         />
       ) : null}
       <div className="main">
@@ -944,8 +962,8 @@ function App() {
         <section className="workspace">
           {viewMode === "preview-only" ? (
             <div className="split-view">
-              <div className="split-pane full-pane preview-scroll">
-                <Preview markdown={activeDocument?.content ?? ""} />
+              <div id="preview-container" className="split-pane full-pane preview-scroll">
+                <Preview markdown={activeDocument?.content ?? ""} documentPath={activeDocument?.path} />
               </div>
             </div>
           ) : viewMode === "wysiwyg" ? (
@@ -957,10 +975,19 @@ function App() {
               readOnly={!activeDocument}
               viewMode={viewMode}
               highlightRequest={highlightRequest}
+              documentPath={activeDocument?.path}
             />
           )}
         </section>
       </div>
+
+      <BottomTabs
+        documents={documents}
+        activeDocumentId={activeDocument?.id ?? null}
+        onSelect={setActiveDocumentById}
+        onClose={closeDocumentById}
+        onNewDocument={createDocument}
+      />
 
       <RecoveryDialog
         drafts={drafts}

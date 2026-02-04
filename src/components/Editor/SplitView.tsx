@@ -10,6 +10,7 @@ interface SplitViewProps {
   readOnly?: boolean;
   viewMode?: ViewMode;
   highlightRequest?: number;
+  documentPath?: string | null;
 }
 
 export function SplitView({
@@ -18,6 +19,7 @@ export function SplitView({
   readOnly = false,
   viewMode = "split",
   highlightRequest,
+  documentPath,
 }: SplitViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -66,8 +68,8 @@ export function SplitView({
   if (viewMode === "preview-only") {
     return (
       <div className="split-view" ref={containerRef}>
-        <div className="split-pane full-pane preview-scroll" ref={previewRef}>
-          <Preview markdown={markdown} />
+        <div id="preview-container" className="split-pane full-pane preview-scroll" ref={previewRef}>
+          <Preview markdown={markdown} documentPath={documentPath} />
         </div>
       </div>
     );
@@ -84,8 +86,8 @@ export function SplitView({
         />
       </div>
       <div className="split-divider" onMouseDown={startDrag} />
-      <div className="split-pane preview-scroll" style={{ width: `${100 - splitRatio}%` }} ref={previewRef}>
-        <Preview markdown={markdown} />
+      <div id="preview-container" className="split-pane preview-scroll" style={{ width: `${100 - splitRatio}%` }} ref={previewRef}>
+        <Preview markdown={markdown} documentPath={documentPath} />
       </div>
     </div>
   );

@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "vmark.excludeFolders": [
+      ".git",
+      "node_modules",
+      ".vmark"
+    ],
+    "vmark.showHiddenFiles": false,
+    "vmark.lastOpenTabs": [
+      "/Users/jackcheng/Documents/01_Coding/mac-app/mdpro/specs/007-mcp-server/spec.md"
+    ],
+    "vmark.identity": {
+      "id": "9672737d-6fc9-4a87-83ca-f850eef59c8b",
+      "createdAt": 1770042781296,
+      "trustLevel": "untrusted"
+    }
+  }
+}

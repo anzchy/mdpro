@@ -1,10 +1,12 @@
 pub mod draft;
 pub mod export;
 pub mod file;
+pub mod image;
 pub mod launch;
 pub mod logging;
 pub mod menu;
 pub mod preferences;
+pub mod toc;
 pub mod window;
 
 pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
@@ -37,6 +39,15 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         draft::cleanup_old_drafts,
         window::create_window,
         window::save_window_geometry,
-        window::get_window_geometry
+        window::get_window_geometry,
+        // TOC commands
+        toc::get_document_headings,
+        // Image commands
+        image::resolve_image_path,
+        image::upload_image,
+        image::upload_images_batch,
+        image::copy_external_image,
+        image::get_image_config,
+        image::set_image_config
     ]
 }

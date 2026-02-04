@@ -1,6 +1,6 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
-handoffs: 
+handoffs:
   - label: Build Technical Plan
     agent: speckit.plan
     prompt: Create a plan for the spec. I am building with...
@@ -98,49 +98,109 @@ Given that feature description, do this:
 
 5. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
 
-6. **Generate Visual Diagrams**: Create the diagrams directory and generate HTML diagrams:
+6. **Generate Visual Diagrams (Hybrid Approach) - MANDATORY**:
+
+   **CRITICAL: You MUST complete BOTH living diagram updates AND feature diagram creation. Do not skip either.**
+
+   This project uses a **hybrid diagram strategy**:
+
+   | Diagram Type | Location | Purpose | Updates |
+   |--------------|----------|---------|---------|
+   | **Living Diagrams** | `docs/architecture/` | Show CURRENT STATE of entire system | **MUST update with EVERY new feature** |
+   | **Feature Diagrams** | `specs/<feature>/diagrams/` | Show DELTA/CHANGES only | **MUST create for EVERY new feature** |
+
+   ### Step 6a: Initialize Living Diagrams (First Feature Only)
+
+   Check if `docs/architecture/` exists. If NOT, create it and initialize from templates:
+
+   ```bash
+   mkdir -p docs/architecture
+   ```
+
+   Copy templates if living diagrams don't exist:
+   - `docs/architecture/system-overview.html` ← from `.specify/templates/architecture/system-overview.html`
+   - `docs/architecture/data-flow.html` ← from `.specify/templates/architecture/data-flow.html`
+   - `docs/architecture/user-journeys.html` ← from `.specify/templates/architecture/user-journeys.html`
+
+   **IMPORTANT**: Only create these files if they don't already exist. Do NOT overwrite existing living diagrams.
+
+   ### Step 6b: Update Living Diagrams - MANDATORY FOR EVERY FEATURE
+
+   **You MUST update living diagrams for EVERY new feature, not just the first one.**
+
+   For each living diagram file, do the following:
+
+   1. **Read** the existing file (e.g., `docs/architecture/system-overview.html`)
+   2. **Identify** what this feature adds:
+      - New frontend components
+      - New backend services/commands
+      - New data flows or IPC
+      - New user journeys
+   3. **Add** new components to the appropriate diagram:
+      - Mark additions with comment: `<!-- Added by [FEATURE_NUM]-[name] -->`
+      - Place new components in the correct layer/section
+   4. **Update metadata**:
+      - Change "Last Updated" date to today
+      - Change "Feature" reference to current feature name
+   5. **Save** the updated file
+
+   **Files to update:**
+   - `docs/architecture/system-overview.html` - Add new components to Frontend/Backend/Storage layers
+   - `docs/architecture/data-flow.html` - Add new IPC commands/events to the table
+   - `docs/architecture/user-journeys.html` - Add new user flows or extend existing ones
+
+   **Example of adding a component:**
+   ```html
+   <!-- Added by 006-toc-tab-and-new-features -->
+   <div class="component new">
+       <div class="component-name">TabBar</div>
+       <div class="component-desc">Multi-document tabs</div>
+   </div>
+   ```
+
+   ### Step 6c: Create Feature-Specific Diagrams (Delta Only) - MANDATORY
+
+   Create the feature diagrams directory:
 
    ```bash
    mkdir -p FEATURE_DIR/diagrams
    ```
 
-   Generate the following diagram files:
+   Generate the following **delta-focused** diagram files:
 
-   | File | Purpose | When Required |
-   |------|---------|---------------|
-   | `diagrams/wireframe.html` | 界面布局线框图 - Shows page layouts, component placement, UI structure | Always (if UI changes) |
-   | `diagrams/site-diagram.html` | 应用架构和数据流图 - Shows system architecture, data flow, API interactions | Always (if architecture changes) |
-   | `diagrams/user-flow.html` | 用户旅程流程图 - Shows complete user journey through pages | **REQUIRED if pages ≥ 3** |
+   | File | Purpose | Content |
+   |------|---------|---------|
+   | `diagrams/wireframe.html` | UI changes this feature introduces | ONLY new/modified screens and components |
+   | `diagrams/diff-diagram.html` | Architecture delta | ONLY new/modified components, data flows, IPC |
 
-   **Diagram Content Guidelines**:
+   **Feature Diagram Content Guidelines**:
 
-   a. **wireframe.html** - Interactive wireframe showing:
-      - Page layouts for each screen (new and modified)
-      - Component hierarchy and placement
-      - Responsive breakpoints if applicable
-      - Navigation elements and their positions
+   a. **wireframe.html** - Show ONLY changes:
+      - New screens/pages being added (mark as 🟢 NEW)
+      - Modified components with before/after (mark as 🟠 MODIFIED)
+      - New navigation paths
+      - DO NOT redraw unchanged parts of the UI
+      - Reference living diagrams for full context
 
-   b. **site-diagram.html** - Architecture diagram showing:
-      - Frontend/Backend components
-      - Database tables and relationships
-      - External service integrations (APIs, payment gateways, auth providers)
-      - Data flow arrows between components
+   b. **diff-diagram.html** - Show ONLY changes:
+      - New components (green border/background, marked NEW)
+      - Modified components (orange border/background, marked MODIFIED)
+      - New data flows (dashed arrows)
+      - New IPC commands/events
+      - DO NOT include unchanged architecture
+      - Include a "Reference" link to living diagrams
 
-   c. **user-flow.html** - User journey flowchart showing:
-      - Entry points (how users access the app)
-      - Authentication flows (login/register/logout)
-      - Core task flows with decision points
-      - Page-to-page transitions with trigger actions
-      - Success/error states and recovery paths
-      - External redirects (payment pages, OAuth)
+   **Visual Markers for Feature Diagrams**:
+   ```css
+   /* NEW component */
+   .new { background: #e8f5e9; border: 2px solid #4caf50; }
 
-   **Page Count Check** (for user-flow.html requirement):
-   Count all unique pages including:
-   - New pages to add
-   - Existing pages with significant UI changes
-   - External pages (payment gateways, OAuth providers)
+   /* MODIFIED component */
+   .modified { background: #fff3e0; border: 2px solid #ff9800; }
 
-   If total ≥ 3, user-flow.html is **mandatory**.
+   /* NEW data flow */
+   .new-flow { stroke-dasharray: 5,5; stroke: #4caf50; }
+   ```
 
 7. **Specification Quality Validation**: After writing the initial spec, validate it against quality criteria:
 
@@ -148,20 +208,20 @@ Given that feature description, do this:
 
       ```markdown
       # Specification Quality Checklist: [FEATURE NAME]
-      
+
       **Purpose**: Validate specification completeness and quality before proceeding to planning
       **Created**: [DATE]
       **Feature**: [Link to spec.md]
-      
+
       ## Content Quality
-      
+
       - [ ] No implementation details (languages, frameworks, APIs)
       - [ ] Focused on user value and business needs
       - [ ] Written for non-technical stakeholders
       - [ ] All mandatory sections completed
-      
+
       ## Requirement Completeness
-      
+
       - [ ] No [NEEDS CLARIFICATION] markers remain
       - [ ] Requirements are testable and unambiguous
       - [ ] Success criteria are measurable
@@ -170,7 +230,7 @@ Given that feature description, do this:
       - [ ] Edge cases are identified
       - [ ] Scope is clearly bounded
       - [ ] Dependencies and assumptions identified
-      
+
       ## Feature Readiness
 
       - [ ] All functional requirements have clear acceptance criteria
@@ -178,14 +238,20 @@ Given that feature description, do this:
       - [ ] Feature meets measurable outcomes defined in Success Criteria
       - [ ] No implementation details leak into specification
 
-      ## Visual Design Completeness
+      ## Visual Design Completeness (Hybrid Approach) - MANDATORY
 
-      - [ ] Wireframe diagram created (if UI changes)
-      - [ ] Site diagram created (if architecture changes)
-      - [ ] User flow diagram created (REQUIRED if pages ≥ 3)
-      
+      - [ ] Living diagrams UPDATED in docs/architecture/:
+        - [ ] system-overview.html updated with new components
+        - [ ] data-flow.html updated with new IPC/data flows
+        - [ ] user-journeys.html updated with new user flows
+        - [ ] "Last Updated" date and feature reference updated
+      - [ ] Feature diagrams CREATED in specs/<feature>/diagrams/:
+        - [ ] wireframe.html created (shows ONLY new/modified UI)
+        - [ ] diff-diagram.html created (shows ONLY architecture changes)
+      - [ ] Feature diagrams include reference link to living diagrams
+
       ## Notes
-      
+
       - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
       ```
 
@@ -210,20 +276,20 @@ Given that feature description, do this:
 
            ```markdown
            ## Question [N]: [Topic]
-           
+
            **Context**: [Quote relevant spec section]
-           
+
            **What we need to know**: [Specific question from NEEDS CLARIFICATION marker]
-           
+
            **Suggested Answers**:
-           
+
            | Option | Answer | Implications |
            |--------|--------|--------------|
            | A      | [First suggested answer] | [What this means for the feature] |
            | B      | [Second suggested answer] | [What this means for the feature] |
            | C      | [Third suggested answer] | [What this means for the feature] |
            | Custom | Provide your own answer | [Explain how to provide custom input] |
-           
+
            **Your choice**: _[Wait for user response]_
            ```
 
@@ -240,7 +306,33 @@ Given that feature description, do this:
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
-8. Report completion with branch name, spec file path, diagrams created, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
+8. **Report completion** with the following format:
+
+   ```markdown
+   ## Specification Complete
+
+   **Branch**: `[BRANCH_NAME]`
+   **Spec File**: `[SPEC_FILE_PATH]`
+
+   ### Diagrams Updated (Hybrid Approach)
+
+   **Living Diagrams** (`docs/architecture/`):
+   - [ ] system-overview.html - [CREATED/UPDATED] - Added: [list new components]
+   - [ ] data-flow.html - [CREATED/UPDATED] - Added: [list new IPC/flows]
+   - [ ] user-journeys.html - [CREATED/UPDATED] - Added: [list new journeys]
+
+   **Feature Diagrams** (`specs/[FEATURE]/diagrams/`):
+   - [ ] wireframe.html - Created (shows [N] new/modified UI components)
+   - [ ] diff-diagram.html - Created (shows [N] architecture changes)
+
+   ### Checklist Results
+   - [X] All items passed / [ ] Items requiring attention: [list]
+
+   ### Next Steps
+   Ready for `/speckit.clarify` or `/speckit.plan`
+   ```
+
+   **IMPORTANT**: You MUST confirm that BOTH living diagrams AND feature diagrams were handled before reporting completion.
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 
@@ -253,26 +345,20 @@ Given that feature description, do this:
 - Written for business stakeholders, not developers.
 - DO NOT create any checklists that are embedded in the spec. That will be a separate command.
 
-### User Flow Diagram Requirement
+### Hybrid Diagram Approach
 
-**When to create**: If the feature involves **3 or more pages/screens**, a User Flow Diagram is **REQUIRED**.
+This workflow uses a **hybrid diagram strategy**:
 
-**What to include in user-flow.html** (`FEATURE_DIR/diagrams/user-flow.html`):
-1. **Entry points** - How users first access the application
-2. **Authentication flow** - Login/register paths and redirects
-3. **Core user journeys** - Main task flows with decision points
-4. **Page transitions** - Which pages link to which, with trigger actions
-5. **Success/error states** - Where users land after key actions
+| Type | Location | Shows | Best For |
+|------|----------|-------|----------|
+| Living Diagrams | `docs/architecture/` | Current system state | Onboarding, architecture decisions |
+| Feature Diagrams | `specs/<feature>/diagrams/` | Delta/changes only | PR reviews, feature scope |
 
-**Example flows to document**:
-- First-time visitor → Login → Main feature → Result
-- Returning user → Auto-login → Feature → Logout
-- Error recovery paths (payment failed, session expired, etc.)
-
-**Page count check**: Count all unique pages/screens including:
-- New pages to add
-- Existing pages with significant UI changes
-- External pages (payment gateways, OAuth providers)
+**Key Principles**:
+1. **Living diagrams** = Single source of truth for current state
+2. **Feature diagrams** = Frozen snapshot of what each feature changed
+3. Feature diagrams should REFERENCE living diagrams, not duplicate them
+4. Use visual markers (green=NEW, orange=MODIFIED) in feature diagrams
 
 ### Section Requirements
 

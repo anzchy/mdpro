@@ -7,9 +7,10 @@ import "./styles/preview.css";
 
 interface PreviewProps {
   markdown: string;
+  documentPath?: string | null;
 }
 
-export function Preview({ markdown }: PreviewProps) {
+export function Preview({ markdown, documentPath }: PreviewProps) {
   const { html, isRendering } = usePreview(markdown, 100);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +51,7 @@ export function Preview({ markdown }: PreviewProps) {
         ref={containerRef}
         dangerouslySetInnerHTML={{ __html: html }}
       />
-      <ImageRenderer containerRef={containerRef} html={html} />
+      <ImageRenderer containerRef={containerRef} html={html} documentPath={documentPath} />
     </div>
   );
 }

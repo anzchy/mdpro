@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend Architecture - mdpro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rust: '#dea584',
+            react: '#61dafb',
+            tauri: '#ffc131',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-text {
+      background: linear-gradient(135deg, #dea584 0%, #f97316 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-lg">M</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-gray-900">mdpro</h1>
+            <p class="text-sm text-gray-500">Architecture Documentation</p>
+          </div>
+        </div>
+        <nav class="flex space-x-4">
+          <a href="index.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Overview</a>
+          <a href="frontend.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Frontend</a>
+          <a href="backend.html" class="px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md">Backend</a>
+          <a href="ipc-events.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">IPC & Events</a>
+          <a href="plugins.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Plugins</a>
+          <a href="data-flow.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Data Flow</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Page Title -->
+    <section class="mb-8">
+      <h2 class="text-3xl font-bold gradient-text mb-2">Backend Architecture</h2>
+      <p class="text-gray-600">Rust 2021 Edition + Tauri 2.0 + pulldown-cmark + notify</p>
+    </section>
+
+    <!-- Module Overview -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Module Structure</h3>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Entry Points -->
+          <div class="border border-gray-200 rounded-lg p-4">
+            <div class="flex items-center space-x-2 mb-4">
+              <span class="w-8 h-8 bg-rust/20 rounded flex items-center justify-center text-rust font-bold">E</span>
+              <h4 class="font-semibold">Entry Points</h4>
+            </div>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start space-x-2">
+                <span class="text-rust">•</span>
+                <div>
+                  <code class="text-gray-800">main.rs</code>
+                  <p class="text-gray-500">App entry, window setup, event loop</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-rust">•</span>
+                <div>
+                  <code class="text-gray-800">lib.rs</code>
+                  <p class="text-gray-500">Module exports, run() function</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-rust">•</span>
+                <div>
+                  <code class="text-gray-800">menu.rs</code>
+                  <p class="text-gray-500">Native macOS menu bar</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-rust">•</span>
+                <div>
+                  <code class="text-gray-800">launch.rs</code>
+                  <p class="text-gray-500">File associations, single-instance</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Commands -->
+          <div class="border border-gray-200 rounded-lg p-4">
+            <div class="flex items-center space-x-2 mb-4">
+              <span class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center text-blue-600 font-bold">C</span>
+              <h4 class="font-semibold">Commands</h4>
+            </div>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start space-x-2">
+                <span class="text-blue-600">•</span>
+                <div>
+                  <code class="text-gray-800">file.rs</code>
+                  <p class="text-gray-500">open, save, close, reload</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-blue-600">•</span>
+                <div>
+                  <code class="text-gray-800">export.rs</code>
+                  <p class="text-gray-500">render_markdown, export_html</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-blue-600">•</span>
+                <div>
+                  <code class="text-gray-800">draft.rs</code>
+                  <p class="text-gray-500">Auto-save, recovery</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-blue-600">•</span>
+                <div>
+                  <code class="text-gray-800">preferences.rs</code>
+                  <p class="text-gray-500">Settings CRUD</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-blue-600">•</span>
+                <div>
+                  <code class="text-gray-800">logging.rs</code>
+                  <p class="text-gray-500">Structured logging</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Services -->
+          <div class="border border-gray-200 rounded-lg p-4">
+            <div class="flex items-center space-x-2 mb-4">
+              <span class="w-8 h-8 bg-green-100 rounded flex items-center justify-center text-green-600 font-bold">S</span>
+              <h4 class="font-semibold">Services</h4>
+            </div>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start space-x-2">
+                <span class="text-green-600">•</span>
+                <div>
+                  <code class="text-gray-800">file_watcher.rs</code>
+                  <p class="text-gray-500">External change detection</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-green-600">•</span>
+                <div>
+                  <code class="text-gray-800">encoding.rs</code>
+                  <p class="text-gray-500">Charset detection</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-green-600">•</span>
+                <div>
+                  <code class="text-gray-800">markdown.rs</code>
+                  <p class="text-gray-500">pulldown-cmark rendering</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-green-600">•</span>
+                <div>
+                  <code class="text-gray-800">logger.rs</code>
+                  <p class="text-gray-500">JSONL file logging</p>
+                </div>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-green-600">•</span>
+                <div>
+                  <code class="text-gray-800">preferences.rs</code>
+                  <p class="text-gray-500">Settings persistence</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Dependencies -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Dependencies (Cargo.toml)</h3>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Crate</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Version</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-rust">tauri</td>
+              <td class="px-6 py-4 text-sm text-gray-600">2.x</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Desktop application framework</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-rust">tauri-plugin-single-instance</td>
+              <td class="px-6 py-4 text-sm text-gray-600">2.x</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Single app instance enforcement</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-rust">pulldown-cmark</td>
+              <td class="px-6 py-4 text-sm text-gray-600">0.11</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Markdown to HTML rendering</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-rust">notify</td>
+              <td class="px-6 py-4 text-sm text-gray-600">6.x</td>
+              <td class="px-6 py-4 text-sm text-gray-500">File system watching</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-rust">rfd</td>
+              <td class="px-6 py-4 text-sm text-gray-600">0.14</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Native file dialogs</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-rust">serde / serde_json</td>
+              <td class="px-6 py-4 text-sm text-gray-600">1.x</td>
+              <td class="px-6 py-4 text-sm text-gray-500">JSON serialization</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-4 font-mono text-sm text-rust">chrono</td>
+              <td class="px-6 py-4 text-sm text-gray-600">0.4</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Timestamps</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="px-6 py-4 font-mono text-sm text-rust">uuid</td>
+              <td class="px-6 py-4 text-sm text-gray-600">1.x</td>
+              <td class="px-6 py-4 text-sm text-gray-500">Unique ID generation</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Commands Detail -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Command Handlers</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- File Commands -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">FILE</span>
+            <span class="text-gray-500 text-sm">commands/file.rs</span>
+          </div>
+          <div class="space-y-3">
+            <div class="border-l-2 border-blue-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">open_file(path, encoding, action_id)</code>
+              <p class="text-xs text-gray-500">Opens file, detects encoding, returns Document</p>
+            </div>
+            <div class="border-l-2 border-blue-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">open_file_dialog(action_id)</code>
+              <p class="text-xs text-gray-500">Shows native file picker, opens selected file</p>
+            </div>
+            <div class="border-l-2 border-blue-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">save_file(doc_id, content, path, action_id)</code>
+              <p class="text-xs text-gray-500">Saves content to path, creates draft backup</p>
+            </div>
+            <div class="border-l-2 border-blue-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">save_file_dialog(...)</code>
+              <p class="text-xs text-gray-500">Shows save dialog, saves with chosen name</p>
+            </div>
+            <div class="border-l-2 border-blue-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">close_document(doc_id, discard)</code>
+              <p class="text-xs text-gray-500">Closes document, optionally discards changes</p>
+            </div>
+            <div class="border-l-2 border-blue-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">reload_file(path)</code>
+              <p class="text-xs text-gray-500">Reloads file from disk</p>
+            </div>
+            <div class="border-l-2 border-blue-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">create_document()</code>
+              <p class="text-xs text-gray-500">Creates new untitled document</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export Commands -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">EXPORT</span>
+            <span class="text-gray-500 text-sm">commands/export.rs</span>
+          </div>
+          <div class="space-y-3">
+            <div class="border-l-2 border-green-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">render_markdown(content)</code>
+              <p class="text-xs text-gray-500">Converts Markdown to HTML fragment</p>
+            </div>
+            <div class="border-l-2 border-green-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">export_html(markdown, title)</code>
+              <p class="text-xs text-gray-500">Generates complete HTML document</p>
+            </div>
+            <div class="border-l-2 border-green-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">preview_html(markdown)</code>
+              <p class="text-xs text-gray-500">Returns preview-optimized HTML</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Draft Commands -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">DRAFT</span>
+            <span class="text-gray-500 text-sm">commands/draft.rs</span>
+          </div>
+          <div class="space-y-3">
+            <div class="border-l-2 border-orange-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">save_draft(doc_id, path, content)</code>
+              <p class="text-xs text-gray-500">Saves auto-save draft</p>
+            </div>
+            <div class="border-l-2 border-orange-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">get_draft(doc_id)</code>
+              <p class="text-xs text-gray-500">Retrieves draft by document ID</p>
+            </div>
+            <div class="border-l-2 border-orange-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">list_drafts()</code>
+              <p class="text-xs text-gray-500">Lists all available drafts</p>
+            </div>
+            <div class="border-l-2 border-orange-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">recover_draft(draft_id)</code>
+              <p class="text-xs text-gray-500">Recovers draft content</p>
+            </div>
+            <div class="border-l-2 border-orange-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">cleanup_old_drafts(days)</code>
+              <p class="text-xs text-gray-500">Removes drafts older than N days</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preferences Commands -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center space-x-2 mb-4">
+            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">PREFS</span>
+            <span class="text-gray-500 text-sm">commands/preferences.rs</span>
+          </div>
+          <div class="space-y-3">
+            <div class="border-l-2 border-purple-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">get_preferences()</code>
+              <p class="text-xs text-gray-500">Returns UserPreferences object</p>
+            </div>
+            <div class="border-l-2 border-purple-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">set_preferences(prefs)</code>
+              <p class="text-xs text-gray-500">Persists preferences to JSON file</p>
+            </div>
+            <div class="border-l-2 border-purple-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">get_system_theme()</code>
+              <p class="text-xs text-gray-500">Returns "light" or "dark"</p>
+            </div>
+            <div class="border-l-2 border-purple-400 pl-3">
+              <code class="text-sm font-mono text-gray-800">save_window_state(geometry)</code>
+              <p class="text-xs text-gray-500">Saves window position/size</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Detail -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Business Logic Services</h3>
+      <div class="space-y-6">
+        <!-- File Watcher -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <span class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <span class="text-green-600 text-lg">👁</span>
+              </span>
+              <div>
+                <h4 class="font-semibold">file_watcher.rs</h4>
+                <p class="text-sm text-gray-500">External file change detection</p>
+              </div>
+            </div>
+            <span class="px-2 py-1 bg-gray-100 rounded text-xs font-mono">notify crate</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-2">Functionality</h5>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>• Watches open document paths</li>
+                <li>• Detects external modifications</li>
+                <li>• Emits <code class="bg-gray-100 px-1 rounded">file:changed</code> events</li>
+                <li>• Debounces rapid changes</li>
+              </ul>
+            </div>
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-2">Event Payload</h5>
+              <pre class="text-xs bg-gray-50 rounded p-2 font-mono">{
+  path: string,
+  changeType: "modified" | "deleted"
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Encoding -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <span class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span class="text-blue-600 text-lg">🔤</span>
+              </span>
+              <div>
+                <h4 class="font-semibold">encoding.rs</h4>
+                <p class="text-sm text-gray-500">Character encoding detection</p>
+              </div>
+            </div>
+          </div>
+          <div class="text-sm text-gray-600">
+            <p>Detects file encoding (UTF-8, UTF-16, GBK, etc.) when opening files. Falls back to UTF-8 if detection fails.</p>
+          </div>
+        </div>
+
+        <!-- Markdown -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <span class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <span class="text-purple-600 text-lg">📝</span>
+              </span>
+              <div>
+                <h4 class="font-semibold">markdown.rs</h4>
+                <p class="text-sm text-gray-500">Markdown to HTML rendering</p>
+              </div>
+            </div>
+            <span class="px-2 py-1 bg-gray-100 rounded text-xs font-mono">pulldown-cmark</span>
+          </div>
+          <div class="text-sm text-gray-600">
+            <p>Uses pulldown-cmark for fast, spec-compliant Markdown parsing. Supports GFM extensions (tables, task lists, strikethrough).</p>
+          </div>
+        </div>
+
+        <!-- Logger -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <span class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <span class="text-orange-600 text-lg">📋</span>
+              </span>
+              <div>
+                <h4 class="font-semibold">logger.rs</h4>
+                <p class="text-sm text-gray-500">Structured JSONL logging</p>
+              </div>
+            </div>
+            <span class="px-2 py-1 bg-gray-100 rounded text-xs font-mono">~/.mdpro/mdpro.log</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-2">Log Entry Structure</h5>
+              <pre class="text-xs bg-gray-50 rounded p-2 font-mono">{
+  timestamp: "ISO8601",
+  level: "info" | "warn" | "error",
+  event: "file.open",
+  status: "start" | "success" | "fail",
+  action_id: "uuid",
+  context: { ... },
+  duration_ms: 123,
+  error: null | "message"
+}</pre>
+            </div>
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-2">Event Naming</h5>
+              <ul class="text-xs text-gray-600 space-y-1 font-mono">
+                <li>file.open, file.save, file.close</li>
+                <li>app.launch, app.ready, app.quit</li>
+                <li>window.open, window.close</li>
+                <li>tab.open, tab.switch, tab.close</li>
+                <li>ui.button.click, ui.menu.select</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data Models -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Data Models</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Document -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h4 class="font-semibold mb-3">Document</h4>
+          <pre class="text-sm bg-gray-50 rounded p-3 font-mono text-gray-700">struct Document {
+    id: String,
+    path: Option&lt;PathBuf&gt;,
+    content: String,
+    encoding: String,
+    is_modified: bool,
+    created_at: DateTime,
+    modified_at: DateTime,
+}</pre>
+        </div>
+
+        <!-- Draft -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h4 class="font-semibold mb-3">Draft</h4>
+          <pre class="text-sm bg-gray-50 rounded p-3 font-mono text-gray-700">struct Draft {
+    id: String,
+    document_id: String,
+    original_path: Option&lt;PathBuf&gt;,
+    content: String,
+    saved_at: DateTime,
+}</pre>
+        </div>
+
+        <!-- UserPreferences -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h4 class="font-semibold mb-3">UserPreferences</h4>
+          <pre class="text-sm bg-gray-50 rounded p-3 font-mono text-gray-700">struct UserPreferences {
+    theme_mode: ThemeMode,
+    auto_save_interval: u32,
+    keyboard_shortcuts: KeyboardShortcuts,
+    recent_files: Vec&lt;String&gt;,
+    window_state: WindowState,
+    default_view_mode: ViewMode,
+}</pre>
+        </div>
+
+        <!-- LogEntry -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h4 class="font-semibold mb-3">LogEntry</h4>
+          <pre class="text-sm bg-gray-50 rounded p-3 font-mono text-gray-700">struct LogEntryPayload {
+    level: LogLevel,
+    event: String,
+    status: LogStatus,
+    action_id: Option&lt;String&gt;,
+    context: Option&lt;Value&gt;,
+    duration_ms: Option&lt;u64&gt;,
+    error: Option&lt;String&gt;,
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Directory Structure -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Directory Structure</h3>
+      <div class="bg-gray-900 rounded-xl p-6 text-gray-100 font-mono text-sm overflow-x-auto">
+        <pre>src-tauri/
+├── Cargo.toml               <span class="text-gray-500"># Rust dependencies</span>
+├── tauri.conf.json          <span class="text-gray-500"># Tauri app configuration</span>
+├── src/
+│   ├── main.rs              <span class="text-gray-500"># Entry point, event loop</span>
+│   ├── lib.rs               <span class="text-gray-500"># Module exports, run()</span>
+│   ├── menu.rs              <span class="text-gray-500"># Native macOS menu bar</span>
+│   ├── launch.rs            <span class="text-gray-500"># File associations, single-instance</span>
+│   │
+│   ├── <span class="text-blue-400">commands/</span>            <span class="text-gray-500"># IPC command handlers</span>
+│   │   ├── mod.rs           <span class="text-gray-500"># Registration & exports</span>
+│   │   ├── file.rs          <span class="text-gray-500"># File operations</span>
+│   │   ├── export.rs        <span class="text-gray-500"># Markdown/HTML export</span>
+│   │   ├── draft.rs         <span class="text-gray-500"># Auto-save drafts</span>
+│   │   ├── preferences.rs   <span class="text-gray-500"># Settings CRUD</span>
+│   │   ├── logging.rs       <span class="text-gray-500"># Structured logging</span>
+│   │   ├── window.rs        <span class="text-gray-500"># Window management</span>
+│   │   ├── menu.rs          <span class="text-gray-500"># Menu updates</span>
+│   │   └── launch.rs        <span class="text-gray-500"># Launch path handling</span>
+│   │
+│   ├── <span class="text-green-400">services/</span>            <span class="text-gray-500"># Business logic</span>
+│   │   ├── mod.rs           <span class="text-gray-500"># Module exports</span>
+│   │   ├── file_watcher.rs  <span class="text-gray-500"># notify-based watcher</span>
+│   │   ├── encoding.rs      <span class="text-gray-500"># Charset detection</span>
+│   │   ├── markdown.rs      <span class="text-gray-500"># pulldown-cmark wrapper</span>
+│   │   ├── draft.rs         <span class="text-gray-500"># Draft persistence</span>
+│   │   ├── preferences.rs   <span class="text-gray-500"># Preferences I/O</span>
+│   │   ├── logger.rs        <span class="text-gray-500"># JSONL logging</span>
+│   │   └── html_template.rs <span class="text-gray-500"># Export template</span>
+│   │
+│   └── <span class="text-orange-400">models/</span>              <span class="text-gray-500"># Data structures</span>
+│       ├── mod.rs           <span class="text-gray-500"># Module exports</span>
+│       ├── document.rs      <span class="text-gray-500"># Document type</span>
+│       ├── draft.rs         <span class="text-gray-500"># Draft type</span>
+│       ├── preferences.rs   <span class="text-gray-500"># Preferences types</span>
+│       └── log_entry.rs     <span class="text-gray-500"># Logging types</span>
+│
+├── icons/                   <span class="text-gray-500"># App icons</span>
+└── capabilities/            <span class="text-gray-500"># Tauri capabilities</span></pre>
+      </div>
+    </section>
+
+    <!-- File Locations -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Persistent Storage</h3>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="text-center p-4 border border-gray-200 rounded-lg">
+            <div class="text-2xl mb-2">⚙️</div>
+            <div class="font-mono text-sm text-gray-600">~/.mdpro/preferences.json</div>
+            <div class="text-xs text-gray-500 mt-1">User preferences</div>
+          </div>
+          <div class="text-center p-4 border border-gray-200 rounded-lg">
+            <div class="text-2xl mb-2">📋</div>
+            <div class="font-mono text-sm text-gray-600">~/.mdpro/mdpro.log</div>
+            <div class="text-xs text-gray-500 mt-1">JSONL event log</div>
+          </div>
+          <div class="text-center p-4 border border-gray-200 rounded-lg">
+            <div class="text-2xl mb-2">💾</div>
+            <div class="font-mono text-sm text-gray-600">~/.mdpro/drafts/</div>
+            <div class="text-xs text-gray-500 mt-1">Auto-save drafts</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-200 bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between text-sm text-gray-500">
+        <a href="frontend.html" class="text-purple-600 hover:text-purple-800">← Frontend</a>
+        <span>mdpro Architecture Documentation</span>
+        <a href="ipc-events.html" class="text-purple-600 hover:text-purple-800">IPC & Events →</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

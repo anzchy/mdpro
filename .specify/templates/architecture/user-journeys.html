@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Journeys - Living Architecture Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            padding: 40px;
+            color: #fff;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+        }
+        .last-updated {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            margin-bottom: 40px;
+        }
+
+        .diagram-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .journey-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .journey-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .journey-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 20px;
+        }
+        .journey-meta {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 20px;
+        }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 20px 0;
+        }
+
+        .flow-node {
+            border-radius: 10px;
+            padding: 12px 16px;
+            min-width: 100px;
+            text-align: center;
+        }
+        .flow-node.start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .flow-node.action {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .flow-node.decision {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .flow-node.end {
+            background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);
+        }
+        .flow-node.page {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .node-label {
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .node-desc {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .flow-arrow {
+            color: rgba(255,255,255,0.4);
+            font-size: 18px;
+        }
+
+        .branch-container {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+            padding-left: 40px;
+        }
+        .branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .branch-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            padding: 2px 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .legend {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+        .legend-box {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+        }
+        .legend-box.start { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .legend-box.action { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .legend-box.decision { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .legend-box.page { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .legend-box.end { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); }
+
+        .instructions {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+        }
+        .instructions h3 {
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .instructions ul {
+            margin-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>User Journeys</h1>
+    <p class="subtitle">Living Architecture Diagram - [PROJECT NAME]</p>
+    <p class="last-updated">Last Updated: [DATE] | Feature: [LAST FEATURE MERGED]</p>
+
+    <div class="diagram-container">
+        <!-- TEMPLATE: User Journey -->
+        <div class="journey-section">
+            <div class="journey-title">[Journey Name] - e.g., "New User Onboarding"</div>
+            <div class="journey-desc">[Brief description of this user journey]</div>
+            <div class="journey-meta">Added in: [Feature #] | Last modified: [Feature #]</div>
+
+            <div class="flow-diagram">
+                <div class="flow-node start">
+                    <div class="node-label">[Entry Point]</div>
+                    <div class="node-desc">[How user starts]</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node page">
+                    <div class="node-label">[Page/Screen]</div>
+                    <div class="node-desc">[What user sees]</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node action">
+                    <div class="node-label">[Action]</div>
+                    <div class="node-desc">[What user does]</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node decision">
+                    <div class="node-label">[Decision]</div>
+                    <div class="node-desc">[Branch point]</div>
+                </div>
+            </div>
+
+            <!-- Branching paths -->
+            <div class="branch-container">
+                <div class="branch">
+                    <div class="branch-label">Success</div>
+                    <div class="flow-node end">
+                        <div class="node-label">[Success State]</div>
+                    </div>
+                </div>
+                <div class="branch">
+                    <div class="branch-label">Error</div>
+                    <div class="flow-node action">
+                        <div class="node-label">[Recovery]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add more journey sections as needed -->
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box start"></div>
+                <span>Entry Point</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box page"></div>
+                <span>Page/Screen</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box action"></div>
+                <span>User Action</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box decision"></div>
+                <span>Decision Point</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box end"></div>
+                <span>End State</span>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>How to Update This Diagram</h3>
+            <ul>
+                <li>Add new journey sections when features introduce new user flows</li>
+                <li>Extend existing journeys when features add steps to them</li>
+                <li>Record which feature introduced or modified each journey</li>
+                <li>Keep journeys focused on user perspective, not technical implementation</li>
+                <li>Include both happy paths and error recovery flows</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

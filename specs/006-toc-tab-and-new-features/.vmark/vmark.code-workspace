@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "vmark.excludeFolders": [
+      ".git",
+      "node_modules",
+      ".vmark"
+    ],
+    "vmark.showHiddenFiles": false,
+    "vmark.lastOpenTabs": [
+      "/Users/jackcheng/Documents/01_Coding/mac-app/mdpro/specs/006-toc-tab-and-new-features/research.md"
+    ],
+    "vmark.identity": {
+      "id": "91fdc337-5ef7-4e31-8579-940c021e49ad",
+      "createdAt": 1769661270802,
+      "trustLevel": "untrusted"
+    }
+  }
+}

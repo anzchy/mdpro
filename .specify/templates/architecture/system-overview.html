@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Overview - Living Architecture Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 40px;
+            color: #fff;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+        }
+        .last-updated {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            margin-bottom: 40px;
+        }
+
+        .diagram-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 40px;
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layer {
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+        }
+        .layer-title {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #1a1a2e;
+            padding: 0 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+        }
+
+        .components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .component {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 16px 20px;
+            min-width: 140px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .component:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.15);
+        }
+        .component-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .component-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .data-flow {
+            display: flex;
+            justify-content: center;
+            padding: 10px 0;
+        }
+        .arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #4facfe;
+        }
+        .arrow-line {
+            width: 2px;
+            height: 30px;
+            background: #4facfe;
+        }
+        .arrow-head {
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 10px solid #4facfe;
+        }
+        .arrow-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 4px;
+        }
+
+        .legend {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+        }
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .legend-box.frontend { background: #4facfe; }
+        .legend-box.backend { background: #00f2fe; }
+        .legend-box.storage { background: #f093fb; }
+        .legend-box.external { background: #ffecd2; }
+
+        .instructions {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+        }
+        .instructions h3 {
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .instructions ul {
+            margin-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        .instructions code {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>System Overview</h1>
+    <p class="subtitle">Living Architecture Diagram - [PROJECT NAME]</p>
+    <p class="last-updated">Last Updated: [DATE] | Feature: [LAST FEATURE MERGED]</p>
+
+    <div class="diagram-container">
+        <div class="architecture">
+            <!-- TEMPLATE: Frontend Layer -->
+            <div class="layer">
+                <div class="layer-title">Frontend</div>
+                <div class="components">
+                    <!-- Add your frontend components here -->
+                    <div class="component">
+                        <div class="component-name">[Component]</div>
+                        <div class="component-desc">[Description]</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-flow">
+                <div class="arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-head"></div>
+                    <div class="arrow-label">[Communication Method]</div>
+                </div>
+            </div>
+
+            <!-- TEMPLATE: Backend Layer -->
+            <div class="layer">
+                <div class="layer-title">Backend</div>
+                <div class="components">
+                    <!-- Add your backend components here -->
+                    <div class="component">
+                        <div class="component-name">[Component]</div>
+                        <div class="component-desc">[Description]</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-flow">
+                <div class="arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-head"></div>
+                    <div class="arrow-label">[Storage Access]</div>
+                </div>
+            </div>
+
+            <!-- TEMPLATE: Storage Layer -->
+            <div class="layer">
+                <div class="layer-title">Storage</div>
+                <div class="components">
+                    <!-- Add your storage components here -->
+                    <div class="component">
+                        <div class="component-name">[Storage]</div>
+                        <div class="component-desc">[Description]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box frontend"></div>
+                <span>Frontend</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box backend"></div>
+                <span>Backend</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box storage"></div>
+                <span>Storage</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box external"></div>
+                <span>External Service</span>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>How to Update This Diagram</h3>
+            <ul>
+                <li>This is a <strong>living diagram</strong> - update it after each feature is merged</li>
+                <li>Add new components when features introduce them</li>
+                <li>Update the "Last Updated" date and feature reference</li>
+                <li>Keep component descriptions concise (2-4 words)</li>
+                <li>Run <code>/speckit.specify</code> to auto-update when creating new features</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
