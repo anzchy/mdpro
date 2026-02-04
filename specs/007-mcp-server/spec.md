@@ -134,8 +134,8 @@
 - 实现 Shadow Store 同步。
 
 ### Phase 2: MCP Server CLI
-- 新增 `mdpro-mcp` Rust 二进制（`src-tauri/bin/mcp_server.rs`）。
-- 使用 `mcp-rs` crate 实现 MCP Server。
+- 新增 `mdpro-mcp` Rust 二进制（`src-tauri/src/bin/mdpro_mcp.rs`）。
+- 使用 `rmcp` crate 实现 MCP Server。
 - stdio -> HTTP 转发。
 
 ### Phase 3: 集成测试

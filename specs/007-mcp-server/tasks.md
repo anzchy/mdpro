@@ -36,6 +36,7 @@
 - [ ] T006 Implement ShadowStore service in src-tauri/src/services/shadow_store.rs with thread-safe state management
 - [ ] T007 Create mcp_sync_documents command in src-tauri/src/commands/mcp.rs for frontend → Rust sync
 - [ ] T008 [P] Implement token generation and file writing (server.token, server.port) in src-tauri/src/services/http_server.rs
+  - **IMPORTANT**: Set server.token file permissions to mode 600 (owner read/write only) for security
 - [ ] T009 [P] Implement token validation middleware in src-tauri/src/services/http_server.rs
 - [ ] T010 [P] Implement origin validation middleware in src-tauri/src/services/http_server.rs
 - [ ] T011 Create axum router skeleton with middleware in src-tauri/src/services/http_server.rs
@@ -152,8 +153,11 @@
 - [ ] T049 Add cleanup logic for server.port/server.token on app quit in src-tauri/src/main.rs
 - [ ] T050 Create Claude Desktop MCP configuration example in specs/007-mcp-server/quickstart.md (already done, verify)
 - [ ] T051 Manual integration test: Configure Claude Code with mdpro-mcp, test read document flow
+  - **Verify**: Response time < 100ms for tool calls (per plan.md performance goals)
 - [ ] T052 Manual integration test: Test write document with confirmation dialog
+  - **Verify**: Response time < 100ms for tool calls (per plan.md performance goals)
 - [ ] T053 Manual integration test: Test multi-window routing
+  - **Verify**: Response time < 100ms for tool calls (per plan.md performance goals)
 - [ ] T054 Update CHANGELOG.md with MCP Server feature
 
 ---
@@ -233,3 +237,4 @@ can all start in parallel with different team members
 - Debounce 300ms for content changes, immediate for structural changes
 - Commit after each logical group (1-2 related tasks)
 - MCP binary shares models with main app via Rust workspace
+- **Constitution Compliance**: Update CHANGELOG.md after each logical commit group per constitution V
