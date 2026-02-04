@@ -12,31 +12,61 @@
 ## Visual Design
 
 <!--
-  AUTO-GENERATED: These diagrams are created automatically by /speckit.specify
-  They provide visual context for the feature specification.
+  HYBRID DIAGRAM APPROACH:
 
-  IMPORTANT: When the feature involves 3+ pages, a User Flow Diagram is REQUIRED
-  to show the complete user journey through the application.
+  This project uses a hybrid diagram strategy:
+
+  1. LIVING DIAGRAMS (docs/architecture/) - Show CURRENT STATE of the system
+     - Updated continuously as features are merged
+     - Single source of truth for system overview
+     - Best for onboarding and architecture decisions
+
+  2. FEATURE DIAGRAMS (specs/<feature>/diagrams/) - Show DELTA/CHANGES only
+     - Frozen at merge time
+     - Show only what THIS feature adds/modifies
+     - Best for PR reviews and feature scope clarity
+
+  When creating feature diagrams, focus on:
+  - NEW components being added (highlight in green)
+  - MODIFIED components (highlight in orange)
+  - Do NOT duplicate the entire system - reference living diagrams for context
 -->
 
-- **Wireframe Diagram**: [wireframe.html](./diagrams/wireframe.html) - 界面布局线框图
-- **Site Diagram**: [site-diagram.html](./diagrams/site-diagram.html) - 应用架构和数据流图
-- **User Flow Diagram**: [user-flow.html](./diagrams/user-flow.html) - 用户旅程流程图 *(Required when pages ≥ 3)*
+### Living Architecture Diagrams (Current System State)
+
+> These diagrams show the complete current state of the system. Reference them for context.
+
+- **System Overview**: [system-overview.html](../../docs/architecture/system-overview.html) - Complete system architecture
+- **Data Flow**: [data-flow.html](../../docs/architecture/data-flow.html) - How data moves through the system
+- **User Journeys**: [user-journeys.html](../../docs/architecture/user-journeys.html) - All user flows across the app
+
+### Feature-Specific Diagrams (This Feature's Changes)
+
+> These diagrams show ONLY what this feature adds or modifies.
+
+- **Wireframe (Delta)**: [wireframe.html](./diagrams/wireframe.html) - New/modified UI components only
+- **Diff Diagram**: [diff-diagram.html](./diagrams/diff-diagram.html) - Architecture changes this feature introduces
 
 <!--
-  USER FLOW DIAGRAM GUIDELINES (when pages ≥ 3):
+  FEATURE DIAGRAM GUIDELINES:
 
-  The user flow diagram should include:
-  1. Entry points - How users first access the application
-  2. Authentication flow - Login/register paths and redirects
-  3. Core user journeys - Main task flows with decision points
-  4. Page transitions - Which pages link to which, with trigger actions
-  5. Success/error states - Where users land after key actions
+  wireframe.html - Show ONLY:
+  - New screens/pages being added
+  - Modified components (before → after)
+  - New navigation paths
+  - DO NOT redraw unchanged parts of the UI
 
-  Example flows to document:
-  - First-time visitor → Login → Main feature → Result
-  - Returning user → Auto-login → Feature → Logout
-  - Error recovery paths (payment failed, session expired, etc.)
+  diff-diagram.html - Show ONLY:
+  - New components (marked NEW)
+  - Modified components (marked MODIFIED)
+  - New data flows (highlighted arrows)
+  - New IPC commands/events
+  - DO NOT include unchanged architecture
+
+  Use visual markers:
+  - 🟢 Green border/background = NEW component
+  - 🟠 Orange border/background = MODIFIED component
+  - ➡️ Dashed arrows = NEW data flows
 -->
 
 ## User Scenarios & Testing *(mandatory)*
@@ -45,7 +75,7 @@
   IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
   Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
   you should still have a viable MVP (Minimum Viable Product) that delivers value.
-  
+
   Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
   Think of each story as a standalone slice of functionality that can be:
   - Developed independently
@@ -119,7 +149,7 @@
 ### Functional Requirements
 
 - **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
+- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]

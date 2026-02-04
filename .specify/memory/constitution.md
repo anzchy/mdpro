@@ -1,50 +1,92 @@
 # [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
+### I. [PRINCIPLE_1_NAME]
+<!-- Example: Local-First, Cloud-Native, Mobile-First, etc. -->
 [PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+<!-- Example: All features must work offline with local filesystem only. -->
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
+### II. [PRINCIPLE_2_NAME]
+<!-- Example: Simplicity, Modularity, Security-First, etc. -->
 [PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+<!-- Example: No new frameworks unless necessary; reuse existing stack; avoid over-engineering. -->
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
+### III. [PRINCIPLE_3_NAME]
+<!-- Example: Performance, Scalability, Reliability, etc. -->
 [PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+<!-- Example: Define measurable success criteria for each feature with specific metrics. -->
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
+### IV. [PRINCIPLE_4_NAME]
+<!-- Example: Platform Conventions, API Standards, Accessibility, etc. -->
 [PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+<!-- Example: Follow platform HIG patterns; consistent UI conventions; native integrations. -->
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Changelog Tracking (MANDATORY)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Every feature added, error fixed, or git commit MUST be documented in `CHANGELOG.md` at the project root.**
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+Rules:
+1. Maintain a `CHANGELOG.md` file in the project root directory
+2. For every feature added: Add entry under appropriate version section with description
+3. For every bug/error fixed: Add entry with brief description of the fix
+4. For every git commit: Reference the relevant commit hash in the changelog entry
+5. Follow [Keep a Changelog](https://keepachangelog.com/) format:
+   - `Added` for new features
+   - `Changed` for changes in existing functionality
+   - `Deprecated` for soon-to-be removed features
+   - `Removed` for now removed features
+   - `Fixed` for any bug fixes
+   - `Security` for vulnerability fixes
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Example entry:
+```markdown
+## [1.2.0] - 2026-02-03
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### Added
+- User authentication system (a1b2c3d)
+- Dashboard analytics widget (e4f5g6h)
+
+### Fixed
+- Login timeout issue on slow networks (i7j8k9l)
+```
+
+### VI. [ADDITIONAL_PRINCIPLES]
+<!-- Add more principles as needed for your project -->
+[ADDITIONAL_PRINCIPLE_DESCRIPTION]
+
+## Development Workflow
+
+### Code Quality
+<!-- Example: TypeScript strict mode, linting rules, code review requirements -->
+- [CODE_QUALITY_RULE_1]
+- [CODE_QUALITY_RULE_2]
+- [CODE_QUALITY_RULE_3]
+
+### Testing Strategy
+<!-- Example: Unit tests, integration tests, E2E tests -->
+- [TESTING_TOOL_1] for [TEST_TYPE_1]
+- [TESTING_TOOL_2] for [TEST_TYPE_2]
+- [TESTING_TOOL_3] for [TEST_TYPE_3]
+
+## Constraints
+
+<!-- Project-specific limitations and boundaries -->
+- [CONSTRAINT_1]
+<!-- Example: Platform requirements (macOS 13+, iOS 15+, etc.) -->
+- [CONSTRAINT_2]
+<!-- Example: Size limits (max file size, bundle size, etc.) -->
+- [CONSTRAINT_3]
+<!-- Example: Feature exclusions (no PDF export, no plugin system, etc.) -->
+- [CONSTRAINT_4]
+<!-- Example: Dependencies (no external APIs, offline-only, etc.) -->
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- Constitution supersedes default practices
+- Amendments require documentation and rationale
+- All implementations must verify compliance with these principles
+- [ADDITIONAL_GOVERNANCE_RULES]
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: [VERSION] | **Ratified**: [DATE] | **Last Amended**: [DATE]
+<!-- Example: Version: 1.0.0 | Ratified: 2026-02-03 | Last Amended: 2026-02-03 -->

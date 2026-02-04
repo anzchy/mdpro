@@ -284,14 +284,38 @@ TEMPLATE="$REPO_ROOT/.specify/templates/spec-template.md"
 SPEC_FILE="$FEATURE_DIR/spec.md"
 if [ -f "$TEMPLATE" ]; then cp "$TEMPLATE" "$SPEC_FILE"; else touch "$SPEC_FILE"; fi
 
+# Initialize living architecture diagrams if they don't exist (hybrid diagram approach)
+DOCS_ARCH_DIR="$REPO_ROOT/docs/architecture"
+ARCH_TEMPLATES_DIR="$REPO_ROOT/.specify/templates/architecture"
+LIVING_DIAGRAMS_CREATED=false
+
+if [ ! -d "$DOCS_ARCH_DIR" ]; then
+    mkdir -p "$DOCS_ARCH_DIR"
+    LIVING_DIAGRAMS_CREATED=true
+
+    # Copy architecture templates if they exist
+    if [ -d "$ARCH_TEMPLATES_DIR" ]; then
+        for template in "$ARCH_TEMPLATES_DIR"/*.html; do
+            [ -f "$template" ] || continue
+            filename=$(basename "$template")
+            if [ ! -f "$DOCS_ARCH_DIR/$filename" ]; then
+                cp "$template" "$DOCS_ARCH_DIR/$filename"
+            fi
+        done
+    fi
+fi
+
 # Set the SPECIFY_FEATURE environment variable for the current session
 export SPECIFY_FEATURE="$BRANCH_NAME"
 
 if $JSON_MODE; then
-    printf '{"BRANCH_NAME":"%s","SPEC_FILE":"%s","FEATURE_NUM":"%s"}\n' "$BRANCH_NAME" "$SPEC_FILE" "$FEATURE_NUM"
+    printf '{"BRANCH_NAME":"%s","SPEC_FILE":"%s","FEATURE_NUM":"%s","FEATURE_DIR":"%s","LIVING_DIAGRAMS_CREATED":%s}\n' \
+        "$BRANCH_NAME" "$SPEC_FILE" "$FEATURE_NUM" "$FEATURE_DIR" "$LIVING_DIAGRAMS_CREATED"
 else
     echo "BRANCH_NAME: $BRANCH_NAME"
     echo "SPEC_FILE: $SPEC_FILE"
     echo "FEATURE_NUM: $FEATURE_NUM"
+    echo "FEATURE_DIR: $FEATURE_DIR"
+    echo "LIVING_DIAGRAMS_CREATED: $LIVING_DIAGRAMS_CREATED"
     echo "SPECIFY_FEATURE environment variable set to: $BRANCH_NAME"
 fi
