@@ -160,7 +160,7 @@ function MilkdownEditorInner() {
   useEffect(() => {
     if (editor.loading) return;
 
-    const documentPath = activeDocument?.filePath ?? null;
+    const documentPath = activeDocument?.path ?? null;
 
     // Small delay to ensure Milkdown has rendered the content
     const timer = setTimeout(() => {
@@ -196,7 +196,7 @@ function MilkdownEditorInner() {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [editor.loading, activeDocument?.filePath, activeDocumentId]);
+  }, [editor.loading, activeDocument?.path, activeDocumentId]);
 
   return <Milkdown />;
 }
