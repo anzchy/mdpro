@@ -1041,6 +1041,281 @@ a {
   background: #1d4ed8;
 }
 
+.toolbar-button.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.toolbar-button.danger {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.toolbar-button.danger:hover {
+  background: #fee2e2;
+}
+
+/* Integrations Settings */
+.settings-integrations {
+  padding: 0;
+}
+
+.settings-integrations h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.settings-integrations h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.settings-error {
+  padding: 10px 12px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.settings-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.settings-row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-row-label strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settings-row-description {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.settings-row-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.2s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--color-accent);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* MCP Status Badge */
+.mcp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mcp-status-badge.running {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.mcp-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* MCP Server Info */
+.mcp-server-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+}
+
+.mcp-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mcp-info-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.mcp-info-value {
+  padding: 2px 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.mcp-info-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.mcp-copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.mcp-copy-btn:hover {
+  opacity: 1;
+}
+
+.mcp-copy-btn.small {
+  font-size: 11px;
+  padding: 1px 3px;
+}
+
+/* MCP Actions */
+.mcp-actions {
+  margin-top: 16px;
+}
+
+/* MCP Installations */
+.mcp-installations {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.mcp-installations-description {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+}
+
+.mcp-client-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mcp-client-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+}
+
+.mcp-client-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mcp-client-status {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+
+.mcp-client-status.installed {
+  color: #16a34a;
+}
+
+.mcp-client-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mcp-client-details strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mcp-client-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.mcp-client-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* Dev Toolbar - only visible in browser mode */
 .dev-toolbar {
   position: fixed;

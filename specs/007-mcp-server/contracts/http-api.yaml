@@ -1,0 +1,284 @@
+openapi: 3.1.0
+info:
+  title: mdpro Internal HTTP API
+  description: |
+    Internal HTTP API for mdpro MCP Server communication.
+    This API is only accessible from localhost and requires token authentication.
+  version: 0.1.0
+
+servers:
+  - url: http://127.0.0.1:{port}
+    description: Local mdpro HTTP server
+    variables:
+      port:
+        description: Dynamic port assigned on startup
+        default: "0"
+
+security:
+  - tokenAuth: []
+
+paths:
+  /api/status:
+    get:
+      summary: Get application status
+      operationId: getStatus
+      tags: [System]
+      responses:
+        "200":
+          description: Application status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/documents:
+    get:
+      summary: List open documents
+      operationId: listDocuments
+      tags: [Documents]
+      responses:
+        "200":
+          description: List of open documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentInfo"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/documents/{id}:
+    get:
+      summary: Get document content
+      operationId: getDocument
+      tags: [Documents]
+      parameters:
+        - $ref: "#/components/parameters/documentId"
+      responses:
+        "200":
+          description: Document content and metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    post:
+      summary: Update document content (full replacement)
+      operationId: updateDocument
+      tags: [Documents]
+      parameters:
+        - $ref: "#/components/parameters/documentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocumentRequest"
+      responses:
+        "200":
+          description: Document updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WriteResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: User rejected write operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/documents/{id}/insert:
+    post:
+      summary: Insert text at position
+      operationId: insertContent
+      tags: [Documents]
+      parameters:
+        - $ref: "#/components/parameters/documentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InsertContentRequest"
+      responses:
+        "200":
+          description: Content inserted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsertResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/documents/new:
+    post:
+      summary: Create new document
+      operationId: createDocument
+      tags: [Documents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDocumentRequest"
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateDocumentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: X-MDPRO-Token
+      description: Authentication token from ~/.mdpro/server.token
+
+  parameters:
+    documentId:
+      name: id
+      in: path
+      required: true
+      description: Document unique identifier
+      schema:
+        type: string
+
+  schemas:
+    StatusResponse:
+      type: object
+      required: [version, window_focused]
+      properties:
+        version:
+          type: string
+          example: "0.1.5"
+        window_focused:
+          type: boolean
+          description: Whether any mdpro window is currently focused
+
+    DocumentInfo:
+      type: object
+      required: [id, title, is_dirty]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          example: "README.md"
+        path:
+          type: string
+          nullable: true
+          example: "/Users/jack/project/README.md"
+        is_dirty:
+          type: boolean
+
+    DocumentContent:
+      type: object
+      required: [content, cursor]
+      properties:
+        content:
+          type: string
+          description: Full markdown content
+        cursor:
+          type: integer
+          description: Cursor position (character offset)
+
+    UpdateDocumentRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          description: New document content (full replacement)
+
+    InsertContentRequest:
+      type: object
+      required: [text, position]
+      properties:
+        text:
+          type: string
+          description: Text to insert
+        position:
+          oneOf:
+            - type: string
+              enum: [cursor, start, end]
+            - type: integer
+              minimum: 0
+          description: Insert position
+
+    CreateDocumentRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          default: ""
+          description: Initial content
+
+    WriteResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    InsertResult:
+      type: object
+      required: [success, new_cursor]
+      properties:
+        success:
+          type: boolean
+        new_cursor:
+          type: integer
+          description: Cursor position after insertion
+
+    CreateDocumentResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          description: New document ID
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: "User rejected write operation"
+        code:
+          type: string
+          nullable: true
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    NotFound:
+      description: Document not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

@@ -34,6 +34,9 @@ export interface UserPreferences {
 
   /** Per-file window states for position/size persistence */
   windowStates: Record<string, WindowGeometry>;
+
+  /** MCP Server configuration */
+  mcp: McpConfig;
 }
 
 export interface WindowState {
@@ -174,3 +177,37 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   viewToggleFullscreen: "Cmd+Option+F",
   viewSwitchDocuments: "Cmd+`",
 };
+
+/** MCP Server configuration */
+export interface McpConfig {
+  /** Whether MCP server is enabled */
+  enabled: boolean;
+  /** Auto-start MCP server when app launches */
+  startOnLaunch: boolean;
+  /** Auto-approve AI edits without confirmation (when focused) */
+  autoApproveEdits: boolean;
+}
+
+/** Default MCP configuration */
+export const DEFAULT_MCP_CONFIG: McpConfig = {
+  enabled: true,
+  startOnLaunch: true,
+  autoApproveEdits: false,
+};
+
+/** MCP client types */
+export type McpClient = "claude_desktop" | "claude_code" | "codex_cli" | "gemini_cli";
+
+/** MCP server status */
+export interface McpStatus {
+  running: boolean;
+  port: number | null;
+  binaryPath: string;
+}
+
+/** MCP installation status for a single client */
+export interface McpInstallation {
+  client: McpClient;
+  installed: boolean;
+  configPath: string;
+}

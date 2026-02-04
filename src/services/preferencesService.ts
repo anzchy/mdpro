@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { UserPreferences, WindowState } from "../types/preferences";
-import { DEFAULT_KEYBOARD_SHORTCUTS } from "../types/preferences";
+import { DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_MCP_CONFIG } from "../types/preferences";
 
 // Check if running in Tauri environment
 const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
@@ -18,6 +18,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   keyboardShortcuts: DEFAULT_KEYBOARD_SHORTCUTS,
   logging: { enabled: false, level: "info" },
   windowStates: {},
+  mcp: DEFAULT_MCP_CONFIG,
 };
 
 export const preferencesService = {

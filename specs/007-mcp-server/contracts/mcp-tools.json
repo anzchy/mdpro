@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "mdpro MCP Tools",
+  "description": "MCP tool definitions for mdpro integration",
+  "tools": [
+    {
+      "name": "get_open_documents",
+      "description": "Get list of all documents currently open in mdpro. Returns document IDs, titles, file paths, and modification status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique document identifier"
+            },
+            "title": {
+              "type": "string",
+              "description": "Document title (filename or 'Untitled')"
+            },
+            "path": {
+              "type": ["string", "null"],
+              "description": "Absolute file path, or null for unsaved documents"
+            },
+            "is_dirty": {
+              "type": "boolean",
+              "description": "Whether document has unsaved changes"
+            }
+          },
+          "required": ["id", "title", "is_dirty"]
+        }
+      }
+    },
+    {
+      "name": "read_document",
+      "description": "Read the content of a specific document by its ID. Use get_open_documents first to find available document IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Document ID from get_open_documents"
+          }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Full markdown content of the document"
+          },
+          "cursor": {
+            "type": "integer",
+            "description": "Current cursor position (character offset)"
+          }
+        },
+        "required": ["content", "cursor"]
+      }
+    },
+    {
+      "name": "write_document",
+      "description": "Replace the entire content of a document. This is a destructive operation that overwrites all existing content. If mdpro is not in focus, the user will be prompted to confirm the operation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Document ID to write to"
+          },
+          "content": {
+            "type": "string",
+            "description": "New content to replace the document with"
+          }
+        },
+        "required": ["id", "content"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": ["success"]
+      },
+      "annotations": {
+        "destructive": true,
+        "requiresConfirmation": "conditional"
+      }
+    },
+    {
+      "name": "insert_content",
+      "description": "Insert text at a specific position in the document. Less destructive than write_document as it preserves existing content.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Document ID to insert into"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text to insert"
+          },
+          "position": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": ["cursor", "start", "end"],
+                "description": "Named position: cursor (at current cursor), start (beginning of document), end (end of document)"
+              },
+              {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Character offset from start of document"
+              }
+            ],
+            "description": "Where to insert the text"
+          }
+        },
+        "required": ["id", "text", "position"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "new_cursor": {
+            "type": "integer",
+            "description": "Cursor position after insertion"
+          }
+        },
+        "required": ["success", "new_cursor"]
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "mdpro://current/active",
+      "name": "Active Document",
+      "description": "Content of the currently active document in the most recently focused mdpro window",
+      "mimeType": "text/markdown"
+    }
+  ]
+}

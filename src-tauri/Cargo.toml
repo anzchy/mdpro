@@ -1,9 +1,10 @@
 [package]
 name = "tauri-app"
-version = "0.1.5"
+version = "0.2.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
+default-run = "tauri-app"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -30,3 +31,23 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 urlencoding = "2"
 base64 = "0.22"
+
+# MCP Server dependencies
+axum = { version = "0.8", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+tokio = { version = "1", features = ["full"] }
+rmcp = { version = "0.14", features = ["server", "transport-io"] }
+reqwest = { version = "0.12", features = ["json"] }
+anyhow = "1"
+tracing = "0.1"
+rand = "0.8"
+dirs = "5"
+
+[[bin]]
+name = "tauri-app"
+path = "src/main.rs"
+
+[[bin]]
+name = "mdpro_mcp"
+path = "src/bin/mdpro_mcp.rs"

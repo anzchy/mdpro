@@ -1,18 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
-import type { KeyboardShortcuts } from "../../types/preferences";
-import { DEFAULT_KEYBOARD_SHORTCUTS } from "../../types/preferences";
+import type { KeyboardShortcuts, McpConfig } from "../../types/preferences";
+import { DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_MCP_CONFIG } from "../../types/preferences";
 import type { ViewMode } from "../../types/editor";
 import { useThemeStore } from "../../stores/themeStore";
 import { useLoggingStore } from "../../stores/loggingStore";
 import type { LogLevel } from "../../types/logging";
 import { loggingService } from "../../services/loggingService";
+import { IntegrationsSettings } from "./IntegrationsSettings";
 
 interface SettingsDialogProps {
   open: boolean;
   shortcuts: KeyboardShortcuts;
   defaultViewMode: ViewMode;
+  mcpConfig?: McpConfig;
   onSave: (shortcuts: KeyboardShortcuts) => void;
   onDefaultViewModeChange: (mode: ViewMode) => void;
+  onMcpConfigChange?: (config: McpConfig) => void;
   onClose: () => void;
 }
 
@@ -55,6 +58,12 @@ const SETTINGS_PAGES: SettingsPage[] = [
     label: "Image",
     description: "Image handling and paste behavior.",
     placeholderItems: ["Default save location", "Compression", "Retina export"],
+  },
+  {
+    id: "integrations",
+    label: "Integrations",
+    description: "MCP Server and AI assistant connections.",
+    placeholderItems: [],
   },
   {
     id: "export",
@@ -170,8 +179,10 @@ export function SettingsDialog({
   open,
   shortcuts,
   defaultViewMode,
+  mcpConfig = DEFAULT_MCP_CONFIG,
   onSave,
   onDefaultViewModeChange,
+  onMcpConfigChange,
   onClose,
 }: SettingsDialogProps) {
   const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts>(shortcuts);
@@ -354,6 +365,11 @@ export function SettingsDialog({
                   </section>
                 ))}
               </div>
+            ) : currentPage.id === "integrations" ? (
+              <IntegrationsSettings
+                mcpConfig={mcpConfig}
+                onMcpConfigChange={onMcpConfigChange ?? (() => {})}
+              />
             ) : currentPage.id === "general" ? (
               <div className="settings-general">
                 <h3>General</h3>

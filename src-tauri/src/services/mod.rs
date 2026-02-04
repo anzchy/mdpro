@@ -1,7 +1,9 @@
+pub mod draft;
+pub mod encoding;
+pub mod file_watcher;
+pub mod html_template;
+pub mod http_server;
+pub mod logger;
 pub mod markdown;
 pub mod preferences;
-pub mod file_watcher;
-pub mod draft;
-pub mod html_template;
-pub mod encoding;
-pub mod logger;
+pub mod shadow_store;
