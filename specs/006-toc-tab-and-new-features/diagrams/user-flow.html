@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mdpro User Flow - Feature 006</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rust: '#dea584',
+            react: '#61dafb',
+            tauri: '#ffc131',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .flow-node {
+      transition: transform 0.2s;
+    }
+    .flow-node:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
+  <!-- Header -->
+  <header class="bg-white/10 backdrop-blur border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-lg">M</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-white">mdpro</h1>
+            <p class="text-sm text-gray-400">Feature 006 User Flows</p>
+          </div>
+        </div>
+        <nav class="flex space-x-4">
+          <a href="wireframe.html" class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-md">Wireframe</a>
+          <a href="site-diagram.html" class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-md">Architecture</a>
+          <a href="user-flow.html" class="px-3 py-2 text-sm font-medium text-white bg-white/20 rounded-md">User Flow</a>
+          <a href="../../../docs/architecture/index.html" class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-md">Full Docs →</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Page Title -->
+    <section class="text-center mb-8">
+      <h2 class="text-3xl font-bold text-white mb-2">User Flow Diagrams</h2>
+      <p class="text-gray-400">Feature 006: TOC Sidebar, Multi-Tab Support, and Editor Enhancements</p>
+    </section>
+
+    <!-- Legend -->
+    <section class="mb-8">
+      <div class="flex justify-center gap-6 flex-wrap">
+        <div class="flex items-center space-x-2">
+          <span class="w-6 h-6 rounded bg-gradient-to-r from-purple-500 to-indigo-500"></span>
+          <span class="text-sm text-gray-300">Start/Entry</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-6 h-6 rounded bg-gradient-to-r from-green-500 to-emerald-500"></span>
+          <span class="text-sm text-gray-300">User Action</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-6 h-6 rounded bg-gradient-to-r from-pink-500 to-rose-500"></span>
+          <span class="text-sm text-gray-300">Decision</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-6 h-6 rounded bg-gradient-to-r from-cyan-500 to-blue-500"></span>
+          <span class="text-sm text-gray-300">System State</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-6 h-6 rounded bg-gradient-to-r from-orange-500 to-amber-500"></span>
+          <span class="text-sm text-gray-300">End/Result</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Flow Diagrams -->
+    <div class="space-y-8">
+      <!-- 1. TOC Navigation Flow -->
+      <section class="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
+        <div class="flex items-center space-x-3 mb-6">
+          <span class="text-2xl">📑</span>
+          <h3 class="text-xl font-semibold">TOC Navigation Flow</h3>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-4">
+          <div class="flow-node bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Document Open</div>
+            <div class="text-xs opacity-80">With headings</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">⌘⇧B</div>
+            <div class="text-xs opacity-80">Toggle sidebar</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Sidebar Mode?</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flex gap-4">
+            <div class="text-center">
+              <div class="text-xs text-gray-400 mb-2">Files → TOC</div>
+              <div class="flow-node bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg px-4 py-3">
+                <div class="font-semibold text-sm">Show TOC</div>
+                <div class="text-xs opacity-80">Parse headings</div>
+              </div>
+            </div>
+            <div class="text-center">
+              <div class="text-xs text-gray-400 mb-2">TOC → Files</div>
+              <div class="flow-node bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg px-4 py-3">
+                <div class="font-semibold text-sm">Show Files</div>
+                <div class="text-xs opacity-80">File list</div>
+              </div>
+            </div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Click Entry</div>
+            <div class="text-xs opacity-80">Select heading</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Navigate</div>
+            <div class="text-xs opacity-80">Scroll to section</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Multi-Tab Flow -->
+      <section class="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
+        <div class="flex items-center space-x-3 mb-6">
+          <span class="text-2xl">📁</span>
+          <h3 class="text-xl font-semibold">Multi-Tab Document Flow</h3>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-4 mb-6">
+          <div class="flow-node bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">App Open</div>
+            <div class="text-xs opacity-80">Single tab</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Click + or ⌘T</div>
+            <div class="text-xs opacity-80">New tab</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">New Tab Created</div>
+            <div class="text-xs opacity-80">Empty document</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Edit / Open</div>
+            <div class="text-xs opacity-80">Work on doc</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Close Tab</div>
+            <div class="text-xs opacity-80">Click × or ⌘W</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Unsaved?</div>
+          </div>
+        </div>
+        <div class="flex justify-center gap-8">
+          <div class="text-center">
+            <div class="text-xs text-gray-400 mb-2">Yes</div>
+            <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-3">
+              <div class="font-semibold text-sm">Save Dialog</div>
+              <div class="text-xs opacity-80">Save / Discard / Cancel</div>
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="text-xs text-gray-400 mb-2">No</div>
+            <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-3">
+              <div class="font-semibold text-sm">Close</div>
+              <div class="text-xs opacity-80">Tab removed</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Auto-Save Flow -->
+      <section class="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
+        <div class="flex items-center space-x-3 mb-6">
+          <span class="text-2xl">💾</span>
+          <h3 class="text-xl font-semibold">Save & Auto-Save Flow</h3>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-4 mb-6">
+          <div class="flow-node bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Document Edit</div>
+            <div class="text-xs opacity-80">Content changed</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Trigger Type?</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Manual Save -->
+          <div class="bg-white/5 rounded-lg p-4">
+            <div class="text-center text-xs text-gray-400 mb-3">⌘S Pressed</div>
+            <div class="space-y-3">
+              <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-2 text-center text-sm">
+                <div class="font-semibold">Has Path?</div>
+              </div>
+              <div class="flex justify-center gap-4">
+                <div class="text-center">
+                  <div class="text-xs text-gray-400 mb-1">Yes</div>
+                  <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-3 py-2 text-sm">
+                    <div class="font-semibold">Silent Save</div>
+                    <div class="text-xs opacity-80">No dialog</div>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-xs text-gray-400 mb-1">No</div>
+                  <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-3 py-2 text-sm">
+                    <div class="font-semibold">Save As</div>
+                    <div class="text-xs opacity-80">Choose location</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Auto-Save -->
+          <div class="bg-white/5 rounded-lg p-4">
+            <div class="text-center text-xs text-gray-400 mb-3">Auto-Save Timer</div>
+            <div class="space-y-3">
+              <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-2 text-center text-sm">
+                <div class="font-semibold">Typing Pause?</div>
+                <div class="text-xs opacity-80">Debounce check</div>
+              </div>
+              <div class="flex justify-center gap-4">
+                <div class="text-center">
+                  <div class="text-xs text-gray-400 mb-1">Yes</div>
+                  <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-3 py-2 text-sm">
+                    <div class="font-semibold">Auto Save</div>
+                    <div class="text-xs opacity-80">Background</div>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-xs text-gray-400 mb-1">No</div>
+                  <div class="flow-node bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg px-3 py-2 text-sm">
+                    <div class="font-semibold">Wait</div>
+                    <div class="text-xs opacity-80">Reset timer</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- External Change -->
+          <div class="bg-white/5 rounded-lg p-4">
+            <div class="text-center text-xs text-gray-400 mb-3">External Change</div>
+            <div class="space-y-3">
+              <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-2 text-center text-sm">
+                <div class="font-semibold">Conflict</div>
+                <div class="text-xs opacity-80">File modified</div>
+              </div>
+              <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-2 text-center text-sm">
+                <div class="font-semibold">Show Options</div>
+                <div class="text-xs opacity-80">Reload / Restore</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Table Editing Flow -->
+      <section class="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
+        <div class="flex items-center space-x-3 mb-6">
+          <span class="text-2xl">📊</span>
+          <h3 class="text-xl font-semibold">Table Editing Flow</h3>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-4 mb-6">
+          <div class="flow-node bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Table in Doc</div>
+            <div class="text-xs opacity-80">Markdown table</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Render HTML</div>
+            <div class="text-xs opacity-80">WYSIWYG/Preview</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Right-Click</div>
+            <div class="text-xs opacity-80">In table cell</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Context Menu</div>
+            <div class="text-xs opacity-80">Table options</div>
+          </div>
+          <div class="text-2xl text-gray-500">→</div>
+          <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-3 text-center">
+            <div class="font-semibold text-sm">Action?</div>
+          </div>
+        </div>
+        <div class="flex justify-center gap-4 flex-wrap">
+          <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-2 text-center">
+            <div class="font-semibold text-sm">Add Row</div>
+            <div class="text-xs opacity-80">Above/Below</div>
+          </div>
+          <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-2 text-center">
+            <div class="font-semibold text-sm">Add Column</div>
+            <div class="text-xs opacity-80">Left/Right</div>
+          </div>
+          <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-2 text-center">
+            <div class="font-semibold text-sm">Delete</div>
+            <div class="text-xs opacity-80">Row/Column</div>
+          </div>
+          <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-2 text-center">
+            <div class="font-semibold text-sm">Align</div>
+            <div class="text-xs opacity-80">Left/Center/Right</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Image Rendering Flow -->
+      <section class="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
+        <div class="flex items-center space-x-3 mb-6">
+          <span class="text-2xl">🖼️</span>
+          <h3 class="text-xl font-semibold">Image Rendering & Upload Flow</h3>
+        </div>
+        <!-- Rendering -->
+        <div class="mb-8">
+          <div class="text-sm text-gray-400 mb-4">Image Rendering</div>
+          <div class="flex flex-wrap items-center justify-center gap-4 mb-6">
+            <div class="flow-node bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg px-4 py-3 text-center">
+              <div class="font-semibold text-sm">Image Ref</div>
+              <div class="text-xs opacity-80">![alt](path)</div>
+            </div>
+            <div class="text-2xl text-gray-500">→</div>
+            <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-3 text-center">
+              <div class="font-semibold text-sm">Path Type?</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Local Path -->
+            <div class="bg-white/5 rounded-lg p-4">
+              <div class="text-center text-xs text-gray-400 mb-3">Local Path</div>
+              <div class="space-y-3">
+                <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-2 text-center text-sm">
+                  <div class="font-semibold">Resolve Path</div>
+                  <div class="text-xs opacity-80">Relative/Absolute</div>
+                </div>
+                <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-2 text-center text-sm">
+                  <div class="font-semibold">File Exists?</div>
+                </div>
+                <div class="flex justify-center gap-4">
+                  <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-3 py-2 text-sm text-center">
+                    <div class="font-semibold">Render</div>
+                    <div class="text-xs opacity-80">Display</div>
+                  </div>
+                  <div class="flow-node bg-gradient-to-r from-red-500 to-rose-600 rounded-lg px-3 py-2 text-sm text-center">
+                    <div class="font-semibold">Error</div>
+                    <div class="text-xs opacity-80">Placeholder</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Web URL -->
+            <div class="bg-white/5 rounded-lg p-4">
+              <div class="text-center text-xs text-gray-400 mb-3">Web URL</div>
+              <div class="space-y-3">
+                <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-2 text-center text-sm">
+                  <div class="font-semibold">Fetch Image</div>
+                  <div class="text-xs opacity-80">HTTP request</div>
+                </div>
+                <div class="flow-node bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg px-4 py-2 text-center text-sm">
+                  <div class="font-semibold">Success?</div>
+                </div>
+                <div class="flex justify-center gap-4">
+                  <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-3 py-2 text-sm text-center">
+                    <div class="font-semibold">Render</div>
+                    <div class="text-xs opacity-80">Display</div>
+                  </div>
+                  <div class="flow-node bg-gradient-to-r from-red-500 to-rose-600 rounded-lg px-3 py-2 text-sm text-center">
+                    <div class="font-semibold">Error</div>
+                    <div class="text-xs opacity-80">Network fail</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Upload -->
+        <div class="border-t border-white/10 pt-6">
+          <div class="text-sm text-gray-400 mb-4">Image Upload</div>
+          <div class="flex flex-wrap items-center justify-center gap-4">
+            <div class="flow-node bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg px-4 py-3 text-center">
+              <div class="font-semibold text-sm">Settings → Image</div>
+              <div class="text-xs opacity-80">Upload action</div>
+            </div>
+            <div class="text-2xl text-gray-500">→</div>
+            <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+              <div class="font-semibold text-sm">Select File</div>
+              <div class="text-xs opacity-80">File picker</div>
+            </div>
+            <div class="text-2xl text-gray-500">→</div>
+            <div class="flow-node bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg px-4 py-3 text-center">
+              <div class="font-semibold text-sm">Copy to Location</div>
+              <div class="text-xs opacity-80">Based on config</div>
+            </div>
+            <div class="text-2xl text-gray-500">→</div>
+            <div class="flow-node bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-3 text-center">
+              <div class="font-semibold text-sm">Insert Reference</div>
+              <div class="text-xs opacity-80">At cursor</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10 mt-8">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between text-sm text-gray-400">
+        <a href="site-diagram.html" class="text-purple-400 hover:text-purple-300">← Architecture</a>
+        <span>Feature 006 Documentation</span>
+        <a href="../../../docs/architecture/index.html" class="text-purple-400 hover:text-purple-300">Full Docs →</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mdpro Architecture Overview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rust: '#dea584',
+            react: '#61dafb',
+            tauri: '#ffc131',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card-hover {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    }
+    .architecture-diagram {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-lg">M</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-gray-900">mdpro</h1>
+            <p class="text-sm text-gray-500">Architecture Documentation</p>
+          </div>
+        </div>
+        <nav class="flex space-x-4">
+          <a href="index.html" class="px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md">Overview</a>
+          <a href="frontend.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Frontend</a>
+          <a href="backend.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Backend</a>
+          <a href="ipc-events.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">IPC & Events</a>
+          <a href="plugins.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Plugins</a>
+          <a href="data-flow.html" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">Data Flow</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Hero Section -->
+    <section class="text-center mb-12">
+      <h2 class="text-4xl font-bold gradient-text mb-4">mdpro Architecture</h2>
+      <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+        A local Markdown editor for macOS combining Typora's WYSIWYG experience with modern design.
+        Built with Tauri 2.0 (Rust backend + React frontend).
+      </p>
+      <div class="flex justify-center gap-4 mt-6">
+        <span class="px-4 py-2 bg-gray-100 rounded-full text-sm font-medium">v0.1.5</span>
+        <span class="px-4 py-2 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">macOS 13+</span>
+        <span class="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">Apple Silicon</span>
+      </div>
+    </section>
+
+    <!-- Architecture Diagram -->
+    <section class="mb-12">
+      <div class="architecture-diagram rounded-2xl p-8 text-white">
+        <h3 class="text-xl font-semibold mb-6 text-center">High-Level Architecture</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Frontend -->
+          <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/20">
+            <div class="flex items-center space-x-2 mb-4">
+              <div class="w-8 h-8 bg-react rounded-lg flex items-center justify-center">
+                <span class="text-gray-900 font-bold text-sm">R</span>
+              </div>
+              <h4 class="font-semibold text-react">Frontend (src/)</h4>
+            </div>
+            <ul class="space-y-2 text-sm text-gray-300">
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-react rounded-full"></span>
+                <span>React 19 + TypeScript 5.8</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-react rounded-full"></span>
+                <span>CodeMirror 6 (Source Editor)</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-react rounded-full"></span>
+                <span>Milkdown 7.18 (WYSIWYG)</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-react rounded-full"></span>
+                <span>Zustand 4 (State)</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- IPC Bridge -->
+          <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/20">
+            <div class="flex items-center space-x-2 mb-4">
+              <div class="w-8 h-8 bg-tauri rounded-lg flex items-center justify-center">
+                <span class="text-gray-900 font-bold text-sm">T</span>
+              </div>
+              <h4 class="font-semibold text-tauri">Tauri IPC Bridge</h4>
+            </div>
+            <div class="space-y-4 text-sm">
+              <div class="bg-white/5 rounded-lg p-3">
+                <div class="text-gray-400 mb-1">invoke() &rarr;</div>
+                <div class="text-green-400">Commands</div>
+                <div class="text-xs text-gray-500">file.open, file.save, export.html</div>
+              </div>
+              <div class="bg-white/5 rounded-lg p-3">
+                <div class="text-gray-400 mb-1">&larr; emit()</div>
+                <div class="text-blue-400">Events</div>
+                <div class="text-xs text-gray-500">menu:action, file:changed, theme:changed</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Backend -->
+          <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/20">
+            <div class="flex items-center space-x-2 mb-4">
+              <div class="w-8 h-8 bg-rust rounded-lg flex items-center justify-center">
+                <span class="text-gray-900 font-bold text-sm">Rs</span>
+              </div>
+              <h4 class="font-semibold text-rust">Backend (src-tauri/)</h4>
+            </div>
+            <ul class="space-y-2 text-sm text-gray-300">
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-rust rounded-full"></span>
+                <span>Rust 2021 Edition</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-rust rounded-full"></span>
+                <span>Tauri 2.0 Runtime</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-rust rounded-full"></span>
+                <span>pulldown-cmark (Markdown)</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="w-2 h-2 bg-rust rounded-full"></span>
+                <span>notify (File Watcher)</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Technology Stack</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">⚛️</div>
+          <h4 class="font-semibold">React 19</h4>
+          <p class="text-sm text-gray-500">UI Framework</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">🦀</div>
+          <h4 class="font-semibold">Rust</h4>
+          <p class="text-sm text-gray-500">Backend Runtime</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">📝</div>
+          <h4 class="font-semibold">CodeMirror 6</h4>
+          <p class="text-sm text-gray-500">Source Editor</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">✨</div>
+          <h4 class="font-semibold">Milkdown</h4>
+          <p class="text-sm text-gray-500">WYSIWYG Editor</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">🗄️</div>
+          <h4 class="font-semibold">Zustand</h4>
+          <p class="text-sm text-gray-500">State Management</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">⚡</div>
+          <h4 class="font-semibold">Vite 7</h4>
+          <p class="text-sm text-gray-500">Build Tool</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">🔷</div>
+          <h4 class="font-semibold">TypeScript</h4>
+          <p class="text-sm text-gray-500">Type Safety</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 card-hover">
+          <div class="text-3xl mb-2">🖥️</div>
+          <h4 class="font-semibold">Tauri 2.0</h4>
+          <p class="text-sm text-gray-500">Desktop Framework</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Project Structure -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Project Structure</h3>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+          <!-- Frontend -->
+          <div class="p-6">
+            <div class="flex items-center space-x-2 mb-4">
+              <span class="px-2 py-1 bg-react/20 text-react rounded text-xs font-medium">FRONTEND</span>
+              <span class="text-gray-500">src/</span>
+            </div>
+            <pre class="text-sm text-gray-700 font-mono leading-relaxed"><code>src/
+├── App.tsx              <span class="text-gray-400"># Root component</span>
+├── components/
+│   ├── Editor/          <span class="text-gray-400"># CodeMirror + Milkdown</span>
+│   ├── Preview/         <span class="text-gray-400"># Markdown preview</span>
+│   ├── Sidebar/         <span class="text-gray-400"># Document tabs</span>
+│   └── common/          <span class="text-gray-400"># Dialogs, toasts</span>
+├── hooks/               <span class="text-gray-400"># useDocument, useMenuEvents</span>
+├── plugins/             <span class="text-gray-400"># Editor plugin system</span>
+├── stores/              <span class="text-gray-400"># Zustand stores</span>
+├── services/            <span class="text-gray-400"># Tauri IPC wrappers</span>
+└── types/               <span class="text-gray-400"># TypeScript definitions</span></code></pre>
+          </div>
+          <!-- Backend -->
+          <div class="p-6">
+            <div class="flex items-center space-x-2 mb-4">
+              <span class="px-2 py-1 bg-rust/20 text-orange-700 rounded text-xs font-medium">BACKEND</span>
+              <span class="text-gray-500">src-tauri/</span>
+            </div>
+            <pre class="text-sm text-gray-700 font-mono leading-relaxed"><code>src-tauri/src/
+├── main.rs              <span class="text-gray-400"># Entry point</span>
+├── lib.rs               <span class="text-gray-400"># Module exports</span>
+├── menu.rs              <span class="text-gray-400"># Native macOS menu</span>
+├── launch.rs            <span class="text-gray-400"># File associations</span>
+├── commands/            <span class="text-gray-400"># IPC handlers</span>
+│   ├── file.rs          <span class="text-gray-400"># File operations</span>
+│   ├── export.rs        <span class="text-gray-400"># HTML export</span>
+│   └── preferences.rs   <span class="text-gray-400"># Settings</span>
+├── services/            <span class="text-gray-400"># Business logic</span>
+└── models/              <span class="text-gray-400"># Data structures</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Links -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Documentation Sections</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <a href="frontend.html" class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 card-hover block">
+          <div class="text-2xl mb-3">🎨</div>
+          <h4 class="font-semibold mb-2">Frontend Architecture</h4>
+          <p class="text-sm text-gray-500">React components, hooks, stores, and the editor system</p>
+        </a>
+        <a href="backend.html" class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 card-hover block">
+          <div class="text-2xl mb-3">⚙️</div>
+          <h4 class="font-semibold mb-2">Backend Architecture</h4>
+          <p class="text-sm text-gray-500">Rust modules, commands, services, and file handling</p>
+        </a>
+        <a href="ipc-events.html" class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 card-hover block">
+          <div class="text-2xl mb-3">🔗</div>
+          <h4 class="font-semibold mb-2">IPC & Events</h4>
+          <p class="text-sm text-gray-500">Command definitions, event payloads, and communication patterns</p>
+        </a>
+        <a href="plugins.html" class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 card-hover block">
+          <div class="text-2xl mb-3">🔌</div>
+          <h4 class="font-semibold mb-2">Plugin System</h4>
+          <p class="text-sm text-gray-500">Plugin architecture, registry, and extension points</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Key Features -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Core Features</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
+          <h4 class="font-semibold text-purple-900 mb-3">Dual Editor Modes</h4>
+          <ul class="space-y-2 text-sm text-purple-800">
+            <li>• Split view (editor + preview)</li>
+            <li>• Source-only mode</li>
+            <li>• Preview-only mode</li>
+            <li>• WYSIWYG mode (Milkdown)</li>
+          </ul>
+        </div>
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
+          <h4 class="font-semibold text-green-900 mb-3">File Management</h4>
+          <ul class="space-y-2 text-sm text-green-800">
+            <li>• Multi-tab document support</li>
+            <li>• External file change detection</li>
+            <li>• Auto-save drafts</li>
+            <li>• Encoding detection</li>
+          </ul>
+        </div>
+        <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
+          <h4 class="font-semibold text-orange-900 mb-3">Native Integration</h4>
+          <ul class="space-y-2 text-sm text-orange-800">
+            <li>• macOS native menus</li>
+            <li>• File associations (.md)</li>
+            <li>• System theme sync</li>
+            <li>• Single instance handling</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Constraints -->
+    <section class="mb-12">
+      <h3 class="text-2xl font-bold mb-6">Design Constraints</h3>
+      <div class="bg-gray-100 rounded-xl p-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="text-center">
+            <div class="text-2xl mb-2">📁</div>
+            <div class="font-medium">Local Files Only</div>
+            <div class="text-xs text-gray-500">No cloud sync</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl mb-2">🚫</div>
+            <div class="font-medium">No Plugins</div>
+            <div class="text-xs text-gray-500">Built-in features only</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl mb-2">📄</div>
+            <div class="font-medium">HTML Export</div>
+            <div class="text-xs text-gray-500">No PDF/Word</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl mb-2">📏</div>
+            <div class="font-medium">10MB Max</div>
+            <div class="text-xs text-gray-500">File size limit</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-200 bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between text-sm text-gray-500">
+        <span>mdpro Architecture Documentation</span>
+        <span>Generated for v0.1.5</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
