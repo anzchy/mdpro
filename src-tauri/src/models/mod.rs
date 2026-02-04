@@ -6,4 +6,4 @@ pub mod preferences;
 pub use document::Document;
 pub use draft::{Draft, DraftMetadata};
 pub use log_entry::{LogContext, LogEntry, LogEntryPayload, LogLevel, LogSettings, LogStatus};
-pub use preferences::{KeyboardShortcuts, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
+pub use preferences::{AutoSaveConfig, CloseFocusBehavior, ImageConfig, KeyboardShortcuts, TabBarConfig, TabBarPosition, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
