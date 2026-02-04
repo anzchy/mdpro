@@ -1,146 +1,121 @@
-# Quickstart: mdpro MCP Server
+# mdpro MCP Server Quickstart
+
+This guide explains how to configure Claude Code, Codex CLI, or other MCP clients to use mdpro's MCP server.
 
 ## Prerequisites
 
-- mdpro built and running
-- Claude Code, Codex CLI, or another MCP-compatible client
+1. **mdpro** must be running
+2. The MCP server binary (`mdpro_mcp`) must be available in your PATH or specified with full path
 
-## Architecture Overview
+## Finding the Binary
 
+After building mdpro, the MCP server binary is located at:
+
+**Development**:
 ```
-┌─────────────────┐     stdio      ┌─────────────────┐     HTTP      ┌─────────────────┐
-│   MCP Client    │ ◄──────────► │   mdpro-mcp     │ ◄──────────► │    mdpro App    │
-│ (Claude/Codex)  │   JSON-RPC    │  (Rust binary)  │  localhost    │  (Tauri + React)│
-└─────────────────┘               └─────────────────┘               └─────────────────┘
-                                          │
-                                          ▼
-                                  ~/.mdpro/server.port
-                                  ~/.mdpro/server.token
+src-tauri/target/debug/mdpro_mcp
 ```
 
-## Setup Steps
-
-### 1. Build mdpro-mcp
-
-```bash
-cd src-tauri
-cargo build --bin mdpro_mcp --release
+**Production (bundled with app)**:
+```
+/Applications/mdpro.app/Contents/MacOS/mdpro_mcp
 ```
 
-Binary location: `target/release/mdpro_mcp`
+## Claude Code Configuration
 
-### 2. Configure MCP Client
+Add to your Claude Code MCP settings (`~/.claude/settings.json` or project `.claude/settings.json`):
 
-**Claude Code** (`~/.claude_code/mcp.json`):
 ```json
 {
   "mcpServers": {
     "mdpro": {
-      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro-mcp"
+      "command": "/path/to/mdpro_mcp"
     }
   }
 }
 ```
 
-**Alternative (development)**:
+For bundled app:
 ```json
 {
   "mcpServers": {
     "mdpro": {
-      "command": "/path/to/mdpro/src-tauri/target/release/mdpro_mcp"
+      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp"
     }
   }
 }
 ```
 
-### 3. Start mdpro
+## Claude Desktop Configuration
 
-Launch mdpro.app normally. The HTTP server starts automatically and writes connection info to:
-- `~/.mdpro/server.port` - Port number
-- `~/.mdpro/server.token` - Auth token
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
-### 4. Verify Connection
-
-In Claude Code:
+```json
+{
+  "mcpServers": {
+    "mdpro": {
+      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp"
+    }
+  }
+}
 ```
-> What documents are open in mdpro?
-```
-
-Expected: List of open document titles and paths.
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `get_open_documents` | List all open documents with IDs, titles, paths |
-| `read_document` | Read content of a specific document by ID |
-| `write_document` | Replace entire document content (may prompt for confirmation) |
-| `insert_content` | Insert text at cursor, start, end, or specific offset |
+### get_open_documents
+Returns a list of all documents currently open in mdpro.
 
-## Example Workflows
+**Response**: JSON array of documents with id, title, path, and is_dirty fields.
 
-### Read and Summarize Current Document
+### read_document
+Read the content of a specific document.
 
-```
-> Read the active document in mdpro and summarize it
-```
+**Parameters**:
+- `id` (string): Document ID from get_open_documents
 
-### Insert Generated Code
+**Response**: Document content as plain text.
 
-```
-> Insert a TypeScript interface for a User at the cursor position in mdpro
-```
+### write_document
+Replace the entire content of a document.
 
-### Update Document Content
+**Parameters**:
+- `id` (string): Document ID
+- `content` (string): New content
 
-```
-> Replace the content of the README.md in mdpro with an improved version
-```
+**Note**: If mdpro is not focused, a confirmation dialog will appear.
+
+### insert_content
+Insert text at a specific position.
+
+**Parameters**:
+- `id` (string): Document ID
+- `text` (string): Text to insert
+- `position` (string): "cursor", "start", "end", or a character offset number
+
+**Note**: If mdpro is not focused, a confirmation dialog will appear.
 
 ## Troubleshooting
 
-### "mdpro not running"
+### "mdpro not running" error
 
-- Ensure mdpro.app is running before starting the MCP client
-- Check that `~/.mdpro/server.port` exists and contains a valid port
+The MCP server requires mdpro to be running. Start mdpro before using the MCP tools.
 
-### "Invalid token"
+### Connection refused
 
-- Restart mdpro to regenerate the token
-- Restart the MCP client to pick up the new token
+1. Check that mdpro is running
+2. Verify `~/.mdpro/server.port` and `~/.mdpro/server.token` exist
+3. These files are created when mdpro starts and removed when it quits
 
-### "User rejected write operation"
+### Permission denied
 
-- User declined the confirmation dialog for a write operation
-- Either accept the dialog or use `insert_content` for less intrusive edits
-
-### Connection Refused
-
-- Check if another process is using the port
-- Look at `~/.mdpro/mdpro.log` for HTTP server startup errors
-
-## Development
-
-### Run HTTP Server Manually (Testing)
-
+Ensure the mdpro_mcp binary is executable:
 ```bash
-cd src-tauri
-cargo run -- --http-only  # (if implemented)
+chmod +x /path/to/mdpro_mcp
 ```
 
-### Test mdpro-mcp Standalone
+## How It Works
 
-```bash
-echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | ./target/release/mdpro_mcp
-```
-
-### View Logs
-
-```bash
-tail -f ~/.mdpro/mdpro.log | jq .
-```
-
-Filter for MCP events:
-```bash
-tail -f ~/.mdpro/mdpro.log | jq 'select(.event | startswith("mcp."))'
-```
+1. Claude Code spawns `mdpro_mcp` as a subprocess
+2. `mdpro_mcp` reads connection info from `~/.mdpro/server.port` and `~/.mdpro/server.token`
+3. MCP tool calls are forwarded to mdpro's internal HTTP API
+4. Results are returned via MCP protocol

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- MCP (Model Context Protocol) Server for LLM integration
+  - HTTP API server with token authentication (localhost only)
+  - Shadow Store for syncing document state from frontend to Rust
+  - `mdpro_mcp` binary for Claude Code, Codex CLI, and Gemini CLI integration
+  - Tools: get_open_documents, read_document, write_document, insert_content
+  - Write confirmation dialog when mdpro is not focused
+  - Multi-window routing based on most recently focused window
+  - Server config files at `~/.mdpro/server.port` and `~/.mdpro/server.token`
+  - Quickstart guide at `specs/007-mcp-server/quickstart.md`
 - TOC store (`src/stores/tocStore.ts`) with TOCEntry, TOCState interfaces and Zustand store
 - Tab store (`src/stores/tabStore.ts`) with Tab, TabState, ClosedTab interfaces and MRU logic
 - TOC service (`src/services/tocService.ts`) with IPC wrappers and frontend heading parser

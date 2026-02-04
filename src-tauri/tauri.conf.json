@@ -30,6 +30,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": [
+      "binaries/mdpro_mcp"
+    ],
     "fileAssociations": [
       {
         "ext": ["md", "markdown"],

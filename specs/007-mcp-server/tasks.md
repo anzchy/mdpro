@@ -130,16 +130,16 @@
 
 ### Implementation
 
-- [ ] T038 Create mdpro_mcp binary scaffold in src-tauri/src/bin/mdpro_mcp.rs
-- [ ] T039 Implement config file reading (~/.mdpro/server.port, ~/.mdpro/server.token) in mdpro_mcp.rs
-- [ ] T040 Implement get_open_documents MCP tool using rmcp #[tool] macro in mdpro_mcp.rs
-- [ ] T041 Implement read_document MCP tool in mdpro_mcp.rs
-- [ ] T042 Implement write_document MCP tool in mdpro_mcp.rs
-- [ ] T043 Implement insert_content MCP tool in mdpro_mcp.rs
-- [ ] T044 Implement mdpro://current/active resource in mdpro_mcp.rs
-- [ ] T045 Add HTTP client (reqwest) for forwarding to mdpro HTTP server in mdpro_mcp.rs
-- [ ] T046 Implement "mdpro not running" error handling in mdpro_mcp.rs
-- [ ] T047 Add [[bin]] target for mdpro_mcp in src-tauri/Cargo.toml
+- [X] T038 Create mdpro_mcp binary scaffold in src-tauri/src/bin/mdpro_mcp.rs
+- [X] T039 Implement config file reading (~/.mdpro/server.port, ~/.mdpro/server.token) in mdpro_mcp.rs
+- [X] T040 Implement get_open_documents MCP tool using rmcp #[tool] macro in mdpro_mcp.rs
+- [X] T041 Implement read_document MCP tool in mdpro_mcp.rs
+- [X] T042 Implement write_document MCP tool in mdpro_mcp.rs
+- [X] T043 Implement insert_content MCP tool in mdpro_mcp.rs
+- [ ] T044 Implement mdpro://current/active resource in mdpro_mcp.rs (DEFERRED - tools cover use cases)
+- [X] T045 Add HTTP client (reqwest) for forwarding to mdpro HTTP server in mdpro_mcp.rs
+- [X] T046 Implement "mdpro not running" error handling in mdpro_mcp.rs
+- [X] T047 Add [[bin]] target for mdpro_mcp in src-tauri/Cargo.toml
 
 **Checkpoint**: mdpro-mcp binary works as standalone MCP server.
 
@@ -149,16 +149,19 @@
 
 **Purpose**: Bundling, distribution, and final validation
 
-- [ ] T048 Configure externalBin in src-tauri/tauri.conf.json to bundle mdpro-mcp with app
-- [ ] T049 Add cleanup logic for server.port/server.token on app quit in src-tauri/src/main.rs
-- [ ] T050 Create Claude Desktop MCP configuration example in specs/007-mcp-server/quickstart.md (already done, verify)
+- [X] T048 Configure externalBin in src-tauri/tauri.conf.json to bundle mdpro-mcp with app
+- [X] T049 Add cleanup logic for server.port/server.token on app quit in src-tauri/src/main.rs
+- [X] T050 Create Claude Desktop MCP configuration example in specs/007-mcp-server/quickstart.md (already done, verify)
 - [ ] T051 Manual integration test: Configure Claude Code with mdpro-mcp, test read document flow
   - **Verify**: Response time < 100ms for tool calls (per plan.md performance goals)
+  - **Status**: Pending manual verification - requires running mdpro
 - [ ] T052 Manual integration test: Test write document with confirmation dialog
   - **Verify**: Response time < 100ms for tool calls (per plan.md performance goals)
+  - **Status**: Pending manual verification - requires running mdpro
 - [ ] T053 Manual integration test: Test multi-window routing
   - **Verify**: Response time < 100ms for tool calls (per plan.md performance goals)
-- [ ] T054 Update CHANGELOG.md with MCP Server feature
+  - **Status**: Pending manual verification - requires running mdpro
+- [X] T054 Update CHANGELOG.md with MCP Server feature
 
 ---
 
