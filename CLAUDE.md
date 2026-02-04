@@ -128,6 +128,77 @@ git tag v0.1.2
 git push origin v0.1.2
 ```
 
+## Git Commit Conventions
+
+This project follows **atomic commit** principles. Each commit should contain one logical change.
+
+### Commit Message Format
+
+```
+<type>(<scope>): <short summary>
+
+<body>
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+### Types
+
+| Type | Use For | Example Scope |
+|------|---------|---------------|
+| `feat` | New features | `toc`, `tabs`, `image`, `editor` |
+| `fix` | Bug fixes | `save`, `encoding`, `menu` |
+| `docs` | Documentation | `readme`, `changelog`, `specs` |
+| `style` | CSS/formatting | `css`, `theme` |
+| `refactor` | Code restructure | `commands`, `stores` |
+| `test` | Test files | `fixtures`, `unit` |
+| `chore` | Build/tooling | `deps`, `config`, `tooling` |
+| `perf` | Performance | `render`, `parsing` |
+
+### Splitting Strategy for mdpro
+
+When making large changes, split by architectural layer:
+
+1. **Backend first**: `src-tauri/src/commands/*.rs` - Rust commands
+2. **Services**: `src/services/*.ts` - TypeScript IPC wrappers
+3. **Stores**: `src/stores/*.ts` - Zustand state
+4. **Hooks**: `src/hooks/*.ts` - React hooks
+5. **Components**: `src/components/**/*.tsx` - UI components
+6. **Styles**: `src/styles/*.css` - CSS updates
+7. **Integration**: `src/App.tsx` - Wiring everything together
+8. **Docs/Tests**: Documentation and test fixtures
+
+### Example Workflow
+
+```bash
+# Stage only TOC-related files
+git add src-tauri/src/commands/toc.rs \
+        src/services/tocService.ts \
+        src/stores/tocStore.ts \
+        src/hooks/useTOC.ts \
+        src/components/Sidebar/TOCSidebar.tsx
+
+# Verify what's staged
+git diff --cached --stat
+
+# Commit with descriptive message
+git commit -m "feat(toc): add table of contents with heading extraction
+
+Implement document outline sidebar using pulldown-cmark for parsing.
+Supports hierarchical display, scroll-spy, and click-to-navigate.
+
+Tested: Manual QA with H1-H6 headings"
+```
+
+### Commit Checklist
+
+Before each commit, verify:
+- [ ] Only related files are staged (`git diff --cached --stat`)
+- [ ] Project still builds (`pnpm build` or `cargo check`)
+- [ ] Message follows `type(scope): summary` format
+- [ ] Body explains WHY, not WHAT
+- [ ] No secrets or large binaries included
+
 ## Spec-Driven Development
 
 Feature specifications live in `specs/001-mdpro-mvp/`:

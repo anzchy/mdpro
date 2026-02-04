@@ -51,7 +51,63 @@ Example entry:
 - Login timeout issue on slow networks (i7j8k9l)
 ```
 
-### VI. [ADDITIONAL_PRINCIPLES]
+### VI. Atomic Commits (MANDATORY)
+
+**All git commits MUST follow atomic commit principles for maintainable version history.**
+
+#### Definition
+An **atomic commit** contains exactly one logical change that is:
+- **Self-contained**: Complete and functional on its own
+- **Reversible**: Can be reverted without breaking other features
+- **Testable**: Project builds and runs after the commit
+- **Reviewable**: Easy to understand in code review
+
+#### Commit Message Format
+```
+<type>(<scope>): <short summary>
+
+<body: explain WHY, not WHAT>
+
+<footer: references, breaking changes, testing notes>
+```
+
+**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
+
+**Rules**:
+- Subject line: ≤50 chars, imperative mood, lowercase after colon
+- Body: ≤72 chars/line, explain motivation and context
+- Footer: `Closes #123`, `BREAKING CHANGE:`, `Tested:`
+
+#### Splitting Strategies
+
+| Strategy | When to Use | Example |
+|----------|-------------|---------|
+| By Feature | New functionality | TOC, Tabs, Image service as separate commits |
+| By Layer | Full-stack changes | Backend → Frontend → Styles |
+| By Type | Mixed changes | Code separate from docs/tests |
+
+#### Anti-Patterns to Avoid
+- ❌ "WIP", "fix stuff", "updates" (vague messages)
+- ❌ Mixing unrelated changes in one commit
+- ❌ Commits that break the build
+- ❌ Giant commits with 50+ files
+- ❌ Splitting too granularly (1 file = 1 commit)
+
+#### Workflow
+```bash
+# 1. Stage related files only
+git add src/components/Feature/
+
+# 2. Verify staged content
+git diff --cached --stat
+
+# 3. Commit with descriptive message
+git commit -m "feat(feature): add X for Y reason"
+
+# 4. Repeat for next logical change
+```
+
+### VII. [ADDITIONAL_PRINCIPLES]
 <!-- Add more principles as needed for your project -->
 [ADDITIONAL_PRINCIPLE_DESCRIPTION]
 
