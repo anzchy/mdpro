@@ -340,6 +340,11 @@ fn main() {
                         duration_ms: None,
                         error: None,
                     });
+
+                    // Remove window from MCP Shadow Store
+                    if let Some(store) = window.try_state::<SharedShadowStore>() {
+                        let _ = shadow_store::remove_window(&store, window.label());
+                    }
                 }
                 WindowEvent::Moved(position) => {
                     let window_id = window.label().to_string();

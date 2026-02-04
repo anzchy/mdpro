@@ -6,10 +6,11 @@
 use crate::models::{
     CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo,
     ErrorResponse, InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult,
-    ServerConfig, SharedServerConfig, SharedShadowStore, StatusResponse, UpdateDocumentRequest,
-    WriteDocumentEvent, WriteResult,
+    LogEntryPayload, LogLevel, LogStatus, ServerConfig, SharedServerConfig, SharedShadowStore,
+    StatusResponse, UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
 };
-use crate::services::shadow_store;
+use crate::services::{logger, shadow_store};
+use serde_json::json;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -165,12 +166,40 @@ async fn get_status(State(state): State<AppState>) -> impl IntoResponse {
 
 /// GET /api/documents - List all open documents.
 async fn list_documents(State(state): State<AppState>) -> impl IntoResponse {
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.list".to_string(),
+        status: LogStatus::Start,
+        action_id: None,
+        context: None,
+        duration_ms: None,
+        error: None,
+    });
+
     match shadow_store::get_all_documents(&state.shadow_store) {
         Ok(docs) => {
             let info: Vec<DocumentInfo> = docs.iter().map(DocumentInfo::from).collect();
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Info,
+                event: "mcp.list".to_string(),
+                status: LogStatus::Success,
+                action_id: None,
+                context: Some(json!({ "documentCount": info.len() })),
+                duration_ms: None,
+                error: None,
+            });
             (StatusCode::OK, Json(info)).into_response()
         }
         Err(e) => {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Error,
+                event: "mcp.list".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: None,
+                duration_ms: None,
+                error: Some(e.clone()),
+            });
             let error = ErrorResponse {
                 error: e,
                 code: Some("INTERNAL_ERROR".to_string()),
@@ -185,8 +214,27 @@ async fn get_document(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.read".to_string(),
+        status: LogStatus::Start,
+        action_id: None,
+        context: Some(json!({ "documentId": id })),
+        duration_ms: None,
+        error: None,
+    });
+
     match shadow_store::get_document(&state.shadow_store, &id) {
         Ok(Some(doc)) => {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Info,
+                event: "mcp.read".to_string(),
+                status: LogStatus::Success,
+                action_id: None,
+                context: Some(json!({ "documentId": id, "contentLength": doc.content.len() })),
+                duration_ms: None,
+                error: None,
+            });
             let content = DocumentContent {
                 content: doc.content,
                 cursor: doc.cursor,
@@ -194,6 +242,15 @@ async fn get_document(
             (StatusCode::OK, Json(content)).into_response()
         }
         Ok(None) => {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Warn,
+                event: "mcp.read".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": id })),
+                duration_ms: None,
+                error: Some("Document not found".to_string()),
+            });
             let error = ErrorResponse {
                 error: format!("Document not found: {}", id),
                 code: Some("NOT_FOUND".to_string()),
@@ -216,10 +273,29 @@ async fn update_document(
     Path(id): Path<String>,
     Json(request): Json<UpdateDocumentRequest>,
 ) -> impl IntoResponse {
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.write".to_string(),
+        status: LogStatus::Start,
+        action_id: None,
+        context: Some(json!({ "documentId": id, "contentLength": request.content.len() })),
+        duration_ms: None,
+        error: None,
+    });
+
     // Check if document exists
     let doc = match shadow_store::get_document(&state.shadow_store, &id) {
         Ok(Some(doc)) => doc,
         Ok(None) => {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Warn,
+                event: "mcp.write".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": id })),
+                duration_ms: None,
+                error: Some("Document not found".to_string()),
+            });
             let error = ErrorResponse {
                 error: format!("Document not found: {}", id),
                 code: Some("NOT_FOUND".to_string()),
@@ -240,15 +316,43 @@ async fn update_document(
         .unwrap_or(false);
 
     if !window_focused {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "mcp.confirm".to_string(),
+            status: LogStatus::Start,
+            action_id: None,
+            context: Some(json!({ "documentId": id, "documentTitle": doc.title })),
+            duration_ms: None,
+            error: None,
+        });
+
         // Show confirmation dialog
         let confirmed = show_write_confirmation(&doc.title);
         if !confirmed {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Info,
+                event: "mcp.confirm".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": id, "userRejected": true })),
+                duration_ms: None,
+                error: Some("User rejected".to_string()),
+            });
             let error = ErrorResponse {
                 error: "User rejected write operation".to_string(),
                 code: Some("USER_REJECTED".to_string()),
             };
             return (StatusCode::FORBIDDEN, Json(error)).into_response();
         }
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "mcp.confirm".to_string(),
+            status: LogStatus::Success,
+            action_id: None,
+            context: Some(json!({ "documentId": id })),
+            duration_ms: None,
+            error: None,
+        });
     }
 
     // Get the window label for the document
@@ -271,6 +375,16 @@ async fn update_document(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
 
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.write".to_string(),
+        status: LogStatus::Success,
+        action_id: None,
+        context: Some(json!({ "documentId": id })),
+        duration_ms: None,
+        error: None,
+    });
+
     (StatusCode::OK, Json(WriteResult { success: true })).into_response()
 }
 
@@ -280,10 +394,29 @@ async fn insert_content(
     Path(id): Path<String>,
     Json(request): Json<InsertContentRequest>,
 ) -> impl IntoResponse {
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.insert".to_string(),
+        status: LogStatus::Start,
+        action_id: None,
+        context: Some(json!({ "documentId": id, "textLength": request.text.len() })),
+        duration_ms: None,
+        error: None,
+    });
+
     // Check if document exists
     let doc = match shadow_store::get_document(&state.shadow_store, &id) {
         Ok(Some(doc)) => doc,
         Ok(None) => {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Warn,
+                event: "mcp.insert".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": id })),
+                duration_ms: None,
+                error: Some("Document not found".to_string()),
+            });
             let error = ErrorResponse {
                 error: format!("Document not found: {}", id),
                 code: Some("NOT_FOUND".to_string()),
@@ -329,6 +462,16 @@ async fn insert_content(
         };
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
+
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.insert".to_string(),
+        status: LogStatus::Success,
+        action_id: None,
+        context: Some(json!({ "documentId": id, "insertOffset": insert_offset, "newCursor": new_cursor })),
+        duration_ms: None,
+        error: None,
+    });
 
     (StatusCode::OK, Json(InsertResult { success: true, new_cursor })).into_response()
 }

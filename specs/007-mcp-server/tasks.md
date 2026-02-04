@@ -60,14 +60,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement GET /api/status handler in src-tauri/src/services/http_server.rs
-- [ ] T017 [US1] Implement GET /api/documents handler (list documents from Shadow Store) in src-tauri/src/services/http_server.rs
-- [ ] T018 [US1] Implement GET /api/documents/:id handler (read single document) in src-tauri/src/services/http_server.rs
-- [ ] T019 [US1] Create useMcpSync hook in src/hooks/useMcpSync.ts with 300ms debounce for content changes
-- [ ] T020 [US1] Create mcpService.ts in src/services/mcpService.ts with invoke wrapper for mcp_sync_documents
-- [ ] T021 [US1] Integrate useMcpSync hook in src/components/Editor/Editor.tsx
-- [ ] T022 [US1] Add immediate sync triggers for document open/close/switch in useMcpSync.ts
-- [ ] T023 [US1] Add MCP event logging in src-tauri/src/services/http_server.rs (mcp.read, mcp.list events)
+- [X] T016 [US1] Implement GET /api/status handler in src-tauri/src/services/http_server.rs
+- [X] T017 [US1] Implement GET /api/documents handler (list documents from Shadow Store) in src-tauri/src/services/http_server.rs
+- [X] T018 [US1] Implement GET /api/documents/:id handler (read single document) in src-tauri/src/services/http_server.rs
+- [X] T019 [US1] Create useMcpSync hook in src/hooks/useMcpSync.ts with 300ms debounce for content changes
+- [X] T020 [US1] Create mcpService.ts in src/services/mcpService.ts with invoke wrapper for mcp_sync_documents
+- [X] T021 [US1] Integrate useMcpSync hook in src/App.tsx
+- [X] T022 [US1] Add immediate sync triggers for document open/close/switch in useMcpSync.ts
+- [X] T023 [US1] Add MCP event logging in src-tauri/src/services/http_server.rs (mcp.read, mcp.list events)
 
 **Checkpoint**: Can read documents via HTTP API. Frontend syncs state to Rust.
 
@@ -85,14 +85,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Implement POST /api/documents/:id handler (full content update) in src-tauri/src/services/http_server.rs
-- [ ] T025 [US2] Implement POST /api/documents/:id/insert handler in src-tauri/src/services/http_server.rs
-- [ ] T026 [US2] Implement POST /api/documents/new handler (create new document) in src-tauri/src/services/http_server.rs
-- [ ] T027 [US2] Implement window focus check for auto-approve logic in src-tauri/src/services/http_server.rs
-- [ ] T028 [US2] Implement confirmation dialog using rfd::MessageDialog in src-tauri/src/services/http_server.rs
-- [ ] T029 [US2] Create useMcpEvents hook in src/hooks/useMcpEvents.ts to listen for mcp:write_document, mcp:insert_content
-- [ ] T030 [US2] Integrate useMcpEvents hook in src/components/Editor/Editor.tsx
-- [ ] T031 [US2] Add MCP write event logging (mcp.write, mcp.insert, mcp.confirm events)
+- [X] T024 [US2] Implement POST /api/documents/:id handler (full content update) in src-tauri/src/services/http_server.rs
+- [X] T025 [US2] Implement POST /api/documents/:id/insert handler in src-tauri/src/services/http_server.rs
+- [X] T026 [US2] Implement POST /api/documents/new handler (create new document) in src-tauri/src/services/http_server.rs
+- [X] T027 [US2] Implement window focus check for auto-approve logic in src-tauri/src/services/http_server.rs
+- [X] T028 [US2] Implement confirmation dialog using rfd::MessageDialog in src-tauri/src/services/http_server.rs
+- [X] T029 [US2] Create useMcpEvents hook in src/hooks/useMcpEvents.ts to listen for mcp:write_document, mcp:insert_content
+- [X] T030 [US2] Integrate useMcpEvents hook in src/App.tsx
+- [X] T031 [US2] Add MCP write event logging (mcp.write, mcp.insert, mcp.confirm events)
 
 **Checkpoint**: Full write functionality with conditional confirmation.
 
@@ -109,12 +109,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Add window focus tracking via WindowEvent::Focused in src-tauri/src/main.rs
-- [ ] T033 [US3] Update ShadowStore to track focused_window and per-window documents in src-tauri/src/services/shadow_store.rs
-- [ ] T034 [US3] Add window_label to SyncDocumentsPayload in frontend useMcpSync.ts
-- [ ] T035 [US3] Implement window routing logic (focused → MRU → first) in src-tauri/src/services/http_server.rs
-- [ ] T036 [US3] Add window label to mcp:write_document and mcp:insert_content events for correct targeting
-- [ ] T037 [US3] Handle window close events to remove stale window state from ShadowStore
+- [X] T032 [US3] Add window focus tracking via WindowEvent::Focused in src-tauri/src/main.rs
+- [X] T033 [US3] Update ShadowStore to track focused_window and per-window documents in src-tauri/src/services/shadow_store.rs
+- [X] T034 [US3] Add window_label to SyncDocumentsPayload in frontend useMcpSync.ts
+- [X] T035 [US3] Implement window routing logic (focused → MRU → first) in src-tauri/src/services/http_server.rs
+- [X] T036 [US3] Add window label to mcp:write_document and mcp:insert_content events for correct targeting
+- [X] T037 [US3] Handle window close events to remove stale window state from ShadowStore
 
 **Checkpoint**: Multi-window routing works correctly.
 

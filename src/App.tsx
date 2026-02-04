@@ -23,6 +23,8 @@ import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
+import { useMcpSync } from "./hooks/useMcpSync";
+import { useMcpEvents } from "./hooks/useMcpEvents";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { fileService } from "./services/fileService";
@@ -103,6 +105,10 @@ function App() {
   hasUnsavedRef.current = hasUnsavedChanges;
 
   useAutoSave(autoSaveInterval);
+
+  // MCP hooks for Claude Code / Codex CLI integration
+  useMcpSync();
+  useMcpEvents();
 
   // TOC hook for sidebar Table of Contents
   const {
