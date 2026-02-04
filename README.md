@@ -18,6 +18,8 @@ A local Markdown editor built with Tauri 2 + React + TypeScript.
 
 * **External File Watching**: Detect changes made outside the app
 
+* **MCP Server**: Claude Code, Codex CLI, and Gemini CLI integration for AI-assisted editing
+
 ## File Structure
 
 ```
@@ -234,6 +236,77 @@ Notes:
 
 * Secrets are referenced in `.github/workflows/release.yml`.
 
+## MCP Server (Claude Code / Codex CLI Integration)
+
+mdpro includes an MCP (Model Context Protocol) server that allows Claude Code, Codex CLI, and other MCP-compatible tools to read and write documents in mdpro.
+
+### How It Works
+
+1. When mdpro starts, it launches an HTTP API server on localhost
+2. Connection info is written to `~/.mdpro/server.port` and `~/.mdpro/server.token`
+3. The `mdpro_mcp` binary acts as an MCP server that forwards requests to mdpro
+
+### Development Mode
+
+After building the MCP binary:
+
+```bash
+cd src-tauri && cargo build --bin mdpro_mcp
+```
+
+Add to your Claude Code settings (`~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "mdpro": {
+      "command": "/path/to/mdpro/src-tauri/target/debug/mdpro_mcp"
+    }
+  }
+}
+```
+
+### Production Mode (Mac App)
+
+After installing mdpro.app, add to your Claude Code settings:
+
+```json
+{
+  "mcpServers": {
+    "mdpro": {
+      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp"
+    }
+  }
+}
+```
+
+For Claude Desktop, add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "mdpro": {
+      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp"
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_open_documents` | List all open documents (id, title, path, dirty status) |
+| `read_document` | Read content of a document by ID |
+| `write_document` | Replace entire document content (may require confirmation) |
+| `insert_content` | Insert text at cursor, start, end, or specific position |
+
+### Notes
+
+* mdpro must be running for MCP tools to work
+* Write operations show a confirmation dialog if mdpro is not focused
+* Multi-window support: operations target the most recently focused window
+
 ## Troubleshooting
 
 * **Tauri build fails**: ensure Rust toolchain is installed (`rustup show`) and `pnpm install` has run.
@@ -247,6 +320,10 @@ Notes:
 * **IPC errors**: verify commands are registered in `src-tauri/src/commands/mod.rs` and `src-tauri/src/main.rs`.
 
 * **Type errors after dependency changes**: delete `node_modules`, re-run `pnpm install`.
+
+* **MCP "mdpro not running" error**: start mdpro before using MCP tools. Check that `~/.mdpro/server.port` exists.
+
+* **MCP connection refused**: verify mdpro is running and `~/.mdpro/server.token` has correct permissions (mode 600).
 
 ## WYSIWYG Architecture
 
