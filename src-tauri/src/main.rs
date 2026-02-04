@@ -7,6 +7,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_app_lib::models::{LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore};
+use tokio::sync::oneshot;
+
+// Store the shutdown sender so the HTTP server stays alive
+static MCP_SHUTDOWN: OnceLock<Mutex<Option<oneshot::Sender<()>>>> = OnceLock::new();
 use tauri_app_lib::services::{http_server, logger, shadow_store};
 
 // Track whether app has fully initialized (setup complete, main window ready)
@@ -155,7 +159,15 @@ fn main() {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 match http_server::start_server(mcp_shadow_store, mcp_server_config, app_handle).await {
-                    Ok((port, _shutdown)) => {
+                    Ok((port, shutdown_tx)) => {
+                        // Store shutdown sender in static so server stays alive
+                        // (dropping the sender triggers graceful shutdown)
+                        if let Ok(mut guard) = MCP_SHUTDOWN
+                            .get_or_init(|| Mutex::new(None))
+                            .lock()
+                        {
+                            *guard = Some(shutdown_tx);
+                        }
                         logger::log_event(LogEntryPayload {
                             level: LogLevel::Info,
                             event: "mcp.http_server.start".to_string(),
@@ -493,6 +505,15 @@ fn main() {
                 duration_ms: None,
                 error: None,
             });
+
+            // Gracefully shutdown MCP HTTP server by dropping the sender
+            if let Some(guard) = MCP_SHUTDOWN.get() {
+                if let Ok(mut opt) = guard.lock() {
+                    if let Some(tx) = opt.take() {
+                        let _ = tx.send(());
+                    }
+                }
+            }
 
             // Cleanup MCP server config files
             http_server::cleanup_server_config();

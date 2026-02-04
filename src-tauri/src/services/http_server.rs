@@ -578,8 +578,8 @@ pub async fn start_server(
     // Create shutdown channel
     let (tx, rx) = oneshot::channel::<()>();
 
-    // Spawn server task
-    tokio::spawn(async move {
+    // Spawn server task using Tauri's async runtime
+    tauri::async_runtime::spawn(async move {
         axum::serve(listener, app)
             .with_graceful_shutdown(async move {
                 let _ = rx.await;
