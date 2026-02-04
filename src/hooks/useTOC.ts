@@ -101,10 +101,17 @@ export function useTOC({
     if (!heading) {
       const tocEntry = entries.find((e) => e.id === headingId);
       if (tocEntry) {
-        const headings = container.querySelectorAll("h1, h2, h3, h4, h5, h6");
+        // For Milkdown/ProseMirror, headings are inside .ProseMirror
+        const proseMirror = container.querySelector(".ProseMirror");
+        const searchRoot = proseMirror || container;
+
+        const headings = searchRoot.querySelectorAll("h1, h2, h3, h4, h5, h6");
+        const normalizedTarget = tocEntry.text.replace(/\s+/g, " ").trim();
+
         for (const h of headings) {
-          const text = h.textContent?.trim();
-          if (text === tocEntry.text) {
+          // Normalize whitespace for comparison
+          const text = (h.textContent || "").replace(/\s+/g, " ").trim();
+          if (text === normalizedTarget) {
             heading = h;
             break;
           }
@@ -172,10 +179,31 @@ export function useTOC({
 
     // Observe heading elements
     headingElementsRef.current.clear();
+
+    // For Milkdown/ProseMirror, headings are inside .ProseMirror
+    const proseMirror = container.querySelector(".ProseMirror");
+    const searchRoot = proseMirror || container;
+
     entries.forEach((tocEntry) => {
-      const heading = container.querySelector(
+      // First try by ID or data attribute
+      let heading = searchRoot.querySelector(
         `[data-heading-id="${tocEntry.id}"], #${CSS.escape(tocEntry.id)}`
       );
+
+      // Fall back to text matching for WYSIWYG mode
+      if (!heading) {
+        const headings = searchRoot.querySelectorAll("h1, h2, h3, h4, h5, h6");
+        const normalizedTarget = tocEntry.text.replace(/\s+/g, " ").trim();
+
+        for (const h of headings) {
+          const text = (h.textContent || "").replace(/\s+/g, " ").trim();
+          if (text === normalizedTarget) {
+            heading = h;
+            break;
+          }
+        }
+      }
+
       if (heading) {
         headingElementsRef.current.set(tocEntry.id, heading);
         observerRef.current?.observe(heading);
