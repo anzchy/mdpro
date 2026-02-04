@@ -41,6 +41,66 @@ A local Markdown editor built with Tauri 2 + React + TypeScript.
 `-- package.json
 ```
 
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Frontend["Frontend (React + TypeScript)"]
+    direction TB
+    UI["App.tsx + components/"]
+    Hooks["hooks/"]
+    Plugins["plugins/ (CodeMirror + Milkdown)"]
+    Stores["stores/ (Zustand)"]
+    Services["services/ (Tauri IPC wrappers)"]
+    Styles["styles/ + App.css"]
+    Types["types/"]
+    UI --> Hooks
+    UI --> Plugins
+    UI --> Stores
+    UI --> Services
+    UI --> Styles
+    UI --> Types
+  end
+
+  subgraph Tauri["Tauri 2.0 Shell"]
+    direction TB
+    IPC["IPC bridge (invoke/emit)"]
+    Window["Window + Menu"]
+  end
+
+  subgraph Backend["Backend (Rust)"]
+    direction TB
+    Main["main.rs / lib.rs"]
+    Commands["commands/ (file, export, draft, preferences, window, menu, logging, launch)"]
+    ServicesB["services/ (file_watcher, markdown, logger, preferences, draft, html_template, encoding)"]
+    Models["models/ (document, draft, preferences, log_entry)"]
+    Launch["launch.rs"]
+    Main --> Commands
+    Commands --> ServicesB
+    ServicesB --> Models
+    Main --> Launch
+    Main --> Window
+  end
+
+  subgraph OS["OS + Local Resources"]
+    direction TB
+    FS["File system + external files"]
+    Watch["File watcher"]
+    Native["Native menus/windows"]
+    Logs["Local logs"]
+  end
+
+  Services -- "invoke()" --> IPC
+  IPC -- "command handlers" --> Commands
+  Commands -- "emit events" --> IPC
+  IPC -- "events" --> Services
+
+  ServicesB --> FS
+  ServicesB --> Watch
+  Window --> Native
+  ServicesB --> Logs
+```
+
 ## How to Use
 
 Prerequisites:

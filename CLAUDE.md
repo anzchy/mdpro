@@ -297,6 +297,8 @@ tail -f ~/.mdpro/mdpro.log | jq 'select(.level == "error")'
 - TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + Tauri 2.0, React 19, Zustand 4, CodeMirror 6, Milkdown 7 (004-minor-fix)
 - Local filesystem (via Tauri), JSON preferences file (004-minor-fix)
 - JSONL file at `~/.mdpro/mdpro.log`, preferences in existing `preferences.json` (005-add-concrete-logging)
+- TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown 7.18, Zustand 4.5.4, Vite 7 (006-toc-tab-and-new-features)
+- Local filesystem via Tauri, JSON preferences file at `~/.mdpro/preferences.json` (006-toc-tab-and-new-features)
 
 ## Recent Changes
 - 002-polish-wysiwyg: Added TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4
