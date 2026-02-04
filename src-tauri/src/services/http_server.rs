@@ -530,7 +530,10 @@ pub fn create_router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// Start the HTTP server on a random available port.
+/// Default port for MCP HTTP server
+const MCP_SERVER_PORT: u16 = 55045;
+
+/// Start the HTTP server on the configured port.
 ///
 /// Returns the port number and a shutdown signal sender.
 pub async fn start_server(
@@ -541,10 +544,10 @@ pub async fn start_server(
     // Generate token
     let token = generate_token();
 
-    // Bind to a random available port on localhost
-    let listener = TcpListener::bind("127.0.0.1:0")
+    // Bind to the configured port on localhost
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", MCP_SERVER_PORT))
         .await
-        .map_err(|e| format!("Failed to bind HTTP server: {}", e))?;
+        .map_err(|e| format!("Failed to bind HTTP server on port {}: {}", MCP_SERVER_PORT, e))?;
 
     let addr = listener
         .local_addr()
