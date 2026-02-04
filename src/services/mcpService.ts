@@ -52,7 +52,62 @@ export async function getServerInfo(): Promise<McpServerInfo | null> {
   return invoke<McpServerInfo | null>("mcp_get_server_info");
 }
 
+/**
+ * MCP server status.
+ */
+export interface McpStatus {
+  running: boolean;
+  port: number | null;
+  binaryPath: string;
+}
+
+/**
+ * MCP client types.
+ */
+export type McpClient = "claude_desktop" | "claude_code" | "codex_cli" | "gemini_cli";
+
+/**
+ * MCP installation status for a single client.
+ */
+export interface McpInstallation {
+  client: McpClient;
+  installed: boolean;
+  configPath: string;
+}
+
+/**
+ * Get MCP server status.
+ */
+export async function getStatus(): Promise<McpStatus> {
+  return invoke<McpStatus>("mcp_get_status");
+}
+
+/**
+ * Get installation status for all MCP clients.
+ */
+export async function getInstallations(): Promise<McpInstallation[]> {
+  return invoke<McpInstallation[]>("mcp_get_installations");
+}
+
+/**
+ * Install MCP config to a specific client.
+ */
+export async function installConfig(client: McpClient): Promise<void> {
+  await invoke("mcp_install_config", { client });
+}
+
+/**
+ * Remove MCP config from a specific client.
+ */
+export async function removeConfig(client: McpClient): Promise<void> {
+  await invoke("mcp_remove_config", { client });
+}
+
 export const mcpService = {
   syncDocuments,
   getServerInfo,
+  getStatus,
+  getInstallations,
+  installConfig,
+  removeConfig,
 };

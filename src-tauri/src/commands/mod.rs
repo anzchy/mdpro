@@ -52,6 +52,10 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         image::set_image_config,
         // MCP commands
         mcp::mcp_sync_documents,
-        mcp::mcp_get_server_info
+        mcp::mcp_get_server_info,
+        mcp::mcp_get_status,
+        mcp::mcp_get_installations,
+        mcp::mcp_install_config,
+        mcp::mcp_remove_config
     ]
 }

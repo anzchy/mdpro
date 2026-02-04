@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::{AutoSaveConfig, ImageConfig, KeyboardShortcuts, LogSettings, TabBarConfig, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
+use crate::models::{AutoSaveConfig, ImageConfig, KeyboardShortcuts, LogSettings, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -22,6 +22,7 @@ pub struct PartialPreferences {
     pub auto_save: Option<AutoSaveConfig>,
     pub tab_bar: Option<TabBarConfig>,
     pub image: Option<ImageConfig>,
+    pub mcp: Option<McpConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -107,5 +108,6 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
         auto_save: updates.auto_save.unwrap_or(current.auto_save),
         tab_bar: updates.tab_bar.unwrap_or(current.tab_bar),
         image: updates.image.unwrap_or(current.image),
+        mcp: updates.mcp.unwrap_or(current.mcp),
     }
 }

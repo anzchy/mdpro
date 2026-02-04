@@ -46,6 +46,10 @@ pub struct UserPreferences {
     /// Image configuration
     #[serde(default)]
     pub image: ImageConfig,
+
+    /// MCP Server configuration
+    #[serde(default)]
+    pub mcp: McpConfig,
 }
 
 /// Window geometry for per-file window position/size persistence
@@ -347,6 +351,28 @@ impl Default for ImageConfig {
     }
 }
 
+/// MCP Server configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpConfig {
+    /// Whether MCP server is enabled
+    pub enabled: bool,
+    /// Auto-start MCP server when app launches
+    pub start_on_launch: bool,
+    /// Auto-approve AI edits without confirmation (when focused)
+    pub auto_approve_edits: bool,
+}
+
+impl Default for McpConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            start_on_launch: true,
+            auto_approve_edits: false,
+        }
+    }
+}
+
 impl Default for UserPreferences {
     fn default() -> Self {
         Self {
@@ -370,6 +396,7 @@ impl Default for UserPreferences {
             auto_save: AutoSaveConfig::default(),
             tab_bar: TabBarConfig::default(),
             image: ImageConfig::default(),
+            mcp: McpConfig::default(),
         }
     }
 }

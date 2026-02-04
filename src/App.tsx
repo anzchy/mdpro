@@ -31,8 +31,8 @@ import { fileService } from "./services/fileService";
 import { loggingService } from "./services/loggingService";
 import type { Document } from "./types/document";
 import type { ViewMode } from "./types/editor";
-import type { KeyboardShortcuts, WindowState } from "./types/preferences";
-import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
+import type { KeyboardShortcuts, McpConfig, WindowState } from "./types/preferences";
+import { DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_MCP_CONFIG } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { useLoggingStore } from "./stores/loggingStore";
 
@@ -88,6 +88,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
+  const [mcpConfig, setMcpConfig] = useState<McpConfig>(DEFAULT_MCP_CONFIG);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
@@ -243,6 +244,10 @@ function App() {
         // Merge loaded shortcuts with defaults to ensure all keys exist
         if (prefs.keyboardShortcuts && Object.keys(prefs.keyboardShortcuts).length > 0) {
           setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
+        }
+        // Load MCP config
+        if (prefs.mcp) {
+          setMcpConfig({ ...DEFAULT_MCP_CONFIG, ...prefs.mcp });
         }
         await applyWindowState(prefs.windowState);
         await setThemeMode(prefs.themeMode);
@@ -596,6 +601,18 @@ function App() {
         await preferencesService.setPreferences({ defaultViewMode: mode });
       } catch {
         showToast("Failed to save preference");
+      }
+    },
+    [showToast],
+  );
+
+  const handleMcpConfigChange = useCallback(
+    async (config: McpConfig) => {
+      setMcpConfig(config);
+      try {
+        await preferencesService.setPreferences({ mcp: config });
+      } catch {
+        showToast("Failed to save MCP settings");
       }
     },
     [showToast],
@@ -1026,8 +1043,10 @@ function App() {
         open={settingsOpen}
         shortcuts={keyboardShortcuts}
         defaultViewMode={defaultViewMode}
+        mcpConfig={mcpConfig}
         onSave={handleSaveShortcuts}
         onDefaultViewModeChange={handleDefaultViewModeChange}
+        onMcpConfigChange={handleMcpConfigChange}
         onClose={() => setSettingsOpen(false)}
       />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />
