@@ -19,11 +19,11 @@
 
 **Purpose**: Add new dependencies and prepare project structure
 
-- [ ] T001 Add axum dependencies to src-tauri/Cargo.toml (axum 0.8, tower 0.5, tower-http 0.5)
-- [ ] T002 [P] Add rmcp dependencies to src-tauri/Cargo.toml (rmcp 0.13, reqwest 0.11)
-- [ ] T003 [P] Create src-tauri/src/bin/ directory for mdpro_mcp binary
-- [ ] T004 Create MCP models module in src-tauri/src/models/mcp.rs with DocumentState, WindowState, ShadowStore structs
-- [ ] T005 Register mcp module in src-tauri/src/models/mod.rs
+- [X] T001 Add axum dependencies to src-tauri/Cargo.toml (axum 0.8, tower 0.5, tower-http 0.5)
+- [X] T002 [P] Add rmcp dependencies to src-tauri/Cargo.toml (rmcp 0.13, reqwest 0.11)
+- [X] T003 [P] Create src-tauri/src/bin/ directory for mdpro_mcp binary
+- [X] T004 Create MCP models module in src-tauri/src/models/mcp.rs with DocumentState, WindowState, ShadowStore structs
+- [X] T005 Register mcp module in src-tauri/src/models/mod.rs
 
 ---
 
@@ -33,17 +33,17 @@
 
 **⚠️ CRITICAL**: No MCP functionality can work until this phase is complete
 
-- [ ] T006 Implement ShadowStore service in src-tauri/src/services/shadow_store.rs with thread-safe state management
-- [ ] T007 Create mcp_sync_documents command in src-tauri/src/commands/mcp.rs for frontend → Rust sync
-- [ ] T008 [P] Implement token generation and file writing (server.token, server.port) in src-tauri/src/services/http_server.rs
+- [X] T006 Implement ShadowStore service in src-tauri/src/services/shadow_store.rs with thread-safe state management
+- [X] T007 Create mcp_sync_documents command in src-tauri/src/commands/mcp.rs for frontend → Rust sync
+- [X] T008 [P] Implement token generation and file writing (server.token, server.port) in src-tauri/src/services/http_server.rs
   - **IMPORTANT**: Set server.token file permissions to mode 600 (owner read/write only) for security
-- [ ] T009 [P] Implement token validation middleware in src-tauri/src/services/http_server.rs
-- [ ] T010 [P] Implement origin validation middleware in src-tauri/src/services/http_server.rs
-- [ ] T011 Create axum router skeleton with middleware in src-tauri/src/services/http_server.rs
-- [ ] T012 Integrate HTTP server startup in src-tauri/src/main.rs (spawn on app ready)
-- [ ] T013 Register mcp commands in src-tauri/src/commands/mod.rs
-- [ ] T014 Register shadow_store and http_server services in src-tauri/src/services/mod.rs
-- [ ] T015 Add SharedShadowStore to Tauri managed state in src-tauri/src/main.rs
+- [X] T009 [P] Implement token validation middleware in src-tauri/src/services/http_server.rs
+- [X] T010 [P] Implement origin validation middleware in src-tauri/src/services/http_server.rs
+- [X] T011 Create axum router skeleton with middleware in src-tauri/src/services/http_server.rs
+- [X] T012 Integrate HTTP server startup in src-tauri/src/main.rs (spawn on app ready)
+- [X] T013 Register mcp commands in src-tauri/src/commands/mod.rs
+- [X] T014 Register shadow_store and http_server services in src-tauri/src/services/mod.rs
+- [X] T015 Add SharedShadowStore to Tauri managed state in src-tauri/src/main.rs
 
 **Checkpoint**: HTTP server running on localhost with token auth. Shadow Store ready for sync.
 

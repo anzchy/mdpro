@@ -4,10 +4,10 @@
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
-use tauri_app_lib::models::{LogEntryPayload, LogLevel, LogStatus};
-use tauri_app_lib::services::logger;
+use tauri_app_lib::models::{LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore};
+use tauri_app_lib::services::{http_server, logger, shadow_store};
 
 // Track whether app has fully initialized (setup complete, main window ready)
 static APP_READY: OnceLock<AtomicBool> = OnceLock::new();
@@ -142,6 +142,43 @@ fn main() {
                 tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone());
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
+
+            // Initialize MCP Shadow Store
+            let mcp_shadow_store: SharedShadowStore = shadow_store::create_shadow_store();
+            app.manage(mcp_shadow_store.clone());
+
+            // Initialize MCP Server Config
+            let mcp_server_config: SharedServerConfig = Arc::new(Mutex::new(None));
+            app.manage(mcp_server_config.clone());
+
+            // Start HTTP server for MCP
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                match http_server::start_server(mcp_shadow_store, mcp_server_config, app_handle).await {
+                    Ok((port, _shutdown)) => {
+                        logger::log_event(LogEntryPayload {
+                            level: LogLevel::Info,
+                            event: "mcp.http_server.start".to_string(),
+                            status: LogStatus::Success,
+                            action_id: None,
+                            context: Some(json!({ "port": port })),
+                            duration_ms: None,
+                            error: None,
+                        });
+                    }
+                    Err(e) => {
+                        logger::log_event(LogEntryPayload {
+                            level: LogLevel::Error,
+                            event: "mcp.http_server.start".to_string(),
+                            status: LogStatus::Fail,
+                            action_id: None,
+                            context: None,
+                            duration_ms: None,
+                            error: Some(e),
+                        });
+                    }
+                }
+            });
             let menu = tauri_app_lib::menu::build_menu(&app.handle(), &[], None)?;
             app.set_menu(menu)?;
             let launch_state = tauri_app_lib::launch::LaunchState::default();
@@ -282,6 +319,13 @@ fn main() {
                         duration_ms: None,
                         error: None,
                     });
+
+                    // Update MCP Shadow Store focused window
+                    if *is_focused {
+                        if let Some(store) = window.try_state::<SharedShadowStore>() {
+                            let _ = shadow_store::set_focused_window(&store, window.label());
+                        }
+                    }
                 }
                 WindowEvent::CloseRequested { .. } => {
                     logger::log_event(LogEntryPayload {
@@ -444,6 +488,9 @@ fn main() {
                 duration_ms: None,
                 error: None,
             });
+
+            // Cleanup MCP server config files
+            http_server::cleanup_server_config();
         }
     });
 

@@ -4,6 +4,7 @@ pub mod file;
 pub mod image;
 pub mod launch;
 pub mod logging;
+pub mod mcp;
 pub mod menu;
 pub mod preferences;
 pub mod toc;
@@ -48,6 +49,9 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         image::upload_images_batch,
         image::copy_external_image,
         image::get_image_config,
-        image::set_image_config
+        image::set_image_config,
+        // MCP commands
+        mcp::mcp_sync_documents,
+        mcp::mcp_get_server_info
     ]
 }
