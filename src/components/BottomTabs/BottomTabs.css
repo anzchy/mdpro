@@ -1,0 +1,116 @@
+.bottom-tabs {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+  height: var(--bottom-tabs-height);
+  min-height: var(--bottom-tabs-height);
+}
+
+.bottom-tabs__add {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.bottom-tabs__add:hover {
+  background: var(--color-panel);
+  color: var(--color-text);
+}
+
+.bottom-tabs__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+.bottom-tabs__scroll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  flex: 1;
+  scrollbar-width: none;
+}
+
+.bottom-tabs__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.bottom-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bottom-tab:hover {
+  background: var(--color-panel);
+  color: var(--color-text);
+}
+
+.bottom-tab--active {
+  background: var(--color-panel);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-tab__modified {
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bottom-tab__name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bottom-tab__close {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.bottom-tab:hover .bottom-tab__close {
+  opacity: 0.5;
+}
+
+.bottom-tab__close:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.08);
+}
