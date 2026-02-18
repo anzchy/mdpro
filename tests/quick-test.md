@@ -34,7 +34,7 @@ Content for section C.
 ![Missing](./nonexistent.png)
 
 ### Remote Image
-![Placeholder](https://via.placeholder.com/100x50)
+![Placeholder](https://bbs-quantclass-cn-1253788117.file.myqcloud.com/public/attachments/2025/02/18/vsvibmUWLj9oxXnZOVn8NuJTxDXINSV41KUlzaKW.jpeg)
 
 ## End
 

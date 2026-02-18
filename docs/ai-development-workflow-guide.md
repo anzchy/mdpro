@@ -10,12 +10,13 @@ A comprehensive guide for using the integrated `.claude/` toolkit (agents, comma
 2. [Architecture Overview](#2-architecture-overview)
 3. [The Codex-as-Consultant Pattern](#3-the-codex-as-consultant-pattern)
 4. [Workflow A: Implementing a New Feature](#4-workflow-a-implementing-a-new-feature)
-5. [Workflow B: Fixing a Bug](#5-workflow-b-fixing-a-bug)
-6. [Workflow C: Audit & Harden Existing Code](#6-workflow-c-audit--harden-existing-code)
-7. [Command Reference](#7-command-reference)
-8. [Agent Reference](#8-agent-reference)
-9. [Session Management](#9-session-management)
-10. [Practical Examples](#10-practical-examples)
+5. [Feature Workflow: Maximizing Input Quality](#5-feature-workflow-maximizing-input-quality)
+6. [Workflow B: Fixing a Bug](#6-workflow-b-fixing-a-bug)
+7. [Workflow C: Audit & Harden Existing Code](#7-workflow-c-audit--harden-existing-code)
+8. [Command Reference](#8-command-reference)
+9. [Agent Reference](#9-agent-reference)
+10. [Session Management](#10-session-management)
+11. [Practical Examples](#11-practical-examples)
 
 ---
 
@@ -233,7 +234,100 @@ Full 10-dimension audit. If issues found, loop back to implement.
 
 ---
 
-## 5. Workflow B: Fixing a Bug
+## 5. Feature Workflow: Maximizing Input Quality
+
+### What the command accepts
+
+The command takes **one required input** and **one optional input**:
+
+```
+/feature-workflow <work-name> [optional: path to existing plan doc]
+```
+
+- **`work-name`**: a short slug like `image-paste`, `toc-improvements`, `export-pdf`
+- **Existing plan**: a path to a plan file you've already written (e.g., `specs/008-image-paste/plan.md`)
+
+That's it. The command itself is an **orchestrator** — it doesn't take a detailed description. The 9 agents do the heavy lifting from there.
+
+### The problem with minimal input
+
+If you just run `/feature-workflow image-paste` with nothing else, the Planner agent has to guess what you want. The quality of the output depends entirely on how well Stage 1 (Plan) understands your intent.
+
+### How to maximize quality
+
+There are three practical approaches, ordered from least to most effort:
+
+#### Approach 1: Provide a good description after the slug
+
+Type your intent into the conversation **before** or **right after** invoking the command:
+
+```
+I want to add image paste support to the WYSIWYG editor. When a user
+pastes an image from clipboard (Cmd+V), it should:
+- Save the image to the same directory as the .md file
+- Insert a markdown image reference ![](./image-name.png)
+- Support PNG and JPEG formats
+- Show a placeholder while saving
+- Handle paste of multiple images
+- Reject files > 5MB with an error toast
+
+/feature-workflow image-paste
+```
+
+The Planner agent reads the conversation context, so this description directly feeds into Work Item creation.
+
+#### Approach 2: Write a plan doc first, then pass it in
+
+Write a plan or spec to a file first, then reference it:
+
+```
+/feature-workflow image-paste specs/008-image-paste/plan.md
+```
+
+The Planner agent will **refine** the existing plan rather than starting from scratch. This gives you the most control — you define the Work Items, acceptance criteria, and edge cases upfront, and the Planner fills in gaps.
+
+#### Approach 3: Use speckit to build the spec first, then workflow it
+
+```
+/speckit.specify "Add image paste support to WYSIWYG editor"
+/speckit.clarify
+/speckit.plan
+/speckit.tasks
+/feature-workflow image-paste
+```
+
+This pre-builds a complete spec → plan → task chain before the 9-stage pipeline runs.
+
+### What the Planner agent does with your input
+
+Regardless of approach, the Planner (Stage 1) is required to:
+
+1. **Research** — look at how VS Code, Obsidian, Typora solve this
+2. **Brainstorm edge cases** — empty input, null/undefined, max values, Unicode/CJK, concurrent access, rapid repeated actions, permission denials
+3. **Break into Work Items**, each with:
+   - Goal and non-goals
+   - Acceptance criteria (measurable)
+   - Edge cases section (exhaustive)
+   - Tests to write before implementation
+   - Touched files/areas
+   - Rollback strategy
+4. **Keep items small** — 1–3 commits each
+
+### The key insight
+
+The command is designed so that **your input quality directly scales the output quality**. A vague slug like `/feature-workflow stuff` forces every downstream agent to make assumptions. A detailed description with specific behaviors, constraints, and edge cases means:
+
+- The Planner produces tighter Work Items
+- The Spec Guardian has clear rules to validate against
+- The Impact Analyst can map files precisely
+- The Implementer writes more targeted tests
+- The Auditor knows what "correct" means
+
+**Bottom line**: the `work-name` slug is just a label. The real input is the context you provide in the conversation — the more specific you are about desired behavior, constraints, and edge cases, the higher quality the 9-stage pipeline produces.
+
+---
+
+## 6. Workflow B: Fixing a Bug
 
 ### Quick Fix (obvious, small scope)
 
@@ -279,7 +373,7 @@ Fetches the GitHub issue, classifies it (bug/feature/question), creates a branch
 
 ---
 
-## 6. Workflow C: Audit & Harden Existing Code
+## 7. Workflow C: Audit & Harden Existing Code
 
 ### Quick Audit (uncommitted changes)
 
@@ -324,7 +418,7 @@ Similar to `/audit-fix` but gives you more control:
 
 ---
 
-## 7. Command Reference
+## 8. Command Reference
 
 ### Core Workflow Commands
 
@@ -368,7 +462,7 @@ Similar to `/audit-fix` but gives you more control:
 
 ---
 
-## 8. Agent Reference
+## 9. Agent Reference
 
 Nine specialized agents are available for the feature workflow:
 
@@ -386,7 +480,7 @@ Nine specialized agents are available for the feature workflow:
 
 ---
 
-## 9. Session Management
+## 10. Session Management
 
 ### Saving Context
 
@@ -410,7 +504,7 @@ Reads the latest context file and presents a summary so you can pick up where yo
 
 ---
 
-## 10. Practical Examples
+## 11. Practical Examples
 
 ### Example 1: Add "Export to PDF" Feature
 

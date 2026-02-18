@@ -259,13 +259,23 @@ Mac OS cannot open app, use this command:`sudo find "/Applications/mdpro.app" -e
 
 ## How to Test
 
-Tests are not wired yet. When added:
+Run all commands from the project root (`mdpro/`), not from `tests/`.
 
-- Frontend: `pnpm test` (Vitest)
+1. Install dependencies:
+   - `npm install`
+2. Run frontend unit tests (Vitest):
+   - `npm run test:run`
+3. Run a single test file in `tests/`:
+   - `npm run test:run -- tests/markdown-editor-core.test.ts`
+4. Optional watch mode:
+   - `npm run test`
+5. Run Rust backend tests:
+   - `cd src-tauri && cargo test`
 
-- Backend: `cargo test` in `src-tauri/`
+Test artifacts and specs:
 
-- E2E: `pnpm playwright test`
+- Core frontend test code: `tests/markdown-editor-core.test.ts`
+- Markdown editor edge-case matrix (TDD checklist): `tests/edge-cases-test.md`
 
 ## Shipping DMG via GitHub Actions
 
@@ -416,6 +426,46 @@ decoupled from core editor components and allows enable/disable via config.
 
 - **Typora-style Inline Editing**: Click inside a link to see `[text](url)`, click inside inline code to see backticks
 
+### Image Paste
+
+Paste images directly into the WYSIWYG editor with `Cmd+V`. The image is saved alongside your document and a reference is inserted automatically.
+
+**Supported formats:** PNG, JPEG (max 5 MB per image)
+
+**How it works:**
+
+1. Copy an image to the clipboard (screenshot, browser image, etc.)
+2. Place the cursor where you want the image in the WYSIWYG editor (⌃4)
+3. Press `Cmd+V`
+4. A placeholder ("Uploading image...") appears while the file is saved
+5. The image appears in the editor once saved
+
+**Where images are stored:**
+
+Images are saved to an `assets/` folder next to your `.md` file:
+
+```
+my-notes/
+├── note.md
+└── assets/
+    ├── image-1739900000-a1b2.png
+    └── image-1739900001-c3d4.jpg
+```
+
+The inserted Markdown reference uses a relative path: `![](assets/image-xxx.png)`.
+
+**Multiple images:** Paste several images at once — each gets its own reference. If some fail (e.g. wrong format), the valid ones are still inserted and a toast reports the result.
+
+**Error handling:**
+
+| Situation | Behavior |
+|-----------|----------|
+| Unsaved document | Toast: "Save the document before pasting images" |
+| Unsupported format (GIF, WebP, etc.) | Toast: "unsupported format (use PNG or JPEG)" |
+| File too large (> 5 MB) | Toast: "too large (X.X MB). Max 5 MB" |
+| Disk write failure | Toast with error details |
+| Mixed valid + invalid images | Valid images inserted, toast lists rejections |
+
 ### Technical Documentation
 
 Detailed technical documentation is available in the `` folder:
@@ -433,4 +483,3 @@ Detailed technical documentation is available in the `` folder:
 ## Recommended IDE Setup
 
 - VS Code + Tauri + rust-analyzer
-

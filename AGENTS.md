@@ -20,9 +20,13 @@
 - Keep UI styles in colocated CSS files (e.g., `src/App.css`) unless a component warrants its own file.
 
 ## Testing Guidelines
-- No automated test framework is configured yet.
-- If adding tests, document the framework and add a script to `package.json` (e.g., `test`) and/or `cargo test` notes for Rust.
-- Name tests consistently with the tooling you introduce (e.g., `*.test.tsx`).
+- Frontend tests use `Vitest` with `jsdom`.
+- Install dependencies from project root: `npm install`.
+- Run all frontend tests: `npm run test:run`.
+- Run a specific test file in `tests/`: `npm run test:run -- tests/markdown-editor-core.test.ts`.
+- Edge-case checklist lives in `tests/edge-cases-test.md` and should be used as regression coverage input.
+- Rust backend tests run in `src-tauri/` via `cargo test`.
+- Name test files consistently as `*.test.ts` / `*.test.tsx` under `tests/` (or feature-local test folders when needed).
 
 ## Commit & Pull Request Guidelines
 - Commit messages are short, lowercase, and action-oriented (e.g., "init commit", "update 001 spec md files").

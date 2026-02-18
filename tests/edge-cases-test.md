@@ -1,400 +1,209 @@
-# Edge Cases Test Document
-
-This document tests all markdown features added in Feature 006: TOC, Tables, and Images.
-
----
-
-## Part 1: Table of Contents (TOC) Edge Cases
-
-### 1.1 All Heading Levels
-
-# Heading Level 1
-## Heading Level 2
-### Heading Level 3
-#### Heading Level 4
-##### Heading Level 5
-###### Heading Level 6
-
-### 1.2 Duplicate Headings
-
-The TOC should handle duplicate headings with numeric suffixes.
-
-## Introduction
-Some content here.
-
-## Introduction
-This is a duplicate heading - should become `introduction-1`.
-
-## Introduction
-Third duplicate - should become `introduction-2`.
-
-### 1.3 Special Characters in Headings
-
-## Heading with "Quotes" and 'Apostrophes'
-## Heading with (Parentheses) and [Brackets]
-## Heading with <Angle> & Ampersand
-## Heading with émojis 🎉 and ünïcödé
-## Heading with `code` inside
-## Heading with **bold** and *italic*
-## Heading with numbers 123 and symbols !@#$%
-## 日本語の見出し (Japanese Heading)
-## 中文标题 (Chinese Heading)
-
-### 1.4 Long Headings
-
-## This is an extremely long heading that should be truncated in the TOC sidebar when it exceeds the available width and test ellipsis behavior
-
-### 1.5 Empty and Whitespace Headings
-
-##    Heading with leading spaces
-## Heading with trailing spaces
-##     Heading with both
-
-### 1.6 Headings with Links
-
-## Heading with [a link](https://example.com) inside
-## Heading with ![image](image.png) reference
-
-### 1.7 Nested Structure for Hierarchy Test
-
-# Document Title
-
-## Chapter 1: Getting Started
-
-### Section 1.1: Installation
-
-#### Subsection 1.1.1: Prerequisites
-
-##### Sub-subsection 1.1.1.1: System Requirements
-
-###### Deepest Level 1.1.1.1.1: Notes
-
-#### Subsection 1.1.2: Download
-
-### Section 1.2: Configuration
-
-## Chapter 2: Advanced Topics
-
-### Section 2.1: Performance
-
-### Section 2.2: Security
-
----
-
-## Part 2: Table Edge Cases
-
-### 2.1 Basic Table
-
-| Name | Age | City |
-|------|-----|------|
-| Alice | 30 | NYC |
-| Bob | 25 | LA |
-
-### 2.2 Table Alignment
-
-| Left Aligned | Center Aligned | Right Aligned |
-|:-------------|:--------------:|--------------:|
-| Left | Center | Right |
-| Data | Data | Data |
-| More | More | More |
-
-### 2.3 Single Row Table
-
-| Header 1 | Header 2 | Header 3 |
-|----------|----------|----------|
-| Only row | of data | here |
-
-### 2.4 Single Column Table
-
-| Single Column |
-|---------------|
-| Row 1 |
-| Row 2 |
-| Row 3 |
-
-### 2.5 Empty Cells
-
-| Col A | Col B | Col C |
-|-------|-------|-------|
-| Data | | Empty middle |
-| | Empty first | Data |
-| Data | Data | |
-| | | All empty |
-
-### 2.6 Wide Table (Many Columns)
-
-| Col1 | Col2 | Col3 | Col4 | Col5 | Col6 | Col7 | Col8 | Col9 | Col10 |
-|------|------|------|------|------|------|------|------|------|-------|
-| A1 | A2 | A3 | A4 | A5 | A6 | A7 | A8 | A9 | A10 |
-| B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | B10 |
-
-### 2.7 Tall Table (Many Rows - 50 rows for performance test)
-
-| ID | Name | Value |
-|----|------|-------|
-| 1 | Item 1 | 100 |
-| 2 | Item 2 | 200 |
-| 3 | Item 3 | 300 |
-| 4 | Item 4 | 400 |
-| 5 | Item 5 | 500 |
-| 6 | Item 6 | 600 |
-| 7 | Item 7 | 700 |
-| 8 | Item 8 | 800 |
-| 9 | Item 9 | 900 |
-| 10 | Item 10 | 1000 |
-| 11 | Item 11 | 1100 |
-| 12 | Item 12 | 1200 |
-| 13 | Item 13 | 1300 |
-| 14 | Item 14 | 1400 |
-| 15 | Item 15 | 1500 |
-| 16 | Item 16 | 1600 |
-| 17 | Item 17 | 1700 |
-| 18 | Item 18 | 1800 |
-| 19 | Item 19 | 1900 |
-| 20 | Item 20 | 2000 |
-| 21 | Item 21 | 2100 |
-| 22 | Item 22 | 2200 |
-| 23 | Item 23 | 2300 |
-| 24 | Item 24 | 2400 |
-| 25 | Item 25 | 2500 |
-| 26 | Item 26 | 2600 |
-| 27 | Item 27 | 2700 |
-| 28 | Item 28 | 2800 |
-| 29 | Item 29 | 2900 |
-| 30 | Item 30 | 3000 |
-| 31 | Item 31 | 3100 |
-| 32 | Item 32 | 3200 |
-| 33 | Item 33 | 3300 |
-| 34 | Item 34 | 3400 |
-| 35 | Item 35 | 3500 |
-| 36 | Item 36 | 3600 |
-| 37 | Item 37 | 3700 |
-| 38 | Item 38 | 3800 |
-| 39 | Item 39 | 3900 |
-| 40 | Item 40 | 4000 |
-| 41 | Item 41 | 4100 |
-| 42 | Item 42 | 4200 |
-| 43 | Item 43 | 4300 |
-| 44 | Item 44 | 4400 |
-| 45 | Item 45 | 4500 |
-| 46 | Item 46 | 4600 |
-| 47 | Item 47 | 4700 |
-| 48 | Item 48 | 4800 |
-| 49 | Item 49 | 4900 |
-| 50 | Item 50 | 5000 |
-
-### 2.8 Table with Formatted Content
-
-| Feature | Syntax | Example |
-|---------|--------|---------|
-| Bold | `**text**` | **bold text** |
-| Italic | `*text*` | *italic text* |
-| Code | `` `code` `` | `inline code` |
-| Link | `[text](url)` | [Google](https://google.com) |
-| Strikethrough | `~~text~~` | ~~deleted~~ |
-
-### 2.9 Table with Long Cell Content
-
-| Short | Very Long Content Cell |
-|-------|------------------------|
-| A | This is an extremely long cell content that should wrap or be handled appropriately by the table renderer without breaking the layout |
-| B | Another long cell with `code snippets` and **formatted text** mixed together |
-
-### 2.10 Table with Special Characters
-
-| Symbol | Description | Unicode |
-|--------|-------------|---------|
-| © | Copyright | U+00A9 |
-| ™ | Trademark | U+2122 |
-| € | Euro | U+20AC |
-| ¥ | Yen | U+00A5 |
-| → | Arrow | U+2192 |
-| ★ | Star | U+2605 |
-| ✓ | Checkmark | U+2713 |
-| ✗ | X Mark | U+2717 |
-
-### 2.11 Table with Pipes in Content
-
-| Expression | Result |
-|------------|--------|
-| `a \| b` | a or b |
-| `cmd1 \| cmd2` | pipe |
-
-### 2.12 Minimal Table
-
-|A|
-|-|
-|1|
-
----
-
-## Part 3: Image Edge Cases
-
-### 3.1 Local Images (Relative Paths)
-
-![Relative image](./assets/test-image.png)
-
-![Parent directory image](../images/photo.jpg)
-
-![Deep nested image](./assets/subfolder/deep/image.gif)
-
-### 3.2 Local Images (Absolute Paths)
-
-![Absolute path image](/Users/test/images/absolute.png)
-
-### 3.3 Remote Images (URLs)
-
-![Remote HTTPS image](https://via.placeholder.com/150)
-
-![Remote HTTP image](http://example.com/image.png)
-
-![GitHub avatar](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png)
-
-### 3.4 Missing/Invalid Images
-
-![Missing local image](./nonexistent/image.png)
-
-![Invalid URL image](https://invalid-domain-12345.com/image.jpg)
-
-![Empty path image]()
-
-### 3.5 Image with Alt Text Variations
-
-![](image-no-alt.png)
-
-![Simple alt](image.png)
-
-![Alt with "quotes" and 'apostrophes'](image.png)
-
-![Alt with special chars: <>&"'](image.png)
-
-![Very long alt text that describes the image in great detail and should be displayed appropriately in error placeholders when the image fails to load](missing.png)
-
-### 3.6 Image with Title
-
-![Alt text](image.png "This is the title")
-
-![Alt text](image.png "Title with \"quotes\"")
-
-### 3.7 Various Image Formats
-
-![PNG image](test.png)
-
-![JPEG image](test.jpg)
-
-![JPEG alternate](test.jpeg)
-
-![GIF image](test.gif)
-
-![WebP image](test.webp)
-
-![SVG image](test.svg)
-
-![BMP image](test.bmp)
-
-![ICO image](favicon.ico)
-
-### 3.8 Images with Dimensions (HTML style)
-
-<img src="image.png" width="200" height="100" alt="Sized image">
-
-<img src="image.png" width="50%" alt="Percentage width">
-
-### 3.9 Image as Link
-
-[![Clickable image](image.png)](https://example.com)
-
-### 3.10 Multiple Images in Sequence
-
-![Image 1](img1.png) ![Image 2](img2.png) ![Image 3](img3.png)
-
-### 3.11 Image in Table
-
-| Preview | Name | Size |
-|---------|------|------|
-| ![Thumb](thumb1.png) | Image 1 | 1.2MB |
-| ![Thumb](thumb2.png) | Image 2 | 800KB |
-
-### 3.12 Data URL Image
-
-![Data URL image](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==)
-
-### 3.13 Image with Query Parameters
-
-![Image with params](https://example.com/image.png?width=100&quality=80)
-
-### 3.14 Image with Fragment
-
-![Image with fragment](image.png#section)
-
-### 3.15 Unicode in Image Path
-
-![Unicode path](./assets/图片/テスト.png)
-
----
-
-## Part 4: Combined Edge Cases
-
-### 4.1 Table with Images
-
-| Icon | Name | Description |
-|------|------|-------------|
-| ![icon](icon1.png) | Feature A | First feature |
-| ![icon](icon2.png) | Feature B | Second feature |
-| ![missing](missing.png) | Feature C | Missing icon |
-
-### 4.2 Heading with Table Below
-
-## Data Summary
-
-| Metric | Value |
-|--------|-------|
-| Total | 100 |
-| Average | 50 |
-
-### 4.3 Deeply Nested Content
-
-#### Section with Everything
-
-Here's a paragraph with an image: ![inline](small.png)
-
-| Column A | Column B |
-|----------|----------|
-| ![img](a.png) | Text |
-
-Another paragraph after the table.
-
----
-
-## Part 5: Stress Tests
-
-### 5.1 Rapid Heading Sequence (TOC Update Test)
-
+# Markdown Editor Edge Cases (TDD)
+
+> 目标：为 md editor 建立“先测后写”的边界用例基线。每个用例都应先写成失败测试（Red），再实现（Green），最后重构（Refactor）。
+
+## 1. 使用说明
+
+- `范围`：解析、渲染、编辑交互、文件 I/O、性能、安全、可访问性。
+- `执行方式`：
+  - 自动化优先：能做单测/集成测的，先自动化。
+  - 手工补充：光标行为、IME、拖拽、系统剪贴板等复杂交互。
+- `通过标准`：
+  - 不崩溃、不丢数据、不死循环、不出现不可恢复 UI 状态。
+  - 与 CommonMark 预期一致（若故意偏离，需有明确产品规则）。
+
+## 2. 优先级定义
+
+- `P0`：数据丢失、崩溃、安全问题、无法编辑/保存。
+- `P1`：核心编辑体验错误、渲染错误、性能明显不可用。
+- `P2`：次要行为偏差、兼容性问题、可用性细节。
+
+## 3. 用例清单
+
+## A. 文本输入与光标/选择
+
+- [ ] `EC-INPUT-001` (P0) 空文档输入首字符。期望：光标位置正确，无多余节点。
+- [ ] `EC-INPUT-002` (P0) 在文档首/尾/中间插入文本。期望：无字符错位。
+- [ ] `EC-INPUT-003` (P0) 连续快速输入 1k+ 字符。期望：无卡死、无丢字。
+- [ ] `EC-INPUT-004` (P1) 多行选择后替换。期望：替换范围准确。
+- [ ] `EC-INPUT-005` (P1) 反向选择（从后往前拖拽）编辑。期望：结果与正向选择一致。
+- [ ] `EC-INPUT-006` (P1) 双击选词、三击选段落后编辑。期望：边界正确。
+- [ ] `EC-INPUT-007` (P1) 光标在行首按 Backspace。期望：仅按规则合并，不异常跳行。
+- [ ] `EC-INPUT-008` (P1) 光标在行尾按 Delete。期望：仅删除后继字符/换行。
+- [ ] `EC-INPUT-009` (P1) 多光标/多选区（若支持）。期望：每个选区一致生效。
+- [ ] `EC-INPUT-010` (P1) Tab/Shift+Tab 在普通段落。期望：符合产品规则（插入空格或跳焦点）。
+- [ ] `EC-INPUT-011` (P0) Undo/Redo 100 次往返。期望：状态可逆、无历史栈损坏。
+- [ ] `EC-INPUT-012` (P0) 撤销后输入新内容。期望：Redo 分支按规则清空。
+
+## B. IME 与 Unicode
+
+- [ ] `EC-IME-001` (P0) 中文拼音上屏中切换光标。期望：不丢 composing 文本。
+- [ ] `EC-IME-002` (P0) 日文假名/韩文输入。期望：组合态与提交态正确。
+- [ ] `EC-IME-003` (P1) emoji 输入（单码点与 ZWJ 家庭 emoji）。期望：不拆分 surrogate pair。
+- [ ] `EC-IME-004` (P1) 含变体选择符字符（如 ❤️）。期望：删除/移动以“可见字符”为单位。
+- [ ] `EC-IME-005` (P1) RTL 文本（阿拉伯语/希伯来语）混排。期望：光标移动方向正确。
+- [ ] `EC-IME-006` (P1) 全角/半角混输。期望：不触发异常自动纠正。
+- [ ] `EC-IME-007` (P2) 换行符混合（`\n`、`\r\n`）。期望：内部规范化后保存稳定。
+
+## C. 基础 Markdown 语法解析
+
+- [ ] `EC-MD-001` (P0) ATX 标题 `#` 前后空格边界。期望：仅合法形式解析为标题。
+- [ ] `EC-MD-002` (P1) Setext 标题（`===`/`---`）。期望：与段落分隔不冲突。
+- [ ] `EC-MD-003` (P1) 强调与加粗嵌套 `***text***`。期望：标记树正确闭合。
+- [ ] `EC-MD-004` (P1) 删除线与代码 span 交叉。期望：代码优先级正确。
+- [ ] `EC-MD-005` (P1) 转义字符（`\* \_ \` \[ \]`）。期望：仅取消下一个语法字符。
+- [ ] `EC-MD-006` (P1) 行内代码含反引号。期望：支持多反引号包裹。
+- [ ] `EC-MD-007` (P1) 自动链接与手动链接并存。期望：解析不冲突。
+- [ ] `EC-MD-008` (P1) 引用块多层嵌套。期望：层级稳定，回车行为正确。
+- [ ] `EC-MD-009` (P1) 有序/无序/任务列表混合嵌套。期望：缩进级别正确。
+- [ ] `EC-MD-010` (P2) 水平分割线与 `---` 标题下划线冲突。期望：按上下文判定。
+
+## D. 代码块与特殊块
+
+- [ ] `EC-BLOCK-001` (P1) 围栏代码块未闭合。期望：编辑器稳定，语法高亮可恢复。
+- [ ] `EC-BLOCK-002` (P1) 代码块语言名含特殊字符。期望：不崩溃，未知语言降级处理。
+- [ ] `EC-BLOCK-003` (P1) 代码块内出现 ``` 字符串。期望：需更长 fence 才闭合。
+- [ ] `EC-BLOCK-004` (P2) 缩进代码块与列表嵌套。期望：结构不串行。
+- [ ] `EC-BLOCK-005` (P2) Mermaid/Math 块（若支持）语法错误。期望：错误可见但不影响主编辑区。
+
+## E. 标题与 TOC
+
+- [ ] `EC-TOC-001` (P0) H1-H6 全级别标题。期望：TOC 层级正确。
+- [ ] `EC-TOC-002` (P1) 重复标题 slug 去重。期望：`-1/-2` 等后缀稳定。
+- [ ] `EC-TOC-003` (P1) 标题含 emoji/中文/日文/符号。期望：anchor 生成可用。
+- [ ] `EC-TOC-004` (P1) 标题内含行内代码/链接。期望：TOC 文本剥离标记。
+- [ ] `EC-TOC-005` (P1) 极长标题。期望：TOC 截断显示但跳转精确。
+- [ ] `EC-TOC-006` (P1) 动态编辑标题后 TOC 实时更新。期望：无闪烁、无旧锚点残留。
+- [ ] `EC-TOC-007` (P1) 删除中间大段标题。期望：TOC 立即回收节点。
+- [ ] `EC-TOC-008` (P2) 跳转到文末标题。期望：滚动定位准确，不遮挡目标行。
+
+## F. 列表与缩进行为
+
+- [ ] `EC-LIST-001` (P0) 回车续写列表项。期望：序号/符号自动延续。
+- [ ] `EC-LIST-002` (P1) 空列表项回车两次退出列表。期望：符合常见编辑器行为。
+- [ ] `EC-LIST-003` (P1) Tab/Shift+Tab 调整嵌套层级。期望：子项结构不丢失。
+- [ ] `EC-LIST-004` (P1) 任务列表 `[ ]`、`[x]` 勾选切换。期望：状态与 markdown 同步。
+- [ ] `EC-LIST-005` (P1) 有序列表跨两位数（9->10）。期望：序号渲染与文本一致。
+- [ ] `EC-LIST-006` (P2) 列表中嵌套代码块/引用/表格。期望：块级边界正确。
+
+## G. 表格（结构 + 编辑）
+
+- [ ] `EC-TABLE-001` (P0) 最小合法表格。期望：正常渲染。
+- [ ] `EC-TABLE-002` (P1) 列对齐 `:---`/`:---:`/`---:`。期望：对齐生效。
+- [ ] `EC-TABLE-003` (P1) 单元格空值、前后空格。期望：解析稳定。
+- [ ] `EC-TABLE-004` (P1) 单元格内转义管道 `\|`。期望：不误切列。
+- [ ] `EC-TABLE-005` (P1) 行列不齐（少列/多列）。期望：按规则补齐或降级为文本。
+- [ ] `EC-TABLE-006` (P1) 单元格内含加粗/链接/代码。期望：行内语法正确。
+- [ ] `EC-TABLE-007` (P1) 超宽表（20+ 列）。期望：横向滚动可用，编辑不卡顿。
+- [ ] `EC-TABLE-008` (P1) 超高表（200+ 行）。期望：滚动与光标性能可接受。
+- [ ] `EC-TABLE-009` (P2) 表格前后紧邻标题/列表。期望：块边界不串。
+- [ ] `EC-TABLE-010` (P2) 粘贴 TSV/CSV 自动成表（若支持）。期望：分列准确。
+
+## H. 链接、图片与附件
+
+- [ ] `EC-LINK-001` (P1) 普通链接、引用式链接、自动链接。期望：三者解析一致。
+- [ ] `EC-LINK-002` (P1) 链接 URL 含括号与 query。期望：URL 不被截断。
+- [ ] `EC-LINK-003` (P1) 相对路径 `./ ../` 跳转。期望：解析基准路径正确。
+- [ ] `EC-LINK-004` (P1) 链接文本为空 `[](...)`。期望：不崩溃，按规则显示。
+- [ ] `EC-IMG-001` (P0) 本地图片存在/不存在。期望：存在时显示，不存在时错误占位。
+- [ ] `EC-IMG-002` (P1) 远程图片 HTTPS/HTTP。期望：加载失败可见，不阻塞编辑。
+- [ ] `EC-IMG-003` (P1) 图片 alt/title 特殊字符。期望：属性转义正确。
+- [ ] `EC-IMG-004` (P1) data URL 图片。期望：可渲染且不导致主线程卡死。
+- [ ] `EC-IMG-005` (P1) 图片路径含空格与 Unicode。期望：路径编码正确。
+- [ ] `EC-IMG-006` (P1) 拖拽图片到编辑器（若支持）。期望：插入 markdown 且文件处理成功。
+- [ ] `EC-IMG-007` (P1) 粘贴剪贴板图片（若支持）。期望：不会重复插入或丢图。
+- [ ] `EC-IMG-008` (P2) 图片在表格/引用/列表内。期望：布局稳定。
+
+## I. 复制粘贴与拖拽
+
+- [ ] `EC-PASTE-001` (P0) 纯文本粘贴。期望：不引入隐藏控制字符。
+- [ ] `EC-PASTE-002` (P1) 富文本粘贴为 Markdown（若支持）。期望：语义可接受。
+- [ ] `EC-PASTE-003` (P1) 代码块粘贴保留缩进。期望：不破坏 fence。
+- [ ] `EC-PASTE-004` (P1) 超大粘贴（1MB、5MB、20MB）。期望：不会假死，提供进度或响应。
+- [ ] `EC-PASTE-005` (P1) 粘贴含恶意 HTML/JS。期望：脚本不执行。
+- [ ] `EC-DRAG-001` (P1) 拖拽文本跨段落移动。期望：源目标内容均正确。
+- [ ] `EC-DRAG-002` (P1) 拖拽文件到非空选择区。期望：插入行为可预测。
+
+## J. 文件 I/O、自动保存与恢复
+
+- [ ] `EC-FILE-001` (P0) 新建未保存文档关闭。期望：有未保存提醒。
+- [ ] `EC-FILE-002` (P0) 自动保存频繁触发。期望：不抖动、不写坏文件。
+- [ ] `EC-FILE-003` (P0) 保存时磁盘满/权限不足。期望：明确报错且内存内容保留。
+- [ ] `EC-FILE-004` (P0) 保存过程中应用异常退出。期望：重启后可恢复最近内容。
+- [ ] `EC-FILE-005` (P1) 外部修改同一文件。期望：冲突提示与合并策略明确。
+- [ ] `EC-FILE-006` (P1) 超大文件打开（5MB、20MB、50MB）。期望：可打开且可编辑。
+- [ ] `EC-FILE-007` (P1) 不同编码（UTF-8、UTF-8 BOM、GBK 误读场景）。期望：不乱码或给出提示。
+- [ ] `EC-FILE-008` (P1) 不同行尾风格（LF/CRLF）。期望：保存策略一致。
+- [ ] `EC-FILE-009` (P2) 文件名含 emoji/CJK/超长路径。期望：读写正常。
+
+## K. 查找替换
+
+- [ ] `EC-SEARCH-001` (P1) 空查询、超长查询。期望：性能稳定，不崩溃。
+- [ ] `EC-SEARCH-002` (P1) 大小写敏感切换。期望：命中数量正确。
+- [ ] `EC-SEARCH-003` (P1) 正则搜索（若支持）非法表达式。期望：错误可见但不中断功能。
+- [ ] `EC-SEARCH-004` (P1) 跨行替换。期望：只替换预期片段。
+- [ ] `EC-SEARCH-005` (P1) 替换后撤销/重做。期望：历史记录完整。
+
+## L. 性能与稳定性
+
+- [ ] `EC-PERF-001` (P0) 10k、50k、100k 行文档滚动。期望：无崩溃，交互可用。
+- [ ] `EC-PERF-002` (P1) 连续 10 分钟输入。期望：内存不持续异常增长。
+- [ ] `EC-PERF-003` (P1) 大文档中频繁 Undo/Redo。期望：响应时间可接受。
+- [ ] `EC-PERF-004` (P1) TOC 实时更新 + 快速输入。期望：不会掉帧到不可用。
+- [ ] `EC-PERF-005` (P1) 表格 200x50 编辑。期望：光标移动与输入可用。
+- [ ] `EC-PERF-006` (P2) 多标签页同时打开大文档。期望：进程稳定。
+
+## M. 安全与隔离
+
+- [ ] `EC-SEC-001` (P0) Markdown 内嵌 `<script>`。期望：绝不执行。
+- [ ] `EC-SEC-002` (P0) `javascript:` 协议链接。期望：点击拦截。
+- [ ] `EC-SEC-003` (P0) SVG 内脚本/事件属性。期望：消毒或禁用执行。
+- [ ] `EC-SEC-004` (P1) 图片/链接到 `file://` 敏感路径。期望：遵守权限策略。
+- [ ] `EC-SEC-005` (P1) 粘贴 HTML 含内联事件 `onerror`。期望：不执行。
+- [ ] `EC-SEC-006` (P1) 超长单行/畸形输入（潜在 ReDoS）。期望：解析不超时。
+
+## N. 可访问性与快捷键
+
+- [ ] `EC-A11Y-001` (P1) 仅键盘完成编辑、保存、切换 TOC。期望：全流程可达。
+- [ ] `EC-A11Y-002` (P1) Tab 焦点顺序。期望：无焦点陷阱。
+- [ ] `EC-A11Y-003` (P1) 屏幕阅读器读取标题层级。期望：语义正确。
+- [ ] `EC-A11Y-004` (P2) 高对比模式下光标与选区可见。
+- [ ] `EC-A11Y-005` (P1) 核心快捷键冲突（macOS 系统快捷键）。期望：不覆盖系统关键行为。
+
+## O. 兼容性
+
+- [ ] `EC-COMP-001` (P1) 从 VS Code/Obsidian 导入常见 markdown。期望：结构保持。
+- [ ] `EC-COMP-002` (P1) 导出后被 GitHub 渲染。期望：核心语法一致。
+- [ ] `EC-COMP-003` (P2) Frontmatter (`---`) 与正文分隔。期望：按产品规则处理。
+- [ ] `EC-COMP-004` (P2) 引用式链接定义位于文末。期望：可正确回溯。
+
+## 4. 最小回归样例块（建议保留）
+
+```markdown
 # H1
-## H2
-### H3
-#### H4
-##### H5
-###### H6
-# H1 Again
-## H2 Again
+## 重复
+## 重复
 
-### 5.2 Very Long Document Section
+- [ ] task 1
+  - nested item
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+| a | b |
+|---|---|
+| `x \| y` | **bold** |
 
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+![missing](./not-found.png)
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+[bad](javascript:alert(1))
 
-### 5.3 End of Document
+```ts
+const fence = "```";
+```
+```
 
-This is the final section to test TOC scroll-to-end functionality.
+## 5. TDD 执行建议（落地）
 
-| Final | Table |
-|-------|-------|
-| Last | Row |
+- 先把所有 `P0` 变成自动化测试，作为 CI 必过。
+- `P1` 先覆盖 parser + 编辑历史 + 文件保存三类高风险链路。
+- 每次修复线上/用户反馈 bug，必须补一条对应 `EC-*` 回归用例。
+- 新功能 PR 至少附 1 条新增 edge case（或说明复用已有用例 ID）。
 
-![Final image](final.png)
-
-**End of edge cases test document.**
