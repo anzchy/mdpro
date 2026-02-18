@@ -35,6 +35,7 @@ import type { KeyboardShortcuts, McpConfig, WindowState } from "./types/preferen
 import { DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_MCP_CONFIG } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { useLoggingStore } from "./stores/loggingStore";
+import { useToastStore } from "./stores/toastStore";
 
 type PendingClose = "document" | "window" | null;
 
@@ -83,7 +84,8 @@ function App() {
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
   const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastMessage = useToastStore((s) => s.message);
+  const showToast = useToastStore((s) => s.showToast);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
@@ -148,10 +150,6 @@ function App() {
     void preferencesService.setPreferences({ showSidebar: next });
   }, [showSidebar, toggleSidebar]);
 
-  const showToast = useCallback((message: string) => {
-    setToastMessage(message);
-    window.setTimeout(() => setToastMessage(null), 3000);
-  }, []);
 
 
   const applyWindowState = useCallback(async (state: WindowState) => {

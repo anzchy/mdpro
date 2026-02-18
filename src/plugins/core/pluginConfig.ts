@@ -47,4 +47,7 @@ export const defaultPluginConfig: MdproPluginConfig = {
       language: "en-US",
     },
   },
+  "image-paste": {
+    enabled: true,
+  },
 };

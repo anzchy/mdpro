@@ -8,6 +8,7 @@ import { typewriterModePlugin } from "./codemirror/typewriterModePlugin";
 import { spellCheckPlugin } from "./codemirror/spellCheckPlugin";
 import { inlineEditPlugin } from "./milkdown/inlineEditPlugin";
 import { typoraKeymapPlugin } from "./milkdown/typoraKeymapPlugin";
+import { imagePastePlugin } from "./milkdown/imagePastePlugin";
 
 pluginRegistry.register(highlightPlugin);
 pluginRegistry.register(headingPlugin);
@@ -18,5 +19,6 @@ pluginRegistry.register(typewriterModePlugin);
 pluginRegistry.register(spellCheckPlugin);
 pluginRegistry.register(inlineEditPlugin);
 pluginRegistry.register(typoraKeymapPlugin);
+pluginRegistry.register(imagePastePlugin);
 
 export { pluginRegistry };

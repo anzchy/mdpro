@@ -8,6 +8,7 @@ import {
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
+import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../../stores/documentStore";
 import { loggingService } from "../../services/loggingService";
@@ -137,7 +138,8 @@ function MilkdownEditorInner() {
         })
         .use(commonmark)
         .use(gfm)
-        .use(history);
+        .use(history)
+        .use(imagePasteMilkdownPlugin);
     },
     [activeDocumentId],
   );
