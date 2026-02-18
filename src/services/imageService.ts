@@ -123,8 +123,8 @@ export async function resolveImagePath(
   imagePath: string
 ): Promise<ResolveImagePathResult> {
   return invoke<ResolveImagePathResult>("resolve_image_path", {
-    document_path: documentPath,
-    image_path: imagePath,
+    documentPath,
+    imagePath,
   });
 }
 
@@ -138,10 +138,10 @@ export async function uploadImage(
   assetFolder?: string
 ): Promise<UploadImageResult> {
   return invoke<UploadImageResult>("upload_image", {
-    document_path: documentPath,
-    image_data: imageData,
+    documentPath,
+    imageData,
     filename,
-    asset_folder: assetFolder,
+    assetFolder,
   });
 }
 
@@ -154,9 +154,9 @@ export async function uploadImagesBatch(
   assetFolder?: string
 ): Promise<UploadImagesBatchResult> {
   return invoke<UploadImagesBatchResult>("upload_images_batch", {
-    document_path: documentPath,
+    documentPath,
     images,
-    asset_folder: assetFolder,
+    assetFolder,
   });
 }
 
@@ -169,9 +169,9 @@ export async function copyExternalImage(
   assetFolder?: string
 ): Promise<CopyExternalImageResult> {
   return invoke<CopyExternalImageResult>("copy_external_image", {
-    document_path: documentPath,
-    source_path: sourcePath,
-    asset_folder: assetFolder,
+    documentPath,
+    sourcePath,
+    assetFolder,
   });
 }
 
@@ -201,6 +201,10 @@ export function fileToBase64(file: File): Promise<string> {
       const result = reader.result as string;
       // Remove the data URL prefix (e.g., "data:image/png;base64,")
       const base64 = result.split(",")[1];
+      if (!base64) {
+        reject(new Error("Failed to read image data"));
+        return;
+      }
       resolve(base64);
     };
     reader.onerror = reject;
