@@ -59,6 +59,10 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
     if (match) {
       const level = match[1].length as 1 | 2 | 3 | 4 | 5 | 6;
       const text = match[2].trim();
+      if (!text) {
+        offset += line.length + 1;
+        continue;
+      }
       const id = generateUniqueId(text, idCounts);
 
       headings.push({
