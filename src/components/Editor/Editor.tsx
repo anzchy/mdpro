@@ -4,6 +4,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { redo, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
+import { searchExtensions } from "./extensions/search";
 import { useEditorStore } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
@@ -69,6 +70,7 @@ export function Editor({
         extensions={[
           markdownExtension,
           syntaxHighlightingExtension,
+          ...searchExtensions,
           pluginEventExtension,
           ...pluginExtensions,
           keymap.of([
