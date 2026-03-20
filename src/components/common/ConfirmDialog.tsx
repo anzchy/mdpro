@@ -24,7 +24,16 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="dialog-backdrop" role="presentation">
+    <div
+      className="dialog-backdrop"
+      role="presentation"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          loggingService.logDialogAction("dialog.confirm.cancel", "cancel", { title });
+          onCancel();
+        }
+      }}
+    >
       <div className="dialog-card" role="dialog" aria-modal="true" aria-label={title}>
         <h3 className="dialog-title">{title}</h3>
         <p className="dialog-message">{message}</p>
@@ -41,6 +50,7 @@ export function ConfirmDialog({
           </button>
           <button
             className="toolbar-button"
+            autoFocus
             onClick={() => {
               loggingService.logDialogAction("dialog.confirm.confirm", "success", { title });
               onConfirm();
