@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import {
   defaultValueCtx,
@@ -8,6 +8,7 @@ import {
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
+import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../../stores/documentStore";
@@ -139,6 +140,7 @@ function MilkdownEditorInner() {
         .use(commonmark)
         .use(gfm)
         .use(history)
+        .use(listener)
         .use(imagePasteMilkdownPlugin);
     },
     [activeDocumentId],
@@ -157,6 +159,34 @@ function MilkdownEditorInner() {
       },
     });
   }, [editor.loading]);
+
+  // Wire Milkdown listener → documentStore so Cmd+S always saves what is on screen.
+  // Uses a ref to avoid registering multiple callbacks on the same instance.
+  const registeredInstanceRef = useRef<Editor | null>(null);
+  useEffect(() => {
+    const instance = editor.get();
+    if (!instance || instance === registeredInstanceRef.current) return;
+    registeredInstanceRef.current = instance;
+
+    instance.action((ctx) => {
+      const manager = ctx.get(listenerCtx);
+      manager.markdownUpdated((_ctx, markdown) => {
+        const { activeDocumentId: currentId, updateDocumentContent: update } =
+          useDocumentStore.getState();
+        if (currentId) {
+          update(currentId, markdown);
+        }
+      });
+    });
+
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.milkdown.listener.registered",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: { documentId: activeDocumentId },
+    });
+  }, [editor, activeDocumentId]);
 
   // Process images after Milkdown renders to resolve local paths
   useEffect(() => {
