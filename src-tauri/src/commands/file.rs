@@ -195,7 +195,7 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
 /// - `\r\n` (Windows CRLF) → `\n`
 /// - lone `\r` (old Mac CR) → `\n`
 fn normalize_line_endings(content: &str) -> String {
-    content.replace("\r\n", "\n").replace('\r', '\n')
+    content.replace("\r\n", "\n").replace('\r', "\n")
 }
 
 #[cfg(test)]
