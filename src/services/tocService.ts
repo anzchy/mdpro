@@ -81,14 +81,19 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
 }
 
 /**
- * Generate unique anchor ID from heading text
- * Handles duplicates with numeric suffix
+ * Generate unique anchor ID from heading text.
+ * Handles duplicates with numeric suffix.
+ *
+ * Uses Unicode property escapes so CJK characters and other Unicode
+ * letters/numbers are preserved in the slug. Emoji and punctuation are
+ * replaced by hyphens. ASCII portions are lowercased.
+ *
+ * Algorithm must stay in sync with generateHeadingId in exportService.ts.
  */
 function generateUniqueId(text: string, counts: Map<string, number>): string {
-  // Base ID: lowercase, replace non-alphanumeric with hyphens
   const baseId = text
     .toLowerCase()
-    .replace(/[^\w]+/g, "-")
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "");
 
   const count = counts.get(baseId) || 0;
