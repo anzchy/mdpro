@@ -29,11 +29,13 @@ import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { fileService } from "./services/fileService";
 import { loggingService } from "./services/loggingService";
+import { buildImageMarkdown } from "./services/imageService";
 import type { Document } from "./types/document";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, McpConfig, WindowState } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_MCP_CONFIG } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
+import { useEditorStore } from "./stores/editorStore";
 import { useLoggingStore } from "./stores/loggingStore";
 import { useToastStore } from "./stores/toastStore";
 
@@ -720,29 +722,132 @@ function App() {
     [showToast],
   );
 
+  const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg"]);
+
+  /**
+   * Insert one or more dragged image files as Markdown image references at the
+   * current cursor position (source / split mode) or appended to the document
+   * content (WYSIWYG mode). Requires an active document with a saved path so
+   * that a relative path can be computed.
+   */
+  const handleImageDrop = useCallback(
+    (imagePaths: string[]) => {
+      const docPath = useDocumentStore.getState().getActiveDocument()?.path ?? null;
+
+      if (!docPath) {
+        showToast("Open a document first to insert images");
+        loggingService.logEventSync({
+          level: "warn",
+          event: "image.drop",
+          status: "cancel",
+          actionId: loggingService.generateActionId(),
+          context: { reason: "no_active_document", fileCount: imagePaths.length },
+        });
+        return;
+      }
+
+      const markdownLines = imagePaths
+        .map((p) => buildImageMarkdown(p, docPath))
+        .filter((line): line is string => line !== null);
+
+      if (markdownLines.length === 0) return;
+
+      const insertText = markdownLines.join("\n");
+
+      const currentViewMode = useEditorStore.getState().viewMode;
+
+      if (currentViewMode === "wysiwyg") {
+        // WYSIWYG (Milkdown): append to document content and let the editor re-render
+        const currentDoc = useDocumentStore.getState().getActiveDocument();
+        if (!currentDoc) return;
+        const separator = currentDoc.content.endsWith("\n") || currentDoc.content === "" ? "" : "\n";
+        const nextContent = currentDoc.content + separator + insertText + "\n";
+        const { updateDocumentContent } = useDocumentStore.getState();
+        updateDocumentContent(currentDoc.id, nextContent);
+      } else {
+        // Source / split mode: insert via CodeMirror transaction at cursor
+        const editorView = useEditorStore.getState().editorView;
+        if (editorView) {
+          const { state, dispatch } = editorView;
+          const from = state.selection.main.from;
+          // Ensure we start on a new line
+          const before = state.doc.sliceString(Math.max(0, from - 1), from);
+          const prefix = from > 0 && before !== "\n" ? "\n" : "";
+          dispatch(
+            state.update({
+              changes: { from, insert: prefix + insertText + "\n" },
+              selection: { anchor: from + prefix.length + insertText.length + 1 },
+            }),
+          );
+        } else {
+          // Fallback: append to document content (editor view not yet mounted)
+          const currentDoc = useDocumentStore.getState().getActiveDocument();
+          if (!currentDoc) return;
+          const separator = currentDoc.content.endsWith("\n") || currentDoc.content === "" ? "" : "\n";
+          const nextContent = currentDoc.content + separator + insertText + "\n";
+          const { updateDocumentContent } = useDocumentStore.getState();
+          updateDocumentContent(currentDoc.id, nextContent);
+        }
+      }
+
+      loggingService.logEventSync({
+        level: "info",
+        event: "image.drop",
+        status: "success",
+        actionId: loggingService.generateActionId(),
+        context: {
+          fileCount: imagePaths.length,
+          insertedCount: markdownLines.length,
+          viewMode: currentViewMode,
+          docPath,
+        },
+      });
+
+      showToast(
+        markdownLines.length === 1
+          ? "Image inserted"
+          : `${markdownLines.length} images inserted`,
+      );
+    },
+    [showToast],
+  );
+
   // Handle files dropped via Tauri's drag-drop
   const handleFileDrop = useCallback(
     async (paths: string[]) => {
       if (paths.length === 0) return;
 
-      // Filter for markdown files only
-      const mdPaths = paths.filter((p) => {
-        const ext = p.split(".").pop()?.toLowerCase();
-        return ext === "md" || ext === "markdown";
-      });
+      // Partition dropped files into markdown files and image files
+      const mdPaths: string[] = [];
+      const imgPaths: string[] = [];
+      for (const p of paths) {
+        const ext = p.split(".").pop()?.toLowerCase() ?? "";
+        if (ext === "md" || ext === "markdown") {
+          mdPaths.push(p);
+        } else if (IMAGE_EXTENSIONS.has(ext)) {
+          imgPaths.push(p);
+        }
+      }
+
+      // Route image drops to the image-insert handler
+      if (imgPaths.length > 0) {
+        handleImageDrop(imgPaths);
+      }
 
       if (mdPaths.length === 0) {
-        loggingService.logEventSync({
-          level: "warn",
-          event: "file.open.drop",
-          status: "cancel",
-          actionId: loggingService.generateActionId(),
-          context: {
-            reason: "unsupported_extension",
-            fileCount: paths.length,
-            dropTarget: "window",
-          },
-        });
+        if (imgPaths.length === 0) {
+          loggingService.logEventSync({
+            level: "warn",
+            event: "file.open.drop",
+            status: "cancel",
+            actionId: loggingService.generateActionId(),
+            context: {
+              reason: "unsupported_extension",
+              fileCount: paths.length,
+              dropTarget: "window",
+            },
+          });
+        }
         return;
       }
 
@@ -772,7 +877,7 @@ function App() {
         });
       }
     },
-    [defaultViewMode, handleOpenPath, setViewMode],
+    [defaultViewMode, handleImageDrop, handleOpenPath, setViewMode],
   );
 
   // Set up Tauri drag-drop event listener

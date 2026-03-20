@@ -229,6 +229,76 @@ export function isRemoteUrl(path: string): boolean {
   return path.startsWith("http://") || path.startsWith("https://");
 }
 
+// ---------------------------------------------------------------------------
+// Drag-drop image insertion helpers (issue #12)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute a relative path from the document's directory to the image file.
+ *
+ * Returns null when:
+ *   - docPath is null (no open document)
+ *   - imagePath is empty
+ *
+ * Uses macOS-style "/" separators (app targets macOS only).
+ */
+export function resolveImageInsertPath(
+  imagePath: string,
+  docPath: string | null,
+): string | null {
+  if (!imagePath || !docPath) return null;
+
+  // Directory containing the open document
+  const docDir = docPath.split("/").slice(0, -1).join("/");
+
+  // Build relative path from docDir to imagePath
+  const docParts = docDir === "" ? [] : docDir.split("/");
+  const imgParts = imagePath.split("/");
+
+  // Find common prefix length
+  let common = 0;
+  const minLen = Math.min(docParts.length, imgParts.length);
+  while (common < minLen && docParts[common] === imgParts[common]) {
+    common++;
+  }
+
+  const upCount = docParts.length - common;
+  const downParts = imgParts.slice(common);
+
+  const relParts = [
+    ...Array(upCount).fill(".."),
+    ...downParts,
+  ];
+
+  const rel = relParts.join("/");
+  // Prefix with "./" when the image is inside or alongside the doc directory
+  return upCount === 0 ? `./${rel}` : rel;
+}
+
+/**
+ * Build a Markdown image reference for a dragged image file.
+ *
+ * Returns null when docPath is null or imagePath is empty.
+ *
+ * Alt text is the filename without its extension.
+ * Path is relative to the document directory (uses resolveImageInsertPath).
+ */
+export function buildImageMarkdown(
+  imagePath: string,
+  docPath: string | null,
+): string | null {
+  if (!imagePath || !docPath) return null;
+
+  const relPath = resolveImageInsertPath(imagePath, docPath);
+  if (!relPath) return null;
+
+  const filename = imagePath.split("/").pop() ?? "";
+  const dotIdx = filename.lastIndexOf(".");
+  const altText = dotIdx > 0 ? filename.slice(0, dotIdx) : filename;
+
+  return `![${altText}](${relPath})`;
+}
+
 /**
  * Format bytes to human-readable string
  */
