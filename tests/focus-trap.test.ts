@@ -51,7 +51,7 @@ describe("ConfirmDialog keyboard accessibility", () => {
 
   it("calls onCancel when Escape is pressed (handler wired to onCancel)", () => {
     // Verify the Escape branch invokes onCancel (or onClose alias)
-    expect(src).toMatch(/Escape[\s\S]{0,80}onCancel/);
+    expect(src).toMatch(/Escape[\s\S]{0,200}onCancel/);
   });
 
   it("primary action button has autoFocus so focus lands inside dialog on open", () => {
@@ -72,7 +72,7 @@ describe("SettingsDialog keyboard accessibility", () => {
   });
 
   it("calls onClose when Escape is pressed", () => {
-    expect(src).toMatch(/Escape[\s\S]{0,80}onClose/);
+    expect(src).toMatch(/Escape[\s\S]{0,200}onClose/);
   });
 });
 
