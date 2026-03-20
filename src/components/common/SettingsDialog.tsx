@@ -286,6 +286,12 @@ export function SettingsDialog({
         loggingService.logDialogAction("settings.dialog.backdrop", "cancel");
         onClose();
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          loggingService.logDialogAction("settings.dialog.escape", "cancel");
+          onClose();
+        }
+      }}
     >
       <div
         className={`settings-dialog theme-${resolvedTheme}`}

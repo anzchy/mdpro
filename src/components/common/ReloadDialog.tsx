@@ -11,7 +11,16 @@ export function ReloadDialog({ open, message, onReload, onIgnore }: ReloadDialog
   if (!open) return null;
 
   return (
-    <div className="dialog-backdrop" role="presentation">
+    <div
+      className="dialog-backdrop"
+      role="presentation"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          loggingService.logDialogAction("dialog.reload.ignore", "cancel");
+          onIgnore();
+        }
+      }}
+    >
       <div className="dialog-card" role="dialog" aria-modal="true" aria-label="Reload file">
         <h3 className="dialog-title">External change detected</h3>
         <p className="dialog-message">{message}</p>
@@ -28,6 +37,7 @@ export function ReloadDialog({ open, message, onReload, onIgnore }: ReloadDialog
           </button>
           <button
             className="toolbar-button"
+            autoFocus
             type="button"
             onClick={() => {
               loggingService.logDialogAction("dialog.reload.reload", "success");

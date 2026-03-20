@@ -64,7 +64,7 @@ export function DevToolbar({ onOpenFile, onNewDocument, onOpenDialog }: DevToolb
   };
 
   return (
-    <div className="dev-toolbar">
+    <div className="dev-toolbar" tabIndex={-1}>
       <span className="dev-toolbar-label">DEV MODE</span>
       <button className="dev-toolbar-button" onClick={handleNewClick}>
         New
