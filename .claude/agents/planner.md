@@ -2,7 +2,7 @@
 name: planner
 description: Turns a goal into modular work items with tests and acceptance gates.
 tools: Read, Grep
-skills: planning
+skills: [planning, milkdown-dev, tauri-app-dev]
 ---
 
 You produce a modular plan that is executable by other agents.
