@@ -16,12 +16,16 @@ const sanitize = (html: string) =>
   DOMPurify.sanitize(html, { ADD_TAGS: ["mark", "u"], ADD_ATTR: ["data-heading-id"] });
 
 /**
- * Generate unique anchor ID from heading text (must match tocService)
+ * Generate unique anchor ID from heading text (must match tocService).
+ *
+ * Uses Unicode property escapes so CJK characters and other Unicode
+ * letters/numbers are preserved in the slug. Emoji and punctuation are
+ * replaced by hyphens. ASCII portions are lowercased.
  */
 function generateHeadingId(text: string, counts: Map<string, number>): string {
   const baseId = text
     .toLowerCase()
-    .replace(/[^\w]+/g, "-")
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "");
 
   const count = counts.get(baseId) || 0;
