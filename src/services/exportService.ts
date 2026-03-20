@@ -6,6 +6,23 @@ interface RenderMarkdownResult {
   html: string;
 }
 
+/**
+ * Strip YAML frontmatter from the very start of a Markdown document.
+ *
+ * A frontmatter block is a `---` delimiter line (no trailing spaces) followed
+ * by any content and closed by another `---` delimiter line, all at position 0
+ * in the file.  Both Unix (`\n`) and Windows (`\r\n`) line endings are
+ * supported for the delimiters.
+ *
+ * Documents without frontmatter are returned unchanged.
+ */
+export function stripFrontmatter(content: string): string {
+  // Anchored: opening --- must be the very first characters.
+  // Supports LF and CRLF on the delimiter lines; body may use either.
+  // The body may be empty (---\n---\n) or contain any content.
+  return content.replace(/^---\r?\n([\s\S]*?\n)?---\r?\n/, "");
+}
+
 interface ExportResult {
   success: boolean;
   path: string;
@@ -61,11 +78,12 @@ const parseMarkdownWithHeadingIds = createMarkedParser();
 
 export const exportService = {
   async renderMarkdown(markdown: string): Promise<string> {
+    const stripped = stripFrontmatter(markdown);
     try {
-      const result = await invoke<RenderMarkdownResult>("render_markdown", { content: markdown });
+      const result = await invoke<RenderMarkdownResult>("render_markdown", { content: stripped });
       return sanitize(result.html);
     } catch {
-      const html = parseMarkdownWithHeadingIds(markdown);
+      const html = parseMarkdownWithHeadingIds(stripped);
       return sanitize(html);
     }
   },

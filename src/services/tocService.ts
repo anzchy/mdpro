@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { stripFrontmatter } from "./exportService";
 
 /**
  * Heading information returned from backend
@@ -46,7 +47,7 @@ export async function getDocumentHeadings(
  */
 export function parseHeadingsFromContent(content: string): HeadingInfo[] {
   const headings: HeadingInfo[] = [];
-  const lines = content.split("\n");
+  const lines = stripFrontmatter(content).split("\n");
   const idCounts: Map<string, number> = new Map();
 
   let offset = 0;
