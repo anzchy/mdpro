@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import {
   defaultValueCtx,
@@ -8,10 +8,65 @@ import {
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
+import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
+import { Plugin } from "@milkdown/kit/prose/state";
+import { $prose } from "@milkdown/kit/utils";
+import DOMPurify from "dompurify";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../../stores/documentStore";
 import { loggingService } from "../../services/loggingService";
+
+// ---------------------------------------------------------------------------
+// Security helpers — exported for unit testing
+// ---------------------------------------------------------------------------
+
+/**
+ * Sanitize HTML string using DOMPurify before it is parsed by ProseMirror.
+ * Strips event-handler attributes (onerror, onclick, …), script tags, and
+ * dangerous href protocols (javascript:, data:).
+ * Called by the transformPastedHTML ProseMirror plugin (issue #7).
+ */
+export function sanitizePastedHtml(html: string): string {
+  const sanitized = DOMPurify.sanitize(html, {
+    // Forbid all on* event attributes
+    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus",
+      "onblur", "onkeydown", "onkeyup", "onkeypress", "onsubmit",
+      "onchange", "onmouseenter", "onmouseleave", "onmousedown",
+      "onmouseup", "ondblclick", "oncontextmenu", "oninput",
+      "onpaste", "ondrop", "ondragstart"],
+    // Remove script / style / iframe entirely
+    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
+  });
+  // Strip non-image data: URIs from src attributes (data:image/ are legitimate;
+  // data:text/html or similar could embed raw markup even if it can't run in img context)
+  return sanitized.replace(/\s+src=["']data:(?!image\/)[^"']*["']/gi, "");
+}
+
+/**
+ * Returns true when an href is safe to open.
+ * Blocks javascript:, data:, and vbscript: protocols (issue #10).
+ */
+export function isSafeHref(href: string): boolean {
+  if (!href) return false;
+  // Trim whitespace — bypass attempts like "  javascript:alert(1)"
+  const trimmed = href.trim().toLowerCase();
+  if (trimmed.startsWith("javascript:")) return false;
+  if (trimmed.startsWith("data:")) return false;
+  if (trimmed.startsWith("vbscript:")) return false;
+  return true;
+}
+
+// ProseMirror plugin that sanitizes HTML pasted from the clipboard (#7)
+const pasteHtmlSanitizerPlugin = new Plugin({
+  props: {
+    transformPastedHTML(html: string): string {
+      return sanitizePastedHtml(html);
+    },
+  },
+});
+
+const pasteHtmlSanitizerMilkdownPlugin = $prose(() => pasteHtmlSanitizerPlugin);
 
 // Image path resolution helpers
 function isRemoteUrl(src: string): boolean {
@@ -139,6 +194,8 @@ function MilkdownEditorInner() {
         .use(commonmark)
         .use(gfm)
         .use(history)
+        .use(listener)
+        .use(pasteHtmlSanitizerMilkdownPlugin)
         .use(imagePasteMilkdownPlugin);
     },
     [activeDocumentId],
@@ -157,6 +214,34 @@ function MilkdownEditorInner() {
       },
     });
   }, [editor.loading]);
+
+  // Wire Milkdown listener → documentStore so Cmd+S always saves what is on screen.
+  // Uses a ref to avoid registering multiple callbacks on the same instance.
+  const registeredInstanceRef = useRef<Editor | null>(null);
+  useEffect(() => {
+    const instance = editor.get();
+    if (!instance || instance === registeredInstanceRef.current) return;
+    registeredInstanceRef.current = instance;
+
+    instance.action((ctx) => {
+      const manager = ctx.get(listenerCtx);
+      manager.markdownUpdated((_ctx, markdown) => {
+        const { activeDocumentId: currentId, updateDocumentContent: update } =
+          useDocumentStore.getState();
+        if (currentId) {
+          update(currentId, markdown);
+        }
+      });
+    });
+
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.milkdown.listener.registered",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: { documentId: activeDocumentId },
+    });
+  }, [editor, activeDocumentId]);
 
   // Process images after Milkdown renders to resolve local paths
   useEffect(() => {
@@ -199,6 +284,41 @@ function MilkdownEditorInner() {
 
     return () => clearTimeout(timer);
   }, [editor.loading, activeDocument?.path, activeDocumentId]);
+
+  // Block javascript: and data: link clicks in the WYSIWYG editor (#10).
+  // Mirrors the link-click guard in Preview.tsx.
+  useEffect(() => {
+    const container = document.getElementById("milkdown-container");
+    if (!container) return;
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const link = target?.closest("a");
+      if (!link || !(link instanceof HTMLAnchorElement)) return;
+      const href = link.getAttribute("href") ?? "";
+      if (!isSafeHref(href)) {
+        // Silently block dangerous protocol links
+        event.preventDefault();
+        event.stopPropagation();
+        loggingService.logEventSync({
+          level: "warn",
+          event: "editor.milkdown.link.blocked",
+          status: "fail",
+          actionId: loggingService.generateActionId(),
+          context: { href: href.substring(0, 100) },
+        });
+        return;
+      }
+      // Safe link — open externally
+      event.preventDefault();
+      import("@tauri-apps/plugin-opener")
+        .then(({ openUrl }) => openUrl(link.href))
+        .catch(() => window.open(link.href, "_blank", "noopener,noreferrer"));
+    };
+
+    container.addEventListener("click", handleClick);
+    return () => container.removeEventListener("click", handleClick);
+  }, [activeDocumentId]);
 
   return <Milkdown />;
 }
