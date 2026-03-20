@@ -175,6 +175,7 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
         content.len()
     ));
 
+    let content = normalize_line_endings(&content);
     let mut document = Document::from_path(path_buf, content);
     document.encoding = encoding_value;
     logger::log_line(&format!(
@@ -186,6 +187,58 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
         document,
         recovered_draft: None,
     })
+}
+
+/// Normalize all line endings to LF (`\n`).
+///
+/// Handles:
+/// - `\r\n` (Windows CRLF) → `\n`
+/// - lone `\r` (old Mac CR) → `\n`
+fn normalize_line_endings(content: &str) -> String {
+    content.replace("\r\n", "\n").replace('\r', '\n')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_crlf_to_lf() {
+        let input = "line one\r\nline two\r\nline three";
+        let expected = "line one\nline two\nline three";
+        assert_eq!(normalize_line_endings(input), expected);
+    }
+
+    #[test]
+    fn test_normalize_preserves_lf_only() {
+        let input = "line one\nline two\nline three";
+        assert_eq!(normalize_line_endings(input), input);
+    }
+
+    #[test]
+    fn test_normalize_handles_cr_only() {
+        let input = "line one\rline two\rline three";
+        let expected = "line one\nline two\nline three";
+        assert_eq!(normalize_line_endings(input), expected);
+    }
+
+    #[test]
+    fn test_normalize_mixed_line_endings() {
+        let input = "crlf\r\nlf\ncr\r";
+        let expected = "crlf\nlf\ncr\n";
+        assert_eq!(normalize_line_endings(input), expected);
+    }
+
+    #[test]
+    fn test_normalize_empty_string() {
+        assert_eq!(normalize_line_endings(""), "");
+    }
+
+    #[test]
+    fn test_normalize_no_newlines() {
+        let input = "no newlines here";
+        assert_eq!(normalize_line_endings(input), input);
+    }
 }
 
 #[tauri::command]
