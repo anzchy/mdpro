@@ -1,0 +1,125 @@
+/**
+ * Tests for WYSIWYG keybindings (issue #27)
+ *
+ * Three shortcuts were declared in DEFAULT_KEYBOARD_SHORTCUTS but had
+ * no corresponding entries in typoraKeymapPlugin.ts:
+ *
+ *   formatCode   (⌘⇧`)  — inline code    → toggleInlineCodeCommand (commonmark)
+ *   formatStrike (⌃⇧`)  — strikethrough  → toggleStrikethroughCommand (gfm)
+ *   formatUnderline (⌘U) — underline     → NOT supported: no Milkdown mark exists
+ *
+ * TYPORA_KEYMAP_CONFIG is a plain object exported from typoraKeymapPlugin.ts.
+ * Tests verify shortcut strings and that command factories call the correct
+ * Milkdown command key, using a minimal ctx stub instead of a live editor.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+
+// ---------------------------------------------------------------------------
+// Mock Milkdown modules before importing the plugin under test.
+// vi.mock calls are hoisted by Vitest's transform, so they always run first.
+// ---------------------------------------------------------------------------
+
+vi.mock("@milkdown/kit/utils", () => ({
+  $useKeymap: vi.fn(),
+}));
+
+vi.mock("@milkdown/kit/core", () => ({
+  commandsCtx: Symbol("commandsCtx"),
+}));
+
+vi.mock("@milkdown/kit/preset/commonmark", () => ({
+  toggleEmphasisCommand: { key: "ToggleEmphasis" },
+  toggleInlineCodeCommand: { key: "ToggleInlineCode" },
+  toggleLinkCommand: { key: "ToggleLink" },
+  toggleStrongCommand: { key: "ToggleStrong" },
+  wrapInHeadingCommand: { key: "WrapInHeading" },
+}));
+
+vi.mock("@milkdown/kit/preset/gfm", () => ({
+  toggleStrikethroughCommand: { key: "ToggleStrikethrough" },
+}));
+
+vi.mock("../src/plugins/core/pluginTypes", () => ({
+  createPlugin: (def: unknown) => def,
+}));
+
+// Import AFTER mocks are declared (hoisting guarantees this order).
+import { TYPORA_KEYMAP_CONFIG } from "../src/plugins/milkdown/typoraKeymapPlugin";
+
+// ---------------------------------------------------------------------------
+// Minimal ctx stub — mimics the Milkdown Ctx.get(commandsCtx) pattern
+// ---------------------------------------------------------------------------
+
+const makeCtx = (mockCall: ReturnType<typeof vi.fn>) => ({
+  // ctx.get(anyToken) always returns { call: mockCall }
+  get: () => ({ call: mockCall }),
+});
+
+// ---------------------------------------------------------------------------
+// Existing binding smoke-tests (regression guard)
+// ---------------------------------------------------------------------------
+
+describe("TYPORA_KEYMAP_CONFIG — existing bindings", () => {
+  it("has bold binding with Mod-b shortcut", () => {
+    expect(TYPORA_KEYMAP_CONFIG).toHaveProperty("bold");
+    expect(TYPORA_KEYMAP_CONFIG.bold.shortcuts).toBe("Mod-b");
+  });
+
+  it("has italic binding with Mod-i shortcut", () => {
+    expect(TYPORA_KEYMAP_CONFIG).toHaveProperty("italic");
+    expect(TYPORA_KEYMAP_CONFIG.italic.shortcuts).toBe("Mod-i");
+  });
+
+  it("calls toggleStrongCommand key when bold command executes", () => {
+    const mockCall = vi.fn();
+    const ctx = makeCtx(mockCall);
+    const fn = TYPORA_KEYMAP_CONFIG.bold.command(ctx);
+    fn();
+    expect(mockCall).toHaveBeenCalledWith("ToggleStrong");
+  });
+
+  it("calls toggleEmphasisCommand key when italic command executes", () => {
+    const mockCall = vi.fn();
+    const ctx = makeCtx(mockCall);
+    const fn = TYPORA_KEYMAP_CONFIG.italic.command(ctx);
+    fn();
+    expect(mockCall).toHaveBeenCalledWith("ToggleEmphasis");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Issue #27 — new bindings
+// ---------------------------------------------------------------------------
+
+describe("TYPORA_KEYMAP_CONFIG — issue #27: previously missing bindings", () => {
+  it("has inlineCode entry with Mod-Shift-` shortcut", () => {
+    expect(TYPORA_KEYMAP_CONFIG).toHaveProperty("inlineCode");
+    expect(TYPORA_KEYMAP_CONFIG.inlineCode.shortcuts).toBe("Mod-Shift-`");
+  });
+
+  it("calls toggleInlineCodeCommand key when inlineCode command executes", () => {
+    const mockCall = vi.fn();
+    const ctx = makeCtx(mockCall);
+    const fn = TYPORA_KEYMAP_CONFIG.inlineCode.command(ctx);
+    fn();
+    expect(mockCall).toHaveBeenCalledWith("ToggleInlineCode");
+  });
+
+  it("has strikethrough entry with Ctrl-Shift-` shortcut", () => {
+    expect(TYPORA_KEYMAP_CONFIG).toHaveProperty("strikethrough");
+    expect(TYPORA_KEYMAP_CONFIG.strikethrough.shortcuts).toBe("Ctrl-Shift-`");
+  });
+
+  it("calls toggleStrikethroughCommand key when strikethrough command executes", () => {
+    const mockCall = vi.fn();
+    const ctx = makeCtx(mockCall);
+    const fn = TYPORA_KEYMAP_CONFIG.strikethrough.command(ctx);
+    fn();
+    expect(mockCall).toHaveBeenCalledWith("ToggleStrikethrough");
+  });
+
+  it("does NOT have an underline entry (underline is unsupported in CommonMark/GFM)", () => {
+    expect(TYPORA_KEYMAP_CONFIG).not.toHaveProperty("underline");
+  });
+});
