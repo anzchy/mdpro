@@ -126,6 +126,7 @@ function App() {
     content: activeDocument?.content ?? "",
     containerId: viewMode === "wysiwyg" ? "milkdown-container" : "preview-container",
     enableSpyScrolling: viewMode !== "editor-only",
+    viewMode,
   });
 
   const updateRecentFiles = useCallback(

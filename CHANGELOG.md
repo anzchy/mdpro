@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- TOC click-to-navigate broken in all view modes
+  - `editor-only`: `preview-container` was absent from the DOM, so `scrollToHeading` returned immediately with no effect
+  - `split`: only the preview pane scrolled; the CodeMirror editor pane did not
+  - All modes using CodeMirror: DOM-based heading search is fundamentally incompatible with CodeMirror's plain-text rendering — headings have no `<h1>`–`<h6>` elements in the editor pane
+  - Fix: `useTOC` now accepts `viewMode`; for `editor-only` and `split`, navigation uses `EditorView.scrollIntoView` targeting the heading's line number (stored in `TOCEntry.lineNumber`)
+- Heading anchor ID mismatch between Rust renderer and JS TOC parser
+  - `markdown.rs` replaced each non-alphanumeric character individually (e.g. `. ` → `--`), while the JS algorithm collapses runs to a single `-` (e.g. `. ` → `-`), causing `data-heading-id` selectors to fail for headings like `"1. Introduction"`
+  - Fix: `markdown.rs::generate_heading_id` now uses run-based collapsing, matching `tocService.ts` and the existing `commands/toc.rs` logic
+
 ### Added
 - MCP (Model Context Protocol) Server for LLM integration
   - HTTP API server with token authentication (localhost only)

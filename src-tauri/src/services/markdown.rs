@@ -1,14 +1,25 @@
 use pulldown_cmark::{html, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use std::collections::HashMap;
 
-/// Generate unique anchor ID from heading text (must match tocService.ts)
+/// Generate unique anchor ID from heading text (must match tocService.ts).
+///
+/// Algorithm mirrors the JS `generateUniqueId` in tocService.ts:
+/// - Lowercase the text
+/// - Replace each run of non-alphanumeric characters with a single `-`
+/// - Strip leading/trailing hyphens
 fn generate_heading_id(text: &str, counts: &mut HashMap<String, usize>) -> String {
-    // Base ID: lowercase, replace non-alphanumeric with hyphens
-    let base_id: String = text
-        .to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '-' })
-        .collect();
+    // Replace runs of non-alphanumeric chars with a single hyphen (matches JS /[^\p{L}\p{N}]+/gu → "-")
+    let mut base_id = String::new();
+    let mut in_sep = false;
+    for c in text.to_lowercase().chars() {
+        if c.is_alphanumeric() {
+            base_id.push(c);
+            in_sep = false;
+        } else if !in_sep {
+            base_id.push('-');
+            in_sep = true;
+        }
+    }
     let base_id = base_id.trim_matches('-').to_string();
     let base_id = if base_id.is_empty() {
         "heading".to_string()
