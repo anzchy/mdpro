@@ -72,7 +72,11 @@ This allows editing the URL or code content directly without switching to Editor
 |----------|--------|----------|
 | ⌘B | Bold | `**text**` |
 | ⌘I | Italic | `*text*` |
+| ⌘⇧\` | Inline Code | `` `code` `` |
+| ⌃⇧\` | Strikethrough | `~~text~~` |
 | ⌘K | Insert Link | `[text](url)` |
+
+> **Note**: Underline (⌘U) is listed in preferences but is not active in WYSIWYG mode. CommonMark and GFM have no underline mark, so there is no Milkdown command to bind.
 
 ### Built-in ProseMirror
 
@@ -260,6 +264,7 @@ Shortcuts are handled differently based on focus:
 ├────────────────────────────────────────────┤
 │ WYSIWYG FORMATTING                         │
 │   ⌘B    Bold         ⌘I    Italic         │
+│   ⌘⇧`   Inline Code  ⌃⇧`   Strikethrough  │
 │   ⌘K    Link         ⌘0-6  Headings       │
 ├────────────────────────────────────────────┤
 │ EDITING                                    │
