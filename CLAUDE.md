@@ -115,7 +115,7 @@ Native macOS menu defined in `src-tauri/src/menu.rs`. Menu events are handled vi
 
 - File: New (⌘N), Open (⌘O), Save (⌘S), Export HTML (⌘⇧E), Close (⌘W)
 
-- View: Split (⌘1), Editor (⌘2), Preview (⌘3), WYSIWYG (⌘4), Toggle Sidebar (⌘⇧B)
+- View: Split (⌘1), Editor (⌘2), Preview (⌘3), WYSIWYG (⌘4), Toggle Sidebar (⌘⇧L)
 
 - Format: Highlight Selection (⌘⇧H)
 

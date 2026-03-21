@@ -151,7 +151,7 @@ The View menu in the native macOS menu bar provides:
 - Editor Only
 - Preview Only
 - WYSIWYG
-- Toggle Sidebar (⌘⇧B)
+- Toggle Sidebar (⌘⇧L)
 
 ### Programmatic Switching
 
