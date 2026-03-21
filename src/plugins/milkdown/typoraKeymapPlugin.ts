@@ -1,53 +1,113 @@
+/**
+ * Typora-style Keymap Plugin for Milkdown WYSIWYG mode
+ *
+ * Purpose: Register ⌘1-6 heading shortcuts, ⌘0 paragraph, ⌘B bold,
+ * ⌘I italic, and ⌘K link in the Milkdown editor.
+ *
+ * Root cause of issue #31:
+ * The editor is initialised with `.use(gfm)` only — the GFM preset does NOT
+ * include the commonmark preset.  Commands like `wrapInHeadingCommand` live in
+ * commonmark's command registry and are therefore NOT registered.  Calling
+ * `commands.call(wrapInHeadingCommand.key, N)` throws `contextNotFound` at
+ * runtime, causing the shortcut to silently do nothing.
+ *
+ * Fix:
+ * Bypass the Milkdown command registry entirely for heading/paragraph/bold/
+ * italic/link.  Each `command` callback now returns a first-class ProseMirror
+ * `Command` function — `(state, dispatch, view?) => boolean` — that uses
+ * `setBlockType` / `toggleMark` directly, resolving node/mark types from
+ * `state.schema` at dispatch time.  This makes the shortcuts independent of
+ * which Milkdown presets are loaded.
+ *
+ * Exception: inlineCode (⌘⇧`) and strikethrough (⌃⇧`) still use the Milkdown
+ * command registry because their ProseMirror mark names in the GFM schema are
+ * not stable public API.  These commands are registered by the GFM preset that
+ * IS loaded, so they work correctly.
+ *
+ * Note: underline (⌘U / formatUnderline) is not implemented here.
+ * CommonMark and GFM have no underline mark, so there is no Milkdown
+ * command to bind. The preference entry exists but is intentionally
+ * unbound in WYSIWYG mode.
+ *
+ * @coordinates-with src/hooks/useMilkdown.ts
+ * @coordinates-with src/plugins/index.ts
+ */
+
 import { $useKeymap } from "@milkdown/kit/utils";
 import { commandsCtx } from "@milkdown/kit/core";
-import type { Ctx } from "@milkdown/kit/ctx";
-import {
-  toggleEmphasisCommand,
-  toggleInlineCodeCommand,
-  toggleLinkCommand,
-  toggleStrongCommand,
-  turnIntoTextCommand,
-  wrapInHeadingCommand,
-} from "@milkdown/kit/preset/commonmark";
+import { toggleInlineCodeCommand } from "@milkdown/kit/preset/commonmark";
 import { toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
+import {
+  setBlockType,
+  toggleMark,
+} from "@milkdown/kit/prose/commands";
+import type { Command } from "@milkdown/kit/prose/state";
 import { createPlugin } from "../core/pluginTypes";
-// Note: underline (⌘U / formatUnderline) is not implemented here.
-// CommonMark and GFM have no underline mark, so there is no Milkdown
-// command to bind. The preference entry exists but is intentionally
-// unbound in WYSIWYG mode.
+
+// ---------------------------------------------------------------------------
+// Exported command factories (used directly in tests and in the keymap below)
+// ---------------------------------------------------------------------------
 
 /**
- * Builds the command factory for a heading level (1-6).
- * Exported for unit testing.
+ * Returns a ProseMirror Command that converts the current block to a heading
+ * of the given level using `state.schema.nodes.heading`.
+ * Returns `false` (no-op) if the heading node type is not in the schema.
  */
-export function buildHeadingCommand(level: number) {
-  return (ctx: Ctx) => {
-    const commands = ctx.get(commandsCtx);
-    return () => commands.call(wrapInHeadingCommand.key, level);
+export function makeHeadingCommand(level: number): Command {
+  return (state, dispatch) => {
+    const headingType = state.schema.nodes["heading"];
+    if (!headingType) return false;
+    return setBlockType(headingType, { level })(state, dispatch);
   };
 }
 
 /**
- * Builds the command factory for converting a block to paragraph (⌘0).
- * Uses turnIntoTextCommand which calls setBlockType(paragraph) — the correct
- * approach. Exported for unit testing.
- *
- * NOTE: wrapInHeadingCommand(0) would also work (it branches on level < 1),
- * but using turnIntoTextCommand makes the intent explicit and avoids relying
- * on an undocumented edge-case in wrapInHeadingCommand.
+ * Returns a ProseMirror Command that converts the current block to a paragraph.
+ * Returns `false` (no-op) if the paragraph node type is not in the schema.
  */
-export function buildParagraphCommand(ctx: Ctx) {
-  const commands = ctx.get(commandsCtx);
-  return () => commands.call(turnIntoTextCommand.key);
+export function makeParagraphCommand(): Command {
+  return (state, dispatch) => {
+    const paragraphType = state.schema.nodes["paragraph"];
+    if (!paragraphType) return false;
+    return setBlockType(paragraphType)(state, dispatch);
+  };
 }
 
-// Ctx is opaque in Milkdown; we use `any` only at the narrow boundary here.
+/**
+ * Returns a ProseMirror Command that toggles the `strong` mark (bold).
+ * Returns `false` if the mark is not in the schema.
+ */
+export function makeBoldCommand(): Command {
+  return (state, dispatch) => {
+    const strongMark = state.schema.marks["strong"];
+    if (!strongMark) return false;
+    return toggleMark(strongMark)(state, dispatch);
+  };
+}
+
+/**
+ * Returns a ProseMirror Command that toggles the `emphasis` mark (italic).
+ * Returns `false` if the mark is not in the schema.
+ */
+export function makeItalicCommand(): Command {
+  return (state, dispatch) => {
+    const emphasisMark = state.schema.marks["emphasis"];
+    if (!emphasisMark) return false;
+    return toggleMark(emphasisMark)(state, dispatch);
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Keymap config — exported for unit testing via TYPORA_KEYMAP_CONFIG
+// ---------------------------------------------------------------------------
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MilkdownCtx = any;
 
 type CommandEntry = {
   shortcuts: string;
-  command: (ctx: MilkdownCtx) => () => boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  command: (ctx: MilkdownCtx) => any;
 };
 
 /**
@@ -55,27 +115,15 @@ type CommandEntry = {
  * verify shortcut strings and command dispatch without requiring a live editor.
  */
 export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
-  heading1: { shortcuts: "Mod-1", command: buildHeadingCommand(1) },
-  heading2: { shortcuts: "Mod-2", command: buildHeadingCommand(2) },
-  heading3: { shortcuts: "Mod-3", command: buildHeadingCommand(3) },
-  heading4: { shortcuts: "Mod-4", command: buildHeadingCommand(4) },
-  heading5: { shortcuts: "Mod-5", command: buildHeadingCommand(5) },
-  heading6: { shortcuts: "Mod-6", command: buildHeadingCommand(6) },
-  paragraph: { shortcuts: "Mod-0", command: buildParagraphCommand },
-  bold: {
-    shortcuts: "Mod-b",
-    command: (ctx) => {
-      const commands = ctx.get(commandsCtx);
-      return () => commands.call(toggleStrongCommand.key);
-    },
-  },
-  italic: {
-    shortcuts: "Mod-i",
-    command: (ctx) => {
-      const commands = ctx.get(commandsCtx);
-      return () => commands.call(toggleEmphasisCommand.key);
-    },
-  },
+  heading1: { shortcuts: "Mod-1", command: () => makeHeadingCommand(1) },
+  heading2: { shortcuts: "Mod-2", command: () => makeHeadingCommand(2) },
+  heading3: { shortcuts: "Mod-3", command: () => makeHeadingCommand(3) },
+  heading4: { shortcuts: "Mod-4", command: () => makeHeadingCommand(4) },
+  heading5: { shortcuts: "Mod-5", command: () => makeHeadingCommand(5) },
+  heading6: { shortcuts: "Mod-6", command: () => makeHeadingCommand(6) },
+  paragraph: { shortcuts: "Mod-0", command: () => makeParagraphCommand() },
+  bold: { shortcuts: "Mod-b", command: () => makeBoldCommand() },
+  italic: { shortcuts: "Mod-i", command: () => makeItalicCommand() },
   inlineCode: {
     shortcuts: "Mod-Shift-`",
     command: (ctx) => {
@@ -92,17 +140,16 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
   },
   link: {
     shortcuts: "Mod-k",
-    command: (ctx) => {
-      const commands = ctx.get(commandsCtx);
-      return () => {
-        const href = window.prompt("Enter URL (e.g., https://example.com)");
-        if (href === null || href.trim() === "") return false;
-        let url = href.trim();
-        if (!/^https?:\/\//i.test(url) && !url.startsWith("mailto:")) {
-          url = "https://" + url;
-        }
-        return commands.call(toggleLinkCommand.key, { href: url });
-      };
+    command: () => (state: Parameters<Command>[0], dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
+      const linkMark = state.schema.marks["link"];
+      if (!linkMark) return false;
+      const href = window.prompt("Enter URL (e.g., https://example.com)");
+      if (href === null || href.trim() === "") return false;
+      let url = href.trim();
+      if (!/^https?:\/\//i.test(url) && !url.startsWith("mailto:")) {
+        url = "https://" + url;
+      }
+      return toggleMark(linkMark, { href: url })(state, dispatch, view);
     },
   },
 };
