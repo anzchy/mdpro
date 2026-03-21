@@ -1,63 +1,69 @@
 import { $useKeymap } from "@milkdown/kit/utils";
 import { commandsCtx } from "@milkdown/kit/core";
+import type { Ctx } from "@milkdown/kit/ctx";
 import {
   toggleEmphasisCommand,
   toggleLinkCommand,
   toggleStrongCommand,
+  turnIntoTextCommand,
   wrapInHeadingCommand,
 } from "@milkdown/kit/preset/commonmark";
 import { createPlugin } from "../core/pluginTypes";
+
+/**
+ * Builds the command factory for a heading level (1-6).
+ * Exported for unit testing.
+ */
+export function buildHeadingCommand(level: number) {
+  return (ctx: Ctx) => {
+    const commands = ctx.get(commandsCtx);
+    return () => commands.call(wrapInHeadingCommand.key, level);
+  };
+}
+
+/**
+ * Builds the command factory for converting a block to paragraph (⌘0).
+ * Uses turnIntoTextCommand which calls setBlockType(paragraph) — the correct
+ * approach. Exported for unit testing.
+ *
+ * NOTE: wrapInHeadingCommand(0) would also work (it branches on level < 1),
+ * but using turnIntoTextCommand makes the intent explicit and avoids relying
+ * on an undocumented edge-case in wrapInHeadingCommand.
+ */
+export function buildParagraphCommand(ctx: Ctx) {
+  const commands = ctx.get(commandsCtx);
+  return () => commands.call(turnIntoTextCommand.key);
+}
 
 const createTyporaKeymap = () =>
   $useKeymap("typora", {
     heading1: {
       shortcuts: "Mod-1",
-      command: (ctx) => {
-        const commands = ctx.get(commandsCtx);
-        return () => commands.call(wrapInHeadingCommand.key, 1);
-      },
+      command: buildHeadingCommand(1),
     },
     heading2: {
       shortcuts: "Mod-2",
-      command: (ctx) => {
-        const commands = ctx.get(commandsCtx);
-        return () => commands.call(wrapInHeadingCommand.key, 2);
-      },
+      command: buildHeadingCommand(2),
     },
     heading3: {
       shortcuts: "Mod-3",
-      command: (ctx) => {
-        const commands = ctx.get(commandsCtx);
-        return () => commands.call(wrapInHeadingCommand.key, 3);
-      },
+      command: buildHeadingCommand(3),
     },
     heading4: {
       shortcuts: "Mod-4",
-      command: (ctx) => {
-        const commands = ctx.get(commandsCtx);
-        return () => commands.call(wrapInHeadingCommand.key, 4);
-      },
+      command: buildHeadingCommand(4),
     },
     heading5: {
       shortcuts: "Mod-5",
-      command: (ctx) => {
-        const commands = ctx.get(commandsCtx);
-        return () => commands.call(wrapInHeadingCommand.key, 5);
-      },
+      command: buildHeadingCommand(5),
     },
     heading6: {
       shortcuts: "Mod-6",
-      command: (ctx) => {
-        const commands = ctx.get(commandsCtx);
-        return () => commands.call(wrapInHeadingCommand.key, 6);
-      },
+      command: buildHeadingCommand(6),
     },
     paragraph: {
       shortcuts: "Mod-0",
-      command: (ctx) => {
-        const commands = ctx.get(commandsCtx);
-        return () => commands.call(wrapInHeadingCommand.key, 0);
-      },
+      command: buildParagraphCommand,
     },
     bold: {
       shortcuts: "Mod-b",
