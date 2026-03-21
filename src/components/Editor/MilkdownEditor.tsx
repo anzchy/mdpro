@@ -3,6 +3,7 @@ import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import {
   defaultValueCtx,
   Editor,
+  editorViewCtx,
   rootCtx,
 } from "@milkdown/kit/core";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
@@ -13,6 +14,7 @@ import { Plugin } from "@milkdown/kit/prose/state";
 import { $prose } from "@milkdown/kit/utils";
 import DOMPurify from "dompurify";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
+import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../../stores/documentStore";
 import { loggingService } from "../../services/loggingService";
@@ -116,7 +118,11 @@ function resolveImagePath(src: string, documentPath: string | null): string {
   return src;
 }
 
-function MilkdownEditorInner() {
+interface MilkdownEditorInnerProps {
+  highlightRequest?: number;
+}
+
+function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
   const { documents, activeDocumentId } = useDocumentStore(
     (state) => ({
       documents: state.documents,
@@ -320,10 +326,35 @@ function MilkdownEditorInner() {
     return () => container.removeEventListener("click", handleClick);
   }, [activeDocumentId]);
 
+  // ⌘⇧H highlight in WYSIWYG mode — wraps selected text with ==markers==
+  // In source/split mode the CodeMirror highlightCommand handles this instead
+  // (see Editor.tsx). When highlightRequest increments we obtain the
+  // ProseMirror view through the Milkdown editor's action API and delegate.
+  useEffect(() => {
+    if (highlightRequest === undefined) return;
+    const instance = editor.get();
+    if (!instance) return;
+    instance.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      milkdownHighlightCommand(view);
+    });
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.milkdown.highlight",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: { highlightRequest },
+    });
+  }, [highlightRequest]);
+
   return <Milkdown />;
 }
 
-export function MilkdownEditor() {
+interface MilkdownEditorProps {
+  highlightRequest?: number;
+}
+
+export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
   // Get activeDocumentId to use as key - forces full recreation when document changes
   const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
 
@@ -331,7 +362,7 @@ export function MilkdownEditor() {
     <div id="milkdown-container" className="milkdown-editor">
       {/* Key forces MilkdownProvider to recreate when document changes */}
       <MilkdownProvider key={activeDocumentId ?? "empty"}>
-        <MilkdownEditorInner />
+        <MilkdownEditorInner highlightRequest={highlightRequest} />
       </MilkdownProvider>
     </div>
   );
