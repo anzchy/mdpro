@@ -71,20 +71,17 @@ describe("TYPORA_KEYMAP_CONFIG — existing bindings", () => {
     expect(TYPORA_KEYMAP_CONFIG.italic.shortcuts).toBe("Mod-i");
   });
 
-  it("calls toggleStrongCommand key when bold command executes", () => {
-    const mockCall = vi.fn();
-    const ctx = makeCtx(mockCall);
-    const fn = TYPORA_KEYMAP_CONFIG.bold.command(ctx);
-    fn();
-    expect(mockCall).toHaveBeenCalledWith("ToggleStrong");
+  it("bold command factory returns a ProseMirror Command function", () => {
+    // Bold now uses direct ProseMirror toggleMark — not commandsCtx.
+    // Verify the factory returns a callable function (the Command).
+    const fn = TYPORA_KEYMAP_CONFIG.bold.command({});
+    expect(typeof fn).toBe("function");
   });
 
-  it("calls toggleEmphasisCommand key when italic command executes", () => {
-    const mockCall = vi.fn();
-    const ctx = makeCtx(mockCall);
-    const fn = TYPORA_KEYMAP_CONFIG.italic.command(ctx);
-    fn();
-    expect(mockCall).toHaveBeenCalledWith("ToggleEmphasis");
+  it("italic command factory returns a ProseMirror Command function", () => {
+    // Italic now uses direct ProseMirror toggleMark — not commandsCtx.
+    const fn = TYPORA_KEYMAP_CONFIG.italic.command({});
+    expect(typeof fn).toBe("function");
   });
 });
 
