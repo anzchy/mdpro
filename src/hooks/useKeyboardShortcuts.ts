@@ -109,7 +109,9 @@ export function useKeyboardShortcuts({
         onClose(actionId);
       }
       // Cmd+/ - Cycle view mode (Typora: Source Code Mode toggle)
-      if (key === "/" && onCycleViewMode) {
+      // Only intercept when CodeMirror does NOT have focus; if it does, let
+      // CodeMirror's built-in toggleLineComment command handle the key.
+      if (key === "/" && onCycleViewMode && !target?.closest?.(".cm-editor")) {
         event.preventDefault();
         const actionId = loggingService.logShortcut("Cmd+/", { action: "view.cycle" });
         onCycleViewMode(actionId);
