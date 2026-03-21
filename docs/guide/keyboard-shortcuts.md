@@ -32,7 +32,7 @@ These shortcuts work across all view modes.
 
 | Shortcut | Action |
 |----------|--------|
-| ⌘⇧B | Toggle Sidebar |
+| ⌘⇧L | Toggle Sidebar |
 | ⌘, | Open Preferences |
 
 ## WYSIWYG Mode Shortcuts (Milkdown)
@@ -194,7 +194,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   openDocument: "meta+o",
   saveDocument: "meta+s",
   closeDocument: "meta+w",
-  toggleSidebar: "meta+shift+b",
+  toggleSidebar: "meta+shift+l",
   cycleViewMode: "meta+/",
   highlightSelection: "meta+shift+h",
 };
@@ -254,7 +254,7 @@ Shortcuts are handled differently based on focus:
 │ VIEW (uses Control key)                    │
 │   ⌃1    Split        ⌃2    Editor         │
 │   ⌃3    Preview      ⌃4    WYSIWYG        │
-│   ⌘/    Cycle        ⌘⇧B   Sidebar        │
+│   ⌘/    Cycle        ⌘⇧L   Sidebar        │
 ├────────────────────────────────────────────┤
 │ WYSIWYG FORMATTING                         │
 │   ⌘B    Bold         ⌘I    Italic         │

@@ -6,9 +6,9 @@ When adding, changing, or removing a keyboard shortcut, update ALL three files.
 
 | File | Purpose | Format |
 |------|---------|--------|
-| `src-tauri/src/menu.rs` | Native macOS menu accelerators | `"CmdOrCtrl+Shift+B"` |
-| `src/types/preferences.ts` | `DEFAULT_KEYBOARD_SHORTCUTS` defaults | `{ key: "mod+shift+b" }` |
-| `docs/guide/keyboard-shortcuts.md` | User documentation | `Cmd + Shift + B` |
+| `src-tauri/src/menu.rs` | Native macOS menu accelerators | `"CmdOrCtrl+Shift+L"` |
+| `src/types/preferences.ts` | `DEFAULT_KEYBOARD_SHORTCUTS` defaults | `{ key: "mod+shift+l" }` |
+| `docs/guide/keyboard-shortcuts.md` | User documentation | `Cmd + Shift + L` |
 
 ## Format Differences
 
@@ -36,7 +36,7 @@ grep "defaultKey" src/types/preferences.ts
 | Open | ⌘O | ✓ | ✓ |
 | Save | ⌘S | ✓ | ✓ |
 | Close | ⌘W | ✓ | ✓ |
-| Toggle Sidebar | ⌘⇧B | ✓ | ✓ |
+| Toggle Sidebar | ⌘⇧L | ✓ | ✓ |
 | Split view | ⌘1 | ✓ | — |
 | Editor only | ⌘2 | ✓ | — |
 | Preview only | ⌘3 | ✓ | — |

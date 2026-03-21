@@ -416,7 +416,7 @@ decoupled from core editor components and allows enable/disable via config.
 
 - ⌘/ - Cycle view modes
 
-- ⌘⇧B - Toggle sidebar
+- ⌘⇧L - Toggle sidebar
 
 **WYSIWYG Mode:**
 
