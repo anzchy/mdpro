@@ -1094,7 +1094,7 @@ function App() {
               </div>
             </div>
           ) : viewMode === "wysiwyg" ? (
-            <MilkdownEditor />
+            <MilkdownEditor highlightRequest={highlightRequest} />
           ) : (
             <SplitView
               markdown={activeDocument?.content ?? ""}
