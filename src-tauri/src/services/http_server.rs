@@ -107,8 +107,18 @@ async fn validate_token(
         .ok()
         .and_then(|c| c.as_ref().map(|cfg| cfg.token.clone()));
 
+    /// Constant-time byte equality to prevent timing side-channels on the auth token.
+    fn constant_time_eq(a: &str, b: &str) -> bool {
+        let a = a.as_bytes();
+        let b = b.as_bytes();
+        if a.len() != b.len() {
+            return false;
+        }
+        a.iter().zip(b.iter()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+    }
+
     match (token_header, expected_token) {
-        (Some(provided), Some(expected)) if provided == expected => {
+        (Some(provided), Some(ref expected)) if constant_time_eq(provided, expected) => {
             next.run(request).await
         }
         _ => {
@@ -128,12 +138,12 @@ async fn validate_origin(request: Request<Body>, next: Next) -> Response {
         .get(header::ORIGIN)
         .and_then(|v| v.to_str().ok());
 
-    // Allow requests without Origin header (same-origin, curl, etc.)
-    // Allow null origin (file:// or no-origin requests)
-    // Allow localhost origins
+    // Allow requests without Origin header (same-origin, curl, mdpro-mcp binary).
+    // Reject "null" origins — these come from sandboxed iframes or data: pages
+    // and provide no DNS-rebinding protection when accepted.
     let is_valid = match origin {
         None => true,
-        Some("null") => true,
+        Some("null") => false,
         Some(o) => {
             o.starts_with("http://127.0.0.1")
                 || o.starts_with("http://localhost")

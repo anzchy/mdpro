@@ -9,14 +9,35 @@ export const insertLinkCommand = (view: EditorView): boolean => {
   const href = window.prompt("Enter URL");
   if (href === null) return false;
 
+  const rawUrl = href.trim();
+  // Block dangerous protocols
+  const lower = rawUrl.toLowerCase().replace(/\s+/g, "");
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("vbscript:")
+  ) {
+    return false;
+  }
+  const url =
+    rawUrl.length > 0 &&
+    !/^https?:\/\//i.test(rawUrl) &&
+    !rawUrl.startsWith("mailto:") &&
+    !rawUrl.startsWith("#") &&
+    !rawUrl.startsWith("/")
+      ? "https://" + rawUrl
+      : rawUrl;
+
   const { state } = view;
   const transaction = state.changeByRange((range) => {
     const selected = state.sliceDoc(range.from, range.to);
     const text = selected.length > 0 ? selected : "link";
-    const url = href.trim();
-    const insert = `[${text}](${url})`;
-    const urlStart = range.from + text.length + 3;
-    const urlEnd = urlStart + url.length;
+    // Escape markdown-special characters in label and URL
+    const safeText = text.replace(/[[\]\\]/g, "\\$&");
+    const safeUrl = url.replace(/[()\\]/g, "\\$&");
+    const insert = `[${safeText}](${safeUrl})`;
+    const urlStart = range.from + safeText.length + 3;
+    const urlEnd = urlStart + safeUrl.length;
 
     return {
       changes: { from: range.from, to: range.to, insert },

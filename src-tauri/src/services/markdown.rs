@@ -1,6 +1,15 @@
 use pulldown_cmark::{html, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use std::collections::HashMap;
 
+/// Escape HTML special characters to prevent XSS when injecting text into HTML attributes or content.
+fn html_escape(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
 /// Generate unique anchor ID from heading text (must match tocService.ts).
 ///
 /// Algorithm mirrors the JS `generateUniqueId` in tocService.ts:
@@ -74,7 +83,11 @@ pub fn render_markdown(markdown: &str) -> String {
                     };
                     html_output.push_str(&format!(
                         "<h{} id=\"{}\" data-heading-id=\"{}\">{}</h{}>\n",
-                        level_num, id, id, heading_text, level_num
+                        level_num,
+                        html_escape(&id),
+                        html_escape(&id),
+                        html_escape(&heading_text),
+                        level_num
                     ));
                 }
                 in_heading = false;

@@ -33,14 +33,14 @@ pub fn mcp_get_server_info(
 
     Ok(config.as_ref().map(|c| ServerInfo {
         port: c.port,
-        token: c.token.clone(),
     }))
 }
 
+/// Non-secret server diagnostics returned to the renderer.
+/// The auth token is intentionally excluded to prevent credential leakage.
 #[derive(Serialize)]
 pub struct ServerInfo {
     pub port: u16,
-    pub token: String,
 }
 
 /// MCP client types

@@ -271,8 +271,19 @@ pub async fn upload_image(
         }
     })?;
 
+    // Sanitize filename: extract basename only and reject empty/separator-only names
+    // to prevent path traversal (e.g. "../../evil.sh").
+    let safe_filename = Path::new(&filename)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| !n.is_empty() && !n.starts_with('.') || n.len() > 1)
+        .ok_or_else(|| ImageError::InvalidImageData {
+            message: "Invalid filename".to_string(),
+        })?
+        .to_string();
+
     // Write file
-    let target_path = target_dir.join(&filename);
+    let target_path = target_dir.join(&safe_filename);
     fs::write(&target_path, &bytes).map_err(|e| {
         if e.kind() == std::io::ErrorKind::PermissionDenied {
             ImageError::PermissionDenied {
@@ -285,8 +296,8 @@ pub async fn upload_image(
         }
     })?;
 
-    // Generate relative path
-    let relative_path = format!("{}/{}", asset_dir, filename);
+    // Generate relative path using the sanitized filename
+    let relative_path = format!("{}/{}", asset_dir, safe_filename);
     let file_size = bytes.len() as u64;
 
     let duration = start.elapsed().as_millis() as u64;

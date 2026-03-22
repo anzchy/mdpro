@@ -1,4 +1,13 @@
+fn html_escape(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
 pub fn build_html(content: &str, title: &str, theme: &str) -> String {
+    let safe_title = html_escape(title);
     let (bg, text, code_bg, border) = if theme == "dark" {
         ("#0f1115", "#e5e7eb", "#1b2230", "#242a36")
     } else {
@@ -23,6 +32,6 @@ pub fn build_html(content: &str, title: &str, theme: &str) -> String {
 
     format!(
         "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>{}</title>\n  <style>{}</style>\n</head>\n<body class=\"{}\">\n  <article class=\"markdown-body\">{}\n  </article>\n</body>\n</html>",
-        title, styles, theme, content
+        safe_title, styles, theme, content
     )
 }

@@ -146,7 +146,16 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
       const href = window.prompt("Enter URL (e.g., https://example.com)");
       if (href === null || href.trim() === "") return false;
       let url = href.trim();
-      if (!/^https?:\/\//i.test(url) && !url.startsWith("mailto:")) {
+      // Block dangerous protocols before normalizing
+      const lower = url.toLowerCase().replace(/\s+/g, "");
+      if (
+        lower.startsWith("javascript:") ||
+        lower.startsWith("data:") ||
+        lower.startsWith("vbscript:")
+      ) {
+        return false;
+      }
+      if (!/^https?:\/\//i.test(url) && !url.startsWith("mailto:") && !url.startsWith("#") && !url.startsWith("/")) {
         url = "https://" + url;
       }
       return toggleMark(linkMark, { href: url })(state, dispatch, view);
@@ -155,6 +164,15 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
 };
 
 const createTyporaKeymap = () => $useKeymap("typora", TYPORA_KEYMAP_CONFIG);
+
+/**
+ * The Milkdown plugin instance for use directly in editor factories that do
+ * not go through the plugin registry (e.g. MilkdownEditor.tsx).
+ *
+ * Must be module-level so the same instance is reused across editor
+ * recreations — matching the pattern in useMilkdown.ts.
+ */
+export const typoraKeymapMilkdownPlugin = createTyporaKeymap();
 
 export const typoraKeymapPlugin = createPlugin({
   name: "typora-keymap",
