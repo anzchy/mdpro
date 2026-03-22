@@ -40,9 +40,7 @@
     "fileAssociations": [
       {
         "ext": ["md", "markdown"],
-        "name": "Markdown Document",
-        "role": "Editor",
-        "rank": "Owner"
+        "name": "Markdown Document"
       }
     ],
     "icon": [
