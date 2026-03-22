@@ -83,7 +83,8 @@ export const useTOCStore = create<TOCStore>((set) => ({
   collapsedIds: new Set<string>(),
 
   // Actions
-  setEntries: (entries) => set({ entries }),
+  setEntries: (entries) =>
+    set({ entries, activeEntryId: null, collapsedIds: new Set<string>() }),
 
   setActiveEntry: (id) => set({ activeEntryId: id }),
 
@@ -108,7 +109,8 @@ export const useTOCStore = create<TOCStore>((set) => ({
     }
   },
 
-  clearEntries: () => set({ entries: [], activeEntryId: null }),
+  clearEntries: () =>
+    set({ entries: [], activeEntryId: null, collapsedIds: new Set<string>() }),
 }));
 
 /**

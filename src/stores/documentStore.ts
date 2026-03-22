@@ -82,38 +82,48 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       ),
     })),
   closeDocument: (id) =>
-    set((state) => ({
-      documents: state.documents.filter((doc) => {
-        if (doc.id === id) {
-          const actionId = loggingService.generateActionId();
-          loggingService.logEventSync({
-            level: "info",
-            event: "tab.close",
-            status: "success",
-            actionId,
-            context: {
-              documentId: doc.id,
-              filePath: doc.path,
-              wasModified: doc.isModified,
-            },
-          });
-          loggingService.logEventSync({
-            level: "info",
-            event: "file.close",
-            status: "success",
-            actionId,
-            context: {
-              documentId: doc.id,
-              filePath: doc.path,
-            },
-          });
-          return false;
+    set((state) => {
+      const closingDoc = state.documents.find((doc) => doc.id === id);
+      if (closingDoc) {
+        const actionId = loggingService.generateActionId();
+        loggingService.logEventSync({
+          level: "info",
+          event: "tab.close",
+          status: "success",
+          actionId,
+          context: {
+            documentId: closingDoc.id,
+            filePath: closingDoc.path,
+            wasModified: closingDoc.isModified,
+          },
+        });
+        loggingService.logEventSync({
+          level: "info",
+          event: "file.close",
+          status: "success",
+          actionId,
+          context: {
+            documentId: closingDoc.id,
+            filePath: closingDoc.path,
+          },
+        });
+      }
+
+      const remaining = state.documents.filter((doc) => doc.id !== id);
+
+      let nextActiveId = state.activeDocumentId;
+      if (state.activeDocumentId === id) {
+        if (remaining.length === 0) {
+          nextActiveId = null;
+        } else {
+          const closedIdx = state.documents.findIndex((doc) => doc.id === id);
+          const nextIdx = Math.min(closedIdx, remaining.length - 1);
+          nextActiveId = remaining[nextIdx].id;
         }
-        return true;
-      }),
-      activeDocumentId:
-        state.activeDocumentId === id ? null : state.activeDocumentId,
-    })),
+      }
+
+      return { documents: remaining, activeDocumentId: nextActiveId };
+    }),
 
   getDocumentById: (id) => {
     return get().documents.find((doc) => doc.id === id);

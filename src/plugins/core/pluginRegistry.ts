@@ -50,7 +50,13 @@ const createEventEmitter = (): EditorEventEmitter => {
       const eventHandlers = handlers[event] as Set<
         (payload: EditorEventMap[typeof event]) => void
       >;
-      eventHandlers.forEach((handler) => handler(payload));
+      eventHandlers.forEach((handler) => {
+        try {
+          handler(payload);
+        } catch (err) {
+          console.error(`[mdpro] Event handler for "${event}" threw:`, err);
+        }
+      });
     },
   };
 };
@@ -268,17 +274,23 @@ export class PluginRegistry {
     const context = this.getContext();
     const extensions: Extension[] = [];
 
-    this.plugins.forEach((entry) => {
+    this.getSortedPlugins().forEach((entry) => {
       const { plugin, config } = entry;
       if (!config.enabled) return;
       if (!plugin.supportedModes.includes("codemirror")) return;
       if (!plugin.codemirrorExtension) return;
 
-      const result = plugin.codemirrorExtension(config, context);
-      if (Array.isArray(result)) {
-        extensions.push(...result);
-      } else if (result) {
-        extensions.push(result);
+      try {
+        const result = plugin.codemirrorExtension(config, context);
+        if (Array.isArray(result)) {
+          extensions.push(...result);
+        } else if (result) {
+          extensions.push(result);
+        }
+      } catch (error) {
+        console.error(
+          `[mdpro] Plugin "${plugin.name}" codemirrorExtension threw: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     });
 
@@ -289,14 +301,20 @@ export class PluginRegistry {
     const context = this.getContext();
     const plugins: unknown[] = [];
 
-    this.plugins.forEach((entry) => {
+    this.getSortedPlugins().forEach((entry) => {
       const { plugin, config } = entry;
       if (!config.enabled) return;
       if (!plugin.supportedModes.includes("milkdown")) return;
       if (!plugin.milkdownPlugin) return;
 
-      const result = plugin.milkdownPlugin(config, context);
-      if (result) plugins.push(result);
+      try {
+        const result = plugin.milkdownPlugin(config, context);
+        if (result) plugins.push(result);
+      } catch (error) {
+        console.error(
+          `[mdpro] Plugin "${plugin.name}" milkdownPlugin threw: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     });
 
     return plugins;
