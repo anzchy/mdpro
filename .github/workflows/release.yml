@@ -42,6 +42,8 @@ jobs:
 
       - name: Build mdpro_mcp sidecar (macOS ARM64)
         run: |
+          # Placeholder satisfies tauri-app build.rs resource check during compilation
+          touch src-tauri/binaries/mdpro_mcp-aarch64-apple-darwin
           cd src-tauri
           cargo build --release --bin mdpro_mcp
           cp target/release/mdpro_mcp binaries/mdpro_mcp-aarch64-apple-darwin
@@ -98,6 +100,8 @@ jobs:
       - name: Build mdpro_mcp sidecar (Windows x64)
         shell: bash
         run: |
+          # Placeholder satisfies tauri-app build.rs resource check during compilation
+          touch src-tauri/binaries/mdpro_mcp-x86_64-pc-windows-msvc.exe
           cd src-tauri
           cargo build --release --bin mdpro_mcp
           cp target/release/mdpro_mcp.exe binaries/mdpro_mcp-x86_64-pc-windows-msvc.exe
