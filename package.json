@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "build:mac": "bash scripts/build-mac.sh",
-    "build:mac:fast": "bash scripts/build-mac.sh --skip-tests --open"
+    "build:mac:fast": "bash scripts/build-mac.sh --skip-tests --open",
+    "build:windows": "bash scripts/build-windows.sh"
   },
   "dependencies": {
     "@codemirror/commands": "^6.3.0",
