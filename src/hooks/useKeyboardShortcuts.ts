@@ -24,6 +24,13 @@ interface ShortcutHandlers {
   onOpenPreferences?: (actionId?: string) => void;
 }
 
+// Detect macOS once at module load. On macOS the primary shortcut modifier is
+// Cmd (metaKey); on Windows/Linux it is Ctrl (ctrlKey). Using an exclusive
+// check prevents Ctrl+S from firing on macOS (where it is not a system shortcut)
+// and prevents Cmd+S from being required on Windows.
+const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+const modLabel = isMac ? "Cmd" : "Ctrl";
+
 export function useKeyboardShortcuts({
   onOpen,
   onSave,
@@ -38,26 +45,33 @@ export function useKeyboardShortcuts({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!event.metaKey) return;
+      // Require the platform-primary modifier exclusively. On macOS that is Cmd
+      // (metaKey); on Windows/Linux it is Ctrl (ctrlKey). We also exclude the
+      // non-primary modifier so Cmd+Ctrl+S on macOS is ignored, and Alt is
+      // excluded globally to preserve international input (Ctrl+Alt+* AltGr).
+      const primaryMod = isMac ? event.metaKey : event.ctrlKey;
+      const secondaryMod = isMac ? event.ctrlKey : event.metaKey;
+      if (!primaryMod || secondaryMod || event.altKey) return;
+
       const key = event.key.toLowerCase();
       const target = event.target as HTMLElement | null;
       const inCodeMirror = target?.closest?.(".cm-editor");
       if (inCodeMirror && editorView) {
-        if (key === "k") {
+        if (key === "k" && !event.shiftKey) {
           event.preventDefault();
-          loggingService.logShortcut("Cmd+K", { action: "format.hyperlink" });
+          loggingService.logShortcut(`${modLabel}+K`, { action: "format.hyperlink" });
           insertLinkCommand(editorView);
           return;
         }
         if (key === "0") {
           event.preventDefault();
-          loggingService.logShortcut("Cmd+0", { action: "paragraph.paragraph" });
+          loggingService.logShortcut(`${modLabel}+0`, { action: "paragraph.paragraph" });
           paragraphCommand(editorView);
           return;
         }
         if (key >= "1" && key <= "6") {
           event.preventDefault();
-          loggingService.logShortcut(`Cmd+${key}`, { action: `paragraph.heading${key}` });
+          loggingService.logShortcut(`${modLabel}+${key}`, { action: `paragraph.heading${key}` });
           const commandMap: Record<string, (view: EditorView) => boolean> = {
             "1": heading1Command,
             "2": heading2Command,
@@ -72,54 +86,54 @@ export function useKeyboardShortcuts({
         }
       }
 
-      // Cmd+N - New document
+      // Cmd/Ctrl+N - New document
       if (key === "n" && !event.shiftKey && onNew) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+N", { action: "file.new" });
+        const actionId = loggingService.logShortcut(`${modLabel}+N`, { action: "file.new" });
         onNew(actionId);
       }
-      // Cmd+Shift+H - Highlight (not in CodeMirror)
+      // Cmd/Ctrl+Shift+H - Highlight (not in CodeMirror)
       if (key === "h" && event.shiftKey && onHighlight && !inCodeMirror) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+Shift+H", { action: "format.highlight" });
+        const actionId = loggingService.logShortcut(`${modLabel}+Shift+H`, { action: "format.highlight" });
         onHighlight(actionId);
       }
-      // Cmd+Shift+L - Toggle Sidebar (Typora convention)
+      // Cmd/Ctrl+Shift+L - Toggle Sidebar (Typora convention)
       if (key === "l" && event.shiftKey && onToggleSidebar) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+Shift+L", { action: "view.toggle_sidebar" });
+        const actionId = loggingService.logShortcut(`${modLabel}+Shift+L`, { action: "view.toggle_sidebar" });
         onToggleSidebar(actionId);
       }
-      // Cmd+O - Open file
+      // Cmd/Ctrl+O - Open file
       if (key === "o" && !event.shiftKey && onOpen) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+O", { action: "file.open" });
+        const actionId = loggingService.logShortcut(`${modLabel}+O`, { action: "file.open" });
         onOpen(actionId);
       }
-      // Cmd+S - Save
+      // Cmd/Ctrl+S - Save
       if (key === "s" && !event.shiftKey && onSave) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+S", { action: "file.save" });
+        const actionId = loggingService.logShortcut(`${modLabel}+S`, { action: "file.save" });
         onSave(actionId);
       }
-      // Cmd+W - Close document
-      if (key === "w" && onClose) {
+      // Cmd/Ctrl+W - Close document
+      if (key === "w" && !event.shiftKey && onClose) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+W", { action: "file.close" });
+        const actionId = loggingService.logShortcut(`${modLabel}+W`, { action: "file.close" });
         onClose(actionId);
       }
-      // Cmd+/ - Cycle view mode (Typora: Source Code Mode toggle)
+      // Cmd/Ctrl+/ - Cycle view mode (Typora: Source Code Mode toggle)
       // Only intercept when CodeMirror does NOT have focus; if it does, let
       // CodeMirror's built-in toggleLineComment command handle the key.
       if (key === "/" && onCycleViewMode && !target?.closest?.(".cm-editor")) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+/", { action: "view.cycle" });
+        const actionId = loggingService.logShortcut(`${modLabel}+/`, { action: "view.cycle" });
         onCycleViewMode(actionId);
       }
-      // Cmd+, - Open Preferences
-      if (key === "," && onOpenPreferences) {
+      // Cmd/Ctrl+, - Open Preferences
+      if (key === "," && !event.shiftKey && onOpenPreferences) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut("Cmd+,", { action: "file.preferences" });
+        const actionId = loggingService.logShortcut(`${modLabel}+,`, { action: "file.preferences" });
         onOpenPreferences(actionId);
       }
     };
