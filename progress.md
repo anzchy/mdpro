@@ -55,3 +55,57 @@ Affected functions: `resolveImagePath`, `uploadImage`, `uploadImagesBatch`, `cop
 **Lesson:** When writing Tauri 2 IPC wrappers, always use **camelCase** keys in `invoke()` args, even though the Rust function uses snake_case parameters. Look at existing working commands in the same project as reference — don't copy from Rust signatures.
 
 **Prevention:** Added unit tests (`markdown-editor-core.test.ts`) that verify the exact invoke arg keys for all image service functions.
+
+---
+
+## 2026-03-22 — Cross-Platform Line Ending (CRLF vs LF)
+
+### Symptom
+
+After pulling commits from the Mac device onto the WSL device, `git status` showed 46 modified files. `git diff --stat HEAD` showed identical insertion/deletion counts (19,837 each) — a strong signal that content is unchanged but every line differs.
+
+### Root Cause
+
+The Mac commits used **LF** line endings. The WSL device had files with **CRLF** line endings (Windows default). Git saw every line as "modified" because `\n` ≠ `\r\n`.
+
+`git pull` updates the index but **never overwrites unstaged local changes** — so the CRLF local files persisted after the pull, appearing as modifications against the LF-committed versions.
+
+### Diagnosis Commands
+
+```bash
+git diff --stat HEAD          # Same insertions = deletions → line ending issue
+file src/App.tsx              # "CRLF line terminators" confirms it
+xxd src/App.tsx | grep "0d 0a"  # Hex: 0d = CR, 0a = LF
+```
+
+### Fix (one-time recovery)
+
+```bash
+git checkout -- .   # Restore all tracked files to committed LF versions
+```
+
+### Permanent Fix
+
+Added `.gitattributes` to enforce LF on all text files for all platforms:
+
+```gitattributes
+* text=auto eol=lf
+*.png binary
+*.dmg binary
+# ... other binaries
+```
+
+Re-normalize all existing files:
+
+```bash
+git add --renormalize .
+git commit -m "chore: add .gitattributes to enforce LF line endings"
+```
+
+### Lesson
+
+**When developing across Mac + WSL/Windows:**
+1. Always add `.gitattributes` with `* text=auto eol=lf` at project start.
+2. Never rely on per-developer `core.autocrlf` settings — they're invisible and easy to forget.
+3. When you see mass "modified" files after a pull with equal insertions/deletions, suspect line endings first.
+4. `git checkout -- .` is safe when you know the committed version is correct.
