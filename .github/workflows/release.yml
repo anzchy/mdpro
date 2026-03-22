@@ -40,6 +40,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build mdpro_mcp sidecar (macOS ARM64)
+        run: |
+          cd src-tauri
+          cargo build --release --bin mdpro_mcp
+          cp target/release/mdpro_mcp binaries/mdpro_mcp-aarch64-apple-darwin
+
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
@@ -88,6 +94,13 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Build mdpro_mcp sidecar (Windows x64)
+        shell: bash
+        run: |
+          cd src-tauri
+          cargo build --release --bin mdpro_mcp
+          cp target/release/mdpro_mcp.exe binaries/mdpro_mcp-x86_64-pc-windows-msvc.exe
 
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
