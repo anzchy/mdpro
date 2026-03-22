@@ -80,7 +80,7 @@ function App() {
   const setLoggingSettings = useLoggingStore((state) => state.setSettings);
   const { viewMode, setViewMode, cycleViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
   const { resolvedTheme, setThemeMode } = useTheme();
-  const [highlightRequest, setHighlightRequest] = useState(0);
+  const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   const [autoSaveInterval, setAutoSaveInterval] = useState(30);
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
@@ -451,6 +451,8 @@ function App() {
 
   useEffect(() => {
     if (!fileChangeEvent || !activeDocument) return;
+    // Guard: only apply the event to the document that triggered it
+    if (fileChangeEvent.path !== activeDocument.path) return;
     if (fileChangeEvent.changeType === "renamed" && fileChangeEvent.newPath) {
       updateDocumentPath(activeDocument.id, fileChangeEvent.newPath);
       clearEvent();
@@ -957,7 +959,7 @@ function App() {
 
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
-    onHighlight: () => setHighlightRequest((prev) => prev + 1),
+    onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
     onOpen: (actionId) => void handleOpenDialog(actionId),
     onSave: (actionId) => void handleSave(actionId),
     onClose: handleCloseRequest,
@@ -975,7 +977,7 @@ function App() {
     onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpenRecent: handleOpenRecent,
     onToggleSidebar: handleToggleSidebar,
-    onHighlight: () => setHighlightRequest((prev) => prev + 1),
+    onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
     onViewModeChange: setViewMode,
     onCycleViewMode: cycleViewMode,
     onThemeModeChange: (mode) => void setThemeMode(mode),

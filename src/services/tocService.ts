@@ -47,13 +47,20 @@ export async function getDocumentHeadings(
  */
 export function parseHeadingsFromContent(content: string): HeadingInfo[] {
   const headings: HeadingInfo[] = [];
-  const lines = stripFrontmatter(content).split("\n");
+  const stripped = stripFrontmatter(content);
+  const lines = stripped.split("\n");
   const idCounts: Map<string, number> = new Map();
 
-  let offset = 0;
+  // Compute character offset of stripped content within the original document
+  // so that line/offset values are relative to the full file, not the stripped copy.
+  const frontmatterLength = content.length - stripped.length;
+  const frontmatterLines = content.length === stripped.length
+    ? 0
+    : content.slice(0, frontmatterLength).split("\n").length - 1;
+  let offset = frontmatterLength;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const lineNumber = i + 1;
+    const lineNumber = i + 1 + frontmatterLines;
 
     // Match ATX headings: # to ######
     const match = line.match(/^(#{1,6})\s+(.+?)(?:\s+#*)?$/);

@@ -14,6 +14,7 @@ import { Plugin } from "@milkdown/kit/prose/state";
 import { $prose } from "@milkdown/kit/utils";
 import DOMPurify from "dompurify";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
+import { typoraKeymapMilkdownPlugin } from "../../plugins/milkdown/typoraKeymapPlugin";
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../../stores/documentStore";
@@ -201,6 +202,7 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
         .use(gfm)
         .use(history)
         .use(listener)
+        .use(typoraKeymapMilkdownPlugin)
         .use(pasteHtmlSanitizerMilkdownPlugin)
         .use(imagePasteMilkdownPlugin);
     },
@@ -229,13 +231,16 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     if (!instance || instance === registeredInstanceRef.current) return;
     registeredInstanceRef.current = instance;
 
+    // Capture the owning document id at listener registration time so that
+    // markdownUpdated always writes back to the correct document even if the
+    // user switches tabs before the callback fires.
+    const owningDocumentId = activeDocumentId;
     instance.action((ctx) => {
       const manager = ctx.get(listenerCtx);
       manager.markdownUpdated((_ctx, markdown) => {
-        const { activeDocumentId: currentId, updateDocumentContent: update } =
-          useDocumentStore.getState();
-        if (currentId) {
-          update(currentId, markdown);
+        const { updateDocumentContent: update } = useDocumentStore.getState();
+        if (owningDocumentId) {
+          update(owningDocumentId, markdown);
         }
       });
     });

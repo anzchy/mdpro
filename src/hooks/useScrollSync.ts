@@ -39,5 +39,5 @@ export function useScrollSync(
       editorScroller.removeEventListener("scroll", handleEditorScroll);
       previewHost.removeEventListener("scroll", handlePreviewScroll);
     };
-  }, [editorRef, previewRef]);
+  }, [editorRef, previewRef, enabled]);
 }

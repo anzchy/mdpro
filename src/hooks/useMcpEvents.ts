@@ -87,8 +87,10 @@ export function useMcpEvents() {
       // Update document content
       updateDocumentContent(event.document_id, event.content);
 
-      // If we have an editor view and this is the active document, update it
-      if (editorView) {
+      // Only push the change into the live editor when the target document is
+      // currently active — otherwise we would overwrite the wrong visible buffer.
+      const activeDocId = useDocumentStore.getState().activeDocumentId;
+      if (editorView && event.document_id === activeDocId) {
         const transaction = editorView.state.update({
           changes: {
             from: 0,
@@ -116,10 +118,15 @@ export function useMcpEvents() {
         return;
       }
 
+      // Only use the live editor cursor when this document is the active one;
+      // otherwise fall back to end-of-document to avoid cross-document corruption.
+      const activeDocIdForInsert = useDocumentStore.getState().activeDocumentId;
+      const isActiveDoc = event.document_id === activeDocIdForInsert;
+
       // Calculate insert offset
       let offset: number;
       if (event.position === "cursor") {
-        offset = editorView?.state.selection.main.head ?? 0;
+        offset = isActiveDoc ? (editorView?.state.selection.main.head ?? 0) : doc.content.length;
       } else if (event.position === "start") {
         offset = 0;
       } else if (event.position === "end") {
@@ -133,8 +140,8 @@ export function useMcpEvents() {
         doc.content.slice(0, offset) + event.text + doc.content.slice(offset);
       updateDocumentContent(event.document_id, newContent);
 
-      // If we have an editor view and this is the active document, update it
-      if (editorView) {
+      // Only push into the live editor when this is the active document.
+      if (editorView && isActiveDoc) {
         const transaction = editorView.state.update({
           changes: {
             from: offset,
