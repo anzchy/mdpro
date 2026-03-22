@@ -52,7 +52,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUST_LOG: tauri_bundler=trace
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "mdpro ${{ github.ref_name }}"
@@ -111,10 +110,10 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUST_LOG: tauri_bundler=trace
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "mdpro ${{ github.ref_name }}"
           releaseBody: "Automated build"
           releaseDraft: false
           prerelease: false
+          args: --bundles nsis
