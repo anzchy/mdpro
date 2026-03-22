@@ -23,6 +23,7 @@ use axum::{
 use rand::Rng;
 use std::fs;
 use std::io::Write;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
@@ -70,14 +71,17 @@ pub fn write_server_config(port: u16, token: &str) -> Result<(), String> {
     file.write_all(token.as_bytes())
         .map_err(|e| format!("Failed to write token file: {}", e))?;
 
-    // Set file permissions to 600 (owner read/write only)
-    let mut perms = file
-        .metadata()
-        .map_err(|e| format!("Failed to get file metadata: {}", e))?
-        .permissions();
-    perms.set_mode(0o600);
-    file.set_permissions(perms)
-        .map_err(|e| format!("Failed to set token file permissions: {}", e))?;
+    // Set file permissions to 600 (owner read/write only) — Unix only
+    #[cfg(unix)]
+    {
+        let mut perms = file
+            .metadata()
+            .map_err(|e| format!("Failed to get file metadata: {}", e))?
+            .permissions();
+        perms.set_mode(0o600);
+        file.set_permissions(perms)
+            .map_err(|e| format!("Failed to set token file permissions: {}", e))?;
+    }
 
     Ok(())
 }
