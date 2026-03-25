@@ -16,7 +16,7 @@ import DOMPurify from "dompurify";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
 import { typoraKeymapMilkdownPlugin } from "../../plugins/milkdown/typoraKeymapPlugin";
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useDocumentStore } from "../../stores/documentStore";
 import { loggingService } from "../../services/loggingService";
 
@@ -71,65 +71,14 @@ const pasteHtmlSanitizerPlugin = new Plugin({
 
 const pasteHtmlSanitizerMilkdownPlugin = $prose(() => pasteHtmlSanitizerPlugin);
 
-// Image path resolution helpers
-function isRemoteUrl(src: string): boolean {
-  return src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:");
-}
-
-function isAssetUrl(src: string): boolean {
-  return src.startsWith("asset://") || src.startsWith("tauri://");
-}
-
-function resolveImagePath(src: string, documentPath: string | null): string {
-  if (isRemoteUrl(src) || isAssetUrl(src)) return src;
-
-  if (src.startsWith("/")) {
-    try {
-      return convertFileSrc(src);
-    } catch {
-      return src;
-    }
-  }
-
-  if (documentPath) {
-    const docDir = documentPath.substring(0, documentPath.lastIndexOf("/"));
-    let resolvedPath: string;
-
-    if (src.startsWith("./")) {
-      resolvedPath = `${docDir}/${src.substring(2)}`;
-    } else if (src.startsWith("../")) {
-      const parts = docDir.split("/");
-      let srcParts = src.split("/");
-      while (srcParts[0] === "..") {
-        parts.pop();
-        srcParts = srcParts.slice(1);
-      }
-      resolvedPath = `${parts.join("/")}/${srcParts.join("/")}`;
-    } else {
-      resolvedPath = `${docDir}/${src}`;
-    }
-
-    try {
-      return convertFileSrc(resolvedPath);
-    } catch {
-      return src;
-    }
-  }
-
-  return src;
-}
 
 interface MilkdownEditorInnerProps {
   highlightRequest?: number;
 }
 
 function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
-  const { documents, activeDocumentId } = useDocumentStore(
-    (state) => ({
-      documents: state.documents,
-      activeDocumentId: state.activeDocumentId,
-    }),
-  );
+  const documents = useDocumentStore((state) => state.documents);
+  const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -254,47 +203,8 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     });
   }, [editor, activeDocumentId]);
 
-  // Process images after Milkdown renders to resolve local paths
-  useEffect(() => {
-    if (editor.loading) return;
-
-    const documentPath = activeDocument?.path ?? null;
-
-    // Small delay to ensure Milkdown has rendered the content
-    const timer = setTimeout(() => {
-      const container = document.getElementById("milkdown-container");
-      if (!container) return;
-
-      const images = container.querySelectorAll("img");
-      images.forEach((img) => {
-        const originalSrc = img.getAttribute("src");
-        if (!originalSrc) return;
-
-        // Skip if already processed (has asset:// or http(s)://)
-        if (isAssetUrl(originalSrc) || (isRemoteUrl(originalSrc) && !originalSrc.startsWith("data:"))) {
-          return;
-        }
-
-        const resolvedSrc = resolveImagePath(originalSrc, documentPath);
-        if (resolvedSrc !== originalSrc) {
-          img.setAttribute("src", resolvedSrc);
-          loggingService.logEventSync({
-            level: "info",
-            event: "editor.milkdown.image.resolve",
-            status: "success",
-            actionId: loggingService.generateActionId(),
-            context: {
-              originalSrc,
-              resolvedSrc,
-              documentPath,
-            },
-          });
-        }
-      });
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [editor.loading, activeDocument?.path, activeDocumentId]);
+  // Resolve local image paths to Tauri asset:// URLs after Milkdown renders
+  useMilkdownImages(editor, activeDocument?.path ?? null, activeDocumentId);
 
   // Block javascript: and data: link clicks in the WYSIWYG editor (#10).
   // Mirrors the link-click guard in Preview.tsx.
