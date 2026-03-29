@@ -1,0 +1,40 @@
+{
+  "framework": "markdown",
+  "docsRoot": "docs",
+  "language": "typescript",
+  "strictness": "warn",
+  "stalenessThresholdDays": 30,
+  "mappings": [
+    {
+      "source": "src-tauri/src/commands/**",
+      "docs": "docs/guide/architecture.md"
+    },
+    {
+      "source": "src-tauri/src/services/http_server.rs",
+      "docs": "docs/reference/cli-vs-mcp-roadmap.md"
+    },
+    {
+      "source": "src-tauri/src/bin/mdpro_mcp.rs",
+      "docs": "docs/reference/vmark-mcp-comparison.md"
+    },
+    {
+      "source": "src/components/Editor/**",
+      "docs": "docs/guide/milkdown-integration.md"
+    },
+    {
+      "source": "src/stores/**",
+      "docs": "docs/guide/state-management.md"
+    },
+    {
+      "source": "src/plugins/**",
+      "docs": "docs/guide/architecture.md"
+    }
+  ],
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/target/**",
+    "**/*.test.*",
+    "**/__tests__/**"
+  ]
+}

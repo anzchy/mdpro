@@ -1,0 +1,7 @@
+{
+  "last_gate_passed_at": "2026-03-29T10:00:00.000Z",
+  "last_result": "passed",
+  "last_head_sha": "d4f9b20975dd666bddda14c6ab14ebb500df0420",
+  "require_mutation": false,
+  "coverage_summary_path": "coverage/coverage-summary.json"
+}

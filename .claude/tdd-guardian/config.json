@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "testCommand": "pnpm test:run",
+  "coverageCommand": "pnpm test:run --coverage",
+  "coverageSummaryPath": "coverage/coverage-summary.json",
+  "thresholds": {
+    "lines": 40,
+    "functions": 45,
+    "branches": 35,
+    "statements": 40
+  },
+  "enforceRedGreenRefactor": true,
+  "blockCommitOnFailure": false,
+  "stack": "react-ts-vitest",
+  "packageManager": "pnpm"
+}
