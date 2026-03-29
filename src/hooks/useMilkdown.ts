@@ -13,6 +13,7 @@ import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { pluginRegistry } from "../plugins";
 import { loggingService } from "../services/loggingService";
+import { highlightMarkPlugin } from "../plugins/milkdown/highlightMarkPlugin";
 
 interface UseMilkdownOptions {
   markdown: string;
@@ -79,6 +80,7 @@ export function useMilkdown({
               ctx.set(defaultValueCtx, initialMarkdown);
             })
             .use(gfm)
+            .use(highlightMarkPlugin)
             .use(history)
             .use(listener),
         );

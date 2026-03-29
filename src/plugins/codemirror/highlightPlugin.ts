@@ -3,8 +3,12 @@ import type { EditorView } from "@codemirror/view";
 import { keymap } from "@codemirror/view";
 import { createPlugin, type PluginConfig } from "../core/pluginTypes";
 
-const DEFAULT_OPEN_TAG = "<mark style=\"background: #FF5582A6;\">";
-const DEFAULT_CLOSE_TAG = "</mark>";
+// Use portable ==text== markdown syntax so the inserted text is rendered
+// correctly by all three pipelines (Rust preview, marked fallback, Milkdown
+// WYSIWYG). Raw <mark> HTML was the previous default but it was non-portable
+// and bypassed the rendering pipeline. See issue #40.
+const DEFAULT_OPEN_TAG = "==";
+const DEFAULT_CLOSE_TAG = "==";
 
 export type HighlightOptions = {
   openTag: string;

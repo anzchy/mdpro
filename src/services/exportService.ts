@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import DOMPurify from "dompurify";
 import { Marked } from "marked";
+import { renderHighlightSyntaxInHtml } from "./highlightSyntax";
+import { loggingService } from "./loggingService";
 
 interface RenderMarkdownResult {
   html: string;
@@ -81,10 +83,16 @@ export const exportService = {
     const stripped = stripFrontmatter(markdown);
     try {
       const result = await invoke<RenderMarkdownResult>("render_markdown", { content: stripped });
-      return sanitize(result.html);
-    } catch {
+      return renderHighlightSyntaxInHtml(sanitize(result.html));
+    } catch (err) {
+      loggingService.logEventSync({
+        level: "warn",
+        event: "export.render_markdown.fallback",
+        status: "fail",
+        context: { error: err instanceof Error ? err.message : String(err) },
+      });
       const html = parseMarkdownWithHeadingIds(stripped);
-      return sanitize(html);
+      return renderHighlightSyntaxInHtml(sanitize(html));
     }
   },
 
