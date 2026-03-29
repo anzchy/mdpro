@@ -510,6 +510,12 @@ a {
   text-decoration-thickness: 2px;
 }
 
+.milkdown-editor .ProseMirror mark {
+  background: rgba(255, 85, 130, 0.65);
+  padding: 0 2px;
+  border-radius: 4px;
+}
+
 .toolbar-buttons {
   display: flex;
   gap: 8px;

@@ -172,6 +172,37 @@ describe("renderHighlightSyntaxInHtml — DOM post-processor (#40)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 5b. MilkdownEditor.tsx — must include highlightMarkPlugin (fix for #40)
+//     Without this, ==text== is not parsed in WYSIWYG mode.
+// ---------------------------------------------------------------------------
+
+describe("MilkdownEditor.tsx — highlightMarkPlugin wiring (#40)", () => {
+  const milkdownEditorSrc = readSrc("components/Editor/MilkdownEditor.tsx");
+
+  it("imports highlightMarkPlugin", () => {
+    expect(milkdownEditorSrc).toMatch(/highlightMarkPlugin/);
+  });
+
+  it("uses highlightMarkPlugin in the editor chain (.use(highlightMarkPlugin))", () => {
+    expect(milkdownEditorSrc).toMatch(/\.use\s*\(\s*highlightMarkPlugin\s*\)/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5c. globals.css — must style <mark> inside .milkdown-editor (fix for #40)
+// ---------------------------------------------------------------------------
+
+describe("globals.css — <mark> styled in WYSIWYG editor (#40)", () => {
+  it("has a mark rule scoped to .milkdown-editor .ProseMirror", () => {
+    const cssSrc = fs.readFileSync(
+      path.resolve(__dirname, "../src/styles/globals.css"),
+      "utf-8",
+    );
+    expect(cssSrc).toMatch(/\.milkdown-editor\s+\.ProseMirror\s+mark/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 6. remarkHighlightReplacer — mdast highlight node builder (unit)
 //    Exported from highlightMarkPlugin.ts specifically for isolation testing.
 // ---------------------------------------------------------------------------
