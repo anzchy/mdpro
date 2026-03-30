@@ -16,6 +16,7 @@ import DOMPurify from "dompurify";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
 import { typoraKeymapMilkdownPlugin } from "../../plugins/milkdown/typoraKeymapPlugin";
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
+import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useDocumentStore } from "../../stores/documentStore";
 import { loggingService } from "../../services/loggingService";
@@ -153,7 +154,8 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
         .use(listener)
         .use(typoraKeymapMilkdownPlugin)
         .use(pasteHtmlSanitizerMilkdownPlugin)
-        .use(imagePasteMilkdownPlugin);
+        .use(imagePasteMilkdownPlugin)
+        .use(highlightMarkPlugin);
     },
     [activeDocumentId],
   );
