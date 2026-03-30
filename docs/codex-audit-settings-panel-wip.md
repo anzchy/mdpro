@@ -10,34 +10,12 @@
 | WI-2 | `preferences.rs`, `mod.rs`, `preferences.ts`, `preferencesService.ts` | ✅ Done + Fixed | `019d3f0b-1071-7c72-8fbe-3cbc84fdff0f` |
 | WI-3 | `dynamicExtensions.ts`, `Editor.tsx`, `editorPrefApply.ts` | ✅ Done + Fixed | `019d3f11-9948-76a2-a6c7-6bf1a7c23b9a` |
 | WI-4+5 | `GeneralSettings.tsx`, `EditorSettings.tsx`, `SettingsStepper.tsx` | ✅ Done + Fixed | `019d3f18-983d-78a1-8047-8975cc51aebd` |
-| WI-6 | `MarkdownSettings.tsx`, `ImageSettings.tsx` | ⏳ **TODO** | — |
-| WI-7 | `ExportSettings.tsx`, `commands/preferences.rs`, `services/preferences.rs` | ⏳ **TODO** | — |
-| WI-8 | `AppearanceSettings.tsx`, `AdvancedSettings.tsx` | ⏳ **TODO** | — |
-| WI-9 | `KeyboardShortcutsSettings.tsx` | ⏳ **TODO** | — |
+| WI-6 | `MarkdownSettings.tsx`, `ImageSettings.tsx` | ✅ Done | `019d3f3f-0cef-7820-b532-2b2b55eb26aa` |
+| WI-7 | `ExportSettings.tsx`, `commands/preferences.rs`, `services/preferences.rs` | ✅ Done | `019d3f40-dff2-7712-a70c-638e370c97a5` |
+| WI-8 | `AppearanceSettings.tsx`, `AdvancedSettings.tsx` | ✅ Done | `019d3f42-c492-7251-9ce6-880a098a99cd` |
+| WI-9 | `KeyboardShortcutsSettings.tsx` | ✅ Done | `019d3f44-a14c-7bf3-bffe-0305d6ed02c4` |
 
-**To resume pending WIs:** run the full-audit prompt below on each file group.
-
-### Resume commands for pending WIs
-
-**WI-6:**
-```
-/codex-toolkit:audit --full src/components/common/settings/MarkdownSettings.tsx src/components/common/settings/ImageSettings.tsx
-```
-
-**WI-7:**
-```
-/codex-toolkit:audit --full src/components/common/settings/ExportSettings.tsx src-tauri/src/commands/preferences.rs src-tauri/src/services/preferences.rs
-```
-
-**WI-8:**
-```
-/codex-toolkit:audit --full src/components/common/settings/AppearanceSettings.tsx src/components/common/settings/AdvancedSettings.tsx
-```
-
-**WI-9:**
-```
-/codex-toolkit:audit --full src/components/common/settings/KeyboardShortcutsSettings.tsx
-```
+**All WIs complete.**
 
 ---
 
@@ -138,16 +116,96 @@
 
 ---
 
-## Pending WIs (not yet audited)
+---
 
-### WI-6: `MarkdownSettings.tsx`, `ImageSettings.tsx`
-### WI-7: `ExportSettings.tsx`, `src-tauri/src/commands/preferences.rs`, `src-tauri/src/services/preferences.rs`
-### WI-8: `AppearanceSettings.tsx`, `AdvancedSettings.tsx`
-### WI-9: `KeyboardShortcutsSettings.tsx`
+## WI-6 — `MarkdownSettings.tsx`, `ImageSettings.tsx`
+
+| File:Line | Severity | Dim | Issue | Fix |
+|-----------|----------|-----|-------|-----|
+| ImageSettings.tsx:66 | **High** | 2 | `assetFolder` persisted from raw user input without validation; path traversal risk (`..`, absolute paths) | Normalize and validate path (reject `..`, absolute, control chars), re-validate server-side before any filesystem access |
+| MarkdownSettings.tsx:27 | Medium | 3 | Fire-and-forget `setPreferences` with no ordering/rollback; rapid toggles can persist stale state | Serialize writes (queue/latest-wins token), await, rollback UI on failure |
+| ImageSettings.tsx:39 | Medium | 3 | Fire-and-forget persistence on every change can race, leaving prefs inconsistent with UI | Debounce + serialize writes, handle rejections |
+| MarkdownSettings.tsx:12 | Medium | 3 | `getPreferences()` rejection unhandled; silently stuck in loading state | Add `try/catch`/`.catch` with error state fallback |
+| ImageSettings.tsx:20 | Medium | 3 | `getPreferences()` rejection unhandled; no recovery path | Add guarded async loader with error state and retry |
+| MarkdownSettings.tsx:49 | Medium | 4 | Checkbox lacks `<label>`/`id`/`aria-label` | Add explicit label binding (`id` + `<label htmlFor>`) |
+| ImageSettings.tsx:62 | Medium | 4 | Text input lacks programmatic label association | Add `id` + `<label htmlFor>` or `aria-labelledby` |
+| ImageSettings.tsx:79 | Medium | 4 | Second checkbox lacks proper label binding | Bind visible label to control via `id`/`htmlFor` |
+| ImageSettings.tsx:66 | Medium | 6 | Persisting on every keystroke causes excessive IPC + I/O | Debounce persistence (250–500ms), save on blur/Enter |
+| MarkdownSettings.tsx:12 | Medium | 8 | Preferences payload trusted structurally without runtime validation | Add Zod/runtime schema parsing, strict defaults, reject invalid shape |
+| ImageSettings.tsx:20 | Medium | 8 | Same trust boundary issue for `p.image` fields | Add runtime schema parsing and constrained validators |
+| ImageSettings.tsx:31 | Medium | 7 | No tests for error paths/race behavior (failed load, write ordering) | Add unit tests for rejected promises, rapid updates, persistence correctness |
+| MarkdownSettings.tsx:25 | Low | 3 | Unsafe `value as boolean` cast hides future type bugs | Use generic keyed handler `<K extends keyof MarkdownConfig>` |
+| ImageSettings.tsx:31 | Low | 3 | `value: string \| boolean` not key-coupled; wrong key/value pairs type-allowed | Use generic keyed signature |
+| MarkdownSettings.tsx:11 | Low | 3 | No unmount guard in async effect; late resolution can update unmounted component | Add `let cancelled = false` / `AbortController` guard |
+| ImageSettings.tsx:19 | Low | 3 | Same missing unmount guard | Add cancellation flag and cleanup in `useEffect` |
+| MarkdownSettings.tsx:7 | Low | 1 | Load/save pattern duplicated across all sibling settings components | Extract shared `usePreferenceSlice` hook |
+| ImageSettings.tsx:15 | Low | 1 | Repeated loading UI and preference-cache plumbing | Consolidate into reusable settings primitives |
+| MarkdownSettings.tsx:25 | Low | 9 | Side-effectful `applyAutoPair` undocumented; future maintainers may miss why toggle triggers editor mutation | Add brief comment explaining side effect timing and failure behavior |
 
 ---
 
-## Top Priority Actions (from completed WIs)
+## WI-7 — `ExportSettings.tsx`, `commands/preferences.rs`, `services/preferences.rs`
+
+| File:Line | Severity | Dim | Issue | Fix |
+|-----------|----------|-----|-------|-----|
+| commands/preferences.rs:18 | **High** | 3 | `set_preferences` read-modify-write without locking; concurrent writes (incl. `save_window_state`) can lose updates | Add process-level mutex or file lock + optimistic versioning (compare-and-swap on revision) |
+| services/preferences.rs:82 | **High** | 3 | Preferences written non-atomically via `fs::write`; crash/power loss can corrupt `config.json` | Write to temp file in same dir, `sync_all`, then atomic `rename` |
+| services/preferences.rs:82 | Medium | 8 | Preferences file permissions not hardened; may be readable by other local users | Use `OpenOptions` with `0o600` perms and platform-appropriate ACL defaults |
+| services/preferences.rs:39 | Medium | 4 | Uses `HOME` env var + hardcoded `.mdpro` path instead of Tauri path APIs | Use `AppHandle.path().app_config_dir()` for portability and sandbox compatibility |
+| commands/preferences.rs:11 | Medium | 3 | `get_preferences` silently falls back to defaults on load/parse errors, masking corruption | Return structured error to UI; offer recovery/backup path |
+| ExportSettings.tsx:12 | Medium | 3 | Initial load has no rejection handling; failed fetch leaves UI stuck in loading state | Add `catch` + error UI state and retry action |
+| ExportSettings.tsx:26 | Medium | 3 | Save is fire-and-forget; failed persistence looks successful to user | Await save, surface error, rollback/reconcile local state on failure |
+| ExportSettings.tsx:59 | Medium | 6 | Persists on every keystroke in folder input; excessive IPC + disk writes | Debounce writes or save on blur/Enter |
+| ExportSettings.tsx:25 | Medium | 5 | Caches full prefs and writes whole object back; couples this UI to unrelated settings | Send minimal partial update `{ export: next }` instead of full snapshot |
+| ExportSettings.tsx:59 | Medium | 2 | Free-text folder path accepted without validation; unsafe if used for direct writes | Validate absolute dir path server-side; prefer picker-only input |
+| services/preferences.rs:89 | Medium | 5 | Manual field-by-field merge is brittle; new fields can be silently dropped | Use derive-based merge strategy, schema versioning, or completeness tests |
+| services/preferences.rs:127 | Medium | 7 | Tests cover merge behavior but not load/save errors, file corruption, atomicity, or concurrent writes | Add tests for malformed JSON, IO failures, concurrent update scenarios |
+| commands/preferences.rs:47 | Low | 1 | Redundant `last_view_mode: current.last_view_mode` before `..current` adds no behavior | Remove explicit assignment |
+| ExportSettings.tsx:52 | Low | 9 | UI copy implies exports are saved to default folder, but export flow still shows save dialog | Update copy to current behavior or implement default-folder-aware export |
+
+---
+
+## WI-8 — `AppearanceSettings.tsx`, `AdvancedSettings.tsx`
+
+| File:Line | Severity | Dim | Issue | Fix |
+|-----------|----------|-----|-------|-----|
+| AdvancedSettings.tsx:21 | **High** | 3 | Store state updated before persistence; failed writes not rolled back — UI/state drift | Persist first (pessimistically), wrap in `try/catch`, rollback on failure |
+| AdvancedSettings.tsx:22 | **High** | 3 | `setLoggingSettings` uses captured `loggingLevel`/`loggingEnabled`; rapid toggle+level changes can overwrite newer values | Build atomic `nextSettings` from latest store snapshot, serialize writes |
+| AppearanceSettings.tsx:12 | Medium | 3 | `getPreferences()` failure ignored; component can stay in perpetual loading with no user feedback | Add `try/catch`, error UI state, and retry path |
+| AppearanceSettings.tsx:27 | Medium | 3 | `setPreferences()` fire-and-forget; silent persistence failure | Await write, handle errors, revert or show save-failed indicator |
+| AppearanceSettings.tsx:53 | Medium | 2 | Unvalidated cast from DOM value to `CodeTheme`; invalid values possible via manipulated DOM/events | Validate against allowed enum values before applying/saving |
+| AdvancedSettings.tsx:66 | Medium | 2 | Unvalidated cast from DOM value to `LogLevel`; invalid log levels can be persisted | Guard with `isLogLevel` runtime validator, reject unknown values |
+| AdvancedSettings.tsx:47 | Medium | 4 | Form controls not associated with `<label htmlFor>`; screen reader accessibility broken | Add explicit `<label>` elements linking by `htmlFor`/`id` |
+| AdvancedSettings.tsx:16 | Medium | 7 | No tests for async failure/race behavior (failed persistence, rapid toggles) | Add Vitest cases for failed saves, rapid toggles, and stale state prevention |
+| AdvancedSettings.tsx:22 | Low | 6 | Every UI change triggers immediate persistence call; repeated toggles cause redundant I/O | Debounce/coalesce writes |
+| AppearanceSettings.tsx:18 | Low | 1 | `handleChange` over-generic for single field; relies on runtime cast | Replace with explicit `handleCodeThemeChange(nextTheme: CodeTheme)` |
+| AdvancedSettings.tsx:16 | Low | 5 | Toggle and level handlers duplicate logging/persistence flow | Extract shared `updateLoggingSettings(partial)` helper |
+| AppearanceSettings.tsx:38 | Low | 4 | Inline `style={{ opacity: 0.5 }}` on loading state conflicts with project convention | Move to CSS class in colocated stylesheet |
+| AdvancedSettings.tsx:44 | Low | 8 | Hardcoded Unix-style log path `~/.mdpro/mdpro.log` in UI text; misleads on non-Unix | Resolve platform-specific path from backend/env abstraction |
+| AppearanceSettings.tsx:8 | Low | 9 | `cachedFullPrefs` merge strategy undocumented; easy for refactors to break full-preference preservation | Add comment or refactor service API to support scoped `appearance` updates directly |
+
+---
+
+## WI-9 — `KeyboardShortcutsSettings.tsx`
+
+| File:Line | Severity | Dim | Issue | Fix |
+|-----------|----------|-----|-------|-----|
+| KeyboardShortcutsSettings.tsx:160 | **High** | 3 | Saves shortcuts but does not apply them to active keybindings; saved values never change real runtime behavior | Wire `preferences.keyboardShortcuts` into the actual shortcut dispatcher/keymap; trigger rebind after save |
+| KeyboardShortcutsSettings.tsx:101 | Medium | 3 | `getPreferences()` has no error handling; rejected promise leaves UI in perpetual "Loading shortcuts…" | Add `catch` with fallback to defaults + error banner |
+| KeyboardShortcutsSettings.tsx:164 | Medium | 2 | Persists shortcut strings without validation; invalid tokens can break parsing/dispatch | Validate against strict shortcut grammar before saving; reject invalid combos |
+| KeyboardShortcutsSettings.tsx:130 | Medium | 3 | Only modifier-only keys blocked; non-actionable keys (`Dead`, `Unidentified`, `CapsLock`, etc.) can be recorded | Add allowlist of supported key names; reject unsupported |
+| KeyboardShortcutsSettings.tsx:135 | Medium | 3 | No conflict detection; duplicate bindings across actions allowed, causing ambiguous behavior | Build reverse index (`shortcut → actions`) and block save (or require resolution) on conflicts |
+| KeyboardShortcutsSettings.tsx:142 | Medium | 6 | Global `window` keydown capture with `preventDefault`/`stopPropagation` blocks unrelated interactions while editing | Capture keys in dedicated focused control; support `Escape` to cancel edit mode |
+| KeyboardShortcutsSettings.tsx:168 | Medium | 9 | Save failures silently logged only; no user-visible error or recovery path | Show inline error/toast with retry; keep edit context; include failure reason |
+| KeyboardShortcutsSettings.tsx:109 | Medium | 7 | No interaction tests for key-capture, cancel, conflict handling, failed save, or successful persistence | Add RTL/Vitest behavior tests covering all these paths |
+| KeyboardShortcutsSettings.tsx:19 | Low | 1 | Large hardcoded shortcut metadata duplicates schema/defaults knowledge; can drift from `KeyboardShortcuts` type | Move to one typed metadata source shared by defaults, renderer, and runtime binding |
+| KeyboardShortcutsSettings.tsx:19 | Low | 5 | Manual category/key listing is maintenance-heavy and easy to desync from type changes | Generate UI rows from typed config with compile-time completeness checks |
+| KeyboardShortcutsSettings.tsx:184 | Low | 4 | Inline style objects in mostly class-based styling system; inconsistent conventions | Replace inline styles with CSS classes in colocated stylesheet |
+| KeyboardShortcutsSettings.tsx:187 | Low | 9 | UI copy lacks operational guidance (allowed keys, conflict policy, platform differences) | Add helper text/docs link; keep text synced with validation rules |
+
+---
+
+## Top Priority Actions (all WIs)
 
 ### Critical/Blockers
 1. **[High]** `autoPair` not actually disableable — `basicSetup` overrides compartment — `Editor.tsx:110`
@@ -158,12 +216,24 @@
 6. **[High]** `--color-text-secondary` / `--color-bg-secondary` undefined — `globals.css:1214`, `1297`
 7. **[High]** `asset_folder`/`default_folder` path strings unvalidated — `preferences.rs:348`
 8. **[High]** TS schema missing `autoSave`/`tabBar`, `image`/`export` type drift — `preferences.ts:4`
+9. **[High]** `assetFolder` persisted from raw user input without path validation — `ImageSettings.tsx:66`
+10. **[High]** `set_preferences` read-modify-write without locking; concurrent writes can lose updates — `commands/preferences.rs:18`
+11. **[High]** Preferences written non-atomically; crash can corrupt `config.json` — `services/preferences.rs:82`
+12. **[High]** `AdvancedSettings` updates store before persistence; failed writes cause UI/state drift — `AdvancedSettings.tsx:21`
+13. **[High]** `AdvancedSettings` captured-state race on rapid toggle+level changes — `AdvancedSettings.tsx:22`
+14. **[High]** Saved keyboard shortcuts never applied to active keybindings — `KeyboardShortcutsSettings.tsx:160`
 
 ### Should Fix
-9. **[Medium]** Focus trap missing from settings dialog — `SettingsDialog.tsx:89`
-10. **[Medium]** MCP settings not rolled back on save failure — `SettingsDialog.tsx:63`
-11. **[Medium]** Auto-save interval `0` does not actually disable drafts — `App.tsx:112`
-12. **[Medium]** Nested Rust config structs missing `#[serde(default)]` per field — `preferences.rs:278`
-13. **[Medium]** `McpConfig::default()` opts user into MCP bridge — `preferences.rs:494`
-14. **[Medium]** `extensions` array rebuilt every render — `Editor.tsx:76`
-15. **[Medium]** `tabSize` only sets `indentUnit`, not `EditorState.tabSize` — `dynamicExtensions.ts:27`
+15. **[Medium]** Focus trap missing from settings dialog — `SettingsDialog.tsx:89`
+16. **[Medium]** MCP settings not rolled back on save failure — `SettingsDialog.tsx:63`
+17. **[Medium]** Auto-save interval `0` does not actually disable drafts — `App.tsx:112`
+18. **[Medium]** Nested Rust config structs missing `#[serde(default)]` per field — `preferences.rs:278`
+19. **[Medium]** `McpConfig::default()` opts user into MCP bridge — `preferences.rs:494`
+20. **[Medium]** `extensions` array rebuilt every render — `Editor.tsx:76`
+21. **[Medium]** `tabSize` only sets `indentUnit`, not `EditorState.tabSize` — `dynamicExtensions.ts:27`
+22. **[Medium]** Unhandled `getPreferences()` rejections across all settings panels — `MarkdownSettings.tsx:12`, `ImageSettings.tsx:20`, `AppearanceSettings.tsx:12`, `ExportSettings.tsx:12`, `KeyboardShortcutsSettings.tsx:101`
+23. **[Medium]** Keyboard shortcut conflict detection missing — `KeyboardShortcutsSettings.tsx:135`
+24. **[Medium]** Invalid shortcut tokens not validated before save — `KeyboardShortcutsSettings.tsx:164`
+25. **[Medium]** `CodeTheme`/`LogLevel` DOM casts unvalidated at runtime — `AppearanceSettings.tsx:53`, `AdvancedSettings.tsx:66`
+26. **[Medium]** `get_preferences` silently falls back on corruption; masks data loss — `commands/preferences.rs:11`
+27. **[Medium]** Preferences file permissions not restricted (`0o600`) — `services/preferences.rs:82`
