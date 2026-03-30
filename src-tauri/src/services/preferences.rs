@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 use crate::models::{AppearanceConfig, AutoSaveConfig, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts, LogSettings, MarkdownConfig, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
 use std::collections::HashMap;
@@ -33,6 +34,14 @@ pub struct PartialPreferences {
 pub enum PreferencesError {
     IoError { message: String },
     ParseError { message: String },
+}
+
+/// Global mutex that serialises the load → merge → save cycle in
+/// `set_preferences` and `save_window_state`. Prevents concurrent writes from
+/// silently overwriting each other's changes.
+pub(crate) fn preferences_rw_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
 }
 
 fn preferences_dir() -> Result<PathBuf, PreferencesError> {
@@ -72,14 +81,29 @@ pub fn save_preferences(preferences: &UserPreferences) -> Result<(), Preferences
         })?;
     }
 
-    let path = dir.join("config.json");
+    let final_path = dir.join("config.json");
+    let tmp_path = dir.join("config.json.tmp");
+
     let payload = serde_json::to_string_pretty(preferences).map_err(|err| {
         PreferencesError::ParseError {
             message: err.to_string(),
         }
     })?;
 
-    fs::write(path, payload).map_err(|err| PreferencesError::IoError {
+    // Write to a temp file first so a crash mid-write leaves config.json intact.
+    fs::write(&tmp_path, payload).map_err(|err| PreferencesError::IoError {
+        message: err.to_string(),
+    })?;
+
+    // Restrict file permissions on Unix (macOS target: owner read/write only).
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(&tmp_path, fs::Permissions::from_mode(0o600));
+    }
+
+    // Atomic rename: either the full new content is visible or the old file remains.
+    fs::rename(&tmp_path, &final_path).map_err(|err| PreferencesError::IoError {
         message: err.to_string(),
     })?;
 
@@ -292,5 +316,62 @@ mod tests {
         };
         let result = merge_preferences(current, updates);
         assert!(!result.show_sidebar);
+    }
+
+    // -----------------------------------------------------------------------
+    // load_preferences — error paths (serde layer)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn deserialise_returns_error_on_malformed_json() {
+        // Simulates what load_preferences does on a corrupt config file.
+        let malformed = "{ not valid json !! }";
+        let result = serde_json::from_str::<UserPreferences>(malformed);
+        assert!(result.is_err(), "malformed JSON should not deserialise into UserPreferences");
+    }
+
+    #[test]
+    fn deserialise_succeeds_on_partial_json_with_serde_defaults() {
+        // A config written by an older version (missing newer fields) should
+        // still deserialise because all nested structs carry #[serde(default)].
+        let minimal = r#"{"themeMode":"light","autoSaveInterval":30,"defaultViewMode":"wysiwyg","lastViewMode":"wysiwyg","showSidebar":true,"enableScrollSync":true,"recentFiles":[],"windowState":{"width":1200,"height":800,"x":100,"y":100,"isMaximized":false}}"#;
+        let result = serde_json::from_str::<UserPreferences>(minimal);
+        assert!(result.is_ok(), "partial JSON (missing newer fields) should still deserialise: {:?}", result.err());
+    }
+
+    #[test]
+    fn serialise_then_deserialise_round_trips_cleanly() {
+        let original = UserPreferences::default();
+        let json = serde_json::to_string_pretty(&original).expect("serialise");
+        let decoded: UserPreferences = serde_json::from_str(&json).expect("deserialise");
+        assert_eq!(decoded.auto_save_interval, original.auto_save_interval);
+        assert_eq!(decoded.show_sidebar, original.show_sidebar);
+        assert_eq!(decoded.editor.font_size, original.editor.font_size);
+    }
+
+    #[test]
+    fn merge_preserves_all_fields_when_only_one_updated() {
+        // Regression guard: adding a new field to UserPreferences/PartialPreferences
+        // but forgetting to add it to merge_preferences would cause a compile error
+        // (struct initialiser must be complete). This test documents the expectation
+        // that unrelated fields survive a partial merge.
+        let mut current = UserPreferences::default();
+        current.auto_save_interval = 999;
+        current.show_sidebar = false;
+        current.enable_scroll_sync = false;
+
+        let updates = PartialPreferences {
+            editor: Some(EditorConfig { font_size: 20, ..EditorConfig::default() }),
+            ..empty_partial()
+        };
+
+        let result = merge_preferences(current, updates);
+
+        // Changed
+        assert_eq!(result.editor.font_size, 20);
+        // Untouched
+        assert_eq!(result.auto_save_interval, 999);
+        assert!(!result.show_sidebar);
+        assert!(!result.enable_scroll_sync);
     }
 }

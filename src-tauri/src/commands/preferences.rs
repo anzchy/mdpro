@@ -3,7 +3,8 @@ use tauri::Window;
 
 use crate::models::{UserPreferences, WindowState};
 use crate::services::preferences::{
-    load_preferences, merge_preferences, save_preferences, PartialPreferences, PreferencesError,
+    load_preferences, merge_preferences, preferences_rw_lock, save_preferences, PartialPreferences,
+    PreferencesError,
 };
 
 #[tauri::command]
@@ -15,6 +16,13 @@ pub async fn get_preferences() -> UserPreferences {
 pub async fn set_preferences(
     preferences: PartialPreferences,
 ) -> Result<UserPreferences, PreferencesError> {
+    // Hold the lock for the entire read → merge → write to prevent concurrent
+    // calls from overwriting each other's changes.
+    let _lock = preferences_rw_lock()
+        .lock()
+        .map_err(|_| PreferencesError::IoError {
+            message: "preferences lock poisoned".to_string(),
+        })?;
     let current = load_preferences().unwrap_or_default();
     let next = merge_preferences(current, preferences);
     save_preferences(&next)?;
@@ -41,11 +49,12 @@ pub async fn pick_export_folder() -> Result<Option<String>, String> {
 
 #[tauri::command]
 pub async fn save_window_state(window_state: WindowState) -> Result<(), PreferencesError> {
+    let _lock = preferences_rw_lock()
+        .lock()
+        .map_err(|_| PreferencesError::IoError {
+            message: "preferences lock poisoned".to_string(),
+        })?;
     let current = load_preferences().unwrap_or_default();
-    let next = UserPreferences {
-        window_state,
-        last_view_mode: current.last_view_mode,
-        ..current
-    };
+    let next = UserPreferences { window_state, ..current };
     save_preferences(&next)
 }
