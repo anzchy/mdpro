@@ -50,6 +50,22 @@ pub struct UserPreferences {
     /// MCP Server configuration
     #[serde(default)]
     pub mcp: McpConfig,
+
+    /// Editor typography and behavior settings
+    #[serde(default)]
+    pub editor: EditorConfig,
+
+    /// Markdown behavior settings (CodeMirror-only in v1)
+    #[serde(default)]
+    pub markdown: MarkdownConfig,
+
+    /// Appearance settings (code theme, etc.)
+    #[serde(default)]
+    pub appearance: AppearanceConfig,
+
+    /// Export configuration
+    #[serde(default)]
+    pub export: ExportConfig,
 }
 
 /// Window geometry for per-file window position/size persistence
@@ -351,6 +367,130 @@ impl Default for ImageConfig {
     }
 }
 
+/// Editor typography and behavior configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorConfig {
+    /// Font family preset: "system" | "serif" | "mono"
+    #[serde(default = "default_font_family")]
+    pub font_family: String,
+    /// Font size in px (12–24)
+    #[serde(default = "default_font_size")]
+    pub font_size: u8,
+    /// Line height × 10 (so 16 = 1.6); stored as int to avoid float precision issues
+    #[serde(default = "default_line_height_x10")]
+    pub line_height_x10: u8,
+    /// Content width preset
+    #[serde(default)]
+    pub content_width: ContentWidth,
+    /// Tab size in spaces (2 or 4)
+    #[serde(default = "default_tab_size")]
+    pub tab_size: u8,
+    /// Word wrap enabled
+    #[serde(default = "default_word_wrap")]
+    pub word_wrap: bool,
+}
+
+fn default_font_family() -> String { "system".to_string() }
+fn default_font_size() -> u8 { 16 }
+fn default_line_height_x10() -> u8 { 16 }
+fn default_tab_size() -> u8 { 4 }
+fn default_word_wrap() -> bool { true }
+
+impl Default for EditorConfig {
+    fn default() -> Self {
+        Self {
+            font_family: default_font_family(),
+            font_size: default_font_size(),
+            line_height_x10: default_line_height_x10(),
+            content_width: ContentWidth::default(),
+            tab_size: default_tab_size(),
+            word_wrap: default_word_wrap(),
+        }
+    }
+}
+
+/// Content width preset for the editor
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum ContentWidth {
+    #[serde(rename = "narrow")]
+    Narrow,   // 600px
+    #[default]
+    #[serde(rename = "medium")]
+    Medium,   // 780px
+    #[serde(rename = "wide")]
+    Wide,     // 900px
+    #[serde(rename = "full")]
+    Full,     // 100%
+}
+
+/// Markdown behavior configuration (CodeMirror-only in v1)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarkdownConfig {
+    /// Auto-pair brackets and quotes (closeBrackets extension)
+    #[serde(default = "default_auto_pair")]
+    pub auto_pair: bool,
+}
+
+fn default_auto_pair() -> bool { true }
+
+impl Default for MarkdownConfig {
+    fn default() -> Self {
+        Self { auto_pair: default_auto_pair() }
+    }
+}
+
+/// Appearance configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppearanceConfig {
+    /// Code block syntax highlight theme (source mode only)
+    #[serde(default)]
+    pub code_theme: CodeTheme,
+}
+
+impl Default for AppearanceConfig {
+    fn default() -> Self {
+        Self { code_theme: CodeTheme::default() }
+    }
+}
+
+/// Export configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportConfig {
+    /// Default export folder (absolute path; "" = prompt on first export)
+    #[serde(default)]
+    pub default_folder: String,
+    /// Whether to include styles in HTML export
+    #[serde(default = "default_html_include_styles")]
+    pub html_include_styles: bool,
+}
+
+fn default_html_include_styles() -> bool { true }
+
+impl Default for ExportConfig {
+    fn default() -> Self {
+        Self {
+            default_folder: String::new(),
+            html_include_styles: default_html_include_styles(),
+        }
+    }
+}
+
+/// Code highlight theme for source mode
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum CodeTheme {
+    #[default]
+    #[serde(rename = "default")]
+    Default,
+    #[serde(rename = "oneDark")]
+    OneDark,
+}
+
 /// MCP Server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -397,6 +537,10 @@ impl Default for UserPreferences {
             tab_bar: TabBarConfig::default(),
             image: ImageConfig::default(),
             mcp: McpConfig::default(),
+            editor: EditorConfig::default(),
+            markdown: MarkdownConfig::default(),
+            appearance: AppearanceConfig::default(),
+            export: ExportConfig::default(),
         }
     }
 }

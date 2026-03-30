@@ -14,4 +14,4 @@ pub use mcp::{
     SyncDocumentsPayload, UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
 };
 // MCP WindowState is only used internally, not re-exported to avoid conflict with preferences::WindowState
-pub use preferences::{AutoSaveConfig, CloseFocusBehavior, ImageConfig, KeyboardShortcuts, McpConfig, TabBarConfig, TabBarPosition, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
+pub use preferences::{AppearanceConfig, AutoSaveConfig, CloseFocusBehavior, CodeTheme, ContentWidth, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts, MarkdownConfig, McpConfig, TabBarConfig, TabBarPosition, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};

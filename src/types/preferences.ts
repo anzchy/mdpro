@@ -37,6 +37,26 @@ export interface UserPreferences {
 
   /** MCP Server configuration */
   mcp: McpConfig;
+
+  /** Editor typography and behavior settings */
+  editor: EditorConfig;
+
+  /** Markdown behavior settings */
+  markdown: MarkdownConfig;
+
+  /** Appearance settings */
+  appearance: AppearanceConfig;
+
+  /** Image handling settings */
+  image?: {
+    assetFolder: string;
+    copyExternalImages: boolean;
+    showPastePreview?: boolean;
+    maxDimension?: number | null;
+  };
+
+  /** Export configuration */
+  export?: ExportConfig;
 }
 
 export interface WindowState {
@@ -211,3 +231,65 @@ export interface McpInstallation {
   installed: boolean;
   configPath: string;
 }
+
+/** Editor typography and behavior configuration */
+export interface EditorConfig {
+  /** Font family preset: "system" | "serif" | "mono" */
+  fontFamily: "system" | "serif" | "mono";
+  /** Font size in px (12–24) */
+  fontSize: number;
+  /** Line height × 10 (16 = 1.6) */
+  lineHeightX10: number;
+  /** Content width preset */
+  contentWidth: ContentWidth;
+  /** Tab size (2 or 4) */
+  tabSize: 2 | 4;
+  /** Word wrap enabled */
+  wordWrap: boolean;
+}
+
+export type ContentWidth = "narrow" | "medium" | "wide" | "full";
+
+export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
+  fontFamily: "system",
+  fontSize: 16,
+  lineHeightX10: 16,
+  contentWidth: "medium",
+  tabSize: 4,
+  wordWrap: true,
+};
+
+/** Markdown behavior configuration (CodeMirror-only in v1) */
+export interface MarkdownConfig {
+  /** Auto-pair brackets and quotes */
+  autoPair: boolean;
+}
+
+export const DEFAULT_MARKDOWN_CONFIG: MarkdownConfig = {
+  autoPair: true,
+};
+
+/** Appearance configuration */
+export interface AppearanceConfig {
+  /** Code block syntax highlight theme (source mode only) */
+  codeTheme: CodeTheme;
+}
+
+export type CodeTheme = "default" | "oneDark";
+
+export const DEFAULT_APPEARANCE_CONFIG: AppearanceConfig = {
+  codeTheme: "default",
+};
+
+/** Export configuration */
+export interface ExportConfig {
+  /** Default export folder (absolute path; "" = prompt on first export) */
+  defaultFolder: string;
+  /** Whether to include styles in HTML export */
+  htmlIncludeStyles: boolean;
+}
+
+export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
+  defaultFolder: "",
+  htmlIncludeStyles: true,
+};
