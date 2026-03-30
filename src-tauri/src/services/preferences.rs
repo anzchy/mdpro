@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::{AutoSaveConfig, ImageConfig, KeyboardShortcuts, LogSettings, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
+use crate::models::{AppearanceConfig, AutoSaveConfig, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts, LogSettings, MarkdownConfig, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,6 +23,10 @@ pub struct PartialPreferences {
     pub tab_bar: Option<TabBarConfig>,
     pub image: Option<ImageConfig>,
     pub mcp: Option<McpConfig>,
+    pub editor: Option<EditorConfig>,
+    pub markdown: Option<MarkdownConfig>,
+    pub appearance: Option<AppearanceConfig>,
+    pub export: Option<ExportConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -109,5 +113,184 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
         tab_bar: updates.tab_bar.unwrap_or(current.tab_bar),
         image: updates.image.unwrap_or(current.image),
         mcp: updates.mcp.unwrap_or(current.mcp),
+        editor: updates.editor.unwrap_or(current.editor),
+        markdown: updates.markdown.unwrap_or(current.markdown),
+        appearance: updates.appearance.unwrap_or(current.appearance),
+        export: updates.export.unwrap_or(current.export),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{EditorConfig, AppearanceConfig, MarkdownConfig, CodeTheme, UserPreferences};
+
+    /// Constructs a PartialPreferences with all fields set to None except the
+    /// ones supplied by the caller. This helper reduces boilerplate in each test.
+    fn empty_partial() -> PartialPreferences {
+        PartialPreferences {
+            theme_mode: None,
+            auto_save_interval: None,
+            default_view_mode: None,
+            last_view_mode: None,
+            show_sidebar: None,
+            enable_scroll_sync: None,
+            recent_files: None,
+            window_state: None,
+            keyboard_shortcuts: None,
+            window_states: None,
+            logging: None,
+            auto_save: None,
+            tab_bar: None,
+            image: None,
+            mcp: None,
+            editor: None,
+            markdown: None,
+            appearance: None,
+            export: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // merge_preferences — editor field
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn merge_editor_some_replaces_editor_config() {
+        let current = UserPreferences::default();
+        let new_editor = EditorConfig {
+            font_size: 18,
+            ..EditorConfig::default()
+        };
+        let updates = PartialPreferences {
+            editor: Some(new_editor),
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert_eq!(result.editor.font_size, 18);
+    }
+
+    #[test]
+    fn merge_editor_none_preserves_current_editor_config() {
+        let mut current = UserPreferences::default();
+        current.editor.font_size = 20;
+        let updates = PartialPreferences {
+            editor: None,
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert_eq!(result.editor.font_size, 20);
+    }
+
+    #[test]
+    fn merge_editor_preserves_all_other_fields_when_only_editor_updated() {
+        let mut current = UserPreferences::default();
+        current.auto_save_interval = 120;
+        current.show_sidebar = false;
+        let updates = PartialPreferences {
+            editor: Some(EditorConfig { font_size: 14, ..EditorConfig::default() }),
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        // Editor updated
+        assert_eq!(result.editor.font_size, 14);
+        // Unrelated fields preserved
+        assert_eq!(result.auto_save_interval, 120);
+        assert!(!result.show_sidebar);
+    }
+
+    // -----------------------------------------------------------------------
+    // merge_preferences — markdown field
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn merge_markdown_some_updates_auto_pair_to_false() {
+        let current = UserPreferences::default();
+        assert!(current.markdown.auto_pair, "default auto_pair should be true");
+        let updates = PartialPreferences {
+            markdown: Some(MarkdownConfig { auto_pair: false }),
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert!(!result.markdown.auto_pair);
+    }
+
+    #[test]
+    fn merge_markdown_none_preserves_current_auto_pair() {
+        let mut current = UserPreferences::default();
+        current.markdown.auto_pair = false;
+        let updates = PartialPreferences {
+            markdown: None,
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert!(!result.markdown.auto_pair);
+    }
+
+    // -----------------------------------------------------------------------
+    // merge_preferences — appearance field
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn merge_appearance_some_updates_code_theme_to_one_dark() {
+        let current = UserPreferences::default();
+        let updates = PartialPreferences {
+            appearance: Some(AppearanceConfig { code_theme: CodeTheme::OneDark }),
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert!(matches!(result.appearance.code_theme, CodeTheme::OneDark));
+    }
+
+    #[test]
+    fn merge_appearance_none_preserves_current_code_theme() {
+        let mut current = UserPreferences::default();
+        current.appearance.code_theme = CodeTheme::OneDark;
+        let updates = PartialPreferences {
+            appearance: None,
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert!(matches!(result.appearance.code_theme, CodeTheme::OneDark));
+    }
+
+    // -----------------------------------------------------------------------
+    // merge_preferences — scalar fields
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn merge_auto_save_interval_some_updates_value() {
+        let current = UserPreferences::default();
+        let updates = PartialPreferences {
+            auto_save_interval: Some(300),
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert_eq!(result.auto_save_interval, 300);
+    }
+
+    #[test]
+    fn merge_auto_save_interval_none_preserves_current() {
+        let mut current = UserPreferences::default();
+        current.auto_save_interval = 60;
+        let updates = empty_partial(); // all None
+        let result = merge_preferences(current, updates);
+        assert_eq!(result.auto_save_interval, 60);
+    }
+
+    #[test]
+    fn merge_show_sidebar_some_flips_value() {
+        let mut current = UserPreferences::default();
+        current.show_sidebar = true;
+        let updates = PartialPreferences {
+            show_sidebar: Some(false),
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        assert!(!result.show_sidebar);
     }
 }

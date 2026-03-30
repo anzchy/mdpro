@@ -31,6 +31,15 @@ pub fn get_system_theme(window: Window) -> String {
 }
 
 #[tauri::command]
+pub async fn pick_export_folder() -> Result<Option<String>, String> {
+    let folder = rfd::AsyncFileDialog::new()
+        .pick_folder()
+        .await
+        .map(|p| p.path().to_string_lossy().to_string());
+    Ok(folder)
+}
+
+#[tauri::command]
 pub async fn save_window_state(window_state: WindowState) -> Result<(), PreferencesError> {
     let current = load_preferences().unwrap_or_default();
     let next = UserPreferences {

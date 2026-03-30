@@ -107,4 +107,9 @@ export const exportService = {
   async previewHtml(content: string, theme: "light" | "dark"): Promise<string> {
     return invoke("preview_html", { content, theme });
   },
+
+  /** Opens a native folder picker and returns the selected path, or null if cancelled. */
+  async pickFolder(): Promise<string | null> {
+    return invoke<string | null>("pick_export_folder");
+  },
 };
