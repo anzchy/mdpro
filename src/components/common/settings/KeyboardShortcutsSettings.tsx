@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { KeyboardShortcuts } from "../../../types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
@@ -92,19 +92,50 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   },
 ];
 
+/** Keys that are not actionable on their own and should be ignored during capture. */
+const NON_ACTIONABLE_KEYS = new Set([
+  "Meta", "Control", "Alt", "Shift",
+  "Dead", "Unidentified", "CapsLock", "Fn", "Process", "OS", "Win",
+]);
+
 export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettingsProps) {
   const [savedShortcuts, setSavedShortcuts] = useState<KeyboardShortcuts | null>(null);
   const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts | null>(null);
   const [editingKey, setEditingKey] = useState<keyof KeyboardShortcuts | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    void preferencesService.getPreferences().then((p) => {
-      const merged = { ...DEFAULT_KEYBOARD_SHORTCUTS, ...p.keyboardShortcuts };
-      setSavedShortcuts(merged);
-      setLocalShortcuts(merged);
-    });
+    let cancelled = false;
+    preferencesService
+      .getPreferences()
+      .then((p) => {
+        if (cancelled) return;
+        const merged = { ...DEFAULT_KEYBOARD_SHORTCUTS, ...p.keyboardShortcuts };
+        setSavedShortcuts(merged);
+        setLocalShortcuts(merged);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setLoadError(err instanceof Error ? err.message : "Failed to load shortcuts");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  /** Shortcut string → list of action keys that share it (only entries with length > 1). */
+  const conflicts = useMemo<Map<string, (keyof KeyboardShortcuts)[]>>(() => {
+    if (!localShortcuts) return new Map();
+    const seen = new Map<string, (keyof KeyboardShortcuts)[]>();
+    for (const [k, v] of Object.entries(localShortcuts)) {
+      const list = seen.get(v) ?? [];
+      list.push(k as keyof KeyboardShortcuts);
+      seen.set(v, list);
+    }
+    return new Map([...seen.entries()].filter(([, keys]) => keys.length > 1));
+  }, [localShortcuts]);
 
   const handleKeyCapture = useCallback(
     (event: KeyboardEvent) => {
@@ -112,6 +143,18 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
 
       event.preventDefault();
       event.stopPropagation();
+
+      // Escape cancels the current edit without recording a shortcut.
+      if (event.key === "Escape") {
+        setEditingKey(null);
+        return;
+      }
+
+      // Ignore non-actionable keys (lone modifiers, dead keys, system keys).
+      if (NON_ACTIONABLE_KEYS.has(event.key)) return;
+
+      // Require at least one modifier to avoid bare key captures.
+      if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) return;
 
       const parts: string[] = [];
       if (event.metaKey) parts.push("Cmd");
@@ -126,8 +169,6 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
       else if (keyName === "ArrowLeft") keyName = "Left";
       else if (keyName === "ArrowRight") keyName = "Right";
       else if (keyName.length === 1) keyName = keyName.toUpperCase();
-
-      if (["Meta", "Control", "Alt", "Shift"].includes(event.key)) return;
 
       parts.push(keyName);
       const shortcut = parts.join("+");
@@ -155,20 +196,31 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const handleDiscard = () => {
     setLocalShortcuts(savedShortcuts);
     setIsDirty(false);
+    setSaveError(null);
   };
 
   const handleSave = async () => {
     if (!localShortcuts) return;
     loggingService.logButtonClick("settings.shortcuts.save");
+    setSaveError(null);
     try {
       await preferencesService.setPreferences({ keyboardShortcuts: localShortcuts });
       setSavedShortcuts(localShortcuts);
       setIsDirty(false);
       onClose();
-    } catch {
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save shortcuts");
       loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "fail" });
     }
   };
+
+  if (loadError) {
+    return (
+      <div className="shortcuts-layout">
+        <p className="settings-error">{loadError}</p>
+      </div>
+    );
+  }
 
   if (!localShortcuts) {
     return (
@@ -192,6 +244,8 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         </div>
       </div>
 
+      {saveError && <p className="settings-error">{saveError}</p>}
+
       {isDirty && (
         <div className="settings-dirty-banner" role="alert">
           <span aria-hidden="true">⚠️</span>
@@ -207,26 +261,36 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         </div>
       )}
 
+      {conflicts.size > 0 && (
+        <div className="settings-error" role="alert">
+          Conflicting shortcuts detected — duplicate assignments are highlighted below.
+        </div>
+      )}
+
       {SHORTCUT_CATEGORIES.map((category) => (
         <section key={category.name} className="shortcuts-section">
           <h4>{category.name}</h4>
           <div className="shortcuts-list">
-            {category.shortcuts.map((item) => (
-              <div key={item.key} className="shortcut-row">
-                <span className="shortcut-label">{item.label}</span>
-                <button
-                  className={`shortcut-value ${editingKey === item.key ? "is-editing" : ""}`}
-                  onClick={() => {
-                    loggingService.logButtonClick(
-                      `settings.shortcuts.edit.${String(item.key)}`,
-                    );
-                    setEditingKey(item.key);
-                  }}
-                >
-                  {editingKey === item.key ? "Press keys..." : localShortcuts[item.key]}
-                </button>
-              </div>
-            ))}
+            {category.shortcuts.map((item) => {
+              const shortcutValue = localShortcuts[item.key];
+              const isConflict = conflicts.has(shortcutValue);
+              return (
+                <div key={item.key} className={`shortcut-row${isConflict ? " has-conflict" : ""}`}>
+                  <span className="shortcut-label">{item.label}</span>
+                  <button
+                    className={`shortcut-value ${editingKey === item.key ? "is-editing" : ""}`}
+                    onClick={() => {
+                      loggingService.logButtonClick(
+                        `settings.shortcuts.edit.${String(item.key)}`,
+                      );
+                      setEditingKey(item.key);
+                    }}
+                  >
+                    {editingKey === item.key ? "Press keys..." : shortcutValue}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </section>
       ))}

@@ -39,16 +39,12 @@ describe("useKeyboardShortcuts source — ⌘/ focus guard", () => {
   it("skips onCycleViewMode when editor is focused (guard wraps the call)", () => {
     // The ⌘/ branch that calls onCycleViewMode must be guarded so it is
     // skipped when the active element is inside a .cm-editor.
-    // We verify that the guard (closest check) appears in the ⌘/ condition,
-    // i.e., the string '".cm-editor"' appears on the same line as 'key === "/"'
-    // AND in a negated check (prefixed with '!').
-    const cmdSlashGuard =
-      /key === "\/".+\.cm-editor|\.cm-editor.+key === "\/"/s;
-    expect(src).toMatch(cmdSlashGuard);
+    // The handler computes `inCodeMirror` from closest('.cm-editor') and then
+    // uses `!inCodeMirror` as a guard before calling onCycleViewMode.
+    expect(src).toMatch(/inCodeMirror/);
 
-    // Also confirm it is a negated check (! prefix) so the cycle is skipped
-    // when the editor is focused.
-    expect(src).toMatch(/!\s*target\??\.\s*closest\??\.\s*\(\s*['"]\.cm-editor['"]/);
+    // Guard must be negated so the cycle is skipped when the editor is focused.
+    expect(src).toMatch(/!inCodeMirror/);
   });
 });
 

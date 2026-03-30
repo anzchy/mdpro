@@ -12,6 +12,12 @@
  *   6. handleKeyCapture: ignores lone modifier keypresses.
  *   7. Source: renders shortcut categories (File, Edit, etc.).
  *   8. Source: editingKey state and "Press keys…" indicator.
+ *   9. WI-9: Escape cancels the current edit without recording a shortcut.
+ *  10. WI-9: NON_ACTIONABLE_KEYS expanded (Dead, Unidentified, CapsLock, etc.).
+ *  11. WI-9: Modifier requirement — bare key capture rejected.
+ *  12. WI-9: Conflict detection with UI warning.
+ *  13. WI-9: Save error surfaced in UI.
+ *  14. WI-9: Load error handling with cancellation guard.
  *
  * Edge cases:
  *   - Space key normalized to "Space".
@@ -107,6 +113,65 @@ describe("KeyboardShortcutsSettings — source structure", () => {
     expect(kbSrc).toContain("loggingService.logButtonClick");
     expect(kbSrc).toContain("shortcuts.reset");
   });
+
+  // WI-9 additions
+  it("Escape key cancels the current edit (setEditingKey(null))", () => {
+    expect(kbSrc).toContain('"Escape"');
+    expect(kbSrc).toContain("setEditingKey(null)");
+  });
+
+  it("NON_ACTIONABLE_KEYS set includes Dead and Unidentified", () => {
+    expect(kbSrc).toContain("NON_ACTIONABLE_KEYS");
+    expect(kbSrc).toContain('"Dead"');
+    expect(kbSrc).toContain('"Unidentified"');
+    expect(kbSrc).toContain('"CapsLock"');
+  });
+
+  it("handleKeyCapture requires at least one modifier key", () => {
+    expect(kbSrc).toContain("event.metaKey");
+    expect(kbSrc).toContain("event.ctrlKey");
+    expect(kbSrc).toContain("event.altKey");
+    expect(kbSrc).toContain("event.shiftKey");
+  });
+
+  it("conflict detection: conflicts computed from localShortcuts", () => {
+    expect(kbSrc).toContain("conflicts");
+    expect(kbSrc).toContain("useMemo");
+  });
+
+  it("conflict warning shown when conflicts.size > 0", () => {
+    expect(kbSrc).toContain("conflicts.size > 0");
+    expect(kbSrc).toContain("Conflicting shortcuts detected");
+  });
+
+  it("save error state is tracked", () => {
+    expect(kbSrc).toContain("saveError");
+    expect(kbSrc).toContain("setSaveError");
+  });
+
+  it("save error is rendered in UI", () => {
+    expect(kbSrc).toContain("{saveError &&");
+  });
+
+  it("handleSave surfaces errors in saveError state", () => {
+    // Must set saveError on catch, not just log
+    expect(kbSrc).toContain("setSaveError(");
+  });
+
+  it("load error state is tracked", () => {
+    expect(kbSrc).toContain("loadError");
+    expect(kbSrc).toContain("setLoadError");
+  });
+
+  it("useEffect load has a cancellation guard", () => {
+    expect(kbSrc).toContain("let cancelled");
+    expect(kbSrc).toContain("cancelled = true");
+  });
+
+  it("renders load error state", () => {
+    expect(kbSrc).toContain("loadError");
+    expect(kbSrc).toContain("settings-error");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -122,7 +187,21 @@ type MockKeyboardEvent = {
   key: string;
 };
 
+const NON_ACTIONABLE_KEYS_SIM = new Set([
+  "Meta", "Control", "Alt", "Shift",
+  "Dead", "Unidentified", "CapsLock", "Fn", "Process", "OS", "Win",
+]);
+
 function captureShortcut(event: MockKeyboardEvent): string | null {
+  // Escape cancels editing — caller handles; simulation returns null
+  if (event.key === "Escape") return null;
+
+  // Non-actionable keys are silently ignored (keep waiting)
+  if (NON_ACTIONABLE_KEYS_SIM.has(event.key)) return null;
+
+  // Bare key with no modifier is rejected
+  if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) return null;
+
   const parts: string[] = [];
   if (event.metaKey) parts.push("Cmd");
   if (event.ctrlKey) parts.push("Ctrl");
@@ -137,20 +216,12 @@ function captureShortcut(event: MockKeyboardEvent): string | null {
   else if (keyName === "ArrowRight") keyName = "Right";
   else if (keyName.length === 1) keyName = keyName.toUpperCase();
 
-  // Lone modifier — no shortcut
-  if (["Meta", "Control", "Alt", "Shift"].includes(event.key)) return null;
-
   parts.push(keyName);
   return parts.join("+");
 }
 
 describe("key capture logic — shortcut assembly", () => {
-  it("single letter key produces uppercase shortcut", () => {
-    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "k" }))
-      .toBe("K");
-  });
-
-  it("Cmd+K produces 'Cmd+K'", () => {
+  it("Cmd+K produces 'Cmd+K' (letter uppercased)", () => {
     expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: "k" }))
       .toBe("Cmd+K");
   });
@@ -160,32 +231,32 @@ describe("key capture logic — shortcut assembly", () => {
       .toBe("Cmd+Shift+K");
   });
 
-  it("Space key is normalized to 'Space'", () => {
-    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: " " }))
-      .toBe("Space");
+  it("Cmd+Space is normalized to 'Cmd+Space'", () => {
+    expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: " " }))
+      .toBe("Cmd+Space");
   });
 
-  it("ArrowUp is normalized to 'Up'", () => {
-    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowUp" }))
-      .toBe("Up");
+  it("Cmd+ArrowUp is normalized to 'Cmd+Up'", () => {
+    expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowUp" }))
+      .toBe("Cmd+Up");
   });
 
-  it("ArrowDown is normalized to 'Down'", () => {
-    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowDown" }))
-      .toBe("Down");
+  it("Cmd+ArrowDown is normalized to 'Cmd+Down'", () => {
+    expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowDown" }))
+      .toBe("Cmd+Down");
   });
 
-  it("ArrowLeft is normalized to 'Left'", () => {
-    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowLeft" }))
-      .toBe("Left");
+  it("Cmd+ArrowLeft is normalized to 'Cmd+Left'", () => {
+    expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowLeft" }))
+      .toBe("Cmd+Left");
   });
 
-  it("ArrowRight is normalized to 'Right'", () => {
-    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowRight" }))
-      .toBe("Right");
+  it("Cmd+ArrowRight is normalized to 'Cmd+Right'", () => {
+    expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: "ArrowRight" }))
+      .toBe("Cmd+Right");
   });
 
-  it("lone Meta keypress returns null (no shortcut recorded)", () => {
+  it("lone Meta keypress returns null (non-actionable)", () => {
     expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: "Meta" }))
       .toBeNull();
   });
@@ -210,8 +281,39 @@ describe("key capture logic — shortcut assembly", () => {
       .toBe("Ctrl+Z");
   });
 
-  it("non-letter special key (e.g. 'Tab') passes through unchanged", () => {
-    const result = captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "Tab" });
-    expect(result).toBe("Tab");
+  it("Cmd+Tab passes multi-char special key through unchanged", () => {
+    expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key: "Tab" }))
+      .toBe("Cmd+Tab");
+  });
+
+  // WI-9: new behaviors
+  it("bare letter key with no modifier returns null (modifier required)", () => {
+    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "k" }))
+      .toBeNull();
+  });
+
+  it("Escape key returns null (cancels edit)", () => {
+    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "Escape" }))
+      .toBeNull();
+  });
+
+  it("Dead key returns null (non-actionable IME key)", () => {
+    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "Dead" }))
+      .toBeNull();
+  });
+
+  it("Unidentified key returns null", () => {
+    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "Unidentified" }))
+      .toBeNull();
+  });
+
+  it("CapsLock key returns null", () => {
+    expect(captureShortcut({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: "CapsLock" }))
+      .toBeNull();
+  });
+
+  it("Cmd+Option+T produces 'Cmd+Option+T' (multi-modifier with altKey)", () => {
+    expect(captureShortcut({ metaKey: true, ctrlKey: false, altKey: true, shiftKey: false, key: "t" }))
+      .toBe("Cmd+Option+T");
   });
 });

@@ -33,7 +33,8 @@ import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
 import type { Document } from "./types/document";
 import type { ViewMode } from "./types/editor";
-import type { WindowState } from "./types/preferences";
+import type { KeyboardShortcuts, WindowState } from "./types/preferences";
+import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useLoggingStore } from "./stores/loggingStore";
@@ -93,6 +94,7 @@ function App() {
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
+  const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
@@ -242,6 +244,9 @@ function App() {
         setRecentFiles(prefs.recentFiles ?? []);
         if (prefs.logging) {
           setLoggingSettings(prefs.logging);
+        }
+        if (prefs.keyboardShortcuts) {
+          setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
         }
         await applyWindowState(prefs.windowState);
         await setThemeMode(prefs.themeMode);
@@ -940,6 +945,7 @@ function App() {
     onToggleSidebar: handleToggleSidebar,
     onCycleViewMode: cycleViewMode,
     onOpenPreferences: handleOpenSettings,
+    shortcuts: keyboardShortcuts,
   });
 
   useMenuEvents({

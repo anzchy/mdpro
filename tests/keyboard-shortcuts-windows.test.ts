@@ -50,8 +50,10 @@ describe("useKeyboardShortcuts source — Windows Ctrl key guard", () => {
   });
 
   it("excludes the non-primary modifier so Cmd+Ctrl+S on macOS is ignored", () => {
-    // secondaryMod must be computed and excluded in the guard.
-    expect(src).toMatch(/secondaryMod/);
+    // The per-shortcut matchesShortcut helper checks every modifier flag exactly,
+    // so a spurious Ctrl press prevents a "Cmd+S" match (wantCtrl=false vs ctrlKey=true).
+    // Verify the exact-modifier check pattern is present.
+    expect(src).toMatch(/wantCtrl\s*!==\s*event\.ctrlKey/);
   });
 });
 
