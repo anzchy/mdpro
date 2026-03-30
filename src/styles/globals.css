@@ -641,6 +641,55 @@ a {
   gap: 8px;
 }
 
+/* Link Insert Modal (issue #25) */
+
+.link-insert-modal {
+  width: min(360px, 90vw);
+}
+
+.link-insert-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+
+.link-insert-input {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.link-insert-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.toolbar-button--primary {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.toolbar-button--primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.toolbar-button--primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .recovery-list {
   display: flex;
   flex-direction: column;
