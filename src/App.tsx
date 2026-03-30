@@ -27,13 +27,13 @@ import { useMcpSync } from "./hooks/useMcpSync";
 import { useMcpEvents } from "./hooks/useMcpEvents";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
+import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/common/settings/editorPrefApply";
 import { fileService } from "./services/fileService";
 import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
 import type { Document } from "./types/document";
 import type { ViewMode } from "./types/editor";
-import type { KeyboardShortcuts, McpConfig, WindowState } from "./types/preferences";
-import { DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_MCP_CONFIG } from "./types/preferences";
+import type { WindowState } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useLoggingStore } from "./stores/loggingStore";
@@ -82,7 +82,9 @@ function App() {
   const { resolvedTheme, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
-  const [autoSaveInterval, setAutoSaveInterval] = useState(30);
+  // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
+  const autoSaveInterval = useEditorStore((s) => s.autoSaveInterval);
+  const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
   const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
@@ -90,9 +92,7 @@ function App() {
   const showToast = useToastStore((s) => s.showToast);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
-  const [mcpConfig, setMcpConfig] = useState<McpConfig>(DEFAULT_MCP_CONFIG);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
@@ -242,16 +242,22 @@ function App() {
         if (prefs.logging) {
           setLoggingSettings(prefs.logging);
         }
-        // Merge loaded shortcuts with defaults to ensure all keys exist
-        if (prefs.keyboardShortcuts && Object.keys(prefs.keyboardShortcuts).length > 0) {
-          setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
-        }
-        // Load MCP config
-        if (prefs.mcp) {
-          setMcpConfig({ ...DEFAULT_MCP_CONFIG, ...prefs.mcp });
-        }
         await applyWindowState(prefs.windowState);
         await setThemeMode(prefs.themeMode);
+        // Decision 2A: apply saved editor prefs to CSS vars + CM Compartments on startup.
+        // Editor may not be mounted yet — applyEditorPref guards against null editorView.
+        if (prefs.editor) {
+          const editorPrefs = prefs.editor;
+          (Object.keys(editorPrefs) as Array<keyof typeof editorPrefs>).forEach((key) => {
+            applyEditorPref(key, editorPrefs[key]);
+          });
+        }
+        if (prefs.appearance) {
+          applyCodeTheme(prefs.appearance.codeTheme);
+        }
+        if (prefs.markdown) {
+          applyAutoPair(prefs.markdown.autoPair);
+        }
       } catch {
         // Ignore preference loading errors in web preview.
       } finally {
@@ -266,7 +272,6 @@ function App() {
     applyWindowState,
     setAutoSaveInterval,
     setDefaultViewMode,
-    setKeyboardShortcuts,
     setLoggingSettings,
     setRecentFiles,
     setShowSidebar,
@@ -583,43 +588,6 @@ function App() {
   const handleOpenSettings = useCallback((_actionId?: string) => {
     setSettingsOpen(true);
   }, []);
-
-  const handleSaveShortcuts = useCallback(
-    async (shortcuts: KeyboardShortcuts) => {
-      setKeyboardShortcuts(shortcuts);
-      try {
-        await preferencesService.setPreferences({ keyboardShortcuts: shortcuts });
-        showToast("Shortcuts saved");
-      } catch {
-        showToast("Failed to save shortcuts");
-      }
-    },
-    [showToast],
-  );
-
-  const handleDefaultViewModeChange = useCallback(
-    async (mode: ViewMode) => {
-      setDefaultViewMode(mode);
-      try {
-        await preferencesService.setPreferences({ defaultViewMode: mode });
-      } catch {
-        showToast("Failed to save preference");
-      }
-    },
-    [showToast],
-  );
-
-  const handleMcpConfigChange = useCallback(
-    async (config: McpConfig) => {
-      setMcpConfig(config);
-      try {
-        await preferencesService.setPreferences({ mcp: config });
-      } catch {
-        showToast("Failed to save MCP settings");
-      }
-    },
-    [showToast],
-  );
 
   const handleReloadFile = useCallback(async () => {
     if (!fileChangeEvent?.path) return;
@@ -1147,12 +1115,6 @@ function App() {
       />
       <SettingsDialog
         open={settingsOpen}
-        shortcuts={keyboardShortcuts}
-        defaultViewMode={defaultViewMode}
-        mcpConfig={mcpConfig}
-        onSave={handleSaveShortcuts}
-        onDefaultViewModeChange={handleDefaultViewModeChange}
-        onMcpConfigChange={handleMcpConfigChange}
         onClose={() => setSettingsOpen(false)}
       />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />

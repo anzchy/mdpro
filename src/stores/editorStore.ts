@@ -5,6 +5,9 @@ import { loggingService } from "../services/loggingService";
 
 interface EditorStore extends EditorState {
   showSidebar: boolean;
+  /** Auto-save interval in seconds (0 = off). Decision 1A: lives here so useAutoSave reacts immediately. */
+  autoSaveInterval: number;
+  setAutoSaveInterval: (seconds: number) => void;
   setActiveDocumentId: (id: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
   cycleViewMode: () => void;
@@ -35,6 +38,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   activeDocumentId: null,
   viewMode: "split",
   showSidebar: true,
+  autoSaveInterval: 30,
+  setAutoSaveInterval: (seconds) => set({ autoSaveInterval: seconds }),
   editorView: null,
   cursor: { ...defaultCursor },
   selection: null,

@@ -1,283 +1,75 @@
-import { useState, useEffect, useCallback } from "react";
-import type { KeyboardShortcuts, McpConfig } from "../../types/preferences";
-import { DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_MCP_CONFIG } from "../../types/preferences";
-import type { ViewMode } from "../../types/editor";
+import { useState, useEffect, useRef } from "react";
+import type { McpConfig } from "../../types/preferences";
+import { DEFAULT_MCP_CONFIG } from "../../types/preferences";
 import { useThemeStore } from "../../stores/themeStore";
-import { useLoggingStore } from "../../stores/loggingStore";
-import type { LogLevel } from "../../types/logging";
 import { loggingService } from "../../services/loggingService";
+import { preferencesService } from "../../services/preferencesService";
 import { IntegrationsSettings } from "./IntegrationsSettings";
+import { GeneralSettings } from "./settings/GeneralSettings";
+import { EditorSettings } from "./settings/EditorSettings";
+import { MarkdownSettings } from "./settings/MarkdownSettings";
+import { ImageSettings } from "./settings/ImageSettings";
+import { ExportSettings } from "./settings/ExportSettings";
+import { AppearanceSettings } from "./settings/AppearanceSettings";
+import { AdvancedSettings } from "./settings/AdvancedSettings";
+import { KeyboardShortcutsSettings } from "./settings/KeyboardShortcutsSettings";
 
 interface SettingsDialogProps {
   open: boolean;
-  shortcuts: KeyboardShortcuts;
-  defaultViewMode: ViewMode;
-  mcpConfig?: McpConfig;
-  onSave: (shortcuts: KeyboardShortcuts) => void;
-  onDefaultViewModeChange: (mode: ViewMode) => void;
-  onMcpConfigChange?: (config: McpConfig) => void;
   onClose: () => void;
 }
 
-interface ShortcutCategory {
-  name: string;
-  shortcuts: Array<{
-    key: keyof KeyboardShortcuts;
-    label: string;
-  }>;
-}
-
-interface SettingsPage {
+interface NavItem {
   id: string;
   label: string;
-  description: string;
-  placeholderItems: string[];
+  icon: string;
 }
 
-const SETTINGS_PAGES: SettingsPage[] = [
-  {
-    id: "general",
-    label: "General",
-    description: "App behavior, language, and startup preferences.",
-    placeholderItems: ["Default view mode", "Autosave frequency", "Language"],
-  },
-  {
-    id: "editor",
-    label: "Editor",
-    description: "Editor defaults, typography, and editing behaviors.",
-    placeholderItems: ["Font size", "Line height", "Caret width"],
-  },
-  {
-    id: "markdown",
-    label: "Markdown",
-    description: "Markdown syntax preferences and extensions.",
-    placeholderItems: ["Auto pair", "GFM tables", "Footnotes"],
-  },
-  {
-    id: "image",
-    label: "Image",
-    description: "Image handling and paste behavior.",
-    placeholderItems: ["Default save location", "Compression", "Retina export"],
-  },
-  {
-    id: "integrations",
-    label: "Integrations",
-    description: "MCP Server and AI assistant connections.",
-    placeholderItems: [],
-  },
-  {
-    id: "export",
-    label: "Export",
-    description: "Export formats and output settings.",
-    placeholderItems: ["Default export folder", "PDF preset", "HTML styles"],
-  },
-  {
-    id: "appearance",
-    label: "Appearance",
-    description: "Themes, layout density, and UI styling.",
-    placeholderItems: ["Theme", "Sidebar density", "Accent color"],
-  },
-  {
-    id: "keyboard-shortcuts",
-    label: "Keyboard Shortcuts",
-    description: "Customize shortcuts across the app.",
-    placeholderItems: [],
-  },
+const NAV_ITEMS: NavItem[] = [
+  { id: "general", label: "General", icon: "⚙️" },
+  { id: "editor", label: "Editor", icon: "✏️" },
+  { id: "markdown", label: "Markdown", icon: "📝" },
+  { id: "image", label: "Image", icon: "🖼️" },
+  { id: "integrations", label: "Integrations", icon: "🔗" },
+  { id: "export", label: "Export", icon: "📤" },
+  { id: "appearance", label: "Appearance", icon: "🎨" },
+  { id: "keyboard-shortcuts", label: "Keyboard Shortcuts", icon: "⌨️" },
+  { id: "advanced", label: "Advanced", icon: "🔧" },
 ];
 
-const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
-  {
-    name: "File",
-    shortcuts: [
-      { key: "fileNew", label: "New" },
-      { key: "fileNewWindow", label: "New Window" },
-      { key: "fileOpen", label: "Open" },
-      { key: "fileOpenQuickly", label: "Open Quickly" },
-      { key: "fileSave", label: "Save" },
-      { key: "fileSaveAs", label: "Save As" },
-      { key: "fileClose", label: "Close" },
-      { key: "filePreferences", label: "Preferences" },
-    ],
-  },
-  {
-    name: "Edit",
-    shortcuts: [
-      { key: "editCopyAsMarkdown", label: "Copy As Markdown" },
-      { key: "editPasteAsPlainText", label: "Paste As Plain Text" },
-      { key: "editSelectLine", label: "Select Line" },
-      { key: "editSelectWord", label: "Select Word" },
-      { key: "editDeleteWord", label: "Delete Word" },
-      { key: "editJumpToTop", label: "Jump to Top" },
-      { key: "editJumpToBottom", label: "Jump to Bottom" },
-      { key: "editFind", label: "Find" },
-      { key: "editFindNext", label: "Find Next" },
-      { key: "editFindPrevious", label: "Find Previous" },
-      { key: "editReplace", label: "Replace" },
-    ],
-  },
-  {
-    name: "Paragraph",
-    shortcuts: [
-      { key: "paragraphHeading1", label: "Heading 1" },
-      { key: "paragraphHeading2", label: "Heading 2" },
-      { key: "paragraphHeading3", label: "Heading 3" },
-      { key: "paragraphHeading4", label: "Heading 4" },
-      { key: "paragraphHeading5", label: "Heading 5" },
-      { key: "paragraphHeading6", label: "Heading 6" },
-      { key: "paragraphParagraph", label: "Paragraph" },
-      { key: "paragraphIncreaseHeading", label: "Increase Heading" },
-      { key: "paragraphDecreaseHeading", label: "Decrease Heading" },
-      { key: "paragraphTable", label: "Table" },
-      { key: "paragraphCodeFences", label: "Code Fences" },
-      { key: "paragraphMathBlock", label: "Math Block" },
-      { key: "paragraphQuote", label: "Quote" },
-      { key: "paragraphOrderedList", label: "Ordered List" },
-      { key: "paragraphUnorderedList", label: "Unordered List" },
-      { key: "paragraphIndent", label: "Indent" },
-      { key: "paragraphOutdent", label: "Outdent" },
-    ],
-  },
-  {
-    name: "Format",
-    shortcuts: [
-      { key: "formatStrong", label: "Bold" },
-      { key: "formatEmphasis", label: "Italic" },
-      { key: "formatUnderline", label: "Underline" },
-      { key: "formatCode", label: "Code" },
-      { key: "formatStrike", label: "Strikethrough" },
-      { key: "formatHyperlink", label: "Hyperlink" },
-      { key: "formatImage", label: "Image" },
-      { key: "formatClearFormat", label: "Clear Format" },
-    ],
-  },
-  {
-    name: "View",
-    shortcuts: [
-      { key: "viewToggleSidebar", label: "Toggle Sidebar" },
-      { key: "viewCycleViewMode", label: "Cycle View Mode" },
-      { key: "viewToggleFullscreen", label: "Toggle Fullscreen" },
-      { key: "viewSwitchDocuments", label: "Switch Documents" },
-    ],
-  },
-];
-
-const VIEW_MODE_OPTIONS: { value: ViewMode; label: string }[] = [
-  { value: "editor-only", label: "Editor" },
-  { value: "preview-only", label: "Preview" },
-  { value: "split", label: "Split" },
-  { value: "wysiwyg", label: "WYSIWYG" },
-];
-
-const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string }[] = [
-  { value: "debug", label: "Debug" },
-  { value: "info", label: "Info" },
-  { value: "warn", label: "Warn" },
-  { value: "error", label: "Error" },
-];
-
-export function SettingsDialog({
-  open,
-  shortcuts,
-  defaultViewMode,
-  mcpConfig = DEFAULT_MCP_CONFIG,
-  onSave,
-  onDefaultViewModeChange,
-  onMcpConfigChange,
-  onClose,
-}: SettingsDialogProps) {
-  const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts>(shortcuts);
-  const [editingKey, setEditingKey] = useState<keyof KeyboardShortcuts | null>(null);
+export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [activePage, setActivePage] = useState("general");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [mcpConfig, setMcpConfig] = useState<McpConfig>(DEFAULT_MCP_CONFIG);
   const { resolvedTheme } = useThemeStore();
-  const { enabled: loggingEnabled, level: loggingLevel, setEnabled, setLevel } = useLoggingStore();
+  const firstNavRef = useRef<HTMLButtonElement>(null);
 
+  // Focus first nav item when dialog opens
   useEffect(() => {
-    setLocalShortcuts(shortcuts);
-  }, [shortcuts]);
-
-  const handleKeyCapture = useCallback(
-    (event: KeyboardEvent) => {
-      if (!editingKey) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const parts: string[] = [];
-      if (event.metaKey) parts.push("Cmd");
-      if (event.ctrlKey) parts.push("Ctrl");
-      if (event.altKey) parts.push("Option");
-      if (event.shiftKey) parts.push("Shift");
-
-      // Get the key name
-      let keyName = event.key;
-      if (keyName === " ") keyName = "Space";
-      else if (keyName === "ArrowUp") keyName = "Up";
-      else if (keyName === "ArrowDown") keyName = "Down";
-      else if (keyName === "ArrowLeft") keyName = "Left";
-      else if (keyName === "ArrowRight") keyName = "Right";
-      else if (keyName.length === 1) keyName = keyName.toUpperCase();
-
-      // Ignore modifier-only presses
-      if (["Meta", "Control", "Alt", "Shift"].includes(event.key)) {
-        return;
-      }
-
-      parts.push(keyName);
-      const shortcut = parts.join("+");
-
-      setLocalShortcuts((prev) => ({
-        ...prev,
-        [editingKey]: shortcut,
-      }));
-      setEditingKey(null);
-    },
-    [editingKey],
-  );
-
-  useEffect(() => {
-    if (editingKey) {
-      window.addEventListener("keydown", handleKeyCapture);
-      return () => window.removeEventListener("keydown", handleKeyCapture);
+    if (open) {
+      setActivePage("general");
+      setTimeout(() => firstNavRef.current?.focus(), 50);
     }
-  }, [editingKey, handleKeyCapture]);
+  }, [open]);
 
-  const handleReset = () => {
-    loggingService.logButtonClick("settings.shortcuts.reset");
-    setLocalShortcuts(DEFAULT_KEYBOARD_SHORTCUTS);
-  };
+  // Load MCP config for integrations page
+  useEffect(() => {
+    if (open) {
+      void preferencesService.getPreferences().then((p) => {
+        if (p.mcp) setMcpConfig(p.mcp);
+      });
+    }
+  }, [open]);
 
-  const handleSave = () => {
-    loggingService.logButtonClick("settings.shortcuts.save");
-    onSave(localShortcuts);
-    onClose();
-  };
-
-  const handleLoggingToggle = async (next: boolean) => {
-    loggingService.logUiEvent("ui.toggle.change", {
-      controlId: "settings.general.logging.enabled",
-      newValue: next,
-    });
-    setEnabled(next);
-    await loggingService.setLoggingSettings({ enabled: next, level: loggingLevel });
-  };
-
-  const handleLogLevelChange = async (next: LogLevel) => {
-    loggingService.logUiEvent("ui.select.change", {
-      controlId: "settings.general.logging.level",
-      newValue: next,
-    });
-    setLevel(next);
-    await loggingService.setLoggingSettings({ enabled: loggingEnabled, level: next });
+  const handleMcpConfigChange = async (config: McpConfig) => {
+    setMcpConfig(config);
+    try {
+      await preferencesService.setPreferences({ mcp: config });
+    } catch {
+      loggingService.logUiEvent("ui.settings.mcp.save", { status: "fail" });
+    }
   };
 
   if (!open) return null;
-
-  const filteredPages = SETTINGS_PAGES.filter((page) =>
-    page.label.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-  const currentPage =
-    SETTINGS_PAGES.find((page) => page.id === activePage) ?? SETTINGS_PAGES[0];
 
   return (
     <div
@@ -294,11 +86,13 @@ export function SettingsDialog({
       }}
     >
       <div
+        role="dialog"
+        aria-labelledby="settings-dialog-title"
         className={`settings-dialog theme-${resolvedTheme}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="settings-header">
-          <h2 className="settings-title">Settings</h2>
+          <h2 id="settings-dialog-title" className="settings-title">Settings</h2>
           <button
             className="settings-close"
             onClick={() => {
@@ -312,161 +106,52 @@ export function SettingsDialog({
 
         <div className="settings-content">
           <div className="settings-sidebar">
-            <input
-              className="settings-search"
-              type="search"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
-            <div className="settings-sidebar-title">Settings</div>
-            {filteredPages.map((page) => (
+            {NAV_ITEMS.map((item, index) => (
               <button
-                key={page.id}
-                className={`settings-category-btn ${
-                  activePage === page.id ? "is-active" : ""
-                }`}
+                key={item.id}
+                ref={index === 0 ? firstNavRef : undefined}
+                className={`settings-category-btn ${activePage === item.id ? "is-active" : ""}`}
                 onClick={() => {
-                  loggingService.logButtonClick(`settings.category.${page.id}`);
-                  setActivePage(page.id);
+                  loggingService.logButtonClick(`settings.category.${item.id}`);
+                  setActivePage(item.id);
                 }}
               >
-                {page.label}
+                <span aria-hidden="true" className="settings-nav-icon">{item.icon}</span>
+                {item.label}
               </button>
             ))}
           </div>
 
           <div className="settings-main">
-            {currentPage.id === "keyboard-shortcuts" ? (
-              <div className="shortcuts-layout">
-                <div className="shortcuts-header">
-                  <h3>Keyboard Shortcuts</h3>
-                  <p>Group shortcuts by intent instead of separate menu pages.</p>
-                </div>
-                {SHORTCUT_CATEGORIES.map((category) => (
-                  <section key={category.name} className="shortcuts-section">
-                    <h4>{category.name}</h4>
-                    <div className="shortcuts-list">
-                      {category.shortcuts.map((item) => (
-                        <div key={item.key} className="shortcut-row">
-                          <span className="shortcut-label">{item.label}</span>
-                          <button
-                            className={`shortcut-value ${
-                              editingKey === item.key ? "is-editing" : ""
-                            }`}
-                            onClick={() => {
-                              loggingService.logButtonClick(
-                                `settings.shortcuts.edit.${String(item.key)}`,
-                              );
-                              setEditingKey(item.key);
-                            }}
-                          >
-                            {editingKey === item.key
-                              ? "Press keys..."
-                              : localShortcuts[item.key]}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            ) : currentPage.id === "integrations" ? (
+            {activePage === "general" && <GeneralSettings />}
+            {activePage === "editor" && <EditorSettings />}
+            {activePage === "markdown" && <MarkdownSettings />}
+            {activePage === "image" && <ImageSettings />}
+            {activePage === "integrations" && (
               <IntegrationsSettings
                 mcpConfig={mcpConfig}
-                onMcpConfigChange={onMcpConfigChange ?? (() => {})}
+                onMcpConfigChange={(cfg) => void handleMcpConfigChange(cfg)}
               />
-            ) : currentPage.id === "general" ? (
-              <div className="settings-general">
-                <h3>General</h3>
-                <p>App behavior, language, and startup preferences.</p>
-                <div className="settings-form">
-                  <div className="settings-form-row">
-                    <label htmlFor="default-view-mode">Default View Mode</label>
-                    <select
-                      id="default-view-mode"
-                      className="settings-select"
-                      value={defaultViewMode}
-                      onChange={(e) => {
-                        const next = e.target.value as ViewMode;
-                        loggingService.logUiEvent("ui.select.change", {
-                          controlId: "settings.general.default_view_mode",
-                          newValue: next,
-                        });
-                        onDefaultViewModeChange(next);
-                      }}
-                    >
-                      {VIEW_MODE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="settings-form-hint">
-                    New documents will open in this view mode.
-                  </p>
-                  <div className="settings-form-row">
-                    <label htmlFor="logging-enabled">Enable Logging</label>
-                    <input
-                      id="logging-enabled"
-                      type="checkbox"
-                      checked={loggingEnabled}
-                      onChange={(e) => void handleLoggingToggle(e.target.checked)}
-                    />
-                  </div>
-                  <div className="settings-form-row">
-                    <label htmlFor="logging-level">Log Level</label>
-                    <select
-                      id="logging-level"
-                      className="settings-select"
-                      value={loggingLevel}
-                      onChange={(e) => void handleLogLevelChange(e.target.value as LogLevel)}
-                    >
-                      {LOG_LEVEL_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="settings-placeholder">
-                <h3>{currentPage.label}</h3>
-                <p>{currentPage.description}</p>
-                <div className="settings-placeholder-grid">
-                  {currentPage.placeholderItems.map((item) => (
-                    <div key={item} className="settings-placeholder-card">
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="settings-placeholder-note">
-                  Placeholder layout aligned with Typora-style settings sections.
-                </div>
-              </div>
             )}
+            {activePage === "export" && <ExportSettings />}
+            {activePage === "appearance" && <AppearanceSettings />}
+            {activePage === "keyboard-shortcuts" && (
+              <KeyboardShortcutsSettings onClose={onClose} />
+            )}
+            {activePage === "advanced" && <AdvancedSettings />}
           </div>
         </div>
 
         <div className="settings-footer">
-          <button className="toolbar-button" onClick={handleReset}>
-            Reset to Defaults
-          </button>
           <div className="settings-footer-right">
             <button
               className="toolbar-button"
               onClick={() => {
-                loggingService.logButtonClick("settings.cancel");
+                loggingService.logButtonClick("settings.close");
                 onClose();
               }}
             >
-              Cancel
-            </button>
-            <button className="toolbar-button primary" onClick={handleSave}>
-              Save
+              Close
             </button>
           </div>
         </div>
