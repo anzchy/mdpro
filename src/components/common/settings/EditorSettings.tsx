@@ -1,32 +1,56 @@
-import { useEffect, useRef, useState } from "react";
-import type { UserPreferences, EditorConfig, ContentWidth } from "../../../types/preferences";
+import { useEffect, useState } from "react";
+import type { EditorConfig, ContentWidth } from "../../../types/preferences";
 import { DEFAULT_EDITOR_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { applyEditorPref } from "./editorPrefApply";
 import { SettingsStepper } from "./SettingsStepper";
 
 export function EditorSettings() {
-  const cachedFullPrefs = useRef<UserPreferences | null>(null);
   const [prefs, setPrefs] = useState<EditorConfig | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    void preferencesService.getPreferences().then((p) => {
-      cachedFullPrefs.current = p;
+    let mounted = true;
+    preferencesService.getPreferences().then((p) => {
+      if (!mounted) return;
       setPrefs({ ...DEFAULT_EDITOR_CONFIG, ...p.editor });
+    }).catch(() => {
+      if (!mounted) return;
+      setLoadError(true);
     });
+    return () => { mounted = false; };
   }, []);
 
-  const handleChange = (
+  const handleChange = async (
     key: keyof EditorConfig,
     value: EditorConfig[keyof EditorConfig],
   ) => {
-    if (!prefs || !cachedFullPrefs.current) return;
+    if (!prefs) return;
+    const prevPrefs = { ...prefs };
     const next = { ...prefs, [key]: value };
     setPrefs(next);
     applyEditorPref(key, value);
-    cachedFullPrefs.current = { ...cachedFullPrefs.current, editor: next };
-    void preferencesService.setPreferences(cachedFullPrefs.current);
+    try {
+      await preferencesService.setPreferences({ editor: next });
+    } catch {
+      // Rollback UI and applied pref on save failure
+      setPrefs(prevPrefs);
+      applyEditorPref(key, prevPrefs[key]);
+    }
   };
+
+  if (loadError) {
+    return (
+      <div>
+        <div className="settings-page-header">
+          <h3 className="settings-page-title">Editor</h3>
+        </div>
+        <p style={{ color: "var(--color-text-secondary)" }}>
+          Failed to load preferences. Please close and reopen settings.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -54,7 +78,7 @@ export function EditorSettings() {
                   className="settings-select"
                   value={prefs.fontFamily}
                   onChange={(e) =>
-                    handleChange(
+                    void handleChange(
                       "fontFamily",
                       e.target.value as EditorConfig["fontFamily"],
                     )
@@ -80,7 +104,7 @@ export function EditorSettings() {
                   min={12}
                   max={24}
                   unit="px"
-                  onChange={(v) => handleChange("fontSize", v)}
+                  onChange={(v) => void handleChange("fontSize", v)}
                 />
               </div>
             </div>
@@ -97,7 +121,7 @@ export function EditorSettings() {
                   className="settings-select"
                   value={prefs.lineHeightX10}
                   onChange={(e) =>
-                    handleChange("lineHeightX10", Number(e.target.value))
+                    void handleChange("lineHeightX10", Number(e.target.value))
                   }
                 >
                   <option value={12}>1.2</option>
@@ -121,7 +145,7 @@ export function EditorSettings() {
                   className="settings-select"
                   value={prefs.contentWidth}
                   onChange={(e) =>
-                    handleChange("contentWidth", e.target.value as ContentWidth)
+                    void handleChange("contentWidth", e.target.value as ContentWidth)
                   }
                 >
                   <option value="narrow">Narrow (600px)</option>
@@ -148,7 +172,7 @@ export function EditorSettings() {
                   className="settings-select"
                   value={prefs.tabSize}
                   onChange={(e) =>
-                    handleChange("tabSize", Number(e.target.value) as 2 | 4)
+                    void handleChange("tabSize", Number(e.target.value) as 2 | 4)
                   }
                 >
                   <option value={2}>2 spaces</option>
@@ -168,7 +192,7 @@ export function EditorSettings() {
                 <input
                   type="checkbox"
                   checked={prefs.wordWrap}
-                  onChange={(e) => handleChange("wordWrap", e.target.checked)}
+                  onChange={(e) => void handleChange("wordWrap", e.target.checked)}
                 />
               </div>
             </div>

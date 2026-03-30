@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { UserPreferences } from "../../../types/preferences";
 import type { ViewMode } from "../../../types/editor";
 import { preferencesService } from "../../../services/preferencesService";
@@ -25,31 +25,57 @@ const AUTOSAVE_OPTIONS: { value: number; label: string }[] = [
 ];
 
 export function GeneralSettings() {
-  const cachedFullPrefs = useRef<UserPreferences | null>(null);
   const [prefs, setPrefs] = useState<GeneralSlice | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
 
   useEffect(() => {
-    void preferencesService.getPreferences().then((p) => {
-      cachedFullPrefs.current = p;
+    let mounted = true;
+    preferencesService.getPreferences().then((p: UserPreferences) => {
+      if (!mounted) return;
       setPrefs({
         defaultViewMode: p.defaultViewMode ?? "wysiwyg",
         autoSaveInterval: p.autoSaveInterval ?? 30,
       });
+    }).catch(() => {
+      if (!mounted) return;
+      setLoadError(true);
     });
+    return () => { mounted = false; };
   }, []);
 
-  const handleChange = (key: keyof GeneralSlice, value: ViewMode | number) => {
-    if (!prefs || !cachedFullPrefs.current) return;
+  const handleChange = async (key: keyof GeneralSlice, value: ViewMode | number) => {
+    if (!prefs) return;
+    const prevPrefs = { ...prefs };
     const next = { ...prefs, [key]: value };
     setPrefs(next);
-    // Decision 1A: update editorStore so useAutoSave reacts immediately
     if (key === "autoSaveInterval") {
       setAutoSaveInterval(value as number);
     }
-    cachedFullPrefs.current = { ...cachedFullPrefs.current, ...next };
-    void preferencesService.setPreferences(cachedFullPrefs.current);
+    try {
+      // Send only the changed scalar field to avoid whole-object snapshot races
+      await preferencesService.setPreferences({ [key]: value } as Partial<UserPreferences>);
+    } catch {
+      // Rollback on save failure
+      setPrefs(prevPrefs);
+      if (key === "autoSaveInterval") {
+        setAutoSaveInterval(prevPrefs.autoSaveInterval);
+      }
+    }
   };
+
+  if (loadError) {
+    return (
+      <div>
+        <div className="settings-page-header">
+          <h3 className="settings-page-title">General</h3>
+        </div>
+        <p style={{ color: "var(--color-text-secondary)" }}>
+          Failed to load preferences. Please close and reopen settings.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -74,7 +100,7 @@ export function GeneralSettings() {
                 className="settings-select"
                 value={prefs.defaultViewMode}
                 onChange={(e) =>
-                  handleChange("defaultViewMode", e.target.value as ViewMode)
+                  void handleChange("defaultViewMode", e.target.value as ViewMode)
                 }
               >
                 {VIEW_MODE_OPTIONS.map((opt) => (
@@ -96,7 +122,7 @@ export function GeneralSettings() {
                 className="settings-select"
                 value={prefs.autoSaveInterval}
                 onChange={(e) =>
-                  handleChange("autoSaveInterval", Number(e.target.value))
+                  void handleChange("autoSaveInterval", Number(e.target.value))
                 }
               >
                 {AUTOSAVE_OPTIONS.map((opt) => (

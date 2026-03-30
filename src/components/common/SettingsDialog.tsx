@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { McpConfig } from "../../types/preferences";
 import { DEFAULT_MCP_CONFIG } from "../../types/preferences";
 import { useThemeStore } from "../../stores/themeStore";
@@ -40,16 +40,50 @@ const NAV_ITEMS: NavItem[] = [
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [activePage, setActivePage] = useState("general");
   const [mcpConfig, setMcpConfig] = useState<McpConfig>(DEFAULT_MCP_CONFIG);
-  const { resolvedTheme } = useThemeStore();
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const firstNavRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Focus first nav item when dialog opens
+  // Save and restore focus on open/close
   useEffect(() => {
     if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
       setActivePage("general");
       setTimeout(() => firstNavRef.current?.focus(), 50);
+    } else {
+      previousFocusRef.current?.focus();
     }
   }, [open]);
+
+  // Focus trap: keep keyboard focus inside the dialog while it is open
+  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      loggingService.logDialogAction("settings.dialog.escape", "cancel");
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab" || !dialogRef.current) return;
+    const focusable = Array.from(
+      dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }, [onClose]);
 
   // Load MCP config for integrations page
   useEffect(() => {
@@ -61,10 +95,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   }, [open]);
 
   const handleMcpConfigChange = async (config: McpConfig) => {
+    const prev = mcpConfig;
     setMcpConfig(config);
     try {
       await preferencesService.setPreferences({ mcp: config });
     } catch {
+      setMcpConfig(prev);
       loggingService.logUiEvent("ui.settings.mcp.save", { status: "fail" });
     }
   };
@@ -78,18 +114,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         loggingService.logDialogAction("settings.dialog.backdrop", "cancel");
         onClose();
       }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          loggingService.logDialogAction("settings.dialog.escape", "cancel");
-          onClose();
-        }
-      }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="settings-dialog-title"
         className={`settings-dialog theme-${resolvedTheme}`}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleDialogKeyDown}
       >
         <div className="settings-header">
           <h2 id="settings-dialog-title" className="settings-title">Settings</h2>

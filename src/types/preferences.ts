@@ -48,15 +48,16 @@ export interface UserPreferences {
   appearance: AppearanceConfig;
 
   /** Image handling settings */
-  image?: {
-    assetFolder: string;
-    copyExternalImages: boolean;
-    showPastePreview?: boolean;
-    maxDimension?: number | null;
-  };
+  image: ImageConfig;
 
   /** Export configuration */
-  export?: ExportConfig;
+  export: ExportConfig;
+
+  /** Auto-save configuration (nested model) */
+  autoSave: AutoSaveConfig;
+
+  /** Tab bar configuration */
+  tabBar: TabBarConfig;
 }
 
 export interface WindowState {
@@ -208,10 +209,10 @@ export interface McpConfig {
   autoApproveEdits: boolean;
 }
 
-/** Default MCP configuration */
+/** Default MCP configuration — disabled by default; user must opt in */
 export const DEFAULT_MCP_CONFIG: McpConfig = {
-  enabled: true,
-  startOnLaunch: true,
+  enabled: false,
+  startOnLaunch: false,
   autoApproveEdits: false,
 };
 
@@ -292,4 +293,57 @@ export interface ExportConfig {
 export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   defaultFolder: "",
   htmlIncludeStyles: true,
+};
+
+/** Image handling configuration */
+export interface ImageConfig {
+  /** Default folder for uploaded images (relative to document) */
+  assetFolder: string;
+  /** Whether to copy external images to asset folder */
+  copyExternalImages: boolean;
+  /** Whether to show preview before paste */
+  showPastePreview: boolean;
+  /** Maximum dimension for auto-resize (null = no limit) */
+  maxDimension: number | null;
+}
+
+export const DEFAULT_IMAGE_CONFIG: ImageConfig = {
+  assetFolder: "./assets",
+  copyExternalImages: true,
+  showPastePreview: true,
+  maxDimension: null,
+};
+
+/** Auto-save configuration (mirrors Rust AutoSaveConfig) */
+export interface AutoSaveConfig {
+  /** Whether auto-save is enabled */
+  enabled: boolean;
+  /** Auto-save interval in milliseconds */
+  intervalMs: number;
+  /** Debounce delay before saving after typing stops */
+  debounceMs: number;
+  /** Whether to save on window blur */
+  saveOnBlur: boolean;
+}
+
+export const DEFAULT_AUTO_SAVE_CONFIG: AutoSaveConfig = {
+  enabled: true,
+  intervalMs: 15000,
+  debounceMs: 1500,
+  saveOnBlur: true,
+};
+
+/** Tab bar configuration (mirrors Rust TabBarConfig) */
+export interface TabBarConfig {
+  position: "top" | "bottom";
+  maxVisibleTabs: number;
+  showCloseOnHover: boolean;
+  closeFocusBehavior: "mru" | "right" | "left";
+}
+
+export const DEFAULT_TAB_BAR_CONFIG: TabBarConfig = {
+  position: "top",
+  maxVisibleTabs: 10,
+  showCloseOnHover: true,
+  closeFocusBehavior: "mru",
 };

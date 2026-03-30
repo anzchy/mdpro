@@ -17,4 +17,9 @@
   --settings-card-border: 1px dashed rgba(255, 255, 255, 0.15);
   --settings-btn-hover-bg: rgba(96, 165, 250, 0.12);
   --settings-btn-active-bg: rgba(96, 165, 250, 0.28);
+
+  /* Semantic aliases */
+  --color-text-secondary: var(--color-muted);
+  --color-bg-secondary: var(--color-surface);
+  --color-bg-tertiary: #1e2330;
 }

@@ -279,22 +279,31 @@ pub struct WindowState {
 #[serde(rename_all = "camelCase")]
 pub struct AutoSaveConfig {
     /// Whether auto-save is enabled
+    #[serde(default = "default_auto_save_enabled")]
     pub enabled: bool,
     /// Auto-save interval in milliseconds (5000, 15000, 60000)
+    #[serde(default = "default_auto_save_interval_ms")]
     pub interval_ms: u32,
     /// Debounce delay before saving after typing stops
+    #[serde(default = "default_auto_save_debounce_ms")]
     pub debounce_ms: u32,
     /// Whether to save on window blur
+    #[serde(default = "default_auto_save_save_on_blur")]
     pub save_on_blur: bool,
 }
+
+fn default_auto_save_enabled() -> bool { true }
+fn default_auto_save_interval_ms() -> u32 { 15000 }
+fn default_auto_save_debounce_ms() -> u32 { 1500 }
+fn default_auto_save_save_on_blur() -> bool { true }
 
 impl Default for AutoSaveConfig {
     fn default() -> Self {
         Self {
-            enabled: true,
-            interval_ms: 15000,
-            debounce_ms: 1500,
-            save_on_blur: true,
+            enabled: default_auto_save_enabled(),
+            interval_ms: default_auto_save_interval_ms(),
+            debounce_ms: default_auto_save_debounce_ms(),
+            save_on_blur: default_auto_save_save_on_blur(),
         }
     }
 }
@@ -304,37 +313,46 @@ impl Default for AutoSaveConfig {
 #[serde(rename_all = "camelCase")]
 pub struct TabBarConfig {
     /// Position of tab bar (top or bottom)
+    #[serde(default)]
     pub position: TabBarPosition,
     /// Maximum number of visible tabs before scrolling
+    #[serde(default = "default_max_visible_tabs")]
     pub max_visible_tabs: u32,
     /// Whether to show close button on hover only
+    #[serde(default = "default_show_close_on_hover")]
     pub show_close_on_hover: bool,
     /// Focus behavior when closing active tab
+    #[serde(default)]
     pub close_focus_behavior: CloseFocusBehavior,
 }
+
+fn default_max_visible_tabs() -> u32 { 10 }
+fn default_show_close_on_hover() -> bool { true }
 
 impl Default for TabBarConfig {
     fn default() -> Self {
         Self {
             position: TabBarPosition::Top,
-            max_visible_tabs: 10,
-            show_close_on_hover: true,
+            max_visible_tabs: default_max_visible_tabs(),
+            show_close_on_hover: default_show_close_on_hover(),
             close_focus_behavior: CloseFocusBehavior::Mru,
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum TabBarPosition {
+    #[default]
     Top,
     Bottom,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum CloseFocusBehavior {
     /// Most recently used tab
+    #[default]
     Mru,
     /// Tab to the right
     Right,
@@ -495,19 +513,22 @@ pub enum CodeTheme {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpConfig {
-    /// Whether MCP server is enabled
+    /// Whether MCP server is enabled — opt-in only; defaults to false
+    #[serde(default)]
     pub enabled: bool,
-    /// Auto-start MCP server when app launches
+    /// Auto-start MCP server when app launches — opt-in only; defaults to false
+    #[serde(default)]
     pub start_on_launch: bool,
     /// Auto-approve AI edits without confirmation (when focused)
+    #[serde(default)]
     pub auto_approve_edits: bool,
 }
 
 impl Default for McpConfig {
     fn default() -> Self {
         Self {
-            enabled: true,
-            start_on_launch: true,
+            enabled: false,
+            start_on_launch: false,
             auto_approve_edits: false,
         }
     }

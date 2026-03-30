@@ -33,22 +33,24 @@ describe("EditorSettings — source structure", () => {
     expect(editorSettingsSrc).toContain("preferencesService");
   });
 
-  it("uses cachedFullPrefs ref to preserve the full preferences object", () => {
-    expect(editorSettingsSrc).toContain("cachedFullPrefs");
-    expect(editorSettingsSrc).toContain("useRef");
+  it("handleChange is async (await setPreferences)", () => {
+    // handleChange is async so it can await the save and rollback on failure
+    expect(editorSettingsSrc).toContain("const handleChange = async");
   });
 
   it("calls applyEditorPref(key, value) inside handleChange", () => {
     expect(editorSettingsSrc).toContain("applyEditorPref(key, value)");
   });
 
-  it("calls preferencesService.setPreferences with the merged full prefs after handleChange", () => {
-    expect(editorSettingsSrc).toContain("preferencesService.setPreferences(cachedFullPrefs.current)");
+  it("sends only the editor slice to setPreferences (not full-object snapshot)", () => {
+    // Sending only { editor: next } prevents whole-object snapshot race conditions
+    expect(editorSettingsSrc).toContain("setPreferences({ editor: next })");
   });
 
-  it("merges updated editor key back into cachedFullPrefs before saving", () => {
-    // The pattern: cachedFullPrefs.current = { ...cachedFullPrefs.current, editor: next }
-    expect(editorSettingsSrc).toMatch(/cachedFullPrefs\.current\s*=\s*\{[^}]*editor:\s*next/);
+  it("rolls back prefs and applied editor pref on save failure", () => {
+    // On catch: restore previous local state and re-apply previous pref value
+    expect(editorSettingsSrc).toContain("setPrefs(prevPrefs)");
+    expect(editorSettingsSrc).toContain("applyEditorPref(key, prevPrefs[key])");
   });
 
   it("renders wordWrap as a checkbox input", () => {

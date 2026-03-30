@@ -2,16 +2,20 @@ import { invoke } from "@tauri-apps/api/core";
 import type { UserPreferences, WindowState } from "../types/preferences";
 import {
   DEFAULT_APPEARANCE_CONFIG,
+  DEFAULT_AUTO_SAVE_CONFIG,
   DEFAULT_EDITOR_CONFIG,
+  DEFAULT_EXPORT_CONFIG,
+  DEFAULT_IMAGE_CONFIG,
   DEFAULT_KEYBOARD_SHORTCUTS,
   DEFAULT_MARKDOWN_CONFIG,
   DEFAULT_MCP_CONFIG,
+  DEFAULT_TAB_BAR_CONFIG,
 } from "../types/preferences";
 
 // Check if running in Tauri environment
 const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
 
-// Default preferences for browser mode
+// Default preferences for browser mode — must stay in sync with Rust UserPreferences::default()
 const DEFAULT_PREFERENCES: UserPreferences = {
   themeMode: "system",
   autoSaveInterval: 30,
@@ -28,6 +32,10 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   editor: DEFAULT_EDITOR_CONFIG,
   markdown: DEFAULT_MARKDOWN_CONFIG,
   appearance: DEFAULT_APPEARANCE_CONFIG,
+  image: DEFAULT_IMAGE_CONFIG,
+  export: DEFAULT_EXPORT_CONFIG,
+  autoSave: DEFAULT_AUTO_SAVE_CONFIG,
+  tabBar: DEFAULT_TAB_BAR_CONFIG,
 };
 
 export const preferencesService = {
@@ -35,7 +43,7 @@ export const preferencesService = {
     if (!isTauri) {
       return DEFAULT_PREFERENCES;
     }
-    return invoke("get_preferences", {});
+    return invoke<UserPreferences>("get_preferences", {});
   },
 
   async setPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences> {
@@ -43,7 +51,7 @@ export const preferencesService = {
       // In browser mode, just return merged preferences (not persisted)
       return { ...DEFAULT_PREFERENCES, ...preferences };
     }
-    return invoke("set_preferences", { preferences });
+    return invoke<UserPreferences>("set_preferences", { preferences });
   },
 
   async getSystemTheme(): Promise<"light" | "dark"> {
@@ -51,7 +59,7 @@ export const preferencesService = {
       // Use browser's color scheme preference
       return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
-    return invoke("get_system_theme", {});
+    return invoke<"light" | "dark">("get_system_theme", {});
   },
 
   async saveWindowState(windowState: WindowState): Promise<void> {
@@ -59,6 +67,6 @@ export const preferencesService = {
       // No-op in browser mode
       return;
     }
-    return invoke("save_window_state", { windowState });
+    return invoke<void>("save_window_state", { windowState });
   },
 };

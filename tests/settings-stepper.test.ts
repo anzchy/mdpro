@@ -35,12 +35,14 @@ describe("SettingsStepper — source structure", () => {
     expect(stepperSrc).toContain('role="group"');
   });
 
-  it("decrease button is disabled when value <= min", () => {
-    expect(stepperSrc).toContain("disabled={value <= min}");
+  it("decrease button is disabled when displayValue <= min", () => {
+    // Uses displayValue (optimistic pending value) not stale prop `value`
+    expect(stepperSrc).toContain("disabled={displayValue <= min}");
   });
 
-  it("increase button is disabled when value >= max", () => {
-    expect(stepperSrc).toContain("disabled={value >= max}");
+  it("increase button is disabled when displayValue >= max", () => {
+    // Uses displayValue (optimistic pending value) not stale prop `value`
+    expect(stepperSrc).toContain("disabled={displayValue >= max}");
   });
 
   it("decrease button has aria-label='Decrease'", () => {
@@ -89,8 +91,9 @@ describe("SettingsStepper — source structure", () => {
     expect(stepperSrc).toContain("clearTimeout(timerRef.current)");
   });
 
-  it("displays value and unit concatenated inside a span", () => {
-    expect(stepperSrc).toContain("{value}");
+  it("displays displayValue and unit concatenated inside a span", () => {
+    // Renders optimistic displayValue so rapid clicks show immediate feedback
+    expect(stepperSrc).toContain("{displayValue}");
     expect(stepperSrc).toContain("{unit}");
   });
 });
@@ -144,9 +147,11 @@ describe("SettingsStepper — boundary logic (pure)", () => {
 // Debounce logic — verify the setTimeout pattern in source
 // ---------------------------------------------------------------------------
 describe("SettingsStepper — debounce pattern", () => {
-  it("uses useMemo to create a stable debouncedChange wrapper", () => {
-    expect(stepperSrc).toContain("useMemo");
-    expect(stepperSrc).toContain("debouncedChange");
+  it("uses pendingRef to accumulate rapid clicks without stale prop reads", () => {
+    // The fix for rapid-click collapse: track pending value in a ref so
+    // each click increments from the last pending value, not the stale prop.
+    expect(stepperSrc).toContain("pendingRef");
+    expect(stepperSrc).toContain("pendingRef.current");
   });
 
   it("clears previous timer before setting a new one (prevents stacking)", () => {

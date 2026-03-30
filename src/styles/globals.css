@@ -31,6 +31,11 @@
   --settings-card-border: 1px dashed rgba(0, 0, 0, 0.12);
   --settings-btn-hover-bg: rgba(37, 99, 235, 0.08);
   --settings-btn-active-bg: rgba(37, 99, 235, 0.15);
+
+  /* Semantic aliases used in settings/MCP UI — fallback values for unstyled contexts */
+  --color-text-secondary: #6b7280;
+  --color-bg-secondary: #f6f7fb;
+  --color-bg-tertiary: #eeeff3;
 }
 
 * {

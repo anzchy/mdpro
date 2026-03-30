@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface StepperProps {
   value: number;
@@ -10,19 +10,22 @@ interface StepperProps {
 
 /**
  * A +/− stepper control used for numeric settings like font size.
- * Debounces the onChange callback by 150ms to avoid hammering the
- * preferences service on rapid repeated clicks.
+ * Tracks pending value in a ref so rapid clicks accumulate correctly even
+ * before the parent has re-rendered with the new prop.  Debounces the
+ * onChange callback by 150ms so the preferences service is not hammered on
+ * every keypress or click.
  */
 export function SettingsStepper({ value, min, max, onChange, unit = "" }: StepperProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // pendingRef tracks the optimistic value between rapid clicks
+  const pendingRef = useRef(value);
+  const [displayValue, setDisplayValue] = useState(value);
 
-  // Stable debounced wrapper — recreated only when `onChange` identity changes.
-  const debouncedChange = useMemo(() => {
-    return (next: number) => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => onChange(next), 150);
-    };
-  }, [onChange]);
+  // Sync display and pending when the parent propagates the flushed value
+  useEffect(() => {
+    pendingRef.current = value;
+    setDisplayValue(value);
+  }, [value]);
 
   // Clean up any pending timer on unmount.
   useEffect(() => {
@@ -31,14 +34,25 @@ export function SettingsStepper({ value, min, max, onChange, unit = "" }: Steppe
     };
   }, []);
 
+  const flush = (next: number) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => onChange(next), 150);
+  };
+
   const decrement = () => {
-    if (value <= min) return;
-    debouncedChange(value - 1);
+    if (pendingRef.current <= min) return;
+    const next = pendingRef.current - 1;
+    pendingRef.current = next;
+    setDisplayValue(next);
+    flush(next);
   };
 
   const increment = () => {
-    if (value >= max) return;
-    debouncedChange(value + 1);
+    if (pendingRef.current >= max) return;
+    const next = pendingRef.current + 1;
+    pendingRef.current = next;
+    setDisplayValue(next);
+    flush(next);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -56,25 +70,25 @@ export function SettingsStepper({ value, min, max, onChange, unit = "" }: Steppe
     <div
       className="settings-stepper"
       role="group"
-      aria-label={`Value: ${value}${unit}`}
+      aria-label={`Value: ${displayValue}${unit}`}
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
       <button
         onClick={decrement}
-        disabled={value <= min}
+        disabled={displayValue <= min}
         aria-label="Decrease"
         type="button"
       >
         −
       </button>
       <span>
-        {value}
+        {displayValue}
         {unit}
       </span>
       <button
         onClick={increment}
-        disabled={value >= max}
+        disabled={displayValue >= max}
         aria-label="Increase"
         type="button"
       >

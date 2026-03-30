@@ -36,7 +36,7 @@ const defaultCursor: CursorPosition = {
 
 export const useEditorStore = create<EditorStore>((set) => ({
   activeDocumentId: null,
-  viewMode: "split",
+  viewMode: "wysiwyg",
   showSidebar: true,
   autoSaveInterval: 30,
   setAutoSaveInterval: (seconds) => set({ autoSaveInterval: seconds }),

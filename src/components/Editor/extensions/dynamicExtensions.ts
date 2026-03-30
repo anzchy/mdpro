@@ -6,7 +6,7 @@
  * Usage: call compartment.reconfigure(newExtension) on the EditorView
  * to change the extension at runtime.
  */
-import { Compartment } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { closeBrackets } from "@codemirror/autocomplete";
 import { indentUnit } from "@codemirror/language";
@@ -23,9 +23,14 @@ export function initialWordWrap(enabled: boolean) {
   return wordWrapCompartment.of(enabled ? EditorView.lineWrapping : []);
 }
 
-/** Returns the initial extension for tabSizeCompartment based on the saved pref */
+/** Returns the initial extension for tabSizeCompartment based on the saved pref.
+ *  Sets both the display tab width (EditorState.tabSize) and the indent insertion
+ *  unit (indentUnit) so that Tab key and tab display are consistent. */
 export function initialTabSize(size: number) {
-  return tabSizeCompartment.of(indentUnit.of(" ".repeat(size)));
+  return tabSizeCompartment.of([
+    EditorState.tabSize.of(size),
+    indentUnit.of(" ".repeat(size)),
+  ]);
 }
 
 /** Returns the initial extension for closeBracketsCompartment based on the saved pref */

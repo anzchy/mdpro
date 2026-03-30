@@ -14,6 +14,7 @@ export function useAutoSave(autoSaveInterval: number) {
   useEffect(() => {
     const activeDocument = documents.find((doc) => doc.id === activeDocumentId) ?? null;
     if (!activeDocument || !activeDocument.isModified) return;
+    if (autoSaveInterval <= 0) return; // 0 = disabled
 
     const intervalMs = Math.max(autoSaveInterval * 1000, 5000);
     const interval = window.setInterval(async () => {

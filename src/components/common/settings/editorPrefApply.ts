@@ -5,9 +5,14 @@
  * :root (for font/layout settings) or as a CodeMirror Compartment dispatch
  * (for editor behavior settings).
  *
+ * Compartment changes that arrive before the editor is mounted, or on a
+ * re-mount, are handled by reapplyEditorPrefs(view) — call this from
+ * Editor.tsx onCreateEditor after setEditorView().
+ *
  * Used by:
  * - EditorSettings page on each user change (instant-apply)
  * - App.tsx on startup after getPreferences() resolves (Decision 2A)
+ * - Editor.tsx onCreateEditor to sync compartments with persisted prefs
  */
 import type { EditorConfig } from "../../../types/preferences";
 import {
@@ -17,6 +22,7 @@ import {
   wordWrapCompartment,
 } from "../../Editor/extensions/dynamicExtensions";
 import { EditorView } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
 import { closeBrackets } from "@codemirror/autocomplete";
 import { indentUnit } from "@codemirror/language";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -45,6 +51,56 @@ export function fontFamilyToCss(family: string): string {
   }
 }
 
+// Clamp helpers to guard against corrupted persisted values
+function clampFontSize(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.min(Math.max(n, 8), 72) : 16;
+}
+function clampLineHeight(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.min(Math.max(n, 10), 30) : 16;
+}
+function clampTabSize(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  // Valid tab sizes are 2, 4, or 8
+  return n === 2 || n === 8 ? n : 4;
+}
+
+// ---------------------------------------------------------------------------
+// Last-known compartment pref store
+// ---------------------------------------------------------------------------
+
+/**
+ * Tracks the most recent value for each EditorConfig key that controls a
+ * CodeMirror compartment.  Updated by applyEditorPref() and used by
+ * reapplyEditorPrefs() to re-sync compartments after a mount or remount.
+ */
+const lastKnown: {
+  tabSize: number;
+  wordWrap: boolean;
+} = {
+  tabSize: 4,
+  wordWrap: true,
+};
+
+/**
+ * Re-apply all known compartment prefs to a freshly mounted EditorView.
+ * Call this from Editor.tsx onCreateEditor immediately after setEditorView().
+ */
+export function reapplyEditorPrefs(view: EditorView): void {
+  view.dispatch({
+    effects: [
+      tabSizeCompartment.reconfigure([
+        EditorState.tabSize.of(lastKnown.tabSize),
+        indentUnit.of(" ".repeat(lastKnown.tabSize)),
+      ]),
+      wordWrapCompartment.reconfigure(
+        lastKnown.wordWrap ? EditorView.lineWrapping : [],
+      ),
+    ],
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Core apply function
 // ---------------------------------------------------------------------------
@@ -52,7 +108,8 @@ export function fontFamilyToCss(family: string): string {
 /**
  * Applies a single EditorConfig key-value pair.
  * CSS-only changes (font, line-height, content-width) need no CodeMirror access.
- * Compartment changes get the EditorView from editorStore.
+ * Compartment changes get the EditorView from editorStore; if the view is not
+ * yet mounted the value is persisted in lastKnown for replay on the next mount.
  */
 export function applyEditorPref(
   key: keyof EditorConfig,
@@ -62,13 +119,13 @@ export function applyEditorPref(
 
   switch (key) {
     case "fontSize":
-      root.style.setProperty("--editor-font-size", `${value as number}px`);
+      root.style.setProperty("--editor-font-size", `${clampFontSize(value)}px`);
       return;
 
     case "lineHeightX10":
       root.style.setProperty(
         "--editor-line-height",
-        String((value as number) / 10),
+        String(clampLineHeight(value as number) / 10),
       );
       return;
 
@@ -87,28 +144,31 @@ export function applyEditorPref(
       return;
 
     case "tabSize": {
+      const size = clampTabSize(value);
+      lastKnown.tabSize = size;
       const view = useEditorStore.getState().editorView;
-      if (!view) return;
+      if (!view) return; // will be replayed in reapplyEditorPrefs on mount
       view.dispatch({
-        effects: tabSizeCompartment.reconfigure(
-          indentUnit.of(" ".repeat(value as number)),
-        ),
+        effects: tabSizeCompartment.reconfigure([
+          EditorState.tabSize.of(size),
+          indentUnit.of(" ".repeat(size)),
+        ]),
       });
       return;
     }
 
     case "wordWrap": {
+      const wrap = value as boolean;
+      lastKnown.wordWrap = wrap;
       const view = useEditorStore.getState().editorView;
-      if (!view) return;
+      if (!view) return; // will be replayed in reapplyEditorPrefs on mount
       view.dispatch({
         effects: wordWrapCompartment.reconfigure(
-          (value as boolean) ? EditorView.lineWrapping : [],
+          wrap ? EditorView.lineWrapping : [],
         ),
       });
       return;
     }
-
-    // No default arm — TypeScript exhaustiveness handles unknown keys at compile time.
   }
 }
 

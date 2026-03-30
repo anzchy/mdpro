@@ -11,6 +11,7 @@ import {
   initialTabSize,
   initialWordWrap,
 } from "./extensions/dynamicExtensions";
+import { reapplyEditorPrefs } from "../common/settings/editorPrefApply";
 import { useEditorStore } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
@@ -51,6 +52,41 @@ export function Editor({
     [],
   );
 
+  // Memoize undo/redo keymap — identity-stable, no deps change
+  const undoRedoKeymap = useMemo(
+    () =>
+      keymap.of([
+        { key: "Mod-z", run: undo },
+        { key: "Mod-Shift-z", run: redo },
+        { key: "Mod-y", run: redo },
+      ]),
+    [],
+  );
+
+  // Memoize the full extensions array.
+  // Dynamic compartments use stable `initial*` wrappers; their values are
+  // synced from persisted prefs on every mount via reapplyEditorPrefs().
+  const extensions = useMemo(
+    () => [
+      markdownExtension,
+      syntaxHighlightingExtension,
+      ...searchExtensions,
+      pluginEventExtension,
+      ...pluginExtensions,
+      // Dynamic compartments — reconfigured via applyEditorPref() and related helpers.
+      // Initial values are defaults; reapplyEditorPrefs() syncs them to persisted prefs.
+      initialWordWrap(true),
+      initialTabSize(4),
+      initialCloseBrackets(true),
+      initialCodeTheme("default"),
+      undoRedoKeymap,
+    ],
+    // pluginExtensions and pluginEventExtension are stable memos; only include
+    // the deps that actually change to avoid unnecessary extension churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pluginEventExtension, pluginExtensions, undoRedoKeymap],
+  );
+
   useEffect(() => {
     if (highlightRequest === undefined) return;
     if (viewRef.current) {
@@ -73,23 +109,7 @@ export function Editor({
       <CodeMirror
         value={value}
         height="100%"
-        extensions={[
-          markdownExtension,
-          syntaxHighlightingExtension,
-          ...searchExtensions,
-          pluginEventExtension,
-          ...pluginExtensions,
-          // Dynamic compartments — reconfigured via applyEditorPref() and related helpers
-          initialWordWrap(true),
-          initialTabSize(4),
-          initialCloseBrackets(true),
-          initialCodeTheme("default"),
-          keymap.of([
-            { key: "Mod-z", run: undo },
-            { key: "Mod-Shift-z", run: redo },
-            { key: "Mod-y", run: redo },
-          ]),
-        ]}
+        extensions={extensions}
         onChange={(nextValue) => {
           if (!readOnly) {
             onChange(nextValue);
@@ -98,6 +118,8 @@ export function Editor({
         onCreateEditor={(view) => {
           viewRef.current = view;
           setEditorView(view);
+          // Sync compartments with persisted prefs (handles both first mount and remount)
+          reapplyEditorPrefs(view);
           pluginRegistry.setCodemirrorView(view);
           if (!initializedRef.current) {
             pluginRegistry.initialize({ currentMode: "codemirror", codemirrorView: view });
@@ -111,6 +133,10 @@ export function Editor({
           lineNumbers: true,
           highlightActiveLine: true,
           highlightSelectionMatches: true,
+          // Disable built-in closeBrackets so our compartment (closeBracketsCompartment)
+          // has exclusive ownership. Without this, basicSetup's copy stays active even
+          // when the compartment is reconfigured to [].
+          closeBrackets: false,
         }}
       />
     </div>

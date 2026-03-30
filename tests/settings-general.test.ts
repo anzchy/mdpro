@@ -44,15 +44,14 @@ describe("GeneralSettings — source structure", () => {
     expect(generalSettingsSrc).toContain('"autoSaveInterval"');
   });
 
-  it("uses cachedFullPrefs ref for full-prefs preservation before setPreferences", () => {
-    expect(generalSettingsSrc).toContain("cachedFullPrefs");
-    expect(generalSettingsSrc).toContain("useRef");
+  it("handleChange is async (await setPreferences)", () => {
+    // handleChange is async so it can await the save and rollback on failure
+    expect(generalSettingsSrc).toContain("const handleChange = async");
   });
 
-  it("spreads new key-value directly into cachedFullPrefs (not nested under 'general')", () => {
-    // GeneralSettings stores top-level keys (defaultViewMode, autoSaveInterval) —
-    // not nested config — so it spreads `...next` rather than nesting
-    expect(generalSettingsSrc).toContain("...cachedFullPrefs.current, ...next");
+  it("sends only the changed scalar field to setPreferences (prevents snapshot races)", () => {
+    // Sends { [key]: value } directly — not a full-object snapshot
+    expect(generalSettingsSrc).toContain("setPreferences({ [key]: value }");
   });
 
   it("imports useEditorStore to propagate live autoSaveInterval changes", () => {

@@ -148,10 +148,11 @@ function App() {
   }, [recentFiles, viewMode]);
 
   const handleToggleSidebar = useCallback((_actionId?: string) => {
-    const next = !showSidebar;
+    // Read current value from store state to avoid stale closure on rapid calls
+    const next = !useEditorStore.getState().showSidebar;
     toggleSidebar();
     void preferencesService.setPreferences({ showSidebar: next });
-  }, [showSidebar, toggleSidebar]);
+  }, [toggleSidebar]);
 
 
 
@@ -317,6 +318,7 @@ function App() {
       }
 
       // Log URL parameter check for debugging (info level to ensure visibility)
+      // Note: only log whether a param is present, not the full URL or path (privacy)
       loggingService.logEventSync({
         level: "info",
         event: "app.url_param_check",
@@ -325,19 +327,18 @@ function App() {
         context: {
           windowLabel,
           hasOpenParam: !!openPath,
-          openPath: openPath || null,
-          fullUrl: window.location.href,
         },
       });
 
       if (openPath) {
         const actionId = loggingService.generateActionId();
+        const fileBasename = openPath.split("/").pop() ?? openPath;
         loggingService.logEventSync({
           level: "info",
           event: "file.open.url_param",
           status: "start",
           actionId,
-          context: { windowLabel, filePath: openPath },
+          context: { windowLabel, fileBasename },
         });
 
         // Use default view mode from preferences for externally opened files
@@ -350,7 +351,7 @@ function App() {
           actionId,
           context: {
             windowLabel,
-            filePath: openPath,
+            fileBasename,
             documentId: doc?.id || null,
             hasContent: doc ? doc.content.length > 0 : false,
           },
@@ -373,7 +374,7 @@ function App() {
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
         const currentWindow = getCurrentWindow();
         appWindowRef.current = currentWindow;
-        unlisten = await currentWindow.onCloseRequested((event) => {
+        unlisten = await currentWindow.onCloseRequested(async (event) => {
           const windowLabel = currentWindow.label;
           loggingService.logEventSync({
             level: "info",
@@ -387,8 +388,8 @@ function App() {
             },
           });
 
-          void saveWindowState();
           if (allowWindowCloseRef.current) {
+            // State already saved by handleConfirmClose; allow the close through
             allowWindowCloseRef.current = false;
             loggingService.logEventSync({
               level: "info",
@@ -399,8 +400,9 @@ function App() {
             });
             return;
           }
+          // Prevent close in all other cases until we finish async work
+          event.preventDefault();
           if (hasUnsavedRef.current) {
-            event.preventDefault();
             closeTargetRef.current = "window";
             setPendingClose("window");
             loggingService.logEventSync({
@@ -411,6 +413,10 @@ function App() {
               context: { windowLabel, action: "prevented_showing_dialog" },
             });
           } else {
+            // No unsaved changes — save state then allow close
+            await saveWindowState();
+            allowWindowCloseRef.current = true;
+            void currentWindow.close();
             loggingService.logEventSync({
               level: "info",
               event: "window.close_requested",
