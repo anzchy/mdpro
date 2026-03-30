@@ -5,6 +5,12 @@ import { redo, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
 import { searchExtensions } from "./extensions/search";
+import {
+  initialCloseBrackets,
+  initialCodeTheme,
+  initialTabSize,
+  initialWordWrap,
+} from "./extensions/dynamicExtensions";
 import { useEditorStore } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
@@ -73,6 +79,11 @@ export function Editor({
           ...searchExtensions,
           pluginEventExtension,
           ...pluginExtensions,
+          // Dynamic compartments — reconfigured via applyEditorPref() and related helpers
+          initialWordWrap(true),
+          initialTabSize(4),
+          initialCloseBrackets(true),
+          initialCodeTheme("default"),
           keymap.of([
             { key: "Mod-z", run: undo },
             { key: "Mod-Shift-z", run: redo },
