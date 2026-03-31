@@ -74,11 +74,9 @@ jobs:
         with:
           allowed_bots: "claude[bot]"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
           show_full_output: true
-          claude_args: |
-            --model claude-opus-4-6
-            --max-turns 25
-            --allowedTools Bash,Read,Write,Edit,Glob,Grep,MultiEdit
+          claude_args: "--model claude-opus-4-6 --max-turns 25 --allowedTools Bash,Read,Write,Edit,Glob,Grep,MultiEdit"
           prompt: |
             Fix audit issue #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}.
 
@@ -123,9 +121,8 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: |
-            --model claude-opus-4-6
-            --max-turns 15
+          github_token: ${{ github.token }}
+          claude_args: "--model claude-opus-4-6 --max-turns 15"
           use_sticky_comment: true
           include_fix_links: true
 
