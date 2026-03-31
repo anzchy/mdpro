@@ -38,6 +38,10 @@ describe("settings-row-content layout (fix #78)", () => {
   it("has flex: 1 so it fills the parent .settings-row and space-between works", () => {
     expect(block).toContain("flex: 1");
   });
+
+  it("retains justify-content: space-between to push label left and control right", () => {
+    expect(block).toContain("justify-content: space-between");
+  });
 });
 
 describe("settings-row base layout", () => {

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Settings panel label/control vertical misalignment — `.settings-row-content` was missing `flex: 1` (preventing `space-between` from distributing width) and had `align-items: flex-start` instead of `center`, causing controls to top-align rather than vertically centre next to labels
 - TOC click-to-navigate broken in all view modes
   - `editor-only`: `preview-container` was absent from the DOM, so `scrollToHeading` returned immediately with no effect
   - `split`: only the preview pane scrolled; the CodeMirror editor pane did not
