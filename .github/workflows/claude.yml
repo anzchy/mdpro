@@ -2,6 +2,7 @@ name: Claude Code
 on:
   schedule:
     - cron: "0 * * * *"   # hourly: process one audit issue per run
+  workflow_dispatch:       # manual trigger from Actions tab
   issues:
     types: [opened, reopened]
   pull_request:
