@@ -124,6 +124,41 @@ fn image_error_message(error: &ImageError) -> String {
     }
 }
 
+/// Validate that target_dir is within doc_dir (prevents path traversal via asset_folder)
+fn validate_asset_dir_containment(
+    doc_dir: &Path,
+    target_dir: &Path,
+) -> Result<std::path::PathBuf, ImageError> {
+    // Create the directory first so we can canonicalize it
+    fs::create_dir_all(target_dir).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::PermissionDenied {
+            ImageError::PermissionDenied {
+                path: target_dir.to_string_lossy().to_string(),
+            }
+        } else {
+            ImageError::IoError {
+                message: e.to_string(),
+            }
+        }
+    })?;
+
+    let canonical_target = target_dir.canonicalize().map_err(|e| ImageError::InvalidPath {
+        message: format!("cannot resolve asset folder: {}", e),
+    })?;
+
+    let canonical_doc = doc_dir.canonicalize().map_err(|e| ImageError::InvalidPath {
+        message: format!("cannot resolve document directory: {}", e),
+    })?;
+
+    if !canonical_target.starts_with(&canonical_doc) {
+        return Err(ImageError::InvalidPath {
+            message: "asset folder must be within the document directory".to_string(),
+        });
+    }
+
+    Ok(canonical_target)
+}
+
 /// Guess MIME type from file extension
 fn guess_mime_type(path: &Path) -> Option<String> {
     let ext = path.extension()?.to_str()?.to_lowercase();
@@ -254,22 +289,10 @@ pub async fn upload_image(
     let doc_path = Path::new(&document_path);
     let doc_dir = doc_path.parent().ok_or(ImageError::DocumentNotSaved)?;
 
-    // Get asset folder
+    // Get asset folder and validate containment (prevents path traversal)
     let asset_dir = asset_folder.unwrap_or_else(|| "./assets".to_string());
     let target_dir = doc_dir.join(&asset_dir);
-
-    // Create directory if needed
-    fs::create_dir_all(&target_dir).map_err(|e| {
-        if e.kind() == std::io::ErrorKind::PermissionDenied {
-            ImageError::PermissionDenied {
-                path: target_dir.to_string_lossy().to_string(),
-            }
-        } else {
-            ImageError::IoError {
-                message: e.to_string(),
-            }
-        }
-    })?;
+    let target_dir = validate_asset_dir_containment(doc_dir, &target_dir)?;
 
     // Sanitize filename: extract basename only and reject empty/separator-only names
     // to prevent path traversal (e.g. "../../evil.sh").
@@ -406,14 +429,10 @@ pub async fn copy_external_image(
         }
     }
 
-    // Get asset folder
+    // Get asset folder and validate containment (prevents path traversal)
     let asset_dir = asset_folder.unwrap_or_else(|| "./assets".to_string());
     let target_dir = doc_dir.join(&asset_dir);
-
-    // Create directory if needed
-    fs::create_dir_all(&target_dir).map_err(|e| ImageError::IoError {
-        message: e.to_string(),
-    })?;
+    let target_dir = validate_asset_dir_containment(doc_dir, &target_dir)?;
 
     // Copy file
     let filename = source
