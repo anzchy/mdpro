@@ -17,6 +17,7 @@ permissions:
   issues: write
   pull-requests: write
   id-token: write
+  workflows: write
 
 jobs:
   # Auto-fix all open audit issues after the auditor completes
@@ -85,9 +86,9 @@ jobs:
             5. If the fix touches .rs files: `cd src-tauri && cargo check --manifest-path src-tauri/Cargo.toml`
             6. If tests are relevant: `pnpm test:run`
             7. Commit: `git commit -m "fix: <issue title> (Closes #<NUMBER>)"`
-            8. Push and open PR:
-               `gh pr create --title "fix: <issue title>" --body "Closes #<NUMBER>" --label audit`
-            9. Return to main: `git checkout main`
+            8. Push branch: `git push origin fix/audit-<NUMBER>`
+            9. Open PR: `gh pr create --title "fix: <issue title>" --body "Closes #<NUMBER>" --label audit`
+            10. Return to master: `git checkout master`
 
             Rules:
             - Apply minimum correct fix — don't refactor beyond the finding
