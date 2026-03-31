@@ -22,6 +22,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 
+// Mock toggleMark so the URL-sanitization tests can verify the guard without
+// needing a fully-hydrated ProseMirror document.
+const { mockToggleMark } = vi.hoisted(() => {
+  const inner = vi.fn((_state: unknown, dispatch: ((tr: unknown) => void) | undefined) => {
+    if (dispatch) dispatch({});
+    return true;
+  });
+  const mockToggleMark = vi.fn(() => inner);
+  return { mockToggleMark };
+});
+
+vi.mock("@milkdown/kit/prose/commands", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@milkdown/kit/prose/commands")>();
+  return { ...original, toggleMark: mockToggleMark };
+});
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -151,6 +167,61 @@ describe("useLinkInsertStore", () => {
     useLinkInsertStore.setState({ pendingCallback: cb });
     useLinkInsertStore.getState().clearPendingCallback();
     expect(useLinkInsertStore.getState().pendingCallback).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A2) URL sanitization — the pending callback must block dangerous protocols
+//     and normalize bare hostnames to https://.
+// ---------------------------------------------------------------------------
+
+describe("link command pending callback — URL sanitization", () => {
+  beforeEach(() => mockToggleMark.mockClear());
+
+  async function runCallbackWithUrl(url: string) {
+    const { useLinkInsertStore } = await import("../src/stores/linkInsertStore");
+    useLinkInsertStore.setState({ pendingCallback: null });
+
+    const schema = makeSchema(["link", "strong", "emphasis"]);
+    const state = makeState(schema) as unknown as Parameters<Command>[0];
+    const dispatch = vi.fn();
+
+    const cmd = TYPORA_KEYMAP_CONFIG.link.command({} as never);
+    cmd(state, dispatch, undefined);
+
+    const cb = useLinkInsertStore.getState().pendingCallback;
+    cb?.(url);
+  }
+
+  it("does NOT invoke toggleMark for javascript: protocol", async () => {
+    await runCallbackWithUrl("javascript:alert(1)");
+    expect(mockToggleMark).not.toHaveBeenCalled();
+  });
+
+  it("does NOT invoke toggleMark for data: protocol", async () => {
+    await runCallbackWithUrl("data:text/html,<script>alert(1)</script>");
+    expect(mockToggleMark).not.toHaveBeenCalled();
+  });
+
+  it("does NOT invoke toggleMark for vbscript: protocol", async () => {
+    await runCallbackWithUrl("vbscript:msgbox(1)");
+    expect(mockToggleMark).not.toHaveBeenCalled();
+  });
+
+  it("invokes toggleMark with https:// href for bare hostname", async () => {
+    await runCallbackWithUrl("example.com");
+    expect(mockToggleMark).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ href: "https://example.com" })
+    );
+  });
+
+  it("invokes toggleMark with original href for https:// URL (no double-prefix)", async () => {
+    await runCallbackWithUrl("https://already.com");
+    expect(mockToggleMark).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ href: "https://already.com" })
+    );
   });
 });
 

@@ -112,7 +112,7 @@ export function LinkInsertModal() {
           id="link-insert-url"
           ref={inputRef}
           className="link-insert-input"
-          type="url"
+          type="text"
           placeholder="https://example.com"
           value={urlValue}
           onChange={(e) => setUrlValue(e.target.value)}
