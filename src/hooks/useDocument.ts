@@ -206,7 +206,7 @@ export function useDocument() {
         lastSaved: result.savedAt,
       });
       markDocumentModified(activeDocument.id, false);
-      void invoke("delete_draft", { documentId: activeDocument.id });
+      void invoke("delete_draft", { documentId: activeDocument.id }).catch(() => {});
     }
     return result;
   }, [activeDocument, markDocumentModified, upsertDocument]);
@@ -230,7 +230,7 @@ export function useDocument() {
         lastSaved: result.savedAt,
       });
       markDocumentModified(activeDocument.id, false);
-      void invoke("delete_draft", { documentId: activeDocument.id });
+      void invoke("delete_draft", { documentId: activeDocument.id }).catch(() => {});
     }
     return result;
   }, [activeDocument, markDocumentModified, saveActiveDocumentAs, upsertDocument]);

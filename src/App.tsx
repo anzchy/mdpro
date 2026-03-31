@@ -451,8 +451,13 @@ function App() {
   useEffect(() => {
     let mounted = true;
     const loadDrafts = async () => {
+      // Run cleanup independently so a failure does not prevent draft listing.
       try {
         await invoke("cleanup_old_drafts", {});
+      } catch {
+        // Best-effort — stale drafts may linger until next launch.
+      }
+      try {
         const found = await invoke<DraftMetadata[]>("list_drafts", {});
         if (mounted) setDrafts(found);
       } catch {
