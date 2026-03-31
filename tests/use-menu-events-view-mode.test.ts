@@ -23,6 +23,10 @@ const src = fs.readFileSync(SRC_PATH, "utf-8");
 // ---------------------------------------------------------------------------
 
 describe("useMenuEvents — dead view-mode cases are removed", () => {
+  it('does not contain case "view.cycle" (Rust emits cycle-view-mode, not view.cycle)', () => {
+    expect(src).not.toMatch(/case\s+["']view\.cycle["']/);
+  });
+
   it('does not contain case "view.split"', () => {
     expect(src).not.toMatch(/case\s+["']view\.split["']/);
   });

@@ -73,9 +73,6 @@ export function useMenuEvents(handlers: MenuHandlers) {
             handlers.onOpenRecent?.(value, actionId);
           }
           break;
-        case "view.cycle":
-          handlers.onCycleViewMode?.(loggingService.logMenuSelect("menu.view.cycle"));
-          break;
         case "cycle-view-mode":
           handlers.onCycleViewMode?.(loggingService.logMenuSelect("menu.view.cycle"));
           break;
