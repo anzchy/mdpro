@@ -69,7 +69,8 @@ function createPlaceholderWidget(id: string): HTMLElement {
 
 // --- Core paste handler ---
 
-async function handleImageFiles(
+/** @internal Exported for unit testing only. */
+export async function handleImageFiles(
   files: File[],
   view: EditorView,
 ): Promise<void> {
@@ -131,8 +132,12 @@ async function handleImageFiles(
       const base64 = await fileToBase64(file);
       const result = await uploadImage(documentPath, base64, filename);
 
-      removePlaceholders(view, placeholderIds);
-      insertImageNode(view, result.relativePath, pastePos);
+      if (!view.isDestroyed) {
+        removePlaceholders(view, placeholderIds);
+      }
+      if (!view.isDestroyed) {
+        insertImageNode(view, result.relativePath, pastePos);
+      }
 
       logSuccess(file, documentPath, Date.now() - startTime);
       if (rejections.length > 0) {
@@ -141,7 +146,9 @@ async function handleImageFiles(
         showToast("Image pasted");
       }
     } catch (err) {
-      removePlaceholders(view, placeholderIds);
+      if (!view.isDestroyed) {
+        removePlaceholders(view, placeholderIds);
+      }
       const message = err instanceof Error ? err.message : String(err);
       logFail(file, documentPath, message);
       showToast(`Failed to paste image: ${message}`);
@@ -163,7 +170,9 @@ async function handleImageFiles(
 
       const batchResult = await uploadImagesBatch(documentPath, items);
 
-      removePlaceholders(view, placeholderIds);
+      if (!view.isDestroyed) {
+        removePlaceholders(view, placeholderIds);
+      }
 
       // Collect successful image paths
       const relativePaths: string[] = [];
@@ -172,7 +181,7 @@ async function handleImageFiles(
         relativePaths.push(result.relativePath);
       }
 
-      if (relativePaths.length > 0) {
+      if (!view.isDestroyed && relativePaths.length > 0) {
         insertImageNodes(view, relativePaths, pastePos);
       }
 
@@ -191,7 +200,9 @@ async function handleImageFiles(
 
       logBatchEnd(validFiles.length, documentPath, batchResult.successCount, batchResult.failureCount, duration);
     } catch (err) {
-      removePlaceholders(view, placeholderIds);
+      if (!view.isDestroyed) {
+        removePlaceholders(view, placeholderIds);
+      }
       const message = err instanceof Error ? err.message : String(err);
       logBatchFail(validFiles.length, documentPath, message);
       showToast(`Failed to paste images: ${message}`);
