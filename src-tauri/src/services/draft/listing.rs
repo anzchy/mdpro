@@ -33,14 +33,16 @@ pub fn list_drafts() -> Result<Vec<DraftMetadataEntry>, DraftError> {
         }
         let id = file_name.replace(".meta.json", "");
 
-        let contents = fs::read_to_string(&path).map_err(|err| DraftError::IoError {
-            message: err.to_string(),
-        })?;
-        let metadata: DraftMetadata = serde_json::from_str(&contents).map_err(|err| {
-            DraftError::ParseError {
-                message: err.to_string(),
-            }
-        })?;
+        // Skip unreadable or corrupt metadata; the second pass will surface the
+        // accompanying .draft.md as an orphan so the user can still recover it.
+        let contents = match fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let metadata: DraftMetadata = match serde_json::from_str(&contents) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
 
         // Always record the id so the second pass skips drafts that have metadata,
         // even if those drafts have already been recovered.
@@ -112,14 +114,14 @@ pub fn cleanup_old_drafts() -> Result<usize, DraftError> {
         }
         let id = file_name.replace(".meta.json", "");
 
-        let contents = fs::read_to_string(&path).map_err(|err| DraftError::IoError {
-            message: err.to_string(),
-        })?;
-        let metadata: DraftMetadata = serde_json::from_str(&contents).map_err(|err| {
-            DraftError::ParseError {
-                message: err.to_string(),
-            }
-        })?;
+        let contents = match fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let metadata: DraftMetadata = match serde_json::from_str(&contents) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
 
         if !metadata.recovered {
             continue;
@@ -127,8 +129,10 @@ pub fn cleanup_old_drafts() -> Result<usize, DraftError> {
 
         if let Ok(last_modified) = DateTime::parse_from_rfc3339(&metadata.last_modified) {
             if last_modified < threshold {
-                let _ = super::delete_draft(&id)?;
-                deleted += 1;
+                // Best-effort: skip this draft on failure and continue with the rest.
+                if super::delete_draft(&id).is_ok() {
+                    deleted += 1;
+                }
             }
         }
     }

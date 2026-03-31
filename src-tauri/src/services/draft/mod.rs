@@ -69,11 +69,22 @@ pub(super) fn drafts_dir() -> Result<PathBuf, DraftError> {
     Ok(home.join(".mdpro").join("drafts"))
 }
 
+fn validate_id(id: &str) -> Result<(), DraftError> {
+    if id.is_empty() || id.contains('/') || id.contains('\\') || id.contains("..") {
+        return Err(DraftError::IoError {
+            message: format!("invalid document id: {id:?}"),
+        });
+    }
+    Ok(())
+}
+
 pub(super) fn draft_path(document_id: &str) -> Result<PathBuf, DraftError> {
+    validate_id(document_id)?;
     Ok(drafts_dir()?.join(format!("{document_id}.draft.md")))
 }
 
 pub(super) fn meta_path(document_id: &str) -> Result<PathBuf, DraftError> {
+    validate_id(document_id)?;
     Ok(drafts_dir()?.join(format!("{document_id}.meta.json")))
 }
 
