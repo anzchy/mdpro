@@ -1,5 +1,7 @@
 name: Claude Code
 on:
+  schedule:
+    - cron: "0 * * * *"   # hourly: process one audit issue per run
   issues:
     types: [opened, reopened]
   pull_request:
@@ -27,6 +29,7 @@ jobs:
       group: audit-fix
       cancel-in-progress: false
     if: >-
+      github.event_name == 'schedule' ||
       (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'audit')) ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
@@ -58,9 +61,11 @@ jobs:
           if [ "${{ github.event_name }}" = "issues" ]; then
             echo "ISSUE_NUMBERS=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
           else
-            NUMBERS=$(gh issue list --state open --label audit --json number \
-              --jq '.[].number' | tr '\n' ' ')
-            echo "ISSUE_NUMBERS=$NUMBERS" >> "$GITHUB_OUTPUT"
+            # Pick only the oldest open audit issue (ascending by created date, take first)
+            NUMBER=$(gh issue list --state open --label audit \
+              --json number,createdAt \
+              --jq 'sort_by(.createdAt) | .[0].number // empty')
+            echo "ISSUE_NUMBERS=$NUMBER" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Fix audit issues
@@ -75,26 +80,24 @@ jobs:
             --max-turns 25
             --allowedTools Bash,Read,Write,Edit,Glob,Grep,MultiEdit
           prompt: |
-            Fix the open audit issues. Issue numbers: ${{ steps.find-issues.outputs.ISSUE_NUMBERS }}
+            Fix audit issue #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}.
 
-            For EACH issue number:
-            1. Read the issue: `gh issue view <NUMBER>`
-            2. Create a fix branch: `git checkout -b fix/audit-<NUMBER>`
+            1. Read the issue: `gh issue view ${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            2. Create a fix branch: `git checkout -b fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
             3. Apply the minimum correct fix described in the issue
             4. Run frontend gate: `pnpm build`
             5. If the fix touches .rs files: `cd src-tauri && cargo check --manifest-path src-tauri/Cargo.toml`
             6. If tests are relevant: `pnpm test:run`
-            7. Commit: `git commit -m "fix: <issue title> (Closes #<NUMBER>)"`
-            8. Push branch: `git push origin fix/audit-<NUMBER>`
-            9. Open PR: `gh pr create --title "fix: <issue title>" --body "Closes #<NUMBER>" --label audit`
-            10. Return to master: `git checkout master`
+            7. Commit: `git commit -m "fix: <issue title> (Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }})"`
+            8. Push branch: `git push origin fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            9. Open PR: `gh pr create --title "fix: <issue title>" --body "Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}" --label audit`
 
             Rules:
             - Apply minimum correct fix — don't refactor beyond the finding
             - If a fix requires touching more than 3 files, comment on the issue explaining
               why and skip (leave for human review)
             - If gates fail after 2 attempts, comment on the issue and move on
-            - Never commit to main directly
+            - Never commit to master directly
 
   # General Claude assistant: PR review, @claude mentions, issue responses
   claude:
