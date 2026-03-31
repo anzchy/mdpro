@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
+import { LinkInsertModal } from "./LinkInsertModal";
 import {
   defaultValueCtx,
   Editor,
@@ -281,6 +282,8 @@ export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
       <MilkdownProvider key={activeDocumentId ?? "empty"}>
         <MilkdownEditorInner highlightRequest={highlightRequest} />
       </MilkdownProvider>
+      {/* Inline URL modal for ⌘K link insert — replaces window.prompt (#25) */}
+      <LinkInsertModal />
     </div>
   );
 }

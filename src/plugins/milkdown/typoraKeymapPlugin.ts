@@ -43,6 +43,7 @@ import {
 } from "@milkdown/kit/prose/commands";
 import type { Command } from "@milkdown/kit/prose/state";
 import { createPlugin } from "../core/pluginTypes";
+import { useLinkInsertStore } from "../../stores/linkInsertStore";
 
 // ---------------------------------------------------------------------------
 // Exported command factories (used directly in tests and in the keymap below)
@@ -143,22 +144,39 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
     command: () => (state: Parameters<Command>[0], dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
       const linkMark = state.schema.marks["link"];
       if (!linkMark) return false;
-      const href = window.prompt("Enter URL (e.g., https://example.com)");
-      if (href === null || href.trim() === "") return false;
-      let url = href.trim();
-      // Block dangerous protocols before normalizing
-      const lower = url.toLowerCase().replace(/\s+/g, "");
-      if (
-        lower.startsWith("javascript:") ||
-        lower.startsWith("data:") ||
-        lower.startsWith("vbscript:")
-      ) {
-        return false;
-      }
-      if (!/^https?:\/\//i.test(url) && !url.startsWith("mailto:") && !url.startsWith("#") && !url.startsWith("/")) {
-        url = "https://" + url;
-      }
-      return toggleMark(linkMark, { href: url })(state, dispatch, view);
+
+      // Snapshot ProseMirror state/dispatch/view at keypress time.
+      // ProseMirror state is immutable so this snapshot is safe; dispatch and
+      // view refs remain stable across transactions.
+      useLinkInsertStore.getState().setPendingCallback((rawUrl: string) => {
+        let url = rawUrl.trim();
+
+        // Block dangerous protocols before applying the mark
+        const lower = url.toLowerCase().replace(/\s+/g, "");
+        if (
+          lower.startsWith("javascript:") ||
+          lower.startsWith("data:") ||
+          lower.startsWith("vbscript:")
+        ) {
+          return;
+        }
+
+        // Normalize bare hostnames to https://
+        if (
+          !/^https?:\/\//i.test(url) &&
+          !url.startsWith("mailto:") &&
+          !url.startsWith("#") &&
+          !url.startsWith("/")
+        ) {
+          url = "https://" + url;
+        }
+
+        toggleMark(linkMark, { href: url })(state, dispatch, view);
+      });
+
+      // Return false so ProseMirror does not consume the event — the React
+      // modal will handle the user interaction asynchronously.
+      return false;
     },
   },
 };
