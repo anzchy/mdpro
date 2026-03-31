@@ -17,7 +17,6 @@ permissions:
   issues: write
   pull-requests: write
   id-token: write
-  workflows: write
 
 jobs:
   # Auto-fix all open audit issues after the auditor completes
