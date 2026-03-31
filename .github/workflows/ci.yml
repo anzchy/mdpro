@@ -66,6 +66,16 @@ jobs:
           key: rust-test-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: rust-test-${{ runner.os }}-
 
+      - name: Create sidecar stub for build.rs
+        shell: bash
+        run: |
+          mkdir -p src-tauri/binaries
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            touch src-tauri/binaries/mdpro_mcp-aarch64-apple-darwin
+          else
+            touch src-tauri/binaries/mdpro_mcp-x86_64-unknown-linux-gnu
+          fi
+
       - run: cargo test --manifest-path src-tauri/Cargo.toml
 
       - name: Install cargo-audit
