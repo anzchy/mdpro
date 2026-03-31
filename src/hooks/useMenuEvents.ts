@@ -73,9 +73,6 @@ export function useMenuEvents(handlers: MenuHandlers) {
             handlers.onOpenRecent?.(value, actionId);
           }
           break;
-        case "view.cycle":
-          handlers.onCycleViewMode?.(loggingService.logMenuSelect("menu.view.cycle"));
-          break;
         case "cycle-view-mode":
           handlers.onCycleViewMode?.(loggingService.logMenuSelect("menu.view.cycle"));
           break;
@@ -95,30 +92,6 @@ export function useMenuEvents(handlers: MenuHandlers) {
           }
           break;
         }
-        case "view.split":
-          handlers.onViewModeChange?.(
-            "split",
-            loggingService.logMenuSelect("menu.view.split"),
-          );
-          break;
-        case "view.editor_only":
-          handlers.onViewModeChange?.(
-            "editor-only",
-            loggingService.logMenuSelect("menu.view.editor_only"),
-          );
-          break;
-        case "view.preview_only":
-          handlers.onViewModeChange?.(
-            "preview-only",
-            loggingService.logMenuSelect("menu.view.preview_only"),
-          );
-          break;
-        case "view.wysiwyg":
-          handlers.onViewModeChange?.(
-            "wysiwyg",
-            loggingService.logMenuSelect("menu.view.wysiwyg"),
-          );
-          break;
         case "view.toggle_sidebar":
           handlers.onToggleSidebar?.(loggingService.logMenuSelect("menu.view.toggle_sidebar"));
           break;
