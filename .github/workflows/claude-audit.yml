@@ -1,0 +1,177 @@
+name: Claude Periodic Audit
+on:
+  schedule:
+    - cron: "0 2 * * *"        # 2am UTC daily (10am CST)
+  workflow_dispatch:            # Manual trigger from Actions tab
+
+permissions:
+  contents: read         # auditor reads code only — no file writes
+  issues: write
+  pull-requests: write
+  id-token: write
+  actions: read          # lets Claude read CI logs if needed
+
+concurrency:
+  group: claude-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: |
+            --model claude-opus-4-6
+            --max-turns 25
+            --allowedTools Bash,Read,Glob,Grep,WebSearch,WebFetch
+          prompt: |
+            You are a codebase auditor for **mdpro** — a native macOS Markdown editor
+            built with Tauri 2.0 (Rust backend) + React 19 (TypeScript frontend),
+            CodeMirror 6 (source/split mode), Milkdown 7 (WYSIWYG mode), Zustand 4,
+            and a built-in MCP server for AI-assisted editing.
+
+            Use the run ID (${{ github.run_id }}) as a seed to **randomly pick 5–6 dimensions**
+            from the list below. Rotate target files so successive runs cover different parts.
+
+            ---
+
+            ## Audit Dimensions
+
+            ### 1. Keyboard shortcut sync
+            `src-tauri/src/menu.rs` accelerators MUST match `src/types/preferences.ts`
+            DEFAULT_KEYBOARD_SHORTCUTS and `docs/guide/keyboard-shortcuts.md`.
+            Check: new menu items without docs, accelerator format mismatches,
+            shortcuts in docs that don't match Rust menu.
+
+            ### 2. Zustand anti-patterns
+            All stores in `src/stores/`. Check for:
+            - Store values destructured at component top-level (FORBIDDEN — use selectors)
+            - Stale closures: callbacks reading store state directly instead of `getState()`
+            - Missing TypeScript generics on `create<State>()`
+            - Store not reset between tests (missing `beforeEach` reset)
+
+            ### 3. IPC trust boundaries
+            All `#[tauri::command]` functions in `src-tauri/src/commands/`. Check for:
+            - Functions accepting user-supplied path/string without validation
+            - `.unwrap()` / `.expect()` on invoke arguments
+            - Commands returning `Option<T>` or bare value instead of `Result<T, String>`
+            - MCP tool handlers not validating args before accessing shadow_store
+
+            ### 4. Rust backend safety
+            `src-tauri/src/` (~full backend). Check for:
+            - `unwrap()` / `expect()` / `panic!()` on user-controlled values
+            - Missing `?` propagation in Tauri command handlers
+            - Unchecked array indexing on user data
+            - `unsafe` blocks without justification comment
+
+            ### 5. Draft & auto-save races
+            `src/hooks/useAutoSave.ts`, `src-tauri/src/services/draft.rs`,
+            `src-tauri/src/commands/draft.rs`. Check for:
+            - Auto-save timer not cancelled on document close
+            - Non-atomic draft file writes (partial write on crash)
+            - `load_draft` not comparing timestamps before restoring
+            - Race between user save and auto-save
+
+            ### 6. File watcher correctness
+            `src-tauri/src/services/file_watcher.rs`, `src/hooks/useFileWatcher.ts`.
+            Check for:
+            - External change events not debounced
+            - Watcher not removed when document is closed
+            - Self-trigger: file:changed fired for writes made by mdpro itself
+            - Missing platform guards for watcher backends
+
+            ### 7. Milkdown WYSIWYG edge cases
+            `src/plugins/milkdown/`, `src/hooks/useMilkdown.ts`. Check for:
+            - Plugin initialization race (not guarded against editor unmount)
+            - ProseMirror schema conflicts between plugins
+            - Commands dispatched after editor is destroyed
+            - Circular imports between milkdown plugins
+            - Missing useEffect cleanup for listener subscriptions
+
+            ### 8. CodeMirror source mode edge cases
+            `src/plugins/codemirror/`, `src/components/Editor/`. Check for:
+            - IME composition events not handled (breaks CJK input)
+            - Duplicate facets registered across extensions
+            - Circular CM extension dependencies
+            - Multi-cursor operations not accounted for
+
+            ### 9. Plugin CSS isolation
+            `src/plugins/**/*.css`, `src/styles/*.css`. Check for:
+            - Plugin styles in global stylesheets instead of colocated files
+            - Hardcoded color values instead of CSS variables/design tokens
+            - Selectors broad enough to affect elements outside plugin scope
+            - No scoped class wrapper on plugin-specific styles
+
+            ### 10. MCP shadow store correctness
+            `src-tauri/src/services/shadow_store.rs`, `src-tauri/src/commands/mcp.rs`.
+            Check for:
+            - Shadow store not updated when frontend opens/closes documents
+            - `write_document` emitting non-serializable payload
+            - `read_document` returning stale content (debounce gap)
+            - Mutex held across `.await` points (potential deadlock)
+
+            ### 11. Type safety
+            `src/**/*.ts`, `src/**/*.tsx`. Check for:
+            - `any` type annotations (must be typed)
+            - `as SomeType` unsafe casts (prefer type guards)
+            - `catch (e) { (e as Error).message }` without `instanceof` check
+            - Return types omitted on exported functions
+
+            ### 12. Logging completeness
+            Recently modified files across all layers. Check for:
+            - New Tauri commands missing Start + Success/Fail `log_event` pairs
+            - `console.log()` in committed TypeScript code
+            - `println!()` / `eprintln!()` in committed Rust code
+            - `log_event` calls missing `actionId`
+
+            ### 13. Test coverage gaps
+            `src/stores/` vs `*.test.ts`, `src/hooks/` vs `*.test.ts`. Check for:
+            - Store files with no corresponding test file
+            - Hooks with no `renderHook` tests
+            - Bug fix commits without regression tests
+            - Snapshot tests instead of explicit assertions
+
+            ### 14. Dead code
+            Across all layers. Check for:
+            - Exported functions/components never imported anywhere
+            - Rust `mod` declarations with no usages
+            - Commented-out code blocks
+            - Unused dependencies in `package.json` or `Cargo.toml`
+
+            ### 15. Export & HTML rendering
+            `src/services/exportService.ts`, `src-tauri/src/commands/export.rs`. Check for:
+            - Missing DOMPurify on markdown-to-HTML before export
+            - User-controlled data in HTML template without escaping (XSS)
+            - Image path resolution gaps across editor modes
+            - Filename collisions during batch/folder export
+
+            ### 16. Dependency health
+            `package.json`, `src-tauri/Cargo.toml`. Check for:
+            - npm packages with known CVEs (`npm audit`)
+            - Rust crates with advisories (`cargo audit` if available)
+            - Deprecated Tauri 2.x APIs
+            - Dependencies declared but never imported
+
+            ### 17. Version file sync
+            `package.json` "version", `src-tauri/tauri.conf.json` "version",
+            `src-tauri/Cargo.toml` [package] version — all three must match exactly.
+
+            ---
+
+            ## Rules
+            - **High confidence only** — skip speculative or uncertain findings
+            - **Skip cosmetics** — no style, formatting, or naming nitpicks
+            - **One issue per finding** — open a separate GitHub issue for each
+            - **Issue format:**
+              - Title: `[audit] <category>: <concise problem description>`
+              - Body: exact file path + line number, impact explanation, suggested fix with code
+              - Labels: `audit` + one of: `bug`, `security`, `dead-code`, `error-handling`,
+                `test-gap`, `performance`, `type-safety`, `convention`, `dependency`
+            - **If nothing found for selected dimensions, create NO issues**
