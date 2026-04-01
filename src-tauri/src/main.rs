@@ -338,6 +338,10 @@ fn main() {
                         if let Some(store) = window.try_state::<SharedShadowStore>() {
                             let _ = shadow_store::set_focused_window(&store, window.label());
                         }
+                    } else {
+                        if let Some(store) = window.try_state::<SharedShadowStore>() {
+                            let _ = shadow_store::clear_focused_window_if(&store, window.label());
+                        }
                     }
                 }
                 WindowEvent::CloseRequested { .. } => {
