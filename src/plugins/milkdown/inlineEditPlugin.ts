@@ -1,3 +1,5 @@
+import './inlineEditPlugin.css';
+
 /**
  * Typora-style Inline Editing Plugin for ProseMirror/Milkdown
  *

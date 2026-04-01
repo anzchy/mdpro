@@ -1,3 +1,5 @@
+import './imagePastePlugin.css';
+
 /**
  * Image Paste Plugin for Milkdown/ProseMirror
  *
