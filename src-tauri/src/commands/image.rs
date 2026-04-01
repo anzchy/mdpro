@@ -224,6 +224,17 @@ pub async fn resolve_image_path(
         .canonicalize()
         .unwrap_or_else(|_| absolute_path.clone());
 
+    // Security: verify the resolved path stays within the document directory
+    let doc_dir_canonical = doc_dir
+        .canonicalize()
+        .unwrap_or_else(|_| doc_dir.to_path_buf());
+
+    if !absolute_path.starts_with(&doc_dir_canonical) {
+        return Err(ImageError::InvalidPath {
+            message: format!("Path escapes document directory: {}", image_path),
+        });
+    }
+
     let exists = absolute_path.exists();
     let (file_size, mime_type) = if exists {
         let metadata = fs::metadata(&absolute_path).ok();
