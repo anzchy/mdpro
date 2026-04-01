@@ -162,7 +162,12 @@ mod tests {
         let home = make_temp_home("gd_corrupt_meta");
         let _home_guard = set_home(&home);
 
-        let drafts_dir = home.join(".mdpro").join("drafts");
+        // After fix/audit-128, drafts live under data_dir() not home_dir().
+        // With HOME set above, dirs::data_dir() returns HOME/Library/Application Support on macOS.
+        let drafts_dir = dirs::data_dir()
+            .unwrap_or_else(|| home.clone())
+            .join("mdpro")
+            .join("drafts");
         fs::create_dir_all(&drafts_dir).unwrap();
         fs::write(drafts_dir.join("test-doc-corrupt.draft.md"), "content").unwrap();
         fs::write(drafts_dir.join("test-doc-corrupt.meta.json"), "{invalid}").unwrap();
