@@ -17,8 +17,9 @@ export function useAutoSave(autoSaveInterval: number) {
 
     const intervalMs = Math.max(autoSaveInterval * 1000, 5000);
     const interval = window.setInterval(async () => {
-      const { documents } = useDocumentStore.getState();
-      const activeDocument = documents.find((doc) => doc.id === activeDocumentId) ?? null;
+      const { documents, activeDocumentId: currentActiveId } = useDocumentStore.getState();
+      if (currentActiveId !== activeDocumentId) return;
+      const activeDocument = documents.find((doc) => doc.id === currentActiveId) ?? null;
       if (!activeDocument || !activeDocument.isModified) return;
 
       const now = Date.now();
