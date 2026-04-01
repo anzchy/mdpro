@@ -30,26 +30,11 @@ export interface SyncDocumentsPayload {
 }
 
 /**
- * Server info returned from Rust.
- */
-export interface McpServerInfo {
-  port: number;
-  token: string;
-}
-
-/**
  * Sync document state to Rust Shadow Store.
  * Called with debounce on content changes, immediate on open/close/switch.
  */
 export async function syncDocuments(payload: SyncDocumentsPayload): Promise<void> {
   await invoke("mcp_sync_documents", { payload });
-}
-
-/**
- * Get MCP server info (for debugging/testing).
- */
-export async function getServerInfo(): Promise<McpServerInfo | null> {
-  return invoke<McpServerInfo | null>("mcp_get_server_info");
 }
 
 /**
@@ -105,7 +90,6 @@ export async function removeConfig(client: McpClient): Promise<void> {
 
 export const mcpService = {
   syncDocuments,
-  getServerInfo,
   getStatus,
   getInstallations,
   installConfig,
