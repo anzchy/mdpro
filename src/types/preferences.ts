@@ -131,7 +131,6 @@ export interface KeyboardShortcuts {
   formatImage: string;
   formatHighlight: string;
   formatClearFormat: string;
-  formatHighlight: string;
 
   // File export operations
   fileExportHtml: string;
@@ -197,7 +196,6 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   formatImage: "Cmd+Ctrl+I",
   formatHighlight: "Cmd+Shift+H",
   formatClearFormat: "Cmd+\\",
-  formatHighlight: "Cmd+Shift+H",
 
   // File export operations
   fileExportHtml: "Cmd+Shift+E",
