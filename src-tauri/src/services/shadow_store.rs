@@ -78,6 +78,22 @@ pub fn remove_window(store: &SharedShadowStore, window_label: &str) -> Result<()
     Ok(())
 }
 
+/// Clear focused window if it matches the given label.
+///
+/// Called when a window loses focus. Only clears if the blurring window
+/// is still the focused one (avoids race with another window gaining focus first).
+pub fn clear_focused_window_if(store: &SharedShadowStore, window_label: &str) -> Result<(), String> {
+    let mut shadow = store
+        .lock()
+        .map_err(|e| format!("Failed to lock shadow store: {}", e))?;
+
+    if shadow.focused_window.as_deref() == Some(window_label) {
+        shadow.focused_window = None;
+    }
+
+    Ok(())
+}
+
 /// Check if any window in the Shadow Store is focused.
 pub fn is_any_window_focused(store: &SharedShadowStore) -> Result<bool, String> {
     let shadow = store
@@ -211,5 +227,36 @@ mod tests {
         let docs = get_all_documents(&store).unwrap();
         assert!(docs.is_empty());
         assert!(!is_any_window_focused(&store).unwrap());
+    }
+
+    #[test]
+    fn test_clear_focused_window_if() {
+        let store = create_shadow_store();
+
+        let payload = SyncDocumentsPayload {
+            window_label: "main".to_string(),
+            documents: vec![],
+            active_document_id: None,
+        };
+        sync_documents(&store, payload).unwrap();
+
+        // Set focused, then clear matching label
+        set_focused_window(&store, "main").unwrap();
+        assert!(is_any_window_focused(&store).unwrap());
+
+        clear_focused_window_if(&store, "main").unwrap();
+        assert!(!is_any_window_focused(&store).unwrap());
+    }
+
+    #[test]
+    fn test_clear_focused_window_if_different_label() {
+        let store = create_shadow_store();
+
+        set_focused_window(&store, "main").unwrap();
+        assert!(is_any_window_focused(&store).unwrap());
+
+        // Should NOT clear because label doesn't match
+        clear_focused_window_if(&store, "other").unwrap();
+        assert!(is_any_window_focused(&store).unwrap());
     }
 }
