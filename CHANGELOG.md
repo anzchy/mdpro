@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Upgraded DOMPurify from `^3.2.7` to `^3.3.2` (resolved to `3.3.3`), patching GHSA-h8r8-wccr-v5f2 and GHSA-v2wj-7wpq-c8vv — both Moderate XSS CVEs affecting the HTML paste-sanitization path in the WYSIWYG editor
+
 ### Fixed
 - Settings panel label/control vertical misalignment — `.settings-row-content` was missing `flex: 1` (preventing `space-between` from distributing width) and had `align-items: flex-start` instead of `center`, causing controls to top-align rather than vertically centre next to labels
 - TOC click-to-navigate broken in all view modes
