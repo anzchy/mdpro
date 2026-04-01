@@ -166,12 +166,12 @@ fn get_mcp_binary_path() -> String {
         }
     }
 
-    // Fallback for development - use debug build
-    let home = dirs::home_dir().unwrap_or_default();
-    // Try to find in common development locations
+    // Fallback for development - use debug/release build relative to project root
+    let binary_name = if cfg!(windows) { "mdpro_mcp.exe" } else { "mdpro_mcp" };
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let dev_paths = [
-        home.join("Documents/01_Coding/mac-app/mdpro/src-tauri/target/debug/mdpro_mcp"),
-        home.join("Documents/01_Coding/mac-app/mdpro/src-tauri/target/release/mdpro_mcp"),
+        manifest_dir.join("target/debug").join(binary_name),
+        manifest_dir.join("target/release").join(binary_name),
     ];
 
     for path in dev_paths {
