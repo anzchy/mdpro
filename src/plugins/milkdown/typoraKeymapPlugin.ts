@@ -171,6 +171,7 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
           url = "https://" + url;
         }
 
+        if (view?.isDestroyed) return;
         toggleMark(linkMark, { href: url })(state, dispatch, view);
       });
 
