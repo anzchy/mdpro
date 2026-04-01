@@ -198,6 +198,57 @@ fn normalize_line_endings(content: &str) -> String {
     content.replace("\r\n", "\n").replace('\r', "\n")
 }
 
+/// Allowed file extensions for save operations.
+const ALLOWED_SAVE_EXTENSIONS: &[&str] = &[
+    "md", "markdown", "txt", "text", "mdown", "mkd", "mkdn", "mdtxt", "mdtext",
+    "html", "htm", "css", "json", "yaml", "yml", "toml", "xml", "csv", "tsv",
+    "log", "cfg", "conf", "ini", "rst", "adoc", "tex", "bib",
+];
+
+/// Validate that a save path is safe:
+/// 1. No path traversal (`..` components)
+/// 2. File extension is in the allowlist
+fn validate_save_path(path: &std::path::Path) -> Result<(), &'static str> {
+    // Reject path traversal
+    for component in path.components() {
+        if let std::path::Component::ParentDir = component {
+            return Err("path traversal (..) is not allowed");
+        }
+    }
+
+    // Also check the resolved path for symlink-based traversal
+    // (only if parent exists — new files may not be resolvable yet)
+    if let Some(parent) = path.parent() {
+        if parent.exists() {
+            if let (Ok(canonical_parent), Some(file_name)) =
+                (parent.canonicalize(), path.file_name())
+            {
+                let canonical_path = canonical_parent.join(file_name);
+                // Ensure the canonical path doesn't escape to unexpected locations
+                // by checking it still starts with the canonical parent
+                if !canonical_path.starts_with(&canonical_parent) {
+                    return Err("resolved path escapes parent directory");
+                }
+            }
+        }
+    }
+
+    // Validate extension
+    match path.extension().and_then(|e| e.to_str()) {
+        Some(ext) => {
+            let ext_lower = ext.to_lowercase();
+            if !ALLOWED_SAVE_EXTENSIONS.contains(&ext_lower.as_str()) {
+                return Err("file extension is not allowed for save operations");
+            }
+        }
+        None => {
+            return Err("file must have an extension");
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,6 +289,39 @@ mod tests {
     fn test_normalize_no_newlines() {
         let input = "no newlines here";
         assert_eq!(normalize_line_endings(input), input);
+    }
+
+    #[test]
+    fn test_validate_save_path_allows_markdown() {
+        assert!(validate_save_path(std::path::Path::new("/tmp/doc.md")).is_ok());
+        assert!(validate_save_path(std::path::Path::new("/tmp/doc.markdown")).is_ok());
+        assert!(validate_save_path(std::path::Path::new("/tmp/doc.txt")).is_ok());
+    }
+
+    #[test]
+    fn test_validate_save_path_allows_other_text_formats() {
+        assert!(validate_save_path(std::path::Path::new("/tmp/doc.html")).is_ok());
+        assert!(validate_save_path(std::path::Path::new("/tmp/doc.json")).is_ok());
+        assert!(validate_save_path(std::path::Path::new("/tmp/doc.yaml")).is_ok());
+    }
+
+    #[test]
+    fn test_validate_save_path_rejects_dangerous_extensions() {
+        assert!(validate_save_path(std::path::Path::new("/tmp/evil.sh")).is_err());
+        assert!(validate_save_path(std::path::Path::new("/tmp/evil.exe")).is_err());
+        assert!(validate_save_path(std::path::Path::new("/tmp/evil.zshrc")).is_err());
+        assert!(validate_save_path(std::path::Path::new("/tmp/evil.py")).is_err());
+    }
+
+    #[test]
+    fn test_validate_save_path_rejects_no_extension() {
+        assert!(validate_save_path(std::path::Path::new("/tmp/authorized_keys")).is_err());
+    }
+
+    #[test]
+    fn test_validate_save_path_rejects_traversal() {
+        assert!(validate_save_path(std::path::Path::new("/tmp/../etc/passwd.md")).is_err());
+        assert!(validate_save_path(std::path::Path::new("../../.zshrc.md")).is_err());
     }
 }
 
@@ -383,6 +467,23 @@ pub async fn save_file(
     );
 
     let path_buf = PathBuf::from(&path_value);
+
+    // Validate file extension — only allow markdown/text files
+    validate_save_path(&path_buf).map_err(|msg| {
+        log_file_event(
+            "file.save",
+            LogStatus::Fail,
+            LogLevel::Error,
+            Some(&action_id),
+            json!({ "filePath": path_value.as_str(), "reason": msg }),
+            Some(start.elapsed().as_millis() as u64),
+            Some(msg.to_string()),
+        );
+        FileError::InvalidPath {
+            path: format!("{}: {}", path_value, msg),
+        }
+    })?;
+
     if let Some(parent) = path_buf.parent() {
         if !parent.exists() {
             let path_for_error = path_value.clone();
