@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::{Draft, DraftMetadata};
+use crate::models::Draft;
 
 mod listing;
 mod recovery;
@@ -60,6 +60,20 @@ pub struct RecoverResult {
     pub title: String,
 }
 
+// ── Internal bundle ───────────────────────────────────────────────────────────
+
+/// On-disk representation: content + metadata in a single JSON file.
+/// One atomic rename commits both, eliminating the two-file inconsistency window.
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct DraftBundle {
+    pub content: String,
+    pub original_path: Option<String>,
+    pub last_modified: String,
+    pub recovered: bool,
+    pub title: String,
+}
+
 // ── Path helpers ──────────────────────────────────────────────────────────────
 
 pub(super) fn drafts_dir() -> Result<PathBuf, DraftError> {
@@ -78,14 +92,11 @@ fn validate_id(id: &str) -> Result<(), DraftError> {
     Ok(())
 }
 
-pub(super) fn draft_path(document_id: &str) -> Result<PathBuf, DraftError> {
+/// Single bundle file: `{document_id}.draft.json`.
+/// Replaces the old two-file layout (`.draft.md` + `.meta.json`).
+pub(super) fn bundle_path(document_id: &str) -> Result<PathBuf, DraftError> {
     validate_id(document_id)?;
-    Ok(drafts_dir()?.join(format!("{document_id}.draft.md")))
-}
-
-pub(super) fn meta_path(document_id: &str) -> Result<PathBuf, DraftError> {
-    validate_id(document_id)?;
-    Ok(drafts_dir()?.join(format!("{document_id}.meta.json")))
+    Ok(drafts_dir()?.join(format!("{document_id}.draft.json")))
 }
 
 fn ensure_dir(path: &Path) -> Result<(), DraftError> {
@@ -108,46 +119,34 @@ pub fn save_draft(
     let dir = drafts_dir()?;
     ensure_dir(&dir)?;
 
-    let draft_path = draft_path(document_id)?;
-    let meta_path = meta_path(document_id)?;
+    let now = Utc::now();
+    // Per-invocation nonce: concurrent saves for the same document write to
+    // distinct tmp paths, preventing one call from corrupting another's temp file.
+    let nonce = now.timestamp_millis();
+    let tmp_path = dir.join(format!("{document_id}.{nonce}.tmp"));
+    let bundle_path = bundle_path(document_id)?;
 
-    let tmp_draft = draft_path.with_extension("draft.md.tmp");
-    let tmp_meta = meta_path.with_extension("meta.json.tmp");
-
-    fs::write(&tmp_draft, content).map_err(|err| DraftError::IoError {
-        message: err.to_string(),
-    })?;
-
-    let metadata = DraftMetadata {
+    let bundle = DraftBundle {
+        content: content.to_string(),
         original_path,
-        last_modified: Utc::now().to_rfc3339(),
+        last_modified: now.to_rfc3339(),
         recovered: false,
         title: title.to_string(),
     };
 
-    let payload = serde_json::to_string_pretty(&metadata).map_err(|err| DraftError::ParseError {
+    let payload = serde_json::to_string_pretty(&bundle).map_err(|err| DraftError::ParseError {
         message: err.to_string(),
     })?;
 
-    fs::write(&tmp_meta, &payload).map_err(|err| {
-        // Clean up the tmp draft file on metadata write failure
-        let _ = fs::remove_file(&tmp_draft);
-        DraftError::IoError {
-            message: err.to_string(),
-        }
+    // Write content + metadata into one tmp file, then a single atomic rename.
+    // On APFS (macOS) rename() is atomic — there is no window where content
+    // and metadata can be inconsistent on disk.
+    fs::write(&tmp_path, &payload).map_err(|err| DraftError::IoError {
+        message: err.to_string(),
     })?;
 
-    // Atomic renames — on APFS (macOS) rename is atomic
-    fs::rename(&tmp_draft, &draft_path).map_err(|err| {
-        let _ = fs::remove_file(&tmp_draft);
-        let _ = fs::remove_file(&tmp_meta);
-        DraftError::IoError {
-            message: err.to_string(),
-        }
-    })?;
-
-    fs::rename(&tmp_meta, &meta_path).map_err(|err| {
-        let _ = fs::remove_file(&tmp_meta);
+    fs::rename(&tmp_path, &bundle_path).map_err(|err| {
+        let _ = fs::remove_file(&tmp_path);
         DraftError::IoError {
             message: err.to_string(),
         }
@@ -155,78 +154,50 @@ pub fn save_draft(
 
     Ok(DraftSaveResult {
         success: true,
-        draft_path: draft_path.to_string_lossy().to_string(),
-        saved_at: Utc::now().timestamp_millis(),
+        draft_path: bundle_path.to_string_lossy().to_string(),
+        saved_at: now.timestamp_millis(),
     })
 }
 
 pub fn load_draft(document_id: &str) -> Result<Option<Draft>, DraftError> {
-    let draft_path = draft_path(document_id)?;
-    let meta_path = meta_path(document_id)?;
+    let bundle_path = bundle_path(document_id)?;
 
-    match (draft_path.exists(), meta_path.exists()) {
-        (false, false) => return Ok(None),
-        (true, false) => {
-            return Err(DraftError::IoError {
-                message: format!(
-                    "partial draft state for '{document_id}': content file exists but metadata is missing"
-                ),
-            })
-        }
-        (false, true) => {
-            return Err(DraftError::IoError {
-                message: format!(
-                    "partial draft state for '{document_id}': metadata exists but content file is missing"
-                ),
-            })
-        }
-        (true, true) => {}
+    if !bundle_path.exists() {
+        return Ok(None);
     }
 
-    let content = fs::read_to_string(&draft_path).map_err(|err| DraftError::IoError {
+    let contents = fs::read_to_string(&bundle_path).map_err(|err| DraftError::IoError {
         message: err.to_string(),
     })?;
 
-    let meta_contents = fs::read_to_string(&meta_path).map_err(|err| DraftError::IoError {
-        message: err.to_string(),
-    })?;
-
-    let metadata: DraftMetadata = serde_json::from_str(&meta_contents).map_err(|err| {
+    let bundle: DraftBundle = serde_json::from_str(&contents).map_err(|err| {
         DraftError::ParseError {
             message: err.to_string(),
         }
     })?;
 
-    let last_modified = DateTime::parse_from_rfc3339(&metadata.last_modified)
+    let last_modified = DateTime::parse_from_rfc3339(&bundle.last_modified)
         .map(|dt| dt.timestamp_millis())
         .unwrap_or(0);
 
     Ok(Some(Draft {
         id: document_id.to_string(),
-        original_path: metadata.original_path.map(PathBuf::from),
-        content,
+        original_path: bundle.original_path.map(PathBuf::from),
+        content: bundle.content,
         last_modified,
-        recovered: metadata.recovered,
+        recovered: bundle.recovered,
     }))
 }
 
 pub fn delete_draft(document_id: &str) -> Result<bool, DraftError> {
-    let draft_path = draft_path(document_id)?;
-    let meta_path = meta_path(document_id)?;
+    let bundle_path = bundle_path(document_id)?;
 
-    let mut deleted = false;
-    if draft_path.exists() {
-        fs::remove_file(draft_path).map_err(|err| DraftError::IoError {
+    if bundle_path.exists() {
+        fs::remove_file(&bundle_path).map_err(|err| DraftError::IoError {
             message: err.to_string(),
         })?;
-        deleted = true;
+        Ok(true)
+    } else {
+        Ok(false)
     }
-    if meta_path.exists() {
-        fs::remove_file(meta_path).map_err(|err| DraftError::IoError {
-            message: err.to_string(),
-        })?;
-        deleted = true;
-    }
-
-    Ok(deleted)
 }
