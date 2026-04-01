@@ -1,7 +1,7 @@
 name: Claude Code
 on:
   schedule:
-    - cron: "0 * * * *"   # hourly: process one audit issue per run
+    - cron: "0,30 * * * *"   # every 30 minutes: process one audit issue per run
   workflow_dispatch:       # manual trigger from Actions tab
   issues:
     types: [opened, reopened]
