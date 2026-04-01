@@ -1,0 +1,104 @@
+name: Claude Code + Codex Review
+on:
+  schedule:
+    - cron: "30 * * * *"   # hourly at :30 (offset from claude.yml at :00)
+  workflow_dispatch:       # manual trigger from Actions tab
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  audit-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: cc-audit-fix
+      cancel-in-progress: false
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install pnpm and dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install --frozen-lockfile
+
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+
+      - name: Find open audit issues
+        id: find-issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Pick only the oldest open audit issue (ascending by created date, take first)
+          NUMBER=$(gh issue list --state open --label audit \
+            --json number,createdAt \
+            --jq 'sort_by(.createdAt) | .[0].number // empty')
+          echo "ISSUE_NUMBERS=$NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Fix audit issue with Codex review gate
+        if: steps.find-issues.outputs.ISSUE_NUMBERS != ''
+        uses: anthropics/claude-code-action@v1
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          allowed_bots: "claude[bot]"
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          show_full_output: true
+          claude_args: "--model claude-opus-4-6 --max-turns 30 --allowedTools Bash,Read,Write,Edit,Glob,Grep,MultiEdit"
+          prompt: |
+            Fix audit issue #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}.
+
+            1. Read the issue: `gh issue view ${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            2. Create a fix branch: `git checkout -b fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            3. Apply the minimum correct fix described in the issue
+            4. Run frontend gate: `pnpm build`
+            5. If the fix touches .rs files: `cd src-tauri && cargo check --manifest-path src-tauri/Cargo.toml`
+            6. If tests are relevant: `pnpm test:run`
+            7. Commit: `git commit -m "fix: <issue title> (Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }})"`
+
+            8. Run Codex review on the fix:
+               ```bash
+               codex review --base master
+               ```
+               - If output is empty or contains no actionable bugs → proceed to step 9
+               - If bugs are found → fix each one, re-run gates (steps 4–6), amend the
+                 commit (`git commit --amend --no-edit`), re-run Codex review
+               - Repeat at most 2 Codex review iterations; if still unclean after 2,
+                 proceed to step 9 and note the remaining findings in the PR body
+
+            9. Push branch: `git push origin fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            10. Open PR:
+                ```bash
+                gh pr create \
+                  --title "fix: <issue title>" \
+                  --body "Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}" \
+                  --label audit
+                ```
+
+            Rules:
+            - Apply minimum correct fix — don't refactor beyond the finding
+            - If a fix requires touching more than 3 files, comment on the issue
+              explaining why and skip (leave for human review)
+            - If build/test gates fail after 2 attempts, comment on the issue and move on
+            - Never commit to master directly
