@@ -111,7 +111,10 @@ pub fn save_draft(
     let draft_path = draft_path(document_id)?;
     let meta_path = meta_path(document_id)?;
 
-    fs::write(&draft_path, content).map_err(|err| DraftError::IoError {
+    let tmp_draft = draft_path.with_extension("draft.md.tmp");
+    let tmp_meta = meta_path.with_extension("meta.json.tmp");
+
+    fs::write(&tmp_draft, content).map_err(|err| DraftError::IoError {
         message: err.to_string(),
     })?;
 
@@ -126,8 +129,28 @@ pub fn save_draft(
         message: err.to_string(),
     })?;
 
-    fs::write(&meta_path, payload).map_err(|err| DraftError::IoError {
-        message: err.to_string(),
+    fs::write(&tmp_meta, &payload).map_err(|err| {
+        // Clean up the tmp draft file on metadata write failure
+        let _ = fs::remove_file(&tmp_draft);
+        DraftError::IoError {
+            message: err.to_string(),
+        }
+    })?;
+
+    // Atomic renames — on APFS (macOS) rename is atomic
+    fs::rename(&tmp_draft, &draft_path).map_err(|err| {
+        let _ = fs::remove_file(&tmp_draft);
+        let _ = fs::remove_file(&tmp_meta);
+        DraftError::IoError {
+            message: err.to_string(),
+        }
+    })?;
+
+    fs::rename(&tmp_meta, &meta_path).map_err(|err| {
+        let _ = fs::remove_file(&tmp_meta);
+        DraftError::IoError {
+            message: err.to_string(),
+        }
     })?;
 
     Ok(DraftSaveResult {
