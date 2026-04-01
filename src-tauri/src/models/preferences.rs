@@ -178,8 +178,14 @@ pub struct KeyboardShortcuts {
     pub format_hyperlink: String,
     #[serde(default = "default_image")]
     pub format_image: String,
+    #[serde(default = "default_highlight")]
+    pub format_highlight: String,
     #[serde(default = "default_clear_format")]
     pub format_clear_format: String,
+
+    // File export operations
+    #[serde(default = "default_export_html")]
+    pub file_export_html: String,
 
     // View operations
     #[serde(default = "default_toggle_sidebar")]
@@ -239,7 +245,9 @@ fn default_code() -> String { "Cmd+Shift+`".to_string() }
 fn default_strike() -> String { "Ctrl+Shift+`".to_string() }
 fn default_hyperlink() -> String { "Cmd+K".to_string() }
 fn default_image() -> String { "Cmd+Ctrl+I".to_string() }
+fn default_highlight() -> String { "Cmd+Shift+H".to_string() }
 fn default_clear_format() -> String { "Cmd+\\".to_string() }
+fn default_export_html() -> String { "Cmd+Shift+E".to_string() }
 
 fn default_toggle_sidebar() -> String { "Cmd+Shift+L".to_string() }
 fn default_cycle_view_mode() -> String { "Cmd+/".to_string() }

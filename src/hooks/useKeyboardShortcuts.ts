@@ -21,6 +21,7 @@ interface ShortcutHandlers {
   onClose?: (actionId?: string) => void;
   onNew?: (actionId?: string) => void;
   onHighlight?: (actionId?: string) => void;
+  onExportHtml?: (actionId?: string) => void;
   onToggleSidebar?: (actionId?: string) => void;
   onCycleViewMode?: (actionId?: string) => void;
   onOpenPreferences?: (actionId?: string) => void;
@@ -31,7 +32,6 @@ interface ShortcutHandlers {
 // Detect macOS once at module load. On macOS the primary shortcut modifier is
 // Cmd (metaKey); on Windows/Linux it is Ctrl (ctrlKey).
 const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
-const modLabel = isMac ? "Cmd" : "Ctrl";
 
 /** Test a live KeyboardEvent against a stored shortcut string (e.g. "Cmd+Shift+K").
  *
@@ -88,6 +88,7 @@ export function useKeyboardShortcuts({
   onClose,
   onNew,
   onHighlight,
+  onExportHtml,
   onToggleSidebar,
   onCycleViewMode,
   onOpenPreferences,
@@ -138,10 +139,14 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileNew, { action: "file.new" });
         onNew(actionId);
-      } else if (onHighlight && !inCodeMirror && matchesShortcut(event, `${modLabel}+Shift+H`)) {
+      } else if (onHighlight && !inCodeMirror && matchesShortcut(event, shortcuts.formatHighlight)) {
         event.preventDefault();
-        const actionId = loggingService.logShortcut(`${modLabel}+Shift+H`, { action: "format.highlight" });
+        const actionId = loggingService.logShortcut(shortcuts.formatHighlight, { action: "format.highlight" });
         onHighlight(actionId);
+      } else if (onExportHtml && matchesShortcut(event, shortcuts.fileExportHtml)) {
+        event.preventDefault();
+        const actionId = loggingService.logShortcut(shortcuts.fileExportHtml, { action: "file.export_html" });
+        onExportHtml(actionId);
       } else if (onToggleSidebar && matchesShortcut(event, shortcuts.viewToggleSidebar)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.viewToggleSidebar, { action: "view.toggle_sidebar" });
@@ -177,6 +182,7 @@ export function useKeyboardShortcuts({
     editorView,
     onClose,
     onCycleViewMode,
+    onExportHtml,
     onHighlight,
     onNew,
     onOpen,
