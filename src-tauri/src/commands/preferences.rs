@@ -9,7 +9,7 @@ use crate::services::preferences::{
 
 #[tauri::command]
 pub async fn get_preferences() -> Result<UserPreferences, String> {
-    load_preferences().map_err(|e| format!("Failed to load preferences: {}", e))
+    load_preferences().map_err(|e| format!("Failed to load preferences: {:?}", e))
 }
 
 #[tauri::command]
