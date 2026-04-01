@@ -32,6 +32,6 @@ pub fn build_html(content: &str, title: &str, theme: &str) -> String {
 
     format!(
         "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>{}</title>\n  <style>{}</style>\n</head>\n<body class=\"{}\">\n  <article class=\"markdown-body\">{}\n  </article>\n</body>\n</html>",
-        safe_title, styles, theme, content
+        safe_title, styles, html_escape(theme), content
     )
 }
