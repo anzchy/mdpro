@@ -1,9 +1,13 @@
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
-use std::path::Path;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 use tauri::{AppHandle, Emitter, Theme};
+
+/// Minimum interval between emitting events for the same file path.
+const DEBOUNCE_INTERVAL: Duration = Duration::from_millis(500);
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,10 +32,13 @@ pub struct FileWatcher {
 impl FileWatcher {
     pub fn new(app_handle: AppHandle) -> Self {
         let watched_paths = Arc::new(Mutex::new(Vec::new()));
+        let last_events: Arc<Mutex<HashMap<PathBuf, Instant>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let debounce_map = Arc::clone(&last_events);
         let watcher = RecommendedWatcher::new(
             move |res| {
                 if let Ok(event) = res {
-                    handle_event(&app_handle, event);
+                    handle_event(&app_handle, event, &debounce_map);
                 }
             },
             Config::default(),
@@ -72,7 +79,25 @@ fn emit_file_changed(app_handle: &AppHandle, event: FileChangedEvent) {
     let _ = app_handle.emit("file:changed", event);
 }
 
-fn handle_event(app_handle: &AppHandle, event: Event) {
+/// Returns `true` if the event for `path` should be suppressed (fired too recently).
+fn is_debounced(path: &Path, debounce_map: &Mutex<HashMap<PathBuf, Instant>>) -> bool {
+    let now = Instant::now();
+    if let Ok(mut map) = debounce_map.lock() {
+        if let Some(last) = map.get(path) {
+            if now.duration_since(*last) < DEBOUNCE_INTERVAL {
+                return true;
+            }
+        }
+        map.insert(path.to_path_buf(), now);
+    }
+    false
+}
+
+fn handle_event(
+    app_handle: &AppHandle,
+    event: Event,
+    debounce_map: &Arc<Mutex<HashMap<PathBuf, Instant>>>,
+) {
     let timestamp = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
@@ -81,6 +106,9 @@ fn handle_event(app_handle: &AppHandle, event: Event) {
     match event.kind {
         EventKind::Modify(notify::event::ModifyKind::Name(_)) => {
             if event.paths.len() >= 2 {
+                if is_debounced(&event.paths[0], debounce_map) {
+                    return;
+                }
                 emit_file_changed(
                     app_handle,
                     FileChangedEvent {
@@ -94,6 +122,9 @@ fn handle_event(app_handle: &AppHandle, event: Event) {
         }
         EventKind::Modify(_) => {
             if let Some(path) = event.paths.get(0) {
+                if is_debounced(path, debounce_map) {
+                    return;
+                }
                 emit_file_changed(
                     app_handle,
                     FileChangedEvent {
@@ -107,6 +138,9 @@ fn handle_event(app_handle: &AppHandle, event: Event) {
         }
         EventKind::Remove(_) => {
             if let Some(path) = event.paths.get(0) {
+                if is_debounced(path, debounce_map) {
+                    return;
+                }
                 emit_file_changed(
                     app_handle,
                     FileChangedEvent {
