@@ -11,6 +11,7 @@ These shortcuts work across all view modes.
 | Shortcut | Action | Handler |
 |----------|--------|---------|
 | ⌘N | New document | `createDocument()` |
+| ⌘⇧N | New window | `file.new_window` menu action |
 | ⌘O | Open file | `openDocumentFromDialog()` |
 | ⌘S | Save | `saveActiveDocument()` |
 | ⌘W | Close document | `handleCloseRequest()` |
@@ -254,8 +255,8 @@ Shortcuts are handled differently based on focus:
 ├────────────────────────────────────────────┤
 │ FILE                                       │
 │   ⌘N    New          ⌘O    Open           │
-│   ⌘S    Save         ⌘W    Close          │
-│   ⌘⇧E   Export HTML                       │
+│   ⌘⇧N   New Window   ⌘S    Save           │
+│   ⌘W    Close        ⌘⇧E   Export HTML     │
 ├────────────────────────────────────────────┤
 │ VIEW (uses Control key)                    │
 │   ⌃1    Split        ⌃2    Editor         │
