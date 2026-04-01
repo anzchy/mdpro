@@ -189,7 +189,20 @@ fn get_client_config_path(client: McpClient) -> PathBuf {
 
     match client {
         McpClient::ClaudeDesktop => {
-            home.join("Library/Application Support/Claude/claude_desktop_config.json")
+            #[cfg(target_os = "macos")]
+            {
+                home.join("Library/Application Support/Claude/claude_desktop_config.json")
+            }
+            #[cfg(target_os = "windows")]
+            {
+                dirs::config_dir()
+                    .unwrap_or_default()
+                    .join("Claude/claude_desktop_config.json")
+            }
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            {
+                home.join(".config/Claude/claude_desktop_config.json")
+            }
         }
         McpClient::ClaudeCode => {
             home.join(".claude/settings.json")
