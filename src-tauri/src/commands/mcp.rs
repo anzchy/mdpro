@@ -308,9 +308,11 @@ fn install_toml_config(config_path: &PathBuf, binary_path: &str) -> Result<(), S
     if !content.is_empty() && !content.ends_with('\n') {
         content.push('\n');
     }
+    // Use forward slashes to avoid malformed TOML from unescaped backslashes on Windows
+    let safe_path = binary_path.replace('\\', "/");
     content.push_str(&format!(
         "\n[mcp_servers.mdpro]\ncommand = \"{}\"\n",
-        binary_path
+        safe_path
     ));
 
     fs::write(config_path, content)
