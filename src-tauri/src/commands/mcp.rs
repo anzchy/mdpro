@@ -154,10 +154,12 @@ pub fn mcp_remove_config(client: McpClient) -> Result<(), String> {
 // Helper functions
 
 fn get_mcp_binary_path() -> String {
+    let binary_name = if cfg!(windows) { "mdpro_mcp.exe" } else { "mdpro_mcp" };
+
     // Check if we're in a bundled app
     if let Ok(exe_path) = std::env::current_exe() {
         let bundled_path = exe_path.parent()
-            .map(|p| p.join("mdpro_mcp"));
+            .map(|p| p.join(binary_name));
 
         if let Some(path) = bundled_path {
             if path.exists() {
@@ -167,7 +169,6 @@ fn get_mcp_binary_path() -> String {
     }
 
     // Fallback for development - use debug/release build relative to project root
-    let binary_name = if cfg!(windows) { "mdpro_mcp.exe" } else { "mdpro_mcp" };
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let dev_paths = [
         manifest_dir.join("target/debug").join(binary_name),
@@ -180,8 +181,24 @@ fn get_mcp_binary_path() -> String {
         }
     }
 
-    // Default path for installed app
-    "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp".to_string()
+    // Default path for installed app (platform-specific)
+    #[cfg(target_os = "macos")]
+    {
+        "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp".to_string()
+    }
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, fall back to the binary next to the current exe
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+            .unwrap_or_default();
+        exe_dir.join("mdpro_mcp.exe").to_string_lossy().to_string()
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        format!("/usr/local/bin/{}", binary_name)
+    }
 }
 
 fn get_client_config_path(client: McpClient) -> PathBuf {
