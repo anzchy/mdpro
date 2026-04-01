@@ -55,10 +55,20 @@ jobs:
         include:
           - platform: macos-latest
             sidecar_triple: aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
             tauri_args: ''
+          - platform: macos-latest
+            sidecar_triple: x86_64-apple-darwin
+            rust_target: x86_64-apple-darwin
+            tauri_args: '--target x86_64-apple-darwin'
           - platform: windows-latest
             sidecar_triple: x86_64-pc-windows-msvc
+            rust_target: ''
             tauri_args: --bundles nsis
+          - platform: ubuntu-22.04
+            sidecar_triple: x86_64-unknown-linux-gnu
+            rust_target: ''
+            tauri_args: ''
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v6
@@ -73,6 +83,16 @@ jobs:
           cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Add macOS Rust target
+        if: runner.os == 'macOS'
+        run: rustup target add ${{ matrix.rust_target }}
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Extract version (strip leading v)
         id: version
@@ -124,12 +144,16 @@ jobs:
         shell: bash
         run: touch "src-tauri/binaries/mdpro_mcp-${{ matrix.sidecar_triple }}.exe"
 
+      - name: Create sidecar placeholder (Linux)
+        if: runner.os == 'Linux'
+        run: touch src-tauri/binaries/mdpro_mcp-${{ matrix.sidecar_triple }}
+
       - name: Build MCP sidecar (macOS)
         if: runner.os == 'macOS'
         run: |
           cd src-tauri
-          cargo build --release --bin mdpro_mcp
-          cp target/release/mdpro_mcp binaries/mdpro_mcp-${{ matrix.sidecar_triple }}
+          cargo build --release --bin mdpro_mcp --target ${{ matrix.rust_target }}
+          cp target/${{ matrix.rust_target }}/release/mdpro_mcp binaries/mdpro_mcp-${{ matrix.sidecar_triple }}
 
       - name: Build MCP sidecar (Windows)
         if: runner.os == 'Windows'
@@ -138,6 +162,37 @@ jobs:
           cd src-tauri
           cargo build --release --bin mdpro_mcp
           cp target/release/mdpro_mcp.exe "binaries/mdpro_mcp-${{ matrix.sidecar_triple }}.exe"
+
+      - name: Build MCP sidecar (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd src-tauri
+          cargo build --release --bin mdpro_mcp
+          cp target/release/mdpro_mcp binaries/mdpro_mcp-${{ matrix.sidecar_triple }}
+
+      - name: Health check MCP sidecar (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          SIDECAR="src-tauri/binaries/mdpro_mcp-${{ matrix.sidecar_triple }}"
+          echo "Checking: $SIDECAR"
+          ls -lh "$SIDECAR"
+          file "$SIDECAR"
+
+      - name: Health check MCP sidecar (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          SIDECAR="src-tauri/binaries/mdpro_mcp-${{ matrix.sidecar_triple }}.exe"
+          echo "Checking: $SIDECAR"
+          ls -lh "$SIDECAR"
+
+      - name: Health check MCP sidecar (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          SIDECAR="src-tauri/binaries/mdpro_mcp-${{ matrix.sidecar_triple }}"
+          echo "Checking: $SIDECAR"
+          ls -lh "$SIDECAR"
+          file "$SIDECAR"
 
       - name: Build and upload
         uses: tauri-apps/tauri-action@v0
