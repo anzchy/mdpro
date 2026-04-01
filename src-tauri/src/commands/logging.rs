@@ -7,10 +7,10 @@ pub async fn log_event(payload: LogEntryPayload) {
 }
 
 #[tauri::command]
-pub async fn get_logging_settings() -> LogSettings {
-    preferences::load_preferences()
-        .map(|prefs| prefs.logging)
-        .unwrap_or_default()
+pub async fn get_logging_settings() -> Result<LogSettings, String> {
+    let prefs = preferences::load_preferences()
+        .map_err(|e| format!("Failed to load logging settings: {}", e))?;
+    Ok(prefs.logging)
 }
 
 #[tauri::command]

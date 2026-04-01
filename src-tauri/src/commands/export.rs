@@ -116,7 +116,7 @@ pub async fn export_html(
 }
 
 #[tauri::command]
-pub fn preview_html(content: String, theme: String) -> String {
+pub fn preview_html(content: String, theme: String) -> Result<String, String> {
     let html_fragment = markdown::render_markdown(&content);
-    html_template::build_html(&html_fragment, "mdpro export", &theme)
+    Ok(html_template::build_html(&html_fragment, "mdpro export", &theme))
 }
