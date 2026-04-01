@@ -6,7 +6,7 @@ use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus};
-use crate::services::{encoding, file_watcher::FileWatcher, logger};
+use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::FileWatcher, logger};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 
@@ -490,9 +490,11 @@ pub async fn close_document(
         watcher.unwatch(&PathBuf::from(p));
     }
 
+    let draft_deleted = delete_draft_service(&document_id).unwrap_or(false);
+
     Ok(CloseResult {
         success: true,
-        draft_deleted: false,
+        draft_deleted,
     })
 }
 
