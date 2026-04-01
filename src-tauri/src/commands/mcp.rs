@@ -81,7 +81,7 @@ pub fn mcp_get_status(
         .map_err(|e| format!("Failed to lock server config: {}", e))?;
 
     // Get the binary path - in production it's bundled with the app
-    let binary_path = get_mcp_binary_path();
+    let binary_path = get_mcp_binary_path()?;
 
     Ok(McpStatus {
         running: config.is_some(),
@@ -118,7 +118,7 @@ pub fn mcp_get_installations() -> Result<Vec<McpInstallation>, String> {
 #[tauri::command]
 pub fn mcp_install_config(client: McpClient) -> Result<(), String> {
     let config_path = get_client_config_path(client);
-    let binary_path = get_mcp_binary_path();
+    let binary_path = get_mcp_binary_path()?;
 
     // Ensure parent directory exists
     if let Some(parent) = config_path.parent() {
@@ -153,21 +153,22 @@ pub fn mcp_remove_config(client: McpClient) -> Result<(), String> {
 
 // Helper functions
 
-fn get_mcp_binary_path() -> String {
+fn get_mcp_binary_path() -> Result<String, String> {
+    let binary_name = if cfg!(windows) { "mdpro_mcp.exe" } else { "mdpro_mcp" };
+
     // Check if we're in a bundled app
     if let Ok(exe_path) = std::env::current_exe() {
         let bundled_path = exe_path.parent()
-            .map(|p| p.join("mdpro_mcp"));
+            .map(|p| p.join(binary_name));
 
         if let Some(path) = bundled_path {
             if path.exists() {
-                return path.to_string_lossy().to_string();
+                return Ok(path.to_string_lossy().to_string());
             }
         }
     }
 
     // Fallback for development - use debug/release build relative to project root
-    let binary_name = if cfg!(windows) { "mdpro_mcp.exe" } else { "mdpro_mcp" };
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let dev_paths = [
         manifest_dir.join("target/debug").join(binary_name),
@@ -176,12 +177,19 @@ fn get_mcp_binary_path() -> String {
 
     for path in dev_paths {
         if path.exists() {
-            return path.to_string_lossy().to_string();
+            return Ok(path.to_string_lossy().to_string());
         }
     }
 
-    // Default path for installed app
-    "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp".to_string()
+    // Platform-specific default path for installed app
+    #[cfg(target_os = "macos")]
+    {
+        Ok("/Applications/mdpro.app/Contents/MacOS/mdpro_mcp".to_string())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Could not locate mdpro_mcp binary. Ensure mdpro is installed correctly.".to_string())
+    }
 }
 
 fn get_client_config_path(client: McpClient) -> PathBuf {
