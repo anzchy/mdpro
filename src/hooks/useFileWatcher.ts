@@ -22,9 +22,11 @@ export function useFileWatcher(activePath: string | null) {
 
   useEffect(() => {
     if (!activePath) return;
-    let unlisten: (() => void) | null = null;
+    let unlistenFn: (() => void) | null = null;
+    let cancelled = false;
 
     listen<FileChangedEvent>("file:changed", (payload) => {
+      if (cancelled) return;
       if (payload.payload.path !== activePath) return;
 
       // Suppress external change events shortly after we saved
@@ -37,14 +39,19 @@ export function useFileWatcher(activePath: string | null) {
       setEvent(payload.payload);
     })
       .then((fn) => {
-        unlisten = fn;
+        if (cancelled) {
+          fn();
+        } else {
+          unlistenFn = fn;
+        }
       })
       .catch(() => {
         // Ignore if events are not supported.
       });
 
     return () => {
-      if (unlisten) unlisten();
+      cancelled = true;
+      unlistenFn?.();
     };
   }, [activePath]);
 
