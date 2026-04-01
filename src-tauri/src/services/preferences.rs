@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 use crate::models::{AppearanceConfig, AutoSaveConfig, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts, LogSettings, MarkdownConfig, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
@@ -45,11 +45,10 @@ pub(crate) fn preferences_rw_lock() -> &'static Mutex<()> {
 }
 
 fn preferences_dir() -> Result<PathBuf, PreferencesError> {
-    let home = std::env::var("HOME")
-        .map_err(|err| PreferencesError::IoError {
-            message: err.to_string(),
-        })?;
-    Ok(Path::new(&home).join(".mdpro"))
+    let home = dirs::home_dir().ok_or_else(|| PreferencesError::IoError {
+        message: "Could not determine home directory".to_string(),
+    })?;
+    Ok(home.join(".mdpro"))
 }
 
 fn config_path() -> Result<PathBuf, PreferencesError> {
