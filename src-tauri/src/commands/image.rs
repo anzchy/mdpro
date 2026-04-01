@@ -434,13 +434,14 @@ pub async fn copy_external_image(
     let target_dir = doc_dir.join(&asset_dir);
     let target_dir = validate_asset_dir_containment(doc_dir, &target_dir)?;
 
-    // Copy file
+    // Copy file — sanitize filename to match upload_image's defense-in-depth
     let filename = source
         .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| !n.is_empty() && !n.starts_with('.'))
         .ok_or(ImageError::InvalidPath {
-            message: "cannot get filename".to_string(),
+            message: "cannot get safe filename".to_string(),
         })?
-        .to_string_lossy()
         .to_string();
 
     let target_path = target_dir.join(&filename);
