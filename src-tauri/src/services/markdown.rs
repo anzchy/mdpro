@@ -54,6 +54,10 @@ fn generate_heading_id(text: &str, counts: &mut HashMap<String, usize>) -> Strin
 /// pulldown-cmark 0.11 has no `ENABLE_HIGHLIGHT` flag, so we preprocess
 /// before parsing. Inline HTML is already allowed by the parser.
 fn preprocess_highlight(markdown: &str) -> String {
+    // Normalise CRLF → LF so that `==highlight==\r` at end-of-line doesn't
+    // break closing-marker detection (see #182).
+    let markdown = markdown.replace("\r\n", "\n");
+    let markdown = markdown.as_str();
     let mut out = String::with_capacity(markdown.len() + 64);
     let mut in_fence = false;
     let mut fence_char = ' ';
@@ -376,6 +380,16 @@ mod tests {
         assert!(
             !result.contains("<mark>"),
             "== in 4-space indented code block should not become <mark>, got: {result}"
+        );
+    }
+
+    // #182 regression: CRLF line endings must not break highlight rendering
+    #[test]
+    fn test_highlight_renders_correctly_with_crlf() {
+        let result = render_markdown("==hello==\r\nworld");
+        assert!(
+            result.contains("<mark>hello</mark>"),
+            "expected <mark>hello</mark> with CRLF input, got: {result}"
         );
     }
 
