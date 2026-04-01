@@ -1,7 +1,7 @@
 name: Claude Periodic Audit
 on:
   schedule:
-    - cron: "0 2 * * *"        # 2am UTC daily (10am CST)
+    - cron: "20 * * * *"       # every hour at :20
   workflow_dispatch:            # Manual trigger from Actions tab
 
 permissions:
