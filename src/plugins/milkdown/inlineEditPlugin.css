@@ -1,7 +1,7 @@
 /* Typora-style Inline Editing - Expanded States */
 
 /* Base expanded state - remove default styling */
-.milkdown-inline-expanded {
+.milkdown-editor .ProseMirror .milkdown-inline-expanded {
   transition: none;
 }
 

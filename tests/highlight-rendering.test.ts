@@ -189,13 +189,13 @@ describe("MilkdownEditor.tsx — highlightMarkPlugin wiring (#40)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5c. globals.css — must style <mark> inside .milkdown-editor (fix for #40)
+// 5c. MilkdownEditor.css — must style <mark> inside .milkdown-editor (fix for #40)
 // ---------------------------------------------------------------------------
 
-describe("globals.css — <mark> styled in WYSIWYG editor (#40)", () => {
+describe("MilkdownEditor.css — <mark> styled in WYSIWYG editor (#40)", () => {
   it("has a mark rule scoped to .milkdown-editor .ProseMirror", () => {
     const cssSrc = fs.readFileSync(
-      path.resolve(__dirname, "../src/styles/globals.css"),
+      path.resolve(__dirname, "../src/components/Editor/MilkdownEditor.css"),
       "utf-8",
     );
     expect(cssSrc).toMatch(/\.milkdown-editor\s+\.ProseMirror\s+mark/);
