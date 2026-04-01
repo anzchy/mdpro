@@ -340,8 +340,14 @@ async fn update_document(
             error: None,
         });
 
-        // Show confirmation dialog
-        let confirmed = show_write_confirmation(&doc.title);
+        // Show confirmation dialog on a blocking thread so the async
+        // HTTP handler stays free to serve other requests (#237).
+        let title_owned = doc.title.clone();
+        let confirmed = tokio::task::spawn_blocking(move || {
+            show_write_confirmation(&title_owned)
+        })
+        .await
+        .unwrap_or(false);
         if !confirmed {
             logger::log_event(LogEntryPayload {
                 level: LogLevel::Info,
