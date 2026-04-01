@@ -1,31 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
 /**
- * Represents an image in the document
- */
-export interface ImageReference {
-  /** Original path from Markdown syntax */
-  originalPath: string;
-  /** Resolved absolute path (for local images) */
-  resolvedPath: string | null;
-  /** Image alt text */
-  altText: string;
-  /** Image title (optional) */
-  title?: string;
-  /** Whether this is a remote URL */
-  isRemote: boolean;
-  /** Loading state */
-  loadState: "loading" | "loaded" | "error";
-  /** Error message if load failed */
-  errorMessage?: string;
-  /** Image dimensions (if known) */
-  dimensions?: {
-    width: number;
-    height: number;
-  };
-}
-
-/**
  * Image configuration settings
  */
 export interface ImageConfig {
