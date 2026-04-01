@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::Draft;
+use crate::models::{Draft, DraftMetadata};
 
 mod listing;
 mod recovery;
@@ -92,11 +92,22 @@ fn validate_id(id: &str) -> Result<(), DraftError> {
     Ok(())
 }
 
-/// Single bundle file: `{document_id}.draft.json`.
-/// Replaces the old two-file layout (`.draft.md` + `.meta.json`).
+/// Bundle file: `{document_id}.draft.json`
 pub(super) fn bundle_path(document_id: &str) -> Result<PathBuf, DraftError> {
     validate_id(document_id)?;
     Ok(drafts_dir()?.join(format!("{document_id}.draft.json")))
+}
+
+/// Legacy content file (pre-bundle format): `{document_id}.draft.md`
+pub(super) fn legacy_draft_path(document_id: &str) -> Result<PathBuf, DraftError> {
+    validate_id(document_id)?;
+    Ok(drafts_dir()?.join(format!("{document_id}.draft.md")))
+}
+
+/// Legacy metadata file (pre-bundle format): `{document_id}.meta.json`
+pub(super) fn legacy_meta_path(document_id: &str) -> Result<PathBuf, DraftError> {
+    validate_id(document_id)?;
+    Ok(drafts_dir()?.join(format!("{document_id}.meta.json")))
 }
 
 fn ensure_dir(path: &Path) -> Result<(), DraftError> {
@@ -106,6 +117,43 @@ fn ensure_dir(path: &Path) -> Result<(), DraftError> {
         })?;
     }
     Ok(())
+}
+
+// ── Atomic write helper ───────────────────────────────────────────────────────
+
+/// Serialize `bundle` and commit it to `dest` via a uniquely-named tmp + rename.
+/// `tmp_prefix` names the tmp file — typically the document_id.
+/// The nanosecond nonce ensures concurrent callers for the same document each
+/// get their own distinct tmp path.
+pub(super) fn write_bundle_atomic(
+    dest: &Path,
+    bundle: &DraftBundle,
+    tmp_prefix: &str,
+) -> Result<(), DraftError> {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+
+    let dir = dest.parent().ok_or_else(|| DraftError::IoError {
+        message: "bundle path has no parent directory".to_string(),
+    })?;
+    let tmp = dir.join(format!("{tmp_prefix}.{nonce}.tmp"));
+
+    let payload = serde_json::to_string_pretty(bundle).map_err(|err| DraftError::ParseError {
+        message: err.to_string(),
+    })?;
+
+    fs::write(&tmp, &payload).map_err(|err| DraftError::IoError {
+        message: err.to_string(),
+    })?;
+
+    fs::rename(&tmp, dest).map_err(|err| {
+        let _ = fs::remove_file(&tmp);
+        DraftError::IoError {
+            message: err.to_string(),
+        }
+    })
 }
 
 // ── Core storage operations ───────────────────────────────────────────────────
@@ -120,11 +168,7 @@ pub fn save_draft(
     ensure_dir(&dir)?;
 
     let now = Utc::now();
-    // Per-invocation nonce: concurrent saves for the same document write to
-    // distinct tmp paths, preventing one call from corrupting another's temp file.
-    let nonce = now.timestamp_millis();
-    let tmp_path = dir.join(format!("{document_id}.{nonce}.tmp"));
-    let bundle_path = bundle_path(document_id)?;
+    let dest = bundle_path(document_id)?;
 
     let bundle = DraftBundle {
         content: content.to_string(),
@@ -134,39 +178,81 @@ pub fn save_draft(
         title: title.to_string(),
     };
 
-    let payload = serde_json::to_string_pretty(&bundle).map_err(|err| DraftError::ParseError {
-        message: err.to_string(),
-    })?;
-
-    // Write content + metadata into one tmp file, then a single atomic rename.
-    // On APFS (macOS) rename() is atomic — there is no window where content
-    // and metadata can be inconsistent on disk.
-    fs::write(&tmp_path, &payload).map_err(|err| DraftError::IoError {
-        message: err.to_string(),
-    })?;
-
-    fs::rename(&tmp_path, &bundle_path).map_err(|err| {
-        let _ = fs::remove_file(&tmp_path);
-        DraftError::IoError {
-            message: err.to_string(),
-        }
-    })?;
+    // Single atomic rename: content + metadata committed together.
+    // On APFS (macOS) rename() is atomic — no partial-state window on disk.
+    write_bundle_atomic(&dest, &bundle, document_id)?;
 
     Ok(DraftSaveResult {
         success: true,
-        draft_path: bundle_path.to_string_lossy().to_string(),
+        draft_path: dest.to_string_lossy().to_string(),
         saved_at: now.timestamp_millis(),
     })
 }
 
 pub fn load_draft(document_id: &str) -> Result<Option<Draft>, DraftError> {
-    let bundle_path = bundle_path(document_id)?;
+    let path = bundle_path(document_id)?;
 
-    if !bundle_path.exists() {
+    if path.exists() {
+        return load_bundle(document_id, &path);
+    }
+
+    // Backward-compat: read pre-bundle two-file format and migrate atomically.
+    let legacy_draft = legacy_draft_path(document_id)?;
+    if !legacy_draft.exists() {
         return Ok(None);
     }
 
-    let contents = fs::read_to_string(&bundle_path).map_err(|err| DraftError::IoError {
+    let content = fs::read_to_string(&legacy_draft).map_err(|err| DraftError::IoError {
+        message: err.to_string(),
+    })?;
+
+    let legacy_meta = legacy_meta_path(document_id)?;
+    let (original_path, last_modified, recovered, title) = if legacy_meta.exists() {
+        let raw = fs::read_to_string(&legacy_meta).map_err(|err| DraftError::IoError {
+            message: err.to_string(),
+        })?;
+        let meta: DraftMetadata = serde_json::from_str(&raw).map_err(|err| {
+            DraftError::ParseError {
+                message: err.to_string(),
+            }
+        })?;
+        (meta.original_path, meta.last_modified, meta.recovered, meta.title)
+    } else {
+        let mtime = fs::metadata(&legacy_draft)
+            .and_then(|m| m.modified())
+            .map(|t| DateTime::<Utc>::from(t).to_rfc3339())
+            .unwrap_or_else(|_| Utc::now().to_rfc3339());
+        (None, mtime, false, String::new())
+    };
+
+    // Migrate to bundle format — best-effort; read succeeds even if migration fails.
+    let bundle = DraftBundle {
+        content: content.clone(),
+        original_path: original_path.clone(),
+        last_modified: last_modified.clone(),
+        recovered,
+        title: title.clone(),
+    };
+    if write_bundle_atomic(&path, &bundle, document_id).is_ok() {
+        let _ = fs::remove_file(&legacy_draft);
+        let _ = fs::remove_file(&legacy_meta);
+    }
+
+    let last_modified_ms = DateTime::parse_from_rfc3339(&last_modified)
+        .map(|dt| dt.timestamp_millis())
+        .unwrap_or(0);
+
+    Ok(Some(Draft {
+        id: document_id.to_string(),
+        original_path: original_path.map(PathBuf::from),
+        content,
+        last_modified: last_modified_ms,
+        recovered,
+    }))
+}
+
+fn load_bundle(document_id: &str, path: &Path) -> Result<Option<Draft>, DraftError> {
+    let contents = fs::read_to_string(path).map_err(|err| DraftError::IoError {
         message: err.to_string(),
     })?;
 
@@ -190,14 +276,27 @@ pub fn load_draft(document_id: &str) -> Result<Option<Draft>, DraftError> {
 }
 
 pub fn delete_draft(document_id: &str) -> Result<bool, DraftError> {
-    let bundle_path = bundle_path(document_id)?;
+    let mut deleted = false;
 
-    if bundle_path.exists() {
-        fs::remove_file(&bundle_path).map_err(|err| DraftError::IoError {
+    let path = bundle_path(document_id)?;
+    if path.exists() {
+        fs::remove_file(&path).map_err(|err| DraftError::IoError {
             message: err.to_string(),
         })?;
-        Ok(true)
-    } else {
-        Ok(false)
+        deleted = true;
     }
+
+    // Also remove any legacy two-file drafts from pre-bundle builds.
+    let legacy_draft = legacy_draft_path(document_id)?;
+    let legacy_meta = legacy_meta_path(document_id)?;
+    if legacy_draft.exists() {
+        let _ = fs::remove_file(&legacy_draft);
+        deleted = true;
+    }
+    if legacy_meta.exists() {
+        let _ = fs::remove_file(&legacy_meta);
+        deleted = true;
+    }
+
+    Ok(deleted)
 }
