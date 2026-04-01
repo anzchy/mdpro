@@ -110,3 +110,7 @@ jobs:
               explaining why and skip (leave for human review)
             - If build/test gates fail after 2 attempts, comment on the issue and move on
             - Never commit to master directly
+            - IMPORTANT: if you ever merge directly to master instead of via PR, you MUST
+              include "Closes #N" in the merge commit message (not just the branch commit).
+              GitHub only fires the issue-close webhook for the PR body or newly-pushed
+              commits — commits already known to the remote are not re-evaluated.
