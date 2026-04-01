@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../stores/documentStore";
+import { loggingService } from "../services/loggingService";
 
 const extractTitle = (content: string) => {
   const match = content.match(/^#\s+(.+)$/m);
@@ -35,8 +36,13 @@ export function useAutoSave(autoSaveInterval: number) {
           title: extractTitle(activeDocument.content),
         });
         lastSaveRef.current = now;
-      } catch {
-        // Ignore autosave errors for now.
+      } catch (err) {
+        loggingService.logEventSync({
+          level: 'warn',
+          event: 'draft.auto_save',
+          status: 'fail',
+          context: { documentId: activeDocument.id, error: err instanceof Error ? err.message : String(err) },
+        });
       }
     }, intervalMs);
 
