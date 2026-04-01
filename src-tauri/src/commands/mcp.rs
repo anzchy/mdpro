@@ -102,7 +102,7 @@ pub fn mcp_get_installations() -> Result<Vec<McpInstallation>, String> {
 
     let mut installations = Vec::new();
     for client in clients {
-        let config_path = get_client_config_path(client);
+        let config_path = get_client_config_path(client)?;
         let installed = check_mcp_installed(&config_path, client);
         installations.push(McpInstallation {
             client,
@@ -117,7 +117,7 @@ pub fn mcp_get_installations() -> Result<Vec<McpInstallation>, String> {
 /// Install MCP config to a specific client
 #[tauri::command]
 pub fn mcp_install_config(client: McpClient) -> Result<(), String> {
-    let config_path = get_client_config_path(client);
+    let config_path = get_client_config_path(client)?;
     let binary_path = get_mcp_binary_path();
 
     // Ensure parent directory exists
@@ -139,7 +139,7 @@ pub fn mcp_install_config(client: McpClient) -> Result<(), String> {
 /// Remove MCP config from a specific client
 #[tauri::command]
 pub fn mcp_remove_config(client: McpClient) -> Result<(), String> {
-    let config_path = get_client_config_path(client);
+    let config_path = get_client_config_path(client)?;
 
     match client {
         McpClient::ClaudeDesktop | McpClient::ClaudeCode | McpClient::GeminiCli => {
@@ -184,10 +184,11 @@ fn get_mcp_binary_path() -> String {
     "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp".to_string()
 }
 
-fn get_client_config_path(client: McpClient) -> PathBuf {
-    let home = dirs::home_dir().unwrap_or_default();
+fn get_client_config_path(client: McpClient) -> Result<PathBuf, String> {
+    let home = dirs::home_dir()
+        .ok_or_else(|| "Could not determine home directory".to_string())?;
 
-    match client {
+    let path = match client {
         McpClient::ClaudeDesktop => {
             #[cfg(target_os = "macos")]
             {
@@ -196,7 +197,7 @@ fn get_client_config_path(client: McpClient) -> PathBuf {
             #[cfg(target_os = "windows")]
             {
                 dirs::config_dir()
-                    .unwrap_or_default()
+                    .ok_or_else(|| "Could not determine config directory".to_string())?
                     .join("Claude/claude_desktop_config.json")
             }
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -213,7 +214,8 @@ fn get_client_config_path(client: McpClient) -> PathBuf {
         McpClient::GeminiCli => {
             home.join(".config/gemini/settings.json")
         }
-    }
+    };
+    Ok(path)
 }
 
 fn check_mcp_installed(config_path: &PathBuf, client: McpClient) -> bool {
