@@ -72,23 +72,31 @@ jobs:
             1. Read the issue: `gh issue view ${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
             2. Create a fix branch: `git checkout -b fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
             3. Apply the minimum correct fix described in the issue
-            4. Run frontend gate: `pnpm build`
-            5. If the fix touches .rs files: `cd src-tauri && cargo check --manifest-path src-tauri/Cargo.toml`
-            6. If tests are relevant: `pnpm test:run`
-            7. Commit: `git commit -m "fix: <issue title> (Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }})"`
+            4. Run full gates BEFORE committing:
+               a. `pnpm build`
+               b. If the fix touches .rs files: `cd src-tauri && cargo check --manifest-path src-tauri/Cargo.toml`
+               c. If tests are relevant: `pnpm test:run`
+               All gates must pass before proceeding. If gates fail after 2 attempts,
+               comment on the issue and stop.
+            5. Commit: `git commit -m "fix: <issue title> (Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }})"`
 
-            8. Run Codex review on the fix:
+            6. Run Codex review on the fix:
                ```bash
                codex review --base master
                ```
-               - If output is empty or contains no actionable bugs → proceed to step 9
-               - If bugs are found → fix each one, re-run gates (steps 4–6), amend the
-                 commit (`git commit --amend --no-edit`), re-run Codex review
-               - Repeat at most 2 Codex review iterations; if still unclean after 2,
-                 proceed to step 9 and note the remaining findings in the PR body
+               - **Only act on critical, high, and medium severity findings. Ignore low
+                 severity findings entirely.**
+               - If output is empty, or only contains low severity findings → proceed to step 7
+               - If critical/high/medium bugs are found:
+                 - Fix each one
+                 - Re-run full gates (step 4a–4c) — all must pass before continuing
+                 - Amend the commit: `git commit --amend --no-edit`
+                 - Re-run Codex review
+               - Repeat at most 2 Codex review iterations; if critical/high/medium findings
+                 remain after 2 iterations, proceed to step 7 and note them in the PR body
 
-            9. Push branch: `git push origin fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
-            10. Open PR:
+            7. Push branch: `git push origin fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            8. Open PR:
                 ```bash
                 gh pr create \
                   --title "fix: <issue title>" \
