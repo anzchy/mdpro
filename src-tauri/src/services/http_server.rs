@@ -374,8 +374,13 @@ async fn update_document(
         .ok()
         .flatten();
 
-    // Emit event to frontend to update the document
+    // Optimistically update shadow store BEFORE emitting to frontend,
+    // so subsequent reads return new content even if the frontend
+    // hasn't processed the event yet (fixes #141 stale-read window).
     let content_clone = request.content.clone();
+    let _ = shadow_store::update_document_content(&state.shadow_store, &id, content_clone);
+
+    // Emit event to frontend to update the document
     let event = WriteDocumentEvent {
         document_id: id.clone(),
         content: request.content,
@@ -389,9 +394,6 @@ async fn update_document(
         };
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
-
-    // Optimistically update shadow store so subsequent reads return new content
-    let _ = shadow_store::update_document_content(&state.shadow_store, &id, content_clone);
 
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -465,9 +467,12 @@ async fn insert_content(
         .ok()
         .flatten();
 
-    // Compute new content for optimistic shadow store update
+    // Compute new content and optimistically update shadow store BEFORE
+    // emitting to frontend, so subsequent reads return new content even
+    // if the frontend hasn't processed the event yet (fixes #141).
     let mut new_content = doc.content.clone();
     new_content.insert_str(insert_offset, &request.text);
+    let _ = shadow_store::update_document_content(&state.shadow_store, &id, new_content);
 
     // Emit event to frontend
     let event = InsertContentEvent {
@@ -484,9 +489,6 @@ async fn insert_content(
         };
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
-
-    // Optimistically update shadow store so subsequent reads return new content
-    let _ = shadow_store::update_document_content(&state.shadow_store, &id, new_content);
 
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
