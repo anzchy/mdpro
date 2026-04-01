@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
@@ -213,27 +213,42 @@ pub async fn resolve_image_path(
 
     // Resolve the image path
     let image_path_obj = Path::new(&image_path);
-    let absolute_path = if image_path_obj.is_absolute() {
-        image_path_obj.to_path_buf()
-    } else {
-        doc_dir.join(&image_path)
-    };
 
-    // Canonicalize if possible (resolves .., symlinks, etc.)
-    let absolute_path = absolute_path
-        .canonicalize()
-        .unwrap_or_else(|_| absolute_path.clone());
-
-    // Security: verify the resolved path stays within the document directory
+    // Canonicalize doc_dir first (must exist if a document is open)
     let doc_dir_canonical = doc_dir
         .canonicalize()
         .unwrap_or_else(|_| doc_dir.to_path_buf());
 
-    if !absolute_path.starts_with(&doc_dir_canonical) {
+    // Security: verify the path stays within the document directory.
+    // Use lexical normalization so that non-existent paths like `../../etc/passwd`
+    // are caught even when canonicalize() would silently fall back to the raw joined path.
+    let check_path = {
+        let raw = if image_path_obj.is_absolute() {
+            image_path_obj.to_path_buf()
+        } else {
+            doc_dir_canonical.join(&image_path)
+        };
+        let mut components: Vec<std::path::Component> = Vec::new();
+        for c in raw.components() {
+            match c {
+                std::path::Component::ParentDir => { components.pop(); }
+                std::path::Component::CurDir => {}
+                other => components.push(other),
+            }
+        }
+        components.iter().collect::<PathBuf>()
+    };
+
+    if !check_path.starts_with(&doc_dir_canonical) {
         return Err(ImageError::InvalidPath {
             message: format!("Path escapes document directory: {}", image_path),
         });
     }
+
+    // Canonicalize if possible (resolves symlinks for the actual file access)
+    let absolute_path = check_path
+        .canonicalize()
+        .unwrap_or_else(|_| check_path.clone());
 
     let exists = absolute_path.exists();
     let (file_size, mime_type) = if exists {
