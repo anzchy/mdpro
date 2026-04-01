@@ -129,6 +129,7 @@ export interface KeyboardShortcuts {
   formatStrike: string;
   formatHyperlink: string;
   formatImage: string;
+  formatHighlight: string;
   formatClearFormat: string;
 
   // View operations
@@ -190,6 +191,7 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   formatStrike: "Ctrl+Shift+`",
   formatHyperlink: "Cmd+K",
   formatImage: "Cmd+Ctrl+I",
+  formatHighlight: "Cmd+Shift+H",
   formatClearFormat: "Cmd+\\",
 
   // View operations
