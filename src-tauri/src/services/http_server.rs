@@ -38,9 +38,9 @@ pub struct AppState {
     pub app_handle: AppHandle,
 }
 
-/// Get the mdpro config directory (~/.mdpro).
+/// Get the mdpro config directory (platform-standard data dir).
 fn config_dir() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".mdpro"))
+    dirs::data_dir().map(|d| d.join("mdpro"))
 }
 
 /// Generate a secure random token.
