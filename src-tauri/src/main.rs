@@ -143,7 +143,8 @@ fn main() {
     let app = tauri::Builder::default()
         .setup(move |app| {
             let watcher =
-                tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone());
+                tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone())
+                    .map_err(|e| Box::<dyn std::error::Error>::from(e))?;
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
 
