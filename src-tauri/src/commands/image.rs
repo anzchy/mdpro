@@ -299,7 +299,7 @@ pub async fn upload_image(
     let safe_filename = Path::new(&filename)
         .file_name()
         .and_then(|n| n.to_str())
-        .filter(|n| !n.is_empty() && !n.starts_with('.') || n.len() > 1)
+        .filter(|n| !n.is_empty() && !n.starts_with('.'))
         .ok_or_else(|| ImageError::InvalidImageData {
             message: "Invalid filename".to_string(),
         })?
