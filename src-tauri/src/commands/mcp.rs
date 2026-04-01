@@ -192,7 +192,7 @@ fn get_mcp_binary_path() -> Result<String, String> {
         let exe_dir = std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-            .unwrap_or_default();
+            .ok_or_else(|| "Could not determine executable directory".to_string())?;
         Ok(exe_dir.join("mdpro_mcp.exe").to_string_lossy().to_string())
     }
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
