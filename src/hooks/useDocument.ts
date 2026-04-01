@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { fileService } from "../services/fileService";
 import type { Document } from "../types/document";
 import { useDocumentStore } from "../stores/documentStore";
+import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
 
 const createEmptyDocument = (): Document => ({
@@ -206,7 +207,14 @@ export function useDocument() {
         lastSaved: result.savedAt,
       });
       markDocumentModified(activeDocument.id, false);
-      void invoke("delete_draft", { documentId: activeDocument.id }).catch(() => {});
+      void invoke("delete_draft", { documentId: activeDocument.id }).catch((err) => {
+        loggingService.logEventSync({
+          level: 'warn',
+          event: 'draft.delete',
+          status: 'fail',
+          context: { documentId: activeDocument.id, error: err instanceof Error ? err.message : String(err) },
+        });
+      });
     }
     return result;
   }, [activeDocument, markDocumentModified, upsertDocument]);
@@ -230,7 +238,14 @@ export function useDocument() {
         lastSaved: result.savedAt,
       });
       markDocumentModified(activeDocument.id, false);
-      void invoke("delete_draft", { documentId: activeDocument.id }).catch(() => {});
+      void invoke("delete_draft", { documentId: activeDocument.id }).catch((err) => {
+        loggingService.logEventSync({
+          level: 'warn',
+          event: 'draft.delete',
+          status: 'fail',
+          context: { documentId: activeDocument.id, error: err instanceof Error ? err.message : String(err) },
+        });
+      });
     }
     return result;
   }, [activeDocument, markDocumentModified, saveActiveDocumentAs, upsertDocument]);
