@@ -290,8 +290,8 @@ pub async fn open_file(
 }
 
 #[tauri::command]
-pub fn create_document() -> Document {
-    Document::new()
+pub fn create_document() -> Result<Document, String> {
+    Ok(Document::new())
 }
 
 #[tauri::command]

@@ -8,8 +8,8 @@ use crate::services::preferences::{
 };
 
 #[tauri::command]
-pub async fn get_preferences() -> UserPreferences {
-    load_preferences().unwrap_or_default()
+pub async fn get_preferences() -> Result<UserPreferences, String> {
+    load_preferences().map_err(|e| format!("Failed to load preferences: {}", e))
 }
 
 #[tauri::command]
@@ -30,12 +30,12 @@ pub async fn set_preferences(
 }
 
 #[tauri::command]
-pub fn get_system_theme(window: Window) -> String {
-    let theme = window.theme().unwrap_or(Theme::Light);
-    match theme {
+pub fn get_system_theme(window: Window) -> Result<String, String> {
+    let theme = window.theme().map_err(|e| format!("Failed to get system theme: {}", e))?;
+    Ok(match theme {
         Theme::Dark => "dark".to_string(),
         _ => "light".to_string(),
-    }
+    })
 }
 
 #[tauri::command]
