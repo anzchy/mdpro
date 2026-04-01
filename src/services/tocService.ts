@@ -48,7 +48,7 @@ export async function getDocumentHeadings(
 export function parseHeadingsFromContent(content: string): HeadingInfo[] {
   const headings: HeadingInfo[] = [];
   const stripped = stripFrontmatter(content);
-  const lines = stripped.split("\n");
+  const lines = stripped.split(/\r?\n/);
   const idCounts: Map<string, number> = new Map();
 
   // Compute character offset of stripped content within the original document
@@ -56,7 +56,7 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
   const frontmatterLength = content.length - stripped.length;
   const frontmatterLines = content.length === stripped.length
     ? 0
-    : content.slice(0, frontmatterLength).split("\n").length - 1;
+    : content.slice(0, frontmatterLength).split(/\r?\n/).length - 1;
   let offset = frontmatterLength;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
