@@ -8,16 +8,19 @@ const extractTitle = (content: string) => {
 };
 
 export function useAutoSave(autoSaveInterval: number) {
-  const { documents, activeDocumentId } = useDocumentStore();
+  const activeDocumentId = useDocumentStore((s) => s.activeDocumentId);
   const lastSaveRef = useRef<number>(0);
 
   useEffect(() => {
-    const activeDocument = documents.find((doc) => doc.id === activeDocumentId) ?? null;
-    if (!activeDocument || !activeDocument.isModified) return;
+    if (!activeDocumentId) return;
     if (autoSaveInterval <= 0) return; // 0 = disabled
 
     const intervalMs = Math.max(autoSaveInterval * 1000, 5000);
     const interval = window.setInterval(async () => {
+      const { documents } = useDocumentStore.getState();
+      const activeDocument = documents.find((doc) => doc.id === activeDocumentId) ?? null;
+      if (!activeDocument || !activeDocument.isModified) return;
+
       const now = Date.now();
       if (now - lastSaveRef.current < intervalMs - 5000) {
         return;
@@ -37,5 +40,5 @@ export function useAutoSave(autoSaveInterval: number) {
     }, intervalMs);
 
     return () => window.clearInterval(interval);
-  }, [activeDocumentId, autoSaveInterval, documents]);
+  }, [activeDocumentId, autoSaveInterval]);
 }
