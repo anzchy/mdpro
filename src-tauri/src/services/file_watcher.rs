@@ -57,7 +57,6 @@ impl FileWatcher {
         }
     }
 
-    #[allow(dead_code)]
     pub fn unwatch(&self, path: &Path) {
         if let Ok(mut watcher) = self.watcher.lock() {
             let _ = watcher.unwatch(path);

@@ -477,11 +477,17 @@ pub async fn save_file_dialog(
 pub async fn close_document(
     document_id: String,
     discard_changes: bool,
+    path: Option<String>,
+    watcher: State<'_, FileWatcher>,
 ) -> Result<CloseResult, FileError> {
     if !discard_changes {
         return Err(FileError::IoError {
             message: format!("Document {document_id} has unsaved changes"),
         });
+    }
+
+    if let Some(ref p) = path {
+        watcher.unwatch(&PathBuf::from(p));
     }
 
     Ok(CloseResult {

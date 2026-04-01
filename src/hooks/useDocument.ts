@@ -238,7 +238,7 @@ export function useDocument() {
   const closeActiveDocument = useCallback(
     async (discardChanges: boolean) => {
       if (!activeDocument) return null;
-      await fileService.closeDocument(activeDocument.id, discardChanges);
+      await fileService.closeDocument(activeDocument.id, discardChanges, activeDocument.path);
       closeDocument(activeDocument.id);
       setEditorActiveDocumentId(null);
       return;
@@ -248,7 +248,8 @@ export function useDocument() {
 
   const closeDocumentById = useCallback(
     async (id: string, discardChanges: boolean) => {
-      await fileService.closeDocument(id, discardChanges);
+      const doc = useDocumentStore.getState().documents.find((d) => d.id === id);
+      await fileService.closeDocument(id, discardChanges, doc?.path);
       closeDocument(id);
       if (activeDocumentId === id) {
         setEditorActiveDocumentId(null);

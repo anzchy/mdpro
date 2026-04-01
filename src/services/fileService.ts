@@ -62,8 +62,8 @@ export const fileService = {
     return invoke("save_file_dialog", { documentId, content, suggestedName, actionId });
   },
 
-  async closeDocument(documentId: string, discardChanges: boolean): Promise<CloseResult> {
-    return invoke("close_document", { documentId, discardChanges });
+  async closeDocument(documentId: string, discardChanges: boolean, path?: string | null): Promise<CloseResult> {
+    return invoke("close_document", { documentId, discardChanges, path: path ?? null });
   },
 
   async checkFileModified(path: string): Promise<FileModifiedResult> {
