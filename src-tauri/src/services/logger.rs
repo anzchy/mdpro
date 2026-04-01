@@ -9,8 +9,8 @@ use crate::models::{LogEntry, LogEntryPayload, LogLevel, LogSettings, LogStatus}
 use crate::services::preferences::load_preferences;
 
 fn log_path() -> Option<PathBuf> {
-    let home = std::env::var("HOME").ok()?;
-    let dir = PathBuf::from(home).join(".mdpro");
+    let home = dirs::home_dir()?;
+    let dir = home.join(".mdpro");
     if !dir.exists() {
         let _ = create_dir_all(&dir);
     }
