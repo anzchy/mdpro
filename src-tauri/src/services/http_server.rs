@@ -375,6 +375,7 @@ async fn update_document(
         .flatten();
 
     // Emit event to frontend to update the document
+    let content_clone = request.content.clone();
     let event = WriteDocumentEvent {
         document_id: id.clone(),
         content: request.content,
@@ -388,6 +389,9 @@ async fn update_document(
         };
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
+
+    // Optimistically update shadow store so subsequent reads return new content
+    let _ = shadow_store::update_document_content(&state.shadow_store, &id, content_clone);
 
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -461,6 +465,10 @@ async fn insert_content(
         .ok()
         .flatten();
 
+    // Compute new content for optimistic shadow store update
+    let mut new_content = doc.content.clone();
+    new_content.insert_str(insert_offset, &request.text);
+
     // Emit event to frontend
     let event = InsertContentEvent {
         document_id: id.clone(),
@@ -476,6 +484,9 @@ async fn insert_content(
         };
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
+
+    // Optimistically update shadow store so subsequent reads return new content
+    let _ = shadow_store::update_document_content(&state.shadow_store, &id, new_content);
 
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,

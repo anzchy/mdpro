@@ -123,6 +123,28 @@ pub fn get_window_for_document(store: &SharedShadowStore, doc_id: &str) -> Resul
     Ok(shadow.find_window_for_document(doc_id).map(|s| s.to_string()))
 }
 
+/// Optimistically update a document's content in the shadow store.
+///
+/// Called after emitting write/insert events so that subsequent reads
+/// return the new content without waiting for the frontend sync roundtrip.
+pub fn update_document_content(
+    store: &SharedShadowStore,
+    id: &str,
+    content: String,
+) -> Result<bool, String> {
+    let mut shadow = store
+        .lock()
+        .map_err(|e| format!("Failed to lock shadow store: {}", e))?;
+
+    if let Some(doc) = shadow.find_document_mut(id) {
+        doc.content = content;
+        doc.is_dirty = true;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
