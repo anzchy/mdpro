@@ -1,7 +1,10 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use std::collections::HashSet;
 use std::fs;
 
-use super::{drafts_dir, DraftError, DraftMetadata, DraftMetadataEntry};
+use crate::models::DraftMetadata;
+
+use super::{drafts_dir, DraftBundle, DraftError, DraftMetadataEntry};
 
 pub fn list_drafts() -> Result<Vec<DraftMetadataEntry>, DraftError> {
     let dir = drafts_dir()?;
@@ -9,10 +12,6 @@ pub fn list_drafts() -> Result<Vec<DraftMetadataEntry>, DraftError> {
         return Ok(Vec::new());
     }
 
-    let mut entries = Vec::new();
-    let mut seen_ids = std::collections::HashSet::new();
-
-    // First pass: drafts with full metadata (the normal case).
     let items: Vec<_> = fs::read_dir(&dir)
         .map_err(|err| DraftError::IoError {
             message: err.to_string(),
@@ -22,66 +21,110 @@ pub fn list_drafts() -> Result<Vec<DraftMetadataEntry>, DraftError> {
             message: err.to_string(),
         })?;
 
+    let mut entries = Vec::new();
+    let mut bundle_ids: HashSet<String> = HashSet::new();
+
+    // Pass 1: bundle-format drafts ({id}.draft.json).
     for item in &items {
         let path = item.path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
-            continue;
-        }
-        let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
-        if !file_name.ends_with(".meta.json") {
-            continue;
-        }
-        let id = file_name.replace(".meta.json", "");
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-        // Skip unreadable or corrupt metadata; the second pass will surface the
-        // accompanying .draft.md as an orphan so the user can still recover it.
+        let id = match file_name.strip_suffix(".draft.json") {
+            Some(id) if !id.is_empty() => id.to_string(),
+            _ => continue,
+        };
+
+        bundle_ids.insert(id.clone());
+
         let contents = match fs::read_to_string(&path) {
             Ok(c) => c,
-            Err(_) => continue,
-        };
-        let metadata: DraftMetadata = match serde_json::from_str(&contents) {
-            Ok(m) => m,
-            Err(_) => continue,
+            Err(_) => {
+                // Unreadable bundle — surface as a degraded entry so the user can delete it.
+                let last_modified = file_mtime(&path);
+                entries.push(DraftMetadataEntry {
+                    id,
+                    original_path: None,
+                    last_modified,
+                    recovered: false,
+                    title: "(corrupted)".to_string(),
+                });
+                continue;
+            }
         };
 
-        // Always record the id so the second pass skips drafts that have metadata,
-        // even if those drafts have already been recovered.
-        seen_ids.insert(id.clone());
+        let bundle: DraftBundle = match serde_json::from_str(&contents) {
+            Ok(b) => b,
+            Err(_) => {
+                // Corrupt JSON — surface as degraded rather than silently drop.
+                let last_modified = file_mtime(&path);
+                entries.push(DraftMetadataEntry {
+                    id,
+                    original_path: None,
+                    last_modified,
+                    recovered: false,
+                    title: "(corrupted)".to_string(),
+                });
+                continue;
+            }
+        };
 
-        if metadata.recovered {
+        if bundle.recovered {
             continue;
         }
 
         entries.push(DraftMetadataEntry {
             id,
-            original_path: metadata.original_path,
-            last_modified: metadata.last_modified,
-            recovered: metadata.recovered,
-            title: metadata.title,
+            original_path: bundle.original_path,
+            last_modified: bundle.last_modified,
+            recovered: bundle.recovered,
+            title: bundle.title,
         });
     }
 
-    // Second pass: surface orphan content files (partial write left .draft.md without .meta.json).
+    // Pass 2: legacy two-file drafts without a corresponding bundle.
+    // These exist on installs that haven't yet loaded (and thus migrated) each draft.
     for item in &items {
         let path = item.path();
-        let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
-        if !file_name.ends_with(".draft.md") {
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        let id = match file_name.strip_suffix(".draft.md") {
+            Some(id) if !id.is_empty() => id.to_string(),
+            _ => continue,
+        };
+
+        if bundle_ids.contains(&id) {
+            continue; // already covered by Pass 1
+        }
+
+        // Read metadata from the accompanying .meta.json if present.
+        let meta_path = dir.join(format!("{id}.meta.json"));
+        let (original_path, last_modified, recovered, title) = if meta_path.exists() {
+            match fs::read_to_string(&meta_path)
+                .ok()
+                .and_then(|s| serde_json::from_str::<DraftMetadata>(&s).ok())
+            {
+                Some(meta) => (
+                    meta.original_path,
+                    meta.last_modified,
+                    meta.recovered,
+                    meta.title,
+                ),
+                None => (None, file_mtime(&path), false, "(metadata corrupt)".to_string()),
+            }
+        } else {
+            (None, file_mtime(&path), false, "(metadata missing)".to_string())
+        };
+
+        if recovered {
             continue;
         }
-        let id = file_name.replace(".draft.md", "");
-        if seen_ids.contains(&id) {
-            continue;
-        }
-        let last_modified = fs::metadata(&path)
-            .and_then(|m| m.modified())
-            .map(|t| DateTime::<Utc>::from(t).to_rfc3339())
-            .unwrap_or_default();
+
         entries.push(DraftMetadataEntry {
             id,
-            original_path: None,
+            original_path,
             last_modified,
-            recovered: false,
-            title: "(metadata missing)".to_string(),
+            recovered,
+            title,
         });
     }
 
@@ -108,28 +151,29 @@ pub fn cleanup_old_drafts() -> Result<usize, DraftError> {
             message: err.to_string(),
         })?;
         let path = item.path();
-        let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
-        if !file_name.ends_with(".meta.json") {
-            continue;
-        }
-        let id = file_name.replace(".meta.json", "");
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        let id = match file_name.strip_suffix(".draft.json") {
+            Some(id) if !id.is_empty() => id.to_string(),
+            _ => continue,
+        };
 
         let contents = match fs::read_to_string(&path) {
             Ok(c) => c,
             Err(_) => continue,
         };
-        let metadata: DraftMetadata = match serde_json::from_str(&contents) {
-            Ok(m) => m,
+        let bundle: DraftBundle = match serde_json::from_str(&contents) {
+            Ok(b) => b,
             Err(_) => continue,
         };
 
-        if !metadata.recovered {
+        if !bundle.recovered {
             continue;
         }
 
-        if let Ok(last_modified) = DateTime::parse_from_rfc3339(&metadata.last_modified) {
+        if let Ok(last_modified) = DateTime::parse_from_rfc3339(&bundle.last_modified) {
             if last_modified < threshold {
-                // Best-effort: skip this draft on failure and continue with the rest.
+                // Best-effort: skip on failure and continue with the rest.
                 if super::delete_draft(&id).is_ok() {
                     deleted += 1;
                 }
@@ -138,4 +182,12 @@ pub fn cleanup_old_drafts() -> Result<usize, DraftError> {
     }
 
     Ok(deleted)
+}
+
+fn file_mtime(path: &std::path::Path) -> String {
+    use chrono::Utc;
+    fs::metadata(path)
+        .and_then(|m| m.modified())
+        .map(|t| DateTime::<Utc>::from(t).to_rfc3339())
+        .unwrap_or_default()
 }
