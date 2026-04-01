@@ -77,10 +77,10 @@ pub(super) struct DraftBundle {
 // ── Path helpers ──────────────────────────────────────────────────────────────
 
 pub(super) fn drafts_dir() -> Result<PathBuf, DraftError> {
-    let home = dirs::home_dir().ok_or_else(|| DraftError::IoError {
-        message: "could not determine home directory".to_string(),
+    let data = dirs::data_dir().ok_or_else(|| DraftError::IoError {
+        message: "could not determine data directory".to_string(),
     })?;
-    Ok(home.join(".mdpro").join("drafts"))
+    Ok(data.join("mdpro").join("drafts"))
 }
 
 fn validate_id(id: &str) -> Result<(), DraftError> {

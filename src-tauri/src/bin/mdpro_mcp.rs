@@ -24,17 +24,17 @@ use rmcp::{tool, tool_handler, tool_router, ServerHandler, ServiceExt};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Server configuration read from ~/.mdpro/
+/// Server configuration read from the platform data directory.
 struct ServerConfig {
     port: u16,
     token: String,
 }
 
 impl ServerConfig {
-    /// Read config from ~/.mdpro/server.port and ~/.mdpro/server.token
+    /// Read config from platform data dir (e.g. ~/Library/Application Support/mdpro)
     fn load() -> Result<Self, String> {
-        let home = dirs::home_dir().ok_or("Could not find home directory")?;
-        let config_dir = home.join(".mdpro");
+        let data = dirs::data_dir().ok_or("Could not find data directory")?;
+        let config_dir = data.join("mdpro");
 
         let port_path = config_dir.join("server.port");
         let token_path = config_dir.join("server.token");
