@@ -121,6 +121,14 @@ impl ShadowStore {
             .find(|d| d.id == id)
     }
 
+    /// Find a mutable reference to a document by ID across all windows.
+    pub fn find_document_mut(&mut self, id: &str) -> Option<&mut DocumentState> {
+        self.windows
+            .values_mut()
+            .flat_map(|w| w.documents.iter_mut())
+            .find(|d| d.id == id)
+    }
+
     /// Find which window contains a document.
     pub fn find_window_for_document(&self, doc_id: &str) -> Option<&str> {
         self.windows
