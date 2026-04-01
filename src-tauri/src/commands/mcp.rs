@@ -186,9 +186,18 @@ fn get_mcp_binary_path() -> Result<String, String> {
     {
         Ok("/Applications/mdpro.app/Contents/MacOS/mdpro_mcp".to_string())
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
     {
-        Err("Could not locate mdpro_mcp binary. Ensure mdpro is installed correctly.".to_string())
+        // On Windows, fall back to the binary next to the current exe
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+            .unwrap_or_default();
+        Ok(exe_dir.join("mdpro_mcp.exe").to_string_lossy().to_string())
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Ok(format!("/usr/local/bin/{}", binary_name))
     }
 }
 
