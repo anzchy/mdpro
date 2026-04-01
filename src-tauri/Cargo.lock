@@ -4286,7 +4286,6 @@ dependencies = [
 name = "tauri-app"
 version = "0.2.4"
 dependencies = [
- "anyhow",
  "axum",
  "base64 0.22.1",
  "chrono",
@@ -4306,7 +4305,6 @@ dependencies = [
  "tokio",
  "tower",
  "tower-http",
- "tracing",
  "urlencoding",
  "uuid",
 ]
