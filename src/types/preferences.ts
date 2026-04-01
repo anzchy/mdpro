@@ -130,6 +130,10 @@ export interface KeyboardShortcuts {
   formatHyperlink: string;
   formatImage: string;
   formatClearFormat: string;
+  formatHighlight: string;
+
+  // File export operations
+  fileExportHtml: string;
 
   // View operations
   viewToggleSidebar: string;
@@ -191,6 +195,10 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   formatHyperlink: "Cmd+K",
   formatImage: "Cmd+Ctrl+I",
   formatClearFormat: "Cmd+\\",
+  formatHighlight: "Cmd+Shift+H",
+
+  // File export operations
+  fileExportHtml: "Cmd+Shift+E",
 
   // View operations
   viewToggleSidebar: "Cmd+Shift+L",
