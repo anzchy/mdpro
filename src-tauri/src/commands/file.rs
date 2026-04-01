@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
@@ -9,6 +9,20 @@ use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus};
 use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::FileWatcher, logger};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
+const ALLOWED_SAVE_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
+
+fn validate_save_path(path: &str) -> Result<(), FileError> {
+    let ext = Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    if !ALLOWED_SAVE_EXTENSIONS.contains(&ext) {
+        return Err(FileError::InvalidPath {
+            path: format!("unsupported file extension: .{ext}"),
+        });
+    }
+    Ok(())
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -370,6 +384,7 @@ pub async fn save_file(
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
         path: "missing path".to_string(),
     })?;
+    validate_save_path(&path_value)?;
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let start = std::time::Instant::now();
     log_file_event(
