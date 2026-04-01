@@ -30,7 +30,7 @@ pub struct FileWatcher {
 }
 
 impl FileWatcher {
-    pub fn new(app_handle: AppHandle) -> Self {
+    pub fn new(app_handle: AppHandle) -> Result<Self, String> {
         let watched_paths = Arc::new(Mutex::new(Vec::new()));
         let last_events: Arc<Mutex<HashMap<PathBuf, Instant>>> =
             Arc::new(Mutex::new(HashMap::new()));
@@ -43,13 +43,13 @@ impl FileWatcher {
             },
             Config::default(),
         )
-        .expect("failed to create watcher");
+        .map_err(|e| format!("failed to create watcher: {e}"))?;
 
         let watcher = Mutex::new(watcher);
-        Self {
+        Ok(Self {
             watcher,
             watched_paths,
-        }
+        })
     }
 
     pub fn watch(&self, path: &Path) {
