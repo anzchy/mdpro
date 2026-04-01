@@ -9,6 +9,25 @@ use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus};
 use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::FileWatcher, logger};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
+const ALLOWED_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
+
+/// Validate that a file path is safe for open/save operations.
+/// Rejects path traversal and non-document file extensions.
+fn validate_file_path(path: &str) -> Result<(), FileError> {
+    let p = std::path::Path::new(path);
+    if p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(FileError::InvalidPath {
+            path: path.to_string(),
+        });
+    }
+    let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("");
+    if !ALLOWED_EXTENSIONS.contains(&ext) {
+        return Err(FileError::InvalidPath {
+            path: format!("unsupported file type: .{}", ext),
+        });
+    }
+    Ok(())
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -239,6 +258,50 @@ mod tests {
         let input = "no newlines here";
         assert_eq!(normalize_line_endings(input), input);
     }
+
+    #[test]
+    fn test_validate_file_path_accepts_md() {
+        assert!(validate_file_path("/Users/test/doc.md").is_ok());
+    }
+
+    #[test]
+    fn test_validate_file_path_accepts_markdown() {
+        assert!(validate_file_path("/Users/test/doc.markdown").is_ok());
+    }
+
+    #[test]
+    fn test_validate_file_path_accepts_txt() {
+        assert!(validate_file_path("/Users/test/notes.txt").is_ok());
+    }
+
+    #[test]
+    fn test_validate_file_path_accepts_mdx() {
+        assert!(validate_file_path("/Users/test/page.mdx").is_ok());
+    }
+
+    #[test]
+    fn test_validate_file_path_rejects_traversal() {
+        let result = validate_file_path("/Users/test/../../../etc/passwd");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_file_path_rejects_unsupported_extension() {
+        let result = validate_file_path("/Users/test/.bashrc");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_file_path_rejects_no_extension() {
+        let result = validate_file_path("/Users/test/authorized_keys");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_file_path_rejects_sensitive_paths() {
+        assert!(validate_file_path("/Users/test/.ssh/id_rsa").is_err());
+        assert!(validate_file_path("/etc/passwd").is_err());
+    }
 }
 
 #[tauri::command]
@@ -248,6 +311,7 @@ pub async fn open_file(
     action_id: Option<String>,
     watcher: State<'_, FileWatcher>,
 ) -> Result<OpenFileResult, FileError> {
+    validate_file_path(&path)?;
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let start = std::time::Instant::now();
     log_file_event(
@@ -370,6 +434,7 @@ pub async fn save_file(
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
         path: "missing path".to_string(),
     })?;
+    validate_file_path(&path_value)?;
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let start = std::time::Instant::now();
     log_file_event(
