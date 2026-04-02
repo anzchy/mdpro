@@ -29,7 +29,7 @@
  * command to bind. The preference entry exists but is intentionally
  * unbound in WYSIWYG mode.
  *
- * @coordinates-with src/hooks/useMilkdown.ts
+ * @coordinates-with src/components/Editor/MilkdownEditor.tsx
  * @coordinates-with src/plugins/index.ts
  */
 
@@ -189,7 +189,7 @@ const createTyporaKeymap = () => $useKeymap("typora", TYPORA_KEYMAP_CONFIG);
  * not go through the plugin registry (e.g. MilkdownEditor.tsx).
  *
  * Must be module-level so the same instance is reused across editor
- * recreations — matching the pattern in useMilkdown.ts.
+ * recreations — matching the pattern in MilkdownEditor.tsx.
  */
 export const typoraKeymapMilkdownPlugin = createTyporaKeymap();
 

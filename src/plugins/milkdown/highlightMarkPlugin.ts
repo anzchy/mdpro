@@ -21,7 +21,7 @@
  *   - The CodeMirror shortcut (highlightPlugin.ts) was updated to insert ==
  *     instead of raw <mark> HTML. Both shortcuts now emit the same syntax.
  *
- * @coordinates-with useMilkdown.ts (plugin registration via .use(highlightMarkPlugin))
+ * @coordinates-with MilkdownEditor.tsx (plugin registration via .use(highlightMarkPlugin))
  * @coordinates-with highlightPlugin.ts (CodeMirror shortcut — must also use ==)
  * @coordinates-with exportService.ts (renderHighlightSyntaxInHtml for preview layer)
  */
@@ -143,7 +143,7 @@ const remarkHighlightStringify: MilkdownPlugin = (ctx: Ctx) => async () => {
 };
 
 // ---------------------------------------------------------------------------
-// 4. Composite export — everything useMilkdown.ts needs via .use(highlightMarkPlugin)
+// 4. Composite export — everything MilkdownEditor needs via .use(highlightMarkPlugin)
 // ---------------------------------------------------------------------------
 
 /**
