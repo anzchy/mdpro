@@ -51,9 +51,7 @@ interface CreateDocumentEvent {
 export function useMcpEvents() {
   const updateDocumentContent = useDocumentStore((state) => state.updateDocumentContent);
   const upsertDocument = useDocumentStore((state) => state.upsertDocument);
-  const getDocumentById = useDocumentStore((state) => state.getDocumentById);
   const setActiveDocumentId = useDocumentStore((state) => state.setActiveDocumentId);
-  const editorView = useEditorStore((state) => state.editorView);
 
   const windowLabelRef = useRef<string>("main");
 
@@ -78,7 +76,7 @@ export function useMcpEvents() {
         return;
       }
 
-      const doc = getDocumentById(event.document_id);
+      const doc = useDocumentStore.getState().getDocumentById(event.document_id);
       if (!doc) {
         console.warn(`MCP write: document not found: ${event.document_id}`);
         return;
@@ -90,18 +88,19 @@ export function useMcpEvents() {
       // Only push the change into the live editor when the target document is
       // currently active — otherwise we would overwrite the wrong visible buffer.
       const activeDocId = useDocumentStore.getState().activeDocumentId;
-      if (editorView && event.document_id === activeDocId) {
-        const transaction = editorView.state.update({
+      const currentEditorView = useEditorStore.getState().editorView;
+      if (currentEditorView && event.document_id === activeDocId) {
+        const transaction = currentEditorView.state.update({
           changes: {
             from: 0,
-            to: editorView.state.doc.length,
+            to: currentEditorView.state.doc.length,
             insert: event.content,
           },
         });
-        editorView.dispatch(transaction);
+        currentEditorView.dispatch(transaction);
       }
     },
-    [getDocumentById, updateDocumentContent, editorView]
+    [updateDocumentContent]
   );
 
   // Handle insert content event
@@ -112,7 +111,7 @@ export function useMcpEvents() {
         return;
       }
 
-      const doc = getDocumentById(event.document_id);
+      const doc = useDocumentStore.getState().getDocumentById(event.document_id);
       if (!doc) {
         console.warn(`MCP insert: document not found: ${event.document_id}`);
         return;
@@ -122,11 +121,12 @@ export function useMcpEvents() {
       // otherwise fall back to end-of-document to avoid cross-document corruption.
       const activeDocIdForInsert = useDocumentStore.getState().activeDocumentId;
       const isActiveDoc = event.document_id === activeDocIdForInsert;
+      const currentEditorView = useEditorStore.getState().editorView;
 
       // Calculate insert offset
       let offset: number;
       if (event.position === "cursor") {
-        offset = isActiveDoc ? (editorView?.state.selection.main.head ?? 0) : doc.content.length;
+        offset = isActiveDoc ? (currentEditorView?.state.selection.main.head ?? 0) : doc.content.length;
       } else if (event.position === "start") {
         offset = 0;
       } else if (event.position === "end") {
@@ -141,8 +141,8 @@ export function useMcpEvents() {
       updateDocumentContent(event.document_id, newContent);
 
       // Only push into the live editor when this is the active document.
-      if (editorView && isActiveDoc) {
-        const transaction = editorView.state.update({
+      if (currentEditorView && isActiveDoc) {
+        const transaction = currentEditorView.state.update({
           changes: {
             from: offset,
             to: offset,
@@ -150,10 +150,10 @@ export function useMcpEvents() {
           },
           selection: { anchor: offset + event.text.length },
         });
-        editorView.dispatch(transaction);
+        currentEditorView.dispatch(transaction);
       }
     },
-    [getDocumentById, updateDocumentContent, editorView]
+    [updateDocumentContent]
   );
 
   // Handle create document event
