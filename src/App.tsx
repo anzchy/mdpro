@@ -895,7 +895,7 @@ function App() {
   // Handler for DevToolbar (browser-only file open)
   const handleDevOpenFile = useCallback(
     (content: string, fileName: string) => {
-      console.log("[DEV] Opening file from browser:", fileName, "content length:", content.length);
+      loggingService.logEventSync({ level: "debug", event: "dev.file.open", status: "start", context: { fileName, contentLength: content.length } });
       const document: Document = {
         id: `dev-${Date.now()}`,
         path: fileName,

@@ -8,6 +8,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useDocumentStore } from "../stores/documentStore";
 import { mcpService, type McpDocumentState } from "../services/mcpService";
+import { loggingService } from "../services/loggingService";
 
 // Debounce timeout for content changes (ms)
 const CONTENT_DEBOUNCE_MS = 300;
@@ -90,7 +91,7 @@ export function useMcpSync() {
       await mcpService.syncDocuments(payload);
     } catch (err) {
       // Log error but don't throw - MCP sync is best-effort
-      console.warn("MCP sync failed:", err);
+      loggingService.logEventSync({ level: "warn", event: "mcp.sync", status: "fail", context: { error: err instanceof Error ? err.message : String(err) } });
     }
   }, [convertToMcpDocuments, activeDocumentId]);
 
