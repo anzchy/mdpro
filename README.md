@@ -1,485 +1,98 @@
 # mdpro
 
-A local Markdown editor built with Tauri 2 + React + TypeScript.
+A local Markdown editor for macOS. Typora-style WYSIWYG, AI-ready via MCP.
+
+Built with Tauri 2 · React · Rust.
+
+---
 
 ## Features
 
-- **4 View Modes**: Split, Editor-only, Preview-only, WYSIWYG
+**Four view modes** — switch with `⌘1–4` or `⌘/`
 
-- **Dual-Engine Architecture**: CodeMirror for source editing, Milkdown for WYSIWYG
+| Mode | Shortcut | Description |
+|---|---|---|
+| WYSIWYG | `⌘4` | Rich-text editing; inline code/links reveal on click |
+| Split | `⌘1` | Source + rendered preview side by side |
+| Editor only | `⌘2` | Full-width source with syntax highlighting |
+| Preview only | `⌘3` | Read-only rendered output |
 
-- **Typora-style Shortcuts**: ⌘B/I/K for formatting, ⌘1-6 for headings
+**Typora-style keyboard shortcuts** — `⌘B/I/K` for bold/italic/link, `⌘0–6` for headings, `⌘⇧H` to highlight selection. All shortcuts are configurable in Preferences.
 
-- **Plugin System**: Unified plugin architecture for CodeMirror + Milkdown features
+**Auto-save drafts** — work is saved continuously. If the app crashes or the file was never saved to disk, mdpro offers recovery on next open.
 
-- **Native macOS Menu**: File, Edit, View, Theme integration
+**Image paste** — paste screenshots or images directly into the WYSIWYG editor (`⌘V`). Images are saved to an `assets/` folder next to your `.md` file; the reference is inserted automatically.
 
-- **Auto-save Drafts**: Recover unsaved work
+**External file watching** — if a file is modified outside mdpro, the editor prompts to reload. No silent overwrites.
 
-- **External File Watching**: Detect changes made outside the app
+**Tab bar** — open multiple documents at once. Configurable position (top/bottom), close behavior, and max visible tabs.
 
-- **MCP Server**: Claude Code, Codex CLI, and Gemini CLI integration for AI-assisted editing
+**HTML export** — `⌘⇧E` exports the current document as a styled HTML file.
 
+**MCP server** — expose open documents to Claude Code, Claude Desktop, Codex CLI, and Gemini CLI. AI tools can read and write your documents in real time.
 
+---
 
+## MCP Integration
 
+mdpro runs a local HTTP server and ships a companion `mdpro_mcp` binary that speaks the [Model Context Protocol](https://modelcontextprotocol.io).
 
-## File Structure
+**Install the config from inside mdpro:** Settings → MCP → pick your client → Install.
 
-```
-.
-|-- src/                 # React UI
-|   |-- components/      # UI components (Editor, Toolbar, etc.)
-|   |-- hooks/           # Custom hooks (useDocument, shortcuts, etc.)
-|   |-- plugins/         # Editor plugin system (CodeMirror + Milkdown)
-|   |-- services/        # Tauri IPC wrappers
-|   |-- stores/          # Zustand state stores
-|   |-- styles/          # Global + theme styles
-|   `-- types/           # Shared TypeScript types
-|-- src-tauri/           # Rust backend (Tauri)
-|   `-- src/
-|       |-- commands/    # IPC commands (file, export, etc.)
-|       |-- models/      # Data models
-|       `-- services/    # Backend services
-|-- doc/                 # Technical documentation
-|-- specs/               # Feature specifications
-|-- public/              # Static assets
-`-- package.json
-```
+Or add manually:
 
-## Architecture
-
-```mermaid
-flowchart LR
-  subgraph Frontend["Frontend (React + TypeScript)"]
-    direction TB
-    UI["App.tsx + components/"]
-    Hooks["hooks/"]
-    Plugins["plugins/ (CodeMirror + Milkdown)"]
-    Stores["stores/ (Zustand)"]
-    Services["services/ (Tauri IPC wrappers)"]
-    Styles["styles/ + App.css"]
-    Types["types/"]
-    UI --> Hooks
-    UI --> Plugins
-    UI --> Stores
-    UI --> Services
-    UI --> Styles
-    UI --> Types
-  end
-
-  subgraph Tauri["Tauri 2.0 Shell"]
-    direction TB
-    IPC["IPC bridge (invoke/emit)"]
-    Window["Window + Menu"]
-  end
-
-  subgraph Backend["Backend (Rust)"]
-    direction TB
-    Main["main.rs / lib.rs"]
-    Commands["commands/ (file, export, draft, preferences, window, menu, logging, launch)"]
-    ServicesB["services/ (file_watcher, markdown, logger, preferences, draft, html_template, encoding)"]
-    Models["models/ (document, draft, preferences, log_entry)"]
-    Launch["launch.rs"]
-    Main --> Commands
-    Commands --> ServicesB
-    ServicesB --> Models
-    Main --> Launch
-    Main --> Window
-  end
-
-  subgraph OS["OS + Local Resources"]
-    direction TB
-    FS["File system + external files"]
-    Watch["File watcher"]
-    Native["Native menus/windows"]
-    Logs["Local logs"]
-  end
-
-  Services -- "invoke()" --> IPC
-  IPC -- "command handlers" --> Commands
-  Commands -- "emit events" --> IPC
-  IPC -- "events" --> Services
-
-  ServicesB --> FS
-  ServicesB --> Watch
-  Window --> Native
-  ServicesB --> Logs
+**Claude Code** (`~/.claude/settings.json`):
+```json
+{
+  "mcpServers": {
+    "mdpro": { "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp" }
+  }
+}
 ```
 
-## How to Use
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "mdpro": { "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp" }
+  }
+}
+```
 
-Prerequisites:
+**Available tools:** `get_open_documents` · `read_document` · `write_document` · `insert_content`
 
-- `Node.js + pnpm`
+mdpro must be running. Write operations show a confirmation dialog if the app is not in focus.
 
-- `Rust toolchain` (stable)
+---
 
-- `Tauri CLI` (installed via devDependencies)
+## Development
 
-Common commands:
-
-- `pnpm install`: install JS dependencies
-
-- `pnpm dev`: run the Vite web dev server
-
-- `pnpm build`: build the web bundle (type-check + Vite build)
-
-- `pnpm tauri dev`: run the desktop app (uses Vite in the background)
-
-- `pnpm tauri build`: build a desktop app bundle
-
-- `pnpm tauri build --bundles app`: build only the `.app` bundle (skip DMG)
-
-
-
-## MCP Server (Claude Code / Codex CLI Integration)
-
-mdpro includes an MCP (Model Context Protocol) server that allows Claude Code, Codex CLI, and other MCP-compatible tools to read and write documents in mdpro.
-
-### How It Works
-
-1. When mdpro starts, it launches an HTTP API server on localhost
-
-2. Connection info is written to `~/.mdpro/server.port` and `~/.mdpro/server.token`
-
-3. The `mdpro_mcp` binary acts as an MCP server that forwards requests to mdpro
-
-### Development Mode
-
-After building the MCP binary:
+**Prerequisites:** Node.js + pnpm, Rust stable, Xcode Command Line Tools (macOS)
 
 ```bash
-cd src-tauri && cargo build --bin mdpro_mcp
+pnpm install          # install dependencies
+pnpm tauri dev        # run the desktop app (hot reload)
+pnpm build            # type-check + frontend bundle
+pnpm test:run         # frontend unit tests (Vitest)
+cd src-tauri && cargo test   # Rust backend tests
 ```
 
-Add to your Claude Code MCP config (`~/.claude.json`):
-
-```json
-{
-  "mcpServers": {
-    "mdpro": {
-      "command": "/path/to/mdpro/src-tauri/target/debug/mdpro_mcp",
-      "args": [],
-      "type": "stdio"
-    }
-  }
-}
+**Release build:**
+```bash
+pnpm tauri build      # produces .app + .dmg in src-tauri/target/
 ```
 
-### Production Mode (Mac App)
+Tagging a `v*` commit triggers GitHub Actions and publishes a DMG to GitHub Releases.
 
-After installing mdpro.app, add to Claude Code MCP config (`~/.claude.json`):
+---
 
-```json
-{
-  "mcpServers": {
-    "mdpro": {
-      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp",
-      "args": [],
-      "type": "stdio"
-    }
-  }
-}
+## Logs
+
+```bash
+tail -f ~/.mdpro/mdpro.log | jq .
 ```
 
-**Note:** After editing the config, restart Claude Code for changes to take effect.
-
-### Claude Desktop
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "mdpro": {
-      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp"
-    }
-  }
-}
+If macOS quarantines the app after download:
+```bash
+sudo find "/Applications/mdpro.app" -exec xattr -d com.apple.quarantine {} \;
 ```
-
-### Codex CLI
-
-Add to `~/.codex/config.json`:
-
-```json
-{
-  "mcpServers": {
-    "mdpro": {
-      "command": "/Applications/mdpro.app/Contents/MacOS/mdpro_mcp"
-    }
-  }
-}
-```
-
-### Available MCP Tools
-
-Tool
-
-Description
-
-`get_open_documents`
-
-List all open documents (id, title, path, dirty status)
-
-`read_document`
-
-Read content of a document by ID
-
-`write_document`
-
-Replace entire document content (may require confirmation)
-
-`insert_content`
-
-Insert text at cursor, start, end, or specific position
-
-### Notes
-
-- mdpro must be running for MCP tools to work
-
-- Write operations show a confirmation dialog if mdpro is not focused
-
-- Multi-window support: operations target the most recently focused window
-
-## Debug Logging (macOS Open With)
-
-When you need to debug why `.md` files do not open from Finder ("Open With" or double-click), mdpro writes a backend log to:
-
-- `~/.mdpro/mdpro.log`
-
-Useful commands:
-
-- `tail -f ~/.mdpro/mdpro.log` (follow live logs)
-
-The log includes launch args, macOS `RunEvent::Opened` URLs, filtered markdown paths, and `open_file` calls.
-
-Mac OS cannot open app, use this command:`sudo find "/Applications/mdpro.app" -exec xattr -d com.apple.quarantine {} \;`
-
-## How to Test
-
-Run all commands from the project root (`mdpro/`), not from `tests/`.
-
-1. Install dependencies:
-   - `npm install`
-2. Run frontend unit tests (Vitest):
-   - `npm run test:run`
-3. Run a single test file in `tests/`:
-   - `npm run test:run -- tests/markdown-editor-core.test.ts`
-4. Optional watch mode:
-   - `npm run test`
-5. Run Rust backend tests:
-   - `cd src-tauri && cargo test`
-
-Test artifacts and specs:
-
-- Core frontend test code: `tests/markdown-editor-core.test.ts`
-- Markdown editor edge-case matrix (TDD checklist): `tests/edge-cases-test.md`
-
-## Shipping DMG via GitHub Actions
-
-This repo ships macOS DMG files on tag pushes using `.github/workflows/release.yml`.
-
-Steps:
-
-1. Commit and push your changes.
-
-2. Create a version tag (example):
-
-   - `git tag v0.1.1`
-
-   - `git push origin v0.1.1`
-
-3. GitHub Actions builds on `macos-latest` and publishes a GitHub Release with the DMG attached.
-
-Notes:
-
-- The workflow only runs on tags that match `v*`.
-
-- The bundle targets in `src-tauri/tauri.conf.json` must include `dmg` and `app`.
-
-- For public distribution, add signing/notarization later (not configured yet).
-
-## Version Management
-
-Update version numbers in **both** files before release:
-
-| File                        | Field                         |
-| --------------------------- | ----------------------------- |
-| `src-tauri/Cargo.toml`      | `version = "x.y.z"` (line 3)  |
-| `src-tauri/tauri.conf.json` | `"version": "x.y.z"` (line 4) |
-
-## Release Checklist
-
-- Update version numbers (see [Version Management](#version-management)).
-
-- Run `pnpm tauri build` locally to sanity-check.
-
-- Push commits to `main` or `master`.
-
-- Tag a release (example):
-
-  - `git tag v0.1.1`
-
-  - `git push origin v0.1.1`
-
-- Verify the GitHub Release assets include the `.dmg` and `.app`.
-
-## macOS Signing and Notarization (CI)
-
-Tauri can sign and notarize on GitHub Actions using environment variables. Add these
-GitHub repository secrets and the workflow will use them if present.
-
-Required for signing:
-
-- `APPLE_CERTIFICATE`: base64 of your `.p12` signing certificate.
-
-- `APPLE_CERTIFICATE_PASSWORD`: password for the `.p12` file.
-
-- `APPLE_SIGNING_IDENTITY`: certificate name shown by `security find-identity -v -p codesigning`.
-
-Required for notarization (choose one option):
-
-1. Apple ID:
-
-   - `APPLE_ID`
-
-   - `APPLE_PASSWORD` (app-specific password)
-
-   - `APPLE_TEAM_ID`
-
-2. App Store Connect API key:
-
-   - `APPLE_API_ISSUER`
-
-   - `APPLE_API_KEY`
-
-   - `APPLE_API_KEY_P8` (base64 of the `.p8` key file)
-
-Notes:
-
-- Notarization is required for Developer ID distribution.
-
-- Secrets are referenced in `.github/workflows/release.yml`.
-
-## Troubleshooting
-
-- **Tauri build fails**: ensure Rust toolchain is installed (`rustup show`) and `pnpm install` has run.
-
-- **DMG build fails with** ``: build the app bundle only with `pnpm tauri build --bundles app` (system-level `hdiutil` issue).
-
-- **Window doesn't open**: make sure `pnpm tauri dev` is used (not just `pnpm dev`).
-
-- **File dialogs not working**: confirm native dialog permissions (macOS Security & Privacy).
-
-- **IPC errors**: verify commands are registered in `src-tauri/src/commands/mod.rs` and `src-tauri/src/main.rs`.
-
-- **Type errors after dependency changes**: delete `node_modules`, re-run `pnpm install`.
-
-- **MCP "mdpro not running" error**: start mdpro before using MCP tools. Check that `~/.mdpro/server.port` exists.
-
-- **MCP connection refused**: verify mdpro is running and `~/.mdpro/server.token` has correct permissions (mode 600).
-
-## WYSIWYG Architecture
-
-mdpro uses a **dual-engine architecture** for editing:
-
-| Engine           | View Modes          | Description                                |
-| ---------------- | ------------------- | ------------------------------------------ |
-| **CodeMirror 6** | Split, Editor-only  | Source editing with syntax highlighting    |
-| **Milkdown**     | WYSIWYG             | True rich-text editing (ProseMirror-based) |
-| **marked**       | Preview-only, Split | Markdown rendering                         |
-
-### Plugin System
-
-Editor features are implemented as plugins registered via `src/plugins/` and
-loaded per editor mode (CodeMirror or Milkdown). This keeps feature code
-decoupled from core editor components and allows enable/disable via config.
-
-### View Modes
-
-| Mode         | Shortcut | Description                   |
-| ------------ | -------- | ----------------------------- |
-| Split        | ⌃1       | Editor + Preview side-by-side |
-| Editor Only  | ⌃2       | Full-width source editing     |
-| Preview Only | ⌃3       | Read-only rendered view       |
-| WYSIWYG      | ⌃4       | Rich-text editing like Typora |
-
-### Keyboard Shortcuts
-
-**Global:**
-
-- ⌘N/O/S/W - New/Open/Save/Close
-
-- ⌃1-4 - Switch view modes (Control key)
-
-- ⌘/ - Cycle view modes
-
-- ⌘⇧L - Toggle sidebar
-
-**WYSIWYG Mode:**
-
-- ⌘B/I/K - Bold/Italic/Link
-
-- ⌘0-6 - Paragraph/Headings
-
-- **Typora-style Inline Editing**: Click inside a link to see `[text](url)`, click inside inline code to see backticks
-
-### Image Paste
-
-Paste images directly into the WYSIWYG editor with `Cmd+V`. The image is saved alongside your document and a reference is inserted automatically.
-
-**Supported formats:** PNG, JPEG (max 5 MB per image)
-
-**How it works:**
-
-1. Copy an image to the clipboard (screenshot, browser image, etc.)
-2. Place the cursor where you want the image in the WYSIWYG editor (⌃4)
-3. Press `Cmd+V`
-4. A placeholder ("Uploading image...") appears while the file is saved
-5. The image appears in the editor once saved
-
-**Where images are stored:**
-
-Images are saved to an `assets/` folder next to your `.md` file:
-
-```
-my-notes/
-├── note.md
-└── assets/
-    ├── image-1739900000-a1b2.png
-    └── image-1739900001-c3d4.jpg
-```
-
-The inserted Markdown reference uses a relative path: `![](assets/image-xxx.png)`.
-
-**Multiple images:** Paste several images at once — each gets its own reference. If some fail (e.g. wrong format), the valid ones are still inserted and a toast reports the result.
-
-**Error handling:**
-
-| Situation | Behavior |
-|-----------|----------|
-| Unsaved document | Toast: "Save the document before pasting images" |
-| Unsupported format (GIF, WebP, etc.) | Toast: "unsupported format (use PNG or JPEG)" |
-| File too large (> 5 MB) | Toast: "too large (X.X MB). Max 5 MB" |
-| Disk write failure | Toast with error details |
-| Mixed valid + invalid images | Valid images inserted, toast lists rejections |
-
-### Technical Documentation
-
-Detailed technical documentation is available in the `` folder:
-
-- [Architecture Overview](./doc/architecture.md) - System design and data flow
-
-- [Milkdown Integration](./doc/milkdown-integration.md) - WYSIWYG editor implementation
-
-- [View Modes](./doc/view-modes.md) - How view mode switching works
-
-- [State Management](./doc/state-management.md) - Zustand stores architecture
-
-- [Keyboard Shortcuts](./doc/keyboard-shortcuts.md) - Complete shortcut reference
-
-## Recommended IDE Setup
-
-- VS Code + Tauri + rust-analyzer
