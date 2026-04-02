@@ -1,6 +1,6 @@
 # 用 Tauri 架构开发 macOS App 最佳实践
 
-> 基于 mdpro 项目开发经验总结，适用于 Tauri 2.0 + React + TypeScript 技术栈
+> 基于 mdpro 项目开发==经验==总结，适用于 Tauri 2.0 + React + TypeScript 技术栈
 
 ## 目录
 
@@ -13,7 +13,7 @@
 7. [版本发布](#版本发布)
 8. [常见陷阱与解决方案](#常见陷阱与解决方案)
 
----
+***
 
 ## 项目架构
 
@@ -44,16 +44,16 @@ project/
 
 ### 技术栈选择
 
-| 层级 | 推荐技术 | 说明 |
-|------|---------|------|
-| 框架 | Tauri 2.0 | 比 Electron 更轻量，原生性能 |
-| 前端 | React 19 + TypeScript | 生态成熟，类型安全 |
-| 构建 | Vite 7 | 极快的 HMR |
-| 状态 | Zustand | 比 Redux 更简洁 |
-| 编辑器 | CodeMirror 6 / Milkdown | 按需选择 |
-| 样式 | CSS Modules / Tailwind | 避免全局污染 |
+| 层级  | 推荐技术                    | 说明                  |
+| --- | ----------------------- | ------------------- |
+| 框架  | Tauri 2.0               | 比 Electron 更轻量，原生性能 |
+| 前端  | React 19 + TypeScript   | 生态成熟，类型安全           |
+| 构建  | Vite 7                  | 极快的 HMR             |
+| 状态  | Zustand                 | 比 Redux 更简洁         |
+| 编辑器 | CodeMirror 6 / Milkdown | 按需选择                |
+| 样式  | CSS Modules / Tailwind  | 避免全局污染              |
 
----
+***
 
 ## 开发环境配置
 
@@ -97,30 +97,35 @@ export function DevToolbar({ onOpenFile, onNewDocument, onOpenDialog }) {
 }
 ```
 
----
+***
 
 ## 调试策略
 
 ### 调试工具选择矩阵
 
-| 问题类型 | 推荐工具 | 操作方式 |
-|---------|---------|---------|
-| React/UI 渲染 | Chrome DevTools | `pnpm dev` → localhost:1420 |
-| Tauri 集成问题 | WebView DevTools | `pnpm tauri dev` → **右键 Inspect Element** |
-| IPC 通信 | JSONL 日志 | `tail -f ~/.mdpro/mdpro.log \| jq .` |
-| Rust 后端 | println! + 日志 | 查看终端输出 |
-| 异步/竞态 | 结构化日志 | 按 actionId 追踪完整流程 |
+| 问题类型        | 推荐工具             | 操作方式                                      |
+| ----------- | ---------------- | ----------------------------------------- |
+| React/UI 渲染 | Chrome DevTools  | `pnpm dev` → localhost:1420               |
+| Tauri 集成问题  | WebView DevTools | `pnpm tauri dev` → **右键 Inspect Element** |
+| IPC 通信      | JSONL 日志         | `tail -f ~/.mdpro/mdpro.log \| jq .`      |
+| Rust 后端     | println! + 日志    | 查看终端输出                                    |
+| 异步/竞态       | 结构化日志            | 按 actionId 追踪完整流程                         |
 
 ### WebView DevTools（关键技巧）
 
-**在 `pnpm tauri dev` 中，右键点击窗口任意位置 → "Inspect Element"**
+**在** **`pnpm tauri dev`** **中，右键点击窗口任意位置 → "Inspect Element"**
 
 提供完整的调试能力：
-- Elements：DOM 结构检查
-- Console：JavaScript 日志
-- Network：网络请求监控
-- Sources：断点调试
-- Performance：性能分析
+
+* Elements：DOM 结构检查
+
+* Console：JavaScript 日志
+
+* Network：网络请求监控
+
+* Sources：断点调试
+
+* Performance：性能分析
 
 ### 生产环境 DevTools（内部测试版）
 
@@ -149,7 +154,7 @@ export function DevToolbar({ onOpenFile, onNewDocument, onOpenDialog }) {
 5. 问题复现困难时增加日志点
 ```
 
----
+***
 
 ## 前后端通信
 
@@ -223,7 +228,7 @@ export const preferencesService = {
 };
 ```
 
----
+***
 
 ## 状态管理
 
@@ -268,7 +273,7 @@ const { documents, activeDocumentId } = useDocumentStore(
 );
 ```
 
----
+***
 
 ## 日志系统
 
@@ -323,7 +328,7 @@ tail -f ~/.mdpro/mdpro.log | jq 'select(.level == "error")'
 grep "actionId.*abc123" ~/.mdpro/mdpro.log | jq .
 ```
 
----
+***
 
 ## 版本发布
 
@@ -376,7 +381,7 @@ git push origin v0.2.0
 # 5. 在 GitHub Releases 页面检查构建产物
 ```
 
----
+***
 
 ## 常见陷阱与解决方案
 
@@ -387,6 +392,7 @@ git push origin v0.2.0
 **原因**: `gfm` 预设只包含扩展功能，不包含基础节点
 
 **解决**:
+
 ```typescript
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
@@ -404,6 +410,7 @@ Editor.make()
 **原因**: `pnpm dev` 运行在浏览器，无 Tauri 运行时
 
 **解决**:
+
 ```typescript
 const isTauri = "__TAURI__" in window;
 
@@ -418,6 +425,7 @@ return invoke('command_name');
 **问题**: 编辑器初始化两次，状态异常
 
 **解决**: 开发阶段可禁用 StrictMode
+
 ```tsx
 // src/main.tsx
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -430,6 +438,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 **问题**: 从 Finder 打开文件时，viewMode 切换与文件加载存在竞态
 
 **解决**: 使用标志位控制时序
+
 ```typescript
 const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
 
@@ -444,6 +453,7 @@ useEffect(() => {
 **问题**: 多窗口时菜单事件被所有窗口接收
 
 **解决**: 检查窗口焦点状态
+
 ```typescript
 const shouldHandle = async () => {
   const { getCurrentWindow } = await import('@tauri-apps/api/window');
@@ -456,7 +466,7 @@ listen('menu:action', async (event) => {
 });
 ```
 
----
+***
 
 ## 总结
 
