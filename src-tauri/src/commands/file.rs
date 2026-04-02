@@ -6,7 +6,7 @@ use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus};
-use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::FileWatcher, logger};
+use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::{self, FileWatcher}, logger};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 
@@ -403,7 +403,10 @@ pub async fn save_file(
     }
 
     let path_for_error = path_value.clone();
-    std::fs::write(&path_buf, content.as_bytes()).map_err(|err| {
+    file_watcher::mark_write_start(&path_buf);
+    let write_result = std::fs::write(&path_buf, content.as_bytes());
+    file_watcher::mark_write_end(&path_buf);
+    write_result.map_err(|err| {
         let mapped = to_file_error(err, &path_value);
         log_file_event(
             "file.save",
