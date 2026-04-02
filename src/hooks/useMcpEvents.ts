@@ -51,7 +51,7 @@ interface CreateDocumentEvent {
 export function useMcpEvents() {
   const updateDocumentContent = useDocumentStore((state) => state.updateDocumentContent);
   const upsertDocument = useDocumentStore((state) => state.upsertDocument);
-  const getDocumentById = useDocumentStore((state) => state.getDocumentById);
+
   const setActiveDocumentId = useDocumentStore((state) => state.setActiveDocumentId);
   const editorView = useEditorStore((state) => state.editorView);
 
@@ -78,7 +78,7 @@ export function useMcpEvents() {
         return;
       }
 
-      const doc = getDocumentById(event.document_id);
+      const doc = useDocumentStore.getState().getDocumentById(event.document_id);
       if (!doc) {
         console.warn(`MCP write: document not found: ${event.document_id}`);
         return;
@@ -101,7 +101,7 @@ export function useMcpEvents() {
         editorView.dispatch(transaction);
       }
     },
-    [getDocumentById, updateDocumentContent, editorView]
+    [updateDocumentContent, editorView]
   );
 
   // Handle insert content event
@@ -112,7 +112,7 @@ export function useMcpEvents() {
         return;
       }
 
-      const doc = getDocumentById(event.document_id);
+      const doc = useDocumentStore.getState().getDocumentById(event.document_id);
       if (!doc) {
         console.warn(`MCP insert: document not found: ${event.document_id}`);
         return;
@@ -153,7 +153,7 @@ export function useMcpEvents() {
         editorView.dispatch(transaction);
       }
     },
-    [getDocumentById, updateDocumentContent, editorView]
+    [updateDocumentContent, editorView]
   );
 
   // Handle create document event
