@@ -12,6 +12,55 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::State;
 
+// ── Payload size limits ────────────────────────────────────────────────────────
+
+/// Maximum number of documents allowed in a single sync payload.
+const MAX_DOCUMENTS_PER_WINDOW: usize = 100;
+
+/// Maximum size of a single document's content in bytes (10 MB).
+const MAX_DOCUMENT_CONTENT_BYTES: usize = 10 * 1024 * 1024;
+
+/// Maximum byte length of the window_label field.
+const MAX_WINDOW_LABEL_BYTES: usize = 256;
+
+// ── Validation ────────────────────────────────────────────────────────────────
+
+/// Validate that a SyncDocumentsPayload does not exceed any size limit.
+///
+/// Returns `Err` with a descriptive message if any limit is exceeded so the
+/// Tauri command can propagate the error to the frontend without touching the
+/// shadow store.
+fn validate_sync_payload(payload: &SyncDocumentsPayload) -> Result<(), String> {
+    if payload.window_label.len() > MAX_WINDOW_LABEL_BYTES {
+        return Err(format!(
+            "window_label exceeds maximum length ({} > {} bytes)",
+            payload.window_label.len(),
+            MAX_WINDOW_LABEL_BYTES
+        ));
+    }
+
+    if payload.documents.len() > MAX_DOCUMENTS_PER_WINDOW {
+        return Err(format!(
+            "too many documents in sync payload ({} > {})",
+            payload.documents.len(),
+            MAX_DOCUMENTS_PER_WINDOW
+        ));
+    }
+
+    for doc in &payload.documents {
+        if doc.content.len() > MAX_DOCUMENT_CONTENT_BYTES {
+            return Err(format!(
+                "document {} content exceeds {} byte limit ({} bytes)",
+                doc.id,
+                MAX_DOCUMENT_CONTENT_BYTES,
+                doc.content.len()
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// Sync document state from frontend to Rust Shadow Store.
 ///
 /// This command is called by the frontend with debounced updates
@@ -21,6 +70,7 @@ pub async fn mcp_sync_documents(
     state: State<'_, SharedShadowStore>,
     payload: SyncDocumentsPayload,
 ) -> Result<(), String> {
+    validate_sync_payload(&payload)?;
     shadow_store::sync_documents(&state, payload)
 }
 
@@ -460,4 +510,102 @@ fn remove_toml_config(config_path: &PathBuf) -> Result<(), String> {
         .map_err(|e| format!("Failed to write config: {}", e))?;
 
     Ok(())
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::DocumentState;
+
+    fn make_doc(id: &str, content: &str) -> DocumentState {
+        DocumentState {
+            id: id.to_string(),
+            title: "Test".to_string(),
+            path: None,
+            content: content.to_string(),
+            cursor: 0,
+            is_dirty: false,
+            is_active: false,
+        }
+    }
+
+    fn make_payload(
+        window_label: &str,
+        docs: Vec<DocumentState>,
+    ) -> SyncDocumentsPayload {
+        SyncDocumentsPayload {
+            window_label: window_label.to_string(),
+            documents: docs,
+            active_document_id: None,
+        }
+    }
+
+    #[test]
+    fn validate_accepts_valid_payload() {
+        let payload = make_payload("main", vec![make_doc("doc-1", "# Hello")]);
+        assert!(validate_sync_payload(&payload).is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_too_many_documents() {
+        let docs: Vec<_> = (0..=MAX_DOCUMENTS_PER_WINDOW)
+            .map(|i| make_doc(&format!("doc-{i}"), "content"))
+            .collect();
+        let payload = make_payload("main", docs);
+        let err = validate_sync_payload(&payload).unwrap_err();
+        assert!(err.contains("too many documents"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn validate_accepts_exactly_max_documents() {
+        let docs: Vec<_> = (0..MAX_DOCUMENTS_PER_WINDOW)
+            .map(|i| make_doc(&format!("doc-{i}"), "content"))
+            .collect();
+        let payload = make_payload("main", docs);
+        assert!(validate_sync_payload(&payload).is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_oversized_document_content() {
+        let big_content = "x".repeat(MAX_DOCUMENT_CONTENT_BYTES + 1);
+        let payload = make_payload("main", vec![make_doc("doc-1", &big_content)]);
+        let err = validate_sync_payload(&payload).unwrap_err();
+        assert!(err.contains("content exceeds"), "unexpected error: {err}");
+        assert!(err.contains("doc-1"), "error should name the document: {err}");
+    }
+
+    #[test]
+    fn validate_accepts_exactly_max_content_size() {
+        let content = "x".repeat(MAX_DOCUMENT_CONTENT_BYTES);
+        let payload = make_payload("main", vec![make_doc("doc-1", &content)]);
+        assert!(validate_sync_payload(&payload).is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_oversized_window_label() {
+        let long_label = "a".repeat(MAX_WINDOW_LABEL_BYTES + 1);
+        let payload = make_payload(&long_label, vec![]);
+        let err = validate_sync_payload(&payload).unwrap_err();
+        assert!(err.contains("window_label"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn validate_accepts_exactly_max_window_label() {
+        let label = "a".repeat(MAX_WINDOW_LABEL_BYTES);
+        let payload = make_payload(&label, vec![]);
+        assert!(validate_sync_payload(&payload).is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_first_oversized_doc_in_mixed_payload() {
+        // Ensures validation catches an oversized doc that is not the first in the list
+        let ok_doc = make_doc("ok", "content");
+        let big_content = "x".repeat(MAX_DOCUMENT_CONTENT_BYTES + 1);
+        let big_doc = make_doc("too-big", &big_content);
+        let payload = make_payload("main", vec![ok_doc, big_doc]);
+        let err = validate_sync_payload(&payload).unwrap_err();
+        assert!(err.contains("too-big"), "error must identify the offending document: {err}");
+    }
 }
