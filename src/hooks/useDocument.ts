@@ -38,15 +38,8 @@ const parseEncodingError = (error: unknown) => {
 };
 
 export function useDocument() {
-  const {
-    documents,
-    activeDocumentId,
-    setActiveDocumentId,
-    upsertDocument,
-    updateDocumentContent,
-    markDocumentModified,
-    closeDocument,
-  } = useDocumentStore();
+  const documents = useDocumentStore((s) => s.documents);
+  const activeDocumentId = useDocumentStore((s) => s.activeDocumentId);
   const setEditorActiveDocumentId = useEditorStore((state) => state.setActiveDocumentId);
   const [largeFileWarning, setLargeFileWarning] = useState<string | null>(null);
   const [encodingIssue, setEncodingIssue] = useState<{
@@ -63,8 +56,8 @@ export function useDocument() {
     async (path: string, actionId?: string) => {
       try {
         const result = await fileService.openFile(path, undefined, actionId);
-        upsertDocument(result.document);
-        setActiveDocumentId(result.document.id);
+        useDocumentStore.getState().upsertDocument(result.document);
+        useDocumentStore.getState().setActiveDocumentId(result.document.id);
         setEditorActiveDocumentId(result.document.id);
         if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
           setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
@@ -81,21 +74,15 @@ export function useDocument() {
         return null;
       }
     },
-    [
-      setActiveDocumentId,
-      setEditorActiveDocumentId,
-      setEncodingIssue,
-      setLargeFileWarning,
-      upsertDocument,
-    ],
+    [setEditorActiveDocumentId],
   );
 
   const setActiveDocumentById = useCallback(
     (id: string) => {
-      setActiveDocumentId(id);
+      useDocumentStore.getState().setActiveDocumentId(id);
       setEditorActiveDocumentId(id);
     },
-    [setActiveDocumentId, setEditorActiveDocumentId],
+    [setEditorActiveDocumentId],
   );
 
   const openDocumentFromDialog = useCallback(async (actionId?: string) => {
@@ -104,8 +91,8 @@ export function useDocument() {
       if (!result) {
         return null;
       }
-      upsertDocument(result.document);
-      setActiveDocumentId(result.document.id);
+      useDocumentStore.getState().upsertDocument(result.document);
+      useDocumentStore.getState().setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
       if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
         setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
@@ -124,13 +111,13 @@ export function useDocument() {
       }
       return null;
     }
-  }, [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument]);
+  }, [setEditorActiveDocumentId]);
 
   const openDocumentWithEncoding = useCallback(
     async (path: string, encoding: string, actionId?: string) => {
       const result = await fileService.openFile(path, encoding, actionId);
-      upsertDocument(result.document);
-      setActiveDocumentId(result.document.id);
+      useDocumentStore.getState().upsertDocument(result.document);
+      useDocumentStore.getState().setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
       if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
         setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
@@ -138,13 +125,7 @@ export function useDocument() {
       setEncodingIssue(null);
       return result.document;
     },
-    [
-      setActiveDocumentId,
-      setEditorActiveDocumentId,
-      setEncodingIssue,
-      setLargeFileWarning,
-      upsertDocument,
-    ],
+    [setEditorActiveDocumentId],
   );
 
   const createDocument = useCallback(async () => {
@@ -154,40 +135,34 @@ export function useDocument() {
     } catch {
       // Fall back to local document creation when IPC is unavailable.
     }
-    upsertDocument(document);
-    setActiveDocumentId(document.id);
+    useDocumentStore.getState().upsertDocument(document);
+    useDocumentStore.getState().setActiveDocumentId(document.id);
     setEditorActiveDocumentId(document.id);
     return document;
-  }, [
-    setActiveDocumentId,
-    setEditorActiveDocumentId,
-    setEncodingIssue,
-    setLargeFileWarning,
-    upsertDocument,
-  ]);
+  }, [setEditorActiveDocumentId]);
 
   const upsertAndActivateDocument = useCallback(
     (document: Document) => {
-      upsertDocument(document);
-      setActiveDocumentId(document.id);
+      useDocumentStore.getState().upsertDocument(document);
+      useDocumentStore.getState().setActiveDocumentId(document.id);
       setEditorActiveDocumentId(document.id);
     },
-    [setActiveDocumentId, setEditorActiveDocumentId, upsertDocument],
+    [setEditorActiveDocumentId],
   );
 
   const replaceDocument = useCallback(
     (document: Document) => {
-      upsertDocument(document);
+      useDocumentStore.getState().upsertDocument(document);
     },
-    [upsertDocument],
+    [],
   );
 
   const updateActiveDocumentContent = useCallback(
     (content: string) => {
       if (!activeDocument) return;
-      updateDocumentContent(activeDocument.id, content);
+      useDocumentStore.getState().updateDocumentContent(activeDocument.id, content);
     },
-    [activeDocument, updateDocumentContent],
+    [activeDocument],
   );
 
   const saveActiveDocumentAs = useCallback(async (actionId?: string) => {
@@ -200,6 +175,7 @@ export function useDocument() {
       actionId,
     );
     if (result?.success) {
+      const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
       upsertDocument({
         ...activeDocument,
         path: result.path,
@@ -217,7 +193,7 @@ export function useDocument() {
       });
     }
     return result;
-  }, [activeDocument, markDocumentModified, upsertDocument]);
+  }, [activeDocument]);
 
   const saveActiveDocument = useCallback(async (actionId?: string) => {
     if (!activeDocument) return null;
@@ -231,6 +207,7 @@ export function useDocument() {
       actionId,
     );
     if (result?.success) {
+      const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
       upsertDocument({
         ...activeDocument,
         path: result.path,
@@ -248,30 +225,30 @@ export function useDocument() {
       });
     }
     return result;
-  }, [activeDocument, markDocumentModified, saveActiveDocumentAs, upsertDocument]);
+  }, [activeDocument, saveActiveDocumentAs]);
 
   const closeActiveDocument = useCallback(
     async (discardChanges: boolean) => {
       if (!activeDocument) return null;
       await fileService.closeDocument(activeDocument.id, discardChanges, activeDocument.path);
-      closeDocument(activeDocument.id);
+      useDocumentStore.getState().closeDocument(activeDocument.id);
       setEditorActiveDocumentId(null);
       return;
     },
-    [activeDocument, closeDocument, setEditorActiveDocumentId],
+    [activeDocument, setEditorActiveDocumentId],
   );
 
   const closeDocumentById = useCallback(
     async (id: string, discardChanges: boolean) => {
       const doc = useDocumentStore.getState().documents.find((d) => d.id === id);
       await fileService.closeDocument(id, discardChanges, doc?.path);
-      closeDocument(id);
-      if (activeDocumentId === id) {
+      useDocumentStore.getState().closeDocument(id);
+      if (useDocumentStore.getState().activeDocumentId === id) {
         setEditorActiveDocumentId(null);
       }
       return;
     },
-    [activeDocumentId, closeDocument, setEditorActiveDocumentId],
+    [setEditorActiveDocumentId],
   );
 
   return {
