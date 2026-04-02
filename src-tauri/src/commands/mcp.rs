@@ -352,7 +352,18 @@ fn get_client_config_path(client: McpClient) -> Result<PathBuf, String> {
             home.join(".codex/config.toml")
         }
         McpClient::GeminiCli => {
-            home.join(".config/gemini/settings.json")
+            #[cfg(target_os = "windows")]
+            {
+                dirs::config_dir()
+                    .ok_or_else(|| "Could not determine config directory".to_string())?
+                    .join("Google")
+                    .join("gemini")
+                    .join("settings.json")
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                home.join(".config/gemini/settings.json")
+            }
         }
     };
     Ok(path)
@@ -607,5 +618,45 @@ mod tests {
         let payload = make_payload("main", vec![ok_doc, big_doc]);
         let err = validate_sync_payload(&payload).unwrap_err();
         assert!(err.contains("too-big"), "error must identify the offending document: {err}");
+    }
+
+    // ── get_client_config_path tests ──────────────────────────────────────────
+
+    /// On non-Windows, GeminiCli must use the XDG convention: ~/.config/gemini/settings.json.
+    /// This path is what the Gemini CLI itself reads on macOS and Linux.
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn gemini_cli_config_path_uses_xdg_on_non_windows() {
+        let path = get_client_config_path(McpClient::GeminiCli).unwrap();
+        assert!(
+            path.ends_with(".config/gemini/settings.json"),
+            "expected XDG path on non-Windows; got {path:?}"
+        );
+        let home = dirs::home_dir().unwrap();
+        assert!(
+            path.starts_with(&home),
+            "path should be under home_dir on non-Windows; got {path:?}"
+        );
+    }
+
+    /// On Windows, GeminiCli must use %APPDATA%\Google\gemini\settings.json.
+    /// Using home.join(".config/gemini") produces a Linux-style path that does
+    /// not exist on Windows — detection always returns false for all Windows users.
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn gemini_cli_config_path_uses_appdata_on_windows() {
+        let path = get_client_config_path(McpClient::GeminiCli).unwrap();
+        let expected_suffix = std::path::Path::new("Google")
+            .join("gemini")
+            .join("settings.json");
+        assert!(
+            path.ends_with(&expected_suffix),
+            "expected %APPDATA%\\Google\\gemini\\settings.json on Windows; got {path:?}"
+        );
+        let config_dir = dirs::config_dir().unwrap();
+        assert!(
+            path.starts_with(&config_dir),
+            "path must be under config_dir (%APPDATA%) on Windows; got {path:?}"
+        );
     }
 }
