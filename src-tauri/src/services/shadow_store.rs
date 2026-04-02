@@ -249,6 +249,87 @@ mod tests {
     }
 
     #[test]
+    fn test_update_document_content_rollback() {
+        // Regression for #243: update_document_content must be callable
+        // twice — first with new content (optimistic update), then with the
+        // original content (rollback on emit failure) — and the second call
+        // must win so the shadow store does NOT diverge from the editor.
+        let store = create_shadow_store();
+        let original_content = "# Original".to_string();
+        let new_content = "# Modified by MCP".to_string();
+
+        let payload = SyncDocumentsPayload {
+            window_label: "main".to_string(),
+            documents: vec![DocumentState {
+                id: "doc1".to_string(),
+                title: "Test".to_string(),
+                path: Some("/test/doc1.md".to_string()),
+                content: original_content.clone(),
+                cursor: 0,
+                is_dirty: false,
+                is_active: true,
+            }],
+            active_document_id: Some("doc1".to_string()),
+        };
+        sync_documents(&store, payload).unwrap();
+
+        // Simulate optimistic update
+        update_document_content(&store, "doc1", new_content).unwrap();
+        let doc = get_document(&store, "doc1").unwrap().unwrap();
+        assert_eq!(doc.content, "# Modified by MCP");
+
+        // Simulate rollback after emit failure
+        update_document_content(&store, "doc1", original_content.clone()).unwrap();
+        let doc = get_document(&store, "doc1").unwrap().unwrap();
+        assert_eq!(doc.content, original_content, "shadow store must reflect original after rollback");
+    }
+
+    #[test]
+    fn test_update_document_content_rollback_after_insert() {
+        // Regression for #243 (insert path): rollback via update_document_content must
+        // restore pre-insert content even when the new content was built by inserting
+        // text at an offset (i.e. the insert handler's optimistic update pattern).
+        let store = create_shadow_store();
+        let original_content = "Hello world".to_string();
+        let insert_text = " beautiful";
+        let insert_offset = 5; // insert after "Hello"
+        let inserted_content = format!(
+            "{}{}{}",
+            &original_content[..insert_offset],
+            insert_text,
+            &original_content[insert_offset..]
+        );
+
+        let payload = SyncDocumentsPayload {
+            window_label: "main".to_string(),
+            documents: vec![DocumentState {
+                id: "doc1".to_string(),
+                title: "Test".to_string(),
+                path: Some("/test/doc1.md".to_string()),
+                content: original_content.clone(),
+                cursor: 0,
+                is_dirty: false,
+                is_active: true,
+            }],
+            active_document_id: Some("doc1".to_string()),
+        };
+        sync_documents(&store, payload).unwrap();
+
+        // Simulate optimistic insert
+        update_document_content(&store, "doc1", inserted_content.clone()).unwrap();
+        let doc = get_document(&store, "doc1").unwrap().unwrap();
+        assert_eq!(doc.content, inserted_content);
+
+        // Simulate rollback after emit failure
+        update_document_content(&store, "doc1", original_content.clone()).unwrap();
+        let doc = get_document(&store, "doc1").unwrap().unwrap();
+        assert_eq!(
+            doc.content, original_content,
+            "shadow store must reflect pre-insert content after rollback"
+        );
+    }
+
+    #[test]
     fn test_clear_focused_window_if_different_label() {
         let store = create_shadow_store();
 
