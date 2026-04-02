@@ -1617,3 +1617,108 @@ a {
   padding: 0;
 }
 
+/* About Settings */
+.about-app-info {
+  margin-bottom: 16px;
+}
+
+.about-app-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.about-version {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.about-update-status {
+  margin-bottom: 12px;
+}
+
+.about-status-text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.about-status-ok {
+  color: var(--color-success, #34c759);
+}
+
+.about-status-error {
+  color: var(--color-error, #ff3b30);
+}
+
+.about-status-disabled {
+  color: var(--color-text-tertiary, #999);
+  font-style: italic;
+}
+
+.about-update-available {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.about-release-notes {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-panel);
+}
+
+.about-release-notes h1,
+.about-release-notes h2,
+.about-release-notes h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.about-release-notes ul,
+.about-release-notes ol {
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
+.about-download-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.about-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  appearance: none;
+}
+
+.about-progress-bar::-webkit-progress-bar {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.about-progress-bar::-webkit-progress-value {
+  background: var(--color-accent, #007aff);
+  border-radius: 3px;
+}
+
+.about-progress-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.about-update-ready {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+

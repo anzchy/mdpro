@@ -198,15 +198,87 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.tauri_args }}
+          includeUpdaterJson: false
 
   publish-release:
     needs: [create-release, build-tauri]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Generate and upload latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.create-release.outputs.version }}"
+          REPO="${{ github.repository }}"
+
+          # Fetch release body for notes field
+          NOTES=$(gh release view "$VERSION" --repo "$REPO" --json body -q '.body' || echo "")
+
+          # Fetch all release assets as JSON
+          ASSETS=$(gh release view "$VERSION" --repo "$REPO" --json assets -q '.assets')
+
+          # Helper: find asset URL by name pattern
+          find_url() { echo "$ASSETS" | jq -r --arg pat "$1" '.[] | select(.name | test($pat)) | .url' | head -1; }
+
+          # macOS ARM64
+          ARM_URL=$(find_url 'aarch64.*app\.tar\.gz$')
+          ARM_SIG_URL=$(find_url 'aarch64.*app\.tar\.gz\.sig$')
+          ARM_SIG=""
+          if [ -n "$ARM_SIG_URL" ]; then
+            ARM_SIG=$(curl -sL "$ARM_SIG_URL")
+          fi
+
+          # macOS x86_64
+          X64_URL=$(find_url 'x86_64.*app\.tar\.gz$')
+          X64_SIG_URL=$(find_url 'x86_64.*app\.tar\.gz\.sig$')
+          X64_SIG=""
+          if [ -n "$X64_SIG_URL" ]; then
+            X64_SIG=$(curl -sL "$X64_SIG_URL")
+          fi
+
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Build latest.json with jq — only include platforms that have assets
+          PLATFORMS='{}'
+          if [ -n "$ARM_URL" ]; then
+            PLATFORMS=$(echo "$PLATFORMS" | jq --arg url "$ARM_URL" --arg sig "$ARM_SIG" \
+              '. + {"darwin-aarch64": {"url": $url, "signature": $sig}}')
+          fi
+          if [ -n "$X64_URL" ]; then
+            PLATFORMS=$(echo "$PLATFORMS" | jq --arg url "$X64_URL" --arg sig "$X64_SIG" \
+              '. + {"darwin-x86_64": {"url": $url, "signature": $sig}}')
+          fi
+
+          # Strip v prefix for version field (CARGO_PKG_VERSION has no prefix)
+          VERSION_NUM="${VERSION#v}"
+
+          # Verify at least one macOS artifact exists before generating latest.json
+          if [ -z "$ARM_URL" ] && [ -z "$X64_URL" ]; then
+            echo "ERROR: No macOS updater artifacts found in release $VERSION"
+            echo "This likely means the macOS builds failed. Skipping latest.json."
+            exit 1
+          fi
+
+          jq -n \
+            --arg version "$VERSION_NUM" \
+            --arg notes "$NOTES" \
+            --arg pub_date "$PUB_DATE" \
+            --argjson platforms "$PLATFORMS" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: $platforms}' \
+            > latest.json
+
+          echo "Generated latest.json:"
+          cat latest.json
+
+          # Upload to release
+          gh release upload "$VERSION" latest.json --repo "$REPO" --clobber
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

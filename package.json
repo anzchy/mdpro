@@ -27,6 +27,8 @@
     "@milkdown/react": "^7.18.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.9.0",
     "@uiw/react-codemirror": "^4.24.2",
     "dompurify": "^3.3.2",
     "highlight.js": "^11.9.0",

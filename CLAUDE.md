@@ -97,7 +97,7 @@ import { invoke } from '@tauri-apps/api/core';
 const result = await invoke<OpenFileResult>('open_file', { path, encoding });
 ```
 
-Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `save_draft`, `get_preferences`
+Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `save_draft`, `get_preferences`, `get_app_version`
 
 ### Events (Rust → Frontend)
 

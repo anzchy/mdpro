@@ -73,3 +73,90 @@ has had — ideal time to capture them.
 
 **Depends on:** Settings panel full polish PR (establishes `.settings-row`, stepper, section patterns)
 **Blocked by:** Nothing
+
+---
+
+## Updater: Background launch check
+
+**What:** When the app launches, silently call `check()` in the background (after a 30-second
+delay to avoid blocking startup). If an update is available, show a subtle badge or notification
+on the Settings icon or in the title bar. Don't interrupt the user with a modal.
+
+**Why:** The Settings → About flow requires users to manually check. Most users never will.
+Background check is the standard behavior for auto-updaters. The badge approach keeps it
+non-intrusive while ensuring users discover updates.
+
+**Deferred because:** Requires `updaterStore` to be established first (Phase 1 of this feature).
+Also depends on notarization being confirmed in CI (Approach B+). Ship the manual check first,
+add background check in a follow-up.
+
+**Depends on:** In-app update checker PR (this feature)
+**Blocked by:** CI notarization confirmation
+
+---
+
+## Updater: What's New modal on first launch after update
+
+**What:** After a successful relaunch following an update, detect the version change
+(compare stored `lastSeenVersion` in preferences with `CARGO_PKG_VERSION`) and show a
+one-time "What's New in v{version}" modal with the release notes.
+
+**Why:** Users who clicked Restart get no feedback that the update succeeded and don't see
+what changed. This closes the loop.
+
+**Deferred because:** Requires `lastSeenVersion` in preferences schema (minor change) and a
+new modal component. Not blocking for the initial updater PR.
+
+**Depends on:** In-app update checker PR (this feature)
+**Blocked by:** Nothing
+
+---
+
+## Updater: App icon in About panel
+
+**What:** Display the app icon (512px or 1024px PNG from `src-tauri/icons/`) in the About
+panel's header section, above the app name and version.
+
+**Why:** Standard macOS About box pattern. Makes the About panel feel polished and official.
+The icon asset already exists in the repo — just needs to be referenced.
+
+**Deferred because:** Asset path in Tauri web context needs verification (`convertFileSrc` or
+bundled as frontend asset). Not blocking for functionality.
+
+**Depends on:** In-app update checker PR (this feature)
+**Blocked by:** Nothing
+
+---
+
+## Updater: Download-interrupted remount recovery
+
+**What:** If the user closes Settings during an active download and reopens the dialog,
+restore the downloading state (show progress or "download in progress" message) and
+disable navigation away from About until the download completes.
+
+**Why:** Currently, if download starts and user closes dialog, state is lost (even with
+updaterStore, the `downloadAndInstall` Promise is detached). The new download would need
+to start fresh. For the MVP, the simpler fix is to lock the dialog during download.
+
+**Deferred because:** The `updaterStore` Zustand approach handles state persistence.
+Locking the dialog (disabling close / tab-switch during `downloading`/`ready`) covers
+the most important case. Full interrupt recovery is a future improvement.
+
+**Depends on:** In-app update checker PR (this feature)
+**Blocked by:** Nothing
+
+---
+
+## Updater: Windows / Linux CI entries in latest.json
+
+**What:** When Windows and Linux builds are added to the release matrix, extend the
+`publish-release` `generate-latest-json` step to include their platform entries in
+`latest.json` (using `x86_64-pc-windows-msvc` and `x86_64-unknown-linux-gnu` keys).
+
+**Why:** The initial `latest.json` script only covers `aarch64-apple-darwin` and
+`x86_64-apple-darwin`. Multi-platform support requires extending the script.
+
+**Deferred because:** Windows/Linux builds are not in the current release matrix.
+
+**Depends on:** Multi-platform release PR (future)
+**Blocked by:** Nothing

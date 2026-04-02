@@ -19,6 +19,8 @@
     "core:window:allow-inner-size",
     "core:window:allow-outer-position",
     "core:webview:allow-create-webview-window",
-    "opener:default"
+    "opener:default",
+    "updater:default",
+    "process:default"
   ]
 }

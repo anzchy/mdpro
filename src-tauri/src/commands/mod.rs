@@ -8,6 +8,7 @@ pub mod mcp;
 pub mod menu;
 pub mod preferences;
 pub mod toc;
+pub mod updater;
 pub mod window;
 
 pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
@@ -57,6 +58,8 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         mcp::mcp_get_status,
         mcp::mcp_get_installations,
         mcp::mcp_install_config,
-        mcp::mcp_remove_config
+        mcp::mcp_remove_config,
+        // Updater commands
+        updater::get_app_version
     ]
 }

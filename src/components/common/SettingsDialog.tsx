@@ -13,6 +13,7 @@ import { ExportSettings } from "./settings/ExportSettings";
 import { AppearanceSettings } from "./settings/AppearanceSettings";
 import { AdvancedSettings } from "./settings/AdvancedSettings";
 import { KeyboardShortcutsSettings } from "./settings/KeyboardShortcutsSettings";
+import { AboutSettings } from "./settings/AboutSettings";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "appearance", label: "Appearance", icon: "🎨" },
   { id: "keyboard-shortcuts", label: "Keyboard Shortcuts", icon: "⌨️" },
   { id: "advanced", label: "Advanced", icon: "🔧" },
+  { id: "about", label: "About", icon: "ℹ️" },
 ];
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
@@ -172,6 +174,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <KeyboardShortcutsSettings onClose={onClose} />
             )}
             {activePage === "advanced" && <AdvancedSettings />}
+            {activePage === "about" && <AboutSettings />}
           </div>
         </div>
 
