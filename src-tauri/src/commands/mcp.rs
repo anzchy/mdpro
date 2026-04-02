@@ -3,9 +3,11 @@
 //! Tauri IPC commands for MCP integration, including document sync
 //! from frontend to Rust Shadow Store and MCP client configuration.
 
-use crate::models::{SharedShadowStore, SharedServerConfig, SyncDocumentsPayload};
+use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore, SharedServerConfig, SyncDocumentsPayload};
+use crate::services::logger;
 use crate::services::shadow_store;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
 use tauri::State;
@@ -117,38 +119,109 @@ pub fn mcp_get_installations() -> Result<Vec<McpInstallation>, String> {
 /// Install MCP config to a specific client
 #[tauri::command]
 pub fn mcp_install_config(client: McpClient) -> Result<(), String> {
-    let config_path = get_client_config_path(client)?;
-    let binary_path = get_mcp_binary_path()?;
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let start = std::time::Instant::now();
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.install_config".to_string(),
+        status: LogStatus::Start,
+        action_id: Some(action_id.clone()),
+        context: Some(json!({ "client": format!("{:?}", client) })),
+        duration_ms: None,
+        error: None,
+    });
 
-    // Ensure parent directory exists
-    if let Some(parent) = config_path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create config directory: {}", e))?;
-    }
+    let result = (|| {
+        let config_path = get_client_config_path(client)?;
+        let binary_path = get_mcp_binary_path()?;
 
-    match client {
-        McpClient::ClaudeDesktop | McpClient::ClaudeCode | McpClient::GeminiCli => {
-            install_json_config(&config_path, &binary_path, client)
+        // Ensure parent directory exists
+        if let Some(parent) = config_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create config directory: {}", e))?;
         }
-        McpClient::CodexCli => {
-            install_toml_config(&config_path, &binary_path)
+
+        match client {
+            McpClient::ClaudeDesktop | McpClient::ClaudeCode | McpClient::GeminiCli => {
+                install_json_config(&config_path, &binary_path, client)
+            }
+            McpClient::CodexCli => {
+                install_toml_config(&config_path, &binary_path)
+            }
         }
+    })();
+
+    let elapsed = start.elapsed().as_millis() as u64;
+    match &result {
+        Ok(()) => logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "mcp.install_config".to_string(),
+            status: LogStatus::Success,
+            action_id: Some(action_id),
+            context: Some(json!({ "client": format!("{:?}", client) })),
+            duration_ms: Some(elapsed),
+            error: None,
+        }),
+        Err(e) => logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "mcp.install_config".to_string(),
+            status: LogStatus::Fail,
+            action_id: Some(action_id),
+            context: Some(json!({ "client": format!("{:?}", client) })),
+            duration_ms: Some(elapsed),
+            error: Some(e.clone()),
+        }),
     }
+    result
 }
 
 /// Remove MCP config from a specific client
 #[tauri::command]
 pub fn mcp_remove_config(client: McpClient) -> Result<(), String> {
-    let config_path = get_client_config_path(client)?;
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let start = std::time::Instant::now();
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "mcp.remove_config".to_string(),
+        status: LogStatus::Start,
+        action_id: Some(action_id.clone()),
+        context: Some(json!({ "client": format!("{:?}", client) })),
+        duration_ms: None,
+        error: None,
+    });
 
-    match client {
+    let config_path = get_client_config_path(client)?;
+    let result = match client {
         McpClient::ClaudeDesktop | McpClient::ClaudeCode | McpClient::GeminiCli => {
             remove_json_config(&config_path)
         }
         McpClient::CodexCli => {
             remove_toml_config(&config_path)
         }
+    };
+
+    let elapsed = start.elapsed().as_millis() as u64;
+    match &result {
+        Ok(()) => logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "mcp.remove_config".to_string(),
+            status: LogStatus::Success,
+            action_id: Some(action_id),
+            context: Some(json!({ "client": format!("{:?}", client) })),
+            duration_ms: Some(elapsed),
+            error: None,
+        }),
+        Err(e) => logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "mcp.remove_config".to_string(),
+            status: LogStatus::Fail,
+            action_id: Some(action_id),
+            context: Some(json!({ "client": format!("{:?}", client) })),
+            duration_ms: Some(elapsed),
+            error: Some(e.clone()),
+        }),
     }
+    result
 }
 
 // Helper functions
