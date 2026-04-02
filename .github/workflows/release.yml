@@ -226,20 +226,22 @@ jobs:
           # Helper: find asset URL by name pattern
           find_url() { echo "$ASSETS" | jq -r --arg pat "$1" '.[] | select(.name | test($pat)) | .url' | head -1; }
 
+          # Download .sig files to read their content
+          mkdir -p sigs
+          gh release download "$VERSION" --repo "$REPO" --pattern "*.app.tar.gz.sig" --dir sigs || true
+
           # macOS ARM64
           ARM_URL=$(find_url 'aarch64.*app\.tar\.gz$')
-          ARM_SIG_URL=$(find_url 'aarch64.*app\.tar\.gz\.sig$')
           ARM_SIG=""
-          if [ -n "$ARM_SIG_URL" ]; then
-            ARM_SIG=$(curl -sL "$ARM_SIG_URL")
+          if [ -f sigs/mdpro_aarch64.app.tar.gz.sig ]; then
+            ARM_SIG=$(cat sigs/mdpro_aarch64.app.tar.gz.sig)
           fi
 
-          # macOS x86_64
-          X64_URL=$(find_url 'x86_64.*app\.tar\.gz$')
-          X64_SIG_URL=$(find_url 'x86_64.*app\.tar\.gz\.sig$')
+          # macOS x86_64 (Tauri names this "x64", not "x86_64")
+          X64_URL=$(find_url '(x86_64|x64).*app\.tar\.gz$')
           X64_SIG=""
-          if [ -n "$X64_SIG_URL" ]; then
-            X64_SIG=$(curl -sL "$X64_SIG_URL")
+          if [ -f sigs/mdpro_x64.app.tar.gz.sig ]; then
+            X64_SIG=$(cat sigs/mdpro_x64.app.tar.gz.sig)
           fi
 
           PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
