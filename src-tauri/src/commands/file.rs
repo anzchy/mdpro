@@ -549,6 +549,20 @@ pub async fn save_file(
         }
     })?;
 
+    // Canonicalize path to prevent directory traversal attacks (audit #209).
+    // For existing files, canonicalize directly. For new files, canonicalize the parent.
+    let path_buf = path_buf
+        .canonicalize()
+        .or_else(|_| {
+            path_buf
+                .parent()
+                .and_then(|p| p.canonicalize().ok())
+                .map(|p| p.join(path_buf.file_name().unwrap_or_default()))
+                .ok_or_else(|| {
+                    std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid path")
+                })
+        })
+        .map_err(|e| to_file_error(e, &path_value))?;
     if let Some(parent) = path_buf.parent() {
         if !parent.exists() {
             let path_for_error = path_value.clone();
