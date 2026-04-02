@@ -380,6 +380,9 @@ async fn update_document(
         .ok()
         .flatten();
 
+    // Save original content for rollback in case emit fails (fixes #243).
+    let original_content = doc.content.clone();
+
     // Optimistically update shadow store BEFORE emitting to frontend,
     // so subsequent reads return new content even if the frontend
     // hasn't processed the event yet (fixes #141 stale-read window).
@@ -394,6 +397,21 @@ async fn update_document(
     };
 
     if let Err(e) = state.app_handle.emit("mcp:write_document", &event) {
+        // Roll back the shadow store so it doesn't diverge from the editor (#243).
+        let _ = shadow_store::update_document_content(
+            &state.shadow_store,
+            &id,
+            original_content,
+        );
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "mcp.write".to_string(),
+            status: LogStatus::Fail,
+            action_id: None,
+            context: Some(json!({ "documentId": id, "reason": "emit failed, shadow store rolled back" })),
+            duration_ms: None,
+            error: Some(e.to_string()),
+        });
         let error = ErrorResponse {
             error: format!("Failed to emit write event: {}", e),
             code: Some("EMIT_FAILED".to_string()),
@@ -473,6 +491,9 @@ async fn insert_content(
         .ok()
         .flatten();
 
+    // Save original content for rollback in case emit fails (fixes #243).
+    let original_content = doc.content.clone();
+
     // Compute new content and optimistically update shadow store BEFORE
     // emitting to frontend, so subsequent reads return new content even
     // if the frontend hasn't processed the event yet (fixes #141).
@@ -489,6 +510,21 @@ async fn insert_content(
     };
 
     if let Err(e) = state.app_handle.emit("mcp:insert_content", &event) {
+        // Roll back the shadow store so it doesn't diverge from the editor (#243).
+        let _ = shadow_store::update_document_content(
+            &state.shadow_store,
+            &id,
+            original_content,
+        );
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "mcp.insert".to_string(),
+            status: LogStatus::Fail,
+            action_id: None,
+            context: Some(json!({ "documentId": id, "reason": "emit failed, shadow store rolled back" })),
+            duration_ms: None,
+            error: Some(e.to_string()),
+        });
         let error = ErrorResponse {
             error: format!("Failed to emit insert event: {}", e),
             code: Some("EMIT_FAILED".to_string()),
