@@ -52,7 +52,7 @@ interface CreateDocumentEvent {
 export function useMcpEvents() {
   const updateDocumentContent = useDocumentStore((state) => state.updateDocumentContent);
   const upsertDocument = useDocumentStore((state) => state.upsertDocument);
-  const getDocumentById = useDocumentStore((state) => state.getDocumentById);
+
   const setActiveDocumentId = useDocumentStore((state) => state.setActiveDocumentId);
   const editorView = useEditorStore((state) => state.editorView);
 
@@ -79,7 +79,7 @@ export function useMcpEvents() {
         return;
       }
 
-      const doc = getDocumentById(event.document_id);
+      const doc = useDocumentStore.getState().getDocumentById(event.document_id);
       if (!doc) {
         loggingService.logEventSync({ level: "warn", event: "mcp.write", status: "fail", context: { documentId: event.document_id, reason: "not found" } });
         return;
@@ -102,7 +102,7 @@ export function useMcpEvents() {
         editorView.dispatch(transaction);
       }
     },
-    [getDocumentById, updateDocumentContent, editorView]
+    [updateDocumentContent, editorView]
   );
 
   // Handle insert content event
@@ -113,7 +113,7 @@ export function useMcpEvents() {
         return;
       }
 
-      const doc = getDocumentById(event.document_id);
+      const doc = useDocumentStore.getState().getDocumentById(event.document_id);
       if (!doc) {
         loggingService.logEventSync({ level: "warn", event: "mcp.insert", status: "fail", context: { documentId: event.document_id, reason: "not found" } });
         return;
@@ -154,7 +154,7 @@ export function useMcpEvents() {
         editorView.dispatch(transaction);
       }
     },
-    [getDocumentById, updateDocumentContent, editorView]
+    [updateDocumentContent, editorView]
   );
 
   // Handle create document event
