@@ -11,6 +11,10 @@ pub struct RenderMarkdownResult {
     pub html: String,
 }
 
+/// Render markdown to HTML without server-side sanitization.
+/// The frontend caller (exportService.ts) is responsible for running DOMPurify
+/// on this output before inserting it into the DOM. Export paths use
+/// `sanitize_html()` instead.
 #[tauri::command]
 pub async fn render_markdown(content: String) -> Result<RenderMarkdownResult, String> {
     Ok(RenderMarkdownResult {

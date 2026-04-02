@@ -210,7 +210,18 @@ fn replace_highlight_inline(line: &str) -> String {
 /// Used for export paths where DOMPurify is not available.
 pub fn sanitize_html(html: &str) -> String {
     ammonia::Builder::default()
-        .add_tags(&["mark", "u", "s", "del", "ins", "sub", "sup", "details", "summary"])
+        .add_tags(&[
+            "mark", "u", "s", "del", "ins", "sub", "sup",
+            "details", "summary", "input",
+        ])
+        .add_generic_attributes(&["id"])
+        .add_tag_attributes("h1", &["data-heading-id"])
+        .add_tag_attributes("h2", &["data-heading-id"])
+        .add_tag_attributes("h3", &["data-heading-id"])
+        .add_tag_attributes("h4", &["data-heading-id"])
+        .add_tag_attributes("h5", &["data-heading-id"])
+        .add_tag_attributes("h6", &["data-heading-id"])
+        .add_tag_attributes("input", &["type", "checked", "disabled"])
         .clean(html)
         .to_string()
 }
@@ -452,6 +463,24 @@ mod tests {
         assert!(!safe.contains("<script>"), "script must not appear in sanitized render output, got: {safe}");
         assert!(safe.contains("<mark>"), "mark from highlight must survive, got: {safe}");
         assert!(safe.contains("Hello"), "heading text must survive, got: {safe}");
+        assert!(safe.contains("id=\"hello\""), "heading id must survive sanitization, got: {safe}");
+    }
+
+    #[test]
+    fn test_sanitize_preserves_heading_ids() {
+        let html = "<h2 id=\"my-heading\" data-heading-id=\"my-heading\">My Heading</h2>";
+        let result = sanitize_html(html);
+        assert!(result.contains("id=\"my-heading\""), "id attr must survive, got: {result}");
+        assert!(result.contains("data-heading-id=\"my-heading\""), "data-heading-id must survive, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_preserves_task_list_checkboxes() {
+        let md = "- [x] Done\n- [ ] Todo";
+        let html = render_markdown(md);
+        let safe = sanitize_html(&html);
+        assert!(safe.contains("<input"), "task list checkbox must survive, got: {safe}");
+        assert!(safe.contains("checked"), "checked attr must survive, got: {safe}");
     }
 
     // H3 regression: ==highlight== inside a heading must render as <mark>
