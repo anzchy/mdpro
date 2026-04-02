@@ -11,6 +11,10 @@ pub struct RenderMarkdownResult {
     pub html: String,
 }
 
+/// Render markdown to HTML without server-side sanitization.
+/// The frontend caller (exportService.ts) is responsible for running DOMPurify
+/// on this output before inserting it into the DOM. Export paths use
+/// `sanitize_html()` instead.
 #[tauri::command]
 pub async fn render_markdown(content: String) -> Result<RenderMarkdownResult, String> {
     Ok(RenderMarkdownResult {
@@ -53,7 +57,7 @@ pub async fn export_html(
         error: None,
     });
 
-    let html_fragment = markdown::render_markdown(&content);
+    let html_fragment = markdown::sanitize_html(&markdown::render_markdown(&content));
     let html = html_template::build_html(&html_fragment, &title, &theme);
 
     let Some(path) = rfd::FileDialog::new()
@@ -117,6 +121,6 @@ pub async fn export_html(
 
 #[tauri::command]
 pub fn preview_html(content: String, theme: String) -> Result<String, String> {
-    let html_fragment = markdown::render_markdown(&content);
+    let html_fragment = markdown::sanitize_html(&markdown::render_markdown(&content));
     Ok(html_template::build_html(&html_fragment, "mdpro export", &theme))
 }
