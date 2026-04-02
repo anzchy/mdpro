@@ -1,13 +1,43 @@
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime};
 use tauri::{AppHandle, Emitter, Theme};
 
 /// Minimum interval between emitting events for the same file path.
 const DEBOUNCE_INTERVAL: Duration = Duration::from_millis(500);
+
+/// Global set of paths currently being written by `save_file`.
+/// Events for these paths are suppressed to avoid false "externally modified" prompts.
+fn write_in_progress() -> &'static Mutex<HashSet<PathBuf>> {
+    static SET: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
+    SET.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+/// Mark a path as being written to (call before `fs::write`).
+pub fn mark_write_start(path: &Path) {
+    if let Ok(mut set) = write_in_progress().lock() {
+        set.insert(path.to_path_buf());
+    }
+}
+
+/// Clear the write-in-progress mark (call after `fs::write` completes).
+pub fn mark_write_end(path: &Path) {
+    if let Ok(mut set) = write_in_progress().lock() {
+        set.remove(path);
+    }
+}
+
+/// Returns `true` if the path is currently being written by `save_file`.
+fn is_self_write(path: &Path) -> bool {
+    if let Ok(set) = write_in_progress().lock() {
+        set.contains(path)
+    } else {
+        false
+    }
+}
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -122,7 +152,7 @@ fn handle_event(
         }
         EventKind::Modify(_) => {
             if let Some(path) = event.paths.get(0) {
-                if is_debounced(path, debounce_map) {
+                if is_self_write(path) || is_debounced(path, debounce_map) {
                     return;
                 }
                 emit_file_changed(
