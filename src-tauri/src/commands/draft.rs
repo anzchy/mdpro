@@ -121,14 +121,10 @@ pub async fn cleanup_old_drafts() -> Result<usize, DraftError> {
 mod tests {
     use super::*;
     use std::fs;
-    use std::sync::Mutex;
 
-    // Serialize HOME mutations within this module.
-    // NOTE: these tests rely on $HOME injection. On macOS and Linux (the two
-    // supported platforms per CLAUDE.md), dirs::home_dir() honours $HOME, so
-    // this approach works. On Windows, dirs reads the profile dir from the OS
-    // and ignores $HOME — a different injection strategy would be needed there.
-    static HOME_LOCK: Mutex<()> = Mutex::new(());
+    // Use the crate-level HOME_LOCK so that commands::draft tests and
+    // services::draft::migration tests cannot race on the process-wide $HOME.
+    use crate::HOME_LOCK;
 
     fn make_temp_home(label: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join("mdpro_test").join(label);
@@ -158,7 +154,7 @@ mod tests {
     /// silently coercing them to None (the original bug).
     #[tokio::test]
     async fn get_draft_propagates_parse_error_for_corrupt_metadata() {
-        let _guard = HOME_LOCK.lock().unwrap();
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let home = make_temp_home("gd_corrupt_meta");
         let _home_guard = set_home(&home);
 
@@ -183,7 +179,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_draft_returns_ok_none_for_missing_draft() {
-        let _guard = HOME_LOCK.lock().unwrap();
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let home = make_temp_home("gd_missing");
         let _home_guard = set_home(&home);
 
