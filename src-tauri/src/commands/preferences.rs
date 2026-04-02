@@ -1,7 +1,9 @@
+use serde_json::json;
 use tauri::Theme;
 use tauri::Window;
 
-use crate::models::{UserPreferences, WindowState};
+use crate::models::{LogEntryPayload, LogLevel, LogStatus, UserPreferences, WindowState};
+use crate::services::logger;
 use crate::services::preferences::{
     load_preferences, merge_preferences, preferences_rw_lock, save_preferences, PartialPreferences,
     PreferencesError,
@@ -16,17 +18,54 @@ pub async fn get_preferences() -> Result<UserPreferences, String> {
 pub async fn set_preferences(
     preferences: PartialPreferences,
 ) -> Result<UserPreferences, PreferencesError> {
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let start = std::time::Instant::now();
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "preferences.set".to_string(),
+        status: LogStatus::Start,
+        action_id: Some(action_id.clone()),
+        context: Some(json!({ "partial": true })),
+        duration_ms: None,
+        error: None,
+    });
+
     // Hold the lock for the entire read → merge → write to prevent concurrent
     // calls from overwriting each other's changes.
-    let _lock = preferences_rw_lock()
-        .lock()
-        .map_err(|_| PreferencesError::IoError {
-            message: "preferences lock poisoned".to_string(),
-        })?;
-    let current = load_preferences().unwrap_or_default();
-    let next = merge_preferences(current, preferences);
-    save_preferences(&next)?;
-    Ok(next)
+    let result = (|| {
+        let _lock = preferences_rw_lock()
+            .lock()
+            .map_err(|_| PreferencesError::IoError {
+                message: "preferences lock poisoned".to_string(),
+            })?;
+        let current = load_preferences().unwrap_or_default();
+        let next = merge_preferences(current, preferences);
+        save_preferences(&next)?;
+        Ok(next)
+    })();
+
+    let elapsed = start.elapsed().as_millis() as u64;
+    match &result {
+        Ok(_) => logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "preferences.set".to_string(),
+            status: LogStatus::Success,
+            action_id: Some(action_id),
+            context: None,
+            duration_ms: Some(elapsed),
+            error: None,
+        }),
+        Err(e) => logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "preferences.set".to_string(),
+            status: LogStatus::Fail,
+            action_id: Some(action_id),
+            context: None,
+            duration_ms: Some(elapsed),
+            error: Some(format!("{:?}", e)),
+        }),
+    }
+    result
 }
 
 #[tauri::command]
