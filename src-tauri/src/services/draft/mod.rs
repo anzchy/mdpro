@@ -6,9 +6,11 @@ use std::path::{Path, PathBuf};
 use crate::models::{Draft, DraftMetadata};
 
 mod listing;
+mod migration;
 mod recovery;
 
 pub use listing::{cleanup_old_drafts, list_drafts};
+pub use migration::migrate_legacy_drafts;
 pub use recovery::recover_draft;
 
 // ── Public types ──────────────────────────────────────────────────────────────
