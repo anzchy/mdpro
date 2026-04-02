@@ -398,17 +398,21 @@ async fn update_document(
 
     if let Err(e) = state.app_handle.emit("mcp:write_document", &event) {
         // Roll back the shadow store so it doesn't diverge from the editor (#243).
-        let _ = shadow_store::update_document_content(
+        let rollback_status = match shadow_store::update_document_content(
             &state.shadow_store,
             &id,
             original_content,
-        );
+        ) {
+            Ok(true) => "rolled back",
+            Ok(false) => "not rolled back: document not found",
+            Err(_) => "not rolled back: mutex error",
+        };
         logger::log_event(LogEntryPayload {
             level: LogLevel::Error,
             event: "mcp.write".to_string(),
             status: LogStatus::Fail,
             action_id: None,
-            context: Some(json!({ "documentId": id, "reason": "emit failed, shadow store rolled back" })),
+            context: Some(json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") })),
             duration_ms: None,
             error: Some(e.to_string()),
         });
@@ -511,17 +515,21 @@ async fn insert_content(
 
     if let Err(e) = state.app_handle.emit("mcp:insert_content", &event) {
         // Roll back the shadow store so it doesn't diverge from the editor (#243).
-        let _ = shadow_store::update_document_content(
+        let rollback_status = match shadow_store::update_document_content(
             &state.shadow_store,
             &id,
             original_content,
-        );
+        ) {
+            Ok(true) => "rolled back",
+            Ok(false) => "not rolled back: document not found",
+            Err(_) => "not rolled back: mutex error",
+        };
         logger::log_event(LogEntryPayload {
             level: LogLevel::Error,
             event: "mcp.insert".to_string(),
             status: LogStatus::Fail,
             action_id: None,
-            context: Some(json!({ "documentId": id, "reason": "emit failed, shadow store rolled back" })),
+            context: Some(json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") })),
             duration_ms: None,
             error: Some(e.to_string()),
         });
