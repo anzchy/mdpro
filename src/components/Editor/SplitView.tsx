@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Editor } from "./Editor";
 import { Preview } from "../Preview/Preview";
 import { useScrollSync } from "../../hooks/useScrollSync";
@@ -24,9 +24,16 @@ export function SplitView({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
   const [splitRatio, setSplitRatio] = useState(50);
 
   useScrollSync(editorRef, previewRef, viewMode === "split");
+
+  // Remove drag listeners if the component unmounts mid-drag (e.g., view mode
+  // switched via ⌘1/⌘2/⌘3/⌘4 while the divider is held down).
+  useEffect(() => {
+    return () => cleanupRef.current?.();
+  }, []);
 
   const startDrag = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -41,13 +48,17 @@ export function SplitView({
       setSplitRatio(clamped);
     };
 
-    const handleMouseUp = () => {
+    const cleanup = () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
+      cleanupRef.current = null;
     };
+
+    const handleMouseUp = () => cleanup();
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+    cleanupRef.current = cleanup;
   };
 
   if (viewMode === "editor-only") {
