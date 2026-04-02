@@ -9,6 +9,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
+import { loggingService } from "../services/loggingService";
 
 /**
  * Insert position for MCP insert_content.
@@ -80,7 +81,7 @@ export function useMcpEvents() {
 
       const doc = getDocumentById(event.document_id);
       if (!doc) {
-        console.warn(`MCP write: document not found: ${event.document_id}`);
+        loggingService.logEventSync({ level: "warn", event: "mcp.write", status: "fail", context: { documentId: event.document_id, reason: "not found" } });
         return;
       }
 
@@ -114,7 +115,7 @@ export function useMcpEvents() {
 
       const doc = getDocumentById(event.document_id);
       if (!doc) {
-        console.warn(`MCP insert: document not found: ${event.document_id}`);
+        loggingService.logEventSync({ level: "warn", event: "mcp.insert", status: "fail", context: { documentId: event.document_id, reason: "not found" } });
         return;
       }
 

@@ -12,6 +12,7 @@ import type {
   PluginState,
 } from "./pluginTypes";
 import { defaultPluginConfig } from "./pluginConfig";
+import { loggingService } from "../../services/loggingService";
 
 const PLUGIN_NAME_PATTERN = /^[a-z0-9-]+$/;
 
@@ -54,7 +55,7 @@ const createEventEmitter = (): EditorEventEmitter => {
         try {
           handler(payload);
         } catch (err) {
-          console.error(`[mdpro] Event handler for "${event}" threw:`, err);
+          loggingService.logEventSync({ level: "error", event: "plugin.event.handler", status: "fail", context: { eventName: event, error: err instanceof Error ? err.message : String(err) } });
         }
       });
     },
@@ -87,19 +88,13 @@ const validatePluginName = (name: string) =>
 
 const validatePluginConfig = (name: string, config: PluginConfig) => {
   if (typeof config.enabled !== "boolean") {
-    console.warn(
-      `[mdpro] Plugin "${name}" has invalid config: enabled must be boolean`,
-    );
+    loggingService.logEventSync({ level: "warn", event: "plugin.config.invalid", status: "fail", context: { plugin: name, field: "enabled" } });
   }
   if (config.priority !== undefined && typeof config.priority !== "number") {
-    console.warn(
-      `[mdpro] Plugin "${name}" has invalid config: priority must be number`,
-    );
+    loggingService.logEventSync({ level: "warn", event: "plugin.config.invalid", status: "fail", context: { plugin: name, field: "priority" } });
   }
   if (config.options !== undefined && typeof config.options !== "object") {
-    console.warn(
-      `[mdpro] Plugin "${name}" has invalid config: options must be object`,
-    );
+    loggingService.logEventSync({ level: "warn", event: "plugin.config.invalid", status: "fail", context: { plugin: name, field: "options" } });
   }
 };
 
@@ -122,14 +117,12 @@ export class PluginRegistry {
     overrides?: PluginConfig<TOptions>,
   ) {
     if (!validatePluginName(plugin.name)) {
-      console.error(
-        `[mdpro] Plugin name "${plugin.name}" is invalid. Use lowercase letters, numbers, and hyphens.`,
-      );
+      loggingService.logEventSync({ level: "error", event: "plugin.register", status: "fail", context: { plugin: plugin.name, reason: "invalid name" } });
       return;
     }
 
     if (this.plugins.has(plugin.name)) {
-      console.error(`[mdpro] Plugin "${plugin.name}" is already registered.`);
+      loggingService.logEventSync({ level: "error", event: "plugin.register", status: "fail", context: { plugin: plugin.name, reason: "already registered" } });
       return;
     }
 
@@ -193,7 +186,7 @@ export class PluginRegistry {
     const entries = this.getSortedPlugins();
     if (import.meta.env?.DEV) {
       const order = entries.map((entry) => entry.plugin.name).join(", ");
-      console.log(`[mdpro] Plugin load order (${this.currentMode}): ${order}`);
+      loggingService.logEventSync({ level: "debug", event: "plugin.load.order", status: "success", context: { mode: this.currentMode, order } });
     }
 
     entries.forEach((entry) => {
@@ -215,9 +208,7 @@ export class PluginRegistry {
       } catch (error) {
         entry.state = "error";
         entry.error = error instanceof Error ? error : new Error(String(error));
-        console.error(
-          `[mdpro] Plugin "${plugin.name}" failed to initialize: ${entry.error.message}`,
-        );
+        loggingService.logEventSync({ level: "error", event: "plugin.init", status: "fail", context: { plugin: plugin.name, error: entry.error.message } });
       }
     });
   }
@@ -255,9 +246,7 @@ export class PluginRegistry {
         } catch (error) {
           entry.state = "error";
           entry.error = error instanceof Error ? error : new Error(String(error));
-          console.error(
-            `[mdpro] Plugin "${plugin.name}" failed to initialize: ${entry.error.message}`,
-          );
+          loggingService.logEventSync({ level: "error", event: "plugin.init", status: "fail", context: { plugin: plugin.name, error: entry.error.message } });
         }
         return;
       }
@@ -288,9 +277,7 @@ export class PluginRegistry {
           extensions.push(result);
         }
       } catch (error) {
-        console.error(
-          `[mdpro] Plugin "${plugin.name}" codemirrorExtension threw: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        loggingService.logEventSync({ level: "error", event: "plugin.codemirror.extension", status: "fail", context: { plugin: plugin.name, error: error instanceof Error ? error.message : String(error) } });
       }
     });
 
@@ -311,9 +298,7 @@ export class PluginRegistry {
         const result = plugin.milkdownPlugin(config, context);
         if (result) plugins.push(result);
       } catch (error) {
-        console.error(
-          `[mdpro] Plugin "${plugin.name}" milkdownPlugin threw: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        loggingService.logEventSync({ level: "error", event: "plugin.milkdown.plugin", status: "fail", context: { plugin: plugin.name, error: error instanceof Error ? error.message : String(error) } });
       }
     });
 
@@ -414,9 +399,7 @@ export class PluginRegistry {
     } catch (error) {
       entry.state = "error";
       entry.error = error instanceof Error ? error : new Error(String(error));
-      console.error(
-        `[mdpro] Plugin "${plugin.name}" failed to initialize: ${entry.error.message}`,
-      );
+      loggingService.logEventSync({ level: "error", event: "plugin.init", status: "fail", context: { plugin: plugin.name, error: entry.error.message } });
     }
   }
 
@@ -424,10 +407,7 @@ export class PluginRegistry {
     try {
       entry.plugin.destroy?.(this.getContext(), entry.config);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(
-        `[mdpro] Plugin "${entry.plugin.name}" failed to cleanup: ${errorMessage}`,
-      );
+      loggingService.logEventSync({ level: "error", event: "plugin.destroy", status: "fail", context: { plugin: entry.plugin.name, error: error instanceof Error ? error.message : String(error) } });
     }
   }
 
@@ -444,9 +424,7 @@ export class PluginRegistry {
     const registered = new Set(this.plugins.keys());
     Object.keys(this.config).forEach((name) => {
       if (!registered.has(name)) {
-        console.error(
-          `[mdpro] Plugin config references missing plugin "${name}"`,
-        );
+        loggingService.logEventSync({ level: "error", event: "plugin.config.missing", status: "fail", context: { plugin: name } });
       }
     });
   }
