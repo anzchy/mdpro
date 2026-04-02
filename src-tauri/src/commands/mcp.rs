@@ -50,7 +50,7 @@ fn validate_sync_payload(payload: &SyncDocumentsPayload) -> Result<(), String> {
     for doc in &payload.documents {
         if doc.content.len() > MAX_DOCUMENT_CONTENT_BYTES {
             return Err(format!(
-                "document {:?} content exceeds {} byte limit ({} bytes)",
+                "document {} content exceeds {} byte limit ({} bytes)",
                 doc.id,
                 MAX_DOCUMENT_CONTENT_BYTES,
                 doc.content.len()
@@ -600,7 +600,7 @@ mod tests {
 
     #[test]
     fn validate_rejects_first_oversized_doc_in_mixed_payload() {
-        // Ensures per-document validation iterates all docs, not just the first
+        // Ensures validation catches an oversized doc that is not the first in the list
         let ok_doc = make_doc("ok", "content");
         let big_content = "x".repeat(MAX_DOCUMENT_CONTENT_BYTES + 1);
         let big_doc = make_doc("too-big", &big_content);
