@@ -43,6 +43,28 @@ fn config_dir() -> Option<PathBuf> {
     dirs::data_dir().map(|d| d.join("mdpro"))
 }
 
+/// Convert a character offset to a byte offset in a UTF-8 string.
+/// Returns `s.len()` if the character offset is beyond the string length.
+fn char_offset_to_byte(s: &str, char_offset: usize) -> usize {
+    s.char_indices()
+        .nth(char_offset)
+        .map(|(byte_idx, _)| byte_idx)
+        .unwrap_or(s.len())
+}
+
+/// Snap a byte offset to the nearest valid UTF-8 char boundary.
+/// If the offset lands mid-character, round down to the start of that character.
+/// Prevents `String::insert_str` panic on multi-byte content (fixes #345).
+fn snap_to_char_boundary(s: &str, offset: usize) -> usize {
+    let clamped = offset.min(s.len());
+    // Walk backwards until we hit a char boundary
+    let mut pos = clamped;
+    while pos > 0 && !s.is_char_boundary(pos) {
+        pos -= 1;
+    }
+    pos
+}
+
 /// Generate a secure random token.
 fn generate_token() -> String {
     let mut rng = rand::thread_rng();
@@ -480,13 +502,17 @@ async fn insert_content(
         }
     };
 
-    // Calculate new cursor position based on insert position
+    // Calculate insert byte offset from character offset (per API spec).
+    // InsertPosition::Offset and doc.cursor are character offsets; convert
+    // to byte offsets for Rust String operations. snap_to_char_boundary is
+    // a safety net in case of any remaining mismatch (fixes #345).
     let insert_offset = match &request.position {
-        InsertPosition::Cursor => doc.cursor,
+        InsertPosition::Cursor => char_offset_to_byte(&doc.content, doc.cursor),
         InsertPosition::Start => 0,
         InsertPosition::End => doc.content.len(),
-        InsertPosition::Offset(n) => (*n).min(doc.content.len()),
+        InsertPosition::Offset(n) => char_offset_to_byte(&doc.content, *n),
     };
+    let insert_offset = snap_to_char_boundary(&doc.content, insert_offset);
 
     let new_cursor = insert_offset + request.text.len();
 
@@ -682,5 +708,120 @@ mod hex {
             result.push(HEX_CHARS[(byte & 0x0f) as usize] as char);
         }
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn snap_ascii_offset_unchanged() {
+        assert_eq!(snap_to_char_boundary("hello", 3), 3);
+    }
+
+    #[test]
+    fn snap_at_start() {
+        assert_eq!(snap_to_char_boundary("hello", 0), 0);
+    }
+
+    #[test]
+    fn snap_at_end() {
+        assert_eq!(snap_to_char_boundary("hello", 5), 5);
+    }
+
+    #[test]
+    fn snap_beyond_end_clamps() {
+        assert_eq!(snap_to_char_boundary("hello", 100), 5);
+    }
+
+    #[test]
+    fn snap_mid_multibyte_rounds_down() {
+        // "é" is 2 bytes in UTF-8: [0xC3, 0xA9]
+        let s = "café";
+        // "caf" = 3 bytes, "é" starts at byte 3
+        // offset 4 is mid-char (second byte of é)
+        assert_eq!(snap_to_char_boundary(s, 4), 3);
+    }
+
+    #[test]
+    fn snap_on_char_boundary_stays() {
+        let s = "café";
+        assert_eq!(snap_to_char_boundary(s, 3), 3); // start of é
+        assert_eq!(snap_to_char_boundary(s, 5), 5); // after é
+    }
+
+    #[test]
+    fn snap_cjk_mid_char() {
+        // "你好" — each char is 3 bytes
+        let s = "你好";
+        assert_eq!(snap_to_char_boundary(s, 1), 0); // mid first char → snap to 0
+        assert_eq!(snap_to_char_boundary(s, 2), 0); // mid first char → snap to 0
+        assert_eq!(snap_to_char_boundary(s, 3), 3); // boundary between chars
+        assert_eq!(snap_to_char_boundary(s, 4), 3); // mid second char → snap to 3
+        assert_eq!(snap_to_char_boundary(s, 5), 3); // mid second char → snap to 3
+        assert_eq!(snap_to_char_boundary(s, 6), 6); // end
+    }
+
+    #[test]
+    fn snap_emoji_mid_char() {
+        // "😀" is 4 bytes
+        let s = "a😀b";
+        assert_eq!(snap_to_char_boundary(s, 1), 1); // between a and emoji
+        assert_eq!(snap_to_char_boundary(s, 2), 1); // mid emoji → snap to 1
+        assert_eq!(snap_to_char_boundary(s, 3), 1); // mid emoji → snap to 1
+        assert_eq!(snap_to_char_boundary(s, 4), 1); // mid emoji → snap to 1
+        assert_eq!(snap_to_char_boundary(s, 5), 5); // start of b
+    }
+
+    #[test]
+    fn snap_empty_string() {
+        assert_eq!(snap_to_char_boundary("", 0), 0);
+        assert_eq!(snap_to_char_boundary("", 5), 0);
+    }
+
+    #[test]
+    fn char_offset_ascii() {
+        assert_eq!(char_offset_to_byte("hello", 0), 0);
+        assert_eq!(char_offset_to_byte("hello", 3), 3);
+        assert_eq!(char_offset_to_byte("hello", 5), 5);
+    }
+
+    #[test]
+    fn char_offset_cjk() {
+        let s = "你好世界"; // 4 chars, 12 bytes
+        assert_eq!(char_offset_to_byte(s, 0), 0);
+        assert_eq!(char_offset_to_byte(s, 1), 3);
+        assert_eq!(char_offset_to_byte(s, 2), 6);
+        assert_eq!(char_offset_to_byte(s, 3), 9);
+        assert_eq!(char_offset_to_byte(s, 4), 12);
+    }
+
+    #[test]
+    fn char_offset_mixed() {
+        let s = "café"; // c(1) a(1) f(1) é(2) = 5 bytes, 4 chars
+        assert_eq!(char_offset_to_byte(s, 3), 3); // start of é
+        assert_eq!(char_offset_to_byte(s, 4), 5); // end
+    }
+
+    #[test]
+    fn char_offset_beyond_length() {
+        assert_eq!(char_offset_to_byte("hi", 100), 2);
+    }
+
+    #[test]
+    fn char_offset_empty() {
+        assert_eq!(char_offset_to_byte("", 0), 0);
+        assert_eq!(char_offset_to_byte("", 5), 0);
+    }
+
+    #[test]
+    fn insert_str_does_not_panic_after_snap() {
+        let s = "你好世界"; // 12 bytes
+        for offset in 0..=15 {
+            let snapped = snap_to_char_boundary(s, offset);
+            let mut copy = s.to_string();
+            copy.insert_str(snapped, "X"); // must not panic
+        }
     }
 }
