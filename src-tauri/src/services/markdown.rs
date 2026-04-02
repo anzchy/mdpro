@@ -205,6 +205,16 @@ fn replace_highlight_inline(line: &str) -> String {
     out
 }
 
+/// Sanitize HTML output, allowing safe formatting tags but stripping
+/// dangerous elements like `<script>`, `<iframe>`, `<object>`, event handlers, etc.
+/// Used for export paths where DOMPurify is not available.
+pub fn sanitize_html(html: &str) -> String {
+    ammonia::Builder::default()
+        .add_tags(&["mark", "u", "s", "del", "ins", "sub", "sup", "details", "summary"])
+        .clean(html)
+        .to_string()
+}
+
 pub fn render_markdown(markdown: &str) -> String {
     let preprocessed = preprocess_highlight(markdown);
     let markdown = preprocessed.as_str();
@@ -391,6 +401,57 @@ mod tests {
             result.contains("<mark>hello</mark>"),
             "expected <mark>hello</mark> with CRLF input, got: {result}"
         );
+    }
+
+    // #246: sanitize_html strips dangerous tags but keeps safe formatting
+    #[test]
+    fn test_sanitize_strips_script_tags() {
+        let html = "<p>Hello</p><script>alert(1)</script><p>World</p>";
+        let result = sanitize_html(html);
+        assert!(!result.contains("<script>"), "script tag must be stripped, got: {result}");
+        assert!(result.contains("Hello"), "safe content must survive, got: {result}");
+        assert!(result.contains("World"), "safe content must survive, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_strips_iframe() {
+        let html = "<p>Text</p><iframe src=\"evil.com\"></iframe>";
+        let result = sanitize_html(html);
+        assert!(!result.contains("<iframe"), "iframe must be stripped, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_strips_event_handlers() {
+        let html = "<img src=\"x\" onerror=\"alert(1)\">";
+        let result = sanitize_html(html);
+        assert!(!result.contains("onerror"), "event handlers must be stripped, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_preserves_mark_tags() {
+        let html = "<p>This is <mark>highlighted</mark> text</p>";
+        let result = sanitize_html(html);
+        assert!(result.contains("<mark>"), "mark tags must survive sanitization, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_preserves_standard_formatting() {
+        let html = "<p><strong>bold</strong> <em>italic</em> <u>underline</u> <s>strike</s></p>";
+        let result = sanitize_html(html);
+        assert!(result.contains("<strong>"), "strong must survive, got: {result}");
+        assert!(result.contains("<em>"), "em must survive, got: {result}");
+        assert!(result.contains("<u>"), "u must survive, got: {result}");
+        assert!(result.contains("<s>"), "s must survive, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_end_to_end_with_render() {
+        let md = "# Hello\n\n<script>alert('xss')</script>\n\n==highlighted==";
+        let html = render_markdown(md);
+        let safe = sanitize_html(&html);
+        assert!(!safe.contains("<script>"), "script must not appear in sanitized render output, got: {safe}");
+        assert!(safe.contains("<mark>"), "mark from highlight must survive, got: {safe}");
+        assert!(safe.contains("Hello"), "heading text must survive, got: {safe}");
     }
 
     // H3 regression: ==highlight== inside a heading must render as <mark>
