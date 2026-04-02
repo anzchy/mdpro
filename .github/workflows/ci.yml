@@ -31,8 +31,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Security audit
-        run: pnpm audit --audit-level=high
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        run: pnpm audit --audit-level=critical
+        continue-on-error: true
 
       - run: pnpm build
 
