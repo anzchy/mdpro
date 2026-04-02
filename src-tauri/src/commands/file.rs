@@ -383,6 +383,18 @@ pub async fn save_file(
     );
 
     let path_buf = PathBuf::from(&path_value);
+
+    // Validate file extension to prevent arbitrary file writes (audit #314)
+    let allowed = matches!(
+        path_buf.extension().and_then(|e| e.to_str()),
+        Some("md" | "markdown" | "txt" | "mdx" | "html")
+    );
+    if !allowed {
+        return Err(FileError::InvalidPath {
+            path: path_value,
+        });
+    }
+
     if let Some(parent) = path_buf.parent() {
         if !parent.exists() {
             let path_for_error = path_value.clone();
