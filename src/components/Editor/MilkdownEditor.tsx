@@ -1,3 +1,4 @@
+import "./MilkdownEditor.css";
 import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { LinkInsertModal } from "./LinkInsertModal";
