@@ -113,17 +113,24 @@ fn legacy_drafts_dir() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(".mdpro").join("drafts"))
 }
 
-/// Returns true when the I/O error is a cross-device rename error (EXDEV on POSIX).
+/// EXDEV (cross-device rename) — POSIX errno 18 on macOS and Linux.
+/// `std::io::ErrorKind` does not yet expose this variant.
+#[cfg(unix)]
+const EXDEV: i32 = 18;
+
+/// ERROR_NOT_SAME_DEVICE — Win32 error 17, the Windows equivalent of EXDEV.
+#[cfg(not(unix))]
+const ERROR_NOT_SAME_DEVICE: i32 = 17;
+
+/// Returns true when the I/O error is a cross-device rename error.
 fn is_cross_device(e: &io::Error) -> bool {
-    // EXDEV = 18 on macOS and Linux; std::io::ErrorKind does not yet expose it.
-    // On Windows, ERROR_NOT_SAME_DEVICE = 17.
     #[cfg(unix)]
     {
-        e.raw_os_error() == Some(18) // EXDEV
+        e.raw_os_error() == Some(EXDEV)
     }
     #[cfg(not(unix))]
     {
-        e.raw_os_error() == Some(17) // ERROR_NOT_SAME_DEVICE
+        e.raw_os_error() == Some(ERROR_NOT_SAME_DEVICE)
     }
 }
 
