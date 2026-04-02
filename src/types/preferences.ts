@@ -83,7 +83,6 @@ export interface KeyboardShortcuts {
   fileNew: string;
   fileNewWindow: string;
   fileOpen: string;
-  fileOpenQuickly: string;
   fileSave: string;
   fileSaveAs: string;
   fileClose: string;
@@ -136,6 +135,10 @@ export interface KeyboardShortcuts {
   fileExportHtml: string;
 
   // View operations
+  viewSplitMode: string;
+  viewEditorOnly: string;
+  viewPreviewOnly: string;
+  viewWysiwyg: string;
   viewToggleSidebar: string;
   viewCycleViewMode: string;
   viewToggleFullscreen: string;
@@ -148,7 +151,6 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   fileNew: "Cmd+N",
   fileNewWindow: "Cmd+Shift+N",
   fileOpen: "Cmd+O",
-  fileOpenQuickly: "Cmd+Shift+O",
   fileSave: "Cmd+S",
   fileSaveAs: "Cmd+Shift+S",
   fileClose: "Cmd+W",
@@ -201,6 +203,10 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   fileExportHtml: "Cmd+Shift+E",
 
   // View operations
+  viewSplitMode: "Ctrl+1",
+  viewEditorOnly: "Ctrl+2",
+  viewPreviewOnly: "Ctrl+3",
+  viewWysiwyg: "Ctrl+4",
   viewToggleSidebar: "Cmd+Shift+L",
   viewCycleViewMode: "Cmd+/",
   viewToggleFullscreen: "Cmd+Option+F",

@@ -23,7 +23,6 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
       { key: "fileNew", label: "New" },
       { key: "fileNewWindow", label: "New Window" },
       { key: "fileOpen", label: "Open" },
-      { key: "fileOpenQuickly", label: "Open Quickly" },
       { key: "fileSave", label: "Save" },
       { key: "fileSaveAs", label: "Save As" },
       { key: "fileClose", label: "Close" },
@@ -84,6 +83,10 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
     name: "View",
     shortcuts: [
+      { key: "viewSplitMode", label: "Split View" },
+      { key: "viewEditorOnly", label: "Editor Only" },
+      { key: "viewPreviewOnly", label: "Preview Only" },
+      { key: "viewWysiwyg", label: "WYSIWYG" },
       { key: "viewToggleSidebar", label: "Toggle Sidebar" },
       { key: "viewCycleViewMode", label: "Cycle View Mode" },
       { key: "viewToggleFullscreen", label: "Toggle Fullscreen" },
