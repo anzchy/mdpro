@@ -1,9 +1,24 @@
 use crate::models::{LogEntryPayload, LogSettings, UserPreferences};
 use crate::services::{logger, preferences};
 
+/// Maximum serialized payload size in bytes (64 KB).
+/// Prevents disk-filling attacks from a compromised frontend.
+const MAX_LOG_PAYLOAD_BYTES: usize = 64 * 1024;
+
 #[tauri::command]
-pub async fn log_event(payload: LogEntryPayload) {
+pub async fn log_event(payload: LogEntryPayload) -> Result<(), String> {
+    // Validate payload size to prevent log injection / disk-filling (fixes #316)
+    let serialized = serde_json::to_string(&payload)
+        .map_err(|e| format!("Failed to serialize log payload: {}", e))?;
+    if serialized.len() > MAX_LOG_PAYLOAD_BYTES {
+        return Err(format!(
+            "Log payload too large: {} bytes (max {})",
+            serialized.len(),
+            MAX_LOG_PAYLOAD_BYTES
+        ));
+    }
     logger::log_event(payload);
+    Ok(())
 }
 
 #[tauri::command]
