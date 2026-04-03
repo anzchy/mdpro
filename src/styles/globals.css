@@ -14,7 +14,7 @@
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --title-bar-height: 38px;
   /* Traffic-light offsets default to 0 (web preview / non-Tauri).
-     main.tsx sets body.tauri-app at runtime to enable macOS overlay values. */
+     main.tsx sets body.tauri-macos at runtime to enable macOS overlay values. */
   --traffic-lights-end: 0px;
   --traffic-lights-clearance: 0px;
   --traffic-lights-clearance-main: 0px;

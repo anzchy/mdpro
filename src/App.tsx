@@ -1058,7 +1058,7 @@ function App() {
             .sidebar-traffic-area provides the drag region and badge. */}
         {!showSidebar ? (
           <div className="main-traffic-area" data-tauri-drag-region>
-            <span className="sidebar-mode-label">{getViewModeLabel(viewMode)}</span>
+            <span className="sidebar-mode-label" data-tauri-drag-region="false">{getViewModeLabel(viewMode)}</span>
           </div>
         ) : null}
         {busyLabel ? (

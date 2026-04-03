@@ -39,7 +39,7 @@ export function TOCSidebarContainer({
     <aside className="sidebar">
       {/* Traffic-lights zone: drag region + view-mode badge */}
       <div className="sidebar-traffic-area" data-tauri-drag-region>
-        <span className="sidebar-mode-label">{getViewModeLabel(viewMode)}</span>
+        <span className="sidebar-mode-label" data-tauri-drag-region="false">{getViewModeLabel(viewMode)}</span>
       </div>
       <div className="sidebar-header">Table of Contents</div>
       <TOCSidebar
