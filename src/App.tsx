@@ -30,6 +30,7 @@ import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/com
 import { fileService } from "./services/fileService";
 import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
+import { performSave } from "./services/saveService";
 import type { Document } from "./types/document";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
@@ -553,20 +554,7 @@ function App() {
   );
 
   const handleSave = useCallback(async (actionId?: string) => {
-    setBusyLabel("Saving...");
-    // Mark save in progress to suppress external change detection
-    markSaveInProgress();
-    try {
-      const result = await saveActiveDocument(actionId);
-      if (result?.path) {
-        updateRecentFiles(result.path);
-      }
-      if (result?.success) {
-        showToast("Saved");
-      }
-    } finally {
-      setBusyLabel(null);
-    }
+    await performSave(actionId, { markSaveInProgress, saveActiveDocument, updateRecentFiles, showToast });
   }, [markSaveInProgress, saveActiveDocument, showToast, updateRecentFiles]);
 
   const handleExportHtml = useCallback(async (_actionId?: string) => {
