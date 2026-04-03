@@ -56,6 +56,8 @@ interface RecoverResult {
   title: string;
 }
 
+import { performSave } from "./services/saveService";
+
 function App() {
   const {
     activeDocument,
@@ -565,20 +567,7 @@ function App() {
   );
 
   const handleSave = useCallback(async (actionId?: string) => {
-    setBusyLabel("Saving...");
-    // Mark save in progress to suppress external change detection
-    markSaveInProgress();
-    try {
-      const result = await saveActiveDocument(actionId);
-      if (result?.path) {
-        updateRecentFiles(result.path);
-      }
-      if (result?.success) {
-        showToast("Saved");
-      }
-    } finally {
-      setBusyLabel(null);
-    }
+    await performSave(actionId, { markSaveInProgress, saveActiveDocument, updateRecentFiles, showToast });
   }, [markSaveInProgress, saveActiveDocument, showToast, updateRecentFiles]);
 
   const handleExportHtml = useCallback(async (_actionId?: string) => {
