@@ -139,12 +139,11 @@ export async function handleImageFiles(
 
       if (!view.isDestroyed) {
         removePlaceholders(view, placeholderIds);
-      }
-      if (!view.isDestroyed) {
         insertImageNode(view, result.relativePath, pastePos);
-        // Resolve the newly inserted image's src to an asset:// URL immediately
-        // after ProseMirror updates the DOM (fixes #375 — no mode switch needed).
-        resolveImagesInContainer(documentPath);
+        // Resolve the newly inserted image's src to an asset:// URL after
+        // ProseMirror has settled the DOM (queueMicrotask guarantees this
+        // runs after the current synchronous dispatch; fixes #375).
+        queueMicrotask(() => resolveImagesInContainer(documentPath));
       }
 
       logSuccess(file, documentPath, Date.now() - startTime);
@@ -191,8 +190,8 @@ export async function handleImageFiles(
 
       if (!view.isDestroyed && relativePaths.length > 0) {
         insertImageNodes(view, relativePaths, pastePos);
-        // Resolve all newly inserted images immediately (fixes #375)
-        resolveImagesInContainer(documentPath);
+        // Resolve all newly inserted images after DOM settles (fixes #375)
+        queueMicrotask(() => resolveImagesInContainer(documentPath));
       }
 
       const duration = Date.now() - startTime;
