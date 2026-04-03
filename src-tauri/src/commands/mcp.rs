@@ -395,7 +395,7 @@ fn check_mcp_installed(config_path: &PathBuf, client: McpClient) -> bool {
     }
 }
 
-fn install_json_config(config_path: &PathBuf, binary_path: &str, client: McpClient) -> Result<(), String> {
+fn install_json_config(config_path: &PathBuf, binary_path: &str, _client: McpClient) -> Result<(), String> {
     let mut config: serde_json::Value = if config_path.exists() {
         let content = fs::read_to_string(config_path)
             .map_err(|e| format!("Failed to read config: {}", e))?;
@@ -414,13 +414,6 @@ fn install_json_config(config_path: &PathBuf, binary_path: &str, client: McpClie
     config["mcpServers"]["mdpro"] = serde_json::json!({
         "command": binary_path
     });
-
-    // For Claude Code, add args if needed
-    if client == McpClient::ClaudeCode {
-        config["mcpServers"]["mdpro"] = serde_json::json!({
-            "command": binary_path
-        });
-    }
 
     // Write back
     let content = serde_json::to_string_pretty(&config)
