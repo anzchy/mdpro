@@ -440,6 +440,24 @@ pub async fn copy_external_image(
         });
     }
 
+    // Validate source is an image file by extension (fixes #266).
+    // Prevents copying arbitrary files (e.g., ~/.ssh/id_rsa) into the project.
+    if guess_mime_type(source).is_none() {
+        return Err(ImageError::InvalidPath {
+            message: format!(
+                "Source file is not a recognized image type: {}",
+                source_path
+            ),
+        });
+    }
+
+    // Reject path traversal in source path
+    if source.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(ImageError::InvalidPath {
+            message: "Source path contains directory traversal".to_string(),
+        });
+    }
+
     // Get document directory
     let doc_path = Path::new(&document_path);
     let doc_dir = doc_path.parent().ok_or(ImageError::DocumentNotSaved)?;
@@ -523,4 +541,61 @@ pub async fn set_image_config(config: ImageConfig) -> Result<bool, ImageError> {
     });
 
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn guess_mime_type_accepts_common_images() {
+        assert!(guess_mime_type(Path::new("photo.png")).is_some());
+        assert!(guess_mime_type(Path::new("photo.jpg")).is_some());
+        assert!(guess_mime_type(Path::new("photo.jpeg")).is_some());
+        assert!(guess_mime_type(Path::new("photo.gif")).is_some());
+        assert!(guess_mime_type(Path::new("photo.webp")).is_some());
+        assert!(guess_mime_type(Path::new("icon.svg")).is_some());
+        assert!(guess_mime_type(Path::new("icon.bmp")).is_some());
+    }
+
+    #[test]
+    fn guess_mime_type_rejects_non_images() {
+        assert!(guess_mime_type(Path::new("id_rsa")).is_none());
+        assert!(guess_mime_type(Path::new("data.json")).is_none());
+        assert!(guess_mime_type(Path::new(".env")).is_none());
+        assert!(guess_mime_type(Path::new("script.sh")).is_none());
+        assert!(guess_mime_type(Path::new("doc.md")).is_none());
+    }
+
+    // #266: copy_external_image must reject non-image source files
+    #[tokio::test]
+    async fn copy_external_image_rejects_non_image_source() {
+        // Create a temp non-image file
+        let dir = std::env::temp_dir().join("mdpro-test-266");
+        let _ = std::fs::create_dir_all(&dir);
+        let source = dir.join("secrets.txt");
+        std::fs::write(&source, "sensitive data").unwrap();
+        let doc = dir.join("doc.md");
+        std::fs::write(&doc, "# test").unwrap();
+
+        let result = copy_external_image(
+            doc.to_string_lossy().to_string(),
+            source.to_string_lossy().to_string(),
+            None,
+        ).await;
+
+        assert!(result.is_err(), "non-image source should be rejected");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn copy_external_image_rejects_traversal_in_source() {
+        let result = copy_external_image(
+            "/tmp/doc.md".to_string(),
+            "/tmp/../../../etc/passwd".to_string(),
+            None,
+        ).await;
+
+        assert!(result.is_err(), "traversal in source should be rejected");
+    }
 }
