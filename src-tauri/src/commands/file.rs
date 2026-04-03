@@ -386,6 +386,32 @@ mod tests {
         assert!(validate_file_path("/Users/test/.ssh/id_rsa").is_err());
         assert!(validate_file_path("/etc/passwd").is_err());
     }
+
+    // #351: check_file_modified must validate path
+    #[tokio::test]
+    async fn test_check_file_modified_rejects_traversal() {
+        let result = check_file_modified("/tmp/../../../etc/passwd".to_string()).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_check_file_modified_rejects_sensitive_path() {
+        let result = check_file_modified("/Users/test/.ssh/id_rsa".to_string()).await;
+        assert!(result.is_err());
+    }
+
+    // #346: reload_file must validate path
+    #[tokio::test]
+    async fn test_reload_file_rejects_traversal() {
+        let result = reload_file("/tmp/../../../etc/passwd".to_string()).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_reload_file_rejects_sensitive_path() {
+        let result = reload_file("/Users/test/.ssh/id_rsa".to_string()).await;
+        assert!(result.is_err());
+    }
 }
 
 #[tauri::command]
@@ -683,6 +709,7 @@ pub async fn close_document(
 
 #[tauri::command]
 pub async fn check_file_modified(path: String) -> Result<FileModifiedResult, FileError> {
+    validate_file_path(&path)?;
     let metadata = std::fs::metadata(&path).map_err(|err| to_file_error(err, &path))?;
     let modified = metadata.modified().map_err(|err| to_file_error(err, &path))?;
     let mtime = modified
@@ -708,6 +735,7 @@ pub async fn check_file_modified(path: String) -> Result<FileModifiedResult, Fil
 
 #[tauri::command]
 pub async fn reload_file(path: String) -> Result<Document, FileError> {
+    validate_file_path(&path)?;
     let result = open_file_from_path(&path, None)?;
     if let Ok(mut cache) = mtime_cache().lock() {
         if let Ok(metadata) = std::fs::metadata(&path) {
