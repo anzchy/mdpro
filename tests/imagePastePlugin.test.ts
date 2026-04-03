@@ -9,7 +9,7 @@ import {
 
 // ── Hoisted mocks (available inside vi.mock factories) ────────────────────────
 
-const { mockUploadImage, mockDecoSet, destroyedFlag } = vi.hoisted(() => {
+const { mockUploadImage, mockDecoSet, destroyedFlag, mockResolveImages } = vi.hoisted(() => {
   const destroyedFlag = { value: false };
   const mockDecoSet = {
     add: vi.fn().mockReturnThis(),
@@ -18,8 +18,13 @@ const { mockUploadImage, mockDecoSet, destroyedFlag } = vi.hoisted(() => {
     map: vi.fn().mockReturnThis(),
   };
   const mockUploadImage = vi.fn();
-  return { mockUploadImage, mockDecoSet, destroyedFlag };
+  const mockResolveImages = vi.fn();
+  return { mockUploadImage, mockDecoSet, destroyedFlag, mockResolveImages };
 });
+
+vi.mock("../src/hooks/useMilkdownImages", () => ({
+  resolveImagesInContainer: mockResolveImages,
+}));
 
 // Override only DecorationSet + Decoration; preserve all other real exports.
 vi.mock("@milkdown/kit/prose/view", async () => {
@@ -286,3 +291,4 @@ describe("handleImageFiles — destroyed-view guard", () => {
     expect(dispatch).toHaveBeenCalledTimes(1);
   });
 });
+
