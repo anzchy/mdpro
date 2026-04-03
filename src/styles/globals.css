@@ -1314,10 +1314,6 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
-    display: none;
-  }
-
   .split-view {
     flex-direction: column;
   }

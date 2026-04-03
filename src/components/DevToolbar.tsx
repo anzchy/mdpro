@@ -19,7 +19,7 @@ export function DevToolbar({ onOpenFile, onNewDocument, onOpenDialog }: DevToolb
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check if running in Tauri environment
-  const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
+  const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
   // Only show in development mode (both browser and Tauri dev)
   // - pnpm dev: DEV=true, isTauri=false → show (browser file input)
