@@ -7,8 +7,8 @@ import './imagePastePlugin.css';
  * uploads via Rust backend, and inserts ProseMirror image nodes.
  */
 
-import { Plugin, PluginKey } from "@milkdown/kit/prose/state";
-import { Decoration, DecorationSet } from "@milkdown/kit/prose/view";
+import { Plugin } from "@milkdown/kit/prose/state";
+import { DecorationSet } from "@milkdown/kit/prose/view";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { $prose } from "@milkdown/kit/utils";
 import {
@@ -21,10 +21,27 @@ import {
 import type { ImageUploadItem } from "../../services/imageService";
 import { useToastStore } from "../../stores/toastStore";
 import { useDocumentStore } from "../../stores/documentStore";
-import { loggingService } from "../../services/loggingService";
 import { createPlugin } from "../core/pluginTypes";
+import { resolveImagesInContainer } from "../../hooks/useMilkdownImages";
+import {
+  logStart,
+  logSuccess,
+  logFail,
+  logReject,
+  logBatchStart,
+  logBatchEnd,
+  logBatchFail,
+} from "./imagePasteLogging";
+import {
+  imagePastePluginKey,
+  addPlaceholders,
+  removePlaceholders,
+  insertImageNode,
+  insertImageNodes,
+} from "./imagePasteDecorations";
+import type { PlaceholderState } from "./imagePasteDecorations";
 
-export const imagePastePluginKey = new PluginKey("imagePaste");
+export { imagePastePluginKey };
 
 const SUPPORTED_TYPES = ["image/png", "image/jpeg"];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -53,20 +70,6 @@ function getDocumentPath(): string | null {
 
 function showToast(message: string): void {
   useToastStore.getState().showToast(message);
-}
-
-// --- Placeholder decoration state ---
-
-interface PlaceholderState {
-  decorations: DecorationSet;
-}
-
-function createPlaceholderWidget(id: string): HTMLElement {
-  const el = document.createElement("span");
-  el.className = "image-paste-placeholder";
-  el.setAttribute("data-placeholder-id", id);
-  el.textContent = "Uploading image…";
-  return el;
 }
 
 // --- Core paste handler ---
@@ -139,6 +142,9 @@ export async function handleImageFiles(
       }
       if (!view.isDestroyed) {
         insertImageNode(view, result.relativePath, pastePos);
+        // Resolve the newly inserted image's src to an asset:// URL immediately
+        // after ProseMirror updates the DOM (fixes #375 — no mode switch needed).
+        resolveImagesInContainer(documentPath);
       }
 
       logSuccess(file, documentPath, Date.now() - startTime);
@@ -185,6 +191,8 @@ export async function handleImageFiles(
 
       if (!view.isDestroyed && relativePaths.length > 0) {
         insertImageNodes(view, relativePaths, pastePos);
+        // Resolve all newly inserted images immediately (fixes #375)
+        resolveImagesInContainer(documentPath);
       }
 
       const duration = Date.now() - startTime;
@@ -210,172 +218,6 @@ export async function handleImageFiles(
       showToast(`Failed to paste images: ${message}`);
     }
   }
-}
-
-// --- ProseMirror helpers ---
-
-function addPlaceholders(
-  view: EditorView,
-  pos: number,
-  ids: string[],
-): void {
-  const { state, dispatch } = view;
-  // Place all placeholders at the same position (they stack visually)
-  const decorations = ids.map((id) =>
-    Decoration.widget(pos, () => createPlaceholderWidget(id), {
-      key: id,
-    }),
-  );
-
-  const existing =
-    imagePastePluginKey.getState(state)?.decorations ?? DecorationSet.empty;
-  const next = existing.add(state.doc, decorations);
-
-  dispatch(
-    state.tr.setMeta(imagePastePluginKey, { decorations: next }),
-  );
-}
-
-function removePlaceholders(
-  view: EditorView,
-  ids: string[],
-): void {
-  const { state, dispatch } = view;
-  const existing =
-    imagePastePluginKey.getState(state)?.decorations ?? DecorationSet.empty;
-
-  const toRemove = existing.find().filter((d: Decoration) => {
-    const el = (d as Decoration & { spec?: { key?: string } }).spec?.key;
-    return el && ids.includes(el);
-  });
-
-  if (toRemove.length > 0) {
-    const next = existing.remove(toRemove);
-    dispatch(
-      state.tr.setMeta(imagePastePluginKey, { decorations: next }),
-    );
-  }
-}
-
-function insertImageNode(
-  view: EditorView,
-  src: string,
-  pos: number,
-): void {
-  const { state, dispatch } = view;
-  const imageType = state.schema.nodes.image;
-  if (!imageType) return;
-
-  const node = imageType.create({ src, alt: "" });
-  dispatch(state.tr.insert(pos, node));
-}
-
-function insertImageNodes(
-  view: EditorView,
-  srcs: string[],
-  pos: number,
-): void {
-  const { state, dispatch } = view;
-  const imageType = state.schema.nodes.image;
-  if (!imageType) return;
-
-  const tr = state.tr;
-
-  let offset = 0;
-  for (const src of srcs) {
-    const node = imageType.create({ src, alt: "" });
-    tr.insert(pos + offset, node);
-    offset += node.nodeSize;
-  }
-
-  dispatch(tr);
-}
-
-// --- Logging helpers ---
-
-function logStart(file: File, documentPath: string): void {
-  loggingService.logEventSync({
-    level: "info",
-    event: "image.paste.start",
-    status: "start",
-    actionId: loggingService.generateActionId(),
-    context: {
-      filename: file.name,
-      format: file.type,
-      sizeBytes: file.size,
-      documentPath,
-    },
-  });
-}
-
-function logSuccess(file: File, documentPath: string, durationMs: number): void {
-  loggingService.logEventSync({
-    level: "info",
-    event: "image.paste.success",
-    status: "success",
-    actionId: loggingService.generateActionId(),
-    context: { filename: file.name, format: file.type, sizeBytes: file.size, documentPath },
-    durationMs,
-  });
-}
-
-function logFail(file: File, documentPath: string, error: string): void {
-  loggingService.logEventSync({
-    level: "error",
-    event: "image.paste.fail",
-    status: "fail",
-    actionId: loggingService.generateActionId(),
-    context: { filename: file.name, format: file.type, sizeBytes: file.size, documentPath },
-    error,
-  });
-}
-
-function logReject(file: File, reason: string, documentPath: string): void {
-  loggingService.logEventSync({
-    level: "warn",
-    event: "image.paste.reject",
-    status: "fail",
-    actionId: loggingService.generateActionId(),
-    context: { filename: file.name, format: file.type, sizeBytes: file.size, documentPath, reason },
-  });
-}
-
-function logBatchStart(count: number, documentPath: string): void {
-  loggingService.logEventSync({
-    level: "info",
-    event: "image.paste.batch.start",
-    status: "start",
-    actionId: loggingService.generateActionId(),
-    context: { count, documentPath },
-  });
-}
-
-function logBatchEnd(
-  count: number,
-  documentPath: string,
-  successCount: number,
-  failureCount: number,
-  durationMs: number,
-): void {
-  loggingService.logEventSync({
-    level: successCount > 0 ? "info" : "error",
-    event: "image.paste.batch.end",
-    status: failureCount === 0 ? "success" : "fail",
-    actionId: loggingService.generateActionId(),
-    context: { count, successCount, failureCount, documentPath },
-    durationMs,
-  });
-}
-
-function logBatchFail(count: number, documentPath: string, error: string): void {
-  loggingService.logEventSync({
-    level: "error",
-    event: "image.paste.batch.fail",
-    status: "fail",
-    actionId: loggingService.generateActionId(),
-    context: { count, documentPath },
-    error,
-  });
 }
 
 // --- ProseMirror plugin ---
