@@ -502,6 +502,56 @@ async fn insert_content(
         }
     };
 
+    // Check if we need user confirmation (window not focused) — fixes #356.
+    // Same guard as update_document: prevents silent content injection when
+    // the user is not looking at the app.
+    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store)
+        .unwrap_or(false);
+
+    if !window_focused {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "mcp.insert.confirm".to_string(),
+            status: LogStatus::Start,
+            action_id: None,
+            context: Some(json!({ "documentId": id, "documentTitle": doc.title })),
+            duration_ms: None,
+            error: None,
+        });
+
+        let title_owned = doc.title.clone();
+        let confirmed = tokio::task::spawn_blocking(move || {
+            show_write_confirmation(&title_owned)
+        })
+        .await
+        .unwrap_or(false);
+        if !confirmed {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Info,
+                event: "mcp.insert.confirm".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": id, "userRejected": true })),
+                duration_ms: None,
+                error: Some("User rejected".to_string()),
+            });
+            let error = ErrorResponse {
+                error: "User rejected insert operation".to_string(),
+                code: Some("USER_REJECTED".to_string()),
+            };
+            return (StatusCode::FORBIDDEN, Json(error)).into_response();
+        }
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "mcp.insert.confirm".to_string(),
+            status: LogStatus::Success,
+            action_id: None,
+            context: Some(json!({ "documentId": id })),
+            duration_ms: None,
+            error: None,
+        });
+    }
+
     // Calculate insert byte offset from character offset (per API spec).
     // InsertPosition::Offset and doc.cursor are character offsets; convert
     // to byte offsets for Rust String operations. snap_to_char_boundary is
