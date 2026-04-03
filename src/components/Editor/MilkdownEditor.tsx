@@ -245,7 +245,7 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     return () => container.removeEventListener("click", handleClick);
   }, [activeDocumentId]);
 
-  // ⌘⇧H highlight in WYSIWYG mode — wraps selected text with ==markers==
+  // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
   // In source/split mode the CodeMirror highlightCommand handles this instead
   // (see Editor.tsx). When highlightRequest increments we obtain the
   // ProseMirror view through the Milkdown editor's action API and delegate.
@@ -253,14 +253,15 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     if (highlightRequest === undefined) return;
     const instance = editor.get();
     if (!instance) return;
+    let applied = false;
     instance.action((ctx) => {
       const view = ctx.get(editorViewCtx);
-      milkdownHighlightCommand(view);
+      applied = milkdownHighlightCommand(view);
     });
     loggingService.logEventSync({
       level: "info",
       event: "editor.milkdown.highlight",
-      status: "success",
+      status: applied ? "success" : "fail",
       actionId: loggingService.generateActionId(),
       context: { highlightRequest },
     });
