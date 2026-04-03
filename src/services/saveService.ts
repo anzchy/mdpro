@@ -31,7 +31,12 @@ export async function performSave(
   deps: SaveDeps,
 ): Promise<void> {
   deps.markSaveInProgress();
-  const result = await deps.saveActiveDocument(actionId);
-  if (result?.path) deps.updateRecentFiles(result.path);
-  if (result?.success) deps.showToast("Saved");
+  try {
+    const result = await deps.saveActiveDocument(actionId);
+    if (result?.path) deps.updateRecentFiles(result.path);
+    if (result?.success) deps.showToast("Saved");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    deps.showToast(`Save failed: ${message}`);
+  }
 }

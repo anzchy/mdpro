@@ -103,11 +103,24 @@ describe("performSave — behavioral contracts (#377)", () => {
     expect(deps.showToast).not.toHaveBeenCalled();
   });
 
+  it("on saveActiveDocument rejection: shows error toast, does not throw", async () => {
+    const deps = {
+      markSaveInProgress: vi.fn(),
+      saveActiveDocument: vi.fn().mockRejectedValue(new Error("disk full")),
+      updateRecentFiles: vi.fn(),
+      showToast: vi.fn(),
+    };
+
+    await expect(performSave(undefined, deps)).resolves.toBeUndefined();
+    expect(deps.showToast).toHaveBeenCalledWith("Save failed: disk full");
+    expect(deps.updateRecentFiles).not.toHaveBeenCalled();
+  });
+
   it("does not reference setBusyLabel — no busy state introduced", async () => {
     // Guard: if anyone re-introduces a setBusyLabel call in performSave,
     // this test catches it via source inspection of the extracted function.
     const serviceSrc = fs.readFileSync(path.resolve(__dirname, "../src/services/saveService.ts"), "utf-8");
-    const performSaveMatch = serviceSrc.match(/export async function performSave[\s\S]{0,400}^}/m);
+    const performSaveMatch = serviceSrc.match(/export async function performSave[\s\S]{0,600}^}/m);
     expect(performSaveMatch).not.toBeNull();
     expect(performSaveMatch![0]).not.toContain("setBusyLabel");
   });
