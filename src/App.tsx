@@ -31,6 +31,7 @@ import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/com
 import { fileService } from "./services/fileService";
 import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
+import { performSave } from "./services/saveService";
 import type { Document } from "./types/document";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
@@ -55,8 +56,6 @@ interface RecoverResult {
   originalPath: string | null;
   title: string;
 }
-
-import { performSave } from "./services/saveService";
 
 function App() {
   const {
