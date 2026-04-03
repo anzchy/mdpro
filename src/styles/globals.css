@@ -13,6 +13,11 @@
   --font-sans: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --title-bar-height: 38px;
+  /* Traffic-light offsets default to 0 (web preview / non-Tauri).
+     main.tsx sets body.tauri-macos at runtime to enable macOS overlay values. */
+  --traffic-lights-end: 0px;
+  --traffic-lights-clearance: 0px;
+  --traffic-lights-clearance-main: 0px;
   --sidebar-width: 220px;
   --bottom-tabs-height: 36px;
   /* Content layout constraints */
@@ -55,6 +60,14 @@ body {
   color: var(--color-text);
 }
 
+/* macOS + Tauri overlay titlebar: activate traffic-light clearances.
+   Class is set by main.tsx when __TAURI_INTERNALS__ is present at runtime. */
+body.tauri-macos {
+  --traffic-lights-end: 78px;
+  --traffic-lights-clearance: calc(var(--traffic-lights-end) - 16px); /* sidebar has 16px left padding */
+  --traffic-lights-clearance-main: calc(var(--traffic-lights-end) + 2px); /* .main-traffic-area has no padding */
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -94,7 +107,7 @@ a {
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
   padding: 16px;
-  padding-top: calc(var(--title-bar-height) + 8px); /* Space for traffic lights */
+  padding-top: 0; /* .sidebar-traffic-area handles the traffic-lights zone */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -184,47 +197,22 @@ a {
 }
 
 /* Custom Title Bar (Typora-style) */
-.title-bar {
+/* Sidebar: traffic-lights zone — drag region + view-mode badge.
+   Sits at the top of the sidebar column, clearing the macOS traffic-light
+   buttons (~78px from window left = var(--traffic-lights-clearance) from
+   the sidebar's content box after its 16px side-padding). */
+.sidebar-traffic-area {
   height: var(--title-bar-height);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  background: var(--color-bg);
+  padding-left: var(--traffic-lights-clearance);
+  padding-right: 8px;
+  flex-shrink: 0;
   user-select: none;
-  /* Dragging handled by data-tauri-drag-region attribute in TitleBar.tsx */
 }
 
-.title-bar-left {
-  width: 70px; /* Space for traffic lights */
-  flex-shrink: 0;
-}
-
-.title-bar-center {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.title-bar-icon {
-  font-size: 14px;
-  opacity: 0.7;
-}
-
-.title-bar-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.title-bar-right {
-  width: 70px;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.title-bar-mode {
+/* View-mode badge (WYSIWYG / SPLIT / EDITOR / PREVIEW) */
+.sidebar-mode-label {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -234,48 +222,23 @@ a {
   border-radius: 4px;
 }
 
-/* Legacy toolbar (kept for compatibility) */
-.toolbar {
-  height: 56px;
+/* Main area: traffic-lights zone shown only when the sidebar is hidden.
+   Uses 80px left padding because .main starts at x=0 of the window in
+   no-sidebar mode and the traffic lights span ~78px from the left edge. */
+.main-traffic-area {
+  height: var(--title-bar-height);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-panel);
+  padding-left: var(--traffic-lights-clearance-main);
+  padding-right: 16px;
+  flex-shrink: 0;
+  user-select: none;
 }
 
 .busy-indicator {
   padding: 8px 20px;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-panel);
-}
-
-.toolbar-spacer {
-  flex: 1;
-}
-
-.toolbar-title {
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: var(--color-muted);
-  font-size: 14px;
-}
-
-.toolbar-view-mode {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-muted);
-  padding: 4px 10px;
-  background: var(--color-surface);
-  border-radius: 6px;
 }
 
 .workspace {
@@ -1349,10 +1312,6 @@ a {
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: none;
   }
 
   .split-view {
