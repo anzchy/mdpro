@@ -5,10 +5,9 @@ import { DevToolbar } from "./components/DevToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
 import { Preview } from "./components/Preview/Preview";
-import { TOCSidebarContainer } from "./components/Sidebar";
+import { TOCSidebarContainer, getViewModeLabel } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
-import { TitleBar } from "./components/TitleBar";
 import { ConfirmDialog } from "./components/common/ConfirmDialog";
 import { SettingsDialog } from "./components/common/SettingsDialog";
 import { RecoveryDialog } from "./components/common/RecoveryDialog";
@@ -205,30 +204,19 @@ function App() {
     }
   }, [activeDocument]);
 
-  // Update window title to show document name (or "mdpro" if no document)
+  // Keep window title static — filename removed per #374
   useEffect(() => {
-    const updateWindowTitle = async () => {
+    const setStaticTitle = async () => {
       try {
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        const currentWindow = getCurrentWindow();
-        if (activeDocumentTitle && activeDocumentTitle !== "mdpro") {
-          const suffix = hasUnsavedChanges ? " *" : "";
-          await currentWindow.setTitle(`${activeDocumentTitle}${suffix}`);
-          document.title = `${activeDocumentTitle}${suffix}`;
-        } else {
-          await currentWindow.setTitle("mdpro");
-          document.title = "mdpro";
-        }
+        await getCurrentWindow().setTitle("mdpro");
+        document.title = "mdpro";
       } catch {
-        // Fallback for web preview
-        const baseTitle = activeDocumentTitle;
-        const suffix = hasUnsavedChanges ? " *" : "";
-        document.title =
-          baseTitle === "mdpro" ? "mdpro" : `${baseTitle}${suffix}`;
+        document.title = "mdpro";
       }
     };
-    void updateWindowTitle();
-  }, [activeDocumentTitle, hasUnsavedChanges]);
+    void setStaticTitle();
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -1061,14 +1049,18 @@ function App() {
           collapsedTocIds={collapsedTocIds}
           onTocEntryClick={navigateToTocEntry}
           onTocToggleCollapse={toggleTocCollapsed}
+          viewMode={viewMode}
         />
       ) : null}
       <div className="main">
-        <TitleBar
-          title={activeDocumentTitle}
-          isModified={hasUnsavedChanges}
-          viewMode={viewMode}
-        />
+        {/* When sidebar is hidden, the main area needs its own traffic-lights zone
+            (drag affordance + mode badge). When sidebar is visible, the sidebar's
+            .sidebar-traffic-area provides the drag region and badge. */}
+        {!showSidebar ? (
+          <div className="main-traffic-area" data-tauri-drag-region>
+            <span className="sidebar-mode-label">{getViewModeLabel(viewMode)}</span>
+          </div>
+        ) : null}
         {busyLabel ? (
           <div className="busy-indicator">
             <LoadingSpinner label={busyLabel} />
