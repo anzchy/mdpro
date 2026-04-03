@@ -474,8 +474,10 @@ fn install_toml_config(config_path: &PathBuf, binary_path: &str) -> Result<(), S
     if !content.is_empty() && !content.ends_with('\n') {
         content.push('\n');
     }
-    // Use forward slashes to avoid malformed TOML from unescaped backslashes on Windows
-    let safe_path = binary_path.replace('\\', "/");
+    // Escape TOML special characters in the binary path (fixes #145):
+    // - Backslashes → forward slashes (Windows path normalization)
+    // - Double quotes → escaped (prevents TOML injection)
+    let safe_path = binary_path.replace('\\', "/").replace('"', "\\\"");
     content.push_str(&format!(
         "\n[mcp_servers.mdpro]\ncommand = \"{}\"\n",
         safe_path
