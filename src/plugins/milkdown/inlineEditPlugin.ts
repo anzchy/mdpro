@@ -140,6 +140,25 @@ export const inlineEditProsemirrorPlugin = new Plugin({
     decorations(state) {
       return this.getState(state);
     },
+    /**
+     * ⌃` — force-reveal the inline element under the cursor.
+     * Dispatches a no-op selection transaction which triggers `createDecorations()`
+     * to re-evaluate and show the expanded state. Useful after a mouse click
+     * (which does not fire selectionSet on its own in ProseMirror).
+     */
+    handleKeyDown(view, event) {
+      if (
+        event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key === "`"
+      ) {
+        view.dispatch(view.state.tr.setSelection(view.state.selection));
+        return true;
+      }
+      return false;
+    },
   },
 });
 
