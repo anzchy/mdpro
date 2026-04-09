@@ -331,9 +331,10 @@ mod tests {
         }
     }
 
+    /// SAFETY: caller must hold HOME_LOCK for the lifetime of the guard.
     fn set_home(path: &Path) -> HomeRestorer {
         let prev = std::env::var("HOME").ok();
-        unsafe { std::env::set_var("HOME", path.to_str().unwrap()) };
+        unsafe { std::env::set_var("HOME", path.to_str().expect("temp dir path is non-UTF-8")) };
         HomeRestorer(prev)
     }
 

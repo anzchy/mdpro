@@ -427,9 +427,10 @@ mod tests {
         }
     }
 
+    /// SAFETY: caller must hold HOME_LOCK for the lifetime of the guard.
     fn set_home(path: &std::path::Path) -> HomeRestorer {
         let prev = std::env::var("HOME").ok();
-        unsafe { std::env::set_var("HOME", path.to_str().unwrap()) };
+        unsafe { std::env::set_var("HOME", path.to_str().expect("temp dir path is non-UTF-8")) };
         HomeRestorer(prev)
     }
 
@@ -483,6 +484,17 @@ mod tests {
         let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let home = make_temp_home("dac_absent");
         let _home_guard = set_home(&home);
+
+        // Pre-create the drafts directory so dirs::data_dir() resolves
+        // correctly. Without this, a missing directory causes
+        // delete_draft_service to error → unwrap_or(false) → false,
+        // satisfying the assertion for the wrong reason (dir not found,
+        // not "no draft exists").
+        let drafts = dirs::data_dir()
+            .unwrap_or_else(|| home.clone())
+            .join("mdpro")
+            .join("drafts");
+        std::fs::create_dir_all(&drafts).unwrap();
 
         let result = discard_and_close("test75_cmd_no_draft");
         assert!(result.success, "success must be true even with no draft");
@@ -765,7 +777,18 @@ pub async fn save_file_dialog(
 /// Extracted from `close_document` so the discard+delete path can be unit
 /// tested without a Tauri `State<'_, FileWatcher>`.
 fn discard_and_close(document_id: &str) -> CloseResult {
-    let draft_deleted = delete_draft_service(document_id).unwrap_or(false);
+    let draft_deleted = delete_draft_service(document_id).unwrap_or_else(|e| {
+        log_file_event(
+            "file.close",
+            LogStatus::Fail,
+            LogLevel::Warn,
+            None,
+            json!({ "documentId": document_id, "error": e.to_string() }),
+            None,
+            Some(format!("delete_draft failed: {e}")),
+        );
+        false
+    });
     CloseResult {
         success: true,
         draft_deleted,
