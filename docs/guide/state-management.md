@@ -209,7 +209,7 @@ User keystroke
 ### Switch View Mode
 
 ```
-User presses ⌘4
+User presses ⌃4
       │
       ▼
 ┌─────────────────┐

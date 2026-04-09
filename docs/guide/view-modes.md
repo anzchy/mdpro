@@ -138,10 +138,10 @@ export function useEditor() {
 
 | Shortcut | Action |
 |----------|--------|
-| ⌘1 | Switch to Split mode |
-| ⌘2 | Switch to Editor Only mode |
-| ⌘3 | Switch to Preview Only mode |
-| ⌘4 | Switch to WYSIWYG mode |
+| ⌃1 | Switch to Split mode |
+| ⌃2 | Switch to Editor Only mode |
+| ⌃3 | Switch to Preview Only mode |
+| ⌃4 | Switch to WYSIWYG mode |
 | ⌘/ | Cycle through modes |
 
 ### Menu Integration
