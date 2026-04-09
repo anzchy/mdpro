@@ -8,14 +8,12 @@ Built with Tauri 2 · React · Rust.
 
 ## Features
 
-**Four view modes** — switch with `⌘1–4` or `⌘/`
+**Two view modes** — toggle with `⌃2` / `⌃4` or cycle with `⌃/`
 
 | Mode | Shortcut | Description |
 |---|---|---|
-| WYSIWYG | `⌘4` | Rich-text editing; inline code/links reveal on click |
-| Split | `⌘1` | Source + rendered preview side by side |
-| Editor only | `⌘2` | Full-width source with syntax highlighting |
-| Preview only | `⌘3` | Read-only rendered output |
+| WYSIWYG | `⌃4` | Rich-text editing; inline code/links reveal on cursor move or `⌃\`` |
+| Source | `⌃2` | Full-width Markdown source with syntax highlighting |
 
 **Typora-style keyboard shortcuts** — `⌘B/I/K` for bold/italic/link, `⌘0–6` for headings, `⌘⇧H` to highlight selection. All shortcuts are configurable in Preferences.
 
