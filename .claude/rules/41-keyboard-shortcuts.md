@@ -37,9 +37,9 @@ grep "defaultKey" src/types/preferences.ts
 | Save | ⌘S | ✓ | ✓ |
 | Close | ⌘W | ✓ | ✓ |
 | Toggle Sidebar | ⌘⇧L | ✓ | ✓ |
-| Split view | ⌘1 | ✓ | — |
-| Editor only | ⌘2 | ✓ | — |
-| Preview only | ⌘3 | ✓ | — |
-| WYSIWYG | ⌘4 | ✓ | — |
+| Split view | ⌃1 | ✓ | — |
+| Editor only | ⌃2 | ✓ | — |
+| Preview only | ⌃3 | ✓ | — |
+| WYSIWYG | ⌃4 | ✓ | — |
 | Export HTML | ⌘⇧E | ✓ | — |
 | Highlight | ⌘⇧H | ✓ | ✓ |
