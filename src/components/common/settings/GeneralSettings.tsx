@@ -3,6 +3,7 @@ import type { UserPreferences } from "../../../types/preferences";
 import type { ViewMode } from "../../../types/editor";
 import { preferencesService } from "../../../services/preferencesService";
 import { useEditorStore } from "../../../stores/editorStore";
+import { migrateViewMode } from "../../../utils/viewModeUtils";
 
 interface GeneralSlice {
   defaultViewMode: ViewMode;
@@ -10,10 +11,8 @@ interface GeneralSlice {
 }
 
 const VIEW_MODE_OPTIONS: { value: ViewMode; label: string }[] = [
-  { value: "editor-only", label: "Editor" },
-  { value: "preview-only", label: "Preview" },
-  { value: "split", label: "Split" },
   { value: "wysiwyg", label: "WYSIWYG" },
+  { value: "source", label: "Source" },
 ];
 
 const AUTOSAVE_OPTIONS: { value: number; label: string }[] = [
@@ -34,7 +33,7 @@ export function GeneralSettings() {
     preferencesService.getPreferences().then((p: UserPreferences) => {
       if (!mounted) return;
       setPrefs({
-        defaultViewMode: p.defaultViewMode ?? "wysiwyg",
+        defaultViewMode: migrateViewMode(p.defaultViewMode as string),
         autoSaveInterval: p.autoSaveInterval ?? 30,
       });
     }).catch(() => {

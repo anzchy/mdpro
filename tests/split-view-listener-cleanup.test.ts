@@ -1,16 +1,11 @@
 /**
- * Regression test for issue #123 — window event listener leak on unmount during drag.
+ * Tests for SplitView — two-mode-editor refactor (WI-1).
  *
- * SplitView adds `mousemove` and `mouseup` listeners to `window` when a drag
- * starts, and previously only removed them on `mouseup`. If the component
- * unmounts mid-drag (e.g., user switches view mode via ⌘1/⌘2/⌘3/⌘4), both
- * listeners leaked indefinitely.
+ * After cutting from 4 modes to 2 (wysiwyg | source), SplitView is now a
+ * simple full-width source editor wrapper. Split-pane drag and preview pane
+ * are removed; there is no longer any window event listener to clean up.
  *
- * Fix: a `cleanupRef` stores the removal function and a `useEffect` calls it
- * on unmount, guaranteeing cleanup regardless of whether `mouseup` fires.
- *
- * These tests parse the component source to verify the structural fix is present,
- * following the same pattern used elsewhere in this test suite.
+ * These tests verify the simplified structure replaces the old drag machinery.
  */
 
 import { describe, it, expect } from "vitest";
@@ -23,36 +18,31 @@ function readComponent(relPath: string): string {
   return fs.readFileSync(path.join(SRC, relPath), "utf-8");
 }
 
-describe("SplitView — drag listener cleanup on unmount (issue #123)", () => {
+describe("SplitView — simplified source-only rendering (two-mode-editor WI-1)", () => {
   const src = readComponent("components/Editor/SplitView.tsx");
 
-  it("imports useEffect (needed for unmount cleanup)", () => {
-    // The fix requires useEffect to register an unmount cleanup.
-    // If only useRef/useState are imported the fix is absent.
-    expect(src).toMatch(/\buseEffect\b/);
+  it("renders the Editor component (source mode)", () => {
+    expect(src).toMatch(/\bEditor\b/);
   });
 
-  it("uses a cleanupRef to track the active drag cleanup function", () => {
-    // The cleanup function must be stored in a ref so the useEffect
-    // cleanup has a stable reference to call on unmount.
-    expect(src).toMatch(/cleanupRef/);
+  it("exposes a source-container div for TOC scrollspy", () => {
+    expect(src).toMatch(/id=["']source-container["']/);
   });
 
-  it("calls cleanupRef.current on component unmount via useEffect return", () => {
-    // The useEffect must return a function that invokes cleanupRef.current
-    // so that unmounting during a drag removes the window listeners.
-    expect(src).toMatch(/cleanupRef\.current\s*\?\.\s*\(\)/);
+  it("does not contain split-pane drag logic (split mode removed)", () => {
+    expect(src).not.toMatch(/startDrag/);
+    expect(src).not.toMatch(/splitRatio/);
+    expect(src).not.toMatch(/cleanupRef/);
   });
 
-  it("assigns the cleanup function to cleanupRef.current inside startDrag", () => {
-    // startDrag must populate cleanupRef.current so the unmount hook
-    // can call it.
-    expect(src).toMatch(/cleanupRef\.current\s*=/);
+  it("does not import or render Preview (preview-only mode removed)", () => {
+    expect(src).not.toMatch(/import.*Preview/);
+    expect(src).not.toMatch(/<Preview/);
   });
 
-  it("clears cleanupRef.current after cleanup runs (prevents double-removal)", () => {
-    // The cleanup function should null out cleanupRef.current so a
-    // mouseup after unmount (possible in some browser environments) is a no-op.
-    expect(src).toMatch(/cleanupRef\.current\s*=\s*null/);
+  it("does not compare viewMode against removed mode strings", () => {
+    expect(src).not.toMatch(/["']editor-only["']/);
+    expect(src).not.toMatch(/["']preview-only["']/);
+    expect(src).not.toMatch(/["']split["']/);
   });
 });

@@ -68,12 +68,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
     }),
   cycleViewMode: () =>
     set((state) => {
-      const order: ViewMode[] = [
-        "split",
-        "editor-only",
-        "preview-only",
-        "wysiwyg",
-      ];
+      const order: ViewMode[] = ["wysiwyg", "source"];
       const currentIndex = order.indexOf(state.viewMode);
       const nextIndex =
         currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;

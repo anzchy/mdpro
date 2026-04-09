@@ -97,11 +97,10 @@ export function useTOC({
   const scrollToHeading = useCallback((headingId: string) => {
     const tocEntry = entries.find((e) => e.id === headingId);
 
-    // For CodeMirror editor modes, use the editor's scroll API to navigate by line number.
+    // For source (CodeMirror) mode, use the editor's scroll API to navigate by line number.
     // This is the only reliable approach since CodeMirror doesn't render heading HTML elements
     // with data-heading-id attributes — it renders plain text with syntax highlighting spans.
-    const needsEditorScroll = viewMode === "editor-only" || viewMode === "split";
-    if (needsEditorScroll && tocEntry?.lineNumber) {
+    if (viewMode === "source" && tocEntry?.lineNumber) {
       const editorView = useEditorStore.getState().editorView;
       if (editorView) {
         try {
@@ -113,14 +112,14 @@ export function useTOC({
           });
           setActiveEntry(headingId);
         } catch {
-          // line number out of range — fall through to DOM approach for split mode
+          // line number out of range — ignore
         }
       }
-      // In editor-only mode there is no preview pane to scroll; we're done.
-      if (viewMode === "editor-only") return;
+      // In source mode there is no preview pane to scroll; we're done.
+      return;
     }
 
-    // DOM-based scroll: used for preview-only, wysiwyg, and the preview pane in split mode.
+    // DOM-based scroll: used for wysiwyg mode.
     const container = document.getElementById(containerId);
     if (!container) return;
 

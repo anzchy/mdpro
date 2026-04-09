@@ -4,7 +4,6 @@ import { listen } from "@tauri-apps/api/event";
 import { DevToolbar } from "./components/DevToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
-import { Preview } from "./components/Preview/Preview";
 import { TOCSidebarContainer, getViewModeLabel } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
@@ -39,6 +38,7 @@ import { useDocumentStore } from "./stores/documentStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useLoggingStore } from "./stores/loggingStore";
 import { useToastStore } from "./stores/toastStore";
+import { migrateViewMode } from "./utils/viewModeUtils";
 
 type PendingClose = "document" | "window" | null;
 
@@ -126,8 +126,8 @@ function App() {
     toggleCollapsed: toggleTocCollapsed,
   } = useTOC({
     content: activeDocument?.content ?? "",
-    containerId: viewMode === "wysiwyg" ? "milkdown-container" : "preview-container",
-    enableSpyScrolling: viewMode !== "editor-only",
+    containerId: viewMode === "wysiwyg" ? "milkdown-container" : "source-container",
+    enableSpyScrolling: viewMode !== "source",
     viewMode,
   });
 
@@ -227,7 +227,7 @@ function App() {
         if (!mounted) return;
         // Don't set viewMode here - defer until launch paths are complete
         // to avoid race condition with Finder/CLI file opens
-        setDefaultViewMode(prefs.defaultViewMode ?? "wysiwyg");
+        setDefaultViewMode(migrateViewMode(prefs.defaultViewMode));
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
         setRecentFiles(prefs.recentFiles ?? []);
@@ -282,13 +282,12 @@ function App() {
   // This prevents race condition where viewMode changes to wysiwyg before documents load
   useEffect(() => {
     if (!launchPathsComplete || !preferencesLoaded) return;
-    // If a document was loaded from launch paths, keep the mode that was set (preview-only)
     if (activeDocument) return;
-    // No document loaded, apply user's preferred viewMode
+    // No document loaded, apply user's preferred viewMode (with migration for old stored values)
     const applyPreferredViewMode = async () => {
       try {
         const prefs = await preferencesService.getPreferences();
-        setViewMode(prefs.lastViewMode ?? prefs.defaultViewMode);
+        setViewMode(migrateViewMode(prefs.lastViewMode ?? prefs.defaultViewMode));
       } catch {
         // Ignore errors
       }
@@ -489,8 +488,8 @@ function App() {
       activeDocument.fileSize ??
       new TextEncoder().encode(activeDocument.content).length;
     if (bytes <= 500 * 1024) return;
-    showToast("Document exceeds 500KB. Switched to Editor mode for performance.");
-    setViewMode("editor-only");
+    showToast("Document exceeds 500KB. Switched to Source mode for performance.");
+    setViewMode("source");
   }, [activeDocument, setViewMode, showToast, viewMode]);
 
   const handleOpenDialog = useCallback(async (actionId?: string) => {
@@ -1055,22 +1054,14 @@ function App() {
           </div>
         ) : null}
         <section className="workspace">
-          {viewMode === "preview-only" ? (
-            <div className="split-view">
-              <div id="preview-container" className="split-pane full-pane preview-scroll">
-                <Preview markdown={activeDocument?.content ?? ""} documentPath={activeDocument?.path} />
-              </div>
-            </div>
-          ) : viewMode === "wysiwyg" ? (
+          {viewMode === "wysiwyg" ? (
             <MilkdownEditor highlightRequest={highlightRequest} />
           ) : (
             <SplitView
               markdown={activeDocument?.content ?? ""}
               onChange={updateActiveDocumentContent}
               readOnly={!activeDocument}
-              viewMode={viewMode}
               highlightRequest={highlightRequest}
-              documentPath={activeDocument?.path}
             />
           )}
         </section>

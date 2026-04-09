@@ -83,9 +83,7 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
     name: "View",
     shortcuts: [
-      { key: "viewSplitMode", label: "Split View" },
-      { key: "viewEditorOnly", label: "Editor Only" },
-      { key: "viewPreviewOnly", label: "Preview Only" },
+      { key: "viewSource", label: "Source" },
       { key: "viewWysiwyg", label: "WYSIWYG" },
       { key: "viewToggleSidebar", label: "Toggle Sidebar" },
       { key: "viewCycleViewMode", label: "Cycle View Mode" },

@@ -1,4 +1,4 @@
-export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
+export type ViewMode = "wysiwyg" | "source";
 
 export interface CursorPosition {
   /** Line number (0-indexed) */

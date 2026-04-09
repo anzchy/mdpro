@@ -79,12 +79,7 @@ export function useMenuEvents(handlers: MenuHandlers) {
         case "set-view-mode": {
           if (!value) break;
           const mode = value as ViewMode;
-          if (
-            mode === "split" ||
-            mode === "editor-only" ||
-            mode === "preview-only" ||
-            mode === "wysiwyg"
-          ) {
+          if (mode === "wysiwyg" || mode === "source") {
             handlers.onViewModeChange?.(
               mode,
               loggingService.logMenuSelect("menu.view.set_mode", { mode }),

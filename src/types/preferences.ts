@@ -135,9 +135,7 @@ export interface KeyboardShortcuts {
   fileExportHtml: string;
 
   // View operations
-  viewSplitMode: string;
-  viewEditorOnly: string;
-  viewPreviewOnly: string;
+  viewSource: string;
   viewWysiwyg: string;
   viewToggleSidebar: string;
   viewCycleViewMode: string;
@@ -203,9 +201,7 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   fileExportHtml: "Cmd+Shift+E",
 
   // View operations
-  viewSplitMode: "Ctrl+1",
-  viewEditorOnly: "Ctrl+2",
-  viewPreviewOnly: "Ctrl+3",
+  viewSource: "Ctrl+2",
   viewWysiwyg: "Ctrl+4",
   viewToggleSidebar: "Cmd+Shift+L",
   viewCycleViewMode: "Cmd+/",

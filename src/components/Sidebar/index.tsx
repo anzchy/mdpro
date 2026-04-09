@@ -4,11 +4,8 @@ import { TOCSidebar } from "./TOCSidebar";
 
 export function getViewModeLabel(mode: ViewMode): string {
   switch (mode) {
-    case "split": return "SPLIT";
-    case "editor-only": return "EDITOR";
-    case "preview-only": return "PREVIEW";
     case "wysiwyg": return "WYSIWYG";
-    default: return "";
+    case "source": return "SOURCE";
   }
 }
 
