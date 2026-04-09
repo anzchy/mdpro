@@ -412,6 +412,96 @@ mod tests {
         let result = reload_file("/Users/test/.ssh/id_rsa".to_string()).await;
         assert!(result.is_err());
     }
+
+    // Shared test helpers — match the HomeRestorer pattern used in
+    // commands::draft and services::draft::migration tests.
+    use crate::HOME_LOCK;
+
+    struct HomeRestorer(Option<String>);
+    impl Drop for HomeRestorer {
+        fn drop(&mut self) {
+            match &self.0 {
+                Some(v) => unsafe { std::env::set_var("HOME", v) },
+                None => unsafe { std::env::remove_var("HOME") },
+            }
+        }
+    }
+
+    /// SAFETY: caller must hold HOME_LOCK for the lifetime of the guard.
+    fn set_home(path: &std::path::Path) -> HomeRestorer {
+        let prev = std::env::var("HOME").ok();
+        unsafe { std::env::set_var("HOME", path.to_str().expect("temp dir path is non-UTF-8")) };
+        HomeRestorer(prev)
+    }
+
+    fn make_temp_home(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join("mdpro_test").join(label);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    // Regression tests for issue #75:
+    // discard_and_close() is the branch of close_document reached when
+    // discard_changes=true. Before the fix this branch returned
+    // draft_deleted: false without calling delete_draft_service, leaving
+    // stale drafts on disk that were offered for recovery on next launch.
+    //
+    // Uses HOME_LOCK + HomeRestorer so $HOME is restored even on panic.
+    #[test]
+    fn test_discard_and_close_deletes_draft_and_reports_true() {
+        use crate::services::draft::{load_draft, save_draft};
+
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = make_temp_home("dac_exists");
+        let _home_guard = set_home(&home);
+
+        let drafts = dirs::data_dir()
+            .unwrap_or_else(|| home.clone())
+            .join("mdpro")
+            .join("drafts");
+        std::fs::create_dir_all(&drafts).unwrap();
+
+        let id = "test75_cmd_exists";
+        save_draft(id, "# regression", None, "Reg Test").expect("save_draft");
+        assert!(
+            load_draft(id).expect("load_draft").is_some(),
+            "draft must exist before close"
+        );
+
+        let result = discard_and_close(id);
+        assert!(result.success, "success must be true");
+        assert!(result.draft_deleted, "draft_deleted must be true when draft existed");
+        assert!(
+            load_draft(id).expect("load_draft after close").is_none(),
+            "draft must be gone after discard_and_close"
+        );
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn test_discard_and_close_returns_false_when_no_draft() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = make_temp_home("dac_absent");
+        let _home_guard = set_home(&home);
+
+        // Pre-create the drafts directory so dirs::data_dir() resolves
+        // correctly. Without this, a missing directory causes
+        // delete_draft_service to error → unwrap_or(false) → false,
+        // satisfying the assertion for the wrong reason (dir not found,
+        // not "no draft exists").
+        let drafts = dirs::data_dir()
+            .unwrap_or_else(|| home.clone())
+            .join("mdpro")
+            .join("drafts");
+        std::fs::create_dir_all(&drafts).unwrap();
+
+        let result = discard_and_close("test75_cmd_no_draft");
+        assert!(result.success, "success must be true even with no draft");
+        assert!(!result.draft_deleted, "draft_deleted must be false when no draft existed");
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
 }
 
 #[tauri::command]
@@ -682,6 +772,29 @@ pub async fn save_file_dialog(
         .map(Some)
 }
 
+/// Delete the draft for `document_id` and return the close result.
+///
+/// Extracted from `close_document` so the discard+delete path can be unit
+/// tested without a Tauri `State<'_, FileWatcher>`.
+fn discard_and_close(document_id: &str) -> CloseResult {
+    let draft_deleted = delete_draft_service(document_id).unwrap_or_else(|e| {
+        log_file_event(
+            "file.close",
+            LogStatus::Fail,
+            LogLevel::Warn,
+            None,
+            json!({ "documentId": document_id, "error": e.to_string() }),
+            None,
+            Some(format!("delete_draft failed: {e}")),
+        );
+        false
+    });
+    CloseResult {
+        success: true,
+        draft_deleted,
+    }
+}
+
 #[tauri::command]
 pub async fn close_document(
     document_id: String,
@@ -699,12 +812,7 @@ pub async fn close_document(
         watcher.unwatch(&PathBuf::from(p));
     }
 
-    let draft_deleted = delete_draft_service(&document_id).unwrap_or(false);
-
-    Ok(CloseResult {
-        success: true,
-        draft_deleted,
-    })
+    Ok(discard_and_close(&document_id))
 }
 
 #[tauri::command]
