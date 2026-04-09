@@ -16,9 +16,7 @@ const MENU_FILE_RECENT_PREFIX: &str = "menu.file.recent.";
 const MENU_FILE_PREFERENCES: &str = "menu.file.preferences";
 
 const MENU_VIEW_CYCLE: &str = "menu.view.cycle";
-const MENU_VIEW_SPLIT: &str = "menu.view.split";
-const MENU_VIEW_EDITOR: &str = "menu.view.editor";
-const MENU_VIEW_PREVIEW: &str = "menu.view.preview";
+const MENU_VIEW_SOURCE: &str = "menu.view.source";
 const MENU_VIEW_WYSIWYG: &str = "menu.view.wysiwyg";
 const MENU_VIEW_TOGGLE_SIDEBAR: &str = "menu.view.toggle_sidebar";
 
@@ -176,29 +174,13 @@ pub fn build_menu(
         Some("CmdOrCtrl+/"),
     )?;
     let is_active = |mode: &str| active_view_mode == Some(mode);
-    let view_split = CheckMenuItem::with_id(
+    let view_source = CheckMenuItem::with_id(
         app,
-        MENU_VIEW_SPLIT,
-        "Split",
+        MENU_VIEW_SOURCE,
+        "Source",
         true,
-        is_active("split"),
-        Some("Ctrl+1"),
-    )?;
-    let view_editor = CheckMenuItem::with_id(
-        app,
-        MENU_VIEW_EDITOR,
-        "Editor Only",
-        true,
-        is_active("editor-only"),
+        is_active("source"),
         Some("Ctrl+2"),
-    )?;
-    let view_preview = CheckMenuItem::with_id(
-        app,
-        MENU_VIEW_PREVIEW,
-        "Preview Only",
-        true,
-        is_active("preview-only"),
-        Some("Ctrl+3"),
     )?;
     let view_wysiwyg = CheckMenuItem::with_id(
         app,
@@ -219,9 +201,7 @@ pub fn build_menu(
     let view_menu = SubmenuBuilder::new(app, "View")
         .item(&view_cycle)
         .separator()
-        .item(&view_split)
-        .item(&view_editor)
-        .item(&view_preview)
+        .item(&view_source)
         .item(&view_wysiwyg)
         .separator()
         .item(&view_toggle_sidebar)
@@ -281,9 +261,7 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
         MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
         MENU_VIEW_CYCLE => emit_menu_action(app, "cycle-view-mode", None),
-        MENU_VIEW_SPLIT => emit_menu_action(app, "set-view-mode", Some("split".to_string())),
-        MENU_VIEW_EDITOR => emit_menu_action(app, "set-view-mode", Some("editor-only".to_string())),
-        MENU_VIEW_PREVIEW => emit_menu_action(app, "set-view-mode", Some("preview-only".to_string())),
+        MENU_VIEW_SOURCE => emit_menu_action(app, "set-view-mode", Some("source".to_string())),
         MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
         MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
         MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),

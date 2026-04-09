@@ -21,11 +21,9 @@ These shortcuts work across all view modes.
 
 | Shortcut | Action | Target Mode |
 |----------|--------|-------------|
-| ⌃1 | Split View | `split` |
-| ⌃2 | Editor Only | `editor-only` |
-| ⌃3 | Preview Only | `preview-only` |
+| ⌃2 | Source | `source` |
 | ⌃4 | WYSIWYG | `wysiwyg` |
-| ⌘/ | Cycle View Mode | Next in order — **only when CodeMirror editor is not focused** |
+| ⌘/ | Cycle View Mode | Toggles between source and wysiwyg — **only when CodeMirror editor is not focused** |
 
 > **Note**: View mode shortcuts use **Control** (⌃) key to avoid conflicts with Typora-style heading shortcuts (⌘1-6).
 >
@@ -51,7 +49,11 @@ When the cursor is positioned inside certain inline elements, they expand to sho
 | Link | [test link](blue, underlined) | `[test link](https://example.com)` |
 | Inline Code | `code` (styled) | `` `code` `` (with backticks) |
 
-This allows editing the URL or code content directly without switching to Editor mode.
+| Shortcut | Action |
+|----------|--------|
+| ⌃\` | Force-reveal inline element under cursor |
+
+This allows editing the URL or code content directly without switching to Source mode.
 
 ### Headings
 
@@ -65,7 +67,7 @@ This allows editing the URL or code content directly without switching to Editor
 | ⌘6 | Heading 6 |
 | ⌘0 | Paragraph (remove heading) |
 
-> **Note**: In WYSIWYG mode, ⌘1-6 are heading shortcuts. Use ⌃1-4 or ⌘/ to switch view modes.
+> **Note**: In WYSIWYG mode, ⌘1-6 are heading shortcuts. Use ⌃2/⌃4 or ⌘/ to switch view modes.
 
 ### Text Formatting
 
@@ -89,9 +91,9 @@ This allows editing the URL or code content directly without switching to Editor
 | ⇧Tab | Outdent (in lists) |
 | Enter | New line / continue list |
 
-## CodeMirror Mode Shortcuts
+## Source Mode Shortcuts (CodeMirror)
 
-These shortcuts work in split and editor-only modes.
+These shortcuts work in source mode.
 
 ### Selection
 
@@ -259,14 +261,14 @@ Shortcuts are handled differently based on focus:
 │   ⌘W    Close        ⌘⇧E   Export HTML     │
 ├────────────────────────────────────────────┤
 │ VIEW (uses Control key)                    │
-│   ⌃1    Split        ⌃2    Editor         │
-│   ⌃3    Preview      ⌃4    WYSIWYG        │
+│   ⌃2    Source       ⌃4    WYSIWYG        │
 │   ⌘/    Cycle        ⌘⇧L   Sidebar        │
 ├────────────────────────────────────────────┤
 │ WYSIWYG FORMATTING                         │
 │   ⌘B    Bold         ⌘I    Italic         │
 │   ⌘⇧`   Inline Code  ⌃⇧`   Strikethrough  │
 │   ⌘K    Link         ⌘0-6  Headings       │
+│   ⌃`    Inline Reveal                     │
 ├────────────────────────────────────────────┤
 │ EDITING                                    │
 │   ⌘Z    Undo         ⌘⇧Z   Redo           │

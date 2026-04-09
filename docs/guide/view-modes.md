@@ -1,15 +1,14 @@
 # View Modes
 
-mdpro supports 4 view modes to accommodate different editing workflows.
+mdpro supports 2 view modes. Mode switching should be the exception, not the flow —
+inline source reveal handles most element-specific editing without leaving WYSIWYG.
 
 ## Overview
 
 | Mode | Shortcut | Description | Engine |
 |------|----------|-------------|--------|
-| **Split** | ⌃1 | Editor + Preview side-by-side | CodeMirror + marked |
-| **Editor Only** | ⌃2 | Source editing only | CodeMirror |
-| **Preview Only** | ⌃3 | Read-only preview | marked + DOMPurify |
-| **WYSIWYG** | ⌃4 | Rich text editing | Milkdown |
+| **WYSIWYG** | ⌃4 | Rich text editing with inline source reveal | Milkdown |
+| **Source** | ⌃2 | Full-width source editing | CodeMirror |
 
 > **Note**: View mode shortcuts use **Control** (⌃) key to avoid conflicts with Typora-style heading shortcuts (⌘1-6).
 
@@ -17,56 +16,10 @@ mdpro supports 4 view modes to accommodate different editing workflows.
 
 ```typescript
 // src/types/editor.ts
-export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
+export type ViewMode = "wysiwyg" | "source";
 ```
 
 ## Mode Details
-
-### Split Mode (⌃1)
-
-```
-┌──────────────────┬──────────────────┐
-│                  │                  │
-│   CodeMirror     │    Preview       │
-│   (Source)       │    (HTML)        │
-│                  │                  │
-└──────────────────┴──────────────────┘
-```
-
-- **Default mode** for new documents
-- Editor pane on left, preview pane on right
-- Real-time preview updates as you type
-- Resizable split (drag divider)
-
-### Editor Only Mode (⌃2)
-
-```
-┌─────────────────────────────────────┐
-│                                     │
-│           CodeMirror                │
-│           (Full Width)              │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-- Maximum space for source editing
-- Syntax highlighting
-- Used automatically for large files (>500KB)
-
-### Preview Only Mode (⌃3)
-
-```
-┌─────────────────────────────────────┐
-│                                     │
-│           Preview                   │
-│           (Full Width)              │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-- Read-only rendered view
-- Default mode when opening files via Finder/drag-drop
-- Ideal for reading documentation
 
 ### WYSIWYG Mode (⌃4)
 
@@ -79,10 +32,25 @@ export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
 └─────────────────────────────────────┘
 ```
 
-- Edit rendered markdown directly
-- Typora-like experience
-- Keyboard shortcuts for formatting (⌘B, ⌘I, etc.)
-- WYSIWYG features are loaded via the Milkdown plugin registry
+- Edit rendered markdown directly (Typora-like experience)
+- Inline source reveal: cursor inside a link or inline code shows the raw syntax
+- Keyboard shortcuts for formatting (⌘B, ⌘I, ⌘K, etc.)
+- Default mode for new documents and file opens
+
+### Source Mode (⌃2)
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│           CodeMirror                │
+│           (Full Width)              │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+- Full-width source editing with syntax highlighting
+- Used automatically for large files (>500KB)
+- Escape hatch for structural edits that benefit from seeing raw Markdown
 
 ## Implementation
 
@@ -90,11 +58,11 @@ export type ViewMode = "split" | "editor-only" | "preview-only" | "wysiwyg";
 
 ```typescript
 export const useEditorStore = create<EditorStore>((set) => ({
-  viewMode: "split",
+  viewMode: "wysiwyg",
   setViewMode: (mode) => set({ viewMode: mode }),
   cycleViewMode: () =>
     set((state) => {
-      const order: ViewMode[] = ["split", "editor-only", "preview-only", "wysiwyg"];
+      const order: ViewMode[] = ["wysiwyg", "source"];
       const currentIndex = order.indexOf(state.viewMode);
       const nextIndex = (currentIndex + 1) % order.length;
       return { viewMode: order[nextIndex] };
@@ -105,9 +73,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
 ### View Mode Routing (App.tsx)
 
 ```tsx
-{viewMode === "preview-only" ? (
-  <Preview markdown={activeDocument?.content ?? ""} />
-) : viewMode === "wysiwyg" ? (
+{viewMode === "wysiwyg" ? (
   <MilkdownEditor />
 ) : (
   <SplitView
@@ -117,11 +83,6 @@ export const useEditorStore = create<EditorStore>((set) => ({
   />
 )}
 ```
-
-### Plugin Mode Switching
-
-When switching between source and WYSIWYG modes, the plugin registry updates
-the active mode and loads mode-specific extensions for CodeMirror or Milkdown.
 
 ### useEditor Hook
 
@@ -138,19 +99,15 @@ export function useEditor() {
 
 | Shortcut | Action |
 |----------|--------|
-| ⌃1 | Switch to Split mode |
-| ⌃2 | Switch to Editor Only mode |
-| ⌃3 | Switch to Preview Only mode |
+| ⌃2 | Switch to Source mode |
 | ⌃4 | Switch to WYSIWYG mode |
-| ⌘/ | Cycle through modes |
+| ⌘/ | Cycle between modes |
 
 ### Menu Integration
 
 The View menu in the native macOS menu bar provides:
-- Split View
-- Editor Only
-- Preview Only
-- WYSIWYG
+- Source (⌃2)
+- WYSIWYG (⌃4)
 - Toggle Sidebar (⌘⇧L)
 
 ### Programmatic Switching
@@ -174,16 +131,26 @@ useEffect(() => {
   void preferencesService.setPreferences({ lastViewMode: viewMode });
 }, [preferencesLoaded, viewMode]);
 
-// Restore on load
+// Restore on load (with migration from old 4-mode values)
 const prefs = await preferencesService.getPreferences();
-setViewMode(prefs.lastViewMode ?? prefs.defaultViewMode);
+setViewMode(migrateViewMode(prefs.lastViewMode ?? prefs.defaultViewMode));
 ```
+
+### Migration from Old Values
+
+Stored preferences from the old 4-mode model are migrated on load:
+
+| Old value | New value |
+|-----------|-----------|
+| `"split"` | `"wysiwyg"` |
+| `"preview-only"` | `"wysiwyg"` |
+| `"editor-only"` | `"source"` |
 
 ## Automatic Mode Switching
 
 ### Large File Protection
 
-Files >500KB automatically switch to editor mode:
+Files >500KB automatically switch to source mode:
 
 ```typescript
 useEffect(() => {
@@ -192,24 +159,25 @@ useEffect(() => {
   const bytes = activeDocument.fileSize ??
     new TextEncoder().encode(activeDocument.content).length;
   if (bytes <= 500 * 1024) return;
-  showToast("Document exceeds 500KB. Switched to Editor mode for performance.");
-  setViewMode("editor-only");
+  showToast("Document exceeds 500KB. Switched to Source mode for performance.");
+  setViewMode("source");
 }, [activeDocument, viewMode]);
 ```
 
 ### Finder/Drag-Drop Opens
 
-Files opened via Finder or drag-drop default to preview-only mode:
+Files opened via Finder or drag-drop use the user's preferred default view mode
+(defaults to `"wysiwyg"`):
 
 ```typescript
-// When opening from Finder
-setViewMode("preview-only");
+// When opening from Finder — uses defaultViewMode from preferences
+setViewMode(defaultViewMode);
 void openPaths(paths);
 ```
 
 ## Content Synchronization
 
-All modes share the same content source (`documentStore`):
+Both modes share the same content source (`documentStore`):
 
 ```
 ┌─────────────┐
@@ -217,11 +185,7 @@ All modes share the same content source (`documentStore`):
 └─────────────┘   │
                   │  documentStore.documents[].content
 ┌─────────────┐   │
-│  Milkdown   │◄──┤
-└─────────────┘   │
-                  │
-┌─────────────┐   │
-│   Preview   │◄──┘
+│  Milkdown   │◄──┘
 └─────────────┘
 ```
 
@@ -229,6 +193,18 @@ When switching modes:
 1. Current editor saves content to store
 2. New editor reads content from store
 3. No data loss during transitions
+
+## Inline Source Reveal (WYSIWYG)
+
+In WYSIWYG mode, moving the cursor inside certain inline elements reveals their
+raw Markdown syntax without leaving WYSIWYG mode:
+
+| Element | Collapsed | Expanded |
+|---------|-----------|----------|
+| Link | rendered link | `[text](url)` |
+| Inline Code | styled `code` | `` `code` `` with backticks |
+
+Trigger: cursor movement into the element (automatic) or ⌃\` (force-reveal).
 
 ## Related Documentation
 
