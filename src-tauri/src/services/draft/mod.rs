@@ -388,4 +388,35 @@ mod tests {
 
         let _ = fs::remove_dir_all(&home);
     }
+
+    #[test]
+    fn test_delete_draft_removes_legacy_files() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = make_temp_home("dd_legacy");
+        let _home_guard = set_home(&home);
+
+        let drafts = dirs::data_dir()
+            .unwrap_or_else(|| home.clone())
+            .join("mdpro")
+            .join("drafts");
+        fs::create_dir_all(&drafts).unwrap();
+
+        let id = "test75_legacy_doc";
+
+        // Write legacy two-file format directly (bypassing save_draft which uses bundle format).
+        let legacy_draft = legacy_draft_path(id).expect("legacy_draft_path must resolve");
+        let legacy_meta = legacy_meta_path(id).expect("legacy_meta_path must resolve");
+        fs::write(&legacy_draft, "# Legacy content").unwrap();
+        fs::write(&legacy_meta, r#"{"originalPath":null,"lastModified":"2024-01-01T00:00:00Z","recovered":false,"title":"Legacy"}"#).unwrap();
+
+        assert!(legacy_draft.exists(), "legacy .draft.md must exist before delete");
+        assert!(legacy_meta.exists(), "legacy .meta.json must exist before delete");
+
+        let result = delete_draft(id).expect("delete_draft must not error on legacy files");
+        assert!(result, "delete_draft must return true when legacy files existed");
+        assert!(!legacy_draft.exists(), ".draft.md must be gone after delete_draft");
+        assert!(!legacy_meta.exists(), ".meta.json must be gone after delete_draft");
+
+        let _ = fs::remove_dir_all(&home);
+    }
 }
