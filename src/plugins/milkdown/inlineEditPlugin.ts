@@ -17,6 +17,39 @@ import { createPlugin } from "../core/pluginTypes";
 
 export const inlineEditPluginKey = new PluginKey("inlineEdit");
 
+const INLINE_MARKER_CLASS = "milkdown-inline-syntax-marker";
+
+function createSyntaxMarker(text: string, className: string): HTMLElement {
+  const marker = document.createElement("span");
+  marker.className = `${INLINE_MARKER_CLASS} ${className}`;
+  marker.setAttribute("aria-hidden", "true");
+  marker.textContent = text;
+  return marker;
+}
+
+function addSyntaxMarkers(
+  decorations: Decoration[],
+  from: number,
+  to: number,
+  openText: string,
+  closeText: string,
+  className: string,
+  keyPrefix: string,
+) {
+  decorations.push(
+    Decoration.widget(
+      from,
+      () => createSyntaxMarker(openText, className),
+      { side: -1, key: `${keyPrefix}-open-${from}` },
+    ),
+    Decoration.widget(
+      to,
+      () => createSyntaxMarker(closeText, className),
+      { side: -1, key: `${keyPrefix}-close-${to}` },
+    ),
+  );
+}
+
 function findMarkRange(
   doc: Node,
   pos: number,
@@ -99,10 +132,19 @@ function createDecorations(state: EditorState): DecorationSet {
     const { from, to, mark } = linkRange;
     const href = mark.attrs.href || "";
 
+    addSyntaxMarkers(
+      decorations,
+      from,
+      to,
+      "[",
+      `](${href})`,
+      "milkdown-link-syntax-marker",
+      "link",
+    );
+
     decorations.push(
       Decoration.inline(from, to, {
         class: "milkdown-inline-expanded milkdown-link-expanded",
-        "data-href": href,
       }),
     );
   }
@@ -110,6 +152,16 @@ function createDecorations(state: EditorState): DecorationSet {
   const codeRange = findMarkRange(state.doc, pos, "inlineCode");
   if (codeRange) {
     const { from, to } = codeRange;
+
+    addSyntaxMarkers(
+      decorations,
+      from,
+      to,
+      "`",
+      "`",
+      "milkdown-code-syntax-marker",
+      "inline-code",
+    );
 
     decorations.push(
       Decoration.inline(from, to, {
