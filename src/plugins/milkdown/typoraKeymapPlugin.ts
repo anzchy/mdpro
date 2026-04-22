@@ -2,7 +2,7 @@
  * Typora-style Keymap Plugin for Milkdown WYSIWYG mode
  *
  * Purpose: Register ⌘1-6 heading shortcuts, ⌘0 paragraph, ⌘B bold,
- * ⌘I italic, and ⌘K link in the Milkdown editor.
+ * ⌘I italic, ⌘K link, and code-block Tab indentation in the Milkdown editor.
  *
  * Root cause of issue #31:
  * The editor is initialised with `.use(gfm)` only — the GFM preset does NOT
@@ -44,6 +44,9 @@ import {
 import type { Command } from "@milkdown/kit/prose/state";
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
+import { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
+
+export { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
 
 // ---------------------------------------------------------------------------
 // Exported command factories (used directly in tests and in the keymap below)
@@ -125,6 +128,14 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
   paragraph: { shortcuts: "Mod-0", command: () => makeParagraphCommand() },
   bold: { shortcuts: "Mod-b", command: () => makeBoldCommand() },
   italic: { shortcuts: "Mod-i", command: () => makeItalicCommand() },
+  codeBlockIndent: {
+    shortcuts: "Tab",
+    command: () => makeCodeBlockIndentCommand("indent"),
+  },
+  codeBlockOutdent: {
+    shortcuts: "Shift-Tab",
+    command: () => makeCodeBlockIndentCommand("outdent"),
+  },
   inlineCode: {
     shortcuts: "Mod-Shift-`",
     command: (ctx) => {

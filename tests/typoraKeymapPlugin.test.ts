@@ -12,7 +12,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { Command } from "@milkdown/kit/prose/state";
+import { Schema } from "@milkdown/kit/prose/model";
+import { EditorState, TextSelection, type Command } from "@milkdown/kit/prose/state";
 
 // ---------------------------------------------------------------------------
 // Helpers: minimal ProseMirror-like mocks
@@ -53,11 +54,58 @@ function makeState(schema: ReturnType<typeof makeSchema>) {
 // Import the module under test.  We test exports that expose the command
 // functions so we can unit-test them without spinning up a full Milkdown editor.
 import {
+  makeCodeBlockIndentCommand,
   makeHeadingCommand,
   makeParagraphCommand,
   makeBoldCommand,
   makeItalicCommand,
 } from "../src/plugins/milkdown/typoraKeymapPlugin";
+
+const codeBlockTestSchema = new Schema({
+  nodes: {
+    doc: { content: "block+" },
+    text: { group: "inline" },
+    paragraph: { content: "text*", group: "block" },
+    code_block: {
+      content: "text*",
+      group: "block",
+      marks: "",
+      code: true,
+    },
+  },
+  marks: {},
+});
+
+function makeCodeBlockState(text: string, fromOffset: number, toOffset: number) {
+  const codeBlock = text.length > 0
+    ? codeBlockTestSchema.node("code_block", null, [codeBlockTestSchema.text(text)])
+    : codeBlockTestSchema.node("code_block");
+  const doc = codeBlockTestSchema.node("doc", null, [codeBlock]);
+  const blockStart = 1;
+  return EditorState.create({
+    schema: codeBlockTestSchema,
+    doc,
+    selection: TextSelection.create(doc, blockStart + fromOffset, blockStart + toOffset),
+  });
+}
+
+function makeParagraphState(text: string) {
+  const paragraph = codeBlockTestSchema.node(
+    "paragraph",
+    null,
+    text.length > 0 ? [codeBlockTestSchema.text(text)] : undefined,
+  );
+  const doc = codeBlockTestSchema.node("doc", null, [paragraph]);
+  return EditorState.create({
+    schema: codeBlockTestSchema,
+    doc,
+    selection: TextSelection.create(doc, 1, 1),
+  });
+}
+
+function getFirstBlockText(tr: { doc: { firstChild: { textContent: string } | null } }) {
+  return tr.doc.firstChild?.textContent ?? "";
+}
 
 describe("typoraKeymapPlugin — heading commands", () => {
   it("makeHeadingCommand returns a function (the ProseMirror Command)", () => {
@@ -148,6 +196,56 @@ describe("typoraKeymapPlugin — italic command", () => {
   });
 });
 
+describe("typoraKeymapPlugin — code block indentation", () => {
+  it("indents only selected code block lines on Tab", () => {
+    const text = "const a = 1;\nreturn a;\nconsole.log(a);";
+    const state = makeCodeBlockState(text, 0, text.indexOf("console.log"));
+    const dispatch = vi.fn();
+
+    const result = makeCodeBlockIndentCommand("indent")(state, dispatch);
+
+    expect(result).toBe(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(getFirstBlockText(dispatch.mock.calls[0][0])).toBe(
+      "    const a = 1;\n    return a;\nconsole.log(a);",
+    );
+  });
+
+  it("outdents selected code block lines on Shift-Tab", () => {
+    const text = "    const a = 1;\n  return a;\n\tconsole.log(a);";
+    const state = makeCodeBlockState(text, 0, text.length);
+    const dispatch = vi.fn();
+
+    const result = makeCodeBlockIndentCommand("outdent")(state, dispatch);
+
+    expect(result).toBe(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(getFirstBlockText(dispatch.mock.calls[0][0])).toBe(
+      "const a = 1;\nreturn a;\nconsole.log(a);",
+    );
+  });
+
+  it("consumes Shift-Tab inside an unindented code block without dispatching", () => {
+    const state = makeCodeBlockState("const a = 1;", 0, 0);
+    const dispatch = vi.fn();
+
+    const result = makeCodeBlockIndentCommand("outdent")(state, dispatch);
+
+    expect(result).toBe(true);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("returns false outside code blocks so other Tab handlers can run", () => {
+    const state = makeParagraphState("plain text");
+    const dispatch = vi.fn();
+
+    const result = makeCodeBlockIndentCommand("indent")(state, dispatch);
+
+    expect(result).toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+});
+
 describe("typoraKeymapPlugin — shortcut definitions", () => {
   it("exports typoraKeymapPlugin with milkdownPlugin factory", async () => {
     const { typoraKeymapPlugin } = await import(
@@ -162,5 +260,14 @@ describe("typoraKeymapPlugin — shortcut definitions", () => {
     );
     const result = typoraKeymapPlugin.milkdownPlugin?.({} as never, {} as never);
     expect(result).toBeTruthy();
+  });
+
+  it("binds Tab and Shift-Tab for code block indentation", async () => {
+    const { TYPORA_KEYMAP_CONFIG } = await import(
+      "../src/plugins/milkdown/typoraKeymapPlugin"
+    );
+
+    expect(TYPORA_KEYMAP_CONFIG.codeBlockIndent.shortcuts).toBe("Tab");
+    expect(TYPORA_KEYMAP_CONFIG.codeBlockOutdent.shortcuts).toBe("Shift-Tab");
   });
 });
