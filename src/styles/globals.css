@@ -6,6 +6,9 @@
   --color-muted: #6b7280;
   --color-border: #e5e7eb;
   --color-accent: #2563eb;
+  --color-accent-soft: color-mix(in srgb, #2563eb 18%, transparent);
+  --color-danger: #dc2626;
+  --color-danger-soft: color-mix(in srgb, #dc2626 12%, transparent);
   --color-editor-bg: #ffffff;
   --color-preview-bg: #fafafa;
   --color-code-bg: #f4f4f4;
@@ -148,7 +151,7 @@ a {
 
 .file-item.is-active {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 1px var(--color-accent-soft);
 }
 
 .file-item-button {
@@ -583,14 +586,14 @@ a {
 
 .table-insert-input:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
 .table-insert-error {
   font-size: 12px;
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
   border-radius: 6px;
   padding: 8px 10px;
   margin-bottom: 12px;
@@ -627,7 +630,7 @@ a {
 
 .link-insert-input:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
 .toolbar-button--primary {
@@ -1082,12 +1085,12 @@ a {
 }
 
 .toolbar-button.danger {
-  color: #dc2626;
-  border-color: #dc2626;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .toolbar-button.danger:hover {
-  background: #fee2e2;
+  background: var(--color-danger-soft);
 }
 
 /* Integrations Settings */
@@ -1109,10 +1112,10 @@ a {
 
 .settings-error {
   padding: 10px 12px;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
   border-radius: 6px;
-  color: #dc2626;
+  color: var(--color-danger);
   font-size: 13px;
   margin-bottom: 16px;
 }

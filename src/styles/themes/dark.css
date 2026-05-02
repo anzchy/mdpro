@@ -6,6 +6,9 @@
   --color-muted: #9aa4b2;
   --color-border: #242a36;
   --color-accent: #60a5fa;
+  --color-accent-soft: color-mix(in srgb, #60a5fa 22%, transparent);
+  --color-danger: #f87171;
+  --color-danger-soft: color-mix(in srgb, #f87171 18%, transparent);
   --color-editor-bg: #0f1115;
   --color-preview-bg: #10141c;
   --color-code-bg: #1b2230;
