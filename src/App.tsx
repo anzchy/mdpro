@@ -37,8 +37,10 @@ import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useLoggingStore } from "./stores/loggingStore";
+import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useTableInsertStore } from "./stores/tableInsertStore";
 import { useToastStore } from "./stores/toastStore";
+import { runInsertTable } from "./plugins/milkdown/table/insertTable";
 import { migrateViewMode } from "./utils/viewModeUtils";
 
 type PendingClose = "document" | "window" | null;
@@ -928,21 +930,19 @@ function App() {
     onCycleViewMode: cycleViewMode,
     onOpenPreferences: handleOpenSettings,
     onInsertTable: () => {
-      // ⌘⌥T — opens the Insert Table modal. The store-resolved callback
-      // (set by TableInsertModal once it ships in WI-1.1) runs the actual
-      // insertTableCommand against the live Milkdown editor. Until WI-1.1
-      // lands, this is a no-op fallback so the shortcut doesn't throw.
-      const pending = useTableInsertStore.getState().pendingCallback;
-      if (pending) {
-        // Defensive: if a stale pending callback survived from a previous
-        // open, clear it before requesting a new one.
+      // ⌘⌥T — opens the Insert Table modal. The closure captures
+      // useMilkdownEditorStore.getEditor at modal-open time; the modal
+      // calls cb(rows, cols) on submit, which runs insertTableCommand
+      // against the live Milkdown editor instance.
+      if (useTableInsertStore.getState().pendingCallback) {
+        // Defensive: clear any stale pending callback from a previous
+        // open before requesting a new one.
         useTableInsertStore.getState().clearPending();
       }
       useTableInsertStore.getState().requestInsert((rows, cols) => {
-        // No-op until WI-1.1 wires the Milkdown bridge. The store still
-        // opens (the modal will read it) — preserving the contract.
-        void rows;
-        void cols;
+        const editor = useMilkdownEditorStore.getState().getEditor();
+        if (!editor) return false;
+        return runInsertTable(editor as Parameters<typeof runInsertTable>[0], rows, cols);
       });
     },
     shortcuts: keyboardShortcuts,

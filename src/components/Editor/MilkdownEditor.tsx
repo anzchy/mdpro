@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { ImageContextMenu } from "./ImageContextMenu";
 import { LinkInsertModal } from "./LinkInsertModal";
+import { TableInsertModal } from "./TableInsertModal";
 import {
   defaultValueCtx,
   Editor,
@@ -23,6 +24,7 @@ import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlig
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useDocumentStore } from "../../stores/documentStore";
+import { useMilkdownEditorStore } from "../../stores/milkdownEditorStore";
 import { loggingService } from "../../services/loggingService";
 import { getImageResizeDomAttrs } from "../../plugins/milkdown/imageResizePlugin";
 
@@ -181,6 +183,25 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     });
   }, [editor.loading]);
 
+  // Expose the active editor via milkdownEditorStore so app-level callbacks
+  // (e.g. App.tsx onInsertTable) can dispatch commands. The getter is
+  // re-registered on every render (cheap; useEditor returns a stable wrapper)
+  // so the closure always captures the current `editor` reference even after
+  // a document switch remounts the inner editor instance.
+  useEffect(() => {
+    const store = useMilkdownEditorStore.getState();
+    store.registerEditor(() => editor.get() ?? null);
+    return () => {
+      // Only unregister if our getter is still the active one — guards against
+      // a fresh MilkdownEditorInner having registered its own getter before
+      // this cleanup fires.
+      const current = useMilkdownEditorStore.getState().getEditor;
+      if (current === store.getEditor) {
+        useMilkdownEditorStore.getState().unregisterEditor();
+      }
+    };
+  }, [editor]);
+
   // Wire Milkdown listener → documentStore so Cmd+S always saves what is on screen.
   // Uses a ref to avoid registering multiple callbacks on the same instance.
   const registeredInstanceRef = useRef<Editor | null>(null);
@@ -296,6 +317,8 @@ export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
       </MilkdownProvider>
       {/* Inline URL modal for ⌘K link insert — replaces window.prompt (#25) */}
       <LinkInsertModal />
+      {/* Inline picker modal for ⌘⌥T table insert — table-CRUD WI-1.1 (#390) */}
+      <TableInsertModal />
     </div>
   );
 }
