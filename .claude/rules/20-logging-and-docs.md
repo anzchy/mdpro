@@ -1,3 +1,12 @@
+---
+description: Required structured logging for new features and the IPC change checklist.
+paths:
+  - "src-tauri/src/commands/**/*.rs"
+  - "src/services/**/*.ts"
+  - "src/hooks/**/*.ts"
+  - "src/components/**/*.tsx"
+---
+
 # 20 - Logging and Docs (Local)
 
 - Update relevant dev docs in the same change when behavior changes.

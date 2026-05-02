@@ -1,3 +1,7 @@
+---
+description: Always-on guardrails — pause and confirm before rm -rf, force-push, hard reset, DROP TABLE, and similar destructive commands.
+---
+
 # 25 - Destructive Command Guardrails (Always On)
 
 Before running any bash command that matches the patterns below, **pause and confirm with the user** using `AskUserQuestion`. Show the exact command and the risk. Do not proceed until the user explicitly approves.

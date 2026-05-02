@@ -1,3 +1,7 @@
+---
+description: Top-level engineering principles — keep diffs focused, no store destructuring, files under 300 lines.
+---
+
 # 00 - Engineering Principles (Local)
 
 Follow the shared rules in `AGENTS.md`.

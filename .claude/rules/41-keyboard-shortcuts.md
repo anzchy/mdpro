@@ -1,3 +1,13 @@
+---
+description: Keep shortcut definitions in sync across menu.rs, preferences.ts, and user docs.
+paths:
+  - "src-tauri/src/menu.rs"
+  - "src/types/preferences.ts"
+  - "src/hooks/useKeyboardShortcuts.ts"
+  - "src/components/common/settings/KeyboardShortcutsSettings.tsx"
+  - "docs/guide/keyboard-shortcuts.md"
+---
+
 # 41 - Keyboard Shortcuts
 
 When adding, changing, or removing a keyboard shortcut, update ALL three files.

@@ -1,3 +1,7 @@
+---
+description: Undocumented patterns — Zustand store conventions, Tauri IPC layering, plugin structure, MCP shadow store, error handling, file size limit.
+---
+
 # 50 - Codebase Conventions
 
 Undocumented patterns found across the codebase. Follow these for consistency.

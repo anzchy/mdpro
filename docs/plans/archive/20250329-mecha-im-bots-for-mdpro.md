@@ -341,7 +341,7 @@ Pick 4-6 randomly each run:
 **Fix**: concrete change needed
 
 ```
-Severity: BLOCK | MUST | SHOULD | NOTE (from .claude/rules/30-review-checklist.md)
+Severity: BLOCK | MUST | SHOULD | NOTE (from .claude/rules/60-review-checklist.md)
 - If no findings: output "✓ No issues found for this run" and stop.
 - Do not fix anything. Do not edit files. Read-only analysis only.
 

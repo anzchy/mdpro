@@ -272,7 +272,7 @@ All cherry-picked items have been integrated into `.claude/`:
 | `/investigate` (High) | ✅ Done | `.claude/commands/investigate.md` |
 | `/careful` guardrails (High) | ✅ Done | `.claude/rules/25-careful-mode.md` |
 | `/ship` adapted (Medium) | ✅ Done | `.claude/commands/ship.md` |
-| `/review` checklist (Medium) | ✅ Done | `.claude/rules/30-review-checklist.md` |
+| `/review` checklist (Medium) | ✅ Done | `.claude/rules/60-review-checklist.md` |
 | Auditor updated (Medium) | ✅ Done | `.claude/agents/auditor.md` — now references rule 30 |
 | `/office-hours` (Medium) | ✅ Done | `.claude/commands/office-hours.md` |
 | `/plan-ceo-review` (Low) | ✅ Done | `.claude/commands/plan-ceo-review.md` |

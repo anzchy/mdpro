@@ -53,7 +53,7 @@ cargo check --manifest-path src-tauri/Cargo.toml && cargo test --manifest-path s
 
 ## Step 3 — Pre-Landing Review
 
-Apply the checklist from `.claude/rules/30-review-checklist.md` against the full diff:
+Apply the checklist from `.claude/rules/60-review-checklist.md` against the full diff:
 
 ```bash
 git diff origin/master...HEAD

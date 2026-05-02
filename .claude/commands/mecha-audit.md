@@ -142,7 +142,7 @@ For each finding use this exact format:
 **Fix**: concrete change needed
 ```
 
-Severity scale (from `.claude/rules/30-review-checklist.md`):
+Severity scale (from `.claude/rules/60-review-checklist.md`):
 - **BLOCK** — data loss, security, or silent failure
 - **MUST** — rule violation or correctness issue
 - **SHOULD** — code quality or test gap

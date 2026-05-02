@@ -1,4 +1,8 @@
-# 30 - Pre-Landing Review Checklist
+---
+description: Pre-landing review checklist — IPC trust boundaries, race conditions, data loss paths, enum completeness; severity rubric.
+---
+
+# 60 - Pre-Landing Review Checklist
 
 Run this checklist on every diff before marking work complete. The `auditor` agent and `/ship` command both reference this file.
 

@@ -1,3 +1,11 @@
+---
+description: Atomic version bumps — keep package.json, tauri.conf.json, and Cargo.toml in lockstep.
+paths:
+  - "package.json"
+  - "src-tauri/Cargo.toml"
+  - "src-tauri/tauri.conf.json"
+---
+
 # 40 - Version Bump Procedure
 
 When bumping the version number, **all three files must be updated together**.

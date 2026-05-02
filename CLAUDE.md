@@ -11,6 +11,25 @@ Available gstack skills:
 
 Setup: `git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup`
 
+## Lessons Learned
+
+See [`progress.md`](./progress.md) for accumulated implementation lessons — bug post-mortems, root causes, and patterns to avoid.
+
+## Design System
+
+Always read [`DESIGN.md`](./DESIGN.md) before making any visual or UI decisions.
+Aesthetic register, "memorable thing", and decisions log live there. Enforceable
+rules live in `.claude/rules/30-34`:
+
+- `30-ui-consistency.md` — index + 6 universal discipline rules
+- `31-design-tokens.md` — color, type, spacing, z-index reference
+- `32-component-patterns.md` — modal, context menu, button, code block
+- `33-focus-indicators.md` — 4 focus patterns, WCAG enforcement
+- `34-dark-theme.md` — `.theme-light` / `.theme-dark` convention
+
+Do not deviate without explicit user approval. In QA mode, flag any code that
+doesn't match the rules.
+
 ## Project Overview
 
 mdpro is a local Markdown editor for macOS, combining Typora's WYSIWYG experience with modern design. Built with Tauri 2.0 (Rust backend + React frontend).
@@ -132,14 +151,18 @@ Native macOS menu defined in `src-tauri/src/menu.rs`. Menu events are handled vi
 
 ## Release Workflow
 
+See `.claude/rules/40-version-bump.md` for the full procedure (3 files must
+stay in sync: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`).
+Or use the `/bump` command, which handles all three atomically.
+
 ```bash
-# 1. Update versions in src-tauri/Cargo.toml and src-tauri/tauri.conf.json
+# 1. Bump versions (use /bump or follow rule 40)
 # 2. Test locally
 pnpm tauri build
 
 # 3. Tag and push (triggers GitHub Actions → builds DMG)
 git tag v0.1.2
-git push origin v0.1.2
+git push origin master --tags
 ```
 
 ## Git Commit Conventions
@@ -239,17 +262,11 @@ Feature specifications live in `specs/001-mdpro-mvp/`:
 
 
 
-### I. Atomic Commits
+### Project Constitution
 
-Every git commit MUST represent exactly one logical change — one feature, one bug fix, or one refactor. Unrelated changes MUST NOT be bundled in a single commit. Commit messages MUST follow the format `type(scope): description` with types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`. If a task touches both the Swift app and Python sidecar, changes SHOULD be split into separate commits per sub-project when independently meaningful.
-
-### II. Test-Driven Development
-
-Tests MUST be written BEFORE implementation code (Red → Green → Refactor). Every new function or method containing logic MUST have at least one corresponding test. Python tests use `pytest` in `sidecar/tests/`. Swift tests use `XCTest` in `OpenPDF/Tests/`. Integration tests live in `tests/integration/`. The relevant test suite MUST pass before any commit is created.
-
-### III. Changelog Discipline
-
-Every commit MUST have a corresponding entry in `CHANGELOG.md` at the project root. Entries follow [Keep a Changelog](https://keepachangelog.com/) format with categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. During development, entries accumulate under `## [Unreleased]` and are moved to a versioned section on release. Entry format: `- Description of change (commit_hash)`.
+- **Atomic commits**: see "Git Commit Conventions" above and `.claude/rules/00-engineering-principles.md`.
+- **Test-driven development**: see `.claude/rules/10-tdd.md` for the mdpro-specific test matrix and Vitest/XCTest commands.
+- **Changelog**: every release-affecting change updates `CHANGELOG.md` under `## [Unreleased]`, moved to a versioned section on release. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## Cross-Platform Development (Mac + WSL)
 
@@ -301,7 +318,7 @@ The `.gitattributes` `eol=lf` rule is authoritative — no per-developer config 
 
 - Local files only (no cloud sync)
 
-- No plugin system
+- No third-party plugin marketplace (the internal `src/plugins/` Milkdown/CodeMirror architecture is editor-internal only)
 
 - HTML export only (no PDF/Word)
 
