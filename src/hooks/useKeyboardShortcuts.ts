@@ -25,6 +25,11 @@ interface ShortcutHandlers {
   onToggleSidebar?: (actionId?: string) => void;
   onCycleViewMode?: (actionId?: string) => void;
   onOpenPreferences?: (actionId?: string) => void;
+  /**
+   * Fires for `paragraphTable` (default ⌘⌥T). Opens the Insert Table
+   * modal via `tableInsertStore.requestInsert`. Wired in App.tsx.
+   */
+  onInsertTable?: (actionId?: string) => void;
   /** Live keyboard shortcut map. Defaults to DEFAULT_KEYBOARD_SHORTCUTS. */
   shortcuts?: KeyboardShortcuts;
 }
@@ -92,6 +97,7 @@ export function useKeyboardShortcuts({
   onToggleSidebar,
   onCycleViewMode,
   onOpenPreferences,
+  onInsertTable,
   shortcuts = DEFAULT_KEYBOARD_SHORTCUTS,
 }: ShortcutHandlers) {
   const editorView = useEditorStore((state) => state.editorView);
@@ -173,6 +179,13 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.filePreferences, { action: "file.preferences" });
         onOpenPreferences(actionId);
+      } else if (onInsertTable && !inCodeMirror && matchesShortcut(event, shortcuts.paragraphTable)) {
+        // ⌘⌥T (paragraphTable) — opens TableInsertModal in WYSIWYG mode.
+        // CodeMirror gets first dibs (source-mode inserts a literal table is
+        // separate Phase 2 work in the table-CRUD plan).
+        event.preventDefault();
+        const actionId = loggingService.logShortcut(shortcuts.paragraphTable, { action: "paragraph.table" });
+        onInsertTable(actionId);
       }
     };
 
@@ -184,6 +197,7 @@ export function useKeyboardShortcuts({
     onCycleViewMode,
     onExportHtml,
     onHighlight,
+    onInsertTable,
     onNew,
     onOpen,
     onOpenPreferences,
