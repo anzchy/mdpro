@@ -36,12 +36,21 @@
 import { $useKeymap } from "@milkdown/kit/utils";
 import { commandsCtx } from "@milkdown/kit/core";
 import { toggleInlineCodeCommand } from "@milkdown/kit/preset/commonmark";
-import { toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
+import {
+  toggleStrikethroughCommand,
+  goToNextTableCellCommand,
+  goToPrevTableCellCommand,
+  addRowAfterCommand,
+  exitTable,
+} from "@milkdown/kit/preset/gfm";
 import {
   setBlockType,
   toggleMark,
 } from "@milkdown/kit/prose/commands";
+import { isInTable } from "@milkdown/kit/prose/tables";
 import type { Command } from "@milkdown/kit/prose/state";
+
+type EditorStateLike = Parameters<Command>[0];
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
 import { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
@@ -115,6 +124,33 @@ type CommandEntry = {
 };
 
 /**
+ * Gate for the table-tab / table-shift-tab / table-escape handlers.
+ *
+ * Returns `true` only when the cursor is inside a table cell AND we are not
+ * inside a fenced code block AND no IME composition is active. The order
+ * matters: code_block check wins over isInTable so a code block embedded
+ * in a table cell still gets its Tab indentation behavior (preserves the
+ * d170f9c regression test).
+ */
+function isTableTabHandlerEligible(
+  state: EditorStateLike,
+  view: Parameters<Command>[2],
+): boolean {
+  // IME guard — never consume a keystroke that the IME owns.
+  if (view?.composing) return false;
+
+  // Code-block guard — walk up from the selection; if we hit a code block
+  // before any table, the code-block handler downstream owns the key.
+  const { $from } = state.selection;
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    const nodeName = $from.node(depth).type.name;
+    if (nodeName === "code_block") return false;
+  }
+
+  return isInTable(state);
+}
+
+/**
  * The raw keymap config passed to $useKeymap — exported so unit tests can
  * verify shortcut strings and command dispatch without requiring a live editor.
  */
@@ -128,6 +164,46 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
   paragraph: { shortcuts: "Mod-0", command: () => makeParagraphCommand() },
   bold: { shortcuts: "Mod-b", command: () => makeBoldCommand() },
   italic: { shortcuts: "Mod-i", command: () => makeItalicCommand() },
+  // Table navigation entries are registered BEFORE codeBlockIndent so that
+  // ProseMirror's keymap chain consults them first. They short-circuit (return
+  // false) when the cursor is inside a fenced code block, preserving d170f9c
+  // (code-block Tab indentation). They also short-circuit during IME
+  // composition so CJK input owns the keystroke.
+  tableTab: {
+    shortcuts: "Tab",
+    command: (ctx) => {
+      const commands = ctx.get(commandsCtx);
+      return (state: Parameters<Command>[0], _dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
+        if (!isTableTabHandlerEligible(state, view)) return false;
+        const moved = commands.call(goToNextTableCellCommand.key);
+        if (moved) return true;
+        // Last cell of last row — append a new row, then move into it (Typora).
+        commands.call(addRowAfterCommand.key);
+        commands.call(goToNextTableCellCommand.key);
+        return true;
+      };
+    },
+  },
+  tableShiftTab: {
+    shortcuts: "Shift-Tab",
+    command: (ctx) => {
+      const commands = ctx.get(commandsCtx);
+      return (state: Parameters<Command>[0], _dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
+        if (!isTableTabHandlerEligible(state, view)) return false;
+        return commands.call(goToPrevTableCellCommand.key);
+      };
+    },
+  },
+  tableExit: {
+    shortcuts: "Escape",
+    command: (ctx) => {
+      const commands = ctx.get(commandsCtx);
+      return (state: Parameters<Command>[0], _dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
+        if (!isTableTabHandlerEligible(state, view)) return false;
+        return commands.call(exitTable.key);
+      };
+    },
+  },
   codeBlockIndent: {
     shortcuts: "Tab",
     command: () => makeCodeBlockIndentCommand("indent"),
