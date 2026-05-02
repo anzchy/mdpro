@@ -141,6 +141,17 @@
   text-decoration-thickness: 2px;
 }
 
+.milkdown-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.milkdown-editor .ProseMirror img[data-mdpro-image-selected="true"] {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .milkdown-editor .ProseMirror mark {
   background: rgba(255, 85, 130, 0.65);
   padding: 0 2px;

@@ -1,6 +1,7 @@
 import "./MilkdownEditor.css";
 import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
+import { ImageContextMenu } from "./ImageContextMenu";
 import { LinkInsertModal } from "./LinkInsertModal";
 import {
   defaultValueCtx,
@@ -8,7 +9,7 @@ import {
   editorViewCtx,
   rootCtx,
 } from "@milkdown/kit/core";
-import { commonmark } from "@milkdown/kit/preset/commonmark";
+import { commonmark, imageAttr } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
@@ -23,6 +24,7 @@ import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin"
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useDocumentStore } from "../../stores/documentStore";
 import { loggingService } from "../../services/loggingService";
+import { getImageResizeDomAttrs } from "../../plugins/milkdown/imageResizePlugin";
 
 // ---------------------------------------------------------------------------
 // Security helpers — exported for unit testing
@@ -126,7 +128,7 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
           hasMilkdownRoot: !!milkdownRoot,
           hasProseMirror: !!prosemirror,
           proseMirrorChildCount: prosemirror?.childNodes.length ?? 0,
-          proseMirrorInnerHTML: prosemirror?.innerHTML?.substring(0, 300) ?? null,
+          proseMirrorInnerHTMLLength: prosemirror?.innerHTML?.length ?? 0,
         },
       });
     }, 500);
@@ -150,6 +152,7 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
         .config((ctx) => {
           ctx.set(rootCtx, root);
           ctx.set(defaultValueCtx, initialMarkdown);
+          ctx.set(imageAttr.key, getImageResizeDomAttrs);
         })
         .use(commonmark)
         .use(gfm)
@@ -269,7 +272,12 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     });
   }, [highlightRequest]);
 
-  return <Milkdown />;
+  return (
+    <>
+      <Milkdown />
+      <ImageContextMenu editor={editor} activeDocumentId={activeDocumentId} />
+    </>
+  );
 }
 
 interface MilkdownEditorProps {

@@ -226,6 +226,102 @@ pub fn sanitize_html(html: &str) -> String {
         .to_string()
 }
 
+/// Parse `{mdpro-width=N%}` (1-200) from a title attribute value; returns
+/// the percentage and the title with the marker (and a single leading space)
+/// stripped.
+fn extract_image_width_marker(title: &str) -> Option<(u32, String)> {
+    let marker_start = title.rfind("{mdpro-width=")?;
+    let after = &title[marker_start + "{mdpro-width=".len()..];
+    let close_rel = after.find("%}")?;
+    let percent: u32 = after[..close_rel].parse().ok()?;
+    if !(1..=200).contains(&percent) {
+        return None;
+    }
+    let mut left = &title[..marker_start];
+    if left.ends_with(' ') {
+        left = &left[..left.len() - 1];
+    }
+    let right = &after[close_rel + "%}".len()..];
+    let cleaned = format!("{}{}", left, right).trim().to_string();
+    Some((percent, cleaned))
+}
+
+/// Strip mdpro width markers from `<img>` title attributes and convert them
+/// into inline `style` attributes. Operates on the rendered HTML so the same
+/// logic applies regardless of which markdown parser produced the tag.
+fn apply_image_width_marker(html: String) -> String {
+    if !html.contains("{mdpro-width=") {
+        return html;
+    }
+    let mut result = String::with_capacity(html.len());
+    let mut rest = html.as_str();
+    while let Some(idx) = rest.find("<img ") {
+        result.push_str(&rest[..idx]);
+        let tail = &rest[idx..];
+        match tail.find('>') {
+            Some(end) => {
+                let tag = &tail[..=end];
+                result.push_str(&rewrite_img_tag(tag));
+                rest = &tail[end + 1..];
+            }
+            None => {
+                result.push_str(tail);
+                rest = "";
+            }
+        }
+    }
+    result.push_str(rest);
+    result
+}
+
+fn rewrite_img_tag(tag: &str) -> String {
+    let title_key = "title=\"";
+    let Some(title_start) = tag.find(title_key) else {
+        return tag.to_string();
+    };
+    let value_start = title_start + title_key.len();
+    let Some(rel_end) = tag[value_start..].find('"') else {
+        return tag.to_string();
+    };
+    let title_value_end = value_start + rel_end;
+    let title_value = &tag[value_start..title_value_end];
+
+    let Some((percent, cleaned_title)) = extract_image_width_marker(title_value) else {
+        return tag.to_string();
+    };
+
+    // Rebuild attributes:
+    // - drop the title attribute when cleaned title is empty
+    // - otherwise replace the value (already HTML-escaped by pulldown-cmark; do
+    //   not double-escape)
+    // - append `width="N%"` before the closing `>` / `/>`. Use the HTML width
+    //   attribute (universally supported by browsers, preserved by the
+    //   ammonia default sanitizer used in `export_html`) instead of `style`,
+    //   which the sanitizer would otherwise strip.
+    let mut head = String::with_capacity(tag.len() + 32);
+    head.push_str(&tag[..title_start]);
+    if cleaned_title.is_empty() {
+        let after_title = &tag[title_value_end + 1..];
+        let trimmed = after_title.strip_prefix(' ').unwrap_or(after_title);
+        head.push_str(trimmed);
+    } else {
+        head.push_str(title_key);
+        head.push_str(&cleaned_title);
+        head.push('"');
+        head.push_str(&tag[title_value_end + 1..]);
+    }
+
+    let extra = format!(" width=\"{}%\"", percent);
+    let trimmed = head.trim_end();
+    if let Some(stripped) = trimmed.strip_suffix("/>") {
+        format!("{}{} />", stripped.trim_end(), extra)
+    } else if let Some(stripped) = trimmed.strip_suffix('>') {
+        format!("{}{}>", stripped.trim_end(), extra)
+    } else {
+        head
+    }
+}
+
 pub fn render_markdown(markdown: &str) -> String {
     let preprocessed = preprocess_highlight(markdown);
     let markdown = preprocessed.as_str();
@@ -301,12 +397,65 @@ pub fn render_markdown(markdown: &str) -> String {
         }
     }
 
-    html_output
+    apply_image_width_marker(html_output)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_image_width_marker_rewrites_to_width_attr() {
+        let html = render_markdown("![diagram](a.png \"caption {mdpro-width=50%}\")");
+        assert!(
+            !html.contains("{mdpro-width="),
+            "marker should be stripped from rendered HTML, got: {html}"
+        );
+        assert!(html.contains("title=\"caption\""), "got: {html}");
+        assert!(html.contains("width=\"50%\""), "got: {html}");
+    }
+
+    #[test]
+    fn test_image_width_marker_drops_empty_title() {
+        let html = render_markdown("![alt](a.png \"{mdpro-width=75%}\")");
+        assert!(!html.contains("title="), "title should be removed, got: {html}");
+        assert!(html.contains("width=\"75%\""), "got: {html}");
+    }
+
+    #[test]
+    fn test_image_width_marker_ignores_out_of_range() {
+        let html = render_markdown("![alt](a.png \"caption {mdpro-width=500%}\")");
+        // Out-of-range value: leave the rendered HTML untouched.
+        assert!(html.contains("{mdpro-width=500%}"), "got: {html}");
+        assert!(!html.contains("width=\""), "got: {html}");
+    }
+
+    #[test]
+    fn test_image_without_marker_is_unchanged() {
+        let html = render_markdown("![alt](a.png \"caption\")");
+        assert!(html.contains("title=\"caption\""), "got: {html}");
+        assert!(!html.contains("width=\""), "got: {html}");
+    }
+
+    #[test]
+    fn test_image_width_marker_does_not_double_escape_title() {
+        // pulldown-cmark already HTML-escapes the title; the rewriter must
+        // not re-escape it.
+        let html = render_markdown("![alt](a.png \"A & B {mdpro-width=50%}\")");
+        assert!(html.contains("title=\"A &amp; B\""), "got: {html}");
+        assert!(!html.contains("&amp;amp;"), "got: {html}");
+    }
+
+    #[test]
+    fn test_image_width_marker_survives_sanitize_html() {
+        // export_html runs sanitize_html on the rendered fragment; verify the
+        // resize survives. ammonia's default sanitizer strips `style` but
+        // preserves the `width` attribute on <img>.
+        let html = render_markdown("![alt](a.png \"cap {mdpro-width=50%}\")");
+        let safe = sanitize_html(&html);
+        assert!(safe.contains("width=\"50%\""), "got: {safe}");
+        assert!(!safe.contains("{mdpro-width="), "got: {safe}");
+    }
 
     #[test]
     fn test_highlight_renders_as_mark() {

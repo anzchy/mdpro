@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import DOMPurify from "dompurify";
 import { Marked } from "marked";
+import { applyImageWidthMarkerToHtml } from "../plugins/milkdown/imageResizePlugin";
 import { renderHighlightSyntaxInHtml } from "./highlightSyntax";
 import { loggingService } from "./loggingService";
 
@@ -83,7 +84,7 @@ export const exportService = {
     const stripped = stripFrontmatter(markdown);
     try {
       const result = await invoke<RenderMarkdownResult>("render_markdown", { content: stripped });
-      return renderHighlightSyntaxInHtml(sanitize(result.html));
+      return applyImageWidthMarkerToHtml(renderHighlightSyntaxInHtml(sanitize(result.html)));
     } catch (err) {
       loggingService.logEventSync({
         level: "warn",
@@ -92,7 +93,7 @@ export const exportService = {
         context: { error: err instanceof Error ? err.message : String(err) },
       });
       const html = parseMarkdownWithHeadingIds(stripped);
-      return renderHighlightSyntaxInHtml(sanitize(html));
+      return applyImageWidthMarkerToHtml(renderHighlightSyntaxInHtml(sanitize(html)));
     }
   },
 
