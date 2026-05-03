@@ -14,6 +14,7 @@ import type {
   TableActionId,
   TableContext,
 } from "../../plugins/milkdown/table/types";
+import { isActionDisabled } from "../../plugins/milkdown/table/actionGate";
 import {
   deleteColumn,
   deleteRow,
@@ -29,27 +30,6 @@ import {
   setAlignment,
   type EditResult,
 } from "./edits";
-
-/**
- * Replicated from the Phase 1 WYSIWYG dispatcher so this module is
- * independently testable without importing Milkdown. Single-source
- * candidate for L4 follow-up — the rule is simple enough that
- * duplication is currently acceptable.
- */
-function isActionDisabled(id: TableActionId, ctx: TableContext): boolean {
-  switch (id) {
-    case "move_row_up":
-      return ctx.rowIndex <= 0;
-    case "move_row_down":
-      return ctx.rowIndex >= ctx.rowCount - 1;
-    case "move_column_left":
-      return ctx.colIndex <= 0;
-    case "move_column_right":
-      return ctx.colIndex >= ctx.colCount - 1;
-    default:
-      return false;
-  }
-}
 
 /**
  * Apply the matching edit for the action id. Returns null when the

@@ -16,6 +16,7 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { TableMap } from "@milkdown/kit/prose/tables";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import type { Node as ProseNode } from "@milkdown/kit/prose/model";
+import { loggingService } from "../../services/loggingService";
 import type { TableCellPos } from "./table";
 
 interface MilkdownEditorLike {
@@ -108,7 +109,21 @@ export function restoreCellInMilkdownView(
     const tr = view.state.tr.setSelection(TextSelection.near($cell));
     view.dispatch(tr);
     return true;
-  } catch {
+  } catch (err) {
+    // Audit-fix L3: surface real logic bugs via the structured log so
+    // they don't get silently swallowed at restore time.
+    loggingService.logEventSync({
+      level: "warn",
+      event: "editor.table.cursor-sync.restore",
+      status: "fail",
+      actionId: loggingService.generateActionId(),
+      context: {
+        tableIndex: pos.tableIndex,
+        rowIndex: pos.rowIndex,
+        colIndex: pos.colIndex,
+        error: err instanceof Error ? err.message : String(err),
+      },
+    });
     return false;
   }
 }

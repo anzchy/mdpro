@@ -41,6 +41,7 @@ import {
   type TableCellAlignment,
   type TableContext,
 } from "./actionDescriptors";
+import { isActionDisabled } from "./actionGate";
 
 interface MilkdownEditorLike {
   action: (fn: (ctx: unknown) => void) => void;
@@ -141,21 +142,6 @@ function isActionActive(id: TableActionId, ctx: TableContext): boolean {
       return ctx.alignment === "center";
     case "align_right":
       return ctx.alignment === "right";
-    default:
-      return false;
-  }
-}
-
-function isActionDisabled(id: TableActionId, ctx: TableContext): boolean {
-  switch (id) {
-    case "move_row_up":
-      return ctx.rowIndex <= 0;
-    case "move_row_down":
-      return ctx.rowIndex >= ctx.rowCount - 1;
-    case "move_column_left":
-      return ctx.colIndex <= 0;
-    case "move_column_right":
-      return ctx.colIndex >= ctx.colCount - 1;
     default:
       return false;
   }

@@ -26,6 +26,27 @@ import { useMilkdownEditorStore } from "./milkdownEditorStore";
  * a doc-switch between this capture and the inbound editor's mount
  * doesn't apply stale coords to a different document.
  */
+/**
+ * Audit-fix L2: setViewMode and cycleViewMode share the same
+ * pre-transition work — capture the table cell on the outgoing
+ * editor, then log the change. Extract into one helper so a future
+ * tweak (e.g., capture image-resize state too) lands in one place.
+ */
+function runViewModeTransition(
+  state: { viewMode: ViewMode; editorView: EditorView | null },
+  toMode: ViewMode,
+  source: "setViewMode" | "cycleViewMode",
+): void {
+  capturePendingTableCellForTransition(state.viewMode, state.editorView);
+  loggingService.logEventSync({
+    level: "info",
+    event: "view.mode.change",
+    status: "success",
+    actionId: loggingService.generateActionId(),
+    context: { fromMode: state.viewMode, toMode, source },
+  });
+}
+
 function capturePendingTableCellForTransition(
   fromMode: ViewMode,
   cmView: EditorView | null,
@@ -104,23 +125,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setActiveDocumentId: (id) => set({ activeDocumentId: id }),
   setViewMode: (mode) =>
     set((state) => {
-      if (state.viewMode !== mode) {
-        // WI-2.6: capture cell on the outgoing editor BEFORE we mutate
-        // viewMode — React reconciles after this set() returns, so the
-        // outgoing editor is still mounted right now.
-        capturePendingTableCellForTransition(state.viewMode, state.editorView);
-        loggingService.logEventSync({
-          level: "info",
-          event: "view.mode.change",
-          status: "success",
-          actionId: loggingService.generateActionId(),
-          context: {
-            fromMode: state.viewMode,
-            toMode: mode,
-            source: "setViewMode",
-          },
-        });
-      }
+      if (state.viewMode === mode) return { viewMode: mode };
+      runViewModeTransition(state, mode, "setViewMode");
       return { viewMode: mode };
     }),
   cycleViewMode: () =>
@@ -130,20 +136,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
       const nextIndex =
         currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;
       const nextMode = order[nextIndex];
-      if (nextMode !== state.viewMode) {
-        capturePendingTableCellForTransition(state.viewMode, state.editorView);
-        loggingService.logEventSync({
-          level: "info",
-          event: "view.mode.change",
-          status: "success",
-          actionId: loggingService.generateActionId(),
-          context: {
-            fromMode: state.viewMode,
-            toMode: nextMode,
-            source: "cycleViewMode",
-          },
-        });
-      }
+      if (nextMode === state.viewMode) return { viewMode: nextMode };
+      runViewModeTransition(state, nextMode, "cycleViewMode");
       return { viewMode: nextMode };
     }),
   setEditorView: (view) => set({ editorView: view }),
