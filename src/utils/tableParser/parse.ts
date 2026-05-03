@@ -88,48 +88,6 @@ export function parseTableAt(source: string, offset: number): TableModel | null 
   };
 }
 
-/**
- * Locate the cell at a given character offset within the original
- * source. Returns null when the offset is between cells (e.g., inside
- * a `|` separator or in the delimiter row).
- */
-export function findCell(model: TableModel, offset: number): TableCell | null {
-  for (const cell of model.cells) {
-    if (offset >= cell.start && offset < cell.end) return cell;
-  }
-  return null;
-}
-
-/**
- * `findCell` falls back to the nearest cell by offset distance when
- * the strict match fails (delimiter row, pipe boundary, end-of-cell
- * whitespace). Used by the source-mode context menu (audit M4) so a
- * right-click on `|` or `---` still opens the menu and can act on a
- * sensible column. Returns null only when the model has no cells.
- */
-export function findCellOrNearest(
-  model: TableModel,
-  offset: number,
-): TableCell | null {
-  const exact = findCell(model, offset);
-  if (exact) return exact;
-  let nearest: TableCell | null = null;
-  let nearestDist = Infinity;
-  for (const cell of model.cells) {
-    const dist =
-      offset < cell.start
-        ? cell.start - offset
-        : offset > cell.end
-          ? offset - cell.end
-          : 0;
-    if (dist < nearestDist) {
-      nearestDist = dist;
-      nearest = cell;
-    }
-  }
-  return nearest;
-}
-
 // ---------------------------------------------------------------------------
 // Internal helpers (also used by serialize.ts via the parsed delimiter row)
 // ---------------------------------------------------------------------------
