@@ -112,11 +112,34 @@
   margin: 0 0 12px 20px;
 }
 
+/* Wide-table fit-to-width (table-CRUD WI-2.7).
+   prosemirror-tables's columnResizing plugin already renders every
+   table inside a <div class="tableWrapper">. Making that wrapper a
+   horizontal scroll container is enough — the inner table grows to its
+   own min-width (set inline by TableView's column-resize math) and the
+   wrapper provides the scroll when the natural width exceeds the
+   editor content area. Mirrors the .table-scroll-container pattern in
+   `.claude/rules/32-component-patterns.md` § Table; the canonical
+   class name lives inside prosemirror-tables and we style it directly
+   instead of renaming. */
+.milkdown-editor .ProseMirror .tableWrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0 0 16px;
+}
+
 .milkdown-editor .ProseMirror table {
   width: 100%;
   border-collapse: collapse;
   margin: 0 0 16px;
   font-size: 14px;
+}
+
+/* When a table sits inside its own .tableWrapper (the normal case), the
+   wrapper owns the bottom margin — drop it from the table itself to
+   avoid double spacing. */
+.milkdown-editor .ProseMirror .tableWrapper > table {
+  margin: 0;
 }
 
 .milkdown-editor .ProseMirror th,

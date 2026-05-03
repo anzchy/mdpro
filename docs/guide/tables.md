@@ -51,6 +51,16 @@ This is a deliberate trade-off to keep the markdown file portable across
 other tools (Typora, GitHub, vmark, etc.). If you need fixed column
 widths in exported HTML, use the export's CSS to set `width:` per column.
 
+## Wide tables — horizontal scroll
+
+When a table's natural width exceeds the editor content area, the table
+becomes horizontally scrollable instead of overflowing the editor. The
+header row and body cells stay aligned because the scroll wrapper
+encapsulates the whole table.
+
+This works automatically — no markdown syntax required. Set generous
+column widths via the resize handle and the wrapper handles the rest.
+
 ## Limitations
 
 mdpro v1 supports the GFM table dialect:
