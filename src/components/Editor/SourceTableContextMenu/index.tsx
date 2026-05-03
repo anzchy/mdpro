@@ -179,15 +179,23 @@ export function SourceTableContextMenu() {
     };
     const handleScroll = () => closeMenu();
     const handleResize = () => closeMenu();
+    // Audit-fix M5: dismiss the menu when the editor's content changes
+    // while it is open. Stored `pos` becomes meaningless after a doc
+    // edit — without this guard, dispatch would re-parse against a
+    // potentially different table at the same offset.
+    const handleInput = () => closeMenu();
+    const cmEditor = document.querySelector("#source-container .cm-editor");
     window.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", handleResize);
     window.addEventListener("scroll", handleScroll, true);
+    cmEditor?.addEventListener("input", handleInput);
     return () => {
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", handleScroll, true);
+      cmEditor?.removeEventListener("input", handleInput);
     };
   }, [menu, closeMenu]);
 

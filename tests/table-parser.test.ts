@@ -21,6 +21,7 @@
 import { describe, expect, it } from "vitest";
 import {
   findCell,
+  findCellOrNearest,
   parseTableAt,
   serializeModel,
   serializeRows,
@@ -288,6 +289,50 @@ describe("serializeModel — round-trip", () => {
     const out = serializeModel(model);
     // Each delimiter cell should encode its alignment via colons
     expect(out).toMatch(/:-+\s*\|\s*:-+:|---:/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findCellOrNearest — fallback to nearest cell for delimiter/pipe clicks
+// ---------------------------------------------------------------------------
+
+describe("findCellOrNearest", () => {
+  const md = "| a | b | c |\n| - | - | - |\n| 1 | 2 | 3 |\n";
+  const model = parseTableAt(md, 0)!;
+
+  it("returns the same result as findCell when an exact match exists", () => {
+    const offsetIn1 = md.indexOf("| 1") + 2;
+    expect(findCellOrNearest(model, offsetIn1)).toEqual(
+      findCell(model, offsetIn1),
+    );
+  });
+
+  it("returns the nearest cell when offset is on a pipe separator", () => {
+    const pipeBetween12 = md.indexOf("1 |") + 2;
+    const cell = findCellOrNearest(model, pipeBetween12);
+    expect(cell).not.toBeNull();
+    expect(cell!.row).toBe(1);
+    // Should be either col 0 (cell `1`) or col 1 (cell `2`).
+    expect([0, 1]).toContain(cell!.col);
+  });
+
+  it("returns the nearest cell when offset sits in the delimiter row", () => {
+    const inDelim = md.indexOf("- |") + 1;
+    const cell = findCellOrNearest(model, inDelim);
+    expect(cell).not.toBeNull();
+    // The closest cell is in row 0 (header) or row 1 (first body).
+    expect([0, 1]).toContain(cell!.row);
+  });
+
+  it("returns null when the model has no cells", () => {
+    const empty: TableModel = {
+      ...model,
+      cells: [],
+      rows: [[]],
+      rowCount: 0,
+      colCount: 0,
+    };
+    expect(findCellOrNearest(empty, 0)).toBeNull();
   });
 });
 

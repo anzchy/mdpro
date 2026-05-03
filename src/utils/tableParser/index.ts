@@ -38,5 +38,5 @@ export type {
   TableCell,
   TableModel,
 } from "./types";
-export { findCell, parseTableAt } from "./parse";
+export { findCell, findCellOrNearest, parseTableAt } from "./parse";
 export { serializeModel, serializeRows } from "./serialize";

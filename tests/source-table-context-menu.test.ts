@@ -56,6 +56,30 @@ describe("computeSourceTableContext", () => {
     const offset = md.indexOf("| 1") + 2;
     expect(computeSourceTableContext(view.state, offset)).toBeNull();
   });
+
+  // Audit-fix M4: right-click on the delimiter row or directly on a
+  // pipe separator must still open the menu, mapped to the nearest
+  // cell so the user's column intent is preserved.
+  it("right-click on the delimiter row maps to the nearest cell (header or first body)", () => {
+    const view = makeView(SIMPLE_MD);
+    // Position inside the `:----` cell of the delimiter row.
+    const inDelim = SIMPLE_MD.indexOf("- |") + 1;
+    const result = computeSourceTableContext(view.state, inDelim);
+    expect(result).not.toBeNull();
+    // Column should be one of the table's columns (0/1/2), not null.
+    expect([0, 1, 2]).toContain(result!.ctx.colIndex);
+  });
+
+  it("right-click directly on a pipe separator maps to the nearest cell", () => {
+    const view = makeView(SIMPLE_MD);
+    // Find the `|` between `1` and `2` in the body row.
+    const pipeBetween12 = SIMPLE_MD.indexOf("1 |") + 2;
+    const result = computeSourceTableContext(view.state, pipeBetween12);
+    expect(result).not.toBeNull();
+    // Should resolve to the body row (rowIndex 1) at col 0 or col 1.
+    expect(result!.ctx.rowIndex).toBe(1);
+    expect([0, 1]).toContain(result!.ctx.colIndex);
+  });
 });
 
 describe("dispatchSourceTableAction — happy path", () => {

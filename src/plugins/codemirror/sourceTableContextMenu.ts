@@ -29,7 +29,7 @@
 
 import { EditorSelection, type EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { findCell, parseTableAt, type TableModel } from "../../utils/tableParser";
+import { findCellOrNearest, parseTableAt, type TableModel } from "../../utils/tableParser";
 import { applyEdit } from "../../utils/tableEdits";
 import { isPositionInFencedCode } from "./sourceTableDetection";
 import type {
@@ -45,9 +45,10 @@ export interface SourceTableContextResult {
 
 /**
  * Compute the table context (and underlying model) at the given source
- * offset. Returns null when the offset is not inside any table cell —
- * including positions in the delimiter row, between cells, or inside a
- * fenced code block.
+ * offset. Returns null when the offset is outside any table or inside
+ * a fenced code block. Audit-fix M4: clicks on the delimiter row or
+ * directly on a `|` separator are mapped to the nearest cell so the
+ * context menu still opens with a sensible column selection.
  */
 export function computeSourceTableContext(
   state: EditorState,
@@ -57,7 +58,7 @@ export function computeSourceTableContext(
   const source = state.doc.toString();
   const model = parseTableAt(source, pos);
   if (!model) return null;
-  const cell = findCell(model, pos);
+  const cell = findCellOrNearest(model, pos);
   if (!cell) return null;
   const align = model.alignments[cell.col];
   const alignment: TableCellAlignment =
