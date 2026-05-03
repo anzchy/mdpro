@@ -24,12 +24,12 @@ import { inlineEditMilkdownPlugin } from "../../plugins/milkdown/inlineEditPlugi
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
+import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
+import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useMilkdownEditorStore } from "../../stores/milkdownEditorStore";
 import { loggingService } from "../../services/loggingService";
 import { getImageResizeDomAttrs } from "../../plugins/milkdown/imageResizePlugin";
-import { consumePendingTableCell } from "../../utils/cursorSync/table";
-import { restoreCellInMilkdownEditor } from "../../utils/cursorSync/tableMilkdown";
 
 // ---------------------------------------------------------------------------
 // Security helpers — exported for unit testing
@@ -231,58 +231,11 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
   // Resolve local image paths to Tauri asset:// URLs after Milkdown renders
   useMilkdownImages(editor, activeDocument?.path ?? null, activeDocumentId);
 
-  // Block javascript: and data: link clicks in the WYSIWYG editor (#10).
-  // Mirrors the link-click guard in Preview.tsx.
-  useEffect(() => {
-    const container = document.getElementById("milkdown-container");
-    if (!container) return;
-
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      const link = target?.closest("a");
-      if (!link || !(link instanceof HTMLAnchorElement)) return;
-      const href = link.getAttribute("href") ?? "";
-      if (!isSafeHref(href)) {
-        // Silently block dangerous protocol links
-        event.preventDefault();
-        event.stopPropagation();
-        loggingService.logEventSync({
-          level: "warn",
-          event: "editor.milkdown.link.blocked",
-          status: "fail",
-          actionId: loggingService.generateActionId(),
-          context: { href: href.substring(0, 100) },
-        });
-        return;
-      }
-      // Safe link — open externally
-      event.preventDefault();
-      import("@tauri-apps/plugin-opener")
-        .then(({ openUrl }) => openUrl(link.href))
-        .catch(() => window.open(link.href, "_blank", "noopener,noreferrer"));
-    };
-
-    container.addEventListener("click", handleClick);
-    return () => container.removeEventListener("click", handleClick);
-  }, [activeDocumentId]);
-
-  // WI-2.6: when arriving in WYSIWYG mode and the source-side capture
-  // recorded a cell, navigate to the matching cell once the editor is
-  // ready. Audit-fix M2: scope consume to the active document so a
-  // re-mount after a doc-switch can't steal a stale capture.
-  // Audit-fix M3: drop the unstable `editor` object from the dep array;
-  // `editor.loading` flipping is the only signal we react to and a
-  // stable activeDocumentId keeps the effect from firing twice when
-  // useEditor returns a new wrapper but loading hasn't actually changed.
-  useEffect(() => {
-    if (editor.loading) return;
-    const instance = editor.get();
-    if (!instance) return;
-    const pending = consumePendingTableCell(activeDocumentId);
-    if (!pending) return;
-    restoreCellInMilkdownEditor(instance, pending);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor.loading, activeDocumentId]);
+  // Block javascript:/data: link clicks (#10); WI-2.6 cursor restore on
+  // mode toggle. Both extracted to hook files to keep this component
+  // under the 300-line guideline.
+  useMilkdownLinkClickGuard(activeDocumentId);
+  useMilkdownTableCursorRestore(editor, activeDocumentId);
 
   // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
   // In source/split mode the CodeMirror highlightCommand handles this instead

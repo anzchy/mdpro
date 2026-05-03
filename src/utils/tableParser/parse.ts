@@ -1,84 +1,19 @@
 /**
- * @module tableParser
- * Purpose: Pure GFM table parser (Phase 2 WI-2.0). Single source of
- * truth for source-mode detection, Tab navigation, source-mode context
- * menu, lint rule, formatter, and Phase 3 MCP tools — they all need to
- * "find cell boundaries in this source range" and must not ship their
- * own pipe-scanning regex.
- *
- * GFM table format:
- *
- *   | Header A | Header B |   ← header row (edge pipes optional)
- *   | :------- | -------: |   ← delimiter row (alignment via colons)
- *   | cell 1   | cell 2   |   ← body rows
- *
- * Edge cases handled:
- *   - escaped `\|` inside cell content
- *   - missing leading/trailing `|`
- *   - up to 3 leading spaces (CommonMark indented-code boundary)
- *   - CRLF normalized to LF for processing; offsets refer to the
- *     ORIGINAL source so callers don't need to translate
- *   - body rows shorter/longer than header (padded / truncated per GFM)
- *
- * Out of scope for v1:
- *   - tables inside blockquotes (`> | a | b |`)
- *   - tables inside list items (multi-paragraph lists with embedded tables)
- *   - tables inside fenced code blocks (caller responsibility — fence
- *     detection lives in the CodeMirror integration layer that consumes
- *     this parser; the parser itself does NOT scan for fences because
- *     it operates on a single table-shaped region the caller hands it)
- *
- * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts (planned WI-2.2)
- * @coordinates-with src/plugins/codemirror/sourceTableTabNav.ts (planned WI-2.3)
- * @coordinates-with src/plugins/codemirror/sourceTableContextMenu.ts (planned WI-2.4)
- * @coordinates-with src/utils/tableFormatter.ts (planned WI-3.2)
- * @coordinates-with src/plugins/codemirror/lintTableColumnCount.ts (planned WI-3.1)
+ * @module tableParser/parse
+ * Purpose: Core GFM table recognition (Phase 2 WI-2.0). Returns a
+ * `TableModel` with absolute offsets so downstream consumers (Tab nav,
+ * context menu, cursor sync, lint, MCP) never reinvent pipe-scanning.
+ * Fence detection is the caller's responsibility — see
+ * `src/plugins/codemirror/sourceTableDetection.ts`.
  */
 
-export type ColumnAlignment = "left" | "center" | "right" | null;
-
-export interface TableCell {
-  /** Character offset (inclusive) within the original source. */
-  start: number;
-  /** Character offset (exclusive). */
-  end: number;
-  /** Cell content with leading/trailing whitespace trimmed. */
-  text: string;
-  /** Row index (0 = header). */
-  row: number;
-  /** Column index (0 = leftmost). */
-  col: number;
-}
-
-export interface TableModel {
-  /** Source offset (inclusive) of the first character of the table. */
-  start: number;
-  /** Source offset (exclusive) of the end of the table. */
-  end: number;
-  /** Header + body row count. */
-  rowCount: number;
-  /** Column count derived from the header / delimiter rows. */
-  colCount: number;
-  /** Per-column alignment from the delimiter row. */
-  alignments: ColumnAlignment[];
-  /** All cells in row-major order. */
-  cells: TableCell[];
-  /** Cells indexed as rows[row][col]. */
-  rows: TableCell[][];
-  /** The exact substring of the original source that the table occupies. */
-  raw: string;
-}
-
-interface LineRange {
-  /** Start offset in source (inclusive). */
-  start: number;
-  /** End offset in source (exclusive of the trailing `\n` if present). */
-  end: number;
-  /** Line content WITHOUT the trailing newline. May contain `\r`. */
-  text: string;
-}
-
-const MAX_INDENT = 3; // CommonMark: 4+ spaces is an indented code block.
+import {
+  MAX_INDENT,
+  type ColumnAlignment,
+  type LineRange,
+  type TableCell,
+  type TableModel,
+} from "./types";
 
 /**
  * Locate a GFM table containing `offset`. Returns null when no table
@@ -165,85 +100,8 @@ export function findCell(model: TableModel, offset: number): TableCell | null {
   return null;
 }
 
-/**
- * Render a TableModel back to GFM markdown. Padding aligns the pipes
- * column-by-column for readable raw markdown. Round-trips with
- * `parseTableAt`.
- */
-export function serializeModel(model: TableModel): string {
-  // Compute the visual width of each column from the maximum cell text
-  // length — keeps the pipes lined up in the source.
-  const widths = computeColumnWidths(model);
-
-  const headerRow = model.rows[0];
-  const lines: string[] = [];
-  lines.push(emitRow(headerRow, widths));
-  lines.push(emitDelimiterRow(model.alignments, widths));
-  for (let i = 1; i < model.rows.length; i += 1) {
-    lines.push(emitRow(model.rows[i], widths));
-  }
-  return lines.join("\n") + "\n";
-}
-
-/**
- * Render a synthesized table from raw row text + alignments. Used by
- * `tableEdits` (Phase 2 WI-2.4) to write back into the source range
- * `[model.start, model.end)` after a structural edit (insert/delete row,
- * move column, etc.) without first reconstructing a full TableModel.
- *
- * Unlike `serializeModel`, the output has NO trailing newline — it is
- * a drop-in replacement for `model.raw` (which also excludes the
- * trailing newline of the last line).
- *
- * `rows[0]` is the header row; subsequent rows are body rows. The
- * delimiter row is generated from `alignments` and is NOT included in
- * `rows`.
- */
-export function serializeRows(
-  rows: string[][],
-  alignments: ColumnAlignment[],
-): string {
-  if (rows.length === 0) return "";
-  const colCount = alignments.length;
-  // Compute padding widths from the longest cell per column (and at
-  // least 3 so the delimiter row's `---` survives).
-  const widths = new Array(colCount).fill(3);
-  for (const row of rows) {
-    for (let c = 0; c < Math.min(row.length, colCount); c += 1) {
-      widths[c] = Math.max(widths[c], row[c].length);
-    }
-  }
-  const headerCells: TableCell[] = padRow(rows[0], colCount).map((text, c) => ({
-    start: 0,
-    end: 0,
-    text,
-    row: 0,
-    col: c,
-  }));
-  const lines: string[] = [];
-  lines.push(emitRow(headerCells, widths));
-  lines.push(emitDelimiterRow(alignments, widths));
-  for (let r = 1; r < rows.length; r += 1) {
-    const bodyCells: TableCell[] = padRow(rows[r], colCount).map((text, c) => ({
-      start: 0,
-      end: 0,
-      text,
-      row: r,
-      col: c,
-    }));
-    lines.push(emitRow(bodyCells, widths));
-  }
-  return lines.join("\n");
-}
-
-function padRow(row: string[], colCount: number): string[] {
-  const out = row.slice(0, colCount);
-  while (out.length < colCount) out.push("");
-  return out;
-}
-
 // ---------------------------------------------------------------------------
-// Internal helpers
+// Internal helpers (also used by serialize.ts via the parsed delimiter row)
 // ---------------------------------------------------------------------------
 
 function splitLines(source: string): LineRange[] {
@@ -379,7 +237,6 @@ function parseRowCells(line: LineRange, rowIdx: number, colCount: number): Table
   let segStart = 0; // offset relative to `stripped`
   let buf = "";
   let escaped = false;
-  let firstSegEdgePipe = false; // tracks whether the first `|` was an edge pipe
 
   for (let i = 0; i < stripped.length; i += 1) {
     const ch = stripped[i];
@@ -399,7 +256,6 @@ function parseRowCells(line: LineRange, rowIdx: number, colCount: number): Table
       if (cells.length === 1 && cells[0].text.trim() === "") {
         // Drop the empty leading-edge cell.
         cells.length = 0;
-        firstSegEdgePipe = true;
       }
       continue;
     }
@@ -423,8 +279,6 @@ function parseRowCells(line: LineRange, rowIdx: number, colCount: number): Table
   }
   if (cells.length > colCount) cells.length = colCount;
 
-  void firstSegEdgePipe; // intentional: tracked for future debug logging
-
   return cells.map((c, colIdx): TableCell => ({
     start: baseOffset + c.start,
     end: baseOffset + c.end,
@@ -442,36 +296,4 @@ function parseAlignment(cell: string): ColumnAlignment {
   if (right) return "right";
   if (left) return "left";
   return null;
-}
-
-function computeColumnWidths(model: TableModel): number[] {
-  const widths = new Array(model.colCount).fill(3); // min 3 for `---`
-  for (const row of model.rows) {
-    for (let c = 0; c < row.length; c += 1) {
-      widths[c] = Math.max(widths[c], row[c].text.length);
-    }
-  }
-  return widths;
-}
-
-function emitRow(row: TableCell[], widths: number[]): string {
-  const parts = row.map((cell, c) => ` ${cell.text.padEnd(widths[c])} `);
-  return "|" + parts.join("|") + "|";
-}
-
-function emitDelimiterRow(alignments: ColumnAlignment[], widths: number[]): string {
-  const parts = alignments.map((align, c) => {
-    const w = widths[c];
-    switch (align) {
-      case "left":
-        return ` :${"-".repeat(w - 1)} `;
-      case "right":
-        return ` ${"-".repeat(w - 1)}: `;
-      case "center":
-        return ` :${"-".repeat(Math.max(w - 2, 1))}: `;
-      default:
-        return ` ${"-".repeat(w)} `;
-    }
-  });
-  return "|" + parts.join("|") + "|";
 }

@@ -1,16 +1,20 @@
 /**
- * @module tableEdits
- * Purpose: Pure source-mode table edits (Phase 2 WI-2.4). Each function
- * takes a parsed `TableModel` plus a `TableContext` and returns the new
- * source for the table region plus a cursor offset within that source.
+ * @module tableEdits/edits
+ * Purpose: 14 pure source-mode table edits (Phase 2 WI-2.4). Each
+ * function takes a parsed `TableModel` plus a `TableContext` and
+ * returns the new source for the table region plus a cursor offset
+ * within that source.
  *
  * Strategy: build a mutable `string[][]` from the model, apply the
  * structural mutation, serialize via `serializeRows`, then re-parse to
  * read the cursor target cell's offset. Re-parsing is cheap and avoids
  * reinventing offset arithmetic for every action.
  *
+ * The action-id dispatcher (`applyEdit`) lives in `applyEdit.ts` so
+ * this file stays focused on the per-action math.
+ *
+ * @coordinates-with src/utils/tableEdits/applyEdit.ts
  * @coordinates-with src/plugins/codemirror/sourceTableContextMenu.ts
- * @coordinates-with src/plugins/milkdown/table/actionDescriptors.ts
  */
 
 import {
@@ -18,12 +22,11 @@ import {
   serializeRows,
   type ColumnAlignment,
   type TableModel,
-} from "./tableParser";
+} from "../tableParser";
 import type {
-  TableActionId,
   TableCellAlignment,
   TableContext,
-} from "../plugins/milkdown/table/types";
+} from "../../plugins/milkdown/table/types";
 
 export interface EditResult {
   /** New text for the source range `[model.start, model.end)`. */
@@ -33,10 +36,9 @@ export interface EditResult {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Read the model into a mutable rows + alignments pair. */
 function mutableFromModel(model: TableModel): {
   rows: string[][];
   alignments: ColumnAlignment[];
@@ -47,11 +49,6 @@ function mutableFromModel(model: TableModel): {
   };
 }
 
-/**
- * Serialize and locate the cursor target cell. When the resulting
- * table has zero rows or zero columns, returns an empty source — the
- * dispatcher treats this as "delete the table region".
- */
 function emit(
   rows: string[][],
   alignments: ColumnAlignment[],
@@ -72,6 +69,28 @@ function emit(
 
 function makeBlankRow(colCount: number): string[] {
   return new Array(colCount).fill("");
+}
+
+function swapRows(rows: string[][], a: number, b: number): void {
+  const tmp = rows[a];
+  rows[a] = rows[b];
+  rows[b] = tmp;
+}
+
+function swapColumns(
+  rows: string[][],
+  alignments: ColumnAlignment[],
+  a: number,
+  b: number,
+): void {
+  for (const row of rows) {
+    const tmp = row[a];
+    row[a] = row[b];
+    row[b] = tmp;
+  }
+  const tmp = alignments[a];
+  alignments[a] = alignments[b];
+  alignments[b] = tmp;
 }
 
 // ---------------------------------------------------------------------------
@@ -156,28 +175,6 @@ export function deleteTable(
 // Move
 // ---------------------------------------------------------------------------
 
-function swapRows(rows: string[][], a: number, b: number): void {
-  const tmp = rows[a];
-  rows[a] = rows[b];
-  rows[b] = tmp;
-}
-
-function swapColumns(
-  rows: string[][],
-  alignments: ColumnAlignment[],
-  a: number,
-  b: number,
-): void {
-  for (const row of rows) {
-    const tmp = row[a];
-    row[a] = row[b];
-    row[b] = tmp;
-  }
-  const tmp = alignments[a];
-  alignments[a] = alignments[b];
-  alignments[b] = tmp;
-}
-
 export function moveRowUp(model: TableModel, ctx: TableContext): EditResult {
   const { rows, alignments } = mutableFromModel(model);
   swapRows(rows, ctx.rowIndex, ctx.rowIndex - 1);
@@ -223,80 +220,4 @@ export function setAlignment(
   const { rows, alignments } = mutableFromModel(model);
   alignments[ctx.colIndex] = align;
   return emit(rows, alignments, ctx.rowIndex, ctx.colIndex);
-}
-
-// ---------------------------------------------------------------------------
-// Action-id dispatcher
-// ---------------------------------------------------------------------------
-
-/**
- * Mirror of `isActionDisabled` from the WYSIWYG dispatcher (single
- * source of truth lives there in spirit; replicated here so this module
- * is independently testable without importing Milkdown).
- */
-function isActionDisabled(id: TableActionId, ctx: TableContext): boolean {
-  switch (id) {
-    case "move_row_up":
-      return ctx.rowIndex <= 0;
-    case "move_row_down":
-      return ctx.rowIndex >= ctx.rowCount - 1;
-    case "move_column_left":
-      return ctx.colIndex <= 0;
-    case "move_column_right":
-      return ctx.colIndex >= ctx.colCount - 1;
-    default:
-      return false;
-  }
-}
-
-/**
- * Apply the matching edit for the action id. Returns null when the
- * action is disabled at the given context (out-of-range move) or
- * unrecognized.
- *
- * Mirrors `dispatchTableAction`'s M1 audit-fix gate: the dispatcher
- * does not have to check disabled-ness — `applyEdit` returns null and
- * the dispatcher treats that as "no-op".
- */
-export function applyEdit(
-  model: TableModel,
-  ctx: TableContext,
-  id: TableActionId,
-): EditResult | null {
-  if (isActionDisabled(id, ctx)) return null;
-  switch (id) {
-    case "insert_row_before":
-      return insertRowBefore(model, ctx);
-    case "insert_row_after":
-      return insertRowAfter(model, ctx);
-    case "insert_column_before":
-      return insertColumnBefore(model, ctx);
-    case "insert_column_after":
-      return insertColumnAfter(model, ctx);
-    case "move_row_up":
-      return moveRowUp(model, ctx);
-    case "move_row_down":
-      return moveRowDown(model, ctx);
-    case "move_column_left":
-      return moveColumnLeft(model, ctx);
-    case "move_column_right":
-      return moveColumnRight(model, ctx);
-    case "align_left":
-      return setAlignment(model, ctx, "left");
-    case "align_center":
-      return setAlignment(model, ctx, "center");
-    case "align_right":
-      return setAlignment(model, ctx, "right");
-    case "delete_row":
-      return deleteRow(model, ctx);
-    case "delete_column":
-      return deleteColumn(model, ctx);
-    case "delete_table":
-      return deleteTable(model, ctx);
-    default: {
-      const _exhaustive: never = id;
-      void _exhaustive;
-      return null;
-    }
-  }
 }
