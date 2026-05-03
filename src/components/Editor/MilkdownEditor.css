@@ -154,6 +154,38 @@
   outline-offset: -2px;
 }
 
+/* Column resize handle (table-CRUD WI-2.1).
+   prosemirror-tables (via the gfm preset's columnResizingPlugin) injects
+   a <div class="column-resize-handle"> on cell borders. Display rules:
+     - Always visible 1px hairline using --color-border
+     - On cell hover OR while dragging: expands to 3px with --color-accent
+     - Widths are session-local (NOT persisted to GFM markdown — see
+       docs/guide/tables.md) */
+.milkdown-editor .ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+  pointer-events: auto;
+  cursor: col-resize;
+}
+
+.milkdown-editor .ProseMirror td:hover .column-resize-handle,
+.milkdown-editor .ProseMirror th:hover .column-resize-handle,
+.milkdown-editor .ProseMirror .column-resize-handle.dragging {
+  width: 3px;
+  background: var(--color-accent);
+}
+
+/* The resize plugin needs cells to be position: relative so the
+   absolutely-positioned handle anchors correctly. */
+.milkdown-editor .ProseMirror td,
+.milkdown-editor .ProseMirror th {
+  position: relative;
+}
+
 .milkdown-editor .ProseMirror a {
   color: var(--color-accent);
   text-decoration: underline;
