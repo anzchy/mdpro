@@ -185,22 +185,14 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
   }, [editor.loading]);
 
   // Expose the active editor via milkdownEditorStore so app-level callbacks
-  // (e.g. App.tsx onInsertTable) can dispatch commands. The getter is
-  // re-registered on every render (cheap; useEditor returns a stable wrapper)
-  // so the closure always captures the current `editor` reference even after
-  // a document switch remounts the inner editor instance.
+  // (e.g. App.tsx onInsertTable) can dispatch commands. Audit fix H6: the
+  // store's registerEditor now returns its own cleanup function that only
+  // clears the slot when our getter is still active. The previous code
+  // captured the pre-register snapshot, so its identity check never matched
+  // and the cleanup never fired.
   useEffect(() => {
-    const store = useMilkdownEditorStore.getState();
-    store.registerEditor(() => editor.get() ?? null);
-    return () => {
-      // Only unregister if our getter is still the active one — guards against
-      // a fresh MilkdownEditorInner having registered its own getter before
-      // this cleanup fires.
-      const current = useMilkdownEditorStore.getState().getEditor;
-      if (current === store.getEditor) {
-        useMilkdownEditorStore.getState().unregisterEditor();
-      }
-    };
+    const getter = () => editor.get() ?? null;
+    return useMilkdownEditorStore.getState().registerEditor(getter);
   }, [editor]);
 
   // Wire Milkdown listener → documentStore so Cmd+S always saves what is on screen.

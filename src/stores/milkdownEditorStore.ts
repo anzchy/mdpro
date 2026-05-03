@@ -31,16 +31,36 @@ interface MilkdownEditorState {
    * MilkdownEditorInner is mounted, e.g. pure source mode).
    */
   getEditor: () => unknown;
-  /** Called by MilkdownEditorInner on mount. */
-  registerEditor: (getter: () => unknown) => void;
-  /** Called by MilkdownEditorInner on unmount. */
+  /**
+   * Called by MilkdownEditorInner on mount. Returns a cleanup function
+   * that, when invoked, only unregisters if the active getter is still
+   * the one this register call set — protects against an out-of-order
+   * remount where a newer MilkdownEditorInner registered before the
+   * older one's cleanup ran (audit fix M2).
+   */
+  registerEditor: (getter: () => unknown) => () => void;
+  /**
+   * Force-clear the active getter. Prefer the cleanup returned from
+   * `registerEditor` so the active-instance check is preserved; this
+   * exists for tests and explicit teardown only.
+   */
   unregisterEditor: () => void;
 }
 
 const NULL_GETTER = (): unknown => null;
 
-export const useMilkdownEditorStore = create<MilkdownEditorState>((set) => ({
+export const useMilkdownEditorStore = create<MilkdownEditorState>((set, get) => ({
   getEditor: NULL_GETTER,
-  registerEditor: (getter) => set({ getEditor: getter }),
+  registerEditor: (getter) => {
+    set({ getEditor: getter });
+    return () => {
+      // Audit fix H6: only clear when our getter is still active.
+      // Comparing against the *current* state (via get()) — not a
+      // pre-register snapshot — is what makes this correct.
+      if (get().getEditor === getter) {
+        set({ getEditor: NULL_GETTER });
+      }
+    };
+  },
   unregisterEditor: () => set({ getEditor: NULL_GETTER }),
 }));

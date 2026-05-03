@@ -16,12 +16,25 @@ interface MockEditor {
   action: (fn: (ctx: unknown) => void) => void;
 }
 
+// Track which mock the next isInTable call should return.
+const isInTableHook = { value: false };
+
+vi.mock("@milkdown/kit/prose/tables", () => ({
+  isInTable: () => isInTableHook.value,
+}));
+
 function makeMockEditor(commandResult: boolean): MockEditor {
   const fakeCommands = {
     call: vi.fn(() => commandResult),
   };
+  const fakeView = { state: {} };
   const fakeCtx = {
-    get: vi.fn(() => fakeCommands),
+    get: vi.fn((key: unknown) => {
+      // commandsCtx vs editorViewCtx — distinguish via toString
+      const k = String(key);
+      if (k.includes("view") || k.includes("View")) return fakeView;
+      return fakeCommands;
+    }),
   };
   return {
     action: (fn) => fn(fakeCtx),
@@ -51,24 +64,39 @@ describe("runInsertTable — input validation", () => {
 });
 
 describe("runInsertTable — dispatch behavior", () => {
-  it("returns true when insertTableCommand applies", () => {
+  it("returns true when insertTableCommand applies (cursor not in table)", () => {
+    isInTableHook.value = false;
     const editor = makeMockEditor(true);
     expect(runInsertTable(editor as unknown as Parameters<typeof runInsertTable>[0], 3, 4)).toBe(true);
   });
 
-  it("returns false when the cursor is inside an invalid position (command returns false)", () => {
-    // Critical regression case from WI-1.1 acceptance criteria — caller must
-    // be able to surface the failure to the user, not silently no-op.
+  it("returns false when the cursor is inside an existing table (audit fix H2)", () => {
+    // Milkdown's insertTableCommand returns true unconditionally — pre-checking
+    // isInTable is the only way to enforce the documented "false on invalid
+    // position" contract, which TableInsertModal relies on for its error UX.
+    isInTableHook.value = true;
+    const editor = makeMockEditor(true);
+    expect(runInsertTable(editor as unknown as Parameters<typeof runInsertTable>[0], 3, 4)).toBe(false);
+  });
+
+  it("returns false when insertTableCommand declines (legacy contract)", () => {
+    isInTableHook.value = false;
     const editor = makeMockEditor(false);
     expect(runInsertTable(editor as unknown as Parameters<typeof runInsertTable>[0], 3, 4)).toBe(false);
   });
 
   it("dispatches insertTableCommand with { row, col } payload", () => {
+    isInTableHook.value = false;
     const fakeCommands = { call: vi.fn(() => true) };
+    const fakeView = { state: {} };
     const editor: MockEditor = {
       action: (fn) =>
         fn({
-          get: () => fakeCommands,
+          get: (key: unknown) => {
+            const k = String(key);
+            if (k.includes("view") || k.includes("View")) return fakeView;
+            return fakeCommands;
+          },
         }),
     };
 

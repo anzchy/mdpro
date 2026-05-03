@@ -19,8 +19,9 @@
  * @coordinates-with src/stores/milkdownEditorStore.ts
  */
 
-import { commandsCtx } from "@milkdown/kit/core";
+import { commandsCtx, editorViewCtx } from "@milkdown/kit/core";
 import { insertTableCommand } from "@milkdown/kit/preset/gfm";
+import { isInTable } from "@milkdown/kit/prose/tables";
 
 interface MilkdownEditorLike {
   action: (fn: (ctx: unknown) => void) => void;
@@ -30,8 +31,12 @@ interface CommandsCtxLike {
   call: (key: unknown, payload?: unknown) => boolean;
 }
 
+interface ViewLike {
+  state: unknown;
+}
+
 interface CtxLike {
-  get: (key: unknown) => CommandsCtxLike;
+  get: (key: unknown) => CommandsCtxLike | ViewLike;
 }
 
 const MIN_DIMENSION = 1;
@@ -63,7 +68,17 @@ export function runInsertTable(
 
   let applied = false;
   editor.action((ctx) => {
-    const commands = (ctx as CtxLike).get(commandsCtx);
+    const c = ctx as CtxLike;
+    // Audit fix H2: insertTableCommand uses replaceSelectionWith which
+    // returns true unconditionally. Pre-check via isInTable so the
+    // documented "false when cursor inside an existing table" contract
+    // (used by TableInsertModal to show its inline error) is enforced.
+    const view = c.get(editorViewCtx) as ViewLike;
+    if (isInTable(view.state as never)) {
+      applied = false;
+      return;
+    }
+    const commands = c.get(commandsCtx) as CommandsCtxLike;
     applied = commands.call(insertTableCommand.key, { row: rows, col: cols });
   });
   return applied;
