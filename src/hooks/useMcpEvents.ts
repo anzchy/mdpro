@@ -1,15 +1,19 @@
 /**
  * MCP Events Hook
  *
- * Listens for MCP events from Rust (write_document, insert_content)
- * and applies them to the frontend document state.
+ * Listens for MCP events from Rust (write_document, insert_content,
+ * create_document, table_action) and applies them to the frontend
+ * document state plus the live editor view.
  */
 
 import { useEffect, useCallback, useRef } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { replaceAll } from "@milkdown/kit/utils";
 import { useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
+import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import { loggingService } from "../services/loggingService";
+import { applyMcpTableAction, type McpTableAction } from "../utils/tableMcp";
 
 /**
  * Insert position for MCP insert_content.
@@ -41,6 +45,19 @@ interface InsertContentEvent {
 interface CreateDocumentEvent {
   document_id: string;
   content: string;
+  window_label: string | null;
+}
+
+/**
+ * Event payload for mcp:table_action (Phase 3 WI-3.3). Rust HTTP
+ * routes validate input then emit this; the frontend computes the
+ * new document content via `applyMcpTableAction` and pushes it to
+ * documentStore + the live editor.
+ */
+interface TableActionEvent {
+  document_id: string;
+  action: McpTableAction;
+  payload: Record<string, unknown>;
   window_label: string | null;
 }
 
@@ -182,6 +199,92 @@ export function useMcpEvents() {
     [upsertDocument, setActiveDocumentId]
   );
 
+  // Handle table action event (Phase 3 WI-3.3).
+  const handleTableAction = useCallback(
+    (event: TableActionEvent) => {
+      if (event.window_label && event.window_label !== windowLabelRef.current) {
+        return;
+      }
+      const doc = useDocumentStore.getState().getDocumentById(event.document_id);
+      if (!doc) {
+        loggingService.logEventSync({
+          level: "warn",
+          event: `mcp.table.${event.action}`,
+          status: "fail",
+          context: { documentId: event.document_id, reason: "not found" },
+        });
+        return;
+      }
+      const newContent = applyMcpTableAction(
+        doc.content,
+        event.action,
+        event.payload,
+      );
+      if (newContent === null) {
+        loggingService.logEventSync({
+          level: "warn",
+          event: `mcp.table.${event.action}`,
+          status: "fail",
+          context: { documentId: event.document_id, reason: "invalid payload" },
+        });
+        return;
+      }
+      // Update store; useMcpSync's debounced sync pushes to the shadow
+      // store within ~300ms so the next read_document sees the change.
+      updateDocumentContent(event.document_id, newContent);
+
+      // Push into the live editor when this is the active document.
+      const activeDocId = useDocumentStore.getState().activeDocumentId;
+      if (event.document_id === activeDocId) {
+        const viewMode = useEditorStore.getState().viewMode;
+        if (viewMode === "source") {
+          const cmView = useEditorStore.getState().editorView;
+          if (cmView) {
+            cmView.dispatch(
+              cmView.state.update({
+                changes: {
+                  from: 0,
+                  to: cmView.state.doc.length,
+                  insert: newContent,
+                },
+              }),
+            );
+          }
+        } else {
+          // Risk R12: extend useMcpEvents to dispatch into the live
+          // Milkdown view. Without this, MCP table mutations land in the
+          // file but not on screen until the doc is remounted.
+          const editor = useMilkdownEditorStore.getState().getEditor();
+          if (editor) {
+            try {
+              (editor as { action: (fn: ReturnType<typeof replaceAll>) => void })
+                .action(replaceAll(newContent));
+            } catch (err) {
+              loggingService.logEventSync({
+                level: "warn",
+                event: `mcp.table.${event.action}`,
+                status: "fail",
+                context: {
+                  documentId: event.document_id,
+                  reason: "milkdown replaceAll threw",
+                  error: err instanceof Error ? err.message : String(err),
+                },
+              });
+            }
+          }
+        }
+      }
+
+      loggingService.logEventSync({
+        level: "info",
+        event: `mcp.table.${event.action}`,
+        status: "success",
+        context: { documentId: event.document_id },
+      });
+    },
+    [updateDocumentContent],
+  );
+
   // Set up event listeners
   useEffect(() => {
     const unlisteners: UnlistenFn[] = [];
@@ -207,6 +310,13 @@ export function useMcpEvents() {
         (event) => handleCreateDocument(event.payload)
       );
       unlisteners.push(createUnlisten);
+
+      // Listen for table_action (WI-3.3)
+      const tableUnlisten = await listen<TableActionEvent>(
+        "mcp:table_action",
+        (event) => handleTableAction(event.payload),
+      );
+      unlisteners.push(tableUnlisten);
     };
 
     setupListeners();
@@ -214,5 +324,5 @@ export function useMcpEvents() {
     return () => {
       unlisteners.forEach((unlisten) => unlisten());
     };
-  }, [handleWriteDocument, handleInsertContent, handleCreateDocument]);
+  }, [handleWriteDocument, handleInsertContent, handleCreateDocument, handleTableAction]);
 }

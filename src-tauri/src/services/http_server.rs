@@ -656,6 +656,212 @@ async fn create_document(
     (StatusCode::CREATED, Json(CreateDocumentResponse { id })).into_response()
 }
 
+// ---------------------------------------------------------------------------
+// Phase 3 WI-3.3 — Table action routes (frontend-driven)
+// ---------------------------------------------------------------------------
+//
+// Each route validates the high-level intent, confirms the document
+// exists in the shadow store, and emits `mcp:table_action`. The
+// frontend's `useMcpEvents` handler computes the new content via the
+// shared TS `tableParser` / `tableEdits` machinery and pushes it back
+// to the shadow store via the existing `useMcpSync` debounce. Rust
+// returns 202 Accepted; the MCP client can confirm with a follow-up
+// `read_document` call.
+
+#[derive(serde::Serialize)]
+struct TableActionEvent {
+    document_id: String,
+    action: String,
+    payload: serde_json::Value,
+    window_label: Option<String>,
+}
+
+/// Common helper — verifies the document exists, then emits the event.
+async fn dispatch_table_action(
+    state: &AppState,
+    document_id: &str,
+    action: &str,
+    payload: serde_json::Value,
+) -> Response {
+    match shadow_store::get_document(&state.shadow_store, document_id) {
+        Ok(Some(_)) => {}
+        Ok(None) => {
+            let error = ErrorResponse {
+                error: format!("Document not found: {}", document_id),
+                code: Some("NOT_FOUND".to_string()),
+            };
+            return (StatusCode::NOT_FOUND, Json(error)).into_response();
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: format!("Shadow store read failed: {}", e),
+                code: Some("STORE_ERROR".to_string()),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
+        }
+    }
+
+    let event = TableActionEvent {
+        document_id: document_id.to_string(),
+        action: action.to_string(),
+        payload,
+        window_label: None,
+    };
+
+    if let Err(e) = state.app_handle.emit("mcp:table_action", &event) {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: format!("mcp.table.{}", action),
+            status: LogStatus::Fail,
+            action_id: None,
+            context: Some(json!({ "documentId": document_id })),
+            duration_ms: None,
+            error: Some(e.to_string()),
+        });
+        let error = ErrorResponse {
+            error: format!("Failed to emit table action event: {}", e),
+            code: Some("EMIT_FAILED".to_string()),
+        };
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
+    }
+
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: format!("mcp.table.{}", action),
+        status: LogStatus::Success,
+        action_id: None,
+        context: Some(json!({ "documentId": document_id })),
+        duration_ms: None,
+        error: None,
+    });
+
+    (StatusCode::ACCEPTED, Json(json!({ "scheduled": true }))).into_response()
+}
+
+#[derive(serde::Deserialize)]
+struct InsertTableRequest {
+    document_id: String,
+    rows: u32,
+    cols: u32,
+    #[serde(default)]
+    alignments: Option<Vec<String>>,
+}
+
+async fn insert_table(
+    State(state): State<AppState>,
+    Json(req): Json<InsertTableRequest>,
+) -> impl IntoResponse {
+    if req.rows == 0 || req.cols == 0 {
+        let error = ErrorResponse {
+            error: "rows and cols must be > 0".to_string(),
+            code: Some("INVALID_PAYLOAD".to_string()),
+        };
+        return (StatusCode::BAD_REQUEST, Json(error)).into_response();
+    }
+    let mut payload = json!({ "rows": req.rows, "cols": req.cols });
+    if let Some(aligns) = req.alignments {
+        payload["alignments"] = json!(aligns);
+    }
+    dispatch_table_action(&state, &req.document_id, "insert_table", payload).await
+}
+
+#[derive(serde::Deserialize)]
+struct SetCellRequest {
+    document_id: String,
+    #[serde(default)]
+    table_index: Option<u32>,
+    row: u32,
+    col: u32,
+    content: String,
+}
+
+async fn set_cell(
+    State(state): State<AppState>,
+    Json(req): Json<SetCellRequest>,
+) -> impl IntoResponse {
+    let mut payload = json!({ "row": req.row, "col": req.col, "content": req.content });
+    if let Some(idx) = req.table_index {
+        payload["tableIndex"] = json!(idx);
+    }
+    dispatch_table_action(&state, &req.document_id, "set_cell", payload).await
+}
+
+#[derive(serde::Deserialize)]
+struct AddRowRequest {
+    document_id: String,
+    #[serde(default)]
+    table_index: Option<u32>,
+    after: u32,
+}
+
+async fn add_row(
+    State(state): State<AppState>,
+    Json(req): Json<AddRowRequest>,
+) -> impl IntoResponse {
+    let mut payload = json!({ "after": req.after });
+    if let Some(idx) = req.table_index {
+        payload["tableIndex"] = json!(idx);
+    }
+    dispatch_table_action(&state, &req.document_id, "add_row", payload).await
+}
+
+#[derive(serde::Deserialize)]
+struct DeleteRowRequest {
+    document_id: String,
+    #[serde(default)]
+    table_index: Option<u32>,
+    index: u32,
+}
+
+async fn delete_row(
+    State(state): State<AppState>,
+    Json(req): Json<DeleteRowRequest>,
+) -> impl IntoResponse {
+    let mut payload = json!({ "index": req.index });
+    if let Some(idx) = req.table_index {
+        payload["tableIndex"] = json!(idx);
+    }
+    dispatch_table_action(&state, &req.document_id, "delete_row", payload).await
+}
+
+#[derive(serde::Deserialize)]
+struct AddColumnRequest {
+    document_id: String,
+    #[serde(default)]
+    table_index: Option<u32>,
+    after: u32,
+}
+
+async fn add_column(
+    State(state): State<AppState>,
+    Json(req): Json<AddColumnRequest>,
+) -> impl IntoResponse {
+    let mut payload = json!({ "after": req.after });
+    if let Some(idx) = req.table_index {
+        payload["tableIndex"] = json!(idx);
+    }
+    dispatch_table_action(&state, &req.document_id, "add_column", payload).await
+}
+
+#[derive(serde::Deserialize)]
+struct DeleteColumnRequest {
+    document_id: String,
+    #[serde(default)]
+    table_index: Option<u32>,
+    index: u32,
+}
+
+async fn delete_column(
+    State(state): State<AppState>,
+    Json(req): Json<DeleteColumnRequest>,
+) -> impl IntoResponse {
+    let mut payload = json!({ "index": req.index });
+    if let Some(idx) = req.table_index {
+        payload["tableIndex"] = json!(idx);
+    }
+    dispatch_table_action(&state, &req.document_id, "delete_column", payload).await
+}
+
 /// Show a native confirmation dialog for write operations.
 fn show_write_confirmation(document_title: &str) -> bool {
     let result = rfd::MessageDialog::new()
@@ -678,6 +884,13 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/documents/new", post(create_document))
         .route("/api/documents/{id}", get(get_document).post(update_document))
         .route("/api/documents/{id}/insert", post(insert_content))
+        // Phase 3 WI-3.3 — Table tools (frontend-driven)
+        .route("/api/v1/insert_table", post(insert_table))
+        .route("/api/v1/set_cell", post(set_cell))
+        .route("/api/v1/add_row", post(add_row))
+        .route("/api/v1/delete_row", post(delete_row))
+        .route("/api/v1/add_column", post(add_column))
+        .route("/api/v1/delete_column", post(delete_column))
         .layer(middleware::from_fn_with_state(state.clone(), validate_token))
         .layer(middleware::from_fn(validate_origin))
         .with_state(state)

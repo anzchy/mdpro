@@ -102,6 +102,35 @@ mdpro v1 supports the GFM table dialect:
 - Column widths are session-local (see above).
 - Tables inside blockquotes (`> | a | b |`) are not supported in v1; mdpro treats those lines as a blockquote paragraph.
 
+## MCP table tools (external automation)
+
+mdpro's MCP HTTP server exposes six endpoints for table manipulation
+(Phase 3 WI-3.3). All routes accept JSON, require the same token +
+origin auth as the existing `/api/documents/*` routes, and return
+`202 Accepted` (the frontend applies the change asynchronously and
+the result is visible on the next `GET /api/documents/{id}`).
+
+| Endpoint | Payload | Effect |
+|---|---|---|
+| `POST /api/v1/insert_table` | `{document_id, rows, cols, alignments?}` | Append a new empty table to the document |
+| `POST /api/v1/set_cell` | `{document_id, table_index?, row, col, content}` | Replace one cell's content |
+| `POST /api/v1/add_row` | `{document_id, table_index?, after}` | Insert a new row after the given row index |
+| `POST /api/v1/delete_row` | `{document_id, table_index?, index}` | Delete the row at the given index |
+| `POST /api/v1/add_column` | `{document_id, table_index?, after}` | Insert a new column after the given column index |
+| `POST /api/v1/delete_column` | `{document_id, table_index?, index}` | Delete the column at the given index |
+
+`table_index` defaults to `0` (the first table in the document) if
+omitted. `row` and `col` are 0-based; row 0 is the header.
+
+The architecture is **frontend-driven**: Rust validates inputs and
+forwards a high-level intent to the frontend (`mcp:table_action`
+event). The frontend computes the new content via the shared TS
+parser/edits and pushes back to the shadow store. This avoids
+shipping a second table parser in Rust at the cost of asynchronous
+confirmation — ideal for desktop where the frontend reacts in
+microseconds, less ideal for headless automation that needs strict
+request/response.
+
 ## See also
 
 - Keyboard shortcuts: [`keyboard-shortcuts.md`](./keyboard-shortcuts.md)
