@@ -65,6 +65,25 @@ describe("TableInsertModal — structural contract", () => {
     expect(modalSrc).toMatch(/loggingService/);
     expect(modalSrc).toMatch(/ui\.table-modal/);
   });
+
+  it("ignores Enter during IME composition (audit fix M4)", () => {
+    expect(modalSrc).toMatch(/isComposing/);
+  });
+
+  it("does not submit when Enter is pressed inside the grid picker (audit fix M5)", () => {
+    expect(modalSrc).toMatch(/closest\(["']\.grid-picker["']\)/);
+  });
+
+  it("wraps callback dispatch in try/catch + surfaces error inline (audit fix M6)", () => {
+    expect(modalSrc).toMatch(/try\s*\{[\s\S]{0,400}cb\s*as[\s\S]{0,200}\}\s*catch/);
+    expect(modalSrc).toMatch(/Insert failed:/);
+  });
+
+  it("implements a focus trap on Tab / Shift-Tab (audit fix M3)", () => {
+    expect(modalSrc).toMatch(/Tab/);
+    expect(modalSrc).toMatch(/focusables/);
+    expect(modalSrc).toMatch(/shiftKey/);
+  });
 });
 
 describe("TableInsertModal — GridPicker contract", () => {

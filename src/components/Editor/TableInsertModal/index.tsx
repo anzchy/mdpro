@@ -78,24 +78,36 @@ export function TableInsertModal() {
     setRows(safeRows);
     setCols(safeCols);
 
-    // The callback returns boolean if the dispatcher follows the
-    // runInsertTable contract; treat undefined as success for callbacks
-    // that don't surface a result (legacy / no-op fallback paths).
-    const result = (cb as (r: number, c: number) => boolean | void)(safeRows, safeCols);
-    const succeeded = result !== false;
+    // Audit fix M6: wrap the callback in try/catch so a thrown error
+    // (Milkdown action throwing, view destroyed mid-submit) surfaces as
+    // the inline error state instead of escaping the React event handler.
+    let succeeded = false;
+    let errorText: string | undefined;
+    try {
+      // The callback returns boolean if the dispatcher follows the
+      // runInsertTable contract; treat undefined as success for
+      // callbacks that don't surface a result (legacy / no-op fallback).
+      const result = (cb as (r: number, c: number) => boolean | void)(safeRows, safeCols);
+      succeeded = result !== false;
+    } catch (err) {
+      succeeded = false;
+      errorText = err instanceof Error ? err.message : String(err);
+    }
 
     loggingService.logEventSync({
       level: succeeded ? "info" : "warn",
       event: "ui.table-modal.submit",
       status: succeeded ? "success" : "fail",
       actionId: loggingService.generateActionId(),
-      context: { screen: "wysiwyg", rows: safeRows, cols: safeCols },
+      context: { screen: "wysiwyg", rows: safeRows, cols: safeCols, error: errorText },
     });
 
     if (!succeeded) {
       // WI-1.1 acceptance: failure shows inline error, modal does NOT auto-close.
       setErrorMessage(
-        "Cursor is inside another table. Close this dialog, click outside the existing table, then try again.",
+        errorText
+          ? `Insert failed: ${errorText}`
+          : "Cursor is inside another table. Close this dialog, click outside the existing table, then try again.",
       );
       return;
     }
@@ -115,12 +127,46 @@ export function TableInsertModal() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
-    } else if (e.key === "Escape") {
+    if (e.key === "Escape") {
       e.preventDefault();
       handleCancel();
+      return;
+    }
+    if (e.key === "Enter") {
+      // Audit fix M4: ignore Enter while IME composition is active so
+      // composition-confirm doesn't accidentally submit the modal.
+      if (e.nativeEvent.isComposing) return;
+      // Audit fix M5: a focused grid cell uses Enter to commit its
+      // selection — let the button's own click handler fire instead of
+      // submitting the whole modal. The cell's onClick already updates
+      // rows/cols; the user can press Enter again to submit.
+      const target = e.target;
+      if (target instanceof HTMLElement && target.closest(".grid-picker")) {
+        return;
+      }
+      e.preventDefault();
+      handleSubmit();
+    } else if (e.key === "Tab") {
+      // Audit fix M3: simple focus trap — Tab from the last focusable
+      // wraps to the first; Shift-Tab from the first wraps to the last.
+      const root = (e.currentTarget as HTMLElement) ?? null;
+      if (!root) return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("aria-hidden"));
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   };
 
