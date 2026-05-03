@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { ImageContextMenu } from "./ImageContextMenu";
 import { LinkInsertModal } from "./LinkInsertModal";
+import { TableContextMenu } from "./TableContextMenu";
 import { TableInsertModal } from "./TableInsertModal";
 import {
   defaultValueCtx,
@@ -319,6 +320,8 @@ export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
       <LinkInsertModal />
       {/* Inline picker modal for ⌘⌥T table insert — table-CRUD WI-1.1 (#390) */}
       <TableInsertModal />
+      {/* Right-click table context menu — table-CRUD WI-1.3 (#390) */}
+      <TableContextMenu />
     </div>
   );
 }
