@@ -268,15 +268,21 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
 
   // WI-2.6: when arriving in WYSIWYG mode and the source-side capture
   // recorded a cell, navigate to the matching cell once the editor is
-  // ready. Consumed exactly once — second mount-without-toggle is a no-op.
+  // ready. Audit-fix M2: scope consume to the active document so a
+  // re-mount after a doc-switch can't steal a stale capture.
+  // Audit-fix M3: drop the unstable `editor` object from the dep array;
+  // `editor.loading` flipping is the only signal we react to and a
+  // stable activeDocumentId keeps the effect from firing twice when
+  // useEditor returns a new wrapper but loading hasn't actually changed.
   useEffect(() => {
     if (editor.loading) return;
     const instance = editor.get();
     if (!instance) return;
-    const pending = consumePendingTableCell();
+    const pending = consumePendingTableCell(activeDocumentId);
     if (!pending) return;
     restoreCellInMilkdownEditor(instance, pending);
-  }, [editor.loading, editor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor.loading, activeDocumentId]);
 
   // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
   // In source/split mode the CodeMirror highlightCommand handles this instead

@@ -5,9 +5,11 @@ import { loggingService } from "../services/loggingService";
 import {
   captureCellFromSource,
   setPendingTableCell,
+  type TableCellPos,
 } from "../utils/cursorSync/table";
 import { captureCellFromMilkdownEditor } from "../utils/cursorSync/tableMilkdown";
 import { isPositionInFencedCode } from "../plugins/codemirror/sourceTableDetection";
+import { useDocumentStore } from "./documentStore";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
 
 /**
@@ -16,17 +18,19 @@ import { useMilkdownEditorStore } from "./milkdownEditorStore";
  * pending slot — falls through to null when the cursor isn't in a
  * table, which clears any stale capture from a previous transition.
  *
- * Audit-fix H2 (2026-05-03): the source-mode capture passes a fence
- * predicate so a cursor inside ` ``` ... ``` ` doesn't masquerade as
- * a table cell. Without the predicate, `tableIndex` would also drift
- * relative to the WYSIWYG side (which never sees fenced content as
- * tables) — see audit-fix H1 in `cursorSync/table.ts`.
+ * Audit-fix H2 (2026-05-03): source-mode capture is fence-guarded —
+ * a cursor inside a fenced code block writes null instead of phantom
+ * coords (matches the H1 fence guard inside `findAllTables`).
+ *
+ * Audit-fix M1 (2026-05-03): the slot is paired with `documentId` so
+ * a doc-switch between this capture and the inbound editor's mount
+ * doesn't apply stale coords to a different document.
  */
 function capturePendingTableCellForTransition(
   fromMode: ViewMode,
   cmView: EditorView | null,
 ): void {
-  let captured = null;
+  let captured: TableCellPos | null = null;
   if (fromMode === "source" && cmView) {
     const state = cmView.state;
     captured = captureCellFromSource(
@@ -40,7 +44,16 @@ function capturePendingTableCellForTransition(
       captured = captureCellFromMilkdownEditor(editor);
     }
   }
-  setPendingTableCell(captured);
+  if (!captured) {
+    setPendingTableCell(null);
+    return;
+  }
+  const documentId = useDocumentStore.getState().activeDocumentId;
+  if (!documentId) {
+    setPendingTableCell(null);
+    return;
+  }
+  setPendingTableCell({ documentId, pos: captured });
 }
 
 interface EditorStore extends EditorState {

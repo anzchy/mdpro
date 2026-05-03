@@ -141,21 +141,48 @@ export function locateCellInSource(
 // Pending-cell slot (module-level singleton)
 // ---------------------------------------------------------------------------
 
-let pendingCapture: TableCellPos | null = null;
-
-/** Set or clear the pending cell. Pass null to clear (used by tests). */
-export function setPendingTableCell(pos: TableCellPos | null): void {
-  pendingCapture = pos;
+/**
+ * Audit-fix M1/M2 (2026-05-03): pair the captured cell with the
+ * `documentId` it was captured from so a doc-switch between transition
+ * and inbound-editor mount can't apply stale coordinates to a
+ * different document. Editor.tsx's `onCreateEditor` and
+ * MilkdownEditor's loaded effect both consume the slot — without
+ * this, any non-toggle remount (e.g., document switch) consumes the
+ * pending capture and silently restores a doomed offset.
+ */
+export interface PendingTableCapture {
+  documentId: string;
+  pos: TableCellPos;
 }
 
-/** Read without consuming. Useful for diagnostics. */
-export function getPendingTableCell(): TableCellPos | null {
+let pendingCapture: PendingTableCapture | null = null;
+
+/** Set or clear the pending cell. Pass null to clear (used by tests). */
+export function setPendingTableCell(value: PendingTableCapture | null): void {
+  pendingCapture = value;
+}
+
+/** Read without consuming. Useful for diagnostics and tests. */
+export function getPendingTableCell(): PendingTableCapture | null {
   return pendingCapture;
 }
 
-/** Read and clear. The inbound editor calls this exactly once. */
-export function consumePendingTableCell(): TableCellPos | null {
+/**
+ * Read and clear when the document matches. If the slot is empty OR
+ * the captured documentId differs from `forDocumentId`, return null
+ * AND clear the slot (so a stale capture doesn't survive a doc
+ * switch).
+ *
+ * Pass `forDocumentId === null` only from tests where document
+ * identity is irrelevant; in that case any capture is consumed.
+ */
+export function consumePendingTableCell(
+  forDocumentId: string | null,
+): TableCellPos | null {
   const value = pendingCapture;
   pendingCapture = null;
-  return value;
+  if (!value) return null;
+  if (forDocumentId === null) return value.pos;
+  if (value.documentId !== forDocumentId) return null;
+  return value.pos;
 }

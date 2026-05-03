@@ -13,6 +13,7 @@ import {
   initialWordWrap,
 } from "./extensions/dynamicExtensions";
 import { reapplyEditorPrefs } from "../common/settings/editorPrefApply";
+import { useDocumentStore } from "../../stores/documentStore";
 import { useEditorStore } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
@@ -155,7 +156,10 @@ export function Editor({
           // a table, place the source cursor in the matching cell.
           // Audit-fix H1: pass the fence predicate so tableIndex is
           // resolved against the same enumeration the capture used.
-          const pending = consumePendingTableCell();
+          // Audit-fix M2: scope the consume to the active document so
+          // a remount after a doc-switch can't apply stale coords.
+          const docId = useDocumentStore.getState().activeDocumentId;
+          const pending = consumePendingTableCell(docId);
           if (pending) {
             const state = view.state;
             const offset = locateCellInSource(

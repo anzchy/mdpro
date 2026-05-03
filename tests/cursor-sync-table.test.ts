@@ -205,28 +205,61 @@ describe("pending-cell slot", () => {
   });
 
   it("setPendingTableCell + getPendingTableCell round-trips", () => {
-    setPendingTableCell({ tableIndex: 1, rowIndex: 2, colIndex: 0 });
+    setPendingTableCell({
+      documentId: "doc-1",
+      pos: { tableIndex: 1, rowIndex: 2, colIndex: 0 },
+    });
     expect(getPendingTableCell()).toEqual({
-      tableIndex: 1,
-      rowIndex: 2,
-      colIndex: 0,
+      documentId: "doc-1",
+      pos: { tableIndex: 1, rowIndex: 2, colIndex: 0 },
     });
   });
 
-  it("consumePendingTableCell returns and clears", () => {
-    setPendingTableCell({ tableIndex: 0, rowIndex: 1, colIndex: 1 });
-    expect(consumePendingTableCell()).toEqual({
+  it("consumePendingTableCell returns the pos and clears when documentId matches", () => {
+    setPendingTableCell({
+      documentId: "doc-1",
+      pos: { tableIndex: 0, rowIndex: 1, colIndex: 1 },
+    });
+    expect(consumePendingTableCell("doc-1")).toEqual({
       tableIndex: 0,
       rowIndex: 1,
       colIndex: 1,
     });
     expect(getPendingTableCell()).toBeNull();
     // Second consume returns null.
-    expect(consumePendingTableCell()).toBeNull();
+    expect(consumePendingTableCell("doc-1")).toBeNull();
+  });
+
+  // Audit-fix M1: the slot is paired with the documentId it was
+  // captured from. A consumer reading from a different document gets
+  // null AND the stale slot is cleared so the next match doesn't
+  // also see it.
+  it("consumePendingTableCell returns null and clears the slot when documentId mismatches", () => {
+    setPendingTableCell({
+      documentId: "doc-1",
+      pos: { tableIndex: 0, rowIndex: 1, colIndex: 1 },
+    });
+    expect(consumePendingTableCell("doc-2")).toBeNull();
+    expect(getPendingTableCell()).toBeNull();
+  });
+
+  it("consumePendingTableCell with null documentId consumes any capture (test-only escape hatch)", () => {
+    setPendingTableCell({
+      documentId: "doc-1",
+      pos: { tableIndex: 0, rowIndex: 1, colIndex: 1 },
+    });
+    expect(consumePendingTableCell(null)).toEqual({
+      tableIndex: 0,
+      rowIndex: 1,
+      colIndex: 1,
+    });
   });
 
   it("setPendingTableCell(null) clears the slot", () => {
-    setPendingTableCell({ tableIndex: 0, rowIndex: 0, colIndex: 0 });
+    setPendingTableCell({
+      documentId: "doc-1",
+      pos: { tableIndex: 0, rowIndex: 0, colIndex: 0 },
+    });
     setPendingTableCell(null);
     expect(getPendingTableCell()).toBeNull();
   });

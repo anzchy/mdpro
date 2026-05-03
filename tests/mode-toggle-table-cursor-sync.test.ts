@@ -37,6 +37,7 @@ vi.mock("../src/utils/cursorSync/tableMilkdown", () => ({
 import { EditorState, EditorSelection } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import {
@@ -62,6 +63,7 @@ function makeCmView(doc: string, cursor: number): EditorView {
 
 beforeEach(() => {
   useEditorStore.setState({ viewMode: "source", editorView: null });
+  useDocumentStore.setState({ activeDocumentId: "test-doc" });
   useMilkdownEditorStore.setState({ getEditor: () => null });
   setPendingTableCell(null);
   mockCaptureFromMilkdown.mockReset();
@@ -83,10 +85,9 @@ describe("setViewMode source → wysiwyg captures from CodeMirror", () => {
 
     useEditorStore.getState().setViewMode("wysiwyg");
 
-    expect(getPendingTableCell()).toEqual<TableCellPos>({
-      tableIndex: 0,
-      rowIndex: 1,
-      colIndex: 0,
+    expect(getPendingTableCell()).toEqual({
+      documentId: "test-doc",
+      pos: { tableIndex: 0, rowIndex: 1, colIndex: 0 } as TableCellPos,
     });
   });
 
@@ -97,15 +98,17 @@ describe("setViewMode source → wysiwyg captures from CodeMirror", () => {
 
     useEditorStore.getState().setViewMode("wysiwyg");
 
-    expect(getPendingTableCell()).toEqual<TableCellPos>({
-      tableIndex: 1,
-      rowIndex: 1,
-      colIndex: 1,
+    expect(getPendingTableCell()).toEqual({
+      documentId: "test-doc",
+      pos: { tableIndex: 1, rowIndex: 1, colIndex: 1 } as TableCellPos,
     });
   });
 
   it("clears the pending slot to null when cursor is outside any table", () => {
-    setPendingTableCell({ tableIndex: 5, rowIndex: 5, colIndex: 5 });
+    setPendingTableCell({
+      documentId: "stale",
+      pos: { tableIndex: 5, rowIndex: 5, colIndex: 5 },
+    });
     const view = makeCmView(TWO_TABLE_DOC, 0); // before any table
     useEditorStore.setState({ viewMode: "source", editorView: view });
 
@@ -119,15 +122,17 @@ describe("setViewMode source → wysiwyg captures from CodeMirror", () => {
     const cursorIn1 = TWO_TABLE_DOC.indexOf("| 1") + 2;
     const view = makeCmView(TWO_TABLE_DOC, cursorIn1);
     useEditorStore.setState({ viewMode: "source", editorView: view });
-    setPendingTableCell({ tableIndex: 99, rowIndex: 99, colIndex: 99 });
+    setPendingTableCell({
+      documentId: "stale",
+      pos: { tableIndex: 99, rowIndex: 99, colIndex: 99 },
+    });
 
     useEditorStore.getState().setViewMode("source"); // same mode
 
     // Capture is skipped; previous value preserved.
     expect(getPendingTableCell()).toEqual({
-      tableIndex: 99,
-      rowIndex: 99,
-      colIndex: 99,
+      documentId: "stale",
+      pos: { tableIndex: 99, rowIndex: 99, colIndex: 99 },
     });
   });
 });
@@ -151,14 +156,16 @@ describe("setViewMode wysiwyg → source captures from Milkdown editor", () => {
 
     expect(mockCaptureFromMilkdown).toHaveBeenCalledWith(fakeEditor);
     expect(getPendingTableCell()).toEqual({
-      tableIndex: 0,
-      rowIndex: 1,
-      colIndex: 1,
+      documentId: "test-doc",
+      pos: { tableIndex: 0, rowIndex: 1, colIndex: 1 },
     });
   });
 
   it("writes null when no Milkdown editor is registered", () => {
-    setPendingTableCell({ tableIndex: 1, rowIndex: 1, colIndex: 1 });
+    setPendingTableCell({
+      documentId: "stale",
+      pos: { tableIndex: 1, rowIndex: 1, colIndex: 1 },
+    });
     useMilkdownEditorStore.setState({ getEditor: () => null });
     useEditorStore.setState({ viewMode: "wysiwyg" });
 
@@ -169,7 +176,10 @@ describe("setViewMode wysiwyg → source captures from Milkdown editor", () => {
   });
 
   it("writes null when the helper returns null (cursor outside any table)", () => {
-    setPendingTableCell({ tableIndex: 9, rowIndex: 9, colIndex: 9 });
+    setPendingTableCell({
+      documentId: "stale",
+      pos: { tableIndex: 9, rowIndex: 9, colIndex: 9 },
+    });
     const fakeEditor = { action: vi.fn() };
     useMilkdownEditorStore.setState({ getEditor: () => fakeEditor });
     useEditorStore.setState({ viewMode: "wysiwyg" });
@@ -194,10 +204,29 @@ describe("cycleViewMode triggers capture (Codex R14: not just menu)", () => {
     useEditorStore.getState().cycleViewMode();
 
     expect(useEditorStore.getState().viewMode).toBe("wysiwyg");
-    expect(getPendingTableCell()).toEqual<TableCellPos>({
-      tableIndex: 0,
-      rowIndex: 1,
-      colIndex: 1,
+    expect(getPendingTableCell()).toEqual({
+      documentId: "test-doc",
+      pos: { tableIndex: 0, rowIndex: 1, colIndex: 1 } as TableCellPos,
+    });
+  });
+
+  // Audit-fix M1: confirm the captured documentId is read from
+  // documentStore at transition time, not later. A capture during
+  // doc-1 followed by a switch to doc-2 must NOT restore in doc-2.
+  it("the captured documentId is locked at transition time, not at consume time", () => {
+    const cursorIn1 = TWO_TABLE_DOC.indexOf("| 1") + 2;
+    const view = makeCmView(TWO_TABLE_DOC, cursorIn1);
+    useDocumentStore.setState({ activeDocumentId: "doc-A" });
+    useEditorStore.setState({ viewMode: "source", editorView: view });
+
+    useEditorStore.getState().setViewMode("wysiwyg");
+
+    // Switch documents AFTER capturing.
+    useDocumentStore.setState({ activeDocumentId: "doc-B" });
+
+    expect(getPendingTableCell()).toEqual({
+      documentId: "doc-A",
+      pos: { tableIndex: 0, rowIndex: 1, colIndex: 0 },
     });
   });
 });
