@@ -17,6 +17,7 @@ import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
 import { tableDetectionExtension } from "../../plugins/codemirror/sourceTableDetection";
 import { sourceTableTabKeymap } from "../../plugins/codemirror/sourceTableTabNav";
+import { sourceTableCellHighlightExtension } from "../../plugins/codemirror/sourceTableCellHighlight";
 
 interface EditorProps {
   value: string;
@@ -87,6 +88,7 @@ export function Editor({
       ...pluginExtensions,
       tableDetectionExtension(),
       sourceTableTabKeymapExt,
+      sourceTableCellHighlightExtension(),
       // Dynamic compartments — reconfigured via applyEditorPref() and related helpers.
       // Initial values are defaults; reapplyEditorPrefs() syncs them to persisted prefs.
       initialWordWrap(true),

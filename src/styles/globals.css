@@ -354,6 +354,15 @@ a {
   border-left-color: var(--color-accent);
 }
 
+/* Active table cell highlight in source mode (table-CRUD WI-2.5).
+   Pairs visually with the WYSIWYG selectedCell rule in
+   MilkdownEditor.css — both use --color-accent-soft so users get the
+   same "you are here" feedback across modes. */
+.editor-shell .cm-table-active-cell {
+  background: var(--color-accent-soft);
+  border-radius: 2px;
+}
+
 .wysiwyg-preview .cm-gutters {
   display: none;
 }
