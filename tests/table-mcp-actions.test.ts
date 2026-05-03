@@ -10,6 +10,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyMcpTableAction,
+  escapeCellContent,
   insertTable,
   setCell,
 } from "../src/utils/tableMcp";
@@ -62,6 +63,36 @@ describe("insertTable", () => {
 });
 
 // ---------------------------------------------------------------------------
+// escapeCellContent (audit-fix H2)
+// ---------------------------------------------------------------------------
+
+describe("escapeCellContent", () => {
+  it("returns the content unchanged when it contains no special chars", () => {
+    expect(escapeCellContent("plain text")).toBe("plain text");
+  });
+
+  it("escapes a literal | to \\|", () => {
+    expect(escapeCellContent("a|b")).toBe("a\\|b");
+  });
+
+  it("preserves an already-escaped \\|", () => {
+    expect(escapeCellContent("a\\|b")).toBe("a\\|b");
+  });
+
+  it("returns null when the content has \\n", () => {
+    expect(escapeCellContent("a\nb")).toBeNull();
+  });
+
+  it("returns null when the content has \\r", () => {
+    expect(escapeCellContent("a\rb")).toBeNull();
+  });
+
+  it("escapes multiple pipes independently", () => {
+    expect(escapeCellContent("a|b|c")).toBe("a\\|b\\|c");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // set_cell
 // ---------------------------------------------------------------------------
 
@@ -109,6 +140,24 @@ describe("setCell", () => {
   it("returns null when there are no tables in the source", () => {
     expect(
       setCell("Just prose.\n", { row: 0, col: 0, content: "X" }),
+    ).toBeNull();
+  });
+
+  // Audit-fix H2: cell content with literal `|` would corrupt the
+  // table on the next round-trip if written raw.
+  it("auto-escapes literal | in cell content", () => {
+    const out = setCell(TWO_TABLE_DOC, { row: 1, col: 0, content: "a|b" });
+    expect(out).not.toBeNull();
+    // Find the row containing the escaped pipe and confirm structure
+    // didn't gain a column.
+    const tables = findAllTables(out!);
+    expect(tables[0].colCount).toBe(2);
+    expect(tables[0].rows[1][0].text).toBe("a\\|b");
+  });
+
+  it("returns null for cell content with embedded newlines", () => {
+    expect(
+      setCell(TWO_TABLE_DOC, { row: 1, col: 0, content: "line1\nline2" }),
     ).toBeNull();
   });
 });

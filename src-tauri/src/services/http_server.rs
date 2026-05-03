@@ -676,15 +676,26 @@ struct TableActionEvent {
     window_label: Option<String>,
 }
 
-/// Common helper — verifies the document exists, then emits the event.
+/// Common helper — verifies the document, runs the focus-confirmation
+/// flow if the app is backgrounded, and emits the event to the
+/// document's owning window.
+///
+/// Audit-fix H1 (2026-05-04): mirror the focus + confirmation guard
+/// used by `update_document` / `insert_content`. Without this, a
+/// local process with the token can mutate user documents silently
+/// while the app is in the background.
+///
+/// Audit-fix M1 (2026-05-04): populate `window_label` via
+/// `get_window_for_document` so the event reaches the owning window
+/// only — non-owning windows previously logged spurious "not found".
 async fn dispatch_table_action(
     state: &AppState,
     document_id: &str,
     action: &str,
     payload: serde_json::Value,
 ) -> Response {
-    match shadow_store::get_document(&state.shadow_store, document_id) {
-        Ok(Some(_)) => {}
+    let doc = match shadow_store::get_document(&state.shadow_store, document_id) {
+        Ok(Some(d)) => d,
         Ok(None) => {
             let error = ErrorResponse {
                 error: format!("Document not found: {}", document_id),
@@ -699,13 +710,45 @@ async fn dispatch_table_action(
             };
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
         }
+    };
+
+    // Confirmation guard for backgrounded app.
+    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store)
+        .unwrap_or(false);
+    if !window_focused {
+        let title_owned = doc.title.clone();
+        let confirmed = tokio::task::spawn_blocking(move || {
+            show_write_confirmation(&title_owned)
+        })
+        .await
+        .unwrap_or(false);
+        if !confirmed {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Info,
+                event: format!("mcp.table.{}", action),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": document_id, "userRejected": true })),
+                duration_ms: None,
+                error: Some("User rejected".to_string()),
+            });
+            let error = ErrorResponse {
+                error: "User rejected write operation".to_string(),
+                code: Some("USER_REJECTED".to_string()),
+            };
+            return (StatusCode::FORBIDDEN, Json(error)).into_response();
+        }
     }
+
+    let window_label = shadow_store::get_window_for_document(&state.shadow_store, document_id)
+        .ok()
+        .flatten();
 
     let event = TableActionEvent {
         document_id: document_id.to_string(),
         action: action.to_string(),
         payload,
-        window_label: None,
+        window_label,
     };
 
     if let Err(e) = state.app_handle.emit("mcp:table_action", &event) {

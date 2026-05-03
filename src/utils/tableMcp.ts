@@ -89,11 +89,41 @@ export interface SetCellPayload {
   content: string;
 }
 
+/**
+ * Audit-fix H2 (2026-05-04): cells live on a single source line and
+ * use `|` as a column separator. An MCP client passing raw cell text
+ * with embedded `|` or newlines would silently corrupt the table on
+ * the next round-trip.
+ *
+ * - `|` characters are escaped to `\|` (GFM literal-pipe form),
+ *   leaving any pre-existing `\|` untouched.
+ * - `\n` / `\r` are NOT escapable in GFM cells — return null so the
+ *   caller surfaces an error instead of fabricating a broken cell.
+ */
+export function escapeCellContent(content: string): string | null {
+  if (content.includes("\n") || content.includes("\r")) return null;
+  let out = "";
+  let prevWasBackslash = false;
+  for (const ch of content) {
+    if (ch === "|" && !prevWasBackslash) {
+      out += "\\|";
+      prevWasBackslash = false;
+      continue;
+    }
+    out += ch;
+    prevWasBackslash = ch === "\\" && !prevWasBackslash;
+  }
+  return out;
+}
+
 export function setCell(
   source: string,
   payload: SetCellPayload,
 ): string | null {
   const tableIndex = payload.tableIndex ?? 0;
+  // Audit-fix H2: refuse content with embedded newlines; auto-escape pipes.
+  const safeContent = escapeCellContent(payload.content);
+  if (safeContent === null) return null;
   // Audit-fix H4: skip fenced tables so MCP can't target/clobber them.
   const tables = findAllTables(source, makeIsFenced(source));
   const table = tables[tableIndex];
@@ -102,7 +132,7 @@ export function setCell(
   if (payload.col < 0 || payload.col >= table.colCount) return null;
 
   const rows = table.rows.map((r) => r.map((c) => c.text));
-  rows[payload.row][payload.col] = payload.content;
+  rows[payload.row][payload.col] = safeContent;
   const formatted = serializeRows(rows, table.alignments);
   return source.slice(0, table.start) + formatted + source.slice(table.end);
 }
