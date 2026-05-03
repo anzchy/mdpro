@@ -274,10 +274,18 @@ export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
 export interface MarkdownConfig {
   /** Auto-pair brackets and quotes */
   autoPair: boolean;
+  /**
+   * Auto-format GFM tables on save (Phase 3 WI-3.2). Off by default —
+   * pretty-printing produces noisy diffs in version-controlled files.
+   * When on, save reformats every table in the document via
+   * `tableFormatter.formatAllTables` before writing to disk.
+   */
+  autoReformatTablesOnSave: boolean;
 }
 
 export const DEFAULT_MARKDOWN_CONFIG: MarkdownConfig = {
   autoPair: true,
+  autoReformatTablesOnSave: false,
 };
 
 /** Appearance configuration */

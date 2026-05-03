@@ -12,6 +12,7 @@ export const TABLE_ACTION_GROUPS = [
   "insert",
   "move",
   "alignment",
+  "format",
   "destructive",
 ] as const;
 
@@ -29,6 +30,7 @@ export type TableActionId =
   | "align_left"
   | "align_center"
   | "align_right"
+  | "reformat_table"
   | "delete_row"
   | "delete_column"
   | "delete_table";

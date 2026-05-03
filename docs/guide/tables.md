@@ -51,6 +51,26 @@ This is a deliberate trade-off to keep the markdown file portable across
 other tools (Typora, GitHub, vmark, etc.). If you need fixed column
 widths in exported HTML, use the export's CSS to set `width:` per column.
 
+## Reformat / pretty-print
+
+Right-click any table → **Format → Reformat table** to pad cells
+column-by-column so the source-mode pipes line up. Alignment markers
+(`:--`, `:-:`, `--:`) are preserved. Escaped pipes (`\|`) inside cell
+content round-trip correctly.
+
+In WYSIWYG mode the menu item is present but it's a visible no-op —
+Milkdown's GFM serializer always emits compact (unpadded) markdown on
+every keystroke, which would immediately overwrite a formatted version.
+Toggle to source mode to apply.
+
+### Auto-format on save (Settings opt-in)
+
+Settings → Markdown → **Auto-Reformat Tables on Save** (off by default)
+runs the formatter over every table in the document on each save.
+Off by default because pretty-printing produces noisy diffs in
+version-controlled files; turn it on if you prefer canonical-looking
+markdown.
+
 ## Column-count linter (source mode)
 
 In source mode, mdpro flags any table body row whose number of cells

@@ -47,6 +47,10 @@ export const TABLE_ACTION_DESCRIPTORS: readonly TableActionDescriptor[] = [
   { id: "align_center",         label: "Align center",         group: "alignment" },
   { id: "align_right",          label: "Align right",          group: "alignment" },
 
+  // Format (Phase 3 WI-3.2 — reformats source padding; visible no-op
+  // in WYSIWYG because Milkdown's serializer is its own format)
+  { id: "reformat_table",       label: "Reformat table",       group: "format" },
+
   // Destructive (visually demoted via CSS)
   { id: "delete_row",           label: "Delete row",           group: "destructive" },
   { id: "delete_column",        label: "Delete column",        group: "destructive" },

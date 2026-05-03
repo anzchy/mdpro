@@ -27,6 +27,7 @@ import {
   moveColumnRight,
   moveRowDown,
   moveRowUp,
+  reformatTable,
   setAlignment,
   type EditResult,
 } from "./edits";
@@ -65,6 +66,8 @@ export function applyEdit(
       return setAlignment(model, ctx, "center");
     case "align_right":
       return setAlignment(model, ctx, "right");
+    case "reformat_table":
+      return reformatTable(model, ctx);
     case "delete_row":
       return deleteRow(model, ctx);
     case "delete_column":

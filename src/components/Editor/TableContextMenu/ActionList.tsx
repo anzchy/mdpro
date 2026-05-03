@@ -24,6 +24,7 @@ const GROUP_LABELS: Record<TableActionGroup, string> = {
   insert: "Insert",
   move: "Move",
   alignment: "Alignment",
+  format: "Format",
   destructive: "Destructive",
 };
 

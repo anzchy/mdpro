@@ -246,6 +246,15 @@ function runCommandFor(
     case "align_right":
       return commands.call(setAlignCommand.key, "right");
 
+    case "reformat_table":
+      // Phase 3 WI-3.2: in WYSIWYG, "Reformat table" is a visible no-op.
+      // Milkdown's GFM serializer emits compact (unpadded) markdown on
+      // every keystroke via the listener; padding our way and writing
+      // back would be undone the moment the user types. The action is
+      // kept in the descriptor catalog for menu parity — source mode
+      // does the real work via tableEdits.applyEdit.
+      return false;
+
     case "delete_row":
       // H4 fix: short-circuit on select failure — without the &&, a
       // failed select would leave the existing selection in place and

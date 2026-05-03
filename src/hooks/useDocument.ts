@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { fileService } from "../services/fileService";
+import { preferencesService } from "../services/preferencesService";
 import type { Document } from "../types/document";
 import { useDocumentStore } from "../stores/documentStore";
 import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
+import { formatAllTables } from "../utils/tableFormatter";
 
 const createEmptyDocument = (): Document => ({
   id:
@@ -200,9 +202,31 @@ export function useDocument() {
     if (!activeDocument.path) {
       return saveActiveDocumentAs(actionId);
     }
+    // Phase 3 WI-3.2: optional auto-reformat-on-save. The toggle is
+    // off by default — only opt-in users see formatted output. We
+    // update both the disk file AND the in-memory document so the
+    // editor reflects the formatted source on next interaction.
+    let contentToSave = activeDocument.content;
+    try {
+      const prefs = await preferencesService.getPreferences();
+      if (prefs.markdown?.autoReformatTablesOnSave) {
+        contentToSave = formatAllTables(activeDocument.content);
+        if (contentToSave !== activeDocument.content) {
+          loggingService.logEventSync({
+            level: "info",
+            event: "editor.table.auto-reformat-on-save",
+            status: "success",
+            actionId: actionId ?? loggingService.generateActionId(),
+            context: { documentId: activeDocument.id },
+          });
+        }
+      }
+    } catch {
+      // Preference read failed — fall through with original content.
+    }
     const result = await fileService.saveFile(
       activeDocument.id,
-      activeDocument.content,
+      contentToSave,
       activeDocument.path,
       actionId,
     );
@@ -210,6 +234,7 @@ export function useDocument() {
       const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
       upsertDocument({
         ...activeDocument,
+        content: contentToSave,
         path: result.path,
         isModified: false,
         lastSaved: result.savedAt,

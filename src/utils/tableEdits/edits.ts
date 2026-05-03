@@ -209,6 +209,24 @@ export function moveColumnRight(
 }
 
 // ---------------------------------------------------------------------------
+// Format (Phase 3 WI-3.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Re-emit the table with column-aligned padding. Round-trips with
+ * `parseTableAt` so the cursor target after format lands on the same
+ * cell. Output is the cell text re-serialized via `serializeRows`,
+ * matching `tableFormatter.formatTable`'s behavior.
+ */
+export function reformatTable(
+  model: TableModel,
+  ctx: TableContext,
+): EditResult {
+  const { rows, alignments } = mutableFromModel(model);
+  return emit(rows, alignments, ctx.rowIndex, ctx.colIndex);
+}
+
+// ---------------------------------------------------------------------------
 // Alignment
 // ---------------------------------------------------------------------------
 

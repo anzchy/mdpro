@@ -63,26 +63,56 @@ export function MarkdownSettings() {
           Loading…
         </div>
       ) : (
-        <div className="settings-row">
-          <div className="settings-row-content">
-            <div className="settings-row-label">
-              <label htmlFor="md-auto-pair">
-                <h4>Auto-pair Brackets &amp; Quotes</h4>
-                <p>Automatically close brackets, parentheses, and quotes.</p>
-              </label>
-            </div>
-            <div className="settings-row-control">
-              <input
-                id="md-auto-pair"
-                type="checkbox"
-                checked={prefs.autoPair}
-                onChange={(e) => {
-                  void handleChange("autoPair", e.target.checked);
-                }}
-              />
+        <>
+          <div className="settings-row">
+            <div className="settings-row-content">
+              <div className="settings-row-label">
+                <label htmlFor="md-auto-pair">
+                  <h4>Auto-pair Brackets &amp; Quotes</h4>
+                  <p>Automatically close brackets, parentheses, and quotes.</p>
+                </label>
+              </div>
+              <div className="settings-row-control">
+                <input
+                  id="md-auto-pair"
+                  type="checkbox"
+                  checked={prefs.autoPair}
+                  onChange={(e) => {
+                    void handleChange("autoPair", e.target.checked);
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="settings-row">
+            <div className="settings-row-content">
+              <div className="settings-row-label">
+                <label htmlFor="md-auto-reformat-tables">
+                  <h4>Auto-Reformat Tables on Save</h4>
+                  <p>
+                    Pretty-print GFM tables (column-aligned pipes) every
+                    time the document is saved. Off by default — produces
+                    noisy diffs in version-controlled files.
+                  </p>
+                </label>
+              </div>
+              <div className="settings-row-control">
+                <input
+                  id="md-auto-reformat-tables"
+                  type="checkbox"
+                  checked={prefs.autoReformatTablesOnSave}
+                  onChange={(e) => {
+                    void handleChange(
+                      "autoReformatTablesOnSave",
+                      e.target.checked,
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
