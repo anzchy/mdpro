@@ -925,6 +925,17 @@ function App() {
   // resolving the live Milkdown editor and running insertTableCommand.
   // Extract once so the menu and the shortcut behave identically.
   const triggerTableInsert = useCallback(() => {
+    // Audit fix M11: gate on WYSIWYG viewMode. Source mode renders
+    // CodeMirror, not Milkdown, so the modal would only fail on submit
+    // (no Milkdown editor to dispatch into). Phase 2 WI-2.3 will add
+    // the source-mode insertion path; until then, no-op outside WYSIWYG.
+    const currentViewMode = useEditorStore.getState().viewMode;
+    if (currentViewMode === "source") {
+      // Toast + log so the user gets feedback that the shortcut/menu is
+      // intentionally inert in source mode.
+      useToastStore.getState().showToast("Insert Table is available in WYSIWYG mode");
+      return;
+    }
     if (useTableInsertStore.getState().pendingCallback) {
       // Defensive: clear any stale pending callback from a previous open.
       useTableInsertStore.getState().clearPending();

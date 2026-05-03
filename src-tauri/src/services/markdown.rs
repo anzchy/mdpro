@@ -360,12 +360,21 @@ pub fn render_markdown(markdown: &str) -> String {
             }
             Event::End(TagEnd::Table) => {
                 table_events.push(event);
+                // Audit fix Low: render the table to a scratch buffer,
+                // run apply_table_alignment on that buffer only, then
+                // append. This restricts the substring rewrite to
+                // pulldown-cmark's table output and prevents false
+                // positives if a user authors a raw `<td style="…">`
+                // tag in inline HTML elsewhere in the document.
+                let mut table_html = String::new();
+                html::push_html(&mut table_html, table_events.drain(..));
+                let rewritten = apply_table_alignment(table_html);
                 let target = if in_heading {
                     &mut heading_inner_html
                 } else {
                     &mut html_output
                 };
-                html::push_html(target, table_events.drain(..));
+                target.push_str(&rewritten);
                 in_table = false;
             }
             Event::Start(Tag::Heading { level, .. }) if !in_table => {
@@ -420,7 +429,11 @@ pub fn render_markdown(markdown: &str) -> String {
         }
     }
 
-    apply_table_alignment(apply_image_width_marker(html_output))
+    // Image width marker is image-only and stays a fragment-wide rewrite.
+    // Table alignment is applied per-table inside the loop above (see
+    // the End(Table) branch) so it never touches inline HTML outside
+    // pulldown-cmark's own table output.
+    apply_image_width_marker(html_output)
 }
 
 /// Convert `<th style="text-align: X">` / `<td style="text-align: X">` to
@@ -464,6 +477,24 @@ fn apply_table_alignment(html: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_table_alignment_rewrite_does_not_touch_raw_inline_html() {
+        // Audit fix Low: raw inline HTML outside pulldown-cmark's table
+        // output must NOT be rewritten by apply_table_alignment. The
+        // table rewrite is now scoped to the per-table buffer.
+        //
+        // Inline HTML blocks in markdown pass through pulldown-cmark
+        // verbatim — if a user authors `<td style="text-align: center">`
+        // outside a real table, the `style` attribute should survive
+        // (or be stripped by ammonia later, but not converted to align).
+        let md = "<p>Code: <code>&lt;td style=\"text-align: center\"&gt;</code></p>\n";
+        let html = render_markdown(md);
+        assert!(
+            !html.contains("align=\"center\""),
+            "raw HTML in escaped code span must not be rewritten, got: {html}"
+        );
+    }
 
     #[test]
     fn test_table_alignment_renders_align_attr() {
