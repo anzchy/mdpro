@@ -1130,4 +1130,130 @@ mod tests {
             copy.insert_str(snapped, "X"); // must not panic
         }
     }
+
+    // -----------------------------------------------------------------------
+    // Phase 3 WI-3.3 — Table route request schemas (audit fix H5)
+    //
+    // Full router-integration tests against a fixture AppHandle would
+    // require enabling Tauri's `test` feature in dev-dependencies; the
+    // tests below exercise the JSON-contract surface (serde
+    // deserialization + payload validation) without that overhead.
+    // Tracked as a follow-up: full axum oneshot tests via tauri::test.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn insert_table_request_deserialize_minimal() {
+        let json = r#"{"document_id":"doc-1","rows":2,"cols":3}"#;
+        let req: InsertTableRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.document_id, "doc-1");
+        assert_eq!(req.rows, 2);
+        assert_eq!(req.cols, 3);
+        assert!(req.alignments.is_none());
+    }
+
+    #[test]
+    fn insert_table_request_deserialize_with_alignments() {
+        let json = r#"{"document_id":"d","rows":1,"cols":3,"alignments":["left","center","right"]}"#;
+        let req: InsertTableRequest = serde_json::from_str(json).unwrap();
+        let aligns = req.alignments.unwrap();
+        assert_eq!(aligns, vec!["left", "center", "right"]);
+    }
+
+    #[test]
+    fn insert_table_request_rejects_missing_required_fields() {
+        // Missing rows.
+        assert!(serde_json::from_str::<InsertTableRequest>(
+            r#"{"document_id":"d","cols":3}"#
+        )
+        .is_err());
+        // Missing cols.
+        assert!(serde_json::from_str::<InsertTableRequest>(
+            r#"{"document_id":"d","rows":3}"#
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn set_cell_request_deserialize_minimal() {
+        let json = r#"{"document_id":"d","row":1,"col":2,"content":"hello"}"#;
+        let req: SetCellRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.row, 1);
+        assert_eq!(req.col, 2);
+        assert_eq!(req.content, "hello");
+        assert!(req.table_index.is_none());
+    }
+
+    #[test]
+    fn set_cell_request_deserialize_with_table_index() {
+        let json = r#"{"document_id":"d","table_index":2,"row":0,"col":0,"content":""}"#;
+        let req: SetCellRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.table_index, Some(2));
+    }
+
+    #[test]
+    fn add_row_request_optional_table_index() {
+        let no_idx: AddRowRequest =
+            serde_json::from_str(r#"{"document_id":"d","after":0}"#).unwrap();
+        assert!(no_idx.table_index.is_none());
+        let with_idx: AddRowRequest =
+            serde_json::from_str(r#"{"document_id":"d","table_index":3,"after":0}"#).unwrap();
+        assert_eq!(with_idx.table_index, Some(3));
+    }
+
+    #[test]
+    fn delete_row_request_requires_index() {
+        // `index` is required; missing it must error.
+        assert!(serde_json::from_str::<DeleteRowRequest>(
+            r#"{"document_id":"d"}"#
+        )
+        .is_err());
+        let req: DeleteRowRequest =
+            serde_json::from_str(r#"{"document_id":"d","index":5}"#).unwrap();
+        assert_eq!(req.index, 5);
+    }
+
+    #[test]
+    fn add_column_request_optional_table_index() {
+        let req: AddColumnRequest =
+            serde_json::from_str(r#"{"document_id":"d","after":1}"#).unwrap();
+        assert_eq!(req.after, 1);
+        assert!(req.table_index.is_none());
+    }
+
+    #[test]
+    fn delete_column_request_requires_index() {
+        assert!(serde_json::from_str::<DeleteColumnRequest>(
+            r#"{"document_id":"d"}"#
+        )
+        .is_err());
+        let req: DeleteColumnRequest =
+            serde_json::from_str(r#"{"document_id":"d","index":2}"#).unwrap();
+        assert_eq!(req.index, 2);
+    }
+
+    #[test]
+    fn set_cell_request_treats_missing_table_index_as_none() {
+        // Default-on-missing matches the documented contract: omit
+        // table_index → defaults to 0 on the frontend.
+        let req: SetCellRequest = serde_json::from_str(
+            r#"{"document_id":"d","row":0,"col":0,"content":"x"}"#,
+        )
+        .unwrap();
+        assert!(req.table_index.is_none());
+    }
+
+    #[test]
+    fn table_action_event_serializes_with_window_label() {
+        let event = TableActionEvent {
+            document_id: "doc-1".to_string(),
+            action: "insert_table".to_string(),
+            payload: serde_json::json!({ "rows": 2, "cols": 3 }),
+            window_label: Some("main".to_string()),
+        };
+        let s = serde_json::to_string(&event).unwrap();
+        assert!(s.contains("\"document_id\":\"doc-1\""));
+        assert!(s.contains("\"action\":\"insert_table\""));
+        assert!(s.contains("\"window_label\":\"main\""));
+        assert!(s.contains("\"rows\":2"));
+    }
 }
