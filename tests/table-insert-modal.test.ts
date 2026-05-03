@@ -103,4 +103,10 @@ describe("TableInsertModal — GridPicker contract", () => {
   it("calls onPick(rows, cols) when a cell is clicked", () => {
     expect(gridSrc).toMatch(/onPick/);
   });
+
+  it("each cell has an aria-label announcing its rows × cols (audit fix M7)", () => {
+    expect(gridSrc).toMatch(/aria-label=\{`/);
+    expect(gridSrc).toMatch(/\$\{r\}\s*row/);
+    expect(gridSrc).toMatch(/\$\{c\}\s*column/);
+  });
 });

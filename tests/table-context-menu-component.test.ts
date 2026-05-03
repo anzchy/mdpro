@@ -47,6 +47,21 @@ describe("TableContextMenu — listener wiring", () => {
     expect(indexSrc).toMatch(/pointerdown/);
   });
 
+  it("dismisses on scroll (audit fix M9)", () => {
+    expect(indexSrc).toMatch(/addEventListener\("scroll"/);
+  });
+
+  it("supports arrow-key / Home / End / Enter navigation (audit fix M10)", () => {
+    expect(indexSrc).toMatch(/ArrowDown/);
+    expect(indexSrc).toMatch(/ArrowUp/);
+    expect(indexSrc).toMatch(/Home/);
+    expect(indexSrc).toMatch(/End/);
+  });
+
+  it("focuses the first enabled item when the menu opens (audit fix M10)", () => {
+    expect(indexSrc).toMatch(/first\?\.focus\(\)/);
+  });
+
   it("logs ui.table-context-menu.* events via loggingService", () => {
     expect(indexSrc).toMatch(/loggingService/);
     expect(indexSrc).toMatch(/ui\.table-context-menu/);
@@ -64,8 +79,10 @@ describe("TableContextMenu — destructive group + sectioning", () => {
     expect(actionListSrc).toMatch(/aria-label/);
   });
 
-  it("ActionList items use role=menuitem", () => {
-    expect(actionListSrc).toMatch(/role="menuitem"/);
+  it("ActionList items use role=menuitem (or menuitemradio for alignment)", () => {
+    // After audit fix Low, alignment uses role=menuitemradio; other groups
+    // stay role=menuitem. The role expression now derives from isAlignment.
+    expect(actionListSrc).toMatch(/role=\{isAlignment[\s\S]*menuitem/);
   });
 
   it("disabled items set aria-disabled=true", () => {
@@ -76,5 +93,10 @@ describe("TableContextMenu — destructive group + sectioning", () => {
     // Class name allows CSS to color the group in --color-danger and add
     // an extra top margin per the design spec.
     expect(actionListSrc).toMatch(/destructive/);
+  });
+
+  it("alignment items use role=menuitemradio + aria-checked (audit fix Low)", () => {
+    expect(actionListSrc).toMatch(/menuitemradio/);
+    expect(actionListSrc).toMatch(/aria-checked/);
   });
 });

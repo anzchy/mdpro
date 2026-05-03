@@ -45,13 +45,18 @@ export function ActionList({ actions, onPick }: ActionListProps) {
             <div className="table-context-menu-group-label">
               {GROUP_LABELS[group]}
             </div>
-            {inGroup.map((action) => (
+            {inGroup.map((action) => {
+              // Alignment items are mutually-exclusive choices — use
+              // role=menuitemradio + aria-checked for screen readers
+              // (audit fix Low). Other groups stay as plain menuitem.
+              const isAlignment = group === "alignment";
+              return (
               <button
                 key={action.id}
                 type="button"
-                role="menuitem"
+                role={isAlignment ? "menuitemradio" : "menuitem"}
                 aria-disabled={action.isDisabled || undefined}
-                aria-current={action.isActive ? "true" : undefined}
+                aria-checked={isAlignment ? action.isActive : undefined}
                 disabled={action.isDisabled}
                 className={`table-context-menu-item${
                   action.isActive ? " is-active" : ""
@@ -69,7 +74,8 @@ export function ActionList({ actions, onPick }: ActionListProps) {
                   </span>
                 ) : null}
               </button>
-            ))}
+              );
+            })}
           </div>
         );
       })}

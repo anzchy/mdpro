@@ -1,9 +1,16 @@
 /**
  * @module GridPicker
- * Purpose: Visual rows × cols picker — hover (or arrow-key navigate)
- * to highlight the rect from top-left to the cursor; click (or Enter)
- * to commit. Notion-/Typora-style. Numeric inputs in the parent
- * modal cover values >10.
+ * Purpose: Visual rows × cols picker — hover to highlight the rect from
+ * top-left to the pointer; click (or Enter while a cell is focused) to
+ * commit. Notion-/Typora-style. Numeric inputs in the parent modal
+ * cover values >10 and are the documented keyboard path; the grid is
+ * pointer-first.
+ *
+ * Audit fix M7: each cell exposes its (rows × cols) coordinate via
+ * aria-label so screen readers announce the choice.
+ * Audit fix M8: removed the false "arrow-key navigation" claim; cells
+ * are still keyboard-reachable via Tab and activatable via Enter/Space
+ * through the standard <button> defaults.
  *
  * @coordinates-with src/components/Editor/TableInsertModal/index.tsx
  */
@@ -52,6 +59,7 @@ export function GridPicker({ maxRows, maxCols, rows, cols, onPick }: GridPickerP
                   type="button"
                   role="gridcell"
                   aria-selected={isHighlighted}
+                  aria-label={`${r} row${r === 1 ? "" : "s"} by ${c} column${c === 1 ? "" : "s"}`}
                   className={`grid-picker-cell${isHighlighted ? " is-highlighted" : ""}`}
                   onMouseEnter={() => setHovered({ row: r, col: c })}
                   onClick={() => onPick(r, c)}

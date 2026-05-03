@@ -141,18 +141,62 @@ export function TableContextMenu() {
       if (event.key === "Escape") {
         event.preventDefault();
         closeMenu();
+        return;
+      }
+      // Audit fix M10: arrow-key / Home / End traversal + Enter/Space activate.
+      if (!menuRef.current) return;
+      const items = Array.from(
+        menuRef.current.querySelectorAll<HTMLElement>(
+          'button[role="menuitem"]:not([aria-disabled="true"]):not([disabled])',
+        ),
+      );
+      if (items.length === 0) return;
+      const active = document.activeElement;
+      const idx = items.findIndex((el) => el === active);
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        items[(idx + 1 + items.length) % items.length]?.focus();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        items[(idx - 1 + items.length) % items.length]?.focus();
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        items[0]?.focus();
+      } else if (event.key === "End") {
+        event.preventDefault();
+        items[items.length - 1]?.focus();
+      } else if (event.key === "Enter" || event.key === " ") {
+        if (active instanceof HTMLElement && active.matches('button[role="menuitem"]')) {
+          event.preventDefault();
+          active.click();
+        }
       }
     };
+    // Audit fix M9: scroll dismissal — the menu is position:fixed but
+    // anchored to a click position that loses meaning after scroll.
+    const handleScroll = () => closeMenu();
     const handleResize = () => closeMenu();
     window.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, true); // capture: catch nested scrollers
     return () => {
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll, true);
     };
   }, [menu, closeMenu]);
+
+  // Audit fix M10: focus the first enabled menu item when the menu opens
+  // so keyboard users land on something actionable.
+  useEffect(() => {
+    if (!menu || !menuRef.current) return;
+    const first = menuRef.current.querySelector<HTMLElement>(
+      'button[role="menuitem"]:not([aria-disabled="true"]):not([disabled])',
+    );
+    first?.focus();
+  }, [menu]);
 
   if (!menu) return null;
 
