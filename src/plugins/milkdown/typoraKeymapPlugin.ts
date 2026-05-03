@@ -178,9 +178,12 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
         const moved = commands.call(goToNextTableCellCommand.key);
         if (moved) return true;
         // Last cell of last row — append a new row, then move into it (Typora).
-        commands.call(addRowAfterCommand.key);
-        commands.call(goToNextTableCellCommand.key);
-        return true;
+        // Audit fix M12: chain with && so a failed addRow doesn't claim
+        // the keystroke as handled when nothing actually changed.
+        return (
+          commands.call(addRowAfterCommand.key) &&
+          commands.call(goToNextTableCellCommand.key)
+        );
       };
     },
   },

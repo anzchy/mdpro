@@ -54,26 +54,19 @@ interface CtxLike {
   get: (key: unknown) => unknown;
 }
 
-interface ProseMirrorViewLike {
-  state: {
-    selection: {
-      $from: {
-        depth: number;
-        pos: number;
-        node: (depth: number) => { type: { name: string }; attrs?: { alignment?: string } };
-      };
-    };
-  };
+interface ResolvedPosLike {
+  depth: number;
+  pos: number;
+  node: (depth: number) => { type: { name: string }; attrs?: { alignment?: string } };
 }
 
 /**
- * Walk up from the selection to find the nearest table_cell or
+ * Walk up from a ResolvedPos to find the nearest table_cell or
  * table_header node and read its alignment attr.
  */
-function findCellAlignment(view: ProseMirrorViewLike): TableCellAlignment {
-  const { $from } = view.state.selection;
-  for (let depth = $from.depth; depth > 0; depth -= 1) {
-    const node = $from.node(depth);
+function findCellAlignmentFromPos($pos: ResolvedPosLike): TableCellAlignment {
+  for (let depth = $pos.depth; depth > 0; depth -= 1) {
+    const node = $pos.node(depth);
     const name = node.type.name;
     if (name === "table_cell" || name === "table_header") {
       const align = node.attrs?.alignment;
@@ -88,20 +81,29 @@ function findCellAlignment(view: ProseMirrorViewLike): TableCellAlignment {
 
 /**
  * Read row/column coordinates and table size from the live view.
- * Returns null when the cursor is not inside a table.
+ * Returns null when `$pos` (or `view.state.selection.$from` when omitted)
+ * is not inside a table.
+ *
+ * Audit fix H1 (commit c306e4b..2b88a66 audit): `findTable` requires a
+ * `ResolvedPos`, not a `Selection`. Passing the selection silently
+ * returned null for every right-click.
+ *
+ * Audit fix H5: when a `$pos` is provided, the result reflects that
+ * position (typically derived from `view.posAtCoords` for right-clicks),
+ * not the cursor position.
  */
-export function computeTableContext(view: unknown): TableContext | null {
-  // Treat `view` as a ProseMirror EditorView with the minimum API we need.
-  // The actual type comes from @milkdown/kit/prose/view; this loose
-  // typing keeps the test surface small.
-  const v = view as { state: { selection: unknown; doc: unknown } } & ProseMirrorViewLike;
-  const tableInfo = findTable(v.state.selection as never);
+export function computeTableContext(
+  view: unknown,
+  $pos?: ResolvedPosLike,
+): TableContext | null {
+  const v = view as { state: { selection: { $from: ResolvedPosLike }; doc: unknown } };
+  const $from: ResolvedPosLike = $pos ?? v.state.selection.$from;
+  const tableInfo = findTable($from as never);
   if (!tableInfo) return null;
 
   const map = TableMap.get(tableInfo.node);
-  // Find which cell the selection is in by scanning map.map for the
+  // Find which cell the position is in by scanning map.map for the
   // nearest cell pos at or before $from.pos.
-  const $from = (v.state.selection as { $from: { pos: number } }).$from;
   const cellRel = $from.pos - tableInfo.start;
   let cellIndex = -1;
   for (let i = 0; i < map.map.length; i += 1) {
@@ -118,7 +120,7 @@ export function computeTableContext(view: unknown): TableContext | null {
     colIndex,
     rowCount: map.height,
     colCount: map.width,
-    alignment: findCellAlignment(v),
+    alignment: findCellAlignmentFromPos($from),
   };
 }
 
@@ -162,13 +164,25 @@ function isActionDisabled(id: TableActionId, ctx: TableContext): boolean {
 /**
  * Dispatch the Milkdown command(s) for the given action against the
  * active editor. Returns true on success; false if the editor is
- * unavailable, the action is disabled, or the underlying command
- * declined to apply.
+ * unavailable, the action is disabled at the fresh table position,
+ * the table no longer exists, or the underlying command declined.
  *
  * Composition: deletion commands compose select-then-delete because
  * Milkdown doesn't ship dedicated `deleteRowCommand` /
- * `deleteColumnCommand` — only `deleteSelectedCellsCommand`.
- * Move commands compute their `from`/`to` from the TableContext.
+ * `deleteColumnCommand` — only `deleteSelectedCellsCommand`. The
+ * select must succeed before the delete fires (audit fix H4),
+ * otherwise a stale selection would be deleted instead of the
+ * intended target.
+ *
+ * Audit fix H3: uses the freshly-recomputed TableContext for command
+ * payloads. The original `ctx` (captured at menu-open time) is only
+ * used as a hint for which cell the user right-clicked; the dispatch
+ * works on the current document state.
+ *
+ * Audit fix M1: rejects disabled actions before running the command,
+ * so callers can dispatch without checking `isActionDisabled`
+ * themselves and the boundary case (move at the edge) can never
+ * produce out-of-range indices.
  */
 export function dispatchTableAction(
   editor: MilkdownEditorLike,
@@ -180,14 +194,15 @@ export function dispatchTableAction(
     editor.action((rawCtx) => {
       const c = rawCtx as CtxLike;
       const commands = c.get(commandsCtx) as CommandsLike;
-      // Re-validate that the cursor is still inside a table before
-      // dispatching — guards against the document mutating between
-      // menu open and click (mirrors the image-menu fix from #389).
       const view = c.get(editorViewCtx);
-      const stillThere = computeTableContext(view);
-      if (!stillThere) return;
+      // Recompute from the live view so out-of-date row/col indices
+      // (e.g. after concurrent typing) don't mutate the wrong cell.
+      const fresh = computeTableContext(view);
+      if (!fresh) return;
+      // Reject disabled actions at the fresh boundary.
+      if (isActionDisabled(id, fresh)) return;
 
-      applied = runCommandFor(id, commands, ctx);
+      applied = runCommandFor(id, commands, fresh);
     });
   } catch {
     // ProseMirror or Milkdown threw — return false so the caller can
@@ -195,6 +210,10 @@ export function dispatchTableAction(
     // broad: the menu must never crash the editor.
     return false;
   }
+  // Suppress unused-parameter warning — `ctx` is kept for API stability
+  // (callers pass the menu-open context). Future change may use it for
+  // identity comparison against `fresh`.
+  void ctx;
   return applied;
 }
 
@@ -242,14 +261,24 @@ function runCommandFor(
       return commands.call(setAlignCommand.key, "right");
 
     case "delete_row":
-      commands.call(selectRowCommand.key, { index: ctx.rowIndex });
-      return commands.call(deleteSelectedCellsCommand.key);
+      // H4 fix: short-circuit on select failure — without the &&, a
+      // failed select would leave the existing selection in place and
+      // the delete would mutate the wrong row (or worse, the user's
+      // current text selection).
+      return (
+        commands.call(selectRowCommand.key, { index: ctx.rowIndex }) &&
+        commands.call(deleteSelectedCellsCommand.key)
+      );
     case "delete_column":
-      commands.call(selectColCommand.key, { index: ctx.colIndex });
-      return commands.call(deleteSelectedCellsCommand.key);
+      return (
+        commands.call(selectColCommand.key, { index: ctx.colIndex }) &&
+        commands.call(deleteSelectedCellsCommand.key)
+      );
     case "delete_table":
-      commands.call(selectTableCommand.key);
-      return commands.call(deleteSelectedCellsCommand.key);
+      return (
+        commands.call(selectTableCommand.key) &&
+        commands.call(deleteSelectedCellsCommand.key)
+      );
 
     default: {
       // Exhaustiveness check — TS will error if a new TableActionId is

@@ -79,8 +79,25 @@ export function TableContextMenu() {
       const captured: { ctx: TableContext | null } = { ctx: null };
       try {
         (editor as { action: (fn: (ctx: unknown) => void) => void }).action((ctx) => {
-          const view = (ctx as { get: (k: unknown) => unknown }).get(editorViewCtx);
-          captured.ctx = computeTableContext(view);
+          const view = (ctx as { get: (k: unknown) => unknown }).get(
+            editorViewCtx,
+          ) as {
+            posAtCoords: (coords: { left: number; top: number }) => { pos: number } | null;
+            state: { doc: { resolve: (pos: number) => unknown }; selection: unknown };
+          };
+          // Audit fix H5: resolve the right-click target rather than
+          // reading the cursor — browsers don't move the cursor on
+          // contextmenu, so reading state.selection would mutate
+          // whichever cell happened to hold the cursor (often a
+          // different cell than the one the user clicked).
+          const coordPos = view.posAtCoords({
+            left: event.clientX,
+            top: event.clientY,
+          });
+          const $pos = coordPos
+            ? (view.state.doc.resolve(coordPos.pos) as never)
+            : undefined;
+          captured.ctx = computeTableContext(view, $pos);
         });
       } catch {
         return;
