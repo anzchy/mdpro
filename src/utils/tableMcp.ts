@@ -26,6 +26,7 @@ import {
 } from "./tableParser";
 import { findAllTables } from "./cursorSync/table";
 import { applyEdit } from "./tableEdits";
+import { makeIsFenced } from "./fenceRanges";
 import type {
   TableActionId,
   TableContext,
@@ -93,7 +94,8 @@ export function setCell(
   payload: SetCellPayload,
 ): string | null {
   const tableIndex = payload.tableIndex ?? 0;
-  const tables = findAllTables(source);
+  // Audit-fix H4: skip fenced tables so MCP can't target/clobber them.
+  const tables = findAllTables(source, makeIsFenced(source));
   const table = tables[tableIndex];
   if (!table) return null;
   if (payload.row < 0 || payload.row >= table.rowCount) return null;
@@ -160,7 +162,9 @@ function dispatchTableEdit(
       : (payload.index as number | undefined);
   if (typeof targetIndex !== "number") return null;
 
-  const tables = findAllTables(source);
+  // Audit-fix H4: fence-guarded enumeration so MCP indices match what
+  // the user (and the WYSIWYG view) sees.
+  const tables = findAllTables(source, makeIsFenced(source));
   const table = tables[tableIndex];
   if (!table) return null;
 

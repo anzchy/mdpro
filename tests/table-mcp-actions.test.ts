@@ -185,4 +185,37 @@ describe("applyMcpTableAction", () => {
       applyMcpTableAction(TWO_TABLE_DOC, "delete_row", { index: 99 }),
     ).toBeNull();
   });
+
+  // Audit-fix H4: MCP must enumerate tables fence-guarded so a doc
+  // with a fenced "table" preceding a real one indexes the real one
+  // as 0 (not 1).
+  it("indexes only real (non-fenced) tables — fenced ones are skipped", () => {
+    const md =
+      "```\n| fake | fake |\n| ---- | ---- |\n```\n\n" +
+      "| real | data |\n| ---- | ---- |\n| 1    | 2    |\n";
+    const out = applyMcpTableAction(md, "set_cell", {
+      tableIndex: 0,
+      row: 1,
+      col: 0,
+      content: "X",
+    });
+    expect(out).not.toBeNull();
+    // The fenced "table" must remain untouched.
+    expect(out).toContain("| fake | fake |");
+    // The real table's body cell must be updated.
+    const realStart = out!.indexOf("| real");
+    const re = parseTableAt(out!, realStart + 5);
+    expect(re).not.toBeNull();
+    expect(re!.rows[1][0].text).toBe("X");
+  });
+
+  it("returns null when the only table is inside a fence (no real targets)", () => {
+    const md = "```\n| a | b |\n| - | - |\n| 1 | 2 |\n```\n";
+    const out = applyMcpTableAction(md, "set_cell", {
+      row: 0,
+      col: 0,
+      content: "X",
+    });
+    expect(out).toBeNull();
+  });
 });

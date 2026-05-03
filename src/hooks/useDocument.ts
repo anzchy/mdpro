@@ -7,6 +7,7 @@ import { useDocumentStore } from "../stores/documentStore";
 import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
 import { formatAllTables } from "../utils/tableFormatter";
+import { makeIsFenced } from "../utils/fenceRanges";
 
 const createEmptyDocument = (): Document => ({
   id:
@@ -206,11 +207,19 @@ export function useDocument() {
     // off by default — only opt-in users see formatted output. We
     // update both the disk file AND the in-memory document so the
     // editor reflects the formatted source on next interaction.
+    //
+    // Audit-fix H3 (2026-05-04): pass an isFenced predicate so
+    // table-shaped lines inside ``` code blocks aren't rewritten as
+    // tables on save. Without this, opt-in users with code samples
+    // containing pipes would see their fenced blocks corrupted.
     let contentToSave = activeDocument.content;
     try {
       const prefs = await preferencesService.getPreferences();
       if (prefs.markdown?.autoReformatTablesOnSave) {
-        contentToSave = formatAllTables(activeDocument.content);
+        contentToSave = formatAllTables(
+          activeDocument.content,
+          makeIsFenced(activeDocument.content),
+        );
         if (contentToSave !== activeDocument.content) {
           loggingService.logEventSync({
             level: "info",
