@@ -19,6 +19,7 @@ interface MenuHandlers {
   onOpenRecent?: (path: string, actionId?: string) => void;
   onToggleSidebar?: (actionId?: string) => void;
   onHighlight?: (actionId?: string) => void;
+  onInsertTable?: (actionId?: string) => void;
   onViewModeChange?: (mode: ViewMode, actionId?: string) => void;
   onCycleViewMode?: (actionId?: string) => void;
   onThemeModeChange?: (mode: UserPreferences["themeMode"], actionId?: string) => void;
@@ -93,6 +94,11 @@ export function useMenuEvents(handlers: MenuHandlers) {
         case "format.highlight":
           handlers.onHighlight?.(loggingService.logMenuSelect("menu.format.highlight"));
           break;
+        case "paragraph.table":
+          // Wired to the same insert-table flow as the ⌘⌥T shortcut; both
+          // open TableInsertModal via tableInsertStore.requestInsert.
+          handlers.onInsertTable?.(loggingService.logMenuSelect("menu.format.insert_table"));
+          break;
         case "theme.light":
           handlers.onThemeModeChange?.(
             "light",
@@ -134,6 +140,7 @@ export function useMenuEvents(handlers: MenuHandlers) {
     handlers.onCycleViewMode,
     handlers.onExportHtml,
     handlers.onHighlight,
+    handlers.onInsertTable,
     handlers.onNewWindow,
     handlers.onNew,
     handlers.onOpen,

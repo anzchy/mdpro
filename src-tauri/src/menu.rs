@@ -21,6 +21,7 @@ const MENU_VIEW_WYSIWYG: &str = "menu.view.wysiwyg";
 const MENU_VIEW_TOGGLE_SIDEBAR: &str = "menu.view.toggle_sidebar";
 
 const MENU_FORMAT_HIGHLIGHT: &str = "menu.format.highlight";
+const MENU_FORMAT_INSERT_TABLE: &str = "menu.format.insert_table";
 
 const MENU_THEME_LIGHT: &str = "menu.theme.light";
 const MENU_THEME_DARK: &str = "menu.theme.dark";
@@ -214,8 +215,16 @@ pub fn build_menu(
         true,
         Some("CmdOrCtrl+Shift+H"),
     )?;
+    let format_insert_table = MenuItem::with_id(
+        app,
+        MENU_FORMAT_INSERT_TABLE,
+        "Insert Table",
+        true,
+        Some("CmdOrCtrl+Alt+T"),
+    )?;
     let format_menu = SubmenuBuilder::new(app, "Format")
         .item(&format_highlight)
+        .item(&format_insert_table)
         .build()?;
 
     let theme_light = MenuItem::with_id(app, MENU_THEME_LIGHT, "Light", true, None::<&str>)?;
@@ -265,6 +274,7 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
         MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
         MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
+        MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, "paragraph.table", None),
         MENU_THEME_LIGHT => emit_menu_action(app, "theme.light", None),
         MENU_THEME_DARK => emit_menu_action(app, "theme.dark", None),
         MENU_THEME_SYSTEM => emit_menu_action(app, "theme.system", None),

@@ -919,6 +919,23 @@ function App() {
     }
   }, [activeDocument, closeActiveDocument]);
 
+  // Both ⌘⌥T (useKeyboardShortcuts) and Format → Insert Table (useMenuEvents)
+  // dispatch through the same flow: open TableInsertModal via
+  // tableInsertStore.requestInsert, with the modal's submit callback
+  // resolving the live Milkdown editor and running insertTableCommand.
+  // Extract once so the menu and the shortcut behave identically.
+  const triggerTableInsert = useCallback(() => {
+    if (useTableInsertStore.getState().pendingCallback) {
+      // Defensive: clear any stale pending callback from a previous open.
+      useTableInsertStore.getState().clearPending();
+    }
+    useTableInsertStore.getState().requestInsert((rows, cols) => {
+      const editor = useMilkdownEditorStore.getState().getEditor();
+      if (!editor) return false;
+      return runInsertTable(editor as Parameters<typeof runInsertTable>[0], rows, cols);
+    });
+  }, []);
+
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
@@ -929,22 +946,7 @@ function App() {
     onToggleSidebar: handleToggleSidebar,
     onCycleViewMode: cycleViewMode,
     onOpenPreferences: handleOpenSettings,
-    onInsertTable: () => {
-      // ⌘⌥T — opens the Insert Table modal. The closure captures
-      // useMilkdownEditorStore.getEditor at modal-open time; the modal
-      // calls cb(rows, cols) on submit, which runs insertTableCommand
-      // against the live Milkdown editor instance.
-      if (useTableInsertStore.getState().pendingCallback) {
-        // Defensive: clear any stale pending callback from a previous
-        // open before requesting a new one.
-        useTableInsertStore.getState().clearPending();
-      }
-      useTableInsertStore.getState().requestInsert((rows, cols) => {
-        const editor = useMilkdownEditorStore.getState().getEditor();
-        if (!editor) return false;
-        return runInsertTable(editor as Parameters<typeof runInsertTable>[0], rows, cols);
-      });
-    },
+    onInsertTable: triggerTableInsert,
     shortcuts: keyboardShortcuts,
   });
 
@@ -958,6 +960,7 @@ function App() {
     onOpenRecent: handleOpenRecent,
     onToggleSidebar: handleToggleSidebar,
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
+    onInsertTable: triggerTableInsert,
     onViewModeChange: setViewMode,
     onCycleViewMode: cycleViewMode,
     onThemeModeChange: (mode) => void setThemeMode(mode),

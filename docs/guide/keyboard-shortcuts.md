@@ -103,6 +103,12 @@ These shortcuts work in source mode.
 | ⌘A | Select all |
 | ⌘D | Select word |
 
+### Format
+
+| Shortcut | Action |
+|----------|--------|
+| Cmd + Option + T | Insert Table — opens the rows × cols picker (also via Format → Insert Table menu) |
+
 ### Editing
 
 | Shortcut | Action |
