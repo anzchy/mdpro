@@ -344,16 +344,37 @@ pub fn render_markdown(markdown: &str) -> String {
     // Rendered HTML collected from all inline events inside the heading.
     // Avoids html_escape() on the whole content which would strip <mark> tags.
     let mut heading_inner_html = String::new();
+    // Tables are stateful in pulldown-cmark's HTML writer (alignments,
+    // <thead>/<tbody>, <th>/<td>). Calling html::push_html per event drops
+    // that state — buffer all events between Tag::Start(Table) and
+    // TagEnd::Table and emit them in one push_html call so the writer's
+    // internal state survives.
+    let mut in_table = false;
+    let mut table_events: Vec<Event<'_>> = Vec::new();
 
     for event in parser {
         match &event {
-            Event::Start(Tag::Heading { level, .. }) => {
+            Event::Start(Tag::Table(_)) => {
+                in_table = true;
+                table_events.push(event);
+            }
+            Event::End(TagEnd::Table) => {
+                table_events.push(event);
+                let target = if in_heading {
+                    &mut heading_inner_html
+                } else {
+                    &mut html_output
+                };
+                html::push_html(target, table_events.drain(..));
+                in_table = false;
+            }
+            Event::Start(Tag::Heading { level, .. }) if !in_table => {
                 in_heading = true;
                 heading_level = Some(*level);
                 heading_text.clear();
                 heading_inner_html.clear();
             }
-            Event::End(TagEnd::Heading(_)) => {
+            Event::End(TagEnd::Heading(_)) if !in_table => {
                 if let Some(level) = heading_level {
                     let id = generate_heading_id(&heading_text, &mut id_counts);
                     let level_num = match level {
@@ -376,7 +397,7 @@ pub fn render_markdown(markdown: &str) -> String {
                 in_heading = false;
                 heading_level = None;
             }
-            Event::Text(text) | Event::Code(text) => {
+            Event::Text(text) | Event::Code(text) if !in_table => {
                 if in_heading {
                     // Accumulate plain text for ID generation; render HTML into the buffer.
                     heading_text.push_str(text);
@@ -386,7 +407,9 @@ pub fn render_markdown(markdown: &str) -> String {
                 }
             }
             _ => {
-                if in_heading {
+                if in_table {
+                    table_events.push(event);
+                } else if in_heading {
                     // Capture all other inline events (InlineHtml, emphasis, links…)
                     // so that <mark> tags inserted by preprocess_highlight survive.
                     html::push_html(&mut heading_inner_html, std::iter::once(event.clone()));
@@ -397,12 +420,105 @@ pub fn render_markdown(markdown: &str) -> String {
         }
     }
 
-    apply_image_width_marker(html_output)
+    apply_table_alignment(apply_image_width_marker(html_output))
+}
+
+/// Convert `<th style="text-align: X">` / `<td style="text-align: X">` to
+/// `<th align="X">` / `<td align="X">`. Background:
+///
+/// pulldown-cmark emits `style="text-align: …"` on aligned table cells.
+/// `ammonia::Builder::default()` (used by `sanitize_html`) does NOT keep
+/// the `style` attribute — alignment would silently disappear from the
+/// exported HTML and from the in-app preview.
+///
+/// The HTML4 `align` attribute on `td` / `th` is allowed by ammonia's
+/// default config and is honored by every modern browser. Combined with
+/// CSS `[align="…"]` selectors in the three render-pipeline stylesheets,
+/// alignment renders correctly across WYSIWYG, Preview, and exported HTML.
+fn apply_table_alignment(html: String) -> String {
+    if !html.contains("style=\"text-align:") {
+        return html;
+    }
+
+    // Run two targeted replacements per direction. The substring is precise
+    // (`<th style="text-align: X">` / `<td style="text-align: X">`) and only
+    // appears in pulldown-cmark's table-cell output, so substring match is
+    // safe — `style="text-align: …"` could appear elsewhere in inline HTML
+    // but pulldown-cmark always uses double quotes and exactly this prefix
+    // for table cells.
+    let mut out = html;
+    for tag in ["th", "td"] {
+        for (align, attr) in [
+            ("left", "left"),
+            ("center", "center"),
+            ("right", "right"),
+        ] {
+            let from = format!("<{tag} style=\"text-align: {align}\">");
+            let to = format!("<{tag} align=\"{attr}\">");
+            out = out.replace(&from, &to);
+        }
+    }
+    out
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_table_alignment_renders_align_attr() {
+        // pulldown-cmark emits style="text-align: …" by default; mdpro
+        // converts to the HTML align="…" attribute so the value survives
+        // ammonia's default sanitizer (which strips style attributes).
+        let md = "| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |\n";
+        let html = render_markdown(md);
+        assert!(
+            html.contains("align=\"left\""),
+            "expected align=\"left\" on left-aligned column, got: {html}"
+        );
+        assert!(
+            html.contains("align=\"center\""),
+            "expected align=\"center\" on center-aligned column, got: {html}"
+        );
+        assert!(
+            html.contains("align=\"right\""),
+            "expected align=\"right\" on right-aligned column, got: {html}"
+        );
+        assert!(
+            !html.contains("style=\"text-align"),
+            "style=\"text-align: …\" must be rewritten to align=\"…\", got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_table_alignment_survives_sanitize_html() {
+        // The export_html path runs sanitize_html on the rendered fragment.
+        // ammonia's default builder keeps the align attribute on td/th but
+        // strips style — verify the rewritten output passes through intact.
+        let md = "| a | b |\n|:-:|--:|\n| 1 | 2 |\n";
+        let html = render_markdown(md);
+        let sanitized = sanitize_html(&html);
+        assert!(
+            sanitized.contains("align=\"center\""),
+            "alignment lost after sanitize, got: {sanitized}"
+        );
+        assert!(
+            sanitized.contains("align=\"right\""),
+            "alignment lost after sanitize, got: {sanitized}"
+        );
+    }
+
+    #[test]
+    fn test_table_without_alignment_has_no_align_attr() {
+        let md = "| a | b |\n|---|---|\n| 1 | 2 |\n";
+        let html = render_markdown(md);
+        // Default-aligned columns (the |---| form, no colon) should not
+        // emit an align attribute — preserves browser default behavior.
+        assert!(
+            !html.contains("align=\""),
+            "no align attribute expected for default columns, got: {html}"
+        );
+    }
 
     #[test]
     fn test_image_width_marker_rewrites_to_width_attr() {

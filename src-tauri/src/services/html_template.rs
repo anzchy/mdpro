@@ -23,6 +23,8 @@ pub fn build_html(content: &str, title: &str, theme: &str) -> String {
         code {{ background: {code_bg}; padding: 2px 4px; border-radius: 4px; }}\n\
         table {{ width: 100%; border-collapse: collapse; margin: 16px 0; }}\n\
         th, td {{ border: 1px solid {border}; padding: 8px 10px; text-align: left; }}\n\
+        th[align=\"center\"], td[align=\"center\"] {{ text-align: center; }}\n\
+        th[align=\"right\"], td[align=\"right\"] {{ text-align: right; }}\n\
         blockquote {{ border-left: 3px solid {border}; padding-left: 12px; color: #6b7280; }}\n\
         img {{ max-width: 100%; border-radius: 6px; }}",
         bg = bg,

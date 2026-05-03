@@ -59,6 +59,18 @@
   text-align: left;
 }
 
+/* Per-cell alignment via the HTML align attribute (marked.js emits this
+   for GFM aligned columns; mdpro's Rust render path also normalizes
+   pulldown-cmark's inline style="text-align: …" to align="…"). */
+.preview-content th[align="center"],
+.preview-content td[align="center"] {
+  text-align: center;
+}
+.preview-content th[align="right"],
+.preview-content td[align="right"] {
+  text-align: right;
+}
+
 .preview-content th {
   background: var(--color-surface);
 }
