@@ -28,6 +28,8 @@ import { useDocumentStore } from "../../stores/documentStore";
 import { useMilkdownEditorStore } from "../../stores/milkdownEditorStore";
 import { loggingService } from "../../services/loggingService";
 import { getImageResizeDomAttrs } from "../../plugins/milkdown/imageResizePlugin";
+import { consumePendingTableCell } from "../../utils/cursorSync/table";
+import { restoreCellInMilkdownEditor } from "../../utils/cursorSync/tableMilkdown";
 
 // ---------------------------------------------------------------------------
 // Security helpers — exported for unit testing
@@ -263,6 +265,18 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     container.addEventListener("click", handleClick);
     return () => container.removeEventListener("click", handleClick);
   }, [activeDocumentId]);
+
+  // WI-2.6: when arriving in WYSIWYG mode and the source-side capture
+  // recorded a cell, navigate to the matching cell once the editor is
+  // ready. Consumed exactly once — second mount-without-toggle is a no-op.
+  useEffect(() => {
+    if (editor.loading) return;
+    const instance = editor.get();
+    if (!instance) return;
+    const pending = consumePendingTableCell();
+    if (!pending) return;
+    restoreCellInMilkdownEditor(instance, pending);
+  }, [editor.loading, editor]);
 
   // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
   // In source/split mode the CodeMirror highlightCommand handles this instead

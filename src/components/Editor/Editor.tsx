@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
+import { EditorSelection } from "@codemirror/state";
 import { redo, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
@@ -18,6 +19,10 @@ import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
 import { tableDetectionExtension } from "../../plugins/codemirror/sourceTableDetection";
 import { sourceTableTabKeymap } from "../../plugins/codemirror/sourceTableTabNav";
 import { sourceTableCellHighlightExtension } from "../../plugins/codemirror/sourceTableCellHighlight";
+import {
+  consumePendingTableCell,
+  locateCellInSource,
+} from "../../utils/cursorSync/table";
 
 interface EditorProps {
   value: string;
@@ -142,6 +147,15 @@ export function Editor({
             initializedRef.current = true;
           } else {
             pluginRegistry.onModeChange("codemirror");
+          }
+          // WI-2.6: if the previous (WYSIWYG) view's selection was inside
+          // a table, place the source cursor in the matching cell.
+          const pending = consumePendingTableCell();
+          if (pending) {
+            const offset = locateCellInSource(view.state.doc.toString(), pending);
+            if (offset != null) {
+              view.dispatch({ selection: EditorSelection.cursor(offset) });
+            }
           }
         }}
         editable={!readOnly}

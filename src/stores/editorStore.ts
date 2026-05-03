@@ -2,6 +2,37 @@ import { create } from "zustand";
 import type { EditorView } from "@codemirror/view";
 import type { CursorPosition, EditorState, ScrollPosition, SelectionRange, ViewMode } from "../types/editor";
 import { loggingService } from "../services/loggingService";
+import {
+  captureCellFromSource,
+  setPendingTableCell,
+} from "../utils/cursorSync/table";
+import { captureCellFromMilkdownEditor } from "../utils/cursorSync/tableMilkdown";
+import { useMilkdownEditorStore } from "./milkdownEditorStore";
+
+/**
+ * Capture the current table cell on the OUTGOING editor before the
+ * mode transition mutates state (Phase 2 WI-2.6). Always writes the
+ * pending slot — falls through to null when the cursor isn't in a
+ * table, which clears any stale capture from a previous transition.
+ */
+function capturePendingTableCellForTransition(
+  fromMode: ViewMode,
+  cmView: EditorView | null,
+): void {
+  let captured = null;
+  if (fromMode === "source" && cmView) {
+    captured = captureCellFromSource(
+      cmView.state.doc.toString(),
+      cmView.state.selection.main.head,
+    );
+  } else if (fromMode === "wysiwyg") {
+    const editor = useMilkdownEditorStore.getState().getEditor();
+    if (editor) {
+      captured = captureCellFromMilkdownEditor(editor);
+    }
+  }
+  setPendingTableCell(captured);
+}
 
 interface EditorStore extends EditorState {
   showSidebar: boolean;
@@ -52,6 +83,10 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setViewMode: (mode) =>
     set((state) => {
       if (state.viewMode !== mode) {
+        // WI-2.6: capture cell on the outgoing editor BEFORE we mutate
+        // viewMode — React reconciles after this set() returns, so the
+        // outgoing editor is still mounted right now.
+        capturePendingTableCellForTransition(state.viewMode, state.editorView);
         loggingService.logEventSync({
           level: "info",
           event: "view.mode.change",
@@ -74,6 +109,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
         currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;
       const nextMode = order[nextIndex];
       if (nextMode !== state.viewMode) {
+        capturePendingTableCellForTransition(state.viewMode, state.editorView);
         loggingService.logEventSync({
           level: "info",
           event: "view.mode.change",
