@@ -38,6 +38,6 @@ export type {
   TableCell,
   TableModel,
 } from "./types";
-export { parseTableAt } from "./parse";
+export { countTableLineCells, parseTableAt } from "./parse";
 export { findCell, findCellOrNearest } from "./find";
 export { serializeModel, serializeRows } from "./serialize";

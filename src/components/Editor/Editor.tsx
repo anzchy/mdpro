@@ -23,6 +23,7 @@ import {
 } from "../../plugins/codemirror/sourceTableDetection";
 import { sourceTableTabKeymap } from "../../plugins/codemirror/sourceTableTabNav";
 import { sourceTableCellHighlightExtension } from "../../plugins/codemirror/sourceTableCellHighlight";
+import { tableColumnCountLinter } from "../../plugins/codemirror/lintTableColumnCount";
 import {
   consumePendingTableCell,
   locateCellInSource,
@@ -98,6 +99,7 @@ export function Editor({
       tableDetectionExtension(),
       sourceTableTabKeymapExt,
       sourceTableCellHighlightExtension(),
+      tableColumnCountLinter(),
       // Dynamic compartments — reconfigured via applyEditorPref() and related helpers.
       // Initial values are defaults; reapplyEditorPrefs() syncs them to persisted prefs.
       initialWordWrap(true),

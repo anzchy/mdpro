@@ -51,6 +51,16 @@ This is a deliberate trade-off to keep the markdown file portable across
 other tools (Typora, GitHub, vmark, etc.). If you need fixed column
 widths in exported HTML, use the export's CSS to set `width:` per column.
 
+## Column-count linter (source mode)
+
+In source mode, mdpro flags any table body row whose number of cells
+differs from the header. The diagnostic appears as a gutter warning
+(yellow triangle) on the offending row; hover or use the gutter to see
+the detail (`Table row has N cells but header has M`).
+
+The check ignores tables inside fenced code blocks and respects
+escaped pipes (`\|`) inside cell content.
+
 ## Wide tables — horizontal scroll
 
 When a table's natural width (the sum of its column widths) exceeds the

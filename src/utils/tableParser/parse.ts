@@ -19,6 +19,19 @@ import {
  * Locate a GFM table containing `offset`. Returns null when no table
  * is found at or around the given source position.
  */
+/**
+ * Count the unescaped cell segments in a single line of GFM table
+ * source. Used by the column-count linter (Phase 3 WI-3.1) so it
+ * doesn't reinvent the parser's edge-pipe + escaped-pipe logic.
+ *
+ * The parser pads/truncates body rows to match the header during
+ * `parseTableAt`, which loses the raw cell count — this helper
+ * exposes the pre-pad number so the linter can flag mismatches.
+ */
+export function countTableLineCells(line: string): number {
+  return splitCellTexts(line).length;
+}
+
 export function parseTableAt(source: string, offset: number): TableModel | null {
   if (offset < 0 || offset > source.length) return null;
   if (source.length === 0) return null;
