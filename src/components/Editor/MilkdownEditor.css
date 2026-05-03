@@ -113,15 +113,14 @@
 }
 
 /* Wide-table fit-to-width (table-CRUD WI-2.7).
-   prosemirror-tables's columnResizing plugin already renders every
-   table inside a <div class="tableWrapper">. Making that wrapper a
-   horizontal scroll container is enough — the inner table grows to its
-   own min-width (set inline by TableView's column-resize math) and the
-   wrapper provides the scroll when the natural width exceeds the
-   editor content area. Mirrors the .table-scroll-container pattern in
-   `.claude/rules/32-component-patterns.md` § Table; the canonical
-   class name lives inside prosemirror-tables and we style it directly
-   instead of renaming. */
+   prosemirror-tables's columnResizing plugin renders every table
+   inside a <div class="tableWrapper">. The wrapper is the horizontal
+   scroll container; the inner table uses `width: max-content` so it
+   always grows to its natural column-width sum, and `min-width: 100%`
+   keeps narrow tables filling the editor. Audit-fix M12: this pattern
+   matches `.claude/rules/32-component-patterns.md` § Table — the
+   canonical scroll class name lives inside prosemirror-tables, and
+   we style it directly instead of renaming. */
 .milkdown-editor .ProseMirror .tableWrapper {
   overflow-x: auto;
   max-width: 100%;
@@ -129,17 +128,25 @@
 }
 
 .milkdown-editor .ProseMirror table {
-  width: 100%;
   border-collapse: collapse;
   margin: 0 0 16px;
   font-size: 14px;
 }
 
-/* When a table sits inside its own .tableWrapper (the normal case), the
-   wrapper owns the bottom margin — drop it from the table itself to
-   avoid double spacing. */
+/* Tables inside .tableWrapper (the normal case): wrapper owns the
+   bottom margin (drop it from the table) and the table sizes by
+   content with a min-width floor that fills the wrapper. */
 .milkdown-editor .ProseMirror .tableWrapper > table {
   margin: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Tables that, for any reason, are NOT wrapped (defensive — every
+   gfm-preset path goes through the wrapper, but a future schema
+   change could bypass it): fall back to filling the editor width. */
+.milkdown-editor .ProseMirror > table {
+  width: 100%;
 }
 
 .milkdown-editor .ProseMirror th,

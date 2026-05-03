@@ -35,4 +35,17 @@ describe("WI-2.7 — wide-table scroll container CSS", () => {
       /\.tableWrapper\s*>\s*table\s*\{[^}]*margin:\s*0[^}]*\}/m,
     );
   });
+
+  // Audit-fix M12: the inner table sizes by content with a 100%
+  // minimum so wide tables overflow into the wrapper's scroll
+  // container deterministically, not just after column-resize sets
+  // an inline min-width.
+  it("inner table uses width: max-content with min-width: 100% (canonical rule-32 pattern)", () => {
+    const block = milkdownCss.match(
+      /\.tableWrapper\s*>\s*table\s*\{[^}]*\}/m,
+    );
+    expect(block).not.toBeNull();
+    expect(block![0]).toMatch(/width:\s*max-content/);
+    expect(block![0]).toMatch(/min-width:\s*100%/);
+  });
 });

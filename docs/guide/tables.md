@@ -53,13 +53,15 @@ widths in exported HTML, use the export's CSS to set `width:` per column.
 
 ## Wide tables — horizontal scroll
 
-When a table's natural width exceeds the editor content area, the table
-becomes horizontally scrollable instead of overflowing the editor. The
-header row and body cells stay aligned because the scroll wrapper
+When a table's natural width (the sum of its column widths) exceeds the
+editor content area, the table becomes horizontally scrollable inside
+its own wrapper. Header and body cells stay aligned because the wrapper
 encapsulates the whole table.
 
-This works automatically — no markdown syntax required. Set generous
-column widths via the resize handle and the wrapper handles the rest.
+The inner table sizes by `max-content`, so the scroll appears as soon
+as the cumulative column widths cross the editor edge — whether you
+typed long content into a cell or dragged a column wider with the
+resize handle. Narrow tables continue to fill the editor at 100%.
 
 ## Limitations
 
