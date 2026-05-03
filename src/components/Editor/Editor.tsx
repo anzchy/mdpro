@@ -15,6 +15,8 @@ import { reapplyEditorPrefs } from "../common/settings/editorPrefApply";
 import { useEditorStore } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
+import { tableDetectionExtension } from "../../plugins/codemirror/sourceTableDetection";
+import { sourceTableTabKeymap } from "../../plugins/codemirror/sourceTableTabNav";
 
 interface EditorProps {
   value: string;
@@ -66,6 +68,16 @@ export function Editor({
   // Memoize the full extensions array.
   // Dynamic compartments use stable `initial*` wrappers; their values are
   // synced from persisted prefs on every mount via reapplyEditorPrefs().
+  // Source-mode table support (Phase 2 WI-2.2 + WI-2.3): registered
+  // BEFORE undoRedoKeymap so the table Tab handler gets first dibs;
+  // it returns false outside tables so the editor's default Tab still
+  // works (and code-block-tab from #d170f9c is preserved by
+  // sourceTableDetection's fence guard).
+  const sourceTableTabKeymapExt = useMemo(
+    () => keymap.of(sourceTableTabKeymap),
+    [],
+  );
+
   const extensions = useMemo(
     () => [
       markdownExtension,
@@ -73,6 +85,8 @@ export function Editor({
       ...searchExtensions,
       pluginEventExtension,
       ...pluginExtensions,
+      tableDetectionExtension(),
+      sourceTableTabKeymapExt,
       // Dynamic compartments — reconfigured via applyEditorPref() and related helpers.
       // Initial values are defaults; reapplyEditorPrefs() syncs them to persisted prefs.
       initialWordWrap(true),
@@ -84,7 +98,7 @@ export function Editor({
     // pluginExtensions and pluginEventExtension are stable memos; only include
     // the deps that actually change to avoid unnecessary extension churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pluginEventExtension, pluginExtensions, undoRedoKeymap],
+    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt],
   );
 
   useEffect(() => {
