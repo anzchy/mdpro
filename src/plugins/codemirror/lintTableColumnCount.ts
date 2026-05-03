@@ -17,7 +17,12 @@
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
  */
 
-import { linter, type Diagnostic, type LintSource } from "@codemirror/lint";
+import {
+  linter,
+  lintGutter,
+  type Diagnostic,
+  type LintSource,
+} from "@codemirror/lint";
 import type { EditorState, Extension } from "@codemirror/state";
 import { countTableLineCells } from "../../utils/tableParser";
 import { findAllTables } from "../../utils/cursorSync/table";
@@ -69,10 +74,14 @@ export function tableColumnCountDiagnostics(state: EditorState): Diagnostic[] {
 }
 
 /**
- * CodeMirror extension that registers the column-count linter. Plug
- * directly into the source editor's extension list.
+ * CodeMirror extension that registers the column-count linter PLUS
+ * the lint gutter (audit-fix M2). Without `lintGutter()` the
+ * `tables.md` claim of a "yellow triangle in the gutter" wouldn't
+ * actually render — diagnostics would only show as inline underlines.
+ *
+ * Plug directly into the source editor's extension list.
  */
 export function tableColumnCountLinter(): Extension {
   const lintFn: LintSource = (view) => tableColumnCountDiagnostics(view.state);
-  return linter(lintFn);
+  return [linter(lintFn), lintGutter()];
 }
