@@ -1,4 +1,5 @@
 import { Editor } from "./Editor";
+import { SourceTableContextMenu } from "./SourceTableContextMenu";
 
 interface SplitViewProps {
   markdown: string;
@@ -23,6 +24,10 @@ export function SplitView({
           highlightRequest={highlightRequest}
         />
       </div>
+      {/* Mounted alongside Editor — listens on #source-container for
+          right-clicks inside markdown tables (Phase 2 WI-2.4). Mirror
+          of MilkdownEditor's <TableContextMenu />. */}
+      <SourceTableContextMenu />
     </div>
   );
 }

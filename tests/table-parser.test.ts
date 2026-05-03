@@ -23,6 +23,7 @@ import {
   findCell,
   parseTableAt,
   serializeModel,
+  serializeRows,
   type ColumnAlignment,
   type TableModel,
 } from "../src/utils/tableParser";
@@ -287,5 +288,58 @@ describe("serializeModel — round-trip", () => {
     const out = serializeModel(model);
     // Each delimiter cell should encode its alignment via colons
     expect(out).toMatch(/:-+\s*\|\s*:-+:|---:/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// serializeRows — synthesize a table from raw row text + alignments
+// ---------------------------------------------------------------------------
+
+describe("serializeRows — emits valid GFM tables without trailing newline", () => {
+  it("emits a 2-column 1-body-row table that re-parses identically", () => {
+    const out = serializeRows(
+      [["a", "b"], ["1", "2"]],
+      [null, null],
+    );
+    expect(out.endsWith("\n")).toBe(false);
+    const reParsed = parseTableAt(out, 0)!;
+    expect(reParsed.colCount).toBe(2);
+    expect(reParsed.rowCount).toBe(2);
+    expect(reParsed.rows[0][0].text).toBe("a");
+    expect(reParsed.rows[1][1].text).toBe("2");
+  });
+
+  it("encodes alignments in the delimiter row", () => {
+    const out = serializeRows(
+      [["a", "b", "c"], ["1", "2", "3"]],
+      ["left", "center", "right"],
+    );
+    const reParsed = parseTableAt(out, 0)!;
+    expect(reParsed.alignments).toEqual<ColumnAlignment[]>(["left", "center", "right"]);
+  });
+
+  it("pads cells to the longest entry per column", () => {
+    const out = serializeRows(
+      [["a", "longheader"], ["1", "2"]],
+      [null, null],
+    );
+    const lines = out.split("\n");
+    // Each line in the output must have the same length (visual padding).
+    expect(lines[0].length).toBe(lines[1].length);
+    expect(lines[1].length).toBe(lines[2].length);
+  });
+
+  it("supports a header-only table (one row)", () => {
+    const out = serializeRows([["a", "b"]], [null, null]);
+    const reParsed = parseTableAt(out, 0)!;
+    expect(reParsed.rowCount).toBe(1);
+    expect(reParsed.colCount).toBe(2);
+  });
+
+  it("supports a single-column table", () => {
+    const out = serializeRows([["only"], ["one"]], [null]);
+    const reParsed = parseTableAt(out, 0)!;
+    expect(reParsed.colCount).toBe(1);
+    expect(reParsed.rows[1][0].text).toBe("one");
   });
 });

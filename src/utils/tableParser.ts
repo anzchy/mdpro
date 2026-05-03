@@ -185,6 +185,63 @@ export function serializeModel(model: TableModel): string {
   return lines.join("\n") + "\n";
 }
 
+/**
+ * Render a synthesized table from raw row text + alignments. Used by
+ * `tableEdits` (Phase 2 WI-2.4) to write back into the source range
+ * `[model.start, model.end)` after a structural edit (insert/delete row,
+ * move column, etc.) without first reconstructing a full TableModel.
+ *
+ * Unlike `serializeModel`, the output has NO trailing newline — it is
+ * a drop-in replacement for `model.raw` (which also excludes the
+ * trailing newline of the last line).
+ *
+ * `rows[0]` is the header row; subsequent rows are body rows. The
+ * delimiter row is generated from `alignments` and is NOT included in
+ * `rows`.
+ */
+export function serializeRows(
+  rows: string[][],
+  alignments: ColumnAlignment[],
+): string {
+  if (rows.length === 0) return "";
+  const colCount = alignments.length;
+  // Compute padding widths from the longest cell per column (and at
+  // least 3 so the delimiter row's `---` survives).
+  const widths = new Array(colCount).fill(3);
+  for (const row of rows) {
+    for (let c = 0; c < Math.min(row.length, colCount); c += 1) {
+      widths[c] = Math.max(widths[c], row[c].length);
+    }
+  }
+  const headerCells: TableCell[] = padRow(rows[0], colCount).map((text, c) => ({
+    start: 0,
+    end: 0,
+    text,
+    row: 0,
+    col: c,
+  }));
+  const lines: string[] = [];
+  lines.push(emitRow(headerCells, widths));
+  lines.push(emitDelimiterRow(alignments, widths));
+  for (let r = 1; r < rows.length; r += 1) {
+    const bodyCells: TableCell[] = padRow(rows[r], colCount).map((text, c) => ({
+      start: 0,
+      end: 0,
+      text,
+      row: r,
+      col: c,
+    }));
+    lines.push(emitRow(bodyCells, widths));
+  }
+  return lines.join("\n");
+}
+
+function padRow(row: string[], colCount: number): string[] {
+  const out = row.slice(0, colCount);
+  while (out.length < colCount) out.push("");
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
