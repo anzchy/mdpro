@@ -16,7 +16,10 @@ import { reapplyEditorPrefs } from "../common/settings/editorPrefApply";
 import { useEditorStore } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
-import { tableDetectionExtension } from "../../plugins/codemirror/sourceTableDetection";
+import {
+  isPositionInFencedCode,
+  tableDetectionExtension,
+} from "../../plugins/codemirror/sourceTableDetection";
 import { sourceTableTabKeymap } from "../../plugins/codemirror/sourceTableTabNav";
 import { sourceTableCellHighlightExtension } from "../../plugins/codemirror/sourceTableCellHighlight";
 import {
@@ -150,9 +153,16 @@ export function Editor({
           }
           // WI-2.6: if the previous (WYSIWYG) view's selection was inside
           // a table, place the source cursor in the matching cell.
+          // Audit-fix H1: pass the fence predicate so tableIndex is
+          // resolved against the same enumeration the capture used.
           const pending = consumePendingTableCell();
           if (pending) {
-            const offset = locateCellInSource(view.state.doc.toString(), pending);
+            const state = view.state;
+            const offset = locateCellInSource(
+              state.doc.toString(),
+              pending,
+              (pos) => isPositionInFencedCode(state, pos),
+            );
             if (offset != null) {
               view.dispatch({ selection: EditorSelection.cursor(offset) });
             }

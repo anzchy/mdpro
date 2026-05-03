@@ -40,6 +40,21 @@ export interface TableCellPos {
 // ---------------------------------------------------------------------------
 
 /**
+ * Predicate that returns true when the given source offset sits
+ * inside a fenced code block (` ``` ` / ` ~~~ `). Callers in source
+ * mode pass `(pos) => isPositionInFencedCode(state, pos)`; tests can
+ * pass a synthetic predicate or omit (defaults to "never fenced").
+ *
+ * Audit-fix H1/H2 (2026-05-03): without this guard, pipe-shaped lines
+ * inside a fence are enumerated by `findAllTables`, which makes
+ * `tableIndex` drift relative to Milkdown's `descendants` walk
+ * (Milkdown never yields `table` nodes inside fenced code). Source
+ * and WYSIWYG must enumerate the same tables in the same order or
+ * the cross-mode cursor sync lands in the wrong one.
+ */
+export type IsFenced = (offset: number) => boolean;
+
+/**
  * Walk the source linearly and return every GFM table in document
  * order. O(doc) — only called at mode-toggle time, never on the
  * keystroke hot path.
@@ -50,14 +65,22 @@ export interface TableCellPos {
  * trailing `\n` back to the line above). Walking past the FIRST
  * newline after `model.end` guarantees the next probe sits on the
  * next real line.
+ *
+ * When `isFenced` is supplied, tables whose start offset sits inside
+ * a fenced code block are skipped — see `IsFenced` for rationale.
  */
-export function findAllTables(source: string): TableModel[] {
+export function findAllTables(
+  source: string,
+  isFenced?: IsFenced,
+): TableModel[] {
   const out: TableModel[] = [];
   let pos = 0;
   while (pos <= source.length) {
     const model = parseTableAt(source, pos);
     if (model) {
-      out.push(model);
+      if (!isFenced || !isFenced(model.start)) {
+        out.push(model);
+      }
       const nextLine = source.indexOf("\n", model.end + 1);
       pos = nextLine === -1 ? source.length + 1 : nextLine + 1;
       continue;
@@ -70,14 +93,16 @@ export function findAllTables(source: string): TableModel[] {
 
 /**
  * Capture the cell at the given source offset. Returns null when the
- * offset is outside any table or sits in a non-cell region (delimiter
- * row, between cells).
+ * offset is outside any table, sits in a non-cell region (delimiter
+ * row, between cells), or sits inside a fenced code block.
  */
 export function captureCellFromSource(
   source: string,
   offset: number,
+  isFenced?: IsFenced,
 ): TableCellPos | null {
-  const tables = findAllTables(source);
+  if (isFenced && isFenced(offset)) return null;
+  const tables = findAllTables(source, isFenced);
   for (let i = 0; i < tables.length; i += 1) {
     const table = tables[i];
     if (offset < table.start || offset > table.end) continue;
@@ -93,12 +118,16 @@ export function captureCellFromSource(
  * cell at (tableIndex, rowIndex, colIndex) within `source`. Returns
  * null when the table or cell is out of range (e.g., after a
  * mode-side edit shrunk the table).
+ *
+ * Pass the SAME `isFenced` predicate that was used at capture time so
+ * `tableIndex` stays consistent across the round-trip.
  */
 export function locateCellInSource(
   source: string,
   pos: TableCellPos,
+  isFenced?: IsFenced,
 ): number | null {
-  const tables = findAllTables(source);
+  const tables = findAllTables(source, isFenced);
   const table = tables[pos.tableIndex];
   if (!table) return null;
   const row = table.rows[pos.rowIndex];

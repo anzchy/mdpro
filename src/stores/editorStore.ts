@@ -7,6 +7,7 @@ import {
   setPendingTableCell,
 } from "../utils/cursorSync/table";
 import { captureCellFromMilkdownEditor } from "../utils/cursorSync/tableMilkdown";
+import { isPositionInFencedCode } from "../plugins/codemirror/sourceTableDetection";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
 
 /**
@@ -14,6 +15,12 @@ import { useMilkdownEditorStore } from "./milkdownEditorStore";
  * mode transition mutates state (Phase 2 WI-2.6). Always writes the
  * pending slot — falls through to null when the cursor isn't in a
  * table, which clears any stale capture from a previous transition.
+ *
+ * Audit-fix H2 (2026-05-03): the source-mode capture passes a fence
+ * predicate so a cursor inside ` ``` ... ``` ` doesn't masquerade as
+ * a table cell. Without the predicate, `tableIndex` would also drift
+ * relative to the WYSIWYG side (which never sees fenced content as
+ * tables) — see audit-fix H1 in `cursorSync/table.ts`.
  */
 function capturePendingTableCellForTransition(
   fromMode: ViewMode,
@@ -21,9 +28,11 @@ function capturePendingTableCellForTransition(
 ): void {
   let captured = null;
   if (fromMode === "source" && cmView) {
+    const state = cmView.state;
     captured = captureCellFromSource(
-      cmView.state.doc.toString(),
-      cmView.state.selection.main.head,
+      state.doc.toString(),
+      state.selection.main.head,
+      (pos) => isPositionInFencedCode(state, pos),
     );
   } else if (fromMode === "wysiwyg") {
     const editor = useMilkdownEditorStore.getState().getEditor();

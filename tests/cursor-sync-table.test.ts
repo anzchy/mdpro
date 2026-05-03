@@ -53,6 +53,67 @@ describe("findAllTables", () => {
     // Tables should be non-overlapping and in document order.
     expect(tables[0].end).toBeLessThan(tables[1].start);
   });
+
+  // Audit-fix H1: a fenced code block containing pipe-shaped lines must
+  // not be enumerated, otherwise tableIndex drifts vs. the WYSIWYG side
+  // (Milkdown's `descendants` walk doesn't see fenced content as tables).
+  it("skips tables inside fenced code blocks when an isFenced predicate is supplied", () => {
+    const md =
+      "```\n" +
+      "| fake | fake |\n| ---- | ---- |\n| 0    | 0    |\n" +
+      "```\n\n" +
+      "| real | data |\n| ---- | ---- |\n| 1    | 2    |\n";
+    const fenceStart = md.indexOf("```");
+    const fenceEnd = md.indexOf("```\n\n") + 4; // exclusive of trailing blank line
+    const isFenced = (offset: number) =>
+      offset >= fenceStart && offset < fenceEnd;
+    const tables = findAllTables(md, isFenced);
+    expect(tables).toHaveLength(1);
+    expect(tables[0].rows[0][0].text).toBe("real");
+  });
+
+  it("captureCellFromSource ignores positions inside fences and indexes only real tables", () => {
+    const md =
+      "```\n| fake | fake |\n| ---- | ---- |\n```\n\n" +
+      "| real | data |\n| ---- | ---- |\n| 1    | 2    |\n";
+    const fenceStart = md.indexOf("```");
+    const fenceEnd = md.indexOf("```\n\n") + 4;
+    const isFenced = (offset: number) =>
+      offset >= fenceStart && offset < fenceEnd;
+    // Cursor in the real table — should still be captured even though a
+    // fenced "table" appears earlier.
+    const realCell = md.indexOf("| 1") + 2;
+    const captured = captureCellFromSource(md, realCell, isFenced);
+    expect(captured).toEqual({ tableIndex: 0, rowIndex: 1, colIndex: 0 });
+  });
+
+  it("captureCellFromSource returns null when the cursor itself is inside a fence", () => {
+    const md = "```\n| a | b |\n| - | - |\n| 1 | 2 |\n```\n";
+    const inFence = md.indexOf("| 1") + 2;
+    const isFenced = (offset: number) => offset > 0 && offset < md.length - 4;
+    expect(captureCellFromSource(md, inFence, isFenced)).toBeNull();
+  });
+
+  it("locateCellInSource also filters fenced tables to keep tableIndex consistent with capture", () => {
+    const md =
+      "```\n| fake | fake |\n| ---- | ---- |\n```\n\n" +
+      "| real | data |\n| ---- | ---- |\n| 1    | 2    |\n";
+    const fenceStart = md.indexOf("```");
+    const fenceEnd = md.indexOf("```\n\n") + 4;
+    const isFenced = (offset: number) =>
+      offset >= fenceStart && offset < fenceEnd;
+    // tableIndex 0 with the predicate must point at the REAL table.
+    const offset = locateCellInSource(
+      md,
+      { tableIndex: 0, rowIndex: 1, colIndex: 0 },
+      isFenced,
+    );
+    expect(offset).not.toBeNull();
+    // The offset should point inside the real table's `1` cell.
+    // (Cell offsets include leading padding — `text` is trimmed but
+    // `start`/`end` track the raw segment.)
+    expect(md.slice(offset!).trimStart().startsWith("1")).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
