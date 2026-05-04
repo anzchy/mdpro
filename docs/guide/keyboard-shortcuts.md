@@ -233,21 +233,34 @@ Customizations are persisted via preferences.
 
 ### ⌘1-6 in WYSIWYG Mode
 
-In WYSIWYG mode, ⌘1-6 are bound to headings (Typora behavior).
-Global view mode shortcuts are disabled to prevent conflicts.
+In WYSIWYG mode, ⌘1-6 are bound to headings (Typora behavior). Switch
+modes with ⌃2 / ⌃4 or ⌘/ — all three work from any focus state.
 Conflicts between plugin shortcuts follow plugin priority order.
 
-**Workaround**: Use View menu or ⌘/ to cycle modes.
+### ⌘/ vs Line Comment
+
+⌘/ cycles view modes unconditionally — even when the CodeMirror source
+editor has focus. The line-comment shortcut moved to ⌘⌥/ to free the
+binding. This is implemented as a `Prec.highest` keymap in
+`Editor.tsx` so it overrides basicSetup's defaultKeymap, which would
+otherwise grab ⌘/ for `toggleLineComment`.
 
 ### Focus-Based Routing
 
-Shortcuts are handled differently based on focus:
+Most shortcuts route by focus; ⌘/ and ⌘⌥/ are handled by the editor's
+high-precedence keymap, which calls the global store action directly.
 
 ```
 ┌─────────────────────┐
 │  Key Event          │
 └─────────────────────┘
           │
+          ▼
+┌──────────────────────────────┐
+│  Editor high-prec keymap?    │──Yes──▶ Editor.tsx viewModeKeymap
+│  (⌘/ cycle, ⌘⌥/ comment)    │         calls store action or CM cmd
+└──────────────────────────────┘
+          │ No
           ▼
 ┌─────────────────────┐
 │  Is editor focused? │──Yes──▶ Editor handles (Milkdown/CM)
@@ -290,7 +303,7 @@ Shortcuts are handled differently based on focus:
 ├────────────────────────────────────────────┤
 │ EDITING                                    │
 │   ⌘Z    Undo         ⌘⇧Z   Redo           │
-│   ⌘⇧H   Highlight                         │
+│   ⌘⇧H   Highlight    ⌘⌥/   Toggle Comment │
 └────────────────────────────────────────────┘
 ```
 
