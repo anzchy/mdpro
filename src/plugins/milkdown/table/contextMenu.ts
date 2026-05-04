@@ -170,6 +170,33 @@ function isActionActive(id: TableActionId, ctx: TableContext): boolean {
  * themselves and the boundary case (move at the edge) can never
  * produce out-of-range indices.
  */
+/**
+ * Keyboard-shortcut entry point. Fresh-computes a TableContext from
+ * the live view (no menu-open snapshot), then routes through the
+ * standard `dispatchTableAction` so the audit-fix H3 (always-fresh
+ * recompute) and M1 (disabled-action gate) paths apply uniformly.
+ *
+ * Returns false (no-op) when the editor isn't available or the cursor
+ * isn't in a table — making the shortcut harmless to fire outside.
+ */
+export function dispatchTableActionFromKeyboard(
+  editor: MilkdownEditorLike,
+  id: TableActionId,
+): boolean {
+  let ctx: TableContext | null = null;
+  try {
+    editor.action((rawCtx) => {
+      const c = rawCtx as CtxLike;
+      const view = c.get(editorViewCtx);
+      ctx = computeTableContext(view);
+    });
+  } catch {
+    return false;
+  }
+  if (!ctx) return false;
+  return dispatchTableAction(editor, id, ctx);
+}
+
 export function dispatchTableAction(
   editor: MilkdownEditorLike,
   id: TableActionId,

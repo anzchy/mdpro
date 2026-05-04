@@ -41,6 +41,9 @@ import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useTableInsertStore } from "./stores/tableInsertStore";
 import { useToastStore } from "./stores/toastStore";
 import { runInsertTable } from "./plugins/milkdown/table/insertTable";
+import { dispatchTableActionFromKeyboard } from "./plugins/milkdown/table/contextMenu";
+import { dispatchSourceTableAction } from "./plugins/codemirror/sourceTableContextMenu";
+import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
 
 type PendingClose = "document" | "window" | null;
@@ -947,6 +950,29 @@ function App() {
     });
   }, []);
 
+  // Phase 1.5 follow-up — keyboard shortcuts for in-table actions.
+  // Routes the shortcut to the right dispatcher based on the active
+  // viewMode; falls through to a no-op when the cursor isn't inside
+  // a table so the shortcut is harmless outside.
+  const handleTableShortcut = useCallback(
+    (id: TableShortcutAction) => {
+      const viewMode = useEditorStore.getState().viewMode;
+      if (viewMode === "wysiwyg") {
+        const editor = useMilkdownEditorStore.getState().getEditor();
+        if (!editor) return;
+        dispatchTableActionFromKeyboard(
+          editor as Parameters<typeof dispatchTableActionFromKeyboard>[0],
+          id,
+        );
+      } else {
+        const cmView = useEditorStore.getState().editorView;
+        if (!cmView) return;
+        dispatchSourceTableAction(cmView, id, cmView.state.selection.main.head);
+      }
+    },
+    [],
+  );
+
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
@@ -958,6 +984,7 @@ function App() {
     onCycleViewMode: cycleViewMode,
     onOpenPreferences: handleOpenSettings,
     onInsertTable: triggerTableInsert,
+    onTableAction: handleTableShortcut,
     shortcuts: keyboardShortcuts,
   });
 

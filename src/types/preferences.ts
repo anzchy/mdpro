@@ -141,6 +141,15 @@ export interface KeyboardShortcuts {
   viewCycleViewMode: string;
   viewToggleFullscreen: string;
   viewSwitchDocuments: string;
+
+  // Table action shortcuts (Phase 1.5 follow-up — direction mnemonic
+  // via Cmd+Option+arrows; Backspace variants for delete).
+  tableInsertRowAbove: string;
+  tableInsertRowBelow: string;
+  tableInsertColumnLeft: string;
+  tableInsertColumnRight: string;
+  tableDeleteRow: string;
+  tableDeleteColumn: string;
 }
 
 /** Default keyboard shortcuts (Typora macOS conventions) */
@@ -207,6 +216,16 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   viewCycleViewMode: "Cmd+/",
   viewToggleFullscreen: "Cmd+Option+F",
   viewSwitchDocuments: "Cmd+`",
+
+  // Table actions (direction-mnemonic via Cmd+Option+arrows). The
+  // shortcut only fires when the cursor is inside a table; otherwise
+  // it falls through to the editor's default arrow behavior.
+  tableInsertRowAbove: "Cmd+Option+Up",
+  tableInsertRowBelow: "Cmd+Option+Down",
+  tableInsertColumnLeft: "Cmd+Option+Left",
+  tableInsertColumnRight: "Cmd+Option+Right",
+  tableDeleteRow: "Cmd+Option+Backspace",
+  tableDeleteColumn: "Cmd+Option+Shift+Backspace",
 };
 
 /** MCP Server configuration */

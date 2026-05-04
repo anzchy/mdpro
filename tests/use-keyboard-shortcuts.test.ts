@@ -27,6 +27,28 @@ describe("useKeyboardShortcuts — source structure", () => {
     expect(src).toContain("shortcuts = DEFAULT_KEYBOARD_SHORTCUTS");
   });
 
+  // Phase 1.5 follow-up — table action shortcuts wired through
+  // onTableAction with the 6 TableShortcutAction ids.
+  it("exposes onTableAction handler and the TableShortcutAction type", () => {
+    expect(src).toContain("onTableAction");
+    expect(src).toContain("TableShortcutAction");
+    expect(src).toContain("insert_row_before");
+    expect(src).toContain("insert_row_after");
+    expect(src).toContain("insert_column_before");
+    expect(src).toContain("insert_column_after");
+    expect(src).toContain("delete_row");
+    expect(src).toContain("delete_column");
+  });
+
+  it("dispatches table-action shortcuts via the matchesShortcut path", () => {
+    expect(src).toContain("tableInsertRowAbove");
+    expect(src).toContain("tableInsertRowBelow");
+    expect(src).toContain("tableInsertColumnLeft");
+    expect(src).toContain("tableInsertColumnRight");
+    expect(src).toContain("tableDeleteRow");
+    expect(src).toContain("tableDeleteColumn");
+  });
+
   it("uses matchesShortcut for dynamic shortcut matching", () => {
     expect(src).toContain("matchesShortcut");
   });
@@ -44,6 +66,34 @@ describe("useKeyboardShortcuts — source structure", () => {
   it("imports KeyboardShortcuts type from preferences", () => {
     expect(src).toContain("KeyboardShortcuts");
     expect(src).toContain("types/preferences");
+  });
+});
+
+describe("DEFAULT_KEYBOARD_SHORTCUTS — table action defaults (Option A)", () => {
+  it("binds Cmd+Option+arrows for insert directions", async () => {
+    const prefs = await import("../src/types/preferences");
+    expect(prefs.DEFAULT_KEYBOARD_SHORTCUTS.tableInsertRowAbove).toBe(
+      "Cmd+Option+Up",
+    );
+    expect(prefs.DEFAULT_KEYBOARD_SHORTCUTS.tableInsertRowBelow).toBe(
+      "Cmd+Option+Down",
+    );
+    expect(prefs.DEFAULT_KEYBOARD_SHORTCUTS.tableInsertColumnLeft).toBe(
+      "Cmd+Option+Left",
+    );
+    expect(prefs.DEFAULT_KEYBOARD_SHORTCUTS.tableInsertColumnRight).toBe(
+      "Cmd+Option+Right",
+    );
+  });
+
+  it("binds Cmd+Option+Backspace for delete row, Shift variant for delete column", async () => {
+    const prefs = await import("../src/types/preferences");
+    expect(prefs.DEFAULT_KEYBOARD_SHORTCUTS.tableDeleteRow).toBe(
+      "Cmd+Option+Backspace",
+    );
+    expect(prefs.DEFAULT_KEYBOARD_SHORTCUTS.tableDeleteColumn).toBe(
+      "Cmd+Option+Shift+Backspace",
+    );
   });
 });
 

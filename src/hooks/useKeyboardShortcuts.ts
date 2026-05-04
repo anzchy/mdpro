@@ -30,9 +30,25 @@ interface ShortcutHandlers {
    * modal via `tableInsertStore.requestInsert`. Wired in App.tsx.
    */
   onInsertTable?: (actionId?: string) => void;
+  /**
+   * Fires for the 6 in-table shortcuts (insert row above/below,
+   * insert column left/right, delete row, delete column). The
+   * dispatcher in App.tsx routes to the WYSIWYG or source-mode
+   * dispatcher based on the active viewMode and falls through to a
+   * no-op when the cursor isn't inside a table.
+   */
+  onTableAction?: (id: TableShortcutAction, actionId?: string) => void;
   /** Live keyboard shortcut map. Defaults to DEFAULT_KEYBOARD_SHORTCUTS. */
   shortcuts?: KeyboardShortcuts;
 }
+
+export type TableShortcutAction =
+  | "insert_row_before"
+  | "insert_row_after"
+  | "insert_column_before"
+  | "insert_column_after"
+  | "delete_row"
+  | "delete_column";
 
 // Detect macOS once at module load. On macOS the primary shortcut modifier is
 // Cmd (metaKey); on Windows/Linux it is Ctrl (ctrlKey).
@@ -98,6 +114,7 @@ export function useKeyboardShortcuts({
   onCycleViewMode,
   onOpenPreferences,
   onInsertTable,
+  onTableAction,
   shortcuts = DEFAULT_KEYBOARD_SHORTCUTS,
 }: ShortcutHandlers) {
   const editorView = useEditorStore((state) => state.editorView);
@@ -186,6 +203,28 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.paragraphTable, { action: "paragraph.table" });
         onInsertTable(actionId);
+      } else if (onTableAction) {
+        // Phase 1.5 follow-up — table action shortcuts (Cmd+Option+arrows
+        // for insert row/col directions; Cmd+Option+Backspace for delete
+        // row; Cmd+Option+Shift+Backspace for delete column). The
+        // dispatcher in App.tsx falls through cleanly when the cursor
+        // isn't inside a table, so the shortcut is harmless outside.
+        const tableShortcuts: Array<[string, TableShortcutAction]> = [
+          [shortcuts.tableInsertRowAbove, "insert_row_before"],
+          [shortcuts.tableInsertRowBelow, "insert_row_after"],
+          [shortcuts.tableInsertColumnLeft, "insert_column_before"],
+          [shortcuts.tableInsertColumnRight, "insert_column_after"],
+          [shortcuts.tableDeleteRow, "delete_row"],
+          [shortcuts.tableDeleteColumn, "delete_column"],
+        ];
+        for (const [sc, id] of tableShortcuts) {
+          if (matchesShortcut(event, sc)) {
+            event.preventDefault();
+            const actionId = loggingService.logShortcut(sc, { action: `editor.table.${id}` });
+            onTableAction(id, actionId);
+            break;
+          }
+        }
       }
     };
 
@@ -198,6 +237,7 @@ export function useKeyboardShortcuts({
     onExportHtml,
     onHighlight,
     onInsertTable,
+    onTableAction,
     onNew,
     onOpen,
     onOpenPreferences,

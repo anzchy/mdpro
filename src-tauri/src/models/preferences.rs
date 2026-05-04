@@ -196,6 +196,20 @@ pub struct KeyboardShortcuts {
     pub view_toggle_fullscreen: String,
     #[serde(default = "default_switch_documents")]
     pub view_switch_documents: String,
+
+    // Table action shortcuts (Phase 1.5 follow-up).
+    #[serde(default = "default_table_insert_row_above")]
+    pub table_insert_row_above: String,
+    #[serde(default = "default_table_insert_row_below")]
+    pub table_insert_row_below: String,
+    #[serde(default = "default_table_insert_column_left")]
+    pub table_insert_column_left: String,
+    #[serde(default = "default_table_insert_column_right")]
+    pub table_insert_column_right: String,
+    #[serde(default = "default_table_delete_row")]
+    pub table_delete_row: String,
+    #[serde(default = "default_table_delete_column")]
+    pub table_delete_column: String,
 }
 
 // Default shortcut values (Typora macOS conventions)
@@ -254,6 +268,14 @@ fn default_cycle_view_mode() -> String { "Cmd+/".to_string() }
 fn default_toggle_fullscreen() -> String { "Cmd+Option+F".to_string() }
 fn default_switch_documents() -> String { "Cmd+`".to_string() }
 fn default_last_view_mode() -> ViewMode { ViewMode::Wysiwyg }
+
+// Table action shortcuts — direction mnemonic via Cmd+Option+arrows.
+fn default_table_insert_row_above() -> String { "Cmd+Option+Up".to_string() }
+fn default_table_insert_row_below() -> String { "Cmd+Option+Down".to_string() }
+fn default_table_insert_column_left() -> String { "Cmd+Option+Left".to_string() }
+fn default_table_insert_column_right() -> String { "Cmd+Option+Right".to_string() }
+fn default_table_delete_row() -> String { "Cmd+Option+Backspace".to_string() }
+fn default_table_delete_column() -> String { "Cmd+Option+Shift+Backspace".to_string() }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

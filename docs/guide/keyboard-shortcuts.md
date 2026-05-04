@@ -109,6 +109,20 @@ These shortcuts work in source mode.
 |----------|--------|
 | Cmd + Option + T | Insert Table — opens the rows × cols picker (also via Format → Insert Table menu) |
 
+### Table actions (cursor inside a table)
+
+These shortcuts only fire when the cursor is inside a GFM table; outside a table
+they're harmless no-ops. Direction-mnemonic via `Cmd + Option` + arrow.
+
+| Shortcut | Action |
+|----------|--------|
+| Cmd + Option + ↑ | Insert row above |
+| Cmd + Option + ↓ | Insert row below |
+| Cmd + Option + ← | Insert column left |
+| Cmd + Option + → | Insert column right |
+| Cmd + Option + ⌫ | Delete current row |
+| Cmd + Option + Shift + ⌫ | Delete current column |
+
 ### Editing
 
 | Shortcut | Action |
