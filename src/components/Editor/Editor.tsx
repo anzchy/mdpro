@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
-import { EditorSelection } from "@codemirror/state";
-import { redo, undo } from "@codemirror/commands";
+import { EditorSelection, Prec } from "@codemirror/state";
+import { redo, toggleLineComment, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
 import { searchExtensions } from "./extensions/search";
@@ -76,6 +76,27 @@ export function Editor({
     [],
   );
 
+  // High-precedence keymap so Cmd+/ always cycles view modes (even when
+  // CodeMirror has focus) and the line-comment shortcut moves to Cmd+Alt+/.
+  // Without Prec.highest, basicSetup's defaultKeymap would bind Mod-/ to
+  // toggleLineComment first.
+  const viewModeKeymap = useMemo(
+    () =>
+      Prec.highest(
+        keymap.of([
+          {
+            key: "Mod-/",
+            run: () => {
+              useEditorStore.getState().cycleViewMode();
+              return true;
+            },
+          },
+          { key: "Mod-Alt-/", run: toggleLineComment },
+        ]),
+      ),
+    [],
+  );
+
   // Memoize the full extensions array.
   // Dynamic compartments use stable `initial*` wrappers; their values are
   // synced from persisted prefs on every mount via reapplyEditorPrefs().
@@ -91,6 +112,7 @@ export function Editor({
 
   const extensions = useMemo(
     () => [
+      viewModeKeymap,
       markdownExtension,
       syntaxHighlightingExtension,
       ...searchExtensions,
@@ -111,7 +133,7 @@ export function Editor({
     // pluginExtensions and pluginEventExtension are stable memos; only include
     // the deps that actually change to avoid unnecessary extension churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt],
+    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt, viewModeKeymap],
   );
 
   useEffect(() => {

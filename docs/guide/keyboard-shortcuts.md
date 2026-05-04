@@ -23,11 +23,9 @@ These shortcuts work across all view modes.
 |----------|--------|-------------|
 | ⌃2 | Source | `source` |
 | ⌃4 | WYSIWYG | `wysiwyg` |
-| ⌘/ | Cycle View Mode | Toggles between source and wysiwyg — **only when CodeMirror editor is not focused** |
+| ⌘/ | Cycle View Mode | Toggles between source and wysiwyg — works from any context, including the CodeMirror editor |
 
-> **Note**: View mode shortcuts use **Control** (⌃) key to avoid conflicts with Typora-style heading shortcuts (⌘1-6).
->
-> **⌘/ context-sensitivity**: When the CodeMirror source editor has keyboard focus, ⌘/ toggles line comments (see [CodeMirror Mode Shortcuts](#codemirror-mode-shortcuts)). When the editor is not focused, ⌘/ cycles the view mode.
+> **Note**: View mode shortcuts use **Control** (⌃) key to avoid conflicts with Typora-style heading shortcuts (⌘1-6). ⌘/ cycles unconditionally; the line-comment shortcut moved to ⌘⌥/ to avoid the collision.
 
 ### UI Toggles
 
@@ -129,7 +127,7 @@ they're harmless no-ops. Direction-mnemonic via `Cmd + Option` + arrow.
 |----------|--------|
 | ⌘Z | Undo |
 | ⌘⇧Z | Redo |
-| ⌘/ | Toggle comment — **only when editor has focus** |
+| ⌘⌥/ | Toggle line comment |
 | Tab | Indent |
 | ⇧Tab | Outdent |
 

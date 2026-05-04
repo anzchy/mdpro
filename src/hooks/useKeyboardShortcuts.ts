@@ -187,8 +187,11 @@ export function useKeyboardShortcuts({
         const actionId = loggingService.logShortcut(shortcuts.fileClose, { action: "file.close" });
         onClose(actionId);
       } else if (onCycleViewMode && !inCodeMirror && matchesShortcut(event, shortcuts.viewCycleViewMode)) {
-        // Only intercept Cmd+/ when CodeMirror does NOT have focus; if it does,
-        // CodeMirror's built-in toggleLineComment command handles the key.
+        // CodeMirror has its own high-precedence Mod-/ binding (see Editor.tsx
+        // viewModeKeymap) that calls cycleViewMode directly. The !inCodeMirror
+        // guard prevents this window-level handler from firing a second time
+        // when the editor consumes the event. WYSIWYG / non-editor contexts
+        // bubble up here and cycle through this branch.
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.viewCycleViewMode, { action: "view.cycle" });
         onCycleViewMode(actionId);

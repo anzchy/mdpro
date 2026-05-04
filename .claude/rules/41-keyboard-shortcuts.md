@@ -49,6 +49,8 @@ grep "defaultKey" src/types/preferences.ts
 | Toggle Sidebar | ⌘⇧L | ✓ | ✓ |
 | Source | ⌃2 | ✓ | — |
 | WYSIWYG | ⌃4 | ✓ | — |
+| Cycle view mode | ⌘/ | ✓ | ✓ (also bound in Editor.tsx high-prec keymap so source mode honours it) |
+| Toggle line comment | ⌘⌥/ | — (CodeMirror keymap in Editor.tsx) | — |
 | Inline reveal | ⌃` | — (ProseMirror keymap) | — |
 | Export HTML | ⌘⇧E | ✓ | — |
 | Highlight | ⌘⇧H | ✓ | ✓ |
