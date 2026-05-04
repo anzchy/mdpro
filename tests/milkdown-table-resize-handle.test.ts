@@ -39,4 +39,21 @@ describe("column resize handle CSS (WI-2.1)", () => {
   it("sets cursor: col-resize for the drag affordance", () => {
     expect(css).toMatch(/cursor:\s*col-resize/);
   });
+
+  // Bug #2 follow-up (2026-05-04): the 1px hairline by itself is too
+  // narrow a hit target. The handle must be visibly wide for hit
+  // detection (≥6px) while keeping the visible mark thin via ::after.
+  it("uses a wider hit area than the visible hairline (≥6px)", () => {
+    const block = css.match(
+      /\.column-resize-handle\s*\{[^}]*\}/m,
+    );
+    expect(block).not.toBeNull();
+    const widthMatch = block![0].match(/width:\s*(\d+)px/);
+    expect(widthMatch).not.toBeNull();
+    expect(Number(widthMatch![1])).toBeGreaterThanOrEqual(6);
+  });
+
+  it("draws the visible hairline via a ::after pseudo so the wider hit area is invisible", () => {
+    expect(css).toMatch(/\.column-resize-handle::after\b/);
+  });
 });
