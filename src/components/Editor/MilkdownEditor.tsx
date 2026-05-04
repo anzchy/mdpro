@@ -16,6 +16,7 @@ import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { Plugin } from "@milkdown/kit/prose/state";
+import { TableView } from "@milkdown/kit/prose/tables";
 import { $prose } from "@milkdown/kit/utils";
 import DOMPurify from "dompurify";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
@@ -81,6 +82,34 @@ const pasteHtmlSanitizerPlugin = new Plugin({
 });
 
 const pasteHtmlSanitizerMilkdownPlugin = $prose(() => pasteHtmlSanitizerPlugin);
+
+/**
+ * Register prosemirror-tables' `TableView` as the nodeView for `table`
+ * nodes. Bug #2/#3 root-cause fix (2026-05-04) — without this, every
+ * GFM table renders as a bare `<table>` directly inside `.ProseMirror`
+ * with no `<colgroup>` and no `.column-resize-handle` decorations,
+ * which means:
+ *   - column drag-resize doesn't work (no handles in DOM)
+ *   - the wide-table CSS targeting `.tableWrapper` never applies
+ *
+ * Why this is needed: in `prosemirror-tables@1.8.5` the columnResizing
+ * plugin's `state.init` reads `plugin.spec.props.nodeViews` to inject
+ * `TableView`, but the plugin's `props` doesn't pre-initialize that
+ * object — so the assignment is no-op and the nodeView is never
+ * registered. We register it explicitly here, matching the contract
+ * `columnResizing` expects (TableView constructor: `(node,
+ * defaultCellMinWidth)`).
+ */
+const tableNodeViewPlugin = $prose(
+  () =>
+    new Plugin({
+      props: {
+        nodeViews: {
+          table: (node) => new TableView(node, 100),
+        },
+      },
+    }),
+);
 
 
 interface MilkdownEditorInnerProps {
@@ -161,6 +190,7 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
         })
         .use(commonmark)
         .use(gfm)
+        .use(tableNodeViewPlugin)
         .use(history)
         .use(listener)
         .use(typoraKeymapMilkdownPlugin)
