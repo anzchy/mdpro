@@ -1,0 +1,86 @@
+name: AI Verifier
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+# Independent, read-only second opinion on bot fix PRs (plan WI-1).
+# Stage 1 (model) has NO write token and only emits a JSON verdict artifact.
+# Stage 2 (deterministic) creates the head-SHA-bound `ai-verifier` check-run,
+# failing closed on any malformed/missing verdict. Mark `ai-verifier` a REQUIRED
+# status check in branch protection so a stale verdict can never gate a new SHA.
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+  id-token: write
+
+jobs:
+  verify:
+    if: github.event.pull_request.user.login == 'claude[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Verdict (model stage — read-only, no write token)
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: "--model claude-opus-4-6 --max-turns 15 --allowedTools Read,Glob,Grep,Bash(git:*)"
+          prompt: |
+            You are an INDEPENDENT, READ-ONLY verifier for a bot-authored fix PR.
+            You have NO write access and must not push, comment, or edit anything except
+            the single verdict file described below.
+
+            The PR is #${{ github.event.pull_request.number }}. Its body references the
+            audit issue it claims to fix (look for "Closes #N"). Read that issue with the
+            files in the repo for context. Inspect the diff with:
+              git diff ${{ github.event.pull_request.base.sha }}...HEAD
+
+            Answer three questions:
+              1. Does the change actually address the referenced finding/issue?
+              2. Does it introduce regressions or break unrelated behavior?
+              3. Is it minimal and focused (no scope creep, no unrelated edits)?
+
+            Then write ONLY the file `verdict.json` in the repository root, containing
+            EXACTLY a JSON object matching this schema and nothing else:
+              {"verdict": "pass" | "fail", "reasons": ["short reason", "..."]}
+            Use "pass" if and ONLY if (1) is yes, (2) is no regressions, and (3) is minimal.
+            Otherwise use "fail". Do not write any other file. Do not push or comment.
+
+      - name: Create ai-verifier check-run (deterministic — fail closed)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let conclusion = 'failure';
+            let summary = 'No valid verdict artifact produced — failing closed.';
+            try {
+              const v = JSON.parse(fs.readFileSync('verdict.json', 'utf8'));
+              const reasons = Array.isArray(v.reasons) ? v.reasons.map(r => '- ' + r).join('\n') : '';
+              if (v && v.verdict === 'pass') {
+                conclusion = 'success';
+                summary = 'Verifier verdict: PASS\n' + reasons;
+              } else if (v && v.verdict === 'fail') {
+                conclusion = 'failure';
+                summary = 'Verifier verdict: FAIL\n' + reasons;
+              } else {
+                summary = 'Verdict present but not schema-valid ("pass"/"fail") — failing closed.';
+              }
+            } catch (e) {
+              summary = 'Verdict artifact missing or unparseable — failing closed: ' + e.message;
+            }
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'ai-verifier',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion,
+              output: { title: 'AI Verifier', summary },
+            });
