@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
+          token: ${{ secrets.PAT_TOKEN || github.token }}
 
       - uses: actions/setup-node@v6
         with:
@@ -51,8 +52,8 @@ jobs:
         run: |
           # Pick only the oldest open audit issue (ascending by created date, take first)
           NUMBER=$(gh issue list --state open --label audit \
-            --json number,createdAt \
-            --jq 'sort_by(.createdAt) | .[0].number // empty')
+            --json number,createdAt,labels \
+            --jq '[.[] | select(([.labels[].name] | any(. == "fix-attempted" or . == "needs-human")) | not)] | sort_by(.createdAt) | .[0].number // empty')
           echo "ISSUE_NUMBERS=$NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Fix audit issue with Codex review gate
@@ -63,9 +64,9 @@ jobs:
         with:
           allowed_bots: "claude[bot]"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.PAT_TOKEN || github.token }}
           show_full_output: true
-          claude_args: "--model claude-opus-4-6 --max-turns 30 --allowedTools Bash,Read,Write,Edit,Glob,Grep,MultiEdit"
+          claude_args: "--model claude-opus-4-6 --max-turns 30 --allowedTools Bash(git:*),Bash(gh:*),Bash(pnpm:*),Bash(npm:*),Bash(cargo:*),Bash(node:*),Bash(codex:*),Read,Write,Edit,Glob,Grep,MultiEdit"
           prompt: |
             Fix audit issue #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}.
 
@@ -74,7 +75,7 @@ jobs:
             3. Apply the minimum correct fix described in the issue
             4. Run full gates BEFORE committing:
                a. `pnpm build`
-               b. If the fix touches .rs files: `cd src-tauri && cargo check --manifest-path src-tauri/Cargo.toml`
+               b. If the fix touches .rs files: `cargo check --manifest-path src-tauri/Cargo.toml`
                c. If tests are relevant: `pnpm test:run`
                All gates must pass before proceeding. If gates fail after 2 attempts,
                comment on the issue and stop.
@@ -92,8 +93,12 @@ jobs:
                  - Re-run full gates (step 4a–4c) — all must pass before continuing
                  - Amend the commit: `git commit --amend --no-edit`
                  - Re-run Codex review
-               - Repeat at most 2 Codex review iterations; if critical/high/medium findings
-                 remain after 2 iterations, proceed to step 7 and note them in the PR body
+               - Repeat at most 2 Codex review iterations. If critical/high/medium findings
+                 STILL remain after 2 iterations, do NOT push a branch or open a PR. Instead:
+                 add the labels `fix-attempted` and `needs-human` to the issue
+                 (`gh issue edit N --add-label fix-attempted --add-label needs-human`),
+                 comment summarising the unresolved findings, and stop. An auto-mergeable PR
+                 must never be created while medium-or-higher findings are unresolved.
 
             7. Push branch: `git push origin fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
             8. Open PR:
@@ -114,3 +119,12 @@ jobs:
               include "Closes #N" in the merge commit message (not just the branch commit).
               GitHub only fires the issue-close webhook for the PR body or newly-pushed
               commits — commits already known to the remote are not re-evaluated.
+
+      - name: Flag unfixable issue on failure (WI-2 brake)
+        if: failure() && steps.find-issues.outputs.ISSUE_NUMBERS != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N="${{ steps.find-issues.outputs.ISSUE_NUMBERS }}"
+          gh issue edit "$N" --add-label fix-attempted || true
+          gh issue comment "$N" --body "🤖 Autonomous fix run failed (gates, timeout, or unresolved review findings). Labeled \`fix-attempted\` and skipped from the loop. Needs human triage." || true
