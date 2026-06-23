@@ -1,0 +1,28 @@
+name: Bootstrap Loop Labels
+on:
+  workflow_dispatch:
+
+# Idempotently create every label the autonomous loop relies on (plan WI-15).
+# A missing label makes `gh issue edit --add-label` fail and silently defeats a brake.
+permissions:
+  issues: write
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update loop labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          create() {
+            gh label create "$1" --color "$2" --description "$3" --repo "$REPO" 2>/dev/null \
+              || gh label edit "$1" --color "$2" --description "$3" --repo "$REPO"
+          }
+          create audit         "1d76db" "Auditor-filed finding for the autonomous fix loop"
+          create fix-attempted "b60205" "Fix loop tried and failed; excluded from selection"
+          create fixing        "fbca04" "Claimed by a fixer run (in-progress lock)"
+          create needs-human   "d93f0b" "Requires human review; loop stopped"
+          create small-feature "0e8a16" "Bounded feature eligible for the autonomous loop"
+          create loop-health   "5319e7" "Loop liveness / heartbeat alerts"
