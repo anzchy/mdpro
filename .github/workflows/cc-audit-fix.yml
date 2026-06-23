@@ -71,6 +71,14 @@ jobs:
             Fix audit issue #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}.
 
             1. Read the issue: `gh issue view ${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            1a. VERIFY THE FINDING IS STILL VALID before touching anything. Inspect the
+                cited file/line. If the code ALREADY satisfies the fix (the issue is
+                stale / already resolved / not reproducible), comment on the issue
+                explaining what you found and CLOSE it
+                (`gh issue close ${{ steps.find-issues.outputs.ISSUE_NUMBERS }} --reason completed --comment "<why it's already addressed>"`),
+                then STOP — do NOT create a branch, commit, or PR. Closing it removes
+                it from the queue so the loop does not re-select it every run. Only
+                continue to step 2 if the finding is real and unaddressed.
             2. Create a fix branch: `git checkout -b fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
             3. Apply the minimum correct fix described in the issue
             4. Run full gates BEFORE committing:
