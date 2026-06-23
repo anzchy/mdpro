@@ -39,7 +39,7 @@ jobs:
 
       - name: Install pnpm and dependencies
         run: |
-          npm install -g pnpm
+          npm install -g pnpm@10
           pnpm install --frozen-lockfile
 
       - name: Install Codex CLI
