@@ -81,3 +81,29 @@
 - `pnpm build` — always
 - `cd src-tauri && cargo check` — if any .rs file changed
 - `pnpm test:run` — if any .test.ts touched or new tests added
+
+## Code Review Guidelines (for `@codex review`)
+Flag only P0/P1. Source of truth is `.claude/rules/60-review-checklist.md`.
+
+Treat these as BLOCK (must fix before merge):
+- Tauri `#[tauri::command]` that trusts frontend input (paths, IDs, strings) without
+  validation, or uses `unwrap()`/`expect()` on user-supplied data. Commands must return
+  `Result<T, String>`.
+- MCP tool handlers that touch the shadow store or emit events without validating args.
+- Save/draft paths that can silently discard dirty content, or overwrite a newer draft
+  with an older one. Document close with unsaved changes must prompt, never silent-discard.
+- Async commands touching shared state (file watcher, shadow store, draft timer) without
+  `Mutex`/`Arc<RwLock>` guarding.
+- Frontend `listen()` handlers closing over Zustand state instead of `useXStore.getState()`
+  (stale-closure bug).
+- Auto-save firing after document close; un-debounced file-watcher reloads.
+- Rust `match` with `_ => {}` that silently drops cases; non-exhaustive TS discriminated
+  unions; a new `menu:action` value with no handler in `useMenuEvents.ts`.
+- Events emitted to the frontend that leak secrets or non-serializable data.
+
+Comment but do NOT block (P2 and below — ignore entirely if low value):
+- `console.log`/`println!` in committed code (use the logging service), magic numbers,
+  dead code, files over ~300 lines, missing tests.
+
+Do not flag low-severity style nits. Keep reviews focused on correctness, data loss,
+and trust-boundary risks.
