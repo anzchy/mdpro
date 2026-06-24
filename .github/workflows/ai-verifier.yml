@@ -17,7 +17,9 @@ permissions:
 
 jobs:
   verify:
-    if: github.event.pull_request.user.login == 'claude[bot]'
+    # Fixer PRs are pushed with the maintainer's PAT (so CI re-triggers), so the
+    # author is a human, not claude[bot]. Identify them by branch prefix instead.
+    if: startsWith(github.event.pull_request.head.ref, 'fix/audit-')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
