@@ -1,9 +1,11 @@
 name: Claude Code + Codex Review
 on:
-  # Hourly cron is PAUSED during loop validation. Re-enable by uncommenting once
-  # ai-verifier (WI-1) produces valid verdicts and branch protection is configured.
-  # schedule:
-  #   - cron: "30 * * * *"   # hourly at :30 (offset from claude.yml at :00)
+  # SEMI-AUTO (canary): fixer runs hourly and opens PRs automatically, but there is
+  # deliberately NO auto-merge step — a human reviews the ai-verifier verdict and merges.
+  # Promote to full hands-off only after several clean supervised runs (add `gh pr merge
+  # --auto --squash` after PR creation + enable "Allow auto-merge" in repo settings).
+  schedule:
+    - cron: "30 * * * *"   # hourly at :30 (offset from claude.yml at :00)
   workflow_dispatch:       # manual trigger from Actions tab
 
 permissions:
