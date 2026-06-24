@@ -206,24 +206,42 @@ MenuItem::with_id_and_accelerator(app, "save", "Save", "CmdOrCtrl+S")?;
 Shortcuts can be customized via the Settings dialog:
 
 ```typescript
+// See src/types/preferences.ts for the full interface
 interface KeyboardShortcuts {
-  newDocument: string;
-  openDocument: string;
-  saveDocument: string;
-  closeDocument: string;
-  toggleSidebar: string;
-  cycleViewMode: string;
-  highlightSelection: string;
+  // File operations
+  fileNew: string;
+  fileOpen: string;
+  fileSave: string;
+  fileSaveAs: string;
+  fileClose: string;
+  // Edit operations
+  editFind: string;
+  editReplace: string;
+  // Paragraph operations
+  paragraphHeading1: string;
+  // Format operations
+  formatStrong: string;
+  formatHighlight: string;
+  // View operations
+  viewToggleSidebar: string;
+  viewCycleViewMode: string;
+  // ... plus many more (see full interface in source)
 }
 
 const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
-  newDocument: "meta+n",
-  openDocument: "meta+o",
-  saveDocument: "meta+s",
-  closeDocument: "meta+w",
-  toggleSidebar: "meta+shift+l",
-  cycleViewMode: "meta+/",
-  highlightSelection: "meta+shift+h",
+  fileNew: "Cmd+N",
+  fileOpen: "Cmd+O",
+  fileSave: "Cmd+S",
+  fileSaveAs: "Cmd+Shift+S",
+  fileClose: "Cmd+W",
+  editFind: "Cmd+F",
+  editReplace: "Cmd+H",
+  paragraphHeading1: "Cmd+1",
+  formatStrong: "Cmd+B",
+  formatHighlight: "Cmd+Shift+H",
+  viewToggleSidebar: "Cmd+Shift+L",
+  viewCycleViewMode: "Cmd+/",
+  // ...
 };
 ```
 
