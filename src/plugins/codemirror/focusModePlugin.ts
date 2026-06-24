@@ -1,5 +1,5 @@
 import { RangeSetBuilder } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView, ViewPlugin } from "@codemirror/view";
+import { Decoration, type DecorationSet, EditorView, type ViewUpdate, ViewPlugin } from "@codemirror/view";
 import { createPlugin, type PluginConfig } from "../core/pluginTypes";
 
 export type FocusModeOptions = {
@@ -17,18 +17,21 @@ const buildDecorations = (
   const builder = new RangeSetBuilder<Decoration>();
   const cursorLine = view.state.doc.lineAt(view.state.selection.main.head);
 
-  for (let i = 1; i <= view.state.doc.lines; i += 1) {
-    const line = view.state.doc.line(i);
-    if (line.number !== cursorLine.number) {
-      builder.add(
-        line.from,
-        line.from,
-        Decoration.line({
-          attributes: {
-            style: `opacity: ${options.dimOpacity}`,
-          },
-        }),
-      );
+  for (const { from, to } of view.visibleRanges) {
+    for (let pos = from; pos <= to; ) {
+      const line = view.state.doc.lineAt(pos);
+      if (line.number !== cursorLine.number) {
+        builder.add(
+          line.from,
+          line.from,
+          Decoration.line({
+            attributes: {
+              style: `opacity: ${options.dimOpacity}`,
+            },
+          }),
+        );
+      }
+      pos = line.to + 1;
     }
   }
 
@@ -44,8 +47,8 @@ const createFocusModePlugin = (options: FocusModeOptions) =>
         this.decorations = buildDecorations(view, options);
       }
 
-      update(update: { view: EditorView; docChanged: boolean; selectionSet: boolean }) {
-        if (update.docChanged || update.selectionSet) {
+      update(update: ViewUpdate) {
+        if (update.docChanged || update.selectionSet || update.viewportChanged) {
           this.decorations = buildDecorations(update.view, options);
         }
       }
