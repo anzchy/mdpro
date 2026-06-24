@@ -1,14 +1,14 @@
 # Plan: Automated Small-Feature Loop (`small-feature`)
 
 **Date:** 2026-06-24
-**Status:** Proposed — **v3, hardened over two eng-review rounds** (not yet implemented)
+**Status:** Proposed — **v4, hardened over three eng-review rounds** (not yet implemented)
 **Depends on:** `20260623-plan-autonomous-dev-loop.md` (the audit-fix loop, validated 2026-06-24)
 **Related memory:** `autonomous-loop-state.md`
-**Review:** `/plan-eng-review` (round 1, v1 → *NOT CLEARED*, 3 BLOCK + 3 gaps; round 2, v2 →
-*NOT CLEARED*, 1 new BLOCK + 3 MUST). v3 resolves the round-2 findings: the issue-body
-TOCTOU BLOCK is closed via **body-hash pinning**, `deps-approved` is actor-checked,
-`enforce_admins: true` replaces the infeasible OR-branch, and the permission API is
-corrected. See §9.
+**Review:** `/plan-eng-review` — round 1 (v1 → *NOT CLEARED*, 3 BLOCK + 3 gaps), round 2 (v2 →
+*NOT CLEARED*, 1 new BLOCK + 3 MUST), round 3 (v3 → *NOT CLEARED*, 1 BLOCK + 3 MUST + 2 SHOULD).
+v4 closes the body-hash *pinning* under-spec: the recorder fires on `issues: labeled` only and
+hashes the webhook payload body (BLOCK-5), is pure-API (pwn-request-safe), the PAT carries no
+`Administration` scope, and the squash-vs-`-m 1` revert contradiction is fixed. See §9.
 
 ---
 
@@ -89,7 +89,7 @@ The **design gate (step 3)** is the single most important addition vs the audit 
 
 ## 4. Work items
 
-### WI-F0 — Labels, actor-checked approval, and body-hash pinning `[resolves BLOCK-1, BLOCK-4, MUST-2, MUST-4]`
+### WI-F0 — Labels, actor-checked approval, and body-hash pinning `[resolves BLOCK-1, BLOCK-4, BLOCK-5, MUST-2, MUST-4, recorder-pwn]`
 - Add to `bootstrap-labels.yml`: ensure `small-feature` (exists), and new labels
   `feature-approved`, `deps-approved` (WI-F8), and reuse the existing `fixing` lock.
 - **Trigger contract:** the workflow acts only on issues carrying **both** `small-feature`
@@ -108,16 +108,42 @@ The **design gate (step 3)** is the single most important addition vs the audit 
     `MEMBER` — so an `OWNER`/`MEMBER` allowlist would silently mean owner-only. Gating on
     permission level avoids that trap and still admits the owner (always `admin`).
   - If permission is `read`/`none`/unknown → remove the label, comment, add `needs-human`, STOP.
-- **Body-hash pinning (closes the issue-content TOCTOU) `[BLOCK-4]`:** the actor-check pins
-  *who* approved, not *what* was approved — and the issue body is author-mutable after
-  approval. An **approval-recorder** (a small `issues: labeled` workflow, or the first step of
-  `cc-feature.yml`) MUST, at the moment `feature-approved` passes the actor-check, compute
-  `sha256(issue.body)` and persist it in a hidden marker comment authored by the bot:
-  `<!-- approved-body-sha256: <hex> @ <approval-event-id> -->`. Thereafter:
-  - WI-F1 (before building) and WI-F3 (verifier) recompute `sha256(current issue.body)` and
-    compare to the pinned value. **Mismatch ⇒ needs-human + halt / FAIL verdict** — fail closed.
-  - The marker comment must be bot-authored; if a human/non-bot comment forges the marker,
-    ignore it (only trust a marker on a comment whose author is the bot/PAT identity).
+- **Body-hash pinning (closes the issue-content TOCTOU) `[BLOCK-4, BLOCK-5]`:** the actor-check
+  pins *who* approved, not *what* was approved — and the issue body is author-mutable after
+  approval. The pin must be anchored to **the body the maintainer approved**, which requires
+  pinning *when and what* precisely:
+  - **Recorder trigger — `issues: labeled` event ONLY.** A separate **approval-recorder**
+    workflow fires on the `labeled` event for `feature-approved`. Do NOT make the recorder
+    "the first step of `cc-feature.yml`" — that runs at *dispatch/pickup*, leaving the whole
+    approval→pickup window open for an edit that the pin would then capture. The recorder runs
+    at label time.
+  - **Hash source — the webhook payload body, never a re-fetch.** The recorder hashes
+    `github.event.issue.body` (the body delivered *with* the label event), NOT a fresh
+    `gh api` fetch (which reads the body as of runner-execution time, reopening a queue-delay
+    window). This anchors the pin to the body as it was at the approval event. (The irreducible
+    residual is the maintainer's own review→label gap; document that they must label promptly,
+    not hours after reading.)
+  - **Canonicalize before hashing `[SHOULD]`:** all three sites (recorder, WI-F1, WI-F3)
+    normalize the body identically before `sha256` — CRLF→LF, strip trailing whitespace — so a
+    cosmetic re-render never flips the hash (fail-closed, but noisy false mismatches erode trust).
+  - **Marker:** persist in a hidden comment posted by the recorder via API:
+    `<!-- approved-body-sha256: <hex> @ <approval-event-id> -->`.
+  - **Marker trust + selection `[SHOULD]`:** trust only markers authored by the
+    automation identity (a forged human comment is ignored — on this user-owned repo that
+    identity *is* the owner; an attacker is not the owner, so forgery resistance holds). When
+    multiple markers exist (re-approval / label remove-re-add), checkers select the marker
+    whose `approval-event-id` matches the **latest** valid actor-checked `feature-approved`
+    event and ignore the rest — a stale benign-hash marker must not satisfy a re-approval.
+  - WI-F1 (before building) and WI-F3 (verifier) recompute the canonicalized hash of the
+    current body and compare to the selected pin. **Mismatch, missing marker, or no valid pin
+    ⇒ needs-human + halt / FAIL verdict** — fail closed.
+- **Recorder is a privileged trigger — keep it pure-API `[MUST]`:** an `issues: labeled`
+  workflow with write permissions that processes attacker-influenceable input (the issue body)
+  is the classic pwn-request footgun. The recorder MUST do nothing but read the payload body,
+  hash it, and post a comment + manage labels via the API. It MUST NOT `actions/checkout`, MUST
+  NOT execute anything derived from the issue/PR, and uses **`github.token`** with minimal
+  scopes (`issues: write` for the comment/label) — it does not push code, so it must **not**
+  use `PAT_TOKEN`.
 - **`deps-approved` is actor-checked too `[MUST-2]`:** WI-F8's supply-chain gate trusts
   `deps-approved`, so it gets the **same** approver-permission check (`admin`/`write`) as
   `feature-approved`. A triage-only account adding `deps-approved` does not satisfy the gate.
@@ -217,13 +243,21 @@ The **design gate (step 3)** is the single most important addition vs the audit 
 - **Forbid admin-override merges in automation `[MUST-3]`:** any Phase-2 auto-merge step uses
   `gh pr merge --auto --squash` ONLY. **Never `gh pr merge --admin`** — `--admin` is a distinct
   action that overrides even green-gate logic and would defeat the entire gate chain. Add a
-  lint/grep check in CI that fails if `--admin` appears in any workflow file.
+  lint/grep check in CI that fails if `--admin` appears in any workflow file. The grep is
+  **defense-in-depth, not the gate** — a raw `gh api ... /merges` or REST merge would slip past
+  it; the real gate is `enforce_admins:true` **plus** the PAT scope below.
+- **Pin the automation PAT scope — no `administration` `[MUST]`:** `enforce_admins:true` only
+  holds if the automation token cannot turn it back off. The fine-grained `PAT_TOKEN` MUST carry
+  **Contents / Pull requests / Issues only — never `Administration`** — otherwise the owner-as-PAT
+  could disable protection, merge, and re-enable it. This invariant is what makes bypass-proofing
+  real; assert it in the acceptance test.
 - **Check-name correctness:** required contexts must be the 4 matrix job names
   (`frontend (macos-latest)` etc.), not bare `frontend`/`rust-test`, plus the WI-F8 job name.
 - **Ordering:** this WI runs **before** WI-F7 Phase 2, not after the builder.
 - **Acceptance:** with `enforce_admins: true`, a test PR with a deliberately red required
-  check cannot be merged even by the owner/PAT identity (demonstrated), and no workflow file
-  contains `gh pr merge --admin`.
+  check cannot be merged even by the owner/PAT identity (demonstrated); no workflow file
+  contains `gh pr merge --admin`; and the `PAT_TOKEN` is confirmed to lack `Administration`
+  permission (so it cannot toggle protection off).
 
 ### WI-F6 — Plan + issue conventions (stable acceptance-criteria schema)
 - Plan doc naming: `docs/plans/<YYYYMMDD>-feat-<slug>.md` with sections: Goal, Acceptance
@@ -264,9 +298,11 @@ The **design gate (step 3)** is the single most important addition vs the audit 
 ### WI-F9 — Phase-2 rollback / incident runbook (new) `[resolves critical gap-3]`
 - A short runbook (in this plan or `docs/runbooks/`) for "a bad feature auto-merged":
   1. **Stop the loop:** `gh workflow disable cc-feature.yml` (and re-comment the cron).
-  2. **Revert:** there is no `gh pr revert`. Use `git revert -m 1 <merge-sha>` (the `-m 1`
-     picks master as the mainline parent of a squash/merge commit) → push a branch → open a
-     revert PR → land. (Or GitHub's web "Revert" button, which does the same.)
+  2. **Revert:** there is no `gh pr revert`. The loop **squash-merges** (WI-F5), so the merge
+     is a single ordinary commit with no second parent → use `git revert <merge-sha>` (**no
+     `-m`** — `-m 1` errors with "mainline was specified but commit is not a merge" on a squash
+     commit). Push a branch → open a revert PR → land. (Or GitHub's web "Revert" button.) Only
+     if the strategy ever switches to true merge commits does `git revert -m 1 <sha>` apply.
   3. **Quarantine:** label the source issue `needs-human`, comment the failure mode.
   4. **Postmortem:** if a gate let it through, tighten that gate before re-enabling.
 - **Prerequisite to Phase 2** — autonomous merge is not enabled until this exists.
@@ -278,14 +314,16 @@ The **design gate (step 3)** is the single most important addition vs the audit 
 
 1. **Design gate** — no code without a `feature-approved` applied by an `admin`/`write`
    account (permission-checked, not label-association). (WI-F0)
-2. **Intent integrity** — the approved issue body is hash-pinned; any edit after approval
-   trips needs-human at pickup AND a FAIL at verify. Approval covers *what* was approved,
-   not just *who* approved. (WI-F0/F1/F3)
+2. **Intent integrity** — the body is hash-pinned to the `issues: labeled` webhook payload at
+   approval time (not a later re-fetch); any edit afterward trips needs-human at pickup AND a
+   FAIL at verify. Approval covers *what* was approved, not just *who*. The recorder is a
+   pure-API privileged workflow (no checkout, `github.token` only). (WI-F0/F1/F3)
 3. **Fail-closed verification** — no verdict, a malformed source issue, OR a body-hash
    mismatch ⇒ check fails ⇒ no merge. (WI-F3)
 4. **Deterministic scope/dep brake** — >10 files or unapproved dep change ⇒ required check
    fails; the gate is always-run (skip≠pass) and `deps-approved` is itself actor-checked. (WI-F8)
-5. **Required checks enforced & bypass-proof** — `enforce_admins: true`; no automation uses
+5. **Required checks enforced & bypass-proof** — `enforce_admins: true`; the `PAT_TOKEN`
+   carries no `Administration` scope (cannot toggle protection off); no automation uses
    `gh pr merge --admin`; owner/PAT identity cannot merge past a red check. (WI-F5)
 6. **Prompt-level scope brake** — agent bails to `needs-human` before the CI gate even runs. (WI-F2)
 7. **Atomic claim** — `concurrency` group serializes runs; `fixing` is a visible marker. (WI-F1)
@@ -304,7 +342,10 @@ The **design gate (step 3)** is the single most important addition vs the audit 
 | Risk | Mitigation |
 |---|---|
 | Non-maintainer triggers the builder via a label | Permission-checked approver (`admin`/`write`), latest label event (WI-F0) |
-| Author edits issue body **after** approval (TOCTOU) | Body-hash pinned at approval; mismatch ⇒ halt + FAIL (WI-F0/F1/F3) |
+| Author edits issue body **after** approval (TOCTOU) | Body-hash pinned to the label-event webhook body; mismatch ⇒ halt + FAIL (WI-F0/F1/F3) |
+| Edit slips into the pin (recorder fires late / re-fetches) | Recorder triggers on `issues: labeled` only, hashes `github.event.issue.body` (WI-F0) |
+| Recorder workflow abused (pwn-request) | Pure-API, no checkout, `github.token` min scopes (WI-F0) |
+| Owner-as-PAT toggles `enforce_admins` off, merges, re-enables | `PAT_TOKEN` carries no `Administration` scope (WI-F5) |
 | Non-maintainer adds `deps-approved` to slip in a dep | `deps-approved` is actor-checked too (WI-F0/F8) |
 | Owner/PAT merges past a red check via `--admin` | `enforce_admins: true`; `--admin` forbidden + grep-linted (WI-F5) |
 | Required scope gate silently skipped ⇒ reported passing | Gate is always-run, ref-checked internally (WI-F8) |
@@ -350,7 +391,7 @@ Phase 1) has produced several clean runs.
 
 ---
 
-## 9. Review resolution (v1 → v2 → v3)
+## 9. Review resolution (v1 → v2 → v3 → v4)
 
 ### Round 1 (v1 → v2)
 `/plan-eng-review` (+ Codex gpt-5.5, full cross-model agreement) returned **NOT CLEARED** on
@@ -395,4 +436,19 @@ The chosen source-of-intent fix is **body-hash pinning** (keeps the lightweight 
 flow for the canary phase) rather than the heavier in-repo-plan-file approach; upgrade to a
 protected in-repo plan file if/when Phase 2 auto-merge or external contributors arrive.
 
-Re-run `/plan-eng-review` on v3 to confirm CLEARED before implementing.
+### Round 3 (v3 → v4)
+Re-review of v3 confirmed the design is right and the round-1/2 BLOCKs stay closed, but found
+the body-hash *pin* was under-specified (the **checks** were sound; the **pin production** was
+not), plus two new-surface footguns and one internal contradiction. v4 resolves each:
+
+| v3 finding | Severity | Resolution in v4 |
+|---|---|---|
+| Pin can capture the *post-edit* body — recorder timing/source unspecified (`first step of cc-feature.yml` runs at pickup; a re-fetch reads body at runner time) | BLOCK-5 | Recorder fires on `issues: labeled` **only** and hashes `github.event.issue.body` (webhook payload), never a re-fetch (WI-F0) |
+| Recorder is a pwn-request surface (privileged `issues:` trigger on attacker input) | MUST | Pure-API: no checkout, no executing issue content, `github.token` min scopes, never `PAT_TOKEN` (WI-F0) |
+| `enforce_admins:true` is toggleable by an admin-scoped PAT | MUST | `PAT_TOKEN` must carry no `Administration` permission; asserted in WI-F5 acceptance |
+| `git revert -m 1` fails on a squash merge (WI-F5 squashes) — runbook breaks under pressure | MUST | WI-F9 uses `git revert <sha>` (no `-m`) for squash commits |
+| Hash canonicalization unspecified ⇒ false mismatches | SHOULD | Normalize CRLF→LF + strip trailing whitespace at all 3 hash sites (WI-F0) |
+| Multi-marker selection rule undefined after re-approval | SHOULD | Checkers select the marker matching the **latest** valid label event (WI-F0) |
+| "Bot-authored" marker = owner on a user repo | NOTE | Acknowledged; forgery resistance still holds (attacker ≠ owner) (WI-F0) |
+
+Re-run `/plan-eng-review` on v4 to confirm CLEARED before implementing.
