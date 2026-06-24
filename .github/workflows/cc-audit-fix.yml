@@ -1,7 +1,9 @@
 name: Claude Code + Codex Review
 on:
-  schedule:
-    - cron: "30 * * * *"   # hourly at :30 (offset from claude.yml at :00)
+  # Hourly cron is PAUSED during loop validation. Re-enable by uncommenting once
+  # ai-verifier (WI-1) produces valid verdicts and branch protection is configured.
+  # schedule:
+  #   - cron: "30 * * * *"   # hourly at :30 (offset from claude.yml at :00)
   workflow_dispatch:       # manual trigger from Actions tab
 
 permissions:
