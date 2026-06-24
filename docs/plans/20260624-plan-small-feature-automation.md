@@ -1,14 +1,14 @@
 # Plan: Automated Small-Feature Loop (`small-feature`)
 
 **Date:** 2026-06-24
-**Status:** Proposed — **v5, hardened over four eng-review rounds** (not yet implemented)
+**Status:** **CLEARED for implementation** — v5, hardened over five eng-review rounds (not yet implemented)
 **Depends on:** `20260623-plan-autonomous-dev-loop.md` (the audit-fix loop, validated 2026-06-24)
 **Related memory:** `autonomous-loop-state.md`
 **Review:** `/plan-eng-review` — round 1 (v1 → 3 BLOCK + 3 gaps), round 2 (v2 → 1 BLOCK + 3 MUST),
-round 3 (v3 → 1 BLOCK + 3 MUST + 2 SHOULD), round 4 (v4 → **no BLOCK**, 1 MUST + 3 SHOULD + 2 NOTE).
-v5 closes the last MUST: `deps-approved` is now enforced via a recorder-posted marker (symmetric
-with the body-hash), not a raw label a triage account could set; plus the hash-source/
-canonicalization spec, the Phase-2 recorder race, and the plan-on-master rule. See §9.
+round 3 (v3 → 1 BLOCK + 3 MUST + 2 SHOULD), round 4 (v4 → **no BLOCK**, 1 MUST + 3 SHOULD + 2 NOTE),
+**round 5 (v5 → CLEARED** — no residual BLOCK/MUST; 1 SHOULD + 4 NOTE wording-consistency folded in).
+v5 closed the last MUST: `deps-approved` is enforced via a recorder-posted marker (symmetric with
+the body-hash), not a raw label a triage account could set. See §9.
 
 ---
 
@@ -224,7 +224,8 @@ The **design gate (step 3)** is the single most important addition vs the audit 
   that section or is malformed, the verifier writes a `fail` verdict — it must **fail closed on
   a malformed source issue**, exactly as it already fails closed on a malformed `verdict.json`.
 - **Body-hash re-check at verify time `[BLOCK-4]`:** the verifier independently recomputes
-  `sha256(current issue.body)` and compares to the pinned `approved-body-sha256` marker. A
+  the **canonicalized** hash (the exact WI-F0 transform, applied to a REST-fetched body) and
+  compares to the selected `approved-body-sha256` marker. A
   mismatch (body edited after approval) ⇒ `fail` verdict, regardless of how good the diff
   looks. This is a second, independent enforcement of the TOCTOU brake — the builder (WI-F1)
   could be bypassed by a future code path, but the verifier gates the merge.
@@ -286,7 +287,10 @@ The **design gate (step 3)** is the single most important addition vs the audit 
   linked plan for scope-creep checks (WI-F3 rubric item 3). The plan's integrity rests on it
   being behind branch protection — true only once it's on `master`. A plan living on an
   unmerged branch is mutable. Rule: do NOT apply `feature-approved` until the referenced
-  `docs/plans/*-feat-*.md` is merged to master.
+  `docs/plans/*-feat-*.md` is merged to master. (This is currently human discipline; a
+  future verifier backstop — "linked plan not found on base ⇒ FAIL" — would make it
+  load-bearing. Deferred to implementation, low risk since the verifier reads the plan from
+  the repo at the PR's base anyway.)
 - **Acceptance:** filing from the template produces an issue whose acceptance checklist the
   verifier can parse; a free-form issue without the section is gradable-as-FAIL (WI-F3); an
   issue whose linked plan is not yet on master is not approved.
@@ -309,15 +313,19 @@ The **design gate (step 3)** is the single most important addition vs the audit 
   `<base>...HEAD` resolves.
   - **File-count gate:** `git diff --name-only <base>...HEAD | wc -l` > 10 ⇒ **fail**.
   - **Dependency gate:** if `package.json`, `pnpm-lock.yaml`, or `src-tauri/Cargo.toml`/
-    `Cargo.lock` changed AND the issue lacks a valid bot-authored
-    `<!-- deps-approved-by: ... -->` marker (posted by the recorder only after the applier
-    passed the `admin`/`write` actor-check — WI-F0). The job checks the **marker**, never the
-    raw `deps-approved` label presence (which a triage account can set). No valid marker ⇒ **fail**.
+    `Cargo.lock` changed AND the issue lacks a valid `<!-- deps-approved-by: ... -->` marker
+    (posted by the recorder only after the applier passed the `admin`/`write` actor-check —
+    WI-F0). The job applies the **same** "author = automation identity" trust rule as the
+    body-hash marker (a marker forged in a non-bot comment is ignored), and checks the
+    **marker**, never the raw `deps-approved` label presence (which a triage account can set).
+    No valid marker ⇒ **fail**. The marker is intentionally *coarse* — it gates "deps may
+    change," not which manifest lines; the residual (a maintainer approves, then an unexpected
+    dep slips in) is caught by the now-gating audits below + the body-hash intent pin + 10-file cap.
   - **Dependency audit becomes gating on feature PRs:** run `pnpm audit --audit-level=critical`
     and `cargo audit` *without* `continue-on-error` on `feat/feature-*` (they stay
     non-gating elsewhere). Corrects the "CI green ≠ dependency-safe" overstatement.
 - **Acceptance:** a feature PR touching 11 files fails this check; a PR adding a dependency
-  without an actor-checked `deps-approved` fails; a clean 3-file feature passes; a non-feature
+  without a valid `deps-approved-by` marker fails; a clean 3-file feature passes; a non-feature
   PR passes explicitly (not via skip).
 
 ### WI-F9 — Phase-2 rollback / incident runbook (new) `[resolves critical gap-3]`
@@ -490,4 +498,20 @@ spec-completeness gap) plus fail-closed-robustness polish:
 | Linked plan doc read for scope but not integrity-protected | NOTE→rule | Plan must be merged to master before `feature-approved` (WI-F6) |
 | "Bot-authored marker" = owner on a user repo | NOTE | Acknowledged; forgery resistance holds (attacker ≠ owner) |
 
-Re-run `/plan-eng-review` on v5 to confirm CLEARED before implementing.
+### Round 5 (v5 → CLEARED)
+Round-5 re-review (calibrated: clear unless a triage-attacker-exploitable BLOCK/MUST remains)
+returned **CLEARED**. The reviewer walked a triage-level attacker through every gate —
+`deps-approved` label-presence, issue-body TOCTOU, marker forgery/deletion, permission mapping,
+the bypass path — and found **no residual BLOCK or MUST**. The five remaining items were
+wording-consistency and implementation-time backstops, all folded into v5:
+
+| v5 finding | Severity | Disposition |
+|---|---|---|
+| Verify-time re-check said `sha256(current body)`, omitted "canonicalized" | SHOULD | Aligned to the WI-F0 canonical transform (WI-F3) |
+| WI-F8 acceptance text said "actor-checked `deps-approved`" (stale vs marker) | NOTE | Retitled to "valid `deps-approved-by` marker" (WI-F8) |
+| `deps-approved` marker is coarse (gates "deps may change", not which lines) | NOTE | Stated as intentional; residual caught by gating audits + intent pin + 10-file cap (WI-F8) |
+| WI-F8 "bot-authored marker" trust rule implicit | NOTE | Made explicit: same "author = automation identity" rule as the body-hash marker (WI-F8) |
+| Plan-on-master is human discipline, unenforced | NOTE | Noted; future "plan-not-on-base ⇒ FAIL" verifier backstop deferred to implementation (WI-F6) |
+
+**The security design is sound and complete for the stated threat model.** Implementation may
+proceed in the WI order of §7; WI-F5 and WI-F9 remain hard prerequisites to Phase 2.
