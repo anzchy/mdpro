@@ -235,13 +235,12 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     if (!instance || instance === registeredInstanceRef.current) return;
     registeredInstanceRef.current = instance;
 
-    // Capture the owning document id at listener registration time so that
-    // markdownUpdated always writes back to the correct document even if the
-    // user switches tabs before the callback fires.
+    let disposed = false;
     const owningDocumentId = activeDocumentId;
     instance.action((ctx) => {
       const manager = ctx.get(listenerCtx);
       manager.markdownUpdated((_ctx, markdown) => {
+        if (disposed) return;
         const { updateDocumentContent: update } = useDocumentStore.getState();
         if (owningDocumentId) {
           update(owningDocumentId, markdown);
@@ -256,6 +255,8 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
       actionId: loggingService.generateActionId(),
       context: { documentId: activeDocumentId },
     });
+
+    return () => { disposed = true; };
   }, [editor, activeDocumentId]);
 
   // Resolve local image paths to Tauri asset:// URLs after Milkdown renders
