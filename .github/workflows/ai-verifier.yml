@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  issues: read        # so the model can `gh issue view N` for context
   checks: write
   id-token: write
 
@@ -32,13 +33,18 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Write is needed for the local verdict.json artifact (NOT a GitHub write
-          # token — the action has no repo write perms; it can only touch the workspace).
-          claude_args: "--model claude-opus-4-6 --max-turns 15 --allowedTools Read,Write,Glob,Grep,Bash(git:*)"
+          # Write: for the local verdict.json artifact (workspace-only; no GitHub write token).
+          # Bash(gh:*): to `gh issue view` the referenced finding — the token's perms are
+          # read-only (contents/PR/issues read), so gh cannot mutate even if the model tried.
+          # 30 turns: 15 was too tight — the run hit error_max_turns before writing the verdict.
+          claude_args: "--model claude-opus-4-6 --max-turns 30 --allowedTools Read,Write,Glob,Grep,Bash(git:*),Bash(gh:*)"
           prompt: |
-            You are an INDEPENDENT, READ-ONLY verifier for a bot-authored fix PR.
-            You have NO write access and must not push, comment, or edit anything except
-            the single verdict file described below.
+            You are an INDEPENDENT verifier for a bot-authored fix PR. You have NO GitHub
+            write permissions: do NOT push commits, do NOT comment on the PR or issue, do
+            NOT edit any repository source file. Your ONLY output is one local workspace
+            file, `verdict.json` (use the Write tool for it). Work efficiently — you have a
+            limited turn budget: read the diff and issue, inspect at most a couple of files,
+            then write the verdict.
 
             The PR is #${{ github.event.pull_request.number }}. Its body references the
             audit issue it claims to fix (look for "Closes #N"). Read that issue with the
