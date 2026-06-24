@@ -1,0 +1,28 @@
+name: PAT Check
+on:
+  workflow_dispatch:
+
+# Diagnostic only: verifies the PAT_TOKEN secret has the scopes the autonomous
+# fixer needs (Contents, Issues, Pull requests) on this repo. No Claude, ~free.
+# `permissions: {}` zeroes the default GITHUB_TOKEN so we test PAT_TOKEN alone.
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PAT_TOKEN scopes against anzchy/mdpro
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          set +e
+          echo "== Issues: read =="
+          gh api repos/anzchy/mdpro/issues/106 --jq '.title' \
+            && echo "ISSUES_READ: OK" || echo "ISSUES_READ: FAIL"
+          echo "== Contents: read =="
+          gh api repos/anzchy/mdpro/contents/package.json --jq '.name' >/dev/null 2>&1 \
+            && echo "CONTENTS_READ: OK" || echo "CONTENTS_READ: FAIL"
+          echo "== Pull requests: read =="
+          gh api repos/anzchy/mdpro/pulls --jq 'length' >/dev/null 2>&1 \
+            && echo "PR_READ: OK" || echo "PR_READ: FAIL"
+          echo "(All three must read OK before the fixer can run.)"
