@@ -1,14 +1,14 @@
 # Plan: Automated Small-Feature Loop (`small-feature`)
 
 **Date:** 2026-06-24
-**Status:** Proposed — **v4, hardened over three eng-review rounds** (not yet implemented)
+**Status:** Proposed — **v5, hardened over four eng-review rounds** (not yet implemented)
 **Depends on:** `20260623-plan-autonomous-dev-loop.md` (the audit-fix loop, validated 2026-06-24)
 **Related memory:** `autonomous-loop-state.md`
-**Review:** `/plan-eng-review` — round 1 (v1 → *NOT CLEARED*, 3 BLOCK + 3 gaps), round 2 (v2 →
-*NOT CLEARED*, 1 new BLOCK + 3 MUST), round 3 (v3 → *NOT CLEARED*, 1 BLOCK + 3 MUST + 2 SHOULD).
-v4 closes the body-hash *pinning* under-spec: the recorder fires on `issues: labeled` only and
-hashes the webhook payload body (BLOCK-5), is pure-API (pwn-request-safe), the PAT carries no
-`Administration` scope, and the squash-vs-`-m 1` revert contradiction is fixed. See §9.
+**Review:** `/plan-eng-review` — round 1 (v1 → 3 BLOCK + 3 gaps), round 2 (v2 → 1 BLOCK + 3 MUST),
+round 3 (v3 → 1 BLOCK + 3 MUST + 2 SHOULD), round 4 (v4 → **no BLOCK**, 1 MUST + 3 SHOULD + 2 NOTE).
+v5 closes the last MUST: `deps-approved` is now enforced via a recorder-posted marker (symmetric
+with the body-hash), not a raw label a triage account could set; plus the hash-source/
+canonicalization spec, the Phase-2 recorder race, and the plan-on-master rule. See §9.
 
 ---
 
@@ -113,19 +113,26 @@ The **design gate (step 3)** is the single most important addition vs the audit 
   approval. The pin must be anchored to **the body the maintainer approved**, which requires
   pinning *when and what* precisely:
   - **Recorder trigger — `issues: labeled` event ONLY.** A separate **approval-recorder**
-    workflow fires on the `labeled` event for `feature-approved`. Do NOT make the recorder
-    "the first step of `cc-feature.yml`" — that runs at *dispatch/pickup*, leaving the whole
-    approval→pickup window open for an edit that the pin would then capture. The recorder runs
-    at label time.
+    workflow fires on the `labeled` event for `feature-approved` (and `deps-approved`, see
+    below). Do NOT make the recorder "the first step of `cc-feature.yml`" — that runs at
+    *dispatch/pickup*, leaving the whole approval→pickup window open for an edit that the pin
+    would then capture. The recorder runs at label time. (It only ever acts after the
+    actor-check passes; a label from a non-`admin`/`write` actor produces no marker.)
   - **Hash source — the webhook payload body, never a re-fetch.** The recorder hashes
     `github.event.issue.body` (the body delivered *with* the label event), NOT a fresh
     `gh api` fetch (which reads the body as of runner-execution time, reopening a queue-delay
     window). This anchors the pin to the body as it was at the approval event. (The irreducible
     residual is the maintainer's own review→label gap; document that they must label promptly,
     not hours after reading.)
-  - **Canonicalize before hashing `[SHOULD]`:** all three sites (recorder, WI-F1, WI-F3)
-    normalize the body identically before `sha256` — CRLF→LF, strip trailing whitespace — so a
-    cosmetic re-render never flips the hash (fail-closed, but noisy false mismatches erode trust).
+  - **Canonicalize before hashing — exact transform `[SHOULD]`:** the recorder hashes the
+    `issues: labeled` webhook `issue.body`; the two checkers (WI-F1 on dispatch, WI-F3 on the
+    PR event) have no issue webhook, so they re-fetch via `gh api .../issues/N` and hash
+    `.body`. These MUST reduce to a **byte-identical** string. Pin the transform precisely so
+    three independent implementations cannot diverge: **split on `\n`, `rstrip()` each line,
+    rejoin with `\n`, then `rstrip()` the whole string** (collapses CRLF→LF via the rstrip,
+    drops a trailing newline GitHub may add/strip), UTF-8 encode, `sha256`. Apply identically
+    at all three sites. A divergence fails closed (the gate would never pass), so this is
+    correctness-for-usability, not a security hole.
   - **Marker:** persist in a hidden comment posted by the recorder via API:
     `<!-- approved-body-sha256: <hex> @ <approval-event-id> -->`.
   - **Marker trust + selection `[SHOULD]`:** trust only markers authored by the
@@ -144,9 +151,14 @@ The **design gate (step 3)** is the single most important addition vs the audit 
   NOT execute anything derived from the issue/PR, and uses **`github.token`** with minimal
   scopes (`issues: write` for the comment/label) — it does not push code, so it must **not**
   use `PAT_TOKEN`.
-- **`deps-approved` is actor-checked too `[MUST-2]`:** WI-F8's supply-chain gate trusts
-  `deps-approved`, so it gets the **same** approver-permission check (`admin`/`write`) as
-  `feature-approved`. A triage-only account adding `deps-approved` does not satisfy the gate.
+- **`deps-approved` is actor-checked via the SAME marker mechanism `[MUST-2, deps-wiring]`:**
+  WI-F8's supply-chain gate trusts `deps-approved`, but a CI job cannot trust the *raw label*
+  (a triage account can set it — grepping the label list is the bypass). So `deps-approved` is
+  wired exactly like the body-hash: when the recorder sees `deps-approved` applied by an
+  `admin`/`write` actor (resolved via the same timeline + `collaborators/{login}/permission`
+  check), it posts a marker comment `<!-- deps-approved-by: <actor> @ <event-id> -->`. WI-F8
+  trusts **only that bot-authored marker**, never the label's presence. A triage-only account
+  adding `deps-approved` posts no valid marker, so the dependency gate stays closed.
 - **Acceptance:** (a) `small-feature`-only issue is never picked up; (b) `feature-approved`
   added by an `admin`/`write` collaborator pins a body-hash and makes the issue eligible;
   (c) `feature-approved` added by a `read`/none account does NOT make it eligible and trips
@@ -163,9 +175,14 @@ The **design gate (step 3)** is the single most important addition vs the audit 
   loudly** in a preflight step — do NOT fall back to `github.token` (a silent fallback means
   bot pushes stop re-triggering CI, which looks green-but-isn't). This corrects the
   `PAT_TOKEN || github.token` footgun inherited from `cc-audit-fix.yml`.
-- **Body-hash re-check (before any work) `[BLOCK-4]`:** recompute `sha256(current issue.body)`
-  and compare to the pinned `approved-body-sha256` marker (WI-F0). Mismatch or missing marker
-  ⇒ comment, add `needs-human`, STOP — do not branch or build.
+- **Body-hash re-check (before any work) `[BLOCK-4]`:** recompute the canonicalized hash
+  (WI-F0 transform) of the current body and compare to the selected `approved-body-sha256`
+  marker. Distinguish two cases: **mismatch** (body edited after approval) ⇒ comment, add
+  `needs-human`, STOP immediately. **Marker not yet present** ⇒ a transient recorder↔pickup
+  race (the recorder may not have posted yet); briefly retry/wait, then halt to `needs-human`
+  only if still absent — do NOT treat a momentary absence as tampering. (Irrelevant in canary:
+  manual dispatch happens long after labeling; flagged for the Phase-2 cron, which can fire
+  seconds after the `labeled` event.)
 - **Claim — concurrency is the real serializer `[NOTE-7]`:** `select → label fixing` is NOT a
   true compare-and-swap (a check-then-set race window exists). What actually prevents two runs
   double-picking is `concurrency: group: cc-feature` serializing the workflow. The `fixing`
@@ -265,8 +282,14 @@ The **design gate (step 3)** is the single most important addition vs the audit 
 - Add a `small-feature` issue template with a **fixed** `## Acceptance Criteria` section of
   `- [ ]` items (this exact schema is what WI-F3's rubric parses and grades against) plus a
   link to the plan.
+- **Plan must be merged to master before approval `[NOTE→rule]`:** the verifier reads the
+  linked plan for scope-creep checks (WI-F3 rubric item 3). The plan's integrity rests on it
+  being behind branch protection — true only once it's on `master`. A plan living on an
+  unmerged branch is mutable. Rule: do NOT apply `feature-approved` until the referenced
+  `docs/plans/*-feat-*.md` is merged to master.
 - **Acceptance:** filing from the template produces an issue whose acceptance checklist the
-  verifier can parse; a free-form issue without the section is gradable-as-FAIL (WI-F3).
+  verifier can parse; a free-form issue without the section is gradable-as-FAIL (WI-F3); an
+  issue whose linked plan is not yet on master is not approved.
 
 ### WI-F7 — Canary rollout
 - Phase 1 (canary): `workflow_dispatch` only; maintainer approves plan, dispatches, reviews
@@ -286,8 +309,10 @@ The **design gate (step 3)** is the single most important addition vs the audit 
   `<base>...HEAD` resolves.
   - **File-count gate:** `git diff --name-only <base>...HEAD | wc -l` > 10 ⇒ **fail**.
   - **Dependency gate:** if `package.json`, `pnpm-lock.yaml`, or `src-tauri/Cargo.toml`/
-    `Cargo.lock` changed AND the issue lacks an **actor-checked** `deps-approved` label
-    (verified per WI-F0/MUST-2, not merely present) ⇒ **fail**.
+    `Cargo.lock` changed AND the issue lacks a valid bot-authored
+    `<!-- deps-approved-by: ... -->` marker (posted by the recorder only after the applier
+    passed the `admin`/`write` actor-check — WI-F0). The job checks the **marker**, never the
+    raw `deps-approved` label presence (which a triage account can set). No valid marker ⇒ **fail**.
   - **Dependency audit becomes gating on feature PRs:** run `pnpm audit --audit-level=critical`
     and `cargo audit` *without* `continue-on-error` on `feat/feature-*` (they stay
     non-gating elsewhere). Corrects the "CI green ≠ dependency-safe" overstatement.
@@ -346,7 +371,7 @@ The **design gate (step 3)** is the single most important addition vs the audit 
 | Edit slips into the pin (recorder fires late / re-fetches) | Recorder triggers on `issues: labeled` only, hashes `github.event.issue.body` (WI-F0) |
 | Recorder workflow abused (pwn-request) | Pure-API, no checkout, `github.token` min scopes (WI-F0) |
 | Owner-as-PAT toggles `enforce_admins` off, merges, re-enables | `PAT_TOKEN` carries no `Administration` scope (WI-F5) |
-| Non-maintainer adds `deps-approved` to slip in a dep | `deps-approved` is actor-checked too (WI-F0/F8) |
+| Non-maintainer adds `deps-approved` to slip in a dep | WI-F8 trusts only a recorder-posted `deps-approved-by` marker, not the raw label (WI-F0/F8) |
 | Owner/PAT merges past a red check via `--admin` | `enforce_admins: true`; `--admin` forbidden + grep-linted (WI-F5) |
 | Required scope gate silently skipped ⇒ reported passing | Gate is always-run, ref-checked internally (WI-F8) |
 | Bot builds the wrong thing | Maintainer design gate (WI-F0); acceptance-criteria rubric (WI-F3) |
@@ -391,7 +416,7 @@ Phase 1) has produced several clean runs.
 
 ---
 
-## 9. Review resolution (v1 → v2 → v3 → v4)
+## 9. Review resolution (v1 → v2 → v3 → v4 → v5)
 
 ### Round 1 (v1 → v2)
 `/plan-eng-review` (+ Codex gpt-5.5, full cross-model agreement) returned **NOT CLEARED** on
@@ -451,4 +476,18 @@ not), plus two new-surface footguns and one internal contradiction. v4 resolves 
 | Multi-marker selection rule undefined after re-approval | SHOULD | Checkers select the marker matching the **latest** valid label event (WI-F0) |
 | "Bot-authored" marker = owner on a user repo | NOTE | Acknowledged; forgery resistance still holds (attacker ≠ owner) (WI-F0) |
 
-Re-run `/plan-eng-review` on v4 to confirm CLEARED before implementing.
+### Round 4 (v4 → v5)
+Round-4 re-review returned **NOT CLEARED but with no BLOCK** — the body-hash design and the
+bypass path were confirmed closed for the automation threat model; one MUST remained (a
+spec-completeness gap) plus fail-closed-robustness polish:
+
+| v4 finding | Severity | Resolution in v5 |
+|---|---|---|
+| `deps-approved` *asserted* actor-checked but the enforcer (WI-F8 CI job) had no mechanism → degraded to label-presence (triage bypass) | MUST | Recorder posts a `deps-approved-by` marker after the actor-check; WI-F8 trusts ONLY the marker, never the raw label (WI-F0/F8) |
+| Hash-source asymmetry: recorder hashes webhook body, checkers re-fetch via REST | SHOULD | Assert byte-identical canonical string across all 3 sites (WI-F0) |
+| Canonicalization under-defined ("strip trailing ws" ambiguous) | SHOULD | Pinned exact transform: rstrip each line, rejoin `\n`, rstrip whole, UTF-8, sha256 (WI-F0) |
+| Recorder↔pickup race once cron lands ⇒ spurious needs-human | SHOULD | Distinguish "marker absent" (retry/wait) from "mismatch" (halt); flagged for Phase 2 (WI-F1) |
+| Linked plan doc read for scope but not integrity-protected | NOTE→rule | Plan must be merged to master before `feature-approved` (WI-F6) |
+| "Bot-authored marker" = owner on a user repo | NOTE | Acknowledged; forgery resistance holds (attacker ≠ owner) |
+
+Re-run `/plan-eng-review` on v5 to confirm CLEARED before implementing.
