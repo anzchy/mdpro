@@ -139,6 +139,26 @@ pub fn get_window_for_document(store: &SharedShadowStore, doc_id: &str) -> Resul
     Ok(shadow.find_window_for_document(doc_id).map(|s| s.to_string()))
 }
 
+/// Remove a single document by ID from whichever window contains it.
+pub fn remove_document(store: &SharedShadowStore, doc_id: &str) -> Result<bool, String> {
+    let mut shadow = store
+        .lock()
+        .map_err(|e| format!("Failed to lock shadow store: {}", e))?;
+
+    for window in shadow.windows.values_mut() {
+        let before = window.documents.len();
+        window.documents.retain(|d| d.id != doc_id);
+        if window.documents.len() < before {
+            if window.active_document_id.as_deref() == Some(doc_id) {
+                window.active_document_id = window.documents.first().map(|d| d.id.clone());
+            }
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 /// Optimistically update a document's content in the shadow store.
 ///
 /// Called after emitting write/insert events so that subsequent reads
@@ -339,5 +359,36 @@ mod tests {
         // Should NOT clear because label doesn't match
         clear_focused_window_if(&store, "other").unwrap();
         assert!(is_any_window_focused(&store).unwrap());
+    }
+
+    #[test]
+    fn test_remove_document() {
+        let store = create_shadow_store();
+        let payload = SyncDocumentsPayload {
+            window_label: "main".to_string(),
+            documents: vec![
+                create_test_document("doc1"),
+                create_test_document("doc2"),
+            ],
+            active_document_id: Some("doc1".to_string()),
+        };
+        sync_documents(&store, payload).unwrap();
+
+        let removed = remove_document(&store, "doc1").unwrap();
+        assert!(removed, "should return true when document existed");
+
+        assert!(get_document(&store, "doc1").unwrap().is_none());
+        assert!(get_document(&store, "doc2").unwrap().is_some());
+
+        let shadow = store.lock().unwrap();
+        let window = shadow.windows.get("main").unwrap();
+        assert_eq!(window.active_document_id.as_deref(), Some("doc2"));
+    }
+
+    #[test]
+    fn test_remove_document_not_found() {
+        let store = create_shadow_store();
+        let removed = remove_document(&store, "nonexistent").unwrap();
+        assert!(!removed, "should return false when document does not exist");
     }
 }
