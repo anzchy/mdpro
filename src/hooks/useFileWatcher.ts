@@ -11,9 +11,12 @@ export interface FileChangedEvent {
 // Suppress window in ms after a save operation
 const SAVE_SUPPRESS_WINDOW_MS = 3000;
 
+const FRONTEND_DEBOUNCE_MS = 300;
+
 export function useFileWatcher(activePath: string | null) {
   const [event, setEvent] = useState<FileChangedEvent | null>(null);
   const lastSaveTimestampRef = useRef<number>(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Call this when saving to suppress the next file change event
   const markSaveInProgress = useCallback(() => {
@@ -32,11 +35,13 @@ export function useFileWatcher(activePath: string | null) {
       // Suppress external change events shortly after we saved
       const timeSinceSave = Date.now() - lastSaveTimestampRef.current;
       if (timeSinceSave < SAVE_SUPPRESS_WINDOW_MS) {
-        // This is likely our own save, ignore it
         return;
       }
 
-      setEvent(payload.payload);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        setEvent(payload.payload);
+      }, FRONTEND_DEBOUNCE_MS);
     })
       .then((fn) => {
         if (cancelled) {
@@ -51,6 +56,7 @@ export function useFileWatcher(activePath: string | null) {
 
     return () => {
       cancelled = true;
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       unlistenFn?.();
     };
   }, [activePath]);
