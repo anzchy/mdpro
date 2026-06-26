@@ -397,7 +397,34 @@ async fn update_document(
         });
     }
 
-    // Get the window label for the document
+    // Re-validate document after potentially long-running dialog (TOCTOU fix #238).
+    let doc = match shadow_store::get_document(&state.shadow_store, &id) {
+        Ok(Some(doc)) => doc,
+        Ok(None) => {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Warn,
+                event: "mcp.write".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": id })),
+                duration_ms: None,
+                error: Some("Document closed during confirmation".to_string()),
+            });
+            let error = ErrorResponse {
+                error: format!("Document closed during confirmation: {}", id),
+                code: Some("NOT_FOUND".to_string()),
+            };
+            return (StatusCode::NOT_FOUND, Json(error)).into_response();
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e,
+                code: Some("INTERNAL_ERROR".to_string()),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
+        }
+    };
+
     let window_label = shadow_store::get_window_for_document(&state.shadow_store, &id)
         .ok()
         .flatten();
