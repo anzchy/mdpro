@@ -1,6 +1,6 @@
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, WindowGeometry};
 use crate::services::logger;
-use crate::services::preferences::{load_preferences, save_preferences};
+use crate::services::preferences::{load_preferences, preferences_rw_lock, save_preferences};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, WebviewUrl, WebviewWindowBuilder};
@@ -103,6 +103,10 @@ pub async fn save_window_geometry(
     file_path: String,
     geometry: WindowGeometry,
 ) -> Result<(), String> {
+    let _lock = preferences_rw_lock()
+        .lock()
+        .map_err(|_| "preferences lock poisoned".to_string())?;
+
     let mut prefs = load_preferences().map_err(|e| format!("{:?}", e))?;
 
     // Update geometry with current timestamp
