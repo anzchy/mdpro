@@ -70,7 +70,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.PAT_TOKEN || github.token }}
           show_full_output: true
-          claude_args: "--model claude-opus-4-6 --max-turns 50 --allowedTools Bash(git:*),Bash(gh:*),Bash(pnpm:*),Bash(npm:*),Bash(cargo:*),Bash(node:*),Bash(codex:*),Read,Write,Edit,Glob,Grep,MultiEdit"
+          claude_args: "--model claude-opus-4-6 --max-turns 50 --allowedTools Bash(git:*),Bash(gh:*),Bash(pnpm:*),Bash(npm:*),Bash(cargo:*),Bash(node:*),Bash(codex:*),Bash(bash:*),Read,Write,Edit,Glob,Grep,MultiEdit"
           prompt: |
             Fix audit issue #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}.
 
@@ -84,7 +84,14 @@ jobs:
                 it from the queue so the loop does not re-select it every run. Only
                 continue to step 2 if the finding is real and unaddressed.
             2. Create a fix branch: `git checkout -b fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
-            3. Apply the minimum correct fix described in the issue
+            3. Apply the minimum correct fix described in the issue.
+               For any fix that changes .ts/.tsx/.rs source, ALSO add a regression
+               test that FAILS without the fix and PASSES with it (TDD rule 10):
+               co-locate a `*.test.ts` for frontend logic, or an inline
+               `#[cfg(test)]` test for Rust. Only if the change is genuinely
+               test-exempt (type-only, or a pure refactor of already-covered code)
+               may you skip the test — in that case record the reason as
+               `[no-regression-test: <reason>]` in the commit message instead.
             4. Run full gates BEFORE committing:
                a. `pnpm build`
                b. If the fix touches .rs files: `cargo check --manifest-path src-tauri/Cargo.toml`
@@ -112,12 +119,33 @@ jobs:
                  comment summarising the unresolved findings, and stop. An auto-mergeable PR
                  must never be created while medium-or-higher findings are unresolved.
 
-            7. Push branch: `git push origin fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
-            8. Open PR:
+            7. Run the deterministic pre-PR gates — they MUST pass before pushing:
+               ```bash
+               bash .github/scripts/pre-pr-gates.sh master
+               ```
+               - GATE 1 (regression test) fails → you skipped the test from step 3.
+                 Add it (or amend the commit with a `[no-regression-test: <reason>]`
+                 exemption if genuinely test-exempt), re-run step 4 gates, re-run.
+               - GATE 2 (sibling scan) fails → review the candidate siblings it
+                 printed. For the bug class you fixed, write `.pre-pr/sibling-scan.md`
+                 (use the Write tool — it creates the dir; the path is gitignored so
+                 it is NOT committed) listing which sibling call-sites share the bug
+                 and were fixed, and which are not affected (one-line reason each).
+                 If a genuine sibling has the SAME bug and fixing it keeps the change
+                 within the 3-file cap, fix it now (add its test, re-run step 4 gates,
+                 amend the commit); if it would exceed the cap, record it in the note
+                 as a follow-up. Then re-run the gate.
+               - If the gates STILL fail after 2 attempts, do NOT push or open a PR:
+                 add labels `fix-attempted` + `needs-human`, comment why, and stop.
+            8. Push branch: `git push origin fix/audit-${{ steps.find-issues.outputs.ISSUE_NUMBERS }}`
+            9. Open PR — fold the sibling-scan summary into the body:
                 ```bash
                 gh pr create \
                   --title "fix: <issue title>" \
-                  --body "Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}" \
+                  --body "Closes #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}
+
+                ## Sibling scan
+                <paste the contents of .pre-pr/sibling-scan.md here>" \
                   --label audit
                 ```
 
