@@ -10,6 +10,7 @@ permissions:
 jobs:
   labels:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Create or update loop labels
         env:
