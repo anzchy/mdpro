@@ -235,6 +235,76 @@ fn encode_for_save(content: &str, encoding_hint: Option<&str>) -> Result<Vec<u8>
     encoding::encode_bytes(content, enc).map_err(|message| FileError::IoError { message })
 }
 
+/// Atomically write `bytes` to `target`.
+///
+/// Truncate-then-write (`std::fs::write`) destroys the original file if the
+/// process dies or the disk fills mid-write: the user is left with a truncated
+/// or empty file and the prior contents are gone. Instead we:
+///   1. Write to a temp file in the *same directory* (so the final `rename` is a
+///      same-filesystem atomic operation, not a cross-device copy).
+///   2. `flush` + `sync_all` (fsync) the temp file so its bytes are durable.
+///   3. `rename` the temp over the target — atomic on POSIX: a concurrent reader
+///      sees either the whole old file or the whole new file, never a partial.
+///   4. fsync the parent directory so the rename itself is durable.
+///   5. Preserve the original file's permissions on the replacement.
+///
+/// On any failure the temp file is removed and the original target is left
+/// untouched, so a failed save never loses the prior contents.
+fn atomic_write(target: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+
+    let parent = target.parent().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "target has no parent dir")
+    })?;
+
+    // Capture the original permissions (if the file exists) so the atomic
+    // replacement keeps the same mode rather than inheriting the temp's.
+    let original_perms = std::fs::metadata(target).ok().map(|m| m.permissions());
+
+    // Unique same-dir temp name: process id + target file name keeps it scoped
+    // and avoids clobbering a concurrent save of a different file.
+    let file_name = target
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("mdpro");
+    let tmp_name = format!(".{}.{}.tmp", file_name, std::process::id());
+    let tmp_path = parent.join(tmp_name);
+
+    // Scoped block so the File handle is closed before the rename.
+    let write_and_sync = || -> std::io::Result<()> {
+        let mut file = std::fs::File::create(&tmp_path)?;
+        file.write_all(bytes)?;
+        file.flush()?;
+        file.sync_all()?;
+        Ok(())
+    };
+
+    if let Err(e) = write_and_sync() {
+        let _ = std::fs::remove_file(&tmp_path);
+        return Err(e);
+    }
+
+    // Restore original permissions onto the temp before the rename so the
+    // replaced file keeps its mode.
+    if let Some(perms) = original_perms {
+        let _ = std::fs::set_permissions(&tmp_path, perms);
+    }
+
+    if let Err(e) = std::fs::rename(&tmp_path, target) {
+        let _ = std::fs::remove_file(&tmp_path);
+        return Err(e);
+    }
+
+    // Durability of the rename itself: fsync the directory. Best-effort —
+    // some platforms/filesystems don't support opening a dir for fsync, and a
+    // failure here doesn't mean data loss (the rename already succeeded).
+    if let Ok(dir) = std::fs::File::open(parent) {
+        let _ = dir.sync_all();
+    }
+
+    Ok(())
+}
+
 /// Allowed file extensions for save operations.
 const ALLOWED_SAVE_EXTENSIONS: &[&str] = &[
     "md", "markdown", "txt", "text", "mdown", "mkd", "mkdn", "mdtxt", "mdtext",
@@ -516,6 +586,80 @@ mod tests {
             elapsed.as_secs() < 10,
             "10MB save took too long: {elapsed:?}"
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 1 — atomic save (no truncate-then-write data loss)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_atomic_write_replaces_content_and_leaves_no_tmp() {
+        let dir = io_test_dir("atomic_ok");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"old contents").unwrap();
+
+        atomic_write(&path, b"brand new contents").expect("atomic_write");
+        assert_eq!(std::fs::read(&path).unwrap(), b"brand new contents");
+
+        // No `.tmp` sibling may be left behind after a successful write.
+        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "no .tmp file should remain, found: {leftovers:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_atomic_write_failure_preserves_original_and_no_tmp() {
+        use std::os::unix::fs::PermissionsExt;
+        // The original file exists with known contents. We make the *directory*
+        // read-only so creating the same-dir temp file fails. The atomic write
+        // must error AND leave the original file byte-for-byte intact — the
+        // truncate-then-write path would have destroyed it.
+        let dir = io_test_dir("atomic_fail");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"PRECIOUS ORIGINAL").unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+
+        let res = atomic_write(&path, b"this write must not land");
+
+        // Restore perms so we can read/clean up regardless of outcome.
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        assert!(res.is_err(), "write to read-only dir must fail, got: {res:?}");
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            b"PRECIOUS ORIGINAL",
+            "original contents must survive a failed atomic write"
+        );
+        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "no .tmp file should remain after failure, found: {leftovers:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_atomic_write_preserves_file_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        // A file saved with restrictive perms must keep them after an atomic
+        // overwrite (the temp file would otherwise impose its own default mode).
+        let dir = io_test_dir("atomic_perms");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"v1").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o640)).unwrap();
+
+        atomic_write(&path, b"v2").expect("atomic_write");
+
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o640, "original permissions must be preserved, got {mode:o}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -933,7 +1077,7 @@ pub async fn save_file(
 
     let path_for_error = path_value.clone();
     file_watcher::mark_write_start(&path_buf);
-    let write_result = std::fs::write(&path_buf, &bytes);
+    let write_result = atomic_write(&path_buf, &bytes);
     file_watcher::mark_write_end(&path_buf);
     write_result.map_err(|err| {
         let mapped = to_file_error(err, &path_value);
