@@ -46,15 +46,18 @@ describe("data-loss: unsaved-changes → window close", () => {
 
   it("only bypasses the guard after an explicit confirm (allowWindowClose latch)", () => {
     // The latch is set true only in handleConfirmClose; the close handler
-    // returns early when it is set, then resets it. Without this two-step the
-    // window could close before the prompt resolves.
+    // returns early on the "allow" decision, then resets it. Without this
+    // two-step the window could close before the prompt resolves. The decision
+    // itself is exercised behaviorally in data-loss-behavior.test.ts.
     expect(APP_SRC).toMatch(/allowWindowCloseRef\.current/);
-    expect(APP_SRC).toMatch(/if\s*\(\s*allowWindowCloseRef\.current\s*\)/);
+    expect(APP_SRC).toMatch(/if\s*\(\s*decision\s*===\s*["']allow["']\s*\)/);
   });
 
   it("shows the confirm prompt (not a silent close) when there are unsaved changes", () => {
-    // hasUnsavedRef gates the branch that opens the dialog rather than closing.
-    expect(APP_SRC).toMatch(/if\s*\(\s*hasUnsavedRef\.current\s*\)/);
+    // decideWindowClose returns "prompt" for a dirty doc; that branch opens the
+    // dialog rather than closing. (Behavior asserted in data-loss-behavior.test.ts.)
+    expect(APP_SRC).toMatch(/decideWindowClose\(/);
+    expect(APP_SRC).toMatch(/if\s*\(\s*decision\s*===\s*["']prompt["']\s*\)/);
     expect(APP_SRC).toMatch(/setPendingClose\(\s*["']window["']\s*\)/);
   });
 
@@ -94,9 +97,10 @@ describe("data-loss: unsaved-changes → window close", () => {
 
 describe("data-loss: external-edit conflict", () => {
   it("surfaces a reload dialog on external modification (does not auto-reload)", () => {
-    // The effect sets a reload message; it must NOT call reloadFile directly,
-    // which would clobber in-editor unsaved edits without asking.
-    const effect = APP_SRC.slice(APP_SRC.indexOf("if (!fileChangeEvent"));
+    // The effect routes through decideFileChange and sets a reload message; it
+    // must NOT call reloadFile directly, which would clobber in-editor unsaved
+    // edits without asking. (Behavior asserted in data-loss-behavior.test.ts.)
+    const effect = APP_SRC.slice(APP_SRC.indexOf("const decision = decideFileChange("));
     expect(effect).toMatch(/setReloadMessage\(/);
     const effectBody = effect.slice(0, effect.indexOf("}, ["));
     expect(effectBody).not.toMatch(/reloadFile\(/);

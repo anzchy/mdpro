@@ -31,6 +31,11 @@ import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
 import { performSave } from "./services/saveService";
 import type { Document } from "./types/document";
+import {
+  decideCloseRequest,
+  decideFileChange,
+  decideWindowClose,
+} from "./utils/dataLossGuards";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
@@ -387,7 +392,12 @@ function App() {
             },
           });
 
-          if (allowWindowCloseRef.current) {
+          const decision = decideWindowClose({
+            allowWindowClose: allowWindowCloseRef.current,
+            hasUnsavedChanges: hasUnsavedRef.current,
+          });
+
+          if (decision === "allow") {
             // State already saved by handleConfirmClose; allow the close through
             allowWindowCloseRef.current = false;
             loggingService.logEventSync({
@@ -401,7 +411,7 @@ function App() {
           }
           // Prevent close in all other cases until we finish async work
           event.preventDefault();
-          if (hasUnsavedRef.current) {
+          if (decision === "prompt") {
             closeTargetRef.current = "window";
             setPendingClose("window");
             loggingService.logEventSync({
@@ -465,19 +475,24 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!fileChangeEvent || !activeDocument) return;
-    // Guard: only apply the event to the document that triggered it
-    if (fileChangeEvent.path !== activeDocument.path) return;
-    if (fileChangeEvent.changeType === "renamed" && fileChangeEvent.newPath) {
-      updateDocumentPath(activeDocument.id, fileChangeEvent.newPath);
-      clearEvent();
-      return;
+    if (!activeDocument) return;
+    const decision = decideFileChange(fileChangeEvent, activeDocument);
+    switch (decision.action) {
+      case "ignore":
+        return;
+      case "rename":
+        updateDocumentPath(activeDocument.id, decision.newPath);
+        clearEvent();
+        return;
+      case "deleted-prompt":
+        // Surface a prompt; do NOT reload (would clobber in-editor edits).
+        setReloadMessage(decision.message);
+        return;
+      case "reload-prompt":
+        // Surface a prompt; reload is user-initiated via handleReloadFile.
+        setReloadMessage(decision.message);
+        return;
     }
-    if (fileChangeEvent.changeType === "deleted") {
-      setReloadMessage("File was deleted externally. Save to a new location if needed.");
-      return;
-    }
-    setReloadMessage("File was modified externally. Reload to update content?");
   }, [activeDocument, clearEvent, fileChangeEvent, updateDocumentPath]);
 
   useEffect(() => {
@@ -915,13 +930,14 @@ function App() {
   };
 
   const handleCloseRequest = useCallback((_actionId?: string) => {
-    if (!activeDocument) return;
-    if (activeDocument.isModified) {
+    const decision = decideCloseRequest(activeDocument);
+    if (decision === "prompt") {
       closeTargetRef.current = "document";
       setPendingClose("document");
-    } else {
+    } else if (decision === "close") {
       void closeActiveDocument(true);
     }
+    // "noop" — no active document
   }, [activeDocument, closeActiveDocument]);
 
   // Both ⌘⌥T (useKeyboardShortcuts) and Format → Insert Table (useMenuEvents)
