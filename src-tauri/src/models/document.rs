@@ -12,6 +12,10 @@ pub struct Document {
     pub content: String,
     /// File encoding (default: UTF-8)
     pub encoding: String,
+    /// Original on-disk line-ending style ("lf" | "crlf" | "cr").
+    /// Preserved on open so an edit→save round-trip restores it instead of
+    /// silently rewriting every line to LF.
+    pub line_ending: String,
     /// Whether document has unsaved changes
     pub is_modified: bool,
     /// Last saved timestamp (Unix epoch milliseconds)
@@ -27,6 +31,7 @@ impl Document {
             path: None,
             content: String::new(),
             encoding: "UTF-8".to_string(),
+            line_ending: "lf".to_string(),
             is_modified: false,
             last_saved: None,
             file_size: None,
@@ -42,6 +47,7 @@ impl Document {
             path: Some(path),
             content,
             encoding: "UTF-8".to_string(),
+            line_ending: "lf".to_string(),
             is_modified: false,
             last_saved: Some(chrono::Utc::now().timestamp_millis()),
             file_size,

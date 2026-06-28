@@ -28,6 +28,7 @@ function makeDoc(overrides: Partial<Document> = {}): Document {
     path: "/tmp/test.md",
     content: "# Test",
     encoding: "utf-8",
+    lineEnding: "lf",
     isModified: false,
     lastSaved: Date.now(),
     fileSize: 100,
@@ -58,13 +59,16 @@ describe("prepareForRelaunch", () => {
     });
     const result = await prepareForRelaunch();
     expect(result).toBe(true);
-    expect(mockSaveFile).toHaveBeenCalledWith(
-      "doc-1",
-      "hello",
-      "/tmp/a.md",
-      "utf-8",
-      "test-action-id",
-    );
+    // Options object (not positional) — guards the wrong-arg footgun the
+    // refactor closes.
+    expect(mockSaveFile).toHaveBeenCalledWith({
+      documentId: "doc-1",
+      content: "hello",
+      path: "/tmp/a.md",
+      encoding: "utf-8",
+      lineEnding: "lf",
+      actionId: "test-action-id",
+    });
   });
 
   it("saves multiple modified docs", async () => {

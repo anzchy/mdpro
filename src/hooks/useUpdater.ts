@@ -39,7 +39,14 @@ export async function prepareForRelaunch(): Promise<boolean> {
     }
 
     try {
-      await fileService.saveFile(doc.id, doc.content, doc.path, doc.encoding, actionId);
+      await fileService.saveFile({
+        documentId: doc.id,
+        content: doc.content,
+        path: doc.path,
+        encoding: doc.encoding,
+        lineEnding: doc.lineEnding,
+        actionId,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       useToastStore.getState().showToast(

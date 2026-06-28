@@ -11,6 +11,9 @@ export interface Document {
   /** File encoding */
   encoding: string;
 
+  /** Original on-disk line-ending style ("lf" | "crlf" | "cr") */
+  lineEnding: string;
+
   /** Has unsaved changes */
   isModified: boolean;
 

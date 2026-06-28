@@ -198,9 +198,13 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
         content.len()
     ));
 
+    // Capture the original EOL style before normalizing to LF so save can
+    // restore it (Fix 2 — no silent CRLF→LF on round-trip).
+    let line_ending = detect_line_ending(&content);
     let content = normalize_line_endings(&content);
     let mut document = Document::from_path(path_buf, content);
     document.encoding = encoding_value;
+    document.line_ending = line_ending.to_string();
     logger::log_line(&format!(
         "open_file_from_path: created document id {}",
         document.id
@@ -219,6 +223,34 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
 /// - lone `\r` (old Mac CR) → `\n`
 fn normalize_line_endings(content: &str) -> String {
     content.replace("\r\n", "\n").replace('\r', "\n")
+}
+
+/// The line-ending style a file used on disk, so an open→edit→save round-trip
+/// restores it instead of silently rewriting every line to LF.
+///
+/// Detection precedence: any `\r\n` ⇒ CRLF; otherwise any lone `\r` ⇒ CR;
+/// otherwise LF (the editor's internal representation and our default).
+fn detect_line_ending(content: &str) -> &'static str {
+    if content.contains("\r\n") {
+        "crlf"
+    } else if content.contains('\r') {
+        "cr"
+    } else {
+        "lf"
+    }
+}
+
+/// Convert LF-only `content` (the editor's internal form) back to the document's
+/// original line-ending style for writing to disk. An absent or `"lf"` style is
+/// written unchanged. The input is normalized to LF first so a re-conversion is
+/// idempotent and never produces `\r\r\n`.
+fn restore_line_endings(content: &str, line_ending: Option<&str>) -> String {
+    let normalized = normalize_line_endings(content);
+    match line_ending {
+        Some("crlf") => normalized.replace('\n', "\r\n"),
+        Some("cr") => normalized.replace('\n', "\r"),
+        _ => normalized,
+    }
 }
 
 /// Encode document content for writing to disk, in the document's original
@@ -422,6 +454,101 @@ mod tests {
         assert_eq!(saved, original, "save must not corrupt the original encoding");
     }
 
+    // -----------------------------------------------------------------------
+    // Fix 2 — CRLF preserved across a REAL open→edit→save round-trip.
+    //
+    // These go through open_file_from_path (which calls normalize_line_endings)
+    // and save_file, NOT the encoder in isolation. The bypassed test only
+    // checked the encoder; this proves the line-ending survives the full path.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_detect_line_ending() {
+        assert_eq!(detect_line_ending("a\r\nb"), "crlf");
+        assert_eq!(detect_line_ending("a\rb"), "cr");
+        assert_eq!(detect_line_ending("a\nb"), "lf");
+        assert_eq!(detect_line_ending("plain"), "lf");
+        // CRLF wins when both present.
+        assert_eq!(detect_line_ending("a\r\nb\nc"), "crlf");
+    }
+
+    #[test]
+    fn test_restore_line_endings_is_idempotent() {
+        // Editor content is LF; restoring CRLF must not produce \r\r\n even if
+        // the content somehow already contains CRLF.
+        assert_eq!(restore_line_endings("a\nb", Some("crlf")), "a\r\nb");
+        assert_eq!(restore_line_endings("a\r\nb", Some("crlf")), "a\r\nb");
+        assert_eq!(restore_line_endings("a\nb", Some("lf")), "a\nb");
+        assert_eq!(restore_line_endings("a\nb", None), "a\nb");
+    }
+
+    #[tokio::test]
+    async fn test_utf8_crlf_round_trip_preserves_crlf_on_disk() {
+        let dir = io_test_dir("crlf_utf8");
+        let path = dir.join("doc.md");
+        // A genuine CRLF UTF-8 file on disk.
+        std::fs::write(&path, b"line one\r\nline two\r\n").unwrap();
+
+        // Open through the real path: it normalizes to LF internally and records
+        // the original EOL on the document.
+        let opened = open_file_from_path(&path.to_string_lossy(), None).expect("open");
+        assert_eq!(opened.document.line_ending, "crlf");
+        assert_eq!(opened.document.content, "line one\nline two\n", "editor sees LF");
+
+        // The editor saves its LF content back; the original EOL must be restored.
+        let edited_lf = format!("{}line three\n", opened.document.content);
+        save_file(
+            "d1".into(),
+            edited_lf,
+            Some(path.to_string_lossy().to_string()),
+            Some(opened.document.encoding.clone()),
+            Some(opened.document.line_ending.clone()),
+            None,
+        )
+        .await
+        .expect("save");
+
+        let on_disk = std::fs::read(&path).unwrap();
+        assert_eq!(
+            on_disk,
+            b"line one\r\nline two\r\nline three\r\n".to_vec(),
+            "CRLF must be restored on save, not silently rewritten to LF"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_utf16_crlf_round_trip_preserves_crlf_and_encoding() {
+        let dir = io_test_dir("crlf_utf16");
+        let path = dir.join("doc.md");
+        // A genuine UTF-16LE-with-BOM, CRLF file on disk.
+        let original = encoding::encode_bytes("héllo\r\nwörld\r\n", "UTF-16LE").unwrap();
+        std::fs::write(&path, &original).unwrap();
+
+        let opened = open_file_from_path(&path.to_string_lossy(), None).expect("open");
+        assert_eq!(opened.document.encoding, "UTF-16LE");
+        assert_eq!(opened.document.line_ending, "crlf");
+        assert_eq!(opened.document.content, "héllo\nwörld\n", "editor sees LF");
+
+        save_file(
+            "d1".into(),
+            opened.document.content.clone(),
+            Some(path.to_string_lossy().to_string()),
+            Some(opened.document.encoding.clone()),
+            Some(opened.document.line_ending.clone()),
+            None,
+        )
+        .await
+        .expect("save");
+
+        let on_disk = std::fs::read(&path).unwrap();
+        assert_eq!(
+            on_disk, original,
+            "UTF-16 CRLF file must round-trip byte-identical (encoding AND line endings preserved)"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn test_encode_for_save_rejects_unsupported_encoding() {
         // Refuse rather than write UTF-8 bytes mislabelled as the original.
@@ -462,6 +589,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
+        None,
         )
         .await;
         assert!(res.is_ok(), "save should succeed: {res:?}");
@@ -484,6 +612,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
+        None,
         )
         .await;
 
@@ -517,6 +646,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
+        None,
         )
         .await;
         assert!(res.is_ok(), "save after delete should recreate: {res:?}");
@@ -535,6 +665,7 @@ mod tests {
                 Some(path.to_string_lossy().to_string()),
                 None,
                 None,
+            None,
             )
             .await;
             assert!(res.is_ok(), "save of {name:?} should succeed: {res:?}");
@@ -554,6 +685,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
+        None,
         )
         .await;
         assert!(res.is_ok(), "save with quote in name should succeed: {res:?}");
@@ -575,6 +707,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
+        None,
         )
         .await;
         let elapsed = start.elapsed();
@@ -989,6 +1122,7 @@ pub async fn save_file(
     content: String,
     path: Option<String>,
     encoding: Option<String>,
+    line_ending: Option<String>,
     action_id: Option<String>,
 ) -> Result<SaveResult, FileError> {
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
@@ -1058,6 +1192,11 @@ pub async fn save_file(
         }
     }
 
+    // Restore the document's original line-ending style (Fix 2) before encoding
+    // so a CRLF/CR file isn't silently rewritten to LF. The editor works in LF
+    // internally; we convert back only at the write boundary.
+    let content = restore_line_endings(&content, line_ending.as_deref());
+
     // Re-encode in the document's original encoding so a UTF-16/BOM file is
     // not silently rewritten as UTF-8 (WI-0.3). An unsupported encoding errors
     // here rather than corrupting the file.
@@ -1119,6 +1258,7 @@ pub async fn save_file_dialog(
     content: String,
     suggested_name: Option<String>,
     encoding: Option<String>,
+    line_ending: Option<String>,
     action_id: Option<String>,
 ) -> Result<Option<SaveResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -1145,6 +1285,7 @@ pub async fn save_file_dialog(
         content,
         Some(path.to_string_lossy().to_string()),
         encoding,
+        line_ending,
         Some(action_id),
     )
         .await

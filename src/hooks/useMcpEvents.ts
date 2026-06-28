@@ -286,6 +286,7 @@ export function useMcpEvents() {
         path: null,
         content: event.content,
         encoding: "UTF-8",
+        lineEnding: "lf",
         isModified: event.content.length > 0,
         lastSaved: null,
         fileSize: null,
