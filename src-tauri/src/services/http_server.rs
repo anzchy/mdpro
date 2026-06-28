@@ -436,7 +436,34 @@ async fn update_document(
     // so subsequent reads return new content even if the frontend
     // hasn't processed the event yet (fixes #141 stale-read window).
     let content_clone = request.content.clone();
-    let _ = shadow_store::update_document_content(&state.shadow_store, &id, content_clone);
+    match shadow_store::update_document_content(&state.shadow_store, &id, content_clone) {
+        Ok(true) => {}
+        Ok(false) => {
+            // Document closed in the residual window between re-validation and
+            // this update — fail closed rather than emit a write for a gone doc.
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Warn,
+                event: "mcp.write".to_string(),
+                status: LogStatus::Fail,
+                action_id: None,
+                context: Some(json!({ "documentId": id })),
+                duration_ms: None,
+                error: Some("Document closed before content update".to_string()),
+            });
+            let error = ErrorResponse {
+                error: format!("Document closed before content update: {}", id),
+                code: Some("NOT_FOUND".to_string()),
+            };
+            return (StatusCode::NOT_FOUND, Json(error)).into_response();
+        }
+        Err(e) => {
+            let error = ErrorResponse {
+                error: e,
+                code: Some("INTERNAL_ERROR".to_string()),
+            };
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
+        }
+    }
 
     // Emit event to frontend to update the document
     let event = WriteDocumentEvent {
