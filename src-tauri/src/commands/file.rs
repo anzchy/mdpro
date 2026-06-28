@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
-use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus};
-use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::{self, FileWatcher}, logger};
+use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
+use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::{self, FileWatcher}, logger, shadow_store};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 const ALLOWED_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
@@ -801,6 +801,7 @@ pub async fn close_document(
     discard_changes: bool,
     path: Option<String>,
     watcher: State<'_, FileWatcher>,
+    shadow: State<'_, SharedShadowStore>,
 ) -> Result<CloseResult, FileError> {
     if !discard_changes {
         return Err(FileError::IoError {
@@ -811,6 +812,8 @@ pub async fn close_document(
     if let Some(ref p) = path {
         watcher.unwatch(&PathBuf::from(p));
     }
+
+    let _ = shadow_store::remove_document(&shadow, &document_id);
 
     Ok(discard_and_close(&document_id))
 }
