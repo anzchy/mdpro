@@ -95,16 +95,37 @@ jobs:
                   removeFailed = e;
                 }
               }
-              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-human'] });
-              await github.rest.issues.createComment({
-                owner, repo, issue_number,
-                body: `⛔ \`${label}\` was applied by @${actor} (permission: \`${permission}\`), who is not an \`admin\`/\`write\` maintainer. A label is not authorization — removing it and flagging \`needs-human\`. A maintainer must apply the approval.\n\n_(small-feature loop · WI-F0 actor check)_`,
-              });
-              // If the label removal failed for any non-404 reason, the unauthorized
-              // label may still be present. needs-human + the comment are now posted,
-              // so fail the job to make the unsafe state loud (fail closed).
+              // Flag + comment are best-effort and INDEPENDENT: a missing `needs-human`
+              // label (addLabels throws) must not swallow the human-visible warning
+              // comment. Capture each failure, keep going, then fail loud at the end.
+              let flagFailed = null;
+              try {
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-human'] });
+              } catch (e) {
+                flagFailed = e;
+                core.warning(`Failed to add 'needs-human' label (status: ${e && e.status}): ${e && e.message}`);
+              }
+              let commentFailed = null;
+              try {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number,
+                  body: `⛔ \`${label}\` was applied by @${actor} (permission: \`${permission}\`), who is not an \`admin\`/\`write\` maintainer. A label is not authorization — removing it and flagging \`needs-human\`. A maintainer must apply the approval.\n\n_(small-feature loop · WI-F0 actor check)_`,
+                });
+              } catch (e) {
+                commentFailed = e;
+                core.warning(`Failed to post 'needs-human' diagnostic comment (status: ${e && e.status}): ${e && e.message}`);
+              }
+              // Fail closed / loud. The unauthorized label still being present
+              // (removeFailed) is the security-critical case, so it wins the throw;
+              // a failed flag/comment also fails the job so the gap is never silent.
               if (removeFailed) {
                 throw new Error(`Failed to remove unauthorized label '${label}' (status: ${removeFailed.status}): ${removeFailed.message}`);
+              }
+              if (flagFailed) {
+                throw new Error(`Failed to flag 'needs-human' for unauthorized label '${label}' (status: ${flagFailed.status}): ${flagFailed.message}`);
+              }
+              if (commentFailed) {
+                throw new Error(`Failed to post 'needs-human' diagnostic for unauthorized label '${label}' (status: ${commentFailed.status}): ${commentFailed.message}`);
               }
               return;
             }
