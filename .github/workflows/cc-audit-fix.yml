@@ -70,7 +70,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.PAT_TOKEN || github.token }}
           show_full_output: true
-          claude_args: "--model claude-opus-4-6 --max-turns 50 --allowedTools Bash(git:*),Bash(gh:*),Bash(pnpm:*),Bash(npm:*),Bash(cargo:*),Bash(node:*),Bash(codex:*),Bash(bash:*),Read,Write,Edit,Glob,Grep,MultiEdit"
+          claude_args: "--model claude-opus-4-6 --max-turns 50 --allowedTools Bash(git:*),Bash(gh:*),Bash(pnpm:*),Bash(npm:*),Bash(cargo:*),Bash(node:*),Bash(codex:*),Bash(bash .github/scripts/pre-pr-gates.sh:*),Read,Write,Edit,Glob,Grep,MultiEdit"
           prompt: |
             Fix audit issue #${{ steps.find-issues.outputs.ISSUE_NUMBERS }}.
 

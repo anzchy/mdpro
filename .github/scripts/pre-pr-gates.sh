@@ -25,6 +25,14 @@
 #
 set -euo pipefail
 
+# This script uses `mapfile` (bash 4+). CI runs on ubuntu (bash 5), but stock
+# macOS ships bash 3.2 — fail with a clear message instead of a cryptic
+# "mapfile: command not found" if it's ever run there.
+if [ "${BASH_VERSINFO:-0}" -lt 4 ]; then
+  echo "pre-pr-gates: requires bash 4+ (found ${BASH_VERSION:-unknown}); on macOS run via 'brew install bash'." >&2
+  exit 2
+fi
+
 BASE="${1:-master}"
 NOTE_FILE=".pre-pr/sibling-scan.md"
 
