@@ -21,8 +21,8 @@ describe("preferencesService.setPreferences — write-through failure UX", () =>
   beforeEach(() => {
     invokeMock.mockReset();
     useToastStore.setState({ message: null });
-    // Force the Tauri code path (isTauri is evaluated at module load; stub the
-    // global so the service issues a real invoke).
+    // Force the Tauri code path (isTauriEnv() is evaluated at call time; stub
+    // the global so the service issues a real invoke).
     (globalThis as { __TAURI__?: unknown }).__TAURI__ = {};
   });
 

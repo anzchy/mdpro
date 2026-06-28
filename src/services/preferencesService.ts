@@ -23,7 +23,6 @@ function isTauriEnv(): boolean {
     (typeof globalThis !== "undefined" && "__TAURI__" in globalThis)
   );
 }
-const isTauri = isTauriEnv();
 
 // Default preferences for browser mode — must stay in sync with Rust UserPreferences::default()
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -50,7 +49,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
 
 export const preferencesService = {
   async getPreferences(): Promise<UserPreferences> {
-    if (!isTauri) {
+    if (!isTauriEnv()) {
       return DEFAULT_PREFERENCES;
     }
     return invoke<UserPreferences>("get_preferences", {});
@@ -82,7 +81,7 @@ export const preferencesService = {
   },
 
   async getSystemTheme(): Promise<"light" | "dark"> {
-    if (!isTauri) {
+    if (!isTauriEnv()) {
       // Use browser's color scheme preference
       return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
@@ -90,7 +89,7 @@ export const preferencesService = {
   },
 
   async saveWindowState(windowState: WindowState): Promise<void> {
-    if (!isTauri) {
+    if (!isTauriEnv()) {
       // No-op in browser mode
       return;
     }
