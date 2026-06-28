@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI release workflow: `latest.json` generation with dynamic GitHub asset discovery via `jq`, signing env vars for updater artifacts
 
 ### Security
+- Sanitizer policy redesign (Typora-parity Phase 0, WI-0.1): the Rust `sanitize_html` and frontend DOMPurify config now share one per-feature allow-list matrix that preserves legitimate KaTeX math, footnote anchors, and Mermaid inline-SVG output while neutralizing script/`on*`/`<foreignObject>`/`url(http…)`-in-style payloads on every render surface. `style` is never allowed (no exfiltration), href schemes are restricted to the safe set, and in-doc `#anchor` links pass through. Mirrored tag/attr lists are regression-tested on both surfaces
 - Upgraded DOMPurify from `^3.2.7` to `^3.3.2` (resolved to `3.3.3`), patching GHSA-h8r8-wccr-v5f2 and GHSA-v2wj-7wpq-c8vv — both Moderate XSS CVEs affecting the HTML paste-sanitization path in the WYSIWYG editor
 
 ### Changed

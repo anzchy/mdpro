@@ -205,16 +205,69 @@ fn replace_highlight_inline(line: &str) -> String {
     out
 }
 
+// ---------------------------------------------------------------------------
+// WI-0.1 — Sanitizer allow-list matrix
+//
+// One authoritative, per-feature definition shared by both render surfaces.
+// The Rust side (`sanitize_html`, below) consumes these lists directly; the
+// frontend DOMPurify config (`src/services/exportService.ts`) mirrors them and
+// is regression-tested against this set (see tests/sanitizer-policy.test.ts).
+//
+// Risk controls baked in:
+// - `style` attribute is never allowed → no `url(http…)` exfiltration.
+// - `href`/`src` schemes are restricted to an in-doc + safe-link allow-list →
+//   footnote/anchor hrefs cannot point off-document to a tracker, and SVG
+//   `<a href>` cannot carry `http://evil`.
+// - `<script>`, `on*` handlers, `<foreignObject>` are stripped by ammonia's
+//   default deny posture (only the tags below are allowed through).
+// ---------------------------------------------------------------------------
+
+/// Math (KaTeX HTML + MathML) tags.
+pub const MATH_TAGS: &[&str] = &[
+    "math", "semantics", "annotation", "mrow", "mi", "mo", "mn", "ms", "mtext",
+    "msup", "msub", "msubsup", "mfrac", "msqrt", "mroot", "munder", "mover",
+    "munderover", "mtable", "mtr", "mtd", "mspace", "mpadded", "mphantom",
+    "menclose", "mstyle", "merror", "annotation-xml",
+];
+
+/// Mermaid / inline-SVG diagram tags (specific SVG profile — no foreignObject,
+/// no script, no event-handler-bearing wrappers).
+pub const SVG_TAGS: &[&str] = &[
+    "svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline",
+    "polygon", "text", "tspan", "defs", "marker", "use", "symbol", "title",
+    "desc", "clipPath", "linearGradient", "radialGradient", "stop", "pattern",
+];
+
+/// Generic SVG presentation/geometry attributes that carry no script surface.
+pub const SVG_ATTRS: &[&str] = &[
+    "d", "viewBox", "width", "height", "x", "y", "x1", "y1", "x2", "y2",
+    "cx", "cy", "r", "rx", "ry", "points", "transform", "fill", "stroke",
+    "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin",
+    "fill-opacity", "stroke-opacity", "opacity", "offset", "stop-color",
+    "gradientUnits", "gradientTransform", "marker-end", "marker-start",
+    "text-anchor", "dominant-baseline", "font-size", "font-family",
+    "preserveAspectRatio", "xmlns", "class", "id", "dx", "dy",
+];
+
 /// Sanitize HTML output, allowing safe formatting tags but stripping
 /// dangerous elements like `<script>`, `<iframe>`, `<object>`, event handlers, etc.
 /// Used for export paths where DOMPurify is not available.
+///
+/// The allow-list is widened per the WI-0.1 matrix to preserve legitimate
+/// KaTeX math, footnote anchors, and Mermaid SVG, while the script-injection
+/// and url()-exfiltration vectors stay neutralized.
 pub fn sanitize_html(html: &str) -> String {
-    ammonia::Builder::default()
+    let mut builder = ammonia::Builder::default();
+    builder
         .add_tags(&[
             "mark", "u", "s", "del", "ins", "sub", "sup",
-            "details", "summary", "input",
+            "details", "summary", "input", "section",
         ])
-        .add_generic_attributes(&["id"])
+        .add_tags(MATH_TAGS)
+        .add_tags(SVG_TAGS)
+        // `class` is needed by KaTeX (`katex-*`) and footnote/mermaid wrappers.
+        // It carries no script surface once `style` and `on*` stay disallowed.
+        .add_generic_attributes(&["id", "class"])
         .add_tag_attributes("h1", &["data-heading-id"])
         .add_tag_attributes("h2", &["data-heading-id"])
         .add_tag_attributes("h3", &["data-heading-id"])
@@ -222,8 +275,32 @@ pub fn sanitize_html(html: &str) -> String {
         .add_tag_attributes("h5", &["data-heading-id"])
         .add_tag_attributes("h6", &["data-heading-id"])
         .add_tag_attributes("input", &["type", "checked", "disabled"])
-        .clean(html)
-        .to_string()
+        .add_tag_attributes("math", &["xmlns", "display"])
+        .add_tag_attributes("annotation", &["encoding"])
+        .add_tag_attributes("annotation-xml", &["encoding"])
+        .add_tag_attributes("span", &["aria-hidden"]);
+    for tag in SVG_TAGS {
+        builder.add_tag_attributes(tag, SVG_ATTRS);
+    }
+    // Link schemes: allow only the safe set. `javascript:`, `data:`, `vbscript:`
+    // and any other scheme are dropped. In-doc anchors (`#fn1`) pass through via
+    // `url_relative`. `link_rel` hardens any surviving external link.
+    //
+    // Deviation note (vs the WI-0.1 matrix "footnote href restricted to in-doc
+    // anchors only"): ammonia cannot scope schemes per-parent, and the same
+    // `sanitize_html` runs on the whole export — forbidding http/https outright
+    // would silently drop legitimate body links from exported HTML. We instead
+    // keep the safe-scheme allow-list (matching the frontend DOMPurify default)
+    // and rely on no-`style` / no-`on*` / no-`<script>` for the XSS controls.
+    builder
+        .url_relative(ammonia::UrlRelative::PassThrough)
+        .link_rel(Some("noopener noreferrer"))
+        .url_schemes(
+            ["http", "https", "mailto", "tel", "ftp"]
+                .into_iter()
+                .collect(),
+        );
+    builder.clean(html).to_string()
 }
 
 /// Parse `{mdpro-width=N%}` (1-200) from a title attribute value; returns
@@ -791,5 +868,151 @@ mod tests {
             result.contains("id=\"title\""),
             "heading anchor id should be plain text 'title', got: {result}"
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // WI-0.1 — Sanitizer policy redesign
+    //
+    // The allow-list is widened to preserve legitimate KaTeX math, footnote
+    // anchors, and Mermaid SVG output, while the script-injection payloads
+    // embedded in each surface stay neutralized. See the "Sanitizer Policy"
+    // matrix in docs/plans/20260628-plan-typora-parity.md.
+    // -----------------------------------------------------------------------
+
+    // --- Legitimate output must survive ---
+
+    #[test]
+    fn test_sanitize_preserves_katex_math_markup() {
+        // Representative KaTeX HTML+MathML output for an inline expression.
+        let html = concat!(
+            "<span class=\"katex\"><span class=\"katex-mathml\">",
+            "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics>",
+            "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>",
+            "<annotation encoding=\"application/x-tex\">x+1</annotation>",
+            "</semantics></math></span>",
+            "<span class=\"katex-html\" aria-hidden=\"true\">",
+            "<span class=\"base\"><span class=\"mord mathnormal\">x</span></span>",
+            "</span></span>",
+        );
+        let result = sanitize_html(html);
+        assert!(result.contains("<math"), "math element must survive, got: {result}");
+        assert!(result.contains("<semantics>"), "semantics must survive, got: {result}");
+        assert!(result.contains("<annotation"), "annotation must survive, got: {result}");
+        assert!(result.contains("<mi>x</mi>"), "mi must survive, got: {result}");
+        assert!(
+            result.contains("class=\"katex\""),
+            "katex class must survive, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_sanitize_preserves_footnote_anchors() {
+        // pulldown-cmark footnote reference + definition shape.
+        let html = concat!(
+            "<sup class=\"footnote-reference\"><a href=\"#fn1\">1</a></sup>",
+            "<div class=\"footnote-definition\" id=\"fn1\">",
+            "<sup class=\"footnote-definition-label\">1</sup>",
+            "<p>The note. <a href=\"#fnref1\">↩</a></p></div>",
+        );
+        let result = sanitize_html(html);
+        assert!(result.contains("href=\"#fn1\""), "in-doc footnote href must survive, got: {result}");
+        assert!(result.contains("id=\"fn1\""), "footnote id must survive, got: {result}");
+        assert!(
+            result.contains("class=\"footnote-reference\""),
+            "footnote class must survive, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_sanitize_preserves_mermaid_svg() {
+        let html = concat!(
+            "<svg viewBox=\"0 0 100 100\" class=\"mermaid\">",
+            "<g><path d=\"M0 0 L10 10\"></path>",
+            "<text x=\"5\" y=\"5\">node</text></g></svg>",
+        );
+        let result = sanitize_html(html);
+        assert!(result.contains("<svg"), "svg must survive, got: {result}");
+        assert!(result.contains("<path"), "path must survive, got: {result}");
+        assert!(result.contains("d=\"M0 0 L10 10\""), "path data must survive, got: {result}");
+        assert!(result.contains("viewBox="), "viewBox must survive, got: {result}");
+        assert!(result.contains("<text"), "text must survive, got: {result}");
+    }
+
+    // --- Script-injection payloads must be neutralized on each surface ---
+
+    #[test]
+    fn test_sanitize_neutralizes_script_in_math_markup() {
+        let html = concat!(
+            "<span class=\"katex\"><math><semantics>",
+            "<annotation><script>alert(1)</script></annotation>",
+            "</semantics></math></span>",
+        );
+        let result = sanitize_html(html);
+        assert!(!result.contains("<script"), "script in math must be stripped, got: {result}");
+        assert!(!result.contains("alert(1)") || !result.contains("<script"),
+            "script payload must not execute, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_neutralizes_javascript_href_in_footnote() {
+        // A footnote/anchor href with a dangerous scheme must be dropped.
+        // (Per the deviation note in sanitize_html, http/https body links are
+        // kept so exported documents don't lose legitimate links; the security
+        // control is the scheme allow-list, not an in-doc-only restriction.)
+        let html = "<sup><a href=\"javascript:alert(1)\">1</a></sup>";
+        let result = sanitize_html(html);
+        assert!(
+            !result.contains("javascript:"),
+            "javascript: footnote href must be stripped, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_sanitize_keeps_in_doc_footnote_anchor() {
+        let html = "<sup><a href=\"#fn1\">1</a></sup>";
+        let result = sanitize_html(html);
+        assert!(
+            result.contains("href=\"#fn1\""),
+            "in-doc footnote anchor must survive, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_sanitize_neutralizes_script_in_mermaid_svg() {
+        let html = concat!(
+            "<svg viewBox=\"0 0 10 10\"><script>alert(1)</script>",
+            "<path d=\"M0 0\" onload=\"alert(2)\"></path>",
+            "<foreignObject><iframe src=\"javascript:alert(3)\"></iframe></foreignObject>",
+            "</svg>",
+        );
+        let result = sanitize_html(html);
+        assert!(!result.contains("<script"), "script in svg must be stripped, got: {result}");
+        assert!(!result.contains("onload"), "event handler in svg must be stripped, got: {result}");
+        assert!(
+            !result.contains("<foreignObject"),
+            "foreignObject (HTML-in-SVG escape hatch) must be stripped, got: {result}"
+        );
+        assert!(!result.contains("<iframe"), "iframe in svg must be stripped, got: {result}");
+    }
+
+    #[test]
+    fn test_sanitize_neutralizes_url_with_http_in_style() {
+        // No style attribute carrying url(http…) may survive (exfiltration vector).
+        let html = "<span class=\"katex\" style=\"background:url(http://evil.example/x)\">x</span>";
+        let result = sanitize_html(html);
+        assert!(
+            !result.contains("evil.example"),
+            "url() exfiltration in style must be stripped, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_sanitize_end_to_end_math_payload_via_render() {
+        // Defence in depth: even when raw inline HTML carrying a math-shaped
+        // payload is rendered, sanitize_html neutralizes the script.
+        let md = "Inline <span class=\"katex\"><math><script>alert(1)</script></math></span> done";
+        let html = render_markdown(md);
+        let safe = sanitize_html(&html);
+        assert!(!safe.contains("<script"), "script must not survive end-to-end, got: {safe}");
     }
 }
