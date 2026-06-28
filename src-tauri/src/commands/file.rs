@@ -365,6 +365,160 @@ mod tests {
         assert_eq!(bytes, b"x".to_vec());
     }
 
+    // -----------------------------------------------------------------------
+    // WI-0.4 — I/O failure paths
+    //
+    // These exercise save_file against the real filesystem. save_file is a
+    // plain async fn (no Tauri State), so it is callable directly under
+    // #[tokio::test].
+    // -----------------------------------------------------------------------
+
+    fn io_test_dir(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir()
+            .join("mdpro_io_test")
+            .join(format!("{label}_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[tokio::test]
+    async fn test_save_to_existing_file_round_trips_content() {
+        let dir = io_test_dir("roundtrip");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"old").unwrap();
+        let res = save_file(
+            "d1".into(),
+            "new content".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        )
+        .await;
+        assert!(res.is_ok(), "save should succeed: {res:?}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "new content");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_save_to_readonly_dir_surfaces_error_not_silent() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = io_test_dir("readonly");
+        // A brand-new file in a read-only directory → EACCES on create.
+        let path = dir.join("new.md");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+
+        let res = save_file(
+            "d1".into(),
+            "content".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        )
+        .await;
+
+        // Restore perms so cleanup can proceed regardless of outcome.
+        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+
+        // The key property: the failure is SURFACED, never a silent success
+        // that discards the user's content.
+        assert!(res.is_err(), "read-only save must surface an error, got: {res:?}");
+        assert!(
+            !path.exists(),
+            "no partial/empty file should be left behind"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_after_file_deleted_recreates_without_data_loss() {
+        // Open then delete the file, then save: the parent dir still exists, so
+        // the write must recreate it with the in-editor content (no silent
+        // discard of the user's edits).
+        let dir = io_test_dir("deleted");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"original").unwrap();
+        std::fs::remove_file(&path).unwrap();
+        assert!(!path.exists());
+
+        let res = save_file(
+            "d1".into(),
+            "rescued edits".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        )
+        .await;
+        assert!(res.is_ok(), "save after delete should recreate: {res:?}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "rescued edits");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_filename_with_spaces_and_emoji_round_trips() {
+        let dir = io_test_dir("fancy_names");
+        for name in ["my notes.md", "memo 📝 draft.md", "über café.md"] {
+            let path = dir.join(name);
+            let res = save_file(
+                "d1".into(),
+                "body".into(),
+                Some(path.to_string_lossy().to_string()),
+                None,
+                None,
+            )
+            .await;
+            assert!(res.is_ok(), "save of {name:?} should succeed: {res:?}");
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "body");
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_filename_with_quote_round_trips() {
+        let dir = io_test_dir("quote_name");
+        // A single quote in the filename must not break the write path.
+        let path = dir.join("o'brien's list.md");
+        let res = save_file(
+            "d1".into(),
+            "x".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        )
+        .await;
+        assert!(res.is_ok(), "save with quote in name should succeed: {res:?}");
+        assert!(path.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_very_long_single_line_and_large_content() {
+        // ~10MB of a single very long line (minified-content shape). The save
+        // path must remain responsive and lossless — no truncation, no hang.
+        let dir = io_test_dir("large");
+        let path = dir.join("big.md");
+        let big = "a".repeat(10 * 1024 * 1024 - 16); // just under the 10MB open cap
+        let start = std::time::Instant::now();
+        let res = save_file(
+            "d1".into(),
+            big.clone(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        )
+        .await;
+        let elapsed = start.elapsed();
+        assert!(res.is_ok(), "large save should succeed: {res:?}");
+        assert_eq!(std::fs::metadata(&path).unwrap().len() as usize, big.len());
+        // Generous smoke bound — catches an accidental O(n^2) regression, not a
+        // perf benchmark. 10MB to a temp file should be well under this.
+        assert!(
+            elapsed.as_secs() < 10,
+            "10MB save took too long: {elapsed:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn test_normalize_no_newlines() {
         let input = "no newlines here";
