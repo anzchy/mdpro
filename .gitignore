@@ -27,3 +27,6 @@ dist-ssr
 # Test coverage reports
 coverage/
 .gstack/
+
+# Pre-PR gate process artifacts (sibling-scan note, etc.) — not part of any commit
+.pre-pr/
