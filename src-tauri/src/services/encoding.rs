@@ -44,6 +44,17 @@ fn decode_utf16(bytes: &[u8], little_endian: bool) -> Result<String, String> {
         bytes
     };
 
+    // Reject an odd-length payload loudly. The pair-iterator would otherwise
+    // silently drop the lone trailing byte, corrupting the content (and on
+    // save, persisting the corruption). A real UTF-16 file always has an even
+    // number of bytes after the BOM.
+    if trimmed.len() % 2 != 0 {
+        return Err(format!(
+            "invalid UTF-16: payload has an odd byte length ({})",
+            trimmed.len()
+        ));
+    }
+
     let mut u16s = Vec::with_capacity(trimmed.len() / 2);
     let mut iter = trimmed.iter();
     while let (Some(lo), Some(hi)) = (iter.next(), iter.next()) {
@@ -199,6 +210,37 @@ mod tests {
         let (enc, conf) = detect_encoding_with_confidence(&bytes);
         assert_eq!(enc, "unknown");
         assert_eq!(conf, DetectionConfidence::Low);
+    }
+
+    // --- Fix 3: odd-length UTF-16 must be rejected, not silently truncated ---
+
+    #[test]
+    fn test_decode_utf16le_rejects_odd_length_payload() {
+        // BOM + 3 trailing bytes = odd UTF-16 payload (1.5 code units). The old
+        // pair-iterator silently dropped the lone byte, corrupting the content.
+        let bytes = [0xFF, 0xFE, b'h', 0x00, b'i'];
+        let result = decode_bytes(&bytes, "UTF-16LE");
+        assert!(
+            result.is_err(),
+            "odd-length UTF-16LE must be rejected, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_decode_utf16be_rejects_odd_length_payload() {
+        let bytes = [0xFE, 0xFF, 0x00, b'h', 0x00];
+        let result = decode_bytes(&bytes, "UTF-16BE");
+        assert!(
+            result.is_err(),
+            "odd-length UTF-16BE must be rejected, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_decode_utf16_accepts_even_length_payload() {
+        // Sanity: a well-formed even payload still decodes.
+        let bytes = [0xFF, 0xFE, b'h', 0x00, b'i', 0x00];
+        assert_eq!(decode_bytes(&bytes, "UTF-16LE").unwrap(), "hi");
     }
 
     #[test]
