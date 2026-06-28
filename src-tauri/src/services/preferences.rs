@@ -348,6 +348,90 @@ mod tests {
         assert_eq!(decoded.editor.font_size, original.editor.font_size);
     }
 
+    // -----------------------------------------------------------------------
+    // save_preferences → load_preferences round-trip (persist across "restart")
+    //
+    // Isolated under $HOME so the test never touches the developer's real
+    // ~/.mdpro/config.json. Uses HOME_LOCK to serialise with other HOME-mutating
+    // tests (file.rs / draft.rs follow the same pattern).
+    // -----------------------------------------------------------------------
+
+    use crate::HOME_LOCK;
+
+    struct HomeRestorer(Option<String>);
+    impl Drop for HomeRestorer {
+        fn drop(&mut self) {
+            match &self.0 {
+                Some(v) => unsafe { std::env::set_var("HOME", v) },
+                None => unsafe { std::env::remove_var("HOME") },
+            }
+        }
+    }
+
+    /// SAFETY: caller must hold HOME_LOCK for the lifetime of the guard.
+    fn set_home(path: &std::path::Path) -> HomeRestorer {
+        let prev = std::env::var("HOME").ok();
+        unsafe { std::env::set_var("HOME", path.to_str().expect("temp dir path is non-UTF-8")) };
+        HomeRestorer(prev)
+    }
+
+    fn temp_home(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir()
+            .join("mdpro_prefs_test")
+            .join(format!("{label}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn settings_persist_across_restart() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = temp_home("persist");
+        let _home_guard = set_home(&home);
+
+        // First "session": change a setting and save.
+        let mut prefs = load_preferences().expect("initial load");
+        prefs.auto_save_interval = 222;
+        prefs.show_sidebar = false;
+        save_preferences(&prefs).expect("save");
+
+        // Second "session": a fresh load (simulating restart) must see them.
+        let reloaded = load_preferences().expect("reload after restart");
+        assert_eq!(reloaded.auto_save_interval, 222);
+        assert!(!reloaded.show_sidebar);
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn first_load_creates_default_config_file() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = temp_home("first_load");
+        let _home_guard = set_home(&home);
+
+        // No config yet → load_preferences must materialise defaults to disk.
+        let path = home.join(".mdpro").join("config.json");
+        assert!(!path.exists(), "config must not exist before first load");
+        let _ = load_preferences().expect("first load");
+        assert!(path.exists(), "first load must create the config file");
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn save_uses_atomic_rename_no_leftover_tmp() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = temp_home("atomic");
+        let _home_guard = set_home(&home);
+
+        save_preferences(&UserPreferences::default()).expect("save");
+        let tmp = home.join(".mdpro").join("config.json.tmp");
+        assert!(!tmp.exists(), "the temp file must be renamed away, not left behind");
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
     #[test]
     fn merge_preserves_all_fields_when_only_one_updated() {
         // Regression guard: adding a new field to UserPreferences/PartialPreferences

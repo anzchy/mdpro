@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ⌘/ now cycles view modes from any context, including when the CodeMirror source editor has focus. The line-comment shortcut moved from ⌘/ to ⌘⌥/ to free up the cycle binding (split via a `Prec.highest` keymap in `Editor.tsx`)
 
 ### Fixed
+- Preferences write-through no longer fails silently (Typora-parity Phase 0, WI-0.5): `preferencesService.setPreferences()` now catches a disk-write rejection, surfaces a "Failed to save preferences" toast (one signal per surface), logs the failure, and re-throws so awaiting callers can react. Previously the many `void setPreferences(...)` fire-and-forget call sites lost the error entirely
 - Settings panel label/control vertical misalignment — `.settings-row-content` was missing `flex: 1` (preventing `space-between` from distributing width) and had `align-items: flex-start` instead of `center`, causing controls to top-align rather than vertically centre next to labels
 - TOC click-to-navigate broken in all view modes
   - `editor-only`: `preview-container` was absent from the DOM, so `scrollToHeading` returned immediately with no effect

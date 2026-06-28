@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { UserPreferences, WindowState } from "../types/preferences";
+import { useToastStore } from "../stores/toastStore";
+import { loggingService } from "./loggingService";
 import {
   DEFAULT_APPEARANCE_CONFIG,
   DEFAULT_AUTO_SAVE_CONFIG,
@@ -12,8 +14,16 @@ import {
   DEFAULT_TAB_BAR_CONFIG,
 } from "../types/preferences";
 
-// Check if running in Tauri environment
-const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
+// Check if running in Tauri environment. Evaluated at call time (not just once
+// at module load) so the write-through path is testable and robust to late
+// Tauri bootstrap.
+function isTauriEnv(): boolean {
+  return (
+    (typeof window !== "undefined" && "__TAURI__" in window) ||
+    (typeof globalThis !== "undefined" && "__TAURI__" in globalThis)
+  );
+}
+const isTauri = isTauriEnv();
 
 // Default preferences for browser mode — must stay in sync with Rust UserPreferences::default()
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -47,11 +57,28 @@ export const preferencesService = {
   },
 
   async setPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences> {
-    if (!isTauri) {
+    if (!isTauriEnv()) {
       // In browser mode, just return merged preferences (not persisted)
       return { ...DEFAULT_PREFERENCES, ...preferences };
     }
-    return invoke<UserPreferences>("set_preferences", { preferences });
+    try {
+      return await invoke<UserPreferences>("set_preferences", { preferences });
+    } catch (error) {
+      // The write-through model fans out from many fire-and-forget call sites
+      // (`void setPreferences(...)`). Surface disk-write failures as a single
+      // toast (rule 30 §5) so a silent failure never strands the user with a
+      // setting they think persisted. Re-throw so awaiting callers can react.
+      const message = error instanceof Error ? error.message : String(error);
+      loggingService.logEventSync({
+        level: "error",
+        event: "ui.preferences.save",
+        status: "fail",
+        actionId: loggingService.generateActionId(),
+        context: { error: message },
+      });
+      useToastStore.getState().showToast("Failed to save preferences");
+      throw error;
+    }
   },
 
   async getSystemTheme(): Promise<"light" | "dark"> {
