@@ -62,6 +62,7 @@ describe("prepareForRelaunch", () => {
       "doc-1",
       "hello",
       "/tmp/a.md",
+      "utf-8",
       "test-action-id",
     );
   });

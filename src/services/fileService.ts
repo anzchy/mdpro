@@ -48,18 +48,28 @@ export const fileService = {
     documentId: string,
     content: string,
     path?: string,
+    encoding?: string,
     actionId?: string,
   ): Promise<SaveResult> {
-    return invoke("save_file", { documentId, content, path, actionId });
+    // `encoding` lets the backend write the file back in its original encoding
+    // (WI-0.3) instead of silently re-encoding to UTF-8.
+    return invoke("save_file", { documentId, content, path, encoding, actionId });
   },
 
   async saveFileDialog(
     documentId: string,
     content: string,
     suggestedName?: string,
+    encoding?: string,
     actionId?: string,
   ): Promise<SaveResult | null> {
-    return invoke("save_file_dialog", { documentId, content, suggestedName, actionId });
+    return invoke("save_file_dialog", {
+      documentId,
+      content,
+      suggestedName,
+      encoding,
+      actionId,
+    });
   },
 
   async closeDocument(documentId: string, discardChanges: boolean, path?: string | null): Promise<CloseResult> {

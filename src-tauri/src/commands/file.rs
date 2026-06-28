@@ -177,7 +177,11 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
         "open_file_from_path: read bytes {}",
         bytes.len()
     ));
-    let detected = encoding::detect_encoding(&bytes);
+    // Detect with confidence (WI-0.3): a non-UTF-8 file with no recognised BOM
+    // is "unknown"/Low — we refuse to guess (no blind Latin-1) and surface an
+    // EncodingError rather than corrupt the content. A user-supplied hint still
+    // takes precedence (explicit conversion).
+    let (detected, _confidence) = encoding::detect_encoding_with_confidence(&bytes);
     let encoding_value = encoding_hint.clone().unwrap_or_else(|| detected.clone());
     let content = encoding::decode_bytes(&bytes, &encoding_value).map_err(|_| {
         logger::log_line(&format!(
@@ -215,6 +219,20 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
 /// - lone `\r` (old Mac CR) → `\n`
 fn normalize_line_endings(content: &str) -> String {
     content.replace("\r\n", "\n").replace('\r', "\n")
+}
+
+/// Encode document content for writing to disk, in the document's original
+/// encoding (WI-0.3 — save back in the original encoding, no silent
+/// conversion). An absent or empty hint means UTF-8. An unsupported encoding
+/// returns an error so the save fails loudly instead of writing mislabelled
+/// bytes.
+fn encode_for_save(content: &str, encoding_hint: Option<&str>) -> Result<Vec<u8>, FileError> {
+    let enc = match encoding_hint {
+        None => "UTF-8",
+        Some(e) if e.is_empty() => "UTF-8",
+        Some(e) => e,
+    };
+    encoding::encode_bytes(content, enc).map_err(|message| FileError::IoError { message })
 }
 
 /// Allowed file extensions for save operations.
@@ -302,6 +320,49 @@ mod tests {
     #[test]
     fn test_normalize_empty_string() {
         assert_eq!(normalize_line_endings(""), "");
+    }
+
+    // -----------------------------------------------------------------------
+    // WI-0.3 — safe save round-trip (no silent re-encoding)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_encode_for_save_defaults_to_utf8_when_no_encoding() {
+        let bytes = encode_for_save("hello", None).expect("encode");
+        assert_eq!(bytes, b"hello".to_vec());
+    }
+
+    #[test]
+    fn test_encode_for_save_preserves_utf16le() {
+        // A document opened as UTF-16LE must be saved back as UTF-16LE (with
+        // BOM), not silently downgraded to UTF-8.
+        let bytes = encode_for_save("hi", Some("UTF-16LE")).expect("encode");
+        assert_eq!(&bytes[..2], &[0xFF, 0xFE], "UTF-16LE BOM must be written");
+        // Decoding it back yields the original content.
+        assert_eq!(encoding::decode_bytes(&bytes, "UTF-16LE").unwrap(), "hi");
+    }
+
+    #[test]
+    fn test_encode_for_save_round_trips_open_then_save() {
+        // Full round-trip: original UTF-16 file → open content → save content
+        // → byte-identical file.
+        let original = encoding::encode_bytes("世界\r\nsecond", "UTF-16BE").unwrap();
+        let opened = encoding::decode_bytes(&original, "UTF-16BE").unwrap();
+        let saved = encode_for_save(&opened, Some("UTF-16BE")).unwrap();
+        assert_eq!(saved, original, "save must not corrupt the original encoding");
+    }
+
+    #[test]
+    fn test_encode_for_save_rejects_unsupported_encoding() {
+        // Refuse rather than write UTF-8 bytes mislabelled as the original.
+        assert!(encode_for_save("内容", Some("GBK")).is_err());
+    }
+
+    #[test]
+    fn test_encode_for_save_empty_encoding_is_utf8() {
+        // An empty string encoding hint must behave like UTF-8, not error.
+        let bytes = encode_for_save("x", Some("")).expect("encode");
+        assert_eq!(bytes, b"x".to_vec());
     }
 
     #[test]
@@ -629,6 +690,7 @@ pub async fn save_file(
     _document_id: String,
     content: String,
     path: Option<String>,
+    encoding: Option<String>,
     action_id: Option<String>,
 ) -> Result<SaveResult, FileError> {
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
@@ -698,9 +760,26 @@ pub async fn save_file(
         }
     }
 
+    // Re-encode in the document's original encoding so a UTF-16/BOM file is
+    // not silently rewritten as UTF-8 (WI-0.3). An unsupported encoding errors
+    // here rather than corrupting the file.
+    let bytes = encode_for_save(&content, encoding.as_deref()).map_err(|err| {
+        log_file_event(
+            "file.save",
+            LogStatus::Fail,
+            LogLevel::Error,
+            Some(&action_id),
+            json!({ "filePath": path_value.as_str(), "encoding": encoding.as_deref() }),
+            Some(start.elapsed().as_millis() as u64),
+            Some(file_error_message(&err)),
+        );
+        err
+    })?;
+    let byte_len = bytes.len();
+
     let path_for_error = path_value.clone();
     file_watcher::mark_write_start(&path_buf);
-    let write_result = std::fs::write(&path_buf, content.as_bytes());
+    let write_result = std::fs::write(&path_buf, &bytes);
     file_watcher::mark_write_end(&path_buf);
     write_result.map_err(|err| {
         let mapped = to_file_error(err, &path_value);
@@ -723,7 +802,7 @@ pub async fn save_file(
         Some(&action_id),
         json!({
             "filePath": path_value.as_str(),
-            "fileSizeBytes": content.as_bytes().len()
+            "fileSizeBytes": byte_len
         }),
         Some(start.elapsed().as_millis() as u64),
         None,
@@ -741,6 +820,7 @@ pub async fn save_file_dialog(
     document_id: String,
     content: String,
     suggested_name: Option<String>,
+    encoding: Option<String>,
     action_id: Option<String>,
 ) -> Result<Option<SaveResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -766,6 +846,7 @@ pub async fn save_file_dialog(
         document_id,
         content,
         Some(path.to_string_lossy().to_string()),
+        encoding,
         Some(action_id),
     )
         .await

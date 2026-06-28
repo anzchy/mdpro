@@ -175,6 +175,7 @@ export function useDocument() {
       activeDocument.id,
       activeDocument.content,
       suggestedName,
+      activeDocument.encoding,
       actionId,
     );
     if (result?.success) {
@@ -237,6 +238,7 @@ export function useDocument() {
       activeDocument.id,
       contentToSave,
       activeDocument.path,
+      activeDocument.encoding,
       actionId,
     );
     if (result?.success) {

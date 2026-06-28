@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded DOMPurify from `^3.2.7` to `^3.3.2` (resolved to `3.3.3`), patching GHSA-h8r8-wccr-v5f2 and GHSA-v2wj-7wpq-c8vv — both Moderate XSS CVEs affecting the HTML paste-sanitization path in the WYSIWYG editor
 
 ### Changed
+- Encoding-safe save round-trip (Typora-parity Phase 0, WI-0.3): files opened as UTF-16LE/BE are now saved back in their original encoding (BOM preserved) instead of being silently rewritten as UTF-8. `save_file`/`save_file_dialog` accept the document's encoding; the open path detects encoding with a confidence level and refuses to guess (no blind Latin-1) for non-UTF-8 files with no BOM, surfacing an encoding error rather than corrupting content. CRLF line endings survive the round-trip
 - ⌘/ now cycles view modes from any context, including when the CodeMirror source editor has focus. The line-comment shortcut moved from ⌘/ to ⌘⌥/ to free up the cycle binding (split via a `Prec.highest` keymap in `Editor.tsx`)
 
 ### Fixed
