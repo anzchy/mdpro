@@ -10,14 +10,27 @@
  *   - Footnotes (in-doc anchors)
  *   - Mermaid (specific inline-SVG profile, no foreignObject/script/on*)
  *
+ * Allow-list, not additive (Fix 4):
+ *   The previous config used DOMPurify's *additive* `ADD_TAGS` / `ADD_ATTR`
+ *   on top of DOMPurify's permissive defaults plus a `FORBID_*` blacklist.
+ *   That re-admitted things the Rust profile strips — external-resource SVG
+ *   (`<image href=…>`, `<feImage>`, `<filter>`, `<mask>`), `srcset`,
+ *   `xlink:href`, and extra URI schemes — because additive mode keeps every
+ *   default tag/attr and only adds more. We now pin an explicit
+ *   `ALLOWED_TAGS` / `ALLOWED_ATTR` (baseline markdown output + the WI-0.1
+ *   matrix only) and `ALLOWED_URI_REGEXP` matching exactly the Rust scheme
+ *   set. Anything not on the list is dropped by default.
+ *
  * Risk controls (kept identical to the Rust side):
  *   - `style` is never allowed → no `url(http…)` exfiltration.
- *   - `<script>`, `on*`, `<foreignObject>`, `<iframe>` are stripped.
- *   - href schemes limited to the safe set; in-doc `#anchor` passes through.
+ *   - `<script>`, `on*`, `<foreignObject>`, `<iframe>` are never on the list.
+ *   - `image`/`feImage`/`filter`/`mask` SVG external-resource tags excluded.
+ *   - `srcset`/`href`-on-image/`xlink:href` excluded.
+ *   - URI schemes limited to: relative, http, https, mailto, tel, ftp.
  *
  * @coordinates-with src-tauri/src/services/markdown.rs (MATH_TAGS / SVG_TAGS /
- *   SVG_ATTRS — keep both lists in sync; tests/sanitizer-policy.test.ts guards
- *   the frontend half).
+ *   SVG_ATTRS / url_schemes — keep both lists in sync; tests/sanitizer-policy.test.ts
+ *   and tests/sanitizer-rust-js-parity.test.ts guard the frontend half).
  */
 import DOMPurify from "dompurify";
 
@@ -46,35 +59,95 @@ export const SVG_ATTRS: string[] = [
   "font-family", "preserveAspectRatio", "dx", "dy",
 ];
 
-/** Math-specific attributes. */
+/** Math-specific attributes. Mirrors the Rust per-tag math attributes. */
 const MATH_ATTRS: string[] = ["xmlns", "display", "encoding", "aria-hidden"];
 
-const ADD_TAGS = [
-  "mark", "u", "section",
+/**
+ * Baseline HTML tags produced by the Markdown renderer (CommonMark + GFM
+ * tables, task lists, footnotes, highlight `<mark>`). Explicit so additive
+ * defaults can't smuggle extra tags through.
+ *
+ * Deliberately ABSENT: `iframe`, `object`, `embed`, `form`, `button`,
+ * `foreignObject`, `style`, `script`, and the external-resource SVG tags
+ * (`image`, `feImage`, `filter`, `mask`).
+ */
+const BASE_TAGS: string[] = [
+  "a", "p", "div", "span", "br", "hr",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  "strong", "em", "b", "i", "u", "s", "del", "ins", "sub", "sup", "mark",
+  "blockquote", "pre", "code",
+  "ul", "ol", "li",
+  "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption", "colgroup", "col",
+  "img", "figure", "figcaption",
+  "dl", "dt", "dd",
+  "details", "summary", "section", "input", "abbr", "kbd", "samp", "var", "wbr",
+];
+
+/**
+ * Baseline HTML attributes. Excludes `srcset` (responsive external loads) and
+ * `style` (url() exfiltration). `href` is allowed only on anchors via the
+ * default attribute model; we do NOT add `href`/`xlink:href` to the SVG attr
+ * set so SVG `<image href=…>`-style external loads can't pass even if a tag
+ * slipped through.
+ */
+const BASE_ATTRS: string[] = [
+  "href", "title", "alt", "src", "width", "height",
+  "id", "class", "name", "align",
+  "colspan", "rowspan", "scope",
+  "type", "checked", "disabled",
+  "data-heading-id",
+  "aria-hidden", "aria-label", "role",
+];
+
+const ALLOWED_TAGS: string[] = [
+  ...BASE_TAGS,
   ...MATH_TAGS,
   ...SVG_TAGS,
 ];
 
-const ADD_ATTR = [
-  "data-heading-id", "class",
+const ALLOWED_ATTR: string[] = [
+  ...BASE_ATTRS,
   ...MATH_ATTRS,
   ...SVG_ATTRS,
 ];
 
 /**
+ * URI scheme allow-list. Matches exactly the Rust `url_schemes` set
+ * (http, https, mailto, tel, ftp) PLUS relative/in-doc references
+ * (`#anchor`, `./path`, `foo.png`) which the Rust side allows via
+ * `url_relative(PassThrough)`.
+ *
+ * Explicitly NOT matched: `javascript:`, `data:`, `vbscript:`, `file:`,
+ * `ftps:`, `callto:`, `sms:`, `cid:`, `xmpp:`, `matrix:`, etc.
+ */
+export const ALLOWED_URI_SCHEMES: string[] = [
+  "http", "https", "mailto", "tel", "ftp",
+];
+
+// Allow EITHER one of the explicit safe schemes, OR a relative/in-doc
+// reference (a value whose first path segment contains no `:`, i.e. no scheme
+// at all — `#fn1`, `./img.png`, `foo/bar.png`, `?q=1`). Any value that starts
+// with `scheme:` where scheme is not in the safe set (e.g. `javascript:`,
+// `data:`, `ftps:`, `callto:`, `sms:`, `cid:`, `xmpp:`, `matrix:`) fails to
+// match and is dropped.
+const ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel|ftp):|[^a-z0-9+.-]|[^:]*$)/i;
+
+/**
  * Sanitize rendered Markdown HTML with the shared allow-list policy.
  *
- * `USE_PROFILES.svg` is intentionally NOT used (it would re-admit
- * `<foreignObject>` and a broader attribute surface). We curate the SVG tag/attr
- * set explicitly to keep the Mermaid profile tight.
+ * Uses an explicit `ALLOWED_TAGS`/`ALLOWED_ATTR` allow-list (not additive
+ * `ADD_*`) so nothing outside the WI-0.1 matrix survives. `USE_PROFILES` is
+ * intentionally NOT used.
  */
 export function sanitizeRenderedHtml(html: string): string {
   return DOMPurify.sanitize(html, {
-    ADD_TAGS,
-    ADD_ATTR,
-    // Defense-in-depth: forbid the HTML-in-SVG escape hatch and inline frames
-    // even if a future ADD_TAGS edit slips one in.
-    FORBID_TAGS: ["foreignObject", "iframe", "script", "style"],
-    FORBID_ATTR: ["style"],
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOWED_URI_REGEXP,
+    // Defense-in-depth: even if a future edit adds one of these to ALLOWED_TAGS,
+    // the forbid list still strips the HTML-in-SVG escape hatch, inline frames,
+    // and the external-resource SVG tags.
+    FORBID_TAGS: ["foreignObject", "iframe", "script", "style", "image", "feImage", "filter", "mask"],
+    FORBID_ATTR: ["style", "srcset", "xlink:href"],
   });
 }
