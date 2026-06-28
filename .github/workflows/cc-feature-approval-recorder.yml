@@ -1,0 +1,153 @@
+name: Feature Approval Recorder
+
+# Small-feature loop — plan WI-F0 (the design gate's recorder).
+#
+# SECURITY-CRITICAL and pwn-request-safe:
+#  - Fires ONLY on the `issues: labeled` event.
+#  - Acts ONLY for the `feature-approved` / `deps-approved` labels.
+#  - PURE-API: no `actions/checkout`, never executes anything derived from the
+#    issue. Uses the default GITHUB_TOKEN with `issues: write` only — NEVER PAT_TOKEN
+#    (the recorder posts a comment / manages labels; it does not push code).
+#
+# What it does: resolves the repo permission of the account that applied the label.
+# If that account is not an `admin`/`write` maintainer, it removes the label, adds
+# `needs-human`, comments, and stops (a label is not authorization — WI-F0 actor check).
+# If trusted, it pins the *approved* state in a hidden bot marker comment:
+#   - feature-approved -> `<!-- approved-body-sha256: <hex> @ <run-id.attempt> -->`
+#     hashing github.event.issue.body (the body delivered WITH the label event, never
+#     a re-fetch — closes the BLOCK-5 queue-delay window).
+#   - deps-approved     -> `<!-- deps-approved-by: <actor> @ <run-id.attempt> -->`
+#     so WI-F8's dependency gate can trust the marker, not the raw label.
+# The `@ <run-id.attempt>` suffix is a per-run traceability tag, NOT an ordering key:
+# downstream consumers select the LATEST approval by the bot comment `created_at`.
+# WI-F1 (builder) and WI-F3 (verifier) later recompute the canonical hash and fail
+# closed on mismatch / missing marker.
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  record:
+    if: github.event.label.name == 'feature-approved' || github.event.label.name == 'deps-approved'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record approval (pure-API, no checkout)
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.x
+        with:
+          script: |
+            const crypto = require('node:crypto');
+
+            const label = context.payload.label.name;
+            const actor = context.payload.sender.login;
+            const issue_number = context.payload.issue.number;
+            const { owner, repo } = context.repo;
+
+            // --- canonicalize + sha256 ---
+            // Byte-identical copy of .github/scripts/canonicalize-body.mjs, locked by
+            // tests/feature-loop-body-hash.test.ts (which extracts THIS snippet from the
+            // YAML and runs it against the module on shared vectors). The recorder is
+            // pure-API (no checkout), so it cannot import the module — keep these in sync.
+            const rstrip = (s) => s.replace(/\s+$/u, '');
+            const canonicalizeBody = (body) => {
+              const text = body == null ? '' : String(body);
+              return rstrip(text.split('\n').map(rstrip).join('\n'));
+            };
+            const bodySha256 = (body) =>
+              crypto.createHash('sha256').update(canonicalizeBody(body), 'utf8').digest('hex');
+
+            // --- actor check: resolve the labeler's repo permission ---
+            // REST maps roles to admin | write | read | none (maintain->write,
+            // triage->read), so gating on admin/write admits the owner and write
+            // collaborators while rejecting triage — without an OWNER/MEMBER allowlist
+            // that would silently mean owner-only on a user-owned repo (WI-F0/MUST-4).
+            let permission = 'none';
+            try {
+              const res = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner, repo, username: actor,
+              });
+              permission = res.data.permission;
+            } catch (e) {
+              // Fail closed (treat as `none`), but surface a sanitized diagnostic so a
+              // GitHub API incident is distinguishable from a genuine non-maintainer.
+              core.warning(`getCollaboratorPermissionLevel failed (status: ${e && e.status}): ${e && e.message} — treating permission as 'none'.`);
+              permission = 'none';
+            }
+            const trusted = permission === 'admin' || permission === 'write';
+
+            if (!trusted) {
+              core.warning(`Label '${label}' applied by @${actor} (permission: ${permission}) — not a maintainer. Reverting.`);
+              // Remove the unauthorized label. Tolerate ONLY a benign already-removed
+              // race (404); any other failure means the label may still be present, so
+              // we must not succeed and leave an unauthorized approval standing —
+              // flag needs-human if we can, then fail the job (fail closed).
+              let removeFailed = null;
+              try {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: label });
+              } catch (e) {
+                if (e && e.status === 404) {
+                  core.info(`Label '${label}' already removed (404) — benign race.`);
+                } else {
+                  removeFailed = e;
+                }
+              }
+              // Flag + comment are best-effort and INDEPENDENT: a missing `needs-human`
+              // label (addLabels throws) must not swallow the human-visible warning
+              // comment. Capture each failure, keep going, then fail loud at the end.
+              let flagFailed = null;
+              try {
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-human'] });
+              } catch (e) {
+                flagFailed = e;
+                core.warning(`Failed to add 'needs-human' label (status: ${e && e.status}): ${e && e.message}`);
+              }
+              let commentFailed = null;
+              try {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number,
+                  body: `⛔ \`${label}\` was applied by @${actor} (permission: \`${permission}\`), who is not an \`admin\`/\`write\` maintainer. A label is not authorization — removing it and flagging \`needs-human\`. A maintainer must apply the approval.\n\n_(small-feature loop · WI-F0 actor check)_`,
+                });
+              } catch (e) {
+                commentFailed = e;
+                core.warning(`Failed to post 'needs-human' diagnostic comment (status: ${e && e.status}): ${e && e.message}`);
+              }
+              // Fail closed / loud. The unauthorized label still being present
+              // (removeFailed) is the security-critical case, so it wins the throw;
+              // a failed flag/comment also fails the job so the gap is never silent.
+              if (removeFailed) {
+                throw new Error(`Failed to remove unauthorized label '${label}' (status: ${removeFailed.status}): ${removeFailed.message}`);
+              }
+              if (flagFailed) {
+                throw new Error(`Failed to flag 'needs-human' for unauthorized label '${label}' (status: ${flagFailed.status}): ${flagFailed.message}`);
+              }
+              if (commentFailed) {
+                throw new Error(`Failed to post 'needs-human' diagnostic for unauthorized label '${label}' (status: ${commentFailed.status}): ${commentFailed.message}`);
+              }
+              return;
+            }
+
+            // --- trusted: record the marker ---
+            // Unique per recorder run (runId.runAttempt). This is a TRACEABILITY tag, not
+            // an ordering key — downstream consumers (WI-F1/WI-F3/WI-F8) pick the LATEST
+            // approval by the bot comment's `created_at`, then read the marker on it.
+            // (Do NOT use label.node_id: that is the constant LABEL-object id, identical
+            // for every `feature-approved` application and useless for identification.)
+            const eventId = `${context.runId}.${context.runAttempt}`;
+
+            if (label === 'feature-approved') {
+              // Hash the WEBHOOK PAYLOAD body (WI-F0 BLOCK-5) — not a re-fetch.
+              const hash = bodySha256(context.payload.issue.body);
+              await github.rest.issues.createComment({
+                owner, repo, issue_number,
+                body: `<!-- approved-body-sha256: ${hash} @ ${eventId} -->\n✅ Approval recorded by @${actor} (\`${permission}\`). The issue-body hash is pinned at approval time — editing the body afterward will halt the build (hash mismatch).\n\n_(small-feature loop · WI-F0 body-hash pin)_`,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number,
+                body: `<!-- deps-approved-by: ${actor} @ ${eventId} -->\n✅ Dependency change approved by @${actor} (\`${permission}\`). The WI-F8 dependency gate trusts this marker, not the raw label.\n\n_(small-feature loop · WI-F0 / WI-F8)_`,
+              });
+            }
