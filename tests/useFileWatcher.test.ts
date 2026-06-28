@@ -53,6 +53,33 @@ describe("useFileWatcher — source contract", () => {
   });
 });
 
+describe("useFileWatcher — debounce (regression for #211)", () => {
+  it("defines the debounce interval as a named constant, not a magic number", () => {
+    expect(src).toMatch(/const\s+FRONTEND_DEBOUNCE_MS\s*=\s*\d+/);
+  });
+
+  it("coalesces bursts by clearing the pending timer before scheduling a new one", () => {
+    // Without this clear, every event would fire its own setEvent (the #211 flicker).
+    expect(src).toMatch(
+      /if\s*\(\s*debounceTimerRef\.current\s*\)\s*clearTimeout\(\s*debounceTimerRef\.current\s*\)/,
+    );
+  });
+
+  it("emits the event through a debounced setTimeout, not synchronously", () => {
+    // setEvent must be inside a setTimeout(..., FRONTEND_DEBOUNCE_MS), so only the
+    // trailing event of a burst reaches state.
+    expect(src).toMatch(
+      /setTimeout\(\s*\(\)\s*=>\s*\{\s*setEvent\(payload\.payload\)/,
+    );
+    expect(src).toMatch(/\}\s*,\s*FRONTEND_DEBOUNCE_MS\s*\)/);
+  });
+
+  it("clears the pending debounce timer on cleanup to avoid setState after unmount", () => {
+    const cleanup = src.slice(src.indexOf("return () =>"));
+    expect(cleanup).toMatch(/clearTimeout\(\s*debounceTimerRef\.current\s*\)/);
+  });
+});
+
 describe("useFileWatcher — FileChangedEvent type", () => {
   it("exports FileChangedEvent interface with required fields", () => {
     expect(src).toMatch(/path:\s*string/);
