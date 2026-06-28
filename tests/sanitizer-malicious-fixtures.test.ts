@@ -152,4 +152,14 @@ describe("sanitizeRenderedHtml — legitimate links/anchors still survive", () =
     const out = sanitizeRenderedHtml('<img src="./pics/diagram.png" alt="d">');
     expect(parse(out).querySelector("img")?.getAttribute("src")).toBe("./pics/diagram.png");
   });
+
+  it("hardens external links with rel=noopener noreferrer (mirrors Rust link_rel)", () => {
+    const out = sanitizeRenderedHtml('<a href="https://example.com">x</a>');
+    expect(parse(out).querySelector("a")?.getAttribute("rel")).toBe("noopener noreferrer");
+  });
+
+  it("does not add rel to in-doc anchors (no off-document navigation)", () => {
+    const out = sanitizeRenderedHtml('<a href="#fn1">1</a>');
+    expect(parse(out).querySelector("a")?.getAttribute("rel")).toBeNull();
+  });
 });

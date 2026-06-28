@@ -210,14 +210,29 @@ fn replace_highlight_inline(line: &str) -> String {
 //
 // One authoritative, per-feature definition shared by both render surfaces.
 // The Rust side (`sanitize_html`, below) consumes these lists directly; the
-// frontend DOMPurify config (`src/services/exportService.ts`) mirrors them and
-// is regression-tested against this set (see tests/sanitizer-policy.test.ts).
+// frontend DOMPurify config (`src/services/sanitizerPolicy.ts`) mirrors them
+// with an explicit allow-list and is regression-tested against this set (see
+// tests/sanitizer-policy.test.ts, tests/sanitizer-malicious-fixtures.test.ts,
+// and tests/sanitizer-rust-js-parity.test.ts — the parity test reads these
+// constants and the `url_schemes` set below and asserts the JS sets match).
 //
 // Risk controls baked in:
 // - `style` attribute is never allowed → no `url(http…)` exfiltration.
-// - `href`/`src` schemes are restricted to an in-doc + safe-link allow-list →
-//   footnote/anchor hrefs cannot point off-document to a tracker, and SVG
-//   `<a href>` cannot carry `http://evil`.
+// - `href`/`src` schemes are restricted to a safe-scheme allow-list (relative,
+//   http, https, mailto, tel, ftp). `javascript:`, `data:`, `vbscript:` and
+//   every other scheme are dropped.
+//
+//   Honest deviation note: this allow-list is NOT in-doc-only. http/https are
+//   allowed body-wide, so a footnote/anchor href OR an SVG `<a href>` CAN carry
+//   `http://example.com` (and therefore a tracker URL). We accept this because
+//   `sanitize_html` runs over the whole exported document and forbidding
+//   http/https would silently strip legitimate body links the user wrote.
+//   `link_rel("noopener noreferrer")` hardens any external link, and the XSS
+//   controls (no `style`, no `on*`, no `<script>`) do not depend on the scheme
+//   set being in-doc-only. The trade-off is "no off-document navigation" for
+//   "external links work" — links are a core editor feature, tracker pixels via
+//   `<a>` are a non-issue (a click, not an auto-load), and `<img src>` auto-load
+//   is governed by the same safe-scheme list, not by an in-doc restriction.
 // - `<script>`, `on*` handlers, `<foreignObject>` are stripped by ammonia's
 //   default deny posture (only the tags below are allowed through).
 // ---------------------------------------------------------------------------

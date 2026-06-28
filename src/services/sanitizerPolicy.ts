@@ -97,6 +97,9 @@ const BASE_ATTRS: string[] = [
   "type", "checked", "disabled",
   "data-heading-id",
   "aria-hidden", "aria-label", "role",
+  // Allowed so the link-hardening hook below can set it; mirrors Rust
+  // link_rel("noopener noreferrer").
+  "rel", "target",
 ];
 
 const ALLOWED_TAGS: string[] = [
@@ -133,11 +136,27 @@ export const ALLOWED_URI_SCHEMES: string[] = [
 const ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel|ftp):|[^a-z0-9+.-]|[^:]*$)/i;
 
 /**
+ * Harden anchors with an http/https href by adding rel="noopener noreferrer",
+ * mirroring the Rust `link_rel("noopener noreferrer")`. Registered once at
+ * module load. In-doc (`#fn1`) and other relative hrefs are left untouched —
+ * they don't navigate off-document, so they need no rel hardening.
+ */
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.nodeName === "A" && node.hasAttribute("href")) {
+    const href = node.getAttribute("href") ?? "";
+    if (/^https?:/i.test(href)) {
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+  }
+});
+
+/**
  * Sanitize rendered Markdown HTML with the shared allow-list policy.
  *
  * Uses an explicit `ALLOWED_TAGS`/`ALLOWED_ATTR` allow-list (not additive
  * `ADD_*`) so nothing outside the WI-0.1 matrix survives. `USE_PROFILES` is
- * intentionally NOT used.
+ * intentionally NOT used. External links are hardened with
+ * rel="noopener noreferrer" (matches Rust link_rel).
  */
 export function sanitizeRenderedHtml(html: string): string {
   return DOMPurify.sanitize(html, {
