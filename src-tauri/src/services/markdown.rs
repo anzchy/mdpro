@@ -1099,6 +1099,56 @@ mod tests {
     }
 
     #[test]
+    fn test_sanitize_preserves_mathml_export_structure() {
+        // A1: the export path pre-renders math to MathML (KaTeX output:'mathml')
+        // because the styled KaTeX HTML relies on inline `style` which ammonia
+        // strips. `export_rendered_html` re-runs `sanitize_html` on the body, so
+        // the MathML structure must SURVIVE sanitization intact. This is the
+        // shape KaTeX emits for `$\frac{a}{b}$` and a display `$$\int_0^1$$`.
+        let inline = concat!(
+            "<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\">",
+            "<semantics><mrow><mfrac><mi>a</mi><mi>b</mi></mfrac></mrow>",
+            "<annotation encoding=\"application/x-tex\">\\frac{a}{b}</annotation>",
+            "</semantics></math></span>",
+        );
+        let safe = sanitize_html(inline);
+        assert!(safe.contains("<math"), "math survives, got: {safe}");
+        assert!(safe.contains("<mfrac"), "mfrac survives, got: {safe}");
+        assert!(
+            safe.contains("<semantics>"),
+            "semantics survives, got: {safe}"
+        );
+        // MathML needs no inline style, and the sanitizer must not have left any.
+        assert!(
+            !safe.contains("style="),
+            "no style in MathML export, got: {safe}"
+        );
+
+        let display = concat!(
+            "<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\">",
+            "<semantics><mrow><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup></mrow>",
+            "<annotation encoding=\"application/x-tex\">\\int_0^1</annotation>",
+            "</semantics></math></span>",
+        );
+        let safe_d = sanitize_html(display);
+        assert!(
+            safe_d.contains("<msubsup"),
+            "msubsup survives, got: {safe_d}"
+        );
+        assert!(
+            safe_d.contains("display=\"block\""),
+            "display attr survives, got: {safe_d}"
+        );
+        // \sqrt → msqrt must also survive (a common element).
+        let sqrt = "<math><semantics><mrow><msqrt><mi>x</mi></msqrt></mrow></semantics></math>";
+        assert!(
+            sanitize_html(sqrt).contains("<msqrt"),
+            "msqrt survives, got: {}",
+            sanitize_html(sqrt)
+        );
+    }
+
+    #[test]
     fn test_sanitize_preserves_footnote_anchors() {
         // pulldown-cmark footnote reference + definition shape.
         let html = concat!(

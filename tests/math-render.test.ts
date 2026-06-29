@@ -7,9 +7,11 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  prerenderMathForExport,
   renderMathElement,
   renderMathInContainer,
 } from "../src/components/Preview/mathRender";
+import { sanitizeRenderedHtml } from "../src/services/sanitizerPolicy";
 
 function inline(tex: string): HTMLElement {
   const el = document.createElement("span");
@@ -106,5 +108,40 @@ describe("renderMathInContainer", () => {
     expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(2);
     expect(bad.classList.contains("math-error")).toBe(true);
     expect(bad.textContent).toBe("\\frac{1}{");
+  });
+});
+
+describe("prerenderMathForExport — A1 MathML output survives sanitization", () => {
+  it("emits MathML (no inline style) for inline math that survives the sanitizer", () => {
+    const body = '<p>x <span class="math-inline">\\frac{a}{b}</span> y</p>';
+    const pre = prerenderMathForExport(body);
+    // MathML structure is present...
+    expect(pre).toContain("<math");
+    expect(pre).toContain("<mfrac");
+    // ...and carries NO inline style (the vector the sanitizer strips). If the
+    // export still emitted KaTeX HTML, it would carry style="height:…".
+    expect(pre).not.toContain('style="');
+    // After the server-side sanitizer the MathML structure must SURVIVE intact.
+    const safe = sanitizeRenderedHtml(pre);
+    expect(safe).toContain("<math");
+    expect(safe).toContain("<mfrac");
+  });
+
+  it("emits MathML for display math ($$\\int$$) that survives the sanitizer", () => {
+    const body = '<div class="math-display">\\int_0^1 x\\,dx</div>';
+    const pre = prerenderMathForExport(body);
+    expect(pre).toContain("<math");
+    expect(pre).toContain("display=\"block\"");
+    expect(pre).not.toContain('style="');
+    const safe = sanitizeRenderedHtml(pre);
+    expect(safe).toContain("<math");
+    // The integral structure (msubsup over the ∫) survives.
+    expect(safe).toContain("<msubsup");
+  });
+
+  it("emits MathML for \\sqrt that survives the sanitizer (msqrt)", () => {
+    const body = '<span class="math-inline">\\sqrt{x}</span>';
+    const safe = sanitizeRenderedHtml(prerenderMathForExport(body));
+    expect(safe).toContain("<msqrt");
   });
 });

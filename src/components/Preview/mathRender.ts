@@ -26,8 +26,8 @@ const RENDERED_ATTR = "data-math-rendered";
 /** Holds the source TeX so a re-render can detect an unchanged block. */
 const SOURCE_ATTR = "data-math-source";
 
-export const MATH_INLINE_SELECTOR = "span.math-inline";
-export const MATH_DISPLAY_SELECTOR = "div.math-display";
+const MATH_INLINE_SELECTOR = "span.math-inline";
+const MATH_DISPLAY_SELECTOR = "div.math-display";
 
 /**
  * Render a single math element in place. Returns true if it typeset (or was a
@@ -35,7 +35,20 @@ export const MATH_DISPLAY_SELECTOR = "div.math-display";
  *
  * Exported for unit testing without a full Preview render.
  */
-export function renderMathElement(el: HTMLElement, displayMode: boolean): boolean {
+export function renderMathElement(
+  el: HTMLElement,
+  displayMode: boolean,
+  /**
+   * Export-only: emit MathML instead of KaTeX HTML. KaTeX HTML positions
+   * glyphs with inline `style="height:…;vertical-align:…"`, but the server-side
+   * `sanitize_html` (ammonia) forbids `style` (it has no CSS-property allow-list,
+   * so permitting `style` would reopen the `url()` exfiltration vector Phase 0
+   * closed). MathML needs no inline style — `<math>` renders natively in the
+   * browser — so the exported math survives sanitization with its structure
+   * intact. Preview keeps the default HTML+MathML output (CSS is available there).
+   */
+  mathmlOnly = false,
+): boolean {
   // The raw TeX is the element's text content for a fresh node (Rust
   // HTML-escaped it; the DOM un-escapes on read). Once a node has been
   // typeset, its textContent is the rendered math — so the source is stashed
@@ -58,6 +71,8 @@ export function renderMathElement(el: HTMLElement, displayMode: boolean): boolea
       // Never inject raw HTML from \href etc.; KaTeX output is MathML+spans only.
       trust: false,
       strict: false,
+      // Export emits MathML only (no inline-style HTML the sanitizer would strip).
+      ...(mathmlOnly ? { output: "mathml" as const } : {}),
     });
     el.innerHTML = html;
     el.setAttribute(RENDERED_ATTR, "true");
@@ -85,25 +100,27 @@ export function renderMathElement(el: HTMLElement, displayMode: boolean): boolea
  * Typeset every math placeholder within `container`. Inline and display blocks
  * are handled independently so a single bad block never stops the others.
  */
-export function renderMathInContainer(container: HTMLElement): void {
+export function renderMathInContainer(container: HTMLElement, mathmlOnly = false): void {
   container
     .querySelectorAll<HTMLElement>(MATH_INLINE_SELECTOR)
-    .forEach((el) => renderMathElement(el, false));
+    .forEach((el) => renderMathElement(el, false, mathmlOnly));
   container
     .querySelectorAll<HTMLElement>(MATH_DISPLAY_SELECTOR)
-    .forEach((el) => renderMathElement(el, true));
+    .forEach((el) => renderMathElement(el, true, mathmlOnly));
 }
 
 /**
  * Pre-render math in an HTML body string for the zero-JS export path (WI-1.1).
- * Parses the body into a detached container, typesets math in place, and
- * returns the resulting HTML. The exported file then carries static KaTeX
- * output (no client JS needed). The body is re-sanitized server-side by
- * `export_rendered_html` before it is written.
+ * Parses the body into a detached container, typesets math in place as **MathML**
+ * (not KaTeX HTML), and returns the resulting HTML. MathML carries no inline
+ * `style`, so it survives the server-side `sanitize_html` (ammonia forbids
+ * `style`) with its structure intact and renders natively in the browser with
+ * zero JS. The body is re-sanitized server-side by `export_rendered_html` before
+ * it is written.
  */
 export function prerenderMathForExport(bodyHtml: string): string {
   const container = document.createElement("div");
   container.innerHTML = bodyHtml;
-  renderMathInContainer(container);
+  renderMathInContainer(container, /* mathmlOnly */ true);
   return container.innerHTML;
 }
