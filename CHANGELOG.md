@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Math / LaTeX rendering (Typora-parity Phase 1, WI-1.1): `$inline$` and `$$display$$` math now render. The canonical Rust renderer emits `.math-inline` / `.math-display` wrappers carrying raw TeX; the preview typesets them with bundled KaTeX (offline), failing soft on invalid TeX (raw source kept, never blank). HTML export pre-renders math to static KaTeX and inlines the KaTeX stylesheet, so exported files display math with zero JS. Math inside code spans/fences stays literal
+- Footnotes (Typora-parity Phase 1, WI-1.3): `[^1]` references and definitions render with working return ("↩") back-links; the reference gets a stable `fnref-` anchor and the definition links back to it. Undefined references stay literal
+- Auto-link + emoji (Typora-parity Phase 1, WI-1.4): bare `http(s)://` URLs are linkified, and a curated set of `:shortcode:` emoji render as glyphs. Both skip code spans/fences and existing links; unknown shortcodes stay literal
 - In-app update checker: Settings → About page with version display, update check, download progress, and one-click install via `tauri-plugin-updater`
 - Pre-relaunch save guard: automatically saves all modified documents before restarting, blocks if untitled docs exist or saves fail
 - CI release workflow: `latest.json` generation with dynamic GitHub asset discovery via `jq`, signing env vars for updater artifacts

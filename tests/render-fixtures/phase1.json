@@ -46,6 +46,30 @@
       "name": "footnote-javascript-href-neutralized",
       "markdown": "x <sup class=\"footnote-reference\"><a href=\"javascript:alert(1)\">1</a></sup>",
       "mustNotContain": ["javascript:"]
+    },
+    {
+      "name": "autolink-bare-url",
+      "markdown": "See https://example.com today",
+      "mustContain": ["href=\"https://example.com\""],
+      "mustNotContain": ["<script"]
+    },
+    {
+      "name": "autolink-skips-code-fence",
+      "markdown": "```\nhttps://example.com\n```",
+      "mustContain": ["https://example.com"],
+      "mustNotContain": ["href=\"https://example.com\""]
+    },
+    {
+      "name": "emoji-known-shortcode",
+      "markdown": "Ship it :rocket:",
+      "mustContain": ["🚀"],
+      "mustNotContain": [":rocket:"]
+    },
+    {
+      "name": "emoji-unknown-stays-literal",
+      "markdown": "Token :notanemoji: stays",
+      "mustContain": [":notanemoji:"],
+      "mustNotContain": ["<script"]
     }
   ]
 }

@@ -2,7 +2,7 @@ use pulldown_cmark::{html, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use std::collections::HashMap;
 
 use crate::services::markdown_ext::{
-    add_footnote_back_links, render_display_math, render_inline_math,
+    add_footnote_back_links, preprocess_autolink_and_emoji, render_display_math, render_inline_math,
 };
 
 /// Escape HTML special characters to prevent XSS when injecting text into HTML attributes or content.
@@ -504,7 +504,11 @@ fn rewrite_img_tag(tag: &str) -> String {
 }
 
 pub fn render_markdown(markdown: &str) -> String {
-    let preprocessed = preprocess_highlight(markdown);
+    // WI-1.4: autolink bare URLs + replace known emoji shortcodes first (both
+    // skip code), then the highlight (`==`) pass. Order matters only in that
+    // both skip code spans/fences identically, so they compose safely.
+    let linked = preprocess_autolink_and_emoji(markdown);
+    let preprocessed = preprocess_highlight(&linked);
     let markdown = preprocessed.as_str();
 
     let mut options = Options::empty();
@@ -1359,6 +1363,54 @@ mod tests {
         assert!(
             safe.contains("class=\"footnote-backref\""),
             "back-link class must survive sanitize, got: {safe}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // WI-1.4 — Auto-link + emoji through render_markdown
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_render_autolinks_bare_url() {
+        let html = render_markdown("See https://example.com today");
+        assert!(
+            html.contains("href=\"https://example.com\""),
+            "bare URL must become a link, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_render_does_not_autolink_url_in_code_fence() {
+        let html = render_markdown("```\nhttps://example.com\n```");
+        assert!(
+            !html.contains("href=\"https://example.com\""),
+            "URL in code fence must stay literal, got: {html}"
+        );
+        assert!(
+            html.contains("https://example.com"),
+            "literal URL kept, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_render_emoji_shortcode_to_glyph() {
+        let html = render_markdown("Ship it :rocket:");
+        assert!(
+            html.contains("🚀"),
+            "shortcode must render glyph, got: {html}"
+        );
+        assert!(
+            !html.contains(":rocket:"),
+            "shortcode literal must be gone, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_render_unknown_emoji_stays_literal() {
+        let html = render_markdown("Token :notanemoji: stays");
+        assert!(
+            html.contains(":notanemoji:"),
+            "unknown shortcode must stay literal, got: {html}"
         );
     }
 
