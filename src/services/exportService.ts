@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Marked } from "marked";
 import { applyImageWidthMarkerToHtml } from "../plugins/milkdown/imageResizePlugin";
+import { prerenderMathForExport } from "../components/Preview/mathRender";
 import { renderHighlightSyntaxInHtml } from "./highlightSyntax";
 import { loggingService } from "./loggingService";
 import { sanitizeRenderedHtml } from "./sanitizerPolicy";
@@ -87,6 +88,13 @@ export const exportService = {
       const result = await invoke<RenderMarkdownResult>("render_markdown", { content: stripped });
       return applyImageWidthMarkerToHtml(renderHighlightSyntaxInHtml(sanitize(result.html)));
     } catch (err) {
+      // ACCEPTED DEGRADATION (plan decision A1, audit finding B2): this `marked`
+      // fallback runs ONLY when the canonical Rust `render_markdown` IPC throws.
+      // It renders neither math (`$…$` / `$$…$$`) nor footnotes (`[^1]`) — marked
+      // has no math/footnote support wired here — so a document exported via this
+      // path loses both. The Rust path is the supported export route; this is a
+      // last-resort plain-Markdown render so export never hard-fails. The gap is
+      // pinned by tests/export-fallback-degradation.test.ts so it stays reviewed.
       loggingService.logEventSync({
         level: "warn",
         event: "export.render_markdown.fallback",
@@ -104,6 +112,23 @@ export const exportService = {
     theme: "light" | "dark",
   ): Promise<ExportResult> {
     return invoke("export_html", { content, title, theme });
+  },
+
+  /**
+   * Export with math pre-rendered (WI-1.1). Renders markdown to sanitized HTML,
+   * typesets KaTeX in a detached DOM, then hands the static body to Rust, which
+   * re-sanitizes, inlines KaTeX CSS, and writes. The exported file renders math
+   * with zero JS. Falls back to {@link exportHtml} only fails closed — callers
+   * use this for documents that may contain math.
+   */
+  async exportRenderedHtml(
+    content: string,
+    title: string,
+    theme: "light" | "dark",
+  ): Promise<ExportResult> {
+    const body = await this.renderMarkdown(content);
+    const bodyHtml = prerenderMathForExport(body);
+    return invoke("export_rendered_html", { bodyHtml, title, theme });
   },
 
   async previewHtml(content: string, theme: "light" | "dark"): Promise<string> {

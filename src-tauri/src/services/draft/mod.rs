@@ -213,12 +213,16 @@ pub fn load_draft(document_id: &str) -> Result<Option<Draft>, DraftError> {
         let raw = fs::read_to_string(&legacy_meta).map_err(|err| DraftError::IoError {
             message: err.to_string(),
         })?;
-        let meta: DraftMetadata = serde_json::from_str(&raw).map_err(|err| {
-            DraftError::ParseError {
+        let meta: DraftMetadata =
+            serde_json::from_str(&raw).map_err(|err| DraftError::ParseError {
                 message: err.to_string(),
-            }
-        })?;
-        (meta.original_path, meta.last_modified, meta.recovered, meta.title)
+            })?;
+        (
+            meta.original_path,
+            meta.last_modified,
+            meta.recovered,
+            meta.title,
+        )
     } else {
         let mtime = fs::metadata(&legacy_draft)
             .and_then(|m| m.modified())
@@ -258,11 +262,10 @@ fn load_bundle(document_id: &str, path: &Path) -> Result<Option<Draft>, DraftErr
         message: err.to_string(),
     })?;
 
-    let bundle: DraftBundle = serde_json::from_str(&contents).map_err(|err| {
-        DraftError::ParseError {
+    let bundle: DraftBundle =
+        serde_json::from_str(&contents).map_err(|err| DraftError::ParseError {
             message: err.to_string(),
-        }
-    })?;
+        })?;
 
     let last_modified = DateTime::parse_from_rfc3339(&bundle.last_modified)
         .map(|dt| dt.timestamp_millis())
@@ -371,7 +374,10 @@ mod tests {
         // This is the call that close_document with discard_changes=true makes.
         let result = delete_draft(id).expect("delete_draft must not error");
         assert!(result, "delete_draft must return true when draft existed");
-        assert!(!bundle.exists(), "draft file must be gone after delete_draft");
+        assert!(
+            !bundle.exists(),
+            "draft file must be gone after delete_draft"
+        );
 
         let _ = fs::remove_dir_all(&home);
     }
@@ -384,7 +390,10 @@ mod tests {
 
         let result = delete_draft("test75_no_such_doc")
             .expect("delete_draft must not error on missing draft");
-        assert!(!result, "delete_draft must return false when draft was absent");
+        assert!(
+            !result,
+            "delete_draft must return false when draft was absent"
+        );
 
         let _ = fs::remove_dir_all(&home);
     }
@@ -409,13 +418,28 @@ mod tests {
         fs::write(&legacy_draft, "# Legacy content").unwrap();
         fs::write(&legacy_meta, r#"{"originalPath":null,"lastModified":"2024-01-01T00:00:00Z","recovered":false,"title":"Legacy"}"#).unwrap();
 
-        assert!(legacy_draft.exists(), "legacy .draft.md must exist before delete");
-        assert!(legacy_meta.exists(), "legacy .meta.json must exist before delete");
+        assert!(
+            legacy_draft.exists(),
+            "legacy .draft.md must exist before delete"
+        );
+        assert!(
+            legacy_meta.exists(),
+            "legacy .meta.json must exist before delete"
+        );
 
         let result = delete_draft(id).expect("delete_draft must not error on legacy files");
-        assert!(result, "delete_draft must return true when legacy files existed");
-        assert!(!legacy_draft.exists(), ".draft.md must be gone after delete_draft");
-        assert!(!legacy_meta.exists(), ".meta.json must be gone after delete_draft");
+        assert!(
+            result,
+            "delete_draft must return true when legacy files existed"
+        );
+        assert!(
+            !legacy_draft.exists(),
+            ".draft.md must be gone after delete_draft"
+        );
+        assert!(
+            !legacy_meta.exists(),
+            ".meta.json must be gone after delete_draft"
+        );
 
         let _ = fs::remove_dir_all(&home);
     }

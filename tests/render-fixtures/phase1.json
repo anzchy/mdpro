@@ -1,0 +1,75 @@
+{
+  "_comment": "Shared golden fixtures for the 4-surface render consistency suite (plan decision A1). Each case lists the markdown input and substrings that MUST appear (mustContain) or MUST NOT appear (mustNotContain) in the rendered+sanitized HTML of the canonical Rust surface. The Rust test (services::render_golden) and the JS sanitizer test both read this file so the surfaces assert the same contract. Math typesetting (KaTeX) is a separate per-surface concern covered by math-render.test.ts; here we assert the wrapper + sanitizer contract that all surfaces share.",
+  "cases": [
+    {
+      "name": "inline-math-wrapper",
+      "markdown": "Value $a+b$ here.",
+      "mustContain": ["<span class=\"math-inline\">a+b</span>"],
+      "mustNotContain": ["<script"]
+    },
+    {
+      "name": "display-math-wrapper",
+      "markdown": "$$\\int_0^1 x\\,dx$$",
+      "mustContain": ["<div class=\"math-display\">", "\\int_0^1"],
+      "mustNotContain": ["<script"]
+    },
+    {
+      "name": "math-in-code-fence-stays-literal",
+      "markdown": "```\n$x^2$\n```",
+      "mustContain": ["$x^2$"],
+      "mustNotContain": ["class=\"math-inline\""]
+    },
+    {
+      "name": "escaped-dollar-not-math",
+      "markdown": "Cost \\$5 today.",
+      "mustContain": ["$5"],
+      "mustNotContain": ["class=\"math-inline\""]
+    },
+    {
+      "name": "footnote-backlink",
+      "markdown": "Note[^1].\n\n[^1]: text",
+      "mustContain": ["id=\"fnref-1\"", "href=\"#fnref-1\"", "footnote-backref"],
+      "mustNotContain": ["<script"]
+    },
+    {
+      "name": "footnote-undefined-reference-stays-literal",
+      "markdown": "Dangling[^x] ref.",
+      "mustContain": ["[^x]"],
+      "mustNotContain": ["footnote-backref", "footnote-reference"]
+    },
+    {
+      "name": "math-script-payload-neutralized",
+      "markdown": "Inline <span class=\"math-inline\"><script>alert(1)</script></span> done",
+      "mustNotContain": ["<script"]
+    },
+    {
+      "name": "footnote-javascript-href-neutralized",
+      "markdown": "x <sup class=\"footnote-reference\"><a href=\"javascript:alert(1)\">1</a></sup>",
+      "mustNotContain": ["javascript:"]
+    },
+    {
+      "name": "autolink-bare-url",
+      "markdown": "See https://example.com today",
+      "mustContain": ["href=\"https://example.com\""],
+      "mustNotContain": ["<script"]
+    },
+    {
+      "name": "autolink-skips-code-fence",
+      "markdown": "```\nhttps://example.com\n```",
+      "mustContain": ["https://example.com"],
+      "mustNotContain": ["href=\"https://example.com\""]
+    },
+    {
+      "name": "emoji-known-shortcode",
+      "markdown": "Ship it :rocket:",
+      "mustContain": ["🚀"],
+      "mustNotContain": [":rocket:"]
+    },
+    {
+      "name": "emoji-unknown-stays-literal",
+      "markdown": "Token :notanemoji: stays",
+      "mustContain": [":notanemoji:"],
+      "mustNotContain": ["<script"]
+    }
+  ]
+}

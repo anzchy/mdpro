@@ -70,7 +70,10 @@ fn recent_label(path: &str) -> String {
     file_name.to_string()
 }
 
-fn build_recent_submenu(app: &AppHandle<Wry>, recent_files: &[String]) -> tauri::Result<Submenu<Wry>> {
+fn build_recent_submenu(
+    app: &AppHandle<Wry>,
+    recent_files: &[String],
+) -> tauri::Result<Submenu<Wry>> {
     let mut builder = SubmenuBuilder::new(app, "Open Recent");
     if recent_files.is_empty() {
         let empty_item = MenuItem::with_id(
@@ -244,7 +247,13 @@ pub fn build_menu(
         .build()?;
 
     let help_menu = SubmenuBuilder::new(app, "Help")
-        .item(&MenuItem::with_id(app, "menu.help.placeholder", "mdpro Help", false, None::<&str>)?)
+        .item(&MenuItem::with_id(
+            app,
+            "menu.help.placeholder",
+            "mdpro Help",
+            false,
+            None::<&str>,
+        )?)
         .build()?;
 
     menu.append(&app_menu)?;

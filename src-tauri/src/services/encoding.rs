@@ -296,7 +296,10 @@ mod tests {
         bytes.push(0);
         bytes.extend_from_slice(b"and it continues here too");
         let (enc, _) = detect_encoding_with_confidence(&bytes);
-        assert_eq!(enc, "UTF-8", "a stray NUL must not trigger UTF-16 detection");
+        assert_eq!(
+            enc, "UTF-8",
+            "a stray NUL must not trigger UTF-16 detection"
+        );
     }
 
     #[test]
@@ -374,7 +377,10 @@ mod tests {
         let content = "line one\r\nline two\r\n";
         let bytes = encode_bytes(content, "UTF-8").expect("encode");
         assert_eq!(bytes, content.as_bytes());
-        assert!(bytes.windows(2).any(|w| w == b"\r\n"), "CRLF must survive encode");
+        assert!(
+            bytes.windows(2).any(|w| w == b"\r\n"),
+            "CRLF must survive encode"
+        );
     }
 
     #[test]
@@ -390,7 +396,10 @@ mod tests {
         // Refuse to silently mangle — e.g. a GBK document must not be written
         // out as UTF-8 bytes pretending to be GBK.
         let result = encode_bytes("内容", "GBK");
-        assert!(result.is_err(), "unsupported encoding must error, not corrupt");
+        assert!(
+            result.is_err(),
+            "unsupported encoding must error, not corrupt"
+        );
     }
 
     #[test]

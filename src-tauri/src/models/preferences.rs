@@ -213,69 +213,183 @@ pub struct KeyboardShortcuts {
 }
 
 // Default shortcut values (Typora macOS conventions)
-fn default_new() -> String { "Cmd+N".to_string() }
-fn default_new_window() -> String { "Cmd+Shift+N".to_string() }
-fn default_open() -> String { "Cmd+O".to_string() }
-fn default_open_quickly() -> String { "Cmd+Shift+O".to_string() }
-fn default_save() -> String { "Cmd+S".to_string() }
-fn default_save_as() -> String { "Cmd+Shift+S".to_string() }
-fn default_close() -> String { "Cmd+W".to_string() }
-fn default_preferences() -> String { "Cmd+,".to_string() }
+fn default_new() -> String {
+    "Cmd+N".to_string()
+}
+fn default_new_window() -> String {
+    "Cmd+Shift+N".to_string()
+}
+fn default_open() -> String {
+    "Cmd+O".to_string()
+}
+fn default_open_quickly() -> String {
+    "Cmd+Shift+O".to_string()
+}
+fn default_save() -> String {
+    "Cmd+S".to_string()
+}
+fn default_save_as() -> String {
+    "Cmd+Shift+S".to_string()
+}
+fn default_close() -> String {
+    "Cmd+W".to_string()
+}
+fn default_preferences() -> String {
+    "Cmd+,".to_string()
+}
 
-fn default_copy_as_markdown() -> String { "Cmd+Shift+C".to_string() }
-fn default_paste_as_plain_text() -> String { "Cmd+Shift+V".to_string() }
-fn default_select_line() -> String { "Cmd+L".to_string() }
-fn default_select_word() -> String { "Cmd+D".to_string() }
-fn default_delete_word() -> String { "Cmd+Shift+D".to_string() }
-fn default_jump_to_top() -> String { "Cmd+Up".to_string() }
-fn default_jump_to_bottom() -> String { "Cmd+Down".to_string() }
-fn default_find() -> String { "Cmd+F".to_string() }
-fn default_find_next() -> String { "Cmd+G".to_string() }
-fn default_find_previous() -> String { "Cmd+Shift+G".to_string() }
-fn default_replace() -> String { "Cmd+H".to_string() }
+fn default_copy_as_markdown() -> String {
+    "Cmd+Shift+C".to_string()
+}
+fn default_paste_as_plain_text() -> String {
+    "Cmd+Shift+V".to_string()
+}
+fn default_select_line() -> String {
+    "Cmd+L".to_string()
+}
+fn default_select_word() -> String {
+    "Cmd+D".to_string()
+}
+fn default_delete_word() -> String {
+    "Cmd+Shift+D".to_string()
+}
+fn default_jump_to_top() -> String {
+    "Cmd+Up".to_string()
+}
+fn default_jump_to_bottom() -> String {
+    "Cmd+Down".to_string()
+}
+fn default_find() -> String {
+    "Cmd+F".to_string()
+}
+fn default_find_next() -> String {
+    "Cmd+G".to_string()
+}
+fn default_find_previous() -> String {
+    "Cmd+Shift+G".to_string()
+}
+fn default_replace() -> String {
+    "Cmd+H".to_string()
+}
 
-fn default_heading1() -> String { "Cmd+1".to_string() }
-fn default_heading2() -> String { "Cmd+2".to_string() }
-fn default_heading3() -> String { "Cmd+3".to_string() }
-fn default_heading4() -> String { "Cmd+4".to_string() }
-fn default_heading5() -> String { "Cmd+5".to_string() }
-fn default_heading6() -> String { "Cmd+6".to_string() }
-fn default_paragraph() -> String { "Cmd+0".to_string() }
-fn default_increase_heading() -> String { "Cmd+=".to_string() }
-fn default_decrease_heading() -> String { "Cmd+-".to_string() }
-fn default_table() -> String { "Cmd+Option+T".to_string() }
-fn default_code_fences() -> String { "Cmd+Option+C".to_string() }
-fn default_math_block() -> String { "Cmd+Option+B".to_string() }
-fn default_quote() -> String { "Cmd+Option+Q".to_string() }
-fn default_ordered_list() -> String { "Cmd+Option+O".to_string() }
-fn default_unordered_list() -> String { "Cmd+Option+U".to_string() }
-fn default_indent() -> String { "Cmd+]".to_string() }
-fn default_outdent() -> String { "Cmd+[".to_string() }
+fn default_heading1() -> String {
+    "Cmd+1".to_string()
+}
+fn default_heading2() -> String {
+    "Cmd+2".to_string()
+}
+fn default_heading3() -> String {
+    "Cmd+3".to_string()
+}
+fn default_heading4() -> String {
+    "Cmd+4".to_string()
+}
+fn default_heading5() -> String {
+    "Cmd+5".to_string()
+}
+fn default_heading6() -> String {
+    "Cmd+6".to_string()
+}
+fn default_paragraph() -> String {
+    "Cmd+0".to_string()
+}
+fn default_increase_heading() -> String {
+    "Cmd+=".to_string()
+}
+fn default_decrease_heading() -> String {
+    "Cmd+-".to_string()
+}
+fn default_table() -> String {
+    "Cmd+Option+T".to_string()
+}
+fn default_code_fences() -> String {
+    "Cmd+Option+C".to_string()
+}
+fn default_math_block() -> String {
+    "Cmd+Option+B".to_string()
+}
+fn default_quote() -> String {
+    "Cmd+Option+Q".to_string()
+}
+fn default_ordered_list() -> String {
+    "Cmd+Option+O".to_string()
+}
+fn default_unordered_list() -> String {
+    "Cmd+Option+U".to_string()
+}
+fn default_indent() -> String {
+    "Cmd+]".to_string()
+}
+fn default_outdent() -> String {
+    "Cmd+[".to_string()
+}
 
-fn default_strong() -> String { "Cmd+B".to_string() }
-fn default_emphasis() -> String { "Cmd+I".to_string() }
-fn default_underline() -> String { "Cmd+U".to_string() }
-fn default_code() -> String { "Cmd+Shift+`".to_string() }
-fn default_strike() -> String { "Ctrl+Shift+`".to_string() }
-fn default_hyperlink() -> String { "Cmd+K".to_string() }
-fn default_image() -> String { "Cmd+Ctrl+I".to_string() }
-fn default_highlight() -> String { "Cmd+Shift+H".to_string() }
-fn default_clear_format() -> String { "Cmd+\\".to_string() }
-fn default_export_html() -> String { "Cmd+Shift+E".to_string() }
+fn default_strong() -> String {
+    "Cmd+B".to_string()
+}
+fn default_emphasis() -> String {
+    "Cmd+I".to_string()
+}
+fn default_underline() -> String {
+    "Cmd+U".to_string()
+}
+fn default_code() -> String {
+    "Cmd+Shift+`".to_string()
+}
+fn default_strike() -> String {
+    "Ctrl+Shift+`".to_string()
+}
+fn default_hyperlink() -> String {
+    "Cmd+K".to_string()
+}
+fn default_image() -> String {
+    "Cmd+Ctrl+I".to_string()
+}
+fn default_highlight() -> String {
+    "Cmd+Shift+H".to_string()
+}
+fn default_clear_format() -> String {
+    "Cmd+\\".to_string()
+}
+fn default_export_html() -> String {
+    "Cmd+Shift+E".to_string()
+}
 
-fn default_toggle_sidebar() -> String { "Cmd+Shift+L".to_string() }
-fn default_cycle_view_mode() -> String { "Cmd+/".to_string() }
-fn default_toggle_fullscreen() -> String { "Cmd+Option+F".to_string() }
-fn default_switch_documents() -> String { "Cmd+`".to_string() }
-fn default_last_view_mode() -> ViewMode { ViewMode::Wysiwyg }
+fn default_toggle_sidebar() -> String {
+    "Cmd+Shift+L".to_string()
+}
+fn default_cycle_view_mode() -> String {
+    "Cmd+/".to_string()
+}
+fn default_toggle_fullscreen() -> String {
+    "Cmd+Option+F".to_string()
+}
+fn default_switch_documents() -> String {
+    "Cmd+`".to_string()
+}
+fn default_last_view_mode() -> ViewMode {
+    ViewMode::Wysiwyg
+}
 
 // Table action shortcuts — direction mnemonic via Cmd+Option+arrows.
-fn default_table_insert_row_above() -> String { "Cmd+Option+Up".to_string() }
-fn default_table_insert_row_below() -> String { "Cmd+Option+Down".to_string() }
-fn default_table_insert_column_left() -> String { "Cmd+Option+Left".to_string() }
-fn default_table_insert_column_right() -> String { "Cmd+Option+Right".to_string() }
-fn default_table_delete_row() -> String { "Cmd+Option+Backspace".to_string() }
-fn default_table_delete_column() -> String { "Cmd+Option+Shift+Backspace".to_string() }
+fn default_table_insert_row_above() -> String {
+    "Cmd+Option+Up".to_string()
+}
+fn default_table_insert_row_below() -> String {
+    "Cmd+Option+Down".to_string()
+}
+fn default_table_insert_column_left() -> String {
+    "Cmd+Option+Left".to_string()
+}
+fn default_table_insert_column_right() -> String {
+    "Cmd+Option+Right".to_string()
+}
+fn default_table_delete_row() -> String {
+    "Cmd+Option+Backspace".to_string()
+}
+fn default_table_delete_column() -> String {
+    "Cmd+Option+Shift+Backspace".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -322,10 +436,18 @@ pub struct AutoSaveConfig {
     pub save_on_blur: bool,
 }
 
-fn default_auto_save_enabled() -> bool { true }
-fn default_auto_save_interval_ms() -> u32 { 15000 }
-fn default_auto_save_debounce_ms() -> u32 { 1500 }
-fn default_auto_save_save_on_blur() -> bool { true }
+fn default_auto_save_enabled() -> bool {
+    true
+}
+fn default_auto_save_interval_ms() -> u32 {
+    15000
+}
+fn default_auto_save_debounce_ms() -> u32 {
+    1500
+}
+fn default_auto_save_save_on_blur() -> bool {
+    true
+}
 
 impl Default for AutoSaveConfig {
     fn default() -> Self {
@@ -356,8 +478,12 @@ pub struct TabBarConfig {
     pub close_focus_behavior: CloseFocusBehavior,
 }
 
-fn default_max_visible_tabs() -> u32 { 10 }
-fn default_show_close_on_hover() -> bool { true }
+fn default_max_visible_tabs() -> u32 {
+    10
+}
+fn default_show_close_on_hover() -> bool {
+    true
+}
 
 impl Default for TabBarConfig {
     fn default() -> Self {
@@ -439,11 +565,21 @@ pub struct EditorConfig {
     pub word_wrap: bool,
 }
 
-fn default_font_family() -> String { "system".to_string() }
-fn default_font_size() -> u8 { 16 }
-fn default_line_height_x10() -> u8 { 16 }
-fn default_tab_size() -> u8 { 4 }
-fn default_word_wrap() -> bool { true }
+fn default_font_family() -> String {
+    "system".to_string()
+}
+fn default_font_size() -> u8 {
+    16
+}
+fn default_line_height_x10() -> u8 {
+    16
+}
+fn default_tab_size() -> u8 {
+    4
+}
+fn default_word_wrap() -> bool {
+    true
+}
 
 impl Default for EditorConfig {
     fn default() -> Self {
@@ -463,14 +599,14 @@ impl Default for EditorConfig {
 #[serde(rename_all = "camelCase")]
 pub enum ContentWidth {
     #[serde(rename = "narrow")]
-    Narrow,   // 600px
+    Narrow, // 600px
     #[default]
     #[serde(rename = "medium")]
-    Medium,   // 780px
+    Medium, // 780px
     #[serde(rename = "wide")]
-    Wide,     // 900px
+    Wide, // 900px
     #[serde(rename = "full")]
-    Full,     // 100%
+    Full, // 100%
 }
 
 /// Markdown behavior configuration (CodeMirror-only in v1)
@@ -482,11 +618,15 @@ pub struct MarkdownConfig {
     pub auto_pair: bool,
 }
 
-fn default_auto_pair() -> bool { true }
+fn default_auto_pair() -> bool {
+    true
+}
 
 impl Default for MarkdownConfig {
     fn default() -> Self {
-        Self { auto_pair: default_auto_pair() }
+        Self {
+            auto_pair: default_auto_pair(),
+        }
     }
 }
 
@@ -501,7 +641,9 @@ pub struct AppearanceConfig {
 
 impl Default for AppearanceConfig {
     fn default() -> Self {
-        Self { code_theme: CodeTheme::default() }
+        Self {
+            code_theme: CodeTheme::default(),
+        }
     }
 }
 
@@ -517,7 +659,9 @@ pub struct ExportConfig {
     pub html_include_styles: bool,
 }
 
-fn default_html_include_styles() -> bool { true }
+fn default_html_include_styles() -> bool {
+    true
+}
 
 impl Default for ExportConfig {
     fn default() -> Self {

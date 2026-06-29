@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
-use tauri_app_lib::models::{LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore};
+use tauri_app_lib::models::{
+    LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
+};
 use tokio::sync::oneshot;
 
 // Store the shutdown sender so the HTTP server stays alive
@@ -188,13 +190,13 @@ fn main() {
             // Start HTTP server for MCP
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                match http_server::start_server(mcp_shadow_store, mcp_server_config, app_handle).await {
+                match http_server::start_server(mcp_shadow_store, mcp_server_config, app_handle)
+                    .await
+                {
                     Ok((port, shutdown_tx)) => {
                         // Store shutdown sender in static so server stays alive
                         // (dropping the sender triggers graceful shutdown)
-                        if let Ok(mut guard) = MCP_SHUTDOWN
-                            .get_or_init(|| Mutex::new(None))
-                            .lock()
+                        if let Ok(mut guard) = MCP_SHUTDOWN.get_or_init(|| Mutex::new(None)).lock()
                         {
                             *guard = Some(shutdown_tx);
                         }
@@ -308,7 +310,9 @@ fn main() {
                     event: "file.open.external".to_string(),
                     status: LogStatus::Start,
                     action_id: None,
-                    context: Some(json!({ "filePaths": paths_for_log, "source": "single_instance" })),
+                    context: Some(
+                        json!({ "filePaths": paths_for_log, "source": "single_instance" }),
+                    ),
                     duration_ms: None,
                     error: None,
                 });
@@ -348,7 +352,11 @@ fn main() {
                     );
                 }
                 WindowEvent::Focused(is_focused) => {
-                    let event_name = if *is_focused { "window.focus" } else { "window.blur" };
+                    let event_name = if *is_focused {
+                        "window.focus"
+                    } else {
+                        "window.blur"
+                    };
                     logger::log_event(LogEntryPayload {
                         level: LogLevel::Info,
                         event: event_name.to_string(),
@@ -465,7 +473,9 @@ fn main() {
                         url.to_file_path().ok().and_then(|p| {
                             let path_str = p.to_string_lossy().to_string();
                             let ext = p.extension()?.to_str()?;
-                            if ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown") {
+                            if ext.eq_ignore_ascii_case("md")
+                                || ext.eq_ignore_ascii_case("markdown")
+                            {
                                 Some(path_str)
                             } else {
                                 None

@@ -46,13 +46,9 @@ pub async fn create_window(
     };
 
     // Build the window
-    let mut builder = WebviewWindowBuilder::new(
-        &app,
-        &window_id,
-        WebviewUrl::default(),
-    )
-    .title("Untitled - mdpro")
-    .min_inner_size(600.0, 400.0);
+    let mut builder = WebviewWindowBuilder::new(&app, &window_id, WebviewUrl::default())
+        .title("Untitled - mdpro")
+        .min_inner_size(600.0, 400.0);
 
     // Apply stored or default geometry
     if let Some(geo) = geometry {
@@ -118,7 +114,11 @@ pub async fn save_window_geometry(
 
     // LRU eviction: keep only 100 most recent entries
     if prefs.window_states.len() > 100 {
-        let mut entries: Vec<_> = prefs.window_states.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let mut entries: Vec<_> = prefs
+            .window_states
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
         entries.sort_by(|a, b| a.1.last_accessed.cmp(&b.1.last_accessed));
 
         // Remove oldest entries
@@ -134,9 +134,7 @@ pub async fn save_window_geometry(
 
 /// Get stored window geometry for a file path
 #[tauri::command]
-pub async fn get_window_geometry(
-    file_path: String,
-) -> Result<GetWindowGeometryResponse, String> {
+pub async fn get_window_geometry(file_path: String) -> Result<GetWindowGeometryResponse, String> {
     let prefs = load_preferences().map_err(|e| format!("{:?}", e))?;
     let geometry = prefs.window_states.get(&file_path).cloned();
     Ok(GetWindowGeometryResponse { geometry })

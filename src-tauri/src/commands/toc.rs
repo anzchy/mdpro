@@ -125,9 +125,7 @@ pub fn extract_headings(content: &str) -> Vec<HeadingInfo> {
 
 /// Get all headings from a document's content
 #[tauri::command]
-pub async fn get_document_headings(
-    content: String,
-) -> Result<GetDocumentHeadingsResult, TocError> {
+pub async fn get_document_headings(content: String) -> Result<GetDocumentHeadingsResult, TocError> {
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "toc.extract".to_string(),
@@ -206,7 +204,10 @@ Some text.
     fn test_generate_unique_id() {
         let mut counts = HashMap::new();
 
-        assert_eq!(generate_unique_id("Hello World", &mut counts), "hello-world");
+        assert_eq!(
+            generate_unique_id("Hello World", &mut counts),
+            "hello-world"
+        );
         assert_eq!(
             generate_unique_id("Hello World", &mut counts),
             "hello-world-1"

@@ -5,5 +5,6 @@ pub mod html_template;
 pub mod http_server;
 pub mod logger;
 pub mod markdown;
+pub mod markdown_ext;
 pub mod preferences;
 pub mod shadow_store;

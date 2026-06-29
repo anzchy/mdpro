@@ -142,13 +142,17 @@ fn validate_asset_dir_containment(
         }
     })?;
 
-    let canonical_target = target_dir.canonicalize().map_err(|e| ImageError::InvalidPath {
-        message: format!("cannot resolve asset folder: {}", e),
-    })?;
+    let canonical_target = target_dir
+        .canonicalize()
+        .map_err(|e| ImageError::InvalidPath {
+            message: format!("cannot resolve asset folder: {}", e),
+        })?;
 
-    let canonical_doc = doc_dir.canonicalize().map_err(|e| ImageError::InvalidPath {
-        message: format!("cannot resolve document directory: {}", e),
-    })?;
+    let canonical_doc = doc_dir
+        .canonicalize()
+        .map_err(|e| ImageError::InvalidPath {
+            message: format!("cannot resolve document directory: {}", e),
+        })?;
 
     if !canonical_target.starts_with(&canonical_doc) {
         return Err(ImageError::InvalidPath {
@@ -231,7 +235,9 @@ pub async fn resolve_image_path(
         let mut components: Vec<std::path::Component> = Vec::new();
         for c in raw.components() {
             match c {
-                std::path::Component::ParentDir => { components.pop(); }
+                std::path::Component::ParentDir => {
+                    components.pop();
+                }
                 std::path::Component::CurDir => {}
                 other => components.push(other),
             }
@@ -307,9 +313,11 @@ pub async fn upload_image(
 
     // Decode base64
     use base64::{engine::general_purpose::STANDARD, Engine};
-    let bytes = STANDARD.decode(&image_data).map_err(|e| ImageError::InvalidImageData {
-        message: e.to_string(),
-    })?;
+    let bytes = STANDARD
+        .decode(&image_data)
+        .map_err(|e| ImageError::InvalidImageData {
+            message: e.to_string(),
+        })?;
 
     // Get document directory
     let doc_path = Path::new(&document_path);
@@ -452,7 +460,10 @@ pub async fn copy_external_image(
     }
 
     // Reject path traversal in source path
-    if source.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+    if source
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
         return Err(ImageError::InvalidPath {
             message: "Source path contains directory traversal".to_string(),
         });
@@ -582,7 +593,8 @@ mod tests {
             doc.to_string_lossy().to_string(),
             source.to_string_lossy().to_string(),
             None,
-        ).await;
+        )
+        .await;
 
         assert!(result.is_err(), "non-image source should be rejected");
         let _ = std::fs::remove_dir_all(&dir);
@@ -594,7 +606,8 @@ mod tests {
             "/tmp/doc.md".to_string(),
             "/tmp/../../../etc/passwd".to_string(),
             None,
-        ).await;
+        )
+        .await;
 
         assert!(result.is_err(), "traversal in source should be rejected");
     }

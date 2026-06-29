@@ -582,7 +582,9 @@ function App() {
     setBusyLabel("Exporting HTML...");
     try {
       const title = activeDocumentTitle || "mdpro";
-      const result = await exportService.exportHtml(
+      // Use the math-aware export path: KaTeX is pre-rendered so the exported
+      // file displays math with zero JS (WI-1.1). Re-sanitized server-side.
+      const result = await exportService.exportRenderedHtml(
         activeDocument.content,
         title,
         resolvedTheme,

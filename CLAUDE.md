@@ -116,7 +116,7 @@ import { invoke } from '@tauri-apps/api/core';
 const result = await invoke<OpenFileResult>('open_file', { path, encoding });
 ```
 
-Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `save_draft`, `get_preferences`, `get_app_version`
+Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `save_draft`, `get_preferences`, `get_app_version`
 
 ### Events (Rust → Frontend)
 
@@ -539,4 +539,21 @@ tail -f ~/.mdpro/mdpro.log | jq 'select(.level == "error")'
 - Plugin lifecycle is managed by `pluginRegistry` (initialized in `src/components/Editor/Editor.tsx` and `src/hooks/useMilkdown.ts`).
 
 - Editor events (doc/selection/focus) are emitted via `pluginRegistry.emitEvent` and consumed through `EditorContext.events`.
+
+## Typora-Parity Phase 1 Scope (rendering)
+
+Phase 1 wires math (`$…$` / `$$…$$`), footnotes, autolinks, and emoji on the
+**canonical Rust render surface** — i.e. the Preview pane and HTML export
+(`render_markdown` → `sanitize_html` / MathML export). That is the supported
+math/footnote path for Phase 1.
+
+**Explicitly deferred to Phase 2 / follow-up:**
+
+- **Milkdown WYSIWYG (surface 4)** does NOT typeset math or render footnotes.
+  There is no Milkdown math/footnote plugin in `src/plugins/milkdown/`. In source
+  mode `$…$` and `[^1]` remain visible as plain literal text (readable, not broken
+  markup) — this is the accepted Phase 1 behavior, not a bug.
+- **Export `marked` fallback** (`exportService.renderMarkdown` catch block, used
+  only when the Rust IPC throws) renders neither math nor footnotes. Accepted
+  degradation (plan decision A1); pinned by `tests/export-fallback-degradation.test.ts`.
 

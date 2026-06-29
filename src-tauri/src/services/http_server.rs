@@ -4,13 +4,12 @@
 //! Only accessible from localhost with token authentication.
 
 use crate::models::{
-    CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo,
-    ErrorResponse, InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult,
-    LogEntryPayload, LogLevel, LogStatus, ServerConfig, SharedServerConfig, SharedShadowStore,
-    StatusResponse, UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
+    CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo, ErrorResponse,
+    InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult, LogEntryPayload,
+    LogLevel, LogStatus, ServerConfig, SharedServerConfig, SharedShadowStore, StatusResponse,
+    UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
 };
 use crate::services::{logger, shadow_store};
-use serde_json::json;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -21,6 +20,7 @@ use axum::{
     Json, Router,
 };
 use rand::Rng;
+use serde_json::json;
 use std::fs;
 use std::io::Write;
 #[cfg(unix)]
@@ -88,8 +88,8 @@ pub fn write_server_config(port: u16, token: &str) -> Result<(), String> {
 
     // Write token file with mode 600
     let token_path = config_path.join("server.token");
-    let mut file = fs::File::create(&token_path)
-        .map_err(|e| format!("Failed to create token file: {}", e))?;
+    let mut file =
+        fs::File::create(&token_path).map_err(|e| format!("Failed to create token file: {}", e))?;
     file.write_all(token.as_bytes())
         .map_err(|e| format!("Failed to write token file: {}", e))?;
 
@@ -140,7 +140,10 @@ async fn validate_token(
         if a.len() != b.len() {
             return false;
         }
-        a.iter().zip(b.iter()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+        a.iter()
+            .zip(b.iter())
+            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+            == 0
     }
 
     match (token_header, expected_token) {
@@ -191,8 +194,7 @@ async fn validate_origin(request: Request<Body>, next: Next) -> Response {
 
 /// GET /api/status - Get application status.
 async fn get_status(State(state): State<AppState>) -> impl IntoResponse {
-    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store)
-        .unwrap_or(false);
+    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store).unwrap_or(false);
 
     Json(StatusResponse {
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -246,10 +248,7 @@ async fn list_documents(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// GET /api/documents/:id - Get document content.
-async fn get_document(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+async fn get_document(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "mcp.read".to_string(),
@@ -348,8 +347,7 @@ async fn update_document(
     };
 
     // Check if we need user confirmation (window not focused)
-    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store)
-        .unwrap_or(false);
+    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store).unwrap_or(false);
 
     if !window_focused {
         logger::log_event(LogEntryPayload {
@@ -365,11 +363,9 @@ async fn update_document(
         // Show confirmation dialog on a blocking thread so the async
         // HTTP handler stays free to serve other requests (#237).
         let title_owned = doc.title.clone();
-        let confirmed = tokio::task::spawn_blocking(move || {
-            show_write_confirmation(&title_owned)
-        })
-        .await
-        .unwrap_or(false);
+        let confirmed = tokio::task::spawn_blocking(move || show_write_confirmation(&title_owned))
+            .await
+            .unwrap_or(false);
         if !confirmed {
             logger::log_event(LogEntryPayload {
                 level: LogLevel::Info,
@@ -474,21 +470,21 @@ async fn update_document(
 
     if let Err(e) = state.app_handle.emit("mcp:write_document", &event) {
         // Roll back the shadow store so it doesn't diverge from the editor (#243).
-        let rollback_status = match shadow_store::update_document_content(
-            &state.shadow_store,
-            &id,
-            original_content,
-        ) {
-            Ok(true) => "rolled back",
-            Ok(false) => "not rolled back: document not found",
-            Err(_) => "not rolled back: mutex error",
-        };
+        let rollback_status =
+            match shadow_store::update_document_content(&state.shadow_store, &id, original_content)
+            {
+                Ok(true) => "rolled back",
+                Ok(false) => "not rolled back: document not found",
+                Err(_) => "not rolled back: mutex error",
+            };
         logger::log_event(LogEntryPayload {
             level: LogLevel::Error,
             event: "mcp.write".to_string(),
             status: LogStatus::Fail,
             action_id: None,
-            context: Some(json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") })),
+            context: Some(
+                json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") }),
+            ),
             duration_ms: None,
             error: Some(e.to_string()),
         });
@@ -559,8 +555,7 @@ async fn insert_content(
     // Check if we need user confirmation (window not focused) — fixes #356.
     // Same guard as update_document: prevents silent content injection when
     // the user is not looking at the app.
-    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store)
-        .unwrap_or(false);
+    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store).unwrap_or(false);
 
     if !window_focused {
         logger::log_event(LogEntryPayload {
@@ -574,11 +569,9 @@ async fn insert_content(
         });
 
         let title_owned = doc.title.clone();
-        let confirmed = tokio::task::spawn_blocking(move || {
-            show_write_confirmation(&title_owned)
-        })
-        .await
-        .unwrap_or(false);
+        let confirmed = tokio::task::spawn_blocking(move || show_write_confirmation(&title_owned))
+            .await
+            .unwrap_or(false);
         if !confirmed {
             logger::log_event(LogEntryPayload {
                 level: LogLevel::Info,
@@ -645,21 +638,21 @@ async fn insert_content(
 
     if let Err(e) = state.app_handle.emit("mcp:insert_content", &event) {
         // Roll back the shadow store so it doesn't diverge from the editor (#243).
-        let rollback_status = match shadow_store::update_document_content(
-            &state.shadow_store,
-            &id,
-            original_content,
-        ) {
-            Ok(true) => "rolled back",
-            Ok(false) => "not rolled back: document not found",
-            Err(_) => "not rolled back: mutex error",
-        };
+        let rollback_status =
+            match shadow_store::update_document_content(&state.shadow_store, &id, original_content)
+            {
+                Ok(true) => "rolled back",
+                Ok(false) => "not rolled back: document not found",
+                Err(_) => "not rolled back: mutex error",
+            };
         logger::log_event(LogEntryPayload {
             level: LogLevel::Error,
             event: "mcp.insert".to_string(),
             status: LogStatus::Fail,
             action_id: None,
-            context: Some(json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") })),
+            context: Some(
+                json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") }),
+            ),
             duration_ms: None,
             error: Some(e.to_string()),
         });
@@ -675,12 +668,21 @@ async fn insert_content(
         event: "mcp.insert".to_string(),
         status: LogStatus::Success,
         action_id: None,
-        context: Some(json!({ "documentId": id, "insertOffset": insert_offset, "newCursor": new_cursor })),
+        context: Some(
+            json!({ "documentId": id, "insertOffset": insert_offset, "newCursor": new_cursor }),
+        ),
         duration_ms: None,
         error: None,
     });
 
-    (StatusCode::OK, Json(InsertResult { success: true, new_cursor })).into_response()
+    (
+        StatusCode::OK,
+        Json(InsertResult {
+            success: true,
+            new_cursor,
+        }),
+    )
+        .into_response()
 }
 
 /// POST /api/documents/new - Create a new document.
@@ -767,15 +769,12 @@ async fn dispatch_table_action(
     };
 
     // Confirmation guard for backgrounded app.
-    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store)
-        .unwrap_or(false);
+    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store).unwrap_or(false);
     if !window_focused {
         let title_owned = doc.title.clone();
-        let confirmed = tokio::task::spawn_blocking(move || {
-            show_write_confirmation(&title_owned)
-        })
-        .await
-        .unwrap_or(false);
+        let confirmed = tokio::task::spawn_blocking(move || show_write_confirmation(&title_owned))
+            .await
+            .unwrap_or(false);
         if !confirmed {
             logger::log_event(LogEntryPayload {
                 level: LogLevel::Info,
@@ -979,7 +978,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/status", get(get_status))
         .route("/api/documents", get(list_documents))
         .route("/api/documents/new", post(create_document))
-        .route("/api/documents/{id}", get(get_document).post(update_document))
+        .route(
+            "/api/documents/{id}",
+            get(get_document).post(update_document),
+        )
         .route("/api/documents/{id}/insert", post(insert_content))
         // Phase 3 WI-3.3 — Table tools (frontend-driven)
         .route("/api/v1/insert_table", post(insert_table))
@@ -988,7 +990,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/delete_row", post(delete_row))
         .route("/api/v1/add_column", post(add_column))
         .route("/api/v1/delete_column", post(delete_column))
-        .layer(middleware::from_fn_with_state(state.clone(), validate_token))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            validate_token,
+        ))
         .layer(middleware::from_fn(validate_origin))
         .with_state(state)
 }
@@ -1010,7 +1015,12 @@ pub async fn start_server(
     // Bind to the configured port on localhost
     let listener = TcpListener::bind(format!("127.0.0.1:{}", MCP_SERVER_PORT))
         .await
-        .map_err(|e| format!("Failed to bind HTTP server on port {}: {}", MCP_SERVER_PORT, e))?;
+        .map_err(|e| {
+            format!(
+                "Failed to bind HTTP server on port {}: {}",
+                MCP_SERVER_PORT, e
+            )
+        })?;
 
     let addr = listener
         .local_addr()
@@ -1207,7 +1217,8 @@ mod tests {
 
     #[test]
     fn insert_table_request_deserialize_with_alignments() {
-        let json = r#"{"document_id":"d","rows":1,"cols":3,"alignments":["left","center","right"]}"#;
+        let json =
+            r#"{"document_id":"d","rows":1,"cols":3,"alignments":["left","center","right"]}"#;
         let req: InsertTableRequest = serde_json::from_str(json).unwrap();
         let aligns = req.alignments.unwrap();
         assert_eq!(aligns, vec!["left", "center", "right"]);
@@ -1216,15 +1227,13 @@ mod tests {
     #[test]
     fn insert_table_request_rejects_missing_required_fields() {
         // Missing rows.
-        assert!(serde_json::from_str::<InsertTableRequest>(
-            r#"{"document_id":"d","cols":3}"#
-        )
-        .is_err());
+        assert!(
+            serde_json::from_str::<InsertTableRequest>(r#"{"document_id":"d","cols":3}"#).is_err()
+        );
         // Missing cols.
-        assert!(serde_json::from_str::<InsertTableRequest>(
-            r#"{"document_id":"d","rows":3}"#
-        )
-        .is_err());
+        assert!(
+            serde_json::from_str::<InsertTableRequest>(r#"{"document_id":"d","rows":3}"#).is_err()
+        );
     }
 
     #[test]
@@ -1257,10 +1266,7 @@ mod tests {
     #[test]
     fn delete_row_request_requires_index() {
         // `index` is required; missing it must error.
-        assert!(serde_json::from_str::<DeleteRowRequest>(
-            r#"{"document_id":"d"}"#
-        )
-        .is_err());
+        assert!(serde_json::from_str::<DeleteRowRequest>(r#"{"document_id":"d"}"#).is_err());
         let req: DeleteRowRequest =
             serde_json::from_str(r#"{"document_id":"d","index":5}"#).unwrap();
         assert_eq!(req.index, 5);
@@ -1276,10 +1282,7 @@ mod tests {
 
     #[test]
     fn delete_column_request_requires_index() {
-        assert!(serde_json::from_str::<DeleteColumnRequest>(
-            r#"{"document_id":"d"}"#
-        )
-        .is_err());
+        assert!(serde_json::from_str::<DeleteColumnRequest>(r#"{"document_id":"d"}"#).is_err());
         let req: DeleteColumnRequest =
             serde_json::from_str(r#"{"document_id":"d","index":2}"#).unwrap();
         assert_eq!(req.index, 2);
@@ -1289,10 +1292,8 @@ mod tests {
     fn set_cell_request_treats_missing_table_index_as_none() {
         // Default-on-missing matches the documented contract: omit
         // table_index → defaults to 0 on the frontend.
-        let req: SetCellRequest = serde_json::from_str(
-            r#"{"document_id":"d","row":0,"col":0,"content":"x"}"#,
-        )
-        .unwrap();
+        let req: SetCellRequest =
+            serde_json::from_str(r#"{"document_id":"d","row":0,"col":0,"content":"x"}"#).unwrap();
         assert!(req.table_index.is_none());
     }
 
