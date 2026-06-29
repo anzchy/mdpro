@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { usePreview } from "../../hooks/usePreview";
 import { ImageRenderer } from "./ImageRenderer";
 import { renderMathInContainer } from "./mathRender";
+import { attachCopyButtons } from "./attachCopyButtons";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import "katex/dist/katex.min.css";
@@ -23,6 +24,9 @@ export function Preview({ markdown, documentPath }: PreviewProps) {
     blocks.forEach((block) => {
       hljs.highlightElement(block);
     });
+    // WI-2: inject one copy button per block-level code block. Idempotent, so
+    // safe to run after each highlight pass / preview re-render.
+    attachCopyButtons(container);
     // WI-1.1: typeset math placeholders (fail-soft per block). Mirrors the
     // highlight.js pass above; runs after each preview re-render.
     renderMathInContainer(container);
