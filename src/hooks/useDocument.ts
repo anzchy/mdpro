@@ -16,6 +16,7 @@ const createEmptyDocument = (): Document => ({
   path: null,
   content: "",
   encoding: "UTF-8",
+  lineEnding: "lf",
   isModified: false,
   lastSaved: null,
   fileSize: null,
@@ -171,12 +172,14 @@ export function useDocument() {
   const saveActiveDocumentAs = useCallback(async (actionId?: string) => {
     if (!activeDocument) return null;
     const suggestedName = getTitleFromPath(activeDocument.path);
-    const result = await fileService.saveFileDialog(
-      activeDocument.id,
-      activeDocument.content,
+    const result = await fileService.saveFileDialog({
+      documentId: activeDocument.id,
+      content: activeDocument.content,
       suggestedName,
+      encoding: activeDocument.encoding,
+      lineEnding: activeDocument.lineEnding,
       actionId,
-    );
+    });
     if (result?.success) {
       const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
       upsertDocument({
@@ -233,12 +236,14 @@ export function useDocument() {
     } catch {
       // Preference read failed — fall through with original content.
     }
-    const result = await fileService.saveFile(
-      activeDocument.id,
-      contentToSave,
-      activeDocument.path,
+    const result = await fileService.saveFile({
+      documentId: activeDocument.id,
+      content: contentToSave,
+      path: activeDocument.path,
+      encoding: activeDocument.encoding,
+      lineEnding: activeDocument.lineEnding,
       actionId,
-    );
+    });
     if (result?.success) {
       const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
       upsertDocument({

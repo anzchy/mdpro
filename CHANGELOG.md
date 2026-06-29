@@ -13,12 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI release workflow: `latest.json` generation with dynamic GitHub asset discovery via `jq`, signing env vars for updater artifacts
 
 ### Security
+- Sanitizer policy redesign (Typora-parity Phase 0, WI-0.1): the Rust `sanitize_html` and frontend DOMPurify config now share one per-feature allow-list matrix that preserves legitimate KaTeX math, footnote anchors, and Mermaid inline-SVG output while neutralizing script/`on*`/`<foreignObject>`/`url(http…)`-in-style payloads on every render surface. `style` is never allowed (no exfiltration), href schemes are restricted to the safe set, and in-doc `#anchor` links pass through. Mirrored tag/attr lists are regression-tested on both surfaces
 - Upgraded DOMPurify from `^3.2.7` to `^3.3.2` (resolved to `3.3.3`), patching GHSA-h8r8-wccr-v5f2 and GHSA-v2wj-7wpq-c8vv — both Moderate XSS CVEs affecting the HTML paste-sanitization path in the WYSIWYG editor
 
 ### Changed
+- Encoding-safe save round-trip (Typora-parity Phase 0, WI-0.3): files opened as UTF-16LE/BE are now saved back in their original encoding (BOM preserved) instead of being silently rewritten as UTF-8. `save_file`/`save_file_dialog` accept the document's encoding; the open path detects encoding with a confidence level and refuses to guess (no blind Latin-1) for non-UTF-8 files with no BOM, surfacing an encoding error rather than corrupting content. CRLF line endings survive the round-trip
 - ⌘/ now cycles view modes from any context, including when the CodeMirror source editor has focus. The line-comment shortcut moved from ⌘/ to ⌘⌥/ to free up the cycle binding (split via a `Prec.highest` keymap in `Editor.tsx`)
 
 ### Fixed
+- Preferences write-through no longer fails silently (Typora-parity Phase 0, WI-0.5): `preferencesService.setPreferences()` now catches a disk-write rejection, surfaces a "Failed to save preferences" toast (one signal per surface), logs the failure, and re-throws so awaiting callers can react. Previously the many `void setPreferences(...)` fire-and-forget call sites lost the error entirely
 - Settings panel label/control vertical misalignment — `.settings-row-content` was missing `flex: 1` (preventing `space-between` from distributing width) and had `align-items: flex-start` instead of `center`, causing controls to top-align rather than vertically centre next to labels
 - TOC click-to-navigate broken in all view modes
   - `editor-only`: `preview-container` was absent from the DOM, so `scrollToHeading` returned immediately with no effect

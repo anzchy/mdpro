@@ -90,9 +90,25 @@ pub fn save_preferences(preferences: &UserPreferences) -> Result<(), Preferences
     })?;
 
     // Write to a temp file first so a crash mid-write leaves config.json intact.
-    fs::write(&tmp_path, payload).map_err(|err| PreferencesError::IoError {
-        message: err.to_string(),
-    })?;
+    // Write + flush + fsync so the bytes are durable before the rename — a
+    // power loss between rename and an unsynced write could otherwise leave a
+    // renamed-but-empty config.
+    {
+        use std::io::Write;
+        let mut file = fs::File::create(&tmp_path).map_err(|err| PreferencesError::IoError {
+            message: err.to_string(),
+        })?;
+        file.write_all(payload.as_bytes())
+            .and_then(|_| file.flush())
+            .and_then(|_| file.sync_all())
+            .map_err(|err| {
+                // Remove the partial temp so a failed write leaves no debris.
+                let _ = fs::remove_file(&tmp_path);
+                PreferencesError::IoError {
+                    message: err.to_string(),
+                }
+            })?;
+    }
 
     // Restrict file permissions on Unix (macOS target: owner read/write only).
     #[cfg(unix)]
@@ -101,10 +117,19 @@ pub fn save_preferences(preferences: &UserPreferences) -> Result<(), Preferences
         let _ = fs::set_permissions(&tmp_path, fs::Permissions::from_mode(0o600));
     }
 
-    // Atomic rename: either the full new content is visible or the old file remains.
-    fs::rename(&tmp_path, &final_path).map_err(|err| PreferencesError::IoError {
-        message: err.to_string(),
+    // Atomic rename: either the full new content is visible or the old file
+    // remains. On failure, remove the temp so it isn't left behind.
+    fs::rename(&tmp_path, &final_path).map_err(|err| {
+        let _ = fs::remove_file(&tmp_path);
+        PreferencesError::IoError {
+            message: err.to_string(),
+        }
     })?;
+
+    // Durability of the rename itself: best-effort fsync of the parent dir.
+    if let Ok(dir_handle) = fs::File::open(&dir) {
+        let _ = dir_handle.sync_all();
+    }
 
     Ok(())
 }
@@ -346,6 +371,129 @@ mod tests {
         assert_eq!(decoded.auto_save_interval, original.auto_save_interval);
         assert_eq!(decoded.show_sidebar, original.show_sidebar);
         assert_eq!(decoded.editor.font_size, original.editor.font_size);
+    }
+
+    // -----------------------------------------------------------------------
+    // save_preferences → load_preferences round-trip (persist across "restart")
+    //
+    // Isolated under $HOME so the test never touches the developer's real
+    // ~/.mdpro/config.json. Uses HOME_LOCK to serialise with other HOME-mutating
+    // tests (file.rs / draft.rs follow the same pattern).
+    // -----------------------------------------------------------------------
+
+    use crate::HOME_LOCK;
+
+    struct HomeRestorer(Option<String>);
+    impl Drop for HomeRestorer {
+        fn drop(&mut self) {
+            match &self.0 {
+                Some(v) => unsafe { std::env::set_var("HOME", v) },
+                None => unsafe { std::env::remove_var("HOME") },
+            }
+        }
+    }
+
+    /// SAFETY: caller must hold HOME_LOCK for the lifetime of the guard.
+    fn set_home(path: &std::path::Path) -> HomeRestorer {
+        let prev = std::env::var("HOME").ok();
+        unsafe { std::env::set_var("HOME", path.to_str().expect("temp dir path is non-UTF-8")) };
+        HomeRestorer(prev)
+    }
+
+    fn temp_home(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir()
+            .join("mdpro_prefs_test")
+            .join(format!("{label}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn settings_persist_across_restart() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = temp_home("persist");
+        let _home_guard = set_home(&home);
+
+        // First "session": change a setting and save.
+        let mut prefs = load_preferences().expect("initial load");
+        prefs.auto_save_interval = 222;
+        prefs.show_sidebar = false;
+        save_preferences(&prefs).expect("save");
+
+        // Second "session": a fresh load (simulating restart) must see them.
+        let reloaded = load_preferences().expect("reload after restart");
+        assert_eq!(reloaded.auto_save_interval, 222);
+        assert!(!reloaded.show_sidebar);
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn first_load_creates_default_config_file() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = temp_home("first_load");
+        let _home_guard = set_home(&home);
+
+        // No config yet → load_preferences must materialise defaults to disk.
+        let path = home.join(".mdpro").join("config.json");
+        assert!(!path.exists(), "config must not exist before first load");
+        let _ = load_preferences().expect("first load");
+        assert!(path.exists(), "first load must create the config file");
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn save_uses_atomic_rename_no_leftover_tmp() {
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = temp_home("atomic");
+        let _home_guard = set_home(&home);
+
+        save_preferences(&UserPreferences::default()).expect("save");
+        let tmp = home.join(".mdpro").join("config.json.tmp");
+        assert!(!tmp.exists(), "the temp file must be renamed away, not left behind");
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn save_failure_preserves_existing_config_and_leaves_no_tmp() {
+        use std::os::unix::fs::PermissionsExt;
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = temp_home("atomic_fail");
+        let _home_guard = set_home(&home);
+
+        // First save establishes a known-good config.json.
+        let mut first = UserPreferences::default();
+        first.auto_save_interval = 42;
+        save_preferences(&first).expect("first save");
+        let dir = home.join(".mdpro");
+        let config = dir.join("config.json");
+        let original = std::fs::read(&config).expect("read original");
+
+        // Make the dir read-only so creating the temp fails on the next save.
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+
+        let mut second = UserPreferences::default();
+        second.auto_save_interval = 999;
+        let res = save_preferences(&second);
+
+        // Restore perms for assertions + cleanup.
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        assert!(res.is_err(), "save into read-only dir must fail, got: {res:?}");
+        assert_eq!(
+            std::fs::read(&config).expect("read after failed save"),
+            original,
+            "the existing config.json must survive a failed save"
+        );
+        assert!(
+            !dir.join("config.json.tmp").exists(),
+            "no temp file may be left behind after a failed save"
+        );
+        let _ = std::fs::remove_dir_all(&home);
     }
 
     #[test]

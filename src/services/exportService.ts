@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import DOMPurify from "dompurify";
 import { Marked } from "marked";
 import { applyImageWidthMarkerToHtml } from "../plugins/milkdown/imageResizePlugin";
 import { renderHighlightSyntaxInHtml } from "./highlightSyntax";
 import { loggingService } from "./loggingService";
+import { sanitizeRenderedHtml } from "./sanitizerPolicy";
 
 interface RenderMarkdownResult {
   html: string;
@@ -32,8 +32,9 @@ interface ExportResult {
   htmlSize: number;
 }
 
-const sanitize = (html: string) =>
-  DOMPurify.sanitize(html, { ADD_TAGS: ["mark", "u"], ADD_ATTR: ["data-heading-id"] });
+// Shared WI-0.1 allow-list policy (math/footnote/mermaid-aware), mirroring the
+// Rust `sanitize_html`. See src/services/sanitizerPolicy.ts.
+const sanitize = sanitizeRenderedHtml;
 
 /**
  * Generate unique anchor ID from heading text (must match tocService).

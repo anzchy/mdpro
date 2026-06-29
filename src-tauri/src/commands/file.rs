@@ -177,7 +177,11 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
         "open_file_from_path: read bytes {}",
         bytes.len()
     ));
-    let detected = encoding::detect_encoding(&bytes);
+    // Detect with confidence (WI-0.3): a non-UTF-8 file with no recognised BOM
+    // is "unknown"/Low — we refuse to guess (no blind Latin-1) and surface an
+    // EncodingError rather than corrupt the content. A user-supplied hint still
+    // takes precedence (explicit conversion).
+    let (detected, _confidence) = encoding::detect_encoding_with_confidence(&bytes);
     let encoding_value = encoding_hint.clone().unwrap_or_else(|| detected.clone());
     let content = encoding::decode_bytes(&bytes, &encoding_value).map_err(|_| {
         logger::log_line(&format!(
@@ -194,9 +198,13 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
         content.len()
     ));
 
+    // Capture the original EOL style before normalizing to LF so save can
+    // restore it (Fix 2 — no silent CRLF→LF on round-trip).
+    let line_ending = detect_line_ending(&content);
     let content = normalize_line_endings(&content);
     let mut document = Document::from_path(path_buf, content);
     document.encoding = encoding_value;
+    document.line_ending = line_ending.to_string();
     logger::log_line(&format!(
         "open_file_from_path: created document id {}",
         document.id
@@ -215,6 +223,118 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
 /// - lone `\r` (old Mac CR) → `\n`
 fn normalize_line_endings(content: &str) -> String {
     content.replace("\r\n", "\n").replace('\r', "\n")
+}
+
+/// The line-ending style a file used on disk, so an open→edit→save round-trip
+/// restores it instead of silently rewriting every line to LF.
+///
+/// Detection precedence: any `\r\n` ⇒ CRLF; otherwise any lone `\r` ⇒ CR;
+/// otherwise LF (the editor's internal representation and our default).
+fn detect_line_ending(content: &str) -> &'static str {
+    if content.contains("\r\n") {
+        "crlf"
+    } else if content.contains('\r') {
+        "cr"
+    } else {
+        "lf"
+    }
+}
+
+/// Convert LF-only `content` (the editor's internal form) back to the document's
+/// original line-ending style for writing to disk. An absent or `"lf"` style is
+/// written unchanged. The input is normalized to LF first so a re-conversion is
+/// idempotent and never produces `\r\r\n`.
+fn restore_line_endings(content: &str, line_ending: Option<&str>) -> String {
+    let normalized = normalize_line_endings(content);
+    match line_ending {
+        Some("crlf") => normalized.replace('\n', "\r\n"),
+        Some("cr") => normalized.replace('\n', "\r"),
+        _ => normalized,
+    }
+}
+
+/// Encode document content for writing to disk, in the document's original
+/// encoding (WI-0.3 — save back in the original encoding, no silent
+/// conversion). An absent or empty hint means UTF-8. An unsupported encoding
+/// returns an error so the save fails loudly instead of writing mislabelled
+/// bytes.
+fn encode_for_save(content: &str, encoding_hint: Option<&str>) -> Result<Vec<u8>, FileError> {
+    let enc = match encoding_hint {
+        None => "UTF-8",
+        Some(e) if e.is_empty() => "UTF-8",
+        Some(e) => e,
+    };
+    encoding::encode_bytes(content, enc).map_err(|message| FileError::IoError { message })
+}
+
+/// Atomically write `bytes` to `target`.
+///
+/// Truncate-then-write (`std::fs::write`) destroys the original file if the
+/// process dies or the disk fills mid-write: the user is left with a truncated
+/// or empty file and the prior contents are gone. Instead we:
+///   1. Write to a temp file in the *same directory* (so the final `rename` is a
+///      same-filesystem atomic operation, not a cross-device copy).
+///   2. `flush` + `sync_all` (fsync) the temp file so its bytes are durable.
+///   3. `rename` the temp over the target — atomic on POSIX: a concurrent reader
+///      sees either the whole old file or the whole new file, never a partial.
+///   4. fsync the parent directory so the rename itself is durable.
+///   5. Preserve the original file's permissions on the replacement.
+///
+/// On any failure the temp file is removed and the original target is left
+/// untouched, so a failed save never loses the prior contents.
+fn atomic_write(target: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+
+    let parent = target.parent().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "target has no parent dir")
+    })?;
+
+    // Capture the original permissions (if the file exists) so the atomic
+    // replacement keeps the same mode rather than inheriting the temp's.
+    let original_perms = std::fs::metadata(target).ok().map(|m| m.permissions());
+
+    // Unique same-dir temp name: process id + target file name keeps it scoped
+    // and avoids clobbering a concurrent save of a different file.
+    let file_name = target
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("mdpro");
+    let tmp_name = format!(".{}.{}.tmp", file_name, std::process::id());
+    let tmp_path = parent.join(tmp_name);
+
+    // Scoped block so the File handle is closed before the rename.
+    let write_and_sync = || -> std::io::Result<()> {
+        let mut file = std::fs::File::create(&tmp_path)?;
+        file.write_all(bytes)?;
+        file.flush()?;
+        file.sync_all()?;
+        Ok(())
+    };
+
+    if let Err(e) = write_and_sync() {
+        let _ = std::fs::remove_file(&tmp_path);
+        return Err(e);
+    }
+
+    // Restore original permissions onto the temp before the rename so the
+    // replaced file keeps its mode.
+    if let Some(perms) = original_perms {
+        let _ = std::fs::set_permissions(&tmp_path, perms);
+    }
+
+    if let Err(e) = std::fs::rename(&tmp_path, target) {
+        let _ = std::fs::remove_file(&tmp_path);
+        return Err(e);
+    }
+
+    // Durability of the rename itself: fsync the directory. Best-effort —
+    // some platforms/filesystems don't support opening a dir for fsync, and a
+    // failure here doesn't mean data loss (the rename already succeeded).
+    if let Ok(dir) = std::fs::File::open(parent) {
+        let _ = dir.sync_all();
+    }
+
+    Ok(())
 }
 
 /// Allowed file extensions for save operations.
@@ -302,6 +422,378 @@ mod tests {
     #[test]
     fn test_normalize_empty_string() {
         assert_eq!(normalize_line_endings(""), "");
+    }
+
+    // -----------------------------------------------------------------------
+    // WI-0.3 — safe save round-trip (no silent re-encoding)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_encode_for_save_defaults_to_utf8_when_no_encoding() {
+        let bytes = encode_for_save("hello", None).expect("encode");
+        assert_eq!(bytes, b"hello".to_vec());
+    }
+
+    #[test]
+    fn test_encode_for_save_preserves_utf16le() {
+        // A document opened as UTF-16LE must be saved back as UTF-16LE (with
+        // BOM), not silently downgraded to UTF-8.
+        let bytes = encode_for_save("hi", Some("UTF-16LE")).expect("encode");
+        assert_eq!(&bytes[..2], &[0xFF, 0xFE], "UTF-16LE BOM must be written");
+        // Decoding it back yields the original content.
+        assert_eq!(encoding::decode_bytes(&bytes, "UTF-16LE").unwrap(), "hi");
+    }
+
+    #[test]
+    fn test_encode_for_save_round_trips_open_then_save() {
+        // Full round-trip: original UTF-16 file → open content → save content
+        // → byte-identical file.
+        let original = encoding::encode_bytes("世界\r\nsecond", "UTF-16BE").unwrap();
+        let opened = encoding::decode_bytes(&original, "UTF-16BE").unwrap();
+        let saved = encode_for_save(&opened, Some("UTF-16BE")).unwrap();
+        assert_eq!(saved, original, "save must not corrupt the original encoding");
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 2 — CRLF preserved across a REAL open→edit→save round-trip.
+    //
+    // These go through open_file_from_path (which calls normalize_line_endings)
+    // and save_file, NOT the encoder in isolation. The bypassed test only
+    // checked the encoder; this proves the line-ending survives the full path.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_detect_line_ending() {
+        assert_eq!(detect_line_ending("a\r\nb"), "crlf");
+        assert_eq!(detect_line_ending("a\rb"), "cr");
+        assert_eq!(detect_line_ending("a\nb"), "lf");
+        assert_eq!(detect_line_ending("plain"), "lf");
+        // CRLF wins when both present.
+        assert_eq!(detect_line_ending("a\r\nb\nc"), "crlf");
+    }
+
+    #[test]
+    fn test_restore_line_endings_is_idempotent() {
+        // Editor content is LF; restoring CRLF must not produce \r\r\n even if
+        // the content somehow already contains CRLF.
+        assert_eq!(restore_line_endings("a\nb", Some("crlf")), "a\r\nb");
+        assert_eq!(restore_line_endings("a\r\nb", Some("crlf")), "a\r\nb");
+        assert_eq!(restore_line_endings("a\nb", Some("lf")), "a\nb");
+        assert_eq!(restore_line_endings("a\nb", None), "a\nb");
+    }
+
+    #[tokio::test]
+    async fn test_utf8_crlf_round_trip_preserves_crlf_on_disk() {
+        let dir = io_test_dir("crlf_utf8");
+        let path = dir.join("doc.md");
+        // A genuine CRLF UTF-8 file on disk.
+        std::fs::write(&path, b"line one\r\nline two\r\n").unwrap();
+
+        // Open through the real path: it normalizes to LF internally and records
+        // the original EOL on the document.
+        let opened = open_file_from_path(&path.to_string_lossy(), None).expect("open");
+        assert_eq!(opened.document.line_ending, "crlf");
+        assert_eq!(opened.document.content, "line one\nline two\n", "editor sees LF");
+
+        // The editor saves its LF content back; the original EOL must be restored.
+        let edited_lf = format!("{}line three\n", opened.document.content);
+        save_file(
+            "d1".into(),
+            edited_lf,
+            Some(path.to_string_lossy().to_string()),
+            Some(opened.document.encoding.clone()),
+            Some(opened.document.line_ending.clone()),
+            None,
+        )
+        .await
+        .expect("save");
+
+        let on_disk = std::fs::read(&path).unwrap();
+        assert_eq!(
+            on_disk,
+            b"line one\r\nline two\r\nline three\r\n".to_vec(),
+            "CRLF must be restored on save, not silently rewritten to LF"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_utf16_crlf_round_trip_preserves_crlf_and_encoding() {
+        let dir = io_test_dir("crlf_utf16");
+        let path = dir.join("doc.md");
+        // A genuine UTF-16LE-with-BOM, CRLF file on disk.
+        let original = encoding::encode_bytes("héllo\r\nwörld\r\n", "UTF-16LE").unwrap();
+        std::fs::write(&path, &original).unwrap();
+
+        let opened = open_file_from_path(&path.to_string_lossy(), None).expect("open");
+        assert_eq!(opened.document.encoding, "UTF-16LE");
+        assert_eq!(opened.document.line_ending, "crlf");
+        assert_eq!(opened.document.content, "héllo\nwörld\n", "editor sees LF");
+
+        save_file(
+            "d1".into(),
+            opened.document.content.clone(),
+            Some(path.to_string_lossy().to_string()),
+            Some(opened.document.encoding.clone()),
+            Some(opened.document.line_ending.clone()),
+            None,
+        )
+        .await
+        .expect("save");
+
+        let on_disk = std::fs::read(&path).unwrap();
+        assert_eq!(
+            on_disk, original,
+            "UTF-16 CRLF file must round-trip byte-identical (encoding AND line endings preserved)"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_encode_for_save_rejects_unsupported_encoding() {
+        // Refuse rather than write UTF-8 bytes mislabelled as the original.
+        assert!(encode_for_save("内容", Some("GBK")).is_err());
+    }
+
+    #[test]
+    fn test_encode_for_save_empty_encoding_is_utf8() {
+        // An empty string encoding hint must behave like UTF-8, not error.
+        let bytes = encode_for_save("x", Some("")).expect("encode");
+        assert_eq!(bytes, b"x".to_vec());
+    }
+
+    // -----------------------------------------------------------------------
+    // WI-0.4 — I/O failure paths
+    //
+    // These exercise save_file against the real filesystem. save_file is a
+    // plain async fn (no Tauri State), so it is callable directly under
+    // #[tokio::test].
+    // -----------------------------------------------------------------------
+
+    fn io_test_dir(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir()
+            .join("mdpro_io_test")
+            .join(format!("{label}_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[tokio::test]
+    async fn test_save_to_existing_file_round_trips_content() {
+        let dir = io_test_dir("roundtrip");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"old").unwrap();
+        let res = save_file(
+            "d1".into(),
+            "new content".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        None,
+        )
+        .await;
+        assert!(res.is_ok(), "save should succeed: {res:?}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "new content");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_save_to_readonly_dir_surfaces_error_not_silent() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = io_test_dir("readonly");
+        // A brand-new file in a read-only directory → EACCES on create.
+        let path = dir.join("new.md");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+
+        let res = save_file(
+            "d1".into(),
+            "content".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        None,
+        )
+        .await;
+
+        // Restore perms so cleanup can proceed regardless of outcome.
+        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+
+        // The key property: the failure is SURFACED, never a silent success
+        // that discards the user's content.
+        assert!(res.is_err(), "read-only save must surface an error, got: {res:?}");
+        assert!(
+            !path.exists(),
+            "no partial/empty file should be left behind"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_after_file_deleted_recreates_without_data_loss() {
+        // Open then delete the file, then save: the parent dir still exists, so
+        // the write must recreate it with the in-editor content (no silent
+        // discard of the user's edits).
+        let dir = io_test_dir("deleted");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"original").unwrap();
+        std::fs::remove_file(&path).unwrap();
+        assert!(!path.exists());
+
+        let res = save_file(
+            "d1".into(),
+            "rescued edits".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        None,
+        )
+        .await;
+        assert!(res.is_ok(), "save after delete should recreate: {res:?}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "rescued edits");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_filename_with_spaces_and_emoji_round_trips() {
+        let dir = io_test_dir("fancy_names");
+        for name in ["my notes.md", "memo 📝 draft.md", "über café.md"] {
+            let path = dir.join(name);
+            let res = save_file(
+                "d1".into(),
+                "body".into(),
+                Some(path.to_string_lossy().to_string()),
+                None,
+                None,
+            None,
+            )
+            .await;
+            assert!(res.is_ok(), "save of {name:?} should succeed: {res:?}");
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "body");
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_filename_with_quote_round_trips() {
+        let dir = io_test_dir("quote_name");
+        // A single quote in the filename must not break the write path.
+        let path = dir.join("o'brien's list.md");
+        let res = save_file(
+            "d1".into(),
+            "x".into(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        None,
+        )
+        .await;
+        assert!(res.is_ok(), "save with quote in name should succeed: {res:?}");
+        assert!(path.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_save_very_long_single_line_and_large_content() {
+        // ~10MB of a single very long line (minified-content shape). The save
+        // path must remain responsive and lossless — no truncation, no hang.
+        let dir = io_test_dir("large");
+        let path = dir.join("big.md");
+        let big = "a".repeat(10 * 1024 * 1024 - 16); // just under the 10MB open cap
+        let start = std::time::Instant::now();
+        let res = save_file(
+            "d1".into(),
+            big.clone(),
+            Some(path.to_string_lossy().to_string()),
+            None,
+            None,
+        None,
+        )
+        .await;
+        let elapsed = start.elapsed();
+        assert!(res.is_ok(), "large save should succeed: {res:?}");
+        assert_eq!(std::fs::metadata(&path).unwrap().len() as usize, big.len());
+        // Generous smoke bound — catches an accidental O(n^2) regression, not a
+        // perf benchmark. 10MB to a temp file should be well under this.
+        assert!(
+            elapsed.as_secs() < 10,
+            "10MB save took too long: {elapsed:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 1 — atomic save (no truncate-then-write data loss)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_atomic_write_replaces_content_and_leaves_no_tmp() {
+        let dir = io_test_dir("atomic_ok");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"old contents").unwrap();
+
+        atomic_write(&path, b"brand new contents").expect("atomic_write");
+        assert_eq!(std::fs::read(&path).unwrap(), b"brand new contents");
+
+        // No `.tmp` sibling may be left behind after a successful write.
+        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "no .tmp file should remain, found: {leftovers:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_atomic_write_failure_preserves_original_and_no_tmp() {
+        use std::os::unix::fs::PermissionsExt;
+        // The original file exists with known contents. We make the *directory*
+        // read-only so creating the same-dir temp file fails. The atomic write
+        // must error AND leave the original file byte-for-byte intact — the
+        // truncate-then-write path would have destroyed it.
+        let dir = io_test_dir("atomic_fail");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"PRECIOUS ORIGINAL").unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+
+        let res = atomic_write(&path, b"this write must not land");
+
+        // Restore perms so we can read/clean up regardless of outcome.
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        assert!(res.is_err(), "write to read-only dir must fail, got: {res:?}");
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            b"PRECIOUS ORIGINAL",
+            "original contents must survive a failed atomic write"
+        );
+        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "no .tmp file should remain after failure, found: {leftovers:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_atomic_write_preserves_file_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        // A file saved with restrictive perms must keep them after an atomic
+        // overwrite (the temp file would otherwise impose its own default mode).
+        let dir = io_test_dir("atomic_perms");
+        let path = dir.join("doc.md");
+        std::fs::write(&path, b"v1").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o640)).unwrap();
+
+        atomic_write(&path, b"v2").expect("atomic_write");
+
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o640, "original permissions must be preserved, got {mode:o}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -629,6 +1121,8 @@ pub async fn save_file(
     _document_id: String,
     content: String,
     path: Option<String>,
+    encoding: Option<String>,
+    line_ending: Option<String>,
     action_id: Option<String>,
 ) -> Result<SaveResult, FileError> {
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
@@ -698,9 +1192,31 @@ pub async fn save_file(
         }
     }
 
+    // Restore the document's original line-ending style (Fix 2) before encoding
+    // so a CRLF/CR file isn't silently rewritten to LF. The editor works in LF
+    // internally; we convert back only at the write boundary.
+    let content = restore_line_endings(&content, line_ending.as_deref());
+
+    // Re-encode in the document's original encoding so a UTF-16/BOM file is
+    // not silently rewritten as UTF-8 (WI-0.3). An unsupported encoding errors
+    // here rather than corrupting the file.
+    let bytes = encode_for_save(&content, encoding.as_deref()).map_err(|err| {
+        log_file_event(
+            "file.save",
+            LogStatus::Fail,
+            LogLevel::Error,
+            Some(&action_id),
+            json!({ "filePath": path_value.as_str(), "encoding": encoding.as_deref() }),
+            Some(start.elapsed().as_millis() as u64),
+            Some(file_error_message(&err)),
+        );
+        err
+    })?;
+    let byte_len = bytes.len();
+
     let path_for_error = path_value.clone();
     file_watcher::mark_write_start(&path_buf);
-    let write_result = std::fs::write(&path_buf, content.as_bytes());
+    let write_result = atomic_write(&path_buf, &bytes);
     file_watcher::mark_write_end(&path_buf);
     write_result.map_err(|err| {
         let mapped = to_file_error(err, &path_value);
@@ -723,7 +1239,7 @@ pub async fn save_file(
         Some(&action_id),
         json!({
             "filePath": path_value.as_str(),
-            "fileSizeBytes": content.as_bytes().len()
+            "fileSizeBytes": byte_len
         }),
         Some(start.elapsed().as_millis() as u64),
         None,
@@ -741,6 +1257,8 @@ pub async fn save_file_dialog(
     document_id: String,
     content: String,
     suggested_name: Option<String>,
+    encoding: Option<String>,
+    line_ending: Option<String>,
     action_id: Option<String>,
 ) -> Result<Option<SaveResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -766,6 +1284,8 @@ pub async fn save_file_dialog(
         document_id,
         content,
         Some(path.to_string_lossy().to_string()),
+        encoding,
+        line_ending,
         Some(action_id),
     )
         .await

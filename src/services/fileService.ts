@@ -44,22 +44,45 @@ export const fileService = {
     return invoke("create_document", {});
   },
 
-  async saveFile(
-    documentId: string,
-    content: string,
-    path?: string,
-    actionId?: string,
-  ): Promise<SaveResult> {
-    return invoke("save_file", { documentId, content, path, actionId });
+  /**
+   * Save `content` to disk.
+   *
+   * Takes an options object rather than positional args: the previous
+   * signature put `encoding` before `actionId`, so adding a new field
+   * (`lineEnding`) between them would silently shift every caller's args by
+   * one (a wrong-arg footgun). Named fields make a misplaced value a type
+   * error instead. `encoding` preserves the original file encoding (WI-0.3)
+   * and `lineEnding` restores the original CRLF/CR/LF style (Fix 2).
+   */
+  async saveFile(options: {
+    documentId: string;
+    content: string;
+    path?: string;
+    encoding?: string;
+    lineEnding?: string;
+    actionId?: string;
+  }): Promise<SaveResult> {
+    const { documentId, content, path, encoding, lineEnding, actionId } = options;
+    return invoke("save_file", { documentId, content, path, encoding, lineEnding, actionId });
   },
 
-  async saveFileDialog(
-    documentId: string,
-    content: string,
-    suggestedName?: string,
-    actionId?: string,
-  ): Promise<SaveResult | null> {
-    return invoke("save_file_dialog", { documentId, content, suggestedName, actionId });
+  async saveFileDialog(options: {
+    documentId: string;
+    content: string;
+    suggestedName?: string;
+    encoding?: string;
+    lineEnding?: string;
+    actionId?: string;
+  }): Promise<SaveResult | null> {
+    const { documentId, content, suggestedName, encoding, lineEnding, actionId } = options;
+    return invoke("save_file_dialog", {
+      documentId,
+      content,
+      suggestedName,
+      encoding,
+      lineEnding,
+      actionId,
+    });
   },
 
   async closeDocument(documentId: string, discardChanges: boolean, path?: string | null): Promise<CloseResult> {
