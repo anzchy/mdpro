@@ -1,6 +1,10 @@
 use pulldown_cmark::{html, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use std::collections::HashMap;
 
+use crate::services::markdown_ext::{
+    add_footnote_back_links, render_display_math, render_inline_math,
+};
+
 /// Escape HTML special characters to prevent XSS when injecting text into HTML attributes or content.
 fn html_escape(text: &str) -> String {
     text.replace('&', "&amp;")
@@ -69,10 +73,7 @@ fn preprocess_highlight(markdown: &str) -> String {
         let trimmed = line.trim_start();
         if in_fence {
             // Detect closing fence: same char, same or greater length, rest is whitespace
-            let close_len = trimmed
-                .chars()
-                .take_while(|&c| c == fence_char)
-                .count();
+            let close_len = trimmed.chars().take_while(|&c| c == fence_char).count();
             if close_len >= fence_len && trimmed[close_len..].trim().is_empty() {
                 in_fence = false;
             }
@@ -150,14 +151,23 @@ fn replace_highlight_inline(line: &str) -> String {
             let mut depth = 1i32;
             while i < n {
                 match bytes[i] {
-                    b'(' => { depth += 1; i += 1; }
+                    b'(' => {
+                        depth += 1;
+                        i += 1;
+                    }
                     b')' => {
                         depth -= 1;
                         i += 1;
-                        if depth == 0 { break; }
+                        if depth == 0 {
+                            break;
+                        }
                     }
-                    b'\\' if i + 1 < n => { i += 2; }
-                    _ => { i += 1; }
+                    b'\\' if i + 1 < n => {
+                        i += 2;
+                    }
+                    _ => {
+                        i += 1;
+                    }
                 }
             }
             out.push_str(&line[span_start..i]);
@@ -239,29 +249,107 @@ fn replace_highlight_inline(line: &str) -> String {
 
 /// Math (KaTeX HTML + MathML) tags.
 pub const MATH_TAGS: &[&str] = &[
-    "math", "semantics", "annotation", "mrow", "mi", "mo", "mn", "ms", "mtext",
-    "msup", "msub", "msubsup", "mfrac", "msqrt", "mroot", "munder", "mover",
-    "munderover", "mtable", "mtr", "mtd", "mspace", "mpadded", "mphantom",
-    "menclose", "mstyle", "merror", "annotation-xml",
+    "math",
+    "semantics",
+    "annotation",
+    "mrow",
+    "mi",
+    "mo",
+    "mn",
+    "ms",
+    "mtext",
+    "msup",
+    "msub",
+    "msubsup",
+    "mfrac",
+    "msqrt",
+    "mroot",
+    "munder",
+    "mover",
+    "munderover",
+    "mtable",
+    "mtr",
+    "mtd",
+    "mspace",
+    "mpadded",
+    "mphantom",
+    "menclose",
+    "mstyle",
+    "merror",
+    "annotation-xml",
 ];
 
 /// Mermaid / inline-SVG diagram tags (specific SVG profile — no foreignObject,
 /// no script, no event-handler-bearing wrappers).
 pub const SVG_TAGS: &[&str] = &[
-    "svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline",
-    "polygon", "text", "tspan", "defs", "marker", "use", "symbol", "title",
-    "desc", "clipPath", "linearGradient", "radialGradient", "stop", "pattern",
+    "svg",
+    "g",
+    "path",
+    "rect",
+    "circle",
+    "ellipse",
+    "line",
+    "polyline",
+    "polygon",
+    "text",
+    "tspan",
+    "defs",
+    "marker",
+    "use",
+    "symbol",
+    "title",
+    "desc",
+    "clipPath",
+    "linearGradient",
+    "radialGradient",
+    "stop",
+    "pattern",
 ];
 
 /// Generic SVG presentation/geometry attributes that carry no script surface.
 pub const SVG_ATTRS: &[&str] = &[
-    "d", "viewBox", "width", "height", "x", "y", "x1", "y1", "x2", "y2",
-    "cx", "cy", "r", "rx", "ry", "points", "transform", "fill", "stroke",
-    "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin",
-    "fill-opacity", "stroke-opacity", "opacity", "offset", "stop-color",
-    "gradientUnits", "gradientTransform", "marker-end", "marker-start",
-    "text-anchor", "dominant-baseline", "font-size", "font-family",
-    "preserveAspectRatio", "xmlns", "class", "id", "dx", "dy",
+    "d",
+    "viewBox",
+    "width",
+    "height",
+    "x",
+    "y",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "cx",
+    "cy",
+    "r",
+    "rx",
+    "ry",
+    "points",
+    "transform",
+    "fill",
+    "stroke",
+    "stroke-width",
+    "stroke-dasharray",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "fill-opacity",
+    "stroke-opacity",
+    "opacity",
+    "offset",
+    "stop-color",
+    "gradientUnits",
+    "gradientTransform",
+    "marker-end",
+    "marker-start",
+    "text-anchor",
+    "dominant-baseline",
+    "font-size",
+    "font-family",
+    "preserveAspectRatio",
+    "xmlns",
+    "class",
+    "id",
+    "dx",
+    "dy",
 ];
 
 /// Sanitize HTML output, allowing safe formatting tags but stripping
@@ -275,14 +363,15 @@ pub fn sanitize_html(html: &str) -> String {
     let mut builder = ammonia::Builder::default();
     builder
         .add_tags(&[
-            "mark", "u", "s", "del", "ins", "sub", "sup",
-            "details", "summary", "input", "section",
+            "mark", "u", "s", "del", "ins", "sub", "sup", "details", "summary", "input", "section",
         ])
         .add_tags(MATH_TAGS)
         .add_tags(SVG_TAGS)
         // `class` is needed by KaTeX (`katex-*`) and footnote/mermaid wrappers.
         // It carries no script surface once `style` and `on*` stay disallowed.
-        .add_generic_attributes(&["id", "class"])
+        // `aria-label`/`aria-hidden` are screen-reader hints (footnote back-link,
+        // KaTeX MathML) and carry no script surface.
+        .add_generic_attributes(&["id", "class", "aria-label", "aria-hidden"])
         .add_tag_attributes("h1", &["data-heading-id"])
         .add_tag_attributes("h2", &["data-heading-id"])
         .add_tag_attributes("h3", &["data-heading-id"])
@@ -422,6 +511,11 @@ pub fn render_markdown(markdown: &str) -> String {
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_TASKLISTS);
+    // WI-1.1: math events (`$…$`, `$$…$$`). Math inside code spans / fences is
+    // NOT emitted as a math event by pulldown-cmark, so it never renders.
+    options.insert(Options::ENABLE_MATH);
+    // WI-1.3: footnotes (`[^1]`). Back-link rewrite happens post-render.
+    options.insert(Options::ENABLE_FOOTNOTES);
     // Inline HTML is supported by default; keep it enabled for <mark> and <u>.
 
     let parser = Parser::new_ext(markdown, options);
@@ -507,6 +601,27 @@ pub fn render_markdown(markdown: &str) -> String {
                     html::push_html(&mut html_output, std::iter::once(event.clone()));
                 }
             }
+            // WI-1.1: emit mdpro's math wrappers (carrying raw, HTML-escaped
+            // TeX) instead of pulldown-cmark's default `math math-inline` span,
+            // which the KaTeX render pass keys off. Inside a heading the wrapper
+            // still goes to the inner-html buffer; the TeX is NOT added to
+            // heading_text so it doesn't pollute the anchor id.
+            Event::InlineMath(tex) if !in_table => {
+                let rendered = render_inline_math(tex);
+                if in_heading {
+                    heading_inner_html.push_str(&rendered);
+                } else {
+                    html_output.push_str(&rendered);
+                }
+            }
+            Event::DisplayMath(tex) if !in_table => {
+                let rendered = render_display_math(tex);
+                if in_heading {
+                    heading_inner_html.push_str(&rendered);
+                } else {
+                    html_output.push_str(&rendered);
+                }
+            }
             _ => {
                 if in_table {
                     table_events.push(event);
@@ -525,7 +640,10 @@ pub fn render_markdown(markdown: &str) -> String {
     // Table alignment is applied per-table inside the loop above (see
     // the End(Table) branch) so it never touches inline HTML outside
     // pulldown-cmark's own table output.
-    apply_image_width_marker(html_output)
+    let with_images = apply_image_width_marker(html_output);
+    // WI-1.3: add return anchors to footnote definitions (pulldown-cmark's
+    // default writer does not emit them).
+    add_footnote_back_links(&with_images)
 }
 
 /// Convert `<th style="text-align: X">` / `<td style="text-align: X">` to
@@ -553,11 +671,7 @@ fn apply_table_alignment(html: String) -> String {
     // for table cells.
     let mut out = html;
     for tag in ["th", "td"] {
-        for (align, attr) in [
-            ("left", "left"),
-            ("center", "center"),
-            ("right", "right"),
-        ] {
+        for (align, attr) in [("left", "left"), ("center", "center"), ("right", "right")] {
             let from = format!("<{tag} style=\"text-align: {align}\">");
             let to = format!("<{tag} align=\"{attr}\">");
             out = out.replace(&from, &to);
@@ -657,7 +771,10 @@ mod tests {
     #[test]
     fn test_image_width_marker_drops_empty_title() {
         let html = render_markdown("![alt](a.png \"{mdpro-width=75%}\")");
-        assert!(!html.contains("title="), "title should be removed, got: {html}");
+        assert!(
+            !html.contains("title="),
+            "title should be removed, got: {html}"
+        );
         assert!(html.contains("width=\"75%\""), "got: {html}");
     }
 
@@ -807,37 +924,58 @@ mod tests {
     fn test_sanitize_strips_script_tags() {
         let html = "<p>Hello</p><script>alert(1)</script><p>World</p>";
         let result = sanitize_html(html);
-        assert!(!result.contains("<script>"), "script tag must be stripped, got: {result}");
-        assert!(result.contains("Hello"), "safe content must survive, got: {result}");
-        assert!(result.contains("World"), "safe content must survive, got: {result}");
+        assert!(
+            !result.contains("<script>"),
+            "script tag must be stripped, got: {result}"
+        );
+        assert!(
+            result.contains("Hello"),
+            "safe content must survive, got: {result}"
+        );
+        assert!(
+            result.contains("World"),
+            "safe content must survive, got: {result}"
+        );
     }
 
     #[test]
     fn test_sanitize_strips_iframe() {
         let html = "<p>Text</p><iframe src=\"evil.com\"></iframe>";
         let result = sanitize_html(html);
-        assert!(!result.contains("<iframe"), "iframe must be stripped, got: {result}");
+        assert!(
+            !result.contains("<iframe"),
+            "iframe must be stripped, got: {result}"
+        );
     }
 
     #[test]
     fn test_sanitize_strips_event_handlers() {
         let html = "<img src=\"x\" onerror=\"alert(1)\">";
         let result = sanitize_html(html);
-        assert!(!result.contains("onerror"), "event handlers must be stripped, got: {result}");
+        assert!(
+            !result.contains("onerror"),
+            "event handlers must be stripped, got: {result}"
+        );
     }
 
     #[test]
     fn test_sanitize_preserves_mark_tags() {
         let html = "<p>This is <mark>highlighted</mark> text</p>";
         let result = sanitize_html(html);
-        assert!(result.contains("<mark>"), "mark tags must survive sanitization, got: {result}");
+        assert!(
+            result.contains("<mark>"),
+            "mark tags must survive sanitization, got: {result}"
+        );
     }
 
     #[test]
     fn test_sanitize_preserves_standard_formatting() {
         let html = "<p><strong>bold</strong> <em>italic</em> <u>underline</u> <s>strike</s></p>";
         let result = sanitize_html(html);
-        assert!(result.contains("<strong>"), "strong must survive, got: {result}");
+        assert!(
+            result.contains("<strong>"),
+            "strong must survive, got: {result}"
+        );
         assert!(result.contains("<em>"), "em must survive, got: {result}");
         assert!(result.contains("<u>"), "u must survive, got: {result}");
         assert!(result.contains("<s>"), "s must survive, got: {result}");
@@ -848,18 +986,36 @@ mod tests {
         let md = "# Hello\n\n<script>alert('xss')</script>\n\n==highlighted==";
         let html = render_markdown(md);
         let safe = sanitize_html(&html);
-        assert!(!safe.contains("<script>"), "script must not appear in sanitized render output, got: {safe}");
-        assert!(safe.contains("<mark>"), "mark from highlight must survive, got: {safe}");
-        assert!(safe.contains("Hello"), "heading text must survive, got: {safe}");
-        assert!(safe.contains("id=\"hello\""), "heading id must survive sanitization, got: {safe}");
+        assert!(
+            !safe.contains("<script>"),
+            "script must not appear in sanitized render output, got: {safe}"
+        );
+        assert!(
+            safe.contains("<mark>"),
+            "mark from highlight must survive, got: {safe}"
+        );
+        assert!(
+            safe.contains("Hello"),
+            "heading text must survive, got: {safe}"
+        );
+        assert!(
+            safe.contains("id=\"hello\""),
+            "heading id must survive sanitization, got: {safe}"
+        );
     }
 
     #[test]
     fn test_sanitize_preserves_heading_ids() {
         let html = "<h2 id=\"my-heading\" data-heading-id=\"my-heading\">My Heading</h2>";
         let result = sanitize_html(html);
-        assert!(result.contains("id=\"my-heading\""), "id attr must survive, got: {result}");
-        assert!(result.contains("data-heading-id=\"my-heading\""), "data-heading-id must survive, got: {result}");
+        assert!(
+            result.contains("id=\"my-heading\""),
+            "id attr must survive, got: {result}"
+        );
+        assert!(
+            result.contains("data-heading-id=\"my-heading\""),
+            "data-heading-id must survive, got: {result}"
+        );
     }
 
     #[test]
@@ -867,8 +1023,14 @@ mod tests {
         let md = "- [x] Done\n- [ ] Todo";
         let html = render_markdown(md);
         let safe = sanitize_html(&html);
-        assert!(safe.contains("<input"), "task list checkbox must survive, got: {safe}");
-        assert!(safe.contains("checked"), "checked attr must survive, got: {safe}");
+        assert!(
+            safe.contains("<input"),
+            "task list checkbox must survive, got: {safe}"
+        );
+        assert!(
+            safe.contains("checked"),
+            "checked attr must survive, got: {safe}"
+        );
     }
 
     // H3 regression: ==highlight== inside a heading must render as <mark>
@@ -910,10 +1072,22 @@ mod tests {
             "</span></span>",
         );
         let result = sanitize_html(html);
-        assert!(result.contains("<math"), "math element must survive, got: {result}");
-        assert!(result.contains("<semantics>"), "semantics must survive, got: {result}");
-        assert!(result.contains("<annotation"), "annotation must survive, got: {result}");
-        assert!(result.contains("<mi>x</mi>"), "mi must survive, got: {result}");
+        assert!(
+            result.contains("<math"),
+            "math element must survive, got: {result}"
+        );
+        assert!(
+            result.contains("<semantics>"),
+            "semantics must survive, got: {result}"
+        );
+        assert!(
+            result.contains("<annotation"),
+            "annotation must survive, got: {result}"
+        );
+        assert!(
+            result.contains("<mi>x</mi>"),
+            "mi must survive, got: {result}"
+        );
         assert!(
             result.contains("class=\"katex\""),
             "katex class must survive, got: {result}"
@@ -930,8 +1104,14 @@ mod tests {
             "<p>The note. <a href=\"#fnref1\">↩</a></p></div>",
         );
         let result = sanitize_html(html);
-        assert!(result.contains("href=\"#fn1\""), "in-doc footnote href must survive, got: {result}");
-        assert!(result.contains("id=\"fn1\""), "footnote id must survive, got: {result}");
+        assert!(
+            result.contains("href=\"#fn1\""),
+            "in-doc footnote href must survive, got: {result}"
+        );
+        assert!(
+            result.contains("id=\"fn1\""),
+            "footnote id must survive, got: {result}"
+        );
         assert!(
             result.contains("class=\"footnote-reference\""),
             "footnote class must survive, got: {result}"
@@ -948,8 +1128,14 @@ mod tests {
         let result = sanitize_html(html);
         assert!(result.contains("<svg"), "svg must survive, got: {result}");
         assert!(result.contains("<path"), "path must survive, got: {result}");
-        assert!(result.contains("d=\"M0 0 L10 10\""), "path data must survive, got: {result}");
-        assert!(result.contains("viewBox="), "viewBox must survive, got: {result}");
+        assert!(
+            result.contains("d=\"M0 0 L10 10\""),
+            "path data must survive, got: {result}"
+        );
+        assert!(
+            result.contains("viewBox="),
+            "viewBox must survive, got: {result}"
+        );
         assert!(result.contains("<text"), "text must survive, got: {result}");
     }
 
@@ -963,9 +1149,14 @@ mod tests {
             "</semantics></math></span>",
         );
         let result = sanitize_html(html);
-        assert!(!result.contains("<script"), "script in math must be stripped, got: {result}");
-        assert!(!result.contains("alert(1)") || !result.contains("<script"),
-            "script payload must not execute, got: {result}");
+        assert!(
+            !result.contains("<script"),
+            "script in math must be stripped, got: {result}"
+        );
+        assert!(
+            !result.contains("alert(1)") || !result.contains("<script"),
+            "script payload must not execute, got: {result}"
+        );
     }
 
     #[test]
@@ -1001,13 +1192,22 @@ mod tests {
             "</svg>",
         );
         let result = sanitize_html(html);
-        assert!(!result.contains("<script"), "script in svg must be stripped, got: {result}");
-        assert!(!result.contains("onload"), "event handler in svg must be stripped, got: {result}");
+        assert!(
+            !result.contains("<script"),
+            "script in svg must be stripped, got: {result}"
+        );
+        assert!(
+            !result.contains("onload"),
+            "event handler in svg must be stripped, got: {result}"
+        );
         assert!(
             !result.contains("<foreignObject"),
             "foreignObject (HTML-in-SVG escape hatch) must be stripped, got: {result}"
         );
-        assert!(!result.contains("<iframe"), "iframe in svg must be stripped, got: {result}");
+        assert!(
+            !result.contains("<iframe"),
+            "iframe in svg must be stripped, got: {result}"
+        );
     }
 
     #[test]
@@ -1021,6 +1221,147 @@ mod tests {
         );
     }
 
+    // -----------------------------------------------------------------------
+    // WI-1.1 — Math / LaTeX through render_markdown
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_render_inline_math() {
+        let html = render_markdown("The value is $x^2 + 1$ today.");
+        assert!(
+            html.contains("<span class=\"math-inline\">x^2 + 1</span>"),
+            "expected inline math wrapper, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_render_display_math() {
+        let html = render_markdown("$$\\int_0^1 x\\,dx$$");
+        assert!(
+            html.contains("<div class=\"math-display\">"),
+            "expected display math wrapper, got: {html}"
+        );
+        assert!(
+            html.contains("\\int_0^1"),
+            "raw tex must survive, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_render_escaped_dollar_is_not_math() {
+        // An escaped \$ must render as a literal $, NOT open a math span.
+        let html = render_markdown("Price is \\$5 and \\$10.");
+        assert!(
+            !html.contains("class=\"math-inline\""),
+            "escaped \\$ must not render as math, got: {html}"
+        );
+        assert!(
+            html.contains("$5"),
+            "literal dollar must survive, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_math_inside_code_fence_does_not_render() {
+        let html = render_markdown("```\n$x^2$\n```");
+        assert!(
+            !html.contains("class=\"math-inline\""),
+            "math inside a code fence must NOT render, got: {html}"
+        );
+        assert!(
+            html.contains("$x^2$"),
+            "literal tex must survive in code, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_math_inside_inline_code_does_not_render() {
+        let html = render_markdown("`$x^2$`");
+        assert!(
+            !html.contains("class=\"math-inline\""),
+            "math inside inline code must NOT render, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_math_survives_sanitize_html() {
+        let html = render_markdown("Inline $a+b$ and $$c+d$$");
+        let safe = sanitize_html(&html);
+        assert!(
+            safe.contains("class=\"math-inline\""),
+            "inline math wrapper must survive sanitize, got: {safe}"
+        );
+        assert!(
+            safe.contains("class=\"math-display\""),
+            "display math wrapper must survive sanitize, got: {safe}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // WI-1.3 — Footnotes through render_markdown
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_render_single_footnote_with_backlink() {
+        let md = "Here is a note[^1].\n\n[^1]: The footnote text.";
+        let html = render_markdown(md);
+        assert!(
+            html.contains("class=\"footnote-reference\""),
+            "footnote reference missing, got: {html}"
+        );
+        assert!(
+            html.contains("class=\"footnote-definition\""),
+            "footnote definition missing, got: {html}"
+        );
+        assert!(
+            html.contains("id=\"fnref-1\""),
+            "reference back-link target id missing, got: {html}"
+        );
+        assert!(
+            html.contains("href=\"#fnref-1\""),
+            "definition back-link missing, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_render_multiple_footnotes() {
+        let md = "A[^a] and B[^b].\n\n[^a]: first\n[^b]: second";
+        let html = render_markdown(md);
+        assert!(html.contains("id=\"fnref-a\""), "got: {html}");
+        assert!(html.contains("id=\"fnref-b\""), "got: {html}");
+        assert!(html.contains("href=\"#fnref-a\""), "got: {html}");
+        assert!(html.contains("href=\"#fnref-b\""), "got: {html}");
+    }
+
+    #[test]
+    fn test_render_undefined_footnote_reference() {
+        // A reference with no matching definition must not crash and must not
+        // emit a dangling back-link (no definition exists to link from).
+        let md = "Dangling[^missing] reference.";
+        let html = render_markdown(md);
+        // pulldown-cmark still emits the reference; the rewrite gives it an id
+        // but there is no definition, so no back-link anchor is produced.
+        assert!(
+            !html.contains("footnote-backref"),
+            "no back-link without a definition, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_footnote_backlink_survives_sanitize() {
+        let md = "Note[^1].\n\n[^1]: text";
+        let html = render_markdown(md);
+        let safe = sanitize_html(&html);
+        assert!(
+            safe.contains("href=\"#fnref-1\""),
+            "back-link href must survive sanitize, got: {safe}"
+        );
+        assert!(
+            safe.contains("class=\"footnote-backref\""),
+            "back-link class must survive sanitize, got: {safe}"
+        );
+    }
+
     #[test]
     fn test_sanitize_end_to_end_math_payload_via_render() {
         // Defence in depth: even when raw inline HTML carrying a math-shaped
@@ -1028,6 +1369,9 @@ mod tests {
         let md = "Inline <span class=\"katex\"><math><script>alert(1)</script></math></span> done";
         let html = render_markdown(md);
         let safe = sanitize_html(&html);
-        assert!(!safe.contains("<script"), "script must not survive end-to-end, got: {safe}");
+        assert!(
+            !safe.contains("<script"),
+            "script must not survive end-to-end, got: {safe}"
+        );
     }
 }
