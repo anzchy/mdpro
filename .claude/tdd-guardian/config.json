@@ -1,8 +1,21 @@
 {
   "enabled": true,
   "testCommand": "pnpm test:run",
-  "coverageCommand": "pnpm test:run --coverage",
+  "coverageCommand": "pnpm test:run --coverage --coverage.include='src/utils/countText.ts' --coverage.include='src/components/Preview/extractCodeSource.ts' --coverage.include='src/components/Preview/attachCopyButtons.ts' --coverage.include='src/services/preferencesService.ts' --coverage.include='src/services/exportService.ts' --coverage.include='src/stores/editorStore.ts' --coverage.include='src/types/preferences.ts'",
   "coverageSummaryPath": "coverage/coverage-summary.json",
+  "coverageMode": "absolute",
+  "coverageScope": {
+    "rationale": "User decision 2026-06-29 (option b): scope the coverage gate to the changed/Phase-2 testable-logic files rather than the whole project. Thresholds unchanged (40/45/35/40, absolute). The 3 visual-QA React shells touched by Phase 2 (src/App.tsx, src/components/Preview/Preview.tsx, src/components/StatusBar/StatusBar.tsx) are excluded as rule-10 case-by-case component rendering (not unit-tested logic) — consistent with the plan + design-review posture. Whole-project coverage remains a separate pre-existing baseline concern. The vitest.config.ts exclude-glob fix (target/**, .claude/**, configs, specs) is retained.",
+    "includeGlobs": [
+      "src/utils/countText.ts",
+      "src/components/Preview/extractCodeSource.ts",
+      "src/components/Preview/attachCopyButtons.ts",
+      "src/services/preferencesService.ts",
+      "src/services/exportService.ts",
+      "src/stores/editorStore.ts",
+      "src/types/preferences.ts"
+    ]
+  },
   "thresholds": {
     "lines": 40,
     "functions": 45,
