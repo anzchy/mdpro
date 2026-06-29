@@ -144,4 +144,17 @@ describe("prerenderMathForExport — A1 MathML output survives sanitization", ()
     const safe = sanitizeRenderedHtml(prerenderMathForExport(body));
     expect(safe).toContain("<msqrt");
   });
+
+  // B-M2: table-cell math renders via pulldown-cmark's default writer as
+  // `class="math math-inline"` (double class). The KaTeX pass selects with
+  // `span.math-inline`, a CSS class selector that MUST match the double-class
+  // element so in-cell math still typesets. Pin that the selector matches.
+  it("typesets table-cell math (default double-class span.math math-inline)", () => {
+    const container = document.createElement("div");
+    container.innerHTML =
+      '<table><tbody><tr><td><span class="math math-inline">x+y</span></td></tr></tbody></table>';
+    renderMathInContainer(container);
+    // The double-class span was found by `span.math-inline` and typeset.
+    expect(container.querySelector(".katex")).not.toBeNull();
+  });
 });

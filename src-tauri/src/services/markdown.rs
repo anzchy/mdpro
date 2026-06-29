@@ -1476,4 +1476,53 @@ mod tests {
             "script must not survive end-to-end, got: {safe}"
         );
     }
+
+    // B-M2: math inside a table cell. The render loop's math arms are guarded by
+    // `if !in_table`, so an in-cell `$x$` event falls through to pulldown-cmark's
+    // default HTML writer (which emits `<span class="math math-inline">TEX</span>`
+    // — the default double-class) rather than mdpro's `.math-inline` wrapper.
+    //
+    // Deliberate decision (lower-risk option): keep the default-writer output
+    // rather than reroute math out of the buffered table events (which would
+    // desync pulldown-cmark's stateful table writer). The KaTeX/MathML pass keys
+    // off the CSS class selector `span.math-inline`, which DOES match the
+    // default `class="math math-inline"` element — so in-cell math still
+    // typesets in preview and export. This test pins that contract.
+    #[test]
+    fn test_table_cell_math_renders_with_matchable_class() {
+        let md = "| a | b |\n|---|---|\n| $x+y$ | 2 |\n";
+        let html = render_markdown(md);
+        // The math is NOT dropped — it carries the `math-inline` class (within
+        // the default double-class), which the `span.math-inline` selector in
+        // mathRender.ts matches.
+        assert!(
+            html.contains("math-inline"),
+            "table-cell math must carry the math-inline class, got: {html}"
+        );
+        assert!(
+            html.contains("x+y"),
+            "table-cell TeX must survive, got: {html}"
+        );
+        // It lives inside the table cell, not leaked outside the table.
+        assert!(
+            html.contains("<td><span class=\"math math-inline\">x+y</span></td>"),
+            "math must render in-cell, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_table_cell_math_survives_sanitize_with_matchable_class() {
+        let md = "| a | b |\n|---|---|\n| $x+y$ | 2 |\n";
+        let safe = sanitize_html(&render_markdown(md));
+        // After sanitization the math-inline class (the selector hook) survives,
+        // so the export/preview KaTeX pass can still find and typeset it.
+        assert!(
+            safe.contains("math-inline"),
+            "math-inline class must survive sanitize so the KaTeX pass finds it, got: {safe}"
+        );
+        assert!(
+            safe.contains("x+y"),
+            "TeX must survive sanitize, got: {safe}"
+        );
+    }
 }
