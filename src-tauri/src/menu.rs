@@ -12,6 +12,7 @@ const MENU_FILE_OPEN: &str = "menu.file.open";
 const MENU_FILE_SAVE: &str = "menu.file.save";
 const MENU_FILE_CLOSE: &str = "menu.file.close";
 const MENU_FILE_EXPORT_HTML: &str = "menu.file.export_html";
+const MENU_FILE_EXPORT_PDF: &str = "menu.file.export_pdf";
 const MENU_FILE_RECENT_PREFIX: &str = "menu.file.recent.";
 const MENU_FILE_PREFERENCES: &str = "menu.file.preferences";
 
@@ -19,6 +20,7 @@ const MENU_VIEW_CYCLE: &str = "menu.view.cycle";
 const MENU_VIEW_SOURCE: &str = "menu.view.source";
 const MENU_VIEW_WYSIWYG: &str = "menu.view.wysiwyg";
 const MENU_VIEW_TOGGLE_SIDEBAR: &str = "menu.view.toggle_sidebar";
+const MENU_VIEW_TOGGLE_STATUS_BAR: &str = "menu.view.toggle_status_bar";
 
 const MENU_FORMAT_HIGHLIGHT: &str = "menu.format.highlight";
 const MENU_FORMAT_INSERT_TABLE: &str = "menu.format.insert_table";
@@ -143,6 +145,10 @@ pub fn build_menu(
         true,
         Some("CmdOrCtrl+Shift+E"),
     )?;
+    // Menu-only (no accelerator) to avoid the 3-file shortcut-sync burden — see
+    // docs/guide/keyboard-shortcuts.md.
+    let file_export_pdf =
+        MenuItem::with_id(app, MENU_FILE_EXPORT_PDF, "Export PDF...", true, None::<&str>)?;
     let file_close = MenuItem::with_id(app, MENU_FILE_CLOSE, "Close", true, Some("CmdOrCtrl+W"))?;
     let recent_menu = build_recent_submenu(app, recent_files)?;
 
@@ -154,6 +160,7 @@ pub fn build_menu(
         .separator()
         .item(&file_save)
         .item(&file_export)
+        .item(&file_export_pdf)
         .separator()
         .item(&file_close)
         .build()?;
@@ -201,6 +208,14 @@ pub fn build_menu(
         true,
         Some("CmdOrCtrl+Shift+L"),
     )?;
+    // Menu-only (no accelerator) — see docs/guide/keyboard-shortcuts.md.
+    let view_toggle_status_bar = MenuItem::with_id(
+        app,
+        MENU_VIEW_TOGGLE_STATUS_BAR,
+        "Show Status Bar",
+        true,
+        None::<&str>,
+    )?;
 
     let view_menu = SubmenuBuilder::new(app, "View")
         .item(&view_cycle)
@@ -209,6 +224,7 @@ pub fn build_menu(
         .item(&view_wysiwyg)
         .separator()
         .item(&view_toggle_sidebar)
+        .item(&view_toggle_status_bar)
         .build()?;
 
     let format_highlight = MenuItem::with_id(
@@ -327,11 +343,13 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_FILE_SAVE => emit_menu_action(app, "file.save", None),
         MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),
         MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
+        MENU_FILE_EXPORT_PDF => emit_menu_action(app, "file.export_pdf", None),
         MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
         MENU_VIEW_CYCLE => emit_menu_action(app, "cycle-view-mode", None),
         MENU_VIEW_SOURCE => emit_menu_action(app, "set-view-mode", Some("source".to_string())),
         MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
         MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
+        MENU_VIEW_TOGGLE_STATUS_BAR => emit_menu_action(app, "view.toggle_status_bar", None),
         MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
         MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, "paragraph.table", None),
         MENU_THEME_LIGHT => emit_menu_action(app, "theme.light", None),

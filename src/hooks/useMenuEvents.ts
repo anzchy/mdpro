@@ -16,8 +16,10 @@ interface MenuHandlers {
   onSave?: (actionId?: string) => void;
   onClose?: (actionId?: string) => void;
   onExportHtml?: (actionId?: string) => void;
+  onExportPdf?: (actionId?: string) => void;
   onOpenRecent?: (path: string, actionId?: string) => void;
   onToggleSidebar?: (actionId?: string) => void;
+  onToggleStatusBar?: (actionId?: string) => void;
   onHighlight?: (actionId?: string) => void;
   onInsertTable?: (actionId?: string) => void;
   onViewModeChange?: (mode: ViewMode, actionId?: string) => void;
@@ -63,6 +65,9 @@ export function useMenuEvents(handlers: MenuHandlers) {
         case "file.export_html":
           handlers.onExportHtml?.(loggingService.logMenuSelect("menu.file.export_html"));
           break;
+        case "file.export_pdf":
+          handlers.onExportPdf?.(loggingService.logMenuSelect("menu.file.export_pdf"));
+          break;
         case "file.preferences":
           handlers.onOpenPreferences?.(loggingService.logMenuSelect("menu.file.preferences"));
           break;
@@ -90,6 +95,11 @@ export function useMenuEvents(handlers: MenuHandlers) {
         }
         case "view.toggle_sidebar":
           handlers.onToggleSidebar?.(loggingService.logMenuSelect("menu.view.toggle_sidebar"));
+          break;
+        case "view.toggle_status_bar":
+          handlers.onToggleStatusBar?.(
+            loggingService.logMenuSelect("menu.view.toggle_status_bar"),
+          );
           break;
         case "format.highlight":
           handlers.onHighlight?.(loggingService.logMenuSelect("menu.format.highlight"));
@@ -139,6 +149,7 @@ export function useMenuEvents(handlers: MenuHandlers) {
     handlers.onClose,
     handlers.onCycleViewMode,
     handlers.onExportHtml,
+    handlers.onExportPdf,
     handlers.onHighlight,
     handlers.onInsertTable,
     handlers.onNewWindow,
@@ -148,6 +159,7 @@ export function useMenuEvents(handlers: MenuHandlers) {
     handlers.onOpenRecent,
     handlers.onSave,
     handlers.onToggleSidebar,
+    handlers.onToggleStatusBar,
     handlers.onViewModeChange,
     handlers.onThemeModeChange,
   ]);

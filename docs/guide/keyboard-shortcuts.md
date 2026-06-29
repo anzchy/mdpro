@@ -16,6 +16,11 @@ These shortcuts work across all view modes.
 | ⌘S | Save | `saveActiveDocument()` |
 | ⌘W | Close document | `handleCloseRequest()` |
 | ⌘⇧E | Export HTML | `exportHtml()` |
+| — (menu only) | Export PDF | `file.export_pdf` menu action → `exportPdf()` |
+
+> **Export PDF** is intentionally menu-only (File → Export PDF...) with no
+> keyboard accelerator, so it does not need a `preferences.ts` shortcut default
+> (rule 41). Assign one later only if all three sync files are updated together.
 
 ### View Mode
 
@@ -33,6 +38,7 @@ These shortcuts work across all view modes.
 |----------|--------|
 | ⌘⇧L | Toggle Sidebar |
 | ⌘, | Open Preferences |
+| — | Show Status Bar (View menu only — no accelerator) |
 
 ## WYSIWYG Mode Shortcuts (Milkdown)
 

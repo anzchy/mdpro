@@ -6,6 +6,7 @@ import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
 import { TOCSidebarContainer, getViewModeLabel } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
+import { StatusBar } from "./components/StatusBar";
 import { useTOC } from "./hooks/useTOC";
 import { ConfirmDialog } from "./components/common/ConfirmDialog";
 import { SettingsDialog } from "./components/common/SettingsDialog";
@@ -94,6 +95,7 @@ function App() {
   const { resolvedTheme, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
+  const showStatusBar = useEditorStore((s) => s.showStatusBar);
   // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
   const autoSaveInterval = useEditorStore((s) => s.autoSaveInterval);
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
@@ -166,6 +168,26 @@ function App() {
     toggleSidebar();
     void preferencesService.setPreferences({ showSidebar: next });
   }, [toggleSidebar]);
+
+  const handleToggleStatusBar = useCallback((actionId?: string) => {
+    const next = !useEditorStore.getState().showStatusBar;
+    loggingService.logEventSync({
+      level: "info",
+      event: "ui.statusbar.toggle",
+      status: "start",
+      actionId: actionId ?? loggingService.generateActionId(),
+      context: { next },
+    });
+    useEditorStore.getState().toggleStatusBar();
+    void preferencesService.setPreferences({ showStatusBar: next });
+    loggingService.logEventSync({
+      level: "info",
+      event: "ui.statusbar.toggle",
+      status: "success",
+      actionId: actionId ?? loggingService.generateActionId(),
+      context: { showStatusBar: next },
+    });
+  }, []);
 
 
 
@@ -240,6 +262,7 @@ function App() {
         // to avoid race condition with Finder/CLI file opens
         setDefaultViewMode(migrateViewMode(prefs.defaultViewMode));
         setShowSidebar(prefs.showSidebar);
+        useEditorStore.getState().setShowStatusBar(prefs.showStatusBar ?? false);
         setAutoSaveInterval(prefs.autoSaveInterval);
         setRecentFiles(prefs.recentFiles ?? []);
         if (prefs.logging) {
@@ -594,6 +617,26 @@ function App() {
       }
     } catch {
       showToast("Export failed");
+    } finally {
+      setBusyLabel(null);
+    }
+  }, [activeDocument, activeDocumentTitle, resolvedTheme, showToast]);
+
+  const handleExportPdf = useCallback(async (_actionId?: string) => {
+    if (!activeDocument) return;
+    setBusyLabel("Exporting PDF...");
+    try {
+      const title = activeDocumentTitle || "mdpro";
+      const result = await exportService.exportPdf(
+        activeDocument.content,
+        title,
+        resolvedTheme,
+      );
+      if (result?.success) {
+        showToast(`Exported PDF to ${result.path}`);
+      }
+    } catch {
+      showToast("PDF export failed");
     } finally {
       setBusyLabel(null);
     }
@@ -1015,8 +1058,10 @@ function App() {
     onSave: (actionId) => void handleSave(actionId),
     onClose: handleCloseRequest,
     onExportHtml: (actionId) => void handleExportHtml(actionId),
+    onExportPdf: (actionId) => void handleExportPdf(actionId),
     onOpenRecent: handleOpenRecent,
     onToggleSidebar: handleToggleSidebar,
+    onToggleStatusBar: handleToggleStatusBar,
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
     onInsertTable: triggerTableInsert,
     onViewModeChange: setViewMode,
@@ -1154,6 +1199,10 @@ function App() {
         onClose={closeDocumentById}
         onNewDocument={createDocument}
       />
+
+      {showStatusBar ? (
+        <StatusBar content={activeDocument?.content ?? ""} />
+      ) : null}
 
       <RecoveryDialog
         drafts={drafts}
