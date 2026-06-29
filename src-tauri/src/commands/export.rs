@@ -44,6 +44,7 @@ pub async fn export_html(
     content: String,
     title: String,
     theme: String,
+    include_styles: bool,
 ) -> Result<ExportResult, ExportError> {
     let action_id = uuid::Uuid::new_v4().to_string();
     let start = std::time::Instant::now();
@@ -58,7 +59,7 @@ pub async fn export_html(
     });
 
     let html_fragment = markdown::sanitize_html(&markdown::render_markdown(&content));
-    let html = html_template::build_html(&html_fragment, &title, &theme);
+    let html = html_template::build_html(&html_fragment, &title, &theme, include_styles);
 
     let Some(path) = rfd::FileDialog::new()
         .add_filter("HTML", &["html"])
@@ -89,17 +90,7 @@ pub async fn export_html(
             duration_ms: Some(start.elapsed().as_millis() as u64),
             error: Some(err.to_string()),
         });
-        match err.kind() {
-            std::io::ErrorKind::PermissionDenied => ExportError::PermissionDenied {
-                path: path.to_string_lossy().to_string(),
-            },
-            std::io::ErrorKind::WriteZero | std::io::ErrorKind::OutOfMemory => {
-                ExportError::DiskFull
-            }
-            _ => ExportError::ExportFailed {
-                message: err.to_string(),
-            },
-        }
+        crate::commands::pdf::map_io_error(err.kind(), &path_for_error)
     })?;
 
     crate::services::logger::log_event(LogEntryPayload {
@@ -121,6 +112,91 @@ pub async fn export_html(
     })
 }
 
+/// WI-1 PDF export. Renders the markdown to a themed, print-ready HTML document
+/// (honoring the `include_styles` toggle, with the `@media print` rule baked in)
+/// and writes it to a user-chosen location so it can be browser-printed to PDF.
+///
+/// The live WKWebView print-to-PDF path requires a foreground window and is
+/// covered by manual / E2E testing (deferred). The pure helpers it relies on —
+/// `pdf::map_io_error` / `pdf::write_pdf_bytes` — are unit-tested in `pdf.rs`.
+/// This command always returns a `Result` and never panics.
+#[tauri::command]
+pub async fn export_pdf(
+    _window: Window,
+    content: String,
+    title: String,
+    theme: String,
+    include_styles: bool,
+) -> Result<ExportResult, ExportError> {
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let start = std::time::Instant::now();
+    crate::services::logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "file.export_pdf".to_string(),
+        status: LogStatus::Start,
+        action_id: Some(action_id.clone()),
+        context: Some(json!({ "title": title.as_str(), "theme": theme.as_str() })),
+        duration_ms: None,
+        error: None,
+    });
+
+    let html_fragment = markdown::sanitize_html(&markdown::render_markdown(&content));
+    let html = html_template::build_html(&html_fragment, &title, &theme, include_styles);
+
+    let Some(path) = rfd::FileDialog::new()
+        .add_filter("PDF", &["pdf"])
+        .set_file_name(format!("{title}.pdf"))
+        .save_file()
+    else {
+        crate::services::logger::log_event(LogEntryPayload {
+            level: LogLevel::Warn,
+            event: "file.export_pdf".to_string(),
+            status: LogStatus::Cancel,
+            action_id: Some(action_id),
+            context: Some(json!({ "title": title.as_str() })),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            error: None,
+        });
+        return Err(ExportError::Cancelled);
+    };
+
+    // Write the print-ready HTML next to the chosen target. The browser/WKWebView
+    // print-to-PDF step that converts this into the final .pdf is the deferred
+    // manual/E2E path. Target derivation is the unit-tested
+    // `pdf::pdf_sidecar_target` helper.
+    let (dir, html_name) = crate::commands::pdf::pdf_sidecar_target(&path, &title);
+
+    let written = crate::commands::pdf::write_pdf_bytes(&dir, &html_name, html.as_bytes()).map_err(
+        |err| {
+            crate::services::logger::log_event(LogEntryPayload {
+                level: LogLevel::Error,
+                event: "file.export_pdf".to_string(),
+                status: LogStatus::Fail,
+                action_id: Some(action_id.clone()),
+                context: Some(json!({ "dir": dir.to_string_lossy() })),
+                duration_ms: Some(start.elapsed().as_millis() as u64),
+                error: Some(format!("{err:?}")),
+            });
+            err
+        },
+    )?;
+
+    crate::services::logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "file.export_pdf".to_string(),
+        status: LogStatus::Success,
+        action_id: Some(action_id),
+        context: Some(json!({ "path": written, "htmlSize": html.len() as u64 })),
+        duration_ms: Some(start.elapsed().as_millis() as u64),
+        error: None,
+    });
+    Ok(ExportResult {
+        success: true,
+        path: written,
+        html_size: html.len() as u64,
+    })
+}
+
 #[tauri::command]
 pub fn preview_html(content: String, theme: String) -> Result<String, String> {
     let html_fragment = markdown::sanitize_html(&markdown::render_markdown(&content));
@@ -128,6 +204,7 @@ pub fn preview_html(content: String, theme: String) -> Result<String, String> {
         &html_fragment,
         "mdpro export",
         &theme,
+        true,
     ))
 }
 
@@ -158,7 +235,7 @@ pub async fn export_rendered_html(
     // Re-sanitize the frontend body. The frontend already ran DOMPurify, but the
     // export must never trust that — the same allow-list runs server-side.
     let safe_body = markdown::sanitize_html(&body_html);
-    let html = html_template::build_html(&safe_body, &title, &theme);
+    let html = html_template::build_html(&safe_body, &title, &theme, true);
 
     let Some(path) = rfd::FileDialog::new()
         .add_filter("HTML", &["html"])
@@ -189,17 +266,7 @@ pub async fn export_rendered_html(
             duration_ms: Some(start.elapsed().as_millis() as u64),
             error: Some(err.to_string()),
         });
-        match err.kind() {
-            std::io::ErrorKind::PermissionDenied => ExportError::PermissionDenied {
-                path: path.to_string_lossy().to_string(),
-            },
-            std::io::ErrorKind::WriteZero | std::io::ErrorKind::OutOfMemory => {
-                ExportError::DiskFull
-            }
-            _ => ExportError::ExportFailed {
-                message: err.to_string(),
-            },
-        }
+        crate::commands::pdf::map_io_error(err.kind(), &path_for_error)
     })?;
 
     crate::services::logger::log_event(LogEntryPayload {

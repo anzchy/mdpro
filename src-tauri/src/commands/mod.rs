@@ -6,6 +6,7 @@ pub mod launch;
 pub mod logging;
 pub mod mcp;
 pub mod menu;
+pub mod pdf;
 pub mod preferences;
 pub mod toc;
 pub mod updater;
@@ -16,6 +17,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         export::render_markdown,
         export::export_html,
         export::export_rendered_html,
+        export::export_pdf,
         export::preview_html,
         file::create_document,
         file::open_file,

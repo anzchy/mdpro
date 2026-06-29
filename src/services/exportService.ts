@@ -110,8 +110,34 @@ export const exportService = {
     content: string,
     title: string,
     theme: "light" | "dark",
+    htmlIncludeStyles: boolean = true,
   ): Promise<ExportResult> {
-    return invoke("export_html", { content, title, theme });
+    return invoke("export_html", {
+      content,
+      title,
+      theme,
+      includeStyles: htmlIncludeStyles,
+    });
+  },
+
+  /**
+   * Export the document as a print-ready PDF (WI-1). Renders markdown to a
+   * themed HTML document (honoring {@link htmlIncludeStyles}) and hands it to the
+   * Rust `export_pdf` command, which writes a print-ready artifact. The flag maps
+   * to the Rust `include_styles` param via Tauri's camelCase arg convention.
+   */
+  async exportPdf(
+    content: string,
+    title: string,
+    theme: "light" | "dark",
+    htmlIncludeStyles: boolean = true,
+  ): Promise<ExportResult> {
+    return invoke("export_pdf", {
+      content,
+      title,
+      theme,
+      includeStyles: htmlIncludeStyles,
+    });
   },
 
   /**
