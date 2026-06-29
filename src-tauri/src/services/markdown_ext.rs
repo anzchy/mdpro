@@ -253,11 +253,21 @@ fn try_emoji(s: &str) -> Option<(&'static str, usize)> {
 /// unlikely to belong to the URL (`)`, `]`, `<`, `>`, `"`, `'`, and a sentence
 /// `.`/`,`/`!`/`?` immediately followed by end-of-string or whitespace).
 fn try_bare_url(s: &str) -> Option<usize> {
-    let lower = s.to_ascii_lowercase();
-    if !(lower.starts_with("http://") || lower.starts_with("https://")) {
+    let bytes = s.as_bytes();
+    // Fixed-head scheme check WITHOUT lowercasing the whole remaining slice.
+    // `try_bare_url` is called once per byte position in `transform_line`, so a
+    // `s.to_ascii_lowercase()` here is O(N) per call → O(N²) per line (a single
+    // 800K-char line froze ~9.75s). Compare only the first 7/8 bytes,
+    // case-insensitively, with zero allocation.
+    let is_https = bytes
+        .get(..8)
+        .is_some_and(|h| h.eq_ignore_ascii_case(b"https://"));
+    let is_http = bytes
+        .get(..7)
+        .is_some_and(|h| h.eq_ignore_ascii_case(b"http://"));
+    if !is_https && !is_http {
         return None;
     }
-    let bytes = s.as_bytes();
     let mut end = 0;
     while end < bytes.len() {
         let c = bytes[end];
@@ -285,7 +295,7 @@ fn try_bare_url(s: &str) -> Option<usize> {
         }
     }
     // Must have more than just the scheme.
-    let scheme_len = if lower.starts_with("https://") { 8 } else { 7 };
+    let scheme_len = if is_https { 8 } else { 7 };
     if end <= scheme_len {
         return None;
     }
@@ -608,6 +618,41 @@ mod tests {
         assert!(
             !out.contains("🎉"),
             "emoji in code must not render, got: {out}"
+        );
+    }
+
+    #[test]
+    fn bare_url_scheme_check_is_case_insensitive() {
+        // The fixed-head check must still match mixed-case schemes (regression
+        // guard for the A2 rewrite that dropped the whole-slice lowercase).
+        let out = preprocess_autolink_and_emoji("See HTTPS://Example.com/Path now");
+        assert!(
+            out.contains("<HTTPS://Example.com/Path>"),
+            "mixed-case scheme must still autolink, got: {out}"
+        );
+    }
+
+    #[test]
+    fn long_non_url_line_processes_without_quadratic_blowup() {
+        // A2: try_bare_url is called per byte position. Before the fix it
+        // allocated `s.to_ascii_lowercase()` of the whole remaining slice on
+        // EVERY call → O(N²) per line (a degenerate 800K line froze ~9.75s).
+        // A 200K-char non-URL line must process quickly AND a real bare URL in
+        // ordinary text must still autolink — proving the allocation is gone and
+        // behavior is preserved.
+        let degenerate = "x".repeat(200_000);
+        let input = format!("{degenerate} see https://example.com end");
+        let out = preprocess_autolink_and_emoji(&input);
+        assert!(
+            out.contains("<https://example.com>"),
+            "bare URL after a long non-URL run must still autolink"
+        );
+        // The long non-URL prefix is untouched (no spurious wrapping).
+        assert!(out.starts_with(&degenerate), "non-URL text preserved");
+        assert_eq!(
+            out.matches("<https://").count(),
+            1,
+            "exactly one URL wrapped, no spurious autolinks"
         );
     }
 
