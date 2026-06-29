@@ -15,6 +15,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
     tauri::generate_handler![
         export::render_markdown,
         export::export_html,
+        export::export_rendered_html,
         export::preview_html,
         file::create_document,
         file::open_file,

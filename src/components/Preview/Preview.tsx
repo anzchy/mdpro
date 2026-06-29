@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { usePreview } from "../../hooks/usePreview";
 import { ImageRenderer } from "./ImageRenderer";
+import { renderMathInContainer } from "./mathRender";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
+import "katex/dist/katex.min.css";
 import "./styles/preview.css";
 
 interface PreviewProps {
@@ -21,6 +23,9 @@ export function Preview({ markdown, documentPath }: PreviewProps) {
     blocks.forEach((block) => {
       hljs.highlightElement(block);
     });
+    // WI-1.1: typeset math placeholders (fail-soft per block). Mirrors the
+    // highlight.js pass above; runs after each preview re-render.
+    renderMathInContainer(container);
   }, [html]);
 
   useEffect(() => {

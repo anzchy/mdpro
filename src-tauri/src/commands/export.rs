@@ -90,13 +90,15 @@ pub async fn export_html(
             error: Some(err.to_string()),
         });
         match err.kind() {
-        std::io::ErrorKind::PermissionDenied => ExportError::PermissionDenied {
-            path: path.to_string_lossy().to_string(),
-        },
-        std::io::ErrorKind::WriteZero | std::io::ErrorKind::OutOfMemory => ExportError::DiskFull,
-        _ => ExportError::ExportFailed {
-            message: err.to_string(),
-        },
+            std::io::ErrorKind::PermissionDenied => ExportError::PermissionDenied {
+                path: path.to_string_lossy().to_string(),
+            },
+            std::io::ErrorKind::WriteZero | std::io::ErrorKind::OutOfMemory => {
+                ExportError::DiskFull
+            }
+            _ => ExportError::ExportFailed {
+                message: err.to_string(),
+            },
         }
     })?;
 
@@ -122,5 +124,96 @@ pub async fn export_html(
 #[tauri::command]
 pub fn preview_html(content: String, theme: String) -> Result<String, String> {
     let html_fragment = markdown::sanitize_html(&markdown::render_markdown(&content));
-    Ok(html_template::build_html(&html_fragment, "mdpro export", &theme))
+    Ok(html_template::build_html(
+        &html_fragment,
+        "mdpro export",
+        &theme,
+    ))
+}
+
+/// WI-1.1 export path: write HTML whose body was pre-rendered by the frontend
+/// (KaTeX-typeset math, highlighted code). The body is **re-sanitized here**
+/// (defense in depth — never trust frontend-supplied HTML) before being wrapped
+/// in the themed template and written. KaTeX CSS is inlined by `build_html` when
+/// the body contains math, so the exported file renders math with zero JS.
+#[tauri::command]
+pub async fn export_rendered_html(
+    _window: Window,
+    body_html: String,
+    title: String,
+    theme: String,
+) -> Result<ExportResult, ExportError> {
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let start = std::time::Instant::now();
+    crate::services::logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "file.export_rendered".to_string(),
+        status: LogStatus::Start,
+        action_id: Some(action_id.clone()),
+        context: Some(json!({ "title": title.as_str(), "theme": theme.as_str() })),
+        duration_ms: None,
+        error: None,
+    });
+
+    // Re-sanitize the frontend body. The frontend already ran DOMPurify, but the
+    // export must never trust that — the same allow-list runs server-side.
+    let safe_body = markdown::sanitize_html(&body_html);
+    let html = html_template::build_html(&safe_body, &title, &theme);
+
+    let Some(path) = rfd::FileDialog::new()
+        .add_filter("HTML", &["html"])
+        .set_file_name(format!("{title}.html"))
+        .save_file()
+    else {
+        crate::services::logger::log_event(LogEntryPayload {
+            level: LogLevel::Warn,
+            event: "file.export_rendered".to_string(),
+            status: LogStatus::Cancel,
+            action_id: Some(action_id),
+            context: Some(json!({ "title": title.as_str() })),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            error: None,
+        });
+        return Err(ExportError::Cancelled);
+    };
+
+    let path_string = path.to_string_lossy().to_string();
+    let path_for_error = path_string.clone();
+    std::fs::write(&path, html.as_bytes()).map_err(|err| {
+        crate::services::logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "file.export_rendered".to_string(),
+            status: LogStatus::Fail,
+            action_id: Some(action_id.clone()),
+            context: Some(json!({ "path": path_for_error })),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            error: Some(err.to_string()),
+        });
+        match err.kind() {
+            std::io::ErrorKind::PermissionDenied => ExportError::PermissionDenied {
+                path: path.to_string_lossy().to_string(),
+            },
+            std::io::ErrorKind::WriteZero | std::io::ErrorKind::OutOfMemory => {
+                ExportError::DiskFull
+            }
+            _ => ExportError::ExportFailed {
+                message: err.to_string(),
+            },
+        }
+    })?;
+
+    crate::services::logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "file.export_rendered".to_string(),
+        status: LogStatus::Success,
+        action_id: Some(action_id),
+        context: Some(json!({ "path": path_string, "htmlSize": html.len() as u64 })),
+        duration_ms: Some(start.elapsed().as_millis() as u64),
+        error: None,
+    });
+    Ok(ExportResult {
+        success: true,
+        path: path.to_string_lossy().to_string(),
+        html_size: html.len() as u64,
+    })
 }

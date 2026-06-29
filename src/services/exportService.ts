@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Marked } from "marked";
 import { applyImageWidthMarkerToHtml } from "../plugins/milkdown/imageResizePlugin";
+import { prerenderMathForExport } from "../components/Preview/mathRender";
 import { renderHighlightSyntaxInHtml } from "./highlightSyntax";
 import { loggingService } from "./loggingService";
 import { sanitizeRenderedHtml } from "./sanitizerPolicy";
@@ -104,6 +105,23 @@ export const exportService = {
     theme: "light" | "dark",
   ): Promise<ExportResult> {
     return invoke("export_html", { content, title, theme });
+  },
+
+  /**
+   * Export with math pre-rendered (WI-1.1). Renders markdown to sanitized HTML,
+   * typesets KaTeX in a detached DOM, then hands the static body to Rust, which
+   * re-sanitizes, inlines KaTeX CSS, and writes. The exported file renders math
+   * with zero JS. Falls back to {@link exportHtml} only fails closed — callers
+   * use this for documents that may contain math.
+   */
+  async exportRenderedHtml(
+    content: string,
+    title: string,
+    theme: "light" | "dark",
+  ): Promise<ExportResult> {
+    const body = await this.renderMarkdown(content);
+    const bodyHtml = prerenderMathForExport(body);
+    return invoke("export_rendered_html", { bodyHtml, title, theme });
   },
 
   async previewHtml(content: string, theme: "light" | "dark"): Promise<string> {
