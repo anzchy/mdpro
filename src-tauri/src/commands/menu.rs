@@ -10,8 +10,8 @@ pub fn set_recent_files_menu(
     view_mode: Option<String>,
 ) -> Result<(), String> {
     state.set_recent_files(recent_files.clone());
-    let menu = build_menu(&app_handle, &recent_files, view_mode.as_deref())
-        .map_err(|e| e.to_string())?;
+    let menu =
+        build_menu(&app_handle, &recent_files, view_mode.as_deref()).map_err(|e| e.to_string())?;
     app_handle.set_menu(menu).map_err(|e| e.to_string())?;
     Ok(())
 }

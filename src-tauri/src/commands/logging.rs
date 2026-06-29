@@ -32,8 +32,8 @@ pub async fn get_logging_settings() -> Result<LogSettings, String> {
 pub async fn set_logging_settings(
     settings: LogSettings,
 ) -> Result<LogSettings, preferences::PreferencesError> {
-    let current = preferences::load_preferences()
-        .map_err(|e| preferences::PreferencesError::IoError {
+    let current =
+        preferences::load_preferences().map_err(|e| preferences::PreferencesError::IoError {
             message: format!("Failed to load preferences: {:?}", e),
         })?;
     let next = UserPreferences {

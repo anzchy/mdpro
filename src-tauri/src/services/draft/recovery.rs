@@ -3,7 +3,10 @@ use std::fs;
 
 use crate::models::DraftMetadata;
 
-use super::{bundle_path, legacy_draft_path, legacy_meta_path, write_bundle_atomic, DraftBundle, DraftError, RecoverResult};
+use super::{
+    bundle_path, legacy_draft_path, legacy_meta_path, write_bundle_atomic, DraftBundle, DraftError,
+    RecoverResult,
+};
 
 pub fn recover_draft(document_id: &str) -> Result<RecoverResult, DraftError> {
     let path = bundle_path(document_id)?;
@@ -29,17 +32,15 @@ pub fn recover_draft(document_id: &str) -> Result<RecoverResult, DraftError> {
         let raw = fs::read_to_string(&legacy_meta).map_err(|err| DraftError::IoError {
             message: err.to_string(),
         })?;
-        let mut meta: DraftMetadata = serde_json::from_str(&raw).map_err(|err| {
-            DraftError::ParseError {
+        let mut meta: DraftMetadata =
+            serde_json::from_str(&raw).map_err(|err| DraftError::ParseError {
                 message: err.to_string(),
-            }
-        })?;
+            })?;
         meta.recovered = true;
-        let updated = serde_json::to_string_pretty(&meta).map_err(|err| {
-            DraftError::ParseError {
+        let updated =
+            serde_json::to_string_pretty(&meta).map_err(|err| DraftError::ParseError {
                 message: err.to_string(),
-            }
-        })?;
+            })?;
         fs::write(&legacy_meta, updated).map_err(|err| DraftError::IoError {
             message: err.to_string(),
         })?;
@@ -52,11 +53,10 @@ pub fn recover_draft(document_id: &str) -> Result<RecoverResult, DraftError> {
             recovered: true,
             title: String::new(),
         };
-        let payload = serde_json::to_string_pretty(&fallback).map_err(|err| {
-            DraftError::ParseError {
+        let payload =
+            serde_json::to_string_pretty(&fallback).map_err(|err| DraftError::ParseError {
                 message: err.to_string(),
-            }
-        })?;
+            })?;
         fs::write(&legacy_meta, payload).map_err(|err| DraftError::IoError {
             message: err.to_string(),
         })?;
@@ -78,11 +78,10 @@ fn recover_from_bundle(
         message: err.to_string(),
     })?;
 
-    let mut bundle: DraftBundle = serde_json::from_str(&raw).map_err(|err| {
-        DraftError::ParseError {
+    let mut bundle: DraftBundle =
+        serde_json::from_str(&raw).map_err(|err| DraftError::ParseError {
             message: err.to_string(),
-        }
-    })?;
+        })?;
 
     let content = bundle.content.clone();
     let original_path = bundle.original_path.clone();

@@ -120,7 +120,11 @@ mod tests {
             md.to_string_lossy().to_string(),
             markdown.to_string_lossy().to_string(),
         ]);
-        assert_eq!(result.len(), 2, "both markdown files should pass: {result:?}");
+        assert_eq!(
+            result.len(),
+            2,
+            "both markdown files should pass: {result:?}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -133,9 +137,11 @@ mod tests {
 
     #[test]
     fn test_filter_drops_nonexistent_path() {
-        let result =
-            filter_launch_paths(vec!["/nonexistent/mdpro/ghost.md".to_string()]);
-        assert!(result.is_empty(), "missing file must be dropped, got: {result:?}");
+        let result = filter_launch_paths(vec!["/nonexistent/mdpro/ghost.md".to_string()]);
+        assert!(
+            result.is_empty(),
+            "missing file must be dropped, got: {result:?}"
+        );
     }
 
     #[test]
@@ -144,7 +150,10 @@ mod tests {
         let txt = dir.join("data.txt");
         std::fs::write(&txt, b"x").unwrap();
         let result = filter_launch_paths(vec![txt.to_string_lossy().to_string()]);
-        assert!(result.is_empty(), "non-markdown file must be dropped, got: {result:?}");
+        assert!(
+            result.is_empty(),
+            "non-markdown file must be dropped, got: {result:?}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -154,7 +163,11 @@ mod tests {
         let md = dir.join("NOTE.MD");
         std::fs::write(&md, b"x").unwrap();
         let result = filter_launch_paths(vec![md.to_string_lossy().to_string()]);
-        assert_eq!(result.len(), 1, "uppercase .MD should match, got: {result:?}");
+        assert_eq!(
+            result.len(),
+            1,
+            "uppercase .MD should match, got: {result:?}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -169,7 +182,11 @@ mod tests {
         let traversal = sub.join("..").join("real.md");
 
         let result = filter_launch_paths(vec![traversal.to_string_lossy().to_string()]);
-        assert_eq!(result.len(), 1, "traversal path must resolve, got: {result:?}");
+        assert_eq!(
+            result.len(),
+            1,
+            "traversal path must resolve, got: {result:?}"
+        );
         assert_eq!(
             std::path::PathBuf::from(&result[0]),
             md.canonicalize().unwrap(),
@@ -189,7 +206,11 @@ mod tests {
         symlink(&target, &link).unwrap();
 
         let result = filter_launch_paths(vec![link.to_string_lossy().to_string()]);
-        assert_eq!(result.len(), 1, "symlink must resolve to target, got: {result:?}");
+        assert_eq!(
+            result.len(),
+            1,
+            "symlink must resolve to target, got: {result:?}"
+        );
         assert_eq!(
             std::path::PathBuf::from(&result[0]),
             target.canonicalize().unwrap(),
@@ -208,7 +229,11 @@ mod tests {
         // Pass the path as given (it contains the dash in the file name, not at
         // the start of the whole arg since it's an absolute path).
         let result = filter_launch_paths(vec![md.to_string_lossy().to_string()]);
-        assert_eq!(result.len(), 1, "leading-dash filename must open, got: {result:?}");
+        assert_eq!(
+            result.len(),
+            1,
+            "leading-dash filename must open, got: {result:?}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -219,7 +244,10 @@ mod tests {
         let fake = dir.join("notebook.md");
         std::fs::create_dir_all(&fake).unwrap();
         let result = filter_launch_paths(vec![fake.to_string_lossy().to_string()]);
-        assert!(result.is_empty(), "directory must be dropped, got: {result:?}");
+        assert!(
+            result.is_empty(),
+            "directory must be dropped, got: {result:?}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

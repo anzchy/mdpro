@@ -70,7 +70,9 @@ pub async fn set_preferences(
 
 #[tauri::command]
 pub fn get_system_theme(window: Window) -> Result<String, String> {
-    let theme = window.theme().map_err(|e| format!("Failed to get system theme: {}", e))?;
+    let theme = window
+        .theme()
+        .map_err(|e| format!("Failed to get system theme: {}", e))?;
     Ok(match theme {
         Theme::Dark => "dark".to_string(),
         _ => "light".to_string(),
@@ -94,6 +96,9 @@ pub async fn save_window_state(window_state: WindowState) -> Result<(), Preferen
             message: "preferences lock poisoned".to_string(),
         })?;
     let current = load_preferences().unwrap_or_default();
-    let next = UserPreferences { window_state, ..current };
+    let next = UserPreferences {
+        window_state,
+        ..current
+    };
     save_preferences(&next)
 }

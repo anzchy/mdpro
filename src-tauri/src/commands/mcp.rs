@@ -3,7 +3,10 @@
 //! Tauri IPC commands for MCP integration, including document sync
 //! from frontend to Rust Shadow Store and MCP client configuration.
 
-use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore, SharedServerConfig, SyncDocumentsPayload};
+use crate::models::{
+    LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
+    SyncDocumentsPayload,
+};
 use crate::services::logger;
 use crate::services::shadow_store;
 use serde::{Deserialize, Serialize};
@@ -83,9 +86,7 @@ pub fn mcp_get_server_info(
         .lock()
         .map_err(|e| format!("Failed to lock server config: {}", e))?;
 
-    Ok(config.as_ref().map(|c| ServerInfo {
-        port: c.port,
-    }))
+    Ok(config.as_ref().map(|c| ServerInfo { port: c.port }))
 }
 
 /// Non-secret server diagnostics returned to the renderer.
@@ -125,9 +126,7 @@ pub struct McpInstallation {
 
 /// Get MCP server status
 #[tauri::command]
-pub fn mcp_get_status(
-    state: State<'_, SharedServerConfig>,
-) -> Result<McpStatus, String> {
+pub fn mcp_get_status(state: State<'_, SharedServerConfig>) -> Result<McpStatus, String> {
     let config = state
         .lock()
         .map_err(|e| format!("Failed to lock server config: {}", e))?;
@@ -195,9 +194,7 @@ pub fn mcp_install_config(client: McpClient) -> Result<(), String> {
             McpClient::ClaudeDesktop | McpClient::ClaudeCode | McpClient::GeminiCli => {
                 install_json_config(&config_path, &binary_path, client)
             }
-            McpClient::CodexCli => {
-                install_toml_config(&config_path, &binary_path)
-            }
+            McpClient::CodexCli => install_toml_config(&config_path, &binary_path),
         }
     })();
 
@@ -245,9 +242,7 @@ pub fn mcp_remove_config(client: McpClient) -> Result<(), String> {
         McpClient::ClaudeDesktop | McpClient::ClaudeCode | McpClient::GeminiCli => {
             remove_json_config(&config_path)
         }
-        McpClient::CodexCli => {
-            remove_toml_config(&config_path)
-        }
+        McpClient::CodexCli => remove_toml_config(&config_path),
     };
 
     let elapsed = start.elapsed().as_millis() as u64;
@@ -277,12 +272,15 @@ pub fn mcp_remove_config(client: McpClient) -> Result<(), String> {
 // Helper functions
 
 fn get_mcp_binary_path() -> Result<String, String> {
-    let binary_name = if cfg!(windows) { "mdpro_mcp.exe" } else { "mdpro_mcp" };
+    let binary_name = if cfg!(windows) {
+        "mdpro_mcp.exe"
+    } else {
+        "mdpro_mcp"
+    };
 
     // Check if we're in a bundled app
     if let Ok(exe_path) = std::env::current_exe() {
-        let bundled_path = exe_path.parent()
-            .map(|p| p.join(binary_name));
+        let bundled_path = exe_path.parent().map(|p| p.join(binary_name));
 
         if let Some(path) = bundled_path {
             if path.exists() {
@@ -325,8 +323,7 @@ fn get_mcp_binary_path() -> Result<String, String> {
 }
 
 fn get_client_config_path(client: McpClient) -> Result<PathBuf, String> {
-    let home = dirs::home_dir()
-        .ok_or_else(|| "Could not determine home directory".to_string())?;
+    let home = dirs::home_dir().ok_or_else(|| "Could not determine home directory".to_string())?;
 
     let path = match client {
         McpClient::ClaudeDesktop => {
@@ -345,12 +342,8 @@ fn get_client_config_path(client: McpClient) -> Result<PathBuf, String> {
                 home.join(".config/Claude/claude_desktop_config.json")
             }
         }
-        McpClient::ClaudeCode => {
-            home.join(".claude/settings.json")
-        }
-        McpClient::CodexCli => {
-            home.join(".codex/config.toml")
-        }
+        McpClient::ClaudeCode => home.join(".claude/settings.json"),
+        McpClient::CodexCli => home.join(".codex/config.toml"),
         McpClient::GeminiCli => {
             #[cfg(target_os = "windows")]
             {
@@ -378,7 +371,8 @@ fn check_mcp_installed(config_path: &PathBuf, client: McpClient) -> bool {
         McpClient::ClaudeDesktop | McpClient::ClaudeCode | McpClient::GeminiCli => {
             if let Ok(content) = fs::read_to_string(config_path) {
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                    return json.get("mcpServers")
+                    return json
+                        .get("mcpServers")
                         .and_then(|s| s.get("mdpro"))
                         .is_some();
                 }
@@ -395,12 +389,15 @@ fn check_mcp_installed(config_path: &PathBuf, client: McpClient) -> bool {
     }
 }
 
-fn install_json_config(config_path: &PathBuf, binary_path: &str, _client: McpClient) -> Result<(), String> {
+fn install_json_config(
+    config_path: &PathBuf,
+    binary_path: &str,
+    _client: McpClient,
+) -> Result<(), String> {
     let mut config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
-        serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse config: {}", e))?
+        let content =
+            fs::read_to_string(config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?
     } else {
         serde_json::json!({})
     };
@@ -418,8 +415,7 @@ fn install_json_config(config_path: &PathBuf, binary_path: &str, _client: McpCli
     // Write back
     let content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
-    fs::write(config_path, content)
-        .map_err(|e| format!("Failed to write config: {}", e))?;
+    fs::write(config_path, content).map_err(|e| format!("Failed to write config: {}", e))?;
 
     Ok(())
 }
@@ -429,10 +425,10 @@ fn remove_json_config(config_path: &PathBuf) -> Result<(), String> {
         return Ok(());
     }
 
-    let content = fs::read_to_string(config_path)
-        .map_err(|e| format!("Failed to read config: {}", e))?;
-    let mut config: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse config: {}", e))?;
+    let content =
+        fs::read_to_string(config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+    let mut config: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
 
     // Remove mdpro from mcpServers
     if let Some(servers) = config.get_mut("mcpServers") {
@@ -444,16 +440,14 @@ fn remove_json_config(config_path: &PathBuf) -> Result<(), String> {
     // Write back
     let content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
-    fs::write(config_path, content)
-        .map_err(|e| format!("Failed to write config: {}", e))?;
+    fs::write(config_path, content).map_err(|e| format!("Failed to write config: {}", e))?;
 
     Ok(())
 }
 
 fn install_toml_config(config_path: &PathBuf, binary_path: &str) -> Result<(), String> {
     let mut content = if config_path.exists() {
-        fs::read_to_string(config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?
+        fs::read_to_string(config_path).map_err(|e| format!("Failed to read config: {}", e))?
     } else {
         String::new()
     };
@@ -476,8 +470,7 @@ fn install_toml_config(config_path: &PathBuf, binary_path: &str) -> Result<(), S
         safe_path
     ));
 
-    fs::write(config_path, content)
-        .map_err(|e| format!("Failed to write config: {}", e))?;
+    fs::write(config_path, content).map_err(|e| format!("Failed to write config: {}", e))?;
 
     Ok(())
 }
@@ -487,8 +480,8 @@ fn remove_toml_config(config_path: &PathBuf) -> Result<(), String> {
         return Ok(());
     }
 
-    let content = fs::read_to_string(config_path)
-        .map_err(|e| format!("Failed to read config: {}", e))?;
+    let content =
+        fs::read_to_string(config_path).map_err(|e| format!("Failed to read config: {}", e))?;
 
     // Simple removal - find and remove the [mcp_servers.mdpro] section
     let mut lines: Vec<&str> = content.lines().collect();
@@ -512,8 +505,7 @@ fn remove_toml_config(config_path: &PathBuf) -> Result<(), String> {
     }
 
     let new_content = lines.join("\n");
-    fs::write(config_path, new_content)
-        .map_err(|e| format!("Failed to write config: {}", e))?;
+    fs::write(config_path, new_content).map_err(|e| format!("Failed to write config: {}", e))?;
 
     Ok(())
 }
@@ -537,10 +529,7 @@ mod tests {
         }
     }
 
-    fn make_payload(
-        window_label: &str,
-        docs: Vec<DocumentState>,
-    ) -> SyncDocumentsPayload {
+    fn make_payload(window_label: &str, docs: Vec<DocumentState>) -> SyncDocumentsPayload {
         SyncDocumentsPayload {
             window_label: window_label.to_string(),
             documents: docs,
@@ -561,7 +550,10 @@ mod tests {
             .collect();
         let payload = make_payload("main", docs);
         let err = validate_sync_payload(&payload).unwrap_err();
-        assert!(err.contains("too many documents"), "unexpected error: {err}");
+        assert!(
+            err.contains("too many documents"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]
@@ -579,7 +571,10 @@ mod tests {
         let payload = make_payload("main", vec![make_doc("doc-1", &big_content)]);
         let err = validate_sync_payload(&payload).unwrap_err();
         assert!(err.contains("content exceeds"), "unexpected error: {err}");
-        assert!(err.contains("doc-1"), "error should name the document: {err}");
+        assert!(
+            err.contains("doc-1"),
+            "error should name the document: {err}"
+        );
     }
 
     #[test]
@@ -612,7 +607,10 @@ mod tests {
         let big_doc = make_doc("too-big", &big_content);
         let payload = make_payload("main", vec![ok_doc, big_doc]);
         let err = validate_sync_payload(&payload).unwrap_err();
-        assert!(err.contains("too-big"), "error must identify the offending document: {err}");
+        assert!(
+            err.contains("too-big"),
+            "error must identify the offending document: {err}"
+        );
     }
 
     // ── get_client_config_path tests ──────────────────────────────────────────

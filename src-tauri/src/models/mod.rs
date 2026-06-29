@@ -10,8 +10,12 @@ pub use log_entry::{LogContext, LogEntry, LogEntryPayload, LogLevel, LogSettings
 pub use mcp::{
     CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo, DocumentState,
     ErrorResponse, InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult,
-    ServerConfig, ShadowStore, SharedShadowStore, SharedServerConfig, StatusResponse,
+    ServerConfig, ShadowStore, SharedServerConfig, SharedShadowStore, StatusResponse,
     SyncDocumentsPayload, UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
 };
 // MCP WindowState is only used internally, not re-exported to avoid conflict with preferences::WindowState
-pub use preferences::{AppearanceConfig, AutoSaveConfig, CloseFocusBehavior, CodeTheme, ContentWidth, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts, MarkdownConfig, McpConfig, TabBarConfig, TabBarPosition, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
+pub use preferences::{
+    AppearanceConfig, AutoSaveConfig, CloseFocusBehavior, CodeTheme, ContentWidth, EditorConfig,
+    ExportConfig, ImageConfig, KeyboardShortcuts, MarkdownConfig, McpConfig, TabBarConfig,
+    TabBarPosition, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState,
+};

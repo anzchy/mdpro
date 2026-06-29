@@ -66,9 +66,10 @@ impl ShadowStore {
     /// Falls back to: focused window -> MRU window -> first window.
     pub fn get_active_document(&self) -> Option<&DocumentState> {
         let window = self.get_target_window()?;
-        window.active_document_id.as_ref().and_then(|id| {
-            window.documents.iter().find(|d| &d.id == id)
-        })
+        window
+            .active_document_id
+            .as_ref()
+            .and_then(|id| window.documents.iter().find(|d| &d.id == id))
     }
 
     /// Get the target window for MCP operations.
@@ -82,9 +83,7 @@ impl ShadowStore {
         }
 
         // Fall back to MRU (most recently used)
-        self.windows
-            .values()
-            .max_by_key(|w| w.last_focused_at)
+        self.windows.values().max_by_key(|w| w.last_focused_at)
     }
 
     /// Get a mutable reference to the target window.
@@ -97,7 +96,8 @@ impl ShadowStore {
         }
 
         // Fall back to MRU
-        let mru_label = self.windows
+        let mru_label = self
+            .windows
             .values()
             .max_by_key(|w| w.last_focused_at)
             .map(|w| w.label.clone());

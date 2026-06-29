@@ -109,10 +109,20 @@ pub fn list_drafts() -> Result<Vec<DraftMetadataEntry>, DraftError> {
                     meta.recovered,
                     meta.title,
                 ),
-                None => (None, file_mtime(&path), false, "(metadata corrupt)".to_string()),
+                None => (
+                    None,
+                    file_mtime(&path),
+                    false,
+                    "(metadata corrupt)".to_string(),
+                ),
             }
         } else {
-            (None, file_mtime(&path), false, "(metadata missing)".to_string())
+            (
+                None,
+                file_mtime(&path),
+                false,
+                "(metadata missing)".to_string(),
+            )
         };
 
         if recovered {

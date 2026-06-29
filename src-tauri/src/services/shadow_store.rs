@@ -3,7 +3,7 @@
 //! Provides thread-safe access to the Shadow Store which mirrors
 //! frontend document state for MCP access.
 
-use crate::models::mcp::{WindowState as McpWindowState};
+use crate::models::mcp::WindowState as McpWindowState;
 use crate::models::{DocumentState, ShadowStore, SharedShadowStore, SyncDocumentsPayload};
 use std::sync::{Arc, Mutex};
 
@@ -82,7 +82,10 @@ pub fn remove_window(store: &SharedShadowStore, window_label: &str) -> Result<()
 ///
 /// Called when a window loses focus. Only clears if the blurring window
 /// is still the focused one (avoids race with another window gaining focus first).
-pub fn clear_focused_window_if(store: &SharedShadowStore, window_label: &str) -> Result<(), String> {
+pub fn clear_focused_window_if(
+    store: &SharedShadowStore,
+    window_label: &str,
+) -> Result<(), String> {
     let mut shadow = store
         .lock()
         .map_err(|e| format!("Failed to lock shadow store: {}", e))?;
@@ -131,12 +134,17 @@ pub fn get_active_document(store: &SharedShadowStore) -> Result<Option<DocumentS
 }
 
 /// Get the window label that contains a specific document.
-pub fn get_window_for_document(store: &SharedShadowStore, doc_id: &str) -> Result<Option<String>, String> {
+pub fn get_window_for_document(
+    store: &SharedShadowStore,
+    doc_id: &str,
+) -> Result<Option<String>, String> {
     let shadow = store
         .lock()
         .map_err(|e| format!("Failed to lock shadow store: {}", e))?;
 
-    Ok(shadow.find_window_for_document(doc_id).map(|s| s.to_string()))
+    Ok(shadow
+        .find_window_for_document(doc_id)
+        .map(|s| s.to_string()))
 }
 
 /// Remove a single document by ID from whichever window contains it.
@@ -301,7 +309,10 @@ mod tests {
         // Simulate rollback after emit failure
         update_document_content(&store, "doc1", original_content.clone()).unwrap();
         let doc = get_document(&store, "doc1").unwrap().unwrap();
-        assert_eq!(doc.content, original_content, "shadow store must reflect original after rollback");
+        assert_eq!(
+            doc.content, original_content,
+            "shadow store must reflect original after rollback"
+        );
     }
 
     #[test]
@@ -366,10 +377,7 @@ mod tests {
         let store = create_shadow_store();
         let payload = SyncDocumentsPayload {
             window_label: "main".to_string(),
-            documents: vec![
-                create_test_document("doc1"),
-                create_test_document("doc2"),
-            ],
+            documents: vec![create_test_document("doc1"), create_test_document("doc2")],
             active_document_id: Some("doc1".to_string()),
         };
         sync_documents(&store, payload).unwrap();

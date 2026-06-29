@@ -3,7 +3,11 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
-use crate::models::{AppearanceConfig, AutoSaveConfig, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts, LogSettings, MarkdownConfig, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState};
+use crate::models::{
+    AppearanceConfig, AutoSaveConfig, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts,
+    LogSettings, MarkdownConfig, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode,
+    WindowGeometry, WindowState,
+};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -83,11 +87,10 @@ pub fn save_preferences(preferences: &UserPreferences) -> Result<(), Preferences
     let final_path = dir.join("config.json");
     let tmp_path = dir.join("config.json.tmp");
 
-    let payload = serde_json::to_string_pretty(preferences).map_err(|err| {
-        PreferencesError::ParseError {
+    let payload =
+        serde_json::to_string_pretty(preferences).map_err(|err| PreferencesError::ParseError {
             message: err.to_string(),
-        }
-    })?;
+        })?;
 
     // Write to a temp file first so a crash mid-write leaves config.json intact.
     // Write + flush + fsync so the bytes are durable before the rename — a
@@ -143,9 +146,7 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
         default_view_mode: updates
             .default_view_mode
             .unwrap_or(current.default_view_mode),
-        last_view_mode: updates
-            .last_view_mode
-            .unwrap_or(current.last_view_mode),
+        last_view_mode: updates.last_view_mode.unwrap_or(current.last_view_mode),
         show_sidebar: updates.show_sidebar.unwrap_or(current.show_sidebar),
         enable_scroll_sync: updates
             .enable_scroll_sync
@@ -175,7 +176,9 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{EditorConfig, AppearanceConfig, MarkdownConfig, CodeTheme, UserPreferences};
+    use crate::models::{
+        AppearanceConfig, CodeTheme, EditorConfig, MarkdownConfig, UserPreferences,
+    };
 
     /// Constructs a PartialPreferences with all fields set to None except the
     /// ones supplied by the caller. This helper reduces boilerplate in each test.
@@ -240,7 +243,10 @@ mod tests {
         current.auto_save_interval = 120;
         current.show_sidebar = false;
         let updates = PartialPreferences {
-            editor: Some(EditorConfig { font_size: 14, ..EditorConfig::default() }),
+            editor: Some(EditorConfig {
+                font_size: 14,
+                ..EditorConfig::default()
+            }),
             ..empty_partial()
         };
         let result = merge_preferences(current, updates);
@@ -258,7 +264,10 @@ mod tests {
     #[test]
     fn merge_markdown_some_updates_auto_pair_to_false() {
         let current = UserPreferences::default();
-        assert!(current.markdown.auto_pair, "default auto_pair should be true");
+        assert!(
+            current.markdown.auto_pair,
+            "default auto_pair should be true"
+        );
         let updates = PartialPreferences {
             markdown: Some(MarkdownConfig { auto_pair: false }),
             ..empty_partial()
@@ -287,7 +296,9 @@ mod tests {
     fn merge_appearance_some_updates_code_theme_to_one_dark() {
         let current = UserPreferences::default();
         let updates = PartialPreferences {
-            appearance: Some(AppearanceConfig { code_theme: CodeTheme::OneDark }),
+            appearance: Some(AppearanceConfig {
+                code_theme: CodeTheme::OneDark,
+            }),
             ..empty_partial()
         };
         let result = merge_preferences(current, updates);
@@ -351,7 +362,10 @@ mod tests {
         // Simulates what load_preferences does on a corrupt config file.
         let malformed = "{ not valid json !! }";
         let result = serde_json::from_str::<UserPreferences>(malformed);
-        assert!(result.is_err(), "malformed JSON should not deserialise into UserPreferences");
+        assert!(
+            result.is_err(),
+            "malformed JSON should not deserialise into UserPreferences"
+        );
     }
 
     #[test]
@@ -360,7 +374,11 @@ mod tests {
         // still deserialise because all nested structs carry #[serde(default)].
         let minimal = r#"{"themeMode":"light","autoSaveInterval":30,"defaultViewMode":"wysiwyg","lastViewMode":"wysiwyg","showSidebar":true,"enableScrollSync":true,"recentFiles":[],"windowState":{"width":1200,"height":800,"x":100,"y":100,"isMaximized":false}}"#;
         let result = serde_json::from_str::<UserPreferences>(minimal);
-        assert!(result.is_ok(), "partial JSON (missing newer fields) should still deserialise: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "partial JSON (missing newer fields) should still deserialise: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -452,7 +470,10 @@ mod tests {
 
         save_preferences(&UserPreferences::default()).expect("save");
         let tmp = home.join(".mdpro").join("config.json.tmp");
-        assert!(!tmp.exists(), "the temp file must be renamed away, not left behind");
+        assert!(
+            !tmp.exists(),
+            "the temp file must be renamed away, not left behind"
+        );
 
         let _ = std::fs::remove_dir_all(&home);
     }
@@ -483,7 +504,10 @@ mod tests {
         // Restore perms for assertions + cleanup.
         std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
 
-        assert!(res.is_err(), "save into read-only dir must fail, got: {res:?}");
+        assert!(
+            res.is_err(),
+            "save into read-only dir must fail, got: {res:?}"
+        );
         assert_eq!(
             std::fs::read(&config).expect("read after failed save"),
             original,
@@ -508,7 +532,10 @@ mod tests {
         current.enable_scroll_sync = false;
 
         let updates = PartialPreferences {
-            editor: Some(EditorConfig { font_size: 20, ..EditorConfig::default() }),
+            editor: Some(EditorConfig {
+                font_size: 20,
+                ..EditorConfig::default()
+            }),
             ..empty_partial()
         };
 

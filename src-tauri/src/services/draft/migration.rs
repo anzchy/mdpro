@@ -225,11 +225,23 @@ mod tests {
         assert_eq!(n, 3, "3 files should be migrated");
 
         let tgt = target_dir();
-        assert!(tgt.join("doc1.draft.json").exists(), "bundle at new location");
-        assert!(tgt.join("doc2.draft.md").exists(), "legacy draft at new location");
-        assert!(tgt.join("doc2.meta.json").exists(), "legacy meta at new location");
+        assert!(
+            tgt.join("doc1.draft.json").exists(),
+            "bundle at new location"
+        );
+        assert!(
+            tgt.join("doc2.draft.md").exists(),
+            "legacy draft at new location"
+        );
+        assert!(
+            tgt.join("doc2.meta.json").exists(),
+            "legacy meta at new location"
+        );
 
-        assert!(!legacy.join("doc1.draft.json").exists(), "old bundle removed");
+        assert!(
+            !legacy.join("doc1.draft.json").exists(),
+            "old bundle removed"
+        );
         assert!(!legacy.join("doc2.draft.md").exists(), "old draft removed");
         assert!(!legacy.join("doc2.meta.json").exists(), "old meta removed");
 
@@ -261,7 +273,10 @@ mod tests {
         assert_eq!(n, 0, "existing destination file must not be overwritten");
 
         let content = fs::read_to_string(tgt.join("doc1.draft.json")).unwrap();
-        assert!(content.contains("NEW"), "destination content must be preserved");
+        assert!(
+            content.contains("NEW"),
+            "destination content must be preserved"
+        );
 
         let _ = fs::remove_dir_all(&home);
     }
@@ -282,7 +297,10 @@ mod tests {
 
         let n = migrate_legacy_drafts().unwrap();
         assert_eq!(n, 1, "only draft files should be migrated");
-        assert!(legacy.join("random.txt").exists(), "non-draft file left in place");
+        assert!(
+            legacy.join("random.txt").exists(),
+            "non-draft file left in place"
+        );
 
         let _ = fs::remove_dir_all(&home);
     }

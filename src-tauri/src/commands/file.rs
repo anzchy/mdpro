@@ -6,7 +6,12 @@ use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
-use crate::services::{draft::delete_draft as delete_draft_service, encoding, file_watcher::{self, FileWatcher}, logger, shadow_store};
+use crate::services::{
+    draft::delete_draft as delete_draft_service,
+    encoding,
+    file_watcher::{self, FileWatcher},
+    logger, shadow_store,
+};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 const ALLOWED_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
@@ -15,7 +20,9 @@ const ALLOWED_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
 /// Rejects path traversal and non-document file extensions.
 fn validate_file_path(path: &str) -> Result<(), FileError> {
     let p = std::path::Path::new(path);
-    if p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+    if p.components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
         return Err(FileError::InvalidPath {
             path: path.to_string(),
         });
@@ -132,7 +139,10 @@ fn log_file_event(
     });
 }
 
-fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<OpenFileResult, FileError> {
+fn open_file_from_path(
+    path: &str,
+    encoding_hint: Option<String>,
+) -> Result<OpenFileResult, FileError> {
     logger::log_line(&format!("open_file_from_path: {}", path));
     let path_buf = PathBuf::from(path);
     if !path_buf.exists() {
@@ -170,13 +180,13 @@ fn open_file_from_path(path: &str, encoding_hint: Option<String>) -> Result<Open
     }
 
     let bytes = std::fs::read(&path_buf).map_err(|err| {
-        logger::log_line(&format!("open_file_from_path: read error {}: {}", path, err));
+        logger::log_line(&format!(
+            "open_file_from_path: read error {}: {}",
+            path, err
+        ));
         to_file_error(err, path)
     })?;
-    logger::log_line(&format!(
-        "open_file_from_path: read bytes {}",
-        bytes.len()
-    ));
+    logger::log_line(&format!("open_file_from_path: read bytes {}", bytes.len()));
     // Detect with confidence (WI-0.3): a non-UTF-8 file with no recognised BOM
     // is "unknown"/Low — we refuse to guess (no blind Latin-1) and surface an
     // EncodingError rather than corrupt the content. A user-supplied hint still
@@ -339,9 +349,9 @@ fn atomic_write(target: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
 
 /// Allowed file extensions for save operations.
 const ALLOWED_SAVE_EXTENSIONS: &[&str] = &[
-    "md", "markdown", "txt", "text", "mdown", "mkd", "mkdn", "mdtxt", "mdtext",
-    "html", "htm", "css", "json", "yaml", "yml", "toml", "xml", "csv", "tsv",
-    "log", "cfg", "conf", "ini", "rst", "adoc", "tex", "bib",
+    "md", "markdown", "txt", "text", "mdown", "mkd", "mkdn", "mdtxt", "mdtext", "html", "htm",
+    "css", "json", "yaml", "yml", "toml", "xml", "csv", "tsv", "log", "cfg", "conf", "ini", "rst",
+    "adoc", "tex", "bib",
 ];
 
 /// Validate that a save path is safe:
@@ -451,7 +461,10 @@ mod tests {
         let original = encoding::encode_bytes("世界\r\nsecond", "UTF-16BE").unwrap();
         let opened = encoding::decode_bytes(&original, "UTF-16BE").unwrap();
         let saved = encode_for_save(&opened, Some("UTF-16BE")).unwrap();
-        assert_eq!(saved, original, "save must not corrupt the original encoding");
+        assert_eq!(
+            saved, original,
+            "save must not corrupt the original encoding"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -493,7 +506,10 @@ mod tests {
         // the original EOL on the document.
         let opened = open_file_from_path(&path.to_string_lossy(), None).expect("open");
         assert_eq!(opened.document.line_ending, "crlf");
-        assert_eq!(opened.document.content, "line one\nline two\n", "editor sees LF");
+        assert_eq!(
+            opened.document.content, "line one\nline two\n",
+            "editor sees LF"
+        );
 
         // The editor saves its LF content back; the original EOL must be restored.
         let edited_lf = format!("{}line three\n", opened.document.content);
@@ -589,7 +605,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
-        None,
+            None,
         )
         .await;
         assert!(res.is_ok(), "save should succeed: {res:?}");
@@ -612,7 +628,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
-        None,
+            None,
         )
         .await;
 
@@ -621,7 +637,10 @@ mod tests {
 
         // The key property: the failure is SURFACED, never a silent success
         // that discards the user's content.
-        assert!(res.is_err(), "read-only save must surface an error, got: {res:?}");
+        assert!(
+            res.is_err(),
+            "read-only save must surface an error, got: {res:?}"
+        );
         assert!(
             !path.exists(),
             "no partial/empty file should be left behind"
@@ -646,7 +665,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
-        None,
+            None,
         )
         .await;
         assert!(res.is_ok(), "save after delete should recreate: {res:?}");
@@ -665,7 +684,7 @@ mod tests {
                 Some(path.to_string_lossy().to_string()),
                 None,
                 None,
-            None,
+                None,
             )
             .await;
             assert!(res.is_ok(), "save of {name:?} should succeed: {res:?}");
@@ -685,10 +704,13 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
-        None,
+            None,
         )
         .await;
-        assert!(res.is_ok(), "save with quote in name should succeed: {res:?}");
+        assert!(
+            res.is_ok(),
+            "save with quote in name should succeed: {res:?}"
+        );
         assert!(path.exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -707,7 +729,7 @@ mod tests {
             Some(path.to_string_lossy().to_string()),
             None,
             None,
-        None,
+            None,
         )
         .await;
         let elapsed = start.elapsed();
@@ -741,7 +763,10 @@ mod tests {
             .filter_map(|e| e.ok())
             .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
             .collect();
-        assert!(leftovers.is_empty(), "no .tmp file should remain, found: {leftovers:?}");
+        assert!(
+            leftovers.is_empty(),
+            "no .tmp file should remain, found: {leftovers:?}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -763,7 +788,10 @@ mod tests {
         // Restore perms so we can read/clean up regardless of outcome.
         std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
 
-        assert!(res.is_err(), "write to read-only dir must fail, got: {res:?}");
+        assert!(
+            res.is_err(),
+            "write to read-only dir must fail, got: {res:?}"
+        );
         assert_eq!(
             std::fs::read(&path).unwrap(),
             b"PRECIOUS ORIGINAL",
@@ -774,7 +802,10 @@ mod tests {
             .filter_map(|e| e.ok())
             .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
             .collect();
-        assert!(leftovers.is_empty(), "no .tmp file should remain after failure, found: {leftovers:?}");
+        assert!(
+            leftovers.is_empty(),
+            "no .tmp file should remain after failure, found: {leftovers:?}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -792,7 +823,10 @@ mod tests {
         atomic_write(&path, b"v2").expect("atomic_write");
 
         let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
-        assert_eq!(mode, 0o640, "original permissions must be preserved, got {mode:o}");
+        assert_eq!(
+            mode, 0o640,
+            "original permissions must be preserved, got {mode:o}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -962,7 +996,10 @@ mod tests {
 
         let result = discard_and_close(id);
         assert!(result.success, "success must be true");
-        assert!(result.draft_deleted, "draft_deleted must be true when draft existed");
+        assert!(
+            result.draft_deleted,
+            "draft_deleted must be true when draft existed"
+        );
         assert!(
             load_draft(id).expect("load_draft after close").is_none(),
             "draft must be gone after discard_and_close"
@@ -990,7 +1027,10 @@ mod tests {
 
         let result = discard_and_close("test75_cmd_no_draft");
         assert!(result.success, "success must be true even with no draft");
-        assert!(!result.draft_deleted, "draft_deleted must be false when no draft existed");
+        assert!(
+            !result.draft_deleted,
+            "draft_deleted must be false when no draft existed"
+        );
 
         let _ = std::fs::remove_dir_all(&home);
     }
@@ -1288,8 +1328,8 @@ pub async fn save_file_dialog(
         line_ending,
         Some(action_id),
     )
-        .await
-        .map(Some)
+    .await
+    .map(Some)
 }
 
 /// Delete the draft for `document_id` and return the close result.
@@ -1342,7 +1382,9 @@ pub async fn close_document(
 pub async fn check_file_modified(path: String) -> Result<FileModifiedResult, FileError> {
     validate_file_path(&path)?;
     let metadata = std::fs::metadata(&path).map_err(|err| to_file_error(err, &path))?;
-    let modified = metadata.modified().map_err(|err| to_file_error(err, &path))?;
+    let modified = metadata
+        .modified()
+        .map_err(|err| to_file_error(err, &path))?;
     let mtime = modified
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .map_err(|err| FileError::IoError {
@@ -1350,11 +1392,9 @@ pub async fn check_file_modified(path: String) -> Result<FileModifiedResult, Fil
         })?
         .as_millis() as i64;
 
-    let mut cache = mtime_cache()
-        .lock()
-        .map_err(|_| FileError::IoError {
-            message: "mtime cache locked".to_string(),
-        })?;
+    let mut cache = mtime_cache().lock().map_err(|_| FileError::IoError {
+        message: "mtime cache locked".to_string(),
+    })?;
     let stored = cache.entry(path.clone()).or_insert(mtime);
 
     Ok(FileModifiedResult {

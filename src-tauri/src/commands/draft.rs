@@ -4,7 +4,8 @@ use crate::models::{Draft, LogEntryPayload, LogLevel, LogStatus};
 use crate::services::draft::{
     cleanup_old_drafts as cleanup_drafts_service, delete_draft as delete_draft_service,
     list_drafts as list_drafts_service, load_draft, recover_draft as recover_draft_service,
-    save_draft as save_draft_service, DraftError, DraftMetadataEntry, DraftSaveResult, RecoverResult,
+    save_draft as save_draft_service, DraftError, DraftMetadataEntry, DraftSaveResult,
+    RecoverResult,
 };
 use crate::services::logger;
 
@@ -30,18 +31,19 @@ pub async fn save_draft(
         duration_ms: None,
         error: None,
     });
-    let result = save_draft_service(&document_id, &content, original_path, &title).map_err(|err| {
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Error,
-            event: "file.write".to_string(),
-            status: LogStatus::Fail,
-            action_id: Some(action_id.clone()),
-            context: Some(json!({ "documentId": document_id.as_str() })),
-            duration_ms: Some(start.elapsed().as_millis() as u64),
-            error: Some(err.to_string()),
-        });
-        err
-    })?;
+    let result =
+        save_draft_service(&document_id, &content, original_path, &title).map_err(|err| {
+            logger::log_event(LogEntryPayload {
+                level: LogLevel::Error,
+                event: "file.write".to_string(),
+                status: LogStatus::Fail,
+                action_id: Some(action_id.clone()),
+                context: Some(json!({ "documentId": document_id.as_str() })),
+                duration_ms: Some(start.elapsed().as_millis() as u64),
+                error: Some(err.to_string()),
+            });
+            err
+        })?;
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "file.write".to_string(),
