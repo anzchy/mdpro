@@ -88,6 +88,13 @@ export const exportService = {
       const result = await invoke<RenderMarkdownResult>("render_markdown", { content: stripped });
       return applyImageWidthMarkerToHtml(renderHighlightSyntaxInHtml(sanitize(result.html)));
     } catch (err) {
+      // ACCEPTED DEGRADATION (plan decision A1, audit finding B2): this `marked`
+      // fallback runs ONLY when the canonical Rust `render_markdown` IPC throws.
+      // It renders neither math (`$…$` / `$$…$$`) nor footnotes (`[^1]`) — marked
+      // has no math/footnote support wired here — so a document exported via this
+      // path loses both. The Rust path is the supported export route; this is a
+      // last-resort plain-Markdown render so export never hard-fails. The gap is
+      // pinned by tests/export-fallback-degradation.test.ts so it stays reviewed.
       loggingService.logEventSync({
         level: "warn",
         event: "export.render_markdown.fallback",
