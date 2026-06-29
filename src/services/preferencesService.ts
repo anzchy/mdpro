@@ -31,6 +31,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   defaultViewMode: "wysiwyg",
   lastViewMode: "wysiwyg",
   showSidebar: true,
+  showStatusBar: false,
   enableScrollSync: true,
   recentFiles: [],
   windowState: { width: 1200, height: 800, x: 100, y: 100, isMaximized: false },

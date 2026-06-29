@@ -18,6 +18,7 @@ pub struct PartialPreferences {
     pub default_view_mode: Option<ViewMode>,
     pub last_view_mode: Option<ViewMode>,
     pub show_sidebar: Option<bool>,
+    pub show_status_bar: Option<bool>,
     pub enable_scroll_sync: Option<bool>,
     pub recent_files: Option<Vec<String>>,
     pub window_state: Option<WindowState>,
@@ -148,6 +149,9 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
             .unwrap_or(current.default_view_mode),
         last_view_mode: updates.last_view_mode.unwrap_or(current.last_view_mode),
         show_sidebar: updates.show_sidebar.unwrap_or(current.show_sidebar),
+        show_status_bar: updates
+            .show_status_bar
+            .unwrap_or(current.show_status_bar),
         enable_scroll_sync: updates
             .enable_scroll_sync
             .unwrap_or(current.enable_scroll_sync),
@@ -189,6 +193,7 @@ mod tests {
             default_view_mode: None,
             last_view_mode: None,
             show_sidebar: None,
+            show_status_bar: None,
             enable_scroll_sync: None,
             recent_files: None,
             window_state: None,
@@ -351,6 +356,41 @@ mod tests {
         };
         let result = merge_preferences(current, updates);
         assert!(!result.show_sidebar);
+    }
+
+    // B5: merge Some(true) flips show_status_bar; subsequent None preserves it.
+    #[test]
+    fn merge_show_status_bar_some_flips_value_then_none_preserves() {
+        let current = UserPreferences::default();
+        assert!(
+            !current.show_status_bar,
+            "default show_status_bar should be false"
+        );
+        let updates = PartialPreferences {
+            show_status_bar: Some(true),
+            ..empty_partial()
+        };
+        let after_flip = merge_preferences(current, updates);
+        assert!(after_flip.show_status_bar, "Some(true) should flip to true");
+
+        // A subsequent merge with None must preserve the prior true value.
+        let preserved = merge_preferences(after_flip, empty_partial());
+        assert!(
+            preserved.show_status_bar,
+            "None should preserve prior show_status_bar"
+        );
+    }
+
+    // B6: deserializing a minimal config (no showStatusBar) defaults to false.
+    #[test]
+    fn deserialise_minimal_json_defaults_show_status_bar_false() {
+        let minimal = r#"{"themeMode":"light","autoSaveInterval":30,"defaultViewMode":"wysiwyg","lastViewMode":"wysiwyg","showSidebar":true,"enableScrollSync":true,"recentFiles":[],"windowState":{"width":1200,"height":800,"x":100,"y":100,"isMaximized":false}}"#;
+        let decoded: UserPreferences =
+            serde_json::from_str(minimal).expect("minimal JSON should deserialise");
+        assert!(
+            !decoded.show_status_bar,
+            "missing showStatusBar should default to false"
+        );
     }
 
     // -----------------------------------------------------------------------

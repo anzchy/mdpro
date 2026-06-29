@@ -79,6 +79,8 @@ function capturePendingTableCellForTransition(
 
 interface EditorStore extends EditorState {
   showSidebar: boolean;
+  /** Show the word/char count status bar (default false). */
+  showStatusBar: boolean;
   /** Auto-save interval in seconds (0 = off). Decision 1A: lives here so useAutoSave reacts immediately. */
   autoSaveInterval: number;
   setAutoSaveInterval: (seconds: number) => void;
@@ -89,6 +91,8 @@ interface EditorStore extends EditorState {
   setEditorView: (view: EditorView | null) => void;
   setShowSidebar: (show: boolean) => void;
   toggleSidebar: () => void;
+  setShowStatusBar: (show: boolean) => void;
+  toggleStatusBar: () => void;
   setCursor: (cursor: CursorPosition) => void;
   setSelection: (selection: SelectionRange | null) => void;
   setEditorScroll: (scroll: ScrollPosition) => void;
@@ -112,6 +116,7 @@ export const useEditorStore = create<EditorStore>((set) => ({
   activeDocumentId: null,
   viewMode: "wysiwyg",
   showSidebar: true,
+  showStatusBar: false,
   autoSaveInterval: 30,
   setAutoSaveInterval: (seconds) => set({ autoSaveInterval: seconds }),
   editorView: null,
@@ -143,6 +148,9 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setEditorView: (view) => set({ editorView: view }),
   setShowSidebar: (show) => set({ showSidebar: show }),
   toggleSidebar: () => set((state) => ({ showSidebar: !state.showSidebar })),
+  setShowStatusBar: (show) => set({ showStatusBar: show }),
+  toggleStatusBar: () =>
+    set((state) => ({ showStatusBar: !state.showStatusBar })),
   setCursor: (cursor) => set({ cursor }),
   setSelection: (selection) => set({ selection }),
   setEditorScroll: (scroll) => set({ editorScroll: scroll }),

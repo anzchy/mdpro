@@ -17,6 +17,9 @@ export interface UserPreferences {
   /** Show sidebar on startup */
   showSidebar: boolean;
 
+  /** Show the word/char count status bar (default false) */
+  showStatusBar: boolean;
+
   /** Enable scroll sync */
   enableScrollSync: boolean;
 

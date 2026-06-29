@@ -17,6 +17,9 @@ pub struct UserPreferences {
     pub last_view_mode: ViewMode,
     /// Show sidebar on startup
     pub show_sidebar: bool,
+    /// Show the word/char count status bar (default false)
+    #[serde(default = "default_show_status_bar")]
+    pub show_status_bar: bool,
     /// Enable scroll sync between editor and preview
     pub enable_scroll_sync: bool,
     /// Recently opened files (max 10)
@@ -371,6 +374,11 @@ fn default_last_view_mode() -> ViewMode {
     ViewMode::Wysiwyg
 }
 
+/// Status bar is hidden by default; the user opts in via the View menu.
+fn default_show_status_bar() -> bool {
+    false
+}
+
 // Table action shortcuts — direction mnemonic via Cmd+Option+arrows.
 fn default_table_insert_row_above() -> String {
     "Cmd+Option+Up".to_string()
@@ -716,6 +724,7 @@ impl Default for UserPreferences {
             default_view_mode: ViewMode::Wysiwyg,
             last_view_mode: ViewMode::Wysiwyg,
             show_sidebar: true,
+            show_status_bar: default_show_status_bar(),
             enable_scroll_sync: true,
             recent_files: Vec::new(),
             window_state: WindowState {
