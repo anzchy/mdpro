@@ -1,9 +1,9 @@
 ---
-description: Design token authoring rules — names, theme parity, exception list for hardcoded literals.
+description: Design token authoring rules — names, theme parity, exception list for hardcoded literals, z-index layers, runtime layout tokens.
 paths:
   - "src/**/*.css"
-  - "src/**/*.tsx"
-  - "src/styles/**/*"
+  - "src/App.tsx"
+  - "src/main.tsx"
 ---
 
 # 31 — Design Tokens
@@ -18,8 +18,8 @@ redeclare token names elsewhere):
 For the actual token values, **read those files**. Don't mirror them
 here — the doc would silently rot.
 
-See `DESIGN.md` for token rationale, color taxonomy narrative, and
-the in-progress migration list.
+Token rationale and the decisions log live in the design doc that root
+`DESIGN.md` marks as current (today `docs/design/mdpro-ui-old/DESIGN.md`).
 
 ## Authoring rules
 
@@ -29,31 +29,19 @@ the in-progress migration list.
    `--blue-100`. Tokens must survive a rebrand.
 3. **Use `color-mix()` for soft variants** when the value derives from a
    base accent. Reskinning then stays local to the base.
-4. **Update `DESIGN.md` when adding a token.** Tokens without doc
-   entries are invisible to future readers.
+4. **Log a new token in the current design doc's decisions log.** Tokens
+   without doc entries are invisible to future readers.
 5. **No component-local token leaks.** If `.foo { --bar: 4px; }` declares
    a token, only `.foo` and descendants may consume it. Cross-component
    reuse → promote to a global token.
 
-## Selection / active-state pattern
-
-```css
-.item.is-active {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-```
-
 ## Frame ownership for nested containers
 
-Wrapper owns the frame (background, border, radius). Children stay
-flat. Applies to: code blocks, table scroll wrappers, image-resize
-wrappers, future callout containers.
-
-```css
-.code-block-wrapper { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: 8px; }
-.code-block-wrapper pre { background: transparent; border: none; border-radius: 0; }
-```
+Wrapper owns the frame (background, border, radius, outer margin). Children
+stay flat. Example: `.tableWrapper` owns the scroll and bottom margin, and
+`.tableWrapper > table` sets `margin: 0` (`MilkdownEditor.css`). Code blocks
+have no wrapper today: `pre` owns the frame in `MilkdownEditor.css` and
+`preview.css`. Adding a wrapper means moving the frame onto it.
 
 ## Acceptable hardcoded values (do not tokenize)
 
@@ -87,7 +75,7 @@ update this table in the same commit.
 | Dialog backdrop | `20` | `.dialog-backdrop` |
 | Toast | `30` | `.toast` |
 | Dev toolbar (web only) | `100` | `.dev-toolbar` |
-| Inline context menu | `1000` | `.image-context-menu`, `.table-context-menu` (planned) |
+| Inline context menu | `1000` | `.image-context-menu`, `.table-context-menu` |
 | Future portaled modal | `9999` | (reserved) |
 
 ## Layout tokens (runtime-toggled)

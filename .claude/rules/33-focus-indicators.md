@@ -27,21 +27,14 @@ surface; don't invent a fifth.
 2. **Never apply `outline: none` globally.**
 3. **Don't combine three indicators** (outline + border + box-shadow on
    the same element looks accidental — pick one pattern).
-4. **Test in both themes.** Focus visibility on `#2563eb` against
-   `#ffffff` is not the same as `#60a5fa` against `#0f1115`.
+4. **Test in both themes**: the accent changes from `#2563eb` to `#60a5fa`.
 5. **Focus must work without color alone.** All four patterns are
    shape changes (ring, outline, background) — colorblind users can
-   perceive them. Never rely solely on a `color:` change.
+   perceive them. Never rely solely on a `color:` change. An opacity
+   tweak (`opacity: 0.95`) or a `title` tooltip is not a focus signal either.
 6. **Use `:focus-visible`, not `:focus`** for new code. Mouse clicks
    shouldn't paint focus rings on buttons; keyboard tabbing should.
    `:focus` is acceptable on text inputs (typing = "I want focus visible").
-
-## Common violations
-
-- `:focus { outline: none; }` with no replacement.
-- Focus indicated only by `color:` change — fails for colorblind users.
-- Subtle opacity tweak as the focus signal (`opacity: 0.95`).
-- Tooltip-only feedback that relies on `title` attribute.
 
 ## Testing checklist
 
@@ -51,5 +44,8 @@ surface; don't invent a fifth.
 - [ ] Modal: Tab and Shift-Tab loop within; Esc returns focus to invocation source.
 - [ ] Focus visibility holds at 200% browser zoom.
 
-mdpro has tests for focus traps in `tests/focus-trap.test.ts`. New
-interactive primitives must add equivalent coverage.
+`tests/focus-trap.test.ts` matches component source text: dialogs handle
+Escape, primary buttons carry `autoFocus`, `RecoveryDialog` has no Escape
+close, and `DevToolbar` is out of tab order (`tabIndex={-1}`). It does not
+test Tab-loop trapping, so verify that by hand. New dialogs must add
+equivalent assertions.

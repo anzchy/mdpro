@@ -4,7 +4,7 @@ description: Pre-landing review checklist — IPC trust boundaries, race conditi
 
 # 60 - Pre-Landing Review Checklist
 
-Run this checklist on every diff before marking work complete. The `auditor` agent and `/ship` command both reference this file.
+Run this checklist on every diff before marking work complete. The `/ship` and `/mecha-audit` commands and `AGENTS.md` reference this file.
 
 ## Critical Pass (Must Fix Before Landing)
 
@@ -13,7 +13,7 @@ Findings in this category are **blockers**. Do not commit until resolved.
 ### IPC Trust Boundaries
 
 - [ ] Tauri commands (`#[tauri::command]`) never trust frontend input without validation. Paths, IDs, and strings from JS must be sanitized or validated in Rust.
-- [ ] Commands return `Result<T, String>` — never `unwrap()` or `expect()` on user-supplied data.
+- [ ] Commands return `Result` (error type `String` or a `Serialize` enum such as `FileError`) — never `unwrap()` or `expect()` on user-supplied data.
 - [ ] MCP tool handlers validate all incoming arguments before touching the shadow store or emitting events.
 - [ ] Events emitted to frontend (`app_handle.emit(...)`) contain only serializable, non-secret data.
 
@@ -27,7 +27,7 @@ Findings in this category are **blockers**. Do not commit until resolved.
 ### Data Loss Paths
 
 - [ ] Save operations (`save_file`) handle write errors and surface them to the user — never silently discard dirty content.
-- [ ] Draft recovery (`save_draft`, `load_draft`) does not overwrite a newer version with an older draft.
+- [ ] Draft recovery (`save_draft`, `get_draft`, `recover_draft`) does not overwrite a newer version with an older draft.
 - [ ] Document close with unsaved changes prompts the user — no silent discard.
 - [ ] Encoding detection fallback (`encoding.rs`) produces readable output; does not silently corrupt binary-adjacent content.
 
@@ -43,24 +43,17 @@ Findings in this category are **blockers**. Do not commit until resolved.
 
 ### Code Quality
 
-- [ ] No `console.log` in committed TypeScript — use `loggingService.logEventSync()`.
-- [ ] No `println!` or `eprintln!` in committed Rust — use `logger::log_event()`.
+- [ ] No `console.log` in committed TypeScript and no `println!` / `eprintln!` in committed Rust — use the logging service (rule 20).
 - [ ] No magic numbers — constants are named.
 - [ ] No dead code — unused imports, variables, or exports removed.
-- [ ] Files stay under ~300 lines — extract if approaching limit.
 
 ### Test Coverage Gaps
 
-- [ ] New store actions have corresponding store tests.
-- [ ] New hooks have `renderHook` tests.
-- [ ] New Rust commands have unit tests in `src-tauri/src/commands/<module>.rs`.
-- [ ] Bug fixes have regression tests (test that fails without the fix, passes with it).
+- [ ] New code has the tests rule 10's "When tests are required" table demands; bug fixes have a regression test (fails without the fix, passes with it).
 
 ### Documentation Sync
 
 - [ ] New IPC commands are listed in the CLAUDE.md IPC table.
-- [ ] Changed keyboard shortcuts are updated in all 3 locations (rule 41).
-- [ ] New features have structured logging following rule 20.
 
 ---
 

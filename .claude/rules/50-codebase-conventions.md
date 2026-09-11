@@ -1,10 +1,12 @@
 ---
-description: Undocumented patterns — Zustand store conventions, Tauri IPC layering, plugin structure, MCP shadow store, error handling, file size limit.
+description: Codebase conventions — Zustand stores, feature locality, Tauri IPC layering, plugin structure and registry, MCP shadow store, error handling, file size limit.
 ---
 
 # 50 - Codebase Conventions
 
 Undocumented patterns found across the codebase. Follow these for consistency.
+
+**Keep features local; avoid cross-feature imports unless the code is shared** — cross-feature imports couple features that should change independently.
 
 ## 1. Zustand Store Conventions
 
@@ -27,33 +29,13 @@ Every Tauri command follows the same 3-layer flow:
 
 | Layer | File | Responsibility |
 |-------|------|----------------|
-| Rust command | `src-tauri/src/commands/<module>.rs` | Business logic, returns `Result<T, String>` |
+| Rust command | `src-tauri/src/commands/<module>.rs` | Business logic, returns `Result` |
 | Registration | `src-tauri/src/commands/mod.rs` → `handlers()` | Registers with Tauri |
 | TS wrapper | `src/services/<service>.ts` | Typed `invoke()` call, error handling |
 
-**Command signature (Rust):**
-```rust
-#[tauri::command]
-pub async fn my_command(arg: String) -> Result<MyData, String> {
-    do_thing(&arg).map_err(|e| format!("Failed: {}", e))
-}
-```
+**Return `Result` from every command and never panic on user input** — a panic takes down the command instead of surfacing an error; the error type is `String` or a `Serialize` enum such as `FileError`.
 
-**Never panic on user input.** All commands return `Result<T, String>`.
-
-## 3. Tauri Event Pattern
-
-Rust → Frontend events use `app_handle.emit("event:name", &payload)`.
-Frontend listens with `listen("event:name", handler)` and stores the unlisten fn
-for cleanup in `useEffect` return.
-
-**Event naming convention** (matches CLAUDE.md):
-- `menu:action` — native menu clicks
-- `file:open`, `file:changed` — file lifecycle
-- `mcp:write_document`, `mcp:insert_content` — MCP-triggered editor mutations
-- `theme:changed` — system theme
-
-## 4. Plugin Structure (Milkdown + CodeMirror)
+## 3. Plugin Structure (Milkdown + CodeMirror)
 
 Plugins live in `src/plugins/` with three subdirectories:
 
@@ -67,9 +49,15 @@ Each plugin exports either a `milkdownPlugin` (for WYSIWYG) or a `codemirrorExte
 (for source mode). Register in `src/plugins/index.ts` and configure defaults in
 `src/plugins/core/pluginConfig.ts`.
 
+Plugin lifecycle is managed by `pluginRegistry` (`src/plugins/core/pluginRegistry.ts`), initialized
+in `src/components/Editor/Editor.tsx` (source mode). `src/components/Editor/MilkdownEditor.tsx`
+imports its `*MilkdownPlugin` exports directly rather than through the registry.
+Editor events (`docChange` / `selectionChange` / `focusChange`) are emitted via
+`pluginRegistry.emitEvent` and exposed to plugins through `EditorContext.events`.
+
 **Plugin styles** live co-located with the plugin file. Never add plugin CSS to global stylesheets.
 
-## 5. MCP Shadow Store
+## 4. MCP Shadow Store
 
 The MCP layer uses a shadow store (in-memory Rust state) to bridge the async gap
 between frontend edits and MCP tool calls:
@@ -82,34 +70,14 @@ between frontend edits and MCP tool calls:
 **Never access document content directly from files** in MCP handlers — always go
 through the shadow store (`src-tauri/src/services/shadow_store.rs`).
 
-## 6. Error Handling
+## 5. Error Handling
 
-**TypeScript:** Always narrow `unknown` errors:
-```ts
-error instanceof Error ? error.message : String(error)
-```
+**TypeScript:** narrow `unknown` with `error instanceof Error ? error.message : String(error)` — never `error as Error` (unsafe cast).
+**Rust:** convert errors with `.map_err()`.
 
-**Rust:** Convert errors with `.map_err()`:
-```rust
-fs::read(path).map_err(|e| format!("Failed to read: {}", e))?;
-```
+## 6. File Size Limit
 
-Never use `error as Error` (unsafe cast).
-
-## 7. Logging
-
-See CLAUDE.md § "Logging Rules" for the full pattern.
-
-**Quick reference:**
-- Frontend: `loggingService.logEventSync({ level, event, status, actionId, context })`
-- Rust: `logger::log_event(LogEntryPayload { level, event, status, ... })`
-- Every significant operation logs `Start` + `Success`/`Fail` with an `action_id`
-
-Never use `console.log` for debug output in committed code. Use the logging service.
-
-## 8. File Size Limit
-
-Keep source files under **300 lines** (CLAUDE.md rule). When a file approaches
+Keep source files under **300 lines**. When a file approaches
 this limit, extract by type:
 - Types/interfaces → `types.ts` in the same directory
 - Pure helpers → `utils.ts`

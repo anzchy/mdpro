@@ -1,12 +1,12 @@
 ---
-description: Always-on guardrails — pause and confirm before rm -rf, force-push, hard reset, DROP TABLE, and similar destructive commands.
+description: Always-on guardrails — pause and confirm before rm -rf, force-push, hard reset, git clean, and similar destructive git/filesystem commands.
 ---
 
 # 25 - Destructive Command Guardrails (Always On)
 
 Before running any bash command that matches the patterns below, **pause and confirm with the user** using `AskUserQuestion`. Show the exact command and the risk. Do not proceed until the user explicitly approves.
 
-This rule is **always active** — it is not session-scoped and cannot be disabled by the user mid-conversation.
+This rule is **always active** — it is not session-scoped.
 
 ## Protected Patterns
 
@@ -18,10 +18,6 @@ This rule is **always active** — it is not session-scoped and cannot be disabl
 | `git checkout .` / `git restore .` | `git checkout .` | Discards all local changes |
 | `git clean -f` / `-fd` | `git clean -fd` | Removes untracked files permanently |
 | `git branch -D` | `git branch -D feature/xyz` | Force-deletes local branch |
-| `DROP TABLE` / `DROP DATABASE` | `DROP TABLE documents;` | Data loss |
-| `TRUNCATE` | `TRUNCATE preferences;` | Data loss |
-| `kubectl delete` | `kubectl delete deployment` | Production impact |
-| `docker rm -f` / `docker system prune` | `docker system prune -a` | Container/image loss |
 
 ## Safe Exceptions (No Confirmation Needed)
 
@@ -36,11 +32,4 @@ These common cleanup targets are safe to delete without asking:
 
 ## Confirmation Format
 
-When a protected command is detected, say:
-
-> **⚠️ Destructive operation detected**
-> Command: `<exact command>`
-> Risk: `<what could be lost>`
-> Proceed? (yes / no / alternative)
-
-Offer a safer alternative when one exists (e.g., `git stash` instead of `git checkout .`).
+**Show the exact command and what could be lost via `AskUserQuestion`, and offer a safer alternative when one exists** (e.g. `git stash` instead of `git checkout .`) — the user can only approve a risk they can see.
