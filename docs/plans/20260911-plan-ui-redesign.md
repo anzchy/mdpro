@@ -310,7 +310,7 @@ The item→stage mapping is an assumption (A1). Correct it at the Stage 0 gate.
 - Move each other section verbatim into a partial, per the approved file map (A6). Assumed location: `src/styles/sections/<section>.css`.
 - List the partials in `src/styles/index.css` immediately after `./globals.css`, in original source order. `main.tsx` is not touched again.
 - Change no selector, value or rule order. Remove only the moved text.
-- Plugin CSS stays co-located with its plugin (rule 50 §4). Do not pull plugin CSS into the partials.
+- Plugin CSS stays co-located with its plugin (rule 50 §3). Do not pull plugin CSS into the partials.
 
 ### Stage 1 acceptance criteria
 - [ ] G0 passes

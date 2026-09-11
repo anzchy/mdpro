@@ -54,7 +54,7 @@ If `$ARGUMENTS` contains numbers (e.g. `2,7,11`): use exactly those dimensions.
               missing platform guards for watcher backends.
 
 7.  MILKDOWN WYSIWYG EDGE CASES
-    Files: src/plugins/milkdown/*.ts, src/hooks/useMilkdown.ts
+    Files: src/plugins/milkdown/**/*.ts, src/components/Editor/MilkdownEditor.tsx, src/hooks/useMilkdown*.ts
     Look for: Plugin init not guarded against editor unmount race; ProseMirror schema
               conflicts; commands dispatched after editor destroyed; missing cleanup in
               useEffect return; circular imports between milkdown plugins.

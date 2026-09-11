@@ -176,7 +176,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 
 Also verify sync rules:
 - Keyboard shortcuts changed? Check 3-file sync (`.claude/rules/41-keyboard-shortcuts.md`).
-- User-facing behavior changed? Update website docs (`.claude/rules/21-website-docs.md`).
+- User-facing behavior changed? Update the relevant user docs in `docs/guide/` (e.g. `docs/guide/view-modes.md`, `docs/guide/tables.md`).
 
 ### Phase 6: Create PR
 

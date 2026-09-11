@@ -59,7 +59,7 @@ Focus:
 4. Duplicate code — copy-paste patterns, repeated logic that should be unified
 5. Dead code — unused imports, unreachable branches, orphaned functions
 6. Shortcuts & patches — workarounds, TODO markers, band-aids, bypass flags
-7. mdpro compliance — Zustand selectors (no destructuring), structured logging (see CLAUDE.md), file size <300 lines
+7. mdpro compliance — Zustand selectors (no destructuring), structured logging (see `.claude/rules/20-logging-and-docs.md`), file size <300 lines
     Report EVERY issue as: file:line | severity (Critical/High/Medium/Low) | issue | fix
     Be thorough. Do not omit minor issues.
 ```
