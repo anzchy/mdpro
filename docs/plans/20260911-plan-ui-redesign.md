@@ -10,6 +10,7 @@ Sources of truth (precedence on conflict: rules > DESIGN.md > review > proposal)
 - [`docs/design/mdpro-ui-old/DESIGN.md`](../design/mdpro-ui-old/DESIGN.md): aesthetic register. D1–D4 are logged at :122-125. A bare `DESIGN.md` below means this file; the root `DESIGN.md` is only an index.
 - [`docs/design/mdpro-ui-new/mdpro-ui-codex-review.md`](../design/mdpro-ui-new/mdpro-ui-codex-review.md): the change list, items 1–15.
 - [`docs/design/mdpro-ui-new/proposal-ab.html`](../design/mdpro-ui-new/proposal-ab.html): the rendered target. Tokens are at :21-61; the rejected D3 block at :63-69 must never ship.
+- [`docs/design/mdpro-ui-new/DESIGN.md`](../design/mdpro-ui-new/DESIGN.md): the target design system distilled from the review and the proposal. It holds token names (no values), a component contract per surface with proposal line citations, the rule edits the redesign needs, and the open questions. Use it as the per-work-item checklist and at visual sign-off. It ranks below the review and the proposal, so a disagreement with either is a bug in this file and a stop-and-ask. It is never the bare `DESIGN.md`.
 
 A conflict between any two sources is a stop-and-ask, never a silent pick.
 
