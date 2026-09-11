@@ -286,7 +286,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Logging:** unchanged (`editor.image.resize`).
 
 ### Stage 4 acceptance criteria
-- [ ] G0 passes; every work item above has its RED→GREEN tests (rule 10: behavior and ARIA, not rendering snapshots)
+- [ ] G0 passes; every Stage 4 work item, in this file and in [`stage-4b-data-safety.md`](stage-4b-data-safety.md), has its RED→GREEN tests (rule 10: behavior and ARIA, not rendering snapshots)
 - [ ] `defaultHighlightStyle` no longer drives the Source light theme; no `--color-syntax-code` appears anywhere in `src/`; the One Dark path is unchanged (DR20)
 - [ ] No new runtime dependency (the E7 test devDependencies are excepted); if an icon library was proposed, the user's decision is recorded
 - [ ] No emoji or glyph icons remain at the item 4 sites; icon-only controls have accessible names. Each bottom tab's close control is a sibling button named "Close *name*" that Tab reaches

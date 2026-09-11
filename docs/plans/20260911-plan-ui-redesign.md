@@ -7,10 +7,10 @@ Status: DRAFT — blocked on the Stage 0 approval gate
 Sources of truth (precedence on conflict: rules > old DESIGN.md > review > proposal > DESIGN.md):
 
 - [`.claude/rules/30-34`](../../.claude/rules/): enforceable rules. Rule 31 defines "tokenized"; rule 33 defines focus patterns; rule 34 defines the theme classes.
-- [`docs/design/mdpro-ui-old/DESIGN.md`](../design/mdpro-ui-old/DESIGN.md): the shipped UI's aesthetic register. D1–D4 are logged at :122-125. Cited below as `old DESIGN.md:N`. Read-only in this plan (see Out of scope).
+- [`docs/design/mdpro-ui-old/DESIGN.md`](../design/mdpro-ui-old/DESIGN.md): the shipped UI's aesthetic register. D1–D4 are logged at :122-125. Cited in these plan files as `old DESIGN.md:N`. Read-only in this plan (see Constraints).
 - [`docs/design/mdpro-ui-new/mdpro-ui-codex-review.md`](../design/mdpro-ui-new/mdpro-ui-codex-review.md): the change list, items 1–15.
 - [`docs/design/mdpro-ui-new/proposal-ab.html`](../design/mdpro-ui-new/proposal-ab.html): the rendered target. Tokens are at :21-61; the rejected D3 block at :63-69 must never ship.
-- [`docs/design/mdpro-ui-new/DESIGN.md`](../design/mdpro-ui-new/DESIGN.md): the target design system distilled from the review and the proposal. It holds token names (no values), a component contract per surface with proposal line citations, the rule edits the redesign needs, and the open questions. Use it as the per-work-item checklist and at visual sign-off. It ranks below the review and the proposal, so a disagreement with either is a bug in this file and a stop-and-ask. A bare `DESIGN.md` below means this file: every token, platform-floor and runtime-token doc update in this plan lands here. The root `DESIGN.md` is only an index.
+- [`docs/design/mdpro-ui-new/DESIGN.md`](../design/mdpro-ui-new/DESIGN.md): the target design system distilled from the review and the proposal. It holds token names (no values), a component contract per surface with proposal line citations, the rule edits the redesign needs, and the open questions. Use it as the per-work-item checklist and at visual sign-off. It ranks below the review and the proposal, so a disagreement with either is a bug in this file and a stop-and-ask. A bare `DESIGN.md` in these plan files means this file: every token, platform-floor and runtime-token doc update in this plan lands here. The root `DESIGN.md` is only an index.
 
 A conflict between any two sources is a stop-and-ask, never a silent pick.
 
@@ -30,7 +30,45 @@ Bring the shipped UI in line with the proposal and the review, and leave app CSS
 
 ## Decided (do not re-litigate)
 
-The full table, with sources, is in [`decisions.md`](20260911-ui-redesign/decisions.md).
+One line per decision. The full text and sources are in [`decisions.md`](20260911-ui-redesign/decisions.md); if the two differ, `decisions.md` wins.
+
+| ID | Decision |
+|---|---|
+| D1 | A's register with B's structure |
+| D2 | Hybrid Source font: Monospace for new installs, plus a "Source font" preference |
+| D3 | No second hue in Source syntax (no `--color-syntax-code`) |
+| D4 | Keep the current cool neutrals; adopt only derived mechanics |
+| E1 | macOS floor is 13.1, for `color-mix()`; no `@supports` fallback |
+| E2 | CSS order has one source: `src/styles/index.css` |
+| E3 | `sourceFont` is `"mono"` \| `"editor"`: existing files get `"editor"`, first run gets `"mono"`, unknown values fall back to `"editor"` |
+| E4 | One `ToggleSwitch` replaces the Settings toggles and checkboxes |
+| E5 | Zero-change stages are proven by a computed-style JSON diff; sign-off screenshots are taken in WKWebView |
+| E6 | The `config.json` overwrite fix is its own PR and lands before Stage 5 |
+| E7 | Testing Library devDependencies are allowed, test-only; Vitest also collects `.test.tsx` |
+| E8 | `--source-font-family` defaults to mono in `:root`; a brief mono flash before preferences load is accepted |
+| DR1 | Reference directions for the empty state, external change and drop target; mockups stay local |
+| DR2 | Build the main bar and status strip (WI-4.8) |
+| DR3 | Build the no-document state, with New and Open… buttons (WI-4.9) |
+| DR4 | Breadcrumb: muted parent folder, then file name; the full path only in a tooltip |
+| DR5 | Rebuild the external-change dialog with three dirty-aware states (WI-4.10) |
+| DR6 | Opening an already-open file switches to its tab and never re-reads it (WI-4.11, first in Stage 4) |
+| DR7 | Build the drop target: an editor-column tint with a label chosen from the file types (WI-4.12) |
+| DR8 | `ConfirmDialog` meets rule 32; destructive dialogs focus the safe action (WI-4.6) |
+| DR9 | Failure toasts use the error variant: `role="alert"`, Dismiss, no auto-dismiss (WI-4.13) |
+| DR10 | The Preview pane is a dead-code candidate (A8); Q1 is closed |
+| DR11 | WYSIWYG picks up text changed outside the editor before the next edit (WI-4.14) |
+| DR12 | Colors change instantly; only the knob `transform` and hover-reveal `opacity` animate |
+| DR13 | One reduced-motion block zeroes the motion duration token |
+| DR14 | Redesign tokens are logged in the new DESIGN.md; WI-5.5 marks it current |
+| DR15 | `--color-focus-ring` equals the solid accent in both themes (Q4) |
+| DR16 | The minimum window stays 400×640, and the new chrome gets narrow-width rules |
+| DR17 | No page zoom, so QA checks 400×640 and `zoom: 2` instead of 200% zoom |
+| DR18 | Word count: one per Han or kana character, one per other letter-digit run; Markdown syntax is not counted (Q12) |
+| DR19 | WYSIWYG has no cursor field (Q13) |
+| DR20 | One Dark stays selectable and unchanged; "Default" follows the app theme (Q3) |
+| DR21 | No warning color; the dev toolbar's literals are a listed exception (Q7) |
+| DR22 | Chrome font sizes outside the ramp take the proposal's roles; one new `--font-size-title` (Q8) |
+| DR23 | Radii snap to `--radius-control`, `--radius-popover` and a new `--radius-inner`; pills use `999px` (Q9) |
 
 ## Assumptions (confirm or change at the Stage 0 gate)
 
@@ -40,7 +78,7 @@ The full table, with sources, is in [`decisions.md`](20260911-ui-redesign/decisi
 | A2 | Orchestrate through `/feature-workflow`. Each work item is implemented with `/tdd-guardian:workflow`. |
 | A3 | Visual QA uses `/qa-only` (report-only). `/design-review` runs only when the user asks. |
 | A4 | Screenshots and computed-style JSON are stored at `$TMPDIR/mdpro-redesign/<stage>/<surface>-<theme>.{png,json}` and never committed. |
-| A5 | "100% tokenized" follows the definition below. |
+| A5 | "100% tokenized" follows the definition in [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md). |
 | A6 | Stage 1 is a pure move into ordered partials listed in `src/styles/index.css` (E2). `:root` tokens stay in `globals.css` (rule 31:11-16). |
 | A7 | No new runtime npm or cargo dependency, including icon, image-diff and contrast tools. The only exception is E7's test-only devDependencies, added in WI-1.0. |
 | A8 | `src/App.css`, `src/components/TabBar/`, the unmounted Preview pane (DR10: `src/components/Preview/Preview.tsx`, `ImageRenderer.tsx`, `styles/preview.css`, and `src/hooks/usePreview.ts`) the unmounted document list (`src/components/Sidebar/Sidebar.tsx` and `FileItem.tsx`) and the unreachable large-file warning (WI-4.13) are dead-code candidates; list them, do not delete them. `src/components/Preview/mathRender.ts` stays live, because HTML export uses it. The tokenization test asserts that no file outside the candidates imports them. Deletion is tracked in TODOS.md. |
@@ -51,22 +89,24 @@ The full table, with sources, is in [`decisions.md`](20260911-ui-redesign/decisi
 
 ## Open questions (must be answered at the Stage 0 gate)
 
+Q2, Q6 and Q10 are still open. The others are closed; their answers are in the decisions they name.
+
 | ID | Question | Blocks |
 |---|---|---|
-| Q1 | ~~Should the Preview's highlight.js theme follow dark mode?~~ **Closed by DR10:** `Preview.tsx` has not been mounted since `4570de3`, so it is a dead-code candidate (A8). | — |
+| Q1 | The Preview's highlight.js theme in dark mode. **Closed by DR10:** the Preview is unmounted. | — |
 | Q2 | Should `:root` keep its duplicated light values (`globals.css:1-47`)? **Proposed (design review; confirm at the Stage 0 gate):** keep them. `App.tsx:451-452` adds the theme class in an effect, after first paint, so `:root` is what paints first. WI-2.1's guard asserts that every token declared in both `:root` and `.theme-light` has the same value, so the copies can't drift. | WI-3.1 |
-| Q3 | ~~Does One Dark stay selectable, unchanged, next to the new HighlightStyle (review :86)?~~ **Answered: DR20.** | WI-4.1 |
-| Q4 | ~~Is the rule 33 edit approved (patterns 1–3 → `--color-focus-ring`, review item 7)?~~ **Closed by DR15:** approved, with the token equal to the solid accent. | WI-3.3 |
-| Q5 | ~~What is the WebKit floor?~~ **Closed by E1:** macOS 13.1, set in WI-3.4. | — |
+| Q3 | One Dark next to the new HighlightStyle. **Answered: DR20.** | WI-4.1 |
+| Q4 | The rule 33 focus-ring edit. **Closed by DR15.** | WI-3.3 |
+| Q5 | The WebKit floor. **Closed by E1:** macOS 13.1. | — |
 | Q6 | Undeclared tokens are read with a hex fallback: `--color-success`, `--color-error` and `--color-text-tertiary` (`globals.css:1842`, `:1846`, `:1850`). Declare them, or replace them with existing tokens? **Proposed (design review; confirm at the Stage 0 gate):** replace them. They color the About update status (`AboutSettings.tsx:219-281`): error uses `--color-danger`, disabled uses `--color-muted`, and "up to date" uses `--color-text`, because DESIGN.md § Status indicator rules out green and the label already states the result. No token is declared. | WI-2.2 |
-| Q7 | ~~Amber warning literals (`globals.css:1065-1066`, `:1519-1544`, mostly the dev toolbar) need a decision: add a `--color-warning` token, or exclude the dev-only toolbar?~~ **Answered: DR21.** | WI-2.1, WI-4.3 |
-| Q8 | ~~Chrome font sizes outside the 12/13/14 ramp (18px ×9, 16px ×4, 15px ×2, 24px ×1 in `globals.css`) need a decision: add title tokens, or make them exceptions?~~ **Answered: DR22.** | WI-3.2, WI-4.2 |
-| Q9 | ~~Radii outside the proposal's control/popover pair (4px ×12, 8px ×11, 12px ×6, 3px ×5, 2px ×2, 16px ×2, 24px ×1) need a decision: add tokens from the old DESIGN.md:76 scale, or make them exceptions?~~ **Answered: DR23.** | WI-2.1, WI-2.2, Stage 3 |
+| Q7 | Amber warning literals. **Answered: DR21.** | WI-2.1, WI-4.3 |
+| Q8 | Chrome font sizes outside the ramp. **Answered: DR22.** | WI-3.2, WI-4.2 |
+| Q9 | Radii outside the token pair. **Answered: DR23.** | WI-2.1, WI-2.2, Stage 3 |
 | Q10 | `z-index: 1` at `MilkdownEditor.css:214` is not in the rule 31:83-91 table. Allow it as a local stacking exception? **Proposed (design review; confirm at the Stage 0 gate):** allow it. It stacks the column-resize handle inside a table cell, not a window layer, and rule 31's table lists window layers. WI-2.1 lists it as a local exception with file:line. | WI-2.1 |
-| Q11 | ~~If the app has no command palette, confirm it is out of scope (the proposal draws one).~~ **Closed (design review):** no command palette exists, so the proposal's palette (:449) is out of scope. ⌘K already inserts a link (`typoraKeymapPlugin.ts:5`), so a "Commands ⌘K" hint would also be wrong. | — |
-| Q12 | ~~How does the status-strip word count treat CJK text and Markdown syntax?~~ **Answered: DR18.** | WI-4.8 |
-| Q13 | ~~In WYSIWYG, does the status strip show a cursor position (and in what unit), or omit that field?~~ **Answered: DR19.** | WI-4.8 |
-| Q14 | ~~The app has no Save As.~~ **Closed (design review):** the code path exists. `saveActiveDocumentAs` (`useDocument.ts:172-200`) opens the save picker with the file name and saves, and untitled documents already use it (`:207`); only a menu item is missing. The deleted state's "Save As…" calls it. Original question: The app has no Save As. In the deleted-file state, should "Save As…" be built (a path picker plus the existing save path), or should that state offer "Save" to recreate the file at its old path? | WI-4.10 |
+| Q11 | A command palette. **Closed:** the app has none, so the proposal's palette (:449) is out of scope; ⌘K already inserts a link (`typoraKeymapPlugin.ts:5`). | — |
+| Q12 | Status-strip word count for CJK text and Markdown syntax. **Answered: DR18.** | WI-4.8 |
+| Q13 | A cursor field in WYSIWYG. **Answered: DR19.** | WI-4.8 |
+| Q14 | "Save As…" in the deleted-file state. **Closed:** `saveActiveDocumentAs` (`useDocument.ts:172-200`) already exists; only a menu item is missing. | WI-4.10 |
 
 ---
 

@@ -8,7 +8,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ### WI-2.1 — Tokenization guard test (RED first) — M
 - Create `tests/css-tokenization.test.ts` with one `it` per in-scope CSS file. Use the source-inspection style of `tests/design-tokens-accent-danger.test.ts`, including its `@module` / `Purpose:` header.
-- The test enforces the A5 definition: the property families above, the rule 31:58-76 allowlist, and the rule 31:83-91 z-index table plus any Q10 exception, and the dev-only toolbar rules (`.dev-toolbar*`, `globals.css:1509-1547`) as an exception with file:line (DR21). `999px` pill radii join `50%` on the allowlist, and WI-2.1 edits rule 31 § Acceptable hardcoded values in the same commit (DR23).
+- The test enforces the A5 definition: the property families in [`baseline-protocol.md`](baseline-protocol.md), the rule 31:58-76 allowlist, and the rule 31:83-91 z-index table plus any Q10 exception, and the dev-only toolbar rules (`.dev-toolbar*`, `globals.css:1509-1547`) as an exception with file:line (DR21). `999px` pill radii join `50%` on the allowlist, and WI-2.1 edits rule 31 § Acceptable hardcoded values in the same commit (DR23).
 - **Deferred list (A12):**
   - Class (b) literals are listed explicitly as `{ file, selector, property, value, stage: 3 | 4, item: N }`. A listed literal passes; anything else fails.
   - A separate `it` asserts the per-stage counts.

@@ -10,7 +10,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - Run `/tdd-guardian:status`. If the config is missing, disabled, or has no runnable lane, **stop and ask the user to run `/tdd-guardian:init`**.
 - Run G0 on the untouched tree and record pre-existing failures, so they are not blamed on this work.
 - Save `git status --porcelain` to `$TMPDIR/mdpro-redesign/git-status-baseline.txt`. G0's file-set check compares against it.
-- Re-verify every Baseline fact above and note discrepancies in Appendix A.
+- Re-verify every Baseline fact in [`baseline-protocol.md`](baseline-protocol.md) and note discrepancies in [Appendix A](appendices.md).
 - List every test that reads app CSS from disk, since Stage 1 will move those files: `grep -rln "\.css" tests`.
 
 ### WI-0.2 — Literal inventory and classification — M
