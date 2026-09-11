@@ -128,14 +128,10 @@ Rust emits events that frontend listens to via `listen()`:
 | `file:open`     | `string[]`             | Single-instance file open (launch.rs)         |
 | `file:changed`  | `{ path, changeType }` | External file modification (file\_watcher.rs) |
 | `theme:changed` | `"light" \| "dark"`    | System theme change                           |
-
-### Adding a New IPC Command
-
-1. Define the command in `src-tauri/src/commands/<module>.rs`
-
-2. Register it in `src-tauri/src/commands/mod.rs` → `handlers()`
-
-3. Create typed wrapper in `src/services/<service>.ts`
+| `mcp:write_document` | `{ document_id, content, window_label }` | MCP `write_document` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:insert_content` | `{ document_id, text, position, window_label }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:create_document` | `{ document_id, content, window_label }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:table_action` | `{ document_id, action, payload, window_label }` | MCP table tools (http\_server.rs) → `useMcpEvents.ts` |
 
 ## Menu System
 
@@ -264,55 +260,18 @@ Feature specifications live in `specs/001-mdpro-mvp/`:
 
 ### Project Constitution
 
-- **Atomic commits**: see "Git Commit Conventions" above and `.claude/rules/00-engineering-principles.md`.
-- **Test-driven development**: see `.claude/rules/10-tdd.md` for the mdpro-specific test matrix and Vitest/XCTest commands.
+- **Atomic commits**: see "Git Commit Conventions" above.
+- **Test-driven development**: see `.claude/rules/10-tdd.md` for the mdpro-specific test matrix and where test files must live.
 - **Changelog**: every release-affecting change updates `CHANGELOG.md` under `## [Unreleased]`, moved to a versioned section on release. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## Cross-Platform Development (Mac + WSL)
 
-This project is developed on **macOS** (primary) and **WSL/Linux** (secondary). Line ending mismatches are a common pitfall.
+Developed on macOS (primary) and WSL/Linux (secondary). Two must-follow rules:
 
-### Line Endings — Always LF
+- **Always LF.** `.gitattributes` (`* text=auto eol=lf`) is authoritative. **Never commit CRLF.**
+- **Never set `core.autocrlf = true`** (use `git config core.autocrlf false` on WSL).
 
-`.gitattributes` enforces LF for all text files. **Never commit CRLF.**
-
-```bash
-# Verify a file's line endings
-file src/App.tsx          # Should say "ASCII text" not "CRLF line terminators"
-```
-
-### If you see mass "modified" files after a pull
-
-This is almost always a CRLF/LF mismatch — not real code changes. Verify:
-
-```bash
-git diff --stat HEAD      # Same insertions = deletions → line ending issue
-file src/App.tsx          # "CRLF line terminators" confirms it
-```
-
-Fix by restoring all files to the committed LF versions:
-
-```bash
-git checkout -- .
-```
-
-### Re-normalize after editing `.gitattributes`
-
-```bash
-git add --renormalize .
-git commit -m "chore: normalize line endings to LF"
-```
-
-### Never set `core.autocrlf = true`
-
-Windows/WSL default is `autocrlf=true` which converts LF→CRLF on checkout. This causes every line to appear modified when diffing against Mac commits. Disable it:
-
-```bash
-git config core.autocrlf false        # repo-level
-git config --global core.autocrlf false  # or globally on WSL
-```
-
-The `.gitattributes` `eol=lf` rule is authoritative — no per-developer config needed.
+Mass "modified" files after a pull, re-normalizing, and verification commands: see [`docs/guide/cross-platform-wsl.md`](./docs/guide/cross-platform-wsl.md).
 
 ## Constraints
 
@@ -326,51 +285,9 @@ The `.gitattributes` `eol=lf` rule is authoritative — no per-developer config 
 
 ## Logging Rules
 
-After implementing any new feature, **always add structured logging** to enable debugging in production builds:
+After implementing any new feature, **always add structured logging** to enable debugging in production builds.
 
-### Rust Backend (src-tauri/)
-
-```rust
-use tauri_app_lib::models::{LogEntryPayload, LogLevel, LogStatus};
-use tauri_app_lib::services::logger;
-
-// Log operation start
-logger::log_event(LogEntryPayload {
-    level: LogLevel::Info,
-    event: "feature.action".to_string(),  // e.g., "file.open", "window.create"
-    status: LogStatus::Start,
-    action_id: None,
-    context: Some(json!({ "key": "value" })),
-    duration_ms: None,
-    error: None,
-});
-
-// Log success/failure
-logger::log_event(LogEntryPayload {
-    level: LogLevel::Info,  // or LogLevel::Error for failures
-    event: "feature.action".to_string(),
-    status: LogStatus::Success,  // or LogStatus::Fail
-    action_id: None,
-    context: Some(json!({ "result": "details" })),
-    duration_ms: Some(elapsed_ms),
-    error: None,  // or Some(error_message) for failures
-});
-```
-
-### TypeScript Frontend (src/)
-
-```typescript
-import { loggingService } from './services/loggingService';
-
-// Log UI events
-loggingService.logEventSync({
-    level: 'info',
-    event: 'ui.component.action',  // e.g., "ui.button.click", "tab.switch"
-    status: 'success',
-    actionId: loggingService.generateActionId(),
-    context: { screen: 'editor', controlId: 'button-id' },
-});
-```
+Rust (`logger::log_event`) and TypeScript (`loggingService.logEventSync`) code samples live in `.claude/rules/20-logging-and-docs.md` (auto-loads when commands/services/hooks/components are touched).
 
 ### Event Naming Convention
 
@@ -392,153 +309,9 @@ loggingService.logEventSync({
 
 - Verify with: `tail -f ~/.mdpro/mdpro.log | jq .`
 
-## Debugging Strategies
+## Debugging
 
-### Tauri Dev WebView DevTools
-
-**In **``**, right-click anywhere in the window → "Inspect Element"** to open WebView DevTools with full Chrome DevTools capabilities:
-
-- Elements / DOM inspection
-
-- Console logs
-
-- Network requests
-
-- Sources with breakpoints
-
-- Performance profiling
-
-This is often overlooked but provides the best of both worlds: full DevTools + Tauri APIs.
-
-### Enable DevTools in Production Builds (for internal testing)
-
-Add to `tauri.conf.json` for test builds:
-
-```json
-{
-  "app": {
-    "windows": [{
-      "devtools": true
-    }]
-  }
-}
-```
-
-Or trigger via keyboard shortcut (add to Rust backend):
-
-```rust
-#[tauri::command]
-fn toggle_devtools(window: tauri::Window) {
-    if window.is_devtools_open() {
-        window.close_devtools();
-    } else {
-        window.open_devtools();
-    }
-}
-```
-
-**Note**: Disable DevTools in public releases for security.
-
-### When to use `pnpm dev` (localhost:1420)
-
-Use browser-based debugging for **frontend-only issues**:
-
-- **React/UI bugs**: Component rendering, state management, CSS issues
-
-- **Editor issues**: Milkdown/CodeMirror initialization, schema errors, plugin conflicts
-
-- **Console errors**: JavaScript exceptions, React warnings, unhandled promises
-
-- **Network inspection**: API calls, timing issues (DevTools Network tab)
-
-- **DOM inspection**: Element structure, computed styles, event listeners
-
-- **Hot reload**: Faster iteration when making frequent UI changes
-
-**Advantages**: Chrome DevTools, breakpoints, React DevTools extension, instant feedback
-
-**Limitations**: No Tauri APIs (file dialogs, native menus, window management)
-
-### When to use `pnpm tauri dev` + JSONL logs
-
-Use Tauri + log files for **integration and Tauri-specific issues**:
-
-- **File operations**: Open, save, encoding detection, file watcher
-
-- **IPC debugging**: Frontend ↔ Rust communication, invoke/event flow
-
-- **Native features**: Menu events, window lifecycle, drag-drop from Finder
-
-- **App startup**: Launch paths, single-instance handling, preferences loading
-
-- **Production simulation**: Testing behavior closer to the built app
-
-- **Race conditions**: Async timing issues between Tauri and React
-
-**Commands**:
-
-```bash
-# Watch logs in real-time
-tail -f ~/.mdpro/mdpro.log | jq .
-
-# Filter by event type
-tail -f ~/.mdpro/mdpro.log | jq 'select(.event | startswith("file."))'
-
-# Filter by level
-tail -f ~/.mdpro/mdpro.log | jq 'select(.level == "error")'
-```
-
-### Debug Workflow
-
-1. **Start with localhost** if unsure - faster iteration, better tooling
-
-2. **Switch to Tauri dev** when:
-
-   - Issue only reproduces in Tauri window
-
-   - Need to test file/menu/window operations
-
-   - Debugging IPC or Rust backend
-
-3. **Use both simultaneously**: localhost for UI, logs for backend correlation
-
-## Active Technologies
-
-- TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4 (002-polish-wysiwyg)
-
-- N/A (local file system via Tauri) (002-polish-wysiwyg)
-
-- TypeScript 5.8 (frontend), Rust 2021 Edition (backend - unchanged) + React 19, Tauri 2.0, CodeMirror 6 (@codemirror/\*), Milkdown 7.18 (@milkdown/kit, @milkdown/react), Zustand 4 (003-redesign-plugin-system)
-
-- N/A (no new storage requirements) (003-redesign-plugin-system)
-
-- TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + Tauri 2.0, React 19, Zustand 4, CodeMirror 6, Milkdown 7 (004-minor-fix)
-
-- Local filesystem (via Tauri), JSON preferences file (004-minor-fix)
-
-- JSONL file at `~/.mdpro/mdpro.log`, preferences in existing `preferences.json` (005-add-concrete-logging)
-
-- TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown 7.18, Zustand 4.5.4, Vite 7 (006-toc-tab-and-new-features)
-
-- Local filesystem via Tauri, JSON preferences file at `~/.mdpro/preferences.json` (006-toc-tab-and-new-features)
-
-- Local filesystem, `~/.mdpro/` for config (server.port, server.token) (007-feat/mcp-server)
-
-## Recent Changes
-
-- 002-polish-wysiwyg: Added TypeScript 5.8 (frontend), Rust 2021 Edition (backend) + React 19, Tauri 2.0, CodeMirror 6, Milkdown (NEW), Zustand 4
-
-## Plugin System (003-redesign-plugin-system)
-
-- Plugin definitions live in `src/plugins/` with `core/`, `codemirror/`, and `milkdown/` subfolders.
-
-- Register plugins in `src/plugins/index.ts` and configure defaults in `src/plugins/core/pluginConfig.ts`.
-
-- Use `codemirrorExtension` for source mode and `milkdownPlugin` for WYSIWYG mode; plugins may support both.
-
-- Plugin lifecycle is managed by `pluginRegistry` (initialized in `src/components/Editor/Editor.tsx` and `src/hooks/useMilkdown.ts`).
-
-- Editor events (doc/selection/focus) are emitted via `pluginRegistry.emitEvent` and consumed through `EditorContext.events`.
+DevTools in dev/prod builds, when to use `pnpm dev` vs `pnpm tauri dev` + JSONL logs, and the debug workflow: see [`docs/guide/debugging.md`](./docs/guide/debugging.md).
 
 ## Typora-Parity Phase 1 Scope (rendering)
 
