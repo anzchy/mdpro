@@ -65,9 +65,9 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ### Gates and tools
 
-- `pnpm build` (`tsc && vite build`), `pnpm test:run` (`vitest run`), `cd src-tauri && cargo test`. All three also run in `.github/workflows/ci.yml`.
+- `pnpm build` (`tsc && vite build`), `pnpm test:run` (`vitest run`), `cd src-tauri && cargo test`. **Correction (E25): all three run in `.github/workflows/ci.yml` only on `tags: ['v*']` and manual dispatch** (`ci.yml:2-6`). There is no pull-request or push-to-master trigger, so today none of them gates a merge, and all 1138 tests are skipped on every merge path. WI-0.0 restores that gate. Note also that `tsc` type-checks only `src` (`tsconfig.json:23`), so no test file is type-checked (E28).
 - `pnpm dev` serves localhost:1420 without Tauri APIs; `pnpm tauri dev` runs the full app.
-- `.claude/tdd-guardian/config.json` has `enabled: true` and `testCommand: pnpm test:run`, but `lanes` is absent. Readiness must be confirmed in WI-0.1.
+- `.claude/tdd-guardian/config.json` has `enabled: true`. **Correction (verified 2026-09-12): `lanes` is present, not absent, and there is no top-level `testCommand` key.** Two lanes are configured: `unit` (`pnpm exec vitest run --coverage`, `gateOn: ["taskCompleted", "commit"]`, `coverageSummaryPath: coverage/coverage-summary.json`, `probeCommand: pnpm exec vitest list`) and `rust`. The file also carries `coverageThresholds`, `coverageMode`, `requireMutation`, `mutationCommand` and `mutationGateOn`. Consequence for ordering: **the unit lane already runs `--coverage`**, so until E27's `coverage.include` fix lands it measures against the 97898-line denominator; no threshold may be written into this config before WI-0.0. Readiness is still confirmed in WI-0.1.
 - `CHANGELOG.md:8` has a `## [Unreleased]` section.
 
 ---
@@ -77,6 +77,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 **Per work item** (`/feature-workflow` + `/tdd-guardian:workflow`):
 1. Preflight: re-verify the cited file:line facts and record discrepancies.
 2. RED: write or adjust a test that fails for the right reason. CSS-only changes have no unit test (rule 10) but must pass the screenshot and tokenization gates.
+   - **E26 exemption:** a behavior-preserving move (a CSS split, a pure extraction) has no honest RED — inventing a failing test for it is theater. It lands as passing characterization before and after, so "every work item lands RED to GREEN" does not apply to it.
+   - **E26 migration rule:** when the work item touches a test that asserts on production **source text** (43 of 85 files read source with `readFileSync`; 41 assert on it), add the behavioral characterization and delete the superseded regex assertions in the **same** commit, before the commit that changes production code. Never migrate the suite wholesale.
 3. GREEN, then refactor.
 4. Run the common gate (below).
 5. Update the manual test guide (A11).
@@ -86,8 +88,10 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] `pnpm test:run` exits 0; no newly skipped tests; no assertion deleted to get green
 - [ ] `cd src-tauri && cargo test` exits 0 (required whenever Rust changed; otherwise run once per stage)
 - [ ] No file outside the work item's declared file set changed, compared with the baseline `git status --porcelain` saved in WI-0.1 (the tree already has unrelated changes)
-- [ ] No new dependency: `git diff package.json src-tauri/Cargo.toml` is empty, apart from the three E7 devDependencies added in WI-1.0
+- [ ] No new dependency: `git diff package.json src-tauri/Cargo.toml` is empty, apart from the **four** E7/E28 devDependencies, which land in WI-0.0's chore PR before Stage 0 — not in WI-1.0
 - [ ] No screenshot, no `.prompts/` artifact, and no conversation content in the diff
+- [ ] `pnpm coverage` exits 0 and no metric fell below its recorded threshold (E27; from WI-0.0 onward)
+- [ ] The Milkdown browser suite exits 0, once it exists (E31). G0 names it explicitly, so the original three commands cannot pass while the plan's most important regression is skipped.
 - [ ] Nothing committed or pushed
 
 **Stop protocol:** there are five stops: end of Stage 0, and end of Stages 2, 3, 4 and 5.

@@ -38,7 +38,7 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
 - **Check:** one pure helper, used by both open paths.
   - It compares the id the store uses. `Document::generate_id` (`document.rs:57-64`) hashes the path exactly as given, with no canonicalization.
     - So two spellings of one file (a symlink, or a `./` segment) still open twice.
-    - That is today's behavior and stays out of scope.
+    - **E10 supersedes the earlier "stays out of scope" note here:** WI-4.23 moves ids to UUIDs and dedupes by canonical path, and this guard is then widened to use the same canonical-path helper. WI-4.11 ships first with the exact-path check, which fixes the common case; WI-4.23 closes the two-spellings case. WI-4.11's acceptance names the gap it knowingly leaves.
   - The path route checks before calling `fileService.openFile`, which skips the read.
   - `open_file_dialog` (`file.rs:1094-1135`) reads the file before it returns, so the dialog route compares `result.document.id` and drops the fresh copy.
 - **Tests** (through tdd-guardian, RED first):
@@ -93,6 +93,7 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
 - **Logging:** keep `toast.close` and add `context.variant`. Log nothing when a toast appears; each failure path already logs its own `fail` event.
 
 ### WI-4.14 — WYSIWYG follows text changed outside the editor (DR11) — M
+- **Test surface (E31):** the acceptance sequence runs against **real Milkdown in Vitest browser mode** (Playwright, Chromium and WebKit), mounting the production editor configuration with real plugins and mocking only the Tauri transport behind a controllable persistence adapter. No existing test mounts Milkdown, and this failure crosses debounce state, editor transactions, history plugins and persistence, so a pure module or a bare `EditorState` cannot prove the integrated outcome. Detailed timing permutations stay in deterministic unit tests. A save already in flight when the reload arrives is covered too, which requires a defined version and conflict policy, because cancelling a timer cannot cancel a started write.
 - **Order:** right after WI-4.11, before the lanes split. It touches `App.tsx` and `MilkdownEditor.tsx`, which Lane B also edits.
 - **Why:**
   - `useEditor` builds the Milkdown instance with `[activeDocumentId]` as its only dependency (`MilkdownEditor.tsx:173-203`) and reads the text once, through `defaultValueCtx` (`:188`). A store write that keeps the id never reaches the screen.
@@ -143,7 +144,10 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
   - Self-write dedup becomes its own concern, keyed on the expected content or mtime rather than on elapsed time.
   - Clearing `markSaveInProgress` in a `catch` is an emergency patch and is **not** the fix; it may still land first as a one-line stopgap.
 - **Tests** (through tdd-guardian, RED first):
+  - **Harness (E30):** the coalescer is **stateful with injected time**, exposing operations equivalent to `onEvent(event, now)` and `onDeadline(now)` — not a function consuming a finished event array, because the decisive case is that the burst stops, the deadline arrives, and the last relevant change is delivered with **no further filesystem event**. `file_watcher.rs` has no tests at all today.
   - **Regression (`cargo test`):** two changes inside the debounce window deliver one event carrying the **second** change. This test fails today.
+  - Deadline resets, separate paths, and disposal preventing late delivery.
+  - One tempdir integration test through the **real** watcher: wait for registration readiness, write, then wait on a channel to a bounded deadline and assert eventual delivery of the final state — never an exact native-event count and never a fixed sleep. The native run also happens on macOS at stage boundaries.
   - A delete coalesced after a modify is delivered as a delete.
   - A rename is delivered with both paths.
   - Frontend: a self-write is not reported, while a foreign write during a save still is.
@@ -166,8 +170,48 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
 - **Then, and only then, type generation:** ts-rs is adopted incrementally, starting with `ViewMode` and the preferences types, so the hand-mirrored types stop drifting. Hand-declared TS is removed as each type is generated; ts-rs does not catch drift while both sides are still hand-written.
 - **Tests** (through tdd-guardian, RED first):
   - **Regression:** persisting `lastViewMode: "source"` round-trips through Rust and back. This test fails today (`cargo test` plus the TS boundary test).
+  - **Literal serialization per variant (E30):** each `ViewMode` variant asserts its exact serialized string, not only a round trip — a round trip passes when serialization and deserialization share the same wrong representation. `models/preferences.rs` has no tests at all today.
+  - **One shared JSON fixture (E30):** because the Rust and TS types are hand-mirrored, both sides consume the same fixture for `Source` and for the IPC error contract; independent same-language round trips cannot detect disagreement across IPC.
   - A round-trip case per `ViewMode` value, driven from the TS literal union so a new value cannot be added on one side only.
   - An older `config.json` with `"editor-only"` still loads and migrates.
   - `autoReformatTablesOnSave`, `viewSource` and `viewWysiwyg` survive a save/load cycle.
   - `tests/preferences-save-failure.test.ts` gains a `lastViewMode` case; today it only passes `showSidebar`.
 - **Logging:** the preference save logs `context.field` on failure, so a rejected field is identifiable from the log alone.
+
+### WI-4.23 — Document identity and the open coordinator (E10) — M
+- **Order:** after WI-4.11, whose exact-path guard this widens, and after WI-4.18, because both change the Rust preference and model types.
+- **Why:** `Document::generate_id` (`document.rs:57-64`) hashes the path exactly as given, so two spellings of one file open twice, and a hash-derived id cannot distinguish two documents that should stay distinct. A frontend-only check is not enough: `open_file_dialog` reads the file in Rust (`file.rs:1129`), so two concurrent opens both pass a pre-read lookup.
+- **Behavior:**
+  - Ids become UUIDs. A second open of the same file is caught by **canonical path**, not by id.
+  - A shared open coordinator coalesces in-flight opens by canonical path, so concurrent opens cannot both win.
+  - `reload_file` (`file.rs:1408-1410`) builds a fresh `Document`, so reload and the encoding reopen must carry the owner id forward, or UUIDs will upsert a second entry for one file.
+  - Dedupe is per window.
+  - Save As needs a destination-already-open policy, and draft matching by `original_path` must not merge two recovered buffers.
+- **Tests** (through tdd-guardian, RED first):
+  - **Regression:** opening one file by two spellings (a symlink, and a path with a `./` segment) yields one document. This test fails today.
+  - Two concurrent opens of the same path produce one document and one tab.
+  - Reload keeps the document id, and so does the encoding reopen; neither creates a second entry.
+  - Save As onto an already-open destination follows the recorded policy rather than silently upserting.
+  - Two recovered drafts with the same `original_path` stay distinct.
+- **Mutation:** this module is on the E29 allowlist, once these tests exist.
+
+### WI-4.24 — Open result union and one failure reporter (E12) — S
+- **Order:** after WI-4.16, whose `IpcError` kind it narrows on, and after WI-4.23, because the coordinator returns one of these statuses.
+- **Why:** `openDocumentFromPath` returns `null` or throws, so each caller invents its own handling, and failures are reported inconsistently or not at all.
+- **Behavior:**
+  - The return type becomes `{status:"opened"}` | `{status:"encoding"}` | `{status:"failed", reason:"too_large"|"other", name}`.
+  - One shared `reportOpenFailure` serves ⌘O, recent files, Finder / `file:open`, `?open=` and drops, each with an exhaustive `switch`.
+  - **Every union member is truthy**, so the existing truthiness checks at `App.tsx:352` and `:857` must switch on `status` or they will log failures as successes.
+  - The action id is preserved, so each start has exactly one terminal log, and detached (`void`) boundaries keep a terminal `catch` anyway.
+  - `useDocument.ts:49` holds a single `encodingIssue` slot, so a batch with two encoding failures loses the first; it becomes a queue.
+- **Tests** (through tdd-guardian, RED first):
+  - **Regression:** a failed open is not logged as a success at either call site. This test fails today.
+  - Each union member routes to its own message, with an exhaustive `switch` proven by a type-level check.
+  - A batch with two encoding failures surfaces both.
+  - One terminal log per action id, including on the detached paths.
+
+### E15 disposition — the remaining safety fixes (no work item of its own)
+E15 splits rather than joining this plan wholesale, so it is recorded here as a disposition:
+- The **Save As watcher re-arm** folds into WI-4.10's file set and tests: `file.rs:1323` saves without registering the destination, so after Save As the new path is unwatched.
+- **Draft recovery**, the **watcher refcount** and the **suppression window** become separate bounded PRs that are release prerequisites, tracked in TODOS.md, not open-ended follow-ups.
+- Correction carried from E15: draft recovery does not overwrite the file — the next save does, because `App.tsx:633` restores the original path and hardcodes UTF-8 and LF. The correct citation is `services/draft/mod.rs:178`.

@@ -290,6 +290,19 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - the existing table menu keyboard tests stay green
 - **Logging:** unchanged (`editor.image.resize`).
 
+### WI-4.25 — Insert-modal ownership tokens (E14) — S
+- **Order:** after WI-4.15, whose menu files it touches, and after WI-4.22, because the lifecycle seam owns the dialog host.
+- **Why:** hoisting the state does not fix ownership. `App.tsx:966` resolves `getEditor()` at **submit** time, so a document switch between opening the modal and submitting inserts into the wrong document, and `typoraKeymapPlugin.ts:241` captures ProseMirror state eagerly at keypress.
+- **Behavior:**
+  - Each request carries `{documentId, editorGeneration, requestId}`.
+  - Ownership is validated on submit; a request is cleared only by its own owner, so a stale owner cannot clear a newer request.
+  - `triggerTableInsert` is gated on an active, ready WYSIWYG editor.
+  - `TableContextMenu` stays inside Milkdown, with component-owned state and a container listener.
+- **Tests** (through tdd-guardian, RED first):
+  - **Regression:** open the insert modal, switch documents, submit — the insert is refused, and nothing is written to either document. This test fails today.
+  - A stale owner's clear does not discard a newer request.
+  - `triggerTableInsert` is a no-op when no ready WYSIWYG editor is active.
+
 ### Stage 4 acceptance criteria
 - [ ] G0 passes; every Stage 4 work item — in this file, in [`stage-4b-data-safety.md`](stage-4b-data-safety.md) and in [`stage-4c-foundation.md`](stage-4c-foundation.md) — has its RED→GREEN tests (rule 10: behavior and ARIA, not rendering snapshots)
 - [ ] `defaultHighlightStyle` no longer drives the Source light theme; no `--color-syntax-code` appears anywhere in `src/`; the One Dark path is unchanged (DR20)

@@ -6,6 +6,16 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 **Entry:** this plan exists; the working tree is otherwise as at the baseline.
 
+### WI-0.0 — Tooling and CI chore PR (E11, E25, E27, E28, E29) — M
+A separate chore PR on master that lands **before** Stage 0 begins. It changes no product code.
+- **CI (E25):** restore the `pull_request` and `push: master` triggers in `.github/workflows/ci.yml`. macOS stays gated on `refs/tags/v` — the matrix at `:17` and `:45` already does this — so the restored gate runs Linux only. Split `cargo install cargo-audit --locked` (`:81`) out of the `cargo test` job or cache the binary; today it compiles from source on every run. Keep the dependency caches, cancel superseded pull-request runs, and set job timeouts. Any path filtering sits behind an always-running required gate rather than skipping the workflow.
+- **Coverage (E27):** set `coverage.include` to `src/**/*.{ts,tsx}` and `all: true` in `vitest.config.ts`, add a `coverage` script that CI can call, then re-read all four metrics and set thresholds at the measured floor, rounded down to avoid display-rounding failures.
+- **Test type checking (E28):** add `tests/` to a tsconfig with JSX enabled — `tsconfig.json:23` includes only `["src"]`, so no test file is type-checked today — widen `vitest.config.ts:6` to `.test.{ts,tsx}`, and add `tests/setup.ts` with an explicit `afterEach(cleanup)`.
+- **Testing Library (E7, E28):** add the four devDependencies at the E28 floors, and prove the setup with one discovered `.test.tsx` that renders a real component, performs a keyboard interaction and verifies cleanup.
+- **Mutation (E29):** declare the Stryker scope explicitly in `stryker.config.json` and wire a real script, or record that it stays unwired until its allowlist modules have behavior tests. Do not strip the exclusions and run it repository-wide.
+- **Plan corrections:** already applied to the plan docs in this review round — `baseline-protocol.md:68`'s CI claim and `:70`'s "`lanes` is absent" note are corrected — so this PR carries no doc fix (E11, E25).
+- **Verify:** the pull request shows the required gate actually running `pnpm build`, `pnpm test:run` and `cargo test`; `pnpm coverage` prints the four corrected metrics; the seeded `.test.tsx` is both discovered and type-checked.
+
 ### WI-0.1 — Readiness and baseline gates — S
 - Run `/tdd-guardian:status`. If the config is missing, disabled, or has no runnable lane, **stop and ask the user to run `/tdd-guardian:init`**.
 - Run G0 on the untouched tree and record pre-existing failures, so they are not blamed on this work.
@@ -45,6 +55,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - Fold non-controversial findings into this file. List the rest as open questions.
 
 ### Stage 0 acceptance criteria
+- [ ] WI-0.0 landed on master: the CI gate runs on pull requests and pushes to master, `pnpm coverage` reports the corrected four metrics with thresholds set, and a `.test.tsx` is discovered and type-checked
 - [ ] tdd-guardian readiness confirmed, or the user was asked to run `/tdd-guardian:init` (the stage does not pass until it is ready)
 - [ ] Baseline G0 results recorded, including pre-existing failures
 - [ ] Appendix A lists every non-token value in the tokenized categories with file:line and class a/b/c; the counts reconcile with the Baseline table, or the discrepancy is explained

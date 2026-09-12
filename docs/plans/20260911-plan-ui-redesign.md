@@ -62,6 +62,13 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 | E22 | Rule 50 becomes a ratchet; 19 production files exceed 300 lines, `App.tsx` (1194) is the largest (S6) |
 | E23 | MCP events are routed in Rust with `emit_to`; Zustand selector violations are lint-enforced (S7) |
 | E24 | Decision and risk rows carry ID / prerequisites / finding IDs / disposition / work item / evidence (S8) |
+| E25 | CI gates run on pull requests and pushes to master again, Linux-only; `cargo-audit` is split out of the test job (T1) |
+| E26 | Source-text tests migrate as they are touched, never wholesale; RED to GREEN does not apply to a behavior-preserving CSS split (T2) |
+| E27 | The coverage denominator is corrected before any threshold; the floor is re-measured at 30.87 / 82.03 / 61.53 / 30.87 (T3) |
+| E28 | `tests/` gains type checking and JSX before the first `.test.tsx`; RTL floors and an explicit `afterEach(cleanup)` (T3) |
+| E29 | Mutation testing is scoped to an allowlist after behavior tests; the `.tsx` glob gap and the unwired config are recorded (T4) |
+| E30 | The watcher gets an injected-clock coalescer; preferences assert literal serialized values from one shared fixture (T6) |
+| E31 | WI-4.14 runs against real Milkdown in browser mode; G0 expands to the coverage script and the browser suite (T7, T8) |
 | DR1 | Reference directions for the empty state, external change and drop target; mockups stay local |
 | DR2 | Build the main bar and status strip (WI-4.8) |
 | DR3 | Build the no-document state, with New and Open… buttons (WI-4.9) |
@@ -96,7 +103,7 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 | A4 | Screenshots and computed-style JSON are stored at `$TMPDIR/mdpro-redesign/<stage>/<surface>-<theme>.{png,json}` and never committed. |
 | A5 | "100% tokenized" follows the definition in [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md). |
 | A6 | Stage 1 is a pure move into ordered partials listed in `src/styles/index.css` (E2). `:root` tokens stay in `globals.css` (rule 31:11-16). |
-| A7 | No new runtime npm or cargo dependency, including icon, image-diff and contrast tools. The only exception is E7's test-only devDependencies, added in WI-1.0. |
+| A7 | No new runtime npm or cargo dependency, including icon, image-diff and contrast tools. The only exception is E7's test-only devDependencies — **four** at the E28 floors, since `@testing-library/jest-dom` joins the three E7 names — added in WI-0.0's chore PR before Stage 0, not in WI-1.0. |
 | A8 | `src/App.css`, `src/components/TabBar/`, the unmounted Preview pane (DR10: `src/components/Preview/Preview.tsx`, `ImageRenderer.tsx`, `styles/preview.css`, and `src/hooks/usePreview.ts`) the unmounted document list (`src/components/Sidebar/Sidebar.tsx` and `FileItem.tsx`) and the unreachable large-file warning (WI-4.13) are dead-code candidates; list them, do not delete them. `src/components/Preview/mathRender.ts` stays live, because HTML export uses it. The tokenization test asserts that no file outside the candidates imports them. Deletion is tracked in TODOS.md. |
 | A9 | Contrast thresholds are WCAG 2.1 AA: 4.5:1 for text, 3:1 for focus indicators and control boundaries. |
 | A10 | Class (c) literals with 3 or more unrelated uses get a semantic token (rule 31's rule of three). |
@@ -145,14 +152,14 @@ Read this file first, then only the stage file you are working on.
 
 | File | Holds |
 |---|---|
-| [`decisions.md`](20260911-ui-redesign/decisions.md) | D1–D4, E1–E24 and DR1–DR23, with their sources |
+| [`decisions.md`](20260911-ui-redesign/decisions.md) | D1–D4, E1–E31 and DR1–DR23, with their sources |
 | [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md) | Baseline facts at `0a3675e`, the working protocol, and the A5 definition of "100% tokenized" |
-| [`stage-0-inventory.md`](20260911-ui-redesign/stage-0-inventory.md) | Stage 0: inventory, baseline, plan approval |
+| [`stage-0-inventory.md`](20260911-ui-redesign/stage-0-inventory.md) | Stage 0: the tooling and CI chore PR (WI-0.0), inventory, baseline, plan approval |
 | [`stage-1-split.md`](20260911-ui-redesign/stage-1-split.md) | Stage 1: split `globals.css` (Deliverable A) |
 | [`stage-2-tokenize.md`](20260911-ui-redesign/stage-2-tokenize.md) | Stage 2: value-preserving tokenization (Deliverable A) |
 | [`stage-3-retune.md`](20260911-ui-redesign/stage-3-retune.md) | Stage 3: visual retune (Deliverable B) |
-| [`stage-4a-components.md`](20260911-ui-redesign/stage-4a-components.md) | Stage 4 entry; WI-4.1–4.9, WI-4.12 and WI-4.15; the Stage 4 acceptance criteria, commit split and lanes (Deliverable C) |
-| [`stage-4b-data-safety.md`](20260911-ui-redesign/stage-4b-data-safety.md) | WI-4.10, WI-4.11, WI-4.13, WI-4.14, WI-4.16, WI-4.17 and WI-4.18 (Deliverable C) |
+| [`stage-4a-components.md`](20260911-ui-redesign/stage-4a-components.md) | Stage 4 entry; WI-4.1–4.9, WI-4.12, WI-4.15 and WI-4.25; the Stage 4 acceptance criteria, commit split and lanes (Deliverable C) |
+| [`stage-4b-data-safety.md`](20260911-ui-redesign/stage-4b-data-safety.md) | WI-4.10, WI-4.11, WI-4.13, WI-4.14, WI-4.16, WI-4.17, WI-4.18, WI-4.23 and WI-4.24, plus the E15 disposition (Deliverable C) |
 | [`stage-4c-foundation.md`](20260911-ui-redesign/stage-4c-foundation.md) | WI-4.19–WI-4.22: the cross-cutting foundations the round-2 eng review decided (E19, E20, E23, E22/E16) |
 | [`stage-5-source-font.md`](20260911-ui-redesign/stage-5-source-font.md) | Stage 5: `sourceFont` preference (Deliverable D) |
 | [`risks.md`](20260911-ui-redesign/risks.md) | Risks and mitigations |
@@ -225,6 +232,10 @@ Read this file first, then only the stage file you are working on.
 - [ ] Deliverable C: items 2, 4, 5, 6, 9, 13, 14, the DR2 main bar and status strip, the DR3 empty state, the DR5 external-change dialog and the DR6 already-open guard (each with its data-loss regression test), the DR7 drop target, the DR8 destructive confirmation (with its data-loss regression test), the DR9 error toasts (with the save-failure and open-failure regression tests), and the DR11 WYSIWYG sync (with its Reload regression test), all implemented with behavior tests; `--settings-btn-*` retired; deferred list empty; no new runtime dependency; **user visual sign-off received**
 - [ ] E6: the `config.json` overwrite fix landed before Stage 5 started
 - [ ] Deliverable D: `sourceFont` upgrade, first-run and unknown-value semantics proven in Rust tests against a fixture shared with TS; unknown values are normalized in the UI; the real preferences file stayed untouched during manual checks; rule 31 lists four runtime tokens
+- [ ] E25: `.github/workflows/ci.yml` runs `pnpm build`, `pnpm test:run` and `cargo test` as a required gate on pull requests and pushes to master, and `cargo-audit` no longer compiles inside the test job
+- [ ] E27: `pnpm coverage` runs from a script with the corrected `include`, and all four thresholds are set at the re-measured floor and never lowered
+- [ ] E31: G0 includes the coverage script and the Milkdown browser suite
+- [ ] E10, E12 and E14 each executed through WI-4.23, WI-4.24 and WI-4.25; E15's disposition recorded in stage-4b
 - [ ] `pnpm build`, `pnpm test:run` and `cargo test` all exit 0 at the end of every stage
 - [ ] In-scope app CSS is 100% tokenized per A5: the grep returns only permitted lines
 - [ ] DESIGN.md documents every new token without values; CHANGELOG Unreleased covers A–D
@@ -235,6 +246,10 @@ Read this file first, then only the stage file you are working on.
 
 **`Depends on:`** is the only dependency field in this list, and it points **backwards**: "T13 depends on T12" means T12 lands first. Earlier drafts wrote `Blocks:` here for that same backwards relation while the open-questions table above uses `Blocks:` forwards, so one word named opposite directions inside one file; a reader following the task list would have executed the graph reversed (E24). The open-questions table keeps `Blocks:`, which is correct there.
 
+- [ ] **T0a (M)** — Tooling and CI chore PR — WI-0.0
+  - **Files:** `.github/workflows/ci.yml`, `vitest.config.ts`, a test `tsconfig`, `tests/setup.ts`, `package.json`, `pnpm-lock.yaml`, `stryker.config.json`, [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md)
+  - **Depends on:** none. It lands on master before Stage 0 begins (E11, E25, E27, E28, E29).
+  - **Verify:** a pull request shows the required gate actually running `pnpm build`, `pnpm test:run` and `cargo test`; `pnpm coverage` prints the four corrected metrics; a seeded `.test.tsx` is both discovered and type-checked
 - [ ] **T0 (S+M)** — Stage 0 — WI-0.1…0.6
   - **Depends on:** none
   - **Verify:** the Stage 0 acceptance list and the user's approval
@@ -342,6 +357,18 @@ Read this file first, then only the stage file you are working on.
   - **Files:** `App.tsx`, a new lifecycle controller and dialog host, the ratchet check and its baseline, the source-text tests it replaces
   - **Depends on:** T24. It lands before T16.
   - **Verify:** `pnpm test:run`, including the close-confirmation regression (request close on A, activate B, confirm). The ratchet must fail on a seeded over-limit production file and ignore `#[cfg(test)]` modules.
+- [ ] **T27 (M)** — Document identity and open coordinator — WI-4.23
+  - **Files:** `src-tauri/src/models/document.rs`, `src-tauri/src/commands/file.rs`, `src/hooks/useDocument.ts`, `src/stores/documentStore.ts`, a shared canonical-path helper, new Rust and TS tests
+  - **Depends on:** T15 (WI-4.11 ships the exact-path guard this widens) and T22 (both change the Rust models)
+  - **Verify:** `cargo test`, `pnpm test:run`; in `pnpm tauri dev`, open one file by two spellings (a symlink and a `./` path) and confirm a single tab
+- [ ] **T28 (S)** — Open result union and shared failure reporter — WI-4.24
+  - **Files:** `src/hooks/useDocument.ts`, `App.tsx` (`:352`, `:857`), `src/services/fileService.ts`, new tests
+  - **Depends on:** T20 (it narrows on the `IpcError` kind) and T27 (the coordinator returns one of its statuses)
+  - **Verify:** `pnpm test:run`; a batch open with two encoding failures reports both, and no failure is logged as a success
+- [ ] **T29 (S)** — Insert-modal ownership tokens — WI-4.25
+  - **Files:** `App.tsx` (`:966`), `src/plugins/milkdown/typoraKeymapPlugin.ts` (`:241`), the table insert path, `TableContextMenu/index.tsx`, new tests
+  - **Depends on:** T19 (it shares the menu keyboard contract's files) and T26 (the lifecycle seam owns the dialog host)
+  - **Verify:** `pnpm test:run`; in `pnpm tauri dev`, open the insert modal, switch documents, then submit — the insert must be refused, not applied to the wrong document
 - [ ] **T11 (M)** — `sourceFont` — WI-5.1…5.4
   - **Files:** `preferences.rs`, `preferences.ts`, `editorPrefApply.ts`, `EditorSettings.tsx`, the shared fixture, `normalizeSourceFont`, rule 31
   - **Depends on:** the E6 fix PR, and T22 (which changes the same Rust preference types)

@@ -6,10 +6,11 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 **Entry:** Stage 0 gate passed.
 
-### WI-1.0 — Test tooling (E7) — S
-- Add `@testing-library/react`, `@testing-library/user-event` and `@testing-library/dom` as devDependencies, in versions compatible with React 19; record the versions.
-- Widen the vitest `include` to `tests/**/*.test.{ts,tsx}` and confirm that the JSX transform works for files under `tests/`.
+### WI-1.0 — Test tooling (E7, E28) — S
+- **Superseded in part by WI-0.0 (E28).** The dependencies, the widened Vitest include, the `tests/` type checking and the explicit `afterEach(cleanup)` all land in the chore PR **before** Stage 0, because a `.test.tsx` added without them is neither discovered nor type-checked. WI-1.0 is then a verification step, not an installation step.
+- Confirm WI-0.0 landed: the four devDependencies are present at the E28 floors — `@testing-library/react` 16.1.0, `@testing-library/dom` 10, `@testing-library/user-event` 14.1 and `@testing-library/jest-dom` 6.9.1 — the Vitest include is `tests/**/*.test.{ts,tsx}`, and the JSX transform works for files under `tests/`. If WI-0.0 did not land, do that work here and record the versions.
 - Nothing else in `package.json` changes. Existing tests and the jsdom environment stay as they are.
+- **Timers (E28):** real timers by default; this smoke test and every later keyboard test use `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`, await each interaction, advance application debounce separately, and unmount before draining remaining timers. `delay: null` is not an acceptable workaround.
 - **RED → GREEN:** the smoke test `tests/testing-library-smoke.test.tsx`
   - renders a native checkbox and presses Space with `userEvent.keyboard`
   - asserts the checkbox becomes checked
@@ -54,6 +55,6 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] Every app CSS file is ≤ ~300 lines, or is listed as an approved exception
 - [ ] No test assertion changed; only the file-reading paths did
 - [ ] Rule 32's ownership table and modal contract name the partials; rule 31's z-index table has no "Recent dropdown" row, and no `.toolbar-recent` selector remains
-- [ ] The WI-1.0 smoke test passes, and the `package.json` diff is exactly the three E7 devDependencies
+- [ ] The WI-1.0 smoke test passes, and the `package.json` diff is **empty**, because WI-0.0 already added the four E7/E28 devDependencies (if WI-0.0 did not land, the diff is exactly those four)
 
 **Rollback:** revert the partials, `src/styles/index.css` and the `main.tsx` import. `globals.css` is restored byte-for-byte from the baseline.
