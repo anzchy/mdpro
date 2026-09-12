@@ -1,7 +1,6 @@
 name: Claude Periodic Audit
 on:
-  schedule:
-    - cron: "20 */2 * * *"     # every 2 hours at :20
+  # MANUAL ONLY: the 2-hourly schedule was removed to cut Actions spend.
   workflow_dispatch:            # Manual trigger from Actions tab
 
 permissions:
