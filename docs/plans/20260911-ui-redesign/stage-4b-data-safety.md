@@ -6,6 +6,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 Stage 4's entry condition, acceptance criteria, commit split and worktree lanes are in [`stage-4a-components.md`](stage-4a-components.md).
 
+WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last three — **WI-4.16, WI-4.17 and WI-4.18** — came out of the round-2 engineering review and are sequenced with the rest of that series in [`stage-4c-foundation.md`](stage-4c-foundation.md); they live here because each one is a data-safety fix, not because they run with the items above.
+
 ### WI-4.10 — External change dialog (DR5) — M
 - **Why:**
   - "Modified" and "deleted" share one `ReloadDialog` (`App.tsx:487-494`, `:1163-1168`), and **Reload** has `autoFocus` (`ReloadDialog.tsx:38-40`).
@@ -111,3 +113,61 @@ Stage 4's entry condition, acceptance criteria, commit split and worktree lanes 
   - `isModified` stays false after Reload.
   - A document switch builds the new editor once and does not also push.
 - **Logging:** `editor.milkdown.external_sync` with `context.reason` (`reload`, `image_drop` or `store`), and `fail` when a push falls back to a remount.
+
+### WI-4.16 — One IPC error contract (E17) — M
+- **Order:** after WI-4.17, per the E-series fix order. It also needs WI-4.13's error-toast variant to exist.
+- **Why:**
+  - `commands/file.rs:69-78` returns an **externally tagged** `FileError` with 7 variants and no `rename_all`, so `PermissionDenied` arrives as `{"PermissionDenied":{"path":"/x"}}`.
+  - `saveService.ts:29-42` narrows with `err instanceof Error ? err.message : String(err)`. A plain object is not an `Error`, so `String(err)` yields `"[object Object]"` and the user sees **"Save failed: [object Object]"**.
+  - Precision, recorded so the tests aim at the right thing: `DiskFull` is a **unit** variant and already serializes to the string `"DiskFull"`, so not every variant is broken. And only `saveService.ts:39-40` interpolates the raw error into user-visible text — `preferencesService.ts:78` and `useUpdater.ts:51-54` toast constants, so their damage is confined to the log payload.
+- **Decision (E17): keep the wire format.** Changing the Rust representation buys nothing and breaks a shipped contract.
+  - The TS union for `FileError` is declared once, next to the other IPC types.
+  - `fileService` normalizes every rejection into an `IpcError extends Error` carrying a `kind`, so callers narrow on `kind` and never re-parse the payload.
+  - `useDocument.ts:35` moves onto it in the same commit.
+- **Tests** (through tdd-guardian, RED first):
+  - Parameterized over **Rust-serialized fixtures** for all 7 variants, asserting the exact toast, e.g. `"Save failed: Permission denied: /x"`.
+  - **Regression:** a `PermissionDenied` rejection never produces `[object Object]`. This test fails today.
+  - `tests/save-blink.test.ts:106` currently mocks a shape the backend never sends; it is replaced by a real fixture.
+  - An unknown or malformed payload degrades to a generic message and logs the raw value.
+- **Logging:** the normalizer logs the raw payload once, with `context.kind`; the toast keeps rule 30 rule 3 (no raw text in primary UI).
+
+### WI-4.17 — File watcher delivers the trailing event (E18) — M
+- **Order:** after WI-4.19, whose primitive the frontend listener uses.
+- **Why:**
+  - `file_watcher.rs:113-123` returns `is_debounced` = true and **suppresses** the event. A coalesced change is dropped, not deferred, so a rapid external change is lost outright.
+  - `useFileWatcher.ts:12` adds a 3000 ms frontend suppression window and `:37` drops within it, so fixing only the frontend leaves the Rust loss in place.
+  - The unconditional save blackout hides self-writes by hiding *everything* for a window of time.
+- **Behavior:**
+  - The unconditional blackout goes. Frontend coalescing stays.
+  - Rust retains the last event of a coalesced burst and **delivers** it, preserving rename and delete information rather than collapsing every change to "modified".
+  - Self-write dedup becomes its own concern, keyed on the expected content or mtime rather than on elapsed time.
+  - Clearing `markSaveInProgress` in a `catch` is an emergency patch and is **not** the fix; it may still land first as a one-line stopgap.
+- **Tests** (through tdd-guardian, RED first):
+  - **Regression (`cargo test`):** two changes inside the debounce window deliver one event carrying the **second** change. This test fails today.
+  - A delete coalesced after a modify is delivered as a delete.
+  - A rename is delivered with both paths.
+  - Frontend: a self-write is not reported, while a foreign write during a save still is.
+- **Logging:** the watcher logs the coalesced count on delivery, so a dropped burst is visible in `~/.mdpro/mdpro.log`.
+
+### WI-4.18 — View mode and preference persistence (E21) — M
+- **Order:** after WI-4.21, per the E-series fix order, and before T11, which edits the same Rust preference types.
+- **Why (a live, user-visible bug):**
+  - `src/types/editor.ts:1` is `ViewMode = "wysiwyg" | "source"`. Rust's enum is `Split | EditorOnly | PreviewOnly | Wysiwyg` (`models/preferences.rs:402-409`, kebab-case).
+  - `src/utils/viewModeUtils.ts` migrates `"editor-only"` → `"source"` on the **read** path and has **no inverse on the write path** — the decisive proof that the drift is one-directional.
+  - `App.tsx:287-290` writes `lastViewMode` on every change, and `"source"` is reachable from the cycle order at `editorStore.ts:134` and from the View menu. So selecting Source sends an unknown enum string.
+  - `preferencesService.ts:58-79` toasts a constant, "Failed to save preferences", and then **re-throws** into a `void` call.
+  - **Cause, stated precisely:** the unknown enum string, *not* a missing `#[serde(default)]`. Absent `Option` fields deserialize to `None` perfectly well; `PartialPreferences.last_view_mode` (`services/preferences.rs:19`) is one.
+- **Rust gains the missing shape, with backward-compatible defaults:**
+  - a `Source` variant on `ViewMode`
+  - `autoReformatTablesOnSave` on `MarkdownConfig`, which today has only `auto_pair` (`preferences.rs:615-619`) while TS declares both (`types/preferences.ts:293-303`)
+  - `viewSource` and `viewWysiwyg` on `KeyboardShortcuts` (`types/preferences.ts:138-139`, `:213-214`), which are TS-only and silently dropped today
+  - `deny_unknown_fields` is **rejected**: it would turn today's silent drop into a hard failure for every older client.
+  - Note that the reverse direction is already safe: every `KeyboardShortcuts` field carries `#[serde(default = "…")]` (`preferences.rs:85-100`), so TS omitting a field is fine. Only the TS→Rust drop is real.
+- **Then, and only then, type generation:** ts-rs is adopted incrementally, starting with `ViewMode` and the preferences types, so the hand-mirrored types stop drifting. Hand-declared TS is removed as each type is generated; ts-rs does not catch drift while both sides are still hand-written.
+- **Tests** (through tdd-guardian, RED first):
+  - **Regression:** persisting `lastViewMode: "source"` round-trips through Rust and back. This test fails today (`cargo test` plus the TS boundary test).
+  - A round-trip case per `ViewMode` value, driven from the TS literal union so a new value cannot be added on one side only.
+  - An older `config.json` with `"editor-only"` still loads and migrates.
+  - `autoReformatTablesOnSave`, `viewSource` and `viewWysiwyg` survive a save/load cycle.
+  - `tests/preferences-save-failure.test.ts` gains a `lastViewMode` case; today it only passes `showSidebar`.
+- **Logging:** the preference save logs `context.field` on failure, so a rejected field is identifiable from the log alone.

@@ -46,6 +46,22 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 | E6 | The `config.json` overwrite fix is its own PR and lands before Stage 5 |
 | E7 | Testing Library devDependencies are allowed, test-only; Vitest also collects `.test.tsx` |
 | E8 | `--source-font-family` defaults to mono in `:root`; a brief mono flash before preferences load is accepted |
+| E9 | WI-4.14 pushes with a flushable owned debounce; fresh-open sources flush, MCP writes are wrapped by `closeHistory` (Q1) |
+| E10 | Document ids become UUIDs; duplicate opens are coalesced by canonical path in a shared open coordinator (Q2) |
+| E11 | Test tooling is fixed in its own chore PR before any baseline is captured (Q3) |
+| E12 | `openDocumentFromPath` returns a result union, and one shared reporter serves every open route (Q4) |
+| E13 | The drop target also clears on Escape; a real Escape-cancel check in WKWebView is an acceptance gate (Q5) |
+| E14 | Insert-modal requests carry ownership tokens validated on submit (Q6) |
+| E15 | Save As watcher re-arm folds in; draft recovery, watcher refcount and the suppression window become release-prerequisite PRs (Q7) |
+| E16 | One lifecycle-testing foundation stage for `App.tsx`, then incremental extraction (Q8) |
+| E17 | The `FileError` wire format is unchanged; `fileService` normalizes rejections into an `IpcError` carrying `kind` (S1) |
+| E18 | The file watcher delivers the trailing event instead of dropping it; the save blackout goes (S2) |
+| E19 | One cancellation-safe subscription primitive replaces all nine `listen()` sites (S3) |
+| E20 | A `loggedOperation` wrapper logs Start before validation and exactly one terminal outcome (S4) |
+| E21 | `ViewMode` persistence is fixed first (Rust gains `Source`), then ts-rs incrementally (S5) |
+| E22 | Rule 50 becomes a ratchet; 19 production files exceed 300 lines, `App.tsx` (1194) is the largest (S6) |
+| E23 | MCP events are routed in Rust with `emit_to`; Zustand selector violations are lint-enforced (S7) |
+| E24 | Decision and risk rows carry ID / prerequisites / finding IDs / disposition / work item / evidence (S8) |
 | DR1 | Reference directions for the empty state, external change and drop target; mockups stay local |
 | DR2 | Build the main bar and status strip (WI-4.8) |
 | DR3 | Build the no-document state, with New and Open… buttons (WI-4.9) |
@@ -129,14 +145,15 @@ Read this file first, then only the stage file you are working on.
 
 | File | Holds |
 |---|---|
-| [`decisions.md`](20260911-ui-redesign/decisions.md) | D1–D4, E1–E8 and DR1–DR23, with their sources |
+| [`decisions.md`](20260911-ui-redesign/decisions.md) | D1–D4, E1–E24 and DR1–DR23, with their sources |
 | [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md) | Baseline facts at `0a3675e`, the working protocol, and the A5 definition of "100% tokenized" |
 | [`stage-0-inventory.md`](20260911-ui-redesign/stage-0-inventory.md) | Stage 0: inventory, baseline, plan approval |
 | [`stage-1-split.md`](20260911-ui-redesign/stage-1-split.md) | Stage 1: split `globals.css` (Deliverable A) |
 | [`stage-2-tokenize.md`](20260911-ui-redesign/stage-2-tokenize.md) | Stage 2: value-preserving tokenization (Deliverable A) |
 | [`stage-3-retune.md`](20260911-ui-redesign/stage-3-retune.md) | Stage 3: visual retune (Deliverable B) |
 | [`stage-4a-components.md`](20260911-ui-redesign/stage-4a-components.md) | Stage 4 entry; WI-4.1–4.9, WI-4.12 and WI-4.15; the Stage 4 acceptance criteria, commit split and lanes (Deliverable C) |
-| [`stage-4b-data-safety.md`](20260911-ui-redesign/stage-4b-data-safety.md) | WI-4.10, WI-4.11, WI-4.13 and WI-4.14 (Deliverable C) |
+| [`stage-4b-data-safety.md`](20260911-ui-redesign/stage-4b-data-safety.md) | WI-4.10, WI-4.11, WI-4.13, WI-4.14, WI-4.16, WI-4.17 and WI-4.18 (Deliverable C) |
+| [`stage-4c-foundation.md`](20260911-ui-redesign/stage-4c-foundation.md) | WI-4.19–WI-4.22: the cross-cutting foundations the round-2 eng review decided (E19, E20, E23, E22/E16) |
 | [`stage-5-source-font.md`](20260911-ui-redesign/stage-5-source-font.md) | Stage 5: `sourceFont` preference (Deliverable D) |
 | [`risks.md`](20260911-ui-redesign/risks.md) | Risks and mitigations |
 | [`appendices.md`](20260911-ui-redesign/appendices.md) | Appendix A (literal classification) and Appendix B (QA surface matrix) |
@@ -216,38 +233,119 @@ Read this file first, then only the stage file you are working on.
 
 ## Implementation tasks (tracking)
 
-- [ ] **T0 (S+M)** — Stage 0 — WI-0.1…0.6 — Verify: the Stage 0 acceptance list and the user's approval
-- [ ] **T1a (S)** — Test tooling — WI-1.0 — Files: `package.json`, `pnpm-lock.yaml`, `vitest.config.ts`, `tests/testing-library-smoke.test.tsx` — Verify: `pnpm test:run`, `pnpm build`
-- [ ] **T1 (S)** — Ordered CSS entry and reader helper — WI-1.1 — Files: `src/styles/index.css`, `src/main.tsx`, `src/test/appCss.ts`, 4 CSS-reading tests — Verify: `pnpm test:run`, empty computed-style diff
-- [ ] **T2 (M)** — Split `globals.css` — WI-1.2 — Files: `src/styles/globals.css`, `src/styles/sections/`, `src/styles/index.css` — Verify: pure-move diff, empty computed-style diff
-- [ ] **T3 (M)** — Tokenization guard with scanner fixtures, stage-tagged deferred list and dead-code guard — WI-2.1 — Files: `tests/css-tokenization.test.ts`, `.claude/rules/31-design-tokens.md` (§ Acceptable hardcoded values, DR23) — Verify: RED evidence, then green
-- [ ] **T4 (M)** — Value-preserving tokens and migration — WI-2.2/2.3 — Files: `src/styles/**`, the co-located CSS, `DESIGN.md` — Verify: G0, empty computed-style diff
-- [ ] **T5 (M)** — Visual retune and macOS 13.1 floor — WI-3.0…3.5 — Files: theme files, partials, `DESIGN.md`, `CLAUDE.md`, `src-tauri/tauri.conf.json`, rule 33 (DR15 spec column, DR17 checklist) — Verify: Stage 3 list and visual sign-off in WKWebView
-- [ ] **T6 (M)** — HighlightStyle — WI-4.1 — Files: `src/components/Editor/extensions/syntax.ts`, `editorPrefApply.ts` — Verify: `pnpm test:run`
-- [ ] **T7 (M)** — Icon wrapper — WI-4.2 — Files: `src/components/common/`, `SettingsDialog.tsx`, `BottomTabs.tsx` and `BottomTabs.css` (tab markup), rule 32 (§ Tab bar), `TOCSidebar.tsx`, `IntegrationsSettings.tsx`, `AboutSettings.tsx`, `KeyboardShortcutsSettings.tsx` — Verify: `pnpm test:run`
-- [ ] **T8 (M)** — ToggleSwitch, settings rows and badge — WI-4.3/4.4 — Files: `src/components/common/ToggleSwitch.tsx`, settings panels, `IntegrationsSettings.tsx`, `SettingsDialog.tsx` (MCP read), CSS — Verify: `pnpm test:run`, including the per-site regression test, the settings state tests, the row-name test and the focus-visible check
-- [ ] **T9 (M)** — Segmented control — WI-4.5 — Files: `App.tsx`, `Sidebar/index.tsx`, new component — Verify: `pnpm test:run`
+**`Depends on:`** is the only dependency field in this list, and it points **backwards**: "T13 depends on T12" means T12 lands first. Earlier drafts wrote `Blocks:` here for that same backwards relation while the open-questions table above uses `Blocks:` forwards, so one word named opposite directions inside one file; a reader following the task list would have executed the graph reversed (E24). The open-questions table keeps `Blocks:`, which is correct there.
+
+- [ ] **T0 (S+M)** — Stage 0 — WI-0.1…0.6
+  - **Depends on:** none
+  - **Verify:** the Stage 0 acceptance list and the user's approval
+- [ ] **T1a (S)** — Test tooling — WI-1.0
+  - **Files:** `package.json`, `pnpm-lock.yaml`, `vitest.config.ts`, `tests/testing-library-smoke.test.tsx`
+  - **Depends on:** T0, and the E11 tooling chore PR, which lands before Stage 0
+  - **Verify:** `pnpm test:run`, `pnpm build`
+- [ ] **T1 (S)** — Ordered CSS entry and reader helper — WI-1.1
+  - **Files:** `src/styles/index.css`, `src/main.tsx`, `src/test/appCss.ts`, 4 CSS-reading tests
+  - **Depends on:** T1a
+  - **Verify:** `pnpm test:run`, empty computed-style diff
+- [ ] **T2 (M)** — Split `globals.css` — WI-1.2
+  - **Files:** `src/styles/globals.css`, `src/styles/sections/`, `src/styles/index.css`
+  - **Depends on:** T1
+  - **Verify:** pure-move diff, empty computed-style diff
+- [ ] **T3 (M)** — Tokenization guard with scanner fixtures, stage-tagged deferred list and dead-code guard — WI-2.1
+  - **Files:** `tests/css-tokenization.test.ts`, `.claude/rules/31-design-tokens.md` (§ Acceptable hardcoded values, DR23)
+  - **Depends on:** T2
+  - **Verify:** RED evidence, then green
+- [ ] **T4 (M)** — Value-preserving tokens and migration — WI-2.2/2.3
+  - **Files:** `src/styles/**`, the co-located CSS, `DESIGN.md`
+  - **Depends on:** T3
+  - **Verify:** G0, empty computed-style diff
+- [ ] **T5 (M)** — Visual retune and macOS 13.1 floor — WI-3.0…3.5
+  - **Files:** theme files, partials, `DESIGN.md`, `CLAUDE.md`, `src-tauri/tauri.conf.json`, rule 33 (DR15 spec column, DR17 checklist)
+  - **Depends on:** T4
+  - **Verify:** Stage 3 list and visual sign-off in WKWebView
+- [ ] **T6 (M)** — HighlightStyle — WI-4.1
+  - **Files:** `src/components/Editor/extensions/syntax.ts`, `editorPrefApply.ts`
+  - **Depends on:** T5 (Lane A, independent of the other Stage 4 lanes)
+  - **Verify:** `pnpm test:run`
+- [ ] **T7 (M)** — Icon wrapper — WI-4.2
+  - **Files:** `src/components/common/`, `SettingsDialog.tsx`, `BottomTabs.tsx` and `BottomTabs.css` (tab markup), rule 32 (§ Tab bar), `TOCSidebar.tsx`, `IntegrationsSettings.tsx`, `AboutSettings.tsx`, `KeyboardShortcutsSettings.tsx`
+  - **Depends on:** T5 (first in Lane B)
+  - **Verify:** `pnpm test:run`
+- [ ] **T8 (M)** — ToggleSwitch, settings rows and badge — WI-4.3/4.4
+  - **Files:** `src/components/common/ToggleSwitch.tsx`, settings panels, `IntegrationsSettings.tsx`, `SettingsDialog.tsx` (MCP read), CSS
+  - **Depends on:** T5 (first in Lane C)
+  - **Verify:** `pnpm test:run`, including the per-site regression test, the settings state tests, the row-name test and the focus-visible check
+- [ ] **T9 (M)** — Segmented control — WI-4.5
+  - **Files:** `App.tsx`, `Sidebar/index.tsx`, new component
+  - **Depends on:** T12
+  - **Verify:** `pnpm test:run`
 - [ ] **T10 (S)** — Destructive confirm and settings rail — WI-4.6/4.7
   - **Files:** `ConfirmDialog.tsx`, the two mounted Discard callers (`App.tsx`, `BottomTabs.tsx`), `tests/focus-trap.test.ts`, `.claude/rules/32-component-patterns.md` (first-focus exception) and rule 33 (pattern 3), theme files, `SettingsDialog.tsx` (rail tabs)
+  - **Depends on:** T17 for WI-4.6 (Lane B); T8 for WI-4.7 (Lane C)
   - **Verify:** `pnpm test:run`, including the DR8 Enter regression. Then in `pnpm tauri dev`, press ⌘W on a document with unsaved edits and then Enter; the text must stay. Open Settings at 400×640: the rail is icon-only and rows wrap.
-- [ ] **T12 (M)** — Main bar and status strip — WI-4.8 — Files: `App.tsx`, `Sidebar/index.tsx`, new bar and strip components, a word-count util, the cursor-source wiring, the layout CSS partial — Blocks: T9 — Verify: `pnpm test:run`; drag region and traffic lights in `pnpm tauri dev`; the window at 400×640 in both sidebar states and at 959px
-- [ ] **T13 (S)** — Empty state — WI-4.9 — Files: `App.tsx`, a new empty-state component, `TOCSidebar.tsx`, the layout CSS partial — Blocks: T12 — Verify: `pnpm test:run`; in `pnpm tauri dev`, launch with no file, close the last tab, and drop a `.md` file
-- [ ] **T14 (M)** — External change dialog — WI-4.10 — Files: `src/utils/dataLossGuards.ts`, `src/components/common/ReloadDialog.tsx`, `App.tsx`, `tests/focus-trap.test.ts`, new guard and dialog tests — Blocks: T13 — Verify: `pnpm test:run`; the three states by hand in `pnpm tauri dev`
-- [ ] **T15 (S)** — Already-open guard — WI-4.11 — Files: `src/hooks/useDocument.ts`, a pure helper, new tests — Blocks: none (first in Stage 4) — Verify: `pnpm test:run`; in `pnpm tauri dev`, edit a file, then re-open it by ⌘O, recent files and a drop
+- [ ] **T12 (M)** — Main bar and status strip — WI-4.8
+  - **Files:** `App.tsx`, `Sidebar/index.tsx`, new bar and strip components, a word-count util, the cursor-source wiring, the layout CSS partial
+  - **Depends on:** T7 and T17 (Lane B runs WI-4.2 → WI-4.13 → WI-4.6 → WI-4.8)
+  - **Verify:** `pnpm test:run`; drag region and traffic lights in `pnpm tauri dev`; the window at 400×640 in both sidebar states and at 959px
+- [ ] **T13 (S)** — Empty state — WI-4.9
+  - **Files:** `App.tsx`, a new empty-state component, `TOCSidebar.tsx`, the layout CSS partial
+  - **Depends on:** T12
+  - **Verify:** `pnpm test:run`; in `pnpm tauri dev`, launch with no file, close the last tab, and drop a `.md` file
+- [ ] **T14 (M)** — External change dialog — WI-4.10
+  - **Files:** `src/utils/dataLossGuards.ts`, `src/components/common/ReloadDialog.tsx`, `App.tsx`, `tests/focus-trap.test.ts`, new guard and dialog tests
+  - **Depends on:** T13
+  - **Verify:** `pnpm test:run`; the three states by hand in `pnpm tauri dev`
+- [ ] **T15 (S)** — Already-open guard — WI-4.11
+  - **Files:** `src/hooks/useDocument.ts`, a pure helper, new tests
+  - **Depends on:** none (first in Stage 4)
+  - **Verify:** `pnpm test:run`; in `pnpm tauri dev`, edit a file, then re-open it by ⌘O, recent files and a drop
 - [ ] **T16 (S)** — Drop target — WI-4.12
   - **Files:** a new pure helper, a new hook, `App.tsx`, the workspace and empty-state CSS, and new tests
-  - **Blocks:** T14
-  - **Verify:** `pnpm test:run`. Then in `pnpm tauri dev`, in both themes and with and without a document, drag each file mix over the window, drop it, and cancel one drag with Esc.
+  - **Depends on:** T14; T23 (it registers through the cancellation-safe primitive, E19); and T26 (the lifecycle seam lands before the drop-target extraction, E22)
+  - **Verify:** `pnpm test:run`. Then in `pnpm tauri dev`, in both themes and with and without a document, drag each file mix over the window, drop it, and cancel one drag with Esc — the target must clear (E13 acceptance gate).
 - [ ] **T17 (S)** — Error toasts — WI-4.13
   - **Files:** `src/stores/toastStore.ts`, `src/components/common/Toast.tsx`, `App.tsx`, `useDocument.ts`, `loggingService.ts`, `saveService.ts`, `preferencesService.ts`, `useUpdater.ts`, `imagePastePlugin.ts`, the toast CSS, `.claude/rules/32-component-patterns.md` (§ Toast), and tests
-  - **Blocks:** T7 (the `Icon` wrapper)
+  - **Depends on:** T7 (the `Icon` wrapper)
   - **Verify:** `pnpm test:run`. Then in `pnpm tauri dev`, in both themes, make a save fail (for example into a folder made read-only with `chmod a-w`). The toast must stay, "Dismiss" must clear it, and VoiceOver must read it. Open a missing file from recent files; one error toast names it.
 - [ ] **T18 (M)** — WYSIWYG follows outside writes — WI-4.14
   - **Files:** `src/components/Editor/MilkdownEditor.tsx`, a new sync hook, `App.tsx` (the image-drop write, if the preflight routes it through the hook), and new tests
-  - **Blocks:** T15
+  - **Depends on:** T15
   - **Verify:** `pnpm test:run`, including the Reload regression. Then in `pnpm tauri dev`, in WYSIWYG: change an open file in another app, choose Reload, type, press ⌘S, and check that the file holds both changes. Drop an image, type, and check that the image stays. No unsaved dot appears after Reload.
-- [ ] **T19 (S)** — Menu keyboard contract — WI-4.15 — Files: `TableContextMenu/index.tsx`, `SourceTableContextMenu/index.tsx`, `ImageContextMenu.tsx` and its CSS, the new hook, rule 32 (§ Context menu contract), new tests — Blocks: none — Verify: `pnpm test:run`; in `pnpm tauri dev`, in both themes, open each menu and use it with arrow keys, Home/End, Enter and Escape, and scroll to close it
-- [ ] **T11 (M)** — `sourceFont` — WI-5.1…5.4 — Files: `preferences.rs`, `preferences.ts`, `editorPrefApply.ts`, `EditorSettings.tsx`, the shared fixture, `normalizeSourceFont`, rule 31 — Blocked by: the E6 fix PR — Verify: `cargo test`, `pnpm test:run`
+- [ ] **T19 (S)** — Menu keyboard contract — WI-4.15
+  - **Files:** `TableContextMenu/index.tsx`, `SourceTableContextMenu/index.tsx`, `ImageContextMenu.tsx` and its CSS, the new hook, rule 32 (§ Context menu contract), new tests
+  - **Depends on:** none
+  - **Verify:** `pnpm test:run`; in `pnpm tauri dev`, in both themes, open each menu and use it with arrow keys, Home/End, Enter and Escape, and scroll to close it
+- [ ] **T25 (S)** — MCP window routing and Zustand selectors — WI-4.21
+  - **Files:** `src-tauri/src/services/http_server.rs`, `src/hooks/useMcpEvents.ts`, `AdvancedSettings.tsx`, the lint config, new tests
+  - **Depends on:** T5 (it shares no files with the Stage 4 lanes, and runs first among the foundations)
+  - **Verify:** `cargo test`, `pnpm test:run`; with two windows open, one MCP call creates exactly one document
+- [ ] **T22 (M)** — View mode and preference persistence — WI-4.18
+  - **Files:** `src-tauri/src/models/preferences.rs`, `src-tauri/src/services/preferences.rs`, `src/types/preferences.ts`, `src/utils/viewModeUtils.ts`, round-trip tests
+  - **Depends on:** T25
+  - **Verify:** `cargo test`, `pnpm test:run`; in `pnpm tauri dev`, switch to Source, relaunch, and confirm the mode persisted with no failure toast
+- [ ] **T23 (M)** — Cancellation-safe subscription primitive — WI-4.19
+  - **Files:** `src/hooks/useTauriEvent.ts`, `App.tsx`, `useMenuEvents.ts`, `useMcpEvents.ts`, `useTheme.ts`, `useFileWatcher.ts`, new tests
+  - **Depends on:** T22
+  - **Verify:** `pnpm test:run`, including the unmount-during-registration regression
+- [ ] **T21 (M)** — File watcher trailing delivery — WI-4.17
+  - **Files:** `src-tauri/src/services/file_watcher.rs`, `src/hooks/useFileWatcher.ts`, new Rust and TS tests
+  - **Depends on:** T23
+  - **Verify:** `cargo test`, `pnpm test:run`; in `pnpm tauri dev`, change a file twice in quick succession and confirm the second change is seen
+- [ ] **T20 (M)** — IPC error contract — WI-4.16
+  - **Files:** `src/services/fileService.ts`, the `FileError` TS union, `saveService.ts`, `useDocument.ts`, `tests/save-blink.test.ts`, new fixture-driven tests
+  - **Depends on:** T21, and T17 for the error-toast variant
+  - **Verify:** `pnpm test:run`. Then in `pnpm tauri dev`, make a save fail into a read-only folder; the toast must name the reason, not `[object Object]`.
+- [ ] **T24 (M)** — Command logging wrapper — WI-4.20
+  - **Files:** `src-tauri/src/commands/file.rs`, `image.rs`, `mod.rs`, the shared wrapper module, Rust tests
+  - **Depends on:** T20
+  - **Verify:** `cargo test`; `~/.mdpro/mdpro.log` shows a Start and exactly one terminal record for a save rejected by path validation
+- [ ] **T26 (M)** — File-size ratchet and `App.tsx` lifecycle seam — WI-4.22
+  - **Files:** `App.tsx`, a new lifecycle controller and dialog host, the ratchet check and its baseline, the source-text tests it replaces
+  - **Depends on:** T24. It lands before T16.
+  - **Verify:** `pnpm test:run`, including the close-confirmation regression (request close on A, activate B, confirm). The ratchet must fail on a seeded over-limit production file and ignore `#[cfg(test)]` modules.
+- [ ] **T11 (M)** — `sourceFont` — WI-5.1…5.4
+  - **Files:** `preferences.rs`, `preferences.ts`, `editorPrefApply.ts`, `EditorSettings.tsx`, the shared fixture, `normalizeSourceFont`, rule 31
+  - **Depends on:** the E6 fix PR, and T22 (which changes the same Rust preference types)
+  - **Verify:** `cargo test`, `pnpm test:run`
 
 Sizes (S/M) are planning estimates, not commitments.
 

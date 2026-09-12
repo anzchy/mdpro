@@ -4,6 +4,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ## Risks
 
+Each mitigation names the decision or work item that owns it (E24). A mitigation that has no evidence behind it yet is marked **proposed** and stays that way until the evidence exists.
+
 | Risk | Mitigation |
 |---|---|
 | The split breaks tests that read `globals.css` from disk | WI-1.1 helper before the move; assertions are unchanged |
@@ -24,7 +26,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 | Enter in the Discard confirmation discards unsaved edits until Stage 4 lands | Accepted in DR8. WI-4.6's regression test fails on today's dialog |
 | A failed save looks like "Saved" and disappears after 3 seconds until Stage 4 lands | Accepted in DR9. WI-4.13's save-failure regression test fails on today's store |
 | A later info toast replaces an error toast before it is read | Accepted: rule 32 allows one toast at a time, and each failure path also logs its own `fail` event |
-| The drop target stays visible if Tauri never sends `leave`, for example when a drag is cancelled | WI-4.12 also clears the target on `drop` and on window blur; checked by hand in `pnpm tauri dev` |
+| The drop target stays visible if Tauri never sends `leave`, for example when a drag is cancelled with Esc | Clearing on `drop` and window blur is **not sufficient** (E13): an Esc cancel does not blur the window. WI-4.12 adds a capture-phase `Escape` listener mounted only while the target is shown. A cancel followed by inactivity can still strand it, so a real Esc-cancel check in `pnpm tauri dev` is an **acceptance gate**, not an assumption note |
 | Re-opening or dropping an open file discards its unsaved edits until Stage 4 lands | Accepted in DR6. WI-4.11 runs first in Stage 4, and its regression test fails on today's open path |
 | Enter in the external-change dialog discards unsaved edits until Stage 4 lands | Accepted in DR5. WI-4.10's regression test fails on today's dialog, and rule 60 treats the path as a blocker for any earlier release |
 | Not mounting an editor with no document breaks the launch view-mode effect or the first Milkdown mount | WI-4.9 preflight reads both paths; a component test opens a document after the empty state and asserts the editor mounts |
@@ -34,3 +36,15 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 | Re-throwing open failures shows errors that launch opens used to hide | One toast per batch, with the count; raw messages go to the log only (WI-4.13) |
 | A narrow threshold drifts as labels or values change, and a field clips instead of hiding | Thresholds come from the widest realistic values and live in one partial; the 400×640 and 959px screenshots are retaken at each Stage 4 stop (DR16) |
 | In a narrow window VoiceOver no longer reads the hidden status fields | Accepted in DR16: they return when the window widens, and the cursor position always stays |
+| Typing and then reloading inside 200 ms writes the pre-reload text back over the reloaded file | E9: the plugin-listener debounce is replaced by an owned observer; a push cancels the pending write-back. Fake-timer test: type, push inside 200 ms, advance, assert the store holds the pushed text and `isModified` is false |
+| Typing and then pressing ⌘S inside 200 ms saves stale content, because the save reads the store | E9: the write-back is flushed synchronously before every dirty read, and the save re-reads `getState()` after the flush |
+| ⌘Z after a Reload restores the stale pre-reload text and schedules a write-back | E9: fresh-open sources use `replaceAll(md, true)`, which resets history instead of dispatching an undoable replace |
+| The drop-target listener leaks when the component unmounts before registration resolves (C5) | E19: WI-4.12 registers through the WI-4.19 cancellation-safe primitive rather than its own `await` |
+| Selecting Source mode fails to persist and shows "Failed to save preferences" on every switch | E21: Rust gains a `Source` variant plus the fields TS already declares. Round-trip test per enum value, from the TS literal through Rust and back |
+| A rapid external change is lost because the watcher drops it rather than deferring it | E18: `file_watcher.rs:113-123` retains and delivers the trailing event, preserving rename and delete information |
+| Mutation testing reports a healthy score while the five files holding the known bugs are excluded | E11: the `stryker.config.json:10-22` exclusions are temporary and justified in the config; a green dry run must be backed by a test-**selection** audit, not exit 0 alone |
+| A new regression test is written as `.test.tsx` and never runs | E11: `vitest.config.ts:6` widens to `.test.tsx` in the tooling PR, before any new test is written |
+| An MCP tool call creates one document per open window, all sharing one UUID | E23: Rust resolves one destination and uses `emit_to` with a non-null label; the frontend guard compares a concrete label |
+| A rejected `save_file` path logs nothing, so an attack or a bug is invisible | E20: `loggedOperation` logs Start before validation and exactly one terminal outcome |
+| Moving to UUID ids makes reload or encoding reopen upsert a second entry for one file | E10: reload and encoding reopen carry the owner id forward; `file.rs:1408-1410` builds a fresh `Document` today |
+| `App.tsx` keeps growing while the 300-line rule is treated as advisory | E22: the ratchet baselines the 19 existing production offenders and rejects unexplained growth; the lifecycle seam lands before the drop-target extraction |

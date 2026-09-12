@@ -21,7 +21,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - `color-mix()` with a literal argument
 - **Dead-code guard (A8), temporary:** assert that neither `index.html` nor any `src/**` file outside the candidates imports `src/App.css`, `src/components/TabBar/`, `Preview.tsx`, `ImageRenderer.tsx`, `usePreview.ts` or `preview.css`.
   - `exportService.ts` importing `mathRender.ts` stays allowed.
-  - Its failure message names the TODOS.md entry "Remove dead App.css, TabBar and Preview".
+  - Its failure message names the real TODOS.md entry, "Remove dead App.css and TabBar; fix rule 34's App.css claim" (`TODOS.md:200`), which DR10 extends to the Preview pane. Widen that entry's title to name the Preview pane in the same commit, so the plan and TODOS stop using two names for one task.
   - `tests/table-alignment-rendering.test.ts:46-49` reads `preview.css` from disk; list it with the candidates rather than editing it.
   - Delete the guard when that cleanup lands.
 - **RED evidence:** run the test on the post-Stage-1 tree and record the failing count per file.

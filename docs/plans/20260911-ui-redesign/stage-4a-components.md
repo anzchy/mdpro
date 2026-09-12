@@ -247,10 +247,13 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - It returns a discriminated union with the Markdown and image counts, and callers handle it with an exhaustive switch.
   - The hover label and `handleFileDrop` both use it, so the label can't promise something the drop won't do.
 - **Drag state:** a hook (for example `useDropTarget`) owns the `onDragDropEvent` listener. `App.tsx` is already far past the 300-line limit (rule 50).
+  - The listener registers through the WI-4.19 cancellation-safe primitive (E19), not its own bare `await`. Today's drag listener at `App.tsx:871-890` assigns `unlisten` after an `await` with no cancelled flag, so an unmount during registration leaks it (C5).
   - `enter` classifies `payload.paths` and shows the target.
   - `over` is ignored; the pointer is not tracked.
   - `leave` and `drop` clear the target. `drop` then routes the paths.
-  - Window blur also clears it, in case `leave` never arrives (assumption — confirm with a drag cancelled by Esc in `pnpm tauri dev`).
+  - Window blur also clears it, in case `leave` never arrives.
+  - **Escape also clears it** (E13). Blur does not cover an Esc-cancelled drag, because cancelling does not blur the window. While the target is shown, and only then, a capture-phase `keydown` listener on `window` clears it on `Escape`; the fallback is restricted to `Escape` rather than any keydown. Note that `@tauri-apps/api` 2.9.1 maps `DRAG_LEAVE` without reading the payload (`window.js:1687`), so tauri-apps/tauri#10126 being open proves nothing in either direction.
+  - A cancel followed by inactivity can still strand the highlight, so the real Esc-cancel check in `pnpm tauri dev` is an **acceptance gate**, not an assumption note.
 - **Look and copy:** DESIGN.md § Drop target has the full state table.
   - With a document open, an overlay covers `.workspace` (`App.tsx:1136-1146`).
   - In the empty state, WI-4.9's frame changes instead; there is no second frame.
@@ -260,6 +263,8 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Tests** (through tdd-guardian, RED first):
   - `classifyDrop`: Markdown only, images only, both, neither, uppercase extensions and an empty list, each with and without a document
   - The hook, with `@tauri-apps/api/window` mocked at the boundary: `enter` shows the target; `leave`, `drop` and blur clear it; `drop` passes the paths on
+  - `Escape` while the target is shown clears it; a key that is not `Escape` does not; the listener is absent when the target is hidden
+  - Unmounting before the registration promise resolves leaves no live listener (C5)
   - Regression: dropping only unsupported files shows the toast. This test fails today.
   - The label text for each state, queried by text rather than class
 - **Logging:** keep `file.open.drop`. Log nothing on hover, because it would fire on every drag.
@@ -286,7 +291,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Logging:** unchanged (`editor.image.resize`).
 
 ### Stage 4 acceptance criteria
-- [ ] G0 passes; every Stage 4 work item, in this file and in [`stage-4b-data-safety.md`](stage-4b-data-safety.md), has its RED→GREEN tests (rule 10: behavior and ARIA, not rendering snapshots)
+- [ ] G0 passes; every Stage 4 work item — in this file, in [`stage-4b-data-safety.md`](stage-4b-data-safety.md) and in [`stage-4c-foundation.md`](stage-4c-foundation.md) — has its RED→GREEN tests (rule 10: behavior and ARIA, not rendering snapshots)
 - [ ] `defaultHighlightStyle` no longer drives the Source light theme; no `--color-syntax-code` appears anywhere in `src/`; the One Dark path is unchanged (DR20)
 - [ ] No new runtime dependency (the E7 test devDependencies are excepted); if an icon library was proposed, the user's decision is recorded
 - [ ] No emoji or glyph icons remain at the item 4 sites; icon-only controls have accessible names. Each bottom tab's close control is a sibling button named "Close *name*" that Tab reaches
@@ -344,4 +349,5 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Lane B:** WI-4.2 → WI-4.13 → WI-4.6 → WI-4.8 → WI-4.5 → WI-4.9 → WI-4.10 → WI-4.12 run in sequence, because they share `BottomTabs`, `Sidebar` and `App.tsx`.
 - **WI-4.11, then WI-4.14,** run before any lane. WI-4.11 shares no files with the lanes. WI-4.14 shares `App.tsx` and `MilkdownEditor.tsx` with Lane B, so it lands before Lane B starts. WI-4.15 touches only the three menus and its hook, so any lane can take it.
 - **Lane C:** WI-4.3 → WI-4.4 → WI-4.7 run in sequence, because they share the settings components and the settings CSS partial.
+- **The foundations do not belong to a lane.** WI-4.16…WI-4.22 ([`stage-4c-foundation.md`](stage-4c-foundation.md), plus WI-4.16/4.17/4.18 in [`stage-4b-data-safety.md`](stage-4b-data-safety.md)) each touch files that several lanes touch, so they land **between** lanes, in the order recorded in Stage 4c. Two of them constrain the lanes directly: WI-4.19 lands before WI-4.12, which registers its drag listener through that primitive, and WI-4.22's `App.tsx` lifecycle seam lands before WI-4.12's drop-target extraction, so the drag work is not moved twice.
 - **Conflict flag:** all lanes still meet in the theme files, `DESIGN.md` and `CHANGELOG.md`. Lanes B and C also both edit `SettingsDialog.tsx`, in different hunks (WI-4.2 icons, WI-4.3 MCP read). Merge one lane at a time and re-run G0 after each merge.
