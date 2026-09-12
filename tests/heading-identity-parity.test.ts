@@ -1,0 +1,132 @@
+/**
+ * Shared heading-identity corpus — JS runner.
+ *
+ * Reads tests/render-fixtures/heading-identity.json, shared with
+ * src-tauri/tests/heading_identity_parity.rs. The Rust renderer is not callable
+ * from jsdom, so parity is enforced as one fixture with two independent runners
+ * — the same mechanism tests/render-golden.test.ts already uses for phase1.json.
+ * This is deliberately NOT the tests/sanitizer-rust-js-parity.test.ts approach of
+ * parsing Rust source text from TS: decision E26 moved this repo away from
+ * source-text assertions, and they cannot characterize behavior in any case.
+ *
+ * This file owns three faces; the Rust runner owns `rust`:
+ *   toc             tocService.parseHeadingsFromContent — the TOC sidebar's own
+ *                   parser and slug generator.
+ *   tocOffsets      the `offset` field of that same parse, asserted only where
+ *                   the fixture supplies expectedTocOffsets.
+ *   exportCanonical exportService.renderMarkdown with the Rust IPC RESOLVING.
+ *                   Owns anchor PRESERVATION, not slug generation: it is fed
+ *                   Rust-shaped HTML synthesized from expectedSlugs, so a
+ *                   slug-generation bug is invisible here and is attributed to
+ *                   `rust` instead. Synthesizing rather than storing real Rust
+ *                   HTML keeps the fixture from rotting on innocuous render
+ *                   changes and avoids a snapshot test (rule 10).
+ *   exportFallback  the same function with the IPC REJECTING — the `marked`
+ *                   degradation path (plan decision A1), not a path users hit.
+ *
+ * expectedSlugs is the CORRECT answer, not today's behavior. A face absent from
+ * currentlyFailsOn must match it; a face listed there must NOT — each defect is
+ * pinned as a defect, so the branch stays green while the corpus states the
+ * truth. WI-3.2 deletes the entry it fixes and the assertion flips.
+ */
+import * as fs from "fs";
+import * as path from "path";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { parseHeadingsFromContent } from "../src/services/tocService";
+import { exportService } from "../src/services/exportService";
+import { invoke } from "@tauri-apps/api/core";
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+const invokeMock = vi.mocked(invoke);
+
+interface Case {
+  name: string;
+  markdown: string;
+  expectedSlugs: string[];
+  expectedTocOffsets?: number[];
+  currentlyFailsOn?: string[];
+  note?: string;
+}
+
+const fixtures = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, "render-fixtures/heading-identity.json"),
+    "utf-8",
+  ),
+) as { cases: Case[] };
+
+/** Extract every id="…" value in document order. */
+function idsFrom(html: string): string[] {
+  return [...html.matchAll(/\sid="([^"]*)"/g)].map((m) => m[1]);
+}
+
+function fails(c: Case, face: string): boolean {
+  return (c.currentlyFailsOn ?? []).includes(face);
+}
+
+/**
+ * Assert a face against its expected value, inverting when the fixture pins the
+ * face as a known defect. Keeping both directions in one helper is what makes a
+ * fixed defect fail loudly instead of silently passing.
+ */
+function assertFace(
+  c: Case,
+  face: string,
+  actual: unknown,
+  expected: unknown,
+): void {
+  if (fails(c, face)) {
+    expect(
+      actual,
+      `[${c.name}] fixture pins \`${face}\` as DEFECTIVE but it now produces the ` +
+        `correct value. If WI-3.2 fixed this, delete "${face}" from that case's ` +
+        `currentlyFailsOn.\n  note: ${c.note ?? ""}`,
+    ).not.toEqual(expected);
+  } else {
+    expect(
+      actual,
+      `[${c.name}] \`${face}\` must produce the expected value.\n  note: ${c.note ?? ""}`,
+    ).toEqual(expected);
+  }
+}
+
+describe("heading identity corpus — JS faces", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+  });
+
+  it("loads a non-empty fixtures file shared with the Rust runner", () => {
+    expect(fixtures.cases.length).toBeGreaterThan(0);
+  });
+
+  for (const c of fixtures.cases) {
+    it(`toc slugs for "${c.name}"`, () => {
+      const actual = parseHeadingsFromContent(c.markdown).map((h) => h.id);
+      assertFace(c, "toc", actual, c.expectedSlugs);
+    });
+
+    if (c.expectedTocOffsets) {
+      it(`toc offsets for "${c.name}"`, () => {
+        const actual = parseHeadingsFromContent(c.markdown).map((h) => h.offset);
+        assertFace(c, "tocOffsets", actual, c.expectedTocOffsets);
+      });
+    }
+
+    it(`canonical export preserves anchors for "${c.name}"`, async () => {
+      // Shape the IPC result like what Rust really emits for the expected slugs,
+      // then assert the JS post-processing does not drop the anchor.
+      const rustShaped = c.expectedSlugs
+        .map((s) => `<h1 id="${s}" data-heading-id="${s}">x</h1>\n`)
+        .join("");
+      invokeMock.mockResolvedValue({ html: rustShaped });
+      const html = await exportService.renderMarkdown(c.markdown);
+      assertFace(c, "exportCanonical", idsFrom(html), c.expectedSlugs);
+    });
+
+    it(`fallback export slugs for "${c.name}"`, async () => {
+      invokeMock.mockRejectedValue(new Error("force marked fallback"));
+      const html = await exportService.renderMarkdown(c.markdown);
+      assertFace(c, "exportFallback", idsFrom(html), c.expectedSlugs);
+    });
+  }
+});

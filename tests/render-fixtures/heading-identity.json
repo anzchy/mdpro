@@ -1,0 +1,212 @@
+{
+  "_doc": [
+    "Shared heading-identity corpus — stage 3 entry gate. Read by BOTH",
+    "src-tauri/tests/heading_identity_parity.rs and tests/heading-identity-parity.test.ts.",
+    "The Rust renderer is not callable from jsdom, so parity is enforced as one",
+    "fixture with two independent runners (same mechanism as render-fixtures/phase1.json).",
+    "",
+    "expectedSlugs is the CORRECT answer, not today's behavior. currentlyFailsOn lists",
+    "the faces that do NOT yet produce it. Both runners assert: a face absent from",
+    "currentlyFailsOn MUST equal expectedSlugs; a face listed in it MUST NOT. Every",
+    "defect is therefore pinned as a defect and the branch stays green. WI-3.2 deletes",
+    "the currentlyFailsOn entry it fixes, and the assertion flips to demanding correctness.",
+    "",
+    "Every value here was MEASURED against the live code on 2026-09-12, not inferred.",
+    "",
+    "FACES — each defect is attributed to the layer that owns it:",
+    "  rust            src-tauri/src/services/markdown.rs, via render_markdown -> sanitize_html.",
+    "                  Owns slug GENERATION on the canonical path.",
+    "  toc             src/services/tocService.ts parseHeadingsFromContent. Owns the TOC",
+    "                  sidebar's own parser and slug generator.",
+    "  tocOffsets      the `offset` field of the same TOC parse. Only asserted where",
+    "                  expectedTocOffsets is present.",
+    "  exportCanonical src/services/exportService.ts renderMarkdown with the Rust IPC",
+    "                  RESOLVING. This face owns anchor PRESERVATION only -- whether the JS",
+    "                  post-processing keeps the anchor Rust already produced. It is fed",
+    "                  Rust-shaped HTML built from expectedSlugs, so it cannot observe a",
+    "                  slug-generation bug; those are attributed to `rust`. That is why",
+    "                  suffix-collision does not list exportCanonical even though a real",
+    "                  export of that document does emit a duplicate id.",
+    "  exportFallback  the same function with the Rust IPC REJECTING, i.e. the `marked`",
+    "                  degradation path (plan decision A1). Not the path users hit.",
+    "",
+    "NOTE: src/App.tsx:587 is the only export call site and it routes to",
+    "exportRenderedHtml -> renderMarkdown, so exportCanonical is the live user-facing",
+    "export face. The Rust-only export_html command, which preserves every anchor, has",
+    "no frontend caller."
+  ],
+  "faces": ["rust", "toc", "tocOffsets", "exportCanonical", "exportFallback"],
+  "cases": [
+    {
+      "name": "all-levels",
+      "markdown": "# a\n## b\n### c\n#### d\n##### e\n###### f",
+      "expectedSlugs": ["a", "b", "c", "d", "e", "f"],
+      "currentlyFailsOn": [],
+      "note": "H1-H6 baseline (edge-cases-test.md EC-TOC-001). All faces agree."
+    },
+    {
+      "name": "atx-control-alpha",
+      "markdown": "# Alpha",
+      "expectedSlugs": ["alpha"],
+      "currentlyFailsOn": [],
+      "note": "Control for the clobber cases: a non-colliding ASCII id survives every face. Without this, a stripped anchor is indistinguishable from a parse failure."
+    },
+    {
+      "name": "cjk-basic",
+      "markdown": "# 架构设计",
+      "expectedSlugs": ["架构设计"],
+      "currentlyFailsOn": [],
+      "note": "CJK is preserved, not transliterated or dropped (EC-TOC-003)."
+    },
+    {
+      "name": "punctuation-cjk",
+      "markdown": "# 第1章: 架构",
+      "expectedSlugs": ["第1章-架构"],
+      "currentlyFailsOn": [],
+      "note": "Mixed CJK/ASCII/digits with punctuation collapsing to a single hyphen."
+    },
+    {
+      "name": "dup-cjk",
+      "markdown": "# 架构\n# 架构",
+      "expectedSlugs": ["架构", "架构-1"],
+      "currentlyFailsOn": [],
+      "note": "Two collisions is the most the current counter handles correctly; this passes everywhere. It is the case tests/cjk-slug.test.ts:47-51 already covers."
+    },
+    {
+      "name": "suffix-collision",
+      "markdown": "# x\n# x\n# x-1",
+      "expectedSlugs": ["x", "x-1", "x-1-1"],
+      "currentlyFailsOn": ["rust", "toc", "exportFallback"],
+      "note": "The third heading's literal text already slugs to `x-1`, which the counter just handed to the second heading. All three generators emit `x-1` twice, violating document-unique anchors. Needs a third heading to surface -- two is not enough."
+    },
+    {
+      "name": "emoji-then-literal",
+      "markdown": "# 🎉\n# heading",
+      "expectedSlugs": ["heading", "heading-1"],
+      "currentlyFailsOn": ["toc", "exportFallback"],
+      "note": "TS applies the `|| \"heading\"` fallback AFTER counts.set, so it registers \"\" and the literal `# heading` collides undetected. Rust applies the fallback BEFORE the count map and is correct. True duplicate id on the TS faces."
+    },
+    {
+      "name": "two-emoji-only",
+      "markdown": "# 🎉\n# 🎊",
+      "expectedSlugs": ["heading", "heading-1"],
+      "currentlyFailsOn": ["toc", "exportFallback"],
+      "note": "Same root cause, different symptom: the second empty slug becomes the bare suffix `-1`, an id with no base at all. Recorded in neither plan before 2026-09-12."
+    },
+    {
+      "name": "fenced-hash",
+      "markdown": "```\n# not a heading\n```",
+      "expectedSlugs": [],
+      "currentlyFailsOn": ["toc"],
+      "note": "tocService matches ATX line-by-line with no fence tracking, so it invents a heading from code-block content. Rust and both export faces correctly yield nothing."
+    },
+    {
+      "name": "setext-noncolliding",
+      "markdown": "Alpha\n=====",
+      "expectedSlugs": ["alpha"],
+      "currentlyFailsOn": ["toc"],
+      "note": "Setext headings (EC-MD-002). tocService's regex is ATX-only and misses them entirely. Deliberately NOT named `title` so the miss cannot be confused with the clobbering strip -- that confusion cost a round of measurement."
+    },
+    {
+      "name": "setext-title",
+      "markdown": "Title\n=====",
+      "expectedSlugs": ["title"],
+      "currentlyFailsOn": ["toc", "exportCanonical", "exportFallback"],
+      "note": "Two independent defects stacked on one input: tocService misses Setext, and the slug `title` is then stripped by DOMPurify on both export faces. Kept alongside setext-noncolliding so the two causes stay separable."
+    },
+    {
+      "name": "formatted-bold",
+      "markdown": "# **bold** title",
+      "expectedSlugs": ["bold-title"],
+      "currentlyFailsOn": ["exportFallback"],
+      "note": "The fallback's marked renderer receives RENDERED HTML as `text`, so markup leaks into the slug: `strong-bold-strong-title`. Rust, toc, and the canonical export all agree on `bold-title`."
+    },
+    {
+      "name": "inline-code",
+      "markdown": "# `code` title",
+      "expectedSlugs": ["code-title"],
+      "currentlyFailsOn": ["exportFallback"],
+      "note": "Same leak via `<code>`: the fallback yields `code-code-code-title` (EC-TOC-005, inline code stripped)."
+    },
+    {
+      "name": "link-in-heading",
+      "markdown": "# [text](https://example.com) tail",
+      "expectedSlugs": ["text-tail"],
+      "currentlyFailsOn": ["toc", "exportFallback"],
+      "note": "Three-way divergence (EC-TOC-005, links stripped). toc slugs the raw markdown including the URL; the fallback slugs the rendered anchor tag; only Rust and the canonical export strip to the link TEXT."
+    },
+    {
+      "name": "trailing-hashes",
+      "markdown": "# Title ###",
+      "expectedSlugs": ["title"],
+      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "note": "Closing-sequence ATX (EC-MD-001). The slug is correctly `title` on every face -- what fails is that DOMPurify then strips the anchor. Measured as a parse bug in round 1; it is not."
+    },
+    {
+      "name": "leading-trailing-punct",
+      "markdown": "# ---title---",
+      "expectedSlugs": ["title"],
+      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "note": "Leading/trailing separators trimmed. Same story as trailing-hashes: correct slug, stripped anchor."
+    },
+    {
+      "name": "clobber-title",
+      "markdown": "# Title",
+      "expectedSlugs": ["title"],
+      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "note": "DOM-clobbering defense: DOMPurify's default SANITIZE_DOM removes an `id` colliding with a built-in document/form property, leaving `<h1 data-heading-id=\"title\">` with NO anchor. Rust/ammonia keeps it, so this is a TS-vs-Rust divergence, not a shared security posture. sanitizerPolicy.ts sets neither SANITIZE_DOM:false nor SANITIZE_NAMED_PROPS and its header never mentions clobbering, so this is unrecorded behavior, not a deliberate choice."
+    },
+    {
+      "name": "clobber-name",
+      "markdown": "# Name",
+      "expectedSlugs": ["name"],
+      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "note": "Same defense, `document.name` / form property."
+    },
+    {
+      "name": "clobber-body",
+      "markdown": "# Body",
+      "expectedSlugs": ["body"],
+      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "note": "Same defense, `document.body`."
+    },
+    {
+      "name": "clobber-location",
+      "markdown": "# Location",
+      "expectedSlugs": ["location"],
+      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "note": "Same defense, `document.location` -- the highest-severity clobber target."
+    },
+    {
+      "name": "clobber-forms",
+      "markdown": "# Forms",
+      "expectedSlugs": ["forms"],
+      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "note": "Same defense, `document.forms`."
+    },
+    {
+      "name": "crlf-doc",
+      "markdown": "text\r\n# 标题",
+      "expectedSlugs": ["标题"],
+      "expectedTocOffsets": [6],
+      "currentlyFailsOn": ["tocOffsets"],
+      "note": "tocService accumulates `line.length + 1` after splitting on /\\r?\\n/, undercounting one byte per CRLF line. Reports 5 where the heading starts at index 6. Slugs are unaffected; only positions are wrong (EC-FILE-008)."
+    },
+    {
+      "name": "crlf-two-lines",
+      "markdown": "a\r\nb\r\n# H",
+      "expectedSlugs": ["h"],
+      "expectedTocOffsets": [6],
+      "currentlyFailsOn": ["tocOffsets"],
+      "note": "The undercount ACCUMULATES: two preceding CRLF lines yield offset 4 against a true 6. Line numbers stay correct throughout."
+    },
+    {
+      "name": "lf-two-lines",
+      "markdown": "a\nb\n# H",
+      "expectedSlugs": ["h"],
+      "expectedTocOffsets": [4],
+      "currentlyFailsOn": [],
+      "note": "LF control for the two CRLF cases -- proves the offset arithmetic is correct on LF and isolates the bug to CRLF handling."
+    }
+  ]
+}
