@@ -15,7 +15,7 @@
 
 | 阶段 | 内容 | 归属 | 为什么在这个位置 |
 |---|---|---|---|
-| **1** | WI-0.0 工具链与 CI chore PR + 真正能拦住合并的门禁 | P | 门禁不通，后面一切无法验证 |
+| **1** | WI-0.0（已收窄为**本地测试工具链与基线校准**）；CI 触发器与分支保护另起一个 PR | P | 本地可验证；**合并门禁仍不存在**，「故意失败的检查挡住合并」这类验收归后续 PR |
 | **2** | 死代码清理，独立 PR | P（WI-0.1 之前） | 必须在基线捕获前完成，否则基线记录的是将被删除的文件 |
 | **3** | **标题身份契约 + TOC 切换（M 提前）** | **M** | WI-4.26 依赖的 identity 今天是坏的 |
 | **4** | WI-0.1 重跑 → Stage 0→5 全程 | P | 主体工作 |
@@ -37,10 +37,10 @@
 | 1.4 | `vitest.config.ts`：`coverage.include` = `src/**/*.{ts,tsx}`、`all: true`、测试匹配放宽到 `.test.tsx` | `pnpm coverage` 打印四项修正后指标 |
 | 1.5 | `tsconfig` 纳入 `tests/`；新建 `tests/setup.ts`（显式 `afterEach(cleanup)`） | 一个种子 `.test.tsx` 既被发现又被类型检查 |
 | 1.6 | 四个 E7/E28 test-only devDependencies | 无新增 runtime 依赖 |
-| 1.7 | **Stryker 的第一个决定不是范围，而是「是否入库」** | 入库则 config + 两个 devDeps + lockfile 作为一个可评审单元；否则 `requireMutation: false`。**两者不得矛盾落地** |
-| 1.8 | tdd-guardian config v1→v2 迁移，四项阈值重置到实测地板 30.87 / 82.03 / 61.53 / 30.87 | 明确记录旧的 40 是未校准历史配置，非偷偷降低 |
+| 1.7 | **Stryker 的第一个决定不是范围，而是「是否入库」** | **已决：不入库。** 撤掉两个 devDeps 与其后 1329 行 lockfile 改动，`requireMutation: false` 且删除 `mutationCommand`/`mutationGateOn`。理由不是「覆盖率太低不配跑变异测试」（该论点是错的），而是 E29 的前置条件未满足：本 PR 只交付测试基础设施，允许清单模块尚无行为测试 |
+| 1.8 | tdd-guardian config v1→v2 迁移，四项阈值重置到实测地板 | **已测并写入 31/61/82/31**（lines/functions/branches/statements；实测 31.18 / 61.57 / 82.15 / 31.18，向下取整）。注意这是**加种子测试与修正 fixture 之后**重测的值，不是先前的 30.87。明确记录旧的 40/45/35/40 是未校准历史配置，非偷偷降低。**必须同时写入 `vitest.config.ts`**，否则 `pnpm coverage` 不会因低覆盖率失败 |
 | 1.9 | **G0 文件检查改写**（必须在 WI-0.1 前） | 改为：全局基线存起点 SHA + 脏改动内容 + 未跟踪清单；每 WI 存自己起点；按**内容差异**核对本 WI 声明文件集 |
-| 1.10 | ⚠️ **建议追加：ESLint 接入**（M 的 P1） | 见下方「计划未记载的问题 ①」 |
+| 1.10 | ⚠️ **建议追加：ESLint 接入**（M 的 P1） | **已决：不进本 PR，单独一个 PR**，并登记为 WI-4.21 的**硬前置**——P 的 WI-4.21 要加 `no-restricted-syntax` 规则、WI-4.26 的验收依赖该规则，而仓库里既无 eslint 配置也无 lint script |
 
 **已完成、勿重做**：两个 job 的 `timeout-minutes: 30`。
 

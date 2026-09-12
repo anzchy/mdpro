@@ -264,7 +264,7 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 
 - 整体 lines/statements **31.74% vs 阈值 40% = FAIL**
   （`.claude/tdd-guardian/coverage-20260629-144249.md`）。
-- 配置阈值为 40/45/35/40（`.claude/tdd-guardian/config.json`）。
+- 配置阈值原为 40/45/35/40（lines/functions/branches/statements，`.claude/tdd-guardian/config.json`），**WI-0.0 已重置为实测地板 31/61/82/31**。实测 31.18 / 61.57 / 82.15 / 31.18，向下取整；旧的 40/45/35/40 是未校准的历史值，不是被偷偷调低。同一组值必须同时写进 `vitest.config.ts` 的 `coverage.thresholds`——只写 guardian JSON 不会让 `pnpm coverage` 失败。
 - 后一份报告显示 96.84% PASS，但**其自身已明确披露**是按变更文件收窄评估、
   标注 `regression: false`、并说明降阈值方案已被否决。
   ⇒ **这是有披露的范围收窄，不是偷偷放水。** 但整体基线确实未达标。
@@ -332,7 +332,7 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 | 4 | 重跑 WI-0.1，然后 Stage 0→5 | P |
 | 5 | 导出迁移、旧解析器退役、ammonia 评估 | M |
 
-**工作项级展开：**[`20260916-frontend-backend-sequencing-order.md`](./20260916-frontend-backend-sequencing-order.md) 把上表五段展开到逐工作项及其前置。
+**工作项级展开：**[`20260912-frontend-backend-sequencing-order.md`](./20260912-frontend-backend-sequencing-order.md) 把上表五段展开到逐工作项及其前置。
 决策与证据以本节为准；该文件只是排期视图，冲突时改那边，不改这边。
 
 ### 为什么必须提前
