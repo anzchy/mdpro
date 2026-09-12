@@ -69,6 +69,14 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 | E29 | Mutation testing is scoped to an allowlist after behavior tests; the `.tsx` glob gap and the unwired config are recorded (T4) |
 | E30 | The watcher gets an injected-clock coalescer; preferences assert literal serialized values from one shared fixture (T6) |
 | E31 | WI-4.14 runs against real Milkdown in browser mode; G0 expands to the coverage script and the browser suite (T7, T8) |
+| E32 | Render isolation is a **prerequisite** of WI-4.8, written as an ownership contract; 0 of 38 components are memoized today (T30) |
+| E33 | Word count is a debounced derived scalar computed in a worker, tagged by revision; Milkdown's listener debounce coalesces nothing (T30) |
+| E34 | The document store is **not** normalized in this redesign — the array shape spans ~10 files and a normalized write still copies (T30) |
+| E35 | WI-4.22 gains a render-ownership table and precedes WI-4.8 as well as WI-4.12; App also calls `useMcpSync` and `useTOC` (T26, T30) |
+| E36 | Performance scope split: WI-4.14, WI-4.19, subscription moves and the TOC fix are in; `TextEncoder`, MCP transport, incremental TOC and normalization are follow-ups (T30) |
+| E37 | The MCP change detector keys on `content.length`, so equal-length edits never sync — a correctness bug, fixed in WI-4.26 (T30) |
+| E38 | `setEntries` clears `collapsedIds`, so typing discards TOC collapse state — a correctness bug, fixed in WI-4.26 (T30) |
+| E39 | Performance is gated by deterministic commit and task counts only; FPS, heap and tight ms thresholds are never blocking (T30, T31) |
 | DR1 | Reference directions for the empty state, external change and drop target; mockups stay local |
 | DR2 | Build the main bar and status strip (WI-4.8) |
 | DR3 | Build the no-document state, with New and Open… buttons (WI-4.9) |
@@ -152,7 +160,7 @@ Read this file first, then only the stage file you are working on.
 
 | File | Holds |
 |---|---|
-| [`decisions.md`](20260911-ui-redesign/decisions.md) | D1–D4, E1–E31 and DR1–DR23, with their sources |
+| [`decisions.md`](20260911-ui-redesign/decisions.md) | D1–D4, E1–E39 and DR1–DR23, with their sources |
 | [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md) | Baseline facts at `0a3675e`, the working protocol, and the A5 definition of "100% tokenized" |
 | [`stage-0-inventory.md`](20260911-ui-redesign/stage-0-inventory.md) | Stage 0: the tooling and CI chore PR (WI-0.0), inventory, baseline, plan approval |
 | [`stage-1-split.md`](20260911-ui-redesign/stage-1-split.md) | Stage 1: split `globals.css` (Deliverable A) |
@@ -236,6 +244,9 @@ Read this file first, then only the stage file you are working on.
 - [ ] E27: `pnpm coverage` runs from a script with the corrected `include`, and all four thresholds are set at the re-measured floor and never lowered
 - [ ] E31: G0 includes the coverage script and the Milkdown browser suite
 - [ ] E10, E12 and E14 each executed through WI-4.23, WI-4.24 and WI-4.25; E15's disposition recorded in stage-4b
+- [ ] E32/E35: WI-4.22's render-ownership table landed **before** WI-4.8, and App reads no content, no whole `documents` array and no cursor coordinate, including transitively through a hook
+- [ ] E37/E38: an equal-length edit in a dirty document reaches the MCP shadow store, and a collapsed TOC heading survives typing
+- [ ] E39: G0's performance line is deterministic (commit counts, task counts) and no FPS, heap or millisecond threshold was made blocking; the budgets are recorded as targets with the reference machine named
 - [ ] `pnpm build`, `pnpm test:run` and `cargo test` all exit 0 at the end of every stage
 - [ ] In-scope app CSS is 100% tokenized per A5: the grep returns only permitted lines
 - [ ] DESIGN.md documents every new token without values; CHANGELOG Unreleased covers A–D
@@ -369,6 +380,14 @@ Read this file first, then only the stage file you are working on.
   - **Files:** `App.tsx` (`:966`), `src/plugins/milkdown/typoraKeymapPlugin.ts` (`:241`), the table insert path, `TableContextMenu/index.tsx`, new tests
   - **Depends on:** T19 (it shares the menu keyboard contract's files) and T26 (the lifecycle seam owns the dialog host)
   - **Verify:** `pnpm test:run`; in `pnpm tauri dev`, open the insert modal, switch documents, then submit — the insert must be refused, not applied to the wrong document
+- [ ] **T30 (S)** — MCP change detection and TOC state correctness — WI-4.26
+  - **Files:** `src/hooks/useMcpSync.ts` (`:84`, `:139`), `src/stores/tocStore.ts` (`:86-88`), `src/hooks/useTOC.ts` (`:60`), new tests
+  - **Depends on:** T26 (WI-4.22 rearranges the subscription layer these two live in). It lands before the WI-4.8 task.
+  - **Verify:** `pnpm test:run`; an equal-length edit in an already-dirty document reaches the shadow store, and a collapsed heading survives typing
+- [ ] **T31 (S)** — Performance evidence and budgets — E39
+  - **Files:** the browser-mode suite (E31), [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md) G0, the named fixtures
+  - **Depends on:** T30 and the WI-4.8 task. It records evidence; it gates nothing beyond G0's deterministic line.
+  - **Verify:** the fixtures exist (Source near 10 MiB, WYSIWYG under 500 KiB, each with CJK and very long lines), the reference machine is named, and the p95 ≤ 8 ms / no task ≥ 50 ms / count within 1 s numbers are recorded as targets — with **no** FPS, heap or millisecond threshold wired as a blocking assertion
 - [ ] **T11 (M)** — `sourceFont` — WI-5.1…5.4
   - **Files:** `preferences.rs`, `preferences.ts`, `editorPrefApply.ts`, `EditorSettings.tsx`, the shared fixture, `normalizeSourceFont`, rule 31
   - **Depends on:** the E6 fix PR, and T22 (which changes the same Rust preference types)

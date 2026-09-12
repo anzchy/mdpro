@@ -92,6 +92,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] No screenshot, no `.prompts/` artifact, and no conversation content in the diff
 - [ ] `pnpm coverage` exits 0 and no metric fell below its recorded threshold (E27; from WI-0.0 onward)
 - [ ] The Milkdown browser suite exits 0, once it exists (E31). G0 names it explicitly, so the original three commands cannot pass while the plan's most important regression is skipped.
+- [ ] **Performance (E39):** the render-isolation assertions pass — 100 content updates in separate `act` steps produce zero additional commits outside the owning region, and a typing burst schedules exactly one count. These are deterministic commit-count and task-count assertions. FPS, heap and tight millisecond thresholds are **not** part of this gate and must never be made blocking
 - [ ] Nothing committed or pushed
 
 **Stop protocol:** there are five stops: end of Stage 0, and end of Stages 2, 3, 4 and 5.
