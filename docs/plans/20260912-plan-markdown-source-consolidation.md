@@ -332,6 +332,9 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 | 4 | 重跑 WI-0.1，然后 Stage 0→5 | P |
 | 5 | 导出迁移、旧解析器退役、ammonia 评估 | M |
 
+**工作项级展开：**[`20260916-frontend-backend-sequencing-order.md`](./20260916-frontend-backend-sequencing-order.md) 把上表五段展开到逐工作项及其前置。
+决策与证据以本节为准；该文件只是排期视图，冲突时改那边，不改这边。
+
 ### 为什么必须提前
 
 P 的 WI-4.26 要求 TOC 重解析时「reconcile collapse state **by heading identity**」，

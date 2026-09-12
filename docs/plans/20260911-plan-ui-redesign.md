@@ -453,6 +453,8 @@ Added 2026-09-12 after a Codex sequencing consult (`codex exec --sandbox read-on
 | 4 | WI-0.1 re-run, then Stage 0→5 | P |
 | 5 | Export migration, old-parser retirement, ammonia review | M |
 
+**Work-item-level expansion:** [`20260916-frontend-backend-sequencing-order.md`](./20260916-frontend-backend-sequencing-order.md) expands these five orders down to individual work items and their prerequisites. This section stays canonical for the decision and its evidence; that file is a sequencing view only, and a conflict is corrected there rather than here.
+
 ### Why WI-4.26 cannot go first
 
 WI-4.26 requires TOC re-parsing to "reconcile collapse state **by heading identity**" but never defines what makes two headings the same. The identity it would rely on is **already broken**:
