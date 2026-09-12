@@ -24,7 +24,7 @@ in `.claude/rules/30-34`.
 ## Product context
 
 - **What this is.** A local Markdown editor with WYSIWYG (Milkdown) and
-  Source (CodeMirror) modes plus an HTML preview pane. Files live on disk;
+  Source (CodeMirror) modes, plus HTML export. Files live on disk;
   there is no cloud sync.
 - **Who it's for.** Writers who treat plain-text Markdown as the canonical
   format and want a Typora-class editing surface without locking into a
@@ -68,7 +68,7 @@ Concrete consequences:
 |---|---|---|
 | **Direction** | Quiet, system-native, function-first | The editor disappears so the writing is foreground. The chrome is a frame, not a stage. |
 | **Decoration level** | Minimal | One accent color, hairline borders, single soft shadow. Anything more competes with the content. |
-| **Layout** | Grid-disciplined | Sidebar + main + (optional) preview. Each pane has a job. No editorial / asymmetric layouts. |
+| **Layout** | Grid-disciplined | Sidebar + main. Each pane has a job. No editorial / asymmetric layouts. |
 | **Color** | Restrained: `#2563eb` (light) / `#60a5fa` (dark) accent on neutrals | Blue accent matches the macOS system blue family without copying it exactly. Single accent → no color-coded hierarchy. |
 | **Typography (chrome)** | SF Pro Text → Avenir Next → Helvetica Neue | Native macOS register. Falls back gracefully on other systems. No `system-ui` (the "I gave up" signal). |
 | **Typography (editor)** | User-controlled via Settings; default `-apple-system` | Editor body text is the user's call — they're reading and writing prose for hours. |
@@ -123,6 +123,7 @@ Concrete consequences:
 | 2026-09-11 | Source mode defaults to monospace on new installs; a "Source font" preference (Monospace / Follow editor font) keeps existing profiles on the editor font | "Respects the file": aligned tables and visible whitespace. `fontFamily: "system"` can't tell an untouched default from an explicit choice, so an upgrade must not change fonts silently. CJK falls back to the system CJK face, so tables containing CJK still won't align exactly. Revises the "same fonts" clause under The memorable thing. Codex was consulted; see `docs/design/mdpro-ui-new/mdpro-ui-codex-review.md` item 3. |
 | 2026-09-11 | No second hue in Source syntax highlighting: markers use the accent, meta uses muted, code uses text | Keeps the single-accent register (2026-05-02 entry). Green already signals success and diff additions, so a green code hue would carry two meanings. Code stays distinguishable through fences, the code background and the mono face. |
 | 2026-09-11 | Keep the current cool neutral family; adopt only derived mechanics (text-mixed borders and hover) | The cool cast matches the blue accent, and "system-native" is about behavior, not equal RGB channels. Untinted grays would move from borrowing Codex's mechanics to copying its look, at a large QA cost. |
+| 2026-09-12 | Removed `--color-preview-bg` from `globals.css` and both theme files | Its only reader was `ImageRenderer.tsx`, deleted with the Preview pane in the stage-2 dead-code cleanup (`15b9d35`). A token that is declared but never read invites a future surface to adopt a color chosen for a pane that no longer exists. Rule 31 requires both theme files to change together, so all three declaration sites go in one commit. Recover the values with `git show 15b9d35^:src/styles/themes/dark.css`. |
 
 Append entries when making non-trivial design decisions. Future decisions
 get rationale, not just "we chose X".

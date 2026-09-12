@@ -79,8 +79,7 @@ src-tauri/              # Rust backend (Tauri 2.0)
 src/                    # React frontend
 ├── App.tsx             # Main app shell, orchestrates all features
 ├── components/
-│   ├── Editor/         # CodeMirror editor (SplitView, WysiwygView)
-│   ├── Preview/        # Markdown preview pane
+│   ├── Editor/         # CodeMirror source + Milkdown WYSIWYG (SplitView, MilkdownEditor)
 │   ├── Sidebar/        # Document tabs
 │   └── Toolbar/        # Title bar
 ├── hooks/
@@ -99,7 +98,7 @@ src/                    # React frontend
 | Framework     | Tauri 2.0                                              |
 | Frontend      | React 19 + TypeScript + Vite 7                         |
 | Editor        | CodeMirror 6 (@uiw/react-codemirror)                   |
-| Markdown      | pulldown-cmark (Rust), marked + DOMPurify (JS preview) |
+| Markdown      | pulldown-cmark (Rust), marked + DOMPurify (JS fallback) |
 | State         | Zustand                                                |
 | File dialogs  | rfd (Rust)                                             |
 | File watching | notify (Rust)                                          |
@@ -335,9 +334,10 @@ DevTools in dev/prod builds, when to use `pnpm dev` vs `pnpm tauri dev` + JSONL 
 ## Typora-Parity Phase 1 Scope (rendering)
 
 Phase 1 wires math (`$…$` / `$$…$$`), footnotes, autolinks, and emoji on the
-**canonical Rust render surface** — i.e. the Preview pane and HTML export
-(`render_markdown` → `sanitize_html` / MathML export). That is the supported
-math/footnote path for Phase 1.
+**canonical Rust render surface** — i.e. HTML export (`render_markdown` →
+`sanitize_html` / MathML export). That is the supported math/footnote path
+for Phase 1. The Preview pane was the other consumer of this surface; it was
+deleted in the stage-2 dead-code cleanup, so export is now the only one.
 
 **Explicitly deferred to Phase 2 / follow-up:**
 

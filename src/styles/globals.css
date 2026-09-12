@@ -10,7 +10,6 @@
   --color-danger: #dc2626;
   --color-danger-soft: color-mix(in srgb, #dc2626 12%, transparent);
   --color-editor-bg: #ffffff;
-  --color-preview-bg: #fafafa;
   --color-code-bg: #f4f4f4;
   --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
   --font-sans: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;

@@ -10,8 +10,7 @@ This document describes the technical architecture behind mdpro's WYSIWYG editin
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │                    View Mode Router                            │  │
 │  │  viewMode === "wysiwyg" ? <MilkdownEditor />                  │  │
-│  │  viewMode === "preview-only" ? <Preview />                    │  │
-│  │  otherwise ? <SplitView /> (CodeMirror + Preview)             │  │
+│  │  otherwise ? <SplitView /> (CodeMirror 6, full pane)          │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
                                    │
@@ -34,8 +33,8 @@ This document describes the technical architecture behind mdpro's WYSIWYG editin
 │  ┌─────────────────────┐     ┌─────────────────────────────────┐   │
 │  │   CodeMirror 6      │     │       Milkdown                  │   │
 │  │                     │     │       (ProseMirror-based)       │   │
-│  │  - split view       │     │                                 │   │
-│  │  - editor-only      │     │  - wysiwyg mode                 │   │
+│  │  - source mode      │     │                                 │   │
+│  │  - full-pane layout │     │  - wysiwyg mode                 │   │
 │  │  - syntax highlight │     │  - rich text editing            │   │
 │  └─────────────────────┘     └─────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
@@ -56,9 +55,9 @@ mdpro uses a **dual-engine architecture** to provide the best editing experience
 
 | Engine | View Modes | Use Case |
 |--------|------------|----------|
-| **CodeMirror 6** | split, editor-only | Source editing with syntax highlighting |
+| **CodeMirror 6** | source | Source editing with syntax highlighting |
 | **Milkdown** | wysiwyg | True WYSIWYG editing like Typora |
-| **marked + DOMPurify** | preview-only, split (preview pane) | Markdown rendering |
+| **marked + DOMPurify** | none | Export fallback only — renders Markdown → HTML when the Rust IPC throws |
 
 ### Why Two Engines?
 
@@ -98,7 +97,7 @@ User types in Editor
         ▼
 ┌─────────────────────┐
 │  Other components   │
-│  (Preview, Sidebar) │
+│  (Sidebar, TabBar)  │
 │  re-render          │
 └─────────────────────┘
 ```
@@ -120,19 +119,17 @@ View mode preference is persisted via Tauri preferences API and restored on app 
 
 ### 4. Large File Protection
 
-Files >500KB automatically switch to editor-only mode to prevent Milkdown performance issues.
+Files >500KB automatically switch to Source mode to prevent Milkdown performance issues (`App.tsx`).
 
 ## File Structure
 
 ```
 src/
 ├── components/
-│   ├── Editor/
-│   │   ├── Editor.tsx           # CodeMirror wrapper
-│   │   ├── SplitView.tsx        # Split/editor-only/preview-only layout
-│   │   └── MilkdownEditor.tsx   # Milkdown WYSIWYG component
-│   └── Preview/
-│       └── Preview.tsx          # Markdown preview (marked + DOMPurify)
+│   └── Editor/
+│       ├── Editor.tsx           # CodeMirror wrapper
+│       ├── SplitView.tsx        # Source-mode layout (full-pane CodeMirror)
+│       └── MilkdownEditor.tsx   # Milkdown WYSIWYG component
 ├── plugins/
 │   ├── core/                    # Plugin registry, types, config
 │   ├── codemirror/              # Source mode plugins

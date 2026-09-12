@@ -10,7 +10,6 @@
   --color-danger: #f87171;
   --color-danger-soft: color-mix(in srgb, #f87171 18%, transparent);
   --color-editor-bg: #0f1115;
-  --color-preview-bg: #10141c;
   --color-code-bg: #1b2230;
 
   /* Settings dialog specific */

@@ -40,8 +40,8 @@ Token rationale and the decisions log live in the design doc that root
 Wrapper owns the frame (background, border, radius, outer margin). Children
 stay flat. Example: `.tableWrapper` owns the scroll and bottom margin, and
 `.tableWrapper > table` sets `margin: 0` (`MilkdownEditor.css`). Code blocks
-have no wrapper today: `pre` owns the frame in `MilkdownEditor.css` and
-`preview.css`. Adding a wrapper means moving the frame onto it.
+have no wrapper today: `pre` owns the frame in `MilkdownEditor.css`. Adding
+a wrapper means moving the frame onto it.
 
 ## Acceptable hardcoded values (do not tokenize)
 

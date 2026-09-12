@@ -34,8 +34,7 @@ stored in the markdown delimiter row using standard GFM syntax:
 | 1       | 2    | 3      | 4     |
 ```
 
-Alignment renders consistently in the WYSIWYG editor, the Preview pane,
-and exported HTML.
+Alignment renders consistently in the WYSIWYG editor and in exported HTML.
 
 ## Column widths — session-local only
 

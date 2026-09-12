@@ -17,8 +17,8 @@ paths:
 - **Preserve established patterns and visual language.** Prefer incremental
   adjustments over redesigns unless the user asks; piecemeal restyling leaves
   surfaces that no longer match.
-- **Keep cross-mode parity.** WYSIWYG (Milkdown), Source (CodeMirror 6), and
-  Preview must feel like one product: same fonts, colors, spacing scale, and
+- **Keep cross-mode parity.** WYSIWYG (Milkdown) and Source (CodeMirror 6)
+  must feel like one product: same fonts, colors, spacing scale, and
   selection / highlight behavior unless there's a stated reason.
 
 ## Universal discipline rules (apply to every UI surface)
