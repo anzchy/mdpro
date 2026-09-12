@@ -59,7 +59,7 @@
 
 严格按此顺序，**每步独立提交**：
 
-**本阶段状态：🔄 部分完成**（2.1 提交 `e021f47`；2.2 + 2.3 在**本提交**完成并验证。分支 `frontend-backend-redesign`）。
+**本阶段状态：🔄 部分完成**（2.1 提交 `e021f47`；2.2 + 2.3 提交 `a9be7b3`；2.4 在**本提交**完成并验证，余 2.5。分支 `frontend-backend-redesign`）。
 SHA 无法在它自己的提交里自引用，故每步的 SHA 记在紧随其后的提交中。
 2.2 与 2.3 **合并为一个提交**：行 2.2 直接援引 E26，而 E26 要求「补表征测试」与「删被取代的断言」落在同一提交；
 这与本文档「每步独立提交」的通则冲突，按「原计划优先」的规则以 E26 为准。
@@ -69,8 +69,8 @@ SHA 无法在它自己的提交里自引用，故每步的 SHA 记在紧随其�
 | 2.1 | ✅ | `mathRender.ts` **先**搬出 `src/components/Preview/` → **`src/services/mathRender.ts`** | HTML 导出在用它，先搬再删。落点与 `highlightSyntax.ts`、`sanitizerPolicy.ts` 并列 —— 三者同为导出管线的 HTML 后处理，`exportService.ts` 以 `./` 同级引入 |
 | 2.2 | ✅ | 为存活面（`MilkdownEditor.css`、`html_template.rs`）补行为表征测试 | E26：迁移与删除在**同一提交**。Milkdown 面走 jsdom 计算样式（L3，8 组 `{center,right,left,absent}×{th,td}`）；导出面改为在 `html_template.rs` 自己的 `mod tests` 内断言 `build_html` 的**返回文档**（L2 + 跨面 L4 往返），不再跨语言 grep `.rs` 源码。**已知缺口**：jsdom 26 完全不实现 `!important`（已实测：`!important` 规则在前、同特异性普通规则在后时后者获胜），故本 lane 无法守住「给 `[align]` 规则加 `!important` 会压掉 Milkdown 的内联对齐」这一回归；原矩阵的 W1-2 用例因此**无条件通过、对被测产物零敏感**，已移入 Deferred 而非放宽断言 |
 | 2.3 | ✅ | 删 `tests/table-alignment-rendering.test.ts` 中读取 `preview.css` 的断言，并**写明退役的是哪条已不存在的产品契约** | 不得声称被另一测试等价覆盖 —— 新表头明确写「nothing here replaces it」。顺带修正表头既有失实描述（原称 Preview 管线「tested via the marked fallback path」，实际并无此测试） |
-| 2.4 | ⬜ | 删 `Preview.tsx`、`ImageRenderer.tsx`、`usePreview.ts`、`preview.css` | `preview.css` 实际路径是 `src/components/Preview/styles/preview.css`，**不是** `src/styles/preview.css`。**顺带修**：`src-tauri/src/services/markdown.rs:661-664` 的 `apply_table_alignment` 文档仍写「**三个**渲染管线样式表……WYSIWYG、**Preview**、导出 HTML」；2.2 之后这是全代码库最后一处仍在主张三管线的地方（规则 22：改 `preview.css` 时同一提交内修） |
-| 2.5 | ⬜ | 修 CLAUDE.md 失实描述（数学/脚注实际只在导出，不在 Preview） | ⚠️ CLAUDE.md 工作区副本已被外部截断（351→105 行），该段落可能已不存在；动手前先确认 |
+| 2.4 | ✅ | 删 `Preview.tsx`、`ImageRenderer.tsx`、`usePreview.ts`、`preview.css` | 四文件已删（`git rm`），`src/components/Preview/` 目录随之消失；删前已核实无任何 import，preview.css 的四个类名（`.preview-body/-content/-loading/-image--error`）在目录外零引用。**计划原记的 `markdown.rs:661-664` 漏了一处**：失实描述实为**两处**，`:659` 的「exported HTML **and from the in-app preview**」同属三管线旧说法。改写时避免了一个**新**错误 —— 不能把「三管线」简单改成「WYSIWYG + 导出」：这条 Rust 通路**只喂导出**，WYSIWYG 从不经过它（Milkdown 自行解析，gfm preset 以内联样式设对齐，`MilkdownEditor.css` 是平行的另一套规则）。规则 22：三处 `@coordinates-with`/文档引用同提交更新（`useMilkdownLinkClickGuard.ts:9`、`mathRender.ts:20`、`imagePathUtils.ts:9`），并修正 `table-alignment-rendering.test.ts` 表头时态。**本步新发现的遗留（未擅自处理）**：① `renderMathInContainer` 失去唯一生产调用方，仅余 `tests/math-render.test.ts` 覆盖，已在 `mathRender.ts` 内记 NOTE，是否删除属范围决策；② `--color-preview-bg` 成为只定义不读取的孤儿 token（`globals.css`/`light.css`/`dark.css`）；③ `highlight.js` 在 `src/` 内失去最后一个 importer，`package.json` 仍留该依赖。覆盖率因移除未覆盖文件而**上升**：31.53/62.05/82.36/31.53（前值 31.18/61.57/82.15/31.18），阈值未动 |
+| 2.5 | ⬜ | 修 CLAUDE.md 失实描述（数学/脚注实际只在导出，不在 Preview） | 前置警告**已解除**（2.4 时实测）：CLAUDE.md 为完整 351 行，未被截断；目标段落在**第 338 行**原样存在 ——「**canonical Rust render surface** — i.e. the Preview pane and HTML export」。2.4 已删除 Preview，该句须改为仅指导出面 |
 
 **不在本 PR**：`marked` 降级移除（带独立回归测试的行为变更，单独交付）；`toc.rs` / `preview_html`（留到阶段 5）。
 

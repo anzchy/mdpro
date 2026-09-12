@@ -4,8 +4,7 @@
  * The canonical Rust renderer emits math as `<span class="math-inline">TEX</span>`
  * and `<div class="math-display">TEX</div>` carrying the raw (HTML-escaped) TeX
  * in `textContent`. This module walks those placeholders in a container and
- * replaces each one's content with KaTeX HTML, mirroring the highlight.js pass
- * in Preview.tsx.
+ * replaces each one's content with KaTeX HTML.
  *
  * Fail-soft (DESIGN.md "respect the file"): invalid TeX never blanks the block
  * or throws — the raw source is kept in a `code`-styled span and a danger badge
@@ -17,7 +16,13 @@
  * `dangerouslySetInnerHTML` swap (which replaces the nodes entirely).
  *
  * @coordinates-with src-tauri/src/services/markdown_ext.rs (emits the wrappers)
- * @coordinates-with src/components/Preview/Preview.tsx (invokes the pass)
+ * @coordinates-with src/services/exportService.ts (invokes `prerenderMathForExport`)
+ *
+ * NOTE (stage 2.4): `renderMathInContainer` has **no production caller** since
+ * the Preview pane was deleted — only `prerenderMathForExport` is on a live
+ * path. The in-container pass is retained (and covered by
+ * tests/math-render.test.ts) for the WYSIWYG math surface deferred to Phase 2.
+ * Deleting it is a scope decision, not a cleanup this step was authorized to make.
  */
 import katex from "katex";
 
@@ -33,7 +38,7 @@ const MATH_DISPLAY_SELECTOR = "div.math-display";
  * Render a single math element in place. Returns true if it typeset (or was a
  * no-op because the source was unchanged), false if it fell back to an error.
  *
- * Exported for unit testing without a full Preview render.
+ * Exported for unit testing without a full container pass.
  */
 export function renderMathElement(
   el: HTMLElement,
@@ -45,7 +50,8 @@ export function renderMathElement(
    * so permitting `style` would reopen the `url()` exfiltration vector Phase 0
    * closed). MathML needs no inline style — `<math>` renders natively in the
    * browser — so the exported math survives sanitization with its structure
-   * intact. Preview keeps the default HTML+MathML output (CSS is available there).
+   * intact. The in-container pass keeps the default HTML+MathML output, for a
+   * host where the KaTeX stylesheet is loaded.
    */
   mathmlOnly = false,
 ): boolean {
@@ -56,8 +62,8 @@ export function renderMathElement(
   const stashed = el.getAttribute(SOURCE_ATTR);
   const tex = stashed ?? el.textContent ?? "";
 
-  // Memoize: a node already typeset for this exact source is a no-op. Preview
-  // replaces nodes wholesale on each render (dangerouslySetInnerHTML), so this
+  // Memoize: a node already typeset for this exact source is a no-op. A host
+  // that replaces nodes wholesale on each render gains nothing from it, so this
   // mainly guards against double-processing within a single pass; an unchanged
   // block whose node persisted (e.g. a re-invoked pass) is skipped here.
   if (el.getAttribute(RENDERED_ATTR) === "true" && stashed === tex) {

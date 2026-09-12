@@ -656,12 +656,18 @@ pub fn render_markdown(markdown: &str) -> String {
 /// pulldown-cmark emits `style="text-align: …"` on aligned table cells.
 /// `ammonia::Builder::default()` (used by `sanitize_html`) does NOT keep
 /// the `style` attribute — alignment would silently disappear from the
-/// exported HTML and from the in-app preview.
+/// exported HTML.
 ///
 /// The HTML4 `align` attribute on `td` / `th` is allowed by ammonia's
-/// default config and is honored by every modern browser. Combined with
-/// CSS `[align="…"]` selectors in the three render-pipeline stylesheets,
-/// alignment renders correctly across WYSIWYG, Preview, and exported HTML.
+/// default config and is honored by every modern browser, and
+/// `html_template.rs` ships matching `[align="…"]` rules, so alignment
+/// survives into the exported document.
+///
+/// This pass feeds the **export pipeline only**. The WYSIWYG surface never
+/// sees it — Milkdown parses Markdown itself and its gfm preset sets cell
+/// alignment as an inline style, with `MilkdownEditor.css` carrying a
+/// parallel `[align="…"]` rule set for that DOM. The Preview pane was the
+/// third consumer; it was deleted in the stage-2 dead-code cleanup.
 fn apply_table_alignment(html: String) -> String {
     if !html.contains("style=\"text-align:") {
         return html;

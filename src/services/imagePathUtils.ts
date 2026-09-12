@@ -6,9 +6,8 @@
  * and Windows ("\\" / drive-letter) path formats uniformly.
  *
  * Used by:
- *   - src/components/Preview/ImageRenderer.tsx  (Preview mode)
- *   - src/hooks/useMilkdownImages.ts            (WYSIWYG mode)
- *   - src/services/imageService.ts              (drag-drop insertion, re-exports)
+ *   - src/hooks/useMilkdownImages.ts   (WYSIWYG mode)
+ *   - src/services/imageService.ts     (drag-drop insertion, re-exports)
  */
 
 import { convertFileSrc } from "@tauri-apps/api/core";

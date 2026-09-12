@@ -18,9 +18,9 @@
  *
  * Retired contract: *"the Preview pane's stylesheet honors `align` on table
  * cells, so a table rendered in the Preview pane shows its column alignment."*
- * The Preview pane has been unmounted since 4570de3 and its files are deleted in
- * step 2.4. This contract has **no surface left to hold**, so the assertion that
- * read `src/components/Preview/styles/preview.css` is deleted rather than
+ * The Preview pane was unmounted in 4570de3 and its files were deleted in step
+ * 2.4. This contract has **no surface left to hold**, so the assertion that
+ * read `src/components/Preview/styles/preview.css` was deleted rather than
  * migrated. Nothing here replaces it: the two surviving surfaces are the WYSIWYG
  * editor stylesheet and the exported HTML document, and neither renders a
  * Preview pane, because nothing does.

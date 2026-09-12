@@ -6,7 +6,6 @@
  * (audit M7) to keep that file under the 300-line guideline.
  *
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx (`isSafeHref`)
- * @coordinates-with src/components/Preview/Preview.tsx (parallel guard)
  */
 
 import { useEffect } from "react";
