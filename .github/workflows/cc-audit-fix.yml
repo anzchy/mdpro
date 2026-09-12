@@ -1,11 +1,8 @@
 name: Claude Code + Codex Review
 on:
-  # SEMI-AUTO (canary): fixer runs hourly and opens PRs automatically, but there is
-  # deliberately NO auto-merge step — a human reviews the ai-verifier verdict and merges.
-  # Promote to full hands-off only after several clean supervised runs (add `gh pr merge
-  # --auto --squash` after PR creation + enable "Allow auto-merge" in repo settings).
-  schedule:
-    - cron: "30 * * * *"   # hourly at :30 (offset from claude.yml at :00)
+  # MANUAL ONLY: the hourly schedule was removed to cut Actions spend. Run it from
+  # the Actions tab when you want a fix pass. There is deliberately NO auto-merge
+  # step — a human reviews the result and merges.
   workflow_dispatch:       # manual trigger from Actions tab
 
 permissions:

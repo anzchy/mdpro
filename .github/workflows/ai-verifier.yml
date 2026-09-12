@@ -1,13 +1,15 @@
 name: AI Verifier
 on:
-  pull_request:
-    types: [opened, synchronize]
+  workflow_dispatch:
 
 # Independent, read-only second opinion on bot fix PRs (plan WI-1).
 # Stage 1 (model) has NO write token and only emits a JSON verdict artifact.
 # Stage 2 (deterministic) creates the head-SHA-bound `ai-verifier` check-run,
-# failing closed on any malformed/missing verdict. Mark `ai-verifier` a REQUIRED
-# status check in branch protection so a stale verdict can never gate a new SHA.
+# failing closed on any malformed/missing verdict.
+#
+# MANUAL ONLY: the pull_request trigger was removed to cut Actions spend, so
+# `ai-verifier` is no longer a required status check on master. The job body
+# reads PR context, so a manual run only makes sense from a PR-derived ref.
 
 permissions:
   contents: read

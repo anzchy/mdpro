@@ -1,7 +1,6 @@
 name: Claude Daily Cost Report
 on:
-  schedule:
-    - cron: "0 12 * * *"   # noon UTC (3h after audit at 9am UTC / 2am CST)
+  # MANUAL ONLY: the daily schedule was removed to cut Actions spend.
   workflow_dispatch:
 
 permissions:
