@@ -244,6 +244,25 @@ Before each commit, verify:
 
 - [ ] No secrets or large binaries included
 
+## Plan Status Tracking (UI redesign × Markdown consolidation)
+
+Sequencing for this effort lives in
+[`docs/plans/20260912-frontend-backend-sequencing-order.md`](./docs/plans/20260912-frontend-backend-sequencing-order.md).
+
+- **Branch**: every commit for this effort goes to `frontend-backend-redesign`.
+  Do not commit it directly to `master`.
+- **Updating the status is part of finishing the work item, not a follow-up.**
+  When an independent WI is implemented **and verified**, update its row in the
+  sequencing doc — status marker, commit SHAs, and anything the work proved
+  wrong — in the same commit that finishes it. A status column that gets
+  refreshed in a later cleanup pass is a status column nobody can trust.
+- **Verified means its own gates passed**, not that the code is written. A WI
+  that is deferred records what deferred it and where it went, rather than
+  being left blank.
+- The sequencing doc carries **order and status only**. Acceptance criteria stay
+  in plans P and M; when they conflict, the original plan wins and the
+  sequencing doc is corrected to match.
+
 ## Spec-Driven Development
 
 Feature specifications live in `specs/001-mdpro-mvp/`:
