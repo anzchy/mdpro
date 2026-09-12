@@ -147,7 +147,14 @@ Rust 渲染 → DOMPurify → 高亮/图片宽度 → KaTeX MathML → ammonia �
 `export.rs:160` 的注释明确写道：「前端已跑 DOMPurify，但导出绝不信任它 ——
 同一份白名单在服务端再跑一遍」。另有 `export.rs:60`、`:126` 两处净化。
 
+**补充 [实测]（2026-09-13）**：IPC 命令 `commands/export.rs:19 render_markdown`
+**不做服务端净化**，其 doc 注释明示 "without server-side sanitization"。
+因此在活路径上，**进程内只有 DOMPurify 这一道净化**，ammonia 要到 `export.rs:158`
+才首次运行。注意与之同名的**服务**函数 `services::markdown::render_markdown` 不是一回事，
+后者被 `export.rs:60` 的 `export_html` 与语料的 `rust` face 搭配 `sanitize_html` 使用。
+
 ⇒ **ammonia 不是冗余，是纵深防御。** 支持 Codex「不要随解析器一起删」的判断。
+⇒ 这也是「导出链路整个去掉 DOMPurify」（下文选项 E1）不成立的直接原因。
 
 ---
 
@@ -312,6 +319,14 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
    且**未被 git 跟踪**，是图片路径用的夹具，与标题语法无关，没有可扩充的基础。
    HEAD 唯一跟踪的 fixture 是 `tests/render-fixtures/phase1.json`。
    ⇒ 语料是**从零构建**任务，不是筛选任务；按本文 `第 3 步之前必须就位` 的约束，它是阶段 3 的入口门禁之一。
+   **已交付**：2026-09-12，`c17c003`，24 个用例 + 双 runner，详见「阶段 3 入口门禁一：代表性语料（已交付）」。
+
+5. **导出锚点被 DOMPurify 剥离该怎么修？** 各选项与判定见「待决：导出锚点被 DOMPurify 剥离」。
+   **已收敛到 B′**（`SANITIZE_DOM: false` + 更名 `sanitizeExportFragment`），A / A′ / D / E1 已驳回，
+   C / E2 列为次选；**仍需产品确认后才算落定**。
+   **必须在 WI-3.2 动 slug 生成之前定** —— 选项 D 会改变 slug 本身，与其余选项互斥；
+   选项 C 还与 knip 提案 §5.6 对 `export_html` 的处置相互牵制，两边不能各自决定。
+   注意本问题与 slug 去重是**两个独立缺陷**，选哪个选项都修不了后者。
 
 ---
 
@@ -415,6 +430,127 @@ P 的 WI-4.26 要求 TOC 重解析时「reconcile collapse state **by heading id
 **用户行为测试**（折叠→编辑→重解析后仍折叠；Source 与 WYSIWYG 两种模式的导航目标）。
 第三层不可省 —— store 单测全绿也挡不住重复标题跳错。
 
+### 阶段 3 入口门禁一：代表性语料（已交付）
+
+**[实测]** 2026-09-12 落地于 `c17c003`（分支 `frontend-backend-redesign`），三个文件：
+
+| 文件 | 角色 |
+|---|---|
+| `tests/render-fixtures/heading-identity.json` | 语料本体，24 个用例 |
+| `src-tauri/tests/heading_identity_parity.rs` | Rust runner，独占 `rust` 面 |
+| `tests/heading-identity-parity.test.ts` | JS runner，独占其余四面 |
+
+**机制。** Rust 渲染器无法从 jsdom 调用，所以 parity 不是一个测试，而是**一份语料 + 两个独立 runner**
+（沿用 `render-fixtures/phase1.json` 已有的做法）。每个用例带 `expectedSlugs`（**正确答案**，不是今天的行为）
+与 `currentlyFailsOn`（尚未产出正确答案的面）。两个 runner 同时断言：**不在** `currentlyFailsOn` 里的面
+必须等于 `expectedSlugs`，**在**里面的面必须**不**等于。于是每个缺陷都以数据形式钉死，分支保持绿色；
+WI-3.2 修好一个就删掉对应条目，断言自动翻转为要求正确。缺陷若被「顺手修好」而无人更新语料，
+反向断言当场报红 —— 这是本机制相对「注释里写个 TODO」的唯一实质区别。
+四条断言分支均已用两次负控制证明可失败（清空一条 pin、给一条全绿用例加 pin），非"从未见其红过"的摆设。
+
+**面（face）分解。** 每个缺陷归属到拥有它的层，避免同一缺陷在多个面上重复计数：
+
+| 面 | 实现 | 拥有什么 |
+|---|---|---|
+| `rust` | `markdown.rs` `render_markdown` → `sanitize_html` | 规范路径上的 slug **生成** |
+| `toc` | `tocService.ts` `parseHeadingsFromContent` | TOC 侧栏自己的解析器与 slug 生成 |
+| `tocOffsets` | 同一次解析的 `offset` 字段 | 位置映射 |
+| `exportCanonical` | `exportService.ts` `renderMarkdown`，IPC **成功** | 锚点**保留**（不是生成） |
+| `exportFallback` | 同一函数，IPC **失败** 的 `marked` 降级 | 决策 A1 的降级路径，非用户实际路径 |
+
+`exportCanonical` 被喂入由 `expectedSlugs` 合成的 Rust 形状 HTML，因此**看不见 slug 生成缺陷** ——
+那些一律归给 `rust`。这解释了为什么 `suffix-collision` 不列 `exportCanonical`，尽管真实导出该文档确实会输出重复 id。
+合成而非快照真实 Rust HTML，是为了让语料不因无害的渲染改动而腐烂，也避免落入规则 10 禁止的快照测试。
+
+**实测缺陷全表。** 全部于 2026-09-12 对活代码测得，非推断：
+
+| 缺陷 | 面 | 用例 |
+|---|---|---|
+| 后缀碰撞：`# x` / `# x` / `# x-1` → `x`, `x-1`, `x-1` | `rust` + `toc` + `exportFallback`（**三个生成器全中**） | `suffix-collision` |
+| 空 slug 回退在计数**之后**执行，`# 🎉` 与 `# heading` 产生真重复 id | `toc` + `exportFallback` | `emoji-then-literal` |
+| 同一根因的第二形态：第二个空 slug 成为**裸后缀 `-1`**，一个没有基名的 id | `toc` + `exportFallback` | `two-emoji-only` |
+| 无围栏状态，代码块里的 `# 注释` 被当成标题 | `toc` | `fenced-hash` |
+| Setext 标题完全漏掉 | `toc` | `setext-noncolliding` |
+| 行内格式泄漏进 slug（`strong-bold-strong-title`） | `exportFallback` **仅此一面** | `formatted-bold` / `inline-code` |
+| DOMPurify 剥离与 document 属性同名的锚点 | `exportCanonical` + `exportFallback` | 五个 `clobber-*`、`trailing-hashes` 等 |
+| CRLF 每行少算 1，且**逐行累积** | `tocOffsets` | `crlf-doc` / `crlf-two-lines`（`lf-two-lines` 为对照） |
+
+**两处对本文前述内容的修正：**
+
+1. 2.3 记 Rust 的空标题回退正确，此处确认其机制：Rust 在计数**之前**注册 `"heading"`，TS 在**之后**，
+   这正是 `emoji-then-literal` 只在 TS 两面失败的原因。
+2. 后缀碰撞此前只在 `tocService` 名下记录；实测 **`markdown.rs` 同样中招**，
+   所以它是三个活面**共有**的缺陷，不是 TS 独有。修复必须三面同改（与「三活面同提交」条款一致）。
+
+**语料未覆盖、留给后续的**：`headingKey` 跨修订协调（第一层，输入不透明 key）与
+用户行为测试（第三层：折叠→编辑→重解析、两种模式的导航目标）。本语料只覆盖第二层「语义契约测试」，
+即真实 Markdown 进、slug 与位置出。**不得据此宣称三层测试已就位。**
+
+### 待决：导出锚点被 DOMPurify 剥离（WI-3.2 的设计决策，不是一行修复）
+
+**[实测]** 语料测出的最严重一条，且**是活缺陷，不是潜在风险**：
+
+- `markdown.rs` 正确产出 `id="title"`；
+- `exportService.ts:89` 在 **Rust 成功路径**上也跑 DOMPurify（`sanitize(result.html)`）；
+- DOMPurify 默认开启 `SANITIZE_DOM`，删除与内建 `document` / `form` 属性同名的 `id`
+  （`title`、`name`、`body`、`location`、`forms` 等），留下 `<h1 data-heading-id="title">` 而**没有锚点**；
+- `export.rs:161` 的 ammonia 二次净化拿到的已经是丢了锚点的 body，**补不回来**；
+- `App.tsx:587` 是**唯一**导出入口，走 `exportRenderedHtml` → `renderMarkdown`。
+
+⇒ 今天用户导出一篇含 `# Title` 的文档，该标题在导出的 HTML 里**没有可跳转锚点**。
+ammonia 不做此剥离，所以这是一处 **TS 与 Rust 的净化语义分歧**，而非双方一致的安全姿态。
+`sanitizerPolicy.ts` 既未设 `SANITIZE_DOM: false` 也未设 `SANITIZE_NAMED_PROPS`，
+其文件头详述了与 Rust 的 parity 却**从未提及 clobbering** ⇒ 这是**未登记的行为**，不是已权衡的选择。
+
+**各选项判定如下，WI-3.2 动 slug 生成之前必须定。**
+判定依据 2026-09-13 的同类实现横向调研（github-slugger / rehype-slug / GitHub、vmark、MiaoYan）
+与一次 Codex 评议（`codex exec -s read-only`，high reasoning），分歧处均已实测：
+
+| 选项 | 做法 | 判定 |
+|---|---|---|
+| A | `SANITIZE_NAMED_PROPS: true` | **驳回**。**[实测]** 该分支无碰撞判断，**无条件**给每个 `id`/`name` 加 `user-content-` 前缀，且**从不改写 `href`**。导出件零 JS，无法像 GitHub 那样配 `hashchange` 脚本回跳裸 fragment ⇒ 脚注回链 `href="#fn1"` 与用户手写 `[x](#slug)` 全部指向不存在的目标。把「少数碰撞锚点失效」升级成「文档内导航全废」 |
+| A′ | A + 重写全部内部引用 | 保住 clobbering 防护，但需连 SVG `url(#…)`（`fill`/`stroke`/marker）一并改写，且改变公开 fragment ABI。工作量大于 B′，锚点兼容性反而更差 |
+| B′ | `SANITIZE_DOM: false`，**并**把 `sanitizeRenderedHtml` 更名为 `sanitizeExportFragment` | **推荐**，见下 |
+| C | 导出改走 Rust 独有的 `export_html` | **不是平替**：丢掉 JS 后处理链（语法高亮、图片宽度标记、KaTeX 预渲染）；且与 knip 提案 §5.6 相互牵制 |
+| D | slug 生成加固定前缀 | **驳回**。破坏全部既有外链；偏离 github-slugger 的通行 slug（用户粘到别处就对不上）；且这正是 Gitea 做过、又在用户投诉「分享链接很丑」后退回的方案 |
+| E1 | 导出链路整个去掉 DOMPurify，只靠 ammonia | **驳回**。**[实测]** IPC 命令 `commands/export.rs:19 render_markdown` **不做服务端净化**，ammonia 要到 `export.rs:158` 才首次运行。去掉 DOMPurify 等于让**未净化**的渲染输出先被浏览器解析器接触 |
+| E2 | sanitize 之后由 `data-heading-id` 回填 `id` | 可行但次于 B′：`data-heading-id` 在 `ALLOWED_ATTR` 内，对**原始 HTML 标题**属**攻击者可控** ⇒ 等于用不可信旁路撤销 DOMPurify 的决定；且只修标题，修不了其它 fragment 目标 |
+
+**推荐 B′，理由：**
+
+- **`SANITIZE_DOM` 在本仓当前架构里没有防住任何东西。** 导出件零 JS
+  （`html_template.rs` 不输出 `<script>`）；进程内 `renderMarkdown()` 只有
+  `exportService.ts:129` 一个生产调用方，这份 HTML **从不进入 app 的活动 DOM**。
+  DOM clobbering 要求元素**在 document 树内**才会成为具名属性，
+  `mathRender.ts:134` 的游离 div 不满足该条件。
+- **真正的控制项是改名，不是那个开关。** B 的风险在于 `sanitizeRenderedHtml`
+  这个泛化名字会被后来的调用方当通用净化器复用。改名为 `sanitizeExportFragment`，
+  并在类型、文档与测试里写明**「输出仅供导出，禁止进入 app DOM」**，
+  才是把威胁模型显式化 —— 这一条是 B′ 区别于 B 的全部价值。
+- **其余 DOMPurify 限制全部保留**（`ALLOWED_TAGS` / `ALLOWED_ATTR` /
+  `ALLOWED_URI_REGEXP` / `FORBID_TAGS`），`export.rs:158` 的 ammonia 仍是权威边界。
+
+**两条必须同时登记的限制（否则 B′ 的安全论证不成立）：**
+
+1. **游离 ≠ 无副作用。** 游离子树与 `DOMParser` 文档**都仍会发起 `<img>` / `<iframe>`
+   资源加载**；拦这类加载的是 URL 与标签白名单，不是 `SANITIZE_DOM`。
+   此前把两个 `DOMParser` 后处理器称作「inert」是过强的说法，已撤回。
+2. **游离 `<form>` 可凭 form 所有权（而非入树）触发具名属性 clobbering。**
+   当前 `sanitizerPolicy.ts:70` 把 `<form>` 排除在白名单外，故不可达 ——
+   但这是 B′ 安全性的**前提条件**，一旦 `<form>` 进入白名单必须重新评估本决议。
+
+**与 slug 去重是两个独立缺陷**：A–E2 无论选哪个都修不了 `suffix-collision`
+（`# x` / `# x` / `# x-1` → `x`, `x-1`, `x-1`，重复 id）。该缺陷的修法见下。
+
+**slug 去重的修法（已定，并入 WI-3.2）：** 三个生成器
+（`markdown.rs:23`、`exportService.ts:47`、`tocService.ts:101`）统一改为占位检查循环 ——
+`归一化 → 空则回退 "heading" → while 候选被占用则递增后缀 → 登记候选`。
+**空值回退必须发生在占用登记之前**，否则 emoji 与字面 `# heading` 的碰撞依旧。
+该形状在 github-slugger、vmark、MiaoYan 三个互不相关的实现中独立收敛，不是风格偏好。
+回归门禁除 `x/x/x-1`、emoji+字面、双 emoji 三条具体用例外，
+还应断言不变量 `new Set(ids).size === ids.length` ——
+横向调研未发现任何知名项目断言过该不变量，这是本仓可以做得更严的地方。
+
 ### 过渡期必须登记的事实
 
 TOC 提前统一后，**导出仍是旧语义**。该中间状态及其已知差异必须登记进阶段 0 的语法矩阵，
@@ -434,3 +570,9 @@ P 的零额外 React commit 断言**不能**替代本计划的性能验收 —�
   （它还覆盖 `src/App.css` 与 `src/components/TabBar/`）。
 - **问题 3（`toc.rs` / `preview_html`）**：留在第 5 步，不随提前部分走。
 - **问题 4（代表性语料）**：必须在第 3 步**之前**就位，因为语义契约测试依赖它。
+  **已于 `c17c003` 交付，入口门禁一达成。** 门禁二 —— 本节上文要求的大文档性能实测
+  （覆盖切文档、关文档、过期解析结果）—— **仍未做**，第 3 步尚不可进入。
+- **问题 5（DOMPurify 锚点剥离）**：阻塞 WI-3.2，且跨计划牵动 knip 提案 §5.6。
+  **2026-09-13 更新**：已收敛到 B′，待产品确认。原「倾向 D」连同「选项 A 会迫使 TOC
+  跳转目标同步改」的成本描述**均已证伪并撤回** —— `useTOC.ts:97-156` 在源码模式按行号跳转、
+  在所见即所得模式优先用 `data-heading-id`，导出的 `id` 在 app 内**没有任何消费方**。

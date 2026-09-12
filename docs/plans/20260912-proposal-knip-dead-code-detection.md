@@ -193,6 +193,68 @@ open / switch / close / dirty-close / restore / overflow 六种行为。
 其中 `Sidebar/index.tsx` 导出 `Sidebar` / `TOCSidebar` 无人使用，形态与 TabBar 相似，
 值得单独排查，**不纳入本提案**。
 
+### 5.6 三个死 IPC 面 —— 但 **`export_html` 不批准删除**
+
+阶段 3 的标题身份语料（计划 M，`c17c003`）附带测出三个零调用方的 IPC 面。
+按 §8 要求的证据格式登记 **[实测] 2026-09-12**：
+
+```text
+主张：以下三者无生产调用方
+生产入口点定义：src/App.tsx 及其可达模块图；src-tauri/src/commands/mod.rs 的 handlers()
+符号引用：
+- export_html
+  - 定义：          src-tauri/src/commands/export.rs:42
+  - 注册：          src-tauri/src/commands/mod.rs:17
+  - TS wrapper：    src/services/exportService.ts:109（invoke 在 :114）
+  - 内部引用：      无
+  - 外部生产引用：  无（`exportHtml` 全仓库仅两处命中：定义 :109，及 :121 的一句文档注释）
+  - 测试引用：      无
+- preview_html
+  - 定义：          src-tauri/src/commands/export.rs:125
+  - 注册：          src-tauri/src/commands/mod.rs:19
+  - TS wrapper：    src/services/exportService.ts:134 `previewHtml`（invoke 在 :135）
+  - 内部引用：      无
+  - 外部生产引用：  无（`previewHtml` 全仓库仅命中定义本身）
+  - 测试引用：      无
+- 动态/配置/IPC 检查：两个命令名在 TS 侧仅出现于上述 wrapper 的字符串字面量；
+  唯一上游 `usePreview` 已在阶段 2 死代码清理中删除（计划 M §2.4）
+结论：三者静态不可达；但 export_html 的裁决不是「删」——见下
+```
+
+这正是 §7 描述的情形：**一个 Rust command 仅因唯一调用方是 TS 里的一个字符串而显得「未使用」**，
+必须两侧合看，不能采信任一侧工具的单独输出。
+
+**裁决分两半：**
+
+- `preview_html` + `previewHtml`：与计划 M §2.4「Preview 面板已死」一致。
+  但计划 M 已将其退役排在**第 5 步**且明确不提前，故本提案只**登记进 baseline**，不主张现在删。
+- `export_html` + `exportHtml`：**明确不批准删除，理由与可达性无关。**
+  它是全仓库**唯一保留全部标题锚点**的导出实现 —— `sanitize_html`（ammonia）不做 DOM-clobbering 剥离，
+  而活的导出路径（`App.tsx:587` → `exportRenderedHtml` → `exportService.ts:89` 的 DOMPurify）**会剥离**。
+  计划 M 的「待决：导出锚点被 DOMPurify 剥离」已把改走 `export_html` 列为**选项 C**。
+  **在该决策落定之前删掉它，等于删掉一个候选修复方案。**
+
+⇒ 本条是 §2.1 词表存在理由的一个实例：`unreachable-candidate` **不等于**可删除。
+这里的阻断理由既不是动态 import，也不是运行时注册，而是**一个尚未做出的设计决策** ——
+静态分析在原理上看不见这一类。建议按 §4 登记结构化豁免：
+
+```json
+{
+  "path": "src-tauri/src/commands/export.rs::export_html",
+  "reason": "唯一保留标题锚点的导出实现；是计划 M 的 DOMPurify 锚点剥离决策的候选方案 C",
+  "evidence": "docs/plans/20260912-plan-markdown-source-consolidation.md 「待决：导出锚点被 DOMPurify 剥离」",
+  "owner": "export",
+  "reviewAfter": "WI-3.2 决策落定"
+}
+```
+
+**附带发现（与 §6 的「治理文档正在描述一个已死的组件」同类）**：
+`src-tauri/src/services/html_template.rs:293` 的注释写着
+`Cross-surface agreement over the ACTUAL export path: export_html`，**该断言已失实** ——
+实际导出路径是 `export_rendered_html`。但缺陷**仅限命令名**：该测试的断言目标
+`build_html` 确实在活路径上（`export.rs:161` 由 `export_rendered_html` 调用），**测试本身依然有效**，
+不属于「测试在表征一条死路径」。按规则 22 不做顺手改动，留待下次真正编辑该文件时同提交修正。
+
 ---
 
 ## 6. 本提案自身的两个盲区
