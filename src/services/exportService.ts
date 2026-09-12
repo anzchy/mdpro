@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Marked } from "marked";
 import { applyImageWidthMarkerToHtml } from "../plugins/milkdown/imageResizePlugin";
-import { prerenderMathForExport } from "../components/Preview/mathRender";
 import { renderHighlightSyntaxInHtml } from "./highlightSyntax";
 import { loggingService } from "./loggingService";
+import { prerenderMathForExport } from "./mathRender";
 import { sanitizeRenderedHtml } from "./sanitizerPolicy";
 
 interface RenderMarkdownResult {

@@ -59,13 +59,15 @@
 
 严格按此顺序，**每步独立提交**：
 
-| # | 任务 | 注意 |
-|---|---|---|
-| 2.1 | `mathRender.ts` **先**搬出 `src/components/Preview/` | HTML 导出在用它，先搬再删 |
-| 2.2 | 为存活面（`MilkdownEditor.css`、`html_template.rs`）补行为表征测试 | E26：迁移与删除在**同一提交** |
-| 2.3 | 删 `tests/table-alignment-rendering.test.ts` 中读取 `preview.css` 的断言，并**写明退役的是哪条已不存在的产品契约** | 不得声称被另一测试等价覆盖 |
-| 2.4 | 删 `Preview.tsx`、`ImageRenderer.tsx`、`usePreview.ts`、`preview.css` | |
-| 2.5 | 修 CLAUDE.md 失实描述（数学/脚注实际只在导出，不在 Preview） | |
+**本阶段状态：🔄 部分完成**（2.1 已完成并验证）。
+
+| # | 状态 | 任务 | 注意 |
+|---|---|---|---|
+| 2.1 | ✅ | `mathRender.ts` **先**搬出 `src/components/Preview/` → **`src/services/mathRender.ts`** | HTML 导出在用它，先搬再删。落点与 `highlightSyntax.ts`、`sanitizerPolicy.ts` 并列 —— 三者同为导出管线的 HTML 后处理，`exportService.ts` 以 `./` 同级引入 |
+| 2.2 | ⬜ | 为存活面（`MilkdownEditor.css`、`html_template.rs`）补行为表征测试 | E26：迁移与删除在**同一提交** |
+| 2.3 | ⬜ | 删 `tests/table-alignment-rendering.test.ts` 中读取 `preview.css` 的断言，并**写明退役的是哪条已不存在的产品契约** | 不得声称被另一测试等价覆盖 |
+| 2.4 | ⬜ | 删 `Preview.tsx`、`ImageRenderer.tsx`、`usePreview.ts`、`preview.css` | `preview.css` 实际路径是 `src/components/Preview/styles/preview.css`，**不是** `src/styles/preview.css` |
+| 2.5 | ⬜ | 修 CLAUDE.md 失实描述（数学/脚注实际只在导出，不在 Preview） | ⚠️ CLAUDE.md 工作区副本已被外部截断（351→105 行），该段落可能已不存在；动手前先确认 |
 
 **不在本 PR**：`marked` 降级移除（带独立回归测试的行为变更，单独交付）；`toc.rs` / `preview_html`（留到阶段 5）。
 

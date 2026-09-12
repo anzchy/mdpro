@@ -10,7 +10,7 @@ import {
   prerenderMathForExport,
   renderMathElement,
   renderMathInContainer,
-} from "../src/components/Preview/mathRender";
+} from "../src/services/mathRender";
 import { sanitizeRenderedHtml } from "../src/services/sanitizerPolicy";
 
 function inline(tex: string): HTMLElement {

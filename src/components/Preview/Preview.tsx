@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { usePreview } from "../../hooks/usePreview";
 import { ImageRenderer } from "./ImageRenderer";
-import { renderMathInContainer } from "./mathRender";
+import { renderMathInContainer } from "../../services/mathRender";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import "katex/dist/katex.min.css";

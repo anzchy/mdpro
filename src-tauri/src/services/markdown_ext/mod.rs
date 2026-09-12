@@ -26,7 +26,7 @@
 //!
 //! @coordinates-with src-tauri/src/services/markdown.rs (render loop calls the
 //!   math helpers; `render_markdown` calls `add_footnote_back_links`)
-//! @coordinates-with src/components/Preview/mathRender.ts (KaTeX pass keys off
+//! @coordinates-with src/services/mathRender.ts (KaTeX pass keys off
 //!   `.math-inline` / `.math-display`)
 
 mod autolink;
