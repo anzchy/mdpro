@@ -116,14 +116,14 @@ These five work items came out of the round-2 and round-4 engineering reviews (E
 - [ ] No zero-argument Zustand hook call remains in `src/`, and the lint rule rejects a new one
 - [ ] The production-line ratchet is in CI with its baseline recorded; `App.tsx` is below its baseline, and the close-confirmation regression passes
 - [ ] The WI-4.22 ownership table is true and asserted: App reads no content, no whole `documents` array and no cursor coordinate, including transitively through a hook; 100 content updates in separate `act` steps produce zero additional commits in App, the tabs, the sidebar, the dialog host and the toast host (E35, E39)
-- [ ] An equal-length edit in an already-dirty document reaches the MCP shadow store, and a collapsed TOC heading survives typing (E37, E38)
-- [ ] `CHANGELOG.md` Unreleased covers the user-visible part (MCP routing, save-failure logging, stale MCP content, TOC collapse state)
+- [ ] An equal-length edit in an already-dirty document reaches the MCP shadow store (E37). **E38's collapsed-heading survival is deliberately not asserted here:** the scope narrowing moved it to plan M ([`20260912-plan-markdown-source-consolidation.md`](../20260912-plan-markdown-source-consolidation.md)) at order 3, before WI-0.1, so it is a **prerequisite this stage inherits as already landed**, not a criterion this stage can prove from code it no longer contains
+- [ ] `CHANGELOG.md` Unreleased covers the user-visible part (MCP routing, save-failure logging, stale MCP content). The TOC collapse-state entry belongs to plan M at order 3 and is written there, not here
 
 **Proposed commit split (one per item):**
 - `fix(events): cancellation-safe Tauri subscription primitive`
 - `fix(logging): log command start before validation`
 - `fix(mcp): route document events to one window`
 - `refactor(app): document lifecycle seam, render ownership and file-size ratchet`
-- `fix(sync): key MCP change detection on content, not length; keep TOC collapse state`
+- `fix(sync): key MCP change detection on content, not length; narrow useTOC to field selectors`
 
 **Rollback:** each item's commit reverts independently. WI-4.22 is the only one with a large diff; it reverts as a unit because the seam and the ratchet baseline are introduced together.

@@ -105,16 +105,23 @@ Codex 的原话「同一个库并不自动意味着同一种语义」在此得�
   TS 传 `document_id`（`tocService.ts:38`），Rust 收 `content`（`toc.rs:128`）。
   **这是死代码里藏着的真 bug —— 一旦有人接上就必炸。**
 
-### 2.3 三份手工同步的 slug 算法，无跨语言测试兜底
+### 2.3 五份手工同步的 slug 算法，无跨语言测试兜底
 
-| 实现 | 位置 | 算法 |
-|---|---|---|
-| JS（导出） | `exportService.ts:47` | `\p{L}\p{N}` |
-| JS（TOC） | `tocService.ts:101` | `\p{L}\p{N}` |
-| Rust | `markdown.rs:23` | `char::is_alphanumeric()` |
+**原记「三份」，实测是五份** —— 遗漏了 `toc.rs` 与 `tocStore.ts` 各自的一份。
 
-- 两份 JS **逐字相同**，靠一句注释 "Algorithm must stay in sync with
-  generateHeadingId" 维系 —— 目前同步，属**潜在**漂移，不是现存 bug。
+| 实现 | 位置 | 算法 | 状态 |
+|---|---|---|---|
+| JS（导出回退） | `exportService.ts:47` `generateHeadingId` | `\p{L}\p{N}` + 计数表 | 活 |
+| JS（TOC 侧栏） | `tocService.ts:101` `generateUniqueId` | 同上，**函数体 md5 相同** | 活 |
+| JS（未使用） | `tocStore.ts:120` `generateAnchorId` | `[^\w-]`（**剥除 CJK**）+ `while` 占用检查 | **死，零引用** |
+| Rust（导出） | `markdown.rs:23` `generate_heading_id` | `char::is_alphanumeric()` + 计数表 | 活，导出锚点由它生成 |
+| Rust（TOC） | `toc.rs:36` `generate_unique_id` | 逐字符映射后 split/filter/join | 死（见 2.2 的参数不匹配） |
+
+- 两份 JS **函数体逐字节相同**（md5 相同），仅函数名不同，靠一句注释
+  "Algorithm must stay in sync with generateHeadingId" 维系 —— 目前同步，属**潜在**漂移，不是现存 bug。
+- **`generateAnchorId` 是五份里唯一防碰撞正确的实现，而它没有任何引用者。**
+  它用 `while (existingIds.has(id))` 检查占用，因此不会产生下文 4.1 的合成/自然名冲突；
+  但它用 `[^\w-]` 剥除全部 CJK，所以不能直接拿来当统一实现，只能作为去重逻辑的参照。
 - **[推断]** Rust 的 `is_alphanumeric()` 与 JS 的 `\p{L}\p{N}` **不等价**
   （前者的 Alphabetic 属性含 Nl 及部分组合记号），存在真实边界分歧类别。
 - **[实测]** `sanitizer-rust-js-parity.test.ts` 只比对净化器白名单
@@ -175,7 +182,10 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 > 而不是用标题文字去找第一个 DOM 元素。位置契约必须明确 UTF-16 offset、行号、
 > 换行规范 —— **Rust 的字节偏移不能直接当 JS 字符偏移。**
 
-这是对的，且当前 `tocService.ts` 的 `offset` 正是按字节长度累加的。收编。
+这是对的。但本文原先那句「当前 `tocService.ts` 的 `offset` 正是按**字节**长度累加的」
+**措辞不准，予以更正**：`offset += line.length + 1` 累加的是 **UTF-16 code unit**，不是字节。
+真正的缺陷不在单位，而在换行：按 `/\r?\n/` 切分后 `\r` 已从 `line` 中剥离，
+却仍固定 `+1`，于是每个 CRLF 行少算 1（实测见 4.1）。收编。
 
 ---
 
@@ -197,7 +207,7 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 |---|---|---|---|
 | **0 冻结契约** | 建语法矩阵、代表性文档、安全样例；记录当前五套引擎的差异与性能基线 | 无行为变更 | 把现有错误误当成规范 |
 | **1 执行 C 清理** | 删导出的 marked 自动降级（失败改显式报错+重试）；`mathRender.ts` 搬出 Preview；删死的 Preview 入口、`toc.rs`、`preview_html`；修 CLAUDE.md 的失实描述 | 每步独立提交可撤销 | 误删仍被导出引用的工具（`mathRender.ts`） |
-| **2 统一 TOC** | 用共享 remark 配置替换正则；覆盖围栏/Setext/格式化标题/重复/CJK/emoji；建立正确的位置映射（UTF-16 offset + 行号） | TOC 实现开关，不动正文 | 错误导航；大文件全量解析阻塞主线程 |
+| **2 统一 TOC** | 用共享 remark 配置替换正则；覆盖围栏/Setext/格式化标题/重复/CJK/emoji/**CRLF/slug 唯一性**；建立正确的位置映射（UTF-16 offset + 行号） | TOC 实现开关，不动正文 | 错误导航；大文件全量解析阻塞主线程 |
 | **3 TS 导出并行验证** | MDAST→HAST→HTML；以旧 Rust 输出作差异参照；**ammonia 保留**；差异人工裁决 | 显式切回旧导出器（禁止异常时偷偷切换） | 扩展语法、图片、脚注、数学表现退化 |
 | **4 切换并移除 Rust Markdown** | TS 导出通过语义/安全/离线显示/性能门槛后，确认无消费者再删 pulldown-cmark | 保留上一稳定版本与测试语料 | 隐藏调用方、资源路径、大文件遗漏 |
 | **5 提升编辑保真** | 逐项补 PM 支持；不支持的结构保留为原文节点或退回源码模式 | 新能力开关 + 迁移前原文/草稿 | **已保存数据的损失无法靠代码回滚恢复** |
@@ -297,7 +307,11 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 1. 阶段 1 的清理是否立刻开工？（低风险，可独立提交）
 2. P1 ESLint 接入是否与阶段 1 并行？
 3. `toc.rs` 与 `preview_html` 是直接删除，还是先标记 deprecated 观察一个版本？
-4. 阶段 0 的「代表性文档语料」从哪来 —— 用 `tests/image-test/` 扩充，还是新建？
+4. ~~阶段 0 的「代表性文档语料」从哪来 —— 用 `tests/image-test/` 扩充，还是新建？~~
+   **已决：新建。** 实测 `tests/image-test/` 共 4 个文件（`quick-test.md`、一张 PNG、两个 `.DS_Store`），
+   且**未被 git 跟踪**，是图片路径用的夹具，与标题语法无关，没有可扩充的基础。
+   HEAD 唯一跟踪的 fixture 是 `tests/render-fixtures/phase1.json`。
+   ⇒ 语料是**从零构建**任务，不是筛选任务；按本文 `第 3 步之前必须就位` 的约束，它是阶段 3 的入口门禁之一。
 
 ---
 
@@ -347,8 +361,12 @@ P 的 WI-4.26 要求 TOC 重解析时「reconcile collapse state **by heading id
 - `exportService.ts:47-58` `generateHeadingId` 与之**逐字节相同** —— 两个面带着同样两个缺陷；
   `tocService.ts:99` 那句 "Algorithm must stay in sync" 是靠复制粘贴维持的，没有测试保障
 - `useTOC.ts` 的 WYSIWYG 回退按文本匹配且首个命中即 `break`，重复标题点第二个会跳到第一个
-- **没有任何测试断言 id 两两互异**；`tests/cjk-slug.test.ts:30`/`:97` 只覆盖
-  「不同文本→不同 slug」，而 `:53-59` 用 `expect(headings[0].id).toBe("heading")` 把缺陷钉死了
+- **没有任何测试把「id 两两互异」当作性质来断言**（只有逐例的等值断言）。
+  **原记「`:53-59` 把缺陷钉死了」——该说法不实，已撤回**：该用例只喂**单个**标题
+  `# 🎉🎊` 并断言 `"heading"`，而这正是期望行为；回退缺陷是 `# 🎉` 与 `# Heading`
+  **共存时**才出现的碰撞，需要两个标题才能触发。把 `"heading"` 在计数前注册（Rust 现在的做法）
+  之后，单个 emoji 标题仍然得到 `"heading"`，**该用例保持绿色**。
+  ⇒ 3.2 需要**新增**碰撞用例，而不是改写这一条。
 - `parseHeadingsFromContent` 按 `/\r?\n/` 切分后 `offset += line.length + 1`，
   CRLF 每行少算 1：`text\r\n# 标题` 报 offset 5，实际源码位置是 6
 
@@ -361,6 +379,20 @@ P 的 WI-4.26 要求 TOC 重解析时「reconcile collapse state **by heading id
 **提前**：标题提取、位置映射、身份协调、两种编辑模式下的真实导航。
 **不提前**：导出迁移、`marked` 降级移除、`toc.rs` / `preview_html` 退役、ammonia 评估。
 
+**slug 修复的面范围（本计划的验收条款，排期文档只作索引）**：五份实现中
+**只改三个活面** —— `tocService.ts:101`、`exportService.ts:47`、`markdown.rs:23`，
+三者同提交改齐并配跨语言 parity 测试。两个死面**明确不动**：
+
+- `toc.rs:36` —— 其命令 `get_document_headings` 零调用方，且 TS 传 `document_id`、
+  Rust 收 `content`，参数不匹配（见 2.2）。**明知其 slug 与三活面分歧而保留**，
+  因为本计划已把 `toc.rs` 退役排在第 5 步、不提前；在一段待退役的死代码上改 slug
+  并为它写 parity 测试是净损失。第 5 步退役时连同此分歧一并消失。
+- `tocStore.ts:120` `generateAnchorId` —— 零引用。它的 `while` 占用检查是五份里
+  唯一正确的去重逻辑，**作为参照实现被引用，但不作为落地实现**（它剥除 CJK）。
+
+⇒ parity 测试的覆盖面是**三个活面**，不是五份。测试标题须写明这一点，
+避免读者误以为 parity 已覆盖全仓库的 slug 实现。
+
 身份必须拆成三个稳定性不同的概念，不能用一个 `id` 同时承诺 **[Codex]**：
 
 | 概念 | 作用 | 稳定性要求 |
@@ -372,6 +404,11 @@ P 的 WI-4.26 要求 TOC 重解析时「reconcile collapse state **by heading id
 契约至少规定：标题前后编辑普通段落时折叠状态保留、位置更新；重复标题彼此独立，
 点第二个必须到第二个；删除标题时清理其折叠与活动状态；切换文档时清空状态，
 不因两个文档都有 `intro` 而继承；无法可靠匹配的标题重置状态，不得猜测后转移给另一个标题。
+
+**补充（原缺，由排期文档回收）**：`headingKey` 的「约定范围内跨修订协调」必须把范围写死，
+不得默认承诺任意编辑后无损识别 —— **重命名、插入、移动三种编辑的保留规则逐条明确**：
+哪些保留折叠态、哪些重置、哪些视为新标题。此前这三条只出现在排期文档，
+而排期文档按其自身章程只承载顺序与状态、不得新增验收标准，故在此收编为本计划的契约条款。
 
 测试分三层：**协调算法单测**（输入不透明 key，不依赖解析器）；
 **语义契约测试**（真实 Markdown，覆盖围栏、Setext、格式化标题、重复、CJK、CRLF、slug 唯一性）；
