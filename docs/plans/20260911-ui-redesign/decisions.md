@@ -4,6 +4,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ## Decided (do not re-litigate)
 
+**The `(Q1)`–`(Q8)` tags on rows E9–E16 do not refer to the plan's open questions.** They are the eng review round 2's own architecture questions, which these eight rows answer one for one, mapped positionally (E9 → Q1 … E16 → Q8); that question list was never transcribed into the plan set, so the tags resolve to nothing here. Against the Open questions table every one of them is wrong — E14's `(Q6)` in particular looks like a citation of the undeclared-token question and is unrelated to it. This matters most in this file, because a canonical log is where a reader stops checking.
+
 | ID | Decision | Source |
 |---|---|---|
 | D1 | A's register with B's structure | review :10-17, old DESIGN.md:122 |
