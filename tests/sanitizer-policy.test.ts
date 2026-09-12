@@ -54,6 +54,20 @@ describe("sanitizeRenderedHtml — legitimate output survives", () => {
     expect(result).toContain("<mark>hi</mark>");
     expect(result).toContain("<u>u</u>");
   });
+
+  it("preserves align on td/th (table column alignment survives export)", () => {
+    // The WYSIWYG export path is renderer → sanitizeRenderedHtml → build_html.
+    // `align` is allow-listed in BASE_ATTRS; dropping it would strip alignment
+    // from every exported table while html_template.rs kept shipping
+    // [align="…"] rules that then match nothing. The Rust leg of the same
+    // pipeline is covered by markdown.rs's test_table_alignment_survives_
+    // sanitize_html; this is the JS leg, which previously had no guard.
+    const result = sanitizeRenderedHtml(
+      '<table><tbody><tr><td align="center">c</td><th align="right">r</th></tr></tbody></table>',
+    );
+    expect(result).toContain('align="center"');
+    expect(result).toContain('align="right"');
+  });
 });
 
 describe("sanitizeRenderedHtml — payloads neutralized on every surface", () => {
