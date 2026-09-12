@@ -55,6 +55,6 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] Every app CSS file is ≤ ~300 lines, or is listed as an approved exception
 - [ ] No test assertion changed; only the file-reading paths did
 - [ ] Rule 32's ownership table and modal contract name the partials; rule 31's z-index table has no "Recent dropdown" row, and no `.toolbar-recent` selector remains
-- [ ] The WI-1.0 smoke test passes, and the `package.json` diff is **empty**, because WI-0.0 already added the four E7/E28 devDependencies (if WI-0.0 did not land, the diff is exactly those four)
+- [ ] The WI-1.0 smoke test passes, and the `package.json` diff is **empty**, because WI-0.0 already added the four E7/E28 devDependencies (if WI-0.0 did not land, the diff is exactly those four). **"Empty" means empty against the WI-0.1 baseline, not against HEAD (verified 2026-09-12):** the tree already carries two uncommitted Stryker devDependencies and 1337 `pnpm-lock.yaml` lines that WI-0.0 disposes of one way or the other (E29). Compare against the saved baseline or this box can never be ticked
 
 **Rollback:** revert the partials, `src/styles/index.css` and the `main.tsx` import. `globals.css` is restored byte-for-byte from the baseline.

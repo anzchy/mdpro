@@ -4,6 +4,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ## Baseline (observed at `0a3675e`)
 
+> **Rule: a claim about repository state cites `git show HEAD:<path>`, never the working tree.** A dirty file makes the two disagree silently, and this document got that wrong three times in one review round — `:70`'s tdd-guardian config, `risks.md:45`'s Stryker exclusions, and WI-0.0's instruction to edit a file that does not exist on master. Two of the three carried a **"verified"** date, which is the dangerous part: the tag suppresses the next reader's doubt while the oracle underneath it was wrong. Before writing any observed fact here, run `git status --porcelain <path>`; if it comes back `M` or `??`, say which shape is on HEAD and which is local, and never cite line numbers from an untracked file as if they were repository facts.
+
 ### Token files
 
 - `src/styles/globals.css` `:root` (:1-47) declares these tokens:
@@ -67,7 +69,11 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 - `pnpm build` (`tsc && vite build`), `pnpm test:run` (`vitest run`), `cd src-tauri && cargo test`. **Correction (E25): all three run in `.github/workflows/ci.yml` only on `tags: ['v*']` and manual dispatch** (`ci.yml:2-6`). There is no pull-request or push-to-master trigger, so today none of them gates a merge, and all 1138 tests are skipped on every merge path. WI-0.0 restores that gate. Note also that `tsc` type-checks only `src` (`tsconfig.json:23`), so no test file is type-checked (E28).
 - `pnpm dev` serves localhost:1420 without Tauri APIs; `pnpm tauri dev` runs the full app.
-- `.claude/tdd-guardian/config.json` has `enabled: true`. **Correction (verified 2026-09-12): `lanes` is present, not absent, and there is no top-level `testCommand` key.** Two lanes are configured: `unit` (`pnpm exec vitest run --coverage`, `gateOn: ["taskCompleted", "commit"]`, `coverageSummaryPath: coverage/coverage-summary.json`, `probeCommand: pnpm exec vitest list`) and `rust`. The file also carries `coverageThresholds`, `coverageMode`, `requireMutation`, `mutationCommand` and `mutationGateOn`. Consequence for ordering: **the unit lane already runs `--coverage`**, so until E27's `coverage.include` fix lands it measures against the 97898-line denominator; no threshold may be written into this config before WI-0.0. Readiness is still confirmed in WI-0.1.
+- `.claude/tdd-guardian/config.json` has `enabled: true`, and **exists in two different shapes — check which one you have before relying on anything below.** *(Re-corrected 2026-09-12, second pass: the first "Correction" on this line was itself wrong. It read the working tree and declared `lanes` present and `testCommand` absent as repo facts. `git status --porcelain` reports the file as `M`, and `git show HEAD:.claude/tdd-guardian/config.json` has zero occurrences of `schemaVersion` and `lanes` — so on master the opposite is true.)*
+  - **HEAD (what a fresh clone gets) is v1:** keys are `enabled`, `testCommand`, `coverageCommand`, `coverageSummaryPath`, `thresholds`, `enforceRedGreenRefactor`, `blockCommitOnFailure`, `stack`, `packageManager`. No `lanes`, no mutation keys.
+  - **The uncommitted working tree is v2:** `schemaVersion: 2` plus a `lanes` array — `unit` (`pnpm exec vitest run --coverage`, `gateOn: ["taskCompleted", "commit"]`, `coverageSummaryPath: coverage/coverage-summary.json`, `probeCommand: pnpm exec vitest list`) and `rust` — plus `coverageThresholds`, `coverageMode`, `requireMutation`, `mutationCommand` and `mutationGateOn`. WI-0.0 owns committing this migration.
+  - Consequence for ordering is unchanged and applies to whichever shape is live: **the coverage command already runs `--coverage`**, so until E27's `coverage.include` fix lands it measures against the 97898-line denominator; no threshold may be written into this config before WI-0.0. Readiness is still confirmed in WI-0.1.
+  - **Method, because this line got it wrong twice:** a plan document asserting repo state must cite `git show HEAD:<path>`, never the working tree. A dirty file makes the two disagree silently.
 - `CHANGELOG.md:8` has a `## [Unreleased]` section.
 
 ---
@@ -88,7 +94,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] `pnpm test:run` exits 0; no newly skipped tests; no assertion deleted to get green
 - [ ] `cd src-tauri && cargo test` exits 0 (required whenever Rust changed; otherwise run once per stage)
 - [ ] No file outside the work item's declared file set changed, compared with the baseline `git status --porcelain` saved in WI-0.1 (the tree already has unrelated changes)
-- [ ] No new dependency: `git diff package.json src-tauri/Cargo.toml` is empty, apart from the **four** E7/E28 devDependencies, which land in WI-0.0's chore PR before Stage 0 — not in WI-1.0
+- [ ] No new dependency: `git diff package.json src-tauri/Cargo.toml` is empty, apart from the **four** E7/E28 devDependencies, which land in WI-0.0's chore PR before Stage 0 — not in WI-1.0. **This check does not start from zero (verified 2026-09-12):** `package.json` already carries two uncommitted additions, `@stryker-mutator/core` and `@stryker-mutator/vitest-runner` (both `^10.0.0`), plus 1337 uncommitted `pnpm-lock.yaml` lines. WI-0.0 resolves them either way (E29); until it does, compare against the WI-0.1 baseline rather than against an empty diff, or this gate fails on work it did not cause
 - [ ] No screenshot, no `.prompts/` artifact, and no conversation content in the diff
 - [ ] `pnpm coverage` exits 0 and no metric fell below its recorded threshold (E27; from WI-0.0 onward)
 - [ ] The Milkdown browser suite exits 0, once it exists (E31). G0 names it explicitly, so the original three commands cannot pass while the plan's most important regression is skipped.
