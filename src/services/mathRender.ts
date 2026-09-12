@@ -18,11 +18,17 @@
  * @coordinates-with src-tauri/src/services/markdown_ext.rs (emits the wrappers)
  * @coordinates-with src/services/exportService.ts (invokes `prerenderMathForExport`)
  *
- * NOTE (stage 2.4): `renderMathInContainer` has **no production caller** since
- * the Preview pane was deleted — only `prerenderMathForExport` is on a live
- * path. The in-container pass is retained (and covered by
- * tests/math-render.test.ts) for the WYSIWYG math surface deferred to Phase 2.
- * Deleting it is a scope decision, not a cleanup this step was authorized to make.
+ * NOTE (corrected in stage 2.5): an earlier note here claimed
+ * `renderMathInContainer` had "no production caller" once the Preview pane was
+ * deleted. That was wrong, and self-refuting — `prerenderMathForExport` calls it
+ * directly a few lines below, so it sits on the live export path
+ * `exportService.ts` → `prerenderMathForExport` → `renderMathInContainer`.
+ * Deleting it would break math in HTML export.
+ *
+ * What is true is narrower: it has no caller **outside this module**. It and
+ * `renderMathElement` are exported only so tests can drive them directly, and
+ * the `mathmlOnly = false` branch is reached only by tests, because the export
+ * path always passes `true`. That is a visibility smell, not dead code.
  */
 import katex from "katex";
 
