@@ -52,7 +52,7 @@ describe("tabStore", () => {
 
     it("switches to MRU tab when active tab is closed", () => {
       useTabStore.getState().openTab("doc-1", "A");
-      const tabB = useTabStore.getState().openTab("doc-2", "B");
+      useTabStore.getState().openTab("doc-2", "B");
       const tabC = useTabStore.getState().openTab("doc-3", "C");
       // C is active (most recent). Switch to A to make it MRU, then close C.
       useTabStore.getState().switchToTab(useTabStore.getState().tabs[0].id);

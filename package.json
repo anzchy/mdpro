@@ -11,6 +11,8 @@
     "tauri": "tauri",
     "test": "vitest",
     "test:run": "vitest run",
+    "coverage": "vitest run --coverage",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
     "build:mac": "bash scripts/build-mac.sh",
     "build:mac:fast": "bash scripts/build-mac.sh --skip-tests --open",
     "build:windows": "bash scripts/build-windows.sh"
@@ -49,6 +51,10 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
+    "@testing-library/dom": "^10.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.1.0",
     "@types/katex": "^0.16.8",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.8",

@@ -28,6 +28,7 @@ const makeDoc = (overrides: Partial<Document> = {}): Document => ({
   content: "# Original",
   path: null,
   encoding: "utf-8",
+  lineEnding: "lf",
   isModified: false,
   lastSaved: null,
   fileSize: null,

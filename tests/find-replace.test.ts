@@ -48,7 +48,7 @@ vi.mock("@codemirror/view", () => {
 // ---------------------------------------------------------------------------
 // Import the module under test AFTER the mocks are in place.
 // ---------------------------------------------------------------------------
-import { searchKeymap, search } from "@codemirror/search";
+import { searchKeymap } from "@codemirror/search";
 import { searchExtensions } from "../src/components/Editor/extensions/search";
 
 // ---------------------------------------------------------------------------

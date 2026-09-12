@@ -87,7 +87,9 @@ describe("runInsertTable — dispatch behavior", () => {
 
   it("dispatches insertTableCommand with { row, col } payload", () => {
     isInTableHook.value = false;
-    const fakeCommands = { call: vi.fn(() => true) };
+    const fakeCommands = {
+      call: vi.fn((_command: unknown, _payload?: unknown) => true),
+    };
     const fakeView = { state: {} };
     const editor: MockEditor = {
       action: (fn) =>

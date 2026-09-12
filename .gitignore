@@ -30,3 +30,9 @@ coverage/
 
 # Pre-PR gate process artifacts (sibling-scan note, etc.) — not part of any commit
 .pre-pr/
+.prompts/
+
+# tdd-guardian generated artifacts
+.claude/tdd-guardian/state.json
+.claude/tdd-guardian/receipts.json
+/.stryker-tmp

@@ -18,6 +18,7 @@
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
-    "codex-toolkit@xiaolai": true
+    "codex-toolkit@xiaolai": true,
+    "tdd-guardian@xiaolai": true
   }
 }

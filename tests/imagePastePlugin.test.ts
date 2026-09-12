@@ -260,8 +260,18 @@ describe("handleImageFiles — destroyed-view guard", () => {
         successCount: 2,
         failureCount: 0,
         results: [
-          { relativePath: "images/a.png" },
-          { relativePath: "images/b.png" },
+          {
+            relativePath: "images/a.png",
+            absolutePath: "/home/user/images/a.png",
+            markdownSyntax: "![a](images/a.png)",
+            fileSize: 1024,
+          },
+          {
+            relativePath: "images/b.png",
+            absolutePath: "/home/user/images/b.png",
+            markdownSyntax: "![b](images/b.png)",
+            fileSize: 2048,
+          },
         ],
       };
     });

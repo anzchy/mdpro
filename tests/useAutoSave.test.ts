@@ -5,7 +5,7 @@
  * behavior by verifying the hook's source contract and testing the
  * extractTitle helper via the store integration path.
  */
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 

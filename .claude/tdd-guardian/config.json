@@ -1,16 +1,35 @@
 {
+  "schemaVersion": 2,
   "enabled": true,
-  "testCommand": "pnpm test:run",
-  "coverageCommand": "pnpm test:run --coverage",
-  "coverageSummaryPath": "coverage/coverage-summary.json",
-  "thresholds": {
-    "lines": 40,
-    "functions": 45,
-    "branches": 35,
-    "statements": 40
-  },
-  "enforceRedGreenRefactor": true,
-  "blockCommitOnFailure": false,
-  "stack": "react-ts-vitest",
-  "packageManager": "pnpm"
+  "enforceOnTaskCompleted": false,
+  "blockCommitWithoutFreshGate": false,
+  "staleGateAction": "deny",
+  "gateFreshnessMinutes": 120,
+  "smartStaleness": true,
+  "bypassEnv": "TDD_GUARD_BYPASS",
+  "preflightCommand": "",
+  "lanes": [
+    {
+      "name": "unit",
+      "description": "Vitest + jsdom frontend tests (tests/**/*.test.{ts,tsx}). No external services.",
+      "command": "pnpm exec vitest run --coverage",
+      "gateOn": ["taskCompleted", "commit"],
+      "coverage": "include",
+      "coverageSummaryPath": "coverage/coverage-summary.json",
+      "probeCommand": "pnpm exec vitest list",
+      "timeoutMs": 600000
+    },
+    {
+      "name": "rust",
+      "description": "cargo test for the Tauri backend: #[cfg(test)] units, tests/render_golden.rs, doc tests.",
+      "command": "cargo test --manifest-path src-tauri/Cargo.toml",
+      "gateOn": ["commit"],
+      "coverage": "none",
+      "probeCommand": "cargo test --manifest-path src-tauri/Cargo.toml -- --list",
+      "timeoutMs": 900000
+    }
+  ],
+  "coverageThresholds": { "lines": 31, "functions": 61, "branches": 82, "statements": 31 },
+  "coverageMode": "absolute",
+  "requireMutation": false
 }

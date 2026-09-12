@@ -60,6 +60,7 @@ beforeEach(() => {
         path: null,
         content: SIMPLE_MD,
         encoding: "UTF-8",
+        lineEnding: "lf",
         isModified: false,
         lastSaved: null,
         fileSize: null,

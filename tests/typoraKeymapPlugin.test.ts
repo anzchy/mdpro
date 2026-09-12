@@ -11,7 +11,7 @@
  * command registry.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Schema } from "@milkdown/kit/prose/model";
 import { EditorState, TextSelection, type Command } from "@milkdown/kit/prose/state";
 
