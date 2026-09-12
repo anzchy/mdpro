@@ -1,8 +1,9 @@
 ---
-description: Dark/light theme convention — `.theme-light` / `.theme-dark` class, when to override, contrast/focus testing.
+description: Dark/light theme convention — `.theme-light` / `.theme-dark` class, when to override, canonical visual-QA checklist.
 paths:
   - "src/**/*.css"
-  - "src/**/*.tsx"
+  - "src/App.tsx"
+  - "src/main.tsx"
 ---
 
 # 34 — Dark Theme
@@ -12,8 +13,7 @@ All styling must work in both themes.
 ## Theme detection
 
 mdpro toggles **`.theme-light`** / **`.theme-dark`** on the `<html>`
-element in `App.tsx`. Token values live in `src/styles/themes/light.css`
-and `src/styles/themes/dark.css`.
+element in `App.tsx`. Token file locations: `31-design-tokens.md`.
 
 | Selector | Status |
 |---|---|
@@ -45,9 +45,6 @@ Override only when:
 3. No token exists for the case — **add the token to both theme files
    first** (rule 31), then reference it.
 
-If the same `rgba()` override pair appears 3+ times, that's the signal
-to add a real token.
-
 ## Translucent surface pattern
 
 Prefer `color-mix()` with `var(--color-text)` over raw rgba:
@@ -59,13 +56,10 @@ Prefer `color-mix()` with `var(--color-text)` over raw rgba:
 This adapts naturally to both themes. Only fall back to per-theme rgba
 when `color-mix()` won't work.
 
-## Common mistakes
+## Inverted text
 
-- Hardcoded color (`background: #f5f5f5`) — won't adapt.
-- `color: white` on an active item — breaks if panel is light. Use
-  `var(--color-panel)` to invert.
-- Light-mode-only token literal in a hardcoded property without a paired
-  `.theme-dark` override.
+**Use `var(--color-panel)`, not `color: white`, for text on an active
+accent fill.** `white` breaks when the panel is light.
 
 ## Testing requirements
 

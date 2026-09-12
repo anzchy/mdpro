@@ -51,27 +51,39 @@ preferences system has no error surfacing today either.
 
 ---
 
-## Create DESIGN.md design system
+## Don't overwrite an unparseable config.json with defaults
 
-**What:** Document the app's existing design language in `DESIGN.md` at the repo root:
-CSS color tokens (`--color-panel`, `--color-border`, `--color-accent`, etc.), spacing scale,
-border-radius conventions (8px controls, 12px cards, 16px dialogs), type scale, and the
-component patterns established by the settings panel (`.settings-row`, section headers, steppers).
+**What:** When `load_preferences()` fails to parse `~/.mdpro/config.json`, the save paths
+must not write defaults over the file. Either back it up (`config.json.corrupt-<timestamp>`)
+before writing, or refuse the write and surface an error.
 
-**Why:** No DESIGN.md means every new contributor and every AI session invents patterns from
-scratch. The settings panel will establish real, reusable component patterns — worth documenting
-while the decisions are fresh.
+**Why:** `set_preferences` (`src-tauri/src/commands/preferences.rs`) does
+`load_preferences().unwrap_or_default()`, merges the update and saves. `save_window_state`
+follows the same pattern. One parse failure (a hand edit, or a downgrade that meets an enum
+value the older build doesn't know) wipes every user preference on the next launch, with no
+user action. `get_preferences` returns the error, the load effect in `src/App.tsx` swallows it,
+still sets `preferencesLoaded`, and then immediately calls `setPreferences({ lastViewMode })`.
+Any later settings change or window resize does the same. Rule 60 classes this as a BLOCK-level data-loss path.
 
-**Pros:** Prevents design drift in future PRs. Enables faster, more consistent contributions.
-Makes the codebase welcoming to designers.
+**Pros:** Closes an existing silent data-loss path. Makes downgrades safe.
 
-**Cons:** Takes time to write well. Goes stale if not maintained.
+**Cons:** Touches two or three commands and needs Rust tests for the corrupt-file path.
 
-**Context:** Flagged by `/plan-design-review` (2026-03-30). No DESIGN.md existed at review time.
-The settings panel full polish PR will ship the most coherent set of UI patterns this project
-has had — ideal time to capture them.
+**Policy (decided 2026-09-11):** back up, then reset, and tell the user. Rename the unparseable
+file to `config.json.corrupt-<timestamp>`, continue with defaults, and show one toast that names
+the backup. The file is never overwritten in place, and saves keep working for the rest of the
+session. Rejected: refusing every write until the JSON is fixed by hand.
 
-**Depends on:** Settings panel full polish PR (establishes `.settings-row`, stepper, section patterns)
+**Context:** Found during `/plan-eng-review` of `docs/plans/20260911-plan-ui-redesign.md`
+(2026-09-11). That plan's `sourceFont` field is a `String` with serde defaults specifically so
+it adds no new parse-failure trigger; the underlying bug predates it. Start at
+`commands/preferences.rs` (`set_preferences`, `save_window_state`),
+`services/preferences.rs` (`load_preferences`), the load+save calls in `commands/window.rs`, and
+the preferences load effect in `src/App.tsx`, which must not write after a failed load.
+
+**Priority:** P1
+**Blocks:** Stage 5 (`sourceFont`) of `docs/plans/20260911-plan-ui-redesign.md` (decision E6)
+**Depends on:** Nothing
 **Blocked by:** Nothing
 
 ---
@@ -160,3 +172,80 @@ the most important case. Full interrupt recovery is a future improvement.
 
 **Depends on:** Multi-platform release PR (future)
 **Blocked by:** Nothing
+
+## Add real spell-check backend
+
+**What:** Integrate a real dictionary backend (system spellcheck / hunspell) with
+misspelling highlighting in CodeMirror, replacing the removed `spellCheckPlugin.ts` stub.
+Re-add the spell-check setting and a `spellCheck` shortcut entry.
+
+**Why:** WI-3.5 of the Typora-parity plan deletes the dead stub (it was false UI — a
+setting with no highlighting). Real spell-check is a genuine writing-app feature, just not
+worth blocking Typora parity on.
+
+**Pros:** Catches typos inline; expected in a serious writing tool.
+
+**Cons:** Dictionary bundling/licensing; per-language packs; CodeMirror decoration perf on
+large docs. Non-trivial.
+
+**Context:** Stub removed during Typora-parity Phase 3 (docs/plans/20260628-plan-typora-parity.md,
+WI-3.5). Start from a CodeMirror 6 linter/decoration extension + a WASM hunspell or the
+macOS NSSpellChecker via a Tauri command.
+
+**Depends on:** Typora-parity WI-3.5 (stub removal) landing first
+**Blocked by:** Nothing
+
+---
+
+## Remove dead App.css and TabBar; fix rule 34's App.css claim
+
+**What:** Delete `src/App.css` and `src/components/TabBar/`. Rewrite `.claude/rules/34-dark-theme.md:22`, which says
+`prefers-color-scheme` is used "only in `App.css` for the pre-React paint flash".
+
+**Why:** `App.css` is imported nowhere (not from `index.html`, `src/` or the Vite config), so the
+mechanism rule 34 describes never runs. `TabBar` is re-exported only by its own `index.ts`; `BottomTabs`
+is the tab UI in use. Both mislead contributors and AI sessions. They also force the UI redesign plan to
+carry an extra "still unimported" assertion to keep them out of its tokenization scope.
+
+**Pros:** About 120 fewer lines of dead CSS/TSX. Rule 34 matches reality. The tokenization scope needs no exclusions.
+
+**Cons:** Must first confirm nothing references them implicitly. It is unverified whether a pre-React theme flash
+actually happens; if it does, fix it in `index.html` rather than reviving `App.css`.
+
+**Context:** Found during `/plan-eng-review` of `docs/plans/20260911-plan-ui-redesign.md` (2026-09-11).
+That plan's assumption A8 lists both as dead-code candidates without deleting them. `App.css` was last
+touched in the initial commit. Start with a repo-wide grep for `App.css` and `TabBar`, then cold-start
+the app in the dark theme and watch the first frame.
+
+**Priority:** P3
+**Depends on:** Nothing
+**Blocked by:** Nothing
+
+---
+
+## Completed
+
+### Create DESIGN.md design system
+
+**What:** Document the app's existing design language in `DESIGN.md` at the repo root:
+CSS color tokens (`--color-panel`, `--color-border`, `--color-accent`, etc.), spacing scale,
+border-radius conventions (8px controls, 12px cards, 16px dialogs), type scale, and the
+component patterns established by the settings panel (`.settings-row`, section headers, steppers).
+
+**Why:** No DESIGN.md means every new contributor and every AI session invents patterns from
+scratch. The settings panel will establish real, reusable component patterns — worth documenting
+while the decisions are fresh.
+
+**Pros:** Prevents design drift in future PRs. Enables faster, more consistent contributions.
+Makes the codebase welcoming to designers.
+
+**Cons:** Takes time to write well. Goes stale if not maintained.
+
+**Context:** Flagged by `/plan-design-review` (2026-03-30). No DESIGN.md existed at review time.
+The settings panel full polish PR will ship the most coherent set of UI patterns this project
+has had — ideal time to capture them.
+
+**Depends on:** Settings panel full polish PR (establishes `.settings-row`, stepper, section patterns)
+**Blocked by:** Nothing
+
+**Completed:** `DESIGN.md` was added in `850b21e` (2026-05-03), backed by rules 30–34. Moved here 2026-09-11. The same day the file itself moved to `docs/design/mdpro-ui-old/DESIGN.md`; the root `DESIGN.md` is now an index.

@@ -1,0 +1,26 @@
+{
+  "snapshots": [
+    {
+      "timestamp": "2026-09-11T08:38:27Z",
+      "overall": 92,
+      "files": {
+        ".claude/rules/00-engineering-principles.md": { "score": 75, "type": "rule" },
+        ".claude/rules/10-tdd.md": { "score": 100, "type": "rule" },
+        ".claude/rules/20-logging-and-docs.md": { "score": 83, "type": "rule" },
+        ".claude/rules/22-comment-maintenance.md": { "score": 85, "type": "rule" },
+        ".claude/rules/25-careful-mode.md": { "score": 100, "type": "rule" },
+        ".claude/rules/30-ui-consistency.md": { "score": 100, "type": "rule" },
+        ".claude/rules/31-design-tokens.md": { "score": 100, "type": "rule" },
+        ".claude/rules/32-component-patterns.md": { "score": 85, "type": "rule" },
+        ".claude/rules/33-focus-indicators.md": { "score": 100, "type": "rule" },
+        ".claude/rules/34-dark-theme.md": { "score": 95, "type": "rule" },
+        ".claude/rules/40-version-bump.md": { "score": 100, "type": "rule" },
+        ".claude/rules/41-keyboard-shortcuts.md": { "score": 85, "type": "rule" },
+        ".claude/rules/50-codebase-conventions.md": { "score": 95, "type": "rule" },
+        ".claude/rules/60-review-checklist.md": { "score": 91, "type": "rule" }
+      },
+      "scope": "path:.claude/rules/",
+      "files_scored": 14
+    }
+  ]
+}

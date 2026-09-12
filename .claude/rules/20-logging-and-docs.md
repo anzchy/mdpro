@@ -1,5 +1,5 @@
 ---
-description: Required structured logging for new features and the IPC change checklist.
+description: Canonical structured-logging rule (Rust and TypeScript Start + Success/Fail examples) plus same-commit docs updates.
 paths:
   - "src-tauri/src/commands/**/*.rs"
   - "src/services/**/*.ts"
@@ -9,26 +9,58 @@ paths:
 
 # 20 - Logging and Docs (Local)
 
-- Update relevant dev docs in the same change when behavior changes.
-- If `docs/` contains documentation for the affected feature, keep it as the single
-  source of truth and update it in the same commit.
-- If `specs/` contains a spec for the feature, update `tasks.md` to mark completed
-  items and note any deviations in `spec.md`.
+**Update docs in the same commit as the behavior change**: the feature's page in `docs/guide/` and, if the feature has a spec, `specs/<NNN-name>/tasks.md` (mark items done, note deviations in `spec.md`). Docs that lag the code mislead the next reader.
 
 ## Logging (required for new features)
 
-When adding a new Tauri command or significant frontend feature, add structured
-logging following the patterns in CLAUDE.md § "Logging Rules":
+**Log every new Tauri command and significant frontend feature.** Production
+builds have no console, so the JSONL log is the only debugging trail. Event
+naming convention and log file path: CLAUDE.md § "Logging Rules".
 
-- Rust backend: use `logger::log_event(LogEntryPayload { ... })` with `Start` +
-  `Success`/`Fail` pairs and meaningful `event` names (`"feature.action"`).
-- TypeScript frontend: use `loggingService.logEventSync({ ... })` with `ui.<component>.<action>` naming.
-- Verify with: `tail -f ~/.mdpro/mdpro.log | jq .`
+### Rust (`src-tauri/src/commands/`)
 
-## IPC Changes
+Emit one `Start` entry, then one `Success` or `Fail` entry for the same `event`:
 
-When adding or modifying a Tauri command:
-1. Define in `src-tauri/src/commands/<module>.rs`
-2. Register in `src-tauri/src/commands/mod.rs` → `handlers()`
-3. Create typed wrapper in `src/services/<service>.ts`
-4. Update `CLAUDE.md` IPC table if it's a new command
+```rust
+use crate::models::{LogEntryPayload, LogLevel, LogStatus};
+use crate::services::logger;
+use serde_json::json;
+
+logger::log_event(LogEntryPayload {
+    level: LogLevel::Info,
+    event: "file.open".to_string(),
+    status: LogStatus::Start,
+    action_id: None,
+    context: Some(json!({ "path": path })),
+    duration_ms: None,
+    error: None,
+});
+
+// Failure: level: LogLevel::Error, status: LogStatus::Fail, error: Some(message)
+logger::log_event(LogEntryPayload {
+    level: LogLevel::Info,
+    event: "file.open".to_string(),
+    status: LogStatus::Success,
+    action_id: None,
+    context: Some(json!({ "bytes": len })),
+    duration_ms: Some(elapsed_ms),
+    error: None,
+});
+```
+
+From `src-tauri/src/main.rs`, import through `tauri_app_lib::models` and
+`tauri_app_lib::services::logger` instead of `crate::`.
+
+### TypeScript (`src/`)
+
+```typescript
+import { loggingService } from "../services/loggingService";
+
+loggingService.logEventSync({
+  level: "info",
+  event: "ui.button.click", // ui.<component>.<action>
+  status: "success", // "start" | "success" | "fail" | "cancel"
+  actionId: loggingService.generateActionId(),
+  context: { screen: "editor", controlId: "button-id" },
+});
+```

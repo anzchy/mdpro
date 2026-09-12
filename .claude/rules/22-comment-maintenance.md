@@ -19,8 +19,6 @@ Files with a `Purpose:` line in their header block, or Rust files with `//!` mod
 | Change what a file coordinates with | Update `@coordinates-with` lines |
 | Change data flow or pipeline | Update `Pipeline:` in header |
 | Change a design decision | Update `Key decisions:` in header |
-| Fix a known limitation | Remove it from `Known limitations:` |
-| Add a new edge case handler | Add `@edge-case` inline comment |
 | Rename a file | Update `@module` path and any `@coordinates-with` references in other files |
 
 ## When NOT to Update Comments
@@ -31,9 +29,7 @@ Files with a `Purpose:` line in their header block, or Rust files with `//!` mod
 
 ## Comment Rot Prevention
 
-- Never write comments that reference line numbers, dates, or author names
-- Never leave `// TODO` without a concrete description of what needs doing
-- If you notice a stale comment while editing, fix it in the same commit
+**Fix a stale comment you notice while editing, in the same commit** — a later cleanup pass rarely happens.
 
 ## Quick Check
 

@@ -29,7 +29,7 @@
 - Name test files consistently as `*.test.ts` / `*.test.tsx` under `tests/` (or feature-local test folders when needed).
 
 ## Commit & Pull Request Guidelines
-- Commit messages are short, lowercase, and action-oriented (e.g., "init commit", "update 001 spec md files").
+- Commit messages use conventional commits `<type>(<scope>): <short summary>` (e.g., "fix(save): surface write errors"); see CLAUDE.md "Git Commit Conventions".
 - PRs should include a clear summary, link to any relevant spec in `specs/`, and UI screenshots for visual changes.
 - Call out any Tauri/Rust changes that affect permissions or capabilities.
 
@@ -65,7 +65,7 @@
 ## Styling Rules
 - NEVER hardcode colors (hex, rgb, rgba) — use CSS variables (`--color-text`, `--color-bg`, etc.).
 - Plugin styles live ONLY in their colocated `<name>.css` file, not in `src/styles/globals.css`.
-- Dark mode uses `.dark-theme` class selector (not `[data-theme]`).
+- Theming uses `.theme-light` / `.theme-dark` class selectors on the root (not `[data-theme]`); see `.claude/rules/34-dark-theme.md`.
 
 ## Test Rules
 - Every new store file needs a corresponding `*.test.ts`.

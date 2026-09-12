@@ -1,5 +1,5 @@
 ---
-description: Test-Driven Development discipline — when tests are required, anti-patterns to avoid, mdpro-specific commands.
+description: Test-Driven Development discipline — when tests are required, mdpro-specific test patterns, and where test files must live.
 ---
 
 # 10 - TDD Workflow
@@ -9,11 +9,9 @@ or `cd src-tauri && cargo test` before commit.
 
 ## Core discipline
 
-**RED → GREEN → REFACTOR.** Write a test that fails for the right
-reason, then write the minimum code to pass, then clean up. The
-reviewable artifact is *the test fails without the change and passes
-with it* — not the order in which keys were typed. Bug fixes MUST
-include a regression test that demonstrates this.
+**Work RED → GREEN → REFACTOR** — a test you never saw fail proves nothing.
+Bug fixes MUST include a regression test that fails without the fix and
+passes with it.
 
 ## When tests are required
 
@@ -33,13 +31,8 @@ include a regression test that demonstrates this.
 
 ## Anti-patterns
 
-- Writing code first, tests second — you can't claim a test catches regressions you haven't run it against.
-- `it("renders without crashing")` — proves nothing.
-- Asserting implementation details (call counts on internal helpers, private state shape) — breaks on refactor.
-- Mocking everything — mock at boundaries (Tauri, network, fs), never logic under test.
-- Snapshot tests for logic — auto-updated without review; use explicit assertions.
-- `any` in test types.
-- Skipping edge cases.
+- **Mock only at boundaries** (Tauri, network, fs) — mocking the logic under test makes the test assert its own mock.
+- **No snapshot tests for logic** — snapshots get auto-updated without review; use explicit assertions.
 
 ## mdpro-specific patterns
 
@@ -47,19 +40,8 @@ include a regression test that demonstrates this.
 - **Hooks**: use `renderHook` from `@testing-library/react`. Mock `@tauri-apps/api/event` and `@tauri-apps/api/core` at boundaries.
 - **Components**: query by ARIA role/name, not CSS class. Use `userEvent`, not `fireEvent`.
 - **Plugins**: extract testable logic from plugin wiring; test transforms and state changes, not editor DOM.
-- **Rust commands**: every `#[tauri::command]` returns `Result<T, String>`; test the error path explicitly.
-
-## Commands
-
-```bash
-pnpm test:run                  # Frontend tests (Vitest)
-pnpm build                     # tsc + vite build
-cd src-tauri && cargo test     # Rust tests
-cd src-tauri && cargo check    # Rust compile check
-```
+- **Rust commands**: every `#[tauri::command]` returns a `Result` (error type is `String` or a serializable enum such as `FileError`); test the error path explicitly.
 
 ## File placement
 
-- Co-locate: `foo.test.ts` beside `foo.ts`.
-- Larger suites: `__tests__/` subdirectory.
-- Shared helpers: `src/test/`.
+**Put frontend tests in `tests/<name>.test.ts`** — `vitest.config.ts` only includes `tests/**/*.test.ts`, so a test co-located under `src/` never runs.
