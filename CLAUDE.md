@@ -262,6 +262,39 @@ Sequencing for this effort lives in
   in plans P and M; when they conflict, the original plan wins and the
   sequencing doc is corrected to match.
 
+## Architecture Decision Records (ADR)
+
+**When a decision is consequential, write an ADR.** Consequential means it is
+expensive to reverse, it constrains later work, or it will be re-litigated by
+someone who wasn't in the room: picking a rendering surface, adding or refusing
+a dependency, changing an IPC contract, accepting a known defect, or deciding
+**not** to build something. Decisions that reach for `AskUserQuestion` are
+usually ADR-worthy — if it was worth interrupting a human, it is worth a record.
+
+- **Location**: `docs/adr/NNNN-kebab-title.md`, numbered sequentially from
+  `0001`, never renumbered and never deleted.
+- **Structure** (Nygard): `# NNNN. Title` → **Status** → **Context** →
+  **Decision** → **Consequences**. Context states the forces *as they were
+  understood at the time*, not as they look in hindsight. Keep it to one page;
+  an ADR is a record, not a design doc.
+- **Status** is one of `Proposed` / `Accepted` / `Superseded by ADR-NNNN` /
+  `Deprecated`. Date every status change.
+- **An accepted ADR is immutable.** Changing your mind writes a **new** ADR that
+  supersedes the old one and links back; both stay in the tree. Editing an
+  accepted record destroys the evidence of why the earlier decision looked right
+  at the time — which is the only thing that stops it being remade by accident.
+- **Record the costs, not just the benefits.** An ADR whose Consequences section
+  lists only upsides is advocacy, not a record. Name what the decision gives up
+  and what it forecloses.
+- Plans and rules **link** to ADRs rather than restating the reasoning. When a
+  plan and an ADR disagree, the ADR is the decision and the plan is corrected.
+
+Decisions already taken for the in-flight redesign still live inline in
+`docs/plans/` (E26, E29 Stryker-not-adopted, E39 no-benchmarking-harness, the
+`export_html` non-deletion, the B′ export-anchor proposal). **Do not backfill
+them wholesale** — a bulk conversion produces records nobody wrote and nobody
+trusts. Promote one to an ADR when it is next disputed, superseded, or built on.
+
 ## Spec-Driven Development
 
 Feature specifications live in `specs/001-mdpro-mvp/`:
