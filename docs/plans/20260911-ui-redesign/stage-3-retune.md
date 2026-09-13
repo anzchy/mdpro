@@ -91,7 +91,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - disabled controls: recorded, not required (WCAG exempts inactive controls)
 - [ ] Rule 33 checklist is done in both themes, at the default window, at 400×640 and with the DR17 2× scale, with who ran each check recorded
 - [ ] `/qa-only` findings are listed, each marked fixed, deferred or out of scope
-- [ ] Tokenization grep: hex, `rgb(` and `hsl(` in in-scope CSS return only lines that rule 31:58-76 or an approved exception permits
+- [ ] Tokenization grep: hex, `rgb(` and `hsl(` in in-scope CSS return only lines that rule 31 § Acceptable hardcoded values or an approved exception permits
 - [ ] `CHANGELOG.md` Unreleased entry for Deliverable B
 - [ ] **STOP (Deliverable B) — mandatory visual sign-off:** the user reviews the before/after index and explicitly approves before Stage 4
 

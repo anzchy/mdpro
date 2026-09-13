@@ -43,8 +43,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - `"mono"` → the mono stack (proposal :27; confirm the mono token name in `:root`)
   - `"editor"` and any unknown value → `var(--editor-font-family)` (proposal :59), like the default branch of `fontFamilyToCss` (`editorPrefApply.ts:46-52`)
 - Editor font size and `--editor-line-height` stay unchanged (review :97).
-- Update rule 31:93-98 to list `--source-font-family` as the fourth runtime-toggled token.
-- Update rule 30 § Core principles: cross-mode parity names Source mode's font as the stated exception (D2), and the mode list drops Preview, which isn't mounted (DR10).
+- Update rule 31 § Layout tokens (runtime-toggled) to list `--source-font-family` as the fourth runtime-toggled token.
+- Update rule 30 § Core principles: cross-mode parity names Source mode's font as the stated exception (D2). The mode list no longer names Preview — `0ca5a41` already dropped it (DR10) — so the parity exception is all that is left to add.
 - **Tests:** a pure-function test that `"mono"`, `"editor"` and an unknown string each produce the expected CSS variable assignment.
 
 ### WI-5.4 — Settings → Editor "Source font" row — S
@@ -78,7 +78,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] An unknown `sourceFont` value loads without error, applies as Follow editor font, and leaves other preferences intact
 - [ ] The Settings row switches Source mode between mono and the editor font live, in both themes; WYSIWYG is unaffected
 - [ ] Editor font size and line height are unchanged in both options
-- [ ] Rule 31:93-98 lists four runtime-toggled tokens; DESIGN.md is updated without values
+- [ ] Rule 31 § Layout tokens (runtime-toggled) lists four runtime-toggled tokens; DESIGN.md is updated without values
 - [ ] CJK caveat checked manually: tables with CJK are noted as not aligning exactly (review :102-103); scroll and selection mapping across mode switches is verified
 - [ ] Source-mode screenshots for each option × theme; `/qa-only` findings triaged
 - [ ] `CHANGELOG.md` Unreleased entry for Deliverable D

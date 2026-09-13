@@ -34,7 +34,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - Integrations: copy buttons `IntegrationsSettings.tsx:220`, `:267` (📋); "Test Connection" `:236` (↻); installed status `:256` (`✓` / `○`), which keeps a text label (DESIGN.md § Status indicator)
   - About update status: `AboutSettings.tsx:224`, `:282` (`✓`)
   - Shortcuts conflict warning: `KeyboardShortcutsSettings.tsx:252` (⚠️)
-- **Not icons:** `⌘` and `⌥` in shortcut labels and titles, and the `×` in the table size readout (`TableInsertModal/index.tsx:206`). The dead `TabBar/`, `FileItem.tsx` and `Preview/` are out of scope (A8).
+- **Not icons:** `⌘` and `⌥` in shortcut labels and titles, and the `×` in the table size readout (`TableInsertModal/index.tsx:206`). The dead `TabBar/` and `FileItem.tsx` are out of scope (A8).
 - **Bottom tab markup:**
   - Today the close control is a `span role="button"` inside the tab's `button`, with no name and no key handling (`BottomTabs.tsx:59-75`).
   - Each tab becomes a wrapper holding two sibling buttons: the tab, named by its title with `aria-current="true"` when active, and "Close *name*" with the close icon.
@@ -175,7 +175,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Layout bug below 960px:**
   - The 960px query sets `.app-shell` to one column but keeps the two-column areas (`globals.css:79-89`, `:1548-1551`). By the grid spec, with the sidebar shown the sidebar gets the flexible track and the main column sizes to its content.
   - WI-0.4 confirms this with a 900px capture. WI-4.8 removes the `.app-shell` override.
-  - The `.split-*` rules in that query style the dead Preview split and stay with it (A8).
+  - The `.split-*` rules in that query do **not** all travel with the deleted Preview pane, and they are not all dead either — the original "they style the dead Preview split and stay with it (A8)" reading was wrong in one direction and is easy to over-correct in the other. Split them by actual use: `SplitView.tsx` is still mounted (`App.tsx:5` imports it, `App.tsx:1140` renders it) and emits `.split-view` (`SplitView.tsx:18`) and `.split-pane full-pane` (`:19`), so those rules are **live** in both the base block (`globals.css:253-269`) and the 960px query (`:1552-1559`) and stay in tokenization scope. What the Preview deletion actually orphaned is `.split-divider` alone, declared at `globals.css:272` and `:1560` and referenced by no `src/**` file — it is the one A8 candidate here. The pane is also permanently single now (`full-pane`), so the query's two-pane sizing for `.split-pane` is worth re-reading against a one-child flex container rather than assumed correct.
 - **Narrow windows (DR16):** the minimum window stays 400×640 (`src-tauri/tauri.conf.json`). With the sidebar shown, the main column is then 180px.
   - The segmented control never shrinks. The breadcrumb takes the rest of the bar and ellipsizes in the DR4 order: folder first, then file name.
   - The status strip stays one line and is a size container. As it narrows it hides line ending first, then encoding, then word count. The cursor position always stays in Source. WYSIWYG has no cursor field (DR19), so word count stays there.

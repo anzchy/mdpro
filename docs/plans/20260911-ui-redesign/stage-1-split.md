@@ -34,7 +34,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ### WI-1.2 — Move sections into partials — M
 - **First commit, before any move:** delete the `.toolbar-recent*` rules (WI-0.5) and the "Recent dropdown" row in rule 31's z-index table. The computed-style diff stays empty, because nothing renders those classes. The pure-move proof diffs against this commit.
-- Keep `:root` tokens and base/reset rules in `globals.css` (rule 31:11-16).
+- Keep `:root` tokens and base/reset rules in `globals.css` (rule 31's "single source of truth" preamble).
 - Move each other section verbatim into a partial, per the approved file map (A6). Assumed location: `src/styles/sections/<section>.css`.
 - List the partials in `src/styles/index.css` immediately after `./globals.css`, in original source order. `main.tsx` is not touched again.
 - Change no selector, value or rule order. Remove only the moved text.

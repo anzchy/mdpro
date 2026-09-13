@@ -23,7 +23,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 | Table and image context menus | table menu has reference (:546-557); image menu no reference, follows the table menu | `pnpm dev` | | | | | | WI-4.15: also capture the image menu with Custom… open |
 | Settings — each page | Integrations / Export / Editor drawn; others no reference | `pnpm dev` / Tauri | | | | | | All eight row panels get the WI-4.3 row markup; Shortcuts and About keep their layouts |
 | Toasts | has reference (:558-564) | `pnpm dev` | | | | | | |
-| Preview pane | none: not mounted since `4570de3` (DR10) | n/a | n/a | n/a | n/a | n/a | | Dead-code candidate (A8); no screenshots |
+| Preview pane | none: not mounted since `4570de3` (DR10) | n/a | n/a | n/a | n/a | n/a | | Deleted by `15b9d35` (A8); no screenshots |
 | Recent files | none: the native "Open Recent" submenu (`menu.rs:73-96`), which the app doesn't style | Tauri | n/a | n/a | n/a | n/a | | No in-app dropdown exists. Check that labels are file names only (`menu.rs:65-71`) and that the empty submenu shows a disabled "No Recent Files" item |
 | Disabled-with-reason button | has reference (:535-536, a static swatch) | `pnpm dev`, at whatever disabled button WI-0.3 finds | | | | | | The proposal's example string isn't in `src/`. If WI-0.3 finds no disabled button with a reason, mark the row n/a |
 | External-change dialog — changed / changed with edits / deleted | local mockup only (DR1, not committed) | Tauri | | | | | | Rebuilt in WI-4.10 (DR5); one shot per state |

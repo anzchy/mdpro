@@ -34,14 +34,15 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 | File | Lines | Color literals | px font-sizes |
 |---|---|---|---|
-| `src/styles/globals.css` | 1918 | 49 | 88 |
+| `src/styles/globals.css` | 1917 | 48 | 88 |
 | `src/components/Editor/MilkdownEditor.css` | 269 | 1 | 1 |
-| `src/components/Preview/styles/preview.css` (dead-code candidate, DR10; out of scope) | 139 | 1 | 2 |
 | `src/components/BottomTabs/BottomTabs.css` | 116 | 2 | 3 |
 | `src/components/Editor/ImageContextMenu.css` | 65 | 0 | 1 |
 | `src/plugins/milkdown/inlineEditPlugin.css` | 39 | 0 | 0 |
 | `src/plugins/milkdown/imagePastePlugin.css` | 25 | 0 | 1 |
 | `src/plugins/codemirror/wysiwygDecorationsPlugin.css` | 16 | 0 | 1 |
+
+The `globals.css` row moved off its `0a3675e` reading of 1918 / 49 / 88: `0ca5a41` deleted the orphan `--color-preview-bg: #fafafa;` declaration, one line and one color literal. The `preview.css` row is gone entirely — `15b9d35` deleted the file, so it is no longer a tokenization-scope question.
 
 `globals.css` also contains non-`var()` declarations of these kinds: 47 `border-radius`, 7 `transition`, 5 `z-index`, 1 `box-shadow`.
 
@@ -75,7 +76,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - **Dead-code candidates:**
   - `src/App.css` (19 color literals, imported nowhere)
   - `src/components/TabBar/` (re-exported only by its own `index.ts`)
-  - the Preview pane (DR10): `src/components/Preview/Preview.tsx` is imported nowhere since `4570de3`; `ImageRenderer.tsx`, `styles/preview.css` and `src/hooks/usePreview.ts` are used only by it. `mathRender.ts` in the same folder is live (`exportService.ts:4`).
+  - the Preview pane (DR10), **already deleted**: `Preview.tsx` was imported nowhere since `4570de3`, and `ImageRenderer.tsx`, `styles/preview.css` and `src/hooks/usePreview.ts` served only it. `15b9d35` deleted all four, and `src/components/Preview/` no longer exists. `mathRender.ts` was the live exception and survived — `e021f47` moved it to `src/services/mathRender.ts` (`exportService.ts:6`).
   - the old document list: `src/components/Sidebar/Sidebar.tsx` is re-exported at `Sidebar/index.tsx:54` but rendered nowhere, and `FileItem.tsx` is imported only by it (`Sidebar.tsx:3`). The WI-2.1 dead-code guard must allow that re-export or name it.
   - the large-file warning (`useDocument.ts:31`, `:66-68`, `:101-103`, `:126-128`; `App.tsx:499-503`): it warns above 10 MB, and the backend already refuses those files (`src-tauri/src/commands/file.rs:16`, `:162-168`)
 
@@ -155,12 +156,12 @@ Do not start the next stage without that reply.
 
 ## Definition of "100% tokenized" (A5)
 
-Applies to every app-owned `src/**/*.css` file except `globals.css :root`, `light.css`, `dark.css`, third-party CSS (highlight.js, KaTeX) and the dead-code candidates. The dead-code exclusion holds only while they stay unimported: the tokenization test asserts that no `src/**` file outside the candidates, and not `index.html`, imports them, and any such import brings the file into scope.
+Applies to every app-owned `src/**/*.css` file except `globals.css :root`, `light.css`, `dark.css`, third-party CSS (KaTeX) and the dead-code candidates. The dead-code exclusion holds only while they stay unimported: the tokenization test asserts that no `src/**` file outside the candidates, and not `index.html`, imports them, and any such import brings the file into scope.
 
 - **Color properties** (color, background, border, outline, fill, stroke, box-shadow, caret-color, text-decoration-color) may use only `var(--…)`, `color-mix()` over `var()`s, `transparent`, `currentColor` or `inherit`.
 - **Must use `var(--…)`:** font-family, chrome font-size, border-radius, transition/animation duration and easing, icon width/height.
 - **Allowed literals:**
-  - the rule 31:58-76 list
+  - the rule 31 § Acceptable hardcoded values list
   - `em` / `%` sizes inside editor and preview content
-  - z-index values from the rule 31:83-91 table
+  - z-index values from the rule 31 § Z-index hierarchy table
 - **Enforcement:** `tests/css-tokenization.test.ts` (WI-2.1).

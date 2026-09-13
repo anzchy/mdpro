@@ -8,7 +8,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ### WI-2.1 — Tokenization guard test (RED first) — M
 - Create `tests/css-tokenization.test.ts` with one `it` per in-scope CSS file. Use the source-inspection style of `tests/design-tokens-accent-danger.test.ts`, including its `@module` / `Purpose:` header.
-- The test enforces the A5 definition: the property families in [`baseline-protocol.md`](baseline-protocol.md), the rule 31:58-76 allowlist, and the rule 31:83-91 z-index table plus any Q10 exception, and the dev-only toolbar rules (`.dev-toolbar*`, `globals.css:1509-1547`) as an exception with file:line (DR21). `999px` pill radii join `50%` on the allowlist, and WI-2.1 edits rule 31 § Acceptable hardcoded values in the same commit (DR23).
+- The test enforces the A5 definition: the property families in [`baseline-protocol.md`](baseline-protocol.md), the rule 31 § Acceptable hardcoded values allowlist, and the rule 31 § Z-index hierarchy table plus any Q10 exception, and the dev-only toolbar rules (`.dev-toolbar*`, `globals.css:1509-1547`) as an exception with file:line (DR21). `999px` pill radii join `50%` on the allowlist, and WI-2.1 edits rule 31 § Acceptable hardcoded values in the same commit (DR23).
 - **Deferred list (A12):**
   - Class (b) literals are listed explicitly as `{ file, selector, property, value, stage: 3 | 4, item: N }`. A listed literal passes; anything else fails.
   - A separate `it` asserts the per-stage counts.
@@ -19,10 +19,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - `@media` and `@keyframes` bodies
   - `var(--x, #fff)` fallbacks
   - `color-mix()` with a literal argument
-- **Dead-code guard (A8), temporary:** assert that neither `index.html` nor any `src/**` file outside the candidates imports `src/App.css`, `src/components/TabBar/`, `Preview.tsx`, `ImageRenderer.tsx`, `usePreview.ts` or `preview.css`.
-  - `exportService.ts` importing `mathRender.ts` stays allowed.
-  - Its failure message names the real TODOS.md entry, "Remove dead App.css and TabBar; fix rule 34's App.css claim", which DR10 extends to the Preview pane. Widen that entry's title to name the Preview pane in the same commit, so the plan and TODOS stop using two names for one task. The entry is cited by that quoted title rather than by line, because the widening this bullet orders is itself what would invalidate a line number.
-  - `tests/table-alignment-rendering.test.ts:46-49` reads `preview.css` from disk; list it with the candidates rather than editing it.
+- **Dead-code guard (A8), temporary:** assert that neither `index.html` nor any `src/**` file outside the candidates imports `src/App.css` or `src/components/TabBar/`. The four Preview files this guard also named — `Preview.tsx`, `ImageRenderer.tsx`, `usePreview.ts` and `preview.css` — were deleted by `15b9d35`, so an assertion that nothing imports them can no longer fail and would only look like coverage.
+  - Its failure message names the real TODOS.md entry, "Remove dead App.css and TabBar; fix rule 34's App.css claim". The Preview pane DR10 folded into that entry was cleaned up separately by `15b9d35`, so the title needs no widening and stands as written. The entry is still cited by that quoted title rather than by line, because any TODOS.md edit above it would invalidate a line number.
   - Delete the guard when that cleanup lands.
 - **RED evidence:** run the test on the post-Stage-1 tree and record the failing count per file.
 
@@ -35,7 +33,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - Theme-independent tokens go in `globals.css :root`. Theme-specific tokens go in both theme files together (rule 31 authoring rule 1).
 - Class (c) resolutions come from the answers to Q6–Q10. A10 applies: 3 or more unrelated uses gets a semantic token; fewer uses stays an open question, with no invented token.
 - **Rule edit (DR14), in the first token commit:** rule 31's "Token rationale and the decisions log live in the design doc that root `DESIGN.md` marks as current" gains an interim clause. While the UI redesign is in progress, its new and redefined tokens are logged in `docs/design/mdpro-ui-new/DESIGN.md` § Tokens. Any other token still goes to the current doc. WI-5.5 removes the clause.
-- Add or confirm each new token's row in DESIGN.md § Tokens (rule 31 authoring rule 4, with the DR14 clause) without mirroring values (rule 31:18-19).
+- Add or confirm each new token's row in DESIGN.md § Tokens (rule 31 authoring rule 4, with the DR14 clause) without mirroring values (rule 31's "read those files" preamble).
 - Don't copy any value into this plan or DESIGN.md; cite `proposal-ab.html:21-61`.
 
 ### WI-2.3 — Migrate class (a) literals, file by file — M
