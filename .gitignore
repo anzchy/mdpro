@@ -36,3 +36,24 @@ coverage/
 .claude/tdd-guardian/state.json
 .claude/tdd-guardian/receipts.json
 /.stryker-tmp
+
+# cc-suite audit output (/cc-suite:audit findings tables) — regenerated per run
+.cc-suite/
+
+# Session context snapshots (/context-save, /retro) — local to one machine
+.context/
+
+# vmark editor workspace metadata. Unanchored on purpose: vmark writes a
+# .vmark/ directory into whichever folder it opens, so this must match at any
+# depth (currently /.vmark/ and /docs/plans/.vmark/), not just the repo root.
+.vmark/
+
+# Image-path fixtures for manual QA — a binary PNG plus scratch markdown, never
+# loaded by the Vitest suite (vitest.config.ts includes tests/**/*.test.ts only)
+tests/image-test/
+
+# Orphaned Stryker config. Mutation testing was decided NOT to be adopted
+# (sequencing doc 1.7, 「已决：不入库」) and requireMutation stays false, so
+# nothing reads this file. Ignored rather than deleted — see the hygiene report;
+# deleting it is the cleaner end state.
+stryker.config.json

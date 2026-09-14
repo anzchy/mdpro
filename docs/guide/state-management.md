@@ -276,6 +276,63 @@ setViewMode(prefs.lastViewMode);
 | **No Context Provider needed** | Direct hook usage anywhere |
 | **Devtools support** | Redux DevTools compatible |
 
+## Known Defects
+
+### `setActiveDocumentId` — last-writer-wins on overlapping opens (open)
+
+`activeDocumentId` is stored **twice** — in `documentStore`
+(`src/stores/documentStore.ts:29`) and in `editorStore`
+(`src/stores/editorStore.ts:125`) — and every caller is expected to set both, as
+two separate unsynchronized statements:
+
+```typescript
+// src/hooks/useDocument.ts:63-65; the same pair repeats at :86, :98-100,
+// :123-125, :142-144 and :150-152
+useDocumentStore.getState().upsertDocument(result.document);
+useDocumentStore.getState().setActiveDocumentId(result.document.id);
+setEditorActiveDocumentId(result.document.id);
+```
+
+Neither setter consults a generation or sequence number; both assign
+unconditionally. That produces one live defect and one latent trap.
+
+**1. The slowest open wins, not the latest (live).** `openDocumentFromPath`,
+`openDocumentFromDialog` and `openDocumentWithEncoding` each `await` an IPC
+round-trip through `fileService.openFile` *before* assigning. When two open
+flows overlap, their awaits settle in completion order rather than invocation
+order, and the document that finishes reading last becomes active — even if the
+user asked for it first. Opening a large file and then a small one reliably
+lands on the small one.
+
+Note the multi-file path is **not** the trigger: `openPaths`
+(`src/App.tsx:553-567`) awaits inside a `for` loop, so a Finder multi-select is
+sequential. The race needs two *independent* flows in flight at once — a
+`file:open` event (`src/App.tsx:1091`) arriving while a dialog open
+(`src/App.tsx:541`) is still pending, or an MCP document event
+(`src/hooks/useMcpEvents.ts:296`) landing mid-open.
+
+**2. The two copies can diverge (latent).** Because the pair of assignments is
+not atomic, an interleaving can leave `documentStore.activeDocumentId` and
+`editorStore.activeDocumentId` pointing at different documents.
+`useMcpEvents.ts:296` makes this reachable directly: it sets only the
+`documentStore` copy. Today this is latent rather than user-visible — no reader
+of `editorStore.activeDocumentId` exists in `src/`; every consumer
+(`MilkdownEditor.tsx:107`, `useAutoSave.ts:12`, `useMcpSync.ts:42`,
+`Editor.tsx:185`) reads `documentStore`, and `editorStore` itself reaches across
+to `useDocumentStore.getState().activeDocumentId` at `editorStore.ts:72`. The
+`editorStore` copy is therefore written by every open flow and read by none —
+which is precisely the trap for the next person who subscribes to it, since it
+is silently wrong exactly when the two flows overlap.
+
+**Why it is not fixed here.** The fix is a source change across `src/stores/`
+and `src/hooks/useDocument.ts`: either collapse the duplicated field onto one
+store, or carry a monotonic request token that a settling open must re-check
+before it assigns. Both are behavior-affecting changes that need their own tests
+— `.claude/rules/10-tdd.md` marks stores and hooks as mandatory-test categories
+— and this defect was recorded during a docs/config-only hygiene pass barred
+from touching `src/`. Collapsing the duplicate is the preferred direction, since
+consequence 2 shows the second copy currently serves no reader.
+
 ## Related Documentation
 
 - [Architecture Overview](./architecture.md)

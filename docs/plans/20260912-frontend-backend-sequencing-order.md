@@ -26,7 +26,7 @@
 | **3** | 🔄 | **标题身份契约 + TOC 切换（M 提前）**（入口门禁一已交付 `c17c003`；门禁二**部分实测** `7fcaf8c`，**未达成**） | **M** | WI-4.26 依赖的 identity 今天是坏的 |
 | **4** | ⬜ | WI-0.1 重跑 → Stage 0→5 全程 | P | 主体工作 |
 | **5** | ⬜ | 导出迁移、旧解析器退役、ammonia 评估 | M | 行为变更，需独立回滚边界 |
-| **并行** | 🔄 | ESLint（未开始，见 1.10）；**安全收紧：链接点击守卫 C1 已交付并验证**（协议相对链接绕过 `//evil.com/x` → `tauri://evil.com/x`，见 `docs/adr/0002-link-click-routing-and-origin-comparison.md` 与 `docs/adr/0001-wysiwyg-link-scheme-allowlist.md`）；卫生项（未开始） | M Part 6 | 不阻塞主线（但见下方 ESLint 例外） |
+| **并行** | 🔄 | ESLint（未开始，见 1.10）；**安全收紧：链接点击守卫 C1 已交付并验证**（协议相对链接绕过 `//evil.com/x` → `tauri://evil.com/x`，见 `docs/adr/0002-link-click-routing-and-origin-comparison.md` 与 `docs/adr/0001-wysiwyg-link-scheme-allowlist.md`）；**卫生项已交付**（生成物目录统一入 `.gitignore`；`linkSafety.ts` 与 `useMilkdownLinkClickGuard.ts` 两条 criticalPaths 钉在 100% 行/分支——全局阈值 31/61/82 挡不住只影响这两个文件的回归） | M Part 6 | 不阻塞主线（但见下方 ESLint 例外） |
 
 **当前状态实测**：计划 P 实现为零（`src/styles/index.css`、`src/styles/sections/`、
 `ToggleSwitch.tsx`、`Icon.tsx`、`useTauriEvent.ts` 均不在 HEAD）；M 要收敛的五套引擎全部还在。
