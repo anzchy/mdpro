@@ -52,6 +52,11 @@ coverage/
 # loaded by the Vitest suite (vitest.config.ts includes tests/**/*.test.ts only)
 tests/image-test/
 
+# Large-document performance corpus written by scripts/perf/generate-corpus.mjs
+# (default --out). ~50 MiB across 11 files, regenerable byte-for-byte from the
+# committed generator, so the generator is the source input and this is not.
+.perf-corpus/
+
 # Orphaned Stryker config. Mutation testing was decided NOT to be adopted
 # (sequencing doc 1.7, 「已决：不入库」) and requireMutation stays false, so
 # nothing reads this file. Ignored rather than deleted — see the hygiene report;
