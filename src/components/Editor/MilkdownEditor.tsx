@@ -58,20 +58,6 @@ export function sanitizePastedHtml(html: string): string {
   return sanitized.replace(/\s+src=["']data:(?!image\/)[^"']*["']/gi, "");
 }
 
-/**
- * Returns true when an href is safe to open.
- * Blocks javascript:, data:, and vbscript: protocols (issue #10).
- */
-export function isSafeHref(href: string): boolean {
-  if (!href) return false;
-  // Trim whitespace — bypass attempts like "  javascript:alert(1)"
-  const trimmed = href.trim().toLowerCase();
-  if (trimmed.startsWith("javascript:")) return false;
-  if (trimmed.startsWith("data:")) return false;
-  if (trimmed.startsWith("vbscript:")) return false;
-  return true;
-}
-
 // ProseMirror plugin that sanitizes HTML pasted from the clipboard (#7)
 const pasteHtmlSanitizerPlugin = new Plugin({
   props: {
@@ -267,9 +253,10 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
   // Resolve local image paths to Tauri asset:// URLs after Milkdown renders
   useMilkdownImages(editor, activeDocument?.path ?? null, activeDocumentId);
 
-  // Block javascript:/data: link clicks (#10); WI-2.6 cursor restore on
-  // mode toggle. Both extracted to hook files to keep this component
-  // under the 300-line guideline.
+  // Enforce the link-click scheme allowlist and route clicks by resolved
+  // origin — external handoff, in-document, or blocked (#10, ADR-0002);
+  // WI-2.6 cursor restore on mode toggle. Both extracted to hook files to
+  // keep this component under the 300-line guideline.
   useMilkdownLinkClickGuard(activeDocumentId);
   useMilkdownTableCursorRestore(editor, activeDocumentId);
 
