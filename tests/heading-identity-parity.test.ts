@@ -25,9 +25,16 @@
  *                   degradation path (plan decision A1), not a path users hit.
  *
  * expectedSlugs is the CORRECT answer, not today's behavior. A face absent from
- * currentlyFailsOn must match it; a face listed there must NOT — each defect is
- * pinned as a defect, so the branch stays green while the corpus states the
- * truth. WI-3.2 deletes the entry it fixes and the assertion flips.
+ * currentlyFailsOn must match it. A face listed there must match
+ * currentlyProduces[face] EXACTLY — the output measured from the live code —
+ * and that recording must itself still differ from expectedSlugs.
+ *
+ * Asserting only "not equal to expected" for a pinned defect would accept every
+ * wrong answer equally: deleting every heading from a defective case, or
+ * emptying its output entirely, would still satisfy it. Pinning the exact output
+ * makes each defect the specific defect it is. WI-3.2 deletes a face from
+ * currentlyFailsOn AND from currentlyProduces together, and the assertion flips
+ * to demanding correctness.
  */
 import * as fs from "fs";
 import * as path from "path";
@@ -39,12 +46,15 @@ import { invoke } from "@tauri-apps/api/core";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 const invokeMock = vi.mocked(invoke);
 
+type FaceValue = Array<string | number>;
+
 interface Case {
   name: string;
   markdown: string;
   expectedSlugs: string[];
   expectedTocOffsets?: number[];
   currentlyFailsOn?: string[];
+  currentlyProduces?: Record<string, FaceValue>;
   note?: string;
 }
 
@@ -55,9 +65,23 @@ const fixtures = JSON.parse(
   ),
 ) as { cases: Case[] };
 
-/** Extract every id="…" value in document order. */
-function idsFrom(html: string): string[] {
-  return [...html.matchAll(/\sid="([^"]*)"/g)].map((m) => m[1]);
+/**
+ * Extract the id of every <h1>–<h6> in document order.
+ *
+ * Deliberately NOT every id in the document. Footnote references and
+ * definitions carry ids of their own, and raw HTML passes arbitrary ids through
+ * the sanitizer, so a whole-document sweep reports a valid document as having
+ * extra headings — the `non-heading-ids` case measures exactly that. A sweep is
+ * equally blind in the other direction: an id MOVED off a heading onto a
+ * wrapper still shows up, so the anchor stops being a heading anchor with no
+ * test failing.
+ *
+ * The `\sid="` requires a real `id` attribute, so `data-heading-id="…"` is not
+ * mistaken for an anchor — a heading left with only the data attribute (what
+ * DOMPurify's clobbering defense produces) correctly contributes nothing.
+ */
+function headingIdsFrom(html: string): string[] {
+  return [...html.matchAll(/<h[1-6][^>]*\sid="([^"]*)"/g)].map((m) => m[1]);
 }
 
 function fails(c: Case, face: string): boolean {
@@ -65,9 +89,10 @@ function fails(c: Case, face: string): boolean {
 }
 
 /**
- * Assert a face against its expected value, inverting when the fixture pins the
- * face as a known defect. Keeping both directions in one helper is what makes a
- * fixed defect fail loudly instead of silently passing.
+ * Assert a face against its expected value, or against its RECORDED current
+ * output when the fixture pins the face as a known defect. Keeping both
+ * directions in one helper is what makes a fixed defect fail loudly instead of
+ * silently passing.
  */
 function assertFace(
   c: Case,
@@ -76,12 +101,26 @@ function assertFace(
   expected: unknown,
 ): void {
   if (fails(c, face)) {
+    const recorded = c.currentlyProduces?.[face];
+    expect(
+      recorded,
+      `[${c.name}] pins \`${face}\` in currentlyFailsOn but records no ` +
+        `currentlyProduces["${face}"]. A pinned defect must record the exact output ` +
+        `it produces today, or the pin accepts any wrong answer at all.`,
+    ).toBeDefined();
+    expect(
+      recorded,
+      `[${c.name}] currentlyProduces["${face}"] equals the expected value, so the ` +
+        `recorded "defect" IS the correct answer. Delete "${face}" from ` +
+        `currentlyFailsOn and from currentlyProduces.\n  note: ${c.note ?? ""}`,
+    ).not.toEqual(expected);
     expect(
       actual,
-      `[${c.name}] fixture pins \`${face}\` as DEFECTIVE but it now produces the ` +
-        `correct value. If WI-3.2 fixed this, delete "${face}" from that case's ` +
-        `currentlyFailsOn.\n  note: ${c.note ?? ""}`,
-    ).not.toEqual(expected);
+      `[${c.name}] \`${face}\` is pinned as DEFECTIVE with a recorded output, but it ` +
+        `now produces something else. If WI-3.2 fixed it, delete "${face}" from ` +
+        `currentlyFailsOn and currentlyProduces; if the behavior merely changed, ` +
+        `re-measure and update the recording.\n  note: ${c.note ?? ""}`,
+    ).toEqual(recorded);
   } else {
     expect(
       actual,
@@ -120,13 +159,13 @@ describe("heading identity corpus — JS faces", () => {
         .join("");
       invokeMock.mockResolvedValue({ html: rustShaped });
       const html = await exportService.renderMarkdown(c.markdown);
-      assertFace(c, "exportCanonical", idsFrom(html), c.expectedSlugs);
+      assertFace(c, "exportCanonical", headingIdsFrom(html), c.expectedSlugs);
     });
 
     it(`fallback export slugs for "${c.name}"`, async () => {
       invokeMock.mockRejectedValue(new Error("force marked fallback"));
       const html = await exportService.renderMarkdown(c.markdown);
-      assertFace(c, "exportFallback", idsFrom(html), c.expectedSlugs);
+      assertFace(c, "exportFallback", headingIdsFrom(html), c.expectedSlugs);
     });
   }
 });

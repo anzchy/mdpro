@@ -11,6 +11,17 @@
     "defect is therefore pinned as a defect and the branch stays green. WI-3.2 deletes",
     "the currentlyFailsOn entry it fixes, and the assertion flips to demanding correctness.",
     "",
+    "currentlyProduces records, per DEFECTIVE face, the EXACT output that face produces",
+    "today. Both runners assert a pinned face equals its recorded value -- not merely that",
+    "it differs from expectedSlugs. Differs-from-correct accepts EVERY wrong answer, so a",
+    "pinned case could be corrupted further (even emptied of headings) and stay green.",
+    "Both runners also assert the recording still differs from expectedSlugs, so recording",
+    "a correct output as the current one fails loudly instead of re-pinning a fixed bug.",
+    "WI-3.2 deletes a face from currentlyFailsOn AND from currentlyProduces together.",
+    "",
+    "Both runners read ids from h1-h6 ONLY, never a whole-document id sweep. See the",
+    "non-heading-ids case for why.",
+    "",
     "Every value here was MEASURED against the live code on 2026-09-12, not inferred.",
     "",
     "FACES — each defect is attributed to the layer that owns it:",
@@ -58,6 +69,13 @@
       "note": "Control for the clobber cases: a non-colliding ASCII id survives every face. Without this, a stripped anchor is indistinguishable from a parse failure."
     },
     {
+      "name": "non-heading-ids",
+      "markdown": "# Real Heading\n\nBody with a footnote[^1].\n\n<div id=\"raw-html-anchor\">raw</div>\n\n[^1]: The note.\n",
+      "expectedSlugs": ["real-heading"],
+      "currentlyFailsOn": [],
+      "note": "Extraction guard. A VALID document whose non-heading elements carry ids: a footnote reference, a footnote definition, and a raw <div id>. Both runners must read ids from h1-h6 only. Measured 2026-09-14: sweeping every id instead yields [real-heading, fnref-1, raw-html-anchor, 1] on rust and [real-heading, raw-html-anchor] on exportFallback, so a whole-document sweep reports this correct document as defective. Also catches the inverse -- an id MOVED off a heading onto a wrapper still passes a whole-document sweep but fails here."
+    },
+    {
       "name": "cjk-basic",
       "markdown": "# 架构设计",
       "expectedSlugs": ["架构设计"],
@@ -83,6 +101,11 @@
       "markdown": "# x\n# x\n# x-1",
       "expectedSlugs": ["x", "x-1", "x-1-1"],
       "currentlyFailsOn": ["rust", "toc", "exportFallback"],
+      "currentlyProduces": {
+        "rust": ["x", "x-1", "x-1"],
+        "toc": ["x", "x-1", "x-1"],
+        "exportFallback": ["x", "x-1", "x-1"]
+      },
       "note": "The third heading's literal text already slugs to `x-1`, which the counter just handed to the second heading. All three generators emit `x-1` twice, violating document-unique anchors. Needs a third heading to surface -- two is not enough."
     },
     {
@@ -90,6 +113,10 @@
       "markdown": "# 🎉\n# heading",
       "expectedSlugs": ["heading", "heading-1"],
       "currentlyFailsOn": ["toc", "exportFallback"],
+      "currentlyProduces": {
+        "toc": ["heading", "heading"],
+        "exportFallback": ["heading", "heading"]
+      },
       "note": "TS applies the `|| \"heading\"` fallback AFTER counts.set, so it registers \"\" and the literal `# heading` collides undetected. Rust applies the fallback BEFORE the count map and is correct. True duplicate id on the TS faces."
     },
     {
@@ -97,6 +124,10 @@
       "markdown": "# 🎉\n# 🎊",
       "expectedSlugs": ["heading", "heading-1"],
       "currentlyFailsOn": ["toc", "exportFallback"],
+      "currentlyProduces": {
+        "toc": ["heading", "-1"],
+        "exportFallback": ["heading", "-1"]
+      },
       "note": "Same root cause, different symptom: the second empty slug becomes the bare suffix `-1`, an id with no base at all. Recorded in neither plan before 2026-09-12."
     },
     {
@@ -104,6 +135,9 @@
       "markdown": "```\n# not a heading\n```",
       "expectedSlugs": [],
       "currentlyFailsOn": ["toc"],
+      "currentlyProduces": {
+        "toc": ["not-a-heading"]
+      },
       "note": "tocService matches ATX line-by-line with no fence tracking, so it invents a heading from code-block content. Rust and both export faces correctly yield nothing."
     },
     {
@@ -111,6 +145,9 @@
       "markdown": "Alpha\n=====",
       "expectedSlugs": ["alpha"],
       "currentlyFailsOn": ["toc"],
+      "currentlyProduces": {
+        "toc": []
+      },
       "note": "Setext headings (EC-MD-002). tocService's regex is ATX-only and misses them entirely. Deliberately NOT named `title` so the miss cannot be confused with the clobbering strip -- that confusion cost a round of measurement."
     },
     {
@@ -118,6 +155,11 @@
       "markdown": "Title\n=====",
       "expectedSlugs": ["title"],
       "currentlyFailsOn": ["toc", "exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "toc": [],
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "Two independent defects stacked on one input: tocService misses Setext, and the slug `title` is then stripped by DOMPurify on both export faces. Kept alongside setext-noncolliding so the two causes stay separable."
     },
     {
@@ -125,6 +167,9 @@
       "markdown": "# **bold** title",
       "expectedSlugs": ["bold-title"],
       "currentlyFailsOn": ["exportFallback"],
+      "currentlyProduces": {
+        "exportFallback": ["strong-bold-strong-title"]
+      },
       "note": "The fallback's marked renderer receives RENDERED HTML as `text`, so markup leaks into the slug: `strong-bold-strong-title`. Rust, toc, and the canonical export all agree on `bold-title`."
     },
     {
@@ -132,6 +177,9 @@
       "markdown": "# `code` title",
       "expectedSlugs": ["code-title"],
       "currentlyFailsOn": ["exportFallback"],
+      "currentlyProduces": {
+        "exportFallback": ["code-code-code-title"]
+      },
       "note": "Same leak via `<code>`: the fallback yields `code-code-code-title` (EC-TOC-005, inline code stripped)."
     },
     {
@@ -139,6 +187,10 @@
       "markdown": "# [text](https://example.com) tail",
       "expectedSlugs": ["text-tail"],
       "currentlyFailsOn": ["toc", "exportFallback"],
+      "currentlyProduces": {
+        "toc": ["text-https-example-com-tail"],
+        "exportFallback": ["a-href-https-example-com-text-a-tail"]
+      },
       "note": "Three-way divergence (EC-TOC-005, links stripped). toc slugs the raw markdown including the URL; the fallback slugs the rendered anchor tag; only Rust and the canonical export strip to the link TEXT."
     },
     {
@@ -146,6 +198,10 @@
       "markdown": "# Title ###",
       "expectedSlugs": ["title"],
       "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "Closing-sequence ATX (EC-MD-001). The slug is correctly `title` on every face -- what fails is that DOMPurify then strips the anchor. Measured as a parse bug in round 1; it is not."
     },
     {
@@ -153,6 +209,10 @@
       "markdown": "# ---title---",
       "expectedSlugs": ["title"],
       "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "Leading/trailing separators trimmed. Same story as trailing-hashes: correct slug, stripped anchor."
     },
     {
@@ -160,6 +220,10 @@
       "markdown": "# Title",
       "expectedSlugs": ["title"],
       "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "DOM-clobbering defense: DOMPurify's default SANITIZE_DOM removes an `id` colliding with a built-in document/form property, leaving `<h1 data-heading-id=\"title\">` with NO anchor. Rust/ammonia keeps it, so this is a TS-vs-Rust divergence, not a shared security posture. sanitizerPolicy.ts sets neither SANITIZE_DOM:false nor SANITIZE_NAMED_PROPS and its header never mentions clobbering, so this is unrecorded behavior, not a deliberate choice."
     },
     {
@@ -167,6 +231,10 @@
       "markdown": "# Name",
       "expectedSlugs": ["name"],
       "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "Same defense, `document.name` / form property."
     },
     {
@@ -174,6 +242,10 @@
       "markdown": "# Body",
       "expectedSlugs": ["body"],
       "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "Same defense, `document.body`."
     },
     {
@@ -181,6 +253,10 @@
       "markdown": "# Location",
       "expectedSlugs": ["location"],
       "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "Same defense, `document.location` -- the highest-severity clobber target."
     },
     {
@@ -188,6 +264,10 @@
       "markdown": "# Forms",
       "expectedSlugs": ["forms"],
       "currentlyFailsOn": ["exportCanonical", "exportFallback"],
+      "currentlyProduces": {
+        "exportCanonical": [],
+        "exportFallback": []
+      },
       "note": "Same defense, `document.forms`."
     },
     {
@@ -196,6 +276,9 @@
       "expectedSlugs": ["标题"],
       "expectedTocOffsets": [6],
       "currentlyFailsOn": ["tocOffsets"],
+      "currentlyProduces": {
+        "tocOffsets": [5]
+      },
       "note": "tocService accumulates `line.length + 1` after splitting on /\\r?\\n/, undercounting one byte per CRLF line. Reports 5 where the heading starts at index 6. Slugs are unaffected; only positions are wrong (EC-FILE-008)."
     },
     {
@@ -204,6 +287,9 @@
       "expectedSlugs": ["h"],
       "expectedTocOffsets": [6],
       "currentlyFailsOn": ["tocOffsets"],
+      "currentlyProduces": {
+        "tocOffsets": [4]
+      },
       "note": "The undercount ACCUMULATES: two preceding CRLF lines yield offset 4 against a true 6. Line numbers stay correct throughout."
     },
     {

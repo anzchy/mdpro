@@ -10,12 +10,19 @@
  * or throws — the raw source is kept in a `code`-styled span and a danger badge
  * is shown, so the user is always one glance from their source.
  *
- * Performance (plan decision P1): each block is keyed by its source TeX; a block
- * already typeset for the same source is skipped on re-render. A Weak-ish cache
- * is avoided in favor of a `data-` attribute marker so the cache survives the
- * `dangerouslySetInnerHTML` swap (which replaces the nodes entirely).
+ * Performance (plan decision P1): each block is keyed by its source TeX, stored
+ * on the node itself in a `data-` attribute rather than in an external cache.
+ * The memo therefore lives and dies WITH ITS NODE — it can only hit when the
+ * SAME node is processed again, so it applies to RETAINED nodes only. A host
+ * that replaces nodes wholesale gains nothing from it: a
+ * `dangerouslySetInnerHTML` swap, and `prerenderMathForExport` (which parses
+ * into a brand-new detached container on every call), both hand each block a
+ * fresh node carrying no marker, so every block is typeset from scratch. On
+ * today's only production path — export — the memo therefore never hits; it is
+ * exercised by the unit tests and guards any future pass that re-runs over
+ * nodes it kept.
  *
- * @coordinates-with src-tauri/src/services/markdown_ext.rs (emits the wrappers)
+ * @coordinates-with src-tauri/src/services/markdown_ext/mod.rs (emits the wrappers)
  * @coordinates-with src/services/exportService.ts (invokes `prerenderMathForExport`)
  *
  * NOTE (corrected in stage 2.5): an earlier note here claimed
@@ -68,10 +75,11 @@ export function renderMathElement(
   const stashed = el.getAttribute(SOURCE_ATTR);
   const tex = stashed ?? el.textContent ?? "";
 
-  // Memoize: a node already typeset for this exact source is a no-op. A host
-  // that replaces nodes wholesale on each render gains nothing from it, so this
-  // mainly guards against double-processing within a single pass; an unchanged
-  // block whose node persisted (e.g. a re-invoked pass) is skipped here.
+  // Memoize: a node already typeset for this exact source is a no-op. This can
+  // only hit on a RETAINED node — one handed to a later pass with its marker
+  // attributes intact. A host that replaces nodes wholesale on each render
+  // (including the export path, which builds a fresh container per call) never
+  // reaches it, because a fresh node carries neither attribute.
   if (el.getAttribute(RENDERED_ATTR) === "true" && stashed === tex) {
     return true;
   }

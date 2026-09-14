@@ -39,6 +39,14 @@
  *     `globals.css` or the theme sheets can match a cell inside
  *     `.milkdown-editor .ProseMirror`, so the narrower fixture loses nothing.
  *
+ * Scope fixtures: the markup carries three negative containers — one with
+ * NEITHER ancestor, one with ONLY `.milkdown-editor`, and one with ONLY
+ * `.ProseMirror`. The single-ancestor pair is what makes the scope assertions
+ * load-bearing. A fixture missing both ancestors stays unmatched however the
+ * chain is shortened, so deleting either ancestor from the stylesheet left
+ * every alignment and scope assertion green; a fixture carrying exactly one
+ * ancestor starts matching the moment the other is dropped.
+ *
  * `fs.readFileSync` survives this migration but changes role: it no longer
  * supplies a string to run regexes over, it loads the artifact under test.
  * File-path coupling is therefore unchanged — a rename of the CSS file still
@@ -86,9 +94,39 @@ function mount(css: string): void {
         </tr></tbody>
       </table>
     </div></div>
+
+    <!-- Negative fixture: NEITHER ancestor. -->
     <table><tbody><tr>
       <td id="escaped" align="center">outside the editor scope</td>
-    </tr></tbody></table>`;
+    </tr></tbody></table>
+
+    <!-- Negative fixture: ONLY .milkdown-editor, no .ProseMirror. -->
+    <div class="milkdown-editor"><table>
+      <thead><tr>
+        <th id="me-th-center" align="center">c</th>
+        <th id="me-th-right" align="right">r</th>
+        <th id="me-th-absent">a</th>
+      </tr></thead>
+      <tbody><tr>
+        <td id="me-td-center" align="center">c</td>
+        <td id="me-td-right" align="right">r</td>
+        <td id="me-td-absent">a</td>
+      </tr></tbody>
+    </table></div>
+
+    <!-- Negative fixture: ONLY .ProseMirror, no .milkdown-editor. -->
+    <div class="ProseMirror"><table>
+      <thead><tr>
+        <th id="pm-th-center" align="center">c</th>
+        <th id="pm-th-right" align="right">r</th>
+        <th id="pm-th-absent">a</th>
+      </tr></thead>
+      <tbody><tr>
+        <td id="pm-td-center" align="center">c</td>
+        <td id="pm-td-right" align="right">r</td>
+        <td id="pm-td-absent">a</td>
+      </tr></tbody>
+    </table></div>`;
   document.body.appendChild(host);
 }
 
@@ -143,4 +181,31 @@ describe("MilkdownEditor.css — cells carrying [align] resolve to that alignmen
     // be characterizing the test runner instead of the stylesheet.
     expect(alignOf("escaped")).not.toBe("center");
   });
+
+  // BOTH ancestors are load-bearing, and each of these fixtures carries exactly
+  // one of them. Deleting `.milkdown-editor` from the [align] rules makes the
+  // `pm-` cells match; deleting `.ProseMirror` makes the `me-` cells match.
+  // Either way an assertion below fails, which the both-ancestors-missing
+  // `escaped` fixture could never detect on its own.
+  const partials: Array<[string, string]> = [
+    ["me", ".milkdown-editor without .ProseMirror"],
+    ["pm", ".ProseMirror without .milkdown-editor"],
+  ];
+
+  for (const [prefix, label] of partials) {
+    for (const tag of ["th", "td"]) {
+      for (const dir of ["center", "right"]) {
+        it(`${tag} with align="${dir}" is unaligned under ${label}`, () => {
+          mount(MILKDOWN_CSS);
+          // Compare against a no-attribute cell in the SAME container rather
+          // than pinning jsdom's empty-string default: the claim is that
+          // [align] had no effect here, whatever the inherited default is.
+          expect(alignOf(`${prefix}-${tag}-${dir}`)).toBe(
+            alignOf(`${prefix}-${tag}-absent`),
+          );
+          expect(alignOf(`${prefix}-${tag}-${dir}`)).not.toBe(dir);
+        });
+      }
+    }
+  }
 });
