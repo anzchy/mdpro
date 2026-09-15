@@ -268,6 +268,39 @@ pub fn build_menu(
     Ok(menu)
 }
 
+pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
+    let id = event.id().as_ref();
+    match id {
+        MENU_FILE_NEW => emit_menu_action(app, "file.new", None),
+        MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
+        MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),
+        MENU_FILE_SAVE => emit_menu_action(app, "file.save", None),
+        MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),
+        MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
+        MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
+        MENU_VIEW_CYCLE => emit_menu_action(app, "cycle-view-mode", None),
+        MENU_VIEW_SOURCE => emit_menu_action(app, "set-view-mode", Some("source".to_string())),
+        MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
+        MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
+        MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
+        MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, "paragraph.table", None),
+        MENU_THEME_LIGHT => emit_menu_action(app, "theme.light", None),
+        MENU_THEME_DARK => emit_menu_action(app, "theme.dark", None),
+        MENU_THEME_SYSTEM => emit_menu_action(app, "theme.system", None),
+        _ => {
+            if let Some(index) = id.strip_prefix(MENU_FILE_RECENT_PREFIX) {
+                if let Ok(idx) = index.parse::<usize>() {
+                    let state = app.state::<MenuState>();
+                    let recent_files = state.recent_files();
+                    if let Some(path) = recent_files.get(idx) {
+                        emit_menu_action(app, "file.open_recent", Some(path.to_string()));
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -315,38 +348,5 @@ mod tests {
         let id = format!("{}{}", MENU_FILE_RECENT_PREFIX, 2);
         let stripped = id.strip_prefix(MENU_FILE_RECENT_PREFIX).unwrap();
         assert_eq!(stripped.parse::<usize>().unwrap(), 2);
-    }
-}
-
-pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
-    let id = event.id().as_ref();
-    match id {
-        MENU_FILE_NEW => emit_menu_action(app, "file.new", None),
-        MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
-        MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),
-        MENU_FILE_SAVE => emit_menu_action(app, "file.save", None),
-        MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),
-        MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
-        MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
-        MENU_VIEW_CYCLE => emit_menu_action(app, "cycle-view-mode", None),
-        MENU_VIEW_SOURCE => emit_menu_action(app, "set-view-mode", Some("source".to_string())),
-        MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
-        MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
-        MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
-        MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, "paragraph.table", None),
-        MENU_THEME_LIGHT => emit_menu_action(app, "theme.light", None),
-        MENU_THEME_DARK => emit_menu_action(app, "theme.dark", None),
-        MENU_THEME_SYSTEM => emit_menu_action(app, "theme.system", None),
-        _ => {
-            if let Some(index) = id.strip_prefix(MENU_FILE_RECENT_PREFIX) {
-                if let Ok(idx) = index.parse::<usize>() {
-                    let state = app.state::<MenuState>();
-                    let recent_files = state.recent_files();
-                    if let Some(path) = recent_files.get(idx) {
-                        emit_menu_action(app, "file.open_recent", Some(path.to_string()));
-                    }
-                }
-            }
-        }
     }
 }

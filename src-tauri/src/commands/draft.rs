@@ -32,7 +32,7 @@ pub async fn save_draft(
         error: None,
     });
     let result =
-        save_draft_service(&document_id, &content, original_path, &title).map_err(|err| {
+        save_draft_service(&document_id, &content, original_path, &title).inspect_err(|err| {
             logger::log_event(LogEntryPayload {
                 level: LogLevel::Error,
                 event: "file.write".to_string(),
@@ -42,7 +42,6 @@ pub async fn save_draft(
                 duration_ms: Some(start.elapsed().as_millis() as u64),
                 error: Some(err.to_string()),
             });
-            err
         })?;
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -51,7 +50,7 @@ pub async fn save_draft(
         action_id: Some(action_id),
         context: Some(json!({
             "documentId": document_id.as_str(),
-            "bytes": content.as_bytes().len()
+            "bytes": content.len()
         })),
         duration_ms: Some(start.elapsed().as_millis() as u64),
         error: None,
@@ -72,7 +71,7 @@ pub async fn get_draft(document_id: String) -> Result<Option<Draft>, DraftError>
         duration_ms: None,
         error: None,
     });
-    let result = load_draft(&document_id).map_err(|err| {
+    let result = load_draft(&document_id).inspect_err(|err| {
         logger::log_event(LogEntryPayload {
             level: LogLevel::Error,
             event: "file.read".to_string(),
@@ -82,7 +81,6 @@ pub async fn get_draft(document_id: String) -> Result<Option<Draft>, DraftError>
             duration_ms: Some(start.elapsed().as_millis() as u64),
             error: Some(err.to_string()),
         });
-        err
     })?;
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -152,8 +150,14 @@ mod tests {
         HomeRestorer(prev)
     }
 
+    // HOME_LOCK is deliberately held across the await: it serializes mutation of
+    // the process-wide $HOME, and the awaited call reads $HOME, so the guard must
+    // outlive it. `#[tokio::test]` runs on a current_thread runtime, so the future
+    // never migrates between threads. Releasing the lock earlier would let two
+    // tests race on $HOME and make the suite flaky.
     /// Regression test: get_draft must propagate IO/parse errors instead of
     /// silently coercing them to None (the original bug).
+    #[allow(clippy::await_holding_lock)]
     #[tokio::test]
     async fn get_draft_propagates_parse_error_for_corrupt_metadata() {
         let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -179,6 +183,9 @@ mod tests {
         );
     }
 
+    // Same rationale as above: $HOME serialization requires holding HOME_LOCK
+    // across the await, and the current_thread test runtime makes that safe.
+    #[allow(clippy::await_holding_lock)]
     #[tokio::test]
     async fn get_draft_returns_ok_none_for_missing_draft() {
         let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());

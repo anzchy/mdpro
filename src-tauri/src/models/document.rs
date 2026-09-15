@@ -24,6 +24,12 @@ pub struct Document {
     pub file_size: Option<u64>,
 }
 
+impl Default for Document {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Document {
     pub fn new() -> Self {
         Self {

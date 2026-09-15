@@ -175,7 +175,7 @@ fn main() {
         .setup(move |app| {
             let watcher =
                 tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone())
-                    .map_err(|e| Box::<dyn std::error::Error>::from(e))?;
+                    .map_err(Box::<dyn std::error::Error>::from)?;
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
 
@@ -223,7 +223,7 @@ fn main() {
                     }
                 }
             });
-            let menu = tauri_app_lib::menu::build_menu(&app.handle(), &[], None)?;
+            let menu = tauri_app_lib::menu::build_menu(app.handle(), &[], None)?;
             app.set_menu(menu)?;
             let launch_state = tauri_app_lib::launch::LaunchState::default();
             let raw_args: Vec<String> = std::env::args().skip(1).collect();
@@ -347,7 +347,7 @@ fn main() {
             match event {
                 WindowEvent::ThemeChanged(theme) => {
                     tauri_app_lib::services::file_watcher::emit_theme_changed(
-                        &window.app_handle(),
+                        window.app_handle(),
                         theme,
                     );
                 }
@@ -375,10 +375,8 @@ fn main() {
                         if let Some(store) = window.try_state::<SharedShadowStore>() {
                             let _ = shadow_store::set_focused_window(&store, window.label());
                         }
-                    } else {
-                        if let Some(store) = window.try_state::<SharedShadowStore>() {
-                            let _ = shadow_store::clear_focused_window_if(&store, window.label());
-                        }
+                    } else if let Some(store) = window.try_state::<SharedShadowStore>() {
+                        let _ = shadow_store::clear_focused_window_if(&store, window.label());
                     }
                 }
                 WindowEvent::CloseRequested { .. } => {

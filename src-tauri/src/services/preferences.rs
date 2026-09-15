@@ -239,9 +239,11 @@ mod tests {
 
     #[test]
     fn merge_editor_preserves_all_other_fields_when_only_editor_updated() {
-        let mut current = UserPreferences::default();
-        current.auto_save_interval = 120;
-        current.show_sidebar = false;
+        let current = UserPreferences {
+            auto_save_interval: 120,
+            show_sidebar: false,
+            ..UserPreferences::default()
+        };
         let updates = PartialPreferences {
             editor: Some(EditorConfig {
                 font_size: 14,
@@ -334,8 +336,10 @@ mod tests {
 
     #[test]
     fn merge_auto_save_interval_none_preserves_current() {
-        let mut current = UserPreferences::default();
-        current.auto_save_interval = 60;
+        let current = UserPreferences {
+            auto_save_interval: 60,
+            ..UserPreferences::default()
+        };
         let updates = empty_partial(); // all None
         let result = merge_preferences(current, updates);
         assert_eq!(result.auto_save_interval, 60);
@@ -343,8 +347,10 @@ mod tests {
 
     #[test]
     fn merge_show_sidebar_some_flips_value() {
-        let mut current = UserPreferences::default();
-        current.show_sidebar = true;
+        let current = UserPreferences {
+            show_sidebar: true,
+            ..UserPreferences::default()
+        };
         let updates = PartialPreferences {
             show_sidebar: Some(false),
             ..empty_partial()
@@ -487,8 +493,10 @@ mod tests {
         let _home_guard = set_home(&home);
 
         // First save establishes a known-good config.json.
-        let mut first = UserPreferences::default();
-        first.auto_save_interval = 42;
+        let first = UserPreferences {
+            auto_save_interval: 42,
+            ..UserPreferences::default()
+        };
         save_preferences(&first).expect("first save");
         let dir = home.join(".mdpro");
         let config = dir.join("config.json");
@@ -497,8 +505,10 @@ mod tests {
         // Make the dir read-only so creating the temp fails on the next save.
         std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
 
-        let mut second = UserPreferences::default();
-        second.auto_save_interval = 999;
+        let second = UserPreferences {
+            auto_save_interval: 999,
+            ..UserPreferences::default()
+        };
         let res = save_preferences(&second);
 
         // Restore perms for assertions + cleanup.
@@ -526,10 +536,12 @@ mod tests {
         // but forgetting to add it to merge_preferences would cause a compile error
         // (struct initialiser must be complete). This test documents the expectation
         // that unrelated fields survive a partial merge.
-        let mut current = UserPreferences::default();
-        current.auto_save_interval = 999;
-        current.show_sidebar = false;
-        current.enable_scroll_sync = false;
+        let current = UserPreferences {
+            auto_save_interval: 999,
+            show_sidebar: false,
+            enable_scroll_sync: false,
+            ..UserPreferences::default()
+        };
 
         let updates = PartialPreferences {
             editor: Some(EditorConfig {

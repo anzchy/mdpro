@@ -101,11 +101,11 @@ fn transform_line(line: &str) -> String {
             }
             let tick_len = i - start;
             let close: Vec<u8> = vec![b'`'; tick_len];
-            if let Some(rel) = line[i..]
-                .as_bytes()
-                .windows(tick_len)
-                .position(|w| w == close)
-            {
+            // Index the byte slice directly (`bytes` is `line.as_bytes()`). `i` is
+            // always a char boundary here — it was positioned on an ASCII backtick
+            // and then advanced only over further ASCII backticks — so this is
+            // equivalent to slicing the &str first, without the boundary check.
+            if let Some(rel) = bytes[i..].windows(tick_len).position(|w| w == close) {
                 let end = i + rel + tick_len;
                 out.push_str(&line[start..end]);
                 i = end;

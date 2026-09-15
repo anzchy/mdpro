@@ -270,8 +270,7 @@ fn restore_line_endings(content: &str, line_ending: Option<&str>) -> String {
 /// bytes.
 fn encode_for_save(content: &str, encoding_hint: Option<&str>) -> Result<Vec<u8>, FileError> {
     let enc = match encoding_hint {
-        None => "UTF-8",
-        Some(e) if e.is_empty() => "UTF-8",
+        None | Some("") => "UTF-8",
         Some(e) => e,
     };
     encoding::encode_bytes(content, enc).map_err(|message| FileError::IoError { message })
@@ -1056,7 +1055,7 @@ pub async fn open_file(
         None,
     );
     let path_for_error = path.clone();
-    let result = open_file_from_path(&path, encoding).map_err(|err| {
+    let result = open_file_from_path(&path, encoding).inspect_err(|err| {
         log_file_event(
             "file.open",
             LogStatus::Fail,
@@ -1064,9 +1063,8 @@ pub async fn open_file(
             Some(&action_id),
             json!({ "filePath": path_for_error }),
             Some(start.elapsed().as_millis() as u64),
-            Some(file_error_message(&err)),
+            Some(file_error_message(err)),
         );
-        err
     })?;
     watcher.watch(&PathBuf::from(&path));
     log_file_event(
@@ -1126,7 +1124,7 @@ pub async fn open_file_dialog(
 
     let path_string = path.to_string_lossy().to_string();
     let path_for_error = path_string.clone();
-    let result = open_file_from_path(&path_string, None).map_err(|err| {
+    let result = open_file_from_path(&path_string, None).inspect_err(|err| {
         log_file_event(
             "file.open",
             LogStatus::Fail,
@@ -1134,9 +1132,8 @@ pub async fn open_file_dialog(
             Some(&action_id),
             json!({ "filePath": path_for_error }),
             Some(start.elapsed().as_millis() as u64),
-            Some(file_error_message(&err)),
+            Some(file_error_message(err)),
         );
-        err
     })?;
     watcher.watch(&PathBuf::from(&path_string));
     log_file_event(
@@ -1240,7 +1237,7 @@ pub async fn save_file(
     // Re-encode in the document's original encoding so a UTF-16/BOM file is
     // not silently rewritten as UTF-8 (WI-0.3). An unsupported encoding errors
     // here rather than corrupting the file.
-    let bytes = encode_for_save(&content, encoding.as_deref()).map_err(|err| {
+    let bytes = encode_for_save(&content, encoding.as_deref()).inspect_err(|err| {
         log_file_event(
             "file.save",
             LogStatus::Fail,
@@ -1248,9 +1245,8 @@ pub async fn save_file(
             Some(&action_id),
             json!({ "filePath": path_value.as_str(), "encoding": encoding.as_deref() }),
             Some(start.elapsed().as_millis() as u64),
-            Some(file_error_message(&err)),
+            Some(file_error_message(err)),
         );
-        err
     })?;
     let byte_len = bytes.len();
 

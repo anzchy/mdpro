@@ -151,7 +151,7 @@ fn handle_event(
             }
         }
         EventKind::Modify(_) => {
-            if let Some(path) = event.paths.get(0) {
+            if let Some(path) = event.paths.first() {
                 if is_self_write(path) || is_debounced(path, debounce_map) {
                     return;
                 }
@@ -167,7 +167,7 @@ fn handle_event(
             }
         }
         EventKind::Remove(_) => {
-            if let Some(path) = event.paths.get(0) {
+            if let Some(path) = event.paths.first() {
                 if is_debounced(path, debounce_map) {
                     return;
                 }

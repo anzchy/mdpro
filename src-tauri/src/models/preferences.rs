@@ -399,12 +399,13 @@ pub enum ThemeMode {
     System,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ViewMode {
     Split,
     EditorOnly,
     PreviewOnly,
+    #[default]
     Wysiwyg,
 }
 
@@ -631,20 +632,12 @@ impl Default for MarkdownConfig {
 }
 
 /// Appearance configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppearanceConfig {
     /// Code block syntax highlight theme (source mode only)
     #[serde(default)]
     pub code_theme: CodeTheme,
-}
-
-impl Default for AppearanceConfig {
-    fn default() -> Self {
-        Self {
-            code_theme: CodeTheme::default(),
-        }
-    }
 }
 
 /// Export configuration
@@ -684,7 +677,7 @@ pub enum CodeTheme {
 }
 
 /// MCP Server configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpConfig {
     /// Whether MCP server is enabled — opt-in only; defaults to false
@@ -696,16 +689,6 @@ pub struct McpConfig {
     /// Auto-approve AI edits without confirmation (when focused)
     #[serde(default)]
     pub auto_approve_edits: bool,
-}
-
-impl Default for McpConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            start_on_launch: false,
-            auto_approve_edits: false,
-        }
-    }
 }
 
 impl Default for UserPreferences {
@@ -737,11 +720,5 @@ impl Default for UserPreferences {
             appearance: AppearanceConfig::default(),
             export: ExportConfig::default(),
         }
-    }
-}
-
-impl Default for ViewMode {
-    fn default() -> Self {
-        ViewMode::Wysiwyg
     }
 }

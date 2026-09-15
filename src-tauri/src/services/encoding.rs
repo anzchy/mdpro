@@ -36,13 +36,11 @@ fn decode_utf16(bytes: &[u8], little_endian: bool) -> Result<String, String> {
     if bytes.len() < 2 {
         return Ok(String::new());
     }
-    let trimmed = if little_endian && bytes.starts_with(&[0xFF, 0xFE]) {
-        &bytes[2..]
-    } else if !little_endian && bytes.starts_with(&[0xFE, 0xFF]) {
-        &bytes[2..]
-    } else {
-        bytes
-    };
+    // Strip a BOM only when it matches the endianness we were asked to decode;
+    // anything else is passed through untouched.
+    let has_bom = (little_endian && bytes.starts_with(&[0xFF, 0xFE]))
+        || (!little_endian && bytes.starts_with(&[0xFE, 0xFF]));
+    let trimmed = if has_bom { &bytes[2..] } else { bytes };
 
     // Reject an odd-length payload loudly. The pair-iterator would otherwise
     // silently drop the lone trailing byte, corrupting the content (and on
@@ -135,7 +133,7 @@ pub fn detect_encoding_with_confidence(bytes: &[u8]) -> (String, DetectionConfid
 /// UTF-8.
 fn detect_bomless_utf16(bytes: &[u8]) -> Option<&'static str> {
     // Need a few code units to be confident; ignore tiny/odd payloads.
-    if bytes.len() < 8 || bytes.len() % 2 != 0 {
+    if bytes.len() < 8 || !bytes.len().is_multiple_of(2) {
         return None;
     }
     let mut even_nul = 0usize; // NUL at positions 0,2,4,… (BE high byte)

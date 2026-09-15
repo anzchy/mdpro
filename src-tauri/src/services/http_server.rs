@@ -962,7 +962,7 @@ async fn delete_column(
 fn show_write_confirmation(document_title: &str) -> bool {
     let result = rfd::MessageDialog::new()
         .set_title("mdpro - Write Confirmation")
-        .set_description(&format!(
+        .set_description(format!(
             "An external tool wants to replace the content of \"{}\".",
             document_title
         ))
@@ -1191,7 +1191,7 @@ mod tests {
         for offset in 0..=15 {
             let snapped = snap_to_char_boundary(s, offset);
             let mut copy = s.to_string();
-            copy.insert_str(snapped, "X"); // must not panic
+            copy.insert(snapped, 'X'); // must not panic
         }
     }
 
