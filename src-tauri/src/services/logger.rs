@@ -74,8 +74,14 @@ pub fn log_structured_event(mut entry: LogEntry) {
     };
     if let Ok(line) = serde_json::to_string(&entry) {
         if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
-            let _ = file.write_all(line.as_bytes());
-            let _ = file.write_all(b"\n");
+            // One record, one write. Issuing the JSON and its newline as two
+            // separate appends lets a concurrent writer land between them,
+            // yielding `{a}{b}` plus a stray blank line — a record that is
+            // silently unparseable rather than merely missing.
+            let mut buf = String::with_capacity(line.len() + 1);
+            buf.push_str(&line);
+            buf.push('\n');
+            let _ = file.write_all(buf.as_bytes());
         }
         if cfg!(debug_assertions) {
             eprintln!("{}", line);
@@ -107,4 +113,119 @@ pub fn log_line(message: &str) {
         duration_ms: None,
         error: None,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // Use the crate-level HOME_LOCK so this test cannot race with the draft /
+    // file / preferences tests, which also mutate the process-wide HOME.
+    use crate::HOME_LOCK;
+    use std::fs;
+
+    struct HomeRestorer(Option<String>);
+    impl Drop for HomeRestorer {
+        fn drop(&mut self) {
+            match &self.0 {
+                Some(v) => unsafe { std::env::set_var("HOME", v) },
+                None => unsafe { std::env::remove_var("HOME") },
+            }
+        }
+    }
+
+    /// SAFETY: caller must hold HOME_LOCK for the lifetime of the guard.
+    fn set_home(path: &std::path::Path) -> HomeRestorer {
+        let prev = std::env::var("HOME").ok();
+        unsafe { std::env::set_var("HOME", path.to_str().expect("temp dir path is non-UTF-8")) };
+        HomeRestorer(prev)
+    }
+
+    /// Regression test for the interleaved-write defect.
+    ///
+    /// The writer used to issue `write_all(line)` and `write_all(b"\n")` as two
+    /// separate appends. Two threads could land between them, producing a line
+    /// like `{a}{b}` followed by a bare blank line — 35 such records were found
+    /// in the real ~/.mdpro/mdpro.log, every one of them containing `}{` and
+    /// none truncated. A corrupt record is silently unparseable, which is worse
+    /// than a lost one: it makes the log lie about what happened.
+    ///
+    /// Asserting on this event's own count (rather than total line count) keeps
+    /// the test honest if another test in the same process logs concurrently —
+    /// HOME is process-wide, so foreign records can legitimately appear.
+    #[test]
+    fn concurrent_writes_never_interleave() {
+        const THREADS: usize = 8;
+        const PER_THREAD: usize = 250;
+        const EVENT: &str = "test.atomic.write";
+
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = std::env::temp_dir()
+            .join("mdpro_test")
+            .join("logger_atomic");
+        fs::create_dir_all(&home).expect("temp home is creatable");
+        let _home_guard = set_home(&home);
+
+        // Start from a clean file so counts refer to this run only.
+        let path = log_path().expect("log path resolves under temp HOME");
+        let _ = fs::remove_file(&path);
+
+        // Pin settings: the cache is a process-wide OnceLock that an earlier
+        // test may have left disabled, which would vacuously pass this test.
+        set_log_settings(LogSettings {
+            enabled: true,
+            level: LogLevel::Info,
+        });
+
+        let handles: Vec<_> = (0..THREADS)
+            .map(|t| {
+                std::thread::spawn(move || {
+                    for i in 0..PER_THREAD {
+                        log_event(LogEntryPayload {
+                            level: LogLevel::Info,
+                            event: EVENT.to_string(),
+                            status: LogStatus::Success,
+                            action_id: Some(format!("{t}-{i}")),
+                            // Padding widens the window between the two writes,
+                            // so the defect reproduces instead of hiding.
+                            context: Some(json!({ "thread": t, "seq": i, "pad": "x".repeat(256) })),
+                            duration_ms: None,
+                            error: None,
+                        });
+                    }
+                })
+            })
+            .collect();
+        for h in handles {
+            h.join().expect("logging thread must not panic");
+        }
+
+        let raw = fs::read_to_string(&path).expect("log file exists after writing");
+        let lines: Vec<&str> = raw.lines().filter(|l| !l.trim().is_empty()).collect();
+
+        let mut corrupt = Vec::new();
+        let mut mine = 0usize;
+        for line in &lines {
+            match serde_json::from_str::<Value>(line) {
+                Ok(v) => {
+                    if v.get("event").and_then(Value::as_str) == Some(EVENT) {
+                        mine += 1;
+                    }
+                }
+                Err(_) => corrupt.push(*line),
+            }
+        }
+
+        assert!(
+            corrupt.is_empty(),
+            "{} of {} lines are not valid JSON — records interleaved. First: {}",
+            corrupt.len(),
+            lines.len(),
+            corrupt[0].chars().take(160).collect::<String>()
+        );
+        assert_eq!(
+            mine,
+            THREADS * PER_THREAD,
+            "every emitted record must appear exactly once"
+        );
+    }
 }
