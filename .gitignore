@@ -22,7 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.vmark/vmark.code-workspace
 
 # Test coverage reports
 coverage/
@@ -32,9 +31,18 @@ coverage/
 .pre-pr/
 .prompts/
 
-# tdd-guardian generated artifacts
+# tdd-guardian generated artifacts. The timestamped run reports accumulate one
+# file per invocation and are outputs, not inputs — globbed by prefix rather
+# than ignoring the directory, so `config.json` (the tracked input) and any new
+# kind of file stay visible instead of disappearing silently.
 .claude/tdd-guardian/state.json
 .claude/tdd-guardian/receipts.json
+.claude/tdd-guardian/coverage-*.md
+.claude/tdd-guardian/plan-*.md
+.claude/tdd-guardian/tests-*.md
+.claude/tdd-guardian/review-*.md
+.claude/tdd-guardian/mutation-*.md
+.claude/tdd-guardian/attack-*.md
 /.stryker-tmp
 
 # cc-suite audit output (/cc-suite:audit findings tables) — regenerated per run
