@@ -291,9 +291,14 @@ usually ADR-worthy — if it was worth interrupting a human, it is worth a recor
 
 Decisions already taken for the in-flight redesign still live inline in
 `docs/plans/` (E26, E29 Stryker-not-adopted, E39 no-benchmarking-harness, the
-`export_html` non-deletion, the B′ export-anchor proposal). **Do not backfill
-them wholesale** — a bulk conversion produces records nobody wrote and nobody
-trusts. Promote one to an ADR when it is next disputed, superseded, or built on.
+`export_html` non-deletion). **Do not backfill them wholesale** — a bulk
+conversion produces records nobody wrote and nobody trusts. Promote one to an ADR
+when it is next disputed, superseded, or built on.
+
+The B′ export-anchor decision was promoted this way on 2026-09-15
+([ADR-0003](./docs/adr/0003-export-fragment-sanitizer-scope.md)): it was about to
+be built on by WI-3.2, and it carries a precondition with a failure condition
+(`<form>` entering the sanitizer allowlist) that must outlive any plan document.
 
 ## Spec-Driven Development
 

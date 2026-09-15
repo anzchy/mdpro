@@ -231,8 +231,13 @@ open / switch / close / dirty-close / restore / overflow 六种行为。
 - `export_html` + `exportHtml`：**明确不批准删除，理由与可达性无关。**
   它是全仓库**唯一保留全部标题锚点**的导出实现 —— `sanitize_html`（ammonia）不做 DOM-clobbering 剥离，
   而活的导出路径（`App.tsx:587` → `exportRenderedHtml` → `exportService.ts:89` 的 DOMPurify）**会剥离**。
-  计划 M 的「待决：导出锚点被 DOMPurify 剥离」已把改走 `export_html` 列为**选项 C**。
-  **在该决策落定之前删掉它，等于删掉一个候选修复方案。**
+  计划 M 的「导出锚点被 DOMPurify 剥离」曾把改走 `export_html` 列为**选项 C**。
+  **2026-09-15 更新 —— 本条的阻断理由已失效，必须重新裁决：** 该决策已落定为 **B′**
+  （[ADR-0003](../adr/0003-export-fragment-sanitizer-scope.md)），**选项 C 出局**，
+  「删掉它等于删掉一个候选修复方案」不再成立。更进一步：B′ 落地后（WI-3.2）活的导出路径
+  同样保留锚点，「全仓库唯一保留全部标题锚点的实现」这一独特性**也随之消失**。
+  ⇒ 现在仍不删除，理由改为**「决策刚落定、实施未完成」**，而不是原来的候选方案论；
+  **WI-3.2 实施完成后本条必须重新裁决**，不得援引本提案旧文默认保留。
 
 ⇒ 本条是 §2.1 词表存在理由的一个实例：`unreachable-candidate` **不等于**可删除。
 这里的阻断理由既不是动态 import，也不是运行时注册，而是**一个尚未做出的设计决策** ——
@@ -241,10 +246,10 @@ open / switch / close / dirty-close / restore / overflow 六种行为。
 ```json
 {
   "path": "src-tauri/src/commands/export.rs::export_html",
-  "reason": "唯一保留标题锚点的导出实现；是计划 M 的 DOMPurify 锚点剥离决策的候选方案 C",
-  "evidence": "docs/plans/20260912-plan-markdown-source-consolidation.md 「待决：导出锚点被 DOMPurify 剥离」",
+  "reason": "决策已落定为 B′（ADR-0003），候选方案 C 出局，原豁免理由失效；暂留仅因 WI-3.2 尚未实施",
+  "evidence": "docs/adr/0003-export-fragment-sanitizer-scope.md",
   "owner": "export",
-  "reviewAfter": "WI-3.2 决策落定"
+  "reviewAfter": "WI-3.2 实施完成（届时必须重新裁决，不得默认续期）"
 }
 ```
 

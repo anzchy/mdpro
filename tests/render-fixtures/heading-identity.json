@@ -224,7 +224,7 @@
         "exportCanonical": [],
         "exportFallback": []
       },
-      "note": "DOM-clobbering defense: DOMPurify's default SANITIZE_DOM removes an `id` colliding with a built-in document/form property, leaving `<h1 data-heading-id=\"title\">` with NO anchor. Rust/ammonia keeps it, so this is a TS-vs-Rust divergence, not a shared security posture. sanitizerPolicy.ts sets neither SANITIZE_DOM:false nor SANITIZE_NAMED_PROPS and its header never mentions clobbering, so this is unrecorded behavior, not a deliberate choice."
+      "note": "DOM-clobbering defense: DOMPurify's default SANITIZE_DOM removes an `id` colliding with a built-in document/form property, leaving `<h1 data-heading-id=\"title\">` with NO anchor. Rust/ammonia keeps it, so this is a TS-vs-Rust divergence, not a shared security posture. sanitizerPolicy.ts sets neither SANITIZE_DOM:false nor SANITIZE_NAMED_PROPS and its header never mentions clobbering. As of 2026-09-15 the behavior is no longer unrecorded: ADR-0003 accepts B′ — set SANITIZE_DOM:false and rename the function to sanitizeExportFragment. The stripping pinned here remains CURRENT behavior until WI-3.2 implements that decision, so this fixture stays pinned."
     },
     {
       "name": "clobber-name",
