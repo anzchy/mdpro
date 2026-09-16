@@ -35,7 +35,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   recentFiles: [],
   windowState: { width: 1200, height: 800, x: 100, y: 100, isMaximized: false },
   keyboardShortcuts: DEFAULT_KEYBOARD_SHORTCUTS,
-  logging: { enabled: false, level: "info" },
+  logging: { enabled: true, level: "info" },
   windowStates: {},
   mcp: DEFAULT_MCP_CONFIG,
   editor: DEFAULT_EDITOR_CONFIG,

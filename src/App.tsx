@@ -41,7 +41,6 @@ import type { KeyboardShortcuts, WindowState } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { useEditorStore } from "./stores/editorStore";
-import { useLoggingStore } from "./stores/loggingStore";
 import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useTableInsertStore } from "./stores/tableInsertStore";
 import { useToastStore } from "./stores/toastStore";
@@ -89,7 +88,6 @@ function App() {
     clearEncodingIssue,
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
-  const setLoggingSettings = useLoggingStore((state) => state.setSettings);
   const { viewMode, setViewMode, cycleViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
   const { resolvedTheme, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
@@ -234,6 +232,13 @@ function App() {
     let mounted = true;
     const loadPreferences = async () => {
       try {
+        // Hydrate logging from its real source (loggingService) rather than
+        // from the preference object, which in the shipping desktop app is a
+        // browser-mode constant that never reached Rust and so silently left
+        // logging on a default. Placed first in the try so no earlier await
+        // can throw past it; safe here because hydrateSettings never rejects
+        // and does not depend on the loaded preferences.
+        await loggingService.hydrateSettings();
         const prefs = await preferencesService.getPreferences();
         if (!mounted) return;
         // Don't set viewMode here - defer until launch paths are complete
@@ -242,9 +247,6 @@ function App() {
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
         setRecentFiles(prefs.recentFiles ?? []);
-        if (prefs.logging) {
-          setLoggingSettings(prefs.logging);
-        }
         if (prefs.keyboardShortcuts) {
           setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
         }
@@ -278,7 +280,6 @@ function App() {
     applyWindowState,
     setAutoSaveInterval,
     setDefaultViewMode,
-    setLoggingSettings,
     setRecentFiles,
     setShowSidebar,
     setThemeMode,
