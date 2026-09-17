@@ -31,6 +31,10 @@
 **当前状态实测**：计划 P 实现为零（`src/styles/index.css`、`src/styles/sections/`、
 `ToggleSwitch.tsx`、`Icon.tsx`、`useTauriEvent.ts` 均不在 HEAD）；M 要收敛的五套引擎全部还在。
 
+**缺陷另有一轨**：本效力范围内实测到、但**不属于任何阶段工作项**的缺陷登记在下方
+「[D 系列缺陷轨](#d-系列缺陷轨)」。它们不是工作项，故**不在上面的六阶段表里占行**；
+本表也不为它们创设验收条件。
+
 ---
 
 ## 阶段 1 — WI-0.0 chore PR（Stage 0 之前，不含产品代码）
@@ -254,6 +258,137 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
   [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) 豁免，**3.1 准予开工**。
 - **五个停止点**：Stage 0、2、3、4、5 结束 —— 发停止报告，提交拆分方案，
   **等用户明确回复才能开始下一阶段**。
+
+---
+
+## D 系列缺陷轨
+
+**这是一张登记表，不是工作项表。** 它只记录「已实测证实、却不属于任何阶段工作项」的缺陷：
+编号、级别、当前状态、证据在哪、修没修。**本表不创设验收条件** —— 按本文章程，验收条件仍在
+计划 P / M 与各 ADR 里；本表与它们冲突时以原计划与 ADR 为准，并回来修正本表。
+
+**编号不连续，且这是历史事实、不是丢了行**：{D1, D5, D6} 来自门禁二记录
+[`20260915-stage3-gate2-record.md`](./20260915-stage3-gate2-record.md) 第 206–210 行的缺陷表，
+那张表就只有这三个。**D3 / D4 从未存在过** —— 仓库里没有这两个标签，也从没有过，
+**永久留空，不得回填、不得挪作他用**。D2 / D7 / D8 由本表登记（D2 的编号是采纳既有会话标签，见下）。
+
+**先认下这笔记账缺口**：在本节新增之前，D 系列在本文里**只出现过一处** ——
+阶段 3 入口门禁二段落（第 128 行）的「D6 与 10 MB 卡死仍挂账」。D1、D5 在排期视图里完全不可见；D2 已修完，却连编号都没进过任何表。
+排期文档看不见的挂账等于没有挂账，这是一个真实的缺口，本节是来补这一笔的。
+
+**状态写法**：沿用总览的图例（✅ 已完成并验证 ｜ ⬜ 未开始 ｜ ⛔ 常驻约束），但图例是为**任务**设计的，
+对缺陷只有 ✅ 能直接借用（D2）。其余两种**明写文字，不造新字形**：
+「**未修复**」用于无人在做、也不属于任何工作项的缺陷 —— 不用 ⬜，因为 ⬜ 会被读成「已排期、未开始」，那是失实；
+「**已豁免（仅入口）**」用于 D6 —— 它既非未开始也非已完成，而是被 ADR-0004 按范围放行，图例里没有对应值。
+
+| ID | 级别 | 状态 | 缺陷 | 证据与提交 |
+|---|---|---|---|---|
+| **D1**（既有） | MUST | **未修复** | 计时器跨越文件选择器。实测导出报告 72 745 ms，其中 72 154 ms 是人工停留，净成本 591 ms；**经由对话框的 `durationMs` 全部不可用** | 门禁二记录 `:210`。记录只点名 `file.rs:1098`，**实测同一形态共三处**（见下，且出数字的不是被点名那处）。无修复提交。「既有」在仓库内无更早出处：`git log --all -S '**D1**'` 只命中 `c92b1ba` |
+| **D2** | —（未定级：登记入表时已修复） | ✅ 已修复并验证 | 日志设置的两条失败路径：① `src-tauri/src/commands/logging.rs` 的无锁 read-modify-write（丢失更新）；② `src/services/loggingService.ts` 的 IPC 失败 fail-open，**把显式关掉日志的用户静默改回开启** | 五个提交 `ba9fdb7`、`a089c55`、`061feff`、`560db38`、`dae10d5`，**全部未推送**（分支领先 `origin/frontend-backend-redesign` 5 个）。门禁数字与两处残留见下 |
+| **D5** | BLOCK | **未修复** | `src-tauri/tauri.conf.json:28` 的 CSP 无 `connect-src`，`default-src 'self'` 因此拒绝 `ipc://localhost`；打包构建每次启动约 20 条 console 错误。Tauri 回退 postMessage，**功能不受影响**（`invoke`/`listen` 实测正常），但噪音淹没真实错误 | 门禁二记录 `:208`（`c92b1ba`）。已核 HEAD：`:28` 现值仍为 `"default-src 'self'; img-src 'self' asset: https://asset.localhost https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'"`，无 `connect-src`。无修复提交。⚠️ `pnpm tauri dev` 的宽松 dev CSP **完全掩盖它**，只能在打包构建里复现 |
+| **D6** | MUST | **已豁免（仅入口）**，缺陷本身开放 | **护栏机制有效；错的是阈值与判据变量。**`large-table.wysiwyg.md` 仅 471 880 B，低于门槛因而被放行挂进 PM DOM，阻塞主线程约 56 s。该文档为**单表 45 744 单元格** —— 代价随单元格数呈二次方，与字节数几乎无关 | 门禁二记录 `:209`。已核 HEAD：`src/App.tsx:512` 仍是 `if (bytes <= 500 * 1024) return;`，阈值未动。豁免范围见 [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) 与本文第 128 行。机制有效性与 56 s 的归因见下 |
+| **D7** | MUST | **未修复** | Rust 侧 logger 缓存 fail-open：`src-tauri/src/services/logger.rs:25` 的 `.unwrap_or_default()` —— 读取日志设置失败时回落到默认值而不是关闭。**D2 只修了前端那一半** | [ADR-0005](../adr/0005-lock-span-invariant-is-review-enforced.md) 第 108–111 行把它点名为「a separate defect with no ADR of its own yet」，`CHANGELOG.md` 也已披露 —— 但此前**没有编号、不在任何表里**。无提交 |
+| **D8** | SHOULD | **未修复** | MCP 端口/令牌路径的文档失实 + 本机孤儿文件：`src-tauri/src/bin/mdpro_mcp.rs:9` 写「reads ~/.mdpro/server.port and ~/.mdpro/server.token」，实际代码走平台数据目录 | 失实点与路径更正见下。⚠️ 孤儿文件**只登记，不擅自删除** |
+
+**D1 · 记录点名一处，实测是三处，而且出数字的不是被点名的那处。**
+门禁二记录只写了 `file.rs:1098`（open 路径）。实测「计时器起点在文件选择器**之前**」这一形态共三处：
+
+- `src-tauri/src/commands/file.rs:1098`（`open_file_dialog`，选择器在 `:1108`）
+- `src-tauri/src/commands/export.rs:49`（`export_html`，选择器在 `:63`）
+- `src-tauri/src/commands/export.rs:147`（`export_rendered_html`，选择器在 `:163`）
+
+记录里 72 745 ms 那个数字**来自导出路径，不是它点名的 open 路径**。按记录去修只会修掉三分之一，
+而且修掉的恰好不是出数字的那一处 —— 这一点必须写出来，否则下一个人会以为改完 `:1098` 就结案。
+**已核对并排除的第四处**：`file.rs:1170`（`save_file`）确有同一行 `let start = std::time::Instant::now();`，
+但它**不跨越选择器** —— 保存对话框在 `save_file_dialog`（`:1290`）内，于 `:1306` 先关闭，再调用 `save_file`。
+保存路径的计时本来就是对的，**不要顺手一起改**。
+
+**D6 · 豁免只到入口；伴生形态刻意不给编号。**
+[ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) Decision 第 2 条写明「**缺陷是被挂账，不是被关闭**」，
+第 3 条把豁免限定在**入口** —— 不延伸到 3.8 的出口复测，不延伸到发布。本文第 128 行与 3.8 行已各自记着这一点，
+本节与它们互指，**不改写它们的结论**。ADR-0004 的 Consequences 另记一笔：D6 的修复
+「目前不属于任何工作项，需要在计划 M 里自带一个」；ADR 记的是这笔债存在，它不创设那个工作项。
+
+- **伴生形态：9.96 MB 主线程楔子（无编号，且刻意不给编号）** —— 不收敛，实测持续 3 小时 49 分
+  （dev 构建 4330/4330 采样）与另一进程 7858/7858 采样，**没有毫秒数，因为它从未结束**。
+  ADR-0004 要求「treat D6 as the live defect and the 10 MB wedge as the tail case, not the reverse」，
+  故它登记为 D6 的子行而非独立编号 —— 给它一个编号就会把注意力从半兆字节那半边引开。
+
+**⚠️ 一处必须先更正的合并错误（本节前一版、以及 ADR-0004 第 21–24 行都犯了）。**
+**79 197 ms 与 55 766 ms 都不属于 9.96 MB 楔子**，它们是 **472 KB WYSIWYG 档**的数字，
+且两者都**结束了**：门禁二记录 `:30`、`:31`、`:98` 写明 79 197 ms 是「关闭 `very-long-line.wysiwyg`
+触发的重挂载」，`:29`、`:99` 写明 55 766 ms 是「切到 `large-table.wysiwyg`」。
+把它们挂到 10 MB 档上，会让读者以为那个楔子是有界的 —— 它不是，这正是它危险的地方。
+ADR-0004 已 Accepted、不可修改，更正走后继 ADR，见 [ADR-0006](../adr/0006-bump-micromark-gfm-table-for-quadratic-edit-map.md)。
+
+**两个档是两个缺陷、两个真因、两个修法** —— 门禁二记录 §6.3/§6.4 把它们分成 (A)/(B) 是对的，
+错的只是 §6.4 对 (B) 的归因。经 jsdom 复现与本机日志双向核实后：
+
+| | **(A) 472 KB WYSIWYG** | **(B) 9.96 MB Source** |
+|---|---|---|
+| 行为 | 有界，会结束 | 不收敛 |
+| 真因 | `micromark-extension-gfm-table@2.1.1` `lib/edit-map.js` 的 `addImplementation` 先线性扫描 `editMap.map` 再 push，随单元格数增长 → O(cells²)；全表 45 744 格时实测 1.36e10 次数组比较 | 项目代码：`lintTableColumnCount.ts:38` → `cursorSync/table.ts:79 findAllTables` → `tableParser/parse.ts:39 splitLines` 全文重切 + `:112 source[i]` 逐字符 + `:125 findLineIndex` 每次线性扫行 ⇒ O(行 ×(字符 + 行)) |
+| 触发点 | Milkdown 挂载时的 markdown→mdast 解析 | `@codemirror/lint` 构造时的 `setTimeout(run, 750)`，经 `Editor.tsx:124` |
+| 修法 | 升级传递依赖到 **2.1.2**（上游 2026-09-11 发布，commit `4f43ead`） | 改我们自己的代码，不涉及依赖 |
+
+**§6.4 的「落在依赖里」结论已被证伪。** 该结论依据的是 `src/` 内不存在
+`charAt`/`charCodeAt`/`split("")`/`fromCharCode` —— 这个 grep 是对的，但它**漏了
+`source[i]` 方括号取值**，而 JSC 对码点 > U+00FF 的单字符取值同样会分配 JSString，
+正是 `operationSingleCharacterString` 那个栈顶。逐字符循环在**项目代码**里，不在依赖里。
+
+**Milkdown 已从 (B) 排除，证据是日志而非推理。**`MilkdownEditor.tsx:163` 在 `Editor.make()`
+之前记录 `initialMarkdownLength`。全部历史 **76 次**工厂调用中最大值 **430 614**，
+**超过 500 KB 的 0 次** —— 护栏机制从未放行过一个大文档。2026-09-15 22:44:40 那一秒可见赛跑
+结果：`.294` 工厂在 len=0 触发 → `.388` `file.open` 成功 9 961 503 B → `.985` 内容变为
+8 821 491 且 `editorLoading:true, hasInstance:false`（`useEditor` 正在重建）→ `41.094`
+`view.mode.change → source`。**护栏赢了 109 ms**，工厂再未触发。故 D6 的正确说法是
+「阈值与判据变量选错」，而不是「护栏无效」。
+
+**现场配置：楔死的不是一个文件，是四个，各占一个窗口。** 日志显示 2026-09-15 22:44:40–22:46:47
+从 Finder 连开四个 `.perf-corpus/*.source.md`（`large-table` 8 821 491 / `many-short-nodes`
+8 927 702 / `very-long-line` 7 583 751 / `dense-math` 9 110 964 字符），**每个都新开一个窗口**
+（`window.open` 每次一个新 `windowLabel`，即记录 §10 第 2 条那个行为），四窗并存；
+随后日志 **22:46:47 → 22:56:43 整整 9.9 分钟无任何记录**。独立窗口即独立 WKWebView 进程，
+这解释了记录里为何是**两个**楔死 PID 而不是一个。
+
+**(B) 不只是 10 MB 档的问题。** 同一个二次方在 **472 KB 档的 Source 模式**下已经是多秒卡顿
+（jsdom/V8 实测 lint 单次回调：prose 1.6 s、large-table 15.3 s、dense-math 22.7 s、
+many-short-nodes 44.8 s）。**它是发布质量问题，不是只在 10 MB 尾部才出现的边角。**
+另有一条：`large-table.source` 在**未编辑**时因首个探针一次吞掉整张表而有界；
+一旦在首行插入一个字符，表头与分隔行的列数不再匹配，`parse.ts:61` 返回 null，
+捷径消失，它也加入二次方阵营。**「某些形态安全」只在用户不碰它的前提下成立。**
+
+**D2 · 编号是采纳、不是新造；两处残留未清。**
+编号取自 `.claude/tdd-guardian/receipts.json` 中已 durable 的会话前缀 `D2-WI-1`…`D2-WI-4`
+（记于 2026-09-15，`head_sha aa5f820`）。**它不在门禁二记录的 D 表里** —— 那张表只有 D1/D5/D6。
+所以这是一次**采纳既有会话标签**，不是新造编号；但本表确实是它第一次被写成缺陷轨的一行。
+修复形态：`apply_logging_settings` 的 `preferences_rw_lock()` 守卫跨越
+load → 结构更新 → `save_preferences` → `logger::set_log_settings` 四步；
+前端 `FAIL_CLOSED_SETTINGS = { enabled: false, level: "info" }`。
+门禁：`cargo test` 263 passed／vitest 1419 passed + 4 todo（93 文件）／`tsc --noEmit` 0／
+`clippy --all-targets` 0 warnings／rustfmt clean／覆盖率 32.26/63.29/83.25/32.26（阈值 31/61/82/31），
+两条 criticalPaths 均 100/100。**残留两项**：
+
+- ① 尚欠一次人工 QA（设置 → 高级 → 关闭日志开关）。**没有任何测试道能覆盖它**，✅ 不含这一项。
+- ② GS-1 锁跨度不变量是**评审强制、无测试强制**的，见
+  [ADR-0005](../adr/0005-lock-span-invariant-is-review-enforced.md) —— 缩窄守卫会在**全套测试全绿**
+  的情况下重新引入数据丢失。这不是 D2 没修完，是这次修复自带的一个已被记录的洞。
+
+**D8 · 失实点的确切位置，以及一处必须先更正的引用。**
+实际代码走平台数据目录：`src-tauri/src/bin/mdpro_mcp.rs:36-40` 的 `ServerConfig::load()` 用
+`dirs::data_dir().join("mdpro")`；写入方 `src-tauri/src/services/http_server.rs:42-44` 的
+`config_dir()` 同样是 `dirs::data_dir()`，写于 `:85`/`:90`，清理于 `:114-115`。
+同一条失实在 `CHANGELOG.md:66` 与 `CHANGELOG.md:210` **重复两次**，修文档时要一起改。
+**更正**：此前口头引用的路径 `src-tauri/src/mdpro_mcp.rs` **不存在**，正确路径是
+`src-tauri/src/bin/mdpro_mcp.rs`（`bin/` 少不得，按错路径去 grep 会得出「代码不存在」的错误结论）。
+本机残留 `~/.mdpro/server.port`（5 B）与 `~/.mdpro/server.token`（64 B，mode 600），均为 3 月 31 日；
+活的一对在 `~/Library/Application Support/mdpro/`。⚠️ **孤儿文件只登记、不擅自删除** ——
+它是失实文档曾经生效过的现场证据，删掉就只剩一句没有落点的描述。
+
+**维护规则**（与本文第 18–20 行的状态维护规则同源，不是另立一套）：修好一条缺陷时，
+**在同一个提交里**更新它在本表的状态与修复 SHA，并写明被证伪的结论；不要留到后续清理批次。
+「修复完毕」同样指它自己的门禁跑绿，不是代码写完。新缺陷从本表**当前最大编号续起**；
+**D3 / D4 永久留空**，已有编号（D1 / D5 / D6）不得重编、不得复用。
 
 ---
 
