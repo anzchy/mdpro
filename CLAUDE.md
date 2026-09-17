@@ -262,6 +262,32 @@ Sequencing for this effort lives in
   in plans P and M; when they conflict, the original plan wins and the
   sequencing doc is corrected to match.
 
+## Feature Ledger
+
+[`docs/feature-ledger.md`](./docs/feature-ledger.md) is the inventory of **what
+mdpro has right now**: every capability, its state, where the code is, and how to
+confirm it in the running app. `docs/feature-ledger.html` is the rendered view —
+generated, never hand-edited.
+
+- **The commit that changes the behaviour rewrites the row.** Same rule as the
+  sequencing doc above, same reason: a state column refreshed in a later cleanup
+  pass is a state column nobody can trust. Shipping a feature, stubbing one out,
+  or discovering a claim was false all edit the ledger in that commit.
+- **State is one of five words** — `Shipped` / `Partial` / `Stub` / `Absent` /
+  `Unknown`. The enum is closed; `Shipped (export only)` is a gate failure, not a
+  nuance. Nuance goes in the 怎么确认 column. `Partial` **must** carry a literal
+  `限制：` naming the limit.
+- **Run `pnpm ledger:check` before committing a behaviour change**, and
+  `pnpm ledger:build` when the markdown changes. The gate gives three answers:
+  every path claim resolves, every state cell is in the enum, and every declared
+  app surface (`#[tauri::command]`, `http_server.rs` routes, `menu.rs` `MENU_*`
+  ids, `pluginConfig.ts` plugin ids, `src/stores/`) appears in some row. The
+  third is the one that catches a surface nobody wrote a row for.
+- **It is not a changelog, a plan, or an ADR.** When it changed → `CHANGELOG.md`.
+  What is next and its acceptance → `docs/plans/`. Why → `docs/adr/`.
+- The gate **cannot** tell you a sentence is still true. A path that resolves
+  says nothing about whether the behaviour it describes still exists.
+
 ## Architecture Decision Records (ADR)
 
 **When a decision is consequential, write an ADR.** Consequential means it is

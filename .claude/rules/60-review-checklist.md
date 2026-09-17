@@ -54,6 +54,8 @@ Findings in this category are **blockers**. Do not commit until resolved.
 ### Documentation Sync
 
 - [ ] New IPC commands are listed in the CLAUDE.md IPC table.
+- [ ] **A diff that changes user-visible behaviour rewrites its row in `docs/feature-ledger.md` in this same commit** — new capability, state change (`Stub` → `Shipped`, `Shipped` → `Partial`), or a claim the work proved false. `pnpm ledger:check` passes, and `pnpm ledger:build` was re-run if the markdown changed.
+- [ ] A new Tauri command, HTTP route, `MENU_*` id, plugin id, or store has a ledger row describing *that* surface — not a name parked on an unrelated row to turn the coverage count green.
 
 ---
 
