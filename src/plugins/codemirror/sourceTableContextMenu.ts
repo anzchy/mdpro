@@ -21,17 +21,24 @@
  *   - Disabled actions (move at boundary) → returns false
  *   - Stale/out-of-table position → returns false
  *   - Fenced-code position → returns false (fence guard)
+ *   - Model refused by `tableWriteGuard` → returns false, and the menu
+ *     does not open in the first place (WI-C0 write-boundary backstop)
  *
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
+ * @coordinates-with src/utils/tableWriteGuard.ts
+ * @coordinates-with src/plugins/codemirror/textLineSource.ts
  * @coordinates-with src/utils/tableEdits.ts
  * @coordinates-with src/components/Editor/SourceTableContextMenu/
  */
 
 import { EditorSelection, type EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { findCellOrNearest, parseTableAt, type TableModel } from "../../utils/tableParser";
+import { findCellOrNearest, type TableModel } from "../../utils/tableParser";
+import { parseTableAtOffset } from "../../utils/tableParser/parse";
 import { applyEdit } from "../../utils/tableEdits";
+import { guardTableWrite } from "../../utils/tableWriteGuard";
 import { isPositionInFencedCode } from "./sourceTableDetection";
+import { linesFromText } from "./textLineSource";
 import type {
   TableActionId,
   TableCellAlignment,
@@ -45,19 +52,29 @@ export interface SourceTableContextResult {
 
 /**
  * Compute the table context (and underlying model) at the given source
- * offset. Returns null when the offset is outside any table or inside
- * a fenced code block. Audit-fix M4: clicks on the delimiter row or
- * directly on a `|` separator are mapped to the nearest cell so the
- * context menu still opens with a sensible column selection.
+ * offset. Returns null when the offset is outside any table, inside a
+ * fenced code block, or on a model the write guard refuses. Audit-fix
+ * M4: clicks on the delimiter row or directly on a `|` separator are
+ * mapped to the nearest cell so the context menu still opens with a
+ * sensible column selection.
+ *
+ * WI-C0 (plan §3.1 W3): the guard runs HERE rather than only in
+ * `dispatchSourceTableAction`, because this function is also what the
+ * React shell uses to decide whether to open the menu at all. Refusing
+ * here removes the false affordance — no table menu appears over text
+ * the guard would not let us rewrite — and covers the dispatch path for
+ * free, since dispatch re-enters through this function.
  */
 export function computeSourceTableContext(
   state: EditorState,
   pos: number,
 ): SourceTableContextResult | null {
   if (isPositionInFencedCode(state, pos)) return null;
-  const source = state.doc.toString();
-  const model = parseTableAt(source, pos);
+  // Over the rope (WI-3B): a right-click in a multi-MB document reads
+  // the candidate run around `pos` and nothing else.
+  const model = parseTableAtOffset(linesFromText(state.doc), pos);
   if (!model) return null;
+  if (!guardTableWrite(model, "source.context_menu")) return null;
   const cell = findCellOrNearest(model, pos);
   if (!cell) return null;
   const align = model.alignments[cell.col];

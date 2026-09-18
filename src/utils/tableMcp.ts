@@ -27,6 +27,7 @@ import {
 import { findAllTables } from "./cursorSync/table";
 import { applyEdit } from "./tableEdits";
 import { makeIsFenced } from "./fenceRanges";
+import { guardTableWrite } from "./tableWriteGuard";
 import type {
   TableActionId,
   TableContext,
@@ -128,6 +129,10 @@ export function setCell(
   const tables = findAllTables(source, makeIsFenced(source));
   const table = tables[tableIndex];
   if (!table) return null;
+  // WI-C0 (plan §3.1 W1): `tableIndex` crosses an external trust boundary,
+  // so the model it selects is validated before any byte is replaced
+  // (rule 60, "MCP tool handlers validate all incoming arguments").
+  if (!guardTableWrite(table, "mcp.set_cell")) return null;
   if (payload.row < 0 || payload.row >= table.rowCount) return null;
   if (payload.col < 0 || payload.col >= table.colCount) return null;
 
@@ -197,6 +202,9 @@ function dispatchTableEdit(
   const tables = findAllTables(source, makeIsFenced(source));
   const table = tables[tableIndex];
   if (!table) return null;
+  // WI-C0 (plan §3.1 W1): same trust boundary as `setCell`. This is the
+  // path §3.2 measured destroying a setext H2 via `delete_row(0, 0)`.
+  if (!guardTableWrite(table, "mcp.table_edit")) return null;
 
   const ctx = buildContext(table, axis, targetIndex);
   if (!ctx) return null;

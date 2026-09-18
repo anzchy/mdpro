@@ -8,14 +8,20 @@
  *   - Outside a table OR inside a fenced code block → return false so
  *     the default editor Tab handler (which also handles d170f9c
  *     code-block indentation) gets a turn.
+ *   - Model refused by `tableWriteGuard` → same fallback (WI-C0). Tab
+ *     appends a row at `ctx.end` on the last cell, so this keymap does
+ *     write; and hijacking Tab inside text the guard would not let us
+ *     rewrite is a false affordance even on the cursor-only moves.
  *
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
  * @coordinates-with src/utils/tableParser.ts
+ * @coordinates-with src/utils/tableWriteGuard.ts
  */
 
 import type { Command, KeyBinding } from "@codemirror/view";
 import { EditorSelection } from "@codemirror/state";
 import { findCell } from "../../utils/tableParser";
+import { guardTableWrite } from "../../utils/tableWriteGuard";
 import { getTableContext } from "./sourceTableDetection";
 
 /**
@@ -25,6 +31,7 @@ import { getTableContext } from "./sourceTableDetection";
 export const tableTabCommand: Command = (view) => {
   const ctx = getTableContext(view.state);
   if (!ctx) return false;
+  if (!guardTableWrite(ctx, "source.tab_nav")) return false;
 
   const cursor = view.state.selection.main.head;
   const current = findCell(ctx, cursor);
@@ -54,6 +61,7 @@ export const tableTabCommand: Command = (view) => {
 export const tableShiftTabCommand: Command = (view) => {
   const ctx = getTableContext(view.state);
   if (!ctx) return false;
+  if (!guardTableWrite(ctx, "source.tab_nav")) return false;
 
   const cursor = view.state.selection.main.head;
   const current = findCell(ctx, cursor);
@@ -89,9 +97,12 @@ function appendBlankRow(view: import("@codemirror/view").EditorView, ctx: import
   // last block in the doc. Insert at ctx.end; if the source's
   // ctx.end-1 is `\n`, our newline is well-placed; if not, prepend `\n`.
   const insertPos = ctx.end;
-  const docText = view.state.doc.toString();
+  // One character, read from the rope (WI-3B). Copying the whole
+  // document to look at `[insertPos - 1]` was the single most wasteful
+  // read on this path.
   const needsLeadingNewline =
-    insertPos > 0 && docText[insertPos - 1] !== "\n";
+    insertPos > 0 &&
+    view.state.doc.sliceString(insertPos - 1, insertPos) !== "\n";
   const insertion = (needsLeadingNewline ? "\n" : "") + newRow;
 
   // Cursor goes to the first cell content — that's `insertPos +

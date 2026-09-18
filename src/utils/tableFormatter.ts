@@ -24,6 +24,7 @@ import {
   type TableModel,
 } from "./tableParser";
 import { findAllTables, type IsFenced } from "./cursorSync/table";
+import { guardTableWrite } from "./tableWriteGuard";
 
 /**
  * Serialize `model` with column-aligned padding. Output is a drop-in
@@ -41,6 +42,14 @@ export function formatTable(model: TableModel): string {
  * and return the new source. Idempotent — applying twice yields the
  * same output as applying once.
  *
+ * WI-C0 (plan §3.1 W2): this is the only write path that reaches disk
+ * unattended — `useDocument.ts` runs it on ⌘S when
+ * `editor.autoReformatTablesOnSave` is on. A model refused by
+ * `guardTableWrite` is SKIPPED, not rewritten: its bytes survive
+ * verbatim and the rest of the document is still formatted. Refusing the
+ * whole pass would be a worse trade — one questionable region should not
+ * cost the user the formatting of every other table.
+ *
  * Implementation detail: tables are spliced from LAST to FIRST so each
  * splice doesn't shift offsets in the still-pending tables.
  */
@@ -51,6 +60,7 @@ export function formatAllTables(source: string, isFenced?: IsFenced): string {
   let out = source;
   for (let i = tables.length - 1; i >= 0; i -= 1) {
     const table = tables[i];
+    if (!guardTableWrite(table, "format.all_tables")) continue;
     const formatted = formatTable(table);
     out = out.slice(0, table.start) + formatted + out.slice(table.end);
   }
