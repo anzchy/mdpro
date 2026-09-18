@@ -135,31 +135,22 @@
       "name": "fenced-hash",
       "markdown": "```\n# not a heading\n```",
       "expectedSlugs": [],
-      "currentlyFailsOn": ["toc"],
-      "currentlyProduces": {
-        "toc": ["not-a-heading"]
-      },
-      "note": "tocService matches ATX line-by-line with no fence tracking, so it invents a heading from code-block content. Rust and both export faces correctly yield nothing."
+      "currentlyFailsOn": [],
+      "note": "UNPINNED by the Lezer parser swap (ADR-0012). tocService used to match ATX line-by-line with no fence tracking and invented a heading from code-block content; recorded defect before the fix, on toc: [not-a-heading]. `markdownLanguage.parser` emits FencedCode/CodeText here and no heading node at all, so the toc face now agrees with Rust and both export faces on []."
     },
     {
       "name": "setext-noncolliding",
       "markdown": "Alpha\n=====",
       "expectedSlugs": ["alpha"],
-      "currentlyFailsOn": ["toc"],
-      "currentlyProduces": {
-        "toc": []
-      },
-      "note": "Setext headings (EC-MD-002). tocService's regex is ATX-only and misses them entirely. Deliberately NOT named `title` so the miss cannot be confused with the clobbering strip -- that confusion cost a round of measurement."
+      "currentlyFailsOn": [],
+      "note": "Setext headings (EC-MD-002). UNPINNED by the Lezer parser swap (ADR-0012): the old ATX-only regex missed them entirely; recorded defect before the fix, on toc: []. `SetextHeading1` is now walked like any other heading node. Deliberately NOT named `title` so the miss could not be confused with the clobbering strip -- that confusion cost a round of measurement, and the separation is why this case stays in the corpus after the fix."
     },
     {
       "name": "setext-title",
       "markdown": "Title\n=====",
       "expectedSlugs": ["title"],
-      "currentlyFailsOn": ["toc"],
-      "currentlyProduces": {
-        "toc": []
-      },
-      "note": "Two independent defects were stacked on one input: tocService misses Setext, and the slug `title` was then stripped by DOMPurify on both export faces. The second is FIXED -- WI-3.2 B3 set SANITIZE_DOM:false per ADR-0003 B', so both export pins are gone and only the Setext miss (WI-3.3) remains. Kept alongside setext-noncolliding so the two causes stay separable; that separation is what made this a partial unpin rather than a whole one."
+      "currentlyFailsOn": [],
+      "note": "Two independent defects were stacked on one input: tocService missed Setext, and the slug `title` was then stripped by DOMPurify on both export faces. Both are now FIXED, in two separate work items -- WI-3.2 B3 set SANITIZE_DOM:false per ADR-0003 B' (the two export pins), and the Lezer parser swap per ADR-0012 fixed the Setext miss (the toc pin). Recorded defects before the fixes: exportCanonical [], exportFallback [], toc []. Kept alongside setext-noncolliding so the two causes stay separable; that separation is what made the first round a partial unpin rather than a whole one."
     },
     {
       "name": "formatted-bold",
@@ -190,7 +181,7 @@
         "toc": ["text-https-example-com-tail"],
         "exportFallback": ["a-href-https-example-com-text-a-tail"]
       },
-      "note": "Three-way divergence (EC-TOC-005, links stripped). toc slugs the raw markdown including the URL; the fallback slugs the rendered anchor tag; only Rust and the canonical export strip to the link TEXT."
+      "note": "Three-way divergence (EC-TOC-005, links stripped). toc slugs the raw markdown including the URL; the fallback slugs the rendered anchor tag; only Rust and the canonical export strip to the link TEXT. STILL PINNED after the Lezer swap, and re-measured 2026-09-18 to confirm it: `HeaderMark` subtraction removes only the `#` runs, so `LinkMark`, `URL` and the link text all remain in the node range and the extracted text is the literal `[text](https://example.com) tail`. ADR-0012 records this as a Consequence, not an oversight -- heading-text extraction is our code, and inline-markup stripping (LinkMark / EmphasisMark / CodeMark) is the deferred successor work that owns this pin. Do not 'fix' it by stripping markup without that work item: tests/toc-lezer-parser.test.ts B10 pins the un-stripped text from the other side."
     },
     {
       "name": "trailing-hashes",
@@ -242,26 +233,28 @@
       "note": "Same defense, `document.forms`. UNPINNED by WI-3.2 B3; recorded defect before the fix on both export faces: []."
     },
     {
+      "name": "tab-heading",
+      "markdown": "#\tTabbed\n",
+      "expectedSlugs": ["tabbed"],
+      "expectedTocOffsets": [0],
+      "currentlyFailsOn": [],
+      "note": "CommonMark §4.2 allows a Tab after the opening `#` run. pulldown-cmark and `marked` both follow it; the Lezer grammar in @codemirror/lang-markdown 6.5.0 does not, and parses the line as a paragraph. Adopting Lezer for the toc face therefore briefly made the sidebar drop a heading the export still anchored — four divergences closed, a fifth opened. tocService rewrites the Tab to a space in a parse-only, length-preserving copy, so no offset moves. This case exists to hold all four faces together on the shape: it is unpinned because they agree, and it goes red the moment one of them stops agreeing."
+    },
+    {
       "name": "crlf-doc",
       "markdown": "text\r\n# 标题",
       "expectedSlugs": ["标题"],
       "expectedTocOffsets": [6],
-      "currentlyFailsOn": ["tocOffsets"],
-      "currentlyProduces": {
-        "tocOffsets": [5]
-      },
-      "note": "tocService accumulates `line.length + 1` after splitting on /\\r?\\n/, undercounting one byte per CRLF line. Reports 5 where the heading starts at index 6. Slugs are unaffected; only positions are wrong (EC-FILE-008)."
+      "currentlyFailsOn": [],
+      "note": "UNPINNED by the Lezer parser swap (ADR-0012). tocService used to accumulate `line.length + 1` after splitting on /\\r?\\n/, undercounting one byte per CRLF line; recorded defect before the fix, on tocOffsets: [5] against a true 6 (EC-FILE-008). A Lezer node's `from` is a UTF-16 index into the source string, so it counts the `\\r` and needs no terminator arithmetic at all. Slugs were never affected."
     },
     {
       "name": "crlf-two-lines",
       "markdown": "a\r\nb\r\n# H",
       "expectedSlugs": ["h"],
       "expectedTocOffsets": [6],
-      "currentlyFailsOn": ["tocOffsets"],
-      "currentlyProduces": {
-        "tocOffsets": [4]
-      },
-      "note": "The undercount ACCUMULATES: two preceding CRLF lines yield offset 4 against a true 6. Line numbers stay correct throughout."
+      "currentlyFailsOn": [],
+      "note": "UNPINNED by the Lezer parser swap (ADR-0012). The undercount ACCUMULATED: two preceding CRLF lines gave offset 4 against a true 6; recorded defect before the fix, on tocOffsets: [4]. Line numbers were correct throughout, then and now -- lines are still derived by counting `\\n` only."
     },
     {
       "name": "lf-two-lines",

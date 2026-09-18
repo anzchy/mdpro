@@ -59,6 +59,7 @@ const EXPECTED_CASE_NAMES = [
   "clobber-body",
   "clobber-location",
   "clobber-forms",
+  "tab-heading", // added by the B19 regression fix (ADR-0012 follow-up)
   "crlf-doc",
   "crlf-two-lines",
   "lf-two-lines",
@@ -79,20 +80,28 @@ const EXPECTED_CASE_NAMES = [
  * `setext-title` keeps its `toc` pin: two independent defects were stacked on one
  * input and only one of them was B3's, so that case was partially unpinned.
  *
+ * The Lezer parser-swap batch has now LANDED too — ADR-0012 was accepted on
+ * 2026-09-18, superseding sequencing rows 3.3 ("replace with remark") and 3.4
+ * ("bespoke line/terminator mapper") with one change — and removed five further
+ * pins: `fenced-hash|toc`, `setext-noncolliding|toc` and `setext-title|toc` (the
+ * old regex saw neither fences nor setext underlines), plus
+ * `crlf-doc|tocOffsets` and `crlf-two-lines|tocOffsets` (a Lezer node's `from` is
+ * a UTF-16 index, so the `offset += line.length + 1` undercount has no successor).
+ * `link-in-heading|toc` survived that batch by measurement, not by omission — see
+ * its tag below.
+ *
  * Every pin below therefore belongs to a work item that has NOT run yet. Removing
  * one is removing another work item's specification, which is what H2's failure
  * message is worded to catch.
  */
 const EXPECTED_SURVIVING_PINS = [
-  "crlf-doc|tocOffsets", // WI-3.4 (CRLF offset undercount)
-  "crlf-two-lines|tocOffsets", // WI-3.4
-  "fenced-hash|toc", // WI-3.3 (remark replacement)
   "formatted-bold|exportFallback", // accepted degradation A1 (marked markup leak)
   "inline-code|exportFallback", // accepted degradation A1
   "link-in-heading|exportFallback", // accepted degradation A1
-  "link-in-heading|toc", // WI-3.3
-  "setext-noncolliding|toc", // WI-3.3
-  "setext-title|toc", // WI-3.3
+  // ADR-0012 Consequences: `HeaderMark` subtraction leaves LinkMark/URL in the
+  // node range, measured 2026-09-18. Owned by the deferred inline-markup
+  // stripping work, NOT by the superseded "WI-3.3 (remark replacement)".
+  "link-in-heading|toc",
 ];
 
 describe("heading-identity corpus — specification integrity (three live faces)", () => {
