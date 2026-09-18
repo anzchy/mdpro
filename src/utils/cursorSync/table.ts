@@ -10,6 +10,14 @@
  * restore live in `cursorSync/tableMilkdown.ts` so this module remains
  * unit-testable without an editor.
  *
+ * Each source-side helper comes in two forms (Phase 4 WI-3B): a `…FromSource`
+ * / `…InSource` string entry point, and a `…FromLines` / `…InLines` twin over
+ * a bare `TableLineSource`. The string form IS the line form over
+ * `linesFromString` — one algorithm, two adapters. The CodeMirror callers use
+ * the line form over the editor's rope, so the mode-toggle capture and
+ * restore paths never copy the document into a string. This module still
+ * imports nothing from `@codemirror/state`.
+ *
  * Capture slot is module-level: `setPendingTableCell` writes;
  * `consumePendingTableCell` reads and clears (called from the inbound
  * editor's mount path). Tests reset with `setPendingTableCell(null)`.
@@ -18,13 +26,19 @@
  * @coordinates-with src/components/Editor/Editor.tsx (source restore)
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx (WYSIWYG restore)
  * @coordinates-with src/utils/cursorSync/tableMilkdown.ts
+ * @coordinates-with src/utils/tableParser/scan.ts (findAllTables delegates)
  */
 
 import {
   findCell,
-  parseTableAt,
   type TableModel,
 } from "../tableParser";
+import {
+  linesFromString,
+  type TableLineSource,
+} from "../tableParser/lines";
+import { scanTables } from "../tableParser/scan";
+import type { IsFenced } from "../tableParser/types";
 
 export interface TableCellPos {
   /** 0-based index of the table within the document (doc order). */
@@ -40,55 +54,52 @@ export interface TableCellPos {
 // ---------------------------------------------------------------------------
 
 /**
- * Predicate that returns true when the given source offset sits
- * inside a fenced code block (` ``` ` / ` ~~~ `). Callers in source
- * mode pass `(pos) => isPositionInFencedCode(state, pos)`; tests can
- * pass a synthetic predicate or omit (defaults to "never fenced").
- *
- * Audit-fix H1/H2 (2026-05-03): without this guard, pipe-shaped lines
- * inside a fence are enumerated by `findAllTables`, which makes
- * `tableIndex` drift relative to Milkdown's `descendants` walk
- * (Milkdown never yields `table` nodes inside fenced code). Source
- * and WYSIWYG must enumerate the same tables in the same order or
- * the cross-mode cursor sync lands in the wrong one.
+ * Fence predicate. Defined in `tableParser/types.ts` since WI-3 so the
+ * pure scanner can name it without importing this module; re-exported
+ * here because that is the import path the rest of the app already uses
+ * (`tableFormatter.ts`, the CodeMirror plugins). See the type's own doc
+ * comment for the `tableIndex`-drift rationale.
  */
-export type IsFenced = (offset: number) => boolean;
+export type { IsFenced };
 
 /**
- * Walk the source linearly and return every GFM table in document
- * order. O(doc) — only called at mode-toggle time, never on the
- * keystroke hot path.
+ * Walk the source and return every GFM table in document order. O(doc):
+ * the line index is built exactly once per call and each line's candidacy
+ * is evaluated O(1) times.
  *
- * Advancement after a yielded table must clear the line that
- * `parseTableAt`'s `findLineIndex` would still attribute to the table
- * via its boundary-fudge (the `<= line.end + 1` check that maps a
- * trailing `\n` back to the line above). Walking past the FIRST
- * newline after `model.end` guarantees the next probe sits on the
- * next real line.
+ * A thin delegation to `tableParser/scan.ts#scanTables` — this function
+ * owns no enumeration logic of its own, so the string entry point can
+ * never drift into a second parser. The equivalence argument for the
+ * rewrite, and the one class where it deliberately diverges from the
+ * pre-WI-3 behaviour (overlapping models on a valid non-candidate
+ * delimiter — ADR-0007), are recorded in `scan.ts`.
  *
- * When `isFenced` is supplied, tables whose start offset sits inside
- * a fenced code block are skipped — see `IsFenced` for rationale.
+ * When `isFenced` is supplied, tables whose start offset sits inside a
+ * fenced code block are skipped, and the predicate is called only for
+ * tables that actually parsed — see `IsFenced` for rationale.
+ *
+ * CALL FREQUENCY — and why the module-level claim that used to sit here
+ * was wrong. Until Phase 4 this comment read `O(doc) — only called at
+ * mode-toggle time, never on the keystroke hot path`. That was true of
+ * `captureCellFromSource` / `locateCellInSource` below, whose only
+ * callers are the view-mode transition, and false of enumeration, which
+ * `lintTableColumnCount` reaches on the CodeMirror lint timer shortly
+ * after each keystroke (today via `scanTables` over the editor's rope,
+ * before WI-3B via this function). Being right about its own function
+ * and wrong about the module is exactly why it survived review, so state
+ * the two separately rather than collapsing them again:
+ *
+ *  - This function, the string entry point, is called by `tableMcp.ts`
+ *    (MCP tool calls) and `tableFormatter.ts` (format-on-save, 重排表格)
+ *    — user-initiated, not per-keystroke.
+ *  - The enumeration it delegates to IS on the keystroke-adjacent path
+ *    through `scanTables`. Cost work belongs in `scan.ts`, not here.
  */
 export function findAllTables(
   source: string,
   isFenced?: IsFenced,
 ): TableModel[] {
-  const out: TableModel[] = [];
-  let pos = 0;
-  while (pos <= source.length) {
-    const model = parseTableAt(source, pos);
-    if (model) {
-      if (!isFenced || !isFenced(model.start)) {
-        out.push(model);
-      }
-      const nextLine = source.indexOf("\n", model.end + 1);
-      pos = nextLine === -1 ? source.length + 1 : nextLine + 1;
-      continue;
-    }
-    const newline = source.indexOf("\n", pos);
-    pos = newline === -1 ? source.length + 1 : newline + 1;
-  }
-  return out;
+  return scanTables(linesFromString(source), isFenced);
 }
 
 /**
@@ -101,8 +112,23 @@ export function captureCellFromSource(
   offset: number,
   isFenced?: IsFenced,
 ): TableCellPos | null {
+  return captureCellFromLines(linesFromString(source), offset, isFenced);
+}
+
+/**
+ * Representation-neutral twin of `captureCellFromSource` (Phase 4 WI-3B).
+ * `captureCellFromSource` is this function over `linesFromString`; the
+ * mode-toggle capture path is this function over
+ * `codemirror/textLineSource.ts#linesFromText`, and therefore never
+ * materialises the editor document.
+ */
+export function captureCellFromLines(
+  src: TableLineSource,
+  offset: number,
+  isFenced?: IsFenced,
+): TableCellPos | null {
   if (isFenced && isFenced(offset)) return null;
-  const tables = findAllTables(source, isFenced);
+  const tables = scanTables(src, isFenced);
   for (let i = 0; i < tables.length; i += 1) {
     const table = tables[i];
     if (offset < table.start || offset > table.end) continue;
@@ -127,7 +153,21 @@ export function locateCellInSource(
   pos: TableCellPos,
   isFenced?: IsFenced,
 ): number | null {
-  const tables = findAllTables(source, isFenced);
+  return locateCellInLines(linesFromString(source), pos, isFenced);
+}
+
+/**
+ * Representation-neutral twin of `locateCellInSource` (Phase 4 WI-3B).
+ * `locateCellInSource` is this function over `linesFromString`; the
+ * mode-toggle restore path is this function over
+ * `codemirror/textLineSource.ts#linesFromText`.
+ */
+export function locateCellInLines(
+  src: TableLineSource,
+  pos: TableCellPos,
+  isFenced?: IsFenced,
+): number | null {
+  const tables = scanTables(src, isFenced);
   const table = tables[pos.tableIndex];
   if (!table) return null;
   const row = table.rows[pos.rowIndex];
