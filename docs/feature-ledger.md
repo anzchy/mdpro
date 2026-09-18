@@ -141,7 +141,8 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | Tab 单元格导航 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts`, `src/plugins/codemirror/sourceTableTabNav.ts` | 在单元格里按 Tab 跳下一格、⇧Tab 跳上一格；在最后一格按 Tab 会新建一行并把光标放进去 |
 | Esc 退出表格 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts` | 光标在表格任意单元格里按 Esc，跳出表格 |
 | 输入法安全的表格导航 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts` | 用中文输入法打字、候选框还开着时按 Tab，不会跳格而是交给输入法；围栏代码块里的 Tab 同样保持缩进语义 |
-| 列数校验提示 | Shipped | `src/plugins/codemirror/lintTableColumnCount.ts` | ⌃2 下手动删掉某一行的一个 `|`，该行被标出与表头列数不符 |
+| 源码模式的表格识别范围 | Partial | `src/utils/tableParser/lines.ts`, `src/utils/tableParser/parse.ts`, `src/utils/tableParser/commonmark.ts` | 限制：与 GFM 不一致的另一半没有修——紧跟在一段文字后面、中间不空行的表格，GFM 认，mdpro 不认；实测语料 74 处里吻合 44 处（修之前是 40 处）。⌃2 下在一行 `\| a \|` 底下写一行 `---`，右键点它不再出现表格菜单，因为 GFM 把这两行当成一个二级标题；把 `---` 换成 `:-:` 就又是表格。分隔行或表头行前面加一个 Tab 或 4 个空格，同样不再算表格。为什么这么改见 `docs/adr/0009-narrow-source-table-detection-to-gfm.md` |
+| 列数校验提示 | Shipped | `src/plugins/codemirror/lintTableColumnCount.ts` | ⌃2 下删掉某个**表体行**（不是表头行、也不是分隔行）的一个 `\|`，该行被标出与表头列数不符。删哪一行不是小事：从表头或分隔行删 `\|` 会让整张表不再被识别为表格，于是一条提示都不出现——那是另一条代码路径，也正是 2000 行表格上曾经卡住编辑器的那条 |
 | 当前单元格高亮 | Shipped | `src/plugins/codemirror/sourceTableCellHighlight.ts` | ⌃2 下把光标移进表格，所在单元格有可见的高亮 |
 | 列宽拖拽 | Shipped | `src/components/Editor/MilkdownEditor.tsx` | ⌃4 下拖动两列之间的竖线改列宽；只在本次会话有效，不写进 Markdown |
 | 跨模式单元格光标同步 | Shipped | `src/hooks/useMilkdownTableCursorRestore.ts`, `src/stores/editorStore.ts` | 把光标放进第 3 行第 2 格，⌃2 / ⌃4 来回切，光标仍在同一格 |

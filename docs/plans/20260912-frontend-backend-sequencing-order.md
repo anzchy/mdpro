@@ -284,11 +284,12 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 | ID | 级别 | 状态 | 缺陷 | 证据与提交 |
 |---|---|---|---|---|
 | **D1**（既有） | MUST | **未修复** | 计时器跨越文件选择器。实测导出报告 72 745 ms，其中 72 154 ms 是人工停留，净成本 591 ms；**经由对话框的 `durationMs` 全部不可用** | 门禁二记录 `:210`。记录只点名 `file.rs:1098`，**实测同一形态共三处**（见下，且出数字的不是被点名那处）。无修复提交。「既有」在仓库内无更早出处：`git log --all -S '**D1**'` 只命中 `c92b1ba` |
-| **D2** | —（未定级：登记入表时已修复） | ✅ 已修复并验证 | 日志设置的两条失败路径：① `src-tauri/src/commands/logging.rs` 的无锁 read-modify-write（丢失更新）；② `src/services/loggingService.ts` 的 IPC 失败 fail-open，**把显式关掉日志的用户静默改回开启** | 五个提交 `ba9fdb7`、`a089c55`、`061feff`、`560db38`、`dae10d5`，**全部未推送**（分支领先 `origin/frontend-backend-redesign` 5 个）。门禁数字与两处残留见下 |
+| **D2** | —（未定级：登记入表时已修复） | ✅ 已修复并验证 | 日志设置的两条失败路径：① `src-tauri/src/commands/logging.rs` 的无锁 read-modify-write（丢失更新）；② `src/services/loggingService.ts` 的 IPC 失败 fail-open，**把显式关掉日志的用户静默改回开启** | 五个提交 `ba9fdb7`、`a089c55`、`061feff`、`560db38`、`dae10d5`。**「全部未推送、分支领先 5 个」已过期**：2026-09-18 以 `git ls-remote` 核实，`origin/frontend-backend-redesign` 的尖端就是本地 HEAD `e030a2c`，五个提交均已在远端。门禁数字与两处残留见下 |
 | **D5** | BLOCK | **未修复** | `src-tauri/tauri.conf.json:28` 的 CSP 无 `connect-src`，`default-src 'self'` 因此拒绝 `ipc://localhost`；打包构建每次启动约 20 条 console 错误。Tauri 回退 postMessage，**功能不受影响**（`invoke`/`listen` 实测正常），但噪音淹没真实错误 | 门禁二记录 `:208`（`c92b1ba`）。已核 HEAD：`:28` 现值仍为 `"default-src 'self'; img-src 'self' asset: https://asset.localhost https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'"`，无 `connect-src`。无修复提交。⚠️ `pnpm tauri dev` 的宽松 dev CSP **完全掩盖它**，只能在打包构建里复现 |
 | **D6** | MUST | **已豁免（仅入口）**，缺陷本身开放 | **护栏机制有效；错的是阈值与判据变量。**`large-table.wysiwyg.md` 仅 471 880 B，低于门槛因而被放行挂进 PM DOM，阻塞主线程约 56 s。该文档为**单表 45 744 单元格** —— 代价随单元格数呈二次方，与字节数几乎无关 | 门禁二记录 `:209`。已核 HEAD：`src/App.tsx:512` 仍是 `if (bytes <= 500 * 1024) return;`，阈值未动。豁免范围见 [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) 与本文第 128 行。机制有效性与 56 s 的归因见下 |
 | **D7** | MUST | **未修复** | Rust 侧 logger 缓存 fail-open：`src-tauri/src/services/logger.rs:25` 的 `.unwrap_or_default()` —— 读取日志设置失败时回落到默认值而不是关闭。**D2 只修了前端那一半** | [ADR-0005](../adr/0005-lock-span-invariant-is-review-enforced.md) 第 108–111 行把它点名为「a separate defect with no ADR of its own yet」，`CHANGELOG.md` 也已披露 —— 但此前**没有编号、不在任何表里**。无提交 |
 | **D8** | SHOULD | **未修复** | MCP 端口/令牌路径的文档失实 + 本机孤儿文件：`src-tauri/src/bin/mdpro_mcp.rs:9` 写「reads ~/.mdpro/server.port and ~/.mdpro/server.token」，实际代码走平台数据目录 | 失实点与路径更正见下。⚠️ 孤儿文件**只登记，不擅自删除** |
+| **D9** | BLOCK | ✅ **已修复并验证**（残留一项见右） | 源码模式表格识别**宽于 GFM**，三种形态被当成表格：① 单列表头 + `---`（GFM 判为 setext 二级标题）；② 分隔行缩进 ≥4 列；③ 分隔行**或表头行**以 Tab 开头（`countLeadingSpaces` 只数 U+0020，Tab 整个逃过 `MAX_INDENT`）。后果是**静默数据丢失**：幻影表格占据 `tableIndex 0`，外部 MCP 客户端调 `delete_row(0,0)` 删掉的是标题而不是表格行 | 三个 ADR：[0007](../adr/0007-table-scanner-emits-non-overlapping-models.md)、[0008](../adr/0008-non-candidate-delimiter-class-measured-against-gfm.md)、[0009](../adr/0009-narrow-source-table-detection-to-gfm.md)；计划 [`20260917-plan-table-over-detection-vs-gfm.md`](./20260917-plan-table-over-detection-vs-gfm.md)。实测复现与修后语料对照见 ADR-0009。**残留**：Rust 侧 `http_server.rs:834` 仍在应用之前就回 `202`，被拒绝或不存在的 `tableIndex` 依旧向客户端报成功，唯一痕迹是 `~/.mdpro/mdpro.log` 里一行 `ui.table.write_refused` |
 
 **D1 · 记录点名一处，实测是三处，而且出数字的不是被点名的那处。**
 门禁二记录只写了 `file.rs:1098`（open 路径）。实测「计时器起点在文件选择器**之前**」这一形态共三处：
@@ -330,6 +331,7 @@ ADR-0004 已 Accepted、不可修改，更正走后继 ADR，见 [ADR-0006](../a
 | 真因 | `micromark-extension-gfm-table@2.1.1` `lib/edit-map.js` 的 `addImplementation` 先线性扫描 `editMap.map` 再 push，随单元格数增长 → O(cells²)；全表 45 744 格时实测 1.36e10 次数组比较 | 项目代码：`lintTableColumnCount.ts:38` → `cursorSync/table.ts:79 findAllTables` → `tableParser/parse.ts:39 splitLines` 全文重切 + `:112 source[i]` 逐字符 + `:125 findLineIndex` 每次线性扫行 ⇒ O(行 ×(字符 + 行)) |
 | 触发点 | Milkdown 挂载时的 markdown→mdast 解析 | `@codemirror/lint` 构造时的 `setTimeout(run, 750)`，经 `Editor.tsx:124` |
 | 修法 | 升级传递依赖到 **2.1.2**（上游 2026-09-11 发布，commit `4f43ead`） | 改我们自己的代码，不涉及依赖 |
+| 状态 | ✅ 已修（`package.json` `pnpm.overrides` 钉 `>=2.1.2`，见 ADR-0006） | ✅ **已修**（2026-09-18）：`parse.ts` 不再持有 `splitLines` / `findLineIndex` / `source[i]`，行模型抽到 `tableParser/lines.ts`（`splitLines` + `lineIndexAt` + `linesFromString`）与 `tableParser/scan.ts`，CodeMirror 侧由 `textLineSource.ts` 直接喂行、不再 `doc.toString()`。回归测试是缩放律而非墙钟：`tests/table-scan-scaling.test.ts` |
 
 **§6.4 的「落在依赖里」结论已被证伪。** 该结论依据的是 `src/` 内不存在
 `charAt`/`charCodeAt`/`split("")`/`fromCharCode` —— 这个 grep 是对的，但它**漏了
@@ -357,6 +359,12 @@ many-short-nodes 44.8 s）。**它是发布质量问题，不是只在 10 MB 尾
 另有一条：`large-table.source` 在**未编辑**时因首个探针一次吞掉整张表而有界；
 一旦在首行插入一个字符，表头与分隔行的列数不再匹配，`parse.ts:61` 返回 null，
 捷径消失，它也加入二次方阵营。**「某些形态安全」只在用户不碰它的前提下成立。**
+
+**上一段描述的是修复前的形态，(B) 已于 2026-09-18 修复**（见上表「状态」行）。
+「首个探针吞掉整张表所以有界、一改就退化」这条**捷径依赖**正是被拆掉的东西：
+扫描成本不再取决于表格能否解析成功。**但 D6 本身仍未修** —— 它是 WYSIWYG 侧
+`App.tsx:512` 的判据变量选错（字节数 vs 单元格数），与 (B) 是两条通路，不要因为
+(B) 修好了就认为 D6 可以结案。
 
 **D2 · 编号是采纳、不是新造；两处残留未清。**
 编号取自 `.claude/tdd-guardian/receipts.json` 中已 durable 的会话前缀 `D2-WI-1`…`D2-WI-4`
