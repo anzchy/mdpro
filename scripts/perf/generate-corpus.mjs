@@ -151,7 +151,28 @@ const RECORDED = {
   "dense-math.wysiwyg": [471942, 3444],
 };
 
-/** Mirrors the ATX branch of `tocService.ts` `parseHeadingsFromContent`. */
+/**
+ * The ATX line regex the corpus's recorded heading counts were taken with.
+ *
+ * This USED TO mirror `tocService.ts` `parseHeadingsFromContent`. It no longer
+ * does, and must not be re-synced: ADR-0012 replaced that function with a Lezer
+ * walk over `@codemirror/lang-markdown`, which also recognises setext headings
+ * and correctly ignores `#` lines inside fenced code. This regex sees neither.
+ *
+ * It is kept verbatim ON PURPOSE. The `RECORDED` counts above describe *the
+ * corpus*, not the parser — they are a fingerprint asserting that these shape
+ * functions still emit the same bytes, which is the only thing `--check` can
+ * usefully prove. Swapping in the Lezer parser here would make `--check` fail
+ * against a table it has no business re-deriving, would drag a `@codemirror`
+ * import into a generator that is deliberately Node-built-ins-only (plan M's
+ * G0 gate), and would make the fingerprint move whenever the parser moves —
+ * destroying exactly the independence that makes it a fingerprint.
+ *
+ * As it happens the two agree on every file in this corpus (MEASURED, WI-7:
+ * 3,007 / 143 / 3,444 from both), because none of the shapes emit a setext
+ * heading or a fenced `#`. That agreement is a property of the corpus, not a
+ * contract — do not rely on it.
+ */
 const ATX = /^(#{1,6})\s+(.+?)(?:\s+#*)?$/;
 
 function countHeadings(content) {
