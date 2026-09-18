@@ -1,11 +1,34 @@
 /**
- * Purpose: single authoritative DOMPurify configuration for rendered Markdown,
- * mirroring the Rust `sanitize_html` allow-list matrix in
+ * Purpose: single authoritative DOMPurify configuration for the **export
+ * fragment**, mirroring the Rust `sanitize_html` allow-list matrix in
  * `src-tauri/src/services/markdown.rs` (WI-0.1, plan
  * `docs/plans/20260628-plan-typora-parity.md`).
  *
- * The two surfaces ([3] JS Marked fallback / preview, [2] export via Rust) must
- * neutralize the same payloads and preserve the same legitimate output:
+ * EXPORT ONLY — THE OUTPUT OF `sanitizeExportFragment` MUST NEVER ENTER THE
+ * APP'S LIVE DOM (ADR-0003 decision point 2, `docs/adr/0003-export-fragment-
+ * sanitizer-scope.md`). `SANITIZE_DOM: false` is set deliberately, so DOMPurify
+ * no longer strips an `id` that collides with a built-in document or form
+ * property. That is safe for an export artifact — the fragment is never inserted
+ * into a live document and `html_template.rs` emits no `<script>`, so the file
+ * carries zero JS — and it is what restores the heading anchors the export needs.
+ * It is NOT safe for a general-purpose sanitizer. Two preconditions of ADR-0003
+ * are load-bearing and must be re-checked before either is changed:
+ *   1. `form` stays out of `ALLOWED_TAGS` — a detached `<form>` can clobber named
+ *      properties through form ownership without ever entering a tree. Guarded
+ *      behaviourally by tests/sanitizer-policy.test.ts.
+ *   2. The URL and tag allow-list — not `SANITIZE_DOM` — is what prevents
+ *      `<img>` / `<iframe>` resource loads from a detached or `DOMParser` tree.
+ * `name` was removed from `BASE_ATTRS` by ADR-0011 for the same reason:
+ * `highlightSyntax.ts` post-processes this output through `DOMParser`, whose
+ * result IS a document tree, and `<img name="body">` would be a named property
+ * of it. This is a deliberate JS-side divergence from ammonia's behaviour, which
+ * never stripped colliding ids in the first place.
+ *
+ * Both export faces — [2] the canonical Rust render and [3] the `marked` fallback
+ * used when that IPC throws — run through here, and must neutralize the same
+ * payloads and preserve the same legitimate output. (The preview pane was the
+ * third consumer; it was deleted in the stage-2 dead-code cleanup, so export is
+ * now the only one.)
  *   - Math (KaTeX HTML + MathML)
  *   - Footnotes (in-doc anchors)
  *   - Mermaid (specific inline-SVG profile, no foreignObject/script/on*)
@@ -30,7 +53,13 @@
  *
  * @coordinates-with src-tauri/src/services/markdown.rs (MATH_TAGS / SVG_TAGS /
  *   SVG_ATTRS / url_schemes — keep both lists in sync; tests/sanitizer-policy.test.ts
- *   and tests/sanitizer-rust-js-parity.test.ts guard the frontend half).
+ *   and tests/sanitizer-rust-js-parity.test.ts guard the frontend half). The parity
+ *   test covers those four sets ONLY — `BASE_TAGS` and `BASE_ATTRS` are NOT
+ *   compared against ammonia, so a drift there is invisible to it (ADR-0011,
+ *   recorded as a known gap).
+ * @coordinates-with src/services/highlightSyntax.ts — it re-parses this output with
+ *   `DOMParser` and then reads `doc.body` / `doc.createTreeWalker`, which is why
+ *   `name` cannot be allow-listed here.
  */
 import DOMPurify from "dompurify";
 
@@ -89,10 +118,25 @@ const BASE_TAGS: string[] = [
  * default attribute model; we do NOT add `href`/`xlink:href` to the SVG attr
  * set so SVG `<image href=…>`-style external loads can't pass even if a tag
  * slipped through.
+ *
+ * `name` is DELIBERATELY ABSENT (ADR-0011). A non-empty `name` on an allow-listed
+ * `<img>` makes that element a supported property name of any `Document` it lands
+ * in, and `Document` carries [LegacyOverrideBuiltIns] — so `<img name="body">`
+ * could shadow `doc.body` inside `highlightSyntax.ts`, which re-parses this
+ * output with `DOMParser` and then reads `doc.body` / `doc.createTreeWalker`. A
+ * `DOMParser` result IS a document tree, which is the condition `SANITIZE_DOM:
+ * false` has no answer for. Legacy `<a name="x">` anchors are the cost; `id` is
+ * the supported form and the heading pipeline already emits it. Re-adding `name`
+ * supersedes ADR-0011 and needs its own record.
+ *
+ * NOT compared against ammonia's generic set by `tests/sanitizer-rust-js-parity.
+ * test.ts` — that file covers MATH_TAGS / SVG_TAGS / SVG_ATTRS and the scheme set
+ * only, so a base-attribute drift is structurally invisible to it. ADR-0011
+ * records that as a known, deliberately-deferred gap.
  */
 const BASE_ATTRS: string[] = [
   "href", "title", "alt", "src", "width", "height",
-  "id", "class", "name", "align",
+  "id", "class", "align",
   "colspan", "rowspan", "scope",
   "type", "checked", "disabled",
   "data-heading-id",
@@ -151,18 +195,32 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 });
 
 /**
- * Sanitize rendered Markdown HTML with the shared allow-list policy.
+ * Sanitize rendered Markdown HTML **for export**, with the shared allow-list
+ * policy.
+ *
+ * FOR EXPORT ONLY. The returned fragment MUST NEVER be inserted into the app's
+ * live DOM: `SANITIZE_DOM: false` means an `id` colliding with a built-in
+ * document/form property (`title`, `body`, `location`, `forms`, …) is preserved
+ * rather than stripped, which is exactly what a live document must not accept.
+ * The name says `ExportFragment` for that reason — ADR-0003 treats the rename as
+ * the control and the flag as merely the fix.
  *
  * Uses an explicit `ALLOWED_TAGS`/`ALLOWED_ATTR` allow-list (not additive
  * `ADD_*`) so nothing outside the WI-0.1 matrix survives. `USE_PROFILES` is
  * intentionally NOT used. External links are hardened with
  * rel="noopener noreferrer" (matches Rust link_rel).
  */
-export function sanitizeRenderedHtml(html: string): string {
+export function sanitizeExportFragment(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     ALLOWED_URI_REGEXP,
+    // ADR-0003 B′. DOMPurify's default would drop any `id` colliding with a
+    // built-in document/form property (`title`, `body`, `location`, `forms`, …),
+    // which silently removed the anchor from exported headings while ammonia kept
+    // it. Safe here ONLY because this output is written to a file — see the
+    // export-only warning on the function doc and the module header.
+    SANITIZE_DOM: false,
     // Defense-in-depth: even if a future edit adds one of these to ALLOWED_TAGS,
     // the forbid list still strips the HTML-in-SVG escape hatch, inline frames,
     // and the external-resource SVG tags.

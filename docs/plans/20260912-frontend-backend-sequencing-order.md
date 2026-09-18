@@ -23,7 +23,7 @@
 |---|---|---|---|---|
 | **1** | 🔄 | WI-0.0（已收窄为**本地测试工具链与基线校准**）；CI 触发器与分支保护另起一个 PR | P | 本地可验证；**合并门禁仍不存在**，「故意失败的检查挡住合并」这类验收归后续 PR |
 | **2** | ✅ | 死代码清理，独立 PR | P（WI-0.1 之前） | 必须在基线捕获前完成，否则基线记录的是将被删除的文件 |
-| **3** | 🔄 | **标题身份契约 + TOC 切换（M 提前）**（入口门禁一已交付 `c17c003`；门禁二**六面已全测** 2026-09-15，硬标准「不永久无响应」违反但**已豁免放行** [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) ⇒ **两道入口门禁均已通过，3.1 可开工**） | **M** | WI-4.26 依赖的 identity 今天是坏的 |
+| **3** | 🔄 | **标题身份契约 + TOC 切换（M 提前）**（入口门禁一已交付 `c17c003`；门禁二**六面已全测** 2026-09-15，硬标准「不永久无响应」违反但**已豁免放行** [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) ⇒ **两道入口门禁均已通过，3.1 可开工**）。**进度（2026-09-18）：3.0 ✅、3.1 ✅、3.2 ✅，3.3–3.8 未开工**，逐行状态见阶段 3 表 | **M** | WI-4.26 依赖的 identity 今天是坏的 |
 | **4** | ⬜ | WI-0.1 重跑 → Stage 0→5 全程 | P | 主体工作 |
 | **5** | ⬜ | 导出迁移、旧解析器退役、ammonia 评估 | M | 行为变更，需独立回滚边界 |
 | **并行** | 🔄 | ESLint（未开始，见 1.10）；**安全收紧：链接点击守卫 C1 已交付并验证**（协议相对链接绕过 `//evil.com/x` → `tauri://evil.com/x`，见 `docs/adr/0002-link-click-routing-and-origin-comparison.md` 与 `docs/adr/0001-wysiwyg-link-scheme-allowlist.md`）；**卫生项已交付**（生成物目录统一入 `.gitignore`；`linkSafety.ts` 与 `useMilkdownLinkClickGuard.ts` 两条 criticalPaths 钉在 100% 行/分支——全局阈值 31/61/82 挡不住只影响这两个文件的回归） | M Part 6 | 不阻塞主线（但见下方 ESLint 例外） |
@@ -106,6 +106,13 @@ A8 也还登记着其他候选。C 只缩小 A8，不消灭整个例外机制。
 
 ## 阶段 3 — M 提前交付：标题身份契约 + TOC 切换
 
+**本阶段状态：🔄 进行中**（截至 2026-09-18）。两道入口门禁均已通过；
+**3.0 ✅ 已交付并验证**（`c17c003`，订正 `07d763c`，runner 收紧 `549d22f`）；
+**3.1 ✅**（`05396db`）、**3.2 ✅**（随本表所在的提交落地）；**3.3–3.8 六行尚未动工**，逐行状态见下表。
+按本文第 18–20 行的规则，每个 WI 的状态与 SHA 随**完成它的那个提交**一起写入本表，不留到清理批次。
+一个 WI 的行写不进**它自己那个提交**的 SHA（自指），故本表只对**先前**提交记 SHA；
+当前 WI 的 SHA 由完成它的提交本身承载，`git log --follow` 即可取回。
+
 **入口门禁（两道，均须先于 3.1）。** 本文原先把性能验收排成 3.8（收尾行），与计划 M 冲突。
 按本文章程「两者冲突时以原计划为准」，以 M 为准改正：
 
@@ -127,17 +134,17 @@ A8 也还登记着其他候选。C 只缩小 A8，不消灭整个例外机制。
    豁免的依据是缺陷与第 3 步**正交**（卡死在 500 KB 护栏生效之后、profile 落在依赖里），
    不是判定缺陷可接受：**D6 与 10 MB 卡死仍挂账**，且豁免**不延伸到 3.8 与发布**。
 
-| # | 任务 | 说明 |
-|---|---|---|
-| **3.0** | **M 阶段 0：冻结契约** —— 语法矩阵、代表性语料、安全样例、性能基线 | ⚠️ 语料与性能基线**都是入口门禁**（见上）。语料为从零构建任务，**已交付** `c17c003`，双语 runner 随后收紧：钉死的缺陷必须记录实测输出，修好后若不同步从 `currentlyFailsOn` 与 `currentlyProduces` 删除即报红（语料 25 例）；性能基线**六面已全测**（2026-09-15），硬标准「不永久无响应」违反但**已豁免放行**（ADR-0004）——基线本身已**可复现**：生成器按字节忠实移植入库 `scripts/perf/generate-corpus.mjs`，`--check` 当场断言 M 的记录表，两次独立运行、以及与原生成器产物，均 11/11 逐字节一致（决定输出的是算法而非种子） |
-| 3.1 | 确立三概念身份模型：`anchorSlug` / `headingKey` / 位置 | 不让一个 `id` 同时承诺三种稳定性 |
-| 3.2 | 修 slug 两类碰撞 —— **三个活面一次性改齐**：`tocService.ts:101`、`exportService.ts:47`、`markdown.rs:23`，并配跨语言 parity 测试 | 原记「两个面」**少算了**：实测共**五份** slug 实现，**三活两死**。两死为 `toc.rs:36`（命令零调用方，且 TS 传 `document_id`／Rust 收 `content`，参数不匹配）与 `tocStore.ts:120` `generateAnchorId`（零引用；却是五份里唯一防碰撞正确的，但剥除 CJK，只能作去重逻辑参照）。两死面**不在 3.2 内**：M 明记 `toc.rs` 退役属第 5 步、不提前。后缀碰撞 `x, x-1, x-1` 五面皆有；fallback `"heading"` 从不注册**仅 TS 两面**有，Rust 免疫 —— 故这是一条活的 TS↔Rust 分歧，parity 测试须覆盖它 |
-| 3.3 | 用共享 remark 配置替换正则解析器 | 覆盖围栏、Setext、格式化标题、重复、CJK、emoji、**CRLF、slug 唯一性**（后两项原缺，按 M 的第二层测试清单补齐）。**回滚点：TOC 实现开关，不动正文**（原缺）。⚠️ remark **不可直接导入**：实测顶层 `node_modules` 无 `remark-parse`，它只是 `@milkdown/kit` 的传递依赖 ⇒ 本步开场需独立 `chore(deps)`，且会产生双 remark 实例，M 要求的「与 Milkdown 插件集合一致性验证」须在此前提下设计 |
-| 3.4 | 位置映射：UTF-16 offset + 行号；修 CRLF 每行少算 1 | `text\r\n# 标题` 应为 6 而非 5 |
-| 3.5 | 身份协调：`tocStore.setEntries` 保留折叠态与活动项（**从 WI-4.26 移入**） | |
-| 3.6 | 真实导航：修 `useTOC` WYSIWYG 首个命中即 `break` | 点第二个重复标题必须到第二个 |
-| 3.7 | 三层测试：协调算法单测 / 语义契约测试 / **用户行为测试** | 第三层不可省 |
-| 3.8 | 出口复测大文档性能（基线已在入口门禁 2 取得） | ⚠️ **ADR-0004 改了本行的比较方式**：入口基线里含一个**不收敛**的阻塞（9.96 MB 形态），整体聚合比较无法把第 3 步的回归与既有卡死区分开。**本行必须逐面比较，并逐个点名排除已卡死的形态**，不得比聚合值。**豁免只到入口为止，不覆盖本行。** P 的「零额外 React commit」**不能**替代 —— 此话 P 自己也说了（`20260911-plan-ui-redesign.md`「The performance gates are not interchangeable」），非本文自创。**「过期解析结果」已从本行移出**：它是 M 的迁移红线第 3 条「异步结果必须携带文档 ID 与修订号」，属数据正确性不变量，不是性能指标，须由 3.7 第三层行为测试断言 |
+| # | 状态 | 任务 | 说明 |
+|---|---|---|---|
+| **3.0** | ✅ | **M 阶段 0：冻结契约** —— 语法矩阵、代表性语料、安全样例、性能基线 | ⚠️ 语料与性能基线**都是入口门禁**（见上）。语料为从零构建任务，**已交付** `c17c003`，双语 runner 随后收紧：钉死的缺陷必须记录实测输出，修好后若不同步从 `currentlyFailsOn` 与 `currentlyProduces` 删除即报红（语料 25 例）；性能基线**六面已全测**（2026-09-15），硬标准「不永久无响应」违反但**已豁免放行**（ADR-0004）——基线本身已**可复现**：生成器按字节忠实移植入库 `scripts/perf/generate-corpus.mjs`，`--check` 当场断言 M 的记录表，两次独立运行、以及与原生成器产物，均 11/11 逐字节一致（决定输出的是算法而非种子） |
+| 3.1 | ✅ | 确立三概念身份模型：`anchorSlug` / `headingKey` / 位置 | **2026-09-18 完成并验证，已提交 `05396db`。** 新增 `src/utils/headingIdentity.ts`（128 行）与 `src/types/toc.ts`（118 行），测试 `tests/heading-identity-model.test.ts` 35 例 + `tests/helpers/headingCorpus.ts`。自身闸门全绿：unit lane 1617 例 0 失败、`tsc --noEmit` 与 `pnpm typecheck:tests` 均 exit 0、`headingIdentity.ts` 行/分支覆盖 100%。**未接线任何调用面**，`src`/`tests`/`src-tauri`/`package.json` 的已跟踪 diff 为空（本人复核，非取自 agent 报告）。**一项 HIGH 规格分离发现待你确认**：红→绿之间改动了 B9 一条断言，原因是矩阵 B9 与 B1 **自相矛盾**、任何实现都无法同时满足（B1 要求 `["x","x","x-1"] → ["x","x-1","x-1-1"]`，其中第三个标题正是 base `x-1` 的首次出现却不得拿到裸 base）；B1 为规范侧，故已**同步修正矩阵 B9 与计划 `:65`**，缺陷不残留在规格里。**决策**：`TOCEntry` 按计划留在 `tocStore.ts`，推迟到 3.5 随字段拆分一起搬。原勘察：**2026-09-18 实测落点**：`src/types/toc.ts` **不存在**；`TOCEntry` 现定义在 `src/stores/tocStore.ts:6-27`，三处引用**全是 `import type`**（`useTOC.ts:4`、`Sidebar/index.tsx:1`、`TOCSidebar.tsx:2`），无运行时耦合 —— 搬不搬这个接口是 3.1 要明确回答的一项，不是可以顺手做掉的事 |
+| 3.2 | ✅ | 修 slug 两类碰撞 —— **三个活面一次性改齐**：`tocService.ts:101`、`exportService.ts:47`、`markdown.rs:23`，并配跨语言 parity 测试 | 原记「两个面」**少算了**：实测共**五份** slug 实现，**三活两死**。两死为 `toc.rs:36`（命令零调用方，且 TS 传 `document_id`／Rust 收 `content`，参数不匹配）与 `tocStore.ts:120` `generateAnchorId`（零引用；却是五份里唯一防碰撞正确的，但剥除 CJK，只能作去重逻辑参照）。两死面**不在 3.2 内**：M 明记 `toc.rs` 退役属第 5 步、不提前。后缀碰撞 `x, x-1, x-1` 五面皆有；fallback `"heading"` 从不注册**仅 TS 两面**有 —— 故这是一条活的 TS↔Rust 分歧，parity 测试须覆盖它。**⚠️ 2026-09-18 实测推翻「Rust 免疫」这一说法**：Rust 确实在**计数之前**替换 `"heading"`（所以 emoji 在前的形状它是对的），但它**用计数而非 taken 集合**，因此仍会撞上字面量。实测 `# heading-1 / # 🎉 / # 🎊` 在修复前的 Rust 面产出 `["heading-1","heading","heading-1"]` —— **重复**。本人直接读 HEAD 的 `markdown.rs:43-49` 逐步复核，非取自 agent 报告。结论：Rust 免疫的只是语料里那几个**特定形状**，不是这个缺陷类。**2026-09-18 完成并验证（B1+B2+B3+B4 一并落地）**：B1（`tocService.ts` + `exportService.ts` 改用 `src/utils/headingIdentity.ts` 共享分配器）、B2（`markdown.rs` 端口，taken 集合 + 单调 hint）、B3（[ADR-0003](../adr/0003-export-fragment-sanitizer-scope.md) B′：`SANITIZE_DOM: false`，并改名 `sanitizeRenderedHtml` → `sanitizeExportFragment` 以显式化「只处理片段、永不进活 DOM」的作用域）、B4（失效注释、CHANGELOG、ledger）。新增 ADDENDUM A 的两个语料用例（`literal-then-emoji`、`literal-suffix-then-two-emoji`）。**B3 的解锁条件已满足**：[ADR-0011](../adr/0011-remove-name-from-export-sanitizer-allowlist.md) 于 2026-09-18 **Accepted**（`1f3379d`），`name` 随之从 `BASE_ATTRS` 移除 —— `SANITIZE_DOM: false` 与保留 `name` **只有同时存在才危险**，故两者必须同批落地，不得只落其一。ADR-0003 的 `<form>` 前置条件**已复核仍成立**（`form` 在 `sanitizerPolicy.ts` 中只出现在「Deliberately ABSENT」注释里），且已从散文改为**行为断言**钉住。**闸门全绿（本人独立复跑，非取自 agent 报告）**：unit lane 431 套 / 1665 例，1661 通过 0 失败 4 todo；覆盖率 lines 33.98 / functions 66.20 / branches 85.01 / statements 33.98，四项均过阈（31/61/82/31）；`cargo test` 275 通过 1 忽略；`typecheck:tests`、`tsc --noEmit`、`cargo fmt --check` 均 exit 0；`ledger:check` 166 行 / 183 条路径断言 / **0 findings** / 94-94 命名覆盖。**21 个面已按约定同步解钉**（7 面属 slug 算法，14 面属 B′）；语料剩余钉子经本人从 fixture 重算为 **9 个**，与 `heading-identity-fixture-integrity.test.ts` 的 `EXPECTED_SURVIVING_PINS` 逐条一致：`crlf-doc|tocOffsets`、`crlf-two-lines|tocOffsets`（3.4）、`fenced-hash|toc`、`link-in-heading|toc`、`setext-noncolliding|toc`、`setext-title|toc`（3.3）、`formatted-bold|exportFallback`、`inline-code|exportFallback`、`link-in-heading|exportFallback`（A1 既定降级）。**2026-09-18 实测**：3.0 的语料已把这两类碰撞逐一钉成「已知缺陷」并记下实测输出，故 3.2 的收尾动作是从 `currentlyFailsOn` 与 `currentlyProduces` **同步删除 10 个用例上的 21 个面**，少删一处双语 runner 即报红。其中 **7 个面属 slug 算法**（`suffix-collision` 三面，`emoji-then-literal`、`two-emoji-only` 各两面），**14 个面属 [ADR-0003](../adr/0003-export-fragment-sanitizer-scope.md) 的 B′**（`trailing-hashes`、`leading-trailing-punct` 与五个 `clobber-*`，各 `exportCanonical` + `exportFallback` 两面）—— 后者是 DOMPurify `SANITIZE_DOM` 剥掉锚点，**slug 本身是对的**，与碰撞无关但同属 3.2 |
+| 3.3 | ⬜ | 用共享 remark 配置替换正则解析器 | 覆盖围栏、Setext、格式化标题、重复、CJK、emoji、**CRLF、slug 唯一性**（后两项原缺，按 M 的第二层测试清单补齐）。**回滚点：TOC 实现开关，不动正文**（原缺）。⚠️ remark **不可直接导入**：实测顶层 `node_modules` 无 `remark-parse`，它只是 `@milkdown/kit` 的传递依赖 ⇒ 本步开场需独立 `chore(deps)`。**2026-09-18 实测订正「必然双实例」**：这三个包已作为 `@milkdown/kit` 的传递依赖躺在 pnpm store 里，版本为 `unified@11.0.5` / `remark-parse@11.0.0` / `remark-gfm@4.0.1`；直接依赖**钉到同一版本**即共用单实例、零新增下载包，M 要求的「与 Milkdown 插件集合一致性验证」压力随之大降 —— 但这是**选择的结果，不是默认行为**，版本一漂就退回双实例。另注：G0 的「无新依赖」按 `package.json` 直接依赖计，**仍须一条 ADR 走例外**，ADR-0006 的例外只覆盖既有传递依赖的补丁号提升且明文不外推 |
+| 3.4 | ⬜ | 位置映射：UTF-16 offset + 行号；修 CRLF 每行少算 1 | `text\r\n# 标题` 应为 6 而非 5。3.0 语料已钉死两例 `tocOffsets` 面：`crlf-doc`（实测 5／应为 6）与 `crlf-two-lines`（实测 4／应为 6，证明**误差会累积**）；`lf-two-lines` 是对照组，证明 LF 下算术正确、缺陷只在 CRLF |
+| 3.5 | ⬜ | 身份协调：`tocStore.setEntries` 保留折叠态与活动项（**从 WI-4.26 移入**） | **2026-09-18 实测**：`tocStore.ts:87` 的 `setEntries` **硬重置两者**（`activeEntryId: null` + 新建空 `collapsedIds`），唯一调用方是 `useTOC.ts:83` 的 300 ms 去抖解析 ⇒ **每一轮击键都抹掉折叠态与高亮**，哪怕标题集合根本没变。`TOCState`（`:32-44`）**无任何文档 id 字段**，`clearEntries` 定义了却零调用 ⇒ 今天「切文档不串味」恰恰是**这次重置**的副产品；3.5 拿掉重置后，协调键若不带文档作用域，A 文档折叠的 `intro` 会**永久**漏进 B 文档 |
+| 3.6 | ⬜ | 真实导航：修 `useTOC` WYSIWYG 首个命中即 `break` | 点第二个重复标题必须到第二个。**2026-09-18 实测两处订正**：① 同一个 `break` 循环有**两处** —— `:141-148`（导航）与 `:228-234`（滚动监视的 observer 注册）；只修导航会留下重复标题的**高亮**仍然错，且 `headingElementsRef` 会把 N 个条目塌成同一个 DOM 元素。② 更上游：`data-heading-id` 全仓只由 `exportService.ts:71`（导出渲染器）写出、`sanitizerPolicy.ts:98` 放行，**编辑器侧无任何面发出它**，故 `:128` / `:220` 的 id 选择器在 WYSIWYG **恒不命中**，文本匹配是唯一通路 ⇒「改用 id」不是一行改动，它要求 Milkdown 先渲染出身份属性。Source 模式走 `:103-120` 的**行号**通路、根本不碰 DOM，本就对重复标题免疫 |
+| 3.7 | ⬜ | 三层测试：协调算法单测 / 语义契约测试 / **用户行为测试** | 第三层不可省。**无既有安全网**：`tocStore`、`useTOC`、`TOCSidebar` 三者的测试文件数**均为 0**（与本文第 428–430 行一致），三层全部是新建，不存在可继承的表征测试 |
+| 3.8 | ⬜ | 出口复测大文档性能（基线已在入口门禁 2 取得） | ⚠️ **ADR-0004 改了本行的比较方式**：入口基线里含一个**不收敛**的阻塞（9.96 MB 形态），整体聚合比较无法把第 3 步的回归与既有卡死区分开。**本行必须逐面比较，并逐个点名排除已卡死的形态**，不得比聚合值。**豁免只到入口为止，不覆盖本行。** P 的「零额外 React commit」**不能**替代 —— 此话 P 自己也说了（`20260911-plan-ui-redesign.md`「The performance gates are not interchangeable」），非本文自创。**「过期解析结果」已从本行移出**：它是 M 的迁移红线第 3 条「异步结果必须携带文档 ID 与修订号」，属数据正确性不变量，不是性能指标，须由 3.7 第三层行为测试断言。**2026-09-18 复核：D6 仍未修**（`App.tsx:512` 的 `if (bytes <= 500 * 1024) return;` 一字未动），而 ADR-0004 的豁免**不覆盖本行** ⇒ D6 必须先于本行结案；计划 M 至今**没有承载它的工作项**（M 里唯一一处 D6 提及在 `:519`，只是重述这笔债被挂着），这个缺口本身需要有人补 |
 
 **身份契约至少要规定**（**以计划 M 的契约条款为准，本文只作索引**）：标题前后编辑普通段落 →
 折叠状态保留、位置更新；重复标题彼此独立；删除标题 → 清理其折叠与活动状态；
@@ -155,6 +162,13 @@ A8 也还登记着其他候选。C 只缩小 A8，不消灭整个例外机制。
 ---
 
 ## 阶段 4 — 计划 P 主体
+
+**本阶段状态：⬜ 未开始**（2026-09-18 实测：计划 P 的 Stage 1 产物 `src/styles/index.css`、
+`src/styles/sections/`、`ToggleSwitch.tsx`、`Icon.tsx`、`useTauriEvent.ts` **均不在 HEAD**，
+实现为零，不是「部分完成」）。
+另有一条**硬前置至今未满足**：WI-4.21 依赖的 ESLint 在仓库内仍然零存在
+（无配置文件、无 `lint` script、`package.json` 中 eslint 出现 0 次），
+它同时是 WI-4.26 一条验收的前提 —— 见下方「三个两个计划都未记载的问题 ①」。
 
 ### Stage 0（仅改计划文档）
 
@@ -231,13 +245,16 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 
 ## 阶段 5 — M 剩余部分
 
-| # | 任务 |
-|---|---|
-| 5.1 | M 阶段 3：TS 导出并行验证（MDAST→HAST→HTML，以旧 Rust 输出为差异参照，**ammonia 保留**） |
-| 5.2 | 移除 `marked` 导出降级（改显式报错 + 重试）—— 独立交付 |
-| 5.3 | M 阶段 4：切换并移除 pulldown-cmark；退役 `toc.rs`、`preview_html` |
-| 5.4 | M 阶段 5：编辑保真分级推进（⚠️ 已保存数据的损失无法靠代码回滚恢复） |
-| 5.5 | M 阶段 6：**仅当** TS 净化覆盖全部出口且安全评估通过，才评估删 ammonia |
+**本阶段状态：⬜ 未开始**（2026-09-18 实测：M 要收敛的五套引擎全部还在；
+`toc.rs` 与 `preview_html` 未退役；`marked` 导出降级仍在 `exportService.ts:104`）。
+
+| # | 状态 | 任务 |
+|---|---|---|
+| 5.1 | ⬜ | M 阶段 3：TS 导出并行验证（MDAST→HAST→HTML，以旧 Rust 输出为差异参照，**ammonia 保留**） |
+| 5.2 | ⬜ | 移除 `marked` 导出降级（改显式报错 + 重试）—— 独立交付 |
+| 5.3 | ⬜ | M 阶段 4：切换并移除 pulldown-cmark；退役 `toc.rs`、`preview_html` |
+| 5.4 | ⬜ | M 阶段 5：编辑保真分级推进（⚠️ 已保存数据的损失无法靠代码回滚恢复） |
+| 5.5 | ⬜ | M 阶段 6：**仅当** TS 净化覆盖全部出口且安全评估通过，才评估删 ammonia |
 
 ---
 

@@ -7,7 +7,7 @@
  * renderer is not callable from jsdom, so this file verifies the *JS sanitizer*
  * contract only:
  *   1. The Rust-shaped HTML (the `mustContain` needles each fixture expects the
- *      Rust renderer to emit) passes through DOMPurify (`sanitizeRenderedHtml`)
+ *      Rust renderer to emit) passes through DOMPurify (`sanitizeExportFragment`)
  *      INTACT — math wrappers, footnote anchors, and autolinks survive.
  *   2. The script / javascript-href payloads (the `mustNotContain` security
  *      needles) are neutralized by the same sanitizer.
@@ -21,7 +21,7 @@
 import { describe, expect, it } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { sanitizeRenderedHtml } from "../src/services/sanitizerPolicy";
+import { sanitizeExportFragment } from "../src/services/sanitizerPolicy";
 
 interface Case {
   name: string;
@@ -66,7 +66,7 @@ describe("render fixtures — JS sanitizer contract", () => {
       const rustShapedHtml = (c.mustContain ?? [])
         .filter(isHtmlMarkupNeedle)
         .join("");
-      const out = sanitizeRenderedHtml(rustShapedHtml);
+      const out = sanitizeExportFragment(rustShapedHtml);
       for (const needle of (c.mustContain ?? []).filter(isHtmlMarkupNeedle)) {
         expect(out).toContain(needle);
       }
@@ -82,7 +82,7 @@ describe("render fixtures — JS sanitizer contract", () => {
       // The security-relevant fixtures embed raw HTML payloads in their
       // markdown; sanitize that as if it were rendered HTML and assert the
       // forbidden substrings are gone.
-      const out = sanitizeRenderedHtml(c.markdown);
+      const out = sanitizeExportFragment(c.markdown);
       for (const needle of c.mustNotContain ?? []) {
         // Only the security needles (script / javascript:) are JS-surface
         // contracts here; pure-markdown artifacts (e.g. `class="math-inline"`,
@@ -97,10 +97,10 @@ describe("render fixtures — JS sanitizer contract", () => {
   // Explicit spot-checks for the wrappers the export/preview path depends on,
   // independent of the fixtures loop (regression guard).
   it("preserves math wrappers through the JS sanitizer", () => {
-    expect(sanitizeRenderedHtml('<span class="math-inline">a+b</span>')).toContain(
+    expect(sanitizeExportFragment('<span class="math-inline">a+b</span>')).toContain(
       'class="math-inline"',
     );
-    expect(sanitizeRenderedHtml('<div class="math-display">x</div>')).toContain(
+    expect(sanitizeExportFragment('<div class="math-display">x</div>')).toContain(
       'class="math-display"',
     );
   });
@@ -110,7 +110,7 @@ describe("render fixtures — JS sanitizer contract", () => {
       '<sup class="footnote-reference" id="fnref-1"><a href="#1">1</a></sup>' +
       '<div class="footnote-definition" id="1"><p>n' +
       '<a href="#fnref-1" class="footnote-backref" aria-label="Back to reference">↩</a></p></div>';
-    const out = sanitizeRenderedHtml(html);
+    const out = sanitizeExportFragment(html);
     expect(out).toContain('href="#fnref-1"');
     expect(out).toContain("footnote-backref");
     expect(out).toContain('id="fnref-1"');

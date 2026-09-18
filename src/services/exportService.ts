@@ -4,7 +4,8 @@ import { applyImageWidthMarkerToHtml } from "../plugins/milkdown/imageResizePlug
 import { renderHighlightSyntaxInHtml } from "./highlightSyntax";
 import { loggingService } from "./loggingService";
 import { prerenderMathForExport } from "./mathRender";
-import { sanitizeRenderedHtml } from "./sanitizerPolicy";
+import { sanitizeExportFragment } from "./sanitizerPolicy";
+import { createAnchorSlugAllocator } from "../utils/headingIdentity";
 
 interface RenderMarkdownResult {
   html: string;
@@ -34,47 +35,56 @@ interface ExportResult {
 }
 
 // Shared WI-0.1 allow-list policy (math/footnote/mermaid-aware), mirroring the
-// Rust `sanitize_html`. See src/services/sanitizerPolicy.ts.
-const sanitize = sanitizeRenderedHtml;
+// Rust `sanitize_html` on tags, attributes and URI schemes. It deliberately
+// DIVERGES on `SANITIZE_DOM`, which is off (ADR-0003 B′) so a heading anchor
+// such as `#title` survives export instead of being stripped — ammonia never
+// stripped it, so this closes a divergence rather than opening one.
+//
+// EXPORT ONLY: everything this produces is written to a file, never inserted
+// into the app's live DOM. See src/services/sanitizerPolicy.ts.
+const sanitize = sanitizeExportFragment;
 
-/**
- * Generate unique anchor ID from heading text (must match tocService).
+/*
+ * Anchor-slug generation used to live here as a private `generateHeadingId` with its
+ * own `Map<string, number>` counter and a doc comment reading "must match tocService"
+ * — a request that the next reader remember. It was not remembered: the counter
+ * emitted a duplicate id whenever a later heading's literal text already slugged to
+ * the suffix it had just handed out, and it registered the empty base BEFORE
+ * substituting `"heading"`, so an emoji-only heading could emit the bare id `-1`.
  *
- * Uses Unicode property escapes so CJK characters and other Unicode
- * letters/numbers are preserved in the slug. Emoji and punctuation are
- * replaced by hyphens. ASCII portions are lowercased.
+ * What is true now (WI-3.2): this face and `parseHeadingsFromContent` in
+ * tocService.ts SHARE ONE MODULE, `src/utils/headingIdentity.ts` — there is nothing
+ * left to keep in sync. The third live face, `generate_heading_id` in
+ * `src-tauri/src/services/markdown.rs`, is a hand port of the same algorithm, and its
+ * agreement is ENFORCED by the shared corpus
+ * `tests/render-fixtures/heading-identity.json` plus its two runners, not by prose.
  */
-function generateHeadingId(text: string, counts: Map<string, number>): string {
-  const baseId = text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "");
-
-  const count = counts.get(baseId) || 0;
-  const id = count === 0 ? baseId : `${baseId}-${count}`;
-  counts.set(baseId, count + 1);
-
-  return id || "heading";
-}
 
 /**
- * Create a new marked instance with heading IDs
+ * Create a new marked instance with heading IDs.
+ *
+ * The allocator is constructed INSIDE the returned closure, once per parse. That is
+ * the per-parse reset semantics the old `idCounts.clear()` provided, preserved:
+ * `parseMarkdownWithHeadingIds` is a module-level singleton, so an allocator built
+ * alongside the `Marked` instance would let each call continue the previous call's
+ * numbering. `marked`'s renderer hook is synchronous and runs entirely within
+ * `markedInstance.parse`, so the closure variable is safe to read from the hook.
  */
 function createMarkedParser(): (markdown: string) => string {
-  const markedInstance = new Marked();
-  const idCounts = new Map<string, number>();
+  let slugs = createAnchorSlugAllocator();
 
+  const markedInstance = new Marked();
   markedInstance.use({
     renderer: {
       heading(text: string, level: number): string {
-        const id = generateHeadingId(text, idCounts);
+        const id = slugs.allocate(text);
         return `<h${level} id="${id}" data-heading-id="${id}">${text}</h${level}>\n`;
       }
     }
   });
 
   return (markdown: string) => {
-    idCounts.clear(); // Reset for each parse
+    slugs = createAnchorSlugAllocator(); // Fresh per parse — no state crosses calls.
     return markedInstance.parse(markdown, { gfm: true }) as string;
   };
 }

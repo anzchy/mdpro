@@ -66,7 +66,7 @@
       "markdown": "# Alpha",
       "expectedSlugs": ["alpha"],
       "currentlyFailsOn": [],
-      "note": "Control for the clobber cases: a non-colliding ASCII id survives every face. Without this, a stripped anchor is indistinguishable from a parse failure."
+      "note": "Control for the clobber cases: a non-colliding ASCII id survives every face. It was load-bearing while the clobber cases were pinned -- without it, a stripped anchor was indistinguishable from a parse failure. Now that WI-3.2 B3 has unpinned them it is the trivial baseline the clobber cases are compared against, and it stays so a future regression tells the two apart again."
     },
     {
       "name": "non-heading-ids",
@@ -100,35 +100,36 @@
       "name": "suffix-collision",
       "markdown": "# x\n# x\n# x-1",
       "expectedSlugs": ["x", "x-1", "x-1-1"],
-      "currentlyFailsOn": ["rust", "toc", "exportFallback"],
-      "currentlyProduces": {
-        "rust": ["x", "x-1", "x-1"],
-        "toc": ["x", "x-1", "x-1"],
-        "exportFallback": ["x", "x-1", "x-1"]
-      },
-      "note": "The third heading's literal text already slugs to `x-1`, which the counter just handed to the second heading. All three generators emit `x-1` twice, violating document-unique anchors. Needs a third heading to surface -- two is not enough."
+      "currentlyFailsOn": [],
+      "note": "The third heading's literal text already slugs to `x-1`, which the count-based generator had just handed to the second heading. All three generators emitted `x-1` twice, violating document-unique anchors; needs a third heading to surface -- two is not enough. UNPINNED by WI-3.2 batches B1 (toc, exportFallback -> the shared allocator in src/utils/headingIdentity.ts) and B2 (rust -> the taken-set port in markdown.rs). Recorded defect before the fix, on all three faces: [x, x-1, x-1]."
     },
     {
       "name": "emoji-then-literal",
       "markdown": "# 🎉\n# heading",
       "expectedSlugs": ["heading", "heading-1"],
-      "currentlyFailsOn": ["toc", "exportFallback"],
-      "currentlyProduces": {
-        "toc": ["heading", "heading"],
-        "exportFallback": ["heading", "heading"]
-      },
-      "note": "TS applies the `|| \"heading\"` fallback AFTER counts.set, so it registers \"\" and the literal `# heading` collides undetected. Rust applies the fallback BEFORE the count map and is correct. True duplicate id on the TS faces."
+      "currentlyFailsOn": [],
+      "note": "TS applied the `|| \"heading\"` fallback AFTER counts.set, so it registered \"\" and the literal `# heading` collided undetected. Rust applies the fallback BEFORE collision handling and was already correct. UNPINNED by WI-3.2 B1. Recorded defect before the fix: toc and exportFallback both produced [heading, heading] -- a true duplicate id."
     },
     {
       "name": "two-emoji-only",
       "markdown": "# 🎉\n# 🎊",
       "expectedSlugs": ["heading", "heading-1"],
-      "currentlyFailsOn": ["toc", "exportFallback"],
-      "currentlyProduces": {
-        "toc": ["heading", "-1"],
-        "exportFallback": ["heading", "-1"]
-      },
-      "note": "Same root cause, different symptom: the second empty slug becomes the bare suffix `-1`, an id with no base at all. Recorded in neither plan before 2026-09-12."
+      "currentlyFailsOn": [],
+      "note": "Same root cause, different symptom: the second empty slug became the bare suffix `-1`, an id with no base at all. Recorded in neither plan before 2026-09-12. UNPINNED by WI-3.2 B1. Recorded defect before the fix: toc and exportFallback both produced [heading, -1]."
+    },
+    {
+      "name": "literal-then-emoji",
+      "markdown": "# heading\n# 🎉",
+      "expectedSlugs": ["heading", "heading-1"],
+      "currentlyFailsOn": [],
+      "note": "Order asymmetry, added 2026-09-18 (test-matrix ADDENDUM A, user-approved). emoji-then-literal covers emoji-FIRST only; an implementation could fix one direction and not the other with nothing to catch it. Measured 2026-09-18 against the pre-fix tree: toc [heading, heading], exportFallback [heading, heading] (DUPLICATE); rust [heading, heading-1] -- already correct, so `rust` was never pinned here and must stay correct through the B2 port. Lands unpinned because WI-3.2 fixes both TS faces in the same change; pinning a defect being removed in the same breath would record a lie."
+    },
+    {
+      "name": "literal-suffix-then-two-emoji",
+      "markdown": "# heading-1\n# 🎉\n# 🎊",
+      "expectedSlugs": ["heading-1", "heading", "heading-2"],
+      "currentlyFailsOn": [],
+      "note": "Defect-one x defect-two interaction, added 2026-09-18 (test-matrix ADDENDUM A, user-approved). The only input shape that exercises empty-base substitution against the smallest-free-integer search: the substitution yields base `heading`, and the collision search must then skip `heading-1` because a LITERAL heading already took it, landing on `heading-2`. An allocator that substitutes correctly but restarts its search at 1 without consulting the taken set passes every other case and fails only this one. Measured 2026-09-18 against the pre-fix tree: toc [heading-1, heading, -1], exportFallback [heading-1, heading, -1], rust [heading-1, heading, heading-1] -- the ADDENDUM left the rust value to be measured rather than assumed, and it is DEFECTIVE here (duplicate `heading-1`) even though rust substitutes before counting. B2 fixes it."
     },
     {
       "name": "fenced-hash",
@@ -154,13 +155,11 @@
       "name": "setext-title",
       "markdown": "Title\n=====",
       "expectedSlugs": ["title"],
-      "currentlyFailsOn": ["toc", "exportCanonical", "exportFallback"],
+      "currentlyFailsOn": ["toc"],
       "currentlyProduces": {
-        "toc": [],
-        "exportCanonical": [],
-        "exportFallback": []
+        "toc": []
       },
-      "note": "Two independent defects stacked on one input: tocService misses Setext, and the slug `title` is then stripped by DOMPurify on both export faces. Kept alongside setext-noncolliding so the two causes stay separable."
+      "note": "Two independent defects were stacked on one input: tocService misses Setext, and the slug `title` was then stripped by DOMPurify on both export faces. The second is FIXED -- WI-3.2 B3 set SANITIZE_DOM:false per ADR-0003 B', so both export pins are gone and only the Setext miss (WI-3.3) remains. Kept alongside setext-noncolliding so the two causes stay separable; that separation is what made this a partial unpin rather than a whole one."
     },
     {
       "name": "formatted-bold",
@@ -197,78 +196,50 @@
       "name": "trailing-hashes",
       "markdown": "# Title ###",
       "expectedSlugs": ["title"],
-      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
-      "currentlyProduces": {
-        "exportCanonical": [],
-        "exportFallback": []
-      },
-      "note": "Closing-sequence ATX (EC-MD-001). The slug is correctly `title` on every face -- what fails is that DOMPurify then strips the anchor. Measured as a parse bug in round 1; it is not."
+      "currentlyFailsOn": [],
+      "note": "Closing-sequence ATX (EC-MD-001). The slug is correctly `title` on every face; what used to fail was DOMPurify stripping the anchor afterwards. Measured as a parse bug in round 1; it never was one. UNPINNED by WI-3.2 B3 (ADR-0003 B', SANITIZE_DOM:false). Recorded defect before the fix, on exportCanonical and exportFallback: [] -- no anchor at all."
     },
     {
       "name": "leading-trailing-punct",
       "markdown": "# ---title---",
       "expectedSlugs": ["title"],
-      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
-      "currentlyProduces": {
-        "exportCanonical": [],
-        "exportFallback": []
-      },
-      "note": "Leading/trailing separators trimmed. Same story as trailing-hashes: correct slug, stripped anchor."
+      "currentlyFailsOn": [],
+      "note": "Leading/trailing separators trimmed. Same story as trailing-hashes: correct slug, and the anchor used to be stripped downstream. UNPINNED by WI-3.2 B3. Recorded defect before the fix, on exportCanonical and exportFallback: []."
     },
     {
       "name": "clobber-title",
       "markdown": "# Title",
       "expectedSlugs": ["title"],
-      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
-      "currentlyProduces": {
-        "exportCanonical": [],
-        "exportFallback": []
-      },
-      "note": "DOM-clobbering defense: DOMPurify's default SANITIZE_DOM removes an `id` colliding with a built-in document/form property, leaving `<h1 data-heading-id=\"title\">` with NO anchor. Rust/ammonia keeps it, so this is a TS-vs-Rust divergence, not a shared security posture. sanitizerPolicy.ts sets neither SANITIZE_DOM:false nor SANITIZE_NAMED_PROPS and its header never mentions clobbering. As of 2026-09-15 the behavior is no longer unrecorded: ADR-0003 accepts B′ — set SANITIZE_DOM:false and rename the function to sanitizeExportFragment. The stripping pinned here remains CURRENT behavior until WI-3.2 implements that decision, so this fixture stays pinned."
+      "currentlyFailsOn": [],
+      "note": "DOM-clobbering defense, now retired on this surface. DOMPurify's default SANITIZE_DOM removed an `id` colliding with a built-in document/form property, leaving `<h1 data-heading-id=\"title\">` with NO anchor. Rust/ammonia always kept it, so this was a TS-vs-Rust divergence, not a shared security posture. ADR-0003 accepted B' on 2026-09-15 (SANITIZE_DOM:false plus the sanitizeExportFragment rename); ADR-0011 unblocked it on 2026-09-18 by removing `name` from BASE_ATTRS, and WI-3.2 B3 landed both together. UNPINNED. Recorded defect before the fix, on exportCanonical and exportFallback: []. The fragment is safe without the defense only because it is written to a file and never enters a live DOM -- the function name carries that constraint, and ADR-0003's `<form>` precondition is guarded behaviourally in tests/sanitizer-policy.test.ts."
     },
     {
       "name": "clobber-name",
       "markdown": "# Name",
       "expectedSlugs": ["name"],
-      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
-      "currentlyProduces": {
-        "exportCanonical": [],
-        "exportFallback": []
-      },
-      "note": "Same defense, `document.name` / form property."
+      "currentlyFailsOn": [],
+      "note": "Same defense, `document.name` / form property. UNPINNED by WI-3.2 B3; recorded defect before the fix on both export faces: []. NOTE the distinction this case does NOT make: it is about an id whose VALUE is `name`, which now survives. The `name` ATTRIBUTE is a separate matter and was removed from the allow-list by ADR-0011 in the same change -- see tests/sanitizer-policy.test.ts."
     },
     {
       "name": "clobber-body",
       "markdown": "# Body",
       "expectedSlugs": ["body"],
-      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
-      "currentlyProduces": {
-        "exportCanonical": [],
-        "exportFallback": []
-      },
-      "note": "Same defense, `document.body`."
+      "currentlyFailsOn": [],
+      "note": "Same defense, `document.body`. UNPINNED by WI-3.2 B3; recorded defect before the fix on both export faces: []."
     },
     {
       "name": "clobber-location",
       "markdown": "# Location",
       "expectedSlugs": ["location"],
-      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
-      "currentlyProduces": {
-        "exportCanonical": [],
-        "exportFallback": []
-      },
-      "note": "Same defense, `document.location` -- the highest-severity clobber target."
+      "currentlyFailsOn": [],
+      "note": "Same defense, `document.location` -- the highest-severity clobber target in the original list, though ADR-0011 measured that `document.location` is [LegacyUnforgeable] (an own property) and is NOT in fact reachable by named access. UNPINNED by WI-3.2 B3; recorded defect before the fix on both export faces: []."
     },
     {
       "name": "clobber-forms",
       "markdown": "# Forms",
       "expectedSlugs": ["forms"],
-      "currentlyFailsOn": ["exportCanonical", "exportFallback"],
-      "currentlyProduces": {
-        "exportCanonical": [],
-        "exportFallback": []
-      },
-      "note": "Same defense, `document.forms`."
+      "currentlyFailsOn": [],
+      "note": "Same defense, `document.forms`. UNPINNED by WI-3.2 B3; recorded defect before the fix on both export faces: []."
     },
     {
       "name": "crlf-doc",

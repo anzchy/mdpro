@@ -1,5 +1,5 @@
 use pulldown_cmark::{html, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::services::markdown_ext::{
     add_footnote_back_links, preprocess_autolink_and_emoji, render_display_math, render_inline_math,
@@ -14,14 +14,55 @@ fn html_escape(text: &str) -> String {
         .replace('\'', "&#x27;")
 }
 
-/// Generate unique anchor ID from heading text (must match tocService.ts).
+/// Generate a document-unique anchor id for one heading's plain text.
 ///
-/// Algorithm mirrors the JS `generateUniqueId` in tocService.ts:
-/// - Lowercase the text
-/// - Replace each run of non-alphanumeric characters with a single `-`
-/// - Strip leading/trailing hyphens
-fn generate_heading_id(text: &str, counts: &mut HashMap<String, usize>) -> String {
-    // Replace runs of non-alphanumeric chars with a single hyphen (matches JS /[^\p{L}\p{N}]+/gu → "-")
+/// This is the `rust` face of the three LIVE slug generators. It is a hand PORT of
+/// `slugBase` + `createAnchorSlugAllocator` in `src/utils/headingIdentity.ts`, which
+/// is the normative implementation and which the other two live faces
+/// (`tocService.ts`, `exportService.ts`) IMPORT rather than duplicate. The Rust
+/// renderer is not callable from jsdom, so sharing the code is not available here.
+///
+/// Agreement between this port and that module is ENFORCED, not asserted in prose:
+/// the shared corpus `tests/render-fixtures/heading-identity.json` is read by two
+/// independent runners (`src-tauri/tests/heading_identity_parity.rs` and
+/// `tests/heading-identity-parity.test.ts`), and a cross-language FNV-1a digest over
+/// 200 generated documents is asserted against the same literal on both sides
+/// (`src-tauri/tests/heading_slug_generation.rs`, `tests/heading-identity-faces.test.ts`).
+/// The prior comment here — "must match tocService.ts" — was a request that the next
+/// reader remember; it was not remembered, and all three faces emitted duplicate ids.
+///
+/// Algorithm (must stay step-for-step with the TS module):
+///   1. Lowercase the text.
+///   2. Replace each run of non-alphanumeric characters with a single `-`.
+///   3. Trim `-` from both ends.
+///   4. If the result is empty, substitute `"heading"` — **before** any collision
+///      handling. Deferring this registers the empty base and lets a later literal
+///      `# heading` collide undetected.
+///   5. If the candidate is taken, append `-` and the smallest positive integer that
+///      yields a free id.
+///
+/// `last_tried_n` is a per-base monotone hint so the step-5 search resumes instead of
+/// restarting from 1 (a naive rescan is O(n²) over n identical headings). It is
+/// OUTPUT-IDENTICAL, not an approximation: `last_tried_n[base] = k` is set only when
+/// `base-k` was allocated, which required rejecting every n in [1, k-1] as taken, and
+/// `taken` never shrinks — so resuming at k+1 cannot skip a free slot. The membership
+/// re-check in the loop is still load-bearing, because a base may be free while its
+/// `-1` suffix was already taken by a literal heading.
+///
+/// Pure and private: no `#[tauri::command]` calls it, nothing here unwraps or panics
+/// on user-supplied text.
+///
+/// Known, pre-existing and NOT closed by this port: `char::is_alphanumeric()` is
+/// `Alphabetic ∪ N`, while the TS module's `\p{L}\p{N}` is `L ∪ Nd ∪ Nl ∪ No`.
+/// `Alphabetic` additionally includes `Other_Alphabetic` combining marks, so a
+/// heading containing those slugs differently here than in TS. The corpus has no
+/// case for it (plan Risks §1).
+fn generate_heading_id(
+    text: &str,
+    taken: &mut HashSet<String>,
+    last_tried_n: &mut HashMap<String, usize>,
+) -> String {
+    // Steps 1-3 (matches JS /[^\p{L}\p{N}]+/gu → "-" then /^-+|-+$/g → "").
     let mut base_id = String::new();
     let mut in_sep = false;
     for c in text.to_lowercase().chars() {
@@ -34,21 +75,32 @@ fn generate_heading_id(text: &str, counts: &mut HashMap<String, usize>) -> Strin
         }
     }
     let base_id = base_id.trim_matches('-').to_string();
+
+    // Step 4 — BEFORE step 5, never after.
     let base_id = if base_id.is_empty() {
         "heading".to_string()
     } else {
         base_id
     };
 
-    let count = *counts.get(&base_id).unwrap_or(&0);
-    let id = if count == 0 {
-        base_id.clone()
-    } else {
-        format!("{}-{}", base_id, count)
-    };
-    counts.insert(base_id, count + 1);
+    if !taken.contains(&base_id) {
+        taken.insert(base_id.clone());
+        return base_id;
+    }
 
-    id
+    // Step 5 — resume from the hint, but re-check membership every iteration.
+    let mut n = *last_tried_n.get(&base_id).unwrap_or(&0);
+    let candidate = loop {
+        n += 1;
+        let candidate = format!("{}-{}", base_id, n);
+        if !taken.contains(&candidate) {
+            break candidate;
+        }
+    };
+
+    last_tried_n.insert(base_id, n);
+    taken.insert(candidate.clone());
+    candidate
 }
 
 /// Replace `==text==` highlight syntax with `<mark>text</mark>` HTML.
@@ -526,7 +578,10 @@ pub fn render_markdown(markdown: &str) -> String {
 
     // Custom rendering to add heading IDs
     let mut html_output = String::new();
-    let mut id_counts: HashMap<String, usize> = HashMap::new();
+    // Per-render allocator state: the ids already handed out, plus the monotone
+    // suffix hint. Locals, so no state crosses calls to render_markdown.
+    let mut taken_slugs: HashSet<String> = HashSet::new();
+    let mut slug_hints: HashMap<String, usize> = HashMap::new();
     let mut in_heading = false;
     let mut heading_level: Option<HeadingLevel> = None;
     // Plain text collected from heading — used only to generate the anchor ID.
@@ -575,7 +630,7 @@ pub fn render_markdown(markdown: &str) -> String {
             }
             Event::End(TagEnd::Heading(_)) if !in_table => {
                 if let Some(level) = heading_level {
-                    let id = generate_heading_id(&heading_text, &mut id_counts);
+                    let id = generate_heading_id(&heading_text, &mut taken_slugs, &mut slug_hints);
                     let level_num = match level {
                         HeadingLevel::H1 => 1,
                         HeadingLevel::H2 => 2,

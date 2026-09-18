@@ -1,12 +1,24 @@
 /**
  * Fix 4 — Rust ↔ JS sanitizer parity.
  *
- * The two render surfaces (Rust `sanitize_html`, JS `sanitizeRenderedHtml`)
+ * The two render surfaces (Rust `sanitize_html`, JS `sanitizeExportFragment`)
  * must agree on the security-relevant allow-list: the math tag set, the SVG
  * tag set, the SVG attribute set, and the URI scheme set. If they drift, one
  * surface admits something the other strips — exactly the class of bug Fix 4
  * closes. This test parses the Rust constants from source and compares them to
  * the exported JS arrays.
+ *
+ * SCOPE, and it is narrower than "the two surfaces mirror each other":
+ *   - `SANITIZE_DOM: false` is a DELIBERATE JS-side divergence (ADR-0003 B′).
+ *     ammonia never stripped a colliding `id`, so the flag closes a gap rather
+ *     than opening one; nothing here asserts on it.
+ *   - The BASE ATTRIBUTE set is NOT compared. ADR-0011 records that as a known
+ *     gap and explicitly declines to close it here: `BASE_ATTRS` holds 21
+ *     attributes while ammonia's generic set holds 4, the rest arriving via
+ *     `add_tag_attributes` and ammonia's own defaults, so an honest subset
+ *     assertion must first compute that union. Because the base set is
+ *     uncompared, the `name` drift ADR-0011 fixed was structurally invisible to
+ *     this file — and the next base-attribute drift will be too.
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "fs";

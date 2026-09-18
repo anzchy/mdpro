@@ -11,7 +11,7 @@ import {
   renderMathElement,
   renderMathInContainer,
 } from "../src/services/mathRender";
-import { sanitizeRenderedHtml } from "../src/services/sanitizerPolicy";
+import { sanitizeExportFragment } from "../src/services/sanitizerPolicy";
 
 function inline(tex: string): HTMLElement {
   const el = document.createElement("span");
@@ -122,7 +122,7 @@ describe("prerenderMathForExport — A1 MathML output survives sanitization", ()
     // export still emitted KaTeX HTML, it would carry style="height:…".
     expect(pre).not.toContain('style="');
     // After the server-side sanitizer the MathML structure must SURVIVE intact.
-    const safe = sanitizeRenderedHtml(pre);
+    const safe = sanitizeExportFragment(pre);
     expect(safe).toContain("<math");
     expect(safe).toContain("<mfrac");
   });
@@ -133,7 +133,7 @@ describe("prerenderMathForExport — A1 MathML output survives sanitization", ()
     expect(pre).toContain("<math");
     expect(pre).toContain("display=\"block\"");
     expect(pre).not.toContain('style="');
-    const safe = sanitizeRenderedHtml(pre);
+    const safe = sanitizeExportFragment(pre);
     expect(safe).toContain("<math");
     // The integral structure (msubsup over the ∫) survives.
     expect(safe).toContain("<msubsup");
@@ -141,7 +141,7 @@ describe("prerenderMathForExport — A1 MathML output survives sanitization", ()
 
   it("emits MathML for \\sqrt that survives the sanitizer (msqrt)", () => {
     const body = '<span class="math-inline">\\sqrt{x}</span>';
-    const safe = sanitizeRenderedHtml(prerenderMathForExport(body));
+    const safe = sanitizeExportFragment(prerenderMathForExport(body));
     expect(safe).toContain("<msqrt");
   });
 

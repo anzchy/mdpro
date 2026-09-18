@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { createAnchorSlugAllocator } from "../utils/headingIdentity";
 import { stripFrontmatter } from "./exportService";
 
 /**
@@ -49,7 +50,11 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
   const headings: HeadingInfo[] = [];
   const stripped = stripFrontmatter(content);
   const lines = stripped.split(/\r?\n/);
-  const idCounts: Map<string, number> = new Map();
+  // A FRESH allocator per call. Hoisting this to module scope would make two
+  // successive parses of the same content disagree (the second returning `架构-1`
+  // for a document whose only heading is `架构`) — tests/cjk-slug.test.ts:73 is the
+  // guard for exactly that.
+  const slugs = createAnchorSlugAllocator();
 
   // Compute character offset of stripped content within the original document
   // so that line/offset values are relative to the full file, not the stripped copy.
@@ -71,7 +76,7 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
         offset += line.length + 1;
         continue;
       }
-      const id = generateUniqueId(text, idCounts);
+      const id = slugs.allocate(text);
 
       headings.push({
         id,
@@ -88,25 +93,25 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
   return headings;
 }
 
-/**
- * Generate unique anchor ID from heading text.
- * Handles duplicates with numeric suffix.
+/*
+ * Anchor-slug generation used to live here as a private `generateUniqueId` with its
+ * own `Map<string, number>` counter, kept in sync with the other faces BY HAND — a
+ * doc comment asking the next reader to remember. It was not remembered: the counter
+ * emitted a duplicate id whenever a later heading's literal text already slugged to
+ * the suffix it had just handed out, and it registered the empty base BEFORE
+ * substituting `"heading"`, so an emoji-only heading could emit the bare id `-1`.
  *
- * Uses Unicode property escapes so CJK characters and other Unicode
- * letters/numbers are preserved in the slug. Emoji and punctuation are
- * replaced by hyphens. ASCII portions are lowercased.
- *
- * Algorithm must stay in sync with generateHeadingId in exportService.ts.
+ * What is true now (WI-3.2):
+ *   - The two TypeScript faces — this one and `generateHeadingId` in
+ *     exportService.ts — SHARE ONE MODULE, `src/utils/headingIdentity.ts`. They
+ *     cannot drift, because there is nothing left to keep in sync.
+ *   - The third live face, `generate_heading_id` in
+ *     `src-tauri/src/services/markdown.rs`, is a hand PORT of that module (the Rust
+ *     renderer is not callable from jsdom, so sharing the code is not available).
+ *     Its agreement is ENFORCED rather than asserted in prose, by the shared corpus
+ *     `tests/render-fixtures/heading-identity.json` and its two runners
+ *     (`tests/heading-identity-parity.test.ts`,
+ *     `src-tauri/tests/heading_identity_parity.rs`), plus a cross-language digest
+ *     over 200 generated documents (`tests/heading-identity-faces.test.ts`,
+ *     `src-tauri/tests/heading_slug_generation.rs`).
  */
-function generateUniqueId(text: string, counts: Map<string, number>): string {
-  const baseId = text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "");
-
-  const count = counts.get(baseId) || 0;
-  const id = count === 0 ? baseId : `${baseId}-${count}`;
-  counts.set(baseId, count + 1);
-
-  return id || "heading";
-}

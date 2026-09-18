@@ -6,6 +6,15 @@
 //! independent runners — the same mechanism `render_golden.rs` already uses for
 //! `phase1.json`.
 //!
+//! PARITY SURFACE — THREE LIVE SLUG GENERATORS: `rust`, `toc`, `exportFallback`.
+//! Two further generators exist in the tree and are DELIBERATELY OUT OF SCOPE
+//! because they are dead code, not faces (plan M `:413-420`):
+//! `src-tauri/src/commands/toc.rs:36` (zero callers; takes `content` while the TS
+//! wrapper passes `document_id`) and `src/stores/tocStore.ts:120`
+//! `generateAnchorId` (zero references, re-verified 2026-09-18; strips CJK).
+//! Nothing here says anything about those two — a reader must not conclude that
+//! parity covers all five.
+//!
 //! This file owns the `rust` face only: slug GENERATION on the canonical path
 //! (`render_markdown` → `sanitize_html`). The JS runner owns the TOC and export
 //! faces. See the fixture's `_doc` for the full face table.

@@ -170,13 +170,13 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
 |---|---|---|---|
-| 导出 HTML | Shipped | `src-tauri/src/commands/export.rs` | ⌘⇧E 或 File → Export HTML（`menu.file.export_html`）；前端先用 `render_markdown` 渲染，再把 body 交给 `export_rendered_html` 落盘，产出一个带样式、可单独打开的 .html 文件 |
+| 导出 HTML | Shipped | `src-tauri/src/commands/export.rs`, `src/utils/headingIdentity.ts` | ⌘⇧E 或 File → Export HTML（`menu.file.export_html`）；前端先用 `render_markdown` 渲染，再把 body 交给 `export_rendered_html` 落盘，产出一个带样式、可单独打开的 .html 文件。标题锚点在一篇文档内唯一：导出 `# x` / `# x` / `# x-1` 三行，得到的 `id` 是 `x` / `x-1` / `x-1-1`（第三行不再和第二行撞成同一个 `x-1`）；只有 emoji 的标题得到 `heading`、`heading-1`，不会出现空的或以 `-` 开头的 `id`。三个活着的 slug 生成面（`tocService.ts`、`exportService.ts`、`markdown.rs`）由 `tests/render-fixtures/heading-identity.json` 和它的两个 runner 钉住。标题叫 `Title` / `Name` / `Body` / `Location` / `Forms` 时锚点同样存在：导出 `# Title` 后在 HTML 里能看到 `<h1 id="title">`，早先它会被 DOMPurify 的 `SANITIZE_DOM` 悄悄剥成只剩 `data-heading-id`，ADR-0003 B′ 关掉了那道防护（`src/services/sanitizerPolicy.ts` 的 `sanitizeExportFragment`，只给导出用、绝不进 App 活 DOM） |
 | 数学公式 | Partial | `src/services/mathRender.ts`, `src-tauri/src/services/markdown.rs` | 限制：只在 Rust 渲染面／导出排版，导出走 MathML；WYSIWYG 与源码模式下 `$…$` 是字面文本。写 `$$E=mc^2$$` 后 ⌘⇧E，用浏览器打开导出的 HTML 能看到排版好的公式，且页面不加载任何 JS |
 | 脚注 | Partial | `src-tauri/src/services/markdown.rs` | 限制：同上，只在导出渲染，WYSIWYG 下 `[^1]` 是字面文本。写一组 `[^1]` 引用与定义后 ⌘⇧E，导出的 HTML 里点引用跳到脚注，脚注末尾的 `↩` 能跳回来 |
 | 自动链接与 emoji | Shipped | `src-tauri/src/services/markdown.rs` | 正文里写一个裸的 `https://example.com` 和一个 `:smile:`，⌘⇧E 后前者变成可点链接，后者变成 emoji |
 | GFM 渲染 | Shipped | `src-tauri/src/services/markdown.rs` | 导出含表格、任务列表、`~~删除线~~` 和 `==高亮==` 的文档，四者在 HTML 里都正确呈现 |
 | Mermaid 图表 | Stub | `src-tauri/src/services/markdown.rs`, `src/services/sanitizerPolicy.ts` | 写一个 mermaid 围栏代码块（三反引号 + `mermaid`），三种模式下它都只是代码块，导出后也仍是代码块。消毒策略里有一整套 SVG 标签白名单是为 Mermaid 开的，Rust 侧还有 `test_sanitize_preserves_mermaid_svg` 在绿着——但 `package.json` 里没有 mermaid 依赖。这道门守着一个不存在的渲染器；那个测试证明的是消毒器不会剥掉 SVG，不是 mdpro 能画图 |
-| 导出消毒 | Shipped | `src-tauri/src/services/markdown.rs`, `src/services/sanitizerPolicy.ts` | 文中嵌一段 `<script>` 或 `<a href="javascript:…">`，导出的 HTML 里已被剥除；`style` 属性一律不放行 |
+| 导出消毒 | Shipped | `src-tauri/src/services/markdown.rs`, `src/services/sanitizerPolicy.ts` | 文中嵌一段 `<script>` 或 `<a href="javascript:…">`，导出的 HTML 里已被剥除；`style` 属性一律不放行；写 `<a name="x">` 或 `<img name="body">`，导出后 `name` 属性不见了（ADR-0011，`id` 才是受支持的写法）。JS 侧的 `sanitizeExportFragment` 只用于导出落盘，`SANITIZE_DOM` 刻意关着——这是与 ammonia 的一处有记录的分歧，不是漏配；`<form>` 必须留在白名单之外，这条前置条件由 `tests/sanitizer-policy.test.ts` 用行为断言守着 |
 | 默认导出目录 | Shipped | `src/components/common/settings/ExportSettings.tsx` | 在 ⌘, → Export 里用 Browse（`pick_export_folder`）选一个固定目录，之后 ⌘⇧E 不再每次问路径；留空则每次弹框 |
 | 内嵌样式开关 | Shipped | `src/components/common/settings/ExportSettings.tsx` | 在 ⌘, → Export 里关掉「include styles」，导出的 HTML 里不再有内联 CSS |
 | 预览面板（Preview） | Absent | — | ⌃2 与 ⌃4 之间切不出第三种视图——预览窗格在 Stage-2 死代码清理里被删了。遗留的 `preview_html` 命令仍然注册着、`exportService.previewHtml` 也还在，但零调用点；同一条渲染管线上的 `render_markdown` 反而是活的，导出时由 `exportRenderedHtml` 调用 |
@@ -190,7 +190,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
 |---|---|---|---|
-| 大纲侧栏 | Shipped | `src/components/Sidebar/TOCSidebar.tsx`, `src-tauri/src/commands/toc.rs` | 打开一篇有 H1–H6 的文档，侧栏列出层级目录（`get_document_headings` 解析，结果存在 `tocStore`）；点任一条跳过去，滚动时当前标题自动高亮，父节点可折叠 |
+| 大纲侧栏 | Shipped | `src/components/Sidebar/TOCSidebar.tsx`, `src/hooks/useTOC.ts`, `src/services/tocService.ts`, `src-tauri/src/commands/toc.rs` | 打开一篇有 H1–H6 的文档，侧栏列出层级目录（`useTOC` 调前端的 `parseHeadingsFromContent` 解析，锚点由 `src/utils/headingIdentity.ts` 分配，结果存在 `tocStore`）；点任一条跳过去，滚动时当前标题自动高亮，父节点可折叠。**Rust 侧的 `get_document_headings` 命令仍然注册着，但零调用点**——它收 `content`，而前端包装 `tocService.getDocumentHeadings` 传的是 `document_id`，就算有人去调也调不通；2026-09-18 由 WI-3.2 复核。此前本行写「`get_document_headings` 解析」，那是错的 |
 | 切换侧栏 | Shipped | `src/App.tsx` | ⌘⇧L 或 View → Toggle Sidebar（`menu.view.toggle_sidebar`）收起 / 展开左侧面板，重启后保持上次状态 |
 | 底部标签条 | Shipped | `src/components/BottomTabs/BottomTabs.tsx` | 底部有 `+` 新建、每个文档一个标签（整条标签条就是 `documentStore` 的投影），脏文档带圆点，悬停出 `×`，鼠标悬停显示完整路径，标签多了可横向滚动 |
 | 视图模式切换 | Shipped | `src/stores/editorStore.ts`, `src/components/Editor/Editor.tsx` | ⌘/（`menu.view.cycle`）在 WYSIWYG 与源码之间来回切；⌃2 / ⌃4 直达，焦点在 CodeMirror 里时也生效 |

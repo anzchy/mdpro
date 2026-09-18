@@ -11,7 +11,7 @@
  * real nodes/attributes.
  */
 import { describe, expect, it } from "vitest";
-import { sanitizeRenderedHtml } from "../src/services/sanitizerPolicy";
+import { sanitizeExportFragment } from "../src/services/sanitizerPolicy";
 
 function parse(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
@@ -90,10 +90,10 @@ const FIXTURES: Fixture[] = [
 // Disallowed URI schemes that must be dropped from anchor hrefs.
 const BAD_SCHEMES = ["javascript:", "data:", "vbscript:", "file:", "ftps://", "callto:", "sms:", "cid:", "xmpp:", "matrix:"];
 
-describe("sanitizeRenderedHtml — malicious fixtures (parsed-DOM assertions)", () => {
+describe("sanitizeExportFragment — malicious fixtures (parsed-DOM assertions)", () => {
   for (const fx of FIXTURES) {
     it(`neutralizes: ${fx.name}`, () => {
-      const out = sanitizeRenderedHtml(fx.html);
+      const out = sanitizeExportFragment(fx.html);
       const doc = parse(out);
 
       for (const tag of fx.forbiddenTags ?? []) {
@@ -117,7 +117,7 @@ describe("sanitizeRenderedHtml — malicious fixtures (parsed-DOM assertions)", 
 
   for (const scheme of BAD_SCHEMES) {
     it(`drops href scheme: ${scheme}`, () => {
-      const out = sanitizeRenderedHtml(`<a href="${scheme}evil">x</a>`);
+      const out = sanitizeExportFragment(`<a href="${scheme}evil">x</a>`);
       const doc = parse(out);
       const a = doc.querySelector("a");
       const href = a?.getAttribute("href") ?? "";
@@ -128,9 +128,9 @@ describe("sanitizeRenderedHtml — malicious fixtures (parsed-DOM assertions)", 
   }
 });
 
-describe("sanitizeRenderedHtml — legitimate links/anchors still survive", () => {
+describe("sanitizeExportFragment — legitimate links/anchors still survive", () => {
   it("keeps in-doc footnote anchors", () => {
-    const out = sanitizeRenderedHtml('<a href="#fn1">1</a>');
+    const out = sanitizeExportFragment('<a href="#fn1">1</a>');
     expect(parse(out).querySelector("a")?.getAttribute("href")).toBe("#fn1");
   });
 
@@ -142,24 +142,64 @@ describe("sanitizeRenderedHtml — legitimate links/anchors still survive", () =
       "tel:+15551234",
       "ftp://example.com/file",
     ]) {
-      const out = sanitizeRenderedHtml(`<a href="${href}">x</a>`);
+      const out = sanitizeExportFragment(`<a href="${href}">x</a>`);
       const got = parse(out).querySelector("a")?.getAttribute("href");
       expect(got, `legit link ${href} must survive; got: ${out}`).toBe(href);
     }
   });
 
   it("keeps relative image sources", () => {
-    const out = sanitizeRenderedHtml('<img src="./pics/diagram.png" alt="d">');
+    const out = sanitizeExportFragment('<img src="./pics/diagram.png" alt="d">');
     expect(parse(out).querySelector("img")?.getAttribute("src")).toBe("./pics/diagram.png");
   });
 
   it("hardens external links with rel=noopener noreferrer (mirrors Rust link_rel)", () => {
-    const out = sanitizeRenderedHtml('<a href="https://example.com">x</a>');
+    const out = sanitizeExportFragment('<a href="https://example.com">x</a>');
     expect(parse(out).querySelector("a")?.getAttribute("rel")).toBe("noopener noreferrer");
   });
 
   it("does not add rel to in-doc anchors (no off-document navigation)", () => {
-    const out = sanitizeRenderedHtml('<a href="#fn1">1</a>');
+    const out = sanitizeExportFragment('<a href="#fn1">1</a>');
     expect(parse(out).querySelector("a")?.getAttribute("rel")).toBeNull();
   });
+});
+
+/**
+ * Stability: `sanitize(sanitize(x)) === sanitize(x)`.
+ *
+ * The one weak law this allow-list filter has, and exactly the thing
+ * `SANITIZE_DOM: false` could plausibly perturb — ids are no longer rewritten, so
+ * a second pass should have nothing left to change. A configuration in which the
+ * sanitizer rewrites its own output is a classic mXSS smell; so is an
+ * `afterSanitizeAttributes` hook that is not idempotent, and this repo's hook is
+ * registered globally on the DOMPurify singleton at module load
+ * (`sanitizerPolicy.ts`), which is worth knowing when reading a failure.
+ *
+ * If this ever goes red, that is a FINDING about DOMPurify's behaviour to record
+ * and narrow to the specific input with a stated reason — not a test to delete. A
+ * deleted stability property reads to the next person as a property that held.
+ */
+describe("sanitizeExportFragment — stable under a second pass", () => {
+  const CLOBBER_INPUTS = ["title", "name", "body", "location", "forms"].map(
+    (n) => `<h1 id="${n}" data-heading-id="${n}">t</h1>`,
+  );
+  const EXTRA_INPUTS = [
+    ...CLOBBER_INPUTS,
+    '<form id="x"><input name="y"></form>',
+    '<img name="body" src="./x.png" alt="a">',
+    ...BAD_SCHEMES.map((s) => `<a href="${s}evil">x</a>`),
+  ];
+
+  for (const [i, input] of [
+    ...FIXTURES.map((f) => f.html),
+    ...EXTRA_INPUTS,
+  ].entries()) {
+    it(`is idempotent on input #${i}`, () => {
+      const once = sanitizeExportFragment(input);
+      expect(
+        sanitizeExportFragment(once),
+        `a second pass changed the output for: ${input}\n  first pass: ${once}`,
+      ).toBe(once);
+    });
+  }
 });

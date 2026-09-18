@@ -9,6 +9,14 @@
  * parsing Rust source text from TS: decision E26 moved this repo away from
  * source-text assertions, and they cannot characterize behavior in any case.
  *
+ * PARITY SURFACE — THREE LIVE SLUG GENERATORS: `rust`, `toc`, `exportFallback`.
+ * Two further generators exist in the tree and are DELIBERATELY OUT OF SCOPE because
+ * they are dead code, not faces (plan M `:413-420`):
+ * `src-tauri/src/commands/toc.rs:36` (zero callers; takes `content` while the TS
+ * wrapper passes `document_id`) and `src/stores/tocStore.ts:120` `generateAnchorId`
+ * (zero references, re-verified 2026-09-18; strips CJK). Nothing here says anything
+ * about those two — a reader must not conclude parity covers all five.
+ *
  * This file owns three faces; the Rust runner owns `rust`:
  *   toc             tocService.parseHeadingsFromContent — the TOC sidebar's own
  *                   parser and slug generator.
@@ -77,8 +85,11 @@ const fixtures = JSON.parse(
  * test failing.
  *
  * The `\sid="` requires a real `id` attribute, so `data-heading-id="…"` is not
- * mistaken for an anchor — a heading left with only the data attribute (what
- * DOMPurify's clobbering defense produces) correctly contributes nothing.
+ * mistaken for an anchor — a heading left with only the data attribute
+ * correctly contributes nothing. That shape was routinely produced by DOMPurify's
+ * clobbering defense until WI-3.2 B3 set `SANITIZE_DOM: false` (ADR-0003 B′); it
+ * is no longer expected on any face, and this extractor is what would make its
+ * return visible rather than counting the data attribute as an anchor.
  */
 function headingIdsFrom(html: string): string[] {
   return [...html.matchAll(/<h[1-6][^>]*\sid="([^"]*)"/g)].map((m) => m[1]);
@@ -129,7 +140,7 @@ function assertFace(
   }
 }
 
-describe("heading identity corpus — JS faces", () => {
+describe("heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs and tocStore.generateAnchorId are dead code and out of scope)", () => {
   beforeEach(() => {
     invokeMock.mockReset();
   });
