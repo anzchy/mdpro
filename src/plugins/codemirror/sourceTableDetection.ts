@@ -10,13 +10,20 @@
  * so the parser never sees pipe-runs that are actually code content.
  *
  * Performance: re-parses on `transaction.docChanged ||
- * transaction.selection`. The parser itself walks the entire source
- * each call (`splitLines` over `state.doc.toString()`); this is fine
- * for typical doc sizes but could become noticeable on multi-MB
- * documents. Caching the line index across transactions is a future
- * optimization (Phase 3 candidate).
+ * transaction.selection` — i.e. on every cursor move. Since Phase 4
+ * WI-3B the parse runs over the editor's own rope via `linesFromText`,
+ * so it neither copies the document into a string nor splits it: only
+ * the lines of the candidate run around the cursor are ever read, each
+ * as an O(log n) rope lookup. The cost therefore tracks the size of the
+ * run the cursor is in, not the size of the document. (Before WI-3B
+ * this was `splitLines` over a freshly materialised copy of the whole
+ * document, on every keystroke — which is what made multi-MB documents
+ * unusable.) Nothing is cached across transactions and nothing should
+ * be — the adapter is per-call, and a cache keyed on anything but the
+ * exact `Text` instance would retain superseded document states.
  *
  * @coordinates-with src/utils/tableParser
+ * @coordinates-with src/plugins/codemirror/textLineSource.ts
  * @coordinates-with src/plugins/codemirror/sourceTableTabNav.ts
  * @coordinates-with src/plugins/codemirror/sourceTableContextMenu.ts
  * @coordinates-with src/plugins/codemirror/sourceTableCellHighlight.ts
@@ -24,7 +31,9 @@
 
 import { StateField, type EditorState, type Extension } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { parseTableAt, type TableModel } from "../../utils/tableParser";
+import type { TableModel } from "../../utils/tableParser";
+import { parseTableAtOffset } from "../../utils/tableParser/parse";
+import { linesFromText } from "./textLineSource";
 
 /**
  * Walk the markdown syntax tree at `pos` and return true if the
@@ -64,7 +73,7 @@ const tableContextField = StateField.define<TableModel | null>({
 function computeContext(state: EditorState): TableModel | null {
   const cursor = state.selection.main.head;
   if (isPositionInFencedCode(state, cursor)) return null;
-  return parseTableAt(state.doc.toString(), cursor);
+  return parseTableAtOffset(linesFromText(state.doc), cursor);
 }
 
 /** Returns the active TableModel for the cursor (null if not in a table). */

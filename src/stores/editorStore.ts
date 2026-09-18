@@ -3,12 +3,13 @@ import type { EditorView } from "@codemirror/view";
 import type { CursorPosition, EditorState, ScrollPosition, SelectionRange, ViewMode } from "../types/editor";
 import { loggingService } from "../services/loggingService";
 import {
-  captureCellFromSource,
+  captureCellFromLines,
   setPendingTableCell,
   type TableCellPos,
 } from "../utils/cursorSync/table";
 import { captureCellFromMilkdownEditor } from "../utils/cursorSync/tableMilkdown";
 import { isPositionInFencedCode } from "../plugins/codemirror/sourceTableDetection";
+import { linesFromText } from "../plugins/codemirror/textLineSource";
 import { useDocumentStore } from "./documentStore";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
 
@@ -54,8 +55,10 @@ function capturePendingTableCellForTransition(
   let captured: TableCellPos | null = null;
   if (fromMode === "source" && cmView) {
     const state = cmView.state;
-    captured = captureCellFromSource(
-      state.doc.toString(),
+    // Over the rope (WI-3B). A mode toggle on a multi-MB document no
+    // longer copies the document just to find the cursor's cell.
+    captured = captureCellFromLines(
+      linesFromText(state.doc),
       state.selection.main.head,
       (pos) => isPositionInFencedCode(state, pos),
     );

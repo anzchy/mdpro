@@ -4,17 +4,19 @@
  * GFM table body rows whose cell count doesn't match the header.
  * Surfaces as gutter warnings via `@codemirror/lint`.
  *
- * Reuses `findAllTables` for enumeration (so the fence guard is
- * inherited) and `countTableLineCells` for per-line cell counting
- * (so escape and edge-pipe semantics stay single-source).
+ * Reuses `scanTables` for enumeration (so the fence guard is inherited)
+ * and `countTableLineCells` for per-line cell counting (so escape and
+ * edge-pipe semantics stay single-source).
  *
  * Exposes `tableColumnCountDiagnostics(state)` as a pure function so
  * tests can assert against the diagnostic list directly without
- * mounting an EditorView.
+ * mounting an EditorView, and `columnCountDiagnosticsFromSource` as the
+ * same logic over a bare line source (Phase 4 WI-3B).
  *
  * @coordinates-with src/utils/cursorSync/table.ts
  * @coordinates-with src/utils/tableParser
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
+ * @coordinates-with src/plugins/codemirror/textLineSource.ts
  */
 
 import {
@@ -25,24 +27,44 @@ import {
 } from "@codemirror/lint";
 import type { EditorState, Extension } from "@codemirror/state";
 import { countTableLineCells } from "../../utils/tableParser";
-import { findAllTables } from "../../utils/cursorSync/table";
+import type { TableLineSource } from "../../utils/tableParser/lines";
+import { scanTables } from "../../utils/tableParser/scan";
+import type { IsFenced } from "../../utils/cursorSync/table";
 import { isPositionInFencedCode } from "./sourceTableDetection";
+import { linesFromText } from "./textLineSource";
 
 /**
  * Pure: derive the diagnostic list for the given state. Walks each
  * GFM table (skipping fenced-code regions) and flags body rows whose
  * raw cell count differs from the header's.
+ *
+ * Runs over the editor's rope (WI-3B) — the document is never copied
+ * into a string, on the lint timer or anywhere else.
  */
 export function tableColumnCountDiagnostics(state: EditorState): Diagnostic[] {
-  const source = state.doc.toString();
-  const tables = findAllTables(source, (pos) =>
+  return columnCountDiagnosticsFromSource(linesFromText(state.doc), (pos) =>
     isPositionInFencedCode(state, pos),
   );
+}
+
+/**
+ * The linter's real body, against any `TableLineSource`. Exposed
+ * separately so the cost claim ("no table-scan path materialises the
+ * document") can be asserted as a counted integer over a pass-through
+ * counting delegate, rather than only as a grep over this file.
+ */
+export function columnCountDiagnosticsFromSource(
+  src: TableLineSource,
+  isFenced?: IsFenced,
+): Diagnostic[] {
+  const tables = scanTables(src, isFenced);
   const diagnostics: Diagnostic[] = [];
 
   for (const table of tables) {
-    const tableSource = source.slice(table.start, table.end);
-    const lines = tableSource.split("\n");
+    // `model.raw` IS `source.slice(table.start, table.end)` — the parser
+    // already paid for it. Re-slicing here would put a second copy of
+    // every table on the lint timer for nothing.
+    const lines = table.raw.split("\n");
     const expected = countTableLineCells(lines[0] ?? "");
     if (expected === 0) continue;
 

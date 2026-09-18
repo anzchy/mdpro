@@ -26,8 +26,9 @@ import { sourceTableCellHighlightExtension } from "../../plugins/codemirror/sour
 import { tableColumnCountLinter } from "../../plugins/codemirror/lintTableColumnCount";
 import {
   consumePendingTableCell,
-  locateCellInSource,
+  locateCellInLines,
 } from "../../utils/cursorSync/table";
+import { linesFromText } from "../../plugins/codemirror/textLineSource";
 
 interface EditorProps {
   value: string;
@@ -186,8 +187,10 @@ export function Editor({
           const pending = consumePendingTableCell(docId);
           if (pending) {
             const state = view.state;
-            const offset = locateCellInSource(
-              state.doc.toString(),
+            // Over the rope (WI-3B) — the restore path is symmetric with
+            // the capture in `editorStore.ts` and copies nothing.
+            const offset = locateCellInLines(
+              linesFromText(state.doc),
               pending,
               (pos) => isPositionInFencedCode(state, pos),
             );
