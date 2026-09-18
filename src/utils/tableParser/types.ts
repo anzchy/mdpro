@@ -39,6 +39,25 @@ export interface TableModel {
   raw: string;
 }
 
+/**
+ * Predicate that returns true when the given source offset sits inside a
+ * fenced code block (` ``` ` / ` ~~~ `). Callers in source mode pass
+ * `(pos) => isPositionInFencedCode(state, pos)`; tests can pass a synthetic
+ * predicate or omit it (defaults to "never fenced").
+ *
+ * Audit-fix H1/H2 (2026-05-03): without this guard, pipe-shaped lines inside
+ * a fence are enumerated by `findAllTables`, which makes `tableIndex` drift
+ * relative to Milkdown's `descendants` walk (Milkdown never yields `table`
+ * nodes inside fenced code). Source and WYSIWYG must enumerate the same
+ * tables in the same order or the cross-mode cursor sync lands in the wrong
+ * one.
+ *
+ * Lives here (rather than in `cursorSync/table.ts`, its original home) so
+ * `scan.ts` can name it without importing `cursorSync/` — see `SCAN-nocycle`.
+ * `cursorSync/table.ts` re-exports it, so the existing import path survives.
+ */
+export type IsFenced = (offset: number) => boolean;
+
 /** Internal — line range with inclusive start, exclusive end (excluding `\n`). */
 export interface LineRange {
   /** Start offset in source (inclusive). */

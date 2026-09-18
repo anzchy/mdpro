@@ -1,9 +1,31 @@
 /**
  * @module tableParser
  * Purpose: Public barrel for the GFM table parser. Split across
- * `types.ts`, `parse.ts`, and `serialize.ts` per rule 50 (file size
- * guideline). Consumers continue to `import { ... } from
- * "../utils/tableParser"` — module resolution finds index.ts.
+ * `types.ts`, `lines.ts`, `parse.ts`, `scan.ts`, `find.ts` and
+ * `serialize.ts` per rule 50 (file size guideline). Consumers continue
+ * to `import { ... } from "../utils/tableParser"` — module resolution
+ * finds index.ts.
+ *
+ * Layering, bottom to top:
+ *
+ *   lines.ts   `TableLineSource` — the line index and the line-level
+ *              predicates. Owns NO table structure. The interface is
+ *              the representation boundary: `linesFromString` is the
+ *              string adapter here, and `plugins/codemirror/
+ *              textLineSource.ts#linesFromText` is the CodeMirror-rope
+ *              adapter on the other side of it (Phase 4 WI-3B). One
+ *              algorithm, two adapters — never two parsers.
+ *   parse.ts   one table at one position. No loop over the document.
+ *   scan.ts    whole-document enumeration (Phase 4 WI-3): one
+ *              `parseTableAtLine` probe per maximal run of candidate
+ *              lines, replacing the probe-every-offset loop that went
+ *              quadratic whenever a table failed to parse.
+ *   find.ts / serialize.ts  cell lookup and model → Markdown.
+ *
+ * `lines.ts` and `scan.ts` are deliberately NOT re-exported here: their
+ * consumers (the CodeMirror plugins, `cursorSync/table.ts`) import them
+ * by path, and widening the barrel would invite a second enumeration
+ * loop to grow somewhere else.
  *
  * Source-of-truth header (kept here so future readers don't have to
  * hunt across files):
@@ -26,9 +48,13 @@
  *     - tables inside fenced code blocks (caller responsibility — see
  *       `src/plugins/codemirror/sourceTableDetection.ts`)
  *
+ * @coordinates-with src/utils/tableParser/lines.ts
+ * @coordinates-with src/utils/tableParser/scan.ts
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
  * @coordinates-with src/plugins/codemirror/sourceTableTabNav.ts
  * @coordinates-with src/plugins/codemirror/sourceTableContextMenu.ts
+ * @coordinates-with src/plugins/codemirror/lintTableColumnCount.ts
+ * @coordinates-with src/plugins/codemirror/textLineSource.ts
  * @coordinates-with src/utils/tableEdits.ts
  * @coordinates-with src/utils/cursorSync/table.ts
  */
