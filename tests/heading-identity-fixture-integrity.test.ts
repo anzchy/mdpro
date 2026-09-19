@@ -11,10 +11,11 @@
  * away without noticing.
  *
  * PARITY SURFACE — THREE LIVE FACES (`rust`, `toc`, `exportFallback`) plus the
- * derived `tocOffsets` and the preservation-only `exportCanonical`. The two OTHER
- * slug generators in the tree are DEAD CODE and out of scope for every claim made
- * here: `src-tauri/src/commands/toc.rs:36` (zero callers, wrong argument name) and
- * `src/stores/tocStore.ts:120` `generateAnchorId` (zero references, strips CJK).
+ * derived `tocOffsets` and the preservation-only `exportCanonical`. The ONE OTHER
+ * slug generator in the tree is DEAD CODE and out of scope for every claim made
+ * here: `src-tauri/src/commands/toc.rs:36` (zero callers, wrong argument name). A
+ * second dead one lived in `src/stores/` until WI-3.5.8 deleted it; its absence is
+ * guarded by `tests/dead-slug-removal.test.ts`.
  */
 import * as fs from "fs";
 import * as path from "path";

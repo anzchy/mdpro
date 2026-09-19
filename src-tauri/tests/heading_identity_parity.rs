@@ -7,13 +7,13 @@
 //! `phase1.json`.
 //!
 //! PARITY SURFACE — THREE LIVE SLUG GENERATORS: `rust`, `toc`, `exportFallback`.
-//! Two further generators exist in the tree and are DELIBERATELY OUT OF SCOPE
-//! because they are dead code, not faces (plan M `:413-420`):
+//! One further generator exists in the tree and is DELIBERATELY OUT OF SCOPE
+//! because it is dead code, not a face (plan M `:413-420`):
 //! `src-tauri/src/commands/toc.rs:36` (zero callers; takes `content` while the TS
-//! wrapper passes `document_id`) and `src/stores/tocStore.ts:120`
-//! `generateAnchorId` (zero references, re-verified 2026-09-18; strips CJK).
-//! Nothing here says anything about those two — a reader must not conclude that
-//! parity covers all five.
+//! wrapper passes `document_id`). A second dead generator lived in `src/stores/`
+//! until WI-3.5.8 deleted it (zero references; it stripped CJK) — see
+//! `tests/dead-slug-removal.test.ts`. Nothing here says anything about the one
+//! that remains — a reader must not conclude that parity covers all four.
 //!
 //! This file owns the `rust` face only: slug GENERATION on the canonical path
 //! (`render_markdown` → `sanitize_html`). The JS runner owns the TOC and export

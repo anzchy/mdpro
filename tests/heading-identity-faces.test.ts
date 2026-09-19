@@ -6,16 +6,15 @@
  *   2. `exportFallback` src/services/exportService.ts renderMarkdown (Rust IPC rejecting)
  *   3. `rust`           src-tauri/src/services/markdown.rs generate_heading_id
  *
- * TWO FURTHER SLUG GENERATORS EXIST AND ARE DELIBERATELY OUT OF SCOPE — they are
- * DEAD CODE, not faces of this parity claim (plan M `:413-420`):
+ * ONE FURTHER SLUG GENERATOR EXISTS AND IS DELIBERATELY OUT OF SCOPE — it is
+ * DEAD CODE, not a face of this parity claim (plan M `:413-420`):
  *   - `src-tauri/src/commands/toc.rs:36` `get_document_headings` — zero callers; it
  *     takes `content` while the TS wrapper passes `document_id`, so it could not be
  *     called successfully even if something tried. Retirement is stage 5.
- *   - `src/stores/tocStore.ts:120` `generateAnchorId` — zero references (re-verified
- *     2026-09-18). Its `while`-occupancy loop is the REFERENCE for the dedupe logic,
- *     but it strips CJK and must never become the landed implementation.
- * Nothing here asserts anything about those two. A reader must not conclude that
- * "the slug generators agree" covers all five.
+ * There used to be a second dead one in `src/stores/` (zero references, stripped CJK);
+ * WI-3.5.8 deleted it, and `tests/dead-slug-removal.test.ts` fails if it returns.
+ * Nothing here asserts anything about the remaining dead generator. A reader must not
+ * conclude that "the slug generators agree" covers all four.
  *
  * The fixed-case corpus lives in tests/heading-identity-parity.test.ts. This file
  * carries the laws that 27 hand-picked cases cannot reach: document uniqueness over

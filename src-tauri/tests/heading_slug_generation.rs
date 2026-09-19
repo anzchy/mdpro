@@ -7,15 +7,16 @@
 //!   2. `toc`            `src/services/tocService.ts` `parseHeadingsFromContent`
 //!   3. `exportFallback` `src/services/exportService.ts` `renderMarkdown` (IPC rejecting)
 //!
-//! TWO FURTHER SLUG GENERATORS EXIST AND ARE DELIBERATELY OUT OF SCOPE — they are
-//! DEAD CODE, not faces of this parity claim (plan M `:413-420`):
+//! ONE FURTHER SLUG GENERATOR EXISTS AND IS DELIBERATELY OUT OF SCOPE — it is
+//! DEAD CODE, not a face of this parity claim (plan M `:413-420`):
 //!   - `src-tauri/src/commands/toc.rs:36` `get_document_headings` — zero callers; it
 //!     takes `content` while the TS wrapper passes `document_id`, so it could not be
 //!     called successfully even if something tried. Retirement is stage 5.
-//!   - `src/stores/tocStore.ts:120` `generateAnchorId` — zero references (re-verified
-//!     2026-09-18); it strips CJK and must never become the landed implementation.
 //!
-//! Nothing here asserts anything about those two.
+//! A second dead generator lived in `src/stores/` (zero references; it stripped CJK)
+//! until WI-3.5.8 deleted it; `tests/dead-slug-removal.test.ts` fails if it returns.
+//!
+//! Nothing here asserts anything about the one that remains.
 //!
 //! PLACEMENT — deviation from the test matrix, stated: the matrix asks for these in
 //! `markdown.rs`'s own `#[cfg(test)]` module. That file is already 1534 lines against
