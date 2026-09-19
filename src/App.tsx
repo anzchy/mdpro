@@ -36,6 +36,7 @@ import {
   decideFileChange,
   decideWindowClose,
 } from "./utils/dataLossGuards";
+import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
@@ -137,7 +138,10 @@ function App() {
     content: activeDocument?.content ?? "",
     documentId: activeDocument?.id ?? null,
     containerId: viewMode === "wysiwyg" ? "milkdown-container" : "source-container",
-    enableSpyScrolling: viewMode !== "source",
+    // `viewMode` alone decides the spy mechanism now — `useTOC` routes on it via
+    // `resolveSpyMode`. This call site used to also pass a spy master switch computed
+    // as `viewMode !== "source"`, which turned the outline highlight off in Source mode
+    // because the only mechanism then was a DOM observer with nothing to observe.
     viewMode,
   });
 
@@ -505,14 +509,26 @@ function App() {
   }, [clearLargeFileWarning, largeFileWarning, showToast]);
 
   useEffect(() => {
-    if (viewMode !== "wysiwyg") return;
     if (!activeDocument) return;
-    const bytes =
-      activeDocument.fileSize ??
-      new TextEncoder().encode(activeDocument.content).length;
-    if (bytes <= 500 * 1024) return;
-    showToast("Document exceeds 500KB. Switched to Source mode for performance.");
-    setViewMode("source");
+    const decision = decideLargeDocumentGuard({
+      viewMode,
+      fileSize: activeDocument.fileSize,
+      content: activeDocument.content,
+    });
+    switch (decision.action) {
+      case "allow":
+        return;
+      case "degrade-to-source":
+        showToast(decision.message);
+        setViewMode("source");
+        return;
+    }
+    // Both arms return, so `decision` is `never` here. A third action added to
+    // LargeDocumentGuardDecision fails to compile at this line rather than
+    // being silently dropped. A bare `switch` does NOT enforce exhaustiveness
+    // on its own — measured against this repo's tsc, not assumed. Rule 60
+    // § "Enum and Union Completeness". Pinned by C11.
+    decision satisfies never;
   }, [activeDocument, setViewMode, showToast, viewMode]);
 
   const handleOpenDialog = useCallback(async (actionId?: string) => {
