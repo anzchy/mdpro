@@ -154,15 +154,31 @@ Files >500KB automatically switch to source mode:
 
 ```typescript
 useEffect(() => {
-  if (viewMode !== "wysiwyg") return;
   if (!activeDocument) return;
-  const bytes = activeDocument.fileSize ??
-    new TextEncoder().encode(activeDocument.content).length;
-  if (bytes <= 500 * 1024) return;
-  showToast("Document exceeds 500KB. Switched to Source mode for performance.");
-  setViewMode("source");
-}, [activeDocument, viewMode]);
+  const decision = decideLargeDocumentGuard({
+    viewMode,
+    fileSize: activeDocument.fileSize,
+    content: activeDocument.content,
+  });
+  switch (decision.action) {
+    case "allow":
+      return;
+    case "degrade-to-source":
+      showToast(decision.message);
+      setViewMode("source");
+      return;
+  }
+  decision satisfies never;
+}, [activeDocument, setViewMode, showToast, viewMode]);
 ```
+
+The predicate itself lives in `src/utils/largeDocumentGuard.ts` — a pure
+function with no React and no store access, so it can be unit-tested. The effect
+above owns only the two side effects. The threshold constant and the toast text
+are both exported from `largeDocumentGuard.ts`; neither literal appears in
+`App.tsx`. The `??` fallback is deliberate — a `fileSize` of `0` is a known size,
+not a missing one, so it must not fall through to measuring the in-memory
+content.
 
 ### Finder/Drag-Drop Opens
 

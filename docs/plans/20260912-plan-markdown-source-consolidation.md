@@ -690,7 +690,7 @@ ADR-0004 `:88-93` 把它定性为「更危险的那一半」：471,880 B 是一�
 护栏保留，**判据重选被推迟**。
 
 **⛔ 本工作项今天不能直接改代码，这是 ADR-0006 的约束而不是拖延。**
-同一份 ADR `:190-193` 明写：
+同一份 ADR `:200-202` 明写：
 「Whether a 472 KB single-table document is actually usable in WYSIWYG after this bump
 is therefore **still unmeasured**, and re-choosing D6's predicate still depends on
 a sweep on the real WKWebView.」
@@ -699,13 +699,39 @@ ADR-0006 移除了总量里的一项（`micromark-extension-gfm-table` 的二次
 在拿到那次 sweep 之前写死任何新阈值，都是在和一条 Accepted 的 ADR 对着干 ——
 而且会把一个**没有测量支撑的数字**钉进用户能感知的护栏里。
 
+#### 进度（2026-09-20）
+
+**D6.3 的「抽出来 + 钉住现状」那一半落地了；「改判据」那一半仍被 D6.1 卡死。**
+
+已完成，且判据一个字节都没动：
+
+- `src/utils/largeDocumentGuard.ts` —— 纯函数 `decideLargeDocumentGuard`，
+  返回 `{ action: "allow" } | { action: "degrade-to-source"; message; bytes }`，
+  不碰 React、不碰 store、不调副作用。阈值常量与 toast 文案由它导出。
+- `src/App.tsx:511-532` —— 只剩薄调用点，两个副作用（`showToast`、`setViewMode`）
+  仍归 `useEffect` 所有。`500 * 1024`、`512000`、`TextEncoder`、toast 原文
+  四个字面量在 `App.tsx` 全文已不存在。
+- `tests/large-document-guard.test.ts`（23 例，行/分支/函数/语句四项均 **100%**）
+  与 `tests/large-document-guard-call-site.test.ts`（11 例）。
+  护栏此前**零覆盖**，这是从零建的网。
+- 闸门：unit 548 套 / 2008 例 / 0 失败 / 4 todo；
+  `cargo test` 275 通过 1 忽略；`tsc --noEmit` 与 `typecheck:tests` 均干净；
+  `pnpm ledger:check` 0 findings。
+
+**仍然不能做，且不因为上面这些而松动**：阈值数值、判据变量（字节 → 单元格数）、
+`<=` 边界、降级动作四项，全部等 D6.2，而 D6.2 等 D6.1 的真机 sweep。
+**抽函数不是决定。** 谁把上面那组绿色读成「D6 可以关了」，就是读错了 ——
+钉住的是**今天的行为**，包括那些已知可疑的行为（见 D6.2 的 ④⑤）。
+
+⇒ **D6 仍未关闭，3.8 仍是 ⬜。**
+
 #### 拆解
 
 | 子项 | 内容 | 谁能做 |
 | --- | --- | --- |
 | **D6.1** | **真机 sweep**：在 WKWebView（`pnpm tauri dev` 或打包档）上重测 `large-table.wysiwyg`（471,880 B / 单表 **45,744** 单元格）在 micromark 升级**之后**的 PM mount 与模式切换耗时，并至少再取两个单元格数不同的点（建议 ~1/4 与 ~1/2 规模），以便看出耗时随单元格数的增长形状。**测量条件必须与门禁二记录 `:9-22` 对齐**（机器、电源状态、构建类型），否则两组数不可比。 | **只有用户能做。**本仓无任何自动化手段可测 WYSIWYG 渲染耗时 —— `.claude/tdd-guardian/config.json` 只有 `unit`（vitest/jsdom）与 `rust`（cargo）两条泳道，`package.json` 无 playwright/puppeteer，`scripts/perf/` 只有生成器没有 runner，`src-tauri/tests/perf_render_corpus.rs` 是 `#[ignore]` 且只测 Rust 侧 `render_markdown` / `sanitize_html`。门禁二里每一个 Milkdown 数字都是手工用 Web Inspector 取的（`:66`、`:14-18`）。 |
-| **D6.2** | **定判据与阈值**，并写 ADR-0016 记录取舍（ADR-0006 对 D6 的那条子决议由它取代，ADR-0006 本身不可改）。ADR-0006 已经指明判据变量是**最大单表的单元格数**；D6.2 要定的是**阈值数值**、**多表文档怎么算**（取最大单表还是全文合计）、以及**降级动作**是否仍是「切源码模式 + toast」。 | 需要 D6.1 的数 |
-| **D6.3** | **实施 + 测试**。把 `src/App.tsx:507-516` 的判据抽成纯函数（今天它内联在 `useEffect` 里，无法单测），按 D6.2 的结论改判据，补规则 10 要求的用例。 | 可自动化 |
+| **D6.2** | **定判据与阈值**，并写 ADR-0016 记录取舍（ADR-0006 对 D6 的那条子决议由它取代，ADR-0006 本身不可改）。ADR-0006 已经指明判据变量是**最大单表的单元格数**；D6.2 要定的是**阈值数值**、**多表文档怎么算**（取最大单表还是全文合计）、以及**降级动作**是否仍是「切源码模式 + toast」。<br><br>⚠️ **2026-09-19 补两个此前未登记的问题**，都是 D6.3 抽纯函数时读代码读出来的：<br>④ **陈旧 `fileSize` 压过实时内容。** 判据取 `activeDocument.fileSize ?? 测量(content)`，而 `fileSize` 是**打开时的磁盘大小**。一份 400 KB 打开、在内存里编辑到 600 KB 的文档，护栏仍按 409,600 判，不降级。D6.3 已把这个行为原样钉进表征测试（`tests/large-document-guard.test.ts`，用例标题明写「recorded, not endorsed」），**但它是对是错要 D6.2 裁定**，判据换成单元格数时这个优先级问题会原样重现。<br>⑤ **`App.tsx` 有两条大文件提示路径，紧挨着。** `:504-509` 消费一个来自别处（很可能是 Rust 打开路径）的 `largeFileWarning` 并弹 toast；`:511-532` 是本护栏自己的 toast。**打开一份 600 KB 文档究竟弹一条还是叠两条，今天没有任何测试或文档回答**，jsdom 无布局引擎也测不了。D6.2 既然要裁定「降级动作是否仍是切源码 + toast」，就必须连这条相邻路径一起看，否则裁定的是一个不完整的事实。 | 需要 D6.1 的数 |
+| **D6.3** | **实施 + 测试**。分三段：<br>(a) **抽纯函数 —— 2026-09-20 已完成**。判据现在是 `src/utils/largeDocumentGuard.ts` 的 `decideLargeDocumentGuard`，返回判别联合而不是直接调副作用；`src/App.tsx:511-532` 只剩一个薄调用点。<br>(b) **补规则 10 用例 —— 已完成**。`tests/large-document-guard.test.ts`（23 例，行/分支/函数/语句均 100%）钉住今天的行为，`tests/large-document-guard-call-site.test.ts`（11 例）钉住调用点形状（阈值常量与 toast 文案都不得回流 `App.tsx`，判别联合必须穷尽）。**这两组是表征测试，记录现状，不背书现状。**<br>(c) **按 D6.2 的结论改判据 —— 仍未做，且不能做**。阈值 `500 * 1024`、判据变量、`<=` 边界、降级动作四项在 D6.2 裁定前都被 ADR-0006 冻结。 | (a)(b) 已完成；(c) 需要 D6.2 |
 
 #### 实施前必须知道的三件事
 

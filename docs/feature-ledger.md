@@ -80,7 +80,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 保存时保留原编码 | Shipped | `src-tauri/src/commands/file.rs` | 打开一个带 BOM 的 UTF-16 + CRLF 文件，⌘S 后用 `file` 或 hexdump 看，BOM、编码、换行符都没变 |
 | 原子写入保存 | Shipped | `src-tauri/src/commands/file.rs` | 保存期间强杀进程，原文件要么是旧内容要么是新内容，不会被截断成半截；文件权限位保持不变 |
 | 10MB 文件大小上限 | Shipped | `src-tauri/src/commands/file.rs` | 尝试打开一个超过 10MB 的 .md，被明确拒绝而不是卡住 |
-| 大文件提示横幅 | Shipped | `src/hooks/useDocument.ts` | 打开一个接近上限的大文件，出现「Large file opened (>10MB). Performance may be affected.」 |
+| 大文件提示横幅 | Absent | — | 无论打开多大的 .md，这条横幅都不会出现——它是一段够不到的死代码。`useDocument.ts` 里 `LARGE_FILE_BYTES` 是 `10 * 1024 * 1024`，只在 `fileSize > LARGE_FILE_BYTES` 时提示；而 `src-tauri/src/commands/file.rs` 的 `MAX_FILE_SIZE` 是同一个 10MB，`metadata.len() > MAX_FILE_SIZE` 的文件一律以 `FileError::FileTooLarge` 拒开，两边比的又是同一个 `metadata.len()`。两道阈值相等，于是能触发横幅的文件永远打不开，能打开的文件永远触发不了横幅。想看到它只能先改其中一个常数 |
 | 外部变更监听 | Shipped | `src-tauri/src/services/file_watcher.rs` | 在外部编辑器改同一个文件并保存，mdpro 侦测到；自己 ⌘S 不会触发误报；前端再用 `check_file_modified` 复核磁盘状态 |
 | 外部变更重载提示 | Shipped | `src/components/common/ReloadDialog.tsx` | 在外部编辑器改同一个文件并保存，mdpro 弹出「Reload / Ignore」，选 Reload 走 `reload_file` |
 | 未保存改动确认 | Shipped | `src/components/common/ConfirmDialog.tsx` | 在有脏改动时 ⌘W 或关窗口，弹出「Discard changes / Keep editing」 |
@@ -130,8 +130,8 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 能力 | 状态 | 在哪 | 怎么确认 |
 |---|---|---|---|
 | 插入表格对话框 | Shipped | `src/components/Editor/TableInsertModal/index.tsx`, `src/plugins/milkdown/table/insertTable.ts` | ⌘⌥T 或 Format → Insert Table（`menu.format.insert_table`），弹出由 `tableInsertStore` 驱动的对话框：在 10×10 网格上悬停选行列，或直接填 1–50 的数字，下方有实时读数 |
-| 表格右键菜单（WYSIWYG） | Shipped | `src/components/Editor/TableContextMenu/index.tsx` | ⌃4 下右键点表格，出现分五组共 16 个操作，方向键可以在菜单里上下走 |
-| 表格右键菜单（源码） | Shipped | `src/components/Editor/SourceTableContextMenu/index.tsx` | ⌃2 下右键点一段 Markdown 表格，同样的 16 个操作，直接改原始文本 |
+| 表格右键菜单（WYSIWYG） | Shipped | `src/components/Editor/TableContextMenu/index.tsx` | ⌃4 下右键点表格，出现分五组共 15 个操作（插入 4、移动 4、对齐 3、格式 1、删除 3），方向键可以在菜单里上下走 |
+| 表格右键菜单（源码） | Shipped | `src/components/Editor/SourceTableContextMenu/index.tsx` | ⌃2 下右键点一段 Markdown 表格，同样的 15 个操作（插入 4、移动 4、对齐 3、格式 1、删除 3），直接改原始文本 |
 | 插入行 / 列 | Shipped | `src/plugins/milkdown/table/actionDescriptors.ts` | 光标停在某个单元格，⌘⌥↑ / ⌘⌥↓ 上下加行，⌘⌥← / ⌘⌥→ 左右加列 |
 | 删除行 / 列 / 整表 | Shipped | `src/plugins/milkdown/table/actionDescriptors.ts` | ⌘⌥⌫ 删当前行或列，⌘⌥⇧⌫ 删整张表 |
 | 移动行 / 列 | Shipped | `src/plugins/milkdown/table/actionDescriptors.ts` | 右键菜单里选上移 / 下移 / 左移 / 右移；在第一行或最后一列时对应项是灰的 |
@@ -147,7 +147,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 列宽拖拽 | Shipped | `src/components/Editor/MilkdownEditor.tsx` | ⌃4 下拖动两列之间的竖线改列宽；只在本次会话有效，不写进 Markdown |
 | 跨模式单元格光标同步 | Shipped | `src/hooks/useMilkdownTableCursorRestore.ts`, `src/stores/editorStore.ts` | 把光标放进第 3 行第 2 格，⌃2 / ⌃4 来回切，光标仍在同一格 |
 | 宽表格滚动 | Shipped | `src/components/Editor/MilkdownEditor.css` | 插一张 15 列的表，横向滚动条出现在表格自己的容器上，整个编辑区不跟着横移 |
-| MCP 驱动的表格编辑 | Shipped | `src/hooks/useMcpEvents.ts` | 开着 mdpro，让外部客户端调一次表格接口，改动实时出现在当前可见的编辑器里 |
+| HTTP 驱动的表格编辑 | Partial | `src/hooks/useMcpEvents.ts`, `src-tauri/src/services/http_server.rs` | 限制：只能从 HTTP 端点驱动，走不到 MCP——`mdpro_mcp.rs` 只注册了 get_open_documents、read_document、write_document、insert_content 四个工具，表格操作不在其中，AI 客户端调不到（与「HTTP 表格端点」是同一道墙的两面）。开着 mdpro，用 curl 带 token 打 `/api/v1/insert_table`、`/api/v1/set_cell`、`/api/v1/add_row`、`/api/v1/delete_row`、`/api/v1/add_column`、`/api/v1/delete_column`，后端发 `mcp:table_action`，`useMcpEvents.ts` 收下并把改动落到当前可见的编辑器里 |
 
 ### 源码模式
 
@@ -164,7 +164,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 括号自动配对 | Shipped | `src/components/common/settings/MarkdownSettings.tsx` | 输入 `(` 自动补 `)`；在 ⌘, → Markdown 里关掉后就不再自动补 |
 | 自动换行与缩进宽度 | Shipped | `src/components/common/settings/EditorSettings.tsx` | 在 ⌘, → Editor 里切换 word wrap 与 2 / 4 空格，编辑器当场生效，不用重启 |
 | 代码块主题 | Shipped | `src/components/common/settings/AppearanceSettings.tsx` | 在 ⌘, → Appearance 里把代码主题从 Default 换成 One Dark，⌃2 下的着色立刻变 |
-| 大文档性能保护 | Shipped | `src/App.tsx` | 打开一个超过 500KB 的 .md，自动切到源码模式并弹出「Document exceeds 500KB. Switched to Source mode for performance.」 |
+| 大文档性能保护 | Partial | `src/utils/largeDocumentGuard.ts`, `src/App.tsx` | 限制：交付的只是「超过 500KB 自动切源码模式」这个动作，保护效果本身没被量过。ADR-0004 记的 D6 说这道闸门挡不住真正的重文档：`scripts/perf/generate-corpus.mjs` 生成的 `large-table.wysiwyg` 只有 471,880 B，低于 500KB 阈值因而被放行，却能把主线程堵约 56 秒（代价来自单表 45,744 个单元格，与字节数几乎无关）；ADR-0006 换掉 micromark-gfm-table 之后仍写明，一份 472 KB 的单表文档在 WYSIWYG 里究竟还能不能用「仍未测量」，D6 没有关掉。能确认的是那个动作：打开一个超过 500KB 的 .md，自动切到源码模式并弹出「Document exceeds 500KB. Switched to Source mode for performance.」；打开那份 471,880 B 的表格文档则什么都不会发生 |
 
 ### 导出
 
@@ -180,7 +180,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 默认导出目录 | Shipped | `src/components/common/settings/ExportSettings.tsx` | 在 ⌘, → Export 里用 Browse（`pick_export_folder`）选一个固定目录，之后 ⌘⇧E 不再每次问路径；留空则每次弹框 |
 | 内嵌样式开关 | Shipped | `src/components/common/settings/ExportSettings.tsx` | 在 ⌘, → Export 里关掉「include styles」，导出的 HTML 里不再有内联 CSS |
 | 预览面板（Preview） | Absent | — | ⌃2 与 ⌃4 之间切不出第三种视图——预览窗格在 Stage-2 死代码清理里被删了。遗留的 `preview_html` 命令仍然注册着、`exportService.previewHtml` 也还在，但零调用点；同一条渲染管线上的 `render_markdown` 反而是活的，导出时由 `exportRenderedHtml` 调用 |
-| 导出 HTML 片段命令 | Partial | `src-tauri/src/commands/export.rs`, `src/services/exportService.ts` | 限制：`export_html` 与它的包装 `exportService.exportHtml` 在前端零调用点，⌘⇧E 走的是 `export_rendered_html`。按 ADR-0003 它被刻意保留不删，且那条决定带一个失效条件——一旦 `<form>` 进入消毒白名单就必须重新评估。所以这不是忘了清理，是一条写下来的决定 |
+| 导出 HTML 片段命令 | Partial | `src-tauri/src/commands/export.rs`, `src/services/exportService.ts` | 限制：`export_html` 与它的包装 `exportService.exportHtml` 在前端零调用点，⌘⇧E 走的是 `export_rendered_html`。不删它是一条写下来的决定，不是忘了清理——理由在 knip 死代码提案 §5.6（`docs/plans/20260912-proposal-knip-dead-code-detection.md`），与可达性无关；ADR-0003 自己也写明这条理由「自成一套、不受该记录影响」。别把两件事接到一起：ADR-0003 那个失效条件——一旦 `<form>` 进入消毒白名单就必须重新评估——管的是导出消毒里关掉 `SANITIZE_DOM` 的那条决定，不是 `export_html` 的去留 |
 | PDF 导出 | Absent | — | File 菜单里没有 PDF 项，⌘⇧E 只产出 HTML。这是立场不是缺口——曾评估过 headless Chromium，因体积被否 |
 | Word / DOCX 导出 | Absent | — | File 菜单里没有 Word / DOCX 项。立场 |
 | 打印 | Absent | — | ⌘P 没有反应，File 菜单里也没有 Print 项。全仓库没有任何 `window.print` 或打印命令；要打印只能先 ⌘⇧E 导出 HTML，再在浏览器里打。这条**不是**已记录的立场——PDF 导出是被评估后否掉的，打印从没被评估过 |
@@ -230,7 +230,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 自动批准 AI 编辑 | Shipped | `src/components/common/IntegrationsSettings.tsx` | 勾上之后外部写入不再弹确认框，直接落到编辑器 |
 | 四个 MCP 工具 | Shipped | `src-tauri/src/bin/mdpro_mcp.rs` | 在 Claude Desktop 里连上后列出工具，恰好是 get_open_documents、read_document、write_document、insert_content 四个，分别打到 `/api/documents`、`/api/documents/{id}`（GET / POST）与 `/api/documents/{id}/insert` |
 | HTTP 表格端点 | Partial | `src-tauri/src/services/http_server.rs`, `src-tauri/src/bin/mdpro_mcp.rs` | 限制：只有 HTTP 端点，`mdpro_mcp.rs` 只注册了 4 个工具，任何 AI 客户端都无法通过 MCP 走到表格操作。用 curl 带 token 打 `/api/v1/insert_table`、`/api/v1/set_cell`、`/api/v1/add_row`、`/api/v1/delete_row`、`/api/v1/add_column`、`/api/v1/delete_column` 都能成功，但在 AI 客户端的工具列表里找不到任何表格工具 |
-| 影子存储同步 | Shipped | `src-tauri/src/services/shadow_store.rs`, `src/hooks/useMcpSync.ts` | 改几个字不保存（前端 300ms 防抖地调 `mcp_sync_documents` 推一次），立刻让外部客户端 read_document，读到的是编辑器里的最新内容而不是磁盘上的旧内容 |
+| 影子存储同步 | Shipped | `src-tauri/src/services/shadow_store.rs`, `src/hooks/useMcpSync.ts` | 改几个字不保存，前端 300ms 防抖地调 `mcp_sync_documents` 推一次，推完之后外部客户端 read_document 读到的是编辑器里的最新内容而不是磁盘上的旧内容。是最终一致不是即时一致：内容同步带 300ms 防抖（开 / 关 / 切文档才是立即推），在这个窗口里读到的仍是上一份快照。要确认就等这次同步落定后再读，别在敲完键的那一刻读 |
 | 写入确认对话框 | Shipped | `src-tauri/src/services/http_server.rs` | 把 mdpro 切到后台，让外部客户端调 write_document，弹出原生 Yes / No 确认 |
 | 客户端配置安装器 | Shipped | `src-tauri/src/commands/mcp.rs` | ⌘, → Integrations 里对 Claude Desktop / Claude Code / Codex CLI / Gemini CLI 点 Install（`mcp_install_config`），对应客户端的配置文件被写好；已安装状态由 `mcp_get_installations` 列出，再点 Remove（`mcp_remove_config`）能撤销 |
 | 连接测试与端口复制 | Shipped | `src/components/common/IntegrationsSettings.tsx` | 点「Test Connection」得到结果；点复制按钮拿到 `localhost:<port>` |
@@ -266,7 +266,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 新建窗口 | Shipped | `src-tauri/src/commands/window.rs` | ⌘⇧N 或 File → New Window（`menu.file.new_window` → `create_window`）开出一个独立的编辑器窗口 |
 | 多窗口文档 | Shipped | `src-tauri/src/commands/window.rs`, `src/hooks/useMenuEvents.ts` | 开两个窗口各打开不同文件，视图模式互不影响；菜单里点 ⌘S 只作用于当前聚焦的那个窗口 |
 | 全局窗口状态持久化 | Shipped | `src-tauri/src/commands/preferences.rs` | 把窗口拖到某个位置并改大小，退出再启动（关窗前走 `save_window_state`），尺寸、位置、最大化状态都还原 |
-| 按文件记忆窗口几何 | Shipped | `src-tauri/src/commands/window.rs` | 给 A.md 调一个窗口大小、给 B.md 调另一个，来回打开各自回到自己的尺寸（`save_window_geometry` 写、`get_window_geometry` 读） |
+| 按文件记忆窗口几何 | Partial | `src-tauri/src/commands/window.rs`, `src/services/windowService.ts` | 限制：只有「写」这一半接上了，「读回来」没有——`windowService.getWindowGeometry` 与它背后的 `get_window_geometry` 在 `src/` 与 `tests/` 里零调用点，没有任何代码在开窗时把存下来的几何还原回去。给 A.md 调一个窗口大小、给 B.md 调另一个，来回打开并不会各自回到自己的尺寸。能确认的只有写入侧：`App.tsx` 在切换 / 关闭时调 `windowService.saveWindowGeometry`，落到 `save_window_geometry`；在 DevTools 里手写 `invoke("get_window_geometry", { filePath })` 能把存下来的那份读出来，证明存是存住了，只是没人用 |
 | 原生 Window 菜单 | Shipped | `src-tauri/src/menu.rs` | Window 菜单里有 Minimize（⌘M）、Maximize、Close Window（⌘W） |
 | 标签栏配置 `TabBarConfig` | Stub | `src-tauri/src/models/preferences.rs`, `src/types/preferences.ts` | Rust 与 TS 两边都有默认值（位置、最大可见标签数、关闭后的焦点行为），没有 UI、没有消费者，README 却把它当成已交付的可配置功能。翻遍 ⌘, 十个页面都找不到标签栏设置 |
 | 标签页进阶能力 | Stub | `src/stores/tabStore.ts`, `src/components/TabBar/TabBar.tsx` | 固定标签、拖拽重排、撤销关闭标签（最近 10 个）、MRU 切换、按标签恢复滚动与光标——`tabStore.ts` 全部实现且有测试，但只被死掉的 `TabBar.tsx` 引用，UI 上到不了。在底部标签条上右键或中键点击都没有固定 / 撤销关闭的入口 |
