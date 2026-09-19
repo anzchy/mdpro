@@ -666,6 +666,65 @@ FPS / 堆 / 毫秒阈值永不设为阻塞项。E39 提过的 p95 ≤ 8ms、单�
 并非上文行文四舍五入的「~460 KiB」。另订正本节行文两处：「超长单行」按 `split(/\r?\n/)`
 是 **4 行**而非 3 行；`large-table` 以 UTF-16 长度去减 UTF-8 字节预算，两者因表头 CJK 而不等。
 
+### WI-D6 —— 500 KB 护栏的判据重选（本工作项由 2026-09-19 补建）
+
+**为什么这一节存在。** [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) 第 95-98 行写道：
+D6 的修复「needs its own work item in plan M, since it currently belongs to none.
+This record does not create that work item; it records that one is owed.」
+那条债从 2026-09-16 起一直挂在半空：ADR-0004 记录它欠着，
+本文 `:519` 只是重述它挂着，谁都没有真正建过工作项。**这一节就是那个工作项。**
+
+**缺陷本身（origin：[阶段 3 门禁二记录](20260915-stage3-gate2-record.md)`:209`）。**
+`large-table.wysiwyg.md` 只有 **471,880 B**，低于 500 KB 门槛因而**被允许**挂进 ProseMirror DOM，
+主线程阻塞约 **56 s**（PM mount ≈56,000 ms；同形态的模式切换单次实测 **55,766 ms**）。
+ADR-0004 `:88-93` 把它定性为「更危险的那一半」：471,880 B 是一份**普通**文档而不是极端文档，
+护栏挡住了 10 MB、却在**不到半兆**处放行了一次 56 秒冻结 ——
+**用户实际拿到的保护弱于「500 KB」这个数字给人的印象。**
+
+**诊断已经做完，结论写在 [ADR-0006](../adr/0006-bump-micromark-gfm-table-for-quadratic-edit-map.md)`:97-103`
+（Accepted 2026-09-17），照抄要点，不重述推导：**
+护栏的**机制**已验证有效（本地日志 76 次 Milkdown 工厂调用中，
+传给 `Editor.make()` 的 `initialMarkdownLength` 最大 430,614，超过 500 KB 的次数为 **0**）；
+错的是**阈值**（471,880 B 被放行）与**判据变量**
+——「cost tracks cells in the largest single table, not bytes」。
+护栏保留，**判据重选被推迟**。
+
+**⛔ 本工作项今天不能直接改代码，这是 ADR-0006 的约束而不是拖延。**
+同一份 ADR `:190-193` 明写：
+「Whether a 472 KB single-table document is actually usable in WYSIWYG after this bump
+is therefore **still unmeasured**, and re-choosing D6's predicate still depends on
+a sweep on the real WKWebView.」
+ADR-0006 移除了总量里的一项（`micromark-extension-gfm-table` 的二次复杂度），
+**使剩下的部分变得可测**，但它**没有关闭 D6**。
+在拿到那次 sweep 之前写死任何新阈值，都是在和一条 Accepted 的 ADR 对着干 ——
+而且会把一个**没有测量支撑的数字**钉进用户能感知的护栏里。
+
+#### 拆解
+
+| 子项 | 内容 | 谁能做 |
+| --- | --- | --- |
+| **D6.1** | **真机 sweep**：在 WKWebView（`pnpm tauri dev` 或打包档）上重测 `large-table.wysiwyg`（471,880 B / 单表 **45,744** 单元格）在 micromark 升级**之后**的 PM mount 与模式切换耗时，并至少再取两个单元格数不同的点（建议 ~1/4 与 ~1/2 规模），以便看出耗时随单元格数的增长形状。**测量条件必须与门禁二记录 `:9-22` 对齐**（机器、电源状态、构建类型），否则两组数不可比。 | **只有用户能做。**本仓无任何自动化手段可测 WYSIWYG 渲染耗时 —— `.claude/tdd-guardian/config.json` 只有 `unit`（vitest/jsdom）与 `rust`（cargo）两条泳道，`package.json` 无 playwright/puppeteer，`scripts/perf/` 只有生成器没有 runner，`src-tauri/tests/perf_render_corpus.rs` 是 `#[ignore]` 且只测 Rust 侧 `render_markdown` / `sanitize_html`。门禁二里每一个 Milkdown 数字都是手工用 Web Inspector 取的（`:66`、`:14-18`）。 |
+| **D6.2** | **定判据与阈值**，并写 ADR-0016 记录取舍（ADR-0006 对 D6 的那条子决议由它取代，ADR-0006 本身不可改）。ADR-0006 已经指明判据变量是**最大单表的单元格数**；D6.2 要定的是**阈值数值**、**多表文档怎么算**（取最大单表还是全文合计）、以及**降级动作**是否仍是「切源码模式 + toast」。 | 需要 D6.1 的数 |
+| **D6.3** | **实施 + 测试**。把 `src/App.tsx:507-516` 的判据抽成纯函数（今天它内联在 `useEffect` 里，无法单测），按 D6.2 的结论改判据，补规则 10 要求的用例。 | 可自动化 |
+
+#### 实施前必须知道的三件事
+
+1. **今天这条护栏一个测试都没有。** 全仓 `tests/` 下没有任何用例断言「超阈自动切源码模式」这个行为，
+   也没有任何用例提到 500 KB 阈值；唯二命中的是一份人工测试报告
+   （`tests/20260312-mdpro-features-test-report.md:209`、`:230`，且引用的行号 `App.tsx:471-479` 已失效）
+   与 `tests/mode-toggle-table-cursor-sync.test.ts:7` 的一句注释。**没有测试文件渲染 `App.tsx`。**
+   所以 D6.3 是**从零建网**，不存在可继承的表征测试 —— 这一点与 3.7 行当年的处境相同。
+2. **单元格数今天算不出来。** `scripts/perf/generate-corpus.mjs` 的 manifest 只计算
+   `bytes` / `lines` / `headings` / `sha256`（`:225-232`），**不计算表格行数或单元格数**。
+   `large-table` 的 45,744 这个数只出现在散文里（ADR-0006 `:41`），
+   由生成器的构造反推：4 列 × 11,436 数据行。判据改成单元格数，
+   就需要一个**能在护栏里跑的**计数函数（不能是重解析一遍 Markdown ——
+   那会把护栏本身变成它要防的那种开销），这是 D6.3 的主要设计难点，不是一行 `if`。
+3. **豁免不覆盖 3.8。** ADR-0004 `:83-86` 要求 3.8 的出口复测**逐面比较并逐个点名排除已卡死的形态**，
+   `:95-98` 要求标准 (1) 在**任何发布之前**被真正满足或被显式重新裁定。
+   ⇒ **D6 不关，3.8 不能关；3.8 不关，不能发布。** 这条依赖链上唯一的起点是 D6.1，
+   而 D6.1 只有用户能跑。
+
 ### 导出锚点被 DOMPurify 剥离（已决 B′，见 ADR-0003；WI-3.2 实施）
 
 > **状态：已决。** 2026-09-15 产品确认采纳 **B′**，记入
