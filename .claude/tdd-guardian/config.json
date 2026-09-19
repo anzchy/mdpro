@@ -40,6 +40,11 @@
       "glob": "src/hooks/useMilkdownLinkClickGuard.ts",
       "description": "Sole caller of the link gates; routes every WYSIWYG link click and decides what reaches the OS opener. Measured 67/67 lines and 23/23 branches when pinned.",
       "thresholds": { "lines": 100, "branches": 100 }
+    },
+    {
+      "glob": "src/utils/headingCoordination.ts",
+      "description": "The heading-key matcher (WI-3.5.2): the only place the `headingKey` coordination contract in src/types/toc.ts is executed. A missed branch here silently hands one heading's collapse/active state to another, which the user cannot see happen.",
+      "thresholds": { "lines": 100, "branches": 100 }
     }
   ],
   "coverageMode": "absolute",
