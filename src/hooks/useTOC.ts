@@ -6,6 +6,8 @@ import type { HeadingKey, ParsedTOCEntry, TOCEntry } from "../types/toc";
 import { parseHeadingsFromContent } from "../services/tocService";
 import { useEditorStore } from "../stores/editorStore";
 import type { ViewMode } from "../types/editor";
+import { pickActiveKey, resolveHeadingElements } from "../utils/tocElementResolution";
+import { loggingService } from "../services/loggingService";
 
 interface UseTOCOptions {
   /** Document content to parse for headings */
@@ -75,8 +77,14 @@ export function useTOC({
   const toggleVisibility = useTOCStore((state) => state.toggleVisibility);
   const toggleCollapsed = useTOCStore((state) => state.toggleCollapsed);
 
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const headingElementsRef = useRef<Map<string, Element>>(new Map());
+  // Both maps are one resolution pass's output, replaced wholesale by the observe
+  // effect and never merged across passes: a heading element that survives an edit is
+  // a coincidence, not an invariant (`tocElementResolution.ts` P1/P2).
+  const headingElementsRef = useRef<Map<HeadingKey, Element>>(new Map());
+  /** The inverse. The observer callback is handed elements and must get back keys. */
+  const elementKeysRef = useRef<Map<Element, HeadingKey>>(new Map());
+  /** D7 — the last pass's `(entryCount, domCount)` signature, per hook instance. */
+  const mismatchSignatureRef = useRef<string | null>(null);
   const parseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Parse headings from content (debounced)
@@ -122,11 +130,20 @@ export function useTOC({
     const tocEntry = entries.find((e) => e.key === headingKey);
 
     // For source (CodeMirror) mode, use the editor's scroll API to navigate by line number.
-    // This is the only reliable approach since CodeMirror doesn't render heading HTML elements
-    // with data-heading-id attributes — it renders plain text with syntax highlighting spans.
-    if (viewMode === "source" && tocEntry?.lineNumber) {
+    // This is the only reliable approach because the source surface renders markdown as
+    // syntax-highlighted text: there is no heading element to scroll to, so the
+    // document-order correspondence the WYSIWYG path uses has nothing to correspond with.
+    //
+    // D4 — the guard is `viewMode === "source"` **alone**. It used to also require a
+    // truthy `tocEntry?.lineNumber`, which made `lineNumber: 0` fall *past* this branch
+    // into the WYSIWYG DOM path and scroll a heading element while in source mode. The
+    // Lezer parser is 1-indexed and cannot emit `0` today, so nothing reached it — but
+    // that conjunct was the only route by which source mode could reach
+    // `resolveHeadingElements` at all, and "unreachable today" is not a property a later
+    // edit preserves. Closing it here means the mode, not the payload, decides the branch.
+    if (viewMode === "source") {
       const editorView = useEditorStore.getState().editorView;
-      if (editorView) {
+      if (editorView && tocEntry) {
         try {
           const lineCount = editorView.state.doc.lines;
           const targetLine = Math.min(tocEntry.lineNumber, lineCount);
@@ -146,38 +163,23 @@ export function useTOC({
     // DOM-based scroll: used for wysiwyg mode.
     const container = document.getElementById(containerId);
     if (!container) return;
-    // The DOM knows headings by anchor slug; the key is ours and never appears there.
+    // D2 — neither the key nor the anchor slug is ever a DOM address. The entry is
+    // needed only to reject a key that no longer names a live heading.
     if (!tocEntry) return;
-    const anchorSlug = tocEntry.anchorSlug as string;
 
-    // Find the heading element by anchor slug or data attribute
-    let heading = container.querySelector(
-      `[data-heading-id="${anchorSlug}"], #${CSS.escape(anchorSlug)}`
-    );
+    // Resolved fresh on every navigation rather than read from `headingElementsRef`:
+    // the editor replaces heading nodes on every edit, and the observe effect does not
+    // re-run for a DOM change (its deps carry no DOM). A cached element would be
+    // detached — `scrollIntoView` on it is a silent no-op the user reads as a dead link.
+    const { byKey } = resolveHeadingElements(entries, container);
+    const heading = byKey.get(headingKey);
+    // Unresolved is a no-op, never a fallback: the fallbacks this replaced (a DOM-id
+    // lookup, then a first-text-match scan) are exactly how a duplicate heading scrolled
+    // to the wrong element.
+    if (!heading) return;
 
-    // If not found, try to find by matching heading text (for WYSIWYG mode)
-    if (!heading) {
-      // For Milkdown/ProseMirror, headings are inside .ProseMirror
-      const proseMirror = container.querySelector(".ProseMirror");
-      const searchRoot = proseMirror || container;
-
-      const headings = searchRoot.querySelectorAll("h1, h2, h3, h4, h5, h6");
-      const normalizedTarget = tocEntry.text.replace(/\s+/g, " ").trim();
-
-      for (const h of headings) {
-        // Normalize whitespace for comparison
-        const text = (h.textContent || "").replace(/\s+/g, " ").trim();
-        if (text === normalizedTarget) {
-          heading = h;
-          break;
-        }
-      }
-    }
-
-    if (heading) {
-      heading.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveEntry(headingKey);
-    }
+    heading.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveEntry(headingKey);
   }, [containerId, entries, setActiveEntry, viewMode]);
 
   useEffect(() => {
@@ -191,38 +193,62 @@ export function useTOC({
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Clean up previous observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
+    // One pass, feeding both directions: the observe loop below reads `byKey`, the
+    // callback reads `byElement`.
+    const resolution = resolveHeadingElements(entries, container);
+    headingElementsRef.current = resolution.byKey;
+    elementKeysRef.current = resolution.byElement;
 
-    // Track visible headings
-    const visibleHeadings = new Set<string>();
+    // D7 — one warning per *changed* signature, per hook instance. Unconditional
+    // emission would fire once per 300 ms debounce tick for as long as the document
+    // holds a heading our parser cannot see.
+    const entryCount = entries.length;
+    const domCount = resolution.mismatch?.domCount ?? entryCount;
+    const signature = `${entryCount}:${domCount}`;
+    if (resolution.mismatch && signature !== mismatchSignatureRef.current) {
+      loggingService.logEventSync({
+        level: "warn",
+        event: "ui.toc.resolve.mismatch",
+        status: "fail",
+        actionId: loggingService.generateActionId(),
+        context: {
+          documentId,
+          entryCount,
+          domCount,
+          resolvedCount: resolution.byKey.size,
+        },
+      });
+    }
+    mismatchSignatureRef.current = signature;
+
+    // Keys, not DOM ids: element identity is the only address the observe loop and the
+    // callback can agree on, because Milkdown rewrites ids asynchronously (P2).
+    const visibleKeys = new Set<HeadingKey>();
 
     // Create observer with rootMargin for spy scrolling
     // "-66%" means the active heading is one that's in the top 33% of the viewport
-    observerRef.current = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (observerEntries) => {
-        observerEntries.forEach((entry) => {
-          const headingId = entry.target.getAttribute("data-heading-id") ||
-            entry.target.id;
+        for (const observerEntry of observerEntries) {
+          const key = elementKeysRef.current.get(observerEntry.target);
+          // A record for an element from a superseded pass is ignored — not thrown on,
+          // and never resolved by some other route back to a key.
+          if (key === undefined) continue;
 
-          if (entry.isIntersecting) {
-            visibleHeadings.add(headingId);
+          if (observerEntry.isIntersecting) {
+            visibleKeys.add(key);
           } else {
-            visibleHeadings.delete(headingId);
+            visibleKeys.delete(key);
           }
-        });
+        }
 
-        // Find the topmost visible heading
-        if (visibleHeadings.size > 0) {
-          // Get all heading elements in document order
-          for (const tocEntry of entries) {
-            if (visibleHeadings.has(tocEntry.anchorSlug as string)) {
-              setActiveEntry(tocEntry.key);
-              break;
-            }
-          }
+        // Once per batch, in document order — never once per record in arrival order.
+        const activeKey = pickActiveKey(entries, visibleKeys);
+        // An emptied visible set RETAINS the previous active entry rather than blanking
+        // it (the behaviour `if (visibleHeadings.size > 0)` bought before this rewrite).
+        // Scrolling past the last heading must not make the highlight blink off.
+        if (activeKey !== null) {
+          setActiveEntry(activeKey);
         }
       },
       {
@@ -232,44 +258,17 @@ export function useTOC({
       }
     );
 
-    // Observe heading elements
-    headingElementsRef.current.clear();
+    // Document order: `byKey` is built by iterating `entries`.
+    for (const heading of headingElementsRef.current.values()) {
+      observer.observe(heading);
+    }
 
-    // For Milkdown/ProseMirror, headings are inside .ProseMirror
-    const proseMirror = container.querySelector(".ProseMirror");
-    const searchRoot = proseMirror || container;
-
-    entries.forEach((tocEntry) => {
-      const anchorSlug = tocEntry.anchorSlug as string;
-      // First try by anchor slug or data attribute
-      let heading = searchRoot.querySelector(
-        `[data-heading-id="${anchorSlug}"], #${CSS.escape(anchorSlug)}`
-      );
-
-      // Fall back to text matching for WYSIWYG mode
-      if (!heading) {
-        const headings = searchRoot.querySelectorAll("h1, h2, h3, h4, h5, h6");
-        const normalizedTarget = tocEntry.text.replace(/\s+/g, " ").trim();
-
-        for (const h of headings) {
-          const text = (h.textContent || "").replace(/\s+/g, " ").trim();
-          if (text === normalizedTarget) {
-            heading = h;
-            break;
-          }
-        }
-      }
-
-      if (heading) {
-        headingElementsRef.current.set(anchorSlug, heading);
-        observerRef.current?.observe(heading);
-      }
-    });
-
+    // The observer is captured in this closure rather than held in a ref, so exactly
+    // one `disconnect` pairs with each construction even when the effect re-runs.
     return () => {
-      observerRef.current?.disconnect();
+      observer.disconnect();
     };
-  }, [entries, containerId, enableSpyScrolling, setActiveEntry]);
+  }, [entries, containerId, documentId, enableSpyScrolling, setActiveEntry]);
 
   // Navigate to entry handler
   const navigateToEntry = useCallback((key: HeadingKey) => {
