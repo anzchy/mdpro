@@ -16,11 +16,17 @@
  * handing a slug to something that wanted a coordination key, or treating a position
  * as an identity. Both are silent bugs at runtime and compile errors here.
  *
- * Scope note (WI-3.1): this module ships the types and the written `headingKey`
- * contract below. It ships **no matcher** — `tocStore.setEntries` gains that in WI-3.5,
- * and the coordination law becomes executable there (plan M "测试分三层", first layer).
- * `TOCEntry` deliberately stays in `src/stores/tocStore.ts` until WI-3.5 changes its
- * shape; moving it now would be pure-churn rewiring.
+ * Scope note (WI-3.1, amended by WI-3.5.1 and WI-3.5.7): this module ships the types
+ * and the written `headingKey` contract below — the contract, not its implementation.
+ * The matcher that executes it is `coordinateHeadingKeys` in
+ * `src/utils/headingCoordination.ts` (WI-3.5.2); `tocStore.setEntries` calls it on
+ * every revision, and `tocStore.resetCoordination` is its other half, the
+ * wholesale-replacement path of RESET clause (b). The split is deliberate: a types
+ * module that could also match would be a types module able to quietly redefine what
+ * "the same heading" means. WI-3.5.1 moved `TOCEntry` here from
+ * `src/stores/tocStore.ts`, because the interface now names two of the three branded
+ * types this module owns; leaving it in a store would make that store a second home for
+ * identity types. {@link ParsedTOCEntry} is its parser-side companion.
  *
  * ---------------------------------------------------------------------------
  * The `headingKey` coordination contract (defined here, implemented by WI-3.5)
@@ -44,10 +50,18 @@
  *   (a) a revision in which text *and* relative order both change for the same heading;
  *   (b) a wholesale content replacement (file reload, external file-watcher change,
  *       MCP `write_document` / `create_document`);
- *   (c) any revision the matcher cannot attribute unambiguously.
- * In all three the affected headings are treated as **new** headings with default
- * state. Guessing and transferring state to the wrong heading is worse than resetting,
- * because the user cannot see that it happened.
+ *   (c) any heading the matcher cannot attribute — with exactly one named exception, the
+ *       *same-ordinal, same-level continuity policy*: when an unmatched previous heading
+ *       and an unmatched new heading sit at the same ordinal among headings and share a
+ *       level, the revision is read as a **rename** and the key is preserved. That input
+ *       is indistinguishable from a delete followed by an unrelated insertion in the same
+ *       slot, so the consequence is recorded rather than hidden: such an insertion
+ *       inherits the deleted heading's key and, with it, its collapse / active state.
+ *       Every other unattributable heading resets.
+ * Outside that one policy the affected headings are treated as **new** headings with
+ * default state. Guessing and transferring state to the wrong heading is worse than
+ * resetting, because the user cannot see that it happened — which is precisely why (c)
+ * carves out one policy, states it and its cost in the open, and admits no others.
  */
 
 declare const anchorSlugBrand: unique symbol;
@@ -115,3 +129,59 @@ export function asAnchorSlug(value: string): AnchorSlug {
 export function asHeadingKey(value: string): HeadingKey {
   return value as HeadingKey;
 }
+
+/**
+ * One heading as the TOC displays it.
+ *
+ * Carries the identity concepts *separately* on purpose. The field this replaced was a
+ * single `id: string` doing double duty — the export anchor and the thing collapse and
+ * active state hung off — which is exactly the confusion this file's header exists to
+ * make a compile error:
+ *
+ *   - {@link anchorSlug} is the `#fragment`. It changes when the heading text changes.
+ *   - {@link key} is the coordination identity. It survives a rename, and nothing may
+ *     derive it from text.
+ *
+ * `lineNumber` / `offset` are the heading's current position. They are deliberately
+ * **not** a {@link HeadingPosition} yet (WI-3.5.1 deferred that; WI-3.6 rewrites the
+ * scroll paths that read them), and the rule in {@link HeadingPosition}'s doc applies to
+ * them all the same: never use a position as an identity.
+ *
+ * There is no `isActive`. The active heading is one value on the store
+ * (`activeEntryId: HeadingKey | null`), not a flag repeated on every entry — a
+ * per-entry copy is a second source of truth that can disagree with the first.
+ */
+export interface TOCEntry {
+  /** Coordination identity; minted only by `tocStore.setEntries`. */
+  key: HeadingKey;
+
+  /** HTML anchor id — what the sidebar's `href` and an export link point at. */
+  anchorSlug: AnchorSlug;
+
+  /** Heading level (1-6 for H1-H6). */
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+
+  /** Heading text content. */
+  text: string;
+
+  /** Line number in the source document (1-indexed). */
+  lineNumber: number;
+
+  /** Character offset from the start of the source document. */
+  offset: number;
+
+  /** Child entries, populated by `buildTOCHierarchy`. */
+  children: TOCEntry[];
+}
+
+/**
+ * A heading as the *parser* knows it: everything a {@link TOCEntry} has except the two
+ * fields the parser has no business producing.
+ *
+ * `key` is omitted so that a caller **structurally cannot** mint one. Identity across
+ * revisions is the store's job; a parser that minted keys would be deriving them from
+ * the text it just parsed, which is an {@link AnchorSlug} wearing the wrong name and
+ * breaks on the first rename. `children` is omitted because nesting is
+ * `buildTOCHierarchy`'s output, not the parser's input.
+ */
+export type ParsedTOCEntry = Omit<TOCEntry, "key" | "children">;

@@ -12,11 +12,23 @@
  * enforced only by `pnpm typecheck:tests` (`tsc -p tsconfig.test.json`), which is
  * therefore mandatory in this work item's verification list.
  */
-import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createAnchorSlugAllocator, slugBase } from "../src/utils/headingIdentity";
 import { asAnchorSlug, asHeadingKey } from "../src/types/toc";
-import type { AnchorSlug, HeadingKey, HeadingPosition } from "../src/types/toc";
+import type {
+  AnchorSlug,
+  HeadingKey,
+  HeadingPosition,
+  ParsedTOCEntry,
+  TOCEntry,
+} from "../src/types/toc";
+import { useTOCStore } from "../src/stores/tocStore";
 import {
   CORPUS_ALPHABET,
   DEFAULT_SEED,
@@ -337,5 +349,201 @@ describe("heading identity types (WI-3.1 cases C1-C2)", () => {
       expect(asAnchorSlug(token) as string).toBe(token);
       expect(asHeadingKey(token) as string).toBe(token);
     }
+  });
+});
+
+/**
+ * WI-3.5.1 cases T1-T3 (test matrix `.claude/tdd-guardian/tests-20260918-214500.md:42-76`).
+ *
+ * These are Level 1 **compiler-verdict** cases: the assertion is that
+ * `pnpm typecheck:tests` exits 0 *with these `@ts-expect-error` directives present*.
+ * Vitest does not typecheck (esbuild strips types), so a green vitest run says nothing
+ * about T1-T3 — `pnpm typecheck:tests` is the gate. The runtime bodies exist only to
+ * keep the locals used (`noUnusedLocals`) and to give the file a place to hold them.
+ *
+ * Deviation from the matrix, recorded deliberately: the matrix writes T3's call as
+ * `setEntries([...], "doc-a")`. The second argument is WI-3.5.3's document scoping and
+ * does not exist yet; writing it now would make the directive fire on arity rather than
+ * on the forbidden `key`, and would make the positive control fail to compile. T3 is
+ * therefore written against WI-3.5.1's one-argument signature; WI-3.5.3 adds the
+ * document id to these call sites.
+ */
+describe("TOCEntry shape (WI-3.5.1 cases T1-T3)", () => {
+  beforeEach(() => {
+    useTOCStore.setState({
+      entries: [],
+      activeEntryId: null,
+      collapsedIds: new Set<HeadingKey>(),
+    });
+  });
+
+  it("T1 the brands hold across the new field shape and the key-typed store actions", () => {
+    const rest = { level: 2 as const, text: "Intro", lineNumber: 1, offset: 0, children: [] as TOCEntry[] };
+
+    // @ts-expect-error an AnchorSlug is not a HeadingKey — `key` must refuse a slug
+    const e1: TOCEntry = { key: asAnchorSlug("intro"), anchorSlug: asAnchorSlug("intro"), ...rest };
+    // @ts-expect-error a HeadingKey is not an AnchorSlug — `anchorSlug` must refuse a key
+    const e2: TOCEntry = { key: asHeadingKey("k1"), anchorSlug: asHeadingKey("k1"), ...rest };
+
+    const store = useTOCStore.getState();
+    // @ts-expect-error collapse state is keyed by HeadingKey, never by AnchorSlug
+    store.toggleCollapsed(asAnchorSlug("intro"));
+    // @ts-expect-error the active entry is a HeadingKey, never an AnchorSlug
+    store.setActiveEntry(asAnchorSlug("intro"));
+
+    // Positive controls, no directive: the correct types must still be accepted,
+    // otherwise the four directives above could pass against a type nothing satisfies.
+    const ok: TOCEntry = { key: asHeadingKey("k1"), anchorSlug: asAnchorSlug("intro"), ...rest };
+    store.toggleCollapsed(asHeadingKey("k1"));
+    store.setActiveEntry(asHeadingKey("k1"));
+    store.setActiveEntry(null);
+
+    expect([e1, e2, ok].every((e) => e.text === "Intro")).toBe(true);
+  });
+
+  it("T2 TOCEntry has no `id` and no `isActive`, and exactly seven fields", () => {
+    const entry: TOCEntry = {
+      key: asHeadingKey("k1"),
+      anchorSlug: asAnchorSlug("intro"),
+      level: 2,
+      text: "Intro",
+      lineNumber: 1,
+      offset: 0,
+      children: [],
+    };
+
+    // @ts-expect-error `id` was split into `key` + `anchorSlug`; it must not come back
+    const deadId = entry.id;
+    // @ts-expect-error `isActive` was written at useTOC.ts:80 and read nowhere; it is gone
+    const deadIsActive = entry.isActive;
+
+    // Exhaustive: a *missing* field fails this literal, and so does an *added* one —
+    // which a bare `@ts-expect-error` on a property read would not catch.
+    const fields: Record<keyof TOCEntry, true> = {
+      key: true,
+      anchorSlug: true,
+      level: true,
+      text: true,
+      lineNumber: true,
+      offset: true,
+      children: true,
+    };
+
+    expect(Object.keys(fields).sort()).toEqual(
+      ["anchorSlug", "children", "key", "level", "lineNumber", "offset", "text"],
+    );
+    expect(deadId).toBeUndefined();
+    expect(deadIsActive).toBeUndefined();
+  });
+
+  it("T3 setEntries takes ParsedTOCEntry and refuses a caller-supplied key", () => {
+    const { setEntries } = useTOCStore.getState();
+
+    setEntries([
+      // @ts-expect-error only the store mints a HeadingKey; a parser-side caller may not
+      { key: asHeadingKey("x"), anchorSlug: asAnchorSlug("intro"), level: 2, text: "Intro", lineNumber: 1, offset: 0 },
+    ], "doc-a");
+
+    // Positive control: the same literal without `key` (and without `children`) compiles
+    // clean, so the directive above is about `key` and not about the literal as a whole.
+    const parsed: ParsedTOCEntry[] = [
+      { anchorSlug: asAnchorSlug("intro"), level: 2, text: "Intro", lineNumber: 1, offset: 0 },
+    ];
+    setEntries(parsed, "doc-a");
+
+    expect(useTOCStore.getState().entries).toHaveLength(1);
+  });
+});
+
+/**
+ * WI-3.5.7 case D2 (test matrix `.claude/tdd-guardian/tests-20260918-214500.md:1073-1085`).
+ *
+ * D2 exists because WI-3.5.7 legitimately edits the *scope note* of
+ * `src/types/toc.ts` a few lines above the coordination contract, and the standing
+ * temptation at that moment is to reach four lines lower and edit the specification
+ * to match whatever the implementation ended up doing. The digest makes that edit
+ * loud. It pins a specification document, not a logic output, and no runner flag can
+ * update it — so it is not a snapshot test in rule 10's prohibited sense.
+ *
+ * Deviation from the matrix, recorded deliberately: the matrix describes the region
+ * as "the block between the two `---------` rules". Taken literally that is the one
+ * banner *title* line between them, which covers none of the contract. The two rules
+ * are a banner (rule / title / rule), not a pair of delimiters. The region pinned
+ * here is therefore **the first rule through the last line before the closing `*​/`**
+ * — i.e. the banner, the edit-kind table and the RESET prose. That is the block the
+ * matrix's own "Refactor that would break this" describes. Both rules are located by
+ * content, never by line number, so scope-note growth above them does not shift it.
+ *
+ * The digest was taken from the file **as amended by WI-3.5.2**, whose clause (c)
+ * carve-out (the same-ordinal, same-level continuity policy) is part of the
+ * specification the matcher was built against — not from an earlier checkout.
+ */
+describe("the headingKey coordination contract is a specification, not an output (WI-3.5.7 case D2)", () => {
+  const TOC_TYPES = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../src/types/toc.ts",
+  );
+  const RULE_RE = /^\s*\*\s-{9,}\s*$/;
+  const COMMENT_END_RE = /^\s*\*\/\s*$/;
+
+  /** `{ scopeNote, contractBlock }` — everything above the banner, and the banner onward. */
+  function splitHeader(source: string): { scopeNote: string; contractBlock: string } {
+    const lines = source.split("\n");
+    const rules = lines.reduce<number[]>((acc, line, i) => {
+      if (RULE_RE.test(line)) acc.push(i);
+      return acc;
+    }, []);
+    expect(rules, "src/types/toc.ts no longer has exactly two horizontal rules").toHaveLength(2);
+
+    const end = lines.findIndex((line, i) => i > rules[1] && COMMENT_END_RE.test(line));
+    expect(end, "no closing `*/` after the contract banner").toBeGreaterThan(rules[1]);
+
+    return {
+      scopeNote: lines.slice(0, rules[0]).join("\n"),
+      contractBlock: lines.slice(rules[0], end).join("\n"),
+    };
+  }
+
+  it("D2a the contract block's digest is unchanged", () => {
+    // Recompute with:
+    //   node -e 'const s=require("fs").readFileSync("src/types/toc.ts","utf-8").split("\n");
+    //            const r=[];s.forEach((l,i)=>{if(/^\s*\*\s-{9,}\s*$/.test(l))r.push(i)});
+    //            const e=s.findIndex((l,i)=>i>r[1]&&/^\s*\*\/\s*$/.test(l));
+    //            console.log(require("crypto").createHash("sha256")
+    //              .update(s.slice(r[0],e).join("\n"),"utf8").digest("hex"))'
+    // Changing this constant is changing the specification. That is a deliberate act
+    // requiring a contract revision, never a step on the way to making a test green.
+    const RECORDED = "7979deece024f78ff3c31e122e3282e2015659d53893eef8242ae2d283003661";
+
+    const { contractBlock } = splitHeader(fs.readFileSync(TOC_TYPES, "utf-8"));
+
+    // Guards against a vacuous pass: an extraction that silently collapsed to the
+    // banner title would still hash to *something*.
+    expect(contractBlock.split("\n").length).toBeGreaterThan(25);
+    expect(contractBlock).toContain("| Edit kind | headingKey | Collapse / active state |");
+    expect(contractBlock).toContain("**Out of the agreed range — RESET, do not guess.**");
+    expect(contractBlock).toContain("same-ordinal, same-level continuity policy");
+
+    expect(
+      createHash("sha256").update(contractBlock, "utf8").digest("hex"),
+      "the headingKey coordination contract in src/types/toc.ts changed. If that was " +
+        "intended, it is a contract revision: say so in the plan and in the commit " +
+        "message, then update RECORDED. If it was not, revert it.",
+    ).toBe(RECORDED);
+  });
+
+  it("D2b the scope note above the contract no longer describes the matcher as future work", () => {
+    const { scopeNote } = splitHeader(fs.readFileSync(TOC_TYPES, "utf-8"));
+
+    // Rule 22: the matcher landed in WI-3.5.2/3.5.3, so a scope note still promising
+    // it as future work is a stale comment in a file this change set edits.
+    expect(scopeNote, "scope note still promises the matcher as future work").not.toMatch(
+      /gains\s+\*?\s*that\s+in\s+WI-3\.5/,
+    );
+    expect(scopeNote).toContain("src/utils/headingCoordination.ts");
+
+    // Control: the WI-3.5.1 correction this note already carries must survive.
+    expect(scopeNote).toContain("`TOCEntry`");
+    expect(scopeNote).toContain("{@link ParsedTOCEntry}");
   });
 });
