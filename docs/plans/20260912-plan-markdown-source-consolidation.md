@@ -620,6 +620,26 @@ FPS / 堆 / 毫秒阈值永不设为阻塞项。E39 提过的 p95 ≤ 8ms、单�
 原措辞要求在进入第 3 步**之前**实测一个只有进入第 3 步**之后**才会被造出来的危险，
 是一条无法满足的循环依赖，会让第 3 步永远进不去。
 
+> **2026-09-19 修订：本条已结案，结论记在
+> [ADR-0015](../adr/0015-toc-staleness-is-closed-by-cancellation-not-a-revision-number.md)，
+> 以 ADR 为准。** 上一段有两处已被 WI-3.5 / WI-3.6 推翻：
+>
+> - 「`setEntries` 只收 `entries`」**已过期**——WI-3.5 把签名改成了
+>   `setEntries(entries, documentId)`。
+> - 但**不要**因此认为红线已经满足一半：`tocStore.setEntries`
+>   （`src/stores/tocStore.ts:151-203`）在 id 不匹配时是**归档旧文档、接受新写入**
+>   （`swapDocument`），**全函数没有任何拒绝路径**。document id 买到的是**归属与隔离**，
+>   不是**新鲜度**。
+> - 过期覆盖今天由**取消**独占关闭（`useTOC.ts:91-125` 的 effect cleanup），
+>   由 `tests/use-toc-document-scope.test.ts` 的 U-L1 钉住。ADR-0015 论证了：
+>   此刻写一个修订号守卫既够不到、又挡不住唯一能被命名的那条时序。
+> - **触发条件比本段写的更宽**：不只是「移入 Worker 或改为异步」，任何在
+>   「读取 `(content, documentId)`」与「写入 `tocStore`」之间**让出执行**的改动，
+>   **或**任何让 `useTOC` 的输入相对权威文档**延迟**的改动
+>   （`useDeferredValue`、`startTransition`、第二处 store 读取），都触发同一条义务。
+>   前半由 `tests/toc-parse-synchrony-invariant.test.ts` 自动守住，
+>   **后半没有自动守卫**，见 ADR-0015 的 Consequences。
+
 **语料。** 生成器与语料留在仓库外（protocol § Visual evidence protocol (E5) 的 throwaway-script 约定），
 确定性 LCG 种子 `0x5eed`，可逐字节重生成，不提交。
 测量前修掉了生成器自身的两处缺陷并重测：①「普通长文」原为每 ~135 字节一个标题（73,910 个），
