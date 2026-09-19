@@ -2,10 +2,26 @@
 //! (`src-tauri/src/services/markdown.rs` `generate_heading_id`, reached through the
 //! public `render_markdown`).
 //!
-//! PARITY SURFACE — THREE LIVE FACES, and only three:
+//! PARITY SURFACE — THREE LIVE FACES OWNED BY mdpro, and they are not every face in
+//! the running app:
 //!   1. `rust`           this file / `markdown.rs::generate_heading_id`
 //!   2. `toc`            `src/services/tocService.ts` `parseHeadingsFromContent`
 //!   3. `exportFallback` `src/services/exportService.ts` `renderMarkdown` (IPC rejecting)
+//!
+//! A FOURTH LIVE FACE exists on the WYSIWYG surface: the heading DOM ids
+//! `@milkdown/preset-commonmark@7.18.0` writes — `defaultHeadingIdGenerator`
+//! (`lib/index.js:521-523`, punctuation preserved) composed with
+//! `syncHeadingIdPlugin`'s own `-#n` dedupe (`:2119-2161`). Measured, do not
+//! re-derive: the two dedupe schemes disagree (`intro-#2` there, `intro-1` here),
+//! empty headings get no `id` at all, and the ids are rewritten by a dispatched
+//! transaction on every doc change. It is UNOWNED and, after WI-3.6, read by no mdpro
+//! code — the TOC addresses headings by document-order correspondence
+//! (`src/utils/tocElementResolution.ts`, ADR-0014), pinned by the DOM-id-independence
+//! case `E-L5` in `tests/toc-element-resolution.test.ts`. It is deliberately NOT
+//! admitted to the parity corpus: mdpro neither produces nor consumes those ids, and
+//! pinning a third party's output with no product contract behind it would break on
+//! their patch releases for no behavioural reason. Full measurement lives in the
+//! header of `tests/heading-identity-faces.test.ts`.
 //!
 //! ONE FURTHER SLUG GENERATOR EXISTS AND IS DELIBERATELY OUT OF SCOPE — it is
 //! DEAD CODE, not a face of this parity claim (plan M `:413-420`):
@@ -16,7 +32,9 @@
 //! A second dead generator lived in `src/stores/` (zero references; it stripped CJK)
 //! until WI-3.5.8 deleted it; `tests/dead-slug-removal.test.ts` fails if it returns.
 //!
-//! Nothing here asserts anything about the one that remains.
+//! Nothing here asserts anything about the dead one that remains, or about the
+//! Milkdown face. A reader must not conclude that "the slug generators agree" covers
+//! all five.
 //!
 //! PLACEMENT — deviation from the test matrix, stated: the matrix asks for these in
 //! `markdown.rs`'s own `#[cfg(test)]` module. That file is already 1534 lines against

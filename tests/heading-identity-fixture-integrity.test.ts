@@ -10,12 +10,21 @@
  * activity is editing this fixture, that is the cheapest possible way to make a red go
  * away without noticing.
  *
- * PARITY SURFACE — THREE LIVE FACES (`rust`, `toc`, `exportFallback`) plus the
- * derived `tocOffsets` and the preservation-only `exportCanonical`. The ONE OTHER
- * slug generator in the tree is DEAD CODE and out of scope for every claim made
- * here: `src-tauri/src/commands/toc.rs:36` (zero callers, wrong argument name). A
- * second dead one lived in `src/stores/` until WI-3.5.8 deleted it; its absence is
- * guarded by `tests/dead-slug-removal.test.ts`.
+ * PARITY SURFACE — THREE LIVE FACES OWNED BY mdpro (`rust`, `toc`,
+ * `exportFallback`) plus the derived `tocOffsets` and the preservation-only
+ * `exportCanonical`. They are not every face in the running app: a FOURTH LIVE FACE
+ * is the heading DOM ids `@milkdown/preset-commonmark@7.18.0` writes on the WYSIWYG
+ * surface (`defaultHeadingIdGenerator` + `syncHeadingIdPlugin`'s own `-#n` dedupe).
+ * It is unowned, read by no mdpro code after WI-3.6 (ADR-0014), and deliberately NOT
+ * admitted to this corpus — pinning a third party's output with no product contract
+ * behind it would break on their patch releases for no behavioural reason. Measured
+ * detail lives in the header of `tests/heading-identity-faces.test.ts`; do not add a
+ * fourth face to the fixture to "close the gap".
+ *
+ * The ONE OTHER slug generator in the tree is DEAD CODE and out of scope for every
+ * claim made here: `src-tauri/src/commands/toc.rs:36` (zero callers, wrong argument
+ * name). A second dead one lived in `src/stores/` until WI-3.5.8 deleted it; its
+ * absence is guarded by `tests/dead-slug-removal.test.ts`.
  */
 import * as fs from "fs";
 import * as path from "path";

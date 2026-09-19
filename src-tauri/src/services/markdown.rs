@@ -16,11 +16,19 @@ fn html_escape(text: &str) -> String {
 
 /// Generate a document-unique anchor id for one heading's plain text.
 ///
-/// This is the `rust` face of the three LIVE slug generators. It is a hand PORT of
-/// `slugBase` + `createAnchorSlugAllocator` in `src/utils/headingIdentity.ts`, which
-/// is the normative implementation and which the other two live faces
-/// (`tocService.ts`, `exportService.ts`) IMPORT rather than duplicate. The Rust
-/// renderer is not callable from jsdom, so sharing the code is not available here.
+/// This is the `rust` face of the three LIVE slug generators OWNED BY mdpro. It is a
+/// hand PORT of `slugBase` + `createAnchorSlugAllocator` in
+/// `src/utils/headingIdentity.ts`, which is the normative implementation and which the
+/// other two live faces (`tocService.ts`, `exportService.ts`) IMPORT rather than
+/// duplicate. The Rust renderer is not callable from jsdom, so sharing the code is not
+/// available here.
+///
+/// Those three are not every heading-id producer in the running app: Milkdown writes
+/// its own ids on the WYSIWYG surface (`@milkdown/preset-commonmark@7.18.0`), with a
+/// dedupe that disagrees with this one by construction (`intro-#2` there, `intro-1`
+/// here). That face is unowned, read by no mdpro code after WI-3.6 (ADR-0014), and
+/// deliberately outside the parity corpus — see the header of
+/// `tests/heading-identity-faces.test.ts`. Nothing below should be changed to chase it.
 ///
 /// Agreement between this port and that module is ENFORCED, not asserted in prose:
 /// the shared corpus `tests/render-fixtures/heading-identity.json` is read by two

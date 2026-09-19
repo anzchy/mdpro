@@ -5,7 +5,16 @@
  *
  * WI-3.1 ships this module **unwired**: `tocService.ts`, `exportService.ts`,
  * `markdown.rs`, `tocStore.ts` and the Sidebar are untouched here. WI-3.2 is the change
- * that replaces the three live faces with it and hand-ports the same algorithm to Rust.
+ * that replaces the three live mdpro-owned faces with it and hand-ports the same
+ * algorithm to Rust.
+ *
+ * Those three are not every heading-id producer in the running app, and this module is
+ * NOT normative for the fourth. Milkdown writes its own heading DOM ids on the WYSIWYG
+ * surface (`@milkdown/preset-commonmark@7.18.0`), and its dedupe disagrees with the
+ * allocator below by construction — a second `# Intro` is `intro-#2` there and
+ * `intro-1` here. That namespace is unowned and, after WI-3.6, read by no mdpro code:
+ * the TOC addresses headings by document-order correspondence instead
+ * (`src/utils/tocElementResolution.ts`, ADR-0014). Do not try to reconcile the two.
  *
  * Algorithm (normative — the Rust port in WI-3.2 must match it step for step):
  *   1. Lowercase the heading text (full Unicode lowering).

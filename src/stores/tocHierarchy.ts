@@ -15,11 +15,13 @@
  * WI-3.5.5 also moved a second function here — a fourth anchor-slug generator with zero
  * callers that stripped CJK. **WI-3.5.8 deleted it** rather than leaving a wrong
  * implementation next to a correct one in the very layer whose job is to keep
- * coordination keys and anchor slugs apart. The three live slug faces are
+ * coordination keys and anchor slugs apart. The three live mdpro-owned slug faces are
  * `src/services/tocService.ts`, the `src/services/exportService.ts` fallback, and
  * `src-tauri/src/services/markdown.rs`; the normative allocator is
  * `src/utils/headingIdentity.ts`. `tests/dead-slug-removal.test.ts` fails if a fourth
- * one comes back.
+ * IN-TREE one comes back. A fourth face does exist in the running app — Milkdown's own
+ * heading DOM ids on the WYSIWYG surface — but it is unowned, read by no mdpro code
+ * after WI-3.6 (ADR-0014), and out of that sweep's scope by construction.
  */
 import type { TOCEntry } from "../types/toc";
 

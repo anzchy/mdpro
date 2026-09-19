@@ -6,14 +6,26 @@
 //! independent runners — the same mechanism `render_golden.rs` already uses for
 //! `phase1.json`.
 //!
-//! PARITY SURFACE — THREE LIVE SLUG GENERATORS: `rust`, `toc`, `exportFallback`.
+//! PARITY SURFACE — THREE LIVE SLUG GENERATORS OWNED BY mdpro: `rust`, `toc`,
+//! `exportFallback`. They are not every face in the running app.
+//!
+//! A FOURTH LIVE FACE exists on the WYSIWYG surface: the heading DOM ids
+//! `@milkdown/preset-commonmark@7.18.0` writes (`defaultHeadingIdGenerator` +
+//! `syncHeadingIdPlugin`'s own `-#n` dedupe). Its dedupe disagrees with ours by
+//! construction — `intro-#2` there, `intro-1` here. It is unowned, read by no mdpro
+//! code after WI-3.6 (ADR-0014), and deliberately NOT admitted to this corpus:
+//! pinning a third party's output with no product contract behind it would break on
+//! their patch releases for no behavioural reason. Measured detail lives in the
+//! header of `tests/heading-identity-faces.test.ts`.
+//!
 //! One further generator exists in the tree and is DELIBERATELY OUT OF SCOPE
 //! because it is dead code, not a face (plan M `:413-420`):
 //! `src-tauri/src/commands/toc.rs:36` (zero callers; takes `content` while the TS
 //! wrapper passes `document_id`). A second dead generator lived in `src/stores/`
 //! until WI-3.5.8 deleted it (zero references; it stripped CJK) — see
-//! `tests/dead-slug-removal.test.ts`. Nothing here says anything about the one
-//! that remains — a reader must not conclude that parity covers all four.
+//! `tests/dead-slug-removal.test.ts`. Nothing here says anything about the dead one
+//! that remains, or about the Milkdown face — a reader must not conclude that parity
+//! covers all five.
 //!
 //! This file owns the `rust` face only: slug GENERATION on the canonical path
 //! (`render_markdown` → `sanitize_html`). The JS runner owns the TOC and export

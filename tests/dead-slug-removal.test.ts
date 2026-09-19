@@ -13,8 +13,17 @@
  * text in this repo: `tests/wholesale-path-partition.test.ts` (case W5) and
  * `tests/focus-trap.test.ts`.
  *
+ * SCOPE, because the counts below are easy to over-read: every number in this file
+ * counts slug generators **in the repo tree**. Since WI-3.6 it is known that the
+ * running app carries one more face than the tree does — the heading DOM ids
+ * `@milkdown/preset-commonmark@7.18.0` writes on the WYSIWYG surface. That one lives
+ * in `node_modules`, is owned by nobody here, is read by no mdpro code (ADR-0014),
+ * and is therefore outside this sweep **by construction**, not by oversight. Its
+ * measured behaviour is documented in the header of
+ * `tests/heading-identity-faces.test.ts`. Do not widen `SWEEP_ROOTS` to reach it.
+ *
  * What is being guarded. Until WI-3.5.8 the tree held FOUR slug generators: three live
- * faces (`tocService`, the export fallback, `markdown.rs`) and one dead one —
+ * in-tree faces (`tocService`, the export fallback, `markdown.rs`) and one dead one —
  * `generateAnchorId`, last seen at `src/stores/tocHierarchy.ts:28`, zero callers, and
  * wrong (it strips CJK). Ten references across seven files named it: the definition,
  * one re-export, and eight comments — five of which cited a line number
@@ -24,8 +33,8 @@
  * dangling reference to one, which is strictly worse for the next reader.
  *
  * So the sweep is over the whole source and test tree, not just the five known sites:
- * re-introducing a fourth slug generator, or a fresh comment claiming one exists,
- * should fail here.
+ * re-introducing a fourth IN-TREE slug generator, or a fresh comment claiming one
+ * exists, should fail here.
  *
  * Constraints honoured (matrix §0): no new dependency (real `node:fs`), no mocks.
  */

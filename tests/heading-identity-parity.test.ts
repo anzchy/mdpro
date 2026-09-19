@@ -9,14 +9,32 @@
  * parsing Rust source text from TS: decision E26 moved this repo away from
  * source-text assertions, and they cannot characterize behavior in any case.
  *
- * PARITY SURFACE — THREE LIVE SLUG GENERATORS: `rust`, `toc`, `exportFallback`.
+ * PARITY SURFACE — THREE LIVE SLUG GENERATORS OWNED BY mdpro: `rust`, `toc`,
+ * `exportFallback`. They are not every face in the running app.
+ *
+ * A FOURTH LIVE FACE exists on the WYSIWYG surface: the heading DOM ids
+ * `@milkdown/preset-commonmark@7.18.0` writes — `defaultHeadingIdGenerator`
+ * (`lib/index.js:521-523`, punctuation preserved) composed with
+ * `syncHeadingIdPlugin`'s own `-#n` dedupe (`:2119-2161`). Measured, do not
+ * re-derive: the two dedupe schemes disagree (`intro-#2` there, `intro-1` here),
+ * empty headings get no `id` at all, and the ids are rewritten by a dispatched
+ * transaction on every doc change. It is UNOWNED and, after WI-3.6, read by no mdpro
+ * code — addressing is document-order correspondence
+ * (`src/utils/tocElementResolution.ts`, ADR-0014), pinned by the DOM-id-independence
+ * case `E-L5` in `tests/toc-element-resolution.test.ts`. It is deliberately NOT
+ * admitted to this corpus: mdpro neither produces nor consumes those ids, and
+ * pinning a third party's output with no product contract behind it would break on
+ * their patch releases for no behavioural reason. The full measurement is in the
+ * header of `tests/heading-identity-faces.test.ts`.
+ *
  * One further generator exists in the tree and is DELIBERATELY OUT OF SCOPE because
  * it is dead code, not a face (plan M `:413-420`):
  * `src-tauri/src/commands/toc.rs:36` (zero callers; takes `content` while the TS
  * wrapper passes `document_id`). A second dead generator lived in `src/stores/` until
  * WI-3.5.8 deleted it (zero references; it stripped CJK) — see
- * `tests/dead-slug-removal.test.ts`. Nothing here says anything about the one that
- * remains — a reader must not conclude parity covers all four.
+ * `tests/dead-slug-removal.test.ts`. Nothing here says anything about the dead one
+ * that remains, or about the Milkdown face — a reader must not conclude parity
+ * covers all five.
  *
  * This file owns three faces; the Rust runner owns `rust`:
  *   toc             tocService.parseHeadingsFromContent — the TOC sidebar's own

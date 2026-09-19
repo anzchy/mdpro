@@ -1,10 +1,42 @@
 /**
  * WI-3.2 — behavioural laws of the two TypeScript slug faces.
  *
- * PARITY SURFACE — THREE LIVE FACES, and only three:
+ * PARITY SURFACE — THREE LIVE FACES, and they are NOT every face in the app:
  *   1. `toc`            src/services/tocService.ts   parseHeadingsFromContent
  *   2. `exportFallback` src/services/exportService.ts renderMarkdown (Rust IPC rejecting)
  *   3. `rust`           src-tauri/src/services/markdown.rs generate_heading_id
+ *
+ * A FOURTH LIVE FACE EXISTS IN THE RUNNING APP — the heading DOM ids Milkdown puts on
+ * the WYSIWYG surface. It is a COMPOSITE of two pieces of
+ * `@milkdown/preset-commonmark@7.18.0`. Every property below was MEASURED on
+ * 2026-09-19 by mounting a real Milkdown editor in jsdom (plan D6 / ADR-0014) — do
+ * not re-derive it:
+ *   - `defaultHeadingIdGenerator` (`lib/index.js:521-523`) — lowercase, whitespace →
+ *     hyphen, PUNCTUATION PRESERVED. `Hello, World!` → `hello,-world!`, `Q&A` →
+ *     `q&a`, `foo_bar` → `foo_bar`.
+ *   - PLUS `syncHeadingIdPlugin` (same file, `:2119-2161`), which applies its OWN
+ *     dedupe on top: a `-#n` suffix from the SECOND occurrence (`:2132-2137`). A
+ *     second `# Intro` becomes `intro-#2`, where the shared allocator this file
+ *     tests says `intro-1`. TWO DEDUPE ALGORITHMS WITH TWO DIFFERENT SUFFIX SCHEMES
+ *     — that disagreement was the measured root cause of the WI-3.6 defect.
+ *   - It SKIPS EMPTY HEADINGS entirely (`:2129`), so `#` alone renders as an `<h1>`
+ *     with no `id` attribute at all.
+ *   - It writes ids via `setNodeMarkup` and DISPATCHES A TRANSACTION
+ *     (`addToHistory: false`, `:2140-2147`), recomputing them for the whole document
+ *     on view init and on EVERY doc change. Heading ids there are asynchronously
+ *     mutating document state, not a render-time function of the text.
+ *   - `data-heading-id` is `null` on every editor-surface heading. Nothing emits it.
+ * That face is UNOWNED, and after WI-3.6 no mdpro code reads it: addressing is
+ * document-order correspondence via `src/utils/tocElementResolution.ts`. The
+ * executable backing for that last clause is the DOM-id-independence case in
+ * `tests/toc-element-resolution.test.ts` — `E-L5: LAW DOM-id independence — one
+ * fixture, ten id assignments` — which re-runs one fixture with ids absent, ids
+ * duplicated, ids Milkdown-shaped, ids Milkdown-deduped and `data-heading-id`
+ * permuted, and demands identical resolution in every one.
+ * It is DELIBERATELY NOT ADMITTED TO THE PARITY CORPUS: mdpro neither produces nor
+ * consumes those ids, and pinning a third party's output with no product contract
+ * behind it would break on their patch releases for no behavioural reason. Do not
+ * "fix" the omission by adding a fourth face here.
  *
  * ONE FURTHER SLUG GENERATOR EXISTS AND IS DELIBERATELY OUT OF SCOPE — it is
  * DEAD CODE, not a face of this parity claim (plan M `:413-420`):
@@ -13,8 +45,9 @@
  *     called successfully even if something tried. Retirement is stage 5.
  * There used to be a second dead one in `src/stores/` (zero references, stripped CJK);
  * WI-3.5.8 deleted it, and `tests/dead-slug-removal.test.ts` fails if it returns.
- * Nothing here asserts anything about the remaining dead generator. A reader must not
- * conclude that "the slug generators agree" covers all four.
+ * Nothing here asserts anything about the remaining dead generator, and nothing here
+ * asserts anything about the Milkdown face. A reader must not conclude that "the slug
+ * generators agree" covers all five.
  *
  * The fixed-case corpus lives in tests/heading-identity-parity.test.ts. This file
  * carries the laws that 27 hand-picked cases cannot reach: document uniqueness over
