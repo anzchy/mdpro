@@ -1,4 +1,4 @@
-import type { TOCEntry } from "../../stores/tocStore";
+import type { HeadingKey, TOCEntry } from "../../types/toc";
 import type { ViewMode } from "../../types/editor";
 import { TOCSidebar } from "./TOCSidebar";
 
@@ -12,14 +12,14 @@ export function getViewModeLabel(mode: ViewMode): string {
 interface TOCSidebarContainerProps {
   /** TOC entries */
   tocEntries: TOCEntry[];
-  /** Active TOC entry ID */
-  activeTocEntryId: string | null;
-  /** Collapsed TOC entry IDs */
-  collapsedTocIds: Set<string>;
+  /** Active TOC entry, by coordination key */
+  activeTocEntryId: HeadingKey | null;
+  /** Collapsed TOC entries, by coordination key */
+  collapsedTocIds: Set<HeadingKey>;
   /** Handler for TOC entry click */
-  onTocEntryClick: (id: string) => void;
+  onTocEntryClick: (key: HeadingKey) => void;
   /** Handler for TOC collapse toggle */
-  onTocToggleCollapse: (id: string) => void;
+  onTocToggleCollapse: (key: HeadingKey) => void;
   /** Current editor view mode — shown in the traffic-lights area */
   viewMode: ViewMode;
 }

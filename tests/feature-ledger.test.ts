@@ -1,13 +1,22 @@
 /**
  * Purpose: Pin the behaviour of the feature-ledger parser and its mechanical
  * rules (`scripts/ledger/parse.mjs`). These are the pure functions behind
- * `pnpm ledger:check`; the filesystem-touching halves (`declared.mjs`,
- * `check.mjs`, `render.mjs`) are deliberately NOT tested here — asserting on
- * live-repo counts would be a brittle test that fails on every real edit.
+ * `pnpm ledger:check`.
+ *
+ * Live-repo **counts** are still deliberately not asserted — a test pinning "166
+ * rows" fails on every real edit and teaches people to update it without reading
+ * it. What the last block does assert is the gate's *verdict* (zero findings) and
+ * one named row's state cell, neither of which drifts under an honest edit. That
+ * distinction, not "no filesystem", is the rule this file follows.
  *
  * @module tests/feature-ledger.test
- * @coordinates-with scripts/ledger/parse.mjs
+ * @coordinates-with scripts/ledger/parse.mjs, scripts/ledger/check.mjs
  */
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -219,5 +228,70 @@ describe("checkCoverage", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].rule).toBe("coverage");
     expect(findings[0].message).toContain("delete_draft");
+  });
+});
+
+/**
+ * WI-3.5.7 case D1 (test matrix `.claude/tdd-guardian/tests-20260918-214500.md:1061-1071`).
+ *
+ * D1's lane is `unit`, and the matrix's own reason is that `pnpm ledger:check` is
+ * the same check as a script. It is invoked here as a subprocess rather than
+ * recomposed from `parse.mjs` + `declared.mjs`: a recomposition would pass while
+ * `check.mjs` grew a seventh rule the test never ran, which is precisely the drift
+ * a gate test exists to stop.
+ */
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+describe("the live feature ledger passes its own gate (WI-3.5.7 case D1)", () => {
+  it("D1a `node scripts/ledger/check.mjs` reports zero findings", () => {
+    const run = spawnSync("node", ["scripts/ledger/check.mjs", "--require"], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+    });
+
+    // A gate that silently skipped is a pass that proves nothing.
+    expect(run.error, `could not run the ledger gate: ${run.error?.message}`).toBeUndefined();
+    expect(run.stdout).toMatch(/^\d+ rows, \d+ path claims, /m);
+    expect(run.stdout).not.toContain("不存在 — 功能账簿闸门被跳过");
+
+    expect(
+      run.status,
+      `pnpm ledger:check failed:\n${run.stdout}${run.stderr}`,
+    ).toBe(0);
+    expect(run.stdout).toContain("0 findings");
+  });
+
+  it("D1b the 大纲侧栏 row stays Partial, names its limit, and records identity coordination", () => {
+    const markdown = fs.readFileSync(path.join(REPO_ROOT, "docs/feature-ledger.md"), "utf8");
+    const { rows } = parseLedger(markdown) as {
+      rows: { capability: string; state: string; where: string; confirm: string }[];
+    };
+
+    const row = rows.find((r) => r.capability === "大纲侧栏");
+    expect(row, "the 大纲侧栏 row disappeared from the ledger").toBeDefined();
+
+    // The enum is closed and both existing 限制 clauses are still true, so WI-3.5 does
+    // not promote this row. `Shipped (折叠态已保住)` is a gate failure, not a nuance.
+    expect(row!.state).toBe("Partial");
+    expect(row!.confirm).toContain("限制：");
+
+    // Rule 60: the new surfaces get their description on the row that *is* that
+    // surface, not a name parked elsewhere to turn the coverage count green.
+    for (const claim of [
+      "`src/stores/tocStore.ts`",
+      "`src/stores/tocCoordination.ts`",
+      "`src/stores/tocHierarchy.ts`",
+      "`src/utils/headingCoordination.ts`",
+    ]) {
+      expect(row!.where, `大纲侧栏 row does not name ${claim}`).toContain(claim);
+    }
+
+    // The user-visible behaviour WI-3.5 changed must be confirmable from the row.
+    for (const marker of ["折叠", "击键", "重新加载"]) {
+      expect(
+        row!.confirm,
+        `大纲侧栏 怎么确认 does not let a reader confirm "${marker}"`,
+      ).toContain(marker);
+    }
   });
 });

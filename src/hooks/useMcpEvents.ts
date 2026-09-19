@@ -10,6 +10,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { replaceAll } from "@milkdown/kit/utils";
 import { useDocumentStore } from "../stores/documentStore";
+import { useTOCStore } from "../stores/tocStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import { loggingService } from "../services/loggingService";
@@ -198,7 +199,10 @@ export function useMcpEvents() {
         return;
       }
 
-      // Update document content
+      // Update document content. WI-3.5.5 wholesale: the buffer is replaced, so every
+      // heading identity from the previous revision is void. Placed after the
+      // window-label and not-found guards, and scoped to the *event's* document.
+      useTOCStore.getState().resetCoordination(event.document_id);
       updateDocumentContent(event.document_id, event.content);
 
       // Only push the change into the live editor when the target document is
@@ -292,6 +296,9 @@ export function useMcpEvents() {
         fileSize: null,
       };
 
+      // WI-3.5.5 wholesale: the id comes from Rust and can collide with an open
+      // document, in which case `upsertDocument` replaces it in place.
+      useTOCStore.getState().resetCoordination(event.document_id);
       upsertDocument(newDoc);
       setActiveDocumentId(event.document_id);
     },

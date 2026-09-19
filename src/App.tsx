@@ -135,6 +135,7 @@ function App() {
     toggleCollapsed: toggleTocCollapsed,
   } = useTOC({
     content: activeDocument?.content ?? "",
+    documentId: activeDocument?.id ?? null,
     containerId: viewMode === "wysiwyg" ? "milkdown-container" : "source-container",
     enableSpyScrolling: viewMode !== "source",
     viewMode,

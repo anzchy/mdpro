@@ -4,6 +4,7 @@ import { fileService } from "../services/fileService";
 import { preferencesService } from "../services/preferencesService";
 import type { Document } from "../types/document";
 import { useDocumentStore } from "../stores/documentStore";
+import { useTOCStore } from "../stores/tocStore";
 import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
 import { formatAllTables } from "../utils/tableFormatter";
@@ -60,6 +61,8 @@ export function useDocument() {
     async (path: string, actionId?: string) => {
       try {
         const result = await fileService.openFile(path, undefined, actionId);
+        // WI-3.5.5 wholesale: reopen-in-place under an unchanged path-derived id.
+        useTOCStore.getState().resetCoordination(result.document.id);
         useDocumentStore.getState().upsertDocument(result.document);
         useDocumentStore.getState().setActiveDocumentId(result.document.id);
         setEditorActiveDocumentId(result.document.id);
@@ -95,6 +98,8 @@ export function useDocument() {
       if (!result) {
         return null;
       }
+      // WI-3.5.5 wholesale: the dialog can land on an already-open file.
+      useTOCStore.getState().resetCoordination(result.document.id);
       useDocumentStore.getState().upsertDocument(result.document);
       useDocumentStore.getState().setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
@@ -120,6 +125,8 @@ export function useDocument() {
   const openDocumentWithEncoding = useCallback(
     async (path: string, encoding: string, actionId?: string) => {
       const result = await fileService.openFile(path, encoding, actionId);
+      // WI-3.5.5 wholesale: same id, whole buffer re-decoded.
+      useTOCStore.getState().resetCoordination(result.document.id);
       useDocumentStore.getState().upsertDocument(result.document);
       useDocumentStore.getState().setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
@@ -139,6 +146,8 @@ export function useDocument() {
     } catch {
       // Fall back to local document creation when IPC is unavailable.
     }
+    // WI-3.5.5 wholesale: `upsertDocument` overwrites in place on an id collision.
+    useTOCStore.getState().resetCoordination(document.id);
     useDocumentStore.getState().upsertDocument(document);
     useDocumentStore.getState().setActiveDocumentId(document.id);
     setEditorActiveDocumentId(document.id);
@@ -147,6 +156,8 @@ export function useDocument() {
 
   const upsertAndActivateDocument = useCallback(
     (document: Document) => {
+      // WI-3.5.5 wholesale: draft recovery / dev open, under the original path's id.
+      useTOCStore.getState().resetCoordination(document.id);
       useDocumentStore.getState().upsertDocument(document);
       useDocumentStore.getState().setActiveDocumentId(document.id);
       setEditorActiveDocumentId(document.id);
@@ -156,6 +167,8 @@ export function useDocument() {
 
   const replaceDocument = useCallback(
     (document: Document) => {
+      // WI-3.5.5 wholesale: the file-reload leg, incl. the external file watcher.
+      useTOCStore.getState().resetCoordination(document.id);
       useDocumentStore.getState().upsertDocument(document);
     },
     [],
@@ -270,6 +283,8 @@ export function useDocument() {
     async (discardChanges: boolean) => {
       if (!activeDocument) return null;
       await fileService.closeDocument(activeDocument.id, discardChanges, activeDocument.path);
+      // WI-3.5.5 eviction: close→reopen returns the same path-derived id.
+      useTOCStore.getState().resetCoordination(activeDocument.id);
       useDocumentStore.getState().closeDocument(activeDocument.id);
       setEditorActiveDocumentId(null);
       return;
@@ -281,6 +296,8 @@ export function useDocument() {
     async (id: string, discardChanges: boolean) => {
       const doc = useDocumentStore.getState().documents.find((d) => d.id === id);
       await fileService.closeDocument(id, discardChanges, doc?.path);
+      // WI-3.5.5 eviction: the tab-bar X, which never reaches closeActiveDocument.
+      useTOCStore.getState().resetCoordination(id);
       useDocumentStore.getState().closeDocument(id);
       if (useDocumentStore.getState().activeDocumentId === id) {
         setEditorActiveDocumentId(null);

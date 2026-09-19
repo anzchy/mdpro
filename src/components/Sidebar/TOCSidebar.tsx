@@ -1,25 +1,25 @@
 import { useCallback, type MouseEvent } from "react";
-import type { TOCEntry } from "../../stores/tocStore";
+import type { HeadingKey, TOCEntry } from "../../types/toc";
 
 interface TOCSidebarProps {
   /** Hierarchical TOC entries */
   entries: TOCEntry[];
-  /** Currently active entry ID */
-  activeEntryId: string | null;
-  /** Collapsed entry IDs */
-  collapsedIds: Set<string>;
+  /** Currently active entry, by coordination key */
+  activeEntryId: HeadingKey | null;
+  /** Collapsed entries, by coordination key */
+  collapsedIds: Set<HeadingKey>;
   /** Handler for entry click (navigation) */
-  onEntryClick: (id: string) => void;
+  onEntryClick: (key: HeadingKey) => void;
   /** Handler for collapse toggle */
-  onToggleCollapse: (id: string) => void;
+  onToggleCollapse: (key: HeadingKey) => void;
 }
 
 interface TOCEntryItemProps {
   entry: TOCEntry;
-  activeEntryId: string | null;
-  collapsedIds: Set<string>;
-  onEntryClick: (id: string) => void;
-  onToggleCollapse: (id: string) => void;
+  activeEntryId: HeadingKey | null;
+  collapsedIds: Set<HeadingKey>;
+  onEntryClick: (key: HeadingKey) => void;
+  onToggleCollapse: (key: HeadingKey) => void;
   depth: number;
 }
 
@@ -31,24 +31,26 @@ function TOCEntryItem({
   onToggleCollapse,
   depth,
 }: TOCEntryItemProps) {
-  const isActive = entry.id === activeEntryId;
-  const isCollapsed = collapsedIds.has(entry.id);
+  // Active and collapsed state hang off the coordination key, never the anchor slug —
+  // the slug changes on rename, which would silently drop the state.
+  const isActive = entry.key === activeEntryId;
+  const isCollapsed = collapsedIds.has(entry.key);
   const hasChildren = entry.children.length > 0;
 
   const handleClick = useCallback(
     (e: MouseEvent) => {
       e.preventDefault();
-      onEntryClick(entry.id);
+      onEntryClick(entry.key);
     },
-    [entry.id, onEntryClick]
+    [entry.key, onEntryClick]
   );
 
   const handleCollapseClick = useCallback(
     (e: MouseEvent) => {
       e.stopPropagation();
-      onToggleCollapse(entry.id);
+      onToggleCollapse(entry.key);
     },
-    [entry.id, onToggleCollapse]
+    [entry.key, onToggleCollapse]
   );
 
   return (
@@ -71,7 +73,7 @@ function TOCEntryItem({
         )}
         {!hasChildren && <span className="toc-entry__spacer" />}
         <a
-          href={`#${entry.id}`}
+          href={`#${entry.anchorSlug}`}
           className="toc-entry__link"
           onClick={handleClick}
           title={entry.text}
@@ -83,7 +85,7 @@ function TOCEntryItem({
         <ul className="toc-entry__children">
           {entry.children.map((child) => (
             <TOCEntryItem
-              key={child.id}
+              key={child.key}
               entry={child}
               activeEntryId={activeEntryId}
               collapsedIds={collapsedIds}
@@ -120,7 +122,7 @@ export function TOCSidebar({
       <ul className="toc-sidebar__list">
         {entries.map((entry) => (
           <TOCEntryItem
-            key={entry.id}
+            key={entry.key}
             entry={entry}
             activeEntryId={activeEntryId}
             collapsedIds={collapsedIds}
