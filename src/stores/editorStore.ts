@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { EditorView } from "@codemirror/view";
-import type { CursorPosition, EditorState, ScrollPosition, SelectionRange, ViewMode } from "../types/editor";
+import type { CursorPosition, EditorState, SelectionRange, ViewMode } from "../types/editor";
 import { loggingService } from "../services/loggingService";
 import {
   captureCellFromLines,
@@ -94,17 +94,10 @@ interface EditorStore extends EditorState {
   toggleSidebar: () => void;
   setCursor: (cursor: CursorPosition) => void;
   setSelection: (selection: SelectionRange | null) => void;
-  setEditorScroll: (scroll: ScrollPosition) => void;
-  setPreviewScroll: (scroll: ScrollPosition) => void;
   setFocus: (isFocused: boolean) => void;
   setUndoDepth: (depth: number) => void;
   setRedoDepth: (depth: number) => void;
 }
-
-const defaultScroll: ScrollPosition = {
-  top: 0,
-  firstVisibleLine: 0,
-};
 
 const defaultCursor: CursorPosition = {
   line: 0,
@@ -120,8 +113,6 @@ export const useEditorStore = create<EditorStore>((set) => ({
   editorView: null,
   cursor: { ...defaultCursor },
   selection: null,
-  editorScroll: { ...defaultScroll },
-  previewScroll: { ...defaultScroll },
   isFocused: false,
   undoDepth: 0,
   redoDepth: 0,
@@ -148,8 +139,6 @@ export const useEditorStore = create<EditorStore>((set) => ({
   toggleSidebar: () => set((state) => ({ showSidebar: !state.showSidebar })),
   setCursor: (cursor) => set({ cursor }),
   setSelection: (selection) => set({ selection }),
-  setEditorScroll: (scroll) => set({ editorScroll: scroll }),
-  setPreviewScroll: (scroll) => set({ previewScroll: scroll }),
   setFocus: (isFocused) => set({ isFocused }),
   setUndoDepth: (depth) => set({ undoDepth: depth }),
   setRedoDepth: (depth) => set({ redoDepth: depth }),

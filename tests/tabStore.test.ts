@@ -145,9 +145,10 @@ describe("tabStore", () => {
   describe("saveTabState", () => {
     it("merges partial state into tab", () => {
       const tabId = useTabStore.getState().openTab("doc-1", "A");
-      useTabStore.getState().saveTabState(tabId, { scrollTop: 100 });
+      useTabStore.getState().saveTabState(tabId, { viewMode: "split" });
       const tab = useTabStore.getState().tabs[0];
-      expect(tab.state.scrollTop).toBe(100);
+      expect(tab.state.viewMode).toBe("split");
+      // The untouched half of the partial merge survives.
       expect(tab.state.cursorPosition).toEqual({ line: 1, column: 0 });
     });
   });

@@ -5,9 +5,6 @@ import { loggingService } from "../services/loggingService";
  * Preserved state for context restoration when switching tabs
  */
 export interface TabState {
-  /** Scroll position (pixels from top) */
-  scrollTop: number;
-
   /** Cursor position in document */
   cursorPosition: {
     line: number;
@@ -97,7 +94,7 @@ interface TabStoreActions {
   /** Restore the most recently closed tab */
   undoCloseTab: () => ClosedTab | null;
 
-  /** Save tab state (scroll, cursor, viewMode) */
+  /** Save tab state (cursor, viewMode) */
   saveTabState: (tabId: string, state: Partial<TabState>) => void;
 
   /** Update tab title */
@@ -154,7 +151,6 @@ export const useTabStore = create<TabStore>((set, get) => ({
       isPinned: false,
       order: state.tabs.length,
       state: {
-        scrollTop: 0,
         cursorPosition: { line: 1, column: 0 },
         viewMode: "wysiwyg",
       },

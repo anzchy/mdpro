@@ -16,14 +16,6 @@ export interface SelectionRange {
   head: CursorPosition;
 }
 
-export interface ScrollPosition {
-  /** Scroll offset from top (pixels) */
-  top: number;
-
-  /** First visible line number */
-  firstVisibleLine: number;
-}
-
 export interface EditorState {
   /** Currently active document ID */
   activeDocumentId: string | null;
@@ -36,12 +28,6 @@ export interface EditorState {
 
   /** Current text selection */
   selection: SelectionRange | null;
-
-  /** Editor scroll position */
-  editorScroll: ScrollPosition;
-
-  /** Preview scroll position (for sync) */
-  previewScroll: ScrollPosition;
 
   /** Is editor focused */
   isFocused: boolean;
