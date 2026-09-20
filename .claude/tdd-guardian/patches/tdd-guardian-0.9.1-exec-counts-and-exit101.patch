@@ -1,0 +1,72 @@
+diff --git a/scripts/tdd-guardian/lib/exec.js b/scripts/tdd-guardian/lib/exec.js
+index a65dcf0..5842acf 100644
+--- a/scripts/tdd-guardian/lib/exec.js
++++ b/scripts/tdd-guardian/lib/exec.js
+@@ -21,6 +21,13 @@ const EXIT_CLASS = {
+   130: "interrupted",
+   137: "killed",
+   143: "killed",
++  // Cargo exits 101 when tests fail. Unlisted, it fell through to
++  // "runner-error", so every genuine Rust test failure was reported as a
++  // broken environment and no fix-it agent was dispatched. Cargo also exits
++  // 101 when the crate does not compile, which is genuinely an environment
++  // failure — that case is separated below by the parse-error heuristic,
++  // which only applies when no test output was produced.
++  101: "fail",
+ };
+ 
+ // Applied to stderr (and stdout when noted) to upgrade a "fail" that is really a
+@@ -80,7 +87,10 @@ function classify(exitCode, stdout, stderr) {
+       if (re.test(stderr) || re.test(stdout)) return upgraded;
+     }
+     // A parse error before any test output means the runner never got going.
+-    if (/SyntaxError|TSError|Parse error|parsing error|compilation (failed|error)/i.test(stderr) && !hasTestOutput(combined)) {
++    // `could not compile` / `error[E0308]` are cargo's: it exits 101 for a
++    // failed build exactly as it does for a failed test, so the presence of
++    // test output is the only thing that separates them.
++    if (/SyntaxError|TSError|Parse error|parsing error|compilation (failed|error)|could not compile|error\[E\d{4}\]/i.test(stderr) && !hasTestOutput(combined)) {
+       return "runner-error";
+     }
+     if (!combined.trim()) return "runner-missing";
+@@ -92,10 +102,38 @@ function classify(exitCode, stdout, stderr) {
+ // Best-effort extraction of pass/fail counts. Returns null rather than guessing —
+ // a fabricated count is worse than no count.
+ const COUNT_PARSERS = [
+-  // Vitest: "Tests  12 passed | 1 failed (13)"
++  // Vitest: "Tests  12 passed | 1 failed (13)", where the pipe-separated
++  // segments are emitted only for non-zero categories and include `todo`
++  // (from `it.todo`) alongside failed/passed/skipped.
++  //
++  // Parsed segment-by-segment rather than as one fixed-order pattern: the
++  // previous expression allowed an optional `skipped` segment only, so a
++  // suite with any `todo` test produced "1457 passed | 4 todo (1461)",
++  // matched nothing at all, and returned null counts. A null there is not
++  // cosmetic — verification.js downgrades a red with no counts from
++  // `assertion-failure` to `opaque-failure`, so one `it.todo` anywhere in
++  // the repo silently weakened every red receipt it recorded.
+   (t) => {
+-    const m = /Tests\s+(?:(\d+)\s+failed\s*\|\s*)?(\d+)\s+passed(?:\s*\|\s*(\d+)\s+skipped)?\s*\((\d+)\)/i.exec(t);
+-    return m ? { failed: +(m[1] || 0), passed: +m[2], skipped: +(m[3] || 0), total: +m[4] } : null;
++    const line = /^[^\S\n]*Tests[^\S\n]+((?:\d+[^\S\n]+\w+[^\S\n]*\|[^\S\n]*)*\d+[^\S\n]+\w+)[^\S\n]*\((\d+)\)/im.exec(t);
++    if (!line) return null;
++    const out = { failed: 0, passed: 0, skipped: 0, todo: 0, total: +line[2] };
++    let matched = false;
++    for (const segment of line[1].split("|")) {
++      const seg = /(\d+)[^\S\n]+(\w+)/.exec(segment);
++      if (!seg) continue;
++      const n = +seg[1];
++      switch (seg[2].toLowerCase()) {
++        case "failed": out.failed += n; matched = true; break;
++        case "passed": out.passed += n; matched = true; break;
++        case "skipped": out.skipped += n; matched = true; break;
++        // `todo` is neither a pass nor a failure. Folded into `skipped` so
++        // the {passed, failed, skipped, total} shape every caller reads
++        // stays consistent, and kept separately for fidelity.
++        case "todo": out.todo += n; out.skipped += n; matched = true; break;
++        default: break;
++      }
++    }
++    return matched ? out : null;
+   },
+   // Jest: "Tests:       1 failed, 12 passed, 13 total"
+   (t) => {
