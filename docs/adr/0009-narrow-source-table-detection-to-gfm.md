@@ -4,6 +4,14 @@
 [ADR-0008](./0008-non-candidate-delimiter-class-measured-against-gfm.md), which
 recorded this defect and left it unowned. ADR-0008's Decision is not reopened.
 
+**Partially superseded — 2026-09-18.** The claim in "What is deliberately not
+decided here" that under-detection *"cannot cause a bad write"* is **withdrawn**
+by [ADR-0013](./0013-under-detection-shifts-table-ordinals.md): a missed table
+shifts every later ordinal, and MCP/HTTP table actions address tables by ordinal.
+Decision points 1–3 below stand unchanged. Do not cite this record as authority
+for a missed table being write-safe. This Status block is the only part of this
+ADR that has been edited — the body below is the 2026-09-18 record as written.
+
 ## Context
 
 ADR-0008 closed with "a new defect is on record with no owner and no plan":

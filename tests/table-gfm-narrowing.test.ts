@@ -44,6 +44,12 @@
  *    table where mdpro finds none — is untouched by WI-C1 / WI-C2 and is
  *    asserted to still be broken, so nobody reads this file as a claim of
  *    parity.
+ *  - `NARROW-underdetection-shifts-ordinals` records that the miss above
+ *    is not write-safe: it renumbers every later table, and MCP/HTTP
+ *    table actions address tables by ordinal, so a correct client's
+ *    `delete_row(tableIndex: 0)` lands on the wrong table. ADR-0013
+ *    withdraws ADR-0009's claim to the contrary. Also a defect receipt —
+ *    it pins wrong behaviour on purpose.
  *
  * Gate G0: no new dependency. No mocks — every value is the real
  * function's real return.
@@ -52,6 +58,7 @@
 import { describe, expect, it } from "vitest";
 
 import { findAllTables } from "../src/utils/cursorSync/table";
+import { applyMcpTableAction } from "../src/utils/tableMcp";
 import { countIndentColumns, countLeadingSpaces } from "../src/utils/tableParser/commonmark";
 import { parseTableAt } from "../src/utils/tableParser/parse";
 import type { TableModel } from "../src/utils/tableParser/types";
@@ -297,5 +304,38 @@ describe("table detector narrowed to GFM (WI-C1 / WI-C2)", () => {
       findAllTables(doc10.source).some((m) => m.start === 269),
       "still not enumerated",
     ).toBe(false);
+  });
+
+  it("NARROW-underdetection-shifts-ordinals: a miss makes an MCP write hit the WRONG table", () => {
+    // ADR-0013. This is a DEFECT RECEIPT, not an endorsement — every
+    // assertion below pins behaviour we know to be wrong, so that the day
+    // table identity is fixed this case fails and gets rewritten rather
+    // than drifting green. Do not "fix" it by updating the expectations.
+    //
+    // ADR-0009 declined to fix under-detection on the premise that it
+    // "cannot cause a bad write (you cannot edit a table you never
+    // enumerated)". That premise is false: MCP/HTTP table actions address
+    // tables by ORDINAL, so a missed table renumbers every table after it.
+
+    // U1 (the paragraph-interrupting table mdpro misses) followed by an
+    // ordinary table. GFM sees two tables; mdpro sees only the second.
+    const u1 = "| b0 | b1 |\n| h0 | h1 | h2 |\n| :-- | :-: | :-- |\n| r0 | r1 | r2 |\n";
+    const doc = u1 + "\n| c0 | c1 |\n| --- | --- |\n| v0 | v1 |\n";
+
+    expect(doc.indexOf("| h0 |"), "GFM's table 0 starts here").toBe(12);
+    expect(doc.indexOf("| c0 |"), "GFM's table 1 starts here").toBe(67);
+    expect(spans(findAllTables(doc)), "mdpro enumerates only the second").toEqual([[67, 104]]);
+
+    // The ordinal shift itself: mdpro's tables[0] IS GFM's table 1.
+    expect(findAllTables(doc)[0].start, "mdpro's table 0 is GFM's table 1").toBe(67);
+
+    // And the consequence. A client that counts as GFM counts asks to
+    // delete the header row of the FIRST table; mdpro deletes it from the
+    // SECOND. `guardTableWrite` does not object — the wrongly targeted
+    // table is structurally valid, so there is nothing for it to catch.
+    const after = applyMcpTableAction(doc, "delete_row", { tableIndex: 0, index: 0 });
+    expect(after, "the write is accepted, not refused").not.toBeNull();
+    expect(after, "GFM's table 0 is untouched").toContain("| h0 | h1 | h2 |");
+    expect(after, "GFM's table 1 lost its header instead").not.toContain("| c0 | c1 |");
   });
 });
