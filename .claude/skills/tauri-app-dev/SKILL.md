@@ -188,6 +188,13 @@ cd src-tauri && cargo clippy
 | React/UI/component bugs | `pnpm dev` + browser DevTools |
 | Tauri IPC, file ops, native menus | `pnpm tauri dev` |
 | Debugging MCP server | `pnpm tauri dev` + `tail -f ~/.mdpro/mdpro.log` |
+| **GUI acceptance QA via computer use** | **`pnpm tauri build --bundles app`** — see the `gui-acceptance` skill |
+
+**Neither dev command works with computer use.** `src-tauri/target/debug/tauri-app`
+is a bare executable with no `Info.plist`, so it has no bundle identifier —
+and macOS computer-use grants are keyed by bundle id. The window is filtered
+out of screenshots entirely. You must build a `.app`. The `gui-acceptance`
+skill covers the full procedure.
 
 ---
 
