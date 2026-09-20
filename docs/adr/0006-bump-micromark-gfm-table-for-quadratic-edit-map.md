@@ -19,6 +19,16 @@ made consistent, not a new decision — the scope point 2 states was always the
 operative one. This Status block is the only part of this ADR that has been
 edited.
 
+**Decision 3 superseded by ADR-0016 — 2026-09-20.** The D6 sub-decision below
+defers re-choosing the guard's predicate "until the post-bump sweep says what
+remains". That sweep ran (D6.1, 2026-09-20) and the deferral is discharged by
+[ADR-0016](./0016-large-document-guard-predicate-is-a-source-structure-score.md),
+which replaces the predicate with a source-structure score. ADR-0016 also
+overturns Decision 3's own diagnosis: the cost is a whole-document total, not
+"cells in the largest single table". Decisions 1, 2, and 4, the Context, and the
+Consequences stand unchanged. Anyone arriving here for the guard should read
+ADR-0016 first.
+
 ## Context
 
 Gate 2's performance criterion recorded two main-thread freezes
