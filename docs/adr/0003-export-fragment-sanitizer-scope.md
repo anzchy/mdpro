@@ -4,6 +4,14 @@
 
 Accepted — 2026-09-15
 
+**Partially superseded — 2026-09-18.** Decision point 3 (`ALLOWED_ATTR`) is
+superseded by
+[ADR-0011](./0011-remove-name-from-export-sanitizer-allowlist.md), which removes
+`name` from the allowlist. Points 1, 2 and 4 and both load-bearing preconditions
+stand unchanged. Do not act on point 3 from this record; read ADR-0011 first.
+This Status block is the only part of this ADR that has been edited — the body
+below is the 2026-09-15 record as written.
+
 Implemented by WI-3.2. This record carries no code change; see **Consequences**.
 
 ## Context

@@ -4,6 +4,14 @@
 
 Accepted — 2026-09-16
 
+**Corrected on two points of fact — 2026-09-17** by
+[ADR-0006](./0006-bump-micromark-gfm-table-for-quadratic-edit-map.md): the
+attribution of the longest measured main-thread block (lines 21–24) and the
+placement of the cause "in a dependency" (lines 32–35). The waiver itself still
+stands on its own reasoning, and nothing else in this record is disturbed. Read
+ADR-0006 before citing either figure. This Status block is the only part of this
+ADR that has been edited — the body below is the 2026-09-16 record as written.
+
 ## Context
 
 Gate 2（阶段 3 入口门禁二：大文档性能基线）is the second of two entry gates that
