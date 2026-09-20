@@ -44,4 +44,4 @@ passes with it.
 
 ## File placement
 
-**Put frontend tests in `tests/<name>.test.ts`** — `vitest.config.ts` only includes `tests/**/*.test.ts`, so a test co-located under `src/` never runs.
+**Put frontend tests under `tests/`** — `vitest.config.ts` includes `tests/**/*.test.{ts,tsx}`, so both `.test.ts` and `.test.tsx` are discovered, but only inside `tests/`. A test anywhere else — co-located under `src/`, or in a feature-local folder — never runs.

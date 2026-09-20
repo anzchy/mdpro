@@ -68,9 +68,9 @@ Before committing CSS:
    toggle. Don't ship CSS based on only-one-theme testing.
 2. **Reference document.** Render a sample with the full register
    (headings, lists, blockquotes, code, tables, images, links).
-3. **Contrast ratios** (WCAG AA): body text 4.5:1, large text (≥18px or
-   bold ≥14px) 3:1. Accent on panel must clear 3:1 for buttons,
-   4.5:1 for accent text.
+3. **Contrast ratios** (WCAG AA): body text 4.5:1, large text (≥24px or
+   bold ≥18.7px — WCAG's 18pt / 14pt bold in CSS pixels) 3:1. Accent on
+   panel must clear 3:1 for buttons, 4.5:1 for accent text.
 4. **Focus indicators.** Re-test after dark-theme changes (rule 33).
 5. **Theme switch flicker.** mdpro deliberately doesn't transition
    theme-related properties — verify the swap is clean.

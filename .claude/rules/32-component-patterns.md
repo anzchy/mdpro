@@ -35,8 +35,11 @@ picks a winner.
   `src/components/common/SettingsDialog.tsx`; also
   `src/components/Editor/TableInsertModal/index.tsx`).
 - First-focused element is the most-likely-edited control, not title/cancel.
-- Esc closes (cancels). Enter from any input submits. Backdrop click
-  cancels; `.dialog-card` click stops propagation.
+- Esc closes (cancels) — except `RecoveryDialog`, which deliberately has no
+  Escape close so a data-loss recovery prompt can't be dismissed by accident
+  (asserted by `tests/focus-trap.test.ts`; see `33-focus-indicators.md`).
+  Enter from any input submits. Backdrop click cancels; `.dialog-card` click
+  stops propagation.
 - Two-button row: Cancel (left, secondary) and Primary (right).
 
 ## Context menu contract

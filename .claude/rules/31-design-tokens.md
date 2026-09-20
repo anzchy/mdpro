@@ -80,8 +80,9 @@ update this table in the same commit.
 
 ## Layout tokens (runtime-toggled)
 
-Only three tokens change at runtime: `--editor-font-family`,
-`--editor-font-size`, `--editor-line-height` (Settings dialog). UI
+Only four tokens change at runtime: `--editor-font-family`,
+`--editor-font-size`, `--editor-line-height`, `--editor-content-width`
+(Settings dialog, via `src/components/common/settings/editorPrefApply.ts`). UI
 chrome (`--font-sans`) is fixed — never set `system-ui` /
 `-apple-system` directly on a non-editor surface.
 

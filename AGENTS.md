@@ -7,11 +7,12 @@
 - `specs/` includes product docs and contracts; the active MVP spec is under `specs/001-mdpro-mvp/`.
 
 ## Build, Test, and Development Commands
-- `npm run dev`: starts the Vite dev server for the web UI.
-- `npm run build`: type-checks (`tsc`) and builds the production web bundle.
-- `npm run preview`: serves the built web bundle locally.
-- `npm run tauri dev`: runs the desktop app in development (requires Rust toolchain).
-- `npm run tauri build`: produces a desktop app build via Tauri.
+- This repo uses **pnpm** (`package.json` declares `"packageManager": "pnpm@10.26.1"`; `pnpm-lock.yaml` is tracked). Never run `npm`/`yarn`.
+- `pnpm dev`: starts the Vite dev server for the web UI.
+- `pnpm build`: type-checks (`tsc`) and builds the production web bundle.
+- `pnpm preview`: serves the built web bundle locally.
+- `pnpm tauri dev`: runs the desktop app in development (requires Rust toolchain).
+- `pnpm tauri build`: produces a desktop app build via Tauri.
 
 ## Coding Style & Naming Conventions
 - TypeScript/React uses 2-space indentation, double quotes, and semicolons (match existing files).
@@ -21,12 +22,12 @@
 
 ## Testing Guidelines
 - Frontend tests use `Vitest` with `jsdom`.
-- Install dependencies from project root: `npm install`.
-- Run all frontend tests: `npm run test:run`.
-- Run a specific test file in `tests/`: `npm run test:run -- tests/markdown-editor-core.test.ts`.
+- Install dependencies from project root: `pnpm install`.
+- Run all frontend tests: `pnpm test:run`.
+- Run a specific test file in `tests/`: `pnpm test:run -- tests/markdown-editor-core.test.ts`.
 - Edge-case checklist lives in `tests/edge-cases-test.md` and should be used as regression coverage input.
 - Rust backend tests run in `src-tauri/` via `cargo test`.
-- Name test files consistently as `*.test.ts` / `*.test.tsx` under `tests/` (or feature-local test folders when needed).
+- Name test files `*.test.ts` / `*.test.tsx` and put them **directly under `tests/`** — `vitest.config.ts` sets `include: ["tests/**/*.test.{ts,tsx}"]`, so a test in a feature-local folder under `src/` is never discovered and silently never runs.
 
 ## Commit & Pull Request Guidelines
 - Commit messages use conventional commits `<type>(<scope>): <short summary>` (e.g., "fix(save): surface write errors"); see CLAUDE.md "Git Commit Conventions".
@@ -36,6 +37,8 @@
 ## Configuration & Security Notes
 - Tauri permissions/capabilities live in `src-tauri/capabilities/`; update them alongside feature work.
 - Treat `src-tauri/tauri.conf.json` as the source of truth for bundling and app metadata.
+
+> `.claude/rules/*.md` is canonical for every contract below; if this file ever disagrees with a rule file, the rule file wins and this file is the bug.
 
 ## Working Agreement
 - Run `git status -sb` at session start.
@@ -52,9 +55,9 @@
 - All stores use `create<State>()` with explicit TypeScript generic — never untyped.
 
 ## Tauri IPC Rules
-- Every `#[tauri::command]` must return `Result<T, String>` — never `unwrap()` on user input.
+- Every `#[tauri::command]` must return a `Result` — never `unwrap()`/`expect()` on user input. The error type is `String` **or** a `Serialize` enum such as `FileError` (`src-tauri/src/commands/file.rs` uses the latter); both are valid.
 - Log every command with Start + Success/Fail pairs using `logger::log_event()`.
-- New commands need capability entry in `src-tauri/capabilities/default.json`.
+- A new command must be registered in `src-tauri/src/commands/mod.rs` → `handlers()`, and needs a typed `invoke()` wrapper in `src/services/`. It does **not** need an entry in `src-tauri/capabilities/default.json` — that file carries only `core:*` and plugin permissions (`opener`, `updater`, `process`), not application commands.
 
 ## Logging (MANDATORY for all new features)
 - TypeScript: use `loggingService.logEventSync()` — never `console.log()` in committed code.
@@ -63,7 +66,7 @@
 - Include `actionId` in every log call.
 
 ## Styling Rules
-- NEVER hardcode colors (hex, rgb, rgba) — use CSS variables (`--color-text`, `--color-bg`, etc.).
+- Default to CSS variables (`--color-text`, `--color-bg`, etc.); do not hardcode hex/rgb/rgba colors. Sanctioned exceptions exist and are not review findings: `.claude/rules/31-design-tokens.md` "Acceptable hardcoded values" (e.g. `rgba()` fallback lines preceding `color-mix()`, defensive `var(--xyz, #fallback)`) and `.claude/rules/34-dark-theme.md` "When overrides are needed" (per-theme raw `rgba()` for translucency where the source color must flip). Prefer `color-mix(in srgb, var(--color-text) N%, transparent)` over raw rgba; if no token exists, add it to both theme files first.
 - Plugin styles live ONLY in their colocated `<name>.css` file, not in `src/styles/globals.css`.
 - Theming uses `.theme-light` / `.theme-dark` class selectors on the root (not `[data-theme]`); see `.claude/rules/34-dark-theme.md`.
 
@@ -83,12 +86,23 @@
 - `pnpm test:run` — if any .test.ts touched or new tests added
 
 ## Code Review Guidelines (for `@codex review`)
-Flag only P0/P1. Source of truth is `.claude/rules/60-review-checklist.md`.
+Source of truth is `.claude/rules/60-review-checklist.md`; use its four labels, not P0–P3:
+
+| Label | Meaning | Action |
+|---|---|---|
+| **BLOCK** | Data loss, security, or silent failure | Must fix before merge |
+| **MUST** | Rule violation or correctness issue | Fix in this PR |
+| **SHOULD** | Code quality or test gap | Fix now if cheap; otherwise file an issue |
+| **NOTE** | Observation | No action; mention in the PR description |
+
+Report BLOCK and MUST always. Report SHOULD only when the fix is concrete and cheap.
+NOTE is optional. The six universal discipline rules in `.claude/rules/30-ui-consistency.md`
+are review-blocking: a violation is at least **MUST**.
 
 Treat these as BLOCK (must fix before merge):
 - Tauri `#[tauri::command]` that trusts frontend input (paths, IDs, strings) without
   validation, or uses `unwrap()`/`expect()` on user-supplied data. Commands must return
-  `Result<T, String>`.
+  a `Result` (error type `String` or a `Serialize` enum such as `FileError`).
 - MCP tool handlers that touch the shadow store or emit events without validating args.
 - Save/draft paths that can silently discard dirty content, or overwrite a newer draft
   with an older one. Document close with unsaved changes must prompt, never silent-discard.
@@ -101,9 +115,10 @@ Treat these as BLOCK (must fix before merge):
   unions; a new `menu:action` value with no handler in `useMenuEvents.ts`.
 - Events emitted to the frontend that leak secrets or non-serializable data.
 
-Comment but do NOT block (P2 and below — ignore entirely if low value):
+Treat these as SHOULD (comment, do not block; omit if the fix isn't obvious):
 - `console.log`/`println!` in committed code (use the logging service), magic numbers,
-  dead code, files over ~300 lines, missing tests.
+  dead code, files over ~300 lines, missing tests, a behaviour change that didn't rewrite
+  its `docs/feature-ledger.md` row.
 
-Do not flag low-severity style nits. Keep reviews focused on correctness, data loss,
+Do not flag style nits below NOTE. Keep reviews focused on correctness, data loss,
 and trust-boundary risks.
