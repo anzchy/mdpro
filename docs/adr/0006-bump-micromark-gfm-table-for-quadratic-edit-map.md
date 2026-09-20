@@ -9,6 +9,16 @@ sweep existed, so that no performance claim entered the tree unmeasured. The
 numbers are now in Consequences and were reproduced twice by two independent
 harnesses.
 
+**Decision point 1 reconciled with decision point 2 — 2026-09-18.** As written,
+point 1 says pin *"to `>=2.1.2`"*, and that is what shipped in
+`pnpm.overrides`. An open range admits any future minor or major on the next
+lockfile regeneration, which is precisely the licence point 2 withholds
+("Another bump needs its own justification"). The override is now the exact
+measured version, `2.1.2`; resolution is unchanged. This is the two points being
+made consistent, not a new decision — the scope point 2 states was always the
+operative one. This Status block is the only part of this ADR that has been
+edited.
+
 ## Context
 
 Gate 2's performance criterion recorded two main-thread freezes

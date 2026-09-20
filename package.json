@@ -46,7 +46,7 @@
   },
   "pnpm": {
     "overrides": {
-      "micromark-extension-gfm-table": ">=2.1.2",
+      "micromark-extension-gfm-table": "2.1.2",
       "picomatch": ">=4.0.4",
       "rollup": ">=4.59.0"
     }
