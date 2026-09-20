@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Architects+Daughter&amp;display=swap">
+  <style>
+    body { margin: 0; }
+    .sk { font-family: "Architects Daughter", "Bradley Hand", "Comic Sans MS", cursive; color: #1a1a1f; }
+    .sk .lbl { font-size: 13px; opacity: 0.75; }
+    a { color: #4b3bd6; } a:hover { color: #4b3bd6; }
+    .ln { height: 7px; border-radius: 4px; background: #1a1a1f; opacity: 0.16; display: block; }
+    .box { border: 2px solid #1a1a1f; border-radius: 8px; opacity: 0.55; }
+  </style>
+</helmet>
+
+<div class="sk" style="width: 620px; height: 470px; box-sizing: border-box; background: #ffffff; padding: 22px; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+    <div style="font-size: 21px;">C — Focus canvas</div>
+    <div style="font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #4b3bd6; color: #ffffff;">chrome on demand</div>
+  </div>
+
+  <div style="flex: 1; display: flex; gap: 0; min-height: 0; position: relative;">
+    <div style="width: 26px; flex-shrink: 0; padding-top: 18px; display: flex; flex-direction: column; gap: 9px; align-items: flex-start;">
+      <span style="width: 18px; height: 3px; background: #1a1a1f; opacity: 0.35; display: block; border-radius: 2px;"></span>
+      <span style="width: 11px; height: 3px; background: #1a1a1f; opacity: 0.2; display: block; border-radius: 2px;"></span>
+      <span style="width: 22px; height: 3px; background: #4b3bd6; display: block; border-radius: 2px;"></span>
+      <span style="width: 11px; height: 3px; background: #1a1a1f; opacity: 0.2; display: block; border-radius: 2px;"></span>
+      <span style="width: 11px; height: 3px; background: #1a1a1f; opacity: 0.2; display: block; border-radius: 2px;"></span>
+      <span style="width: 18px; height: 3px; background: #1a1a1f; opacity: 0.35; display: block; border-radius: 2px;"></span>
+    </div>
+    <div style="flex: 1; min-width: 0; padding: 12px 64px 0 40px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="font-size: 26px; line-height: 1.15;">Wide measure, no walls</div>
+      <span class="ln" style="width: 100%;"></span>
+      <span class="ln" style="width: 95%;"></span>
+      <span class="ln" style="width: 99%;"></span>
+      <span class="ln" style="width: 68%;"></span>
+      <div style="height: 4px;"></div>
+      <div style="height: 46px; border-radius: 8px; background: #1a1a1f; opacity: 0.07;"></div>
+      <span class="ln" style="width: 92%;"></span>
+      <span class="ln" style="width: 80%;"></span>
+    </div>
+    <div style="position: absolute; right: 14px; top: 8px; display: flex; gap: 6px; align-items: center; padding: 5px 9px; border-radius: 999px; background: rgba(26,26,31,0.06);">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: #4b3bd6; display: block;"></span>
+      <span style="font-size: 12px;">typora-parity</span>
+      <span style="font-size: 12px; opacity: 0.35;">+2</span>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; justify-content: center; gap: 10px; padding-top: 6px;">
+    <span style="font-size: 12px; opacity: 0.35;">chrome fades in on pointer approach — nothing is pinned</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 3px; margin-top: auto;">
+    <div class="lbl">Why: Nothing but the text until you reach for something; outline is a tick rail, tabs are a floating pill.</div>
+    <div class="lbl" style="opacity: 0.55;">Cost: Discoverability drops and hover-only affordances are hostile to touch and to screen readers.</div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview": {"width": 620, "height": 470}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

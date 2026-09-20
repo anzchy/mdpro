@@ -1,0 +1,151 @@
+{
+  "pages": [
+    {
+      "id": "current",
+      "name": "Current UI"
+    },
+    {
+      "id": "directions",
+      "name": "Directions"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 800,
+      "page": "current",
+      "title": "Main window — source mode",
+      "is_interactive": true
+    },
+    {
+      "file": "Wysiwyg.dc.html",
+      "x": 1320,
+      "y": 0,
+      "w": 1200,
+      "h": 1100,
+      "page": "current",
+      "title": "WYSIWYG — dark, type ramp"
+    },
+    {
+      "file": "Sidebar.dc.html",
+      "x": 0,
+      "y": 1300,
+      "w": 860,
+      "h": 960,
+      "page": "current",
+      "title": "Sidebar & bottom tabs",
+      "is_interactive": true
+    },
+    {
+      "file": "Components.dc.html",
+      "x": 980,
+      "y": 1300,
+      "w": 1280,
+      "h": 1180,
+      "page": "current",
+      "title": "Component inventory"
+    },
+    {
+      "file": "DirectionA.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 620,
+      "h": 470,
+      "page": "directions",
+      "title": "A — Quiet paper"
+    },
+    {
+      "file": "DirectionB.dc.html",
+      "x": 740,
+      "y": 0,
+      "w": 620,
+      "h": 470,
+      "page": "directions",
+      "title": "B — Command surface"
+    },
+    {
+      "file": "DirectionC.dc.html",
+      "x": 1480,
+      "y": 0,
+      "w": 620,
+      "h": 470,
+      "page": "directions",
+      "title": "C — Focus canvas"
+    },
+    {
+      "file": "Settings.dc.html",
+      "x": 2380,
+      "y": 1300,
+      "w": 880,
+      "h": 1560,
+      "page": "current",
+      "title": "Settings dialog — Export page",
+      "is_interactive": true
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-shell",
+      "page": "current",
+      "x": 0,
+      "y": -230,
+      "w": 1200,
+      "text": "This is the shell that actually mounts.\nThere is no Toolbar component in src/components/ and Preview.tsx is imported by nothing — a test asserts SplitView does not contain it. TabBar/, .split-divider and .pane-title are dead CSS too.\nSo: 38px drag strip, 220px TOC, one editor pane, 36px bottom tab bar. Theme and view mode are tweak chips above this artboard."
+    },
+    {
+      "id": "note-sourcefont",
+      "page": "current",
+      "x": 0,
+      "y": 870,
+      "w": 1200,
+      "text": "The source editor is set in a PROPORTIONAL font, and that is faithful, not a mistake in this mockup.\n--editor-font-family defaults to -apple-system and .cm-content inherits it, so markdown source renders in the UI sans unless the user switches the Editor > Font preset to mono. Look at the pipe table on lines 23-26: the columns cannot align. Every other editor on the market sets source in mono by default."
+    },
+    {
+      "id": "note-dark",
+      "page": "current",
+      "x": 1320,
+      "y": -230,
+      "w": 1200,
+      "text": "Dark theme + the full Milkdown type ramp.\nWorth checking here: the CodeMirror syntax palette is the unmodified @codemirror/language default (#708 purple, #a11 red, #161 green). It does not swap for dark mode, so source view on #0f1115 is the weakest contrast in the app."
+    },
+    {
+      "id": "note-toc",
+      "page": "current",
+      "x": -680,
+      "y": 1300,
+      "w": 600,
+      "text": "TOC active state is the hardcoded literal rgba(37, 99, 235, 0.1) with no dark override — it keeps the light accent on the dark surface.\nItem height is implicit (6px padding + a 13px line), never declared."
+    },
+    {
+      "id": "note-icons",
+      "page": "current",
+      "x": -680,
+      "y": 1560,
+      "w": 600,
+      "text": "No icon library is installed. Every glyph is text: + × x ▸ ▾ • * ↑↓←→, plus emoji in the settings nav.\nThree different close characters are in use at three sizes. This is the single cheapest thing to fix and it moves the whole app."
+    },
+    {
+      "id": "note-directions",
+      "page": "directions",
+      "x": 0,
+      "y": -230,
+      "w": 1860,
+      "text": "Three directions, deliberately far apart — pick an axis, not a shade.\nThese are wireframes: grey bars stand in for text, one accent each signals the colour stance. Nothing here is pixel-accurate yet; the point is to choose before I build one out into the main window."
+    },
+    {
+      "id": "note-settings",
+      "page": "current",
+      "x": 2380,
+      "y": 1070,
+      "w": 880,
+      "text": "The settings surface, which the other four boards do not show.\nExport is the 6th of 10 pages and holds exactly two settings. The board is clickable: Export and Integrations are drawn from source, the other eight say so.\nIntegrations is the only panel built to the design system — strong + .settings-row-description + .toggle-switch. The other eight use bare h4/p and a native checkbox, so identical rows come out 57px and 119px tall in the same dialog."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "current"
+  }
+}

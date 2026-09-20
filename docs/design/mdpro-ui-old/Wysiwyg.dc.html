@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    .theme-dark {
+      --color-bg: #0f1115; --color-surface: #161a22; --color-panel: #141821;
+      --color-text: #e5e7eb; --color-muted: #9aa4b2; --color-border: #242a36;
+      --color-accent: #60a5fa; --color-accent-soft: rgba(96,165,250,0.22);
+      --color-editor-bg: #0f1115; --color-code-bg: #1b2230;
+      font-family: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--color-accent); text-decoration: underline; }
+    a:hover { text-decoration-thickness: 2px; }
+    .pm h1 { margin: 24px 0 12px; font-weight: 700; font-size: 2em; line-height: 1.2; }
+    .pm h2 { margin: 20px 0 10px; font-weight: 600; font-size: 1.5em; line-height: 1.25; }
+    .pm h3 { margin: 18px 0 8px; font-weight: 600; font-size: 1.25em; line-height: 1.3; }
+    .pm h4 { margin: 16px 0 8px; font-weight: 600; font-size: 1.1em; line-height: 1.35; }
+    .pm h5 { margin: 14px 0 6px; font-weight: 600; font-size: 1em; line-height: 1.4; }
+    .pm h6 { margin: 12px 0 6px; font-weight: 600; font-size: 0.9em; line-height: 1.4; color: var(--color-muted); }
+    .pm p { margin: 0 0 12px; }
+    .pm ul, .pm ol { margin: 0 0 12px 20px; }
+    .pm blockquote { margin: 12px 0; padding-left: 12px; border-left: 3px solid var(--color-border); color: var(--color-muted); }
+    .pm code { font-family: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--color-code-bg); padding: 2px 4px; border-radius: 4px; }
+    .pm pre { background: var(--color-code-bg); padding: 12px; border-radius: 8px; overflow: auto; margin: 0 0 12px; }
+    .pm pre code { background: none; padding: 0; }
+    .pm table { border-collapse: collapse; font-size: 14px; margin: 0 0 16px; width: max-content; min-width: 100%; }
+    .pm th, .pm td { border: 1px solid var(--color-border); padding: 8px 10px; text-align: left; position: relative; }
+    .pm th { font-weight: 600; background: var(--color-surface); }
+    .pm mark { background: rgba(255, 85, 130, 0.65); padding: 0 2px; border-radius: 4px; }
+  </style>
+</helmet>
+
+<div class="theme-dark" style="width: 1200px; height: 1100px; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); overflow: hidden;">
+
+  <div style="flex: 1; display: flex; min-height: 0;">
+
+    <aside style="width: 220px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-right: 1px solid var(--color-border); background: var(--color-surface);">
+      <div style="height: 38px; flex-shrink: 0; display: flex; align-items: center; padding-left: 62px; padding-right: 8px; position: relative;">
+        <div style="position: absolute; left: 14px; top: 13px; display: flex; gap: 8px;">
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; display: block;"></span>
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e; display: block;"></span>
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #28c840; display: block;"></span>
+        </div>
+        <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); padding: 3px 8px; background: var(--color-surface); border-radius: 4px;">WYSIWYG</span>
+      </div>
+      <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; padding-top: 0; overflow: hidden;">
+        <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); padding: 0 4px; margin-bottom: 8px;">Table of Contents</div>
+        <nav style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px;">
+          <div style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; padding-left: 8px; border-radius: 6px; background: rgba(37, 99, 235, 0.1);">
+            <span style="width: 16px; flex-shrink: 0; font-size: 10px; line-height: 1; color: var(--color-muted); text-align: center;">▾</span>
+            <span style="font-size: 13px; color: #60a5fa; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Typography specimen</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; padding-left: 20px; border-radius: 6px;">
+            <span style="width: 16px; flex-shrink: 0;"></span>
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Heading ramp</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; padding-left: 20px; border-radius: 6px;">
+            <span style="width: 16px; flex-shrink: 0;"></span>
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Block elements</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; padding-left: 20px; border-radius: 6px;">
+            <span style="width: 16px; flex-shrink: 0;"></span>
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tables</span>
+          </div>
+        </nav>
+      </div>
+    </aside>
+
+    <div style="flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
+      <section style="flex: 1; min-height: 0; display: flex; background: var(--color-panel); overflow: hidden;">
+        <div style="flex: 1; min-width: 0; overflow: hidden; background: var(--color-editor-bg); color: var(--color-text);">
+          <div class="pm" style="max-width: 780px; margin: 0 auto; padding: 16px 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.6;">
+            <h1>Heading one at 32px</h1>
+            <p>Body copy renders at 16px with a 1.6 line-height, inside a 780px measure. This is the surface people actually type into — the Milkdown/ProseMirror editor.</p>
+            <h2>Heading two at 24px</h2>
+            <h3>Heading three at 20px</h3>
+            <h4>Heading four at 17.6px</h4>
+            <h5>Heading five at 16px</h5>
+            <h6>Heading six at 14.4px, muted</h6>
+            <p>Inline styles: <strong>bold</strong>, <em>italic</em>, <code>inline_code()</code>, a <a href="#">link in accent blue</a>, and <mark>a highlighted run</mark>.</p>
+            <blockquote>A blockquote carries a 3px left rule in the border colour and drops the text to the muted tone. Twelve pixels of padding separate rule from text.</blockquote>
+            <ul>
+              <li>Unordered list items indent 20px from the measure</li>
+              <li>Nested content keeps the 12px block rhythm</li>
+            </ul>
+            <ol>
+              <li>Ordered lists share the same indent</li>
+              <li>and the same bottom margin</li>
+            </ol>
+            <pre><code>fn render(src: &amp;str) -&gt; Result&lt;String, String&gt; {
+    let html = render_markdown(src)?;
+    sanitize_html(&amp;html)
+}</code></pre>
+            <table>
+              <thead><tr><th>Element</th><th>Size</th><th>Weight</th><th>Margin</th></tr></thead>
+              <tbody>
+                <tr><td>h1</td><td>32px</td><td>700</td><td>24 / 12</td></tr>
+                <tr><td>h2</td><td>24px</td><td>600</td><td>20 / 10</td></tr>
+                <tr><td>Body</td><td>16px</td><td>400</td><td>0 / 12</td></tr>
+                <tr><td>Table</td><td>14px</td><td>400</td><td>0 / 16</td></tr>
+              </tbody>
+            </table>
+            <p style="color: var(--color-muted); font-size: 14px;">Tables use a 14px scale with 8px by 10px cells; header rows sit on the surface tone.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <nav style="height: 36px; min-height: 36px; flex-shrink: 0; display: flex; align-items: center; padding: 0 12px; gap: 4px; background: var(--color-surface); border-top: 1px solid var(--color-border);">
+    <button style="width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent; color: var(--color-muted); border-radius: 6px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit;">+</button>
+    <span style="width: 1px; height: 20px; background: var(--color-border); margin: 0 8px; flex-shrink: 0;"></span>
+    <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px;">
+      <button style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; font-family: inherit; border: none; border-radius: 6px; cursor: pointer; background: var(--color-panel); color: var(--color-text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); flex-shrink: 0;"></span>
+        <span>specimen.md</span>
+        <span style="width: 16px; height: 16px; border-radius: 4px; font-size: 14px; opacity: 0.5; display: flex; align-items: center; justify-content: center;">×</span>
+      </button>
+      <button style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; font-family: inherit; border: none; border-radius: 6px; cursor: pointer; background: transparent; color: var(--color-muted);">
+        <span>CHANGELOG.md</span>
+      </button>
+    </div>
+  </nav>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview": {"width": 1200, "height": 1100}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

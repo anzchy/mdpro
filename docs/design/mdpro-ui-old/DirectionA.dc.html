@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Architects+Daughter&amp;display=swap">
+  <style>
+    body { margin: 0; }
+    .sk { font-family: "Architects Daughter", "Bradley Hand", "Comic Sans MS", cursive; color: #2b2622; }
+    .sk .lbl { font-size: 13px; opacity: 0.75; }
+    a { color: #8a5a2b; } a:hover { color: #8a5a2b; }
+    .ln { height: 7px; border-radius: 4px; background: #2b2622; opacity: 0.16; display: block; }
+    .box { border: 2px solid #2b2622; border-radius: 8px; opacity: 0.55; }
+  </style>
+</helmet>
+
+<div class="sk" style="width: 620px; height: 470px; box-sizing: border-box; background: #faf7f1; padding: 22px; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+    <div style="font-size: 21px;">A — Quiet paper</div>
+    <div style="font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #8a5a2b; color: #faf7f1;">typography-led</div>
+  </div>
+
+  <div style="flex: 1; display: flex; gap: 0; min-height: 0;">
+    <div style="width: 150px; flex-shrink: 0; padding: 14px 12px 0 0; display: flex; flex-direction: column; gap: 9px;">
+      <div class="lbl" style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.45;">outline</div>
+      <span class="ln" style="width: 92%;"></span>
+      <span class="ln" style="width: 70%; margin-left: 14px;"></span>
+      <span class="ln" style="width: 78%; margin-left: 14px; opacity: 0.42; background: #8a5a2b;"></span>
+      <span class="ln" style="width: 60%; margin-left: 28px;"></span>
+      <span class="ln" style="width: 66%; margin-left: 14px;"></span>
+    </div>
+    <div style="flex: 1; min-width: 0; padding: 6px 30px 0 30px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 30px; line-height: 1.15;">A serif display face<br>sets the whole tone</div>
+      <span class="ln" style="width: 100%;"></span>
+      <span class="ln" style="width: 96%;"></span>
+      <span class="ln" style="width: 88%;"></span>
+      <div style="height: 6px;"></div>
+      <span class="ln" style="width: 100%;"></span>
+      <span class="ln" style="width: 72%;"></span>
+      <div style="border-left: 3px solid #8a5a2b; opacity: 0.6; padding-left: 12px; display: flex; flex-direction: column; gap: 7px; margin: 4px 0;">
+        <span class="ln" style="width: 90%;"></span>
+        <span class="ln" style="width: 64%;"></span>
+      </div>
+      <span class="ln" style="width: 94%;"></span>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding-top: 8px;">
+    <span style="font-size: 13px; opacity: 0.85;">typora-parity</span>
+    <span style="font-size: 13px; opacity: 0.35;">CHANGELOG</span>
+    <span style="font-size: 13px; opacity: 0.35;">Untitled</span>
+    <span style="margin-left: auto; font-size: 12px; opacity: 0.4;">no bar, no borders</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 3px; margin-top: auto;">
+    <div class="lbl">Why: The document is the interface. Chrome drops to tone and space, no boxes, no rules.</div>
+    <div class="lbl" style="opacity: 0.55;">Cost: Weak affordances — tabs and outline are easy to miss until you learn where they live.</div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview": {"width": 620, "height": 470}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

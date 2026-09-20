@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    .theme-light {
+      --color-bg: #ffffff; --color-surface: #f6f7fb; --color-panel: #ffffff;
+      --color-text: #1a1a1a; --color-muted: #6b7280; --color-border: #e5e7eb;
+      --color-accent: #2563eb; --color-danger: #dc2626;
+      --color-text-secondary: #6b7280; --color-bg-secondary: #f6f7fb;
+      --settings-sidebar-bg: linear-gradient(180deg, rgba(246,247,251,0.95), rgba(240,241,245,0.98));
+      --settings-input-bg: rgba(255,255,255,0.9);
+      --settings-card-bg: rgba(246,247,251,0.8);
+      --settings-btn-hover-bg: rgba(37,99,235,0.08);
+      --settings-btn-active-bg: rgba(37,99,235,0.15);
+      --backdrop: rgba(15,23,42,0.35);
+      --shadow-soft: 0 12px 30px rgba(15,23,42,0.08);
+    }
+    .theme-dark {
+      --color-bg: #0f1115; --color-surface: #161a22; --color-panel: #141821;
+      --color-text: #e5e7eb; --color-muted: #9aa4b2; --color-border: #242a36;
+      --color-accent: #60a5fa; --color-danger: #f87171;
+      --color-text-secondary: #9aa4b2; --color-bg-secondary: #161a22;
+      --settings-sidebar-bg: linear-gradient(180deg, rgba(17,22,32,0.92), rgba(14,18,26,0.98));
+      --settings-input-bg: rgba(15,18,28,0.9);
+      --settings-card-bg: rgba(15,18,28,0.6);
+      --settings-btn-hover-bg: rgba(96,165,250,0.12);
+      --settings-btn-active-bg: rgba(96,165,250,0.28);
+      --backdrop: rgba(15,23,42,0.55);
+      --shadow-soft: 0 12px 30px rgba(0,0,0,0.45);
+    }
+    .sheet {
+      font-family: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .navbtn:hover { background: var(--settings-btn-hover-bg) !important; }
+    .tbtn:hover { border-color: var(--color-accent) !important; }
+    .sclose:hover { color: var(--color-text) !important; }
+    .caption { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-muted); }
+    .redn { font-size: 11px; line-height: 1.5; color: var(--color-danger); }
+  </style>
+</helmet>
+
+<div class="sheet {{themeClass}}" style="width: 880px; height: 1560px; background: var(--color-bg); color: var(--color-text); padding: 24px; box-sizing: border-box; overflow: hidden;">
+
+  <div class="caption" style="margin-bottom: 6px;">Settings dialog — src/components/common/SettingsDialog.tsx</div>
+  <div style="font-size: 13px; color: var(--color-muted); margin-bottom: 14px; line-height: 1.5;">
+    width min(800px, 90vw) × height min(600px, 80vh) · 220px nav rail · 10 pages · one Close button, no Save (every panel writes through immediately)
+  </div>
+
+  <!-- ============ THE DIALOG, AS IT RENDERS ============ -->
+  <div style="width: 832px; height: 648px; background: var(--backdrop); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+
+    <div style="width: 800px; height: 600px; background: var(--color-panel); border: 1px solid var(--color-border); border-radius: 16px; display: flex; flex-direction: column; box-shadow: var(--shadow-soft); overflow: hidden;">
+
+      <!-- header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--color-border); flex-shrink: 0;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Settings</h2>
+        <div class="sclose" style="font-size: 24px; line-height: 1; color: var(--color-muted); cursor: pointer;">&times;</div>
+      </div>
+
+      <!-- content -->
+      <div style="flex: 1; display: flex; min-height: 0;">
+
+        <!-- nav rail -->
+        <div style="width: 220px; border-right: 1px solid var(--color-border); padding: 16px; display: flex; flex-direction: column; gap: 4px; background: var(--settings-sidebar-bg); flex-shrink: 0;">
+          <sc-for list="{{nav}}" as="item" hint-placeholder-count="10">
+            <div class="navbtn" onClick="{{ item.pick }}" style="text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--color-text); background: {{item.bg}};">
+              <span style="margin-right: 8px; font-style: normal;">{{item.icon}}</span>{{item.label}}
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- main -->
+        <div style="flex: 1; padding: 16px 20px; overflow: hidden;">
+
+          <sc-if value="{{isExport}}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px; color: var(--color-text);">Export</h3>
+                <p style="font-size: 13px; color: var(--color-muted); margin: 0;">HTML export output settings.</p>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <div style="display: flow-root;">
+                    <h4 style="font-size: 16px; font-weight: bold; margin: 21.28px 0;">Default Export Folder</h4>
+                    <p style="font-size: 16px; margin: 16px 0; max-width: 320px; line-height: 1.15;">Where exported HTML files are saved by default. Leave empty to prompt each time.</p>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                  <div style="padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--settings-input-bg); color: var(--color-muted); font-size: 13px; min-width: 160px;">(prompt on export)</div>
+                  <div class="tbtn" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--color-text); cursor: pointer; white-space: nowrap;">Browse…</div>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <div style="display: flow-root;">
+                    <h4 style="font-size: 16px; font-weight: bold; margin: 21.28px 0;">Include Styles in HTML Export</h4>
+                    <p style="font-size: 16px; margin: 16px 0; max-width: 380px; line-height: 1.15;">Embed CSS styles directly in the exported HTML file.</p>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                  <input type="checkbox" checked>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{isIntegrations}}" hint-placeholder-val="{{ false }}">
+            <div>
+              <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">MCP Server</h3>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--color-border); gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <strong style="font-size: 14px; font-weight: 500;">Enable MCP Server</strong>
+                  <span style="font-size: 12px; color: var(--color-text-secondary);">Allow AI assistants to control mdpro editor</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                  <span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; background: #dcfce7; color: #16a34a;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></span>Running
+                  </span>
+                  <div style="position: relative; width: 44px; height: 24px; border-radius: 24px; background: var(--color-accent);">
+                    <div style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transform: translateX(20px);"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--color-border); gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <strong style="font-size: 14px; font-weight: 500;">Start on launch</strong>
+                  <span style="font-size: 12px; color: var(--color-text-secondary);">Auto-start when mdpro opens</span>
+                </div>
+                <div style="flex-shrink: 0;">
+                  <div style="position: relative; width: 44px; height: 24px; border-radius: 24px; background: #ccc;">
+                    <div style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <strong style="font-size: 14px; font-weight: 500;">Auto-approve edits</strong>
+                  <span style="font-size: 12px; color: var(--color-text-secondary);">Apply AI changes without preview (use with caution)</span>
+                </div>
+                <div style="flex-shrink: 0;">
+                  <div style="position: relative; width: 44px; height: 24px; border-radius: 24px; background: #ccc;">
+                    <div style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{isOther}}" hint-placeholder-val="{{ false }}">
+            <div style="height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 24px;">
+              <div>
+                <div style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">{{otherLabel}}</div>
+                <div style="font-size: 13px; color: var(--color-muted); line-height: 1.6;">This page exists in the app. It is not recreated on this artboard —<br>only Export and Integrations are drawn from source here.</div>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </div>
+
+      <!-- footer -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-top: 1px solid var(--color-border); flex-shrink: 0;">
+        <div></div>
+        <div style="display: flex; gap: 8px;">
+          <div class="tbtn" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--color-text); cursor: pointer;">Close</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ THE SPLIT ============ -->
+  <div class="caption" style="margin: 26px 0 4px;">One dialog, two design languages</div>
+  <div style="font-size: 13px; color: var(--color-muted); margin-bottom: 14px; line-height: 1.5;">
+    Click <strong style="color: var(--color-text); font-weight: 500;">🔗 Integrations</strong> then <strong style="color: var(--color-text); font-weight: 500;">📤 Export</strong> in the rail above — same dialog, two unrelated vocabularies. Side by side:
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+    <div style="border: 1px solid var(--color-border); border-radius: 12px; padding: 14px 16px; background: var(--settings-card-bg);">
+      <div style="font-size: 12px; font-weight: 600; margin-bottom: 2px;">IntegrationsSettings.tsx</div>
+      <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 12px;">1 of 9 panels</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--color-border);">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <strong style="font-size: 14px; font-weight: 500;">Start on launch</strong>
+          <span style="font-size: 12px; color: var(--color-text-secondary);">Auto-start when mdpro opens</span>
+        </div>
+        <div style="position: relative; width: 44px; height: 24px; border-radius: 24px; background: var(--color-accent); flex-shrink: 0;">
+          <div style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transform: translateX(20px);"></div>
+        </div>
+      </div>
+      <div style="font-size: 11px; line-height: 1.6; color: var(--color-muted); border-top: 1px dashed var(--color-border); padding-top: 10px;">
+        <code>&lt;strong&gt;</code> 14px/500 + <code>.settings-row-description</code> 12px muted<br>
+        <code>.toggle-switch</code> 44×24, knob 18px, accent when on<br>
+        row height <strong style="color: var(--color-text); font-weight: 500;">57px</strong>
+      </div>
+    </div>
+
+    <div style="border: 1px solid var(--color-danger); border-radius: 12px; padding: 14px 16px; background: var(--settings-card-bg);">
+      <div style="font-size: 12px; font-weight: 600; margin-bottom: 2px;">ExportSettings.tsx + 7 others</div>
+      <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 12px;">Editor · Markdown · Image · Advanced · General · Appearance · Shortcuts</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--color-border);">
+        <div style="display: flow-root;">
+          <h4 style="font-size: 16px; font-weight: bold; margin: 21.28px 0;">Include Styles</h4>
+          <p style="font-size: 16px; margin: 16px 0; line-height: 1.15;">Embed CSS in the export.</p>
+        </div>
+        <input type="checkbox" checked style="flex-shrink: 0;">
+      </div>
+      <div class="redn" style="border-top: 1px dashed var(--color-danger); padding-top: 10px;">
+        <code>&lt;h4&gt;</code> and <code>&lt;p&gt;</code> — no CSS rule targets either, so both fall back to UA defaults: 16px, bold, 21.28px / 16px margins<br>
+        native <code>&lt;input type="checkbox"&gt;</code> — system-painted, ignores <code>--color-accent</code>, unchanged in dark theme<br>
+        row height <strong style="font-weight: 600;">119px</strong> — 2.1× the styled row
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ FINDINGS ============ -->
+  <div class="caption" style="margin: 24px 0 8px;">What to fix here</div>
+  <div style="display: flex; flex-direction: column; gap: 7px; font-size: 12px; line-height: 1.55;">
+    <div><strong style="font-weight: 600;">1 · Style the row label.</strong> <span style="color: var(--color-muted);">globals.css styles <code>.settings-row-label strong</code> and <code>.settings-row-description</code> but never <code>h4</code> or <code>p</code>. Two selectors fix eight panels.</span></div>
+    <div><strong style="font-weight: 600;">2 · One boolean control.</strong> <span style="color: var(--color-muted);"><code>.toggle-switch</code> already exists and is fully built. Five panels reach past it for a raw checkbox.</span></div>
+    <div><strong style="font-weight: 600;">3 · The nav rail is emoji.</strong> <span style="color: var(--color-muted);">⚙️ ✏️ 📝 🖼️ 🔗 📤 🎨 ⌨️ 🔧 ℹ️ — vendor-drawn, full-colour, differently weighted, and they shift with the OS font. Same root cause as the missing icon set on the Component inventory board.</span></div>
+    <div><strong style="font-weight: 600;">4 · The running badge is hardcoded.</strong> <span style="color: var(--color-muted);"><code>#dcfce7</code> on <code>#16a34a</code> with no dark override — flip this artboard to dark and it stays mint green.</span></div>
+    <div><strong style="font-weight: 600;">5 · No Save, no Cancel.</strong> <span style="color: var(--color-muted);">Every panel writes through on change (debounced 500ms for text, immediate for booleans, rolled back silently on failure). The footer's lone Close button reads like an unsaved-changes prompt that never comes.</span></div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "theme": {"editor": "enum", "options": ["light", "dark"], "default": "light", "section": "State"},
+  "$preview": {"width": 880, "height": 1560}
+}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { activePage: "export" };
+  }
+  renderVals() {
+    const theme = this.props.theme ?? "light";
+    const active = this.state.activePage;
+
+    const items = [
+      { id: "general", label: "General", icon: "⚙️" },
+      { id: "editor", label: "Editor", icon: "✏️" },
+      { id: "markdown", label: "Markdown", icon: "📝" },
+      { id: "image", label: "Image", icon: "🖼️" },
+      { id: "integrations", label: "Integrations", icon: "🔗" },
+      { id: "export", label: "Export", icon: "📤" },
+      { id: "appearance", label: "Appearance", icon: "🎨" },
+      { id: "keyboard-shortcuts", label: "Keyboard Shortcuts", icon: "⌨️" },
+      { id: "advanced", label: "Advanced", icon: "🔧" },
+      { id: "about", label: "About", icon: "ℹ️" }
+    ];
+
+    const nav = items.map((it) => {
+      const on = active === it.id;
+      return {
+        label: it.label,
+        icon: it.icon,
+        bg: on ? "var(--settings-btn-active-bg)" : "transparent",
+        pick: () => this.setState({ activePage: it.id })
+      };
+    });
+
+    const current = items.filter((it) => it.id === active)[0];
+
+    return {
+      themeClass: theme === "dark" ? "theme-dark" : "theme-light",
+      nav: nav,
+      isExport: active === "export",
+      isIntegrations: active === "integrations",
+      isOther: active !== "export" && active !== "integrations",
+      otherLabel: current ? current.label : ""
+    };
+  }
+}
+</script>
+</body>
+</html>

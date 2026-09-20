@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    .theme-light {
+      --color-bg: #ffffff; --color-surface: #f6f7fb; --color-panel: #ffffff;
+      --color-text: #1a1a1a; --color-muted: #6b7280; --color-border: #e5e7eb;
+      --color-accent: #2563eb; --color-accent-soft: rgba(37,99,235,0.18);
+      --color-editor-bg: #ffffff; --color-code-bg: #f4f4f4;
+    }
+    .theme-dark {
+      --color-bg: #0f1115; --color-surface: #161a22; --color-panel: #141821;
+      --color-text: #e5e7eb; --color-muted: #9aa4b2; --color-border: #242a36;
+      --color-accent: #60a5fa; --color-accent-soft: rgba(96,165,250,0.22);
+      --color-editor-bg: #0f1115; --color-code-bg: #1b2230;
+    }
+    .app-shell {
+      font-family: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--color-accent); text-decoration: underline; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc-entry:hover { background: var(--color-panel) !important; }
+    .bt:hover .btc { opacity: 0.5; }
+    .btc:hover { opacity: 1 !important; background: rgba(0,0,0,0.08); }
+    .addbtn:hover { background: var(--color-panel); color: var(--color-text); }
+  </style>
+</helmet>
+
+<div class="app-shell {{themeClass}}" style="width: 1200px; height: 800px; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); overflow: hidden;">
+
+  <div style="flex: 1; display: flex; min-height: 0;">
+
+    <sc-if value="{{sidebarOn}}" hint-placeholder-val="{{ true }}">
+    <aside style="width: 220px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-right: 1px solid var(--color-border); background: var(--color-surface);">
+
+      <div style="height: 38px; flex-shrink: 0; display: flex; align-items: center; padding-left: 62px; padding-right: 8px; position: relative;">
+        <div style="position: absolute; left: 14px; top: 13px; display: flex; gap: 8px;">
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; display: block;"></span>
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e; display: block;"></span>
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #28c840; display: block;"></span>
+        </div>
+        <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); padding: 3px 8px; background: var(--color-surface); border-radius: 4px;">{{modeLabel}}</span>
+      </div>
+
+      <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; padding-top: 0; overflow: hidden;">
+        <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); padding: 0 4px; margin-bottom: 8px;">Table of Contents</div>
+        <nav style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px;">
+          <sc-for list="{{toc}}" as="item" hint-placeholder-count="6">
+            <div class="toc-entry" onClick="{{ item.pick }}" style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; padding-left: {{item.pad}}; border-radius: 6px; cursor: pointer; background: {{item.bg}};">
+              <span style="width: 16px; flex-shrink: 0; font-size: 10px; line-height: 1; color: var(--color-muted); text-align: center;">{{item.caret}}</span>
+              <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: {{item.color}}; font-weight: {{item.weight}};">{{item.text}}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+
+    </aside>
+    </sc-if>
+
+    <div style="flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
+
+      <sc-if value="{{sidebarOff}}" hint-placeholder-val="{{ false }}">
+      <div style="height: 38px; flex-shrink: 0; display: flex; align-items: center; padding-left: 80px; padding-right: 16px; position: relative;">
+        <div style="position: absolute; left: 14px; top: 13px; display: flex; gap: 8px;">
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; display: block;"></span>
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e; display: block;"></span>
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #28c840; display: block;"></span>
+        </div>
+        <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); padding: 3px 8px; background: var(--color-surface); border-radius: 4px;">{{modeLabel}}</span>
+      </div>
+      </sc-if>
+
+      <section style="flex: 1; min-height: 0; display: flex; background: var(--color-panel); overflow: hidden;">
+
+        <sc-if value="{{isSource}}" hint-placeholder-val="{{ true }}">
+        <div style="flex: 1; min-width: 0; display: flex; background: var(--color-editor-bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.6;">
+          <div style="flex-shrink: 0; padding: 0 3px 0 5px; text-align: right; color: var(--color-muted); border-right: 1px solid var(--color-border); background: var(--color-editor-bg); font-variant-numeric: tabular-nums;">
+            <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div><div>19</div><div>20</div><div>21</div><div>22</div><div>23</div><div>24</div><div>25</div><div>26</div><div>27</div><div>28</div>
+          </div>
+          <div style="flex: 1; min-width: 0; overflow: hidden;">
+            <div style="max-width: 780px; margin: 0 auto; padding-left: 40px; padding-right: 40px;">
+<div style="white-space: pre;"><span style="color: #a11;">#</span> <span style="color: #161; font-weight: 700;">Typora Parity — Phase 1</span></div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;">Phase 1 wires math, footnotes, autolinks and emoji on</div>
+<div style="background: var(--color-surface); white-space: pre;">the <span style="color: #a11;">**</span><span style="font-weight: 700;">canonical Rust render surface</span><span style="color: #a11;">**</span> — Preview and<span style="border-left: 1px solid var(--color-accent); margin-left: -1px;"></span></div>
+<div style="white-space: pre;">HTML export.</div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;"><span style="color: #a11;">##</span> <span style="color: #161; font-weight: 700;">Scope</span></div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;"><span style="color: #a11;">-</span> Inline math <span style="color: #a11;">`</span>$E = mc^2$<span style="color: #a11;">`</span> and display math</div>
+<div style="white-space: pre;"><span style="color: #a11;">-</span> Footnotes <span style="color: #a11;">`</span>[^1]<span style="color: #a11;">`</span> with backrefs</div>
+<div style="white-space: pre;"><span style="color: #a11;">-</span> GFM autolinks and <span style="color: #a11;">`</span>:emoji:<span style="color: #a11;">`</span> shortcodes</div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;"><span style="color: #a11;">&gt;</span> Milkdown WYSIWYG does not typeset math yet —</div>
+<div style="white-space: pre;"><span style="color: #a11;">&gt;</span> accepted Phase 1 behaviour, not a bug.</div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;"><span style="color: #a11;">##</span> <span style="color: #161; font-weight: 700;">Render pipeline</span></div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;"><span style="color: #a11;">```</span><span style="color: #085;">rust</span></div>
+<div style="white-space: pre;"><span style="color: #00f;">render_markdown</span>(src)</div>
+<div style="white-space: pre;">    .<span style="color: #164;">and_then</span>(<span style="color: #00f;">sanitize_html</span>)</div>
+<div style="white-space: pre;"><span style="color: #a11;">```</span></div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;">| Surface | Math | Footnotes |</div>
+<div style="white-space: pre;">|---------|------|-----------|</div>
+<div style="white-space: pre;">| Preview | yes  | yes       |</div>
+<div style="white-space: pre;">| Export  | yes  | yes       |</div>
+<div style="white-space: pre;">&nbsp;</div>
+<div style="white-space: pre;">See <span style="color: #a11;">[</span><span style="color: #940; text-decoration: underline;">the plan</span><span style="color: #a11;">](</span><span style="color: #e40;">docs/plans/typora-parity.md</span><span style="color: #a11;">)</span></div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{isWysiwyg}}" hint-placeholder-val="{{ false }}">
+        <div style="flex: 1; min-width: 0; overflow: hidden; background: var(--color-editor-bg); color: var(--color-text);">
+          <div style="max-width: 780px; margin: 0 auto; padding: 16px 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.6;">
+            <h1 style="margin: 24px 0 12px; font-weight: 700; font-size: 2em; line-height: 1.2;">Typora Parity — Phase 1</h1>
+            <p style="margin: 0 0 12px;">Phase 1 wires math, footnotes, autolinks and emoji on the <strong>canonical Rust render surface</strong> — the Preview pane and HTML export.</p>
+            <h2 style="margin: 20px 0 10px; font-weight: 600; font-size: 1.5em; line-height: 1.25;">Scope</h2>
+            <ul style="margin: 0 0 12px 20px;">
+              <li>Inline math <code style="font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace; background: var(--color-code-bg); padding: 2px 4px; border-radius: 4px;">$E = mc^2$</code> and display math</li>
+              <li>Footnotes with backrefs</li>
+              <li>GFM autolinks and <a href="#">emoji shortcodes</a></li>
+            </ul>
+            <blockquote style="margin: 12px 0; padding-left: 12px; border-left: 3px solid var(--color-border); color: var(--color-muted);">Milkdown WYSIWYG does not typeset math yet — accepted Phase 1 behaviour, not a bug.</blockquote>
+            <h3 style="margin: 18px 0 8px; font-weight: 600; font-size: 1.25em; line-height: 1.3;">Render pipeline</h3>
+            <pre style="background: var(--color-code-bg); padding: 12px; border-radius: 8px; overflow: auto; margin: 0 0 12px;"><code style="font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace; background: none; padding: 0;">render_markdown(src)
+    .and_then(sanitize_html)</code></pre>
+            <table style="border-collapse: collapse; font-size: 14px; margin: 0 0 16px;">
+              <thead><tr>
+                <th style="border: 1px solid var(--color-border); padding: 8px 10px; text-align: left; font-weight: 600; background: var(--color-surface);">Surface</th>
+                <th style="border: 1px solid var(--color-border); padding: 8px 10px; text-align: left; font-weight: 600; background: var(--color-surface);">Math</th>
+                <th style="border: 1px solid var(--color-border); padding: 8px 10px; text-align: left; font-weight: 600; background: var(--color-surface);">Footnotes</th>
+              </tr></thead>
+              <tbody>
+                <tr><td style="border: 1px solid var(--color-border); padding: 8px 10px;">Preview</td><td style="border: 1px solid var(--color-border); padding: 8px 10px;">yes</td><td style="border: 1px solid var(--color-border); padding: 8px 10px;">yes</td></tr>
+                <tr><td style="border: 1px solid var(--color-border); padding: 8px 10px;">Export</td><td style="border: 1px solid var(--color-border); padding: 8px 10px;">yes</td><td style="border: 1px solid var(--color-border); padding: 8px 10px;">yes</td></tr>
+              </tbody>
+            </table>
+            <p style="margin: 0 0 12px;">Highlighted terms use <mark style="background: rgba(255,85,130,0.65); padding: 0 2px; border-radius: 4px;">the shared mark style</mark> across both surfaces.</p>
+          </div>
+        </div>
+        </sc-if>
+
+      </section>
+    </div>
+  </div>
+
+  <nav style="height: 36px; min-height: 36px; flex-shrink: 0; display: flex; align-items: center; padding: 0 12px; gap: 4px; background: var(--color-surface); border-top: 1px solid var(--color-border);">
+    <button class="addbtn" style="width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent; color: var(--color-muted); border-radius: 6px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit;">+</button>
+    <span style="width: 1px; height: 20px; background: var(--color-border); margin: 0 8px; flex-shrink: 0;"></span>
+    <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; overflow: hidden;">
+      <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
+        <button class="bt" onClick="{{ tab.pick }}" style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; font-family: inherit; border: none; border-radius: 6px; white-space: nowrap; cursor: pointer; background: {{tab.bg}}; color: {{tab.color}}; box-shadow: {{tab.shadow}};">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); flex-shrink: 0; display: {{tab.dot}};"></span>
+          <span style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">{{tab.name}}</span>
+          <span class="btc" style="width: 16px; height: 16px; border-radius: 4px; font-size: 14px; opacity: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">×</span>
+        </button>
+      </sc-for>
+    </div>
+  </nav>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "theme": {"editor": "enum", "options": ["light", "dark"], "default": "light", "section": "State"},
+  "mode": {"editor": "enum", "options": ["source", "wysiwyg"], "default": "source", "section": "State"},
+  "sidebar": {"editor": "boolean", "default": true, "section": "State"},
+  "$preview": {"width": 1200, "height": 800}
+}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { activeToc: "scope", activeTab: 0 };
+  }
+  renderVals() {
+    const theme = this.props.theme ?? "light";
+    const mode = this.props.mode ?? "source";
+    const sidebar = this.props.sidebar ?? true;
+    const accent = theme === "dark" ? "#60a5fa" : "#2563eb";
+
+    const headings = [
+      { id: "title", text: "Typora Parity — Phase 1", depth: 0, caret: "▾" },
+      { id: "scope", text: "Scope", depth: 1, caret: "" },
+      { id: "pipeline", text: "Render pipeline", depth: 1, caret: "▾" },
+      { id: "surfaces", text: "Supported surfaces", depth: 2, caret: "" },
+      { id: "deferred", text: "Deferred to Phase 2", depth: 2, caret: "" },
+      { id: "notes", text: "Review notes", depth: 1, caret: "" }
+    ];
+
+    const toc = headings.map((h) => {
+      const on = this.state.activeToc === h.id;
+      return {
+        id: h.id,
+        text: h.text,
+        caret: h.caret,
+        pad: (h.depth * 12 + 8) + "px",
+        bg: on ? "rgba(37, 99, 235, 0.1)" : "transparent",
+        color: on ? accent : "var(--color-text)",
+        weight: on ? "500" : "400",
+        pick: () => this.setState({ activeToc: h.id })
+      };
+    });
+
+    const files = [
+      { name: "typora-parity.md", dirty: true },
+      { name: "CHANGELOG.md", dirty: false },
+      { name: "Untitled", dirty: false }
+    ];
+
+    const tabs = files.map((f, i) => {
+      const on = this.state.activeTab === i;
+      return {
+        name: f.name,
+        bg: on ? "var(--color-panel)" : "transparent",
+        color: on ? "var(--color-text)" : "var(--color-muted)",
+        shadow: on ? "0 1px 2px rgba(0, 0, 0, 0.05)" : "none",
+        dot: f.dirty ? "block" : "none",
+        pick: () => this.setState({ activeTab: i })
+      };
+    });
+
+    return {
+      themeClass: theme === "dark" ? "theme-dark" : "theme-light",
+      modeLabel: mode === "wysiwyg" ? "WYSIWYG" : "SOURCE",
+      isSource: mode === "source",
+      isWysiwyg: mode === "wysiwyg",
+      sidebarOn: sidebar,
+      sidebarOff: !sidebar,
+      toc: toc,
+      tabs: tabs
+    };
+  }
+}
+</script>
+</body>
+</html>

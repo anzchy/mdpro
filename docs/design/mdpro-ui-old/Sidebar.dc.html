@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    .theme-light {
+      --color-bg: #ffffff; --color-surface: #f6f7fb; --color-panel: #ffffff;
+      --color-text: #1a1a1a; --color-muted: #6b7280; --color-border: #e5e7eb;
+      --color-accent: #2563eb; --color-accent-soft: rgba(37,99,235,0.18);
+    }
+    .theme-dark {
+      --color-bg: #0f1115; --color-surface: #161a22; --color-panel: #141821;
+      --color-text: #e5e7eb; --color-muted: #9aa4b2; --color-border: #242a36;
+      --color-accent: #60a5fa; --color-accent-soft: rgba(96,165,250,0.22);
+    }
+    .sheet { font-family: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: var(--color-accent); } a:hover { color: var(--color-accent); }
+    .row:hover { background: var(--color-panel) !important; }
+    .spec { font-family: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: 11px; color: var(--color-muted); }
+    .caption { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); }
+  </style>
+</helmet>
+
+<div class="sheet {{themeClass}}" style="width: 860px; height: 960px; background: var(--color-bg); color: var(--color-text); padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px; overflow: hidden;">
+
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <div style="font-size: 20px; font-weight: 600;">Sidebar &amp; bottom tabs — as built</div>
+    <div class="spec">220px column · 38px drag strip · 36px tab bar · values lifted from globals.css and BottomTabs.css</div>
+  </div>
+
+  <div style="display: flex; gap: 32px; align-items: flex-start;">
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="caption">Live column · 220px</div>
+      <div style="width: 220px; height: 520px; display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; background: var(--color-surface);">
+        <div style="height: 38px; flex-shrink: 0; display: flex; align-items: center; padding-left: 62px; padding-right: 8px; position: relative;">
+          <div style="position: absolute; left: 14px; top: 13px; display: flex; gap: 8px;">
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; display: block;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e; display: block;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #28c840; display: block;"></span>
+          </div>
+          <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); padding: 3px 8px; background: var(--color-surface); border-radius: 4px;">SOURCE</span>
+        </div>
+        <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; padding-top: 0; overflow: hidden;">
+          <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); padding: 0 4px; margin-bottom: 8px;">Table of Contents</div>
+          <nav style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px;">
+            <sc-for list="{{rows}}" as="row" hint-placeholder-count="8">
+              <div class="row" onClick="{{ row.pick }}" style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; padding-left: {{row.pad}}; border-radius: 6px; cursor: pointer; background: {{row.bg}};">
+                <span style="width: 16px; flex-shrink: 0; font-size: 10px; line-height: 1; color: var(--color-muted); text-align: center;">{{row.caret}}</span>
+                <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: {{row.color}}; font-weight: {{row.weight}};">{{row.text}}</span>
+              </div>
+            </sc-for>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="caption">TOC entry states</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 204px; display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 6px; background: transparent;">
+              <span style="width: 16px; flex-shrink: 0; font-size: 10px; line-height: 1; color: var(--color-muted); text-align: center;">▸</span>
+              <span style="font-size: 13px;">Default, collapsed</span>
+            </div>
+            <span class="spec">padding 6px 8px · radius 6px · 13px/400</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 204px; display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 6px; background: var(--color-panel);">
+              <span style="width: 16px; flex-shrink: 0; font-size: 10px; line-height: 1; color: var(--color-muted); text-align: center;">▾</span>
+              <span style="font-size: 13px;">Hover, expanded</span>
+            </div>
+            <span class="spec">background var(--color-panel) · 0.15s ease</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 204px; display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 6px; background: rgba(37, 99, 235, 0.1);">
+              <span style="width: 16px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: {{accent}}; font-weight: 500;">Active</span>
+            </div>
+            <span class="spec">bg rgba(37,99,235,0.1) — light-only literal</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 204px; padding: 8px 0;">
+              <span style="font-size: 13px; color: var(--color-muted);">No headings found in this document.</span>
+            </div>
+            <span class="spec">empty state · 13px muted · padding 8px 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="caption">Indent ladder — paddingLeft: depth * 12 + 8</div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="display: flex; align-items: center; gap: 16px;"><div style="width: 204px; padding: 6px 8px; padding-left: 8px; font-size: 13px;">Depth 0</div><span class="spec">8px</span></div>
+          <div style="display: flex; align-items: center; gap: 16px;"><div style="width: 204px; padding: 6px 8px; padding-left: 20px; font-size: 13px;">Depth 1</div><span class="spec">20px</span></div>
+          <div style="display: flex; align-items: center; gap: 16px;"><div style="width: 204px; padding: 6px 8px; padding-left: 32px; font-size: 13px;">Depth 2</div><span class="spec">32px</span></div>
+          <div style="display: flex; align-items: center; gap: 16px;"><div style="width: 204px; padding: 6px 8px; padding-left: 44px; font-size: 13px;">Depth 3</div><span class="spec">44px</span></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="caption">Drag strip clearances</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: baseline; gap: 12px;"><span style="font-size: 13px; width: 150px;">Sidebar visible</span><span class="spec">padding-left 62px · height 38px</span></div>
+          <div style="display: flex; align-items: baseline; gap: 12px;"><span style="font-size: 13px; width: 150px;">Sidebar hidden</span><span class="spec">padding-left 80px · padding-right 16px</span></div>
+          <div style="display: flex; align-items: baseline; gap: 12px;"><span style="font-size: 13px; width: 150px;">Traffic lights</span><span class="spec">native overlay · 78px reserved from window left</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div class="caption">Bottom tab bar · 36px</div>
+    <div style="border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+      <div style="height: 36px; display: flex; align-items: center; padding: 0 12px; gap: 4px; background: var(--color-surface); border-top: 1px solid var(--color-border);">
+        <button style="width: 28px; height: 28px; border: none; background: transparent; color: var(--color-muted); border-radius: 6px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit;">+</button>
+        <span style="width: 1px; height: 20px; background: var(--color-border); margin: 0 8px;"></span>
+        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="4">
+          <button onClick="{{ tab.pick }}" style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; font-family: inherit; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; background: {{tab.bg}}; color: {{tab.color}}; box-shadow: {{tab.shadow}};">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); flex-shrink: 0; display: {{tab.dot}};"></span>
+            <span style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">{{tab.name}}</span>
+            <span style="width: 16px; height: 16px; border-radius: 4px; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: {{tab.closeOpacity}};">×</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+      <span class="spec">tab: padding 4px 10px · radius 6px · 12px/500</span>
+      <span class="spec">active: bg panel + shadow 0 1px 2px rgba(0,0,0,0.05)</span>
+      <span class="spec">dirty dot: 6px accent circle</span>
+      <span class="spec">close ×: 16px box, opacity 0 → 0.5 on tab hover</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "theme": {"editor": "enum", "options": ["light", "dark"], "default": "light", "section": "State"},
+  "$preview": {"width": 860, "height": 960}
+}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { active: "scope", activeTab: 1 };
+  }
+  renderVals() {
+    const theme = this.props.theme ?? "light";
+    const accent = theme === "dark" ? "#60a5fa" : "#2563eb";
+    const src = [
+      { id: "title", text: "Design tokens", depth: 0, caret: "▾" },
+      { id: "color", text: "Colour", depth: 1, caret: "▾" },
+      { id: "scope", text: "Surfaces and text", depth: 2, caret: "" },
+      { id: "state", text: "State colours", depth: 2, caret: "" },
+      { id: "type", text: "Typography", depth: 1, caret: "▾" },
+      { id: "ramp", text: "Heading ramp", depth: 2, caret: "" },
+      { id: "mono", text: "Monospace stack", depth: 3, caret: "" },
+      { id: "space", text: "Spacing and radii", depth: 1, caret: "" }
+    ];
+    const rows = src.map((h) => {
+      const on = this.state.active === h.id;
+      return {
+        text: h.text,
+        caret: h.caret,
+        pad: (h.depth * 12 + 8) + "px",
+        bg: on ? "rgba(37, 99, 235, 0.1)" : "transparent",
+        color: on ? accent : "var(--color-text)",
+        weight: on ? "500" : "400",
+        pick: () => this.setState({ active: h.id })
+      };
+    });
+    const files = [
+      { name: "tokens.md", dirty: false },
+      { name: "typora-parity.md", dirty: true },
+      { name: "Untitled", dirty: false }
+    ];
+    const tabs = files.map((f, i) => {
+      const on = this.state.activeTab === i;
+      return {
+        name: f.name,
+        bg: on ? "var(--color-panel)" : "transparent",
+        color: on ? "var(--color-text)" : "var(--color-muted)",
+        shadow: on ? "0 1px 2px rgba(0, 0, 0, 0.05)" : "none",
+        dot: f.dirty ? "block" : "none",
+        closeOpacity: on ? "0.5" : "0",
+        pick: () => this.setState({ activeTab: i })
+      };
+    });
+    return {
+      themeClass: theme === "dark" ? "theme-dark" : "theme-light",
+      accent: accent,
+      rows: rows,
+      tabs: tabs
+    };
+  }
+}
+</script>
+</body>
+</html>

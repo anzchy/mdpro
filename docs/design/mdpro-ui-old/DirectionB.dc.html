@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Architects+Daughter&amp;display=swap">
+  <style>
+    body { margin: 0; }
+    .sk { font-family: "Architects Daughter", "Bradley Hand", "Comic Sans MS", cursive; color: #16211d; }
+    .sk .lbl { font-size: 13px; opacity: 0.75; }
+    a { color: #1f6f5c; } a:hover { color: #1f6f5c; }
+    .ln { height: 7px; border-radius: 4px; background: #16211d; opacity: 0.16; display: block; }
+    .box { border: 2px solid #16211d; border-radius: 8px; opacity: 0.55; }
+  </style>
+</helmet>
+
+<div class="sk" style="width: 620px; height: 470px; box-sizing: border-box; background: #f4f5f4; padding: 22px; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+    <div style="font-size: 21px;">B — Command surface</div>
+    <div style="font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #1f6f5c; color: #f4f5f4;">keyboard-first</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 2px solid #16211d; border-radius: 8px; opacity: 0.85;">
+    <span style="font-size: 12px; opacity: 0.5;">docs /</span>
+    <span style="font-size: 13px;">typora-parity.md</span>
+    <span style="margin-left: auto; display: flex; gap: 4px;">
+      <span style="font-size: 11px; padding: 3px 9px; border-radius: 6px; background: #1f6f5c; color: #f4f5f4;">SRC</span>
+      <span style="font-size: 11px; padding: 3px 9px; border-radius: 6px; border: 1px solid #16211d; opacity: 0.55;">WYS</span>
+    </span>
+  </div>
+  <div style="flex: 1; display: flex; gap: 12px; min-height: 0;">
+    <div style="width: 132px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px;">
+      <span class="ln" style="width: 100%;"></span>
+      <span class="ln" style="width: 82%; margin-left: 10px;"></span>
+      <span class="ln" style="width: 88%; margin-left: 10px; opacity: 0.45; background: #1f6f5c;"></span>
+      <span class="ln" style="width: 70%; margin-left: 20px;"></span>
+      <span class="ln" style="width: 90%;"></span>
+      <span class="ln" style="width: 76%; margin-left: 10px;"></span>
+    </div>
+    <div style="flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; gap: 8px;">
+      <span class="ln" style="width: 55%; height: 12px;"></span>
+      <span class="ln" style="width: 100%;"></span>
+      <span class="ln" style="width: 92%;"></span>
+      <span class="ln" style="width: 97%;"></span>
+      <div style="position: absolute; left: 22px; right: 22px; top: 74px; border: 2px solid #16211d; border-radius: 10px; background: #ffffff; padding: 10px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 10px 24px rgba(0,0,0,0.14);">
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 13px; opacity: 0.4;">&gt;</span><span class="ln" style="flex: 1; opacity: 0.22;"></span></div>
+        <div style="height: 22px; border-radius: 6px; background: #1f6f5c; opacity: 0.75;"></div>
+        <span class="ln" style="width: 74%;"></span>
+        <span class="ln" style="width: 60%;"></span>
+      </div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 10px; padding: 5px 10px; border: 2px solid #16211d; border-radius: 8px; opacity: 0.7;">
+    <span style="font-size: 11px;">Ln 14, Col 8</span>
+    <span style="font-size: 11px;">1 284 words</span>
+    <span style="font-size: 11px;">UTF-8 · LF</span>
+    <span style="margin-left: auto; font-size: 11px;">⌘K</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 3px; margin-top: auto;">
+    <div class="lbl">Why: Everything reachable in two keystrokes: a real command bar, a palette, monospace state readouts.</div>
+    <div class="lbl" style="opacity: 0.55;">Cost: Denser and busier — more chrome on screen than mdpro has ever had.</div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview": {"width": 620, "height": 470}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>
