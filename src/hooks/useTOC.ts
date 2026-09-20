@@ -1,3 +1,47 @@
+/**
+ * Purpose: the outline's single entry point — parse the document into headings, expose
+ * the list and the navigation callback, and **route the highlight to whichever scroll
+ * spy the current surface can actually observe**.
+ *
+ * Pipeline:
+ *   `content` → 300 ms debounced `parseHeadingsFromContent` → `tocStore.setEntries`
+ *   `(enableSpyScrolling, viewMode)` → `resolveSpyMode` → one of
+ *       `"dom"`  → `useWysiwygScrollSpy` (IntersectionObserver over Milkdown headings)
+ *       `"line"` → `useSourceScrollSpy`  (CodeMirror line sampling at the 40px anchor)
+ *       `"off"`  → neither
+ *   `navigateToEntry` → `scrollToHeading` (branches on `viewMode` for the same reason)
+ *
+ * `@module src/hooks/useTOC`
+ * `@coordinates-with` `src/utils/tocSpyMode.ts` (the routing decision),
+ * `src/hooks/useWysiwygScrollSpy.ts` and `src/hooks/useSourceScrollSpy.ts` (the two
+ * mechanisms), `src/stores/tocStore.ts`, `src/stores/editorStore.ts` (the installed
+ * `EditorView`), `src/services/tocService.ts`, `src/App.tsx` (the only caller).
+ *
+ * ---------------------------------------------------------------------------
+ * Key decision — routing, not a boolean, and the caller no longer gets a vote
+ * ---------------------------------------------------------------------------
+ * `App.tsx` used to pass `enableSpyScrolling: viewMode !== "source"`, which turned the
+ * spy **off** in Source mode: the DOM observer was the only mechanism, `#source-container`
+ * holds no `.ProseMirror`, so leaving it on would have armed an observer over zero
+ * elements. Deleting that argument (WI-5) is the fix, not a tidy-up — with two mechanisms
+ * available, "which surface is this?" is a routing question, and a caller-computed
+ * boolean can only answer it by encoding the routing table at the call site, where the
+ * next surface will not think to update it. `enableSpyScrolling` survives as what its
+ * name says: a master switch, defaulting to `true`.
+ *
+ * Both spy hooks are called **unconditionally** and told `enabled`; exactly one is live
+ * at a time. Calling them behind an `if` would violate the rules of hooks, and gating
+ * inside each hook keeps its own refs and teardown correct across the transition.
+ *
+ * ---------------------------------------------------------------------------
+ * Key decision — the two spy mechanisms live in their own files
+ * ---------------------------------------------------------------------------
+ * DOM-intersection and line-arithmetic have different refs, different deps and different
+ * teardown rules. Kept here they shared one function's dependency list, where a reader
+ * could not tell which dep belonged to which — and the file stood at 293 of rule 50 §6's
+ * 300 lines. This file is now the router and the parser; each mechanism documents its own
+ * invariants next to the code that has to honour them.
+ */
 import { useEffect, useCallback, useRef, useMemo } from "react";
 import { EditorView } from "@codemirror/view";
 import { useTOCStore, setNavigationCallback, buildTOCHierarchy } from "../stores/tocStore";
@@ -6,8 +50,11 @@ import type { HeadingKey, ParsedTOCEntry, TOCEntry } from "../types/toc";
 import { parseHeadingsFromContent } from "../services/tocService";
 import { useEditorStore } from "../stores/editorStore";
 import type { ViewMode } from "../types/editor";
-import { pickActiveKey, resolveHeadingElements } from "../utils/tocElementResolution";
-import { loggingService } from "../services/loggingService";
+import { resolveHeadingElements } from "../utils/tocElementResolution";
+import { SPY_ANCHOR_OFFSET_PX } from "../utils/codemirrorViewportLine";
+import { resolveSpyMode } from "../utils/tocSpyMode";
+import { useSourceScrollSpy } from "./useSourceScrollSpy";
+import { useWysiwygScrollSpy } from "./useWysiwygScrollSpy";
 
 interface UseTOCOptions {
   /** Document content to parse for headings */
@@ -28,9 +75,17 @@ interface UseTOCOptions {
   containerId?: string;
   /** Debounce delay for content parsing (ms) */
   debounceMs?: number;
-  /** Whether to enable spy scrolling */
+  /**
+   * Master switch for spy scrolling, defaulting to `true`. It says *whether* the
+   * outline follows the scroll position, never *how*: callers must not use it to
+   * suppress a mode whose mechanism they think is missing — that is `viewMode`'s job,
+   * and `resolveSpyMode` is where the two combine.
+   */
   enableSpyScrolling?: boolean;
-  /** Current view mode — used to choose the right scroll strategy */
+  /**
+   * Current view mode. Chooses the scroll spy mechanism (`resolveSpyMode`) and the
+   * navigation strategy in `scrollToHeading`. `undefined` is treated as WYSIWYG.
+   */
   viewMode?: ViewMode;
 }
 
@@ -54,7 +109,12 @@ interface UseTOCReturn {
 }
 
 /**
- * Hook for managing Table of Contents state and spy scrolling
+ * Manage Table of Contents state: parse headings from `content`, publish them to
+ * `tocStore`, install the navigation callback, and route scroll-spy duty to the one
+ * mechanism the current `viewMode` can observe.
+ *
+ * The returned shape is stable across this routing change — WI-5 added no member and
+ * removed none.
  */
 export function useTOC({
   content,
@@ -77,15 +137,12 @@ export function useTOC({
   const toggleVisibility = useTOCStore((state) => state.toggleVisibility);
   const toggleCollapsed = useTOCStore((state) => state.toggleCollapsed);
 
-  // Both maps are one resolution pass's output, replaced wholesale by the observe
-  // effect and never merged across passes: a heading element that survives an edit is
-  // a coincidence, not an invariant (`tocElementResolution.ts` P1/P2).
-  const headingElementsRef = useRef<Map<HeadingKey, Element>>(new Map());
-  /** The inverse. The observer callback is handed elements and must get back keys. */
-  const elementKeysRef = useRef<Map<Element, HeadingKey>>(new Map());
-  /** D7 — the last pass's `(entryCount, domCount)` signature, per hook instance. */
-  const mismatchSignatureRef = useRef<string | null>(null);
   const parseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The routing decision, in one place. Derived on every render rather than memoised:
+  // it is a two-argument lookup over primitives, and a `useMemo` here would cost more
+  // than it saves while adding a dependency array that can go stale.
+  const spyMode = resolveSpyMode(enableSpyScrolling, viewMode);
 
   // Parse headings from content (debounced)
   useEffect(() => {
@@ -149,7 +206,10 @@ export function useTOC({
           const targetLine = Math.min(tocEntry.lineNumber, lineCount);
           const pos = editorView.state.doc.line(targetLine).from;
           editorView.dispatch({
-            effects: EditorView.scrollIntoView(pos, { y: "start", yMargin: 40 }),
+            effects: EditorView.scrollIntoView(pos, {
+              y: "start",
+              yMargin: SPY_ANCHOR_OFFSET_PX,
+            }),
           });
           setActiveEntry(headingKey);
         } catch {
@@ -186,89 +246,23 @@ export function useTOC({
     setNavigationCallback(scrollToHeading);
   }, [scrollToHeading]);
 
-  // Set up Intersection Observer for spy scrolling
-  useEffect(() => {
-    if (!enableSpyScrolling || entries.length === 0) return;
-
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    // One pass, feeding both directions: the observe loop below reads `byKey`, the
-    // callback reads `byElement`.
-    const resolution = resolveHeadingElements(entries, container);
-    headingElementsRef.current = resolution.byKey;
-    elementKeysRef.current = resolution.byElement;
-
-    // D7 — one warning per *changed* signature, per hook instance. Unconditional
-    // emission would fire once per 300 ms debounce tick for as long as the document
-    // holds a heading our parser cannot see.
-    const entryCount = entries.length;
-    const domCount = resolution.mismatch?.domCount ?? entryCount;
-    const signature = `${entryCount}:${domCount}`;
-    if (resolution.mismatch && signature !== mismatchSignatureRef.current) {
-      loggingService.logEventSync({
-        level: "warn",
-        event: "ui.toc.resolve.mismatch",
-        status: "fail",
-        actionId: loggingService.generateActionId(),
-        context: {
-          documentId,
-          entryCount,
-          domCount,
-          resolvedCount: resolution.byKey.size,
-        },
-      });
-    }
-    mismatchSignatureRef.current = signature;
-
-    // Keys, not DOM ids: element identity is the only address the observe loop and the
-    // callback can agree on, because Milkdown rewrites ids asynchronously (P2).
-    const visibleKeys = new Set<HeadingKey>();
-
-    // Create observer with rootMargin for spy scrolling
-    // "-66%" means the active heading is one that's in the top 33% of the viewport
-    const observer = new IntersectionObserver(
-      (observerEntries) => {
-        for (const observerEntry of observerEntries) {
-          const key = elementKeysRef.current.get(observerEntry.target);
-          // A record for an element from a superseded pass is ignored — not thrown on,
-          // and never resolved by some other route back to a key.
-          if (key === undefined) continue;
-
-          if (observerEntry.isIntersecting) {
-            visibleKeys.add(key);
-          } else {
-            visibleKeys.delete(key);
-          }
-        }
-
-        // Once per batch, in document order — never once per record in arrival order.
-        const activeKey = pickActiveKey(entries, visibleKeys);
-        // An emptied visible set RETAINS the previous active entry rather than blanking
-        // it (the behaviour `if (visibleHeadings.size > 0)` bought before this rewrite).
-        // Scrolling past the last heading must not make the highlight blink off.
-        if (activeKey !== null) {
-          setActiveEntry(activeKey);
-        }
-      },
-      {
-        root: container,
-        rootMargin: "0px 0px -66% 0px",
-        threshold: 0,
-      }
-    );
-
-    // Document order: `byKey` is built by iterating `entries`.
-    for (const heading of headingElementsRef.current.values()) {
-      observer.observe(heading);
-    }
-
-    // The observer is captured in this closure rather than held in a ref, so exactly
-    // one `disconnect` pairs with each construction even when the effect re-runs.
-    return () => {
-      observer.disconnect();
-    };
-  }, [entries, containerId, documentId, enableSpyScrolling, setActiveEntry]);
+  // Scroll spy, routed. Both hooks are called on every render — the rules of hooks
+  // leave no choice — and exactly one of them is `enabled`. In `"off"` mode neither is,
+  // which is the only state where the highlight stops following the scroll position.
+  useWysiwygScrollSpy({
+    entries,
+    documentId,
+    containerId,
+    enabled: spyMode === "dom",
+  });
+  // No `containerId`: the source spy reads `editorStore.editorView.scrollDOM` rather
+  // than a DOM id, because CodeMirror owns its own scroller and the id `App.tsx` passes
+  // for source mode names the wrapper around it, not the element that scrolls.
+  useSourceScrollSpy({
+    entries,
+    documentId,
+    enabled: spyMode === "line",
+  });
 
   // Navigate to entry handler
   const navigateToEntry = useCallback((key: HeadingKey) => {

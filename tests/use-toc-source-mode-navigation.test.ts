@@ -55,10 +55,17 @@
  *   container's own `querySelector` — the resolver's first act
  *   (`tocElementResolution.ts:122`) — is watched as a second, mock-free witness.
  *
- * `enableSpyScrolling: false` throughout, matching `App.tsx:140`'s production pairing for
- * source mode. It also means the observe effect never runs, so any `resolveHeadingElements`
- * call counted below can only have come from `scrollToHeading` — and jsdom's missing
- * `IntersectionObserver` never has to be doubled in this file.
+ * `enableSpyScrolling: false` throughout. **This is no longer the production pairing, and
+ * saying so is the point of this paragraph.** It used to mirror `App.tsx:140`, which passed
+ * `viewMode !== "source"`; WI-5 deleted that argument, so production now leaves the flag
+ * defaulted and lets `resolveSpyMode` route on `viewMode` alone — Source mode gets the
+ * line-based spy (`useSourceScrollSpy`), not "no spy". The explicit `false` here therefore
+ * selects spy mode `"off"`, which is a deliberate **isolation device for this file**, not a
+ * characterization of what the app does: it is what keeps every spy mechanism dormant so any
+ * `resolveHeadingElements` call counted below can only have come from `scrollToHeading`, and
+ * so jsdom's missing `IntersectionObserver` never has to be doubled here. The Source-mode spy
+ * that production actually runs is specified in `tests/use-toc-source-scroll-spy.test.ts`
+ * (§6, cases T-1…T-10) — not in this file, whose subject is navigation.
  *
  * Standing rule **H2** (§0.4) — every case whose entries come from the live store opens by
  * asserting the keys are pairwise distinct. No assertion anywhere compares against a
