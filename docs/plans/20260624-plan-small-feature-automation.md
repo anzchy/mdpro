@@ -439,7 +439,7 @@ v1 with 3 BLOCK items and 3 critical failure-mode gaps. v2 resolved each:
 | "CI green" overstated (audits non-gating) | MUST | Gating audits + `deps-approved` on feat PRs (WI-F8) |
 | `id-token: write` with no OIDC use | MUST | Dropped (WI-F1) |
 | Verifier acceptance-criteria parsing undefined | MUST | Stable checklist schema + fail-closed on malformed issue (WI-F3/F6) |
-| `PAT_TOKEN || github.token` silent fallback | MUST (Codex) | Fail loud, no fallback (WI-F1) |
+| `PAT_TOKEN \|\| github.token` silent fallback | MUST (Codex) | Fail loud, no fallback (WI-F1) |
 | Verifier 30-turn budget copied from audit | SHOULD | ~45 turns on feat branches (WI-F3) |
 | "TDD ordering" as acceptance is unverifiable | SHOULD | Demoted to prompt guidance; acceptance asserts behaviour-tests exist (WI-F2) |
 | No rollback runbook | CRITICAL GAP | WI-F9, prerequisite to Phase 2 |

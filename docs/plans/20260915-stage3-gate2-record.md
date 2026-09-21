@@ -205,7 +205,7 @@ runbook §0 的三条硬条件：
 
 | ID | 级别 | 描述 |
 |---|---|---|
-| **D5** | BLOCK | `src-tauri/tauri.conf.json:28` 的 CSP 没有 `connect-src`，`default-src 'self'` 因此拒绝 `ipc://localhost`。打包构建每次启动产生约 20 条 console 错误（`log_event`、`plugin:event|listen`、`set_recent_files_menu`、`get_logging_settings`、`cleanup_old_drafts`）。Tauri 会回退到 postMessage，**功能不受影响**（已实测 `invoke` 与 `listen` 均正常），但错误噪音会淹没真实问题。`pnpm tauri dev` 注入宽松 dev CSP，完全掩盖了这个问题。 |
+| **D5** | BLOCK | `src-tauri/tauri.conf.json:28` 的 CSP 没有 `connect-src`，`default-src 'self'` 因此拒绝 `ipc://localhost`。打包构建每次启动产生约 20 条 console 错误（`log_event`、`plugin:event\|listen`、`set_recent_files_menu`、`get_logging_settings`、`cleanup_old_drafts`）。Tauri 会回退到 postMessage，**功能不受影响**（已实测 `invoke` 与 `listen` 均正常），但错误噪音会淹没真实问题。`pnpm tauri dev` 注入宽松 dev CSP，完全掩盖了这个问题。 |
 | **D6** | MUST | **500 KB 护栏阈值定得太高，形同虚设。** `large-table.wysiwyg.md` 只有 471 880 B，低于 500 KB 门槛因而**被允许**挂进 PM DOM，结果阻塞主线程约 56 s。护栏挡住了 10 MB，却放过了一个能卡死 56 秒的文档。 |
 | **D1**（既有） | MUST | `file.rs:1098` 的计时器跨越了文件选择器。本轮给出了确切数字：导出报告 72 745 ms，其中 72 154 ms 是人工停留，净成本 591 ms。经由对话框的 `durationMs` 全部不可用。 |
 
