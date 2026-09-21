@@ -342,7 +342,7 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 
 | ID | 级别 | 状态 | 缺陷 | 证据与提交 |
 |---|---|---|---|---|
-| **D1**（既有） | MUST | **未修复** | 计时器跨越文件选择器。实测导出报告 72 745 ms，其中 72 154 ms 是人工停留，净成本 591 ms；**经由对话框的 `durationMs` 全部不可用** | 门禁二记录 `:210`。记录只点名 `file.rs:1098`，**实测同一形态共三处**（见下，且出数字的不是被点名那处）。无修复提交。「既有」在仓库内无更早出处：`git log --all -S '**D1**'` 只命中 `c92b1ba` |
+| **D1**（既有） | MUST | **已修复** | 计时器跨越文件选择器。实测导出报告 72 745 ms，其中 72 154 ms 是人工停留，净成本 591 ms；**经由对话框的 `durationMs` 全部不可用** | 门禁二记录 `:210`。记录只点名 `file.rs:1098`，**实测同一形态共三处**（见下，且出数字的不是被点名那处）。「既有」在仓库内无更早出处：`git log --all -S '**D1**'` 只命中 `c92b1ba`。**修复（2026-09-22）**：三处全部改掉，两种改法 —— open 路径计时器移到选择器之后，两条导出路径把「渲染+净化」这一段**在选择器打开前收进 `Duration`**，选择器关闭后再起第二段，`duration_ms = render_span + write_start.elapsed()`，人工停留正好落在两段之间的缝里。回归测试 `src-tauri/tests/timer_excludes_dialog_dwell.rs`（4 例，RED 1→GREEN 4），见下 |
 | **D2** | —（未定级：登记入表时已修复） | ✅ 已修复并验证 | 日志设置的两条失败路径：① `src-tauri/src/commands/logging.rs` 的无锁 read-modify-write（丢失更新）；② `src/services/loggingService.ts` 的 IPC 失败 fail-open，**把显式关掉日志的用户静默改回开启** | 五个提交 `ba9fdb7`、`a089c55`、`061feff`、`560db38`、`dae10d5`。**「全部未推送、分支领先 5 个」已过期**：2026-09-18 以 `git ls-remote` 核实，`origin/frontend-backend-redesign` 的尖端就是本地 HEAD `e030a2c`，五个提交均已在远端。门禁数字与两处残留见下 |
 | **D5** | BLOCK | ✅ **已修复**（代码层已验证；**打包复现未做**，见右） | `src-tauri/tauri.conf.json:28` 的 CSP 无 `connect-src`，`default-src 'self'` 因此拒绝 `ipc://localhost`；打包构建每次启动约 20 条 console 错误。Tauri 回退 postMessage，**功能不受影响**（`invoke`/`listen` 实测正常），但噪音淹没真实错误 | 门禁二记录 `:208`（`c92b1ba`）。⚠️ `pnpm tauri dev` 走 Vite dev server，**根本收不到这条 CSP 头**，所以完全掩盖它，只能在打包构建里复现。<br><br>**修复（2026-09-20）**：`:28` 增补 `connect-src 'self' ipc: http://ipc.localhost`，`default-src` 保持 `'self'` 不动。回归测试 `tests/tauri-csp-ipc-connect-src.test.ts`（6 例，RED 4→GREEN 6）：它复刻 Tauri 的 `convertFileSrc` 算法生成真实 IPC URL，再按 CSP 指令回落规则判定是否放行，因此不是字符串比对；并反向锁住两条——不得靠放宽 `default-src` 来修、`connect-src` 不得含 `*`/`http:`/`https:`/`data:`/`blob:`。<br><br>**本行原描述的两处机制订正（读 Tauri 2.9.5 源码所得）**：① 「Tauri 回退 postMessage」属实，但回退由 `scripts/ipc-protocol.js` 的**模块级 `customProtocolIpcFailed` 闩锁**实现——首次失败后永久走 postMessage。所以那约 20 条**不是每次调用都报**，而是启动瞬间并发的一批 `invoke` 在闩锁置位前全部被拒；此后静默。每条被拒会产生两笔记录（WebKit 的 CSP 拒绝 + Tauri 自己的 `console.warn`）。② 代价不止「噪音」：这批调用每个都要白跑一次失败的 `fetch` 往返才回退，给启动加了一段可测但未测量的延迟。③ 另核实 Tauri **不会**自动补这条指令——`connect-src` 在 tauri 2.9.5 crate 源码中零出现，`manager::set_csp` 只替换 script/style 的 nonce 与 hash。<br><br>**打包层证据（2026-09-20，已做）**：`pnpm tauri build --bundles app` 成功产出 `src-tauri/target/release/bundle/macos/mdpro.app`，对其可执行文件 `Contents/MacOS/tauri-app` 取 `strings` 命中 `default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; …` —— **新策略确实随 bundle 出厂**，不只是仓库里的一行配置。（该次构建在 bundle 产出之后于 updater 签名步骤失败，原因是未设 `TAURI_SIGNING_PRIVATE_KEY`，与本缺陷无关，`.app` 不受影响。）<br><br>⚠️ **运行时判据仍未验**：「打包启动后 console 无 CSP 拒绝」只有启动该 `.app` 并开 Web Inspector 能证 —— 且须在开启 Inspector 后重载一次，因为报错发生在启动瞬间、Inspector 打开前的消息不保留。配置层测试与上面的 `strings` 都证明不了它。按 `gui-acceptance` §8，此项记为 **NOT VERIFIED**，不得静默升级为通过 |
 | **D6** | MUST | **已豁免（仅入口）**，缺陷本身开放 | **护栏机制有效；错的是阈值与判据变量。**`large-table.wysiwyg.md` 仅 471 880 B，低于门槛因而被放行挂进 PM DOM，阻塞主线程约 56 s。该文档为**单表 45 744 单元格** —— 代价随单元格数呈二次方，与字节数几乎无关 | 门禁二记录 `:209`。已核 HEAD（2026-09-20）：判据已由 D6.3(a) 抽到 `src/utils/largeDocumentGuard.ts`，`src/App.tsx:511-532` 只剩薄调用点；**阈值本身未动**，`LARGE_DOCUMENT_THRESHOLD_BYTES = 500 * 1024` 与 `<=` 边界原样保留，等 D6.2 裁定。豁免范围见 [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) 与本文第 128 行。机制有效性与 56 s 的归因见下。<br><br>**2026-09-20 实测订正两处旧述（D6.1 sweep + 复核）**：① 「阻塞主线程约 56 s」**未复现** —— 真机同窗口切换三次为 11 793 / 11 792 / 10 790 ms（CPU 采样），日志侧独立推算 11 234 / 11 055 / 10 348 ms，冷开 12 004 ms。差异**不归因于任何修复**：仪器、操作与代码状态均与门禁二不同。② 「代价随单元格数呈二次方，与字节数几乎无关」—— **后半句成立，前半句不足以作判据**。五个 fixture 字节数对齐在 471 862–473 540 B 而打开代价横跨 ~0–12 004 ms（字节被证伪）；但零表格的 `many-short-nodes.wysiwyg.md`（32 657 行、0 单元格）同样阻塞约 7 409 ms，故**单元格数不能作为唯一风险变量**。**D6.2 裁定见 [ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md)（Accepted）**：判据改为**结构元素数 = 行数 + 单元格数**（单趟扫描，不重解析 Markdown），阈值 **25 000**，多表按**全文合计**，降级动作维持「toast + 切源码」但文案必须改，`fileSize` 退出判据输入。实现是 **D6.3(c)**，**2026-09-21 落地**。<br><br>**D6.3(c) 实现记录（2026-09-21）**：判据现为 `score = 换行数 + (竖线数 - 表格行起始数)`，单趟前向扫描、常数辅助空间、不解析 Markdown；阈值 `LARGE_DOCUMENT_STRUCTURE_THRESHOLD = 25_000`，`<=` 放行方向保留；`fileSize` 已从 `LargeDocumentGuardInput` 整体删除（不是留着不用）；toast 改为「This document is too complex for WYSIWYG. Switched to Source mode for performance.」。**对 D6.1 五份语料重算并与实测阻塞严格同序**：`large-table.wysiwyg` 57 190 → 12 004 ms（**旧判据放行，正是本行记的漏判，现已拦下**）、`many-short-nodes.wysiwyg` 32 657 → 7 409 ms（零表格，旧判据同样放行，现已拦下）、`dense-math.wysiwyg` 20 664 → 1 793 ms（放行）、`very-long-line.wysiwyg` 3 → 0 ms（放行）、`normal-prose.wysiwyg` 2 574（放行）；25 000 这条线落在 1.8 s 与 7.4 s 之间。分数由独立重写的参考实现复算，与模块输出在 11 份语料上逐一相符。<br><br>**D6.3(d) 实现记录（2026-09-21）**：同日真机复测（`docs/test/20260921-d5-d6-real-device-measurement.md`）发现 **D6.3(c) 自己引入了一次保护倒退** —— 上面 ③ 记的那份 9 961 475 B、4 行、结构分 3 的文档，旧字节判据会拦，结构分判据放行，而它冷开挂起 **259 483 ms（4 分 19 秒）**、UI 至少 120 s 不可读、CPU 98.5–100%。当初判它安全所依据的「实测 0 ms」是**误引** —— 那 0 ms 属于 471 862 B 的 `.wysiwyg` 变体，与它差 21 倍，`.source` 变体当时根本没测过。[ADR-0019](../adr/0019-large-document-guard-adds-a-longest-line-trigger.md)（Accepted 2026-09-21）在**同一趟扫描**里补第二个计数器 `longestLine`（UTF-16 码元）与第二条阈值 `LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD = 1_000_000`，`<=` 放行，**任一条超了就降级**；ADR-0016 Decision 1 冻结的四项不变量（一趟扫描、常数辅助空间、不解析 Markdown、不分词）全部保持，故 ADR-0019 **扩展**而非取代 ADR-0016。降级载荷加 `longestLine` 与 `trigger: "structure" | "line-length" | "both"`，放行分支仍不带任何数字。toast 文案未动。门禁：单测 64 例全绿（51 + 13）、`tsc --noEmit` 通过、`pnpm build` 通过、判据模块行/分支/函数/语句 100%（22 分支）、`pnpm ledger:check` 0 findings。<br>**本行仍不改 ✅。** ADR-0004 把 D6 的结案系在门禁二 3.8 的**逐面出口复测**上；绿色单测证明的是判据按 ADR-0016 实现了，不是重文档在真机 WYSIWYG 下不再卡。**尚待：**① 3.8 出口复测（逐面，不得汇总，只能由用户在真机跑）；② 阈值只拟合在五份约 472 KB、各一次有效测量、同一台机器的语料上；③ 结构分对**行内结构**失明 —— 9 961 475 B 的 `very-long-line.source.md` 结构分只有 3，旧字节判据会拦、结构分判据放行，ADR-0016 明列接受此倒挂。**2026-09-21 订正：这一条已被实测推翻并修复** —— 该语料实测冷开挂起 259 483 ms，ADR-0019 补的最长行判据现在拦下它；残余失明面（多条各 90 万字符的行仍然全放行）见 ADR-0019 Consequences；④ 误判降级在 `~/.mdpro/mdpro.log` 里不留痕迹 |
@@ -362,6 +362,39 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 **已核对并排除的第四处**：`file.rs:1170`（`save_file`）确有同一行 `let start = std::time::Instant::now();`，
 但它**不跨越选择器** —— 保存对话框在 `save_file_dialog`（`:1290`）内，于 `:1306` 先关闭，再调用 `save_file`。
 保存路径的计时本来就是对的，**不要顺手一起改**。
+
+**修复记录（2026-09-22）。** 先补一件上面没说的事：**全仓对话框共六处，不是三处**。
+`grep -rn 'rfd::' src-tauri/src/` 另外命中 `preferences.rs:84`（`pick_export_folder`）与
+`http_server.rs:963`（`show_write_confirmation`，由三个 MCP 处理器经 `spawn_blocking` 调用）。
+这两处**本来就没有缺陷** —— 它们根本不计时；`http_server.rs` 全文 `Instant::now()` 零命中，
+所以连「调用方的计时器跨越被调用方的对话框」这种间接形态也不成立。因此「同一形态共三处」现在
+是**扫遍六处之后的结论**，不再是抽查。
+
+两种改法，按「选择器之前有没有真活」分：
+
+- `open_file_dialog`：选择器之前只有一行 Start 日志，没有值得计量的工作，所以计时器直接移到
+  选择器之后。取消分支的 `duration_ms` 改为 **`None`** —— 取消时程序什么也没做，写 `0`
+  会和「测过、确实是 0 ms」无法区分。
+- `export_html` / `export_rendered_html`：渲染与净化发生在选择器**之前**，天真地把
+  `Instant::now()` 下移会把这段代价整个丢掉，而它恰恰是唯一值得测的数。改为
+  `render_span = render_start.elapsed()`（在选择器打开前收口）+ 选择器关闭后的
+  `write_start`，成功/失败分支报 `render_span + write_start.elapsed()`，
+  取消分支报 `render_span`（渲染真的发生过，只是不再叠加人工停留）。
+
+**回归测试是源码文本判据**，`src-tauri/tests/timer_excludes_dialog_dwell.rs`，4 例，RED 1 → GREEN 4。
+选这个形式的理由写在文件头：三处都内联调用 `rfd`，单测根本进不去（会阻塞在真实窗口服务器上）；
+把计时算术抽成可测函数，测到的是**算术**，而缺陷是**计时器相对于对话框的位置**，抽完照样看不见。
+缺陷是位置性的，判据就得是位置性的 —— 与前端 `tests/large-document-guard-call-site.test.ts`
+和 C8b' 阈值字面量判据同一个理由。不变量：**任何打开原生对话框的函数里，对话框之前开的计时器
+必须在对话框之前关掉**，实现为对「函数起点到 `rfd::` 之间」这段文本数 `Instant::now()` 与
+`.elapsed()` 的个数是否相等。T1 是回归例（旧代码下三处全红，且它是**独立重新发现**这三处的，
+不是照着本行抄的清单）；T2 钉住扫描确实覆盖到六个对话框函数，防止扫描器悄悄匹配不到而让 T1 空过；
+T3 钉住 `save_file` 被排除的**理由**（它被计时，但它不含 `rfd::`），这样谁要是把对话框挪进
+`save_file`，失败的是测试而不是下一次门禁；T4 钉住 `http_server.rs` 无计时器，把上面那条间接
+形态的前提显式化。
+
+**未解决：** T1 看不见「调用方计时器跨越被调用方对话框」。今天不存在这种路径，T4 把这个前提钉住了；
+真出现时是 T4 先红，届时要么扩 T1 去跟调用链，要么手工论证。
 
 **D6 · 豁免只到入口；伴生形态刻意不给编号。**
 [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) Decision 第 2 条写明「**缺陷是被挂账，不是被关闭**」，

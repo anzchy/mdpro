@@ -1095,7 +1095,6 @@ pub async fn open_file_dialog(
     action_id: Option<String>,
 ) -> Result<Option<OpenFileResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-    let start = std::time::Instant::now();
     log_file_event(
         "file.open",
         LogStatus::Start,
@@ -1110,17 +1109,25 @@ pub async fn open_file_dialog(
         .pick_file();
 
     let Some(path) = picked else {
+        // No duration: the only thing that happened was the user deciding not
+        // to open anything, and that is their time, not the program's. A `0`
+        // here would be indistinguishable from an instantaneous cancel that we
+        // did not actually measure.
         log_file_event(
             "file.open",
             LogStatus::Cancel,
             LogLevel::Warn,
             Some(&action_id),
             json!({ "source": "dialog" }),
-            Some(start.elapsed().as_millis() as u64),
+            None,
             None,
         );
         return Ok(None);
     };
+
+    // D1: the timer starts AFTER the picker closes. Nothing above it does work
+    // worth measuring, so unlike the export paths there is no span to bank.
+    let start = std::time::Instant::now();
 
     let path_string = path.to_string_lossy().to_string();
     let path_for_error = path_string.clone();
