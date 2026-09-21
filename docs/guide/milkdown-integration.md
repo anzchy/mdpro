@@ -198,7 +198,9 @@ const getMarkdown = useCallback(() => {
 
 **Solution**: App auto-switches to source mode for documents whose source
 structure score (lines + table cells) exceeds 25,000 — see
-[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md).
+[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md)
+— or whose longest single line exceeds 1,000,000 characters, see
+[ADR-0019](../adr/0019-large-document-guard-adds-a-longest-line-trigger.md).
 File size is not the judgement variable.
 
 ## Related Documentation

@@ -80,6 +80,7 @@ import type { ViewMode } from "../src/types/editor";
 import {
   decideLargeDocumentGuard,
   LARGE_DOCUMENT_DOWNGRADE_MESSAGE,
+  LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD,
   LARGE_DOCUMENT_STRUCTURE_THRESHOLD,
   type LargeDocumentGuardDecision,
   type LargeDocumentGuardInput,
@@ -150,6 +151,45 @@ const elementsOf = (content: string): number => {
 const scoreAtMargin = (fragment: string): number =>
   elementsOf(AT_THRESHOLD + fragment) - 25_000;
 
+/**
+ * A document whose score is exactly 25,001 — one over the structure cut, so it
+ * ALWAYS degrades, and every one of its lines is empty (length 0).
+ *
+ * This is the instrument that makes line lengths of *allowing* shapes
+ * observable. The allow arm carries no numbers by design (ADR-0019 Decision 4 /
+ * G14' / N12 / LL-12), so `longestLine` can only be read off a document that
+ * degrades. Prefixing a fragment with 25,001 newlines forces the degrade
+ * WITHOUT touching the fragment's own longest line, because every prefix line
+ * is empty.
+ */
+const OVER_THRESHOLD = AT_THRESHOLD + "\n";
+
+/**
+ * Narrows the union and fails loudly rather than skipping the assertion —
+ * the `longestLine` mirror of `elementsOf`.
+ */
+const longestLineOf = (content: string): number => {
+  const decision = decideLargeDocumentGuard({ viewMode: "wysiwyg", content });
+  if (decision.action !== "degrade-to-source") {
+    throw new Error(`expected a degrade decision, got "${decision.action}"`);
+  }
+  return decision.longestLine;
+};
+
+/**
+ * THE DERIVATION RULE, written once and relied on throughout: `OVER_THRESHOLD`
+ * consists only of `\n` and ends with one, so every prefix line is empty and
+ * the fragment starts at a fresh line start. Therefore
+ * `longestLineAfter(fragment)` IS the longest line inside `fragment`.
+ *
+ * This is what makes the hand-written `maxLine` columns in N1/N17/N5 checkable
+ * without computing them in the test. Computing them here (e.g.
+ * `fragment.split("\n")`) would re-implement the unit under test, and the test
+ * would be asserting its own re-implementation.
+ */
+const longestLineAfter = (fragment: string): number =>
+  longestLineOf(OVER_THRESHOLD + fragment);
+
 describe("decideLargeDocumentGuard", () => {
   // --- harness self-check --------------------------------------------------
   it("harness: AT_THRESHOLD scores exactly 25,000, so atMargin measures fragments at distance 1 from the cut", () => {
@@ -160,7 +200,15 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 25_001,
+      longestLine: 0,
+      trigger: "structure",
     });
+
+    // And the ADR-0019 counterpart: OVER_THRESHOLD is AT_THRESHOLD + "\n", so
+    // it is the same document as the assertion above, which is what licenses
+    // `longestLineAfter` to report "the longest line inside the fragment".
+    expect(longestLineAfter("")).toBe(0);
+    expect(longestLineAfter("abc")).toBe(3);
   });
 
   // === A. The view-mode gate ==============================================
@@ -244,6 +292,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 25_001,
+      longestLine: 0,
+      trigger: "structure",
     });
 
     // Mixed-path sibling: 25,000 from the table, then the line `x|` — one pipe
@@ -258,6 +308,11 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 25_001,
+      // `| a | b | c | d |` is 17 UTF-16 code units (9 non-space + 8 spaces);
+      // the trailing unterminated `x|` line is 2. The same 17 appears in N6,
+      // N14, N16 and LL-5 for this same string.
+      longestLine: 17,
+      trigger: "structure",
     });
   });
 
@@ -291,6 +346,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: LARGE_DOCUMENT_STRUCTURE_THRESHOLD + 1,
+      longestLine: 0,
+      trigger: "structure",
     });
   });
 
@@ -325,6 +382,9 @@ describe("decideLargeDocumentGuard", () => {
           action: "degrade-to-source",
           message: EXPECTED_MESSAGE,
           elements: n,
+          // Every ladder row is `\n`-only, so every line is empty.
+          longestLine: 0,
+          trigger: "structure",
         });
       } else {
         expect(result, labels[i]).toEqual({ action: "allow" });
@@ -370,31 +430,43 @@ describe("decideLargeDocumentGuard", () => {
     // partition's boundary: "first non-whitespace character is a backslash,
     // therefore not a row start" lives there, because it is a characterization
     // of an accepted defect and folding it in here would read as endorsement.
-    const rows: Array<{ n: number; fragment: string; s: number; transition: string }> = [
-      { n: 1, fragment: "", s: 0, transition: 'EOF immediately after "\\n"' },
-      { n: 2, fragment: "\n", s: 1, transition: "empty line" },
-      { n: 3, fragment: "x", s: 0, transition: "line-start state left by a non-ws non-pipe char; EOF mid-line" },
-      { n: 4, fragment: "|", s: 0, transition: "pipe at line start => +1 pipe, -1 row start" },
-      { n: 5, fragment: "||", s: 1, transition: "one row start per LINE, not per pipe" },
-      { n: 6, fragment: "x|", s: 1, transition: "pipe after the line-start state was left => no subtraction" },
-      { n: 7, fragment: " |", s: 0, transition: "single leading space skipped" },
-      { n: 8, fragment: "\t|", s: 0, transition: "leading tab skipped (tab IS whitespace)" },
-      { n: 9, fragment: "       |", s: 0, transition: "UNBOUNDED skip (7 spaces) - kills a GFM 3-space implementation" },
-      { n: 10, fragment: "\u00A0|", s: 1, transition: "NBSP is NOT whitespace - kills trimStart() / /\\s/" },
-      { n: 11, fragment: "\r|", s: 1, transition: "lone CR is not whitespace and not a newline" },
-      { n: 12, fragment: "\u{1F600}|", s: 1, transition: "astral char does not perturb the scan" },
-      { n: 13, fragment: "| a | b |", s: 2, transition: "3 pipes - 1 row start" },
-      { n: 14, fragment: "a | b", s: 1, transition: "omitted outer pipes - ADR-accepted UNDER-count" },
-      { n: 15, fragment: "|---|---|", s: 2, transition: "delimiter row - ADR-accepted OVER-count (3 pipes - 1 row start)" },
-      { n: 16, fragment: "| a | b |\n", s: 3, transition: "one full LF table row" },
-      { n: 17, fragment: "   | a | b |\n", s: 3, transition: "indented table row" },
-      { n: 18, fragment: "\t| a | b |\n", s: 3, transition: "tab-indented table row" },
-      { n: 19, fragment: "| a | b |\r\n", s: 3, transition: "CRLF table row scores as LF" },
-      { n: 20, fragment: "```\na|b\n```\n", s: 4, transition: "fenced code - ADR-accepted OVER-count" },
-      { n: 21, fragment: "\n|", s: 1, transition: 'line start re-armed after "\\n"' },
-      { n: 22, fragment: " \n |", s: 1, transition: "all-whitespace line, then indented pipe" },
-      { n: 23, fragment: "| a | b\n", s: 2, transition: "ROW START WITHOUT A CLOSING PIPE: 1 newline + 2 pipes - 1 row start" },
-      { n: 24, fragment: "| a | b", s: 1, transition: "same, unterminated at EOF: 2 pipes - 1 row start" },
+    // THE `maxLine` COLUMN (ADR-0019) IS HAND-WRITTEN, exactly as `s` is.
+    // It is the longest line inside the fragment, in UTF-16 code units, with
+    // `\r` counted as an ordinary character (contract answer 9) and the final
+    // unterminated segment counted (contract answer 8). Do NOT derive it in
+    // this file with `fragment.split("\n")`: that re-implements the unit under
+    // test, and the table would then assert its own re-implementation.
+    const rows: Array<{
+      n: number;
+      fragment: string;
+      s: number;
+      maxLine: number;
+      transition: string;
+    }> = [
+      { n: 1, fragment: "", s: 0, maxLine: 0, transition: 'EOF immediately after "\\n"' },
+      { n: 2, fragment: "\n", s: 1, maxLine: 0, transition: "empty line" },
+      { n: 3, fragment: "x", s: 0, maxLine: 1, transition: "line-start state left by a non-ws non-pipe char; EOF mid-line" },
+      { n: 4, fragment: "|", s: 0, maxLine: 1, transition: "pipe at line start => +1 pipe, -1 row start" },
+      { n: 5, fragment: "||", s: 1, maxLine: 2, transition: "one row start per LINE, not per pipe" },
+      { n: 6, fragment: "x|", s: 1, maxLine: 2, transition: "pipe after the line-start state was left => no subtraction" },
+      { n: 7, fragment: " |", s: 0, maxLine: 2, transition: "single leading space skipped" },
+      { n: 8, fragment: "\t|", s: 0, maxLine: 2, transition: "leading tab skipped (tab IS whitespace)" },
+      { n: 9, fragment: "       |", s: 0, maxLine: 8, transition: "UNBOUNDED skip (7 spaces) - kills a GFM 3-space implementation" },
+      { n: 10, fragment: "\u00A0|", s: 1, maxLine: 2, transition: "NBSP is NOT whitespace - kills trimStart() / /\\s/" },
+      { n: 11, fragment: "\r|", s: 1, maxLine: 2, transition: "lone CR is not whitespace and not a newline" },
+      { n: 12, fragment: "\u{1F600}|", s: 1, maxLine: 3, transition: "astral char does not perturb the scan; it is TWO code units of line length" },
+      { n: 13, fragment: "| a | b |", s: 2, maxLine: 9, transition: "3 pipes - 1 row start" },
+      { n: 14, fragment: "a | b", s: 1, maxLine: 5, transition: "omitted outer pipes - ADR-accepted UNDER-count" },
+      { n: 15, fragment: "|---|---|", s: 2, maxLine: 9, transition: "delimiter row - ADR-accepted OVER-count (3 pipes - 1 row start)" },
+      { n: 16, fragment: "| a | b |\n", s: 3, maxLine: 9, transition: "one full LF table row" },
+      { n: 17, fragment: "   | a | b |\n", s: 3, maxLine: 12, transition: "indented table row" },
+      { n: 18, fragment: "\t| a | b |\n", s: 3, maxLine: 10, transition: "tab-indented table row" },
+      { n: 19, fragment: "| a | b |\r\n", s: 3, maxLine: 10, transition: "CRLF table row scores as LF, but measures ONE LONGER: the `\\r` counts" },
+      { n: 20, fragment: "```\na|b\n```\n", s: 4, maxLine: 3, transition: "fenced code - ADR-accepted OVER-count" },
+      { n: 21, fragment: "\n|", s: 1, maxLine: 1, transition: 'line start re-armed after "\\n"' },
+      { n: 22, fragment: " \n |", s: 1, maxLine: 2, transition: "all-whitespace line, then indented pipe" },
+      { n: 23, fragment: "| a | b\n", s: 2, maxLine: 7, transition: "ROW START WITHOUT A CLOSING PIPE: 1 newline + 2 pipes - 1 row start" },
+      { n: 24, fragment: "| a | b", s: 1, maxLine: 7, transition: "same, unterminated at EOF: 2 pipes - 1 row start" },
     ];
 
     // Rows 7-11 kill four distinct plausible-but-wrong implementations:
@@ -420,10 +492,16 @@ describe("decideLargeDocumentGuard", () => {
     // not a discriminator.
 
     const results: LargeDocumentGuardDecision[] = [];
+    const observedMaxLines: number[] = [];
     const labels: string[] = [];
     for (const row of rows) {
       results.push(atMargin(row.fragment));
-      labels.push(`row ${row.n} (s=${row.s}): ${row.transition}`);
+      // ADR-0019: the margin observation, collected for ALL 24 rows. Six rows
+      // (1, 3, 4, 7, 8, 9) score 0 and therefore ALLOW, and the allow arm
+      // carries no numbers — without this device their hand-written `maxLine`
+      // would be dead weight a reader would wrongly believe is checked.
+      observedMaxLines.push(longestLineAfter(row.fragment));
+      labels.push(`row ${row.n} (s=${row.s}, maxLine=${row.maxLine}): ${row.transition}`);
     }
 
     expect(results).toHaveLength(rows.length);
@@ -436,8 +514,15 @@ describe("decideLargeDocumentGuard", () => {
           action: "degrade-to-source",
           message: EXPECTED_MESSAGE,
           elements: 25_000 + row.s,
+          longestLine: row.maxLine,
+          trigger: "structure",
         });
       }
+    });
+
+    expect(observedMaxLines).toHaveLength(rows.length);
+    observedMaxLines.forEach((observed, i) => {
+      expect(observed, labels[i]).toBe(rows[i].maxLine);
     });
 
     // Three invariant assertions over the collected set.
@@ -471,6 +556,11 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 29_999,
+      // One unterminated line of 30,000 pipes — far under the 1,000,000 line
+      // cut, so this still degrades on `structure` alone. LL-9's third row is
+      // the same shape scaled past the line cut, where the trigger is "both".
+      longestLine: 30_000,
+      trigger: "structure",
     });
 
     expect(
@@ -482,6 +572,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 30_000,
+      longestLine: 30_001,
+      trigger: "structure",
     });
   });
 
@@ -499,6 +591,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 30_000,
+      longestLine: 9, // "| a | b |"
+      trigger: "structure",
     });
 
     expect(
@@ -510,6 +604,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 29_999, // 3 × 9,999 + (3 pipes − 1 row start)
+      longestLine: 9,
+      trigger: "structure",
     });
   });
 
@@ -523,6 +619,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 30_000,
+      longestLine: 0,
+      trigger: "structure",
     });
 
     expect(
@@ -531,6 +629,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 57_190,
+      longestLine: 0,
+      trigger: "structure",
     });
 
     // "a\nb\nc" is 2 newline characters across 3 lines.
@@ -538,6 +638,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 25_002,
+      longestLine: 1, // segments "a", "b", "c"
+      trigger: "structure",
     });
   });
 
@@ -561,6 +663,13 @@ describe("decideLargeDocumentGuard", () => {
     // SCOPE NOTE (L3): all four fragments are `\n`-aligned and above threshold,
     // so this case does NOT generalise to arbitrary append. The narrowing is
     // deliberate; see the matrix's Deferred 12.
+    //
+    // ADR-0019 PAIRING: N4 is now HALF OF A PAIR with LL-14. The score is
+    // exactly ADDITIVE over `\n`-aligned concatenation (here); the longest line
+    // is the MAX over the same operation (LL-14). An implementation that treats
+    // the two quantities the same way — folding one into the other, which is
+    // the option ADR-0019 Decision 3 rejects — fails exactly one of the two.
+    // Neither case is redundant with the other.
     const FRAGMENTS: Array<{ name: string; text: string }> = [
       { name: "F1 newlines", text: "\n".repeat(26_000) },
       { name: "F2 4-col table", text: "| a | b | c | d |\n".repeat(6_000) },
@@ -604,48 +713,138 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 30_009,
+      longestLine: 17, // "| a | b | c | d |"; the join adds empty lines only
+      trigger: "structure",
     });
   });
 
   // --- N5 ------------------------------------------------------------------
-  it("N5: L4 — CRLF metamorphic invariance", () => {
+  it("N5: L4/L5 — CRLF leaves the SCORE invariant and lengthens every measured line by exactly one", () => {
+    // ── CHANGE NOTE (policy-core rule 12): why a recorded assertion moved ────
+    //
+    // Until D6.3(d) this case asserted `expect(pair.crlf).toEqual(pair.lf)` —
+    // whole-payload CRLF invariance. ADR-0019 Decision 1 makes that FALSE BY
+    // DESIGN, not by defect: `\r` is an ordinary counted character, so a
+    // CRLF-terminated line measures exactly one code unit longer than its LF
+    // twin. The alternative (a `\r` lookback before the `\n`) is a PARSING
+    // RULE, and ADR-0016 Decision 1 freezes parsing out; it is therefore not an
+    // implementer's choice and would need its own ADR.
+    //
+    // The claim is re-specified UPWARD, never relaxed to a subset comparison:
+    //   (1) `action`, `message` and `elements` stay identical across LF/CRLF —
+    //       the half that survives, and the half that is the actual invariance
+    //       claim about the SCORE;
+    //   (2) BOTH endpoints and the delta are pinned as hand-written literals.
+    //       A delta-only assertion is satisfied by (0, 1) on every row, which
+    //       is precisely the weakening this case must not accept;
+    //   (3) the three allow rows keep a bare one-key arm.
+    //
+    // CRLF invariance therefore now holds FOR THE SCORE and deliberately NOT
+    // for the line length. The counterpart note to N13 stands: N13 pins that a
+    // lone `\r` is neither a newline nor whitespace; N5 pins that a trailing
+    // `\r` costs exactly one unit of line length. Together they fix the `\r`
+    // rule from both sides.
+    //
     // `.split("\n").join("\r\n")`, NOT `replaceAll`: the latter is ES2021 and
     // fails TS2550 under tsconfig.json's `lib: ES2020` — the same diagnostic
     // G20' records for `Object.hasOwn`.
     //
-    // Both sides are real calls and nothing is hard-coded, so this case cannot
-    // be satisfied by a constant. Grounded in reality: the D6.1 perf corpus
-    // ships `normal-prose.wysiwyg.crlf.md`.
+    // Both sides are real calls and nothing is hard-coded on the invariance
+    // half, so it cannot be satisfied by a constant. Grounded in reality: the
+    // D6.1 perf corpus ships `normal-prose.wysiwyg.crlf.md`.
     //
-    // Deliberate counterpart to N13: CRLF must be INVARIANT (because `\r` sits
-    // at end-of-line there), and classic-Mac lone `\r` must NOT be normalised.
-    // Either case alone leaves the `\r` rule ambiguous.
+    // WHY EVERY DELTA IS +1 HERE, so "+1 always" does not become folklore:
+    // LF→CRLF grows every `\n`-TERMINATED line by one code unit and leaves a
+    // final UNTERMINATED line untouched. Every row below has its maximum on a
+    // `\n`-terminated line (or has no characters at all). A document whose
+    // unique longest line is its final unterminated one would have delta 0.
+    // That shape is deliberately not in this table; LL-7 is where it lives.
     const crlf = (d: string): string => d.split("\n").join("\r\n");
-    const DOCS: Array<{ text: string; label: string }> = [
-      { text: "", label: "empty" },
-      { text: "\n", label: "one newline" },
-      { text: AT_THRESHOLD, label: "at threshold" },
-      { text: AT_THRESHOLD + "\n", label: "one over threshold" },
-      { text: "| a | b |\n".repeat(10_000), label: "2-col table" },
-      { text: "   | a | b |\n".repeat(9_000), label: "indented table" },
-      { text: "a | b\n".repeat(20_000), label: "outer pipes omitted" },
-      { text: "- item\n".repeat(32_657), label: "many short nodes" },
+
+    // Hand-written columns — transcribed, not derived. `lfMax`/`crlfMax` are
+    // the longest line in UTF-16 code units under each line ending.
+    const DOCS: Array<{
+      text: string;
+      label: string;
+      degrades: boolean;
+      lfMax: number;
+      crlfMax: number;
+      delta: number;
+    }> = [
+      { text: "", label: "empty", degrades: false, lfMax: 0, crlfMax: 0, delta: 0 },
+      { text: "\n", label: "one newline", degrades: false, lfMax: 0, crlfMax: 1, delta: 1 },
+      { text: AT_THRESHOLD, label: "at threshold", degrades: false, lfMax: 0, crlfMax: 1, delta: 1 },
+      { text: AT_THRESHOLD + "\n", label: "one over threshold", degrades: true, lfMax: 0, crlfMax: 1, delta: 1 },
+      { text: "| a | b |\n".repeat(10_000), label: "2-col table", degrades: true, lfMax: 9, crlfMax: 10, delta: 1 },
+      { text: "   | a | b |\n".repeat(9_000), label: "indented table", degrades: true, lfMax: 12, crlfMax: 13, delta: 1 },
+      { text: "a | b\n".repeat(20_000), label: "outer pipes omitted", degrades: true, lfMax: 5, crlfMax: 6, delta: 1 },
+      { text: "- item\n".repeat(32_657), label: "many short nodes", degrades: true, lfMax: 6, crlfMax: 7, delta: 1 },
     ];
 
     const pairs: Array<{ lf: LargeDocumentGuardDecision; crlf: LargeDocumentGuardDecision }> =
       [];
+    // Rows 1-3 allow, so their line lengths are NOT readable off the decision.
+    // They are observed at the margin — the only admissible way to make the
+    // claim total over all eight rows without putting numbers on the allow arm.
+    const observedLfMax: number[] = [];
+    const observedCrlfMax: number[] = [];
     const labels: string[] = [];
     for (const doc of DOCS) {
       pairs.push({
         lf: decideLargeDocumentGuard({ viewMode: "wysiwyg", content: doc.text }),
         crlf: decideLargeDocumentGuard({ viewMode: "wysiwyg", content: crlf(doc.text) }),
       });
+      observedLfMax.push(longestLineAfter(doc.text));
+      observedCrlfMax.push(longestLineAfter(crlf(doc.text)));
       labels.push(doc.label);
     }
 
     expect(pairs).toHaveLength(DOCS.length);
+
+    // (1) The score half of the invariance, from real calls on both sides.
     pairs.forEach((pair, i) => {
-      expect(pair.crlf, labels[i]).toEqual(pair.lf);
+      expect(pair.crlf.action, `${labels[i]}: action invariant`).toBe(pair.lf.action);
+      if (pair.lf.action === "degrade-to-source" && pair.crlf.action === "degrade-to-source") {
+        expect(pair.crlf.elements, `${labels[i]}: elements invariant`).toBe(
+          pair.lf.elements,
+        );
+        expect(pair.crlf.message, `${labels[i]}: message invariant`).toBe(pair.lf.message);
+      }
+    });
+
+    // (2) Both endpoints as exact literals, plus the derived delta.
+    DOCS.forEach((doc, i) => {
+      expect(observedLfMax[i], `${doc.label}: LF longest line`).toBe(doc.lfMax);
+      expect(observedCrlfMax[i], `${doc.label}: CRLF longest line`).toBe(doc.crlfMax);
+      expect(
+        observedCrlfMax[i] - observedLfMax[i],
+        `${doc.label}: CRLF − LF delta`,
+      ).toBe(doc.delta);
+
+      // The degrading rows report the SAME number on the decision itself, so
+      // the margin instrument is cross-checked against the live payload.
+      if (doc.degrades) {
+        const lf = pairs[i].lf;
+        const crlfDecision = pairs[i].crlf;
+        if (lf.action !== "degrade-to-source" || crlfDecision.action !== "degrade-to-source") {
+          throw new Error(`${doc.label}: expected both arms to degrade`);
+        }
+        expect(lf.longestLine, `${doc.label}: LF longestLine on the payload`).toBe(doc.lfMax);
+        expect(crlfDecision.longestLine, `${doc.label}: CRLF longestLine on the payload`).toBe(
+          doc.crlfMax,
+        );
+      }
+    });
+
+    // (3) The allow rows keep a bare arm — no number leaks onto it.
+    DOCS.forEach((doc, i) => {
+      if (doc.degrades) return;
+      expect(Object.keys(pairs[i].lf), `${doc.label}: LF allow arm is bare`).toEqual([
+        "action",
+      ]);
+      expect(Object.keys(pairs[i].crlf), `${doc.label}: CRLF allow arm is bare`).toEqual([
+        "action",
+      ]);
     });
   });
 
@@ -655,6 +854,29 @@ describe("decideLargeDocumentGuard", () => {
     // (`TextEncoder`, `content.length`, a `Math.max(score, bytes/K)` hybrid)
     // fails here; family 1's ~600 KB member is the one the OLD predicate
     // degraded, so a partial revert fails here first.
+    //
+    // ── COMMENT CORRECTION (ADR-0019, policy-core rule 12) ──────────────────
+    //
+    // The sentence above used to read "any residual byte term … fails here"
+    // full stop. That is now only half true, and the half it omits is the
+    // entire content of ADR-0019 Decision 3:
+    //
+    //   - a whole-document BYTE/VOLUME term is still FORBIDDEN, and familyOne
+    //     (filler up to 60,000 with a decision that does not move) is what
+    //     forbids it;
+    //   - a per-line LENGTH term is now REQUIRED, and familyTwo is what
+    //     requires it.
+    //
+    // familyTwo is therefore no longer an invariance case: `longestLine` is
+    // exactly `fillerLen`, so the three payloads are three distinct objects.
+    // The old `Set(JSON.stringify).size === 1` over the whole payload is
+    // re-specified below — narrowed to what is genuinely invariant, with the
+    // NON-invariance asserted positively so nobody "repairs" it back.
+    //
+    // Bonus, and the reason this is a better case than it was: familyTwo
+    // becomes a second independent kill of the never-reset-`currentLine`
+    // mutant. With filler 100 over 30,000 lines an unreset accumulator reports
+    // 3,030,000 and flips the trigger to "both". LL-8 is the first kill.
     const familyOne: LargeDocumentGuardDecision[] = [];
     const familyOneLabels: string[] = [];
     for (const fillerLen of [0, 1, 10, 1_000, 60_000]) {
@@ -671,25 +893,58 @@ describe("decideLargeDocumentGuard", () => {
     });
     expect(new Set(familyOne.map((r) => JSON.stringify(r))).size).toBe(1);
 
+    // Hand-written expectations. The loop variable is deliberately NOT reused
+    // as the expected value — the literals are written out, so the case is not
+    // asserting its own arithmetic.
+    const FAMILY_TWO: Array<{ fillerLen: number; maxLine: number }> = [
+      { fillerLen: 0, maxLine: 0 },
+      { fillerLen: 1, maxLine: 1 },
+      { fillerLen: 100, maxLine: 100 },
+    ];
     const familyTwo: LargeDocumentGuardDecision[] = [];
     const familyTwoLabels: string[] = [];
-    for (const fillerLen of [0, 1, 100]) {
+    for (const row of FAMILY_TWO) {
       familyTwo.push(
         decideLargeDocumentGuard({
           viewMode: "wysiwyg",
-          content: ("x".repeat(fillerLen) + "\n").repeat(30_000),
+          content: ("x".repeat(row.fillerLen) + "\n").repeat(30_000),
         }),
       );
-      familyTwoLabels.push(`fillerLen=${fillerLen}, score 30,000`);
+      familyTwoLabels.push(`fillerLen=${row.fillerLen}, score 30,000`);
     }
     familyTwo.forEach((result, i) => {
       expect(result, familyTwoLabels[i]).toEqual({
         action: "degrade-to-source",
         message: EXPECTED_MESSAGE,
         elements: 30_000,
+        longestLine: FAMILY_TWO[i].maxLine,
+        trigger: "structure",
       });
     });
-    expect(new Set(familyTwo.map((r) => JSON.stringify(r))).size).toBe(1);
+    // Invariance RETAINED, narrowed to what is actually invariant — this
+    // replaces the old whole-payload check rather than deleting it.
+    expect(
+      new Set(
+        familyTwo.map((r) =>
+          JSON.stringify(
+            r.action === "degrade-to-source"
+              ? {
+                  action: r.action,
+                  message: r.message,
+                  elements: r.elements,
+                  trigger: r.trigger,
+                }
+              : { action: r.action },
+          ),
+        ),
+      ).size,
+    ).toBe(1);
+    // Non-invariance asserted POSITIVELY, so nobody "repairs" it back.
+    expect(
+      new Set(
+        familyTwo.map((r) => (r.action === "degrade-to-source" ? r.longestLine : -1)),
+      ).size,
+    ).toBe(3);
   });
 
   // --- G17' ----------------------------------------------------------------
@@ -736,12 +991,20 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 25_001,
+      longestLine: 0,
+      trigger: "structure",
     });
     expect(second).toEqual({
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 57_190,
+      longestLine: 0,
+      trigger: "structure",
     });
+    // SCOPE LIMIT ADR-0019 ADDS: both degrades here are STRUCTURE degrades, so
+    // a hoisted object mutating only `elements` would still pass this case.
+    // LL-15 is the extension — two degrades with DIFFERENT triggers, where
+    // `trigger` and `longestLine` must both survive the second call.
     // Scope limit, carried forward verbatim: this applies only to two DEGRADE
     // decisions. A shared frozen ALLOW singleton remains a legitimate
     // implementation choice, which is why no identity claim is made on the
@@ -756,10 +1019,11 @@ describe("decideLargeDocumentGuard", () => {
     //
     // HONEST LIMIT: `reads === 1` proves the PROPERTY is read once. It does NOT
     // prove the scan is single-pass — `input.content.split("\n")` also reads
-    // the property exactly once. The one-pass / constant-space invariants are
-    // enforced only by C12, a source-text case in the call-site file, and C12
-    // is itself blind to allocation-free parsing rules (for which N17 and N1
-    // rows 23/24 are the behavioural tripwires).
+    // the property exactly once. Constant auxiliary space is enforced by C12,
+    // a source-text case in the call-site file; ONE FORWARD PASS is enforced
+    // by C13 (added with ADR-0019, because the two-loop implementation is
+    // output-identical and no behavioural case at any level can see it); and
+    // "no parsing" has N17 and N1 rows 23/24 as its behavioural tripwires.
     //
     // Old arm (b) — "a present fileSize must not read content" — is RETIRED BY
     // CONSTRUCTION: `fileSize` no longer exists. Old arm (c)'s
@@ -787,7 +1051,11 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 25_001,
+      longestLine: 0,
+      trigger: "structure",
     });
+    // MUST STAY EXACTLY 1: the second counter is computed in the SAME pass, so
+    // the implementation must not acquire a second `input.content` read.
     expect(b.state.reads, "wysiwyg must read content exactly once").toBe(1);
   });
 
@@ -812,6 +1080,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 28_000,
+      longestLine: 3, // "```" and "a|b" are both 3
+      trigger: "structure",
     });
 
     // (b) per table: 3 newlines + 9 pipes − 3 row starts = 9; × 3,000 = 27,000.
@@ -826,6 +1096,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 27_000,
+      longestLine: 9, // all three row shapes are 9 code units
+      trigger: "structure",
     });
 
     // DELIBERATE REDUNDANCY, recorded: N1 row 20 covers the same fenced-code
@@ -857,6 +1129,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 40_000,
+      longestLine: 5, // "a | b"
+      trigger: "structure",
     });
   });
 
@@ -889,6 +1163,13 @@ describe("decideLargeDocumentGuard", () => {
     // Adding `\r` to the newline set or to the whitespace set breaks this.
     // Deliberate counterpart to N5 — see that case's comment for why the two
     // together pin the exact boundary of the `\r` rule.
+    //
+    // ADR-0019 NOTE (row (a) now allows for a SECOND reason, and a reader must
+    // not over-generalise from it): this document is ONE line of 30,000 code
+    // units — no `\n` anywhere — so it clears the structure cut (score 0) AND
+    // the 1,000,000 line cut. It does NOT follow that a `\r`-only document of
+    // any length allows: at 1,000,001 lone carriage returns it is a single
+    // line over the cut and degrades with `trigger: "line-length"`.
     expect(
       decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "\r".repeat(30_000) }),
     ).toEqual({ action: "allow" });
@@ -899,6 +1180,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 25_003,
+      longestLine: 10, // the `\r` plus "| a | b |" — the `\r` counts (answer 9)
+      trigger: "structure",
     });
   });
 
@@ -924,11 +1207,21 @@ describe("decideLargeDocumentGuard", () => {
     // carry an S1 characterization claim; mixing them would either inflate this
     // case's claim or launder the accepted-defect labelling into a "the scanner
     // is correct here" reading.
-    const rows: Array<{ n: number; fragment: string; s: number; transition: string }> = [
+    // `maxLine` is hand-written, as `s` is. Row 1's segment is `\`, `|`, ` `,
+    // `a` — the backslash is one code unit and counts. Row 2's is a backtick,
+    // `a`, `|`, `b`, a backtick.
+    const rows: Array<{
+      n: number;
+      fragment: string;
+      s: number;
+      maxLine: number;
+      transition: string;
+    }> = [
       {
         n: 1,
         fragment: "\\| a\n",
         s: 2,
+        maxLine: 4,
         transition:
           "escaped pipe STILL COUNTS as a cell (1 newline + 1 pipe); the line is NOT a row start, because the first non-whitespace character is a backslash",
       },
@@ -936,6 +1229,7 @@ describe("decideLargeDocumentGuard", () => {
         n: 2,
         fragment: "`a|b`\n",
         s: 2,
+        maxLine: 5,
         transition:
           "inline-code pipe STILL COUNTS - there is no span tracking (1 newline + 1 pipe - 0 row starts)",
       },
@@ -945,7 +1239,7 @@ describe("decideLargeDocumentGuard", () => {
     const labels: string[] = [];
     for (const row of rows) {
       results.push(atMargin(row.fragment));
-      labels.push(`N17 row ${row.n} (s=${row.s}): ${row.transition}`);
+      labels.push(`N17 row ${row.n} (s=${row.s}, maxLine=${row.maxLine}): ${row.transition}`);
     }
 
     expect(results).toHaveLength(rows.length);
@@ -954,6 +1248,8 @@ describe("decideLargeDocumentGuard", () => {
         action: "degrade-to-source",
         message: EXPECTED_MESSAGE,
         elements: 25_000 + rows[i].s,
+        longestLine: rows[i].maxLine,
+        trigger: "structure",
       });
     });
   });
@@ -980,9 +1276,13 @@ describe("decideLargeDocumentGuard", () => {
     // Object.keys, not Object.hasOwn — the latter is ES2022 and does not
     // compile under this tsconfig's lib (TS2550).
     expect(Object.keys(allowResult)).toEqual(["action"]);
-    // THE DEDICATED PIN FOR CONTRACT ANSWER (4): renaming `elements`, adding an
-    // undeclared field, or leaking `bytes` back in all fail here.
-    expect(Object.keys(degradeResult).sort()).toEqual(["action", "elements", "message"]);
+    // THE DEDICATED PIN FOR CONTRACT ANSWERS (4) AND (12): renaming `elements`,
+    // adding an undeclared field, leaking `bytes` back in, or dropping either
+    // of the two ADR-0019 members all fail here. The degrade arm has exactly
+    // FIVE keys; the allow arm still has exactly one.
+    expect(Object.keys(degradeResult).sort()).toEqual(
+      ["action", "elements", "longestLine", "message", "trigger"].sort(),
+    );
   });
 
   // === G. Evidence anchors — the ADR's empirical claims =====================
@@ -993,6 +1293,10 @@ describe("decideLargeDocumentGuard", () => {
     // this returned `{action:"degrade-to-source", message:"Document exceeds
     // 500KB…", bytes:614_400}`. It must NOT be softened if someone later panics
     // about large files: softening it re-adopts the predicate ADR-0016 refutes.
+    //
+    // ADR-0019 NOTE: this survives BY THE NUMBERS, not by accident. 600 × 1024
+    // = 614,400 UTF-16 code units on one line, which clears the new 1,000,000
+    // line threshold with 385,600 to spare. LL-1 is where that cut is pinned.
     expect(
       decideLargeDocumentGuard({
         viewMode: "wysiwyg",
@@ -1017,6 +1321,8 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 32_657,
+      longestLine: 6, // "- item"
+      trigger: "structure",
     });
   });
 
@@ -1054,6 +1360,13 @@ describe("decideLargeDocumentGuard", () => {
       "large-table",
     ];
 
+    // ADR-0019 NOTE on row 0, so nobody concludes `very-long-line` is always
+    // allowed: `veryLongLine` here is the `.wysiwyg` SHAPE — 471,845 code
+    // units on its first line — and it stays allowed under both triggers. Its
+    // `.source` twin, whose longest line is 7,583,742, now DEGRADES, and that
+    // is case LL-2. Note also that 471,845 is NOT ADR-0019's 359,285 for the
+    // same fixture: one is a byte count, the other the measured longest line.
+    // Both are legitimate; do not conflate them or "correct" either.
     expect(decisions[0], labels[0]).toEqual({ action: "allow" });
     expect(decisions[1], labels[1]).toEqual({ action: "allow" });
     expect(decisions[2], labels[2]).toEqual({ action: "allow" });
@@ -1061,11 +1374,15 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 32_657,
+      longestLine: 6, // "- item"
+      trigger: "structure",
     });
     expect(decisions[4], labels[4]).toEqual({
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 57_190,
+      longestLine: 17, // "| a | b | c | d |"
+      trigger: "structure",
     });
 
     // The three allow rows' scores are read at the margin, where they are
@@ -1102,7 +1419,621 @@ describe("decideLargeDocumentGuard", () => {
       action: "degrade-to-source",
       message: EXPECTED_MESSAGE,
       elements: 500_000,
+      longestLine: 17, // "| a | b | c | d |" — 1.8 M code units across 100,000 short lines
+      trigger: "structure",
     });
+  });
+
+  // =========================================================================
+  // H. The LL family — the longest-line trigger (D6.3(d) / ADR-0019)
+  //
+  // Prefix chosen to avoid collision: `G` = inherited, `N` = D6.3(c),
+  // `M` = constants, `C` = call-site, `D` = defect ids, `LL` = these.
+  //
+  // Every input is built with `.repeat(n)`. No fixture file is read, no
+  // multi-megabyte literal appears, no duration is asserted and no `timeout:`
+  // option is set anywhere (E39 / G0 / ADR-0019 Decision 6).
+  // =========================================================================
+
+  // --- LL-1 ----------------------------------------------------------------
+  it("LL-1: boundary — the line-length cut allows at 1,000,000 and degrades at 1,000,001", () => {
+    // S2. Two points on one threshold, in one direction each, so `<=` cannot
+    // be read as `<`.
+    //
+    // WHAT THIS CASE DOES *NOT* CATCH, stated because an earlier reading of it
+    // claimed otherwise: folding the line length into the score does NOT break
+    // LL-1. `score + longestLine / 40 > 25_000` allows at (score 0, line
+    // 1,000,000) — `0 + 25_000` is not greater than 25,000 — and degrades at
+    // (0, 1,000,001). It passes BOTH halves here exactly. The fold is killed
+    // by LL-17 quadrant 1 and by LL-10's first half, and by nothing else in
+    // this file. Do not read LL-1 as covering ADR-0019 Decision 3.
+    expect(
+      decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "x".repeat(1_000_000) }),
+    ).toEqual({ action: "allow" });
+
+    // `elements: 0` on a degrade arm is itself the claim that the STRUCTURE
+    // counter did not fire. It is not filler.
+    expect(
+      decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "x".repeat(1_000_001) }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 0,
+      longestLine: 1_000_001,
+      trigger: "line-length",
+    });
+  });
+
+  // --- LL-2 ----------------------------------------------------------------
+  it("LL-2: regression — the measured defect shape degrades and reports its exact longest line", () => {
+    // S1, one concrete measured point; it claims nothing about neighbours.
+    //
+    // This reproduces the SHAPE of `very-long-line.source.md` (9,961,475 B,
+    // structure score 3, longest line 7,583,742), NOT the fixture — nothing is
+    // read from disk. Total input here is 7,583,747 code units.
+    //
+    // The 259,483 ms Milkdown mount measured on that fixture is CONTEXT for
+    // why the threshold exists. It is never a gate: no duration is asserted,
+    // no `timeout:` is set, and the input's size is a SIZE claim only.
+    //
+    // Under the shipped D6.3(c) predicate this document scored 3 and was
+    // ALLOWED — the protection regression ADR-0019 Context measures.
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "x".repeat(7_583_742) + "\n" + "x\n" + "x\n",
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 3,
+      longestLine: 7_583_742,
+      trigger: "line-length",
+    });
+  });
+
+  // --- LL-3 ----------------------------------------------------------------
+  it("LL-3: the other side of the measured interval — 359,285 on one line stays allowed", () => {
+    // S1. 359,285 is the measured longest line of `very-long-line.wysiwyg.md`
+    // (ADR-0019 Context table), the ALLOWED observation the threshold sits
+    // 2.8x above. It is NOT the same number as N14's synthetic `veryLongLine`,
+    // which is built from that fixture's 471,845-byte first line. Two
+    // different numbers for the same fixture, both legitimate.
+    const fragment = "x".repeat(359_285);
+
+    const result = decideLargeDocumentGuard({ viewMode: "wysiwyg", content: fragment });
+    expect(result).toEqual({ action: "allow" });
+    expect(Object.keys(result)).toEqual(["action"]);
+
+    // The margin half is what stops this being satisfied by "allow
+    // everything": the line length is observed exactly, at a document that
+    // degrades on structure.
+    expect(longestLineAfter(fragment)).toBe(359_285);
+  });
+
+  // --- LL-4 ----------------------------------------------------------------
+  it('LL-4: both counters fire — `trigger: "both"`', () => {
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "\n".repeat(25_001) + "x".repeat(1_000_001),
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 25_001,
+      longestLine: 1_000_001,
+      trigger: "both",
+    });
+  });
+
+  // --- LL-5 ----------------------------------------------------------------
+  it('LL-5: a `trigger: "structure"` degrade still reports its REAL longest line', () => {
+    // S1, two named corpus shapes. An implementation that hard-codes
+    // `longestLine: 0` on the structure arm dies here.
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "- item\n".repeat(32_657),
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 32_657,
+      longestLine: 6,
+      trigger: "structure",
+    });
+
+    // `| a | b | c | d |` is 17 UTF-16 code units: 5 pipes + 4 letters + 8
+    // spaces. The same 17 appears in G5'(b), N6, N14 and N16 for this string.
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "| a | b | c | d |\n".repeat(11_438),
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 57_190,
+      longestLine: 17,
+      trigger: "structure",
+    });
+  });
+
+  // --- LL-6 ----------------------------------------------------------------
+  it("LL-6: the final line counts even with no trailing newline (contract answer 8)", () => {
+    // Kills the implementation whose max is only ever updated inside the `\n`
+    // arm: without the post-loop flush it reports `longestLine: 1` and ALLOWS
+    // — a silent protection hole. LL-1's second half is the independent second
+    // kill of the same mutant (there the document has no `\n` at all).
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "a\n" + "x".repeat(1_000_001),
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 1,
+      longestLine: 1_000_001,
+      trigger: "line-length",
+    });
+  });
+
+  // --- LL-7 ----------------------------------------------------------------
+  it("LL-7: the longest line is not the last line", () => {
+    // Kills "last line wins" and "longestLine = currentLine at end of scan",
+    // both of which report 5 here and ALLOW.
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "x".repeat(1_000_001) + "\nshort",
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 1,
+      longestLine: 1_000_001,
+      trigger: "line-length",
+    });
+  });
+
+  // --- LL-8 ----------------------------------------------------------------
+  it("LL-8: the line counter RESETS per line — total length over the cut, every line under it", () => {
+    // S4. The partition: "total length above the threshold, every individual
+    // line at or below it ⇒ allow". Represented by its defining member.
+    //
+    // `longestLine = content.length`, a `currentLine` never zeroed in the `\n`
+    // arm, and a smuggled-back byte term all report 1,200,002 and DEGRADE.
+    // N3 familyTwo is the second independent kill.
+    const doc = ("x".repeat(600_000) + "\n").repeat(2); // 1,200,002 units, lines of 600,000
+
+    const result = decideLargeDocumentGuard({ viewMode: "wysiwyg", content: doc });
+    expect(result).toEqual({ action: "allow" });
+    expect(Object.keys(result)).toEqual(["action"]);
+
+    // Without this exact number, "allow everything" passes the half above.
+    expect(longestLineAfter("x".repeat(600_000) + "\n" + "x".repeat(600_000) + "\n")).toBe(
+      600_000,
+    );
+  });
+
+  // --- LL-9 ----------------------------------------------------------------
+  it("LL-9: space, tab and pipe all count toward line length (contract answer 10)", () => {
+    // S4, the equivalence class "characters the SCORING chain treats
+    // specially": space and tab fall through every arm of the if/else chain,
+    // and a pipe at line start cancels its own contribution.
+    //
+    // THE SINGLE MOST LIKELY IMPLEMENTATION SLIP THIS FILE GUARDS: placing
+    // `currentLine++` INSIDE the scoring if/else chain. Space and tab fall
+    // through that chain, so they would be silently unmeasured and the first
+    // two rows would ALLOW. The increment must sit OUTSIDE the chain.
+    const rows: Array<{ content: string; expected: LargeDocumentGuardDecision; label: string }> =
+      [
+        {
+          content: " ".repeat(1_000_001),
+          label: "1,000,001 spaces — score 0, never leaves the line-start state",
+          expected: {
+            action: "degrade-to-source",
+            message: EXPECTED_MESSAGE,
+            elements: 0,
+            longestLine: 1_000_001,
+            trigger: "line-length",
+          },
+        },
+        {
+          content: "\t".repeat(1_000_001),
+          label: "1,000,001 tabs — same class as space",
+          expected: {
+            action: "degrade-to-source",
+            message: EXPECTED_MESSAGE,
+            elements: 0,
+            longestLine: 1_000_001,
+            trigger: "line-length",
+          },
+        },
+        {
+          content: "|".repeat(1_000_001),
+          label: "1,000,001 pipes — 1,000,001 pipes minus the one row start",
+          expected: {
+            action: "degrade-to-source",
+            message: EXPECTED_MESSAGE,
+            elements: 1_000_000,
+            longestLine: 1_000_001,
+            trigger: "both",
+          },
+        },
+      ];
+
+    // Pushed UNWRAPPED with labels in a parallel array (the G22' aliased-
+    // singleton hole); asserted after the loop.
+    const results: LargeDocumentGuardDecision[] = [];
+    const labels: string[] = [];
+    for (const row of rows) {
+      results.push(decideLargeDocumentGuard({ viewMode: "wysiwyg", content: row.content }));
+      labels.push(row.label);
+    }
+
+    expect(results).toHaveLength(rows.length);
+    results.forEach((result, i) => {
+      expect(result, labels[i]).toEqual(rows[i].expected);
+    });
+  });
+
+  // --- LL-10 ---------------------------------------------------------------
+  it("LL-10: one `\\r` straddles the cut — CRLF measures exactly one longer (contract answer 9)", () => {
+    // S2, pinned in ONE direction each so the answer cannot be read either
+    // way. `\r` is an ordinary counted character; the alternative is a
+    // lookback, which is a parsing rule ADR-0016 Decision 1 freezes out.
+    //
+    // THE FIRST HALF IS A NON-OBVIOUS SECOND KILL OF THE ADDITIVE FOLD, and
+    // the half a reader is most likely to dismiss as "just the CRLF case": at
+    // (score 1, line 1,000,000), `1 + 1_000_000/40 = 25_001 > 25_000` would
+    // DEGRADE where allow is required. Together with LL-17 quadrant 1 this is
+    // the complete behavioural defence of ADR-0019 Decision 3.
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "x".repeat(1_000_000) + "\n",
+      }),
+    ).toEqual({ action: "allow" });
+
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "x".repeat(1_000_000) + "\r\n",
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 1,
+      longestLine: 1_000_001,
+      trigger: "line-length",
+    });
+  });
+
+  // --- LL-11 ---------------------------------------------------------------
+  it("LL-11: the unit is UTF-16 code units, not graphemes (ADR-0019 Decision 1)", () => {
+    // S1. 500,001 emoji = 1,000,002 code units on one line. Pins the stated
+    // unit at one point so nobody later reads it as a bug. Escape form per the
+    // file's ESCAPING CONVENTION.
+    //
+    // Switching the scan to `for…of`, `Array.from` or `Intl.Segmenter` counts
+    // code POINTS and reports 500,001 — allowing. The first two also allocate,
+    // so C12 and C13 catch them by source text as well.
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "\u{1F600}".repeat(500_001),
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 0,
+      longestLine: 1_000_002,
+      trigger: "line-length",
+    });
+  });
+
+  // --- LL-12 ---------------------------------------------------------------
+  it("LL-12: degenerate inputs, and the allow arm stays bare", () => {
+    const empty = decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "" });
+    expect(empty).toEqual({ action: "allow" });
+    expect(Object.keys(empty)).toEqual(["action"]);
+
+    expect(
+      decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "\n".repeat(10) }),
+    ).toEqual({ action: "allow" });
+
+    // A document of ONLY newlines has longest line 0, not 1. An off-by-one in
+    // the flush or in the reset reports 1.
+    //
+    // OVERLAP, stated rather than left to be discovered: this row duplicates
+    // the harness self-check and G5'(a). It is kept because this is the
+    // degenerate-input grouping a reader looks for.
+    expect(
+      decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "\n".repeat(25_001) }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 25_001,
+      longestLine: 0,
+      trigger: "structure",
+    });
+  });
+
+  // --- LL-13 ---------------------------------------------------------------
+  const LINE_LENGTH_LADDER = [0, 1, 999_999, 1_000_000, 1_000_001, 1_100_000];
+
+  it("LL-13: L3 — monotone and pointwise-correct over an ascending line-length ladder", () => {
+    // S4, an ordered hand-written domain with the ordering relation itself
+    // asserted (no property library exists in this repo — see the file
+    // header). Mirrors G6' exactly, on the other counter.
+    //
+    // Every row is a SINGLE line, so the structure score is 0 throughout and
+    // the only thing moving is the line length.
+    const results: LargeDocumentGuardDecision[] = [];
+    const labels: string[] = [];
+    for (const n of LINE_LENGTH_LADDER) {
+      results.push(
+        decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "x".repeat(n) }),
+      );
+      labels.push(`lineLength=${n}`);
+    }
+
+    expect(results).toHaveLength(LINE_LENGTH_LADDER.length);
+
+    results.forEach((result, i) => {
+      const n = LINE_LENGTH_LADDER[i];
+      if (n > 1_000_000) {
+        expect(result, labels[i]).toEqual({
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          elements: 0,
+          longestLine: n,
+          trigger: "line-length",
+        });
+      } else {
+        expect(result, labels[i]).toEqual({ action: "allow" });
+      }
+    });
+
+    const degraded = results.map((r) => r.action === "degrade-to-source");
+    const firstTrue = degraded.indexOf(true);
+    if (firstTrue !== -1) {
+      expect(degraded.slice(firstTrue), "no allow after the first degrade").toEqual(
+        degraded.slice(firstTrue).map(() => true),
+      );
+    }
+  });
+
+  // --- LL-14 ---------------------------------------------------------------
+  it("LL-14: L2 — the longest line is the MAX over `\\n`-aligned concatenation", () => {
+    // S5, a metamorphic relation over a hand-crossed domain with NO expected
+    // constant on the right-hand side: all three numbers come from real calls,
+    // so no constant-returning implementation satisfies it pointwise… with one
+    // stated exception, below.
+    //
+    // KNOWN LIMIT, written here rather than left for a reader to find: an
+    // implementation returning `longestLine = 0` always satisfies
+    // `0 === max(0, 0)`. LL-14 is therefore SOUND ONLY IN COMBINATION WITH the
+    // exact-value cases LL-1 / LL-2 / LL-5 / LL-9 / LL-13. It is not
+    // self-sufficient.
+    //
+    // SCOPE NOTE: LL-14 constrains the REPORTED NUMBER. It does not by itself
+    // refute the score-fold — a folding implementation can report an honest
+    // maxing `longestLine` while using it additively in the predicate. LL-17
+    // quadrant 1 and LL-10's first half are what refute the fold.
+    //
+    // PAIRED WITH N4: the score is additive over the same operation, the line
+    // length is a max. An implementation treating the two the same way fails
+    // exactly one of the two.
+    //
+    // `\n`-TERMINATION IS LOAD-BEARING: it is what stops concatenation from
+    // joining A's last line to B's first. Unterminated fragments are
+    // deliberately excluded — the max law does not hold for that shape, and
+    // that is a scope limit, not a gap.
+    const FRAGMENTS: Array<{ name: string; text: string }> = [
+      { name: "F1 bare newline", text: "\n" },
+      { name: "F2 two letters", text: "ab\n" },
+      { name: "F3 table row", text: "| a | b |\n" },
+      { name: "F4 fifty x", text: "x".repeat(50) + "\n" },
+      { name: "F5 CRLF", text: "\r\n" },
+      { name: "F6 indented table row", text: "   | a | b |\n" },
+    ];
+
+    const observed: Array<{ lhs: number; max: number }> = [];
+    const labels: string[] = [];
+    for (const a of FRAGMENTS) {
+      for (const b of FRAGMENTS) {
+        observed.push({
+          lhs: longestLineAfter(a.text + b.text),
+          max: Math.max(longestLineAfter(a.text), longestLineAfter(b.text)),
+        });
+        labels.push(`${a.name} ⧺ ${b.name}`);
+      }
+    }
+
+    expect(observed).toHaveLength(FRAGMENTS.length * FRAGMENTS.length);
+    observed.forEach((row, i) => {
+      expect(row.lhs, labels[i]).toBe(row.max);
+    });
+  });
+
+  // --- LL-15 ---------------------------------------------------------------
+  it("LL-15: L4 — the new fields survive the next call, across DIFFERENT triggers", () => {
+    // The ORDERING is the case, exactly as G22' records: asserting on `first`
+    // before the second call would let a hoisted, per-call-mutated singleton
+    // pass.
+    //
+    // What extends G22': G22' used two STRUCTURE degrades, so an object
+    // mutating only `elements` passed it. Here `trigger` and `longestLine`
+    // must both survive too.
+    const first = decideLargeDocumentGuard({
+      viewMode: "wysiwyg",
+      content: "x".repeat(1_000_001),
+    });
+    const second = decideLargeDocumentGuard({
+      viewMode: "wysiwyg",
+      content: "\n".repeat(25_001),
+    });
+
+    expect(first).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 0,
+      longestLine: 1_000_001,
+      trigger: "line-length",
+    });
+    expect(second).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 25_001,
+      longestLine: 0,
+      trigger: "structure",
+    });
+    expect(first).not.toBe(second);
+  });
+
+  // --- LL-16 ---------------------------------------------------------------
+  it("LL-16: `trigger` agrees with the two reported counters at six points", () => {
+    // S4 — a SIX-POINT consistency check across the payload's own fields, not
+    // a law over a generated domain. It does NOT establish that `trigger` is a
+    // function of the two counters; it kills hard-coded and mis-wired
+    // triggers, which LL-1/4/5/9's four memorised answers leave gaps between.
+    //
+    // Nothing is recomputed from the INPUT here — this is a relation between
+    // three members of one returned payload, not a re-implementation of the
+    // scan.
+    const DOCS: Array<{ content: string; label: string }> = [
+      { content: "\n".repeat(25_001), label: "newlines only (structure)" },
+      { content: "x".repeat(1_000_001), label: "one long line (line-length)" },
+      {
+        content: "\n".repeat(25_001) + "x".repeat(1_000_001),
+        label: "newlines then one long line (both)",
+      },
+      { content: "|".repeat(1_000_001), label: "pipes (both)" },
+      { content: "- item\n".repeat(32_657), label: "many short nodes (structure)" },
+      { content: "a\n" + "x".repeat(1_000_001), label: "short line then long (line-length)" },
+    ];
+
+    const results: LargeDocumentGuardDecision[] = [];
+    const labels: string[] = [];
+    for (const doc of DOCS) {
+      results.push(decideLargeDocumentGuard({ viewMode: "wysiwyg", content: doc.content }));
+      labels.push(doc.label);
+    }
+
+    expect(results).toHaveLength(DOCS.length);
+
+    const observedTriggers: string[] = [];
+    results.forEach((result, i) => {
+      if (result.action !== "degrade-to-source") {
+        throw new Error(`${labels[i]}: expected a degrade decision`);
+      }
+      const structureFired = result.elements > LARGE_DOCUMENT_STRUCTURE_THRESHOLD;
+      const lineFired = result.longestLine > LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD;
+
+      expect(structureFired || lineFired, `${labels[i]}: at least one counter fired`).toBe(
+        true,
+      );
+      expect(result.trigger, `${labels[i]}: trigger agrees with the counters`).toBe(
+        structureFired && lineFired ? "both" : structureFired ? "structure" : "line-length",
+      );
+      observedTriggers.push(result.trigger);
+    });
+
+    expect(new Set(observedTriggers)).toEqual(
+      new Set(["structure", "line-length", "both"]),
+    );
+  });
+
+  // --- LL-17 ---------------------------------------------------------------
+  it("LL-17: the joint boundary corner — all four quadrants around (25,000, 1,000,000)", () => {
+    // S4, the four-quadrant partition of the 2-D decision surface at the one
+    // point where both counters sit exactly on their thresholds.
+    //
+    // ── DO NOT TRIM THIS CASE. ──────────────────────────────────────────────
+    //
+    // THIS IS THE CASE THAT REFUTES THE OPTION ADR-0019 DECISION 3 REJECTS.
+    // The additive fold `score + longestLine / k > 25_000` passes LL-1, LL-2,
+    // LL-4, LL-5, LL-13, LL-14, LL-16 and M4. QUADRANT 1 IS WHERE IT DIES: at
+    // (25,000, 1,000,000) any fold with `k <= 40` sums two individually-allowed
+    // quantities past the threshold and degrades a document the ADR requires
+    // to be allowed — the "two individually-harmless quantities combine into a
+    // degrade that neither observation supports" false positive Decision 3
+    // names in as many words. LL-10's first half is the second, independent
+    // kill. If this case is trimmed as an "extra", Decision 3 goes unenforced
+    // by the entire behavioural suite.
+    //
+    // It also kills: `structureOk && lineOk` written as `structureOk ||
+    // lineOk` (quadrants 2 and 3 would allow — a guard that fires only when
+    // BOTH trigger, i.e. almost never); `<` for `<=` on either axis (quadrant
+    // 1 would degrade); and any implementation that checks only one counter.
+    const QUADRANTS: Array<{
+      content: string;
+      label: string;
+      expected: LargeDocumentGuardDecision;
+    }> = [
+      {
+        content: "\n".repeat(25_000) + "x".repeat(1_000_000),
+        label: "q1 (25,000 / 1,000,000) — both AT threshold, both allow",
+        expected: { action: "allow" },
+      },
+      {
+        content: "\n".repeat(25_001) + "x".repeat(1_000_000),
+        label: "q2 (25,001 / 1,000,000) — structure only",
+        expected: {
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          elements: 25_001,
+          longestLine: 1_000_000,
+          trigger: "structure",
+        },
+      },
+      {
+        content: "\n".repeat(25_000) + "x".repeat(1_000_001),
+        label: "q3 (25,000 / 1,000,001) — line length only",
+        expected: {
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          // NOTE `elements: 25_000` ON A DEGRADE ARM: a degrade may report an
+          // AT-threshold score. That is the claim, not an oversight.
+          elements: 25_000,
+          longestLine: 1_000_001,
+          trigger: "line-length",
+        },
+      },
+      {
+        content: "\n".repeat(25_001) + "x".repeat(1_000_001),
+        // Same input as LL-4 — cross-referenced rather than re-explained.
+        label: "q4 (25,001 / 1,000,001) — both; see LL-4",
+        expected: {
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          elements: 25_001,
+          longestLine: 1_000_001,
+          trigger: "both",
+        },
+      },
+    ];
+
+    const results: LargeDocumentGuardDecision[] = [];
+    const labels: string[] = [];
+    for (const quadrant of QUADRANTS) {
+      results.push(
+        decideLargeDocumentGuard({ viewMode: "wysiwyg", content: quadrant.content }),
+      );
+      labels.push(quadrant.label);
+    }
+
+    expect(results).toHaveLength(QUADRANTS.length);
+    results.forEach((result, i) => {
+      expect(result, labels[i]).toEqual(QUADRANTS[i].expected);
+    });
+
+    // Quadrant 1 allows, so its arm must also be bare.
+    expect(Object.keys(results[0]), labels[0]).toEqual(["action"]);
   });
 });
 
@@ -1153,5 +2084,49 @@ describe("largeDocumentGuard exported constants (WI-2)", () => {
     expect(LARGE_DOCUMENT_DOWNGRADE_MESSAGE).toMatch(/Source mode/); // says what happened
     expect(LARGE_DOCUMENT_DOWNGRADE_MESSAGE).toMatch(/performance/i); // says why
     expect(LARGE_DOCUMENT_DOWNGRADE_MESSAGE).not.toMatch(/500|KB|byte/i); // revert anchor
+  });
+
+  // --- M4 / LL-1b ----------------------------------------------------------
+  it("M4: the exported line-length constant is live, not a dead symbol", () => {
+    // S2. An exact mirror of G21' for the new threshold, and the BEHAVIOURAL
+    // half of the C8b' source-text pin
+    // `/\blongestLine\s*<=\s*LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD\b/`. The
+    // source-text half alone cannot see a constant that moved AND a comparison
+    // inlined to match; this case can.
+    //
+    // WHAT IT DOES NOT CATCH, recorded so the pair is not over-credited: an
+    // inlined `1_000_000`, or the max-fold `max(score, longestLine / 40) >
+    // 25_000`. Both are output-identical here, so M4 passes against them. Only
+    // C8b's positive regex catches those. M4's claim is that the exported
+    // constant is the one the function actually uses — not that the comparison
+    // is spelled the way the ADR says.
+    expect(LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD).toBe(1_000_000);
+
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "x".repeat(LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD),
+      }),
+    ).toEqual({ action: "allow" });
+
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "x".repeat(LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD - 1),
+      }),
+    ).toEqual({ action: "allow" });
+
+    expect(
+      decideLargeDocumentGuard({
+        viewMode: "wysiwyg",
+        content: "x".repeat(LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD + 1),
+      }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: EXPECTED_MESSAGE,
+      elements: 0,
+      longestLine: LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD + 1,
+      trigger: "line-length",
+    });
   });
 });

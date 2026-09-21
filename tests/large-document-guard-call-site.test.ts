@@ -60,8 +60,17 @@
  *
  * ── WHERE THE BEHAVIOURAL WEIGHT ACTUALLY SITS ─────────────────────────────
  *
- *   - `tests/large-document-guard.test.ts` — 33 executable Level 1/S1-S6 cases
- *     over the predicate itself (count measured 2026-09-21, not estimated).
+ *   - `tests/large-document-guard.test.ts` — 51 executable Level 1/S1-S6 cases
+ *     over the predicate itself (count measured 2026-09-21 from the run, not
+ *     estimated; was 33 before D6.3(d) added the longest-line family).
+ *
+ * ── D6.3(d), 2026-09-21: THE PREDICATE GAINED A SECOND TRIGGER ─────────────
+ *
+ * `docs/adr/0019-large-document-guard-adds-a-longest-line-trigger.md` EXTENDS
+ * ADR-0016; it does not supersede it. Every invariant ADR-0016 Decision 1
+ * froze still holds, and this file is where three of them are enforced: C12
+ * (constant auxiliary space), C13 (one forward pass — NEW, and the only thing
+ * anywhere that checks it), C8b' (the thresholds have exactly one home each).
  *   - Runtime wiring is MANUAL QA: in `pnpm tauri dev`, open a structurally
  *     heavy `.md` — the corpus from `scripts/perf/generate-corpus.mjs` is the
  *     intended source, `large-table.wysiwyg.md` and `many-short-nodes.wysiwyg.md`
@@ -456,13 +465,39 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     // a pure count.
     expect(code).toMatch(/\bscore\s*<=\s*LARGE_DOCUMENT_STRUCTURE_THRESHOLD\b/);
 
+    // 1-new — the SAME positive pin for the second comparison, added by
+    // D6.3(d) / ADR-0019 Decision 2. Without it the second `<=` counted below
+    // would be unattributed: the count would rise to 2 and nothing would say
+    // WHICH comparison the new one is. Together the two positive pins make the
+    // count meaningful rather than merely larger.
+    //
+    // This assertion is also load-bearing in a way its sibling is not. A
+    // `max(score, longestLine / k) > THRESHOLD` fold is BEHAVIOURALLY
+    // IDENTICAL to the two-threshold predicate — it passes every case in
+    // `tests/large-document-guard.test.ts`, including LL-17 and M4. This
+    // positive pin is the only thing in the suite that catches it, and it is
+    // what keeps ADR-0019 Decision 3 ("the new counter gets its own
+    // comparison; it is NOT folded into the structure score") enforced rather
+    // than merely written down.
+    expect(code).toMatch(
+      /\blongestLine\s*<=\s*LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD\b/,
+    );
+
     // 2 — EXACT `<=` count, stated as a named number, never loosened. If the
     // scan legitimately acquires a second `<=`, this number is RAISED together
     // with a stated reason; it is never relaxed to `toBeGreaterThan(0)`. (Plan
     // risk 15.) Verified against the shipped shape: a
     // `for (let index = 0; index < length; index++)` loop and
     // `code === CHAR_SPACE || code === CHAR_TAB` introduce no `<=`, so 1 holds.
-    const EXPECTED_LTE_COUNT = 1;
+    //
+    // RAISED 1 → 2 on 2026-09-21 by D6.3(d), with the reason this case
+    // demands: ADR-0019 Decision 2 adds a SECOND threshold
+    // (`LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD`) that keeps the `<=` allow
+    // direction on purpose, so that a document sitting exactly on either
+    // boundary still opens. Two thresholds, two `<=`, each pinned positively
+    // above. This is the sanctioned path the paragraph above describes — a
+    // raise with a stated reason — and not a relaxation.
+    const EXPECTED_LTE_COUNT = 2;
     expect(code.match(/<=/g) ?? []).toHaveLength(EXPECTED_LTE_COUNT);
 
     // 3 — NO comparison against a bare number, in either direction. This is the
@@ -511,10 +546,30 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     const literals = (code.match(/0x[0-9a-fA-F]+|\b\d[\d_]*\b/g) ?? []).filter(
       (literal) => literal !== "0",
     );
+    // WIDENED 5 → 6 entries on 2026-09-21 by D6.3(d). Read the distinction
+    // carefully, because this case exists to prevent a widening: the entry
+    // added is `1_000_000`, a THRESHOLD CONSTANT sanctioned by a new accepted
+    // record (ADR-0019 Decision 2). It is NOT a fifth character code. The
+    // warning this case carries — "the multiset must NOT be widened to admit
+    // them; the remedy is a new ADR, not a longer allowlist" — is aimed at
+    // character codes smuggled in as a shortcut, and it is honoured here: the
+    // remedy WAS a new ADR. A sixth entry that is a character code, or a
+    // threshold with no ADR behind it, is still the failure this case catches.
+    //
+    // The `filter(l => l !== "0")` above is now MORE load-bearing, not less:
+    // the implementation adds `let currentLine = 0;` and `let longestLine = 0;`,
+    // i.e. two further zeros. The rationale for dropping `0` is unchanged (a
+    // `0` pressed into service as a threshold is still caught by assertion 3).
     expect([...literals].sort()).toEqual(
-      ["10", "124", "25_000", "32", "9"].sort(),
+      ["10", "124", "1_000_000", "25_000", "32", "9"].sort(),
     );
     expect(literals.filter((literal) => literal === "25_000")).toHaveLength(1);
+    // Same multiplicity discipline for the new threshold: exactly one home.
+    // A second `1_000_000` anywhere in the module means the constant has been
+    // inlined somewhere, which is the D6.2 failure this whole case describes.
+    expect(
+      literals.filter((literal) => literal === "1_000_000"),
+    ).toHaveLength(1);
 
     // The two spellings the literal regex cannot see.
     expect(code).not.toMatch(/\d(?:\.\d+)?e[+-]?\d+/i);
@@ -569,11 +624,26 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     // guarantee. The stronger anchor was traded for the stronger invariant,
     // deliberately.
     //
-    // THIS IS THE ONLY AVAILABLE ENFORCEMENT of ADR-0016's frozen invariants
-    // (one forward pass, constant auxiliary space, no Markdown parsing, no
-    // tokenizer). Behavioural pairing: G18' (`content` read exactly once) is
-    // the behavioural half, and it is explicitly a PARTIAL half —
-    // `input.content.split("\n")` also reads the property exactly once.
+    // CORRECTED 2026-09-21 (D6.3(d)). This case USED to claim it was "the only
+    // available enforcement" of ALL of ADR-0016's frozen invariants. That was
+    // a false-coverage claim of exactly the kind the recorded blind spot below
+    // warns about, and it hid a real hole for a full release: C12 counts
+    // ALLOCATIONS, and a second forward pass allocates nothing. The claim
+    // splits three ways, and each part has a different home:
+    //
+    //   - constant auxiliary space → C12 (this case).
+    //   - one forward pass         → C13 (immediately below). C12 CANNOT see
+    //     loop count: its only positive assertion is the presence check
+    //     `toMatch(/\.charCodeAt\(/)`, which a two-loop scan satisfies twice
+    //     over.
+    //   - no Markdown parsing / no tokenizer → N17 and N1 rows 23/24 in
+    //     `tests/large-document-guard.test.ts` (behavioural tripwires), plus
+    //     the recorded blind spot below.
+    //
+    // Behavioural pairing: G18' (`content` read exactly once) is the
+    // behavioural half, and it is explicitly a PARTIAL half —
+    // `input.content.split("\n")` also reads the property exactly once, and
+    // G18' says so itself.
     //
     // RECORDED BLIND SPOT: C12 is blind to a parsing rule that adds no
     // allocation. A one-character lookback skipping `\|`, a boolean tracking
@@ -582,6 +652,83 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     // its own; N17 and N1 rows 23/24 in tests/large-document-guard.test.ts are
     // the behavioural tripwires for exactly that class. Claiming C12 alone
     // enforces Decision 1 is a false-coverage claim.
+  });
+
+  it("C13: the scan is ONE loop, by source inspection", () => {
+    const code = moduleCodeWithoutComments();
+
+    // WHY THIS CASE EXISTS, AND WHY IT CANNOT BE BEHAVIOURAL.
+    //
+    // The mutant it kills: keep the existing scoring loop byte-for-byte, add a
+    // SECOND `for` loop over the same `content` that computes `longestLine`,
+    // then decide identically. That implementation is OUTPUT-IDENTICAL at
+    // every input. All 51 behavioural cases in
+    // `tests/large-document-guard.test.ts` pass against it by construction, at
+    // every assertion level, for any input anyone can construct. No
+    // behavioural test can distinguish one pass from two — only the source
+    // text can. This is the same argument that justifies C12's allocation
+    // blacklist, and it is stated in the same terms deliberately: the two are
+    // the same kind of instrument, guarding the same ADR.
+    //
+    // It is also the mutant most likely to actually happen, because a second
+    // clean loop is the SAFEST-LOOKING way to add the counter — it leaves the
+    // already-proven scoring loop untouched.
+    //
+    // What it costs in practice, stated so the trade is visible: a genuinely
+    // needed refactor splitting the scan into two named passes goes red here
+    // and requires an ADR. That is the intended cost. ADR-0016 Decision 1
+    // froze "one forward pass"; ADR-0019's Status says it leaves that invariant
+    // intact. An anchor that let a second pass through silently would make
+    // both of those statements false while the suite stayed green.
+    //
+    // And the cost of NOT having it is real, not hypothetical: the guard's
+    // whole justification is being cheap enough to run on every document up to
+    // the 10 MB limit, and the shape that motivated ADR-0019 —
+    // `very-long-line.source.md`, 9,961,475 bytes — is exactly where doubling
+    // the work hurts most.
+
+    // Exact counts, named, in the same raise-with-a-reason form as
+    // `EXPECTED_LTE_COUNT` above. NEVER relaxed to `toBeGreaterThanOrEqual(1)`.
+    // If a future change legitimately needs a second loop, this constant is
+    // RAISED together with a stated reason AND an ADR superseding ADR-0016
+    // Decision 1's "one forward pass". The point of the anchor is that a
+    // second pass must be ARGUED FOR, not slipped in.
+    const EXPECTED_FOR_LOOP_COUNT = 1;
+    expect(code.match(/\bfor\s*\(/g) ?? []).toHaveLength(
+      EXPECTED_FOR_LOOP_COUNT,
+    );
+
+    // C12's `toMatch(/\.charCodeAt\(/)` stays and answers a DIFFERENT question
+    // — "does it read by index at all". This counts the sites. A two-loop scan
+    // satisfies C12's presence check twice over and fails here.
+    const EXPECTED_CHAR_CODE_AT_COUNT = 1;
+    expect(code.match(/\.charCodeAt\s*\(/g) ?? []).toHaveLength(
+      EXPECTED_CHAR_CODE_AT_COUNT,
+    );
+
+    // Prohibitions, not counts, because zero is the only legitimate number: a
+    // second pass written as `while` or `do` would otherwise slip past a
+    // `for`-only count.
+    expect(code).not.toMatch(/\bwhile\s*\(/);
+    expect(code).not.toMatch(/\bdo\s*\{/);
+
+    // And the loop count above must not be satisfiable by swapping the index
+    // loop for an iterator loop. C12 already forbids the ALLOCATION a `for…of`
+    // implies (one fresh one-code-point string per character); this forbids
+    // the form directly.
+    expect(code).not.toMatch(
+      /\bfor\s*\(\s*(?:const|let|var)\s+\w+\s+(?:of|in)\b/,
+    );
+
+    // BEHAVIOURAL PAIR: NONE, AND THERE CANNOT BE ONE — see the opening note.
+    // Every other source-text anchor in this file names a behavioural half;
+    // this one names its absence, because claiming a pair it does not have is
+    // the false-coverage failure that let the two-loop hole survive in the
+    // first place.
+    //
+    // It is NOT wiring-only: renaming a variable, reordering the constant
+    // block, or reformatting all leave it green. Only the loop structure moves
+    // it.
   });
 
   it("C9: the allow arm does nothing, and the arms are in the order C4 assumes", () => {

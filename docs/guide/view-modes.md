@@ -49,8 +49,9 @@ export type ViewMode = "wysiwyg" | "source";
 ```
 
 - Full-width source editing with syntax highlighting
-- Used automatically for structurally large documents (score >25,000 — see
-  [Large Document Protection](#large-document-protection))
+- Used automatically for structurally large documents (score >25,000) and for
+  documents with a line longer than 1,000,000 characters — see
+  [Large Document Protection](#large-document-protection)
 - Escape hatch for structural edits that benefit from seeing raw Markdown
 
 ## Implementation
@@ -151,13 +152,24 @@ Stored preferences from the old 4-mode model are migrated on load:
 
 ### Large Document Protection
 
-A document whose **source structure score** exceeds 25,000 automatically
-switches to source mode. The score is `newlines + (pipes - table-row-starts)`
-— roughly "lines plus table cells" — computed in one forward pass over the
-content with no Markdown parsing. File size is **not** part of the judgement;
+A document switches to source mode automatically when **either** of two counts
+crosses its threshold:
+
+| Count | Threshold | What it is |
+|-------|-----------|------------|
+| Source structure score | 25,000 | `newlines + (pipes - table-row-starts)` — roughly "lines plus table cells" |
+| Longest line | 1,000,000 | The longest run of UTF-16 code units between newlines |
+
+Both are computed in the **same single forward pass** over the content, with no
+Markdown parsing and no allocation. File size is **not** part of the judgement;
 it was, until 2026-09-21, and it let a 471,880 B table document that blocks
 the main thread for 12 seconds through. See
-[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md).
+[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md)
+for the structure score and
+[ADR-0019](../adr/0019-large-document-guard-adds-a-longest-line-trigger.md) for
+the line-length trigger, which was added after a 10 MB single-line document —
+structure score 3, so the score alone let it through — was measured taking 259
+seconds to mount.
 
 ```typescript
 useEffect(() => {

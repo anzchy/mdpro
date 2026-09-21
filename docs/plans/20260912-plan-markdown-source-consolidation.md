@@ -731,7 +731,7 @@ ADR-0006 移除了总量里的一项（`micromark-extension-gfm-table` 的二次
 | --- | --- | --- |
 | **D6.1** | **真机 sweep**：在 WKWebView（`pnpm tauri dev` 或打包档）上重测 `large-table.wysiwyg`（471,880 B / 单表 **45,744** 单元格）在 micromark 升级**之后**的 PM mount 与模式切换耗时，并至少再取两个单元格数不同的点（建议 ~1/4 与 ~1/2 规模），以便看出耗时随单元格数的增长形状。**测量条件必须与门禁二记录 `:9-22` 对齐**（机器、电源状态、构建类型），否则两组数不可比。 | **只有用户能做。**本仓无任何自动化手段可测 WYSIWYG 渲染耗时 —— `.claude/tdd-guardian/config.json` 只有 `unit`（vitest/jsdom）与 `rust`（cargo）两条泳道，`package.json` 无 playwright/puppeteer，`scripts/perf/` 只有生成器没有 runner，`src-tauri/tests/perf_render_corpus.rs` 是 `#[ignore]` 且只测 Rust 侧 `render_markdown` / `sanitize_html`。门禁二里每一个 Milkdown 数字都是手工用 Web Inspector 取的（`:66`、`:14-18`）。 |
 | **D6.2** | **定判据与阈值**，并写 ADR-0016 记录取舍（ADR-0006 对 D6 的那条子决议由它取代，ADR-0006 本身不可改）。ADR-0006 已经指明判据变量是**最大单表的单元格数**；D6.2 要定的是**阈值数值**、**多表文档怎么算**（取最大单表还是全文合计）、以及**降级动作**是否仍是「切源码模式 + toast」。<br><br>⚠️ **2026-09-19 补两个此前未登记的问题**，都是 D6.3 抽纯函数时读代码读出来的：<br>④ **陈旧 `fileSize` 压过实时内容。** 判据取 `activeDocument.fileSize ?? 测量(content)`，而 `fileSize` 是**打开时的磁盘大小**。一份 400 KB 打开、在内存里编辑到 600 KB 的文档，护栏仍按 409,600 判，不降级。D6.3 已把这个行为原样钉进表征测试（`tests/large-document-guard.test.ts`，用例标题明写「recorded, not endorsed」），**但它是对是错要 D6.2 裁定**，判据换成单元格数时这个优先级问题会原样重现。<br>⑤ **`App.tsx` 有两条大文件提示路径，紧挨着。** `:504-509` 消费一个来自别处（很可能是 Rust 打开路径）的 `largeFileWarning` 并弹 toast；`:511-532` 是本护栏自己的 toast。**打开一份 600 KB 文档究竟弹一条还是叠两条，今天没有任何测试或文档回答**，jsdom 无布局引擎也测不了。D6.2 既然要裁定「降级动作是否仍是切源码 + toast」，就必须连这条相邻路径一起看，否则裁定的是一个不完整的事实。 | 需要 D6.1 的数 |
-| **D6.3** | **实施 + 测试**。分三段：<br>(a) **抽纯函数 —— 2026-09-20 已完成**。判据现在是 `src/utils/largeDocumentGuard.ts` 的 `decideLargeDocumentGuard`，返回判别联合而不是直接调副作用；`src/App.tsx:511-532` 只剩一个薄调用点。<br>(b) **补规则 10 用例 —— 已完成**。`tests/large-document-guard.test.ts`（23 例，行/分支/函数/语句均 100%）钉住今天的行为，`tests/large-document-guard-call-site.test.ts`（11 例）钉住调用点形状（阈值常量与 toast 文案都不得回流 `App.tsx`，判别联合必须穷尽）。**这两组是表征测试，记录现状，不背书现状。**<br>(c) **按 D6.2 的结论改判据 —— 2026-09-21 已完成**。四项冻结全部解冻并落地：判据变量改为结构分 `换行数 + (竖线数 - 表格行起始数)`，阈值 `500 * 1024` → `LARGE_DOCUMENT_STRUCTURE_THRESHOLD = 25_000`，`<=` 放行方向保留（ADR-0016 明令），降级动作维持「toast + 切源码」但文案改为「This document is too complex for WYSIWYG. Switched to Source mode for performance.」；`fileSize` 从 `LargeDocumentGuardInput` 整体删除。两个测试文件按新判据重写。详见下方「进度（2026-09-21）」。 | (a)(b)(c) 均已完成；**D6 本身仍不关**，等 3.8 真机出口复测 |
+| **D6.3** | **实施 + 测试**。分三段：<br>(a) **抽纯函数 —— 2026-09-20 已完成**。判据现在是 `src/utils/largeDocumentGuard.ts` 的 `decideLargeDocumentGuard`，返回判别联合而不是直接调副作用；`src/App.tsx:511-532` 只剩一个薄调用点。<br>(b) **补规则 10 用例 —— 已完成**。`tests/large-document-guard.test.ts`（23 例，行/分支/函数/语句均 100%）钉住今天的行为，`tests/large-document-guard-call-site.test.ts`（11 例）钉住调用点形状（阈值常量与 toast 文案都不得回流 `App.tsx`，判别联合必须穷尽）。**这两组是表征测试，记录现状，不背书现状。**<br>(c) **按 D6.2 的结论改判据 —— 2026-09-21 已完成**。四项冻结全部解冻并落地：判据变量改为结构分 `换行数 + (竖线数 - 表格行起始数)`，阈值 `500 * 1024` → `LARGE_DOCUMENT_STRUCTURE_THRESHOLD = 25_000`，`<=` 放行方向保留（ADR-0016 明令），降级动作维持「toast + 切源码」但文案改为「This document is too complex for WYSIWYG. Switched to Source mode for performance.」；`fileSize` 从 `LargeDocumentGuardInput` 整体删除。两个测试文件按新判据重写。详见下方「进度（2026-09-21）」。<br>(d) **补最长行判据 —— 2026-09-21 已完成**。(c) 落地当天的真机复测发现 (c) 自己引入了一次**保护倒退**：`very-long-line.source.md`（9 961 475 B、4 行、结构分 3）在旧字节判据下会被拦下，在结构分判据下却被放行，而它实测冷开挂起 **259 483 ms**。[ADR-0019](../adr/0019-large-document-guard-adds-a-longest-line-trigger.md) 补上第二个计数器 `longestLine`（UTF-16 码元）与第二条阈值 `LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD = 1_000_000`，`<=` 放行，**任一条超了就降级**；两个计数在**同一趟前向扫描**里算完，ADR-0016 Decision 1 冻结的四项不变量（一趟扫描、常数辅助空间、不解析 Markdown、不分词）全部保持，所以 ADR-0019 是**扩展而非取代**。降级载荷加了 `longestLine` 与 `trigger: "structure" | "line-length" | "both"` 两个字段，放行分支仍然不带任何数字。toast 文案未动 —— 「too complex for WYSIWYG」对两个触发器都成立。测试：`tests/large-document-guard.test.ts` 51 例、`tests/large-document-guard-call-site.test.ts` 13 例，全绿，判据模块行/分支/函数/语句仍 100%（22 个分支）。 | (a)(b)(c)(d) 均已完成；**D6 本身仍不关**，等 3.8 真机出口复测 |
 
 #### 实施前必须知道的三件事
 
@@ -794,9 +794,16 @@ ADR-0016 明列它两个方向都会错 —— 围栏代码块里的 `|` 高估�
 1. **3.8 出口复测** —— 逐面、不得汇总（ADR-0004），只能由用户在真机跑。
 2. **阈值的证据很薄** —— 五份语料字节数全部挤在 471 862–473 540 B，各一次有效测量，
    同一台机器。换体量或换机器是否仍落在 20 664 与 32 657 之间，没有数据。
-3. **对行内结构失明** —— `very-long-line.source.md` 9 961 475 B、4 行，结构分只有 3，
-   新判据**放行**而旧字节判据会拦。ADR-0016 接受这个倒挂（该语料实测阻塞 0 ms），
-   但这意味着护栏对它看不见的那一类重文档不提供任何保护。
+3. **对行内结构失明（2026-09-21 已实测，并已补判据）** —— `very-long-line.source.md`
+   9 961 475 B、4 行，结构分只有 3，新判据**放行**而旧字节判据会拦。ADR-0016 当时接受
+   这个倒挂，依据是「该语料实测阻塞 0 ms」——**这句话是错的**：那 0 ms 是 D6.1 测的
+   471 862 B 的 `.wysiwyg` 变体，不是 9 961 475 B 的 `.source` 变体，两者差 21 倍，
+   后者当时根本没测过。真机补测（`docs/test/20260921-d5-d6-real-device-measurement.md`）
+   给出的数字是 **259 483 ms（4 分 19 秒）** 挂起、UI 至少 120 s 不可读、CPU 98.5–100%，
+   `JSC::JSObject::countElements` 占栈顶 11 175 次。也就是说 D6.3(c) 自己引入了一次
+   **保护倒退**。[ADR-0019](../adr/0019-large-document-guard-adds-a-longest-line-trigger.md)
+   补上独立的最长行判据（1 000 000 UTF-16 码元，`<=` 放行）堵住这一类；它**扩展**而非取代
+   ADR-0016。剩余的失明面（多条各 90 万字符的行）仍然存在，见 ADR-0019 的 Consequences。
 4. **误判不留痕** —— 降级只弹 toast，`~/.mdpro/mdpro.log` 里没有对应事件，
    一次误降级在日志里查不到。这与 CLAUDE.md 的日志规则相抵，但不在 ADR-0016 的范围内，
    单独挂账。

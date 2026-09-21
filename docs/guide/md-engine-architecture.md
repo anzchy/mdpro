@@ -119,12 +119,16 @@ View mode preference is persisted via Tauri preferences API and restored on app 
 
 ### 4. Large Document Protection
 
-Documents whose source structure score — `newlines + (pipes - table-row-starts)`,
-roughly lines plus table cells — exceeds 25,000 automatically switch to Source mode
-to prevent Milkdown performance issues (`App.tsx`, predicate in
-`src/utils/largeDocumentGuard.ts`). File size stopped being the judgement variable
-on 2026-09-21; see
-[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md).
+Documents automatically switch to Source mode, to prevent Milkdown performance
+issues, when **either** their source structure score —
+`newlines + (pipes - table-row-starts)`, roughly lines plus table cells —
+exceeds 25,000, **or** their longest single line exceeds 1,000,000 UTF-16 code
+units (`App.tsx`, predicate in `src/utils/largeDocumentGuard.ts`). Both counts
+come from one forward pass. File size stopped being the judgement variable on
+2026-09-21; see
+[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md)
+and
+[ADR-0019](../adr/0019-large-document-guard-adds-a-longest-line-trigger.md).
 
 ## File Structure
 
