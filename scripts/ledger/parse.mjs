@@ -274,3 +274,19 @@ export function checkCoverage(declaredNames, markdown) {
       finding("coverage", `账簿未覆盖 ${entry.kind} "${entry.name}"（来源 ${entry.source}）`),
     );
 }
+
+/**
+ * A bare `|` inside a code span silently truncates the cell: GFM splits a row
+ * on pipes BEFORE resolving inline code, so everything after it vanishes from
+ * the rendered HTML while the row still parses with four valid cells and every
+ * other rule passes. `` `\|` `` renders as a literal pipe and keeps the cell
+ * whole. Table rows only — in prose a pipe splits nothing.
+ */
+export function checkNoRawPipeInCode(markdown) {
+  return markdown.split("\n").flatMap((line, i) => {
+    if (!line.trimStart().startsWith("|")) return [];
+    const span = (line.match(/`[^`]*`/g) ?? []).find((m) => /(^|[^\\])\|/.test(m));
+    const msg = `代码片段 ${span} 里的竖线会把这一格截断 —— 写成 \`\\|\``;
+    return span === undefined ? [] : [finding("no-raw-pipe-in-code", msg, i + 1)];
+  });
+}

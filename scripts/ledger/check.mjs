@@ -30,6 +30,7 @@ import {
   checkCoverage,
   checkNoBuildOutputs,
   checkNoLineNumbers,
+  checkNoRawPipeInCode,
   checkPartialHasLimit,
   checkStates,
   extractPathClaims,
@@ -85,6 +86,7 @@ function main() {
     ...checkAbsentWhere(rows),
     ...checkNoLineNumbers(claims),
     ...checkNoBuildOutputs(claims),
+    ...checkNoRawPipeInCode(markdown),
     ...checkPathsResolve(claims),
     ...coverageFindings,
   ];

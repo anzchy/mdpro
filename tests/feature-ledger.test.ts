@@ -25,6 +25,7 @@ import {
   checkCoverage,
   checkNoBuildOutputs,
   checkNoLineNumbers,
+  checkNoRawPipeInCode,
   checkPartialHasLimit,
   checkStates,
   extractPathClaims,
@@ -293,5 +294,67 @@ describe("the live feature ledger passes its own gate (WI-3.5.7 case D1)", () =>
         `大纲侧栏 怎么确认 does not let a reader confirm "${marker}"`,
       ).toContain(marker);
     }
+  });
+});
+
+describe("checkNoRawPipeInCode", () => {
+  // Found the hard way while landing D11: the 大文档性能保护 row contained a
+  // bare pipe inside a code span. In a GFM table that pipe ENDS THE CELL, so
+  // roughly 60% of the longest row in the ledger — every caveat about Source
+  // mode included — was silently absent from the rendered HTML.
+  //
+  // Nothing caught it. The row still parsed, the state was still in the enum,
+  // every path claim still resolved, and `pnpm ledger:check` said 0 findings.
+  // The markdown read correctly and the artifact people actually open was
+  // truncated mid-sentence. This is the check that would have caught it.
+
+  /** A backtick, spelled so these fixtures stay readable inside template literals. */
+  const BT = "\u0060";
+
+  const tableWith = (cell: string) =>
+    [
+      "# t",
+      "",
+      "## s",
+      "",
+      "| 能力 | 状态 | 在哪 | 怎么确认 |",
+      "|---|---|---|---|",
+      `| a | Shipped | ${BT}x.ts${BT} | ${cell} |`,
+    ].join("\n");
+
+  it("flags an unescaped pipe inside a code span", () => {
+    const findings = checkNoRawPipeInCode(tableWith(`围栏里的 ${BT}|${BT} 被当成单元格`));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].rule).toBe("no-raw-pipe-in-code");
+    expect(findings[0].lineNumber).toBe(7);
+  });
+
+  it("accepts the escaped spelling, which is what GFM wants", () => {
+    // `\\|` inside a code span renders as a literal pipe and does not split the
+    // cell. The 源码模式的表格识别范围 row already spells it that way.
+    expect(checkNoRawPipeInCode(tableWith(`写 ${BT}\\| a \\|${BT} 再右键`))).toEqual([]);
+  });
+
+  it("ignores pipes outside code spans — those are the cell separators", () => {
+    expect(checkNoRawPipeInCode(tableWith("普通文字，没有反引号"))).toEqual([]);
+  });
+
+  it("ignores code spans outside a table", () => {
+    // Prose is not split by pipes, so demanding an escape there would be noise.
+    expect(checkNoRawPipeInCode(`正文里的 ${BT}a | b${BT} 不该报`)).toEqual([]);
+  });
+
+  it("reports every offending row, not only the first", () => {
+    const md = [tableWith(`${BT}|${BT}`), tableWith(`${BT}|${BT}`)].join("\n");
+
+    expect(checkNoRawPipeInCode(md).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("the shipped ledger is clean", () => {
+    // REGRESSION — the real file, not a fixture. Red before the escape landed.
+    const markdown = fs.readFileSync(path.join(REPO_ROOT, "docs/feature-ledger.md"), "utf8");
+
+    expect(checkNoRawPipeInCode(markdown)).toEqual([]);
   });
 });
