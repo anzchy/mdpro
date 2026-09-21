@@ -17,27 +17,88 @@ fn log_path() -> Option<PathBuf> {
     Some(dir.join("mdpro.log"))
 }
 
+/// Read-side fallback applied when the logging settings cannot be loaded.
+///
+/// `enabled: false`, and only that field differs from `LogSettings::default()`.
+/// `enabled` is the field carrying a safety meaning: a fail-*open* fallback
+/// silently re-enables logging for a user who turned it off, and because it is
+/// byte-identical to `LogSettings::default()` nothing downstream can tell that
+/// from a healthy fresh install. `level` carries no such meaning and stays at
+/// the ordinary default.
+///
+/// A fresh install does NOT reach this value. `load_preferences`
+/// (`crate::services::preferences`) treats a MISSING config.json as the success
+/// path — it writes defaults and returns `Ok` — so a first launch arrives at
+/// `enabled: true` through the success branch. Reaching this constant means
+/// config.json exists and is genuinely unreadable or unparseable.
+///
+/// Deliberately separate from `LogSettings::default()` rather than a change to
+/// it: `models/log_entry.rs`'s
+/// `default_log_settings_are_enabled_at_info_and_mirror_ts_default_preferences`
+/// pins the default, and the TS default must keep mirroring it. This is the
+/// same shape as the frontend half of the defect, `FAIL_CLOSED_SETTINGS` in
+/// `src/services/loggingService.ts`.
+///
+/// Never persisted — writing it back to config.json would turn a transient read
+/// failure into permanent destruction of the user's real setting.
+const FAIL_CLOSED_SETTINGS: LogSettings = LogSettings {
+    enabled: false,
+    level: LogLevel::Info,
+};
+
+/// Decide the log-settings cache's initial value from the preferences load.
+///
+/// `None` means `load_preferences()` failed. Extracted from `settings_cache`
+/// because that cache is a `OnceLock`: it initialises exactly once per
+/// process, and six other test modules in this crate touch `$HOME` before it
+/// might be reached, so the failure branch is not reachable from a test
+/// through the cache. The decision is the thing worth testing, so the
+/// decision is what got extracted.
+fn resolve_initial_settings(loaded: Option<LogSettings>) -> LogSettings {
+    loaded.unwrap_or(FAIL_CLOSED_SETTINGS)
+}
+
+/// Read the cached settings, recovering the stored value if the mutex is
+/// poisoned.
+///
+/// Takes the cache by reference so a test can poison a local `Mutex` instead
+/// of the process-wide one — poisoning the global cache would leak into every
+/// later test in the same binary.
+fn read_settings(cache: &Mutex<LogSettings>) -> LogSettings {
+    // A poisoned mutex means some other thread panicked while holding it. The
+    // settings behind the lock are untouched by that, so `into_inner` returns
+    // the user's real value. Returning `LogSettings::default()` here was the
+    // same fail-open as the one above, reached by a different trigger.
+    match cache.lock() {
+        Ok(guard) => guard.clone(),
+        Err(poisoned) => poisoned.into_inner().clone(),
+    }
+}
+
+/// Write the cached settings, recovering the guard if the mutex is poisoned.
+fn write_settings(cache: &Mutex<LogSettings>, settings: LogSettings) {
+    // Dropping the write on a poisoned lock leaves the user looking at a
+    // preference that never took effect.
+    match cache.lock() {
+        Ok(mut guard) => *guard = settings,
+        Err(poisoned) => *poisoned.into_inner() = settings,
+    }
+}
+
 fn settings_cache() -> &'static Mutex<LogSettings> {
     static CACHE: OnceLock<Mutex<LogSettings>> = OnceLock::new();
     CACHE.get_or_init(|| {
-        let initial = load_preferences()
-            .map(|prefs| prefs.logging)
-            .unwrap_or_default();
-        Mutex::new(initial)
+        let loaded = load_preferences().map(|prefs| prefs.logging).ok();
+        Mutex::new(resolve_initial_settings(loaded))
     })
 }
 
 pub fn get_log_settings() -> LogSettings {
-    if let Ok(guard) = settings_cache().lock() {
-        return guard.clone();
-    }
-    LogSettings::default()
+    read_settings(settings_cache())
 }
 
 pub fn set_log_settings(settings: LogSettings) {
-    if let Ok(mut guard) = settings_cache().lock() {
-        *guard = settings;
-    }
+    write_settings(settings_cache(), settings);
 }
 
 pub fn should_log(level: LogLevel) -> bool {
@@ -122,6 +183,196 @@ mod tests {
     // file / preferences tests, which also mutate the process-wide HOME.
     use crate::HOME_LOCK;
     use std::fs;
+
+    // ---- D7: the log-settings cache must fail CLOSED ----------------------
+    //
+    // `settings_cache()` used to build its initial value with
+    // `load_preferences().map(..).unwrap_or_default()`, and `LogSettings::default()`
+    // is `enabled: true`. So a user who had explicitly turned logging OFF got it
+    // silently turned back ON whenever their config.json was unreadable — and the
+    // resulting value is byte-identical to a healthy fresh install, so nothing
+    // downstream can tell the two apart.
+    //
+    // Reaching that branch at all means config.json EXISTS and is corrupt:
+    // `load_preferences` (services/preferences.rs) treats a MISSING file as the
+    // success path, writing defaults and returning `Ok`. A first launch never gets
+    // here. That is what makes fail-closed safe rather than merely paranoid — it
+    // cannot silence logging for a new user.
+    //
+    // The frontend half of this defect (D2) was already fixed this way; see
+    // FAIL_CLOSED_SETTINGS in src/services/loggingService.ts. This mirrors it
+    // deliberately, including the choice to leave `LogSettings::default()` alone so
+    // that models/log_entry.rs's
+    // `default_log_settings_are_enabled_at_info_and_mirror_ts_default_preferences`
+    // stays valid.
+    //
+    // R1 is the regression test: it is the one case that fails against
+    // `unwrap_or_default()`.
+
+    #[test]
+    fn r1_a_failed_preferences_load_disables_logging_rather_than_enabling_it() {
+        let resolved = resolve_initial_settings(None);
+
+        assert!(
+            !resolved.enabled,
+            "a failed preferences load must not enable logging; \
+             LogSettings::default() is enabled:true, which is why \
+             unwrap_or_default() was the defect"
+        );
+    }
+
+    #[test]
+    fn r2_a_successful_load_is_passed_through_untouched_including_enabled_true() {
+        // Fail-closed must apply ONLY to the failure branch. If it also clamped
+        // the success branch, logging would never work at all — and R1 alone
+        // cannot tell those two implementations apart.
+        let user = LogSettings {
+            enabled: true,
+            level: LogLevel::Debug,
+        };
+        let resolved = resolve_initial_settings(Some(user.clone()));
+
+        assert!(resolved.enabled, "a successful load must keep enabled:true");
+        assert_eq!(
+            resolved.level.rank(),
+            user.level.rank(),
+            "a successful load must keep the user's level"
+        );
+    }
+
+    #[test]
+    fn r3_a_user_who_disabled_logging_stays_disabled_through_a_successful_load() {
+        let resolved = resolve_initial_settings(Some(LogSettings {
+            enabled: false,
+            level: LogLevel::Warn,
+        }));
+
+        assert!(!resolved.enabled);
+        assert_eq!(resolved.level.rank(), LogLevel::Warn.rank());
+    }
+
+    #[test]
+    fn r4_the_fallback_differs_from_default_on_enabled_and_agrees_on_level() {
+        // Pins WHICH field carries the safety meaning. `enabled` is the one that
+        // can silently contradict a user's explicit choice; `level` cannot, so it
+        // stays at the ordinary default. Without this case, a "fix" that also
+        // dropped the level to Error would pass R1.
+        let fallback = resolve_initial_settings(None);
+        let default = LogSettings::default();
+
+        assert!(
+            default.enabled,
+            "guarding the premise: default IS fail-open"
+        );
+        assert!(
+            !fallback.enabled,
+            "the fallback must flip exactly this field"
+        );
+        assert_eq!(
+            fallback.level.rank(),
+            default.level.rank(),
+            "level carries no safety meaning and must not be changed"
+        );
+    }
+
+    #[test]
+    fn r5_nothing_is_logged_at_any_level_when_the_fallback_is_in_force() {
+        // The point of fail-closed, stated in terms of observable behaviour
+        // rather than a struct field.
+        let fallback = resolve_initial_settings(None);
+
+        for level in [
+            LogLevel::Debug,
+            LogLevel::Info,
+            LogLevel::Warn,
+            LogLevel::Error,
+        ] {
+            assert!(
+                !(fallback.enabled && level.rank() >= fallback.level.rank()),
+                "should_log must be false at {level:?} under the fail-closed fallback"
+            );
+        }
+    }
+
+    // ---- A second fail-open the D7 record did not name --------------------
+    //
+    // `get_log_settings` used to return `LogSettings::default()` when the mutex
+    // was poisoned — the same silent re-enable, different trigger. Fixing only
+    // the `unwrap_or_default()` would leave the defect class alive.
+    //
+    // A poisoned mutex is not a reason to discard the user's setting: the value
+    // behind the lock is still intact, and `PoisonError::into_inner` hands it
+    // over. So this is a correctness fix, not a choice of fallback.
+    //
+    // Both cases poison a LOCAL mutex. Poisoning the process-wide cache would
+    // leak into every later test in this binary.
+
+    fn poisoned_cache(settings: LogSettings) -> Mutex<LogSettings> {
+        let cache = Mutex::new(settings);
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = cache.lock().unwrap();
+            panic!("poison the mutex on purpose");
+        }));
+        assert!(cache.is_poisoned(), "the cache must actually be poisoned");
+        cache
+    }
+
+    #[test]
+    fn r6_reading_a_poisoned_cache_returns_the_stored_settings_not_the_default() {
+        let cache = poisoned_cache(LogSettings {
+            enabled: false,
+            level: LogLevel::Error,
+        });
+
+        let read = read_settings(&cache);
+
+        assert!(
+            !read.enabled,
+            "a poisoned mutex must not resurrect logging the user turned off"
+        );
+        assert_eq!(
+            read.level.rank(),
+            LogLevel::Error.rank(),
+            "the stored level survives the poison; it was never lost"
+        );
+    }
+
+    #[test]
+    fn r7_writing_through_a_poisoned_cache_still_takes_effect() {
+        // The write half of the same defect. Silently dropping a settings write
+        // leaves the user looking at a preference that does not apply.
+        let cache = poisoned_cache(LogSettings::default());
+
+        write_settings(
+            &cache,
+            LogSettings {
+                enabled: false,
+                level: LogLevel::Warn,
+            },
+        );
+
+        let read = read_settings(&cache);
+        assert!(!read.enabled, "the write must not be silently dropped");
+        assert_eq!(read.level.rank(), LogLevel::Warn.rank());
+    }
+
+    #[test]
+    fn r8_an_unpoisoned_cache_round_trips_normally() {
+        // Guards against "fixing" the poison path by ignoring the lock entirely.
+        let cache = Mutex::new(LogSettings::default());
+
+        write_settings(
+            &cache,
+            LogSettings {
+                enabled: true,
+                level: LogLevel::Debug,
+            },
+        );
+
+        let read = read_settings(&cache);
+        assert!(read.enabled);
+        assert_eq!(read.level.rank(), LogLevel::Debug.rank());
+    }
 
     struct HomeRestorer(Option<String>);
     impl Drop for HomeRestorer {
