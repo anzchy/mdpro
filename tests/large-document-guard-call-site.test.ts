@@ -761,4 +761,40 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     // indexOf("showToast(") < indexOf("setViewMode(") over the whole slice —
     // swapping the arm order defeats it, and nothing else pins arm order.
   });
+
+  it("C14: the degrade is logged, from the degrade arm, before the toast", () => {
+    const slice = guardEffectSlice();
+
+    const degradeIdx = slice.indexOf('case "degrade-to-source":');
+    const logIdx = slice.indexOf("buildLargeDocumentDegradeLog(");
+    const toastIdx = slice.indexOf("showToast(");
+
+    expect(degradeIdx).toBeGreaterThan(-1);
+    expect(logIdx).toBeGreaterThan(-1);
+    expect(toastIdx).toBeGreaterThan(-1);
+
+    // In the degrade arm, not above the switch: a call hoisted before the
+    // switch would log every allowed document too, which on a large corpus is
+    // a log line per keystroke-triggered re-run of this effect.
+    expect(degradeIdx).toBeLessThan(logIdx);
+
+    // Before the toast. The toast is transient and the user may never see it;
+    // the log line is the durable record and should not be ordered behind a
+    // call that could throw.
+    expect(logIdx).toBeLessThan(toastIdx);
+
+    // Exactly one call, and it forwards the decision object rather than
+    // rebuilding a payload from re-read fields — re-deriving `elements` or
+    // `trigger` at the call site is how a log ends up disagreeing with the
+    // decision it describes.
+    expect(slice.match(/buildLargeDocumentDegradeLog\(/g) ?? []).toHaveLength(1);
+    expect(slice).toMatch(/buildLargeDocumentDegradeLog\(\s*decision\s*,/);
+
+    // What this case does NOT prove: that the call executes, or that anything
+    // reaches ~/.mdpro/mdpro.log. Source text cannot reach either, and App.tsx
+    // has no rendering test to borrow. The payload's CONTENTS are behavioural
+    // and live in tests/large-document-degrade-log.test.ts; this case is only
+    // the wiring. The allow arm is kept free of the call by C9, which admits
+    // no statement there at all — not restated here.
+  });
 });

@@ -36,6 +36,7 @@ import {
   decideFileChange,
   decideWindowClose,
 } from "./utils/dataLossGuards";
+import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
 import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
@@ -518,6 +519,14 @@ function App() {
       case "allow":
         return;
       case "degrade-to-source":
+        // The degrade used to leave no trace at all, which made "why did it
+        // open in Source mode?" unanswerable from ~/.mdpro/mdpro.log. Logged
+        // before the toast so the record survives a toast the user never saw.
+        // The payload's contents are asserted in
+        // tests/large-document-degrade-log.test.ts; only the wiring is here.
+        loggingService.logEventSync(
+          buildLargeDocumentDegradeLog(decision, loggingService.generateActionId()),
+        );
         showToast(decision.message);
         setViewMode("source");
         return;
