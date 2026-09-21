@@ -90,7 +90,10 @@ Insert text at a specific position.
 **Parameters**:
 - `id` (string): Document ID
 - `text` (string): Text to insert
-- `position` (string): "cursor", "start", "end", or a character offset number
+- `position` (string): "cursor", "start", "end", or an offset number.
+  Offsets are **UTF-16 code units** (ADR-0021) — an emoji counts as 2,
+  not 1 and not its 4 bytes. An offset landing inside a character is
+  snapped down to that character's start.
 
 **Note**: If mdpro is not focused, a confirmation dialog will appear.
 

@@ -43,13 +43,64 @@ fn config_dir() -> Option<PathBuf> {
     dirs::data_dir().map(|d| d.join("mdpro"))
 }
 
-/// Convert a character offset to a byte offset in a UTF-8 string.
-/// Returns `s.len()` if the character offset is beyond the string length.
-fn char_offset_to_byte(s: &str, char_offset: usize) -> usize {
-    s.char_indices()
-        .nth(char_offset)
-        .map(|(byte_idx, _)| byte_idx)
-        .unwrap_or(s.len())
+/// Convert a UTF-16 code-unit offset into a byte offset (ADR-0021).
+///
+/// An offset landing between the two halves of a surrogate pair is snapped
+/// DOWN to that character's start — a position inside a character is not a
+/// position, and snapping up would move the insert past a character the client
+/// explicitly named. Beyond the end of the string, returns `s.len()`.
+fn utf16_offset_to_byte(s: &str, utf16_offset: usize) -> usize {
+    let mut units = 0usize;
+    for (byte_idx, ch) in s.char_indices() {
+        let next = units + ch.len_utf16();
+        if utf16_offset < next {
+            return byte_idx;
+        }
+        units = next;
+    }
+    s.len()
+}
+
+/// Convert a byte offset into a UTF-16 code-unit offset (ADR-0021).
+///
+/// The inverse of `utf16_offset_to_byte`. Its absence is why `new_cursor` was
+/// computed as byte + byte and published as a character offset: there was no
+/// way back.
+fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> usize {
+    let boundary = snap_to_char_boundary(s, byte_offset);
+    s[..boundary].chars().map(char::len_utf16).sum()
+}
+
+/// Resolve an insert request to a byte offset into `content`, plus the cursor
+/// position that will follow the inserted text.
+///
+/// Extracted from the `insert_content` handler so the offset arithmetic can be
+/// unit tested — the handler itself needs an `AppState` and a live Tauri
+/// `AppHandle`. Same reason `discard_and_close` was extracted from
+/// `close_document` in `commands/file.rs`.
+///
+/// Returns `(insert_byte_offset, new_cursor)`.
+fn resolve_insert(
+    content: &str,
+    cursor: usize,
+    position: &InsertPosition,
+    text: &str,
+) -> (usize, usize) {
+    let raw = match position {
+        InsertPosition::Cursor => utf16_offset_to_byte(content, cursor),
+        InsertPosition::Start => 0,
+        InsertPosition::End => content.len(),
+        InsertPosition::Offset(n) => utf16_offset_to_byte(content, *n),
+    };
+    // Belt and braces: utf16_offset_to_byte already lands on a boundary, but
+    // End takes content.len() directly and a future arm might not.
+    let insert_offset = snap_to_char_boundary(content, raw);
+
+    // Both terms in UTF-16 units. This was `insert_offset + text.len()` —
+    // byte + byte — published as a character offset, with no inverse
+    // conversion in the file to have written it correctly with.
+    let new_cursor = byte_offset_to_utf16(content, insert_offset) + text.encode_utf16().count();
+    (insert_offset, new_cursor)
 }
 
 /// Snap a byte offset to the nearest valid UTF-8 char boundary.
@@ -599,19 +650,8 @@ async fn insert_content(
         });
     }
 
-    // Calculate insert byte offset from character offset (per API spec).
-    // InsertPosition::Offset and doc.cursor are character offsets; convert
-    // to byte offsets for Rust String operations. snap_to_char_boundary is
-    // a safety net in case of any remaining mismatch (fixes #345).
-    let insert_offset = match &request.position {
-        InsertPosition::Cursor => char_offset_to_byte(&doc.content, doc.cursor),
-        InsertPosition::Start => 0,
-        InsertPosition::End => doc.content.len(),
-        InsertPosition::Offset(n) => char_offset_to_byte(&doc.content, *n),
-    };
-    let insert_offset = snap_to_char_boundary(&doc.content, insert_offset);
-
-    let new_cursor = insert_offset + request.text.len();
+    let (insert_offset, new_cursor) =
+        resolve_insert(&doc.content, doc.cursor, &request.position, &request.text);
 
     // Get the window label for the document
     let window_label = shadow_store::get_window_for_document(&state.shadow_store, &id)
@@ -1150,39 +1190,202 @@ mod tests {
         assert_eq!(snap_to_char_boundary("", 5), 0);
     }
 
+    // These five predate ADR-0021 and were written against the scalar-based
+    // `char_offset_to_byte`. Every input is BMP, where a scalar and a UTF-16
+    // code unit are the same thing, so re-pointing them at the new converter
+    // changed the name and nothing else — which is the evidence that the unit
+    // change is invisible below the astral plane.
     #[test]
     fn char_offset_ascii() {
-        assert_eq!(char_offset_to_byte("hello", 0), 0);
-        assert_eq!(char_offset_to_byte("hello", 3), 3);
-        assert_eq!(char_offset_to_byte("hello", 5), 5);
+        assert_eq!(utf16_offset_to_byte("hello", 0), 0);
+        assert_eq!(utf16_offset_to_byte("hello", 3), 3);
+        assert_eq!(utf16_offset_to_byte("hello", 5), 5);
     }
 
     #[test]
     fn char_offset_cjk() {
         let s = "你好世界"; // 4 chars, 12 bytes
-        assert_eq!(char_offset_to_byte(s, 0), 0);
-        assert_eq!(char_offset_to_byte(s, 1), 3);
-        assert_eq!(char_offset_to_byte(s, 2), 6);
-        assert_eq!(char_offset_to_byte(s, 3), 9);
-        assert_eq!(char_offset_to_byte(s, 4), 12);
+        assert_eq!(utf16_offset_to_byte(s, 0), 0);
+        assert_eq!(utf16_offset_to_byte(s, 1), 3);
+        assert_eq!(utf16_offset_to_byte(s, 2), 6);
+        assert_eq!(utf16_offset_to_byte(s, 3), 9);
+        assert_eq!(utf16_offset_to_byte(s, 4), 12);
     }
 
     #[test]
     fn char_offset_mixed() {
         let s = "café"; // c(1) a(1) f(1) é(2) = 5 bytes, 4 chars
-        assert_eq!(char_offset_to_byte(s, 3), 3); // start of é
-        assert_eq!(char_offset_to_byte(s, 4), 5); // end
+        assert_eq!(utf16_offset_to_byte(s, 3), 3); // start of é
+        assert_eq!(utf16_offset_to_byte(s, 4), 5); // end
     }
 
     #[test]
     fn char_offset_beyond_length() {
-        assert_eq!(char_offset_to_byte("hi", 100), 2);
+        assert_eq!(utf16_offset_to_byte("hi", 100), 2);
     }
 
     #[test]
     fn char_offset_empty() {
-        assert_eq!(char_offset_to_byte("", 0), 0);
-        assert_eq!(char_offset_to_byte("", 5), 0);
+        assert_eq!(utf16_offset_to_byte("", 0), 0);
+        assert_eq!(utf16_offset_to_byte("", 5), 0);
+    }
+
+    // ---- D10: MCP document offsets are UTF-16 code units (ADR-0021) -------
+    //
+    // The unit was never actually decided. specs/007-mcp-server/data-model.md:27
+    // calls `cursor` a "character offset from start"; seventeen lines later :44
+    // bounds it by `content.len()`, which is BYTES. Rust settled on Unicode
+    // scalars (`char_indices().nth`), the frontend on UTF-16 code units (JS
+    // string indexing, CodeMirror positions). ADR-0021 picks UTF-16 and makes
+    // Rust the side that converts.
+    //
+    // Every pre-existing test of this code uses BMP text ("hello", "你好世界",
+    // "café"), where scalars and UTF-16 units agree exactly — which is why this
+    // survived. The cases below are the ones that can tell them apart.
+
+    fn offset_of(content: &str, position: InsertPosition, text: &str) -> (usize, usize) {
+        resolve_insert(content, 0, &position, text)
+    }
+
+    #[test]
+    fn m1_ascii_is_unaffected_by_the_unit_change() {
+        // Premise guard. On ASCII, bytes, scalars and UTF-16 units all coincide,
+        // so this case passes both before and after — its job is to catch a
+        // "fix" that breaks the overwhelmingly common path.
+        assert_eq!(offset_of("hello", InsertPosition::Offset(2), "XY"), (2, 4));
+    }
+
+    #[test]
+    fn m2_a_multibyte_char_before_the_insert_point_does_not_inflate_the_cursor() {
+        // REGRESSION — D10(a). `new_cursor` was `insert_offset + text.len()`,
+        // both byte counts, published as a character offset. "é" is 2 bytes and
+        // 1 UTF-16 unit, so the reported cursor drifted by one per non-ASCII
+        // character preceding the insertion. A client feeding the value back as
+        // an Offset inserts in the wrong place, and the drift compounds.
+        let (byte_offset, new_cursor) = offset_of("héllo", InsertPosition::Offset(2), "X");
+
+        assert_eq!(byte_offset, 3, "h=1 byte + é=2 bytes");
+        assert_eq!(
+            new_cursor, 3,
+            "after 'h', 'é', 'X' the cursor is at UTF-16 offset 3, not 4 — \
+             4 is what you get by adding byte counts"
+        );
+    }
+
+    #[test]
+    fn m3_an_astral_char_resolves_to_the_utf16_position_not_the_scalar_one() {
+        // REGRESSION — D10(b). "😀" is ONE scalar and TWO UTF-16 units. Under
+        // scalar indexing, offset 2 is the 'b'; under UTF-16 it is the position
+        // immediately after the emoji. Rust and the frontend therefore inserted
+        // the same text at DIFFERENT places in the same document — the shadow
+        // store and the editor genuinely diverge, not just the reported number.
+        let (byte_offset, new_cursor) = offset_of("😀ab", InsertPosition::Offset(2), "X");
+
+        assert_eq!(
+            byte_offset, 4,
+            "UTF-16 offset 2 is just past the emoji (4 bytes), not past 'a'"
+        );
+        assert_eq!(new_cursor, 3, "2 units of emoji + 1 of 'X'");
+    }
+
+    #[test]
+    fn m4_an_offset_inside_a_surrogate_pair_snaps_down_to_the_character_start() {
+        // A position inside a character is not a position. Snapping DOWN matches
+        // what snap_to_char_boundary already does for mid-UTF-8-sequence bytes;
+        // snapping up would move the insert past a character the client named.
+        let (byte_offset, new_cursor) = offset_of("😀ab", InsertPosition::Offset(1), "X");
+
+        assert_eq!(byte_offset, 0, "offset 1 splits the emoji's surrogate pair");
+        assert_eq!(new_cursor, 1, "insert lands at 0, 'X' is 1 unit wide");
+    }
+
+    #[test]
+    fn m5_the_inserted_text_is_measured_in_utf16_units_not_bytes() {
+        // The other half of D10(a): the ADDEND was also a byte count. An emoji
+        // is 4 bytes and 2 UTF-16 units, so inserting one overstated the cursor
+        // by 2 even on otherwise pure-ASCII content.
+        let (_, new_cursor) = offset_of("abc", InsertPosition::Offset(1), "😀");
+
+        assert_eq!(new_cursor, 3, "1 unit of 'a' + 2 units of emoji, not 1 + 4");
+    }
+
+    #[test]
+    fn m6_end_of_an_astral_document_reports_the_utf16_length() {
+        let (byte_offset, new_cursor) = offset_of("😀😀", InsertPosition::End, "!");
+
+        assert_eq!(byte_offset, 8, "two 4-byte emoji");
+        assert_eq!(new_cursor, 5, "two emoji are 4 UTF-16 units, plus '!'");
+    }
+
+    #[test]
+    fn m7_the_stored_cursor_is_read_in_the_same_unit() {
+        // InsertPosition::Cursor must not be a second unit convention.
+        let (byte_offset, new_cursor) = resolve_insert("😀ab", 2, &InsertPosition::Cursor, "X");
+
+        assert_eq!(byte_offset, 4);
+        assert_eq!(new_cursor, 3);
+    }
+
+    #[test]
+    fn m8_start_is_always_zero_and_an_out_of_range_offset_clamps_to_the_end() {
+        assert_eq!(offset_of("😀ab", InsertPosition::Start, "X"), (0, 1));
+        assert_eq!(
+            offset_of("😀ab", InsertPosition::Offset(999), "X"),
+            (6, 5),
+            "clamp to end: 6 bytes (4 emoji + a + b); in UTF-16 that is 4 units \
+             (the emoji is TWO), plus 1 for 'X'"
+        );
+    }
+
+    #[test]
+    fn m9_empty_content_is_handled_at_every_position() {
+        for position in [
+            InsertPosition::Start,
+            InsertPosition::End,
+            InsertPosition::Cursor,
+            InsertPosition::Offset(0),
+            InsertPosition::Offset(7),
+        ] {
+            assert_eq!(offset_of("", position, "hi"), (0, 2));
+        }
+    }
+
+    #[test]
+    fn m10_the_two_conversions_are_inverses_at_every_character_boundary() {
+        // The law. Without it the pair could be consistently wrong in the same
+        // direction and every example case above would still pass.
+        let samples = ["", "hello", "héllo", "你好世界", "😀ab", "a😀b😀", "é😀é"];
+
+        for s in samples {
+            let total_units: usize = s.chars().map(char::len_utf16).sum();
+            let mut units = 0usize;
+
+            for (byte_idx, ch) in s.char_indices() {
+                let back = utf16_offset_to_byte(s, units);
+                assert_eq!(
+                    back, byte_idx,
+                    "utf16 {units} of {s:?} should be byte {byte_idx}"
+                );
+                assert_eq!(
+                    byte_offset_to_utf16(s, byte_idx),
+                    units,
+                    "byte {byte_idx} of {s:?} should be utf16 {units}"
+                );
+                units += ch.len_utf16();
+            }
+
+            assert_eq!(units, total_units);
+            assert_eq!(
+                utf16_offset_to_byte(s, total_units),
+                s.len(),
+                "end of {s:?}"
+            );
+            assert_eq!(
+                byte_offset_to_utf16(s, s.len()),
+                total_units,
+                "end of {s:?}"
+            );
+        }
     }
 
     #[test]

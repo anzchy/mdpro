@@ -15,6 +15,7 @@ import { useEditorStore } from "../stores/editorStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import { loggingService } from "../services/loggingService";
 import { applyMcpTableAction, type McpTableAction } from "../utils/tableMcp";
+import { resolveMcpCursor } from "../utils/mcpCursor";
 
 /**
  * Insert position for MCP insert_content.
@@ -246,7 +247,14 @@ export function useMcpEvents() {
       // Calculate insert offset
       let offset: number;
       if (event.position === "cursor") {
-        offset = isActiveDoc ? (currentEditorView?.state.selection.main.head ?? 0) : doc.content.length;
+        // Shared with useMcpSync, which reports this same number to the Rust
+        // shadow store. Two matching expressions would agree today and drift
+        // tomorrow; one function cannot (D10(c), ADR-0021).
+        offset = resolveMcpCursor(
+          doc.content,
+          isActiveDoc,
+          currentEditorView?.state.selection.main.head
+        );
       } else if (event.position === "start") {
         offset = 0;
       } else if (event.position === "end") {

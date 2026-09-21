@@ -349,6 +349,7 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 | **D7** | MUST | **已修复** | Rust 侧 logger 缓存 fail-open：`src-tauri/src/services/logger.rs` 的 `.unwrap_or_default()` —— 读取日志设置失败时回落到默认值（`enabled: true`）而不是关闭。**D2 只修了前端那一半** | [ADR-0005](../adr/0005-lock-span-invariant-is-review-enforced.md) 第 108–111 行把它点名为「a separate defect with no ADR of its own yet」，`CHANGELOG.md` 也已披露 —— 但此前**没有编号、不在任何表里**。**记录只点了一处，实际是两处**：除 `.unwrap_or_default()` 外，`get_log_settings` 在互斥量中毒时同样回落到 `LogSettings::default()`，是同一个 fail-open 换一个触发条件；只修点名的那一处会把缺陷类留着。中毒那一处按「取回锁内的值」修（`PoisonError::into_inner`），不是换一个回落值 —— 锁中毒不构成丢弃用户设置的理由。回归测试 R1（fail-closed）、R6/R7（中毒）；R2/R3/R8 在旧代码下即为绿，故不编码修复。修复提交 `0ae5797` |
 | **D8** | SHOULD | **未修复** | MCP 端口/令牌路径的文档失实 + 本机孤儿文件：`src-tauri/src/bin/mdpro_mcp.rs:9` 写「reads ~/.mdpro/server.port and ~/.mdpro/server.token」，实际代码走平台数据目录 | 失实点与路径更正见下。⚠️ 孤儿文件**只登记，不擅自删除** |
 | **D9** | BLOCK | ✅ **已修复并验证**（残留一项见右） | 源码模式表格识别**宽于 GFM**，三种形态被当成表格：① 单列表头 + `---`（GFM 判为 setext 二级标题）；② 分隔行缩进 ≥4 列；③ 分隔行**或表头行**以 Tab 开头（`countLeadingSpaces` 只数 U+0020，Tab 整个逃过 `MAX_INDENT`）。后果是**静默数据丢失**：幻影表格占据 `tableIndex 0`，外部 MCP 客户端调 `delete_row(0,0)` 删掉的是标题而不是表格行 | 三个 ADR：[0007](../adr/0007-table-scanner-emits-non-overlapping-models.md)、[0008](../adr/0008-non-candidate-delimiter-class-measured-against-gfm.md)、[0009](../adr/0009-narrow-source-table-detection-to-gfm.md)；计划 [`20260917-plan-table-over-detection-vs-gfm.md`](./20260917-plan-table-over-detection-vs-gfm.md)。实测复现与修后语料对照见 ADR-0009。**残留**：Rust 侧 `http_server.rs:834` 仍在应用之前就回 `202`，被拒绝或不存在的 `tableIndex` 依旧向客户端报成功，唯一痕迹是 `~/.mdpro/mdpro.log` 里一行 `ui.table.write_refused` |
+| **D10** | BLOCK | ✅ **已修复** | MCP 文档偏移量的**单位从未真正定下来**，三个子缺陷同源：**(a)** `new_cursor = insert_offset + text.len()` —— 字节 + 字节，却当作字符偏移发布；**(b)** Rust 按 Unicode 标量索引（`char_indices().nth`）、前端按 UTF-16 码元索引（JS 字符串 / CodeMirror 位置），**遇到星平面字符两侧把同一段文字插到不同位置**，影子存储与编辑器真的分叉，不只是回报的数字不对；**(c)** `useMcpSync.ts` 的 `getCursorPosition()` 硬编码 `return 0`，所以 `InsertPosition::Cursor` 在 Rust 侧永远解析成文档开头 | 根因是**规格自相矛盾**，不是编码疏忽：`specs/007-mcp-server/data-model.md:27` 说 cursor 是「character offset from start」，十七行之后 `:44` 又把合法性写成 `≤ content.len()`（Rust 里是**字节**），两边各自挑了一个合理的单位、挑得不一样。决策记入 [ADR-0021](../adr/0021-mcp-document-offsets-are-utf16-code-units.md)（Accepted 2026-09-22）：**统一为 UTF-16 码元**，由 Rust 侧转换。详见下方 D10 条目 |
 
 **D1 · 记录点名一处，实测是三处，而且出数字的不是被点名的那处。**
 门禁二记录只写了 `file.rs:1098`（open 路径）。实测「计时器起点在文件选择器**之前**」这一形态共三处：
@@ -489,6 +490,67 @@ load → 结构更新 → `save_preferences` → `logger::set_log_settings` 四�
 **在同一个提交里**更新它在本表的状态与修复 SHA，并写明被证伪的结论；不要留到后续清理批次。
 「修复完毕」同样指它自己的门禁跑绿，不是代码写完。新缺陷从本表**当前最大编号续起**；
 **D3 / D4 永久留空**，已有编号（D1 / D5 / D6）不得重编、不得复用。
+
+---
+
+**D10 · 三个缺陷是同一个：单位从来没定过。**
+
+登记时看起来是三条独立的 MCP 缺陷，查下去是一条 —— **规格在同一页上给同一个字段写了两个单位**。
+`data-model.md:27` 的文档注释说 `cursor` 是「character offset from start」；`:44` 的合法性规则写
+`cursor: Must be ≤ content.len()`，而 Rust `String` 的 `len()` 是**字节数**。而且「character」本身
+还是歧义的 —— Unicode 标量，还是 UTF-16 码元？两边各自挑，挑得不一样：
+
+| 一侧 | 实际单位 | 出处 |
+|---|---|---|
+| Rust `http_server.rs` | Unicode 标量 | `char_offset_to_byte` 用 `char_indices().nth(n)` |
+| 前端 `useMcpEvents.ts` | UTF-16 码元 | `content.slice(0, offset)` 是 JS 字符串索引；`selection.main.head` 是 CodeMirror 位置 |
+
+**基本多文种平面（BMP）之内两者完全一致** —— 全部 ASCII、全部 CJK 都一致，所以这个分歧一直没被发现。
+只有星平面字符能把它们分开：一个 emoji 是 **1 个标量、2 个 UTF-16 码元**。旧测试用的全是
+`"hello"` / `"你好世界"` / `"café"`，**没有一个能区分这两种单位**，这才是它活到今天的原因。
+
+危害不止「回报的数字不对」。`insert_content` 会**乐观地**先用 Rust 偏移把新内容写进影子存储，
+再发事件让前端用 JS 偏移去应用 —— 越过一个 emoji 之后，**同一段文字被插进了文档的两个不同位置**。
+前端随后的 sync 会覆盖影子存储，所以最终损害是「一次读到错内容」加「一个永久错的 `newCursor`」，
+但中间那一刻两份文档确实不一致。
+
+**决策见 [ADR-0021](../adr/0021-mcp-document-offsets-are-utf16-code-units.md)**（Accepted 2026-09-22）：
+统一为 UTF-16 码元，**由 Rust 侧改**。理由不是 UTF-16 更好 —— 抽象地看它更差，是把 1990 年代的
+编码决定泄漏进 2026 年的 JSON API —— 而是前端的单位**不是自由选择**（CodeMirror 位置就是 JS 字符串
+偏移），Rust 侧的单位**是**自由选择（它本来就要转成字节偏移）。这笔代价 ADR 里明写了，没有只列好处。
+
+**改动：**
+
+- Rust：`char_offset_to_byte` → `utf16_offset_to_byte`，并**新增逆函数** `byte_offset_to_utf16`。
+  逆函数此前**根本不存在**，这正是 `new_cursor` 会被写成「字节 + 字节」的原因 —— 没有能写对的工具。
+  偏移算术抽成 `resolve_insert(content, cursor, position, text) -> (byte_offset, new_cursor)`，
+  因为处理器本身要 `AppState` 和活的 `AppHandle`，抽出来才测得到（与 `file.rs` 里
+  `discard_and_close` 从 `close_document` 抽出来同一个理由）。
+- 前端：新增 `src/utils/mcpCursor.ts` 的 `resolveMcpCursor(content, isActive, head)`，
+  `useMcpSync` 与 `useMcpEvents` **共用同一个函数**。这一点是刻意的：两段**写法一致的 if**
+  今天一致、明天就会漂；一个共用函数漂不了。`useMcpSync` 不再硬编码 `0`，改读活的 CodeMirror 光标。
+
+**测试：** Rust 10 例（M1–M10，RED 7→GREEN），前端 12 例（RED 4→GREEN）。
+其中 **M10 是定律例** —— 两个转换函数在每一个字符边界上互为逆 —— 没有它，两个函数完全可能
+朝同一个方向一起错，而上面每一个举例都照样通过。前端 12 例里有 2 例是**源码文本判据**，
+钉住两个 hook 都走共用函数：「代码住在哪里」这个性质，行为测试看不见。
+旧的 5 例 `char_offset_*` 测试原样改指向新函数（13 处调用点），输入全是 BMP，
+**每一个期望值一字未改** —— 这本身就是「单位改动在星平面以下不可见」的证据。
+
+**未解决，明写而不吸收：**
+
+1. **WYSIWYG 模式下根本读不到光标。** 只有 CodeMirror 的 `Editor.tsx` 会写
+   `editorStore.editorView`；Milkdown 用的是它自己的 `editorViewCtx`（`MilkdownEditor.tsx:273`），
+   从不回写 store。所以 WYSIWYG 下 `editorView` 是 `null`，两侧**一致地**解析成 0 ——
+   一致性这条修好了，「插在光标处」在 WYSIWYG 下仍然是插在文档开头。这是 D10(c) **没有**关掉的那半，
+   要关它得把 ProseMirror 选区接进 editorStore，是另一件事。**不得把它算进本条的已修复范围。**
+2. **存储的光标会过期。** `useMcpSync` 在文档数量、活动文档、内容变化时重新同步，**不在光标移动时**。
+   只移动光标不打字，影子存储里留的是旧位置。改成每次移动都同步就是每次击键一次 IPC，这个代价
+   判为不值得付。
+3. **`newCursor` 仍然是预测而非观测** —— HTTP 响应在前端应用事件之前就返回了，这是乐观发射设计的
+   固有性质，不是本次引入的。
+4. **纯 BMP 客户端完全看不出区别**，也就意味着这个修复**基本无法靠手工测试验证**，
+   证据全压在回归测试上。
 
 ---
 

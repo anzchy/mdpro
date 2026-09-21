@@ -24,7 +24,10 @@ pub struct DocumentState {
     /// Full document content (markdown)
     pub content: String,
 
-    /// Cursor position (character offset from start)
+    /// Cursor position, as a UTF-16 code-unit offset from the start of
+    /// `content` (ADR-0021). NOT a byte offset and NOT a Unicode scalar
+    /// index: an emoji counts as 2. Converted to a byte offset inside
+    /// `http_server.rs` before the string is touched.
     pub cursor: usize,
 
     /// Whether document has unsaved changes
@@ -41,7 +44,11 @@ pub struct DocumentState {
 
 **Validation Rules**:
 - `id`: Required, non-empty
-- `cursor`: Must be ≤ `content.len()`
+- `cursor`: Must be ≤ the UTF-16 code-unit length of `content`. This line
+  previously read `≤ content.len()`, which is a **byte** count in Rust and so
+  named a different unit from the field's own doc comment seventeen lines
+  above. That contradiction is what defect D10 came out of — both sides picked
+  a unit reasonably and picked differently. Corrected per ADR-0021.
 
 ---
 
@@ -217,6 +224,12 @@ pub enum InsertPosition {
 #[derive(Serialize)]
 pub struct InsertContentOutput {
     pub success: bool,
+    /// Where the caret is expected to land: a UTF-16 code-unit offset
+    /// (ADR-0021), same unit as `DocumentState::cursor`.
+    ///
+    /// It is a **prediction**, not an observation. This response is returned
+    /// before the frontend has applied the emitted event, so a user typing at
+    /// the same moment ends up somewhere else.
     pub new_cursor: usize,
 }
 ```

@@ -7,8 +7,10 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useDocumentStore } from "../stores/documentStore";
+import { useEditorStore } from "../stores/editorStore";
 import { mcpService, type McpDocumentState } from "../services/mcpService";
 import { loggingService } from "../services/loggingService";
+import { resolveMcpCursor } from "../utils/mcpCursor";
 
 // Debounce timeout for content changes (ms)
 const CONTENT_DEBOUNCE_MS = 300;
@@ -23,13 +25,13 @@ function getTitleFromPath(path: string | null): string {
 }
 
 /**
- * Get cursor position from editor view (if available).
- * Returns 0 if not available.
+ * Read the live caret offset, or `undefined` when there is no live editor.
+ *
+ * Only the CodeMirror source editor writes `editorStore.editorView`, so this
+ * is `undefined` in WYSIWYG mode — `resolveMcpCursor` decides what that means.
  */
-function getCursorPosition(): number {
-  // EditorStore cursor position could be added here if needed
-  // For now, return 0 as cursor position is tracked separately
-  return 0;
+function liveCaretHead(): number | undefined {
+  return useEditorStore.getState().editorView?.state.selection.main.head;
 }
 
 /**
@@ -60,12 +62,16 @@ export function useMcpSync() {
 
   // Convert frontend documents to MCP format
   const convertToMcpDocuments = useCallback((): McpDocumentState[] => {
+    // Read the caret once: it belongs to whichever document is focused, and
+    // resolveMcpCursor is what decides that the others must not receive it.
+    const head = liveCaretHead();
+
     return documents.map((doc) => ({
       id: doc.id,
       title: getTitleFromPath(doc.path),
       path: doc.path,
       content: doc.content,
-      cursor: getCursorPosition(),
+      cursor: resolveMcpCursor(doc.content, doc.id === activeDocumentId, head),
       is_dirty: doc.isModified,
       is_active: doc.id === activeDocumentId,
     }));
