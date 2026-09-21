@@ -350,6 +350,7 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 | **D8** | SHOULD | **未修复** | MCP 端口/令牌路径的文档失实 + 本机孤儿文件：`src-tauri/src/bin/mdpro_mcp.rs:9` 写「reads ~/.mdpro/server.port and ~/.mdpro/server.token」，实际代码走平台数据目录 | 失实点与路径更正见下。⚠️ 孤儿文件**只登记，不擅自删除** |
 | **D9** | BLOCK | ✅ **已修复并验证**（残留一项见右） | 源码模式表格识别**宽于 GFM**，三种形态被当成表格：① 单列表头 + `---`（GFM 判为 setext 二级标题）；② 分隔行缩进 ≥4 列；③ 分隔行**或表头行**以 Tab 开头（`countLeadingSpaces` 只数 U+0020，Tab 整个逃过 `MAX_INDENT`）。后果是**静默数据丢失**：幻影表格占据 `tableIndex 0`，外部 MCP 客户端调 `delete_row(0,0)` 删掉的是标题而不是表格行 | 三个 ADR：[0007](../adr/0007-table-scanner-emits-non-overlapping-models.md)、[0008](../adr/0008-non-candidate-delimiter-class-measured-against-gfm.md)、[0009](../adr/0009-narrow-source-table-detection-to-gfm.md)；计划 [`20260917-plan-table-over-detection-vs-gfm.md`](./20260917-plan-table-over-detection-vs-gfm.md)。实测复现与修后语料对照见 ADR-0009。**残留**：Rust 侧 `http_server.rs:834` 仍在应用之前就回 `202`，被拒绝或不存在的 `tableIndex` 依旧向客户端报成功，唯一痕迹是 `~/.mdpro/mdpro.log` 里一行 `ui.table.write_refused` |
 | **D10** | BLOCK | ✅ **已修复** | MCP 文档偏移量的**单位从未真正定下来**，三个子缺陷同源：**(a)** `new_cursor = insert_offset + text.len()` —— 字节 + 字节，却当作字符偏移发布；**(b)** Rust 按 Unicode 标量索引（`char_indices().nth`）、前端按 UTF-16 码元索引（JS 字符串 / CodeMirror 位置），**遇到星平面字符两侧把同一段文字插到不同位置**，影子存储与编辑器真的分叉，不只是回报的数字不对；**(c)** `useMcpSync.ts` 的 `getCursorPosition()` 硬编码 `return 0`，所以 `InsertPosition::Cursor` 在 Rust 侧永远解析成文档开头 | 根因是**规格自相矛盾**，不是编码疏忽：`specs/007-mcp-server/data-model.md:27` 说 cursor 是「character offset from start」，十七行之后 `:44` 又把合法性写成 `≤ content.len()`（Rust 里是**字节**），两边各自挑了一个合理的单位、挑得不一样。决策记入 [ADR-0021](../adr/0021-mcp-document-offsets-are-utf16-code-units.md)（Accepted 2026-09-22）：**统一为 UTF-16 码元**，由 Rust 侧转换。修复提交 `b891842`（ADR + Rust + 前端 + 规格更正 + 台账同一提交）。详见下方 D10 条目 |
+| **D11** | MUST | ✅ **已修复** | 源码模式光标路径**每动一次光标就把整张表复制一遍**。`parseTableAtLine` 结尾是急求值的 `raw: src.slice(start, end)`；而 `sourceTableDetection.ts` 的 `tableContextField` 在 `docChanged \|\| selection` 时重跑——即每次按键、每次点击、每次方向键——却从不读 `.raw`。整篇一张表的文档（语料 `large-table.source.md`，约 25 万行 / 9.96 MB）因此每次光标移动付一次全文档拷贝 | 从目标条 3「D6 剩下的窟窿按面收，尤其是 Source 模式那一面」的成本面盘查中查出。**不是新引入的**：Phase 4 WI-3B 把扫描改成走 rope 时漏了 `raw` 这一个字段。修复提交见下方 D11 条目 |
 
 **D1 · 记录点名一处，实测是三处，而且出数字的不是被点名的那处。**
 门禁二记录只写了 `file.rs:1098`（open 路径）。实测「计时器起点在文件选择器**之前**」这一形态共三处：
@@ -551,6 +552,60 @@ load → 结构更新 → `save_preferences` → `logger::set_log_settings` 四�
    固有性质，不是本次引入的。
 4. **纯 BMP 客户端完全看不出区别**，也就意味着这个修复**基本无法靠手工测试验证**，
    证据全压在回归测试上。
+
+---
+
+**D11 · 一个字段没跟上 rope 改造，于是光标路径还在复制整篇文档。**
+
+Phase 4 WI-3B 把表格扫描从「拿一个字符串」改成「走 `TableLineSource`」，目的就是让源码模式
+不再因为文档大而变慢。改造漏了一个字段：`TableModel.raw`。`parseTableAtLine` 结尾仍然是
+
+    raw: src.slice(start, end)
+
+急求值，每次解析都跑。而**读它的人和跑它的人不是同一批**：
+
+| 调用点 | 触发频率 | 读 `.raw` 吗 |
+|---|---|---|
+| `src/plugins/codemirror/sourceTableDetection.ts:76`（`tableContextField`） | **每次按键 / 点击 / 方向键** | 否 |
+| `src/plugins/codemirror/sourceTableContextMenu.ts:75` | 每次右键 | 否 |
+| `src/utils/tableParser/scan.ts:130`（整篇扫描，每次 lint） | 每表一次 | 否 |
+| `src/utils/tableParser/tableEdits/edits.ts:62` | 每次编辑 | 否 |
+| `src/plugins/codemirror/lintTableColumnCount.ts:67` | 每次 lint | **是**，随即 `.split("\n")` |
+| `src/utils/tableWriteGuard.ts:104` | 每次写入前 | **是**，随即 `.split("\n")` |
+
+也就是说：**唯一按键频率的那个调用点，恰好是不读它的那个。** 在整篇就是一张表的文档上
+（`large-table.source.md`，约 25 万行 / 9.96 MB），这是每移动一次光标复制约 9.96 MB。
+
+修法是把 `raw` 改成**惰性记忆化 getter**，对外类型仍是 `string`，两个真读它的调用点一行不改、
+仍然各付一次拷贝。公开类型不变是有意的：`raw` 会被展开（spread）和 `JSON.stringify`，
+挪到原型上会让它从这两种操作里**静默消失**，所以测试专门钉了它仍是可枚举自有属性。
+
+**证据是计数，不是毫秒。** E39/G0 禁止把时长变成门禁，理由也成立——毫秒阈值在忙碌的机器上
+会假红，于是被一路调高到失去意义。这里要钉的性质不是「快」，而是**「光标路径的整表拷贝次数为 0」**，
+这个数可以精确数、且与机器无关。`tests/table-parser-lazy-raw.test.ts` 用一个计数版
+`TableLineSource` 包住真实的 `linesFromString`（而不是手搓假对象——假的会让一个已经读错行的
+解析器也通过），断言光标路径 `slice()` 调用 0 次、`.raw` 读两次只切一次。
+
+**顺带收回了一处当初明写「做不到」的让步。** `tests/table-line-source-conformance.test.ts`
+的 CONF-scan-cost 原本要求 `sliceString === 0`，被拒绝并降级成 `=== models.length`，理由
+白纸黑字写在那里：*「a scan that finds 10 tables cannot slice zero times without changing
+`parse.ts`」*。D11 改的正是 `parse.ts`，所以两处断言（scan 与 probe）都恢复成矩阵原本的字面值 0。
+这**不是**为了让代码过关而改测试——让步的理由已经失效，原来的主张重新成立，两处都写明了来龙去脉。
+
+**同一提交里按规则 22 修掉的失实注释：** `src/utils/tableParser/parse.ts` 的文件头一直宣称
+CodeMirror 调用点「never materialise the document」，而它自己的返回值每次都在 materialise。
+
+**未解决，明写而不吸收：**
+
+1. **真机整机复测仍未做。** 这是 ⌃2 这一面定位到的第二处代价（第一处是 `tocService` 的 O(n²)，
+   提交 `3d37b86`）。两处都只有单点对照，**没有**重新测过整机冷开。在没重测之前，
+   「源码模式现在要多久」仍然是未知数。
+2. **本条没有给源码模式立任何判据。** `largeDocumentGuard.ts:260` 对非 wysiwyg 一律放行这件事
+   一个字没动。D6 关于「⌃2 这一面没有设计」的那半**依然开放**，不得因本条已修而视作收口。
+3. **惰性 getter 会把 `src` 一直挂住**，直到模型本身被回收——所以一个长命的模型现在留住的是
+   整篇文档的行索引，而不只是那张表的文本。唯一长命的持有者是检测用的 StateField，它的 source
+   包的是 CodeMirror 的 rope，而那个 rope 本来就被 EditorState 持有着，所以实际代价接近零。
+   这是明知的取舍，不是疏忽。
 
 ---
 

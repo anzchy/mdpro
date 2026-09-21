@@ -23,10 +23,12 @@
  *     final line's `end === length` makes `length + 1` resolve to it
  *     rather than out of range. The guard boundary is `length + 2`.
  *  2. CONF-scan-cost claims `counts.sliceString === 0` on a full scan.
- *     `parseTableAtLine` builds `TableModel.raw` with `src.slice`, so a
- *     scan that FINDS tables cannot slice zero times. Asserted as an
- *     exact per-model count (stronger than SITE-no-doc-string's
- *     `<= 2 * tablesFound`, which is the matrix's own other answer).
+ *     RESOLVED by D11, and the matrix was right. This was refused because
+ *     `parseTableAtLine` built `TableModel.raw` with `src.slice`, so a
+ *     scan that FINDS tables could not slice zero times; an exact
+ *     per-model count was asserted instead. `raw` is now a lazy memoized
+ *     getter and both scan and probe slice zero times. Kept in this list
+ *     rather than deleted: the refusal is what identified the defect.
  *  3. CONF-probe-cost claims `counts.line <= 51` for a 50-line run. The
  *     parser candidacy-tests one line ABOVE the run and one BELOW it, so
  *     the reachable bound is `runLength + 2`. Asserted with a
@@ -595,15 +597,13 @@ describe("CONF-scan-cost", () => {
     expect(counts.lineAt).toBe(0);
     expect(counts.toString).toBe(0);
     expect(counts.iterLines).toBe(1);
-    // REFUSED (matrix literal): CONF-scan-cost states
-    // `counts.sliceString === 0`. `parseTableAtLine` builds
-    // `TableModel.raw` with `src.slice`, and on the `Text` adapter that
-    // IS `doc.sliceString` — a scan that finds 10 tables cannot slice
-    // zero times without changing `parse.ts`. One slice PER EMITTED MODEL
-    // is asserted instead: it is exact, it is half of SITE-no-doc-string's
-    // own `<= 2 * tablesFound` bound, and it still fails loudly on a
-    // per-LINE slice, which is the log factor the case exists to catch.
-    expect(counts.sliceString).toBe(models.length);
+    // RESTORED to the matrix literal by D11. This previously asserted
+    // `models.length` with the note that a scan finding 10 tables "cannot
+    // slice zero times without changing `parse.ts`". D11 changed `parse.ts`:
+    // `TableModel.raw` is now a lazy memoized getter, and a scanner that
+    // never reads `.raw` never slices. The concession was correctly reasoned
+    // and is simply spent — the original claim is the true one again.
+    expect(counts.sliceString).toBe(0);
     expect(models).toEqual(scanTables(linesFromString(src)));
   });
 
@@ -639,7 +639,10 @@ describe("CONF-probe-cost", () => {
     const { counts, model } = probe(500);
     expect(counts.lineAt).toBe(1);
     expect(counts.toString).toBe(0);
-    expect(counts.sliceString).toBe(1);
+    // D11: was 1 — the eager `TableModel.raw`. This is the cursor probe, so
+    // that 1 was a copy of the whole table on every keystroke and cursor
+    // move. `raw` is lazy now and this path never reads it.
+    expect(counts.sliceString).toBe(0);
     // REFUSED (matrix literal): CONF-probe-cost states `counts.line <= 51`
     // for a 50-line run. `parseTableAtLine` candidacy-tests one line ABOVE
     // the run (to terminate the walk up) and one BELOW it (to terminate

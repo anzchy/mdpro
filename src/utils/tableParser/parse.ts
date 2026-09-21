@@ -10,8 +10,10 @@
  * line and hands both to `parseTableAtLine`, which does all the real work
  * against the split document. `parseTableAt(source, offset)` is that
  * function over `lines.ts#linesFromString`; the CodeMirror call sites
- * reach it over `textLineSource.ts#linesFromText` (Phase 4 WI-3B) and
- * never materialise the document. Line splitting, offset resolution and
+ * reach it over `textLineSource.ts#linesFromText` (Phase 4 WI-3B).
+ * Neither call site materialises the document — a claim this header made
+ * while the parser was still copying `raw` eagerly on every probe, which
+ * is defect D11. Line splitting, offset resolution and
  * the line-level predicates live in `./lines` (Phase 4 WI-2); this file
  * owns table structure only. Whole-document enumeration lives in
  * `./scan` (Phase 4 WI-3), which probes `parseTableAtLine` once per
@@ -25,6 +27,12 @@
  *    calls is a scanner concern, not a parser one.
  *  - `parseTableAtOffset` is the same computation with the string step
  *    removed, not a second parser. One algorithm, two adapters.
+ *  - `TableModel.raw` is a memoized lazy getter, not a stored string
+ *    (D11). The cursor-context path parses per keystroke and never reads
+ *    it; the two consumers that do read it pay one copy each, unchanged.
+ *    Keep it enumerable and keep the public type `string` — `raw` is
+ *    spread and serialized by tests, and would silently vanish from both
+ *    if it moved onto a prototype.
  *  - Body-row cells are padded / truncated to the header's column count
  *    per GFM, which loses the raw cell count; `countTableLineCells`
  *    exposes the pre-pad number for the column-count linter.
@@ -179,6 +187,17 @@ export function parseTableAtLine(
   const start = headerLine.start;
   const end = src.line(endLineIdx).end;
 
+  // D11: `raw` is lazy. It used to be `src.slice(start, end)` evaluated here,
+  // which put a copy of the entire table on the cursor-context path —
+  // `sourceTableDetection.ts` re-parses on every keystroke and cursor move and
+  // never reads it. Memoized, so the two call sites that do read it
+  // (`lintTableColumnCount.ts`, `tableWriteGuard.ts`) pay exactly once, as
+  // before. Costs: the model keeps `src` alive until it is garbage, so a
+  // long-lived model retains the document's line index rather than just the
+  // table's text. The one long-lived holder is the detection StateField, whose
+  // source wraps the CodeMirror rope the EditorState already retains.
+  let rawCache: string | undefined;
+
   return {
     start,
     end,
@@ -187,7 +206,10 @@ export function parseTableAtLine(
     alignments,
     cells,
     rows,
-    raw: src.slice(start, end),
+    get raw(): string {
+      if (rawCache === undefined) rawCache = src.slice(start, end);
+      return rawCache;
+    },
   };
 }
 
