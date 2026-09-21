@@ -138,8 +138,15 @@ ps -Ao pid,lstart,comm | grep -i mdpro | grep -v grep
 
 ## 7. 现状交叉引用
 
-- 护栏判定已是纯函数 `decideLargeDocumentGuard`（`src/utils/largeDocumentGuard.ts:82`），
-  调用点 `src/App.tsx:513`，已有 **34 例测试全绿**（`23ae6ef` / `15f27a0`）——**D6.3 已交付**。
+- 护栏判定已是纯函数 `decideLargeDocumentGuard`（`src/utils/largeDocumentGuard.ts`），
+  调用点在 `src/App.tsx` 的护栏 `useEffect` 里。**2026-09-21 更新：D6.3(c) 已交付** ——
+  判据由字节数换成 ADR-0016 的结构分（换行数 + 竖线数 − 表格行起始数），阈值 25 000，
+  `fileSize` 已从输入类型删除；测试由 34 例重写为 **45 例全绿**
+  （`tests/large-document-guard.test.ts` 33 例 + `tests/large-document-guard-call-site.test.ts` 12 例），
+  模块行/语句/分支/函数覆盖率均 100%。
   所以 D6.2 改判据时改的是一个**有网**的函数，不是裸改。
+  （此处原先钉着 `largeDocumentGuard.ts:82` 与 `App.tsx:513` 两个行号；
+  两个都已随本次改动失效，故改为只指文件与符号 —— 行号会随每次编辑过期，
+  而符号名不会。）
 - Rust 渲染面已于 2026-09-20 复测，11 份 `html_bytes` 与基线逐字节相同，
   记录在 sequencing doc 的 3.8 行。**Rust 面不是瓶颈；所有卡顿都在前端。**

@@ -1,0 +1,85 @@
+{
+  "workItems": {
+    "WI-1": {
+      "status": "DONE",
+      "testFiles": [],
+      "sourceFiles": [
+        "src/utils/largeDocumentGuard.ts"
+      ],
+      "note": "documentation-only; no red receipt by design (rule 10: docs/config/type-only)",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    },
+    "WI-3": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/large-document-guard.test.ts"
+      ],
+      "sourceFiles": [
+        "src/utils/largeDocumentGuard.ts"
+      ],
+      "note": "Predicate replaced with the ADR-0016 structure score. Red receipt recorded (kind=opaque-failure: the shell forces a JSON reporter, so exec.js could not parse counts; the underlying JSON showed numTotalTests=33 / numPassed=11 / numFailed=22 with AssertionError in every failure). verify --id WI-3 returned SEPARATION-BROKEN with 3 findings, all disclosed and reasoned: (a) unparseable red counts - environmental; (b) largeDocumentGuard.ts already dirty at red - that was WI-1's contract-comment block, 49 insertions / 0 deletions, no logic, written before WI-3 by design; (c) 2 recorded line hashes changed in tests/large-document-guard.test.ts - confirmed by reconstruction to be exactly the raw-NBSP -> \\u00A0 escape fix (hashes 89e7018d0686e3f8 and db232e1d87b7ff3e), a JS semantic identity, not an assertion relaxation.",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    },
+    "WI-4": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/large-document-guard-call-site.test.ts"
+      ],
+      "sourceFiles": [
+        "src/App.tsx"
+      ],
+      "note": "Call site: deleted the single `fileSize: activeDocument.fileSize` line; everything else byte-identical. The proven-dead largeFileWarning path at App.tsx:504-509 was left alone per ADR-0016 decision 6.",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    },
+    "WI-5": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/large-document-guard-call-site.test.ts"
+      ],
+      "sourceFiles": [],
+      "note": "Call-site test rewritten to 12 cases (C1, C2', C3, C4, C5, C6, C11, C7, C8', C8b', C12, C9; C10 stays inside guardEffectSlice() as a precondition). C7 verified byte-identical to HEAD (1085 bytes, 23 lines). Matrix revision R3-4 relaxed C8b' assertion 4 to filter the literal \"0\"; assertion 3 independently forbids comparing against a bare number, so `score <= 0` is still caught.",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    },
+    "WI-6": {
+      "status": "DONE",
+      "testFiles": [],
+      "sourceFiles": [
+        "src/utils/largeDocumentGuard.ts"
+      ],
+      "note": "Module header repaired (rule 22): Purpose citation :510-519 -> :511-531, and the obsolete SCOPE freeze block replaced. It now names all three false statements, records that D6.1 owns the sweep not the threshold, states what is frozen now (the invariant set, not the number), the thin evidence base, and the three accepted limits.",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    },
+    "WI-7": {
+      "status": "DONE",
+      "testFiles": [],
+      "sourceFiles": [
+        "docs/feature-ledger.md",
+        "docs/feature-ledger.html"
+      ],
+      "note": "Ledger row 167 rewritten in the same change per CLAUDE.md. State stays Partial; the new 限制： names the three open issues and 怎么确认 quotes the new toast literal plus the corpus numbers. pnpm ledger:check: 166 rows, 195 path claims, 0 findings, 96/96 declared names covered.",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    },
+    "WI-8": {
+      "status": "DONE",
+      "testFiles": [],
+      "sourceFiles": [
+        "CHANGELOG.md",
+        "docs/plans/20260912-plan-markdown-source-consolidation.md",
+        "docs/plans/20260912-frontend-backend-sequencing-order.md",
+        "docs/plans/20260920-d61-wkwebview-sweep-protocol.md",
+        "docs/guide/md-engine-architecture.md",
+        "docs/guide/milkdown-integration.md",
+        "docs/guide/view-modes.md"
+      ],
+      "note": "Doc sweep. Plan M's D6.3 row closed out with a dated progress block; sequencing doc's D6 row records the implementation but is deliberately NOT marked ✅ - ADR-0004 ties D6's closure to the per-surface 3.8 exit re-test, which only the user can run. sweep-protocol.md:141 de-pinned from two stale line numbers to file+symbol. Stale 500KB claims fixed in three live guide lines; dated historical records (stage3-gate2-record.md, sequencing-order.md:98, the 20260312 test report) left alone.",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    },
+    "WI-9": {
+      "status": "IN-PROGRESS",
+      "testFiles": [],
+      "sourceFiles": [],
+      "note": "Final gate sweep, all automated lanes green on 2026-09-21: pnpm exec vitest run 2043 pass / 0 fail; guard files alone 45/45; cargo test --manifest-path src-tauri/Cargo.toml 275 passed, 1 ignored (8 suites, 1.79s); tsc --noEmit clean; typecheck:tests clean; pnpm ledger:check 166 rows, 195 path claims, 0 findings, 96/96 declared names covered; largeDocumentGuard.ts coverage 100% lines/statements/branches/functions, file 215 lines (rule 50 §6 limit 300). NOT DONE and not substitutable by any of the above: the manual QA pass over the generated corpus and the ADR-0004 per-surface 3.8 exit re-test, both of which only the user can run. D6 stays open.",
+      "updatedAt": "2026-09-21T00:00:00Z"
+    }
+  }
+}

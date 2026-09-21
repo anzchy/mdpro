@@ -512,7 +512,6 @@ function App() {
     if (!activeDocument) return;
     const decision = decideLargeDocumentGuard({
       viewMode,
-      fileSize: activeDocument.fileSize,
       content: activeDocument.content,
     });
     switch (decision.action) {

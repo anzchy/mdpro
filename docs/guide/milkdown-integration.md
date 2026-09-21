@@ -196,7 +196,10 @@ const getMarkdown = useCallback(() => {
 
 ### Performance Issues with Large Files
 
-**Solution**: App auto-switches to editor mode for files >500KB
+**Solution**: App auto-switches to source mode for documents whose source
+structure score (lines + table cells) exceeds 25,000 — see
+[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md).
+File size is not the judgement variable.
 
 ## Related Documentation
 

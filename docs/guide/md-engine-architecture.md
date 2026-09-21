@@ -117,9 +117,14 @@ The markdown content is stored in `documentStore.documents[].content`. Both edit
 
 View mode preference is persisted via Tauri preferences API and restored on app launch.
 
-### 4. Large File Protection
+### 4. Large Document Protection
 
-Files >500KB automatically switch to Source mode to prevent Milkdown performance issues (`App.tsx`).
+Documents whose source structure score — `newlines + (pipes - table-row-starts)`,
+roughly lines plus table cells — exceeds 25,000 automatically switch to Source mode
+to prevent Milkdown performance issues (`App.tsx`, predicate in
+`src/utils/largeDocumentGuard.ts`). File size stopped being the judgement variable
+on 2026-09-21; see
+[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md).
 
 ## File Structure
 

@@ -49,7 +49,8 @@ export type ViewMode = "wysiwyg" | "source";
 ```
 
 - Full-width source editing with syntax highlighting
-- Used automatically for large files (>500KB)
+- Used automatically for structurally large documents (score >25,000 — see
+  [Large Document Protection](#large-document-protection))
 - Escape hatch for structural edits that benefit from seeing raw Markdown
 
 ## Implementation
@@ -148,16 +149,21 @@ Stored preferences from the old 4-mode model are migrated on load:
 
 ## Automatic Mode Switching
 
-### Large File Protection
+### Large Document Protection
 
-Files >500KB automatically switch to source mode:
+A document whose **source structure score** exceeds 25,000 automatically
+switches to source mode. The score is `newlines + (pipes - table-row-starts)`
+— roughly "lines plus table cells" — computed in one forward pass over the
+content with no Markdown parsing. File size is **not** part of the judgement;
+it was, until 2026-09-21, and it let a 471,880 B table document that blocks
+the main thread for 12 seconds through. See
+[ADR-0016](../adr/0016-large-document-guard-predicate-is-a-source-structure-score.md).
 
 ```typescript
 useEffect(() => {
   if (!activeDocument) return;
   const decision = decideLargeDocumentGuard({
     viewMode,
-    fileSize: activeDocument.fileSize,
     content: activeDocument.content,
   });
   switch (decision.action) {
@@ -176,9 +182,10 @@ The predicate itself lives in `src/utils/largeDocumentGuard.ts` — a pure
 function with no React and no store access, so it can be unit-tested. The effect
 above owns only the two side effects. The threshold constant and the toast text
 are both exported from `largeDocumentGuard.ts`; neither literal appears in
-`App.tsx`. The `??` fallback is deliberate — a `fileSize` of `0` is a known size,
-not a missing one, so it must not fall through to measuring the in-memory
-content.
+`App.tsx`. There is no `fileSize` fallback any more — the field was removed
+from the predicate's input type outright, so there is no second source of
+truth for it to disagree with, and the stale-size question the old `??`
+existed to answer cannot arise.
 
 ### Finder/Drag-Drop Opens
 
