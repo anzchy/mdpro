@@ -11,10 +11,10 @@
  * against the split document. `parseTableAt(source, offset)` is that
  * function over `lines.ts#linesFromString`; the CodeMirror call sites
  * reach it over `textLineSource.ts#linesFromText` (Phase 4 WI-3B).
- * Neither call site materialises the document — a claim this header made
- * while the parser was still copying `raw` eagerly on every probe, which
- * is defect D11. Line splitting, offset resolution and
- * the line-level predicates live in `./lines` (Phase 4 WI-2); this file
+ * Neither materialises the document — a claim this header carried while
+ * the parser was still copying `raw` eagerly on every probe (D11). Line
+ * splitting, offset resolution and the predicates live in `./lines`
+ * (Phase 4 WI-2); this file
  * owns table structure only. Whole-document enumeration lives in
  * `./scan` (Phase 4 WI-3), which probes `parseTableAtLine` once per
  * maximal run of candidate lines — this file has no loop over the
@@ -27,16 +27,17 @@
  *    calls is a scanner concern, not a parser one.
  *  - `parseTableAtOffset` is the same computation with the string step
  *    removed, not a second parser. One algorithm, two adapters.
- *  - `TableModel.raw` is a memoized lazy getter, not a stored string
- *    (D11). The cursor-context path parses per keystroke and never reads
- *    it; the two consumers that do read it pay one copy each, unchanged.
- *    Keep it enumerable and keep the public type `string` — `raw` is
- *    spread and serialized by tests, and would silently vanish from both
- *    if it moved onto a prototype.
+ *  - `TableModel.raw` is a memoized lazy GETTER, not a stored string
+ *    (D11). Eager `src.slice` put a whole-table copy on the cursor path,
+ *    which `sourceTableDetection` runs per keystroke and never reads;
+ *    the two that do read it still pay one copy each. Keep it enumerable
+ *    and typed `string` — `raw` is spread and serialized, and would
+ *    vanish from both on a prototype. Cost: the model pins `src`, so a
+ *    long-lived one retains the line index, not just the table. The only
+ *    such holder wraps the rope EditorState already retains.
  *  - Body-row cells are padded / truncated to the header's column count
  *    per GFM, which loses the raw cell count; `countTableLineCells`
  *    exposes the pre-pad number for the column-count linter.
- *
  *  - Block-level CommonMark rules this parser must lose to (setext
  *    underlines, indentation in columns) live in `./commonmark`, not here
  *    — WI-C1 / WI-C2, plan `20260917-plan-table-over-detection-vs-gfm.md`.
@@ -93,9 +94,7 @@ export function parseTableAt(source: string, offset: number): TableModel | null 
 /**
  * Representation-neutral twin of `parseTableAt` (Phase 4 WI-3B): locate
  * the table containing `offset` in an already-split document, whatever
- * that document is backed by. `parseTableAt` is this function over
- * `linesFromString`; the CodeMirror call sites are this function over
- * `linesFromText`, and never materialise the document.
+ * that document is backed by — see the header for the two adapters.
  *
  * The guard order is `parseTableAt`'s, unchanged: out-of-range offset,
  * then empty document, then offset resolution. It matters — an empty
@@ -187,15 +186,7 @@ export function parseTableAtLine(
   const start = headerLine.start;
   const end = src.line(endLineIdx).end;
 
-  // D11: `raw` is lazy. It used to be `src.slice(start, end)` evaluated here,
-  // which put a copy of the entire table on the cursor-context path —
-  // `sourceTableDetection.ts` re-parses on every keystroke and cursor move and
-  // never reads it. Memoized, so the two call sites that do read it
-  // (`lintTableColumnCount.ts`, `tableWriteGuard.ts`) pay exactly once, as
-  // before. Costs: the model keeps `src` alive until it is garbage, so a
-  // long-lived model retains the document's line index rather than just the
-  // table's text. The one long-lived holder is the detection StateField, whose
-  // source wraps the CodeMirror rope the EditorState already retains.
+  // D11 — see the header's Key decision. Lazy, memoized.
   let rawCache: string | undefined;
 
   return {
@@ -216,8 +207,6 @@ export function parseTableAtLine(
 // ---------------------------------------------------------------------------
 // Internal helpers — table structure only. Line splitting, offset
 // resolution and the line-level predicates live in `./lines`.
-// `serialize.ts` imports from `./types` only, so nothing here is shared
-// with it.
 // ---------------------------------------------------------------------------
 
 /**
