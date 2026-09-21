@@ -357,4 +357,31 @@ describe("checkNoRawPipeInCode", () => {
 
     expect(checkNoRawPipeInCode(markdown)).toEqual([]);
   });
+
+  it("an escaped backtick does not open a code span", () => {
+    // REGRESSION — the check's own false positive. `docs/guide/keyboard-shortcuts.md`
+    // spells a literal backtick as `\``. A span matcher that ignores the backslash
+    // reads that as an opener, runs to the NEXT backtick, and reports the two real
+    // column separators in between as truncating content. Acting on that report
+    // merges three columns into one — which is exactly what happened before this
+    // case existed. The row below is the shipped spelling, verbatim.
+    const row = "| ⌘⇧\\` | Inline Code | `` `code` `` |";
+    const md = ["# t", "", "## s", "", "| 能力 | 状态 | 在哪 | 怎么确认 |", "|---|---|---|---|", row].join(
+      "\n",
+    );
+
+    expect(checkNoRawPipeInCode(md)).toEqual([]);
+  });
+
+  it("an escaped backtick still does not hide a real offender on the same row", () => {
+    // The fix must not become "give up on any row containing \`". A genuine
+    // truncating span later in the same row is still a finding.
+    const row = `| ⌘⇧\\\` | 状态 | ${BT}a | b${BT} | 怎么确认 |`;
+    const md = ["# t", "", "## s", "", "| 能力 | 状态 | 在哪 | 怎么确认 |", "|---|---|---|---|", row].join(
+      "\n",
+    );
+
+    expect(checkNoRawPipeInCode(md)).toHaveLength(1);
+    expect(checkNoRawPipeInCode(md)[0].rule).toBe("no-raw-pipe-in-code");
+  });
 });

@@ -285,7 +285,12 @@ export function checkCoverage(declaredNames, markdown) {
 export function checkNoRawPipeInCode(markdown) {
   return markdown.split("\n").flatMap((line, i) => {
     if (!line.trimStart().startsWith("|")) return [];
-    const span = (line.match(/`[^`]*`/g) ?? []).find((m) => /(^|[^\\])\|/.test(m));
+    // A backslash-escaped backtick is a literal, not a delimiter — the
+    // shortcuts guide spells one as `\``, and treating it as an opener made
+    // this check report that row's real column separators as content.
+    const span = (line.match(/(?<!\\)`[^`]*(?<!\\)`/g) ?? []).find((m) =>
+      /(^|[^\\])\|/.test(m),
+    );
     const msg = `代码片段 ${span} 里的竖线会把这一格截断 —— 写成 \`\\|\``;
     return span === undefined ? [] : [finding("no-raw-pipe-in-code", msg, i + 1)];
   });
