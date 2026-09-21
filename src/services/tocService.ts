@@ -51,6 +51,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { markdownLanguage } from "@codemirror/lang-markdown";
 import { createAnchorSlugAllocator } from "../utils/headingIdentity";
+import { createLineCounter } from "../utils/lineCounter";
 import { stripFrontmatter } from "./exportService";
 
 /**
@@ -179,6 +180,15 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
   // `{0,3}` not `*`: four spaces is an indented code block, not a heading.
   const forParse = stripped.replace(TAB_AFTER_HEADER_MARK, "$1 ");
 
+  // ONE cursor for the whole document, not one prefix scan per heading. The
+  // previous spelling — `countNewlines(forParse.slice(0, node.from))` inside
+  // the callback — cost document size × heading count, which on
+  // .perf-corpus/dense-math.source.md (9,961,596 B, 70,886 headings) is the
+  // measured 153-183 s stall in docs/test/20260921-d6-matrix-retest.md §2
+  // cell 7. Lezer visits headings in ascending `from`, so the cursor never
+  // rewinds in practice; `src/utils/lineCounter.ts` handles it if it ever does.
+  const lineCounter = createLineCounter(forParse);
+
   markdownLanguage.parser.parse(forParse).iterate({
     enter: (ref) => {
       const level = HEADING_LEVELS[ref.name];
@@ -208,7 +218,7 @@ export function parseHeadingsFromContent(content: string): HeadingInfo[] {
         id: slugs.allocate(text),
         level,
         text,
-        line: countNewlines(forParse.slice(0, node.from)) + 1 + frontmatterLines,
+        line: lineCounter.lineAt(node.from) + frontmatterLines,
         offset: node.from + frontmatterLength,
       });
       // A heading cannot contain a heading; nothing below is of interest.
