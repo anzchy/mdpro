@@ -54,11 +54,12 @@ These five work items came out of the round-2 and round-4 engineering reviews (E
 - **Routing moves to Rust:** the backend resolves one live destination and calls `emit_to(label, …)` with a **non-null** payload label. With no eligible window it returns an error instead of broadcasting. A frontend election across windows is racy and is rejected.
 - **Frontend guard stays** as defence in depth, but compares against a concrete label rather than a falsy check.
 - **Selectors:** the two violations are replaced with field selectors, and a lint rule (`no-restricted-syntax`) forbids zero-argument calls to the known Zustand hooks, so the class cannot come back.
+  - **Delivered early, 2026-09-22 (`3fb07b6`); corrected per [ADR-0023](../../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md).** The rule is not ESLint's `no-restricted-syntax`: it is `scripts/lint/no-bare-store-hook.mjs`, a syntax-only check on the already-installed `typescript` compiler API, gated by `tests/lint-no-bare-store-hook.test.ts` on the existing `unit` lane — no new dependency, `package.json` untouched. `AdvancedSettings.tsx` was fixed in the same commit; the other violation, `useTOC.ts`, was fixed in plan M step 3.5 (`2a0e1a4`). **This item's remaining scope is the MCP routing half (E23) only**; `http_server.rs` still emits `create_document` with `window_label: None`.
 - **Tests** (through tdd-guardian, RED first):
   - **Regression:** with two windows registered, an MCP `create_document` reaches exactly one and creates exactly one document. This test fails today.
   - No eligible window returns an error and emits nothing (`cargo test`).
   - A payload whose label does not match the current window is ignored.
-  - The lint rule fails on a zero-argument store call and passes on a selector call.
+  - The lint rule fails on a zero-argument store call and passes on a selector call. *(Satisfied by `tests/lint-no-bare-store-hook.test.ts`, `3fb07b6`.)*
 - **Logging:** the emit records the resolved window label; the no-window case logs `fail` with a reason.
 
 ### WI-4.22 — File-size ratchet and the `App.tsx` lifecycle seam (E22, E16) — M
@@ -105,7 +106,7 @@ These five work items came out of the round-2 and round-4 engineering reviews (E
 - **Tests** (through tdd-guardian, RED first):
   - **Regression:** an equal-length edit in an already-dirty document schedules a sync and the shadow store receives the new text. This test fails today.
   - *Moved to plan M with the identity contract:* collapse a heading, type elsewhere, re-parse — the heading stays collapsed and the active entry survives; and a heading that no longer exists drops out of the collapse set rather than accumulating. Both fail today. Plan M additionally asserts that every id in one document is pairwise distinct, which also fails today.
-  - The lint rule from WI-4.21 rejects `useTOC.ts`'s old zero-argument call.
+  - ~~The lint rule from WI-4.21 rejects `useTOC.ts`'s old zero-argument call.~~ **Corrected 2026-09-22:** that call no longer exists — `useTOC.ts` moved to eight field selectors in plan M step 3.5 (`2a0e1a4`), and the only remaining `useTOCStore()` text in the file is a comment, so this criterion would fail because the defect is gone, not because the rule is broken. The acceptance is instead the one in the sequencing doc's "三个两个计划都未记载的问题 ①": the rule rejects a zero-argument call given as a test string, and does **not** flag the comment, docblock and string-literal occurrences. Both are asserted by `tests/lint-no-bare-store-hook.test.ts`. **This item's remaining scope is E37 only** (`useMcpSync.ts` still hashes on `content.length`).
 - **Logging:** the MCP sync path keeps its existing events; no new user action.
 
 ### Stage 4c acceptance criteria

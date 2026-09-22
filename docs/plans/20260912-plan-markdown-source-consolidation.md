@@ -258,6 +258,9 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 
 当前**零 ESLint 配置**。以 AI 大量参与写码的方式，这是最划算的一道网。
 建议：`eslint` + `typescript-eslint` + `eslint-plugin-react-hooks`。
+**2026-09-22 已决：不采纳本建议。** 见 [ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)：
+唯一被需要的规则（规则 50 §1）已用 `typescript` 编译器 API 的仓库脚本实现（`3fb07b6`）。
+将来若要第二条规则，按 ADR-0023 另行评估，不以本段为依据。
 不建议照抄 vmark 的 211 个门禁脚本 —— 那是 5,893 文件规模摊销出来的。
 
 ### P2 — 两处安全面收紧
@@ -323,6 +326,11 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
    **已决：不并行。** 单独一个 PR，并登记为 WI-4.21 的**硬前置**
    （WI-4.21 要加 `no-restricted-syntax`，而仓库既无 eslint 配置也无 lint script）。
    见排期文档阶段 1 的 1.10 行。
+   **2026-09-22 被取代：不接 ESLint。** WI-4.21 要的是一条规则而不是一个 linter；
+   `eslint` + `@eslint/js` 本身解析不了 TypeScript，而 `typescript` 已是直接 devDependency。
+   规则改为 `scripts/lint/no-bare-store-hook.mjs`（编译器 API，纯语法）+ `tests/` 下的门禁测试，
+   零新依赖、不动 `package.json`，故「硬前置」随之消失（`3fb07b6`，
+   [ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)）。
 3. `toc.rs` 与 `preview_html` 是直接删除，还是先标记 deprecated 观察一个版本？
    **仍未决 —— 已定的只是时点，不是做法。** 「留到第 5 步、不随提前部分走」解决的是**何时**；
    删除 vs 先标 deprecated 至今全无结论，须在第 5 步开工前定。
@@ -806,7 +814,26 @@ ADR-0016 明列它两个方向都会错 —— 围栏代码块里的 `|` 高估�
    ADR-0016。剩余的失明面（多条各 90 万字符的行）仍然存在，见 ADR-0019 的 Consequences。
 4. **误判不留痕** —— 降级只弹 toast，`~/.mdpro/mdpro.log` 里没有对应事件，
    一次误降级在日志里查不到。这与 CLAUDE.md 的日志规则相抵，但不在 ADR-0016 的范围内，
-   单独挂账。
+   单独挂账。**2026-09-22 已修**（`3eb60a7`）：降级臂先写一条日志再弹 toast，载荷由纯模块
+   `src/utils/largeDocumentDegradeLog.ts` 构造（`trigger`、两项实测值、两条阈值，不含文档内容）。
+   仍不可见的是 Source 模式 —— 护栏只在进入 WYSIWYG 时判定，Source 下既不判也不记。
+
+#### 进度（2026-09-22）
+
+**D6 仍不关，3.8 仍 ⬜。** 本日新增证据与修复：
+
+- **真机矩阵复测**（`docs/test/20260921-d6-matrix-retest.md`，`6b45000`）：确认 ADR-0019 拦下
+  `very-long-line.source.md`（旧构建挂起 259 483 ms → 现 15 ms 进 Source）。七个未验格子：两格已填、
+  三格各取一形态、两格仍未验。
+- **Source 模式 153–183 s 卡顿的归因更正**：复测 §6.2 归为 WebKit 代价，实为 `tocService` 逐标题前缀重扫
+  （O(文档长度 × 标题数)），`3d37b86` 改为单趟行计数，组件级 152 551 → 24 ms；更正记于 §7（`72adeac`）。
+  **只测了组件，没有整机真机复测。**
+- **Source 面护栏的设计**：[ADR-0022](../adr/0022-source-mode-gets-its-own-guard-keyed-on-table-row-density.md)
+  四项决议均已 Accepted，阈值 50 000 表格行（`2ec1321`，政策判断而非测量值）。**尚未实现。**
+
+上文「D6.1 只有用户能跑」一句已由排期文档 3.8 行订正（2026-09-22）：ADR-0004 约束的是比较方法
+（逐面、排除已知楔住的形状），不是由谁来跑；D6.1 sweep 与 3.6 GUI 验收都是 agent 在真机 bundle 上跑完的。
+原句按日期保留。
 
 
 ### 导出锚点被 DOMPurify 剥离（已决 B′，见 ADR-0003；WI-3.2 实施）
