@@ -3,13 +3,15 @@
  * Purpose: CodeMirror `Text`-backed `TableLineSource` (Phase 4 WI-3B), so
  * the table scanner runs over the editor's existing rope instead of a
  * freshly materialised copy of the document. Removes `doc.toString()`
- * from the CURSOR path in source mode — not, as this line claimed until
- * D13, from every table-scan path. `lintTableColumnCount` reads
- * `TableModel.raw`, which lands here as `doc.sliceString(start, end)`;
- * on a document that is one whole table that is the same full-document
- * copy under another name. Measured: one `slice()` of 9,785,219 chars
- * on the lint timer at 232,981 rows. The cursor path really does copy
- * nothing, and `tests/table-parser-lazy-raw.test.ts` pins that at 0.
+ * from the table-scan paths in source mode: the cursor path (pinned at
+ * 0 slices by `tests/table-parser-lazy-raw.test.ts`) and, since D13, the
+ * lint path (`lintTableColumnCount` walks rows via `line()` instead of
+ * reading `TableModel.raw`; pinned at 0 by
+ * `tests/lint-table-column-count-no-raw.test.ts`). Before D13 that one
+ * `raw` read landed here as `doc.sliceString(start, end)` — measured as
+ * one slice of 9,785,219 chars per lint tick at 232,981 rows. `slice()`
+ * still has one table-scan caller: `tableWriteGuard` reads `raw` once
+ * per MCP table write.
  *
  * Pipeline: `Text` -> `linesFromText` -> `TableLineSource` ->
  * `tableParser/scan.ts#scanTables` / `parse.ts#parseTableAtOffset`.

@@ -8,6 +8,16 @@
  * and `countTableLineCells` for per-line cell counting (so escape and
  * edge-pipe semantics stay single-source).
  *
+ * Key decisions:
+ *  - Rows are walked through the `TableLineSource` (`src.line(i)`), never
+ *    by reading `TableModel.raw` (D13). `raw` is a lazy slice (D11); on a
+ *    one-table document reading it copied the whole document per lint
+ *    tick. Pinned at 0 slices / 0 `raw` reads and `line()` <= 2R + 5 by
+ *    `tests/lint-table-column-count-no-raw.test.ts`.
+ *  - Diagnostic offsets reproduce the pre-D13 `raw.split("\n")` walk
+ *    exactly, including `to` covering a row's `\r` under CRLF; the frozen
+ *    copy in `tests/support/legacyLintColumnCount.ts` is the oracle.
+ *
  * Exposes `tableColumnCountDiagnostics(state)` as a pure function so
  * tests can assert against the diagnostic list directly without
  * mounting an EditorView, and `columnCountDiagnosticsFromSource` as the
@@ -38,8 +48,8 @@ import { linesFromText } from "./textLineSource";
  * GFM table (skipping fenced-code regions) and flags body rows whose
  * raw cell count differs from the header's.
  *
- * Runs over the editor's rope (WI-3B) — the document is never copied
- * into a string, on the lint timer or anywhere else.
+ * Runs over the editor's rope (WI-3B). Since D13 that claim holds on
+ * the lint timer too: no `toString`, no `sliceString`, no `raw` read.
  */
 export function tableColumnCountDiagnostics(state: EditorState): Diagnostic[] {
   return columnCountDiagnosticsFromSource(linesFromText(state.doc), (pos) =>
@@ -52,6 +62,9 @@ export function tableColumnCountDiagnostics(state: EditorState): Diagnostic[] {
  * separately so the cost claim ("no table-scan path materialises the
  * document") can be asserted as a counted integer over a pass-through
  * counting delegate, rather than only as a grep over this file.
+ *
+ * Cost: zero `slice()` calls; one `line()` per header and body row on
+ * top of what `scanTables` spends.
  */
 export function columnCountDiagnosticsFromSource(
   src: TableLineSource,
@@ -61,42 +74,67 @@ export function columnCountDiagnosticsFromSource(
   const diagnostics: Diagnostic[] = [];
 
   for (const table of tables) {
-    // `model.raw` IS `source.slice(table.start, table.end)`. This comment
-    // used to say "the parser already paid for it" — true when `raw` was
-    // eager, false since D11 made it a lazy memoized getter. Nothing has
-    // paid for it; THIS line is what forces the copy (D13). Re-slicing
-    // separately would still be worse — two copies instead of one — so the
-    // read stays, but on a single-table document it is a whole-document
-    // materialisation on the lint timer, not a free ride.
-    const lines = table.raw.split("\n");
-    const expected = countTableLineCells(lines[0] ?? "");
+    // D13 — walk the table's lines through `src`; never read `table.raw`.
+    // `raw` is a lazy slice (D11), so reading it here would copy the whole
+    // table — on a one-table document, the whole document — per lint tick.
+    // A table's lines are contiguous: header at `headerIdx`, delimiter at
+    // `+1`, then `rowCount - 1` body rows, so the last line is
+    // `headerIdx + rowCount`.
+    const headerIdx = headerLineIndex(src, table.start);
+    if (headerIdx < 0) continue;
+    const expected = countTableLineCells(src.line(headerIdx).text);
     if (expected === 0) continue;
 
-    let lineStart = table.start;
-    for (let i = 0; i < lines.length; i += 1) {
-      const lineText = lines[i];
-      const lineEnd = lineStart + lineText.length;
-
-      // Skip header (i=0) — defines the count. Skip delimiter (i=1) —
-      // its alignment markers wouldn't parse as content cells.
-      if (i >= 2 && lineText.trim().length > 0) {
-        const actual = countTableLineCells(lineText);
+    const lastIdx = headerIdx + table.rowCount;
+    // Skip header (defines the count) and delimiter (its alignment markers
+    // wouldn't parse as content cells). Each body line is fetched once and
+    // carried forward: its successor's `start` is what the next row needs.
+    let line = headerIdx + 2 <= lastIdx ? src.line(headerIdx + 2) : null;
+    for (let i = headerIdx + 2; line && i <= lastIdx; i += 1) {
+      const next = i < lastIdx ? src.line(i + 1) : null;
+      if (line.text.trim().length > 0) {
+        const actual = countTableLineCells(line.text);
         if (actual !== expected) {
           diagnostics.push({
-            from: lineStart,
-            to: lineEnd,
+            from: line.start,
+            to: rowEnd(line, next),
             severity: "warning",
             message: `Table row has ${actual} cell${actual === 1 ? "" : "s"} but header has ${expected}.`,
             source: "table-column-count",
           });
         }
       }
-
-      lineStart = lineEnd + 1; // +1 for the trailing \n
+      line = next;
     }
   }
 
   return diagnostics;
+}
+
+/**
+ * Index of the line that starts at `start` (a table's header).
+ *
+ * Resolves `start + 1`, not `start`: `lineIndexAt` deliberately maps an
+ * offset equal to `prev.end + 1` — which IS a line's `start` under LF — to
+ * the line ABOVE (see `lines.ts`). A header is a candidate line, so it is
+ * never empty and `start + 1 <= header.end + 1` always lands on it.
+ */
+function headerLineIndex(src: TableLineSource, start: number): number {
+  return src.lineIndexAt(start + 1);
+}
+
+/**
+ * The diagnostic's `to`, byte-for-byte what the pre-D13 `raw.split("\n")`
+ * walk produced. That walk kept each row's `\r` (only `\n` was split), so
+ * under CRLF `to` covers it: for every row but the last it is the offset
+ * of the row's `\n`, i.e. `next.start - 1`. The last row ends where the
+ * table does, `line.end`.
+ */
+function rowEnd(
+  line: { end: number },
+  next: { start: number } | null,
+): number {
+  return next ? next.start - 1 : line.end;
 }
 
 /**

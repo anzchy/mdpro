@@ -30,7 +30,8 @@
  *  - `TableModel.raw` is a memoized lazy GETTER, not a stored string
  *    (D11). Eager `src.slice` put a whole-table copy on the cursor path,
  *    which `sourceTableDetection` runs per keystroke and never reads;
- *    the two that do read it still pay one copy each. Keep it enumerable
+ *    since D13 the linter doesn't either, and only `tableWriteGuard`
+ *    still pays its one copy. Keep it enumerable
  *    and typed `string` — `raw` is spread and serialized, and would
  *    vanish from both on a prototype. Cost: the model pins `src`, so a
  *    long-lived one retains the line index, not just the table. The only
@@ -159,11 +160,17 @@ export function parseTableAtLine(
     return null;
   }
 
-  // Walk down to collect body rows until we hit a non-table line.
+  // Walk down collecting body rows until a non-table line. Each line is
+  // fetched once and kept (D13: re-fetching cost the lint pass R calls).
   let endLineIdx = headerIdx + 1; // delimiter is part of the structure
+  let endLine = delimLine;
+  const rowLines: LineRange[] = [headerLine];
   for (let i = headerIdx + 2; i < lineCount; i += 1) {
-    if (!isTableCandidateLine(src.line(i))) break;
+    const line = src.line(i);
+    if (!isTableCandidateLine(line)) break;
+    rowLines.push(line);
     endLineIdx = i;
+    endLine = line;
   }
 
   // Refuse if the offset is outside the table's line span.
@@ -173,18 +180,13 @@ export function parseTableAtLine(
   const colCount = headerCells.length;
   const alignments = delimCells.map(parseAlignment);
 
-  const rowLines: LineRange[] = [headerLine];
-  for (let i = headerIdx + 2; i <= endLineIdx; i += 1) {
-    rowLines.push(src.line(i));
-  }
-
   const rows: TableCell[][] = rowLines.map((line, rowIdx) =>
     parseRowCells(line, rowIdx, colCount),
   );
   const cells = rows.flat();
 
   const start = headerLine.start;
-  const end = src.line(endLineIdx).end;
+  const end = endLine.end;
 
   // D11 — see the header's Key decision. Lazy, memoized.
   let rawCache: string | undefined;
