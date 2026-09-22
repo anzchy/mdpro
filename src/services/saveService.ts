@@ -25,7 +25,41 @@ export interface SaveDeps {
  * border-bottom on `.busy-indicator` shifts the workspace down then up within
  * ~10–50 ms. Local saves don't need a progress indicator; the "Saved" toast
  * is sufficient.
+ *
+ * Also owns the save-side flush (D15): `flushActiveDocumentForSave` pushes pending
+ * WYSIWYG edits into documentStore and returns the fresh active document, so the
+ * bytes handed to `save_file` / `save_file_dialog` never come from a render
+ * closure. A failed flush throws, which `performSave` surfaces as "Save failed:"
+ * and which leaves the document dirty (rule 60: never save stale content silently).
+ *
+ * @coordinates-with src/hooks/useDocument.ts — saveActiveDocument / saveActiveDocumentAs
+ * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEdits
  */
+
+import { useDocumentStore } from "../stores/documentStore";
+import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
+import type { Document } from "../types/document";
+import { loggingService } from "./loggingService";
+
+/**
+ * Flush pending WYSIWYG edits, then read the active document from the store.
+ * Throws when the flush failed: saving would write content older than the editor.
+ */
+export function flushActiveDocumentForSave(actionId?: string): Document | null {
+  const { status } = useMilkdownEditorStore.getState().flushPendingEdits("save");
+  const doc = useDocumentStore.getState().getActiveDocument() ?? null;
+  if (status === "failed") {
+    loggingService.logEventSync({
+      level: "error",
+      event: "file.save",
+      status: "fail",
+      actionId: actionId ?? loggingService.generateActionId(),
+      context: { documentId: doc?.id ?? null, cause: "flush-failed" },
+    });
+    throw new Error("editor changes could not be captured; the document was not saved");
+  }
+  return doc;
+}
 export async function performSave(
   actionId: string | undefined,
   deps: SaveDeps,

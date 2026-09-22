@@ -2,9 +2,11 @@ import { useCallback, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { fileService } from "../services/fileService";
 import { preferencesService } from "../services/preferencesService";
+import { flushActiveDocumentForSave } from "../services/saveService";
 import type { Document } from "../types/document";
 import { useDocumentStore } from "../stores/documentStore";
 import { useTOCStore } from "../stores/tocStore";
+import { prepareWholesaleReplace } from "../utils/wholesaleReplace";
 import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
 import { formatAllTables } from "../utils/tableFormatter";
@@ -42,6 +44,17 @@ const parseEncodingError = (error: unknown) => {
   return null;
 };
 
+const deleteDraftAfterSave = (documentId: string) => {
+  void invoke("delete_draft", { documentId }).catch((err) => {
+    loggingService.logEventSync({
+      level: "warn",
+      event: "draft.delete",
+      status: "fail",
+      context: { documentId, error: err instanceof Error ? err.message : String(err) },
+    });
+  });
+};
+
 export function useDocument() {
   const documents = useDocumentStore((s) => s.documents);
   const activeDocumentId = useDocumentStore((s) => s.activeDocumentId);
@@ -62,7 +75,7 @@ export function useDocument() {
       try {
         const result = await fileService.openFile(path, undefined, actionId);
         // WI-3.5.5 wholesale: reopen-in-place under an unchanged path-derived id.
-        useTOCStore.getState().resetCoordination(result.document.id);
+        prepareWholesaleReplace(result.document.id, "file-open");
         useDocumentStore.getState().upsertDocument(result.document);
         useDocumentStore.getState().setActiveDocumentId(result.document.id);
         setEditorActiveDocumentId(result.document.id);
@@ -99,7 +112,7 @@ export function useDocument() {
         return null;
       }
       // WI-3.5.5 wholesale: the dialog can land on an already-open file.
-      useTOCStore.getState().resetCoordination(result.document.id);
+      prepareWholesaleReplace(result.document.id, "file-open");
       useDocumentStore.getState().upsertDocument(result.document);
       useDocumentStore.getState().setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
@@ -126,7 +139,7 @@ export function useDocument() {
     async (path: string, encoding: string, actionId?: string) => {
       const result = await fileService.openFile(path, encoding, actionId);
       // WI-3.5.5 wholesale: same id, whole buffer re-decoded.
-      useTOCStore.getState().resetCoordination(result.document.id);
+      prepareWholesaleReplace(result.document.id, "encoding-reopen");
       useDocumentStore.getState().upsertDocument(result.document);
       useDocumentStore.getState().setActiveDocumentId(result.document.id);
       setEditorActiveDocumentId(result.document.id);
@@ -157,7 +170,7 @@ export function useDocument() {
   const upsertAndActivateDocument = useCallback(
     (document: Document) => {
       // WI-3.5.5 wholesale: draft recovery / dev open, under the original path's id.
-      useTOCStore.getState().resetCoordination(document.id);
+      prepareWholesaleReplace(document.id, "draft-recovery");
       useDocumentStore.getState().upsertDocument(document);
       useDocumentStore.getState().setActiveDocumentId(document.id);
       setEditorActiveDocumentId(document.id);
@@ -165,14 +178,11 @@ export function useDocument() {
     [setEditorActiveDocumentId],
   );
 
-  const replaceDocument = useCallback(
-    (document: Document) => {
-      // WI-3.5.5 wholesale: the file-reload leg, incl. the external file watcher.
-      useTOCStore.getState().resetCoordination(document.id);
-      useDocumentStore.getState().upsertDocument(document);
-    },
-    [],
-  );
+  const replaceDocument = useCallback((document: Document) => {
+    // WI-3.5.5 wholesale: the file-reload leg, incl. the external file watcher.
+    prepareWholesaleReplace(document.id, "file-reload"); // + WYSIWYG rebuild (D15-WI-5)
+    useDocumentStore.getState().upsertDocument(document);
+  }, []);
 
   const updateActiveDocumentContent = useCallback(
     (content: string) => {
@@ -182,41 +192,38 @@ export function useDocument() {
     [activeDocument],
   );
 
+  // D15: both save paths flush pending WYSIWYG edits and then read the document from
+  // the store, never the render-time `activeDocument`. A failed flush throws (caught by
+  // performSave as "Save failed: …"), so no save IPC runs and the doc stays dirty.
   const saveActiveDocumentAs = useCallback(async (actionId?: string) => {
-    if (!activeDocument) return null;
-    const suggestedName = getTitleFromPath(activeDocument.path);
+    const doc = flushActiveDocumentForSave(actionId);
+    if (!doc) return null;
     const result = await fileService.saveFileDialog({
-      documentId: activeDocument.id,
-      content: activeDocument.content,
-      suggestedName,
-      encoding: activeDocument.encoding,
-      lineEnding: activeDocument.lineEnding,
+      documentId: doc.id,
+      content: doc.content,
+      suggestedName: getTitleFromPath(doc.path),
+      encoding: doc.encoding,
+      lineEnding: doc.lineEnding,
       actionId,
     });
     if (result?.success) {
       const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
       upsertDocument({
-        ...activeDocument,
+        ...doc,
         path: result.path,
         isModified: false,
         lastSaved: result.savedAt,
       });
-      markDocumentModified(activeDocument.id, false);
-      void invoke("delete_draft", { documentId: activeDocument.id }).catch((err) => {
-        loggingService.logEventSync({
-          level: 'warn',
-          event: 'draft.delete',
-          status: 'fail',
-          context: { documentId: activeDocument.id, error: err instanceof Error ? err.message : String(err) },
-        });
-      });
+      markDocumentModified(doc.id, false);
+      deleteDraftAfterSave(doc.id);
     }
     return result;
-  }, [activeDocument]);
+  }, []);
 
   const saveActiveDocument = useCallback(async (actionId?: string) => {
-    if (!activeDocument) return null;
-    if (!activeDocument.path) {
+    const doc = flushActiveDocumentForSave(actionId);
+    if (!doc) return null;
+    if (!doc.path) {
       return saveActiveDocumentAs(actionId);
     }
     // Phase 3 WI-3.2: optional auto-reformat-on-save. The toggle is
@@ -228,21 +235,18 @@ export function useDocument() {
     // table-shaped lines inside ``` code blocks aren't rewritten as
     // tables on save. Without this, opt-in users with code samples
     // containing pipes would see their fenced blocks corrupted.
-    let contentToSave = activeDocument.content;
+    let contentToSave = doc.content;
     try {
       const prefs = await preferencesService.getPreferences();
       if (prefs.markdown?.autoReformatTablesOnSave) {
-        contentToSave = formatAllTables(
-          activeDocument.content,
-          makeIsFenced(activeDocument.content),
-        );
-        if (contentToSave !== activeDocument.content) {
+        contentToSave = formatAllTables(doc.content, makeIsFenced(doc.content));
+        if (contentToSave !== doc.content) {
           loggingService.logEventSync({
             level: "info",
             event: "editor.table.auto-reformat-on-save",
             status: "success",
             actionId: actionId ?? loggingService.generateActionId(),
-            context: { documentId: activeDocument.id },
+            context: { documentId: doc.id },
           });
         }
       }
@@ -250,34 +254,27 @@ export function useDocument() {
       // Preference read failed — fall through with original content.
     }
     const result = await fileService.saveFile({
-      documentId: activeDocument.id,
+      documentId: doc.id,
       content: contentToSave,
-      path: activeDocument.path,
-      encoding: activeDocument.encoding,
-      lineEnding: activeDocument.lineEnding,
+      path: doc.path,
+      encoding: doc.encoding,
+      lineEnding: doc.lineEnding,
       actionId,
     });
     if (result?.success) {
       const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
       upsertDocument({
-        ...activeDocument,
+        ...doc,
         content: contentToSave,
         path: result.path,
         isModified: false,
         lastSaved: result.savedAt,
       });
-      markDocumentModified(activeDocument.id, false);
-      void invoke("delete_draft", { documentId: activeDocument.id }).catch((err) => {
-        loggingService.logEventSync({
-          level: 'warn',
-          event: 'draft.delete',
-          status: 'fail',
-          context: { documentId: activeDocument.id, error: err instanceof Error ? err.message : String(err) },
-        });
-      });
+      markDocumentModified(doc.id, false);
+      deleteDraftAfterSave(doc.id);
     }
     return result;
-  }, [activeDocument, saveActiveDocumentAs]);
+  }, [saveActiveDocumentAs]);
 
   const closeActiveDocument = useCallback(
     async (discardChanges: boolean) => {

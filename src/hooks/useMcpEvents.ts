@@ -11,6 +11,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { replaceAll } from "@milkdown/kit/utils";
 import { useDocumentStore } from "../stores/documentStore";
 import { useTOCStore } from "../stores/tocStore";
+import { prepareWholesaleReplace } from "../utils/wholesaleReplace";
 import { useEditorStore } from "../stores/editorStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import { loggingService } from "../services/loggingService";
@@ -203,7 +204,7 @@ export function useMcpEvents() {
       // Update document content. WI-3.5.5 wholesale: the buffer is replaced, so every
       // heading identity from the previous revision is void. Placed after the
       // window-label and not-found guards, and scoped to the *event's* document.
-      useTOCStore.getState().resetCoordination(event.document_id);
+      prepareWholesaleReplace(event.document_id, "mcp-write"); // + WYSIWYG rebuild (D15-WI-5)
       updateDocumentContent(event.document_id, event.content);
 
       // Only push the change into the live editor when the target document is

@@ -1,6 +1,17 @@
 import { create } from "zustand";
 import type { Document } from "../types/document";
 import { loggingService } from "../services/loggingService";
+import { useMilkdownEditorStore } from "./milkdownEditorStore";
+
+/**
+ * D15: a tab transition pushes the outgoing editor's pending WYSIWYG edits into this
+ * store first. Always called before `set`, never inside an updater, so the transition
+ * computes from post-flush state and cannot overwrite the flush's write. The editor's
+ * destroy flush remains the backstop for raw `setState` callers.
+ */
+function flushPendingEdits(reason: "tab-switch" | "tab-close"): void {
+  useMilkdownEditorStore.getState().flushPendingEdits(reason);
+}
 
 interface DocumentStore {
   documents: Document[];
@@ -26,7 +37,8 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   documents: [],
   activeDocumentId: null,
   setDocuments: (documents) => set({ documents }),
-  setActiveDocumentId: (id) =>
+  setActiveDocumentId: (id) => {
+    if (id !== get().activeDocumentId) flushPendingEdits("tab-switch");
     set((state) => {
       if (id && id !== state.activeDocumentId) {
         loggingService.logEventSync({
@@ -41,7 +53,8 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         });
       }
       return { activeDocumentId: id };
-    }),
+    });
+  },
   upsertDocument: (document) =>
     set((state) => {
       const index = state.documents.findIndex((item) => item.id === document.id);
@@ -81,7 +94,9 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         doc.id === id ? { ...doc, path } : doc,
       ),
     })),
-  closeDocument: (id) =>
+  closeDocument: (id) => {
+    // Outside the updater: `remaining` below must be computed from post-flush state.
+    flushPendingEdits("tab-close");
     set((state) => {
       const closingDoc = state.documents.find((doc) => doc.id === id);
       if (closingDoc) {
@@ -123,7 +138,8 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       }
 
       return { documents: remaining, activeDocumentId: nextActiveId };
-    }),
+    });
+  },
 
   getDocumentById: (id) => {
     return get().documents.find((doc) => doc.id === id);
@@ -135,6 +151,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     if (!doc) return;
 
     if (id !== state.activeDocumentId) {
+      flushPendingEdits("tab-switch");
       loggingService.logEventSync({
         level: "info",
         event: "document.activate",

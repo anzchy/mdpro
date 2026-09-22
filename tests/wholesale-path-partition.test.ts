@@ -11,6 +11,16 @@
  * is exactly how that happened. This case re-derives the site list from `src/**` on every
  * run, so a sixteenth site added later fails the suite until someone classifies it.
  *
+ * **15 → 16 (D15 WI-2, 2026-09-22).** The sixteenth site is the WYSIWYG keystroke
+ * serialize in `plugins/milkdown/editSync/controller.ts`. It is not a new write path:
+ * `MilkdownEditor.tsx` already wrote keystrokes through
+ * `const { updateDocumentContent: update } = …; update(id, markdown)`, an aliased call
+ * this scanner could not see. The D15 fix moved that write into the edit-sync
+ * controller and spells it `updateDocumentContent(` literally, so the hidden site became
+ * a discoverable one. It is `ordinary` (an incremental edit), and its behavioural case
+ * is W8-e / W8-e-table in `tests/toc-wholesale-reset.test.ts`. The wholesale set is
+ * unchanged.
+ *
  * Key shape is `` `${relPath}::${trimmedLine}::${ordinal}` `` and deliberately **not**
  * `file:line`: line numbers churn on unrelated edits above the call, which would turn
  * this case into a maintenance tax that eventually gets deleted. The trimmed call text
@@ -87,6 +97,12 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
     enclosingFunction: "handleImageDrop (editor-not-mounted fallback)",
     class: "ordinary",
     why: "same edit by another route",
+  },
+  {
+    key: "plugins/milkdown/editSync/controller.ts::useDocumentStore.getState().updateDocumentContent(documentId, markdown);::0",
+    enclosingFunction: "createEditSyncController → write",
+    class: "ordinary",
+    why: "WYSIWYG keystroke serialize — incremental edit",
   },
   {
     key: "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(result.document);::0",
@@ -203,8 +219,8 @@ describe("W5 — the wholesale/ordinary partition is derived from src/, not from
     expect(found.length, "duplicate keys would hide a site").toBe(new Set(found).size);
   });
 
-  it("the site count is fifteen — the plan's original table of four was wrong", () => {
-    expect(found.length).toBe(15);
+  it("the site count is sixteen — the plan's original table of four was wrong; D15 surfaced the aliased WYSIWYG site", () => {
+    expect(found.length).toBe(16);
   });
 
   it("exactly the eight wholesale sites are classified wholesale", () => {

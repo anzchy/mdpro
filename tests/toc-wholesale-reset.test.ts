@@ -40,7 +40,7 @@
  * matcher and both hooks are real. No literal key string is ever asserted (§0 rule 5) —
  * every expectation is distinctness / membership / absence against keys the store minted.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
 // --- boundary mocks -------------------------------------------------------
@@ -82,6 +82,10 @@ import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useDocument } from "../src/hooks/useDocument";
 import { useMcpEvents, processTableActionEvent } from "../src/hooks/useMcpEvents";
+import {
+  createEditSyncController,
+  EDIT_SYNC_DELAY_MS,
+} from "../src/plugins/milkdown/editSync/controller";
 import type { Document } from "../src/types/document";
 
 // --- heading fixtures -----------------------------------------------------
@@ -755,4 +759,89 @@ describe("W8 (control) — ordinary paths preserve", () => {
     expect(useDocumentStore.getState().getDocumentById(DOC_ID)?.content).toContain("![a]");
     expectPreserved(DOC_ID, GUIDE_INTRO, collapsed, "W8 handleImageDrop");
   });
+});
+
+// ===========================================================================
+// W8-e — the WYSIWYG serialize write (D15 WI-2) is an ordinary site
+// ===========================================================================
+//
+// Matrix `tests-20260922-163219.md` W8-e / W8-e-table. The edit-sync controller is the
+// sixteenth W5 site; this is its behavioural case. Heading lists are specs, as in the
+// rest of this file (deviation 2): `expectPreserved` re-runs `setEntries` with the
+// headings the edited content carries, which is the "re-parse" step.
+
+const GUIDE_INTRO_SOURCE = OLD_CONTENT;
+
+describe("W8-e — the WYSIWYG edit-sync controller write preserves coordination", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("W8-e controller flush write preserves heading coordination", () => {
+    seedDocumentStore();
+    const { collapsed } = seedCollapsed(GUIDE_INTRO, DOC_ID, 1);
+    const controller = createEditSyncController({
+      documentId: DOC_ID,
+      getMarkdown: () => GUIDE_INTRO_SOURCE + "\nmore text\n",
+      baselineMarkdown: GUIDE_INTRO_SOURCE,
+      delayMs: EDIT_SYNC_DELAY_MS,
+    });
+
+    controller.onDocChanged({ userEdit: true });
+    const result = controller.flush("save");
+
+    expect(result).toEqual({ status: "written" });
+    expect(useDocumentStore.getState().getDocumentById(DOC_ID)?.content).toContain("more text");
+    expectPreserved(DOC_ID, GUIDE_INTRO, collapsed, "W8 WYSIWYG serialize");
+    controller.destroy("test-teardown");
+  });
+
+  const shapes = [
+    {
+      name: "append",
+      edited: GUIDE_INTRO_SOURCE + "\nmore text\n",
+      specs: GUIDE_INTRO,
+    },
+    {
+      name: "insert-above",
+      edited: "## New\n\n" + GUIDE_INTRO_SOURCE,
+      specs: [{ level: 2, text: "New" }, ...GUIDE_INTRO] as readonly HeadingSpec[],
+    },
+  ] as const;
+  const paths = ["flush", "timer", "destroy"] as const;
+
+  for (const path of paths) {
+    for (const shape of shapes) {
+      it(`W8-e-table ${path}/${shape.name} preserves coordination`, () => {
+        const label = `W8-e ${path}/${shape.name}`;
+        vi.useFakeTimers();
+        seedDocumentStore();
+        const { collapsed } = seedCollapsed(GUIDE_INTRO, DOC_ID, 1);
+        const controller = createEditSyncController({
+          documentId: DOC_ID,
+          baselineMarkdown: GUIDE_INTRO_SOURCE,
+          delayMs: EDIT_SYNC_DELAY_MS,
+          getMarkdown: () => shape.edited,
+        });
+
+        controller.onDocChanged({ userEdit: true });
+        if (path === "flush") controller.flush("save");
+        else if (path === "timer") vi.advanceTimersByTime(EDIT_SYNC_DELAY_MS);
+        else controller.destroy("unmount");
+
+        const doc = useDocumentStore.getState().getDocumentById(DOC_ID);
+        expect(doc?.content, `${label}: no write happened`).toBe(shape.edited);
+        expect(doc?.isModified, `${label}: not dirty`).toBe(true);
+
+        expectPreserved(DOC_ID, shape.specs, collapsed, label);
+        if (shape.name === "insert-above") {
+          expect(
+            useTOCStore.getState().entries.length,
+            `${label}: the heading list did not grow, so no shift was exercised`,
+          ).toBe(GUIDE_INTRO.length + 1);
+        }
+        controller.destroy("test-teardown");
+      });
+    }
+  }
 });

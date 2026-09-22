@@ -50,6 +50,24 @@ function runViewModeTransition(
   });
 }
 
+const VIEW_MODE_ORDER: ViewMode[] = ["wysiwyg", "source"];
+
+function nextViewMode(current: ViewMode): ViewMode {
+  const currentIndex = VIEW_MODE_ORDER.indexOf(current);
+  const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % VIEW_MODE_ORDER.length;
+  return VIEW_MODE_ORDER[nextIndex];
+}
+
+/**
+ * D15: leaving WYSIWYG pushes pending Milkdown edits into documentStore before the
+ * mode flips, so the Source editor mounts with every edit. Runs before `set`, never
+ * inside the updater. Other transitions do not flush (no spurious serialize work).
+ */
+function flushWhenLeavingWysiwyg(fromMode: ViewMode, toMode: ViewMode): void {
+  if (fromMode !== "wysiwyg" || toMode === "wysiwyg") return;
+  useMilkdownEditorStore.getState().flushPendingEdits("view-mode");
+}
+
 function capturePendingTableCellForTransition(
   fromMode: ViewMode,
   cmView: EditorView | null,
@@ -159,23 +177,23 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   undoDepth: 0,
   redoDepth: 0,
   setActiveDocumentId: (id) => set({ activeDocumentId: id }),
-  setViewMode: (mode) =>
+  setViewMode: (mode) => {
+    flushWhenLeavingWysiwyg(get().viewMode, mode);
     set((state) => {
       if (state.viewMode === mode) return { viewMode: mode };
       runViewModeTransition(state, mode, "setViewMode");
       return { viewMode: mode };
-    }),
-  cycleViewMode: () =>
+    });
+  },
+  cycleViewMode: () => {
+    flushWhenLeavingWysiwyg(get().viewMode, nextViewMode(get().viewMode));
     set((state) => {
-      const order: ViewMode[] = ["wysiwyg", "source"];
-      const currentIndex = order.indexOf(state.viewMode);
-      const nextIndex =
-        currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;
-      const nextMode = order[nextIndex];
+      const nextMode = nextViewMode(state.viewMode);
       if (nextMode === state.viewMode) return { viewMode: nextMode };
       runViewModeTransition(state, nextMode, "cycleViewMode");
       return { viewMode: nextMode };
-    }),
+    });
+  },
   setEditorView: (view) => set({ editorView: view }),
   setShowSidebar: (show) => set({ showSidebar: show }),
   toggleSidebar: () => set((state) => ({ showSidebar: !state.showSidebar })),

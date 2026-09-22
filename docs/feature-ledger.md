@@ -83,7 +83,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 大文件提示横幅 | Absent | — | 无论打开多大的 .md，这条横幅都不会出现——它是一段够不到的死代码。`useDocument.ts` 里 `LARGE_FILE_BYTES` 是 `10 * 1024 * 1024`，只在 `fileSize > LARGE_FILE_BYTES` 时提示；而 `src-tauri/src/commands/file.rs` 的 `MAX_FILE_SIZE` 是同一个 10MB，`metadata.len() > MAX_FILE_SIZE` 的文件一律以 `FileError::FileTooLarge` 拒开，两边比的又是同一个 `metadata.len()`。两道阈值相等，于是能触发横幅的文件永远打不开，能打开的文件永远触发不了横幅。想看到它只能先改其中一个常数 |
 | 外部变更监听 | Shipped | `src-tauri/src/services/file_watcher.rs` | 在外部编辑器改同一个文件并保存，mdpro 侦测到；自己 ⌘S 不会触发误报；前端再用 `check_file_modified` 复核磁盘状态 |
 | 外部变更重载提示 | Shipped | `src/components/common/ReloadDialog.tsx` | 在外部编辑器改同一个文件并保存，mdpro 弹出「Reload / Ignore」，选 Reload 走 `reload_file` |
-| 未保存改动确认 | Shipped | `src/components/common/ConfirmDialog.tsx` | 在有脏改动时 ⌘W 或关窗口，弹出「Discard changes / Keep editing」 |
+| 未保存改动确认 | Shipped | `src/components/common/ConfirmDialog.tsx`, `src/utils/dataLossGuards.ts` | 在有脏改动时 ⌘W 或关窗口，弹出「Discard changes / Keep editing」。判定前先 flush WYSIWYG 里未落盘的编辑；关窗口时看**所有**打开的标签，任一脏即提示（此前只看活动标签）。⌘Q / 菜单 Quit 不经过这里、不提示（D16，未修） |
 | 草稿自动保存 | Shipped | `src/hooks/useAutoSave.ts` | 偏好里把间隔设为 30 秒，改点内容后不保存等半分钟，`save_draft` 已把草稿写到盘上 |
 | 启动时草稿恢复 | Shipped | `src/components/common/RecoveryDialog.tsx` | 有脏文档时强杀 mdpro 再启动，`list_drafts` 列出可恢复草稿，每条都有 Recover / Discard，点 Recover 走 `recover_draft` |
 | 按 id 读取单份草稿 | Partial | `src-tauri/src/commands/draft.rs` | 限制：`get_draft` 在 `handlers()` 里注册着、函数体也实现好了，但 `src/` 与 `tests/` 里都找不到调用点——草稿恢复实际走的是 `list_drafts` + `recover_draft`。在 DevTools 里手写 `invoke("get_draft", …)` 能拿到结果，UI 上没有任何操作会触发它 |
@@ -95,7 +95,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
 |---|---|---|---|
-| WYSIWYG 编辑 | Shipped | `src/components/Editor/MilkdownEditor.tsx` | ⌃4（`menu.view.wysiwyg`）切到所见即所得，直接在渲染后的文本上编辑，撤销历史完整；编辑器实例挂在 `milkdownEditorStore` 上，表格与插入类操作都从那里取 view |
+| WYSIWYG 编辑 | Shipped | `src/components/Editor/MilkdownEditor.tsx`, `src/plugins/milkdown/editSync/plugin.ts`, `src/plugins/milkdown/editSync/controller.ts` | ⌃4（`menu.view.wysiwyg`）切到所见即所得，直接在渲染后的文本上编辑，撤销历史完整；编辑器实例挂在 `milkdownEditorStore` 上，表格与插入类操作都从那里取 view。在 WYSIWYG 里打一个字，标签**立即**出现脏标记；随即 ⌃2 或 ⌘S，源码与写出的文件里都有这个字（D15 修复前编辑在打开约 300 ms 后就不再进文档）。打字后马上切标签，切回去字还在（D18）。外部改了文件后重新载入，WYSIWYG 显示新内容，再打字不会把旧内容写回（入口 `src/utils/wholesaleReplace.ts`） |
 | 行内源码显隐 | Shipped | `src/plugins/milkdown/inlineEditPlugin.ts` | 光标移进一个链接或行内代码，原始语法展开；移出去自动收起（插件 `inline-edit`）。⌃` 手动切换 |
 | 粗体 / 斜体 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts` | 选中一段文字按 ⌘B 或 ⌘I，样式立刻切换；这组键来自插件 `typora-keymap` |
 | 标题 1–6 与正文 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts` | 光标停在某段按 ⌘1…⌘6 变成对应标题，⌘0 变回正文 |

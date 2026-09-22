@@ -1,9 +1,17 @@
 /**
  * Purpose: pure decision functions for the two highest data-loss-risk
  * interactions — window/document close with unsaved changes, and external-edit
- * conflict resolution. Extracted from App.tsx so the decisions can be unit
- * tested for *behavior* (precedent: fake-IPC pattern in useFileWatcher.test.ts)
- * rather than only asserted as source-text contracts.
+ * conflict resolution — plus the flush-then-read helpers (D15) that feed the
+ * close decisions fresh store state. Extracted from App.tsx so the decisions can
+ * be unit tested for *behavior* (precedent: fake-IPC pattern in
+ * useFileWatcher.test.ts) rather than only asserted as source-text contracts.
+ *
+ * The `decide*` functions stay pure. The `*AfterFlush` helpers are not: they
+ * call `flushPendingEdits` so a WYSIWYG edit still inside the edit-sync delay
+ * reaches documentStore before the decision reads it. A flush can only move a
+ * decision toward "prompt", never away from it: a FAILED flush counts as unsaved
+ * (D15-WI-5), because a history-less edit dirties the document only when its
+ * write succeeds. App.tsx composes `decide*` over these helpers inline.
  *
  * The rule these encode: a dirty document must never be discarded or clobbered
  * without an explicit user decision. App.tsx wires these into the window
@@ -12,7 +20,12 @@
  *
  * @coordinates-with src/App.tsx (onCloseRequested, handleCloseRequest,
  *   file-change effect)
+ * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEdits
  */
+
+import { useDocumentStore } from "../stores/documentStore";
+import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
+import type { Document } from "../types/document";
 
 /** What the window close handler should do when the OS requests a close. */
 export type WindowCloseDecision = "allow" | "prompt" | "save-and-close";
@@ -85,4 +98,25 @@ export function decideFileChange(
     action: "reload-prompt",
     message: "File was modified externally. Reload to update content?",
   };
+}
+
+/**
+ * Push pending WYSIWYG edits into documentStore (D15), then return the fresh active
+ * document for a ⌘W decision. Never the render closure: an edit typed less than the
+ * edit-sync delay ago is only in documentStore after this flush. If the flush failed,
+ * the returned copy reads modified (the store is left untouched) so the close prompts.
+ */
+export function activeDocumentAfterFlush(): Document | null {
+  const { status } = useMilkdownEditorStore.getState().flushPendingEdits("tab-close");
+  const doc = useDocumentStore.getState().getActiveDocument() ?? null;
+  return doc && status === "failed" ? { ...doc, isModified: true } : doc;
+}
+
+/**
+ * Flush, then report whether ANY open document is modified: a window close discards
+ * every tab, not only the active one. A failed flush counts as unsaved.
+ */
+export function hasUnsavedChangesAfterFlush(): boolean {
+  const { status } = useMilkdownEditorStore.getState().flushPendingEdits("window-close");
+  return status === "failed" || useDocumentStore.getState().documents.some((doc) => doc.isModified);
 }

@@ -1,5 +1,5 @@
 import "./MilkdownEditor.css";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { ImageContextMenu } from "./ImageContextMenu";
 import { LinkInsertModal } from "./LinkInsertModal";
@@ -14,7 +14,6 @@ import {
 import { commonmark, imageAttr } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
-import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { Plugin } from "@milkdown/kit/prose/state";
 import { TableView } from "@milkdown/kit/prose/tables";
 import { $prose } from "@milkdown/kit/utils";
@@ -24,6 +23,7 @@ import { typoraKeymapMilkdownPlugin } from "../../plugins/milkdown/typoraKeymapP
 import { inlineEditMilkdownPlugin } from "../../plugins/milkdown/inlineEditPlugin";
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
+import { editSyncMilkdownPlugin } from "../../plugins/milkdown/editSync/plugin";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
 import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
@@ -143,7 +143,9 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
         .use(gfm)
         .use(tableNodeViewPlugin)
         .use(history)
-        .use(listener)
+        // D15: edits reach documentStore through the view lifecycle, bound to this
+        // editor's document — never through a React effect (see editSync/plugin.ts).
+        .use(editSyncMilkdownPlugin(activeDocumentId))
         .use(typoraKeymapMilkdownPlugin)
         .use(pasteHtmlSanitizerMilkdownPlugin)
         .use(imagePasteMilkdownPlugin)
@@ -177,43 +179,6 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     const getter = () => editor.get() ?? null;
     return useMilkdownEditorStore.getState().registerEditor(getter);
   }, [editor]);
-
-  // Wire Milkdown listener → documentStore so Cmd+S always saves what is on screen.
-  // Uses a ref to avoid registering multiple callbacks on the same instance.
-  const registeredInstanceRef = useRef<Editor | null>(null);
-  useEffect(() => {
-    const instance = editor.get();
-    if (!instance || instance === registeredInstanceRef.current) return;
-    registeredInstanceRef.current = instance;
-
-    // Capture the owning document id at listener registration time so that
-    // markdownUpdated always writes back to the correct document even if the
-    // user switches tabs before the callback fires.
-    let disposed = false;
-    const owningDocumentId = activeDocumentId;
-    instance.action((ctx) => {
-      const manager = ctx.get(listenerCtx);
-      manager.markdownUpdated((_ctx, markdown) => {
-        if (disposed) return;
-        const { updateDocumentContent: update } = useDocumentStore.getState();
-        if (owningDocumentId) {
-          update(owningDocumentId, markdown);
-        }
-      });
-    });
-
-    loggingService.logEventSync({
-      level: "info",
-      event: "editor.milkdown.listener.registered",
-      status: "success",
-      actionId: loggingService.generateActionId(),
-      context: { documentId: activeDocumentId },
-    });
-
-    return () => {
-      disposed = true;
-    };
-  }, [editor, activeDocumentId]);
 
   // Resolve local image paths to Tauri asset:// URLs after Milkdown renders
   useMilkdownImages(editor, activeDocument?.path ?? null, activeDocumentId);
@@ -264,11 +229,15 @@ interface MilkdownEditorProps {
 export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
   // Get activeDocumentId to use as key - forces full recreation when document changes
   const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
+  // D15-WI-5: bumped only by a wholesale replacement (reloadEditor), never by typing.
+  const generation = useMilkdownEditorStore((state) =>
+    activeDocumentId ? (state.editorGenerations[activeDocumentId] ?? 0) : 0,
+  );
 
   return (
     <div id="milkdown-container" className="milkdown-editor">
-      {/* Key forces MilkdownProvider to recreate when document changes */}
-      <MilkdownProvider key={activeDocumentId ?? "empty"}>
+      {/* Key forces MilkdownProvider to recreate on a document change or a reload */}
+      <MilkdownProvider key={`${activeDocumentId ?? "empty"}#${generation}`}>
         <MilkdownEditorInner highlightRequest={highlightRequest} />
       </MilkdownProvider>
       {/* Inline URL modal for ⌘K link insert — replaces window.prompt (#25) */}

@@ -19,9 +19,18 @@
  * no `playwright` dep, no `tests/e2e/`). Those two end-to-end cases are marked
  * blocked below and asserted only at the logic level here.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(async () => null) }));
+vi.mock("../src/services/loggingService", () => ({
+  loggingService: {
+    logEventSync: vi.fn(),
+    logEvent: vi.fn(async () => {}),
+    generateActionId: vi.fn(() => "test-id"),
+  },
+}));
 
 const APP_SRC = fs.readFileSync(
   path.resolve(__dirname, "../src/App.tsx"),
@@ -138,4 +147,20 @@ describe("data-loss: external-edit conflict", () => {
   it.todo(
     "[→E2E BLOCKED] real external edit raises the reload dialog and preserves unsaved edits (needs e2e-verify harness)",
   );
+});
+
+// ---------------------------------------------------------------------------
+// 3. D15 WI-3 — close helpers flush pending WYSIWYG edits before deciding
+// ---------------------------------------------------------------------------
+
+describe("D15 WI-3 — App close handlers read flushed store state, not render state", () => {
+  it("onCloseRequested decides on the flushed any-document-modified state", () => {
+    expect(APP_SRC).toMatch(/hasUnsavedChanges:\s*hasUnsavedChangesAfterFlush\(\)/);
+    expect(APP_SRC).not.toMatch(/hasUnsavedRef/);
+  });
+
+  it("handleCloseRequest decides on the flushed active document", () => {
+    expect(APP_SRC).toMatch(/decideCloseRequest\(\s*activeDocumentAfterFlush\(\)\s*\)/);
+    expect(APP_SRC).not.toMatch(/decideCloseRequest\(\s*activeDocument\s*\)/);
+  });
 });

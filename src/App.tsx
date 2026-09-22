@@ -32,9 +32,11 @@ import { buildImageMarkdown } from "./services/imageService";
 import { performSave } from "./services/saveService";
 import type { Document } from "./types/document";
 import {
+  activeDocumentAfterFlush,
   decideCloseRequest,
   decideFileChange,
   decideWindowClose,
+  hasUnsavedChangesAfterFlush,
 } from "./utils/dataLossGuards";
 import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
 import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
@@ -112,7 +114,6 @@ function App() {
   const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
-  const hasUnsavedRef = useRef(false);
   const openDialogLockRef = useRef(false);
   const allowWindowCloseRef = useRef(false);
   const openDialogCooldownRef = useRef(0);
@@ -120,9 +121,6 @@ function App() {
   const { event: fileChangeEvent, clearEvent, markSaveInProgress } = useFileWatcher(
     activeDocument?.path ?? null,
   );
-
-  const hasUnsavedChanges = Boolean(activeDocument?.isModified);
-  hasUnsavedRef.current = hasUnsavedChanges;
 
   useAutoSave(autoSaveInterval);
 
@@ -389,21 +387,17 @@ function App() {
         appWindowRef.current = currentWindow;
         unlisten = await currentWindow.onCloseRequested(async (event) => {
           const windowLabel = currentWindow.label;
+          // D15: flush pending WYSIWYG edits, then decide on fresh any-tab-modified state.
+          const decision = decideWindowClose({
+            allowWindowClose: allowWindowCloseRef.current,
+            hasUnsavedChanges: hasUnsavedChangesAfterFlush(),
+          });
           loggingService.logEventSync({
             level: "info",
             event: "window.close_requested",
             status: "start",
             actionId: loggingService.generateActionId(),
-            context: {
-              windowLabel,
-              hasUnsavedChanges: hasUnsavedRef.current,
-              allowWindowClose: allowWindowCloseRef.current,
-            },
-          });
-
-          const decision = decideWindowClose({
-            allowWindowClose: allowWindowCloseRef.current,
-            hasUnsavedChanges: hasUnsavedRef.current,
+            context: { windowLabel, decision, allowWindowClose: allowWindowCloseRef.current },
           });
 
           if (decision === "allow") {
@@ -978,7 +972,7 @@ function App() {
   };
 
   const handleCloseRequest = useCallback((_actionId?: string) => {
-    const decision = decideCloseRequest(activeDocument);
+    const decision = decideCloseRequest(activeDocumentAfterFlush()); // D15: flushed, fresh
     if (decision === "prompt") {
       closeTargetRef.current = "document";
       setPendingClose("document");
@@ -986,7 +980,7 @@ function App() {
       void closeActiveDocument(true);
     }
     // "noop" — no active document
-  }, [activeDocument, closeActiveDocument]);
+  }, [closeActiveDocument]);
 
   // Both ⌘⌥T (useKeyboardShortcuts) and Format → Insert Table (useMenuEvents)
   // dispatch through the same flow: open TableInsertModal via
