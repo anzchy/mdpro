@@ -483,6 +483,13 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
       /\blongestLine\s*<=\s*LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD\b/,
     );
 
+    // 1-ADR-0022 — the positive pin for the THIRD comparison, added with
+    // ADR-0022 Decision 3: Source's table-row count against its own threshold.
+    // Same reason as the pin above: it attributes the third `<=` counted below,
+    // and it catches the row count being folded into `score` or compared
+    // against an inlined number.
+    expect(code).toMatch(/\btableRowStarts\s*<=\s*SOURCE_TABLE_ROW_THRESHOLD\b/);
+
     // 2 — EXACT `<=` count, stated as a named number, never loosened. If the
     // scan legitimately acquires a second `<=`, this number is RAISED together
     // with a stated reason; it is never relaxed to `toBeGreaterThan(0)`. (Plan
@@ -497,7 +504,12 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     // boundary still opens. Two thresholds, two `<=`, each pinned positively
     // above. This is the sanctioned path the paragraph above describes — a
     // raise with a stated reason — and not a relaxation.
-    const EXPECTED_LTE_COUNT = 2;
+    //
+    // RAISED 2 → 3 on 2026-09-22, with the reason this case demands:
+    // ADR-0022 Decision 3 adds a THIRD threshold (`SOURCE_TABLE_ROW_THRESHOLD`,
+    // 50,000 table-row starts, Source only) with the same `<=` allow
+    // direction. Three thresholds, three `<=`, each pinned positively above.
+    const EXPECTED_LTE_COUNT = 3;
     expect(code.match(/<=/g) ?? []).toHaveLength(EXPECTED_LTE_COUNT);
 
     // 3 — NO comparison against a bare number, in either direction. This is the
@@ -560,8 +572,13 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     // the implementation adds `let currentLine = 0;` and `let longestLine = 0;`,
     // i.e. two further zeros. The rationale for dropping `0` is unchanged (a
     // `0` pressed into service as a threshold is still caught by assertion 3).
+    //
+    // WIDENED 6 → 7 entries on 2026-09-22 by ADR-0022 Decision 3, under the
+    // same distinction as above: `50_000` is a THRESHOLD CONSTANT sanctioned
+    // by a new accepted record, not a character code. The new counter's
+    // `let tableRowStarts = 0;` adds only a filtered zero.
     expect([...literals].sort()).toEqual(
-      ["10", "124", "1_000_000", "25_000", "32", "9"].sort(),
+      ["10", "124", "1_000_000", "25_000", "32", "50_000", "9"].sort(),
     );
     expect(literals.filter((literal) => literal === "25_000")).toHaveLength(1);
     // Same multiplicity discipline for the new threshold: exactly one home.
@@ -570,6 +587,8 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     expect(
       literals.filter((literal) => literal === "1_000_000"),
     ).toHaveLength(1);
+    // And for the third (ADR-0022): exactly one home for `50_000`.
+    expect(literals.filter((literal) => literal === "50_000")).toHaveLength(1);
 
     // The two spellings the literal regex cannot see.
     expect(code).not.toMatch(/\d(?:\.\d+)?e[+-]?\d+/i);
@@ -796,5 +815,104 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
     // and live in tests/large-document-degrade-log.test.ts; this case is only
     // the wiring. The allow arm is kept free of the call by C9, which admits
     // no statement there at all — not restated here.
+  });
+});
+
+// ---------------------------------------------------------------------------
+// plan-20260922-113723 (ADR-0022): the Source table verdict wiring in App.
+// Source-text Gates, each a supplement to the named behavioural case; App has
+// no render harness.
+// ---------------------------------------------------------------------------
+describe("ADR-0022: Source table verdict wiring in App (source-text Gates)", () => {
+  it("C16: handleTableShortcut's Source branch checks the verdict before dispatching (supplement to K3)", () => {
+    const src = readSrc(APP_PATH);
+    const start = src.indexOf("const handleTableShortcut");
+    expect(start).toBeGreaterThan(-1);
+    const end = src.indexOf("\n    [],", start);
+    expect(end).toBeGreaterThan(start);
+    const slice = src.slice(start, end);
+
+    const gate =
+      /isSourceTablesWithheld\(\s*useEditorStore\.getState\(\)\s*,\s*useDocumentStore\.getState\(\)\.activeDocumentId\s*\)/g;
+    const matches = [...slice.matchAll(gate)];
+    expect(matches).toHaveLength(1);
+
+    const dispatchIdx = slice.indexOf("dispatchSourceTableAction(");
+    expect(dispatchIdx).toBeGreaterThan(-1);
+    expect(matches[0].index).toBeLessThan(dispatchIdx);
+
+    // editorStore's own activeDocumentId is not the active document.
+    expect(slice).not.toContain("useEditorStore.getState().activeDocumentId");
+  });
+});
+
+describe("ADR-0022 / A1: the guard effect's Source verdict wiring (source-text Gates)", () => {
+  it("C17: the A1 skip precedes the decision, and the verdict is recorded before the switch", () => {
+    const slice = guardEffectSlice();
+
+    expect(slice.match(/shouldEvaluateGuard\(/g) ?? []).toHaveLength(1);
+    const skipIdx = slice.indexOf("shouldEvaluateGuard(");
+    const decideIdx = slice.indexOf("decideLargeDocumentGuard(");
+    const switchIdx = slice.indexOf("switch (");
+    expect(skipIdx).toBeGreaterThan(-1);
+    expect(decideIdx).toBeGreaterThan(-1);
+    expect(switchIdx).toBeGreaterThan(-1);
+    expect(skipIdx).toBeLessThan(decideIdx);
+    expect(slice).toMatch(
+      /shouldEvaluateGuard\(\s*viewMode\s*,\s*activeDocument\.id\s*,\s*useEditorStore\.getState\(\)\s*\)/,
+    );
+
+    expect(slice.match(/sourceTableVerdictOf\(\s*viewMode\s*,\s*decision\s*\)/g) ?? []).toHaveLength(1);
+    expect(slice.match(/recordSourceTableVerdict\(activeDocument\.id/g) ?? []).toHaveLength(1);
+    const verdictIdx = slice.search(/sourceTableVerdictOf\(\s*viewMode\s*,\s*decision\s*\)/);
+    const recordIdx = slice.indexOf("recordSourceTableVerdict(activeDocument.id");
+    for (const idx of [verdictIdx, recordIdx]) {
+      expect(idx).toBeGreaterThan(skipIdx);
+      expect(idx).toBeLessThan(switchIdx);
+    }
+    expect(slice.slice(switchIdx)).not.toContain("recordSourceTableVerdict(");
+  });
+
+  it("C15: the withhold arm is latch-gated, logs before the toast, and never changes mode", () => {
+    const slice = guardEffectSlice();
+
+    const degradeIdx = slice.indexOf('case "degrade-to-source":');
+    const withholdIdx = slice.indexOf('case "withhold-table-extensions":');
+    expect(degradeIdx).toBeGreaterThan(-1);
+    expect(withholdIdx).toBeGreaterThan(degradeIdx);
+
+    const armEnd = slice.indexOf("}", withholdIdx);
+    expect(armEnd).toBeGreaterThan(withholdIdx);
+    const arm = slice.slice(withholdIdx, armEnd);
+    const code = arm.replace(/\/\/.*$/gm, "").replace(/\s/g, "");
+
+    expect(code.startsWith('case"withhold-table-extensions":if(!firstVerdict)return;')).toBe(true);
+
+    const logIdx = arm.indexOf("buildSourceTablesWithheldLog(");
+    const toastIdx = arm.indexOf("showToast(");
+    expect(logIdx).toBeGreaterThan(-1);
+    expect(toastIdx).toBeGreaterThan(-1);
+    expect(logIdx).toBeLessThan(toastIdx);
+    expect(arm).toMatch(/buildSourceTablesWithheldLog\(\s*decision\s*,/);
+    expect(arm).toContain("showToast(decision.message)");
+    expect(arm).not.toContain("setViewMode(");
+  });
+
+  it("C2'': the withhold threshold, copy and verdict values never arrive in App", () => {
+    const src = readSrc(APP_PATH);
+
+    expect(src).not.toMatch(/50[_,]?000/);
+    expect(src).not.toContain("too many table rows");
+    expect(src).not.toContain("Table editing tools are turned off");
+    expect(src).not.toContain('"allowed"');
+    expect(src).not.toContain('"withheld"');
+  });
+
+  it("C6b: the case labels are allow, degrade, withhold — in that order, with no default", () => {
+    const slice = guardEffectSlice();
+
+    const labels = [...slice.matchAll(/case\s+"([^"]+)"\s*:/g)].map((m) => m[1]);
+    expect(labels).toEqual(["allow", "degrade-to-source", "withhold-table-extensions"]);
+    expect(slice).not.toMatch(/default\s*:/);
   });
 });

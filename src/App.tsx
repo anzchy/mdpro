@@ -38,11 +38,13 @@ import {
 } from "./utils/dataLossGuards";
 import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
 import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
+import { buildSourceTablesWithheldLog } from "./utils/sourceTableWithheldLog";
+import { shouldEvaluateGuard, sourceTableVerdictOf } from "./utils/sourceTableVerdict";
 import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts, WindowState } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
-import { useEditorStore } from "./stores/editorStore";
+import { isSourceTablesWithheld, useEditorStore } from "./stores/editorStore";
 import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useTableInsertStore } from "./stores/tableInsertStore";
 import { useToastStore } from "./stores/toastStore";
@@ -511,10 +513,18 @@ function App() {
 
   useEffect(() => {
     if (!activeDocument) return;
+    // ADR-0022 / plan A1: in Source the guard runs once per document per
+    // session, not per keystroke. The verdict is recorded before the switch so
+    // the allow arm stays empty (C9); the store is read via getState() so the
+    // dependency array is unchanged (C3).
+    if (!shouldEvaluateGuard(viewMode, activeDocument.id, useEditorStore.getState())) return;
     const decision = decideLargeDocumentGuard({
       viewMode,
       content: activeDocument.content,
     });
+    const verdict = sourceTableVerdictOf(viewMode, decision);
+    const firstVerdict =
+      verdict !== null && useEditorStore.getState().recordSourceTableVerdict(activeDocument.id, verdict);
     switch (decision.action) {
       case "allow":
         return;
@@ -530,8 +540,18 @@ function App() {
         showToast(decision.message);
         setViewMode("source");
         return;
+      case "withhold-table-extensions":
+        if (!firstVerdict) return;
+        // Source only: the table tools are withheld by Editor and the context
+        // menu reading the recorded verdict; the mode never changes here. One
+        // log line and one toast per document, logged first as above.
+        loggingService.logEventSync(
+          buildSourceTablesWithheldLog(decision, loggingService.generateActionId()),
+        );
+        showToast(decision.message);
+        return;
     }
-    // Both arms return, so `decision` is `never` here. A third action added to
+    // Every arm returns, so `decision` is `never` here. A new action added to
     // LargeDocumentGuardDecision fails to compile at this line rather than
     // being silently dropped. A bare `switch` does NOT enforce exhaustiveness
     // on its own — measured against this repo's tsc, not assumed. Rule 60
@@ -1011,6 +1031,8 @@ function App() {
           id,
         );
       } else {
+        // ADR-0022: the table tools are off for a withheld Source document.
+        if (isSourceTablesWithheld(useEditorStore.getState(), useDocumentStore.getState().activeDocumentId)) return;
         const cmView = useEditorStore.getState().editorView;
         if (!cmView) return;
         dispatchSourceTableAction(cmView, id, cmView.state.selection.main.head);

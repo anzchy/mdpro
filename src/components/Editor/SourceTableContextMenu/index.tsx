@@ -21,10 +21,17 @@
  *   - Right-click in a `.cm-line` outside any table → ignored (default
  *     browser context menu still suppressed; no menu opens).
  *   - Right-click inside a fenced code block → ignored (fence guard).
+ *   - Right-click while the active document's Source table verdict is
+ *     "withheld" (ADR-0022) → ignored BEFORE `posAtCoords` and without
+ *     `preventDefault`, so no table parse runs and the native menu shows.
+ *     Both stores are read at event time: App records the verdict after
+ *     this component mounts, and the active document can switch.
  *
  * @coordinates-with src/plugins/codemirror/sourceTableContextMenu.ts
  * @coordinates-with src/components/Editor/TableContextMenu/ActionList
- * @coordinates-with src/stores/editorStore.ts
+ * @coordinates-with src/stores/editorStore.ts — `editorView`,
+ *   `isSourceTablesWithheld`.
+ * @coordinates-with src/stores/documentStore.ts — `activeDocumentId`.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -38,7 +45,8 @@ import type {
   TableActionId,
   TableContext,
 } from "../../../plugins/milkdown/table/actionDescriptors";
-import { useEditorStore } from "../../../stores/editorStore";
+import { isSourceTablesWithheld, useEditorStore } from "../../../stores/editorStore";
+import { useDocumentStore } from "../../../stores/documentStore";
 import { loggingService } from "../../../services/loggingService";
 import { ActionList } from "../TableContextMenu/ActionList";
 
@@ -90,7 +98,12 @@ export function SourceTableContextMenu() {
       // etc.
       if (!target.closest(".cm-line")) return;
 
-      const view = useEditorStore.getState().editorView;
+      const editorState = useEditorStore.getState();
+      // ADR-0022: a withheld document gets the native menu and no parse.
+      if (isSourceTablesWithheld(editorState, useDocumentStore.getState().activeDocumentId)) {
+        return;
+      }
+      const view = editorState.editorView;
       if (!view) return;
 
       const pos = view.posAtCoords({

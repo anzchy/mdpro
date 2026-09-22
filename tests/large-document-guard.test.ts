@@ -7,6 +7,10 @@
  * N1, N2, N3, N4, N5, N6, N8, N9, N-NL, N10, N11, N12, N13, N14, N15, N16,
  * N17 (the predicate) and M1, M2, M3 (the exported constants, WI-2).
  *
+ * Added by ADR-0022 (WI-1 of `.claude/tdd-guardian/tests-20260922-113723.md`):
+ * ST0-ST14 and M5-M7, the Source-mode criterion, in the second `describe`
+ * block at the end of this file.
+ *
  * Mock boundary: NONE, in every case. Real implementation throughout.
  *
  * SCOPE — ADR-0016 freezes INVARIANTS, not a number.
@@ -73,6 +77,8 @@
  *  | "G20 (shape, restated)"    | DISSOLVED              | it existed only to keep the shared ALLOW fixture honest; that fixture is gone, and G14'/G20' make the same claim about the allow arm's exact shape |
  *  | C2 / C8 / C8b              | rewritten              | C2' / C8' / C8b' — in the CALL-SITE file (WI-4, WI-5), not here |
  *  | —                          | added in rev 2         | N1 rows 23/24 (a leading `|` is sufficient) and N17 (escaped / inline-code pipes still count) |
+ *  | G1'                        | title changed (rule 12) | ADR-0022 D1 gives Source a criterion, so "inert at any structural size" became false. Assertion unchanged: 11,438 rows is under 50,000. |
+ *  | G18' arm (a)               | RE-SPECIFIED (rule 12)  | ADR-0022 D1 removed the mode gate that justified zero reads: Source now reads `content` exactly once (0 → 1). The protected invariant, "read at most once", holds in both modes. |
  */
 
 import { describe, expect, it } from "vitest";
@@ -82,6 +88,8 @@ import {
   LARGE_DOCUMENT_DOWNGRADE_MESSAGE,
   LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD,
   LARGE_DOCUMENT_STRUCTURE_THRESHOLD,
+  SOURCE_TABLE_ROW_THRESHOLD,
+  SOURCE_TABLE_WITHHOLD_MESSAGE,
   type LargeDocumentGuardDecision,
   type LargeDocumentGuardInput,
 } from "../src/utils/largeDocumentGuard";
@@ -95,8 +103,10 @@ import {
 //
 // PAIRING, stated precisely: G2' does NOT detect a new ViewMode member — its
 // NON_WYSIWYG_MODES list simply grows by one and it rubber-stamps whatever
-// `viewMode !== "wysiwyg"` happens to do. G2b is what breaks, and the revisit
-// it forces is where the new member's guard behaviour gets decided.
+// the module's mode dispatch happens to do with it. G2b is what breaks, and the
+// revisit it forces is where the new member's guard behaviour gets decided.
+// (Corrected for ADR-0022: this comment used to cite a `viewMode !== "wysiwyg"`
+// early return; that line is gone — Source now has its own criterion.)
 //
 // `export` is mandatory, not stylistic: tsconfig.json:19 sets noUnusedLocals and
 // tsconfig.test.json extends it, so a module-scope `const _viewModeExhaustive`
@@ -214,7 +224,10 @@ describe("decideLargeDocumentGuard", () => {
   // === A. The view-mode gate ==============================================
 
   // --- G1' -----------------------------------------------------------------
-  it("G1': source mode is inert at any structural size", () => {
+  // Rule 12 note: the old title, "source mode is inert at any structural size",
+  // became false under ADR-0022 Decision 1 — above 50,000 table-row starts
+  // Source withholds (ST1). The assertion is unchanged: 11,438 rows allow.
+  it("G1': source mode ignores the WYSIWYG structure score (11,438 table rows, under 50,000)", () => {
     const result = decideLargeDocumentGuard({
       viewMode: "source",
       content: "| a | b | c | d |\n".repeat(11_438), // score 57,190
@@ -225,6 +238,9 @@ describe("decideLargeDocumentGuard", () => {
 
   // --- G2' -----------------------------------------------------------------
   it("G2': L1 — every non-wysiwyg mode allows over the whole score table", () => {
+    // ADR-0022 note: every row of this table has 50,000 table-row starts or
+    // fewer (the maximum is 11,438, the large-table shape), so "allows" still
+    // holds in Source now that Source has its own criterion.
     const NON_WYSIWYG_MODES = ALL_VIEW_MODES.filter((m) => m !== "wysiwyg");
     const CONTENT_TABLE: Array<{ content: string; label: string }> = [
       { content: "", label: "empty" },
@@ -1013,7 +1029,7 @@ describe("decideLargeDocumentGuard", () => {
   });
 
   // --- G18' ----------------------------------------------------------------
-  it("G18': `content` is read exactly once, and never in source mode", () => {
+  it("G18': `content` is read exactly once, in either mode", () => {
     // A getter on a plain object the test constructs is NOT a mock: it is a
     // legal inhabitant of LargeDocumentGuardInput returning the real value.
     //
@@ -1040,10 +1056,14 @@ describe("decideLargeDocumentGuard", () => {
       return { input, state };
     };
 
-    // (a) the mode gate short-circuits before any character of content is read.
+    // (a) Source reads content exactly once too. RE-SPECIFIED under rule 12:
+    // this arm used to assert 0 reads, because a mode gate short-circuited
+    // before any character was read. ADR-0022 Decision 1 gives Source its own
+    // criterion (table-row starts), so that gate no longer exists and 0 → 1.
+    // The invariant this case protects — "read at most once" — still holds.
     const a = makeInput("source");
     expect(decideLargeDocumentGuard(a.input)).toEqual({ action: "allow" });
-    expect(a.state.reads, "source mode must not read content").toBe(0);
+    expect(a.state.reads, "source mode must read content exactly once").toBe(1);
 
     // (b) positive control — in wysiwyg the content IS read, exactly once.
     const b = makeInput("wysiwyg");
@@ -2128,5 +2148,486 @@ describe("largeDocumentGuard exported constants (WI-2)", () => {
       longestLine: LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD + 1,
       trigger: "line-length",
     });
+  });
+});
+
+// ===========================================================================
+// ADR-0022 — the Source-mode criterion (WI-1 of
+// `.claude/tdd-guardian/tests-20260922-113723.md`: ST0-ST14, M5-M7).
+//
+// Same global rules as the block above: whole-object `toEqual`, the message
+// written as a full literal, exact integers, results collected unwrapped and
+// asserted after the loop, no timing value anywhere. Every fragment is written
+// in escape form — `" "` is one NBSP.
+// ===========================================================================
+
+// The test's own independent copy of the withhold copy (M5). Comparing against
+// the imported constant would be a tautology.
+const SOURCE_MESSAGE =
+  "This document has too many table rows. Table editing tools are turned off for it.";
+
+/** Exactly 50,000 table-row starts: it ALLOWS in Source (ST0 pins it). */
+const ROWS_AT_THRESHOLD = "|\n".repeat(50_000);
+
+/** Exactly 50,001 table-row starts: it WITHHOLDS in Source (ST0 pins it). */
+const ROWS_OVER = "|\n".repeat(50_001);
+
+/** The expected withhold decision for a count, written out in full. */
+const withheld = (tableRows: number) => ({
+  action: "withhold-table-extensions",
+  message: SOURCE_MESSAGE,
+  tableRows,
+});
+
+const decideSource = (content: string): LargeDocumentGuardDecision =>
+  decideLargeDocumentGuard({ viewMode: "source", content });
+
+/**
+ * The row-count instrument — the Source mirror of `atMargin`. `ROWS_OVER` ends
+ * in `"\n"`, so the fragment starts at a fresh line start and the withhold arm
+ * exposes its count. Asserts (rather than throws) on the wrong arm, so a
+ * missing Source criterion fails as an assertion, not as an opaque error.
+ */
+const rowsAfter = (fragment: string): number => {
+  const decision = decideSource(ROWS_OVER + fragment);
+  expect(decision.action, `rowsAfter(${JSON.stringify(fragment)})`).toBe(
+    "withhold-table-extensions",
+  );
+  if (decision.action !== "withhold-table-extensions") return Number.NaN;
+  return decision.tableRows - 50_001;
+};
+
+/**
+ * ST3's transition table. The `rows` column is written by hand, one row per
+ * transition class of the row-start automaton; nothing here is computed.
+ */
+const ROW_FRAGMENTS: Array<{ fragment: string; rows: number; why: string }> = [
+  { fragment: "|", rows: 1, why: "pipe at line start" },
+  { fragment: " |", rows: 1, why: "space keeps line start" },
+  { fragment: "\t|", rows: 1, why: "tab keeps line start" },
+  { fragment: "       |", rows: 1, why: "whitespace run of any length" },
+  { fragment: " |", rows: 0, why: "NBSP clears line start" },
+  { fragment: "\r|", rows: 0, why: "\\r clears line start" },
+  { fragment: "\r\n|", rows: 1, why: "\\r clears, \\n re-arms" },
+  { fragment: "||", rows: 1, why: "the first pipe clears line start" },
+  { fragment: "x|", rows: 0, why: "a letter comes first" },
+  { fragment: "a | b", rows: 0, why: "interior pipe only" },
+  { fragment: "\\| a", rows: 0, why: "a backslash comes first (corrects the plan)" },
+  { fragment: "`a|b`", rows: 0, why: "a backtick comes first" },
+  { fragment: "| `a|b` |", rows: 1, why: "one start, interior pipes ignored" },
+  { fragment: "```\n| a |\n```\n", rows: 1, why: "fence over-count, inherited and accepted" },
+  { fragment: "", rows: 0, why: "empty" },
+  { fragment: "| a | b\n", rows: 1, why: "a closing pipe is not required" },
+  { fragment: "\n|", rows: 1, why: "blank line, then a start" },
+  { fragment: " \n |", rows: 1, why: "whitespace-only line, then an indented start" },
+];
+
+/**
+ * Generator G (no fast-check): the LCG `next = (1664525*s + 1013904223) mod 2^32`,
+ * normalised to [0, 1) so every draw uses the high bits. The first output is
+ * discarded — the standard warm-up for an LCG seeded with a small integer,
+ * whose first output is strongly correlated with the seed.
+ *
+ * The row count `rows` is known BY CONSTRUCTION — every row-pool line
+ * contributes exactly one start and every non-row-pool line none (ST3's
+ * classes) — so it is an oracle independent of the unit under test.
+ */
+const ROW_POOL = ["|", "| a |", "  | b", "\t|x"];
+const NON_ROW_POOL = ["x", "a | b", "", "- item", " |"];
+const ROW_PROBABILITIES = [0.75, 0.9, 1.0];
+
+const lcg = (seed: number) => {
+  let state = seed >>> 0;
+  return (): number => {
+    state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+    return state / 4_294_967_296;
+  };
+};
+
+const generateDocument = (seed: number, minLines: number, maxLines: number) => {
+  const random = lcg(seed);
+  const pick = (n: number) => Math.floor(random() * n);
+  random(); // warm-up draw, see above
+  const lineCount = minLines + pick(maxLines - minLines + 1);
+  const p = ROW_PROBABILITIES[pick(ROW_PROBABILITIES.length)];
+  const lines: string[] = [];
+  let rows = 0;
+  for (let i = 0; i < lineCount; i++) {
+    if (random() < p) {
+      lines.push(ROW_POOL[pick(ROW_POOL.length)]);
+      rows++;
+    } else {
+      lines.push(NON_ROW_POOL[pick(NON_ROW_POOL.length)]);
+    }
+  }
+  return { seed, content: lines.join("\n"), rows };
+};
+
+const ST8_SEEDS = [1, 7, 42, 1337, 20260922, 99991, 314159, 271828];
+
+describe("decideLargeDocumentGuard — the Source criterion (ADR-0022)", () => {
+  // --- ST0 -----------------------------------------------------------------
+  it("ST0: harness self-check — the row instruments sit exactly on the boundary", () => {
+    expect(decideSource(ROWS_AT_THRESHOLD)).toEqual({ action: "allow" });
+    expect(decideSource(ROWS_OVER)).toEqual({
+      action: "withhold-table-extensions",
+      message: "This document has too many table rows. Table editing tools are turned off for it.",
+      tableRows: 50_001,
+    });
+    expect(rowsAfter("")).toBe(0);
+    // Escape-form guard: a normalised NBSP would collapse two rows into one.
+    const fragments = ROW_FRAGMENTS.map((row) => row.fragment);
+    expect(new Set(fragments).size).toBe(fragments.length);
+  });
+
+  // --- ST1 -----------------------------------------------------------------
+  it("ST1: boundary at distance 1 — 50,000 rows allow, 50,001 withhold", () => {
+    expect(decideSource("|\n".repeat(50_000))).toEqual({ action: "allow" });
+    expect(decideSource("|\n".repeat(50_001))).toEqual({
+      action: "withhold-table-extensions",
+      message: "This document has too many table rows. Table editing tools are turned off for it.",
+      tableRows: 50_001,
+    });
+  });
+
+  // --- ST2 -----------------------------------------------------------------
+  it("ST2: the threshold constant is 50,000 and it is the one the predicate uses", () => {
+    expect(SOURCE_TABLE_ROW_THRESHOLD).toBe(50_000);
+    const T = SOURCE_TABLE_ROW_THRESHOLD;
+    expect(decideSource("|\n".repeat(T))).toEqual({ action: "allow" });
+    expect(decideSource("|\n".repeat(T + 1))).toEqual(withheld(T + 1));
+  });
+
+  // --- ST3 -----------------------------------------------------------------
+  it("ST3: the row-start transition table, with hand-written counts", () => {
+    const counts: number[] = [];
+    const atThreshold: LargeDocumentGuardDecision[] = [];
+    const labels: string[] = [];
+    for (const row of ROW_FRAGMENTS) {
+      counts.push(rowsAfter(row.fragment));
+      atThreshold.push(decideSource(ROWS_AT_THRESHOLD + row.fragment));
+      labels.push(`${JSON.stringify(row.fragment)} — ${row.why}`);
+    }
+
+    expect(counts).toEqual([1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1]);
+    atThreshold.forEach((decision, i) => {
+      const expected =
+        ROW_FRAGMENTS[i].rows === 0 ? { action: "allow" } : withheld(50_001);
+      expect(decision, labels[i]).toEqual(expected);
+    });
+  });
+
+  // --- ST4 -----------------------------------------------------------------
+  it("ST4: Source ignores the structure score and the longest line", () => {
+    const cases: Array<{ content: string; wysiwyg: LargeDocumentGuardDecision }> = [
+      {
+        content: "\n".repeat(57_190),
+        wysiwyg: {
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          elements: 57_190,
+          longestLine: 0,
+          trigger: "structure",
+        },
+      },
+      {
+        content: "x".repeat(1_000_001),
+        wysiwyg: {
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          elements: 0,
+          longestLine: 1_000_001,
+          trigger: "line-length",
+        },
+      },
+      {
+        content: "- item\n".repeat(32_657),
+        wysiwyg: {
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          elements: 32_657,
+          longestLine: 6,
+          trigger: "structure",
+        },
+      },
+      {
+        content: "a | b\n".repeat(60_000),
+        wysiwyg: {
+          action: "degrade-to-source",
+          message: EXPECTED_MESSAGE,
+          elements: 120_000,
+          longestLine: 5,
+          trigger: "structure",
+        },
+      },
+    ];
+
+    const sourceResults: LargeDocumentGuardDecision[] = [];
+    const wysiwygResults: LargeDocumentGuardDecision[] = [];
+    for (const row of cases) {
+      sourceResults.push(decideSource(row.content));
+      wysiwygResults.push(
+        decideLargeDocumentGuard({ viewMode: "wysiwyg", content: row.content }),
+      );
+    }
+    sourceResults.forEach((result, i) => {
+      expect(result, `source, case ${i}`).toEqual({ action: "allow" });
+    });
+    wysiwygResults.forEach((result, i) => {
+      expect(result, `wysiwyg, case ${i}`).toEqual(cases[i].wysiwyg);
+    });
+
+    // Over the line threshold AND over the row threshold: exactly the withhold
+    // arm, with no `trigger` or `longestLine` leaking in.
+    expect(decideSource(ROWS_OVER + "x".repeat(1_000_001))).toEqual({
+      action: "withhold-table-extensions",
+      message: "This document has too many table rows. Table editing tools are turned off for it.",
+      tableRows: 50_001,
+    });
+  });
+
+  // --- ST5 -----------------------------------------------------------------
+  it("ST5: the row count is additive over line-aligned concatenation", () => {
+    // Every A is empty or ends in "\n", so A + B joins at a line boundary.
+    // Known limit: a constant 0 satisfies additivity — ST3, ST6 and ST8b are
+    // what make this sound.
+    const A = ["", "|\n", "x\n", " | a\n", " |\n", "a | b\n|\n", "```\n| a |\n```\n"];
+    const lhs: number[] = [];
+    const rhs: number[] = [];
+    const labels: string[] = [];
+    for (const a of A) {
+      for (const { fragment: b } of ROW_FRAGMENTS) {
+        lhs.push(rowsAfter(a + b));
+        rhs.push(rowsAfter(a) + rowsAfter(b));
+        labels.push(`${JSON.stringify(a)} + ${JSON.stringify(b)}`);
+      }
+    }
+    expect(lhs).toHaveLength(A.length * ROW_FRAGMENTS.length);
+    lhs.forEach((value, i) => {
+      expect(value, labels[i]).toBe(rhs[i]);
+    });
+  });
+
+  // --- ST6 -----------------------------------------------------------------
+  it("ST6: ladder — an exact arm on every rung, ascending then descending", () => {
+    const LADDER = [0, 1, 49_999, 50_000, 50_001, 232_981, 232_982];
+    const EXPECTED = [
+      { action: "allow" },
+      { action: "allow" },
+      { action: "allow" },
+      { action: "allow" },
+      withheld(50_001),
+      withheld(232_981),
+      withheld(232_982),
+    ];
+
+    const ascending: LargeDocumentGuardDecision[] = [];
+    for (const n of LADDER) ascending.push(decideSource("|\n".repeat(n)));
+    const descending: LargeDocumentGuardDecision[] = [];
+    for (const n of [...LADDER].reverse()) descending.push(decideSource("|\n".repeat(n)));
+
+    expect(ascending).toEqual(EXPECTED);
+    expect(descending).toEqual([...EXPECTED].reverse());
+  });
+
+  // --- ST7 -----------------------------------------------------------------
+  it("ST7: regression anchor — the ADR-0022 fixture shape withholds with 232,982 rows", () => {
+    expect(decideSource("| a | b | c | d |\n".repeat(232_982))).toEqual({
+      action: "withhold-table-extensions",
+      message: "This document has too many table rows. Table editing tools are turned off for it.",
+      tableRows: 232_982,
+    });
+  });
+
+  // --- ST8 -----------------------------------------------------------------
+  it("ST8: a Source withhold implies a WYSIWYG degrade (seeded generator)", () => {
+    // Law: R row starts need at least R−1 newlines, and a row start's own pipe
+    // nets 0, so score ≥ R−1 ≥ 50,000 > 25,000.
+    const samples: Array<{ seed: number; source: string; wysiwyg: string; trigger: string }> = [];
+    for (const seed of ST8_SEEDS) {
+      const { content } = generateDocument(seed, 50_000, 70_000);
+      const source = decideSource(content);
+      const wysiwyg = decideLargeDocumentGuard({ viewMode: "wysiwyg", content });
+      samples.push({
+        seed,
+        source: source.action,
+        wysiwyg: wysiwyg.action,
+        trigger: wysiwyg.action === "degrade-to-source" ? wysiwyg.trigger : "none",
+      });
+    }
+
+    const withholding = samples.filter((s) => s.source === "withhold-table-extensions");
+    // Non-vacuity, exact: seeds 1, 7, 20260922, 99991 and 271828 generate
+    // more than 50,000 rows by construction.
+    expect(withholding.map((s) => s.seed)).toEqual([1, 7, 20260922, 99991, 271828]);
+    withholding.forEach((s) => {
+      expect(s.wysiwyg, `seed ${s.seed}`).toBe("degrade-to-source");
+      expect(["structure", "both"], `seed ${s.seed}`).toContain(s.trigger);
+    });
+  });
+
+  // --- ST8b ----------------------------------------------------------------
+  it("ST8b: the Source count equals the generator's constructive row count", () => {
+    const docs = [
+      ...ST8_SEEDS.map((seed) => generateDocument(seed, 50_000, 70_000)),
+      ...[3, 11].map((seed) => generateDocument(seed, 45_000, 55_000)),
+    ];
+    const actual: LargeDocumentGuardDecision[] = [];
+    const expected: Array<LargeDocumentGuardDecision | ReturnType<typeof withheld>> = [];
+    for (const doc of docs) {
+      actual.push(decideSource(doc.content));
+      expected.push(doc.rows > 50_000 ? withheld(doc.rows) : { action: "allow" });
+    }
+    expect(actual).toEqual(expected);
+    // Non-vacuity: both arms occur.
+    expect(docs.filter((d) => d.rows > 50_000).length).toBeGreaterThanOrEqual(1);
+    expect(docs.filter((d) => d.rows <= 50_000).length).toBeGreaterThanOrEqual(1);
+  });
+
+  // --- ST9 -----------------------------------------------------------------
+  it("ST9: a 50,001-row document in WYSIWYG degrades and never withholds", () => {
+    // By hand: each "|\n" nets 0 for the row-start pipe and +1 for the newline;
+    // the longest line is the single pipe.
+    expect(
+      decideLargeDocumentGuard({ viewMode: "wysiwyg", content: "|\n".repeat(50_001) }),
+    ).toEqual({
+      action: "degrade-to-source",
+      message: "This document is too complex for WYSIWYG. Switched to Source mode for performance.",
+      elements: 50_001,
+      longestLine: 1,
+      trigger: "structure",
+    });
+  });
+
+  // --- ST10 ----------------------------------------------------------------
+  it("ST10: exact key sets on both Source arms", () => {
+    expect(Object.keys(decideSource(ROWS_OVER)).sort()).toEqual([
+      "action",
+      "message",
+      "tableRows",
+    ]);
+    expect(Object.keys(decideSource("| a |\n"))).toEqual(["action"]);
+  });
+
+  // --- ST11 ----------------------------------------------------------------
+  it("ST11: purity, idempotence and no aliasing on the withhold arm", () => {
+    const input: LargeDocumentGuardInput = Object.freeze({
+      viewMode: "source" as const,
+      content: ROWS_OVER,
+    });
+    const copy = { ...input };
+
+    const first = decideLargeDocumentGuard(input);
+    const second = decideLargeDocumentGuard(input);
+    expect(first).toEqual(second);
+    expect(first).not.toBe(second);
+
+    const later = decideLargeDocumentGuard({
+      viewMode: "source",
+      content: "| a |\n".repeat(232_982),
+    });
+    expect(later).toEqual(withheld(232_982));
+    expect(first).toEqual({
+      action: "withhold-table-extensions",
+      message: "This document has too many table rows. Table editing tools are turned off for it.",
+      tableRows: 50_001,
+    });
+
+    expect(Object.isFrozen(input)).toBe(true);
+    expect(input).toEqual(copy);
+  });
+
+  // --- ST12 ----------------------------------------------------------------
+  it("ST12: inserting non-row lines at line boundaries leaves the Source decision unchanged", () => {
+    const BLOCKS = ["\n", "x\n", "a | b\n", "- item\n", " |\n", "a | b | c | d\n"].map(
+      (line) => line.repeat(1_000),
+    );
+    const BASES = [ROWS_OVER, "|\n".repeat(49_990)];
+    const random = lcg(12);
+    const INSERTIONS_PER_BASE = 5;
+
+    const baseDecisions: LargeDocumentGuardDecision[] = [];
+    const variants: LargeDocumentGuardDecision[] = [];
+    const variantBase: number[] = [];
+    const labels: string[] = [];
+    BASES.forEach((base, baseIndex) => {
+      baseDecisions.push(decideSource(base));
+      const lineCount = base.length / 2; // every base line is "|\n"
+      for (let i = 0; i < INSERTIONS_PER_BASE; i++) {
+        const blockIndex = (baseIndex * INSERTIONS_PER_BASE + i) % BLOCKS.length;
+        const offset = 2 * Math.floor(random() * (lineCount + 1));
+        variants.push(
+          decideSource(base.substring(0, offset) + BLOCKS[blockIndex] + base.substring(offset)),
+        );
+        variantBase.push(baseIndex);
+        labels.push(`base ${baseIndex}, block ${blockIndex}, offset ${offset}`);
+      }
+    });
+
+    expect(baseDecisions).toEqual([withheld(50_001), { action: "allow" }]);
+    variants.forEach((decision, i) => {
+      expect(decision, labels[i]).toEqual(baseDecisions[variantBase[i]]);
+    });
+  });
+
+  // --- ST13 ----------------------------------------------------------------
+  it("ST13: a Source withhold reads `content` exactly once", () => {
+    const state = { reads: 0 };
+    const input: LargeDocumentGuardInput = {
+      viewMode: "source",
+      get content() {
+        state.reads += 1;
+        return ROWS_OVER;
+      },
+    };
+    expect(decideLargeDocumentGuard(input)).toEqual(withheld(50_001));
+    expect(state.reads).toBe(1);
+  });
+
+  // --- ST14 ----------------------------------------------------------------
+  it("ST14: mode exclusivity — Source never degrades, WYSIWYG never withholds", () => {
+    const contents = [
+      ...[5, 8, 13, 21].map((seed) => generateDocument(seed, 50_000, 70_000).content),
+      AT_THRESHOLD,
+      OVER_THRESHOLD,
+    ];
+    const sourceActions = new Set<string>();
+    const wysiwygActions = new Set<string>();
+    for (const content of contents) {
+      sourceActions.add(decideSource(content).action);
+      wysiwygActions.add(decideLargeDocumentGuard({ viewMode: "wysiwyg", content }).action);
+    }
+    // Set equality also proves non-vacuity: both non-allow arms were observed.
+    expect([...sourceActions].sort()).toEqual(["allow", "withhold-table-extensions"]);
+    expect([...wysiwygActions].sort()).toEqual(["allow", "degrade-to-source"]);
+  });
+
+  // --- M5 ------------------------------------------------------------------
+  it("M5: the withhold copy is its full literal", () => {
+    expect(SOURCE_TABLE_WITHHOLD_MESSAGE).toBe(
+      "This document has too many table rows. Table editing tools are turned off for it.",
+    );
+  });
+
+  // --- M6 ------------------------------------------------------------------
+  it("M6: the withhold decision carries exactly that constant", () => {
+    const decision = decideSource(ROWS_OVER);
+    expect(decision.action).toBe("withhold-table-extensions");
+    const message = "message" in decision ? decision.message : undefined;
+    expect(message).toBe(SOURCE_TABLE_WITHHOLD_MESSAGE);
+    expect(message).not.toBe(LARGE_DOCUMENT_DOWNGRADE_MESSAGE);
+  });
+
+  // --- M7 ------------------------------------------------------------------
+  it("M7: copy contract — no digits, names tables, promises no mode switch", () => {
+    const m = String(SOURCE_TABLE_WITHHOLD_MESSAGE);
+    expect([
+      /\d/.test(m),
+      /table/i.test(m),
+      /switch/i.test(m),
+      /WYSIWYG/.test(m),
+      /Source mode/i.test(m),
+      m !== LARGE_DOCUMENT_DOWNGRADE_MESSAGE,
+    ]).toEqual([false, true, false, false, false, true]);
   });
 });

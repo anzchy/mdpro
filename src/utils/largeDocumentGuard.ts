@@ -1,17 +1,21 @@
 /**
- * Purpose: the pure decision function behind the WYSIWYG large-document
- * guardrail — "is this document too big to open in the WYSIWYG surface, and if
- * so what do we tell the user?". Extracted verbatim from the `useEffect` at
+ * Purpose: the pure decision function behind the large-document guardrail, in
+ * both view modes. In WYSIWYG: "is this document too big to open in the WYSIWYG
+ * surface, and if so what do we tell the user?". In Source (ADR-0022): "does
+ * this document have so many table rows that the Source table extensions must
+ * be withheld?". The WYSIWYG half was extracted verbatim from the `useEffect` at
  * `src/App.tsx:511-531` so the arithmetic can be unit tested for behaviour
  * instead of existing only as six untested lines inside a 1200-line component.
  * Precedent for the shape: `src/utils/dataLossGuards.ts` — a pure `decideX(...)`
  * returning a discriminated union that App.tsx consumes with an exhaustive
  * `switch`.
  *
- * FILE LENGTH — over rule 50 §6's 300-line limit, knowingly. About two thirds
- * of this file is the contract header below; the executable part is ~70 lines.
+ * FILE LENGTH — over rule 50 §6's 300-line limit, knowingly, and it grew again
+ * with ADR-0022 (answers (13)-(18) and a third constant). About two thirds of
+ * this file is the contract header below; the executable part is ~85 lines.
  * The rule's prescribed remedy (extract types to `types.ts`) is unavailable:
- * case C7 pins this module's import list to zero, so a sibling module cannot be
+ * case C7 pins this module's import list to exactly one type-only import
+ * (`ViewMode`), so a sibling module cannot be
  * imported. Splitting the contract into `docs/` was rejected — it would put the
  * contract and the code it constrains in separate files, which is exactly how
  * the "0 ms" claim that ADR-0019 had to undo got to survive as long as it did.
@@ -60,9 +64,9 @@
  *   them. Re-fitting it on new measurements needs no new ADR.
  * - **Pipe arithmetic errs in both directions** — a `|` inside a fenced code
  *   block over-counts, a table row written without outer pipes under-counts.
- * - **A degrade leaves no log trace.** The user sees a toast; `~/.mdpro/mdpro.log`
- *   records nothing — and `trigger` now exists but reaches no log. Out of scope
- *   for both ADRs, tracked separately.
+ * - (Corrected.) This list used to say "a degrade leaves no log trace". That
+ *   stopped being true when the degrade log landed: App logs every degrade,
+ *   `trigger` included, through `src/utils/largeDocumentDegradeLog.ts`.
  *
  * The retired-case mapping table (G11-G13, G15, G18, G21, C8b) lives in
  * `tests/large-document-guard.test.ts` next to the cases it maps, not here — one
@@ -70,8 +74,17 @@
  * in this header and the entry for WI-5 asked for it in the test header; a second
  * copy in production code would only give the two somewhere to drift apart.
  *
+ * WHAT CHANGED ON 2026-09-22 — ADR-0022 (Accepted), the Source criterion.
+ *
+ * ADR-0022 extends ADR-0016 and ADR-0019 the same way 0019 extends 0016: a
+ * third counter in the same pass, one more integer of state, still no parsing.
+ * Source mode used to return `allow` before reading `content` at all; it now
+ * counts table-row starts and withholds the Source table extensions above
+ * `SOURCE_TABLE_ROW_THRESHOLD`. It never switches mode. Answers (13)-(18).
+ *
  * CONTRACT — answers (1)-(6) are D6.3(c), what ADR-0016 leaves
- * underdetermined; (7)-(12) are D6.3(d), what ADR-0019 leaves underdetermined.
+ * underdetermined; (7)-(12) are D6.3(d), what ADR-0019 leaves underdetermined;
+ * (13)-(18) are what ADR-0022 leaves underdetermined.
  *
  * Recorded before the first test of this change was written, so the tests
  * specify a stated contract instead of transcribing whatever the implementation
@@ -153,9 +166,38 @@
  *    because the two quantities have no defensible exchange rate, and a fold
  *    would silently invent one.
  *    **[ADR]** Decision 3.
+ * 13. **Source decides on `tableRowStarts` alone.** It ignores `score` and
+ *    `longestLine`: a 57,190-newline document or a 1,000,001-unit line allows
+ *    in Source. Those two counters measure the WYSIWYG mount cost, not the
+ *    per-cursor table parse ADR-0022 bounds. **[choice]**.
+ * 14. **A table-row start is exactly answer (2)'s definition** — the same one
+ *    the `score--` correction already uses, counted in the same branch. NBSP
+ *    and `\r` clear the line start; an escaped `\|` at line start does not
+ *    count (the backslash comes first). **[ADR]** Decision 2.
+ * 15. **`allow` carries no numbers in Source either**, for the reason given on
+ *    the union below. **[choice]**.
+ * 16. **The fence over-count is inherited.** A pipe line inside fenced code
+ *    counts as a row start, as it does for `score`; not counting it would need
+ *    fence tracking, which is parsing. **[choice]**, constrained by ADR-0016
+ *    Decision 1.
+ * 17. **`SOURCE_TABLE_ROW_THRESHOLD = 50_000`, and `<=` allows**, the same
+ *    direction as the other two. The underscore spelling is contract, for the
+ *    C8b' reason in answer (5). **[ADR]** Decision 3 fixes the value;
+ *    **[choice]** for the name, spelling and direction.
+ * 18. **Cost: this function scans on every call, in both modes.** ADR-0022
+ *    Consequences prices the counter "on the Source open path"; that holds only
+ *    if the caller calls it once per document in Source. Keeping it to once per
+ *    document per session is the caller's job (the per-document verdict record
+ *    of plan amendment A1), not this module's. Accepted limit of that design:
+ *    a document that grows past the threshold under the same id keeps its
+ *    first verdict until reopened. **[choice]**, correcting the ADR's cost
+ *    statement here rather than in the immutable ADR.
  *
  * @module src/utils/largeDocumentGuard
- * @coordinates-with src/App.tsx (the WYSIWYG large-document guardrail effect)
+ * @coordinates-with src/App.tsx (the large-document guardrail effect)
+ * @coordinates-with src/utils/largeDocumentDegradeLog.ts (logs the degrade arm)
+ * @coordinates-with src/utils/sourceTableWithheldLog.ts (logs the withhold arm)
+ * @coordinates-with src/utils/sourceTableVerdict.ts (maps a Source decision to a per-document verdict)
  */
 
 import type { ViewMode } from "../types/editor";
@@ -180,6 +222,21 @@ export const LARGE_DOCUMENT_STRUCTURE_THRESHOLD = 25_000;
  * that gap, not a fitted one (ADR-0019 Consequences).
  */
 export const LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD = 1_000_000;
+
+/**
+ * The table-row-start count at or below which a Source document keeps its
+ * table extensions. See contract answer (17): the `50_000` spelling is part of
+ * the contract, for the same C8b' reason as the two thresholds above. A policy
+ * judgement about per-cursor heap, not a fitted value (ADR-0022 Decision 3).
+ */
+export const SOURCE_TABLE_ROW_THRESHOLD = 50_000;
+
+/**
+ * The toast copy shown when Source withholds its table extensions. It names no
+ * number and promises no mode switch, because none happens (M7).
+ */
+export const SOURCE_TABLE_WITHHOLD_MESSAGE =
+  "This document has too many table rows. Table editing tools are turned off for it.";
 
 /** The toast copy shown when the guardrail forces a document into Source mode. */
 export const LARGE_DOCUMENT_DOWNGRADE_MESSAGE =
@@ -209,6 +266,10 @@ export interface LargeDocumentGuardInput {
  *   line in UTF-16 code units, and `trigger` names which threshold (or both)
  *   produced the decision. See contract answer (4) for why the first field is
  *   no longer called `bytes`; ADR-0019 Decision 4 for the other two.
+ * - `withhold-table-extensions` (Source only, ADR-0022): show `message` and
+ *   turn the Source table extensions off; the view mode is left alone.
+ *   `tableRows` is the table-row-start count. The WYSIWYG counters are not
+ *   carried — they played no part in the decision (answer (13)).
  */
 export type LargeDocumentGuardDecision =
   | { action: "allow" }
@@ -218,7 +279,8 @@ export type LargeDocumentGuardDecision =
       elements: number;
       longestLine: number;
       trigger: "structure" | "line-length" | "both";
-    };
+    }
+  | { action: "withhold-table-extensions"; message: string; tableRows: number };
 
 /**
  * The four character codes the scan compares against, named rather than
@@ -234,17 +296,19 @@ const CHAR_SPACE = 32; // " "
 const CHAR_PIPE = 124; // "|"
 
 /**
- * Decide whether a document may stay in WYSIWYG mode.
+ * Decide what the guardrail does for a document in its current view mode.
  *
  * `score = newlines + (pipes − tableRowStarts)` and `longestLine` = the longest
- * run of code units between newlines. Allowed only while **both**
- * `score <= LARGE_DOCUMENT_STRUCTURE_THRESHOLD` and
- * `longestLine <= LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD`.
+ * run of code units between newlines. In WYSIWYG the document is allowed only
+ * while **both** `score <= LARGE_DOCUMENT_STRUCTURE_THRESHOLD` and
+ * `longestLine <= LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD`. In Source it keeps its
+ * table extensions only while
+ * `tableRowStarts <= SOURCE_TABLE_ROW_THRESHOLD`, whatever the other two say.
  *
  * One forward pass, constant auxiliary space, no parsing and no tokenizer —
  * ADR-0016 Decision 1 freezes all four, and ADR-0019 preserves all four.
  * Nothing derived from `content` is allocated: no `split`, no `match`, no
- * `trimStart`, no regex, no encode. The whole scan state is four numbers and a
+ * `trimStart`, no regex, no encode. The whole scan state is five numbers and a
  * boolean, regardless of input size.
  *
  * `atLineStart` starts `true` because the first line of the document is a line
@@ -252,13 +316,12 @@ const CHAR_PIPE = 124; // "|"
  * answer (2)'s unbounded whitespace), and any other character clears it. A pipe
  * seen while it is still set is a table-row start, so it contributes its `+1`
  * as a pipe and its `−1` as a row start in the same step — which is why one
- * accumulator suffices for all three counts.
+ * accumulator suffices for the score. The row starts are ALSO counted on their
+ * own in `tableRowStarts` (ADR-0022), never folded back into `score`.
  */
 export function decideLargeDocumentGuard(
   input: LargeDocumentGuardInput,
 ): LargeDocumentGuardDecision {
-  if (input.viewMode !== "wysiwyg") return { action: "allow" };
-
   // Read once, into a local: the getter-counting case G18' pins this.
   const content = input.content;
   const length = content.length;
@@ -269,6 +332,8 @@ export function decideLargeDocumentGuard(
   // "\n"; `longestLine` is the maximum completed run seen.
   let currentLine = 0;
   let longestLine = 0;
+  // The third counter (ADR-0022 Decision 2): one more integer, same pass.
+  let tableRowStarts = 0;
 
   for (let index = 0; index < length; index++) {
     const code = content.charCodeAt(index);
@@ -290,7 +355,10 @@ export function decideLargeDocumentGuard(
 
     if (code === CHAR_PIPE) {
       score++;
-      if (atLineStart) score--; // a table-row start cancels its own pipe
+      if (atLineStart) {
+        score--; // a table-row start cancels its own pipe
+        tableRowStarts++;
+      }
       atLineStart = false;
     } else if (code !== CHAR_SPACE && code !== CHAR_TAB) {
       atLineStart = false;
@@ -299,6 +367,17 @@ export function decideLargeDocumentGuard(
 
   // The final line counts even with no trailing newline (contract answer 8).
   if (currentLine > longestLine) longestLine = currentLine;
+
+  // Source decides on the row count alone (contract answer 13) and never
+  // degrades: the withhold leaves the view mode where it is.
+  if (input.viewMode === "source") {
+    if (tableRowStarts <= SOURCE_TABLE_ROW_THRESHOLD) return { action: "allow" };
+    return {
+      action: "withhold-table-extensions",
+      message: SOURCE_TABLE_WITHHOLD_MESSAGE,
+      tableRows: tableRowStarts,
+    };
+  }
 
   // Two independent counts, two independent thresholds, either one degrades
   // (ADR-0019 Decisions 3 and 4). They are deliberately NOT summed: there is

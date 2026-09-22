@@ -17,13 +17,10 @@ import { useDocumentStore } from "../../stores/documentStore";
 import { useEditorStore } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
-import {
-  isPositionInFencedCode,
-  tableDetectionExtension,
-} from "../../plugins/codemirror/sourceTableDetection";
+import { isPositionInFencedCode } from "../../plugins/codemirror/sourceTableDetection";
 import { sourceTableTabKeymap } from "../../plugins/codemirror/sourceTableTabNav";
-import { sourceTableCellHighlightExtension } from "../../plugins/codemirror/sourceTableCellHighlight";
-import { tableColumnCountLinter } from "../../plugins/codemirror/lintTableColumnCount";
+import { sourceTableExtensions } from "../../plugins/codemirror/sourceTableExtensions";
+import { useSourceTablesWithheld } from "../../hooks/useSourceTablesWithheld";
 import {
   consumePendingTableCell,
   locateCellInLines,
@@ -46,6 +43,10 @@ export function Editor({
   const viewRef = useRef<EditorView | null>(null);
   const initializedRef = useRef(false);
   const setEditorView = useEditorStore((state) => state.setEditorView);
+  // ADR-0022: true when the active document's Source table verdict is
+  // "withheld". A subscription (not a getState() read) because App's guard
+  // effect records the verdict after this component mounts.
+  const sourceTablesWithheld = useSourceTablesWithheld();
   const pluginExtensions = useMemo(() => pluginRegistry.getCodemirrorExtensions(), []);
   const pluginEventExtension = useMemo(
     () =>
@@ -119,10 +120,12 @@ export function Editor({
       ...searchExtensions,
       pluginEventExtension,
       ...pluginExtensions,
-      tableDetectionExtension(),
-      sourceTableTabKeymapExt,
-      sourceTableCellHighlightExtension(),
-      tableColumnCountLinter(),
+      // Detection, Tab keymap, cell highlight, column-count linter — in this
+      // order, or none of them when the document is withheld (ADR-0022).
+      ...sourceTableExtensions({
+        withheld: sourceTablesWithheld,
+        tabKeymap: sourceTableTabKeymapExt,
+      }),
       // Dynamic compartments — reconfigured via applyEditorPref() and related helpers.
       // Initial values are defaults; reapplyEditorPrefs() syncs them to persisted prefs.
       initialWordWrap(true),
@@ -131,10 +134,12 @@ export function Editor({
       initialCodeTheme("default"),
       undoRedoKeymap,
     ],
-    // pluginExtensions and pluginEventExtension are stable memos; only include
-    // the deps that actually change to avoid unnecessary extension churn.
+    // pluginExtensions and pluginEventExtension are stable memos; the only dep
+    // that actually changes is sourceTablesWithheld, which flips at most once
+    // per document switch or verdict — one reconfigure per transition, never
+    // one per keystroke. The listed memos are kept for readability.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt, viewModeKeymap],
+    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt, viewModeKeymap, sourceTablesWithheld],
   );
 
   useEffect(() => {

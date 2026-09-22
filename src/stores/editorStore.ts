@@ -97,6 +97,46 @@ interface EditorStore extends EditorState {
   setFocus: (isFocused: boolean) => void;
   setUndoDepth: (depth: number) => void;
   setRedoDepth: (depth: number) => void;
+  /**
+   * Per-document Source table verdicts (ADR-0022, plan amendment A1). The first
+   * verdict recorded for a document id is kept for the session.
+   */
+  sourceTableVerdicts: Record<string, SourceTableVerdict>;
+  /**
+   * Record the Source table verdict for `docId`. Returns `true` only when this
+   * is the first verdict for that id. A recorded verdict is sticky: later calls
+   * for the same id return `false` without calling `set`, so state stays
+   * referentially unchanged and no subscriber is notified.
+   */
+  recordSourceTableVerdict: (docId: string, verdict: SourceTableVerdict) => boolean;
+}
+
+/** What App's Source guard concluded about a document's table extensions. */
+export type SourceTableVerdict = "allowed" | "withheld";
+
+/** The full editor store state, for pure selectors and helpers. */
+export type EditorStoreState = EditorStore;
+
+type VerdictState = Pick<EditorStore, "sourceTableVerdicts">;
+
+/**
+ * Own-property lookup, so prototype names ("constructor", "__proto__",
+ * "toString") read as absent on an empty record.
+ */
+function verdictOf(state: VerdictState, docId: string | null): SourceTableVerdict | null {
+  if (docId === null) return null;
+  const verdicts = state.sourceTableVerdicts;
+  return Object.prototype.hasOwnProperty.call(verdicts, docId) ? verdicts[docId] : null;
+}
+
+/** True when `docId` has a recorded "withheld" verdict. */
+export function isSourceTablesWithheld(state: VerdictState, docId: string | null): boolean {
+  return verdictOf(state, docId) === "withheld";
+}
+
+/** True when `docId` has any recorded verdict, "allowed" or "withheld". */
+export function hasSourceTableVerdict(state: VerdictState, docId: string | null): boolean {
+  return verdictOf(state, docId) !== null;
 }
 
 const defaultCursor: CursorPosition = {
@@ -104,7 +144,7 @@ const defaultCursor: CursorPosition = {
   column: 0,
 };
 
-export const useEditorStore = create<EditorStore>((set) => ({
+export const useEditorStore = create<EditorStore>((set, get) => ({
   activeDocumentId: null,
   viewMode: "wysiwyg",
   showSidebar: true,
@@ -142,4 +182,12 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setFocus: (isFocused) => set({ isFocused }),
   setUndoDepth: (depth) => set({ undoDepth: depth }),
   setRedoDepth: (depth) => set({ redoDepth: depth }),
+  sourceTableVerdicts: {},
+  recordSourceTableVerdict: (docId, verdict) => {
+    if (hasSourceTableVerdict(get(), docId)) return false;
+    set((state) => ({
+      sourceTableVerdicts: { ...state.sourceTableVerdicts, [docId]: verdict },
+    }));
+    return true;
+  },
 }));

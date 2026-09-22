@@ -7,6 +7,8 @@
  *   both thresholds; this module only reports what that one decided.
  * @coordinates-with src/App.tsx — the sole caller, inside the guard effect's
  *   `degrade-to-source` arm.
+ * @coordinates-with src/utils/sourceTableWithheldLog.ts — the Source withhold's
+ *   builder; a separate event, so this module never reports a withhold.
  *
  * Pipeline: decideLargeDocumentGuard -> (degrade arm) -> this builder ->
  *   loggingService.logEventSync -> invoke("log_event") -> ~/.mdpro/mdpro.log
@@ -36,13 +38,14 @@
  *   app declining to do what was asked; someone grepping the log for one
  *   should find the other.
  *
- * KNOWN AND ACCEPTED limit: this reports only the WYSIWYG entry decision,
- * because that is the only thing the guard judges —
- * `largeDocumentGuard.ts:260` returns `allow` for every other view mode. A
- * 9.96 MB document opened straight into Source costs whatever it costs and
- * produces no line here. That surface has no predicate yet (D6, and
- * §6.2 of docs/test/20260921-d6-matrix-retest.md); when it acquires one, it
- * needs its own event rather than a widened meaning for this one.
+ * KNOWN AND ACCEPTED limit: this module reports only the WYSIWYG degrade.
+ * Source now has a predicate of its own (ADR-0022): past
+ * `SOURCE_TABLE_ROW_THRESHOLD` table rows the guard returns
+ * `withhold-table-extensions`, and that decision logs through
+ * `src/utils/sourceTableWithheldLog.ts` under its own event
+ * (`editor.large_document.source_tables_withheld`), not through this one. A
+ * Source document under that threshold still produces no line anywhere,
+ * whatever it costs (D6, §6.2 of docs/test/20260921-d6-matrix-retest.md).
  */
 import type { LogEntryPayload } from "../types/logging";
 import {
