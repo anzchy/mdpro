@@ -8,6 +8,7 @@
  * Mirrors the helpers of `tests/wysiwyg-edit-persistence.test.tsx` (WI-2), which are not
  * imported from there so that file stays byte-identical to its recorded receipt.
  */
+import type { ReactElement } from "react";
 import { act, render, waitFor } from "@testing-library/react";
 import { expect } from "vitest";
 import { editorViewCtx } from "@milkdown/kit/core";
@@ -54,7 +55,7 @@ export async function sleep(ms: number): Promise<void> {
 }
 
 export async function mountAndWait(
-  ui: JSX.Element = <MilkdownEditor />,
+  ui: ReactElement = <MilkdownEditor />,
 ): Promise<{ instance: Editor; unmount: () => void }> {
   const { unmount } = render(ui);
   let instance: Editor | null = null;

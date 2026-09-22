@@ -295,7 +295,10 @@ type Site = {
   run: () => Promise<string>;
 };
 
-const lastIpc = (cmd: string) => ipcContents(cmd).at(-1) ?? "<no IPC>";
+const lastIpc = (cmd: string) => {
+  const xs = ipcContents(cmd);
+  return xs[xs.length - 1] ?? "<no IPC>";
+};
 const SITES: Site[] = [
   { name: "save", aPath: A_PATH, run: async () => (await api!.saveActiveDocument(), lastIpc("save_file")) },
   {

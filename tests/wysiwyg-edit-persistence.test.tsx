@@ -13,7 +13,7 @@
  * advance" reads run in the same `act`, or inside a `waitFor` of at most 150 ms.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Profiler } from "react";
+import { Profiler, type ReactElement } from "react";
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 
 const { logEventSyncMock, eventListeners } = vi.hoisted(() => ({
@@ -105,7 +105,7 @@ async function sleep(ms: number): Promise<void> {
 }
 
 async function mountAndWait(
-  ui: JSX.Element = <MilkdownEditor />,
+  ui: ReactElement = <MilkdownEditor />,
 ): Promise<{ instance: Editor; unmount: () => void }> {
   const { unmount } = render(ui);
   let instance: Editor | null = null;
