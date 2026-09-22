@@ -304,11 +304,12 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | iAW | iA Writer | 克制的一极——把"功能少"本身当作卖点，用来检验 mdpro 的删减是设计主张还是尚未补齐。 |
 | Bea | Bear | Apple 生态精致一极，也是唯一同样自带第一方 MCP 的对手，它证明"本地笔记 + AI 接口"不是 mdpro 的专利。 |
 | Uly | Ulysses | 订阅制长文写作的一极，用目标、看板与发布管线换掉了"文件就是文件"这个前提。 |
-| VSC | VS Code + Markdown Preview Enhanced | 开发者的事实默认值，用来回答"程序员为什么根本不装专门的 Markdown 编辑器"。 |
-| Log | Logseq | 块结构/大纲的一极，同时是一个活体教训：一个承诺纯本地 Markdown 的产品如何在 2026 年被 SQLite 重写。 |
-| Not | Notion | 云与协作的对立面，mdpro 的每一条自我约束（本地、无同步、无协作）都是在拒绝它。 |
+| VMk | VMark | 与 mdpro 几乎同构的对手：Tauri 2 + React 19 + Zustand，Tiptap 所见即所得 + CodeMirror 6 源码模式，而且同样有**写进活缓冲区**的第一方 MCP。凡是账簿里「mdpro 独家」的说法，都要先过它这一关。 |
+| MYn | MiaoYan（妙言） | 原生 Swift/AppKit 的轻量 Markdown 笔记，**明确拒绝所见即所得**（README：原生 Swift 里实现 WYSIWYG 过于复杂），用分栏预览换简单。它是 mdpro 所见即所得这一赌注的反方。 |
+| SiY | 思源笔记 SiYuan | 块结构知识库的一极（Electron + Go 内核，`.sy` JSON 存储）：所见即所得、块引用、双链、第一方 MCP 全有，代价是文件不再是 `.md`。接替原 Logseq 那条「结构化」轴。 |
+| Jop | Joplin | 同步优先、全平台的开源笔记（Electron，SQLite 存储，Joplin Cloud）。接替原 Notion 那条「同步与多端」轴，但它是开源、本地可用的，比 Notion 更接近 mdpro 真实会被拿来比较的对象。 |
 
-这十个不是"十个竞品"，而是十条轴：**原型（Typ）、同路人（MkT）、扩张（Obs）、学术（Ztl）、克制（iAW）、精致（Bea）、长文商业化（Uly）、开发者默认（VSC）、结构化（Log）、云端（Not）**。mdpro 在每条轴上都有一个明确的、可以被质问的位置。
+这十一个不是"十一个竞品"，而是十一条轴：**原型（Typ）、同路人（MkT）、扩张（Obs）、学术（Ztl）、克制（iAW）、精致（Bea）、长文商业化（Uly）、同构对手（VMk）、原生反 WYSIWYG（MYn）、块结构（SiY）、同步多端（Jop）**。mdpro 在每条轴上都有一个明确的、可以被质问的位置。
 
 ---
 
@@ -320,76 +321,77 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 ### 人人都有而 mdpro 没有
 
-| 能力 | mdpro | Typ | MkT | Obs | Ztl | iAW | Bea | Uly | VSC | Log | Not |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 全局搜索 | ○ | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● |
-| 文件树 / 工作区 | ○ | ● | ● | ● | ● | ● | ◐ | ● | ● | ◐ | ● |
-| 文件增删重命名 | ○ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● |
-| 查找与替换 | ◐ | ● | ● | ● | ● | ● | ◐ | ● | ● | ○ | ◐ |
-| 字数统计 | ○ | ● | ● | ● | ● | ● | ● | ● | ◐ | ◐ | ◐ |
-| 拼写检查 | ◍ | ● | ● | ● | ● | ● | ● | ● | ◐ | ◐ | ● |
-| PDF 导出 | ○ | ● | ● | ● | ● | ● | ◐ | ● | ● | ◐ | ◐ |
-| 打印 | ○ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● |
-| 自定义主题 / CSS | ○ | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ○ |
-| 界面本地化（中文界面） | ○ | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● |
+| 能力 | mdpro | Typ | MkT | Obs | Ztl | iAW | Bea | Uly | VMk | MYn | SiY | Jop |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 全局搜索 | ○ | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● | ● |
+| 文件树 / 工作区 | ○ | ● | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● |
+| 文件增删重命名 | ○ | ● | ● | ● | ● | ● | ● | ● | ◐ | ● | ● | ● |
+| 查找与替换 | ◐ | ● | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● |
+| 字数统计 | ○ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● |
+| 拼写检查 | ◍ | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ● | ● |
+| PDF 导出 | ○ | ● | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● |
+| 打印 | ○ | ● | ● | ● | ● | ● | ● | ● | ● | ◐ | ◐ | ● |
+| 自定义主题 / CSS | ○ | ● | ● | ● | ● | ◐ | ● | ● | ● | ○ | ● | ● |
+| 界面本地化（中文界面） | ○ | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● | ● |
 
-**10 行。** 三个要点：
+**10 行。** 这一桶换了四个对照组之后仍然成立——新增四列里只有 VMk、MYn 没有拼写检查、MYn 没有自定义主题。三个要点：
 
 1. **查找与替换只做了一半。** `src/components/Editor/extensions/search.ts` 挂了 CodeMirror 的 `search({top:true})` + `searchKeymap`（⌘F / ⌘H），但文件里写着 *"WYSIWYG (Milkdown) mode search is out of scope — tracked as a follow-up."* 也就是说：mdpro 主打的那个模式恰恰是搜不了的。
-2. **字数统计是零。** 全仓库 `wordCount` / `word_count` / `字数` / `StatusBar` 零命中——不是做得差，是完全没有。这是所有对照组无一例外都有的东西。
+2. **字数统计是零。** 全仓库 `wordCount` / `word_count` / `字数` / `StatusBar` 零命中——不是做得差，是完全没有。换上 VMk / MYn / SiY / Jop 之后，十一个对照组**无一例外全是 ●**。
 3. **一个 Markdown 编辑器打不了印。** `menu.rs` 与全部组件里没有任何 print 路径。
 
 ### 有争议 —— 是真功能，但并不普遍
 
-| 能力 | mdpro | Typ | MkT | Obs | Ztl | iAW | Bea | Uly | VSC | Log | Not |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 编辑区数学排版 | ○ | ● | ● | ◐ | ● | ○ | ● | ◐ | ○ | ◐ | ● |
-| 编辑区脚注渲染 | ○ | ● | ● | ◐ | ◐ | ○ | ◐ | ◐ | ○ | ○ | ○ |
-| Mermaid / 图表 | ◍ | ● | ● | ● | ◐ | ○ | ● | ○ | ● | ◐ | ◐ |
-| Word / docx 导出 | ○ | ◐ | ○ | ◐ | ● | ● | ◐ | ● | ◐ | ○ | ○ |
-| Wikilink `[[…]]` | ○ | ○ | ○ | ● | ● | ◐ | ● | ◐ | ● | ● | ◐ |
-| 标签 | ○ | ○ | ○ | ● | ● | ● | ● | ● | ● | ● | ◐ |
-| 反链 / 关系图 | ○ | ○ | ○ | ● | ● | ○ | ◐ | ◐ | ● | ● | ◐ |
-| 打字机模式 | ◍ | ● | ● | ◐ | ● | ● | ○ | ● | ◐ | ○ | ○ |
-| 专注模式 | ◍ | ● | ● | ◐ | ● | ● | ◐ | ● | ● | ○ | ○ |
-| 演示模式 | ○ | ◐ | ○ | ● | ◐ | ○ | ○ | ○ | ● | ● | ● |
-| 引文 / BibTeX | ○ | ○ | ○ | ◐ | ● | ○ | ○ | ○ | ◐ | ● | ○ |
-| 图床上传 | ○ | ● | ● | ◐ | ○ | ◐ | ○ | ◐ | ● | ○ | ○ |
-| 版本历史 | ○ | ◐ | ○ | ● | ○ | ● | ○ | ◐ | ● | ● | ● |
-| 云同步（第一方） | ○ | ○ | ○ | ● | ○ | ○ | ◐ | ● | ○ | ◐ | ● |
-| 移动端 | ○ | ○ | ○ | ● | ○ | ◐ | ◐ | ◐ | ○ | ● | ● |
-| 实时协作 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ◐ | ○ | ● |
-| 插件市场 | ○ | ◐ | ○ | ● | ○ | ○ | ○ | ○ | ● | ● | ◐ |
-| Windows / Linux | ○ | ● | ● | ● | ● | ◐ | ○ | ○ | ● | ● | ◐ |
-| 纯本地 `.md` 文件 | ● | ● | ● | ● | ● | ● | ○ | ◐ | ● | ● | ○ |
-| 多标签页 | ● | ○ | ● | ● | ● | ● | ◐ | ◐ | ● | ◐ | ● |
+| 能力 | mdpro | Typ | MkT | Obs | Ztl | iAW | Bea | Uly | VMk | MYn | SiY | Jop |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 编辑区数学排版 | ○ | ● | ● | ◐ | ● | ○ | ● | ◐ | ● | ◐ | ● | ◐ |
+| 编辑区脚注渲染 | ○ | ● | ● | ◐ | ◐ | ○ | ◐ | ◐ | ● | ◐ | ● | ◐ |
+| Mermaid / 图表 | ◍ | ● | ● | ● | ◐ | ○ | ● | ○ | ● | ● | ● | ● |
+| Word / docx 导出 | ○ | ◐ | ○ | ◐ | ● | ● | ◐ | ● | ○ | ○ | ● | ○ |
+| Wikilink `[[…]]` | ○ | ○ | ○ | ● | ● | ◐ | ● | ◐ | ● | ● | ● | ◐ |
+| 标签 | ○ | ○ | ○ | ● | ● | ● | ● | ● | ○ | ● | ● | ● |
+| 反链 / 关系图 | ○ | ○ | ○ | ● | ● | ○ | ◐ | ◐ | ● | ● | ● | ◐ |
+| 打字机模式 | ◍ | ● | ● | ◐ | ● | ● | ○ | ● | ● | ○ | ● | ○ |
+| 专注模式 | ◍ | ● | ● | ◐ | ● | ● | ◐ | ● | ● | ○ | ◐ | ○ |
+| 演示模式 | ○ | ◐ | ○ | ● | ◐ | ○ | ○ | ○ | ● | ● | ○ | ○ |
+| 引文 / BibTeX | ○ | ○ | ○ | ◐ | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| 图床上传 | ○ | ● | ● | ◐ | ○ | ◐ | ○ | ◐ | ○ | ● | ◐ | ○ |
+| 版本历史 | ○ | ◐ | ○ | ● | ○ | ● | ○ | ◐ | ● | ● | ● | ● |
+| 云同步（第一方） | ○ | ○ | ○ | ● | ○ | ○ | ◐ | ● | ○ | ○ | ● | ● |
+| 移动端 | ○ | ○ | ○ | ● | ○ | ◐ | ◐ | ◐ | ○ | ● | ● | ● |
+| 实时协作 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| 插件市场 | ○ | ◐ | ○ | ● | ○ | ○ | ○ | ○ | ○ | ○ | ● | ● |
+| Windows / Linux | ○ | ● | ● | ● | ● | ◐ | ○ | ○ | ● | ○ | ● | ● |
+| 纯本地 `.md` 文件 | ● | ● | ● | ● | ● | ● | ○ | ◐ | ● | ● | ○ | ○ |
+| 多标签页 | ● | ○ | ● | ● | ● | ● | ◐ | ◐ | ● | ○ | ● | ◐ |
 
 **20 行。** 五个要点：
 
-1. **数学与脚注是 mdpro 最尴尬的一格。** 语法解析、KaTeX、MathML 导出全部做完了——但 `katex` 在前端只被 `src/services/exportService.ts` 一个文件引用。也就是说：**mdpro 能把 `$E=mc^2$` 导出成 MathML，却不能让你在编辑时看见它。** 对一个以 Typora 体验为卖点的产品，这一格的对照组是 Typ ● / MkT ● / Ztl ● / Bea ●。
+1. **数学与脚注是 mdpro 最尴尬的一格。** 语法解析、KaTeX、MathML 导出全部做完了——但 `katex` 在前端只被 `src/services/exportService.ts` 一个文件引用。也就是说：**mdpro 能把 `$E=mc^2$` 导出成 MathML，却不能让你在编辑时看见它。** 对一个以 Typora 体验为卖点的产品，这一格的对照组是 Typ ● / MkT ● / Ztl ● / Bea ● / **VMk ●** / SiY ●——与 mdpro 同构的 VMark 在同一套 Tauri + React 栈上做到了。MYn 与 Jop 的 ◐ 是分栏预览里渲染、编辑区不渲染，和 mdpro 的 ○ 不是一回事：它们至少让你在写的时候看得见。
 2. **Mermaid 是三处空壳中最有误导性的一处。** `markdown.rs` 的 `SVG_TAGS` 白名单与 `sanitizerPolicy.ts` 都专门为 Mermaid 内联 SVG 留了口子，还有 `test_sanitize_preserves_mermaid_svg` 这样的测试——但 `package.json` 里**根本没有 mermaid 依赖**。净化器为一个不存在的渲染器守了门。
 3. **打字机模式与专注模式同理。** `focusModePlugin.ts`（75 行）和 `typewriterModePlugin.ts`（44 行）是真实现且已在 `plugins/index.ts` 注册，但 `pluginConfig.ts` 里两者都是 `enabled: false`，而 `src/components`、`src/hooks`、`src-tauri` 中**没有任何开关**。用户永远打不开它们。
-4. **`[[wikilink]]` + 标签 + 反链这一组，Typ 和 MkT 也全是 ○。** 这说明"不做双链"不是 mdpro 的短板，而是它站在 Typora 那条线上的必然结果——真正的分界在 Obs/Ztl/Log 那一侧。这一组值得作为"明确不做"写进 ADR，而不是留在 backlog 里。
-5. **mdpro 在最后两行是赢的**：纯本地文件（Bea 是 SQLite，Not 是云数据库，Uly 是专有库）和多标签页（**Typora 至今没有标签页**，这个诉求从 2016 年挂到现在）。
+4. **`[[wikilink]]` + 标签 + 反链这一组，Typ 和 MkT 也全是 ○。** 这说明"不做双链"不是 mdpro 的短板，而是它站在 Typora 那条线上的结果——分界在 Obs/Ztl/SiY 那一侧。**但这条线比建账时软了**：同样是轻量 Markdown 编辑器的 MYn 有 `Business/WikilinkIndex.swift` 的双向链接，同构的 VMk 也有 wikilink 与反链（反链与关系图在它的本地 knowledge base 面板里，不在编辑器里）。这一组仍值得作为"明确不做"写进 ADR，而 ADR 的 Context 要写明「Typora 线上的产品也开始做了」。
+5. **mdpro 在最后两行是赢的**：纯本地文件（Bea 与 Jop 是 SQLite，SiY 是 `.sy` JSON，Uly 是专有库）和多标签页（**Typora 至今没有标签页**，这个诉求从 2016 年挂到现在；MYn 也没有）。这两行赢面最大的是块结构与同步那两极，对 VMk 则两行都打平。
 
 ### mdpro 有而多数没有
 
-| 能力 | mdpro | Typ | MkT | Obs | Ztl | iAW | Bea | Uly | VSC | Log | Not |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 第一方 MCP server | ● | ○ | ○ | ◐ | ○ | ○ | ● | ○ | ◐ | ◐ | ● |
-| AI 直写"正在编辑"的文档 | ● | ○ | ○ | ◐ | ○ | ○ | ◐ | ○ | ◐ | ○ | ◐ |
-| 源码模式下的表格 CRUD | ● | ○ | ○ | ○ | ◐ | ◐ | – | – | ◐ | ○ | – |
-| 图片拖拽缩放写回 Markdown | ● | ◐ | ○ | ◐ | ◐ | ○ | ◐ | ○ | ○ | ◐ | ◐ |
-| 结构化 JSONL 日志 | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ◐ | ○ | ○ |
-| Rust 白名单净化的 HTML 导出 | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | – |
-| 非 Electron 原生外壳 | ● | ○ | ○ | ○ | ○ | ● | ● | ● | ○ | ○ | ○ |
-| UTF-16 编码检测与往返保真 | ● | ◐ | ◐ | ○ | ○ | ○ | – | – | ● | ○ | – |
+| 能力 | mdpro | Typ | MkT | Obs | Ztl | iAW | Bea | Uly | VMk | MYn | SiY | Jop |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 第一方 MCP server | ● | ○ | ○ | ◐ | ○ | ○ | ● | ○ | ● | ○ | ● | ● |
+| AI 直写"正在编辑"的文档 | ● | ○ | ○ | ◐ | ○ | ○ | ◐ | ○ | ● | ○ | ◐ | ○ |
+| 源码模式下的表格 CRUD | ● | ○ | ○ | ○ | ◐ | ◐ | – | – | ● | ○ | – | ○ |
+| 图片拖拽缩放写回 Markdown | ● | ◐ | ○ | ◐ | ◐ | ○ | ◐ | ○ | ○ | ○ | ◐ | ○ |
+| 结构化 JSONL 日志 | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ◐ | ● | ○ | ○ |
+| Rust 白名单净化的 HTML 导出 | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| 非 Electron 原生外壳 | ● | ○ | ○ | ○ | ○ | ● | ● | ● | ● | ● | ○ | ○ |
+| UTF-16 编码检测与往返保真 | ● | ◐ | ◐ | ○ | ○ | ○ | – | – | ○ | ○ | ○ | ○ |
 
-**8 行。** 三个要点：
+**8 行。** 这一桶是换组之后变化最大的一张——**前两行已经不再是 mdpro 独有**。四个要点：
 
-1. **MCP 不再是独家，但"写进活的编辑缓冲区"仍然是。** Bear 2.8（2026-04-29）已经有一键安装的 Claude Connector 和 `bearcli mcp-server`，Notion 有官方云端 `mcp.notion.com`。但两者都是**对着存储层说话**（Bear 是 SQLite 库，Notion 是云页面）；mdpro 的 `mcp:write_document` / `mcp:insert_content` / `mcp:table_action` 是 Rust 事件打到前端、落进用户此刻正在打字的编辑器里。**这是 mdpro 唯一真正没有对手的一格，账簿的叙事应该压在这里，而不是压在"我们也有 MCP"。**
-2. **源码模式的表格 CRUD 是个被低估的差异点。** 几乎所有对手的表格 UI 只存在于富文本面：Typora 的源码模式是裸文本，Obsidian 的表格菜单在 Live Preview。mdpro 在 CodeMirror 侧也有 `SourceTableContextMenu` + `lintTableColumnCount` + `sourceTableDetection`。
-3. **后三行是"工程姿态"而非功能**，写进账簿时要标明它们的说服对象是自己和维护者，不是用户：JSONL 日志、Rust 端 HTML 白名单净化、UTF-16 往返保真（`encoding.rs` 对奇数字节长度显式报错而不是静默吞掉）。它们换不来一个新用户，但它们是"这个产品不会悄悄弄坏你的文件"的唯一证据。
+1. **「写进活的编辑缓冲区」不再是独家。** 建账时这一格被写成「mdpro 唯一真正没有对手的一格」；换入 VMark 后不成立了。VMark 的 MCP `document.write`（`server/mcp/src/tools/document.ts`）写的是「VMark 已经持有的那个缓冲区」，按 tab 定位，默认顺带落盘，还带 `expected_revision` 乐观锁。其余三家仍然对着存储层说话：Bear 是 SQLite 库；SiYuan 的 MCP 块工具走内核事务 `PerformTxSync`，再 `PushReloadProtyle` 让打开的编辑器整篇重载（所以给 ◐，是被动刷新而不是写进缓冲区）；Joplin 的 MCP 默认全部关闭、挂在 Web Clipper 端口上，改的是库里的笔记对象。**第一方 MCP 这一行在十一个对照组里已有 VMk / Bea / SiY / Jop 四个 ●**。mdpro 与 VMark 在这一格上的差异，这次**没有**比较两者的工具集，账簿给不出答案。
+2. **源码模式的表格 CRUD 也有了一个对手。** VMark 的 `src/plugins/sourceContextDetection/tableActions.ts` 在源码侧做行列增删。其余对手的表格 UI 仍然只在富文本面：Typora 的源码模式是裸文本，Obsidian 的表格菜单在 Live Preview，SiYuan 根本没有源码模式（–）。mdpro 在 CodeMirror 侧有 `SourceTableContextMenu` + `lintTableColumnCount` + `sourceTableDetection`。
+3. **后四行是「工程姿态」而非功能**，写进账簿时要标明它们的说服对象是自己和维护者，不是用户。JSONL 日志不再独有：MYn 的 `Helpers/Diagnostics.swift` 按行写 JSON 到 `~/Library/Logs/MiaoYan/diagnostics.log`（VMk 的 JSONL 是 `coherence/ledger.rs` 的 AI 溯源账本，不是诊断日志，给 ◐）。Rust 端 HTML 白名单净化与 UTF-16 往返保真（`encoding.rs` 对奇数字节长度显式报错而不是静默吞掉）在十一个对照组里仍然只有 mdpro 有。它们换不来一个新用户，但它们是「这个产品不会悄悄弄坏你的文件」的唯一证据。
+4. **`非 Electron 原生外壳` 这一行快撑不住这个桶了。** 加上 VMk（同为 Tauri）和 MYn（Swift/AppKit），十一个对照组里有五个 ●。它仍是事实，但已经不是「多数没有」。
 
 ---
 
@@ -418,7 +420,7 @@ mdpro 这一列**全部来自仓库核实**，不是回忆。关键命中：
 
 ## 来源
 
-全部核查于 **2026-09-17**。以下每个对照组列出本次实际抓取的代表性 URL（三组并行研究共抓取约 150 个页面，此处按产品收敛到主要来源）。
+Typ 至 Uly 七组核查于 **2026-09-17**（三组并行研究共抓取约 150 个页面，此处按产品收敛到主要来源）。VMk / MYn / SiY / Jop 四组核查于 **2026-09-22**：四个子代理各读一个 GitHub 仓库（源码、README、文档、release），主会话对存疑格回到仓库复核。原来的 VSC（VS Code + MPE）、Log（Logseq）、Not（Notion）三列在同一天移出对照组。
 
 ### Typ —— Typora
 `typora.io/` · `/releases/stable.html` · `/releases/all` · `support.typora.io/`（含 `/Math/`、`/Search/`、`/File-Management/`、`/Export/`、`/Spellcheck/`、`/Word-Count/`、`/Draw-Diagrams-With-Markdown/`、`/Focus-and-Typewriter-Mode/`、`/Upload-Image/`、`/Auto-Save/`、`/Version-Control/`、`/Table-Editing/`、`/Outline/`、`/Dark-Mode/`、`/Sync/`、`/Markdown-Reference/`、`/Shortcut-Keys/`、`/purchase/`、`/Install-and-Use-Pandoc/`）· `github.com/typora/typora-issues/issues/6578`
@@ -456,23 +458,25 @@ mdpro 这一列**全部来自仓库核实**，不是回忆。关键命中：
 `ulysses.app/`、`/pricing/`、`/release-notes/` · `help.ulysses.app` 下 `faqs`、`keywords`、`the-library/{external-folders,backups}`、`dive-into-editing/{markdown-xl,writing-equations,tables-in-ulysses,images-and-sketches,editor-customization-guide}`、`the-dashboard/dashboard`、`editor/how-can-i-create-internal-links`、`export-publishing/export`
 **两条语法假设需要更正**：Ulysses 的高亮语法是 `::mark::` 而**不是** `==highlight==`（本次二次核实确认）；数学用的是 `$$` 标记触发公式编辑器，而非裸 `$…$` 分隔符。它的库是专有格式，External Folders 虽然是真 `.md`，但代价是**没有嵌入图片、没有批注、且不进备份**。
 
-### VSC —— VS Code + Markdown Preview Enhanced
-`code.visualstudio.com/docs/` 下 `languages/markdown`、`editing/codebasics`、`editing/workspaces/workspaces`、`copilot/chat/mcp-servers` 等 · `raw.githubusercontent.com/shd101wyy/markdown-preview-enhanced/master/docs/*.md` · `github.com/shd101wyy/vscode-markdown-preview-enhanced`（+ `/releases`、API `/commits`）· `api.github.com/repos/shd101wyy/crossnote` · marketplace 条目若干
-**一个容易踩的坑**：人人引用的 `shd101wyy/markdown-preview-enhanced` 现在只是文档仓库，其 GitHub Releases **停在 2015 年的 0.3.7**，`package.json` 还写着 "for Atom editor"。真正在跑的是 `shd101wyy/vscode-markdown-preview-enhanced` —— 最后提交 **2026-09-16**，版本 **0.8.35（2026-09-08）**，约 1,029 万次安装。**MPE 非常活跃**；从前一个仓库判断维护状态会得出完全相反的错误结论。黄旗：1,419 个未关闭 issue，近期版本多为安全加固（命令注入、WaveDrom 任意代码执行）。
+### VMk —— VMark
+`github.com/xiaolai/vmark`（浅克隆）：`README.md`、`website/guide/features.md`、`package.json`、`src-tauri/tauri.conf.json`、`server/mcp/src/tools/document.ts`、`src/export/htmlSanitizer.ts`、`src/plugins/`（含 `latex`、`mermaid`、`footnotePopup`、`sourceWikiLinkPopup`、`typewriterMode`、`focusMode`、`sourceContextDetection`）· `gh api repos/xiaolai/vmark`
+**状态：极活跃。** v0.9.81（2026-09-20），最后提交 2026-09-21；ISC，免费；约 765 star。macOS / Windows / Linux（`tauri.conf.json` 的 `targets: "all"`）。README 自述是在人类监督下由 AI 开发、只收 issue。
+**与 mdpro 同构到必须单独记一笔**：Tauri 2 + React 19 + Zustand + CodeMirror 6，所见即所得面换成了 Tiptap。它的 HTML 导出净化在前端（`htmlSanitizer.ts` 用 DOMParser），不在 Rust。PDF 导出在 Rust 侧（`src-tauri/src/pdf_export/`），它仓库里唯一的 UTF-16 命中就是 PDF 大纲的 UTF-16BE 编码，与文件读写无关。
 
-### Log —— Logseq　⚠️ 这一列本身就是有问题的
-`logseq.com/`、`logseq.io/p/e3YDyX5AYr` · `api.github.com/repos/logseq/logseq`（+ `/releases`、`/commits`）· `api.github.com/repos/logseq/og` · `raw.githubusercontent.com/logseq/docs/master/db-version.md` 及 `pages/{Features,Search,Export,Markdown,Math Block,Tables,Keyboard shortcuts,Graph Overview,Git Auto-Commit,Logseq Sync}.md` · `discuss.logseq.com` 多个官方公告与线程 · `github.com/logseq/marketplace` · `opencollective.com/logseq`
+### MYn —— MiaoYan（妙言）
+`github.com/tw93/MiaoYan`（浅克隆）：`README.md` / `README_CN.md`、`Helpers/Diagnostics.swift`、`Helpers/ClipboardManager.swift`、`Helpers/PdfExportController.swift`、`Business/WikilinkIndex.swift`、`Business/NoteVersionManager.swift`、`Business/HtmlManager.swift`、`Controllers/EditorPrefsViewController.swift` · `gh api repos/tw93/MiaoYan`
+**状态：活跃。** V4.3.2（2026-09-20）；MIT；GitHub / Homebrew 免费，Mac App Store 付费；约 8.6k star。macOS 12+，另有 iOS 18+ 的独立 SwiftUI 应用 `MiaoYanMobile/`。
+**更正一条直觉**：它常被归进「Typora 替代品」，但它**不是**所见即所得。README 明写不做 WYSIWYG，编辑器是分栏源码 + 预览，数学、脚注、Mermaid 都在预览面渲染。同步交给用户自己的网盘文件夹，应用本身不登录任何同步服务，所以云同步给 ○。图床走本地 PicGo / PicList 的 HTTP 端点（`ClipboardManager.swift` 的 `127.0.0.1:36677/upload`）。
 
-**Logseq 在 2026-04-24 分裂成了两个产品**，所以"一列 Logseq"是一个便利的虚构：
+### SiY —— 思源笔记 SiYuan
+`github.com/siyuan-note/siyuan`：`README.md` / `README_zh_CN.md`、`app/package.json`（Electron 44.4.1）、`kernel/go.mod`、`kernel/mcp/tools/`（50 余个文件，含 `block.go`、`document.go`）、`kernel/conf/editor.go`、`app/src/protyle/util/Options.ts`、`kernel/model/document_stat.go`、`app/src/search/util.ts`、`app/electron/main.js` · `github.com/88250/lute` 的 `parse/footnotes.go` · `gh api repos/siyuan-note/siyuan`
+**状态：极活跃。** v3.8.4（2026-09-17），提交至 2026-09-22；AGPL-3.0；核心免费，云同步等功能需付费会员；约 46k star。桌面三平台 + Android / iOS / HarmonyOS + Docker。
+**子代理初判被复核推翻最多的一列**：它最初给了脚注 ○、打字机 ○、拼写检查 ○、字数 ○。回到仓库，四格全部是 ●：Lute 有 `parse/footnotes.go`，`typewriterMode` 在 protyle 选项里，`kernel/conf/editor.go` 有拼写检查配置，`kernel/model/document_stat.go` 做字数统计。存储是 `.sy` JSON 而非 `.md`；思源没有源码模式，所以源码表格那一格是 `–`。
 
-- **Logseq OG**：纯本地 `.md` 文件版，现处于**维护模式**（只做安全补丁与 Electron 升级）。最后一个非 beta 稳定版是 0.10.15（2025-12-01）。
-- **Logseq 2.0**：SQLite 存储，继承了产品名与路线图，2026-07-13 作为**公测 beta** 发布（官方自述"early beta… data loss is possible"），至今没有 GA。它有第一方 MCP，但只有 65 个插件完成移植，Markdown Mirror 是**单向 DB→磁盘**。
-
-**本账簿的 Log 列采用的是 OG（文件版）**，因为账簿比较的是本地 Markdown 编辑器。如果对照 2.0，`纯本地 .md 文件`、`外部改动检测`、`插件市场`、`第一方 MCP` 四行都会改变。
-
-### Not —— Notion
-`notion.com/`：`pricing`、`desktop`、`integrations`、`product/ai`、`releases/2026-05-26`，以及 `help/` 下 `export-your-content`、`search`、`keyboard-shortcuts`、`math-equations`、`writing-and-editing-basics`、`create-links-and-backlinks`、`tables`、`presentation-mode`、`notion-for-desktop`、`system-requirements-for-notion` 等 · `developers.notion.com/docs/mcp` 与 `/guides/mcp/*` · `github.com/makenotion/notion-mcp-server`
-两条时效性提醒：**Notion 的工作区级 PDF 导出正在下线**（官方文档说明"在 2026-08-31 前逐步移除"，即核查日前 17 天），单页 PDF 与 Business/Enterprise 的 `Include subpages` 保留；官方明确表示**没有 Linux 客户端**。另有多个帮助页（`page-history`、`version-history`、`mobile`、`simple-tables`）返回 404。
+### Jop —— Joplin
+`github.com/laurent22/joplin`：`README.md`、`readme/apps/{markdown,import_export,note_history,ai_mcp,custom_css,plugins,search}.md`、`readme/faq.md`、`packages/app-desktop/package.json`（Electron 42.3.0）、`packages/app-desktop/services/spellChecker/`、`packages/app-desktop/gui/NoteContentPropertiesDialog.tsx`、`packages/editor/CodeMirror/` · `gh api repos/laurent22/joplin`
+**状态：活跃。** v3.7.18（2026-09-11），提交至 2026-09-21；AGPL-3.0；应用免费，Joplin Cloud 分档付费；约 56k star。
+**两条更正**：①子代理报「桌面编辑器是 CodeMirror 5」。`package.json` 里确实还挂着 `codemirror 5.65.9`，但 `packages/editor/CodeMirror/` 用的是 `@codemirror/search` 等 CodeMirror 6 包；同一轮复核把拼写检查、字数、查找替换三格从 ◐ 改成 ●。②它有第一方 MCP（`readme/apps/ai_mcp.md`），但 10 个工具**默认全部关闭**，挂在 Web Clipper 的 HTTP 端口上，Claude Desktop 要经 `mcp-remote` 桥接。笔记存在 SQLite 里，官方 FAQ 说同步目录「基本上就是一个数据库」。
 
 ---
 
@@ -480,23 +484,25 @@ mdpro 这一列**全部来自仓库核实**，不是回忆。关键命中：
 
 按"本次是否真的读到了一手来源"排序，**从软到硬**：
 
-1. **Log（Logseq）—— 最软，而且软在结构上。** 它不是一个产品而是两个，本表选了已冻结的那一个。凡是涉及存储、插件、MCP、外部改动的格，换成 2.0 都会翻转。另外它的多个 ○（打字机模式、专注模式、图床、内置 TOC）是从一份 150+ 条的快捷键配置里**没找到**推出来的，属于"证据缺失"而非"厂商否认"。官方文档内部还存在直接冲突（`db-version.md` 说 DB 版无法维持 Markdown 镜像，同一天的论坛公告却宣布 Markdown Mirror 上线）。
-2. **Not（Notion）—— 次软。** 它离"Markdown 编辑器"最远，很多行本该是 `–` 而被迫给了 ○/◐。它的 ○（查找替换、脚注、PlantUML、关系图、打字机、专注、原生引文、`==` 语法）**全部是证据缺失**，没有一条是官方明确否认；帮助中心还有若干 404 页面，检索覆盖不完整。
-3. **iAW 与 Uly —— 并列第三。** 两者的 `外部改动检测` 与 `剪贴板粘贴图片` **本次完全没有一手来源**（我按最接近的行为给了值，但这两格应视为未核实）；iA Writer 的 focus mode 页面返回 409 抓不到，其 Android 版停更只有第三方来源（Thurrott），而 ia.net 上仍挂着过期的 Android 页面。Ulysses 的 `::mark::` 是二次核实才找对页面的——第一次按 `==highlight==` 去找会得出错误结论。
-4. **Typ（Typora）—— 闭源带来的软。** `外部改动检测` 仅来自 issue #6578，**官方从未记载**，且 tracker 里对其可靠性有争议；1.14.10 的发布日期只有第三方站点（warp2search.net）有，官方发布页只列版本号不列日期，下载页文件名甚至还停在 1.14.9。
-5. **VSC —— 软在定义而非取证。** "VS Code + MPE"这一列的评分取决于你允许装几个扩展。本表只计**核心 + MPE**，凡是需要第三方扩展才有的（字数统计、拼写检查、打字机模式）一律给 ◐ 而非 ●。换一套扩展清单，这一列可以几乎全绿。
-6. **Obs、Ztl、MkT、Bea —— 相对最硬**，但各有一处弱点：Obsidian 的查找替换只有官方论坛的员工帖、PDF 导出只有 changelog（两者都没有帮助页），其 Live Preview 下的数学/脚注行为靠论坛帖（其中一条还是功能请求）；Zettlr 的 `打字机模式` 是从**源码**（`menu.darwin.ts`）确认的而非 v4 文档，且其 `==高亮==` 只确认了语法与导出开关、**未确认编辑器内的视觉渲染**，`编辑区数学排版` 的 ● 也夸大了默认状态（预渲染器需手动开启）；MarkText 见上文（偏好 schema 反推）；Bear 的脚注渲染样式与 math/Mermaid 是否受 Pro 门控，文档未明说。
+1. **VMk、MYn、SiY、Jop —— 取证方式与前七列不同，而且是单人抽查。** 读的是仓库源码而不是官网文档：能证明代码在，不能证明用户点得到。每列由一个 Haiku 子代理完成，主会话只复核了存疑格，**复核改动了约 20 格**（SiY 约 10 格、Jop 5 格、VMk 与 MYn 各 2 格）。这个改动率本身就是折扣依据：没被复核的格同样可能有错。各列最软的格：
+   - **Jop**：`AI 直写` 的 ○ 没有核实桌面端在 MCP 改笔记后会不会自动刷新打开的编辑器；`多标签页` / `反链` / `Wikilink` 的 ◐ 靠第三方插件或 `[标题](:/id)` 式内部链接；`编辑区数学/脚注` 的 ◐ 指富文本编辑器（TinyMCE）会渲染、Markdown 编辑器只在侧栏预览里渲染。
+   - **SiY**：`打印` ◐ 只确认了 `app/electron/main.js` 里有 `webContents.print`；`图片拖拽缩放` ◐ 是按「尺寸存进块属性而非 Markdown」判的，**未在仓库里逐行确认**；`云同步` ● 受付费会员门控（与 Obs 的付费 Sync 给 ● 同一口径）；`演示模式` ○ 属证据缺失。
+   - **VMk**：`文件增删重命名` ◐ 只找到标签页重命名，文件树里的删除未核实；`图片拖拽缩放` ○ 是没找到，不是厂商否认。
+   - **MYn**：`打印` ◐ 只看到 `NSPrintOperation` 被 PDF 导出内部使用；`全局搜索` ● 依据 `miao search` CLI 与跨笔记检索代码，GUI 的全文范围未逐项核实；`多标签页` ○ 为推断。
+2. **iAW 与 Uly —— 并列第二。** 两者的 `外部改动检测` 与 `剪贴板粘贴图片` **本次完全没有一手来源**（我按最接近的行为给了值，但这两格应视为未核实）；iA Writer 的 focus mode 页面返回 409 抓不到，其 Android 版停更只有第三方来源（Thurrott），而 ia.net 上仍挂着过期的 Android 页面。Ulysses 的 `::mark::` 是二次核实才找对页面的——第一次按 `==highlight==` 去找会得出错误结论。
+3. **Typ（Typora）—— 闭源带来的软。** `外部改动检测` 仅来自 issue #6578，**官方从未记载**，且 tracker 里对其可靠性有争议；1.14.10 的发布日期只有第三方站点（warp2search.net）有，官方发布页只列版本号不列日期，下载页文件名甚至还停在 1.14.9。
+4. **Obs、Ztl、MkT、Bea —— 相对最硬**，但各有一处弱点：Obsidian 的查找替换只有官方论坛的员工帖、PDF 导出只有 changelog（两者都没有帮助页），其 Live Preview 下的数学/脚注行为靠论坛帖（其中一条还是功能请求）；Zettlr 的 `打字机模式` 是从**源码**（`menu.darwin.ts`）确认的而非 v4 文档，且其 `==高亮==` 只确认了语法与导出开关、**未确认编辑器内的视觉渲染**，`编辑区数学排版` 的 ● 也夸大了默认状态（预渲染器需手动开启）；MarkText 见上文（偏好 schema 反推）；Bear 的脚注渲染样式与 math/Mermaid 是否受 Pro 门控，文档未明说。
 
 ### 完全来自一般认知、本次没有逐个核实的**行**（不是列）
 
 这四行请单独打折，它们是横跨所有对照组的常识性判断，不是本次抓取的结论：
 
-- **`打印`**（表 1）—— 只有 MarkText 的"PDF + HTML + print"有明确来源。其余九列按"桌面/Web 应用普遍具备打印"给 ●。mdpro 的 ○ 是仓库核实的。
-- **`界面本地化`**（表 1）—— 十列全部来自一般认知。mdpro 的 ○ 是仓库核实的（零 i18n 基础设施）。
+- **`打印`**（表 1）—— 只有 MarkText 的"PDF + HTML + print"有明确来源。Typ 至 Uly 的其余六列按"桌面应用普遍具备打印"给 ●；新四列是读仓库判的（VMk 的 features 文档写明 ⌘P，Jop 见 `custom_css.md`，SiY 与 MYn 各给 ◐，见上）。mdpro 的 ○ 是仓库核实的。
+- **`界面本地化`**（表 1）—— Typ 至 Uly 七列来自一般认知；新四列在仓库里看得到中文界面资源（VMk 的 features 文档列出 10 种语言，MYn 用 `I18n.str()`，SiY 有 `app/appearance/langs/zh-CN.json`，Jop 走 Crowdin）。mdpro 的 ○ 是仓库核实的（零 i18n 基础设施）。
 - **`结构化 JSONL 日志`**（表 3）—— 对照组的 ○ 是"没有面向用户的结构化日志"这一常识判断，没有逐个查证。
-- **`非 Electron 原生外壳`**（表 3）—— 各产品的技术栈来自公开常识（Typora/MarkText/Obsidian/Zettlr/VS Code/Logseq 为 Electron；iA Writer/Bear/Ulysses 为原生 Apple 技术栈；mdpro 为 Tauri + WKWebView），本次未逐个抓取技术声明。
+- **`非 Electron 原生外壳`**（表 3）—— 各产品的技术栈来自公开常识（Typora/MarkText/Obsidian/Zettlr 为 Electron；iA Writer/Bear/Ulysses 为原生 Apple 技术栈；mdpro 为 Tauri + WKWebView），前七列未逐个抓取技术声明。新四列读过清单文件：VMk 为 Tauri 2（`package.json`），MYn 为 Swift 6 + AppKit，SiY 为 Electron 44.4.1（`app/package.json`），Jop 为 Electron 42.3.0（`packages/app-desktop/package.json`）。
 
-`UTF-16 编码检测与往返保真`（表 3）中，仅 mdpro 与 VS Code 两格有硬证据（前者读源码，后者有文档），其余各格属推断。
+`UTF-16 编码检测与往返保真`（表 3）中，只有 mdpro 一格有硬证据（读源码）。新四列的 ○ 来自源码里没搜到（MYn 的文件读写全部是 `.utf8`；VMk 唯一的 UTF-16 命中在 PDF 大纲），属证据缺失；其余各格属推断。
 
 
 ---
