@@ -56,7 +56,7 @@
 | 1.7 | ✅ | **Stryker 的第一个决定不是范围，而是「是否入库」** | **已决：不入库。** 撤掉两个 devDeps 与其后 1329 行 lockfile 改动，`requireMutation: false` 且删除 `mutationCommand`/`mutationGateOn`。理由不是「覆盖率太低不配跑变异测试」（该论点是错的），而是 E29 的前置条件未满足：本 PR 只交付测试基础设施，允许清单模块尚无行为测试 |
 | 1.8 | ✅ | tdd-guardian config v1→v2 迁移，四项阈值重置到实测地板 | **已测并写入 31/61/82/31**（lines/functions/branches/statements；实测 31.18 / 61.57 / 82.15 / 31.18，向下取整）。注意这是**加种子测试与修正 fixture 之后**重测的值，不是先前的 30.87。明确记录旧的 40/45/35/40 是未校准历史配置，非偷偷降低。**必须同时写入 `vitest.config.ts`**，否则 `pnpm coverage` 不会因低覆盖率失败 |
 | 1.9 | ✅ | **G0 文件检查改写**（必须在 WI-0.1 前） | 改为：全局基线存起点 SHA + 脏改动内容 + 未跟踪清单；每 WI 存自己起点；按**内容差异**核对本 WI 声明文件集 |
-| 1.10 | ⏭️ | ⚠️ **建议追加：ESLint 接入**（M 的 P1） | **已决：不进本 PR，单独一个 PR**，并登记为 WI-4.21 的**硬前置**——P 的 WI-4.21 要加 `no-restricted-syntax` 规则、WI-4.26 的验收依赖该规则，而仓库里既无 eslint 配置也无 lint script |
+| 1.10 | ✅ | ⚠️ ~~建议追加：ESLint 接入~~（M 的 P1）→ **已决：不接 ESLint** | **2026-09-22 结案，见 [ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)（Accepted，取代 [ADR-0020](../adr/0020-eslint-enters-as-a-single-rule-devdependency.md)）。** 这条硬前置**不再存在**：规则改用仓库内脚本 + 已经装好的 `typescript` 编译器 API 实现，不新增任何依赖、不动 `package.json`（连 `scripts` 段也不动，加 script key 同样会挂 G0），因此**不需要给 G0 开第二个例外**。两条关键事实推翻了 ADR-0020：一是 `eslint` + `@eslint/js` **根本解析不了 TypeScript**（默认解析器是 Espree，`@eslint/js` 只给配置不给解析器），ADR-0020 全文未提；二是 `typescript` 本来就是直接 devDependency（`package.json:67`，`~5.8.3`），AST 精度与零依赖不冲突。门禁挂在 `tests/` 下的测试上，搭现成的 `unit` lane，不新增 lane |
 
 **已完成、勿重做**：两个 job 的 `timeout-minutes: 30`。
 
@@ -208,9 +208,11 @@ A8 也还登记着其他候选。C 只缩小 A8，不消灭整个例外机制。
 **本阶段状态：⬜ 未开始**（2026-09-18 实测：计划 P 的 Stage 1 产物 `src/styles/index.css`、
 `src/styles/sections/`、`ToggleSwitch.tsx`、`Icon.tsx`、`useTauriEvent.ts` **均不在 HEAD**，
 实现为零，不是「部分完成」）。
-另有一条**硬前置至今未满足**：WI-4.21 依赖的 ESLint 在仓库内仍然零存在
-（无配置文件、无 `lint` script、`package.json` 中 eslint 出现 0 次），
-它同时是 WI-4.26 一条验收的前提 —— 见下方「三个两个计划都未记载的问题 ①」。
+~~另有一条**硬前置至今未满足**：WI-4.21 依赖的 ESLint 在仓库内仍然零存在。~~
+**2026-09-22 更正：这条前置已经消失，不是被满足，是被取消。** WI-4.21 需要的是
+一条规则，不是一个 linter；规则改由仓库脚本 + 已装好的 `typescript` 编译器 API
+实现（[ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)）。
+仓库里确实仍然没有 eslint，而这**不再阻塞任何东西** —— 见下方「三个两个计划都未记载的问题 ①」。
 
 ### Stage 0（仅改计划文档）
 
@@ -615,12 +617,24 @@ CodeMirror 调用点「never materialise the document」，而它自己的返回
 
 ## 三个两个计划都未记载的问题
 
-**① WI-4.21 依赖一个不存在的 ESLint —— 这是真正的跨计划缺口。**
-WI-4.21 要加 `no-restricted-syntax` lint 规则，WI-4.26 收窄后**剩下的验收之一**
-就是「WI-4.21 的 lint 规则拒绝 `useTOC.ts` 的零参数调用」。但实测 HEAD：
-无 eslint 配置文件、`package.json` 中 eslint 出现 0 次、无 `lint` script。
-M 把 ESLint 列为「与 P0 无关的独立改进项 P1」，P 则默认它存在。
-**建议并入阶段 1 的 chore PR** —— 那里已经在动 `package.json` 和测试工具链，且它是 WI-4.21 的硬前置。
+**① ~~WI-4.21 依赖一个不存在的 ESLint~~ —— 已于 2026-09-22 结案，且结案方式与当初的建议相反。**
+原文记的缺口是真的：WI-4.21 要一条 `no-restricted-syntax` 规则，而 HEAD 上无 eslint 配置、
+无 `lint` script、`package.json` 中 eslint 出现 0 次。原文给的解法（并入阶段 1 的 chore PR）
+已经不可行 —— 那个 PR 于 2026-09-12 落地，G0 从 WI-0.1 起对 `package.json` **从零起算**。
+**实际结案：不装 ESLint。** 见 [ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)。
+
+**但本条还藏着一个必须改的验收项。** 原文写 WI-4.26 剩下的验收之一是
+「WI-4.21 的 lint 规则拒绝 `useTOC.ts` 的零参数调用」。**该调用已经不存在了** ——
+`src/hooks/useTOC.ts:131-138` 现在是八个逐字段 selector，`:127-130` 是解释这次改动的注释，
+其中那句 `useTOCStore()` 是**注释里的文字**，不是调用。照原文验收会得到一个失败，
+而失败的原因是缺陷没了、不是规则坏了 —— 这正是「按文本找」和「按语法找」的分野：
+纯文本扫描在本仓库对这条规则的**查准率是 4 分之 1**（4 个命中里 1 真 3 假，
+3 个假阳性分别是这条注释、一个 docblock、和一个 `expect(...)` 里的字符串字面量，
+而那条注释恰恰就是规则 50 §1 的文档）。
+**验收改为**：规则必须拒绝一条**测试内以字符串给出的**零参数调用（红），
+并且必须对上述三处文本命中**不报**（这才是验收的实质）；对真实 `src/` 树的断言是
+**零发现**，因为当时唯一的真实违规 `src/components/common/settings/AdvancedSettings.tsx:21`
+在同一批工作里已被改为逐字段 selector。
 
 **② 阶段 3 的语料不是「选一个」，是「从零建」。**（**已回写进 M 的问题 4 并结案**）
 M 的待决问题 4 把 `tests/image-test/` 当候选，但实测它共 4 个文件

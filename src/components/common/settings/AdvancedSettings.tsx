@@ -17,8 +17,13 @@ function isLogLevel(v: string): v is LogLevel {
 }
 
 export function AdvancedSettings() {
-  const { enabled: loggingEnabled, level: loggingLevel, setEnabled, setLevel } =
-    useLoggingStore();
+  // Per-field selectors, not a whole-store destructure (rule 50 §1). A bare
+  // `useLoggingStore()` subscribes to the state object's identity, so any field
+  // this panel never reads would still re-render it.
+  const loggingEnabled = useLoggingStore((state) => state.enabled);
+  const loggingLevel = useLoggingStore((state) => state.level);
+  const setEnabled = useLoggingStore((state) => state.setEnabled);
+  const setLevel = useLoggingStore((state) => state.setLevel);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleLoggingToggle = async (next: boolean) => {
