@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed** (2026-09-22). Closes **D17** on
+**Accepted** (2026-09-23; proposed 2026-09-22). Closes **D17** on
 `docs/plans/20260912-frontend-backend-sequencing-order.md`; WI-7 real-device
 acceptance passed 2026-09-23 (`docs/test/20260922-d17-gui-acceptance.md`). Supersedes the inline **DECISION A** for the WYSIWYG surface
 (formerly in the `src/hooks/useWysiwygScrollSpy.ts` header). Builds on
