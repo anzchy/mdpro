@@ -2,10 +2,12 @@
 
 ## Status
 
-**Proposed** (2026-09-22). Closes the residual recorded on the **D9** row of
-`docs/plans/20260912-frontend-backend-sequencing-order.md`. Does not reopen
-[ADR-0009](./0009-narrow-source-table-detection-to-gfm.md) or
-[ADR-0013](./0013-under-detection-shifts-table-ordinals.md).
+**Accepted** (2026-09-22; proposed the same day, amended on acceptance after an
+external review — amendments A–E below). Closes the residual recorded on the
+**D9** row of `docs/plans/20260912-frontend-backend-sequencing-order.md`. Does
+not reopen [ADR-0009](./0009-narrow-source-table-detection-to-gfm.md) or
+[ADR-0013](./0013-under-detection-shifts-table-ordinals.md). Implementation is a
+later WI; this record changes no code.
 
 ## Context
 
@@ -88,7 +90,7 @@ only, leaves the silent failure in place and just describes it.
 
 ## Decision
 
-Adopt **option (1)**.
+Adopt **option (1)**, with amendments A–E folded in on acceptance.
 
 1. Every `TableActionEvent` carries a `request_id`. `dispatch_table_action`
    re-validates the document **after** the confirmation dialog, matching #238.
@@ -97,17 +99,75 @@ Adopt **option (1)**.
 2. `applyMcpTableAction` returns a discriminated result instead of `null`. The
    reasons are `table_not_found` (ordinal out of range), `coords_out_of_range`,
    `invalid_payload`, `write_refused:<TableWriteRefusalReason>`,
-   `editor_apply_failed` and `document_not_found`. The frontend flushes
-   `syncNow` for the document **before** acknowledging `applied`, so a
+   `editor_apply_failed` and `document_not_found`. The frontend acknowledges
+   `applied` only once the content is durable in the shadow store (A), so a
    `read_document` sent after a 200 sees the new content.
 3. Responses: `applied` → `200 {status:"applied", request_id}`. `refused` →
    `422 {code:"TABLE_WRITE_REFUSED", reason}`. `not_found` → `404`. Timeout →
    **`202 {status:"pending", request_id}`**, which means *outcome unknown*, not
-   failure. The apply may still land later, for example in a webview blocked by
-   a D6/D12-sized document. A late acknowledgement is logged and then dropped.
-   `scheduled: true` stays in the 200 and 202 bodies for one release.
+   failure. That is what 202 means in RFC 9110 §15.3.3 (accepted, processing
+   not complete), so it is not a false success. The apply may still land later,
+   for example in a webview blocked by a D6/D12-sized document; C says how the
+   client learns it. `scheduled: true` stays in the 200 and 202 bodies for one
+   release.
 4. The six routes are added to `http-api.yaml`, and `docs/guide/tables.md` is
    rewritten in the same change.
+
+The review found that items 2 and 3, as proposed, described outcomes the
+current code cannot deliver. The amendments make each one concrete.
+
+- **A. "Applied" means durable.** Today `doSync` (`src/hooks/useMcpSync.ts:81-102`)
+  writes `lastSyncRef.current = hash` at `:94`, *before* the `await`, and the
+  `catch` at `:98` logs and swallows. `syncNow` (`immediateSync`, `:116-122`)
+  discards the promise. "Flush `syncNow`" therefore proves nothing: a failed
+  sync still looks done, and the retry is suppressed by the stale hash. The ack
+  path needs a sync that returns a promise, rejects on failure, and records the
+  hash only after success. If that sync fails, the ack is `sync_failed`
+  (applied in the editor, not visible to `read_document`), returned as
+  `500 {code:"SHADOW_SYNC_FAILED", request_id}` and never as `applied`.
+- **B. Refusal is all-or-nothing; anything else is `partial`.**
+  `processTableActionEvent` calls `deps.updateDocumentContent` at
+  `useMcpEvents.ts:112`, before either editor apply. The Milkdown branch catches
+  a throw only after the store has changed. The Source branch (`cmView.dispatch`,
+  `:121`) has no `catch` at all. The apply becomes compute → validate → commit:
+  the new content and every refusal are decided before anything is written.
+  Store and editor are then committed together, and the store is rolled back
+  if the editor throws. Both editors' failures are caught and reported as
+  `editor_apply_failed` with the store unchanged. Where rollback itself fails,
+  the outcome is an explicit `partial` (`500 {code:"TABLE_APPLY_PARTIAL"}`).
+  A `refused` outcome always means nothing changed.
+- **C. Late acknowledgements are retained, not dropped.** Rust keeps final
+  outcomes in a bounded store, initially the **last 256 outcomes for 10
+  minutes**, whichever evicts first. Both are named constants and policy
+  choices, not measurements. `GET /api/v1/table_actions/{request_id}` returns
+  the recorded outcome, `pending` while in flight, or `404 REQUEST_ID_UNKNOWN`
+  once evicted. It is routed with the six table routes and listed beside them
+  in `http-api.yaml`. After a 202 a client **MUST NOT** blindly retry the
+  action; it polls the status route or re-sends the same `request_id` (E).
+  This takes the query endpoint from option (3) as a supplement. Option (3)'s
+  objection was to polling *instead of* a synchronous answer, and that still
+  holds.
+- **D. Acks are owned, and pending entries have a lifecycle.** The pending
+  entry is registered **before** the emit and bound to
+  `(request_id, document_id, window_label)`. `mcp_table_action_result` takes
+  the invoking `tauri::WebviewWindow`. Rust accepts the ack only when that
+  window's label matches the entry, and the payload's own label is never
+  trusted (rule 60, IPC trust boundaries). The pending map has a fixed
+  capacity; when it is full the route answers `503 TABLE_ACTIONS_BUSY` without
+  emitting. An entry is removed when the emit fails (answered `500`), when the
+  timeout moves it into retention as `pending`, and when its window closes
+  (`remove_window`, recorded as `window_closed`). Unknown, duplicate and
+  mismatched acks are rejected with an `Err` and logged. None of them resolves
+  or overwrites an entry.
+- **E. `request_id` is an idempotency key.** The client may supply
+  `request_id`; otherwise the server generates one. A repeated `request_id`
+  with an identical payload (same route, document and canonicalised payload)
+  returns the pending or recorded outcome and does not apply again. With a
+  different payload it returns `409 REQUEST_ID_REUSED`. This is what makes
+  C's "no blind retry" rule safe to follow. It is the standard idempotency-key
+  pattern (cf. IETF `draft-ietf-httpapi-idempotency-key-header`), carried in
+  the body because the routes already take JSON. Its reach is limited to the
+  retention window.
 
 ## Consequences
 
@@ -117,16 +177,34 @@ Adopt **option (1)**.
   error. It does **not** fix *wrong-target-reported-as-success*. Table identity
   remains a separate contract change.
 - **The timeout adds a third state that clients must handle.** `pending`
-  cannot be retried safely: repeating `add_row` after a late apply adds two
-  rows. With no query endpoint, a pending client is back to reading the
-  document and guessing. The timeout value will be a policy choice, not a
-  measurement.
-- **HTTP latency now depends on how responsive the webview is.** Normally that
-  adds milliseconds. On a hung webview, every table call waits for the full
-  timeout. The fire-and-forget design gave this up for simplicity.
-- **Rust gains shared mutable state** (the pending map). It needs cleanup on
-  `remove_window` and review against rule 60's race-condition checks. There is
-  also a new `#[tauri::command]`, which needs its own ledger row.
+  cannot be blindly retried: repeating `add_row` after a late apply adds two
+  rows. C and E give the client a way out (poll, or re-send the same
+  `request_id`). That only lasts as long as retention, though. After eviction a
+  pending client is back to reading the document and guessing. The timeout and
+  both retention bounds are policy choices, not measurements.
+- **HTTP latency now depends on how responsive the webview is.** Every table
+  action waits for the ack, bounded by the timeout. Normally that adds
+  milliseconds, plus the awaited shadow sync from A. On a hung webview, every
+  table call waits for the full timeout. The fire-and-forget design gave this
+  up for simplicity.
+- **Many more moving parts.** Rust gains shared mutable state (the pending map
+  and the retention store), a status route, a window-ownership check and an
+  idempotency comparison. Each needs cleanup on `remove_window` and review
+  against rule 60's race-condition checks. Retention costs bounded memory:
+  256 outcomes, each small but held for up to 10 minutes.
+- **A new IPC command and an IPC contract change.** `mcp_table_action_result`
+  is a new `#[tauri::command]` with its own ledger row. `mcp:table_action`
+  gains `request_id`, and its semantics change from fire-and-forget to
+  must-answer.
+- **The frontend apply is rewritten, not patched.** `processTableActionEvent`
+  becomes transactional (B), and the sync hook gains an awaited,
+  error-propagating path (A) next to its best-effort debounce. Two sync paths
+  can drift. They must share one payload builder and one hash rule.
+- **Test burden.** Rust: resolve, timeout → retention, late ack, unknown /
+  duplicate / wrong-window ack, capacity 503, emit failure, window close,
+  eviction, idempotent replay and `REQUEST_ID_REUSED`. Hooks: every
+  discriminated outcome, rollback on both editors, `partial`, and
+  `sync_failed`, all with the sync failure injected at the Tauri boundary.
 - **It is a contract break.** A client that treated every 202 as success now
   gets 4xx for refused writes. No in-tree client exists, and the routes were
   never in the published spec, so that is the only reason the break is cheap.
@@ -135,3 +213,6 @@ Adopt **option (1)**.
   must follow.
 - **It rules out option (2) for tables.** Rust stays a thin transport, and the
   TS scanner stays the only definition of "which table is table N".
+- **Nothing is fixed yet.** This commit records the decision only. Until the
+  implementing WI lands, the D9 residual stands exactly as the Context
+  describes it.
