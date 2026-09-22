@@ -35,9 +35,12 @@ The MCP binary is a **separate process** — it communicates with the running Ta
 
 ### Server config files
 
+Platform data dir, `dirs::data_dir()/mdpro/` (macOS shown below). **Not** `~/.mdpro/` —
+that directory holds the log and preferences only.
+
 ```
-~/.mdpro/server.port    # e.g., "3847"
-~/.mdpro/server.token   # 64-char hex token, 0600 perms
+~/Library/Application Support/mdpro/server.port    # e.g., "55045"
+~/Library/Application Support/mdpro/server.token   # 64-char hex token, 0600 perms
 ```
 
 ### Loading config in MCP binary
@@ -53,12 +56,13 @@ struct ServerConfig {
 
 impl ServerConfig {
     fn load() -> Result<Self, String> {
-        let home = dirs::home_dir().ok_or("no home dir")?;
-        let port: u16 = fs::read_to_string(home.join(".mdpro/server.port"))
+        // dirs::data_dir() — macOS: ~/Library/Application Support
+        let dir = dirs::data_dir().ok_or("no data dir")?.join("mdpro");
+        let port: u16 = fs::read_to_string(dir.join("server.port"))
             .map_err(|e| format!("read port: {}", e))?
             .trim().parse()
             .map_err(|e| format!("parse port: {}", e))?;
-        let token = fs::read_to_string(home.join(".mdpro/server.token"))
+        let token = fs::read_to_string(dir.join("server.token"))
             .map_err(|e| format!("read token: {}", e))?
             .trim().to_string();
         Ok(ServerConfig { port, token })
@@ -229,13 +233,14 @@ Resources are higher-value than tools for frequently-needed context (document ou
 # 1. Start the app
 pnpm tauri dev
 
-# 2. Check server is running
-curl -s -H "X-MDPRO-Token: $(cat ~/.mdpro/server.token)" \
-  http://localhost:$(cat ~/.mdpro/server.port)/api/status | jq .
+# 2. Check server is running (macOS data dir; see dirs::data_dir())
+MDPRO_DIR="$HOME/Library/Application Support/mdpro"
+curl -s -H "X-MDPRO-Token: $(cat "$MDPRO_DIR/server.token")" \
+  "http://localhost:$(cat "$MDPRO_DIR/server.port")/api/status" | jq .
 
 # 3. Test a specific endpoint
-curl -s -H "X-MDPRO-Token: $(cat ~/.mdpro/server.token)" \
-  http://localhost:$(cat ~/.mdpro/server.port)/api/documents | jq .
+curl -s -H "X-MDPRO-Token: $(cat "$MDPRO_DIR/server.token")" \
+  "http://localhost:$(cat "$MDPRO_DIR/server.port")/api/documents" | jq .
 
 # 4. Watch logs
 tail -f ~/.mdpro/mdpro.log | jq 'select(.event | startswith("mcp."))'

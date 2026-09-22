@@ -151,7 +151,7 @@ components:
       type: apiKey
       in: header
       name: X-MDPRO-Token
-      description: Authentication token from ~/.mdpro/server.token
+      description: Authentication token from server.token in the platform data dir, dirs::data_dir()/mdpro/ (macOS: ~/Library/Application Support/mdpro/server.token)
 
   parameters:
     documentId:

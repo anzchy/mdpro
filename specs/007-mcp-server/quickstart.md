@@ -106,7 +106,7 @@ The MCP server requires mdpro to be running. Start mdpro before using the MCP to
 ### Connection refused
 
 1. Check that mdpro is running
-2. Verify `~/.mdpro/server.port` and `~/.mdpro/server.token` exist
+2. Verify `server.port` and `server.token` exist in the platform data dir, `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/`)
 3. These files are created when mdpro starts and removed when it quits
 
 ### Permission denied
@@ -119,6 +119,6 @@ chmod +x /path/to/mdpro_mcp
 ## How It Works
 
 1. Claude Code spawns `mdpro_mcp` as a subprocess
-2. `mdpro_mcp` reads connection info from `~/.mdpro/server.port` and `~/.mdpro/server.token`
+2. `mdpro_mcp` reads connection info from `server.port` and `server.token` in the platform data dir, `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/`)
 3. MCP tool calls are forwarded to mdpro's internal HTTP API
 4. Results are returned via MCP protocol

@@ -42,7 +42,7 @@
 ### 2.2 交互流程
 1. 用户在 MCP 客户端配置 `mdpro-mcp`。
 2. MCP Client 启动 `mdpro-mcp`（stdio）。
-3. `mdpro-mcp` 读取 `~/.mdpro/server.port` 与 `~/.mdpro/server.token`，连接本地 HTTP Server。
+3. `mdpro-mcp` 读取平台数据目录 `dirs::data_dir()/mdpro/`（macOS：`~/Library/Application Support/mdpro/`）下的 `server.port` 与 `server.token`，连接本地 HTTP Server。
 4. MCP Client 请求 `ListTools`，`mdpro-mcp` 返回工具列表。
 5. MCP Client 调用工具（如 `insert_content`），`mdpro-mcp` 转发到 mdpro。
 6. mdpro 将操作应用到**最近聚焦窗口**的文档。
@@ -55,7 +55,7 @@
 - 所有请求必须携带 `X-MDPRO-Token`。
 
 ### 3.2 Token 机制
-- mdpro 启动时生成 token，写入 `~/.mdpro/server.token`。
+- mdpro 启动时生成 token，写入平台数据目录 `dirs::data_dir()/mdpro/`（macOS：`~/Library/Application Support/mdpro/server.token`）。
 - `mdpro-mcp` 启动时读取并带入请求头。
 
 ## 4. 本地 HTTP API（mdpro 内部）

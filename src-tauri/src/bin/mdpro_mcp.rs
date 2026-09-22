@@ -6,7 +6,9 @@
 //!
 //! Architecture:
 //! - MCP Client spawns this binary via stdio
-//! - This binary reads ~/.mdpro/server.port and ~/.mdpro/server.token
+//! - This binary reads server.port and server.token from the platform data
+//!   dir, `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/`),
+//!   the same directory `http_server::config_dir()` writes them to
 //! - Forwards MCP tool calls to mdpro's internal HTTP API
 //! - Returns results back to the MCP client
 

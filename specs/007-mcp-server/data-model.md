@@ -122,9 +122,9 @@ pub struct ServerConfig {
 }
 ```
 
-**File Locations**:
-- `~/.mdpro/server.port` - Port number (plain text)
-- `~/.mdpro/server.token` - Auth token (plain text, mode 600)
+**File Locations** (platform data dir, `dirs::data_dir()/mdpro/`; macOS: `~/Library/Application Support/mdpro/`):
+- `server.port` - Port number (plain text)
+- `server.token` - Auth token (plain text, mode 600)
 
 **Lifecycle**:
 - Created on mdpro startup

@@ -15,11 +15,11 @@ The MCP binary is a separate process. It talks to the running Tauri app over loc
 
 ## Config And Auth
 
-Server config:
+Server config lives in the platform data dir, `dirs::data_dir()/mdpro/` (macOS shown; not `~/.mdpro/`):
 
 ```text
-~/.mdpro/server.port
-~/.mdpro/server.token
+~/Library/Application Support/mdpro/server.port
+~/Library/Application Support/mdpro/server.token
 ```
 
 HTTP requests from the MCP binary include:
@@ -89,10 +89,11 @@ MCP tool call
 
 ```bash
 pnpm tauri dev
-curl -s -H "X-MDPRO-Token: $(cat ~/.mdpro/server.token)" \
-  "http://localhost:$(cat ~/.mdpro/server.port)/api/status" | jq .
-curl -s -H "X-MDPRO-Token: $(cat ~/.mdpro/server.token)" \
-  "http://localhost:$(cat ~/.mdpro/server.port)/api/documents" | jq .
+MDPRO_DIR="$HOME/Library/Application Support/mdpro"  # macOS dirs::data_dir()/mdpro
+curl -s -H "X-MDPRO-Token: $(cat "$MDPRO_DIR/server.token")" \
+  "http://localhost:$(cat "$MDPRO_DIR/server.port")/api/status" | jq .
+curl -s -H "X-MDPRO-Token: $(cat "$MDPRO_DIR/server.token")" \
+  "http://localhost:$(cat "$MDPRO_DIR/server.port")/api/documents" | jq .
 tail -f ~/.mdpro/mdpro.log | jq 'select(.event | startswith("mcp."))'
 ```
 

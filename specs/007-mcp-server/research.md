@@ -131,7 +131,7 @@ interface DocumentState {
 
 ### Token Mechanism
 1. mdpro generates random token on startup: `uuid::Uuid::new_v4().to_string()`
-2. Writes to `~/.mdpro/server.token` (file permissions 600)
+2. Writes to `server.token` in the platform data dir, `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/server.token`), file permissions 600
 3. `mdpro-mcp` reads token on startup, includes in `X-MDPRO-Token` header
 4. axum middleware validates token on every request
 

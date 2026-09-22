@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ⌘/ now cycles view modes from any context, including when the CodeMirror source editor has focus. The line-comment shortcut moved from ⌘/ to ⌘⌥/ to free up the cycle binding (split via a `Prec.highest` keymap in `Editor.tsx`)
 
 ### Fixed
+- MCP port/token file location was documented wrong (defect D8). `mdpro_mcp`'s module doc, the 007-mcp-server spec set (`spec.md`, `plan.md`, `data-model.md`, `research.md`, `tasks.md`, `quickstart.md`, `contracts/http-api.yaml`), the `mcp-dev` skill and two CHANGELOG entries all said `~/.mdpro/server.port` / `~/.mdpro/server.token`. Both the writer (`http_server::config_dir()`) and the reader (`ServerConfig::load()`) have always used the platform data dir, `dirs::data_dir()/mdpro/`, which is `~/Library/Application Support/mdpro/` on macOS. Documentation only; no behaviour change. Any `~/.mdpro/server.port` / `server.token` pair on disk is a stale leftover that mdpro neither reads nor cleans up.
 - Moving the cursor in a large Markdown table no longer copies the whole table (defect D11). The source-mode table parser built `TableModel.raw` eagerly with `src.slice(start, end)` on every parse, and the CodeMirror cursor-context field re-parses on every keystroke, click and arrow key — while never reading `raw`. On a document that is one contiguous table (~250k rows / 9.96 MB in the perf corpus) that was a whole-document string allocation per caret movement. `raw` is now a lazy memoized getter; the two call sites that do read it (the column-count linter and the table write guard) are unchanged and still pay exactly one copy each
   - **Not new, and that is the interesting part**: Phase 4 WI-3B converted table scanning to walk CodeMirror's rope precisely so source mode would stop scaling with document size. It converted the scan and missed this one field, and `parse.ts`'s own header went on claiming the call sites "never materialise the document" for the whole time its return value was doing exactly that. The stale claim is corrected in the same change
   - **Pinned by counting operations, not milliseconds** (E39/G0): the new regression test wraps a real line source in a call counter and asserts the cursor path makes **zero** `slice()` calls. A millisecond threshold would false-red on a loaded machine and get raised until it meant nothing; the copy count is exact and machine-independent. Two assertions in the line-source conformance suite that had been *downgraded* from `sliceString === 0` — with a comment stating a scan "cannot slice zero times without changing `parse.ts`" — are restored to the original literal, because that is now true
@@ -150,7 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tools: get_open_documents, read_document, write_document, insert_content
   - Write confirmation dialog when mdpro is not focused
   - Multi-window routing based on most recently focused window
-  - Server config files at `~/.mdpro/server.port` and `~/.mdpro/server.token`
+  - Server config files `server.port` and `server.token` in the platform data dir, `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/`). *Corrected 2026-09-22 (D8): this entry originally said `~/.mdpro/`, which the code never used.*
   - Quickstart guide at `specs/007-mcp-server/quickstart.md`
 - TOC store (`src/stores/tocStore.ts`) with TOCEntry, TOCState interfaces and Zustand store
 - Tab store (`src/stores/tabStore.ts`) with Tab, TabState, ClosedTab interfaces and MRU logic
@@ -294,7 +295,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-02-04
 
 ### Added
-- **MCP (Model Context Protocol) server** — expose open documents to Claude Code, Codex CLI, and Gemini CLI. Tools: `get_open_documents`, `read_document`, `write_document`, `insert_content`. Server config at `~/.mdpro/server.port` and `~/.mdpro/server.token`.
+- **MCP (Model Context Protocol) server** — expose open documents to Claude Code, Codex CLI, and Gemini CLI. Tools: `get_open_documents`, `read_document`, `write_document`, `insert_content`. Server config at `server.port` and `server.token` in the platform data dir, `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/`). *Corrected 2026-09-22 (D8): originally stated `~/.mdpro/`.*
 - **Table of contents sidebar** — heading extraction via pulldown-cmark, click-to-navigate, scroll-spy highlighting.
 - **Tab bar** — open multiple documents at once with configurable position, close behavior, and MRU tracking.
 - **Bottom status bar** — mode tabs at the bottom of the editor window.

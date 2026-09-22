@@ -14,7 +14,7 @@ Enable Claude Code, Codex CLI, and Gemini CLI to interact with mdpro documents v
 - Existing: Tauri 2.0, React 19, Zustand 4, tokio
 - New: axum 0.8, tower-http 0.5, rmcp 0.13, reqwest 0.11
 
-**Storage**: Local filesystem, `~/.mdpro/` for config (server.port, server.token)
+**Storage**: Local filesystem, platform data dir `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/`) for config (server.port, server.token)
 **Testing**: cargo test (Rust), Vitest (frontend), manual integration with Claude Desktop
 **Target Platform**: macOS 13+ (Apple Silicon)
 **Project Type**: Desktop app (Tauri) with additional CLI binary

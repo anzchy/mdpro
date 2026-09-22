@@ -131,7 +131,7 @@
 ### Implementation
 
 - [X] T038 Create mdpro_mcp binary scaffold in src-tauri/src/bin/mdpro_mcp.rs
-- [X] T039 Implement config file reading (~/.mdpro/server.port, ~/.mdpro/server.token) in mdpro_mcp.rs
+- [X] T039 Implement config file reading (server.port, server.token in `dirs::data_dir()/mdpro/`, macOS: `~/Library/Application Support/mdpro/`) in mdpro_mcp.rs
 - [X] T040 Implement get_open_documents MCP tool using rmcp #[tool] macro in mdpro_mcp.rs
 - [X] T041 Implement read_document MCP tool in mdpro_mcp.rs
 - [X] T042 Implement write_document MCP tool in mdpro_mcp.rs
