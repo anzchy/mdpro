@@ -33,6 +33,19 @@ type DegradeDecision = Extract<
   { action: "degrade-to-source" }
 >;
 
+/** A fixed UUID-v4-shaped id: document metadata, never document content. */
+const DOC_ID = "3f2a9c1e-7b4d-4e8a-9c6f-1d2e3b4a5c6d";
+
+/** The context allowlist: every key the degrade line may carry, and no other. */
+const DEGRADE_CONTEXT_KEYS = [
+  "documentId",
+  "elements",
+  "lineLengthThreshold",
+  "longestLine",
+  "structureThreshold",
+  "trigger",
+];
+
 const degrade = (over: Partial<DegradeDecision> = {}): DegradeDecision => ({
   action: "degrade-to-source",
   message: "irrelevant to this module",
@@ -54,7 +67,7 @@ describe("large-document degrade log payload", () => {
     ];
 
     for (const trigger of triggers) {
-      const payload = buildLargeDocumentDegradeLog(degrade({ trigger }), "a-1");
+      const payload = buildLargeDocumentDegradeLog(degrade({ trigger }), "a-1", DOC_ID);
       expect(payload.context?.trigger).toBe(trigger);
     }
   });
@@ -68,6 +81,7 @@ describe("large-document degrade log payload", () => {
     const payload = buildLargeDocumentDegradeLog(
       degrade({ elements: 3, longestLine: 7_583_742, trigger: "line-length" }),
       "a-2",
+      DOC_ID,
     );
 
     expect(payload.context?.elements).toBe(3);
@@ -83,6 +97,7 @@ describe("large-document degrade log payload", () => {
     const payload = buildLargeDocumentDegradeLog(
       degrade({ elements: 0, longestLine: 0 }),
       "a-3",
+      DOC_ID,
     );
 
     expect(payload.context).toHaveProperty("elements", 0);
@@ -99,7 +114,7 @@ describe("large-document degrade log payload", () => {
     // — the C8b' "exactly one home" discipline, applied to the second consumer
     // of the constants. Writing 25_000 here instead would create precisely the
     // second copy that case exists to prevent.
-    const payload = buildLargeDocumentDegradeLog(degrade(), "a-4");
+    const payload = buildLargeDocumentDegradeLog(degrade(), "a-4", DOC_ID);
 
     expect(payload.context?.structureThreshold).toBe(
       LARGE_DOCUMENT_STRUCTURE_THRESHOLD,
@@ -127,6 +142,7 @@ describe("large-document degrade log payload", () => {
     const payload = buildLargeDocumentDegradeLog(
       decision as DegradeDecision,
       "a-5",
+      DOC_ID,
     );
 
     const serialized = JSON.stringify(payload);
@@ -144,6 +160,7 @@ describe("large-document degrade log payload", () => {
     const payload = buildLargeDocumentDegradeLog(
       degrade({ trigger: "both", elements: 1_164_910, longestLine: 2_000_001 }),
       "a-6",
+      DOC_ID,
     );
 
     expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
@@ -158,6 +175,7 @@ describe("large-document degrade log payload", () => {
     const payload = buildLargeDocumentDegradeLog(
       degrade({ trigger: "line-length" }),
       "a-7",
+      DOC_ID,
     );
 
     expect(payload.level).toBe("warn");
@@ -175,5 +193,37 @@ describe("large-document degrade log payload", () => {
     // it is a breaking change for anyone with a saved query, so it should cost
     // a deliberate edit here rather than happening in passing.
     expect(LARGE_DOCUMENT_DEGRADE_EVENT).toBe("editor.large_document.degrade");
+  });
+
+  it("L9: forwards documentId unmodified", () => {
+    // Two ids so a hardcoded id cannot pass.
+    const other = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+    expect(
+      buildLargeDocumentDegradeLog(degrade(), "a-9a", DOC_ID).context?.documentId,
+    ).toBe(DOC_ID);
+    expect(
+      buildLargeDocumentDegradeLog(degrade(), "a-9b", other).context?.documentId,
+    ).toBe(other);
+  });
+
+  it("L10: the context key set is exactly the allowlist plus documentId", () => {
+    const payload = buildLargeDocumentDegradeLog(degrade(), "a-10", DOC_ID);
+    expect(Object.keys(payload.context ?? {}).sort()).toEqual(DEGRADE_CONTEXT_KEYS);
+  });
+
+  it("L11: no context value equals or contains the document content", () => {
+    const SECRET = "beta-secret-passphrase";
+    const content = `${SECRET}\n`.repeat(30_000);
+    const decision = decideLargeDocumentGuard({ viewMode: "wysiwyg", content });
+    expect(decision.action).toBe("degrade-to-source");
+    if (decision.action !== "degrade-to-source") return;
+
+    const payload = buildLargeDocumentDegradeLog(decision, "a-11", DOC_ID);
+    expect(payload.context?.documentId).toBe(DOC_ID);
+    for (const value of Object.values(payload.context ?? {})) {
+      expect(value).not.toBe(content);
+      expect(String(value)).not.toContain(SECRET);
+    }
+    expect(JSON.stringify(payload)).not.toContain(SECRET);
   });
 });

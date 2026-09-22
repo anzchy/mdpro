@@ -34,6 +34,11 @@
  *   change cannot leave this module reporting the previous one (the C8b'
  *   discipline, applied to the constants' second consumer).
  *
+ * - **`documentId` is the one field not from the decision.** The caller passes
+ *   the active document's id (a UUID v4: metadata, not content) so a line can
+ *   be tied to the document it describes. Required, so a caller cannot omit it
+ *   silently. Pinned with the rest of the context key set by L10.
+ *
  * - **warn/fail, mirroring `tableWriteGuard.ts`:172-185.** Both events are the
  *   app declining to do what was asked; someone grepping the log for one
  *   should find the other.
@@ -70,17 +75,20 @@ export const LARGE_DOCUMENT_DEGRADE_EVENT = "editor.large_document.degrade";
 /**
  * Describe a degrade as a log entry.
  *
- * Carries the two measurements, both thresholds, and the trigger that names
- * which of the two predicates fired — after ADR-0019 "the guard fired" is
+ * Carries the two measurements, both thresholds, the id of the degraded
+ * document, and the trigger that names which of the two predicates fired — after ADR-0019 "the guard fired" is
  * ambiguous, and an unqualified line cannot answer the question this event was
  * added for.
  *
  * Carries no document content at any size: a degrade happens on documents up
  * to the 10 MB cap, and the logger has no redaction pass.
+ *
+ * @param documentId - the active document's id (UUID v4); never its content.
  */
 export function buildLargeDocumentDegradeLog(
   decision: LargeDocumentDegradeDecision,
   actionId: string,
+  documentId: string,
 ): LogEntryPayload {
   return {
     level: "warn",
@@ -93,6 +101,7 @@ export function buildLargeDocumentDegradeLog(
       longestLine: decision.longestLine,
       structureThreshold: LARGE_DOCUMENT_STRUCTURE_THRESHOLD,
       lineLengthThreshold: LARGE_DOCUMENT_LINE_LENGTH_THRESHOLD,
+      documentId,
     },
     // Repeats the trigger because `error` is what a reader sees before
     // expanding `context`; the one-line summary has to distinguish the two

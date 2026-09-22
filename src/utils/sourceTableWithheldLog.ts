@@ -31,7 +31,13 @@
  *
  * - **Only `tableRows` is taken from the decision.** The `message` is the
  *   user-facing toast and is not copied (W9); no document content is carried at
- *   any size, because the logger has no redaction pass (W4).
+ *   any size, because the logger has no redaction pass (W4, W12).
+ *
+ * - **`documentId` is the one field not from the decision.** The caller passes
+ *   the active document's id (a UUID v4: metadata, not content) so a line can
+ *   be tied to the document it describes. Required, so a caller cannot omit it
+ *   silently. Context allowlist: `tableRows`, `sourceTableRowThreshold`,
+ *   `documentId` — pinned exactly by W8 and W11.
  */
 import type { LogEntryPayload } from "../types/logging";
 import {
@@ -54,11 +60,15 @@ export const SOURCE_TABLES_WITHHELD_EVENT =
 
 /**
  * Describe a Source table-extension withhold as a log entry: the table-row
- * count beside the threshold it exceeded, at warn/fail like the degrade.
+ * count beside the threshold it exceeded, and the id of the document withheld,
+ * at warn/fail like the degrade.
+ *
+ * @param documentId - the active document's id (UUID v4); never its content.
  */
 export function buildSourceTablesWithheldLog(
   decision: SourceTablesWithheldDecision,
   actionId: string,
+  documentId: string,
 ): LogEntryPayload {
   return {
     level: "warn",
@@ -68,6 +78,7 @@ export function buildSourceTablesWithheldLog(
     context: {
       tableRows: decision.tableRows,
       sourceTableRowThreshold: SOURCE_TABLE_ROW_THRESHOLD,
+      documentId,
     },
     error: "source table extensions withheld: too many table rows",
   };

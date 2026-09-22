@@ -916,3 +916,19 @@ describe("ADR-0022 / A1: the guard effect's Source verdict wiring (source-text G
     expect(slice).not.toMatch(/default\s*:/);
   });
 });
+
+describe("guard log builders carry the active document id (source-text Gate)", () => {
+  it("C18: both builder calls pass activeDocument.id as the third argument", () => {
+    // Supplement to W10 / L9: the builders forward whatever id they are given;
+    // this pins that App gives them the active document's id, and nothing
+    // derived from its content.
+    const slice = guardEffectSlice();
+    const call = (name: string) =>
+      new RegExp(
+        `${name}\\(\\s*decision\\s*,\\s*loggingService\\.generateActionId\\(\\)\\s*,\\s*activeDocument\\.id\\s*,?\\s*\\)`,
+        "g",
+      );
+    expect(slice.match(call("buildLargeDocumentDegradeLog")) ?? []).toHaveLength(1);
+    expect(slice.match(call("buildSourceTablesWithheldLog")) ?? []).toHaveLength(1);
+  });
+});

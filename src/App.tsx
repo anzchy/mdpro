@@ -535,7 +535,7 @@ function App() {
         // The payload's contents are asserted in
         // tests/large-document-degrade-log.test.ts; only the wiring is here.
         loggingService.logEventSync(
-          buildLargeDocumentDegradeLog(decision, loggingService.generateActionId()),
+          buildLargeDocumentDegradeLog(decision, loggingService.generateActionId(), activeDocument.id),
         );
         showToast(decision.message);
         setViewMode("source");
@@ -546,7 +546,7 @@ function App() {
         // menu reading the recorded verdict; the mode never changes here. One
         // log line and one toast per document, logged first as above.
         loggingService.logEventSync(
-          buildSourceTablesWithheldLog(decision, loggingService.generateActionId()),
+          buildSourceTablesWithheldLog(decision, loggingService.generateActionId(), activeDocument.id),
         );
         showToast(decision.message);
         return;
