@@ -485,7 +485,7 @@ load → 结构更新 → `save_preferences` → `logger::set_log_settings` 四�
 `clippy --all-targets` 0 warnings／rustfmt clean／覆盖率 32.26/63.29/83.25/32.26（阈值 31/61/82/31），
 两条 criticalPaths 均 100/100。**残留两项**：
 
-- ① 尚欠一次人工 QA（设置 → 高级 → 关闭日志开关）。**没有任何测试道能覆盖它**，✅ 不含这一项。
+- ① ✅ **已人工验证（2026-09-22）**：release 包（干净 worktree @`44607d8`，sha256 `0440b48f…fb03`）上关掉日志后，新标签 / 切标签 / ⌃2 / 输入 / ⌘S / ⌃4 / 退出 / **重启后再来一轮**，`~/.mdpro/mdpro.log` 增量均为 **0 B**，`config.json` 与设置界面都保持关闭；重新打开后立即恢复写入（+31 行）。证据：[`docs/test/20260922-d2-logging-toggle-qa.md`](../test/20260922-d2-logging-toggle-qa.md)。**顺带两条待立项观察**（不是 D2 失败）：(a) 打开日志这一跳本身不留痕——`AdvancedSettings.tsx` 在 `setLoggingSettings` 生效前记 `ui.toggle.change`，所以关有记录、开被吞；(b) 每次 ⌃2/⌃4 写 **10 条** `ui.menu.select menu.view.set_mode`、只有 1 条 `view.mode.change`，疑似 10 个存活的 `menu:action` 监听器（`useMenuEvents.ts:86`），是按窗口还是泄漏未查。
 - ② GS-1 锁跨度不变量是**评审强制、无测试强制**的，见
   [ADR-0005](../adr/0005-lock-span-invariant-is-review-enforced.md) —— 缩窄守卫会在**全套测试全绿**
   的情况下重新引入数据丢失。这不是 D2 没修完，是这次修复自带的一个已被记录的洞。

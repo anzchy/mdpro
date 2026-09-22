@@ -243,7 +243,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 能力 | 状态 | 在哪 | 怎么确认 |
 |---|---|---|---|
 | 结构化 JSONL 日志 | Shipped | `src-tauri/src/services/logger.rs`, `src/services/loggingService.ts` | 跑 `tail -f ~/.mdpro/mdpro.log \| jq .`，然后在 app 里 ⌘O 打开一个文件，能看到一条 `file.open` 事件；前端每条都经 `log_event` 落盘。**读不出设置时两端都 fail-closed**（2026-09-22，D7）：`config.json` 存在但损坏时，Rust 侧回落到 `enabled: false` 而不是 `LogSettings::default()` 的 `enabled: true`，与前端 `loggingService.ts` 的 `FAIL_CLOSED_SETTINGS` 一致 —— 否则关掉日志的用户会在配置损坏时被静默重新打开，且该值与全新安装逐字节相同、无法分辨。**全新安装不会走到这里**：`load_preferences` 把「文件不存在」当成功路径处理，写入默认值并返回 `Ok`。验证：把 `~/.mdpro/config.json` 改成非法 JSON 再启动，日志文件不应新增行（改回来即恢复）。**`durationMs` 不再包含用户在原生对话框里停留的时间**（2026-09-22，D1）：此前一次导出会记成 72 745 ms，其中 72 154 ms 是人在挑保存位置，净成本只有 591 ms。现在 `file.export` / `file.export_rendered` 报「渲染 + 写盘」两段之和，`file.open` 经对话框时只从选中文件之后开始计时；取消导出报渲染那一段，取消打开则不带 `durationMs`。验证：⌘⇧E 导出时故意在保存框里停十几秒，日志里该条的 `durationMs` 应是几十毫秒量级，不是上万 |
-| 日志开关 | Shipped | `src/components/common/settings/AdvancedSettings.tsx` | ⌘, → Advanced 里关掉日志（读写走 `get_logging_settings` / `set_logging_settings`，前端状态在 `loggingStore`），再操作几下，日志文件不再增长 |
+| 日志开关 | Shipped | `src/components/common/settings/AdvancedSettings.tsx` | ⌘, → Advanced 里关掉日志（读写走 `get_logging_settings` / `set_logging_settings`，前端状态在 `loggingStore`）：此后新标签 / 切模式 / 保存 / 退出 / 重启，`mdpro.log` 增量 0 字节，关闭状态持久化在 `~/.mdpro/config.json`；重新打开即恢复写入。2026-09-22 在 release 包上人工验证，见 `docs/test/20260922-d2-logging-toggle-qa.md`（打开这一跳本身不写日志） |
 | 日志级别 | Shipped | `src/components/common/settings/AdvancedSettings.tsx` | ⌘, → Advanced 里把级别设为 Error，Debug / Info 级别的事件不再写入 |
 | DevTools | Shipped | `src-tauri/tauri.conf.json` | 在打包后的正式版里也能右键打开 Web Inspector，不只是 dev 构建 |
 
