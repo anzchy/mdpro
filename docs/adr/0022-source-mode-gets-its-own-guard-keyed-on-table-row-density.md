@@ -2,7 +2,8 @@
 
 ## Status
 
-**Proposed** (2026-09-22)
+**Accepted** (2026-09-22) for Decisions 1, 2 and 4.
+**Decision 3 (the threshold) remains open** — see the amendment note below.
 
 Extends [ADR-0016](./0016-large-document-guard-predicate-is-a-source-structure-score.md)
 and [ADR-0019](./0019-large-document-guard-adds-a-longest-line-trigger.md) in the
@@ -11,6 +12,20 @@ preserved. It supersedes neither.
 
 Two of its four decisions can be implemented today. **Decision 3 (the threshold)
 deliberately cannot**, and says so.
+
+### Amendment, 2026-09-22, before acceptance
+
+This record was written with one heap data point and an unfilled threshold. A
+density sweep run the same day supplied the curve — and in doing so **corrected
+a number this ADR originally got wrong**. Finding 2 attributed 148.1 MB to
+`parseTableAtOffset`. The parser alone retains **120,458,072 B**; the remaining
+~19 MB belongs to the line-source construction, which the original measurement
+had inside its window. Both figures are restated below, split. The sweep also
+measured finding 1 for the first time (confirming it exactly) and finding 3's
+lint walk (which produced a new defect, D13).
+
+Decisions 1, 2 and 4 are accepted unchanged. Decision 3 is still unfilled — for
+a reason the sweep sharpened rather than removed.
 
 ## Context
 
@@ -44,12 +59,28 @@ bear on the criterion:
    is in the CodeMirror wrapper, so it is **specific to Source mode**, and it
    scales with characters only — no shape variable predicts it.
 
+   **Measured 2026-09-22, and confirmed exactly.** A jsdom harness mounting the
+   controlled `<CodeMirror value onChange>` the way `Editor.tsx:159-166` wires
+   it, with a spy on `Text.prototype.toString`, counts **2 calls per keystroke —
+   40 over 20 single-character insertions, zero variance**, split 20/20 between
+   the update listener and the value-sync effect. It is not collapsed by
+   batching, and the typing latch does not suppress the second call because
+   `currentValue` is computed before `isTyping` is consulted. On a 9.78 MB
+   document that is ~19.6 MB of string copying per character typed, entirely
+   separate from finding 2's object graph.
+
 2. **A per-cursor-move object graph, measured.** `sourceTableDetection`'s
    `tableContextField` re-runs `parseTableAtOffset` on every transaction with
    `docChanged || selection` (`sourceTableDetection.ts:63-77`). On a synthetic
    document matching `large-table.source.md`'s shape (9,340,767 chars, 232,981
-   rows) one call returns `cells.length` = **931,924** and allocates a measured
-   **148.1 MB** of heap. D11 removed the string copy from this path; the object
+   rows) one call returns `cells.length` = **931,924** and retains a measured
+   **120,458,072 B**. The whole per-transaction path — `linesFromText` plus the
+   parse, which is what `computeContext` actually does, since it rebuilds the
+   line source on every transaction — retains **139,037,640 B**. An earlier
+   draft of this ADR quoted 148.1 MB for the parser alone, over-attributing
+   roughly 23% to `parseTableAtOffset`; the split above is the corrected
+   reading, and 139 MB is the figure that describes a cursor move.
+   D11 removed the string copy from this path; the object
    graph was never the same defect and is still there. It is not merely
    allocated — `findCell` linearly scans `model.cells` on every cursor move
    (`find.ts:19`, `sourceTableCellHighlight.ts:48-50`), so the array is
@@ -60,8 +91,30 @@ bear on the criterion:
    budget, and the wysiwyg-decoration, focus, search and basic-setup extensions
    all iterate `visibleRanges` only. The whole-document costs are few and named:
    the two above, plus the table lint's `scanTables` walk 750 ms after mount
-   (`lintTableColumnCount.ts:44-48`, never measured) and the TOC's headless
+   (`lintTableColumnCount.ts:44-48`, measured below) and the TOC's headless
    parse 300 ms after mount (`tocService.ts:155-230`).
+
+4. **That lint walk, measured for the first time — and it falsifies two
+   comments.** `columnCountDiagnosticsFromSource`
+   (`lintTableColumnCount.ts:56-80`; the `:44-48` cited above is the thin
+   wrapper) makes exactly **2R + 5** `line()` calls — 465,967 at 232,981 rows.
+   Counted as operations it makes **one** `slice()` call, which reads as cheap
+   and is not: line 67 reads `table.raw`, and on a single-table document that
+   one slice copies the **entire 9,785,219-character document** and then splits
+   it into 232,982 strings. D11 made `raw` lazy; **the lint is the consumer that
+   forces it anyway**, so on this shape D11 bought the lint path nothing.
+   Retention afterwards is near zero (77 KB) on a well-formed table — the copy
+   is garbage on return, so the cost is a GC-pressure spike, not a leak. On a
+   ragged table (every tenth body row short) it produces 23,298 diagnostics and
+   **6,314,664 B is** retained, for the lifetime of the lint field.
+
+   Two comments are false as a result, both made stale by D11 itself, and both
+   corrected in the commit that carries this amendment:
+   `textLineSource.ts:5-6` claims the rope adapter "Removes `doc.toString()`
+   from every table-scan path in source mode" — on the lint path it becomes
+   `doc.sliceString(0, len)`, the same whole-document copy under another name;
+   and `lintTableColumnCount.ts:62-64` says "the parser already paid for it",
+   which stopped being true the moment `raw` became lazy. Registered as **D13**.
 
 On fixture shape, the five `*.source.md` corpora are all ~9.96 MB, so **total
 size cannot discriminate among them at all** — the spread is 470 bytes, 0.005%.
@@ -97,20 +150,49 @@ corpus.
    Table-row density is the only variable that isolates finding 2, which is the
    only Source cost with a measured number behind it.
 
-3. **The threshold is NOT set by this ADR.** ADR-0016 and 0019 both chose round
-   numbers inside measured intervals and said so. There is no measured interval
-   here: finding 2 has one point (148.1 MB at 232,981 rows) and finding 3's lint
-   scan has none. Setting a number now would present a structural argument as a
-   fitted one, which is the precise failure ADR-0016's own header warns about
-   when it calls its five-point evidence "thin". The threshold is deferred to
-   these counted observations, each an integer rather than a duration, per E39/G0:
-   - `cells.length` and heap delta from `parseTableAtOffset` across all five
-     corpora, extending the measurement above;
-   - `line()` and `slice()` call counts for `columnCountDiagnosticsFromSource`
-     across all five, using the counting-delegate pattern `CONF-scan-cost`
-     already establishes;
-   - the `doc.toString()` call count over 20 keystrokes, to settle whether
-     finding 1 is per-keystroke in the running app or collapsed by batching.
+3. **The threshold is still NOT set — and after the sweep, the reason is a
+   better one.** The original reason was that one point cannot define an
+   interval. All three observations this decision asked for have now been taken.
+   They removed that objection and replaced it with a sharper one.
+
+   | rows | chars | cells | heapΔ parse only | heapΔ production path |
+   |---|---|---|---|---|
+   | 100 | 4,218 | 400 | 84,320 | 117,528 |
+   | 1,000 | 42,018 | 4,000 | 546,136 | 655,336 |
+   | 5,000 | 210,018 | 20,000 | 2,607,704 | 3,117,192 |
+   | 20,000 | 840,018 | 80,000 | 10,411,224 | 12,334,616 |
+   | 50,000 | 2,100,018 | 200,000 | 25,718,744 | 29,998,744 |
+   | 100,000 | 4,200,018 | 400,000 | 51,894,976 | 60,400,064 |
+   | 232,981 | 9,785,220 | 931,924 | 120,458,072 | 139,037,640 |
+
+   Fresh node process per size, `--expose-gc`, triple collection before each
+   reading, the model held live past the second reading, and the line index
+   built before the baseline so the "parse only" column is the parse call's own
+   retention. The 232,981-row point reproduces to within 1.4 KB across three
+   processes (0.001%).
+
+   **The growth is strictly linear above ~1,000 rows: 129 ± 1 bytes per cell,
+   517 ± 4 bytes per row, every point from 5,000 upward within 1% of the
+   largest.** There is no knee, and 4 columns × 129 B is simply what a
+   `TableCell` costs. A linear cost curve contains no threshold; it gives an
+   exchange rate and nothing else. Picking a number on it is a policy judgement
+   about how much heap one arrow-key press may allocate — it cannot be read off
+   the data, and whoever sets it must record it as a judgement rather than as a
+   measurement. That is the same failure ADR-0016's header warns about when it
+   calls its own five-point evidence "thin", arriving by the opposite route:
+   not too little data, but data that does not decide.
+
+   What the sweep does establish, for whoever fills this in:
+   - the exchange rate converts any candidate threshold straight into bytes per
+     cursor move — 20,000 rows ≈ 12.3 MB, 50,000 ≈ 30.0 MB, 100,000 ≈ 60.4 MB;
+   - **table-row density predicts finding 2 and nothing else.** The Source costs
+     have three different scaling variables: finding 1 scales with characters,
+     finding 2 with table rows, D13's lint copy with document length. This
+     predictor bounds one of the three, and the guard must not be described as
+     bounding Source mode;
+   - the sweep is synthetic. Four of five `.source.md` fixtures still have zero
+     table rows, so this is a curve, but not a curve over the shipped corpus —
+     the fixture gap named in Consequences is not closed by it.
 
 4. **The degrade action is to drop the table extension set, not to switch
    modes.** ADR-0016 Decision 4's action — toast, then force Source — is
@@ -129,7 +211,7 @@ corpus.
 Source mode: no cell highlight, no Tab navigation between cells, no right-click
 table menu, no column-count lint. That is a real feature regression on exactly
 the documents most likely to be tables, and it is chosen over the alternative of
-letting an arrow-key press allocate 148 MB. It also breaks cross-mode parity
+letting an arrow-key press allocate 139 MB. It also breaks cross-mode parity
 (rule 30) for those documents by design — WYSIWYG will have already refused them
 on the structure-score trigger, so the two surfaces disagree about what the
 document is, and a user who cannot open it in WYSIWYG also cannot use tables in
@@ -156,13 +238,17 @@ pass over the document — ~10M `charCodeAt` iterations on a 9.96 MB file, no
 allocation. That is a new cost on the open path, incurred to avoid a much larger
 one, and it should be stated rather than discovered.
 
-**The corpus is the binding constraint on ever calibrating this.** Four of five
-fixtures have zero table rows, so the predictor is validated by exactly one
-fixture. Any threshold fitted on this corpus is fitted on a single point. Adding
-table-shaped fixtures at several densities is a precondition for Decision 3, not
-an improvement to it.
+**The corpus is still the binding constraint, for a narrower reason than at
+first writing.** The synthetic sweep under Decision 3 removed the
+single-point problem. What it could not remove is that four of five shipped
+`.source.md` fixtures have zero table rows, so nothing in the committed corpus
+exercises the predictor at any density between 0 and 232,982. Adding
+table-shaped fixtures remains a precondition for Decision 3 — not to obtain a
+curve, which now exists, but to have the guard's trigger exercised by the corpus
+the acceptance runs actually use.
 
 **Superseding this is cheap and expected.** Decision 3 is deliberately an empty
-slot. Filling it should be a new ADR that supersedes this one, carrying the
-measurements, rather than an edit here — this record's value is that it states
-what was *not* known on 2026-09-22.
+slot. Filling it should be a new ADR that supersedes this one and states the
+chosen number as the policy judgement it is, rather than an edit here — this
+record's value is that it states what was *not* known on 2026-09-22, and that
+after the sweep the missing thing is a decision, not a measurement.

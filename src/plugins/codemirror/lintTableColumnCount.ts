@@ -61,9 +61,13 @@ export function columnCountDiagnosticsFromSource(
   const diagnostics: Diagnostic[] = [];
 
   for (const table of tables) {
-    // `model.raw` IS `source.slice(table.start, table.end)` — the parser
-    // already paid for it. Re-slicing here would put a second copy of
-    // every table on the lint timer for nothing.
+    // `model.raw` IS `source.slice(table.start, table.end)`. This comment
+    // used to say "the parser already paid for it" — true when `raw` was
+    // eager, false since D11 made it a lazy memoized getter. Nothing has
+    // paid for it; THIS line is what forces the copy (D13). Re-slicing
+    // separately would still be worse — two copies instead of one — so the
+    // read stays, but on a single-table document it is a whole-document
+    // materialisation on the lint timer, not a free ride.
     const lines = table.raw.split("\n");
     const expected = countTableLineCells(lines[0] ?? "");
     if (expected === 0) continue;
