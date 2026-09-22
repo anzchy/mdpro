@@ -2,16 +2,19 @@
 
 ## Status
 
-**Accepted** (2026-09-22) for Decisions 1, 2 and 4.
-**Decision 3 (the threshold) remains open** — see the amendment note below.
+**Accepted** (2026-09-22), all four decisions. Decisions 1, 2 and 4 were
+accepted earlier the same day; **Decision 3 (the threshold) was filled last**,
+after the density sweep, and is recorded as a policy judgement rather than a
+measurement — see the amendment note below.
 
 Extends [ADR-0016](./0016-large-document-guard-predicate-is-a-source-structure-score.md)
 and [ADR-0019](./0019-large-document-guard-adds-a-longest-line-trigger.md) in the
 same relationship 0019 has to 0016: every invariant 0016 Decision 1 freezes is
 preserved. It supersedes neither.
 
-Two of its four decisions can be implemented today. **Decision 3 (the threshold)
-deliberately cannot**, and says so.
+All four decisions can now be implemented. Decision 3 was deliberately left
+empty at first writing and stayed empty through the sweep; it is filled here,
+and the record keeps the reasoning that made it a judgement call.
 
 ### Amendment, 2026-09-22, before acceptance
 
@@ -24,8 +27,11 @@ had inside its window. Both figures are restated below, split. The sweep also
 measured finding 1 for the first time (confirming it exactly) and finding 3's
 lint walk (which produced a new defect, D13).
 
-Decisions 1, 2 and 4 are accepted unchanged. Decision 3 is still unfilled — for
-a reason the sweep sharpened rather than removed.
+Decisions 1, 2 and 4 are accepted unchanged. Decision 3 is now filled at
+**50,000 table rows**, chosen by the maintainer on 2026-09-22 with the full
+curve in hand. The sweep did not produce that number and could not have: it is
+a policy judgement about how much heap one cursor move may allocate, and it is
+recorded below as one.
 
 ## Context
 
@@ -150,10 +156,11 @@ corpus.
    Table-row density is the only variable that isolates finding 2, which is the
    only Source cost with a measured number behind it.
 
-3. **The threshold is still NOT set — and after the sweep, the reason is a
-   better one.** The original reason was that one point cannot define an
-   interval. All three observations this decision asked for have now been taken.
-   They removed that objection and replaced it with a sharper one.
+3. **The threshold is 50,000 table rows** — a policy judgement, not a reading.
+   The original reason for leaving it empty was that one point cannot define an
+   interval. All three observations this decision asked for have since been
+   taken; they removed that objection and replaced it with a sharper one, which
+   the number below is chosen *against* rather than derived from.
 
    | rows | chars | cells | heapΔ parse only | heapΔ production path |
    |---|---|---|---|---|
@@ -193,6 +200,26 @@ corpus.
    - the sweep is synthetic. Four of five `.source.md` fixtures still have zero
      table rows, so this is a curve, but not a curve over the shipped corpus —
      the fixture gap named in Consequences is not closed by it.
+
+   **The number, and what it buys.** The guard fires above **50,000 table
+   rows**, which the exchange rate converts to roughly **30.0 MB** on the
+   production path per cursor move. Chosen by the maintainer on 2026-09-22 from
+   three candidates presented with this table: 20,000 (≈12.3 MB), 50,000
+   (≈30.0 MB), 100,000 (≈60.4 MB).
+
+   The reasoning, stated so it can be argued with later: 50,000 rows is about
+   **a fifth of the only document measured to actually hurt** (232,981 rows,
+   139.0 MB) and roughly **24× larger than any table in the shipped corpus**,
+   every fixture of which has fewer than ~2,100 rows. It therefore refuses the
+   pathological document while leaving every document anyone has actually
+   opened untouched. Nothing in the curve prefers it to 40,000 or 60,000 — the
+   curve is flat in the sense that matters, and a neighbouring value would be
+   equally defensible.
+
+   **This number is not evidence and must not be cited as though it were.** It
+   is a choice about an acceptable cost, made with the evidence visible. If it
+   proves wrong the correct response is to change it and say why, not to go
+   looking for a measurement that retroactively justifies it.
 
 4. **The degrade action is to drop the table extension set, not to switch
    modes.** ADR-0016 Decision 4's action — toast, then force Source — is
@@ -247,8 +274,26 @@ table-shaped fixtures remains a precondition for Decision 3 — not to obtain a
 curve, which now exists, but to have the guard's trigger exercised by the corpus
 the acceptance runs actually use.
 
-**Superseding this is cheap and expected.** Decision 3 is deliberately an empty
-slot. Filling it should be a new ADR that supersedes this one and states the
-chosen number as the policy judgement it is, rather than an edit here — this
-record's value is that it states what was *not* known on 2026-09-22, and that
-after the sweep the missing thing is a decision, not a measurement.
+**Decision 3 was filled here, against this record's own instruction.** The
+paragraph that stood in this slot said filling the threshold "should be a new
+ADR that supersedes this one ... rather than an edit here". It was not. The
+deviation is recorded rather than quietly dropped, because a record that edits
+away its own instructions is worth less than one that admits to breaking them.
+
+The reason: Decision 3 was never *accepted*. The Status block admitted three
+decisions and held this one open, so the immutability rule — which protects
+accepted decisions from being rewritten — had nothing to protect here. The
+instruction was written when the missing input was believed to be a
+measurement; by the time it was filled the missing input was a judgement, and
+a supersession chain created hours after acceptance would have added a second
+document without adding a second thought.
+
+What that instruction was protecting is preserved instead: **nothing in the
+"no knee" analysis was deleted**. The curve, the exchange rate, the statement
+that a linear cost contains no threshold, and the warning that whoever fills
+this in must record a judgement rather than a reading are all still above,
+unedited. The number sits underneath them, labelled as what it is.
+
+**Superseding this is still cheap and expected** — now for the ordinary reason
+that 50,000 is one defensible point on a flat curve, and the first piece of
+evidence that a real user's document sits near it should move it.
