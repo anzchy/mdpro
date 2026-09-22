@@ -122,7 +122,8 @@ describe("useMcpSync reports the resolved cursor", () => {
       await Promise.resolve();
     });
 
-    const payload = syncDocuments.mock.calls.at(-1)?.[0] as
+    const calls = syncDocuments.mock.calls;
+    const payload = calls[calls.length - 1]?.[0] as
       | { documents: Array<{ id: string; cursor: number }> }
       | undefined;
     expect(payload, "syncDocuments was never called").toBeDefined();
