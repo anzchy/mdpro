@@ -194,6 +194,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 切换侧栏 | Shipped | `src/App.tsx` | ⌘⇧L 或 View → Toggle Sidebar（`menu.view.toggle_sidebar`）收起 / 展开左侧面板，重启后保持上次状态 |
 | 底部标签条 | Shipped | `src/components/BottomTabs/BottomTabs.tsx` | 底部有 `+` 新建、每个文档一个标签（整条标签条就是 `documentStore` 的投影），脏文档带圆点，悬停出 `×`，鼠标悬停显示完整路径，标签多了可横向滚动 |
 | 视图模式切换 | Shipped | `src/stores/editorStore.ts`, `src/components/Editor/Editor.tsx` | ⌘/（`menu.view.cycle`）在 WYSIWYG 与源码之间来回切；⌃2 / ⌃4 直达，焦点在 CodeMirror 里时也生效 |
+| 切模式保留滚动位置 | Partial | `src/utils/scrollAnchor/anchor.ts`, `src/utils/scrollAnchor/capture.ts`, `src/utils/scrollAnchor/source.ts`, `src/utils/scrollAnchor/milkdown.ts`, `src/hooks/useMilkdownScrollRestore.ts` | 在长文档中段停住，⌃2 / ⌃4 来回切，顶部可见的那块内容应仍在顶部（此前一律跳回文档开头）；`~/.mdpro/mdpro.log` 每次切换各有一行 `editor.scroll_anchor.capture` 与 `editor.scroll_anchor.restore`。限制：按顶层块对位，块数两边对不上退到标题级，两级都对不上就停在开头、不猜位置；超过 WYSIWYG 阈值的文档只有标题级；GUI 验收（±3 行精度、图片加载后位移、大纲高亮、大段粘贴、双主题）未在 bundle 上执行（NOT VERIFIED） |
 | 模式徽标 | Shipped | `src/components/Sidebar/index.tsx` | 左上红绿灯旁边显示当前是 WYSIWYG 还是 Source，切换时跟着变 |
 | Toast 通知 | Partial | `src/components/common/Toast.tsx`, `src/stores/toastStore.ts`, `src/App.tsx` | 限制：关闭按钮只在传了 `onClose` 时渲染，而 `App.tsx` 从不传，所以 toast 无法手动关掉。⌘S 弹出的提示上找不到 `×`，只能等 3 秒自动消失；连续触发时是替换而不是堆叠 |
 | 加载指示 | Shipped | `src/components/common/LoadingSpinner.tsx` | 打开一个较大的文件时出现「Opening file…」；导出时是「Exporting HTML…」 |

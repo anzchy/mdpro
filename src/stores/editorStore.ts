@@ -8,6 +8,7 @@ import {
   type TableCellPos,
 } from "../utils/cursorSync/table";
 import { captureCellFromMilkdownEditor } from "../utils/cursorSync/tableMilkdown";
+import { captureScrollAnchorForTransition } from "../utils/scrollAnchor/capture";
 import { isPositionInFencedCode } from "../plugins/codemirror/sourceTableDetection";
 import { linesFromText } from "../plugins/codemirror/textLineSource";
 import { useDocumentStore } from "./documentStore";
@@ -29,8 +30,8 @@ import { useMilkdownEditorStore } from "./milkdownEditorStore";
  */
 /**
  * Audit-fix L2: setViewMode and cycleViewMode share the same
- * pre-transition work — capture the table cell on the outgoing
- * editor, then log the change. Extract into one helper so a future
+ * pre-transition work — capture the table cell and (WI-8) the scroll
+ * anchor on the outgoing editor, then log the change. Extract into one helper so a future
  * tweak (e.g., capture image-resize state too) lands in one place.
  */
 function runViewModeTransition(
@@ -39,6 +40,7 @@ function runViewModeTransition(
   source: "setViewMode" | "cycleViewMode",
 ): void {
   capturePendingTableCellForTransition(state.viewMode, state.editorView);
+  captureScrollAnchorForTransition(state.viewMode, state.editorView);
   loggingService.logEventSync({
     level: "info",
     event: "view.mode.change",

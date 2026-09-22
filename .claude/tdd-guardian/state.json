@@ -2,20 +2,20 @@
   "schemaVersion": 2,
   "lanes": {
     "unit": {
-      "last_passed_at": "2026-09-22T04:33:08.175Z",
-      "last_run_at": "2026-09-22T04:33:08.175Z",
-      "last_head_sha": "16e8807a5c1b9b1ff2f92f25dc02f4d78355e336",
+      "last_passed_at": "2026-09-22T04:40:17.857Z",
+      "last_run_at": "2026-09-22T04:40:17.857Z",
+      "last_head_sha": "aac809730fac9ca646f89c0c8667303f1b21ac5f",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 23000
+      "duration_ms": 0
     },
     "rust": {
-      "last_passed_at": "2026-09-22T04:33:08.182Z",
-      "last_run_at": "2026-09-22T04:33:08.182Z",
-      "last_head_sha": "16e8807a5c1b9b1ff2f92f25dc02f4d78355e336",
+      "last_passed_at": "2026-09-22T04:40:17.866Z",
+      "last_run_at": "2026-09-22T04:40:17.866Z",
+      "last_head_sha": "aac809730fac9ca646f89c0c8667303f1b21ac5f",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 14000
+      "duration_ms": 0
     }
   },
   "coverage": null,

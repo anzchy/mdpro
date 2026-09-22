@@ -27,6 +27,8 @@ import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin"
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
 import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
+import { useMilkdownScrollRestore } from "../../hooks/useMilkdownScrollRestore";
+import { useMilkdownDebugLogging } from "../../hooks/useMilkdownDebugLogging";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useMilkdownEditorStore } from "../../stores/milkdownEditorStore";
 import { loggingService } from "../../services/loggingService";
@@ -116,44 +118,7 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
     [activeDocument?.content],
   );
 
-  // Log when MilkdownEditor mounts/updates for debugging
-  useEffect(() => {
-    loggingService.logEventSync({
-      level: "info",
-      event: "editor.milkdown.mount",
-      status: "success",
-      actionId: loggingService.generateActionId(),
-      context: {
-        documentId: activeDocumentId,
-        hasContent: initialMarkdown.length > 0,
-        contentLength: initialMarkdown.length,
-      },
-    });
-  }, [activeDocumentId, initialMarkdown.length]);
-
-  // Check DOM structure after editor mounts to debug rendering issues
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const root = document.querySelector(".milkdown-editor");
-      const milkdownRoot = root?.querySelector("[data-milkdown-root]");
-      const prosemirror = root?.querySelector(".ProseMirror");
-
-      loggingService.logEventSync({
-        level: "info",
-        event: "editor.milkdown.dom.check",
-        status: "success",
-        actionId: loggingService.generateActionId(),
-        context: {
-          hasRoot: !!root,
-          hasMilkdownRoot: !!milkdownRoot,
-          hasProseMirror: !!prosemirror,
-          proseMirrorChildCount: prosemirror?.childNodes.length ?? 0,
-          proseMirrorInnerHTMLLength: prosemirror?.innerHTML?.length ?? 0,
-        },
-      });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [activeDocumentId]);
+  useMilkdownDebugLogging(activeDocumentId, initialMarkdown.length);
 
   // Use useEditor directly (simplified, no useMilkdown wrapper)
   const editor = useEditor(
@@ -255,10 +220,12 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
 
   // Enforce the link-click scheme allowlist and route clicks by resolved
   // origin — external handoff, in-document, or blocked (#10, ADR-0002);
-  // WI-2.6 cursor restore on mode toggle. Both extracted to hook files to
-  // keep this component under the 300-line guideline.
+  // WI-2.6 cursor restore on mode toggle; WI-8 scroll restore on mode toggle
+  // (after the cursor restore, so the scroll position wins). All extracted to
+  // hook files to keep this component under the 300-line guideline.
   useMilkdownLinkClickGuard(activeDocumentId);
   useMilkdownTableCursorRestore(editor, activeDocumentId);
+  useMilkdownScrollRestore(editor, activeDocumentId);
 
   // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
   // In source/split mode the CodeMirror highlightCommand handles this instead

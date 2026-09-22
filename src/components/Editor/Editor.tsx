@@ -26,6 +26,7 @@ import {
   locateCellInLines,
 } from "../../utils/cursorSync/table";
 import { linesFromText } from "../../plugins/codemirror/textLineSource";
+import { restoreSourceScrollAnchor } from "../../utils/scrollAnchor/source";
 
 interface EditorProps {
   value: string;
@@ -203,6 +204,9 @@ export function Editor({
               view.dispatch({ selection: EditorSelection.cursor(offset) });
             }
           }
+          // WI-8: restore the outgoing editor's top visible line. After the
+          // table-cell restore so the scroll position wins over the cursor.
+          restoreSourceScrollAnchor(view, docId);
         }}
         editable={!readOnly}
         basicSetup={{
