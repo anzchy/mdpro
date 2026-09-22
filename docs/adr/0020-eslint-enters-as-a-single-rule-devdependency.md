@@ -2,11 +2,23 @@
 
 ## Status
 
-Proposed — 2026-09-22
+**Superseded by [ADR-0023](0023-one-lint-rule-enters-as-a-typescript-parser-script.md)** — 2026-09-22.
+Proposed 2026-09-22; never accepted. Nothing was ever installed and
+`package.json` was never changed.
 
-Not yet accepted. Nothing has been installed. `package.json` is unchanged.
-This record exists so the dependency decision is made deliberately rather than
-discovered after `pnpm add -D`.
+Two things decided against it, both found after this record was written. First,
+the "two packages only" plan in Decision 1 **cannot parse TypeScript**:
+`@eslint/js` ships configurations, not a parser, and ESLint's default parser is
+Espree — a gap this record does not mention anywhere, and which puts its real
+price above the one it states. Second, `typescript` is already a direct
+devDependency (`package.json:67`), so the TypeScript compiler API can serve as
+the parser with no new dependency at all, which removes the trade this record
+was weighing.
+
+**The Context below is still the honest starting point** for any future
+proposal to adopt a real linter — the G0/A7 tension, the absent CI, and the 16
+orphaned `eslint-disable` comments are all unchanged and all still true. It is
+the Decision that was superseded, not the analysis.
 
 ## Context
 
