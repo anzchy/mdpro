@@ -2,17 +2,17 @@
   "schemaVersion": 2,
   "lanes": {
     "unit": {
-      "last_passed_at": "2026-09-22T06:30:45.735Z",
-      "last_run_at": "2026-09-22T06:30:45.735Z",
-      "last_head_sha": "282ad6e2d29939a4cea50f9ff93e464d1e2acb2b",
+      "last_passed_at": "2026-09-22T06:38:02.554Z",
+      "last_run_at": "2026-09-22T06:38:02.554Z",
+      "last_head_sha": "7787ffd1cc7e515137a40947ae444a01f53d5856",
       "last_result": "passed",
       "ever_had_tests": true,
       "duration_ms": 0
     },
     "rust": {
-      "last_passed_at": "2026-09-22T06:30:45.735Z",
-      "last_run_at": "2026-09-22T06:30:45.735Z",
-      "last_head_sha": "282ad6e2d29939a4cea50f9ff93e464d1e2acb2b",
+      "last_passed_at": "2026-09-22T06:38:02.554Z",
+      "last_run_at": "2026-09-22T06:38:02.554Z",
+      "last_head_sha": "7787ffd1cc7e515137a40947ae444a01f53d5856",
       "last_result": "passed",
       "ever_had_tests": true,
       "duration_ms": 0
