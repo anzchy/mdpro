@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { fileService } from "../services/fileService";
 import { preferencesService } from "../services/preferencesService";
-import { flushActiveDocumentForSave } from "../services/saveService";
+import { applySaveResult, flushActiveDocumentForSave } from "../services/saveService";
 import type { Document } from "../types/document";
 import { useDocumentStore } from "../stores/documentStore";
 import { useTOCStore } from "../stores/tocStore";
@@ -42,17 +41,6 @@ const parseEncodingError = (error: unknown) => {
     return { path: "", detected: "unknown" };
   }
   return null;
-};
-
-const deleteDraftAfterSave = (documentId: string) => {
-  void invoke("delete_draft", { documentId }).catch((err) => {
-    loggingService.logEventSync({
-      level: "warn",
-      event: "draft.delete",
-      status: "fail",
-      context: { documentId, error: err instanceof Error ? err.message : String(err) },
-    });
-  });
 };
 
 export function useDocument() {
@@ -195,6 +183,9 @@ export function useDocument() {
   // D15: both save paths flush pending WYSIWYG edits and then read the document from
   // the store, never the render-time `activeDocument`. A failed flush throws (caught by
   // performSave as "Save failed: …"), so no save IPC runs and the doc stays dirty.
+  // D19: after the await, neither path writes its pre-await snapshot back. On success
+  // `applySaveResult` re-reads the store: an edit made during the save stays dirty and
+  // keeps its draft, and a document closed during the save is not resurrected.
   const saveActiveDocumentAs = useCallback(async (actionId?: string) => {
     const doc = flushActiveDocumentForSave(actionId);
     if (!doc) return null;
@@ -207,15 +198,7 @@ export function useDocument() {
       actionId,
     });
     if (result?.success) {
-      const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
-      upsertDocument({
-        ...doc,
-        path: result.path,
-        isModified: false,
-        lastSaved: result.savedAt,
-      });
-      markDocumentModified(doc.id, false);
-      deleteDraftAfterSave(doc.id);
+      applySaveResult(doc.id, doc.content, doc.content, result, actionId);
     }
     return result;
   }, []);
@@ -226,15 +209,10 @@ export function useDocument() {
     if (!doc.path) {
       return saveActiveDocumentAs(actionId);
     }
-    // Phase 3 WI-3.2: optional auto-reformat-on-save. The toggle is
-    // off by default — only opt-in users see formatted output. We
-    // update both the disk file AND the in-memory document so the
-    // editor reflects the formatted source on next interaction.
-    //
-    // Audit-fix H3 (2026-05-04): pass an isFenced predicate so
-    // table-shaped lines inside ``` code blocks aren't rewritten as
-    // tables on save. Without this, opt-in users with code samples
-    // containing pipes would see their fenced blocks corrupted.
+    // Phase 3 WI-3.2: optional auto-reformat-on-save (off by default). Disk gets the
+    // formatted text; the store gets it too unless the doc was edited during the save
+    // (D19, applySaveResult). Audit-fix H3: isFenced keeps ``` blocks from being
+    // rewritten as tables.
     let contentToSave = doc.content;
     try {
       const prefs = await preferencesService.getPreferences();
@@ -262,16 +240,7 @@ export function useDocument() {
       actionId,
     });
     if (result?.success) {
-      const { upsertDocument, markDocumentModified } = useDocumentStore.getState();
-      upsertDocument({
-        ...doc,
-        content: contentToSave,
-        path: result.path,
-        isModified: false,
-        lastSaved: result.savedAt,
-      });
-      markDocumentModified(doc.id, false);
-      deleteDraftAfterSave(doc.id);
+      applySaveResult(doc.id, doc.content, contentToSave, result, actionId);
     }
     return result;
   }, [saveActiveDocumentAs]);

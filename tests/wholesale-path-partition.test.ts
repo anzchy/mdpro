@@ -146,17 +146,19 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
     class: "ordinary",
     why: "the keystroke path — the whole point of the feature",
   },
+  // D19: the save paths moved their post-await upsert into applySaveResult; same
+  // ordinary (non-wholesale) classification, new location.
   {
-    key: "hooks/useDocument.ts::upsertDocument({::0",
-    enclosingFunction: "saveActiveDocumentAs",
+    key: "services/saveService.ts::store.upsertDocument(resolution.next);::0",
+    enclosingFunction: "applySaveResult",
     class: "ordinary",
-    why: "spreads ...activeDocument and changes only path/isModified/lastSaved",
+    why: "save applied: changes only path/isModified/lastSaved, plus formatAllTables content that never touches a heading line",
   },
   {
-    key: "hooks/useDocument.ts::upsertDocument({::1",
-    enclosingFunction: "saveActiveDocument",
+    key: "services/saveService.ts::store.upsertDocument(resolution.next);::1",
+    enclosingFunction: "applySaveResult",
     class: "ordinary",
-    why: "same shape; content differs only via formatAllTables, which never touches a heading line",
+    why: "edited during save: keeps the current store content and changes only path/lastSaved",
   },
   {
     key: "hooks/useMcpEvents.ts::deps.updateDocumentContent(event.document_id, newContent);::0",

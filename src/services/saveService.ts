@@ -1,5 +1,23 @@
 /**
- * Purpose: Core save logic for handleSave, extracted from App.tsx.
+ * Purpose: Core save logic for handleSave, extracted from App.tsx, plus the
+ * post-await half of a save: `applySaveResult` writes a finished save back to the
+ * store without overwriting edits that landed while the save was awaiting (D19).
+ *
+ * Pipeline (D19): save IPC resolves → `applySaveResult` → settle flush
+ *   ("save-settle") → re-read the store → `resolveSaveResult` → apply
+ *   (`applied`: upsert + delete draft; `edited-during-save`: upsert path/lastSaved
+ *   only; `closed`: nothing) → log.
+ *
+ * Key decisions:
+ * - `applySaveResult` is synchronous and final: no `await` between reading and
+ *   writing the store, and nothing runs after `delete_draft` resolves (F8).
+ * - The draft is deleted only on `applied`; after an in-flight edit it is the only
+ *   persisted copy of the newer text.
+ * - A failed settle flush demotes `applied` to `edited-during-save`, but `closed`
+ *   is decided first, so a failed flush never resurrects a closed tab (F7).
+ * - The `file.save` result log carries the document id, a boolean flag and the
+ *   caller's actionId, never content, lengths or paths. A `draft.delete` failure
+ *   warn also carries the IPC error text, which may name the draft file.
  *
  * Extracted so it can be unit-tested without mounting the App component (#377).
  * The save path intentionally omits the busy-indicator lifecycle — toggling
@@ -34,11 +52,15 @@ export interface SaveDeps {
  *
  * @coordinates-with src/hooks/useDocument.ts — saveActiveDocument / saveActiveDocumentAs
  * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEdits
+ * @coordinates-with src/utils/saveResult.ts — resolveSaveResult (D19)
  */
 
+import { invoke } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../stores/documentStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
+import { resolveSaveResult, type SaveResolution } from "../utils/saveResult";
+import type { SaveResult } from "./fileService";
 import { loggingService } from "./loggingService";
 
 /**
@@ -72,5 +94,101 @@ export async function performSave(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     deps.showToast(`Save failed: ${message}`);
+  }
+}
+
+
+/** Flush reason for the post-await flush that precedes the compare (D19). */
+const SETTLE_FLUSH_REASON = "save-settle";
+
+/**
+ * Delete a document's auto-save draft after a save that wrote everything the store
+ * holds. Fire-and-forget: a rejection is logged as a `draft.delete` warn, never thrown.
+ */
+function deleteDraftAfterSave(documentId: string, actionId?: string): void {
+  void invoke("delete_draft", { documentId }).catch((err) => {
+    loggingService.logEventSync({
+      level: "warn",
+      event: "draft.delete",
+      status: "fail",
+      actionId: actionId ?? loggingService.generateActionId(),
+      context: { documentId, error: err instanceof Error ? err.message : String(err) },
+    });
+  });
+}
+
+/** Log a save whose result was not applied as written (ids and flags only). */
+function logUnappliedSave(
+  documentId: string,
+  flag: "editedDuringSave" | "closedDuringSave",
+  actionId: string | undefined,
+): void {
+  loggingService.logEventSync({
+    level: "info",
+    event: "file.save",
+    status: "success",
+    actionId: actionId ?? loggingService.generateActionId(),
+    context: { documentId, [flag]: true },
+  });
+}
+
+/**
+ * Apply a successful save to the store (D19). Call it synchronously after the save
+ * IPC resolved with `success: true`; `snapshotContent` is the content read before the
+ * save's first await, and `writtenContent` is what went to disk (the snapshot, or its
+ * auto-reformat).
+ *
+ * - Flushes pending WYSIWYG edits first (`"save-settle"`), so an edit still waiting
+ *   on the edit-sync timer is compared rather than marked clean.
+ * - `applied`: store takes `writtenContent`, clean, with path / lastSaved; the draft
+ *   is deleted.
+ * - `edited-during-save` (also forced by a failed settle flush): one upsert of path /
+ *   lastSaved; content and dirty state untouched; the draft is kept.
+ * - `closed`: no store write, no draft call.
+ *
+ * Synchronous and returns `undefined`: nothing it does happens after it returns
+ * except the fire-and-forget draft deletion.
+ */
+export function applySaveResult(
+  docId: string,
+  snapshotContent: string,
+  writtenContent: string,
+  result: SaveResult,
+  actionId?: string,
+): void {
+  const { status } = useMilkdownEditorStore.getState().flushPendingEdits(SETTLE_FLUSH_REASON);
+  const store = useDocumentStore.getState();
+  const current = store.getDocumentById(docId);
+  let resolution: SaveResolution = resolveSaveResult({
+    current,
+    snapshotContent,
+    writtenContent,
+    path: result.path,
+    savedAt: result.savedAt,
+  });
+  if (status === "failed" && resolution.kind === "applied" && current) {
+    // The editor may hold text the store lacks: keep dirty and keep the draft.
+    resolution = {
+      kind: "edited-during-save",
+      next: { ...current, path: result.path, lastSaved: result.savedAt },
+    };
+  }
+
+  switch (resolution.kind) {
+    case "applied":
+      store.upsertDocument(resolution.next);
+      deleteDraftAfterSave(docId, actionId);
+      return;
+    case "edited-during-save":
+      store.upsertDocument(resolution.next);
+      logUnappliedSave(docId, "editedDuringSave", actionId);
+      return;
+    case "closed":
+      logUnappliedSave(docId, "closedDuringSave", actionId);
+      return;
+    default: {
+      const unreachable: never = resolution;
+      throw new Error(`unhandled save resolution: ${JSON.stringify(unreachable)}`);
+    }
   }
 }

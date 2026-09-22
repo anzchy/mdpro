@@ -69,7 +69,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 新建文档 | Shipped | `src-tauri/src/commands/file.rs` | ⌘N（`menu.file.new` → `create_document`），底部标签条出现一个空的 Untitled 文档 |
 | 打开文件 | Shipped | `src-tauri/src/commands/file.rs` | ⌘O（`menu.file.open` → `open_file_dialog` → `open_file`），原生对话框只列出 .md / .markdown，选中后内容载入编辑器 |
 | 最近打开 | Shipped | `src-tauri/src/menu.rs` | File → Open Recent，最多 10 条历史；菜单项 id 形如 `menu.file.recent.0`，整张列表由 `set_recent_files_menu` 重写。点任意一条直接打开该文件 |
-| 保存 | Shipped | `src-tauri/src/commands/file.rs` | 改几个字后 ⌘S（`menu.file.save` → `save_file`），标签上的脏点消失 |
+| 保存 | Shipped | `src-tauri/src/commands/file.rs`, `src/services/saveService.ts`, `src/utils/saveResult.ts` | 改几个字后 ⌘S（`menu.file.save` → `save_file`），标签上的脏点消失。保存进行中的编辑不被覆盖（D19）：在一个已有路径的文件上按 ⌘S，紧接着在同一次输入里再敲一个字符——脏点仍在、编辑器里有这个字符，`cat` 磁盘文件里没有它，日志多一条 `file.save` `{editedDuringSave:true}`；再按 ⌘S 脏点消失（WI-6 2026-09-23 真机实测）。**别在另存为面板开着时试**：NSSavePanel 是 app 模态，点编辑器不换焦点、按键全进文件名框。保存完成时由 `resolveSaveResult` 重读 store：内容未变才清脏，变了只记 `path` / `lastSaved`，保存中被关掉的标签不会复活 |
 | 另存为 | Stub | `src-tauri/src/commands/file.rs`, `src/types/preferences.ts` | ⌘⇧S 按下去没有任何反应；偏好设置里有 fileSaveAs 这一项，但没有处理器也没有菜单项。未命名文档按 ⌘S 会经 `save_file_dialog` 弹出原生保存对话框，那条路是通的 |
 | 关闭文档 | Shipped | `src-tauri/src/commands/file.rs` | 有未保存改动时按 ⌘W（`menu.file.close` → `close_document`），先弹确认再关 |
 | 拖拽打开文件 | Shipped | `src/App.tsx` | 从 Finder 拖一个 .md 文件丢进窗口，直接打开 |
@@ -87,7 +87,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 草稿自动保存 | Shipped | `src/hooks/useAutoSave.ts` | 偏好里把间隔设为 30 秒，改点内容后不保存等半分钟，`save_draft` 已把草稿写到盘上 |
 | 启动时草稿恢复 | Shipped | `src/components/common/RecoveryDialog.tsx` | 有脏文档时强杀 mdpro 再启动，`list_drafts` 列出可恢复草稿，每条都有 Recover / Discard，点 Recover 走 `recover_draft` |
 | 按 id 读取单份草稿 | Partial | `src-tauri/src/commands/draft.rs` | 限制：`get_draft` 在 `handlers()` 里注册着、函数体也实现好了，但 `src/` 与 `tests/` 里都找不到调用点——草稿恢复实际走的是 `list_drafts` + `recover_draft`。在 DevTools 里手写 `invoke("get_draft", …)` 能拿到结果，UI 上没有任何操作会触发它 |
-| 保存后清理草稿 | Shipped | `src/hooks/useDocument.ts` | ⌘S 真正写盘之后重启，`delete_draft` 已清掉草稿，恢复对话框不再列出这个文件 |
+| 保存后清理草稿 | Shipped | `src/hooks/useDocument.ts`, `src/services/saveService.ts` | ⌘S 真正写盘之后重启，`delete_draft` 已清掉草稿，恢复对话框不再列出这个文件。**只在保存写下的正是当前内容时才删草稿**（`applySaveResult` 的 `applied` 分支）：保存进行中又改了文档，草稿保留（D19）；标签在保存中被关掉时保存不删草稿，草稿去留由关闭路径决定（丢弃关闭经 `discard_and_close` 会删掉它）。已接受的边界：保存进行中把文档关掉再按同一 id 从磁盘重开，且重开读到的内容与保存快照不同，结果按「保存中被编辑」处理而不会重新标脏——标签显示干净、store 与磁盘不一致，直到下一次编辑或保存。重开内容与快照相同则按正常保存处理 |
 | 陈旧草稿清理 | Shipped | `src-tauri/src/commands/draft.rs` | 启动时调一次 `cleanup_old_drafts`，长期不动的旧草稿被自动清掉，恢复列表不会无限增长 |
 | 文件增删重命名 | Absent | — | 没有任何从 app 内删除或重命名磁盘文件的入口——没有文件树，标签上的 `×` 只关标签不动文件。仓库里 `remove_file` 的全部命中都是内部清理（原子写入的临时文件、MCP 的端口/令牌文件、一个测试），没有一条是用户可触发的 |
 
@@ -137,7 +137,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 移动行 / 列 | Shipped | `src/plugins/milkdown/table/actionDescriptors.ts` | 右键菜单里选上移 / 下移 / 左移 / 右移；在第一行或最后一列时对应项是灰的 |
 | 列对齐 | Shipped | `src/plugins/milkdown/table/actionDescriptors.ts` | 右键菜单里选左 / 中 / 右对齐，三者互斥，当前那个有选中标记，源码分隔行的冒号随之变化 |
 | 重排表格 | Partial | `src/utils/tableEdits/applyEdit.ts`, `src/plugins/milkdown/table/contextMenu.ts` | 限制：WYSIWYG 下 `contextMenu.ts` 直接返回 false，菜单项可点但静默无操作；只有源码模式真正生效。⌃2 下对一张列宽参差的表用「重排表格」，竖线对齐；⌃4 下点同一项，什么都不会发生 |
-| 保存时自动重排 | Shipped | `src/hooks/useDocument.ts`, `src/components/common/settings/MarkdownSettings.tsx` | 在 ⌘, → Markdown 里打开该开关（默认关），⌘S 后全文 GFM 表格被对齐；围栏代码块里的伪表格不受影响 |
+| 保存时自动重排 | Stub | `src/hooks/useDocument.ts`, `src/services/saveService.ts`, `src/components/common/settings/MarkdownSettings.tsx`, `src-tauri/src/models/preferences.rs` | **这个开关是死的（D23）**：⌘, → Markdown 里勾上，日志不记 `preferences.set`，`~/.mdpro/config.json` 的 `markdown` 仍是 `{"autoPair":true}`，换个窗口打开设置显示未勾；⌘S 后表格照旧不重排，也没有 `editor.table.auto-reformat-on-save`。Rust 的 `MarkdownConfig` 只有 `auto_pair`，前端的 `autoReformatTablesOnSave` 过不了 `get_preferences` 的往返，`useDocument.ts` 读到的恒为假。重排与保存的接线本身写好了（磁盘写重排后的快照；编辑器只在保存期间没被编辑时才换成它，D19），但在 Tauri 应用里到不了。2026-09-23 WI-6 真机实测 |
 | Tab 单元格导航 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts`, `src/plugins/codemirror/sourceTableTabNav.ts` | 在单元格里按 Tab 跳下一格、⇧Tab 跳上一格；在最后一格按 Tab 会新建一行并把光标放进去 |
 | Esc 退出表格 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts` | 光标在表格任意单元格里按 Esc，跳出表格 |
 | 输入法安全的表格导航 | Shipped | `src/plugins/milkdown/typoraKeymapPlugin.ts` | 用中文输入法打字、候选框还开着时按 Tab，不会跳格而是交给输入法；围栏代码块里的 Tab 同样保持缩进语义 |
