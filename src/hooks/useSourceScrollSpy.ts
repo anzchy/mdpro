@@ -21,11 +21,12 @@
  * ---------------------------------------------------------------------------
  * Why this is its own file and not three more effects inside `useTOC`
  * ---------------------------------------------------------------------------
- * `useTOC.ts` is at 292 lines against rule 50 §6's 300-line cap, and it already owns a
- * debounced parser, a navigation callback and an `IntersectionObserver`. A fourth
- * concern with its own refs and its own teardown rules would push it over the cap and
- * put two *different* spy mechanisms — DOM-intersection for WYSIWYG, line-arithmetic
- * for source — in one function where a reader cannot tell which deps belong to which.
+ * `useTOC.ts` is near rule 50 §6's 300-line cap, and it already owns a debounced
+ * parser, a navigation callback and the WYSIWYG spy's wiring. A fourth concern with its
+ * own refs and its own teardown rules would push it over the cap and put two *different*
+ * spy mechanisms — DOM heading rects for WYSIWYG (`useWysiwygScrollSpy`, ADR-0026),
+ * line arithmetic for source — in one function where a reader cannot tell which deps
+ * belong to which.
  *
  * ---------------------------------------------------------------------------
  * The deps split is the whole design. Getting it wrong has two named costs.

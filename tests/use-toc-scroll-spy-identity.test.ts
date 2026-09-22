@@ -1,410 +1,233 @@
 /**
- * Purpose: WI-3.6.3 — the IntersectionObserver **callback** in `src/hooks/useTOC.ts`
- * (site 2). `visibleHeadings` becomes a `Set<HeadingKey>` fed by
- * `elementKeysRef.get(entry.target)`, and the inline "first visible" loop becomes
- * `pickActiveKey`. A target absent from the map is ignored — no throw, no state change.
+ * Purpose: which TOC entry the WYSIWYG scroll spy activates — identity through
+ * `useTOC` → `useWysiwygScrollSpy` → `tocStore`, over a scripted Milkdown surface.
  *
- * Matrix §7 of `.claude/tdd-guardian/tests-20260919-114230.md` (revision 3):
- * R3, R3b, C-2, C-3, C-4, C-5, C-L1. Sites 1 and 3 are WI-3.6.2 and live in
- * `tests/use-toc-navigation-identity.test.ts`.
+ * Migrated in D17 WI-4 (matrix `.claude/tdd-guardian/tests-20260922-210708.md`, section
+ * "tests/use-toc-scroll-spy-identity.test.ts (§7) — WI-4"): D17 disproved the IO-record
+ * specification; DECISION A is superseded by ADR-0026. The active heading is the LAST
+ * heading whose top is at or above `SPY_ANCHOR_OFFSET_PX` below the scroller top, so R3,
+ * R3b, C-3 and C-4 now scroll a heading to the anchor instead of delivering IO records,
+ * C-2 permutes intermediate scroll positions, C-5 pins the only two cases that keep the
+ * key, and C-L1′ checks the rule against an independent oracle over a seeded walk.
  *
- * ---------------------------------------------------------------------------
- * DECISION A — retention is the specification, not an accident
- * ---------------------------------------------------------------------------
- * HEAD deletes from the visible set on un-intersect and guards the active-entry write
- * with `if (visibleHeadings.size > 0)`, so **an emptied visible set RETAINS the last
- * `activeEntryId` rather than blanking it**. WI-3.6 changes *which* heading is
- * addressed, not blanking semantics: changing it would be a user-visible behaviour
- * change needing its own ledger row and changelog entry, and this work item has
- * neither. C-5 pins the retention and C-L1 clause (iii) re-checks it 240 times. If a
- * future work item wants blanking, it changes the acceptance criterion first and C-5
- * second — in that order, which is what makes it a spec change rather than a test edit.
- *
- * ---------------------------------------------------------------------------
- * Constraints honoured (matrix §0)
- * ---------------------------------------------------------------------------
- * - **One mock: `IntersectionObserver`** (§0.8), because jsdom does not implement it.
- *   The element→key map, the visible-set bookkeeping and `pickActiveKey` are real, and
- *   `pickActiveKey` is additionally covered with no boundary at all in
- *   `tests/toc-element-resolution.test.ts`. **§13 obligation 1 is UNMET**: nothing
- *   automated proves a real browser delivers the records this double delivers, in
- *   particular under `rootMargin: "0px 0px -66% 0px"`. WI-3.6.6 manual QA mitigates it.
- * - `observed` is a `Set` and `observeCalls` an array; assertions match the type.
- * - No new dependency (§0.3); no `Object.hasOwn` (§0.4); no literal key string is ever
- *   asserted (§0.4); standing rule H2 on every generated/store-derived entry list.
- *
- * DOM ids in these fixtures are transcribed literals (§0.5) and are read by nothing —
- * see the header of `tests/helpers/milkdownHeadingDom.ts`.
+ * Doubles: layout and scroll writes (`scriptedScrollGeometry`), rAF (fake timers). The
+ * geometric IntersectionObserver double is installed as a detector only. Nothing else
+ * is mocked: the Lezer parser, the key matcher, the store and the DOM are real. No
+ * literal key string is asserted; standing rule H2 opens every case.
  */
-import { act, renderHook } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useTOC } from "../src/hooks/useTOC";
-import { useTOCStore } from "../src/stores/tocStore";
-import type { HeadingKey, TOCEntry } from "../src/types/toc";
-import { CORPUS_ALPHABET, createLcg, DEFAULT_SEED } from "./helpers/headingCorpus";
 import {
-  DEFAULT_CONTAINER_ID,
-  mountMilkdownDom,
-  unmountMilkdownDom,
-} from "./helpers/milkdownHeadingDom";
-import type { MilkdownDomFixture, MilkdownHeadingSpec } from "./helpers/milkdownHeadingDom";
-import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
-import type { IntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
-
-const realSetEntries = useTOCStore.getState().setEntries;
-
-interface Props {
-  content: string;
-  documentId: string | null;
-}
-
-let mounted: MilkdownDomFixture[] = [];
-let double: IntersectionObserverDouble;
-
-function mountDom(specs: ReadonlyArray<MilkdownHeadingSpec>): MilkdownDomFixture {
-  const fixture = mountMilkdownDom(specs, { containerId: DEFAULT_CONTAINER_ID });
-  mounted.push(fixture);
-  return fixture;
-}
-
-function renderTOC(initialProps: Props) {
-  return renderHook(
-    (props: Props) =>
-      useTOC({
-        content: props.content,
-        documentId: props.documentId,
-        containerId: DEFAULT_CONTAINER_ID,
-        viewMode: "wysiwyg",
-        enableSpyScrolling: true,
-      }),
-    { initialProps },
-  );
-}
-
-function tick(ms: number) {
-  act(() => {
-    vi.advanceTimersByTime(ms);
-  });
-}
-
-function state() {
-  return useTOCStore.getState();
-}
-
-function entries(): TOCEntry[] {
-  return useTOCStore.getState().entries;
-}
-
-/** H2 — the key-distinctness guard (matrix §0.4). */
-function expectDistinctKeys(list: readonly TOCEntry[], where: string): void {
-  expect(
-    new Set(list.map((e) => e.key)).size,
-    `${where}: H2 — entry keys must be pairwise distinct`,
-  ).toBe(list.length);
-}
+  SPY_ANCHOR_OFFSET_PX as ANCHOR,
+  SPY_SCROLL_LIMIT_TOLERANCE_PX as T,
+} from "../src/utils/codemirrorViewportLine";
+import { CORPUS_ALPHABET, createLcg, DEFAULT_SEED } from "./helpers/headingCorpus";
+import type { ScriptedHeading, ScriptedSurface } from "./helpers/scriptedScrollGeometry";
+import {
+  active, contentOf, entries, expectDistinctKeys, flushMutations, frame, headingReads,
+  installIoDetector, keyAt, mountContainer, mountSurface, oracle, oracleIndex, readBudget,
+  renderSpy, resetTocStore, scrollAndFrame, scrollHeadingTo, setLaidOut, shiftLayout, tick,
+} from "./helpers/wysiwygSpyHarness";
 
 beforeEach(() => {
   vi.useFakeTimers();
-  mounted = [];
-  double = installIntersectionObserverDouble();
-  useTOCStore.setState({
-    entries: [],
-    documentId: null,
-    activeEntryId: null,
-    isVisible: false,
-    collapsedIds: new Set<HeadingKey>(),
-    byDocument: new Map(),
-    setEntries: realSetEntries,
-  });
+  installIoDetector();
+  resetTocStore();
 });
 
 afterEach(() => {
-  for (const fixture of mounted) unmountMilkdownDom(fixture);
-  mounted = [];
   vi.useRealTimers();
+  document.body.innerHTML = "";
 });
 
-const INTRO_TWICE: MilkdownHeadingSpec[] = [
-  { level: 1, text: "Intro", id: "intro" }, // measured
-  { level: 1, text: "Intro", id: "intro-#2" }, // measured
-];
-const INTRO_TWICE_CONTENT = "# Intro\n\n# Intro";
+const h = (level: ScriptedHeading["level"], text: string, bodyHeight = 400): ScriptedHeading => ({
+  level,
+  text,
+  height: 40,
+  bodyHeight,
+});
 
-const THREE_DISTINCT: MilkdownHeadingSpec[] = [
-  { level: 1, text: "Alpha", id: "alpha" }, // derived
-  { level: 2, text: "Beta", id: "beta" }, // derived
-  { level: 2, text: "Gamma", id: "gamma" }, // derived
-];
-const THREE_DISTINCT_CONTENT = "# Alpha\n\n## Beta\n\n## Gamma";
+function setup(headings: ScriptedHeading[], where: string) {
+  const container = mountContainer();
+  const surface = mountSurface(container, { headings });
+  const harness = renderSpy({ content: contentOf(headings), documentId: "doc-a" });
+  tick(300);
+  expectDistinctKeys(where, headings.length);
+  return { container, surface, harness };
+}
 
-describe("§7 useTOC IntersectionObserver callback", () => {
-  it("R3: REGRESSION — scroll-spy activates when the Milkdown id diverges from our slug", () => {
-    // `hello,-world!` is MEASURED; our allocator produces `hello-world`.
-    const fixture = mountDom([{ level: 1, text: "Hello, World!", id: "hello,-world!" }]);
-    renderTOC({ content: "# Hello, World!", documentId: "doc-a" });
-    tick(300);
+// A heading can reach the anchor only if `maxScrollTop` ≥ its offset − anchor; with two
+// 400px bodies heading 1 sits at 208px at the scroll limit, 168px short of the 40px
+// anchor. The last heading therefore carries a 700px body.
+const REACH_BODY = 700;
+const INTRO_TWICE = [h(1, "Intro"), h(1, "Intro", REACH_BODY)];
+const THREE_DISTINCT = [h(1, "Alpha"), h(2, "Beta"), h(2, "Gamma")];
 
-    const list = entries();
-    expect(list).toHaveLength(1);
+describe("§7 useTOC WYSIWYG scroll spy — which entry is active", () => {
+  it("R3: REGRESSION — a heading whose Milkdown id diverges from our slug activates at the anchor", () => {
+    const { surface } = setup([h(1, "Intro"), h(1, "Hello, World!", REACH_BODY)], "R3");
+    surface.headings[1].id = "hello,-world!"; // the measured Milkdown id; read by nothing
     // Wrong-reason guard: the case must not pass by the two namespaces agreeing.
-    expect(list[0].anchorSlug as string).not.toBe(fixture.headings[0].id);
-
-    act(() => {
-      double.intersect(fixture.headings[0], true);
-    });
-
-    expect(state().activeEntryId).toBe(list[0].key);
+    expect(entries()[1].anchorSlug as string).not.toBe(surface.headings[1].id);
+    expect(active()).toBe(keyAt(0)); // positive guard: the arm-time oracle
+    scrollHeadingTo(surface, 1, ANCHOR);
+    expect(surface.relTop(1), "fixture guard: the heading reached the anchor").toBe(ANCHOR);
+    expect(active()).toBe(keyAt(1));
   });
 
-  it("R3b: REGRESSION — intersecting only the second duplicate activates the second entry", () => {
-    const fixture = mountDom(INTRO_TWICE);
-    renderTOC({ content: INTRO_TWICE_CONTENT, documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(2);
-    expectDistinctKeys(list, "R3b");
-
-    act(() => {
-      double.intersect(fixture.headings[1], true);
-    });
-
-    expect(state().activeEntryId).toBe(list[1].key);
+  it("R3b: REGRESSION — the second duplicate at the anchor activates the second entry", () => {
+    const { surface } = setup(INTRO_TWICE, "R3b");
+    scrollHeadingTo(surface, 1, ANCHOR);
+    expect(surface.relTop(1), "fixture guard: the heading reached the anchor").toBe(ANCHOR);
+    expect(active()).toBe(keyAt(1));
     // "Activated something" is not "activated the right thing".
-    expect(state().activeEntryId).not.toBe(list[0].key);
+    expect(active()).not.toBe(keyAt(0));
   });
 
-  it("C-2: topmost wins, independent of the order records arrive in", () => {
-    const fixture = mountDom([
-      { level: 1, text: "One", id: "one" },
-      { level: 2, text: "Two", id: "two" },
-      { level: 2, text: "Three", id: "three" },
-      { level: 3, text: "Four", id: "four" },
-    ]);
-    renderTOC({ content: "# One\n\n## Two\n\n## Three\n\n### Four", documentId: "doc-a" });
-    tick(300);
+  it("R3b (added row): the first duplicate at/above the anchor with the second below → the first", () => {
+    const { surface } = setup(INTRO_TWICE, "R3b added");
+    scrollHeadingTo(surface, 1, ANCHOR);
+    expect(active()).toBe(keyAt(1)); // guard: the move below is a real change
+    scrollAndFrame(surface, 0);
+    expect(surface.relTop(0)).toBeLessThanOrEqual(ANCHOR);
+    expect(surface.relTop(1)).toBeGreaterThan(ANCHOR);
+    expect(active()).toBe(keyAt(0));
+  });
 
-    const list = entries();
-    expect(list).toHaveLength(4);
-    expectDistinctKeys(list, "C-2");
+  it("C-2: the same final scrollTop via 3 permuted intermediate sequences in one frame → one key", () => {
+    const dom = [h(1, "One"), h(2, "Two"), h(2, "Three"), h(3, "Four")];
+    const { surface } = setup(dom, "C-2");
+    const a = surface.scrollTopForHeadingAt(3, 10);
+    const b = surface.scrollTopForHeadingAt(1, 10);
+    const c = surface.scrollTopForHeadingAt(3, 300);
+    const final = surface.scrollTopForHeadingAt(2, 10);
+    expect(new Set([0, a, b, c, final]).size).toBe(5);
+    expect(oracleIndex(4, (i) => surface.contentOffset(i) - final), "fixture guard").toBe(2);
 
-    const orders: number[][] = [
-      [2, 0],
-      [0, 2],
-      [2, 1, 0],
-    ];
-    for (const order of orders) {
+    const seen: Array<string | null> = [];
+    for (const order of [[a, b, c], [c, a, b], [b, c, a]]) {
+      scrollAndFrame(surface, 0);
+      expect(active(), `reset before ${order.join(",")}`).toBe(keyAt(0));
+      surface.resetRectReads();
       act(() => {
-        double.intersectBatch(order.map((i) => [fixture.headings[i], true] as const));
+        for (const top of [...order, final]) surface.scroller.scrollTop = top;
       });
-      expect(state().activeEntryId, `arrival order ${order.join(",")}`).toBe(list[0].key);
-      expect(state().activeEntryId).not.toBe(list[2].key);
+      frame();
+      expect(headingReads(surface), "one recompute per frame").toBeLessThanOrEqual(readBudget(4));
+      seen.push(active());
     }
+    expect(seen).toEqual([keyAt(2), keyAt(2), keyAt(2)]);
   });
 
-  it("C-3: GUARD — a target from a superseded pass changes nothing", () => {
-    const first = mountDom(INTRO_TWICE);
-    const { rerender } = renderTOC({
-      content: INTRO_TWICE_CONTENT,
-      documentId: "doc-a",
-    });
+  it("C-3: GUARD — after a rebuild the stale element (scripted at the anchor) is never read", async () => {
+    const container = mountContainer();
+    const first = mountSurface(container, { headings: INTRO_TWICE });
+    const { rerender } = renderSpy({ content: contentOf(INTRO_TWICE), documentId: "doc-a" });
     tick(300);
+    expectDistinctKeys("C-3", 2);
+    scrollHeadingTo(first, 1, ANCHOR);
+    expect(first.relTop(1), "fixture guard: the heading reached the anchor").toBe(ANCHOR);
+    expect(active()).toBe(keyAt(1));
 
-    act(() => {
-      double.intersect(first.headings[1], true);
-    });
-    expect(state().activeEntryId).toBe(entries()[1].key);
-
-    // Only a NEW `entries` array re-runs the effect (its deps contain no DOM), so the
-    // content change is what makes this case real — replacing DOM children does not.
-    const staleElement = first.headings[1];
-    unmountMilkdownDom(first);
-    mountDom([
-      { level: 1, text: "Intro", id: "intro" },
-      { level: 1, text: "Intro", id: "intro-#2" },
-      { level: 1, text: "Third", id: "third" },
-    ]);
-    rerender({ content: "# Intro\n\n# Intro\n\n# Third", documentId: "doc-a" });
+    const stale = first.headings[1];
+    let staleReads = 0;
+    stale.getBoundingClientRect = () => {
+      staleReads += 1;
+      return { top: first.rootTop + ANCHOR, bottom: first.rootTop + ANCHOR + 40, height: 40 } as DOMRect;
+    };
+    first.wrapper.remove();
+    const rebuilt = [...INTRO_TWICE, h(1, "Third", REACH_BODY)];
+    const second = mountSurface(container, { headings: rebuilt });
+    rerender({ content: contentOf(rebuilt), documentId: "doc-a" });
     tick(300);
+    await flushMutations();
+    expectDistinctKeys("C-3 rebuilt", 3);
+    expect(document.contains(stale)).toBe(false);
 
-    expect(entries()).toHaveLength(3);
-    expect(document.contains(staleElement)).toBe(false);
-
-    // Captured immediately before the delivery rather than assumed.
-    const before = state().activeEntryId;
-    const currentObserverIndex = double.instances.length - 1;
-    expect(() => {
-      act(() => {
-        double.deliverUnchecked(currentObserverIndex, staleElement, true);
-      });
-    }).not.toThrow();
-
-    expect(state().activeEntryId).toBe(before);
+    scrollHeadingTo(second, 2, 10);
+    expect(second.relTop(2), "fixture guard: the heading reached rel 10").toBe(10);
+    expect(staleReads).toBe(0);
+    expect(active()).toBe(keyAt(oracle(second)));
+    expect(active()).toBe(keyAt(2));
   });
 
-  it("C-4: un-intersecting the topmost visible heading promotes the next one", () => {
-    const fixture = mountDom(THREE_DISTINCT);
-    renderTOC({ content: THREE_DISTINCT_CONTENT, documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(3);
-    expectDistinctKeys(list, "C-4");
-
-    act(() => {
-      double.intersect(fixture.headings[0], true);
-    });
-    expect(state().activeEntryId).toBe(list[0].key);
-
-    act(() => {
-      double.intersect(fixture.headings[1], true);
-    });
-    expect(state().activeEntryId).toBe(list[0].key);
-
-    act(() => {
-      double.intersect(fixture.headings[0], false);
-    });
-    expect(state().activeEntryId).toBe(list[1].key);
+  it("C-4: scrolling up promotes heading 0 from heading 1", () => {
+    const { surface } = setup(THREE_DISTINCT, "C-4");
+    scrollHeadingTo(surface, 1, ANCHOR);
+    expect(active()).toBe(keyAt(1));
+    scrollHeadingTo(surface, 1, ANCHOR + 1);
+    expect(active()).toBe(keyAt(0));
   });
 
-  it("C-5: an emptied visible set RETAINS the last active entry (DECISION A)", () => {
-    const fixture = mountDom(THREE_DISTINCT);
-    renderTOC({ content: THREE_DISTINCT_CONTENT, documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expectDistinctKeys(list, "C-5");
-
-    act(() => {
-      double.intersect(fixture.headings[0], true);
+  describe("C-5: the key is kept only when there is nothing to pick", () => {
+    it("(a) the first heading's top is below the anchor → the non-null key is kept", () => {
+      const { surface } = setup(THREE_DISTINCT, "C-5a");
+      scrollHeadingTo(surface, 1, ANCHOR);
+      expect(active()).toBe(keyAt(1)); // starts from a non-null key
+      const shifted = shiftLayout(surface, 200);
+      scrollAndFrame(surface, 0);
+      expect(oracleIndex(3, shifted), "fixture guard: nothing above the anchor").toBeNull();
+      expect(active()).toBe(keyAt(1));
     });
-    // Wrong-reason guard: "unchanged" must not be satisfied by "never set".
-    expect(state().activeEntryId).toBe(list[0].key);
 
-    act(() => {
-      double.intersect(fixture.headings[0], false);
+    it("(b) clientHeight 0 → kept; laid out again, the same position picks the oracle", () => {
+      const { surface } = setup(THREE_DISTINCT, "C-5b");
+      scrollHeadingTo(surface, 1, ANCHOR);
+      expect(active()).toBe(keyAt(1));
+      setLaidOut(surface, false);
+      scrollAndFrame(surface, 0);
+      expect(active()).toBe(keyAt(1));
+      setLaidOut(surface, true); // positive guard: not a frozen spy
+      act(() => void surface.scroller.dispatchEvent(new Event("scroll")));
+      frame();
+      expect(active()).toBe(keyAt(0));
     });
-    expect(state().activeEntryId).toBe(list[0].key);
   });
 
-  it("C-L1: LAW conservation over a seeded 240-step intersect/unintersect sequence", () => {
+  it("C-L1′: LAW over a seeded 240-step walk with content changes at steps 80 and 160", async () => {
     const SEED_LABEL = `seed=0x${DEFAULT_SEED.toString(16)}`;
     const rng = createLcg(DEFAULT_SEED);
+    const draw = (m: number) => (rng() >>> 8) % m;
+    const makeDom = () =>
+      Array.from({ length: 8 }, () =>
+        h((draw(6) + 1) as ScriptedHeading["level"], CORPUS_ALPHABET[draw(CORPUS_ALPHABET.length)], 100 + draw(500)),
+      );
 
-    // Texts AND levels from the same stream. `generateCorpus` emits level-1 headings
-    // only (§0.3 limit 1), so levels are drawn here rather than reusing its documents.
-    let texts = Array.from(
-      { length: 8 },
-      () => CORPUS_ALPHABET[rng() % CORPUS_ALPHABET.length],
-    );
-    let levels = Array.from({ length: 8 }, () => (rng() % 6) + 1);
-
-    const contentOf = (t: string[], l: number[]) =>
-      t.map((text, i) => `${"#".repeat(l[i])} ${text}`).join("\n\n");
-    const specsOf = (t: string[], l: number[]): MilkdownHeadingSpec[] =>
-      // ids are deliberately arbitrary: nothing in the code under test reads one.
-      t.map((text, i) => ({ level: l[i], text, id: `h-${i}` }));
-
-    let fixture = mountDom(specsOf(texts, levels));
-    const { rerender } = renderTOC({
-      content: contentOf(texts, levels),
-      documentId: "doc-a",
-    });
+    const container = mountContainer();
+    let dom = makeDom();
+    let surface: ScriptedSurface = mountSurface(container, { headings: dom });
+    const { rerender } = renderSpy({ content: contentOf(dom), documentId: "doc-a" });
     tick(300);
-
-    let list = entries();
-    expect(list, SEED_LABEL).toHaveLength(8);
-    expectDistinctKeys(list, `C-L1 initial (${SEED_LABEL})`);
-    let headings = fixture.headings;
-
-    // Two elements that must never move the highlight.
-    const detached = document.createElement("h1");
-    detached.textContent = texts[0];
-    const neverObserved = document.createElement("h1");
-    neverObserved.textContent = texts[0];
-    document.body.appendChild(neverObserved);
-
-    /** The test's OWN visible set, by DOM index. Never read from the implementation. */
-    let shadow = new Set<number>();
-    let previousActive = state().activeEntryId;
+    expectDistinctKeys(`C-L1′ initial (${SEED_LABEL})`, 8);
+    let previous = active();
+    let atLimitSteps = 0;
 
     for (let step = 1; step <= 240; step++) {
       const label = `step ${step} (${SEED_LABEL})`;
-
       if (step === 80 || step === 160) {
-        // A content change: one heading removed (the first), one added (at the end).
-        texts = [...texts.slice(1), CORPUS_ALPHABET[rng() % CORPUS_ALPHABET.length]];
-        levels = [...levels.slice(1), (rng() % 6) + 1];
-        unmountMilkdownDom(fixture);
-        fixture = mountDom(specsOf(texts, levels));
-        rerender({ content: contentOf(texts, levels), documentId: "doc-a" });
+        dom = [...dom.slice(1), ...makeDom().slice(0, 1)];
+        surface.wrapper.remove();
+        surface = mountSurface(container, { headings: dom });
+        rerender({ content: contentOf(dom), documentId: "doc-a" });
         tick(300);
-
-        list = entries();
-        headings = fixture.headings;
-        expect(list, label).toHaveLength(8);
-        expectDistinctKeys(list, `C-L1 ${label}`);
-        // The observe effect rebuilt over new elements and nothing re-delivered a
-        // record, so nothing is intersecting and the element→entry mapping the shadow
-        // set was using is stale. Clear it and re-anchor, exactly as C-3 does.
-        shadow = new Set<number>();
-        const active = state().activeEntryId;
-        expect(
-          active === null || list.some((e) => e.key === active),
-          `${label}: clause (i) across the content change`,
-        ).toBe(true);
-        previousActive = active;
-        continue;
-      }
-
-      const kind = rng() % 10;
-      if (kind <= 4) {
-        const i = rng() % headings.length;
-        act(() => {
-          double.intersect(headings[i], true);
-        });
-        shadow.add(i);
-      } else if (kind <= 7) {
-        const i = rng() % headings.length;
-        act(() => {
-          double.intersect(headings[i], false);
-        });
-        shadow.delete(i);
-      } else if (kind === 8) {
-        // The double is faithful here (§0.8): a record for an element the observer
-        // never observed is not delivered at all, so these two step kinds assert that
-        // the *absence* of a delivery leaves every clause standing. The path where a
-        // record for an unmapped target does reach the callback is C-3's, and it needs
-        // the `deliverUnchecked` escape hatch precisely because this one cannot.
-        act(() => {
-          double.intersect(detached, true);
-        });
+        await flushMutations();
+        expectDistinctKeys(`C-L1′ ${label}`, 8);
       } else {
-        act(() => {
-          double.intersect(neverObserved, true);
-        });
+        const max = surface.maxScrollTop();
+        scrollAndFrame(surface, draw(8) === 0 ? max - draw(T + 1) : draw(max + 1));
       }
-
-      const active = state().activeEntryId;
-      // (i) conservation
-      expect(
-        active === null || list.some((e) => e.key === active),
-        `${label}: clause (i) — activeEntryId must be a live key or null`,
-      ).toBe(true);
-      if (shadow.size > 0) {
-        // (ii) order dominance, against the test's own set
-        const first = Math.min(...shadow);
-        expect(active, `${label}: clause (ii) — document-order-first visible`).toBe(
-          list[first].key,
-        );
-      } else {
-        // (iii) retention (DECISION A)
-        expect(active, `${label}: clause (iii) — retention`).toBe(previousActive);
+      const key = active();
+      expect(key === null || entries().some((e) => e.key === key), `${label}: conservation`).toBe(true);
+      const expected = keyAt(oracle(surface));
+      const atLimit = surface.scroller.scrollTop >= surface.maxScrollTop() - T;
+      if (!atLimit) expect(key, `${label}: off the limit, key = oracle`).toBe(expected);
+      else {
+        atLimitSteps += 1;
+        expect([expected, previous], `${label}: at the limit`).toContain(key);
       }
-      previousActive = active;
+      previous = key;
     }
-
-    neverObserved.remove();
+    expect(atLimitSteps, "the walk must reach the limit, or its clause is untested").toBeGreaterThan(0);
   });
 });

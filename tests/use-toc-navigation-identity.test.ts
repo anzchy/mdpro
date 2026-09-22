@@ -1,23 +1,26 @@
 /**
  * Purpose: WI-3.6.2 — `src/hooks/useTOC.ts` addresses the WYSIWYG DOM through
  * `resolveHeadingElements`, at both of its sites: `scrollToHeading` (site 1) and the
- * IntersectionObserver **observe loop** (site 3). Plus the D7 mismatch-log dedupe ref.
+ * scroll spy's **per-frame resolved list** (site 3; before D17 WI-4 this was the
+ * IntersectionObserver observe loop). Plus the D7 mismatch-log dedupe ref.
  *
- * Matrix sections §5 (navigation: R1, N-L1, N-2, N-8, N-3, N-4, N-5, N-6, N-7),
- * §6 (observe effect: R2, O-1, O-2, O-L1) and §9 (mismatch log: L-1, L-L1) of
- * `.claude/tdd-guardian/tests-20260919-114230.md` (revision 3).
- * Site 2 — the observer *callback* — is WI-3.6.3 and lives in
- * `tests/use-toc-scroll-spy-identity.test.ts`.
+ * Matrix sections §6 (R2, O-1, O-2, O-L1) and §9 (mismatch log: L-1, L-L1) of
+ * `.claude/tdd-guardian/tests-20260919-114230.md` (revision 3). §6 was migrated in D17
+ * WI-4 (`.claude/tdd-guardian/tests-20260922-210708.md`): D17 disproved the IO-record
+ * specification; DECISION A is superseded by ADR-0026, so §6 asserts the active key over
+ * a `scriptedScrollGeometry` surface. §5 (site 1, navigation) moved in D17 WI-5 to
+ * `tests/use-toc-navigation-identity-landing.test.ts` and
+ * `tests/use-toc-navigation-identity-landing-guards.test.ts`, asserting landing
+ * `scrollTop`. Which entry the spy activates is `tests/use-toc-scroll-spy-identity.test.ts`.
  *
  * ---------------------------------------------------------------------------
  * Constraints honoured (matrix §0)
  * ---------------------------------------------------------------------------
- * - **Real everything except two platform gaps** (§0.7): the Lezer parser, the TOC
- *   store, the key matcher and the DOM are the real thing. jsdom implements neither
- *   `Element.prototype.scrollIntoView` (absent, not a no-op — §0.9) nor
- *   `IntersectionObserver` (§0.8), so both come from `tests/helpers/`. Those two mocks
- *   create **unmet integration obligations** (§13 obligations 1 and 2): no lane in this
- *   repo can run a real scroll or a real observer. WI-3.6.6 manual QA is the mitigation.
+ * - **Real everything except the layout gap** (§0.7): the Lezer parser, the TOC store,
+ *   the key matcher and the DOM are the real thing. jsdom has no layout, so §6 scripts
+ *   layout, scroll writes and rAF (`scriptedScrollGeometry`); the WYSIWYG spy constructs
+ *   no IntersectionObserver. No lane in this repo can run a real scroll (§13 obligation
+ *   2); WI-3.6.6 manual QA is the mitigation.
  * - **No new dependency** (§0.3, gate G0). Generated domains come from the in-tree LCG.
  * - **No `Object.hasOwn`** (§0.4) — `lib: ["ES2020"]` rejects it (TS2550).
  * - **No literal key string is ever asserted** (§0.4): keys are minted by the store and
@@ -51,18 +54,16 @@ import { useTOC } from "../src/hooks/useTOC";
 import { useTOCStore } from "../src/stores/tocStore";
 import { loggingService } from "../src/services/loggingService";
 import type { HeadingKey, TOCEntry } from "../src/types/toc";
+import { SPY_ANCHOR_OFFSET_PX } from "../src/utils/codemirrorViewportLine";
 import { createLcg, DEFAULT_SEED } from "./helpers/headingCorpus";
 import {
-  appendDialogTitle,
   DEFAULT_CONTAINER_ID,
   mountMilkdownDom,
   unmountMilkdownDom,
 } from "./helpers/milkdownHeadingDom";
 import type { MilkdownDomFixture, MilkdownHeadingSpec } from "./helpers/milkdownHeadingDom";
-import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
-import type { IntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
-import { captureScrollReceivers } from "./helpers/scrollReceiver";
-import type { ScrollReceiver } from "./helpers/scrollReceiver";
+import type { ScriptedHeading } from "./helpers/scriptedScrollGeometry";
+import { contentOf, mountSurface, recordWrites, scrollHeadingTo } from "./helpers/wysiwygSpyHarness";
 
 const realSetEntries = useTOCStore.getState().setEntries;
 
@@ -76,8 +77,6 @@ interface RenderOptions {
 }
 
 let mounted: MilkdownDomFixture[] = [];
-let double: IntersectionObserverDouble;
-let receivers: ScrollReceiver[];
 let logSpy: ReturnType<typeof vi.spyOn>;
 
 function mountDom(
@@ -151,8 +150,6 @@ function resetStore() {
 beforeEach(() => {
   vi.useFakeTimers();
   mounted = [];
-  double = installIntersectionObserverDouble();
-  receivers = captureScrollReceivers();
   logSpy = vi.spyOn(loggingService, "logEventSync");
   resetStore();
 });
@@ -164,374 +161,93 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// §5 — scrollToHeading, WYSIWYG branch
+// §5 — scrollToHeading, WYSIWYG branch: moved in D17 WI-5
 // ---------------------------------------------------------------------------
+// Migrated to landing-`scrollTop` assertions on `scriptedScrollGeometry` and moved to
+// `tests/use-toc-navigation-identity-landing.test.ts` (R1, N-L1, N-2, N-8, N-4) and
+// `tests/use-toc-navigation-identity-landing-guards.test.ts` (N-3, N-5, N-6, N-7).
 
-/** The R1 fixture: `# Intro` twice, with the **measured** Milkdown ids. */
-const INTRO_TWICE: MilkdownHeadingSpec[] = [
-  { level: 1, text: "Intro", id: "intro" }, // measured
-  { level: 1, text: "Intro", id: "intro-#2" }, // measured
-];
 const INTRO_TWICE_CONTENT = "# Intro\n\n# Intro";
 
-describe("§5 useTOC#scrollToHeading — WYSIWYG", () => {
-  it("R1: REGRESSION — the n-th duplicate navigates to the n-th element", () => {
-    const fixture = mountDom(INTRO_TWICE);
-    const { result } = renderTOC({ content: INTRO_TWICE_CONTENT, documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(2);
-    expectDistinctKeys(list, "R1");
-    // Wrong-reason guard: a jsdom without CSS.escape would make HEAD *throw* rather
-    // than mis-resolve, and the red would be recorded for the wrong reason.
-    expect(typeof CSS?.escape).toBe("function");
-
-    act(() => {
-      result.current.navigateToEntry(list[1].key);
-    });
-
-    expect(receivers.map((r) => r.el)).toEqual([fixture.headings[1]]);
-    expect(receivers[0].options).toEqual({ behavior: "smooth", block: "start" });
-    expect(state().activeEntryId).toBe(list[1].key);
-
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-    });
-
-    expect(receivers.map((r) => r.el)).toEqual([fixture.headings[1], fixture.headings[0]]);
-    expect(state().activeEntryId).toBe(list[0].key);
-  });
-
-  it("N-L1: LAW injectivity through the hook — 5 identical headings, 5 distinct targets", () => {
-    // ids: `intro` measured; `intro-#2` measured; `-#3`…`-#5` DERIVED by extending the
-    // measured dedupe scheme.
-    const fixture = mountDom([
-      { level: 1, text: "Intro", id: "intro" },
-      { level: 1, text: "Intro", id: "intro-#2" },
-      { level: 1, text: "Intro", id: "intro-#3" },
-      { level: 1, text: "Intro", id: "intro-#4" },
-      { level: 1, text: "Intro", id: "intro-#5" },
-    ]);
-    const { result } = renderTOC({
-      content: "# Intro\n\n# Intro\n\n# Intro\n\n# Intro\n\n# Intro",
-      documentId: "doc-a",
-    });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(5);
-    expectDistinctKeys(list, "N-L1");
-
-    for (const entry of list) {
-      act(() => {
-        result.current.navigateToEntry(entry.key);
-      });
-    }
-
-    const els = receivers.map((r) => r.el);
-    expect(new Set(els).size).toBe(5);
-    // Order, not merely distinctness: a permutation satisfies distinctness alone.
-    expect(els).toEqual(fixture.headings);
-  });
-
-  it("N-2: punctuation document — every entry navigates to its own element", () => {
-    // `hello,-world!`, `q&a`, `foo_bar` measured; `api-reference-(v2)` and `🎉` DERIVED.
-    const fixture = mountDom([
-      { level: 1, text: "Hello, World!", id: "hello,-world!" },
-      { level: 1, text: "Q&A", id: "q&a" },
-      { level: 1, text: "foo_bar", id: "foo_bar" },
-      { level: 1, text: "API Reference (v2)", id: "api-reference-(v2)" },
-      { level: 1, text: "🎉", id: "🎉" },
-    ]);
-    const { result } = renderTOC({
-      content: "# Hello, World!\n\n# Q&A\n\n# foo_bar\n\n# API Reference (v2)\n\n# 🎉",
-      documentId: "doc-a",
-    });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(5);
-    expectDistinctKeys(list, "N-2");
-
-    // Wrong-reason guard: the case must not pass by the two namespaces agreeing.
-    const divergences = list.filter(
-      (entry, i) => (entry.anchorSlug as string) !== fixture.headings[i].id,
-    );
-    expect(divergences.length).toBeGreaterThanOrEqual(4);
-
-    for (const entry of list) {
-      act(() => {
-        result.current.navigateToEntry(entry.key);
-      });
-    }
-
-    expect(receivers.map((r) => r.el)).toEqual(fixture.headings);
-  });
-
-  it("N-8(a): a heading's Milkdown id collides with a DIFFERENT entry's anchorSlug — foo_bar", () => {
-    // `foo_bar` measured; `foo-bar` DERIVED (whitespace→hyphen) — §0.5's two added rows.
-    const fixture = mountDom([
-      { level: 1, text: "foo_bar", id: "foo_bar" },
-      { level: 1, text: "foo bar", id: "foo-bar" },
-    ]);
-    const { result } = renderTOC({ content: "# foo_bar\n\n# foo bar", documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(2);
-    expectDistinctKeys(list, "N-8(a)");
-    // LOAD-BEARING wrong-reason guard: if Milkdown's id generator ever changes, the
-    // collision disappears and this case must fail loudly rather than pass vacuously.
-    expect(list[0].anchorSlug as string).toBe(fixture.headings[1].id);
-
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-    });
-
-    expect(receivers.map((r) => r.el)).toEqual([fixture.headings[0]]);
-    expect(double.observeCalls).toEqual(fixture.headings);
-  });
-
-  it("N-8(b): the same collision by the empty-base route — 🎉 / Heading (DERIVED)", () => {
-    const fixture = mountDom([
-      { level: 1, text: "🎉", id: "🎉" },
-      { level: 1, text: "Heading", id: "heading" },
-    ]);
-    const { result } = renderTOC({ content: "# 🎉\n\n# Heading", documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(2);
-    expectDistinctKeys(list, "N-8(b)");
-    expect(list[0].anchorSlug as string).toBe(fixture.headings[1].id);
-
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-    });
-
-    expect(receivers.map((r) => r.el)).toEqual([fixture.headings[0]]);
-    expect(double.observeCalls).toEqual(fixture.headings);
-  });
-
-  it("N-3: modal hazard with .ProseMirror ABSENT — nothing resolves, nothing navigates", () => {
-    const fixture = mountDom([], { withProseMirror: false });
-    const modalTitle = appendDialogTitle(fixture, "Insert Link");
-
-    const { result } = renderTOC({ content: "### Insert Link", documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(1);
-    // Wrong-reason guards: the modal heading really is inside the container, and its
-    // text really does match the entry, so "no scroll" is not trivially true.
-    expect(fixture.container.contains(modalTitle)).toBe(true);
-    expect(modalTitle.textContent).toBe(list[0].text);
-
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-    });
-
-    expect(receivers).toHaveLength(0);
-    expect(state().activeEntryId).toBeNull();
-    expect(mismatchLogs()).toHaveLength(1);
-  });
-
-  it("N-4: modal hazard with .ProseMirror PRESENT — the <h1> wins and nothing is logged", () => {
-    const fixture = mountDom([{ level: 1, text: "Doc", id: "doc" }]);
-    const modalTitle = appendDialogTitle(fixture, "Insert Link");
-
-    const { result } = renderTOC({ content: "# Doc", documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(1);
-
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-    });
-
-    expect(receivers.map((r) => r.el)).toEqual([fixture.headings[0]]);
-    expect(receivers.map((r) => r.el)).not.toContain(modalTitle);
-    // Counting container-wide headings for the mismatch signature while resolving
-    // inside .ProseMirror would log on every pass whenever a modal is open.
-    expect(mismatchLogs()).toHaveLength(0);
-  });
-
-  it("N-5: tier 3 — no .ProseMirror at all is a no-op, and the log fires exactly once", () => {
-    mountDom([], { withProseMirror: false });
-
-    const { result, rerender } = renderTOC({ content: "# A\n\n# B", documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(2);
-    expectDistinctKeys(list, "N-5");
-
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-      result.current.navigateToEntry(list[1].key);
-    });
-    rerender({ content: "# A\n\n# B", documentId: "doc-a" });
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-      result.current.navigateToEntry(list[1].key);
-    });
-
-    expect(receivers).toHaveLength(0);
-    expect(state().activeEntryId).toBeNull();
-
-    const logs = mismatchLogs();
-    expect(logs).toHaveLength(1);
-    expect(logs[0].level).toBe("warn");
-    expect(logs[0].status).toBe("fail");
-    expect(logs[0].context).toEqual({
-      documentId: "doc-a",
-      entryCount: 2,
-      domCount: 0,
-      resolvedCount: 0,
-    });
-  });
-
-  it("N-6: LAW idempotence of navigation — three navigations, one element, no DOM write", () => {
-    const fixture = mountDom(INTRO_TWICE);
-    const before = fixture.proseMirror?.innerHTML;
-
-    const { result } = renderTOC({ content: INTRO_TWICE_CONTENT, documentId: "doc-a" });
-    tick(300);
-
-    const list = entries();
-    expectDistinctKeys(list, "N-6");
-
-    for (let i = 0; i < 3; i++) {
-      act(() => {
-        result.current.navigateToEntry(list[1].key);
-      });
-      expect(state().activeEntryId).toBe(list[1].key);
-    }
-
-    expect(receivers).toHaveLength(3);
-    expect(new Set(receivers.map((r) => r.el)).size).toBe(1);
-    expect(receivers[0].el).toBe(fixture.headings[1]);
-    // D2 — nothing is written to the DOM.
-    expect(fixture.proseMirror?.innerHTML).toBe(before);
-  });
-
-  it("N-7: partially resolved document — the unresolved entry is a no-op, resolution is fresh", () => {
-    const fixture = mountDom([
-      { level: 1, text: "Intro", id: "intro" }, // measured
-      { level: 1, text: "Tail", id: "tail" }, // derived
-    ]);
-    // `enableSpyScrolling: false` — the observe effect returns early, so
-    // `headingElementsRef` is never populated and navigation cannot read it.
-    const { result } = renderTOC(
-      { content: "# Intro\n\n# Intro\n\n# Tail", documentId: "doc-a" },
-      { enableSpyScrolling: false },
-    );
-    tick(300);
-
-    const list = entries();
-    expect(list).toHaveLength(3);
-    expectDistinctKeys(list, "N-7");
-    // Wrong-reason guard: entry 1's text IS present in the DOM, so "no call" is a real
-    // refusal rather than a trivial absence.
-    expect(fixture.headings[0].textContent).toBe("Intro");
-    expect(list[1].text).toBe("Intro");
-
-    // Part A
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-    });
-    const activeAfterFirst = state().activeEntryId;
-    act(() => {
-      result.current.navigateToEntry(list[1].key);
-    });
-    expect(state().activeEntryId).toBe(activeAfterFirst);
-    act(() => {
-      result.current.navigateToEntry(list[2].key);
-    });
-
-    expect(receivers.map((r) => r.el)).toEqual([fixture.headings[0], fixture.headings[1]]);
-
-    // Part B — identical markup, new element identities, no re-render.
-    const originalFirst = fixture.headings[0];
-    const clones = fixture.headings.map((h) => h.cloneNode(true) as HTMLElement);
-    fixture.proseMirror!.replaceChildren(...clones);
-
-    act(() => {
-      result.current.navigateToEntry(list[0].key);
-    });
-
-    expect(receivers).toHaveLength(3);
-    const last = receivers[2];
-    expect(last.el).toBe(clones[0]);
-    expect(last.el).not.toBe(originalFirst);
-    expect(document.contains(last.el)).toBe(true);
-  });
-});
-
 // ---------------------------------------------------------------------------
-// §6 — the observe effect
+// §6 — the spy's resolved list (migrated in D17 WI-4)
 // ---------------------------------------------------------------------------
+// D17 disproved the IO-record specification; DECISION A is superseded by ADR-0026. The
+// frame's resolved list replaces the observe loop, so each case now scrolls a heading
+// of a scripted surface to the anchor and asserts the active key.
 
-describe("§6 useTOC observe effect", () => {
-  it("R2: REGRESSION — two identical headings produce two distinct observed elements", () => {
-    const fixture = mountDom(INTRO_TWICE);
+describe("§6 useTOC WYSIWYG spy — the frame's resolved list", () => {
+  const spyHeading = (level: 1 | 2, text: string): ScriptedHeading => ({
+    level,
+    text,
+    height: 40,
+    bodyHeight: 700,
+  });
+  const ANCHOR = SPY_ANCHOR_OFFSET_PX;
+
+  function mountScripted(headings: ScriptedHeading[]) {
+    const container = document.createElement("div");
+    container.id = DEFAULT_CONTAINER_ID;
+    document.body.appendChild(container);
+    return { container, surface: mountSurface(container, { headings }) };
+  }
+
+  afterEach(() => {
+    document.getElementById(DEFAULT_CONTAINER_ID)?.remove();
+  });
+
+  it("R2: REGRESSION — each of two identical headings is active at the anchor, two distinct keys", () => {
+    const { surface } = mountScripted([spyHeading(1, "Intro"), spyHeading(1, "Intro")]);
     renderTOC({ content: INTRO_TWICE_CONTENT, documentId: "doc-a" });
     tick(300);
-
     const list = entries();
     expect(list).toHaveLength(2);
     expectDistinctKeys(list, "R2");
 
-    expect(double.observeCalls).toEqual([fixture.headings[0], fixture.headings[1]]);
-    expect(new Set(double.observeCalls).size).toBe(double.observeCalls.length);
-
-    act(() => {
-      double.intersect(fixture.headings[1], true);
-    });
-    expect(state().activeEntryId).toBe(list[1].key);
+    scrollHeadingTo(surface, 1, ANCHOR);
+    const second = state().activeEntryId;
+    scrollHeadingTo(surface, 0, ANCHOR);
+    const first = state().activeEntryId;
+    expect([first, second]).toEqual([list[0].key, list[1].key]);
   });
 
-  it("O-1: tier 1 — N distinct elements observed, in document order, for N ∈ {1,2,5,12}", () => {
+  it("O-1: tier 1 — heading i at the anchor activates entries[i], for N ∈ {1,2,5,12}", () => {
     for (const n of [1, 2, 5, 12]) {
-      const specs = Array.from({ length: n }, (_, i) => ({
-        level: 1,
-        text: `Section ${i}`,
-        id: `section-${i}`, // derived
-      }));
-      const fixture = mountDom(specs);
-      const content = specs.map((s) => `# ${s.text}`).join("\n\n");
-      const { unmount } = renderTOC({ content, documentId: `doc-${n}` });
+      const specs = Array.from({ length: n }, (_, i) => spyHeading(1, `Section ${i}`));
+      const { container, surface } = mountScripted(specs);
+      const { unmount } = renderTOC({ content: contentOf(specs), documentId: `doc-${n}` });
       tick(300);
-
       const list = entries();
       expect(list, `N=${n}`).toHaveLength(n);
       expectDistinctKeys(list, `O-1 N=${n}`);
-      expect(double.observeCalls, `N=${n}`).toEqual(fixture.headings);
-
+      for (let i = n - 1; i >= 0; i--) {
+        expect(surface.scrollTopForHeadingAt(i, ANCHOR), "fixture: reachable").toBeLessThanOrEqual(
+          surface.maxScrollTop(),
+        );
+        scrollHeadingTo(surface, i, ANCHOR);
+        expect(state().activeEntryId, `N=${n} i=${i}`).toBe(list[i].key);
+      }
       unmount();
-      unmountMilkdownDom(fixture);
-      // The store outlives the hook; leaving one N's entries in place would let the
-      // next render's mount-time effect resolve stale entries against the new DOM.
+      container.remove();
       act(() => {
         resetStore();
       });
     }
   });
 
-  it("O-2: tier 2 — an unmatched DOM heading is never observed, and the mismatch is logged", () => {
-    const fixture = mountDom([
-      { level: 1, text: "A", id: "a" },
-      { level: 2, text: "Extra", id: "extra" }, // the raw-HTML-heading shape
-      { level: 1, text: "B", id: "b" },
-    ]);
-    renderTOC({ content: "# A\n\n# B", documentId: "doc-a" });
+  it("O-2: tier 2 — an unmatched DOM heading at the anchor keeps heading A; the mismatch is logged", () => {
+    const dom = [spyHeading(1, "A"), spyHeading(2, "Extra"), spyHeading(1, "B")];
+    const { surface } = mountScripted(dom);
+    renderTOC({ content: contentOf([dom[0], dom[2]]), documentId: "doc-a" });
     tick(300);
+    const list = entries();
+    expect(list).toHaveLength(2);
+    expectDistinctKeys(list, "O-2");
 
-    expect(entries()).toHaveLength(2);
-    expect(double.observeCalls).toEqual([fixture.headings[0], fixture.headings[2]]);
-    expect(double.observeCalls).not.toContain(fixture.headings[1]);
+    scrollHeadingTo(surface, 2, ANCHOR);
+    expect(state().activeEntryId, "positive guard").toBe(list[1].key);
+    scrollHeadingTo(surface, 1, ANCHOR);
+    expect(state().activeEntryId).toBe(list[0].key);
 
     const logs = mismatchLogs();
     expect(logs).toHaveLength(1);
@@ -543,41 +259,42 @@ describe("§6 useTOC observe effect", () => {
     });
   });
 
-  it("O-L1: LAW idempotence of the observe effect, and disconnect on unmount", () => {
-    const fixture = mountDom(INTRO_TWICE);
+  it("O-L1: LAW 40 same-content rerenders keep the arm-time key (not null); unmount detaches", () => {
+    const { container, surface } = mountScripted([spyHeading(1, "Intro"), spyHeading(1, "Intro")]);
+    const add = vi.spyOn(container, "addEventListener");
+    const remove = vi.spyOn(container, "removeEventListener");
     const { rerender, unmount } = renderTOC({
       content: INTRO_TWICE_CONTENT,
       documentId: "doc-a",
     });
     tick(300);
-
     const list = entries();
     expectDistinctKeys(list, "O-L1");
 
     const rng = createLcg(DEFAULT_SEED);
     const SCHEDULE = [0, 50, 150, 300];
-    const expectedObserved = new Set([fixture.headings[0], fixture.headings[1]]);
-
     for (let step = 0; step < 40; step++) {
       rerender({ content: INTRO_TWICE_CONTENT, documentId: "doc-a" });
-      const ms = SCHEDULE[rng() % SCHEDULE.length];
+      const ms = SCHEDULE[(rng() >>> 8) % SCHEDULE.length];
       if (ms > 0) tick(ms);
-      // Five visibility toggles interleaved — a store write that re-renders the hook
-      // but must not touch the observer.
       if (step % 8 === 3) {
         act(() => {
           state().setVisibility(step % 16 === 3);
         });
       }
-      expect(double.observed, `step ${step} (seed=0x${DEFAULT_SEED.toString(16)})`).toEqual(
-        expectedObserved,
+      expect(state().activeEntryId, `step ${step} (seed=0x${DEFAULT_SEED.toString(16)})`).toBe(
+        list[0].key,
       );
-      expect(state().activeEntryId, `step ${step}`).toBeNull();
     }
 
     unmount();
-    expect(double.disconnectCount).toBe(double.constructCount);
-    expect(double.observed.size).toBe(0);
+    const rec = recordWrites();
+    scrollHeadingTo(surface, 1, ANCHOR);
+    rec.stop();
+    expect(rec.writes).toEqual([]);
+    const scrollCalls = (spy: typeof add) => spy.mock.calls.filter((c) => c[0] === "scroll").length;
+    expect(scrollCalls(add)).toBeGreaterThan(0);
+    expect(scrollCalls(remove)).toBe(scrollCalls(add));
   });
 });
 

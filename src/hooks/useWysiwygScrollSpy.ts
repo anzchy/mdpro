@@ -1,66 +1,64 @@
 /**
- * Purpose: the **WYSIWYG** half of the outline's scroll spy — the IntersectionObserver
- * over the Milkdown surface's heading elements, lifted out of `useTOC` by WI-5b so that
- * `useTOC` can be a router instead of a place where two different spy mechanisms share
- * one function's dependency list.
+ * Purpose: the **WYSIWYG** half of the outline's scroll spy — a **geometric** spy over
+ * the Milkdown surface's heading elements (D17, ADR-0026). The active heading is the
+ * LAST heading whose scroller-relative top is at or above `SPY_ANCHOR_OFFSET_PX` — the
+ * same rule Source applies in line space (`tocLineSpy.ts`).
  *
  * Pipeline:
- *   `resolveHeadingElements` (entries → elements, both directions)
- *   → `IntersectionObserver(root: container, rootMargin: "0px 0px -66% 0px")`
- *   → `pickActiveKey` (document order over the visible set) → `tocStore.setActiveEntry`.
+ *   triggers — capture-phase passive `scroll` on the container, the `MutationObserver`
+ *   re-arm, and a `ResizeObserver` (when the platform has one) → one pending rAF
+ *   → `findMilkdownScrollerIn` (fresh every frame) → `selectActiveHeading` over the
+ *   resolved list (`resolveHeadingElements`, document order) → `tocStore.setActiveEntry`
+ *   only when the key changes.
  *   `MutationObserver(container, childList+subtree)` → `mutationTouchesHeadings`
- *   → `headingListChanged` → re-arm the same IntersectionObserver (D14).
+ *   → `headingListChanged` → re-arm: re-resolve, re-observe sizes, recompute (D14).
  *
  * `@module src/hooks/useWysiwygScrollSpy`
- * `@coordinates-with` `src/utils/tocElementResolution.ts` (both halves of the mapping and
- * the document-order picker), `src/utils/tocSurfaceWatch.ts` (the mutation filter and the
- * staleness test), `src/stores/tocStore.ts` (`activeEntryId`),
- * `src/hooks/useTOC.ts` (the caller — routes by `resolveSpyMode`),
+ * `@coordinates-with` `src/utils/tocGeometrySpy.ts` (the pure selection),
+ * `src/utils/scrollAnchor/milkdown.ts` (`findMilkdownScrollerIn`),
+ * `src/utils/tocElementResolution.ts` (entries → elements), `src/utils/tocSurfaceWatch.ts`
+ * (the mutation filter and the staleness test), `src/stores/tocStore.ts`
+ * (`activeEntryId`), `src/hooks/useTOC.ts` (the caller — routes by `resolveSpyMode`),
  * `src/hooks/useSourceScrollSpy.ts` (the other mechanism; never live at the same time).
  *
  * Key decisions:
- * - WI-5b was a pure extraction of `useTOC.ts:190-271`: the same observer options, the
- *   same document-order `pickActiveKey`, the same retention-on-empty (DECISION A,
- *   `tests/use-toc-scroll-spy-identity.test.ts:11-22`), the same one-warning-per-changed-
- *   signature `ui.toc.resolve.mismatch` (D7), and one `disconnect` per construction.
- *   Those remain the specification, pinned by that file and
- *   `tests/use-toc-navigation-identity.test.ts`.
- * - **D14 — the effect's deps carry no DOM, so the DOM must be watched.** The effect runs
- *   before `@milkdown/react` has created `.ProseMirror`; it resolved zero headings and
- *   nothing re-armed it until `entries` changed — which a Source→WYSIWYG switch never
- *   does. Milkdown also replaces heading elements (`setNodeMarkup` in
- *   `syncHeadingIdPlugin`), leaving the observer on detached nodes. A `MutationObserver`
- *   on the container now re-arms — unobserve old, clear the visible set, re-resolve,
- *   observe new — whenever the resolved heading list is stale. Still exactly one
- *   IntersectionObserver per effect run; teardown disconnects both observers. Pinned by
- *   `tests/use-wysiwyg-scroll-spy-late-surface.test.ts`.
- * - The mutation filter only re-scans when an added/removed element is or contains an
- *   `hN` or `.ProseMirror`, so typing in a 3,000-heading document does not pay a heading
- *   scan per keystroke.
- * - A re-arm does **not** touch `activeEntryId`: the previous highlight stays until a new
- *   intersection record arrives (the same retention DECISION A buys on an empty set).
- * - D7 on a re-arm is skipped while `.ProseMirror` is absent — a provider teardown is "not
- *   mounted", not a mismatch. The **initial** pass still warns with `domCount: 0` when the
- *   surface is absent: `tests/use-toc-navigation-identity.test.ts` N-3/N-5 pin exactly one
- *   warning in that state, and that recorded behaviour is preserved rather than changed.
+ * - **D17 — geometry, not IntersectionObserver records.** The IO version (DECISION A)
+ *   derived the key from which headings crossed a `-66%` root margin; D17 showed that set
+ *   is empty or stale between two headings and after a layout shift, so the highlight
+ *   froze. ADR-0026 supersedes it: every frame reads the scroller rect once and at most
+ *   ⌈log2 n⌉+2 heading rects (binary search), and no IntersectionObserver exists.
+ * - **L6 — one index space.** `selectActiveHeading` indexes the resolved list, and the
+ *   current key is mapped into that list — never into `entries`, where an unresolved
+ *   (tier-3) entry would shift every index after it.
+ * - `null` from the selection keeps the shown key (bad geometry, or nothing above the
+ *   anchor). Retain-at-limit lives inside `selectActiveHeading` (ADR-0017 asymmetry).
+ * - The scroller is looked up every frame, never cached: Milkdown can replace it, and a
+ *   captured scroll from an inner scroller (`.tableWrapper`) only schedules a frame — it
+ *   is never measured as the scroller. No scroller → nothing is read.
+ * - **D14 — the deps carry no DOM, so the DOM is watched.** The effect runs before
+ *   `@milkdown/react` creates `.ProseMirror`, and Milkdown replaces heading elements; the
+ *   `MutationObserver` re-arms whenever the heading list is stale, and a re-arm
+ *   recomputes (a layout change with no scroll still moves the key). The filter only
+ *   re-scans when an added/removed node is or contains `hN` / `.ProseMirror`.
+ * - D7: one `ui.toc.resolve.mismatch` warning per changed signature, per hook instance
+ *   (`tocResolveMismatch.ts`). A re-arm with no `.ProseMirror` is a provider teardown and
+ *   does not warn; the initial pass does (N-3/N-5 pin it).
+ * - A pending frame never writes after teardown: `disposed` plus `cancelAnimationFrame`.
  *
  * `enabled` is `resolveSpyMode(enableSpyScrolling, viewMode) === "dom"`, decided by the
- * caller. In Source mode this hook must **never construct an observer at all** — neither
- * observer — because `#source-container` holds no `.ProseMirror`.
+ * caller. Disabled, this hook attaches nothing.
  *
- * Logging (rule 20): the D7 mismatch warning and nothing else. There is no per-record or
- * per-mutation log — both callbacks run at scroll/keystroke frequency.
+ * Logging (rule 20): the D7 mismatch warning and nothing else — the frame runs at scroll
+ * frequency. No document content is logged.
  */
 import { useEffect, useRef } from "react";
 
-import { loggingService } from "../services/loggingService";
 import { useTOCStore } from "../stores/tocStore";
 import type { HeadingKey, TOCEntry } from "../types/toc";
-import {
-  collectHeadingElements,
-  pickActiveKey,
-  resolveHeadingElements,
-} from "../utils/tocElementResolution";
+import { findMilkdownScrollerIn } from "../utils/scrollAnchor/milkdown";
+import { collectHeadingElements, resolveHeadingElements } from "../utils/tocElementResolution";
+import { selectActiveHeading } from "../utils/tocGeometrySpy";
+import { reportResolveMismatch } from "../utils/tocResolveMismatch";
 import { headingListChanged, mutationTouchesHeadings } from "../utils/tocSurfaceWatch";
 
 export interface UseWysiwygScrollSpyOptions {
@@ -68,23 +66,22 @@ export interface UseWysiwygScrollSpyOptions {
   entries: readonly TOCEntry[];
   /** Id of the document `entries` came from. Logged with the D7 mismatch warning. */
   documentId: string | null;
-  /** Id of the element the observer uses as its `root`. */
+  /** Id of the element that holds the Milkdown surface. */
   containerId: string;
   /**
-   * Whether the DOM spy owns the highlight right now. WI-5 derives this from
+   * Whether the DOM spy owns the highlight right now. `useTOC` derives this from
    * `resolveSpyMode(enableSpyScrolling, viewMode) === "dom"`; this hook only obeys it.
    */
   enabled: boolean;
 }
 
 /**
- * Keep `tocStore.activeEntryId` in step with which heading is in the top third of the
- * WYSIWYG surface.
+ * Keep `tocStore.activeEntryId` on the last heading at or above the anchor line of the
+ * WYSIWYG scroller.
  *
- * Constructs exactly one `IntersectionObserver` and one `MutationObserver` per effect run
- * while `enabled` and the container exists, re-arms the former in place when the
- * container's heading elements change, and disconnects both on every re-run. Returns
- * nothing: the result is the store.
+ * Per effect run while `enabled` and the container exists: one capture-phase scroll
+ * listener, one `MutationObserver`, and one `ResizeObserver` when available, all
+ * detached on every re-run. Returns nothing: the result is the store.
  */
 export function useWysiwygScrollSpy({
   entries,
@@ -93,109 +90,85 @@ export function useWysiwygScrollSpy({
   enabled,
 }: UseWysiwygScrollSpyOptions): void {
   const setActiveEntry = useTOCStore((state) => state.setActiveEntry);
-
-  // Both maps are one resolution pass's output, replaced wholesale by the observe
-  // effect and never merged across passes: a heading element that survives an edit is
-  // a coincidence, not an invariant (`tocElementResolution.ts` P1/P2).
-  const headingElementsRef = useRef<Map<HeadingKey, Element>>(new Map());
-  /** The inverse. The observer callback is handed elements and must get back keys. */
-  const elementKeysRef = useRef<Map<Element, HeadingKey>>(new Map());
   /** D7 — the last pass's `(entryCount, domCount)` signature, per hook instance. */
   const mismatchSignatureRef = useRef<string | null>(null);
 
-  // Set up the Intersection Observer for spy scrolling, and the surface watch that re-arms it
   useEffect(() => {
     if (!enabled || entries.length === 0) return;
 
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Keys, not DOM ids: element identity is the only address the observe loop and the
-    // callback can agree on, because Milkdown rewrites ids asynchronously (P2).
-    const visibleKeys = new Set<HeadingKey>();
+    let disposed = false;
+    let pendingFrame: number | null = null;
     /** Every `hN` in `.ProseMirror` at the last pass — what staleness is judged against. */
     let domHeadings: Element[] = [];
+    /** One resolution pass's output, in document order; replaced wholesale per arm. */
+    let resolved: Array<[HeadingKey, Element]> = [];
+    let indexByKey = new Map<HeadingKey, number>();
+    let sizeTargets: Element[] = [];
 
-    // "-66%" means the active heading is one that's in the top 33% of the viewport
-    const observer = new IntersectionObserver(
-      (observerEntries) => {
-        for (const observerEntry of observerEntries) {
-          const key = elementKeysRef.current.get(observerEntry.target);
-          // A record for an element from a superseded pass is ignored — not thrown on,
-          // and never resolved by some other route back to a key.
-          if (key === undefined) continue;
-
-          if (observerEntry.isIntersecting) {
-            visibleKeys.add(key);
-          } else {
-            visibleKeys.delete(key);
-          }
-        }
-
-        // Once per batch, in document order — never once per record in arrival order.
-        const activeKey = pickActiveKey(entries, visibleKeys);
-        // An emptied visible set RETAINS the previous active entry rather than blanking
-        // it. Scrolling past the last heading must not make the highlight blink off.
-        if (activeKey !== null) {
-          setActiveEntry(activeKey);
-        }
-      },
-      {
-        root: container,
-        rootMargin: "0px 0px -66% 0px",
-        threshold: 0,
-      }
-    );
-
-    const reportMismatch = (resolution: ReturnType<typeof resolveHeadingElements>) => {
-      // D7 — one warning per *changed* signature, per hook instance. Unconditional
-      // emission would fire once per 300 ms debounce tick for as long as the document
-      // holds a heading our parser cannot see.
-      const entryCount = entries.length;
-      const domCount = resolution.mismatch?.domCount ?? entryCount;
-      const signature = `${entryCount}:${domCount}`;
-      if (resolution.mismatch && signature !== mismatchSignatureRef.current) {
-        loggingService.logEventSync({
-          level: "warn",
-          event: "ui.toc.resolve.mismatch",
-          status: "fail",
-          actionId: loggingService.generateActionId(),
-          context: {
-            documentId,
-            entryCount,
-            domCount,
-            resolvedCount: resolution.byKey.size,
-          },
-        });
-      }
-      mismatchSignatureRef.current = signature;
+    const recompute = () => {
+      pendingFrame = null;
+      if (disposed) return;
+      const scroller = findMilkdownScrollerIn(container);
+      if (!scroller) return;
+      const rootTop = scroller.getBoundingClientRect().top;
+      const currentKey = useTOCStore.getState().activeEntryId;
+      const currentIndex = currentKey === null ? null : (indexByKey.get(currentKey) ?? null);
+      const index = selectActiveHeading(
+        {
+          count: resolved.length,
+          topAt: (i) => resolved[i][1].getBoundingClientRect().top - rootTop,
+          scrollTop: scroller.scrollTop,
+          scrollHeight: scroller.scrollHeight,
+          clientHeight: scroller.clientHeight,
+        },
+        currentIndex,
+      );
+      if (index === null) return;
+      const key = resolved[index][0];
+      if (key !== useTOCStore.getState().activeEntryId) setActiveEntry(key);
     };
 
-    /** One resolution pass, feeding both directions, then observe in document order. */
+    /** At most one frame pending, however many triggers fire before it runs. */
+    const schedule = () => {
+      if (disposed || pendingFrame !== null) return;
+      pendingFrame = requestAnimationFrame(recompute);
+    };
+
+    const sizeWatch = typeof ResizeObserver === "function" ? new ResizeObserver(schedule) : null;
+
+    const observeSizes = () => {
+      if (!sizeWatch) return;
+      for (const target of sizeTargets) sizeWatch.unobserve(target);
+      const scroller = findMilkdownScrollerIn(container);
+      const viewDom = container.querySelector(".ProseMirror");
+      sizeTargets = [scroller, viewDom].filter((el): el is Element => el !== null);
+      for (const target of sizeTargets) sizeWatch.observe(target);
+    };
+
+    /**
+     * One resolution pass, then observe sizes and recompute. The initial pass computes
+     * in place — the effect runs after commit, so the answer for the current geometry is
+     * in the store before anything else reads it; a re-arm (inside a MutationObserver
+     * callback, possibly mid-burst) defers to the next frame.
+     */
     const arm = (isRearm: boolean) => {
-      if (isRearm) {
-        for (const heading of headingElementsRef.current.values()) {
-          observer.unobserve(heading);
-        }
-        // The old keys' visibility was reported for old elements; the new ones will
-        // report afresh. `activeEntryId` is deliberately left alone until they do.
-        visibleKeys.clear();
-      }
       domHeadings = collectHeadingElements(container);
       const resolution = resolveHeadingElements(entries, container);
-      headingElementsRef.current = resolution.byKey;
-      elementKeysRef.current = resolution.byElement;
+      // Document order: `byKey` is built by iterating `entries`.
+      resolved = [...resolution.byKey];
+      indexByKey = new Map(resolved.map(([key], i) => [key, i]));
 
       // A re-arm with no `.ProseMirror` is a provider teardown, not a mismatch. The
       // initial pass keeps warning in that state (N-3/N-5 pin it).
       if (!isRearm || container.querySelector(".ProseMirror")) {
-        reportMismatch(resolution);
+        reportResolveMismatch(resolution, entries.length, documentId, mismatchSignatureRef);
       }
-
-      // Document order: `byKey` is built by iterating `entries`.
-      for (const heading of resolution.byKey.values()) {
-        observer.observe(heading);
-      }
+      observeSizes();
+      if (isRearm) schedule();
+      else recompute();
     };
 
     arm(false);
@@ -209,11 +182,18 @@ export function useWysiwygScrollSpy({
     });
     surfaceWatch.observe(container, { childList: true, subtree: true });
 
-    // Both observers are captured in this closure rather than held in refs, so exactly
-    // one `disconnect` pairs with each construction even when the effect re-runs.
+    // Capture: `scroll` does not bubble, and the scroller is a descendant that Milkdown
+    // may replace — the container is the one stable element to listen on.
+    const listenerOptions: AddEventListenerOptions = { capture: true, passive: true };
+    container.addEventListener("scroll", schedule, listenerOptions);
+
     return () => {
+      disposed = true;
+      if (pendingFrame !== null) cancelAnimationFrame(pendingFrame);
+      pendingFrame = null;
+      container.removeEventListener("scroll", schedule, { capture: true });
       surfaceWatch.disconnect();
-      observer.disconnect();
+      sizeWatch?.disconnect();
     };
   }, [entries, containerId, documentId, enabled, setActiveEntry]);
 }

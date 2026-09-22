@@ -2,11 +2,11 @@
  * Purpose: route the outline's scroll spy to **one** mechanism, so that
  * `enableSpyScrolling` stops doing double duty. After this module, the flag is a master
  * switch only ("spy at all") and `resolveSpyMode` decides the mechanism: the WYSIWYG
- * IntersectionObserver (`"dom"`), the Source line sampler (`"line"`), or nothing
+ * geometric spy (`"dom"`), the Source line sampler (`"line"`), or nothing
  * (`"off"`).
  *
  * `@module src/utils/tocSpyMode`
- * `@coordinates-with` `src/hooks/useTOC.ts` (the sole caller: gates the observer effect on
+ * `@coordinates-with` `src/hooks/useTOC.ts` (the sole caller: gates the WYSIWYG spy on
  * `"dom"` and `useSourceScrollSpy` on `"line"`), `src/types/editor.ts` (`ViewMode`),
  * `src/services/loggingService.ts` (the one-shot warn below).
  *
@@ -20,9 +20,9 @@
  * ---------------------------------------------------------------------------
  * `src/App.tsx:1139` is `viewMode === "wysiwyg" ? <MilkdownEditor/> : <SplitView/>`.
  * **Anything that is not `"wysiwyg"` renders the Source surface.** Routing an unknown
- * value to `"dom"` would arm the IntersectionObserver against `#source-container`, which
+ * value to `"dom"` would arm the WYSIWYG spy against `#source-container`, which
  * contains no `.ProseMirror`, so `collectHeadingElements` returns `[]`
- * (`src/utils/tocElementResolution.ts:122-124`), nothing is observed, and the outline
+ * (`src/utils/tocElementResolution.ts:122-124`), nothing resolves, and the outline
  * silently stops tracking — reproducing the exact bug this module exists to prevent.
  * `"line"` matches what is actually on screen.
  *
@@ -75,7 +75,7 @@ function warnUnknownViewMode(received: unknown): void {
  * @param enableSpyScrolling master switch — `false` disables the spy entirely.
  * @param viewMode the active editor surface; `undefined` means the caller omitted the
  *   optional prop and keeps today's `"dom"` default.
- * @returns exactly one of `"dom"` (IntersectionObserver over the WYSIWYG surface),
+ * @returns exactly one of `"dom"` (the geometric spy over the WYSIWYG surface),
  *   `"line"` (CodeMirror line sampling over the Source surface), or `"off"`.
  */
 export function resolveSpyMode(

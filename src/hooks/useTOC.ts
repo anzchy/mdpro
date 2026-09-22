@@ -6,16 +6,18 @@
  * Pipeline:
  *   `content` → 300 ms debounced `parseHeadingsFromContent` → `tocStore.setEntries`
  *   `(enableSpyScrolling, viewMode)` → `resolveSpyMode` → one of
- *       `"dom"`  → `useWysiwygScrollSpy` (IntersectionObserver over Milkdown headings)
+ *       `"dom"`  → `useWysiwygScrollSpy` (geometric: Milkdown heading rects at the 40px anchor)
  *       `"line"` → `useSourceScrollSpy`  (CodeMirror line sampling at the 40px anchor)
  *       `"off"`  → neither
- *   `navigateToEntry` → `scrollToHeading` (branches on `viewMode` for the same reason)
+ *   `navigateToEntry` → `scrollToHeading` (branches on `viewMode` for the same reason);
+ *       both branches land the heading at the 40px anchor, instantly (D17 WI-5)
  *
  * `@module src/hooks/useTOC`
  * `@coordinates-with` `src/utils/tocSpyMode.ts` (the routing decision),
  * `src/hooks/useWysiwygScrollSpy.ts` and `src/hooks/useSourceScrollSpy.ts` (the two
- * mechanisms), `src/stores/tocStore.ts`, `src/stores/editorStore.ts` (the installed
- * `EditorView`), `src/services/tocService.ts`, `src/App.tsx` (the only caller).
+ * mechanisms), `src/utils/scrollAnchor/milkdown.ts` (`scrollHeadingToAnchor`),
+ * `src/stores/tocStore.ts`, `src/stores/editorStore.ts` (the installed `EditorView`),
+ * `src/services/tocService.ts`, `src/App.tsx` (the only caller).
  *
  * ---------------------------------------------------------------------------
  * Key decision — routing, not a boolean, and the caller no longer gets a vote
@@ -36,11 +38,11 @@
  * ---------------------------------------------------------------------------
  * Key decision — the two spy mechanisms live in their own files
  * ---------------------------------------------------------------------------
- * DOM-intersection and line-arithmetic have different refs, different deps and different
- * teardown rules. Kept here they shared one function's dependency list, where a reader
- * could not tell which dep belonged to which — and the file stood at 293 of rule 50 §6's
- * 300 lines. This file is now the router and the parser; each mechanism documents its own
- * invariants next to the code that has to honour them.
+ * Geometric heading-rect sampling (WYSIWYG, ADR-0026) and line arithmetic (Source) have
+ * different refs, deps and teardown rules. Kept here they shared one dependency list, where
+ * a reader could not tell which dep belonged to which — and the file stood at 293 of rule
+ * 50 §6's 300 lines. This file is now the router and the parser; each mechanism documents
+ * its own invariants next to the code that has to honour them.
  */
 import { useEffect, useCallback, useRef, useMemo } from "react";
 import { EditorView } from "@codemirror/view";
@@ -48,10 +50,12 @@ import { useTOCStore, setNavigationCallback, buildTOCHierarchy } from "../stores
 import { asAnchorSlug } from "../types/toc";
 import type { HeadingKey, ParsedTOCEntry, TOCEntry } from "../types/toc";
 import { parseHeadingsFromContent } from "../services/tocService";
+import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
 import type { ViewMode } from "../types/editor";
 import { resolveHeadingElements } from "../utils/tocElementResolution";
 import { SPY_ANCHOR_OFFSET_PX } from "../utils/codemirrorViewportLine";
+import { scrollHeadingToAnchor } from "../utils/scrollAnchor/milkdown";
 import { resolveSpyMode } from "../utils/tocSpyMode";
 import { useSourceScrollSpy } from "./useSourceScrollSpy";
 import { useWysiwygScrollSpy } from "./useWysiwygScrollSpy";
@@ -227,10 +231,10 @@ export function useTOC({
     // needed only to reject a key that no longer names a live heading.
     if (!tocEntry) return;
 
-    // Resolved fresh on every navigation rather than read from `headingElementsRef`:
-    // the editor replaces heading nodes on every edit, and the observe effect does not
-    // re-run for a DOM change (its deps carry no DOM). A cached element would be
-    // detached — `scrollIntoView` on it is a silent no-op the user reads as a dead link.
+    // Resolved fresh on every navigation, never cached: the editor replaces heading
+    // nodes on every edit, and a cached element would be detached — its rect is empty,
+    // so the scroll lands nowhere useful. The geometric spy (ADR-0026) re-resolves on
+    // every DOM mutation for the same reason.
     const { byKey } = resolveHeadingElements(entries, container);
     const heading = byKey.get(headingKey);
     // Unresolved is a no-op, never a fallback: the fallbacks this replaced (a DOM-id
@@ -238,9 +242,22 @@ export function useTOC({
     // to the wrong element.
     if (!heading) return;
 
-    heading.scrollIntoView({ behavior: "smooth", block: "start" });
-    setActiveEntry(headingKey);
-  }, [containerId, entries, setActiveEntry, viewMode]);
+    // D17 WI-5 — instant, landing at the spy's anchor line (Source parity), so the next
+    // spy frame picks the clicked heading rather than one passed during a smooth scroll.
+    // A scroll that threw moved nothing, so the old highlight is still the true one.
+    if (!scrollHeadingToAnchor(container, heading)) {
+      loggingService.logEventSync({
+        level: "warn",
+        event: "ui.toc.navigate",
+        status: "fail",
+        actionId: loggingService.generateActionId(),
+        context: { documentId, entryIndex: entries.indexOf(tocEntry), entryKey: headingKey },
+      });
+      return;
+    }
+    // Conditional: a repeat click on the shown heading writes nothing (N-6).
+    if (useTOCStore.getState().activeEntryId !== headingKey) setActiveEntry(headingKey);
+  }, [containerId, documentId, entries, setActiveEntry, viewMode]);
 
   useEffect(() => {
     setNavigationCallback(scrollToHeading);

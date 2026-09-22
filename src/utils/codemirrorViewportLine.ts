@@ -21,12 +21,10 @@
  * ---------------------------------------------------------------------------
  * (a) Why the anchor is 40px below the scroller top, and not the top itself
  * ---------------------------------------------------------------------------
- * The WYSIWYG surface does not have a single anchor line at all. It uses
- * `rootMargin: "0px 0px -66% 0px"` plus first-in-document-order plus retention-on-empty,
- * which produces **hysteresis**: scrolling down the highlight advances when a heading
- * crosses the 33% line; scrolling up it retreats when the heading crosses the 0% line.
- * Any single anchor inside `[0%, 33%]` therefore sits inside that band and the two modes
- * stay comparable.
+ * Both surfaces use this same anchor. Since D17 WI-4 (ADR-0026) the WYSIWYG spy is
+ * geometric — the last heading whose scroller-relative top is at or above
+ * `SPY_ANCHOR_OFFSET_PX` (`tocGeometrySpy.ts`) — so the IntersectionObserver-era
+ * `-66%` hysteresis band, and the "parity bound" that kept the anchor inside it, are gone.
  *
  * The **load-bearing** reason for the specific value 40 is `yMargin` agreement. Clicking
  * an outline entry in source mode dispatches
@@ -35,20 +33,18 @@
  * just clicked. Any anchor ≠ that `yMargin` snaps the highlight away from the clicked
  * entry. This is why `useTOC.ts` **imports** the constant instead of repeating `40`.
  *
- * **Two bounds genuinely constrain the value, and neither is testable in jsdom** — which
- * is exactly why they are recorded here instead of in a case:
+ * **One bound genuinely constrains the value, and it is not testable in jsdom** — which
+ * is exactly why it is recorded here instead of in a case:
  *
- *   - **Parity bound.** The anchor must stay inside WYSIWYG's `[0%, 33%]` hysteresis
- *     band, or the two surfaces stop being comparable at all.
  *   - **Degenerate-path bound.** The anchor must stay below the pane height. Above it,
  *     the short-scroller path below goes permanently live and the spy returns `null`
  *     forever on small windows.
  *
  * **The *value* of `SPY_ANCHOR_OFFSET_PX` is pinned by no test case.** V-8b pins only
  * that the adapter and the navigate path **agree** — it passes with the constant set to
- * 137. V-8 pins the same agreement at the real value. No case asserts `40`. The two
- * bounds above are therefore the only thing constraining it; change it with them in
- * hand, not by reading the suite.
+ * 137. V-8 pins the same agreement at the real value. No case asserts `40`. The bound
+ * above and `yMargin` agreement are therefore the only things constraining it; change it
+ * with them in hand, not by reading the suite.
  *
  * ---------------------------------------------------------------------------
  * (a2) `atScrollLimit`, and the conjunct a later reader will want to delete
@@ -59,6 +55,10 @@
  * seam answers the physical question from the **same scroller it already holds**:
  *
  *   `atScrollLimit = clientHeight > 0 && scrollTop >= (scrollHeight - clientHeight) - TOL`
+ *
+ * That predicate lives in exactly one place, the exported **`isAtScrollLimit`** below,
+ * which `readSpyLineRange` calls and which any other spy surface must call rather than
+ * restate (a second copy would drift, and the conjunct below is what drifts first).
  *
  * **`bottomLine === doc.lines` was considered and rejected**, and the rejection carries a
  * standing failure condition that outlives any plan document. Line wrapping is a live user
@@ -191,6 +191,27 @@ export const SPY_ANCHOR_OFFSET_PX = 40;
  */
 export const SPY_SCROLL_LIMIT_TOLERANCE_PX = 1;
 
+/**
+ * Has a scroller reached (or overshot) its scroll limit, within
+ * `SPY_SCROLL_LIMIT_TOLERANCE_PX`? The **one** copy of this check in `src/` — every spy
+ * surface calls it rather than restating it, so the two cannot drift apart.
+ *
+ * `clientHeight > 0` is a **separate conjunct and is not redundant** with the subtraction
+ * (ADR-0017, header §(a2)): an unlaid-out scroller reports `0/0/0`, whose maximum scroll
+ * offset is also 0, and a laid-out short document has the same zero maximum but must
+ * answer `true`. `clientHeight` is the only thing that tells the two apart. NaN input
+ * answers `false`, the safe direction.
+ */
+export function isAtScrollLimit(
+  scrollTop: number,
+  scrollHeight: number,
+  clientHeight: number,
+): boolean {
+  return (
+    clientHeight > 0 && scrollTop >= scrollHeight - clientHeight - SPY_SCROLL_LIMIT_TOLERANCE_PX
+  );
+}
+
 /** 1-based, inclusive on both ends, and always `topLine <= bottomLine`. */
 export interface SpyLineRange {
   /** Line at the anchor, i.e. `SPY_ANCHOR_OFFSET_PX` below the scroller's top edge. */
@@ -245,18 +266,11 @@ export function readSpyLineRange(view: EditorView | null): SpyLineRange | null {
     // inverts on a *healthy* scroller is caught too, not just a degenerate rect.
     if (topLine > bottomLine) return null;
 
-    // Same scroller, no second `getBoundingClientRect`, no extra layout read.
-    //
-    // `clientHeight > 0` is a **separate conjunct and is not redundant** with the
-    // subtraction: an unlaid-out scroller reports 0/0/0, whose maximum scroll offset is
-    // also 0, so without it every mode toggle and every remount would read as "at the
-    // limit" and re-enable retention permanently — the freeze this code exists to fix. A
-    // laid-out short document has the same zero maximum and must keep retention ON;
-    // `clientHeight` is the only thing that tells the two apart. See header (a2).
+    // Same scroller, no second `getBoundingClientRect`, no extra layout read. The
+    // predicate — and its load-bearing `clientHeight > 0` conjunct — lives in
+    // `isAtScrollLimit`; see header (a2).
     const { scrollTop, scrollHeight, clientHeight } = scroller;
-    const atScrollLimit =
-      clientHeight > 0 &&
-      scrollTop >= scrollHeight - clientHeight - SPY_SCROLL_LIMIT_TOLERANCE_PX;
+    const atScrollLimit = isAtScrollLimit(scrollTop, scrollHeight, clientHeight);
 
     return { topLine, bottomLine, atScrollLimit };
   } catch {

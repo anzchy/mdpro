@@ -15,7 +15,7 @@
  *
  * Why this is its own module and not a fourth export of `tocElementResolution.ts`:
  * that module's header declares itself **DOM-scoped** — it allocates `TOCEntry`s to
- * heading *elements* and its `pickActiveKey` reads a set of visible DOM keys. There
+ * heading *elements*, and the WYSIWYG spy measures those elements in pixels. There
  * are no heading elements in the source surface. A line number is not a shorter way
  * of saying "element"; putting a line-space selector inside a DOM-space module would
  * make one file responsible for two coordinate systems that can never be mixed, which
@@ -35,7 +35,7 @@
  *
  * `null` is the *retain* signal, not "no heading": it means the viewport top is above
  * the first heading, and what to do about that is the caller's decision — the same
- * contract `pickActiveKey` states at `tocElementResolution.ts:183-193`. Returning
+ * contract `selectActiveHeading` states in `tocGeometrySpy.ts`. Returning
  * `entries[0].key` as a "safe default" instead would make the sidebar highlight a
  * heading the reader has not reached.
  *

@@ -8,7 +8,7 @@
  *   `mutationTouchesHeadings(records)` — did any added/removed **element** be, or contain,
  *   an `h1`–`h6` or a `.ProseMirror`? Text nodes are skipped outright: typing inside a
  *   heading replaces its text node, never the heading element.
- *   `headingListChanged(previous, next)` — is the observed element list stale (length or
+ *   `headingListChanged(previous, next)` — is the armed element list stale (length or
  *   any identity differs)?
  *
  * Pure: no React, no globals, no module-scope mutable state.

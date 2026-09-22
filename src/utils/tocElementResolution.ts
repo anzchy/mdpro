@@ -1,8 +1,10 @@
 /**
  * Purpose: the single normative way the TOC turns a `TOCEntry` into the **DOM element**
  * that heading currently occupies — `resolveHeadingElements`, plus the two helpers it is
- * built from (`collectHeadingElements`, `normalizeHeadingText`) and the scroll-spy
- * selector (`pickActiveKey`) that reads its output.
+ * built from (`collectHeadingElements`, `normalizeHeadingText`). The WYSIWYG scroll spy
+ * reads its output in document order; the active-heading choice itself is geometric and
+ * lives in `tocGeometrySpy.ts` (D17 WI-4 deleted the IntersectionObserver-era
+ * `pickActiveKey`, ADR-0026).
  *
  * This is an **allocation, not a lookup**. Each DOM heading is consumed at most once, so
  * injectivity — no two headings sharing an element, ever — is a property of construction
@@ -74,7 +76,8 @@
  * keeps `HeadingPosition`'s "随修订更新，不充当稳定身份" rule (`src/types/toc.ts:97-112`)
  * true, and what stops P2's asynchronously-rewritten ids from ever becoming an address.
  *
- * @coordinates-with src/hooks/useTOC.ts — its only caller (WI-3.6.2/3)
+ * @coordinates-with src/hooks/useTOC.ts — click navigation (WI-3.6.2/3)
+ * @coordinates-with src/hooks/useWysiwygScrollSpy.ts — the geometric spy's resolved list
  * @coordinates-with src/types/toc.ts — owns `HeadingKey` and the identity contract
  */
 import type { HeadingKey, TOCEntry } from "../types/toc";
@@ -89,7 +92,7 @@ export interface HeadingCountMismatch {
 export interface HeadingResolution {
   /** Entry key → the heading element it currently occupies. Injective. */
   byKey: Map<HeadingKey, Element>;
-  /** The inverse, for the IntersectionObserver callback, which is handed elements. */
+  /** The inverse — element → key — for callers that start from an element. */
   byElement: Map<Element, HeadingKey>;
   /** `null` iff the counts agreed and tier 1 ran. */
   mismatch: HeadingCountMismatch | null;
@@ -178,25 +181,4 @@ export function resolveHeadingElements(
   }
 
   return { byKey, byElement, mismatch: { entryCount, domCount } };
-}
-
-/**
- * The first entry in **document order** whose key is currently visible, or `null`.
- *
- * Iterating `entries` rather than `visibleKeys` is the load-bearing choice: a `Set`'s
- * iteration order is insertion order, which for the scroll-spy is the arrival order of
- * IntersectionObserver records — i.e. scroll direction. Reading it would make the active
- * heading depend on which way the user scrolled into view.
- *
- * Keys absent from `entries` (stale elements from a superseded pass) are ignored rather
- * than thrown on. What a caller does with `null` is a caller decision, kept out of here.
- */
-export function pickActiveKey(
-  entries: readonly TOCEntry[],
-  visibleKeys: ReadonlySet<HeadingKey>,
-): HeadingKey | null {
-  for (const entry of entries) {
-    if (visibleKeys.has(entry.key)) return entry.key;
-  }
-  return null;
 }

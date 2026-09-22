@@ -1,41 +1,36 @@
 /**
- * D14 — the WYSIWYG scroll spy stays dead when the Milkdown surface mounts after the
- * spy armed, and goes stale when Milkdown replaces heading elements.
+ * D14 — the WYSIWYG spy must recover when the Milkdown surface mounts after it armed
+ * (`ui.toc.resolve.mismatch domCount: 0` right after `editor.milkdown.mount`; a
+ * Source→WYSIWYG switch leaves `entries` identical, so nothing else re-arms it), and must
+ * follow Milkdown's heading replacements.
  *
- * Root cause (from `~/.mdpro/mdpro.log`: `ui.toc.resolve.mismatch` with `domCount: 0`
- * right after `editor.milkdown.mount`): `useWysiwygScrollSpy`'s observe effect runs
- * before `@milkdown/react` has created `.ProseMirror`, resolves zero headings, and
- * nothing re-arms it until `entries` changes. A Source→WYSIWYG switch leaves `entries`
- * identical, so the spy never recovers.
+ * Migrated in D17 WI-4 (matrix `tests-20260922-210708.md`, "late-surface (D14) — WI-4"):
+ * D17 disproved the IO-record specification; DECISION A is superseded by ADR-0026. T1–T6
+ * assert the active key over a `scriptedScrollGeometry` surface; T7 (D7) is unchanged; T8
+ * (pinned IO options) is deleted — H-18 proves no IntersectionObserver is constructed.
  *
- * One boundary double: `IntersectionObserver` (jsdom lacks it). `MutationObserver` is
- * jsdom's real one; its records are microtasks, flushed with `await act(async () => {})`.
- * The debounce uses fake timers, which in Vitest 3 do not fake `queueMicrotask`.
+ * Doubles: layout and scroll writes, rAF (fake timers), ResizeObserver where counted.
+ * `MutationObserver` is jsdom's real one; its records are microtasks, flushed with
+ * `await act(async () => {})` (Vitest 3 fake timers do not fake `queueMicrotask`).
  */
-import { act, renderHook } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useTOC } from "../src/hooks/useTOC";
 import { loggingService } from "../src/services/loggingService";
-import { useTOCStore } from "../src/stores/tocStore";
-import type { ViewMode } from "../src/types/editor";
-import type { HeadingKey, TOCEntry } from "../src/types/toc";
+import { SPY_ANCHOR_OFFSET_PX } from "../src/utils/codemirrorViewportLine";
 import {
   DEFAULT_CONTAINER_ID,
   mountMilkdownDom,
   unmountMilkdownDom,
 } from "./helpers/milkdownHeadingDom";
 import type { MilkdownDomFixture, MilkdownHeadingSpec } from "./helpers/milkdownHeadingDom";
-import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
-import type { IntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
-
-const realSetEntries = useTOCStore.getState().setEntries;
-
-interface Props {
-  content: string;
-  documentId: string | null;
-  viewMode: ViewMode;
-}
+import { installResizeObserverDouble } from "./helpers/resizeObserverDouble";
+import type { ScriptedHeading } from "./helpers/scriptedScrollGeometry";
+import {
+  active, entries, flushMutations, frame, headingReads, installIoDetector,
+  mountContainer as mountEmptyContainer, mountSurface, oracleIndex, recordWrites,
+  renderSpy, replaceScriptedHeading, resetTocStore, scrollHeadingTo, shiftLayout, tick,
+} from "./helpers/wysiwygSpyHarness";
 
 const THREE: MilkdownHeadingSpec[] = [
   { level: 1, text: "Alpha" },
@@ -43,9 +38,14 @@ const THREE: MilkdownHeadingSpec[] = [
   { level: 2, text: "Gamma" },
 ];
 const THREE_CONTENT = "# Alpha\n\n## Beta\n\n## Gamma";
+/** THREE with distinct scripted offsets (0, 460, 912); Gamma can reach the anchor. */
+const SCRIPTED: ScriptedHeading[] = [
+  { level: 1, text: "Alpha", height: 48, bodyHeight: 400 },
+  { level: 2, text: "Beta", height: 40, bodyHeight: 400 },
+  { level: 2, text: "Gamma", height: 40, bodyHeight: 800 },
+];
 
 let mounted: MilkdownDomFixture[] = [];
-let double: IntersectionObserverDouble;
 let logSpy: ReturnType<typeof vi.spyOn>;
 
 function mountContainer(withProseMirror: boolean): MilkdownDomFixture {
@@ -89,37 +89,8 @@ function replaceHeading(fixture: MilkdownDomFixture, index: number): HTMLElement
   return fresh;
 }
 
-function renderTOC(initialProps: Props) {
-  return renderHook(
-    (props: Props) =>
-      useTOC({
-        content: props.content,
-        documentId: props.documentId,
-        containerId: DEFAULT_CONTAINER_ID,
-        viewMode: props.viewMode,
-        enableSpyScrolling: true,
-      }),
-    { initialProps },
-  );
-}
-
-function tick(ms: number) {
-  act(() => {
-    vi.advanceTimersByTime(ms);
-  });
-}
-
-async function flushMutations() {
-  await act(async () => {});
-}
-
-function entries(): TOCEntry[] {
-  return useTOCStore.getState().entries;
-}
-
-function active(): HeadingKey | null {
-  return useTOCStore.getState().activeEntryId;
-}
+/** `useTOC` over `#milkdown-container` with the spy switched on. */
+const renderTOC = renderSpy;
 
 function mismatchLogs(): Array<Record<string, unknown>> {
   return logSpy.mock.calls
@@ -127,69 +98,51 @@ function mismatchLogs(): Array<Record<string, unknown>> {
     .filter((payload) => payload.event === "ui.toc.resolve.mismatch");
 }
 
-/**
- * Identity, not equality: Vitest compares DOM nodes with `isEqualNode`, so
- * `toEqual(new Set(els))` would accept a detached element with the same markup.
- */
-function expectObservedExactly(elements: readonly Element[]): void {
-  expect(double.observed.size).toBe(elements.length);
-  for (const [i, el] of elements.entries()) {
-    expect(double.observed.has(el), `element ${i} is observed by identity`).toBe(true);
-  }
-}
-
-function totalObserveCalls(): number {
-  return double.instances.reduce((sum, instance) => sum + instance.observeCalls.length, 0);
+/** A scripted surface already mounted, and the spy rendered and settled over it. */
+function renderOverSurface() {
+  const surface = mountSurface(mountEmptyContainer(), { headings: SCRIPTED });
+  renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
+  tick(300);
+  return surface;
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
   mounted = [];
-  double = installIntersectionObserverDouble();
+  installIoDetector();
   logSpy = vi.spyOn(loggingService, "logEventSync");
-  useTOCStore.setState({
-    entries: [],
-    documentId: null,
-    activeEntryId: null,
-    isVisible: false,
-    collapsedIds: new Set<HeadingKey>(),
-    byDocument: new Map(),
-    setEntries: realSetEntries,
-  });
+  resetTocStore();
 });
 
 afterEach(() => {
   for (const fixture of mounted) unmountMilkdownDom(fixture);
   mounted = [];
   vi.useRealTimers();
+  document.body.innerHTML = "";
 });
 
 describe("D14 useWysiwygScrollSpy — late surface and replaced headings", () => {
   it("T1: cold mount — the surface arrives after the spy armed, and the spy recovers", async () => {
-    const fixture = mountContainer(false);
+    const container = mountEmptyContainer();
     renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
     tick(300);
     expect(entries()).toHaveLength(3);
-    // Wrong-reason guard: the bug's precondition really holds before the mount.
-    expect(double.observed.size).toBe(0);
+    // Built detached: the spy has nothing to read yet.
+    const surface = mountSurface(document.createElement("div"), { headings: SCRIPTED });
+    frame();
+    expect(headingReads(surface)).toBe(0);
+    expect(active()).toBeNull();
 
-    const headings = mountSurfaceLate(fixture);
+    act(() => void container.appendChild(surface.wrapper)); // one insert, as @milkdown/react
     await flushMutations();
-
-    expectObservedExactly(headings);
-    act(() => {
-      double.intersect(headings[1], true);
-    });
+    scrollHeadingTo(surface, 1, 10);
     expect(active()).toBe(entries()[1].key);
   });
 
-  it("T2: Source→WYSIWYG with identical entries — the late surface is still observed", async () => {
-    const fixture = mountContainer(false);
-    const { rerender } = renderTOC({
-      content: THREE_CONTENT,
-      documentId: "doc-a",
-      viewMode: "source",
-    });
+  it("T2: Source→WYSIWYG with identical entries — the late surface drives the spy", async () => {
+    const container = mountEmptyContainer();
+    const add = vi.spyOn(container, "addEventListener");
+    const { rerender } = renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "source" });
     tick(300);
     expect(entries()).toHaveLength(3);
     const entriesBefore = entries();
@@ -198,120 +151,113 @@ describe("D14 useWysiwygScrollSpy — late surface and replaced headings", () =>
     tick(300);
     // Same identity: nothing about `entries` can re-arm the spy.
     expect(entries()).toBe(entriesBefore);
-    const constructedAtSwitch = double.constructCount;
-    expect(constructedAtSwitch).toBe(1);
 
-    const headings = mountSurfaceLate(fixture);
+    const surface = mountSurface(container, { headings: SCRIPTED });
     await flushMutations();
-
-    expectObservedExactly(headings);
-    expect(double.constructCount).toBe(constructedAtSwitch);
-    act(() => {
-      double.intersect(headings[2], true);
-    });
+    scrollHeadingTo(surface, 2, 10);
     expect(active()).toBe(entries()[2].key);
+    const isCapture = (c: unknown[]) => c[0] === "scroll" && (c[2] as AddEventListenerOptions)?.capture;
+    expect(add.mock.calls.filter(isCapture)).toHaveLength(1);
   });
 
-  it("T3: a heading element replaced with the same text is re-observed; the old one is dead", async () => {
-    const fixture = mountContainer(true);
-    renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
-    tick(300);
-    const oldBeta = fixture.headings[1];
-    expect(double.observed.has(oldBeta)).toBe(true);
+  it("T3: a replaced heading's old element is never read; the fresh one becomes active", async () => {
+    const surface = renderOverSurface();
+    expect(active()).toBe(entries()[0].key);
 
-    const freshBeta = replaceHeading(fixture, 1);
+    const beta = replaceScriptedHeading(surface, 1);
     await flushMutations();
-
-    expect(double.observed.has(freshBeta)).toBe(true);
-    expect(double.observed.has(oldBeta)).toBe(false);
-    expectObservedExactly(fixture.headings);
-
-    // A late record for the detached element must not activate anything.
-    act(() => {
-      double.deliverUnchecked(double.instances.length - 1, oldBeta, true);
-    });
-    expect(active()).toBeNull();
-
-    act(() => {
-      double.intersect(freshBeta, true);
-    });
+    scrollHeadingTo(surface, 1, SPY_ANCHOR_OFFSET_PX);
+    expect(beta.staleReads()).toBe(0);
+    expect(surface.rectReads.headings[1]).toBeGreaterThan(0);
     expect(active()).toBe(entries()[1].key);
   });
 
-  it("T4: unrelated edits re-arm nothing; a real replacement re-arms the same observer", async () => {
-    const fixture = mountContainer(true);
-    renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
-    tick(300);
-    const constructed = double.constructCount;
-    const callsBefore = double.observeCalls.length;
+  it("T4: unrelated edits recompute nothing; a replaced Gamma at the anchor becomes active", async () => {
+    const surface = renderOverSurface();
+    surface.resetRectReads();
+    const rec = recordWrites();
 
-    const paragraph = document.createElement("p");
-    paragraph.textContent = "typed text";
-    fixture.proseMirror?.appendChild(paragraph);
+    surface.proseMirror.appendChild(document.createElement("p"));
     // Text inside a heading changes, the element survives.
-    fixture.headings[0].textContent = "Alpha edited";
+    surface.headings[0].textContent = "Alpha edited";
     await flushMutations();
+    frame();
+    expect(headingReads(surface)).toBe(0);
+    expect(rec.writes).toEqual([]);
 
-    expect(double.constructCount).toBe(constructed);
-    expect(double.observeCalls.length).toBe(callsBefore);
-    expectObservedExactly(fixture.headings);
-
-    const freshGamma = replaceHeading(fixture, 2);
+    replaceScriptedHeading(surface, 2);
     await flushMutations();
-
-    expect(double.constructCount).toBe(constructed);
-    expect(double.observeCalls.slice(callsBefore)).toContain(freshGamma);
-    expectObservedExactly(fixture.headings);
-  });
-
-  it("T5: the active entry is retained across a re-arm until a new record arrives", async () => {
-    const fixture = mountContainer(true);
-    renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
-    tick(300);
-    act(() => {
-      double.intersect(fixture.headings[0], true);
-    });
-    expect(active()).toBe(entries()[0].key);
-
-    // Milkdown re-renders every heading.
-    for (let i = 0; i < fixture.headings.length; i++) replaceHeading(fixture, i);
-    await flushMutations();
-
-    expectObservedExactly(fixture.headings);
-    expect(active()).toBe(entries()[0].key);
-
-    act(() => {
-      double.intersect(fixture.headings[2], true);
-    });
+    scrollHeadingTo(surface, 2, SPY_ANCHOR_OFFSET_PX);
+    rec.stop();
     expect(active()).toBe(entries()[2].key);
   });
 
-  it("T6: after unmount or disable, a late surface is never observed and both observers are torn down", async () => {
+  it("T5 (expectation changed): a re-arm recomputes — replaced, shifted headings move 0 → 2 with no scroll", async () => {
+    const surface = renderOverSurface();
+    expect(active()).toBe(entries()[0].key);
+
+    // Milkdown re-renders every heading, and the layout above them changed.
+    for (let i = 0; i < surface.headings.length; i++) replaceScriptedHeading(surface, i);
+    const shifted = shiftLayout(surface, -900);
+    expect(oracleIndex(3, shifted)).toBe(2);
+    await flushMutations();
+    frame();
+    expect(active()).toBe(entries()[2].key);
+  });
+
+  it("T6: after disable or unmount a late surface never writes; every attachment is detached", async () => {
+    const ro = installResizeObserverDouble();
     const moObserve = vi.spyOn(MutationObserver.prototype, "observe");
     const moDisconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
+    const adds: Array<ReturnType<typeof vi.spyOn>> = [];
+    const removes: Array<ReturnType<typeof vi.spyOn>> = [];
+    const spyContainer = () => {
+      const el = mountEmptyContainer();
+      adds.push(vi.spyOn(el, "addEventListener"));
+      removes.push(vi.spyOn(el, "removeEventListener"));
+      return el;
+    };
+    const lateSurface = (el: HTMLElement) =>
+      mountSurface(el, { headings: SCRIPTED }).setScrollTopSilently(912 - 10); // Gamma: oracle
 
     // (a) disable: WYSIWYG → Source before the surface mounts.
-    const first = mountContainer(false);
+    const first = spyContainer();
     const harness = renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
     tick(300);
     expect(moObserve).toHaveBeenCalledTimes(1);
+    const rec = recordWrites();
     harness.rerender({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "source" });
-    mountSurfaceLate(first);
+    lateSurface(first);
     await flushMutations();
-    expect(totalObserveCalls()).toBe(0);
-
+    frame();
     // (b) unmount: back to WYSIWYG over an empty container, then unmount the hook.
-    unmountMilkdownDom(first);
-    const second = mountContainer(false);
+    first.remove();
+    const second = spyContainer();
     harness.rerender({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
     expect(moObserve).toHaveBeenCalledTimes(2);
     harness.unmount();
-    mountSurfaceLate(second);
+    lateSurface(second);
     await flushMutations();
+    frame();
+    rec.stop();
 
-    expect(totalObserveCalls()).toBe(0);
-    expect(double.disconnectCount).toBe(double.constructCount);
+    expect(rec.writes).toEqual([]);
+    const scrollCalls = (spies: typeof adds) =>
+      spies.reduce((n, spy) => n + spy.mock.calls.filter((c) => c[0] === "scroll").length, 0);
+    expect(scrollCalls(adds)).toBeGreaterThan(0);
+    expect(scrollCalls(removes)).toBe(scrollCalls(adds));
     expect(moDisconnect).toHaveBeenCalledTimes(moObserve.mock.calls.length);
+    expect(ro.disconnectCount()).toBe(ro.constructCount());
+
+    // Positive guard: the same late mount under a live WYSIWYG spy writes Gamma.
+    second.remove();
+    const third = mountEmptyContainer();
+    renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
+    tick(300);
+    lateSurface(third);
+    await flushMutations();
+    frame();
+    expect(active()).toBe(entries()[2].key);
   });
 
   it("T7: a surface teardown is not a mismatch; a real changed signature warns exactly once", async () => {
@@ -341,22 +287,5 @@ describe("D14 useWysiwygScrollSpy — late surface and replaced headings", () =>
     replaceHeading(fixture, 1);
     await flushMutations();
     expect(mismatchLogs()).toHaveLength(1);
-  });
-
-  it("T8: the observer that watches the late surface keeps the pinned options", async () => {
-    const fixture = mountContainer(false);
-    renderTOC({ content: THREE_CONTENT, documentId: "doc-a", viewMode: "wysiwyg" });
-    tick(300);
-
-    const headings = mountSurfaceLate(fixture);
-    await flushMutations();
-
-    const watching = double.instances.filter((instance) => instance.observed.has(headings[0]));
-    expect(watching).toHaveLength(1);
-    expect(watching[0].options).toEqual({
-      root: fixture.container,
-      rootMargin: "0px 0px -66% 0px",
-      threshold: 0,
-    });
   });
 });

@@ -3,35 +3,46 @@
  * Contract specified by `.claude/tdd-guardian/tests-20260919-114230.md` §0.8.
  *
  * ---------------------------------------------------------------------------
+ * What it serves now (D17 WI-4, ADR-0026)
+ * ---------------------------------------------------------------------------
+ * **No production code constructs an `IntersectionObserver` any more.** It was written
+ * for the WYSIWYG scroll spy, which is now geometric (`src/hooks/useWysiwygScrollSpy.ts`
+ * reads rects; `src/utils/tocGeometrySpy.ts`). The remaining users are tests only:
+ *
+ *   - `tests/use-toc-source-scroll-spy.test.ts` — as a **construction counter**:
+ *     `constructCount` must stay 0 in every spy mode.
+ *   - `tests/wysiwyg-edit-persistence.test.tsx`, `tests/wysiwyg-flush-sites.test.tsx`,
+ *     `tests/d15-reopen-in-place.test.tsx`, `tests/d15-review-followups.test.tsx` —
+ *     installed by habit from when the spy needed one. Harmless now; removing those
+ *     calls is deferred cleanup (plan-20260922-210708, Deferred).
+ *
+ * Record delivery (`intersect`, `intersectBatch`, `deliverUnchecked`) and the
+ * `observed` / `observeCalls` logs have no caller left. They are kept, not deleted, so a
+ * future IO user starts from a double whose fidelity rules are already written down.
+ * The D17 suites use their own geometric double (`geometricIntersectionObserver.ts`).
+ *
+ * ---------------------------------------------------------------------------
  * The two collections are NOT interchangeable
  * ---------------------------------------------------------------------------
  *   | `observed`     | `Set<Element>` | the **live** set — `unobserve`/`disconnect` shrink it |
  *   | `observeCalls` | `Element[]`    | **append-only, ordered**; a double-`observe` appears twice |
  *
  * Order and multiplicity are asserted with `expect(d.observeCalls).toEqual([a, b])`;
- * live membership with `expect(d.observed).toEqual(new Set([a, b]))`. Revision 2 of the
- * matrix asserted `toEqual([a, b])` against the **Set** in three cases, which fails in
- * Vitest whatever the contents — red against HEAD *and* against a correct
- * implementation, i.e. exactly the shape that gets "fixed" by editing the expectation.
+ * live membership with `expect(d.observed).toEqual(new Set([a, b]))` — `toEqual([a, b])`
+ * against the **Set** fails in Vitest whatever the contents.
  *
  * ---------------------------------------------------------------------------
  * Fidelity, and the one place it is deliberately broken
  * ---------------------------------------------------------------------------
  * `intersect` **silently does nothing** for an element that was never observed or has
- * been unobserved, faithful to the real API and load-bearing for case R3b: against HEAD
- * the second duplicate heading is never observed, so no record can be delivered for it.
+ * been unobserved, faithful to the real API. `deliverUnchecked` bypasses that check and
+ * is deliberately unfaithful — a disconnected observer does not fire in a browser.
  *
- * `deliverUnchecked` bypasses that check and is used by exactly one case (C-3). It is
- * deliberately unfaithful — a disconnected observer does not fire in a browser. The
- * production trigger for the guard C-3 covers is a genuine browser race between a
- * queued record and an effect re-run, which **no double can reproduce**; C-3 is
- * therefore labelled defence in depth, not a reproduction of an observed failure.
- *
- * The logic under test — the element→key map, the visible-set bookkeeping and
- * `pickActiveKey` — stays real. **§13 obligation 1 is UNMET**: nothing automated proves
- * a real browser's IntersectionObserver delivers the records this double delivers, in
- * particular under the `rootMargin: "0px 0px -66% 0px"` geometry. Mitigated by WI-3.6.6
- * manual QA.
+ * **§13 obligation 1 no longer applies to the spy.** It recorded that nothing automated
+ * proved a real browser's IntersectionObserver delivers the records this double
+ * delivers under the spy's `rootMargin: "0px 0px -66% 0px"`. That observer and that
+ * margin are gone (ADR-0026). The spy's own unproven boundary is now real layout, which
+ * jsdom lacks; it is discharged by D17 WI-7 real-device QA, not by this file.
  */
 import { vi } from "vitest";
 

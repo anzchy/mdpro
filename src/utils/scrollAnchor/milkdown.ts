@@ -9,7 +9,8 @@
  *     element in the chain with `overflow-y: auto` and a bounded height
  *     (MilkdownEditor.css `.milkdown-editor .milkdown`); the two
  *     `overflow: hidden` rules above it only clip. Resolved by
- *     `resolveMilkdownScroller`, never hard-coded at call sites.
+ *     `resolveMilkdownScroller` (from a view) or `findMilkdownScrollerIn`
+ *     (from the container, same rule), never hard-coded at call sites.
  *   - **Probe = scroller top + `SPY_ANCHOR_OFFSET_PX`**, the same 40px the
  *     Source spy samples, so both sides anchor the same visual line.
  *   - **Block lookup is geometric** (binary search over top-level child rects)
@@ -17,10 +18,16 @@
  *     in a margin resolves to the NEXT block at fraction 0, mirroring the source
  *     side's blank-line rule).
  *   - **Never throws.** Every entry point catches and returns null / false.
+ *   - Outline navigation (`scrollHeadingToAnchor`) lands a heading on the same
+ *     probe line, instantly, rounding the target up so sub-pixel `scrollTop` snapping
+ *     cannot leave it below the line; it reports success as a boolean so the TOC
+ *     only highlights an entry it actually scrolled to.
  *
  * @module src/utils/scrollAnchor/milkdown
  * @coordinates-with src/utils/scrollAnchor/anchor.ts
  * @coordinates-with src/hooks/useMilkdownScrollRestore.ts
+ * @coordinates-with src/hooks/useTOC.ts (`scrollHeadingToAnchor`)
+ * @coordinates-with src/hooks/useWysiwygScrollSpy.ts (`findMilkdownScrollerIn`)
  * @coordinates-with src/components/Editor/MilkdownEditor.css
  */
 import { editorViewCtx, type Editor } from "@milkdown/kit/core";
@@ -37,11 +44,63 @@ import {
 
 const HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";
 const SCROLLER_CLASS = "milkdown";
+const VIEW_DOM_SELECTOR = ".ProseMirror";
 
 /** The element that scrolls in WYSIWYG mode, or null before mount. */
 export function resolveMilkdownScroller(view: EditorView): HTMLElement | null {
   const parent = view.dom.parentElement;
   return parent && parent.classList.contains(SCROLLER_CLASS) ? parent : null;
+}
+
+/**
+ * The WYSIWYG scroller found from the editor's container alone, for callers that
+ * hold no `EditorView` (the TOC scroll spy). Same rule as
+ * `resolveMilkdownScroller`: the parent of the first `.ProseMirror` inside
+ * `container`, and only if that parent carries `.milkdown`. Never falls back to
+ * the container itself or to a stray `.milkdown` elsewhere; null before mount,
+ * after destroy, or on any other shape. Works on a detached container.
+ */
+export function findMilkdownScrollerIn(container: HTMLElement): HTMLElement | null {
+  const viewDom = container.querySelector(VIEW_DOM_SELECTOR);
+  const parent = viewDom?.parentElement ?? null;
+  if (!parent || parent === container) return null;
+  return parent.classList.contains(SCROLLER_CLASS) ? parent : null;
+}
+
+/**
+ * Outline click-to-navigate (D17 WI-5): scroll `container`'s WYSIWYG scroller so
+ * `heading`'s top sits `SPY_ANCHOR_OFFSET_PX` below the scroller top — the line the
+ * geometric spy samples, so the spy's next frame agrees with the click. The offset comes
+ * from the heading and scroller rects (scroller-relative, never viewport-relative), is
+ * **rounded up** (`Math.ceil`) and only then clamped to `[0, scrollHeight − clientHeight]`:
+ * WebKit floors a fractional `scrollTop`, which would leave a heading at a sub-pixel
+ * offset 40.x px down — past the spy's `top <= 40` line, so it would pick the previous
+ * heading. Rounding up lands it at or above the anchor instead. **Instant**
+ * (`behavior: "auto"`, and no CSS `scroll-behavior` is set on `.milkdown`): a smooth
+ * scroll hands the spy one intermediate position per frame, and at the tail the
+ * scroll-limit retention then keeps the heading passed on the way, not the one clicked.
+ * With no scroller (unexpected shape), falls back to `scrollIntoView` at the heading top.
+ *
+ * Returns true when the scroll was issued (the fallback included), false when it threw —
+ * the caller must then not claim the heading is shown. Never throws.
+ */
+export function scrollHeadingToAnchor(container: HTMLElement, heading: Element): boolean {
+  try {
+    const scroller = findMilkdownScrollerIn(container);
+    if (!scroller) {
+      heading.scrollIntoView({ behavior: "auto", block: "start" });
+      return true;
+    }
+    const rel = heading.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    const exact = scroller.scrollTop + rel - SPY_ANCHOR_OFFSET_PX;
+    const top = Math.min(Math.max(Math.ceil(exact), 0), max);
+    scroller.scrollTo({ top, behavior: "auto" });
+    return true;
+  } catch {
+    // Navigation is best-effort; a failed scroll must not break the outline.
+    return false;
+  }
 }
 
 function childRects(view: EditorView): Array<() => VerticalSpan | null> {

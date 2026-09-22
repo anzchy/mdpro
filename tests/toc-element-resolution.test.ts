@@ -1,8 +1,9 @@
 /**
  * Purpose: WI-3.6.1 — the pure resolver module `src/utils/tocElementResolution.ts`.
- * Matrix sections §1 (`normalizeHeadingText`), §2 (`collectHeadingElements`),
- * §3 (`resolveHeadingElements`) and §4 (`pickActiveKey`) of
- * `.claude/tdd-guardian/tests-20260919-114230.md` (revision 3).
+ * Matrix sections §1 (`normalizeHeadingText`), §2 (`collectHeadingElements`) and
+ * §3 (`resolveHeadingElements`) of `.claude/tdd-guardian/tests-20260919-114230.md`
+ * (revision 3). §4 (`pickActiveKey`, K-1…K-L1) was deleted in D17 WI-4 with the function
+ * itself; its replacement laws are G-2, G-3 and G-5 in `tests/toc-geometry-spy.test.ts`.
  *
  * ---------------------------------------------------------------------------
  * Constraints honoured (matrix §0)
@@ -47,7 +48,6 @@ import { describe, expect, it } from "vitest";
 import {
   collectHeadingElements,
   normalizeHeadingText,
-  pickActiveKey,
   resolveHeadingElements,
 } from "../src/utils/tocElementResolution";
 import { asAnchorSlug, asHeadingKey } from "../src/types/toc";
@@ -1068,133 +1068,5 @@ describe("§3 resolveHeadingElements — laws", () => {
     expect(collectHeadingElements(fixture.container)).toHaveLength(7);
 
     runGroup("tier2 (6 vs 7)");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// §4 — pickActiveKey
-// ---------------------------------------------------------------------------
-
-describe("§4 pickActiveKey", () => {
-  it("K-1: the first visible entry in document order wins, not callback order", () => {
-    const entries = makeEntries([
-      [1, "A"],
-      [2, "B"],
-      [2, "C"],
-      [3, "D"],
-    ]);
-    const k = entries.map((e) => e.key);
-
-    expect(pickActiveKey(entries, new Set([k[0]]))).toBe(k[0]);
-    expect(pickActiveKey(entries, new Set([k[3]]))).toBe(k[3]);
-    expect(pickActiveKey(entries, new Set([k[1], k[3]]))).toBe(k[1]);
-    // Insertion order deliberately reversed: iterating the Set would return k[3].
-    expect(pickActiveKey(entries, new Set([k[3], k[1]]))).toBe(k[1]);
-  });
-
-  it("K-2: GUARD — an empty visible set, and keys absent from entries", () => {
-    const entries = makeEntries([
-      [1, "A"],
-      [2, "B"],
-      [2, "C"],
-    ]);
-    const k = entries.map((e) => e.key);
-    const stranger = mintKey();
-
-    expect(pickActiveKey(entries, new Set())).toBeNull();
-    expect(pickActiveKey(entries, new Set([stranger]))).toBeNull();
-    expect(pickActiveKey(entries, new Set([stranger, k[2]]))).toBe(k[2]);
-    expect(pickActiveKey([], new Set([k[0]]))).toBeNull();
-  });
-
-  it("K-3: boundary — only the last of six entries is visible", () => {
-    const entries = makeEntries([
-      [1, "A"],
-      [2, "B"],
-      [2, "C"],
-      [3, "D"],
-      [3, "E"],
-      [4, "F"],
-    ]);
-    const k = entries.map((e) => e.key);
-
-    expect(pickActiveKey(entries, new Set([k[5]]))).toBe(k[5]);
-  });
-
-  it("K-L1: LAW conservation + minimality + invariance over 920 generated subsets", () => {
-    const documents = generateCorpus().documents.slice(0, 40);
-    const next = createLcg(DEFAULT_SEED);
-    const stranger = mintKey();
-    let caseCount = 0;
-
-    const indexOf = (entries: TOCEntry[], key: HeadingKey | null): number =>
-      key === null ? Number.POSITIVE_INFINITY : entries.findIndex((e) => e.key === key);
-
-    for (let d = 0; d < documents.length; d++) {
-      const entries = makeEntries(
-        documents[d].headings.map((t) => [1, t] as const),
-      );
-      expectDistinctKeys(entries, `${SEED_LABEL} doc=${d}`);
-      const keys = entries.map((e) => e.key);
-
-      const subsets: Array<Set<HeadingKey>> = [];
-      for (let s = 0; s < 20; s++) {
-        const subset = new Set<HeadingKey>();
-        for (const key of keys) if (next() % 2 === 0) subset.add(key);
-        subsets.push(subset);
-      }
-      subsets.push(new Set<HeadingKey>());
-      subsets.push(new Set(keys));
-      subsets.push(new Set([...keys, stranger]));
-
-      for (let s = 0; s < subsets.length; s++) {
-        const subset = subsets[s];
-        const where = `${SEED_LABEL} doc=${d} subset=${s}`;
-        const result = pickActiveKey(entries, subset);
-        caseCount += 1;
-
-        // (i) conservation of membership.
-        expect(
-          result === null || keys.includes(result),
-          `${where}: result must be an entry key or null`,
-        ).toBe(true);
-
-        // (ii) minimality under document order.
-        let expectedIndex = -1;
-        for (let i = 0; i < keys.length; i++) {
-          if (subset.has(keys[i])) {
-            expectedIndex = i;
-            break;
-          }
-        }
-        if (expectedIndex === -1) {
-          expect(result, `${where}: nothing visible`).toBeNull();
-        } else {
-          expect(result, `${where}: least visible index`).toBe(keys[expectedIndex]);
-        }
-
-        // (iii) invariance under a key that is not in entries.
-        const withStranger = new Set(subset);
-        withStranger.add(stranger);
-        expect(
-          pickActiveKey(entries, withStranger),
-          `${where}: a stranger key must not change the answer`,
-        ).toBe(result);
-
-        // (iv) monotonicity: adding an entry key can only move the answer earlier.
-        const absent = keys.filter((key) => !subset.has(key));
-        if (absent.length > 0) {
-          const chosen = absent[next() % absent.length];
-          const widened = new Set(subset);
-          widened.add(chosen);
-          expect(
-            indexOf(entries, pickActiveKey(entries, widened)),
-            `${where}: adding a visible key must never move the answer later`,
-          ).toBeLessThanOrEqual(indexOf(entries, result));
-        }
-      }
-    }
-
-    expect(caseCount).toBe(40 * 23);
   });
 });

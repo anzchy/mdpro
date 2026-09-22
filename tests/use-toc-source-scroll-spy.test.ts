@@ -3,10 +3,15 @@
  * mechanisms, and exactly one of them live per render:
  *
  *   `resolveSpyMode(enableSpyScrolling, viewMode)`
- *     `"dom"`  ⇒ the IntersectionObserver effect (WYSIWYG), and **no** scroll listener
- *     `"line"` ⇒ `useSourceScrollSpy` (Source), and **no `IntersectionObserver` ever
- *                constructed — not even referenced**
+ *     `"dom"`  ⇒ the geometric WYSIWYG spy (`useWysiwygScrollSpy`: a capture scroll
+ *                listener on the Milkdown container), and **no** CodeMirror listener
+ *     `"line"` ⇒ `useSourceScrollSpy` (Source)
  *     `"off"`  ⇒ neither
+ *   and in **no** mode is an `IntersectionObserver` constructed — not even referenced.
+ *
+ * T-4 … T-8 were migrated in D17 WI-4 (`.claude/tdd-guardian/tests-20260922-210708.md`):
+ * D17 disproved the IO-record specification; DECISION A is superseded by ADR-0026. Their
+ * WYSIWYG stimulus is a `scrollTop` write on a scripted `div.milkdown` surface plus a frame.
  *
  * Matrix §6 of `.claude/tdd-guardian/tests-20260919-151931.md`, cases **T-1 … T-10**.
  * §0 is binding throughout. This is the work item's **regression cycle**: T-1 is red on
@@ -23,12 +28,10 @@
  *    `y => y < 100 ? top : bottom` — so the anchor probe lands in the same bucket for any
  *    offset in `(0, 100)` and the bottom probe (`rect.bottom - 1 === 599`) in the other.
  *    Pinning the constant is V-8 / V-8b's business, not this file's.
- * 3. **HEAD fails on an assertion, not on a `TypeError`.** `installIntersectionObserverDouble()`
- *    runs in `beforeEach` and `#source-container` is mounted, so on HEAD the Source-mode
- *    render *succeeds*: the observer is built over a container with no `.ProseMirror`,
- *    `collectHeadingElements` returns `[]`, nothing is observed, no record can ever be
- *    delivered, and `activeEntryId` stays `null`. The red therefore reads
- *    `expected null to be "…"` — "Source mode does not track scroll position".
+ * 3. **The red was an assertion, not a `TypeError`** (history, pre-WI-5 HEAD): the
+ *    Source-mode render succeeded and `activeEntryId` stayed `null`, so the red read
+ *    `expected null to be "…"`. `installIntersectionObserverDouble()` still runs in
+ *    `beforeEach`, now only as a construction counter that must stay at 0.
  *
  * ---------------------------------------------------------------------------
  * Two deviations from the matrix text, stated rather than silent
@@ -51,7 +54,8 @@
  * Real: `useTOC` itself, `tocStore` and its real key coordinator, `useEditorStore`, the
  * real `EditorState`, the real jsdom DOM and the real `scroll` event, the real heading
  * resolution, and every pure unit. Faked: CodeMirror **geometry** (§0.8),
- * `IntersectionObserver` (§0.8 — jsdom implements none), `requestAnimationFrame` via
+ * the WYSIWYG surface's layout and scroll writes (`scriptedScrollGeometry`), an
+ * `IntersectionObserver` construction counter, `requestAnimationFrame` via
  * `vi.useFakeTimers()` (§0.10), and `loggingService` (§0.12).
  *
  * jsdom has no layout engine, so nothing here proves the highlight follows the reader's
@@ -77,8 +81,8 @@ import {
 import type { FakeViewFixture, FixtureScrollMetrics } from "./helpers/fakeCodemirrorView";
 import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
 import type { IntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
-import { mountMilkdownDom, unmountMilkdownDom } from "./helpers/milkdownHeadingDom";
-import type { MilkdownDomFixture, MilkdownHeadingSpec } from "./helpers/milkdownHeadingDom";
+import { mountScriptedSurface } from "./helpers/scriptedScrollGeometry";
+import type { ScriptedSurface } from "./helpers/scriptedScrollGeometry";
 
 // §0.12 — the established logging double. Log assertions are Level 6 supplements and are
 // never a case's sole assertion; here the double exists only to keep the JSONL writer out
@@ -91,6 +95,12 @@ const realSetEntries = useTOCStore.getState().setEntries;
 
 const WYSIWYG_CONTAINER_ID = "milkdown-container";
 const SOURCE_CONTAINER_ID = "source-container";
+/**
+ * Where the WYSIWYG cases put a heading: 10 px below the scroller top, inside any anchor
+ * in `(10, 40]`. A literal rather than `SPY_ANCHOR_OFFSET_PX` because §6.0.1 forbids this
+ * file from importing `codemirrorViewportLine`.
+ */
+const WYSIWYG_ANCHOR_PX = 10;
 
 // ---------------------------------------------------------------------------
 // Harness
@@ -143,13 +153,8 @@ function buildDoc(lineCount: number, headings: readonly HeadingSpec[]): string {
   return lines.join("\n");
 }
 
-/** The `.ProseMirror` heading DOM matching a `buildDoc` heading list, in document order. */
-function domSpecsFor(headings: readonly HeadingSpec[]): MilkdownHeadingSpec[] {
-  return headings.map((h, i) => ({ level: h.level, text: h.text, id: `h-${i}` }));
-}
-
 let fixtures: FakeViewFixture[] = [];
-let mountedDom: MilkdownDomFixture[] = [];
+let wysiwygContainers: HTMLElement[] = [];
 let sourceContainer: HTMLElement | null = null;
 let double: IntersectionObserverDouble;
 
@@ -230,12 +235,26 @@ function mountSourceContainer(): HTMLElement {
   return el;
 }
 
-function mountWysiwygDom(headings: readonly HeadingSpec[]): MilkdownDomFixture {
-  const fixture = mountMilkdownDom(domSpecsFor(headings), {
-    containerId: WYSIWYG_CONTAINER_ID,
+/**
+ * The WYSIWYG surface for T-4 … T-8: `#milkdown-container > div.milkdown > .ProseMirror`
+ * with the three STD/OFFSET headings (same texts and levels) at distinct scripted offsets.
+ */
+function mountWysiwygSurface(): ScriptedSurface {
+  const container = document.createElement("div");
+  container.id = WYSIWYG_CONTAINER_ID;
+  document.body.appendChild(container);
+  wysiwygContainers.push(container);
+  return mountScriptedSurface(container, {
+    headings: STD_HEADINGS.map((h) => ({ level: h.level, text: h.text, height: 40, bodyHeight: 700 })),
   });
-  mountedDom.push(fixture);
-  return fixture;
+}
+
+/** Put heading `i`'s top at the anchor with a `scrollTop` write, then run a frame. */
+function wysiwygScrollTo(surface: ScriptedSurface, i: number): void {
+  act(() => {
+    surface.scroller.scrollTop = surface.scrollTopForHeadingAt(i, WYSIWYG_ANCHOR_PX);
+  });
+  flushFrame();
 }
 
 /** Flush `useTOC`'s 300 ms parse debounce. */
@@ -349,7 +368,7 @@ const TAIL_LINES = [1, 40, 90];
 beforeEach(() => {
   vi.useFakeTimers();
   fixtures = [];
-  mountedDom = [];
+  wysiwygContainers = [];
   sourceContainer = null;
   double = installIntersectionObserverDouble();
   useTOCStore.setState({
@@ -367,8 +386,8 @@ beforeEach(() => {
 afterEach(() => {
   for (const fixture of fixtures) fixture.destroy();
   fixtures = [];
-  for (const fixture of mountedDom) unmountMilkdownDom(fixture);
-  mountedDom = [];
+  for (const el of wysiwygContainers) el.remove();
+  wysiwygContainers = [];
   sourceContainer?.remove();
   sourceContainer = null;
   useEditorStore.setState({ editorView: null });
@@ -522,9 +541,14 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
   });
 
   // -------------------------------------------------------------------------
-  it("T-4: GUARD — Source mode constructs no IntersectionObserver; the WYSIWYG control constructs one", () => {
+  // T-4 … T-8 migrated in D17 WI-4: D17 disproved the IO-record specification; DECISION A
+  // is superseded by ADR-0026. The WYSIWYG mechanism is the geometric spy over a scripted
+  // `div.milkdown` surface, driven by a `scrollTop` write and a frame; no mode constructs
+  // an IntersectionObserver.
+  it("T-4: GUARD — no mode constructs an IntersectionObserver; each mode answers only its own scroller", () => {
     expectFrameClockLive("T-4");
     mountSourceContainer();
+    const surface = mountWysiwygSurface();
 
     const spy = makeSpyView(STD_DOC, 14, 25);
     installView(spy);
@@ -544,12 +568,16 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     // (a) The double's constructor never throws — it registers and returns — so a count of
     // 0 means the constructor was never *entered*, not that it was entered and swallowed.
     expect(double.constructCount).toBe(0);
+    expect(activeKey()).toBe(sourceList[1].key); // the line spy's own answer
+    // A WYSIWYG-DOM scroll aimed at Gamma does not move the Source highlight.
+    wysiwygScrollTo(surface, 2);
+    expect(activeKey()).toBe(sourceList[1].key);
 
     cleanup();
     installView(null);
+    act(() => void surface.scroller.scrollTo({ top: 0 }));
 
-    // (b) The control, otherwise identical: the observer path is demonstrably live.
-    const dom = mountWysiwygDom(STD_HEADINGS);
+    // (b) WYSIWYG, otherwise identical: the geometric path is demonstrably live.
     renderTOC({
       content: STD_DOC,
       documentId: "doc-b",
@@ -562,20 +590,13 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     const wysiwygList = entries();
     expect(wysiwygList).toHaveLength(3);
     expectDistinctKeys(wysiwygList, "T-4(b)");
-    // `>= 1`, not `=== 1`: a *fresh mount* whose store already holds the previous row's
-    // entries arms the observer once at mount and again after its own debounced parse
-    // replaces the array. The load-bearing asymmetry is 0 against at-least-one, and an
-    // exact count here would be pinning a fixture artefact rather than the routing.
-    expect(double.constructCount).toBeGreaterThanOrEqual(1);
-
-    act(() => {
-      double.intersect(dom.headings[1], true);
-    });
+    wysiwygScrollTo(surface, 1);
     expect(activeKey()).toBe(wysiwygList[1].key);
+    expect(double.constructCount).toBe(0);
   });
 
   // -------------------------------------------------------------------------
-  it("T-5: GUARD — Source mode never even reads globalThis.IntersectionObserver", () => {
+  it("T-5: GUARD — neither mode reads globalThis.IntersectionObserver; WYSIWYG renders without it", () => {
     expectFrameClockLive("T-5");
     mountSourceContainer();
 
@@ -604,8 +625,6 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
       const list = entries();
       expect(list).toHaveLength(3);
       expectDistinctKeys(list, "T-5");
-
-      // The strictly earlier question than T-4's: was the global read **at all**?
       expect(accesses).toBe(0);
 
       // Level 4 pairing — Source mode is alive and merely uninterested in the observer.
@@ -617,9 +636,8 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
       cleanup();
       installView(null);
 
-      // Control: the counter is wired, and the *only* reason Source was quiet is that it
-      // never looked. A `wysiwyg` render reads the global and blows up on `undefined`.
-      mountWysiwygDom(STD_HEADINGS);
+      // WYSIWYG with the global undefined: renders, tracks, and never looks.
+      const surface = mountWysiwygSurface();
       expect(() => {
         renderTOC({
           content: STD_DOC,
@@ -629,8 +647,14 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
           enableSpyScrolling: true,
         });
         tick(300);
-      }).toThrow();
-      expect(accesses).toBeGreaterThanOrEqual(1);
+      }).not.toThrow();
+      wysiwygScrollTo(surface, 2);
+      expect(activeKey()).toBe(entries()[2].key);
+      expect(accesses).toBe(0);
+
+      // Counter wired: a direct read is counted.
+      void (globalThis as Record<string, unknown>).IntersectionObserver;
+      expect(accesses).toBe(1);
     } finally {
       // §8 D-9 — `unstubGlobals: true` only reverts `vi.stubGlobal` records, and this is
       // a hand-defined property. It must be removed by hand.
@@ -639,8 +663,8 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
   });
 
   // -------------------------------------------------------------------------
-  it("T-6: default-on — omitting enableSpyScrolling in WYSIWYG keeps the observer live, and App.tsx no longer passes it", () => {
-    const dom = mountWysiwygDom(STD_HEADINGS);
+  it("T-6: default-on — omitting enableSpyScrolling in WYSIWYG keeps the spy live, and App.tsx no longer passes it", () => {
+    const surface = mountWysiwygSurface();
 
     // `enableSpyScrolling` omitted, exactly as App.tsx must now call it.
     renderTOC({
@@ -654,11 +678,8 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     const list = entries();
     expect(list).toHaveLength(3);
     expectDistinctKeys(list, "T-6");
-    expect(double.constructCount).toBe(1);
 
-    act(() => {
-      double.intersect(dom.headings[1], true);
-    });
+    wysiwygScrollTo(surface, 1);
     expect(activeKey()).toBe(list[1].key);
     expect(activeKey()).not.toBe(list[0].key);
 
@@ -684,7 +705,7 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     expectFrameClockLive("T-7");
 
     // ---- (a) wysiwyg, off
-    const dom = mountWysiwygDom(STD_HEADINGS);
+    const surface = mountWysiwygSurface();
     renderTOC({
       content: STD_DOC,
       documentId: "doc-a",
@@ -697,15 +718,13 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     const listA = entries();
     expect(listA).toHaveLength(3);
     expectDistinctKeys(listA, "T-7(a)");
-    act(() => {
-      double.intersect(dom.headings[1], true);
-    });
+    wysiwygScrollTo(surface, 1);
     expect(double.constructCount).toBe(0);
     expect(activeKey()).toBeNull();
 
     // Wrong-reason guard: the same setup with the flag ON must move the highlight.
     cleanup();
-    const constructsBeforeOn = double.constructCount;
+    act(() => void surface.scroller.scrollTo({ top: 0 }));
     renderTOC({
       content: STD_DOC,
       documentId: "doc-a",
@@ -714,12 +733,7 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
       enableSpyScrolling: true,
     });
     tick(300);
-    // Relative, for the reason given at T-4(b): a fresh mount over an already-populated
-    // store arms the observer twice, which is fixture bookkeeping, not routing.
-    expect(double.constructCount).toBeGreaterThan(constructsBeforeOn);
-    act(() => {
-      double.intersect(dom.headings[1], true);
-    });
+    wysiwygScrollTo(surface, 1);
     expect(activeKey()).toBe(entries()[1].key);
 
     // ---- (b) source, off
@@ -767,7 +781,10 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
   it("T-8: mode transition wysiwyg → source → wysiwyg, one live mechanism per stop and no leak", () => {
     expectFrameClockLive("T-8");
 
-    const dom = mountWysiwygDom(OFFSET_HEADINGS);
+    const surface = mountWysiwygSurface();
+    const container = surface.wrapper.parentElement as HTMLElement;
+    const containerAdds = vi.spyOn(container, "addEventListener");
+    const containerRemoves = vi.spyOn(container, "removeEventListener");
     mountSourceContainer();
     // The two mechanisms are aimed at DIFFERENT headings at every stop, so "the highlight
     // is right" can never be satisfied by both being live.
@@ -790,17 +807,15 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     expectDistinctKeys(list, "T-8");
     expectHeadingLines(list, OFFSET_LINES);
 
-    // ---- stop 1: wysiwyg
-    expect(double.constructCount).toBe(1);
+    // ---- stop 1: wysiwyg. The arm-time answer at scrollTop 0 is Alpha.
     expect(spy.adds()).toBe(0);
+    expect(activeKey()).toBe(list[0].key);
     // The other mode's stimulus: the line spy would answer `entries[1]` for this geometry.
     scroll(spy.scrollDOM);
     flushFrame();
-    expect(activeKey()).toBeNull();
+    expect(activeKey()).toBe(list[0].key);
     // This mode's own stimulus.
-    act(() => {
-      double.intersect(dom.headings[2], true);
-    });
+    wysiwygScrollTo(surface, 2);
     expect(activeKey()).toBe(list[2].key);
 
     // ---- stop 2: source. Enter on an above-first anchor, so the attach sample cannot
@@ -816,23 +831,19 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     tick(300);
     flushFrame();
 
-    expect(double.constructCount).toBe(1);
-    expect(double.disconnectCount).toBe(1);
     expect(spy.adds()).toBe(1);
     expect(activeKey()).toBe(list[2].key);
 
-    // The other mode's stimulus: the observer is disconnected, so nothing is delivered.
-    act(() => {
-      double.intersect(dom.headings[0], true);
-    });
+    // The other mode's stimulus: a WYSIWYG scroll back to Alpha changes nothing.
+    wysiwygScrollTo(surface, 0);
     expect(activeKey()).toBe(list[2].key);
-    // This mode's own stimulus, aimed at a different heading than the observer was.
+    // This mode's own stimulus, aimed at a different heading than the WYSIWYG one was.
     spy.setGeo(14, 25);
     scroll(spy.scrollDOM);
     flushFrame();
     expect(activeKey()).toBe(list[1].key);
 
-    // ---- stop 3: back to wysiwyg
+    // ---- stop 3: back to wysiwyg. The re-arm recomputes at the scroller's position.
     rerender({
       content: OFFSET_DOC,
       documentId: "doc-a",
@@ -843,28 +854,28 @@ describe("useTOC spy routing — matrix §6 (WI-5)", () => {
     tick(300);
     flushFrame();
 
-    expect(double.constructCount).toBe(2);
-    expect(double.disconnectCount).toBe(1);
     expect(spy.adds()).toBe(1);
     expect(spy.removes()).toBe(1);
+    expect(activeKey()).toBe(list[0].key);
 
     // The other mode's stimulus: this geometry would answer `entries[2]` if the line spy
     // were still live.
     spy.setGeo(30, 40);
     scroll(spy.scrollDOM);
     flushFrame();
-    expect(activeKey()).toBe(list[1].key);
-    // This mode's own stimulus, aimed at a third heading.
-    act(() => {
-      double.intersect(dom.headings[0], true);
-    });
     expect(activeKey()).toBe(list[0].key);
+    // This mode's own stimulus, aimed at a heading the line spy was not.
+    wysiwygScrollTo(surface, 1);
+    expect(activeKey()).toBe(list[1].key);
 
-    // ---- teardown: every construction disconnected, every listener removed.
+    // ---- teardown: every listener removed, on both scrollers.
     unmount();
-    expect(double.disconnectCount).toBe(double.constructCount);
+    const scrollCalls = (s: typeof containerAdds) => s.mock.calls.filter((c) => c[0] === "scroll").length;
     expect(spy.removes()).toBe(spy.adds());
     expect(spy.adds()).toBeGreaterThan(0);
+    expect(scrollCalls(containerAdds)).toBeGreaterThan(0);
+    expect(scrollCalls(containerRemoves)).toBe(scrollCalls(containerAdds));
+    expect(double.constructCount).toBe(0);
   });
 
   // -------------------------------------------------------------------------
