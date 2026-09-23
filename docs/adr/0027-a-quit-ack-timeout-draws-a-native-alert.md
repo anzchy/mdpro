@@ -2,7 +2,13 @@
 
 ## Status
 
-**Accepted** (2026-09-23). Supersedes **§3 (Timeouts)** of
+**Superseded in part by [ADR-0029](./0029-quit-deadlines-bound-machine-progress-not-people.md)**
+(2026-09-23). ADR-0029 replaces this record's **single-deadline model** — when the
+alert is reached — and nothing else. The alert itself, its wording, its buttons,
+and its exclusive ownership of the request all remain in force and are still
+decided here.
+
+Previously **Accepted** (2026-09-23). Supersedes **§3 (Timeouts)** of
 [ADR-0025](./0025-app-quit-is-deferred-through-a-native-terminate-hook.md).
 The rest of ADR-0025 — the native hook, the two-phase coordinator, the trust
 boundary, discard-on-commit, and the move of cleanup to `RunEvent::Exit` —

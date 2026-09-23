@@ -1,9 +1,15 @@
 # 0029. Quit deadlines bound machine progress, not people
 
-**Status**: Proposed (2026-09-23). If accepted, supersedes
-[ADR-0027](./0027-a-quit-ack-timeout-draws-a-native-alert.md), whose single-deadline
-model this replaces. ADR-0027's alert and its wording survive unchanged; only the
-rule for *when* the alert is reached changes.
+**Status**: Accepted (2026-09-23; Proposed earlier the same day). Supersedes the
+**single-deadline model** of
+[ADR-0027](./0027-a-quit-ack-timeout-draws-a-native-alert.md). ADR-0027's alert and
+its wording survive unchanged; only the rule for *when* the alert is reached
+changes.
+
+Decisions 1, 2, 4 and 5 were implemented in `d0e6420`. **Decision 3 was withdrawn
+before implementation** and never shipped — see the decision itself and the
+Consequences; its replacement is
+[ADR-0030](./0030-a-menu-item-is-the-escape-hatch-for-a-stuck-quit.md).
 
 ## Context
 
