@@ -281,7 +281,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 应用菜单基础项 | Shipped | `src-tauri/src/menu.rs` | mdpro 菜单里有 About、Services、Hide（⌘H）、Hide Others、Show All、Quit（⌘Q） |
 | 应用内更新检查 | Shipped | `src/components/common/settings/AboutSettings.tsx` | ⌘, → About 里点检查更新，有新版时显示版本说明，下载时有进度条；进度与阶段都在 `updaterStore` 里 |
 | 重启应用更新 | Shipped | `src/components/common/settings/AboutSettings.tsx` | 下载完成后弹出「Save and Restart / Don't restart yet」二选一 |
-| 重启前保存守卫 | Shipped | `src/hooks/useUpdater.ts` | 留一个未命名的脏文档再点重启，被拦下并提示；把它保存好之后重启才放行 |
+| 重启前保存守卫 | Shipped | `src/hooks/useUpdater.ts` | 留一个未命名的脏文档再点重启，被拦下并提示；把它保存好之后重启才放行。在 WYSIWYG 里打字后立刻点重启，写盘的是刚打的字而不是旧内容（先 flush 再判断，与关窗口、⌘Q 共用 `assessWindowUnsaved`）；flush 失败则一个字都不写、只弹一次提示 |
 | 版本号显示 | Shipped | `src-tauri/src/commands/updater.rs` | ⌘, → About 里显示 `get_app_version` 返回的版本号，与 `tauri.conf.json` 里的一致 |
 | 云同步 | Absent | — | 设置里没有任何账号或同步项；文件只在本地。立场 |
 | 协作编辑 | Absent | — | 两个人同时开同一个文件不会看到对方的光标或改动。立场 |

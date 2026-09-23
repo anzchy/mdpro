@@ -2,19 +2,54 @@ import { useDocumentStore } from "../stores/documentStore";
 import { useToastStore } from "../stores/toastStore";
 import { fileService } from "../services/fileService";
 import { loggingService } from "../services/loggingService";
+import { assessWindowUnsaved } from "../utils/dataLossGuards";
+import type { Document } from "../types/document";
 
 /**
  * Purpose: App-level coordinator for pre-relaunch save guard.
- * Iterates all modified documents, saves each with a path,
- * blocks relaunch for untitled or failed saves.
+ * Flushes pending WYSIWYG edits FIRST via `assessWindowUnsaved("relaunch")`
+ * (D16 WI-8 / ADR-0025) — the relaunch, window-close and quit paths share one
+ * unsaved-changes rule — then saves every document the flush left modified,
+ * using the content the flush wrote into documentStore. Blocks relaunch when
+ * the flush failed, when a dirty document is untitled, or when a save fails.
+ *
+ * Reading `isModified` without flushing first would answer "clean" for an edit
+ * still inside the edit-sync delay and silently discard it at relaunch.
+ *
+ * @coordinates-with src/utils/dataLossGuards.ts — assessWindowUnsaved
+ * @coordinates-with src/stores/milkdownEditorStore.ts — the flusher registry
  */
 export async function prepareForRelaunch(): Promise<boolean> {
-  const { documents } = useDocumentStore.getState();
-  const modified = documents.filter((d) => d.isModified);
-
-  if (modified.length === 0) return true;
-
   const actionId = loggingService.generateActionId();
+
+  // Flush first, then read. Order is the whole point of this guard.
+  const assessment = assessWindowUnsaved("relaunch");
+
+  if (assessment.flushFailed) {
+    useToastStore
+      .getState()
+      .showToast("Could not capture the latest editor changes. Update cancelled.");
+    loggingService.logEventSync({
+      level: "error",
+      event: "updater.prepare_relaunch",
+      status: "fail",
+      actionId,
+      context: { reason: "flush_failed" },
+    });
+    return false;
+  }
+
+  if (assessment.dirtyDocuments.length === 0) return true;
+
+  // The post-flush store, read once: `dirtyDocuments` carries metadata only, so
+  // the content comes from the same synchronous read the assessment used.
+  const byId = new Map(
+    useDocumentStore.getState().documents.map((doc) => [doc.id, doc] as const),
+  );
+  const modified = assessment.dirtyDocuments
+    .map((ref) => byId.get(ref.id))
+    .filter((doc): doc is Document => doc !== undefined);
+
   loggingService.logEventSync({
     level: "info",
     event: "updater.prepare_relaunch",
@@ -23,26 +58,30 @@ export async function prepareForRelaunch(): Promise<boolean> {
     context: { modifiedCount: modified.length },
   });
 
-  for (const doc of modified) {
-    if (!doc.path) {
-      useToastStore.getState().showToast(
-        `"Untitled" has unsaved changes. Save it before updating.`,
-      );
-      loggingService.logEventSync({
-        level: "warn",
-        event: "updater.prepare_relaunch",
-        status: "fail",
-        actionId,
-        context: { reason: "untitled_document", documentId: doc.id },
-      });
-      return false;
-    }
+  // Untitled blocks before any write: the relaunch is already cancelled, so
+  // there is no reason to push surprise writes to the other tabs' files.
+  const untitled = modified.find((doc) => !doc.path);
+  if (untitled) {
+    useToastStore.getState().showToast(
+      `"Untitled" has unsaved changes. Save it before updating.`,
+    );
+    loggingService.logEventSync({
+      level: "warn",
+      event: "updater.prepare_relaunch",
+      status: "fail",
+      actionId,
+      context: { reason: "untitled_document", documentId: untitled.id },
+    });
+    return false;
+  }
 
+  for (const doc of modified) {
+    const path = doc.path as string;
     try {
       await fileService.saveFile({
         documentId: doc.id,
         content: doc.content,
-        path: doc.path,
+        path,
         encoding: doc.encoding,
         lineEnding: doc.lineEnding,
         actionId,
@@ -50,7 +89,7 @@ export async function prepareForRelaunch(): Promise<boolean> {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       useToastStore.getState().showToast(
-        `Failed to save "${doc.path.split("/").pop()}". Update cancelled.`,
+        `Failed to save "${path.split("/").pop()}". Update cancelled.`,
       );
       loggingService.logEventSync({
         level: "error",
