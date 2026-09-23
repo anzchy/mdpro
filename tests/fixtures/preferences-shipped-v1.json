@@ -1,0 +1,139 @@
+{
+  "$README": "FROZEN. This is a witness, not a fixture you maintain. It records the wire format a SHIPPED build wrote into a user's ~/.mdpro/config.json, and WI8-G (src-tauri/src/models/preferences_wi8_tests.rs) asserts that today's types still recover every value in it. NEVER EDIT THIS FILE IN THE SAME COMMIT AS A TYPE CHANGE. ADR-0031 declines serde(deny_unknown_fields), so a renamed wire key on a real user's file is silently ignored, serde(default) manufactures a replacement, and the user's value is destroyed with no error raised at any layer. Regenerating this file to get back to green destroys the only witness the third party -- every config.json already on disk -- has. The two legitimate ways back to green are a serde(alias = \"oldName\") or a written migration. A new shipped format gets preferences-shipped-v2.json added BESIDE this one, never an edit to v1. HOW IT WAS BUILT: today's complete key set minus keyboardShortcuts.viewSource, keyboardShortcuts.viewWysiwyg and markdown.autoReformatTablesOnSave, which ADR-0031 step 4 (WI-5) added to the Rust struct in this effort and which therefore never reached a shipped config.json. WI8-G deliberately TOLERATES keys the round trip adds (a new field must not turn a frozen witness red) and asserts only the two directions that mean data loss. Every value is non-default on purpose, so a discarded value cannot coincide with the default that replaces it; the keyboardShortcuts values are synthetic ('Shipped+<wireName>') for that reason. RULE: a '$'-prefixed key is a sibling annotation, skipped by the recursion.",
+  "themeMode": "light",
+  "autoSaveInterval": 90,
+  "defaultViewMode": "editor-only",
+  "lastViewMode": "split",
+  "showSidebar": false,
+  "enableScrollSync": false,
+  "recentFiles": [
+    "/Users/shipped/notes/one.md",
+    "/Users/shipped/notes/two.md"
+  ],
+  "windowState": {
+    "width": 1680,
+    "height": 1050,
+    "x": 64,
+    "y": 32,
+    "isMaximized": true
+  },
+  "keyboardShortcuts": {
+    "fileNew": "Shipped+fileNew",
+    "fileNewWindow": "Shipped+fileNewWindow",
+    "fileOpen": "Shipped+fileOpen",
+    "fileOpenQuickly": "Shipped+fileOpenQuickly",
+    "fileSave": "Shipped+fileSave",
+    "fileSaveAs": "Shipped+fileSaveAs",
+    "fileClose": "Shipped+fileClose",
+    "filePreferences": "Shipped+filePreferences",
+    "editCopyAsMarkdown": "Shipped+editCopyAsMarkdown",
+    "editPasteAsPlainText": "Shipped+editPasteAsPlainText",
+    "editSelectLine": "Shipped+editSelectLine",
+    "editSelectWord": "Shipped+editSelectWord",
+    "editDeleteWord": "Shipped+editDeleteWord",
+    "editJumpToTop": "Shipped+editJumpToTop",
+    "editJumpToBottom": "Shipped+editJumpToBottom",
+    "editFind": "Shipped+editFind",
+    "editFindNext": "Shipped+editFindNext",
+    "editFindPrevious": "Shipped+editFindPrevious",
+    "editReplace": "Shipped+editReplace",
+    "paragraphHeading1": "Shipped+paragraphHeading1",
+    "paragraphHeading2": "Shipped+paragraphHeading2",
+    "paragraphHeading3": "Shipped+paragraphHeading3",
+    "paragraphHeading4": "Shipped+paragraphHeading4",
+    "paragraphHeading5": "Shipped+paragraphHeading5",
+    "paragraphHeading6": "Shipped+paragraphHeading6",
+    "paragraphParagraph": "Shipped+paragraphParagraph",
+    "paragraphIncreaseHeading": "Shipped+paragraphIncreaseHeading",
+    "paragraphDecreaseHeading": "Shipped+paragraphDecreaseHeading",
+    "paragraphTable": "Shipped+paragraphTable",
+    "paragraphCodeFences": "Shipped+paragraphCodeFences",
+    "paragraphMathBlock": "Shipped+paragraphMathBlock",
+    "paragraphQuote": "Shipped+paragraphQuote",
+    "paragraphOrderedList": "Shipped+paragraphOrderedList",
+    "paragraphUnorderedList": "Shipped+paragraphUnorderedList",
+    "paragraphIndent": "Shipped+paragraphIndent",
+    "paragraphOutdent": "Shipped+paragraphOutdent",
+    "formatStrong": "Shipped+formatStrong",
+    "formatEmphasis": "Shipped+formatEmphasis",
+    "formatUnderline": "Shipped+formatUnderline",
+    "formatCode": "Shipped+formatCode",
+    "formatStrike": "Shipped+formatStrike",
+    "formatHyperlink": "Shipped+formatHyperlink",
+    "formatImage": "Shipped+formatImage",
+    "formatHighlight": "Shipped+formatHighlight",
+    "formatClearFormat": "Shipped+formatClearFormat",
+    "fileExportHtml": "Shipped+fileExportHtml",
+    "viewToggleSidebar": "Shipped+viewToggleSidebar",
+    "viewCycleViewMode": "Shipped+viewCycleViewMode",
+    "viewToggleFullscreen": "Shipped+viewToggleFullscreen",
+    "viewSwitchDocuments": "Shipped+viewSwitchDocuments",
+    "tableInsertRowAbove": "Shipped+tableInsertRowAbove",
+    "tableInsertRowBelow": "Shipped+tableInsertRowBelow",
+    "tableInsertColumnLeft": "Shipped+tableInsertColumnLeft",
+    "tableInsertColumnRight": "Shipped+tableInsertColumnRight",
+    "tableDeleteRow": "Shipped+tableDeleteRow",
+    "tableDeleteColumn": "Shipped+tableDeleteColumn"
+  },
+  "logging": {
+    "enabled": false,
+    "level": "warn"
+  },
+  "windowStates": {
+    "/Users/shipped/notes/one.md": {
+      "x": 340,
+      "y": 118,
+      "width": 2400,
+      "height": 1600,
+      "lastAccessed": 1719000000000
+    },
+    "/Users/shipped/notes/two.md": {
+      "x": 96,
+      "y": 74,
+      "width": 1180,
+      "height": 820,
+      "lastAccessed": 1719500000000
+    }
+  },
+  "autoSave": {
+    "enabled": false,
+    "intervalMs": 5000,
+    "debounceMs": 900,
+    "saveOnBlur": false
+  },
+  "tabBar": {
+    "position": "bottom",
+    "maxVisibleTabs": 4,
+    "showCloseOnHover": false,
+    "closeFocusBehavior": "right"
+  },
+  "image": {
+    "assetFolder": "./media",
+    "copyExternalImages": false,
+    "showPastePreview": false,
+    "maxDimension": 1920
+  },
+  "mcp": {
+    "enabled": true,
+    "startOnLaunch": true,
+    "autoApproveEdits": true
+  },
+  "editor": {
+    "fontFamily": "mono",
+    "fontSize": 14,
+    "lineHeightX10": 18,
+    "contentWidth": "narrow",
+    "tabSize": 2,
+    "wordWrap": false
+  },
+  "markdown": {
+    "autoPair": false
+  },
+  "appearance": {
+    "codeTheme": "oneDark"
+  },
+  "export": {
+    "defaultFolder": "/Users/shipped/Desktop",
+    "htmlIncludeStyles": false
+  }
+}

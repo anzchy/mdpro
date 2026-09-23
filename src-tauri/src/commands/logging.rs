@@ -37,13 +37,20 @@ pub async fn get_logging_settings() -> Result<LogSettings, String> {
 /// stays *inside* it so the disk write and the in-process cache never diverge.
 /// The `#[tauri::command]` wrapper is a one-line delegate and holds no logic.
 ///
-/// A failing `load_preferences()` is deliberately propagated as
-/// `PreferencesError::IoError` rather than being swallowed by
-/// `unwrap_or_default()`. This diverges from `preferences.rs:41`
-/// (`set_preferences`), and the divergence is intentional: falling back to
-/// defaults here would rewrite the user's entire config.json from defaults on
-/// the strength of one unreadable or corrupt file, silently discarding every
-/// other preference. Failing loudly leaves the existing file untouched.
+/// A failing `load_preferences()` is propagated rather than being swallowed by
+/// `unwrap_or_default()`: falling back to defaults here would rewrite the
+/// user's entire config.json from defaults on the strength of one unreadable or
+/// corrupt file, silently discarding every other preference. Failing loudly
+/// leaves the existing file untouched.
+///
+/// `set_preferences` and `save_window_state` used to diverge on this and no
+/// longer do — ADR-0031 step 1 replaced both `unwrap_or_default()` calls with
+/// `?`. One difference remains, and it is this function's inaccuracy rather
+/// than theirs: the `map_err` below re-labels **every** load failure as
+/// `IoError`, including a serde failure that `load_preferences` reports as
+/// `ParseError` (`services/preferences.rs:74`). The two sibling commands
+/// propagate the native variant. Correcting this one is pre-existing work that
+/// ADR-0031 step 1 deliberately left out of scope.
 ///
 /// # Locking
 ///

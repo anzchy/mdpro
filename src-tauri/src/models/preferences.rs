@@ -68,8 +68,18 @@ pub struct UserPreferences {
     pub export: ExportConfig,
 }
 
-/// Window geometry for per-file window position/size persistence
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// Window geometry for per-file window position/size persistence.
+///
+/// **Reference frame (ADR-0031 step 2, decision D-c).** `x` / `y` are the
+/// window's **outer** top-left corner and `width` / `height` are its **inner**
+/// (client-area) size — the frame `Window::setPosition` and `Window::setSize`
+/// apply on restore, and the frame `outerPosition()` / `innerSize()` report on
+/// save. Both numbers are stored in **logical points**, not physical pixels:
+/// `src/hooks/useWindowCloseGuard.ts` divides by `scaleFactor()` before
+/// writing, and `create_window` / `App.tsx` apply them as logical. Records
+/// written before WI-3 hold physical pixels and are therefore 2x inflated on a
+/// Retina display; `clamp_geometry` is what keeps those openable.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct WindowGeometry {
     pub x: i32,
@@ -82,7 +92,21 @@ pub struct WindowGeometry {
 
 /// Keyboard shortcut definitions
 /// Maps action names to key combinations
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+///
+/// # `Default` is hand-written, not derived (ADR-0031 step 4, WI-7)
+///
+/// Every field's default lives in a `#[serde(default = "…")]` attribute, and a
+/// `#[derive(Default)]` never consults those — it produces `String::default()`,
+/// i.e. `""`, for all 58 fields. That derived value is what `load_preferences`
+/// materialised to disk on first run, so every shipped `config.json` held 58
+/// empty accelerators. The hand-written impl below calls the same `default_*()`
+/// functions the attributes name, so the two mechanisms cannot diverge;
+/// `models/preferences_wi7_tests.rs::wi7_b_…` is the fence that keeps them
+/// equal when a field is added.
+///
+/// **Adding a field**: give it a `#[serde(default = "…")]` *and* a line in the
+/// impl below. Forgetting the second is what WI7-B fails on.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyboardShortcuts {
     // File operations
@@ -188,6 +212,10 @@ pub struct KeyboardShortcuts {
     pub file_export_html: String,
 
     // View operations
+    #[serde(default = "default_view_source")]
+    pub view_source: String,
+    #[serde(default = "default_view_wysiwyg")]
+    pub view_wysiwyg: String,
     #[serde(default = "default_toggle_sidebar")]
     pub view_toggle_sidebar: String,
     #[serde(default = "default_cycle_view_mode")]
@@ -210,6 +238,117 @@ pub struct KeyboardShortcuts {
     pub table_delete_row: String,
     #[serde(default = "default_table_delete_column")]
     pub table_delete_column: String,
+}
+
+impl Default for KeyboardShortcuts {
+    fn default() -> Self {
+        Self {
+            file_new: default_new(),
+            file_new_window: default_new_window(),
+            file_open: default_open(),
+            file_open_quickly: default_open_quickly(),
+            file_save: default_save(),
+            file_save_as: default_save_as(),
+            file_close: default_close(),
+            file_preferences: default_preferences(),
+            edit_copy_as_markdown: default_copy_as_markdown(),
+            edit_paste_as_plain_text: default_paste_as_plain_text(),
+            edit_select_line: default_select_line(),
+            edit_select_word: default_select_word(),
+            edit_delete_word: default_delete_word(),
+            edit_jump_to_top: default_jump_to_top(),
+            edit_jump_to_bottom: default_jump_to_bottom(),
+            edit_find: default_find(),
+            edit_find_next: default_find_next(),
+            edit_find_previous: default_find_previous(),
+            edit_replace: default_replace(),
+            paragraph_heading1: default_heading1(),
+            paragraph_heading2: default_heading2(),
+            paragraph_heading3: default_heading3(),
+            paragraph_heading4: default_heading4(),
+            paragraph_heading5: default_heading5(),
+            paragraph_heading6: default_heading6(),
+            paragraph_paragraph: default_paragraph(),
+            paragraph_increase_heading: default_increase_heading(),
+            paragraph_decrease_heading: default_decrease_heading(),
+            paragraph_table: default_table(),
+            paragraph_code_fences: default_code_fences(),
+            paragraph_math_block: default_math_block(),
+            paragraph_quote: default_quote(),
+            paragraph_ordered_list: default_ordered_list(),
+            paragraph_unordered_list: default_unordered_list(),
+            paragraph_indent: default_indent(),
+            paragraph_outdent: default_outdent(),
+            format_strong: default_strong(),
+            format_emphasis: default_emphasis(),
+            format_underline: default_underline(),
+            format_code: default_code(),
+            format_strike: default_strike(),
+            format_hyperlink: default_hyperlink(),
+            format_image: default_image(),
+            format_highlight: default_highlight(),
+            format_clear_format: default_clear_format(),
+            file_export_html: default_export_html(),
+            view_source: default_view_source(),
+            view_wysiwyg: default_view_wysiwyg(),
+            view_toggle_sidebar: default_toggle_sidebar(),
+            view_cycle_view_mode: default_cycle_view_mode(),
+            view_toggle_fullscreen: default_toggle_fullscreen(),
+            view_switch_documents: default_switch_documents(),
+            table_insert_row_above: default_table_insert_row_above(),
+            table_insert_row_below: default_table_insert_row_below(),
+            table_insert_column_left: default_table_insert_column_left(),
+            table_insert_column_right: default_table_insert_column_right(),
+            table_delete_row: default_table_delete_row(),
+            table_delete_column: default_table_delete_column(),
+        }
+    }
+}
+
+impl KeyboardShortcuts {
+    /// Substitutes the documented default for every binding that is the empty
+    /// string (ADR-0031 step 4, decision D-b).
+    ///
+    /// # Which invariant this is
+    ///
+    /// **Load-side only.** A `""` **may** sit on disk — a whole-group write
+    /// through `set_preferences` puts one there unchanged — and it is repaired
+    /// on **every read** through `load_preferences`. This is deliberately not
+    /// the stronger claim that no `""` ever reaches the file: a support dump,
+    /// the shortcuts panel's own file read, and any future migration all see
+    /// the raw document, and each would see the `""`.
+    /// `models/preferences_wi7_tests.rs::wi7_g_…` asserts exactly that, so the
+    /// narrowing is pinned rather than merely tolerated.
+    ///
+    /// # Why it goes through serde rather than 58 `if` statements
+    ///
+    /// Dropping the empty-valued keys and re-deserialising re-fires the
+    /// per-field `#[serde(default = "…")]` attributes, so this function cannot
+    /// fall out of step with a newly added field. It is also **per field**: a
+    /// user's real binding beside an empty one survives untouched, which
+    /// "replace the whole group with defaults" would destroy.
+    ///
+    /// # Recorded cost
+    ///
+    /// A user can never deliberately unbind a shortcut to nothing. That
+    /// capability does not exist today; reversing this needs a new ADR.
+    ///
+    /// Infallible by construction, and on the impossible serde error it
+    /// returns `self` unchanged rather than panicking on user-supplied data.
+    #[must_use]
+    pub fn with_empty_bindings_defaulted(self) -> Self {
+        let Ok(serde_json::Value::Object(map)) = serde_json::to_value(&self) else {
+            return self;
+        };
+        let bound: serde_json::Map<String, serde_json::Value> = map
+            .into_iter()
+            .filter(|(_, value)| value.as_str() != Some(""))
+            .collect();
+        match serde_json::from_value(serde_json::Value::Object(bound)) {
+            Ok(repaired) => repaired,
+            Err(_) => self,
+        }
+    }
 }
 
 // Default shortcut values (Typora macOS conventions)
@@ -355,6 +494,16 @@ fn default_export_html() -> String {
     "Cmd+Shift+E".to_string()
 }
 
+/// Mirrors the `menu.rs` accelerator `Some("Ctrl+2")` on the View → Source
+/// item and `src/types/preferences.ts`'s `viewSource` (rule 41).
+fn default_view_source() -> String {
+    "Ctrl+2".to_string()
+}
+/// Mirrors the `menu.rs` accelerator `Some("Ctrl+4")` on the View → WYSIWYG
+/// item and `src/types/preferences.ts`'s `viewWysiwyg` (rule 41).
+fn default_view_wysiwyg() -> String {
+    "Ctrl+4".to_string()
+}
 fn default_toggle_sidebar() -> String {
     "Cmd+Shift+L".to_string()
 }
@@ -399,6 +548,17 @@ pub enum ThemeMode {
     System,
 }
 
+/// Editor view mode, shared verbatim with the TypeScript `ViewMode` union in
+/// `src/types/preferences.ts`. The wire forms are kebab-case and are an IPC
+/// contract: changing one without the other silently voids whole payloads.
+///
+/// `Split`, `EditorOnly` and `PreviewOnly` are legacy values kept because
+/// `src/utils/viewModeUtils.ts` still migrates them on read and existing
+/// `config.json` files hold them. `Source` and `Wysiwyg` are the two live
+/// modes.
+///
+/// The variant set is deliberately **closed** — no `#[serde(other)]`. An
+/// unrecognised value must be reported, not silently coerced (ADR-0031 step 4).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ViewMode {
@@ -407,6 +567,7 @@ pub enum ViewMode {
     PreviewOnly,
     #[default]
     Wysiwyg,
+    Source,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -617,6 +778,10 @@ pub struct MarkdownConfig {
     /// Auto-pair brackets and quotes (closeBrackets extension)
     #[serde(default = "default_auto_pair")]
     pub auto_pair: bool,
+    /// Reformat GFM tables into aligned columns when the document is saved.
+    /// Opt-in: defaults to `false` (ADR-0031 step 4 / D23).
+    #[serde(default)]
+    pub auto_reformat_tables_on_save: bool,
 }
 
 fn default_auto_pair() -> bool {
@@ -627,6 +792,7 @@ impl Default for MarkdownConfig {
     fn default() -> Self {
         Self {
             auto_pair: default_auto_pair(),
+            auto_reformat_tables_on_save: false,
         }
     }
 }
@@ -722,3 +888,15 @@ impl Default for UserPreferences {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "preferences_wi6_tests.rs"]
+mod preferences_wi6_tests;
+
+#[cfg(test)]
+#[path = "preferences_wi7_tests.rs"]
+mod preferences_wi7_tests;
+
+#[cfg(test)]
+#[path = "preferences_wi8_tests.rs"]
+mod preferences_wi8_tests;

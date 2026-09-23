@@ -65,6 +65,12 @@ const { fake, invokeMock, logEventSync } = vi.hoisted(() => {
     innerSize: async () => ({ width: 1024, height: 768 }),
     outerPosition: async () => ({ x: 11, y: 22 }),
     isMaximized: async () => false,
+    // WI3-E stub completion: WI-3 makes `saveWindowState` call `scaleFactor()`.
+    // Without this field the fake throws, the hook's catch swallows it, and
+    // BOTH writes vanish — R3 and R4 would go red for a reason unrelated to
+    // their subject. `1` keeps their recorded geometry literal (11, 22,
+    // 1024x768) exactly as written: at scale 1 the conversion is the identity.
+    scaleFactor: async () => 1,
   };
 
   return {

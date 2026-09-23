@@ -59,6 +59,22 @@ fn config_path() -> Result<PathBuf, PreferencesError> {
     Ok(preferences_dir()?.join("config.json"))
 }
 
+/// Reads `~/.mdpro/config.json`, materialising defaults on first run.
+///
+/// # Empty shortcut bindings are repaired here (ADR-0031 step 4, decision D-b)
+///
+/// Every `config.json` a shipped build ever wrote holds 58 empty
+/// `keyboardShortcuts` values, because `KeyboardShortcuts` used to derive
+/// `Default`. Those keys are **present**, so serde's per-field defaults never
+/// fire for them — only a read-time repair reaches them, which is what
+/// [`KeyboardShortcuts::with_empty_bindings_defaulted`] does, per field, without
+/// disturbing a binding the user actually set.
+///
+/// **The repair is load-side only**: a `""` may still sit on disk (a whole-group
+/// write through `set_preferences` puts one there unchanged) and is substituted
+/// on every read. `models/preferences_wi7_tests.rs::wi7_g_…` pins that exact
+/// invariant; see the doc comment on the method for why the stronger write-side
+/// claim was not taken.
 pub fn load_preferences() -> Result<UserPreferences, PreferencesError> {
     let path = config_path()?;
     if !path.exists() {
@@ -71,9 +87,14 @@ pub fn load_preferences() -> Result<UserPreferences, PreferencesError> {
         message: err.to_string(),
     })?;
 
-    serde_json::from_str(&contents).map_err(|err| PreferencesError::ParseError {
-        message: err.to_string(),
-    })
+    let mut preferences: UserPreferences =
+        serde_json::from_str(&contents).map_err(|err| PreferencesError::ParseError {
+            message: err.to_string(),
+        })?;
+    preferences.keyboard_shortcuts = preferences
+        .keyboard_shortcuts
+        .with_empty_bindings_defaulted();
+    Ok(preferences)
 }
 
 pub fn save_preferences(preferences: &UserPreferences) -> Result<(), PreferencesError> {
@@ -271,7 +292,10 @@ mod tests {
             "default auto_pair should be true"
         );
         let updates = PartialPreferences {
-            markdown: Some(MarkdownConfig { auto_pair: false }),
+            markdown: Some(MarkdownConfig {
+                auto_pair: false,
+                auto_reformat_tables_on_save: false,
+            }),
             ..empty_partial()
         };
         let result = merge_preferences(current, updates);
@@ -561,3 +585,7 @@ mod tests {
         assert!(!result.enable_scroll_sync);
     }
 }
+
+#[cfg(test)]
+#[path = "preferences_wi5_tests.rs"]
+mod preferences_wi5_tests;

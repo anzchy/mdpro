@@ -83,6 +83,13 @@ export interface KeyboardShortcuts {
   fileNew: string;
   fileNewWindow: string;
   fileOpen: string;
+  /**
+   * Mirrors Rust's `default_open_quickly()`. Added by ADR-0031 step 4 so the
+   * two `KeyboardShortcuts` shapes agree. Deliberately absent from
+   * `SHORTCUT_CATEGORIES`: nothing consumes it yet, and listing an inert
+   * rebind control would manufacture another "setting that does nothing".
+   */
+  fileOpenQuickly: string;
   fileSave: string;
   fileSaveAs: string;
   fileClose: string;
@@ -158,6 +165,7 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   fileNew: "Cmd+N",
   fileNewWindow: "Cmd+Shift+N",
   fileOpen: "Cmd+O",
+  fileOpenQuickly: "Cmd+Shift+O",
   fileSave: "Cmd+S",
   fileSaveAs: "Cmd+Shift+S",
   fileClose: "Cmd+W",

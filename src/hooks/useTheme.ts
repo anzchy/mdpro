@@ -21,19 +21,27 @@ export function useTheme() {
   useEffect(() => {
     if (mode === "system") {
       void applySystemTheme();
+      // Assigned only after an await. `cancelled` is what makes a teardown that
+      // beats it still remove the handler the boundary registers afterwards.
+      let cancelled = false;
       let unlisten: (() => void) | null = null;
       listen<{ theme: "light" | "dark" }>("theme:changed", (event) => {
-        if (mode === "system") {
+        // Read the mode NOW, not from this render's closure: a handler that
+        // outlives its effect would keep a stale `mode === "system"` and
+        // overwrite an explicit Dark/Light choice (rule 50 §1).
+        if (useThemeStore.getState().mode === "system") {
           setResolvedTheme(event.payload.theme);
         }
       })
         .then((fn) => {
-          unlisten = fn;
+          if (cancelled) fn();
+          else unlisten = fn;
         })
         .catch(() => {
           // Ignore if events are not supported.
         });
       return () => {
+        cancelled = true;
         if (unlisten) unlisten();
       };
     }
