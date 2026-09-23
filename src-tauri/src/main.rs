@@ -13,7 +13,7 @@ use tokio::sync::oneshot;
 
 // Store the shutdown sender so the HTTP server stays alive
 static MCP_SHUTDOWN: OnceLock<Mutex<Option<oneshot::Sender<()>>>> = OnceLock::new();
-use tauri_app_lib::services::{http_server, logger, shadow_store};
+use tauri_app_lib::services::{app_exit, http_server, logger, shadow_store};
 
 // Track whether app has fully initialized (setup complete, main window ready)
 static APP_READY: OnceLock<AtomicBool> = OnceLock::new();
@@ -539,28 +539,12 @@ fn main() {
             }
         }
 
-        if let RunEvent::ExitRequested { .. } = event {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
-                event: "app.quit".to_string(),
-                status: LogStatus::Success,
-                action_id: None,
-                context: Some(json!({})),
-                duration_ms: None,
-                error: None,
-            });
-
-            // Gracefully shutdown MCP HTTP server by dropping the sender
-            if let Some(guard) = MCP_SHUTDOWN.get() {
-                if let Ok(mut opt) = guard.lock() {
-                    if let Some(tx) = opt.take() {
-                        let _ = tx.send(());
-                    }
-                }
-            }
-
-            // Cleanup MCP server config files
-            http_server::cleanup_server_config();
+        // Exit is the only cleanup site. The request-stage event that precedes
+        // it can be vetoed, so cleaning up there ran on quits that never
+        // happened and still left stale server.port / server.token behind on
+        // the ones that did. See services::app_exit.
+        if let RunEvent::Exit = event {
+            app_exit::run_exit_cleanup(MCP_SHUTDOWN.get_or_init(|| Mutex::new(None)));
         }
     });
 

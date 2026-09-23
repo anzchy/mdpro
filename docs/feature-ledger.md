@@ -236,6 +236,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 客户端配置安装器 | Shipped | `src-tauri/src/commands/mcp.rs` | ⌘, → Integrations 里对 Claude Desktop / Claude Code / Codex CLI / Gemini CLI 点 Install（`mcp_install_config`），对应客户端的配置文件被写好；已安装状态由 `mcp_get_installations` 列出，再点 Remove（`mcp_remove_config`）能撤销 |
 | 连接测试与端口复制 | Shipped | `src/components/common/IntegrationsSettings.tsx` | 点「Test Connection」得到结果；点复制按钮拿到 `localhost:<port>` |
 | 令牌与来源校验 | Shipped | `src-tauri/src/services/http_server.rs` | 不带 token 直接 curl `/api/status` 被拒；带上正确 token 才返回 |
+| 退出时清理服务配置 | Shipped | `src-tauri/src/services/app_exit.rs` | 开着 MCP 服务退出 mdpro，`~/Library/Application Support/mdpro/` 下的 `server.port` 与 `server.token` 应该都不在了，日志有一条 `app.quit` `status: success`。**2026-09-23 之前这两个文件每次退出都留着**（D16 定点侦察发现）：清理逻辑挂在 `RunEvent::ExitRequested` 上，而 macOS 的 ⌘Q / 菜单退出 / Dock 退出 / AppleScript 退出全都直接走 AppKit `terminate:`，那条事件根本不触发，于是上一轮的端口与令牌一直躺在盘上。现在整段搬到 `RunEvent::Exit`，它在每条退出路径上都会跑。**目前只有单元测试证据**（`app_exit_tests.rs` 5 例，含「只删这两个文件、草稿与同目录其它文件逐字节不变」「跑两次不炸」「锁中毒仍能关停」），真机退出的端到端确认是 D16 的 G1，尚未执行 |
 | 通过 HTTP 新建文档 | Partial | `src-tauri/src/services/http_server.rs`, `src/hooks/useMcpEvents.ts` | 限制：只有 `/api/documents/new` 这个 HTTP 端点，`mdpro_mcp.rs` 注册的四个工具里没有它，AI 客户端经 MCP 调不到。用 curl 带 token 打 `/api/documents/new`，mdpro 里确实会多出一个新文档 |
 | MCP 服务器信息查询 | Partial | `src-tauri/src/commands/mcp.rs` | 限制：`mcp_get_server_info` 注册着，但 `src/` 与 `tests/` 里零调用点——设置页的端口、token 与运行状态全部来自 `mcp_get_status`。它不是坏的，是没人接 |
 

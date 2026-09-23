@@ -1,3 +1,4 @@
+pub mod app_exit;
 pub mod draft;
 pub mod encoding;
 pub mod file_watcher;
