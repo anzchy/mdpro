@@ -23,14 +23,19 @@
 //!   failure is data loss, so tests exercise the real thing.
 //! - **An effect that reports failure is acted on, not discarded** (ADR-0029
 //!   §4). A prompt that was not delivered goes straight back to the coordinator
-//!   rather than waiting out a deadline for a dialog nobody has; a reply or an
+//!   rather than waiting out a deadline for a dialog nobody has, and is logged
+//!   as `effect_failed/emitPrompt`, never as a timeout; a reply or an
 //!   alert that was not dispatched is logged at error level, and a failed alert
-//!   hands the request back so the windows can still resolve it.
+//!   hands the request back so the windows can still resolve it. A broadcast or
+//!   an activation that failed is logged and changes nothing else.
 //! - **A timer is armed only for a prompt that was actually handed over**, and
 //!   at the coordinator's instant — the driver never computes a deadline.
 //! - **The answer is logged after the coordinator has ruled**, with the ruling.
 //!   Logging it on arrival reported every refusal as `status:"success"`, so a
-//!   cancel that did nothing was indistinguishable from one that worked.
+//!   cancel that did nothing was indistinguishable from one that worked. The
+//!   alert's answer is logged the same way, as `app.quit.fallback`.
+//! - The draft-deletion loop lives in `driver_commit.rs`; a deletion that fails
+//!   makes the `app.quit.commit` line `fail`.
 //!
 //! @coordinates-with docs/adr/0029-quit-deadlines-bound-machine-progress-not-people.md
 //! @coordinates-with docs/adr/0025-app-quit-is-deferred-through-a-native-terminate-hook.md
@@ -41,13 +46,15 @@ use std::sync::Mutex;
 use super::logging;
 use super::plan::{translate, Plan};
 use super::DraftGate;
-use crate::services::draft;
+
+#[path = "driver_commit.rs"]
+mod commit;
 
 pub use super::coordinator::{
     AbortReason, Answer, Begin, FallbackAnswer, IgnoredWhy, QuitCoordinator, Step,
     QUIT_ACK_TIMEOUT_MS, QUIT_PROMPT_DELIVERY_TIMEOUT_MS,
 };
-pub use super::events::{CommitReport, QuitEffects, QuitEvent};
+pub use super::events::{deliver_fallback, CommitReport, FallbackSink, QuitEffects, QuitEvent};
 pub use super::reply::{validate_discard_ids, QuitAnswer, MAX_DISCARD_IDS};
 
 struct Inner {
@@ -111,7 +118,9 @@ impl<E: QuitEffects> QuitGuard<E> {
         if let Begin::Later { request_id } = &outcome {
             let request_id = *request_id;
             logging::log_request(request_id, window_labels.len());
-            self.effects.emit_all(QuitEvent::Requested { request_id });
+            if !self.effects.emit_all(QuitEvent::Requested { request_id }) {
+                logging::log_effect_failed(request_id, "emitRequested");
+            }
             self.effects
                 .arm_timer(request_id, now_ms.saturating_add(QUIT_ACK_TIMEOUT_MS));
         }
@@ -128,11 +137,14 @@ impl<E: QuitEffects> QuitGuard<E> {
         document_ids: Option<Vec<String>>,
         now_ms: u64,
     ) -> Result<(), String> {
+        // Counted before validation so a refusal still logs how many ids came.
+        let sent = document_ids.as_deref().unwrap_or_default();
+        let refused_context = logging::answer_log_context(label, answer, request_id, sent);
         let ids = match validate_discard_ids(answer, document_ids) {
             Ok(ids) => ids,
             Err(err) => {
-                let context = logging::answer_log_context(label, answer, request_id, &[]);
-                logging::log_answer(context, Some(err.clone()));
+                // `err` names an index or a limit, never an id (see `reply`).
+                logging::log_answer(refused_context, Some(err.clone()));
                 return Err(err);
             }
         };
@@ -169,9 +181,12 @@ impl<E: QuitEffects> QuitGuard<E> {
         self.run(plan);
     }
 
-    /// The user's answer to the native timeout alert (ADR-0027).
+    /// The user's answer to the native timeout alert (ADR-0027). Logged with
+    /// the coordinator's ruling, before the plan runs, so the line precedes the
+    /// commit or cancel it causes.
     pub fn fallback_answer(&self, request_id: u64, answer: FallbackAnswer) {
-        let (plan, _) = self.plan(|c| c.on_fallback_answer(request_id, answer));
+        let (plan, refusal) = self.plan(|c| c.on_fallback_answer(request_id, answer));
+        logging::log_fallback(request_id, answer, refusal.map(IgnoredWhy::as_str));
         self.run(plan);
     }
 
@@ -198,8 +213,11 @@ impl<E: QuitEffects> QuitGuard<E> {
             } => {
                 logging::log_prompt(request_id, &label);
                 // Front first, then ask: a dialog in a window the user cannot
-                // see reads as a hang.
-                self.effects.activate(&label);
+                // see reads as a hang. A failed activation is logged only:
+                // the prompt may still reach a window that is already in front.
+                if !self.effects.activate(&label) {
+                    logging::log_effect_failed(request_id, "activate");
+                }
                 if self
                     .effects
                     .emit_to(&label, QuitEvent::Prompt { request_id })
@@ -209,8 +227,13 @@ impl<E: QuitEffects> QuitGuard<E> {
                     // only one that knows this is a machine step (ADR-0029).
                     self.effects.arm_timer(request_id, deadline_ms);
                 } else {
-                    let (plan, _) = self.plan(|c| c.on_delivery_failed(request_id, &label));
-                    self.run(plan);
+                    // Logged as what it is, not as a timeout: no deadline ran.
+                    // The cause lives in this call only, never in the guard.
+                    logging::log_effect_failed(request_id, "emitPrompt");
+                    match self.plan(|c| c.on_delivery_failed(request_id, &label)).0 {
+                        Plan::Fallback { timed_out, .. } => self.fallback(request_id, timed_out),
+                        plan => self.run(plan),
+                    }
                 }
             }
             Plan::Rearm {
@@ -222,19 +245,15 @@ impl<E: QuitEffects> QuitGuard<E> {
                 timed_out,
             } => {
                 logging::log_timeout(request_id, timed_out.len(), QUIT_ACK_TIMEOUT_MS);
-                if !self.effects.native_fallback(request_id, timed_out) {
-                    logging::log_effect_failed(request_id, "nativeFallback");
-                    // An alert that was never posted cannot own the request.
-                    // Leaving it owned would strand a quit behind a dialog that
-                    // does not exist.
-                    self.lock().coordinator.release_fallback(request_id);
-                }
+                self.fallback(request_id, timed_out);
             }
             Plan::Abort { request_id, reason } => {
                 logging::log_cancel(request_id, &reason);
                 // Close every open dialog before refusing, so no window is left
                 // showing a prompt for a request that no longer exists.
-                self.effects.emit_all(QuitEvent::Cancelled { request_id });
+                if !self.effects.emit_all(QuitEvent::Cancelled { request_id }) {
+                    logging::log_effect_failed(request_id, "emitCancelled");
+                }
                 if !self.effects.reply(false) {
                     logging::log_effect_failed(request_id, "reply");
                 }
@@ -249,19 +268,7 @@ impl<E: QuitEffects> QuitGuard<E> {
                 // discarded draft back behind the loop (ADR-0025 §4).
                 let report = {
                     let _closed = self.committed.close();
-                    let mut report = CommitReport::default();
-                    for id in &discard_document_ids {
-                        self.effects.on_delete(id);
-                        match draft::delete_draft(id) {
-                            Ok(true) => report.deleted += 1,
-                            // Nothing to delete: the draft was never written.
-                            Ok(false) => {}
-                            // One draft that will not go must not strand the
-                            // quit; it is counted and the rest still run.
-                            Err(_) => report.failed += 1,
-                        }
-                    }
-                    report
+                    commit::delete_discarded(&self.effects, &discard_document_ids)
                 };
                 // The gate guard is released above, before the coordinator
                 // mutex is taken and before the reply is posted: see the lock
@@ -272,6 +279,16 @@ impl<E: QuitEffects> QuitGuard<E> {
                     logging::log_effect_failed(request_id, "reply");
                 }
             }
+        }
+    }
+
+    /// Post the native alert. An alert that was never posted cannot own the
+    /// request: leaving it owned would strand a quit behind a dialog that does
+    /// not exist.
+    fn fallback(&self, request_id: u64, timed_out: Vec<String>) {
+        if !self.effects.native_fallback(request_id, timed_out) {
+            logging::log_effect_failed(request_id, "nativeFallback");
+            self.lock().coordinator.release_fallback(request_id);
         }
     }
 

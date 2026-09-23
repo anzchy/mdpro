@@ -99,12 +99,12 @@ fn f3_quit_anyway_commits_with_an_empty_id_set() {
 #[test]
 fn f3b_quit_anyway_carries_no_ids_from_an_accepted_discard() {
     // The literal matrix shape - one window answers `discard(["x1"])` and a
-    // *later* tick in the same request times another window out - is not
-    // reachable: a discard is only accepted from a prompted window, and a
-    // window is only prompted once every window has acked, at which point no
-    // window can time out. The reachable form of the same conservation claim is
-    // an accepted `discard(["x1"])` in an earlier request of the same
-    // coordinator. An implementation that accumulates discard ids anywhere but
+    // *later* tick in the same request times another window out - is reached
+    // only through a missed prompt-delivery deadline. Whether those ids survive
+    // is audit row 3 (ADR-triaged, open); the sequence itself is pinned by
+    // `wi11_row3_discard_then_another_windows_delivery_times_out`. This test
+    // pins the cross-request form: an accepted `discard(["x1"])` in an earlier
+    // request of the same coordinator. An implementation that accumulates discard ids anywhere but
     // the live request, or that routes the fallback through the ordinary commit
     // path, fails here.
     let mut c = QuitCoordinator::new();

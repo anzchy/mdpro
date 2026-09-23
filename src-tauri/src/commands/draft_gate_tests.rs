@@ -140,11 +140,15 @@ fn g2_a_committed_quit_stops_the_draft_from_being_rewritten() {
 
 struct NoopEffects;
 impl QuitEffects for NoopEffects {
-    fn emit_all(&self, _event: QuitEvent) {}
+    fn emit_all(&self, _event: QuitEvent) -> bool {
+        true
+    }
     fn emit_to(&self, _label: &str, _event: QuitEvent) -> bool {
         true
     }
-    fn activate(&self, _label: &str) {}
+    fn activate(&self, _label: &str) -> bool {
+        true
+    }
     fn arm_timer(&self, _request_id: u64, _deadline_ms: u64) {}
     fn reply(&self, _terminate: bool) -> bool {
         true

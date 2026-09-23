@@ -11,6 +11,12 @@
 //! - Draft deletion is **not** in the trait. It is the one effect whose failure
 //!   is data loss, so the tests exercise the real filesystem; `on_delete` is an
 //!   observation point, not a substitution.
+//! - The alert's answer enters through `deliver_fallback`, so the one call
+//!   site that can find no guard logs it instead of dropping it.
+
+use super::coordinator::FallbackAnswer;
+use super::driver::QuitGuard;
+use super::logging;
 
 /// An event the driver sends to the frontend.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,14 +54,18 @@ pub struct CommitReport {
 
 /// Every platform effect the driver can have.
 ///
-/// The three liveness-critical ones return whether they were dispatched
-/// (ADR-0029 §4). A discarded failure here is not a lost log line but a
-/// permanently unquittable app, so the driver has to be able to see it.
+/// Every effect but the timer returns whether it was dispatched (ADR-0029
+/// §4). A discarded failure of a liveness-critical one is not a lost log line
+/// but a permanently unquittable app, so the driver has to be able to see it;
+/// the others (`emit_all`, `activate`) are logged and change nothing. The
+/// timer reports its own main-thread dispatch (`effects::report_dispatch`).
 pub trait QuitEffects: Send + Sync + 'static {
-    fn emit_all(&self, event: QuitEvent);
+    /// `false` when the broadcast could not be emitted.
+    fn emit_all(&self, event: QuitEvent) -> bool;
     /// `false` when the event could not be handed to `label`'s webview.
     fn emit_to(&self, label: &str, event: QuitEvent) -> bool;
-    fn activate(&self, label: &str);
+    /// `false` when the app or `label`'s window could not be brought forward.
+    fn activate(&self, label: &str) -> bool;
     fn arm_timer(&self, request_id: u64, deadline_ms: u64);
     /// `false` when `replyToApplicationShouldTerminate:` could not be posted.
     fn reply(&self, terminate: bool) -> bool;
@@ -65,5 +75,33 @@ pub trait QuitEffects: Send + Sync + 'static {
     /// Called immediately before each real `delete_draft`.
     fn on_delete(&self, document_id: &str) {
         let _ = document_id;
+    }
+}
+
+/// Where the ADR-0027 alert's answer goes. A trait so the macOS call site's
+/// routing (`deliver_fallback`) is testable without an `AppHandle`.
+pub trait FallbackSink {
+    fn fallback_answer(&self, request_id: u64, answer: FallbackAnswer);
+}
+
+impl<E: QuitEffects> FallbackSink for QuitGuard<E> {
+    fn fallback_answer(&self, request_id: u64, answer: FallbackAnswer) {
+        QuitGuard::fallback_answer(self, request_id, answer);
+    }
+}
+
+/// Hand the alert's answer to the guard, or log that there was none.
+///
+/// The macOS alert calls this with `try_state::<AppQuitGuard>()`. A missing
+/// guard writes one `app.quit.fallback` fail line (`noGuard`) instead of
+/// dropping the answer silently; a present one is exactly a direct call.
+pub fn deliver_fallback<G: FallbackSink>(
+    guard: Option<&G>,
+    request_id: u64,
+    answer: FallbackAnswer,
+) {
+    match guard {
+        Some(guard) => guard.fallback_answer(request_id, answer),
+        None => logging::log_fallback_no_guard(request_id, answer),
     }
 }

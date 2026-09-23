@@ -17,8 +17,9 @@ use tauri::State;
 
 // ── Payload size limits ────────────────────────────────────────────────────────
 
-/// Maximum number of documents allowed in a single sync payload.
-const MAX_DOCUMENTS_PER_WINDOW: usize = 100;
+/// Maximum number of documents allowed in a single sync payload. Shared with
+/// the quit guard's discard cap, so it is defined once at the crate root.
+pub(crate) use crate::MAX_DOCUMENTS_PER_WINDOW;
 
 /// Maximum size of a single document's content in bytes (10 MB).
 const MAX_DOCUMENT_CONTENT_BYTES: usize = 10 * 1024 * 1024;

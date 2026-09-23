@@ -19,6 +19,9 @@
 //! - **The alert is presented outside the coordinator lock.** `run_on_main_thread`
 //!   posts and returns, so `native_fallback` never holds a guard across
 //!   `runModal`, whose nested run loop can re-enter the driver.
+//! - **The alert's answer goes through `deliver_fallback`**, so an answer with no
+//!   guard left to take it is logged (`noGuard`), not dropped. A post that fails
+//!   (`activate_app`, the reply, the alert) is returned for the caller to log.
 //!
 //! @coordinates-with docs/adr/0025-app-quit-is-deferred-through-a-native-terminate-hook.md
 //! @coordinates-with docs/adr/0027-a-quit-ack-timeout-draws-a-native-alert.md
@@ -37,6 +40,7 @@ use tauri::{AppHandle, Manager};
 
 use super::coordinator::Begin;
 use super::effects::{now_ms, AppQuitGuard};
+use super::events::deliver_fallback;
 use super::{fallback_answer_for, logging, ns_reply_for, InstallOutcome, NS_TERMINATE_NOW};
 
 /// The alert's wording (ADR-0027 §2). It names no document and offers no save:
@@ -203,9 +207,10 @@ pub fn install(app: &AppHandle) {
 }
 
 /// Bring the app forward before a window is prompted (ADR-0025 §2). A dialog in
-/// a hidden app is never painted, which reads as a hang.
-pub fn activate_app(app: &AppHandle) {
-    let _ = app.run_on_main_thread(|| {
+/// a hidden app is never painted, which reads as a hang. Returns the dispatch
+/// result (`Err` when the post failed), so the caller can log it (D16F row 12).
+pub fn activate_app(app: &AppHandle) -> tauri::Result<()> {
+    app.run_on_main_thread(|| {
         let Some(mtm) = MainThreadMarker::new() else {
             return;
         };
@@ -213,7 +218,7 @@ pub fn activate_app(app: &AppHandle) {
         ns_app.unhide(None);
         #[allow(deprecated)]
         ns_app.activateIgnoringOtherApps(true);
-    });
+    })
 }
 
 /// Resolve the pending `NSTerminateLater`. Called exactly once per request,
@@ -267,9 +272,12 @@ pub fn present_timeout_alert(app: &AppHandle, request_id: u64) -> bool {
             quit_anyway.setKeyEquivalent(&NSString::from_str(""));
 
             let answer = fallback_answer_for(alert.runModal());
-            if let Some(guard) = app.try_state::<AppQuitGuard>() {
-                guard.fallback_answer(request_id, answer);
-            }
+            // No guard is logged, not dropped (`deliver_fallback`).
+            deliver_fallback(
+                app.try_state::<AppQuitGuard>().as_deref(),
+                request_id,
+                answer,
+            );
         })
         .is_ok()
 }

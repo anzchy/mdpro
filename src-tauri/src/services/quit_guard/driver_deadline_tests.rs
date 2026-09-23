@@ -11,14 +11,14 @@
 //! surface without touching the developer's own log.
 
 use super::driver::*;
-use super::driver_tests::{effects_of, later, leak_gate, recording_guard, set_home, Effect};
+use super::driver_fixtures::{
+    effects_of, entries_where, fresh_log_home, later, leak_gate, recording_guard, set_home, Effect,
+};
 use super::logging::effect_failure_log_context;
 use crate::models::{LogLevel, LogSettings};
 use crate::services::logger;
 use crate::HOME_LOCK;
 use serde_json::Value;
-use std::fs;
-use std::path::{Path, PathBuf};
 
 // ── Q9: the prompt's deadline is armed, after the window is fronted ──────────
 
@@ -153,44 +153,6 @@ fn q12_a_native_fallback_that_was_not_dispatched_leaves_the_request_answerable()
 }
 
 // ── Q12b / Q13: what the log says when an effect or an answer fails ──────────
-
-/// A temp `$HOME` with an empty log file, plus logging forced on: the settings
-/// cache is a process-wide `OnceLock` an earlier test may have left disabled,
-/// which would make a log assertion vacuously pass.
-fn fresh_log_home(label: &str) -> PathBuf {
-    let home = std::env::temp_dir().join("mdpro_test").join(label);
-    let _ = fs::remove_dir_all(&home);
-    fs::create_dir_all(&home).expect("temp home is creatable");
-    home
-}
-
-fn log_lines(home: &Path) -> Vec<Value> {
-    let raw = fs::read_to_string(home.join(".mdpro").join("mdpro.log")).unwrap_or_default();
-    raw.lines()
-        .filter(|l| !l.trim().is_empty())
-        .filter_map(|l| serde_json::from_str::<Value>(l).ok())
-        .collect()
-}
-
-/// Lines for one event and request id, narrowed further by `distinguishes` —
-/// a `$HOME` is process-wide, so a test running in parallel writes into this
-/// same file, and request ids restart at 1 for every guard. The extra predicate
-/// is what makes the count assertions below about this test's own lines.
-fn entries_where(
-    home: &Path,
-    event: &str,
-    request_id: u64,
-    distinguishes: impl Fn(&Value) -> bool,
-) -> Vec<Value> {
-    log_lines(home)
-        .into_iter()
-        .filter(|v| {
-            v.get("event").and_then(Value::as_str) == Some(event)
-                && v.pointer("/context/requestId").and_then(Value::as_u64) == Some(request_id)
-                && distinguishes(v)
-        })
-        .collect()
-}
 
 #[test]
 fn q12b_an_effect_that_was_not_dispatched_is_logged_as_a_failure() {

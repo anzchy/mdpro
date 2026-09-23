@@ -1,12 +1,12 @@
 //! Purpose: the guarded app-quit path (D16).
 //!
-//! Pipeline: `applicationShouldTerminate:` (WI-4) -> driver (WI-3) ->
-//! `coordinator` (this work item) -> NSApp reply.
+//! Pipeline: `applicationShouldTerminate:` (`macos`) -> `driver` ->
+//! `coordinator` -> `effects` -> NSApp reply.
 //!
 //! Key decisions:
 //! - The decision logic is a pure state machine in `coordinator`: no
 //!   `AppHandle`, no objc, no clock. It compiles on every platform.
-//! - Only the hook and the effects adapter are `cfg(target_os = "macos")`.
+//! - Only `macos` (the hook) is cfg-gated; `effects` branches inside per target.
 //! - **One quit-committed gate.** `QUIT_COMMITTED` is the single static that
 //!   `QuitGuard::new` closes on commit and `commands::draft::save_draft` passes
 //!   its write through. Two gates would let an auto-save tick recreate a draft
@@ -243,8 +243,8 @@ pub fn on_window_event<E: QuitEffects>(
 ) {
     if matches!(event, tauri::WindowEvent::Destroyed) {
         // The window event carries no timestamp, and the coordinator needs one
-        // to date any prompt this gone lets through; this is the same wall
-        // clock every other production entry point reads.
+        // to date any prompt this gone lets through; this is the same
+        // monotonic clock every other production entry point reads.
         guard.window_gone(label, effects::now_ms());
     }
 }
@@ -254,8 +254,24 @@ pub fn on_window_event<E: QuitEffects>(
 mod native_tests;
 
 #[cfg(test)]
+#[path = "driver_fixtures.rs"]
+mod driver_fixtures;
+
+#[cfg(test)]
 #[path = "driver_tests.rs"]
 mod driver_tests;
+
+#[cfg(test)]
+#[path = "driver_commit_tests.rs"]
+mod driver_commit_tests;
+
+#[cfg(test)]
+#[path = "driver_concurrency_tests.rs"]
+mod driver_concurrency_tests;
+
+#[cfg(test)]
+#[path = "driver_window_tests.rs"]
+mod driver_window_tests;
 
 #[cfg(test)]
 #[path = "driver_prop_tests.rs"]
@@ -264,3 +280,19 @@ mod driver_prop_tests;
 #[cfg(test)]
 #[path = "driver_deadline_tests.rs"]
 mod driver_deadline_tests;
+
+#[cfg(test)]
+#[path = "driver_fixtures_tests.rs"]
+mod driver_fixtures_tests;
+
+#[cfg(test)]
+#[path = "driver_redaction_tests.rs"]
+mod driver_redaction_tests;
+
+#[cfg(test)]
+#[path = "driver_cap_tests.rs"]
+mod driver_cap_tests;
+
+#[cfg(test)]
+#[path = "driver_commit_log_tests.rs"]
+mod driver_commit_log_tests;

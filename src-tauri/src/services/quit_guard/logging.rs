@@ -1,4 +1,4 @@
-//! Purpose: the six `app.quit.*` log events, in one place.
+//! Purpose: the ten `app.quit.*` log events, in one place.
 //!
 //! Key decisions:
 //! - **Counts, never ids, never content.** A draft id names a document the user
@@ -12,7 +12,7 @@
 
 use serde_json::{json, Value};
 
-use super::coordinator::AbortReason;
+use super::coordinator::{AbortReason, FallbackAnswer};
 use super::driver::{CommitReport, QuitAnswer};
 use super::InstallOutcome;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
@@ -98,6 +98,46 @@ pub(super) fn log_effect_failed(request_id: u64, effect: &str) {
     );
 }
 
+/// The wire name of an alert answer: the bare enum the frontend and the log
+/// share, never `Debug` formatting.
+fn fallback_answer_str(answer: FallbackAnswer) -> &'static str {
+    match answer {
+        FallbackAnswer::KeepOpen => "keepOpen",
+        FallbackAnswer::QuitAnyway => "quitWithoutSaving",
+    }
+}
+
+/// Context for `app.quit.fallback`: exactly which request the alert answered,
+/// and how. No window label — the alert belongs to the app, not a window.
+pub fn fallback_log_context(request_id: u64, answer: FallbackAnswer) -> Value {
+    json!({
+        "requestId": request_id,
+        "answer": fallback_answer_str(answer),
+    })
+}
+
+/// `app.quit.fallback`: `success` when the coordinator took the alert's answer,
+/// `fail` at error level with the refusal reason when it did not.
+pub(super) fn log_fallback(request_id: u64, answer: FallbackAnswer, refusal: Option<&str>) {
+    let status = if refusal.is_some() {
+        LogStatus::Fail
+    } else {
+        LogStatus::Success
+    };
+    write(
+        "app.quit.fallback",
+        status,
+        fallback_log_context(request_id, answer),
+        refusal.map(str::to_string),
+    );
+}
+
+/// The alert was answered but no guard is managed to take the answer. Logged
+/// rather than dropped: a silent drop leaves a quit unresolved with no trace.
+pub(super) fn log_fallback_no_guard(request_id: u64, answer: FallbackAnswer) {
+    log_fallback(request_id, answer, Some("noGuard"));
+}
+
 /// Context for `app.quit.commit`: what the commit did to the drafts.
 pub fn commit_log_context(report: &CommitReport) -> Value {
     json!({
@@ -155,12 +195,24 @@ pub(super) fn log_cancel(request_id: u64, reason: &AbortReason) {
     );
 }
 
+/// `app.quit.commit`. A draft that would not delete makes the line `Fail` at
+/// error level with a count-only reason — the quit itself still commits
+/// (ADR-0025 §4), but a leftover discarded draft must not be logged as success.
+/// `LogStatus` has no partial variant, so any failure is `Fail`.
 pub(super) fn log_commit(request_id: u64, report: &CommitReport) {
     let mut context = commit_log_context(report);
     if let Some(map) = context.as_object_mut() {
         map.insert("requestId".to_string(), json!(request_id));
     }
-    write("app.quit.commit", LogStatus::Success, context, None);
+    let (status, error) = if report.failed > 0 {
+        (
+            LogStatus::Fail,
+            Some(format!("{} draft deletions failed", report.failed)),
+        )
+    } else {
+        (LogStatus::Success, None)
+    };
+    write("app.quit.commit", status, context, error);
 }
 
 fn write(event: &str, status: LogStatus, context: Value, error: Option<String>) {

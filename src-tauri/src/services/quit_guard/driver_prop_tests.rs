@@ -10,7 +10,7 @@
 //! laws asserted here are about the *driver's* effects, not the state machine.
 
 use super::driver::*;
-use super::driver_tests::{
+use super::driver_fixtures::{
     bundle, drafts_dir, effects_of, later, leak_gate, make_temp_home, recording_guard, set_home,
     Effect, QuitCommittedReset,
 };
