@@ -28,8 +28,9 @@
  * the window `onCloseRequested` handler, the close-request handler, the quit
  * protocol and the file-change effect; the logic itself lives here.
  *
- * @coordinates-with src/App.tsx (onCloseRequested, handleCloseRequest,
- *   file-change effect)
+ * @coordinates-with src/hooks/useWindowCloseGuard.ts — onCloseRequested, which
+ *   moved out of App.tsx in D16 WI-6
+ * @coordinates-with src/App.tsx (handleCloseRequest, file-change effect)
  * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEdits
  * @coordinates-with src/services/quitGuardService.ts — the reply that carries
  *   `quitAnswerFor`'s answer and `dirtyDocuments`' ids to Rust

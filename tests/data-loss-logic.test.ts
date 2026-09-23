@@ -32,10 +32,18 @@ vi.mock("../src/services/loggingService", () => ({
   },
 }));
 
-const APP_SRC = fs.readFileSync(
-  path.resolve(__dirname, "../src/App.tsx"),
-  "utf-8",
-);
+/**
+ * D16 WI-6 moved the OS window-close guard out of `App.tsx` and into
+ * `src/hooks/useWindowCloseGuard.ts` (the effect leaked a close handler on every
+ * edit). These are source-text contracts on the *App close path*, not on a
+ * filename, so the pointer follows the code: App.tsx first, then the hook it now
+ * delegates the guard to. No assertion below was weakened to accommodate the
+ * move — the slices still start inside App.tsx.
+ */
+const APP_SRC = [
+  fs.readFileSync(path.resolve(__dirname, "../src/App.tsx"), "utf-8"),
+  fs.readFileSync(path.resolve(__dirname, "../src/hooks/useWindowCloseGuard.ts"), "utf-8"),
+].join("\n");
 const WATCHER_SRC = fs.readFileSync(
   path.resolve(__dirname, "../src/hooks/useFileWatcher.ts"),
   "utf-8",
@@ -65,7 +73,11 @@ describe("data-loss: unsaved-changes → window close", () => {
   it("shows the confirm prompt (not a silent close) when there are unsaved changes", () => {
     // decideWindowClose returns "prompt" for a dirty doc; that branch opens the
     // dialog rather than closing. (Behavior asserted in data-loss-behavior.test.ts.)
-    expect(APP_SRC).toMatch(/decideWindowClose\(/);
+    // D16 WI-6: the close path now calls the ONE shared exit entry point
+    // (`windowCloseDecisionAfterFlush`, ADR-0025) instead of composing
+    // `decideWindowClose` itself. Same decision, one call site for all three
+    // exit paths.
+    expect(APP_SRC).toMatch(/windowCloseDecisionAfterFlush\(/);
     expect(APP_SRC).toMatch(/if\s*\(\s*decision\s*===\s*["']prompt["']\s*\)/);
     expect(APP_SRC).toMatch(/setPendingClose\(\s*["']window["']\s*\)/);
   });
@@ -155,7 +167,12 @@ describe("data-loss: external-edit conflict", () => {
 
 describe("D15 WI-3 — App close handlers read flushed store state, not render state", () => {
   it("onCloseRequested decides on the flushed any-document-modified state", () => {
-    expect(APP_SRC).toMatch(/hasUnsavedChanges:\s*hasUnsavedChangesAfterFlush\(\)/);
+    // D16 WI-6: `windowCloseDecisionAfterFlush` IS flush-then-read — it calls
+    // `assessWindowUnsaved("window-close")` and reports every modified document,
+    // so this pins the same "decide on flushed state, never on render state"
+    // property that `hasUnsavedChanges: hasUnsavedChangesAfterFlush()` pinned
+    // before the guard moved into the hook, plus the latch it is passed.
+    expect(APP_SRC).toMatch(/windowCloseDecisionAfterFlush\(\{\s*allowWindowClose:/);
     expect(APP_SRC).not.toMatch(/hasUnsavedRef/);
   });
 

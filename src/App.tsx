@@ -21,6 +21,7 @@ import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
+import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useMcpEvents } from "./hooks/useMcpEvents";
 import { exportService } from "./services/exportService";
@@ -35,8 +36,6 @@ import {
   activeDocumentAfterFlush,
   decideCloseRequest,
   decideFileChange,
-  decideWindowClose,
-  hasUnsavedChangesAfterFlush,
 } from "./utils/dataLossGuards";
 import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
 import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
@@ -56,6 +55,11 @@ import { dispatchSourceTableAction } from "./plugins/codemirror/sourceTableConte
 import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
 
+/**
+ * What an open ConfirmDialog is about. Only `"document"` originates here now —
+ * the OS window-close request is owned by `useWindowCloseGuard` (D16 WI-6),
+ * which exposes its own `pendingClose`.
+ */
 type PendingClose = "document" | "window" | null;
 
 interface DraftMetadata {
@@ -113,9 +117,7 @@ function App() {
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
-  const appWindowRef = useRef<{ close: () => void } | null>(null);
   const openDialogLockRef = useRef(false);
-  const allowWindowCloseRef = useRef(false);
   const openDialogCooldownRef = useRef(0);
   const launchPathsRetryRef = useRef(0);
   const { event: fileChangeEvent, clearEvent, markSaveInProgress } = useFileWatcher(
@@ -123,6 +125,10 @@ function App() {
   );
 
   useAutoSave(autoSaveInterval);
+
+  // The OS window-close guard: one subscription for the life of the window, the
+  // window-state/geometry save, and the confirm latch (D16 WI-6).
+  const windowCloseGuard = useWindowCloseGuard();
 
   // MCP hooks for Claude Code / Codex CLI integration
   useMcpSync();
@@ -189,36 +195,6 @@ function App() {
       // Ignore if window API is not available.
     }
   }, []);
-
-  const saveWindowState = useCallback(async () => {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const currentWindow = getCurrentWindow();
-      const size = await currentWindow.innerSize();
-      const position = await currentWindow.outerPosition();
-      const isMaximized = await currentWindow.isMaximized();
-      await preferencesService.saveWindowState({
-        width: size.width,
-        height: size.height,
-        x: position.x,
-        y: position.y,
-        isMaximized,
-      });
-
-      // Save per-file geometry if document has a path (T038)
-      if (activeDocument?.path) {
-        const { windowService } = await import("./services/windowService");
-        await windowService.saveWindowGeometry(activeDocument.path, {
-          x: position.x,
-          y: position.y,
-          width: size.width,
-          height: size.height,
-        });
-      }
-    } catch {
-      // Ignore persistence errors in web preview.
-    }
-  }, [activeDocument]);
 
   // Keep window title static — filename removed per #374
   useEffect(() => {
@@ -377,77 +353,6 @@ function App() {
     };
     void checkUrlParam();
   }, [defaultViewMode, openDocumentFromPath, setViewMode, updateRecentFiles]);
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    const setupWindowListener = async () => {
-      try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        const currentWindow = getCurrentWindow();
-        appWindowRef.current = currentWindow;
-        unlisten = await currentWindow.onCloseRequested(async (event) => {
-          const windowLabel = currentWindow.label;
-          // D15: flush pending WYSIWYG edits, then decide on fresh any-tab-modified state.
-          const decision = decideWindowClose({
-            allowWindowClose: allowWindowCloseRef.current,
-            hasUnsavedChanges: hasUnsavedChangesAfterFlush(),
-          });
-          loggingService.logEventSync({
-            level: "info",
-            event: "window.close_requested",
-            status: "start",
-            actionId: loggingService.generateActionId(),
-            context: { windowLabel, decision, allowWindowClose: allowWindowCloseRef.current },
-          });
-
-          if (decision === "allow") {
-            // State already saved by handleConfirmClose; allow the close through
-            allowWindowCloseRef.current = false;
-            loggingService.logEventSync({
-              level: "info",
-              event: "window.close_requested",
-              status: "success",
-              actionId: loggingService.generateActionId(),
-              context: { windowLabel, action: "allowed_close" },
-            });
-            return;
-          }
-          // Prevent close in all other cases until we finish async work
-          event.preventDefault();
-          if (decision === "prompt") {
-            closeTargetRef.current = "window";
-            setPendingClose("window");
-            loggingService.logEventSync({
-              level: "info",
-              event: "window.close_requested",
-              status: "cancel",
-              actionId: loggingService.generateActionId(),
-              context: { windowLabel, action: "prevented_showing_dialog" },
-            });
-          } else {
-            // No unsaved changes — save state then allow close
-            await saveWindowState();
-            allowWindowCloseRef.current = true;
-            void currentWindow.close();
-            loggingService.logEventSync({
-              level: "info",
-              event: "window.close_requested",
-              status: "success",
-              actionId: loggingService.generateActionId(),
-              context: { windowLabel, action: "no_unsaved_closing" },
-            });
-          }
-        });
-      } catch {
-        // Window API not available (web preview). Fall back to default behavior.
-      }
-    };
-
-    setupWindowListener();
-    return () => {
-      if (unlisten) unlisten();
-    };
-  }, [saveWindowState]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -955,10 +860,10 @@ function App() {
     setPendingClose(null);
     closeTargetRef.current = null;
 
-    if (target === "window") {
-      await saveWindowState();
-      allowWindowCloseRef.current = true;
-      appWindowRef.current?.close();
+    // A window-close prompt is the guard hook's: it holds the latch, the window
+    // handle and the state save (D16 WI-6).
+    if (windowCloseGuard.pendingClose === "window") {
+      await windowCloseGuard.confirmClose();
       return;
     }
     if (target === "document") {
@@ -969,6 +874,7 @@ function App() {
   const handleCancelClose = () => {
     setPendingClose(null);
     closeTargetRef.current = null;
+    windowCloseGuard.cancelClose();
   };
 
   const handleCloseRequest = useCallback((_actionId?: string) => {
@@ -1216,7 +1122,7 @@ function App() {
         onCancel={clearEncodingIssue}
       />
       <ConfirmDialog
-        open={pendingClose !== null}
+        open={pendingClose !== null || windowCloseGuard.pendingClose !== null}
         title="Unsaved changes"
         message="You have unsaved changes. Close without saving?"
         confirmLabel="Discard changes"
