@@ -38,6 +38,10 @@
  *   `getCurrentWebviewWindow().listen` hears only this window's events and the
  *   broadcasts. `listen` resolves after two awaits; a teardown that beats it used
  *   to leave the handler registered, and two live handlers double-reply.
+ * - **A failed subscription is logged, not swallowed.** `Promise.allSettled`
+ *   keeps whichever listeners did register; under Tauri any rejection writes
+ *   one `app.quit.listen` fail with `{subscribedCount, failedCount}`, even if it
+ *   settles after unmount. Only a non-Tauri web preview stays silent.
  * - **Logs carry the answer, a count and the request id — never content.**
  *
  * @module src/hooks/useQuitGuard
@@ -231,15 +235,25 @@ export function useQuitGuard(): QuitGuard {
     };
 
     void (async () => {
-      try {
-        await Promise.all([
-          subscribe(QUIT_REQUESTED_EVENT, handleRequested),
-          subscribe(QUIT_PROMPT_EVENT, handlePrompt),
-          subscribe(QUIT_CANCELLED_EVENT, handleCancelled),
-        ]);
-      } catch {
-        // Not running under Tauri (web preview): there is no quit to guard.
-      }
+      // allSettled, not all: a partial subscription keeps its live handlers and
+      // is counted. The log is not gated on `cancelled` — a failure that settles
+      // after unmount is still a failure, logged once per mount.
+      const results = await Promise.allSettled([
+        subscribe(QUIT_REQUESTED_EVENT, handleRequested),
+        subscribe(QUIT_PROMPT_EVENT, handlePrompt),
+        subscribe(QUIT_CANCELLED_EVENT, handleCancelled),
+      ]);
+      const failedCount = results.filter((r) => r.status === "rejected").length;
+      // Outside Tauri (web preview) there is no quit to guard, so no failure.
+      if (failedCount === 0 || !("__TAURI_INTERNALS__" in window)) return;
+      loggingService.logEventSync({
+        level: "error",
+        event: "app.quit.listen",
+        status: "fail",
+        actionId: loggingService.generateActionId(),
+        // Counts only: the rejection reasons are never logged.
+        context: { subscribedCount: results.length - failedCount, failedCount },
+      });
     })();
 
     return () => {

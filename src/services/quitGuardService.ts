@@ -17,7 +17,9 @@
  *   `error instanceof Error ? error.message : String(error)` is used instead, and
  *   the caller always sees a real `Error`.
  * - A failed reply is logged (`app.quit.reply`, status `fail`) with the request id,
- *   the answer and a COUNT of ids — never a document's content.
+ *   the answer and a COUNT of ids — never an id and never a document's content.
+ *   Every id this call sent is scrubbed from the error text before it is logged
+ *   or rethrown, whatever Rust or serde quoted back (D16F WI-3).
  *
  * @coordinates-with src-tauri/src/commands/quit_guard.rs — `quit_guard_reply`
  * @coordinates-with src/utils/dataLossGuards.ts — supplies the answer and the ids
@@ -39,6 +41,26 @@ import { loggingService } from "./loggingService";
  */
 export type QuitReplyAnswer = "clean" | "dirty" | "discard" | "cancel" | "delivered";
 
+/**
+ * Remove every non-empty id in `ids` from `text`, longest first so an id that
+ * contains another (`doc-12` / `doc-1`) is removed whole. Plain string
+ * split/join, so ids with regex or `$&` characters are matched literally. It
+ * repeats until no id is left, because a removal can splice a new occurrence
+ * together (`ddoc-1oc-1`); each pass shortens the text, so it terminates. Ids
+ * are deleted rather than replaced, since any placeholder could itself contain
+ * a short id. Text with no id in it comes back unchanged.
+ */
+function scrubIds(text: string, ids: readonly string[]): string {
+  const ordered = [...new Set(ids.filter((id) => id.length > 0))].sort(
+    (a, b) => b.length - a.length,
+  );
+  let out = text;
+  while (ordered.some((id) => out.includes(id))) {
+    out = ordered.reduce((acc, id) => acc.split(id).join(""), out);
+  }
+  return out;
+}
+
 export const quitGuardService = {
   /**
    * Answer one quit request. `documentIds` is sent only with `discard`, and names
@@ -57,7 +79,8 @@ export const quitGuardService = {
     try {
       await invoke("quit_guard_reply", args);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const raw = error instanceof Error ? error.message : String(error);
+      const message = scrubIds(raw, documentIds ?? []);
       loggingService.logEventSync({
         level: "error",
         event: "app.quit.reply",

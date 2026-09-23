@@ -38,6 +38,7 @@ vi.mock("../src/services/loggingService", () => ({
 }));
 
 import { quitGuardService } from "../src/services/quitGuardService";
+import { loggingService } from "../src/services/loggingService";
 
 beforeEach(() => {
   bus.calls.length = 0;
@@ -111,5 +112,115 @@ describe("WI5-S3 an Error rejection keeps its message", () => {
 
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toContain("disk");
+  });
+});
+
+/**
+ * D16F WI-3 (audit rows 4, 19): the service removes every id it sent from the
+ * rejection text before logging it and before rethrowing it. Defence in depth
+ * against any Rust or serde message that quotes an id back.
+ */
+function logCalls(): Array<{ error?: string; context?: Record<string, unknown> }> {
+  return vi.mocked(loggingService.logEventSync).mock.calls.map(
+    (c) => c[0] as { error?: string; context?: Record<string, unknown> },
+  );
+}
+
+async function rejection(p: Promise<void>): Promise<Error> {
+  const e = await p.catch((err: unknown) => err);
+  expect(e).toBeInstanceOf(Error);
+  return e as Error;
+}
+
+describe("D16F-WI-3 own ids are scrubbed from the error text", () => {
+  beforeEach(() => {
+    vi.mocked(loggingService.logEventSync).mockClear();
+    bus.shouldReject = true;
+  });
+
+  it("scrubs a leaked id from both the log and the rethrow", async () => {
+    bus.rejectWith = 'invalid document id: "doc-abc/x"';
+
+    const error = await rejection(quitGuardService.reply(7, "discard", ["doc-abc/x", "doc-ok"]));
+
+    expect(error.message.startsWith("quit_guard_reply failed: ")).toBe(true);
+    expect(error.message).not.toContain("doc-abc/x");
+    expect(error.message).not.toContain("doc-ok");
+    const logs = logCalls();
+    expect(logs).toHaveLength(1);
+    expect(logs[0].context).toEqual({ requestId: 7, answer: "discard", documentIdCount: 2 });
+    expect(logs[0].error).not.toContain("doc-abc/x");
+    expect(logs[0].error).not.toContain("doc-ok");
+  });
+
+  it("property: overlapping and regex-special ids are all scrubbed", async () => {
+    let state = 0xd16_0003n;
+    const next = (): bigint => {
+      state = (state + 0x9e3779b97f4a7c15n) & 0xffffffffffffffffn;
+      let z = state;
+      z = ((z ^ (z >> 30n)) * 0xbf58476d1ce4e5b9n) & 0xffffffffffffffffn;
+      z = ((z ^ (z >> 27n)) * 0x94d049bb133111ebn) & 0xffffffffffffffffn;
+      return z ^ (z >> 31n);
+    };
+    const below = (n: number): number => Number(next() % BigInt(n));
+    const pool = ["doc-1", "doc-12", "doc-123", "a.b*(", "$&", "x|y"];
+
+    for (let c = 0; c < 200; c++) {
+      const count = 1 + below(4);
+      const ids = Array.from({ length: count }, () =>
+        below(7) === 6 ? `doc-${next().toString(16)}` : pool[below(pool.length)],
+      );
+      bus.rejectWith = `refused ${ids.map((id) => `"${id}"`).join(" and ")} twice: ${ids.join(",")}`;
+      vi.mocked(loggingService.logEventSync).mockClear();
+
+      const error = await rejection(quitGuardService.reply(c, "discard", ids));
+      const logged = logCalls()[0].error ?? "";
+      for (const id of ids) {
+        expect(error.message, `case ${c} ids ${JSON.stringify(ids)}`).not.toContain(id);
+        expect(logged, `case ${c} ids ${JSON.stringify(ids)}`).not.toContain(id);
+      }
+    }
+  });
+
+  it("passes a message with no ids through unchanged", async () => {
+    bus.rejectWith = "too many documentIds: 101 (the limit is 100)";
+
+    const error = await rejection(quitGuardService.reply(8, "discard", ["doc-a"]));
+
+    expect(error.message).toBe(
+      "quit_guard_reply failed: too many documentIds: 101 (the limit is 100)",
+    );
+    const logs = logCalls();
+    expect(logs).toHaveLength(1);
+    expect(logs[0].error).toBe("too many documentIds: 101 (the limit is 100)");
+  });
+
+  it("scrubs an Error rejection, and tolerates a reply with no ids", async () => {
+    bus.rejectWith = new Error('bad "doc-z"');
+    const a = await rejection(quitGuardService.reply(9, "discard", ["doc-z"]));
+    expect(a.message).not.toContain("doc-z");
+    expect(logCalls()[0].error).not.toContain("doc-z");
+    expect(logCalls()[0].context?.documentIdCount).toBe(1);
+
+    vi.mocked(loggingService.logEventSync).mockClear();
+    bus.rejectWith = "window gone";
+    const b = await rejection(quitGuardService.reply(10, "cancel"));
+    expect(b.message).toBe("quit_guard_reply failed: window gone");
+    expect(logCalls()[0].context?.documentIdCount).toBe(0);
+  });
+});
+
+describe("D16F-WI-3 scrub edge cases", () => {
+  it("leaves no id behind when a removal splices one together, or an id is tiny", async () => {
+    bus.shouldReject = true;
+    bus.rejectWith = 'bad id "ddoc-1oc-1" and "d"';
+    vi.mocked(loggingService.logEventSync).mockClear();
+
+    const error = await rejection(quitGuardService.reply(11, "discard", ["doc-1", "id", "d"]));
+
+    for (const id of ["doc-1", "id", "d"]) {
+      expect(error.message.slice("quit_guard_reply failed: ".length)).not.toContain(id);
+      expect(logCalls()[0].error).not.toContain(id);
+    }
   });
 });
