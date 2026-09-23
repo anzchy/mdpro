@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed** (2026-09-23). Supersedes the scope fence recorded in the
+**Accepted** (2026-09-23; Proposed earlier the same day). Supersedes the scope fence recorded in the
 `CHANGELOG.md` entry "Frontend structured logging no longer stops shortly after
 startup" — specifically its bullet beginning "**Scope, deliberately narrow**".
 That bullet is a decision record living in a changelog; this ADR replaces it and
@@ -176,13 +176,11 @@ write can replace it.
 - **Forecloses:** treating `preferencesService` as environment-agnostic. After
   step 5 the detector is load-bearing for real writes, and getting it wrong
   again costs user data rather than costing nothing.
-- **Not settled here — the verification lane.** No jsdom test can prove the
-  shipping WebView exposes the marker the detector checks; the tests that stub
-  the global assert the browser branch as *correct*, which is how this survived.
-  Codex recommended a thin automated Tauri smoke lane. This repo has a vitest
-  lane, a Rust lane, and a documented **manual** gui-acceptance lane already
-  used for D16/D17/D19, and it has refused a harness before. Whether the
-  round-trip obligation becomes a new automated lane or a gui-acceptance
-  criterion is a real decision with a real cost and belongs to its own record.
-  Until it is taken, **step 5 is not verifiable by the automated lanes alone**
-  and must not be recorded as verified on their strength.
+- **The verification lane is settled by
+  [ADR-0032](./0032-the-preference-round-trip-is-a-gui-acceptance-criterion.md)**
+  (2026-09-23): a gui-acceptance criterion, not a new automated lane. No jsdom
+  test can prove the shipping WebView exposes the marker the detector checks —
+  the tests that stub the global assert the browser branch as *correct*, which
+  is how this survived. **Step 5 is therefore not verifiable by the automated
+  lanes alone and must not be recorded as verified on their strength**; it
+  carries ADR-0032's two-half criterion instead.
