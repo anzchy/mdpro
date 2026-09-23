@@ -21,6 +21,7 @@ import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
+import { useQuitGuard } from "./hooks/useQuitGuard";
 import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useMcpEvents } from "./hooks/useMcpEvents";
@@ -54,6 +55,7 @@ import { dispatchTableActionFromKeyboard } from "./plugins/milkdown/table/contex
 import { dispatchSourceTableAction } from "./plugins/codemirror/sourceTableContextMenu";
 import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
+import { quitDialogModel } from "./utils/quitDialogModel";
 
 /**
  * What an open ConfirmDialog is about. Only `"document"` originates here now —
@@ -129,6 +131,16 @@ function App() {
   // The OS window-close guard: one subscription for the life of the window, the
   // window-state/geometry save, and the confirm latch (D16 WI-6).
   const windowCloseGuard = useWindowCloseGuard();
+
+  // The D16 app-quit guard: answers Rust's two quit questions and raises
+  // `quitPrompt` when this window has to ask the user (ADR-0025).
+  const quitGuard = useQuitGuard();
+  // Which prompt the one ConfirmDialog is currently about. A quit outranks an
+  // open ⌘W or window-close dialog; the rule itself lives in quitDialogModel.
+  const confirmDialog = quitDialogModel({
+    pendingClose: pendingClose ?? windowCloseGuard.pendingClose,
+    quitPrompt: quitGuard.quitPrompt,
+  });
 
   // MCP hooks for Claude Code / Codex CLI integration
   useMcpSync();
@@ -856,6 +868,18 @@ function App() {
   );
 
   const handleConfirmClose = async () => {
+    // A quit prompt took the dialog over, so the answer is the quit's. Clearing
+    // the close prompt it displaced keeps that dialog from reappearing behind it.
+    if (confirmDialog.target === "quit") {
+      if (confirmDialog.clearsPendingClose) {
+        setPendingClose(null);
+        closeTargetRef.current = null;
+        windowCloseGuard.cancelClose();
+      }
+      quitGuard.confirmQuit();
+      return;
+    }
+
     const target = closeTargetRef.current;
     setPendingClose(null);
     closeTargetRef.current = null;
@@ -875,6 +899,7 @@ function App() {
     setPendingClose(null);
     closeTargetRef.current = null;
     windowCloseGuard.cancelClose();
+    if (confirmDialog.target === "quit") quitGuard.cancelQuit();
   };
 
   const handleCloseRequest = useCallback((_actionId?: string) => {
@@ -1122,9 +1147,9 @@ function App() {
         onCancel={clearEncodingIssue}
       />
       <ConfirmDialog
-        open={pendingClose !== null || windowCloseGuard.pendingClose !== null}
+        open={confirmDialog.open}
         title="Unsaved changes"
-        message="You have unsaved changes. Close without saving?"
+        message={confirmDialog.message}
         confirmLabel="Discard changes"
         cancelLabel="Keep editing"
         onConfirm={handleConfirmClose}
