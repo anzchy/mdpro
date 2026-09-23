@@ -47,13 +47,20 @@ pub struct CommitReport {
 }
 
 /// Every platform effect the driver can have.
+///
+/// The three liveness-critical ones return whether they were dispatched
+/// (ADR-0029 §4). A discarded failure here is not a lost log line but a
+/// permanently unquittable app, so the driver has to be able to see it.
 pub trait QuitEffects: Send + Sync + 'static {
     fn emit_all(&self, event: QuitEvent);
-    fn emit_to(&self, label: &str, event: QuitEvent);
+    /// `false` when the event could not be handed to `label`'s webview.
+    fn emit_to(&self, label: &str, event: QuitEvent) -> bool;
     fn activate(&self, label: &str);
     fn arm_timer(&self, request_id: u64, deadline_ms: u64);
-    fn reply(&self, terminate: bool);
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>);
+    /// `false` when `replyToApplicationShouldTerminate:` could not be posted.
+    fn reply(&self, terminate: bool) -> bool;
+    /// `false` when the timeout alert could not be posted to the main thread.
+    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool;
 
     /// Called immediately before each real `delete_draft`.
     fn on_delete(&self, document_id: &str) {

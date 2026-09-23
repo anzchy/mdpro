@@ -22,14 +22,22 @@
  * - **The ids are read at confirm time, after a flush**, not at prompt time. A
  *   document dirtied while the dialog was up would otherwise keep its draft and
  *   resurrect the content the user just discarded.
- * - **At most one phase-2 reply per request.** `answeredRequestRef` latches the
- *   request the window has answered; a repeat `app:quit-prompt` for it is
- *   ignored rather than reopening the dialog. The coordinator treats a second
- *   answer as out of phase, so sending one is a bug that only shows up as a
- *   log line.
- * - **Subscribe exactly once, with a `cancelled` flag** (the WI-6 pattern).
- *   `listen` resolves after two awaits; a teardown that beats it used to leave
- *   the handler registered, and two live handlers double-reply.
+ * - **At most one phase-2 reply per request, from this window.**
+ *   `answeredRequestRef` latches the request this window has answered; a repeat
+ *   `app:quit-prompt` for it is ignored rather than reopening the dialog. The
+ *   latch is per-window and can say nothing about any other window — what keeps
+ *   one window's prompt out of the others is the per-webview subscription below,
+ *   not this ref.
+ * - **Ack the dialog as soon as it is raised.** `delivered` reports that the
+ *   prompt arrived and was drawn (ADR-0029 §1); it ends the only part of phase 2
+ *   a deadline bounds. It is sent when a dialog actually goes up — never on the
+ *   `clean` fast path, and never for a request this window has already answered.
+ * - **Subscribe per webview, exactly once, with a `cancelled` flag** (the WI-6
+ *   pattern). The global `listen` hears events addressed to *any* window, so one
+ *   prompt raised a dialog in every window and each of them replied;
+ *   `getCurrentWebviewWindow().listen` hears only this window's events and the
+ *   broadcasts. `listen` resolves after two awaits; a teardown that beats it used
+ *   to leave the handler registered, and two live handlers double-reply.
  * - **Logs carry the answer, a count and the request id — never content.**
  *
  * @module src/hooks/useQuitGuard
@@ -39,7 +47,8 @@
  * @coordinates-with src/utils/quitDialogModel.ts — how App.tsx renders the prompt
  * @coordinates-with src/App.tsx — wires confirm/cancel to the ConfirmDialog
  */
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loggingService } from "../services/loggingService";
 import { quitGuardService, type QuitReplyAnswer } from "../services/quitGuardService";
@@ -139,6 +148,11 @@ export function useQuitGuard(): QuitGuard {
         return;
       }
       setPrompt({ requestId });
+      // The dialog exists now, so say so at once (ADR-0029 §1). This is what
+      // stops the coordinator's delivery deadline from being applied to the
+      // person reading it — and it is sent only here, because only here was a
+      // dialog actually raised.
+      sendReply(requestId, "delivered");
     },
     [assess, sendReply, setPrompt],
   );
@@ -192,7 +206,9 @@ export function useQuitGuard(): QuitGuard {
     const disposers: UnlistenFn[] = [];
 
     const subscribe = async (name: string, handler: (requestId: number) => void) => {
-      const dispose = await listen(name, (event: { payload: unknown }) => {
+      // Per webview, not global: an `emit_to` one window is meant for that
+      // window alone, and the global `listen` would deliver it to all of them.
+      const dispose = await getCurrentWebviewWindow().listen(name, (event) => {
         const requestId = requestIdOf(event.payload);
         if (requestId === null) {
           loggingService.logEventSync({

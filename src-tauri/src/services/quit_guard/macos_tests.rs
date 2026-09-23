@@ -119,12 +119,13 @@ impl QuitEffects for RecordingEffects {
         self.push(format!("EmitAll({}:{})", event.name(), event.request_id()));
     }
 
-    fn emit_to(&self, label: &str, event: QuitEvent) {
+    fn emit_to(&self, label: &str, event: QuitEvent) -> bool {
         self.push(format!(
             "EmitTo({label}:{}:{})",
             event.name(),
             event.request_id()
         ));
+        true
     }
 
     fn activate(&self, label: &str) {
@@ -135,12 +136,14 @@ impl QuitEffects for RecordingEffects {
         self.push(format!("ArmTimer({request_id}:{deadline_ms})"));
     }
 
-    fn reply(&self, terminate: bool) {
+    fn reply(&self, terminate: bool) -> bool {
         self.push(format!("Reply({terminate})"));
+        true
     }
 
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) {
+    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
         self.push(format!("NativeFallback({request_id}:{})", timed_out.len()));
+        true
     }
 }
 

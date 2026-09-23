@@ -21,43 +21,34 @@
 //!   the macOS main thread, which can re-enter this guard.
 //! - **Draft deletion is not behind `QuitEffects`.** It is the one effect whose
 //!   failure is data loss, so tests exercise the real thing.
+//! - **An effect that reports failure is acted on, not discarded** (ADR-0029
+//!   §4). A prompt that was not delivered goes straight back to the coordinator
+//!   rather than waiting out a deadline for a dialog nobody has; a reply or an
+//!   alert that was not dispatched is logged at error level, and a failed alert
+//!   hands the request back so the windows can still resolve it.
+//! - **A timer is armed only for a prompt that was actually handed over**, and
+//!   at the coordinator's instant — the driver never computes a deadline.
+//! - **The answer is logged after the coordinator has ruled**, with the ruling.
+//!   Logging it on arrival reported every refusal as `status:"success"`, so a
+//!   cancel that did nothing was indistinguishable from one that worked.
 //!
+//! @coordinates-with docs/adr/0029-quit-deadlines-bound-machine-progress-not-people.md
 //! @coordinates-with docs/adr/0025-app-quit-is-deferred-through-a-native-terminate-hook.md
 //! @coordinates-with docs/adr/0027-a-quit-ack-timeout-draws-a-native-alert.md
 
 use std::sync::Mutex;
 
 use super::logging;
+use super::plan::{translate, Plan};
 use super::DraftGate;
 use crate::services::draft;
 
 pub use super::coordinator::{
-    AbortReason, Answer, Begin, FallbackAnswer, QuitCoordinator, Step, QUIT_ACK_TIMEOUT_MS,
+    AbortReason, Answer, Begin, FallbackAnswer, IgnoredWhy, QuitCoordinator, Step,
+    QUIT_ACK_TIMEOUT_MS, QUIT_PROMPT_DELIVERY_TIMEOUT_MS,
 };
 pub use super::events::{CommitReport, QuitEffects, QuitEvent};
 pub use super::reply::{validate_discard_ids, QuitAnswer, MAX_DISCARD_IDS};
-
-/// What to do once the lock is released. Computed under the lock so the driver's
-/// own state is already consistent before any effect can re-enter it.
-enum Plan {
-    Nothing,
-    Prompt {
-        request_id: u64,
-        label: String,
-    },
-    Fallback {
-        request_id: u64,
-        timed_out: Vec<String>,
-    },
-    Abort {
-        request_id: u64,
-        reason: AbortReason,
-    },
-    Commit {
-        request_id: u64,
-        discard_document_ids: Vec<String>,
-    },
-}
 
 struct Inner {
     coordinator: QuitCoordinator,
@@ -145,92 +136,108 @@ impl<E: QuitEffects> QuitGuard<E> {
                 return Err(err);
             }
         };
-        logging::log_answer(
-            logging::answer_log_context(label, answer, request_id, &ids),
-            None,
-        );
+        let context = logging::answer_log_context(label, answer, request_id, &ids);
+        let wire_answer = answer;
         let answer = match answer {
             QuitAnswer::Clean => Answer::Clean,
             QuitAnswer::Dirty => Answer::Dirty,
             QuitAnswer::Discard => Answer::Discard(ids),
             QuitAnswer::Cancel => Answer::Cancel,
+            QuitAnswer::Delivered => Answer::Delivered,
         };
-        let plan = self.plan(|c| c.on_answer(request_id, label, answer, now_ms));
+        let (plan, refusal) = self.plan(|c| c.on_answer(request_id, label, answer, now_ms));
+        // Logged AFTER the coordinator has ruled, with what it ruled. Logging
+        // the answer on arrival reported every refusal as a success, so a cancel
+        // that did nothing was indistinguishable from one that worked.
+        logging::log_answer(
+            context,
+            refusal.map(|why| format!("{wire_answer:?} refused: {}", why.as_str())),
+        );
         self.run(plan);
         Ok(())
     }
 
     /// The ack deadline has been reached.
     pub fn tick(&self, now_ms: u64) {
-        let plan = self.plan(|c| c.on_tick(now_ms));
+        let (plan, _) = self.plan(|c| c.on_tick(now_ms));
         self.run(plan);
     }
 
     /// A window is gone for good. Routed from `WindowEvent::Destroyed` only.
-    pub fn window_gone(&self, label: &str) {
-        let plan = self.plan(|c| c.on_window_gone(label));
+    pub fn window_gone(&self, label: &str, now_ms: u64) {
+        let (plan, _) = self.plan(|c| c.on_window_gone(label, now_ms));
         self.run(plan);
     }
 
     /// The user's answer to the native timeout alert (ADR-0027).
     pub fn fallback_answer(&self, request_id: u64, answer: FallbackAnswer) {
-        let plan = self.plan(|c| c.on_fallback_answer(request_id, answer));
+        let (plan, _) = self.plan(|c| c.on_fallback_answer(request_id, answer));
         self.run(plan);
     }
 
-    fn plan(&self, input: impl FnOnce(&mut QuitCoordinator) -> Step) -> Plan {
+    /// Run one input under the lock and translate its `Step` into work for
+    /// after the lock. The guard is dropped on return, so `run` — and every
+    /// effect it reaches — is called with nothing held.
+    fn plan(&self, input: impl FnOnce(&mut QuitCoordinator) -> Step) -> (Plan, Option<IgnoredWhy>) {
         let mut inner = self.lock();
         let step = input(&mut inner.coordinator);
-        let request_id = inner.current.unwrap_or_default();
-        match step {
-            // `Ignored` is deliberately silent: a duplicate reply from a
-            // recovering webview is ordinary, and logging it invites a storm.
-            Step::Wait | Step::Ignored { .. } => Plan::Nothing,
-            Step::Prompt(label) => Plan::Prompt { request_id, label },
-            Step::NativeFallback { timed_out } => Plan::Fallback {
-                request_id,
-                timed_out,
-            },
-            Step::Abort { reason } => {
-                inner.current = None;
-                Plan::Abort { request_id, reason }
-            }
-            Step::Commit {
-                discard_document_ids,
-            } => {
-                inner.current = None;
-                Plan::Commit {
-                    request_id,
-                    discard_document_ids,
-                }
-            }
+        let (plan, refusal) = translate(step, inner.current.unwrap_or_default());
+        if plan.resolves_request() {
+            inner.current = None;
         }
+        (plan, refusal)
     }
 
     fn run(&self, plan: Plan) {
         match plan {
             Plan::Nothing => {}
-            Plan::Prompt { request_id, label } => {
+            Plan::Prompt {
+                request_id,
+                label,
+                deadline_ms,
+            } => {
                 logging::log_prompt(request_id, &label);
                 // Front first, then ask: a dialog in a window the user cannot
                 // see reads as a hang.
                 self.effects.activate(&label);
-                self.effects
-                    .emit_to(&label, QuitEvent::Prompt { request_id });
+                if self
+                    .effects
+                    .emit_to(&label, QuitEvent::Prompt { request_id })
+                {
+                    // Only a prompt that was actually handed over is worth
+                    // waiting for. The deadline is the coordinator's: it is the
+                    // only one that knows this is a machine step (ADR-0029).
+                    self.effects.arm_timer(request_id, deadline_ms);
+                } else {
+                    let (plan, _) = self.plan(|c| c.on_delivery_failed(request_id, &label));
+                    self.run(plan);
+                }
             }
+            Plan::Rearm {
+                request_id,
+                deadline_ms,
+            } => self.effects.arm_timer(request_id, deadline_ms),
             Plan::Fallback {
                 request_id,
                 timed_out,
             } => {
                 logging::log_timeout(request_id, timed_out.len(), QUIT_ACK_TIMEOUT_MS);
-                self.effects.native_fallback(request_id, timed_out);
+                if !self.effects.native_fallback(request_id, timed_out) {
+                    logging::log_effect_failed(request_id, "nativeFallback");
+                    // An alert that was never posted cannot own the request.
+                    // Leaving it owned would strand a quit behind a dialog that
+                    // does not exist.
+                    self.lock().coordinator.release_fallback(request_id);
+                }
             }
             Plan::Abort { request_id, reason } => {
                 logging::log_cancel(request_id, &reason);
                 // Close every open dialog before refusing, so no window is left
                 // showing a prompt for a request that no longer exists.
                 self.effects.emit_all(QuitEvent::Cancelled { request_id });
-                self.effects.reply(false);
+                if !self.effects.reply(false) {
+                    logging::log_effect_failed(request_id, "reply");
+                }
             }
             Plan::Commit {
                 request_id,
@@ -261,7 +268,9 @@ impl<E: QuitEffects> QuitGuard<E> {
                 // ordering in this module's header.
                 self.lock().last_commit_report = Some(report);
                 logging::log_commit(request_id, &report);
-                self.effects.reply(true);
+                if !self.effects.reply(true) {
+                    logging::log_effect_failed(request_id, "reply");
+                }
             }
         }
     }

@@ -26,7 +26,9 @@ mod events;
 pub mod logging;
 #[cfg(target_os = "macos")]
 pub mod macos;
+mod plan;
 pub mod reply;
+mod request;
 mod types;
 
 use std::sync::{RwLock, RwLockWriteGuard};
@@ -240,7 +242,10 @@ pub fn on_window_event<E: QuitEffects>(
     event: &tauri::WindowEvent,
 ) {
     if matches!(event, tauri::WindowEvent::Destroyed) {
-        guard.window_gone(label);
+        // The window event carries no timestamp, and the coordinator needs one
+        // to date any prompt this gone lets through; this is the same wall
+        // clock every other production entry point reads.
+        guard.window_gone(label, effects::now_ms());
     }
 }
 
@@ -255,3 +260,7 @@ mod driver_tests;
 #[cfg(test)]
 #[path = "driver_prop_tests.rs"]
 mod driver_prop_tests;
+
+#[cfg(test)]
+#[path = "driver_deadline_tests.rs"]
+mod driver_deadline_tests;

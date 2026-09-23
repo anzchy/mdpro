@@ -21,12 +21,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
 type Cb = (event: { payload: unknown }) => void;
+/** One registration: which window it belongs to, and its handler. */
+type Entry = { target: string; cb: Cb };
+
+/**
+ * `"*"` is the global `listen` — it hears every emit, whoever it was addressed
+ * to. A per-webview `listen` registers under that window's own label and hears
+ * only what was emitted to it (plus `emit_all`). Modelling the difference is
+ * what lets a test tell the two subscriptions apart.
+ */
+const GLOBAL = "*";
+const THIS_WINDOW = "main";
+const OTHER_WINDOW = "second";
 
 const { bus, core } = vi.hoisted(() => ({
   bus: {
-    listeners: new Map<string, Set<Cb>>(),
+    listeners: new Map<string, Set<{ target: string; cb: Cb }>>(),
     pendingResolvers: [] as Array<() => void>,
     deferred: { value: false },
+    currentLabel: { value: "main" },
   },
   core: {
     replies: [] as Array<{ cmd: string; args: Record<string, unknown> }>,
@@ -34,19 +47,30 @@ const { bus, core } = vi.hoisted(() => ({
   },
 }));
 
+/** Register `cb` for `name` under `target`, honouring the deferred-resolve mode. */
+function register(name: string, target: string, cb: Cb): Promise<() => void> {
+  const set = bus.listeners.get(name) ?? new Set<Entry>();
+  const entry: Entry = { target, cb };
+  set.add(entry);
+  bus.listeners.set(name, set);
+  const dispose = () => {
+    set.delete(entry);
+  };
+  if (!bus.deferred.value) return Promise.resolve(dispose);
+  return new Promise<() => void>((resolve) => {
+    bus.pendingResolvers.push(() => resolve(dispose));
+  });
+}
+
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn((name: string, cb: Cb) => {
-    const set = bus.listeners.get(name) ?? new Set<Cb>();
-    set.add(cb);
-    bus.listeners.set(name, set);
-    const dispose = () => {
-      set.delete(cb);
-    };
-    if (!bus.deferred.value) return Promise.resolve(dispose);
-    return new Promise<() => void>((resolve) => {
-      bus.pendingResolvers.push(() => resolve(dispose));
-    });
-  }),
+  listen: vi.fn((name: string, cb: Cb) => register(name, "*", cb)),
+}));
+
+vi.mock("@tauri-apps/api/webviewWindow", () => ({
+  getCurrentWebviewWindow: vi.fn(() => ({
+    label: bus.currentLabel.value,
+    listen: (name: string, cb: Cb) => register(name, bus.currentLabel.value, cb),
+  })),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -102,7 +126,15 @@ function setDocuments(docs: Document[]): void {
 }
 
 /** Every recorded quit reply, in order. Other commands are not this hook's output. */
-const quitReplies = () => core.replies.filter((r) => r.cmd === "quit_guard_reply");
+const allQuitReplies = () => core.replies.filter((r) => r.cmd === "quit_guard_reply");
+
+/**
+ * The *decisions* this window sent. `delivered` is excluded on purpose: it is a
+ * transport ack (ADR-0029 §1), not an answer, and the phase-1/phase-2 laws this
+ * file pins are about answers. The cases below that are about the ack itself use
+ * `allQuitReplies`.
+ */
+const quitReplies = () => allQuitReplies().filter((r) => r.args.answer !== "delivered");
 
 async function settle(): Promise<void> {
   await act(async () => {
@@ -112,9 +144,16 @@ async function settle(): Promise<void> {
   });
 }
 
-async function deliver(name: string, payload: unknown): Promise<void> {
+async function deliver(
+  name: string,
+  payload: unknown,
+  target: string = THIS_WINDOW,
+): Promise<void> {
   await act(async () => {
-    for (const cb of [...(bus.listeners.get(name) ?? [])]) cb({ payload });
+    const entries = [...(bus.listeners.get(name) ?? [])].filter(
+      (e) => e.target === GLOBAL || e.target === target,
+    );
+    for (const { cb } of entries) cb({ payload });
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
@@ -131,6 +170,7 @@ beforeEach(() => {
   bus.listeners.clear();
   bus.pendingResolvers.length = 0;
   bus.deferred.value = false;
+  bus.currentLabel.value = THIS_WINDOW;
   core.replies.length = 0;
   core.rejectOnce.value = null;
   vi.clearAllMocks();
@@ -478,5 +518,104 @@ describe("useQuitGuard — logging (WI7-Q10)", () => {
     expect(status).toBe("cancel");
     expect(context).toMatchObject({ target: "quit" });
     expect(JSON.stringify(dialogCalls)).not.toContain("TOP-SECRET");
+  });
+});
+
+/**
+ * ADR-0029 §1: the prompt's deadline bounds the *delivery* of the dialog, not
+ * the user's reading of it. The ack is what separates the two — until it
+ * arrives, the coordinator is timing a webview; after it, it is timing nobody.
+ */
+describe("useQuitGuard — the delivery ack (BLOCK1-T13..T15)", () => {
+  it("T13: a raised dialog acks delivery immediately, for that request", async () => {
+    setDocuments([makeDoc("b", true)]);
+    const { result } = await renderGuard();
+
+    await deliver(REQUESTED, { requestId: 21 });
+    await deliver(PROMPT, { requestId: 21 });
+
+    expect(result.current.quitPrompt).toEqual({ requestId: 21 });
+    expect(allQuitReplies()).toEqual([
+      { cmd: "quit_guard_reply", args: { requestId: 21, answer: "dirty" } },
+      { cmd: "quit_guard_reply", args: { requestId: 21, answer: "delivered" } },
+    ]);
+  });
+
+  it("T14: the `clean` fast path answers, and does not ack a dialog it never raised", async () => {
+    setDocuments([makeDoc("b", true)]);
+    const { result } = await renderGuard();
+
+    await deliver(REQUESTED, { requestId: 22 });
+    await act(async () => {
+      useDocumentStore.getState().markDocumentModified("b", false);
+    });
+    await deliver(PROMPT, { requestId: 22 });
+
+    // No dialog was drawn, so there is nothing whose delivery to confirm — and
+    // the answer itself already ends the request for this window.
+    expect(result.current.quitPrompt).toBeNull();
+    expect(allQuitReplies()).toEqual([
+      { cmd: "quit_guard_reply", args: { requestId: 22, answer: "dirty" } },
+      { cmd: "quit_guard_reply", args: { requestId: 22, answer: "clean" } },
+    ]);
+  });
+
+  it("T15: a repeat prompt for an already-answered request acks nothing", async () => {
+    setDocuments([makeDoc("b", true)]);
+    const { result } = await renderGuard();
+
+    await deliver(REQUESTED, { requestId: 23 });
+    await deliver(PROMPT, { requestId: 23 });
+    await act(async () => {
+      result.current.cancelQuit();
+      await Promise.resolve();
+    });
+
+    const before = allQuitReplies().length;
+    await deliver(PROMPT, { requestId: 23 });
+
+    expect(allQuitReplies()).toHaveLength(before);
+    expect(result.current.quitPrompt).toBeNull();
+  });
+});
+
+/**
+ * Device evidence (2026-09-23): one `app.quit.prompt{windowLabel:"main"}` raised
+ * two dialogs and produced two `app.quit.check{phase:"prompt"}` lines, because
+ * the global `listen` hears events addressed to any window. The per-window
+ * `answeredRequestRef` latch cannot see the other window, so nothing downstream
+ * can undo it — the subscription itself has to be per-webview.
+ */
+describe("useQuitGuard — a prompt is addressed to one window (BLOCK1-T16)", () => {
+  it("T16: a prompt for another window raises no dialog here and sends no reply", async () => {
+    setDocuments([makeDoc("b", true)]);
+    const { result } = await renderGuard();
+
+    await deliver(REQUESTED, { requestId: 31 });
+    expect(quitReplies()).toHaveLength(1);
+
+    await deliver(PROMPT, { requestId: 31 }, OTHER_WINDOW);
+
+    expect(result.current.quitPrompt).toBeNull();
+    expect(allQuitReplies()).toEqual([
+      { cmd: "quit_guard_reply", args: { requestId: 31, answer: "dirty" } },
+    ]);
+
+    // The window is not deaf: its own prompt still works.
+    await deliver(PROMPT, { requestId: 31 }, THIS_WINDOW);
+    expect(result.current.quitPrompt).toEqual({ requestId: 31 });
+  });
+
+  it("T16b: `app:quit-requested` still reaches this window, however it is emitted", async () => {
+    // Phase 1 is an `emit_all`; only the prompt is addressed. A per-webview
+    // subscription must still hear the broadcast.
+    setDocuments([makeDoc("a", false)]);
+    await renderGuard();
+
+    await deliver(REQUESTED, { requestId: 32 }, THIS_WINDOW);
+
+    expect(quitReplies()).toEqual([
+      { cmd: "quit_guard_reply", args: { requestId: 32, answer: "clean" } },
+    ]);
   });
 });

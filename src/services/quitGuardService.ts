@@ -28,11 +28,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { loggingService } from "./loggingService";
 
 /**
- * The four answers in the ADR-0025 protocol. Phase 1 answers `clean` or `dirty`;
- * a prompted window answers `discard` or `cancel`. Rust deserializes this as a
- * strict lowercase enum, so an unknown string is a deserialize error there.
+ * The answers in the quit protocol. Phase 1 answers `clean` or `dirty`; a
+ * prompted window acks `delivered` the moment its dialog is up and then answers
+ * `discard` or `cancel`. Rust deserializes this as a strict lowercase enum, so
+ * an unknown string is a deserialize error there.
+ *
+ * `delivered` is not a decision (ADR-0029 §1): it reports that the dialog exists,
+ * which is what ends the part of phase 2 a deadline may bound. Everything after
+ * it is the user's time, and nothing bounds that.
  */
-export type QuitReplyAnswer = "clean" | "dirty" | "discard" | "cancel";
+export type QuitReplyAnswer = "clean" | "dirty" | "discard" | "cancel" | "delivered";
 
 export const quitGuardService = {
   /**

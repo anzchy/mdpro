@@ -55,14 +55,16 @@ impl QuitEffects for TauriQuitEffects {
         );
     }
 
-    fn emit_to(&self, label: &str, event: QuitEvent) {
-        let _ = self.app.emit_to(
-            label,
-            event.name(),
-            QuitEventPayload {
-                request_id: event.request_id(),
-            },
-        );
+    fn emit_to(&self, label: &str, event: QuitEvent) -> bool {
+        self.app
+            .emit_to(
+                label,
+                event.name(),
+                QuitEventPayload {
+                    request_id: event.request_id(),
+                },
+            )
+            .is_ok()
     }
 
     fn activate(&self, label: &str) {
@@ -92,22 +94,32 @@ impl QuitEffects for TauriQuitEffects {
         });
     }
 
-    fn reply(&self, terminate: bool) {
+    fn reply(&self, terminate: bool) -> bool {
         // Off macOS there is no deferred terminate to resolve, so this stays a
-        // no-op, as the plan requires.
+        // no-op, as the plan requires — and a no-op always succeeds.
         #[cfg(target_os = "macos")]
-        super::macos::reply_to_should_terminate(&self.app, terminate);
+        {
+            super::macos::reply_to_should_terminate(&self.app, terminate)
+        }
         #[cfg(not(target_os = "macos"))]
-        let _ = terminate;
+        {
+            let _ = terminate;
+            true
+        }
     }
 
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) {
+    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
         // ADR-0027: the alert names no window, so the labels are only the
         // driver's log material. They are counted there, not passed on.
         let _ = timed_out;
         #[cfg(target_os = "macos")]
-        super::macos::present_timeout_alert(&self.app, request_id);
+        {
+            super::macos::present_timeout_alert(&self.app, request_id)
+        }
         #[cfg(not(target_os = "macos"))]
-        let _ = request_id;
+        {
+            let _ = request_id;
+            true
+        }
     }
 }

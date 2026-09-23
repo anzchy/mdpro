@@ -26,6 +26,10 @@ pub enum QuitAnswer {
     Dirty,
     Discard,
     Cancel,
+    /// The phase-2 delivery ack (ADR-0029 §1). It carries no ids — it says only
+    /// that the dialog reached the screen — and `validate_discard_ids` refuses
+    /// any that are sent with it, exactly as it does for `clean` and `cancel`.
+    Delivered,
 }
 
 /// Validate a reply's `document_ids` against its answer.

@@ -22,8 +22,27 @@ pub(super) fn discard(ids: &[&str]) -> Answer {
     Answer::Discard(ids.iter().map(|s| (*s).to_string()).collect())
 }
 
+/// The expected `Prompt` step for `label`, with its deadline normalised away.
+///
+/// Compare against `norm(step)`, never a raw step: these cases predate
+/// ADR-0029 and pin *which* window is prompted, which is all they ever pinned.
+/// The deadline that `Prompt` now carries is pinned by the ADR-0029 cases in
+/// `coordinator_deadline_tests.rs`, where it is the subject rather than a
+/// detail every unrelated case would have to restate.
 pub(super) fn prompt(label: &str) -> Step {
-    Step::Prompt(label.to_string())
+    Step::Prompt {
+        label: label.to_string(),
+        deadline_ms: 0,
+    }
+}
+
+/// Drop a `Prompt`'s deadline so a pre-ADR-0029 case can compare it to
+/// `prompt(label)`. Identity for every other step.
+pub(super) fn norm(step: Step) -> Step {
+    match step {
+        Step::Prompt { label, .. } => prompt(&label),
+        other => other,
+    }
 }
 
 pub(super) fn commit(ids: &[&str]) -> Step {
@@ -92,7 +111,7 @@ fn c2_one_clean_window_commits_with_no_ids() {
 fn c3_dirty_then_discard_prompts_then_commits_that_windows_ids() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a"], 0);
-    assert_eq!(c.on_answer(r, "a", Answer::Dirty, 1), prompt("a"));
+    assert_eq!(norm(c.on_answer(r, "a", Answer::Dirty, 1)), prompt("a"));
     let step = c.on_answer(r, "a", discard(&["d1", "d2"]), 2);
     assert_eq!(commit_ids_sorted(&step), vec!["d1", "d2"]);
 }
@@ -104,10 +123,10 @@ fn c4_discard_then_cancel_aborts_and_no_ids_escape() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b"], 0);
     let trace = vec![
-        c.on_answer(r, "a", Answer::Dirty, 1),
-        c.on_answer(r, "b", Answer::Dirty, 2),
-        c.on_answer(r, "a", discard(&["a1"]), 3),
-        c.on_answer(r, "b", Answer::Cancel, 4),
+        norm(c.on_answer(r, "a", Answer::Dirty, 1)),
+        norm(c.on_answer(r, "b", Answer::Dirty, 2)),
+        norm(c.on_answer(r, "a", discard(&["a1"]), 3)),
+        norm(c.on_answer(r, "b", Answer::Cancel, 4)),
     ];
     assert_eq!(
         trace,
@@ -127,10 +146,10 @@ fn c5_first_cancel_aborts_before_any_other_window_is_prompted() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b", "c"], 0);
     let trace = vec![
-        c.on_answer(r, "a", Answer::Dirty, 1),
-        c.on_answer(r, "b", Answer::Clean, 2),
-        c.on_answer(r, "c", Answer::Clean, 3),
-        c.on_answer(r, "a", Answer::Cancel, 4),
+        norm(c.on_answer(r, "a", Answer::Dirty, 1)),
+        norm(c.on_answer(r, "b", Answer::Clean, 2)),
+        norm(c.on_answer(r, "c", Answer::Clean, 3)),
+        norm(c.on_answer(r, "a", Answer::Cancel, 4)),
     ];
     assert_eq!(
         trace,
@@ -141,9 +160,9 @@ fn c5_first_cancel_aborts_before_any_other_window_is_prompted() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b"], 0);
     let trace = vec![
-        c.on_answer(r, "a", Answer::Dirty, 1),
-        c.on_answer(r, "b", Answer::Dirty, 2),
-        c.on_answer(r, "a", Answer::Cancel, 3),
+        norm(c.on_answer(r, "a", Answer::Dirty, 1)),
+        norm(c.on_answer(r, "b", Answer::Dirty, 2)),
+        norm(c.on_answer(r, "a", Answer::Cancel, 3)),
     ];
     assert_eq!(trace, vec![Step::Wait, prompt("a"), cancelled_by("a")]);
     assert!(
@@ -217,7 +236,7 @@ fn c6_wrong_phase_and_foreign_inputs_are_ignored_and_inert() {
     // Base 1: phase 1 is closed and "a" is prompted.
     let mut b1 = b0.clone();
     assert_eq!(b1.on_answer(r, "a", Answer::Dirty, 1), Step::Wait);
-    assert_eq!(b1.on_answer(r, "b", Answer::Clean, 2), prompt("a"));
+    assert_eq!(norm(b1.on_answer(r, "b", Answer::Clean, 2)), prompt("a"));
     let cont1 = |c: &mut QuitCoordinator| vec![c.on_answer(r, "a", discard(&["a1"]), 20)];
     // (v) a phase-1 answer from the prompted window
     assert_inert(
@@ -253,7 +272,7 @@ fn c6_wrong_phase_and_foreign_inputs_are_ignored_and_inert() {
 fn c7_a_stale_request_id_from_the_previous_request_is_ignored() {
     let mut c = QuitCoordinator::new();
     let r1 = begin_later(&mut c, &["a"], 0);
-    assert_eq!(c.on_answer(r1, "a", Answer::Dirty, 1), prompt("a"));
+    assert_eq!(norm(c.on_answer(r1, "a", Answer::Dirty, 1)), prompt("a"));
     assert_eq!(c.on_answer(r1, "a", Answer::Cancel, 2), cancelled_by("a"));
 
     let r2 = begin_later(&mut c, &["a"], 100);
@@ -281,7 +300,14 @@ fn c8_the_ack_timeout_fires_at_the_deadline_and_not_one_ms_before() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b"], 1_000);
     assert_eq!(c.on_answer(r, "a", Answer::Clean, 1_500), Step::Wait);
-    assert_eq!(c.on_tick(1_000 + QUIT_ACK_TIMEOUT_MS - 1), Step::Wait);
+    // ADR-0029 §5: an early tick hands the deadline back rather than spending
+    // the request's only wake-up on a `Wait`.
+    assert_eq!(
+        c.on_tick(1_000 + QUIT_ACK_TIMEOUT_MS - 1),
+        Step::Rearm {
+            deadline_ms: 1_000 + QUIT_ACK_TIMEOUT_MS
+        }
+    );
 
     // At the deadline: the native alert takes over, naming the silent window.
     let mut c = QuitCoordinator::new();
@@ -299,10 +325,17 @@ fn c8_the_ack_timeout_fires_at_the_deadline_and_not_one_ms_before() {
     let r = begin_later(&mut c, &["a", "b"], 1_000);
     assert_eq!(c.on_answer(r, "a", Answer::Clean, 1_500), Step::Wait);
     assert_eq!(
-        c.on_answer(r, "b", Answer::Dirty, 1_000 + QUIT_ACK_TIMEOUT_MS - 1),
+        norm(c.on_answer(r, "b", Answer::Dirty, 1_000 + QUIT_ACK_TIMEOUT_MS - 1)),
         prompt("b")
     );
-    assert_eq!(c.on_tick(1_000 + QUIT_ACK_TIMEOUT_MS), Step::Wait);
+    // b is prompted now, so the live deadline is its delivery deadline, measured
+    // from 2_999 — the request's own phase-1 deadline no longer applies.
+    assert_eq!(
+        c.on_tick(1_000 + QUIT_ACK_TIMEOUT_MS),
+        Step::Rearm {
+            deadline_ms: 2_999 + QUIT_PROMPT_DELIVERY_TIMEOUT_MS
+        }
+    );
 }
 
 // --- WI2-C9: a clock that goes backwards -------------------------------------
@@ -311,19 +344,31 @@ fn c8_the_ack_timeout_fires_at_the_deadline_and_not_one_ms_before() {
 fn c9_a_backwards_clock_neither_panics_nor_times_out() {
     let mut c = QuitCoordinator::new();
     let _r = begin_later(&mut c, &["a"], 5_000);
-    assert_eq!(c.on_tick(0), Step::Wait);
+    assert_eq!(
+        c.on_tick(0),
+        Step::Rearm {
+            deadline_ms: 5_000 + QUIT_ACK_TIMEOUT_MS
+        },
+        "a clock that went backwards is early, and early re-arms"
+    );
 }
 
-// --- WI2-C10: an acked-dirty window never times out --------------------------
+// --- WI2-C10: a window that is deciding never times out ----------------------
 
 #[test]
 fn c10_a_window_that_acked_dirty_never_times_out() {
+    // ADR-0029: the delivery ack is what ends the bounded part of phase 2. Once
+    // a window has confirmed its dialog is up, the time the user spends reading
+    // it is not a machine failing to make progress, and an hour is as valid as a
+    // second. The queued window behind it is not on any deadline either.
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b"], 0);
     assert_eq!(c.on_answer(r, "a", Answer::Dirty, 1), Step::Wait);
-    assert_eq!(c.on_answer(r, "b", Answer::Dirty, 2), prompt("a"));
+    assert_eq!(norm(c.on_answer(r, "b", Answer::Dirty, 2)), prompt("a"));
+    assert_eq!(c.on_answer(r, "a", Answer::Delivered, 3), Step::Wait);
     assert_eq!(c.on_tick(3_600_000), Step::Wait);
-    assert_eq!(c.on_answer(r, "a", discard(&["a1"]), 10), prompt("b"));
+    assert_eq!(norm(c.on_answer(r, "a", discard(&["a1"]), 10)), prompt("b"));
+    assert_eq!(c.on_answer(r, "b", Answer::Delivered, 11), Step::Wait);
     assert_eq!(c.on_tick(7_200_000), Step::Wait);
     let step = c.on_answer(r, "b", discard(&["b1"]), 11);
     assert_eq!(commit_ids_sorted(&step), vec!["a1", "b1"]);
@@ -358,8 +403,8 @@ fn c13_clean_when_prompted_counts_as_a_discard_with_no_ids() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b"], 0);
     assert_eq!(c.on_answer(r, "a", Answer::Dirty, 1), Step::Wait);
-    assert_eq!(c.on_answer(r, "b", Answer::Dirty, 2), prompt("a"));
-    assert_eq!(c.on_answer(r, "a", Answer::Clean, 3), prompt("b"));
+    assert_eq!(norm(c.on_answer(r, "b", Answer::Dirty, 2)), prompt("a"));
+    assert_eq!(norm(c.on_answer(r, "a", Answer::Clean, 3)), prompt("b"));
     assert_eq!(c.on_answer(r, "b", discard(&["b1"]), 4), commit(&["b1"]));
 }
 
@@ -385,7 +430,7 @@ fn c14_request_ids_strictly_increase_across_requests() {
             );
         } else {
             assert_eq!(
-                c.on_answer(r, "a", Answer::Dirty, k * 10_000 + 1),
+                norm(c.on_answer(r, "a", Answer::Dirty, k * 10_000 + 1)),
                 prompt("a")
             );
             assert_eq!(
@@ -416,7 +461,7 @@ fn c17_an_empty_snapshot_while_a_request_is_live_is_still_already_pending() {
     assert_eq!(c, before, "a refused begin must not disturb the request");
 
     // The live request still resolves normally afterwards.
-    assert_eq!(c.on_answer(r, "a", Answer::Dirty, 2), prompt("a"));
+    assert_eq!(norm(c.on_answer(r, "a", Answer::Dirty, 2)), prompt("a"));
     assert_eq!(c.on_answer(r, "a", discard(&["a1"]), 3), commit(&["a1"]));
     assert_eq!(c.begin(&empty, 4), Begin::TerminateNow);
 }
@@ -435,8 +480,14 @@ fn c18_an_empty_snapshot_cannot_quit_past_an_outstanding_native_alert() {
             timed_out: vec!["a".to_string(), "b".to_string()]
         }
     );
-    assert_eq!(c.on_window_gone("a"), ignored(IgnoredWhy::FallbackOwns));
-    assert_eq!(c.on_window_gone("b"), ignored(IgnoredWhy::FallbackOwns));
+    assert_eq!(
+        c.on_window_gone("a", QUIT_ACK_TIMEOUT_MS),
+        ignored(IgnoredWhy::FallbackOwns)
+    );
+    assert_eq!(
+        c.on_window_gone("b", QUIT_ACK_TIMEOUT_MS),
+        ignored(IgnoredWhy::FallbackOwns)
+    );
 
     let empty: [&str; 0] = [];
     assert_eq!(

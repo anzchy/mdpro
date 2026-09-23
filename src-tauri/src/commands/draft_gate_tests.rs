@@ -141,11 +141,17 @@ fn g2_a_committed_quit_stops_the_draft_from_being_rewritten() {
 struct NoopEffects;
 impl QuitEffects for NoopEffects {
     fn emit_all(&self, _event: QuitEvent) {}
-    fn emit_to(&self, _label: &str, _event: QuitEvent) {}
+    fn emit_to(&self, _label: &str, _event: QuitEvent) -> bool {
+        true
+    }
     fn activate(&self, _label: &str) {}
     fn arm_timer(&self, _request_id: u64, _deadline_ms: u64) {}
-    fn reply(&self, _terminate: bool) {}
-    fn native_fallback(&self, _request_id: u64, _timed_out: Vec<String>) {}
+    fn reply(&self, _terminate: bool) -> bool {
+        true
+    }
+    fn native_fallback(&self, _request_id: u64, _timed_out: Vec<String>) -> bool {
+        true
+    }
 }
 
 #[allow(clippy::await_holding_lock)]

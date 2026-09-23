@@ -73,6 +73,31 @@ pub fn answer_log_context(
     })
 }
 
+/// Context for `app.quit.effect_failed`: which liveness-critical effect could
+/// not be dispatched, and for which request (ADR-0029 §4).
+///
+/// The effect name is a fixed identifier chosen by the driver, never a value
+/// from the webview, and the line carries no window label — the failure is the
+/// app's, not one document's.
+pub fn effect_failure_log_context(request_id: u64, effect: &str) -> Value {
+    json!({
+        "requestId": request_id,
+        "effect": effect,
+    })
+}
+
+/// A liveness-critical effect that was not dispatched (ADR-0029 §4). Error
+/// level and `Fail` status: a reply AppKit never received leaves the app
+/// unquittable, and this line is the only trace of it a support log gets.
+pub(super) fn log_effect_failed(request_id: u64, effect: &str) {
+    write(
+        "app.quit.effect_failed",
+        LogStatus::Fail,
+        effect_failure_log_context(request_id, effect),
+        Some(format!("{effect} could not be dispatched")),
+    );
+}
+
 /// Context for `app.quit.commit`: what the commit did to the drafts.
 pub fn commit_log_context(report: &CommitReport) -> Value {
     json!({

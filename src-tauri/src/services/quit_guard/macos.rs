@@ -218,13 +218,18 @@ pub fn activate_app(app: &AppHandle) {
 
 /// Resolve the pending `NSTerminateLater`. Called exactly once per request,
 /// from either the ordinary path or the fallback, never both.
-pub fn reply_to_should_terminate(app: &AppHandle, terminate: bool) {
-    let _ = app.run_on_main_thread(move || {
+///
+/// Returns whether the call could be posted to the main thread. A dispatch that
+/// silently failed leaves the app unable to quit after a perfect protocol run
+/// (ADR-0029 §4), so the caller has to be able to log it.
+pub fn reply_to_should_terminate(app: &AppHandle, terminate: bool) -> bool {
+    app.run_on_main_thread(move || {
         let Some(mtm) = MainThreadMarker::new() else {
             return;
         };
         NSApplication::sharedApplication(mtm).replyToApplicationShouldTerminate(terminate);
-    });
+    })
+    .is_ok()
 }
 
 /// The ADR-0027 timeout alert.
@@ -233,34 +238,40 @@ pub fn reply_to_should_terminate(app: &AppHandle, terminate: bool) {
 /// long released before `runModal` spins its nested run loop. A webview that
 /// recovers mid-alert can therefore call `quit_guard_reply` without deadlocking;
 /// the coordinator ignores it, because the fallback owns the request.
-pub fn present_timeout_alert(app: &AppHandle, request_id: u64) {
+///
+/// Returns whether the presentation could be posted. A failed dispatch would
+/// otherwise leave the request owned by an alert that never appears, which is
+/// the unquittable-app case ADR-0029 §4 closes.
+pub fn present_timeout_alert(app: &AppHandle, request_id: u64) -> bool {
     let app = app.clone();
-    let _ = app.clone().run_on_main_thread(move || {
-        let Some(mtm) = MainThreadMarker::new() else {
-            return;
-        };
-        let ns_app = NSApplication::sharedApplication(mtm);
-        ns_app.unhide(None);
-        #[allow(deprecated)]
-        ns_app.activateIgnoringOtherApps(true);
+    app.clone()
+        .run_on_main_thread(move || {
+            let Some(mtm) = MainThreadMarker::new() else {
+                return;
+            };
+            let ns_app = NSApplication::sharedApplication(mtm);
+            ns_app.unhide(None);
+            #[allow(deprecated)]
+            ns_app.activateIgnoringOtherApps(true);
 
-        let alert = NSAlert::new(mtm);
-        alert.setAlertStyle(NSAlertStyle::Warning);
-        alert.setMessageText(&NSString::from_str(ALERT_TITLE));
-        alert.setInformativeText(&NSString::from_str(ALERT_BODY));
-        // Added first, so AppKit makes it the default (Return) button.
-        let _keep_open = alert.addButtonWithTitle(&NSString::from_str(KEEP_OPEN_TITLE));
-        let quit_anyway = alert.addButtonWithTitle(&NSString::from_str(QUIT_ANYWAY_TITLE));
-        // No keystroke may land on the discarding button. AppKit only assigns
-        // Escape to a button titled "Cancel", but clearing it costs nothing and
-        // the cost of being wrong is unsaved work.
-        quit_anyway.setKeyEquivalent(&NSString::from_str(""));
+            let alert = NSAlert::new(mtm);
+            alert.setAlertStyle(NSAlertStyle::Warning);
+            alert.setMessageText(&NSString::from_str(ALERT_TITLE));
+            alert.setInformativeText(&NSString::from_str(ALERT_BODY));
+            // Added first, so AppKit makes it the default (Return) button.
+            let _keep_open = alert.addButtonWithTitle(&NSString::from_str(KEEP_OPEN_TITLE));
+            let quit_anyway = alert.addButtonWithTitle(&NSString::from_str(QUIT_ANYWAY_TITLE));
+            // No keystroke may land on the discarding button. AppKit only assigns
+            // Escape to a button titled "Cancel", but clearing it costs nothing and
+            // the cost of being wrong is unsaved work.
+            quit_anyway.setKeyEquivalent(&NSString::from_str(""));
 
-        let answer = fallback_answer_for(alert.runModal());
-        if let Some(guard) = app.try_state::<AppQuitGuard>() {
-            guard.fallback_answer(request_id, answer);
-        }
-    });
+            let answer = fallback_answer_for(alert.runModal());
+            if let Some(guard) = app.try_state::<AppQuitGuard>() {
+                guard.fallback_answer(request_id, answer);
+            }
+        })
+        .is_ok()
 }
 
 /// The IMP's fail-open value, named so the unreachable empty-slot path reads as

@@ -35,7 +35,7 @@ fn walk_outstanding(assign: &[Kind], d: &Runner) -> Vec<(Option<usize>, Option<u
         if resolves {
             outstanding = None;
         }
-        if let Step::Prompt(label) = &rec.step {
+        if let Step::Prompt { label, .. } = &rec.step {
             assert!(
                 outstanding.is_none(),
                 "{}: {label} prompted while w{:?} is still outstanding",
@@ -154,7 +154,7 @@ fn check_row(
     for (i, step) in steps.iter().enumerate() {
         if i > terminal {
             assert!(
-                !matches!(step, Step::Prompt(_)),
+                !matches!(step, Step::Prompt { .. }),
                 "{row}: prompt after terminal"
             );
         }
@@ -175,7 +175,7 @@ fn check_row(
                 for (i, rec) in d.trace.iter().enumerate() {
                     if rec.tag == Tag::Gone(q) && i < terminal {
                         assert!(
-                            !is_terminal(&rec.step) && !matches!(rec.step, Step::Prompt(_)),
+                            !is_terminal(&rec.step) && !matches!(rec.step, Step::Prompt { .. }),
                             "{row}: the gone of a clean window gave {:?}",
                             rec.step
                         );
@@ -207,7 +207,7 @@ fn check_row(
                 for (i, rec) in d.trace.iter().enumerate() {
                     if rec.tag == Tag::Gone(q) && i < terminal {
                         assert!(
-                            !is_terminal(&rec.step) && !matches!(rec.step, Step::Prompt(_)),
+                            !is_terminal(&rec.step) && !matches!(rec.step, Step::Prompt { .. }),
                             "{row}: the gone of a discarded window gave {:?}",
                             rec.step
                         );

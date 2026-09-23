@@ -105,6 +105,16 @@ pub(super) enum Effect {
     NativeFallback(u64, Vec<String>),
 }
 
+/// Which liveness-critical effects this fixture should report as *not*
+/// dispatched. ADR-0029 §4 makes those failures visible to the driver, so a
+/// test needs to be able to produce one.
+#[derive(Default)]
+pub(super) struct FailingEffects {
+    pub emit_to: Vec<String>,
+    pub reply: bool,
+    pub native_fallback: bool,
+}
+
 /// A real struct that appends to a `Vec`, not a mock of our own logic. It
 /// stands in only for the Tauri emit, the window activation and the NSApp
 /// reply. `on_delete` is an observation point: it asks the injected gate itself
@@ -115,6 +125,7 @@ pub(super) struct RecordingEffects {
     log: Mutex<Vec<Effect>>,
     deletes: Mutex<Vec<(String, bool)>>,
     gate: Option<&'static DraftGate>,
+    failing: Mutex<FailingEffects>,
 }
 
 impl RecordingEffects {
@@ -123,7 +134,13 @@ impl RecordingEffects {
             log: Mutex::new(Vec::new()),
             deletes: Mutex::new(Vec::new()),
             gate: Some(gate),
+            failing: Mutex::new(FailingEffects::default()),
         }
+    }
+
+    /// Make one effect report failure from now on.
+    pub(super) fn fail(&self, set: impl FnOnce(&mut FailingEffects)) {
+        set(&mut self.failing.lock().unwrap());
     }
 
     pub(super) fn effects(&self) -> Vec<Effect> {
@@ -143,8 +160,15 @@ impl QuitEffects for RecordingEffects {
     fn emit_all(&self, event: QuitEvent) {
         self.push(Effect::EmitAll(event));
     }
-    fn emit_to(&self, label: &str, event: QuitEvent) {
+    fn emit_to(&self, label: &str, event: QuitEvent) -> bool {
         self.push(Effect::EmitTo(label.to_string(), event));
+        !self
+            .failing
+            .lock()
+            .unwrap()
+            .emit_to
+            .iter()
+            .any(|l| l == label)
     }
     fn activate(&self, label: &str) {
         self.push(Effect::Activate(label.to_string()));
@@ -152,11 +176,13 @@ impl QuitEffects for RecordingEffects {
     fn arm_timer(&self, request_id: u64, deadline_ms: u64) {
         self.push(Effect::ArmTimer(request_id, deadline_ms));
     }
-    fn reply(&self, terminate: bool) {
+    fn reply(&self, terminate: bool) -> bool {
         self.push(Effect::Reply(terminate));
+        !self.failing.lock().unwrap().reply
     }
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) {
+    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
         self.push(Effect::NativeFallback(request_id, timed_out));
+        !self.failing.lock().unwrap().native_fallback
     }
     fn on_delete(&self, document_id: &str) {
         let held_closed = self.gate.map(|g| g.is_held_closed()).unwrap_or(false);
@@ -528,10 +554,11 @@ fn d7_a_silent_window_hands_the_request_to_the_native_alert_and_replies_once() {
 
     guard.tick(QUIT_ACK_TIMEOUT_MS - 1);
     assert_eq!(
-        effects_of(&guard),
-        before_deadline,
-        "a tick before the deadline must do nothing"
+        effects_of(&guard)[before_deadline.len()..],
+        [Effect::ArmTimer(r, QUIT_ACK_TIMEOUT_MS)],
+        "a tick before the deadline must re-arm it and do nothing else (ADR-0029 §5)"
     );
+    let before_deadline = effects_of(&guard);
 
     guard.tick(QUIT_ACK_TIMEOUT_MS);
     let after_deadline = effects_of(&guard);
@@ -771,12 +798,13 @@ impl QuitEffects for ReentrantEffects {
     fn emit_all(&self, event: QuitEvent) {
         self.log.lock().unwrap().push(Effect::EmitAll(event));
     }
-    fn emit_to(&self, label: &str, event: QuitEvent) {
+    fn emit_to(&self, label: &str, event: QuitEvent) -> bool {
         self.log
             .lock()
             .unwrap()
             .push(Effect::EmitTo(label.to_string(), event));
         self.reenter();
+        true
     }
     fn activate(&self, label: &str) {
         self.log
@@ -790,15 +818,17 @@ impl QuitEffects for ReentrantEffects {
             .unwrap()
             .push(Effect::ArmTimer(request_id, deadline_ms));
     }
-    fn reply(&self, terminate: bool) {
+    fn reply(&self, terminate: bool) -> bool {
         self.log.lock().unwrap().push(Effect::Reply(terminate));
         self.reenter();
+        true
     }
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) {
+    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
         self.log
             .lock()
             .unwrap()
             .push(Effect::NativeFallback(request_id, timed_out));
+        true
     }
 }
 
@@ -879,6 +909,9 @@ fn w1_destroyed_for_a_queued_window_advances_the_quit_without_prompting_it() {
             Effect::ArmTimer(r, QUIT_ACK_TIMEOUT_MS),
             Effect::Activate("A".to_string()),
             Effect::EmitTo("A".to_string(), QuitEvent::Prompt { request_id: r }),
+            // A's prompt was issued at now=2, so its delivery deadline is 2_002
+            // (ADR-0029 §1) — measured from the prompt, not from the request.
+            Effect::ArmTimer(r, 2 + QUIT_PROMPT_DELIVERY_TIMEOUT_MS),
             Effect::Reply(true),
         ],
         "B must never be activated and never be prompted"

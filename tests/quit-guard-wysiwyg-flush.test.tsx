@@ -5,7 +5,8 @@
  * for: the keystroke lives only in ProseMirror until the flush runs, so a quit
  * check that reads documentStore first answers `clean` and the coordinator
  * quits over it. Real Milkdown, real serializer, real stores; only
- * `@tauri-apps/api/{core,event,window}` and `loggingService` are mocked.
+ * `@tauri-apps/api/{core,event,window,webviewWindow}` and `loggingService` are
+ * mocked.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
@@ -35,6 +36,22 @@ vi.mock("@tauri-apps/api/event", () => ({
   }),
 }));
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: "main" }) }));
+// `useQuitGuard` subscribes per webview, so the quit events arrive through this
+// object rather than the global `listen` (ADR-0029 addition: one window's prompt
+// must not reach the others).
+vi.mock("@tauri-apps/api/webviewWindow", () => ({
+  getCurrentWebviewWindow: () => ({
+    label: "main",
+    listen: async (name: string, cb: Cb) => {
+      const set = bus.listeners.get(name) ?? new Set<Cb>();
+      set.add(cb);
+      bus.listeners.set(name, set);
+      return () => {
+        set.delete(cb);
+      };
+    },
+  }),
+}));
 vi.mock("../src/services/loggingService", () => ({
   loggingService: {
     logEventSync: vi.fn(),

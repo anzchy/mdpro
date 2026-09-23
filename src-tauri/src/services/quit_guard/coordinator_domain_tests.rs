@@ -208,12 +208,12 @@ impl Runner {
                 1,
             ),
             Input::ForeignAnswer(answer) => self.c.on_answer(self.id, "zz", answer.clone(), 1),
-            Input::Gone(idx) => self.c.on_window_gone(&self.labels[*idx]),
-            Input::ForeignGone => self.c.on_window_gone("zz"),
+            Input::Gone(idx) => self.c.on_window_gone(&self.labels[*idx], 1),
+            Input::ForeignGone => self.c.on_window_gone("zz", 1),
             Input::Tick(now) => self.c.on_tick(*now),
             Input::Fallback(answer) => self.c.on_fallback_answer(self.id, *answer),
         };
-        if let Step::Prompt(label) = &step {
+        if let Step::Prompt { label, .. } = &step {
             self.outstanding = Some(
                 self.labels
                     .iter()
@@ -245,7 +245,7 @@ impl Runner {
         self.trace
             .iter()
             .filter_map(|r| match &r.step {
-                Step::Prompt(l) => Some(l.clone()),
+                Step::Prompt { label, .. } => Some(label.clone()),
                 _ => None,
             })
             .collect()

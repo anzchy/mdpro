@@ -5,7 +5,7 @@
 //! until `on_fallback_answer`, and whose "Quit Without Saving" deletes no
 //! drafts.
 
-use super::coordinator_tests::{begin_later, commit, discard, ignored, prompt};
+use super::coordinator_tests::{begin_later, commit, discard, ignored, norm, prompt};
 use super::*;
 
 fn fallback(labels: &[&str]) -> Step {
@@ -109,7 +109,7 @@ fn f3b_quit_anyway_carries_no_ids_from_an_accepted_discard() {
     // path, fails here.
     let mut c = QuitCoordinator::new();
     let r1 = begin_later(&mut c, &["a"], 0);
-    assert_eq!(c.on_answer(r1, "a", Answer::Dirty, 1), prompt("a"));
+    assert_eq!(norm(c.on_answer(r1, "a", Answer::Dirty, 1)), prompt("a"));
     assert_eq!(c.on_answer(r1, "a", discard(&["x1"]), 2), commit(&["x1"]));
 
     let r2 = begin_later(&mut c, &["a", "b"], 100);
@@ -218,7 +218,7 @@ fn f6_the_fallback_is_issued_at_most_once_per_request() {
     assert_eq!(c, before);
 
     assert_eq!(
-        c.on_window_gone("b"),
+        c.on_window_gone("b", QUIT_ACK_TIMEOUT_MS + 6_000),
         ignored(IgnoredWhy::FallbackOwns),
         "the alert owns the request even if the stuck window is torn down"
     );
