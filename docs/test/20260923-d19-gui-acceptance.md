@@ -69,9 +69,36 @@ The checkbox showed ticked, but nothing was persisted:
 - `~/.mdpro/config.json` kept its 2026-09-22 20:18 mtime, and its `markdown` object is still `{"autoPair":true}`.
 - Settings opened fresh in a new window shows the box **unticked**.
 
-**Code read:** `src-tauri/src/models/preferences.rs:616` `MarkdownConfig` has only `auto_pair`. The frontend field `autoReformatTablesOnSave` therefore cannot survive a `get_preferences` round trip. As a result, `useDocument.ts:219` `prefs.markdown?.autoReformatTablesOnSave` is always falsy in the Tauri app.
+**Code read (corrected 2026-09-23).** The first reading of this run blamed the
+missing serde field alone. That is a real defect but it is the *second* one, and
+it is not what the observations above show. There are two, and the outer one
+makes the inner one unobservable:
 
-**Not established:** why the toggle left no `preferences.set` trace at all.
+1. **The Tauri detector never fires, so `preferencesService` never does IPC at
+   all.** `src/services/preferencesService.ts:20-25` gates every call on
+   `"__TAURI__" in window`, but Tauri v2 injects `window.__TAURI__` only when
+   `withGlobalTauri` is enabled, and it is **absent from
+   `src-tauri/tauri.conf.json`**. The app itself detects Tauri the other way —
+   `src/main.tsx:9` tests `__TAURI_INTERNALS__`, which is what v2 actually
+   provides. So in the shipping app `isTauriEnv()` is always false,
+   `preferencesService` silently takes its browser-mode path, and no preference
+   write ever reaches Rust. **This is why there was no `preferences.set` line:
+   nothing was sent.** It is not specific to this checkbox — it disables
+   preference persistence across the service.
+
+   This is already known in the codebase: `src/services/loggingService.ts:113-118`
+   documents the same detector defect and exists to route around it, reading
+   logging settings through `safeInvoke` precisely because
+   `preferencesService.getPreferences()` cannot be trusted to reach the backend.
+
+2. **`MarkdownConfig` has no field to persist into.**
+   `src-tauri/src/models/preferences.rs:616` carries only `auto_pair`, so
+   `autoReformatTablesOnSave` could not survive a `get_preferences` round trip
+   even once defect 1 is fixed, and `useDocument.ts:219`
+   `prefs.markdown?.autoReformatTablesOnSave` would stay falsy.
+
+Fixing either alone leaves the checkbox dead. Defect 1 is the one that hides the
+evidence, which is why this run could not see past it.
 
 **Restoring the setting:** the persisted setting was never on, so nothing needed turning off. The Settings dialog in the first window still showed the stale local tick when the run ended.
 
@@ -84,12 +111,22 @@ The checkbox showed ticked, but nothing was persisted:
 | 3 | Second ⌘S: no dialog, dot clears, disk has the full text | **pass**: S2 and W2 (`alphabeta`), and T3 (`…editZ`). |
 | 4 | One `file.save` with `editedDuringSave:true`, and no content in the log | **pass**: exactly one `editedDuringSave:true` (T2), and no document text in the slice. |
 | 5 | Applied save (no concurrent edit): clean, and the path is adopted | **pass**: S1 and W1 (untitled → path, dot cleared). |
-| 6a | Auto-reformat, in-flight: disk = formatted table, editor keeps the edit and stays dirty | **NOT VERIFIED; blocked by a pre-existing defect.** An in-flight edit *was* reached (T2), but the preference never takes effect: `MarkdownConfig` lacks the field, so nothing is formatted. The editor-keeps-edit half passed, but the "disk = formatted" half cannot hold. |
+| 6a | Auto-reformat, in-flight: disk = formatted table, editor keeps the edit and stays dirty | **NOT VERIFIED; blocked by a pre-existing defect.** An in-flight edit *was* reached (T2), but the preference never takes effect: `preferencesService` never reaches Rust at all (detector defect), and `MarkdownConfig` has no field to hold it either. Nothing is formatted. The editor-keeps-edit half passed, but the "disk = formatted" half cannot hold. |
 | 6b | Auto-reformat, plain applied: disk and editor both formatted, clean | **NOT VERIFIED**, for the same defect. T3 saved clean but unformatted. |
 | 7 | Close during save | **Not GUI-tested.** With an untitled document the Save As panel is app-modal, so a close cannot be issued during it. For a titled document the IPC completes in about 15–20 ms, too fast to close by hand. `closedDuringSave` count = 0. |
 | — | Both themes (rule 34) | Not exercised; this was a behavioural run in the dark theme only. |
 
 ### Follow-ups (not fixed here)
 
-1. **Auto-reformat preference is dead in the Tauri app.** Add `auto_reformat_tables_on_save` to the Rust `MarkdownConfig` (serde default `false`) with a round-trip test. Then re-run 6a/6b. This is a bug fix, so it needs a regression test that fails without the fix.
+1. **Preference persistence is dead in the Tauri app** — broader than this one
+   checkbox, and it needs both fixes plus a decision recorded as an ADR:
+   - Correct `preferencesService.isTauriEnv()` to test `__TAURI_INTERNALS__`
+     (matching `main.tsx`), **or** enable `withGlobalTauri` — these are different
+     trade-offs, not interchangeable, and the choice constrains later work.
+   - Add `auto_reformat_tables_on_save` to the Rust `MarkdownConfig` (serde
+     default `false`) with a round-trip test.
+   - Then re-run 6a/6b. Both are bug fixes, so each needs a regression test that
+     fails without it. Note that no existing test caught defect 1, because the
+     unit lane runs under jsdom where the detector is *supposed* to report
+     browser mode — a test asserting the shipping-app path is the gap.
 2. **MCP-during-panel probe:** re-run with token access allowed, to settle criterion 1's fallback.
