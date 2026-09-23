@@ -4,6 +4,12 @@
 
 **Accepted** (2026-09-23; proposed 2026-09-22). Closes **D16** on
 `docs/plans/20260912-frontend-backend-sequencing-order.md` once implemented.
+
+**§3 (Timeouts) superseded by [ADR-0027](./0027-a-quit-ack-timeout-draws-a-native-alert.md)
+(2026-09-23)**: an ack timeout now draws a native alert rather than counting as
+`cancel`. Everything else below stands. The reasoning in §3 is left as written —
+it records why the deadline looked right before it was weighed against this
+app's measured 7.4 s / 12.0 s / 259 s main-thread stalls.
 Evidence: spike on 2026-09-22 (throwaway worktree, `[SPIKE-d16]`-tagged
 prototype, 4 instrumented real-device runs; report kept outside the repo).
 
