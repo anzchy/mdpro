@@ -5,8 +5,16 @@
 //!
 //! Key decisions:
 //! - **The window label comes from the caller, never from the payload**
-//!   (ADR-0025 §2). A webview cannot answer on another window's behalf, so a
-//!   compromised or buggy renderer cannot discard someone else's drafts.
+//!   (ADR-0025 §2). A webview therefore cannot *resolve another window's
+//!   decision* — it cannot turn a sibling's `dirty` into `clean` and rob it of
+//!   its prompt.
+//! - **That is not draft ownership, and this file does not claim it.**
+//!   `document_ids` still arrives in the payload, and
+//!   `reply::validate_discard_ids` checks each id's *shape* and caps the count
+//!   — never which window the draft belongs to. A compromised renderer can name
+//!   a sibling's document ids in its own `discard` and those drafts are deleted
+//!   when the quit commits. Closing that would need a label→id binding the
+//!   backend can check, which does not exist today.
 //! - Validation of `document_ids` lives in `services::quit_guard::reply`, so
 //!   the rule is the same whether the answer arrives here or from the native
 //!   fallback.
