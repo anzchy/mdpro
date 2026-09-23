@@ -1,9 +1,16 @@
+//! Purpose: the native macOS menu bar and its `menu:action` dispatch.
+//!
+//! Key decisions:
+//! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`.
+//!   `publish_after` publishes a new recent list only once the menu built from
+//!   it has installed, so a failed rebuild never lets an old item index resolve
+//!   against the new list (audit row 18).
+//!
+//! @coordinates-with src/menu_recent.rs
+//! @coordinates-with src/commands/menu.rs
+
 use serde::Serialize;
-use std::path::Path;
-use std::sync::Mutex;
-use tauri::menu::{
-    CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder,
-};
+use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
 const MENU_FILE_NEW: &str = "menu.file.new";
@@ -27,25 +34,10 @@ const MENU_THEME_LIGHT: &str = "menu.theme.light";
 const MENU_THEME_DARK: &str = "menu.theme.dark";
 const MENU_THEME_SYSTEM: &str = "menu.theme.system";
 
-#[derive(Default)]
-pub struct MenuState {
-    recent_files: Mutex<Vec<String>>,
-}
-
-impl MenuState {
-    pub fn set_recent_files(&self, recent_files: Vec<String>) {
-        if let Ok(mut data) = self.recent_files.lock() {
-            *data = recent_files;
-        }
-    }
-
-    pub fn recent_files(&self) -> Vec<String> {
-        self.recent_files
-            .lock()
-            .map(|data| data.clone())
-            .unwrap_or_default()
-    }
-}
+#[path = "menu_recent.rs"]
+mod menu_recent;
+use menu_recent::build_recent_submenu;
+pub use menu_recent::{publish_after, MenuState};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,39 +52,6 @@ fn emit_menu_action(app: &AppHandle, action: &str, value: Option<String>) {
         value,
     };
     let _ = app.emit("menu:action", payload);
-}
-
-fn recent_label(path: &str) -> String {
-    let file_name = Path::new(path)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or(path);
-    file_name.to_string()
-}
-
-fn build_recent_submenu(
-    app: &AppHandle<Wry>,
-    recent_files: &[String],
-) -> tauri::Result<Submenu<Wry>> {
-    let mut builder = SubmenuBuilder::new(app, "Open Recent");
-    if recent_files.is_empty() {
-        let empty_item = MenuItem::with_id(
-            app,
-            "menu.file.recent.empty",
-            "No Recent Files",
-            false,
-            None::<&str>,
-        )?;
-        builder = builder.item(&empty_item);
-    } else {
-        for (index, path) in recent_files.iter().enumerate() {
-            let id = format!("{}{}", MENU_FILE_RECENT_PREFIX, index);
-            let label = recent_label(path);
-            let item = MenuItem::with_id(app, id, label, true, None::<&str>)?;
-            builder = builder.item(&item);
-        }
-    }
-    builder.build()
 }
 
 pub fn build_menu(
@@ -302,51 +261,5 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_recent_label_uses_file_name_only() {
-        assert_eq!(recent_label("/Users/me/notes/todo.md"), "todo.md");
-    }
-
-    #[test]
-    fn test_recent_label_falls_back_to_full_path_when_no_file_name() {
-        // A trailing-slash or root path has no file_name → return the input.
-        assert_eq!(recent_label("/"), "/");
-    }
-
-    #[test]
-    fn test_recent_label_handles_name_with_spaces_and_emoji() {
-        assert_eq!(recent_label("/a/b/my 📝 note.md"), "my 📝 note.md");
-    }
-
-    #[test]
-    fn test_menu_state_set_and_read_recent_files() {
-        let state = MenuState::default();
-        assert!(state.recent_files().is_empty(), "starts empty");
-        state.set_recent_files(vec!["/a.md".to_string(), "/b.md".to_string()]);
-        assert_eq!(
-            state.recent_files(),
-            vec!["/a.md".to_string(), "/b.md".to_string()]
-        );
-    }
-
-    #[test]
-    fn test_menu_state_set_replaces_previous_list() {
-        let state = MenuState::default();
-        state.set_recent_files(vec!["/old.md".to_string()]);
-        state.set_recent_files(vec!["/new.md".to_string()]);
-        assert_eq!(state.recent_files(), vec!["/new.md".to_string()]);
-    }
-
-    #[test]
-    fn test_recent_prefix_index_parsing_contract() {
-        // handle_menu_event resolves "menu.file.recent.{idx}" by stripping the
-        // prefix and parsing the index. Guard that contract here (the handler
-        // itself needs an AppHandle, but the id math is what matters).
-        let id = format!("{}{}", MENU_FILE_RECENT_PREFIX, 2);
-        let stripped = id.strip_prefix(MENU_FILE_RECENT_PREFIX).unwrap();
-        assert_eq!(stripped.parse::<usize>().unwrap(), 2);
-    }
-}
+#[path = "menu_tests.rs"]
+mod tests;
