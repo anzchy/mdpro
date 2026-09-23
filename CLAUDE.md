@@ -115,7 +115,7 @@ import { invoke } from '@tauri-apps/api/core';
 const result = await invoke<OpenFileResult>('open_file', { path, encoding });
 ```
 
-Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `save_draft`, `get_preferences`, `get_app_version`
+Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `save_draft`, `get_preferences`, `get_app_version`, `quit_guard_reply`
 
 ### Events (Rust → Frontend)
 
@@ -131,6 +131,9 @@ Rust emits events that frontend listens to via `listen()`:
 | `mcp:insert_content` | `{ document_id, text, position, window_label }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:create_document` | `{ document_id, content, window_label }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:table_action` | `{ document_id, action, payload, window_label }` | MCP table tools (http\_server.rs) → `useMcpEvents.ts` |
+| `app:quit-requested` | `{ requestId }` | Quit phase 1 — asks every window if it is dirty (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-prompt` | `{ requestId }` | Quit phase 2 — prompts one dirty window at a time (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-cancelled` | `{ requestId }` | Quit aborted; windows dismiss their prompt (quit\_guard/events.rs) → `useQuitGuard.ts` |
 
 ## Menu System
 

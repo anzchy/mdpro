@@ -14,8 +14,48 @@ use serde_json::{json, Value};
 
 use super::coordinator::AbortReason;
 use super::driver::{CommitReport, QuitAnswer};
+use super::InstallOutcome;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
+
+/// Context for `app.quit.hook_installed`: which class was hooked, and whether it
+/// took. The class name is the only warning a tao upgrade will give (ADR-0025
+/// §"Costs"), so it is logged even when the install succeeded.
+pub fn hook_install_log_context(delegate_class: Option<&str>, outcome: InstallOutcome) -> Value {
+    json!({
+        "delegateClass": delegate_class,
+        "outcome": outcome.as_str(),
+    })
+}
+
+/// A failed install is logged at error level with a reason. The worst outcome is
+/// a silent one: the app looks fine and quits past unsaved work.
+pub(super) fn log_hook_installed(delegate_class: Option<&str>, outcome: InstallOutcome) {
+    let status = if outcome.installed() {
+        LogStatus::Success
+    } else {
+        LogStatus::Fail
+    };
+    write(
+        "app.quit.hook_installed",
+        status,
+        hook_install_log_context(delegate_class, outcome),
+        outcome.failure_reason().map(str::to_string),
+    );
+}
+
+/// The IMP ran with an empty host slot. `install` fills the slot before adding
+/// the method, so this is unreachable by construction — and therefore worth a
+/// loud line if it ever is not.
+#[cfg(target_os = "macos")]
+pub(super) fn log_hook_no_host() {
+    write(
+        "app.quit.hook_no_host",
+        LogStatus::Fail,
+        json!({}),
+        Some("applicationShouldTerminate: ran with no host; quitting unguarded".to_string()),
+    );
+}
 
 /// Context for `app.quit.answer`: who answered what, and **how many** ids came
 /// with it.

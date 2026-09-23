@@ -66,8 +66,10 @@ impl QuitEffects for TauriQuitEffects {
     }
 
     fn activate(&self, label: &str) {
-        // WI-4 adds the app-level part (unhide + activateIgnoringOtherApps:).
-        // The window-level part needs no objc and belongs here.
+        // App first, then the one window: unhiding after showing the window
+        // would leave it behind a hidden app for a frame.
+        #[cfg(target_os = "macos")]
+        super::macos::activate_app(&self.app);
         if let Some(window) = self.app.get_webview_window(label) {
             let _ = window.unminimize();
             let _ = window.show();
@@ -90,13 +92,22 @@ impl QuitEffects for TauriQuitEffects {
         });
     }
 
-    fn reply(&self, _terminate: bool) {
-        // WI-4: `replyToApplicationShouldTerminate:`. Outside macOS this stays
-        // a no-op, as the plan requires.
+    fn reply(&self, terminate: bool) {
+        // Off macOS there is no deferred terminate to resolve, so this stays a
+        // no-op, as the plan requires.
+        #[cfg(target_os = "macos")]
+        super::macos::reply_to_should_terminate(&self.app, terminate);
+        #[cfg(not(target_os = "macos"))]
+        let _ = terminate;
     }
 
-    fn native_fallback(&self, _request_id: u64, _timed_out: Vec<String>) {
-        // WI-4 / ADR-0027: present the app-modal NSAlert on the main thread and
-        // feed the button choice back through `QuitGuard::fallback_answer`.
+    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) {
+        // ADR-0027: the alert names no window, so the labels are only the
+        // driver's log material. They are counted there, not passed on.
+        let _ = timed_out;
+        #[cfg(target_os = "macos")]
+        super::macos::present_timeout_alert(&self.app, request_id);
+        #[cfg(not(target_os = "macos"))]
+        let _ = request_id;
     }
 }

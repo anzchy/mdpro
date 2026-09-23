@@ -284,6 +284,11 @@ fn main() {
                     error: None,
                 });
             }
+            // The native terminate hook (ADR-0025). It goes in after the
+            // windows are logged, so the install line sits next to them, and
+            // before the app is marked ready, so no quit can reach an
+            // unguarded delegate.
+            quit_guard::install(app.handle());
             logger::log_event(LogEntryPayload {
                 level: LogLevel::Info,
                 event: "app.ready".to_string(),

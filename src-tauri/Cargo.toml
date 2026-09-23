@@ -45,6 +45,22 @@ reqwest = { version = "0.12", features = ["json"] }
 rand = "0.8"
 dirs = "5"
 
+# The D16 native terminate hook (ADR-0025) and its timeout alert (ADR-0027).
+# These versions must unify with the ones tao already resolves: a second
+# semver-compatible `objc2` would make `class_addMethod` register against a
+# different runtime binding, and it would compile and pass every test.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-app-kit = { version = "0.3", features = [
+    "NSAlert",
+    "NSApplication",
+    "NSButton",
+    "NSControl",
+    "NSResponder",
+    "NSView",
+] }
+
 [[bin]]
 name = "tauri-app"
 path = "src/main.rs"

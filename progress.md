@@ -109,3 +109,28 @@ git commit -m "chore: add .gitattributes to enforce LF line endings"
 2. Never rely on per-developer `core.autocrlf` settings — they're invisible and easy to forget.
 3. When you see mass "modified" files after a pull with equal insertions/deletions, suspect line endings first.
 4. `git checkout -- .` is safe when you know the committed version is correct.
+
+---
+
+## A commit cannot record its own SHA (2026-09-23, D16 WI-4)
+
+**Symptom.** The D16 sequencing row briefly recorded `ac99c4a` for WI-4 while
+the branch actually held a different commit. Worse, `git log ac99c4a` still
+*resolved* — to the orphaned pre-amend commit — so the reference looked valid
+and pointed at a commit nobody had.
+
+**Root cause.** CLAUDE.md requires a work item's status row to be updated *in
+the same commit that finishes it*, and the row convention carries commit SHAs.
+Those two rules collide for a self-record: the SHA is only known after the
+commit exists, and amending the commit to insert it changes the SHA again.
+Commit → read SHA → `sed` → `--amend` feels like it closes the loop, but it
+writes the *previous* hash every time.
+
+**Rule.** A row may cite a SHA only for a commit that already exists — i.e. a
+*late* record such as WI-5 / WI-8. When a row records the commit it is part of,
+reference it as `本行所在提交` and let `git log` supply the hash. Never run the
+commit-then-amend-the-SHA dance; it cannot converge.
+
+**Check.** Before committing a row edit, resolve every SHA in it and confirm the
+commit is an ancestor of `HEAD` (`git merge-base --is-ancestor <sha> HEAD`).
+Plain `git log <sha>` is not enough — it happily resolves orphans.
