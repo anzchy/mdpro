@@ -283,6 +283,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 重启应用更新 | Shipped | `src/components/common/settings/AboutSettings.tsx` | 下载完成后弹出「Save and Restart / Don't restart yet」二选一 |
 | 重启前保存守卫 | Shipped | `src/hooks/useUpdater.ts` | 留一个未命名的脏文档再点重启，被拦下并提示；把它保存好之后重启才放行。在 WYSIWYG 里打字后立刻点重启，写盘的是刚打的字而不是旧内容（先 flush 再判断，与关窗口、⌘Q 共用 `assessWindowUnsaved`）；flush 失败则一个字都不写、只弹一次提示 |
 | 版本号显示 | Shipped | `src-tauri/src/commands/updater.rs` | ⌘, → About 里显示 `get_app_version` 返回的版本号，与 `tauri.conf.json` 里的一致 |
+| 退出守卫回复通道 `quit_guard_reply` | Stub | `src-tauri/src/commands/quit_guard.rs`, `src-tauri/src/services/quit_guard/driver.rs` | 协调器、驱动与 IPC 命令都在，但还没有调用方：装 `applicationShouldTerminate:` 的原生钩子和前端对话框是 WI-4/WI-5，所以 ⌘Q 现在走的仍是旧路径，`~/.mdpro/mdpro.log` 里不会出现 `app.quit.request`。能确认已注册的是参数校验：DevTools 里 `invoke('quit_guard_reply', { requestId: 1, answer: 'clean', documentIds: [] })` 会被拒绝并提示 documentIds 只能跟 discard 一起用；换成 `answer: 'discard'` 则返回成功且什么也不做（没有进行中的退出请求，协调器直接忽略） |
 | 云同步 | Absent | — | 设置里没有任何账号或同步项；文件只在本地。立场 |
 | 协作编辑 | Absent | — | 两个人同时开同一个文件不会看到对方的光标或改动。立场 |
 | 版本历史 | Absent | — | 没有查看或回滚历史版本的入口（草稿恢复只针对崩溃，不是版本史）。立场 |
@@ -290,7 +291,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 移动端 | Absent | — | 没有 iOS / iPadOS 构建目标，只发 macOS 的 .dmg |
 | Windows 构建 | Unknown | `scripts/build-windows.sh` | `scripts/build-windows.sh` 在仓库里，但目标平台只声明 macOS 13+ ARM64，从未在此验证。不要据此声称 Windows 可用 |
 
-> **关于「45 个定义、44 个注册」**：核对下来不成立。`src-tauri/src/commands/mod.rs::handlers()` 里注册了 45 个，仓库里带 `#[tauri::command]` 的定义也是 45 个，逐名对齐没有漏网的。数出 44 多半是按逗号数的——`updater::get_app_version` 是最后一项，后面没有逗号；而直接 grep 属性会数出 47，多出的两处在 `src-tauri/src/commands/logging.rs` 的文档注释里。真正该记的不是漏注册，是注册了却没人调用的那四条：`get_draft`、`mcp_get_server_info`、`preview_html`、`export_html`，上面每条都有自己的一行。
+> **关于「45 个定义、44 个注册」**：核对下来不成立。`src-tauri/src/commands/mod.rs::handlers()` 里注册了 46 个（D16 WI-3 加入 `quit_guard_reply` 之前是 45 个），仓库里带 `#[tauri::command]` 的定义也是 46 个，逐名对齐没有漏网的。当年数出 44 多半是按逗号数的——列表最后一项后面没有逗号（那时是 `updater::get_app_version`，现在是 `quit_guard::quit_guard_reply`）；而直接 grep `tauri::command` 会数出 49，多出的三处在 `src-tauri/src/commands/logging.rs`（两处）与 `src-tauri/src/services/markdown.rs`（一处）的文档注释里。真正该记的不是漏注册，是注册了却没人调用的那四条：`get_draft`、`mcp_get_server_info`、`preview_html`、`export_html`，上面每条都有自己的一行。
 
 ---
 

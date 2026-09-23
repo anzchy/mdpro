@@ -94,6 +94,14 @@ fn validate_id(id: &str) -> Result<(), DraftError> {
     Ok(())
 }
 
+/// Whether `document_id` is one this module will build a path for.
+///
+/// The quit guard needs the same answer *before* it starts deleting, so one bad
+/// id in a discard list refuses the whole list instead of half-applying it.
+pub(crate) fn is_valid_draft_id(document_id: &str) -> bool {
+    validate_id(document_id).is_ok()
+}
+
 /// Bundle file: `{document_id}.draft.json`
 pub(super) fn bundle_path(document_id: &str) -> Result<PathBuf, DraftError> {
     validate_id(document_id)?;

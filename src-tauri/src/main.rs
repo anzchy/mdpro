@@ -13,6 +13,10 @@ use tokio::sync::oneshot;
 
 // Store the shutdown sender so the HTTP server stays alive
 static MCP_SHUTDOWN: OnceLock<Mutex<Option<oneshot::Sender<()>>>> = OnceLock::new();
+use tauri_app_lib::services::quit_guard::{
+    self,
+    effects::{AppQuitGuard, TauriQuitEffects},
+};
 use tauri_app_lib::services::{app_exit, http_server, logger, shadow_store};
 
 // Track whether app has fully initialized (setup complete, main window ready)
@@ -179,6 +183,12 @@ fn main() {
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
 
+            // The quit guard. Managed state, so the ack timer and the reply
+            // command both reach the one guard without an Arc cycle.
+            app.manage(AppQuitGuard::new(TauriQuitEffects::new(
+                app.handle().clone(),
+            )));
+
             // Initialize MCP Shadow Store
             let mcp_shadow_store: SharedShadowStore = shadow_store::create_shadow_store();
             app.manage(mcp_shadow_store.clone());
@@ -344,6 +354,12 @@ fn main() {
             tauri_app_lib::menu::handle_menu_event(app, event);
         })
         .on_window_event(|window, event| {
+            // The quit guard sees every window event and routes only
+            // `Destroyed`; a window the user keeps open must not count as an
+            // answer (ADR-0025 §2).
+            if let Some(guard) = window.try_state::<AppQuitGuard>() {
+                quit_guard::on_window_event(&*guard, window.label(), event);
+            }
             match event {
                 WindowEvent::ThemeChanged(theme) => {
                     tauri_app_lib::services::file_watcher::emit_theme_changed(

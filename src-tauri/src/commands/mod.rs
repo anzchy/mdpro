@@ -7,6 +7,7 @@ pub mod logging;
 pub mod mcp;
 pub mod menu;
 pub mod preferences;
+pub mod quit_guard;
 pub mod toc;
 pub mod updater;
 pub mod window;
@@ -61,6 +62,12 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         mcp::mcp_install_config,
         mcp::mcp_remove_config,
         // Updater commands
-        updater::get_app_version
+        updater::get_app_version,
+        // Quit guard
+        quit_guard::quit_guard_reply
     ]
 }
+
+#[cfg(test)]
+#[path = "draft_gate_tests.rs"]
+mod draft_gate_tests;

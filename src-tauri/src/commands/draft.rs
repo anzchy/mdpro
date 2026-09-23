@@ -8,6 +8,29 @@ use crate::services::draft::{
     RecoverResult,
 };
 use crate::services::logger;
+use crate::services::quit_guard::QUIT_COMMITTED;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Save a draft unless a quit has already committed.
+///
+/// Once the quit path has deleted the discarded drafts, an auto-save tick that
+/// is still holding the old content must not write them back (ADR-0025 §4).
+/// The flag is a parameter rather than a global read so a test can close the
+/// gate without closing it for the rest of the process.
+pub(crate) fn save_draft_gated(
+    committed: &AtomicBool,
+    document_id: &str,
+    content: &str,
+    original_path: Option<String>,
+    title: &str,
+) -> Result<DraftSaveResult, DraftError> {
+    if committed.load(Ordering::SeqCst) {
+        return Err(DraftError::IoError {
+            message: "a quit has committed: draft saving is closed".to_string(),
+        });
+    }
+    save_draft_service(document_id, content, original_path, title)
+}
 
 #[tauri::command]
 pub async fn save_draft(
@@ -31,18 +54,24 @@ pub async fn save_draft(
         duration_ms: None,
         error: None,
     });
-    let result =
-        save_draft_service(&document_id, &content, original_path, &title).inspect_err(|err| {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Error,
-                event: "file.write".to_string(),
-                status: LogStatus::Fail,
-                action_id: Some(action_id.clone()),
-                context: Some(json!({ "documentId": document_id.as_str() })),
-                duration_ms: Some(start.elapsed().as_millis() as u64),
-                error: Some(err.to_string()),
-            });
-        })?;
+    let result = save_draft_gated(
+        &QUIT_COMMITTED,
+        &document_id,
+        &content,
+        original_path,
+        &title,
+    )
+    .inspect_err(|err| {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "file.write".to_string(),
+            status: LogStatus::Fail,
+            action_id: Some(action_id.clone()),
+            context: Some(json!({ "documentId": document_id.as_str() })),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            error: Some(err.to_string()),
+        });
+    })?;
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "file.write".to_string(),
