@@ -10,19 +10,25 @@
 //!   before anything is emitted. `replyToApplicationShouldTerminate:` can run
 //!   AppKit code that re-enters this guard, and a `std::sync::Mutex` is not
 //!   reentrant, so holding it across an effect is a deadlock.
-//! - **Commit order is flag, then delete, then reply.** The flag closes draft
-//!   saving first, so an auto-save tick already in flight cannot write a
-//!   discarded draft back between the delete and process exit (ADR-0025 §4).
+//! - **Commit order is close, then delete, then reply.** Closing the gate and
+//!   deleting run as one critical section, so an auto-save tick already in
+//!   flight can neither slip its write in between them nor start a new one
+//!   until the deletes are done (ADR-0025 §4).
+//! - **Lock ordering: the draft gate is outside the coordinator mutex.** The
+//!   commit takes the gate's write guard, finishes with it, and only then takes
+//!   `self.lock()` to record the report. Nothing ever takes the gate while the
+//!   coordinator mutex is held. The reply is made with neither held: it posts to
+//!   the macOS main thread, which can re-enter this guard.
 //! - **Draft deletion is not behind `QuitEffects`.** It is the one effect whose
 //!   failure is data loss, so tests exercise the real thing.
 //!
 //! @coordinates-with docs/adr/0025-app-quit-is-deferred-through-a-native-terminate-hook.md
 //! @coordinates-with docs/adr/0027-a-quit-ack-timeout-draws-a-native-alert.md
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use super::logging;
+use super::DraftGate;
 use crate::services::draft;
 
 pub use super::coordinator::{
@@ -62,19 +68,19 @@ struct Inner {
 pub struct QuitGuard<E: QuitEffects> {
     inner: Mutex<Inner>,
     effects: E,
-    committed: &'static AtomicBool,
+    committed: &'static DraftGate,
 }
 
 impl<E: QuitEffects> QuitGuard<E> {
-    /// The production guard: it writes the one shared `QUIT_COMMITTED` flag that
-    /// `save_draft` reads.
+    /// The production guard: it closes the one shared `QUIT_COMMITTED` gate that
+    /// `save_draft` writes through.
     pub fn new(effects: E) -> Self {
-        Self::with_flag(effects, &super::QUIT_COMMITTED)
+        Self::with_gate(effects, &super::QUIT_COMMITTED)
     }
 
-    /// A guard over an injected flag, so a test can commit a quit without
+    /// A guard over an injected gate, so a test can commit a quit without
     /// closing draft saving for every other test in the process.
-    pub fn with_flag(effects: E, committed: &'static AtomicBool) -> Self {
+    pub fn with_gate(effects: E, committed: &'static DraftGate) -> Self {
         Self {
             inner: Mutex::new(Inner {
                 coordinator: QuitCoordinator::new(),
@@ -230,19 +236,29 @@ impl<E: QuitEffects> QuitGuard<E> {
                 request_id,
                 discard_document_ids,
             } => {
-                self.committed.store(true, Ordering::SeqCst);
-                let mut report = CommitReport::default();
-                for id in &discard_document_ids {
-                    self.effects.on_delete(id);
-                    match draft::delete_draft(id) {
-                        Ok(true) => report.deleted += 1,
-                        // Nothing to delete: the draft was never written.
-                        Ok(false) => {}
-                        // One draft that will not go must not strand the quit;
-                        // it is counted and the rest still run.
-                        Err(_) => report.failed += 1,
+                // One critical section for the close AND the deletes. A save
+                // that is mid-write holds this off until it finishes, and no
+                // save can start once it is taken — so nothing can write a
+                // discarded draft back behind the loop (ADR-0025 §4).
+                let report = {
+                    let _closed = self.committed.close();
+                    let mut report = CommitReport::default();
+                    for id in &discard_document_ids {
+                        self.effects.on_delete(id);
+                        match draft::delete_draft(id) {
+                            Ok(true) => report.deleted += 1,
+                            // Nothing to delete: the draft was never written.
+                            Ok(false) => {}
+                            // One draft that will not go must not strand the
+                            // quit; it is counted and the rest still run.
+                            Err(_) => report.failed += 1,
+                        }
                     }
-                }
+                    report
+                };
+                // The gate guard is released above, before the coordinator
+                // mutex is taken and before the reply is posted: see the lock
+                // ordering in this module's header.
                 self.lock().last_commit_report = Some(report);
                 logging::log_commit(request_id, &report);
                 self.effects.reply(true);

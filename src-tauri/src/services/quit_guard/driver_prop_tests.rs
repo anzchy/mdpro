@@ -11,7 +11,7 @@
 
 use super::driver::*;
 use super::driver_tests::{
-    bundle, drafts_dir, effects_of, later, leak_flag, make_temp_home, recording_guard, set_home,
+    bundle, drafts_dir, effects_of, later, leak_gate, make_temp_home, recording_guard, set_home,
     Effect, QuitCommittedReset,
 };
 use super::on_window_event;
@@ -19,7 +19,6 @@ use crate::services::draft;
 use crate::HOME_LOCK;
 use std::collections::BTreeSet;
 use std::path::Path;
-use std::sync::atomic::Ordering::SeqCst;
 
 /// What one window does across the whole request.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -73,8 +72,8 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
         draft::save_draft(id, "BODY", None, "t").unwrap();
     }
 
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&labels, 0));
 
     let mut expected_gone: BTreeSet<String> = BTreeSet::new();
@@ -244,8 +243,8 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
         "{scenario}: keep was deleted"
     );
 
-    // Law 6: the quit-committed flag tracks the reply.
-    assert_eq!(flag.load(SeqCst), !aborted, "{scenario}");
+    // Law 6: the quit-committed gate tracks the reply.
+    assert_eq!(gate.is_closed(), !aborted, "{scenario}");
 
     // Clean the slate for the next run.
     for id in &all_ids {

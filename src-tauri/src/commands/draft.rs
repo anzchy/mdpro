@@ -8,28 +8,34 @@ use crate::services::draft::{
     RecoverResult,
 };
 use crate::services::logger;
-use crate::services::quit_guard::QUIT_COMMITTED;
-use std::sync::atomic::{AtomicBool, Ordering};
+use crate::services::quit_guard::{DraftGate, QUIT_COMMITTED};
 
 /// Save a draft unless a quit has already committed.
 ///
 /// Once the quit path has deleted the discarded drafts, an auto-save tick that
 /// is still holding the old content must not write them back (ADR-0025 §4).
-/// The flag is a parameter rather than a global read so a test can close the
-/// gate without closing it for the rest of the process.
+/// `DraftGate::if_open` keeps the gate's read guard for the whole write, so the
+/// check and the write are indivisible: a commit cannot close the gate between
+/// them and then delete a draft this call is about to recreate.
+///
+/// The gate is a parameter rather than a global read so a test can close it
+/// without closing it for the rest of the process. It is a synchronous
+/// function, and the guard lives entirely inside `if_open`, so no caller can
+/// hold it across an `.await`.
 pub(crate) fn save_draft_gated(
-    committed: &AtomicBool,
+    committed: &DraftGate,
     document_id: &str,
     content: &str,
     original_path: Option<String>,
     title: &str,
 ) -> Result<DraftSaveResult, DraftError> {
-    if committed.load(Ordering::SeqCst) {
-        return Err(DraftError::IoError {
-            message: "a quit has committed: draft saving is closed".to_string(),
-        });
-    }
-    save_draft_service(document_id, content, original_path, title)
+    committed
+        .if_open(|| save_draft_service(document_id, content, original_path, title))
+        .unwrap_or_else(|| {
+            Err(DraftError::IoError {
+                message: "a quit has committed: draft saving is closed".to_string(),
+            })
+        })
 }
 
 #[tauri::command]

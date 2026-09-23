@@ -7,7 +7,7 @@
 //! the `NSAlert` itself. Those are the WI-10 device gates.
 
 use std::ffi::CString;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use objc2::rc::Retained;
@@ -17,7 +17,7 @@ use objc2::{msg_send, sel, ClassType};
 use super::{add_should_terminate, install_on, swap_host, QuitHost, HOST_LOCK};
 use crate::services::quit_guard::coordinator::Begin;
 use crate::services::quit_guard::driver::{QuitAnswer, QuitEffects, QuitEvent, QuitGuard};
-use crate::services::quit_guard::InstallOutcome;
+use crate::services::quit_guard::{DraftGate, InstallOutcome};
 
 // --- runtime scaffolding -------------------------------------------------
 
@@ -151,9 +151,9 @@ struct TestHost {
 }
 
 impl TestHost {
-    fn new(flag: &'static AtomicBool) -> Arc<Self> {
+    fn new(gate: &'static DraftGate) -> Arc<Self> {
         Arc::new(Self {
-            guard: QuitGuard::with_flag(RecordingEffects::default(), flag),
+            guard: QuitGuard::with_gate(RecordingEffects::default(), gate),
             labels: Mutex::new(Vec::new()),
         })
     }
@@ -279,11 +279,11 @@ fn the_imp_fails_open_when_no_host_is_installed() {
 /// platform effects are recorded.
 #[test]
 fn the_imp_maps_every_begin_outcome_from_a_real_coordinator() {
-    static FLAG: AtomicBool = AtomicBool::new(false);
-    FLAG.store(false, Ordering::SeqCst);
+    static GATE: DraftGate = DraftGate::new();
+    GATE.reopen_for_tests();
 
     let _lock = HOST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let host = TestHost::new(&FLAG);
+    let host = TestHost::new(&GATE);
     let _restore = install_host(Some(host.clone() as Arc<dyn QuitHost>));
 
     let cls = fresh_class("RealHost");
@@ -348,5 +348,5 @@ fn the_imp_maps_every_begin_outcome_from_a_real_coordinator() {
         "the request id must advance so the next quit is guarded too"
     );
 
-    FLAG.store(false, Ordering::SeqCst);
+    GATE.reopen_for_tests();
 }

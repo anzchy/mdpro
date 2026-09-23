@@ -12,12 +12,11 @@
 
 use super::driver::*;
 use super::logging::{answer_log_context, commit_log_context};
-use super::{on_window_event, QUIT_COMMITTED};
+use super::{on_window_event, DraftGate, QUIT_COMMITTED};
 use crate::services::draft;
 use crate::HOME_LOCK;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
 use std::sync::{Arc, Barrier, Mutex, OnceLock, Weak};
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -77,10 +76,10 @@ impl Drop for QuitCommittedReset {
     }
 }
 
-/// A fresh flag for an isolated driver. Leaked on purpose: `with_flag` takes a
-/// `&'static AtomicBool`, and a test binary's leak is bounded by the test count.
-pub(super) fn leak_flag() -> &'static AtomicBool {
-    Box::leak(Box::new(AtomicBool::new(false)))
+/// A fresh gate for an isolated driver. Leaked on purpose: `with_gate` takes a
+/// `&'static DraftGate`, and a test binary's leak is bounded by the test count.
+pub(super) fn leak_gate() -> &'static DraftGate {
+    Box::leak(Box::new(DraftGate::new()))
 }
 
 pub(super) fn later(begin: Begin) -> u64 {
@@ -108,21 +107,22 @@ pub(super) enum Effect {
 
 /// A real struct that appends to a `Vec`, not a mock of our own logic. It
 /// stands in only for the Tauri emit, the window activation and the NSApp
-/// reply. `on_delete` is an observation point: it reads the injected flag
-/// itself rather than believing a value the driver hands it.
+/// reply. `on_delete` is an observation point: it asks the injected gate itself
+/// whether the closing critical section is running, rather than believing a
+/// value the driver hands it.
 #[derive(Default)]
 pub(super) struct RecordingEffects {
     log: Mutex<Vec<Effect>>,
     deletes: Mutex<Vec<(String, bool)>>,
-    flag: Option<&'static AtomicBool>,
+    gate: Option<&'static DraftGate>,
 }
 
 impl RecordingEffects {
-    pub(super) fn watching(flag: &'static AtomicBool) -> Self {
+    pub(super) fn watching(gate: &'static DraftGate) -> Self {
         Self {
             log: Mutex::new(Vec::new()),
             deletes: Mutex::new(Vec::new()),
-            flag: Some(flag),
+            gate: Some(gate),
         }
     }
 
@@ -159,16 +159,16 @@ impl QuitEffects for RecordingEffects {
         self.push(Effect::NativeFallback(request_id, timed_out));
     }
     fn on_delete(&self, document_id: &str) {
-        let observed = self.flag.map(|f| f.load(SeqCst)).unwrap_or(false);
+        let held_closed = self.gate.map(|g| g.is_held_closed()).unwrap_or(false);
         self.deletes
             .lock()
             .unwrap()
-            .push((document_id.to_string(), observed));
+            .push((document_id.to_string(), held_closed));
     }
 }
 
-pub(super) fn recording_guard(flag: &'static AtomicBool) -> QuitGuard<RecordingEffects> {
-    QuitGuard::with_flag(RecordingEffects::watching(flag), flag)
+pub(super) fn recording_guard(gate: &'static DraftGate) -> QuitGuard<RecordingEffects> {
+    QuitGuard::with_gate(RecordingEffects::watching(gate), gate)
 }
 
 pub(super) fn effects_of(guard: &QuitGuard<RecordingEffects>) -> Vec<Effect> {
@@ -178,15 +178,15 @@ pub(super) fn effects_of(guard: &QuitGuard<RecordingEffects>) -> Vec<Effect> {
 // ── WI3-D1 ────────────────────────────────────────────────────────────────────
 
 #[test]
-fn d1_commit_deletes_exactly_the_discarded_drafts_and_never_the_global_flag() {
+fn d1_commit_deletes_exactly_the_discarded_drafts_and_never_the_global_gate() {
     let _lock = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let home = make_temp_home("qg_d1");
     let _home = set_home(&home);
     let drafts = drafts_dir(&home);
     let _reset = QuitCommittedReset;
     assert!(
-        !QUIT_COMMITTED.load(SeqCst),
-        "precondition: the global quit-committed flag must start clear"
+        !QUIT_COMMITTED.is_closed(),
+        "precondition: the global quit-committed gate must start open"
     );
 
     for id in ["a1", "a2", "b1", "keep"] {
@@ -194,8 +194,8 @@ fn d1_commit_deletes_exactly_the_discarded_drafts_and_never_the_global_flag() {
         assert!(bundle(&drafts, id).exists(), "setup: {id} was not saved");
     }
 
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&["A", "B"], 0));
     guard
         .handle_reply("A", r, QuitAnswer::Dirty, None, 1)
@@ -228,15 +228,18 @@ fn d1_commit_deletes_exactly_the_discarded_drafts_and_never_the_global_flag() {
         Some(&Effect::Reply(true)),
         "the commit must end with YES; effects were {effects:?}"
     );
-    assert!(flag.load(SeqCst), "the injected flag was not set on commit");
     assert!(
-        !QUIT_COMMITTED.load(SeqCst),
-        "a with_flag driver wrote the global QUIT_COMMITTED"
+        gate.is_closed(),
+        "the injected gate was not closed on commit"
     );
-    for (id, flag_at_delete) in guard.effects().deletes() {
+    assert!(
+        !QUIT_COMMITTED.is_closed(),
+        "a with_gate driver closed the global QUIT_COMMITTED"
+    );
+    for (id, inside_closing_section) in guard.effects().deletes() {
         assert!(
-            flag_at_delete,
-            "{id} was deleted before the quit-committed flag was set"
+            inside_closing_section,
+            "{id} was deleted outside the closing critical section, where a save could still write it back"
         );
     }
 }
@@ -260,8 +263,8 @@ fn d2_abort_after_an_earlier_discard_touches_no_draft() {
         .map(|id| fs::read(bundle(&drafts, id)).unwrap())
         .collect();
 
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&["A", "B"], 0));
     guard
         .handle_reply("A", r, QuitAnswer::Dirty, None, 1)
@@ -290,12 +293,9 @@ fn d2_abort_after_an_earlier_discard_touches_no_draft() {
         "an abort must tell every window to close its dialog; effects were {effects:?}"
     );
     assert_eq!(effects.last(), Some(&Effect::Reply(false)));
+    assert!(!gate.is_closed(), "an abort must not close the gate");
     assert!(
-        !flag.load(SeqCst),
-        "an abort must not set the committed flag"
-    );
-    assert!(
-        crate::commands::draft::save_draft_gated(flag, "after-abort", "x", None, "t").is_ok(),
+        crate::commands::draft::save_draft_gated(gate, "after-abort", "x", None, "t").is_ok(),
         "saving drafts must still work after an aborted quit"
     );
 }
@@ -321,8 +321,8 @@ fn d3_invalid_document_ids_are_rejected_whole_and_move_nothing_on_disk() {
             vec![bad.to_string()],
             vec!["ok1".to_string(), bad.to_string()],
         ] {
-            let flag = leak_flag();
-            let guard = recording_guard(flag);
+            let gate = leak_gate();
+            let guard = recording_guard(gate);
             let r = later(guard.begin(&["A"], 0));
             guard
                 .handle_reply("A", r, QuitAnswer::Dirty, None, 1)
@@ -334,7 +334,7 @@ fn d3_invalid_document_ids_are_rejected_whole_and_move_nothing_on_disk() {
                 "id list {payload:?} reached the commit path"
             );
             assert!(
-                !flag.load(SeqCst),
+                !gate.is_closed(),
                 "a refused reply committed the quit for {payload:?}"
             );
 
@@ -356,8 +356,8 @@ fn d3_invalid_document_ids_are_rejected_whole_and_move_nothing_on_disk() {
     }
 
     // Not vacuous: the same shape with a valid id does commit and does delete.
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&["A"], 0));
     guard
         .handle_reply("A", r, QuitAnswer::Dirty, None, 1)
@@ -387,8 +387,8 @@ fn d4_document_ids_length_cap_boundary() {
 
     // One over the cap: refused, and nothing is deleted.
     let over: Vec<String> = (0..=MAX_DISCARD_IDS).map(|i| format!("d{i}")).collect();
-    let flag1 = leak_flag();
-    let guard1 = recording_guard(flag1);
+    let gate1 = leak_gate();
+    let guard1 = recording_guard(gate1);
     let r1 = later(guard1.begin(&["A"], 0));
     guard1
         .handle_reply("A", r1, QuitAnswer::Dirty, None, 1)
@@ -408,8 +408,8 @@ fn d4_document_ids_length_cap_boundary() {
 
     // Exactly at the cap: accepted, and those drafts go.
     let at: Vec<String> = (0..MAX_DISCARD_IDS).map(|i| format!("d{i}")).collect();
-    let flag2 = leak_flag();
-    let guard2 = recording_guard(flag2);
+    let gate2 = leak_gate();
+    let guard2 = recording_guard(gate2);
     let r2 = later(guard2.begin(&["A"], 0));
     guard2
         .handle_reply("A", r2, QuitAnswer::Dirty, None, 1)
@@ -454,8 +454,8 @@ fn d5_document_ids_are_accepted_only_with_discard() {
             draft::save_draft(id, "BODY", None, "t").unwrap();
         }
         let phase_two = matches!(answer, QuitAnswer::Discard | QuitAnswer::Cancel);
-        let flag = leak_flag();
-        let guard = recording_guard(flag);
+        let gate = leak_gate();
+        let guard = recording_guard(gate);
         let r = later(guard.begin(&["A"], 0));
         if phase_two {
             guard
@@ -508,8 +508,8 @@ fn d5_document_ids_are_accepted_only_with_discard() {
 // exactly once.
 #[test]
 fn d7_a_silent_window_hands_the_request_to_the_native_alert_and_replies_once() {
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&["A", "B"], 0));
 
     assert_eq!(
@@ -566,7 +566,7 @@ fn d7_a_silent_window_hands_the_request_to_the_native_alert_and_replies_once() {
         1,
         "AppKit must be answered exactly once per request"
     );
-    assert!(!flag.load(SeqCst), "Keep Open must not commit the quit");
+    assert!(!gate.is_closed(), "Keep Open must not commit the quit");
 }
 
 // ── WI3-D9 ────────────────────────────────────────────────────────────────────
@@ -584,8 +584,8 @@ fn d9_a_draft_delete_that_fails_still_commits_and_replies_yes() {
     let blocked = bundle(&drafts, "a1");
     fs::create_dir_all(&blocked).unwrap();
 
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&["A"], 0));
     guard
         .handle_reply("A", r, QuitAnswer::Dirty, None, 1)
@@ -663,8 +663,8 @@ fn d11_concurrent_last_answers_produce_exactly_one_reply() {
     let labels: Vec<String> = (0..8).map(|i| format!("w{i}")).collect();
 
     for iteration in 0..200 {
-        let flag = leak_flag();
-        let guard = Arc::new(recording_guard(flag));
+        let gate = leak_gate();
+        let guard = Arc::new(recording_guard(gate));
         let r = later(guard.begin(&labels, 0));
         let barrier = Arc::new(Barrier::new(labels.len()));
         let mut handles = Vec::new();
@@ -695,8 +695,8 @@ fn d11_concurrent_last_answers_produce_exactly_one_reply() {
     }
 
     for iteration in 0..200 {
-        let flag = leak_flag();
-        let guard = Arc::new(recording_guard(flag));
+        let gate = leak_gate();
+        let guard = Arc::new(recording_guard(gate));
         let r = later(guard.begin(&labels, 0));
         for label in labels.iter().skip(1) {
             guard
@@ -806,8 +806,8 @@ impl QuitEffects for ReentrantEffects {
 fn d12_effects_run_outside_the_coordinator_lock() {
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        let flag = leak_flag();
-        let guard = Arc::new(QuitGuard::with_flag(ReentrantEffects::default(), flag));
+        let gate = leak_gate();
+        let guard = Arc::new(QuitGuard::with_gate(ReentrantEffects::default(), gate));
         guard
             .effects()
             .guard
@@ -850,8 +850,8 @@ fn d12_effects_run_outside_the_coordinator_lock() {
 
 #[test]
 fn w1_destroyed_for_a_queued_window_advances_the_quit_without_prompting_it() {
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&["A", "B"], 0));
     guard
         .handle_reply("A", r, QuitAnswer::Dirty, None, 1)
@@ -883,7 +883,7 @@ fn w1_destroyed_for_a_queued_window_advances_the_quit_without_prompting_it() {
         ],
         "B must never be activated and never be prompted"
     );
-    assert!(flag.load(SeqCst));
+    assert!(gate.is_closed());
 }
 
 // ── WI3-W2 ────────────────────────────────────────────────────────────────────
@@ -903,8 +903,8 @@ fn w2_only_destroyed_reaches_the_coordinator() {
         tauri::WindowEvent::ThemeChanged(tauri::Theme::Dark),
     ];
 
-    let flag = leak_flag();
-    let guard = recording_guard(flag);
+    let gate = leak_gate();
+    let guard = recording_guard(gate);
     let r = later(guard.begin(&["A"], 0));
     let effects_before = effects_of(&guard);
     let state_before = guard.snapshot();
@@ -936,13 +936,13 @@ fn w2_only_destroyed_reaches_the_coordinator() {
     );
 
     // A `Destroyed` with no request pending is a no-op, not a panic.
-    let idle = recording_guard(leak_flag());
+    let idle = recording_guard(leak_gate());
     on_window_event(&idle, "A", &tauri::WindowEvent::Destroyed);
     assert!(effects_of(&idle).is_empty());
 
     // Control: the same event during phase 1 really does resolve the request,
     // so the assertions above are not vacuous.
-    let control = recording_guard(leak_flag());
+    let control = recording_guard(leak_gate());
     later(control.begin(&["A"], 0));
     on_window_event(&control, "A", &tauri::WindowEvent::Destroyed);
     assert_eq!(effects_of(&control).last(), Some(&Effect::Reply(true)));
