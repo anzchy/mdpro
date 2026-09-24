@@ -5,7 +5,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use tauri::{Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{Manager, RunEvent, WindowEvent};
 use tauri_app_lib::models::{
     LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
 };
@@ -13,6 +13,7 @@ use tokio::sync::oneshot;
 
 // Store the shutdown sender so the HTTP server stays alive
 static MCP_SHUTDOWN: OnceLock<Mutex<Option<oneshot::Sender<()>>>> = OnceLock::new();
+use tauri_app_lib::services::open_route::{route_external_open, Source};
 use tauri_app_lib::services::quit_guard::{
     self,
     effects::{AppQuitGuard, TauriQuitEffects},
@@ -67,68 +68,6 @@ struct MoveState {
 fn move_cache() -> &'static Mutex<HashMap<String, MoveState>> {
     static CACHE: OnceLock<Mutex<HashMap<String, MoveState>>> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
-/// Heuristic: treat a lone default "main" window as empty (no document yet).
-/// This allows Finder/CLI opens at startup to load into the existing window
-/// instead of creating a second blank window.
-fn has_windows_with_documents(app: &tauri::AppHandle) -> bool {
-    let windows: Vec<_> = app.webview_windows().into_iter().collect();
-    if windows.is_empty() {
-        return false;
-    }
-    if windows.len() == 1 {
-        if let Some((label, _)) = windows.first() {
-            return label != "main";
-        }
-    }
-    true
-}
-
-/// Open file in a new window
-fn open_file_in_new_window(app: &tauri::AppHandle, path: String) {
-    let window_id = format!("mdpro-{}", uuid::Uuid::new_v4());
-    // Encode the path as URL parameter so the React app can read it on load
-    // This avoids the race condition where emit() fires before React is ready
-    let encoded_path = urlencoding::encode(&path);
-    let url = WebviewUrl::App(format!("/?open={}", encoded_path).into());
-
-    match WebviewWindowBuilder::new(app, &window_id, url)
-        .title("Untitled - mdpro")
-        .inner_size(1200.0, 800.0)
-        .min_inner_size(600.0, 400.0)
-        .build()
-    {
-        Ok(window) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
-                event: "window.open".to_string(),
-                status: LogStatus::Success,
-                action_id: None,
-                context: Some(json!({
-                    "windowId": window_id,
-                    "windowLabel": window.label(),
-                    "filePath": path
-                })),
-                duration_ms: None,
-                error: None,
-            });
-        }
-        Err(e) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Error,
-                event: "window.open".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({
-                    "windowId": window_id,
-                    "filePath": path
-                })),
-                duration_ms: None,
-                error: Some(e.to_string()),
-            });
-        }
-    }
 }
 
 fn main() {
@@ -333,15 +272,8 @@ fn main() {
                 });
             }
             if !paths.is_empty() {
-                // If windows exist, open each file in a new window
-                if has_windows_with_documents(app) {
-                    for path in &paths {
-                        open_file_in_new_window(app, path.clone());
-                    }
-                } else {
-                    // No windows, emit to let the first window open the file
-                    let _ = app.emit("file:open", paths.clone());
-                }
+                // Each path goes to the window that has it, else today's fallback
+                route_external_open(app, paths.clone(), Source::SingleInstance);
                 for path in &paths {
                     logger::log_event(LogEntryPayload {
                         level: LogLevel::Info,
@@ -540,10 +472,8 @@ fn main() {
                         error: None,
                     });
                 } else {
-                    // App is ready - open in new windows (app already has documents)
-                    for path in &paths {
-                        open_file_in_new_window(app_handle, path.clone());
-                    }
+                    // App is ready - route to the window that has it, else a new window
+                    route_external_open(app_handle, paths.clone(), Source::Finder);
                 }
 
                 for path in &paths {

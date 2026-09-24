@@ -126,6 +126,7 @@ Rust emits events that frontend listens to via `listen()`:
 | `menu:action`   | `{ action, value }`    | Native menu clicks (menu.rs)                  |
 | `file:open`     | `string[]`             | Single-instance file open (launch.rs)         |
 | `file:changed`  | `{ path, changeType }` | External file modification (file\_watcher.rs) |
+| `file:open-in-window` | `{ windowLabel, documentId, path }` | External open of an already-open file, `emit_to` the one window that has it (services/open\_route/tauri\_glue.rs) → `useOpenInWindow.ts` |
 | `theme:changed` | `"light" \| "dark"`    | System theme change                           |
 | `mcp:write_document` | `{ document_id, content, window_label }` | MCP `write_document` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:insert_content` | `{ document_id, text, position, window_label }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |

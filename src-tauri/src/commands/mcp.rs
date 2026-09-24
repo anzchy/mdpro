@@ -535,6 +535,7 @@ mod tests {
             window_label: window_label.to_string(),
             documents: docs,
             active_document_id: None,
+            routable: false,
         }
     }
 

@@ -55,14 +55,23 @@
  *   entry rule 20 requires, replacing a bare `catch {}`. WI-1 is what makes
  *   this path reachable at all — before it, `save_window_state` swallowed a
  *   load failure and returned `Ok`.
+ * - **A cancelled window prompt calls `onCloseCancelled` (D29, ADR-0033
+ *   Decision 4).** Rust dropped this window's routing entry on
+ *   `CloseRequested`; App passes `useMcpSync().forceSync` to re-register it.
+ *   The callback is held in a ref so a new identity never re-runs the
+ *   subscribe-once effect, and it fires only when a window prompt was pending —
+ *   read through a ref, because App also calls `cancelClose` for a ⌘W document
+ *   prompt and `cancelClose` is created once.
  *
  * @module src/hooks/useWindowCloseGuard
  * @coordinates-with src/App.tsx — renders the ConfirmDialog for `pendingClose`
- *   and routes its confirm/cancel back to `confirmClose` / `cancelClose`
+ *   and routes its confirm/cancel back to `confirmClose` / `cancelClose`;
+ *   passes `useMcpSync().forceSync` as `onCloseCancelled`
+ * @coordinates-with src/hooks/useMcpSync.ts — `forceSync`, the re-registration
  * @coordinates-with src/utils/dataLossGuards.ts — `windowCloseDecisionAfterFlush`
  * @coordinates-with src/services/windowService.ts — per-file geometry
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { loggingService } from "../services/loggingService";
 import { preferencesService } from "../services/preferencesService";
 import { useDocumentStore } from "../stores/documentStore";
@@ -83,8 +92,24 @@ export interface WindowCloseGuard {
   cancelClose: () => void;
 }
 
-export function useWindowCloseGuard(): WindowCloseGuard {
-  const [pendingClose, setPendingClose] = useState<WindowClosePending>(null);
+export interface WindowCloseGuardOptions {
+  /** Called once each time the user cancels a pending window-close prompt. */
+  onCloseCancelled?: () => void;
+}
+
+export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOptions = {}): WindowCloseGuard {
+  const [pendingClose, setPendingCloseState] = useState<WindowClosePending>(null);
+  // Mirrors `pendingClose` for `cancelClose`, which is created once and would
+  // otherwise read a stale render's value.
+  const pendingCloseRef = useRef<WindowClosePending>(null);
+  const setPendingClose = useCallback((next: WindowClosePending) => {
+    pendingCloseRef.current = next;
+    setPendingCloseState(next);
+  }, []);
+  const onCloseCancelledRef = useRef(onCloseCancelled);
+  useLayoutEffect(() => {
+    onCloseCancelledRef.current = onCloseCancelled;
+  }, [onCloseCancelled]);
   const allowWindowCloseRef = useRef(false);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
 
@@ -220,18 +245,29 @@ export function useWindowCloseGuard(): WindowCloseGuard {
       cancelled = true;
       if (unlisten) unlisten();
     };
-  }, [saveWindowState]);
+  }, [saveWindowState, setPendingClose]);
 
   const confirmClose = useCallback(async () => {
     setPendingClose(null);
     await saveWindowState();
     allowWindowCloseRef.current = true;
     appWindowRef.current?.close();
-  }, [saveWindowState]);
+  }, [saveWindowState, setPendingClose]);
 
   const cancelClose = useCallback(() => {
+    const wasWindowPrompt = pendingCloseRef.current === "window";
     setPendingClose(null);
-  }, []);
+    if (!wasWindowPrompt) return;
+    const callback = onCloseCancelledRef.current;
+    loggingService.logEventSync({
+      level: "info",
+      event: "window.close_cancelled",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: { notified: callback !== undefined },
+    });
+    callback?.();
+  }, [setPendingClose]);
 
   return { pendingClose, saveWindowState, confirmClose, cancelClose };
 }

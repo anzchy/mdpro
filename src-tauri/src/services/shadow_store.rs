@@ -33,11 +33,14 @@ pub fn sync_documents(
             documents: Vec::new(),
             active_document_id: None,
             last_focused_at: chrono::Utc::now().timestamp_millis(),
+            routable: payload.routable,
         });
 
-    // Update documents and active document
+    // Update documents, active document and routability on every sync;
+    // `last_focused_at` is kept (WI-2 uses it as a tie-break).
     window_state.documents = payload.documents;
     window_state.active_document_id = payload.active_document_id;
+    window_state.routable = payload.routable;
 
     Ok(())
 }
@@ -212,6 +215,7 @@ mod tests {
             window_label: "main".to_string(),
             documents: vec![create_test_document("doc1")],
             active_document_id: Some("doc1".to_string()),
+            routable: false,
         };
 
         sync_documents(&store, payload).unwrap();
@@ -230,6 +234,7 @@ mod tests {
             window_label: "main".to_string(),
             documents: vec![],
             active_document_id: None,
+            routable: false,
         };
         sync_documents(&store, payload).unwrap();
 
@@ -246,6 +251,7 @@ mod tests {
             window_label: "main".to_string(),
             documents: vec![create_test_document("doc1")],
             active_document_id: Some("doc1".to_string()),
+            routable: false,
         };
         sync_documents(&store, payload).unwrap();
         set_focused_window(&store, "main").unwrap();
@@ -265,6 +271,7 @@ mod tests {
             window_label: "main".to_string(),
             documents: vec![],
             active_document_id: None,
+            routable: false,
         };
         sync_documents(&store, payload).unwrap();
 
@@ -298,6 +305,7 @@ mod tests {
                 is_active: true,
             }],
             active_document_id: Some("doc1".to_string()),
+            routable: false,
         };
         sync_documents(&store, payload).unwrap();
 
@@ -343,6 +351,7 @@ mod tests {
                 is_active: true,
             }],
             active_document_id: Some("doc1".to_string()),
+            routable: false,
         };
         sync_documents(&store, payload).unwrap();
 
@@ -379,6 +388,7 @@ mod tests {
             window_label: "main".to_string(),
             documents: vec![create_test_document("doc1"), create_test_document("doc2")],
             active_document_id: Some("doc1".to_string()),
+            routable: false,
         };
         sync_documents(&store, payload).unwrap();
 
@@ -400,3 +410,8 @@ mod tests {
         assert!(!removed, "should return false when document does not exist");
     }
 }
+
+// Specification files; see `.claude/rules/10-tdd.md`.
+#[cfg(test)]
+#[path = "shadow_store_routable_tests.rs"]
+mod shadow_store_routable_tests;

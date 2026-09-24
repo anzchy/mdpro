@@ -27,6 +27,12 @@ export interface SyncDocumentsPayload {
   windowLabel: string;
   documents: McpDocumentState[];
   activeDocumentId: string | null;
+  /**
+   * True once this window's `file:open-in-window` listener is live, so Rust may
+   * route an external open here (ADR-0033 Decision 3). Rust reads a missing key
+   * as false.
+   */
+  routable: boolean;
 }
 
 /**

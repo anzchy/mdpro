@@ -24,6 +24,7 @@ import { useTheme } from "./hooks/useTheme";
 import { useQuitGuard } from "./hooks/useQuitGuard";
 import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
+import { useOpenInWindow } from "./hooks/useOpenInWindow";
 import { useMcpEvents } from "./hooks/useMcpEvents";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
@@ -131,8 +132,11 @@ function App() {
   useAutoSave(autoSaveInterval);
 
   // The OS window-close guard: one subscription for the life of the window, the
-  // window-state/geometry save, and the confirm latch (D16 WI-6).
-  const windowCloseGuard = useWindowCloseGuard();
+  // window-state/geometry save, and the confirm latch (D16 WI-6). A cancelled
+  // prompt re-registers this window for routing (ADR-0033); `useMcpSync` runs
+  // below, so its `forceSync` is reached through a ref.
+  const forceMcpSyncRef = useRef<() => Promise<void>>(async () => {});
+  const windowCloseGuard = useWindowCloseGuard({ onCloseCancelled: () => void forceMcpSyncRef.current() });
 
   // The D16 app-quit guard: answers Rust's two quit questions and raises
   // `quitPrompt` when this window has to ask the user (ADR-0025).
@@ -144,8 +148,13 @@ function App() {
     quitPrompt: quitGuard.quitPrompt,
   });
 
-  // MCP hooks for Claude Code / Codex CLI integration
-  useMcpSync();
+  // MCP hooks for Claude Code / Codex CLI integration. The sync also feeds
+  // external-open routing, gated on this window's listener (ADR-0033).
+  const openInWindow = useOpenInWindow({ openDocumentFromPath });
+  const mcpSync = useMcpSync({ routable: openInWindow.routable });
+  useEffect(() => {
+    forceMcpSyncRef.current = mcpSync.forceSync;
+  }, [mcpSync.forceSync]);
   useMcpEvents();
 
   // TOC hook for sidebar Table of Contents

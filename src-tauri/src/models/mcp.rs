@@ -47,6 +47,10 @@ pub struct WindowState {
 
     /// Last focused timestamp (Unix millis for MRU routing)
     pub last_focused_at: i64,
+
+    /// Whether an external open may be routed to this window (ADR-0033).
+    /// Written on every sync, so a window can become not routable again.
+    pub routable: bool,
 }
 
 /// Global Rust-side state for MCP access.
@@ -153,6 +157,11 @@ pub struct SyncDocumentsPayload {
 
     /// ID of the active document
     pub active_document_id: Option<String>,
+
+    /// Whether an external open may be routed to this window (ADR-0033).
+    /// A payload without the key counts as not routable.
+    #[serde(default)]
+    pub routable: bool,
 }
 
 /// HTTP API response for document list.
@@ -275,3 +284,8 @@ pub struct ServerConfig {
 
 /// Thread-safe shared server config.
 pub type SharedServerConfig = Arc<Mutex<Option<ServerConfig>>>;
+
+// Specification files; see `.claude/rules/10-tdd.md`.
+#[cfg(test)]
+#[path = "mcp_routable_tests.rs"]
+mod mcp_routable_tests;
