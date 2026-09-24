@@ -2,6 +2,11 @@
 
 ## Status
 
+**Accepted** (2026-09-24), after the implementation (`de264bf`) passed its
+real-app acceptance (`docs/test/20260924-d20-gui-acceptance.md`, commit
+`39f8146`). This record is now immutable; gap (f) is decided by a new ADR, not
+by editing this one.
+
 **Proposed** (2026-09-23). Closes **D20** on
 `docs/plans/20260912-frontend-backend-sequencing-order.md` once implemented.
 
