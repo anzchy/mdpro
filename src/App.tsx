@@ -102,7 +102,7 @@ function App() {
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
   const { viewMode, setViewMode, cycleViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
-  const { resolvedTheme, setThemeMode } = useTheme();
+  const { resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
@@ -267,7 +267,12 @@ function App() {
           setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
         }
         await applyWindowState(prefs.windowState);
-        await setThemeMode(prefs.themeMode);
+        // Apply-only. Hydration must never write the value it just read: that is
+        // a redundant write every launch, and across two windows a
+        // last-writer-wins clobber of a theme the user just chose elsewhere.
+        // User-initiated changes still persist, through the persisting setter
+        // the Theme menu is wired to.
+        applyThemeMode(prefs.themeMode);
         // Decision 2A: apply saved editor prefs to CSS vars + CM Compartments on startup.
         // Editor may not be mounted yet — applyEditorPref guards against null editorView.
         if (prefs.editor) {
@@ -293,12 +298,12 @@ function App() {
       mounted = false;
     };
   }, [
+    applyThemeMode,
     applyWindowState,
     setAutoSaveInterval,
     setDefaultViewMode,
     setRecentFiles,
     setShowSidebar,
-    setThemeMode,
   ]);
 
   useEffect(() => {

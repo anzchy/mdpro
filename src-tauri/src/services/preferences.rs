@@ -589,3 +589,7 @@ mod tests {
 #[cfg(test)]
 #[path = "preferences_wi5_tests.rs"]
 mod preferences_wi5_tests;
+
+#[cfg(test)]
+#[path = "preferences_fold_contract_tests.rs"]
+mod preferences_fold_contract_tests;
