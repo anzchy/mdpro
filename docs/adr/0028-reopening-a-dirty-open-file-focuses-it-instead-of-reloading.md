@@ -14,6 +14,14 @@ under *Correction* at the end.
 (b)–(e) were added under *Consequences*, and decision 2 now names the id-only
 shape (gap d) beside the race.
 
+**Entry-point table corrected after GUI acceptance** (2026-09-24), still
+while Proposed. The real-app run
+(`docs/test/20260924-d20-gui-acceptance.md`) showed that a file sent to an
+already-running app from Finder does not reach an existing window at all: it
+opens a new one. The table's first row is corrected below; the scope of the
+decision is unchanged, and the uncovered cross-window case is recorded as
+gap (f) and as defect D29.
+
 ## Context
 
 A document's id is derived from its path, so opening a file that is already
@@ -22,7 +30,7 @@ entry. Three entry points do this, all in `src/hooks/useDocument.ts`:
 
 | Entry point | Reached by |
 |---|---|
-| `openDocumentFromPath` | Open Recent, Finder "Open With", single-instance `file:open`, launch paths, the `?open=` URL param, drag-and-drop |
+| `openDocumentFromPath` | Open Recent, launch paths, the `?open=` URL param, drag-and-drop, and single-instance `file:open` — which is emitted only when `main` is the sole window. A Finder open or "Open With" on a running app arrives as `RunEvent::Opened` and always creates a **new** window, whose `?open=` load reaches this function against an empty store (gap f) |
 | `openDocumentFromDialog` | ⌘O / the Open dialog landing on an already-open file |
 | `openDocumentWithEncoding` | `EncodingDialog` only — shown after a read **fails to decode**; there is no reopen-with-encoding menu command today |
 
@@ -148,6 +156,14 @@ Three forces pull against each other:
   - **(e) Recent Files records the focused tab's path.** When an id match
     whose path changed is focused, callers record the returned document's
     path, not the path the user opened.
+  - **(f) The guard is per window; some opens create a window.** Document
+    stores are per window, and a Finder open on a running app (and a
+    single-instance open when more than `main` exists) goes to a new window
+    via `open_file_in_new_window` in `src-tauri/src/main.rs`. The new window
+    has nothing to match, so the file loads from disk beside a dirty copy in
+    another window. Nothing in that window is replaced — verified on the real
+    app — but the two copies diverge. Routing to the window that already has
+    the path is a cross-window decision outside this record (D29).
 
 ## Correction (2026-09-24)
 
