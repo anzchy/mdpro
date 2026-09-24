@@ -19,7 +19,11 @@
  *
  * @coordinates-with src/stores/tocStore.ts — resetCoordination
  * @coordinates-with src/stores/milkdownEditorStore.ts — reloadEditor
- * @coordinates-with src/hooks/useDocument.ts — the reopen / recovery / reload sites
+ * @coordinates-with src/hooks/useDocument.ts — the draft-recovery and file-reload sites
+ *   (`upsertAndActivateDocument`, `replaceDocument`); `createDocument` and the close
+ *   paths call `tocStore.resetCoordination` directly instead
+ * @coordinates-with src/utils/openWriteGuard.ts — the open sites, which call this only
+ *   after the ADR-0028 guard has decided the target is clean (never on a dirty one)
  * @coordinates-with src/hooks/useMcpEvents.ts — MCP write_document
  * @module utils/wholesaleReplace
  */

@@ -286,11 +286,12 @@ setViewMode(prefs.lastViewMode);
 two separate unsynchronized statements:
 
 ```typescript
-// src/hooks/useDocument.ts:63-65; the same pair repeats at :86, :98-100,
-// :123-125, :142-144 and :150-152
-useDocumentStore.getState().upsertDocument(result.document);
-useDocumentStore.getState().setActiveDocumentId(result.document.id);
-setEditorActiveDocumentId(result.document.id);
+// src/utils/openWriteGuard.ts `activate()` — the one pair for all three open
+// functions (D20 / ADR-0028). The same two assignments still repeat in
+// src/hooks/useDocument.ts `setActiveDocumentById`, `createDocument` and
+// `upsertAndActivateDocument`.
+useDocumentStore.setState({ activeDocumentId: documentId });
+useEditorStore.getState().setActiveDocumentId(documentId);
 ```
 
 Neither setter consults a generation or sequence number; both assign
@@ -298,11 +299,25 @@ unconditionally. That produces one live defect and one latent trap.
 
 **1. The slowest open wins, not the latest (live).** `openDocumentFromPath`,
 `openDocumentFromDialog` and `openDocumentWithEncoding` each `await` an IPC
-round-trip through `fileService.openFile` *before* assigning. When two open
-flows overlap, their awaits settle in completion order rather than invocation
-order, and the document that finishes reading last becomes active — even if the
-user asked for it first. Opening a large file and then a small one reliably
-lands on the small one.
+round-trip through `fileService.openFile` *before* assigning. After the await,
+all three hand the decoded document to `commitOpenedDocument`
+(`src/utils/openWriteGuard.ts`). That call runs synchronously: it flushes
+pending editor edits (`assessWindowUnsaved("reopen")`), then reads the store,
+then decides. If a target matched by id or by path is dirty, or the flush
+failed, it **focuses that tab and writes nothing**. Otherwise it runs
+`prepareWholesaleReplace` → `upsertDocument` → activate, so a clean target
+reloads as before. On a decode failure, `focusDirtyOpenAt` focuses a dirty open
+document at that path instead of showing `EncodingDialog`. A refused encoding
+reopen returns `{ kind: "refused-dirty" }` rather than a document.
+
+The guard protects unsaved content, but it does **not** order the opens. When
+two open flows overlap, their awaits still settle in completion order rather
+than invocation order, and the document that finishes reading last becomes
+active (written or focused), even if the user asked for it first. Opening a
+large file and then a small one reliably lands on the small one. For the same
+reason, an edit that is made *and saved* during the read's await leaves the
+target clean, so the older read reloads over it. The newer content is safe on
+disk, but the tab shows stale text. ADR-0028 records this as a known gap.
 
 Note the multi-file path is **not** the trigger: `openPaths`
 (`src/App.tsx:553-567`) awaits inside a `for` loop, so a Finder multi-select is
@@ -324,11 +339,11 @@ to `useDocumentStore.getState().activeDocumentId` at `editorStore.ts:72`. The
 which is precisely the trap for the next person who subscribes to it, since it
 is silently wrong exactly when the two flows overlap.
 
-**Why it is not fixed here.** The fix is a source change across `src/stores/`
-and `src/hooks/useDocument.ts`: either collapse the duplicated field onto one
-store, or carry a monotonic request token that a settling open must re-check
-before it assigns. Both are behavior-affecting changes that need their own tests
-— `.claude/rules/10-tdd.md` marks stores and hooks as mandatory-test categories
+**Why it is not fixed here.** The fix is a source change across `src/stores/`,
+`src/hooks/useDocument.ts` and `src/utils/openWriteGuard.ts`: either collapse
+the duplicated field onto one store, or carry a monotonic request token that a
+settling open must re-check before it assigns. Both are behavior-affecting changes that need their own
+tests — `.claude/rules/10-tdd.md` marks stores and hooks as mandatory-test categories
 — and this defect was recorded during a docs/config-only hygiene pass barred
 from touching `src/`. Collapsing the duplicate is the preferred direction, since
 consequence 2 shows the second copy currently serves no reader.

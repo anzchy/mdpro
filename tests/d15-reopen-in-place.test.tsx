@@ -13,6 +13,22 @@
  *
  * Real `MilkdownEditor`, real stores, real `useDocument`. Only process boundaries are
  * mocked: `@tauri-apps/api/{core,event,window}` and `loggingService`.
+ *
+ * **R5 rewritten 2026-09-24 (D20, plan-20260924-105300 WI-4).** The original R5 ("an
+ * edit pending at reopen time never overwrites the reopened content") asserted that a
+ * pending edit is discarded and the reopened disk content wins. ADR-0028 decisions 1
+ * and 5 reverse that specification: the reopen now flushes the pending edit first,
+ * which dirties doc-a, so the open focuses the tab instead of reloading it. The original
+ * "never overwrites" intent is kept, inverted in favour of the user's edit. Its old
+ * assertions (`content === NEW_TEXT`, `isModified === false`, editor rebuilt) were
+ * removed for that reason. R1–R4 are byte-unchanged: R1–R3 use clean fixtures
+ * (decision 3), and R4 is draft recovery, which the ADR leaves out of scope.
+ *
+ * Deviation from matrix E-R5: it names a PENDING-PRECONDITION (`isModified === false`
+ * right after typing). That is unsatisfiable with `typeAtEnd`, because a
+ * history-recorded edit dirties the doc synchronously through edit-sync `onDocChanged`,
+ * so it is not asserted here. The history-less, store-clean pending-edit case is
+ * covered by E-R6 in `tests/d20-reopen-dirty-hook.test.tsx`.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -149,13 +165,25 @@ describe("R — reopen-in-place rebuilds the editor on the reopened content", { 
     await expectRebuiltOn(old, "Recovered draft", true);
   });
 
-  it("R5 an edit pending at reopen time never overwrites the reopened content", async () => {
+  it("R5 an edit pending at reopen time survives: the dirty tab is focused, not reloaded (ADR-0028)", async () => {
     const old = await mount();
+    const genBefore = useMilkdownEditorStore.getState().editorGenerations["doc-a"] ?? 0;
     await act(async () => typeAtEnd(old, "Q"));
-    await withApi((api) => api.openDocumentFromPath(A_PATH));
-    await rebuiltEditorShowing(old, NEW_TEXT);
+    const { result } = renderHook(() => useDocument());
+    let opened: unknown;
+    await act(async () => {
+      opened = await result.current.openDocumentFromPath(A_PATH);
+    });
+    expect(opened).toMatchObject({ id: "doc-a", isModified: true });
     await sleep(SETTLE_MS);
-    expect(docA().content).toBe(NEW_TEXT);
-    expect(docA().isModified).toBe(false);
+    expect(docA().content).toContain("Q");
+    expect(docA().content).toContain(OLD_TEXT);
+    expect(docA().content).not.toContain(NEW_TEXT);
+    expect(docA().isModified).toBe(true);
+    expect(liveEditor()).toBe(old);
+    expect(useMilkdownEditorStore.getState().editorGenerations["doc-a"] ?? 0).toBe(genBefore);
+    expect(editorText()).toContain("Q");
+    expect(editorText()).not.toContain(NEW_TEXT);
+    expect(useDocumentStore.getState().activeDocumentId).toBe("doc-a");
   });
 });

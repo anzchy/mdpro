@@ -89,11 +89,13 @@ interface TOCStoreActions {
    * current document; evicts `documentId` from the archive in every case. Safe to call
    * with an id the store has never seen.
    *
-   * **The ten callers.** Eight wholesale replacements — `useDocument.ts`
-   * `openDocumentFromPath`, `openDocumentFromDialog`, `openDocumentWithEncoding`,
-   * `createDocument`, `upsertAndActivateDocument` (draft recovery, dev open) and
-   * `replaceDocument` (file reload, incl. the external file-watcher route); plus
-   * `useMcpEvents.ts` `handleWriteDocument` and `handleCreateDocument`. The four open
+   * **The callers.** Six wholesale replacement sites — `openWriteGuard.ts`
+   * `commitOpenedDocument` (the one write for `useDocument.ts` `openDocumentFromPath`,
+   * `openDocumentFromDialog` and `openDocumentWithEncoding`, D20 / ADR-0028 decision 4;
+   * it resets only when the target is clean — a dirty tab is focused, not replaced);
+   * `useDocument.ts` `createDocument`, `upsertAndActivateDocument` (draft recovery, dev
+   * open) and `replaceDocument` (file reload, incl. the external file-watcher route);
+   * plus `useMcpEvents.ts` `handleWriteDocument` and `handleCreateDocument`. The open
    * paths count because `Document.id` is a hash of the path and `upsertDocument`
    * replaces in place, so re-opening an open file swaps the buffer under an unchanged
    * id. Two more callers evict without resetting live state — `useDocument.ts`
@@ -109,7 +111,7 @@ interface TOCStoreActions {
    * `App.handleImageDrop` branches are ordinary edits for the same reason.
    *
    * `tests/wholesale-path-partition.test.ts` re-derives that partition from `src/` on
-   * every run, so an eleventh caller fails the suite until someone classifies it.
+   * every run, so a new caller fails the suite until someone classifies it.
    */
   resetCoordination: (documentId: string | null) => void;
 }

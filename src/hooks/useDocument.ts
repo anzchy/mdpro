@@ -10,6 +10,12 @@ import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
 import { formatAllTables } from "../utils/tableFormatter";
 import { makeIsFenced } from "../utils/fenceRanges";
+import {
+  commitOpenedDocument,
+  focusDirtyOpenAt,
+  type EncodingReopenResult,
+  type OpenWriteResult,
+} from "../utils/openWriteGuard";
 
 const createEmptyDocument = (): Document => ({
   id:
@@ -30,7 +36,7 @@ const getTitleFromPath = (path: string | null) => {
   return parts[parts.length - 1] || "Untitled";
 };
 
-const LARGE_FILE_BYTES = 10 * 1024 * 1024;
+const LARGE_FILE_WARNING = "Large file opened (>10MB). Performance may be affected.";
 
 const parseEncodingError = (error: unknown) => {
   if (!error || typeof error !== "object") return null;
@@ -58,22 +64,26 @@ export function useDocument() {
     [documents, activeDocumentId],
   );
 
+  /** Set the large-file warning for a written open, and hand back the document. */
+  const applyOpened = useCallback((outcome: OpenWriteResult): Document => {
+    if (outcome.kind === "written" && outcome.largeFile) setLargeFileWarning(LARGE_FILE_WARNING);
+    return outcome.document;
+  }, []);
+
+  // D20 / ADR-0028: every open writes through `commitOpenedDocument` AFTER the read's
+  // await; a dirty target (checked after a "reopen" flush) is focused, never replaced,
+  // and returned so callers still record the path. The decode-failure exit focuses a
+  // dirty open doc via `focusDirtyOpenAt` before it would show EncodingDialog.
   const openDocumentFromPath = useCallback(
     async (path: string, actionId?: string) => {
       try {
         const result = await fileService.openFile(path, undefined, actionId);
-        // WI-3.5.5 wholesale: reopen-in-place under an unchanged path-derived id.
-        prepareWholesaleReplace(result.document.id, "file-open");
-        useDocumentStore.getState().upsertDocument(result.document);
-        useDocumentStore.getState().setActiveDocumentId(result.document.id);
-        setEditorActiveDocumentId(result.document.id);
-        if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
-          setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
-        }
-        return result.document;
+        return applyOpened(commitOpenedDocument(result.document, "file-open", { actionId }));
       } catch (error) {
         const encodingError = parseEncodingError(error);
         if (encodingError) {
+          const focused = focusDirtyOpenAt(encodingError.path || path, { actionId });
+          if (focused) return focused;
           setEncodingIssue({
             path: encodingError.path || path,
             detected: encodingError.detected || "unknown",
@@ -82,7 +92,7 @@ export function useDocument() {
         return null;
       }
     },
-    [setEditorActiveDocumentId],
+    [applyOpened],
   );
 
   const setActiveDocumentById = useCallback(
@@ -99,18 +109,12 @@ export function useDocument() {
       if (!result) {
         return null;
       }
-      // WI-3.5.5 wholesale: the dialog can land on an already-open file.
-      prepareWholesaleReplace(result.document.id, "file-open");
-      useDocumentStore.getState().upsertDocument(result.document);
-      useDocumentStore.getState().setActiveDocumentId(result.document.id);
-      setEditorActiveDocumentId(result.document.id);
-      if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
-        setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
-      }
-      return result.document;
+      return applyOpened(commitOpenedDocument(result.document, "file-open", { actionId }));
     } catch (error) {
       const encodingError = parseEncodingError(error);
       if (encodingError) {
+        const focused = focusDirtyOpenAt(encodingError.path, { actionId });
+        if (focused) return focused;
         setEncodingIssue({
           path: encodingError.path || "",
           detected: encodingError.detected || "unknown",
@@ -121,23 +125,20 @@ export function useDocument() {
       }
       return null;
     }
-  }, [setEditorActiveDocumentId]);
+  }, [applyOpened]);
 
+  /** Re-decode under `encoding`; a dirty target is refused (kept and focused), not replaced. */
   const openDocumentWithEncoding = useCallback(
-    async (path: string, encoding: string, actionId?: string) => {
+    async (path: string, encoding: string, actionId?: string): Promise<EncodingReopenResult> => {
       const result = await fileService.openFile(path, encoding, actionId);
-      // WI-3.5.5 wholesale: same id, whole buffer re-decoded.
-      prepareWholesaleReplace(result.document.id, "encoding-reopen");
-      useDocumentStore.getState().upsertDocument(result.document);
-      useDocumentStore.getState().setActiveDocumentId(result.document.id);
-      setEditorActiveDocumentId(result.document.id);
-      if (result.document.fileSize && result.document.fileSize > LARGE_FILE_BYTES) {
-        setLargeFileWarning("Large file opened (>10MB). Performance may be affected.");
-      }
+      const outcome = commitOpenedDocument(result.document, "encoding-reopen", { actionId });
       setEncodingIssue(null);
-      return result.document;
+      if (outcome.kind === "focused-dirty") {
+        return { kind: "refused-dirty", documentId: outcome.document.id };
+      }
+      return { kind: "opened", document: applyOpened(outcome) };
     },
-    [setEditorActiveDocumentId],
+    [applyOpened],
   );
 
   const createDocument = useCallback(async () => {

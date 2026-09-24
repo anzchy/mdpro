@@ -35,6 +35,8 @@
  * @coordinates-with src/services/quitGuardService.ts — the reply that carries
  *   `quitAnswerFor`'s answer and `dirtyDocuments`' ids to Rust
  * @coordinates-with src/hooks/useUpdater.ts — prepareForRelaunch (D16 WI-8)
+ * @coordinates-with src/utils/openWriteGuard.ts — the open paths flush with reason
+ *   "reopen" before deciding whether an open may replace a document (ADR-0028)
  */
 
 import { useDocumentStore } from "../stores/documentStore";
@@ -140,8 +142,12 @@ export function hasUnsavedChangesAfterFlush(): boolean {
  * D16 / ADR-0025 — the one shared per-window exit rule.
  * ------------------------------------------------------------------ */
 
-/** Why the flusher registry is being drained. Carried into the flusher logs. */
-export type WindowExitFlushReason = "window-close" | "app-quit" | "relaunch";
+/**
+ * Why the flusher registry is being drained. Carried into the flusher logs.
+ * `reopen` is not an exit: it is the open-write guard's flush (ADR-0028), which reuses
+ * `assessWindowUnsaved` so "dirty" means the same thing on every path.
+ */
+export type WindowExitFlushReason = "window-close" | "app-quit" | "relaunch" | "reopen";
 
 /** A modified document, as the exit paths need it: metadata only, never content. */
 export interface DirtyDocumentRef {

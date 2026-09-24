@@ -21,6 +21,16 @@
  * is W8-e / W8-e-table in `tests/toc-wholesale-reset.test.ts`. The wholesale set is
  * unchanged.
  *
+ * **16 → 14 (D20 / ADR-0028 decision 4, 2026-09-24).** ADR-0028 routes every open path
+ * (`openDocumentFromPath`, `openDocumentFromDialog`, `openDocumentWithEncoding`) through
+ * one guard, `commitOpenedDocument` in `utils/openWriteGuard.ts`, so a dirty tab is
+ * focused instead of reloaded. The three `useDocument.ts` `upsertDocument(result.document)`
+ * sites were deleted and replaced by that guard's single `upsertDocument(decoded)` site:
+ * three rows out, one in, so the count drops by two and the wholesale keys go 8 → 6.
+ * This deliberately edits recorded assertions (policy rule 12); the specification
+ * changed, and the reason is decision 4's "one write site" requirement. The behaviour
+ * behind the site is unchanged for clean targets (`toc-wholesale-reset` W1/W6 pass as-is).
+ *
  * Key shape is `` `${relPath}::${trimmedLine}::${ordinal}` `` and deliberately **not**
  * `file:line`: line numbers churn on unrelated edits above the call, which would turn
  * this case into a maintenance tax that eventually gets deleted. The trimmed call text
@@ -104,23 +114,15 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
     class: "ordinary",
     why: "WYSIWYG keystroke serialize — incremental edit",
   },
+  // D20 / ADR-0028 decision 4 (2026-09-24): the three `hooks/useDocument.ts`
+  // `upsertDocument(result.document)` rows (openDocumentFromPath / FromDialog /
+  // WithEncoding) were removed. All three entry points now write through the single
+  // guarded site below, so the three rows collapsed into one.
   {
-    key: "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(result.document);::0",
-    enclosingFunction: "openDocumentFromPath",
+    key: "utils/openWriteGuard.ts::useDocumentStore.getState().upsertDocument(decoded);::0",
+    enclosingFunction: "commitOpenedDocument",
     class: "wholesale",
-    why: "reopen-in-place: ids are path-derived and upsertDocument replaces in place",
-  },
-  {
-    key: "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(result.document);::1",
-    enclosingFunction: "openDocumentFromDialog",
-    class: "wholesale",
-    why: "same, via the native dialog",
-  },
-  {
-    key: "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(result.document);::2",
-    enclosingFunction: "openDocumentWithEncoding",
-    class: "wholesale",
-    why: "same id, whole buffer re-decoded under a different encoding",
+    why: "the one open-path write (ADR-0028 decision 4): reopen-in-place under a path-derived id, reached only when every candidate is clean and the flush did not fail",
   },
   {
     key: "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(document);::0",
@@ -186,11 +188,13 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
   },
 ];
 
-/** The eight the plan commits to wiring. Spelled out so a silent reclassification fails. */
+/**
+ * The six the plan commits to wiring. Spelled out so a silent reclassification fails.
+ * Was eight: D20 / ADR-0028 decision 4 replaced the three `useDocument.ts`
+ * `result.document` keys with the one `openWriteGuard.ts` key.
+ */
 const EXPECTED_WHOLESALE_KEYS: readonly string[] = [
-  "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(result.document);::0",
-  "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(result.document);::1",
-  "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(result.document);::2",
+  "utils/openWriteGuard.ts::useDocumentStore.getState().upsertDocument(decoded);::0",
   "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(document);::0",
   "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(document);::1",
   "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(document);::2",
@@ -221,11 +225,13 @@ describe("W5 — the wholesale/ordinary partition is derived from src/, not from
     expect(found.length, "duplicate keys would hide a site").toBe(new Set(found).size);
   });
 
-  it("the site count is sixteen — the plan's original table of four was wrong; D15 surfaced the aliased WYSIWYG site", () => {
-    expect(found.length).toBe(16);
+  // Was 16 ("the site count is sixteen — …"); see the 16 → 14 paragraph in the header.
+  it("the site count is fourteen — D20/ADR-0028 decision 4 collapsed the three open writes into one", () => {
+    expect(found.length).toBe(14);
   });
 
-  it("exactly the eight wholesale sites are classified wholesale", () => {
+  // Was "exactly the eight wholesale sites"; D20/ADR-0028 decision 4, 8 → 6.
+  it("exactly the six wholesale sites are classified wholesale", () => {
     expect(
       CLASSIFIED_SITES.filter((s) => s.class === "wholesale")
         .map((s) => s.key)

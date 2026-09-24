@@ -57,6 +57,7 @@ import { dispatchSourceTableAction } from "./plugins/codemirror/sourceTableConte
 import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
 import { quitDialogModel } from "./utils/quitDialogModel";
+import { encodingReopenOutcome } from "./utils/openWriteGuard";
 
 /**
  * What an open ConfirmDialog is about. Only `"document"` originates here now —
@@ -645,10 +646,11 @@ function App() {
       if (!encodingIssue?.path) return;
       setBusyLabel("Opening file...");
       try {
-        const doc = await openDocumentWithEncoding(encodingIssue.path, encoding);
-        if (doc?.path) {
-          updateRecentFiles(doc.path);
-        }
+        const { toast, recentPath } = encodingReopenOutcome(
+          await openDocumentWithEncoding(encodingIssue.path, encoding),
+        );
+        if (recentPath) updateRecentFiles(recentPath);
+        if (toast) showToast(toast);
         clearEncodingIssue();
       } catch {
         showToast("Failed to open with selected encoding");
