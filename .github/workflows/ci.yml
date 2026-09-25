@@ -1,9 +1,23 @@
 name: CI
 on:
-  # Release-only: PR and push-to-master triggers were removed to cut Actions spend.
+  # Tests gate pull requests, not master. A direct push to master deliberately
+  # runs nothing: master is meant to be reached through a PR, and a second run
+  # on merge would re-test an already-tested tree at twice the Actions spend.
+  #
+  # The default `pull_request` types are [opened, synchronize, reopened], and
+  # `synchronize` is the one that matters — it fires on every push to the PR
+  # branch, which is what makes this a per-push gate rather than a per-PR one.
+  pull_request:
   push:
     tags: ['v*']
   workflow_dispatch:
+
+# A new push to the same PR cancels the run still in flight. Only the tip
+# commit's result is worth having, and this is where most of the saving is.
+# Tag builds are excluded from cancellation: a release must not be interrupted.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
