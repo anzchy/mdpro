@@ -2,6 +2,13 @@
 
 ## Status
 
+**Accepted** (2026-09-25), after the implementation (`68d4648`) passed its
+device criterion on the release bundle
+(`docs/test/20260925-d26-gui-acceptance.md`). That run covered the background-tab
+re-prompt, the cap, the draft that survives, and a cancel on a re-prompt. This
+record is now immutable. Freezing settled windows (decision 6) is re-opened by a
+new ADR, not by editing this one.
+
 **Proposed** (2026-09-24). The choice between this record and the rejected
 "freeze settled windows" alternative was put to the user on 2026-09-24 and
 decided in favour of the re-check; see *What it foreclosed and why*. It stays
