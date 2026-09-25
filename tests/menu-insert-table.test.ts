@@ -72,8 +72,17 @@ describe("useMenuEvents — paragraph.table handler", () => {
     );
   });
 
-  it("includes onInsertTable in the useEffect dependency list", () => {
-    expect(useMenuEvents).toMatch(/handlers\.onInsertTable[\s,]/);
+  it("does not build an effect dependency list from handler props (D31)", () => {
+    // Replaced for D31: the previous assertion (`handlers.onInsertTable` in the
+    // useEffect dependency list) specified the dependency-array wiring that
+    // caused a re-subscribe on every App render and leaked subscriptions. The
+    // behaviour it guarded, `paragraph.table` → `onInsertTable`, is now
+    // specified behaviourally in `tests/use-menu-events-subscription.test.ts`
+    // (B1). This is a structural backstop only; destructuring the props into
+    // locals would evade it, and A3 there catches that behaviourally.
+    expect(useMenuEvents).not.toMatch(
+      /\]\s*,?\s*\[\s*handlers\.\w+|\},\s*\[\s*(?:\s*handlers\.\w+\s*,?)+\s*\]/,
+    );
   });
 });
 
