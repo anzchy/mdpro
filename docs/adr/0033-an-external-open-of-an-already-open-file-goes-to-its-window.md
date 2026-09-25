@@ -2,6 +2,14 @@
 
 ## Status
 
+**Accepted** (2026-09-25), after the implementation (`33cf822`) passed G-D29-1..7 on
+the release bundle built at `3b6c157` (`docs/test/20260925-r7-d29-d24-gui-acceptance.md`).
+Real focusing, un-minimising, `emit_to` delivery, the `/tmp` and symlink
+aliases, and the single-instance broadcast were all confirmed on the device.
+This record is now immutable. The same run found that a window opened by this
+route's `NewWindow` fallback ignores the file's stored geometry. That predates
+this record and is tracked under D24.
+
 **Proposed** (2026-09-24). Closes **D29** on
 `docs/plans/20260912-frontend-backend-sequencing-order.md` once implemented.
 Settles gap (f) of

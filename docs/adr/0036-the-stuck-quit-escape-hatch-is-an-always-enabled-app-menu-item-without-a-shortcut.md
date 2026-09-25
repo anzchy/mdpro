@@ -2,6 +2,14 @@
 
 ## Status
 
+**Accepted** (2026-09-25), after the implementation (`3b6c157`) passed the
+device check named at the end of the Amendment. m1, m2 and m3 all passed, and
+so did ADR-0030's residual check against a renderer frozen with `SIGSTOP`
+(`docs/test/20260925-r7-d29-d24-gui-acceptance.md`). This record is now
+immutable. The run found one wording defect: the alert still says the app
+"didn't answer in time" when it was reached from this item. That is a change to
+the ADR-0027 alert text and needs no new decision here.
+
 **Proposed** (2026-09-25). Settles the three questions
 [ADR-0030](./0030-a-menu-item-is-the-escape-hatch-for-a-stuck-quit.md) left
 open under *Not decided here*: the item's label, its placement, and whether it
