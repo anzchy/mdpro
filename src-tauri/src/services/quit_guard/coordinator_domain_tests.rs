@@ -20,6 +20,21 @@ pub(super) use coordinator_runner_phase2::{for_each_phase2_row, run_with, Delive
 #[path = "coordinator_phase2_props_tests.rs"]
 mod coordinator_phase2_props_tests;
 
+// ADR-0035 WI-3: the re-check and backstop domain, runner and laws.
+#[path = "coordinator_runner_recheck_oracle.rs"]
+mod coordinator_runner_recheck_oracle;
+pub(super) use coordinator_runner_recheck_oracle::*;
+
+#[path = "coordinator_runner_recheck.rs"]
+mod coordinator_runner_recheck;
+pub(super) use coordinator_runner_recheck::*;
+
+#[path = "coordinator_recheck_props_tests.rs"]
+mod coordinator_recheck_props_tests;
+
+#[path = "coordinator_recheck_props_rel_tests.rs"]
+mod coordinator_recheck_props_rel_tests;
+
 pub(super) const T: u64 = QUIT_ACK_TIMEOUT_MS;
 
 /// One window's whole part in a run.
@@ -153,6 +168,10 @@ pub(super) enum Tag {
     DeliveryTick(usize),
     /// A tick after the window's ack, at the deadline and far past it.
     LateTick(usize),
+    /// A live window's answer to an ADR-0035 re-check round.
+    Recheck(usize),
+    /// A live window's `Drafted` answer to the ADR-0035 backstop round.
+    Backstop(usize),
 }
 
 #[derive(Clone, Debug)]

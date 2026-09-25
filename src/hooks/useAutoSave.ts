@@ -2,11 +2,7 @@ import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../stores/documentStore";
 import { loggingService } from "../services/loggingService";
-
-const extractTitle = (content: string) => {
-  const match = content.match(/^#\s+(.+)$/m);
-  return match ? match[1].trim() : "Untitled";
-};
+import { extractTitle } from "../utils/draftTitle";
 
 export function useAutoSave(autoSaveInterval: number) {
   const activeDocumentId = useDocumentStore((s) => s.activeDocumentId);

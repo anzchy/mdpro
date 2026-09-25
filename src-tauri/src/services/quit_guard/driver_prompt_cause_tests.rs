@@ -114,10 +114,21 @@ fn wi7_immediate_emit_failure_logs_emit_prompt_and_no_timeout() {
     assert_eq!(
         trace,
         vec![
-            Effect::EmitAll(QuitEvent::Requested { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Requested {
+                request_id: r,
+                round: 0
+            }),
             Effect::ArmTimer(r, QUIT_ACK_TIMEOUT_MS),
             Effect::Activate("wi7a".to_string()),
-            Effect::EmitTo("wi7a".to_string(), QuitEvent::Prompt { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitTo(
+                "wi7a".to_string(),
+                QuitEvent::Prompt {
+                    request_id: r,
+                    round: 0
+                }
+            ),
             Effect::NativeFallback(r, vec!["wi7a".to_string()]),
         ],
         "the q10 trace must be unchanged"
@@ -175,11 +186,24 @@ fn wi7_metamorphic_same_shape_different_cause() {
                 keep
             })
             .map(|e| match e {
-                Effect::EmitAll(QuitEvent::Requested { request_id }) if request_id == r => {
-                    Effect::EmitAll(QuitEvent::Requested { request_id: 0 })
+                // ADR-0035 changes the spec: the event payload carries `round` (A5).
+                Effect::EmitAll(QuitEvent::Requested { request_id, round }) if request_id == r => {
+                    // ADR-0035 changes the spec: the event payload carries `round` (A5).
+                    Effect::EmitAll(QuitEvent::Requested {
+                        request_id: 0,
+                        round,
+                    })
                 }
-                Effect::EmitTo(l, QuitEvent::Prompt { request_id }) if request_id == r => {
-                    Effect::EmitTo(l, QuitEvent::Prompt { request_id: 0 })
+                // ADR-0035 changes the spec: the event payload carries `round` (A5).
+                Effect::EmitTo(l, QuitEvent::Prompt { request_id, round }) if request_id == r => {
+                    // ADR-0035 changes the spec: the event payload carries `round` (A5).
+                    Effect::EmitTo(
+                        l,
+                        QuitEvent::Prompt {
+                            request_id: 0,
+                            round,
+                        },
+                    )
                 }
                 Effect::ArmTimer(id, at) if id == r => Effect::ArmTimer(0, at),
                 Effect::NativeFallback(id, t) if id == r => Effect::NativeFallback(0, t),

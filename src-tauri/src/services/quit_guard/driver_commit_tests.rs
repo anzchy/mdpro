@@ -66,6 +66,11 @@ fn d5_document_ids_are_accepted_only_with_discard() {
             accepted,
             "row {row}: expected accepted={accepted}, got {result:?}"
         );
+        // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+        let commits = |a: QuitAnswer| matches!(a, QuitAnswer::Clean | QuitAnswer::Discard);
+        if accepted && commits(answer) {
+            finish_quit(&guard, r, &["A"], 3);
+        }
 
         if !accepted {
             // The refusal left the request answerable.
@@ -75,6 +80,10 @@ fn d5_document_ids_are_accepted_only_with_discard() {
                 QuitAnswer::Clean
             };
             guard.handle_reply("A", r, valid, None, 3).unwrap();
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+            if commits(valid) {
+                finish_quit(&guard, r, &["A"], 4);
+            }
             assert!(
                 matches!(effects_of(&guard).last(), Some(&Effect::Reply(_))),
                 "row {row}: a refused reply left the request unresolved"
@@ -111,7 +120,11 @@ fn d7_a_silent_window_hands_the_request_to_the_native_alert_and_replies_once() {
     assert_eq!(
         effects_of(&guard),
         vec![
-            Effect::EmitAll(QuitEvent::Requested { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Requested {
+                request_id: r,
+                round: 0
+            }),
             Effect::ArmTimer(r, QUIT_ACK_TIMEOUT_MS),
         ],
         "begin must ask every window and arm the ack timer"
@@ -153,7 +166,11 @@ fn d7_a_silent_window_hands_the_request_to_the_native_alert_and_replies_once() {
     assert_eq!(
         end[after_deadline.len()..],
         [
-            Effect::EmitAll(QuitEvent::Cancelled { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Cancelled {
+                request_id: r,
+                round: 0
+            }),
             Effect::Reply(false),
         ],
         "Keep Open must close the dialogs before it refuses the quit"
@@ -190,6 +207,8 @@ fn d9_a_draft_delete_that_fails_still_commits_and_replies_yes() {
     guard
         .handle_reply("A", r, QuitAnswer::Discard, ids(&["a1", "a2"]), 2)
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["A"], 3);
 
     assert_eq!(
         effects_of(&guard).last(),
@@ -205,16 +224,25 @@ fn d9_a_draft_delete_that_fails_still_commits_and_replies_yes() {
     let report = guard
         .last_commit_report()
         .expect("the commit must report what it deleted");
+    // ADR-0035 changes the spec: the commit report carries the backstop tally and gateWaitMs (WI-4, A6).
     assert_eq!(
         report,
         CommitReport {
             deleted: 1,
-            failed: 1
+            failed: 1,
+            backstop: true,
+            ..CommitReport::default()
         }
     );
+    // ADR-0035 changes the spec: the commit report carries the backstop tally and gateWaitMs (WI-4, A6).
+    // ADR-0035 review M-1: the commit context gains the `undiscarded` count, so the exact key set grows by one.
     assert_eq!(
-        commit_log_context(&report),
-        serde_json::json!({ "deleted": 1, "failed": 1 })
+        commit_log_context(&report, 0),
+        serde_json::json!({
+            "deleted": 1, "failed": 1, "drafted": 0, "draftFailed": 0,
+            "draftMissing": 0, "capped": 0, "backstop": true, "gateWaitMs": 0,
+            "undiscarded": 0
+        })
     );
 }
 
@@ -244,11 +272,21 @@ fn d10_log_contexts_carry_counts_never_ids_or_content() {
         }
     }
 
+    // ADR-0035 changes the spec: the commit report carries the backstop tally and gateWaitMs (WI-4, A6).
+    // ADR-0035 review M-1: the commit context gains the `undiscarded` count, so the exact key set grows by one.
     assert_eq!(
-        commit_log_context(&CommitReport {
-            deleted: 3,
-            failed: 1
-        }),
-        serde_json::json!({ "deleted": 3, "failed": 1 })
+        commit_log_context(
+            &CommitReport {
+                deleted: 3,
+                failed: 1,
+                ..CommitReport::default()
+            },
+            0
+        ),
+        serde_json::json!({
+            "deleted": 3, "failed": 1, "drafted": 0, "draftFailed": 0,
+            "draftMissing": 0, "capped": 0, "backstop": false, "gateWaitMs": 0,
+            "undiscarded": 0
+        })
     );
 }

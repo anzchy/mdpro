@@ -91,6 +91,8 @@ fn c10_a_window_that_acked_dirty_never_times_out() {
     assert_eq!(c.on_answer(r, "b", Answer::Delivered, 11), Step::Wait);
     assert_eq!(c.on_tick(7_200_000), Step::Wait);
     let step = c.on_answer(r, "b", discard(&["b1"]), 11);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 12);
     assert_eq!(commit_ids_sorted(&step), vec!["a1", "b1"]);
 }
 
@@ -113,7 +115,11 @@ fn c11_a_second_begin_is_already_pending_and_changes_nothing() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a"], 0);
     assert_eq!(c.begin(&["a", "b"], 1_500), Begin::AlreadyPending);
-    assert_eq!(c.on_answer(r, "a", Answer::Clean, 1_600), commit(&[]));
+    let step = c.on_answer(r, "a", Answer::Clean, 1_600);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 1_601);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&[]));
 }
 
 // --- WI2-C13: the prompted window answers clean ------------------------------
@@ -125,7 +131,11 @@ fn c13_clean_when_prompted_counts_as_a_discard_with_no_ids() {
     assert_eq!(c.on_answer(r, "a", Answer::Dirty, 1), Step::Wait);
     assert_eq!(norm(c.on_answer(r, "b", Answer::Dirty, 2)), prompt("a"));
     assert_eq!(norm(c.on_answer(r, "a", Answer::Clean, 3)), prompt("b"));
-    assert_eq!(c.on_answer(r, "b", discard(&["b1"]), 4), commit(&["b1"]));
+    let step = c.on_answer(r, "b", discard(&["b1"]), 4);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 5);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&["b1"]));
 }
 
 // --- WI2-C14: request ids strictly increase ----------------------------------
@@ -144,10 +154,11 @@ fn c14_request_ids_strictly_increase_across_requests() {
         }
         ids.push(r);
         if k % 2 == 0 {
-            assert_eq!(
-                c.on_answer(r, "a", Answer::Clean, k * 10_000 + 1),
-                commit(&[])
-            );
+            let step = c.on_answer(r, "a", Answer::Clean, k * 10_000 + 1);
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+            let step = through_recheck(&mut c, r, step, k * 10_000 + 2);
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+            assert_eq!(step, commit_after_backstop(&[]));
         } else {
             assert_eq!(
                 norm(c.on_answer(r, "a", Answer::Dirty, k * 10_000 + 1)),
@@ -182,7 +193,11 @@ fn c17_an_empty_snapshot_while_a_request_is_live_is_still_already_pending() {
 
     // The live request still resolves normally afterwards.
     assert_eq!(norm(c.on_answer(r, "a", Answer::Dirty, 2)), prompt("a"));
-    assert_eq!(c.on_answer(r, "a", discard(&["a1"]), 3), commit(&["a1"]));
+    let step = c.on_answer(r, "a", discard(&["a1"]), 3);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 4);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&["a1"]));
     assert_eq!(c.begin(&empty, 4), Begin::TerminateNow);
 }
 

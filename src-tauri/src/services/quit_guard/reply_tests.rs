@@ -1,7 +1,8 @@
 //! WI3-D6: the wire contract of `QuitAnswer`.
 //!
 //! The frontend sends this string across IPC, so the accepted set has to be
-//! exactly five values — the four decisions plus ADR-0029's `delivered` ack.
+//! exactly six values — the four decisions, ADR-0029's `delivered` ack, and
+//! ADR-0035's `drafted` backstop reply.
 //! Anything else — a typo, a capitalisation, a null — must be refused at the
 //! boundary rather than silently taken for one of them.
 

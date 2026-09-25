@@ -8,13 +8,15 @@
 //!   back through Tauri managed state rather than an `Arc` cycle.
 //! - `reply` and `native_fallback` post to `macos` on macOS (a failed post is
 //!   `false`, which the driver logs as `effect_failed`); elsewhere a no-op `true`.
+//! - Every event goes out as `{requestId, round}` (`QuitEventPayload`,
+//!   ADR-0035 A5), including `app:quit-backstop`.
 //! - `now_ms` is monotonic from a process-local origin (D16F row 14).
 //! - Every dispatch result is reported, never discarded (D16F rows 11, 12, 15):
 //!   `emit_all` and `activate` return it to the driver, which logs it, and the
 //!   timer's main-thread post goes through `report_dispatch`. Activation runs
 //!   all four steps even when one fails (`run_activation`).
 //!
-//! @coordinates-with src/services/quit_guard/driver.rs
+//! @coordinates-with src-tauri/src/services/quit_guard/driver.rs
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
@@ -67,10 +69,23 @@ fn activate_app(app: &AppHandle) -> Result<(), ()> {
     }
 }
 
+/// The wire shape of every quit event (ADR-0035 A5): `{requestId, round}`.
+/// The round lets a window tag its answer, so a late answer from an earlier
+/// round cannot be mistaken for one to the current round.
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct QuitEventPayload {
     request_id: u64,
+    round: u32,
+}
+
+impl From<QuitEvent> for QuitEventPayload {
+    fn from(event: QuitEvent) -> Self {
+        Self {
+            request_id: event.request_id(),
+            round: event.round(),
+        }
+    }
 }
 
 pub struct TauriQuitEffects {
@@ -86,24 +101,13 @@ impl TauriQuitEffects {
 impl QuitEffects for TauriQuitEffects {
     fn emit_all(&self, event: QuitEvent) -> bool {
         self.app
-            .emit(
-                event.name(),
-                QuitEventPayload {
-                    request_id: event.request_id(),
-                },
-            )
+            .emit(event.name(), QuitEventPayload::from(event))
             .is_ok()
     }
 
     fn emit_to(&self, label: &str, event: QuitEvent) -> bool {
         self.app
-            .emit_to(
-                label,
-                event.name(),
-                QuitEventPayload {
-                    request_id: event.request_id(),
-                },
-            )
+            .emit_to(label, event.name(), QuitEventPayload::from(event))
             .is_ok()
     }
 
@@ -171,3 +175,9 @@ impl QuitEffects for TauriQuitEffects {
         }
     }
 }
+
+// The wire payload contract (ADR-0035 A5). Registered here so the private
+// payload struct is reachable.
+#[cfg(test)]
+#[path = "effects_payload_tests.rs"]
+mod effects_payload_tests;

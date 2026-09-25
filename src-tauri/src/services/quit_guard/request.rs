@@ -10,6 +10,14 @@
 //!   ever bounded: phase 1 bounds the whole snapshot at once, and phase 2
 //!   prompts serially. A per-window deadline would be four ways to express the
 //!   same instant and three ways to get it wrong.
+//! - **Per-window and per-request re-check state lives here** (ADR-0035), so
+//!   it is dropped with the request. The transitions are in `rounds.rs`.
+//! - **Each window remembers what it discarded** (ADR-0035 review M-1), so a
+//!   backstop redraft can cancel only that window's own deletion, never a
+//!   sibling's.
+//! - **`Drafting` is outstanding but not machine-side** (ADR-0035 §5). The
+//!   request waits for it, but its deadline commits instead of raising the
+//!   ADR-0027 alert, so it is never in `machine_side_outstanding`.
 //! - **`Deciding` is unbounded on purpose** (ADR-0029). It is the state a window
 //!   is in while a person reads its dialog, and a person is not a machine
 //!   failing to make progress.
@@ -17,11 +25,13 @@
 //! @coordinates-with docs/adr/0029-quit-deadlines-bound-machine-progress-not-people.md
 
 use super::coordinator::{QUIT_ACK_TIMEOUT_MS, QUIT_PROMPT_DELIVERY_TIMEOUT_MS};
+use super::types::BackstopTally;
 
 /// Where one window has got to within the live request.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Status {
-    /// Has not sent its phase-1 ack yet, and can still time out.
+    /// Has not sent its ack for the current round (phase 1 or a re-check) yet,
+    /// and can still time out.
     Pending,
     /// Acked `dirty`, waiting for its turn to be prompted.
     Queued,
@@ -32,14 +42,33 @@ pub(super) enum Status {
     /// Its dialog is up and the user is reading it (ADR-0029 §1). Nothing bounds
     /// this — a person taking a minute over unsaved work is not a fault.
     Deciding,
-    /// Done with this request: clean, discarded, or gone.
+    /// Answered this round: clean, discarded, or capped (ADR-0035 §3). The
+    /// next re-check round asks it again.
     Settled,
+    /// Asked to draft its dirty documents before the commit (ADR-0035 §4).
+    /// Outstanding, but never machine-side: its deadline commits, it does not
+    /// raise the ADR-0027 alert.
+    Drafting,
+    /// Destroyed mid-request. Counts as `clean`, and is absorbing: no round
+    /// asks it again and no deadline waits on it.
+    Gone,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct Window {
     pub label: String,
     pub status: Status,
+    /// A re-check has already queued this window once (ADR-0035 §3). A phase-1
+    /// prompt does not set it.
+    pub reprompted: bool,
+    /// This window has been refused a further re-prompt, and counted in
+    /// `Request::capped` — once, however many later rounds find it dirty.
+    pub capped: bool,
+    /// Every id this window's own `Discard` answers named (ADR-0035 review M-1).
+    pub discarded: Vec<String>,
+    /// The subset of `discarded` it redrafted in the backstop; the commit keeps
+    /// those drafts unless another window discarded the same id.
+    pub undiscarded: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -52,6 +81,16 @@ pub(super) struct Request {
     pub deadline_ms: Option<u64>,
     /// The native alert has taken the request over (ADR-0027).
     pub fallback: bool,
+    /// 0 for phase 1, then +1 at every re-check round (ADR-0035 A5).
+    pub round: u32,
+    /// A re-check must run before the commit: set at open and at every prompt.
+    pub recheck_due: bool,
+    /// Windows dirty again after their one re-prompt, settled without a third
+    /// prompt. A window counts once, not once per round that refuses it.
+    pub capped: u32,
+    /// The draft backstop's running tally, `Some` once it has been issued
+    /// (ADR-0035 §4). It runs at most once per request.
+    pub backstop: Option<BackstopTally>,
 }
 
 impl Request {
@@ -64,11 +103,19 @@ impl Request {
                 .map(|label| Window {
                     label: label.as_ref().to_string(),
                     status: Status::Pending,
+                    reprompted: false,
+                    capped: false,
+                    discarded: Vec::new(),
+                    undiscarded: Vec::new(),
                 })
                 .collect(),
             discard_document_ids: Vec::new(),
             deadline_ms: Some(now_ms.saturating_add(QUIT_ACK_TIMEOUT_MS)),
             fallback: false,
+            round: 0,
+            recheck_due: true,
+            capped: 0,
+            backstop: None,
         }
     }
 
@@ -85,7 +132,7 @@ impl Request {
         self.windows.iter().any(|w| {
             matches!(
                 w.status,
-                Status::Pending | Status::Prompted | Status::Deciding
+                Status::Pending | Status::Prompted | Status::Deciding | Status::Drafting
             )
         })
     }
@@ -99,6 +146,7 @@ impl Request {
             .iter()
             .position(|w| w.status == Status::Queued)?;
         self.windows[at].status = Status::Prompted;
+        self.recheck_due = true;
         let deadline_ms = now_ms.saturating_add(QUIT_PROMPT_DELIVERY_TIMEOUT_MS);
         self.deadline_ms = Some(deadline_ms);
         Some((self.windows[at].label.clone(), deadline_ms))

@@ -29,6 +29,7 @@ pub mod macos;
 mod plan;
 pub mod reply;
 mod request;
+mod rounds;
 mod types;
 
 use std::sync::{RwLock, RwLockWriteGuard};

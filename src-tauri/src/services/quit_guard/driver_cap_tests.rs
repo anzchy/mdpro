@@ -36,8 +36,7 @@ fn w4_discard_cap_is_the_mcp_per_window_limit() {
 fn w4_discard_validation_agrees_with_the_mcp_count_check_for_every_n() {
     let mut first_rejection = None;
     for n in 0..=PER_WINDOW_LIMIT + 2 {
-        let quit_accepts =
-            validate_discard_ids(QuitAnswer::Discard, Some(discard_list(n))).is_ok();
+        let quit_accepts = validate_discard_ids(QuitAnswer::Discard, Some(discard_list(n))).is_ok();
         let mcp_accepts = n <= MAX_DOCUMENTS_PER_WINDOW;
         assert_eq!(
             quit_accepts, mcp_accepts,
@@ -77,11 +76,16 @@ fn w4_one_hundred_ids_are_accepted_and_every_draft_is_deleted() {
     let accepted = guard.handle_reply("w4a", r, QuitAnswer::Discard, Some(list.clone()), 2);
 
     assert_eq!(accepted, Ok(()), "100 ids must be accepted");
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["w4a"], 3);
+    // ADR-0035 changes the spec: the commit report carries the backstop tally and gateWaitMs (WI-4, A6).
     assert_eq!(
         guard.last_commit_report(),
         Some(CommitReport {
             deleted: PER_WINDOW_LIMIT,
-            failed: 0
+            failed: 0,
+            backstop: true,
+            ..CommitReport::default()
         })
     );
     assert_eq!(effects_of(&guard).last(), Some(&Effect::Reply(true)));
@@ -115,7 +119,11 @@ fn w4_one_hundred_and_one_ids_are_refused_and_nothing_is_deleted() {
         refused,
         Err("too many documentIds: 101 (the limit is 100)".to_string())
     );
-    assert_eq!(guard.snapshot(), state_before, "a refusal moved the coordinator");
+    assert_eq!(
+        guard.snapshot(),
+        state_before,
+        "a refusal moved the coordinator"
+    );
     let after = effects_of(&guard);
     assert!(
         !after[effects_before..]

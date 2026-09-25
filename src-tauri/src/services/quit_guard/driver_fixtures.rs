@@ -106,6 +106,10 @@ pub(super) fn ids(list: &[&str]) -> Option<Vec<String>> {
     Some(list.iter().map(|s| s.to_string()).collect())
 }
 
+#[path = "driver_round_fixtures.rs"]
+mod round_fixtures;
+pub(super) use round_fixtures::{finish_quit, guard_at_with};
+
 // ── The recording effects implementation ──────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -126,6 +130,9 @@ pub(super) struct FailingEffects {
     pub emit_to: Vec<String>,
     /// Event names (`QuitEvent::name`) whose broadcast reports failure.
     pub emit_all: Vec<&'static str>,
+    /// 1-based `emit_all` call numbers that report failure (ADR-0035: the
+    /// re-check reuses the phase-1 event name, so a name cannot single it out).
+    pub emit_all_calls: Vec<usize>,
     pub activate: bool,
     pub reply: bool,
     pub native_fallback: bool,
@@ -175,12 +182,13 @@ impl RecordingEffects {
 impl QuitEffects for RecordingEffects {
     fn emit_all(&self, event: QuitEvent) -> bool {
         self.push(Effect::EmitAll(event));
-        !self
-            .failing
-            .lock()
-            .unwrap()
-            .emit_all
-            .contains(&event.name())
+        let call = self
+            .effects()
+            .iter()
+            .filter(|e| matches!(e, Effect::EmitAll(_)))
+            .count();
+        let failing = self.failing.lock().unwrap();
+        !(failing.emit_all.contains(&event.name()) || failing.emit_all_calls.contains(&call))
     }
     fn emit_to(&self, label: &str, event: QuitEvent) -> bool {
         self.push(Effect::EmitTo(label.to_string(), event));

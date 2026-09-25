@@ -26,6 +26,8 @@ pub(in super::super) struct Runner {
     pub row: String,
     outstanding: Option<usize>,
     last_answer: Option<(usize, Answer)>,
+    gone: Vec<bool>,
+    recheck_open: bool,
 }
 
 impl Runner {
@@ -45,6 +47,8 @@ impl Runner {
             row: row.to_string(),
             outstanding: None,
             last_answer: None,
+            gone: vec![false; n],
+            recheck_open: false,
         }
     }
 
@@ -58,6 +62,16 @@ impl Runner {
 
     pub fn last_answer(&self) -> Option<(usize, Answer)> {
         self.last_answer.clone()
+    }
+
+    /// Whether an ADR-0035 re-check round is open and still unanswered.
+    pub fn recheck_open(&self) -> bool {
+        self.recheck_open
+    }
+
+    /// The windows the runner has not fed a gone for, in snapshot order.
+    pub fn live(&self) -> Vec<usize> {
+        (0..self.labels.len()).filter(|i| !self.gone[*i]).collect()
     }
 
     pub fn feed(&mut self, tag: Tag, input: Input) -> Step {
@@ -74,11 +88,19 @@ impl Runner {
                 1,
             ),
             Input::ForeignAnswer(answer) => self.c.on_answer(self.id, "zz", answer.clone(), 1),
-            Input::Gone(idx) => self.c.on_window_gone(&self.labels[*idx], 1),
+            Input::Gone(idx) => {
+                self.gone[*idx] = true;
+                self.c.on_window_gone(&self.labels[*idx], 1)
+            }
             Input::ForeignGone => self.c.on_window_gone("zz", 1),
             Input::Tick(now) => self.c.on_tick(*now),
             Input::Fallback(answer) => self.c.on_fallback_answer(self.id, *answer),
         };
+        match &step {
+            Step::Recheck { .. } => self.recheck_open = true,
+            s if is_terminal(s) || matches!(s, Step::Backstop { .. }) => self.recheck_open = false,
+            _ => {}
+        }
         if let Step::Prompt { label, .. } = &step {
             self.outstanding = Some(
                 self.labels
@@ -121,6 +143,7 @@ impl Runner {
         self.trace.iter().find_map(|r| match &r.step {
             Step::Commit {
                 discard_document_ids,
+                ..
             } => Some(discard_document_ids.clone()),
             _ => None,
         })

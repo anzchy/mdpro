@@ -5,7 +5,8 @@
 use super::driver_fallback_log_tests::{all, in_fallback, wire, OTHER, WIN};
 use crate::services::quit_guard::driver::*;
 use crate::services::quit_guard::driver_fixtures::{
-    effects_of, entries_where, fresh_log_home, guard_at, later, set_home, Effect, RecordingEffects,
+    effects_of, entries_where, finish_quit, fresh_log_home, guard_at, later, set_home, Effect,
+    RecordingEffects,
 };
 use crate::HOME_LOCK;
 use serde_json::json;
@@ -59,6 +60,8 @@ fn guard_in(phase: Phase, floor: u64) -> QuitGuard<RecordingEffects> {
             guard
                 .handle_reply(OTHER, r, QuitAnswer::Clean, None, 2)
                 .unwrap();
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+            finish_quit(&guard, r, &[WIN, OTHER], 3);
             assert_eq!(effects_of(&guard).last(), Some(&Effect::Reply(true)));
         }
         Phase::NoRequest | Phase::Fallback => unreachable!(),

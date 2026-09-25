@@ -5,6 +5,7 @@
 //! until `on_fallback_answer`, and whose "Quit Without Saving" deletes no
 //! drafts.
 
+use super::coordinator_recheck_tests::fixtures::{commit_after_backstop, through_recheck};
 use super::coordinator_tests::{begin_later, commit, discard, ignored, norm, prompt};
 use super::*;
 
@@ -110,7 +111,11 @@ fn f3b_quit_anyway_carries_no_ids_from_an_accepted_discard() {
     let mut c = QuitCoordinator::new();
     let r1 = begin_later(&mut c, &["a"], 0);
     assert_eq!(norm(c.on_answer(r1, "a", Answer::Dirty, 1)), prompt("a"));
-    assert_eq!(c.on_answer(r1, "a", discard(&["x1"]), 2), commit(&["x1"]));
+    let step = c.on_answer(r1, "a", discard(&["x1"]), 2);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r1, step, 3);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&["x1"]));
 
     let r2 = begin_later(&mut c, &["a", "b"], 100);
     assert_eq!(c.on_answer(r2, "a", Answer::Dirty, 101), Step::Wait);
@@ -140,7 +145,11 @@ fn f4_keep_open_aborts_and_the_next_begin_gets_a_new_request_id() {
         r2 > r,
         "a request resolved by the alert is over: {r} -> {r2}"
     );
-    assert_eq!(c.on_answer(r2, "a", Answer::Clean, 10_001), commit(&[]));
+    let step = c.on_answer(r2, "a", Answer::Clean, 10_001);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r2, step, 10_002);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&[]));
 }
 
 #[test]

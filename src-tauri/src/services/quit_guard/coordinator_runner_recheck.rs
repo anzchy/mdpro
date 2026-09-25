@@ -1,0 +1,233 @@
+//! ADR-0035 WI-3: the exhaustive runner for the re-check and backstop rounds.
+//!
+//! `run_recheck` drives one `Row` (see `coordinator_runner_recheck_oracle.rs`)
+//! through phase 1, phase 2 (direct decisions), every re-check round and the
+//! draft backstop, to a terminal. Like the WI-2 runner it reacts only to the
+//! steps it is given — `Prompt`, `Recheck`, `Backstop` — and never reads the
+//! coordinator's state to decide what to feed. The one exception is the R9
+//! stale-round junk, which reads the current round to tag a reply one round
+//! behind it, then checks that the reply changed nothing.
+//!
+//! Every input is fed at `now_ms = 1`, so each re-check and backstop deadline
+//! is `1 + 2000`. A silent window (`RecheckTimeout`, `OneMisses`) is ticked
+//! once just before its deadline (expecting `Rearm`) and once at it.
+//!
+//! The loop guard is `4N + 4` iterations (plan WI-3: at most N+1 rounds, at
+//! most one re-check prompt per window, one backstop), and it is asserted.
+//!
+//! Domain size: 94_141 rows (N=1: 78, N=2: 4_963, N=3: 89_100).
+//!
+//! Measured runtime (2026-09-24, debug build, 10-core Apple Silicon): the 14
+//! law tests of `coordinator_recheck_props*` (each walks every row; R8 adds a
+//! transformed run per live window, R9 a second run with junk) finish in
+//! about 2.8 s with the default test threads, and 10.8 s on one thread.
+
+use super::coordinator_runner::{decide, phase1};
+use super::*;
+
+/// One re-check run, plus the verdict on every stale-round junk reply.
+pub(in super::super) struct Rerun {
+    pub d: Runner,
+    /// `(step returned, coordinator unchanged)` for each junk reply.
+    pub junk: Vec<(Step, bool)>,
+    stale_junk: bool,
+}
+
+/// Drive `row` to its terminal. With `stale_junk`, every answer fed in round
+/// ≥ 1 is preceded by a `Clean` from the same label tagged one round behind.
+pub(in super::super) fn run_recheck(row: &Row, stale_junk: bool) -> Rerun {
+    let n = row.assign.len();
+    let mut r = Rerun {
+        d: Runner::new(n, &row.name),
+        junk: Vec::new(),
+        stale_junk,
+    };
+    phase1(&mut r.d, &row.assign, &row.order, row.tick_at);
+    phase2(&mut r.d, &row.assign);
+    let limit = 4 * n + 4;
+    let mut guard = 0usize;
+    let mut answered = 0usize;
+    loop {
+        guard += 1;
+        assert!(
+            guard <= limit,
+            "{}: loop guard {limit} hit without a terminal: {:?}",
+            row.name,
+            r.d.steps()
+        );
+        if let Some(l) = r.d.outstanding() {
+            r.d.clear_outstanding();
+            r.decide(row, l);
+            continue;
+        }
+        // The next issued `Recheck` or `Backstop` not yet answered. A phase-1
+        // gone can land after the round it completes was issued, so the
+        // runner cannot read only the last step.
+        let issued: Vec<Step> =
+            r.d.steps()
+                .into_iter()
+                .filter(|s| matches!(s, Step::Recheck { .. } | Step::Backstop { .. }))
+                .collect();
+        match issued.get(answered).cloned() {
+            Some(Step::Recheck { deadline_ms, .. }) => {
+                r.answer_round(row, answered + 1, deadline_ms)
+            }
+            Some(Step::Backstop { deadline_ms, .. }) => r.answer_backstop(row, deadline_ms),
+            _ => break,
+        }
+        answered += 1;
+    }
+    r
+}
+
+/// Phase 2 as the WI-2 runner plays it with `Delivery::Direct`.
+fn phase2(d: &mut Runner, assign: &[Kind]) {
+    let mut first_prompt = true;
+    let mut guard = 0;
+    while let Some(l) = d.outstanding() {
+        guard += 1;
+        assert!(guard <= 3 * assign.len() + 5, "{}: phase 2 loops", d.row);
+        if first_prompt {
+            first_prompt = false;
+            for (q, kind) in assign.iter().enumerate() {
+                if *kind == Kind::GoneWhileQueued {
+                    d.feed(Tag::Gone(q), Input::Gone(q));
+                }
+            }
+            if d.outstanding() != Some(l) {
+                continue;
+            }
+        }
+        d.clear_outstanding();
+        decide(d, assign, l);
+    }
+}
+
+/// The number of `Recheck` steps in a trace.
+pub(in super::super) fn rechecks(steps: &[Step]) -> usize {
+    steps
+        .iter()
+        .filter(|s| matches!(s, Step::Recheck { .. }))
+        .count()
+}
+
+impl Rerun {
+    fn answer(&mut self, tag: Tag, idx: usize, answer: Answer) {
+        self.stale(idx);
+        self.d.feed(tag, Input::Answer { idx, answer });
+    }
+
+    /// R9: a `Clean` from `w{idx}` tagged with the previous round.
+    fn stale(&mut self, idx: usize) {
+        if !self.stale_junk {
+            return;
+        }
+        let Some(round) = self.d.c.request.as_ref().map(|q| q.round) else {
+            return;
+        };
+        if round == 0 {
+            return;
+        }
+        let before = self.d.c.clone();
+        let label = self.d.labels[idx].clone();
+        let step = self
+            .d
+            .c
+            .on_answer_in(self.d.id, Some(round - 1), &label, Answer::Clean, 1);
+        let unchanged = self.d.c == before;
+        self.junk.push((step, unchanged));
+    }
+
+    fn tick_at(&mut self, deadline_ms: u64) {
+        self.d.feed(Tag::Tick, Input::Tick(deadline_ms - 1));
+        self.d.feed(Tag::Tick, Input::Tick(deadline_ms));
+    }
+
+    /// Answer re-check `k` (1-based), as each live window's axis dictates.
+    fn answer_round(&mut self, row: &Row, k: usize, deadline_ms: u64) {
+        let mut silent = false;
+        for i in self.d.live() {
+            match row.re[i] {
+                Re::GoneBeforeRecheck => {
+                    self.d.feed(Tag::Gone(i), Input::Gone(i));
+                }
+                Re::RecheckTimeout => silent = true,
+                re => {
+                    let answer = if dirty_at(re, k) {
+                        Answer::Dirty
+                    } else {
+                        Answer::Clean
+                    };
+                    self.answer(Tag::Recheck(i), i, answer);
+                }
+            }
+        }
+        if silent {
+            self.tick_at(deadline_ms);
+        }
+    }
+
+    /// A re-check-induced prompt of `w{l}`: ack the dialog, then decide.
+    fn decide(&mut self, row: &Row, l: usize) {
+        self.answer(Tag::Delivered(l), l, Answer::Delivered);
+        let decision = match row.re[l] {
+            Re::EditedOnce(Then::Cancel) => Answer::Cancel,
+            Re::EditedOnce(Then::SavedMeanwhile) => Answer::Clean,
+            re => Answer::Discard(recheck_ids(re, l).unwrap_or_else(|| {
+                panic!("{}: w{l} was prompted at a re-check as {re:?}", row.name)
+            })),
+        };
+        self.answer(Tag::Phase2(l), l, decision);
+    }
+
+    fn answer_backstop(&mut self, row: &Row, deadline_ms: u64) {
+        for (pos, i) in self.d.live().into_iter().enumerate() {
+            let failed = match (row.bk, pos) {
+                (Bk::OneMisses, 0) => continue,
+                (Bk::OneFails, 0) => 2,
+                _ => 0,
+            };
+            let answer = Answer::Drafted { drafted: 1, failed };
+            self.answer(Tag::Backstop(i), i, answer);
+        }
+        if row.bk == Bk::OneMisses {
+            self.tick_at(deadline_ms);
+        }
+    }
+}
+
+/// The commit's ids and tally, if the run committed.
+pub(in super::super) fn commit_of(d: &Runner) -> Option<(Vec<String>, Option<BackstopTally>)> {
+    d.trace.iter().find_map(|r| match &r.step {
+        Step::Commit {
+            discard_document_ids,
+            backstop,
+        } => Some((discard_document_ids.clone(), *backstop)),
+        _ => None,
+    })
+}
+
+/// The labels prompted after the first `Recheck` step.
+pub(in super::super) fn prompted_after_phase1(d: &Runner) -> Vec<String> {
+    d.trace
+        .iter()
+        .skip_while(|r| !matches!(r.step, Step::Recheck { .. }))
+        .filter_map(|r| match &r.step {
+            Step::Prompt { label, .. } => Some(label.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The request's round after each input, replayed on a fresh coordinator
+/// (`None` once the request has resolved). Used by RT-4.
+pub(in super::super) fn round_series(d: &Runner) -> Vec<Option<u32>> {
+    let mut replay = Runner::new(d.labels.len(), &d.row);
+    d.inputs
+        .iter()
+        .map(|input| {
+            replay.feed(Tag::Junk, input.clone());
+            replay.c.request.as_ref().map(|q| q.round)
+        })
+        .collect()
+}

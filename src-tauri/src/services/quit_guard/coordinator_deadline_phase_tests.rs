@@ -74,12 +74,20 @@ fn q7_a_decision_straight_from_prompted_still_settles_the_window() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a"], 0);
     assert_eq!(norm(c.on_answer(r, "a", Answer::Dirty, 1)), prompt("a"));
-    assert_eq!(c.on_answer(r, "a", discard(&["a1"]), 2), commit(&["a1"]));
+    let step = c.on_answer(r, "a", discard(&["a1"]), 2);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 3);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&["a1"]));
 
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a"], 0);
     assert_eq!(norm(c.on_answer(r, "a", Answer::Dirty, 1)), prompt("a"));
-    assert_eq!(c.on_answer(r, "a", Answer::Clean, 2), commit(&[]));
+    let step = c.on_answer(r, "a", Answer::Clean, 2);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 3);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&[]));
 
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a"], 0);

@@ -11,10 +11,8 @@
 
 use crate::services::quit_guard::driver::*;
 use crate::services::quit_guard::driver_fixtures::{
-    effects_of, entries_where, fresh_log_home, guard_at, later, log_lines, set_home, Effect,
-    RecordingEffects,
+    effects_of, entries_where, fresh_log_home, guard_at, later, set_home, Effect, RecordingEffects,
 };
-use crate::services::quit_guard::effects::report_dispatch;
 use crate::HOME_LOCK;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
@@ -93,7 +91,11 @@ fn wi8_emit_requested_failure_is_logged_and_the_request_stays_armed() {
     assert_eq!(
         effects_of(&guard)[base..].to_vec(),
         vec![
-            Effect::EmitAll(QuitEvent::Requested { request_id: 8_000 }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Requested {
+                request_id: 8_000,
+                round: 0
+            }),
             Effect::ArmTimer(8_000, QUIT_ACK_TIMEOUT_MS),
         ]
     );
@@ -118,7 +120,11 @@ fn wi8_emit_cancelled_failure_still_replies_no() {
     assert_eq!(
         trace[trace.len() - 2..].to_vec(),
         vec![
-            Effect::EmitAll(QuitEvent::Cancelled { request_id: 8_100 }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Cancelled {
+                request_id: 8_100,
+                round: 0
+            }),
             Effect::Reply(false),
         ]
     );
@@ -151,7 +157,14 @@ fn wi8_activate_failure_still_sends_the_prompt() {
         .expect("the window is activated");
     assert_eq!(
         trace[at + 1],
-        Effect::EmitTo("w8c".to_string(), QuitEvent::Prompt { request_id: 8_200 })
+        // ADR-0035 changes the spec: the event payload carries `round` (A5).
+        Effect::EmitTo(
+            "w8c".to_string(),
+            QuitEvent::Prompt {
+                request_id: 8_200,
+                round: 0
+            }
+        )
     );
     assert!(
         matches!(trace[at + 2], Effect::ArmTimer(8_200, _)),
@@ -168,18 +181,32 @@ fn wi8_failure_subsets_do_not_alter_the_trace() {
     let home = fresh_log_home("wi8m");
     let _home = set_home(&home);
 
+    // ADR-0035 changes the spec: the event payload carries `round` (A5); the
+    // normalised events keep it and zero only the request id.
     let normalise = |trace: Vec<Effect>, r: u64| -> Vec<Effect> {
         trace
             .into_iter()
             .map(|e| match e {
-                Effect::EmitAll(QuitEvent::Requested { request_id }) if request_id == r => {
-                    Effect::EmitAll(QuitEvent::Requested { request_id: 0 })
+                Effect::EmitAll(QuitEvent::Requested { request_id, round }) if request_id == r => {
+                    Effect::EmitAll(QuitEvent::Requested {
+                        request_id: 0,
+                        round,
+                    })
                 }
-                Effect::EmitAll(QuitEvent::Cancelled { request_id }) if request_id == r => {
-                    Effect::EmitAll(QuitEvent::Cancelled { request_id: 0 })
+                Effect::EmitAll(QuitEvent::Cancelled { request_id, round }) if request_id == r => {
+                    Effect::EmitAll(QuitEvent::Cancelled {
+                        request_id: 0,
+                        round,
+                    })
                 }
-                Effect::EmitTo(l, QuitEvent::Prompt { request_id }) if request_id == r => {
-                    Effect::EmitTo(l, QuitEvent::Prompt { request_id: 0 })
+                Effect::EmitTo(l, QuitEvent::Prompt { request_id, round }) if request_id == r => {
+                    Effect::EmitTo(
+                        l,
+                        QuitEvent::Prompt {
+                            request_id: 0,
+                            round,
+                        },
+                    )
                 }
                 Effect::ArmTimer(id, at) if id == r => Effect::ArmTimer(0, at),
                 other => other,
@@ -214,64 +241,7 @@ fn wi8_failure_subsets_do_not_alter_the_trace() {
     }
 }
 
-/// q12c extended to every effect name the driver and the timer can log.
-#[test]
-fn wi8_every_effect_failed_context_is_request_and_effect_only() {
-    let _lock = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let home = fresh_log_home("wi8q");
-    let _home = set_home(&home);
-    let guard = guard_at(8_700);
-    guard.effects().fail(|f| {
-        f.emit_all = vec![REQUESTED, CANCELLED];
-        f.activate = true;
-        f.reply = true;
-        f.native_fallback = true;
-        f.emit_to = vec!["w8q2".to_string()];
-    });
-
-    run_script(&guard, 8_700, "w8q1");
-    let r = later(guard.begin(&["w8q2", OTHER], 10));
-    assert_eq!(r, 8_701);
-    guard
-        .handle_reply("w8q2", r, QuitAnswer::Dirty, None, 11)
-        .unwrap();
-    guard
-        .handle_reply(OTHER, r, QuitAnswer::Clean, None, 12)
-        .unwrap();
-    report_dispatch(Err::<(), &str>("closed"), 8_702, "timerDispatch");
-
-    let lines: Vec<Value> = log_lines(&home)
-        .into_iter()
-        .filter(|v| v["event"] == json!("app.quit.effect_failed"))
-        .filter(|v| {
-            matches!(
-                v.pointer("/context/requestId").and_then(Value::as_u64),
-                Some(8_700..=8_702)
-            )
-        })
-        .collect();
-    let names: BTreeSet<&str> = lines
-        .iter()
-        .filter_map(|v| v["context"]["effect"].as_str())
-        .collect();
-    let every = [
-        "reply",
-        "nativeFallback",
-        "emitPrompt",
-        "emitRequested",
-        "emitCancelled",
-        "activate",
-        "timerDispatch",
-    ];
-    assert_eq!(names, BTreeSet::from(every), "lines: {lines:?}");
-    for line in &lines {
-        let keys: BTreeSet<&str> = line["context"]
-            .as_object()
-            .expect("context is an object")
-            .keys()
-            .map(String::as_str)
-            .collect();
-        assert_eq!(keys, BTreeSet::from(["requestId", "effect"]), "{line}");
-        assert_counts_only(line, &["w8q1", "w8q2", OTHER]);
-    }
-}
+// Split out under rule 50 §6 when ADR-0035's `round` migration took this
+// file past 300 lines; the test is moved unchanged.
+#[path = "driver_effect_fail_ctx_tests.rs"]
+mod driver_effect_fail_ctx_tests;

@@ -18,12 +18,28 @@ use super::coordinator::FallbackAnswer;
 use super::driver::QuitGuard;
 use super::logging;
 
-/// An event the driver sends to the frontend.
+/// An event the driver sends to the frontend. `round` is the request's round
+/// when the event went out: 0 for phase 1, then +1 per re-check (ADR-0035 A5).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QuitEvent {
-    Requested { request_id: u64 },
-    Prompt { request_id: u64 },
-    Cancelled { request_id: u64 },
+    Requested {
+        request_id: u64,
+        round: u32,
+    },
+    Prompt {
+        request_id: u64,
+        round: u32,
+    },
+    Cancelled {
+        request_id: u64,
+        round: u32,
+    },
+    /// Draft every dirty document now (ADR-0035 §4): the last round before
+    /// the commit.
+    Backstop {
+        request_id: u64,
+        round: u32,
+    },
 }
 
 impl QuitEvent {
@@ -33,23 +49,50 @@ impl QuitEvent {
             QuitEvent::Requested { .. } => "app:quit-requested",
             QuitEvent::Prompt { .. } => "app:quit-prompt",
             QuitEvent::Cancelled { .. } => "app:quit-cancelled",
+            QuitEvent::Backstop { .. } => "app:quit-backstop",
         }
     }
 
     pub fn request_id(&self) -> u64 {
         match self {
-            QuitEvent::Requested { request_id }
-            | QuitEvent::Prompt { request_id }
-            | QuitEvent::Cancelled { request_id } => *request_id,
+            QuitEvent::Requested { request_id, .. }
+            | QuitEvent::Prompt { request_id, .. }
+            | QuitEvent::Cancelled { request_id, .. }
+            | QuitEvent::Backstop { request_id, .. } => *request_id,
+        }
+    }
+
+    pub fn round(&self) -> u32 {
+        match self {
+            QuitEvent::Requested { round, .. }
+            | QuitEvent::Prompt { round, .. }
+            | QuitEvent::Cancelled { round, .. }
+            | QuitEvent::Backstop { round, .. } => *round,
         }
     }
 }
 
-/// What one commit did to the drafts of the discarded documents.
+/// What one commit did: the drafts of the discarded documents, and the draft
+/// backstop's tally (ADR-0035 §4-5). Counts only, never ids.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CommitReport {
     pub deleted: usize,
     pub failed: usize,
+    /// Backstop drafts written, summed over every window's `Drafted`.
+    pub drafted: u32,
+    /// Backstop draft writes that failed.
+    pub draft_failed: u32,
+    /// Windows still drafting when the backstop deadline passed.
+    pub draft_missing: u32,
+    /// Windows dirty again after their one re-prompt (plan A8: a window count).
+    pub capped: u32,
+    /// Whether a backstop round ran. The ADR-0027 `QuitAnyway` and an all-gone
+    /// request commit without one.
+    pub backstop: bool,
+    /// Discarded ids whose deletion was cancelled because the window that
+    /// discarded them redrafted them in the backstop after an edit (ADR-0035
+    /// review M-1). A count, never the ids.
+    pub undiscarded: usize,
 }
 
 /// Every platform effect the driver can have.

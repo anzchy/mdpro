@@ -71,3 +71,15 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
 #[cfg(test)]
 #[path = "draft_gate_tests.rs"]
 mod draft_gate_tests;
+
+#[cfg(test)]
+#[path = "draft_backstop_tests.rs"]
+mod draft_backstop_tests;
+
+#[cfg(test)]
+#[path = "draft_backstop_order_tests.rs"]
+mod draft_backstop_order_tests;
+
+#[cfg(test)]
+#[path = "draft_backstop_undiscard_tests.rs"]
+mod draft_backstop_undiscard_tests;

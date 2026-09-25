@@ -1,4 +1,4 @@
-//! Purpose: the ten `app.quit.*` log events, in one place.
+//! Purpose: the twelve `app.quit.*` log events, in one place.
 //!
 //! Key decisions:
 //! - **Counts, never ids, never content.** A draft id names a document the user
@@ -7,6 +7,12 @@
 //!   the ids are what would make it a leak.
 //! - The context builders are pure and separate from the writing, so what goes
 //!   into the log is testable without a log file.
+//! - ADR-0035 adds `app.quit.recheck` / `app.quit.backstop` (`{requestId,
+//!   round, windowCount}`), the backstop tally plus `gateWaitMs` on
+//!   `app.quit.commit`, which is `fail` when any of its four failure counts is
+//!   non-zero: a lost draft is not a success. `round` on every answer line and
+//!   the `drafted` answer's counts are added to `answer_log_context` by
+//!   `driver_wire.rs`.
 //!
 //! @coordinates-with .claude/rules/20-logging-and-docs.md
 
@@ -138,12 +144,42 @@ pub(super) fn log_fallback_no_guard(request_id: u64, answer: FallbackAnswer) {
     log_fallback(request_id, answer, Some("noGuard"));
 }
 
-/// Context for `app.quit.commit`: what the commit did to the drafts.
-pub fn commit_log_context(report: &CommitReport) -> Value {
+/// Context for `app.quit.commit`: what the commit did to the drafts, what the
+/// backstop did, how many discards a backstop redraft cancelled (`undiscarded`,
+/// review M-1), and how long the commit waited for an in-flight save to
+/// release the draft gate (ADR-0035 A6). Counts only.
+pub fn commit_log_context(report: &CommitReport, gate_wait_ms: u64) -> Value {
     json!({
         "deleted": report.deleted,
         "failed": report.failed,
+        "drafted": report.drafted,
+        "draftFailed": report.draft_failed,
+        "draftMissing": report.draft_missing,
+        "capped": report.capped,
+        "backstop": report.backstop,
+        "gateWaitMs": gate_wait_ms,
+        "undiscarded": report.undiscarded,
     })
+}
+
+/// `app.quit.recheck`: a re-check round started (ADR-0035 §2).
+pub(super) fn log_recheck(request_id: u64, round: u32, window_count: usize) {
+    write(
+        "app.quit.recheck",
+        LogStatus::Start,
+        json!({ "requestId": request_id, "round": round, "windowCount": window_count }),
+        None,
+    );
+}
+
+/// `app.quit.backstop`: the draft backstop started (ADR-0035 §4).
+pub(super) fn log_backstop(request_id: u64, round: u32, window_count: usize) {
+    write(
+        "app.quit.backstop",
+        LogStatus::Start,
+        json!({ "requestId": request_id, "round": round, "windowCount": window_count }),
+        None,
+    );
 }
 
 pub(super) fn log_request(request_id: u64, window_count: usize) {
@@ -195,24 +231,46 @@ pub(super) fn log_cancel(request_id: u64, reason: &AbortReason) {
     );
 }
 
-/// `app.quit.commit`. A draft that would not delete makes the line `Fail` at
-/// error level with a count-only reason — the quit itself still commits
+/// `app.quit.commit`. A draft that would not delete, a backstop draft that
+/// failed or never came, or a capped window makes the line `Fail` at error
+/// level with a count-only reason — the quit itself still commits
 /// (ADR-0025 §4), but a leftover discarded draft must not be logged as success.
 /// `LogStatus` has no partial variant, so any failure is `Fail`.
-pub(super) fn log_commit(request_id: u64, report: &CommitReport) {
-    let mut context = commit_log_context(report);
+pub(super) fn log_commit(request_id: u64, report: &CommitReport, gate_wait_ms: u64) {
+    let mut context = commit_log_context(report, gate_wait_ms);
     if let Some(map) = context.as_object_mut() {
         map.insert("requestId".to_string(), json!(request_id));
     }
-    let (status, error) = if report.failed > 0 {
-        (
-            LogStatus::Fail,
-            Some(format!("{} draft deletions failed", report.failed)),
-        )
+    let error = commit_error(report);
+    let status = if error.is_some() {
+        LogStatus::Fail
     } else {
-        (LogStatus::Success, None)
+        LogStatus::Success
     };
     write("app.quit.commit", status, context, error);
+}
+
+/// The count-only reason a commit line fails, one clause per non-zero failure
+/// count; `None` when all four are zero.
+fn commit_error(report: &CommitReport) -> Option<String> {
+    let clauses = [
+        (report.failed, "draft deletions failed"),
+        (report.draft_failed as usize, "backstop drafts failed"),
+        (
+            report.draft_missing as usize,
+            "windows sent no backstop answer",
+        ),
+        (
+            report.capped as usize,
+            "windows capped after their re-prompt",
+        ),
+    ];
+    let parts: Vec<String> = clauses
+        .iter()
+        .filter(|(n, _)| *n > 0)
+        .map(|(n, what)| format!("{n} {what}"))
+        .collect();
+    (!parts.is_empty()).then(|| parts.join("; "))
 }
 
 fn write(event: &str, status: LogStatus, context: Value, error: Option<String>) {

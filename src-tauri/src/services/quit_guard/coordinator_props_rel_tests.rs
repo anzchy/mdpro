@@ -92,6 +92,20 @@ fn stripped(d: &Runner, i: usize, drop_phase1: bool) -> Vec<Step> {
         .collect()
 }
 
+/// ADR-0035 (migration M1): `stripped` up to, not including, the first
+/// `Recheck` or terminal, plus the terminal outcome. A gone window is not asked
+/// in the re-check round, and a request with every window gone commits without
+/// one (GN-2), so from that point the two runs legitimately differ in whether a
+/// round runs, who answers it and which input resolves the request. What must
+/// not differ is everything before it, and the outcome.
+fn stripped_to_recheck(d: &Runner, i: usize, drop_phase1: bool) -> (Vec<Step>, Outcome) {
+    let steps = stripped(d, i, drop_phase1)
+        .into_iter()
+        .take_while(|s| !matches!(s, Step::Recheck { .. }) && !is_terminal(s))
+        .collect();
+    (steps, outcome(d))
+}
+
 #[test]
 fn p2_gone_after_any_answer_equals_the_answer_without_it() {
     let mut pairs = 0usize;
@@ -112,9 +126,10 @@ fn p2_gone_after_any_answer_equals_the_answer_without_it() {
             let drop_phase1 = paired == Kind::GonePhase1;
             let a = run(assign, order, tick_at, row);
             let b = run(&other, order, tick_at, row);
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round.
             assert_eq!(
-                stripped(&a, i, drop_phase1),
-                stripped(&b, i, false),
+                stripped_to_recheck(&a, i, drop_phase1),
+                stripped_to_recheck(&b, i, false),
                 "{row}: w{i} gone after {:?} is not equal to {paired:?}",
                 assign[i]
             );

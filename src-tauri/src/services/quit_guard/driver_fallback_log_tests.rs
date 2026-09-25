@@ -110,7 +110,11 @@ fn wi6_keep_open_accepted_logs_one_success_line() {
     assert_eq!(
         effects_of(&guard)[base..],
         [
-            Effect::EmitAll(QuitEvent::Cancelled { request_id: 6_000 }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Cancelled {
+                request_id: 6_000,
+                round: 0
+            }),
             Effect::Reply(false)
         ]
     );

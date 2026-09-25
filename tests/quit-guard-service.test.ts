@@ -224,3 +224,140 @@ describe("D16F-WI-3 scrub edge cases", () => {
     }
   });
 });
+
+/** ADR-0035 WI-6 (A5): the `drafted` answer, its counts, and the optional `round`. */
+describe("ADR35-WI-6 the drafted reply", () => {
+  it("SV-1 drafted with counts crosses IPC with exactly its keys", async () => {
+    const extras = { draftedCount: 2, failedCount: 1 };
+    await expect(quitGuardService.reply(7, "drafted", undefined, extras)).resolves.toBeUndefined();
+    expect([bus.calls[0].cmd, bus.calls[0].args]).toStrictEqual([
+      "quit_guard_reply",
+      { requestId: 7, answer: "drafted", draftedCount: 2, failedCount: 1 },
+    ]);
+  });
+
+  it("SV-2 property: the payload key set is a pure function of the arguments", async () => {
+    const seed = 0xad35_0006n;
+    let s = seed;
+    const below = (n: number): number => {
+      s = (s + 0x9e3779b97f4a7c15n) & 0xffffffffffffffffn;
+      let z = ((s ^ (s >> 30n)) * 0xbf58476d1ce4e5b9n) & 0xffffffffffffffffn;
+      z = ((z ^ (z >> 27n)) * 0x94d049bb133111ebn) & 0xffffffffffffffffn;
+      return Number((z ^ (z >> 31n)) % BigInt(n));
+    };
+    const answers = ["clean", "dirty", "discard", "cancel", "delivered", "drafted"] as const;
+    const rounds = [undefined, 0, 1, 7, -1, 1.5, Number.NaN];
+    const maybe = <T>(v: T): T | undefined => (below(2) === 0 ? undefined : v);
+
+    for (let i = 0; i < 600; i++) {
+      const answer = answers[below(answers.length)];
+      const ids = [undefined, [], [`doc-${below(1000)}`, `doc-${below(1000)}`]][below(3)];
+      const extras = maybe({
+        ...maybe({ draftedCount: below(102) }),
+        ...maybe({ failedCount: below(102) }),
+        ...maybe({ round: rounds[below(rounds.length)] }),
+      });
+      bus.calls.length = 0;
+
+      await quitGuardService.reply(i, answer, ids, extras);
+
+      const want: Record<string, unknown> = { requestId: i, answer };
+      if (answer === "discard" && ids !== undefined) want.documentIds = ids;
+      const [d, f, r] = [extras?.draftedCount, extras?.failedCount, extras?.round];
+      if (answer === "drafted" && d !== undefined && f !== undefined) {
+        Object.assign(want, { draftedCount: d, failedCount: f });
+      }
+      if (typeof r === "number" && Number.isInteger(r) && r >= 0) want.round = r;
+      const label = `seed ${seed} index ${i}`;
+      const got = bus.calls[0].args;
+      expect(Object.keys(got).sort(), label).toEqual(Object.keys(want).sort());
+      for (const k of Object.keys(want)) expect(got[k], `${label} key ${k}`).toBe(want[k]);
+    }
+  });
+
+  it("SV-3 a rejected drafted reply is logged with counts only and rethrown as Error", async () => {
+    vi.mocked(loggingService.logEventSync).mockClear();
+    bus.shouldReject = true;
+    bus.rejectWith = "boom";
+    const extras = { draftedCount: 2, failedCount: 1, round: 1 };
+
+    const error = await rejection(quitGuardService.reply(7, "drafted", undefined, extras));
+
+    expect(error.message).toContain("boom");
+    const all = vi.mocked(loggingService.logEventSync).mock.calls.map((c) => c[0]);
+    expect(all).toHaveLength(1);
+    expect(all[0]).toMatchObject({ event: "app.quit.reply", status: "fail" });
+    expect(all[0].context).toStrictEqual({
+      requestId: 7,
+      answer: "drafted",
+      documentIdCount: 0,
+      ...extras,
+    });
+  });
+});
+
+describe("ADR-0035 review M-1 the drafted reply names its undiscarded ids", () => {
+  it("SV-4 undiscardedIds cross IPC as documentIds, only with a drafted reply that has its counts", async () => {
+    const undiscardedIds = ["a", "b"];
+    await quitGuardService.reply(9, "drafted", undefined, {
+      draftedCount: 2,
+      failedCount: 0,
+      round: 1,
+      undiscardedIds,
+    });
+    expect(bus.calls[0].args).toStrictEqual({
+      requestId: 9,
+      answer: "drafted",
+      draftedCount: 2,
+      failedCount: 0,
+      round: 1,
+      documentIds: ["a", "b"],
+    });
+  });
+
+  it("SV-5 no documentIds for an empty list, on a count-less drafted, or on any other answer", async () => {
+    await quitGuardService.reply(1, "drafted", undefined, {
+      draftedCount: 0,
+      failedCount: 0,
+      undiscardedIds: [],
+    });
+    await quitGuardService.reply(2, "drafted", undefined, { draftedCount: 1, undiscardedIds: ["a"] });
+    await quitGuardService.reply(3, "clean", undefined, { undiscardedIds: ["a"] });
+    await quitGuardService.reply(4, "discard", ["x"], { undiscardedIds: ["a"] });
+
+    expect(bus.calls.map((c) => c.args)).toStrictEqual([
+      { requestId: 1, answer: "drafted", draftedCount: 0, failedCount: 0 },
+      { requestId: 2, answer: "drafted" },
+      { requestId: 3, answer: "clean" },
+      { requestId: 4, answer: "discard", documentIds: ["x"] },
+    ]);
+  });
+
+  it("SV-6 a rejection quoting an undiscarded id is scrubbed from the log and the rethrow", async () => {
+    vi.mocked(loggingService.logEventSync).mockClear();
+    bus.shouldReject = true;
+    bus.rejectWith = "invalid document id doc-secret-77";
+
+    const error = await rejection(
+      quitGuardService.reply(9, "drafted", undefined, {
+        draftedCount: 1,
+        failedCount: 0,
+        round: 1,
+        undiscardedIds: ["doc-secret-77"],
+      }),
+    );
+
+    expect(error.message).not.toContain("doc-secret-77");
+    const all = vi.mocked(loggingService.logEventSync).mock.calls.map((c) => c[0]);
+    expect(all).toHaveLength(1);
+    expect(JSON.stringify(all)).not.toContain("doc-secret-77");
+    expect(all[0].context).toStrictEqual({
+      requestId: 9,
+      answer: "drafted",
+      documentIdCount: 1,
+      draftedCount: 1,
+      failedCount: 0,
+      round: 1,
+    });
+  });
+});

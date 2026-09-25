@@ -8,6 +8,21 @@
 
 use super::*;
 
+/// ADR-0035 (migration M1): the last answer fed before input `k` in the same
+/// round. An answer from before a `Recheck` is not junk when replayed after
+/// it - the round asks every window again, so the replay is a fresh answer.
+fn previous_in_round(canonical: &Runner, k: usize) -> Option<Input> {
+    let round_start = canonical.trace[..k]
+        .iter()
+        .rposition(|r| matches!(r.step, Step::Recheck { .. }))
+        .map_or(0, |at| at + 1);
+    canonical.inputs[round_start..k]
+        .iter()
+        .rev()
+        .find(|i| matches!(i, Input::Answer { .. }))
+        .cloned()
+}
+
 // --- WI2-P4: an inserted ignored input is inert -----------------------------
 
 #[test]
@@ -38,12 +53,9 @@ fn p4_inserted_junk_inputs_are_inert() {
                     Input::ForeignAnswer(Answer::Clean),
                     Input::ForeignGone,
                 ];
-                if let Some(previous) = inputs[..k]
-                    .iter()
-                    .rev()
-                    .find(|i| matches!(i, Input::Answer { .. }))
-                {
-                    junks.push(previous.clone());
+                // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+                if let Some(previous) = previous_in_round(&canonical, k) {
+                    junks.push(previous);
                 }
                 match (0..2).find(|i| !is_prompted(assign[*i])) {
                     Some(idx) => junks.push(Input::Answer {

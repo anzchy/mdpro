@@ -41,17 +41,51 @@ fn w1_destroyed_for_a_queued_window_advances_the_quit_without_prompting_it() {
     guard
         .handle_reply("A", r, QuitAnswer::Discard, Some(vec![]), 3)
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["A"], 4);
 
     assert_eq!(
         effects_of(&guard),
         vec![
-            Effect::EmitAll(QuitEvent::Requested { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Requested {
+                request_id: r,
+                round: 0
+            }),
             Effect::ArmTimer(r, QUIT_ACK_TIMEOUT_MS),
             Effect::Activate("A".to_string()),
-            Effect::EmitTo("A".to_string(), QuitEvent::Prompt { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitTo(
+                "A".to_string(),
+                QuitEvent::Prompt {
+                    request_id: r,
+                    round: 0
+                }
+            ),
             // A's prompt was issued at now=2, so its delivery deadline is 2_002
             // (ADR-0029 §1) — measured from the prompt, not from the request.
             Effect::ArmTimer(r, 2 + QUIT_PROMPT_DELIVERY_TIMEOUT_MS),
+            // ADR-0035 changes the spec: commit is now preceded by a re-check
+            // round. The round is a broadcast, so B, gone, is still neither
+            // activated nor prompted.
+            // ADR-0035 changes the spec: the event payload carries `round` (A5);
+            // the re-check is round 1.
+            Effect::EmitAll(QuitEvent::Requested {
+                request_id: r,
+                round: 1
+            }),
+            Effect::ArmTimer(r, 3 + QUIT_ACK_TIMEOUT_MS),
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+            // The re-check answer at 4 opened the backstop, armed from 4.
+            // ADR-0035 changes the spec: WI-4 broadcasts the backstop before arming it.
+            Effect::EmitAll(QuitEvent::Backstop {
+                request_id: r,
+                round: 1
+            }),
+            Effect::ArmTimer(
+                r,
+                4 + crate::services::quit_guard::coordinator::QUIT_BACKSTOP_TIMEOUT_MS
+            ),
             Effect::Reply(true),
         ],
         "B must never be activated and never be prompted"
@@ -99,6 +133,8 @@ fn w2_only_destroyed_reaches_the_coordinator() {
     guard
         .handle_reply("A", r, QuitAnswer::Clean, None, 5)
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["A"], 6);
     assert_eq!(
         effects_of(&guard)
             .iter()

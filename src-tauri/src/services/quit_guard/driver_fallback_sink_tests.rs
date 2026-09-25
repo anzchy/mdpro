@@ -91,7 +91,11 @@ fn adv1_4_some_delegates_with_the_same_outcome_as_fallback_answer() {
 
     let tail = |id: u64| {
         vec![
-            Effect::EmitAll(QuitEvent::Cancelled { request_id: id }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Cancelled {
+                request_id: id,
+                round: 0,
+            }),
             Effect::Reply(false),
         ]
     };

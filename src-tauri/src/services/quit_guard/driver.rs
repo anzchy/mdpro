@@ -34,28 +34,36 @@
 //!   Logging it on arrival reported every refusal as `status:"success"`, so a
 //!   cancel that did nothing was indistinguishable from one that worked. The
 //!   alert's answer is logged the same way, as `app.quit.fallback`.
-//! - The draft-deletion loop lives in `driver_commit.rs`; a deletion that fails
-//!   makes the `app.quit.commit` line `fail`.
+//! - The two resolutions — the commit (gate, deletion loop, report, reply) and
+//!   the abort — live in `driver_commit.rs`; the ADR-0035 re-check and backstop
+//!   rounds, and the backstop's `Drafted` answer, in `driver_rounds.rs`; every
+//!   window answer — validation, round tag, ruling, log — in `driver_wire.rs`.
+//!   Every event carries the round `plan` read under the lock (ADR-0035 A5).
 //!
 //! @coordinates-with docs/adr/0029-quit-deadlines-bound-machine-progress-not-people.md
 //! @coordinates-with docs/adr/0025-app-quit-is-deferred-through-a-native-terminate-hook.md
 //! @coordinates-with docs/adr/0027-a-quit-ack-timeout-draws-a-native-alert.md
 
-use std::sync::Mutex;
-
 use super::logging;
 use super::plan::{translate, Plan};
 use super::DraftGate;
-
+use std::sync::Mutex;
 #[path = "driver_commit.rs"]
 mod commit;
+#[path = "driver_rounds.rs"]
+mod rounds;
+#[path = "driver_wire.rs"]
+mod wire;
 
 pub use super::coordinator::{
     AbortReason, Answer, Begin, FallbackAnswer, IgnoredWhy, QuitCoordinator, Step,
     QUIT_ACK_TIMEOUT_MS, QUIT_PROMPT_DELIVERY_TIMEOUT_MS,
 };
 pub use super::events::{deliver_fallback, CommitReport, FallbackSink, QuitEffects, QuitEvent};
-pub use super::reply::{validate_discard_ids, QuitAnswer, MAX_DISCARD_IDS};
+pub use super::reply::{
+    validate_backstop_counts, validate_discard_ids, validate_undiscard_ids, QuitAnswer,
+    MAX_BACKSTOP_COUNT, MAX_DISCARD_IDS,
+};
 
 struct Inner {
     coordinator: QuitCoordinator,
@@ -118,55 +126,17 @@ impl<E: QuitEffects> QuitGuard<E> {
         if let Begin::Later { request_id } = &outcome {
             let request_id = *request_id;
             logging::log_request(request_id, window_labels.len());
-            if !self.effects.emit_all(QuitEvent::Requested { request_id }) {
+            // Phase 1 is round 0; each re-check is the next round (ADR-0035 A5).
+            if !self.effects.emit_all(QuitEvent::Requested {
+                request_id,
+                round: 0,
+            }) {
                 logging::log_effect_failed(request_id, "emitRequested");
             }
             self.effects
                 .arm_timer(request_id, now_ms.saturating_add(QUIT_ACK_TIMEOUT_MS));
         }
         outcome
-    }
-
-    /// One window's answer. `label` is the caller's own label, never a value
-    /// from the payload: a window may not answer for another window.
-    pub fn handle_reply(
-        &self,
-        label: &str,
-        request_id: u64,
-        answer: QuitAnswer,
-        document_ids: Option<Vec<String>>,
-        now_ms: u64,
-    ) -> Result<(), String> {
-        // Counted before validation so a refusal still logs how many ids came.
-        let sent = document_ids.as_deref().unwrap_or_default();
-        let refused_context = logging::answer_log_context(label, answer, request_id, sent);
-        let ids = match validate_discard_ids(answer, document_ids) {
-            Ok(ids) => ids,
-            Err(err) => {
-                // `err` names an index or a limit, never an id (see `reply`).
-                logging::log_answer(refused_context, Some(err.clone()));
-                return Err(err);
-            }
-        };
-        let context = logging::answer_log_context(label, answer, request_id, &ids);
-        let wire_answer = answer;
-        let answer = match answer {
-            QuitAnswer::Clean => Answer::Clean,
-            QuitAnswer::Dirty => Answer::Dirty,
-            QuitAnswer::Discard => Answer::Discard(ids),
-            QuitAnswer::Cancel => Answer::Cancel,
-            QuitAnswer::Delivered => Answer::Delivered,
-        };
-        let (plan, refusal) = self.plan(|c| c.on_answer(request_id, label, answer, now_ms));
-        // Logged AFTER the coordinator has ruled, with what it ruled. Logging
-        // the answer on arrival reported every refusal as a success, so a cancel
-        // that did nothing was indistinguishable from one that worked.
-        logging::log_answer(
-            context,
-            refusal.map(|why| format!("{wire_answer:?} refused: {}", why.as_str())),
-        );
-        self.run(plan);
-        Ok(())
     }
 
     /// The ack deadline has been reached.
@@ -195,8 +165,12 @@ impl<E: QuitEffects> QuitGuard<E> {
     /// effect it reaches — is called with nothing held.
     fn plan(&self, input: impl FnOnce(&mut QuitCoordinator) -> Step) -> (Plan, Option<IgnoredWhy>) {
         let mut inner = self.lock();
+        let before = inner.coordinator.round();
         let step = input(&mut inner.coordinator);
-        let (plan, refusal) = translate(step, inner.current.unwrap_or_default());
+        // The round after the input (a re-check has just started it); the one
+        // before when the input ended the request.
+        let round = inner.coordinator.round().or(before).unwrap_or_default();
+        let (plan, refusal) = translate(step, inner.current.unwrap_or_default(), round);
         if plan.resolves_request() {
             inner.current = None;
         }
@@ -210,6 +184,7 @@ impl<E: QuitEffects> QuitGuard<E> {
                 request_id,
                 label,
                 deadline_ms,
+                round,
             } => {
                 logging::log_prompt(request_id, &label);
                 // Front first, then ask: a dialog in a window the user cannot
@@ -220,7 +195,7 @@ impl<E: QuitEffects> QuitGuard<E> {
                 }
                 if self
                     .effects
-                    .emit_to(&label, QuitEvent::Prompt { request_id })
+                    .emit_to(&label, QuitEvent::Prompt { request_id, round })
                 {
                     // Only a prompt that was actually handed over is worth
                     // waiting for. The deadline is the coordinator's: it is the
@@ -240,6 +215,7 @@ impl<E: QuitEffects> QuitGuard<E> {
                 request_id,
                 deadline_ms,
             } => self.effects.arm_timer(request_id, deadline_ms),
+            plan @ (Plan::Recheck { .. } | Plan::Backstop { .. }) => self.run_round(plan),
             Plan::Fallback {
                 request_id,
                 timed_out,
@@ -247,38 +223,16 @@ impl<E: QuitEffects> QuitGuard<E> {
                 logging::log_timeout(request_id, timed_out.len(), QUIT_ACK_TIMEOUT_MS);
                 self.fallback(request_id, timed_out);
             }
-            Plan::Abort { request_id, reason } => {
-                logging::log_cancel(request_id, &reason);
-                // Close every open dialog before refusing, so no window is left
-                // showing a prompt for a request that no longer exists.
-                if !self.effects.emit_all(QuitEvent::Cancelled { request_id }) {
-                    logging::log_effect_failed(request_id, "emitCancelled");
-                }
-                if !self.effects.reply(false) {
-                    logging::log_effect_failed(request_id, "reply");
-                }
-            }
+            Plan::Abort {
+                request_id,
+                reason,
+                round,
+            } => self.abort(request_id, &reason, round),
             Plan::Commit {
                 request_id,
                 discard_document_ids,
-            } => {
-                // One critical section for the close AND the deletes. A save
-                // that is mid-write holds this off until it finishes, and no
-                // save can start once it is taken — so nothing can write a
-                // discarded draft back behind the loop (ADR-0025 §4).
-                let report = {
-                    let _closed = self.committed.close();
-                    commit::delete_discarded(&self.effects, &discard_document_ids)
-                };
-                // The gate guard is released above, before the coordinator
-                // mutex is taken and before the reply is posted: see the lock
-                // ordering in this module's header.
-                self.lock().last_commit_report = Some(report);
-                logging::log_commit(request_id, &report);
-                if !self.effects.reply(true) {
-                    logging::log_effect_failed(request_id, "reply");
-                }
-            }
+                backstop,
+            } => self.commit(request_id, &discard_document_ids, backstop),
         }
     }
 

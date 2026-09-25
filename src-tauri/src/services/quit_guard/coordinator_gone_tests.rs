@@ -4,9 +4,8 @@
 //! prompted, queued behind another prompt, after answering clean, after
 //! answering dirty while phase 1 is still open, and after its discard.
 
-use super::coordinator_tests::{
-    begin_later, commit, commit_ids_sorted, discard, ignored, norm, prompt,
-};
+use super::coordinator_recheck_tests::fixtures::{commit_after_backstop, through_recheck};
+use super::coordinator_tests::{begin_later, commit_ids_sorted, discard, ignored, norm, prompt};
 use super::*;
 
 // --- WI2-C12: gone in phase 1, gone while prompted, and the two no-ops -------
@@ -16,7 +15,11 @@ fn c12_gone_in_phase_one_counts_as_answered() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b"], 0);
     assert_eq!(c.on_answer(r, "a", Answer::Clean, 1), Step::Wait);
-    assert_eq!(c.on_window_gone("b", 2), commit(&[]));
+    let step = c.on_window_gone("b", 2);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 3);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&[]));
 }
 
 #[test]
@@ -26,7 +29,11 @@ fn c12_gone_while_prompted_moves_the_prompt_on_without_its_ids() {
     assert_eq!(c.on_answer(r, "a", Answer::Dirty, 1), Step::Wait);
     assert_eq!(norm(c.on_answer(r, "b", Answer::Dirty, 2)), prompt("a"));
     assert_eq!(norm(c.on_window_gone("a", 3)), prompt("b"));
-    assert_eq!(c.on_answer(r, "b", discard(&["b1"]), 3), commit(&["b1"]));
+    let step = c.on_answer(r, "b", discard(&["b1"]), 3);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 4);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&["b1"]));
 }
 
 #[test]
@@ -51,7 +58,7 @@ fn c12_gone_for_an_unknown_label_or_with_no_request_is_ignored() {
 fn c15_a_queued_dirty_window_that_disappears_is_dropped_from_the_queue() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b", "c"], 0);
-    let trace = vec![
+    let mut trace = vec![
         norm(c.on_answer(r, "a", Answer::Dirty, 1)),
         norm(c.on_answer(r, "b", Answer::Dirty, 2)),
         norm(c.on_answer(r, "c", Answer::Dirty, 3)),
@@ -59,6 +66,9 @@ fn c15_a_queued_dirty_window_that_disappears_is_dropped_from_the_queue() {
         norm(c.on_answer(r, "a", discard(&["a1"]), 4)),
         norm(c.on_answer(r, "c", discard(&["c1"]), 5)),
     ];
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let last = trace.pop().expect("the trace has a last step");
+    trace.push(through_recheck(&mut c, r, last, 10));
     assert_eq!(
         trace,
         vec![
@@ -67,7 +77,8 @@ fn c15_a_queued_dirty_window_that_disappears_is_dropped_from_the_queue() {
             prompt("a"),
             Step::Wait,
             prompt("c"),
-            commit(&["a1", "c1"]),
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+            commit_after_backstop(&["a1", "c1"]),
         ]
     );
     assert!(
@@ -90,7 +101,11 @@ fn c16_a_clean_window_that_disappears_is_not_counted_twice() {
         Step::Wait,
         "c has not answered, so two answers must not commit"
     );
-    assert_eq!(c.on_answer(r, "c", Answer::Clean, 3), commit(&[]));
+    let step = c.on_answer(r, "c", Answer::Clean, 3);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 4);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&[]));
 }
 
 #[test]
@@ -114,13 +129,16 @@ fn c16_the_window_that_never_answered_is_still_awaited_at_the_deadline() {
 fn c17_a_window_gone_after_a_phase_one_dirty_is_never_prompted() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b", "c"], 0);
-    let trace = vec![
+    let mut trace = vec![
         norm(c.on_answer(r, "a", Answer::Dirty, 1)),
         norm(c.on_answer(r, "b", Answer::Dirty, 2)),
         norm(c.on_window_gone("a", 3)),
         norm(c.on_answer(r, "c", Answer::Clean, 3)),
         norm(c.on_answer(r, "b", discard(&["b1"]), 4)),
     ];
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let last = trace.pop().expect("the trace has a last step");
+    trace.push(through_recheck(&mut c, r, last, 10));
     assert_eq!(
         trace,
         vec![
@@ -128,7 +146,8 @@ fn c17_a_window_gone_after_a_phase_one_dirty_is_never_prompted() {
             Step::Wait,
             Step::Wait,
             prompt("b"),
-            commit(&["b1"]),
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+            commit_after_backstop(&["b1"]),
         ]
     );
     assert!(
@@ -143,13 +162,16 @@ fn c17_a_window_gone_after_a_phase_one_dirty_is_never_prompted() {
 fn c18_a_window_that_disappears_after_its_discard_keeps_its_ids() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a", "b"], 0);
-    let trace = vec![
+    let mut trace = vec![
         norm(c.on_answer(r, "a", Answer::Dirty, 1)),
         norm(c.on_answer(r, "b", Answer::Dirty, 2)),
         norm(c.on_answer(r, "a", discard(&["a1"]), 3)),
         norm(c.on_window_gone("a", 4)),
         norm(c.on_answer(r, "b", discard(&["b1"]), 4)),
     ];
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let last = trace.pop().expect("the trace has a last step");
+    trace.push(through_recheck(&mut c, r, last, 10));
     assert_eq!(
         trace,
         vec![
@@ -157,7 +179,8 @@ fn c18_a_window_that_disappears_after_its_discard_keeps_its_ids() {
             prompt("a"),
             prompt("b"),
             Step::Wait,
-            commit(&["a1", "b1"]),
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+            commit_after_backstop(&["a1", "b1"]),
         ]
     );
     assert_eq!(

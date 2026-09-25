@@ -132,9 +132,10 @@ Rust emits events that frontend listens to via `listen()`:
 | `mcp:insert_content` | `{ document_id, text, position, window_label }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:create_document` | `{ document_id, content, window_label }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:table_action` | `{ document_id, action, payload, window_label }` | MCP table tools (http\_server.rs) → `useMcpEvents.ts` |
-| `app:quit-requested` | `{ requestId }` | Quit phase 1 — asks every window if it is dirty (quit\_guard/events.rs) → `useQuitGuard.ts` |
-| `app:quit-prompt` | `{ requestId }` | Quit phase 2 — prompts one dirty window at a time (quit\_guard/events.rs) → `useQuitGuard.ts` |
-| `app:quit-cancelled` | `{ requestId }` | Quit aborted; windows dismiss their prompt (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-requested` | `{ requestId, round }` | Quit phase 1 — asks every window if it is dirty (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-prompt` | `{ requestId, round }` | Quit phase 2 — prompts one dirty window at a time (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-cancelled` | `{ requestId, round }` | Quit aborted; windows dismiss their prompt (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-backstop` | `{ requestId, round }` | Quit commit — every window drafts every unsaved document, then replies `drafted` with counts (ADR-0035; quit\_guard/events.rs) → `useQuitGuard.ts` |
 
 ## Menu System
 

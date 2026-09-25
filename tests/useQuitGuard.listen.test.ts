@@ -9,8 +9,9 @@
  * - Round trip: after unmount, zero quit listeners remain and no reply is sent,
  *   whatever rejected and whenever it settled.
  * - Under Tauri, a registration failure is logged exactly once per mount as
- *   `app.quit.listen` fail with `subscribedCount + failedCount == 3`, counts
- *   only — even when it settles after unmount.
+ *   `app.quit.listen` fail with `subscribedCount + failedCount == 4`, counts
+ *   only — even when it settles after unmount. (ADR-0035 WI-8 added the fourth
+ *   subscription, `app:quit-backstop`.)
  * - Outside Tauri, nothing is logged.
  *
  * Mocked: `@tauri-apps/api/{webviewWindow,core}` and `loggingService` only.
@@ -85,6 +86,8 @@ const REQUESTED = "app:quit-requested";
 const PROMPT = "app:quit-prompt";
 const CANCELLED = "app:quit-cancelled";
 const ALL = [REQUESTED, PROMPT, CANCELLED];
+const BACKSTOP = "app:quit-backstop";
+const ALL_FOUR = [REQUESTED, PROMPT, CANCELLED, BACKSTOP];
 
 const quitReplies = () =>
   core.replies.filter((r) => r.cmd === "quit_guard_reply" && r.args.answer !== "delivered");
@@ -159,13 +162,16 @@ describe("useQuitGuard — listener registration failure (WI-10)", () => {
     const logs = listenLogs();
     expect(logs).toHaveLength(1);
     expect(logs[0]).toMatchObject({ event: "app.quit.listen", status: "fail", level: "error" });
-    expect(logs[0].context).toEqual({ subscribedCount: 2, failedCount: 1 });
+    // ADR-0035 changes the spec: a fourth subscription (app:quit-backstop) is counted.
+    expect(logs[0].context).toEqual({ subscribedCount: 3, failedCount: 1 });
     expect(JSON.stringify(logs[0])).not.toContain(LEAK_MARKER);
   });
 
-  it("all three rejected under Tauri: no prompt, no unhandled rejection, logs {0, 3}", async () => {
+  it("all four rejected under Tauri: no prompt, no unhandled rejection, logs {0, 4}", async () => {
     setTauri(true);
     for (const name of ALL) bus.rejectListen.add(name);
+    // ADR-0035 changes the spec: "all rejected" now includes the fourth subscription.
+    bus.rejectListen.add(BACKSTOP);
     const { result } = renderHook(() => useQuitGuard());
     await settle();
     await drainMacrotask();
@@ -174,7 +180,8 @@ describe("useQuitGuard — listener registration failure (WI-10)", () => {
     expect(unhandled).toEqual([]);
     const logs = listenLogs();
     expect(logs).toHaveLength(1);
-    expect(logs[0].context).toEqual({ subscribedCount: 0, failedCount: 3 });
+    // ADR-0035 changes the spec: four subscriptions, all rejected.
+    expect(logs[0].context).toEqual({ subscribedCount: 0, failedCount: 4 });
     expect(JSON.stringify(logs[0])).not.toContain(LEAK_MARKER);
   });
 
@@ -247,6 +254,57 @@ describe("useQuitGuard — listener registration failure (WI-10)", () => {
     const logs = listenLogs();
     expect(logs).toHaveLength(1);
     expect(logs[0]).toMatchObject({ event: "app.quit.listen", status: "fail", level: "error" });
-    expect(logs[0].context).toEqual({ subscribedCount: 2, failedCount: 1 });
+    // ADR-0035 changes the spec: a fourth subscription (app:quit-backstop) is counted.
+    expect(logs[0].context).toEqual({ subscribedCount: 3, failedCount: 1 });
+  });
+});
+
+describe("useQuitGuard — four subscriptions (ADR-0035 WI-8)", () => {
+  it("LS-1: every subset of rejected listens is counted, and the counts sum to 4", async () => {
+    let checked = 0;
+    for (let mask = 1; mask < 1 << ALL_FOUR.length; mask += 1) {
+      bus.listeners.clear();
+      bus.rejectListen.clear();
+      vi.mocked(loggingService.logEventSync).mockClear();
+      setTauri(true);
+      const subset = ALL_FOUR.filter((_, bit) => (mask & (1 << bit)) !== 0);
+      for (const name of subset) bus.rejectListen.add(name);
+
+      const { unmount } = renderHook(() => useQuitGuard());
+      await settle();
+
+      const logs = listenLogs();
+      expect(logs, `subset ${subset.join(",")}`).toHaveLength(1);
+      const { subscribedCount, failedCount } = logs[0].context as Record<string, number>;
+      expect(subscribedCount + failedCount).toBe(4);
+      expect(failedCount, `subset ${subset.join(",")}`).toBe(subset.length);
+      for (const name of ALL_FOUR) {
+        expect(listenerCount(name)).toBe(subset.includes(name) ? 0 : 1);
+      }
+      unmount();
+      checked += 1;
+    }
+    // The empty subset logs nothing: no failure, no line.
+    bus.rejectListen.clear();
+    vi.mocked(loggingService.logEventSync).mockClear();
+    const clean = renderHook(() => useQuitGuard());
+    await settle();
+    expect(listenLogs()).toEqual([]);
+    clean.unmount();
+    expect(checked).toBe(15);
+  });
+
+  it("LS-2: an unmount before the four listeners resolve leaves zero on the bus", async () => {
+    setTauri(true);
+    bus.deferred.value = true;
+    const { unmount } = renderHook(() => useQuitGuard());
+    await settle();
+    expect(bus.pending).toHaveLength(4);
+    unmount();
+
+    for (const settleOne of bus.pending.splice(0)) settleOne();
+    await settle();
+
+    for (const name of ALL_FOUR) expect(listenerCount(name)).toBe(0);
   });
 });

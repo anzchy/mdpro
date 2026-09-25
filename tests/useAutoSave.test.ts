@@ -59,16 +59,17 @@ describe("useAutoSave — source contract", () => {
 });
 
 describe("useAutoSave — extractTitle helper", () => {
-  // Import the module to test extractTitle indirectly
-  // extractTitle is not exported, so we test its behavior through
-  // the save_draft call in an integration-style test
+  // ADR-0035 changes the spec: extractTitle moved to src/utils/draftTitle.ts so
+  // the quit backstop (quitDraftBackstop.ts) titles its drafts the same way.
+  // Its behaviour — H1 extraction and the "Untitled" fallback — is now tested
+  // directly in tests/draftTitle.test.ts (DT-1, DT-2). What remains here is that
+  // the hook uses that one helper rather than a private copy that could drift.
 
-  it("source extracts H1 heading as title", () => {
-    // Verify the regex pattern for heading extraction exists
-    expect(src).toContain("^#\\s+(.+)$");
+  it("imports extractTitle from the shared draftTitle util", () => {
+    expect(src).toMatch(/import\s*\{\s*extractTitle\s*\}\s*from\s*["']\.\.\/utils\/draftTitle["']/);
   });
 
-  it("source falls back to 'Untitled' when no heading found", () => {
-    expect(src).toMatch(/["']Untitled["']/);
+  it("keeps no private copy of the title regex", () => {
+    expect(src).not.toContain("^#\\s+(.+)$");
   });
 });

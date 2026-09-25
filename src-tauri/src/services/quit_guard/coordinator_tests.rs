@@ -6,7 +6,10 @@
 //! The `on_window_gone` cases (C12, C15-C18) are in `coordinator_gone_tests.rs`
 //! and the ADR-0027 timeout-fallback cases in `coordinator_fallback_tests.rs`.
 
-use super::*;
+use super::{
+    coordinator_recheck_tests::fixtures::{commit_after_backstop, through_recheck},
+    *,
+};
 
 pub(super) const EMPTY: &[&str] = &[];
 
@@ -48,6 +51,7 @@ pub(super) fn norm(step: Step) -> Step {
 pub(super) fn commit(ids: &[&str]) -> Step {
     Step::Commit {
         discard_document_ids: ids.iter().map(|s| (*s).to_string()).collect(),
+        backstop: None,
     }
 }
 
@@ -68,6 +72,7 @@ pub(super) fn commit_ids_sorted(step: &Step) -> Vec<String> {
     match step {
         Step::Commit {
             discard_document_ids,
+            ..
         } => {
             let mut ids = discard_document_ids.clone();
             ids.sort();
@@ -102,7 +107,11 @@ fn c1_zero_windows_terminates_now_without_consuming_a_request_id() {
 fn c2_one_clean_window_commits_with_no_ids() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a"], 0);
-    assert_eq!(c.on_answer(r, "a", Answer::Clean, 5), commit(&[]));
+    let step = c.on_answer(r, "a", Answer::Clean, 5);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 6);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&[]));
 }
 
 // --- WI2-C3: dirty -> discard -------------------------------------------------
@@ -113,6 +122,8 @@ fn c3_dirty_then_discard_prompts_then_commits_that_windows_ids() {
     let r = begin_later(&mut c, &["a"], 0);
     assert_eq!(norm(c.on_answer(r, "a", Answer::Dirty, 1)), prompt("a"));
     let step = c.on_answer(r, "a", discard(&["d1", "d2"]), 2);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 3);
     assert_eq!(commit_ids_sorted(&step), vec!["d1", "d2"]);
 }
 
@@ -283,7 +294,10 @@ fn c7_a_stale_request_id_from_the_previous_request_is_ignored() {
         ignored(IgnoredWhy::StaleRequest)
     );
     let step = c.on_answer(r2, "a", Answer::Clean, 102);
-    assert_eq!(step, commit(&[]));
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r2, step, 103);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    assert_eq!(step, commit_after_backstop(&[]));
     assert!(
         !commit_ids_sorted(&step).contains(&"old".to_string()),
         "the stale request's ids must not reach the commit"

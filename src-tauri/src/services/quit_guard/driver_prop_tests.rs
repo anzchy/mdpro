@@ -8,15 +8,15 @@
 //! The oracle is deliberately its own copy rather than a re-use of
 //! `coordinator_domain_tests`: that module is private to `coordinator`, and the
 //! laws asserted here are about the *driver's* effects, not the state machine.
+//!
+//! The enumerating `#[test]` lives in `driver_prop_domain_tests.rs`.
 
 use super::driver::*;
 use super::driver_fixtures::{
-    bundle, drafts_dir, effects_of, later, leak_gate, make_temp_home, recording_guard, set_home,
-    Effect, QuitCommittedReset,
+    bundle, drafts_dir, effects_of, later, leak_gate, recording_guard, Effect,
 };
 use super::on_window_event;
 use crate::services::draft;
-use crate::HOME_LOCK;
 use std::collections::BTreeSet;
 use std::path::Path;
 
@@ -57,6 +57,12 @@ fn draft_ids(index: usize) -> [String; 2] {
     [format!("w{index}-a"), format!("w{index}-b")]
 }
 
+/// The last effects are a re-check round: the request re-broadcast, then armed.
+fn recheck_open(effects: &[Effect]) -> bool {
+    use {Effect::*, QuitEvent::Requested};
+    matches!(effects, [_, .., EmitAll(Requested { .. }), ArmTimer(..)])
+}
+
 /// Drives one scenario and checks every law against the effects and the disk.
 fn check(kinds: &[Kind], reversed: bool, home: &Path) {
     let scenario = format!("{kinds:?} reversed={reversed}");
@@ -79,7 +85,10 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
     let mut expected_gone: BTreeSet<String> = BTreeSet::new();
     let mut aborted = false;
     let mut answered: BTreeSet<String> = BTreeSet::new();
-
+    let mut gone: BTreeSet<String> = BTreeSet::new();
+    let mut rechecked = false;
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+    let mut backstopped = false;
     let mut order: Vec<usize> = (0..kinds.len()).collect();
     if reversed {
         order.reverse();
@@ -101,6 +110,7 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
     for &i in &order {
         if kinds[i] == Kind::GoneAfterDirtyPhase1 {
             answered.insert(labels[i].clone());
+            gone.insert(labels[i].clone());
             on_window_event(&guard, &labels[i], &tauri::WindowEvent::Destroyed);
         }
     }
@@ -130,6 +140,25 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
                 }
                 _ => None,
             });
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+            if next.is_none() && !rechecked && recheck_open(&effects) {
+                rechecked = true;
+                for l in labels.iter().filter(|l| !gone.contains(*l)) {
+                    guard
+                        .handle_reply(l, r, QuitAnswer::Clean, None, 3)
+                        .unwrap();
+                }
+                continue;
+            }
+            // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+            // Until WI-4 broadcasts the backstop, its armed deadline is ticked.
+            if next.is_none() && rechecked && !backstopped {
+                if let Some(Effect::ArmTimer(_, deadline_ms)) = effects.last() {
+                    backstopped = true;
+                    guard.tick(*deadline_ms);
+                    continue;
+                }
+            }
             let label = next.unwrap_or_else(|| panic!("{scenario}: stalled at {effects:?}"));
             answered.insert(label.clone());
             let i = labels.iter().position(|l| *l == label).unwrap();
@@ -141,6 +170,7 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
                         .unwrap();
                     expected_gone.extend(ids);
                     if kinds[i] == Kind::GoneAfterDiscard {
+                        gone.insert(label.clone());
                         on_window_event(&guard, &label, &tauri::WindowEvent::Destroyed);
                     }
                 }
@@ -163,7 +193,11 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
     // Law 1: the request opens by asking everyone, then arming the ack timer.
     assert_eq!(
         effects[0],
-        Effect::EmitAll(QuitEvent::Requested { request_id: r }),
+        // ADR-0035 changes the spec: the event payload carries `round` (A5).
+        Effect::EmitAll(QuitEvent::Requested {
+            request_id: r,
+            round: 0
+        }),
         "{scenario}"
     );
     assert_eq!(
@@ -191,7 +225,11 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
     if aborted {
         assert_eq!(
             effects[effects.len() - 2],
-            Effect::EmitAll(QuitEvent::Cancelled { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Cancelled {
+                request_id: r,
+                round: 0
+            }),
             "{scenario}: the abort did not close the dialogs first"
         );
     }
@@ -252,30 +290,5 @@ fn check(kinds: &[Kind], reversed: bool, home: &Path) {
     }
 }
 
-#[test]
-fn d8_driver_effect_ordering_holds_across_the_coordinator_domain() {
-    let _lock = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let home = make_temp_home("qg_d8");
-    let _home = set_home(&home);
-    let _reset = QuitCommittedReset;
-
-    let mut scenarios: Vec<Vec<Kind>> = Vec::new();
-    for a in KINDS {
-        scenarios.push(vec![a]);
-        for b in KINDS {
-            scenarios.push(vec![a, b]);
-        }
-    }
-
-    // The two rows the test matrix names by hand; enumeration covers them, and
-    // this makes it impossible to drop them by shrinking the space later.
-    assert!(scenarios.contains(&vec![Kind::GoneAfterDiscard, Kind::Discard]));
-    assert!(scenarios.contains(&vec![Kind::GoneAfterDirtyPhase1, Kind::Discard]));
-    assert_eq!(scenarios.len(), 56);
-
-    for kinds in &scenarios {
-        for reversed in [false, true] {
-            check(kinds, reversed, &home);
-        }
-    }
-}
+#[path = "driver_prop_domain_tests.rs"]
+mod driver_prop_domain_tests;

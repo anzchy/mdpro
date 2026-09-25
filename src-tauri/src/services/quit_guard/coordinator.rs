@@ -16,7 +16,14 @@
 //! - **`QuitAnyway` commits an empty id set.** Drafts are the last copy of the
 //!   discarded work, so a request no window ever answered deletes none.
 //! - **A gone window counts as `clean`** in every position, and never a second
-//!   time. Ids a window has already discarded stand after it disappears.
+//!   time. Ids a window has already discarded stand after it disappears, and it
+//!   is `Status::Gone` so no re-check round ever asks it again.
+//! - **Every commit is preceded by a re-check round** (ADR-0035): the live
+//!   windows are asked the phase-1 question again, and a window dirty again is
+//!   prompted at most once more. The round logic lives in `rounds.rs`.
+//! - **Then by a draft backstop** (ADR-0035 §4, `backstop.rs`), whose deadline
+//!   commits with the tally rather than raising the alert (plan A2, A4). The
+//!   alert's delivery-failure inputs live in the child `fallback.rs`.
 //! - **An ignored input leaves the state untouched**, so a late or duplicate
 //!   reply from a recovering webview can never advance the machine.
 //! - **Deadlines bound machines, never people** (ADR-0029). Phase 1's ack and
@@ -38,9 +45,14 @@ pub const QUIT_ACK_TIMEOUT_MS: u64 = 2_000;
 /// bounds the webview's drawing of the dialog, never the user's reading of it.
 pub const QUIT_PROMPT_DELIVERY_TIMEOUT_MS: u64 = 2_000;
 
+/// The draft backstop (ADR-0035 §4) is a machine step: this long after it was
+/// issued, the request commits with whatever was drafted (§5, plan A2).
+pub const QUIT_BACKSTOP_TIMEOUT_MS: u64 = 2_000;
+
 pub use super::types::*;
 
 use super::request::{Request, Status};
+use super::rounds::Ruling;
 
 /// An input the coordinator declines to act on; the state is left untouched.
 fn refuse(why: IgnoredWhy) -> Step {
@@ -77,8 +89,29 @@ impl QuitCoordinator {
         }
     }
 
-    /// One window's answer, in whichever phase it is in.
+    /// The live request's round (ADR-0035 A5): 0 for phase 1, +1 per re-check.
+    /// `None` when no request is live.
+    pub fn round(&self) -> Option<u32> {
+        self.request.as_ref().map(|r| r.round)
+    }
+
+    /// One window's answer, in whichever phase it is in. Legacy entry: the
+    /// same as `on_answer_in` with no round tag.
     pub fn on_answer(&mut self, request_id: u64, label: &str, answer: Answer, now_ms: u64) -> Step {
+        self.on_answer_in(request_id, None, label, answer, now_ms)
+    }
+
+    /// One window's answer, tagged with the round it answers (ADR-0035 A5). A
+    /// tag from any other round is a reordered reply and changes nothing; no
+    /// tag means "the current round", which keeps untagged callers working.
+    pub fn on_answer_in(
+        &mut self,
+        request_id: u64,
+        round: Option<u32>,
+        label: &str,
+        answer: Answer,
+        now_ms: u64,
+    ) -> Step {
         let Some(request) = self.request.as_mut() else {
             return refuse(IgnoredWhy::StaleRequest);
         };
@@ -88,54 +121,25 @@ impl QuitCoordinator {
         if request.fallback {
             return refuse(IgnoredWhy::FallbackOwns);
         }
+        // After the id and the fallback, so the log names the reason that
+        // matters most for triage.
+        if round.is_some_and(|k| k != request.round) {
+            return refuse(IgnoredWhy::StaleRound);
+        }
         let Some(at) = request.position_of(label) else {
             return refuse(IgnoredWhy::UnknownLabel);
         };
-        match (request.windows[at].status, &answer) {
-            // Phase 1: the ack.
-            (Status::Pending, Answer::Clean) => request.windows[at].status = Status::Settled,
-            (Status::Pending, Answer::Dirty) => request.windows[at].status = Status::Queued,
-            // The delivery ack: the dialog is on screen, so what is outstanding
-            // stops being a machine step and becomes a person's decision. Valid
-            // from `Prompted` only — see the `Deciding` arm below for why the
-            // repeat is a duplicate rather than a phase error.
-            (Status::Prompted, Answer::Delivered) => {
-                request.windows[at].status = Status::Deciding;
-                request.deadline_ms = None;
-                return Step::Wait;
-            }
-            // A second ack for the same dialog. It is a retransmission of a true
-            // statement, not a protocol fault: a webview that re-renders its
-            // dialog would otherwise log an error for behaving correctly.
-            (Status::Deciding, Answer::Delivered) => return refuse(IgnoredWhy::Duplicate),
-            // Phase 2: the prompted window decides. `clean` means the user saved
-            // in the meantime, so it is a discard with no ids. A decision that
-            // arrives without the ack is its own delivery confirmation — a user
-            // fast enough to beat their own ack must still be heard.
-            (Status::Prompted | Status::Deciding, Answer::Clean) => {
-                request.windows[at].status = Status::Settled
-            }
-            (Status::Prompted | Status::Deciding, Answer::Discard(ids)) => {
-                request.windows[at].status = Status::Settled;
-                request.add_discards(ids);
-            }
-            (Status::Prompted | Status::Deciding, Answer::Cancel) => {
-                let by = request.windows[at].label.clone();
+        match request.rule(at, answer) {
+            Ruling::Advance => self.advance(now_ms),
+            Ruling::Hold => Step::Wait,
+            Ruling::Refuse(why) => refuse(why),
+            Ruling::Cancelled { by } => {
                 self.request = None;
-                return Step::Abort {
+                Step::Abort {
                     reason: AbortReason::Cancelled { by },
-                };
+                }
             }
-            // An ack from a window that has already acked.
-            (Status::Queued | Status::Settled, Answer::Clean | Answer::Dirty) => {
-                return refuse(IgnoredWhy::Duplicate)
-            }
-            // `discard` / `cancel` from a window that was never prompted,
-            // `dirty` from the window that is prompted right now, and the
-            // delivery ack for a dialog that was never asked for.
-            _ => return refuse(IgnoredWhy::OutOfPhase),
         }
-        self.advance(now_ms)
     }
 
     /// The deadline the driver was told to wake at. An early tick re-arms it
@@ -158,6 +162,14 @@ impl QuitCoordinator {
         if now_ms < deadline_ms {
             return Step::Rearm { deadline_ms };
         }
+        // Before the early return below (plan A4): every `Drafting` window is
+        // outside `machine_side_outstanding`, which would strand the quit.
+        if let Some(commit) = self.backstop_expired() {
+            return commit;
+        }
+        let Some(request) = self.request.as_mut() else {
+            return Step::Wait;
+        };
         let timed_out = request.machine_side_outstanding();
         if timed_out.is_empty() {
             request.deadline_ms = None;
@@ -167,53 +179,8 @@ impl QuitCoordinator {
         Step::NativeFallback { timed_out }
     }
 
-    /// A prompt that could not be delivered to `label` (ADR-0029 §4). Waiting
-    /// out a deadline for a dialog that was never sent only delays the alert;
-    /// the failure is already known, so the request goes over at once.
-    pub fn on_delivery_failed(&mut self, request_id: u64, label: &str) -> Step {
-        let Some(request) = self.request.as_mut() else {
-            return refuse(IgnoredWhy::StaleRequest);
-        };
-        if request.id != request_id {
-            return refuse(IgnoredWhy::StaleRequest);
-        }
-        if request.fallback {
-            return refuse(IgnoredWhy::FallbackOwns);
-        }
-        let Some(status) = request.status_of(label) else {
-            return refuse(IgnoredWhy::UnknownLabel);
-        };
-        // Only the window that is waiting for its dialog can fail to receive
-        // one. A report for a `Deciding` window is stale by definition — its
-        // dialog is demonstrably on screen — and acting on it would take the
-        // request away from a user who is looking at it.
-        if status != Status::Prompted {
-            return refuse(IgnoredWhy::OutOfPhase);
-        }
-        request.fallback = true;
-        Step::NativeFallback {
-            timed_out: vec![label.to_string()],
-        }
-    }
-
-    /// The alert `on_tick` / `on_delivery_failed` handed the request to could not
-    /// be posted (ADR-0029 §4). Hand it back, so the windows still listening can
-    /// resolve it. No deadline is set: the alert is the last machine-side step
-    /// there is, and re-arming would retry a failing main-thread dispatch every
-    /// two seconds for as long as the app runs.
-    pub fn release_fallback(&mut self, request_id: u64) -> bool {
-        let Some(request) = self.request.as_mut() else {
-            return false;
-        };
-        if request.id != request_id || !request.fallback {
-            return false;
-        }
-        request.fallback = false;
-        request.deadline_ms = None;
-        true
-    }
-
-    /// A window destroyed mid-request counts as `clean`, once.
+    /// A window destroyed mid-request counts as `clean`, once, and is never
+    /// asked again (ADR-0035: a re-check must not wait on a dead webview).
     pub fn on_window_gone(&mut self, label: &str, now_ms: u64) -> Step {
         let Some(request) = self.request.as_mut() else {
             return refuse(IgnoredWhy::StaleRequest);
@@ -224,11 +191,11 @@ impl QuitCoordinator {
         let Some(window) = request.windows.iter_mut().find(|w| w.label == label) else {
             return refuse(IgnoredWhy::UnknownLabel);
         };
-        if window.status == Status::Settled {
+        if window.status == Status::Gone {
             // Already counted, and any ids it discarded stand.
             return Step::Wait;
         }
-        window.status = Status::Settled;
+        window.status = Status::Gone;
         self.advance(now_ms)
     }
 
@@ -251,13 +218,14 @@ impl QuitCoordinator {
             },
             FallbackAnswer::QuitAnyway => Step::Commit {
                 discard_document_ids: Vec::new(),
+                backstop: None,
             },
         }
     }
 
-    /// The step the live request is owed now: wait, prompt the next dirty window,
-    /// or commit. `now_ms` is when the input that got here happened, so a prompt
-    /// issued from it is timed from it.
+    /// The step the live request is owed now: wait, prompt the next dirty
+    /// window, re-check the live windows, open the backstop (ADR-0035), or
+    /// commit. `now_ms` is when the triggering input happened.
     fn advance(&mut self, now_ms: u64) -> Step {
         let Some(request) = self.request.as_mut() else {
             return Step::Wait;
@@ -268,15 +236,25 @@ impl QuitCoordinator {
         if let Some((label, deadline_ms)) = request.promote_next_queued(now_ms) {
             return Step::Prompt { label, deadline_ms };
         }
-        let discard_document_ids = std::mem::take(&mut request.discard_document_ids);
-        self.request = None;
-        Step::Commit {
-            discard_document_ids,
+        if let Some(recheck) = request.start_recheck(now_ms) {
+            return recheck;
         }
+        if let Some(backstop) = request.start_backstop(now_ms) {
+            return backstop;
+        }
+        self.commit()
     }
 }
 
+#[path = "backstop.rs"]
+mod backstop;
+#[path = "fallback.rs"]
+mod fallback;
+
 // Specification files, one per area; see `.claude/rules/10-tdd.md`.
+#[cfg(test)]
+#[path = "coordinator_backstop_tests.rs"]
+mod coordinator_backstop_tests;
 #[cfg(test)]
 #[path = "coordinator_deadline_tests.rs"]
 mod coordinator_deadline_tests;
@@ -295,6 +273,9 @@ mod coordinator_props_rel_tests;
 #[cfg(test)]
 #[path = "coordinator_props_tests.rs"]
 mod coordinator_props_tests;
+#[cfg(test)]
+#[path = "coordinator_recheck_tests.rs"]
+mod coordinator_recheck_tests;
 #[cfg(test)]
 #[path = "coordinator_tests.rs"]
 mod coordinator_tests;

@@ -42,6 +42,9 @@ fn d11_concurrent_last_answers_produce_exactly_one_reply() {
         for h in handles {
             h.join().unwrap();
         }
+        // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+        let names: Vec<&str> = labels.iter().map(String::as_str).collect();
+        finish_quit(&guard, r, &names, 2);
         let effects = effects_of(&guard);
         let replies: Vec<&Effect> = effects
             .iter()
@@ -85,6 +88,17 @@ fn d11_concurrent_last_answers_produce_exactly_one_reply() {
         };
         answerer.join().unwrap();
         ticker.join().unwrap();
+        // ADR-0035 changes the spec: commit is now preceded by a re-check
+        // round. When the answer won, finish that round; when the tick won,
+        // the alert owns the request and these answers are refused.
+        for label in &labels {
+            guard
+                .handle_reply(label, r, QuitAnswer::Clean, None, 2)
+                .unwrap();
+        }
+        // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+        // The backstop deadline commits; under the alert the tick is refused.
+        guard.tick(2 + crate::services::quit_guard::coordinator::QUIT_BACKSTOP_TIMEOUT_MS);
 
         let effects = effects_of(&guard);
         let replies: Vec<bool> = effects
@@ -186,6 +200,12 @@ fn d12_effects_run_outside_the_coordinator_lock() {
         guard
             .handle_reply("A", r, QuitAnswer::Discard, Some(vec![]), 2)
             .unwrap();
+        // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+        guard
+            .handle_reply("A", r, QuitAnswer::Clean, None, 3)
+            .unwrap();
+        // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+        guard.tick(3 + crate::services::quit_guard::coordinator::QUIT_BACKSTOP_TIMEOUT_MS);
         let begins = guard.effects().begins.lock().unwrap().clone();
         let _ = tx.send(begins);
     });

@@ -14,7 +14,8 @@
 //! never answered left `NSTerminateLater` outstanding for ever — no alert, no
 //! log line, and Force Quit as the only way out.
 
-use super::coordinator_tests::{begin_later, commit, discard, ignored, norm, prompt};
+use super::coordinator_recheck_tests::fixtures::{commit_after_backstop, through_recheck};
+use super::coordinator_tests::{begin_later, discard, ignored, norm, prompt};
 use super::*;
 
 /// The `Prompt` step with its deadline intact. `coordinator_tests::prompt`
@@ -120,9 +121,13 @@ fn q3_a_delivered_ack_hands_the_window_unbounded_time_to_decide() {
             "a tick at {now} must not put an alert over the user's Save dialog"
         );
     }
+    let step = c.on_answer(r, "a", discard(&["a1"]), 86_400_001);
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    let step = through_recheck(&mut c, r, step, 86_400_002);
     assert_eq!(
-        c.on_answer(r, "a", discard(&["a1"]), 86_400_001),
-        commit(&["a1"]),
+        step,
+        // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
+        commit_after_backstop(&["a1"]),
         "the answer is still accepted a day later"
     );
 }

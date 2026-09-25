@@ -4,6 +4,10 @@
 //! whether each prompted window acks its dialog (`Answer::Delivered`) before it
 //! decides, and whether one prompt instead misses its delivery deadline.
 //! `for_each_phase2_row` enumerates that axis over `for_each_row`.
+//!
+//! ADR-0035 (migration M3): a re-check round left open after phase 2 is
+//! answered StaysClean by every live window, and the backstop that follows
+//! AllAck (`Drafted { 0, 0 }`), before the junk tail.
 
 use super::coordinator_runner::{decide, junk, phase1};
 use super::*;
@@ -69,8 +73,47 @@ pub(in super::super) fn run_with(
         // After a hand-over this decision arrives late, and must be ignored.
         decide(&mut d, assign, l);
     }
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    stays_clean(&mut d);
     junk(&mut d);
     d
+}
+
+/// ADR-0035 (migration M3): every live window answers an open re-check round
+/// `Clean` - the StaysClean behaviour - so the request can reach its commit.
+fn stays_clean(d: &mut Runner) {
+    if !d.recheck_open() {
+        return;
+    }
+    for i in d.live() {
+        if !d.recheck_open() {
+            break;
+        }
+        d.feed(
+            Tag::Recheck(i),
+            Input::Answer {
+                idx: i,
+                answer: Answer::Clean,
+            },
+        );
+    }
+    all_ack(d);
+}
+
+/// ADR-0035 changes the spec: commit is now preceded by a re-check round (and a
+/// backstop round). Every live window answers the backstop `Drafted { 0, 0 }` -
+/// the AllAck behaviour - so the request reaches its commit.
+fn all_ack(d: &mut Runner) {
+    if !matches!(d.trace.last().map(|r| &r.step), Some(Step::Backstop { .. })) {
+        return;
+    }
+    for i in d.live() {
+        let answer = Answer::Drafted {
+            drafted: 0,
+            failed: 0,
+        };
+        d.feed(Tag::Backstop(i), Input::Answer { idx: i, answer });
+    }
 }
 
 /// The dialog is up: ack it, then tick at its deadline and far past it.

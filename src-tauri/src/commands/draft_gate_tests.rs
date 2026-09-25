@@ -15,6 +15,7 @@ use crate::services::draft::{save_draft as save_draft_service, DraftError};
 use crate::services::quit_guard::{
     self, DraftGate, QuitAnswer, QuitEffects, QuitEvent, QuitGuard, QUIT_COMMITTED,
 };
+use crate::services::quit_guard::coordinator::QUIT_BACKSTOP_TIMEOUT_MS;
 use crate::HOME_LOCK;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -192,6 +193,14 @@ async fn g3_the_production_guard_and_the_save_command_share_one_gate() {
             2,
         )
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    guard
+        .handle_reply("main", request_id, QuitAnswer::Clean, None, 3)
+        .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round (and
+    // a backstop round). Its deadline commits; the answered backstop is pinned
+    // by `draft_backstop_tests.rs` (DB-1 … DB-4).
+    guard.tick(3 + QUIT_BACKSTOP_TIMEOUT_MS);
 
     assert!(
         QUIT_COMMITTED.is_closed(),
@@ -342,6 +351,14 @@ fn g6_a_commit_waits_for_the_save_that_is_already_in_flight() {
                         2,
                     )
                     .unwrap();
+                // ADR-0035 changes the spec: commit is now preceded by a
+                // re-check round.
+                guard
+                    .handle_reply("main", request_id, QuitAnswer::Clean, None, 3)
+                    .unwrap();
+                // ADR-0035 changes the spec: commit is now preceded by a
+                // re-check round (and a backstop round), whose deadline commits.
+                guard.tick(3 + QUIT_BACKSTOP_TIMEOUT_MS);
                 let _ = tx.send(());
             });
 

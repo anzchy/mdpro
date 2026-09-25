@@ -3,7 +3,7 @@
 //! The coordinator owns every deadline; this file pins that the driver actually
 //! arms the one it is handed, that an effect which could not be dispatched is
 //! seen rather than discarded, and that a refused answer is not written to the
-//! log as a success.
+//! log as a success. Q13 lives in `driver_refused_answer_tests.rs`.
 //!
 //! The log-reading cases run under `HOME_LOCK` in a temp `$HOME`, the same way
 //! `services::logger`'s own atomicity test does: `log_path()` resolves through
@@ -12,7 +12,8 @@
 
 use super::driver::*;
 use super::driver_fixtures::{
-    effects_of, entries_where, fresh_log_home, later, leak_gate, recording_guard, set_home, Effect,
+    effects_of, entries_where, finish_quit, fresh_log_home, later, leak_gate, recording_guard,
+    set_home, Effect,
 };
 use super::logging::effect_failure_log_context;
 use crate::models::{LogLevel, LogSettings};
@@ -40,10 +41,21 @@ fn q9_a_prompt_arms_the_timer_with_the_coordinators_deadline() {
     assert_eq!(
         effects_of(&guard),
         vec![
-            Effect::EmitAll(QuitEvent::Requested { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Requested {
+                request_id: r,
+                round: 0
+            }),
             Effect::ArmTimer(r, QUIT_ACK_TIMEOUT_MS),
             Effect::Activate("A".to_string()),
-            Effect::EmitTo("A".to_string(), QuitEvent::Prompt { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitTo(
+                "A".to_string(),
+                QuitEvent::Prompt {
+                    request_id: r,
+                    round: 0
+                }
+            ),
             Effect::ArmTimer(r, 1_900 + QUIT_PROMPT_DELIVERY_TIMEOUT_MS),
         ],
         "the prompt must front the window, ask it, and then arm its delivery deadline"
@@ -68,10 +80,21 @@ fn q10_an_undeliverable_prompt_goes_to_the_alert_and_arms_nothing() {
     assert_eq!(
         effects_of(&guard),
         vec![
-            Effect::EmitAll(QuitEvent::Requested { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitAll(QuitEvent::Requested {
+                request_id: r,
+                round: 0
+            }),
             Effect::ArmTimer(r, QUIT_ACK_TIMEOUT_MS),
             Effect::Activate("A".to_string()),
-            Effect::EmitTo("A".to_string(), QuitEvent::Prompt { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitTo(
+                "A".to_string(),
+                QuitEvent::Prompt {
+                    request_id: r,
+                    round: 0
+                }
+            ),
             Effect::NativeFallback(r, vec!["A".to_string()]),
         ],
         "an undeliverable prompt must not be waited on: no timer, straight to the alert"
@@ -136,7 +159,14 @@ fn q12_a_native_fallback_that_was_not_dispatched_leaves_the_request_answerable()
         effects_of(&guard)[after_fallback.len()..],
         [
             Effect::Activate("B".to_string()),
-            Effect::EmitTo("B".to_string(), QuitEvent::Prompt { request_id: r }),
+            // ADR-0035 changes the spec: the event payload carries `round` (A5).
+            Effect::EmitTo(
+                "B".to_string(),
+                QuitEvent::Prompt {
+                    request_id: r,
+                    round: 0
+                }
+            ),
             Effect::ArmTimer(r, 2_001 + QUIT_PROMPT_DELIVERY_TIMEOUT_MS),
         ],
         "a request the alert never took must carry on through phase 2"
@@ -145,6 +175,8 @@ fn q12_a_native_fallback_that_was_not_dispatched_leaves_the_request_answerable()
     guard
         .handle_reply("B", r, QuitAnswer::Discard, Some(vec![]), 2_002)
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["A", "B"], 2_003);
     assert_eq!(
         effects_of(&guard).last(),
         Some(&Effect::Reply(true)),
@@ -171,6 +203,8 @@ fn q12b_an_effect_that_was_not_dispatched_is_logged_as_a_failure() {
     guard
         .handle_reply("A", r, QuitAnswer::Clean, None, 1)
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["A"], 2);
 
     // The quit committed: the gate is closed and AppKit was asked exactly once.
     assert!(gate.is_closed());
@@ -222,69 +256,5 @@ fn q12c_the_effect_failure_context_carries_the_request_and_the_effect_only() {
     }
 }
 
-#[test]
-fn q13_a_refused_answer_is_not_logged_as_a_success() {
-    let _home_lock = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let home = fresh_log_home("quit_refused_answer");
-    let _home_guard = set_home(&home);
-    logger::set_log_settings(LogSettings {
-        enabled: true,
-        level: LogLevel::Info,
-    });
-
-    let gate = leak_gate();
-    let guard = recording_guard(gate);
-    // Labels no other test uses: a concurrent test writes into this same log.
-    let (win, other) = ("q13win", "q13other");
-    let r = later(guard.begin(&[win, other], 0));
-
-    // `cancel` before this window was ever prompted: the coordinator refuses it
-    // out of phase and the quit carries on. On the device this refusal read as
-    // `status:"success"` in the log, so a cancel that did nothing looked like a
-    // cancel that worked.
-    guard
-        .handle_reply(win, r, QuitAnswer::Cancel, None, 1)
-        .unwrap();
-
-    let mine = |v: &Value| {
-        matches!(
-            v.pointer("/context/windowLabel").and_then(Value::as_str),
-            Some(l) if l == win || l == other
-        )
-    };
-    let answers = entries_where(&home, "app.quit.answer", r, mine);
-    assert_eq!(
-        answers.len(),
-        1,
-        "expected one answer line, got {answers:?}"
-    );
-    assert_ne!(
-        answers[0].get("status").and_then(Value::as_str),
-        Some("success"),
-        "a refused answer logged as a success makes a broken quit look healthy"
-    );
-    let text = answers[0].to_string();
-    assert!(
-        text.contains("outOfPhase") || text.contains("OutOfPhase"),
-        "the refusal must say why it was refused: {text}"
-    );
-
-    // The refusal really was a refusal: the request is untouched and still
-    // completes normally.
-    guard
-        .handle_reply(win, r, QuitAnswer::Clean, None, 2)
-        .unwrap();
-    guard
-        .handle_reply(other, r, QuitAnswer::Clean, None, 3)
-        .unwrap();
-    assert_eq!(effects_of(&guard).last(), Some(&Effect::Reply(true)));
-
-    // An accepted answer is still a success line.
-    let accepted = entries_where(&home, "app.quit.answer", r, mine);
-    assert!(
-        accepted
-            .iter()
-            .any(|v| v.get("status").and_then(Value::as_str) == Some("success")),
-        "an accepted answer must still be logged as a success: {accepted:?}"
-    );
-}
+#[path = "driver_refused_answer_tests.rs"]
+mod driver_refused_answer_tests;

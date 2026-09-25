@@ -28,6 +28,38 @@ pub enum Answer {
     /// dialog UI. It ends the bounded part of phase 2 and hands the window
     /// unbounded time to decide.
     Delivered,
+    /// The backstop ack (ADR-0035 §4): this window wrote a draft for every
+    /// document still dirty in it. Counts only, never ids. Valid from
+    /// `Drafting` only.
+    Drafted {
+        drafted: u32,
+        failed: u32,
+    },
+    /// A `Drafted` answer that also names ids this window discarded in this
+    /// request and has since redrafted after an edit (ADR-0035 review M-1).
+    /// The commit keeps their drafts. Only the wire builds it, and only with a
+    /// non-empty list; ids the window did not discard are ignored.
+    DraftedUndiscarding {
+        drafted: u32,
+        failed: u32,
+        undiscarded: Vec<String>,
+    },
+}
+
+/// What the commit-phase draft backstop (ADR-0035 §4-5) did, in counts only.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct BackstopTally {
+    /// Drafts written, summed over every accepted `Drafted` answer.
+    pub drafted: u32,
+    /// Draft writes that failed, summed the same way.
+    pub failed: u32,
+    /// Windows still `Drafting` when the backstop deadline passed.
+    pub missing: u32,
+    /// Windows dirty again after their one re-prompt (ADR-0035 §3).
+    pub capped: u32,
+    /// Discarded ids whose deletion the discarding window cancelled by
+    /// redrafting them after an edit (ADR-0035 review M-1).
+    pub undiscarded: u32,
 }
 
 /// The user's answer to the native timeout alert (ADR-0027).
@@ -58,6 +90,7 @@ pub enum IgnoredWhy {
     OutOfPhase,
     Duplicate,
     FallbackOwns,
+    StaleRound,
 }
 
 impl IgnoredWhy {
@@ -71,6 +104,7 @@ impl IgnoredWhy {
             IgnoredWhy::OutOfPhase => "outOfPhase",
             IgnoredWhy::Duplicate => "duplicate",
             IgnoredWhy::FallbackOwns => "fallbackOwns",
+            IgnoredWhy::StaleRound => "staleRound",
         }
     }
 }
@@ -90,8 +124,21 @@ pub enum Step {
     Rearm {
         deadline_ms: u64,
     },
+    Recheck {
+        deadline_ms: u64,
+        window_count: usize,
+    },
+    /// Ask every live window to draft its dirty documents before the commit
+    /// (ADR-0035 §4), and wake at `deadline_ms`, which commits regardless.
+    Backstop {
+        deadline_ms: u64,
+        window_count: usize,
+    },
+    /// `backstop` is `None` when no backstop ran: the ADR-0027 alert's
+    /// `QuitAnyway`, and a request whose windows were all gone first.
     Commit {
         discard_document_ids: Vec<String>,
+        backstop: Option<BackstopTally>,
     },
     Abort {
         reason: AbortReason,

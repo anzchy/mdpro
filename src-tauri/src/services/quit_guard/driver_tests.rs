@@ -51,6 +51,8 @@ fn d1_commit_deletes_exactly_the_discarded_drafts_and_never_the_global_gate() {
     guard
         .handle_reply("B", r, QuitAnswer::Discard, ids(&["b1"]), 4)
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["A", "B"], 5);
 
     for id in ["a1", "a2", "b1"] {
         assert!(
@@ -130,8 +132,12 @@ fn d2_abort_after_an_earlier_discard_touches_no_draft() {
     }
 
     let effects = effects_of(&guard);
+    // ADR-0035 changes the spec: the event payload carries `round` (A5).
     assert!(
-        effects.contains(&Effect::EmitAll(QuitEvent::Cancelled { request_id: r })),
+        effects.contains(&Effect::EmitAll(QuitEvent::Cancelled {
+            request_id: r,
+            round: 0
+        })),
         "an abort must tell every window to close its dialog; effects were {effects:?}"
     );
     assert_eq!(effects.last(), Some(&Effect::Reply(false)));
@@ -207,6 +213,8 @@ fn d3_invalid_document_ids_are_rejected_whole_and_move_nothing_on_disk() {
     guard
         .handle_reply("A", r, QuitAnswer::Discard, ids(&["ok1"]), 2)
         .unwrap();
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard, r, &["A"], 3);
     assert_eq!(effects_of(&guard).last(), Some(&Effect::Reply(true)));
     assert!(!bundle(&drafts, "ok1").exists());
     assert_eq!(fs::read(&sentinel).unwrap(), b"SENTINEL");
@@ -259,6 +267,8 @@ fn d4_document_ids_length_cap_boundary() {
     guard2
         .handle_reply("A", r2, QuitAnswer::Discard, Some(at), 2)
         .expect("exactly MAX_DISCARD_IDS ids must be accepted");
+    // ADR-0035 changes the spec: commit is now preceded by a re-check round.
+    finish_quit(&guard2, r2, &["A"], 3);
     assert_eq!(effects_of(&guard2).last(), Some(&Effect::Reply(true)));
     assert!(!bundle(&drafts, "d0").exists());
     assert!(!bundle(&drafts, &last).exists());
@@ -266,19 +276,23 @@ fn d4_document_ids_length_cap_boundary() {
 }
 
 // D16F WI-6: registered here because `mod.rs` is at its line budget.
-#[path = "driver_fallback_log_tests.rs"]
-mod driver_fallback_log_tests;
-#[path = "driver_fallback_sink_tests.rs"]
-mod driver_fallback_sink_tests;
-#[path = "driver_fallback_prop_tests.rs"]
-mod driver_fallback_prop_tests;
-#[path = "driver_prompt_cause_tests.rs"]
-mod driver_prompt_cause_tests;
+#[path = "driver_backstop_log_tests.rs"]
+mod driver_backstop_log_tests;
+#[path = "driver_backstop_redaction_tests.rs"]
+mod driver_backstop_redaction_tests;
 #[path = "driver_effect_fail_tests.rs"]
 mod driver_effect_fail_tests;
-#[path = "effects_tests.rs"]
-mod effects_tests;
-#[path = "effects_contract_tests.rs"]
-mod effects_contract_tests;
+#[path = "driver_fallback_log_tests.rs"]
+mod driver_fallback_log_tests;
+#[path = "driver_fallback_prop_tests.rs"]
+mod driver_fallback_prop_tests;
+#[path = "driver_fallback_sink_tests.rs"]
+mod driver_fallback_sink_tests;
+#[path = "driver_prompt_cause_tests.rs"]
+mod driver_prompt_cause_tests;
 #[path = "effects_clock_tests.rs"]
 mod effects_clock_tests;
+#[path = "effects_contract_tests.rs"]
+mod effects_contract_tests;
+#[path = "effects_tests.rs"]
+mod effects_tests;
