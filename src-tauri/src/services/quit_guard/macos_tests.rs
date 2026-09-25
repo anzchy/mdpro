@@ -16,7 +16,9 @@ use objc2::{msg_send, sel, ClassType};
 
 use super::{add_should_terminate, install_on, swap_host, QuitHost, HOST_LOCK};
 use crate::services::quit_guard::coordinator::Begin;
-use crate::services::quit_guard::driver::{QuitAnswer, QuitEffects, QuitEvent, QuitGuard};
+use crate::services::quit_guard::driver::{
+    FallbackCause, QuitAnswer, QuitEffects, QuitEvent, QuitGuard,
+};
 use crate::services::quit_guard::{DraftGate, InstallOutcome};
 
 // --- runtime scaffolding -------------------------------------------------
@@ -143,7 +145,12 @@ impl QuitEffects for RecordingEffects {
         true
     }
 
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
+    fn native_fallback(
+        &self,
+        request_id: u64,
+        timed_out: Vec<String>,
+        _cause: FallbackCause,
+    ) -> bool {
         self.push(format!("NativeFallback({request_id}:{})", timed_out.len()));
         true
     }

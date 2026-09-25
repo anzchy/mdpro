@@ -32,7 +32,11 @@ fn dx3_recheck_escape_logs_round_1() {
 
     assert_eq!(
         effects_of(&g).last(),
-        Some(&Effect::NativeFallback(r, vec!["a".to_string()]))
+        Some(&Effect::NativeFallback(
+            r,
+            vec!["a".to_string()],
+            FallbackCause::Escape
+        ))
     );
     let lines = escape_lines_for(&home, r);
     assert_eq!(lines.len(), 1, "{lines:?}");

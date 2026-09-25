@@ -56,7 +56,11 @@ fn run_case(
     let trace = effects_of(guard)[base..].to_vec();
     assert_eq!(
         trace.last(),
-        Some(&Effect::NativeFallback(r, vec![win.to_string()])),
+        Some(&Effect::NativeFallback(
+            r,
+            vec![win.to_string()],
+            FallbackCause::Timeout
+        )),
         "request {r} must end at the native alert"
     );
     trace
@@ -129,7 +133,7 @@ fn wi7_immediate_emit_failure_logs_emit_prompt_and_no_timeout() {
                     round: 0
                 }
             ),
-            Effect::NativeFallback(r, vec!["wi7a".to_string()]),
+            Effect::NativeFallback(r, vec!["wi7a".to_string()], FallbackCause::Timeout),
         ],
         "the q10 trace must be unchanged"
     );
@@ -206,7 +210,7 @@ fn wi7_metamorphic_same_shape_different_cause() {
                     )
                 }
                 Effect::ArmTimer(id, at) if id == r => Effect::ArmTimer(0, at),
-                Effect::NativeFallback(id, t) if id == r => Effect::NativeFallback(0, t),
+                Effect::NativeFallback(id, t, c) if id == r => Effect::NativeFallback(0, t, c),
                 other => other,
             })
             .collect()

@@ -1,8 +1,10 @@
 //! Fixtures for the WI-3 escape specifications (`driver_escape_tests.rs`,
-//! `driver_escape_log_tests.rs`). `driver_fixtures.rs` is at its line budget,
-//! so everything the escape cases add lives here.
+//! `driver_escape_log_tests.rs`) and the fallback-cause cases
+//! (`driver_fallback_cause_tests.rs`). `driver_fixtures.rs` is at its line
+//! budget, so everything the escape cases add lives here.
 //!
-//! Request-id band: 10_000-10_990. No other `guard_at` floor reaches it.
+//! Request-id bands: 10_000-10_990 (escape), 11_000-11_990 (fallback cause).
+//! No other `guard_at` floor reaches them.
 
 use crate::services::quit_guard::driver::*;
 use crate::services::quit_guard::driver_fixtures::{
@@ -52,7 +54,18 @@ pub(super) fn alerts_for(effects: &[Effect], r: u64) -> Vec<Vec<String>> {
     effects
         .iter()
         .filter_map(|e| match e {
-            Effect::NativeFallback(id, labels) if *id == r => Some(labels.clone()),
+            Effect::NativeFallback(id, labels, _) if *id == r => Some(labels.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The cause of every `NativeFallback` recorded for `r`, in recorded order.
+pub(super) fn alert_causes_for(effects: &[Effect], r: u64) -> Vec<FallbackCause> {
+    effects
+        .iter()
+        .filter_map(|e| match e {
+            Effect::NativeFallback(id, _, cause) if *id == r => Some(*cause),
             _ => None,
         })
         .collect()
@@ -101,6 +114,16 @@ pub(super) fn to_recheck_with_discard(g: &QuitGuard<RecordingEffects>) -> u64 {
     r
 }
 
+/// `x0`, `x1`, `x2` all Dirty: `x0` is Prompted, `x1`/`x2` Queued — the
+/// `awaitingDelivery` phase (dx15's shape).
+pub(super) fn to_awaiting_delivery(g: &QuitGuard<RecordingEffects>) -> u64 {
+    let r = later(g.begin(&["x0", "x1", "x2"], 0));
+    for (label, t) in [("x0", 1), ("x1", 2), ("x2", 3)] {
+        reply(g, label, r, QuitAnswer::Dirty, t);
+    }
+    r
+}
+
 /// Windows `a`, `b`, Clean at 0/1 (round 0) and 2/3 (round 1): the backstop
 /// is issued in round 1 and both windows are Drafting.
 pub(super) fn to_backstop_guard(floor: u64) -> (QuitGuard<RecordingEffects>, u64) {
@@ -144,8 +167,13 @@ impl QuitEffects for EscapeReentrantEffects {
     fn reply(&self, terminate: bool) -> bool {
         self.inner.reply(terminate)
     }
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
-        let posted = self.inner.native_fallback(request_id, timed_out);
+    fn native_fallback(
+        &self,
+        request_id: u64,
+        timed_out: Vec<String>,
+        cause: FallbackCause,
+    ) -> bool {
+        let posted = self.inner.native_fallback(request_id, timed_out, cause);
         if let Some(guard) = self.guard.get().and_then(Weak::upgrade) {
             guard.fallback_answer(request_id, FallbackAnswer::KeepOpen);
         }

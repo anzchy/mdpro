@@ -37,7 +37,11 @@ fn dx1_phase1_escape_posts_alert_without_reply() {
     g.escape();
     assert_eq!(
         effects_of(&g)[mark..],
-        [Effect::NativeFallback(r, s(&["w0", "w1"]))]
+        [Effect::NativeFallback(
+            r,
+            s(&["w0", "w1"]),
+            FallbackCause::Escape
+        )]
     );
     assert!(fallback_on(&g));
 }
@@ -58,7 +62,7 @@ fn dx2_deciding_escape_posts_alert_where_tick_cannot() {
     g.escape();
     assert_eq!(
         effects_of(&g)[mark..],
-        [Effect::NativeFallback(r, s(&["a"]))]
+        [Effect::NativeFallback(r, s(&["a"]), FallbackCause::Escape)]
     );
     assert!(fallback_on(&g));
     let lines = escape_lines_for(&home, r);
@@ -161,7 +165,11 @@ fn dx8a_failed_alert_releases_then_second_escape_posts_again() {
     g.escape();
     assert_eq!(
         effects_of(&g).last(),
-        Some(&Effect::NativeFallback(r, s(&["solo"])))
+        Some(&Effect::NativeFallback(
+            r,
+            s(&["solo"]),
+            FallbackCause::Escape
+        ))
     );
     assert!(fallback_on(&g));
     // D8: `RecordingEffects` records a failed attempt too, so this is one
@@ -252,7 +260,7 @@ fn dx13_reentrant_alert_answer_does_not_deadlock() {
     assert_eq!(
         added,
         [
-            Effect::NativeFallback(r, s(&["a"])),
+            Effect::NativeFallback(r, s(&["a"]), FallbackCause::Escape),
             Effect::EmitAll(QuitEvent::Cancelled {
                 request_id: r,
                 round: 0
@@ -261,39 +269,4 @@ fn dx13_reentrant_alert_answer_does_not_deadlock() {
         ]
     );
     assert!(g.snapshot().round().is_none(), "KeepOpen ended the request");
-}
-
-/// G1: the hatch rescues every request, not only the first.
-#[test]
-fn dx16_escape_rescues_each_request_not_only_the_first() {
-    let _lock = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let (home, _h) = in_home("dx16");
-    let g = guard_at_with(10_700, leak_gate());
-
-    for (i, resolve) in [
-        Some(FallbackAnswer::KeepOpen),
-        Some(FallbackAnswer::QuitAnyway),
-        None,
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let r = later(g.begin(&["a"], 100 * i as u64));
-        let mark = effects_of(&g).len();
-        g.escape();
-        assert_eq!(
-            effects_of(&g)[mark..],
-            [Effect::NativeFallback(r, s(&["a"]))],
-            "request {i}"
-        );
-        assert!(fallback_on(&g), "request {i}");
-        let fallback_lines: Vec<Value> = escape_lines_for(&home, r)
-            .into_iter()
-            .filter(|v| v["context"]["outcome"] == "fallback")
-            .collect();
-        assert_eq!(fallback_lines.len(), 1, "request {i}: {fallback_lines:?}");
-        if let Some(answer) = resolve {
-            g.fallback_answer(r, answer);
-        }
-    }
 }

@@ -19,6 +19,8 @@
 //! - **The alert is presented outside the coordinator lock.** `run_on_main_thread`
 //!   posts and returns, so `native_fallback` never holds a guard across
 //!   `runModal`, whose nested run loop can re-enter the driver.
+//! - **The alert's wording depends on its cause; its buttons do not.** Title
+//!   and body come from `fallback_alert_text(cause)` (`alert_text.rs`).
 //! - **The alert's answer goes through `deliver_fallback`**, so an answer with no
 //!   guard left to take it is logged (`noGuard`), not dropped. A post that fails
 //!   (`activate_app`, the reply, the alert) is returned for the caller to log.
@@ -40,14 +42,9 @@ use tauri::{AppHandle, Manager};
 
 use super::coordinator::Begin;
 use super::effects::{now_ms, AppQuitGuard};
-use super::events::deliver_fallback;
+use super::events::{alert_text::fallback_alert_text, deliver_fallback, FallbackCause};
 use super::{fallback_answer_for, logging, ns_reply_for, InstallOutcome, NS_TERMINATE_NOW};
 
-/// The alert's wording (ADR-0027 §2). It names no document and offers no save:
-/// at timeout the coordinator does not know which windows are dirty, so the text
-/// has to state the worst case.
-const ALERT_TITLE: &str = "mdpro isn’t responding to the quit request";
-const ALERT_BODY: &str = "One or more editor windows didn’t answer in time, so mdpro can’t check them for unsaved changes.\n\nQuitting now will discard unsaved changes in every window. Drafts are kept, so you may be able to recover them the next time you open mdpro.";
 const KEEP_OPEN_TITLE: &str = "Keep Open";
 const QUIT_ANYWAY_TITLE: &str = "Quit Without Saving";
 
@@ -237,7 +234,8 @@ pub fn reply_to_should_terminate(app: &AppHandle, terminate: bool) -> bool {
     .is_ok()
 }
 
-/// The ADR-0027 timeout alert.
+/// The ADR-0027 fallback alert, worded for `cause` (a timeout or the escape);
+/// the buttons and their mapping are the same for both.
 ///
 /// `run_on_main_thread` posts and returns, so the caller's coordinator lock is
 /// long released before `runModal` spins its nested run loop. A webview that
@@ -247,8 +245,9 @@ pub fn reply_to_should_terminate(app: &AppHandle, terminate: bool) -> bool {
 /// Returns whether the presentation could be posted. A failed dispatch would
 /// otherwise leave the request owned by an alert that never appears, which is
 /// the unquittable-app case ADR-0029 §4 closes.
-pub fn present_timeout_alert(app: &AppHandle, request_id: u64) -> bool {
+pub fn present_fallback_alert(app: &AppHandle, request_id: u64, cause: FallbackCause) -> bool {
     let app = app.clone();
+    let text = fallback_alert_text(cause);
     app.clone()
         .run_on_main_thread(move || {
             let Some(mtm) = MainThreadMarker::new() else {
@@ -261,8 +260,8 @@ pub fn present_timeout_alert(app: &AppHandle, request_id: u64) -> bool {
 
             let alert = NSAlert::new(mtm);
             alert.setAlertStyle(NSAlertStyle::Warning);
-            alert.setMessageText(&NSString::from_str(ALERT_TITLE));
-            alert.setInformativeText(&NSString::from_str(ALERT_BODY));
+            alert.setMessageText(&NSString::from_str(text.title));
+            alert.setInformativeText(&NSString::from_str(text.body));
             // Added first, so AppKit makes it the default (Return) button.
             let _keep_open = alert.addButtonWithTitle(&NSString::from_str(KEEP_OPEN_TITLE));
             let quit_anyway = alert.addButtonWithTitle(&NSString::from_str(QUIT_ANYWAY_TITLE));

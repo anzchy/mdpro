@@ -66,7 +66,9 @@ pub use super::coordinator::{
     AbortReason, Answer, Begin, FallbackAnswer, IgnoredWhy, QuitCoordinator, Step,
     QUIT_ACK_TIMEOUT_MS, QUIT_PROMPT_DELIVERY_TIMEOUT_MS,
 };
-pub use super::events::{deliver_fallback, CommitReport, FallbackSink, QuitEffects, QuitEvent};
+pub use super::events::{
+    deliver_fallback, CommitReport, FallbackCause, FallbackSink, QuitEffects, QuitEvent,
+};
 pub use super::reply::{
     validate_backstop_counts, validate_discard_ids, validate_undiscard_ids, QuitAnswer,
     MAX_BACKSTOP_COUNT, MAX_DISCARD_IDS,
@@ -158,7 +160,8 @@ impl<E: QuitEffects> QuitGuard<E> {
         self.run(plan);
     }
 
-    /// The user's answer to the native timeout alert (ADR-0027). Logged with
+    /// The user's answer to the native fallback alert (ADR-0027; a timeout or
+    /// the escape — the buttons are the same for both). Logged with
     /// the coordinator's ruling, before the plan runs, so the line precedes the
     /// commit or cancel it causes.
     pub fn fallback_answer(&self, request_id: u64, answer: FallbackAnswer) {
@@ -213,7 +216,9 @@ impl<E: QuitEffects> QuitGuard<E> {
                     // The cause lives in this call only, never in the guard.
                     logging::log_effect_failed(request_id, "emitPrompt");
                     match self.plan(|c| c.on_delivery_failed(request_id, &label)).0 {
-                        Plan::Fallback { timed_out, .. } => self.fallback(request_id, timed_out),
+                        Plan::Fallback { timed_out, .. } => {
+                            self.fallback(request_id, timed_out, FallbackCause::Timeout)
+                        }
                         plan => self.run(plan),
                     }
                 }
@@ -228,7 +233,7 @@ impl<E: QuitEffects> QuitGuard<E> {
                 timed_out,
             } => {
                 logging::log_timeout(request_id, timed_out.len(), QUIT_ACK_TIMEOUT_MS);
-                self.fallback(request_id, timed_out);
+                self.fallback(request_id, timed_out, FallbackCause::Timeout);
             }
             Plan::Abort {
                 request_id,
@@ -245,9 +250,11 @@ impl<E: QuitEffects> QuitGuard<E> {
 
     /// Post the native alert. An alert that was never posted cannot own the
     /// request: leaving it owned would strand a quit behind a dialog that does
-    /// not exist.
-    fn fallback(&self, request_id: u64, timed_out: Vec<String>) {
-        if !self.effects.native_fallback(request_id, timed_out) {
+    /// not exist. `cause` comes from the call site — the tick and an
+    /// undeliverable prompt pass `Timeout`, the escape passes `Escape` — and
+    /// lives in this call only, never in the guard.
+    fn fallback(&self, request_id: u64, timed_out: Vec<String>, cause: FallbackCause) {
+        if !self.effects.native_fallback(request_id, timed_out, cause) {
             logging::log_effect_failed(request_id, "nativeFallback");
             self.lock().coordinator.release_fallback(request_id);
         }

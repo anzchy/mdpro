@@ -172,11 +172,16 @@ impl QuitEffects for ReentrantEffects {
         self.reenter();
         true
     }
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
+    fn native_fallback(
+        &self,
+        request_id: u64,
+        timed_out: Vec<String>,
+        cause: FallbackCause,
+    ) -> bool {
         self.log
             .lock()
             .unwrap()
-            .push(Effect::NativeFallback(request_id, timed_out));
+            .push(Effect::NativeFallback(request_id, timed_out, cause));
         true
     }
 }

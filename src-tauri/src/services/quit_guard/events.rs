@@ -18,6 +18,20 @@ use super::coordinator::FallbackAnswer;
 use super::driver::QuitGuard;
 use super::logging;
 
+#[path = "alert_text.rs"]
+pub(super) mod alert_text;
+
+/// Why the driver is presenting the ADR-0027 native alert. The driver knows it
+/// from which call site it is on; the alert text is picked from it
+/// (`alert_text::fallback_alert_text`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FallbackCause {
+    /// The ack timer ran out, or a prompt could not be delivered to its window.
+    Timeout,
+    /// The user chose "Stop Waiting and Quit…" (ADR-0030, ADR-0036).
+    Escape,
+}
+
 /// An event the driver sends to the frontend. `round` is the request's round
 /// when the event went out: 0 for phase 1, then +1 per re-check (ADR-0035 A5).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -112,8 +126,15 @@ pub trait QuitEffects: Send + Sync + 'static {
     fn arm_timer(&self, request_id: u64, deadline_ms: u64);
     /// `false` when `replyToApplicationShouldTerminate:` could not be posted.
     fn reply(&self, terminate: bool) -> bool;
-    /// `false` when the timeout alert could not be posted to the main thread.
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool;
+    /// `false` when the fallback alert could not be posted to the main thread.
+    /// `cause` is why the driver is presenting it: its ack timer or an
+    /// undeliverable prompt (`Timeout`), or the escape hatch (`Escape`).
+    fn native_fallback(
+        &self,
+        request_id: u64,
+        timed_out: Vec<String>,
+        cause: FallbackCause,
+    ) -> bool;
 
     /// Called immediately before each real `delete_draft`.
     fn on_delete(&self, document_id: &str) {

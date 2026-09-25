@@ -95,7 +95,7 @@ fn q10_an_undeliverable_prompt_goes_to_the_alert_and_arms_nothing() {
                     round: 0
                 }
             ),
-            Effect::NativeFallback(r, vec!["A".to_string()]),
+            Effect::NativeFallback(r, vec!["A".to_string()], FallbackCause::Timeout),
         ],
         "an undeliverable prompt must not be waited on: no timer, straight to the alert"
     );
@@ -125,7 +125,8 @@ fn q11_an_early_tick_re_arms_and_has_no_other_effect() {
         end[after_tick.len()..],
         [Effect::NativeFallback(
             r,
-            vec!["A".to_string(), "B".to_string()]
+            vec!["A".to_string(), "B".to_string()],
+            FallbackCause::Timeout
         )]
     );
 }
@@ -145,7 +146,11 @@ fn q12_a_native_fallback_that_was_not_dispatched_leaves_the_request_answerable()
     let after_fallback = effects_of(&guard);
     assert_eq!(
         after_fallback.last(),
-        Some(&Effect::NativeFallback(r, vec!["B".to_string()])),
+        Some(&Effect::NativeFallback(
+            r,
+            vec!["B".to_string()],
+            FallbackCause::Timeout
+        )),
         "the tick still tries the alert"
     );
 

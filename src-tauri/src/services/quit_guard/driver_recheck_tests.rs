@@ -252,6 +252,10 @@ fn dr5_a_failed_recheck_broadcast_reaches_the_alert_at_its_deadline() {
     guard.tick(10 + QUIT_ACK_TIMEOUT_MS);
     assert_eq!(
         effects_of(&guard).last(),
-        Some(&Effect::NativeFallback(r, vec!["a".to_string()]))
+        Some(&Effect::NativeFallback(
+            r,
+            vec!["a".to_string()],
+            FallbackCause::Timeout
+        ))
     );
 }

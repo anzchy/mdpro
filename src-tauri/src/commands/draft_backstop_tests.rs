@@ -18,7 +18,7 @@
 
 use super::draft::save_draft_gated;
 use crate::services::draft::{load_draft, save_draft as save_draft_service};
-use crate::services::quit_guard::driver::Begin;
+use crate::services::quit_guard::driver::{Begin, FallbackCause};
 use crate::services::quit_guard::{DraftGate, QuitAnswer, QuitEffects, QuitEvent, QuitGuard};
 use crate::HOME_LOCK;
 use std::path::{Path, PathBuf};
@@ -100,7 +100,7 @@ impl QuitEffects for Watch {
         self.replies.lock().unwrap().push(terminate);
         true
     }
-    fn native_fallback(&self, _request_id: u64, _timed_out: Vec<String>) -> bool {
+    fn native_fallback(&self, _request_id: u64, _timed_out: Vec<String>, _: FallbackCause) -> bool {
         true
     }
     fn on_delete(&self, document_id: &str) {

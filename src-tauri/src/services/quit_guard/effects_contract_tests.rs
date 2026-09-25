@@ -160,3 +160,7 @@ fn wi8_adv2_2_app_activation_precedes_the_window_calls() {
         );
     }
 }
+
+// WI-3 (plan-20260925-232104): the fallback alert adapter's contracts.
+#[path = "effects_alert_contract_tests.rs"]
+mod effects_alert_contract_tests;

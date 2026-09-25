@@ -9,6 +9,8 @@
 //!   back through Tauri managed state rather than an `Arc` cycle.
 //! - `reply` and `native_fallback` post to `macos` on macOS (a failed post is
 //!   `false`, which the driver logs as `effect_failed`); elsewhere a no-op `true`.
+//! - `native_fallback` forwards its `FallbackCause` to the alert, which picks
+//!   its title and body from it; the buttons do not depend on it.
 //! - Every event goes out as `{requestId, round}` (`QuitEventPayload`,
 //!   ADR-0035 A5), including `app:quit-backstop`.
 //! - `now_ms` is monotonic from a process-local origin (D16F row 14).
@@ -22,7 +24,7 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
-use super::driver::{QuitEffects, QuitEvent, QuitGuard};
+use super::driver::{FallbackCause, QuitEffects, QuitEvent, QuitGuard};
 use super::logging;
 
 /// The managed-state type: one guard per app, built on the production effects.
@@ -161,17 +163,24 @@ impl QuitEffects for TauriQuitEffects {
         }
     }
 
-    fn native_fallback(&self, request_id: u64, timed_out: Vec<String>) -> bool {
+    fn native_fallback(
+        &self,
+        request_id: u64,
+        timed_out: Vec<String>,
+        cause: FallbackCause,
+    ) -> bool {
         // ADR-0027: the alert names no window, so the labels are only the
         // driver's log material. They are counted there, not passed on.
         let _ = timed_out;
+        // The cause picks the alert's wording (`alert_text.rs`); the buttons
+        // are the same for every cause.
         #[cfg(target_os = "macos")]
         {
-            super::macos::present_timeout_alert(&self.app, request_id)
+            super::macos::present_fallback_alert(&self.app, request_id, cause)
         }
         #[cfg(not(target_os = "macos"))]
         {
-            let _ = request_id;
+            let _ = (request_id, cause);
             true
         }
     }

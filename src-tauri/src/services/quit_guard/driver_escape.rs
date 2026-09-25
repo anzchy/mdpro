@@ -4,7 +4,8 @@
 //!
 //! Pipeline: escape menu item -> `deliver_escape` -> `QuitGuard::escape` ->
 //! `QuitCoordinator::on_escape` -> `app.quit.escape` line -> the driver's
-//! existing `fallback` (ADR-0027 alert, released again if it cannot be posted).
+//! existing `fallback` with `FallbackCause::Escape` (the ADR-0027 alert in its
+//! escape wording, same buttons; released again if it cannot be posted).
 //!
 //! Key decisions:
 //! - **Phase, round and count are read in the same lock acquisition as the
@@ -27,7 +28,7 @@
 //! @coordinates-with docs/adr/0036-the-stuck-quit-escape-hatch-is-an-always-enabled-app-menu-item-without-a-shortcut.md
 //! @coordinates-with src-tauri/src/services/quit_guard/escape.rs
 
-use super::{logging, IgnoredWhy, Plan, QuitEffects, QuitGuard};
+use super::{logging, FallbackCause, IgnoredWhy, Plan, QuitEffects, QuitGuard};
 use crate::services::quit_guard::coordinator::EscapePhase;
 use crate::services::quit_guard::logging::EscapeOutcome;
 
@@ -95,7 +96,7 @@ impl<E: QuitEffects> QuitGuard<E> {
                     unresolved,
                     None,
                 );
-                self.fallback(request_id, timed_out);
+                self.fallback(request_id, timed_out, FallbackCause::Escape);
             }
             Plan::Nothing => match refusal {
                 Some(IgnoredWhy::StaleRequest) => log(EscapeOutcome::Noop, None),
@@ -126,3 +127,11 @@ mod tests;
 #[cfg(test)]
 #[path = "driver_escape_log_tests.rs"]
 mod log_tests;
+
+#[cfg(test)]
+#[path = "driver_fallback_cause_tests.rs"]
+mod cause_tests;
+
+#[cfg(test)]
+#[path = "driver_escape_rescue_tests.rs"]
+mod rescue_tests;

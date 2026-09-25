@@ -15,7 +15,7 @@ use crate::services::draft::{save_draft as save_draft_service, DraftError};
 use crate::services::quit_guard::{
     self, DraftGate, QuitAnswer, QuitEffects, QuitEvent, QuitGuard, QUIT_COMMITTED,
 };
-use crate::services::quit_guard::coordinator::QUIT_BACKSTOP_TIMEOUT_MS;
+use crate::services::quit_guard::{coordinator::QUIT_BACKSTOP_TIMEOUT_MS, driver::FallbackCause};
 use crate::HOME_LOCK;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -154,7 +154,7 @@ impl QuitEffects for NoopEffects {
     fn reply(&self, _terminate: bool) -> bool {
         true
     }
-    fn native_fallback(&self, _request_id: u64, _timed_out: Vec<String>) -> bool {
+    fn native_fallback(&self, _: u64, _: Vec<String>, _: FallbackCause) -> bool {
         true
     }
 }

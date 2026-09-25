@@ -147,7 +147,11 @@ fn d7_a_silent_window_hands_the_request_to_the_native_alert_and_replies_once() {
     let after_deadline = effects_of(&guard);
     assert_eq!(
         after_deadline[before_deadline.len()..],
-        [Effect::NativeFallback(r, vec!["B".to_string()])],
+        [Effect::NativeFallback(
+            r,
+            vec!["B".to_string()],
+            FallbackCause::Timeout
+        )],
         "the deadline must hand the request to the native alert, naming the silent window"
     );
 

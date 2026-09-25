@@ -46,7 +46,7 @@ pub(super) fn in_fallback(floor: u64) -> QuitGuard<RecordingEffects> {
         .handle_reply(OTHER, r, QuitAnswer::Clean, None, 2)
         .unwrap();
     assert!(
-        matches!(effects_of(&guard).last(), Some(Effect::NativeFallback(id, _)) if *id == r),
+        matches!(effects_of(&guard).last(), Some(Effect::NativeFallback(id, ..)) if *id == r),
         "setup did not reach the native alert"
     );
     guard
