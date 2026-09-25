@@ -4,7 +4,7 @@ description: Codebase conventions — Zustand stores, feature locality, Tauri IP
 
 # 50 - Codebase Conventions
 
-Undocumented patterns found across the codebase. Follow these for consistency.
+**Follow these conventions in new and modified code** — they are patterns the codebase already relies on, and code that breaks them is the code reviewers and later edits trip over.
 
 **Keep features local; avoid cross-feature imports unless the code is shared** — cross-feature imports couple features that should change independently.
 
@@ -77,8 +77,9 @@ through the shadow store (`src-tauri/src/services/shadow_store.rs`).
 
 ## 6. File Size Limit
 
-Keep source files under **300 lines**. When a file approaches
-this limit, extract by type:
+**Keep source files under 300 lines** — past that, a file mixes concerns, its
+diffs are hard to review, and its logic can no longer be tested in isolation.
+When a file approaches this limit, extract by type:
 - Types/interfaces → `types.ts` in the same directory
 - Pure helpers → `utils.ts`
 - Sub-components → new `ComponentName.tsx`

@@ -4,7 +4,7 @@ description: Keep `Purpose:` headers and Rust `//!` module docs in sync when mod
 
 # 22 - Comment Maintenance
 
-When modifying code in files that have AI-maintenance documentation comments, keep the comments in sync with the code.
+**When you modify code in a file with AI-maintenance doc comments, update those comments in the same change** — a comment that describes old behaviour misleads the next reader worse than no comment.
 
 ## What Counts as a Documented File
 

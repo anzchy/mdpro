@@ -13,9 +13,10 @@ paths:
 
 ## Logging (required for new features)
 
-**Log every new Tauri command and significant frontend feature.** Production
-builds have no console, so the JSONL log is the only debugging trail. Event
-naming convention and log file path: CLAUDE.md § "Logging Rules".
+**Log every new Tauri command, and every frontend change that adds a store
+action, a `menu:action` handler, an event listener, or a user-facing control.**
+Production builds have no console, so the JSONL log is the only debugging
+trail. Event naming convention and log file path: CLAUDE.md § "Logging Rules".
 
 ### Rust (`src-tauri/src/commands/`)
 

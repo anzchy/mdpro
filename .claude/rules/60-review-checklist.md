@@ -4,7 +4,7 @@ description: Pre-landing review checklist — IPC trust boundaries, race conditi
 
 # 60 - Pre-Landing Review Checklist
 
-Run this checklist on every diff before marking work complete. The `/ship` and `/mecha-audit` commands and `AGENTS.md` reference this file.
+**Run this checklist on every diff before marking work complete.** The `/ship` and `/mecha-audit` commands and `AGENTS.md` reference this file.
 
 ## Critical Pass (Must Fix Before Landing)
 
