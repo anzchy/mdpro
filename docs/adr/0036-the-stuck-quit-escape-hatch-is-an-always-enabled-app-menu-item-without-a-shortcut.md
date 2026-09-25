@@ -1,0 +1,66 @@
+# 0036. The stuck-quit escape hatch is an always-enabled app-menu item without a shortcut
+
+## Status
+
+**Proposed** (2026-09-25). Settles the three questions
+[ADR-0030](./0030-a-menu-item-is-the-escape-hatch-for-a-stuck-quit.md) left
+open under *Not decided here*: the item's label, its placement, and whether it
+has a keyboard shortcut. ADR-0030 itself is unchanged. The user delegated these
+choices ("按照最佳实践，由你来定"), so this record is the author's call and is
+open to challenge before implementation lands.
+
+## Context
+
+ADR-0030 decided that a custom Rust-handled menu item hands a live, stuck quit
+request to the ADR-0027 native alert. Three forces bear on how that item looks:
+
+- **Where a trapped user looks.** ⌘Q has just failed to do anything. The next
+  place people look is the menu that holds Quit, which is the app menu. An item
+  in File or Window will not be found.
+- **The failure it recovers from is a frozen renderer.** Anything that makes
+  the item's usefulness depend on extra state being kept in sync during that
+  failure weakens the one path that has to work. Enabling the item only while a
+  request is live is the macOS convention, but it adds a `set_enabled` call on
+  every request start and end. If one of those calls goes missing, the hatch is
+  greyed out exactly when it is needed.
+- **ADR-0030 §5 on wording.** The label must promise only that it reaches a
+  decision, and must not read as a safe or lossless quit.
+
+## Decision
+
+1. **Placement**: the app menu (`mdpro`), directly below the predefined Quit
+   item.
+2. **Label**: `Stop Waiting and Quit…`. The ellipsis follows the macOS
+   convention that a confirmation follows, and here that confirmation is the
+   ADR-0027 alert. "Stop waiting" names what the user is doing: giving up on
+   the windows that have not answered. The label does not claim anything is
+   saved.
+3. **No keyboard shortcut.** The fastest route to a destructive path is also the
+   easiest to take by accident, and the state it serves is rare.
+4. **Always enabled.** When no quit request is live it does nothing, and logs a
+   no-op (ADR-0030 §3) with counts only. Its usefulness does not depend on any
+   menu-state update.
+
+## Consequences
+
+**What it costs.**
+
+- **A live-looking item that usually does nothing.** Clicked on an idle app, it
+  gives no visible response, which will read as broken to someone who tries it
+  out of curiosity. Greying it out would be clearer and is what AppKit
+  convention expects. It was rejected only for the reliability reason above.
+- **The label is still a compromise.** "Stop Waiting and Quit…" is vague to
+  anyone who has never been stuck. Only the alert behind it states the loss.
+- **No shortcut means the user must use the mouse** at the exact moment they
+  are most frustrated. ADR-0030's discoverability cost stands in full.
+
+**What it buys.**
+
+- Nothing needs to have gone right for the item to be usable. It is built once,
+  at menu creation, and its handler asks the coordinator directly.
+- There is one destructive confirmation, the ADR-0027 alert, and one place
+  where its wording lives.
+
+**Re-open when** device evidence shows users do not find it, or when
+enable-while-live can be driven from the same code path that opens the request
+and so cannot drift.
