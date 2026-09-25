@@ -6,10 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Use the `/browse` skill from gstack for all web browsing tasks. Never use `mcp__claude-in-chrome__*` tools.
 
-Available gstack skills:
-`/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`
-
-Setup: `git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup`
+Skill list, setup, and workflow: [`docs/guide/gstack-workflow-guide.md`](./docs/guide/gstack-workflow-guide.md).
 
 ## Lessons Learned
 
@@ -36,6 +33,12 @@ mdpro is a local Markdown editor for macOS, combining Typora's WYSIWYG experienc
 
 **Target**: macOS 13+, Apple Silicon (ARM64)
 
+## Prerequisites
+
+- **pnpm 10.26.1** — pinned by `packageManager` in `package.json`; never use `npm`/`yarn`.
+- **Rust stable toolchain** (via `rustup`) — `src-tauri/Cargo.toml` is edition 2021; no toolchain file pins a version.
+- **Xcode Command Line Tools** — required by Tauri to build on macOS.
+
 ## Development Commands
 
 ```bash
@@ -58,50 +61,12 @@ cargo clippy              # Lint
 
 ## Architecture
 
-```
-src-tauri/              # Rust backend (Tauri 2.0)
-├── src/
-│   ├── main.rs         # Entry point, app setup, event handlers
-│   ├── lib.rs          # Module exports
-│   ├── menu.rs         # Native macOS menu bar (File, Edit, View, Theme menus)
-│   ├── launch.rs       # File association & single-instance handling
-│   ├── commands/       # IPC command handlers
-│   │   ├── file.rs     # File operations (open, save, close, reload)
-│   │   ├── export.rs   # HTML export & markdown rendering
-│   │   ├── draft.rs    # Auto-save draft recovery
-│   │   └── preferences.rs
-│   ├── services/       # Business logic
-│   │   ├── file_watcher.rs  # External file change detection (notify crate)
-│   │   ├── encoding.rs      # Character encoding detection
-│   │   └── markdown.rs      # pulldown-cmark rendering
-│   └── models/         # Data structures (Document, Draft, Preferences)
-
-src/                    # React frontend
-├── App.tsx             # Main app shell, orchestrates all features
-├── components/
-│   ├── Editor/         # CodeMirror source + Milkdown WYSIWYG (SplitView, MilkdownEditor)
-│   ├── Sidebar/        # Document tabs
-│   └── Toolbar/        # Title bar
-├── hooks/
-│   ├── useDocument.ts  # Document CRUD operations
-│   ├── useMenuEvents.ts # Listens to menu:action events from Rust
-│   ├── useFileWatcher.ts # Handles external file changes
-│   └── useAutoSave.ts  # Draft auto-save timer
-├── services/           # Tauri IPC wrappers (typed invoke calls)
-└── stores/             # Zustand state (documentStore, editorStore, themeStore)
-```
-
-## Key Technologies
-
-| Layer         | Technology                                             |
-| ------------- | ------------------------------------------------------ |
-| Framework     | Tauri 2.0                                              |
-| Frontend      | React 19 + TypeScript + Vite 7                         |
-| Editor        | CodeMirror 6 (@uiw/react-codemirror)                   |
-| Markdown      | pulldown-cmark (Rust), marked + DOMPurify (JS fallback) |
-| State         | Zustand                                                |
-| File dialogs  | rfd (Rust)                                             |
-| File watching | notify (Rust)                                          |
+Rust backend in `src-tauri/src/` (`commands/` = IPC handlers, `services/` = business
+logic, `models/` = data types, `menu.rs` = native menu); React frontend in `src/`
+(`components/`, `hooks/`, `services/` = typed `invoke()` wrappers, `stores/` =
+Zustand, `plugins/` = Milkdown/CodeMirror). Stack: Tauri 2.0, React 19 + Vite 7,
+CodeMirror 6 + Milkdown, pulldown-cmark, Zustand. Directory map and full stack
+table: [`docs/guide/architecture.md`](./docs/guide/architecture.md).
 
 ## IPC & Event System
 
@@ -142,11 +107,8 @@ Rust emits events that frontend listens to via `listen()`:
 Native macOS menu defined in `src-tauri/src/menu.rs`. Menu events are handled via `menu:action` event:
 
 - File: New (⌘N), Open (⌘O), Save (⌘S), Export HTML (⌘⇧E), Close (⌘W)
-
 - View: Source (⌃2), WYSIWYG (⌃4), Toggle Sidebar (⌘⇧L)
-
 - Format: Highlight Selection (⌘⇧H)
-
 - Theme: Light, Dark, System
 
 ## Release Workflow
@@ -197,55 +159,22 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 When making large changes, split by architectural layer:
 
 1. **Backend first**: `src-tauri/src/commands/*.rs` - Rust commands
-
 2. **Services**: `src/services/*.ts` - TypeScript IPC wrappers
-
 3. **Stores**: `src/stores/*.ts` - Zustand state
-
 4. **Hooks**: `src/hooks/*.ts` - React hooks
-
 5. **Components**: `src/components/**/*.tsx` - UI components
-
 6. **Styles**: `src/styles/*.css` - CSS updates
-
 7. **Integration**: `src/App.tsx` - Wiring everything together
-
 8. **Docs/Tests**: Documentation and test fixtures
-
-### Example Workflow
-
-```bash
-# Stage only TOC-related files
-git add src-tauri/src/commands/toc.rs   
-        src/services/tocService.ts   
-        src/stores/tocStore.ts   
-        src/hooks/useTOC.ts   
-        src/components/Sidebar/TOCSidebar.tsx
-
-# Verify what's staged
-git diff --cached --stat
-
-# Commit with descriptive message
-git commit -m "feat(toc): add table of contents with heading extraction
-
-Implement document outline sidebar using pulldown-cmark for parsing.
-Supports hierarchical display, scroll-spy, and click-to-navigate.
-
-Tested: Manual QA with H1-H6 headings"
-```
 
 ### Commit Checklist
 
 Before each commit, verify:
 
 - [ ] Only related files are staged (`git diff --cached --stat`)
-
 - [ ] Project still builds (`pnpm build` or `cargo check`)
-
 - [ ] Message follows `type(scope): summary` format
-
 - [ ] Body explains WHY, not WHAT
-
 - [ ] No secrets or large binaries included
 
 ## Plan Status Tracking (UI redesign × Markdown consolidation)
@@ -336,14 +265,9 @@ be built on by WI-3.2, and it carries a precondition with a failure condition
 Feature specifications live in `specs/001-mdpro-mvp/`:
 
 - `spec.md` - Requirements and user stories
-
 - `plan.md` - Technical architecture
-
 - `tasks.md` - Implementation tasks
-
 - `contracts/` - IPC command definitions
-
-
 
 ### Project Constitution
 
@@ -363,11 +287,8 @@ Mass "modified" files after a pull, re-normalizing, and verification commands: s
 ## Constraints
 
 - Local files only (no cloud sync)
-
 - No third-party plugin marketplace (the internal `src/plugins/` Milkdown/CodeMirror architecture is editor-internal only)
-
 - HTML export only (no PDF/Word)
-
 - Max file size: 10MB
 
 ## Logging Rules
@@ -379,21 +300,15 @@ Rust (`logger::log_event`) and TypeScript (`loggingService.logEventSync`) code s
 ### Event Naming Convention
 
 - UI events: `ui.<component>.<action>` (e.g., `ui.button.click`, `ui.menu.select`)
-
 - File events: `file.<action>` (e.g., `file.open`, `file.save`, `file.open.external`)
-
 - App events: `app.<action>` (e.g., `app.launch`, `app.ready`, `app.quit`)
-
 - Window events: `window.<action>` (e.g., `window.open`, `window.close`, `window.focus`)
-
 - Tab events: `tab.<action>` (e.g., `tab.open`, `tab.close`, `tab.switch`)
 
 ### Log File Location
 
 - Path: `~/.mdpro/mdpro.log`
-
 - Format: JSONL (one JSON object per line)
-
 - Verify with: `tail -f ~/.mdpro/mdpro.log | jq .`
 
 ## Debugging
