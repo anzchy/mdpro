@@ -75,27 +75,15 @@ impl Runner {
     }
 
     pub fn feed(&mut self, tag: Tag, input: Input) -> Step {
-        let step = match &input {
-            Input::Answer { idx, answer } => {
-                self.last_answer = Some((*idx, answer.clone()));
-                self.c
-                    .on_answer(self.id, &self.labels[*idx], answer.clone(), 1)
-            }
-            Input::StaleAnswer { idx, answer } => self.c.on_answer(
-                self.id.wrapping_sub(1),
-                &self.labels[*idx],
-                answer.clone(),
-                1,
-            ),
-            Input::ForeignAnswer(answer) => self.c.on_answer(self.id, "zz", answer.clone(), 1),
-            Input::Gone(idx) => {
-                self.gone[*idx] = true;
-                self.c.on_window_gone(&self.labels[*idx], 1)
-            }
-            Input::ForeignGone => self.c.on_window_gone("zz", 1),
-            Input::Tick(now) => self.c.on_tick(*now),
-            Input::Fallback(answer) => self.c.on_fallback_answer(self.id, *answer),
-        };
+        // Runner bookkeeping only; the coordinator call is `dispatch`
+        // (`coordinator_runner_feed.rs`), whose match is exhaustive.
+        if let Input::Answer { idx, answer } = &input {
+            self.last_answer = Some((*idx, answer.clone()));
+        }
+        if let Input::Gone(idx) = &input {
+            self.gone[*idx] = true;
+        }
+        let step = super::dispatch(&mut self.c, self.id, &self.labels, &input);
         match &step {
             Step::Recheck { .. } => self.recheck_open = true,
             s if is_terminal(s) || matches!(s, Step::Backstop { .. }) => self.recheck_open = false,
@@ -285,7 +273,13 @@ pub(in super::super) fn replay(
         let tag = match &inputs[pos] {
             Input::Answer { idx, .. } => Tag::Phase1(*idx),
             Input::Gone(idx) => Tag::Gone(*idx),
-            _ => Tag::Junk,
+            Input::Escape => Tag::Escape,
+            // Exhaustive (WI-5, D3): a new `Input` must choose its tag here.
+            Input::StaleAnswer { .. }
+            | Input::ForeignAnswer(_)
+            | Input::ForeignGone
+            | Input::Tick(_)
+            | Input::Fallback(_) => Tag::Junk,
         };
         d.feed(tag, inputs[pos].clone());
     }

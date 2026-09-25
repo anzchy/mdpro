@@ -33,6 +33,10 @@
 //! - **The coordinator owns the one deadline**, and returns it: `Prompt` and
 //!   `Rearm` carry the instant to wake at, and an early `on_tick` re-arms rather
 //!   than spending the request's only timer.
+//! - **The escape hatch is one more pure input** (ADR-0030, ADR-0036):
+//!   `on_escape` (child `escape.rs`) takes no clock and hands a live request to
+//!   the same ADR-0027 alert, except during the backstop (`OutOfPhase`) or
+//!   when the alert already owns it; idle and committed are a no-op.
 //!
 //! @coordinates-with docs/adr/0029-quit-deadlines-bound-machine-progress-not-people.md
 
@@ -248,6 +252,9 @@ impl QuitCoordinator {
 
 #[path = "backstop.rs"]
 mod backstop;
+#[path = "escape.rs"]
+mod escape;
+pub use escape::{escape_ruling, EscapePhase, EscapeRuling};
 #[path = "fallback.rs"]
 mod fallback;
 
@@ -261,6 +268,9 @@ mod coordinator_deadline_tests;
 #[cfg(test)]
 #[path = "coordinator_domain_tests.rs"]
 mod coordinator_domain_tests;
+#[cfg(test)]
+#[path = "coordinator_escape_tests.rs"]
+mod coordinator_escape_tests;
 #[cfg(test)]
 #[path = "coordinator_fallback_tests.rs"]
 mod coordinator_fallback_tests;

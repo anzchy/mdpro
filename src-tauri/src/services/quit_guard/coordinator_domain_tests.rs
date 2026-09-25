@@ -13,6 +13,11 @@ use std::collections::BTreeSet;
 mod coordinator_runner;
 pub(super) use coordinator_runner::{is_terminal, replay, run, Runner};
 
+// WI-5: the input dispatch, split out when `Input::Escape` was added.
+#[path = "coordinator_runner_feed.rs"]
+mod coordinator_runner_feed;
+pub(super) use coordinator_runner_feed::dispatch;
+
 #[path = "coordinator_runner_phase2.rs"]
 mod coordinator_runner_phase2;
 pub(super) use coordinator_runner_phase2::{for_each_phase2_row, run_with, Delivery};
@@ -34,6 +39,16 @@ mod coordinator_recheck_props_tests;
 
 #[path = "coordinator_recheck_props_rel_tests.rs"]
 mod coordinator_recheck_props_rel_tests;
+
+// WI-5 (ADR-0030): the escape laws, injected over all three domains above.
+#[path = "coordinator_escape_props_fixtures.rs"]
+mod coordinator_escape_props_fixtures;
+
+#[path = "coordinator_escape_props_tests.rs"]
+mod coordinator_escape_props_tests;
+
+#[path = "coordinator_escape_props_rel_tests.rs"]
+mod coordinator_escape_props_rel_tests;
 
 pub(super) const T: u64 = QUIT_ACK_TIMEOUT_MS;
 
@@ -145,13 +160,22 @@ pub(super) fn realizable(assign: &[Kind], order: &[usize]) -> bool {
 /// One input to the coordinator, recorded so a run can be replayed verbatim.
 #[derive(Clone, Debug)]
 pub(super) enum Input {
-    Answer { idx: usize, answer: Answer },
-    StaleAnswer { idx: usize, answer: Answer },
+    Answer {
+        idx: usize,
+        answer: Answer,
+    },
+    StaleAnswer {
+        idx: usize,
+        answer: Answer,
+    },
     ForeignAnswer(Answer),
     Gone(usize),
     ForeignGone,
     Tick(u64),
     Fallback(FallbackAnswer),
+    /// "Stop Waiting and Quit…" (ADR-0030, WI-5). Never part of a canonical
+    /// run: only the escape laws inject it, so no existing row count moves.
+    Escape,
 }
 
 /// What the input was for, so an assertion can find it in the trace.
@@ -172,6 +196,8 @@ pub(super) enum Tag {
     Recheck(usize),
     /// A live window's `Drafted` answer to the ADR-0035 backstop round.
     Backstop(usize),
+    /// An injected `Input::Escape` (WI-5).
+    Escape,
 }
 
 #[derive(Clone, Debug)]

@@ -1,7 +1,8 @@
 //! Purpose: the guarded app-quit path (D16).
 //!
 //! Pipeline: `applicationShouldTerminate:` (`macos`) -> `driver` ->
-//! `coordinator` -> `effects` -> NSApp reply.
+//! `coordinator` -> `effects` -> NSApp reply; escape menu -> `driver_escape`
+//! -> `coordinator` -> ADR-0027 alert.
 //!
 //! Key decisions:
 //! - The decision logic is a pure state machine in `coordinator`: no
@@ -10,8 +11,7 @@
 //! - **One quit-committed gate.** `QUIT_COMMITTED` is the single static that
 //!   `QuitGuard::new` closes on commit and `commands::draft::save_draft` passes
 //!   its write through. Two gates would let an auto-save tick recreate a draft
-//!   between the delete and process exit, which is the resurrection ADR-0025 §4
-//!   forbids.
+//!   between the delete and process exit: the resurrection ADR-0025 §4 forbids.
 //! - **The gate is a lock, not a flag.** A bare `AtomicBool` made both sides
 //!   check-then-act, so a save that read `false` could still land its write
 //!   *after* the commit deleted that draft. See `DraftGate`.
@@ -35,7 +35,7 @@ mod types;
 use std::sync::{RwLock, RwLockWriteGuard};
 
 pub use coordinator::{Begin, FallbackAnswer};
-pub use driver::{CommitReport, QuitEffects, QuitEvent, QuitGuard};
+pub use driver::{deliver_escape, CommitReport, QuitEffects, QuitEvent, QuitGuard};
 pub use reply::{QuitAnswer, MAX_DISCARD_IDS};
 
 /// AppKit's `NSApplicationTerminateReply` values, as raw `NSUInteger`s. They are

@@ -1,4 +1,5 @@
-//! Purpose: the twelve `app.quit.*` log events, in one place.
+//! Purpose: the thirteen `app.quit.*` log events, in one place; the
+//! thirteenth, `app.quit.escape` (ADR-0030), lives in child `logging_escape.rs`.
 //!
 //! Key decisions:
 //! - **Counts, never ids, never content.** A draft id names a document the user
@@ -181,6 +182,11 @@ pub(super) fn log_backstop(request_id: u64, round: u32, window_count: usize) {
         None,
     );
 }
+
+#[path = "logging_escape.rs"]
+mod escape;
+pub(super) use escape::log_escape;
+pub use escape::{escape_log_context, EscapeOutcome};
 
 pub(super) fn log_request(request_id: u64, window_count: usize) {
     write(

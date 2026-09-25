@@ -1,7 +1,8 @@
 //! Purpose: the production `QuitEffects`, a thin adapter over `AppHandle`.
 //!
 //! Pipeline: driver `Step` -> this adapter -> Tauri emit / window activation /
-//! ack timer / NSApp `replyToApplicationShouldTerminate:` / ADR-0027 alert.
+//! ack timer / NSApp `replyToApplicationShouldTerminate:` / ADR-0027 alert;
+//! and escape menu -> driver -> ADR-0027 alert (ADR-0030, `driver_escape.rs`).
 //!
 //! Key decisions:
 //! - It holds an `AppHandle` and nothing else. The ack timer reaches the guard

@@ -64,3 +64,56 @@ request to the ADR-0027 native alert. Three forces bear on how that item looks:
 **Re-open when** device evidence shows users do not find it, or when
 enable-while-live can be driven from the same code path that opens the request
 and so cannot drift.
+
+## Amendment
+
+*Amendment (2026-09-25, while Proposed, after implementation).* The item is
+built as `menu.app.stop_waiting_quit` and handled in Rust only
+(`menu.rs` → `quit_guard::deliver_escape`), with no `menu:action` emit. What a
+click does depends on the phase of the coordinator's live request. When more
+than one marker applies, the precedence is fallback > backstop > prompted >
+deciding > everything else (`escape.rs`).
+
+| Phase (log `phase`) | Ruling (log `outcome`) | Source |
+|---|---|---|
+| No live request (`idle`) | `noop` | ADR-0030 §3 |
+| Phase 1, a re-check round, or residual (`checking`) | `fallback`: ADR-0027 alert | ADR-0030 §2 |
+| A window was prompted but has not acked (`awaitingDelivery`) | `fallback` | ADR-0030 §2 |
+| A dialog is up and acked (`deciding`) | `fallback` | ADR-0030 §2 |
+| ADR-0035 draft backstop running (`backstop`) | `ignored`, reason `outOfPhase` | **ADR-silent; decided here** |
+| The alert already owns the request (`fallback`) | `ignored`, reason `fallbackOwns` | ADR-0027: one alert per request |
+| Committed / terminating | `noop`: indistinguishable from idle | **ADR-silent; decided here** |
+
+A `fallback` ruling does exactly what an ack timeout does. It hands the
+request to the ADR-0027 alert, the alert then owns it, and late webview replies
+are refused with `fallbackOwns`. After Keep Open the request is gone, so a new
+quit followed by the escape alerts again. Every click writes one
+`app.quit.escape` line *before* the alert, instead of `app.quit.timeout`. The
+line holds the outcome and phase, plus requestId, round, unresolvedCount and
+reason. These are counts and enums only, with no labels, ids, paths or content.
+
+**Costs of the two ADR-silent rows.**
+
+- **Backstop → ignored.** Handing the backstop to the alert would bring back
+  the loss that ADR-0035 corrected: the alert's Quit Without Saving drops
+  discards the user already accepted. The backstop commits on its own 2 s
+  deadline instead. The cost is that the escape is inert for up to 2 s. Also,
+  if the backstop timer's main-thread dispatch fails (`effect_failed
+  timerDispatch`), the quit is stranded, and this item cannot rescue it.
+- **Committed → noop.** Once commit has taken the request, the coordinator
+  cannot tell that state from idle, and `NSTerminateLater` must be answered
+  exactly once. The cost is that a failed final `reply(true)` after commit is
+  not recoverable from this item.
+
+**A cost of the `deciding` row, which follows from ADR-0030 §2 rather than
+from a choice made here.** A healthy window that is only waiting on a person
+reading its dialog can now be sent to the alert's Quit Without Saving. That
+option quits with unsaved in-memory edits unwritten, and it drops the discards
+the user already accepted, so their drafts survive (ADR-0027 §5). Before this
+item, no timer could reach that path from `deciding` (ADR-0029). The alert
+states the loss, and that is the only guard.
+
+Status stays **Proposed**. It becomes Accepted only after the device check has
+run: m1 (placement, enabled, no shortcut), m2 (an idle click logs `noop`), m3
+(a click in `deciding` shows the alert, and Keep Open restores the app), and
+ADR-0030's residual check against a deliberately wedged renderer.

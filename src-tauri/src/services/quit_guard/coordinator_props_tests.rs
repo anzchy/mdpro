@@ -30,7 +30,16 @@ fn walk_outstanding(assign: &[Kind], d: &Runner) -> Vec<(Option<usize>, Option<u
         let before = outstanding;
         let resolves = match rec.tag {
             Tag::Phase2(i) | Tag::Gone(i) => outstanding == Some(i),
-            _ => false,
+            // Exhaustive (WI-5): no `_ =>` on `Tag`.
+            Tag::Phase1(_)
+            | Tag::Tick
+            | Tag::Junk
+            | Tag::Delivered(_)
+            | Tag::DeliveryTick(_)
+            | Tag::LateTick(_)
+            | Tag::Recheck(_)
+            | Tag::Backstop(_)
+            | Tag::Escape => false,
         };
         if resolves {
             outstanding = None;

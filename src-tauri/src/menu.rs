@@ -5,13 +5,20 @@
 //!   `publish_after` publishes a new recent list only once the menu built from
 //!   it has installed, so a failed rebuild never lets an old item index resolve
 //!   against the new list (audit row 18).
+//! - "Stop Waiting and Quit…" sits directly after Quit in the app menu: always
+//!   enabled, no shortcut (ADR-0036). Its arm calls only
+//!   `quit_guard::deliver_escape` and emits no `menu:action`, so it works when
+//!   every webview is wedged (ADR-0030).
 //!
 //! @coordinates-with src/menu_recent.rs
 //! @coordinates-with src/commands/menu.rs
+//! @coordinates-with src-tauri/src/services/quit_guard/driver_escape.rs
 
 use serde::Serialize;
 use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Wry};
+
+use crate::services::quit_guard::{self, effects::AppQuitGuard};
 
 const MENU_FILE_NEW: &str = "menu.file.new";
 const MENU_FILE_NEW_WINDOW: &str = "menu.file.new_window";
@@ -33,6 +40,10 @@ const MENU_FORMAT_INSERT_TABLE: &str = "menu.format.insert_table";
 const MENU_THEME_LIGHT: &str = "menu.theme.light";
 const MENU_THEME_DARK: &str = "menu.theme.dark";
 const MENU_THEME_SYSTEM: &str = "menu.theme.system";
+
+/// "Stop Waiting and Quit…" — the stuck-quit escape hatch (ADR-0036). Routed
+/// in Rust only; it never reaches the frontend as a `menu:action`.
+pub const MENU_APP_STOP_WAITING_QUIT: &str = "menu.app.stop_waiting_quit";
 
 #[path = "menu_recent.rs"]
 mod menu_recent;
@@ -83,6 +94,13 @@ pub fn build_menu(
         .item(&PredefinedMenuItem::show_all(app, None)?)
         .separator()
         .item(&PredefinedMenuItem::quit(app, None)?)
+        .item(&MenuItem::with_id(
+            app,
+            MENU_APP_STOP_WAITING_QUIT,
+            "Stop Waiting and Quit…",
+            true,
+            None::<&str>,
+        )?)
         .build()?;
 
     let file_new = MenuItem::with_id(app, MENU_FILE_NEW, "New", true, Some("CmdOrCtrl+N"))?;
@@ -230,6 +248,9 @@ pub fn build_menu(
 pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
     let id = event.id().as_ref();
     match id {
+        MENU_APP_STOP_WAITING_QUIT => {
+            quit_guard::deliver_escape(app.try_state::<AppQuitGuard>().as_deref())
+        }
         MENU_FILE_NEW => emit_menu_action(app, "file.new", None),
         MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
         MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),

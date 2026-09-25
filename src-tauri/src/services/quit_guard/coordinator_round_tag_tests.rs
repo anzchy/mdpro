@@ -207,6 +207,7 @@ fn replay(n: usize, inputs: &[Input], mode: u8) -> (Vec<Step>, QuitCoordinator) 
             Input::ForeignGone => c.on_window_gone("zz", 1),
             Input::Tick(now) => c.on_tick(*now),
             Input::Fallback(a) => c.on_fallback_answer(id, *a),
+            Input::Escape => c.on_escape(),
         });
     }
     (steps, c)

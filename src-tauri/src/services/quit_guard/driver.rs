@@ -34,6 +34,10 @@
 //!   Logging it on arrival reported every refusal as `status:"success"`, so a
 //!   cancel that did nothing was indistinguishable from one that worked. The
 //!   alert's answer is logged the same way, as `app.quit.fallback`.
+//! - **The escape (ADR-0030) is its own input**, `escape()` in
+//!   `driver_escape.rs`: it logs `app.quit.escape` and calls `fallback`
+//!   directly, bypassing `run`'s `log_timeout`, because no deadline ran — the
+//!   same bypass as the emitPrompt-failure path.
 //! - The two resolutions — the commit (gate, deletion loop, report, reply) and
 //!   the abort — live in `driver_commit.rs`; the ADR-0035 re-check and backstop
 //!   rounds, and the backstop's `Drafted` answer, in `driver_rounds.rs`; every
@@ -50,6 +54,9 @@ use super::DraftGate;
 use std::sync::Mutex;
 #[path = "driver_commit.rs"]
 mod commit;
+#[path = "driver_escape.rs"]
+mod escape;
+pub use escape::{deliver_escape, EscapeSink};
 #[path = "driver_rounds.rs"]
 mod rounds;
 #[path = "driver_wire.rs"]
