@@ -13,6 +13,7 @@ use tokio::sync::oneshot;
 
 // Store the shutdown sender so the HTTP server stays alive
 static MCP_SHUTDOWN: OnceLock<Mutex<Option<oneshot::Sender<()>>>> = OnceLock::new();
+use tauri_app_lib::launch_args::{self, LaunchSource};
 use tauri_app_lib::services::open_route::{route_external_open, Source};
 use tauri_app_lib::services::quit_guard::{
     self,
@@ -176,7 +177,10 @@ fn main() {
             app.set_menu(menu)?;
             let launch_state = tauri_app_lib::launch::LaunchState::default();
             let raw_args: Vec<String> = std::env::args().skip(1).collect();
-            let args = tauri_app_lib::launch::filter_launch_paths(raw_args);
+            let filter = launch_args::filter_launch_args(raw_args, None);
+            let entry = launch_args::args_filtered_log_entry(LaunchSource::Cli, &filter);
+            logger::log_event(entry);
+            let args = filter.paths;
             if !args.is_empty() {
                 let args_for_log = args.clone();
                 logger::log_event(LogEntryPayload {
@@ -245,8 +249,12 @@ fn main() {
             set_app_ready();
             Ok(())
         })
-        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            let paths = tauri_app_lib::launch::filter_launch_paths(args);
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            // Relative args resolve against the *second* process's cwd (D33)
+            let filter = launch_args::single_instance_args(args, &cwd);
+            let entry = launch_args::args_filtered_log_entry(LaunchSource::SingleInstance, &filter);
+            logger::log_event(entry);
+            let paths = filter.paths;
             if !paths.is_empty() {
                 let paths_for_log = paths.clone();
                 logger::log_event(LogEntryPayload {

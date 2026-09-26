@@ -1,8 +1,8 @@
-use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde_json::json;
 
+use crate::launch_args::filter_launch_args;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
 
@@ -48,52 +48,20 @@ impl LaunchState {
     }
 }
 
-/// True for a markdown extension (case-insensitive).
-fn is_markdown_ext(path: &std::path::Path) -> bool {
-    path.extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown"))
-        .unwrap_or(false)
-}
-
-/// Filter raw launch arguments down to the markdown files we should open.
+/// Filter raw launch arguments down to the markdown files we should open,
+/// resolving relative arguments against *this* process's cwd.
 ///
-/// Hardening (SHOULD-FIX): each accepted path is canonicalized, which resolves
-/// `..` traversal and symlinks to a real absolute path — so a symlinked or
-/// `../`-laden arg opens the actual target, and the emitted path is
-/// unambiguous. Only existing *regular files* with a markdown extension pass
-/// (directories and special files are dropped). A leading-`-` arg is treated as
-/// a CLI flag UNLESS it resolves to an existing file (a file literally named
-/// `-notes.md` is still openable). Non-UTF-8 args never reach here — the input
-/// is already `String` — but canonicalization output that isn't valid UTF-8 is
-/// dropped rather than lossily coerced.
+/// Thin wrapper: `filter_launch_args(args, None).paths` (see
+/// `crate::launch_args` for the rules — canonicalization, the leading-`-`
+/// flag test, regular-file and markdown-extension checks, non-UTF-8 drop).
+/// The per-reason drop counts are discarded here; callers that need them, or
+/// that must resolve against another process's cwd (D33), call
+/// `filter_launch_args` directly.
 pub fn filter_launch_paths<I>(args: I) -> Vec<String>
 where
     I: IntoIterator<Item = String>,
 {
-    args.into_iter()
-        .filter_map(|arg| {
-            let path = PathBuf::from(&arg);
-
-            // A leading '-' is a flag unless it names a real file on disk.
-            if arg.starts_with('-') && !path.is_file() {
-                return None;
-            }
-
-            // Resolve symlinks and `..` traversal to a real absolute path.
-            let canonical = path.canonicalize().ok()?;
-
-            // Must be a regular file (not a directory or special file) and a
-            // markdown extension.
-            if !canonical.is_file() || !is_markdown_ext(&canonical) {
-                return None;
-            }
-
-            // Drop paths whose canonical form isn't valid UTF-8 rather than
-            // lossily coercing (which could open the wrong file).
-            canonical.to_str().map(|s| s.to_string())
-        })
-        .collect()
+    filter_launch_args(args, None).paths
 }
 
 #[cfg(test)]
