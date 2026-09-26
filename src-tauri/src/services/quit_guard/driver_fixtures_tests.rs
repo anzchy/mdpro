@@ -62,7 +62,10 @@ fn injective_under_concurrency() {
             })
         })
         .collect();
-    let all: Vec<PathBuf> = handles.into_iter().flat_map(|h| h.join().unwrap()).collect();
+    let all: Vec<PathBuf> = handles
+        .into_iter()
+        .flat_map(|h| h.join().unwrap())
+        .collect();
     assert_eq!(all.len(), THREADS * CALLS * 2);
     let unique: HashSet<&PathBuf> = all.iter().collect();
     assert_eq!(unique.len(), all.len(), "fixture returned a duplicate path");

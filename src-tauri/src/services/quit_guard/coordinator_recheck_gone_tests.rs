@@ -116,12 +116,17 @@ fn with_a_in(start: &str) -> (QuitCoordinator, u64, u64) {
 
 fn check_absorbed(c: &QuitCoordinator, step: &Step, ctx: &str) {
     if let Step::NativeFallback { timed_out } = step {
-        assert!(!timed_out.contains(&"a".to_string()), "{ctx}: {timed_out:?}");
+        assert!(
+            !timed_out.contains(&"a".to_string()),
+            "{ctx}: {timed_out:?}"
+        );
     }
     if let Some(request) = c.request.as_ref() {
         assert_eq!(request.status_of("a"), Some(Status::Gone), "{ctx}");
         assert!(
-            !request.machine_side_outstanding().contains(&"a".to_string()),
+            !request
+                .machine_side_outstanding()
+                .contains(&"a".to_string()),
             "{ctx}: a gone window is never machine-side outstanding"
         );
     }
@@ -165,7 +170,15 @@ fn gn5_gone_is_absorbing_from_every_reachable_status() {
                     (Status::Drafting, BWay::Silent) => {
                         c.on_tick(req(&c).deadline_ms.expect("a deadline is armed"))
                     }
-                    (Status::Drafting, _) => c.on_answer(r, "b", Answer::Drafted { drafted: 0, failed: 0 }, t),
+                    (Status::Drafting, _) => c.on_answer(
+                        r,
+                        "b",
+                        Answer::Drafted {
+                            drafted: 0,
+                            failed: 0,
+                        },
+                        t,
+                    ),
                     (other, _) => panic!("{ctx}: b stuck in {other:?} with {step:?}"),
                 };
                 check_absorbed(&c, &step, &ctx);

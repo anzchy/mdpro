@@ -96,7 +96,8 @@ fn the_imp_maps_every_begin_outcome_from_a_real_coordinator() {
         .handle_reply("a", 1, QuitAnswer::Clean, None, 1)
         .expect("the re-check answer is accepted");
     // ADR-0035 changes the spec: commit is now preceded by a re-check round (and a backstop round).
-    host.guard.tick(1 + crate::services::quit_guard::coordinator::QUIT_BACKSTOP_TIMEOUT_MS);
+    host.guard
+        .tick(1 + crate::services::quit_guard::coordinator::QUIT_BACKSTOP_TIMEOUT_MS);
     assert!(
         host.recorded().iter().any(|e| e == "Reply(true)"),
         "the clean answer commits the quit: {:?}",

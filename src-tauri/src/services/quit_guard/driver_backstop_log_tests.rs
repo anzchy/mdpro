@@ -246,7 +246,7 @@ fn dl6_effect_failed_names_emit_recheck_and_emit_backstop() {
 // `driver_tests.rs` is at its line budget.
 #[path = "driver_backstop_tests.rs"]
 mod driver_backstop_tests;
-#[path = "driver_recheck_tests.rs"]
-mod driver_recheck_tests;
 #[path = "driver_drafted_reply_tests.rs"]
 mod driver_drafted_reply_tests;
+#[path = "driver_recheck_tests.rs"]
+mod driver_recheck_tests;

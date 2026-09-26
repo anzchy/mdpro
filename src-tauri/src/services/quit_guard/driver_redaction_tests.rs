@@ -31,7 +31,10 @@ fn mine(v: &Value) -> bool {
 
 fn assert_no_marker(line: &str) {
     for marker in MARKERS {
-        assert!(!line.contains(marker), "{marker:?} leaked into the log: {line}");
+        assert!(
+            !line.contains(marker),
+            "{marker:?} leaked into the log: {line}"
+        );
     }
 }
 
@@ -52,7 +55,9 @@ fn wi3_rejected_discard_writes_a_counts_only_answer_and_deletes_nothing() {
     let gate = leak_gate();
     let guard = recording_guard(gate);
     let r = later(guard.begin(&[WIN], 0));
-    guard.handle_reply(WIN, r, QuitAnswer::Dirty, None, 1).unwrap();
+    guard
+        .handle_reply(WIN, r, QuitAnswer::Dirty, None, 1)
+        .unwrap();
 
     let refused = guard.handle_reply(WIN, r, QuitAnswer::Discard, hostile_list(), 2);
     assert_eq!(refused, Err("invalid document id at index 1".to_string()));
@@ -61,9 +66,16 @@ fn wi3_rejected_discard_writes_a_counts_only_answer_and_deletes_nothing() {
         .into_iter()
         .filter(|v| v.get("status").and_then(Value::as_str) == Some("fail"))
         .collect();
-    assert_eq!(fails.len(), 1, "expected one fail answer line, got {fails:?}");
+    assert_eq!(
+        fails.len(),
+        1,
+        "expected one fail answer line, got {fails:?}"
+    );
     let line = &fails[0];
-    assert_eq!(line.pointer("/context/idCount").and_then(Value::as_u64), Some(2));
+    assert_eq!(
+        line.pointer("/context/idCount").and_then(Value::as_u64),
+        Some(2)
+    );
     assert_eq!(
         line.get("error").and_then(Value::as_str),
         Some("invalid document id at index 1")
@@ -88,11 +100,15 @@ fn wi3_whole_request_lifetime_writes_no_id_to_the_log() {
     assert_eq!(r, 3_000, "guard_at did not land on its floor");
     let baseline = effects_of(&guard).len();
 
-    guard.handle_reply(WIN, r, QuitAnswer::Dirty, None, 11).unwrap();
+    guard
+        .handle_reply(WIN, r, QuitAnswer::Dirty, None, 11)
+        .unwrap();
     assert!(guard
         .handle_reply(WIN, r, QuitAnswer::Discard, hostile_list(), 12)
         .is_err());
-    guard.handle_reply(WIN, r, QuitAnswer::Cancel, None, 13).unwrap();
+    guard
+        .handle_reply(WIN, r, QuitAnswer::Cancel, None, 13)
+        .unwrap();
     assert_eq!(
         effects_of(&guard)[baseline..].last(),
         Some(&Effect::Reply(false)),

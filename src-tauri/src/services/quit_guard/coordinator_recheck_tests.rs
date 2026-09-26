@@ -11,12 +11,12 @@
 
 use super::*;
 
-#[path = "coordinator_recheck_fixtures.rs"]
-pub(super) mod fixtures;
 #[path = "coordinator_recheck_gone_tests.rs"]
 mod coordinator_recheck_gone_tests;
 #[path = "coordinator_round_tag_tests.rs"]
 mod coordinator_round_tag_tests;
+#[path = "coordinator_recheck_fixtures.rs"]
+pub(super) mod fixtures;
 
 use fixtures::*;
 
@@ -125,7 +125,10 @@ fn rc4_a_re_prompted_window_dirty_again_is_settled_and_capped() {
     assert_eq!(req(&c).capped, 1);
     let step = c.on_answer(r, "b", Answer::Clean, 1700);
     assert!(
-        !matches!(step, Step::Prompt { .. } | Step::Recheck { .. } | Step::Wait),
+        !matches!(
+            step,
+            Step::Prompt { .. } | Step::Recheck { .. } | Step::Wait
+        ),
         "the capped window must be neither prompted nor awaited: {step:?}"
     );
     let end = finish_backstop(&mut c, r, step, 1800);
@@ -138,14 +141,20 @@ fn rc4_a_re_prompted_window_dirty_again_is_settled_and_capped() {
 fn rc5_a_phase_one_prompt_does_not_spend_the_re_prompt_bit() {
     let mut c = QuitCoordinator::new();
     let r = begin_later(&mut c, &["a"], 0);
-    assert_eq!(c.on_answer(r, "a", Answer::Dirty, 500), prompt_at("a", 2500));
-    assert_eq!(c.on_answer(r, "a", Answer::Delivered, 600), Step::Wait);
     assert_eq!(
-        c.on_answer(r, "a", discard(&["x"]), 800),
-        recheck(2800, 1)
+        c.on_answer(r, "a", Answer::Dirty, 500),
+        prompt_at("a", 2500)
     );
-    assert!(!reprompted(&c, "a"), "a phase-1 prompt must not set the bit");
-    assert_eq!(c.on_answer(r, "a", Answer::Dirty, 900), prompt_at("a", 2900));
+    assert_eq!(c.on_answer(r, "a", Answer::Delivered, 600), Step::Wait);
+    assert_eq!(c.on_answer(r, "a", discard(&["x"]), 800), recheck(2800, 1));
+    assert!(
+        !reprompted(&c, "a"),
+        "a phase-1 prompt must not set the bit"
+    );
+    assert_eq!(
+        c.on_answer(r, "a", Answer::Dirty, 900),
+        prompt_at("a", 2900)
+    );
     assert!(reprompted(&c, "a"));
 }
 
@@ -220,17 +229,38 @@ fn rc9_window_count_counts_only_live_windows() {
 fn rc10_ignored_inputs_during_a_recheck_are_inert() {
     let (base, r) = rc1();
     let rows: Vec<(&str, u64, &str, Answer, IgnoredWhy)> = vec![
-        ("delivered", r, "a", Answer::Delivered, IgnoredWhy::OutOfPhase),
+        (
+            "delivered",
+            r,
+            "a",
+            Answer::Delivered,
+            IgnoredWhy::OutOfPhase,
+        ),
         ("discard", r, "a", discard(&["x"]), IgnoredWhy::OutOfPhase),
         ("cancel", r, "a", Answer::Cancel, IgnoredWhy::OutOfPhase),
-        ("unknown label", r, "zz", Answer::Clean, IgnoredWhy::UnknownLabel),
-        ("stale request", r + 1, "a", Answer::Clean, IgnoredWhy::StaleRequest),
+        (
+            "unknown label",
+            r,
+            "zz",
+            Answer::Clean,
+            IgnoredWhy::UnknownLabel,
+        ),
+        (
+            "stale request",
+            r + 1,
+            "a",
+            Answer::Clean,
+            IgnoredWhy::StaleRequest,
+        ),
     ];
     for (name, id, label, answer, why) in rows {
         let mut c = base.clone();
         let before = c.clone();
         assert_eq!(c.on_answer(id, label, answer, 900), ignored(why), "{name}");
-        assert_eq!(c, before, "{name}: an ignored input must not change the state");
+        assert_eq!(
+            c, before,
+            "{name}: an ignored input must not change the state"
+        );
     }
     // A duplicate: the second clean from a window that already re-answered.
     let mut c = base.clone();

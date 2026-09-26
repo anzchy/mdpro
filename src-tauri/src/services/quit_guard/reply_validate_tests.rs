@@ -35,11 +35,7 @@ fn wi3_hostile_ids_are_refused_with_the_exact_fixed_message() {
     // Short ids make a "does not contain" check vacuous (`""` is in every
     // string), so the message is pinned by equality instead.
     for bad in ["", "a/b", "a\\b", "..", "../x", "..\\x", "x/../../y"] {
-        assert_eq!(
-            discard(owned(&[bad])),
-            Err(invalid_at(0)),
-            "bare {bad:?}"
-        );
+        assert_eq!(discard(owned(&[bad])), Err(invalid_at(0)), "bare {bad:?}");
         assert_eq!(
             discard(owned(&["ok1", bad])),
             Err(invalid_at(1)),
@@ -59,7 +55,11 @@ fn wi3_per_id_cap_is_counted_in_bytes_at_the_boundary() {
         ("é".repeat(MAX_DISCARD_ID_BYTES / 2 + 1), Err(())),
         ("é".repeat(MAX_DISCARD_ID_BYTES), Err(())),
     ];
-    assert_eq!(MAX_DISCARD_ID_BYTES % 2, 0, "the é cases assume an even cap");
+    assert_eq!(
+        MAX_DISCARD_ID_BYTES % 2,
+        0,
+        "the é cases assume an even cap"
+    );
     for (id, expected) in cases {
         let got = discard(vec![id.clone()]);
         match expected {
@@ -191,5 +191,8 @@ fn wi3_property_acceptance_partition_and_no_id_leak() {
             }
         }
     }
-    assert!(oks > CASES / 10 && errs > CASES / 10, "vacuous: {oks} ok, {errs} err");
+    assert!(
+        oks > CASES / 10 && errs > CASES / 10,
+        "vacuous: {oks} ok, {errs} err"
+    );
 }
