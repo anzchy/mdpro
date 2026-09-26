@@ -1,4 +1,5 @@
 pub mod draft;
+pub mod draft_recovery;
 pub mod export;
 pub mod file;
 pub mod image;
@@ -38,10 +39,11 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         menu::set_recent_files_menu,
         draft::save_draft,
         draft::get_draft,
-        draft::list_drafts,
-        draft::recover_draft,
         draft::delete_draft,
-        draft::cleanup_old_drafts,
+        draft_recovery::list_drafts,
+        draft_recovery::recover_draft,
+        draft_recovery::discard_recovery_draft,
+        draft_recovery::cleanup_old_drafts,
         window::create_window,
         window::save_window_geometry,
         window::get_window_geometry,
@@ -83,3 +85,19 @@ mod draft_backstop_order_tests;
 #[cfg(test)]
 #[path = "draft_backstop_undiscard_tests.rs"]
 mod draft_backstop_undiscard_tests;
+
+#[cfg(test)]
+#[path = "draft_owner_gate_tests.rs"]
+mod draft_owner_gate_tests;
+
+#[cfg(all(test, unix))]
+#[path = "draft_ctx_under_lock_tests.rs"]
+mod draft_ctx_under_lock_tests;
+
+#[cfg(all(test, unix))]
+#[path = "draft_log_redaction_tests.rs"]
+mod draft_log_redaction_tests;
+
+#[cfg(all(test, unix))]
+#[path = "draft_log_redaction_failure_tests.rs"]
+mod draft_log_redaction_failure_tests;

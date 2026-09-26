@@ -209,13 +209,14 @@ async fn g3_the_production_guard_and_the_save_command_share_one_gate() {
     assert!(!bundle(&home, "doc1").exists(), "the draft was not deleted");
 
     // The auto-save tick that was already in flight.
-    let refused = super::draft::save_draft(
-        "doc1".to_string(),
-        "BODY".to_string(),
-        None,
-        "t".to_string(),
-    )
-    .await;
+    //
+    // Spec edit (D27 WI-3, the one sanctioned edit): this called the
+    // `save_draft` command directly. The command now takes an injected
+    // `WebviewWindow` to stamp the draft owner (ADR-0038 §1), so a test can no
+    // longer call it. `save_draft_logged` is the command body minus that
+    // injection, and it writes through the same `QUIT_COMMITTED` gate. The
+    // assertions below are unchanged.
+    let refused = super::draft::save_draft_logged(None, "doc1", "BODY", None, "t");
     assert!(
         refused.is_err(),
         "the save command wrote a draft after the quit committed"

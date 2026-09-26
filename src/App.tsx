@@ -60,6 +60,8 @@ import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
 import { quitDialogModel } from "./utils/quitDialogModel";
 import { encodingReopenOutcome } from "./utils/openWriteGuard";
+import { recoverDraft, discardRecoveryDraft, type DraftMetadata } from "./services/draftService";
+import { draftRecoveryOutcome, type DraftActionOutcome } from "./utils/draftRecoveryOutcome";
 
 /**
  * What an open ConfirmDialog is about. Only `"document"` originates here now —
@@ -67,20 +69,6 @@ import { encodingReopenOutcome } from "./utils/openWriteGuard";
  * which exposes its own `pendingClose`.
  */
 type PendingClose = "document" | "window" | null;
-
-interface DraftMetadata {
-  id: string;
-  originalPath: string | null;
-  lastModified: string;
-  recovered: boolean;
-  title: string;
-}
-
-interface RecoverResult {
-  content: string;
-  originalPath: string | null;
-  title: string;
-}
 
 function App() {
   const {
@@ -579,37 +567,23 @@ function App() {
     setReloadMessage(null);
   }, [clearEvent]);
 
-  const handleRecoverDraft = useCallback(
-    async (draftId: string) => {
-      try {
-        const result = await invoke<RecoverResult>("recover_draft", { documentId: draftId });
-        const document: Document = {
-          id: draftId,
-          path: result.originalPath,
-          content: result.content,
-          encoding: "UTF-8",
-          lineEnding: "lf",
-          isModified: true,
-          lastSaved: null,
-          fileSize: null,
-        };
-        upsertAndActivateDocument(document);
-        setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
-      } catch {
-        showToast("Failed to recover draft");
-      }
+  const applyDraftOutcome = useCallback(
+    (draftId: string, input: DraftActionOutcome) => {
+      const { dropRow, upsert, toast } = draftRecoveryOutcome(draftId, input);
+      if (upsert) upsertAndActivateDocument(upsert);
+      if (dropRow) setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
+      if (toast) showToast(toast);
     },
     [showToast, upsertAndActivateDocument],
   );
 
+  const handleRecoverDraft = useCallback(async (draftId: string) => {
+    applyDraftOutcome(draftId, { action: "recover", outcome: await recoverDraft(draftId) });
+  }, [applyDraftOutcome]);
+
   const handleDiscardDraft = useCallback(async (draftId: string) => {
-    try {
-      await invoke("delete_draft", { documentId: draftId });
-      setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
-    } catch {
-      showToast("Failed to discard draft");
-    }
-  }, [showToast]);
+    applyDraftOutcome(draftId, { action: "discard", outcome: await discardRecoveryDraft(draftId) });
+  }, [applyDraftOutcome]);
 
   const handleEncodingSelect = useCallback(
     async (encoding: string) => {

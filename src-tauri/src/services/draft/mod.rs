@@ -1,3 +1,20 @@
+//! Purpose: crash-recovery drafts, one JSON bundle per document id under
+//! `<data_dir>/mdpro/drafts/`.
+//!
+//! Key decisions:
+//! - A bundle is written by tmp + rename, so content and metadata commit
+//!   together. Pre-bundle two-file drafts are still read and migrated.
+//! - A bundle may record its `owner` (session id + window label, ADR-0038).
+//!   The key is omitted when absent, and bundles without it still load.
+//! - `owner.rs` holds the pure "in use" rule, `types.rs` the public types,
+//!   `paths.rs` the directory and file-name helpers.
+//! - `lock::draft_lock()` (ADR-0038 §4) is held by `save_draft_as`, guarded
+//!   recover/discard and cleanup; their `*_with` forms build the `LiveContext`
+//!   under it. Lock-free writers: `delete_draft` (deliberate), `load_draft`'s
+//!   legacy migrate-on-read, and startup `migrate_legacy_drafts` (no windows).
+//! - `live_listing.rs` is the only listing/cleanup; it hides or keeps drafts in use.
+//!
+//! @coordinates-with docs/adr/0038-a-draft-in-use-by-a-live-window-is-not-offered-for-recovery.md
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -5,128 +22,54 @@ use std::path::{Path, PathBuf};
 
 use crate::models::{Draft, DraftMetadata};
 
-mod listing;
+mod guarded;
+mod live_listing;
+mod lock;
 mod migration;
+pub mod owner;
+mod paths;
 mod recovery;
+mod types;
+mod visibility;
 
-pub use listing::{cleanup_old_drafts, list_drafts};
+pub use guarded::{discard_draft_guarded_with, recover_draft_guarded_with};
+pub use live_listing::{cleanup_old_drafts_for_with, list_drafts_for};
+// The `&LiveContext` forms are test-only: a caller-built context is the
+// snapshot-before-lock pattern the `*_with` forms exist to close.
+#[cfg(test)]
+pub(crate) use guarded::{discard_draft_guarded, recover_draft_guarded};
+#[cfg(test)]
+pub(crate) use live_listing::cleanup_old_drafts_for;
 pub use migration::migrate_legacy_drafts;
-pub use recovery::recover_draft;
+pub use visibility::visible;
 
-// ── Public types ──────────────────────────────────────────────────────────────
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum DraftError {
-    IoError { message: String },
-    NotFound { document_id: String },
-    ParseError { message: String },
-}
-
-impl std::fmt::Display for DraftError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DraftError::IoError { message } => write!(f, "io error: {message}"),
-            DraftError::NotFound { document_id } => {
-                write!(f, "draft not found: {document_id}")
-            }
-            DraftError::ParseError { message } => write!(f, "parse error: {message}"),
-        }
-    }
-}
-
-impl std::error::Error for DraftError {}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DraftSaveResult {
-    pub success: bool,
-    pub draft_path: String,
-    pub saved_at: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DraftMetadataEntry {
-    pub id: String,
-    pub original_path: Option<String>,
-    pub last_modified: String,
-    pub recovered: bool,
-    pub title: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RecoverResult {
-    pub content: String,
-    pub original_path: Option<String>,
-    pub title: String,
-}
+#[cfg(test)]
+pub(crate) use lock::{draft_lock, draft_lock_is_held};
+pub use owner::{
+    in_use, owner_is_live, session_id, InUseReason, LiveContext, OpenSet, ShadowUnavailable,
+};
+pub(crate) use paths::is_valid_draft_id;
+use paths::{bundle_path, drafts_dir, ensure_dir, legacy_draft_path, legacy_meta_path};
+pub use types::{
+    CleanupCounts, DraftError, DraftListCounts, DraftListing, DraftMetadataEntry, DraftOwner,
+    DraftSaveResult, RecoverResult,
+};
 
 // ── Internal bundle ───────────────────────────────────────────────────────────
 
 /// On-disk representation: content + metadata in a single JSON file.
 /// One atomic rename commits both, eliminating the two-file inconsistency window.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct DraftBundle {
+    /// Absent in bundles written before ADR-0038, and never written as null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<DraftOwner>,
     pub content: String,
     pub original_path: Option<String>,
     pub last_modified: String,
     pub recovered: bool,
     pub title: String,
-}
-
-// ── Path helpers ──────────────────────────────────────────────────────────────
-
-pub(super) fn drafts_dir() -> Result<PathBuf, DraftError> {
-    let data = dirs::data_dir().ok_or_else(|| DraftError::IoError {
-        message: "could not determine data directory".to_string(),
-    })?;
-    Ok(data.join("mdpro").join("drafts"))
-}
-
-fn validate_id(id: &str) -> Result<(), DraftError> {
-    if id.is_empty() || id.contains('/') || id.contains('\\') || id.contains("..") {
-        return Err(DraftError::IoError {
-            message: format!("invalid document id: {id:?}"),
-        });
-    }
-    Ok(())
-}
-
-/// Whether `document_id` is one this module will build a path for.
-///
-/// The quit guard needs the same answer *before* it starts deleting, so one bad
-/// id in a discard list refuses the whole list instead of half-applying it.
-pub(crate) fn is_valid_draft_id(document_id: &str) -> bool {
-    validate_id(document_id).is_ok()
-}
-
-/// Bundle file: `{document_id}.draft.json`
-pub(super) fn bundle_path(document_id: &str) -> Result<PathBuf, DraftError> {
-    validate_id(document_id)?;
-    Ok(drafts_dir()?.join(format!("{document_id}.draft.json")))
-}
-
-/// Legacy content file (pre-bundle format): `{document_id}.draft.md`
-pub(super) fn legacy_draft_path(document_id: &str) -> Result<PathBuf, DraftError> {
-    validate_id(document_id)?;
-    Ok(drafts_dir()?.join(format!("{document_id}.draft.md")))
-}
-
-/// Legacy metadata file (pre-bundle format): `{document_id}.meta.json`
-pub(super) fn legacy_meta_path(document_id: &str) -> Result<PathBuf, DraftError> {
-    validate_id(document_id)?;
-    Ok(drafts_dir()?.join(format!("{document_id}.meta.json")))
-}
-
-fn ensure_dir(path: &Path) -> Result<(), DraftError> {
-    if !path.exists() {
-        fs::create_dir_all(path).map_err(|err| DraftError::IoError {
-            message: err.to_string(),
-        })?;
-    }
-    Ok(())
 }
 
 // ── Atomic write helper ───────────────────────────────────────────────────────
@@ -168,7 +111,22 @@ pub(super) fn write_bundle_atomic(
 
 // ── Core storage operations ───────────────────────────────────────────────────
 
+/// Write the bundle with no owner. Kept with its original signature for the
+/// callers that predate ADR-0038; see [`save_draft_as`].
 pub fn save_draft(
+    document_id: &str,
+    content: &str,
+    original_path: Option<String>,
+    title: &str,
+) -> Result<DraftSaveResult, DraftError> {
+    save_draft_as(None, document_id, content, original_path, title)
+}
+
+/// Write the bundle, stamping `owner` (ADR-0038 §1), under the draft lock.
+/// A full overwrite: `owner: None` leaves no owner, whatever the previous
+/// bundle held, and `recovered` is reset to false.
+pub fn save_draft_as(
+    owner: Option<DraftOwner>,
     document_id: &str,
     content: &str,
     original_path: Option<String>,
@@ -177,10 +135,13 @@ pub fn save_draft(
     let dir = drafts_dir()?;
     ensure_dir(&dir)?;
 
+    // Serialises with guarded recover/discard/cleanup (ADR-0038 §4).
+    let _draft_lock = lock::draft_lock();
     let now = Utc::now();
     let dest = bundle_path(document_id)?;
 
     let bundle = DraftBundle {
+        owner,
         content: content.to_string(),
         original_path,
         last_modified: now.to_rfc3339(),
@@ -241,6 +202,7 @@ pub fn load_draft(document_id: &str) -> Result<Option<Draft>, DraftError> {
 
     // Migrate to bundle format — best-effort; read succeeds even if migration fails.
     let bundle = DraftBundle {
+        owner: None,
         content: content.clone(),
         original_path: original_path.clone(),
         last_modified: last_modified.clone(),
@@ -314,141 +276,17 @@ pub fn delete_draft(document_id: &str) -> Result<bool, DraftError> {
     Ok(deleted)
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-
-    // Use the crate-level HOME_LOCK so these tests cannot race on the
-    // process-wide $HOME with commands::draft or services::draft::migration
-    // tests that also redirect $HOME to a temp directory.
-    use crate::HOME_LOCK;
-
-    fn make_temp_home(label: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join("mdpro_test").join(label);
-        fs::create_dir_all(&dir).unwrap();
-        dir
-    }
-
-    struct HomeRestorer(Option<String>);
-    impl Drop for HomeRestorer {
-        fn drop(&mut self) {
-            match &self.0 {
-                Some(v) => unsafe { std::env::set_var("HOME", v) },
-                None => unsafe { std::env::remove_var("HOME") },
-            }
-        }
-    }
-
-    /// SAFETY: caller must hold HOME_LOCK for the lifetime of the guard.
-    fn set_home(path: &Path) -> HomeRestorer {
-        let prev = std::env::var("HOME").ok();
-        unsafe { std::env::set_var("HOME", path.to_str().expect("temp dir path is non-UTF-8")) };
-        HomeRestorer(prev)
-    }
-
-    // Regression test for issue #75:
-    // close_document with discard_changes=true relies on delete_draft returning
-    // Ok(true) and removing the bundle file. Before the fix, close_document
-    // always returned draft_deleted: false and never called delete_draft, so
-    // stale drafts were offered for recovery on next launch.
-    //
-    // Note: close_document cannot be tested at the command level here because
-    // it requires tauri::State<'_, FileWatcher>, which needs a full AppHandle
-    // to construct. The service-level test below pins the exact behaviour that
-    // the fixed command path depends on.
-    #[test]
-    fn test_delete_draft_removes_file_and_returns_true() {
-        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let home = make_temp_home("dd_exists");
-        let _home_guard = set_home(&home);
-
-        // dirs::data_dir() now resolves inside the temp home.
-        let drafts = dirs::data_dir()
-            .unwrap_or_else(|| home.clone())
-            .join("mdpro")
-            .join("drafts");
-        fs::create_dir_all(&drafts).unwrap();
-
-        let id = "test75_doc_exists";
-
-        save_draft(id, "# hello", None, "Test Doc").expect("save_draft must succeed");
-
-        let bundle = bundle_path(id).expect("bundle_path must resolve");
-        assert!(bundle.exists(), "draft file must exist after save_draft");
-
-        // This is the call that close_document with discard_changes=true makes.
-        let result = delete_draft(id).expect("delete_draft must not error");
-        assert!(result, "delete_draft must return true when draft existed");
-        assert!(
-            !bundle.exists(),
-            "draft file must be gone after delete_draft"
-        );
-
-        let _ = fs::remove_dir_all(&home);
-    }
-
-    #[test]
-    fn test_delete_draft_returns_false_when_no_draft() {
-        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let home = make_temp_home("dd_absent");
-        let _home_guard = set_home(&home);
-
-        let result = delete_draft("test75_no_such_doc")
-            .expect("delete_draft must not error on missing draft");
-        assert!(
-            !result,
-            "delete_draft must return false when draft was absent"
-        );
-
-        let _ = fs::remove_dir_all(&home);
-    }
-
-    #[test]
-    fn test_delete_draft_removes_legacy_files() {
-        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let home = make_temp_home("dd_legacy");
-        let _home_guard = set_home(&home);
-
-        let drafts = dirs::data_dir()
-            .unwrap_or_else(|| home.clone())
-            .join("mdpro")
-            .join("drafts");
-        fs::create_dir_all(&drafts).unwrap();
-
-        let id = "test75_legacy_doc";
-
-        // Write legacy two-file format directly (bypassing save_draft which uses bundle format).
-        let legacy_draft = legacy_draft_path(id).expect("legacy_draft_path must resolve");
-        let legacy_meta = legacy_meta_path(id).expect("legacy_meta_path must resolve");
-        fs::write(&legacy_draft, "# Legacy content").unwrap();
-        fs::write(&legacy_meta, r#"{"originalPath":null,"lastModified":"2024-01-01T00:00:00Z","recovered":false,"title":"Legacy"}"#).unwrap();
-
-        assert!(
-            legacy_draft.exists(),
-            "legacy .draft.md must exist before delete"
-        );
-        assert!(
-            legacy_meta.exists(),
-            "legacy .meta.json must exist before delete"
-        );
-
-        let result = delete_draft(id).expect("delete_draft must not error on legacy files");
-        assert!(
-            result,
-            "delete_draft must return true when legacy files existed"
-        );
-        assert!(
-            !legacy_draft.exists(),
-            ".draft.md must be gone after delete_draft"
-        );
-        assert!(
-            !legacy_meta.exists(),
-            ".meta.json must be gone after delete_draft"
-        );
-
-        let _ = fs::remove_dir_all(&home);
-    }
-}
+#[path = "bundle_compat_tests.rs"]
+mod bundle_compat_tests;
+#[cfg(test)]
+#[path = "draft_store_tests.rs"]
+mod draft_store_tests;
+#[cfg(test)]
+#[path = "draft_test_home.rs"]
+mod draft_test_home;
+// The open_route symlink fixture and store builders, shared by the WI-2 tests.
+#[cfg(all(test, unix))]
+#[allow(clippy::duplicate_mod, dead_code)]
+#[path = "../open_route/lookup_fixture.rs"]
+mod draft_fixture;
