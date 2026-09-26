@@ -36,16 +36,21 @@
  * - **`minSize` beats the work area when the two conflict.** On a work area
  *   smaller than `minSize`, `clampToWorkArea` returns `minSize` rather than a
  *   rectangle the OS would reject against `min_inner_size`
- *   (`src-tauri/src/commands/window.rs:51`, `src-tauri/src/main.rs:99`).
+ *   (`apply_resolved` in `src-tauri/src/services/window_restore.rs`, which
+ *   applies `MIN_WINDOW_SIZE` from `src-tauri/src/services/window_geometry.rs`).
  *   Containment is therefore an invariant *with a precondition*: it holds
  *   whenever a rectangle of at least `minSize` fits.
+ * - **The global `windowState` is `main`'s alone** (D24 WI-4, ADR-0037).
+ *   `ownsGlobalWindowState` is the gate and `windowStateAction` the decision;
+ *   every non-`main` window gets `skip`.
  * - **Every returned field is an integer**, including from the clamp — a
  *   `LogicalPosition` accepts a float, so a half-pixel would otherwise reach
  *   the window server unnoticed.
  *
  * @module src/utils/windowGeometry
  * @coordinates-with src/hooks/useWindowCloseGuard.ts (save path, WI-3)
- * @coordinates-with src/App.tsx (restore path, WI-3)
+ * @coordinates-with src/services/windowStateApplier.ts (restore path: the
+ *   `main`-only gate and action of D24 WI-4 are interpreted there)
  * @coordinates-with src-tauri/src/commands/window.rs (per-file geometry, WI-3)
  */
 
@@ -73,17 +78,19 @@ export interface WindowSize {
 
 /**
  * The floor `clampToWorkArea` applies when no `minSize` is passed. Mirrors
- * `min_inner_size` in `src-tauri/src/commands/window.rs:51` and
- * `src-tauri/src/main.rs:99`; those three must change together.
+ * `MIN_WINDOW_SIZE` (`src-tauri/src/services/window_geometry.rs`), which
+ * `apply_resolved` (`src-tauri/src/services/window_restore.rs`) passes to
+ * `min_inner_size`; the two must change together.
  */
 export const DEFAULT_MIN_WINDOW_SIZE: WindowSize = { width: 600, height: 400 };
 
 /**
- * Coerce a scale factor to a usable positive finite number.
+ * Coerce a scale factor to a usable positive finite number. Exported for the
+ * monitor work-area conversion in `src/services/windowStateApplier.ts`.
  *
  * @returns `scaleFactor` when it is finite and positive, otherwise `1`.
  */
-function normalizeScaleFactor(scaleFactor: number): number {
+export function normalizeScaleFactor(scaleFactor: number): number {
   return Number.isFinite(scaleFactor) && scaleFactor > 0 ? scaleFactor : 1;
 }
 
@@ -169,4 +176,62 @@ export function clampToWorkArea(
     width,
     height,
   };
+}
+
+/**
+ * A stored window record: a logical rectangle plus the maximized flag.
+ * Structurally identical to `WindowState` in `src/types/preferences.ts`,
+ * declared here so this module keeps importing nothing.
+ */
+export interface WindowStateRecord extends WindowGeometry {
+  isMaximized: boolean;
+}
+
+/** What hydration should do to the current window with the global record. */
+export type WindowStateAction =
+  | { kind: "skip" }
+  | { kind: "maximize" }
+  | { kind: "set"; geometry: WindowGeometry };
+
+/**
+ * The Tauri label of the one window that owns the global `windowState`
+ * (ADR-0037). The label string is a contract with `tauri.conf.json`.
+ */
+export const GLOBAL_WINDOW_STATE_OWNER = "main";
+
+/**
+ * Whether the window with `label` owns the global `windowState`.
+ *
+ * Exact equality with `"main"`: no prefix, case-folding or trimming. Every
+ * other window's geometry belongs to the Rust builder (per-file restore or
+ * the cascaded default), so hydration must not move it.
+ */
+export function ownsGlobalWindowState(label: string): boolean {
+  return label === GLOBAL_WINDOW_STATE_OWNER;
+}
+
+/**
+ * Decide what hydration does with the global `windowState`.
+ *
+ * Non-owners always `skip`, checked before `isMaximized` so a maximized
+ * `main` never maximizes a secondary window. For the owner: `maximize` when
+ * the record is maximized, otherwise a `set` clamped against `workArea`, or
+ * against the record itself when no monitor was reported (the size floor
+ * still applies and nothing moves off a display the app cannot see).
+ * `set` is a fixed point: re-applying it yields the same geometry.
+ */
+export function windowStateAction(
+  owner: boolean,
+  state: WindowStateRecord,
+  workArea: WorkArea | null,
+): WindowStateAction {
+  if (!owner) return { kind: "skip" };
+  if (state.isMaximized) return { kind: "maximize" };
+  const record: WindowGeometry = {
+    x: state.x,
+    y: state.y,
+    width: state.width,
+    height: state.height,
+  };
+  return { kind: "set", geometry: clampToWorkArea(record, workArea ?? record) };
 }

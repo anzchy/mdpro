@@ -1,20 +1,20 @@
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, WindowGeometry};
 use crate::services::logger;
 use crate::services::preferences::{load_preferences, preferences_rw_lock, save_preferences};
+use crate::services::window_restore;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, WebviewUrl, WebviewWindowBuilder};
 use uuid::Uuid;
 
-/// The pure geometry rules (validation, clamp, resolve). Kept in their own file
-/// so this one stays under the 300-line limit (rule 50 §6); they are private to
-/// the window commands, not a public surface.
-#[path = "window_geometry.rs"]
-mod geometry;
-use geometry::{
-    clamp_geometry, resolve_window_geometry, sanitize_geometry, GeometryError, ResolvedGeometry,
-    WorkArea, DEFAULT_WINDOW_SIZE, FALLBACK_WORK_AREA, MAX_WINDOW_COORDINATE, MAX_WINDOW_DIMENSION,
-    MIN_WINDOW_COORDINATE, MIN_WINDOW_SIZE,
+/// The pure geometry rules (validation, clamp, resolve) live in
+/// `services/window_geometry.rs`, shared with `services/window_restore.rs`.
+use crate::services::window_geometry::sanitize_geometry;
+// `window_tests.rs` reaches the rest of the rules through `use super::*`.
+#[cfg(test)]
+use crate::services::window_geometry::{
+    clamp_geometry, resolve_window_geometry, GeometryError, WorkArea, DEFAULT_WINDOW_SIZE,
+    MAX_WINDOW_COORDINATE, MAX_WINDOW_DIMENSION, MIN_WINDOW_COORDINATE, MIN_WINDOW_SIZE,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -49,26 +49,16 @@ pub async fn create_window(
 
     let window_id = format!("mdpro-{}", Uuid::new_v4());
 
-    // Get stored geometry if file path provided
-    let geometry = if let Some(ref path) = file_path {
-        get_stored_geometry(path)
-    } else {
-        None
-    };
-
-    // Build the window
-    let mut builder = WebviewWindowBuilder::new(&app, &window_id, WebviewUrl::default())
-        .title("Untitled - mdpro")
-        .min_inner_size(MIN_WINDOW_SIZE.0, MIN_WINDOW_SIZE.1);
-
-    // Apply stored or default geometry. The *decision* lives in
-    // `resolve_window_geometry` so the rust lane can test it; only the builder
-    // calls below need a live app handle and a window server.
-    let resolved = resolve_window_geometry(geometry, primary_work_area(&app), MIN_WINDOW_SIZE);
-    if let Some((x, y)) = resolved.position {
-        builder = builder.position(x, y);
-    }
-    builder = builder.inner_size(resolved.size.0, resolved.size.1);
+    // Stored geometry for the file (any spelling of its path), else the fitted
+    // default with no position. The decision is `window_restore`'s, shared with
+    // `open_file_in_new_window`; only `apply_resolved` touches the builder.
+    let (resolved, outcome) = window_restore::restore_geometry_for(
+        file_path.as_deref(),
+        window_restore::primary_work_area(&app),
+    );
+    let builder = WebviewWindowBuilder::new(&app, &window_id, WebviewUrl::default())
+        .title("Untitled - mdpro");
+    let builder = window_restore::apply_resolved(builder, &resolved);
 
     let window = builder.build().map_err(|e| {
         let elapsed = start.elapsed().as_millis() as u64;
@@ -92,11 +82,15 @@ pub async fn create_window(
 
     let elapsed = start.elapsed().as_millis() as u64;
     logger::log_event(LogEntryPayload {
-        level: LogLevel::Info,
+        level: window_restore::restore_log_level(&outcome),
         event: "window.create".to_string(),
         status: LogStatus::Success,
         action_id: Some(action_id),
-        context: Some(json!({ "windowId": window_id, "filePath": file_path })),
+        context: Some(window_restore::window_create_context(
+            &window_id,
+            file_path.as_deref(),
+            &outcome,
+        )),
         duration_ms: Some(elapsed),
         error: None,
     });
@@ -156,41 +150,35 @@ pub async fn save_window_geometry(
     Ok(())
 }
 
-/// Get stored window geometry for a file path
+/// Get the stored window geometry for a file path — the DevTools confirmation
+/// surface. Goes through `window_restore::read_stored_geometry`, the same read
+/// restore uses: under `preferences_rw_lock` (so a first-run default
+/// `config.json` cannot race a `save_window_geometry`) and with the same
+/// alias-tolerant lookup, so what it reports is what a window opened for that
+/// file gets. A corrupt `config.json` is an `Err`, not a fake `None`.
 #[tauri::command]
 pub async fn get_window_geometry(file_path: String) -> Result<GetWindowGeometryResponse, String> {
-    let prefs = load_preferences().map_err(|e| format!("{:?}", e))?;
-    let geometry = prefs.window_states.get(&file_path).cloned();
+    let geometry =
+        window_restore::read_stored_geometry(&file_path).map_err(|e| format!("{:?}", e))?;
     Ok(GetWindowGeometryResponse { geometry })
-}
-
-/// Helper to get stored geometry
-fn get_stored_geometry(file_path: &str) -> Option<WindowGeometry> {
-    let prefs = load_preferences().ok()?;
-    prefs.window_states.get(file_path).cloned()
-}
-
-/// The primary monitor's work area in logical points, or [`FALLBACK_WORK_AREA`]
-/// when the platform reports no monitor.
-fn primary_work_area(app: &AppHandle) -> WorkArea {
-    let Ok(Some(monitor)) = app.primary_monitor() else {
-        return FALLBACK_WORK_AREA;
-    };
-    let raw = monitor.scale_factor();
-    let scale = if raw.is_finite() && raw > 0.0 {
-        raw
-    } else {
-        1.0
-    };
-    let area = monitor.work_area();
-    WorkArea {
-        x: area.position.x as f64 / scale,
-        y: area.position.y as f64 / scale,
-        width: area.size.width as f64 / scale,
-        height: area.size.height as f64 / scale,
-    }
 }
 
 #[cfg(test)]
 #[path = "window_tests.rs"]
 mod window_tests;
+// The lookup fixture is shared with `open_route::lookup`, not copied (its
+// items are `pub(super)`, so each user re-includes it). Only the `Fixture`
+// part is used here, hence `dead_code`.
+#[cfg(all(test, unix))]
+#[allow(dead_code, clippy::duplicate_mod)]
+#[path = "../services/open_route/lookup_fixture.rs"]
+mod window_fixture;
+#[cfg(test)]
+#[path = "window_locked_get_tests.rs"]
+mod window_locked_get_tests;
+#[cfg(all(test, unix))]
+#[path = "window_lookup_tests.rs"]
+mod window_lookup_tests;
+#[cfg(test)]
+#[path = "window_wiring_tests.rs"]
+mod window_wiring_tests;

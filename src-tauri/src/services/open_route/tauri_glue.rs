@@ -11,16 +11,21 @@
 //!   live set and the emit would silently swallow the open.
 //! - **The route log is Info/Success**, except when the executor passes an
 //!   emit error (the new-window fallback): then it is Warn/Fail with the text.
-//! - `open_file_in_new_window` and `has_windows_with_documents` moved here
-//!   from `main.rs` unchanged, so the shim can call them.
+//! - `open_file_in_new_window` and `has_windows_with_documents` live here so
+//!   the shim can call them. `open_file_in_new_window` restores the file's
+//!   stored geometry (D24 follow-up) through
+//!   `window_restore::restore_geometry_for` and `apply_resolved`; it holds no
+//!   window size of its own. A read failure still opens the window at the
+//!   default and logs `window.open` at Warn with `geometryReason: "read_failed"`.
 //!
-//! @coordinates-with src-tauri/src/main.rs
+//! @coordinates-with src-tauri/src/main.rs, services/window_restore.rs
 use super::{
     execute_plan, lookup_all, plan_route, OpenInWindowPayload, RouteTarget, Source,
     OPEN_IN_WINDOW_EVENT,
 };
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::logger;
+use crate::services::window_restore;
 use serde_json::json;
 use std::collections::HashSet;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
@@ -96,31 +101,31 @@ pub fn has_windows_with_documents(app: &AppHandle) -> bool {
     true
 }
 
-/// Open file in a new window
+/// Open `path` in a new window at the file's stored geometry, or at the
+/// fitted default when there is none (or it cannot be read).
 pub fn open_file_in_new_window(app: &AppHandle, path: String) {
     let window_id = format!("mdpro-{}", uuid::Uuid::new_v4());
     // Encode the path as URL parameter so the React app can read it on load
     // This avoids the race condition where emit() fires before React is ready
     let encoded_path = urlencoding::encode(&path);
     let url = WebviewUrl::App(format!("/?open={}", encoded_path).into());
+    let (resolved, outcome) =
+        window_restore::restore_geometry_for(Some(&path), window_restore::primary_work_area(app));
+    let builder = WebviewWindowBuilder::new(app, &window_id, url).title("Untitled - mdpro");
 
-    match WebviewWindowBuilder::new(app, &window_id, url)
-        .title("Untitled - mdpro")
-        .inner_size(1200.0, 800.0)
-        .min_inner_size(600.0, 400.0)
-        .build()
-    {
+    match window_restore::apply_resolved(builder, &resolved).build() {
         Ok(window) => {
             logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
+                level: window_restore::restore_log_level(&outcome),
                 event: "window.open".to_string(),
                 status: LogStatus::Success,
                 action_id: None,
-                context: Some(json!({
-                    "windowId": window_id,
-                    "windowLabel": window.label(),
-                    "filePath": path
-                })),
+                context: Some(window_restore::window_open_context(
+                    &window_id,
+                    window.label(),
+                    &path,
+                    &outcome,
+                )),
                 duration_ms: None,
                 error: None,
             });

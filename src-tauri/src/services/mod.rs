@@ -11,3 +11,5 @@ pub mod open_route;
 pub mod preferences;
 pub mod quit_guard;
 pub mod shadow_store;
+pub(crate) mod window_geometry;
+pub mod window_restore;

@@ -33,7 +33,7 @@ import { fileService } from "./services/fileService";
 import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
 import { performSave } from "./services/saveService";
-import { clampToWorkArea } from "./utils/windowGeometry";
+import { applyWindowState } from "./services/windowStateApplier";
 import type { Document } from "./types/document";
 import {
   activeDocumentAfterFlush,
@@ -45,7 +45,7 @@ import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
 import { buildSourceTablesWithheldLog } from "./utils/sourceTableWithheldLog";
 import { shouldEvaluateGuard, sourceTableVerdictOf } from "./utils/sourceTableVerdict";
 import type { ViewMode } from "./types/editor";
-import type { KeyboardShortcuts, WindowState } from "./types/preferences";
+import type { KeyboardShortcuts } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { isSourceTablesWithheld, useEditorStore } from "./stores/editorStore";
@@ -200,46 +200,6 @@ function App() {
     void preferencesService.setPreferences({ showSidebar: next });
   }, [toggleSidebar]);
 
-
-
-  // The stored record is (outer position, inner size) in logical points —
-  // see the D-c note in src/hooks/useWindowCloseGuard.ts. `setSize` takes an
-  // inner size and `setPosition` an outer position, so the frames match; the
-  // clamp is what keeps a pre-WI-3 record (physical pixels, 2x inflated on
-  // Retina) from opening a window larger than the display (decision D-a).
-  const applyWindowState = useCallback(async (state: WindowState) => {
-    try {
-      const { getCurrentWindow, LogicalPosition, LogicalSize, currentMonitor } = await import(
-        "@tauri-apps/api/window"
-      );
-      const currentWindow = getCurrentWindow();
-      if (state.isMaximized) {
-        await currentWindow.maximize();
-        return;
-      }
-      const monitor = await currentMonitor();
-      const scale = monitor && monitor.scaleFactor > 0 ? monitor.scaleFactor : 1;
-      const workArea = monitor
-        ? {
-            x: monitor.workArea.position.x / scale,
-            y: monitor.workArea.position.y / scale,
-            width: monitor.workArea.size.width / scale,
-            height: monitor.workArea.size.height / scale,
-          }
-        : // No monitor reported: clamp against the record itself, so the size
-          // floor still applies and nothing is moved off a display we cannot see.
-          { x: state.x, y: state.y, width: state.width, height: state.height };
-      const geometry = clampToWorkArea(
-        { x: state.x, y: state.y, width: state.width, height: state.height },
-        workArea,
-      );
-      await currentWindow.setSize(new LogicalSize(geometry.width, geometry.height));
-      await currentWindow.setPosition(new LogicalPosition(geometry.x, geometry.y));
-    } catch {
-      // Ignore if window API is not available.
-    }
-  }, []);
-
   // Keep window title static — filename removed per #374
   useEffect(() => {
     const setStaticTitle = async () => {
@@ -309,7 +269,6 @@ function App() {
     };
   }, [
     applyThemeMode,
-    applyWindowState,
     setAutoSaveInterval,
     setDefaultViewMode,
     setRecentFiles,

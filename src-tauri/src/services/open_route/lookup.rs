@@ -77,12 +77,15 @@ fn candidates(store: &ShadowStore, live_labels: &HashSet<String>) -> Vec<Candida
 }
 
 /// Canonical form when available; `None` when canonicalization fails.
-fn canonical(path: &str) -> Option<PathBuf> {
+/// Crate-visible so `services/window_restore.rs` applies the same path rule.
+pub(crate) fn canonical(path: &str) -> Option<PathBuf> {
     std::fs::canonicalize(path).ok()
 }
 
 /// Canonical comparison, or raw string comparison when either side fails.
-fn same_file(incoming: &str, incoming_canon: Option<&PathBuf>, stored: &str) -> bool {
+/// Crate-visible: per-file window-geometry restore uses this same rule
+/// (ADR-0033 decision 2), so a change here moves both.
+pub(crate) fn same_file(incoming: &str, incoming_canon: Option<&PathBuf>, stored: &str) -> bool {
     match (incoming_canon, canonical(stored)) {
         (Some(a), Some(b)) => *a == b,
         _ => incoming == stored,
@@ -133,8 +136,10 @@ fn choose(candidates: &[Candidate], path: &str) -> RouteLookup {
     }
 }
 
-// The fixture uses real symlinks, so these tests are Unix-only.
+// The fixture uses real symlinks, so these tests are Unix-only. It is also
+// re-included (not copied) by `window_restore` and `commands::window`.
 #[cfg(all(test, unix))]
+#[allow(clippy::duplicate_mod)]
 #[path = "lookup_fixture.rs"]
 mod lookup_fixture;
 #[cfg(all(test, unix))]

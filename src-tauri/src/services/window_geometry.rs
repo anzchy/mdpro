@@ -1,13 +1,21 @@
 //! Pure window-geometry rules shared by `create_window` and
-//! `save_window_geometry` (ADR-0031 step 2, WI-3).
+//! `save_window_geometry` in `commands/window.rs` (ADR-0031 step 2, WI-3), and
+//! by the per-file restore in `services/window_restore.rs` (D24 follow-up).
 //!
 //! Purpose: decide what rectangle a window opens with, and refuse a geometry
 //! the frontend or a hand-edited `config.json` should never have produced.
 //! Nothing here touches Tauri, the filesystem or the preferences store, so the
 //! rust lane can call it directly — the builder call that consumes it needs a
 //! live app handle and a window server, and is the only part left uncovered.
+//! Its tests stay in `commands/window_tests.rs`, which reaches these items
+//! through `commands/window.rs`'s imports.
+//!
+//! @coordinates-with services/window_restore.rs, commands/window.rs
 //!
 //! Key decisions:
+//! - **Lives in `services/`, not `commands/`**, so the restore service can use
+//!   it without a production `services → commands` dependency (moved from
+//!   `commands/window_geometry.rs` in the D24 follow-up, WI-1).
 //! - **Reference frame**: every `WindowGeometry` here is (outer position, inner
 //!   size) in **logical points**. See the D-c note in
 //!   `src/hooks/useWindowCloseGuard.ts` and the `WindowGeometry` doc comment in
@@ -20,8 +28,9 @@
 //!   hazard, so the two test domains are deliberately shared; a divergence
 //!   shows up as one lane red and the other green.
 //! - **All clamp arithmetic is `f64` with saturating casts back**, because
-//!   `get_stored_geometry` hands `create_window` a record straight off disk
-//!   with no guard in front of it, and a debug-profile overflow inside a
+//!   `find_stored_geometry` (`services/window_restore.rs`) hands
+//!   `restore_geometry_for` a record straight off disk with no guard in front
+//!   of it, and a debug-profile overflow inside a
 //!   `#[tauri::command]` is what rule 60 forbids.
 
 use crate::models::WindowGeometry;
@@ -33,10 +42,14 @@ pub(crate) const MAX_WINDOW_DIMENSION: u32 = 32_767;
 /// Bounds for `x`/`y`, same range, signed.
 pub(crate) const MAX_WINDOW_COORDINATE: i32 = 32_767;
 pub(crate) const MIN_WINDOW_COORDINATE: i32 = -32_768;
-/// Size of a window with no stored record. Mirrors `main.rs`.
+/// Size of a window with no stored record. Mirrors the `main` window's
+/// `width`/`height` in `tauri.conf.json`.
 pub(crate) const DEFAULT_WINDOW_SIZE: (f64, f64) = (1200.0, 800.0);
-/// Floor every window is held above. Mirrors `min_inner_size` below,
-/// `main.rs:99` and `DEFAULT_MIN_WINDOW_SIZE` in `src/utils/windowGeometry.ts`.
+/// Floor every window is held above. Mirrors the `min_inner_size` call in
+/// `apply_resolved` (`services/window_restore.rs`) and
+/// `DEFAULT_MIN_WINDOW_SIZE` in `src/utils/windowGeometry.ts`. The `main`
+/// window's `minWidth`/`minHeight` in `tauri.conf.json` (400×640) do not match
+/// this floor; that mismatch predates D24 and is tracked separately.
 pub(crate) const MIN_WINDOW_SIZE: (f64, f64) = (600.0, 400.0);
 /// Used only when the platform reports no monitor at all. Spanning the whole
 /// representable coordinate range makes the clamp a no-op apart from the size
@@ -117,8 +130,8 @@ pub(crate) fn sanitize_geometry(geometry: WindowGeometry) -> Result<WindowGeomet
 /// rule stated twice and their test domains are deliberately shared.
 ///
 /// All arithmetic is in `f64` and every cast back is saturating, so a value
-/// already on disk — which `get_stored_geometry` reads with no guard in front
-/// of it — cannot overflow-panic inside a `#[tauri::command]`.
+/// already on disk — which `find_stored_geometry` (`services/window_restore.rs`)
+/// reads with no guard in front of it — cannot overflow-panic inside a `#[tauri::command]`.
 pub(crate) fn clamp_geometry(
     geometry: WindowGeometry,
     work_area: WorkArea,
