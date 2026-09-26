@@ -12,6 +12,7 @@ pub mod quit_guard;
 pub mod toc;
 pub mod updater;
 pub mod window;
+pub mod window_state;
 
 pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
     tauri::generate_handler![
@@ -33,7 +34,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         preferences::get_preferences,
         preferences::set_preferences,
         preferences::get_system_theme,
-        preferences::save_window_state,
+        window_state::save_window_state,
         preferences::pick_export_folder,
         launch::get_launch_paths,
         menu::set_recent_files_menu,

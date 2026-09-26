@@ -54,7 +54,10 @@
  *   ordering; WI-3 makes it a decision and gives it the `status: "fail"` log
  *   entry rule 20 requires, replacing a bare `catch {}`. WI-1 is what makes
  *   this path reachable at all — before it, `save_window_state` swallowed a
- *   load failure and returned `Ok`.
+ *   load failure and returned `Ok`. It is scoped to `main` (see next item).
+ * - **Only `main` writes the global `windowState` (ADR-0037 Decision 3).**
+ *   `ownsGlobalWindowState` decides after `scaleFactor()`. Other windows log
+ *   an enum-only `skipped`/`not_main` entry and still write per-file geometry.
  * - **A cancelled window prompt calls `onCloseCancelled` (D29, ADR-0033
  *   Decision 4).** Rust dropped this window's routing entry on
  *   `CloseRequested`; App passes `useMcpSync().forceSync` to re-register it.
@@ -70,13 +73,14 @@
  * @coordinates-with src/hooks/useMcpSync.ts — `forceSync`, the re-registration
  * @coordinates-with src/utils/dataLossGuards.ts — `windowCloseDecisionAfterFlush`
  * @coordinates-with src/services/windowService.ts — per-file geometry
+ * @coordinates-with src/utils/windowGeometry.ts — `ownsGlobalWindowState`
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { loggingService } from "../services/loggingService";
 import { preferencesService } from "../services/preferencesService";
 import { useDocumentStore } from "../stores/documentStore";
 import { windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
-import { physicalToLogical } from "../utils/windowGeometry";
+import { ownsGlobalWindowState, physicalToLogical } from "../utils/windowGeometry";
 
 /** `"window"` while the unsaved-changes dialog for an OS close request is open. */
 export type WindowClosePending = "window" | null;
@@ -84,7 +88,7 @@ export type WindowClosePending = "window" | null;
 export interface WindowCloseGuard {
   /** `"window"` when the guard is waiting on the user's confirm dialog answer. */
   pendingClose: WindowClosePending;
-  /** Persist window state + the active document's geometry, read at call time. */
+  /** Persist window state (`main` only) + the active document's geometry, read at call time. */
   saveWindowState: () => Promise<void>;
   /** The user chose Discard: save state, latch the allow, close the window. */
   confirmClose: () => Promise<void>;
@@ -130,13 +134,25 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
         { x: position.x, y: position.y, width: size.width, height: size.height },
         scaleFactor,
       );
-      await preferencesService.saveWindowState({
-        width: logical.width,
-        height: logical.height,
-        x: logical.x,
-        y: logical.y,
-        isMaximized,
-      });
+      // Only `main` writes the global record (ADR-0037 Decision 3). Decided after
+      // the scale read, so every window keeps the WI3-D order.
+      if (ownsGlobalWindowState(currentWindow.label)) {
+        await preferencesService.saveWindowState({
+          width: logical.width,
+          height: logical.height,
+          x: logical.x,
+          y: logical.y,
+          isMaximized,
+        });
+      } else {
+        loggingService.logEventSync({
+          level: "info",
+          event: "window.save_state",
+          status: "success",
+          actionId: loggingService.generateActionId(),
+          context: { outcome: "skipped", reason: "not_main" },
+        });
+      }
 
       // Read the active document NOW, not from a render closure: this hook
       // subscribes once, so a captured value would be whatever was open when the

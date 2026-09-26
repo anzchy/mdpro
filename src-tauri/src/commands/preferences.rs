@@ -15,7 +15,7 @@ pub async fn get_preferences() -> Result<UserPreferences, String> {
 }
 
 /// Event name for the `save_window_state` Start/terminal log pair (rule 20).
-const WINDOW_STATE_SAVE_EVENT: &str = "preferences.window_state.save";
+pub(crate) const WINDOW_STATE_SAVE_EVENT: &str = "preferences.window_state.save";
 
 /// Applies a partial preferences patch to `~/.mdpro/config.json`.
 ///
@@ -126,8 +126,13 @@ pub async fn pick_export_folder() -> Result<Option<String>, String> {
 /// in `~/.mdpro/mdpro.log`. The context carries field names and no values: a
 /// window rectangle is not secret, but the log must not grow a habit of
 /// carrying payloads.
-#[tauri::command]
-pub async fn save_window_state(window_state: WindowState) -> Result<(), PreferencesError> {
+///
+/// # Not a command; callers must be `main` (ADR-0037 Decision 3)
+///
+/// This is the **unguarded** writer. The `save_window_state` IPC command lives
+/// in `commands/window_state.rs`, which checks the invoking window's label and
+/// calls this only for `main`. Do not call it from anywhere else.
+pub(crate) async fn save_window_state(window_state: WindowState) -> Result<(), PreferencesError> {
     let action_id = uuid::Uuid::new_v4().to_string();
     let start = std::time::Instant::now();
     logger::log_event(LogEntryPayload {

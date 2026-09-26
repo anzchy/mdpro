@@ -27,6 +27,9 @@ import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
 import { useMcpEvents } from "./hooks/useMcpEvents";
+import { useRecentFiles } from "./hooks/useRecentFiles";
+import { useOpenUrlParam } from "./hooks/useOpenUrlParam";
+import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/common/settings/editorPrefApply";
@@ -99,7 +102,8 @@ function App() {
   // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
   const autoSaveInterval = useEditorStore((s) => s.autoSaveInterval);
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
-  const [recentFiles, setRecentFiles] = useState<string[]>([]);
+  const { recentFiles, updateRecentFiles, hydrateRecentFiles, failRecentFilesHydration } =
+    useRecentFiles();
   const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
   const toastMessage = useToastStore((s) => s.message);
@@ -165,18 +169,6 @@ function App() {
     viewMode,
   });
 
-  const updateRecentFiles = useCallback(
-    (path: string) => {
-      if (!path) return;
-      setRecentFiles((prev) => {
-        const next = [path, ...prev.filter((item) => item !== path)].slice(0, 10);
-        void preferencesService.setPreferences({ recentFiles: next });
-        return next;
-      });
-    },
-    [],
-  );
-
   useEffect(() => {
     invoke("set_recent_files_menu", { recentFiles, viewMode }).catch(() => {
       // Ignore if running outside Tauri or menu is unavailable.
@@ -222,7 +214,7 @@ function App() {
         setDefaultViewMode(migrateViewMode(prefs.defaultViewMode));
         setShowSidebar(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
-        setRecentFiles(prefs.recentFiles ?? []);
+        hydrateRecentFiles(prefs.recentFiles);
         if (prefs.keyboardShortcuts) {
           setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
         }
@@ -248,7 +240,9 @@ function App() {
           applyAutoPair(prefs.markdown.autoPair);
         }
       } catch {
-        // Ignore preference loading errors in web preview.
+        // Ignore preference loading errors in web preview. Recent files keep
+        // any pre-hydration opens in memory without writing (ADR-0031 5a, A2).
+        if (mounted) failRecentFilesHydration();
       } finally {
         if (mounted) setPreferencesLoaded(true);
       }
@@ -259,98 +253,30 @@ function App() {
     };
   }, [
     applyThemeMode,
+    failRecentFilesHydration,
+    hydrateRecentFiles,
     setAutoSaveInterval,
     setDefaultViewMode,
-    setRecentFiles,
     setShowSidebar,
   ]);
 
-  useEffect(() => {
-    if (!preferencesLoaded) return;
-    void preferencesService.setPreferences({ lastViewMode: viewMode });
-  }, [preferencesLoaded, viewMode]);
+  // Persist view mode as lastViewMode; held until the stored value is read (ADR-0031 5a, WI-2).
+  useLastViewModePersistence({
+    preferencesLoaded,
+    launchPathsComplete,
+    activeDocument,
+    viewMode,
+    setViewMode,
+  });
 
-  // Apply preferred viewMode after launch paths have been processed
-  // This prevents race condition where viewMode changes to wysiwyg before documents load
-  useEffect(() => {
-    if (!launchPathsComplete || !preferencesLoaded) return;
-    if (activeDocument) return;
-    // No document loaded, apply user's preferred viewMode (with migration for old stored values)
-    const applyPreferredViewMode = async () => {
-      try {
-        const prefs = await preferencesService.getPreferences();
-        setViewMode(migrateViewMode(prefs.lastViewMode ?? prefs.defaultViewMode));
-      } catch {
-        // Ignore errors
-      }
-    };
-    void applyPreferredViewMode();
-  }, [launchPathsComplete, preferencesLoaded, activeDocument, setViewMode]);
-
-  // Handle ?open= URL parameter (for new windows opened via Finder/drag-drop)
-  useEffect(() => {
-    const checkUrlParam = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const openPath = params.get("open");
-
-      // Get window label for logging
-      let windowLabel = "unknown";
-      try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        windowLabel = getCurrentWindow().label;
-      } catch {
-        // Ignore
-      }
-
-      // Log URL parameter check for debugging (info level to ensure visibility)
-      // Note: only log whether a param is present, not the full URL or path (privacy)
-      loggingService.logEventSync({
-        level: "info",
-        event: "app.url_param_check",
-        status: "success",
-        actionId: loggingService.generateActionId(),
-        context: {
-          windowLabel,
-          hasOpenParam: !!openPath,
-        },
-      });
-
-      if (openPath) {
-        const actionId = loggingService.generateActionId();
-        const fileBasename = openPath.split("/").pop() ?? openPath;
-        loggingService.logEventSync({
-          level: "info",
-          event: "file.open.url_param",
-          status: "start",
-          actionId,
-          context: { windowLabel, fileBasename },
-        });
-
-        // Use default view mode from preferences for externally opened files
-        setViewMode(defaultViewMode);
-        const doc = await openDocumentFromPath(openPath, actionId);
-        loggingService.logEventSync({
-          level: doc ? "info" : "error",
-          event: "file.open.url_param",
-          status: doc ? "success" : "fail",
-          actionId,
-          context: {
-            windowLabel,
-            fileBasename,
-            documentId: doc?.id || null,
-            hasContent: doc ? doc.content.length > 0 : false,
-          },
-          error: doc ? undefined : "openDocumentFromPath returned null",
-        });
-        if (doc?.path) {
-          updateRecentFiles(doc.path);
-        }
-        // Clean up the URL to prevent re-opening on refresh
-        window.history.replaceState({}, "", window.location.pathname);
-      }
-    };
-    void checkUrlParam();
-  }, [defaultViewMode, openDocumentFromPath, setViewMode, updateRecentFiles]);
+  // `?open=` for secondary windows; waits for hydration, runs once (ADR-0031 5a, WI-1).
+  useOpenUrlParam({
+    preferencesLoaded,
+    defaultViewMode,
+    openDocumentFromPath,
+    setViewMode,
+    updateRecentFiles,
+  });
 
   useEffect(() => {
     const root = document.documentElement;
