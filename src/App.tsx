@@ -18,6 +18,7 @@ import { useDocument } from "./hooks/useDocument";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { useEditor } from "./hooks/useEditor";
 import { useFileWatcher } from "./hooks/useFileWatcher";
+import { useFileChangeDecisionLog } from "./hooks/useFileChangeDecisionLog";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
@@ -128,6 +129,7 @@ function App() {
   const { event: fileChangeEvent, clearEvent, markSaveInProgress } = useFileWatcher(
     activeDocument?.path ?? null,
   );
+  useFileChangeDecisionLog(fileChangeEvent, activeDocument);
 
   useAutoSave(autoSaveInterval);
 
