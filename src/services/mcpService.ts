@@ -44,12 +44,36 @@ export async function syncDocuments(payload: SyncDocumentsPayload): Promise<void
 }
 
 /**
- * MCP server status.
+ * Every launch state Rust's `McpLaunchStatus` serialises to (ADR-0039). The
+ * {@link McpLaunch} union is derived from this list, and
+ * `tests/mcp-status-contract.test.ts` pins it to the shared fixture
+ * `tests/fixtures/mcp-status-contract.json` that the Rust lane also reads.
+ */
+export const MCP_LAUNCH_STATES = ["starting", "running", "failed", "disabled"] as const;
+/** What the launch decided and whether the bind succeeded. Set once per launch. */
+export type McpLaunch = (typeof MCP_LAUNCH_STATES)[number];
+
+/**
+ * Every value of the on-disk `mcp.serverEnabled` as Rust reports it. It is read
+ * fresh on each `mcp_get_status` call, and a missing value reports `enabled`.
+ */
+export const MCP_CONFIGURED_STATES = ["enabled", "disabled", "unreadable"] as const;
+/** The on-disk setting at call time; `unreadable` means the read failed (fail-open). */
+export type McpConfigured = (typeof MCP_CONFIGURED_STATES)[number];
+
+/**
+ * MCP server status, as serialised by Rust `mcp_get_status` (camelCase keys,
+ * lowercase enum values). The only TS declaration of this type (ADR-0039 D-6).
  */
 export interface McpStatus {
+  /** Compatibility field: a port is bound. Independent of `launch`. */
   running: boolean;
   port: number | null;
   binaryPath: string;
+  /** Launch state, fixed once the launch settles (ADR-0039). */
+  launch: McpLaunch;
+  /** The on-disk `serverEnabled`, read at call time — can differ from `launch`. */
+  configured: McpConfigured;
 }
 
 /**

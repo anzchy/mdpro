@@ -236,32 +236,36 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   tableDeleteColumn: "Cmd+Option+Shift+Backspace",
 };
 
-/** MCP Server configuration */
+/**
+ * MCP Server configuration. Mirrors Rust `models::preferences::McpConfig`.
+ * The legacy `enabled` key is retired (ADR-0039) and must not come back.
+ */
 export interface McpConfig {
-  /** Whether MCP server is enabled */
-  enabled: boolean;
-  /** Auto-start MCP server when app launches */
+  /**
+   * Whether the MCP HTTP server is started at launch. Read once by Rust at
+   * launch, so a change takes effect after a restart (ADR-0039). Defaults to
+   * `true` — a missing value keeps the always-on behaviour.
+   */
+  serverEnabled: boolean;
+  /** Auto-start MCP server when app launches (not read by anything yet — D25) */
   startOnLaunch: boolean;
   /** Auto-approve AI edits without confirmation (when focused) */
   autoApproveEdits: boolean;
 }
 
-/** Default MCP configuration — disabled by default; user must opt in */
+/**
+ * Default MCP configuration — the server is on by default (ADR-0039); must
+ * equal Rust `McpConfig::default()`, pinned by `$defaultMcpConfig` in
+ * `tests/fixtures/preferences-contract.json`.
+ */
 export const DEFAULT_MCP_CONFIG: McpConfig = {
-  enabled: false,
+  serverEnabled: true,
   startOnLaunch: false,
   autoApproveEdits: false,
 };
 
 /** MCP client types */
 export type McpClient = "claude_desktop" | "claude_code" | "codex_cli" | "gemini_cli";
-
-/** MCP server status */
-export interface McpStatus {
-  running: boolean;
-  port: number | null;
-  binaryPath: string;
-}
 
 /** MCP installation status for a single client */
 export interface McpInstallation {

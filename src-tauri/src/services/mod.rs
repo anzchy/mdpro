@@ -7,6 +7,7 @@ pub mod http_server;
 pub mod logger;
 pub mod markdown;
 pub mod markdown_ext;
+pub mod mcp_launch;
 pub mod open_route;
 pub mod preferences;
 pub mod quit_guard;

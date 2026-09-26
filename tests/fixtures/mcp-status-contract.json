@@ -1,0 +1,6 @@
+{
+  "$README": "Shared Rust <-> TS contract for the mcp_get_status wire shape (ADR-0039). Read by src-tauri BS-04/BS-05 and by tests/mcp-status-contract.test.ts (TS-01). A change here must land with both languages in the same commit.",
+  "$statusKeys": ["binaryPath", "configured", "launch", "port", "running"],
+  "launch": ["starting", "running", "failed", "disabled"],
+  "configured": ["enabled", "disabled", "unreadable"]
+}

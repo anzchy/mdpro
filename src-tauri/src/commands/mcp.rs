@@ -2,12 +2,18 @@
 //!
 //! Tauri IPC commands for MCP integration, including document sync
 //! from frontend to Rust Shadow Store and MCP client configuration.
+//!
+//! `mcp_get_status` delegates to `services::mcp_launch::current_status`
+//! (ADR-0039): it reports the launch outcome (`launch`), the on-disk
+//! `mcp.serverEnabled` read fresh on each call (`configured`), and the bound
+//! port. The two can differ until a restart; the setting is read once at launch.
 
 use crate::models::{
     LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
     SyncDocumentsPayload,
 };
 use crate::services::logger;
+use crate::services::mcp_launch::{self, McpStatus, SharedMcpLaunchState};
 use crate::services::shadow_store;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -107,15 +113,6 @@ pub enum McpClient {
     GeminiCli,
 }
 
-/// Status of MCP server
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct McpStatus {
-    pub running: bool,
-    pub port: Option<u16>,
-    pub binary_path: String,
-}
-
 /// Installation status for a single client
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -125,21 +122,14 @@ pub struct McpInstallation {
     pub config_path: String,
 }
 
-/// Get MCP server status
+/// Get MCP server status: launch outcome, current on-disk setting, port.
+/// See `services::mcp_launch::current_status` (ADR-0039).
 #[tauri::command]
-pub fn mcp_get_status(state: State<'_, SharedServerConfig>) -> Result<McpStatus, String> {
-    let config = state
-        .lock()
-        .map_err(|e| format!("Failed to lock server config: {}", e))?;
-
-    // Get the binary path - in production it's bundled with the app
-    let binary_path = get_mcp_binary_path()?;
-
-    Ok(McpStatus {
-        running: config.is_some(),
-        port: config.as_ref().map(|c| c.port),
-        binary_path,
-    })
+pub fn mcp_get_status(
+    launch: State<'_, SharedMcpLaunchState>,
+    server: State<'_, SharedServerConfig>,
+) -> Result<McpStatus, String> {
+    mcp_launch::current_status(&launch, &server, get_mcp_binary_path()?)
 }
 
 /// Check which MCP clients have config installed

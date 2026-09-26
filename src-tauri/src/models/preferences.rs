@@ -843,18 +843,42 @@ pub enum CodeTheme {
 }
 
 /// MCP Server configuration
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+///
+/// The legacy `enabled` key is retired (ADR-0039): it is not a field, so a
+/// materialised `"enabled": false` left in an existing `config.json` is
+/// ignored on read (no `deny_unknown_fields`, ADR-0031) and dropped on Rust's
+/// next full write. It is deliberately **not** a serde alias of
+/// `server_enabled` — that would honour the `false` no user ever chose.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpConfig {
-    /// Whether MCP server is enabled — opt-in only; defaults to false
-    #[serde(default)]
-    pub enabled: bool,
-    /// Auto-start MCP server when app launches — opt-in only; defaults to false
+    /// Whether the MCP HTTP server is started at launch (`serverEnabled`).
+    /// Defaults to `true` both when the key is absent and in `Default`, so a
+    /// missing value keeps today's always-on behaviour (ADR-0039). Read once
+    /// at launch; a change takes effect after a restart.
+    #[serde(default = "default_true")]
+    pub server_enabled: bool,
+    /// Auto-start MCP server when app launches — defaults to false. Not read
+    /// by anything yet (INERT, D25); redundant under ADR-0039's launch gate.
     #[serde(default)]
     pub start_on_launch: bool,
     /// Auto-approve AI edits without confirmation (when focused)
     #[serde(default)]
     pub auto_approve_edits: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl Default for McpConfig {
+    fn default() -> Self {
+        Self {
+            server_enabled: default_true(),
+            start_on_launch: false,
+            auto_approve_edits: false,
+        }
+    }
 }
 
 impl Default for UserPreferences {
@@ -900,3 +924,15 @@ mod preferences_wi7_tests;
 #[cfg(test)]
 #[path = "preferences_wi8_tests.rs"]
 mod preferences_wi8_tests;
+
+#[cfg(test)]
+#[path = "preferences_retirement.rs"]
+mod preferences_retirement;
+
+#[cfg(test)]
+#[path = "preferences_mcp_tests.rs"]
+mod preferences_mcp_tests;
+
+#[cfg(test)]
+#[path = "preferences_retirement_tests.rs"]
+mod preferences_retirement_tests;

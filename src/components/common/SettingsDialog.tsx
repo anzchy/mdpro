@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { McpConfig } from "../../types/preferences";
-import { DEFAULT_MCP_CONFIG } from "../../types/preferences";
 import { useThemeStore } from "../../stores/themeStore";
 import { loggingService } from "../../services/loggingService";
 import { preferencesService } from "../../services/preferencesService";
+import type { McpConfig } from "../../types/preferences";
 import { IntegrationsSettings } from "./IntegrationsSettings";
 import { GeneralSettings } from "./settings/GeneralSettings";
 import { EditorSettings } from "./settings/EditorSettings";
@@ -39,9 +38,33 @@ const NAV_ITEMS: NavItem[] = [
   { id: "about", label: "About", icon: "ℹ️" },
 ];
 
+const MCP_LOAD_EVENT = "ui.settings.mcp.load";
+const MCP_SAVE_EVENT = "ui.settings.mcp.save";
+
+/** Enum-only log for an MCP write that was refused or failed. */
+function logMcpSave(status: "cancel" | "fail", context: Record<string, string>): void {
+  loggingService.logEventSync({
+    level: status === "fail" ? "warn" : "info",
+    event: MCP_SAVE_EVENT,
+    status,
+    actionId: loggingService.generateActionId(),
+    context,
+  });
+}
+
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [activePage, setActivePage] = useState("general");
-  const [mcpConfig, setMcpConfig] = useState<McpConfig>(DEFAULT_MCP_CONFIG);
+  // The `mcp` group loaded in THIS open; null until it loads (F3, ADR-0039).
+  // Never seeded from the default config: the backend replaces the group
+  // wholesale, so a pre-hydration toggle would write defaults over disk.
+  const [mcpConfig, setMcpConfig] = useState<McpConfig | null>(null);
+  const [mcpLoadFailed, setMcpLoadFailed] = useState(false);
+  const mcpLoadGenRef = useRef(0);
+  // `serverEnabled` as the user set it this session; null = untouched (D-4).
+  const [mcpPendingToggle, setMcpPendingToggle] = useState<boolean | null>(null);
+  // One MCP write at a time (MCP-FIX-C1); the ref is the synchronous guard.
+  const [mcpSaving, setMcpSaving] = useState(false);
+  const mcpSavingRef = useRef(false);
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const firstNavRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -87,23 +110,64 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     }
   }, [onClose]);
 
-  // Load MCP config for integrations page
+  // Load MCP config for integrations page. Every open starts unhydrated (D-5)
+  // and bumps the generation; any reply, rollback, or write completion from an
+  // earlier open is dropped by the `gen` check (MCP-FIX-C1).
   useEffect(() => {
-    if (open) {
-      void preferencesService.getPreferences().then((p) => {
+    if (!open) return;
+    const gen = ++mcpLoadGenRef.current;
+    mcpSavingRef.current = false;
+    setMcpConfig(null);
+    setMcpLoadFailed(false);
+    setMcpPendingToggle(null);
+    setMcpSaving(false);
+    void preferencesService.getPreferences()
+      .then((p) => {
+        if (gen !== mcpLoadGenRef.current) return;
         if (p.mcp) setMcpConfig(p.mcp);
+        else setMcpLoadFailed(true);
+      })
+      .catch((error: unknown) => {
+        if (gen !== mcpLoadGenRef.current) return;
+        setMcpLoadFailed(true);
+        loggingService.logEventSync({
+          level: "error",
+          event: MCP_LOAD_EVENT,
+          status: "fail",
+          actionId: loggingService.generateActionId(),
+          error: error instanceof Error ? error.message : String(error),
+        });
       });
-    }
   }, [open]);
 
   const handleMcpConfigChange = async (config: McpConfig) => {
     const prev = mcpConfig;
+    // Not hydrated: writing now would replace the stored group (F3). A write
+    // already in flight: a second one could be rolled back under the first.
+    if (prev === null || mcpSavingRef.current) {
+      logMcpSave("cancel", { reason: prev === null ? "not_loaded" : "write_pending" });
+      return;
+    }
+    const gen = mcpLoadGenRef.current;
+    const prevPending = mcpPendingToggle;
+    mcpSavingRef.current = true;
+    setMcpSaving(true);
     setMcpConfig(config);
+    if (config.serverEnabled !== prev.serverEnabled) setMcpPendingToggle(config.serverEnabled);
     try {
       await preferencesService.setPreferences({ mcp: config });
     } catch {
-      setMcpConfig(prev);
-      loggingService.logUiEvent("ui.settings.mcp.save", { status: "fail" });
+      const current = gen === mcpLoadGenRef.current;
+      if (current) {
+        setMcpConfig(prev);
+        setMcpPendingToggle(prevPending);
+      }
+      logMcpSave("fail", { rollback: current ? "applied" : "skipped_stale_open" });
+    } finally {
+      if (gen === mcpLoadGenRef.current) {
+        mcpSavingRef.current = false;
+        setMcpSaving(false);
+      }
     }
   };
 
@@ -165,7 +229,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             {activePage === "integrations" && (
               <IntegrationsSettings
                 mcpConfig={mcpConfig}
-                onMcpConfigChange={(cfg) => void handleMcpConfigChange(cfg)}
+                mcpConfigFailed={mcpLoadFailed}
+                mcpPendingToggle={mcpPendingToggle}
+                mcpSaving={mcpSaving}
+                onMcpConfigChange={handleMcpConfigChange}
               />
             )}
             {activePage === "export" && <ExportSettings />}

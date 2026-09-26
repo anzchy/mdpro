@@ -55,7 +55,9 @@ fn preferences_dir() -> Result<PathBuf, PreferencesError> {
     Ok(home.join(".mdpro"))
 }
 
-fn config_path() -> Result<PathBuf, PreferencesError> {
+/// `~/.mdpro/config.json`. Shared with the read-only MCP launch reader
+/// (`services/mcp_launch.rs`) so both agree on one path.
+pub(crate) fn config_path() -> Result<PathBuf, PreferencesError> {
     Ok(preferences_dir()?.join("config.json"))
 }
 

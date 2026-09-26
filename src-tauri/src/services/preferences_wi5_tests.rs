@@ -296,8 +296,11 @@ fn wi5_f_every_nested_group_is_replaced_wholesale() {
         mcp,
         "mcp",
         McpConfig,
+        // ADR-0039: mcp.enabled retired — renamed to `server_enabled`, and
+        // `false` because `$non_default` must differ from the new default
+        // (`true`), or the wholesale check is vacuous for this field.
         McpConfig {
-            enabled: true,
+            server_enabled: false,
             start_on_launch: true,
             auto_approve_edits: true,
         }

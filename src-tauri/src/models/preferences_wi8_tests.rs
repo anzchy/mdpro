@@ -26,12 +26,20 @@
 //! these live in their own file, as `preferences_wi6_tests.rs` and
 //! `preferences_wi7_tests.rs` do.
 
+use super::preferences_retirement::apply_retirements;
 use super::*;
 use serde_json::Value;
 
+/// Paths of the shipped-v1 format that a decision retired on purpose, each
+/// with the record that retired it. WI8-G exempts exactly these paths — by
+/// string equality, never by prefix — and `wi8_h_…` (RET-03, in
+/// `preferences_retirement_tests.rs`) holds every entry to "existed in the
+/// shipped file, and is really gone from the round trip".
+pub(super) const RETIRED_PATHS: &[(&str, &str)] = &[("mcp.enabled", "ADR-0039")];
+
 /// The living contract document. Edited in the same commit as any type change
 /// on either side — that is the whole point of it.
-const CONTRACT_FIXTURE: &str = concat!(
+pub(super) const CONTRACT_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../tests/fixtures/preferences-contract.json"
 );
@@ -39,12 +47,12 @@ const CONTRACT_FIXTURE: &str = concat!(
 /// The frozen witness for `config.json` files already on users' disks.
 /// **Never edited in the same commit as a type change** — see WI8-G below and
 /// the `$README` key inside the file itself.
-const SHIPPED_V1_FIXTURE: &str = concat!(
+pub(super) const SHIPPED_V1_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../tests/fixtures/preferences-shipped-v1.json"
 );
 
-fn read_fixture(path: &str) -> Value {
+pub(super) fn read_fixture(path: &str) -> Value {
     let text = std::fs::read_to_string(path);
     assert!(
         text.is_ok(),
@@ -63,18 +71,18 @@ fn read_fixture(path: &str) -> Value {
 /// What a fixture-vs-round-trip comparison found, in three separable kinds so
 /// each case can assert exactly the claim it makes.
 #[derive(Default)]
-struct Diff {
+pub(super) struct Diff {
     /// `(path, fixture_value)` — present in the fixture, absent from the round
     /// trip. A field Rust *drops*.
-    missing: Vec<(String, String)>,
+    pub(super) missing: Vec<(String, String)>,
     /// `(path, round_trip_value)` — present in the round trip, absent from the
     /// fixture. A field Rust has that nobody else was told about.
-    extra: Vec<(String, String)>,
+    pub(super) extra: Vec<(String, String)>,
     /// `(path, fixture_value, round_trip_value)` — present on both sides with
     /// different values. This is what a `#[serde(skip_deserializing)]`, a
     /// coercing `deserialize_with`, or a truncating type change looks like:
     /// the key graph is untouched and the value is thrown away.
-    differing: Vec<(String, String, String)>,
+    pub(super) differing: Vec<(String, String, String)>,
 }
 
 /// Recursively compares a fixture document against a round-tripped document,
@@ -105,7 +113,7 @@ struct Diff {
 /// so the user path `"/tmp/contract.md"` is present on both sides by
 /// construction and descending into it is strictly stronger: it proves
 /// `WindowGeometry`'s five values survive the trip.
-fn diff_documents(fixture: &Value, round_trip: &Value) -> Diff {
+pub(super) fn diff_documents(fixture: &Value, round_trip: &Value) -> Diff {
     let mut diff = Diff::default();
     walk(fixture, round_trip, "", true, &mut diff);
     diff
@@ -317,6 +325,15 @@ fn wi8_g_a_shipped_config_json_loses_no_value_through_the_current_types() {
         .expect("a UserPreferences always serialises to a JSON object");
 
     let diff = diff_documents(&shipped, &round_trip);
+    // ADR-0039: mcp.enabled retired — its loss is a declared migration, not
+    // accidental data loss (the "written migration" the message below asks
+    // for). Only the exact paths in `RETIRED_PATHS` are exempted, by the
+    // exact-match `apply_retirements` (RET-04 / RET-05); `wi8_h_…` (RET-03)
+    // proves each entry existed in the shipped format and is really gone.
+    let diff = Diff {
+        missing: apply_retirements(diff.missing, RETIRED_PATHS),
+        ..diff
+    };
 
     // `rustfmt::skip`: these exact lines were fingerprinted by the WI-8 red
     // receipt (`ADR31-WI-8`). rustfmt would rewrap the `.chain(…)` closure,

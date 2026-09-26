@@ -143,9 +143,10 @@ describe("SettingsDialog — MCP config", () => {
     expect(dialogSrc).toContain("handleMcpConfigChange");
   });
 
-  it("uses DEFAULT_MCP_CONFIG as the initial mcpConfig state", () => {
-    expect(dialogSrc).toContain("DEFAULT_MCP_CONFIG");
-  });
+  // Deleted: "uses DEFAULT_MCP_CONFIG as the initial mcpConfig state" (F3 fix,
+  // ADR-0039). That initial state was the defect — a pre-hydration toggle wrote
+  // defaults over the stored group. Behaviour is now pinned by F3-01 … F3-06 in
+  // tests/settings-dialog-mcp-hydration.test.tsx.
 });
 
 describe("SettingsDialog — logging", () => {

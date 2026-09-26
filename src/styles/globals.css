@@ -1371,6 +1371,36 @@ a {
   color: #16a34a;
 }
 
+/* ADR-0039 launch states — existing tokens only, so both themes follow. */
+.mcp-status-badge.off {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  color: var(--color-muted);
+}
+
+.mcp-status-badge.failed {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.mcp-status-badge.starting {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+/* Badge + single inline note under the "Enable MCP Server" label */
+.mcp-server-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mcp-status-note {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
 .mcp-status-dot {
   width: 6px;
   height: 6px;

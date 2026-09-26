@@ -116,7 +116,7 @@
     "maxDimension": 2048
   },
   "mcp": {
-    "enabled": true,
+    "serverEnabled": false,
     "startOnLaunch": true,
     "autoApproveEdits": true
   },
@@ -138,6 +138,11 @@
   "export": {
     "defaultFolder": "/tmp/contract-export",
     "htmlIncludeStyles": false
+  },
+  "$defaultMcpConfig": {
+    "serverEnabled": true,
+    "startOnLaunch": false,
+    "autoApproveEdits": false
   },
   "$defaultKeyboardShortcuts": {
     "fileNew": "Cmd+N",

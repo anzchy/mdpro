@@ -1,18 +1,51 @@
 /**
  * IntegrationsSettings Component
  *
- * Settings panel for MCP Server configuration and AI client integrations.
+ * Purpose: Settings panel for the MCP server toggles, its launch status, and
+ * AI client config installation.
+ *
+ * Pipeline: `mcp_get_status` + `mcp_get_installations` on mount → status badge
+ * and note (`McpServerStatus`) + client rows. Toggles call `onMcpConfigChange`
+ * (SettingsDialog owns the config and this session's `pendingToggle`).
+ *
+ * Key decisions (ADR-0039):
+ * - After a server-toggle write settles — success or failure — only the status
+ *   is re-fetched, so `configured` is read fresh without blanking the panel.
+ * - A failed status fetch shows the error and no badge (rule 30.2).
+ * - `mcpConfig === null` (not loaded this open, F3): all three toggles are
+ *   disabled and described by an inline reason (rule 30.4); toggling is a no-op.
+ * - `mcpSaving` (a write is in flight): the same lock with a "Saving…" reason,
+ *   so writes never overlap and a late rejection cannot undo a later write.
+ *
+ * @coordinates-with src/components/common/SettingsDialog.tsx — owns mcpConfig / pendingToggle / saving
+ * @coordinates-with src/components/common/McpServerInfo.tsx — "Listening on" row
+ * @coordinates-with src/components/common/McpServerStatus.tsx — badge + note region
+ * @coordinates-with src/components/common/McpToggleRow.tsx — labelled toggle rows
+ * @module components/common/IntegrationsSettings
  */
 
 import { useState, useEffect, useCallback } from "react";
 import { mcpService, type McpClient, type McpStatus, type McpInstallation } from "../../services/mcpService";
 import type { McpConfig } from "../../types/preferences";
 import { loggingService } from "../../services/loggingService";
+import { McpServerStatus } from "./McpServerStatus";
+import { McpToggleRow } from "./McpToggleRow";
+import { McpServerInfo } from "./McpServerInfo";
 
 interface IntegrationsSettingsProps {
-  mcpConfig: McpConfig;
-  onMcpConfigChange: (config: McpConfig) => void;
+  /** The `mcp` group loaded this open; `null` until it has loaded. */
+  mcpConfig: McpConfig | null;
+  /** The load failed; the toggles stay disabled for this open. */
+  mcpConfigFailed: boolean;
+  /** `serverEnabled` as set this dialog session; `null` if untouched. */
+  mcpPendingToggle: boolean | null;
+  /** A write is in flight; the toggles are disabled until it settles. */
+  mcpSaving: boolean;
+  /** Resolves once the write has settled (it handles its own failure). */
+  onMcpConfigChange: (config: McpConfig) => Promise<void>;
 }
+
+const MCP_REASON_ID = "mcp-config-reason";
 
 const CLIENT_INFO: Record<McpClient, { name: string; configFile: string }> = {
   claude_desktop: { name: "Claude Desktop", configFile: "claude_desktop_config.json" },
@@ -23,6 +56,9 @@ const CLIENT_INFO: Record<McpClient, { name: string; configFile: string }> = {
 
 export function IntegrationsSettings({
   mcpConfig,
+  mcpConfigFailed,
+  mcpPendingToggle,
+  mcpSaving,
   onMcpConfigChange,
 }: IntegrationsSettingsProps) {
   const [status, setStatus] = useState<McpStatus | null>(null);
@@ -52,28 +88,25 @@ export function IntegrationsSettings({
     void loadData();
   }, [loadData]);
 
-  const handleToggleEnabled = (enabled: boolean) => {
-    loggingService.logUiEvent("ui.toggle.change", {
-      controlId: "settings.integrations.mcp.enabled",
-      newValue: enabled,
-    });
-    onMcpConfigChange({ ...mcpConfig, enabled });
-  };
+  /** Status-only re-fetch: keeps the panel mounted, reads `configured` fresh. */
+  const refreshStatus = useCallback(async () => {
+    try {
+      setStatus(await mcpService.getStatus());
+      setError(null);
+    } catch (err) {
+      setStatus(null);
+      setError(err instanceof Error ? err.message : "Failed to load MCP status");
+    }
+  }, []);
 
-  const handleToggleStartOnLaunch = (startOnLaunch: boolean) => {
+  const handleToggle = async <K extends keyof McpConfig>(key: K, value: McpConfig[K]) => {
+    if (mcpConfig === null || mcpSaving) return;
     loggingService.logUiEvent("ui.toggle.change", {
-      controlId: "settings.integrations.mcp.startOnLaunch",
-      newValue: startOnLaunch,
+      controlId: `settings.integrations.mcp.${key}`,
+      newValue: value,
     });
-    onMcpConfigChange({ ...mcpConfig, startOnLaunch });
-  };
-
-  const handleToggleAutoApprove = (autoApproveEdits: boolean) => {
-    loggingService.logUiEvent("ui.toggle.change", {
-      controlId: "settings.integrations.mcp.autoApproveEdits",
-      newValue: autoApproveEdits,
-    });
-    onMcpConfigChange({ ...mcpConfig, autoApproveEdits });
+    await onMcpConfigChange({ ...mcpConfig, [key]: value });
+    if (key === "serverEnabled") await refreshStatus();
   };
 
   const handleInstall = async (client: McpClient) => {
@@ -112,6 +145,14 @@ export function IntegrationsSettings({
     loggingService.logButtonClick("settings.integrations.mcp.copyPath");
   };
 
+  // Why the toggles are disabled, if they are (rule 30.4); null = enabled.
+  let lockReason: string | null = null;
+  if (mcpConfigFailed) lockReason = "MCP settings couldn't be loaded — close and reopen Settings to retry";
+  else if (!mcpConfig) lockReason = "Loading MCP settings…";
+  else if (mcpSaving) lockReason = "Saving…";
+  const locked = lockReason !== null;
+  const lockedBy = locked ? MCP_REASON_ID : undefined;
+
   if (loading) {
     return (
       <div className="settings-integrations">
@@ -131,101 +172,40 @@ export function IntegrationsSettings({
         </div>
       )}
 
-      {/* Enable MCP Server */}
-      <div className="settings-row">
-        <div className="settings-row-content">
-          <div className="settings-row-label">
-            <strong>Enable MCP Server</strong>
-            <span className="settings-row-description">
-              Allow AI assistants to control mdpro editor
-            </span>
-          </div>
-          <div className="settings-row-control">
-            {status?.running && (
-              <span className="mcp-status-badge running">
-                <span className="mcp-status-dot" />
-                Running
-              </span>
-            )}
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={mcpConfig.enabled}
-                onChange={(e) => handleToggleEnabled(e.target.checked)}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Start on launch */}
-      <div className="settings-row">
-        <div className="settings-row-content">
-          <div className="settings-row-label">
-            <strong>Start on launch</strong>
-            <span className="settings-row-description">
-              Auto-start when mdpro opens
-            </span>
-          </div>
-          <div className="settings-row-control">
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={mcpConfig.startOnLaunch}
-                onChange={(e) => handleToggleStartOnLaunch(e.target.checked)}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Auto-approve edits */}
-      <div className="settings-row">
-        <div className="settings-row-content">
-          <div className="settings-row-label">
-            <strong>Auto-approve edits</strong>
-            <span className="settings-row-description">
-              Apply AI changes without preview (use with caution)
-            </span>
-          </div>
-          <div className="settings-row-control">
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={mcpConfig.autoApproveEdits}
-                onChange={(e) => handleToggleAutoApprove(e.target.checked)}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Server Info */}
-      {status && (
-        <div className="mcp-server-info">
-          <div className="mcp-info-row">
-            <span className="mcp-info-label">Listening on</span>
-            <code className="mcp-info-value">
-              localhost:{status.port ?? "—"}
-            </code>
-            {status.port && (
-              <button
-                className="mcp-copy-btn"
-                onClick={() => copyToClipboard(`localhost:${status.port}`)}
-                title="Copy to clipboard"
-              >
-                📋
-              </button>
-            )}
-          </div>
-          <span className="mcp-info-hint">
-            Port auto-assigned. AI clients discover it automatically.
-          </span>
-        </div>
+      {lockReason && (
+        <p id={MCP_REASON_ID} className="settings-row-description">{lockReason}</p>
       )}
+      <McpToggleRow
+        labelId="mcp-toggle-server-label"
+        label="Enable MCP Server"
+        description="Allow AI assistants to control mdpro editor"
+        checked={mcpConfig?.serverEnabled ?? false}
+        disabled={locked}
+        describedBy={lockedBy}
+        onChange={(v) => void handleToggle("serverEnabled", v)}
+      >
+        <McpServerStatus status={status} pendingToggle={mcpPendingToggle} />
+      </McpToggleRow>
+      <McpToggleRow
+        labelId="mcp-toggle-launch-label"
+        label="Start on launch"
+        description="Auto-start when mdpro opens"
+        checked={mcpConfig?.startOnLaunch ?? false}
+        disabled={locked}
+        describedBy={lockedBy}
+        onChange={(v) => void handleToggle("startOnLaunch", v)}
+      />
+      <McpToggleRow
+        labelId="mcp-toggle-approve-label"
+        label="Auto-approve edits"
+        description="Apply AI changes without preview (use with caution)"
+        checked={mcpConfig?.autoApproveEdits ?? false}
+        disabled={locked}
+        describedBy={lockedBy}
+        onChange={(v) => void handleToggle("autoApproveEdits", v)}
+      />
+
+      <McpServerInfo status={status} onCopy={copyToClipboard} />
 
       {/* Test Connection Button */}
       <div className="mcp-actions">

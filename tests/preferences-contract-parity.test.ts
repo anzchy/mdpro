@@ -23,7 +23,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ViewMode } from "../src/types/editor";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
+  DEFAULT_MCP_CONFIG,
   type KeyboardShortcuts,
+  type McpConfig,
   type WindowGeometry,
 } from "../src/types/preferences";
 
@@ -249,5 +251,27 @@ describe("WI-8 — cross-language preference contract parity (TS half)", () => {
     }
 
     expect(disagreements).toEqual([]);
+  });
+
+  /**
+   * M2-06 (ADR-0039) — TS half of MCP default-value parity. WI8-C compares key
+   * graphs only, so a TS `DEFAULT_MCP_CONFIG.serverEnabled: false` would pass
+   * it; this case holds the TS default values to the fixture's
+   * `$defaultMcpConfig`, which `preferences_mcp_tests.rs::m2_05_…` holds the
+   * Rust `McpConfig::default()` to. The `Required<…>` record fails
+   * `pnpm typecheck:tests` if the TS type keeps the retired `enabled`.
+   */
+  it("M2-06: DEFAULT_MCP_CONFIG equals the fixture's $defaultMcpConfig and has no enabled", () => {
+    const fixture = readContractFixture();
+    expect(isPlainObject(fixture.$defaultMcpConfig)).toBe(true);
+    expect(DEFAULT_MCP_CONFIG).toEqual(fixture.$defaultMcpConfig);
+    expect("enabled" in DEFAULT_MCP_CONFIG).toBe(false);
+
+    const MCP_CONFIG_KEYS: Record<keyof Required<McpConfig>, true> = {
+      serverEnabled: true,
+      startOnLaunch: true,
+      autoApproveEdits: true,
+    };
+    expect(Object.keys(DEFAULT_MCP_CONFIG).sort()).toEqual(Object.keys(MCP_CONFIG_KEYS).sort());
   });
 });

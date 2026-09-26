@@ -14,6 +14,9 @@ use tokio::sync::oneshot;
 // Store the shutdown sender so the HTTP server stays alive
 static MCP_SHUTDOWN: OnceLock<Mutex<Option<oneshot::Sender<()>>>> = OnceLock::new();
 use tauri_app_lib::launch_args::{self, LaunchSource};
+use tauri_app_lib::services::mcp_launch::{
+    self, LaunchEvent, McpLaunchDecision, McpLaunchStatus, SharedMcpLaunchState,
+};
 use tauri_app_lib::services::open_route::{route_external_open, Source};
 use tauri_app_lib::services::quit_guard::{
     self,
@@ -137,42 +140,62 @@ fn main() {
             let mcp_server_config: SharedServerConfig = Arc::new(Mutex::new(None));
             app.manage(mcp_server_config.clone());
 
-            // Start HTTP server for MCP
-            let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                match http_server::start_server(mcp_shadow_store, mcp_server_config, app_handle)
-                    .await
-                {
-                    Ok((port, shutdown_tx)) => {
-                        // Store shutdown sender in static so server stays alive
-                        // (dropping the sender triggers graceful shutdown)
-                        if let Ok(mut guard) = MCP_SHUTDOWN.get_or_init(|| Mutex::new(None)).lock()
-                        {
-                            *guard = Some(shutdown_tx);
+            // MCP launch gate (ADR-0039): read `mcp.serverEnabled` once,
+            // read-only, and decide fail-open. A change needs a restart.
+            let mcp_launch_state: SharedMcpLaunchState =
+                Arc::new(Mutex::new(McpLaunchStatus::Starting));
+            app.manage(mcp_launch_state.clone());
+            let decision = mcp_launch::decide_mcp_launch(mcp_launch::read_server_enabled());
+            if let Some(entry) = mcp_launch::launch_log_entry(decision) {
+                logger::log_event(entry);
+            }
+            mcp_launch::record_event(&mcp_launch_state, LaunchEvent::Decided(decision));
+            if let McpLaunchDecision::Skip(_) = decision {
+                // No spawn: no port bound, SharedServerConfig stays None and
+                // MCP_SHUTDOWN stays empty (run_exit_cleanup handles that).
+                mcp_launch::on_skip();
+            } else {
+                // Start HTTP server for MCP
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let result =
+                        http_server::start_server(mcp_shadow_store, mcp_server_config, app_handle)
+                            .await;
+                    // Applied before branching, so neither arm can forget it.
+                    mcp_launch::record_event(&mcp_launch_state, mcp_launch::bind_event(&result));
+                    match result {
+                        Ok((port, shutdown_tx)) => {
+                            // Store shutdown sender in static so server stays alive
+                            // (dropping the sender triggers graceful shutdown)
+                            if let Ok(mut guard) =
+                                MCP_SHUTDOWN.get_or_init(|| Mutex::new(None)).lock()
+                            {
+                                *guard = Some(shutdown_tx);
+                            }
+                            logger::log_event(LogEntryPayload {
+                                level: LogLevel::Info,
+                                event: "mcp.http_server.start".to_string(),
+                                status: LogStatus::Success,
+                                action_id: None,
+                                context: Some(json!({ "port": port })),
+                                duration_ms: None,
+                                error: None,
+                            });
                         }
-                        logger::log_event(LogEntryPayload {
-                            level: LogLevel::Info,
-                            event: "mcp.http_server.start".to_string(),
-                            status: LogStatus::Success,
-                            action_id: None,
-                            context: Some(json!({ "port": port })),
-                            duration_ms: None,
-                            error: None,
-                        });
+                        Err(e) => {
+                            logger::log_event(LogEntryPayload {
+                                level: LogLevel::Error,
+                                event: "mcp.http_server.start".to_string(),
+                                status: LogStatus::Fail,
+                                action_id: None,
+                                context: None,
+                                duration_ms: None,
+                                error: Some(e),
+                            });
+                        }
                     }
-                    Err(e) => {
-                        logger::log_event(LogEntryPayload {
-                            level: LogLevel::Error,
-                            event: "mcp.http_server.start".to_string(),
-                            status: LogStatus::Fail,
-                            action_id: None,
-                            context: None,
-                            duration_ms: None,
-                            error: Some(e),
-                        });
-                    }
-                }
-            });
+                });
+            }
             let menu = tauri_app_lib::menu::build_menu(app.handle(), &[], None)?;
             app.set_menu(menu)?;
             let launch_state = tauri_app_lib::launch::LaunchState::default();
