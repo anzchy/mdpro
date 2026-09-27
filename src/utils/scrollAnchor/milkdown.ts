@@ -22,9 +22,20 @@
  *     probe line, instantly, rounding the target up so sub-pixel `scrollTop` snapping
  *     cannot leave it below the line; it reports success as a boolean so the TOC
  *     only highlights an entry it actually scrolled to.
+ *   - **Outline navigation stays pinned while layout settles (D22).** After its write on
+ *     the scroller path, `scrollHeadingToAnchor` arms `pinDuringLayoutSettle` (source
+ *     `"toc"`, observing `.ProseMirror`), whose `reapply` re-runs the same landing
+ *     arithmetic (`headingLandingTop`, shared, never duplicated) against the current
+ *     layout. No `loadFilter`: every image `load` re-pins, since the re-pin is
+ *     idempotent and growth below a limited heading still raises the limit. `reapply`
+ *     checks `heading.isConnected` before reading any rect and returns false for a
+ *     replaced heading, which ends the pin. The `scrollIntoView` fallback arms nothing.
+ *     The pin is armed without a local try/catch: `pinDuringLayoutSettle` never throws
+ *     (settle-pin P-15/P-17), so a pin failure never changes the boolean.
  *
  * @module src/utils/scrollAnchor/milkdown
  * @coordinates-with src/utils/scrollAnchor/anchor.ts
+ * @coordinates-with src/utils/scrollAnchor/settlePin.ts (`pinDuringLayoutSettle`)
  * @coordinates-with src/hooks/useMilkdownScrollRestore.ts
  * @coordinates-with src/hooks/useTOC.ts (`scrollHeadingToAnchor`)
  * @coordinates-with src/hooks/useWysiwygScrollSpy.ts (`findMilkdownScrollerIn`)
@@ -41,6 +52,7 @@ import {
   type ScrollAnchor,
   type VerticalSpan,
 } from "./anchor";
+import { pinDuringLayoutSettle } from "./settlePin";
 
 const HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";
 const SCROLLER_CLASS = "milkdown";
@@ -81,26 +93,60 @@ export function findMilkdownScrollerIn(container: HTMLElement): HTMLElement | nu
  * scroll-limit retention then keeps the heading passed on the way, not the one clicked.
  * With no scroller (unexpected shape), falls back to `scrollIntoView` at the heading top.
  *
+ * **Settle pin (D22).** After the scroller write, arms `pinDuringLayoutSettle` so images
+ * decoding above (or below) the heading during the settle window cannot carry it off the
+ * line: every layout trigger re-lands it with the same arithmetic against the current
+ * layout, until the window ends, the user scrolls, a later click re-arms, or the heading
+ * is replaced (then it stops rather than chase a detached node). The fallback path arms
+ * nothing.
+ *
  * Returns true when the scroll was issued (the fallback included), false when it threw —
- * the caller must then not claim the heading is shown. Never throws.
+ * the caller must then not claim the heading is shown. A pin failure does not change the
+ * result. Never throws.
  */
 export function scrollHeadingToAnchor(container: HTMLElement, heading: Element): boolean {
+  let scroller: HTMLElement | null;
   try {
-    const scroller = findMilkdownScrollerIn(container);
+    scroller = findMilkdownScrollerIn(container);
     if (!scroller) {
       heading.scrollIntoView({ behavior: "auto", block: "start" });
       return true;
     }
-    const rel = heading.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
-    const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
-    const exact = scroller.scrollTop + rel - SPY_ANCHOR_OFFSET_PX;
-    const top = Math.min(Math.max(Math.ceil(exact), 0), max);
-    scroller.scrollTo({ top, behavior: "auto" });
-    return true;
+    scroller.scrollTo({ top: headingLandingTop(scroller, heading), behavior: "auto" });
   } catch {
     // Navigation is best-effort; a failed scroll must not break the outline.
     return false;
   }
+  pinHeadingDuringSettle(container, scroller, heading);
+  return true;
+}
+
+/** `ceil(scrollTop + rel − 40)`, clamped to `[0, scrollHeight − clientHeight]`, from live rects. */
+function headingLandingTop(scroller: HTMLElement, heading: Element): number {
+  const rel = heading.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+  const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+  const exact = scroller.scrollTop + rel - SPY_ANCHOR_OFFSET_PX;
+  return Math.min(Math.max(Math.ceil(exact), 0), max);
+}
+
+/**
+ * Arm the settle pin AFTER the first write (it reads `scrollTop` at arm). Never throws:
+ * `pinDuringLayoutSettle` catches every failure itself (its never-throw contract, pinned
+ * by settle-pin P-15/P-17), so no try/catch is needed here. `.ProseMirror` always exists:
+ * `findMilkdownScrollerIn` only returns a scroller that is its parent (`?? scroller` only
+ * satisfies the type).
+ */
+function pinHeadingDuringSettle(container: HTMLElement, scroller: HTMLElement, heading: Element): void {
+  pinDuringLayoutSettle({
+    scroller,
+    observed: container.querySelector(VIEW_DOM_SELECTOR) ?? scroller,
+    source: "toc",
+    reapply: () => {
+      if (!heading.isConnected) return false; // replaced: stop, never measure it
+      scroller.scrollTo({ top: headingLandingTop(scroller, heading), behavior: "auto" });
+      return true;
+    },
+  });
 }
 
 function childRects(view: EditorView): Array<() => VerticalSpan | null> {

@@ -2,7 +2,7 @@
  * @module milkdown-scroll-restore.test
  * Purpose: pin the lifecycle of `useMilkdownScrollRestore` (WI-8) — when the
  * WYSIWYG restore fires relative to Milkdown's `loading` flag and layout, the
- * single settle re-apply, and cleanup. The geometry of the restore itself is
+ * settle re-pin window (D22), and cleanup. The geometry of the restore itself is
  * pinned in `scroll-anchor-correspondence.test.ts`, so the adapter is mocked.
  */
 
@@ -26,6 +26,7 @@ import {
   SCROLL_RESTORE_SETTLE_MS,
   useMilkdownScrollRestore,
 } from "../src/hooks/useMilkdownScrollRestore";
+import { loggingService } from "../src/services/loggingService";
 import {
   getPendingScrollAnchor,
   setPendingScrollAnchor,
@@ -68,9 +69,18 @@ function frames(n: number): void {
   for (let i = 0; i < n; i++) vi.advanceTimersByTime(FRAME_MS);
 }
 
+/** An `<img>` in the scroller whose top is `top` (the probe is at 40), then its `load`. */
+function loadImageAt(top: number): void {
+  const img = document.createElement("img");
+  img.getBoundingClientRect = () => ({ top, bottom: top + 200 }) as DOMRect;
+  scroller!.appendChild(img);
+  img.dispatchEvent(new Event("load"));
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   restore.mockReset();
+  vi.mocked(loggingService.logEventSync).mockReset();
   restore.mockImplementation(() => {
     scrollTop = 500;
     return true;
@@ -130,33 +140,88 @@ describe("useMilkdownScrollRestore", () => {
     expect(restore).not.toHaveBeenCalled();
   });
 
-  it("re-applies exactly once at the settle timeout", () => {
+  it("re-applies through the settle window: one final re-pin at the deadline, then nothing", () => {
+    // Assertion moved from call counts on the mocked restore to scrollTop (review T-1, CT-1).
+    let shift = 0;
+    restore.mockImplementation(() => {
+      scrollTop = 500 + shift;
+      return true;
+    });
     renderHook(() => useMilkdownScrollRestore(fakeEditor(false), DOC));
     frames(2);
+    expect(scrollTop).toBe(500);
+    shift = 300;
     vi.advanceTimersByTime(SCROLL_RESTORE_SETTLE_MS);
-    expect(restore).toHaveBeenCalledTimes(2);
+    expect(scrollTop).toBe(800);
+    shift = 600;
     vi.advanceTimersByTime(SCROLL_RESTORE_SETTLE_MS * 4);
-    expect(restore).toHaveBeenCalledTimes(2);
+    expect(scrollTop).toBe(800);
   });
 
   it("skips the re-apply when the user has scrolled since", () => {
+    // Assertion moved from call counts on the mocked restore to scrollTop (review T-1).
+    let shift = 0;
+    restore.mockImplementation(() => {
+      scrollTop = 500 + shift;
+      return true;
+    });
     renderHook(() => useMilkdownScrollRestore(fakeEditor(false), DOC));
     frames(2);
     scrollTop = 120;
+    shift = 300;
     vi.advanceTimersByTime(SCROLL_RESTORE_SETTLE_MS);
-    expect(restore).toHaveBeenCalledTimes(1);
+    expect(scrollTop).toBe(120);
   });
 
-  it("an image finishing loading above the probe re-applies immediately (once)", () => {
+  it("an image finishing loading above the probe re-applies immediately, and again at the deadline", () => {
+    // Assertion moved from call counts on the mocked restore to scrollTop (review T-1).
+    // D22 (plan WI-0 point 3): the one-shot settle let the first load end the window, so later
+    // growth was left uncorrected; the restore now re-pins through it, ending with a final re-pin.
+    let shift = 0;
+    restore.mockImplementation(() => {
+      scrollTop = 500 + shift;
+      return true;
+    });
     renderHook(() => useMilkdownScrollRestore(fakeEditor(false), DOC));
     frames(2);
-    const img = document.createElement("img");
-    img.getBoundingClientRect = () => ({ top: -300, bottom: -100 }) as DOMRect;
-    scroller!.appendChild(img);
-    img.dispatchEvent(new Event("load"));
-    expect(restore).toHaveBeenCalledTimes(2);
+    shift = 300;
+    loadImageAt(-300);
+    expect(scrollTop).toBe(800);
+    shift = 600;
     vi.advanceTimersByTime(SCROLL_RESTORE_SETTLE_MS);
-    expect(restore).toHaveBeenCalledTimes(2);
+    expect(scrollTop).toBe(1100);
+  });
+
+  it("two loads above the probe are each re-applied (D22 M-02)", () => {
+    let shift = 0;
+    restore.mockImplementation(() => {
+      scrollTop = 500 + shift;
+      return true;
+    });
+    renderHook(() => useMilkdownScrollRestore(fakeEditor(false), DOC));
+    frames(2);
+    shift = 300;
+    loadImageAt(-300);
+    shift = 600;
+    loadImageAt(-200);
+    expect(scrollTop).toBe(1100);
+    expect(restore).toHaveBeenCalledTimes(3);
+  });
+
+  it("the below-the-probe filter applies to every load, not only the first (D22 M-03)", () => {
+    let shift = 0;
+    restore.mockImplementation(() => {
+      scrollTop = 500 + shift;
+      return true;
+    });
+    renderHook(() => useMilkdownScrollRestore(fakeEditor(false), DOC));
+    frames(2);
+    shift = 300;
+    loadImageAt(300);
+    expect(scrollTop).toBe(500);
+    shift = 600;
+    loadImageAt(-300);
+    expect(scrollTop).toBe(1100);
   });
 
   it("an image loading BELOW the probe does not trigger a re-apply", () => {
@@ -183,5 +248,22 @@ describe("useMilkdownScrollRestore", () => {
     frames(2);
     vi.advanceTimersByTime(SCROLL_RESTORE_SETTLE_MS);
     expect(restore).toHaveBeenCalledTimes(1);
+  });
+
+  it("a throwing logger cannot stop the restore landing or the pin arming (review C-4)", () => {
+    vi.mocked(loggingService.logEventSync).mockImplementation(() => {
+      throw new Error("logger down");
+    });
+    let shift = 0;
+    restore.mockImplementation(() => {
+      scrollTop = 500 + shift;
+      return true;
+    });
+    renderHook(() => useMilkdownScrollRestore(fakeEditor(false), DOC));
+    expect(() => frames(2)).not.toThrow();
+    expect(scrollTop).toBe(500);
+    shift = 300;
+    loadImageAt(-300);
+    expect(scrollTop).toBe(800);
   });
 });

@@ -12,22 +12,26 @@
  *     animation frames AND a scroller with `clientHeight > 0`, giving up after
  *     `SCROLL_RESTORE_MAX_FRAMES` (the view then stays at the top — today's
  *     behaviour).
- *   - **One settle re-apply.** `useMilkdownImages` swaps image sources to
- *     asset:// after render, which can push the target down. The first image
- *     `load` above the probe line, or `SCROLL_RESTORE_SETTLE_MS`, re-applies
- *     once — and only if `scrollTop` is still what the restore set, so a user
- *     who has already scrolled is never yanked back (and if the engine's own
- *     scroll anchoring moved `scrollTop`, the position is already held).
+ *   - **Re-pin through the settle window (D22).** `useMilkdownImages` swaps image
+ *     sources to asset:// after render, and each decode can push the target down —
+ *     several images, at different times. After a successful restore the hook arms
+ *     `pinDuringLayoutSettle` (source `"restore"`) with the restore itself as the
+ *     re-apply: every `.ProseMirror` resize, and every image `load` above the probe
+ *     line, re-applies the anchor until `SCROLL_RESTORE_SETTLE_MS` after arm, when one
+ *     final re-pin runs. The pin stands down the moment `scrollTop` is not its own, so
+ *     a user who has scrolled is never yanked back; the effect cleanup disposes it.
+ *   - **Logging never blocks the restore.** `logRestore` swallows logger failures, so a
+ *     throwing logger cannot stop the pin from arming right after it.
  *
  * @coordinates-with src/utils/scrollAnchor/milkdown.ts
  * @coordinates-with src/utils/scrollAnchor/anchor.ts (the one-shot slot)
+ * @coordinates-with src/utils/scrollAnchor/settlePin.ts (`pinDuringLayoutSettle`)
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
  */
 
 import { useEffect } from "react";
 import type { useEditor } from "@milkdown/react";
 import { editorViewCtx } from "@milkdown/kit/core";
-import type { EditorView } from "@milkdown/kit/prose/view";
 import { loggingService } from "../services/loggingService";
 import { consumePendingScrollAnchor, type ScrollAnchor } from "../utils/scrollAnchor/anchor";
 import { SPY_ANCHOR_OFFSET_PX } from "../utils/codemirrorViewportLine";
@@ -35,6 +39,7 @@ import {
   resolveMilkdownScroller,
   restoreMilkdownScrollAnchor,
 } from "../utils/scrollAnchor/milkdown";
+import { pinDuringLayoutSettle, SETTLE_PIN_WINDOW_MS } from "../utils/scrollAnchor/settlePin";
 
 type MilkdownEditorReturn = ReturnType<typeof useEditor>;
 
@@ -42,17 +47,22 @@ type MilkdownEditorReturn = ReturnType<typeof useEditor>;
 export const SCROLL_RESTORE_MIN_FRAMES = 2;
 /** Frames after which a never-laid-out scroller is abandoned. */
 export const SCROLL_RESTORE_MAX_FRAMES = 60;
-/** The one settle re-apply fires at the latest after this delay. */
-export const SCROLL_RESTORE_SETTLE_MS = 500;
+/** The restore's settle-pin window, from arm (the final re-pin runs at its end). */
+export const SCROLL_RESTORE_SETTLE_MS = SETTLE_PIN_WINDOW_MS;
 
+/** Never throws: it runs just before the pin is armed, and logging must not stop that. */
 function logRestore(anchor: ScrollAnchor, status: "success" | "cancel", context: Record<string, unknown>): void {
-  loggingService.logEventSync({
-    level: "info",
-    event: "editor.scroll_anchor.restore",
-    status,
-    actionId: loggingService.generateActionId(),
-    context: { surface: "wysiwyg", documentId: anchor.documentId, ...context },
-  });
+  try {
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.scroll_anchor.restore",
+      status,
+      actionId: loggingService.generateActionId(),
+      context: { surface: "wysiwyg", documentId: anchor.documentId, ...context },
+    });
+  } catch {
+    // Logging must never break scrolling (same rule as settlePin's `logSettle`).
+  }
 }
 
 export function useMilkdownScrollRestore(
@@ -68,10 +78,7 @@ export function useMilkdownScrollRestore(
 
     let frame = 0;
     let rafId = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let settled = false;
-    let appliedTop = 0;
-    let target: { view: EditorView; scroller: HTMLElement } | null = null;
+    let disposePin: (() => void) | undefined;
 
     const locate = () => {
       try {
@@ -83,21 +90,6 @@ export function useMilkdownScrollRestore(
       }
     };
 
-    const settle = () => {
-      if (settled || !target) return;
-      settled = true;
-      clearTimeout(timer);
-      target.scroller.removeEventListener("load", onLoad, true);
-      if (target.scroller.scrollTop !== appliedTop) return;
-      restoreMilkdownScrollAnchor(target.view, target.scroller, anchor);
-    };
-
-    function onLoad(event: Event): void {
-      if (!target || !(event.target instanceof HTMLImageElement)) return;
-      const probeY = target.scroller.getBoundingClientRect().top + SPY_ANCHOR_OFFSET_PX;
-      if (event.target.getBoundingClientRect().top < probeY) settle();
-    }
-
     const step = () => {
       frame++;
       const found = locate();
@@ -106,20 +98,27 @@ export function useMilkdownScrollRestore(
         else logRestore(anchor, "cancel", { reason: "no-layout", frames: frame });
         return;
       }
-      target = found;
-      const applied = restoreMilkdownScrollAnchor(found.view, found.scroller, anchor);
+      const { view, scroller } = found;
+      const applied = restoreMilkdownScrollAnchor(view, scroller, anchor);
       logRestore(anchor, applied ? "success" : "cancel", { frames: frame });
       if (!applied) return;
-      appliedTop = found.scroller.scrollTop;
-      found.scroller.addEventListener("load", onLoad, true);
-      timer = setTimeout(settle, SCROLL_RESTORE_SETTLE_MS);
+      disposePin = pinDuringLayoutSettle({
+        scroller,
+        observed: view.dom,
+        source: "restore",
+        windowMs: SCROLL_RESTORE_SETTLE_MS,
+        reapply: () => restoreMilkdownScrollAnchor(view, scroller, anchor),
+        // Only a load above the probe line can have moved the anchor.
+        loadFilter: (el) =>
+          el instanceof HTMLImageElement &&
+          el.getBoundingClientRect().top < scroller.getBoundingClientRect().top + SPY_ANCHOR_OFFSET_PX,
+      });
     };
 
     rafId = requestAnimationFrame(step);
     return () => {
       cancelAnimationFrame(rafId);
-      clearTimeout(timer);
-      target?.scroller.removeEventListener("load", onLoad, true);
+      disposePin?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor.loading, activeDocumentId]);
