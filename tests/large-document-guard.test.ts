@@ -2391,14 +2391,24 @@ describe("decideLargeDocumentGuard — the Source criterion (ADR-0022)", () => {
     // Every A is empty or ends in "\n", so A + B joins at a line boundary.
     // Known limit: a constant 0 satisfies additivity — ST3, ST6 and ST8b are
     // what make this sound.
+    //
+    // Each single-operand count is computed ONCE per operand, not once per
+    // pair (D28). Every `rowsAfter` call scans a ~100 KB instrument, and the
+    // per-pair form paid 3 x 7 x 18 = 378 scans where 126 + 7 + 18 = 151
+    // suffice. Under `--coverage` in a contended full lane that redundant work
+    // carried this case (97 ms alone, ~2.7 s measured in the lane) toward
+    // vitest's default per-test budget, and it failed there as a timeout. The
+    // law asserted is unchanged: `rowsAfter` is a pure function of its input.
     const A = ["", "|\n", "x\n", " | a\n", " |\n", "a | b\n|\n", "```\n| a |\n```\n"];
+    const rowsOfA = new Map(A.map((a) => [a, rowsAfter(a)]));
+    const rowsOfB = new Map(ROW_FRAGMENTS.map(({ fragment }) => [fragment, rowsAfter(fragment)]));
     const lhs: number[] = [];
     const rhs: number[] = [];
     const labels: string[] = [];
     for (const a of A) {
       for (const { fragment: b } of ROW_FRAGMENTS) {
         lhs.push(rowsAfter(a + b));
-        rhs.push(rowsAfter(a) + rowsAfter(b));
+        rhs.push((rowsOfA.get(a) as number) + (rowsOfB.get(b) as number));
         labels.push(`${JSON.stringify(a)} + ${JSON.stringify(b)}`);
       }
     }

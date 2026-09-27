@@ -164,7 +164,11 @@ function measureArms(arms: Arm[], samples = 5): Record<string, number> {
   // verified even once. Same interleaved protocol, same fresh copy per sample,
   // same alternating arm order — only the count changes.
   //
-  // Do NOT "fix" this by raising the 6x bar. The bar is correct.
+  // This note originally read: do NOT "fix" this by raising the 6x bar. The
+  // bar was later raised to 9x anyway (D28) — not to absorb the
+  // undersampling described here, which this estimator fixed, but because a
+  // 6.4x reading was still recorded in a contended lane. See
+  // `GROWTH_RATIO_BAR` for the margins and the measurements behind them.
   //
   // There is a SECOND, independent cause, separated by measurement: running
   // this file alone passes 5/5 both with and without `--coverage`, so v8
@@ -208,6 +212,25 @@ function measureArms(arms: Arm[], samples = 5): Record<string, number> {
 }
 
 const ms = (value: number): string => `${value.toFixed(3)} ms`;
+
+/**
+ * WI1-growth's bar for cost(4000 rows) / cost(1000 rows) (D28: was 6).
+ *
+ * Linear predicts ~4, quadratic ~16. At 6 the bar sat 1.5x above linear and
+ * a contended `--coverage` lane on 2026-09-23 read 6.4x and failed a correct
+ * scanner. At 9 it sits 2.25x above linear and 1.8x below quadratic, so a
+ * return of the quadratic re-scan still fails by a wide margin.
+ *
+ * Measured on 2026-09-27 with this estimator: 24 runs (10 alone, 5 alone
+ * under `--coverage`, 9 in the full `--coverage` lane, 6 of them with a
+ * second full lane running beside it, load average up to ~64 on 10 cores) all read
+ * 3.78x-4.02x; the 6.4x reading was not reproduced.
+ *
+ * What this gives up: growth between the two — e.g. n^1.5, which predicts 8x
+ * — no longer fails here. The case exists to catch the quadratic regression
+ * it was written for, not every superlinear one.
+ */
+const GROWTH_RATIO_BAR = 9;
 
 // ---------------------------------------------------------------------------
 
@@ -306,14 +329,14 @@ describe("table scan scaling (WI-1 reproducer)", () => {
       ]);
       expect(medians.n1000, "1000-row arm measured 0 ms — unmeasurable").toBeGreaterThan(0);
 
-      // Linear predicts ~4, quadratic ~16. The bar is 6.
+      // Linear predicts ~4, quadratic ~16. The bar is GROWTH_RATIO_BAR.
       const ratio = medians.n4000 / medians.n1000;
       expect(
         ratio,
         `4000 rows cost ${ms(medians.n4000)} vs 1000 rows ${ms(medians.n1000)} — ` +
-          `growth ratio ${ratio.toFixed(1)}x for a 4x document, bar 6x. Linear predicts ~4, ` +
-          `quadratic ~16.`,
-      ).toBeLessThanOrEqual(6);
+          `growth ratio ${ratio.toFixed(1)}x for a 4x document, bar ${GROWTH_RATIO_BAR}x. ` +
+          `Linear predicts ~4, quadratic ~16.`,
+      ).toBeLessThanOrEqual(GROWTH_RATIO_BAR);
     },
   );
 

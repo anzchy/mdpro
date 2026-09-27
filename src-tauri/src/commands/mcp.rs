@@ -609,9 +609,15 @@ mod tests {
 
     /// On non-Windows, GeminiCli must use the XDG convention: ~/.config/gemini/settings.json.
     /// This path is what the Gemini CLI itself reads on macOS and Linux.
+    ///
+    /// Holds `crate::HOME_LOCK` for its whole body (D28): it reads `$HOME`
+    /// twice — inside `get_client_config_path` and again via `home_dir()` — and
+    /// other tests redirect `$HOME` on parallel threads. Without the lock a
+    /// redirect landing between the two reads makes `starts_with` fail.
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn gemini_cli_config_path_uses_xdg_on_non_windows() {
+        let _guard = crate::HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let path = get_client_config_path(McpClient::GeminiCli).unwrap();
         assert!(
             path.ends_with(".config/gemini/settings.json"),

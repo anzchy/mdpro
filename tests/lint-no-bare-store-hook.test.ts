@@ -142,7 +142,20 @@ describe("findBareStoreHookCalls — parsing", () => {
   });
 });
 
-describe("the gate: the real src/ tree", () => {
+/**
+ * Per-test budget for the two cases that scan the real `src/` tree (D28).
+ *
+ * Each one parses every source file with the TypeScript compiler: ~0.1-0.3 s
+ * alone, ~1.2-1.6 s measured inside the full `--coverage` lane with a second
+ * lane running beside it, and the cost grows with `src/`. That is too close to
+ * vitest's 5 s default, and a synchronous case that finishes late is still
+ * failed as a timeout — reported as `Error: STACK_TRACE_ERROR` with a stack
+ * captured where `it()` was registered, which is why the failure looked like a
+ * collection-time error. This bounds a hang; it is not a performance claim.
+ */
+const SRC_SCAN_TIMEOUT_MS = 60_000;
+
+describe("the gate: the real src/ tree", { timeout: SRC_SCAN_TIMEOUT_MS }, () => {
   it("scans something — a silent zero from an empty walk is not a pass", () => {
     const scanned = scanTree(SRC_DIR).filesScanned as number;
     expect(scanned).toBeGreaterThan(100);
