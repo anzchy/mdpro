@@ -60,7 +60,10 @@ describe("§5 useTOC#scrollToHeading — WYSIWYG no-ops and idempotence", () => 
     navigate(list[0].key);
     expect(surface.scroller.scrollTop).toBe(PRESET_SCROLL_TOP);
     expect(active()).toBeNull();
-    expect(mismatchLogs()).toHaveLength(1);
+    // D21 — no `.ProseMirror` is a pre-mount or teardown state, not evidence of a count
+    // mismatch. The old count of 1 pinned the defect. Payload shape is covered by L-1, T7
+    // and R-D21-2.
+    expect(mismatchLogs()).toHaveLength(0);
 
     // Positive guard: the same fixture with `.ProseMirror` present moves `scrollTop`.
     setProseMirror(surface, true);
@@ -69,7 +72,7 @@ describe("§5 useTOC#scrollToHeading — WYSIWYG no-ops and idempotence", () => 
     expect(surface.scroller.scrollTop).not.toBe(PRESET_SCROLL_TOP);
   });
 
-  it("N-5: tier 3 — no .ProseMirror is a no-op, and the log fires exactly once", () => {
+  it("N-5: no .ProseMirror (ADR-0014 guard: resolve nothing) — a no-op, and logs no mismatch", () => {
     const { surface, navigate, rerender } = setupNavigation(
       [{ level: 1, text: "A" }, { level: 1, text: "B" }],
       "# A\n\n# B",
@@ -87,16 +90,19 @@ describe("§5 useTOC#scrollToHeading — WYSIWYG no-ops and idempotence", () => 
 
     expect(surface.scroller.scrollTop).toBe(PRESET_SCROLL_TOP);
     expect(active()).toBeNull();
+    // D21 — no `.ProseMirror` is ADR-0014 step 1 (resolve nothing), not a tier-3 count
+    // mismatch; the old "exactly once" pinned the defect. Payload shape: L-1, T7, R-D21-2.
     const logs = mismatchLogs();
-    expect(logs).toHaveLength(1);
-    expect(logs[0].level).toBe("warn");
-    expect(logs[0].status).toBe("fail");
-    expect(logs[0].context).toEqual({ documentId: "doc-a", entryCount: 2, domCount: 0, resolvedCount: 0 });
+    expect(logs).toHaveLength(0);
 
     // Positive guard, as in N-3.
     setProseMirror(surface, true);
     navigate(list[1].key);
     expect(surface.scroller.scrollTop).toBe(landing(surface, 1));
+    // Still 0 because nothing re-armed: `setProseMirror` renames the class (an attribute
+    // mutation) and the spy's MutationObserver watches childList only. R-D21-3 steps 2
+    // and 12 prove a present, matching pass logs nothing.
+    expect(mismatchLogs()).toHaveLength(0);
   });
 
   it("N-6: LAW idempotence — three navigations, one landing, no store write after the first", () => {

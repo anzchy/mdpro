@@ -41,8 +41,10 @@
  *   recomputes (a layout change with no scroll still moves the key). The filter only
  *   re-scans when an added/removed node is or contains `hN` / `.ProseMirror`.
  * - D7: one `ui.toc.resolve.mismatch` warning per changed signature, per hook instance
- *   (`tocResolveMismatch.ts`). A re-arm with no `.ProseMirror` is a provider teardown and
- *   does not warn; the initial pass does (N-3/N-5 pin it).
+ *   (`tocResolveMismatch.ts`). No `.ProseMirror` in the container means no report, whether
+ *   the pass is initial (pre-mount) or a re-arm (provider teardown), and the signature is
+ *   left untouched (D21). So a persistent mismatch warns once per hook instance, not once
+ *   per Source→WYSIWYG switch.
  * - A pending frame never writes after teardown: `disposed` plus `cancelAnimationFrame`.
  *
  * `enabled` is `resolveSpyMode(enableSpyScrolling, viewMode) === "dom"`, decided by the
@@ -161,9 +163,9 @@ export function useWysiwygScrollSpy({
       resolved = [...resolution.byKey];
       indexByKey = new Map(resolved.map(([key], i) => [key, i]));
 
-      // A re-arm with no `.ProseMirror` is a provider teardown, not a mismatch. The
-      // initial pass keeps warning in that state (N-3/N-5 pin it).
-      if (!isRearm || container.querySelector(".ProseMirror")) {
+      // D21 — no `.ProseMirror` is a pre-mount (initial pass) or teardown (re-arm) state,
+      // not a mismatch: no report either way, and the signature ref is not touched.
+      if (container.querySelector(".ProseMirror")) {
         reportResolveMismatch(resolution, entries.length, documentId, mismatchSignatureRef);
       }
       observeSizes();

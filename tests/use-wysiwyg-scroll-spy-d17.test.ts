@@ -5,10 +5,10 @@
  * diagnostic seed (Part B: B0, B2, B3, B1). B4 and Part A are not ported (see matrix).
  *
  * The switch is replayed in the order the release log shows it: Source spy left a heading
- * active → the WYSIWYG spy arms over an empty container (`ui.toc.resolve.mismatch
- * domCount:0`) → `.ProseMirror` arrives in one insert (D14 re-arm) → the first rendering
- * update at scrollTop 0 → WI-8's restore (`scrollTop` write plus the `scroll` event a
- * browser fires) → the next rendering update.
+ * active → the WYSIWYG spy arms over an empty container (no warning since D21: no
+ * `.ProseMirror` means no report) → `.ProseMirror` arrives in one insert (D14 re-arm) →
+ * the first rendering update at scrollTop 0 → WI-8's restore (`scrollTop` write plus the
+ * `scroll` event a browser fires) → the next rendering update.
  *
  * Real: `useTOC` → `useWysiwygScrollSpy` → `tocStore`, jsdom DOM, MutationObserver, scroll
  * event dispatch. Scripted: layout and scroll writes (`scriptedScrollGeometry`), rAF (fake
@@ -167,7 +167,7 @@ afterEach(() => {
 
 /**
  * The switch, in log order, ending BEFORE the first rendering update: Source spy left
- * `start` active → WYSIWYG spy arms over an empty container (one D7 warning, domCount 0)
+ * `start` active → WYSIWYG spy arms over an empty container (no D7 warning: D21)
  * → `.ProseMirror` arrives in one insert → mutations flushed (D14 re-arm).
  */
 async function switchToWysiwyg(start: string) {
@@ -188,7 +188,8 @@ async function switchToWysiwyg(start: string) {
   const mismatch = logSpy.mock.calls
     .map((c) => c[0] as { event: string; context: Record<string, unknown> })
     .filter((p) => p.event === "ui.toc.resolve.mismatch");
-  expect(mismatch.map((m) => m.context.domCount)).toEqual([0]);
+  // D21 — the empty-container initial pass is pre-mount, not a mismatch; `[0]` pinned the defect.
+  expect(mismatch).toHaveLength(0);
 
   const surface = mountScriptedSurface(container, {
     headings: HEADINGS,
