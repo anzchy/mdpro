@@ -169,7 +169,8 @@ describe("handleImageFiles — resolveImagesInContainer call sites (#375)", () =
 
 // ── Integration: resolveImagesInContainer rewrites <img src> in DOM ───────────
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   convertFileSrc: (path: string) => {
     const normalized = path.startsWith("/") ? path.slice(1) : path;
     return `asset://localhost/${normalized}`;

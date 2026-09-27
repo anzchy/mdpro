@@ -110,12 +110,12 @@ export const loggingService = {
   /**
    * Load the backend's logging settings and apply them to the store verbatim.
    *
-   * `preferencesService.getPreferences()` cannot be used for this: its
-   * `isTauriEnv()` detector tests for `window.__TAURI__`, which Tauri v2 only
-   * injects when `withGlobalTauri` is enabled — and it is not. In the shipping
-   * app that detector always reports browser mode, so the preference never
-   * reaches the frontend. `getLoggingSettings()` goes straight through
-   * `safeInvoke`, bypassing the detector.
+   * Reads through `getLoggingSettings()` (a direct `safeInvoke`) rather than
+   * `preferencesService.getPreferences()`. The preferences path once used a
+   * `window.__TAURI__` detector that always reported browser mode in the
+   * shipping app (D24, fixed in ADR-0031 step 5b by `isTauri()`); the dedicated
+   * command stays because it is fail-closed and never rejects, which the full
+   * preferences read does not guarantee.
    *
    * Never rejects: `safeInvoke` yields null on an IPC failure and
    * `getLoggingSettings` applies the fail-closed `FAIL_CLOSED_SETTINGS`

@@ -56,7 +56,7 @@ const { fake, invokeMock, logEventSync, syncDocuments } = vi.hoisted(() => {
 });
 
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => fake.win }));
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invokeMock(...args) }));
+vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: (...args: unknown[]) => invokeMock(...args) }));
 vi.mock("../src/services/loggingService", () => ({
   loggingService: { logEventSync, logEvent: vi.fn(async () => {}), generateActionId: vi.fn(() => "test-id") },
 }));

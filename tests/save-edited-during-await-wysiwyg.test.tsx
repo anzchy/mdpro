@@ -16,11 +16,13 @@
  * window}` and `loggingService`.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act } from "@testing-library/react";
 
 const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
   convertFileSrc: (p: string) => `asset://${p}`,
 }));
@@ -46,7 +48,6 @@ import { A_PATH, SAVED_AT, createHeldInvoke, type HeldInvoke } from "./helpers/h
 
 const TIMER_WRITE_MARGIN_MS = 100;
 const UNMOUNT_SETTLE_MS = 100;
-type TauriGlobal = { __TAURI__?: unknown };
 type Api = ReturnType<typeof useDocument>;
 
 let api: Api | null = null;
@@ -93,7 +94,7 @@ beforeEach(() => {
   invokeMock.mockReset();
   held = createHeldInvoke(invokeMock);
   held.hold("save_file");
-  (globalThis as TauriGlobal).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   resetStores([makeDoc("doc-a", "Hello world", A_PATH), makeDoc("doc-b", "Other")]);
 });
 
@@ -103,7 +104,6 @@ afterEach(async () => {
     unmount();
     await sleep(UNMOUNT_SETTLE_MS);
   }
-  delete (globalThis as TauriGlobal).__TAURI__;
   useDocumentStore.setState({ documents: [], activeDocumentId: null });
 });
 

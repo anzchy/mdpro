@@ -19,6 +19,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 
 import type { ViewMode } from "../src/types/editor";
 import {
@@ -30,7 +31,8 @@ import {
 } from "../src/types/preferences";
 
 const invokeMock = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
@@ -125,8 +127,8 @@ function diffKeyGraphs(
 describe("WI-8 — cross-language preference contract parity (TS half)", () => {
   beforeEach(() => {
     invokeMock.mockReset();
-    delete (window as unknown as Record<string, unknown>).__TAURI__;
-    delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
+    // Browser branch (the helper's default, written out so the intent is visible).
+    vi.mocked(isTauri).mockReturnValue(false);
   });
 
   /**
@@ -134,8 +136,8 @@ describe("WI-8 — cross-language preference contract parity (TS half)", () => {
    * recursively, in both directions.
    *
    * `DEFAULT_PREFERENCES` is not exported, so it is obtained through
-   * `preferencesService.getPreferences()` with `__TAURI__` cleared — the
-   * browser branch returns the constant itself. `invoke` is mocked only so
+   * `preferencesService.getPreferences()` with the `isTauri` spy false — the
+   * browser branch returns a deep copy of the constant. `invoke` is mocked only so
    * that an accidental IPC attempt is *visible* rather than a module-resolution
    * error, and is asserted never to have been called: that is what proves the
    * comparison was fed by the real constant and not by the mock's return value.

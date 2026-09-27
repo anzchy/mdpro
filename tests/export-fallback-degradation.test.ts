@@ -16,7 +16,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { exportService } from "../src/services/exportService";
 import { invoke } from "@tauri-apps/api/core";
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(),
 }));
 

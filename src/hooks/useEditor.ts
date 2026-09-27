@@ -5,8 +5,6 @@ export function useEditor() {
   const setViewMode = useEditorStore((state) => state.setViewMode);
   const cycleViewMode = useEditorStore((state) => state.cycleViewMode);
   const showSidebar = useEditorStore((state) => state.showSidebar);
-  const toggleSidebar = useEditorStore((state) => state.toggleSidebar);
-  const setShowSidebar = useEditorStore((state) => state.setShowSidebar);
   const isFocused = useEditorStore((state) => state.isFocused);
   const setFocus = useEditorStore((state) => state.setFocus);
 
@@ -15,8 +13,6 @@ export function useEditor() {
     setViewMode,
     cycleViewMode,
     showSidebar,
-    toggleSidebar,
-    setShowSidebar,
     isFocused,
     setFocus,
   };

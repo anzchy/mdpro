@@ -41,12 +41,14 @@
  * every expectation is distinctness / membership / absence against keys the store minted.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook } from "@testing-library/react";
 
 // --- boundary mocks -------------------------------------------------------
 
 const invokeMock = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
@@ -722,7 +724,7 @@ describe("W8 (control) — ordinary paths preserve", () => {
   const RAGGED = "# Guide\n\n## Intro\n\n| a | b |\n| - | - |\n| 1 | 22222 |\n";
 
   it("saveActiveDocument with auto-reformat ON rewrites the table and keeps the key", async () => {
-    vi.stubGlobal("__TAURI__", {});
+    vi.mocked(isTauri).mockReturnValue(true);
     preferences = { markdown: { autoReformatTablesOnSave: true } };
     seedDocumentStore(makeDoc({ content: RAGGED }));
     const { collapsed } = seedCollapsed(GUIDE_INTRO, DOC_ID, 1);

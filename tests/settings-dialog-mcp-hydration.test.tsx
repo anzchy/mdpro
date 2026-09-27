@@ -9,12 +9,14 @@
  * 2. Conservation — every `mcp` payload is the group loaded in this open with
  *    exactly the user's changes applied.
  *
- * The only mock is `@tauri-apps/api/core#invoke`. `__TAURI__` is stubbed so
- * `preferencesService` takes the Tauri branch; otherwise "zero writes" would be
+ * The only mock is `@tauri-apps/api/core` (`invoke`, plus the `isTauri` spy from
+ * `tests/support/tauriCoreMock.ts`, set true so `preferencesService` takes the
+ * Tauri branch); otherwise "zero writes" would be
  * vacuous. Replaces the source-bytes DEFAULT_MCP_CONFIG assertion formerly in
  * `tests/settings-dialog.test.ts`.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -22,7 +24,8 @@ const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(async (..._args: unknown[]): Promise<unknown> => null),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
@@ -93,13 +96,9 @@ beforeEach(() => {
   prefsGate = null;
   prefsError = null;
   setReplies = [];
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: false, level: "info" });
   useToastStore.getState().clearToast();
-});
-
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("WI-7 SettingsDialog MCP hydration (F3)", () => {

@@ -60,7 +60,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [mcpConfig, setMcpConfig] = useState<McpConfig | null>(null);
   const [mcpLoadFailed, setMcpLoadFailed] = useState(false);
   const mcpLoadGenRef = useRef(0);
-  // `serverEnabled` as the user set it this session; null = untouched (D-4).
+  // `serverEnabled` as last written successfully this session; null = untouched
+  // (D-4). Set only after the write resolves, within the open that issued it
+  // (ADR-0031 5b, WI-6), so "Changed elsewhere" means disk disagrees after a
+  // successful write — a failed write is signalled by its toast alone.
   const [mcpPendingToggle, setMcpPendingToggle] = useState<boolean | null>(null);
   // One MCP write at a time (MCP-FIX-C1); the ref is the synchronous guard.
   const [mcpSaving, setMcpSaving] = useState(false);
@@ -127,15 +130,16 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         if (p.mcp) setMcpConfig(p.mcp);
         else setMcpLoadFailed(true);
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (gen !== mcpLoadGenRef.current) return;
         setMcpLoadFailed(true);
+        // Enum-only: the rejection text can carry filesystem paths.
         loggingService.logEventSync({
           level: "error",
           event: MCP_LOAD_EVENT,
           status: "fail",
           actionId: loggingService.generateActionId(),
-          error: error instanceof Error ? error.message : String(error),
+          context: { reason: "invoke_rejected" },
         });
       });
   }, [open]);
@@ -153,9 +157,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     mcpSavingRef.current = true;
     setMcpSaving(true);
     setMcpConfig(config);
-    if (config.serverEnabled !== prev.serverEnabled) setMcpPendingToggle(config.serverEnabled);
     try {
       await preferencesService.setPreferences({ mcp: config });
+      if (gen === mcpLoadGenRef.current && config.serverEnabled !== prev.serverEnabled) {
+        setMcpPendingToggle(config.serverEnabled);
+      }
     } catch {
       const current = gen === mcpLoadGenRef.current;
       if (current) {

@@ -8,11 +8,13 @@
  * Stores, `useDocument` and `performSave` are real.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook } from "@testing-library/react";
 
 const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }));
@@ -38,7 +40,6 @@ import { A_PATH, SAVED_AT, createHeldInvoke, type HeldInvoke } from "./helpers/h
 const TOC_INITIAL = useTOCStore.getState();
 const T0 = "|a|b|\n|-|-|\n|1|2|\n";
 type Api = ReturnType<typeof useDocument>;
-type TauriGlobal = { __TAURI__?: unknown };
 
 let held: HeldInvoke;
 const docA = () => useDocumentStore.getState().documents.find((d) => d.id === "doc-a");
@@ -105,12 +106,11 @@ beforeEach(() => {
   invokeMock.mockReset();
   held = createHeldInvoke(invokeMock);
   resetStores();
-  (globalThis as TauriGlobal).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
 });
 
 afterEach(() => {
   held.assertDrained();
-  delete (globalThis as TauriGlobal).__TAURI__;
   useDocumentStore.setState({ documents: [], activeDocumentId: null });
 });
 

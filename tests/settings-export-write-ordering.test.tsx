@@ -37,18 +37,14 @@
  * user cannot see the result of*. Closing the dialog mid-keystroke abandons the
  * keystroke; it does not silently commit it after the surface is gone.
  *
- * ## SCOPE WARNING — a green suite here does NOT mean preferences persist today
+ * ## Scope — what a green suite here proves
  *
- * `isTauriEnv()` (`src/services/preferencesService.ts:20`) tests for `__TAURI__`,
- * which Tauri v2 never injects, so in the shipping app `setPreferences` takes the
- * browser branch and **nothing reaches Rust and nothing lands on disk**. These
- * tests stub `globalThis.__TAURI__` in `beforeEach` precisely to force the real
- * service down its Tauri branch and make the boundary observable. They therefore
- * assert behaviour the shipping app does not currently exhibit. That is the
- * point — these fixes exist so the eventual detector flip is safe — but a reader
- * must not conclude from a green run that export preferences are being saved.
- * The paired real-path test cannot be written until that detector flips; the
- * obligation is recorded against the detector-flip work item, not discharged here
+ * These tests set the `isTauri` spy (`tests/support/tauriCoreMock.ts`) true in
+ * `beforeEach` to force the real `preferencesService` down its Tauri branch and
+ * make the boundary observable. Since ADR-0031 step 5b (D24) the shipping app
+ * takes that branch too, so these payloads are what reaches `set_preferences`.
+ * Whether the packaged WebView carries the `isTauri` marker is verified only by
+ * the ADR-0032 GUI run; the Rust half is `commands/preferences_tests.rs`
  * (matrix § 0.6).
  *
  * ## Mock boundary
@@ -62,13 +58,15 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 
 import type { ExportConfig, UserPreferences } from "../src/types/preferences";
 import type { PreferenceRecorder, UserAction } from "./support/preferenceRecorder";
 
 let recorder: PreferenceRecorder;
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (cmd: string, args?: unknown) => recorder.invoke(cmd, args),
 }));
 
@@ -290,14 +288,13 @@ beforeEach(() => {
   });
   // Force the real preferencesService down its Tauri branch so the boundary is
   // observable at all (plan § Framing, point 2).
-  (globalThis as { __TAURI__?: unknown }).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
 });
 
 afterEach(() => {
   unsubscribeToast?.();
   unsubscribeToast = null;
   useToastStore.getState().clearToast();
-  delete (globalThis as { __TAURI__?: unknown }).__TAURI__;
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });

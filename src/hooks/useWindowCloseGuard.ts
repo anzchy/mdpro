@@ -20,6 +20,8 @@
  *   forever; with several live handlers a latched Discard is consumed by the
  *   first and the second prompts again. The flag makes the late resolution
  *   unlisten itself.
+ * - **The save body lives in `saveWindowStateOnClose.ts`** (extracted for
+ *   the 300-line limit); this hook exposes it as `saveWindowState`.
  * - **The active document is read inside `saveWindowState`, at call time**
  *   (rule 50 §1). Reading it from the render closure while the effect no longer
  *   re-subscribes would freeze it at subscription time, and the per-file
@@ -52,7 +54,9 @@
  *   global window state cannot be written, the per-file geometry is not
  *   written either. This was already the de-facto behaviour of the `await`
  *   ordering; WI-3 makes it a decision and gives it the `status: "fail"` log
- *   entry rule 20 requires, replacing a bare `catch {}`. WI-1 is what makes
+ *   entry rule 20 requires, replacing a bare `catch {}`. That entry carries
+ *   only a stage enum (`geometry_read_failed` / `save_rejected` /
+ *   `geometry_save_rejected`), never the rejection text (ADR-0031 step 5b). WI-1 is what makes
  *   this path reachable at all — before it, `save_window_state` swallowed a
  *   load failure and returned `Ok`. It is scoped to `main` (see next item).
  * - **Only `main` writes the global `windowState` (ADR-0037 Decision 3).**
@@ -72,15 +76,13 @@
  *   passes `useMcpSync().forceSync` as `onCloseCancelled`
  * @coordinates-with src/hooks/useMcpSync.ts — `forceSync`, the re-registration
  * @coordinates-with src/utils/dataLossGuards.ts — `windowCloseDecisionAfterFlush`
- * @coordinates-with src/services/windowService.ts — per-file geometry
- * @coordinates-with src/utils/windowGeometry.ts — `ownsGlobalWindowState`
+ * @coordinates-with src/hooks/saveWindowStateOnClose.ts — the save body:
+ *   global state (main only), per-file geometry, stage-typed fail log
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { loggingService } from "../services/loggingService";
-import { preferencesService } from "../services/preferencesService";
-import { useDocumentStore } from "../stores/documentStore";
 import { windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
-import { ownsGlobalWindowState, physicalToLogical } from "../utils/windowGeometry";
+import { saveWindowStateOnClose } from "./saveWindowStateOnClose";
 
 /** `"window"` while the unsaved-changes dialog for an OS close request is open. */
 export type WindowClosePending = "window" | null;
@@ -117,71 +119,8 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
   const allowWindowCloseRef = useRef(false);
   const appWindowRef = useRef<{ close: () => void } | null>(null);
 
-  const saveWindowState = useCallback(async () => {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const currentWindow = getCurrentWindow();
-      // `scaleFactor()` is awaited FIRST, before either write. A rejection here
-      // must leave both records untouched rather than land a physical one with
-      // no matching geometry — a worse state than doing nothing (WI3-D).
-      const scaleFactor = await currentWindow.scaleFactor();
-      const size = await currentWindow.innerSize();
-      const position = await currentWindow.outerPosition();
-      const isMaximized = await currentWindow.isMaximized();
-      // Physical pixels in, logical points out — see the header's D-c note.
-      // One conversion, both payloads.
-      const logical = physicalToLogical(
-        { x: position.x, y: position.y, width: size.width, height: size.height },
-        scaleFactor,
-      );
-      // Only `main` writes the global record (ADR-0037 Decision 3). Decided after
-      // the scale read, so every window keeps the WI3-D order.
-      if (ownsGlobalWindowState(currentWindow.label)) {
-        await preferencesService.saveWindowState({
-          width: logical.width,
-          height: logical.height,
-          x: logical.x,
-          y: logical.y,
-          isMaximized,
-        });
-      } else {
-        loggingService.logEventSync({
-          level: "info",
-          event: "window.save_state",
-          status: "success",
-          actionId: loggingService.generateActionId(),
-          context: { outcome: "skipped", reason: "not_main" },
-        });
-      }
-
-      // Read the active document NOW, not from a render closure: this hook
-      // subscribes once, so a captured value would be whatever was open when the
-      // listener was installed (WI-6 Rev 1).
-      const activeDocument = useDocumentStore.getState().getActiveDocument();
-      if (activeDocument?.path) {
-        const { windowService } = await import("../services/windowService");
-        await windowService.saveWindowGeometry(activeDocument.path, {
-          x: logical.x,
-          y: logical.y,
-          width: logical.width,
-          height: logical.height,
-        });
-      }
-    } catch (error) {
-      // Never rethrow: this runs inside the `onCloseRequested` handler, and a
-      // rejection here would take the close guard down with it. But it is no
-      // longer swallowed — WI-1 made `save_window_state` able to fail for a
-      // real reason (a corrupt config.json), and a silent loss of the user's
-      // window position is exactly what rule 20 exists to make visible.
-      loggingService.logEventSync({
-        level: "error",
-        event: "window.save_state",
-        status: "fail",
-        actionId: loggingService.generateActionId(),
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }, []);
+  // Body lives in `saveWindowStateOnClose.ts`; the identity is stable.
+  const saveWindowState = useCallback(() => saveWindowStateOnClose(), []);
 
   useEffect(() => {
     // Assigned only after two awaits. `cancelled` is what makes a teardown that

@@ -10,13 +10,11 @@
  * superseded, and every emitted `image` payload carries **all four**
  * `ImageConfig` leaves.
  *
- * **SCOPE WARNING (matrix § 0.6, plan § Risks): a green run of this file does NOT
- * mean preferences persist in the shipping app today.** `isTauriEnv()`
- * (`src/services/preferencesService.ts`) tests for `__TAURI__`, which Tauri v2
- * does not inject, so the real `set_preferences` transport is unreachable from
- * the running app. These cases stub that global to force the Tauri branch and
- * observe the *payload sequence* that would cross the boundary. They are
- * evidence about what will happen when the detector flips, not that it has.
+ * **Scope (matrix § 0.6).** These cases set the `isTauri` spy
+ * (`tests/support/tauriCoreMock.ts`) true to force `preferencesService` down its
+ * Tauri branch and observe the *payload sequence* that crosses the boundary.
+ * Since ADR-0031 step 5b the running app takes the same branch; whether the
+ * packaged WebView carries the marker is verified only by the ADR-0032 GUI run.
  *
  * **WI-5 intent, stated because the two are indistinguishable without it:
  * unmounting inside the debounce window DISCARDS the pending write. It is not
@@ -31,9 +29,11 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 
 const invokeMock = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
@@ -181,11 +181,10 @@ beforeEach(() => {
   installTimerPump();
   invokeMock.mockReset();
   useToastStore.setState({ message: null });
-  (globalThis as { __TAURI__?: unknown }).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
 });
 
 afterEach(() => {
-  delete (globalThis as { __TAURI__?: unknown }).__TAURI__;
   vi.useRealTimers();
 });
 

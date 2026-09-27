@@ -6,15 +6,13 @@
  * Test matrix:   `.claude/tdd-guardian/tests-20260923-preference-write-path.md`
  *                (cases WI3-A/B/C, WI4-A … WI4-G)
  *
- * ── SCOPE WARNING (matrix § 0.6) ─────────────────────────────────────────────
+ * ── Branch selection (ADR-0031 step 5b) ──────────────────────────────────────
  *
- * A GREEN SUITE HERE DOES NOT MEAN PREFERENCES PERSIST IN THE SHIPPING APP.
- * `isTauriEnv()` (`src/services/preferencesService.ts:20`) tests for
- * `__TAURI__`, which Tauri v2 never injects, so `setPreferences` currently takes
- * the browser branch and nothing reaches Rust or disk. Every case below stubs
- * `globalThis.__TAURI__` to force the Tauri branch, i.e. it asserts behaviour
- * the shipping app does not exhibit today. These fixes exist so that the
- * eventual detector flip is safe; they do not perform the flip.
+ * `preferencesService` picks its branch with `isTauri()` from
+ * `@tauri-apps/api/core`, read on every call; the shipping app takes the Tauri
+ * branch. Every case below sets the `isTauri` spy (`tests/support/tauriCoreMock.ts`)
+ * to `true`, so the REAL service reaches the recorder's `invoke`. The real
+ * WebView marker is proven only by the ADR-0032 GUI run.
  *
  * The mock boundary is exactly two modules: `@tauri-apps/api/core#invoke` (the
  * shared recorder from `tests/support/preferenceRecorder.ts`) and
@@ -84,7 +82,8 @@ const { invokeHolder } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (cmd: string, args?: unknown) => {
     if (!invokeHolder.fn) {
       return Promise.reject(new Error(`no recorder installed for invoke("${cmd}")`));
@@ -134,6 +133,7 @@ vi.mock("@tauri-apps/api/event", () => ({
     bus.listen(evt, handler),
 }));
 
+import { isTauri } from "@tauri-apps/api/core";
 import { useTheme } from "../src/hooks/useTheme";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { useThemeStore } from "../src/stores/themeStore";
@@ -219,12 +219,12 @@ beforeEach(() => {
   // (property 3) and `useTheme`'s catch would set "light" — making every
   // system-mode baseline accidental rather than chosen.
   recorder.set("get_system_theme", "light");
-  // jsdom has no matchMedia; only reachable if `isTauriEnv()` somehow reads false.
+  // jsdom has no matchMedia; only reachable if `isTauri()` somehow reads false.
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   // Force the Tauri branch of the REAL preferencesService (matrix § 0, plan
   // framing 2). Without this every case would run the browser branch, record
   // zero boundary calls, and go vacuously green.
-  (globalThis as { __TAURI__?: unknown }).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   // MANDATORY precondition for WI4-D: `loggingService.shouldLog` drops
   // everything when the store is disabled, and that case would pass vacuously.
   useLoggingStore.setState({ enabled: true, level: "debug" });
@@ -233,7 +233,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete (globalThis as { __TAURI__?: unknown }).__TAURI__;
   invokeHolder.fn = null;
   // `showToast` arms a real 3000 ms timer (`toastStore.ts:14`); clear it so no
   // stray timer leaks into a later file (matrix WI4-C harness note).
@@ -504,7 +503,10 @@ describe("useTheme — WI-4: a persistence failure is surfaced, not swallowed", 
     }
   });
 
-  it("WI4-D: exactly one hook-owned ui.* fail log, carrying the error message", async () => {
+  // SPEC CHANGE (ADR-0031 step 5b, matrix T1 / RB-X item 3): WI4-D used to pin
+  // the error text INTO the context. Once the flip makes this path reachable in
+  // the shipping app, that text is a path leak, so the context is enum-only.
+  it("WI4-D (T1): exactly one hook-owned ui.* fail log, carrying enums and not the error text", async () => {
     // Precondition asserted explicitly — a disabled logging store would make
     // every assertion below vacuously true.
     expect(useLoggingStore.getState().enabled).toBe(true);
@@ -513,7 +515,7 @@ describe("useTheme — WI-4: a persistence failure is surfaced, not swallowed", 
     const { result } = mount();
     await tick();
 
-    recorder.failCommand("set_preferences", new Error("EACCES"));
+    recorder.failCommand("set_preferences", new Error("EACCES /Users/x/.mdpro/config.json"));
 
     await act(async () => {
       await result.current.setThemeMode("dark");
@@ -522,12 +524,19 @@ describe("useTheme — WI-4: a persistence failure is surfaced, not swallowed", 
 
     const hookLogs = hookFailLogs();
     expect(hookLogs).toHaveLength(1);
-    // The event NAME is deliberately not pinned beyond the `ui.` prefix: it is
-    // not yet chosen, and pinning it would make this a naming test.
-    expect(JSON.stringify(hookLogs[0].context)).toContain("EACCES");
+    expect(hookLogs[0].context).toEqual({
+      requestedMode: "dark",
+      previousMode: "light",
+      reason: "invoke_rejected",
+    });
 
     // The service's own entry is still emitted exactly once, unduplicated.
     expect(serviceFailLogs()).toHaveLength(1);
+
+    // Whole row: every log_event payload recorded in this case.
+    const row = JSON.stringify(recorder.logs());
+    expect(row).not.toContain("EACCES");
+    expect(row).not.toContain("/Users");
   });
 
   it.each(["void setThemeMode", "cycleThemeMode"] as const)(

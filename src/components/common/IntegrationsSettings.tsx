@@ -11,6 +11,10 @@
  * Key decisions (ADR-0039):
  * - After a server-toggle write settles — success or failure — only the status
  *   is re-fetched, so `configured` is read fresh without blanking the panel.
+ *   Until that refresh settles the status region gets `pendingToggle={null}`:
+ *   a just-written value against the stale `configured` would flash "Changed
+ *   elsewhere" (ADR-0031 5b, WI-6, N5). `restartPending` is status-derived and
+ *   not gated.
  * - A failed status fetch shows the error and no badge (rule 30.2).
  * - `mcpConfig === null` (not loaded this open, F3): all three toggles are
  *   disabled and described by an inline reason (rule 30.4); toggling is a no-op.
@@ -37,7 +41,8 @@ interface IntegrationsSettingsProps {
   mcpConfig: McpConfig | null;
   /** The load failed; the toggles stay disabled for this open. */
   mcpConfigFailed: boolean;
-  /** `serverEnabled` as set this dialog session; `null` if untouched. */
+  /** `serverEnabled` as last written successfully this dialog session; `null` until a
+   *  write succeeds. Passed to the status region as `null` while its refresh is pending. */
   mcpPendingToggle: boolean | null;
   /** A write is in flight; the toggles are disabled until it settles. */
   mcpSaving: boolean;
@@ -66,6 +71,7 @@ export function IntegrationsSettings({
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<McpClient | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusRefreshPending, setStatusRefreshPending] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -105,8 +111,14 @@ export function IntegrationsSettings({
       controlId: `settings.integrations.mcp.${key}`,
       newValue: value,
     });
-    await onMcpConfigChange({ ...mcpConfig, [key]: value });
-    if (key === "serverEnabled") await refreshStatus();
+    if (key !== "serverEnabled") return onMcpConfigChange({ ...mcpConfig, [key]: value });
+    setStatusRefreshPending(true);
+    try {
+      await onMcpConfigChange({ ...mcpConfig, [key]: value });
+      await refreshStatus();
+    } finally {
+      setStatusRefreshPending(false);
+    }
   };
 
   const handleInstall = async (client: McpClient) => {
@@ -184,7 +196,7 @@ export function IntegrationsSettings({
         describedBy={lockedBy}
         onChange={(v) => void handleToggle("serverEnabled", v)}
       >
-        <McpServerStatus status={status} pendingToggle={mcpPendingToggle} />
+        <McpServerStatus status={status} pendingToggle={statusRefreshPending ? null : mcpPendingToggle} />
       </McpToggleRow>
       <McpToggleRow
         labelId="mcp-toggle-launch-label"

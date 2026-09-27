@@ -12,7 +12,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useDocumentStore } from "../src/stores/documentStore";
 import type { Document } from "../src/types/document";
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(),
 }));
 

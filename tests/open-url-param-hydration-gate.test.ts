@@ -22,6 +22,7 @@
  * real.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook } from "@testing-library/react";
 import { useEffect } from "react";
 
@@ -35,7 +36,8 @@ const { invokeMock, openControl } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 vi.mock("@tauri-apps/api/window", () => ({
@@ -136,7 +138,7 @@ beforeEach(() => {
   openControl.error = null;
   invokeMock.mockReset();
   invokeMock.mockImplementation(answer);
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: true, level: "debug" });
   useDocumentStore.setState({ documents: [], activeDocumentId: null });
   useEditorStore.setState({ viewMode: "wysiwyg", activeDocumentId: null });
@@ -144,7 +146,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
   window.history.replaceState({}, "", "/");
 });
 

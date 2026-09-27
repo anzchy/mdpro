@@ -10,7 +10,8 @@
  * Harness: `tests/support/windowSaveHarness.ts`. Only `invoke` and
  * `getCurrentWindow` are faked.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act } from "@testing-library/react";
 
 vi.mock("@tauri-apps/api/window", async () => {
@@ -19,7 +20,10 @@ vi.mock("@tauri-apps/api/window", async () => {
 });
 vi.mock("@tauri-apps/api/core", async () => {
   const h = await import("./support/windowSaveHarness");
-  return { invoke: (...args: unknown[]) => h.invokeMock(...args) };
+  return {
+    ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
+    invoke: (...args: unknown[]) => h.invokeMock(...args),
+  };
 });
 
 import {
@@ -59,13 +63,9 @@ const flush = () =>
 
 beforeEach(() => {
   resetHarness();
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: true, level: "debug" });
   useDocumentStore.setState({ documents: [doc("doc-a", "/tmp/a.md")], activeDocumentId: "doc-a" });
-});
-
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("WI3-09 scaleFactor settles before size and position are read", () => {

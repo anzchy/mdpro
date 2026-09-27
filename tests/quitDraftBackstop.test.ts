@@ -24,7 +24,7 @@ type InvokeFn = (cmd: string, args?: Record<string, unknown>) => Promise<unknown
 
 const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn<InvokeFn>() }));
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
+vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: invokeMock }));
 vi.mock("../src/services/loggingService", () => ({
   loggingService: {
     logEventSync: vi.fn(),

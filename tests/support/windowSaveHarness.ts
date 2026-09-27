@@ -9,6 +9,9 @@
  * - `state.order`: `scaleFactor`, `innerSize` and `outerPosition` push their
  *   name when **called**, before they resolve
  * - `state.scaleGate`: when set, `scaleFactor()` awaits it before returning
+ * - `state.innerSizeError` / `state.outerPositionError` (ADR-0031 step 5b, W1):
+ *   thrown by that read when set; may be non-`Error` values, as a Tauri
+ *   rejection can be
  *
  * This module imports no application code on purpose. The test files'
  * `vi.mock` factories import it lazily, and a static app import here would
@@ -40,6 +43,8 @@ export const state = {
   position: { x: 0, y: 0 } as Positioned,
   maximized: false,
   scaleFactorError: null as Error | null,
+  innerSizeError: null as unknown,
+  outerPositionError: null as unknown,
   order: [] as string[],
   scaleGate: null as Deferred | null,
 };
@@ -56,10 +61,12 @@ export const win = {
   },
   innerSize: async () => {
     state.order.push("innerSize");
+    if (state.innerSizeError !== null) throw state.innerSizeError;
     return { ...state.size };
   },
   outerPosition: async () => {
     state.order.push("outerPosition");
+    if (state.outerPositionError !== null) throw state.outerPositionError;
     return { ...state.position };
   },
   isMaximized: async () => state.maximized,
@@ -76,6 +83,8 @@ export function resetHarness(): void {
   state.position = { x: 0, y: 0 };
   state.maximized = false;
   state.scaleFactorError = null;
+  state.innerSizeError = null;
+  state.outerPositionError = null;
   state.order = [];
   state.scaleGate = null;
   invokeMock.mockReset();

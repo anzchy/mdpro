@@ -128,14 +128,15 @@ export function useTheme() {
         await preferencesService.setPreferences({ themeMode: next });
         // This write landed, so it is now the value a later failure restores.
         rollbackTarget = next;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+      } catch {
+        // Enum-only context (ADR-0031 step 5b): the rejection text can carry
+        // filesystem paths, so it never reaches the log.
         loggingService.logEventSync({
           level: "error",
           event: "ui.theme.persist",
           status: "fail",
           actionId: loggingService.generateActionId(),
-          context: { requestedMode: next, previousMode: previous, error: message },
+          context: { requestedMode: next, previousMode: previous, reason: "invoke_rejected" },
         });
         // No toast here on purpose. `preferencesService.setPreferences` already
         // raises "Failed to save preferences" and rule 30 §5 allows exactly one

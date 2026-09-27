@@ -7,32 +7,39 @@
  * 2. No overlapping writes — while an `mcp` write is in flight all three MCP
  *    toggles are disabled with an inline "Saving…" reason (rule 30.4), so a
  *    rejected earlier write can never roll the UI back under a later one.
+ * 3. (ADR-0031 5b, WI-6, C1-c) `pendingToggle` changes only within the open
+ *    that issued the write — a late success from a closed open marks nothing.
  *
- * The only mock is `@tauri-apps/api/core#invoke` (route in
- * `tests/support/mcpSettingsHarness.ts`). `__TAURI__` is stubbed so
- * `preferencesService` reaches `invoke`.
+ * The only mock is `@tauri-apps/api/core`: `invoke` (route in
+ * `tests/support/mcpSettingsHarness.ts`) and the `isTauri` spy from
+ * `tests/support/tauriCoreMock.ts`, set true so `preferencesService` reaches
+ * `invoke`.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(async (..._args: unknown[]): Promise<unknown> => null),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
 import { SettingsDialog } from "../src/components/common/SettingsDialog";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { useToastStore } from "../src/stores/toastStore";
-import { mcp, mcpRoute, resetMcp } from "./support/mcpSettingsHarness";
+import { mcp, mcpRoute, mcpStatus, resetMcp } from "./support/mcpSettingsHarness";
 import { deferred } from "./support/windowSaveHarness";
 
 const MCP_TOGGLES = [/Enable MCP Server/i, /Start on launch/i, /Auto-approve/i] as const;
 const [SERVER, LAUNCH, APPROVE] = MCP_TOGGLES;
 const SAVE_FAILED_TOAST = "Failed to save preferences";
+/** Any notSaved copy, old or new (RB-X item 8). */
+const NOT_SAVED_NOTE = /Not saved|Changed elsewhere/i;
 const noop = () => {};
 
 function callsFor(command: string) {
@@ -61,13 +68,9 @@ beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation(mcpRoute);
   resetMcp();
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: false, level: "info" });
   useToastStore.getState().clearToast();
-});
-
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("MCP-FIX-C1 write rollback respects the load generation", () => {
@@ -97,7 +100,7 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
       expect(toggle(name)).toBeDisabled();
       expect(toggle(name)).toHaveAccessibleDescription(/couldn.t be loaded/i);
     }
-    expect(screen.queryByText(/Not saved/i)).toBeNull();
+    expect(screen.queryByText(NOT_SAVED_NOTE)).toBeNull();
     for (const name of MCP_TOGGLES) await user.click(toggle(name));
     expect(callsFor("set_preferences")).toHaveLength(1);
   });
@@ -127,7 +130,7 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
     expect(toggle(SERVER)).not.toBeChecked();
     expect(toggle(LAUNCH)).toBeChecked();
     expect(toggle(APPROVE)).toBeChecked();
-    expect(screen.queryByText(/Not saved/i)).toBeNull();
+    expect(screen.queryByText(NOT_SAVED_NOTE)).toBeNull();
   });
 
   it("C1-b while a write is in flight all three toggles are disabled with a Saving reason; only one write is issued", async () => {
@@ -159,6 +162,34 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
     expect(toggle(SERVER)).not.toBeChecked();
     expect(toggle(LAUNCH)).not.toBeChecked();
     expect(callsFor("set_preferences")).toHaveLength(1);
+  });
+});
+
+describe("C1-c (ADR-0031 5b, WI-6) a late successful write stays in its own open", () => {
+  it("C1-c a successful write from a closed open does not mark the reopened open", async () => {
+    const user = userEvent.setup();
+    const write = deferred();
+    mcp.setGate = write;
+    mcp.prefsMcp = { serverEnabled: false, startOnLaunch: false, autoApproveEdits: false };
+    mcp.status = mcpStatus({ running: false, port: null, launch: "disabled", configured: "disabled" });
+    const view = render(<SettingsDialog open onClose={noop} />);
+    await openIntegrations(user);
+    await waitHydrated();
+    await user.click(toggle(SERVER));
+    await waitFor(() => expect(callsFor("set_preferences")).toHaveLength(1));
+
+    view.rerender(<SettingsDialog open={false} onClose={noop} />);
+    view.rerender(<SettingsDialog open onClose={noop} />);
+    await openIntegrations(user);
+    await waitHydrated();
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Off"));
+
+    write.resolve();
+    await flush();
+
+    expect(within(screen.getByRole("status")).queryByText(NOT_SAVED_NOTE)).toBeNull();
+    expect(toggle(SERVER)).not.toBeChecked();
+    expect(useToastStore.getState().message).toBeNull();
   });
 });
 

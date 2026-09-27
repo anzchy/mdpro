@@ -144,7 +144,8 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (cmd: string, args?: { payload?: Record<string, unknown> }) => {
     if (cmd === "log_event") {
       logs.push({ payload: (args?.payload ?? {}) as Record<string, any>, labelAtLog: win.label });

@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------------------
 // Mock Tauri + logging (required by stores/editorStore.ts import chain)
 // ---------------------------------------------------------------------------
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: vi.fn() }));
 vi.mock("../src/services/loggingService", () => ({
   loggingService: {
     logEventSync: vi.fn(),

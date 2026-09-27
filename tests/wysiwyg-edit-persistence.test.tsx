@@ -21,7 +21,8 @@ const { logEventSyncMock, eventListeners } = vi.hoisted(() => ({
   eventListeners: new Map<string, (event: { payload: unknown }) => void>(),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(async () => null),
   convertFileSrc: (p: string) => `asset://${p}`,
 }));

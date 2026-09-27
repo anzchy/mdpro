@@ -7,13 +7,15 @@
  * **Mocked:** only `@tauri-apps/api/core#invoke`.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook } from "@testing-library/react";
 
 const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(async (..._args: unknown[]): Promise<unknown> => null),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
@@ -39,13 +41,12 @@ beforeEach(() => {
     if (cmd === "set_preferences") throw new Error("disk full");
     return null;
   });
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: true, level: "debug" });
 });
 
 afterEach(() => {
   process.off("unhandledRejection", onUnhandled);
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("useRecentFiles — write rejection is handled (WI-2-FIX)", () => {

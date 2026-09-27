@@ -5,8 +5,10 @@
  * `useLastViewModePersistence` and records one `(viewMode, activeDocId)` pair
  * per commit.
  *
- * The test file owns the `vi.mock` of `@tauri-apps/api/core` and routes it to
- * `answer`; this module only supplies the fake and the harness.
+ * The test file owns the `vi.mock` of `@tauri-apps/api/core` (built on
+ * `tests/support/tauriCoreMock.ts`) and routes it to `answer`; this module only
+ * supplies the fake and the harness. `resetCase` turns the `isTauri` spy on so
+ * the real `preferencesService` takes its Tauri branch.
  *
  * Key decisions:
  * - `get_preferences` returns a controllable deferred, resolved with a clone
@@ -20,6 +22,8 @@
  *   once per commit of the harness component.
  */
 import { useLayoutEffect, useMemo } from "react";
+import { vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook } from "@testing-library/react";
 import { useLastViewModePersistence } from "../../src/hooks/useLastViewModePersistence";
 import { useEditorStore } from "../../src/stores/editorStore";
@@ -70,14 +74,16 @@ export function resetCase(disk: UserPreferences = makePreferences()): void {
   backend.pending.length = 0;
   backend.readError = null;
   commits.length = 0;
-  (globalThis as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: true, level: "debug" });
   useEditorStore.setState({ viewMode: "wysiwyg" });
 }
 
-export function teardownCase(): void {
-  delete (globalThis as Record<string, unknown>).__TAURI__;
-}
+/**
+ * Per-case teardown. Nothing to undo since ADR-0031 step 5b: the `isTauri` spy
+ * set in `resetCase` is restored by vitest's `restoreMocks`.
+ */
+export function teardownCase(): void {}
 
 export const callsFor = (cmd: string) => backend.calls.filter(([c]) => c === cmd);
 

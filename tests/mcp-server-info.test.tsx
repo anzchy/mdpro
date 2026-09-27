@@ -9,7 +9,8 @@
  * Renders the real SettingsDialog → IntegrationsSettings chain; the only mock is
  * `@tauri-apps/api/core#invoke` (route in `tests/support/mcpSettingsHarness.ts`).
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -17,7 +18,8 @@ const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(async (..._args: unknown[]): Promise<unknown> => null),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
@@ -39,12 +41,8 @@ beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation(mcpRoute);
   resetMcp();
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: false, level: "info" });
-});
-
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("MCP-FIX-C2 server info renders only with a bound port", () => {

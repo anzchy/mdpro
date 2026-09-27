@@ -23,7 +23,7 @@ import { describe, expect, it, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(async () => null) }));
+vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: vi.fn(async () => null) }));
 vi.mock("../src/services/loggingService", () => ({
   loggingService: {
     logEventSync: vi.fn(),

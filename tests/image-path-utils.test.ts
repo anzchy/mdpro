@@ -13,7 +13,8 @@ import { describe, expect, it, vi } from "vitest";
 // Mock convertFileSrc so tests don't need a Tauri runtime.
 // The mock simply prefixes paths with "asset://localhost/" to make
 // assertions readable without requiring a real Tauri environment.
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   convertFileSrc: (path: string) => {
     // Strip leading "/" for Unix paths to match the expected format
     const normalized = path.startsWith("/") ? path.slice(1) : path;

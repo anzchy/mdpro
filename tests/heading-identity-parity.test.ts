@@ -70,7 +70,7 @@ import { parseHeadingsFromContent } from "../src/services/tocService";
 import { exportService } from "../src/services/exportService";
 import { invoke } from "@tauri-apps/api/core";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: vi.fn() }));
 const invokeMock = vi.mocked(invoke);
 
 type FaceValue = Array<string | number>;

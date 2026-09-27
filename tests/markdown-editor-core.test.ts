@@ -12,7 +12,8 @@ import {
 import { parseHeadingsFromContent } from "../src/services/tocService";
 import { invoke } from "@tauri-apps/api/core";
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(),
 }));
 

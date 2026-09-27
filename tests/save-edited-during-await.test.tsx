@@ -10,6 +10,7 @@
  * `formatAllTables` and `performSave` are real.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 const { invokeMock, listeners } = vi.hoisted(() => ({
@@ -17,7 +18,8 @@ const { invokeMock, listeners } = vi.hoisted(() => ({
   listeners: {} as Record<string, (event: { payload: unknown }) => void>,
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 vi.mock("@tauri-apps/api/event", () => ({
@@ -49,7 +51,6 @@ import { A_PATH, DIALOG_PATH, SAVED_AT, createHeldInvoke, type HeldInvoke } from
 const TOC_INITIAL = useTOCStore.getState();
 const T0 = "|a|b|\n|-|-|\n|1|2|\n";
 type Api = ReturnType<typeof useDocument>;
-type TauriGlobal = { __TAURI__?: unknown };
 
 let held: HeldInvoke;
 const logMock = () => vi.mocked(loggingService.logEventSync);
@@ -126,12 +127,11 @@ async function finish(save: InFlight, cmd: string, value: unknown): Promise<unkn
 
 beforeEach(() => {
   fresh();
-  (globalThis as TauriGlobal).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
 });
 
 afterEach(() => {
   held.assertDrained();
-  delete (globalThis as TauriGlobal).__TAURI__;
   useDocumentStore.setState({ documents: [], activeDocumentId: null });
 });
 

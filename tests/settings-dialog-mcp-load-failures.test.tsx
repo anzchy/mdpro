@@ -6,12 +6,16 @@
  *   error, and the toggle keeps the value that was written.
  * - M4: `get_preferences` resolves without an `mcp` group → failed-load state.
  * - Non-Error rejection: the load rejects with a plain string → failed-load
- *   state, and the `ui.settings.mcp.load` fail log carries that string.
+ *   state, and the `ui.settings.mcp.load` fail log carries an enum-only reason.
+ * - E1 (ADR-0031 step 5b, matrix `tests-20260927-031000.md`): over every
+ *   rejection shape, exactly one enum-only fail entry and no rejection text in
+ *   any log payload of the row; a successful load logs nothing.
  *
- * The only mock is `@tauri-apps/api/core#invoke` (route in
- * `tests/support/mcpSettingsHarness.ts`).
+ * The only mock is `@tauri-apps/api/core` — `invoke` (route in
+ * `tests/support/mcpSettingsHarness.ts`) and the `isTauri` spy, set true so the
+ * real `preferencesService` takes the Tauri branch.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -19,10 +23,12 @@ const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(async (..._args: unknown[]): Promise<unknown> => null),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
+import { isTauri } from "@tauri-apps/api/core";
 import { SettingsDialog } from "../src/components/common/SettingsDialog";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { useToastStore } from "../src/stores/toastStore";
@@ -41,6 +47,11 @@ function logged(event: string): LogEntryPayload[] {
   return callsFor("log_event")
     .map(([, a]) => (a as { payload: LogEntryPayload }).payload)
     .filter((p) => p.event === event);
+}
+
+/** Every `log_event` payload recorded since the last clear (whole-row capture). */
+function logCalls(): LogEntryPayload[] {
+  return callsFor("log_event").map(([, a]) => (a as { payload: LogEntryPayload }).payload);
 }
 
 function toggle(name: RegExp) {
@@ -64,13 +75,9 @@ beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation(mcpRoute);
   resetMcp();
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: false, level: "info" });
   useToastStore.getState().clearToast();
-});
-
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("MCP-FIX-C1 load and refresh failures", () => {
@@ -105,7 +112,9 @@ describe("MCP-FIX-C1 load and refresh failures", () => {
     expect(callsFor("set_preferences")).toHaveLength(0);
   });
 
-  it("NE-1 a non-Error load rejection is a failed load and logs the string as the error", async () => {
+  // SPEC INVERSION (ADR-0031 step 5b, RB-X item 5): the fail entry used to carry
+  // the rejection text as `error`; it now carries only an enum reason.
+  it("NE-1 a non-Error load rejection is a failed load and logs an enum-only reason", async () => {
     const user = userEvent.setup();
     useLoggingStore.setState({ enabled: true, level: "debug" });
     mcp.prefsError = "boom";
@@ -116,7 +125,56 @@ describe("MCP-FIX-C1 load and refresh failures", () => {
     const fails = logged("ui.settings.mcp.load");
     expect(fails).toHaveLength(1);
     expect(fails[0].status).toBe("fail");
-    expect(fails[0].error).toBe("boom");
+    expect(fails[0]).not.toHaveProperty("error");
+    expect(fails[0].context).toEqual({ reason: "invoke_rejected" });
+    expect(JSON.stringify(logCalls())).not.toContain("boom");
     expect(callsFor("set_preferences")).toHaveLength(0);
+  });
+
+  it("E1 every load rejection shape logs one enum-only fail entry; a successful load logs none", async () => {
+    expect(isTauri()).toBe(true);
+    useLoggingStore.setState({ enabled: true, level: "debug" });
+    expect(useLoggingStore.getState()).toMatchObject({ enabled: true, level: "debug" });
+    const rows: Array<{ name: string; error: unknown }> = [
+      { name: "Error", error: new Error("EACCES /Users/x/.mdpro/config.json") },
+      { name: "string", error: "boom /Users/x" },
+      { name: "object", error: { ParseError: { message: "expected value at line 1 column 3 /Users/x" } } },
+      { name: "success", error: null },
+    ];
+    expect(rows).toHaveLength(4);
+
+    for (const row of rows) {
+      resetMcp();
+      invokeMock.mockClear();
+      mcp.prefsError = row.error;
+      const user = userEvent.setup();
+      const view = render(<SettingsDialog open onClose={noop} />);
+      await openIntegrations(user);
+
+      if (row.error === null) {
+        await waitFor(() => expect(toggle(SERVER)).toBeEnabled());
+        // Two loads: the MCP load and GeneralSettings' own mount load (GeneralSettings.tsx), which the old window-global detector hid.
+        expect(callsFor("get_preferences")).toHaveLength(2);
+        expect(logged("ui.settings.mcp.load")).toHaveLength(0);
+      } else {
+        await expectFailedLoad();
+        // Two loads: the MCP load and GeneralSettings' own mount load (GeneralSettings.tsx), which the old window-global detector hid.
+        expect(callsFor("get_preferences")).toHaveLength(2);
+        for (const name of MCP_TOGGLES) await user.click(toggle(name));
+        expect(callsFor("set_preferences")).toHaveLength(0);
+
+        const fails = logged("ui.settings.mcp.load");
+        expect(fails).toHaveLength(1);
+        expect(fails[0].status).toBe("fail");
+        expect(fails[0]).not.toHaveProperty("error");
+        expect(fails[0].context).toEqual({ reason: "invoke_rejected" });
+
+        const whole = JSON.stringify(logCalls());
+        for (const forbidden of ["/Users", "EACCES", "boom", "line 1", "message"]) {
+          expect(whole).not.toContain(forbidden);
+        }
+      }
+      view.unmount();
+    }
   });
 });

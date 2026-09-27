@@ -28,7 +28,8 @@ const { core } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(async (cmd: string, args: Record<string, unknown>) => {
     core.calls.push({ cmd, args: { ...args } });
     if (cmd === "save_draft" && core.draftErrors.has(String(args.documentId))) {

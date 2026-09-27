@@ -6,12 +6,13 @@
  * WI3-08 is `tests/window-geometry-save-path.test.tsx` passing unedited;
  * WI3-09 and WI3-10 live in `tests/window-state-save-order-redaction.test.tsx`.
  *
- * Mocked: only `@tauri-apps/api/core#invoke` and
+ * Mocked: only `@tauri-apps/api/core` (`invoke`, plus the `isTauri` spy from
+ * `tests/support/tauriCoreMock.ts`, true unless a case says otherwise) and
  * `@tauri-apps/api/window#getCurrentWindow` (fakes in
  * `tests/support/windowSaveHarness.ts`). The hook, `preferencesService`,
  * `windowService`, `loggingService`, the stores and `physicalToLogical` are real.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/window", async () => {
   const h = await import("./support/windowSaveHarness");
@@ -19,9 +20,13 @@ vi.mock("@tauri-apps/api/window", async () => {
 });
 vi.mock("@tauri-apps/api/core", async () => {
   const h = await import("./support/windowSaveHarness");
-  return { invoke: (...args: unknown[]) => h.invokeMock(...args) };
+  return {
+    ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
+    invoke: (...args: unknown[]) => h.invokeMock(...args),
+  };
 });
 
+import { isTauri } from "@tauri-apps/api/core";
 import {
   callsFor,
   geometryPayload,
@@ -72,13 +77,9 @@ const save = () => mountAndSave(useWindowCloseGuard);
 
 beforeEach(() => {
   resetHarness();
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: true, level: "debug" });
   useDocumentStore.setState({ documents: [doc("doc-a", "/tmp/a.md")], activeDocumentId: "doc-a" });
-});
-
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("WI-3 saveWindowState — the global windowState is main's alone", () => {
@@ -208,13 +209,18 @@ describe("WI-3 saveWindowState — the global windowState is main's alone", () =
     expect(callsFor("save_window_geometry")).toHaveLength(0);
     const entries = logCalls().filter((e) => e.event === "window.save_state");
     expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({ status: "fail", error: "no display" });
+    // SPEC INVERSION (ADR-0031 step 5b, RB-X item 6): the fail entry used to
+    // carry the rejection text as `error`; it now carries a stage enum.
+    expect(entries[0]).toMatchObject({ status: "fail", context: { reason: "geometry_read_failed" } });
+    expect(entries[0]).not.toHaveProperty("error");
+    expect(JSON.stringify(logCalls())).not.toContain("no display");
     expect(skipLogs()).toHaveLength(0);
   });
 
-  // WI3-07 — the isTauriEnv detector still gates the global write in 5a.
-  it("WI3-07 without __TAURI__, main writes no global state but still writes geometry", async () => {
-    delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
+  // WI3-07 — the `isTauri()` detector still gates the global write (RB-X item 1:
+  // retitled from "without __TAURI__"; assertions unchanged).
+  it("WI3-07 when isTauri() is false, main writes no global state but still writes geometry", async () => {
+    vi.mocked(isTauri).mockReturnValue(false);
     givenWindow({ label: "main", ...RETINA });
 
     await save();

@@ -11,11 +11,13 @@
  * Key decisions (ADR-0039, test matrix D-4):
  * - The badge is a function of `launch` alone; the toggle never changes it.
  * - The restart note compares Rust's on-disk `configured` with `launch`, never
- *   with the toggle. Before preference writes reach disk (ADR-0031 step 5b) a
- *   toggle-based comparison would promise a restart that changes nothing.
- * - `pendingToggle` is the value the user set this dialog session, or `null`
- *   when untouched. Differing from `configured` means the write did not reach
- *   disk: the `notSaved` note.
+ *   with the toggle: disk is what the next launch reads, so only it can promise
+ *   a restart that changes something.
+ * - `pendingToggle` is the value last written successfully this dialog
+ *   session, or `null` when untouched or while the post-write refresh is
+ *   pending (callers own that timing — SettingsDialog, IntegrationsSettings).
+ *   Differing from the re-fetched `configured` means something else changed
+ *   the file after the write: the `notSaved` note ("Changed elsewhere").
  * - Precedence: `unreadable` > `notSaved` > `restartPending`.
  * - `status === null` (fetch failed or pending) shows nothing (rule 30.2), never
  *   a false "Off".
@@ -47,8 +49,8 @@ const BADGE_FOR_LAUNCH: Record<McpLaunch, Exclude<McpBadge, "none">> = {
  * Map a status reply and this session's pending toggle to `{ badge, note }`.
  *
  * @param status - the last `mcp_get_status` reply, or `null` if none is available
- * @param pendingToggle - the `serverEnabled` value the user set since this
- *   dialog opened, or `null` if untouched
+ * @param pendingToggle - the `serverEnabled` value successfully written since
+ *   this dialog opened, or `null` if untouched or its status refresh is pending
  */
 export function mcpStatusView(
   status: Pick<McpStatus, "launch" | "configured"> | null,

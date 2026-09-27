@@ -17,6 +17,19 @@ pub async fn get_preferences() -> Result<UserPreferences, String> {
 /// Event name for the `save_window_state` Start/terminal log pair (rule 20).
 pub(crate) const WINDOW_STATE_SAVE_EVENT: &str = "preferences.window_state.save";
 
+/// The variant name of `e`, and nothing else, for a Fail record's `error`.
+///
+/// Both writers' Fail records log only this. The variant's `message` can carry
+/// serde position text, OS error text or a home-dir path, none of which belongs
+/// in `~/.mdpro/mdpro.log` (same contract as `DraftError::kind()`). The match is
+/// exhaustive on purpose: a new variant must choose its logged name here.
+fn error_kind(e: &PreferencesError) -> &'static str {
+    match e {
+        PreferencesError::IoError { .. } => "IoError",
+        PreferencesError::ParseError { .. } => "ParseError",
+    }
+}
+
 /// Applies a partial preferences patch to `~/.mdpro/config.json`.
 ///
 /// # A failed load is propagated, never defaulted (ADR-0031 step 1)
@@ -33,6 +46,12 @@ pub(crate) const WINDOW_STATE_SAVE_EVENT: &str = "preferences.window_state.save"
 /// `IoError`. Labelling a parse failure `IoError` would be a lie to the
 /// caller. (`commands/logging.rs` re-wraps; that is a separate pre-existing
 /// inaccuracy, not a pattern to copy.)
+///
+/// # Logging
+///
+/// A `Start` plus one `Success`/`Fail` record under `preferences.set`, sharing
+/// one `actionId`. The Fail record's `error` is the variant name only (see
+/// [`error_kind`]), never the error's message.
 #[tauri::command]
 pub async fn set_preferences(
     preferences: PartialPreferences,
@@ -81,7 +100,7 @@ pub async fn set_preferences(
             action_id: Some(action_id),
             context: None,
             duration_ms: Some(elapsed),
-            error: Some(format!("{:?}", e)),
+            error: Some(error_kind(e).to_string()),
         }),
     }
     result
@@ -126,6 +145,7 @@ pub async fn pick_export_folder() -> Result<Option<String>, String> {
 /// in `~/.mdpro/mdpro.log`. The context carries field names and no values: a
 /// window rectangle is not secret, but the log must not grow a habit of
 /// carrying payloads.
+/// The Fail record's `error` is the variant name only (see [`error_kind`]).
 ///
 /// # Not a command; callers must be `main` (ADR-0037 Decision 3)
 ///
@@ -179,7 +199,7 @@ pub(crate) async fn save_window_state(window_state: WindowState) -> Result<(), P
             action_id: Some(action_id),
             context: None,
             duration_ms: Some(elapsed),
-            error: Some(format!("{:?}", e)),
+            error: Some(error_kind(e).to_string()),
         }),
     }
     result
@@ -188,3 +208,7 @@ pub(crate) async fn save_window_state(window_state: WindowState) -> Result<(), P
 #[cfg(test)]
 #[path = "preferences_tests.rs"]
 mod preferences_tests;
+
+#[cfg(test)]
+#[path = "preferences_log_redaction_tests.rs"]
+mod preferences_log_redaction_tests;

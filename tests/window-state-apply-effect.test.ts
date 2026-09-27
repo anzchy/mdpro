@@ -63,7 +63,7 @@ vi.mock("@tauri-apps/api/window", () => ({
   LogicalSize: win.LogicalSize,
   LogicalPosition: win.LogicalPosition,
 }));
-vi.mock("@tauri-apps/api/core", () => ({ invoke: ipc.invoke }));
+vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: ipc.invoke }));
 
 import { applyAndReportWindowState, applyWindowState } from "../src/services/windowStateApplier";
 import { useLoggingStore } from "../src/stores/loggingStore";

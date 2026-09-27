@@ -16,19 +16,21 @@
  *   latest list, re-rendered or not.
  * - (No-baseline-no-write, A2) Hydration failure writes nothing.
  *
- * **Mocked:** only `@tauri-apps/api/core#invoke` (a recording `vi.fn`).
+ * **Mocked:** only `@tauri-apps/api/core` — `invoke` (a recording `vi.fn`) and
+ * the `isTauri` spy, set true so `setPreferences` reaches `invoke`.
  * `preferencesService`, `loggingService`, `useLoggingStore`, the hook and the
- * pure util are real. `__TAURI__` is stubbed so `setPreferences` reaches
- * `invoke`; `isTauriEnv` itself is untouched.
+ * pure util are real.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook, type RenderHookResult } from "@testing-library/react";
 
 const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(async (..._args: unknown[]): Promise<unknown> => null),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
@@ -85,12 +87,8 @@ const BASE = BASE_PREFERENCES.recentFiles;
 beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation(async () => null);
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: true, level: "debug" });
-});
-
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
 });
 
 describe("useRecentFiles — pre-hydration buffer (WI-5)", () => {

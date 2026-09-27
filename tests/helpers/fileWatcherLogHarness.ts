@@ -14,9 +14,12 @@
  *
  * Plain functions, not `vi.fn`, so vitest's `clearMocks` / `restoreMocks` never
  * wipe the recorded state mid-file; `resetHarness()` is the only reset.
+ * `coreModule` also spreads `createTauriCoreMock()` so it exports `isTauri`
+ * (browser mode, a `vi.fn` — restored to false before every test).
  */
 import type { Document } from "../../src/types/document";
 import type { LogEntryPayload } from "../../src/types/logging";
+import { createTauriCoreMock } from "../support/tauriCoreMock";
 
 type Args = Record<string, unknown>;
 type TauriEvent = { event: string; id: number; payload: unknown };
@@ -58,6 +61,7 @@ export const eventModule = {
 };
 
 export const coreModule = {
+  ...createTauriCoreMock(),
   invoke: async (cmd: string, args?: Args): Promise<unknown> => {
     invokeCalls.push({ cmd, args: args ?? {} });
     if (cmd === "log_event" && logEventRejects) throw new Error("log_event rejected (harness)");

@@ -12,7 +12,8 @@ import * as path from "path";
 const SRC_PATH = path.resolve(__dirname, "../src/hooks/useAutoSave.ts");
 const src = fs.readFileSync(SRC_PATH, "utf-8");
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(),
 }));
 

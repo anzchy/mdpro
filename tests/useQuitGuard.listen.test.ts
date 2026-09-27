@@ -60,7 +60,8 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
   })),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(async (cmd: string, args: Record<string, unknown>) => {
     core.replies.push({ cmd, args: { ...args } });
     return null;

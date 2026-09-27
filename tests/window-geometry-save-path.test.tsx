@@ -15,7 +15,8 @@
  * **What is mocked and what is not.** Only the two process boundaries:
  * `@tauri-apps/api/window` (a hand-written `getCurrentWindow` fake, following
  * `tests/window-close-guard-listener.test.ts:47-68`) and
- * `@tauri-apps/api/core#invoke` (a recording `vi.fn`). The WI-2
+ * `@tauri-apps/api/core` (`invoke` as a recording `vi.fn`, and the `isTauri`
+ * spy from `tests/support/tauriCoreMock.ts`, set true). The WI-2
  * `windowGeometry` util, `preferencesService`, `windowService`,
  * `documentStore`, `loggingService`, `loggingStore` and the hook itself are
  * **real** — mocking any of them would make these cases assert their own mock.
@@ -27,7 +28,7 @@
  * The two gui-acceptance criteria (a scale-2 Retina round trip and the scale-1
  * non-Retina no-regression check) remain UNVERIFIED by any automated case.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
 type Sized = { width: number; height: number };
@@ -73,10 +74,12 @@ const { fake, invokeMock } = vi.hoisted(() => {
 });
 
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => fake.win }));
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
+import { isTauri } from "@tauri-apps/api/core";
 import { useWindowCloseGuard } from "../src/hooks/useWindowCloseGuard";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
@@ -156,16 +159,13 @@ beforeEach(() => {
   invokeMock.mockImplementation(async () => null);
   // `preferencesService.saveWindowState` returns early outside Tauri, so the
   // `save_window_state` payload would never reach `invoke` without this.
-  (globalThis as unknown as Record<string, unknown>).__TAURI__ = {};
+  vi.mocked(isTauri).mockReturnValue(true);
   // Without this, `shouldLog` filters WI3-K's entry and the log assertion would
   // fail for a reason unrelated to the code under test.
   useLoggingStore.setState({ enabled: true, level: "debug" });
   useDocumentStore.setState({ documents: [doc("doc-a", "/tmp/a.md")], activeDocumentId: "doc-a" });
 });
 
-afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>).__TAURI__;
-});
 
 describe("WI-3 save path — physical pixels in, logical points out", () => {
   // WI3-A — the red-receipt anchor. The literal numbers from the bug report.
@@ -324,6 +324,10 @@ describe("WI-3 save path — physical pixels in, logical points out", () => {
     expect(failures).toHaveLength(1);
     expect(failures[0].event).toBe("window.save_state");
     expect(failures[0].level).toBe("error");
-    expect(String(failures[0].error)).toContain("expected value at line 1 column 3");
+    // SPEC INVERSION (ADR-0031 step 5b, RB-X item 7): the entry used to carry
+    // the rejection text as `error`; it now carries a stage enum.
+    expect(failures[0].context).toEqual({ reason: "save_rejected" });
+    expect(failures[0]).not.toHaveProperty("error");
+    expect(JSON.stringify(logCalls())).not.toContain("line 1");
   });
 });

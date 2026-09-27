@@ -1,14 +1,15 @@
 /**
  * WI-2 — loggingService.hydrateSettings()
  *
- * Why this unit exists: `preferencesService.isTauriEnv()` tests for
- * `window.__TAURI__`, which Tauri v2 only injects when `withGlobalTauri` is
- * enabled — and it is not. So in the shipping desktop app `getPreferences()`
- * silently returns a browser-mode constant and never reaches Rust, which means
- * the user's logging preference never arrives in the frontend store.
- * `getLoggingSettings()` goes through `safeInvoke` -> `invoke("get_logging_settings")`
- * and therefore bypasses that broken detector entirely. `hydrateSettings()` is
- * the testable unit of the fix.
+ * Why this unit exists: `hydrateSettings()` reads the logging preference through
+ * `getLoggingSettings()` -> `safeInvoke` -> `invoke("get_logging_settings")`, a
+ * fail-closed path that never rejects. It was introduced while
+ * `preferencesService` used a `withGlobalTauri` global as its detector, which
+ * the shipping app never has (D24); ADR-0031 step 5b replaced that detector with
+ * `isTauri()`, and WI-2-C now pins that both paths reach Rust.
+ *
+ * Mode: WI-2-A/B/D/E/F/G exercise `loggingService` alone, which never consults
+ * `isTauri`; `beforeEach` sets the spy false anyway so the default is explicit.
  *
  * Mock policy: `@tauri-apps/api/core` ONLY. The real `useLoggingStore` is used
  * throughout — mocking the store would make every case assert its own mock
@@ -17,14 +18,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const invokeMock = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
+import { isTauri } from "@tauri-apps/api/core";
 import type { LogLevel, LogSettings } from "../src/types/logging";
 import { loggingService } from "../src/services/loggingService";
 import { preferencesService } from "../src/services/preferencesService";
 import { useLoggingStore } from "../src/stores/loggingStore";
+import { makePreferences } from "./support/preferenceFixtures";
 
 const ALL_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
 
@@ -54,18 +58,11 @@ const readStore = () => {
 const callsFor = (command: string) =>
   invokeMock.mock.calls.filter((call) => call[0] === command);
 
-const deleteTauriGlobal = () => {
-  delete (globalThis as { __TAURI__?: unknown }).__TAURI__;
-  if (typeof window !== "undefined") {
-    delete (window as unknown as { __TAURI__?: unknown }).__TAURI__;
-  }
-};
-
 beforeEach(() => {
   // mockReset (not just clearMocks) so a persistent mockResolvedValue from the
   // idempotence case cannot leak an implementation into a later test.
   invokeMock.mockReset();
-  deleteTauriGlobal();
+  vi.mocked(isTauri).mockReturnValue(false);
   useLoggingStore.setState({ enabled: true, level: "info" });
 });
 
@@ -112,33 +109,29 @@ describe("WI-2-B — user opt-out survives hydration", () => {
   });
 });
 
-describe("WI-2-C — real-desktop branch divergence", () => {
+describe("WI-2-C — real-desktop shape: both paths reach Rust", () => {
   /**
-   * Honest limitation: with `invoke` mocked, the stubbed `__TAURI_INTERNALS__`
-   * is inert — nothing in this test consults it. This does NOT prove IPC works.
+   * SPEC CHANGE (ADR-0031 step 5b, RB-X item 2). This case used to pin D24:
+   * with `withGlobalTauri` off, the detector-gated `preferencesService` stayed in
+   * browser mode. With `isTauri()` as the detector, the shipping shape
+   * (`isTauri()` true) sends `getPreferences` to `get_preferences`, and
+   * `hydrateSettings` still reaches `get_logging_settings`.
    *
-   * What it DOES pin: under the real shipping app's environment shape
-   * (`__TAURI_INTERNALS__` present, `__TAURI__` absent because `withGlobalTauri`
-   * is off), the detector-gated `preferencesService` takes its browser branch and
-   * never reaches Rust, while `loggingService` still reaches `invoke`. That is
-   * exactly the blind spot `tests/preferences-tauri-detection.test.ts` and
-   * `tests/preferences-save-failure.test.ts` miss, because both stub `__TAURI__`,
-   * which the shipping app never has.
+   * Honest limitation: `invoke` and `isTauri` are mocked, so this does NOT prove
+   * the WebView carries the marker — that is the ADR-0032 GUI run.
    */
-  it("preferencesService stays in browser mode while loggingService reaches invoke", async () => {
-    vi.stubGlobal("__TAURI_INTERNALS__", {});
-    deleteTauriGlobal();
-    expect("__TAURI__" in globalThis).toBe(false);
-    expect("__TAURI__" in window).toBe(false);
-
+  it("with isTauri() true, getPreferences reaches get_preferences and hydrateSettings reaches get_logging_settings", async () => {
+    vi.mocked(isTauri).mockReturnValue(true);
     useLoggingStore.setState({ enabled: false, level: "error" });
-    invokeMock.mockResolvedValueOnce({ enabled: true, level: "debug" });
+    invokeMock.mockImplementation(async (cmd: string) =>
+      cmd === "get_logging_settings" ? { enabled: true, level: "debug" } : makePreferences(),
+    );
 
     await preferencesService.getPreferences();
     await loggingService.hydrateSettings();
 
-    expect(callsFor("get_preferences")).toHaveLength(0);
-    expect(invokeMock).toHaveBeenCalledWith("get_logging_settings", {});
+    expect(callsFor("get_preferences")).toHaveLength(1);
+    expect(callsFor("get_logging_settings")).toHaveLength(1);
     expect(readStore()).toEqual({ enabled: true, level: "debug" });
   });
 });

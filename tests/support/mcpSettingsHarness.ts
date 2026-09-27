@@ -1,7 +1,8 @@
 /**
  * Shared IPC fake for the SettingsDialog MCP write-race and load-failure suites
- * (MCP-FIX-C1): `tests/settings-dialog-mcp-write-races.test.tsx` and
- * `tests/settings-dialog-mcp-load-failures.test.tsx`.
+ * (MCP-FIX-C1): `tests/settings-dialog-mcp-write-races.test.tsx`,
+ * `tests/settings-dialog-mcp-load-failures.test.tsx`, and the ADR-0031 5b N5
+ * timing suite `tests/mcp-not-saved-timing.test.tsx` (which uses `statusGate`).
  *
  * The test files own `vi.hoisted` + `vi.mock("@tauri-apps/api/core")`; this
  * module only supplies the `invoke` route and the per-case state it reads.
@@ -28,6 +29,8 @@ export const mcp = {
   /** Consumed per `set_preferences` call **after** its gate opens. */
   setReplies: [] as Array<"ok" | "reject">,
   status: null as McpStatus | Error | null,
+  /** Awaited by `mcp_get_status` after its reply is chosen (ADR-0031 5b, N5). */
+  statusGate: null as Deferred | null,
 };
 
 export function mcpStatus(partial: Partial<McpStatus> = {}): McpStatus {
@@ -41,12 +44,14 @@ export function resetMcp(): void {
   mcp.setGate = null;
   mcp.setReplies = [];
   mcp.status = mcpStatus();
+  mcp.statusGate = null;
 }
 
 export async function mcpRoute(cmd: unknown, args: unknown): Promise<unknown> {
   switch (cmd) {
     case "mcp_get_status": {
-      const reply = mcp.status;
+      const { status: reply, statusGate: gate } = mcp;
+      if (gate) await gate.promise;
       if (reply instanceof Error) throw reply;
       return reply ? { ...reply } : null;
     }

@@ -7,15 +7,13 @@
  * the oracle for thirteen downstream S5 cases, so it is specified here in its
  * own right rather than trusted because it is short.
  *
- * SCOPE WARNING (matrix § 0.6). A green run of this file does **not** mean
- * preferences persist in the shipping app. `isTauriEnv()`
- * (`src/services/preferencesService.ts:20`) tests for `__TAURI__`, which Tauri
- * v2 does not inject, so the real `set_preferences` transport is unreachable
- * from the running app today. These cases pin the *merge model* the frontend
+ * SCOPE (matrix § 0.6). These cases pin the *merge model* the frontend
  * assumes; the backend half of the same claim is pinned in the `rust` lane by
  * F-D (`src-tauri/src/services/preferences_fold_contract_tests.rs`). Neither
- * covers the transport. That obligation is discharged by the `isTauriEnv()`
- * detector-flip work item, not here.
+ * covers the transport. Since ADR-0031 step 5b `preferencesService` selects the
+ * transport with `isTauri()`, so the running app does reach `set_preferences`;
+ * whether the packaged WebView carries that marker is verified only by the
+ * ADR-0032 GUI run, not by any unit test.
  */
 
 import { readFileSync } from "node:fs";

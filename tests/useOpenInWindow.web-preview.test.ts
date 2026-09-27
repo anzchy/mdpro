@@ -28,7 +28,7 @@ const { sink, getter } = vi.hoisted(() => ({
 }));
 
 vi.mock("@tauri-apps/api/webviewWindow", () => ({ getCurrentWebviewWindow: getter }));
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(async () => null) }));
+vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: vi.fn(async () => null) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: "mdpro-a" }) }));
 vi.mock("../src/services/loggingService", () => ({ loggingService: sink }));

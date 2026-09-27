@@ -22,7 +22,8 @@ const bus = vi.hoisted(() => ({
   shouldReject: false,
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: async (cmd: string, args: Record<string, unknown>) => {
     bus.calls.push({ cmd, args });
     if (bus.shouldReject) throw bus.rejectWith;

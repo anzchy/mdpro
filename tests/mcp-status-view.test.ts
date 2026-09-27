@@ -148,3 +148,19 @@ describe("VW-04 metamorphic: unreadable dominates", () => {
     expect(checked).toBe(24);
   });
 });
+
+describe("N3 (ADR-0031 5b, WI-6) the notSaved biconditional over the full domain", () => {
+  it("N3 note is notSaved exactly when status is readable, a toggle is pending, and it differs from disk", () => {
+    const statuses = [null, ...LAUNCHES.flatMap((l) => CONFIGUREDS.map((c) => ({ launch: l, configured: c })))];
+    const rows = statuses.flatMap((s) => TOGGLES.map((t) => ({ s, t })));
+    expect(rows).toHaveLength(39);
+    for (const { s, t } of rows) {
+      const tag = `${JSON.stringify(s)} toggle=${String(t)}`;
+      const predicate =
+        s !== null && s.configured !== "unreadable" && t !== null && t !== (s.configured === "enabled");
+      const note = mcpStatusView(s, t).note;
+      expect(note === "notSaved", tag).toBe(predicate);
+      if (s !== null && s.configured === "unreadable") expect(note, tag).not.toBe("notSaved");
+    }
+  });
+});

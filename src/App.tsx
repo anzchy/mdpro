@@ -28,6 +28,7 @@ import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
 import { useMcpEvents } from "./hooks/useMcpEvents";
 import { useRecentFiles } from "./hooks/useRecentFiles";
+import { useSidebarPreference } from "./hooks/useSidebarPreference";
 import { useOpenUrlParam } from "./hooks/useOpenUrlParam";
 import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
 import { exportService } from "./services/exportService";
@@ -95,7 +96,9 @@ function App() {
     clearEncodingIssue,
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
-  const { viewMode, setViewMode, cycleViewMode, showSidebar, toggleSidebar, setShowSidebar } = useEditor();
+  const { viewMode, setViewMode, cycleViewMode, showSidebar } = useEditor();
+  // Sole writer of showSidebar outside the store; buffers pre-hydration toggles (ADR-0031 5b, WI-5).
+  const sidebarPreference = useSidebarPreference();
   const { resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
@@ -175,13 +178,6 @@ function App() {
     });
   }, [recentFiles, viewMode]);
 
-  const handleToggleSidebar = useCallback((_actionId?: string) => {
-    // Read current value from store state to avoid stale closure on rapid calls
-    const next = !useEditorStore.getState().showSidebar;
-    toggleSidebar();
-    void preferencesService.setPreferences({ showSidebar: next });
-  }, [toggleSidebar]);
-
   // Keep window title static — filename removed per #374
   useEffect(() => {
     const setStaticTitle = async () => {
@@ -200,19 +196,19 @@ function App() {
     let mounted = true;
     const loadPreferences = async () => {
       try {
-        // Hydrate logging from its real source (loggingService) rather than
-        // from the preference object, which in the shipping desktop app is a
-        // browser-mode constant that never reached Rust and so silently left
-        // logging on a default. Placed first in the try so no earlier await
-        // can throw past it; safe here because hydrateSettings never rejects
-        // and does not depend on the loaded preferences.
+        // Hydrate logging from its own source (loggingService →
+        // get_logging_settings), not from the preference object. Since ADR-0031
+        // step 5b `preferencesService` picks its branch with `isTauri()`, so the
+        // desktop app reads real `get_preferences` — but logging still has one
+        // owner. Placed first in the try so no earlier await can throw past it;
+        // safe because hydrateSettings never rejects and needs no preferences.
         await loggingService.hydrateSettings();
         const prefs = await preferencesService.getPreferences();
         if (!mounted) return;
         // Don't set viewMode here - defer until launch paths are complete
         // to avoid race condition with Finder/CLI file opens
         setDefaultViewMode(migrateViewMode(prefs.defaultViewMode));
-        setShowSidebar(prefs.showSidebar);
+        sidebarPreference.hydrate(prefs.showSidebar);
         setAutoSaveInterval(prefs.autoSaveInterval);
         hydrateRecentFiles(prefs.recentFiles);
         if (prefs.keyboardShortcuts) {
@@ -241,8 +237,12 @@ function App() {
         }
       } catch {
         // Ignore preference loading errors in web preview. Recent files keep
-        // any pre-hydration opens in memory without writing (ADR-0031 5a, A2).
-        if (mounted) failRecentFilesHydration();
+        // any pre-hydration opens in memory without writing (ADR-0031 5a, A2);
+        // the sidebar keeps any pre-hydration toggle the same way (5b, WI-5).
+        if (mounted) {
+          failRecentFilesHydration();
+          sidebarPreference.fail();
+        }
       } finally {
         if (mounted) setPreferencesLoaded(true);
       }
@@ -257,7 +257,7 @@ function App() {
     hydrateRecentFiles,
     setAutoSaveInterval,
     setDefaultViewMode,
-    setShowSidebar,
+    sidebarPreference,
   ]);
 
   // Persist view mode as lastViewMode; held until the stored value is read (ADR-0031 5a, WI-2).
@@ -872,7 +872,7 @@ function App() {
     onOpen: (actionId) => void handleOpenDialog(actionId),
     onSave: (actionId) => void handleSave(actionId),
     onClose: handleCloseRequest,
-    onToggleSidebar: handleToggleSidebar,
+    onToggleSidebar: sidebarPreference.toggle,
     onCycleViewMode: cycleViewMode,
     onOpenPreferences: handleOpenSettings,
     onInsertTable: triggerTableInsert,
@@ -888,7 +888,7 @@ function App() {
     onClose: handleCloseRequest,
     onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpenRecent: handleOpenRecent,
-    onToggleSidebar: handleToggleSidebar,
+    onToggleSidebar: sidebarPreference.toggle,
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
     onInsertTable: triggerTableInsert,
     onViewModeChange: setViewMode,

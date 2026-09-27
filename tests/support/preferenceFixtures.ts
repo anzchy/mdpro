@@ -13,12 +13,10 @@
  *
  * This is not a mock. It is a value.
  *
- * NOTE (matrix § 0.6): a green preference suite does **not** mean preferences
- * persist in the shipping app today. `isTauriEnv()` in
- * `src/services/preferencesService.ts` tests for `__TAURI__`, which Tauri v2
- * does not inject, so the real `set_preferences` transport is unreachable. This
- * fixture models the value the backend contract says it returns, not evidence
- * that the transport runs.
+ * NOTE (matrix § 0.6): this fixture models the value the backend contract says
+ * it returns, not evidence that the transport runs. Since ADR-0031 step 5b
+ * `preferencesService` selects the transport with `isTauri()`; the packaged
+ * WebView's marker is verified only by the ADR-0032 GUI run.
  *
  * @module tests/support/preferenceFixtures
  */

@@ -57,7 +57,8 @@ function register(name: string, cb: Cb): Promise<() => void> {
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => ({ label: "mdpro-a", listen: register }),
 }));
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: (...args: unknown[]) => invokeMock(...args),
   convertFileSrc: (p: string) => `asset://${p}`,
 }));

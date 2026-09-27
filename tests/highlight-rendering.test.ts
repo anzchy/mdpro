@@ -39,7 +39,8 @@ function readSrc(relPath: string): string {
 // sanitized HTML output before returning it.
 // ---------------------------------------------------------------------------
 
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", async () => ({
+  ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn().mockRejectedValue(new Error("no tauri in tests")),
 }));
 
