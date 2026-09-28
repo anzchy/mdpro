@@ -8,11 +8,22 @@
  * refresh gated) and P2 (refresh settled) over five enumerated scenarios.
  *
  * Kills: setting `pendingToggle` before the write (rows B, C red at P0); fixing
- * SettingsDialog alone (row B red at P1); gating `restartPending` too (row D
- * red at P0).
+ * SettingsDialog alone (row B red at P1).
+ *
+ * ADR-0040 migration (WI-9, decision 5): the switch takes effect live, so the
+ * "takes effect after restart" note was removed. Rows A and D, which pinned
+ * that note appearing (A at P2) or persisting (D at P0/P1), now pin that it
+ * never appears. Their scenarios are unchanged.
+ *
+ * ADR-0040 migration (WI-10): the server toggle calls `mcp_set_server_enabled`,
+ * whose reply carries the status — there is no post-write refresh any more, so
+ * P1 ("write settled, refresh gated") no longer exists. The law is sampled at
+ * P0 (switch pending) and P2 (switch settled); a row's `write` is the switch
+ * outcome ("reject" = `persist_failed`) and `post` is the status it returns.
+ * Each row's expectations are unchanged.
  *
  * **Mocked:** only `@tauri-apps/api/core` — `invoke` through `mcpRoute` with its
- * `setGate` and `statusGate`, and the `isTauri` spy set true.
+ * `switchGate`, and the `isTauri` spy set true.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { isTauri } from "@tauri-apps/api/core";
@@ -29,7 +40,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
 }));
 
 import { SettingsDialog } from "../src/components/common/SettingsDialog";
-import type { McpLaunch } from "../src/services/mcpService";
+import type { McpPhase } from "../src/services/mcpService";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { useToastStore } from "../src/stores/toastStore";
 import { mcp, mcpRoute, mcpStatus, resetMcp } from "./support/mcpSettingsHarness";
@@ -42,21 +53,22 @@ const SAVE_FAILED_TOAST = "Failed to save preferences";
 const noop = () => {};
 
 type Configured = "enabled" | "disabled";
-type Phase = "P0" | "P1" | "P2";
+// ADR-0040 migration: P1 (the refresh step) is gone.
+type Phase = "P0" | "P2";
 interface Row {
   name: string;
   prefsServer: boolean;
-  initial: [McpLaunch, Configured];
+  initial: [McpPhase, Configured];
   write: "ok" | "reject";
-  post: [McpLaunch, Configured];
+  post: [McpPhase, Configured];
   /** Row E: run row B to P2 first, then sample the second click. */
   secondClick?: boolean;
   expect: (phase: Phase, region: HTMLElement, toasts: string[]) => void;
 }
 
-function status([launch, configured]: [McpLaunch, Configured]) {
-  const running = launch !== "disabled";
-  return mcpStatus({ launch, configured, running, port: running ? 55045 : null });
+function status([phase, configured]: [McpPhase, Configured]) {
+  const running = phase !== "disabled";
+  return mcpStatus({ phase, configured, running, port: running ? 55045 : null });
 }
 
 function callsFor(command: string) {
@@ -71,12 +83,12 @@ const noChanged = (r: HTMLElement) => expect(within(r).queryByText(/Changed else
 
 const ROWS: Row[] = [
   {
-    name: "A success, disk agrees, restart arises",
+    name: "A success, disk agrees, no restart note (ADR-0040)",
     prefsServer: false, initial: ["disabled", "disabled"], write: "ok", post: ["disabled", "enabled"],
-    expect: (phase, r, toasts) => {
+    expect: (_phase, r, toasts) => {
       noChanged(r);
-      if (phase === "P2") expect(r).toHaveTextContent(RESTART);
-      else expect(r).not.toHaveTextContent(RESTART);
+      // ADR-0040 migration: was "RESTART at P2"; the restart note no longer exists.
+      expect(r).not.toHaveTextContent(RESTART);
       expect(toasts).toEqual([]);
     },
   },
@@ -102,12 +114,12 @@ const ROWS: Row[] = [
     },
   },
   {
-    name: "D pre-existing restart (UI-01 state)",
+    name: "D disk/phase disagreement before the click (UI-01 state)",
     prefsServer: false, initial: ["running", "disabled"], write: "ok", post: ["running", "enabled"],
-    expect: (phase, r, toasts) => {
+    expect: (_phase, r, toasts) => {
       noChanged(r);
-      if (phase === "P2") expect(r.textContent).toBe("Running");
-      else expect(r).toHaveTextContent(RESTART);
+      // ADR-0040 migration: was "RESTART at P0/P1"; the badge alone at every phase.
+      expect(r.textContent).toBe("Running");
       expect(toasts).toEqual([]);
     },
   },
@@ -123,39 +135,33 @@ const ROWS: Row[] = [
   },
 ];
 
-/** Click once and walk P0 → P1 → P2, calling `sample` at each. */
+/** Click once and walk P0 → P2, calling `sample` at each. */
 async function clickThrough(
   user: ReturnType<typeof userEvent.setup>,
   row: Row,
   sample: (phase: Phase) => void,
 ) {
   const write = deferred();
-  const refresh = deferred();
-  const setBase = callsFor("set_preferences");
+  const switchBase = callsFor("mcp_set_server_enabled");
   const statusBase = callsFor("mcp_get_status");
-  mcp.setGate = write;
-  mcp.statusGate = refresh;
-  mcp.setReplies = [row.write];
+  // ADR-0040 migration: the gated write is the switch; its reply is the row's post status.
+  mcp.switchGate = write;
+  mcp.switchReplies = [row.write === "ok" ? status(row.post) : { reject: "persist_failed" }];
 
   await user.click(screen.getByRole("checkbox", { name: SERVER }));
-  await waitFor(() => expect(callsFor("set_preferences")).toBe(setBase + 1));
+  await waitFor(() => expect(callsFor("mcp_set_server_enabled")).toBe(switchBase + 1));
   expect(callsFor("mcp_get_status")).toBe(statusBase);
   sample("P0");
 
-  mcp.status = status(row.post);
   write.resolve();
-  await waitFor(() => expect(callsFor("mcp_get_status")).toBe(statusBase + 1));
-  expect(callsFor("set_preferences")).toBe(setBase + 1);
-  sample("P1");
-
-  refresh.resolve();
   await act(async () => {
     for (let i = 0; i < 5; i += 1) await new Promise((r) => setTimeout(r, 0));
   });
-  expect(callsFor("mcp_get_status")).toBe(statusBase + 1);
+  // ADR-0040 migration: was statusBase + 1 (the refresh); the reply carries the status now.
+  expect(callsFor("mcp_get_status")).toBe(statusBase);
+  expect(callsFor("mcp_set_server_enabled")).toBe(switchBase + 1);
   sample("P2");
-  mcp.setGate = null;
-  mcp.statusGate = null;
+  mcp.switchGate = null;
 }
 
 beforeEach(() => {
@@ -214,6 +220,7 @@ describe("N5 the note is never Changed elsewhere from the click until the post-w
     } finally {
       stop();
     }
-    expect(samples).toEqual(["P0", "P1", "P2"]);
+    // ADR-0040 migration: was ["P0", "P1", "P2"].
+    expect(samples).toEqual(["P0", "P2"]);
   });
 });

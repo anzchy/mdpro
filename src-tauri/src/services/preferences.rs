@@ -160,6 +160,8 @@ pub fn save_preferences(preferences: &UserPreferences) -> Result<(), Preferences
     Ok(())
 }
 
+/// Nested groups are replaced wholesale, except `mcp.serverEnabled`, which is
+/// kept from disk: only `persist_server_enabled` writes it (ADR-0040).
 pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) -> UserPreferences {
     UserPreferences {
         theme_mode: updates.theme_mode.unwrap_or(current.theme_mode),
@@ -184,7 +186,13 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
         auto_save: updates.auto_save.unwrap_or(current.auto_save),
         tab_bar: updates.tab_bar.unwrap_or(current.tab_bar),
         image: updates.image.unwrap_or(current.image),
-        mcp: updates.mcp.unwrap_or(current.mcp),
+        mcp: updates
+            .mcp
+            .map(|m| McpConfig {
+                server_enabled: current.mcp.server_enabled,
+                ..m
+            })
+            .unwrap_or(current.mcp),
         editor: updates.editor.unwrap_or(current.editor),
         markdown: updates.markdown.unwrap_or(current.markdown),
         appearance: updates.appearance.unwrap_or(current.appearance),
@@ -595,3 +603,7 @@ mod preferences_wi5_tests;
 #[cfg(test)]
 #[path = "preferences_fold_contract_tests.rs"]
 mod preferences_fold_contract_tests;
+
+#[cfg(test)]
+#[path = "preferences_mcp_merge_tests.rs"]
+mod preferences_mcp_merge_tests;

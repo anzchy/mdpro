@@ -80,7 +80,7 @@ import { invoke } from '@tauri-apps/api/core';
 const result = await invoke<OpenFileResult>('open_file', { path, encoding });
 ```
 
-Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `save_draft`, `get_preferences`, `get_app_version`, `quit_guard_reply`
+Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `save_draft`, `get_preferences`, `get_app_version`, `quit_guard_reply`, `mcp_set_server_enabled`
 
 ### Events (Rust → Frontend)
 

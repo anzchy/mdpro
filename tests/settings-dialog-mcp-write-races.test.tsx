@@ -10,6 +10,11 @@
  * 3. (ADR-0031 5b, WI-6, C1-c) `pendingToggle` changes only within the open
  *    that issued the write — a late success from a closed open marks nothing.
  *
+ * ADR-0040 migration (WI-10): the server toggle no longer writes through
+ * `set_preferences`; it calls `mcp_set_server_enabled`. C1-a / C1-a2 now drive
+ * their `set_preferences` write with "Start on launch" (the rollback law is
+ * unchanged), and C1-b / C1-c gate the switch call instead of the write.
+ *
  * The only mock is `@tauri-apps/api/core`: `invoke` (route in
  * `tests/support/mcpSettingsHarness.ts`) and the `isTauri` spy from
  * `tests/support/tauriCoreMock.ts`, set true so `preferencesService` reaches
@@ -81,7 +86,8 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
     const view = render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
     await waitHydrated();
-    await user.click(toggle(SERVER));
+    // ADR-0040 migration: the server toggle no longer calls set_preferences.
+    await user.click(toggle(LAUNCH));
     await waitFor(() => expect(callsFor("set_preferences")).toHaveLength(1));
 
     view.rerender(<SettingsDialog open={false} onClose={noop} />);
@@ -113,7 +119,8 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
     const view = render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
     await waitHydrated();
-    await user.click(toggle(SERVER));
+    // ADR-0040 migration: the server toggle no longer calls set_preferences.
+    await user.click(toggle(LAUNCH));
     await waitFor(() => expect(callsFor("set_preferences")).toHaveLength(1));
 
     view.rerender(<SettingsDialog open={false} onClose={noop} />);
@@ -136,14 +143,15 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
   it("C1-b while a write is in flight all three toggles are disabled with a Saving reason; only one write is issued", async () => {
     const user = userEvent.setup();
     const write = deferred();
-    mcp.setGate = write;
+    // ADR-0040 migration: the server toggle's write is the switch call, so its gate is held.
+    mcp.switchGate = write;
     mcp.prefsMcp = { serverEnabled: true, startOnLaunch: false, autoApproveEdits: false };
     render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
     await waitHydrated();
 
     await user.click(toggle(SERVER));
-    await waitFor(() => expect(callsFor("set_preferences")).toHaveLength(1));
+    await waitFor(() => expect(callsFor("mcp_set_server_enabled")).toHaveLength(1));
     for (const name of MCP_TOGGLES) {
       expect(toggle(name)).toBeDisabled();
       expect(toggle(name)).toHaveAccessibleDescription(/Saving/);
@@ -151,7 +159,9 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
     expect(screen.getByText(/Saving/)).toBeInTheDocument();
     await user.click(toggle(LAUNCH));
     await user.click(toggle(APPROVE));
-    expect(callsFor("set_preferences")).toHaveLength(1);
+    // ADR-0040 migration: was set_preferences × 1 (the server write itself).
+    expect(callsFor("set_preferences")).toHaveLength(0);
+    expect(callsFor("mcp_set_server_enabled")).toHaveLength(1);
 
     write.resolve();
     await waitHydrated();
@@ -161,7 +171,9 @@ describe("MCP-FIX-C1 write rollback respects the load generation", () => {
     }
     expect(toggle(SERVER)).not.toBeChecked();
     expect(toggle(LAUNCH)).not.toBeChecked();
-    expect(callsFor("set_preferences")).toHaveLength(1);
+    // ADR-0040 migration: was set_preferences × 1 (the server write itself).
+    expect(callsFor("set_preferences")).toHaveLength(0);
+    expect(callsFor("mcp_set_server_enabled")).toHaveLength(1);
   });
 });
 
@@ -169,14 +181,15 @@ describe("C1-c (ADR-0031 5b, WI-6) a late successful write stays in its own open
   it("C1-c a successful write from a closed open does not mark the reopened open", async () => {
     const user = userEvent.setup();
     const write = deferred();
-    mcp.setGate = write;
+    // ADR-0040 migration: the server toggle's write is the switch call, so its gate is held.
+    mcp.switchGate = write;
     mcp.prefsMcp = { serverEnabled: false, startOnLaunch: false, autoApproveEdits: false };
-    mcp.status = mcpStatus({ running: false, port: null, launch: "disabled", configured: "disabled" });
+    mcp.status = mcpStatus({ running: false, port: null, phase: "disabled", configured: "disabled" });
     const view = render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
     await waitHydrated();
     await user.click(toggle(SERVER));
-    await waitFor(() => expect(callsFor("set_preferences")).toHaveLength(1));
+    await waitFor(() => expect(callsFor("mcp_set_server_enabled")).toHaveLength(1));
 
     view.rerender(<SettingsDialog open={false} onClose={noop} />);
     view.rerender(<SettingsDialog open onClose={noop} />);

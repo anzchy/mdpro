@@ -1,70 +1,85 @@
 /**
  * MCP server status view — what the Settings MCP row should say.
  *
- * Purpose: map Rust's `mcp_get_status` reply plus the toggle the user changed
- * this session to one badge and at most one inline note (rule 30.5). Pure; no
- * IO, no React.
+ * Purpose: map Rust's MCP status plus the result of the last live switch this
+ * session to one badge and at most one inline note (rule 30.5). Pure; no IO,
+ * no React.
  *
- * Pipeline: `mcp_get_status` → `McpStatus` → `mcpStatusView(status, pending)`
- * → `McpServerStatus.tsx` renders the badge and note copy.
+ * Pipeline: `mcp_get_status` / `mcp_set_server_enabled` → `McpStatus` →
+ * `mcpStatusView(status, switchResult)` → `McpServerStatus.tsx` renders the
+ * badge and note copy.
  *
- * Key decisions (ADR-0039, test matrix D-4):
- * - The badge is a function of `launch` alone; the toggle never changes it.
- * - The restart note compares Rust's on-disk `configured` with `launch`, never
- *   with the toggle: disk is what the next launch reads, so only it can promise
- *   a restart that changes something.
- * - `pendingToggle` is the value last written successfully this dialog
- *   session, or `null` when untouched or while the post-write refresh is
- *   pending (callers own that timing — SettingsDialog, IntegrationsSettings).
- *   Differing from the re-fetched `configured` means something else changed
- *   the file after the write: the `notSaved` note ("Changed elsewhere").
- * - Precedence: `unreadable` > `notSaved` > `restartPending`.
+ * Key decisions (ADR-0040; test matrix U-3):
+ * - The badge is a function of `phase` alone; neither `configured` nor the
+ *   switch result changes it.
+ * - The switch takes effect live (ADR-0040 decision 5), so no note defers a
+ *   change to a later launch: a disk/phase disagreement is transient.
+ * - Notes, in precedence order:
+ *   1. `unreadable` — the on-disk config is unreadable, or the last switch was
+ *      refused with `config_unreadable` (decision 7: a corrupt config blocks
+ *      the switch);
+ *   2. `savedOnButFailed` — the setting says on, but the server is `failed`;
+ *   3. `notSaved` — the last switch succeeded, yet the re-read `configured`
+ *      disagrees: something else changed the file;
+ *   4. `none`.
+ * - Other refusals (`persist_failed`, `exiting`, `status_unavailable`,
+ *   `unknown`) have no note of their own; the caller signals them (a toast),
+ *   so one event never gets two signals.
  * - `status === null` (fetch failed or pending) shows nothing (rule 30.2), never
  *   a false "Off".
  *
  * @coordinates-with src/components/common/McpServerStatus.tsx — renders this
- * @coordinates-with src/services/mcpService.ts — `McpStatus` wire type
+ * @coordinates-with src/services/mcpService.ts — `McpStatus` wire type, switch errors
  * @module utils/mcpStatusView
  */
-import type { McpLaunch, McpStatus } from "../services/mcpService";
+import type { McpPhase, McpStatus, McpSwitchError } from "../services/mcpService";
 
 /** Which badge to show next to the server toggle. `none` renders nothing. */
-export type McpBadge = "running" | "off" | "failed" | "starting" | "none";
+export type McpBadge = "running" | "off" | "failed" | "starting" | "stopping" | "none";
 /** Which single inline note to show. `none` renders nothing. */
-export type McpNote = "restartPending" | "notSaved" | "unreadable" | "none";
+export type McpNote = "savedOnButFailed" | "notSaved" | "unreadable" | "none";
+
+/**
+ * The outcome of the last `setServerEnabled` call this session: `ok` with the
+ * value requested, `refused` with the narrowed reason, or `null` if the switch
+ * was not used (or its result has been superseded).
+ */
+export type McpSwitchResult =
+  | { kind: "ok"; enabled: boolean }
+  | { kind: "refused"; error: McpSwitchError | "unknown" }
+  | null;
 
 export interface McpStatusViewModel {
   badge: McpBadge;
   note: McpNote;
 }
 
-const BADGE_FOR_LAUNCH: Record<McpLaunch, Exclude<McpBadge, "none">> = {
+const BADGE_FOR_PHASE: Record<McpPhase, Exclude<McpBadge, "none">> = {
   running: "running",
   starting: "starting",
+  stopping: "stopping",
   failed: "failed",
   disabled: "off",
 };
 
 /**
- * Map a status reply and this session's pending toggle to `{ badge, note }`.
+ * Map a status and the last switch result to `{ badge, note }`.
  *
- * @param status - the last `mcp_get_status` reply, or `null` if none is available
- * @param pendingToggle - the `serverEnabled` value successfully written since
- *   this dialog opened, or `null` if untouched or its status refresh is pending
+ * @param status - the latest status reply, or `null` if none is available
+ * @param switchResult - the last live-switch outcome this session, or `null`
  */
 export function mcpStatusView(
-  status: Pick<McpStatus, "launch" | "configured"> | null,
-  pendingToggle: boolean | null,
+  status: Pick<McpStatus, "phase" | "configured"> | null,
+  switchResult: McpSwitchResult,
 ): McpStatusViewModel {
   if (status === null) return { badge: "none", note: "none" };
 
-  const badge = BADGE_FOR_LAUNCH[status.launch];
-  if (status.configured === "unreadable") return { badge, note: "unreadable" };
+  const badge = BADGE_FOR_PHASE[status.phase];
+  const refusedUnreadable = switchResult?.kind === "refused" && switchResult.error === "config_unreadable";
+  if (status.configured === "unreadable" || refusedUnreadable) return { badge, note: "unreadable" };
 
   const onDisk = status.configured === "enabled";
-  if (pendingToggle !== null && pendingToggle !== onDisk) return { badge, note: "notSaved" };
-
-  // `failed` and `starting` both mean the launch decided to start the server.
-  const launchedOn = status.launch !== "disabled";
-  return { badge, note: onDisk !== launchedOn ? "restartPending" : "none" };
+  if (onDisk && status.phase === "failed") return { badge, note: "savedOnButFailed" };
+  if (switchResult?.kind === "ok" && switchResult.enabled !== onDisk) return { badge, note: "notSaved" };
+  return { badge, note: "none" };
 }

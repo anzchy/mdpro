@@ -1,166 +1,174 @@
 /**
- * WI-6 (ADR-0039) — the pure Settings view of the MCP server status.
+ * ADR-0040 — the pure Settings view of the MCP server status.
  *
- * Cases VW-01 … VW-04 of `.claude/tdd-guardian/tests-20260926-235500.md`.
+ * Rewritten by WI-9 (cases U-3, U-4 of
+ * `.claude/tdd-guardian/tests-20260927-185126.md`). The ADR-0039 cases VW-01 …
+ * N3 were removed with the note they pinned: ADR-0040 decision 5 makes the
+ * switch take effect live, so the "takes effect after restart" note no longer
+ * exists, and the second input is now the last switch result rather than a
+ * pending toggle. U-3's cross-product subsumes their notSaved and unreadable
+ * rows. W-6 (WI-4) is kept, with the new second argument.
  *
  * Laws:
- * 1. At most one note (structural: `note` is a single value).
- * 2. The badge is a function of `launch` alone.
- * 3. The restart note depends only on `(launch, configured)`, never the toggle.
- * 4. Precedence: `unreadable` > `notSaved` > `restartPending`.
+ * 1. Badge independence: the badge depends only on `phase`.
+ * 2. Precedence: `unreadable` > `savedOnButFailed` > `notSaved` > `none`.
+ * 3. Null: `status === null` gives `{ none, none }`.
  *
- * VW-01's expected table is written out literally rather than computed, so it
+ * The oracle below is written by hand from the matrix, not imported, so it
  * cannot share a bug with the implementation.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import type { McpConfigured, McpLaunch } from "../src/services/mcpService";
-import { mcpStatusView, type McpBadge, type McpNote } from "../src/utils/mcpStatusView";
+import {
+  MCP_CONFIGURED_STATES,
+  MCP_PHASES,
+  type McpConfigured,
+  type McpPhase,
+} from "../src/services/mcpService";
+import {
+  mcpStatusView,
+  type McpBadge,
+  type McpNote,
+  type McpSwitchResult,
+} from "../src/utils/mcpStatusView";
 
-const LAUNCHES: McpLaunch[] = ["starting", "running", "failed", "disabled"];
-const CONFIGUREDS: McpConfigured[] = ["enabled", "disabled", "unreadable"];
-const TOGGLES: Array<boolean | null> = [null, true, false];
-
-type Row = [McpLaunch | null, McpConfigured | null, boolean | null, McpBadge, McpNote];
-
-function status(launch: McpLaunch | null, configured: McpConfigured | null) {
-  return launch === null || configured === null ? null : { launch, configured };
-}
-
-// prettier-ignore
-const TABLE: Row[] = [
-  // status === null
-  [null, null, null,  "none", "none"],
-  [null, null, true,  "none", "none"],
-  [null, null, false, "none", "none"],
-  // launch: running
-  ["running", "enabled",    null,  "running", "none"],
-  ["running", "enabled",    true,  "running", "none"],
-  ["running", "enabled",    false, "running", "notSaved"],
-  ["running", "disabled",   null,  "running", "restartPending"],
-  ["running", "disabled",   true,  "running", "notSaved"],
-  ["running", "disabled",   false, "running", "restartPending"],
-  ["running", "unreadable", null,  "running", "unreadable"],
-  ["running", "unreadable", true,  "running", "unreadable"],
-  ["running", "unreadable", false, "running", "unreadable"],
-  // launch: starting
-  ["starting", "enabled",    null,  "starting", "none"],
-  ["starting", "enabled",    true,  "starting", "none"],
-  ["starting", "enabled",    false, "starting", "notSaved"],
-  ["starting", "disabled",   null,  "starting", "restartPending"],
-  ["starting", "disabled",   true,  "starting", "notSaved"],
-  ["starting", "disabled",   false, "starting", "restartPending"],
-  ["starting", "unreadable", null,  "starting", "unreadable"],
-  ["starting", "unreadable", true,  "starting", "unreadable"],
-  ["starting", "unreadable", false, "starting", "unreadable"],
-  // launch: failed
-  ["failed", "enabled",    null,  "failed", "none"],
-  ["failed", "enabled",    true,  "failed", "none"],
-  ["failed", "enabled",    false, "failed", "notSaved"],
-  ["failed", "disabled",   null,  "failed", "restartPending"],
-  ["failed", "disabled",   true,  "failed", "notSaved"],
-  ["failed", "disabled",   false, "failed", "restartPending"],
-  ["failed", "unreadable", null,  "failed", "unreadable"],
-  ["failed", "unreadable", true,  "failed", "unreadable"],
-  ["failed", "unreadable", false, "failed", "unreadable"],
-  // launch: disabled
-  ["disabled", "enabled",    null,  "off", "restartPending"],
-  ["disabled", "enabled",    true,  "off", "restartPending"],
-  ["disabled", "enabled",    false, "off", "notSaved"],
-  ["disabled", "disabled",   null,  "off", "none"],
-  ["disabled", "disabled",   true,  "off", "notSaved"],
-  ["disabled", "disabled",   false, "off", "none"],
-  ["disabled", "unreadable", null,  "off", "unreadable"],
-  ["disabled", "unreadable", true,  "off", "unreadable"],
-  ["disabled", "unreadable", false, "off", "unreadable"],
+/** The eight switch results of U-3. */
+const SWITCH_RESULTS: McpSwitchResult[] = [
+  null,
+  { kind: "ok", enabled: true },
+  { kind: "ok", enabled: false },
+  { kind: "refused", error: "config_unreadable" },
+  { kind: "refused", error: "persist_failed" },
+  { kind: "refused", error: "exiting" },
+  { kind: "refused", error: "status_unavailable" },
+  { kind: "refused", error: "unknown" },
 ];
 
-describe("VW-01 full table", () => {
-  it("VW-01 covers 39 rows", () => {
-    expect(TABLE).toHaveLength(39);
+function badgeOf(phase: McpPhase): McpBadge {
+  switch (phase) {
+    case "disabled": return "off";
+    case "starting": return "starting";
+    case "running": return "running";
+    case "stopping": return "stopping";
+    case "failed": return "failed";
+  }
+}
+
+function noteOf(configured: McpConfigured, phase: McpPhase, sr: McpSwitchResult): McpNote {
+  if (configured === "unreadable" || (sr?.kind === "refused" && sr.error === "config_unreadable")) {
+    return "unreadable";
+  }
+  if (configured === "enabled" && phase === "failed") return "savedOnButFailed";
+  if (sr?.kind === "ok" && sr.enabled !== (configured === "enabled")) return "notSaved";
+  return "none";
+}
+
+interface Row {
+  phase: McpPhase;
+  configured: McpConfigured;
+  sr: McpSwitchResult;
+}
+
+const ROWS: Row[] = MCP_PHASES.flatMap((phase) =>
+  MCP_CONFIGURED_STATES.flatMap((configured) => SWITCH_RESULTS.map((sr) => ({ phase, configured, sr }))),
+);
+
+const tag = (r: Row) => `${r.phase}/${r.configured}/${JSON.stringify(r.sr)}`;
+
+describe("U-3 the full cross-product against a hand-written oracle", () => {
+  it("U-3 the domain is 5 × 3 × 8 = 120 rows", () => {
+    expect(MCP_PHASES).toHaveLength(5);
+    expect(MCP_CONFIGURED_STATES).toHaveLength(3);
+    expect(SWITCH_RESULTS).toHaveLength(8);
+    expect(ROWS).toHaveLength(120);
   });
 
-  it.each(TABLE)("VW-01 (%s, %s, %s) -> {%s, %s}", (launch, configured, toggle, badge, note) => {
-    expect(mcpStatusView(status(launch, configured), toggle)).toEqual({ badge, note });
-  });
-
-  it("VW-01 named adversary rows", () => {
-    expect(mcpStatusView({ launch: "running", configured: "enabled" }, null)).toEqual({ badge: "running", note: "none" });
-    expect(mcpStatusView({ launch: "disabled", configured: "disabled" }, null)).toEqual({ badge: "off", note: "none" });
-    expect(mcpStatusView({ launch: "running", configured: "disabled" }, null)).toEqual({ badge: "running", note: "restartPending" });
-    expect(mcpStatusView({ launch: "disabled", configured: "enabled" }, null)).toEqual({ badge: "off", note: "restartPending" });
-    expect(mcpStatusView({ launch: "failed", configured: "disabled" }, null)).toEqual({ badge: "failed", note: "restartPending" });
-    expect(mcpStatusView({ launch: "failed", configured: "enabled" }, null)).toEqual({ badge: "failed", note: "none" });
-    expect(mcpStatusView({ launch: "disabled", configured: "disabled" }, true)).toEqual({ badge: "off", note: "notSaved" });
-    expect(mcpStatusView({ launch: "running", configured: "unreadable" }, false)).toEqual({ badge: "running", note: "unreadable" });
-  });
-});
-
-describe("VW-02 metamorphic: the toggle never changes the badge", () => {
-  const statuses = [null, ...LAUNCHES.flatMap((l) => CONFIGUREDS.map((c) => ({ launch: l, configured: c })))];
-
-  it("VW-02 enumerates 13 statuses", () => {
-    expect(statuses).toHaveLength(13);
-  });
-
-  it.each(statuses.map((s) => [s] as const))("VW-02 badge is toggle-invariant for %o", (s) => {
-    const badges = TOGGLES.map((t) => mcpStatusView(s, t).badge);
-    expect(new Set(badges).size).toBe(1);
-    expect(badges[0]).toBe(s === null ? "none" : s.launch === "disabled" ? "off" : s.launch);
-  });
-});
-
-describe("VW-03 metamorphic: the restart note ignores an agreeing toggle", () => {
-  it("VW-03 note(null) equals note(toggle agreeing with disk) in all 8 pairs; restart in exactly 4", () => {
-    let restartCount = 0;
-    let pairs = 0;
-    for (const launch of LAUNCHES) {
-      for (const configured of ["enabled", "disabled"] as const) {
-        const s = { launch, configured };
-        const a = mcpStatusView(s, null).note;
-        const b = mcpStatusView(s, configured === "enabled").note;
-        expect(b, `${launch}/${configured}`).toBe(a);
-        const shouldRestart = (configured === "enabled") !== (launch !== "disabled");
-        expect(a === "restartPending", `${launch}/${configured}`).toBe(shouldRestart);
-        if (a === "restartPending") restartCount += 1;
-        pairs += 1;
-      }
+  it("U-3 every row equals the oracle", () => {
+    let rows = 0;
+    for (const r of ROWS) {
+      const got = mcpStatusView({ phase: r.phase, configured: r.configured }, r.sr);
+      expect(got, tag(r)).toEqual({ badge: badgeOf(r.phase), note: noteOf(r.configured, r.phase, r.sr) });
+      rows += 1;
     }
-    expect(pairs).toBe(8);
-    expect(restartCount).toBe(4);
+    expect(rows).toBe(120);
+  });
+
+  it("U-3 badge independence: the badge is badgeOf(phase) on every row", () => {
+    for (const r of ROWS) {
+      expect(mcpStatusView({ phase: r.phase, configured: r.configured }, r.sr).badge, tag(r)).toBe(badgeOf(r.phase));
+    }
+  });
+
+  it("U-3 status === null gives {none, none} for every switch result", () => {
+    for (const sr of SWITCH_RESULTS) {
+      expect(mcpStatusView(null, sr), JSON.stringify(sr)).toEqual({ badge: "none", note: "none" });
+    }
+  });
+
+  it("U-3 named rows: saved-on-but-failed is distinct from an unsaved toggle", () => {
+    expect(mcpStatusView({ phase: "failed", configured: "enabled" }, null)).toEqual({
+      badge: "failed",
+      note: "savedOnButFailed",
+    });
+    expect(mcpStatusView({ phase: "disabled", configured: "disabled" }, { kind: "ok", enabled: true })).toEqual({
+      badge: "off",
+      note: "notSaved",
+    });
+    expect(
+      mcpStatusView({ phase: "failed", configured: "enabled" }, { kind: "refused", error: "config_unreadable" }),
+    ).toEqual({ badge: "failed", note: "unreadable" });
+    expect(
+      mcpStatusView({ phase: "running", configured: "disabled" }, { kind: "refused", error: "status_unavailable" }),
+    ).toEqual({ badge: "running", note: "none" });
   });
 });
 
-describe("VW-04 metamorphic: unreadable dominates", () => {
-  it("VW-04 replacing configured with unreadable always yields the unreadable note", () => {
-    let checked = 0;
-    for (const launch of LAUNCHES) {
-      for (const toggle of TOGGLES) {
-        for (const from of ["enabled", "disabled"] as const) {
-          const before = mcpStatusView({ launch, configured: from }, toggle);
-          const after = mcpStatusView({ launch, configured: "unreadable" }, toggle);
-          expect(after.note, `${launch}/${String(toggle)}/${from}`).toBe("unreadable");
-          expect(after.badge).toBe(before.badge);
-          checked += 1;
-        }
-      }
+describe("U-4 the restart note is gone from the type and the code", () => {
+  // Built by concatenation so this file is not itself a hit for the G-2 grep.
+  const RESTART_NOTE = "restart" + "Pending";
+  const RESTART_COPY = "MCP_RESTART" + "_COPY";
+
+  it("U-4 no row of U-3 returns the restart note", () => {
+    for (const r of ROWS) {
+      const { note } = mcpStatusView({ phase: r.phase, configured: r.configured }, r.sr);
+      expect(note, tag(r)).not.toBe(RESTART_NOTE);
     }
-    expect(checked).toBe(24);
   });
+
+  it.each([["src/utils/mcpStatusView.ts"], ["src/components/common/McpServerStatus.tsx"]])(
+    "U-4 %s names neither the restart note nor its copy",
+    (file) => {
+      const src = readFileSync(resolve(__dirname, "..", file), "utf8");
+      expect(src).not.toContain(RESTART_NOTE);
+      expect(src).not.toContain(RESTART_COPY);
+    },
+  );
 });
 
-describe("N3 (ADR-0031 5b, WI-6) the notSaved biconditional over the full domain", () => {
-  it("N3 note is notSaved exactly when status is readable, a toggle is pending, and it differs from disk", () => {
-    const statuses = [null, ...LAUNCHES.flatMap((l) => CONFIGUREDS.map((c) => ({ launch: l, configured: c })))];
-    const rows = statuses.flatMap((s) => TOGGLES.map((t) => ({ s, t })));
-    expect(rows).toHaveLength(39);
-    for (const { s, t } of rows) {
-      const tag = `${JSON.stringify(s)} toggle=${String(t)}`;
-      const predicate =
-        s !== null && s.configured !== "unreadable" && t !== null && t !== (s.configured === "enabled");
-      const note = mcpStatusView(s, t).note;
-      expect(note === "notSaved", tag).toBe(predicate);
-      if (s !== null && s.configured === "unreadable") expect(note, tag).not.toBe("notSaved");
+describe("W-6 (ADR-0040 WI-4) the badge is a total function of phase", () => {
+  // Hand-written; `configured` held fixed at "enabled".
+  const EXPECTED: Record<McpPhase, McpBadge> = {
+    disabled: "off",
+    starting: "starting",
+    running: "running",
+    stopping: "stopping",
+    failed: "failed",
+  };
+
+  it("W-6 covers every MCP_PHASES value, and nothing else", () => {
+    expect([...MCP_PHASES].sort()).toEqual(Object.keys(EXPECTED).sort());
+    let rows = 0;
+    for (const phase of MCP_PHASES) {
+      expect(mcpStatusView({ phase, configured: "enabled" }, null).badge, phase).toBe(EXPECTED[phase]);
+      rows += 1;
     }
+    expect(rows).toBe(MCP_PHASES.length);
+    expect(rows).toBe(5);
+  });
+
+  it("W-6 stopping shows the stopping badge", () => {
+    expect(mcpStatusView({ phase: "stopping", configured: "enabled" }, null).badge).toBe("stopping");
   });
 });

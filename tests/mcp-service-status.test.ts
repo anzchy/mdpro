@@ -25,7 +25,8 @@ const WIRE: McpStatus = {
   running: false,
   port: null,
   binaryPath: "b",
-  launch: "disabled",
+  phase: "disabled",
+  error: null,
   configured: "disabled",
 };
 
@@ -40,7 +41,7 @@ describe("TS-02 getStatus", () => {
   it("TS-02 returns the typed status produced by the Rust serialiser", async () => {
     const status = await getStatus();
     expect(status).toEqual(WIRE);
-    expect(status.launch).toBe("disabled");
+    expect(status.phase).toBe("disabled");
     expect(status.configured).toBe("disabled");
     expect(invokeMock.mock.calls[0][0]).toBe("mcp_get_status");
   });

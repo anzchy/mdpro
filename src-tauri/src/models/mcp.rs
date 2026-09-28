@@ -272,14 +272,19 @@ pub struct InsertContentEvent {
     pub window_label: Option<String>,
 }
 
-/// Server configuration for HTTP server.
-#[derive(Debug, Clone)]
+/// Server configuration for HTTP server. `Debug` prints the token as `<redacted>`.
+#[derive(Clone)]
 pub struct ServerConfig {
     /// Localhost port (dynamically assigned)
     pub port: u16,
-
     /// Authentication token
     pub token: String,
+}
+
+impl std::fmt::Debug for ServerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ServerConfig {{port: {}, token: <redacted>}}", self.port)
+    }
 }
 
 /// Thread-safe shared server config.
@@ -289,3 +294,6 @@ pub type SharedServerConfig = Arc<Mutex<Option<ServerConfig>>>;
 #[cfg(test)]
 #[path = "mcp_routable_tests.rs"]
 mod mcp_routable_tests;
+#[cfg(test)]
+#[path = "mcp_server_config_tests.rs"]
+mod mcp_server_config_tests;

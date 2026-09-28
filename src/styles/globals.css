@@ -1382,7 +1382,9 @@ a {
   color: var(--color-danger);
 }
 
-.mcp-status-badge.starting {
+/* ADR-0040: `stopping` is the live switch's other transition, styled like `starting`. */
+.mcp-status-badge.starting,
+.mcp-status-badge.stopping {
   background: var(--color-accent-soft);
   color: var(--color-accent);
 }

@@ -1,6 +1,6 @@
 # 0039. MCP server enablement is read once at launch, from a new key that defaults on
 
-**Status**: Proposed (2026-09-26)
+**Status**: Superseded by [ADR-0040](0040-the-mcp-server-switch-takes-effect-live.md) — 2026-09-28
 
 ## Context
 

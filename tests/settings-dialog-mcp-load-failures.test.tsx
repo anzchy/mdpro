@@ -3,7 +3,10 @@
  *
  * Cases:
  * - M3: the status re-fetch after a server toggle fails → no badge, the inline
- *   error, and the toggle keeps the value that was written.
+ *   error, and the toggle keeps the value that was written. ADR-0040
+ *   migration (WI-10): a switch reply carries its own status, so the only
+ *   toggle that re-fetches is one refused with `status_unavailable` (T-9);
+ *   M3 now drives that refusal. Its assertions are unchanged.
  * - M4: `get_preferences` resolves without an `mcp` group → failed-load state.
  * - Non-Error rejection: the load rejects with a plain string → failed-load
  *   state, and the `ui.settings.mcp.load` fail log carries an enum-only reason.
@@ -83,13 +86,15 @@ beforeEach(() => {
 describe("MCP-FIX-C1 load and refresh failures", () => {
   it("M3 a failed status re-fetch after a server toggle shows the inline error and no badge", async () => {
     const user = userEvent.setup();
-    mcp.status = mcpStatus({ launch: "running", configured: "enabled" });
+    mcp.status = mcpStatus({ phase: "running", configured: "enabled" });
     render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
     await waitFor(() => expect(toggle(SERVER)).toBeEnabled());
     expect(await screen.findByRole("status")).toHaveTextContent("Running");
 
     mcp.status = new Error("status down");
+    // ADR-0040 migration: only a status_unavailable refusal re-fetches the status now.
+    mcp.switchReplies = [{ reject: "status_unavailable" }];
     await user.click(toggle(SERVER));
 
     expect(await screen.findByText("status down")).toBeInTheDocument();

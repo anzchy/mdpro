@@ -1,8 +1,26 @@
+/**
+ * SettingsDialog Component
+ *
+ * Purpose: the Settings modal — category navigation, focus trap, and the
+ * per-open MCP config (`mcp` preferences group) for the Integrations page.
+ *
+ * Key decisions:
+ * - Every open starts with the MCP config unloaded and bumps a generation;
+ *   anything settling from an earlier open is dropped (F3, MCP-FIX-C1).
+ * - One MCP write at a time: `beginMcpWrite` grants a lease used both by the
+ *   whole-group `setPreferences` writes and by the live server switch
+ *   (ADR-0040, `useMcpServerSwitch`).
+ *
+ * @coordinates-with src/components/common/IntegrationsSettings.tsx — consumes mcpConfig and the lease
+ * @coordinates-with src/hooks/useMcpServerSwitch.ts — McpWriteLease contract
+ * @module components/common/SettingsDialog
+ */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useThemeStore } from "../../stores/themeStore";
 import { loggingService } from "../../services/loggingService";
 import { preferencesService } from "../../services/preferencesService";
 import type { McpConfig } from "../../types/preferences";
+import type { McpWriteLease } from "../../hooks/useMcpServerSwitch";
 import { IntegrationsSettings } from "./IntegrationsSettings";
 import { GeneralSettings } from "./settings/GeneralSettings";
 import { EditorSettings } from "./settings/EditorSettings";
@@ -60,12 +78,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [mcpConfig, setMcpConfig] = useState<McpConfig | null>(null);
   const [mcpLoadFailed, setMcpLoadFailed] = useState(false);
   const mcpLoadGenRef = useRef(0);
-  // `serverEnabled` as last written successfully this session; null = untouched
-  // (D-4). Set only after the write resolves, within the open that issued it
-  // (ADR-0031 5b, WI-6), so "Changed elsewhere" means disk disagrees after a
-  // successful write — a failed write is signalled by its toast alone.
-  const [mcpPendingToggle, setMcpPendingToggle] = useState<boolean | null>(null);
-  // One MCP write at a time (MCP-FIX-C1); the ref is the synchronous guard.
+  // One MCP write at a time — the settings writes here and the live server
+  // switch (ADR-0040, via `beginMcpWrite`) (MCP-FIX-C1); the ref is the synchronous guard.
   const [mcpSaving, setMcpSaving] = useState(false);
   const mcpSavingRef = useRef(false);
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
@@ -122,7 +136,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     mcpSavingRef.current = false;
     setMcpConfig(null);
     setMcpLoadFailed(false);
-    setMcpPendingToggle(null);
     setMcpSaving(false);
     void preferencesService.getPreferences()
       .then((p) => {
@@ -144,36 +157,48 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       });
   }, [open]);
 
-  const handleMcpConfigChange = async (config: McpConfig) => {
+  /**
+   * Grant the one MCP write allowed at a time, or `null` (logged as a cancel).
+   * Not hydrated: writing now would replace the stored group (F3). A write
+   * already in flight: a second one could be rolled back under the first.
+   * Every lease method is a no-op once a later open bumped the generation.
+   */
+  const beginMcpWrite = (): McpWriteLease | null => {
     const prev = mcpConfig;
-    // Not hydrated: writing now would replace the stored group (F3). A write
-    // already in flight: a second one could be rolled back under the first.
     if (prev === null || mcpSavingRef.current) {
       logMcpSave("cancel", { reason: prev === null ? "not_loaded" : "write_pending" });
-      return;
+      return null;
     }
     const gen = mcpLoadGenRef.current;
-    const prevPending = mcpPendingToggle;
+    const isCurrent = () => gen === mcpLoadGenRef.current;
     mcpSavingRef.current = true;
     setMcpSaving(true);
-    setMcpConfig(config);
-    try {
-      await preferencesService.setPreferences({ mcp: config });
-      if (gen === mcpLoadGenRef.current && config.serverEnabled !== prev.serverEnabled) {
-        setMcpPendingToggle(config.serverEnabled);
-      }
-    } catch {
-      const current = gen === mcpLoadGenRef.current;
-      if (current) {
-        setMcpConfig(prev);
-        setMcpPendingToggle(prevPending);
-      }
-      logMcpSave("fail", { rollback: current ? "applied" : "skipped_stale_open" });
-    } finally {
-      if (gen === mcpLoadGenRef.current) {
+    return {
+      previous: prev,
+      isCurrent,
+      setConfig: (config) => {
+        if (isCurrent()) setMcpConfig(config);
+      },
+      release: () => {
+        if (!isCurrent()) return;
         mcpSavingRef.current = false;
         setMcpSaving(false);
-      }
+      },
+    };
+  };
+
+  /** `startOnLaunch` / `autoApproveEdits`: optimistic whole-group write, rolled back on failure. */
+  const handleMcpConfigChange = async (config: McpConfig) => {
+    const lease = beginMcpWrite();
+    if (lease === null) return;
+    lease.setConfig(config);
+    try {
+      await preferencesService.setPreferences({ mcp: config });
+    } catch {
+      lease.setConfig(lease.previous);
+      logMcpSave("fail", { rollback: lease.isCurrent() ? "applied" : "skipped_stale_open" });
+    } finally {
+      lease.release();
     }
   };
 
@@ -236,9 +261,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <IntegrationsSettings
                 mcpConfig={mcpConfig}
                 mcpConfigFailed={mcpLoadFailed}
-                mcpPendingToggle={mcpPendingToggle}
                 mcpSaving={mcpSaving}
                 onMcpConfigChange={handleMcpConfigChange}
+                beginMcpWrite={beginMcpWrite}
               />
             )}
             {activePage === "export" && <ExportSettings />}

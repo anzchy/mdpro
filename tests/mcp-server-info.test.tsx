@@ -24,7 +24,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
 }));
 
 import { SettingsDialog } from "../src/components/common/SettingsDialog";
-import type { McpLaunch } from "../src/services/mcpService";
+import type { McpPhase } from "../src/services/mcpService";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { mcp, mcpRoute, mcpStatus, resetMcp } from "./support/mcpSettingsHarness";
 
@@ -46,11 +46,11 @@ beforeEach(() => {
 });
 
 describe("MCP-FIX-C2 server info renders only with a bound port", () => {
-  it.each<McpLaunch>(["disabled", "failed", "starting"])(
+  it.each<McpPhase>(["disabled", "failed", "starting"])(
     "C2-01 launch %s with no port shows no Listening-on row and no port hint",
-    async (launch) => {
+    async (phase) => {
       const user = userEvent.setup();
-      mcp.status = mcpStatus({ running: false, port: null, launch, configured: "enabled" });
+      mcp.status = mcpStatus({ running: false, port: null, phase, configured: "enabled" });
       render(<SettingsDialog open onClose={noop} />);
       await openIntegrations(user);
 
@@ -63,7 +63,7 @@ describe("MCP-FIX-C2 server info renders only with a bound port", () => {
 
   it("C2-02 launch running with a port shows the Listening-on row with that port", async () => {
     const user = userEvent.setup();
-    mcp.status = mcpStatus({ running: true, port: BOUND_PORT, launch: "running", configured: "enabled" });
+    mcp.status = mcpStatus({ running: true, port: BOUND_PORT, phase: "running", configured: "enabled" });
     render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
 

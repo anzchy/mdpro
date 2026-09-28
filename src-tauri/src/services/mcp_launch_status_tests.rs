@@ -1,14 +1,18 @@
-//! Pure and contract cases for the MCP status projection (ADR-0039, WI-5).
+//! Pure and contract cases for the MCP status projection (ADR-0040 WI-4;
+//! originally ADR-0039 WI-5).
 //!
-//! BS-01 (`build_status` cross-product), BS-04 (wire shape), BS-05 (enum
-//! domains against the shared fixture), BS-06 (poisoned launch state).
+//! W-1 (BS-01′, `build_status` cross-product), W-2 (BS-04′, wire shape), W-3
+//! (BS-05′, enum domains against the shared fixture). W-4 (the temporary
+//! launch-state → phase mapping) and BS-06 (poisoned launch state) were
+//! deleted with the launch state in ADR-0040 WI-5; the poisoned-snapshot
+//! case is C-11(b) in `mcp_launch_status_snapshot_tests.rs`.
 
 use super::*;
+use crate::services::mcp_controller::snapshot::{McpPhase, McpServerError};
 use serde_json::Value;
-use std::sync::{Arc, Mutex};
 
 use McpConfigReadError::{Io, LockPoisoned, Parse};
-use McpLaunchStatus::{Disabled, Failed, Running, Starting};
+use McpServerError::{BindFailed, BindInUse, PublishFailed, ServeFailed};
 
 /// Shared with `tests/mcp-status-contract.test.ts` (TS-01).
 const STATUS_FIXTURE: &str = concat!(
@@ -33,15 +37,83 @@ fn str_list(v: &Value) -> Vec<String> {
     out
 }
 
+/// Every phase, listed through a `match` witness so a new variant fails to
+/// compile here.
+fn all_phases() -> Vec<McpPhase> {
+    let witness = |p: McpPhase| match p {
+        McpPhase::Disabled
+        | McpPhase::Starting
+        | McpPhase::Running
+        | McpPhase::Stopping
+        | McpPhase::Failed => (),
+    };
+    let v = vec![
+        McpPhase::Disabled,
+        McpPhase::Starting,
+        McpPhase::Running,
+        McpPhase::Stopping,
+        McpPhase::Failed,
+    ];
+    v.iter().copied().for_each(witness);
+    v
+}
+
+/// Every server error, through a `match` witness.
+fn all_errors() -> Vec<McpServerError> {
+    let witness = |e: McpServerError| match e {
+        BindInUse | BindFailed | PublishFailed | ServeFailed => (),
+    };
+    let v = vec![BindInUse, BindFailed, PublishFailed, ServeFailed];
+    v.iter().copied().for_each(witness);
+    v
+}
+
+/// Every configured state, through a `match` witness.
+fn all_configured() -> Vec<McpConfigured> {
+    let witness = |c: McpConfigured| match c {
+        McpConfigured::Enabled | McpConfigured::Disabled | McpConfigured::Unreadable => (),
+    };
+    let v = vec![
+        McpConfigured::Enabled,
+        McpConfigured::Disabled,
+        McpConfigured::Unreadable,
+    ];
+    v.iter().copied().for_each(witness);
+    v
+}
+
+fn wire_str<T: serde::Serialize>(x: &T) -> String {
+    serde_json::to_value(x)
+        .expect("serialises")
+        .as_str()
+        .unwrap_or("?")
+        .to_string()
+}
+
+fn strings<T: serde::Serialize>(xs: Vec<T>) -> Vec<String> {
+    let mut out: Vec<String> = xs.iter().map(wire_str).collect();
+    out.sort();
+    out
+}
+
 #[test]
-fn bs01_full_cross_product_against_hand_written_projections() {
+fn w1_full_cross_product_against_hand_written_per_axis_oracles() {
     // Hand-written per-axis oracles; the law is that each output field is a
-    // function of exactly one input.
-    let launches: [(McpLaunchStatus, &str); 4] = [
-        (Starting, "starting"),
-        (Running, "running"),
-        (Failed, "failed"),
-        (Disabled, "disabled"),
+    // function of exactly one input. The error axis is independent of the
+    // phase here: Failed⇔error is a controller law, not a projection law.
+    let phases: [(McpPhase, &str); 5] = [
+        (McpPhase::Disabled, "disabled"),
+        (McpPhase::Starting, "starting"),
+        (McpPhase::Running, "running"),
+        (McpPhase::Stopping, "stopping"),
+        (McpPhase::Failed, "failed"),
+    ];
+    let errors: [(Option<McpServerError>, Option<&str>); 5] = [
+        (None, None),
+        (Some(BindInUse), Some("bind_in_use")),
+        (Some(BindFailed), Some("bind_failed")),
+        (Some(PublishFailed), Some("publish_failed")),
+        (Some(ServeFailed), Some("serve_failed")),
     ];
     let reads: [(McpConfigRead, &str); 6] = [
         (Ok(Some(true)), "enabled"),
@@ -55,127 +127,124 @@ fn bs01_full_cross_product_against_hand_written_projections() {
 
     let mut rows = 0;
     let mut failures = Vec::new();
-    for (launch, want_launch) in launches {
-        for (read, want_configured) in reads {
-            for (port, want_running) in ports {
-                rows += 1;
-                let s = build_status(launch, read, port, "bin".to_string());
-                let v = serde_json::to_value(&s).unwrap();
-                let got = (
-                    v["launch"].as_str().unwrap_or("?").to_string(),
-                    v["configured"].as_str().unwrap_or("?").to_string(),
-                    s.running,
-                    s.port,
-                    s.binary_path.clone(),
-                );
-                let want = (
-                    want_launch.to_string(),
-                    want_configured.to_string(),
-                    want_running,
-                    port,
-                    "bin".to_string(),
-                );
-                if got != want {
-                    failures.push(format!(
-                        "({launch:?}, {read:?}, {port:?}) → {got:?}, want {want:?}"
-                    ));
+    for (phase, want_phase) in phases {
+        for (error, want_error) in errors {
+            for (read, want_configured) in reads {
+                for (port, want_running) in ports {
+                    rows += 1;
+                    let s = build_status(phase, error, read, port, "bin".to_string());
+                    let v = serde_json::to_value(&s).unwrap();
+                    let got = (
+                        v["phase"].as_str().unwrap_or("?").to_string(),
+                        v["error"].as_str().map(str::to_string),
+                        v["configured"].as_str().unwrap_or("?").to_string(),
+                        v["running"].as_bool(),
+                        v["port"].as_u64(),
+                        v["binaryPath"].as_str().unwrap_or("?").to_string(),
+                    );
+                    let want = (
+                        want_phase.to_string(),
+                        want_error.map(str::to_string),
+                        want_configured.to_string(),
+                        Some(want_running),
+                        port.map(u64::from),
+                        "bin".to_string(),
+                    );
+                    if got != want {
+                        failures.push(format!(
+                            "({phase:?}, {error:?}, {read:?}, {port:?}) → {got:?}, want {want:?}"
+                        ));
+                    }
                 }
             }
         }
     }
-    assert_eq!(rows, 48);
+    assert_eq!(rows, 300);
     assert!(
         failures.is_empty(),
         "{} rows: {failures:#?}",
         failures.len()
     );
 
-    // Named off-diagonal rows: `running` follows the port, not `launch`.
-    assert!(build_status(Starting, Ok(Some(true)), Some(7), "b".to_string()).running);
-    assert!(!build_status(Running, Ok(Some(true)), None, "b".to_string()).running);
+    // Named off-diagonal rows: `running` follows the port, not the phase.
+    assert!(
+        build_status(
+            McpPhase::Starting,
+            None,
+            Ok(Some(true)),
+            Some(7),
+            "b".into()
+        )
+        .running
+    );
+    assert!(!build_status(McpPhase::Running, None, Ok(Some(true)), None, "b".into()).running);
 }
 
 #[test]
-fn bs04_wire_shape_exact_keys_lowercase_enums_no_token() {
-    let s = build_status(Failed, Ok(Some(false)), None, "/x/mdpro_mcp".to_string());
+fn w2_wire_key_set_equals_fixture_status_keys_and_no_key_mentions_a_token() {
+    let s = build_status(
+        McpPhase::Failed,
+        Some(BindInUse),
+        Ok(Some(false)),
+        None,
+        "/x".to_string(),
+    );
     let v = serde_json::to_value(&s).unwrap();
-    let mut keys: Vec<&str> = v.as_object().unwrap().keys().map(String::as_str).collect();
+    let mut keys: Vec<String> = v.as_object().unwrap().keys().cloned().collect();
     keys.sort();
     assert_eq!(
         keys,
-        ["binaryPath", "configured", "launch", "port", "running"]
+        [
+            "binaryPath",
+            "configured",
+            "error",
+            "phase",
+            "port",
+            "running"
+        ]
     );
-    assert_eq!(v["launch"], "failed");
-    assert_eq!(v["configured"], "disabled");
+    assert_eq!(keys, str_list(&read_status_fixture()["$statusKeys"]));
+    assert_eq!(v["phase"], "failed");
+    assert_eq!(v["error"], "bind_in_use");
     assert!(keys.iter().all(|k| !k.to_lowercase().contains("token")));
 
-    // The same key list is the fixture's `$statusKeys` (TS-01 reads it).
-    let fixture = read_status_fixture();
-    let owned: Vec<String> = keys.iter().map(|k| k.to_string()).collect();
-    assert_eq!(str_list(&fixture["$statusKeys"]), owned);
+    // `error: None` is JSON `null`, not a missing key.
+    let running = build_status(
+        McpPhase::Running,
+        None,
+        Ok(Some(true)),
+        Some(1),
+        "/x".into(),
+    );
+    let v = serde_json::to_value(&running).unwrap();
+    let obj = v.as_object().unwrap();
+    assert!(obj.contains_key("error"), "error key missing: {v}");
+    assert!(obj["error"].is_null(), "error must be null: {v}");
 }
 
 #[test]
-fn bs05_enum_domains_are_a_bijection_with_the_shared_fixture() {
-    // Written with `match` so a new variant fails to compile here.
-    fn all_launch() -> Vec<McpLaunchStatus> {
-        let witness = |s: McpLaunchStatus| match s {
-            Starting | Running | Failed | Disabled => (),
-        };
-        let v = vec![Starting, Running, Failed, Disabled];
-        v.iter().copied().for_each(witness);
-        v
-    }
-    fn all_configured() -> Vec<McpConfigured> {
-        let witness = |c: McpConfigured| match c {
-            McpConfigured::Enabled | McpConfigured::Disabled | McpConfigured::Unreadable => (),
-        };
-        let v = vec![
-            McpConfigured::Enabled,
-            McpConfigured::Disabled,
-            McpConfigured::Unreadable,
-        ];
-        v.iter().copied().for_each(witness);
-        v
-    }
-    fn strings<T: serde::Serialize>(xs: Vec<T>) -> Vec<String> {
-        let mut out: Vec<String> = xs
-            .iter()
-            .map(|x| {
-                serde_json::to_value(x)
-                    .unwrap()
-                    .as_str()
-                    .unwrap()
-                    .to_string()
-            })
-            .collect();
-        out.sort();
-        out
-    }
-
+fn w3_phase_error_configured_domains_are_a_bijection_with_the_fixture() {
     let fixture = read_status_fixture();
-    assert_eq!(strings(all_launch()), str_list(&fixture["launch"]));
-    assert_eq!(strings(all_configured()), str_list(&fixture["configured"]));
-}
-
-#[test]
-fn bs06_poisoned_launch_state_is_err_not_panic() {
-    let state: SharedMcpLaunchState = Arc::new(Mutex::new(Starting));
-    let s2 = Arc::clone(&state);
-    let _ = std::thread::spawn(move || {
-        let _g = s2.lock();
-        panic!("poisoning the local launch state on purpose");
-    })
-    .join();
-    assert!(
-        state.is_poisoned(),
-        "precondition: launch state is poisoned"
-    );
-
-    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| current_launch(&state)));
-    let r = outcome.expect("current_launch panicked");
-    assert!(
-        matches!(&r, Err(msg) if !msg.contains('/')),
-        "expected a path-free Err for a poisoned launch state, got {r:?}"
-    );
+    // Sorted lists equal ⇒ every variant has a fixture string and every
+    // fixture string has a variant; distinct counts pin injectivity.
+    let pairs = [
+        ("phase", strings(all_phases()), all_phases().len()),
+        ("error", strings(all_errors()), all_errors().len()),
+        (
+            "configured",
+            strings(all_configured()),
+            all_configured().len(),
+        ),
+    ];
+    for (name, got, variants) in pairs {
+        let want = str_list(&fixture[name]);
+        assert_eq!(got, want, "{name}: Rust vs fixture");
+        let mut distinct = got.clone();
+        distinct.dedup();
+        assert_eq!(
+            distinct.len(),
+            variants,
+            "{name}: two variants share a string"
+        );
+    }
 }

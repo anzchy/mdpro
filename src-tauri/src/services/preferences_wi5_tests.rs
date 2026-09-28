@@ -292,19 +292,42 @@ fn wi5_f_every_nested_group_is_replaced_wholesale() {
             max_dimension: Some(800),
         }
     );
-    assert_group_replaced_wholesale!(
-        mcp,
-        "mcp",
-        McpConfig,
-        // ADR-0039: mcp.enabled retired — renamed to `server_enabled`, and
-        // `false` because `$non_default` must differ from the new default
-        // (`true`), or the wholesale check is vacuous for this field.
-        McpConfig {
+    // ADR-0040 migration: this is the deliberate rewrite WI5-F asks for above.
+    // ADR-0040 decision 1 makes `mcp.serverEnabled` owned by the locked
+    // `persist_server_enabled` path, so a generic merge replaces `mcp`
+    // wholesale EXCEPT `server_enabled`, which keeps current's value. The
+    // other groups' oracle is unchanged. (`false` still differs from the
+    // default `true`, so the kept value is distinguishable from the patch's.)
+    {
+        let current = UserPreferences {
+            auto_save_interval: 4321,
+            mcp: McpConfig {
+                server_enabled: false,
+                start_on_launch: true,
+                auto_approve_edits: true,
+            },
+            ..UserPreferences::default()
+        };
+        let updates = PartialPreferences {
+            mcp: Some(McpConfig::default()),
+            ..empty_partial()
+        };
+        let result = merge_preferences(current, updates);
+        let serialised = serde_json::to_value(&result).expect("serialise merged preferences");
+        let expected = McpConfig {
             server_enabled: false,
-            start_on_launch: true,
-            auto_approve_edits: true,
-        }
-    );
+            ..McpConfig::default()
+        };
+        assert_eq!(
+            serialised["mcp"],
+            serde_json::to_value(expected).expect("serialise expected mcp"),
+            "`mcp` must be replaced wholesale except serverEnabled, which keeps current's"
+        );
+        assert_eq!(
+            result.auto_save_interval, 4321,
+            "a scalar outside `mcp` must be conserved"
+        );
+    }
     assert_group_replaced_wholesale!(
         editor,
         "editor",

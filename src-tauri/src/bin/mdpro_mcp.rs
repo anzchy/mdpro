@@ -9,13 +9,13 @@
 //! - This binary reads server.port and server.token from the platform data
 //!   dir, `dirs::data_dir()/mdpro/` (macOS: `~/Library/Application Support/mdpro/`),
 //!   the same directory `http_server::config_dir()` writes them to
-//! - Forwards MCP tool calls to mdpro's internal HTTP API
+//! - Forwards MCP tool calls to mdpro's internal HTTP API through
+//!   `conn::Conn`, which re-reads port and token when the app restarts its
+//!   server (ADR-0040): a GET is retried once, a POST is never replayed
 //! - Returns results back to the MCP client
 
-use std::fs;
 use std::sync::Arc;
 
-use reqwest::Client;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::ErrorData;
@@ -26,51 +26,10 @@ use rmcp::{tool, tool_handler, tool_router, ServerHandler, ServiceExt};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Server configuration read from the platform data directory.
-struct ServerConfig {
-    port: u16,
-    token: String,
-}
+#[path = "mdpro_mcp/conn.rs"]
+mod conn;
 
-impl ServerConfig {
-    /// Read config from platform data dir (e.g. ~/Library/Application Support/mdpro)
-    fn load() -> Result<Self, String> {
-        let data = dirs::data_dir().ok_or("Could not find data directory")?;
-        let config_dir = data.join("mdpro");
-
-        let port_path = config_dir.join("server.port");
-        let token_path = config_dir.join("server.token");
-
-        if !port_path.exists() {
-            return Err(
-                "mdpro not running: server.port not found. Please start mdpro first.".into(),
-            );
-        }
-        if !token_path.exists() {
-            return Err(
-                "mdpro not running: server.token not found. Please start mdpro first.".into(),
-            );
-        }
-
-        let port_str = fs::read_to_string(&port_path)
-            .map_err(|e| format!("Failed to read server.port: {}", e))?;
-        let port: u16 = port_str
-            .trim()
-            .parse()
-            .map_err(|e| format!("Invalid port number: {}", e))?;
-
-        let token = fs::read_to_string(&token_path)
-            .map_err(|e| format!("Failed to read server.token: {}", e))?
-            .trim()
-            .to_string();
-
-        Ok(Self { port, token })
-    }
-
-    fn base_url(&self) -> String {
-        format!("http://127.0.0.1:{}", self.port)
-    }
-}
+use conn::Conn;
 
 /// Document info returned from list endpoint
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,73 +90,16 @@ struct InsertContentParams {
 /// MCP Server for mdpro
 #[derive(Clone)]
 pub struct MdproMcpServer {
-    config: Arc<ServerConfig>,
-    client: Client,
+    conn: Arc<Conn>,
     tool_router: ToolRouter<Self>,
 }
 
 impl MdproMcpServer {
-    fn new(config: ServerConfig) -> Self {
+    fn new(conn: Conn) -> Self {
         Self {
-            config: Arc::new(config),
-            client: Client::new(),
+            conn: Arc::new(conn),
             tool_router: Self::tool_router(),
         }
-    }
-
-    /// Make an authenticated GET request to mdpro HTTP API
-    async fn get<T: for<'de> Deserialize<'de>>(&self, path: &str) -> Result<T, ErrorData> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        let response = self
-            .client
-            .get(&url)
-            .header("X-MDPRO-Token", &self.config.token)
-            .send()
-            .await
-            .map_err(|e| ErrorData::internal_error(format!("HTTP request failed: {}", e), None))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(ErrorData::internal_error(
-                format!("HTTP {}: {}", status, text),
-                None,
-            ));
-        }
-
-        response.json().await.map_err(|e| {
-            ErrorData::internal_error(format!("Failed to parse response: {}", e), None)
-        })
-    }
-
-    /// Make an authenticated POST request to mdpro HTTP API
-    async fn post<T: for<'de> Deserialize<'de>, B: Serialize>(
-        &self,
-        path: &str,
-        body: &B,
-    ) -> Result<T, ErrorData> {
-        let url = format!("{}{}", self.config.base_url(), path);
-        let response = self
-            .client
-            .post(&url)
-            .header("X-MDPRO-Token", &self.config.token)
-            .json(body)
-            .send()
-            .await
-            .map_err(|e| ErrorData::internal_error(format!("HTTP request failed: {}", e), None))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(ErrorData::internal_error(
-                format!("HTTP {}: {}", status, text),
-                None,
-            ));
-        }
-
-        response.json().await.map_err(|e| {
-            ErrorData::internal_error(format!("Failed to parse response: {}", e), None)
-        })
     }
 }
 
@@ -211,7 +113,7 @@ impl MdproMcpServer {
         description = "Get list of all documents currently open in mdpro"
     )]
     async fn get_open_documents(&self) -> Result<CallToolResult, ErrorData> {
-        let docs: Vec<DocumentInfo> = self.get("/api/documents").await?;
+        let docs: Vec<DocumentInfo> = self.conn.get("/api/documents").await?;
         let json = serde_json::to_string_pretty(&docs)
             .map_err(|e| ErrorData::internal_error(format!("Failed to serialize: {}", e), None))?;
         Ok(CallToolResult::success(vec![Content::text(json)]))
@@ -227,7 +129,10 @@ impl MdproMcpServer {
         &self,
         params: Parameters<ReadDocumentParams>,
     ) -> Result<CallToolResult, ErrorData> {
-        let content: DocumentContent = self.get(&format!("/api/documents/{}", params.0.id)).await?;
+        let content: DocumentContent = self
+            .conn
+            .get(&format!("/api/documents/{}", params.0.id))
+            .await?;
         Ok(CallToolResult::success(vec![Content::text(
             content.content,
         )]))
@@ -249,6 +154,7 @@ impl MdproMcpServer {
         }
 
         let result: WriteResult = self
+            .conn
             .post(
                 &format!("/api/documents/{}", params.0.id),
                 &WriteRequest {
@@ -292,6 +198,7 @@ impl MdproMcpServer {
         };
 
         let result: InsertResult = self
+            .conn
             .post(
                 &format!("/api/documents/{}/insert", params.0.id),
                 &InsertRequest {
@@ -341,8 +248,11 @@ impl ServerHandler for MdproMcpServer {
 
 #[tokio::main]
 async fn main() {
-    // Load config
-    let config = match ServerConfig::load() {
+    // Load config from the platform data dir (the only place it is named)
+    let conn = match dirs::data_dir()
+        .ok_or_else(|| "Could not find data directory".to_string())
+        .and_then(|data| Conn::load_from(&data.join("mdpro")))
+    {
         Ok(c) => c,
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -351,30 +261,14 @@ async fn main() {
     };
 
     // Verify connection to mdpro
-    let client = Client::new();
-    let check_url = format!("http://127.0.0.1:{}/api/status", config.port);
-    match client
-        .get(&check_url)
-        .header("X-MDPRO-Token", &config.token)
-        .send()
-        .await
-    {
-        Ok(response) if response.status().is_success() => {
-            // Connected successfully
-        }
-        Ok(response) => {
-            eprintln!("Error: mdpro returned status {}", response.status());
-            std::process::exit(1);
-        }
-        Err(e) => {
-            eprintln!("Error: Could not connect to mdpro: {}", e);
-            eprintln!("Make sure mdpro is running.");
-            std::process::exit(1);
-        }
+    if let Err(e) = conn.get::<serde_json::Value>("/api/status").await {
+        eprintln!("Error: {}", e.message);
+        eprintln!("Make sure mdpro is running.");
+        std::process::exit(1);
     }
 
     // Create and run server
-    let server = MdproMcpServer::new(config);
+    let server = MdproMcpServer::new(conn);
 
     match server.serve(stdio()).await {
         Ok(service) => {

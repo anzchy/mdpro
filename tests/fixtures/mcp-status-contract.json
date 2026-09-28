@@ -1,6 +1,8 @@
 {
-  "$README": "Shared Rust <-> TS contract for the mcp_get_status wire shape (ADR-0039). Read by src-tauri BS-04/BS-05 and by tests/mcp-status-contract.test.ts (TS-01). A change here must land with both languages in the same commit.",
-  "$statusKeys": ["binaryPath", "configured", "launch", "port", "running"],
-  "launch": ["starting", "running", "failed", "disabled"],
-  "configured": ["enabled", "disabled", "unreadable"]
+  "$README": "Shared Rust <-> TS contract for the mcp_get_status wire shape (ADR-0039, reshaped by ADR-0040 decision 5: `launch` became `phase` + `error`) and the mcp_set_server_enabled error strings (`switchError`, ADR-0040). Read by src-tauri W-2/W-3 (mcp_launch_status_tests.rs) and by tests/mcp-status-contract.test.ts (TS-01). A change here must land with both languages in the same commit.",
+  "$statusKeys": ["binaryPath", "configured", "error", "phase", "port", "running"],
+  "phase": ["disabled", "starting", "running", "stopping", "failed"],
+  "error": ["bind_in_use", "bind_failed", "publish_failed", "serve_failed"],
+  "configured": ["enabled", "disabled", "unreadable"],
+  "switchError": ["config_unreadable", "exiting", "persist_failed", "status_unavailable"]
 }

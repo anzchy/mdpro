@@ -242,9 +242,10 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
  */
 export interface McpConfig {
   /**
-   * Whether the MCP HTTP server is started at launch. Read once by Rust at
-   * launch, so a change takes effect after a restart (ADR-0039). Defaults to
-   * `true` — a missing value keeps the always-on behaviour.
+   * Whether the MCP HTTP server runs. Read at launch, and changed live only
+   * through `mcp_set_server_enabled` (ADR-0040) — a generic `set_preferences`
+   * write keeps the value on disk. Defaults to `true` — a missing value keeps
+   * the always-on behaviour.
    */
   serverEnabled: boolean;
   /** Auto-start MCP server when app launches (not read by anything yet — D25) */

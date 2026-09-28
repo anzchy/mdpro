@@ -2,13 +2,30 @@
 //!
 //! Internal HTTP server that mdpro-mcp uses to communicate with the mdpro app.
 //! Only accessible from localhost with token authentication.
+//!
+//! Purpose: serve the MCP HTTP API and build the app's `ControllerEnv`.
+//!
+//! Key decisions:
+//! - Server-file I/O lives in `mcp_controller::files` (ADR-0040 WI-1); this
+//!   file only names the app's dir, `data_dir()/mdpro` (`app_controller_env`).
+//! - The server's lifecycle is the `McpController`'s (ADR-0040 WI-5); this
+//!   file only supplies the app's `ControllerEnv` (`app_controller_env`:
+//!   address and dir) and its router (`router_factory`).
+//! - Auth is `with_token_auth(router, SharedServerConfig)`: the middleware
+//!   reads the shared config per request, so a rotated or cleared token
+//!   applies to the next request, and a `None` config rejects everything.
+//!
+//! @coordinates-with src/services/mcp_controller/files.rs
+//! @coordinates-with src/services/mcp_controller/controller.rs
+//! @coordinates-with src/main.rs (builds the controller from these)
 
 use crate::models::{
     CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo, ErrorResponse,
     InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult, LogEntryPayload,
-    LogLevel, LogStatus, ServerConfig, SharedServerConfig, SharedShadowStore, StatusResponse,
+    LogLevel, LogStatus, SharedServerConfig, SharedShadowStore, StatusResponse,
     UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
 };
+use crate::services::mcp_controller::controller::ControllerEnv;
 use crate::services::{logger, shadow_store};
 use axum::{
     body::Body,
@@ -19,16 +36,11 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use rand::Rng;
 use serde_json::json;
-use std::fs;
-use std::io::Write;
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
+use std::future::{ready, Ready};
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
-use tokio::net::TcpListener;
-use tokio::sync::oneshot;
 
 /// App state shared across HTTP handlers.
 #[derive(Clone)]
@@ -116,99 +128,56 @@ fn snap_to_char_boundary(s: &str, offset: usize) -> usize {
     pos
 }
 
-/// Generate a secure random token.
-fn generate_token() -> String {
-    let mut rng = rand::thread_rng();
-    let bytes: [u8; 32] = rng.gen();
-    hex::encode(&bytes)
-}
-
-/// Write server config files (port and token) to disk.
-/// Token file is set to mode 600 for security.
-pub fn write_server_config(port: u16, token: &str) -> Result<(), String> {
-    let config_path = config_dir().ok_or("Failed to get config directory")?;
-
-    // Ensure config directory exists
-    fs::create_dir_all(&config_path)
-        .map_err(|e| format!("Failed to create config directory: {}", e))?;
-
-    // Write port file
-    let port_path = config_path.join("server.port");
-    fs::write(&port_path, port.to_string())
-        .map_err(|e| format!("Failed to write port file: {}", e))?;
-
-    // Write token file with mode 600
-    let token_path = config_path.join("server.token");
-    let mut file =
-        fs::File::create(&token_path).map_err(|e| format!("Failed to create token file: {}", e))?;
-    file.write_all(token.as_bytes())
-        .map_err(|e| format!("Failed to write token file: {}", e))?;
-
-    // Set file permissions to 600 (owner read/write only) — Unix only
-    #[cfg(unix)]
-    {
-        let mut perms = file
-            .metadata()
-            .map_err(|e| format!("Failed to get file metadata: {}", e))?
-            .permissions();
-        perms.set_mode(0o600);
-        file.set_permissions(perms)
-            .map_err(|e| format!("Failed to set token file permissions: {}", e))?;
+/// Constant-time byte equality to prevent timing side-channels on the auth token.
+fn constant_time_eq(a: &str, b: &str) -> bool {
+    let a = a.as_bytes();
+    let b = b.as_bytes();
+    if a.len() != b.len() {
+        return false;
     }
-
-    Ok(())
+    a.iter()
+        .zip(b.iter())
+        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+        == 0
 }
 
-/// Remove server config files on shutdown.
-pub fn cleanup_server_config() {
-    if let Some(config_path) = config_dir() {
-        let _ = fs::remove_file(config_path.join("server.port"));
-        let _ = fs::remove_file(config_path.join("server.token"));
-    }
+/// The auth predicate: a request passes iff a header is present and is
+/// byte-equal to the current token. No token configured means nothing passes.
+pub(crate) fn token_matches(provided: Option<&str>, expected: Option<&str>) -> bool {
+    matches!((provided, expected), (Some(p), Some(e)) if constant_time_eq(p, e))
 }
 
-/// Token validation middleware.
+/// Token validation middleware. Reads the shared config on every request,
+/// so rotating or clearing it takes effect on the next request.
 async fn validate_token(
-    State(state): State<AppState>,
+    State(config): State<SharedServerConfig>,
     request: Request<Body>,
     next: Next,
 ) -> Response {
-    let token_header = request
+    let provided = request
         .headers()
         .get("X-MDPRO-Token")
         .and_then(|v| v.to_str().ok());
-
-    let expected_token = state
-        .server_config
+    let expected = config
         .lock()
         .ok()
         .and_then(|c| c.as_ref().map(|cfg| cfg.token.clone()));
 
-    /// Constant-time byte equality to prevent timing side-channels on the auth token.
-    fn constant_time_eq(a: &str, b: &str) -> bool {
-        let a = a.as_bytes();
-        let b = b.as_bytes();
-        if a.len() != b.len() {
-            return false;
-        }
-        a.iter()
-            .zip(b.iter())
-            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
-            == 0
+    if token_matches(provided, expected.as_deref()) {
+        next.run(request).await
+    } else {
+        let error = ErrorResponse {
+            error: "Invalid or missing authentication token".to_string(),
+            code: Some("UNAUTHORIZED".to_string()),
+        };
+        (StatusCode::UNAUTHORIZED, Json(error)).into_response()
     }
+}
 
-    match (token_header, expected_token) {
-        (Some(provided), Some(ref expected)) if constant_time_eq(provided, expected) => {
-            next.run(request).await
-        }
-        _ => {
-            let error = ErrorResponse {
-                error: "Invalid or missing authentication token".to_string(),
-                code: Some("UNAUTHORIZED".to_string()),
-            };
-            (StatusCode::UNAUTHORIZED, Json(error)).into_response()
-        }
-    }
+/// Put every route of `router` behind the `X-MDPRO-Token` check against
+/// `config` (the same `SharedServerConfig` the `McpController` sets).
+pub fn with_token_auth(router: Router, config: SharedServerConfig) -> Router {
+    router.layer(middleware::from_fn_with_state(config, validate_token))
 }
 
 /// Origin validation middleware (DNS rebinding protection).
@@ -1014,7 +983,7 @@ fn show_write_confirmation(document_title: &str) -> bool {
 
 /// Create the axum router with all routes and middleware.
 pub fn create_router(state: AppState) -> Router {
-    Router::new()
+    let routes = Router::new()
         .route("/api/status", get(get_status))
         .route("/api/documents", get(list_documents))
         .route("/api/documents/new", post(create_document))
@@ -1030,96 +999,41 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/delete_row", post(delete_row))
         .route("/api/v1/add_column", post(add_column))
         .route("/api/v1/delete_column", post(delete_column))
-        .layer(middleware::from_fn_with_state(
-            state.clone(),
-            validate_token,
-        ))
-        .layer(middleware::from_fn(validate_origin))
-        .with_state(state)
+        .with_state(state.clone());
+    with_token_auth(routes, state.server_config).layer(middleware::from_fn(validate_origin))
 }
 
 /// Default port for MCP HTTP server
 const MCP_SERVER_PORT: u16 = 55045;
 
-/// Start the HTTP server on the configured port.
-///
-/// Returns the port number and a shutdown signal sender.
-pub async fn start_server(
+/// The app's `ControllerEnv`: `127.0.0.1:55045`, publishing into
+/// `config_dir()`. `None` when the platform has no data dir.
+pub fn app_controller_env() -> Option<ControllerEnv> {
+    let dir = config_dir()?;
+    Some(ControllerEnv::new(
+        SocketAddr::from(([127, 0, 0, 1], MCP_SERVER_PORT)),
+        dir,
+    ))
+}
+
+/// The app's router factory for `McpController::start`: the full MCP API
+/// behind auth on the controller's shared config.
+pub fn router_factory(
     shadow_store: SharedShadowStore,
-    server_config: SharedServerConfig,
     app_handle: AppHandle,
-) -> Result<(u16, oneshot::Sender<()>), String> {
-    // Generate token
-    let token = generate_token();
-
-    // Bind to the configured port on localhost
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", MCP_SERVER_PORT))
-        .await
-        .map_err(|e| {
-            format!(
-                "Failed to bind HTTP server on port {}: {}",
-                MCP_SERVER_PORT, e
-            )
-        })?;
-
-    let addr = listener
-        .local_addr()
-        .map_err(|e| format!("Failed to get local address: {}", e))?;
-    let port = addr.port();
-
-    // Store config
-    {
-        let mut config = server_config
-            .lock()
-            .map_err(|e| format!("Failed to lock server config: {}", e))?;
-        *config = Some(ServerConfig {
-            port,
-            token: token.clone(),
-        });
-    }
-
-    // Write config files to disk
-    write_server_config(port, &token)?;
-
-    // Create app state
-    let state = AppState {
-        shadow_store,
-        server_config,
-        app_handle,
-    };
-
-    // Create router
-    let app = create_router(state);
-
-    // Create shutdown channel
-    let (tx, rx) = oneshot::channel::<()>();
-
-    // Spawn server task using Tauri's async runtime
-    tauri::async_runtime::spawn(async move {
-        axum::serve(listener, app)
-            .with_graceful_shutdown(async move {
-                let _ = rx.await;
-            })
-            .await
-            .ok();
-    });
-
-    Ok((port, tx))
-}
-
-// We need hex encoding for the token
-mod hex {
-    const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
-
-    pub fn encode(bytes: &[u8]) -> String {
-        let mut result = String::with_capacity(bytes.len() * 2);
-        for &byte in bytes {
-            result.push(HEX_CHARS[(byte >> 4) as usize] as char);
-            result.push(HEX_CHARS[(byte & 0x0f) as usize] as char);
-        }
-        result
+) -> impl FnOnce(SharedServerConfig) -> Ready<Router> + Send + 'static {
+    move |server_config| {
+        ready(create_router(AppState {
+            shadow_store,
+            server_config,
+            app_handle,
+        }))
     }
 }
+
+#[cfg(test)]
+#[path = "http_server_auth_tests.rs"]
+mod auth_tests;
 
 #[cfg(test)]
 mod tests {

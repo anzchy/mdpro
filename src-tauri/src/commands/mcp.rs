@@ -4,21 +4,23 @@
 //! from frontend to Rust Shadow Store and MCP client configuration.
 //!
 //! `mcp_get_status` delegates to `services::mcp_launch::current_status`
-//! (ADR-0039): it reports the launch outcome (`launch`), the on-disk
-//! `mcp.serverEnabled` read fresh on each call (`configured`), and the bound
-//! port. The two can differ until a restart; the setting is read once at launch.
+//! (ADR-0039; ADR-0040 WI-5): the server's `phase`, `error` and port from the
+//! `McpController` snapshot, and the on-disk `mcp.serverEnabled` read fresh on
+//! each call (`configured`). A poisoned snapshot is an `Err`.
 
 use crate::models::{
     LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
     SyncDocumentsPayload,
 };
 use crate::services::logger;
-use crate::services::mcp_launch::{self, McpStatus, SharedMcpLaunchState};
+use crate::services::mcp_controller::controller::McpController;
+use crate::services::mcp_launch::{self, McpStatus};
 use crate::services::shadow_store;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::State;
 
 // ── Payload size limits ────────────────────────────────────────────────────────
@@ -122,14 +124,11 @@ pub struct McpInstallation {
     pub config_path: String,
 }
 
-/// Get MCP server status: launch outcome, current on-disk setting, port.
-/// See `services::mcp_launch::current_status` (ADR-0039).
+/// Get MCP server status: phase and error, current on-disk setting, port.
+/// See `services::mcp_launch::current_status` (ADR-0039, ADR-0040 WI-5).
 #[tauri::command]
-pub fn mcp_get_status(
-    launch: State<'_, SharedMcpLaunchState>,
-    server: State<'_, SharedServerConfig>,
-) -> Result<McpStatus, String> {
-    mcp_launch::current_status(&launch, &server, get_mcp_binary_path()?)
+pub fn mcp_get_status(controller: State<'_, Arc<McpController>>) -> Result<McpStatus, String> {
+    mcp_launch::current_status(&controller, get_mcp_binary_path()?)
 }
 
 /// Check which MCP clients have config installed
@@ -262,7 +261,7 @@ pub fn mcp_remove_config(client: McpClient) -> Result<(), String> {
 
 // Helper functions
 
-fn get_mcp_binary_path() -> Result<String, String> {
+pub(crate) fn get_mcp_binary_path() -> Result<String, String> {
     let binary_name = if cfg!(windows) {
         "mdpro_mcp.exe"
     } else {

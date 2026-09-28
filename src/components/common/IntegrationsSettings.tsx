@@ -1,27 +1,31 @@
 /**
  * IntegrationsSettings Component
  *
- * Purpose: Settings panel for the MCP server toggles, its launch status, and
+ * Purpose: Settings panel for the MCP server toggles, its live status, and
  * AI client config installation.
  *
  * Pipeline: `mcp_get_status` + `mcp_get_installations` on mount → status badge
- * and note (`McpServerStatus`) + client rows. Toggles call `onMcpConfigChange`
- * (SettingsDialog owns the config and this session's `pendingToggle`).
+ * and note (`McpServerStatus`) + client rows (`McpClientList`). The server
+ * toggle goes through `useMcpServerSwitch` (`mcp_set_server_enabled`, ADR-0040);
+ * "Start on launch" / "Auto-approve edits" write the whole group through
+ * `onMcpConfigChange`. Both take the owner's one-write lease (`beginMcpWrite`).
  *
- * Key decisions (ADR-0039):
- * - After a server-toggle write settles — success or failure — only the status
- *   is re-fetched, so `configured` is read fresh without blanking the panel.
- *   Until that refresh settles the status region gets `pendingToggle={null}`:
- *   a just-written value against the stale `configured` would flash "Changed
- *   elsewhere" (ADR-0031 5b, WI-6, N5). `restartPending` is status-derived and
- *   not gated.
+ * Key decisions (ADR-0039, ADR-0040):
+ * - The switch takes effect live and returns the resulting status, which is
+ *   shown as-is — no re-fetch, so no race with a stale read. Only a
+ *   `status_unavailable` refusal re-reads the status.
+ * - The status region gets the hook's `switchResult`, `null` while a switch is
+ *   in flight, so a just-requested value is never compared against a stale
+ *   status (ADR-0031 5b, N5).
  * - A failed status fetch shows the error and no badge (rule 30.2).
  * - `mcpConfig === null` (not loaded this open, F3): all three toggles are
  *   disabled and described by an inline reason (rule 30.4); toggling is a no-op.
  * - `mcpSaving` (a write is in flight): the same lock with a "Saving…" reason,
  *   so writes never overlap and a late rejection cannot undo a later write.
  *
- * @coordinates-with src/components/common/SettingsDialog.tsx — owns mcpConfig / pendingToggle / saving
+ * @coordinates-with src/components/common/SettingsDialog.tsx — owns mcpConfig, saving, and the write lease
+ * @coordinates-with src/hooks/useMcpServerSwitch.ts — the live server switch
+ * @coordinates-with src/components/common/McpClientList.tsx — client install rows
  * @coordinates-with src/components/common/McpServerInfo.tsx — "Listening on" row
  * @coordinates-with src/components/common/McpServerStatus.tsx — badge + note region
  * @coordinates-with src/components/common/McpToggleRow.tsx — labelled toggle rows
@@ -35,43 +39,36 @@ import { loggingService } from "../../services/loggingService";
 import { McpServerStatus } from "./McpServerStatus";
 import { McpToggleRow } from "./McpToggleRow";
 import { McpServerInfo } from "./McpServerInfo";
+import { McpClientList } from "./McpClientList";
+import { useMcpServerSwitch, type McpWriteLease } from "../../hooks/useMcpServerSwitch";
 
 interface IntegrationsSettingsProps {
   /** The `mcp` group loaded this open; `null` until it has loaded. */
   mcpConfig: McpConfig | null;
   /** The load failed; the toggles stay disabled for this open. */
   mcpConfigFailed: boolean;
-  /** `serverEnabled` as last written successfully this dialog session; `null` until a
-   *  write succeeds. Passed to the status region as `null` while its refresh is pending. */
-  mcpPendingToggle: boolean | null;
   /** A write is in flight; the toggles are disabled until it settles. */
   mcpSaving: boolean;
-  /** Resolves once the write has settled (it handles its own failure). */
+  /** `startOnLaunch` / `autoApproveEdits`: resolves once the write settled (it handles its own failure). */
   onMcpConfigChange: (config: McpConfig) => Promise<void>;
+  /** The owner's one-write lease for the live server switch, or `null` if refused. */
+  beginMcpWrite: () => McpWriteLease | null;
 }
 
 const MCP_REASON_ID = "mcp-config-reason";
 
-const CLIENT_INFO: Record<McpClient, { name: string; configFile: string }> = {
-  claude_desktop: { name: "Claude Desktop", configFile: "claude_desktop_config.json" },
-  claude_code: { name: "Claude Code", configFile: ".claude.json" },
-  codex_cli: { name: "Codex CLI", configFile: "config.toml" },
-  gemini_cli: { name: "Gemini CLI", configFile: "settings.json" },
-};
-
 export function IntegrationsSettings({
   mcpConfig,
   mcpConfigFailed,
-  mcpPendingToggle,
   mcpSaving,
   onMcpConfigChange,
+  beginMcpWrite,
 }: IntegrationsSettingsProps) {
   const [status, setStatus] = useState<McpStatus | null>(null);
   const [installations, setInstallations] = useState<McpInstallation[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<McpClient | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [statusRefreshPending, setStatusRefreshPending] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -105,20 +102,26 @@ export function IntegrationsSettings({
     }
   }, []);
 
-  const handleToggle = async <K extends keyof McpConfig>(key: K, value: McpConfig[K]) => {
+  /** Show the status a switch returned; it supersedes an earlier fetch error. */
+  const showSwitchStatus = useCallback((next: McpStatus) => {
+    setStatus(next);
+    setError(null);
+  }, []);
+
+  const serverSwitch = useMcpServerSwitch({
+    beginWrite: beginMcpWrite,
+    setStatus: showSwitchStatus,
+    refreshStatus,
+  });
+
+  const handleToggle = async (key: keyof McpConfig, value: boolean) => {
     if (mcpConfig === null || mcpSaving) return;
     loggingService.logUiEvent("ui.toggle.change", {
       controlId: `settings.integrations.mcp.${key}`,
       newValue: value,
     });
-    if (key !== "serverEnabled") return onMcpConfigChange({ ...mcpConfig, [key]: value });
-    setStatusRefreshPending(true);
-    try {
-      await onMcpConfigChange({ ...mcpConfig, [key]: value });
-      await refreshStatus();
-    } finally {
-      setStatusRefreshPending(false);
-    }
+    if (key === "serverEnabled") return serverSwitch.toggle(value);
+    return onMcpConfigChange({ ...mcpConfig, [key]: value });
   };
 
   const handleInstall = async (client: McpClient) => {
@@ -161,7 +164,7 @@ export function IntegrationsSettings({
   let lockReason: string | null = null;
   if (mcpConfigFailed) lockReason = "MCP settings couldn't be loaded — close and reopen Settings to retry";
   else if (!mcpConfig) lockReason = "Loading MCP settings…";
-  else if (mcpSaving) lockReason = "Saving…";
+  else if (mcpSaving || serverSwitch.saving) lockReason = "Saving…";
   const locked = lockReason !== null;
   const lockedBy = locked ? MCP_REASON_ID : undefined;
 
@@ -196,7 +199,7 @@ export function IntegrationsSettings({
         describedBy={lockedBy}
         onChange={(v) => void handleToggle("serverEnabled", v)}
       >
-        <McpServerStatus status={status} pendingToggle={statusRefreshPending ? null : mcpPendingToggle} />
+        <McpServerStatus status={status} switchResult={serverSwitch.switchResult} />
       </McpToggleRow>
       <McpToggleRow
         labelId="mcp-toggle-launch-label"
@@ -229,71 +232,13 @@ export function IntegrationsSettings({
         </button>
       </div>
 
-      {/* Install MCP Configuration */}
-      <div className="mcp-installations">
-        <h4>Install MCP Configuration</h4>
-        <p className="mcp-installations-description">
-          Configure AI assistants to connect to mdpro MCP server.
-        </p>
-
-        <div className="mcp-client-list">
-          {installations.map((installation) => {
-            const info = CLIENT_INFO[installation.client];
-            const isLoading = actionLoading === installation.client;
-
-            return (
-              <div key={installation.client} className="mcp-client-row">
-                <div className="mcp-client-info">
-                  <span className={`mcp-client-status ${installation.installed ? "installed" : ""}`}>
-                    {installation.installed ? "✓" : "○"}
-                  </span>
-                  <div className="mcp-client-details">
-                    <strong>{info.name}</strong>
-                    <span className="mcp-client-path">
-                      {info.configFile}
-                      <button
-                        className="mcp-copy-btn small"
-                        onClick={() => copyToClipboard(installation.configPath)}
-                        title="Copy full path"
-                      >
-                        📋
-                      </button>
-                    </span>
-                  </div>
-                </div>
-                <div className="mcp-client-actions">
-                  {installation.installed ? (
-                    <>
-                      <button
-                        className="toolbar-button small"
-                        onClick={() => void handleInstall(installation.client)}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "..." : "Update"}
-                      </button>
-                      <button
-                        className="toolbar-button small danger"
-                        onClick={() => void handleRemove(installation.client)}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "..." : "Remove"}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="toolbar-button small primary"
-                      onClick={() => void handleInstall(installation.client)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "..." : "Install"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <McpClientList
+        installations={installations}
+        actionLoading={actionLoading}
+        onInstall={(client) => void handleInstall(client)}
+        onRemove={(client) => void handleRemove(client)}
+        onCopy={copyToClipboard}
+      />
     </div>
   );
 }
