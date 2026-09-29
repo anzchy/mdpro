@@ -1,0 +1,109 @@
+{
+  "$README": "Shared Rust <-> TS contract for the ADR-0042 confirmation events: mcp:confirm_request (backend -> owning window) and mcp:confirm_resolved (every end of a shown request, except a destroyed window), plus the mcp_confirm_reply verdicts. Read by src-tauri payload_tests.rs (P-1, P-2) and by the TS model tests (M-1, CT-1). `samples` are the request payloads for every operation, in the order replace, insert, then table x `actions`. A change here must land with both languages in the same commit.",
+  "$requestKeys": [
+    "action",
+    "documentId",
+    "documentTitle",
+    "expiresInMs",
+    "operation",
+    "requestId"
+  ],
+  "$resolvedKeys": [
+    "outcome",
+    "requestId"
+  ],
+  "events": {
+    "request": "mcp:confirm_request",
+    "resolved": "mcp:confirm_resolved"
+  },
+  "operations": [
+    "replace",
+    "insert",
+    "table"
+  ],
+  "actions": [
+    "insert_table",
+    "set_cell",
+    "add_row",
+    "delete_row",
+    "add_column",
+    "delete_column"
+  ],
+  "outcomes": [
+    "approved",
+    "rejected",
+    "timedOut",
+    "cancelled",
+    "withdrawn"
+  ],
+  "verdicts": [
+    "resolved",
+    "ignoredUnknown",
+    "ignoredWrongWindow",
+    "ignoredNotShown"
+  ],
+  "samples": [
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "replace",
+      "expiresInMs": 42000
+    },
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "insert",
+      "expiresInMs": 42000
+    },
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "table",
+      "action": "insert_table",
+      "expiresInMs": 42000
+    },
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "table",
+      "action": "set_cell",
+      "expiresInMs": 42000
+    },
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "table",
+      "action": "add_row",
+      "expiresInMs": 42000
+    },
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "table",
+      "action": "delete_row",
+      "expiresInMs": 42000
+    },
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "table",
+      "action": "add_column",
+      "expiresInMs": 42000
+    },
+    {
+      "requestId": "req-1",
+      "documentId": "doc-1",
+      "documentTitle": "Notes",
+      "operation": "table",
+      "action": "delete_column",
+      "expiresInMs": 42000
+    }
+  ]
+}

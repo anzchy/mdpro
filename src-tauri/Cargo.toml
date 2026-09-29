@@ -61,6 +61,12 @@ objc2-app-kit = { version = "0.3", features = [
     "NSView",
 ] }
 
+# The paused clock (`start_paused`, `time::advance`) for the ADR-0042
+# confirmation broker's 60 s deadline tests. A feature on the existing tokio
+# dependency, not a new crate.
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }
+
 [[bin]]
 name = "tauri-app"
 path = "src/main.rs"
