@@ -7,6 +7,12 @@ use crate::models::mcp::WindowState as McpWindowState;
 use crate::models::{DocumentState, ShadowStore, SharedShadowStore, SyncDocumentsPayload};
 use std::sync::{Arc, Mutex};
 
+// Atomic owner/focus read for the MCP write gate (ADR-0042); a sibling file
+// because this one is past the 300-line limit.
+#[path = "shadow_store_focus.rs"]
+mod focus;
+pub use focus::owner_and_focus;
+
 /// Create a new shared Shadow Store instance.
 pub fn create_shadow_store() -> SharedShadowStore {
     Arc::new(Mutex::new(ShadowStore::default()))
@@ -415,3 +421,7 @@ mod tests {
 #[cfg(test)]
 #[path = "shadow_store_routable_tests.rs"]
 mod shadow_store_routable_tests;
+
+#[cfg(test)]
+#[path = "shadow_store_owner_focus_tests.rs"]
+mod shadow_store_owner_focus_tests;
