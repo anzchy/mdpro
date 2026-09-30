@@ -1,6 +1,7 @@
 # 0043. The Source cursor context holds a table span, not a table model
 
-**Status**: Proposed (2026-09-30). Revised the same day after an adversarial
+**Status**: Accepted (2026-10-01), after WI-1..7 were implemented and verified. Previously
+Proposed (2026-09-30). Revised the same day after an adversarial
 review by Claude (Opus). Codex was unreachable, so this was not a Codex review.
 The review added the raw-`lineIndexAt` reuse rule and the shared line source
 to Decision 4, and the rejected-alternatives list.
@@ -147,7 +148,19 @@ Re-reading the code on 2026-09-30 showed these forces:
   pays a full parse. The per-move cost becomes a per-Tab cost. That's a much
   lower rate but no smaller for each event. The guard's split of `raw` into one
   string per row is unchanged. Making the guard walk rows directly (as D13 did
-  for the linter) is not part of this change.
+  for the linter) is not part of this change. Measured after
+  implementation (2026-10-01, 50,000-row table, the largest size ADR-0022
+  leaves the extensions installed for): one Tab press does 1
+  `parseTableAtOffset`, 50,006 rope `line()` reads, plus 1 `sliceString`
+  and 1 `iter` for the guard's `raw` copy. It took about 81 ms in one
+  jsdom run. That figure is indicative only, not evidence under E39.
+- **The span can go stale inside a late-parsed fence.** The fence check
+  reads the syntax tree as it is when the cursor moves. If the parser
+  reaches a fence only later, in a transaction that changes neither the
+  doc nor the selection, the field keeps its span until the next cursor
+  move. The field before D12 had the same trigger, so this is not a
+  regression. It is tracked as D39 and pinned by
+  `tests/source-table-fence-late-tree.test.ts`.
 - **The contract change is visible.** `getTableContext` changes its return
   type, so the Tab nav and cell highlight call sites and their tests need
   editing. The X4 assertion "exactly 20 parses" has to be rewritten. It becomes

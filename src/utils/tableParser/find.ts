@@ -5,7 +5,13 @@
  * size guideline and so consumers that only need cell lookups don't
  * pull in the full parser surface.
  *
+ * Not on the Source cursor path: since D12 (ADR-0043 D3) the per-move
+ * cell comes from `locate.ts#cellAtOffset` / `cellAtResolvedLine`,
+ * which read only the cursor's row. `findCell` is their equivalence
+ * oracle and serves whole-model consumers.
+ *
  * @coordinates-with src/utils/tableParser/parse.ts
+ * @coordinates-with src/utils/tableParser/locate.ts
  */
 
 import type { TableCell, TableModel } from "./types";
