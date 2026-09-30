@@ -27,6 +27,7 @@ import { editSyncMilkdownPlugin } from "../../plugins/milkdown/editSync/plugin";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
 import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
+import { useMilkdownFocusRestore } from "../../hooks/useMilkdownFocusRestore";
 import { useMilkdownScrollRestore } from "../../hooks/useMilkdownScrollRestore";
 import { useMilkdownDebugLogging } from "../../hooks/useMilkdownDebugLogging";
 import { useDocumentStore } from "../../stores/documentStore";
@@ -102,9 +103,11 @@ const tableNodeViewPlugin = $prose(
 
 interface MilkdownEditorInnerProps {
   highlightRequest?: number;
+  /** The generation this instance was keyed with (D37 FR-1): a prop, never a store read. */
+  generation: number;
 }
 
-function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
+function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInnerProps) {
   const documents = useDocumentStore((state) => state.documents);
   const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
 
@@ -185,11 +188,14 @@ function MilkdownEditorInner({ highlightRequest }: MilkdownEditorInnerProps) {
 
   // Enforce the link-click scheme allowlist and route clicks by resolved
   // origin — external handoff, in-document, or blocked (#10, ADR-0002);
-  // WI-2.6 cursor restore on mode toggle; WI-8 scroll restore on mode toggle
-  // (after the cursor restore, so the scroll position wins). All extracted to
-  // hook files to keep this component under the 300-line guideline.
+  // WI-2.6 cursor restore on mode toggle; D37 focus + caret restore after a
+  // wholesale rebuild (consumes the carry armed for this generation); WI-8 scroll
+  // restore on mode toggle (after the cursor restores, so the scroll position
+  // wins). All extracted to hook files to keep this component under the 300-line
+  // guideline.
   useMilkdownLinkClickGuard(activeDocumentId);
   useMilkdownTableCursorRestore(editor, activeDocumentId);
+  useMilkdownFocusRestore(editor, activeDocumentId, generation);
   useMilkdownScrollRestore(editor, activeDocumentId);
 
   // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
@@ -238,7 +244,7 @@ export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
     <div id="milkdown-container" className="milkdown-editor">
       {/* Key forces MilkdownProvider to recreate on a document change or a reload */}
       <MilkdownProvider key={`${activeDocumentId ?? "empty"}#${generation}`}>
-        <MilkdownEditorInner highlightRequest={highlightRequest} />
+        <MilkdownEditorInner highlightRequest={highlightRequest} generation={generation} />
       </MilkdownProvider>
       {/* Inline URL modal for ⌘K link insert — replaces window.prompt (#25) */}
       <LinkInsertModal />

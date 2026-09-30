@@ -3,7 +3,7 @@
  *
  * Purpose: the presentational in-window prompt for an ADR-0042 MCP write
  * confirmation — "An MCP client wants to … “title”." with Reject and Approve.
- * It owns no state: every key and click maps to `onReject` or `onApprove`.
+ * It owns no prompt state: every key and click maps to `onReject` or `onApprove`.
  *
  * Key decisions:
  * - **Initial focus is Reject, not the primary action** (a deliberate exception
@@ -18,15 +18,39 @@
  * - **Title only, as text**: the message is `confirmMessage(request)`, which
  *   names the document by title and never by id; React renders it as text, so a
  *   hostile title cannot inject markup.
+ * - **Focus goes back on close** (D37 WI-6, O2): `useReturnFocusOnClose` returns
+ *   focus to the element that held it at open, on every close path (Approve, Reject,
+ *   Escape, backdrop, an external resolve), so typing after Approve lands in the
+ *   editor. When that element is gone (queued prompts: an approved write rebuilt the
+ *   editor meanwhile), the fallback focuses the active editor with the caret at its
+ *   end (D38 known limit) and logs `ui.mcp_confirm.focus_return` with no content.
+ *   Escape handling itself is unchanged (D34 owns it).
  *
  * @module components/common/McpWriteConfirmDialog
  * @coordinates-with src/components/common/McpWriteConfirm.tsx — the container that feeds it
  * @coordinates-with src/utils/mcpConfirmModel.ts — `ConfirmRequest`, `confirmMessage`
+ * @coordinates-with src/hooks/useReturnFocusOnClose.ts — the focus return
+ * @coordinates-with src/utils/focusActiveMilkdownAtEnd.ts — its fallback
  */
 import { useCallback, useId, useRef } from "react";
 import type { KeyboardEvent } from "react";
 
+import { useReturnFocusOnClose } from "../../hooks/useReturnFocusOnClose";
+import { loggingService } from "../../services/loggingService";
+import { focusActiveMilkdownAtEnd } from "../../utils/focusActiveMilkdownAtEnd";
 import { confirmMessage, type ConfirmRequest } from "../../utils/mcpConfirmModel";
+
+const FOCUS_RETURN_EVENT = "ui.mcp_confirm.focus_return";
+
+/** The fallback when the element focused at open is gone: the editor, at its end. */
+function returnToEditor(): HTMLElement | null {
+  const target = focusActiveMilkdownAtEnd();
+  loggingService.logUiEvent(FOCUS_RETURN_EVENT, {
+    outcome: "fallback",
+    target: target ? "editor" : "none",
+  });
+  return target;
+}
 
 export interface McpWriteConfirmDialogProps {
   /** The request being shown; only its title reaches the screen. */
@@ -42,6 +66,7 @@ export function McpWriteConfirmDialog({ request, onApprove, onReject }: McpWrite
   const cardRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const messageId = useId();
+  useReturnFocusOnClose(cardRef, returnToEditor);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {

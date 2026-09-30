@@ -40,6 +40,8 @@
  * the new content. The editor's own writes never bump it, so typing never rebuilds.
  * The MCP insert caller runs `flushPendingEdits("mcp-insert")` first and refuses the
  * insert if it fails, so its discard drops nothing (`hooks/mcpInsertContent.ts`).
+ * The rebuild removes the focused view, so the caller snapshots it before `reloadEditor`
+ * and arms a focus carry at the bumped generation (`utils/milkdownFocusCarry.ts`, D37).
  *
  * Key decisions:
  * - Registrations are a per-id stack of unique entries. A cleanup removes only
@@ -53,6 +55,8 @@
  * @coordinates-with src/plugins/milkdown/editSync/plugin.ts — registers flushers
  * @coordinates-with src/App.tsx
  * @coordinates-with src/utils/wholesaleReplace.ts — the reloadEditor caller
+ * @coordinates-with src/utils/milkdownFocusCarry.ts — reads getEditor and
+ *   editorGenerations to capture and arm the D37 focus carry
  */
 
 import { create } from "zustand";

@@ -13,7 +13,10 @@
  * - A WYSIWYG-active insert is a wholesale replace (ADR-0044, decision (a)): the id-keyed
  *   Milkdown editor would otherwise stay on the pre-insert doc, and its edit-sync
  *   controller would later write that stale markdown over the insert. The rebuild drops
- *   cursor, undo history and the TOC coordination (collapse state, heading identity).
+ *   undo history and the TOC coordination (collapse state, heading identity). Keyboard
+ *   focus and the caret are carried across it when the editor was focused (D37:
+ *   `prepareWholesaleReplace` captures them, `useMilkdownFocusRestore` maps the caret
+ *   into the rebuilt doc and refocuses); an unfocused editor stays unfocused.
  * - Flush first, then re-read: a pending WYSIWYG edit reaches the store before the
  *   splice, so the discard in the rebuild drops nothing and the offset is relative to
  *   the post-flush content.
@@ -27,7 +30,8 @@
  *   never the inserted text or its length.
  *
  * @coordinates-with src/hooks/useMcpEvents.ts — the `mcp:insert_content` listener
- * @coordinates-with src/utils/wholesaleReplace.ts — reason "mcp-insert"
+ * @coordinates-with src/utils/wholesaleReplace.ts — reason "mcp-insert"; D37 focus capture
+ * @coordinates-with src/hooks/useMilkdownFocusRestore.ts — D37 focus/caret restore after the rebuild
  * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEdits / reloadEditor
  * @coordinates-with src/utils/mcpCursor.ts — the shared "cursor" offset (ADR-0021)
  * @module hooks/mcpInsertContent
