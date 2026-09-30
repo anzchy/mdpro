@@ -4,6 +4,18 @@ info:
   description: |
     Internal HTTP API for mdpro MCP Server communication.
     This API is only accessible from localhost and requires token authentication.
+
+    Write confirmation (ADR-0042): every write (`updateDocument`,
+    `insertContent`, and the `/api/v1/*` table routes, which are not listed
+    here) applies at once only when the mdpro window that holds the document
+    is focused. Otherwise that window shows an in-window prompt, one at a
+    time in arrival order, and the request waits up to 60 seconds for the
+    answer: 403 `USER_REJECTED` (the user said no), 408 `CONFIRM_TIMEOUT` (no
+    answer in time), 503 `CONFIRM_CANCELLED` (the window closed, the MCP
+    server stopped or the app quit), 404 `NOT_FOUND` (no window holds the
+    document, or it was closed while the prompt was up). None of these is
+    worth retrying automatically. An approved insert is applied to the
+    content as it is at approval, not as it was when the request arrived.
   version: 0.1.0
 
 servers:
@@ -91,13 +103,13 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: User rejected write operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          $ref: "#/components/responses/UserRejected"
         "404":
           $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/ConfirmTimeout"
+        "503":
+          $ref: "#/components/responses/ConfirmCancelled"
 
   /api/documents/{id}/insert:
     post:
@@ -121,8 +133,14 @@ paths:
                 $ref: "#/components/schemas/InsertResult"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/UserRejected"
         "404":
           $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/ConfirmTimeout"
+        "503":
+          $ref: "#/components/responses/ConfirmCancelled"
 
   /api/documents/new:
     post:
@@ -151,7 +169,9 @@ components:
       type: apiKey
       in: header
       name: X-MDPRO-Token
-      description: Authentication token from server.token in the platform data dir, dirs::data_dir()/mdpro/ (macOS: ~/Library/Application Support/mdpro/server.token)
+      description: >-
+        Authentication token from server.token in the platform data dir,
+        dirs::data_dir()/mdpro/ (macOS: ~/Library/Application Support/mdpro/server.token)
 
   parameters:
     documentId:
@@ -277,7 +297,35 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
 
     NotFound:
-      description: Document not found
+      description: >-
+        Document not found (code `NOT_FOUND`): no window holds it, or it was
+        closed while the write confirmation was up
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    UserRejected:
+      description: The user rejected the write in mdpro's prompt (code `USER_REJECTED`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ConfirmTimeout:
+      description: >-
+        Nobody answered the write confirmation within 60 seconds
+        (code `CONFIRM_TIMEOUT`); not a refusal
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ConfirmCancelled:
+      description: >-
+        The write confirmation was cancelled before an answer: the owning
+        window closed, the MCP server stopped or mdpro quit
+        (code `CONFIRM_CANCELLED`)
       content:
         application/json:
           schema:

@@ -4,10 +4,11 @@
 //! one prompt at a time, and every pending request ends on reply, timeout,
 //! server stop, app exit or the window closing.
 //!
-//! Pipeline (built so far: `gate`, `queue`, `broker`, `outbox`, `effects`,
-//! `payload`, `logging`, `http`, the lifecycle hooks below and the
-//! `commands::mcp_confirm` reply command; wiring into the write handlers
-//! and `main.rs` is planned, WI-9):
+//! Pipeline (wired, ADR-0042 WI-9: `main.rs` creates and manages one
+//! `AppConfirmBroker`, gives it to the HTTP router, hooks `stop_hook` into
+//! the controller and `on_window_event` into the window-event handler; the
+//! three write handlers in `http_server.rs` call `http::confirm_gate`; each
+//! window mounts `<McpWriteConfirm />` and answers via `mcp_confirm_reply`):
 //!   `shadow_store::owner_and_focus` → `gate::decide` → (Prompt)
 //!   `broker::ConfirmBroker::confirm` → `queue::PendingTable::enqueue` →
 //!   `outbox` turns each `Effect` into a wire entry under the lock →
@@ -53,6 +54,8 @@
 //! @coordinates-with src/services/mcp_controller/controller.rs (`StopCause`,
 //!   `StopHook`, `begin_exit`)
 //! @coordinates-with src/services/mcp_controller/transitions.rs (`stop_locked`)
+//! @coordinates-with src/services/http_server.rs (the write handlers)
+//! @coordinates-with src/main.rs (creates, manages and hooks the broker)
 
 pub mod broker;
 pub mod effects;

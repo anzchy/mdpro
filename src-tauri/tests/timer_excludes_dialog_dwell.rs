@@ -34,11 +34,14 @@
 //!
 //! ## What this test does not do
 //!
-//! It cannot see a timer that spans a dialog opened by a *callee*. T4 covers
-//! the one such path that exists today (`show_write_confirmation`, reached from
-//! three MCP handlers in `http_server.rs`) by pinning that the file has no
-//! timers at all. If that ever stops being true, T4 fails and the indirect case
-//! has to be reasoned about again rather than silently regressing.
+//! It cannot see a timer that spans a dialog opened by a *callee*. T4 used to
+//! cover the one such path (`show_write_confirmation`, a native `rfd` alert
+//! reached from three MCP handlers in `http_server.rs`). ADR-0042 WI-9 deleted
+//! it: the three handlers now wait on the in-window prompt through
+//! `mcp_confirm::http::confirm_gate`. T4 now pins that no native dialog is
+//! left in that file and that it still has no timers, so a wait on the user
+//! cannot be measured there either. If that ever stops being true, T4 fails
+//! and the case has to be reasoned about again rather than silently regressing.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -178,12 +181,14 @@ fn t2_the_scan_actually_reaches_the_three_recorded_sites() {
     let found: Vec<String> = dialog_functions().into_iter().map(|f| f.name).collect();
 
     for expected in [
-        "open_file_dialog",        // file.rs — the site the defect record named
-        "export_html",             // export.rs — where the 72,745 ms actually came from
-        "export_rendered_html",    // export.rs
-        "save_file_dialog",        // file.rs — dialog closes before any timing starts
-        "pick_export_folder",      // preferences.rs — no timing at all
-        "show_write_confirmation", // http_server.rs — no timing at all
+        "open_file_dialog",     // file.rs — the site the defect record named
+        "export_html",          // export.rs — where the 72,745 ms actually came from
+        "export_rendered_html", // export.rs
+        "save_file_dialog",     // file.rs — dialog closes before any timing starts
+        "pick_export_folder",   // preferences.rs — no timing at all
+                                // `show_write_confirmation` (http_server.rs) was listed here until
+                                // ADR-0042 WI-9 deleted it: the MCP write confirmation is an in-window
+                                // prompt now, not a native dialog, so there is nothing left to reach.
     ] {
         assert!(
             found.contains(&expected.to_string()),
@@ -218,22 +223,23 @@ fn t3_save_file_is_correctly_outside_this_invariant() {
 
 #[test]
 fn t4_the_mcp_confirmation_path_is_untimed_so_the_indirect_case_cannot_arise() {
-    // `show_write_confirmation` is the one dialog reached through a call rather
-    // than opened inline, from three handlers in http_server.rs. T1 cannot see a
-    // caller's timer spanning it. Today no timer exists anywhere in that file, so
-    // the indirect case is unreachable; this pins that reason rather than leaving
-    // it as an unstated assumption.
+    // Rewritten by ADR-0042 WI-9 (matrix SC-1), with this stated reason: the
+    // premise used to be that `show_write_confirmation` exists, and WI-9
+    // deleted that native alert. The three MCP write handlers now wait on the
+    // user through `confirm_gate` (an in-window prompt), so the premise is that
+    // they do, and that no native dialog is left in the file. The timer check
+    // is unchanged: a timer here would span that wait on the user.
     let path = src_root().join("services/http_server.rs");
     let src = fs::read_to_string(&path).expect("read http_server.rs");
 
     assert!(
-        src.contains("show_write_confirmation"),
-        "premise guard: this test is about that dialog"
+        !src.contains("rfd::") && src.contains("confirm_gate("),
+        "premise guard: the MCP writes wait on confirm_gate, not a native dialog"
     );
     assert!(
         !src.contains("Instant::now()"),
-        "http_server.rs gained a timer. It reaches show_write_confirmation, so that \
-         timer may now span a dialog — a case T1 cannot detect. Verify it by hand and \
-         extend T1 to cover callers before relaxing this."
+        "http_server.rs gained a timer. Its write handlers wait on confirm_gate, so \
+         that timer may now span the user's decision — a case T1 cannot detect. \
+         Verify it by hand and extend T1 to cover callers before relaxing this."
     );
 }

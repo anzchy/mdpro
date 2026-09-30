@@ -9,6 +9,7 @@ import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
 import { ConfirmDialog } from "./components/common/ConfirmDialog";
 import { SettingsDialog } from "./components/common/SettingsDialog";
+import { McpWriteConfirm } from "./components/common/McpWriteConfirm";
 import { RecoveryDialog } from "./components/common/RecoveryDialog";
 import { ReloadDialog } from "./components/common/ReloadDialog";
 import { EncodingDialog } from "./components/common/EncodingDialog";
@@ -1058,6 +1059,10 @@ function App() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
+      {/* ADR-0042: this window's MCP write-confirmation prompt. Every window
+          renders App, so each owns its prompt; after Settings so it stacks
+          above an open Settings dialog. */}
+      <McpWriteConfirm />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />
     </div>
   );

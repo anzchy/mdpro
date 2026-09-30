@@ -5,7 +5,25 @@
 //!
 //! Purpose: serve the MCP HTTP API and build the app's `ControllerEnv`.
 //!
+//! Pipeline (writes): handler -> `mcp_confirm::http::confirm_gate` (apply at
+//! once if the owning window is focused, else wait on that window's
+//! in-window prompt) -> re-read the shadow store -> optimistic update ->
+//! emit to the frontend -> roll back to the re-read content if the emit
+//! fails.
+//!
 //! Key decisions:
+//! - Every write (`update_document`, `insert_content`,
+//!   `dispatch_table_action`) goes through one `confirm_gate` call with its
+//!   own `Operation` (ADR-0042); the handlers never map the confirmation
+//!   codes (403 / 408 / 503) themselves. There is no native alert here any
+//!   more, and "is any window focused" is only reported by `get_status`.
+//! - The gate is awaited in the handler, never spawned: axum drops the
+//!   handler future on client disconnect, and the broker's drop guard then
+//!   withdraws the prompt (ADR-0042 F3).
+//! - After the gate the handler re-reads the document (F1): the user may
+//!   have edited or closed it while the prompt was up. `insert_content`
+//!   resolves through `resolve_insert_current`, whose `current` is the
+//!   rollback baseline, never the pre-confirm snapshot.
 //! - Server-file I/O lives in `mcp_controller::files` (ADR-0040 WI-1); this
 //!   file only names the app's dir, `data_dir()/mdpro` (`app_controller_env`).
 //! - The server's lifecycle is the `McpController`'s (ADR-0040 WI-5); this
@@ -17,7 +35,8 @@
 //!
 //! @coordinates-with src/services/mcp_controller/files.rs
 //! @coordinates-with src/services/mcp_controller/controller.rs
-//! @coordinates-with src/main.rs (builds the controller from these)
+//! @coordinates-with src/main.rs (builds the controller and broker from these)
+//! @coordinates-with src/services/mcp_confirm/http.rs (`confirm_gate`)
 
 use crate::models::{
     CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo, ErrorResponse,
@@ -25,6 +44,9 @@ use crate::models::{
     LogLevel, LogStatus, SharedServerConfig, SharedShadowStore, StatusResponse,
     UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
 };
+use crate::services::mcp_confirm::effects::AppConfirmBroker;
+use crate::services::mcp_confirm::http::confirm_gate;
+use crate::services::mcp_confirm::payload::{Operation, TableAction};
 use crate::services::mcp_controller::controller::ControllerEnv;
 use crate::services::{logger, shadow_store};
 use axum::{
@@ -40,6 +62,7 @@ use serde_json::json;
 use std::future::{ready, Ready};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
 /// App state shared across HTTP handlers.
@@ -48,6 +71,9 @@ pub struct AppState {
     pub shadow_store: SharedShadowStore,
     pub server_config: SharedServerConfig,
     pub app_handle: AppHandle,
+    /// The one write-confirmation broker (ADR-0042), shared with the
+    /// `mcp_confirm_reply` command and the lifecycle hooks.
+    pub confirm: Arc<AppConfirmBroker>,
 }
 
 /// Get the mdpro config directory (platform-standard data dir).
@@ -89,7 +115,8 @@ fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> usize {
 /// Extracted from the `insert_content` handler so the offset arithmetic can be
 /// unit tested — the handler itself needs an `AppState` and a live Tauri
 /// `AppHandle`. Same reason `discard_and_close` was extracted from
-/// `close_document` in `commands/file.rs`.
+/// `close_document` in `commands/file.rs`. The handler reaches it through
+/// `resolve_insert_current`, which supplies the post-confirmation content.
 ///
 /// Returns `(insert_byte_offset, new_cursor)`.
 fn resolve_insert(
@@ -113,6 +140,29 @@ fn resolve_insert(
     // conversion in the file to have written it correctly with.
     let new_cursor = byte_offset_to_utf16(content, insert_offset) + text.encode_utf16().count();
     (insert_offset, new_cursor)
+}
+
+/// Resolve an MCP insert against the document's content as it is *now*
+/// (ADR-0042 F1): called after the confirmation gate, so an edit the user
+/// made while the prompt was up is kept.
+///
+/// Returns `Ok(Some((current, new, off)))`: `current` is the content read
+/// here and is the handler's rollback baseline, `new` is `current` with
+/// `text` inserted at byte offset `off` (a char boundary). `Ok(None)` when
+/// the document was closed meanwhile; `Err` when the store is poisoned.
+fn resolve_insert_current(
+    store: &SharedShadowStore,
+    id: &str,
+    position: &InsertPosition,
+    text: &str,
+) -> Result<Option<(String, String, usize)>, String> {
+    let Some(doc) = shadow_store::get_document(store, id)? else {
+        return Ok(None);
+    };
+    let (off, _new_cursor) = resolve_insert(&doc.content, doc.cursor, position, text);
+    let mut new = doc.content.clone();
+    new.insert_str(off, text);
+    Ok(Some((doc.content, new, off)))
 }
 
 /// Snap a byte offset to the nearest valid UTF-8 char boundary.
@@ -322,123 +372,82 @@ async fn get_document(State(state): State<AppState>, Path(id): Path<String>) -> 
     }
 }
 
+/// Log a write the confirmation gate did not let through (ADR-0042: 403
+/// rejected, 408 timed out, 503 cancelled, 404 no owner, 500 store) under
+/// the handler's own event, and return the gate's response as is.
+fn gate_refused(event: &str, id: &str, refused: Response) -> Response {
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Warn,
+        event: event.to_string(),
+        status: LogStatus::Fail,
+        action_id: None,
+        context: Some(json!({ "documentId": id, "httpStatus": refused.status().as_u16() })),
+        duration_ms: None,
+        error: Some("write not confirmed".to_string()),
+    });
+    refused
+}
+
+/// 404 for a document that went away mid-request, logged under `event`.
+fn doc_gone(event: &str, id: &str, reason: &str) -> Response {
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Warn,
+        event: event.to_string(),
+        status: LogStatus::Fail,
+        action_id: None,
+        context: Some(json!({ "documentId": id })),
+        duration_ms: None,
+        error: Some(reason.to_string()),
+    });
+    let error = ErrorResponse {
+        error: format!("{reason}: {id}"),
+        code: Some("NOT_FOUND".to_string()),
+    };
+    (StatusCode::NOT_FOUND, Json(error)).into_response()
+}
+
+/// 500 for a shadow store that could not be read or written.
+fn store_error(e: String) -> Response {
+    let error = ErrorResponse {
+        error: e,
+        code: Some("INTERNAL_ERROR".to_string()),
+    };
+    (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response()
+}
+
 /// POST /api/documents/:id - Update document content (full replacement).
 async fn update_document(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(request): Json<UpdateDocumentRequest>,
+    Json(UpdateDocumentRequest {
+        content: new_content,
+    }): Json<UpdateDocumentRequest>,
 ) -> impl IntoResponse {
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "mcp.write".to_string(),
         status: LogStatus::Start,
         action_id: None,
-        context: Some(json!({ "documentId": id, "contentLength": request.content.len() })),
+        context: Some(json!({ "documentId": id, "contentLength": new_content.len() })),
         duration_ms: None,
         error: None,
     });
 
-    // Check if document exists
-    let doc = match shadow_store::get_document(&state.shadow_store, &id) {
-        Ok(Some(doc)) => doc,
-        Ok(None) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Warn,
-                event: "mcp.write".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({ "documentId": id })),
-                duration_ms: None,
-                error: Some("Document not found".to_string()),
-            });
-            let error = ErrorResponse {
-                error: format!("Document not found: {}", id),
-                code: Some("NOT_FOUND".to_string()),
-            };
-            return (StatusCode::NOT_FOUND, Json(error)).into_response();
-        }
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e,
-                code: Some("INTERNAL_ERROR".to_string()),
-            };
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
-        }
-    };
-
-    // Check if we need user confirmation (window not focused)
-    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store).unwrap_or(false);
-
-    if !window_focused {
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Info,
-            event: "mcp.confirm".to_string(),
-            status: LogStatus::Start,
-            action_id: None,
-            context: Some(json!({ "documentId": id, "documentTitle": doc.title })),
-            duration_ms: None,
-            error: None,
-        });
-
-        // Show confirmation dialog on a blocking thread so the async
-        // HTTP handler stays free to serve other requests (#237).
-        let title_owned = doc.title.clone();
-        let confirmed = tokio::task::spawn_blocking(move || show_write_confirmation(&title_owned))
-            .await
-            .unwrap_or(false);
-        if !confirmed {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
-                event: "mcp.confirm".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({ "documentId": id, "userRejected": true })),
-                duration_ms: None,
-                error: Some("User rejected".to_string()),
-            });
-            let error = ErrorResponse {
-                error: "User rejected write operation".to_string(),
-                code: Some("USER_REJECTED".to_string()),
-            };
-            return (StatusCode::FORBIDDEN, Json(error)).into_response();
-        }
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Info,
-            event: "mcp.confirm".to_string(),
-            status: LogStatus::Success,
-            action_id: None,
-            context: Some(json!({ "documentId": id })),
-            duration_ms: None,
-            error: None,
-        });
+    // ADR-0042: applies at once only if the owning window is focused;
+    // otherwise waits (<= 60 s) on that window's in-window prompt. Awaited
+    // here, never spawned, so a client disconnect withdraws the prompt (F3).
+    let gate = confirm_gate(&state.confirm, &state.shadow_store, &id, Operation::Replace);
+    if let Err(refused) = gate.await {
+        return gate_refused("mcp.write", &id, refused);
     }
 
-    // Re-validate document after potentially long-running dialog (TOCTOU fix #238).
+    // Re-read after the confirmation (TOCTOU fix #238): the user may have
+    // edited or closed the document while the prompt was up, so the rollback
+    // baseline is the content current now (ADR-0042 F1).
     let doc = match shadow_store::get_document(&state.shadow_store, &id) {
         Ok(Some(doc)) => doc,
-        Ok(None) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Warn,
-                event: "mcp.write".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({ "documentId": id })),
-                duration_ms: None,
-                error: Some("Document closed during confirmation".to_string()),
-            });
-            let error = ErrorResponse {
-                error: format!("Document closed during confirmation: {}", id),
-                code: Some("NOT_FOUND".to_string()),
-            };
-            return (StatusCode::NOT_FOUND, Json(error)).into_response();
-        }
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e,
-                code: Some("INTERNAL_ERROR".to_string()),
-            };
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
-        }
+        Ok(None) => return doc_gone("mcp.write", &id, "Document closed during confirmation"),
+        Err(e) => return store_error(e),
     };
 
     let window_label = shadow_store::get_window_for_document(&state.shadow_store, &id)
@@ -446,45 +455,23 @@ async fn update_document(
         .flatten();
 
     // Save original content for rollback in case emit fails (fixes #243).
-    let original_content = doc.content.clone();
+    let original_content = doc.content;
 
     // Optimistically update shadow store BEFORE emitting to frontend,
     // so subsequent reads return new content even if the frontend
     // hasn't processed the event yet (fixes #141 stale-read window).
-    let content_clone = request.content.clone();
-    match shadow_store::update_document_content(&state.shadow_store, &id, content_clone) {
+    match shadow_store::update_document_content(&state.shadow_store, &id, new_content.clone()) {
         Ok(true) => {}
-        Ok(false) => {
-            // Document closed in the residual window between re-validation and
-            // this update — fail closed rather than emit a write for a gone doc.
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Warn,
-                event: "mcp.write".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({ "documentId": id })),
-                duration_ms: None,
-                error: Some("Document closed before content update".to_string()),
-            });
-            let error = ErrorResponse {
-                error: format!("Document closed before content update: {}", id),
-                code: Some("NOT_FOUND".to_string()),
-            };
-            return (StatusCode::NOT_FOUND, Json(error)).into_response();
-        }
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e,
-                code: Some("INTERNAL_ERROR".to_string()),
-            };
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
-        }
+        // Closed in the residual window between re-validation and this
+        // update: fail closed rather than emit a write for a gone doc.
+        Ok(false) => return doc_gone("mcp.write", &id, "Document closed before content update"),
+        Err(e) => return store_error(e),
     }
 
     // Emit event to frontend to update the document
     let event = WriteDocumentEvent {
         document_id: id.clone(),
-        content: request.content,
+        content: new_content,
         window_label,
     };
 
@@ -533,7 +520,7 @@ async fn insert_content(
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(request): Json<InsertContentRequest>,
-) -> impl IntoResponse {
+) -> Result<Response, Response> {
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "mcp.insert".to_string(),
@@ -544,98 +531,42 @@ async fn insert_content(
         error: None,
     });
 
-    // Check if document exists
-    let doc = match shadow_store::get_document(&state.shadow_store, &id) {
-        Ok(Some(doc)) => doc,
-        Ok(None) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Warn,
-                event: "mcp.insert".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({ "documentId": id })),
-                duration_ms: None,
-                error: Some("Document not found".to_string()),
-            });
-            let error = ErrorResponse {
-                error: format!("Document not found: {}", id),
-                code: Some("NOT_FOUND".to_string()),
-            };
-            return (StatusCode::NOT_FOUND, Json(error)).into_response();
-        }
-        Err(e) => {
-            let error = ErrorResponse {
-                error: e,
-                code: Some("INTERNAL_ERROR".to_string()),
-            };
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
-        }
+    // ADR-0042 gate, as in `update_document` (awaited here, never spawned).
+    confirm_gate(&state.confirm, &state.shadow_store, &id, Operation::Insert)
+        .await
+        .map_err(|refused| gate_refused("mcp.insert", &id, refused))?;
+
+    // ADR-0042 F1: the insert is computed from the content current after
+    // approval, never the pre-confirm snapshot, and `current` is the rollback
+    // baseline, so an edit made while the prompt was up survives both paths.
+    let Some((current, new, insert_offset)) =
+        resolve_insert_current(&state.shadow_store, &id, &request.position, &request.text)
+            .map_err(store_error)?
+    else {
+        return Err(doc_gone(
+            "mcp.insert",
+            &id,
+            "Document closed during confirmation",
+        ));
     };
-
-    // Check if we need user confirmation (window not focused) — fixes #356.
-    // Same guard as update_document: prevents silent content injection when
-    // the user is not looking at the app.
-    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store).unwrap_or(false);
-
-    if !window_focused {
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Info,
-            event: "mcp.insert.confirm".to_string(),
-            status: LogStatus::Start,
-            action_id: None,
-            context: Some(json!({ "documentId": id, "documentTitle": doc.title })),
-            duration_ms: None,
-            error: None,
-        });
-
-        let title_owned = doc.title.clone();
-        let confirmed = tokio::task::spawn_blocking(move || show_write_confirmation(&title_owned))
-            .await
-            .unwrap_or(false);
-        if !confirmed {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
-                event: "mcp.insert.confirm".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({ "documentId": id, "userRejected": true })),
-                duration_ms: None,
-                error: Some("User rejected".to_string()),
-            });
-            let error = ErrorResponse {
-                error: "User rejected insert operation".to_string(),
-                code: Some("USER_REJECTED".to_string()),
-            };
-            return (StatusCode::FORBIDDEN, Json(error)).into_response();
-        }
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Info,
-            event: "mcp.insert.confirm".to_string(),
-            status: LogStatus::Success,
-            action_id: None,
-            context: Some(json!({ "documentId": id })),
-            duration_ms: None,
-            error: None,
-        });
-    }
-
-    let (insert_offset, new_cursor) =
-        resolve_insert(&doc.content, doc.cursor, &request.position, &request.text);
+    let new_cursor = byte_offset_to_utf16(&new, insert_offset + request.text.len());
 
     // Get the window label for the document
     let window_label = shadow_store::get_window_for_document(&state.shadow_store, &id)
         .ok()
         .flatten();
 
-    // Save original content for rollback in case emit fails (fixes #243).
-    let original_content = doc.content.clone();
-
-    // Compute new content and optimistically update shadow store BEFORE
-    // emitting to frontend, so subsequent reads return new content even
-    // if the frontend hasn't processed the event yet (fixes #141).
-    let mut new_content = doc.content.clone();
-    new_content.insert_str(insert_offset, &request.text);
-    let _ = shadow_store::update_document_content(&state.shadow_store, &id, new_content);
+    // Optimistically update shadow store BEFORE emitting to frontend, so
+    // subsequent reads return new content even if the frontend hasn't
+    // processed the event yet (fixes #141).
+    match shadow_store::update_document_content(&state.shadow_store, &id, new) {
+        Ok(true) => {}
+        Ok(false) => {
+            let reason = "Document closed before content update";
+            return Err(doc_gone("mcp.insert", &id, reason));
+        }
+        Err(e) => return Err(store_error(e)),
+    }
 
     // Emit event to frontend
     let event = InsertContentEvent {
@@ -646,10 +577,10 @@ async fn insert_content(
     };
 
     if let Err(e) = state.app_handle.emit("mcp:insert_content", &event) {
-        // Roll back the shadow store so it doesn't diverge from the editor (#243).
+        // Roll back to the post-approval content so the shadow store doesn't
+        // diverge from the editor (#243, ADR-0042 F1).
         let rollback_status =
-            match shadow_store::update_document_content(&state.shadow_store, &id, original_content)
-            {
+            match shadow_store::update_document_content(&state.shadow_store, &id, current) {
                 Ok(true) => "rolled back",
                 Ok(false) => "not rolled back: document not found",
                 Err(_) => "not rolled back: mutex error",
@@ -669,7 +600,7 @@ async fn insert_content(
             error: format!("Failed to emit insert event: {}", e),
             code: Some("EMIT_FAILED".to_string()),
         };
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response());
     }
 
     logger::log_event(LogEntryPayload {
@@ -684,14 +615,11 @@ async fn insert_content(
         error: None,
     });
 
-    (
-        StatusCode::OK,
-        Json(InsertResult {
-            success: true,
-            new_cursor,
-        }),
-    )
-        .into_response()
+    let result = InsertResult {
+        success: true,
+        new_cursor,
+    };
+    Ok((StatusCode::OK, Json(result)).into_response())
 }
 
 /// POST /api/documents/new - Create a new document.
@@ -741,14 +669,13 @@ struct TableActionEvent {
     window_label: Option<String>,
 }
 
-/// Common helper — verifies the document, runs the focus-confirmation
-/// flow if the app is backgrounded, and emits the event to the
-/// document's owning window.
+/// Common helper — gates the write on the owning window's confirmation
+/// (ADR-0042), then emits the event to the document's owning window.
 ///
-/// Audit-fix H1 (2026-05-04): mirror the focus + confirmation guard
-/// used by `update_document` / `insert_content`. Without this, a
-/// local process with the token can mutate user documents silently
-/// while the app is in the background.
+/// Audit-fix H1 (2026-05-04): a local process with the token must not
+/// mutate user documents silently; since ADR-0042 WI-9 this is the same
+/// `confirm_gate` as `update_document` / `insert_content`, with the same
+/// status codes.
 ///
 /// Audit-fix M1 (2026-05-04): populate `window_label` via
 /// `get_window_for_document` so the event reaches the owning window
@@ -756,59 +683,35 @@ struct TableActionEvent {
 async fn dispatch_table_action(
     state: &AppState,
     document_id: &str,
-    action: &str,
+    action: TableAction,
     payload: serde_json::Value,
 ) -> Response {
-    let doc = match shadow_store::get_document(&state.shadow_store, document_id) {
-        Ok(Some(d)) => d,
-        Ok(None) => {
-            let error = ErrorResponse {
-                error: format!("Document not found: {}", document_id),
-                code: Some("NOT_FOUND".to_string()),
-            };
-            return (StatusCode::NOT_FOUND, Json(error)).into_response();
-        }
-        Err(e) => {
-            let error = ErrorResponse {
-                error: format!("Shadow store read failed: {}", e),
-                code: Some("STORE_ERROR".to_string()),
-            };
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
-        }
-    };
-
-    // Confirmation guard for backgrounded app.
-    let window_focused = shadow_store::is_any_window_focused(&state.shadow_store).unwrap_or(false);
-    if !window_focused {
-        let title_owned = doc.title.clone();
-        let confirmed = tokio::task::spawn_blocking(move || show_write_confirmation(&title_owned))
-            .await
-            .unwrap_or(false);
-        if !confirmed {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
-                event: format!("mcp.table.{}", action),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: Some(json!({ "documentId": document_id, "userRejected": true })),
-                duration_ms: None,
-                error: Some("User rejected".to_string()),
-            });
-            let error = ErrorResponse {
-                error: "User rejected write operation".to_string(),
-                code: Some("USER_REJECTED".to_string()),
-            };
-            return (StatusCode::FORBIDDEN, Json(error)).into_response();
-        }
+    let log_event = format!("mcp.table.{}", action.as_str());
+    let gate = confirm_gate(
+        &state.confirm,
+        &state.shadow_store,
+        document_id,
+        Operation::Table(action),
+    );
+    if let Err(refused) = gate.await {
+        return gate_refused(&log_event, document_id, refused);
     }
 
-    let window_label = shadow_store::get_window_for_document(&state.shadow_store, document_id)
-        .ok()
-        .flatten();
+    // Re-read the owner after the confirmation: a document closed while the
+    // prompt was up is a 404, not an event nobody handles.
+    let window_label = match shadow_store::get_window_for_document(&state.shadow_store, document_id)
+    {
+        Ok(Some(label)) => Some(label),
+        Ok(None) => {
+            let reason = "Document closed during confirmation";
+            return doc_gone(&log_event, document_id, reason);
+        }
+        Err(e) => return store_error(e),
+    };
 
     let event = TableActionEvent {
         document_id: document_id.to_string(),
-        action: action.to_string(),
+        action: action.as_str().to_string(),
         payload,
         window_label,
     };
@@ -816,7 +719,7 @@ async fn dispatch_table_action(
     if let Err(e) = state.app_handle.emit("mcp:table_action", &event) {
         logger::log_event(LogEntryPayload {
             level: LogLevel::Error,
-            event: format!("mcp.table.{}", action),
+            event: log_event,
             status: LogStatus::Fail,
             action_id: None,
             context: Some(json!({ "documentId": document_id })),
@@ -832,7 +735,7 @@ async fn dispatch_table_action(
 
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
-        event: format!("mcp.table.{}", action),
+        event: log_event,
         status: LogStatus::Success,
         action_id: None,
         context: Some(json!({ "documentId": document_id })),
@@ -867,7 +770,7 @@ async fn insert_table(
     if let Some(aligns) = req.alignments {
         payload["alignments"] = json!(aligns);
     }
-    dispatch_table_action(&state, &req.document_id, "insert_table", payload).await
+    dispatch_table_action(&state, &req.document_id, TableAction::InsertTable, payload).await
 }
 
 #[derive(serde::Deserialize)]
@@ -888,7 +791,7 @@ async fn set_cell(
     if let Some(idx) = req.table_index {
         payload["tableIndex"] = json!(idx);
     }
-    dispatch_table_action(&state, &req.document_id, "set_cell", payload).await
+    dispatch_table_action(&state, &req.document_id, TableAction::SetCell, payload).await
 }
 
 #[derive(serde::Deserialize)]
@@ -907,7 +810,7 @@ async fn add_row(
     if let Some(idx) = req.table_index {
         payload["tableIndex"] = json!(idx);
     }
-    dispatch_table_action(&state, &req.document_id, "add_row", payload).await
+    dispatch_table_action(&state, &req.document_id, TableAction::AddRow, payload).await
 }
 
 #[derive(serde::Deserialize)]
@@ -926,7 +829,7 @@ async fn delete_row(
     if let Some(idx) = req.table_index {
         payload["tableIndex"] = json!(idx);
     }
-    dispatch_table_action(&state, &req.document_id, "delete_row", payload).await
+    dispatch_table_action(&state, &req.document_id, TableAction::DeleteRow, payload).await
 }
 
 #[derive(serde::Deserialize)]
@@ -945,7 +848,7 @@ async fn add_column(
     if let Some(idx) = req.table_index {
         payload["tableIndex"] = json!(idx);
     }
-    dispatch_table_action(&state, &req.document_id, "add_column", payload).await
+    dispatch_table_action(&state, &req.document_id, TableAction::AddColumn, payload).await
 }
 
 #[derive(serde::Deserialize)]
@@ -964,21 +867,7 @@ async fn delete_column(
     if let Some(idx) = req.table_index {
         payload["tableIndex"] = json!(idx);
     }
-    dispatch_table_action(&state, &req.document_id, "delete_column", payload).await
-}
-
-/// Show a native confirmation dialog for write operations.
-fn show_write_confirmation(document_title: &str) -> bool {
-    let result = rfd::MessageDialog::new()
-        .set_title("mdpro - Write Confirmation")
-        .set_description(format!(
-            "An external tool wants to replace the content of \"{}\".",
-            document_title
-        ))
-        .set_buttons(rfd::MessageButtons::YesNo)
-        .show();
-
-    matches!(result, rfd::MessageDialogResult::Yes)
+    dispatch_table_action(&state, &req.document_id, TableAction::DeleteColumn, payload).await
 }
 
 /// Create the axum router with all routes and middleware.
@@ -1017,9 +906,11 @@ pub fn app_controller_env() -> Option<ControllerEnv> {
 }
 
 /// The app's router factory for `McpController::start`: the full MCP API
-/// behind auth on the controller's shared config.
+/// behind auth on the controller's shared config, its writes gated by
+/// `confirm` (the same broker `main.rs` manages and hooks to stop/exit).
 pub fn router_factory(
     shadow_store: SharedShadowStore,
+    confirm: Arc<AppConfirmBroker>,
     app_handle: AppHandle,
 ) -> impl FnOnce(SharedServerConfig) -> Ready<Router> + Send + 'static {
     move |server_config| {
@@ -1027,6 +918,7 @@ pub fn router_factory(
             shadow_store,
             server_config,
             app_handle,
+            confirm,
         }))
     }
 }
@@ -1034,6 +926,10 @@ pub fn router_factory(
 #[cfg(test)]
 #[path = "http_server_auth_tests.rs"]
 mod auth_tests;
+
+#[cfg(test)]
+#[path = "http_server_insert_reread_tests.rs"]
+mod insert_reread_tests;
 
 #[cfg(test)]
 mod tests {

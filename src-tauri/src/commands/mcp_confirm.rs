@@ -21,9 +21,8 @@
 //!   approved}` (`success` for any verdict, `fail` on `Err`); a malformed
 //!   id gets one `fail` line with `{approved}` only. Never the title.
 //! - Managed state is `Arc<AppConfirmBroker>` (the HTTP handlers and the
-//!   stop hook share the same broker). Tauri resolves `State` at invoke
-//!   time, so until `main.rs` manages it (WI-9) an invoke errors; startup
-//!   does not.
+//!   stop hook share the same broker); `main.rs` creates and manages it at
+//!   setup, before any window can invoke this.
 //!
 //! @coordinates-with src-tauri/src/services/mcp_confirm/broker.rs
 //! @coordinates-with src-tauri/src/commands/quit_guard.rs (same label rule)

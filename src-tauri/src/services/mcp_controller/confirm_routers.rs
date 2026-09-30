@@ -1,10 +1,13 @@
 //! Test routers for the ADR-0042 stop-hook cases (WI-4): `POST /confirm/{id}`
-//! behind `with_token_auth`, gated through the real `owner_and_focus` ->
-//! `gate::decide` -> `ConfirmBroker::confirm`.
+//! behind `with_token_auth`, gated through the real
+//! `mcp_confirm::http::confirm_gate` (owner/focus -> `gate::decide` ->
+//! `ConfirmBroker::confirm` -> the HTTP mapping) as a `Replace`.
 //!
-//! The HTTP mapping of an outcome belongs to WI-5 (`mcp_confirm/http.rs`),
-//! which does not exist yet, so `respond` maps it locally with the codes the
-//! matrix fixes: `Cancelled(_)` -> 503 `CONFIRM_CANCELLED`.
+//! When WI-4 was written the mapping (WI-5) did not exist yet and this file
+//! carried a local stand-in with the same codes; WI-9 switched it to the real
+//! gate. The WI-4 assertions read only the status and the body's `code`,
+//! which the two agree on, so none of them changed. A gate that lets the
+//! write through answers 200 `{"code":"OK"}`.
 //!
 //! - `confirm_gated(broker, store)`: the route as described.
 //! - `confirm_parked(broker, store)`: the same route, parked before the gate
@@ -13,13 +16,13 @@
 use crate::models::mcp::DocumentState;
 use crate::models::{SharedServerConfig, SharedShadowStore, SyncDocumentsPayload};
 use crate::services::http_server::with_token_auth;
-use crate::services::mcp_confirm::gate::{decide, Gate};
-use crate::services::mcp_confirm::payload::{ConfirmMeta, Operation};
-use crate::services::mcp_confirm::queue::Outcome;
+use crate::services::mcp_confirm::http::confirm_gate;
+use crate::services::mcp_confirm::payload::Operation;
 use crate::services::mcp_confirm::test_effects::TestBroker;
-use crate::services::shadow_store::{create_shadow_store, owner_and_focus, sync_documents};
+use crate::services::shadow_store::{create_shadow_store, sync_documents};
 use axum::extract::Path;
 use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde_json::{json, Value};
@@ -50,38 +53,11 @@ pub(crate) fn store_with_d_in_b() -> SharedShadowStore {
     store
 }
 
-type Reply = (StatusCode, Json<Value>);
-
-fn reply(status: StatusCode, code: &str) -> Reply {
-    (status, Json(json!({ "code": code })))
-}
-
-/// The local stand-in for WI-5's outcome mapping.
-fn respond(outcome: Outcome) -> Reply {
-    match outcome {
-        Outcome::Approved => reply(StatusCode::OK, "OK"),
-        Outcome::Rejected => reply(StatusCode::FORBIDDEN, "USER_REJECTED"),
-        Outcome::TimedOut => reply(StatusCode::REQUEST_TIMEOUT, "CONFIRM_TIMEOUT"),
-        Outcome::Cancelled(_) => reply(StatusCode::SERVICE_UNAVAILABLE, "CONFIRM_CANCELLED"),
+async fn gate(broker: &TestBroker, store: &SharedShadowStore, id: &str) -> Response {
+    match confirm_gate(broker, store, id, Operation::Replace).await {
+        Ok(()) => (StatusCode::OK, Json(json!({ "code": "OK" }))).into_response(),
+        Err(refused) => refused,
     }
-}
-
-async fn gate(broker: &TestBroker, store: &SharedShadowStore, id: &str) -> Reply {
-    let (owner, focused) = match owner_and_focus(store, id) {
-        Ok(pair) => pair,
-        Err(_) => return reply(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR"),
-    };
-    let window = match decide(owner.as_deref(), focused.as_deref()) {
-        Gate::ApplyNow => return reply(StatusCode::OK, "OK"),
-        Gate::NoOwner => return reply(StatusCode::NOT_FOUND, "NOT_FOUND"),
-        Gate::Prompt { window } => window,
-    };
-    let meta = ConfirmMeta {
-        document_id: id.to_string(),
-        document_title: id.to_string(),
-        operation: Operation::Replace,
-    };
-    respond(broker.confirm(&window, meta).await)
 }
 
 /// The park of `confirm_parked`: each is taken once.

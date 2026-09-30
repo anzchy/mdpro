@@ -80,7 +80,7 @@ import { invoke } from '@tauri-apps/api/core';
 const result = await invoke<OpenFileResult>('open_file', { path, encoding });
 ```
 
-Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `save_draft`, `get_preferences`, `get_app_version`, `quit_guard_reply`, `mcp_set_server_enabled`
+Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `save_draft`, `get_preferences`, `get_app_version`, `quit_guard_reply`, `mcp_set_server_enabled`, `mcp_confirm_reply`
 
 ### Events (Rust → Frontend)
 
@@ -97,6 +97,8 @@ Rust emits events that frontend listens to via `listen()`:
 | `mcp:insert_content` | `{ document_id, text, position, window_label }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:create_document` | `{ document_id, content, window_label }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:table_action` | `{ document_id, action, payload, window_label }` | MCP table tools (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:confirm_request` | `{ requestId, documentId, documentTitle, operation, action?, expiresInMs }` | MCP write awaiting approval (ADR-0042), `emit_to` the window that owns the document (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
+| `mcp:confirm_resolved` | `{ requestId, outcome }` (`approved` \| `rejected` \| `timedOut` \| `cancelled` \| `withdrawn`) | Closes that prompt, `emit_to` the owning window (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
 | `app:quit-requested` | `{ requestId, round }` | Quit phase 1 — asks every window if it is dirty (quit\_guard/events.rs) → `useQuitGuard.ts` |
 | `app:quit-prompt` | `{ requestId, round }` | Quit phase 2 — prompts one dirty window at a time (quit\_guard/events.rs) → `useQuitGuard.ts` |
 | `app:quit-cancelled` | `{ requestId, round }` | Quit aborted; windows dismiss their prompt (quit\_guard/events.rs) → `useQuitGuard.ts` |

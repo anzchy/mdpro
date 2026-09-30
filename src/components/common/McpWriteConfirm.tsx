@@ -3,7 +3,8 @@
  *
  * Purpose: the per-window container for the ADR-0042 MCP write confirmation —
  * binds `useMcpConfirm` (this window's prompt queue) to `McpWriteConfirmDialog`.
- * Renders nothing while no prompt is shown. Mount once per window (WI-9).
+ * Renders nothing while no prompt is shown. Mounted once in `App.tsx`, which
+ * every window renders, so each window shows only its own prompts.
  *
  * Key decisions:
  * - **Keyed by `requestId`**, so the next queued prompt mounts a fresh dialog

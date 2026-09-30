@@ -12,6 +12,9 @@
 //! - Forwards MCP tool calls to mdpro's internal HTTP API through
 //!   `conn::Conn`, which re-reads port and token when the app restarts its
 //!   server (ADR-0040): a GET is retried once, a POST is never replayed
+//! - Writes may wait up to 60 s while the user answers mdpro's in-window
+//!   confirmation (ADR-0042); the tool descriptions name the 403 / 408 / 503
+//!   outcomes and tell the client not to retry them
 //! - Returns results back to the MCP client
 
 use std::sync::Arc;
@@ -139,10 +142,11 @@ impl MdproMcpServer {
     }
 
     /// Replace the entire content of a document.
-    /// This is a destructive operation. If mdpro is not focused, user confirmation is required.
+    /// Destructive. Unless the window that holds the document is focused, the
+    /// user is asked in that window first (ADR-0042).
     #[tool(
         name = "write_document",
-        description = "Replace the entire content of a document (destructive - may require confirmation)"
+        description = "Replace the entire content of a document. Destructive: unless the mdpro window holding the document is focused, the user is asked to approve in that window, and the call may wait up to 60 seconds for an answer. Errors: 403 USER_REJECTED (the user said no), 408 CONFIRM_TIMEOUT (no answer within 60 s), 503 CONFIRM_CANCELLED (the window closed, the MCP server stopped or mdpro quit), 404 NOT_FOUND (the document is not open). Do not retry automatically; ask the user."
     )]
     async fn write_document(
         &self,
@@ -175,10 +179,11 @@ impl MdproMcpServer {
     }
 
     /// Insert text at a specific position in the document.
-    /// Less destructive than write_document as it preserves existing content.
+    /// Less destructive than write_document as it preserves existing content,
+    /// but it goes through the same confirmation (ADR-0042).
     #[tool(
         name = "insert_content",
-        description = "Insert text at a specific position in the document"
+        description = "Insert text at a specific position in the document. Unless the mdpro window holding the document is focused, the user is asked to approve in that window, and the call may wait up to 60 seconds; the text is inserted into the content as it is when the user approves. Errors: 403 USER_REJECTED, 408 CONFIRM_TIMEOUT, 503 CONFIRM_CANCELLED (window closed, server stopped or app quit), 404 NOT_FOUND. Do not retry automatically; ask the user."
     )]
     async fn insert_content(
         &self,

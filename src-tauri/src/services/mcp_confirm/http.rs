@@ -21,8 +21,8 @@
 //!   document that went away between the two reads is `NOT_FOUND`.
 //!
 //! @coordinates-with src-tauri/src/services/mcp_confirm/broker.rs
-//! @coordinates-with src-tauri/src/services/http_server.rs (the write
-//!   handlers call `confirm_gate`, WI-9)
+//! @coordinates-with src-tauri/src/services/http_server.rs (`update_document`,
+//!   `insert_content` and `dispatch_table_action` call `confirm_gate`)
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};

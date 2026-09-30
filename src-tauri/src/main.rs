@@ -10,6 +10,10 @@ use tauri_app_lib::launch_args::{self, LaunchSource};
 use tauri_app_lib::models::{
     LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
 };
+use tauri_app_lib::services::mcp_confirm::{
+    self,
+    effects::{AppConfirmBroker, TauriConfirmEffects},
+};
 use tauri_app_lib::services::mcp_controller::controller::McpController;
 use tauri_app_lib::services::mcp_controller::launch::launch as mcp_launch_through;
 use tauri_app_lib::services::mcp_launch;
@@ -132,18 +136,31 @@ fn main() {
             let mcp_shadow_store: SharedShadowStore = shadow_store::create_shadow_store();
             app.manage(mcp_shadow_store.clone());
 
+            // The MCP write-confirmation broker (ADR-0042): one per app,
+            // managed for `mcp_confirm_reply` and the window-event hook,
+            // shared with the HTTP router, and cancelled by the controller on
+            // server stop / app exit through its stop hook.
+            let confirm = Arc::new(AppConfirmBroker::new(TauriConfirmEffects::new(
+                app.handle().clone(),
+            )));
+            app.manage(confirm.clone());
+
             // MCP server (ADR-0039 gate, ADR-0040 controller): read
             // `mcp.serverEnabled` once, read-only, decide fail-open, and apply
             // the decision through the controller, which owns the server from
             // here on (launch, later toggles, exit).
             match http_server::app_controller_env() {
                 Some(env) => {
+                    let env = env.with_stop_hook(mcp_confirm::stop_hook(confirm.clone()));
                     let controller = Arc::new(McpController::new(env));
                     app.manage(controller.shared_config());
                     app.manage(controller.clone());
                     let decision = mcp_launch::decide_mcp_launch(mcp_launch::read_server_enabled());
-                    let router =
-                        http_server::router_factory(mcp_shadow_store, app.handle().clone());
+                    let router = http_server::router_factory(
+                        mcp_shadow_store,
+                        confirm,
+                        app.handle().clone(),
+                    );
                     // Detached: the controller's snapshot is the record.
                     drop(mcp_launch_through(controller, decision, router));
                 }
@@ -292,6 +309,12 @@ fn main() {
             // answer (ADR-0025 §2).
             if let Some(guard) = window.try_state::<AppQuitGuard>() {
                 quit_guard::on_window_event(&*guard, window.label(), event);
+            }
+            // A closed window's pending MCP write confirmations end as 503
+            // (ADR-0042); the hook acts on `Destroyed` only, never on a
+            // vetoable close request.
+            if let Some(confirm) = window.try_state::<Arc<AppConfirmBroker>>() {
+                mcp_confirm::on_window_event(&confirm, window.label(), event);
             }
             match event {
                 WindowEvent::ThemeChanged(theme) => {
