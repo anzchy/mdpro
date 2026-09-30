@@ -6,9 +6,10 @@
    * deliberately includes only `src`. Adding `tests` there would make every
    * test-fixture type error a release blocker. This config is invoked by
    * `pnpm typecheck:tests` instead, so test types are enforced on their own.
+   * `perf/` (the non-gating heap harness, `pnpm perf:d12`) is type-checked here too.
    * `lib` is ES2022 (build stays ES2020) because tests run only under Node/vitest.
    */
   "extends": "./tsconfig.json",
   "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable"] },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "perf", "vitest.perf.config.ts"]
 }
