@@ -26,8 +26,13 @@ vi.mock("../src/utils/tableParser/parse", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/utils/tableParser/parse")>();
   return { ...actual, parseTableAtOffset: vi.fn(actual.parseTableAtOffset) };
 });
+vi.mock("../src/utils/tableParser/locate", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/utils/tableParser/locate")>();
+  return { ...actual, locateTableAtOffset: vi.fn(actual.locateTableAtOffset) };
+});
 
 const { parseTableAtOffset } = await import("../src/utils/tableParser/parse");
+const { locateTableAtOffset } = await import("../src/utils/tableParser/locate");
 const { getTableContext } = await import("../src/plugins/codemirror/sourceTableDetection");
 const { sourceTableTabKeymap } = await import("../src/plugins/codemirror/sourceTableTabNav");
 const { sourceTableExtensions } = await import(
@@ -35,6 +40,7 @@ const { sourceTableExtensions } = await import(
 );
 
 const parseSpy = vi.mocked(parseTableAtOffset);
+const locateSpy = vi.mocked(locateTableAtOffset);
 
 const SIMPLE_MD = "| a | b | c |\n| - | - | - |\n| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n";
 const RAGGED = "| a | b |\n| - | - |\n| 1 |\n| 2 | 3 | 4 |\n";
@@ -56,6 +62,7 @@ function viewWith(doc: string, anchor: number, extensions: Extension[]): EditorV
 
 beforeEach(() => {
   parseSpy.mockClear();
+  locateSpy.mockClear();
 });
 
 describe("WI-4: sourceTableExtensions", () => {
@@ -104,31 +111,42 @@ describe("WI-4: sourceTableExtensions", () => {
     allowed.destroy();
   });
 
-  it("X4: parse count over 20 selection transactions is 0 withheld, 0 not", () => {
-    const run = (withheld: boolean) => {
+  it("X4: selection moves re-locate and re-parse nothing, for 20 and 200 moves", () => {
+    const SIMPLE_LEN = 56;
+    const run = (withheld: boolean, n: number) => {
       let state = stateWith(SIMPLE_MD, 0, [
         markdown(),
         ...sourceTableExtensions({ withheld, tabKeymap: K }),
       ]);
       parseSpy.mockClear();
-      for (let p = 1; p <= 20; p++) {
-        state = state.update({ selection: { anchor: p } }).state;
+      locateSpy.mockClear();
+      for (let p = 1; p <= n; p++) {
+        state = state.update({ selection: { anchor: 1 + ((p - 1) % SIMPLE_LEN) } }).state;
       }
-      return { state, calls: parseSpy.mock.calls.length };
+      return { state, parses: parseSpy.mock.calls.length, locates: locateSpy.mock.calls.length };
     };
 
-    const withheld = run(true);
-    expect(getTableContext(withheld.state)).toBeNull();
-    expect(withheld.calls).toBe(0);
+    for (const n of [20, 200]) {
+      const withheld = run(true, n);
+      expect(getTableContext(withheld.state)).toBeNull();
+      expect({ parses: withheld.parses, locates: withheld.locates }).toEqual({ parses: 0, locates: 0 });
 
-    // The field locates a span instead of parsing a model (ADR-0043 D1), so
-    // cursor moves build no TableModel. The old "exactly 20" pinned D12.
-    // WI-6 adds the locate count once selection-only moves reuse the span.
-    const allowed = run(false);
-    const ctx = getTableContext(allowed.state);
-    expect(ctx).not.toBeNull();
-    expect(ctx!.colCount).toBe(3);
-    expect(allowed.calls).toBe(0);
+      // ADR-0043 D1/D4: the field holds a span, and a selection-only move
+      // whose raw line stays in it reuses the span. The old "exactly 20"
+      // parses pinned D12; every offset of SIMPLE_MD is inside the table.
+      const allowed = run(false, n);
+      expect(getTableContext(allowed.state)).toEqual({
+        start: 0,
+        end: 55,
+        headerLine: 0,
+        lastLine: 3,
+        rowCount: 3,
+        colCount: 3,
+        alignments: [null, null, null],
+        delimiterIsCandidate: true,
+      });
+      expect({ n, parses: allowed.parses, locates: allowed.locates }).toEqual({ n, parses: 0, locates: 0 });
+    }
   });
 
   it("X5: order and identity when not withheld", () => {

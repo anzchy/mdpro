@@ -274,3 +274,67 @@ export function legacyCursorOracle(state: EditorState): CursorContext {
     cell: model ? findCell(model, head) : null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// WI-6 additions (matrix CUR-3: `ropeProtoSpy`, `fieldWindow`).
+// ---------------------------------------------------------------------------
+
+export { fieldWindow, inFieldWindow } from "./fieldWindow";
+import { fieldWindow as window6 } from "./fieldWindow";
+
+export interface RopeProtoSpy {
+  /**
+   * Calls whose `this` is exactly `root` since creation or the last reset.
+   * With `windowOnly`, only calls made while `fieldWindow` was open.
+   */
+  countsFor(root: Text, opts?: { windowOnly?: boolean }): RopeCounts;
+  reset(): void;
+  restore(): void;
+}
+
+/**
+ * Passthrough `vi.spyOn` on the PROTOTYPE of `sample` for the seven rope
+ * methods. This is how a NEW root `Text`, created by a `docChanged`
+ * transaction, is counted: `countsFor(next.doc)` keeps only calls whose
+ * `this` is that root, so recursive calls on children are excluded. Each
+ * call also records whether `fieldWindow` was open.
+ *
+ * Follow the rope-count protocol, and `restore()` when done: the spy is
+ * installed on a shared prototype.
+ */
+export function ropeProtoSpy(sample: Text): RopeProtoSpy {
+  type Fn = (this: unknown, ...args: unknown[]) => unknown;
+  const proto = Object.getPrototypeOf(sample) as Record<RopeMethod, Fn>;
+  const entries = ROPE_METHODS.map((m) => {
+    const original = proto[m];
+    const windows: boolean[] = [];
+    const spy = vi.spyOn(proto, m);
+    spy.mockImplementation(function (this: unknown, ...args: unknown[]) {
+      windows.push(window6.active);
+      return original.apply(this, args);
+    } as never);
+    return { m, spy, windows };
+  });
+  return {
+    countsFor(root, opts = {}) {
+      const out = {} as RopeCounts;
+      for (const { m, spy, windows } of entries) {
+        let n = 0;
+        spy.mock.contexts.forEach((ctx, i) => {
+          if (ctx === root && (!opts.windowOnly || windows[i])) n += 1;
+        });
+        out[m] = n;
+      }
+      return out;
+    },
+    reset() {
+      for (const { spy, windows } of entries) {
+        spy.mockClear();
+        windows.length = 0;
+      }
+    },
+    restore() {
+      for (const { spy } of entries) spy.mockRestore();
+    },
+  };
+}
