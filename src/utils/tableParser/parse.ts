@@ -7,15 +7,19 @@
  * `src/plugins/codemirror/sourceTableDetection.ts`.
  *
  * Pipeline: `parseTableAtOffset(src, offset)` resolves the offset to a
- * line and hands both to `parseTableAtLine`, which does all the real work
- * against the split document. `parseTableAt(source, offset)` is that
- * function over `lines.ts#linesFromString`; the CodeMirror call sites
- * reach it over `textLineSource.ts#linesFromText` (Phase 4 WI-3B).
- * Neither materialises the document — a claim this header carried while
- * the parser was still copying `raw` eagerly on every probe (D11). Line
- * splitting, offset resolution and the predicates live in `./lines`
- * (Phase 4 WI-2); this file
- * owns table structure only. Whole-document enumeration lives in
+ * line (`locate.ts#resolveOffsetLine`) and hands it to `parseTableAtLine`,
+ * which runs the shared walker `locate.ts#walkTableAtLine` with a row
+ * collector and then builds the cells of every collected row.
+ * `parseTableAt(source, offset)` is that function over
+ * `lines.ts#linesFromString`; the CodeMirror call sites reach it over
+ * `textLineSource.ts#linesFromText` (Phase 4 WI-3B). Neither materialises
+ * the document — a claim this header carried while the parser was still
+ * copying `raw` eagerly on every probe (D11). Line splitting, offset
+ * resolution and the predicates live in `./lines` (Phase 4 WI-2). The walk
+ * that finds a table's lines — including the setext and cell-count
+ * refusals — lives in `./locate` (D12 WI-2, ADR-0043), which also returns
+ * it as a cell-free `TableSpan` for the cursor path; this file turns a
+ * successful walk into a `TableModel`. Whole-document enumeration lives in
  * `./scan` (Phase 4 WI-3), which probes `parseTableAtLine` once per
  * maximal run of candidate lines — this file has no loop over the
  * document and must not grow one. Splitting one row line into its
@@ -28,7 +32,9 @@
  *    — exactly once per call, never twice. Hoisting that build across
  *    calls is a scanner concern, not a parser one.
  *  - `parseTableAtOffset` is the same computation with the string step
- *    removed, not a second parser. One algorithm, two adapters.
+ *    removed, not a second parser. One algorithm, two adapters — and since
+ *    D12, one walker with two outputs: this file's model and `locate.ts`'s
+ *    span, pinned to identical `line()` sequences.
  *  - `TableModel.raw` is a memoized lazy GETTER, not a stored string
  *    (D11). Eager `src.slice` put a whole-table copy on the cursor path,
  *    which `sourceTableDetection` runs per keystroke and never reads;
@@ -47,6 +53,7 @@
  *
  * @coordinates-with src/utils/tableParser/commonmark.ts
  * @coordinates-with src/utils/tableParser/lines.ts
+ * @coordinates-with src/utils/tableParser/locate.ts
  * @coordinates-with src/utils/tableParser/rowCells.ts
  * @coordinates-with src/utils/tableParser/scan.ts
  * @coordinates-with src/utils/tableParser/find.ts
@@ -55,21 +62,10 @@
  * @coordinates-with src/plugins/codemirror/textLineSource.ts
  */
 
-import { isSetextUnderline } from "./commonmark";
-import {
-  isDelimiterLine,
-  isTableCandidateLine,
-  linesFromString,
-  splitCellTexts,
-  type TableLineSource,
-} from "./lines";
+import { linesFromString, splitCellTexts, type TableLineSource } from "./lines";
+import { resolveOffsetLine, walkTableAtLine } from "./locate";
 import { parseRowCells } from "./rowCells";
-import {
-  type ColumnAlignment,
-  type LineRange,
-  type TableCell,
-  type TableModel,
-} from "./types";
+import { type LineRange, type TableCell, type TableModel } from "./types";
 
 /**
  * Count the unescaped cell segments in a single line of GFM table
@@ -102,22 +98,16 @@ export function parseTableAt(source: string, offset: number): TableModel | null 
  * that document is backed by — see the header for the two adapters.
  *
  * The guard order is `parseTableAt`'s, unchanged: out-of-range offset,
- * then empty document, then offset resolution. It matters — an empty
- * document has one (empty) line, so without the length guard offset 0
- * would reach the parser instead of returning null.
+ * then empty document, then offset resolution. It lives in
+ * `locate.ts#resolveOffsetLine`, shared with `locateTableAtOffset`, so the
+ * two adapters cannot drift apart on which offsets reach the walker.
  */
 export function parseTableAtOffset(
   src: TableLineSource,
   offset: number,
 ): TableModel | null {
-  if (offset < 0 || offset > src.length) return null;
-  if (src.length === 0) return null;
-  if (src.lineCount === 0) return null;
-
-  // Find the line containing offset.
-  const startLineIdx = src.lineIndexAt(offset);
+  const startLineIdx = resolveOffsetLine(src, offset);
   if (startLineIdx < 0) return null;
-
   return parseTableAtLine(src, startLineIdx);
 }
 
@@ -129,68 +119,24 @@ export function parseTableAtOffset(
  * many probes; it is deliberately absent from the `index.ts` barrel, so
  * the public surface is still `parseTableAt`.
  *
- * Walks UP from `lineIdx` to the first candidate line, requires a
- * delimiter row directly beneath it, then walks DOWN to the last
- * candidate line. Returns null when `lineIdx` ends up outside the
- * table's line span.
+ * The collecting adapter over `locate.ts#walkTableAtLine` (D12 WI-2): the
+ * walk collects the row lines, and cells are built only once it has
+ * succeeded — a refused table never reaches `parseRowCells`. Returns null
+ * exactly when `locateTableAtLine` does.
  */
 export function parseTableAtLine(
   src: TableLineSource,
   lineIdx: number,
 ): TableModel | null {
-  const lineCount = src.lineCount;
+  const rowLines: LineRange[] = [];
+  const span = walkTableAtLine(src, lineIdx, rowLines);
+  if (span === null) return null;
 
-  // Walk up from this line to find the first table-candidate line.
-  let headerIdx = lineIdx;
-  while (headerIdx > 0 && isTableCandidateLine(src.line(headerIdx - 1))) {
-    headerIdx -= 1;
-  }
-  if (!isTableCandidateLine(src.line(headerIdx))) return null;
-
-  // The next line MUST be a delimiter row.
-  if (headerIdx + 1 >= lineCount) return null;
-  const headerLine = src.line(headerIdx);
-  const delimLine = src.line(headerIdx + 1);
-  if (!isDelimiterLine(delimLine)) return null;
-  // WI-C1: setext beats the table delimiter. `headerIdx` is a non-blank
-  // candidate line, so a `-`-only line under it is a setext H2 underline
-  // and GFM emits a heading plus a paragraph, not a table. Colon-bearing
-  // spellings (`:-:`, `--:`, `:--`) are real delimiters and do not match.
-  if (isSetextUnderline(delimLine.text.replace(/\r$/, ""))) return null;
-
-  const headerCells = splitCellTexts(headerLine.text);
-  const delimCells = splitCellTexts(delimLine.text);
-  if (headerCells.length === 0 || headerCells.length !== delimCells.length) {
-    return null;
-  }
-
-  // Walk down collecting body rows until a non-table line. Each line is
-  // fetched once and kept (D13: re-fetching cost the lint pass R calls).
-  let endLineIdx = headerIdx + 1; // delimiter is part of the structure
-  let endLine = delimLine;
-  const rowLines: LineRange[] = [headerLine];
-  for (let i = headerIdx + 2; i < lineCount; i += 1) {
-    const line = src.line(i);
-    if (!isTableCandidateLine(line)) break;
-    rowLines.push(line);
-    endLineIdx = i;
-    endLine = line;
-  }
-
-  // Refuse if the offset is outside the table's line span.
-  if (lineIdx < headerIdx || lineIdx > endLineIdx) return null;
-
-  // Build the model.
-  const colCount = headerCells.length;
-  const alignments = delimCells.map(parseAlignment);
-
+  const { start, end, colCount, alignments } = span;
   const rows: TableCell[][] = rowLines.map((line, rowIdx) =>
     parseRowCells(line, rowIdx, colCount),
   );
   const cells = rows.flat();
-
-  const start = headerLine.start;
-  const end = endLine.end;
 
   // D11 — see the header's Key decision. Lazy, memoized.
   let rawCache: string | undefined;
@@ -208,20 +154,4 @@ export function parseTableAtLine(
       return rawCache;
     },
   };
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers — table structure only. Line splitting, offset
-// resolution and the line-level predicates live in `./lines`; the row
-// cell walk lives in `./rowCells`.
-// ---------------------------------------------------------------------------
-
-function parseAlignment(cell: string): ColumnAlignment {
-  const t = cell.trim();
-  const left = t.startsWith(":");
-  const right = t.endsWith(":");
-  if (left && right) return "center";
-  if (right) return "right";
-  if (left) return "left";
-  return null;
 }

@@ -19,11 +19,12 @@
  *    shift every `TableCell.start/end`. The two notions stay separate
  *    functions on purpose — see the plan §2.3.
  *  - `isSetextUnderline` can reject unconditionally at its call site
- *    because `parseTableAtLine` only reaches it with a non-blank candidate
+ *    because `locate.ts#walkTableAtLine` only reaches it with a non-blank candidate
  *    line directly above, i.e. a paragraph line — which is exactly the
  *    precondition a setext underline needs.
  *
  * @coordinates-with src/utils/tableParser/lines.ts
+ * @coordinates-with src/utils/tableParser/locate.ts
  * @coordinates-with src/utils/tableParser/parse.ts
  * @coordinates-with src/utils/tableParser/rowCells.ts
  */
@@ -80,7 +81,7 @@ export function countLeadingSpaces(s: string): number {
  *
  * The rule only bites on a SINGLE-COLUMN header: a pipe-less line splits
  * into exactly one cell, so a 2+-column header already fails the
- * column-count check in `parse.ts`. Delimiters carrying a colon (`:-:`,
+ * column-count check in `locate.ts`. Delimiters carrying a colon (`:-:`,
  * `--:`, `:--`) are real GFM delimiters, do not match here, and are
  * unaffected.
  */

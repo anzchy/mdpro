@@ -40,6 +40,38 @@ export interface TableModel {
 }
 
 /**
+ * Where a table is, without its cells (D12, ADR-0043 Decision 1). What
+ * `locate.ts#locateTableAtOffset` returns and what the Source cursor
+ * context holds, so a cursor move never builds R x colCount cells.
+ *
+ * Plain data: 8 own keys, no getters, no reference to the source it was
+ * computed from — a span survives a JSON round-trip. The line indices are
+ * valid only for the document they were computed on.
+ */
+export interface TableSpan {
+  /** Source offset (inclusive) of the first character of the header row. */
+  start: number;
+  /** Source offset (exclusive) of the end of the last row's content. */
+  end: number;
+  /** Line index of the header row. */
+  headerLine: number;
+  /** Line index of the last row (the delimiter when there is no body). */
+  lastLine: number;
+  /** Header + body row count (the delimiter is not a row). */
+  rowCount: number;
+  /** Column count derived from the header / delimiter rows. */
+  colCount: number;
+  /** Per-column alignment from the delimiter row. */
+  alignments: ColumnAlignment[];
+  /**
+   * Whether the delimiter line is itself a table-candidate line (has an
+   * unescaped pipe). A pipe-less `:-:` is not, so a walk started from
+   * below it cannot reach the header — ADR-0043 Context 3.
+   */
+  delimiterIsCandidate: boolean;
+}
+
+/**
  * Predicate that returns true when the given source offset sits inside a
  * fenced code block (` ``` ` / ` ~~~ `). Callers in source mode pass
  * `(pos) => isPositionInFencedCode(state, pos)`; tests can pass a synthetic
