@@ -13,7 +13,7 @@
  * Key decisions:
  *  - `countIndentColumns` is a NEW function, not a rename of
  *    `lines.ts#countLeadingSpaces`. The latter is still used by
- *    `parse.ts#parseRowCells` to derive `baseOffset`, where it must stay a
+ *    `rowCells.ts#parseRowCells` to derive `baseOffset`, where it must stay a
  *    CHARACTER count because it is offset arithmetic. Columns and
  *    characters differ the moment a tab appears; conflating them would
  *    shift every `TableCell.start/end`. The two notions stay separate
@@ -25,6 +25,7 @@
  *
  * @coordinates-with src/utils/tableParser/lines.ts
  * @coordinates-with src/utils/tableParser/parse.ts
+ * @coordinates-with src/utils/tableParser/rowCells.ts
  */
 
 /**
@@ -55,7 +56,7 @@ export function countIndentColumns(s: string): number {
  *
  * Sits next to `countIndentColumns` precisely because the two are easy to
  * confuse and must never be swapped. This one exists for
- * `parse.ts#parseRowCells`, which adds it to `LineRange.start` to get a
+ * `rowCells.ts#parseRowCells`, which adds it to `LineRange.start` to get a
  * cell's absolute offset; that arithmetic is in characters, so a column
  * count there would be wrong the moment a tab appeared.
  *
