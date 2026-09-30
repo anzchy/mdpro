@@ -5,15 +5,17 @@
 //! server stop, app exit or the window closing.
 //!
 //! Pipeline (built so far: `gate`, `queue`, `broker`, `outbox`, `effects`,
-//! `payload`, `logging`, and the lifecycle hooks below; the HTTP and
-//! command wiring is planned):
+//! `payload`, `logging`, `http`, the lifecycle hooks below and the
+//! `commands::mcp_confirm` reply command; wiring into the write handlers
+//! and `main.rs` is planned, WI-9):
 //!   `shadow_store::owner_and_focus` → `gate::decide` → (Prompt)
 //!   `broker::ConfirmBroker::confirm` → `queue::PendingTable::enqueue` →
 //!   `outbox` turns each `Effect` into a wire entry under the lock →
 //!   `broker` drains it outside the lock through `effects::ConfirmEffects`
 //!   (`mcp:confirm_request` + attention, `mcp:confirm_resolved`) → reply /
 //!   60 s deadline / withdraw / cancel ends it via `PendingTable` →
-//!   `Effect::Resolve` wakes the waiter → HTTP handler maps the outcome.
+//!   `Effect::Resolve` wakes the waiter → `http::confirm_gate` maps the
+//!   outcome (403 / 408 / 503 / 404, or proceed).
 //!
 //! Key decisions:
 //! - `gate` is pure: no Tauri or tokio types, so the approval rule is
@@ -55,6 +57,7 @@
 pub mod broker;
 pub mod effects;
 pub mod gate;
+pub mod http;
 pub mod logging;
 mod outbox;
 pub mod payload;

@@ -54,8 +54,10 @@ pub enum Effect {
     Dismiss { window: String, id: RequestId },
 }
 
-/// The verdict on a reply from a window.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The verdict on a reply from a window. Serialized camelCase for the
+/// `mcp_confirm_reply` command (`tests/fixtures/mcp-confirm-contract.json`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ReplyVerdict {
     Resolved,
     IgnoredUnknown,

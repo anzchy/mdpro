@@ -274,6 +274,9 @@ fn internal(message: String) -> ErrorData {
 }
 
 #[cfg(test)]
+#[path = "conn_confirm_status_tests.rs"]
+mod conn_confirm_status_tests;
+#[cfg(test)]
 #[path = "conn_load_tests.rs"]
 mod conn_load_tests;
 #[cfg(test)]

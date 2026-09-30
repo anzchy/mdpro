@@ -124,6 +124,11 @@ impl<E: ConfirmEffects> ConfirmBroker<E> {
         Ok(verdict)
     }
 
+    /// Write a line to this broker's sink (the reply command's lines).
+    pub fn log(&self, line: LogEntryPayload) {
+        (self.sink)(line);
+    }
+
     pub fn cancel_window(&self, window: &str) -> Result<(), String> {
         self.run(|inner| inner.table.cancel_window(window))
     }

@@ -6,6 +6,7 @@ pub mod image;
 pub mod launch;
 pub mod logging;
 pub mod mcp;
+pub mod mcp_confirm;
 pub mod mcp_server_switch;
 pub mod menu;
 pub mod preferences;
@@ -66,6 +67,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         mcp::mcp_install_config,
         mcp::mcp_remove_config,
         mcp_server_switch::mcp_set_server_enabled,
+        mcp_confirm::mcp_confirm_reply,
         // Updater commands
         updater::get_app_version,
         // Quit guard

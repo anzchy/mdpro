@@ -112,6 +112,8 @@ struct ServerState {
     hits: Arc<Hits>,
     /// `None`: answer every request with 401.
     token: Option<String>,
+    /// `Some`: an authorized request gets this status and JSON body.
+    answer: Option<(StatusCode, serde_json::Value)>,
 }
 
 async fn handle(
@@ -126,9 +128,10 @@ async fn handle(
     }
     let sent = headers.get("X-MDPRO-Token").and_then(|v| v.to_str().ok());
     match (&state.token, sent) {
-        (Some(expected), Some(sent)) if expected == sent => {
-            Json(serde_json::json!({ "ok": true })).into_response()
-        }
+        (Some(expected), Some(sent)) if expected == sent => match &state.answer {
+            Some((status, body)) => (*status, Json(body.clone())).into_response(),
+            None => Json(serde_json::json!({ "ok": true })).into_response(),
+        },
         _ => (StatusCode::UNAUTHORIZED, "unauthorized").into_response(),
     }
 }
@@ -144,12 +147,22 @@ pub(super) struct TestServer {
 impl TestServer {
     /// Serve on `listener`. `token == None` answers everything with 401.
     pub(super) fn serve(listener: TcpListener, token: Option<&str>) -> Self {
+        Self::serve_answering(listener, token, None)
+    }
+
+    /// Serve on `listener`; an authorized request gets `answer` when set.
+    fn serve_answering(
+        listener: TcpListener,
+        token: Option<&str>,
+        answer: Option<(StatusCode, serde_json::Value)>,
+    ) -> Self {
         let port = listener.local_addr().expect("local_addr").port();
         assert_ne!(port, APP_PORT, "a test must never bind the app port");
         let hits = Arc::new(Hits::default());
         let state = ServerState {
             hits: hits.clone(),
             token: token.map(str::to_string),
+            answer,
         };
         let app = Router::new().fallback(handle).with_state(state);
         let (tx, rx) = oneshot::channel::<()>();
@@ -172,6 +185,12 @@ impl TestServer {
     pub(super) async fn start(token: Option<&str>) -> Self {
         let listener = TcpListener::bind(loopback(0)).await.expect("bind :0");
         Self::serve(listener, token)
+    }
+
+    /// Bind `127.0.0.1:0`; every authorized request gets `status` + `body`.
+    pub(super) async fn start_answering(token: &str, status: StatusCode, body: serde_json::Value) -> Self {
+        let listener = TcpListener::bind(loopback(0)).await.expect("bind :0");
+        Self::serve_answering(listener, Some(token), Some((status, body)))
     }
 
     /// Shut down gracefully and wait until the task (and listener) is gone.
