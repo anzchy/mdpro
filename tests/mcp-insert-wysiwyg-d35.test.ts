@@ -31,7 +31,7 @@ vi.mock("../src/services/loggingService", () => ({
 
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { processInsertContentEvent } from "../src/hooks/mcpInsertContent";
+import { processInsertContentEvent, type InsertPosition } from "../src/hooks/mcpInsertContent";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
@@ -72,7 +72,7 @@ function sourceView(doc: string, anchor: number): EditorView {
 }
 
 describe("D35-1 WYSIWYG-active insert splices and bumps the generation once, synchronously", () => {
-  const rows: Array<[string, string | number, string]> = [
+  const rows: Array<[string, InsertPosition, string]> = [
     ["start", "start", "[T]Hello world"],
     ["end", "end", "Hello world[T]"],
     ["interior 5", 5, "Hello[T] world"],
