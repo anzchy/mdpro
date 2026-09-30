@@ -172,13 +172,17 @@ describe("both sides of the MCP boundary share one resolver", () => {
     );
   });
 
-  it("useMcpEvents resolves the cursor through the same helper", () => {
-    const src = read("../src/hooks/useMcpEvents.ts");
+  // The insert handler moved from useMcpEvents.ts to mcpInsertContent.ts
+  // (D35 WI-3, 2026-09-30); the property is unchanged, only its file is.
+  it("the MCP insert handler resolves the cursor through the same helper", () => {
+    const src = read("../src/hooks/mcpInsertContent.ts");
 
     expect(src).toContain("resolveMcpCursor");
-    expect(
-      src,
-      "the inline cursor ternary must be replaced, not duplicated alongside the helper"
-    ).not.toMatch(/isActiveDoc \? \(currentEditorView\?\.state\.selection\.main\.head/);
+    for (const file of ["../src/hooks/mcpInsertContent.ts", "../src/hooks/useMcpEvents.ts"]) {
+      expect(
+        read(file),
+        `${file}: the inline cursor ternary must be replaced, not duplicated alongside the helper`
+      ).not.toMatch(/isActiveDoc \? \(currentEditorView\?\.state\.selection\.main\.head/);
+    }
   });
 });

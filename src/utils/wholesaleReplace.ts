@@ -15,7 +15,12 @@
  * - Keeping the store write at the call site keeps each upsert call line where
  *   `tests/wholesale-path-partition.test.ts` (W5) discovers and classifies it.
  * - Ordinary (incremental) writes must NOT call this: a reset would break heading
- *   coordination and a rebuild would drop the cursor on every edit.
+ *   coordination and a rebuild would drop the cursor on every edit. The one exception
+ *   is MCP `insert_content` into the document that is active in WYSIWYG (D35 /
+ *   ADR-0044): Milkdown has no incremental path for it, so it is treated as wholesale
+ *   (reason `"mcp-insert"`) after flushing pending edits, accepting the lost cursor,
+ *   undo history and TOC collapse state. Source-mode and non-active inserts stay
+ *   ordinary and do not call this.
  *
  * @coordinates-with src/stores/tocStore.ts — resetCoordination
  * @coordinates-with src/stores/milkdownEditorStore.ts — reloadEditor
@@ -25,6 +30,8 @@
  * @coordinates-with src/utils/openWriteGuard.ts — the open sites, which call this only
  *   after the ADR-0028 guard has decided the target is clean (never on a dirty one)
  * @coordinates-with src/hooks/useMcpEvents.ts — MCP write_document
+ * @coordinates-with src/hooks/mcpInsertContent.ts — MCP insert_content, WYSIWYG-active
+ *   only (D35)
  * @module utils/wholesaleReplace
  */
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
@@ -36,7 +43,8 @@ export type WholesaleReason =
   | "file-reload"
   | "encoding-reopen"
   | "draft-recovery"
-  | "mcp-write";
+  | "mcp-write"
+  | "mcp-insert";
 
 /** Void heading identities and the WYSIWYG editor for `documentId`. */
 export function prepareWholesaleReplace(documentId: string, reason: WholesaleReason): void {

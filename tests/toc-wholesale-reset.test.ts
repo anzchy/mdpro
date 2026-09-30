@@ -264,7 +264,8 @@ beforeEach(() => {
     byDocument: new Map(),
   });
   useDocumentStore.setState({ documents: [], activeDocumentId: null });
-  useEditorStore.setState({ editorView: null });
+  // D35: reset viewMode too, so a row that sets "source" cannot leak into later rows.
+  useEditorStore.setState({ viewMode: "wysiwyg", editorView: null });
 });
 
 /** Render `useDocument` against the store as it stands, then run `fn` inside `act`. */
@@ -444,6 +445,13 @@ interface DriverRow {
 
 const IMAGE_MD = "\n![a](./a.png)\n";
 
+const INSERT_PAYLOAD = {
+  document_id: DOC_ID,
+  text: "a paragraph\n",
+  position: "end",
+  window_label: "main",
+};
+
 function appendViaStore(): void {
   // The exact call both `App.handleImageDrop` branches make (pinned by W5).
   const currentDoc = useDocumentStore.getState().getActiveDocument();
@@ -517,16 +525,37 @@ function driverRows(): DriverRow[] {
       mustReset: true,
       drive: () => withDocumentHook((api) => api.createDocument()),
     },
+    // D35 / ADR-0044 (2026-09-30): the single "MCP insert_content" row (mustReset: false)
+    // is split by the insert's three partitions. An insert into the document that is
+    // active in WYSIWYG is now a wholesale replace (prepareWholesaleReplace, TOC reset
+    // included, locked decision (a)); source-mode and non-active inserts stay ordinary.
     {
-      path: "MCP insert_content",
+      path: "MCP insert_content (WYSIWYG-active)",
+      mustReset: true,
+      drive: () => {
+        useEditorStore.setState({ viewMode: "wysiwyg", editorView: null });
+        return emitMcp("mcp:insert_content", INSERT_PAYLOAD);
+      },
+    },
+    {
+      path: "MCP insert_content (source-active)",
       mustReset: false,
-      drive: () =>
-        emitMcp("mcp:insert_content", {
-          document_id: DOC_ID,
-          text: "a paragraph\n",
-          position: "end",
-          window_label: "main",
-        }),
+      drive: () => {
+        useEditorStore.setState({ viewMode: "source", editorView: null });
+        return emitMcp("mcp:insert_content", INSERT_PAYLOAD);
+      },
+    },
+    {
+      path: "MCP insert_content (non-active)",
+      mustReset: false,
+      drive: () => {
+        useDocumentStore.setState((st) => ({
+          documents: [...st.documents, makeDoc({ id: "doc-other", path: "/tmp/o.md" })],
+          activeDocumentId: "doc-other",
+        }));
+        useEditorStore.setState({ viewMode: "wysiwyg" });
+        return emitMcp("mcp:insert_content", INSERT_PAYLOAD);
+      },
     },
     {
       path: "MCP table_action",

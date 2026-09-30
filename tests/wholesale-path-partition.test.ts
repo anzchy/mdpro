@@ -31,6 +31,23 @@
  * changed, and the reason is decision 4's "one write site" requirement. The behaviour
  * behind the site is unchanged for clean targets (`toc-wholesale-reset` W1/W6 pass as-is).
  *
+ * **File moved, count unchanged (D35 WI-1, 2026-09-30).** `processTableActionEvent` moved
+ * verbatim from `hooks/useMcpEvents.ts` to `hooks/mcpTableAction.ts` (re-exported from the
+ * hook) so the hook stays under the 300-line limit. The key embeds the file path, so the
+ * table-action row is re-keyed to the new file; its class (`ordinary`), enclosing function,
+ * and the site count (14) are unchanged. This edits a recorded key (policy rule 12): the
+ * site did not change, only where it lives.
+ *
+ * **Insert site moved and reclassified wholesale, count unchanged (D35 WI-4, 2026-09-30).**
+ * `handleInsertContent`'s body moved from `hooks/useMcpEvents.ts` to
+ * `processInsertContentEvent` in `hooks/mcpInsertContent.ts`, and an insert into the
+ * document that is active in WYSIWYG now runs `prepareWholesaleReplace(id, "mcp-insert")`
+ * (ADR-0044): the Milkdown editor is rebuilt and the TOC coordination reset. The row is
+ * re-keyed to the new file and reclassified `ordinary` → `wholesale` (the conservative
+ * class, since source-mode and non-active inserts stay incremental and the scanner cannot
+ * tell them apart), so the wholesale keys go 6 → 7. The site count stays 14. This edits
+ * recorded assertions (policy rule 12): the specification changed by locked decision (a).
+ *
  * Key shape is `` `${relPath}::${trimmedLine}::${ordinal}` `` and deliberately **not**
  * `file:line`: line numbers churn on unrelated edits above the call, which would turn
  * this case into a maintenance tax that eventually gets deleted. The trimmed call text
@@ -163,7 +180,7 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
     why: "edited during save: keeps the current store content and changes only path/lastSaved",
   },
   {
-    key: "hooks/useMcpEvents.ts::deps.updateDocumentContent(event.document_id, newContent);::0",
+    key: "hooks/mcpTableAction.ts::deps.updateDocumentContent(event.document_id, newContent);::0",
     enclosingFunction: "processTableActionEvent",
     class: "ordinary",
     why: "table cells only",
@@ -174,11 +191,15 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
     class: "wholesale",
     why: "MCP write_document replaces the buffer",
   },
+  // D35 / ADR-0044 (2026-09-30): moved out of the hook and reclassified ordinary → wholesale.
   {
-    key: "hooks/useMcpEvents.ts::updateDocumentContent(event.document_id, newContent);::0",
-    enclosingFunction: "handleInsertContent",
-    class: "ordinary",
-    why: "MCP insert_content is incremental",
+    key: "hooks/mcpInsertContent.ts::deps.updateDocumentContent(event.document_id, newContent);::0",
+    enclosingFunction: "processInsertContentEvent",
+    class: "wholesale",
+    why: "MCP insert_content is wholesale when the target is active in WYSIWYG (D35): the " +
+      "Milkdown editor is rebuilt via prepareWholesaleReplace. It stays ordinary in source " +
+      "mode and for non-active documents, which the classifier cannot distinguish " +
+      "statically; the conservative class wins",
   },
   {
     key: "hooks/useMcpEvents.ts::upsertDocument(newDoc);::0",
@@ -189,9 +210,10 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
 ];
 
 /**
- * The six the plan commits to wiring. Spelled out so a silent reclassification fails.
+ * The seven the plan commits to wiring. Spelled out so a silent reclassification fails.
  * Was eight: D20 / ADR-0028 decision 4 replaced the three `useDocument.ts`
  * `result.document` keys with the one `openWriteGuard.ts` key.
+ * Was six; D35 / ADR-0044 made the insert site wholesale.
  */
 const EXPECTED_WHOLESALE_KEYS: readonly string[] = [
   "utils/openWriteGuard.ts::useDocumentStore.getState().upsertDocument(decoded);::0",
@@ -200,6 +222,7 @@ const EXPECTED_WHOLESALE_KEYS: readonly string[] = [
   "hooks/useDocument.ts::useDocumentStore.getState().upsertDocument(document);::2",
   "hooks/useMcpEvents.ts::updateDocumentContent(event.document_id, event.content);::0",
   "hooks/useMcpEvents.ts::upsertDocument(newDoc);::0",
+  "hooks/mcpInsertContent.ts::deps.updateDocumentContent(event.document_id, newContent);::0",
 ];
 
 function symmetricDifference(a: readonly string[], b: readonly string[]): string[] {
@@ -231,7 +254,8 @@ describe("W5 — the wholesale/ordinary partition is derived from src/, not from
   });
 
   // Was "exactly the eight wholesale sites"; D20/ADR-0028 decision 4, 8 → 6.
-  it("exactly the six wholesale sites are classified wholesale", () => {
+  // Was "exactly the six wholesale sites"; D35 / ADR-0044, 6 → 7.
+  it("exactly the seven wholesale sites are classified wholesale", () => {
     expect(
       CLASSIFIED_SITES.filter((s) => s.class === "wholesale")
         .map((s) => s.key)

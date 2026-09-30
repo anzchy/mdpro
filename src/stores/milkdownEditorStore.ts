@@ -30,13 +30,16 @@
  *      if any wrote, else `clean`. A flusher's `destroyed` counts as `clean`.
  *
  * Reload flow (D15-WI-5): a wholesale replacement of an open document's content
- * from outside the editor (file reload, MCP write_document) keeps the document id,
+ * from outside the editor (file reload, MCP write_document, and MCP insert_content
+ * into the WYSIWYG-active document, D35) keeps the document id,
  * so the id-keyed editor would stay on the stale doc. In the same synchronous block
  * as its store write, the caller runs `reloadEditor(documentId, reason)` (via
  * `utils/wholesaleReplace.ts`): every live registration for that id
  * is discarded (pending edits dropped, no write), and `editorGenerations[id]` is
  * bumped. MilkdownEditor keys its provider on `id#generation`, so it rebuilds from
  * the new content. The editor's own writes never bump it, so typing never rebuilds.
+ * The MCP insert caller runs `flushPendingEdits("mcp-insert")` first and refuses the
+ * insert if it fails, so its discard drops nothing (`hooks/mcpInsertContent.ts`).
  *
  * Key decisions:
  * - Registrations are a per-id stack of unique entries. A cleanup removes only

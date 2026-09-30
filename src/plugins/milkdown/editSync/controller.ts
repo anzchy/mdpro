@@ -33,7 +33,8 @@
  * - `destroy` flushes once, then is terminal: every later call returns
  *   `"destroyed"`, never writes and never throws.
  * - `discard` is terminal WITHOUT a write (D15-WI-5). A wholesale replacement of the
- *   document from outside the editor (file reload, MCP write_document) makes this
+ *   document from outside the editor (file reload, MCP write_document, MCP
+ *   insert_content into the WYSIWYG-active document — D35, flushed first) makes this
  *   editor's doc stale; flushing it would write the stale text over the new content.
  * - The controller never sets `isModified` to false. Only save does that.
  * - Logging: explicit flushes and destroy log `editor.milkdown.flush` with
