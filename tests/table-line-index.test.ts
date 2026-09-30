@@ -377,7 +377,9 @@ describe("tableParser/lines (WI-2 characterization)", () => {
 
     // Non-vacuity: the corpus really does produce parseable tables.
     expect(modelsSeen).toBeGreaterThan(100);
-  });
+    // Explicit timeout: measured ~3.3 s alone and 5.27–5.47 s under a
+    // parallel load, past vitest's default 5 s.
+  }, 20_000);
 
   it("LINEIDX-corpus-deterministic: the generator is stable and its drift is loud", () => {
     const first = makeCorpus(SEED, 200);

@@ -29,6 +29,7 @@ import {
 import { locateTableAtOffset } from "../src/utils/tableParser/locate";
 import { linesFromText } from "../src/plugins/codemirror/textLineSource";
 import type { TableSpan } from "../src/utils/tableParser/types";
+import { completeTreeState } from "./support/completeTreeState";
 import { D12_FIXTURES, FENCE_IN_SPAN, legacyCursorOracle } from "./support/tableSpanOracle";
 
 vi.mock("../src/utils/tableParser/locate", async (importOriginal) => {
@@ -44,10 +45,16 @@ beforeEach(() => {
 
 const { NEP, M1_NEP, M1_PIPED, M1_BLANK, AFTER_TAIL, T3, PIPELESS, PIPELESS_CHAIN, P2, INTRO_TABLE, FENCED_TABLE } =
   D12_FIXTURES;
-const EXTENSIONS = [markdown(), tableDetectionExtension()];
+const LANGUAGE = markdown();
+const DETECTION = tableDetectionExtension();
 
+/**
+ * The field is created over a COMPLETE syntax tree, so fence-dependent
+ * cases cannot flake when the create-time parse runs out of time under
+ * load (see `tests/support/completeTreeState.ts`).
+ */
 function makeState(doc: string, anchor: number, head = anchor): EditorState {
-  return EditorState.create({ doc, selection: { anchor, head }, extensions: EXTENSIONS });
+  return completeTreeState(doc, { anchor, head }, LANGUAGE, DETECTION);
 }
 
 function field(s: EditorState) {

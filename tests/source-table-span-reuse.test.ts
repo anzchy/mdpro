@@ -15,7 +15,7 @@
 import { isDeepStrictEqual } from "node:util";
 
 import { describe, expect, it, vi } from "vitest";
-import { EditorState, type SelectionRange } from "@codemirror/state";
+import { EditorState, type EditorSelection, type SelectionRange, type Text } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 
 import {
@@ -26,6 +26,7 @@ import {
 import { locateTableAtOffset } from "../src/utils/tableParser/locate";
 import { linesFromText } from "../src/plugins/codemirror/textLineSource";
 import { makeCorpus, mulberry32, SEED } from "./support/tableCorpus";
+import { completeTreeState } from "./support/completeTreeState";
 import { D12_FIXTURES, FENCE_IN_SPAN, legacyCursorOracle } from "./support/tableSpanOracle";
 
 vi.mock("../src/utils/tableParser/locate", async (importOriginal) => {
@@ -44,8 +45,9 @@ const MIN_REUSED = 1_000;
 const MIN_RELOCATED = 1_000;
 const MIN_RANGE = 500;
 const WALK_TIMEOUT_MS = 180_000;
-
-const EXTENSIONS = [markdown(), tableDetectionExtension()];
+const LANGUAGE = markdown();
+const DETECTION = tableDetectionExtension();
+const EXTENSIONS = [LANGUAGE, DETECTION];
 
 const F = D12_FIXTURES;
 const WALK_FIXTURES: [string, string][] = [
@@ -105,6 +107,11 @@ interface WalkRun {
 
 let walkRun: WalkRun | null = null;
 
+/** A state at `doc`/`selection` whose field was created over a complete tree. */
+function completeState(doc: string | Text, selection: EditorSelection | { anchor: number }) {
+  return completeTreeState(doc, selection, LANGUAGE, DETECTION);
+}
+
 /** Every document walked once; memoised so both REUSE-1 cases share it. */
 function walk(): WalkRun {
   if (walkRun) return walkRun;
@@ -117,7 +124,10 @@ function walk(): WalkRun {
 
   docs.forEach(([id, doc], docIndex) => {
     const rnd = mulberry32(SEED ^ (0xd12 + docIndex));
-    let s = EditorState.create({ doc, selection: { anchor: 0 }, extensions: EXTENSIONS });
+    // Walk from a complete tree too. Selection-only transactions never
+    // advance the parse, so a partial start tree would persist for the
+    // whole walk and disagree with the complete-tree fresh state.
+    let s = completeState(doc, { anchor: 0 });
     for (let step = 0; step < STEPS; step += 1) {
       const prev: SelectionRange = s.selection.main;
       const prevSpan = getTableContext(s);
@@ -145,9 +155,7 @@ function walk(): WalkRun {
       if (!isDeepStrictEqual(got, want)) {
         disagreements.push({ ...base, against: "legacy", got, want });
       }
-      const fresh = field(
-        EditorState.create({ doc: next.doc, selection: next.selection, extensions: EXTENSIONS }),
-      );
+      const fresh = field(completeState(next.doc, next.selection));
       if (!isDeepStrictEqual(got, fresh)) {
         disagreements.push({ ...base, against: "fresh", got, want: fresh });
       }
