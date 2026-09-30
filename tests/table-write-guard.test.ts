@@ -364,16 +364,10 @@ describe("W4 — Tab navigation refuses a phantom model", () => {
    * gate just has to be non-null. Reason for editing this pinned test: the
    * injection point moved; the specification did not (plan Finding 2).
    *
-   * `gateFor` carries no cells and a `raw` the guard accepts, so neither a
-   * refusal nor a navigation can come from the gate value. It is typed
-   * `TableModel` only because `getTableContext` still returns one at WI-4;
-   * WI-5 retypes it to `TableSpan` and these become `mockReturnValue(span)`
-   * (plan S2).
+   * D12 WI-5 (plan S2): `getTableContext` returns a `TableSpan`, so the
+   * gate is mocked with a span directly. A span carries no cells, rows or
+   * raw, so neither a refusal nor a navigation can come from the gate value.
    */
-  function gateFor(span: TableSpan): TableModel {
-    const { start, end, rowCount, colCount, alignments } = span;
-    return { start, end, rowCount, colCount, alignments, cells: [], rows: [], raw: "| a |\n| - |" };
-  }
   const PHANTOM_SPAN: TableSpan = {
     start: 7,
     end: 16,
@@ -398,7 +392,7 @@ describe("W4 — Tab navigation refuses a phantom model", () => {
   it("falls back to the default Tab handler and writes nothing", () => {
     const spy = spyOnLog();
     const view = makeView(DOC_A, 9);
-    vi.mocked(getTableContext).mockReturnValue(gateFor(PHANTOM_SPAN));
+    vi.mocked(getTableContext).mockReturnValue(PHANTOM_SPAN);
     vi.mocked(parseTableAtOffset).mockReturnValue(docAPhantom());
 
     expect(tableTabCommand(view)).toBe(false);
@@ -423,7 +417,7 @@ describe("W4 — Tab navigation refuses a phantom model", () => {
     const md = "| a | b |\n| - | - |\n| 1 | 2 |\n";
     const view = makeView(md, 22);
     // The gate is non-null; the REAL parse (passthrough) feeds Tab.
-    vi.mocked(getTableContext).mockReturnValue(gateFor(P2_SPAN));
+    vi.mocked(getTableContext).mockReturnValue(P2_SPAN);
     expect(tableTabCommand(view)).toBe(true);
     expect(view.state.selection.main.head).toBe(25);
     expect(view.state.doc.toString()).toBe(md);

@@ -33,7 +33,7 @@ describe("sourceTableDetection — getTableContext", () => {
     expect(getTableContext(state)).toBeNull();
   });
 
-  it("returns a TableModel when the cursor is inside a table", () => {
+  it("returns a TableSpan when the cursor is inside a table", () => {
     const md = "| a | b |\n| - | - |\n| 1 | 2 |\n";
     // cursor in cell `1`
     const state = makeState(md, 22);

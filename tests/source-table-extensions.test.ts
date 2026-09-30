@@ -104,7 +104,7 @@ describe("WI-4: sourceTableExtensions", () => {
     allowed.destroy();
   });
 
-  it("X4: parse count over 20 selection transactions is 0 withheld, exactly 20 not", () => {
+  it("X4: parse count over 20 selection transactions is 0 withheld, 0 not", () => {
     const run = (withheld: boolean) => {
       let state = stateWith(SIMPLE_MD, 0, [
         markdown(),
@@ -121,13 +121,14 @@ describe("WI-4: sourceTableExtensions", () => {
     expect(getTableContext(withheld.state)).toBeNull();
     expect(withheld.calls).toBe(0);
 
-    // One computeContext per selection transaction
-    // (sourceTableDetection.ts tableContextField.update).
+    // The field locates a span instead of parsing a model (ADR-0043 D1), so
+    // cursor moves build no TableModel. The old "exactly 20" pinned D12.
+    // WI-6 adds the locate count once selection-only moves reuse the span.
     const allowed = run(false);
     const ctx = getTableContext(allowed.state);
     expect(ctx).not.toBeNull();
     expect(ctx!.colCount).toBe(3);
-    expect(allowed.calls).toBe(20);
+    expect(allowed.calls).toBe(0);
   });
 
   it("X5: order and identity when not withheld", () => {

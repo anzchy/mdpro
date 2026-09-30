@@ -22,6 +22,12 @@ import {
 } from "../../src/utils/tableParser/lines";
 import type { LineRange, TableModel } from "../../src/utils/tableParser/types";
 import type { TableSpan } from "../../src/utils/tableParser";
+import type { EditorState } from "@codemirror/state";
+import { isPositionInFencedCode } from "../../src/plugins/codemirror/sourceTableDetection";
+import { findCell } from "../../src/utils/tableParser/find";
+import { linesFromString, splitLines } from "../../src/utils/tableParser/lines";
+import { parseTableAtOffset } from "../../src/utils/tableParser/parse";
+import type { TableCell } from "../../src/utils/tableParser/types";
 
 /**
  * A CodeMirror `Text` holding `src` verbatim. Splitting on `\n` only keeps
@@ -211,3 +217,60 @@ export const D12_FIXTURES = {
 } as const;
 
 export type D12FixtureName = keyof typeof D12_FIXTURES;
+
+// ---------------------------------------------------------------------------
+// WI-5 additions (matrix SPAN-1..SPAN-6).
+// ---------------------------------------------------------------------------
+
+/**
+ * Matrix `FENCE_IN_SPAN`: line 2 is a table-candidate line AND opens a
+ * fence, so a locate from line 0 spans lines 0-3 while offset 32 (inside
+ * `| 1 | 2 |`) is fenced. Kept out of `D12_FIXTURES` so the pure-parser
+ * suites that sweep that object keep their domain.
+ */
+export const FENCE_IN_SPAN = "| a | b |\n| - | - |\n```x | y\n| 1 | 2 |\n```\n";
+
+/**
+ * Matrix `costDoc(R)`: a paragraph and a blank line, then a 3-column table
+ * with R body rows, then a trailing paragraph. The table never starts at
+ * line 0 (plan S4). `headerLine 2`, `lastLine R+3`, `start 17`; body row k
+ * is line `k+4`.
+ */
+export function costDoc(rows: number): string {
+  let body = "";
+  for (let k = 0; k < rows; k += 1) body += `| r${k}c0 | r${k}c1 | r${k}c2 |\n`;
+  return (
+    "intro paragraph\n\n" +
+    "| h0 | h1 | h2 |\n| --- | --- | --- |\n" +
+    body +
+    "\noutro\n"
+  );
+}
+
+/** What the Source cursor context must equal: span plus active cell. */
+export interface CursorContext {
+  span: TableSpan | null;
+  cell: TableCell | null;
+}
+
+/**
+ * The M3 oracle — the LEGACY path, not a fresh `EditorState.create`:
+ *  1. `head = selection.main.head`;
+ *  2. fenced → `{ span: null, cell: null }`;
+ *  3. otherwise parse the whole document from a string copy at `head`;
+ *  4. project the model onto the 8 span fields, plus `findCell`.
+ *
+ * It calls `state.doc.toString()` on the watched root `Text` and, inside a
+ * test file that mocks `parse` / `rowCells`, goes through those mocks.
+ * Rope-count protocol: snapshot every counter BEFORE calling this.
+ */
+export function legacyCursorOracle(state: EditorState): CursorContext {
+  const head = state.selection.main.head;
+  if (isPositionInFencedCode(state, head)) return { span: null, cell: null };
+  const text = state.doc.toString();
+  const model = parseTableAtOffset(linesFromString(text), head);
+  return {
+    span: spanOfModel(splitLines(text), model),
+    cell: model ? findCell(model, head) : null,
+  };
+}
