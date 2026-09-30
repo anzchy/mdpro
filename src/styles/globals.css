@@ -496,6 +496,12 @@ a {
   gap: 8px;
 }
 
+/* MCP write confirmation (ADR-0042): focus pattern 2, accent follows the theme. */
+.mcp-confirm-dialog .toolbar-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 /* Table Context Menu (table-CRUD WI-1.3, issue #390) */
 
 .table-context-menu {

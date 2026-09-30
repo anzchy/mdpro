@@ -106,3 +106,25 @@ describe("RecoveryDialog — no Escape handler (forced recovery)", () => {
     expect(src).not.toMatch(/onClose/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// McpWriteConfirmDialog — Escape rejects; initial focus on Reject (ADR-0042 FT-1)
+// ---------------------------------------------------------------------------
+
+describe("McpWriteConfirmDialog keyboard accessibility (FT-1)", () => {
+  const src = readComponent("components/common/McpWriteConfirmDialog.tsx");
+  const buttons = src.split("<button").slice(1).map((chunk) => chunk.split("</button>")[0]);
+
+  it("Escape is wired to onReject", () => {
+    expect(src).toMatch(/Escape[\s\S]{0,200}onReject/);
+  });
+
+  it("the Reject button carries autoFocus and the Approve button does not", () => {
+    const reject = buttons.filter((b) => b.includes("onClick={onReject}"));
+    const approve = buttons.filter((b) => b.includes("onClick={onApprove}"));
+    expect(reject).toHaveLength(1);
+    expect(approve).toHaveLength(1);
+    expect(reject[0]).toMatch(/autoFocus/);
+    expect(approve[0]).not.toMatch(/autoFocus/);
+  });
+});
