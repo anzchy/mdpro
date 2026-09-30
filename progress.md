@@ -134,3 +134,36 @@ commit-then-amend-the-SHA dance; it cannot converge.
 **Check.** Before committing a row edit, resolve every SHA in it and confirm the
 commit is an ancestor of `HEAD` (`git merge-base --is-ancestor <sha> HEAD`).
 Plain `git log <sha>` is not enough — it happily resolves orphans.
+
+---
+
+## A passing jsdom keydown test is not device evidence, and a 60 s budget needs one-step checks (2026-09-30, ADR-0042 WI-10)
+
+**Symptom.** In the real app, Esc dismissed neither `McpWriteConfirmDialog` nor
+the older `ConfirmDialog` ("Unsaved changes"), although both have a card-level
+`onKeyDown` Escape branch whose jsdom tests pass (D34). In the same run,
+several confirmation prompts timed out (`408`) before the answering click
+landed.
+
+**Root cause.**
+- **(a)** A jsdom test dispatches the keydown at an element it chooses. It
+  proves the handler works *when the event reaches it*. It says nothing about
+  whether focus is inside the card in WKWebView. On device a physical Esc
+  never reached either card's `onKeyDown`. The harness produced two false
+  signals on the way:
+  - Harness-injected keys are not the same event path as a physical keypress.
+  - `osascript` System Events keystrokes go to the **frontmost app**. That was
+    the terminal (Warp), not mdpro.
+- **(b)** The agent's turn latency (~60 s) was as long as the confirmation
+  budget. A check that fires the trigger in one turn and answers in the next
+  lands after the timeout.
+
+**Rule.**
+- Keyboard behaviour in a dialog is settled only by a **physical keypress on
+  device**, with the log line it should produce (`ui.dialog.cancel`) as
+  evidence. Record injected or `osascript` keys as NOT VERIFIED, never as a
+  pass or a fail.
+- For GUI QA against a time budget, **batch the trigger, the answer and the
+  evidence capture in one step**. Plan the run around the agent's turn latency,
+  not the human's reaction time. Record a timeout caused by the harness as
+  harness timing, not as a defect.

@@ -1,6 +1,6 @@
 # 0042. MCP write confirmation is an in-window, queued, bounded prompt
 
-**Status**: Proposed (2026-09-28). Amends the logging clause of [ADR-0040](0040-the-mcp-server-switch-takes-effect-live.md) decision 6; ADR-0040 is otherwise unchanged.
+**Status**: Accepted (2026-09-30; proposed 2026-09-28). Amends the logging clause of [ADR-0040](0040-the-mcp-server-switch-takes-effect-live.md) decision 6; ADR-0040 is otherwise unchanged.
 
 ## Context
 
@@ -41,11 +41,13 @@ as a logging exception made while the user's choice is unknown.
    prompt only if the window holding the target document is focused.
 3. **Requests queue FIFO per window.** One prompt is shown at a time; an
    approval covers exactly one operation.
-4. **Every pending confirmation is bounded.** It resolves as rejected on:
-   timeout (60 s from arrival), server stop, app exit, or the owning window
-   closing. A timeout returns a response distinct from a user's refusal
-   (`CONFIRM_TIMEOUT` vs `USER_REJECTED`), so a client can tell them apart.
-   The app requests attention (Dock bounce) when a prompt arrives unfocused.
+4. **Every pending confirmation is bounded.** It is never applied unless
+   approved, and it ends in one of three client-visible outcomes: the user
+   refuses → `403 USER_REJECTED`; 60 s pass from arrival → `408
+   CONFIRM_TIMEOUT`; the server stops, the app exits or the owning window
+   closes → `503 CONFIRM_CANCELLED`. A client can tell a refusal from a
+   timeout from a withdrawal. The app requests attention (Dock bounce) when
+   a prompt arrives unfocused.
 5. **The same flow covers all three write paths** — replace, insert, and
    table actions.
 6. **Logging stays fail-closed on an unreadable config.** ADR-0040
@@ -69,8 +71,16 @@ as a logging exception made while the user's choice is unknown.
 - **Cost:** a launch with a corrupt config leaves no file-log trace;
   diagnosing it after the fact relies on the user reporting the Settings
   note.
-- Clients relying on the old behaviour see a new error code
-  (`CONFIRM_TIMEOUT`).
+- Clients relying on the old behaviour see two new error codes
+  (`408 CONFIRM_TIMEOUT`, `503 CONFIRM_CANCELLED`).
+
+**Device acceptance (2026-09-30).** G1–G8 passed on a debug bundle of
+`6df4896` ([record](../test/20260930-adr0042-wi10-gui-acceptance.md)). Not
+verified on device: table-action confirmation (table actions are HTTP-only,
+covered by source-level tests) and the Dock bounce (the Dock was not
+observable to the harness). Escape does not reject the prompt on device; the
+same defect predates this ADR and affects the older Unsaved-changes dialog
+(D34). The Reject button and the 60 s bound still resolve it.
 
 Related: ADR-0040 (live switch; decision 6 amended here), D25 in
 `docs/plans/20260912-frontend-backend-sequencing-order.md`,
