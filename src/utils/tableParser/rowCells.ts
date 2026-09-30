@@ -3,9 +3,9 @@
  * Purpose: Split ONE table row line into its `TableCell`s with absolute
  * source offsets (D12 WI-1, ADR-0043). Moved verbatim out of `parse.ts`
  * so the cursor path can build a single row's cells without building the
- * whole model: `parse.ts#parseTableAtLine` calls it once per row today,
- * and the span locator (`locate.ts`, WI-2/WI-3) will call it for the
- * cursor's row only.
+ * whole model: `parse.ts#parseTableAtLine` calls it once per row, and
+ * `locate.ts#cellAtResolvedLine` (D12 WI-3) calls it for the cursor's row
+ * only.
  *
  * Folder-scoped: imported by path, deliberately absent from the `index.ts`
  * barrel, like `parseTableAtLine` and `scan.ts`.
@@ -20,6 +20,7 @@
  *    `tests/support/frozenTableParse.ts` (`tests/table-row-cells.test.ts`).
  *
  * @coordinates-with src/utils/tableParser/parse.ts
+ * @coordinates-with src/utils/tableParser/locate.ts
  * @coordinates-with src/utils/tableParser/commonmark.ts
  * @coordinates-with src/utils/tableParser/find.ts
  */
