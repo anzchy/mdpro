@@ -6,13 +6,15 @@
  * `tests/support/frozenTableParse.ts`.
  *
  * WI-1 landed `textOf`; WI-2/WI-3 add `spanOfModel`, `recordingSource` and
- * `D12_FIXTURES`. `legacyCursorOracle` and the rope spies arrive with the
- * work items that first consume them (WI-5/WI-6).
+ * `D12_FIXTURES`; WI-4 (TAB-2) adds `ropeSpy`. `legacyCursorOracle` and
+ * `ropeProtoSpy` arrive with the work items that first consume them
+ * (WI-5/WI-6).
  *
  * Not a `*.test.ts`, so vitest does not collect it.
  */
 
 import { Text } from "@codemirror/state";
+import { vi } from "vitest";
 
 import {
   isTableCandidateLine,
@@ -129,6 +131,55 @@ export function recordingSource(inner: TableLineSource): RecordingSource {
   };
 }
 
+/** The seven root-`Text` methods the rope spies watch (plan S8). */
+export const ROPE_METHODS = [
+  "line",
+  "lineAt",
+  "iterLines",
+  "sliceString",
+  "toString",
+  "iter",
+  "iterRange",
+] as const;
+
+export type RopeMethod = (typeof ROPE_METHODS)[number];
+export type RopeCounts = Record<RopeMethod, number>;
+
+export interface RopeSpy {
+  /** Calls made on the watched instance since creation or the last reset. */
+  counts(): RopeCounts;
+  reset(): void;
+  /** Remove the instance spies (the module-level mocks are untouched). */
+  restore(): void;
+}
+
+/**
+ * Passthrough `vi.spyOn` on the root `Text` INSTANCE for the seven rope
+ * methods. A selection-only transaction keeps the same `Text`, so the spy
+ * stays valid across such steps (plan Finding 3). Calls a method makes on
+ * a CHILD node have a different `this` and are not counted.
+ *
+ * Follow the rope-count protocol: reset, dispatch, snapshot `counts()`,
+ * and only then run any assertion that reads the document.
+ */
+export function ropeSpy(doc: Text): RopeSpy {
+  const target = doc as unknown as Record<RopeMethod, (...args: unknown[]) => unknown>;
+  const spies = ROPE_METHODS.map((m) => [m, vi.spyOn(target, m)] as const);
+  return {
+    counts() {
+      const out = {} as RopeCounts;
+      for (const [m, spy] of spies) out[m] = spy.mock.calls.length;
+      return out;
+    },
+    reset() {
+      for (const [, spy] of spies) spy.mockClear();
+    },
+    restore() {
+      for (const [, spy] of spies) spy.mockRestore();
+    },
+  };
+}
+
 /**
  * The named D12 fixtures (matrix "Named fixtures" table), shared by the
  * WI-2/3/5/6 suites. Strings are verbatim from the matrix.
@@ -156,6 +207,7 @@ export const D12_FIXTURES = {
   AFTER_TAIL: "| a | b |\n| - | - |\n| 1 | 2 |\nafter\n",
   INTRO_TABLE: "intro\n\n| a | b |\n| - | - |\n| 1 | 2 |\n",
   T3: "| a | b | c |\n| - | - | - |\n| d | e | f |\n| g | h | i |\n",
+  FENCED_TABLE: "```\n| a | b |\n| - | - |\n| 1 | 2 |\n```\n",
 } as const;
 
 export type D12FixtureName = keyof typeof D12_FIXTURES;

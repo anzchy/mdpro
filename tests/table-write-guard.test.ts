@@ -42,7 +42,7 @@ import {
   refuseTableWrite,
   type TableWriteRefusalReason,
 } from "../src/utils/tableWriteGuard";
-import { parseTableAt, type TableModel } from "../src/utils/tableParser";
+import { parseTableAt, type TableModel, type TableSpan } from "../src/utils/tableParser";
 import { loggingService } from "../src/services/loggingService";
 
 // Passthrough mocks: the real implementation runs unless a case
@@ -357,10 +357,49 @@ describe("W3 — source-mode context menu refuses a phantom model", () => {
 });
 
 describe("W4 — Tab navigation refuses a phantom model", () => {
+  /*
+   * D12 WI-4 (ADR-0043 Decision 5): Tab no longer reads its model from
+   * `getTableContext` — that is only the null gate now — but parses its own
+   * with `parseTableAtOffset`. So the phantom is injected there, and the
+   * gate just has to be non-null. Reason for editing this pinned test: the
+   * injection point moved; the specification did not (plan Finding 2).
+   *
+   * `gateFor` carries no cells and a `raw` the guard accepts, so neither a
+   * refusal nor a navigation can come from the gate value. It is typed
+   * `TableModel` only because `getTableContext` still returns one at WI-4;
+   * WI-5 retypes it to `TableSpan` and these become `mockReturnValue(span)`
+   * (plan S2).
+   */
+  function gateFor(span: TableSpan): TableModel {
+    const { start, end, rowCount, colCount, alignments } = span;
+    return { start, end, rowCount, colCount, alignments, cells: [], rows: [], raw: "| a |\n| - |" };
+  }
+  const PHANTOM_SPAN: TableSpan = {
+    start: 7,
+    end: 16,
+    headerLine: 2,
+    lastLine: 3,
+    rowCount: 1,
+    colCount: 1,
+    alignments: [null],
+    delimiterIsCandidate: false,
+  };
+  const P2_SPAN: TableSpan = {
+    start: 0,
+    end: 29,
+    headerLine: 0,
+    lastLine: 2,
+    rowCount: 2,
+    colCount: 2,
+    alignments: [null, null],
+    delimiterIsCandidate: true,
+  };
+
   it("falls back to the default Tab handler and writes nothing", () => {
     const spy = spyOnLog();
     const view = makeView(DOC_A, 9);
-    vi.mocked(getTableContext).mockReturnValue(docAPhantom());
+    vi.mocked(getTableContext).mockReturnValue(gateFor(PHANTOM_SPAN));
+    vi.mocked(parseTableAtOffset).mockReturnValue(docAPhantom());
 
     expect(tableTabCommand(view)).toBe(false);
     expect(tableShiftTabCommand(view)).toBe(false);
@@ -372,14 +411,21 @@ describe("W4 — Tab navigation refuses a phantom model", () => {
       controlId: "source.tab_nav",
       reason: "setext-underline",
     });
+    expect(logs[1].context).toMatchObject({
+      controlId: "source.tab_nav",
+      reason: "setext-underline",
+    });
+    const at9 = vi.mocked(parseTableAtOffset).mock.calls.filter(([, o]) => o === 9);
+    expect(at9).toHaveLength(2);
   });
 
   it("still navigates inside a genuine table", () => {
     const md = "| a | b |\n| - | - |\n| 1 | 2 |\n";
-    const view = makeView(md, md.indexOf("| 1") + 2);
-    // Real detection field is needed for the positive control.
-    const real = parseTableAt(md, md.indexOf("| 1") + 2)!;
-    vi.mocked(getTableContext).mockReturnValue(real);
+    const view = makeView(md, 22);
+    // The gate is non-null; the REAL parse (passthrough) feeds Tab.
+    vi.mocked(getTableContext).mockReturnValue(gateFor(P2_SPAN));
     expect(tableTabCommand(view)).toBe(true);
+    expect(view.state.selection.main.head).toBe(25);
+    expect(view.state.doc.toString()).toBe(md);
   });
 });

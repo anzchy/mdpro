@@ -9,27 +9,51 @@
  *     the default editor Tab handler (which also handles d170f9c
  *     code-block indentation) gets a turn.
  *   - Model refused by `tableWriteGuard` → same fallback (WI-C0). Tab
- *     appends a row at `ctx.end` on the last cell, so this keymap does
+ *     appends a row at `model.end` on the last cell, so this keymap does
  *     write; and hijacking Tab inside text the guard would not let us
  *     rewrite is a false affordance even on the cursor-only moves.
  *
+ * Key decisions:
+ *   - Each keypress materialises its own `TableModel` (ADR-0043 D5).
+ *     `getTableContext` is used only as the gate: null → return false
+ *     with no parse. Past the gate, the command parses exactly once, via
+ *     `parseTableAtOffset(linesFromText(doc), head)` — reading the rope
+ *     line by line, never copying the whole document into a string.
+ *
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
- * @coordinates-with src/utils/tableParser.ts
+ * @coordinates-with src/plugins/codemirror/textLineSource.ts
+ * @coordinates-with src/utils/tableParser/parse.ts
  * @coordinates-with src/utils/tableWriteGuard.ts
  */
 
-import type { Command, KeyBinding } from "@codemirror/view";
-import { EditorSelection } from "@codemirror/state";
-import { findCell } from "../../utils/tableParser";
+import type { Command, EditorView, KeyBinding } from "@codemirror/view";
+import { EditorSelection, type EditorState } from "@codemirror/state";
+import { findCell, type TableModel } from "../../utils/tableParser";
+import { parseTableAtOffset } from "../../utils/tableParser/parse";
 import { guardTableWrite } from "../../utils/tableWriteGuard";
 import { getTableContext } from "./sourceTableDetection";
+import { linesFromText } from "./textLineSource";
+
+/**
+ * Gate on the detection field, then build this press's model. Returns
+ * null — without parsing — when the field says the cursor is not in a
+ * table (outside, fenced, withheld); otherwise parses once at the head.
+ */
+function modelForPress(state: EditorState): TableModel | null {
+  if (!getTableContext(state)) return null;
+  return parseTableAtOffset(
+    linesFromText(state.doc),
+    state.selection.main.head,
+  );
+}
 
 /**
  * Move to the next cell. Returns true if handled, false to let the
- * default Tab handler run.
+ * default Tab handler run. Parses its own model once per press past the
+ * `getTableContext` gate (ADR-0043 D5); a null parse also returns false.
  */
 export const tableTabCommand: Command = (view) => {
-  const ctx = getTableContext(view.state);
+  const ctx = modelForPress(view.state);
   if (!ctx) return false;
   if (!guardTableWrite(ctx, "source.tab_nav")) return false;
 
@@ -57,9 +81,12 @@ export const tableTabCommand: Command = (view) => {
   return true;
 };
 
-/** Move to the previous cell. */
+/**
+ * Move to the previous cell. Same gate-then-parse-once model source as
+ * `tableTabCommand` (ADR-0043 D5).
+ */
 export const tableShiftTabCommand: Command = (view) => {
-  const ctx = getTableContext(view.state);
+  const ctx = modelForPress(view.state);
   if (!ctx) return false;
   if (!guardTableWrite(ctx, "source.tab_nav")) return false;
 
@@ -82,7 +109,7 @@ export const tableShiftTabCommand: Command = (view) => {
  * matching the column count + alignment, then move the cursor into
  * its first cell.
  */
-function appendBlankRow(view: import("@codemirror/view").EditorView, ctx: import("../../utils/tableParser").TableModel) {
+function appendBlankRow(view: EditorView, ctx: TableModel) {
   // Build the new row text: `| <pad> | <pad> | … |\n`. Use a single
   // space inside each cell so the cursor lands on a sensible spot
   // even if column widths differ.
