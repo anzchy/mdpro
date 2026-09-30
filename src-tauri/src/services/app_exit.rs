@@ -1,9 +1,10 @@
 //! Purpose: run the one-shot cleanup that must happen as the app process exits.
 //!
 //! Pipeline: `RunEvent::Exit` (main.rs) -> `run_exit_cleanup(&controller)` ->
-//! { `app.quit` log line; `McpController::begin_exit` (mark exiting,
-//! unpublish, forget the token); `stop` bounded by `exit_budget`;
-//! `mcp.http_server.stop` log line }.
+//! { `app.quit` log line; `McpController::begin_exit` (mark exiting, stop
+//! hook `AppExit` so pending MCP write confirmations end and later ones are
+//! refused (ADR-0042), unpublish, forget the token); `stop` bounded by
+//! `exit_budget`; `mcp.http_server.stop` log line }.
 //!
 //! Key decisions:
 //! - Cleanup is bound to `RunEvent::Exit`, never `ExitRequested`: an
@@ -72,6 +73,9 @@ pub fn run_exit_cleanup(controller: &McpController) {
     });
 }
 
+#[cfg(test)]
+#[path = "app_exit_confirm_tests.rs"]
+mod confirm_tests;
 #[cfg(test)]
 #[path = "app_exit_idempotence_tests.rs"]
 mod idempotence_tests;

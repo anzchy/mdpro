@@ -146,6 +146,18 @@ pub fn effect_failed_entry(id: &str, window: &str, effect: &'static str) -> LogE
     line
 }
 
+/// Cancelling for `cause` failed (a poisoned table). `window` names the
+/// destroyed window for `WindowClosed`; stop and exit name none.
+pub fn cancel_failed_entry(cause: Cause, window: Option<&str>) -> LogEntryPayload {
+    let mut context = json!({ "outcome": ResolvedOutcome::Cancelled.as_str() });
+    if let (Some(window), Some(map)) = (window, context.as_object_mut()) {
+        map.insert("windowLabel".to_string(), json!(window));
+    }
+    let mut line = entry(LogLevel::Error, CONFIRM_LOG_EVENT, LogStatus::Fail, context);
+    line.error = Some(format!("{} cancel failed", cause_name(cause)));
+    line
+}
+
 #[cfg(test)]
 #[path = "logging_tests.rs"]
 mod tests;

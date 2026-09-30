@@ -11,6 +11,9 @@
 //!   owner of the server's lifecycle: serialized start/stop/reconcile, a
 //!   snapshot readable without waiting on a transition, and a stop that
 //!   kills every connection once its drain expires (PC-1).
+//! - `ControllerEnv::stop_hook` tells the MCP write confirmation broker
+//!   (`mcp_confirm::stop_hook`, ADR-0042) about every server stop and the
+//!   app exit; the controller only calls it.
 //! - `launch` applies the ADR-0039 launch decision through the controller
 //!   (WI-5); `app_exit` drives its exit.
 //! - `switch` is the live on/off switch (WI-7): persist the intent, then
@@ -21,7 +24,7 @@
 //! @coordinates-with src/services/http_server.rs (the app's `ControllerEnv`
 //!   and router factory)
 //! @coordinates-with src/main.rs, src/services/app_exit.rs,
-//!   src/commands/mcp_server_switch.rs
+//!   src/commands/mcp_server_switch.rs, src/services/mcp_confirm/mod.rs
 
 pub mod controller;
 pub mod files;
@@ -32,6 +35,12 @@ pub mod snapshot;
 pub mod switch;
 mod transitions;
 
+#[cfg(test)]
+pub(crate) mod confirm_routers;
+#[cfg(test)]
+mod confirm_stop_law_tests;
+#[cfg(test)]
+mod confirm_stop_tests;
 #[cfg(test)]
 mod exit_publish_race_tests;
 #[cfg(test)]

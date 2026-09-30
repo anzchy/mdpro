@@ -24,11 +24,17 @@
 //! - Parameterised by `ControllerEnv` (address, files dir, budgets, serve
 //!   seam), never `dirs::data_dir()` or an `AppHandle`, so tests run on
 //!   `127.0.0.1` and a temp dir.
+//! - `ControllerEnv::stop_hook` (ADR-0042, `with_stop_hook`) is told
+//!   `ServerStop` before a live server is halted and `AppExit` from
+//!   `begin_exit`, so pending MCP write confirmations end while their
+//!   connections can still carry the answer. `None` (the default) changes
+//!   nothing; the controller does not know what the hook does.
 //!
 //! @coordinates-with src/services/mcp_controller/transitions.rs
 //! @coordinates-with src/services/mcp_controller/snapshot.rs
 //! @coordinates-with src/services/mcp_controller/launch.rs (launch)
 //! @coordinates-with src/services/app_exit.rs (exit)
+//! @coordinates-with src/services/mcp_confirm/mod.rs (`stop_hook`)
 //! @coordinates-with src/services/http_server.rs (`with_token_auth` reads
 //!   the shared config this controller writes)
 
@@ -69,11 +75,27 @@ pub struct ControllerEnv {
     pub exit_budget: Duration,
     /// Runs the server on a bound listener. Tests wrap the real one.
     pub serve: ServeFn,
+    /// Told before a live server stops and when the app begins to exit
+    /// (ADR-0042), so pending confirmations end before connections die.
+    pub stop_hook: Option<StopHook>,
     /// Test-only: runs inside `start` between its last `exiting` check and
     /// the publish, so a test can land `begin_exit` in that window (M2).
     #[cfg(test)]
     pub(crate) pre_publish: Option<PrePublishHook>,
 }
+
+/// Why the controller is ending in-flight work (ADR-0042).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StopCause {
+    /// A live server is stopping (switch off, restart); a later start may
+    /// serve again.
+    ServerStop,
+    /// The app is exiting; nothing will be served again.
+    AppExit,
+}
+
+/// The `stop_hook` callback.
+pub type StopHook = Arc<dyn Fn(StopCause) + Send + Sync>;
 
 /// The `pre_publish` test seam.
 #[cfg(test)]
@@ -89,9 +111,16 @@ impl ControllerEnv {
             join_grace: JOIN_GRACE,
             exit_budget: EXIT_BUDGET,
             serve: default_serve(),
+            stop_hook: None,
             #[cfg(test)]
             pre_publish: None,
         }
+    }
+
+    /// Install the stop hook (production: `mcp_confirm::stop_hook`).
+    pub fn with_stop_hook(mut self, hook: StopHook) -> Self {
+        self.stop_hook = Some(hook);
+        self
     }
 }
 
@@ -154,13 +183,23 @@ impl McpController {
     }
 
     /// The exit's first step, outside the transition lock (WI-5): mark
-    /// exiting, remove the server files and forget the token, so they are
-    /// gone even while a transition holds the lock.
+    /// exiting, tell the stop hook `AppExit` (ADR-0042: pending
+    /// confirmations end before the exit's stop waits), remove the server
+    /// files and forget the token, so they are gone even while a
+    /// transition holds the lock.
     pub fn begin_exit(&self) {
         self.mark_exiting();
+        self.notify_stop(StopCause::AppExit);
         files::unpublish(&self.env.files_dir);
         if let Ok(mut guard) = self.server_config.lock() {
             *guard = None;
+        }
+    }
+
+    /// Run the stop hook, if one is installed.
+    pub(super) fn notify_stop(&self, cause: StopCause) {
+        if let Some(hook) = &self.env.stop_hook {
+            hook(cause);
         }
     }
 

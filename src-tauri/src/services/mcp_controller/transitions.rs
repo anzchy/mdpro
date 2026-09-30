@@ -6,7 +6,8 @@
 //!   `exiting` check (PC-2) -> fresh token into memory -> spawn (watched) ->
 //!   `exiting` check -> publish -> `exiting` re-check (unpublish + halt if
 //!   set) -> `Running`.
-//! - stop: `Stopping` -> unpublish (port, then token) -> clear the token ->
+//! - stop (a live server only): stop hook `ServerStop` -> `Stopping` ->
+//!   unpublish (port, then token) -> clear the token ->
 //!   graceful shutdown -> wait `drain` -> kill every connection (PC-1) ->
 //!   wait `join_grace` -> abort -> `Disabled`, only after the join.
 //!
@@ -22,13 +23,17 @@
 //!   the pre-publish check and the publish; the post-publish re-check then
 //!   unpublishes, clears the token and ends `Disabled` (final review M2).
 //! - Every await is bounded: `drain`, `join_grace`, `ABORT_JOIN`.
+//! - The stop hook runs in `stop_locked`, so every stop path (stop, off,
+//!   restart) takes it, and before `Stopping` and `halt` (ADR-0042 F2): a
+//!   waiting confirmation is answered 503 over a live connection, and a
+//!   request gated after it is bounded by the drain and the kill.
 //!
 //! @coordinates-with src/services/mcp_controller/controller.rs (the lock)
 //! @coordinates-with src/services/mcp_controller/killable.rs (kill switch)
 //! @coordinates-with src/services/mcp_controller/files.rs (publish/unpublish)
 
 use crate::models::{ServerConfig, SharedServerConfig};
-use crate::services::mcp_controller::controller::{Inner, McpController};
+use crate::services::mcp_controller::controller::{Inner, McpController, StopCause};
 use crate::services::mcp_controller::files;
 use crate::services::mcp_controller::killable::{KillSwitch, KillableListener, ServeFuture};
 use crate::services::mcp_controller::serve::{self, BindError, ServeHandle};
@@ -164,6 +169,9 @@ impl McpController {
             snap::write(&self.snapshot, at(McpPhase::Disabled, None, None, gen));
             return;
         };
+        // Before `Stopping` and `halt` (ADR-0042 F2): a waiting confirmation
+        // is answered while its connection is still alive.
+        self.notify_stop(StopCause::ServerStop);
         snap::update(&self.snapshot, |s| McpSnapshot {
             phase: McpPhase::Stopping,
             ..s
