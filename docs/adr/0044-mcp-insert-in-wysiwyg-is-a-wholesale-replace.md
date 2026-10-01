@@ -1,9 +1,13 @@
 # 0044. An MCP insert into a WYSIWYG-active document is a wholesale replace
 
-**Status**: Proposed (2026-09-30). Becomes Accepted only after device
-verification (WI-6 of the D35 plan) and the D37 device re-check.
-2026-10-01: D37 device re-check passed 8/8 (release build of `66cb742`);
-D35 WI-6 still pending.
+**Status**: Accepted (2026-10-01; proposed 2026-09-30). Acceptance
+required device verification (WI-6 of the D35 plan) and the D37 device
+re-check. 2026-10-01: D37 device re-check passed 8/8 (release build of
+`66cb742`). 2026-10-01: D35 WI-6 passed 6/6 on a release build of
+`d411c7e` (evidence in `~/.mdpro/mdpro.log`, recorded in the D35 row of the
+sequencing doc). In that run the flush had nothing pending, so the
+dirty-pending flush branch is covered only by the jsdom tests D35-INT and
+D35-2.
 
 ## Context
 
@@ -90,6 +94,13 @@ The branch is keyed on `viewMode`, not on `editorView` being null.
   the next `mcp_sync_documents` push.
 - **Cost:** because the flush is global, one tab whose serializer fails
   blocks WYSIWYG inserts into every tab.
+- **Cost:** a Source-mode insert into the active document does not keep the
+  caret where it was. It moves to the end of the inserted text
+  (`src/hooks/mcpInsertContent.ts`, anchor + text length). This predates D35
+  (present in `b7dbbfc`) and this ADR leaves the Source path unchanged; the
+  user accepted it as existing behaviour on 2026-10-01. "Source mode keeps
+  the caret" in the D35 plan means no rebuild and no reset, not caret
+  preservation.
 - **Cost:** `position: "cursor"` still resolves to 0 in WYSIWYG, which is
   known and within ADR-0021 / D10(c) scope. It used to be hidden and is now
   visible.
