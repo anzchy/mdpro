@@ -198,6 +198,32 @@ Sequencing for this effort lives in
   in plans P and M; when they conflict, the original plan wins and the
   sequencing doc is corrected to match.
 
+## Worktrees
+
+Parallel work (peer sessions, verification builds) uses git worktrees, and they
+all live in **one place**: `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro-wt/`.
+Not as `mac-app/mdpro-*` siblings, not under the repo's `.claude/worktrees/`, and
+not in a session scratchpad, where they become broken entries when the
+scratchpad is wiped.
+
+- **Branch**: `<type>/<id>-<slug>`. `<type>` comes from the commit types table,
+  and `<id>` is the defect or work item, e.g. `fix/d41-source-tab-gaps` or
+  `docs/d35-device-verified`.
+- **Directory**: the branch name with `/` → `-`, e.g.
+  `mdpro-wt/fix-d41-source-tab-gaps`. A detached checkout for verifying a commit
+  is `mdpro-wt/verify-<sha7>`.
+- **Create**: `git worktree add ../mdpro-wt/<dir> -b <branch> frontend-backend-redesign`.
+  Copy the gitignored sidecar `src-tauri/binaries/mdpro_mcp-aarch64-apple-darwin`
+  in before `pnpm tauri build`.
+- **Move only with `git worktree move`**, never `mv`. A plain `mv` leaves git's
+  registry pointing at the old path, and the worktree shows as `prunable`.
+- **Remove once merged**: `git worktree remove <dir>` then `git branch -d <branch>`.
+  A merged worktree left lying around gets its stale tdd-guardian state mistaken
+  for live work.
+- **Exceptions**: `isolation: "worktree"` subagents create
+  `.claude/worktrees/agent-*` themselves; remove each one when its agent is done.
+  `~/.codex/worktrees/` is managed by the Codex app, so leave it alone.
+
 ## Feature Ledger
 
 [`docs/feature-ledger.md`](./docs/feature-ledger.md) is the inventory of **what
