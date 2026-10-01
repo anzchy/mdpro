@@ -4,10 +4,13 @@
  * so they can be withheld together for a document whose Source table verdict
  * is "withheld" (ADR-0022; plan-20260922-113723 WI-4).
  *
- * Returns, in this order, which is keymap precedence and must not change:
+ * Returns, in this order, which must not change (X5 pins `tabKeymap` at index 1):
  *   [tableDetectionExtension(), tabKeymap, sourceTableCellHighlightExtension(),
  *    tableColumnCountLinter()]
  * and `[]` when withheld — all four or none.
+ * Array order only ranks extensions of equal precedence. The Tab keymap's
+ * precedence over @uiw/react-codemirror's default `indentWithTab` comes from
+ * the `Prec.high` Editor wraps around `tabKeymap` (D40), not from this order.
  *
  * Key decisions:
  * - **Withhold by removal, not by gating inside the field.** A field that
@@ -37,7 +40,7 @@ export interface SourceTableExtensionsOptions {
   tabKeymap: Extension;
 }
 
-/** The four Source table extensions in precedence order, or `[]` when withheld. */
+/** The four Source table extensions in their fixed order, or `[]` when withheld. */
 export function sourceTableExtensions({
   withheld,
   tabKeymap,

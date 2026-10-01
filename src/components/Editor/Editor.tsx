@@ -100,19 +100,23 @@ export function Editor({
     [],
   );
 
-  // Memoize the full extensions array.
-  // Dynamic compartments use stable `initial*` wrappers; their values are
-  // synced from persisted prefs on every mount via reapplyEditorPrefs().
-  // Source-mode table support (Phase 2 WI-2.2 + WI-2.3): registered
-  // BEFORE undoRedoKeymap so the table Tab handler gets first dibs;
-  // it returns false outside tables so the editor's default Tab still
-  // works (and code-block-tab from #d170f9c is preserved by
-  // sourceTableDetection's fence guard).
+  // Source-mode table Tab / Shift-Tab (Phase 2 WI-2.3, D40). @uiw/react-codemirror
+  // puts its default `keymap.of([indentWithTab])` ahead of every extension we
+  // pass, so no array position here can outrank it — precedence comes from
+  // Prec.high alone. tableTabCommand returns false when it does not own the
+  // key (prose, fenced code via sourceTableDetection's fence guard, withheld
+  // documents, write-guard refusals, the delimiter row, Shift-Tab in the first
+  // cell), falling through to that default indent, which is also what
+  // code-block Tab (#d170f9c) is. Cost: inside a cell this outranks any future
+  // default-precedence Tab binding.
   const sourceTableTabKeymapExt = useMemo(
-    () => keymap.of(sourceTableTabKeymap),
+    () => Prec.high(keymap.of(sourceTableTabKeymap)),
     [],
   );
 
+  // Memoize the full extensions array.
+  // Dynamic compartments use stable `initial*` wrappers; their values are
+  // synced from persisted prefs on every mount via reapplyEditorPrefs().
   const extensions = useMemo(
     () => [
       viewModeKeymap,
@@ -136,9 +140,12 @@ export function Editor({
       undoRedoKeymap,
     ],
     // pluginExtensions and pluginEventExtension are stable memos; the only dep
-    // that actually changes is sourceTablesWithheld, which flips at most once
-    // per document switch or verdict — one reconfigure per transition, never
-    // one per keystroke. The listed memos are kept for readability.
+    // that actually changes is sourceTablesWithheld (per document switch or
+    // verdict), so this array keeps its identity across renders otherwise.
+    // That does not stop reconfigures: the inline `onChange` and `basicSetup`
+    // literal below are also useCodeMirror deps, so every Editor render
+    // (each keystroke included) dispatches a StateEffect.reconfigure.
+    // The listed memos are kept for readability.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt, viewModeKeymap, sourceTablesWithheld],
   );
