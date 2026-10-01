@@ -1,8 +1,9 @@
 /**
  * Purpose: give keyboard focus back to whatever held it when a dialog opened, once that
  * dialog closes (D37 WI-6, the O2 fix). Without it, closing a dialog whose buttons had
- * focus drops focus to `<body>`, and the next keystrokes go nowhere. D34 will adopt this
- * hook for `ConfirmDialog.tsx`, which has the same gap.
+ * focus drops focus to `<body>`, and the next keystrokes go nowhere. `ConfirmDialog.tsx`
+ * has the same gap; D34 did not adopt this hook there (D34 changed only its Escape
+ * handling), so that focus return stays deferred.
  *
  * Pipeline: first render → save `document.activeElement` (the prior element) · unmount
  * (every dismissal path: button, Escape, backdrop, an external resolve) → if focus is

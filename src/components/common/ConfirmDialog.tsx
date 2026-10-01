@@ -1,3 +1,20 @@
+/**
+ * Purpose: generic two-button confirm dialog (App "Unsaved changes", Sidebar, BottomTabs,
+ * AboutSettings restart prompt). Escape means Cancel.
+ *
+ * Key decisions:
+ * - **Escape goes through the shared `useDialogEscape` stack** (D34), not a backdrop
+ *   `onKeyDown`: a listener on the dialog's own element only fired while focus was inside
+ *   it, which D34 showed is not the case on device. The hook is called before the
+ *   `if (!open) return null` early return (rules of hooks) and registers only while `open`.
+ * - **One `handleCancel`** for both the Cancel button and Escape, so an Escape logs the same
+ *   `ui.dialog.cancel` line as a click (plus the stack's `ui.dialog.escape`).
+ *
+ * @coordinates-with src/hooks/useDialogEscape.ts — document-level capture-phase Escape stack
+ * @coordinates-with tests/confirm-dialog.test.tsx — CD-1 … CD-10
+ */
+import { useRef } from "react";
+import { useDialogEscape } from "../../hooks/useDialogEscape";
 import { loggingService } from "../../services/loggingService";
 
 interface ConfirmDialogProps {
@@ -19,33 +36,32 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  const handleCancel = () => {
+    loggingService.logDialogAction("dialog.confirm.cancel", "cancel", { title });
+    onCancel();
+  };
+
+  useDialogEscape({
+    enabled: open,
+    containerRef: backdropRef,
+    dialog: "confirm",
+    outcome: "cancel",
+    onEscape: handleCancel,
+  });
+
   if (!open) {
     return null;
   }
 
   return (
-    <div
-      className="dialog-backdrop"
-      role="presentation"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          loggingService.logDialogAction("dialog.confirm.cancel", "cancel", { title });
-          onCancel();
-        }
-      }}
-    >
+    <div ref={backdropRef} className="dialog-backdrop" role="presentation">
       <div className="dialog-card" role="dialog" aria-modal="true" aria-label={title}>
         <h3 className="dialog-title">{title}</h3>
         <p className="dialog-message">{message}</p>
         <div className="dialog-actions">
-          <button
-            className="toolbar-button"
-            onClick={() => {
-              loggingService.logDialogAction("dialog.confirm.cancel", "cancel", { title });
-              onCancel();
-            }}
-            type="button"
-          >
+          <button className="toolbar-button" onClick={handleCancel} type="button">
             {cancelLabel}
           </button>
           <button
