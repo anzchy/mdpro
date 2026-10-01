@@ -316,6 +316,7 @@ Rust (`logger::log_event`) and TypeScript (`loggingService.logEventSync`) code s
 ## Debugging
 
 DevTools in dev/prod builds, when to use `pnpm dev` vs `pnpm tauri dev` + JSONL logs, and the debug workflow: see [`docs/guide/debugging.md`](./docs/guide/debugging.md).
+MCP server setup, connecting clients (`claude mcp add`), the tool reference, and driving the local HTTP API by hand with curl (token header, confirm prompts) for device checks: see [`docs/guide/mdpro-mcp-guide.md`](./docs/guide/mdpro-mcp-guide.md).
 
 ## Typora-Parity Phase 1 Scope (rendering)
 
