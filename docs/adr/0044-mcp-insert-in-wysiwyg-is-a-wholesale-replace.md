@@ -2,6 +2,8 @@
 
 **Status**: Proposed (2026-09-30). Becomes Accepted only after device
 verification (WI-6 of the D35 plan) and the D37 device re-check.
+2026-10-01: D37 device re-check passed 8/8 (release build of `66cb742`);
+D35 WI-6 still pending.
 
 ## Context
 
@@ -65,10 +67,15 @@ The branch is keyed on `viewMode`, not on `editorView` being null.
     one head is carried, so this is not visible to the user.
 - **Cost (D37):** restore is O(n) on the UI thread. A document above
   `CARET_ANCHOR_MAX_DOC_SIZE` (12,000,000) skips the diff and keeps the
-  clamped head. The cap was sized from Node timings (15–30 ms near 10 MB) and
-  must be confirmed on the device from the logged `durationMs`. The old
-  document is held until the record is consumed or dropped; the 10 s TTL
-  safety net is a floor that has not been measured on the device.
+  clamped head. The cap was sized from Node timings (15–30 ms near 10 MB).
+  On the device (2026-10-01, release build, one M-series machine) a
+  9,318,971-byte document logged `durationMs` 8, so the cap stays. The old
+  document is held until the record is consumed or dropped. The 10 s TTL
+  safety net had about 7 s of headroom there: restore fired 2.9 s after the
+  reload. That is a single measurement on a fast machine and proves nothing
+  for slower ones. A document over 25,000 structural elements is forced to
+  Source mode (`editor.large_document.degrade`, trigger `structure`) and never
+  reaches the carry, so only long-paragraph documents exercise the cap.
 - **Cost (D37):** with two confirm prompts queued, focus survives but the
   caret goes to the end of the document after the second approval, a visible
   jump (D38, recorded, not fixed). The confirm dialog returns focus to the
