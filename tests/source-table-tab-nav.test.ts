@@ -11,6 +11,7 @@ import { EditorState, EditorSelection } from "@codemirror/state";
 import type { Command } from "@codemirror/view";
 import { EditorView } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { completeTreeState } from "./support/completeTreeState";
 import { D12_FIXTURES, ropeSpy } from "./support/tableSpanOracle";
 
 // Passthrough: the real parser runs; the spy only counts (D12 WI-4).
@@ -35,6 +36,21 @@ function makeView(doc: string, cursor: number, detection = true): EditorView {
     selection: EditorSelection.cursor(cursor),
     extensions: detection ? [markdown(), tableDetectionExtension()] : [markdown()],
   });
+  return new EditorView({ state });
+}
+
+/**
+ * `makeView` for a fenced document: the detection field is created over a
+ * complete syntax tree, so the fence check cannot miss under CPU load
+ * (see `tests/support/completeTreeState.ts`).
+ */
+function makeCompleteView(doc: string, cursor: number): EditorView {
+  const state = completeTreeState(
+    doc,
+    EditorSelection.single(cursor),
+    markdown(),
+    tableDetectionExtension(),
+  );
   return new EditorView({ state });
 }
 
@@ -199,7 +215,8 @@ describe("D12 WI-4 — Tab / Shift-Tab materialise their own model", () => {
     ["withheld (no detection field)", T3, 2, false],
   ] as const)("TAB-5: %s falls through with 0 parses", (_name, doc, head, detection) => {
     for (const cmd of [tableTabCommand, tableShiftTabCommand]) {
-      const view = makeView(doc, head, detection);
+      const view =
+        doc === FENCED_TABLE ? makeCompleteView(doc, head) : makeView(doc, head, detection);
       parseSpy.mockClear();
       const r = press(view, cmd);
       expect(r.handled).toBe(false);

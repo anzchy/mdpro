@@ -43,6 +43,7 @@ import { tableTabCommand } from "../src/plugins/codemirror/sourceTableTabNav";
 import { parseTableAtOffset } from "../src/utils/tableParser/parse";
 import { parseRowCells } from "../src/utils/tableParser/rowCells";
 import type { TableCell } from "../src/utils/tableParser/types";
+import { completeTreeState } from "./support/completeTreeState";
 import { makeCorpus, makeOverlapCorpus, OVERLAP_SEED, SEED } from "./support/tableCorpus";
 import {
   costDoc,
@@ -90,6 +91,20 @@ function makeState(doc: string, anchor: number): EditorState {
   });
 }
 
+/** A fence opener that can put a table inside a code block. */
+const FENCE_MARKER = /```|~~~/;
+
+/**
+ * `makeState` for a document that may contain a fence: the detection field
+ * is created over a complete syntax tree, so the fence check cannot miss
+ * under CPU load (see `tests/support/completeTreeState.ts`). Documents with
+ * no fence keep the plain `EditorState.create` path.
+ */
+function makeFenceSafeState(doc: string, anchor: number): EditorState {
+  if (!FENCE_MARKER.test(doc)) return makeState(doc, anchor);
+  return completeTreeState(doc, { anchor }, markdown(), tableDetectionExtension());
+}
+
 beforeEach(() => {
   rowSpy.mockClear();
   parseSpy.mockClear();
@@ -101,7 +116,7 @@ describe("D12 WI-5 — the field stores { span, cell }", () => {
   it(
     "SPAN-1: every-offset equivalence to the legacy oracle (corpora + fixtures)",
     () => {
-      const fencePre = makeState(FENCE_IN_SPAN, 0);
+      const fencePre = makeFenceSafeState(FENCE_IN_SPAN, 0);
       expect(isPositionInFencedCode(fencePre, 32)).toBe(true);
       expect(isPositionInFencedCode(fencePre, 2)).toBe(false);
 
@@ -130,7 +145,7 @@ describe("D12 WI-5 — the field stores { span, cell }", () => {
       };
 
       for (const [id, doc] of docs) {
-        const base = makeState(doc, 0);
+        const base = makeFenceSafeState(doc, 0);
         check(id, "base", base);
         for (let o = 0; o <= base.doc.length; o += 1) {
           check(id, o, base.update({ selection: { anchor: o } }).state);
@@ -193,7 +208,7 @@ describe("D12 WI-5 — the field stores { span, cell }", () => {
     ["(e) NEP col 0 of a body row (Finding 1)", NEP, 12, [{ from: 12, to: 14, class: CELL_CLASS }]],
     ["(f) M1_NEP col 0 of the header", M1_NEP, 5, []],
   ] as const)("SPAN-4 %s: at most one decoration, from the active cell, 0 parses", (_n, doc, head, want) => {
-    const state = makeState(doc, head);
+    const state = makeFenceSafeState(doc, head);
     parseSpy.mockClear();
     const set = computeCellHighlightDecorations(state);
     const parses = parseSpy.mock.calls.length;

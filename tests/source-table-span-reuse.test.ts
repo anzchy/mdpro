@@ -144,7 +144,7 @@ function walk(): WalkRun {
       if (located === 0 && got.span !== null) stats.reused += 1;
       if (located > 0) stats.relocated += 1;
       if (anchor !== head) stats.range += 1;
-      // Informational only: steps the ADR-0043 D4 rule would allow to reuse.
+      // D4-eligible steps; reused <= eligible, not =: a fenced head in an eligible span is null.
       if (prevSpan?.delimiterIsCandidate) {
         const i = linesFromText(next.doc).lineIndexAt(head);
         if (i >= prevSpan.headerLine && i <= prevSpan.lastLine) stats.eligible += 1;
@@ -187,6 +187,7 @@ describe("D12 WI-6 — REUSE-1 seeded random walk", () => {
       expect(stats.reused, measured).toBeGreaterThanOrEqual(MIN_REUSED);
       expect(stats.relocated, measured).toBeGreaterThanOrEqual(MIN_RELOCATED);
       expect(stats.range, measured).toBeGreaterThanOrEqual(MIN_RANGE);
+      expect(stats.reused, measured).toBeLessThanOrEqual(stats.eligible);
     },
     WALK_TIMEOUT_MS,
   );

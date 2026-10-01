@@ -504,7 +504,7 @@ describe("tableParser/lines (WI-2 characterization)", () => {
   it("PRED-single-definition: isTableCandidateLine is defined in lines.ts and nowhere else", () => {
     const dir = join(process.cwd(), "src", "utils", "tableParser");
     const owners: string[] = [];
-    for (const file of ["parse.ts", "lines.ts", "scan.ts"]) {
+    for (const file of ["parse.ts", "lines.ts", "scan.ts", "locate.ts", "rowCells.ts"]) {
       const path = join(dir, file);
       if (!existsSync(path)) continue;
       if (readFileSync(path, "utf8").includes("function isTableCandidateLine")) {

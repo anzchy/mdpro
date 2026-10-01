@@ -11,10 +11,15 @@
  * `raw` read landed here as `doc.sliceString(start, end)` — measured as
  * one slice of 9,785,219 chars per lint tick at 232,981 rows. `slice()`
  * still has one table-scan caller: `tableWriteGuard` reads `raw` once
- * per MCP table write.
+ * per MCP table write, and once per Tab / Shift-Tab press through
+ * `sourceTableTabNav.ts` (one `sliceString` and one `iter` for the
+ * guard's `raw` copy, measured in ADR-0043).
  *
  * Pipeline: `Text` -> `linesFromText` -> `TableLineSource` ->
- * `tableParser/scan.ts#scanTables` / `parse.ts#parseTableAtOffset`.
+ * `tableParser/scan.ts#scanTables` / `parse.ts#parseTableAtOffset`,
+ * and per cursor move `locate.ts#locateTableAtOffset` ->
+ * `cellAtResolvedLine` / `cellAtOffset` (called from
+ * `sourceTableDetection.ts`).
  *
  * WHY THIS FILE IS NOT IN `src/utils/tableParser/`: the parser must not
  * import `@codemirror/state`. `lines.ts` defines the interface; the two
@@ -54,8 +59,10 @@
  *
  * @coordinates-with src/utils/tableParser/lines.ts
  * @coordinates-with src/utils/tableParser/scan.ts
+ * @coordinates-with src/utils/tableParser/locate.ts
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
  * @coordinates-with src/plugins/codemirror/lintTableColumnCount.ts
+ * @coordinates-with src/plugins/codemirror/sourceTableTabNav.ts
  */
 
 import type { Text } from "@codemirror/state";

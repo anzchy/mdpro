@@ -18,7 +18,7 @@
  * CUR-3 (the re-locate path) is in `source-table-relocate-cost.test.ts`.
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EditorState, type Extension, type Text } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 
@@ -79,12 +79,6 @@ const COL_COUNT = 3;
 const HEADER_LINE = 2;
 const TABLE_START = 17;
 const COST_TIMEOUT_MS = 120_000;
-
-let restoreLater: (() => void)[] = [];
-afterEach(() => {
-  for (const r of restoreLater) r();
-  restoreLater = [];
-});
 
 function clearSpies(): void {
   locateSpy.mockClear();
@@ -251,26 +245,45 @@ describe("D12 WI-6 — CUR-1/CUR-2 reused moves on costDoc(R)", () => {
   );
 });
 
-describe("D12 WI-6 — CUR-4 reused move to col 0 of a body row (fudge path)", () => {
-  const cur4 = new Map<number, RopeCounts>();
+interface Cur4Run {
+  move: Move;
+  prevSpan: ReturnType<typeof getTableContext>;
+}
 
-  it.each(SIZES)("CUR-4 R=%i: {lineAt:1, line:2}, no re-locate, cell null", (R) => {
-    let state = makeState(costDoc(R), 0, [markdown(), tableDetectionExtension()]);
-    const k = R / 2;
-    const target = state.doc.line(k + 5).from;
-    // Precondition, before any spy: the raw index is the row above.
-    expect(linesFromText(state.doc).lineIndexAt(target)).toBe(k + 3);
-    const aboveHead = bodyHead(state.doc, k - 1, 1);
+const cur4Runs = new Map<number, Cur4Run>();
 
-    const rope = ropeSpy(state.doc);
-    restoreLater.push(() => rope.restore());
+/**
+ * CUR-4 walk: entry, the row above, then col 0 of body row R/2 (the
+ * fudge). Memoised per R like `cur1`, so every test computes what it reads.
+ */
+function cur4(R: number): Cur4Run {
+  const hit = cur4Runs.get(R);
+  if (hit) return hit;
+  let state = makeState(costDoc(R), 0, [markdown(), tableDetectionExtension()]);
+  const k = R / 2;
+  const target = state.doc.line(k + 5).from;
+  // Precondition, before any spy: the raw index is the row above.
+  expect(linesFromText(state.doc).lineIndexAt(target)).toBe(k + 3);
+  const aboveHead = bodyHead(state.doc, k - 1, 1);
+
+  const rope = ropeSpy(state.doc);
+  try {
     state = countedMove(state, rope, H1_HEAD).next;
     state = countedMove(state, rope, aboveHead).next;
     const prevSpan = getTableContext(state);
-    expect(prevSpan).not.toBeNull();
-
     const { move } = countedMove(state, rope, target);
-    cur4.set(R, move.counts);
+    const run = { move, prevSpan };
+    cur4Runs.set(R, run);
+    return run;
+  } finally {
+    rope.restore();
+  }
+}
+
+describe("D12 WI-6 — CUR-4 reused move to col 0 of a body row (fudge path)", () => {
+  it.each(SIZES)("CUR-4 R=%i: {lineAt:1, line:2}, no re-locate, cell null", (R) => {
+    const { move, prevSpan } = cur4(R);
+    expect(prevSpan).not.toBeNull();
     // L1 first.
     expect(move.sameDoc).toBe(true);
     expect(move.got).toEqual({ span: prevSpan, cell: null });
@@ -281,7 +294,8 @@ describe("D12 WI-6 — CUR-4 reused move to col 0 of a body row (fudge path)", (
   }, COST_TIMEOUT_MS);
 
   it("CUR-4: the count vector is equal at both R", () => {
-    expect(cur4.get(SIZES[0])).toEqual(cur4.get(SIZES[1]));
-    expect(cur4.size).toBe(SIZES.length);
-  });
+    const [small, large] = SIZES.map((R) => cur4(R).move.counts);
+    expect(small).toBeDefined();
+    expect(small).toEqual(large);
+  }, COST_TIMEOUT_MS);
 });

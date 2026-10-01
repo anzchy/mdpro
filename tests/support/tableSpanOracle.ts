@@ -5,10 +5,10 @@
  * the LIVE parser only and is not a frozen file — the frozen oracle is
  * `tests/support/frozenTableParse.ts`.
  *
- * WI-1 landed `textOf`; WI-2/WI-3 add `spanOfModel`, `recordingSource` and
- * `D12_FIXTURES`; WI-4 (TAB-2) adds `ropeSpy`. `legacyCursorOracle` and
- * `ropeProtoSpy` arrive with the work items that first consume them
- * (WI-5/WI-6).
+ * Contents: `textOf` (WI-1); `spanOfModel`, `recordingSource` and
+ * `D12_FIXTURES` (WI-2/WI-3); `ropeSpy` (WI-4, TAB-2); and
+ * `legacyCursorOracle`, `ropeProtoSpy`, `FENCE_IN_SPAN`, `costDoc` and the
+ * re-exported `fieldWindow` helpers (WI-5/WI-6).
  *
  * Not a `*.test.ts`, so vitest does not collect it.
  */
