@@ -368,6 +368,29 @@ the defect was behavioural rather than visual, so the missing dark-theme pass
 did not change the outcome. Where a keyboard shortcut reaches the same command
 (`⌃2` / `⌃4` for view modes, `⌘⇧L` for the sidebar), prefer it over the menu.
 
+### Known blocker: Escape
+
+mdpro acts on Escape at `keydown`. Two things on this machine stop that
+`keydown` from reaching WKWebView (found in the D34 device check, 2026-10-02):
+
+- **The computer-use `key escape` delivers only a `keyup`**, under any input
+  source. A harness Escape proves nothing either way. Every Esc criterion
+  needs the user to press the physical key.
+- **IMEs such as WeType swallow the Escape `keydown`**, even in their English
+  mode. Before an Esc check, have the user switch the input source to ABC.
+  This is accepted, not a bug to chase
+  ([ADR-0048](../../../docs/adr/0048-escape-swallowed-by-an-ime-is-not-recovered-from-keyup.md)).
+
+If Esc still does nothing, build the debug bundle
+(`pnpm tauri build --debug --bundles app`), open Web Inspector, and log both
+`keydown` and `keyup` on `window`. A `keyup` with no `keydown` means the key
+was eaten before the page, not that the handler is wrong.
+
+**MCP write-confirm prompt.** The write applies at once, with no prompt, when
+the window owning the document is focused. To get a prompt, activate Finder
+first, send the request in the background, then bring mdpro forward. The prompt
+times out after 60 s (`408`), so have the user ready at the key.
+
 ---
 
 ## 10. Recording the result
