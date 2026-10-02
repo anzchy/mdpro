@@ -206,6 +206,11 @@ Not as `mac-app/mdpro-*` siblings, not under the repo's `.claude/worktrees/`, an
 not in a session scratchpad, where they become broken entries when the
 scratchpad is wiped.
 
+- **A large feature gets its own worktree, and the user approves it first.**
+  Before implementing a large feature, decide whether it needs an isolated
+  worktree in `../mdpro-wt/`. If it does, **ask the user before creating it**,
+  naming the branch, the directory, and the base commit. Small fixes and
+  doc-only edits stay on the current checkout.
 - **Branch**: `<type>/<id>-<slug>`. `<type>` comes from the commit types table,
   and `<id>` is the defect or work item, e.g. `fix/d41-source-tab-gaps` or
   `docs/d35-device-verified`.
