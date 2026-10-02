@@ -224,6 +224,20 @@ scratchpad is wiped.
   `.claude/worktrees/agent-*` themselves; remove each one when its agent is done.
   `~/.codex/worktrees/` is managed by the Codex app, so leave it alone.
 
+## Manual test fixtures
+
+Markdown documents for device checks (`/gui-acceptance`, `/gui-manual-verify`)
+live in **`tests/manual-fixtures/`**, named `<id>-<slug>.md`, e.g.
+`d41-source-tab.md`. Not in a session scratchpad, where they vanish, and not in
+`tests/fixtures/`, which holds the unit tests' contract JSON. Vitest only
+collects `*.test.{ts,tsx}`, so nothing here runs.
+
+- **Run on a copy.** Copy the fixture to the scratchpad and open the copy. A
+  run edits the document, ⌘S writes it and a draft can outlive the run, so the
+  committed original must stay pristine.
+- Large generated fixtures (multi-MB) are not committed. Commit the generator
+  script instead.
+
 ## Feature Ledger
 
 [`docs/feature-ledger.md`](./docs/feature-ledger.md) is the inventory of **what

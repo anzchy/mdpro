@@ -96,7 +96,7 @@ prepare → place state → blur → record offset → instruction block
         → user acts + replies → read appended log → zoom → verdict
 ```
 
-1. **Prepare.** Fixture in the scratchpad; app launched; doc open.
+1. **Prepare.** Fixture copied from `tests/manual-fixtures/` to the scratchpad; app launched on the copy; doc open.
 2. **Place state** Claude can safely set: collapse a TOC node, switch tab,
    scroll. `open_application(mdpro)` and re-screenshot before any click.
 3. **Blur** if the item needs the prompt path (bring the terminal forward, or
@@ -190,7 +190,7 @@ request time.** Design every step around that.
 
 ## 7. Fixtures
 
-- **Scratchpad only**, never the repo (same as gui-acceptance §5).
+- **Originals in `tests/manual-fixtures/`, runs on a scratchpad copy** (same as gui-acceptance §5).
 - **Self-verifying:** each paragraph labelled ("Third paragraph REJECT ME."),
   so a zoom answers "what changed" without counting.
 - **Rewrite tests:** replacement text shares no prefix or suffix with the old
@@ -272,7 +272,7 @@ Same rules as gui-acceptance §10 and CLAUDE.md:
 [ ] Cold launch confirmed: appReady:false, label main, pgrep bundle path (§3)
 [ ] User started the MCP server and pasted the guide §5 preamble; Claude read no token
 [ ] After any relaunch: user re-ran PORT/TOKEN/API; /api/status returns a version (§3)
-[ ] Fixture in scratchpad, self-verifying, degrade guard checked (§7)
+[ ] Fixture copied from tests/manual-fixtures/ to scratchpad, self-verifying, degrade guard checked (§7)
 [ ] Order: place state → blur → record offset → send block (§4)
 [ ] Block has goal, exact commands, char-exact click target, don'ts, reply, expected (§5)
 [ ] Focus recipe matches the path under test (§6)

@@ -214,7 +214,10 @@ first; a previous `pnpm tauri dev` and the installed app can both leave
 
 ## 5. Fixtures
 
-Keep QA fixtures in the scratchpad, never in the repo.
+The originals live in the repo at `tests/manual-fixtures/` (see CLAUDE.md §
+"Manual test fixtures"), named `<id>-<slug>.md`. **Launch the app on a copy in
+the scratchpad, never on the original**: a run edits the document, ⌘S writes it,
+and a draft can outlive the run, so the committed fixture must stay pristine.
 
 A good fixture makes the screenshot **self-verifying**. The scroll-spy fixture
 (`wi36-duplicate-headings.md`) works because:
