@@ -1,7 +1,8 @@
 # 0046. Source-mode table Tab swallows the key when it owns it but cannot navigate
 
-**Status**: Proposed (2026-10-02). Acceptance requires the D41 device re-check
-of Tab / Shift-Tab in Source mode (sequencing doc, D41 row).
+**Status**: Accepted (2026-10-02). Proposed 2026-10-02. The D41 device re-check
+of Tab / Shift-Tab in Source mode passed 8/8 on the release bundle of
+`ef91e24` (sequencing doc, D41 row).
 
 ## Context
 

@@ -1,8 +1,12 @@
 # 0045. Modal Escape goes to the last open dialog in DOM order
 
-**Status**: Proposed (2026-10-01). Becomes Accepted only after the D34 device
-check: a physical Esc on both dialogs in a release build, with
-`ui.dialog.escape` / `ui.dialog.cancel` lines in `~/.mdpro/mdpro.log`.
+**Status**: Accepted (2026-10-02). Proposed 2026-10-01. Device check (D34 row,
+sequencing doc): a physical Esc closed both dialogs and the G5b stack, with
+`ui.dialog.escape` / `ui.dialog.cancel` lines in `~/.mdpro/mdpro.log`. It ran
+on a debug bundle of `ef91e24` (needed for Web Inspector) rather than the
+release build first required, with the ABC input source; see
+[ADR-0048](0048-escape-swallowed-by-an-ime-is-not-recovered-from-keyup.md) for
+IMEs that swallow Esc. Decision 6's yield path was not exercised on device.
 
 ## Context
 

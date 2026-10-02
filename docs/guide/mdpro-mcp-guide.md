@@ -183,8 +183,12 @@ Running curl from Terminal takes focus away from mdpro, so you will almost
 always get the prompt. To test the no-prompt path, run
 `sleep 5; mcurl …` and click into the mdpro window during the sleep. After an
 approval the insert is computed from the content **as it is then**, so edits
-made while the prompt was up survive. Per the ADR-0042 device run, Escape did
-not reject on device (D34); use the Reject button. `mcp.autoApproveEdits` is
+made while the prompt was up survive. Escape rejects the prompt, the same as
+the Reject button (fixed by D34, verified on a device on 2026-10-02). With an
+input method that swallows Escape, such as WeType, Esc does nothing; switch to
+ABC or click Reject
+([ADR-0048](../adr/0048-escape-swallowed-by-an-ime-is-not-recovered-from-keyup.md)).
+`mcp.autoApproveEdits` is
 not consumed by this flow.
 
 ## 8. Verify in the log
