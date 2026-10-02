@@ -40,7 +40,7 @@ import {
 } from "../src/plugins/codemirror/sourceTableDetection";
 import { computeCellHighlightDecorations } from "../src/plugins/codemirror/sourceTableCellHighlight";
 import { tableTabCommand } from "../src/plugins/codemirror/sourceTableTabNav";
-import { parseTableAtOffset } from "../src/utils/tableParser/parse";
+import { parseTableAtLine, parseTableAtOffset } from "../src/utils/tableParser/parse";
 import { parseRowCells } from "../src/utils/tableParser/rowCells";
 import type { TableCell } from "../src/utils/tableParser/types";
 import { completeTreeState } from "./support/completeTreeState";
@@ -59,11 +59,17 @@ vi.mock("../src/utils/tableParser/rowCells", async (importOriginal) => {
 });
 vi.mock("../src/utils/tableParser/parse", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/utils/tableParser/parse")>();
-  return { ...actual, parseTableAtOffset: vi.fn(actual.parseTableAtOffset) };
+  return {
+    ...actual,
+    parseTableAtOffset: vi.fn(actual.parseTableAtOffset),
+    parseTableAtLine: vi.fn(actual.parseTableAtLine),
+  };
 });
 
 const rowSpy = vi.mocked(parseRowCells);
 const parseSpy = vi.mocked(parseTableAtOffset);
+/** D41: Tab probes the head's real line, so SPAN-6 counts this entry point. */
+const lineParseSpy = vi.mocked(parseTableAtLine);
 
 const SPAN_CORPUS_COUNT = 60;
 const DOMAIN_TIMEOUT_MS = 180_000;
@@ -237,17 +243,15 @@ describe("D12 WI-5 — the field stores { span, cell }", () => {
       }),
     });
     const presses = Array.from({ length: 9 }, () => {
-      parseSpy.mockClear();
+      lineParseSpy.mockClear();
       const handled = tableTabCommand(view);
-      const parses = parseSpy.mock.calls.length;
+      const parses = lineParseSpy.mock.calls.length;
       return { handled, parses, head: view.state.selection.main.head };
     });
     expect(presses.map((p) => p.parses)).toEqual(Array(9).fill(1));
     expect(presses.map((p) => p.handled)).toEqual(Array(9).fill(true));
     expect(presses.map((p) => p.head)).toEqual([5, 9, 29, 33, 37, 43, 47, 51, 58]);
-    expect(view.state.doc.toString()).toBe(
-      "| a | b | c |\n| - | - | - |\n| d | e | f |\n| g | h | i |\n|  |  |  |\n\n",
-    );
+    expect(view.state.doc.toString()).toBe(T3 + "|  |  |  |\n"); // D41 defect (b)
     view.destroy();
   });
 });

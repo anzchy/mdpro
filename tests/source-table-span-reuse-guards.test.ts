@@ -100,15 +100,15 @@ const body = (doc: string) => doc.indexOf("| 1") + 2;
 
 describe("D12 WI-6 — REUSE-3 M1 mutant killers: body row -> header col 0", () => {
   it.each([
-    ["(a) M1_NEP 18 -> 5", M1_NEP, 18, 5],
-    ["(b) M1_PIPED body -> 5", M1_PIPED, body(M1_PIPED), 5],
-    ["(c) M1_BLANK body -> 6", M1_BLANK, body(M1_BLANK), 6],
-  ] as const)("REUSE-3 %s: null, re-located, Tab falls through", (_n, doc, from, to) => {
+    ["(a) M1_NEP 18 -> 5", M1_NEP, 18, 5, 8],
+    ["(b) M1_PIPED body -> 5", M1_PIPED, body(M1_PIPED), 5, 6],
+    ["(c) M1_BLANK body -> 6", M1_BLANK, body(M1_BLANK), 6, 7],
+  ] as const)("REUSE-3 %s: field null and re-located; Tab gates on the real line and navigates (D41)", (_n, doc, from, to, tabHead) => {
     const r = move(doc, from, to);
     expect(r.got).toEqual({ span: null, cell: null });
     expect(r.got).toEqual(r.want);
     expect(r.locate).toBe(1);
-    expect(press(r.next, tableTabCommand)).toMatchObject({ handled: false, docSame: true, head: to });
+    expect(press(r.next, tableTabCommand)).toMatchObject({ handled: true, docSame: true, head: tabHead });
   });
 
   it("REUSE-3 (d) M1_LINE0 = NEP 18 -> 0: a legitimate reuse", () => {
@@ -223,18 +223,18 @@ describe("D12 WI-6 — REUSE-6 range selections use head, never anchor/from", ()
   const fromZero = (doc: string, anchor: number, head: number) =>
     step(makeState(doc, 0), { selection: { anchor, head } });
 
-  it("(a) AFTER_TAIL {anchor:22, head:32}: null, Tab falls through", () => {
+  it("(a) AFTER_TAIL {anchor:22, head:32}: null, Tab swallows (D41 mixed-selection)", () => {
     const r = fromZero(AFTER_TAIL, 22, 32);
     expect(r.got).toEqual({ span: null, cell: null });
     expect(r.got).toEqual(r.want);
-    expect(press(r.next, tableTabCommand)).toEqual({ handled: false, docSame: true, anchor: 22, head: 32 });
+    expect(press(r.next, tableTabCommand)).toEqual({ handled: true, docSame: true, anchor: 22, head: 32 });
   });
 
-  it("(b) AFTER_TAIL {anchor:32, head:22}: the head's cell, Tab moves to 25", () => {
+  it("(b) AFTER_TAIL {anchor:32, head:22}: the head's cell; Tab swallows (D41 mixed-selection)", () => {
     const r = fromZero(AFTER_TAIL, 32, 22);
     expect(r.got).toEqual({ span: P2_SPAN, cell: { start: 21, end: 24, text: "1", row: 1, col: 0 } });
     expect(r.got).toEqual(r.want);
-    expect(press(r.next, tableTabCommand)).toMatchObject({ handled: true, docSame: true, head: 25 });
+    expect(press(r.next, tableTabCommand)).toEqual({ handled: true, docSame: true, anchor: 32, head: 22 });
   });
 
   it("(c) T3 {anchor:2, head:52}: cell i", () => {

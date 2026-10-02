@@ -42,8 +42,9 @@ import {
   refuseTableWrite,
   type TableWriteRefusalReason,
 } from "../src/utils/tableWriteGuard";
-import { parseTableAt, type TableModel, type TableSpan } from "../src/utils/tableParser";
+import { parseTableAt, type TableModel } from "../src/utils/tableParser";
 import { loggingService } from "../src/services/loggingService";
+import { tableDetectionExtension } from "../src/plugins/codemirror/sourceTableDetection";
 
 // Passthrough mocks: the real implementation runs unless a case
 // explicitly makes it drift.
@@ -53,19 +54,15 @@ vi.mock("../src/utils/cursorSync/table", async (importOriginal) => {
 });
 vi.mock("../src/utils/tableParser/parse", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/utils/tableParser/parse")>();
-  return { ...actual, parseTableAtOffset: vi.fn(actual.parseTableAtOffset) };
-});
-vi.mock("../src/plugins/codemirror/sourceTableDetection", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../src/plugins/codemirror/sourceTableDetection")>();
-  return { ...actual, getTableContext: vi.fn(actual.getTableContext) };
+  return {
+    ...actual,
+    parseTableAtOffset: vi.fn(actual.parseTableAtOffset),
+    parseTableAtLine: vi.fn(actual.parseTableAtLine),
+  };
 });
 
 const { findAllTables } = await import("../src/utils/cursorSync/table");
-const { parseTableAtOffset } = await import("../src/utils/tableParser/parse");
-const { getTableContext } = await import(
-  "../src/plugins/codemirror/sourceTableDetection"
-);
+const { parseTableAtLine, parseTableAtOffset } = await import("../src/utils/tableParser/parse");
 const { applyMcpTableAction, setCell } = await import("../src/utils/tableMcp");
 const { formatAllTables } = await import("../src/utils/tableFormatter");
 const { computeSourceTableContext, dispatchSourceTableAction } = await import(
@@ -132,12 +129,12 @@ function spyOnLog() {
   return vi.spyOn(loggingService, "logEventSync").mockImplementation(() => {});
 }
 
-function makeView(doc: string, cursor: number): EditorView {
+function makeView(doc: string, cursor: number, detection = false): EditorView {
   return new EditorView({
     state: EditorState.create({
       doc,
       selection: EditorSelection.cursor(cursor),
-      extensions: [markdown()],
+      extensions: detection ? [markdown(), tableDetectionExtension()] : [markdown()],
     }),
   });
 }
@@ -358,46 +355,24 @@ describe("W3 — source-mode context menu refuses a phantom model", () => {
 
 describe("W4 — Tab navigation refuses a phantom model", () => {
   /*
-   * D12 WI-4 (ADR-0043 Decision 5): Tab no longer reads its model from
-   * `getTableContext` — that is only the null gate now — but parses its own
-   * with `parseTableAtOffset`. So the phantom is injected there, and the
-   * gate just has to be non-null. Reason for editing this pinned test: the
-   * injection point moved; the specification did not (plan Finding 2).
-   *
-   * D12 WI-5 (plan S2): `getTableContext` returns a `TableSpan`, so the
-   * gate is mocked with a span directly. A span carries no cells, rows or
-   * raw, so neither a refusal nor a navigation can come from the gate value.
+   * D12 WI-4 (ADR-0043 Decision 5): Tab parses its own model per press.
+   * D41 (plan-20261002-D41 WI-4): Tab gates on `hasTableDetection` and probes
+   * the head's REAL line with `parseTableAtLine`, so the phantom is injected
+   * there and the view needs the detection field (without it Tab falls
+   * through and the guard is never reached). A refusal now SWALLOWS the key:
+   * handled, nothing written, one `ui.table.tab_swallowed` per press.
+   * Reason for editing this pinned test: the injection point and the
+   * refusal policy moved (matrix "Commit 2 pin edits").
    */
-  const PHANTOM_SPAN: TableSpan = {
-    start: 7,
-    end: 16,
-    headerLine: 2,
-    lastLine: 3,
-    rowCount: 1,
-    colCount: 1,
-    alignments: [null],
-    delimiterIsCandidate: false,
-  };
-  const P2_SPAN: TableSpan = {
-    start: 0,
-    end: 29,
-    headerLine: 0,
-    lastLine: 2,
-    rowCount: 2,
-    colCount: 2,
-    alignments: [null, null],
-    delimiterIsCandidate: true,
-  };
-
-  it("falls back to the default Tab handler and writes nothing", () => {
+  it("swallows the key and writes nothing", () => {
     const spy = spyOnLog();
-    const view = makeView(DOC_A, 9);
-    vi.mocked(getTableContext).mockReturnValue(PHANTOM_SPAN);
-    vi.mocked(parseTableAtOffset).mockReturnValue(docAPhantom());
+    const view = makeView(DOC_A, 9, true);
+    vi.mocked(parseTableAtLine).mockReturnValue(docAPhantom());
 
-    expect(tableTabCommand(view)).toBe(false);
-    expect(tableShiftTabCommand(view)).toBe(false);
+    expect(tableTabCommand(view)).toBe(true);
+    expect(tableShiftTabCommand(view)).toBe(true);
     expect(view.state.doc.toString()).toBe(DOC_A);
+    expect(view.state.selection.main.head).toBe(9);
 
     const logs = refusalLogs(spy);
     expect(logs).toHaveLength(2);
@@ -409,15 +384,18 @@ describe("W4 — Tab navigation refuses a phantom model", () => {
       controlId: "source.tab_nav",
       reason: "setext-underline",
     });
-    const at9 = vi.mocked(parseTableAtOffset).mock.calls.filter(([, o]) => o === 9);
-    expect(at9).toHaveLength(2);
+    const swallows = spy.mock.calls
+      .map((c) => c[0] as { event: string; context?: Record<string, unknown> })
+      .filter((p) => p.event === "ui.table.tab_swallowed");
+    expect(swallows.map((p) => p.context?.reason)).toEqual(["guard-refused", "guard-refused"]);
+    const atLine2 = vi.mocked(parseTableAtLine).mock.calls.filter(([, l]) => l === 2);
+    expect(atLine2).toHaveLength(2);
   });
 
   it("still navigates inside a genuine table", () => {
     const md = "| a | b |\n| - | - |\n| 1 | 2 |\n";
-    const view = makeView(md, 22);
-    // The gate is non-null; the REAL parse (passthrough) feeds Tab.
-    vi.mocked(getTableContext).mockReturnValue(P2_SPAN);
+    const view = makeView(md, 22, true);
+    // The REAL parse (passthrough) feeds Tab.
     expect(tableTabCommand(view)).toBe(true);
     expect(view.state.selection.main.head).toBe(25);
     expect(view.state.doc.toString()).toBe(md);

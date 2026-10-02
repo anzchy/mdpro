@@ -14,13 +14,14 @@ import { markdown } from "@codemirror/lang-markdown";
 import { completeTreeState } from "./support/completeTreeState";
 import { D12_FIXTURES, ropeSpy } from "./support/tableSpanOracle";
 
-// Passthrough: the real parser runs; the spy only counts (D12 WI-4).
+// Passthrough: the real parser runs; the spy only counts (D12 WI-4). D41: the
+// press probes the head's real line with `parseTableAtLine`.
 vi.mock("../src/utils/tableParser/parse", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/utils/tableParser/parse")>();
-  return { ...actual, parseTableAtOffset: vi.fn(actual.parseTableAtOffset) };
+  return { ...actual, parseTableAtLine: vi.fn(actual.parseTableAtLine) };
 });
 
-const { parseTableAtOffset } = await import("../src/utils/tableParser/parse");
+const { parseTableAtLine } = await import("../src/utils/tableParser/parse");
 const { sourceTableTabKeymap, tableTabCommand, tableShiftTabCommand } = await import(
   "../src/plugins/codemirror/sourceTableTabNav"
 );
@@ -28,7 +29,7 @@ const { tableDetectionExtension } = await import(
   "../src/plugins/codemirror/sourceTableDetection"
 );
 
-const parseSpy = vi.mocked(parseTableAtOffset);
+const parseSpy = vi.mocked(parseTableAtLine);
 
 function makeView(doc: string, cursor: number, detection = true): EditorView {
   const state = EditorState.create({
@@ -107,11 +108,13 @@ describe("tableShiftTabCommand", () => {
     expect(newPos).toBeLessThanOrEqual(cell2Pos + 1);
   });
 
-  it("returns false (no-op) at the first cell of the header", () => {
+  it("swallows at the first header cell (D41: handled, nothing moves)", () => {
     const md = "| a | b |\n| - | - |\n| 1 | 2 |\n";
     const cursor = md.indexOf("a"); // first header cell
     const view = makeView(md, cursor);
-    expect(tableShiftTabCommand(view)).toBe(false);
+    expect(tableShiftTabCommand(view)).toBe(true);
+    expect(view.state.selection.main.head).toBe(2);
+    expect(view.state.doc.toString()).toBe(md);
   });
 });
 
@@ -150,13 +153,14 @@ const { T3, NEP, FENCED_TABLE } = D12_FIXTURES;
 /** T3 cell starts in row-major order: a b c / d e f / g h i. */
 const T3_STARTS = [1, 5, 9, 29, 33, 37, 43, 47, 51];
 
-/** One press, counted: parse calls at the pre-press head, rope snapshot. */
+/** One press, counted: parse calls at the pre-press head's line, rope snapshot. */
 function press(view: EditorView, cmd: Command) {
   const headBefore = view.state.selection.main.head;
+  const headLine = view.state.doc.lineAt(headBefore).number - 1;
   const rope = ropeSpy(view.state.doc);
   parseSpy.mockClear();
   const handled = cmd(view);
-  const parses = parseSpy.mock.calls.filter(([, o]) => o === headBefore).length;
+  const parses = parseSpy.mock.calls.filter(([, l]) => l === headLine).length;
   const allParses = parseSpy.mock.calls.length;
   const counts = rope.counts();
   rope.restore();
@@ -169,9 +173,8 @@ describe("D12 WI-4 — Tab / Shift-Tab materialise their own model", () => {
     const results = Array.from({ length: 9 }, () => press(view, tableTabCommand));
     expect(results.map((r) => r.handled)).toEqual(Array(9).fill(true));
     expect(results.map((r) => r.head)).toEqual([5, 9, 29, 33, 37, 43, 47, 51, 58]);
-    expect(view.state.doc.toString()).toBe(
-      "| a | b | c |\n| - | - | - |\n| d | e | f |\n| g | h | i |\n|  |  |  |\n\n",
-    );
+    // D41 defect (b): exactly one row, no extra blank line.
+    expect(view.state.doc.toString()).toBe(T3 + "|  |  |  |\n");
   });
 
   it("TAB-2: one parse at the pre-press head per press, and no press flattens the rope", () => {
@@ -229,11 +232,11 @@ describe("D12 WI-4 — Tab / Shift-Tab materialise their own model", () => {
   it.each([
     ["Tab on the delimiter row", 16, "tab"],
     ["Shift-Tab on the first header cell", 2, "shift"],
-  ] as const)("TAB-6: %s passes the gate, parses once, returns false", (_n, head, which) => {
+  ] as const)("TAB-6: %s passes the gate, parses once, swallows (D41)", (_n, head, which) => {
     const view = makeView(T3, head);
     parseSpy.mockClear();
     const r = press(view, which === "tab" ? tableTabCommand : tableShiftTabCommand);
-    expect(r.handled).toBe(false);
+    expect(r.handled).toBe(true);
     expect(r.parses).toBe(1);
     expect(r.head).toBe(head);
     expect(view.state.doc.toString()).toBe(T3);

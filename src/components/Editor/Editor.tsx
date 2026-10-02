@@ -103,12 +103,13 @@ export function Editor({
   // Source-mode table Tab / Shift-Tab (Phase 2 WI-2.3, D40). @uiw/react-codemirror
   // puts its default `keymap.of([indentWithTab])` ahead of every extension we
   // pass, so no array position here can outrank it — precedence comes from
-  // Prec.high alone. tableTabCommand returns false when it does not own the
-  // key (prose, fenced code via sourceTableDetection's fence guard, withheld
-  // documents, write-guard refusals, the delimiter row, Shift-Tab in the first
-  // cell), falling through to that default indent, which is also what
-  // code-block Tab (#d170f9c) is. Cost: inside a cell this outranks any future
-  // default-precedence Tab binding.
+  // Prec.high alone. tableTabCommand returns false only when no selected line
+  // is a table line (prose, fenced code, withheld documents), falling through
+  // to that default indent, which is also code-block Tab (#d170f9c). When it
+  // touches a table but cannot navigate (delimiter row, write-guard refusal,
+  // Shift-Tab in the first cell, mixed or multi-table selections) it swallows
+  // the key instead (D41, ADR-0046). Cost: inside a table this outranks any
+  // future default-precedence Tab binding.
   const sourceTableTabKeymapExt = useMemo(
     () => Prec.high(keymap.of(sourceTableTabKeymap)),
     [],

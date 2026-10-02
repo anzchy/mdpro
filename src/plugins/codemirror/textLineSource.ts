@@ -16,7 +16,8 @@
  * guard's `raw` copy, measured in ADR-0043).
  *
  * Pipeline: `Text` -> `linesFromText` -> `TableLineSource` ->
- * `tableParser/scan.ts#scanTables` / `parse.ts#parseTableAtOffset`,
+ * `tableParser/scan.ts#scanTables` / `parse.ts#parseTableAtOffset`
+ * (context menu) / `parse.ts#parseTableAtLine` (Tab, D41),
  * and per cursor move `locate.ts#locateTableAtOffset` ->
  * `cellAtResolvedLine` / `cellAtOffset` (called from
  * `sourceTableDetection.ts`).

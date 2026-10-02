@@ -15,8 +15,9 @@
  * Key decisions:
  * - **Withhold by removal, not by gating inside the field.** A field that
  *   stays installed but returns null would still be a place a later consumer
- *   could re-enable parsing; removing it means `getTableContext` is null and
- *   no per-selection parse runs.
+ *   could re-enable parsing; removing it means `getTableContext` is null,
+ *   no per-selection parse runs, and Tab — which gates on the field's
+ *   presence (`hasTableDetection`, D41) — falls through to indent.
  * - **`tabKeymap` is injected**, so Editor keeps passing its identity-stable
  *   memoized keymap and the helper stays pure.
  * - The context menu and App's table shortcut are not extensions; they gate

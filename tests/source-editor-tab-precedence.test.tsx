@@ -54,9 +54,8 @@ const T3_CELLS: ReadonlyArray<readonly [number, number]> = [
 ];
 const T3_STARTS = [1, 5, 9, 29, 33, 37, 43, 47, 51];
 const T3_LINE_STARTS = [0, 14, 28, 42, 56];
-/** T3 after Tab on the last cell appends one blank row (TAB-1). */
-const T3_APPENDED =
-  "| a | b | c |\n| - | - | - |\n| d | e | f |\n| g | h | i |\n|  |  |  |\n\n";
+/** T3 after Tab on the last cell appends exactly one blank row (TAB-1; D41 defect b). */
+const T3_APPENDED = T3 + "|  |  |  |\n";
 /** T3 with line 1 indented by one indent unit (what `indentMore` gives at head 2). */
 const T3_LINE1_INDENTED = "    | a | b | c |\n| - | - | - |\n| d | e | f |\n| g | h | i |\n";
 const INDENT = "    ";
@@ -116,11 +115,6 @@ function resetDoc(view: EditorView, text: string, h: number): void {
     changes: { from: 0, to: view.state.doc.length, insert: text },
     selection: EditorSelection.cursor(h),
   });
-}
-
-/** Index of the T3 cell containing `h`, or -1 when `h` is in no cell. */
-function cellIndexOf(h: number): number {
-  return T3_CELLS.findIndex(([s, e]) => h >= s && h < e);
 }
 
 /** Greatest T3 line start `<= h`. */
@@ -216,11 +210,12 @@ describe("D40 — table Tab keymap precedence in the mounted Source editor", () 
     for (let h = 0; h <= T3.length; h++) {
       resetDoc(view, T3, h);
       actual.push(press(view, false));
-      const k = cellIndexOf(h);
-      if (k >= 0 && k < 8) {
-        expected.push({ handled: true, head: T3_STARTS[k + 1], doc: T3 });
-      } else if (k === 8) {
-        expected.push({ handled: true, head: 58, doc: T3_APPENDED });
+      // D41: delimiter row swallows; otherwise min{start > h}, else append.
+      const next = T3_STARTS.find((s) => s > h);
+      if (h >= 14 && h <= 27) {
+        expected.push({ handled: true, head: h, doc: T3 });
+      } else if (h !== 56) {
+        expected.push(next === undefined ? { handled: true, head: 58, doc: T3_APPENDED } : { handled: true, head: next, doc: T3 });
       } else {
         const ls = lineStartOf(h);
         expected.push({
@@ -240,12 +235,9 @@ describe("D40 — table Tab keymap precedence in the mounted Source editor", () 
     for (let h = 0; h <= T3.length; h++) {
       resetDoc(view, T3, h);
       actual.push(press(view, true));
-      const k = cellIndexOf(h);
-      expected.push(
-        k >= 1
-          ? { handled: true, head: T3_STARTS[k - 1], doc: T3 }
-          : { handled: true, head: h, doc: T3 },
-      );
+      // D41: start of max{end < h}; delimiter row, line 4 and the first cell stay put.
+      const prev = h >= 14 && h <= 27 ? undefined : T3_CELLS.filter(([, e]) => e < h).pop();
+      expected.push({ handled: true, head: prev && h !== 56 ? prev[0] : h, doc: T3 });
     }
     expect(actual).toEqual(expected);
   });
@@ -303,23 +295,19 @@ describe("D40 — fall-through to the default indent", () => {
     expect(press(view, false)).toEqual({ handled: true, head: 6, doc: T3_LINE1_INDENTED });
   });
 
-  it("P7: Shift-Tab on the first header cell falls through to dedent", () => {
+  it("P7: Shift-Tab on the first header cell swallows (D41)", () => {
     const H2 = "  | a | b | c |\n| - | - | - |\n| d | e | f |\n| g | h | i |\n";
     const view = mountEditor(H2);
     placeCursor(view, 4);
     expect(getTableContext(view.state)).not.toBeNull();
-    expect(press(view, true)).toEqual({ handled: true, head: 2, doc: T3 });
+    expect(press(view, true)).toEqual({ handled: true, head: 4, doc: H2 });
   });
 
-  it("P8: Tab on the delimiter row falls through to indent", () => {
+  it("P8: Tab on the delimiter row swallows (D41)", () => {
     const view = mountEditor(T3);
     placeCursor(view, 16);
     expect(getTableContext(view.state)).not.toBeNull();
-    expect(press(view, false)).toEqual({
-      handled: true,
-      head: 20,
-      doc: "| a | b | c |\n    | - | - | - |\n| d | e | f |\n| g | h | i |\n",
-    });
+    expect(press(view, false)).toEqual({ handled: true, head: 16, doc: T3 });
   });
 });
 
