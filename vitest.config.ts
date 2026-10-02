@@ -22,10 +22,10 @@ export default defineConfig({
       // mean anything.
       include: ["src/**/*.{ts,tsx}"],
       all: true,
-      // Measured floor, rounded down: 31.18 / 61.57 / 82.15 / 31.18. These must
+      // Measured floor, rounded down (2026-10-02, WI-0.1 pre-run): 73.62 / 80.80 / 91.38 / 73.62. These must
       // stay identical to coverageThresholds in .claude/tdd-guardian/config.json;
       // the guardian JSON alone cannot make this command fail.
-      thresholds: { lines: 31, functions: 61, branches: 82, statements: 31 },
+      thresholds: { lines: 73, functions: 80, branches: 91, statements: 73 },
     },
   },
 });
