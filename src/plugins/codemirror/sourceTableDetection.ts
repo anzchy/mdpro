@@ -6,12 +6,14 @@
  * ADR-0043 Decisions 1 and 3). It never holds a `TableModel`.
  *
  * Readers:
- *  - `getTableContext` → the span, used by Tab nav only as a null gate;
- *  - `getActiveTableCell` → the cell, drawn by the cell highlight.
+ *  - `getTableContext` → the span (no production reader since D41);
+ *  - `getActiveTableCell` → the cell, drawn by the cell highlight;
+ *  - `hasTableDetection` → only whether the field is installed: Tab's gate
+ *    (D41, ADR-0046). Tab classifies REAL lines itself
+ *    (`sourceTableTabOwnership.ts`) and never reads the field's value.
  * The whole-table `TableModel` is built only on a user action: each Tab
- * press parses its own (`sourceTableTabNav.ts`, ADR-0043 D5), and the
- * source-mode context menu parses its own at the click position
- * (`sourceTableContextMenu.ts`); neither reads this field's contents.
+ * press parses its own (ADR-0043 D5), and the source-mode context menu
+ * parses its own at the click position (`sourceTableContextMenu.ts`).
  *
  * Fence guard: positions inside ` ``` ` / ` ~~~ ` blocks give null/null,
  * checked first, so the walker never sees pipe-runs that are code content.
@@ -40,7 +42,7 @@
  *
  * @coordinates-with src/utils/tableParser/locate.ts
  * @coordinates-with src/plugins/codemirror/textLineSource.ts
- * @coordinates-with src/plugins/codemirror/sourceTableTabNav.ts
+ * @coordinates-with src/plugins/codemirror/sourceTableTabOwnership.ts
  * @coordinates-with src/plugins/codemirror/sourceTableContextMenu.ts
  * @coordinates-with src/plugins/codemirror/sourceTableCellHighlight.ts
  */
@@ -157,6 +159,14 @@ export function getTableContext(state: EditorState): TableSpan | null {
  */
 export function getActiveTableCell(state: EditorState): TableCell | null {
   return state.field(tableContextField, false)?.cell ?? null;
+}
+
+/**
+ * True when the detection field is installed on `state` — false for a
+ * withheld document, whose table extensions are removed. Reads no value.
+ */
+export function hasTableDetection(state: EditorState): boolean {
+  return state.field(tableContextField, false) !== undefined;
 }
 
 /** CodeMirror extension that registers the detection field. */

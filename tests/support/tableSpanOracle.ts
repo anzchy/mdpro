@@ -157,6 +157,9 @@ export interface RopeSpy {
   reset(): void;
   /** Remove the instance spies (the module-level mocks are untouched). */
   restore(): void;
+  /** D41 gap 4: `toJSON` calls, and every `sliceString(a, b)` (b defaults to length). */
+  toJSONCalls(): number;
+  sliceArgs(): Array<[number, number]>;
 }
 
 /**
@@ -171,6 +174,8 @@ export interface RopeSpy {
 export function ropeSpy(doc: Text): RopeSpy {
   const target = doc as unknown as Record<RopeMethod, (...args: unknown[]) => unknown>;
   const spies = ROPE_METHODS.map((m) => [m, vi.spyOn(target, m)] as const);
+  const json = vi.spyOn(doc, "toJSON");
+  const slice = spies.find(([m]) => m === "sliceString")![1];
   return {
     counts() {
       const out = {} as RopeCounts;
@@ -178,11 +183,14 @@ export function ropeSpy(doc: Text): RopeSpy {
       return out;
     },
     reset() {
-      for (const [, spy] of spies) spy.mockClear();
+      for (const s of [...spies.map(([, spy]) => spy), json]) s.mockClear();
     },
     restore() {
-      for (const [, spy] of spies) spy.mockRestore();
+      for (const s of [...spies.map(([, spy]) => spy), json]) s.mockRestore();
     },
+    toJSONCalls: () => json.mock.calls.length,
+    sliceArgs: () =>
+      slice.mock.calls.map((a) => [Number(a[0]), a[1] === undefined ? doc.length : Number(a[1])]),
   };
 }
 

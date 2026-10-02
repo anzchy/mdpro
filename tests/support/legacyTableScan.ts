@@ -230,13 +230,11 @@ function parseRowCells(line: LineRange, rowIdx: number, colCount: number): Table
       continue;
     }
     if (ch === "|") {
-      cells.push({ start: segStart, end: i, text: buf });
+      // D41 2026-10-02: drop only the blank segment before the FIRST pipe (at most once,
+      // as splitCellTexts does); the old per-push check encoded the column shift.
+      if (segStart !== 0 || buf.trim() !== "") cells.push({ start: segStart, end: i, text: buf });
       buf = "";
       segStart = i + 1;
-      if (cells.length === 1 && cells[0].text.trim() === "") {
-        // Drop the empty leading-edge cell.
-        cells.length = 0;
-      }
       continue;
     }
     buf += ch;
