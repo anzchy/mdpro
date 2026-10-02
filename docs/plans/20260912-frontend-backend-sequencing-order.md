@@ -24,9 +24,9 @@
 | **1** | 🔄 | WI-0.0（已收窄为**本地测试工具链与基线校准**）；CI 触发器与分支保护另起一个 PR | P | 本地可验证；**合并门禁仍不存在**，「故意失败的检查挡住合并」这类验收归后续 PR |
 | **2** | ✅ | 死代码清理，独立 PR | P（WI-0.1 之前） | 必须在基线捕获前完成，否则基线记录的是将被删除的文件 |
 | **3** | 🔄 | **标题身份契约 + TOC 切换（M 提前）**（入口门禁一已交付 `c17c003`；门禁二**六面已全测** 2026-09-15，硬标准「不永久无响应」违反但**已豁免放行** [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) ⇒ **两道入口门禁均已通过，3.1 可开工**）。**进度（2026-09-20）：3.0–3.7 ✅ 全部交付并验证，3.8 ⬜ 未动工**（此前本格记「3.3–3.8 未开工」，写于 2026-09-18，其后 3.3+3.4 `909612b`、3.5 `318b72c`/`2a0e1a4`/`7c892e0`、3.6、3.7 相继交付，本格未同步，属状态失实，于此更正）。3.8 的阻塞项曾是 **D6.3(c)**；**2026-09-21：D6.3(c) 的代码与单测已落地**，3.8 现在等的是 D6 的真机复测，而不是这次实现，见阶段 3 表与 D6 行。**2026-09-22 续记：3.8 仍 ⬜。** D6.3(c) 结构分判据（`703a6b4`）与 D6.3(d) 最长行判据（`1e68461`）已落地并经真机矩阵复测确认拦下 `very-long-line.source`（旧构建挂起 259 483 ms → 现 15 ms 进 Source，`6b45000`）；降级事件进日志（`3eb60a7`）；Source 模式 153–183 s 卡顿查明是 `tocService` 的逐标题前缀重扫、已修（`3d37b86`，组件实测 152 551 → 24 ms，归因更正 `72adeac`）。**仍欠**：3.8 逐面出口复测本身；Source 面没有护栏判据（ADR-0022 设计已 Accepted、未实现）；D12/D13 未修。**2026-09-22 再续记：Source 面护栏判据已落地**（[ADR-0022](../adr/0022-source-mode-gets-its-own-guard-keyed-on-table-row-density.md)，`aac8097`：表格行起始数 > 50 000 时卸掉四个源码表格扩展并停用表格右键菜单/快捷键，每份文档每会话判一次；全套单测 2232 通过；真机 MQ-1..MQ-4 已于同日在 `c9a1698` release bundle 上跑完、四项通过（`docs/test/20260922-adr0022-mq.md`；WYSIWYG 入口「恰好 2 个提示」目测 NOT VERIFIED））；D13 已修（`c06c7b5`，上句「D13 未修」已过期）；D12 仍未修（护栏只限制 50 000 行以上的损害范围）。3.8 仍欠 | **M** | WI-4.26 依赖的 identity 今天是坏的 |
-| **4** | ⬜ | WI-0.1 重跑 → Stage 0→5 全程 | P | 主体工作 |
+| **4** | ⬜ | WI-0.1 重跑 → Stage 0→5 全程。**2026-10-02 登记：WI-0.1 已在 `e471198` 做过一次预跑**（[记录](./20261002-wi-0-1-baseline-draft.md)）；它拍在 3.8 结案之前，按 P 的顺序只算预跑，**正式 WI-0.1 在 3.8 结案后重跑**，状态仍 ⬜ | P | 主体工作 |
 | **5** | ⬜ | 导出迁移、旧解析器退役、ammonia 评估 | M | 行为变更，需独立回滚边界 |
-| **并行** | 🔄 | ~~ESLint（未开始，见 1.10）~~ → **2026-09-22 结案：不接 ESLint**，规则 50 §1 改由 TypeScript 解析器脚本把关（`3fb07b6`，[ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)），见 1.10；**安全收紧：链接点击守卫 C1 已交付并验证**（协议相对链接绕过 `//evil.com/x` → `tauri://evil.com/x`，见 `docs/adr/0002-link-click-routing-and-origin-comparison.md` 与 `docs/adr/0001-wysiwyg-link-scheme-allowlist.md`）；**卫生项已交付**（生成物目录统一入 `.gitignore`；`linkSafety.ts` 与 `useMilkdownLinkClickGuard.ts` 两条 criticalPaths 钉在 100% 行/分支——全局阈值 31/61/82 挡不住只影响这两个文件的回归） | M Part 6 | 不阻塞主线（但见下方 ESLint 例外） |
+| **并行** | 🔄 | ~~ESLint（未开始，见 1.10）~~ → **2026-09-22 结案：不接 ESLint**，规则 50 §1 改由 TypeScript 解析器脚本把关（`3fb07b6`，[ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)），见 1.10；**安全收紧：链接点击守卫 C1 已交付并验证**（协议相对链接绕过 `//evil.com/x` → `tauri://evil.com/x`，见 `docs/adr/0002-link-click-routing-and-origin-comparison.md` 与 `docs/adr/0001-wysiwyg-link-scheme-allowlist.md`）；**卫生项已交付**（生成物目录统一入 `.gitignore`；`linkSafety.ts` 与 `useMilkdownLinkClickGuard.ts` 两条 criticalPaths 钉在 100% 行/分支——全局阈值 31/61/82 挡不住只影响这两个文件的回归；2026-10-02 全局阈值上调到 73/80/91/73，这个结论不变） | M Part 6 | 不阻塞主线（但见下方 ESLint 例外） |
 
 **当前状态实测**：计划 P 实现为零（`src/styles/index.css`、`src/styles/sections/`、
 `ToggleSwitch.tsx`、`Icon.tsx`、`useTauriEvent.ts` 均不在 HEAD）；M 要收敛的五套引擎全部还在。
@@ -54,7 +54,7 @@
 | 1.5 | ✅ | `tsconfig` 纳入 `tests/`；新建 `tests/setup.ts`（显式 `afterEach(cleanup)`） | 已验证：种子测试 `tests/reload-dialog.test.tsx` 既被发现又被类型检查。**未**把 `tests/` 加进 `tsconfig.json`，而是新建 `tsconfig.test.json` + `pnpm typecheck:tests`——`pnpm build` 跑的是裸 `tsc`，否则测试夹具的类型错误会变成发布阻塞 |
 | 1.6 | ✅ | 四个 E7/E28 test-only devDependencies | 已验证：无新增 runtime 依赖；lockfile 改动 1329 → 187 行 |
 | 1.7 | ✅ | **Stryker 的第一个决定不是范围，而是「是否入库」** | **已决：不入库。** 撤掉两个 devDeps 与其后 1329 行 lockfile 改动，`requireMutation: false` 且删除 `mutationCommand`/`mutationGateOn`。理由不是「覆盖率太低不配跑变异测试」（该论点是错的），而是 E29 的前置条件未满足：本 PR 只交付测试基础设施，允许清单模块尚无行为测试 |
-| 1.8 | ✅ | tdd-guardian config v1→v2 迁移，四项阈值重置到实测地板 | **已测并写入 31/61/82/31**（lines/functions/branches/statements；实测 31.18 / 61.57 / 82.15 / 31.18，向下取整）。注意这是**加种子测试与修正 fixture 之后**重测的值，不是先前的 30.87。明确记录旧的 40/45/35/40 是未校准历史配置，非偷偷降低。**必须同时写入 `vitest.config.ts`**，否则 `pnpm coverage` 不会因低覆盖率失败 |
+| 1.8 | ✅ | tdd-guardian config v1→v2 迁移，四项阈值重置到实测地板 | （**2026-10-02 注**：以下是 1.8 当时写入的值；现行阈值已按 WI-0.1 预跑实测地板上调为 73/80/91/73，见阶段 4。）**已测并写入 31/61/82/31**（lines/functions/branches/statements；实测 31.18 / 61.57 / 82.15 / 31.18，向下取整）。注意这是**加种子测试与修正 fixture 之后**重测的值，不是先前的 30.87。明确记录旧的 40/45/35/40 是未校准历史配置，非偷偷降低。**必须同时写入 `vitest.config.ts`**，否则 `pnpm coverage` 不会因低覆盖率失败 |
 | 1.9 | ✅ | **G0 文件检查改写**（必须在 WI-0.1 前） | 改为：全局基线存起点 SHA + 脏改动内容 + 未跟踪清单；每 WI 存自己起点；按**内容差异**核对本 WI 声明文件集 |
 | 1.10 | ✅ | ⚠️ ~~建议追加：ESLint 接入~~（M 的 P1）→ **已决：不接 ESLint** | **2026-09-22 结案（`3fb07b6`：`scripts/lint/no-bare-store-hook.mjs` + `tests/lint-no-bare-store-hook.test.ts`，同提交把 `AdvancedSettings.tsx` 改为逐字段 selector），见 [ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)（Accepted，取代 [ADR-0020](../adr/0020-eslint-enters-as-a-single-rule-devdependency.md)）。** 这条硬前置**不再存在**：规则改用仓库内脚本 + 已经装好的 `typescript` 编译器 API 实现，不新增任何依赖、不动 `package.json`（连 `scripts` 段也不动，加 script key 同样会挂 G0），因此**不需要给 G0 开第二个例外**。两条关键事实推翻了 ADR-0020：一是 `eslint` + `@eslint/js` **根本解析不了 TypeScript**（默认解析器是 Espree，`@eslint/js` 只给配置不给解析器），ADR-0020 全文未提；二是 `typescript` 本来就是直接 devDependency（`package.json:67`，`~5.8.3`），AST 精度与零依赖不冲突。门禁挂在 `tests/` 下的测试上，搭现成的 `unit` lane，不新增 lane |
 
@@ -214,6 +214,14 @@ A8 也还登记着其他候选。C 只缩小 A8，不消灭整个例外机制。
 实现（[ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)）。
 仓库里确实仍然没有 eslint，而这**不再阻塞任何东西** —— 见下方「三个两个计划都未记载的问题 ①」。
 
+**2026-10-02 登记：WI-0.1 预跑，阶段状态仍记 ⬜。** 在 `e471198` 上把 WI-0.1 的五步跑了一遍，记录在
+[`20261002-wi-0-1-baseline-draft.md`](./20261002-wi-0-1-baseline-draft.md)：G0 全绿、无既有失败；覆盖率实测 73.62 / 80.80 / 91.38 / 73.62。
+它拍在阶段 3 出口（3.8）**之前**，按 P 的顺序表只能算**预跑**，不是正式基线、不豁免顺序、不写 ADR；
+**正式 WI-0.1 在 3.8 结案后按同一套命令重跑**。同次决定（用户 2026-10-02）：
+① 两处覆盖率阈值上调到实测地板 73/80/91/73（`vitest.config.ts`、`.claude/tdd-guardian/config.json`）；
+② `src/App.css`、`src/components/TabBar/`、`Sidebar/Sidebar.tsx`、`FileItem.tsx` 仍在 HEAD **不重开阶段 2**，阶段 2 维持 ✅；
+③ Stage 0 文件里两处仍用 `git status --porcelain` 快照的旧口径、G0 的「无新依赖」一行，按改写后的 G0 订正。
+
 **2026-09-22 登记：两个 Stage 4 工作项的「selector 那一半」已提前在树里，阶段状态仍记 ⬜。**
 这不是 Stage 4 开工 —— Stage 0 停止点 1 未过，WI-0.1 基线未跑 —— 而是别处的工作顺带兑现了它们的一部分，
 不登记的话 Stage 4 开工时会重做：
@@ -289,7 +297,21 @@ WI-3.3 焦点环 → WI-3.4 macOS 13.1 floor → WI-3.5 文档/证据/QA
 
 ### Stage 5（交付物 D）
 
-**准入**：E6 `config.json` 覆写修复必须已作为独立 PR 落地（**实测仍未修**）。
+**准入**：E6 `config.json` 覆写修复必须已作为独立 PR 落地（~~**实测仍未修**~~）。
+
+**2026-10-02 订正（核实 `2cb2e01` 与 HEAD 代码）：「实测仍未修」部分过期，E6 不在此标结案。**
+- **已修**：`2cb2e01`（2026-09-23，ADR-0031 第 1 步，与第 2–4 步合在一个提交里，不是只含 E6 的独立 PR）之后，
+  所有「读-改-写」`config.json` 的路径在 `load_preferences()` 失败时都传播错误、一字不写：
+  `set_preferences`（`commands/preferences.rs:79`）、`save_window_state`（`:176`）、`save_window_geometry`（`commands/window.rs:116`）、
+  `set_logging_settings` → `apply_logging_settings`（`commands/logging.rs:104`）、`persist_server_enabled`（`services/preferences_mcp.rs:47`）；
+  `commands/preferences_tests.rs:167`、`:207` 钉住「损坏文件字节不变」。Stage 5 文件的准入原文
+  「a `config.json` parse failure no longer leads to any write over the file」在 Rust 层已成立。
+- **未修**：TODOS.md P1 在 2026-09-11 定下的策略 —— 把坏文件改名为 `config.json.corrupt-<timestamp>`、以默认值继续、
+  弹一次点名备份的 toast、本会话保存照常 —— **一项都没做**（非测试代码里没有备份逻辑）。现行行为正是该条目明确否决的
+  「拒绝一切写入」：损坏时用户本会话的设置改动都不落盘。**加载时**不提示（`src/App.tsx:239` 的 catch 只吞错误）；
+  **每次写入失败**由 `preferencesService.setPreferences`（`src/services/preferencesService.ts:84-93`）记日志并弹 toast（`useLastViewModePersistence.ts:98` 的 `.catch(() => undefined)` 是在它之后吞掉重抛，不是静默）。TODOS.md 的 P1 条目仍开着。
+- **裁定待定**：按 P 与 Stage 5 文件的字面，准入已满足；按 TODOS 定下的策略，未满足。以哪个为准需用户裁定，
+  在此之前 Stage 5 准入维持原状。
 
 WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 设置行 → WI-5.5 设计系统转正（最后）
 

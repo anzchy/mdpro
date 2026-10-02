@@ -288,7 +288,7 @@ Codex 的决议原文：**「采用 C→A，拒绝 B；保留 Markdown 文本真
 
 - 整体 lines/statements **31.74% vs 阈值 40% = FAIL**
   （`.claude/tdd-guardian/coverage-20260629-144249.md`）。
-- 配置阈值原为 40/45/35/40（lines/functions/branches/statements，`.claude/tdd-guardian/config.json`），**WI-0.0 已重置为实测地板 31/61/82/31**。实测 31.18 / 61.57 / 82.15 / 31.18，向下取整；旧的 40/45/35/40 是未校准的历史值，不是被偷偷调低。同一组值必须同时写进 `vitest.config.ts` 的 `coverage.thresholds`——只写 guardian JSON 不会让 `pnpm coverage` 失败。
+- 配置阈值原为 40/45/35/40（lines/functions/branches/statements，`.claude/tdd-guardian/config.json`），**WI-0.0 已重置为实测地板 31/61/82/31**。实测 31.18 / 61.57 / 82.15 / 31.18，向下取整；旧的 40/45/35/40 是未校准的历史值，不是被偷偷调低。同一组值必须同时写进 `vitest.config.ts` 的 `coverage.thresholds`——只写 guardian JSON 不会让 `pnpm coverage` 失败。**2026-10-02 更新**：两处阈值已上调到 WI-0.1 预跑的实测地板 73/80/91/73（实测 73.62 / 80.80 / 91.38 / 73.62，`e471198`），见 [`20261002-wi-0-1-baseline-draft.md`](./20261002-wi-0-1-baseline-draft.md)。
 - 后一份报告显示 96.84% PASS，但**其自身已明确披露**是按变更文件收窄评估、
   标注 `regression: false`、并说明降阈值方案已被否决。
   ⇒ **这是有披露的范围收窄，不是偷偷放水。** 但整体基线确实未达标。

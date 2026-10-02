@@ -204,7 +204,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
       - **Scheduler and worker contract (E33):** normalize Markdown → 300 ms trailing schedule → worker → validate the result against the revision that produced it → publish a scalar. Exactly one owner per window. Every request carries the document id plus a generation counter; a result whose tag no longer matches is discarded, never rendered. On a document switch the strip shows that document's cached value or nothing — **never the previous document's number**. The scalar is volatile: it never marks a document modified, never enters persistence and never triggers an MCP sync.
       - **The count is eventually consistent**, and that is deliberate: it settles after typing stops. Nothing may flush the editor to refresh a decorative number.
       - Rejected: a plain `useMemo`, which every content change invalidates; and a pure derived selector, because equality suppresses the re-render but not the full scan.
-      - The scheduler must **not** key on content length — see E37, where `useMcpSync.ts:139` does exactly that and silently skips equal-length edits.
+      - The scheduler must **not** key on content length — see E37, where `useMcpSync.ts:139` (`:199` as of 2026-10-02) does exactly that and silently skips equal-length edits.
       - It may not be layered on Milkdown's plugin-listener debounce, which coalesces nothing across keystrokes (E33, verified at `lib/index.js:116-143`).
       - Input is the document's Markdown, not editor DOM, so both modes show the same count.
       - First remove what isn't prose: front matter at the start of the file, fence lines (the code between them stays), ordered-list numbers, link and image destinations, autolinks and HTML tags.
