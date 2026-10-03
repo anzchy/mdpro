@@ -34,7 +34,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - **Item 1:** `globals.css:1032` and `:1747` switch to `--color-accent-soft`.
 - **Item 11 (DR12):** colors change instantly; only shape and visibility animate.
   - **Remove** color transitions (preflight re-lists the live sites): `.grid-picker-cell` (`globals.css:639`), the `.toggle-slider` track (`:1335`, `transition: 0.2s` covers every property), `.toc-entry__content` (`:1739`), and `.bottom-tabs__add` and `.bottom-tab` (`BottomTabs.css:24`, `:66`, both `all`). Preflight checks that `all` animated nothing but color. The dead `.tab` rule (`:1629`) is out of scope (A8).
-  - **Keep, on the motion tokens:** the switch knob `transform` (`:1347`), and the hover-reveal `opacity` on `.tab__close` (`:1667`), `.bottom-tab__close` (`BottomTabs.css:105`) and `.mcp-copy-btn` (`:1423`). Spinner keyframes (`globals.css:810`, `imagePastePlugin.css:24`) keep rotating.
+  - **Keep, on the motion tokens:** the switch knob `transform` (`:1347`), and the hover-reveal `opacity` on `.tab__close` (`:1667`), `.bottom-tab__close` (`BottomTabs.css:105`) and `.mcp-copy-btn` (`:1423`). Spinner keyframes (`globals.css:810`, `imagePastePlugin.css:24`) keep rotating. Their `spin 0.8s linear infinite` is a WI-2.1 exception (2026-10-03 ruling R4; `globals.css:815` at a5767d5), not a motion-token site.
   - Add one `@media (prefers-reduced-motion: reduce)` block that sets the duration token to zero (proposal :60). Spinners keep rotating (DR13).
   - **Rule edit (DR13):** `.claude/rules/32-component-patterns.md` § Animations replaces "Wrap non-essential motion in `@media (prefers-reduced-motion: no-preference)`" with: every duration comes from the motion tokens, one `@media (prefers-reduced-motion: reduce)` block zeroes them, and progress spinners keep rotating. The modal-entry and theme-property sentences stay.
   - **Test:** extend the tokenization test so a `transition` or `transition-property` that names `background`, `background-color`, `color`, `border-color`, `box-shadow` or `all`, or has no property at all, fails in in-scope CSS.
@@ -45,6 +45,13 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - Glyph sizes (`.toast-close`, `.settings-close`, `.settings-stepper button`) go on the deferred list, tagged Stage 4 WI-4.2, which replaces them with icons.
   - Give TOC rows and settings-nav rows `min-height: 28px`.
   - Keep the title-bar and tab-bar heights (review :217).
+- **Rulings (2026-10-03, R1, R3, R5, R7, R10):** these class (b) rows change rendered values, so they land here rather than in Stage 2. Line numbers are at a5767d5; see [Appendix A § Rulings](appendix-a-literals.md#rulings-user-2026-10-03).
+  - **Q6 status colours (R10, moved from WI-2.2):** `.about-status-ok` → `--color-text` for both phases, `.about-status-error` → `--color-danger`, and `.about-status-disabled` drops its colour line (`globals.css:1879`, `:1883`, `:1887`).
+  - **R1:** `.mcp-client-status.installed` `#16a34a` → `--color-text` (`globals.css:1517`), extending Q6 by analogy.
+  - **R3:** the primary-button hover `#1d4ed8` (`globals.css:756`, `:1192`) → a `color-mix()` over `--color-accent`. The dark theme's hover changes most, because it is the light-theme blue today.
+  - **R5:** the CodeMirror selection (`globals.css:349`) → a `color-mix()` of `--color-accent` at today's 25%. Dark is unchanged; light becomes the light accent.
+  - **R7:** the Milkdown table `font-size: 14px` (`MilkdownEditor.css:141`) → `0.875em`. It is unchanged at the default editor size, and it now scales with the editor font-size preference.
+  - Each one is an intended Stage 3 change, so it goes in the screenshot index. The About status, the MCP installations row, a primary button's hover, a source-mode selection and a WYSIWYG table must each be captured in both themes. R5's mix uses no literal argument, so it passes WI-2.1's `color-mix()` scanner fixture.
 - **Hover:** row hover moves from `--color-panel` to `--color-hover` (review item 7).
 - **Flat rows and tabs:** TOC rows, settings rail items and tabs get no border or shadow at rest; the radius shows only on the hover or selected fill (DESIGN.md § Tokens). The active tab's `--shadow-soft` is the one exception (proposal :45).
 - **Item 8:** menus and toasts may use `--color-border-subtle` with the single `--shadow-soft`.
