@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>像给五岁小孩讲：Clash Verge 和 Tailscale</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #1f2328; --muted: #5d6470; --card: #ffffff; --line: #e3e0d8;
+    --clash: #d9622b; --ts: #2f6fdf; --ok: #2e8b57; --warn: #b7791f; --code: #f3f1ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17191d; --fg: #e8e6e1; --muted: #a2a8b3; --card: #20232a; --line: #343842;
+      --clash: #f08a55; --ts: #6ea0ff; --ok: #5cc28a; --warn: #e0a84a; --code: #2a2e36;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.75 -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 30px; line-height: 1.3; margin: 0 0 8px; }
+  h2 { font-size: 22px; margin: 56px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .sub { color: var(--muted); margin: 0 0 32px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin: 18px 0; }
+  .who { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .who .card { margin: 0; }
+  .tag { font-weight: 600; }
+  .clash { color: var(--clash); } .ts { color: var(--ts); } .ok { color: var(--ok); } .warn { color: var(--warn); }
+  code { background: var(--code); border-radius: 4px; padding: 1px 6px; font: 14px/1.5 ui-monospace, Menlo, monospace; }
+  pre { background: var(--code); border-radius: 8px; padding: 14px 16px; overflow-x: auto;
+    font: 13.5px/1.6 ui-monospace, Menlo, monospace; }
+  figure { margin: 24px 0; }
+  figcaption { color: var(--muted); font-size: 14px; text-align: center; margin-top: 6px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--fg); font: 14px -apple-system, "PingFang SC", sans-serif; }
+  svg .muted { fill: var(--muted); font-size: 12px; }
+  .box { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+  .final { stroke: var(--ok); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+  .road-clash { stroke: var(--clash); stroke-width: 3; fill: none; }
+  .road-ts { stroke: var(--ts); stroke-width: 3; fill: none; }
+  .bad { stroke: var(--clash); stroke-width: 3; fill: none; stroke-dasharray: 6 5; }
+  ol li, ul li { margin: 6px 0; }
+  .note { border-left: 3px solid var(--warn); padding: 4px 0 4px 14px; color: var(--fg); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  @media (max-width: 560px) { .who { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+<h1>像给五岁小孩讲：<br>Clash Verge 和 Tailscale 怎么一起玩</h1>
+<p class="sub">为什么 <code>ssh mac-mini</code> 会收到一个奇怪的 “403”，又是怎么修好的。</p>
+
+<h2>1. 故事里的角色</h2>
+<p>把你的电脑想成一座房子，每个网络请求都是一封要寄出去的<b>信</b>。</p>
+<div class="who">
+  <div class="card"><span class="tag clash">🧑‍✈️ Clash：门口的分拣员</span><br>
+    每封信出门前都要经过他。他看一张<b>说明卡</b>（YAML），决定这封信是自己走路送（直连），还是交给<b>快递公司</b>（代理节点）。</div>
+  <div class="card"><span class="tag ts">🚇 Tailscale：一条秘密地道</span><br>
+    从你家直通奶奶家（Mac mini）。门牌号都长成 <code>100.x.x.x</code> 的样子。只有走这条地道才能到奶奶家。</div>
+  <div class="card"><span class="tag">🗺️ 路由表：小区地图</span><br>
+    电脑出门先看地图：“去这个门牌号，走哪条路？”地图上<b>写得越具体的路，越优先</b>。</div>
+  <div class="card"><span class="tag">📜 YAML：一张张说明卡</span><br>
+    分拣员的工作手册。好几张卡叠在一起，最后合成一张贴在冰箱上的<b>最终卡</b>。</div>
+</div>
+
+<h2>2. 说明卡是怎么叠起来的（YAML 的原理）</h2>
+<p>分拣员从来不直接看你写的那些卡。每次你按「<b>使用</b>」，Clash Verge 就像做手工一样把卡一层层叠起来，抄出一张<b>最终卡</b> <code>clash-verge.yaml</code>，贴到冰箱上。分拣员只看冰箱上那张。</p>
+
+<figure>
+<svg viewBox="0 0 700 330" role="img" aria-label="YAML 合并流程：订阅原卡加上订阅贴纸、全局贴纸和家长规定，合成最终卡">
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="fill: var(--muted)"/></marker></defs>
+  <rect class="box" x="20" y="20" width="300" height="56" rx="10"/>
+  <text x="36" y="44">① 订阅原卡（快递公司寄来的）</text>
+  <text class="muted" x="36" y="64">Rdh5i0bdPdAN.yaml · 每天会被换新，别在上面写字</text>
+
+  <rect class="box" x="20" y="96" width="300" height="56" rx="10"/>
+  <text x="36" y="120">② 订阅专属贴纸</text>
+  <text class="muted" x="36" y="140">「编辑规则」rOlpyyGLEMXK.yaml 等 5 张</text>
+
+  <rect class="box" x="20" y="172" width="300" height="56" rx="10"/>
+  <text x="36" y="196">③ 全家通用贴纸</text>
+  <text class="muted" x="36" y="216">Merge.yaml / Script.js · 换订阅也还在</text>
+
+  <rect class="box" x="20" y="248" width="300" height="56" rx="10"/>
+  <text x="36" y="272">④ 家长规定（Verge 设置页）</text>
+  <text class="muted" x="36" y="292">端口、TUN 开关… 说了算，会盖住前面的</text>
+
+  <path class="arrow" d="M320,48 C400,48 400,160 450,160"/>
+  <path class="arrow" d="M320,124 C390,124 400,162 450,162"/>
+  <path class="arrow" d="M320,200 C390,200 400,166 450,166"/>
+  <path class="arrow" d="M320,276 C400,276 400,170 450,170"/>
+
+  <rect class="box final" x="452" y="122" width="228" height="88" rx="12"/>
+  <text x="470" y="152">⑤ 冰箱上的最终卡</text>
+  <text class="muted" x="470" y="174">clash-verge.yaml</text>
+  <text class="muted" x="470" y="194">分拣员只看这一张</text>
+</svg>
+<figcaption>按「使用」= 重新叠一次卡。你在外面改了贴纸、没按「使用」，冰箱上的卡就还是旧的。</figcaption>
+</figure>
+
+<div class="card">
+  <b>三条记住就够：</b>
+  <ol>
+    <li><b>别在订阅原卡上写字</b>，它每天会被快递公司换成新的，你写的会消失。</li>
+    <li><b>想改什么就贴贴纸</b>：规则贴在「编辑规则」，其他设置贴在 Merge。</li>
+    <li><b>想知道到底生效没有，只看冰箱上的最终卡</b> <code>clash-verge.yaml</code>。</li>
+  </ol>
+</div>
+
+<p class="note">小陷阱：老版本的贴纸写法 <code>prepend-rules</code> 写在 Merge 里，新版（2.5.6）已经<b>不认了</b>，会被原样抄到最终卡上，但分拣员不看那一栏。规则要贴在「编辑规则」那张专门的贴纸上。</p>
+
+<h2>3. 那个 403 是怎么来的</h2>
+<p>你想寄信给奶奶家 <code>100.124.189.67</code>。那天秘密地道（Tailscale）<b>正好关着</b>。</p>
+
+<figure>
+<svg viewBox="0 0 700 220" role="img" aria-label="Tailscale 关闭时，去 100.x 的信落进 Clash，被交给快递公司，收到 403">
+  <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clash)"/></marker></defs>
+  <rect class="box" x="20" y="80" width="120" height="60" rx="10"/><text x="44" y="116">🏠 你的电脑</text>
+  <rect class="box" x="250" y="80" width="150" height="60" rx="10"/><text x="268" y="106">🧑‍✈️ Clash 分拣员</text>
+  <text class="muted" x="268" y="126">“不认识，交给快递”</text>
+  <rect class="box" x="520" y="20" width="160" height="60" rx="10"/><text x="538" y="56">🚚 快递公司（代理）</text>
+  <rect class="box" x="520" y="140" width="160" height="60" rx="10"/><text x="538" y="168">👵 奶奶家 Mac mini</text>
+  <text class="muted" x="538" y="188">地道关了，到不了</text>
+  <path class="bad" d="M140,110 L250,110" marker-end="url(#ah2)"/>
+  <path class="bad" d="M400,100 C460,90 470,60 520,52" marker-end="url(#ah2)"/>
+  <text x="430" y="40" style="fill: var(--clash)">403 退回！</text>
+</svg>
+<figcaption>地图上没有去 100.x 的专门路线，信就落进分拣员手里，被交给了快递公司。快递公司根本不知道奶奶家在哪，只能回一句“403 不让进”。</figcaption>
+</figure>
+
+<p>SSH 等的是奶奶说“你好”，结果收到的是快递公司的一张退件单（<code>HTTP/1.1 403 Forbidden</code>）。它看不懂，就直接挂断了。</p>
+
+<h2>4. 怎么修好的：三道保险</h2>
+<p>先把地道打开（<code>tailscale up</code>），然后加了三道保险，以后分拣员就不会再碰 100.x 的信：</p>
+
+<figure>
+<svg viewBox="0 0 700 200" role="img" aria-label="修好后，去 100.x 的信绕过 Clash 直接走 Tailscale 地道">
+  <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" style="fill: var(--ts)"/></marker>
+    <marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clash)"/></marker></defs>
+  <rect class="box" x="20" y="70" width="120" height="60" rx="10"/><text x="44" y="106">🏠 你的电脑</text>
+  <rect class="box" x="270" y="130" width="150" height="56" rx="10"/><text x="288" y="163">🧑‍✈️ Clash 分拣员</text>
+  <rect class="box" x="520" y="130" width="160" height="56" rx="10"/><text x="538" y="163">🚚 快递（其他网站）</text>
+  <rect class="box" x="520" y="14" width="160" height="56" rx="10"/><text x="538" y="47">👵 奶奶家 Mac mini</text>
+  <path class="road-ts" d="M140,92 C300,40 420,40 520,42" marker-end="url(#ah3)"/>
+  <text x="250" y="40" style="fill: var(--ts)">🚇 100.x → 走地道</text>
+  <path class="road-clash" d="M140,112 C200,150 230,158 270,158" marker-end="url(#ah4)"/>
+  <path class="road-clash" d="M420,158 L520,158" marker-end="url(#ah4)"/>
+  <text class="muted" x="430" y="148">其他信照旧</text>
+</svg>
+<figcaption>去 100.x 的信从出门第一步就选了地道，根本不经过分拣员。</figcaption>
+</figure>
+
+<table>
+  <tr><th>保险</th><th>像什么</th><th>写在哪</th><th>状态</th></tr>
+  <tr><td><b>① 路线排除</b><br><code>route-exclude-address</code></td>
+      <td>在地图上把 100.x 那一片<b>划掉</b>，分拣员那条路压根不经过这里</td>
+      <td>全局 <code>Merge.yaml</code> 的 <code>tun:</code></td>
+      <td class="ok">✅ 已生效（主力）</td></tr>
+  <tr><td><b>② 分拣规则</b><br><code>IP-CIDR,100.64.0.0/10,DIRECT</code></td>
+      <td>在分拣员手册<b>第一页</b>写：“万一看到 100.x 的信，自己走路送，别给快递”</td>
+      <td>订阅「编辑规则」的 <code>prepend</code></td>
+      <td class="ok">✅ 已生效</td></tr>
+  <tr><td><b>③ 系统代理跳过</b><br><code>skip-proxy</code></td>
+      <td>另一扇门（系统代理）的门卫名单</td>
+      <td>订阅原卡自带</td>
+      <td class="ok">✅ 本来就有</td></tr>
+</table>
+
+<h2>5. 为什么“把 100.64 加进 rules”会有帮助，以及为什么它不是主力</h2>
+<div class="card">
+<p><b>100.64.0.0/10 是什么？</b> 它是一大片门牌号，从 <code>100.64.0.0</code> 到 <code>100.127.255.255</code>。Tailscale 给每台设备发的门牌号都在这片里（你的电脑是 <code>100.84.96.15</code>，奶奶家是 <code>100.124.189.67</code>）。所以“这一片都别碰”就等于“Tailscale 的东西都别碰”。</p>
+<p><b>加进 rules（分拣规则）有什么用？</b> 信<b>已经到了</b>分拣员手里时，他会翻手册，翻到第一页看到“100.x 自己走路送”，就不会再交给快递公司，403 也就没了。</p>
+<p><b>但它只是第二道保险：</b></p>
+<ul>
+  <li>分拣员只在“按手册干活”（<code>mode: rule</code>）时才翻手册。要是切到“全部交给快递”（<code>mode: global</code>），手册就被跳过了。</li>
+  <li>信在他手里转了一圈才出门，多绕了一步。</li>
+</ul>
+<p><b>路线排除</b>（第 ① 道）是在地图上就把这片划掉，信从一开始就不经过分拣员。不管他用什么模式都管用，所以它才是主力。<b>两道一起上最稳。</b></p>
+</div>
+
+<h2>6. 一句话总结</h2>
+<div class="card">
+<p>🧑‍✈️ Clash 是门口的分拣员，📜 YAML 是一叠说明卡，按「使用」才会合成一张新的最终卡。<br>
+🚇 Tailscale 是去奶奶家的秘密地道，门牌号都是 <code>100.x</code>。<br>
+🗺️ 在地图上把 <code>100.64.0.0/10</code> 划出分拣员的地盘（主力），再在手册第一页写“100.x 直送”（备份）。<br>
+这样去奶奶家的信永远走地道，再也不会被快递公司 “403” 退回来。</p>
+</div>
+
+<p class="sub" style="margin-top:40px">详细版：<a href="./clash-verge-tailscale-complete-guide.md">clash-verge-tailscale-complete-guide.md</a></p>
+
+</main>
+</body>
+</html>
