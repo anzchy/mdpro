@@ -4,9 +4,9 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ## Appendix A — Literal classification (filled in WI-0.2)
 
-| File:line | Selector | Property | Value | Class (a/b/c) | Target token / exception | Stage |
-|---|---|---|---|---|---|---|
-| _to fill_ | | | | | | |
+**Filled 2026-10-03 at `a5767d5`; the table lives in [`appendix-a-literals.md`](appendix-a-literals.md)** because it runs to 215 in-scope rows (plus 26 out-of-scope `App.css` rows). That file holds the reconciliation against `baseline-protocol.md` § Baseline, the class-(c) items grouped by Q6–Q10, the plan defects the inventory surfaced, and a 0a3675e → a5767d5 line-drift map. Columns are unchanged: File:line | Selector | Property | Value | Class (a/b/c) | Target token / exception | Stage. One class was added, **allowed**, for literals A5 already permits.
+
+The WI-0.1 baseline's R4 discrepancy table (the "note discrepancies in Appendix A" step) is in [`../20261003-wi-0-1-baseline.md`](../20261003-wi-0-1-baseline.md).
 
 ## Appendix B — QA surface matrix (filled in WI-0.3 / WI-0.4)
 

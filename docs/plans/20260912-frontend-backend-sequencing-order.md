@@ -243,8 +243,8 @@ WI-0.5 CSS 文件图 + rule 33 提案 → WI-0.6 设计评审
 
 | WI | 状态 | 产物 | 提交 | 备注 |
 |---|---|---|---|---|
-| WI-0.1 | ✅ | [`20261003-wi-0-1-baseline.md`](./20261003-wi-0-1-baseline.md) | （下一提交补记） | 正式基线，在干净的 detached worktree `mdpro-wt/verify-a5767d5`（`a5767d5`）上顺序跑：build / test:run（316 文件，4378 passed / 5 todo / 0 failed）/ typecheck:tests / coverage（73.62 / 80.80 / 91.38 / 73.62）/ cargo test（1112 passed / 2 ignored）全部 exit 0，**无既有失败**。全局基线三件套全部 0 字节，直接记在记录里。覆盖率余量很薄（branches 只高出 0.38 个百分点）。readiness 由读 HEAD 的 config 确认，**未调用** `/tdd-guardian:status`（会写用户未提交的 `state.json`）。R4 共 19 处漂移，其中 3 条事实已失效（D6 `:focus-visible` 3 条；D17 PR 触发已由 `1925896` 恢复，但仍无 required checks；D19 tests 已做类型检查） |
-| WI-0.2 | ⬜ | — | — | — |
+| WI-0.1 | ✅ | [`20261003-wi-0-1-baseline.md`](./20261003-wi-0-1-baseline.md) | `ddb1cfe` | 正式基线，在干净的 detached worktree `mdpro-wt/verify-a5767d5`（`a5767d5`）上顺序跑：build / test:run（316 文件，4378 passed / 5 todo / 0 failed）/ typecheck:tests / coverage（73.62 / 80.80 / 91.38 / 73.62）/ cargo test（1112 passed / 2 ignored）全部 exit 0，**无既有失败**。全局基线三件套全部 0 字节，直接记在记录里。覆盖率余量很薄（branches 只高出 0.38 个百分点）。readiness 由读 HEAD 的 config 确认，**未调用** `/tdd-guardian:status`（会写用户未提交的 `state.json`）。R4 共 19 处漂移，其中 3 条事实已失效（D6 `:focus-visible` 3 条；D17 PR 触发已由 `1925896` 恢复，但仍无 required checks；D19 tests 已做类型检查） |
+| WI-0.2 | ✅ | [`appendix-a-literals.md`](./20260911-ui-redesign/appendix-a-literals.md)（`appendices.md` § Appendix A 链接过去） | （下一提交补记） | 在 `a5767d5` 上清点：范围内 215 行（另 26 行 `App.css` 属死代码，列出不分类），a 87 / b 79 / c 27 / **allowed 22**（新增一类，指 A5 已允许的字面量）；只算活选择器 178 行。与 baseline-protocol 的计数逐项对账，差异全部有解释。**留给停止点 1 的待裁定**：类 c 中 Q6 未覆盖的项（`#16a34a`、accent 上的白字、按钮 hover `#1d4ed8`、两处 spinner、CodeMirror 选区色、对话框遮罩、Milkdown 表格 14px 与高亮填充），以及清点暴露的 7 处计划缺陷（其一：Q6 的三处替换排在 WI-2.2 但会改变渲染颜色，与 Stage 2「computed-style diff 为空」冲突） |
 | WI-0.3 | ⬜ | — | — | — |
 | WI-0.4 | ⬜ | — | — | 需 computer use + release 包；用户 2026-10-03 定：先跑 computed-style JSON，截图后拍。verify worktree 保留到 WI-0.4 完成 |
 | WI-0.5 | ⬜ | — | — | — |
