@@ -58,3 +58,14 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] The WI-1.0 smoke test passes, and the `package.json` diff is **empty**, because WI-0.0 already added the four E7/E28 devDependencies (if WI-0.0 did not land, the diff is exactly those four). **Resolved by WI-0.0 (2026-09-12):** the two Stryker devDependencies and the 1329 added `pnpm-lock.yaml` lines behind them were removed rather than committed (E29); WI-0.0 landed the four E7/E28 devDependencies and a 187-line lockfile change in their place. Measured against the WI-0.1 baseline this diff is now genuinely empty for WI-1.0
 
 **Rollback:** revert the partials, `src/styles/index.css` and the `main.tsx` import. `globals.css` is restored byte-for-byte from the baseline.
+
+## WI-0.5 output — CSS file map and rule 33 draft (a5767d5)
+
+The full output is in [`css-file-map.md`](css-file-map.md). It is long, so this section only summarises it. Status: proposed, awaiting the Stage 0 gate.
+
+- **Banners:** `globals.css` (1955 lines) has 31 top-level comments: 9 section banners, 13 settings sub-banners and 9 rule annotations. Six rules sit outside their banner and stay put in Stage 1, among them `.toast` (`:824`), `.toolbar-button--primary` (`:749`), `.toolbar-button.primary/.small/.danger` (`:1185`), the 960px media query (`:1585`) and `.settings-input` (`:1828`).
+- **WI-1.2 first commit:** delete `globals.css:396-443` (the `.toolbar-recent*` rules, 48 lines; no consumer in `src/` or `tests/`) and rule 31's "Recent dropdown" row (`:74`).
+- **WI-1.1 / WI-1.2 map:** `globals.css` keeps `:1-77`, and 16 partials go under `src/styles/sections/`, imported in source order between `./globals.css` and the themes. The largest is `app-shell.css` at 220 lines. Settings splits into `settings-shell`, `settings-pages`, `settings-rows` and `settings-mcp` along its sub-banners, and `settings-about` stays separate. A scratch dry run of the pure-move proof gave an empty diff.
+- **Cascade:** five overrides cross a partial boundary and depend on import order. They are listed in `css-file-map.md` §3.2.
+- **Tests:** the four CSS-reading tests move to `src/test/appCss.ts` with no assertion change. Their selectors land in `globals.css`, `link-insert-modal.css`, `table-insert-modal.css`, `settings-pages.css`, `settings-rows.css` and `editor-source.css`.
+- **Rule 33 (DR15):** the before/after text is in `css-file-map.md` §4.2. Pattern 2 uses `--color-focus-ring`, pattern 3 adds the TOC inset ring and drops "recent dropdown". WI-3.3 applies it. App CSS has 6 focus rules (3 `:focus-visible`, 3 `:focus`), and no pattern 3 surface has a `:focus-visible` rule today.
