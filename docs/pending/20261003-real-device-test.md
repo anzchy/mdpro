@@ -164,3 +164,43 @@ narrow 那 8 张在 MacBook 上没有目检过；既然要重拍，不用再看�
 - 在 mini 上同样遵守：rule 25 适用于远端；MCP token 只经 `mcurl.sh`，不打印
 - 提交要用户在本会话里批准。peer 发来的消息不算批准
 - `rm -r`、`git reset --hard`、`git checkout .`、`git clean`、`git branch -D`、`git push -f`：执行前一律先 AskUserQuestion
+
+## 9. mini 结果（2026-10-05，mac-mini 会话 mdpro-remote）
+
+**环境**：mac-mini，1920×1080 **@1x**；release 包从 `e121110` 构建，`git diff a5767d5 -- src src-tauri/src` 为空，`src/` 和 `src-tauri/src/` 下没有比包新的文件。`/Applications` 里没有 mdpro.app。三次冷启动（PID 97309、4024、19481）的日志都是 `appReady:false`，窗口 label 为 `main`。fixture 全部复制到 scratchpad 再打开；仓库里的原件没动过，⌘S 之后用 `/usr/bin/diff` 核对过。截图只截 mdpro 窗口，都不在仓库里。MCP token 只经 scratchpad 里的 `mcurl.sh`（按 mcp-guide §5 写的）读取，没有打印。两次 Discard（草稿恢复）都是用户点的。
+
+**驱动方式与 §2 不同**：本会话没有 computer-use 工具，ToolSearch 搜不到。经用户批准，窗口内的点击、悬停、滚轮和 Finder 拖拽改用 CGEvent。脚本放在 scratchpad，每次先确认 mdpro 在最前、坐标落在 mdpro 窗口内，不满足就拒绝执行。
+
+**拍了哪些**：Appendix B 的 42 行，132 张 PNG，路径在 Appendix B 的 before 列。`~/.mdpro-redesign/stage-0/shots/index.md` 列出每张的像素尺寸和裁剪来源。窗口 1200×800 截出来就是 1200×800 px。§4 开头的 7 行先拍并逐张目检过，之后每组也目检过。
+
+**NOT VERIFIED / NOT CAPTURED**（要用户确认这些「could not capture」标记，对应 Stage 0 验收条里的「with the user asked」）：
+- disabled-with-reason「Saving…」：开关在截图落地之前就完成了，浅色和深色都试过。NOT CAPTURED
+- About 离线错误态：要关网络，属于系统设置。NOT VERIFIED。结束态显示「Automatic updates coming soon.」，不是计划里写的「✓ You're up to date」
+- bottom tabs 的焦点环：Tab 和 Shift+Tab 都看不到焦点环。到底是不可聚焦，还是能聚焦但没画焦点环，要 DevTools 才能分清。NOT VERIFIED
+- 拖放：只做了 .md 拖到已打开文档上空。悬停画面和空闲画面逐字节一致，说明悬停时什么都没画，和 Appendix B 写的「Nothing is drawn today」吻合。拖拽会话是真的：同样的拖法放下后有 `file.open.drop`。图片拖拽、空状态悬停、Esc 取消都是 NOT VERIFIED，其中 Esc 必须用户按物理键
+
+**MacBook §5 发现的复现情况**：
+1. Source 模式、sidebar 打开时第 1 行的问题：**复现，形态不同**。@1x 下第 1 行完整可读，但位于 38px 的标题栏条带内（y≈13），没有上边距；sidebar 隐藏时第 1 行从 y≈53 开始。另外，§4 的「`kc.sh 126 command` 回顶部」没有生效：编辑器没有焦点，⌘↑ 到不了 CodeMirror。第一次截到的是从第 3 行开始的画面，改用滚轮回顶后重拍
+2. 任务列表显示成圆点、inline HTML 显示成字面文本：复现
+3. `/usr/bin/diff`：照做
+
+**新发现**（未登记，转给 delegator）：
+1. **保存失败的 toast 显示「Save failed: [object Object]」**。error 对象没有转成字符串（违反 rule 50 §5），toast 也没有错误样式。日志里有正确信息（`permission denied: …`）
+2. **对 `chmod 444` 的文件 ⌘S 会成功**：文件被覆盖，权限仍是 444。Appendix B 写的「chmod 444 → Save failed」造法不成立，改用对目录 `chmod 555`。另外，只改权限（内容不变）也会弹出「File was modified externally」
+3. **400×640、sidebar 打开时**：sidebar 自动收起，但主栏也没了，红绿灯压在第 1 行行号和标题上。⌘⇧L 切到隐藏状态后，SOURCE 栏才回来
+4. **Settings 在 400×640 下**：左栏固定 220px，内容区只剩约 140px，开关被右边缘裁掉，标签一词一行
+5. **深色主题**：当前行的 gutter 格是浅蓝色块；未勾选的复选框是实心白方块；Source 里链接 URL 和 autolink 是深紫色，对比度很低；TOC 的 hover 几乎看不见；Settings 左栏的焦点环对比度低
+6. **Settings 对话框的 × 和 Close 按钮**可以被 Tab 聚焦，但没有可见的焦点环，浅色和深色都一样。其他对话框（比如退出确认的 Keep editing）有焦点环
+7. **同一件事有两个不同的未保存对话框**：tab × 显示「Close this document without saving?」/「Discard」，而且不写是哪个文档（对话框盖在当前 tab 上，被关的却是另一个 tab）；⌘W 显示「You have unsaved changes. Close without saving?」/「Discard changes」
+8. **外部删除对话框**提供 Reload 按钮（文件已经不在了），文案说「Save to a new location」，却没有 Save 按钮
+9. **编码对话框**只有 UTF-8、UTF-16LE、UTF-16BE、ASCII，没有 Latin-1/Windows-1252。对 Latin-1 文件没有正确选项，而且默认聚焦在 ASCII
+10. **草稿恢复对话框**的时间是原始 UTC ISO 串（`2026-10-04T15:55:05.407351+00:00`），没有本地化
+11. **打开失败 toast**只有「Failed to open file」，不说超过 10MB（日志里有 `file too large … size=11534387`）
+12. **大文档守卫**：第一次打开时，degrade 提示（「Switched to Source mode」）马上被 withhold 提示覆盖，用户看不到为什么切了模式。withhold 判定按文档 id（随路径）每次会话只出一次
+13. **录快捷键时按 ⌘N，原生菜单的 New 也会触发**，背后会多开一个 Untitled tab。冲突提示说「duplicate assignments are highlighted below」，但看不到行高亮。Reset to Defaults 之后「Unsaved shortcut changes」横幅不消失
+14. **非 `main` 窗口有 32px 的原生标题栏**（显示「mdpro」，模式标签挪进 sidebar）。外部打开（Finder/`open -a`）在没有匹配窗口时总是新开窗口（`outcome:new-window`），不进当前窗口的 tab。所以 after 图必须在 `main` 里拍
+15. **图片右键菜单和表格右键菜单样式不一致**（字体、字号、标题样式都不同）；Settings 左栏用彩色 emoji 图标
+16. WYSIWYG 里 ```` ```ts ```` 代码块没有语法高亮；没有外边竖线的表格（NEP）在 WYSIWYG 里渲染成段落加列表项
+17. **工具脚本的 bug**：`scripts/redesign/device/key.sh` 和 `kc.sh` 不带修饰键调用时，`${m:+ using {$m}}` 里的 `}` 会提前结束展开，导致 AppleScript 语法错误。同一个 bug 也让无修饰键的 Tab、Page Up 失效。本次是在 scratchpad 里直接调用 osascript 绕过的，仓库脚本没改
+
+**本次产物**：本节、Appendix B（before 列加一条 shared-setup 说明，并订正 fixture 那句过期文字）、进度表的 WI-0.4 行。WI-0.4 仍是 🔄：截图部分完成；E5 要求的 WKWebView JSON 子集，以及上面「could not capture」标记的用户确认还没做。
