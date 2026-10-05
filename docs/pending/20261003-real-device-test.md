@@ -171,13 +171,13 @@ narrow 那 8 张在 MacBook 上没有目检过；既然要重拍，不用再看�
 
 **驱动方式与 §2 不同**：本会话没有 computer-use 工具，ToolSearch 搜不到。经用户批准，窗口内的点击、悬停、滚轮和 Finder 拖拽改用 CGEvent。脚本放在 scratchpad，每次先确认 mdpro 在最前、坐标落在 mdpro 窗口内，不满足就拒绝执行。
 
-**拍了哪些**：Appendix B 的 42 行，132 张 PNG，路径在 Appendix B 的 before 列。`~/.mdpro-redesign/stage-0/shots/index.md` 列出每张的像素尺寸和裁剪来源。窗口 1200×800 截出来就是 1200×800 px。§4 开头的 7 行先拍并逐张目检过，之后每组也目检过。
+**拍了哪些**：Appendix B 的 42 行，142 张 PNG（含复查补的 10 张），路径在 Appendix B 的 before 列。`~/.mdpro-redesign/stage-0/shots/index.md` 列出每张的像素尺寸和裁剪来源。窗口 1200×800 截出来就是 1200×800 px。§4 开头的 7 行先拍并逐张目检过，之后每组也目检过。
 
-**NOT VERIFIED / NOT CAPTURED**（要用户确认这些「could not capture」标记，对应 Stage 0 验收条里的「with the user asked」）：
-- disabled-with-reason「Saving…」：开关在截图落地之前就完成了，浅色和深色都试过。NOT CAPTURED
-- About 离线错误态：要关网络，属于系统设置。NOT VERIFIED。结束态显示「Automatic updates coming soon.」，不是计划里写的「✓ You're up to date」
-- bottom tabs 的焦点环：Tab 和 Shift+Tab 都看不到焦点环。到底是不可聚焦，还是能聚焦但没画焦点环，要 DevTools 才能分清。NOT VERIFIED
-- 拖放：只做了 .md 拖到已打开文档上空。悬停画面和空闲画面逐字节一致，说明悬停时什么都没画，和 Appendix B 写的「Nothing is drawn today」吻合。拖拽会话是真的：同样的拖法放下后有 `file.open.drop`。图片拖拽、空状态悬停、Esc 取消都是 NOT VERIFIED，其中 Esc 必须用户按物理键
+**NOT VERIFIED / NOT CAPTURED**（2026-10-05 复查后只剩 2 项，都是硬限制，原因如下。**用户已于 2026-10-05 确认接受这 2 个「could not capture」标记**）：
+- disabled-with-reason「Saving…」：**NOT CAPTURED**。日志 `mcp.server.toggle` 显示保存只要 11–18 ms，一次窗口截图要约 67 ms。两个方向各连拍 30 帧，只拍到开关变色的过渡，拍不到 reason 那一行（它渲染在开关上方，出现时布局会下移，30 帧里都没有下移）。不改代码（比如加 debug 延时）就拍不到
+- About 离线错误态：**NOT VERIFIED**。离线走的是 `error` 分支，需要真的断网；关网络属于系统设置，用户要求不改。另外，在线的「✓ You're up to date」在这个构建上也到不了：请求 GitHub endpoint 会报「Could not fetch a valid release」，`AboutSettings.tsx:91-97` 把它归为 updates-disabled，显示「Automatic updates coming soon.」
+- ~~bottom tabs 的焦点环~~：**已核实**（2026-10-05）。在 WYSIWYG 编辑器里按一次 Tab 落到 `+`，有完整焦点环，按 Return 会新建文档（日志 `tab.open`）。再按 Tab 会依次经过各个文档 tab，焦点环只剩左右两条边，上下被滚动容器裁掉。tab 的 × 也是一个 Tab 停点，但它只在 hover 时显示，所以聚焦时什么都看不到。Source 模式下 CodeMirror 吃掉 Tab（会插入制表符），从编辑器到不了底栏。截图见 `focus-bottomtabs-{plus,tab}-{light,dark}`
+- ~~拖放~~：**已核实**（2026-10-05）。.md 和图片、已打开文档和空状态、浅色和深色，一共 8 组悬停，编辑区画面都和空闲画面逐字节一致，悬停时什么都没画。拖拽用 CGEvent 合成，同样的拖法放下后日志有 `file.open.drop`，证明拖拽会话是真的。Esc 由用户按物理键（输入法已切 ABC）：拖到一半按 Esc，图标飞回 Finder，取消成立
 
 **MacBook §5 发现的复现情况**：
 1. Source 模式、sidebar 打开时第 1 行的问题：**复现，形态不同**。@1x 下第 1 行完整可读，但位于 38px 的标题栏条带内（y≈13），没有上边距；sidebar 隐藏时第 1 行从 y≈53 开始。另外，§4 的「`kc.sh 126 command` 回顶部」没有生效：编辑器没有焦点，⌘↑ 到不了 CodeMirror。第一次截到的是从第 3 行开始的画面，改用滚轮回顶后重拍
@@ -201,6 +201,8 @@ narrow 那 8 张在 MacBook 上没有目检过；既然要重拍，不用再看�
 14. **非 `main` 窗口有 32px 的原生标题栏**（显示「mdpro」，模式标签挪进 sidebar）。外部打开（Finder/`open -a`）在没有匹配窗口时总是新开窗口（`outcome:new-window`），不进当前窗口的 tab。所以 after 图必须在 `main` 里拍
 15. **图片右键菜单和表格右键菜单样式不一致**（字体、字号、标题样式都不同）；Settings 左栏用彩色 emoji 图标
 16. WYSIWYG 里 ```` ```ts ```` 代码块没有语法高亮；没有外边竖线的表格（NEP）在 WYSIWYG 里渲染成段落加列表项
-17. **工具脚本的 bug**：`scripts/redesign/device/key.sh` 和 `kc.sh` 不带修饰键调用时，`${m:+ using {$m}}` 里的 `}` 会提前结束展开，导致 AppleScript 语法错误。同一个 bug 也让无修饰键的 Tab、Page Up 失效。本次是在 scratchpad 里直接调用 osascript 绕过的，仓库脚本没改
+17. ~~工具脚本的 bug~~：`key.sh`、`kc.sh` 不带修饰键时 `${m:+ using {$m}}` 会出 AppleScript 语法错误。**已由 `84c030a` 修复**（另一个会话在 2026-10-05 07:53 提交到本分支）。本次拍摄期间是在 scratchpad 里直接调用 osascript 绕过的
+18. **底栏的键盘可达性**：文档 tab 的焦点环被裁成左右两条；tab 的 × 聚焦时不可见；Source 模式下 Tab 出不了 CodeMirror（见上面 NOT VERIFIED 一节的已核实项）
+19. **mdpro 窗口会被挪动**：中途发现窗口从 (100,100) 跑到了 (0,92)，原因不明（可能和 Finder 窗口操作有关）。点击脚本只检查坐标落在窗口内，不检查是否点中目标控件，导致一次「Saving…」重拍误点到正文（只移动了光标）。之后每批操作前都先用 `size.sh` 复位窗口
 
-**本次产物**：本节、Appendix B（before 列加一条 shared-setup 说明，并订正 fixture 那句过期文字）、进度表的 WI-0.4 行。WI-0.4 仍是 🔄：截图部分完成；E5 要求的 WKWebView JSON 子集，以及上面「could not capture」标记的用户确认还没做。
+**本次产物**：本节、Appendix B（before 列加一条 shared-setup 说明，订正 fixture 那句过期文字，2026-10-05 复查后又改了 4 行）、进度表的 WI-0.4 行。WI-0.4 仍是 🔄：截图部分完成；E5 要求的 WKWebView JSON 子集，没做（剩下 2 项「could not capture」已经用户确认）。
