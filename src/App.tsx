@@ -979,8 +979,6 @@ function App() {
     <div className={`app-shell${showSidebar ? "" : " no-sidebar"}`}>
       <DevToolbar
         onOpenFile={handleDevOpenFile}
-        onNewDocument={createDocument}
-        onOpenDialog={handleOpenDialog}
       />
             {showSidebar ? (
         <TOCSidebarContainer

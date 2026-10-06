@@ -1542,45 +1542,6 @@ a {
   gap: 8px;
 }
 
-/* Dev Toolbar - only visible in browser mode */
-.dev-toolbar {
-  position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  font-size: 12px;
-}
-
-.dev-toolbar-label {
-  font-weight: 600;
-  color: #92400e;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.dev-toolbar-button {
-  padding: 4px 10px;
-  background: #f59e0b;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.dev-toolbar-button:hover {
-  background: #d97706;
-}
-
 
 @media (max-width: 960px) {
   .app-shell {

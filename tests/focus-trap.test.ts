@@ -1,8 +1,9 @@
 /**
  * Tests for issue #13 — a11y focus order fixes.
  *
- * 1. DevToolbar must have tabIndex={-1} on its container so keyboard-only
- *    users are not routed through dev controls before reaching the editor.
+ * 1. DevToolbar's hidden file input must stay out of the tab order so
+ *    keyboard-only users are not routed through a dev hook before reaching
+ *    the editor.
  * 2. Modal dialogs must handle the Escape key to close.
  * 3. Dialogs that have no close action (RecoveryDialog) must NOT be given
  *    an Escape handler, since the user must make an explicit choice.
@@ -24,16 +25,25 @@ function readComponent(relPath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// DevToolbar — must be excluded from tab order
+// DevToolbar — its hidden file input must be excluded from tab order
 // ---------------------------------------------------------------------------
 
 describe("DevToolbar tab order", () => {
-  const src = readComponent("components/DevToolbar.tsx");
+  const code = stripComments(readComponent("components/DevToolbar.tsx"));
 
-  it("outermost container has tabIndex={-1}", () => {
-    // The root <div className="dev-toolbar"> must carry tabIndex={-1} so the
-    // browser skips it during sequential Tab navigation.
-    expect(src).toMatch(/tabIndex=\{-1\}/);
+  // The visible <div className="dev-toolbar"> container (and its tabIndex={-1})
+  // no longer exists: by user decision 2026-10-05 (plan-20261005-devtoolbar WI-2)
+  // browser dev mode mounts only a hidden file input. The keyboard-order
+  // guarantee now has to hold on that input instead.
+  it("renders no .dev-toolbar container", () => {
+    expect(code).not.toMatch(/className="dev-toolbar/);
+  });
+
+  it("the dev-open-file input is hidden and has tabIndex={-1}", () => {
+    const input = code.match(/<input[\s\S]*?\/>/)?.[0] ?? "";
+    expect(input).toMatch(/data-testid="dev-open-file"/);
+    expect(input).toMatch(/\bhidden\b/);
+    expect(input).toMatch(/tabIndex=\{-1\}/);
   });
 });
 

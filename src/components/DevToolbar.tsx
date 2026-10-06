@@ -1,31 +1,31 @@
 import { useRef } from "react";
-import { loggingService } from "../services/loggingService";
 
 interface DevToolbarProps {
   onOpenFile: (content: string, fileName: string) => void;
-  onNewDocument?: () => void;
-  onOpenDialog?: () => void;
 }
 
 /**
- * Development-only toolbar for testing/debugging.
- * Visible when running in development mode:
- * - `pnpm dev` (browser mode) - uses browser file input
- * - `pnpm tauri dev` (Tauri development) - uses Tauri native dialogs
- * Hidden in:
- * - Built macOS app (production)
+ * Browser-dev-mode test hook — renders no visible UI in any mode.
+ *
+ * In `pnpm dev` (`import.meta.env.DEV` true and no `window.__TAURI_INTERNALS__`) it
+ * mounts one hidden, unfocusable `<input type="file" data-testid="dev-open-file">`.
+ * Setting files on it (e.g. the E5 snapshot harness, `scripts/redesign/snapshot.js`)
+ * reads the file and calls `onOpenFile(content, fileName)`.
+ *
+ * Renders nothing under `pnpm tauri dev` (the native menu provides New / Open) or in
+ * the built app, so every mode looks like the release app. The visible "DEV MODE"
+ * toolbar was removed by user decision on 2026-10-05.
  */
-export function DevToolbar({ onOpenFile, onNewDocument, onOpenDialog }: DevToolbarProps) {
+export function DevToolbar({ onOpenFile }: DevToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if running in Tauri environment
   const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-  // Only show in development mode (both browser and Tauri dev)
-  // - pnpm dev: DEV=true, isTauri=false → show (browser file input)
-  // - pnpm tauri dev: DEV=true, isTauri=true → show (Tauri native dialogs)
-  // - built app: DEV=false → hide
-  if (!import.meta.env.DEV) {
+  // Mount only in browser development mode
+  // - pnpm dev: DEV=true, isTauri=false → hidden file input
+  // - pnpm tauri dev: DEV=true, isTauri=true → nothing
+  // - built app: DEV=false → nothing
+  if (!import.meta.env.DEV || isTauri) {
     return null;
   }
 
@@ -47,38 +47,16 @@ export function DevToolbar({ onOpenFile, onNewDocument, onOpenDialog }: DevToolb
     }
   };
 
-  const handleOpenClick = () => {
-    loggingService.logButtonClick("dev.toolbar.open_file");
-    if (isTauri && onOpenDialog) {
-      // In Tauri dev mode, use native file dialog
-      onOpenDialog();
-    } else {
-      // In browser mode, use file input
-      fileInputRef.current?.click();
-    }
-  };
-
-  const handleNewClick = () => {
-    loggingService.logButtonClick("dev.toolbar.new_document");
-    onNewDocument?.();
-  };
-
   return (
-    <div className="dev-toolbar" tabIndex={-1}>
-      <span className="dev-toolbar-label">DEV MODE</span>
-      <button className="dev-toolbar-button" onClick={handleNewClick}>
-        New
-      </button>
-      <button className="dev-toolbar-button" onClick={handleOpenClick}>
-        Open
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".md,.markdown"
-        onChange={handleFileSelect}
-        style={{ display: "none" }}
-      />
-    </div>
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept=".md,.markdown"
+      data-testid="dev-open-file"
+      hidden
+      tabIndex={-1}
+      aria-hidden="true"
+      onChange={handleFileSelect}
+    />
   );
 }
