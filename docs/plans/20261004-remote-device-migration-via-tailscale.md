@@ -124,7 +124,12 @@ The release app is `src-tauri/target/release/bundle/macos/mdpro.app`. Before any
 
 ## 5. Bringing the work back
 
-1. The remote session commits on the same branch, with explicit-path `git add` and the user's approval, and **does not push anywhere**.
+**Division of labour (user decision, 2026-10-06):** the remote does **real-device tests only**, meaning work that needs its display, GUI session or WKWebView. All development happens on the MacBook: code, scripts (including `scripts/redesign/snapshot.js`), and plan and doc edits.
+- The remote writes its results to a report **outside the repo**: `~/.mdpro-redesign/<stage>/reports/<date>-<topic>.md`.
+- The MacBook reads that report over SSH and writes it into the repo docs.
+- When the remote needs a MacBook change, the MacBook pushes it to a temporary branch on the remote (`git push mac-mini <branch>:refs/heads/macbook-sync`). The remote fast-forwards with `git merge --ff-only macbook-sync`, then deletes the temporary branch.
+
+1. If the remote does have a commit to make (device evidence metadata only), it commits on the same branch, with explicit-path `git add` and the user's approval, and **does not push anywhere**.
 2. The MacBook pulls it: `git fetch mac-mini docs/stage-0-redesign`, reviews `git log`/`git diff` against its own branch, then fast-forwards or merges.
 3. The MacBook session reports to peer sessions (e.g. mdpro-delegator), because the remote can't.
 4. Screenshots and other evidence stay in `~/.mdpro-redesign/` on the machine that took them. Commit only paths and metadata (Appendix B), never images.
