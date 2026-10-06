@@ -37,15 +37,18 @@
  * generators (`yield`) driven by `co()` instead. Do not introduce that keyword.
  *
  * Element identity is selector + index (first ITEM_LIMIT matches; the full
- * match count is recorded too). Hover cannot be forced from script; each
- * surface lists its hover-only styling under `manual`.
+ * match count is recorded too, except for VIRTUALIZED selectors, whose count is
+ * how far the editor's virtual viewport had rendered and flips between runs in
+ * WKWebView). Hover cannot be forced from script; each surface lists its
+ * hover-only styling under `manual`.
  */
 (function () {
   "use strict";
 
-  var SCHEMA = 1;
+  var SCHEMA = 2; // 2: no `count` for VIRTUALIZED selectors
   var ITEM_LIMIT = 8;
   var SETTLE_MS = 120;
+  var VIRTUALIZED = { ".cm-line": true };
   var WAIT_TIMEOUT_MS = 4000;
 
   // A5 families (colour, font-family, font-size, radius, motion, z-index,
@@ -256,7 +259,8 @@
   function openFixture(name) {
     return co(function* () {
       var before = qa(".bottom-tab").length;
-      var input = yield must(".dev-toolbar input[type=file]", "DevToolbar file input");
+      // dev-open-file: the hidden input after 1703dbb; .dev-toolbar: the a5767d5 baseline.
+      var input = yield must("[data-testid=dev-open-file], .dev-toolbar input[type=file]", "dev file input");
       var dt = new DataTransfer();
       dt.items.add(new File([FIXTURE], name || "surfaces-fixture.md", { type: "text/markdown" }));
       input.files = dt.files;
@@ -391,7 +395,7 @@
       if (els.length === 0) errors.push("[" + phase + "] selector matched nothing: " + sel);
       var items = {};
       els.slice(0, ITEM_LIMIT).forEach(function (el, i) { items[String(i)] = captureEl(el); });
-      out[sel] = { count: els.length, items: items };
+      out[sel] = VIRTUALIZED[sel] ? { items: items } : { count: els.length, items: items };
     });
     return out;
   }
