@@ -7,10 +7,11 @@
  * Pipeline (plan WI-10 with decisions O1-O3):
  *   parse argv (`--help` → done, nothing touched)
  *   → delete this profile's existing manifest (every later failure leaves none)
- *   → `verify` without `src-tauri/tauri.verify.conf.json` → fail (WI-002)
+ *   → `verify` without `src-tauri/tauri.verify.conf.json` → fail (the overlay, WI-002)
  *   → sourceTree (before) → placeholder `binaries/` sidecar if absent
  *   → cargo build the sidecar (no MDPRO_BUILD_ID) → copy into `binaries/` if bytes differ
  *   → sha256 sidecar → buildId → `pnpm tauri build` with MDPRO_BUILD_ID=buildId
+ *     (`verify`: + `--config` overlay and the `verify-run` feature)
  *   → sourceTree (after) must equal before → main binary must embed buildId
  *   → codesign / digests / versions / HEAD → assemble → privacy check → write
  *
@@ -27,6 +28,11 @@
  * - Every failure rejects with `BuildError` (argument errors stay
  *   `BuildArgsError`); the first line of the message is the reason. Nothing is
  *   printed by `runBuild`; progress goes to the optional `log`.
+ * - `buildId` and the manifest's `features` take the user's feature list; the
+ *   `verify-run` feature the verify profile adds is implied by `profile`,
+ *   which is already hashed. Arguments are parsed before anything on disk is
+ *   touched, so an argument error (a user `verify-run` included) leaves even a
+ *   stale manifest in place (matrix F5).
  * - The whole manifest goes through `assertNoPrivateData` before it is written,
  *   not just the codesign fields.
  * - `spawnTool`, the real `run`, is exported only for its tests; a spawn error
@@ -139,8 +145,8 @@ export async function runBuild({ repoRoot, argv, run, log = () => {} }) {
   await step("removing the previous manifest", () => fs.rmSync(layout.manifestPath, { force: true }));
   if (profile === "verify" && !fs.existsSync(layout.overlay)) {
     throw new BuildError(
-      `profile verify needs ${VERIFY_OVERLAY_REL.join("/")}, which does not exist yet; ` +
-        "it is added by WI-002. Build with --profile release until then.",
+      `profile verify needs ${VERIFY_OVERLAY_REL.join("/")} (the verify overlay, ADR-0047 WI-002), ` +
+        "which is missing; restore it from git, or build with --profile release.",
     );
   }
 
@@ -176,7 +182,7 @@ export async function runBuild({ repoRoot, argv, run, log = () => {} }) {
     }),
   );
   log(`control:build: buildId ${buildId}; building the app`);
-  runTool(run, "tauri build", tauriCommand(features), {
+  runTool(run, "tauri build", tauriCommand(profile, features), {
     cwd: repoRoot,
     env: { ...env, MDPRO_BUILD_ID: buildId },
     capture: false,

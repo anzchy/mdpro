@@ -25,6 +25,10 @@
  *   one command line is a mistake, not an override.
  * - Every error is a `BuildArgsError` whose message names the offending token
  *   and ends with `USAGE`.
+ * - `verify-run` (exactly that token) is refused under every profile (ADR-0047
+ *   WI-002): the `verify` profile adds it itself, and a `release` build must
+ *   never carry it. Near misses (`verify_run`, `Verify-run`, …) are ordinary
+ *   feature names.
  *
  * @module scripts/control/args
  * @coordinates-with scripts/control/buildId.mjs (isValidFeatureName)
@@ -36,6 +40,9 @@ const PROFILES = ["release", "verify"];
 const DEFAULT_PROFILE = "release";
 const HELP_TOKENS = ["--help", "-h"];
 const PNPM_SEPARATOR = "--";
+
+/** The cargo feature the `verify` profile owns; a user may not request it. */
+export const VERIFY_RUN_FEATURE = "verify-run";
 
 /** The help text the entry prints for `--help` and after every argument error. */
 export const USAGE = [
@@ -84,6 +91,12 @@ function parseFeatureList(value) {
         `--features: invalid feature name "${name}" (allowed: letters, digits, _ and -, not starting with -)`,
       );
     }
+    if (name === VERIFY_RUN_FEATURE) {
+      throw new BuildArgsError(
+        `--features: "${VERIFY_RUN_FEATURE}" is owned by the verify profile, which adds it itself; ` +
+          "use --profile verify instead of requesting it",
+      );
+    }
   }
   return names;
 }
@@ -94,7 +107,7 @@ function parseFeatureList(value) {
  * @param {string[]} argv the arguments after the script name (`process.argv.slice(2)`)
  * @returns {{ help: true } | { profile: "release" | "verify", features: string[] }}
  * @throws {BuildArgsError} for an unexpected token, a missing or invalid value,
- *   or a repeated `--profile`; the message names the token and includes `USAGE`
+ *   a user-supplied `verify-run`, or a repeated `--profile`; the message names the token and includes `USAGE`
  */
 export function parseBuildArgs(argv) {
   if (argv.some((t) => HELP_TOKENS.includes(t))) return { help: true };

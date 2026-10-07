@@ -7,7 +7,7 @@
  * Pipeline (one call each, in `runBuild`'s order):
  *   buildLayout(repoRoot, profile)   → every path the entry reads or writes
  *   childEnv(callerEnv, layout)      → caller env with CARGO_TARGET_DIR per profile
- *   sidecarCommand / tauriCommand / codesignCommand → [cmd, args]
+ *   sidecarCommand(features) / tauriCommand(profile, features) / codesignCommand → [cmd, args]
  *   ensurePlaceholder(dest)          → empty file when absent (as release.yml does)
  *   copyIfDifferent(src, dest)       → bytes replaced only when they differ
  *   embedsId(binary, buildId)        → the ASCII id occurs in the binary's bytes
@@ -19,6 +19,15 @@
  *   it, for the sidecar and the app build alike, so a profile never picks up the
  *   other's sidecar. Nothing else in the caller's environment is changed here;
  *   `MDPRO_BUILD_ID` is removed for the sidecar and set for the app by the caller.
+ * - `verify` passes the overlay `src-tauri/tauri.verify.conf.json` as a second
+ *   `--config` (after NO_UPDATER_CONFIG; order matters, later configs win) and
+ *   adds the `verify-run` feature to the app build only (ADR-0047 WI-002). The
+ *   path is repo-relative posix, resolved by tauri from the repo-root cwd, so
+ *   no absolute path reaches argv. The sidecar never gets `verify-run`.
+ * - The verify bundle is the constant `mdpro-verify.app`, NOT read from the
+ *   overlay's `productName`: a drift between the two then fails the build at
+ *   "left no main binary" instead of silently following the overlay. The main
+ *   binary keeps the cargo name `tauri-app` under both profiles.
  * - The sidecar copy compares bytes first, so an unchanged sidecar keeps its
  *   mtime and does not make cargo or tauri think the bundle input changed.
  * - The embed check looks for the full 64-character id, never a prefix or "any
@@ -30,19 +39,21 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { VERIFY_RUN_FEATURE } from "./args.mjs";
 import { MANIFEST_FILE } from "./manifest.mjs";
 
 /** The sidecar's cargo binary name. */
 export const SIDECAR_BIN = "mdpro_mcp";
 /** Where the bundle takes the sidecar from (tauri's `externalBin` + target triple). */
 export const SIDECAR_DEST_REL = ["src-tauri", "binaries", "mdpro_mcp-aarch64-apple-darwin"];
-/** Overlay config the `verify` profile needs; added by WI-002. */
+/** Overlay config the `verify` profile passes as its second `--config` (WI-002). */
 export const VERIFY_OVERLAY_REL = ["src-tauri", "tauri.verify.conf.json"];
 export const CARGO_MANIFEST_REL = "src-tauri/Cargo.toml";
 const TARGET_REL = ["src-tauri", "target"];
 const VERIFY_TARGET_SUBDIR = "verify";
 const BUNDLE_SUBDIR = ["release", "bundle", "macos"];
-const APP_NAME = "mdpro.app";
+/** Bundle name per profile: tauri names it `<productName>.app`; verify's comes from the overlay. */
+const APP_NAME = { release: "mdpro.app", verify: "mdpro-verify.app" };
 const MAIN_BINARY_REL = ["Contents", "MacOS", "tauri-app"];
 const DIST_DIR = "dist";
 /** `--config` value for the app build: no updater artifacts, so no signing key is needed. */
@@ -64,7 +75,7 @@ export function buildLayout(repoRoot, profile) {
   const base = path.join(repoRoot, ...TARGET_REL);
   const targetDir = profile === "verify" ? path.join(base, VERIFY_TARGET_SUBDIR) : base;
   const bundleDir = path.join(targetDir, ...BUNDLE_SUBDIR);
-  const app = path.join(bundleDir, APP_NAME);
+  const app = path.join(bundleDir, APP_NAME[profile]);
   return {
     profile,
     targetDir,
@@ -104,13 +115,17 @@ export function sidecarCommand(features) {
 }
 
 /**
- * The app build. The `verify` overlay is NOT passed yet: adding it as a second
- * `--config` belongs to WI-002, which also creates the file.
- * @param {string[]} features
+ * The app build. `verify` adds the overlay as a second `--config` and the
+ * `verify-run` feature; features are passed sorted and unique.
+ * @param {"release" | "verify"} profile
+ * @param {string[]} features the user's features (never `verify-run`; `parseBuildArgs` refuses it)
  * @returns {[string, string[]]}
  */
-export function tauriCommand(features) {
-  return ["pnpm", ["tauri", "build", "--bundles", "app", "--config", NO_UPDATER_CONFIG, ...featureArgs(features)]];
+export function tauriCommand(profile, features) {
+  const verify = profile === "verify";
+  const configs = ["--config", NO_UPDATER_CONFIG, ...(verify ? ["--config", VERIFY_OVERLAY_REL.join("/")] : [])];
+  const effective = [...new Set(verify ? [...features, VERIFY_RUN_FEATURE] : features)].sort();
+  return ["pnpm", ["tauri", "build", "--bundles", "app", ...configs, ...featureArgs(effective)]];
 }
 
 /** @param {string} app absolute path of the `.app` @returns {[string, string[]]} */

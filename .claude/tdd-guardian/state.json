@@ -328,6 +328,49 @@
       "mutations": "11/11 killed incl. 2 extra (drop escapeRe; compareDigits as strings)",
       "laneNote": "unit lane 4675 passed / 0 failed / 5 todo; two new files to keep privacy and versions test files under 300 lines; WI-6/T19 placed in digests-entries (digests.test.ts already 326 lines) with fixture copied",
       "updatedAt": "2026-10-03T04:51:29.923Z"
+    },
+    "ADR47-WI002-3": {
+      "status": "DONE",
+      "testFiles": [
+        "src-tauri/src/services/draft/startup_migration_tests.rs"
+      ],
+      "sourceFiles": [
+        "src-tauri/src/services/draft/startup_migration.rs",
+        "src-tauri/src/services/draft/mod.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "laneNote": "rust lane (R-off) cargo test 1144 passed / 0 failed / 2 ignored; WI3 filter 6/6 (T06 ran, not skipped, uid 501); t08 green unedited; clippy -D warnings clean; rustfmt clean on touched files (repo-wide cargo fmt --check has 17 pre-existing diffs elsewhere). R-on receipt not run: verify-run feature does not exist until WI-4.",
+      "separation": "NOT-RECORDED via receipt CLI (no receipt path supplied). Red observed by hand: compile-missing-symbol E0432 for migrate_legacy_drafts_logged only. One test-file edit between red and green, fixture input only (no assertion changed): WI3-T05 blocker moved from .../mdpro/drafts (a file there passes ensure_dir exists() and the ENOTDIR rename is skipped silently -> Ok(0), no line) to its parent .../mdpro so create_dir_all fails, as the matrix intended.",
+      "notes": "main.rs 525 -> 499 lines (migration block -> one call, order app.launch -> migration -> builder unchanged). WI3-T07 belongs to WI-5 vitest wiring file, not written here. Pre-existing NOTE: a regular file at the drafts dir makes startup migration a silent no-op (no log line); out of scope (behaviour-preserving refactor).",
+      "updatedAt": "2026-10-07T08:40:25.000Z"
+    },
+    "ADR47-WI002-1": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-verify-overlay.test.ts",
+        "tests/helpers/jsonMergePatch.ts"
+      ],
+      "sourceFiles": [
+        "src-tauri/tauri.verify.conf.json"
+      ],
+      "separation": "SEPARATION-HELD (receipt ADR47-WI002-1, opaque-failure; behavioural red: T01/T02/T04/T05/T06 failed on the assertion 'tauri.verify.conf.json exists'; T03 is the RFC 7396 oracle self-check and passes by design)",
+      "laneNote": "unit lane 4733 passed / 0 failed / 5 todo (339 files) after WI002-2; matrix WI1-T01..T06 as written; overlay has no $schema (five rows only), endpoints [] and no null; RFC 7396 helper shared in tests/helpers/jsonMergePatch.ts (also used by the fake runner and WI2-T07); receipt notes 2 pre-modified non-test files = concurrent WI-3 agent's src-tauri/src/services/draft/*",
+      "updatedAt": "2026-10-07T08:48:16.000Z"
+    },
+    "ADR47-WI002-2": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-verify-profile.test.ts",
+        "tests/helpers/controlBuildRepo.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/args.mjs",
+        "scripts/control/buildSteps.mjs",
+        "scripts/control/build.mjs"
+      ],
+      "separation": "SEPARATION-HELD (receipt ADR47-WI002-2, opaque-failure; behavioural red: 18 of 21 new cases failed on assertions (T01 argv, T03 not.toThrow on the new signature, T04 x12, T05 x2, T07 basename, T08), plus existing WI-10/T04 via the overlay-aware helper; T02/T06/T10 green at red by design: regression / near-miss / buildId-domain pins)",
+      "laneNote": "unit lane 4733 passed / 0 failed / 5 todo; coverage lines 73.96 / branches 91.42 / functions 80.97 / statements 73.96; typecheck:tests clean; tauriCommand(profile, features) sorts+dedupes; verify bundle constant mdpro-verify.app; user verify-run refused in parseBuildArgs (F5: argument errors touch nothing); refusal reworded, keeps tauri.verify.conf.json + WI-002 (F1); fake runner names bundle from merged --config productName and mkBuildRepo copies the real overlay (F6); existing WI-10 tests unedited; buildSteps.mjs 217 lines; D-WI2 device check pending",
+      "updatedAt": "2026-10-07T08:48:16.000Z"
     }
   },
   "lastCoverageRun": {
