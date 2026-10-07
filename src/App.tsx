@@ -1050,6 +1050,7 @@ function App() {
         title="Unsaved changes"
         message={confirmDialog.message}
         confirmLabel="Discard changes"
+        destructive
         cancelLabel="Keep editing"
         onConfirm={handleConfirmClose}
         onCancel={handleCancelClose}
