@@ -71,6 +71,7 @@ import { OPEN_IN_WINDOW_EVENT, useOpenInWindow } from "../src/hooks/useOpenInWin
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
+import { useToastStore } from "../src/stores/toastStore";
 import type { Document } from "../src/types/document";
 
 const LABEL = "mdpro-a";
@@ -325,5 +326,74 @@ describe("useOpenInWindow — routable and the subscription lifecycle", () => {
     ]);
     const everything = JSON.stringify([sink.logEventSync.mock.calls, sink.logEvent.mock.calls]);
     expect(everything).not.toContain("SECRET-CONTENT");
+  });
+});
+
+// D46 WI-3 — matrix `.claude/tdd-guardian/tests-20261003-130127.md` § WI-3 (OW-1, OW-2).
+// Law: one route event that fails to reopen gives exactly one toast emission (from the
+// hook, never from the route handler), and `documents` and the active ids are conserved.
+describe("useOpenInWindow — a failed reopen toasts once, from the hook (D46)", () => {
+  const TOO_LARGE = { FileTooLarge: { path: "/p/z.md", size: 10485761 } };
+  const routeFails = () => logs().filter((p) => p.event === "file.open.route" && p.status === "fail");
+
+  function recordToastEmissions(): { emissions: string[]; stop: () => void } {
+    const emissions: string[] = [];
+    const stop = useToastStore.subscribe((s) => {
+      if (s.message !== null) emissions.push(s.message);
+    });
+    return { emissions, stop };
+  }
+
+  beforeEach(() => {
+    useToastStore.getState().clearToast();
+  });
+
+  afterEach(() => {
+    useToastStore.getState().clearToast();
+  });
+
+  it("OW-1 FileTooLarge on a closed tab: one toast, documents and active ids unchanged, one route fail log", async () => {
+    seed([doc("B", "/p/b.md", false)], "B");
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === "open_file") throw TOO_LARGE;
+      return null;
+    });
+    mount();
+    await settle();
+    const before = clone(docs());
+    const { emissions, stop } = recordToastEmissions();
+    try {
+      await emit({ windowLabel: LABEL, documentId: "Z", path: "/p/z.md" });
+    } finally {
+      stop();
+    }
+    expect(emissions).toEqual(["Failed to open file"]);
+    expect(docs()).toEqual(before);
+    expect(activeIds()).toEqual(["B", "B"]);
+    expect(openCalls()).toHaveLength(1);
+    expect(routeFails()).toHaveLength(1);
+    expect(routeFails()[0]).toEqual(
+      expect.objectContaining({
+        error: "open returned nothing",
+        context: expect.objectContaining({ outcome: "opened-path", documentId: "Z", windowLabel: LABEL }),
+      }),
+    );
+  });
+
+  it("OW-2 a successful reopen gives no toast", async () => {
+    seed([doc("B", "/p/b.md", false)], "B");
+    openResult(doc("Z", "/p/z.md", false));
+    mount();
+    await settle();
+    const { emissions, stop } = recordToastEmissions();
+    try {
+      await emit({ windowLabel: LABEL, documentId: "Z", path: "/p/z.md" });
+    } finally {
+      stop();
+    }
+    expect(emissions).toEqual([]);
+    expect(docs().some((d) => d.id === "Z")).toBe(true);
+    expect(activeIds()).toEqual(["Z", "Z"]);
+    expect(routeFails()).toHaveLength(0);
   });
 });

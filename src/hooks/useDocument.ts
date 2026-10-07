@@ -16,6 +16,7 @@ import {
   type EncodingReopenResult,
   type OpenWriteResult,
 } from "../utils/openWriteGuard";
+import { parseEncodingError, reportOpenFailure } from "../utils/openFailure";
 
 const createEmptyDocument = (): Document => ({
   id:
@@ -37,17 +38,6 @@ const getTitleFromPath = (path: string | null) => {
 };
 
 const LARGE_FILE_WARNING = "Large file opened (>10MB). Performance may be affected.";
-
-const parseEncodingError = (error: unknown) => {
-  if (!error || typeof error !== "object") return null;
-  const maybe = error as { EncodingError?: { path: string; detected: string } };
-  if (maybe.EncodingError) return maybe.EncodingError;
-  const message = (error as { message?: string }).message;
-  if (message && message.includes("EncodingError")) {
-    return { path: "", detected: "unknown" };
-  }
-  return null;
-};
 
 export function useDocument() {
   const documents = useDocumentStore((s) => s.documents);
@@ -74,6 +64,8 @@ export function useDocument() {
   // await; a dirty target (checked after a "reopen" flush) is focused, never replaced,
   // and returned so callers still record the path. The decode-failure exit focuses a
   // dirty open doc via `focusDirtyOpenAt` before it would show EncodingDialog.
+  // D46: any other failure (e.g. FileTooLarge) gets the ⌘O toast and a path-free log
+  // from `reportOpenFailure`, then returns null; no caller adds a toast of its own.
   const openDocumentFromPath = useCallback(
     async (path: string, actionId?: string) => {
       try {
@@ -88,6 +80,8 @@ export function useDocument() {
             path: encodingError.path || path,
             detected: encodingError.detected || "unknown",
           });
+        } else {
+          reportOpenFailure(error, actionId);
         }
         return null;
       }

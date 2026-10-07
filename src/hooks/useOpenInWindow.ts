@@ -24,6 +24,9 @@
  * - **`routable` is true only after `listen` resolved while mounted.** It goes into the
  *   sync payload (WI-6): Rust must not route to a window that cannot hear it yet.
  * - **The label is re-checked** even though `emit_to` already targets this window.
+ * - **A failed reopen is reported by `openDocumentFromPath`, not here.** That hook shows
+ *   the one "Failed to open file" toast (D46); this handler logs the route fail only, so
+ *   a failure never toasts twice.
  * - **Logs carry ids, the label and the outcome — never content.** Under Tauri, a
  *   failed subscription writes one `file.open.route.listen` fail, carrying the
  *   rejection (or getter) error message in `context.error`.
@@ -51,7 +54,11 @@ const ROUTE_LOG_EVENT = "file.open.route";
 const LISTEN_LOG_EVENT = "file.open.route.listen";
 
 export interface OpenInWindowOptions {
-  /** `useDocument().openDocumentFromPath`; resolves to the document, or `null` on failure. */
+  /**
+   * `useDocument().openDocumentFromPath`; resolves to the document, or `null` on failure.
+   * A failed reopen gets its "Failed to open file" toast from that hook (D46); the route
+   * handler only logs the `file.open.route` fail and adds no toast of its own.
+   */
   openDocumentFromPath: (path: string) => Promise<unknown>;
 }
 

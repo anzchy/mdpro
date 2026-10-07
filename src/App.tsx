@@ -65,6 +65,7 @@ import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
 import { quitDialogModel } from "./utils/quitDialogModel";
 import { encodingReopenOutcome } from "./utils/openWriteGuard";
+import { OPEN_FAILED_MESSAGE } from "./utils/openFailure";
 import { recoverDraft, discardRecoveryDraft, type DraftMetadata } from "./services/draftService";
 import { draftRecoveryOutcome, type DraftActionOutcome } from "./utils/draftRecoveryOutcome";
 
@@ -397,7 +398,7 @@ function App() {
         openDialogCooldownRef.current = Date.now() + 500;
       }
     } catch {
-      showToast("Failed to open file");
+      showToast(OPEN_FAILED_MESSAGE);
     } finally {
       setBusyLabel(null);
       openDialogLockRef.current = false;

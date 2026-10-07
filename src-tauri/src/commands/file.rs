@@ -398,6 +398,10 @@ fn validate_save_path(path: &std::path::Path) -> Result<(), &'static str> {
 }
 
 #[cfg(test)]
+#[path = "file_size_limit_tests.rs"]
+mod file_size_limit_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
