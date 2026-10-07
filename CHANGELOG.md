@@ -108,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Pressing Enter in an "Unsaved changes" dialog no longer throws your edits away (D48). The dialog behind ⌘W, window close and closing a tab used to open with focus on Discard; it now opens on Keep editing, so Discard takes a deliberate click or Tab. The update dialog's "Save and Restart" still opens on its confirm button.
-  - **Not yet verified on a real device**; the evidence so far is unit tests only.
+  - Verified on a real device (Mac mini, release build of `5154220`): ⌘W and tab close both open on Keep editing. The Sidebar's close path is covered by unit tests only, because the Sidebar is not rendered in the app.
 - Any failed external open — Finder, `open -a`, or reopening a file routed to another window — now shows a "Failed to open file" toast instead of leaving a silent, empty window (D46). The most visible case was a file over 10 MB: Rust rejected it correctly, but `openDocumentFromPath` swallowed the error. Each failure toasts once (⌘O keeps its own toast and is not doubled) and logs one `file.open.report` entry naming the reason, never the path. The window stays open.
   - **Not yet verified on a real device**; the evidence so far is unit tests only.
 - A table row whose first cell is blank no longer has its content moved one column to the left (D41, part 1). The row parser dropped every blank first cell, not just the optional text before the first `|`, so `| | x |` was read as a one-cell row containing `x` and a row of blank cells was read as having no cells at all. Every path that rewrites a table from that reading corrupted it:
