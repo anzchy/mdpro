@@ -417,9 +417,10 @@
 
   // ---------------------------------------------------------------- selectors
 
+  // No .dev-toolbar*: 1703dbb removed the visible DevToolbar, so those
+  // selectors would match nothing. Baselines from before 1703dbb have them.
   var CHROME = [
     ".app-shell", ".main", ".workspace",
-    ".dev-toolbar", ".dev-toolbar-label", ".dev-toolbar-button",
     ".bottom-tabs", ".bottom-tabs__add"
   ];
   var SIDEBAR = [".sidebar-header", ".sidebar-mode-label"];
@@ -520,7 +521,7 @@
       setup: function () { return co(function* () { yield openFixture(); yield setMode("source"); }); },
       phases: [phase("base", "document open", null, function () { return modeLabel() === "SOURCE" && qa(".bottom-tab").length === 1; },
         cat(CHROME, SIDEBAR, TABS_OPEN, SOURCE))],
-      manual: [".dev-toolbar-button:hover", ".bottom-tab:hover", ".bottom-tab__close:hover"]
+      manual: [".bottom-tab:hover", ".bottom-tab__close:hover"]
     },
 
     "source-syntax": {
