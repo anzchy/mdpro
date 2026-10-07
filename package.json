@@ -12,6 +12,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "coverage": "vitest run --coverage",
+    "test:heavy": "scripts/heavy-lock.sh vitest run --coverage",
+    "tauri:build:locked": "scripts/heavy-lock.sh tauri build",
     "perf:d12": "vitest run --config vitest.perf.config.ts",
     "typecheck:tests": "tsc -p tsconfig.test.json",
     "ledger:check": "node scripts/ledger/check.mjs",

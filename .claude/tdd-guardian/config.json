@@ -12,7 +12,7 @@
     {
       "name": "unit",
       "description": "Vitest + jsdom frontend tests (tests/**/*.test.{ts,tsx}). No external services.",
-      "command": "pnpm exec vitest run --coverage",
+      "command": "scripts/heavy-lock.sh pnpm exec vitest run --coverage",
       "gateOn": ["taskCompleted", "commit"],
       "coverage": "include",
       "coverageSummaryPath": "coverage/coverage-summary.json",
@@ -22,7 +22,7 @@
     {
       "name": "rust",
       "description": "cargo test for the Tauri backend: #[cfg(test)] units, tests/render_golden.rs, doc tests.",
-      "command": "cargo test --manifest-path src-tauri/Cargo.toml",
+      "command": "scripts/heavy-lock.sh cargo test --manifest-path src-tauri/Cargo.toml",
       "gateOn": ["commit"],
       "coverage": "none",
       "probeCommand": "cargo test --manifest-path src-tauri/Cargo.toml -- --list",
