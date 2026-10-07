@@ -26,6 +26,9 @@
 //!   rollback baseline, never the pre-confirm snapshot.
 //! - Server-file I/O lives in `mcp_controller::files` (ADR-0040 WI-1); this
 //!   file only names the app's dir, `data_dir()/mdpro` (`app_controller_env`).
+//! - The port is 55045, or 0 (ephemeral) with the `verify-run` feature
+//!   (ADR-0047 WI-002, `mcp_server_port`); the controller publishes the port
+//!   it actually bound to `server.port`.
 //! - The server's lifecycle is the `McpController`'s (ADR-0040 WI-5); this
 //!   file only supplies the app's `ControllerEnv` (`app_controller_env`:
 //!   address and dir) and its router (`router_factory`).
@@ -76,8 +79,11 @@ pub struct AppState {
     pub confirm: Arc<AppConfirmBroker>,
 }
 
-/// Get the mdpro config directory (platform-standard data dir).
-fn config_dir() -> Option<PathBuf> {
+/// Get the mdpro config directory (platform-standard data dir),
+/// `data_dir()/mdpro`, resolved from the current HOME on every call.
+/// `pub(crate)` so the run-isolation test (ADR-0047 WI-002 WI-8) can call
+/// it as the resolver of the MCP server-files root.
+pub(crate) fn config_dir() -> Option<PathBuf> {
     dirs::data_dir().map(|d| d.join("mdpro"))
 }
 
@@ -893,14 +899,28 @@ pub fn create_router(state: AppState) -> Router {
 }
 
 /// Default port for MCP HTTP server
+#[cfg(not(feature = "verify-run"))]
 const MCP_SERVER_PORT: u16 = 55045;
 
-/// The app's `ControllerEnv`: `127.0.0.1:55045`, publishing into
-/// `config_dir()`. `None` when the platform has no data dir.
+/// A verify build binds an ephemeral port (ADR-0047 WI-002), so it never
+/// collides with, or answers for, the user's real app on 55045.
+#[cfg(feature = "verify-run")]
+const MCP_SERVER_PORT: u16 = 0;
+
+/// The port the app asks to bind: 55045, or 0 (ephemeral) in a
+/// `verify-run` build. The controller publishes the port actually bound.
+pub(crate) fn mcp_server_port() -> u16 {
+    MCP_SERVER_PORT
+}
+
+/// The app's `ControllerEnv`: `127.0.0.1:mcp_server_port()`, publishing into
+/// `config_dir()`. `None` when the platform has no data dir. In a
+/// `verify-run` build HOME is inside the run dir, so `server.port` (holding
+/// the bound port) lands in the run dir too.
 pub fn app_controller_env() -> Option<ControllerEnv> {
     let dir = config_dir()?;
     Some(ControllerEnv::new(
-        SocketAddr::from(([127, 0, 0, 1], MCP_SERVER_PORT)),
+        SocketAddr::from(([127, 0, 0, 1], mcp_server_port())),
         dir,
     ))
 }
@@ -930,6 +950,10 @@ mod auth_tests;
 #[cfg(test)]
 #[path = "http_server_insert_reread_tests.rs"]
 mod insert_reread_tests;
+
+#[cfg(test)]
+#[path = "http_server_port_tests.rs"]
+mod port_tests;
 
 #[cfg(test)]
 mod tests {

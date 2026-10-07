@@ -63,7 +63,8 @@ pub const EXIT_BUDGET: Duration = Duration::from_secs(4);
 /// Where and how the controller runs its server.
 #[derive(Clone)]
 pub struct ControllerEnv {
-    /// Address to bind (the app uses `127.0.0.1:55045`).
+    /// Address to bind. The app uses `127.0.0.1:55045`, or port 0 (ephemeral)
+    /// in a `verify-run` build (`http_server::mcp_server_port`).
     pub bind_addr: SocketAddr,
     /// Directory `server.port` / `server.token` are published into.
     pub files_dir: PathBuf,

@@ -371,6 +371,62 @@
       "separation": "SEPARATION-HELD (receipt ADR47-WI002-2, opaque-failure; behavioural red: 18 of 21 new cases failed on assertions (T01 argv, T03 not.toThrow on the new signature, T04 x12, T05 x2, T07 basename, T08), plus existing WI-10/T04 via the overlay-aware helper; T02/T06/T10 green at red by design: regression / near-miss / buildId-domain pins)",
       "laneNote": "unit lane 4733 passed / 0 failed / 5 todo; coverage lines 73.96 / branches 91.42 / functions 80.97 / statements 73.96; typecheck:tests clean; tauriCommand(profile, features) sorts+dedupes; verify bundle constant mdpro-verify.app; user verify-run refused in parseBuildArgs (F5: argument errors touch nothing); refusal reworded, keeps tauri.verify.conf.json + WI-002 (F1); fake runner names bundle from merged --config productName and mkBuildRepo copies the real overlay (F6); existing WI-10 tests unedited; buildSteps.mjs 217 lines; D-WI2 device check pending",
       "updatedAt": "2026-10-07T08:48:16.000Z"
+    },
+    "ADR47-WI002-4": {
+      "status": "DONE",
+      "testFiles": [
+        "src-tauri/src/services/verify_run_fixtures.rs",
+        "src-tauri/src/services/verify_run_rows_fixtures.rs",
+        "src-tauri/src/services/verify_run_launch_rows_fixtures.rs",
+        "src-tauri/src/services/verify_run_defects_fixtures.rs",
+        "src-tauri/src/services/verify_run_guard_tests.rs",
+        "src-tauri/src/services/verify_run_mode_tests.rs",
+        "src-tauri/src/services/verify_run_law_tests.rs",
+        "src-tauri/src/services/verify_run_parent_tests.rs",
+        "tests/control-verify-run-wiring.test.ts"
+      ],
+      "sourceFiles": [
+        "src-tauri/Cargo.toml",
+        "src-tauri/src/services/mod.rs",
+        "src-tauri/src/services/verify_run.rs",
+        "src-tauri/src/services/verify_run_checks.rs"
+      ],
+      "laneNote": "Manual R-on receipts (2026-10-07): cargo test --features verify-run exit 0, 1165 passed / 0 failed / 2 ignored (WI4 filter 21/21); cargo clippy --features verify-run -- -D warnings exit 0. R-off: cargo test exit 0, 1144 passed / 0 failed / 2 ignored; cargo clippy -- -D warnings exit 0. Vitest WI5-T12 2/2. T04(d) and T21(b) ran (TMPDIR /var/folders is non-canonical), not skipped.",
+      "separation": "NOT-RECORDED via receipt CLI (no receipt path supplied; configured rust lane is R-off only). Red observed by hand: vitest WI5-T12 assertion failures (mod.rs declaration index -1, [features] table null); cargo R-on compile-missing-symbol only (E0432 unresolved super::{check, GuardError, VerifiedRun, PathVar, Var, runs_parent, runs_parent_in}, E0425 variants). One test-file edit between red and green, import path only (no assertion changed): verify_run_law_tests.rs imported rows_t12 from verify_run_rows_fixtures instead of verify_run_launch_rows_fixtures. After green, a `type At` alias in rows_t07 for clippy::type_complexity (--all-targets), no assertion change.",
+      "notes": "Deviations: (1) GuardError carries no string payloads (Var / PathVar enums only), for privacy. (2) Added variant PasswdHomeNotAbsolute (relative pw_dir would make runs_parent_in relative and canonicalize against cwd); reviewed only, like PasswdHomeNotUtf8. (3) WI5-T12 written in this batch because its subject (feature + gated mod) is WI-4's deliverable. (4) Tests split across verify_run_*_tests.rs and *_fixtures.rs (all < 300 lines), declared inside verify_run.rs via #[path] under cfg(all(test, feature)). (5) T15 control row is a Row with expect None run inside the same loop. Unreachable/untested branches as matrix Deferred: DataDirOutsideRun, ParentNotOwner alone, PasswdHomeNotUtf8. libc = \"0.2\" added as a direct dependency (already in Cargo.lock via transitive deps, 0.2.180).",
+      "updatedAt": "2026-10-07T09:18:55.000Z"
+    },
+    "ADR47-WI002-5": {
+      "status": "DONE",
+      "testFiles": [
+        "src-tauri/src/services/verify_run_instance_tests.rs",
+        "src-tauri/src/services/verify_run_reject_tests.rs",
+        "src-tauri/src/services/verify_run_exec_tests.rs",
+        "tests/control-verify-run-wiring.test.ts"
+      ],
+      "sourceFiles": [
+        "src-tauri/src/services/verify_run.rs",
+        "src-tauri/src/services/verify_run_instance.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "laneNote": "Manual R-on receipts (2026-10-07): cargo test --features verify-run exit 0, 1179 passed / 0 failed / 2 ignored (verify_run filter 35/35); cargo clippy --features verify-run -- -D warnings exit 0. R-off: cargo test exit 0, 1144 passed / 0 failed / 2 ignored; cargo clippy -- -D warnings exit 0. Vitest wiring file 8/8. WI5-T14 stderr assumption confirmed on the first R-on run: child exit 78, stderr byte-equal to rejection_line(VarUnset(Run)) + \\n, libtest added nothing to stderr.",
+      "separation": "NOT-RECORDED via receipt CLI (no receipt path supplied). Red observed by hand: vitest WI5-T11/T13/T15(b) enforce+guard_inputs failed on assertions (4 failed); WI5-T15(b) runs_parent and WI3-T07 were already green at red (runs_parent from WI-4, migration order from WI-3) - structural pins, not new behaviour. cargo R-on compile-missing-symbol only (E0432 super::{run, rejection_line, enforce, guard_inputs, GUARD_EXIT_CODE}, E0599/E0425 InstanceWrite). One test-file edit after green, no assertion changed: T16 reader enum's `other => panic!` split into NotFound / Bad(why) arms so the Bad payload is read (clippy dead_code under --all-targets); an unneeded 20 ms sleep before the stop flag was removed before the first run.",
+      "notes": "main.rs 499 -> 501 lines (two-line cfg-gated enforce(BUILD_ID_RAW) as first statement of main()). Rule 60 stderr exception documented in verify_run.rs //! header (writeln!(std::io::stderr()) before exit 78; logger would create ~/.mdpro). instance.json: temp file .instance.json.<uuid>.tmp in the run dir, create_new + mode 0600 + set_permissions + sync_all, rename; temp removed on failure -> InstanceWrite; app.verify_run logged only after a successful write. Deviation: WI5-T09 random payload strings are vacuous by construction (no string payloads); the rounds still assert lines never contain generated path/nonce-like strings, fixture paths or nonce.",
+      "updatedAt": "2026-10-07T09:18:55.000Z"
+    },
+    "ADR47-WI002-6": {
+      "status": "DONE",
+      "testFiles": [
+        "src-tauri/src/services/http_server_port_tests.rs"
+      ],
+      "sourceFiles": [
+        "src-tauri/src/services/http_server.rs",
+        "src-tauri/src/services/mcp_controller/controller.rs"
+      ],
+      "laneNote": "Manual R-on receipts (2026-10-07): cargo test --features verify-run exit 0, 1182 passed / 0 failed / 2 ignored (port_tests 3/3: T02, T03, T04); cargo clippy --features verify-run -- -D warnings exit 0. R-off: cargo test exit 0, 1146 passed / 0 failed / 2 ignored (port_tests 2/2: T01, T04); cargo clippy -- -D warnings exit 0.",
+      "separation": "NOT-RECORDED via receipt CLI (no receipt path supplied). Red observed by hand in both invocations: compile-missing-symbol only, E0432 unresolved import super::mcp_server_port. No test-file edit between red and green except rustfmt.",
+      "notes": "pub(crate) fn mcp_server_port(): cfg-split const MCP_SERVER_PORT 55045 / 0; app_controller_env uses it. config_dir() made pub(crate) for WI-8. Docs updated: http_server.rs header Key decisions, config_dir, mcp_server_port, app_controller_env, ControllerEnv::bind_addr. server.port publishing unchanged (controller publishes the bound port, transitions.rs). WI6-T04 was green at red (config_dir already resolves per call) - pins against caching. mcp_launch_skip_tests unaffected under the feature (Skip never binds).",
+      "updatedAt": "2026-10-07T09:18:55.000Z"
     }
   },
   "lastCoverageRun": {
