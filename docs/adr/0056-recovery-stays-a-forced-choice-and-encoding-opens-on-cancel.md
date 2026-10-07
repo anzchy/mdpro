@@ -1,6 +1,7 @@
 # 0056. Recovery stays a forced choice, and the encoding dialog opens on Cancel
 
 **Status**: Accepted (2026-10-07, user decision; WI-4.6b of plan P). Proposed 2026-10-07.
+Encoding half (decision 2 and its premise) superseded by [ADR-0057](./0057-the-encoding-dialog-never-offers-an-encoding-that-cannot-be-right.md) (2026-10-08); the RecoveryDialog half stands.
 
 ## Context
 
