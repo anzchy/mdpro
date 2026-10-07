@@ -39,7 +39,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         window_state::save_window_state,
         preferences::pick_export_folder,
         launch::get_launch_paths,
-        menu::set_recent_files_menu,
+        menu::sync_recent_files_menu,
         draft::save_draft,
         draft::get_draft,
         draft::delete_draft,

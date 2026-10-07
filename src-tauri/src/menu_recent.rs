@@ -1,21 +1,57 @@
 //! Recent-files state and the "Open Recent" submenu, split out of `menu.rs`.
 //!
-//! Purpose: hold the published recent-files list (`MenuState`) and build the
-//! submenu from it. `publish_after` publishes a new list only once the menu
-//! built from it has installed, so the state never names a menu that failed
-//! (D16F row 18). Caller: `commands/menu.rs` `set_recent_files_menu`.
+//! Purpose: hold the app-wide session recent-files list (`MenuState`) and
+//! build the submenu from it. `publish_after` publishes a new list only once
+//! the menu built from it has installed, so the state never names a menu that
+//! failed (D16F row 18).
 //!
+//! Key decisions (D43, design (b)):
+//! - Windows send a `RecentOp`, not a whole list. `MenuState::publish_op`
+//!   sanitises it, then holds a dedicated **sync mutex** across read, merge
+//!   (`apply_recent_op`), install and publish, so concurrent windows never
+//!   lose each other's updates.
+//! - The sync mutex is separate from the **data mutex** the menu-click handler
+//!   (`menu.rs` `handle_menu_event`) reads, so a menu event fired during
+//!   `set_menu` cannot deadlock. No menu event handler calls `publish_op`.
+//! - The sync mutex guards the last view mode any op reported; every install
+//!   builds with it, so a list-only op never resets the View checkmark.
+//! - `publish_op` logs `menu.recent_files.sync` with `{op, count, outcome}`
+//!   only, never paths; a `seed` with `stored: None` logs a warn with
+//!   `outcome: "hydration_failed"` (the line a device run can see while
+//!   frontend logging is fail-closed).
+//!
+//! Caller: `commands/menu.rs` `sync_recent_files_menu`.
 //! `MENU_FILE_RECENT_PREFIX` stays in `menu.rs` with the other `MENU_*` ids.
+//!
+//! @coordinates-with src/menu_recent_merge.rs
+//! @coordinates-with src/commands/menu.rs
 
+use super::menu_recent_merge::{apply_recent_op, sanitize_recent_op, RecentOp, PATH_TOO_LONG};
 use super::MENU_FILE_RECENT_PREFIX;
+use crate::models::{LogEntryPayload, LogLevel, LogStatus};
+use crate::services::logger;
+use serde_json::{json, Value};
 use std::path::Path;
 use std::sync::Mutex;
+use std::time::Instant;
 use tauri::menu::{MenuItem, Submenu, SubmenuBuilder};
 use tauri::{AppHandle, Wry};
 
+const SYNC_EVENT: &str = "menu.recent_files.sync";
+
+/// The published session list (data mutex, read by the menu-click handler)
+/// and the sync lock that serialises `publish_op`.
 #[derive(Default)]
 pub struct MenuState {
     recent_files: Mutex<Vec<String>>,
+    sync: Mutex<SyncState>,
+}
+
+/// Guarded by `MenuState::sync`, never by the data mutex.
+#[derive(Default)]
+struct SyncState {
+    /// The most recent `Some` view mode any op reported; `None` until then.
+    last_view_mode: Option<String>,
 }
 
 impl MenuState {
@@ -31,6 +67,113 @@ impl MenuState {
             .map(|data| data.clone())
             .unwrap_or_default()
     }
+
+    /// Apply `op` to the session list, install a menu built from the result,
+    /// and publish it. Returns the published list.
+    ///
+    /// The op is sanitised first (`sanitize_recent_op`); a rejection installs
+    /// nothing and changes nothing. Then, under the sync mutex: a `Some`
+    /// `view_mode` becomes the remembered mode (kept even if install fails),
+    /// the merge runs against the current list, `install(merged, remembered)`
+    /// runs while the old list is still published (and may read it through
+    /// `recent_files()`), and the merged list is published only on `Ok`.
+    /// On `Err` the old list stays and the install error is returned.
+    pub fn publish_op(
+        &self,
+        op: RecentOp,
+        view_mode: Option<String>,
+        install: impl FnOnce(&[String], Option<&str>) -> Result<(), String>,
+    ) -> Result<Vec<String>, String> {
+        let started = Instant::now();
+        let kind = op_kind(&op);
+        log_sync(
+            LogLevel::Info,
+            LogStatus::Start,
+            json!({ "op": kind }),
+            None,
+            None,
+        );
+        let op = match sanitize_recent_op(op) {
+            Ok(op) => op,
+            Err(e) => {
+                let context = json!({ "op": kind });
+                log_sync(
+                    LogLevel::Error,
+                    LogStatus::Fail,
+                    context,
+                    Some(PATH_TOO_LONG),
+                    None,
+                );
+                return Err(e);
+            }
+        };
+
+        // Poison only means another sync panicked; the remembered mode is intact.
+        let mut sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
+        if view_mode.is_some() {
+            sync.last_view_mode = view_mode;
+        }
+        let current = match self.recent_files.lock() {
+            Ok(data) => data.clone(),
+            Err(poisoned) => poisoned.into_inner().clone(),
+        };
+        let merged = apply_recent_op(&current, &op);
+        if matches!(op, RecentOp::Seed { stored: None, .. }) {
+            let context =
+                json!({ "op": kind, "outcome": "hydration_failed", "count": merged.len() });
+            log_sync(LogLevel::Warn, LogStatus::Fail, context, None, None);
+        }
+
+        let mode = sync.last_view_mode.clone();
+        match publish_after(self, merged.clone(), |list| install(list, mode.as_deref())) {
+            Ok(()) => {
+                let elapsed = u64::try_from(started.elapsed().as_millis()).ok();
+                let context = json!({ "op": kind, "count": merged.len() });
+                log_sync(LogLevel::Info, LogStatus::Success, context, None, elapsed);
+                Ok(merged)
+            }
+            Err(e) => {
+                // Kind only: an install error is not ours to vouch for as path-free.
+                let context = json!({ "op": kind });
+                log_sync(
+                    LogLevel::Error,
+                    LogStatus::Fail,
+                    context,
+                    Some("install_failed"),
+                    None,
+                );
+                Err(e)
+            }
+        }
+    }
+}
+
+fn op_kind(op: &RecentOp) -> &'static str {
+    match op {
+        RecentOp::Seed { .. } => "seed",
+        RecentOp::Record { .. } => "record",
+        RecentOp::Refresh => "refresh",
+    }
+}
+
+/// One `menu.recent_files.sync` record. `context` carries only `op`, `count`
+/// and `outcome`; `error` is a fixed kind string, never a message or a path.
+fn log_sync(
+    level: LogLevel,
+    status: LogStatus,
+    context: Value,
+    error: Option<&str>,
+    duration_ms: Option<u64>,
+) {
+    logger::log_event(LogEntryPayload {
+        level,
+        event: SYNC_EVENT.to_string(),
+        status,
+        action_id: None,
+        context: Some(context),
+        duration_ms,
+        error: error.map(String::from),
+    });
 }
 
 /// Install a menu built from `list`, then publish `list` as the recent files.
@@ -85,3 +228,23 @@ pub(super) fn build_recent_submenu(
 #[cfg(test)]
 #[path = "menu_recent_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "menu_recent_command_contract_tests.rs"]
+mod command_contract_tests;
+
+#[cfg(test)]
+#[path = "menu_recent_op_tests.rs"]
+mod op_tests;
+
+#[cfg(test)]
+#[path = "menu_recent_op_view_mode_tests.rs"]
+mod op_view_mode_tests;
+
+#[cfg(test)]
+#[path = "menu_recent_op_validation_tests.rs"]
+mod op_validation_tests;
+
+#[cfg(test)]
+#[path = "menu_recent_log_tests.rs"]
+mod log_tests;

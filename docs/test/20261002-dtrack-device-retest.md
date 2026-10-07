@@ -60,6 +60,8 @@
 
 **可能的根因**（读代码得出，未经测试确认；App.tsx:176-180 已由 delegator 确认）：最近文件列表是每个窗口自己的 React state（`src/hooks/useRecentFiles.ts`），而原生菜单是全应用唯一的。每个窗口都经 `set_recent_files_menu`（App.tsx:176-180）推自己的列表，最后写的窗口赢。偏好读不出来时，新窗口从空列表起步，于是 `[a.md]` 覆盖了整个应用菜单。焦点回到旧窗口也不会重推，因为 effect 的依赖只有 `[recentFiles, viewMode]`。
 
+**复测须知（2026-10-07 补记，D43 修复后）**：这条 warn 永远记不下来——配置损坏时 `get_logging_settings` 也失败，前端 logger 落到 fail-closed（`enabled:false`），前端日志全部丢弃。修复后复测应看 Rust 侧的 `menu.recent_files.sync` warn（`outcome: "hydration_failed"`），Rust logger 用的是启动时缓存的设置。步骤见 `tests/manual-fixtures/d43-recent-menu.md`，决定见 [ADR-0051](../adr/0051-rust-owns-the-session-recent-files-list.md)。
+
 ## 3. D 条目之外的发现
 
 | # | 级别 | 发现 | 处理 |

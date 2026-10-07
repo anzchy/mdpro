@@ -29,6 +29,7 @@ import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
 import { useMcpEvents } from "./hooks/useMcpEvents";
 import { useRecentFiles } from "./hooks/useRecentFiles";
+import { useRecentFilesMenuRefresh } from "./hooks/useRecentFilesMenuRefresh";
 import { useSidebarPreference } from "./hooks/useSidebarPreference";
 import { useOpenUrlParam } from "./hooks/useOpenUrlParam";
 import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
@@ -107,8 +108,7 @@ function App() {
   // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
   const autoSaveInterval = useEditorStore((s) => s.autoSaveInterval);
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
-  const { recentFiles, updateRecentFiles, hydrateRecentFiles, failRecentFilesHydration } =
-    useRecentFiles();
+  const { updateRecentFiles, hydrateRecentFiles, failRecentFilesHydration } = useRecentFiles();
   const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
   const toastMessage = useToastStore((s) => s.message);
@@ -174,11 +174,9 @@ function App() {
     viewMode,
   });
 
-  useEffect(() => {
-    invoke("set_recent_files_menu", { recentFiles, viewMode }).catch(() => {
-      // Ignore if running outside Tauri or menu is unavailable.
-    });
-  }, [recentFiles, viewMode]);
+  // The Open Recent menu holds the session list Rust owns (D43); this window
+  // only sends a refresh on a view-mode change, never its own list.
+  useRecentFilesMenuRefresh(viewMode);
 
   // Keep window title static — filename removed per #374
   useEffect(() => {
