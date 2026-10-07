@@ -16,7 +16,7 @@ use super::driver::*;
 use super::DraftGate;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -142,9 +142,16 @@ pub(super) struct FailingEffects {
 /// reply. `on_delete` is an observation point: it asks the injected gate itself
 /// whether the closing critical section is running, rather than believing a
 /// value the driver hands it.
+///
+/// `emit_all_calls` counts `emit_all` calls (1-based, this one included) for
+/// `FailingEffects::emit_all_calls`. A running counter, not a recount of
+/// `log`: `guard_at` burns ~10k requests through `emit_all`, and recounting a
+/// cloned log on each call made every burn quadratic — 48 s for one test, all
+/// of it holding `HOME_LOCK` and stalling the rest of the suite behind it.
 #[derive(Default)]
 pub(super) struct RecordingEffects {
     log: Mutex<Vec<Effect>>,
+    emit_all_calls: AtomicUsize,
     deletes: Mutex<Vec<(String, bool)>>,
     gate: Option<&'static DraftGate>,
     failing: Mutex<FailingEffects>,
@@ -154,6 +161,7 @@ impl RecordingEffects {
     pub(super) fn watching(gate: &'static DraftGate) -> Self {
         Self {
             log: Mutex::new(Vec::new()),
+            emit_all_calls: AtomicUsize::new(0),
             deletes: Mutex::new(Vec::new()),
             gate: Some(gate),
             failing: Mutex::new(FailingEffects::default()),
@@ -181,11 +189,7 @@ impl RecordingEffects {
 impl QuitEffects for RecordingEffects {
     fn emit_all(&self, event: QuitEvent) -> bool {
         self.push(Effect::EmitAll(event));
-        let call = self
-            .effects()
-            .iter()
-            .filter(|e| matches!(e, Effect::EmitAll(_)))
-            .count();
+        let call = self.emit_all_calls.fetch_add(1, Ordering::SeqCst) + 1;
         let failing = self.failing.lock().unwrap();
         !(failing.emit_all.contains(&event.name()) || failing.emit_all_calls.contains(&call))
     }
