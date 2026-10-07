@@ -31,7 +31,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - Settings rail icons: `SettingsDialog.tsx:30-38`
   - close buttons: Settings `SettingsDialog.tsx:138` (`&times;`), tab close `BottomTabs.tsx:73` (`×`), and the WI-4.13 toast "Dismiss" button when it lands
   - TOC carets: `TOCSidebar.tsx:68` (`▸` / `▾`)
-  - Integrations: copy buttons `IntegrationsSettings.tsx:220`, `:267` (📋); "Test Connection" `:236` (↻); installed status `:256` (`✓` / `○`), which keeps a text label (DESIGN.md § Status indicator)
+  - Integrations (re-verified 2026-10-07 at 630cb86): copy buttons `McpServerInfo.tsx:39`, `McpClientList.tsx:61` (📋); "Test Connection" `IntegrationsSettings.tsx:231` (↻); installed status `McpClientList.tsx:50` (`✓` / `○`), which keeps a text label (DESIGN.md § Status indicator)
   - About update status: `AboutSettings.tsx:224`, `:282` (`✓`)
   - Shortcuts conflict warning: `KeyboardShortcutsSettings.tsx:252` (⚠️)
 - **Not icons:** `⌘` and `⌥` in shortcut labels and titles, and the `×` in the table size readout (`TableInsertModal/index.tsx:206`). The dead `TabBar/` and `FileItem.tsx` are out of scope (A8).
@@ -51,32 +51,39 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Row markup** (DESIGN.md § Settings rows; review :131-134 offered selectors or migration, and this plan migrates):
   - All eight panels with rows move to one markup, whether or not the proposal draws them (it draws Integrations, Export and Editor): Advanced, Appearance, Editor, Export, General, Image, Markdown and Integrations.
   - Markup: `.settings-row` › `.settings-row-content` › `.settings-row-label` (an `h4` title with an id, then an optional `p` description) and `.settings-row-control`.
-  - Integrations moves from `strong` / `span.settings-row-description` (`IntegrationsSettings.tsx:137-141`, `:165-169`, `:187-191`) to `h4` / `p`.
+  - Integrations moves from `strong` / `span.settings-row-description` to `h4` / `p`. All three of its rows now come from one component, `McpToggleRow` (`src/components/common/McpToggleRow.tsx:46-47`; rows at `IntegrationsSettings.tsx:193`, `:204`, `:213`).
   - The `<label htmlFor>` wrappers around `h4` / `p` go (Advanced, Appearance, Export, Image and Markdown today; preflight re-counts), because a `label` can't hold a heading. Each control takes its name from its row's `h4` through `aria-labelledby`.
-  - CSS: `.settings-row-label h4` and `.settings-row-label p` replace `.settings-row-label strong` and `.settings-row-description` (`globals.css:1296`, `:1301`). Panel-scoped rules must not reach row titles: `.settings-integrations h4` (`:1215`) and `.settings-general p` (`:1117`) today; preflight lists the rest.
+  - CSS: `.settings-row-label h4` and `.settings-row-label p` replace `.settings-row-label strong` and `.settings-row-description` (`globals.css:1301`, `:1306`). Panel-scoped rules must not reach row titles: `.settings-integrations h4` (`:1220`) and `.settings-general p` (`:1122`) today; preflight lists the rest.
   - Keyboard Shortcuts and About have no rows. They keep their layouts and take the same type steps, section labels and dividers.
 - Extract `src/components/common/ToggleSwitch.tsx`:
   - it renders the label, the input and `.toggle-slider`
   - it exposes `role="switch"` with `aria-checked`, and gets its accessible name through `aria-labelledby` pointing at the visible row heading
-  - its visually hidden input gets a keyboard focus ring: add `.toggle-switch input:focus-visible + .toggle-slider` using the rule 33 pattern (there is none today, `globals.css:1314-1356`)
+  - its visually hidden input gets a keyboard focus ring: add `.toggle-switch input:focus-visible + .toggle-slider` using the rule 33 pattern (there is none today, `globals.css:1319-1362`)
   - it replaces every checkbox input in Settings: nine inputs in six files (re-count in preflight)
-    - three hand-copied toggles in `src/components/common/IntegrationsSettings.tsx` (`:152`, `:174`, `:196`)
+    - the three Integrations toggles, which now share one checkbox in `McpToggleRow` (`McpToggleRow.tsx:53`)
     - six native checkboxes in the other five files: `EditorSettings`, `MarkdownSettings` ×2, `ImageSettings`, `ExportSettings`, `AdvancedSettings`
+- **Integrations panel parts:**
+  - `src/components/common/McpServerInfo.tsx` is in scope with the rest of the panel. Its CSS literals (radius, font sizes) are already listed in Appendix A (`appendix-a-literals.md:199-203`) for Stages 2–3.
+  - `.mcp-copy-btn` (`globals.css:1453`, `.small` `:1467`), used by `McpServerInfo.tsx:34-40` and `McpClientList.tsx:56-62`, has hover only and no focus rule. Add the rule 33 button ring (pattern 2, `--color-focus-ring`).
+  - About's `toolbar-button-primary` (`AboutSettings.tsx:246`, `:285`) has no CSS anywhere. That is **D47**, which owns the fix; Stage 4 must not restyle around it.
 - **States** (DESIGN.md § States › Settings). Files below are in `src/components/common/settings/` unless a path is given.
   - **Loading:** every page shows one muted "Loading…" line with `aria-busy="true"` and no inline style.
     - Today six pages dim it with `style={{ opacity: 0.5 }}`: Appearance `:67`, Editor `:63`, Export `:87`, General `:87`, Image `:100`, Markdown `:62`.
     - Shortcuts shows "Loading shortcuts…" in an inline color (`KeyboardShortcutsSettings.tsx:229`).
-    - Integrations shows "Loading MCP server status..." (`src/components/common/IntegrationsSettings.tsx:119`).
+    - Integrations shows "Loading MCP server status..." (`src/components/common/IntegrationsSettings.tsx:175`).
   - **Load failed:** every page shows "Failed to load preferences. Please close and reopen settings.", the line General (`:73`) and Editor (`:49`) already use.
     - Today Appearance, Export, Image and Markdown render the raw error message (`:54`, `:74`, `:87`, `:49`), and Shortcuts does too (`:221`). Raw messages go to the log only (rule 30 rule 3).
-    - Integrations keeps its own failure line for the MCP status read, without the raw message (`IntegrationsSettings.tsx:45`, `:128-130`).
+    - Integrations keeps its own failure line for the MCP status read, without the raw message (`IntegrationsSettings.tsx:84`, `:184-188`).
   - **Save failed:** the `preferencesService` error toast (WI-4.13) is the only signal (rule 30 rule 5).
     - Remove the second, inline signals: Image `:75-76`, Export `:49-50`, and the Shortcuts `saveError` (`:212-213`, `:248`).
     - Switches and selects roll back to the saved value, as `MarkdownSettings.tsx:30-39` already does. The page stays usable. A failed Shortcuts save keeps the unsaved banner and the dialog open.
-    - The unsaved banner (`.settings-dirty-banner`, `globals.css:1059-1068`) drops its amber literals for `--color-accent-soft` fill and a `--color-accent` border, matching the tab's unsaved dot (DR21). Its text stays `--color-text`.
+    - The unsaved banner (`.settings-dirty-banner`, `globals.css:1064-1073`) drops its amber literals for `--color-accent-soft` fill and a `--color-accent` border, matching the tab's unsaved dot (DR21). Its text stays `--color-text`.
   - **Logging settings:** `AdvancedSettings` drops its inline `saveError` (`:22`, `:37`, `:53`, `:64`), rolls the control back and relies on the error toast. WI-4.13 makes the service reject, so this catch runs at all.
-  - **MCP config read:** `SettingsDialog.tsx:91-97` calls `getPreferences().then(...)` with no catch, so a failure is an unhandled rejection. Add a catch that logs `fail`; the Integrations page shows its own state.
-  - **Busy labels:** the Integrations action buttons read "..." while busy (`IntegrationsSettings.tsx:280`, `:287`, `:296`). They become "Updating…", "Removing…" and "Installing…" (rule 30 rule 4).
+  - **MCP config read:** done in `8050803` (ADR-0039): the `getPreferences()` read now has a catch (`SettingsDialog.tsx:140-158`), and `8b9d8d3` made its log enum-only. The Integrations toggles show the lasting reason. Keep its test (`tests/settings-dialog-mcp-load-failures.test.tsx`).
+  - **Busy labels:** the Integrations action buttons read "..." while busy (`McpClientList.tsx:74`, `:81`, `:90`). They become "Updating…", "Removing…" and "Installing…" (rule 30 rule 4).
+  - **Integrations empty:** `mcp_get_installations` (`src-tauri/src/commands/mcp.rs:136-156`) always returns the four supported clients, each with `installed` true or false, so an empty list means the command returned no rows. Today that renders the "Install MCP Configuration" heading and description with nothing under them (`McpClientList.tsx:36-42`). It shows one muted line, "No MCP clients detected". The existing "↻ Test Connection" button (`IntegrationsSettings.tsx:227-232`; `handleTestConnection` at `:153-156` re-runs `loadData`) is the refresh, so no new button is added.
+  - **Integrations partial:** `loadData` (`IntegrationsSettings.tsx:73-88`) reads the server status and the client installations in one `Promise.all` with one `error`, so either failure hides both. When the status read succeeds and the installations read fails, the status, toggles and server info show normally, and the client section shows the shared failure line in place of the list. A failed MCP preference read already has its own reason line (`lockReason`, `:164-169`).
+  - **Disabled reasons:** every disabled control shows its reason as visible text in its row description, linked by `aria-describedby`. The MCP toggles already do, and are the only control that does (Appendix B, `appendices.md:54`: `IntegrationsSettings.tsx:164-169`, `:190-192`; `McpToggleRow.tsx:52-58`). The Editor steppers grey out − / + at min and max with no reason (Appendix B, `appendices.md:43`; `SettingsStepper.tsx`); they gain a visible reason line (copy: assumption — confirm).
 - **Tests:**
   - ToggleSwitch behavior, written once with `userEvent` (E7):
     - role, with its name coming from the row heading
@@ -94,16 +101,18 @@ Each work item captures before/after screenshots per item × theme, and the stag
     - a rejected load shows the shared failure line and not the raw message
     - a rejected save leaves no inline error, and a switch or select returns to its saved value
   - A rejected logging-settings save rolls the `AdvancedSettings` control back and renders no inline error
-  - A rejected MCP config read in `SettingsDialog` logs `fail` and raises no unhandled rejection
+  - A rejected MCP config read in `SettingsDialog` logs `fail` and raises no unhandled rejection: already covered by `tests/settings-dialog-mcp-load-failures.test.tsx`, which stays green
+  - Integrations: an empty installation list shows "No MCP clients detected" and the Test Connection button; a rejected installations read with a resolved status shows the status and toggles plus the failure line; a disabled stepper button's reason is in its accessible description
+  - Source inspection: `.mcp-copy-btn:focus-visible` exists and uses `--color-focus-ring`
 
 ### WI-4.4 — Running badge and toggle track (item 6) — S
-- `.mcp-status-badge.running` (`globals.css:1371-1372`, pre-split reference): a dot plus muted text, no fill (review :146).
-- Toggle off-track (the `#ccc` at pre-split `globals.css:1335`): a text-based `color-mix` (review :147). This removes the last `stage: 4` deferred entry.
+- `.mcp-status-badge.running` (`globals.css:1375-1378`): a dot plus muted text, no fill (review :146).
+- Toggle off-track (the `#ccc` at `globals.css:1339`): a text-based `color-mix` (review :147). This removes the last `stage: 4` deferred entry.
 - No semantic green token unless the user asks (review :146).
 - **Tests:** the tokenization test covers the literals; the badge keeps its text label, so status is not conveyed by color only (rule 33 hard rule).
 
 ### WI-4.5 — Source | WYSIWYG segmented control (item 9) — M
-- Replace `.sidebar-mode-label` at `App.tsx:1128` and `Sidebar/index.tsx:39` with one control, mounted once in the WI-4.8 main bar so it shows in both sidebar states (review :185). Runs after WI-4.8.
+- Replace `.sidebar-mode-label` at `App.tsx:1000` and `Sidebar/index.tsx:39` with one control, mounted once in the WI-4.8 main bar so it shows in both sidebar states (review :185). Runs after WI-4.8.
 - Styling follows proposal :114-120 and review :183-184.
 - The native menu shortcuts (⌃2 / ⌃4) keep working, and the control reflects the current mode.
 - **Semantics:** a radio group named "Editor mode", with one radio per mode.
@@ -118,38 +127,68 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Logging:** `ui.mode_switch.click` per rule 20 (name to be confirmed against existing events).
 
 ### WI-4.6 — Destructive confirmation (item 13, DR8) — S
-- **Why:**
-  - `ConfirmDialog` gives `autoFocus` to its confirm button (`ConfirmDialog.tsx:51-53`). The mounted Discard callers are `App.tsx:1180` and `BottomTabs.tsx:83`; at each, pressing Enter right after the dialog opens discards unsaved text. `Sidebar/Sidebar.tsx:53` is a third, but that component is not mounted (A8).
+- **D48 first:** the Enter-discards bug is filed as **D48** on the sequencing doc and fixed ahead of Stage 4, off the plan path. WI-4.6 keeps the restyle, the rule 32 shell and the remaining tests below. It keeps D48's fix and regression test as they land and must not redo them.
+- **Why** (citations re-verified 2026-10-07 at 630cb86):
+  - `ConfirmDialog` gives `autoFocus` to its confirm button (`ConfirmDialog.tsx:69`). It has three mounted callers:
+    - **The App dialog** (`App.tsx:1048-1056`: `title="Unsaved changes"`, `confirmLabel="Discard changes"`, `cancelLabel="Keep editing"`). It is the one prompt for three paths. `quitDialogModel` (`App.tsx:143-149`; `src/utils/quitDialogModel.ts`) picks the message: ⌘W document close and the OS window close (`useWindowCloseGuard`'s `pendingClose`) show `CLOSE_DIALOG_MESSAGE` (`quitDialogModel.ts:46`), and the D16 app quit (`useQuitGuard`'s `quitPrompt`) shows `QUIT_DIALOG_MESSAGE` (`:47`).
+    - **Tab close:** `BottomTabs.tsx:79-87` (`confirmLabel="Discard"` at `:83`).
+    - **About's "Save and Restart"** (`AboutSettings.tsx:306`), which is not destructive.
+  - At both Discard callers, pressing Enter right after the dialog opens discards unsaved text (D48). `Sidebar/Sidebar.tsx:53` is another caller, but that component is not mounted (A8).
   - It also misses rule 32 in three ways:
     - no Tab trap
-    - `aria-label` instead of `aria-labelledby` and `aria-describedby` (`:37`)
+    - `aria-label={title}` (`ConfirmDialog.tsx:60`) instead of `aria-labelledby` and `aria-describedby`
     - no backdrop click
-  - `BottomTabs.confirmClose` awaits the close before it clears `pendingCloseId`, so the dialog stays open while the work runs and a second press runs it twice. `App.tsx` already clears first.
+  - `McpWriteConfirmDialog.tsx` already has the full shell: `aria-labelledby` / `aria-describedby` (`:111-112`), a Tab wrap (`:89-102`), `useDialogEscape` (`:80`), a backdrop click that rejects (`:105`), `useReturnFocusOnClose` (`:77`) and `autoFocus` on the safe "Reject" (`:123`). It is the reference for this item. Its only gap is the ring token: a scoped `.mcp-confirm-dialog .toolbar-button:focus-visible` uses `--color-accent` (`globals.css:500-503`). `--color-focus-ring` doesn't exist until WI-3.3, and DR15 makes it equal the accent, so today's colour already matches; WI-3.3 recolours that rule (`css-file-map.md:204`).
+  - `.toolbar-button` (`globals.css:444`) has no `:focus-visible` rule. The only three in `globals.css` are `:500`, `:577` and `:653`. WI-3.3 adds `.toolbar-button:focus-visible` with `--color-focus-ring`, so the confirm and cancel buttons get the rule 33 button ring from there.
+  - `BottomTabs.confirmClose` (`BottomTabs.tsx:40-45`) awaits the close before it clears `pendingCloseId`, so the dialog stays open while the work runs and a second press runs it twice. `App.tsx` already clears first.
   - Neither caller catches a failed close, so it fails silently (rule 60).
 - **Change:**
-  - Add `destructive?: boolean` (assumption: the prop name).
-    - With it, the confirm button uses the existing `.toolbar-button.danger` (`globals.css:1195`), and focus starts on the cancel button ("Keep editing"). The danger button never takes focus.
+  - Add `destructive?: boolean` (assumption: the prop name, unless D48 already added it).
+    - With it, the confirm button uses the existing `.toolbar-button.danger` (`globals.css:1200`), and focus starts on the cancel button ("Keep editing"). The danger button never takes focus.
     - Without it, the confirm button keeps `autoFocus`, as in the About page's "Save and Restart" dialog (`AboutSettings.tsx:306`).
-  - Pass `destructive` at both mounted Discard callers.
+  - Pass `destructive` at both mounted Discard callers. The App dialog carries it for all three of its paths: ⌘W, window close and quit.
   - **A choice closes the dialog** (DESIGN.md § States › Dialogs): both callers clear their pending state before awaiting the close, so nothing can be pressed twice.
   - **Close failed:** both callers catch the rejection, log `fail`, and show one error toast (WI-4.13) that starts "Close failed". The tab stays open.
-  - The rule 32 shell applies to every caller:
+  - The rule 32 shell applies to every caller, reusing the existing hooks rather than new focus code:
     - Title and message ids are wired to `aria-labelledby` and `aria-describedby`.
-    - Tab and Shift+Tab wrap inside the dialog, following `handleDialogKeyDown` in `SettingsDialog.tsx`.
+    - Tab and Shift+Tab wrap inside the dialog, following `McpWriteConfirmDialog.tsx:89-102` (or `handleDialogKeyDown` in `SettingsDialog.tsx:102`).
     - A backdrop click cancels; a click on the card stops propagation.
-    - Esc still cancels.
-  - On close, focus returns to the element that had it before the dialog opened, if that element is still in the document. A closed tab's button is gone, for example.
-  - **Rule 32:** in the same commit, add an exception to "First-focused element is the most-likely-edited control, not title/cancel": when the primary action is destructive, focus starts on the safe action. This covers WI-4.10 (DR5) too.
+    - Esc still cancels, through `useDialogEscape` (`src/hooks/useDialogEscape.ts:152`, D34), already wired at `ConfirmDialog.tsx:46-52`.
+  - On close, focus returns to the element that had it before the dialog opened, if that element is still in the document, through `useReturnFocusOnClose` (`src/hooks/useReturnFocusOnClose.ts:75`, D37 WI-6), as `McpWriteConfirmDialog.tsx:77` does. A closed tab's button is gone, for example; the hook's fallback then picks the target.
+  - **Focus ring:** no ring of its own. It relies on WI-3.3's `.toolbar-button:focus-visible`. Once that lands, the scoped `.mcp-confirm-dialog` rule repeats it; delete it if the computed outline is unchanged in both themes (assumption — confirm), otherwise keep WI-3.3's recolour.
+  - **Rule 32:** in the same commit, add an exception to "First-focused element is the most-likely-edited control, not title/cancel": when the primary action is destructive, focus starts on the safe action. This covers WI-4.6b and WI-4.10 (DR5) too.
 - **Tests** (through tdd-guardian, RED first; query by role and name, use `userEvent`):
-  - **Data-loss regression:** with `destructive`, pressing Enter right after open does not call `onConfirm`. This test fails today.
+  - **Data-loss regression:** with `destructive`, pressing Enter right after open does not call `onConfirm`. D48 adds this test; WI-4.6 keeps it green rather than writing a second one.
+  - The App dialog, table-driven over the three `quitDialogModel` inputs (⌘W, window close, quit): focus starts on "Keep editing".
   - With `destructive`, the confirm button has the danger variant and isn't focused. Without it, the confirm button is focused.
   - Tab from the last button wraps to the first, and Shift+Tab wraps back.
   - A backdrop click cancels; a click inside the card doesn't.
   - Focus returns to the opener on close.
   - At each mounted caller, pressing the confirm button twice calls the close once, and the dialog is gone before the close resolves.
   - At each mounted caller, a rejected close shows one error toast, leaves the tab open and leaves no dialog.
-  - `tests/focus-trap.test.ts:44-58`: keep the Escape checks, and assert that `autoFocus` depends on `destructive`.
+  - `tests/focus-trap.test.ts:57-85`: keep the Escape checks, and assert that `autoFocus` depends on `destructive`. The `McpWriteConfirmDialog` block (`:136-167`) stays green.
 - **Logging:** keep `dialog.confirm.cancel` and `dialog.confirm.confirm`, adding `context.destructive`. Add `context.trigger: "backdrop"` when a backdrop click cancels.
+
+### WI-4.6b — Recovery and encoding dialogs — S
+- **Order:** right after WI-4.6 in Lane B, because it reuses WI-4.6's rule 32 shell and destructive exception.
+- **Why** (re-verified 2026-10-07 at 630cb86): `RecoveryDialog.tsx` and `EncodingDialog.tsx` (`src/components/common/`) have 0 matches for `Escape`, `onKeyDown`, `autoFocus` and `useDialogEscape`. Each names itself with `aria-label` (`RecoveryDialog.tsx:22`, `EncodingDialog.tsx:18`), has no Tab trap and no backdrop click, and returns focus nowhere.
+- **Shell (rule 32), both dialogs:**
+  - title and message ids wired to `aria-labelledby` and `aria-describedby`
+  - Tab and Shift+Tab wrap inside the card
+  - EncodingDialog: Esc and a backdrop click take Cancel through `useDialogEscape`. RecoveryDialog: what Esc and a backdrop click do is **pending the user's decision** (unresolved, below); until then it keeps today's forced choice. A click on the card stops propagation in both
+  - on close, focus returns through `useReturnFocusOnClose`
+  - initial focus follows the destructive exception WI-4.6 adds to rule 32: when the primary action discards a draft or data, focus starts on the safe action
+- **RecoveryDialog:** each draft has "Recover" (`:38-49`, logs `dialog.recovery.recover`) and "Discard" (`:50-61`, logs `dialog.recovery.discard`). Discard deletes the draft, so it is the destructive action, and focus starts on the first draft's "Recover".
+  - **Safe action for Esc and backdrop: assumption — confirm.** Today the dialog is a deliberate forced choice. It has no `onClose` prop, and `tests/focus-trap.test.ts:121-134` pins "must NOT add Escape". Neither button is a no-op: Recover opens the draft and Discard deletes it. Proposed: Esc and a backdrop click do nothing, so the forced choice stays, and this dialog gains only the labels, the Tab trap, initial focus and focus return. Rule 32 exempts RecoveryDialog from Esc only and says a backdrop click cancels, so "backdrop does nothing" also needs a rule 32 exemption if the user confirms it. Making Esc recover instead needs the user's decision and rewrites that test.
+- **EncodingDialog:** the encoding buttons (UTF-8, UTF-16LE, UTF-16BE, ASCII; `:25-39`, log `dialog.encoding.select`) and "Cancel" (`:40-49`, logs `dialog.encoding.cancel`). No choice discards data: a dirty target is refused, not replaced (ADR-0028 decision 2). The safe action is Cancel, which Esc and a backdrop click take. Initial focus: UTF-8, the first encoding (assumption — confirm).
+- **Tests** (through tdd-guardian, RED first; `userEvent`, by role and name):
+  - EncodingDialog: Esc takes Cancel. RecoveryDialog: no Esc or backdrop test is written until the user decides; `tests/focus-trap.test.ts:121-134` stays as it is
+  - Tab from the last button wraps to the first, and Shift+Tab wraps back
+  - EncodingDialog: a backdrop click takes Cancel; a click inside the card doesn't
+  - focus returns to the opener on close
+  - initial focus: the first "Recover" in RecoveryDialog, UTF-8 in EncodingDialog
+  - each dialog is named by its visible title through `aria-labelledby`
+- **Logging:** keep the four `dialog.recovery.*` / `dialog.encoding.*` events. Add `context.trigger: "esc"` or `"backdrop"` when either one takes the safe action.
 
 ### WI-4.7 — Settings rail (item 14) — S
 - `--settings-sidebar-bg` → `var(--color-surface)` in both theme files.
@@ -175,7 +214,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - **Layout bug below 960px:**
   - The 960px query sets `.app-shell` to one column but keeps the two-column areas (`globals.css:79-89`, `:1548-1551`). By the grid spec, with the sidebar shown the sidebar gets the flexible track and the main column sizes to its content.
   - WI-0.4 confirms this with a 900px capture. WI-4.8 removes the `.app-shell` override.
-  - The `.split-*` rules in that query do **not** all travel with the deleted Preview pane, and they are not all dead either — the original "they style the dead Preview split and stay with it (A8)" reading was wrong in one direction and is easy to over-correct in the other. Split them by actual use: `SplitView.tsx` is still mounted (`App.tsx:5` imports it, `App.tsx:1140` renders it) and emits `.split-view` (`SplitView.tsx:18`) and `.split-pane full-pane` (`:19`), so those rules are **live** in both the base block (`globals.css:253-269`) and the 960px query (`:1552-1559`) and stay in tokenization scope. What the Preview deletion actually orphaned is `.split-divider` alone, declared at `globals.css:272` and `:1560` and referenced by no `src/**` file — it is the one A8 candidate here. The pane is also permanently single now (`full-pane`), so the query's two-pane sizing for `.split-pane` is worth re-reading against a one-child flex container rather than assumed correct.
+  - The `.split-*` rules in that query do **not** all travel with the deleted Preview pane, and they are not all dead either — the original "they style the dead Preview split and stay with it (A8)" reading was wrong in one direction and is easy to over-correct in the other. Split them by actual use: `SplitView.tsx` is still mounted (`App.tsx:5` imports it, `App.tsx:1012` renders it) and emits `.split-view` (`SplitView.tsx:18`) and `.split-pane full-pane` (`:19`), so those rules are **live** in both the base block (`globals.css:253-269`) and the 960px query (`:1552-1559`) and stay in tokenization scope. What the Preview deletion actually orphaned is `.split-divider` alone, declared at `globals.css:272` and `:1560` and referenced by no `src/**` file — it is the one A8 candidate here. The pane is also permanently single now (`full-pane`), so the query's two-pane sizing for `.split-pane` is worth re-reading against a one-child flex container rather than assumed correct.
 - **Narrow windows (DR16):** the minimum window stays 400×640 (`src-tauri/tauri.conf.json`). With the sidebar shown, the main column is then 180px.
   - The segmented control never shrinks. The breadcrumb takes the rest of the bar and ellipsizes in the DR4 order: folder first, then file name.
   - The status strip stays one line and is a size container. As it narrows it hides line ending first, then encoding, then word count. The cursor position always stays in Source. WYSIWYG has no cursor field (DR19), so word count stays there.
@@ -183,7 +222,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - Separators are spacing or borders on the fields, not text between them, so a hidden field leaves no dangling separator.
   - These rules are CSS only. Screenshots at 400×640 in both sidebar states and at 959px check them (Appendix B), not unit tests (rule 10).
 - **Main bar** (proposal :143-146, :384-385; DESIGN.md § Main bar):
-  - One bar at the top of `.main`, rendered in both sidebar states. It replaces `.main-traffic-area` (`App.tsx:1126-1130`), which today renders only when the sidebar is hidden.
+  - One bar at the top of `.main`, rendered in both sidebar states. It replaces `.main-traffic-area` (`App.tsx:998-1002`), which today renders only when the sidebar is hidden.
   - Height `--title-bar-height` (`globals.css:18`), the height of the proposal's bar and of `.sidebar-traffic-area`, so the two top edges line up. Hairline bottom.
   - The bar background is the window drag region (`data-tauri-drag-region`). The breadcrumb and the segmented control opt out with `data-tauri-drag-region="false"`, as `.sidebar-mode-label` does today.
   - Sidebar hidden: the left padding uses `--traffic-lights-clearance-main` (rule 31 § Layout tokens). Sidebar shown: `.sidebar-traffic-area` keeps its drag region and loses the mode label. The sidebar heading text changes from "Table of Contents" (`Sidebar/index.tsx:41`) to "Contents" (proposal :367; DESIGN.md § Layout); update any test that queries the old text.
@@ -194,7 +233,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
     - When space runs out, the folder shrinks and ellipsizes first. The file name ellipsizes only once the folder is gone.
     - The full path appears only in a tooltip (rule 30 rule 3).
     - It is not clickable and carries no unsaved mark, because the tab already shows that (rule 30 rule 5).
-  - `.busy-indicator` (`App.tsx:1131-1135`) stays between the bar and `.workspace`.
+  - `.busy-indicator` (`App.tsx:1003-1007`) stays between the bar and `.workspace`.
 - **Status strip** (proposal :158-160, :421-427; DESIGN.md § Status strip):
   - The last child of `.main`, below `.workspace`. The bottom tabs stay full width below it.
   - Fields: cursor position, word count, encoding and line ending.
@@ -213,6 +252,10 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - Render-if-nonzero (rule 30 rule 2): unknown or zero fields are omitted. With no active document the strip is not rendered.
   - No "Commands ⌘K" hint (Q11).
   - **Semantics:** a group named "Document status", not a live region, so cursor moves and typing are never announced. Every value is visible text.
+- **States:**
+  - **Word count failed:** if the worker errors or never answers, the word-count field is omitted (render-if-nonzero, rule 30 rule 2). The failure is logged once per document, with no toast. The other fields are unaffected.
+  - **Breadcrumb, keyboard and screen reader:** the tooltip is mouse-only, and the breadcrumb is not interactive (DR4), so it is not focusable. The full path is also its accessible name (or `title`), so a screen reader reaches it by reading the bar.
+  - **Keyboard order:** the bar's only Tab stop is the segmented control. The status strip has none.
 - **Tests:**
   - word-count util (DR18): `don't stop` = 2; `你好世界` = 4; `Hello 世界` = 3; `안녕 하세요` = 2; `## **Bold** [link](https://example.com)` = 2; code inside a fence counts and the fence lines don't; front matter, `1.` list numbers and HTML tags don't count; empty input and marker-only lines = 0
   - field formatter: drops unknown and zero fields, and never emits a dangling separator
@@ -225,17 +268,21 @@ Each work item captures before/after screenshots per item × theme, and the stag
 
 ### WI-4.9 — Empty state (DR3) — S
 - **Order:** runs after WI-4.8, which already hides the strip with no document.
-- **When:** no active document, i.e. a launch with no file paths (`App.tsx:1053-1062`) or closing the last document (`documentStore.ts:116-117`). Today `.workspace` then renders a blank editor (`App.tsx:1136-1146`; SplitView with `readOnly`).
-- **Launch:** the empty state waits for the launch open check. It renders only once `launchPathsComplete` is true (`App.tsx:110`; set at `:1061`, `:1068`, `:1071`), and before that the editor column is blank on `--color-editor-bg`. A Finder launch waits for preferences, then `get_launch_paths` (retried once after 300 ms, `:1053-1062`), then `openPaths`, so without the wait "No documents open" would flash before the file appears. The launch view-mode effect already waits on the same flag (`:295`).
+- **When:** no active document, i.e. a launch with no file paths (`checkLaunchPaths`, `App.tsx:907-947`) or closing the last document (`documentStore.ts:130-132`). Today `.workspace` then renders a blank editor (`App.tsx:1008-1019`; SplitView with `readOnly` at `:1015`). (App.tsx citations in this item re-verified 2026-10-07 at 630cb86.)
+- **Launch:** the empty state waits for the launch open check. It renders only once `launchPathsComplete` is true (`App.tsx:121`; set at `:935`, `:942`, `:945`), and before that the editor column is blank on `--color-editor-bg`. A Finder launch waits for preferences, then `get_launch_paths` (`:912`, retried once after 300 ms, `:927-938`), then `openPaths`, so without the wait "No documents open" would flash before the file appears. The launch view-mode logic already waits on the same flag: `useLastViewModePersistence` takes `launchPathsComplete` (`:266-272`).
 - **Where:** inside `.workspace`, in place of the editor, while there is no active document.
-  - Preflight: confirm that not mounting either editor with no document does not break the launch view-mode effect (`App.tsx:293-305`) or the first Milkdown mount when a document opens.
+  - Preflight: confirm that not mounting either editor with no document does not break `useLastViewModePersistence` (`App.tsx:266-272`) or the first Milkdown mount when a document opens.
 - **Content** (DESIGN.md § Empty state; proposal :284-286, :607-609; DR1):
   - A muted file icon and the title "No documents open".
-  - Two buttons: **New Document** (primary) calls the same `createDocument()` as ⌘N (`App.tsx:997`), and **Open…** (secondary) calls `handleOpenDialog` (`App.tsx:516`). Each button shows its shortcut in `kbd`.
-  - A muted line "or drop a Markdown file here". The existing drop handler already opens `.md` / `.markdown` files with no document open (`App.tsx:802-840`). The copy does not mention images. During a drag, the frame becomes the drop target (WI-4.12).
+  - Two buttons: **New Document** (primary) calls the same `createDocument()` as ⌘N (`App.tsx:871`, and the menu at `:886`), and **Open…** (secondary) calls `handleOpenDialog` (`App.tsx:387`). Each button shows its shortcut in `kbd`.
+  - A muted line "or drop a Markdown file here". The existing drop handler already opens `.md` / `.markdown` files with no document open (`handleFileDrop`, `App.tsx:660-724`). The copy does not mention images. During a drag, the frame becomes the drop target (WI-4.12).
 - **Main bar with no document:** the bar still renders, keeping the drag region and traffic-light clearance, but the breadcrumb and the segmented control are not rendered.
 - **Contents sidebar with no document:** no message. Today `TOCSidebar` shows "No headings found in this document." whenever `entries` is empty (`TOCSidebar.tsx:107-115`), even with no document to have headings. The message stays for an open document with no headings.
 - **Focus:** nothing is auto-focused. Both buttons are in the normal tab order and use the rule 33 button focus ring.
+- **States:**
+  - **Open… failed:** the existing open-failure error toast (WI-4.13; `showToast(OPEN_FAILED_MESSAGE)` at `App.tsx:401` today). The empty state stays.
+  - **Narrow (400×640):** the icon, title and buttons stack vertically and stay centred. The buttons keep the minimum hit size, and the drop line wraps.
+  - **Screen reader:** the title is a heading. Each button is named by its text; the `kbd` shortcut is not part of the name (`aria-hidden`, or linked by `aria-describedby`).
 - **Tests** (component, userEvent, by role):
   - With no active document, the heading and both buttons are present, and neither editor is mounted
   - Clicking **New Document** creates a document through the same path as ⌘N; clicking **Open…** reaches the open dialog (Tauri mocked at the boundary)
@@ -248,14 +295,14 @@ Each work item captures before/after screenshots per item × theme, and the stag
 ### WI-4.12 — Drop target (DR7) — S
 - **Order:** Lane B, after WI-4.10. It shares `App.tsx` with that lane and restyles WI-4.9's frame.
 - **Why:**
-  - The listener at `App.tsx:877-881` acts only on `drop` and ignores `enter`, `over` and `leave`, so nothing changes while a file is dragged over the window.
-  - A drop with no Markdown or image file only writes a `file.open.drop` cancel log (`:823-836`). The user sees nothing.
+  - The listener at `App.tsx:735-740` acts only on `drop` and ignores `enter`, `over` and `leave`, so nothing changes while a file is dragged over the window.
+  - A drop with no Markdown or image file only writes a `file.open.drop` cancel log (`:682-695`). The user sees nothing.
   - WI-4.9's empty state tells people to drop a file.
-- **Classify once:** extract the split at `App.tsx:806-816`, and `IMAGE_EXTENSIONS` at `:711`, into a pure helper such as `classifyDrop(paths, hasActiveDocument)`.
+- **Classify once:** extract the split at `App.tsx:664-674`, and `IMAGE_EXTENSIONS` at `:569`, into a pure helper such as `classifyDrop(paths, hasActiveDocument)`.
   - It returns a discriminated union with the Markdown and image counts, and callers handle it with an exhaustive switch.
   - The hover label and `handleFileDrop` both use it, so the label can't promise something the drop won't do.
 - **Drag state:** a hook (for example `useDropTarget`) owns the `onDragDropEvent` listener. `App.tsx` is already far past the 300-line limit (rule 50).
-  - The listener registers through the WI-4.19 cancellation-safe primitive (E19), not its own bare `await`. Today's drag listener at `App.tsx:871-890` assigns `unlisten` after an `await` with no cancelled flag, so an unmount during registration leaks it (C5).
+  - The listener registers through the WI-4.19 cancellation-safe primitive (E19), not its own bare `await`. Today's drag listener at `App.tsx:728-749` assigns `unlisten` after an `await` with no cancelled flag, so an unmount during registration leaks it (C5).
   - `enter` classifies `payload.paths` and shows the target.
   - `over` is ignored; the pointer is not tracked.
   - `leave` and `drop` clear the target. `drop` then routes the paths.
@@ -263,10 +310,14 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - **Escape also clears it** (E13). Blur does not cover an Esc-cancelled drag, because cancelling does not blur the window. While the target is shown, and only then, a capture-phase `keydown` listener on `window` clears it on `Escape`; the fallback is restricted to `Escape` rather than any keydown. Note that `@tauri-apps/api` 2.9.1 maps `DRAG_LEAVE` without reading the payload (`window.js:1687`), so tauri-apps/tauri#10126 being open proves nothing in either direction.
   - A cancel followed by inactivity can still strand the highlight, so the real Esc-cancel check in `pnpm tauri dev` is an **acceptance gate**, not an assumption note.
 - **Look and copy:** DESIGN.md § Drop target has the full state table.
-  - With a document open, an overlay covers `.workspace` (`App.tsx:1136-1146`).
+  - With a document open, an overlay covers `.workspace` (`App.tsx:1008-1019`).
   - In the empty state, WI-4.9's frame changes instead; there is no second frame.
   - No label mentions tabs.
-- **Behavior change:** a drop with no supported files shows one toast, "Only Markdown and image files can be dropped". Every other drop keeps today's behavior, including the toast for images with no document (`App.tsx:723-724`).
+- **Behavior change:** a drop with no supported files shows one toast, "Only Markdown and image files can be dropped". Every other drop keeps today's behavior, including the toast for images with no document (`App.tsx:581-582`).
+- **States:**
+  - **Narrow (400×640):** the overlay label wraps and stays centred.
+  - **Reduced motion:** no fade; the target shows and hides instantly under `prefers-reduced-motion: reduce`.
+  - **Screen reader:** the overlay is `aria-hidden` decoration, because dropping is pointer-only. The unsupported-drop toast is the announced outcome.
 - **Stacking:** if the overlay needs a z-index to paint over the editor, add a "Drop target" row to rule 31's z-index table in the same commit, below "Dialog backdrop".
 - **Tests** (through tdd-guardian, RED first):
   - `classifyDrop`: Markdown only, images only, both, neither, uppercase extensions and an empty list, each with and without a document
@@ -328,11 +379,11 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - [ ] **Timing evidence (E39), recorded not gated:** the browser-mode suite reports status-related main-thread work against the named fixtures (Source near 10 MiB, WYSIWYG under 500 KiB, each with CJK and very long lines) on the named reference machine. The p95 ≤ 8 ms / no task ≥ 50 ms / count within 1 s budgets are targets to verify; FPS, heap and tight millisecond thresholds are **not** blocking assertions
 - [ ] With no document open (a launch with no file, and after closing the last tab), the empty state shows the title, **New Document**, **Open…** and the drop line; both buttons work by mouse and keyboard, and dropping a `.md` file opens it. The Contents sidebar shows no message. A Finder launch with a file never shows the empty state first.
 - [ ] In `pnpm tauri dev`, an external change shows the right state of the dialog. (1) Changed with no edits: Reload works. (2) Changed with unsaved edits: Enter and Esc both keep the edits, and only "Discard and reload" replaces them. (3) Deleted: no Reload is offered, and "Save As…" writes the text to a new path. Tab stays inside the dialog in every state.
-- [ ] Every dialog uses the same `.dialog-card` shell, title and message type steps and button variants: the external change dialog (`ReloadDialog.tsx`), `ConfirmDialog`, draft recovery, encoding, and the link and table insert modals. The screenshot index puts the recovery and encoding dialogs next to the external change dialog, in both themes.
+- [ ] Every dialog uses the same `.dialog-card` shell, title and message type steps and button variants: the external change dialog (`ReloadDialog.tsx`), `ConfirmDialog`, draft recovery, encoding, and the link and table insert modals. The screenshot index puts the recovery and encoding dialogs next to the external change dialog, in both themes. The recovery and encoding dialogs also have the rule 32 shell (WI-4.6b): labelled by their titles, Tab stays inside, focus returns on close, and in EncodingDialog Esc and a backdrop click take Cancel. RecoveryDialog's Esc and backdrop behaviour follows the WI-4.6b decision, which is still open.
 - [ ] Re-opening a file that is already open (⌘O, recent files, Finder, drop) switches to its tab and keeps its unsaved edits
 - [ ] Dragging files over the window shows the DR7 target, with the right label for Markdown, images, both and unsupported files, with and without a document. The target clears when the drag leaves or is cancelled, and dropping only unsupported files shows one toast.
-- [ ] In every Discard confirmation, focus starts on "Keep editing", so Enter never discards. Tab stays inside the dialog, a backdrop click cancels, and focus returns to the opener.
-- [ ] Discard confirmations use the danger variant at both mounted callers; Cancel stays secondary. Pressing the confirm button twice closes once, and a failed close shows one error toast with the tab still open.
+- [ ] In every Discard confirmation — tab close, ⌘W, window close and quit — focus starts on "Keep editing", so Enter never discards (D48's fix, kept). Tab stays inside the dialog, a backdrop click cancels, and focus returns to the opener.
+- [ ] Discard confirmations use the danger variant at both mounted callers (`BottomTabs.tsx` and the App dialog behind ⌘W, window close and quit); Cancel stays secondary. The MCP write confirmation keeps its shell and shows the WI-3.3 ring. Pressing the confirm button twice closes once, and a failed close shows one error toast with the tab still open.
 - [ ] In `pnpm tauri dev`, a failed save shows the error toast in both themes. It stays until dismissed or replaced, "Dismiss" clears it, and VoiceOver announces it. "Saved" still disappears after 3 seconds.
 - [ ] In `pnpm tauri dev`, opening a missing file and an oversized file from recent files, from Finder and by drop shows one error toast naming the file, with "larger than 10 MB" for the oversized one. "Exported *name*" shows no path.
 - [ ] Every settings page shows the same "Loading…" line and the same load-failure line. A failed settings save shows only the error toast, and the control returns to its saved value.
@@ -359,10 +410,11 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - `fix(file-watch): dirty-aware external change dialog`
 - `feat(ui): drop target while dragging files`
 - `fix(a11y): one keyboard contract for context menus`
-- `fix(open): switch to an already-open document instead of replacing it` (first in Stage 4)
-- `fix(editor): WYSIWYG shows text changed outside the editor` (right after the already-open fix)
+- ~~`fix(open): switch to an already-open document instead of replacing it` (first in Stage 4)~~ — delivered by `de264bf` (ADR-0028), 2026-09-24
+- `fix(editor): WYSIWYG shows text changed outside the editor` (it followed the already-open fix, which has landed)
 - `feat(ui): mode segmented control`
 - `fix(dialog): destructive confirm focuses the safe action and traps Tab`
+- `fix(dialog): rule 32 shell for the recovery and encoding dialogs`
 - `fix(toast): failure toasts use an error variant that stays until dismissed`
 - `style(settings): flat rail`
 
@@ -370,8 +422,8 @@ Each work item captures before/after screenshots per item × theme, and the stag
 
 **Worktree lanes (optional):**
 - **Lane A:** WI-4.1 (`Editor/extensions/`) is independent.
-- **Lane B:** WI-4.2 → WI-4.13 → WI-4.6 → WI-4.8 → WI-4.5 → WI-4.9 → WI-4.10 → WI-4.12 run in sequence, because they share `BottomTabs`, `Sidebar` and `App.tsx`.
-- **WI-4.11, then WI-4.14,** run before any lane. WI-4.11 shares no files with the lanes. WI-4.14 shares `App.tsx` and `MilkdownEditor.tsx` with Lane B, so it lands before Lane B starts. WI-4.15 touches only the three menus and its hook, so any lane can take it.
+- **Lane B:** WI-4.2 → WI-4.13 → WI-4.6 → WI-4.6b → WI-4.8 → WI-4.5 → WI-4.9 → WI-4.10 → WI-4.12 run in sequence, because they share `BottomTabs`, `Sidebar` and `App.tsx`.
+- **WI-4.14** runs before any lane. WI-4.11, which used to run first, is already delivered (`de264bf`, ADR-0028; 2026-10-07 note). WI-4.14 shares `App.tsx` and `MilkdownEditor.tsx` with Lane B, so it lands before Lane B starts. WI-4.15 touches only the three menus and its hook, so any lane can take it.
 - **Lane C:** WI-4.3 → WI-4.4 → WI-4.7 run in sequence, because they share the settings components and the settings CSS partial.
 - **The foundations do not belong to a lane.** WI-4.16…WI-4.22 ([`stage-4c-foundation.md`](stage-4c-foundation.md), plus WI-4.16/4.17/4.18 in [`stage-4b-data-safety.md`](stage-4b-data-safety.md)) each touch files that several lanes touch, so they land **between** lanes, in the order recorded in Stage 4c. Three of them constrain the lanes directly: WI-4.19 lands before WI-4.12, which registers its drag listener through that primitive; WI-4.22's `App.tsx` lifecycle seam lands before WI-4.12's drop-target extraction, so the drag work is not moved twice; and **WI-4.22 also lands before WI-4.8** (E35), because WI-4.8 mounts the first permanent keystroke-rate consumer and needs the ownership table to be true first. WI-4.26 lands between WI-4.22 and WI-4.8.
 - **Conflict flag:** all lanes still meet in the theme files, `DESIGN.md` and `CHANGELOG.md`. Lanes B and C also both edit `SettingsDialog.tsx`, in different hunks (WI-4.2 icons, WI-4.3 MCP read). Merge one lane at a time and re-run G0 after each merge.
