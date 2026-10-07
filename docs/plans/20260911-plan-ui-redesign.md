@@ -123,7 +123,7 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 
 ## Open questions (must be answered at the Stage 0 gate)
 
-Q15 and Q16 are still open. The others are closed; their answers are in the decisions they name.
+All closed. Q15 and Q16 were answered by the user on 2026-10-07, after a Codex consult; every answer is in the row or the decision it names.
 
 | ID | Question | Blocks |
 |---|---|---|
@@ -141,8 +141,8 @@ Q15 and Q16 are still open. The others are closed; their answers are in the deci
 | Q12 | Status-strip word count for CJK text and Markdown syntax. **Answered: DR18.** | WI-4.8 |
 | Q13 | A cursor field in WYSIWYG. **Answered: DR19.** | WI-4.8 |
 | Q14 | "Save As…" in the deleted-file state. **Closed:** `saveActiveDocumentAs` (`useDocument.ts:172-200`) already exists; only a menu item is missing. | WI-4.10 |
-| Q15 | WI-4.22 now lands before WI-4.8 (E35), so the first Stage 4 work is render-ownership plumbing with no user-visible result. Accept that delay, or reorder? **Open — no proposal.** Reordering means WI-4.8 mounts the first permanent keystroke-rate consumer into a tree that has no ownership contract yet, which is the failure E32 exists to prevent. | WI-4.8, WI-4.22 |
-| Q16 | E39's budgets (status-related main-thread work p95 ≤ 8 ms, no task ≥ 50 ms, count visible within 1 s) are targets to verify on a named reference machine, not measurements of today. If the reference machine misses them, is the budget revised or the design? **Open — no proposal.** Nothing in the plan says, and E39 bars these numbers from ever blocking CI, so a miss currently has no defined consequence. | WI-4.8, T31 |
+| Q15 | WI-4.22 now lands before WI-4.8 (E35), so the first Stage 4 work is render-ownership plumbing with no user-visible result. Accept that delay, or reorder? **Closed (2026-10-07, user): accept — WI-4.22 stays first.** Codex agreed. Reordering means WI-4.8 mounts the first permanent keystroke-rate consumer into a tree that has no ownership contract yet, which is the failure E32 exists to prevent. | WI-4.8, WI-4.22 |
+| Q16 | E39's budgets (status-related main-thread work p95 ≤ 8 ms, no task ≥ 50 ms, count visible within 1 s) are targets to verify on a named reference machine, not measurements of today. If the reference machine misses them, is the budget revised or the design? **Closed (2026-10-07, user): [ADR-0055](../adr/0055-a-missed-performance-budget-changes-the-design-not-the-number.md).** A miss counts only once it reproduces on the named machine with the committed fixtures; a confirmed miss is a D-defect and the design changes; the budget changes only through a new ADR. Still never a CI gate (E39). | WI-4.8, T31 |
 
 ---
 
@@ -393,7 +393,7 @@ Read this file first, then only the stage file you are working on.
 - [ ] **T31 (S)** — Performance evidence and budgets — E39
   - **Files:** the browser-mode suite (E31), [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md) G0, the named fixtures
   - **Depends on:** T30 and the WI-4.8 task. It records evidence; it gates nothing beyond G0's deterministic line.
-  - **Verify:** the fixtures exist (Source near 10 MiB, WYSIWYG under 500 KiB, each with CJK and very long lines), the reference machine is named, and the p95 ≤ 8 ms / no task ≥ 50 ms / count within 1 s numbers are recorded as targets — with **no** FPS, heap or millisecond threshold wired as a blocking assertion
+  - **Verify:** the fixtures exist (Source near 10 MiB, WYSIWYG under 500 KiB, each with CJK and very long lines), the reference machine is named (model, chip, macOS, display scale) and the fixture generators are committed, per [ADR-0055](../adr/0055-a-missed-performance-budget-changes-the-design-not-the-number.md), and the p95 ≤ 8 ms / no task ≥ 50 ms / count within 1 s numbers are recorded as targets — with **no** FPS, heap or millisecond threshold wired as a blocking assertion
 - [ ] **T11 (M)** — `sourceFont` — WI-5.1…5.4
   - **Files:** `preferences.rs`, `preferences.ts`, `editorPrefApply.ts`, `EditorSettings.tsx`, the shared fixture, `normalizeSourceFont`, rule 31
   - **Depends on:** the E6 fix PR, and T22 (which changes the same Rust preference types)
@@ -471,7 +471,7 @@ Implementing WI-4.26 first would write acceptance criteria against a colliding i
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
 | Codex Review | `/codex review` | Independent 2nd opinion | 4 | ISSUES_FOUND | Run 4 (2026-10-07, WI-0.6 diff): 5 findings (2 P1, 3 P2), all fixed before approval; 20+ citations spot-checked and matched. Plan review: 9 findings, 8 folded, 1 invalid. Decision consult: 10 verdicts (4 agree, 5 agree-with-changes, 1 disagree) plus 3 cross-cutting issues, all accepted. Design outside voices (Codex and an independent Claude subagent): 34 findings, taken into Passes 1–7. |
 | Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES_FOUND, all folded in | Round 1: 29 issues, 0 critical gaps, but it predated WI-4.8–4.15 and T12–T19. Round 2 re-ran against the full plan across four sections and produced E9–E39, WI-0.0, WI-4.23–WI-4.26 and T0a / T27–T31. It also corrected eight false claims the plan itself carried. |
-| Design Review | `/plan-design-review` | UI/UX gaps | 2 | ISSUES_OPEN | Run 1 (2026-09-11, `30b353a`): score 6/10 → 9/10, 23 decisions (DR1–DR23). Run 2 (2026-10-07, `630cb86`, WI-0.6, drift-only): score 7/10 → 9/10, 4 decisions — WI-4.6 widened and WI-4.6b added, DR21 amended, WI-4.11 delivered via ADR-0028, States added to six work items; D48 filed |
+| Design Review | `/plan-design-review` | UI/UX gaps | 2 | CLEAR (decisions closed 2026-10-07) | Run 1 (2026-09-11, `30b353a`): score 6/10 → 9/10, 23 decisions (DR1–DR23). Run 2 (2026-10-07, `630cb86`, WI-0.6, drift-only): score 7/10 → 9/10, 4 decisions — WI-4.6 widened and WI-4.6b added, DR21 amended, WI-4.11 delivered via ADR-0028, States added to six work items; D48 filed |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
 - **ENG REVIEW ROUND 2 (four sections).** *Architecture (E9–E16):* the owned, flushable editor observer; document identity on UUIDs with path deduplication; an open-result union; insert-modal ownership. *Code quality (E17–E24):* IPC error normalization, a logged-operation wrapper, a cancellation-safe subscription primitive, MCP window routing in Rust, the rule-50 ratchet. *Tests (E25–E31):* the CI triggers were restored — `ci.yml` ran only on `tags` and `workflow_dispatch`, so **all 1138 tests were skipped on every merge path**; the coverage denominator was corrected (3.53% measured against 97898 lines, including `src-tauri/target`, versus a true 30.87% floor); source-text assertions migrate as they are touched; `tests/` gains type checking before the first `.test.tsx`. *Performance (E32–E39):* render isolation became a prerequisite of WI-4.8 rather than a companion optimization, and word count became a worker-computed derived scalar.
@@ -485,7 +485,6 @@ Implementing WI-4.26 first would write acceptance criteria against a colliding i
 
 Q2, Q6 and Q10 stood in the list below until 2026-09-12 and are now answered; the Open questions table above is canonical for their wording. Q6's answer is **replace, do not declare**: `.about-status-ok` → `--color-text` for both its phases, `.about-status-error` → `--color-danger`, and `.about-status-disabled` loses its colour line outright. An earlier draft of this block named `--color-muted` as that third replacement, which the table had already shown to be a no-op against `.about-status-text` — the block contradicted the table for as long as both were on master.
 
-**UNRESOLVED DECISIONS:**
-- Q15: accept WI-4.22 landing before WI-4.8, leaving the first Stage 4 work as render-ownership plumbing with no user-visible result — or reorder (open; no proposal)
-- Q16: if the named reference machine misses E39's budgets, whether the budget is revised or the design is (open; no proposal)
-- WI-4.6b: what Esc and a backdrop click do in RecoveryDialog, a deliberate forced choice today (`tests/focus-trap.test.ts:121-134`); proposed: nothing, and EncodingDialog's initial focus on UTF-8 — both marked "assumption — confirm" (run 2, 2026-10-07)
+**DECISIONS CLOSED 2026-10-07** (user, after a Codex consult): Q15 — WI-4.22 stays before WI-4.8; Q16 — [ADR-0055](../adr/0055-a-missed-performance-budget-changes-the-design-not-the-number.md); WI-4.6b — [ADR-0056](../adr/0056-recovery-stays-a-forced-choice-and-encoding-opens-on-cancel.md): RecoveryDialog stays a forced choice, EncodingDialog opens on Cancel.
+
+NO UNRESOLVED DECISIONS
