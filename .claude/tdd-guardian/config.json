@@ -36,6 +36,15 @@
       "coverage": "none",
       "probeCommand": "cargo test --manifest-path src-tauri/Cargo.toml -- --list",
       "timeoutMs": 900000
+    },
+    {
+      "name": "rust-verify-run",
+      "description": "cargo test with --features verify-run (ADR-0047): compiles the feature-gated verify_run* modules and their tests, which the plain rust lane never builds. Not a superset of the rust lane: wi6_t01 (shipping MCP port 55045) is feature-off only.",
+      "command": "scripts/heavy-lock.sh cargo test --manifest-path src-tauri/Cargo.toml --features verify-run",
+      "gateOn": ["commit"],
+      "coverage": "none",
+      "probeCommand": "cargo test --manifest-path src-tauri/Cargo.toml --features verify-run -- --list",
+      "timeoutMs": 900000
     }
   ],
   "coverageThresholds": { "lines": 73, "functions": 80, "branches": 91, "statements": 73 },
