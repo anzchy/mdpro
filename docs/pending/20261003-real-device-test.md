@@ -225,3 +225,30 @@ narrow 那 8 张在 MacBook 上没有目检过；既然要重拍，不用再看�
 **需要用户决定**：
 1. `.cm-line` 的 `count`：(a) 改 `snapshot.js`，对虚拟渲染的 `.cm-line` 不记录 count，或者先等 CodeMirror 测量完成再采；(b) 不改脚本，把这个字段作为已知的不确定项，在比对时排除。选好之后重采子集并重做确定性检查，通过了再把 WI-0.4 标 ✅。
 2. release 对比：(a) 接受用 dev 采集代替，并记下这个前提；(b) 另做一个开了 `devtools` feature 的验证构建（改构建配置，按 CLAUDE.md 应写 ADR），并让 `snapshot.js` 能在没有 DevToolbar 的情况下打开 fixture；(c) 等 MacBook 那边把 DevToolbar 从 tauri dev 去掉之后再议。
+
+## 11. §10 两个决定的结果（2026-10-07，MacBook 记录）
+
+**决定**（用户，2026-10-05）：
+1. `.cm-line` 的 `count` 选 (a)，改 `snapshot.js`。改动在 MacBook 上完成：`174fce7`（schema 2，`VIRTUALIZED` 选择器不再记录 `count`；fixture 改从隐藏的 `[data-testid=dev-open-file]` 打开，没有它时退回 `.dev-toolbar` 输入框）。
+2. release 对比由 Codex 参与讨论后定为 (a+)：
+   - E5 gate 继续用 dev 采集的 JSON；
+   - 另在 mini 上对同一批界面做 tauri dev 和 release 的同机截图逐像素对比：main Source、一个 Settings 页、一个弹窗，浅色和深色。焦点、滚动和等待都固定，避开光标闪烁；
+   - 有差异先重拍；只有稳定又解释不了的差异，才升级到 (b)（开 `devtools` 的验证构建，并写 ADR）；
+   - 「dev 采集能代表 release」记为抽样校准的前提，不是已证明的等价。
+   - **这项对比推迟到 `docs/stage-0-redesign` 合并之后再做**，因为 dev 一侧必须包含 `1703dbb`（去掉可见的 DevToolbar）。
+
+**分工**（用户，2026-10-06）：mini 只做真机测试，代码和文档都在 MacBook 上改（迁移手册 §5，`310ff3e`）。
+
+**结果**（mini 报告在仓库外 `~/.mdpro-redesign/stage-0/reports/`，MacBook 核对过目录和 diff）：
+- **Chromium，schema 2，MacBook 采集**（`json-macbook-s2/`）：64 个文件都是 `ok: true`。两次完整采集 `/usr/bin/diff -r` 为空。和 schema 1 比，只差 `schema` 行和 18 个文件里 `.cm-line` 的 `count` 行。
+- **WKWebView，schema 2，mini 采集**（`20261007-wkwebview-schema2.md`）：`.cm-line` 的跳动没有了。但 run 1 的 `settings-general-dark` 少了 General 按钮的焦点环。原因是采集工具先往 Web Inspector 粘贴加载器，再把 mdpro 窗口提到前面；脚本跑得比窗口激活快时，WebKit 不匹配 `:focus`。延迟 2 秒启动后 4/4 都有焦点环，而且和 run 2 逐字节一致。
+- **焦点保护，`b235ec7`**：`snapshot.js` 开始前最多等 8 秒 `document.hasFocus()`，等不到就是 `ok:false`；每个阶段失焦也记为错误。
+  - MacBook：把 `hasFocus` 强制为 false 时文件是 `ok:false` 并写明原因；64 个 Chromium 文件重采后和 `json-macbook-s2/` 逐字节一致。
+  - mini（`20261007-wkwebview-focus-guard.md`）：两次采集 6/6 都是 `ok: true`，12 次采集都一次成功。两次之间 `/usr/bin/diff -r` 为空，和 `json-mini-wkwebview-s2-run2/` 也为空。
+- **当前基线**（都是 schema 2，只比同机采集）：
+  - MacBook Chromium：`json-macbook-s2/`；
+  - mini WKWebView 子集：`json-mini-wkwebview-s3/`。
+  - schema 1 的几套（`stage-0/*.json`、`json-mini/`、`json-mini-wkwebview/`）作废，因为它们还带 `.cm-line` 的 `count`。
+  - mini 跑 Chromium gate 前，先用 schema 2 在 mini 上重采。
+
+**合并之后要做**（④ 选了保留 `1703dbb`）：重算 `css-file-map.md` 的行号（删掉第 13 行 `dev-toolbar.css`，后面的行号减 39）；在合并后的代码上重采两套基线；pure-move 证明的基准换成包含 `1703dbb` 的提交；然后做上面的 release 截图对比。
