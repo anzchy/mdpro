@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import type { EditorView } from "@codemirror/view";
-import type { CursorPosition, EditorState, SelectionRange, ViewMode } from "../types/editor";
+import type {
+  CursorPosition,
+  EditorState,
+  SelectionRange,
+  UserViewModeChoice,
+  ViewMode,
+  ViewModeIntent,
+} from "../types/editor";
 import { loggingService } from "../services/loggingService";
 import {
   captureCellFromLines,
@@ -33,11 +40,15 @@ import { useMilkdownEditorStore } from "./milkdownEditorStore";
  * pre-transition work — capture the table cell and (WI-8) the scroll
  * anchor on the outgoing editor, then log the change. Extract into one helper so a future
  * tweak (e.g., capture image-resize state too) lands in one place.
+ *
+ * D24: the `view.mode.change` context is exactly `{ fromMode, toMode, source, intent }`,
+ * with `intent` already resolved to one of the two literals (no actionId, no values).
  */
 function runViewModeTransition(
   state: { viewMode: ViewMode; editorView: EditorView | null },
   toMode: ViewMode,
   source: "setViewMode" | "cycleViewMode",
+  intent: ViewModeIntent,
 ): void {
   capturePendingTableCellForTransition(state.viewMode, state.editorView);
   captureScrollAnchorForTransition(state.viewMode, state.editorView);
@@ -46,11 +57,30 @@ function runViewModeTransition(
     event: "view.mode.change",
     status: "success",
     actionId: loggingService.generateActionId(),
-    context: { fromMode: state.viewMode, toMode, source },
+    context: { fromMode: state.viewMode, toMode, source, intent },
   });
 }
 
 const VIEW_MODE_ORDER: ViewMode[] = ["wysiwyg", "source"];
+
+/** O-1 fail-closed: only the literal `"user"` is a user intent; anything else is programmatic. */
+function resolveIntent(intent: unknown): ViewModeIntent {
+  return intent === "user" ? "user" : "programmatic";
+}
+
+/**
+ * D24 / D-3: a user command always records a new choice object (seq + 1, the landed
+ * mode), even when the mode does not change. A programmatic one returns no patch, so
+ * the choice keeps its value and its reference.
+ */
+function choicePatch(
+  state: { userViewModeChoice: UserViewModeChoice },
+  intent: ViewModeIntent,
+  landed: ViewMode,
+): { userViewModeChoice?: UserViewModeChoice } {
+  if (intent !== "user") return {};
+  return { userViewModeChoice: { seq: state.userViewModeChoice.seq + 1, mode: landed } };
+}
 
 function nextViewMode(current: ViewMode): ViewMode {
   const currentIndex = VIEW_MODE_ORDER.indexOf(current);
@@ -106,8 +136,19 @@ interface EditorStore extends EditorState {
   autoSaveInterval: number;
   setAutoSaveInterval: (seconds: number) => void;
   setActiveDocumentId: (id: string | null) => void;
-  setViewMode: (mode: ViewMode) => void;
-  cycleViewMode: () => void;
+  /**
+   * Switch to `mode`. `intent` defaults to `"programmatic"` (ADR-0031 step 6): only an
+   * explicit user command passes `"user"`, which records `userViewModeChoice`.
+   */
+  setViewMode: (mode: ViewMode, intent?: ViewModeIntent) => void;
+  /** Cycle to the next mode; `intent` as for `setViewMode`. */
+  cycleViewMode: (intent?: ViewModeIntent) => void;
+  /**
+   * The latest explicit view-mode choice. Initial `{ seq: 0, mode: "wysiwyg" }`; each
+   * user set or cycle replaces it with `{ seq + 1, landed mode }`. Programmatic switches
+   * never touch it.
+   */
+  userViewModeChoice: UserViewModeChoice;
   editorView: EditorView | null;
   setEditorView: (view: EditorView | null) => void;
   setShowSidebar: (show: boolean) => void;
@@ -177,21 +218,26 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   undoDepth: 0,
   redoDepth: 0,
   setActiveDocumentId: (id) => set({ activeDocumentId: id }),
-  setViewMode: (mode) => {
+  userViewModeChoice: { seq: 0, mode: "wysiwyg" },
+  setViewMode: (mode, intent = "programmatic") => {
+    const resolved = resolveIntent(intent);
     flushWhenLeavingWysiwyg(get().viewMode, mode);
     set((state) => {
-      if (state.viewMode === mode) return { viewMode: mode };
-      runViewModeTransition(state, mode, "setViewMode");
-      return { viewMode: mode };
+      const choice = choicePatch(state, resolved, mode);
+      if (state.viewMode === mode) return { viewMode: mode, ...choice };
+      runViewModeTransition(state, mode, "setViewMode", resolved);
+      return { viewMode: mode, ...choice };
     });
   },
-  cycleViewMode: () => {
+  cycleViewMode: (intent = "programmatic") => {
+    const resolved = resolveIntent(intent);
     flushWhenLeavingWysiwyg(get().viewMode, nextViewMode(get().viewMode));
     set((state) => {
       const nextMode = nextViewMode(state.viewMode);
-      if (nextMode === state.viewMode) return { viewMode: nextMode };
-      runViewModeTransition(state, nextMode, "cycleViewMode");
-      return { viewMode: nextMode };
+      const choice = choicePatch(state, resolved, nextMode);
+      if (nextMode === state.viewMode) return { viewMode: nextMode, ...choice };
+      runViewModeTransition(state, nextMode, "cycleViewMode", resolved);
+      return { viewMode: nextMode, ...choice };
     });
   },
   setEditorView: (view) => set({ editorView: view }),
@@ -211,3 +257,20 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     return true;
   },
 }));
+
+/**
+ * The explicit view-mode commands, as handlers for menu and keyboard callbacks that
+ * pass a positional `actionId` string: `(mode, actionId?)` and `(actionId?)`. Both always
+ * call the store with intent `"user"` and ignore their trailing argument, so an action id
+ * (even the string `"programmatic"`) is never read as an intent. App needs this adapter
+ * because, under `strictFunctionTypes`, `setViewMode(mode, intent?)` is not assignable to
+ * `(mode, actionId?: string) => void`.
+ */
+export const userViewModeCommands = {
+  set: (mode: ViewMode, _actionId?: string): void => {
+    useEditorStore.getState().setViewMode(mode, "user");
+  },
+  cycle: (_actionId?: string): void => {
+    useEditorStore.getState().cycleViewMode("user");
+  },
+};

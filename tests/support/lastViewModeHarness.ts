@@ -20,8 +20,21 @@
  *   `docId` changes, as in the real store.
  * - The commit recorder is a no-deps `useLayoutEffect`, which runs exactly
  *   once per commit of the harness component.
+ * - D24 WI-3 (ADR-0053, matrix `.claude/tdd-guardian/tests-20261007-171405.md`):
+ *   `setMode` is a USER command (`setViewMode(mode, "user")`), the only kind
+ *   the hook persists; `setModeProgrammatic` is the default-intent switch the
+ *   degrade, drop, Finder, launch-path and `?open=` sites make. The harness
+ *   passes the store's reactive `userViewModeChoice` to the hook. With the
+ *   LVH-09 `viewMode` prop it passes a derived choice instead, whose `seq`
+ *   bumps each time the prop changes, so LVH-09 still models a user switch
+ *   in the same commit as the document change.
+ * - The hook no longer takes `setViewMode`: it applies the stored mode itself
+ *   with a programmatic store call. During the WI-3 red phase the harness
+ *   passed both options (matrix F-9), because the pre-WI-3 hook applied the
+ *   stored mode through that option and dropping it early would have crashed
+ *   the read into `read_failed`, a false red. Removed at green.
  */
-import { useLayoutEffect, useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { vi } from "vitest";
 import { isTauri } from "@tauri-apps/api/core";
 import { act, renderHook } from "@testing-library/react";
@@ -29,7 +42,7 @@ import { useLastViewModePersistence } from "../../src/hooks/useLastViewModePersi
 import { useEditorStore } from "../../src/stores/editorStore";
 import { useLoggingStore } from "../../src/stores/loggingStore";
 import type { Document } from "../../src/types/document";
-import type { ViewMode } from "../../src/types/editor";
+import type { UserViewModeChoice, ViewMode } from "../../src/types/editor";
 import type { UserPreferences } from "../../src/types/preferences";
 import { makePreferences } from "./preferenceFixtures";
 
@@ -76,7 +89,7 @@ export function resetCase(disk: UserPreferences = makePreferences()): void {
   commits.length = 0;
   vi.mocked(isTauri).mockReturnValue(true);
   useLoggingStore.setState({ enabled: true, level: "debug" });
-  useEditorStore.setState({ viewMode: "wysiwyg" });
+  useEditorStore.setState({ viewMode: "wysiwyg", userViewModeChoice: { seq: 0, mode: "wysiwyg" } });
 }
 
 /**
@@ -119,12 +132,21 @@ export async function resolveReadWith(snapshot: UserPreferences): Promise<void> 
   await flush();
 }
 
-/** A user or launch-path view-mode change through the real store. */
+/** An explicit user view-mode command (⌃2 / ⌃4 / View menu) through the real store. */
 export function setMode(mode: ViewMode): void {
+  act(() => {
+    useEditorStore.getState().setViewMode(mode, "user");
+  });
+}
+
+/** A programmatic switch (degrade, drop, Finder, launch paths, `?open=`): default intent. */
+export function setModeProgrammatic(mode: ViewMode): void {
   act(() => {
     useEditorStore.getState().setViewMode(mode);
   });
 }
+
+export const storeChoice = () => useEditorStore.getState().userViewModeChoice;
 
 export const storeMode = () => useEditorStore.getState().viewMode;
 
@@ -133,8 +155,29 @@ export interface HarnessProps {
   launched: boolean;
   hasDoc: boolean;
   docId?: string;
-  /** LVH-09 only: drives the hook's `viewMode` parameter instead of the store. */
+  /**
+   * LVH-09 only: drives the hook's `viewMode` parameter instead of the store,
+   * and a derived user choice that bumps each time this prop changes.
+   */
   viewMode?: ViewMode;
+}
+
+/** The LVH-09 derived choice: a new `seq` per change of the `viewMode` prop. */
+function useDerivedChoice(
+  viewModeProp: ViewMode | undefined,
+  storeChoiceValue: UserViewModeChoice,
+): UserViewModeChoice {
+  const ref = useRef<{ prop: ViewMode; choice: UserViewModeChoice } | null>(null);
+  if (viewModeProp === undefined) return storeChoiceValue;
+  if (ref.current === null) {
+    ref.current = { prop: viewModeProp, choice: { seq: 0, mode: viewModeProp } };
+  } else if (ref.current.prop !== viewModeProp) {
+    ref.current = {
+      prop: viewModeProp,
+      choice: { seq: ref.current.choice.seq + 1, mode: viewModeProp },
+    };
+  }
+  return ref.current.choice;
 }
 
 function doc(id: string, path: string): Document {
@@ -152,18 +195,19 @@ function doc(id: string, path: string): Document {
 
 function useHarness(props: HarnessProps): void {
   const storeViewMode = useEditorStore((s) => s.viewMode);
-  const setViewMode = useEditorStore((s) => s.setViewMode);
+  const storeChoiceValue = useEditorStore((s) => s.userViewModeChoice);
   const docId = props.docId ?? "d1";
   const memoDoc = useMemo(() => doc(docId, `/tmp/${docId}.md`), [docId]);
   const activeDocument = props.hasDoc ? memoDoc : null;
   const viewMode = props.viewMode ?? storeViewMode;
+  const userViewModeChoice = useDerivedChoice(props.viewMode, storeChoiceValue);
 
   useLastViewModePersistence({
     preferencesLoaded: props.loaded,
     launchPathsComplete: props.launched,
     activeDocument,
     viewMode,
-    setViewMode,
+    userViewModeChoice,
   });
 
   useLayoutEffect(() => {

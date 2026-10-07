@@ -55,7 +55,7 @@ import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
-import { isSourceTablesWithheld, useEditorStore } from "./stores/editorStore";
+import { isSourceTablesWithheld, useEditorStore, userViewModeCommands } from "./stores/editorStore";
 import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useTableInsertStore } from "./stores/tableInsertStore";
 import { useToastStore } from "./stores/toastStore";
@@ -99,7 +99,7 @@ function App() {
     clearEncodingIssue,
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
-  const { viewMode, setViewMode, cycleViewMode, showSidebar } = useEditor();
+  const { viewMode, setViewMode, showSidebar, userViewModeChoice } = useEditor();
   // Sole writer of showSidebar outside the store; buffers pre-hydration toggles (ADR-0031 5b, WI-5).
   const sidebarPreference = useSidebarPreference();
   const { resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
@@ -260,13 +260,13 @@ function App() {
     sidebarPreference,
   ]);
 
-  // Persist view mode as lastViewMode; held until the stored value is read (ADR-0031 5a, WI-2).
+  // Persist explicit user view-mode choices only (ADR-0053); held until the stored value is read (ADR-0031 5a).
   useLastViewModePersistence({
     preferencesLoaded,
     launchPathsComplete,
     activeDocument,
     viewMode,
-    setViewMode,
+    userViewModeChoice,
   });
 
   // `?open=` for secondary windows; waits for hydration, runs once (ADR-0031 5a, WI-1).
@@ -873,7 +873,7 @@ function App() {
     onSave: (actionId) => void handleSave(actionId),
     onClose: handleCloseRequest,
     onToggleSidebar: sidebarPreference.toggle,
-    onCycleViewMode: cycleViewMode,
+    onCycleViewMode: userViewModeCommands.cycle,
     onOpenPreferences: handleOpenSettings,
     onInsertTable: triggerTableInsert,
     onTableAction: handleTableShortcut,
@@ -891,8 +891,8 @@ function App() {
     onToggleSidebar: sidebarPreference.toggle,
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
     onInsertTable: triggerTableInsert,
-    onViewModeChange: setViewMode,
-    onCycleViewMode: cycleViewMode,
+    onViewModeChange: userViewModeCommands.set,
+    onCycleViewMode: userViewModeCommands.cycle,
     onThemeModeChange: (mode) => void setThemeMode(mode),
     onOpenPreferences: handleOpenSettings,
   });

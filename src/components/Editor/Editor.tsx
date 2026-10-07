@@ -14,7 +14,7 @@ import {
 } from "./extensions/dynamicExtensions";
 import { reapplyEditorPrefs } from "../common/settings/editorPrefApply";
 import { useDocumentStore } from "../../stores/documentStore";
-import { useEditorStore } from "../../stores/editorStore";
+import { useEditorStore, userViewModeCommands } from "../../stores/editorStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
 import { isPositionInFencedCode } from "../../plugins/codemirror/sourceTableDetection";
@@ -82,7 +82,9 @@ export function Editor({
   // High-precedence keymap so Cmd+/ always cycles view modes (even when
   // CodeMirror has focus) and the line-comment shortcut moves to Cmd+Alt+/.
   // Without Prec.highest, basicSetup's defaultKeymap would bind Mod-/ to
-  // toggleLineComment first.
+  // toggleLineComment first. Cmd+/ is an explicit user command, so it cycles
+  // through userViewModeCommands (user intent: persisted as lastViewMode,
+  // ADR-0031 step 6) rather than the store's programmatic default.
   const viewModeKeymap = useMemo(
     () =>
       Prec.highest(
@@ -90,7 +92,7 @@ export function Editor({
           {
             key: "Mod-/",
             run: () => {
-              useEditorStore.getState().cycleViewMode();
+              userViewModeCommands.cycle();
               return true;
             },
           },
