@@ -1,6 +1,6 @@
 # 0050. Exhaustive tests run in a separate slow lane
 
-**Status**: Proposed (2026-10-07)
+**Status**: Accepted (2026-10-07, user decision). Proposed 2026-10-07.
 
 ## Context
 

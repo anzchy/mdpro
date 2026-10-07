@@ -1,6 +1,6 @@
 # 0049. DOM-free test files opt into the node environment
 
-**Status**: Proposed (2026-10-07)
+**Status**: Accepted (2026-10-07, user decision). Proposed 2026-10-07.
 
 ## Context
 
