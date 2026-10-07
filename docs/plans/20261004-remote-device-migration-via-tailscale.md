@@ -127,6 +127,9 @@ The release app is `src-tauri/target/release/bundle/macos/mdpro.app`. Before any
 **Division of labour (user decision, 2026-10-06):** the remote does **real-device tests only**, meaning work that needs its display, GUI session or WKWebView. All development happens on the MacBook: code, scripts (including `scripts/redesign/snapshot.js`), and plan and doc edits.
 - The remote writes its results to a report **outside the repo**: `~/.mdpro-redesign/<stage>/reports/<date>-<topic>.md`.
 - The MacBook reads that report over SSH and writes it into the repo docs.
+- **Which baseline lives where (user decision, 2026-10-07).** E5 JSON compares only same-machine captures, so each baseline stays on the machine that runs its gate.
+  - The **Chromium** computed-style baseline (64 files, `/browse` against `pnpm dev`) is captured and gated on the **MacBook**. The Stage 1–2 before/after gate runs repeatedly during MacBook development, and a remote baseline would force every gate run through a push.
+  - The **WKWebView** subset (`pnpm tauri dev` + Web Inspector) and the **real-device screenshots**, including dev-vs-release pixel checks, stay on the **remote**.
 - When the remote needs a MacBook change, the MacBook pushes it to a temporary branch on the remote (`git push mac-mini <branch>:refs/heads/macbook-sync`). The remote fast-forwards with `git merge --ff-only macbook-sync`, then deletes the temporary branch.
 
 1. If the remote does have a commit to make (device evidence metadata only), it commits on the same branch, with explicit-path `git add` and the user's approval, and **does not push anywhere**.
