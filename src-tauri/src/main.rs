@@ -76,6 +76,8 @@ fn move_cache() -> &'static Mutex<HashMap<String, MoveState>> {
 }
 
 fn main() {
+    #[cfg(feature = "verify-run")]
+    tauri_app_lib::services::verify_run::enforce(BUILD_ID_RAW);
     let startup = std::time::Instant::now();
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,

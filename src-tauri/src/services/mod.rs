@@ -6,6 +6,8 @@
 //!   calls into it rather than writing the files itself.
 //! - `preferences_mcp` is the locked write path for `mcp.serverEnabled`
 //!   (ADR-0040 WI-6); the MCP switch persists through it.
+//! - `verify_run` (ADR-0047 WI-002) exists only with the `verify-run` Cargo
+//!   feature, so a feature-off build carries no guard code.
 
 pub mod app_exit;
 pub mod app_ready;
@@ -26,5 +28,7 @@ pub mod preferences;
 pub mod preferences_mcp;
 pub mod quit_guard;
 pub mod shadow_store;
+#[cfg(feature = "verify-run")]
+pub mod verify_run;
 pub(crate) mod window_geometry;
 pub mod window_restore;
