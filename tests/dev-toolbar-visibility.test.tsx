@@ -7,8 +7,11 @@
  * WI-1's T1 (visible label + New / Open) and T5 (New click) were superseded by the user
  * decision of 2026-10-05 recorded in the plan's WI-2 and removed.
  *
- * The input mounts iff `import.meta.env.DEV` is true AND `window.__TAURI_INTERNALS__` is
- * absent; otherwise the component renders nothing.
+ * The input mounts iff `import.meta.env.DEV` is true, with or without
+ * `window.__TAURI_INTERNALS__`; otherwise (release) the component renders nothing.
+ * T2 and T9 originally asserted nothing under `pnpm tauri dev`; the user decision of
+ * 2026-10-07 reversed that so the E5 harness can load fixtures inside the WKWebView,
+ * and both were rewritten to the new specification.
  *
  * No law: a two-input boolean gate; T2-T4 + T6/T7 enumerate the whole input space (S2).
  *
@@ -61,15 +64,21 @@ afterEach(() => {
 });
 
 describe("DevToolbar visibility", () => {
-  it("T2: tauri dev (DEV=true, Tauri present) renders nothing", () => {
+  it("T2: tauri dev (DEV=true, Tauri present) mounts one hidden, unfocusable file input and no visible UI", () => {
     vi.stubEnv("DEV", true);
     setTauri(true);
 
-    const { container } = render(<DevToolbar onOpenFile={vi.fn()} />);
+    render(<DevToolbar onOpenFile={vi.fn()} />);
 
-    expect(container.innerHTML).toBe("");
     expect(screen.queryByText("DEV MODE")).toBeNull();
-    expect(screen.queryByRole("button", { name: "New" })).toBeNull();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    const inputs = screen.queryAllByTestId("dev-open-file");
+    expect(inputs).toHaveLength(1);
+    const input = inputs[0] as HTMLInputElement;
+    expect(input.type).toBe("file");
+    expect(input.hidden).toBe(true);
+    expect(input.tabIndex).toBe(-1);
+    expect(input.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("T3: production (DEV=false, no Tauri) renders nothing", () => {
@@ -130,12 +139,17 @@ describe("DevToolbar visibility", () => {
     expect(input.value).toBe("");
   });
 
-  it("T9: tauri dev (DEV=true, Tauri present) mounts no file input", () => {
+  it("T9: tauri dev (DEV=true, Tauri present) loads a chosen file through onOpenFile", async () => {
     vi.stubEnv("DEV", true);
     setTauri(true);
+    const onOpenFile = vi.fn();
+    const user = userEvent.setup();
 
-    render(<DevToolbar onOpenFile={vi.fn()} />);
+    render(<DevToolbar onOpenFile={onOpenFile} />);
+    const input = screen.getByTestId("dev-open-file") as HTMLInputElement;
+    await user.upload(input, new File(["# tauri"], "t.md", { type: "text/markdown" }));
 
-    expect(screen.queryByTestId("dev-open-file")).toBeNull();
+    await waitFor(() => expect(onOpenFile).toHaveBeenCalledWith("# tauri", "t.md"));
+    expect(onOpenFile).toHaveBeenCalledTimes(1);
   });
 });
