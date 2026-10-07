@@ -22,7 +22,8 @@ use tauri_app_lib::services::quit_guard::{
     self,
     effects::{AppQuitGuard, TauriQuitEffects},
 };
-use tauri_app_lib::services::{app_exit, http_server, logger, shadow_store};
+use tauri_app_lib::services::{app_exit, app_ready, http_server, logger, shadow_store};
+const BUILD_ID_RAW: Option<&str> = option_env!("MDPRO_BUILD_ID");
 
 // Track whether app has fully initialized (setup complete, main window ready)
 static APP_READY: OnceLock<AtomicBool> = OnceLock::new();
@@ -242,11 +243,10 @@ fn main() {
                 event: "app.ready".to_string(),
                 status: LogStatus::Success,
                 action_id: None,
-                context: Some(json!({
-                    "startupTimeMs": startup.elapsed().as_millis() as u64,
-                    "appVersion": env!("CARGO_PKG_VERSION"),
-                    "platform": std::env::consts::OS
-                })),
+                context: Some(app_ready::current_app_ready_context(
+                    startup.elapsed().as_millis() as u64,
+                    BUILD_ID_RAW,
+                )),
                 duration_ms: Some(startup.elapsed().as_millis() as u64),
                 error: None,
             });

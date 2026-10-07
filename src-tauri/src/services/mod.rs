@@ -8,6 +8,8 @@
 //!   (ADR-0040 WI-6); the MCP switch persists through it.
 
 pub mod app_exit;
+pub mod app_ready;
+pub mod build_info;
 pub mod draft;
 pub mod encoding;
 pub mod file_watcher;
