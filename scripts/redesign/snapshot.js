@@ -29,8 +29,12 @@
  *
  * Failure contract: the output always carries `ok`. `ok:false` plus a non-empty
  * `errors` array means a selector the surface expects matched nothing, a forced
- * state did not apply, the viewport is not the surface's viewport, or the page
- * was not fresh. Never treat an `ok:false` file as a baseline.
+ * state did not apply, the viewport is not the surface's viewport, the page
+ * was not fresh, or the page did not have focus. Without focus WebKit does not
+ * match :focus, so focus rings silently vanish; the script waits up to
+ * FOCUS_TIMEOUT_MS for focus (a harness that pastes into Web Inspector raises
+ * the app window afterwards) and flags any phase captured without it. Never
+ * treat an `ok:false` file as a baseline.
  *
  * Constraint: /browse wraps any eval file containing the a-w-a-i-t keyword in an
  * async IIFE that discards the file's completion value, so this file uses
@@ -50,6 +54,7 @@
   var SETTLE_MS = 120;
   var VIRTUALIZED = { ".cm-line": true };
   var WAIT_TIMEOUT_MS = 4000;
+  var FOCUS_TIMEOUT_MS = 8000;
 
   // A5 families (colour, font-family, font-size, radius, motion, z-index,
   // shadow, icon size via box) plus box model and typography, so a padding or
@@ -1010,6 +1015,13 @@
         errors.push("viewport " + window.innerWidth + "x" + window.innerHeight + " is not the surface viewport " + def.viewport.join("x"));
       }
       if (errors.length) { out.ok = false; return out; }
+      try {
+        yield waitFor(function () { return document.hasFocus(); }, "page focus (bring the app window to the front)", FOCUS_TIMEOUT_MS);
+      } catch (e) {
+        errors.push("page never had focus: " + e.message);
+        out.ok = false;
+        return out;
+      }
 
       setTheme(args.theme);
       try {
@@ -1024,6 +1036,7 @@
           var applied = false;
           try { applied = !!p.assert(); } catch (e) { applied = false; }
           if (!applied) errors.push("[" + p.name + "] forced state did not apply: " + p.kind);
+          if (!document.hasFocus()) errors.push("[" + p.name + "] page lost focus: :focus styles are unreliable");
           if (args.cover) recordCoverage(args.cover, p, cover);
           out.phases[String(i).padStart(2, "0") + " " + p.name] = {
             kind: p.kind, applied: applied, selectors: captureSelectors(p.capture, errors, p.name)
