@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-9 (ADR-0047): `parseBuildArgs` — the `pnpm control:build` argument parser.
  * Matrix: `.claude/tdd-guardian/tests-20261002-155158.md`, unit WI-9, T01..T08,
