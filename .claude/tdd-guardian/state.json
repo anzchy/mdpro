@@ -2,23 +2,355 @@
   "schemaVersion": 2,
   "lanes": {
     "unit": {
-      "last_passed_at": "2026-09-22T06:38:02.554Z",
-      "last_run_at": "2026-09-22T06:38:02.554Z",
-      "last_head_sha": "7787ffd1cc7e515137a40947ae444a01f53d5856",
+      "last_passed_at": "2026-10-03T05:29:28.714Z",
+      "last_run_at": "2026-10-03T05:29:28.714Z",
+      "last_head_sha": "e4711989d78a7c75901efccb496cdd560219d4df",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 0
+      "duration_ms": 600000
     },
     "rust": {
-      "last_passed_at": "2026-09-22T06:38:02.554Z",
-      "last_run_at": "2026-09-22T06:38:02.554Z",
-      "last_head_sha": "7787ffd1cc7e515137a40947ae444a01f53d5856",
+      "last_passed_at": "2026-10-03T05:05:28.499Z",
+      "last_run_at": "2026-10-03T05:05:28.499Z",
+      "last_head_sha": "e4711989d78a7c75901efccb496cdd560219d4df",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 0
+      "duration_ms": 379000
     }
   },
-  "coverage": null,
+  "coverage": {
+    "lines": 73.62,
+    "functions": 80.8,
+    "branches": 91.38,
+    "statements": 73.62,
+    "source": "unit lane coverage/coverage-summary.json",
+    "timestamp": "2026-10-03T04:52:21Z",
+    "status": "PASS",
+    "note": "scripts/control/** and src-tauri not instrumented"
+  },
   "mutation": null,
-  "baseline": null
+  "baseline": null,
+  "workItems": {
+    "ADR47-WI-1": {
+      "status": "DONE",
+      "testFiles": [
+        "src-tauri/src/services/build_info_tests.rs"
+      ],
+      "sourceFiles": [
+        "src-tauri/src/services/build_info.rs",
+        "src-tauri/src/services/mod.rs"
+      ],
+      "separation": "NOT-RECORDED (receipt tool maps cargo exit 101 to runner-error; red observed by hand: 11 failed by assertion; test file diffed against red snapshot: formatting only)",
+      "updatedAt": "2026-10-02T09:44:34.557Z"
+    },
+    "ADR47-WI-2": {
+      "status": "DONE",
+      "testFiles": [
+        "src-tauri/src/services/app_ready_tests.rs"
+      ],
+      "sourceFiles": [
+        "src-tauri/src/services/app_ready.rs",
+        "src-tauri/src/services/mod.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "separation": "NOT-RECORDED (receipt tool maps cargo exit 101 to runner-error; red reported by implementer: 8 failed by assertion; test file cmp-identical to red snapshot)",
+      "notes": "matrix WI-2/T08 implemented as a Rust test, not in tests/control-build-inputs-guard.test.ts",
+      "updatedAt": "2026-10-02T10:04:03.556Z"
+    },
+    "ADR47-WI-3": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-id.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/buildId.mjs"
+      ],
+      "separation": "SEPARATION-BROKEN (one generator-helper line edited for TS2556 then restored verbatim with a ts-expect-error line above it; no assertion changed; red kind opaque-failure because the count parser rejects the todo segment of the vitest summary line)",
+      "updatedAt": "2026-10-02T10:04:05.772Z"
+    },
+    "ADR47-WI-4": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-identity.test.ts",
+        "tests/helpers/controlGitRepo.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/sourceTree.mjs"
+      ],
+      "separation": "SEPARATION-HELD (red kind opaque-failure; 9 non-test files already modified at record time)",
+      "notes": "probed on the real worktree: deterministic, 266 ms cold, real index bytes and mtime unchanged",
+      "updatedAt": "2026-10-02T10:21:58.651Z"
+    },
+    "ADR47-WI-5": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-inputs-guard.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/buildInputsGuard.mjs"
+      ],
+      "separation": "SEPARATION-HELD (red kind opaque-failure; 10 non-test files already modified at record time)",
+      "notes": "O10 amended: Tauri config values resolve against src-tauri/. Live repo: 381 files scanned, 0 findings; control list [dist/] finds tauri.conf.json:10",
+      "updatedAt": "2026-10-02T10:36:37.371Z"
+    },
+    "ADR47-WI-6": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-digests.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/digests.mjs"
+      ],
+      "separation": "SEPARATION-HELD (red kind opaque-failure; 11 non-test files already modified at record time)",
+      "notes": "codesign fixture is inline in the test, not tests/fixtures/control/codesign-adhoc.txt (orchestrator instruction). digestDir throws on symlinks and non-regular files; untested (plan: unspecified). Probed against shasum and the real ad-hoc sample.",
+      "updatedAt": "2026-10-02T10:47:40.622Z"
+    },
+    "ADR47-WI-7": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-versions.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/versions.mjs"
+      ],
+      "separation": "SEPARATION-HELD (red kind opaque-failure; 12 non-test files already modified at record time)",
+      "notes": "Exports CRATE_NAMES, JS_PACKAGES, VERSION_NAMES, VersionsError, cargoLockVersions, readNodeModuleVersion, collectVersions (all sync). Untested extras: missing Cargo.lock throws; non-semver versions sort last; empty-string version throws. Live map checked against Cargo.lock and node_modules by the orchestrator.",
+      "updatedAt": "2026-10-02T10:55:55.280Z"
+    },
+    "ADR47-WI-8": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-manifest.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/manifest.mjs"
+      ],
+      "separation": "SEPARATION-HELD (red kind opaque-failure; 13 non-test files already modified at record time)",
+      "notes": "First record was rejected as environment (runner-missing): the stub let an ENOENT message reach the output and exec.js pattern-matches that text. Only the stub was changed; the test file was untouched; second record valid. manifest.mjs is 298 lines (limit 300). Unpinned choices: features and excludes stored canonical (sorted, unique); user-name match is case-insensitive whole token; 2-space indent; object keys are not scanned by the privacy guard. Probed by the orchestrator with a hand-computed buildId.",
+      "updatedAt": "2026-10-02T11:11:26.728Z"
+    },
+    "ADR47-WI-9": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-args.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/args.mjs"
+      ],
+      "separation": "SEPARATION-HELD (red kind opaque-failure; 14 non-test files already modified at record time)",
+      "notes": "Exports USAGE, BuildArgsError, parseBuildArgs. Extra test X01 pins the usage text. Unpinned choice: a space-form flag takes the next token as its value even when it starts with --, so --features --x is a feature named --x (valid under isValidFeatureName). T04 generator omits -h/--help as feature names; T06 alphabet is a subset of the matrix alphabet. Probed by the orchestrator.",
+      "updatedAt": "2026-10-02T11:19:04.710Z"
+    },
+    "ADR47-WI-10": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-entry.test.ts",
+        "tests/helpers/controlBuildRepo.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/build.mjs",
+        "scripts/control/buildSteps.mjs",
+        "scripts/control/sourceTree.mjs"
+      ],
+      "separation": "SEPARATION-HELD (red kind opaque-failure; 15 non-test files already modified at record time)",
+      "notes": "Exports BuildError, runBuild; buildSteps.mjs holds paths, commands, copy and embed check; sourceTree.mjs gains headCommit. 28 tests for T01-T18. Untested: missing main binary or sidecar output after a successful tool run, headCommit outside a repo, CLI path redaction, the real spawner beyond --help and a bad flag. headCommit reports a corrupt HEAD as null. The verify overlay is only existence-checked; passing it to tauri is WI-002. No real build was run. Probed by the orchestrator with a separate fake runner (21 checks).",
+      "updatedAt": "2026-10-02T11:41:05.265Z"
+    },
+    "ADR47-WI-11": {
+      "status": "DONE",
+      "testFiles": [],
+      "sourceFiles": [
+        "package.json",
+        "CHANGELOG.md",
+        "docs/feature-ledger.md",
+        "docs/feature-ledger.html"
+      ],
+      "separation": "NOT-APPLICABLE (wiring and records; no new tests by plan)",
+      "notes": "control:build script added; CHANGELOG Unreleased entry; ledger row 构建身份 (Partial) and app.ready note on the JSONL row. pnpm control:build --help exits 0; ledger:check 171 rows, 0 findings, 101/101; ledger:build re-run; typecheck:tests passes. Done by the orchestrator directly.",
+      "updatedAt": "2026-10-02T11:42:52.787Z"
+    },
+    "ADR47-WI-13": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-source-tree-guards.test.ts",
+        "tests/control-build-source-tree-gitlink-forms.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/sourceTree.mjs",
+        "docs/feature-ledger.md",
+        "docs/feature-ledger.html",
+        "CHANGELOG.md"
+      ],
+      "updatedAt": "2026-10-03T03:32:47.813Z",
+      "separation": "SEPARATION-HELD",
+      "redKind": "opaque-failure",
+      "mutations": [
+        "check before force-add -> T42 fails",
+        "real-index check -> T37 fails",
+        "any .git on disk -> T36 fails",
+        "reject non-100644/100755 -> T45 fails",
+        "statSync disk walk -> T45,T42 fail",
+        "swallow add -A failure -> T35 fails"
+      ],
+      "laneNote": "unit lane green on 4th run (4588 passed); runs 1-3 failed only on tests/source-editor-tab-d41-append.test.tsx C2-APPEND-CONS 5s timeout under machine load avg 12-25 from other sessions; unrelated to WI-13, no code changed"
+    },
+    "ADR47-WI-14": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-redact.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/buildSteps.mjs"
+      ],
+      "updatedAt": "2026-10-03T03:45:08.212Z",
+      "separation": "SEPARATION-HELD",
+      "redKind": "opaque-failure",
+      "redOnArrival": "T19(a), T21 rows 1-3,5-8, T30 rows 1-6 as predicted; T20, T22 pins",
+      "mutations": [
+        "M2 home / special-case -> T20 r4, T30 trial 9",
+        "M3 drop home line -> T19(b)",
+        "M4 2 passes -> T21 r5",
+        "M4b 3 passes -> T21 r6",
+        "M5 cap 999 -> T21 r7",
+        "M6 per-path fixpoint -> T21 r3",
+        "M7 unrolled -> T21 r8",
+        "M8 home before root -> T21 r4",
+        "M9 empty home raw // -> T30 r6",
+        "M10 main without redactPaths -> T22",
+        "T20 m1 first-occurrence-only survives on the fixed loop (killed on arrival code); drop-the-check mutation unusable"
+      ],
+      "laneNote": "unit lane green: 4593 passed, 0 failed"
+    },
+    "ADR47-WI-16": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-digests-entries.test.ts"
+      ],
+      "sourceFiles": [],
+      "updatedAt": "2026-10-03T03:48:52.364Z",
+      "separation": "pins existing behaviour; mutation checks listed (O16)",
+      "redKind": "skipped",
+      "mutations": [
+        "else branch skips entry -> T16,T17,T18",
+        "lstat->stat -> T16,T17",
+        "drop lstat kind check: unusable (blocks on FIFO)"
+      ],
+      "note": "new file instead of appending: control-build-digests.test.ts already 326 lines; unit lane to be run together with WI-15"
+    },
+    "ADR47-WI-15": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-entry-artifacts.test.ts",
+        "tests/control-build-entry.test.ts",
+        "tests/helpers/controlBuildRepo.ts"
+      ],
+      "sourceFiles": [],
+      "updatedAt": "2026-10-03T03:51:31.993Z",
+      "separation": "pins existing behaviour; mutation checks listed (O16); T06 rows tightened in place (sanctioned strengthening, nothing relaxed)",
+      "redKind": "skipped",
+      "mutations": [
+        "drop mainBinary guard -> T23 class",
+        "drop builtSidecar guard -> T24 release+verify reason",
+        "runTool plain Error -> T06 failTauri, failCodesign, failCargo"
+      ],
+      "laneNote": "unit lane green after WI-15+WI-16: 4599 passed, 0 failed; typecheck:tests 0"
+    },
+    "ADR47-WI-17": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-inputs-guard-forms.test.ts",
+        "tests/control-build-inputs-guard.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/buildInputsGuard.mjs"
+      ],
+      "separation": "SEPARATION-HELD (receipt ADR47-WI-17, red kind opaque-failure; reds: T08 c2 duplicate, T08 composition, T11 b1, b2)",
+      "mutations": "matrix table run by implementer; c6/c7 SCHEME deletion and r8 lang===rust removal found equivalent, replaced by added case c9 (url(https:/../../../docs/a) -> []) and a nesting-ignored mutation",
+      "laneNote": "unit lane 4643 passed / 0 failed / 5 todo; T01 zero findings on live repo",
+      "updatedAt": "2026-10-03T04:04:14.410Z"
+    },
+    "ADR47-WI-18": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-spawn.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/build.mjs"
+      ],
+      "separation": "SEPARATION-HELD (receipt ADR47-WI-18, red kind opaque-failure; all 6 cases red on arrival: spawnTool not exported)",
+      "mutations": "4/4 killed: hardening revert+forced empty stderr (T28,T29), field swap (T26), stdout without ?? (T27), capture-dependent fallback (T29)",
+      "laneNote": "unit lane 4649 passed / 0 failed / 5 todo; C6 did NOT reproduce on Node 22 (spawnSync gives undefined stderr on ENOENT) - fallback reorder recorded as hardening; build.mjs 265->273 lines",
+      "updatedAt": "2026-10-03T04:12:09.277Z"
+    },
+    "ADR47-WI-19": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-args.test.ts",
+        "tests/control-build-id-features.test.ts",
+        "tests/control-build-source-tree-guards.test.ts",
+        "tests/control-build-id.test.ts (generator lines only, Rule 12 / C4)"
+      ],
+      "sourceFiles": [
+        "scripts/control/buildId.mjs",
+        "scripts/control/args.mjs",
+        "scripts/control/sourceTree.mjs"
+      ],
+      "separation": "SEPARATION-HELD (receipt ADR47-WI-19, opaque-failure; reds: T09 rows 1-4, T11 x4, T39 row .., T40 candidate ..)",
+      "mutations": "7/7 killed (M1 startsWith(/) removal, M2/M3 FEATURE_RE variants, M4 includes(..) inline check, M5/M6 validate after rev-parse/mkdtemp, M6b mkdtemp before validation -> leaked dirs caught)",
+      "laneNote": "unit lane 4660 passed / 0 failed / 5 todo; T40 uses 43 candidates per matrix header (plan said 40); generators FEATURE_HEAD narrowing in id.test.ts and args.test.ts, no expect changed",
+      "updatedAt": "2026-10-03T04:31:04.141Z"
+    },
+    "ADR47-WI-20": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-manifest-privacy.test.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/manifestPrivacy.mjs",
+        "scripts/control/manifest.mjs"
+      ],
+      "separation": "SEPARATION-HELD (receipt ADR47-WI-20, opaque-failure; behavioural red: T17 wording; T16 red on missing module via dynamic-import assertion; T18 pin)",
+      "mutations": "4/4 killed (second ManifestError class; forwarding wrapper instead of re-export; ${at} -> constant; old user-name wording)",
+      "laneNote": "unit lane 4663 passed / 0 failed / 5 todo; manifest.mjs 298->220, manifestPrivacy.mjs 124 (leaf, no imports); ManifestError lives in manifestPrivacy.mjs; isPlainObject moved too; T18 taints all string leaves per matrix (plan said non-hash)",
+      "updatedAt": "2026-10-03T04:42:47.095Z"
+    },
+    "ADR47-WI-21": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-build-manifest-privacy-username.test.ts",
+        "tests/control-build-versions-order.test.ts",
+        "tests/control-build-versions.test.ts",
+        "tests/control-build-digests-entries.test.ts",
+        "tests/control-build-source-tree-guards.test.ts"
+      ],
+      "sourceFiles": [],
+      "separation": "NOT-RECORDED by design (O16 pin-only; all 12 cases green on arrival; sources byte-identical before/after)",
+      "mutations": "11/11 killed incl. 2 extra (drop escapeRe; compareDigits as strings)",
+      "laneNote": "unit lane 4675 passed / 0 failed / 5 todo; two new files to keep privacy and versions test files under 300 lines; WI-6/T19 placed in digests-entries (digests.test.ts already 326 lines) with fixture copied",
+      "updatedAt": "2026-10-03T04:51:29.923Z"
+    }
+  },
+  "lastCoverageRun": {
+    "timestamp": "2026-10-03T04:52:21Z",
+    "status": "PASS",
+    "totals": {
+      "lines": 73.62,
+      "functions": 80.8,
+      "branches": 91.38,
+      "statements": 73.62
+    },
+    "reportPath": ".claude/tdd-guardian/coverage-20261003-125221.md",
+    "note": "scripts/control/** and Rust not instrumented (L2 open)"
+  },
+  "lastReview": {
+    "timestamp": "2026-10-03T05:03:27Z",
+    "findings": {
+      "high": 0,
+      "medium": 4,
+      "low": 8
+    },
+    "reportPath": ".claude/tdd-guardian/review-20261003-050327.md",
+    "verdict": "CHANGES REQUESTED",
+    "note": "all 4 Medium are carried process/config items L1 L2 Q1 Q2; F1-F7 closed; no new code defects"
+  }
 }

@@ -19,6 +19,7 @@
     "typecheck:tests": "tsc -p tsconfig.test.json",
     "ledger:check": "node scripts/ledger/check.mjs",
     "ledger:build": "node scripts/ledger/render.mjs",
+    "control:build": "node scripts/control/build.mjs",
     "build:mac": "bash scripts/build-mac.sh",
     "build:mac:fast": "bash scripts/build-mac.sh --skip-tests --open",
     "build:windows": "bash scripts/build-windows.sh"
