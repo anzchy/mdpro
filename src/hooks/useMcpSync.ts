@@ -2,8 +2,13 @@
  * MCP Sync Hook
  *
  * Purpose: Syncs document state from frontend Zustand to the Rust shadow store,
- * keyed by this window's label. Debounced (300ms) for content changes,
- * immediate for structural changes (open/close, tab switch, a path change).
+ * keyed by this window's label. Debounced (300ms) for content changes and
+ * source-mode cursor moves, immediate for structural changes (open/close, tab
+ * switch, a path change).
+ *
+ * Pipeline: store change / CodeMirror `selectionChange` (pluginRegistry event)
+ * → `debouncedSync` or `immediateSync` → `doSync` builds the payload (caret
+ * read live at send time) → dedupe hash → `mcpService.syncDocuments`.
  *
  * Key decisions:
  * - External-open routing depends on this hook (ADR-0033 Decision 4): Rust
@@ -21,9 +26,18 @@
  *   payload. It records the hash it sent, so the next unchanged `syncNow` is
  *   still deduped, and clears any pending debounce.
  *   Pinned by tests/useMcpSync.routable.test.ts.
+ * - Cursor-only moves (D36): the source editor's `selectionChange` event goes
+ *   through the same 300 ms debounce as content, never an immediate sync, so
+ *   arrow keys do not fire one IPC each. The cursor is in the payload, so an
+ *   unchanged caret is deduped like any unchanged payload. The debounce timer
+ *   calls the latest `doSync` (via a ref), so a sync scheduled by a selection
+ *   event in the middle of an edit never sends the pre-edit content. WYSIWYG
+ *   emits no selection events and reports no caret (`resolveMcpCursor` → 0),
+ *   so nothing there can go stale. Pinned by tests/d36-mcp-cursor-sync.test.tsx.
  *
  * @coordinates-with src/hooks/useOpenInWindow.ts — supplies `routable`
  * @coordinates-with src/hooks/useWindowCloseGuard.ts — `onCloseCancelled` → `forceSync` (via App)
+ * @coordinates-with src/components/Editor/Editor.tsx — emits `selectionChange` (mode "codemirror")
  */
 
 import { useEffect, useRef, useCallback, useState } from "react";
@@ -33,8 +47,9 @@ import { useEditorStore } from "../stores/editorStore";
 import { mcpService, type McpDocumentState, type SyncDocumentsPayload } from "../services/mcpService";
 import { loggingService } from "../services/loggingService";
 import { resolveMcpCursor } from "../utils/mcpCursor";
+import { pluginRegistry } from "../plugins/core/pluginRegistry";
 
-// Debounce timeout for content changes (ms)
+// Debounce timeout for content changes and source-mode cursor moves (ms)
 const CONTENT_DEBOUNCE_MS = 300;
 
 /**
@@ -138,16 +153,21 @@ export function useMcpSync({ routable = false }: McpSyncOptions = {}) {
     }
   }, [convertToMcpDocuments, activeDocumentId, windowLabel, routable]);
 
-  // Debounced sync for content changes
+  // The newest doSync, so a pending debounce sends the state as it is when the
+  // timer fires rather than as it was when the timer was scheduled.
+  const doSyncRef = useRef(doSync);
+  doSyncRef.current = doSync;
+
+  // Debounced sync for content changes and source-mode cursor moves
   const debouncedSync = useCallback(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
     debounceTimerRef.current = setTimeout(() => {
-      doSync();
+      void doSyncRef.current();
       debounceTimerRef.current = null;
     }, CONTENT_DEBOUNCE_MS);
-  }, [doSync]);
+  }, []);
 
   // Immediate sync for structural changes; `force` bypasses the dedupe hash.
   const syncImmediately = useCallback(
@@ -213,6 +233,13 @@ export function useMcpSync({ routable = false }: McpSyncOptions = {}) {
       immediateSync();
     }
   }, [pathSignature, immediateSync]);
+
+  // Track source-mode cursor moves (D36): debounced, deduped by the payload hash.
+  useEffect(() => {
+    return pluginRegistry.getContext().events.on("selectionChange", ({ mode }) => {
+      if (mode === "codemirror") debouncedSync();
+    });
+  }, [debouncedSync]);
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
