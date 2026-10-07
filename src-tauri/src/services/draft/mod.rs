@@ -52,7 +52,12 @@ pub use owner::{
     in_use, owner_is_live, session_id, InUseReason, LiveContext, OpenSet, ShadowUnavailable,
 };
 pub(crate) use paths::is_valid_draft_id;
-use paths::{bundle_path, drafts_dir, ensure_dir, legacy_draft_path, legacy_meta_path};
+// `drafts_dir` and (tests only) `legacy_drafts_dir` are crate-visible so the
+// run-isolation test (ADR-0047 WI-002 WI-8) resolves them under a temp HOME.
+#[cfg(test)]
+pub(crate) use migration::legacy_drafts_dir;
+pub(crate) use paths::drafts_dir;
+use paths::{bundle_path, ensure_dir, legacy_draft_path, legacy_meta_path};
 pub use types::{
     CleanupCounts, DraftError, DraftListCounts, DraftListing, DraftMetadataEntry, DraftOwner,
     DraftSaveResult, RecoverResult,

@@ -427,6 +427,41 @@
       "separation": "NOT-RECORDED via receipt CLI (no receipt path supplied). Red observed by hand in both invocations: compile-missing-symbol only, E0432 unresolved import super::mcp_server_port. No test-file edit between red and green except rustfmt.",
       "notes": "pub(crate) fn mcp_server_port(): cfg-split const MCP_SERVER_PORT 55045 / 0; app_controller_env uses it. config_dir() made pub(crate) for WI-8. Docs updated: http_server.rs header Key decisions, config_dir, mcp_server_port, app_controller_env, ControllerEnv::bind_addr. server.port publishing unchanged (controller publishes the bound port, transitions.rs). WI6-T04 was green at red (config_dir already resolves per call) - pins against caching. mcp_launch_skip_tests unaffected under the feature (Skip never binds).",
       "updatedAt": "2026-10-07T09:18:55.000Z"
+    },
+    "ADR47-WI002-7": {
+      "status": "DONE",
+      "testFiles": [
+        "tests/control-persistence-roots.test.ts",
+        "tests/control-persistence-roots-scan.test.ts",
+        "tests/helpers/persistenceRootsTree.ts"
+      ],
+      "sourceFiles": [
+        "scripts/control/persistenceRoots.mjs",
+        "scripts/control/rustScopes.mjs",
+        "src-tauri/persistence-roots.json"
+      ],
+      "laneNote": "unit lane (scripts/heavy-lock.sh pnpm exec vitest run --coverage) 2026-10-07: 342 files / 4801 passed / 5 todo, exit 0; focused WI-7 files 60/60. scripts/control/*.mjs are not in the coverage include (carried L2). pnpm typecheck:tests exit 0. First verify attempt saw the lane red once (not reproduced on the immediate full re-run, 0 failed), second verify judged.",
+      "separation": "Red recorded via receipt CLI (opaque-failure: no parseable counts; by hand 54 failed / 4747 passed, all in the two new files, assertion failures against a throwing stub + empty skeleton registry). The CLI noted 2 pre-modified non-test files: the stub persistenceRoots.mjs and the {\"sites\": []} skeleton, created because the first record classified ENOENT on the missing registry as runner-missing. verify: SEPARATION-HELD. After that verdict one recorded line was edited, type annotation only (no assertion changed): control-persistence-roots.test.ts `key` parameter typed Record<string, unknown> instead of a structural type Entry did not satisfy (tsc TS2345 under typecheck:tests).",
+      "notes": "Deviations: (1) `root` may be a string or a non-empty array, because commands/mcp.rs has one home_dir() call feeding all four MCP client roots. (2) Scope production-guard (only services/verify_run.rs, no root) for the guard's own home_dir/data_dir reads; the guard calls live in verify_run.rs, not verify_run_checks.rs. (3) Scope logic extracted to scripts/control/rustScopes.mjs (three-valued cfg on macOS; string/char literal blanking for brace extents). Live registry: 21 entries, 10 production-side sites (7 production, 1 production-other-os x2, 2 production-guard), 11 test entries.",
+      "updatedAt": "2026-10-07T09:45:16.000Z"
+    },
+    "ADR47-WI002-8": {
+      "status": "DONE",
+      "testFiles": [
+        "src-tauri/src/services/run_isolation_tests.rs",
+        "src-tauri/src/services/run_isolation_fixtures.rs"
+      ],
+      "sourceFiles": [
+        "src-tauri/src/services/mod.rs",
+        "src-tauri/src/services/draft/mod.rs",
+        "src-tauri/src/services/draft/migration.rs",
+        "src-tauri/src/services/logger.rs",
+        "src-tauri/src/commands/mcp.rs"
+      ],
+      "laneNote": "Manual receipts (2026-10-07): R-off cargo test exit 0, 1152 passed / 0 failed / 2 ignored (run_isolation 6/6); R-on cargo test --features verify-run exit 0, 1188 passed / 0 failed / 2 ignored (run_isolation 6/6); cargo clippy -- -D warnings exit 0 both ways; rustfmt --check clean on both new files.",
+      "separation": "NOT-RECORDED via receipt CLI (configured rust lane is R-off only). Red observed by hand: compile-missing-symbol only (E0425/E0603 legacy_drafts_dir, get_client_config_path, log_path, drafts_dir private/unexported). After green the Locked/HomeRestore fixture was moved verbatim into run_isolation_fixtures.rs (318 -> 263 + 62 lines, rule 50); no assertion changed.",
+      "notes": "9 resolver rows over 8 production root ids (home/.mdpro x2 functions, home/.mdpro/drafts, data/mdpro, data/mdpro/drafts, 4 mcp-client ids); T01 bijection is over production root ids only; production-other-os and production-guard counted in T02. Visibility for tests: legacy_drafts_dir, get_client_config_path, log_path -> pub(crate); draft re-exports drafts_dir (pub(crate)) and legacy_drafts_dir (cfg(test)). bin/mdpro_mcp.rs data_dir cannot be called from lib tests; covered by the shared data/mdpro root. Every test holds crate::HOME_LOCK, HOME restored before unlock, temp HOMEs removed on drop; real HOME only prefix-compared.",
+      "updatedAt": "2026-10-07T09:45:16.000Z"
     }
   },
   "lastCoverageRun": {

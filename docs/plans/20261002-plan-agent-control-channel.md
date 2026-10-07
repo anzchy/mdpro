@@ -456,6 +456,24 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   - 改写 `HOME` 可能让 WebKit 的子进程异常 → 第 10 条。
 - **Rollback**：回退提交。两个 feature 都默认关闭，发布版不受影响。
 - **Estimate**：L。
+- **实施偏离（2026-10-07；与上面「设计」冲突处以这里为准）**
+  1. **直接依赖 `libc`**（你 2026-10-03 定）。`src-tauri/Cargo.toml` 加 `libc = "0.2"`，只给守卫取 `getuid` / `getpwuid_r`；版本早已经传递依赖进了 `Cargo.lock`，不另写 ADR。
+  2. **变量的存在性检查有固定顺序**：`MDPRO_VERIFY_RUN` → `MDPRO_VERIFY_NONCE` → `HOME` → `CFFIXED_USER_HOME`，四个都查完才做路径检查。几个变量同时缺时，拒绝行报的总是顺序里第一个，所以表驱动测试的结果是确定的。
+  3. **登记表多一个 scope `production-guard`**。守卫自己的 `dirs::home_dir()` / `dirs::data_dir()` 只读出解析结果来比对，不持久化任何东西，因此不给 `root`；这个 scope 只允许出现在 `services/verify_run.rs`，用在别处就是 `bad-entry`。守卫的调用在 `verify_run.rs`，不在 `verify_run_checks.rs`。
+  4. **登记表的 `root` 可以是数组**。`commands/mcp.rs` 里一次 `home_dir()` 调用拼出四个 MCP 客户端的配置路径，所以这一条登记四个 root id。WI-8 的双射按 `production` 根 id 算，不按条目数算。
+  5. **`GuardError` 不带字符串载荷**，只带 `Var` / `PathVar` 枚举。拒绝行和日志因此不可能带出路径、用户名或随机数。
+  6. **多一个变体 `PasswdHomeNotAbsolute`**。`pw_dir` 若是相对路径，约定父目录就会相对 cwd 解析。这条分支在真机上造不出来，只经过评审，和 `PasswdHomeNotUtf8` 一样。
+  7. **验证包的名字是常量 `mdpro-verify.app`**（`scripts/control/buildSteps.mjs`），不从覆盖配置的 `productName` 读。两边一旦不一致，构建就停在「没留下主程序」，而不是悄悄跟着覆盖配置走。
+  8. **旧草稿迁移挪进 `services/draft/startup_migration.rs`**。守卫要做 `main()` 的第一条语句，`main.rs` 放不下，所以把迁移和它的 `app.draft_migration` 日志一起移出来；行为、顺序和日志行都没变。
+  9. **保留 F5：参数错误什么都不动**。入口在参数解析失败时（包括用户自己传 `verify-run` feature）直接退出，不删旧的 `build-manifest.json`，所以旧清单可能留下来。WI-001 偏离 7 的「先删旧清单」是从参数解析成功之后才开始的。
+  10. **WI3-T05 的夹具往上挪了一级**。现在在 `…/mdpro` 放普通文件，让 `create_dir_all` 失败，原来是在 `…/mdpro/drafts` 放。**这暴露了一个已有缺陷，本 WI 不修，只记录**：`…/mdpro/drafts` 是普通文件时，`ensure_dir` 的 `exists()` 检查能通过，接着 rename 报 ENOTDIR，却被静默跳过。启动迁移因此返回 `Ok(0)`，一行日志都不写，旧草稿留在原处。
+  11. **tdd-guardian 的 rust lane 仍只跑 feature 关的构建**。`--features verify-run` 的 `cargo test` / `cargo clippy -- -D warnings` 回执是手工跑的，记在 `.claude/tdd-guardian/state.json` 的 ADR47-WI002-4…8 里。
+  12. **覆盖率**。`scripts/control/persistenceRoots.mjs` 和 `rustScopes.mjs` 同 WI-001 偏离 8，不在 vitest 的 `coverage.include` 里，没有覆盖率数字。
+- **状态（2026-10-07）**：代码和单测/rust 测试完成，**未验证**。提交 `678b320`、`4390665`、`186910b`、`d455e02`，WI-7/8 是本提交。门禁情况：unit lane 过；`cargo test` 和 `cargo test --features verify-run` 都过，`cargo clippy -- -D warnings` 两种都过。
+  - 验收 1 **单测通过**：`run_isolation_tests.rs` 在临时 `HOME` 下把登记表里的每个 `production` 根都解析到该目录内（feature 关、开各 6/6）。`tests/control-persistence-roots.test.ts` 让登记表和 `src-tauri/src` 里的 `dirs::` 调用点完全相等。
+  - 验收 7 **单测通过**：feature 关时端口恒为 55045，守卫的符号不编入（`http_server_port_tests.rs`、vitest 接线测试）。
+  - 验收 2 只有表驱动单测部分完成。**以下真机验收都还没跑**：2 的真机部分（双击 / `open -a` 后真实目录无变化）、3、4、5、6、8、9、10，以及 D-WI2（真打一次 `pnpm control:build --profile verify`，核对相对 `--config` 的解析、包名、二进制名和 `Info.plist`；见测试矩阵 `tests-20261003-061500.md`）。WI-002 在这些跑完之前不算验证。
+  - WI-001 验收 5（先 `verify` 后 `release` 互不串味）随 WI-002 一起，同样还没跑。
 
 ### WI-003 最小启动器
 

@@ -8,7 +8,9 @@ use std::sync::{Mutex, OnceLock};
 use crate::models::{LogEntry, LogEntryPayload, LogLevel, LogSettings, LogStatus};
 use crate::services::preferences::load_preferences;
 
-fn log_path() -> Option<PathBuf> {
+/// `~/.mdpro/mdpro.log`, creating `~/.mdpro` when missing. `pub(crate)` so
+/// the run-isolation test (ADR-0047 WI-002 WI-8) can resolve it under a temp HOME.
+pub(crate) fn log_path() -> Option<PathBuf> {
     let home = dirs::home_dir()?;
     let dir = home.join(".mdpro");
     if !dir.exists() {

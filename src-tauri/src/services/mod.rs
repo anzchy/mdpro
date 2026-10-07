@@ -27,6 +27,10 @@ pub mod open_route;
 pub mod preferences;
 pub mod preferences_mcp;
 pub mod quit_guard;
+#[cfg(test)]
+mod run_isolation_fixtures;
+#[cfg(test)]
+mod run_isolation_tests;
 pub mod shadow_store;
 #[cfg(feature = "verify-run")]
 pub mod verify_run;

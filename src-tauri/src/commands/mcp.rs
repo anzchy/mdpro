@@ -312,7 +312,10 @@ pub(crate) fn get_mcp_binary_path() -> Result<String, String> {
     }
 }
 
-fn get_client_config_path(client: McpClient) -> Result<PathBuf, String> {
+/// The config file of `client`, built from `dirs::home_dir()` (and on Windows
+/// `dirs::config_dir()`). `pub(crate)` so the run-isolation test (ADR-0047
+/// WI-002 WI-8) can resolve every client's path under a temp HOME.
+pub(crate) fn get_client_config_path(client: McpClient) -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "Could not determine home directory".to_string())?;
 
     let path = match client {
