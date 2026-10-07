@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Purpose: Pin the behaviour of the rule-50 §1 lint gate
  * (`scripts/lint/no-bare-store-hook.mjs`) — a zero-argument `use*Store()` call

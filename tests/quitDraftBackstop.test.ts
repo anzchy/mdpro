@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0035 WI-7 / A3 — the frontend backstop writer (WB-1..WB-8).
  *

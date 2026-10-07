@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for ExportSettings component (WI-7 fixes).
  *

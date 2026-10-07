@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-mcp-actions.test
  * Purpose: Verify the pure source-level helpers behind the MCP table

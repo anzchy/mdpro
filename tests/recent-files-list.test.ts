@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-5 (ADR-0031 step 5a) — the pure recent-files list operations.
  *

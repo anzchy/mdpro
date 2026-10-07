@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Purpose: WI-1 — the pure line-based active-entry picker
  * `src/utils/tocLineSpy.ts#pickActiveKeyByLine`. Implements §1 cases P-1 … P-10 of

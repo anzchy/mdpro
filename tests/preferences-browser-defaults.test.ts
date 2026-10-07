@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0031 step 5b (WI-3) — preferencesService browser branch: defaults and merge.
  *

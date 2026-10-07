@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-edits.test
  * Purpose: Verify the pure source-mode table-edit functions (Phase 2

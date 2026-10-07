@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-1 — `src/utils/openFailure.ts`: the open-failure helpers extracted from
  * `useDocument.ts` with no behaviour change.

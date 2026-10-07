@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module scroll-anchor-mapping.test
  * Purpose: pin the pure scroll-anchor model (WI-8) — the source-side block and

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-line-source-conformance.test
  * WI-3B: `linesFromText` (CodeMirror `Text` adapter) vs `linesFromString`.
@@ -39,6 +40,9 @@
  * GFM. Measured against micromark-extension-gfm-table@2.1.2 they yield
  * zero tables. No test name or comment here calls them valid GFM.
  *
+ * The capture/locate twin sweep runs in the slow tier,
+ * `table-line-source-conformance.slow.test.ts` (ADR-0050).
+ *
  * Gate G0: no new dependency. Real `Text`, real `EditorState`, real
  * markdown grammar, real filesystem. No mocks anywhere in this file.
  */
@@ -60,13 +64,7 @@ import { parseTableAtOffset } from "../src/utils/tableParser/parse";
 import { scanTables } from "../src/utils/tableParser/scan";
 import { countTableLineCells, parseTableAt } from "../src/utils/tableParser";
 import type { TableModel } from "../src/utils/tableParser";
-import {
-  captureCellFromLines,
-  captureCellFromSource,
-  findAllTables,
-  locateCellInLines,
-  locateCellInSource,
-} from "../src/utils/cursorSync/table";
+import { findAllTables } from "../src/utils/cursorSync/table";
 import {
   columnCountDiagnosticsFromSource,
   tableColumnCountDiagnostics,
@@ -79,15 +77,15 @@ import { makeCorpus, SEED, type CorpusDoc } from "./support/tableCorpus";
 // is worth doing that for.
 import { vi } from "vitest";
 
-// TIMEOUT RAISED (disclosed, not an assertion change). Two cases in this
-// file are slow BY CONSTRUCTION, not by defect: the capture/locate
-// differential runs a full scan per offset across all 200 corpus
-// documents (~2.4s alone under coverage), and the lint-equivalence scale
-// fixture runs the frozen LEGACY quadratic path once over 2000 lines
-// (~0.8s alone). Under full-suite worker contention both cross Vitest's
-// 5s default and fail as timeouts — an environment verdict, which proves
-// nothing either way about the adapter. Raising the budget per file
-// leaves every `expect` in it byte-identical.
+// TIMEOUT RAISED (disclosed, not an assertion change). The lint-equivalence
+// scale fixture runs the frozen LEGACY quadratic path once over 2000 lines
+// (~0.8s alone) and is slow BY CONSTRUCTION, not by defect; under full-suite
+// worker contention it can cross Vitest's 5s default and fail as a timeout —
+// an environment verdict, which proves nothing either way about the adapter.
+// Raising the budget per file leaves every `expect` in it byte-identical. The
+// other case this once covered, the capture/locate differential (a full scan
+// per offset over all 200 corpus documents), now runs in the slow tier:
+// table-line-source-conformance.slow.test.ts (ADR-0050).
 vi.setConfig({ testTimeout: 180_000 });
 
 const CORPUS: CorpusDoc[] = makeCorpus(SEED, 200);
@@ -389,31 +387,8 @@ describe("CONF-differential", () => {
     expect(problems).toEqual([]);
   });
 
-  it("captureCellFromLines / locateCellInLines agree with their string twins", () => {
-    const problems: string[] = [];
-    for (const doc of CORPUS) {
-      const text = textOf(doc.source);
-      const src = text.toString();
-      for (let o = 0; o <= src.length; o += 1) {
-        const a = shape(captureCellFromSource(src, o));
-        const b = shape(captureCellFromLines(linesFromText(text), o));
-        if (a !== b) problems.push(`doc ${doc.index} capture(${o}): ${a} vs ${b}`);
-      }
-      const tables = findAllTables(src);
-      for (let t = 0; t < tables.length; t += 1) {
-        for (let r = 0; r < tables[t].rowCount; r += 1) {
-          for (let c = 0; c < tables[t].colCount; c += 1) {
-            const pos = { tableIndex: t, rowIndex: r, colIndex: c };
-            const a = shape(locateCellInSource(src, pos));
-            const b = shape(locateCellInLines(linesFromText(text), pos));
-            if (a !== b) problems.push(`doc ${doc.index} locate(${t},${r},${c})`);
-          }
-        }
-      }
-      if (problems.length > 10) break;
-    }
-    expect(problems).toEqual([]);
-  });
+  // The capture/locate twin sweep (~5.2 s under coverage) runs in the slow
+  // tier: table-line-source-conformance.slow.test.ts (ADR-0050).
 });
 
 // ---------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D11 — `TableModel.raw` copied the whole table on every cursor move.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Regression tests for issue #6:
  * "bug(wysiwyg): editor content not synced to document store — Cmd+S discards edits"

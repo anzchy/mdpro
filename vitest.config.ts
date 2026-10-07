@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 // Concurrent Claude sessions and worktrees each run this suite; vitest's default
 // (cores - 1 forks) per run overloads the machine. Cap at half the cores unless
@@ -7,14 +7,26 @@ import { defineConfig } from "vitest/config";
 const rawMaxWorkers = process.env.VITEST_MAX_WORKERS ?? "50%";
 const maxWorkers = /^\d+$/.test(rawMaxWorkers) ? Number(rawMaxWorkers) : rawMaxWorkers;
 
+/**
+ * The slow tier (ADR-0050): exhaustive / property / cost-enumeration tests that
+ * take >= 2 s each under coverage. Named `*.slow.test.ts`, kept out of the
+ * default run (and so out of the per-commit unit lane) by the exclude below,
+ * and collected only by vitest.slow.config.ts (`pnpm test:slow`).
+ */
+export const SLOW_TEST_GLOB = "tests/**/*.slow.test.{ts,tsx}";
+
 export default defineConfig({
   // Vitest picks the JSX transform from the nearest tsconfig.json, and that file
   // includes only `src` — a .tsx under tests/ would fall back to the classic
   // transform and fail on an undefined `React`. The plugin settles it explicitly.
   plugins: [react()],
   test: {
+    // jsdom is the default. A file that never touches the DOM opts into the
+    // cheaper node environment with a first-line `// @vitest-environment node`;
+    // tests/setup.ts then guards it against DOM reads (ADR-0049).
     environment: "jsdom",
     include: ["tests/**/*.test.{ts,tsx}"],
+    exclude: [...configDefaults.exclude, SLOW_TEST_GLOB],
     setupFiles: ["tests/setup.ts"],
     clearMocks: true,
     restoreMocks: true,

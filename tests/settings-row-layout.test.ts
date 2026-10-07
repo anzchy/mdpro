@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Regression test for #78: settings-row label/control vertical misalignment.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D32 WI-4 — `buildFileChangeDecisionLog` (matrix cases fl1-fl4).
  *

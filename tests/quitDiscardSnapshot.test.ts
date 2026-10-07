@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0035 A3 — the discard snapshot (DS-1..DS-7).
  *

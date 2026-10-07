@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D27-WI-4 — the typed draft-recovery service (`src/services/draftService.ts`).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-row-cells.test
  * D12 WI-1: `parseRowCells` moves out of `parse.ts` into `rowCells.ts`.

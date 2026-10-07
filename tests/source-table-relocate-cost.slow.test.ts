@@ -1,5 +1,6 @@
+// @vitest-environment node
 /**
- * @module source-table-relocate-cost.test
+ * @module source-table-relocate-cost.slow.test
  * D12 WI-6 (ADR-0043): the re-locate path's cost. Entering the table (a
  * selection-only move E) and typing in a cell (a `docChanged` transaction
  * T) each re-locate exactly once, build exactly one row, and never flatten

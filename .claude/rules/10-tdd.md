@@ -45,3 +45,8 @@ passes with it.
 ## File placement
 
 **Put frontend tests under `tests/`** — `vitest.config.ts` includes `tests/**/*.test.{ts,tsx}`, so both `.test.ts` and `.test.tsx` are discovered, but only inside `tests/`. A test anywhere else — co-located under `src/`, or in a feature-local folder — never runs.
+
+## Environment and the slow tier
+
+- **jsdom is the default; a DOM-free file opts into node** with `// @vitest-environment node` as its first line. `tests/setup.ts` then makes any first-party read of `window`, `document`, `navigator` and the rest fail the file — if it trips, remove the marker rather than stubbing around it ([ADR-0049](../../docs/adr/0049-dom-free-test-files-opt-into-the-node-environment.md)).
+- **An exhaustive, property or cost-enumeration test that takes ≥ 2 s under coverage goes in a `*.slow.test.ts` sibling.** The default run and the per-commit `unit` lane exclude it; `pnpm test:slow` and the tdd-guardian `slow` lane (push / manual) run it. Share the domain through `tests/support/`, never by copying it ([ADR-0050](../../docs/adr/0050-exhaustive-tests-run-in-a-separate-slow-lane.md)).

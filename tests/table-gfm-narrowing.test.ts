@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-C1 + WI-C2 — narrowing mdpro's table detector toward GFM.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The Source withhold (ADR-0022) is the second decision the large-document
  * guard makes against the user's wishes: it turns the Source table tools off.

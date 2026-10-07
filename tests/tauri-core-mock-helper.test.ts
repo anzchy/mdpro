@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-2 (ADR-0031 step 5b) — `tests/support/tauriCoreMock.ts`, the one place
  * that builds a `@tauri-apps/api/core` mock module.

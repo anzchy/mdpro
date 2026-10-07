@@ -13,6 +13,7 @@
     "test:run": "vitest run",
     "coverage": "vitest run --coverage",
     "test:heavy": "scripts/heavy-lock.sh vitest run --coverage",
+    "test:slow": "scripts/heavy-lock.sh vitest run --config vitest.slow.config.ts",
     "tauri:build:locked": "scripts/heavy-lock.sh tauri build",
     "perf:d12": "vitest run --config vitest.perf.config.ts",
     "typecheck:tests": "tsc -p tsconfig.test.json",

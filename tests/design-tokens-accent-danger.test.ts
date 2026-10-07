@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module design-tokens-accent-danger.test
  * Purpose: Verify the new --color-accent-soft, --color-danger,

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-2 — pure physical<->logical window geometry conversion and work-area clamp.
  *

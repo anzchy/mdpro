@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for view-mode event handler in useMenuEvents.
  *

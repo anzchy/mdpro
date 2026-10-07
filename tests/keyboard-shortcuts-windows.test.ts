@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for issue #38 — Ctrl+S (and other Ctrl+* shortcuts) not working on Windows.
  *

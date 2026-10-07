@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D16 WI-7 / WI7-M1 — the ConfirmDialog model App.tsx renders from.
  *

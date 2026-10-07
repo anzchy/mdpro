@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module cursor-sync-table.test
  * Purpose: Verify the pure source-side helpers + capture slot for the

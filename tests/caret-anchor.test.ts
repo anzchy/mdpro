@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D37 WI-2 — `anchorCaretAcrossReplace` example cases CA-1..CA-18.
  *

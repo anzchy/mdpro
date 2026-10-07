@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3 — `src/App.tsx#loadPreferences` must APPLY the loaded theme without
  * PERSISTING it (matrix cases WI3-E, WI3-F).

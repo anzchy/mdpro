@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D27 — source-text contracts for draft recovery.
  *

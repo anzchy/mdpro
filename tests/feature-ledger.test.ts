@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Purpose: Pin the behaviour of the feature-ledger parser and its mechanical
  * rules (`scripts/ledger/parse.mjs`). These are the pure functions behind

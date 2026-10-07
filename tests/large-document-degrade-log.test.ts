@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The large-document guard's degrade is the one decision the app makes on the
  * user's behalf that the user never asked for: it takes WYSIWYG away and drops

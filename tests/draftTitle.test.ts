@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0035 WI-6 — `extractTitle`, moved out of `useAutoSave.ts` into
  * `src/utils/draftTitle.ts` so the quit backstop names drafts exactly as autosave

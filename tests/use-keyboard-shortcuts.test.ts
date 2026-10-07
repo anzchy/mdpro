@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for useKeyboardShortcuts hook (WI-9 fixes).
  *

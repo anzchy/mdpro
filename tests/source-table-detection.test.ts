@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module source-table-detection.test
  * Purpose: Verify the CodeMirror StateField that wraps tableParser

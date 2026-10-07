@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D19-WI-2 — the pure save-result resolver (`src/utils/saveResult.ts`).
  *

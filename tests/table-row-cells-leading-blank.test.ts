@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-row-cells-leading-blank.test
  * D41 WI-1: `parseRowCells` drops the leading edge segment AT MOST ONCE — only

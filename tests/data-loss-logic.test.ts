@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-0.2 — Data-loss logic coverage (Typora-parity Phase 0).
  *

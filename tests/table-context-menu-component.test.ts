@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-context-menu-component.test
  * Purpose: Source-inspection contract for the TableContextMenu React

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for MarkdownSettings component (WI-6 fixes).
  *

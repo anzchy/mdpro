@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3.5.2 — `src/utils/headingCoordination.ts#coordinateHeadingKeys`, the matcher.
  *

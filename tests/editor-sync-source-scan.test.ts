@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D15 WI-2 — matrix case Z-listener-gone (`.claude/tdd-guardian/tests-20260922-163219.md`).
  *

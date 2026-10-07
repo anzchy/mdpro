@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3.5.5 — matrix case W5: the wholesale / ordinary partition is derived from the
  * source tree, not recalled from memory.

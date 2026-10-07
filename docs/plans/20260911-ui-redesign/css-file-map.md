@@ -2,15 +2,17 @@
 
 Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the sources of truth, decisions, open questions, acceptance criteria and tasks. Consumed by [Stage 1](stage-1-split.md) (WI-1.1, WI-1.2) and [Stage 3](stage-3-retune.md) (WI-3.3).
 
-**Source:** every line number below is valid at commit `a5767d5` (`src/styles/globals.css`, 1955 lines), read from the clean worktree `mdpro-wt/verify-a5767d5`. Where a number is in the dead-CSS commit's numbering (after WI-1.2 deletes the `.toolbar-recent*` rules), it says so.
+**Source:** every line number below is valid at commit `4ebfc89` (`src/styles/globals.css`, 1916 lines). The map was first read at `a5767d5` (1955 lines) from the clean worktree `mdpro-wt/verify-a5767d5`; lines `:1-1544` are identical at both commits, and every line from `:1545` on is 39 lower at `4ebfc89` (see the 2026-10-07 note). Where a number is in the dead-CSS commit's numbering (after WI-1.2 deletes the `.toolbar-recent*` rules), it says so.
 
-**Status:** proposed, awaiting the Stage 0 gate. The map was dry-run in a scratch copy: building the partials from these ranges and running the Stage 1 pure-move proof gives an empty diff, and the plain concatenation is byte-identical to the dead-CSS file (§3.4).
+**2026-10-07 — Dev Toolbar removed.** Commit `1703dbb` deleted the Dev Toolbar block from `globals.css`: the comment `/* Dev Toolbar - only visible in browser mode */` and the `.dev-toolbar*` rules, 39 lines (`a5767d5:1545-1583`; git's diff reports it as `:1545-1561` plus `:1563-1584`, the same text, because the blank lines are interchangeable). Nothing else in the file changed between `a5767d5` and `4ebfc89`. The user decided on 2026-10-05 to keep `1703dbb` and treat it like the `.toolbar-recent*` deletion (the dead-CSS precedent), so the `dev-toolbar.css` partial is gone from the map: 15 partials instead of 16. The block's leftover trailing blank line (`4ebfc89:1545`) stays at the end of `settings-mcp.css`, so `responsive.css` still opens on `@media`. Every range and the dry run below were redone against `4ebfc89`.
+
+**Status:** proposed, awaiting the Stage 0 gate. The map was dry-run in a scratch copy (re-run against `4ebfc89` on 2026-10-07): building the partials from these ranges and running the Stage 1 pure-move proof gives an empty diff, and the plain concatenation is byte-identical to the dead-CSS file (§3.4).
 
 ## 1. Section banners in `globals.css`
 
-`globals.css` has **31 top-level comments**: 9 section banners, 13 settings sub-banners, and 9 rule annotations (a comment that describes the rule below it rather than opening a section). Comments inside a rule block (`:18`, `:25`, `:29`, `:34`, `:42` inside `:root`; `:69`, `:70`, `:112` trailing; `:518` inside `.table-context-menu`) are not banners and are not listed.
+`globals.css` has **30 top-level comments**: 8 section banners, 13 settings sub-banners, and 9 rule annotations (a comment that describes the rule below it rather than opening a section). Comments inside a rule block (`:18`, `:25`, `:29`, `:34`, `:42` inside `:root`; `:69`, `:70`, `:112` trailing; `:518` inside `.table-context-menu`) are not banners and are not listed.
 
-Each row runs from its comment to the line before the next top-level comment. The ranges cover `:1-1955` with no gap and no overlap.
+Each row runs from its comment to the line before the next top-level comment. The ranges cover `:1-1916` with no gap and no overlap.
 
 | # | Lines | Count | Comment text | Kind | What the range actually holds |
 |---|---|---|---|---|---|
@@ -39,12 +41,11 @@ Each row runs from its comment to the line before the next top-level comment. Th
 | 22 | 1398-1418 | 21 | Badge + single inline note under the "Enable MCP Server" label | sub-banner | `.mcp-server-status`, `.mcp-status-note`, `.mcp-status-dot` |
 | 23 | 1419-1471 | 53 | MCP Server Info | sub-banner | `.mcp-server-info`, `.mcp-info-*`, `.mcp-copy-btn*` |
 | 24 | 1472-1476 | 5 | MCP Actions | sub-banner | `.mcp-actions` |
-| 25 | 1477-1544 | 68 | MCP Installations | sub-banner | `.mcp-installations*`, `.mcp-client-*` |
-| 26 | 1545-1604 | 60 | Dev Toolbar - only visible in browser mode | banner | `.dev-toolbar*` `:1546-1582`; **stray** `@media (max-width: 960px)` `:1585-1604` (app shell and split view) |
-| 27 | 1605-1730 | 126 | ========== Tab Bar Styles ========== | banner | `.tab-bar*`, `.tab*` |
-| 28 | 1731-1826 | 96 | ========== TOC Sidebar Styles ========== | banner | `.toc-sidebar*`, `.toc-entry*` up to `.toc-entry__link` |
-| 29 | 1827-1851 | 25 | Text input used in settings rows | annotation | **stray** `.settings-input` `:1828-1836` inside the TOC section; then TOC resumes: `.toc-entry__text` `:1838-1844`, `.toc-entry__children` `:1846-1850` |
-| 30 | 1852-1955 | 104 | About Settings | banner | `.about-*` |
+| 25 | 1477-1565 | 89 | MCP Installations | sub-banner | `.mcp-installations*`, `.mcp-client-*` `:1477-1543`; **stray** `@media (max-width: 960px)` `:1546-1565` (app shell and split view; its Dev Toolbar banner went with `1703dbb`) |
+| 26 | 1566-1691 | 126 | ========== Tab Bar Styles ========== | banner | `.tab-bar*`, `.tab*` |
+| 27 | 1692-1787 | 96 | ========== TOC Sidebar Styles ========== | banner | `.toc-sidebar*`, `.toc-entry*` up to `.toc-entry__link` |
+| 28 | 1788-1812 | 25 | Text input used in settings rows | annotation | **stray** `.settings-input` `:1789-1797` inside the TOC section; then TOC resumes: `.toc-entry__text` `:1799-1805`, `.toc-entry__children` `:1807-1811` |
+| 29 | 1813-1916 | 104 | About Settings | banner | `.about-*` |
 
 **Rules outside their banner.** All of them stay where they are in Stage 1, because moving any of them reorders the cascade. They are listed so a later stage can rehome them deliberately.
 
@@ -54,14 +55,14 @@ Each row runs from its comment to the line before the next top-level comment. Th
 | `.toolbar-button--primary*` | 749-762 | Link Insert Modal | `.toolbar-button` at `:444-461` | `McpWriteConfirmDialog.tsx:126`, `TableInsertModal/index.tsx:249`, `LinkInsertModal.tsx:131` |
 | `.recovery-*`, spinner, `@keyframes spin`, `.toast*`, `.encoding-*` | 764-862 | Link Insert Modal (no banner of their own) | their own sections | `@keyframes spin` is also used by `src/plugins/milkdown/imagePastePlugin.css:24` |
 | `.toolbar-button.primary/.small/.danger` | 1185-1207 | Settings General Page | `.toolbar-button` | `KeyboardShortcutsSettings.tsx:256`, `McpClientList.tsx:70-86` |
-| `@media (max-width: 960px)` | 1585-1604 | Dev Toolbar | the app shell rules | overrides `.app-shell`, `.split-view`, `.split-pane`, `.split-divider` |
-| `.settings-input` | 1827-1836 | TOC Sidebar (splits it in two) | settings rows | `ExportSettings.tsx:279` |
+| `@media (max-width: 960px)` | 1546-1565 | MCP Installations (Dev Toolbar until `1703dbb`) | the app shell rules | overrides `.app-shell`, `.split-view`, `.split-pane`, `.split-divider` |
+| `.settings-input` | 1788-1797 | TOC Sidebar (splits it in two) | settings rows | `ExportSettings.tsx:279` |
 
-The plan's Settings span `:858-1435` is stale twice over. At `0a3675e` the `Settings Dialog` banner was `:858` and `:1435` was the `MCP Actions` banner, so the range already stopped short of MCP Actions and MCP Installations. At `a5767d5` the contiguous Settings block is `:863-1544` (682 lines), and About Settings is a separate block at `:1852-1955`.
+The plan's Settings span `:858-1435` is stale twice over. At `0a3675e` the `Settings Dialog` banner was `:858` and `:1435` was the `MCP Actions` banner, so the range already stopped short of MCP Actions and MCP Installations. At `4ebfc89` (as at `a5767d5`) the contiguous Settings block is `:863-1544` (682 lines), and About Settings is a separate block at `:1813-1916` (`:1852-1955` at `a5767d5`).
 
 ## 2. Dead `.toolbar-recent*` CSS (WI-1.2 first commit)
 
-**Verdict: dead.** Delete `globals.css:396-443` at `a5767d5`: the seven rules `:396-442` plus the blank line `:443`, 48 lines. The next line, `.toolbar-button {` at `:444`, becomes `:396`.
+**Verdict: dead.** Delete `globals.css:396-443` at `4ebfc89` (the same lines at `a5767d5`): the seven rules `:396-442` plus the blank line `:443`, 48 lines. The next line, `.toolbar-button {` at `:444`, becomes `:396`.
 
 Evidence, all at `a5767d5`:
 
@@ -82,7 +83,7 @@ Location: `src/styles/sections/<name>.css`, as Stage 1 assumes. The names carry 
 
 `globals.css` keeps the `:root` tokens and base rules (A6, rule 31): a contiguous prefix, so keeping it first preserves the order. Every other range moves verbatim. Partials are contiguous, in source order, and none skips or reorders a line.
 
-| Import position | File | Lines at `a5767d5` | Lines in the dead-CSS commit | Count | Holds |
+| Import position | File | Lines at `4ebfc89` | Lines in the dead-CSS commit | Count | Holds |
 |---|---|---|---|---|---|
 | 1 | `globals.css` (kept) | 1-77 | 1-77 | 77 | `:root`, reset, `html/body/#root`, `body`, `body.tauri-macos`, `a` |
 | 2 | `sections/app-shell.css` | 78-297 | 78-297 | **220** | app shell, sidebar, `.file-item*`, `.main`, traffic-light areas, mode badge, busy indicator, workspace, split view, panes |
@@ -95,16 +96,15 @@ Location: `src/styles/sections/<name>.css`, as Stage 1 assumes. The names carry 
 | 9 | `sections/settings-shell.css` | 863-1040 | 815-992 | 178 | sub-banner "Settings Dialog": dialog shell, sidebar rail, categories, shortcuts page |
 | 10 | `sections/settings-pages.css` | 1041-1208 | 993-1160 | 168 | sub-banners nav icon → Settings General Page: page header, dirty banner, placeholders, form, select, footer, stray `.toolbar-button.primary/.small/.danger` |
 | 11 | `sections/settings-rows.css` | 1209-1363 | 1161-1315 | 155 | sub-banners Integrations → Toggle Switch: `.settings-row*`, section label, stepper, toggle switch |
-| 12 | `sections/settings-mcp.css` | 1364-1544 | 1316-1496 | 181 | sub-banners MCP Status Badge → MCP Installations |
-| 13 | `sections/dev-toolbar.css` | 1545-1584 | 1497-1536 | 40 | `.dev-toolbar*` (ends with the two blank lines `:1583-1584`) |
-| 14 | `sections/responsive.css` | 1585-1604 | 1537-1556 | 20 | `@media (max-width: 960px)` for app shell and split view |
-| 15 | `sections/tab-bar.css` | 1605-1730 | 1557-1682 | 126 | `.tab-bar*`, `.tab*` |
-| 16 | `sections/toc-sidebar.css` | 1731-1851 | 1683-1803 | 121 | `.toc-sidebar*`, `.toc-entry*`, stray `.settings-input` |
-| 17 | `sections/settings-about.css` | 1852-1955 | 1804-1907 | 104 | `.about-*` |
-| 18 | `themes/light.css` | — | — | 27 | unchanged |
-| 19 | `themes/dark.css` | — | — | 27 | unchanged |
+| 12 | `sections/settings-mcp.css` | 1364-1545 | 1316-1497 | 182 | sub-banners MCP Status Badge → MCP Installations (ends with the two blank lines `:1544-1545`; the second is the Dev Toolbar block's leftover) |
+| 13 | `sections/responsive.css` | 1546-1565 | 1498-1517 | 20 | `@media (max-width: 960px)` for app shell and split view |
+| 14 | `sections/tab-bar.css` | 1566-1691 | 1518-1643 | 126 | `.tab-bar*`, `.tab*` |
+| 15 | `sections/toc-sidebar.css` | 1692-1812 | 1644-1764 | 121 | `.toc-sidebar*`, `.toc-entry*`, stray `.settings-input` |
+| 16 | `sections/settings-about.css` | 1813-1916 | 1765-1868 | 104 | `.about-*` |
+| 17 | `themes/light.css` | — | — | 27 | unchanged |
+| 18 | `themes/dark.css` | — | — | 27 | unchanged |
 
-**16 partials. The largest is `app-shell.css` at 220 lines**, and every app CSS file is under 300 (the themes are 27 lines each; the largest co-located sheet, `MilkdownEditor.css`, is 269). Settings (682 lines) splits into four partials along its sub-banners. About Settings stays its own partial, because the Tab Bar and TOC sections sit between it and the rest of Settings, and merging it would reorder the cascade.
+**15 partials. The largest is `app-shell.css` at 220 lines**, and every app CSS file is under 300 (the themes are 27 lines each; the largest co-located sheet, `MilkdownEditor.css`, is 269). Settings (682 lines) splits into four partials along its sub-banners. About Settings stays its own partial, because the Tab Bar and TOC sections sit between it and the rest of Settings, and merging it would reorder the cascade.
 
 `src/styles/index.css` after WI-1.2:
 
@@ -121,7 +121,6 @@ Location: `src/styles/sections/<name>.css`, as Stage 1 assumes. The names carry 
 @import "./sections/settings-pages.css";
 @import "./sections/settings-rows.css";
 @import "./sections/settings-mcp.css";
-@import "./sections/dev-toolbar.css";
 @import "./sections/responsive.css";
 @import "./sections/tab-bar.css";
 @import "./sections/toc-sidebar.css";
@@ -136,7 +135,7 @@ Source order alone settles each of these: the selectors have equal specificity a
 
 | Later rule (wins) | Earlier rule | Property | Element | Partials, in required order |
 |---|---|---|---|---|
-| `@media (max-width: 960px)` `.app-shell`, `.split-view`, `.split-pane` (`!important`), `.split-divider` `:1585-1604` | the base rules `:78-290` | `grid-template-columns`, `flex-direction`, `width`, `height`/`cursor` | app shell and split view under 960px | `app-shell` → `responsive` |
+| `@media (max-width: 960px)` `.app-shell`, `.split-view`, `.split-pane` (`!important`), `.split-divider` `:1546-1565` | the base rules `:78-290` | `grid-template-columns`, `flex-direction`, `width`, `height`/`cursor` | app shell and split view under 960px | `app-shell` → `responsive` |
 | `.table-insert-modal` `:606` | `.dialog-card` `:473` | `width` (380px vs 420px) | `TableInsertModal/index.tsx:182` | `buttons-dialog` → `table-insert-modal` |
 | `.link-insert-modal` `:717` | `.dialog-card` `:473` | `width` (360px vs 420px) | `LinkInsertModal.tsx:101` | `buttons-dialog` → `link-insert-modal` |
 | `.toolbar-button--primary:disabled` `:759` | `.toolbar-button:disabled` `:458` | `opacity` (0.45 vs 0.5) | the three primary buttons | `buttons-dialog` → `link-insert-modal` |
@@ -167,14 +166,17 @@ WI-1.1 switches all four to `src/test/appCss.ts`, so no test path names a partia
 
 ### 3.4 Pure-move proof, dry run
 
-In a scratch copy, `sed '396,443d'` on the `a5767d5` file produced the dead-CSS file (1907 lines). The 17 files were built from the dead-CSS column above, and `index.css` was written as in §3.1. Then:
+In a scratch copy, `sed '396,443d'` on the `4ebfc89` file (`git show 4ebfc89:src/styles/globals.css`, which includes `1703dbb`) produced the dead-CSS file (1868 lines). The 16 files (`globals.css` plus 15 partials) were built from the dead-CSS column above, and `index.css` was written as in §3.1. Then:
 
 - the Stage 1 acceptance command (strip single-line comments from both sides, concatenate the files `index.css` lists minus the themes) gave **no output**;
-- `cmp` of the plain concatenation against the dead-CSS file reported them **byte-identical**.
+- `cmp` of the plain concatenation against the dead-CSS file reported them **byte-identical**;
+- the same 16 files cut from the `4ebfc89` column and concatenated are byte-identical to `globals.css` at `4ebfc89`.
+
+Last run 2026-10-07 against `4ebfc89`. The real proof's base is the WI-1.2 dead-CSS commit, built on a HEAD that includes `1703dbb`; a base without it (`a5767d5`) puts the 39 Dev Toolbar lines in the diff.
 
 Two constraints keep the real proof empty:
 
-1. **Partial headers.** The proof strips only one-line `/* … */` comments. A header added to a partial must be a single line with no blank line after it, or the diff is no longer empty. Eleven partials already open with their original banner (`table-context-menu`, `table-insert-modal`, `link-insert-modal`, the four `settings-*` Settings partials, `dev-toolbar`, `tab-bar`, `toc-sidebar`, `settings-about`). The five that open on a bare rule (`app-shell`, `editor-source`, `buttons-dialog`, `recovery-toast`, `responsive`) can take a one-line header or none.
+1. **Partial headers.** The proof strips only one-line `/* … */` comments. A header added to a partial must be a single line with no blank line after it, or the diff is no longer empty. Ten partials already open with their original banner (`table-context-menu`, `table-insert-modal`, `link-insert-modal`, the four `settings-*` Settings partials, `tab-bar`, `toc-sidebar`, `settings-about`). The five that open on a bare rule (`app-shell`, `editor-source`, `buttons-dialog`, `recovery-toast`, `responsive`) can take a one-line header or none.
 2. **Multi-line comments** (`:65-66`, `:202-205`, `:227-229`, `:356-359`, `:518-521`) are not stripped on either side. They must move verbatim.
 
 ### 3.5 Rule 32 ownership after the move

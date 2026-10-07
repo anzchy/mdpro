@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0040 WI-9 — `mcpService.setServerEnabled` and `isMcpSwitchError`.
  *

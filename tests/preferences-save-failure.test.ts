@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-0.5 — write-through save-failure UX, plus ADR-0031 step 5b (WI-1) D5/D6.
  *

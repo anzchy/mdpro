@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module codemirror-lint-table-column-count.test
  * Purpose: Verify the source-mode column-count linter (Phase 3 WI-3.1).

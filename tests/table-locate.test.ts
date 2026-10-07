@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-locate.test
  * D12 WI-2 (ADR-0043 Decisions 1-2): `locateTableAtOffset` /
@@ -12,6 +13,8 @@
  *    frozen HEAD 6df4896 walker, with an identical index sequence.
  *  - Plain data: a span is 8 own data keys and survives a JSON round-trip.
  *
+ * LOC-2 runs in the slow tier, `table-locate.slow.test.ts` (ADR-0050).
+ *
  * Matrix: `.claude/tdd-guardian/tests-20260930-D12.md` cases LOC-1..LOC-9.
  */
 
@@ -19,7 +22,6 @@ import { isDeepStrictEqual } from "node:util";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { linesFromText } from "../src/plugins/codemirror/textLineSource";
 import type { TableSpan } from "../src/utils/tableParser";
 import {
   isTableCandidateLine,
@@ -31,13 +33,15 @@ import { locateTableAtLine, locateTableAtOffset } from "../src/utils/tableParser
 import { parseTableAtLine, parseTableAtOffset } from "../src/utils/tableParser/parse";
 import type { TableModel } from "../src/utils/tableParser/types";
 import { frozenParseTableAtLine } from "./support/frozenTableParse";
-import { makeCorpus, makeOverlapCorpus, OVERLAP_SEED, SEED } from "./support/tableCorpus";
 import {
-  D12_FIXTURES,
-  recordingSource,
-  spanOfModel,
-  textOf,
-} from "./support/tableSpanOracle";
+  ADAPTERS,
+  corpusDocs,
+  type Doc,
+  DOMAIN_TIMEOUT_MS,
+  loc1DocsOf,
+  offsetsOf,
+} from "./support/tableOffsetDomain";
+import { D12_FIXTURES, recordingSource, spanOfModel } from "./support/tableSpanOracle";
 
 // Passthrough counter over the REAL `parseRowCells` — observes, replaces nothing.
 const rowCells = vi.hoisted(() => ({ calls: 0 }));
@@ -52,10 +56,7 @@ vi.mock("../src/utils/tableParser/rowCells", async (importOriginal) => {
   };
 });
 
-const CORPUS_COUNT = 200;
 const NON_NULL_FLOOR = 1_000;
-/** Whole-domain sweeps; see the same constant in `table-row-cells.test.ts`. */
-const DOMAIN_TIMEOUT_MS = 120_000;
 const SPAN_KEYS = [
   "alignments",
   "colCount",
@@ -67,52 +68,10 @@ const SPAN_KEYS = [
   "start",
 ];
 
-type AdapterName = "string" | "text";
-const ADAPTERS: ReadonlyArray<[AdapterName, (s: string) => TableLineSource]> = [
-  ["string", (s) => linesFromString(s)],
-  ["text", (s) => linesFromText(textOf(s))],
-];
-
-interface Doc {
-  id: string;
-  source: string;
-}
-
-const LOC1_FIXTURES = [
-  "PIPELESS",
-  "PIPELESS_CHAIN",
-  "PIPED_DELIM",
-  "SETEXT",
-  "NEP",
-  "NEP_CRLF",
-] as const;
-
-function corpusDocs(): Doc[] {
-  return [
-    ...makeCorpus(SEED, CORPUS_COUNT).map((d) => ({ id: `corpus#${d.index}`, source: d.source })),
-    ...makeOverlapCorpus(OVERLAP_SEED, CORPUS_COUNT).map((d) => ({
-      id: `overlap#${d.index}`,
-      source: d.source,
-    })),
-  ];
-}
-
-const LOC1_DOCS: Doc[] = [
-  ...corpusDocs(),
-  ...LOC1_FIXTURES.map((name) => ({ id: name, source: D12_FIXTURES[name] })),
-];
-
 const ALL_FIXTURE_DOCS: Doc[] = Object.entries(D12_FIXTURES).map(([id, source]) => ({
   id,
   source,
 }));
-
-/** Every offset in `[-1, length + 2]`. */
-function offsetsOf(source: string): number[] {
-  const out: number[] = [];
-  for (let o = -1; o <= source.length + 2; o += 1) out.push(o);
-  return out;
-}
 
 /** A model with its lazy `raw` getter read out, for by-value comparison. */
 function materialise(m: TableModel | null): Record<string, unknown> | null {
@@ -132,7 +91,7 @@ function loc1Sweep(): { samples: LocSample[]; mismatches: string[] } {
   if (loc1Cache) return loc1Cache;
   const samples: LocSample[] = [];
   const mismatches: string[] = [];
-  for (const { id, source } of LOC1_DOCS) {
+  for (const { id, source } of loc1DocsOf()) {
     const lines = splitLines(source);
     for (const [name, make] of ADAPTERS) {
       for (const o of offsetsOf(source)) {
@@ -163,32 +122,8 @@ describe("LOC-1 the span equals the model projection at every offset", () => {
   }, DOMAIN_TIMEOUT_MS);
 });
 
-describe("LOC-2 locate and parse make identical line() index sequences", () => {
-  it("records the same line() sequence and lineIndexAt count at every offset", () => {
-    const mismatches: string[] = [];
-    for (const { id, source } of LOC1_DOCS) {
-      for (const [name, make] of ADAPTERS) {
-        for (const o of offsetsOf(source)) {
-          const recA = recordingSource(make(source));
-          const recB = recordingSource(make(source));
-          parseTableAtOffset(recA, o);
-          locateTableAtOffset(recB, o);
-          if (
-            !isDeepStrictEqual(recB.lineIndices, recA.lineIndices) ||
-            recB.lineIndexAtCalls !== recA.lineIndexAtCalls
-          ) {
-            mismatches.push(
-              `${id}/${name}@${o}: locate [${recB.lineIndices}] x${recB.lineIndexAtCalls} ` +
-                `parse [${recA.lineIndices}] x${recA.lineIndexAtCalls}`,
-            );
-          }
-        }
-      }
-    }
-    expect(mismatches.slice(0, 20)).toEqual([]);
-    expect(mismatches.length).toBe(0);
-  }, DOMAIN_TIMEOUT_MS);
-});
+// LOC-2 (the identical-walk law over LOC-1's whole domain, ~4.9 s under
+// coverage) runs in the slow tier: table-locate.slow.test.ts (ADR-0050).
 
 describe("LOC-3 locate stays within 2R+5 line() calls and never slices", () => {
   function docOf(R: number): string {

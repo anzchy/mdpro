@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { Schema } from "@milkdown/kit/prose/model";
 import { EditorState, TextSelection } from "@milkdown/kit/prose/state";

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D15 WI-1 — `createEditSyncController` (src/plugins/milkdown/editSync/controller.ts).
  *

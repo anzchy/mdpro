@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Regression tests for issue #377 — Cmd+S causes a visible screen blink.
  *

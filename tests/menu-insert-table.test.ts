@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module menu-insert-table.test
  * Purpose: Verify the native menu item Format → Insert Table is wired

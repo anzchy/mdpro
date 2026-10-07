@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for Find & Replace integration via @codemirror/search.
  *

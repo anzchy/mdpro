@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-2 — loggingService.hydrateSettings()
  *

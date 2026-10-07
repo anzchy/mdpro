@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for WYSIWYG keybindings (issue #27)
  *

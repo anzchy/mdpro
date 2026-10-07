@@ -5,27 +5,27 @@ interface DevToolbarProps {
 }
 
 /**
- * Browser-dev-mode test hook — renders no visible UI in any mode.
+ * Dev-build test hook — renders no visible UI in any mode.
  *
- * In `pnpm dev` (`import.meta.env.DEV` true and no `window.__TAURI_INTERNALS__`) it
- * mounts one hidden, unfocusable `<input type="file" data-testid="dev-open-file">`.
- * Setting files on it (e.g. the E5 snapshot harness, `scripts/redesign/snapshot.js`)
- * reads the file and calls `onOpenFile(content, fileName)`.
+ * In every development build (`import.meta.env.DEV` true) — `pnpm dev` and
+ * `pnpm tauri dev` alike — it mounts one hidden, unfocusable, aria-hidden
+ * `<input type="file" data-testid="dev-open-file">`. Setting files on it (the E5
+ * snapshot harness, `scripts/redesign/snapshot.js`, including inside the Tauri
+ * WKWebView) reads the file and calls `onOpenFile(content, fileName)`. Mounting it
+ * under Tauri too is a user decision of 2026-10-07.
  *
- * Renders nothing under `pnpm tauri dev` (the native menu provides New / Open) or in
- * the built app, so every mode looks like the release app. The visible "DEV MODE"
- * toolbar was removed by user decision on 2026-10-05.
+ * Renders nothing in the built app (`DEV` false), so release ships no hook. Because the
+ * input is hidden, dev still looks like release: the visible "DEV MODE" toolbar was
+ * removed by user decision on 2026-10-05.
  */
 export function DevToolbar({ onOpenFile }: DevToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-
-  // Mount only in browser development mode
-  // - pnpm dev: DEV=true, isTauri=false → hidden file input
-  // - pnpm tauri dev: DEV=true, isTauri=true → nothing
+  // Mount in every development build
+  // - pnpm dev: DEV=true → hidden file input
+  // - pnpm tauri dev: DEV=true → hidden file input (E5 harness loads fixtures in the WKWebView)
   // - built app: DEV=false → nothing
-  if (!import.meta.env.DEV || isTauri) {
+  if (!import.meta.env.DEV) {
     return null;
   }
 
