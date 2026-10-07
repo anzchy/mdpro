@@ -469,11 +469,15 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   10. **WI3-T05 的夹具往上挪了一级**。现在在 `…/mdpro` 放普通文件，让 `create_dir_all` 失败，原来是在 `…/mdpro/drafts` 放。**这暴露了一个已有缺陷，本 WI 不修，只记录**：`…/mdpro/drafts` 是普通文件时，`ensure_dir` 的 `exists()` 检查能通过，接着 rename 报 ENOTDIR，却被静默跳过。启动迁移因此返回 `Ok(0)`，一行日志都不写，旧草稿留在原处。
   11. **tdd-guardian 的 rust lane 仍只跑 feature 关的构建**。`--features verify-run` 的 `cargo test` / `cargo clippy -- -D warnings` 回执是手工跑的，记在 `.claude/tdd-guardian/state.json` 的 ADR47-WI002-4…8 里。
   12. **覆盖率**。`scripts/control/persistenceRoots.mjs` 和 `rustScopes.mjs` 同 WI-001 偏离 8，不在 vitest 的 `coverage.include` 里，没有覆盖率数字。
-- **状态（2026-10-07）**：代码和单测/rust 测试完成，**未验证**。提交 `678b320`、`4390665`、`186910b`、`d455e02`，WI-7/8 是本提交。门禁情况：unit lane 过；`cargo test` 和 `cargo test --features verify-run` 都过，`cargo clippy -- -D warnings` 两种都过。
+- **状态（2026-10-07）**：**已验证，验收 6 延到 WI-003**。提交 `678b320`、`4390665`、`186910b`、`d455e02`、`e36c63a`；真机记录 [`docs/test/20261007-adr0047-wi002-device.md`](../test/20261007-adr0047-wi002-device.md) 随本提交。门禁情况：unit lane 过；`cargo test` 和 `cargo test --features verify-run` 都过，`cargo clippy -- -D warnings` 两种都过。
   - 验收 1 **单测通过**：`run_isolation_tests.rs` 在临时 `HOME` 下把登记表里的每个 `production` 根都解析到该目录内（feature 关、开各 6/6）。`tests/control-persistence-roots.test.ts` 让登记表和 `src-tauri/src` 里的 `dirs::` 调用点完全相等。
-  - 验收 7 **单测通过**：feature 关时端口恒为 55045，守卫的符号不编入（`http_server_port_tests.rs`、vitest 接线测试）。
-  - 验收 2 只有表驱动单测部分完成。**以下真机验收都还没跑**：2 的真机部分（双击 / `open -a` 后真实目录无变化）、3、4、5、6、8、9、10，以及 D-WI2（真打一次 `pnpm control:build --profile verify`，核对相对 `--config` 的解析、包名、二进制名和 `Info.plist`；见测试矩阵 `tests-20261003-061500.md`）。WI-002 在这些跑完之前不算验证。
-  - WI-001 验收 5（先 `verify` 后 `release` 互不串味）随 WI-002 一起，同样还没跑。
+  - 验收 7 **单测通过**：feature 关时端口恒为 55045，守卫的符号不编入（`http_server_port_tests.rs`、vitest 接线测试）。release 包上的 `nm` 没做。
+  - **真机通过**（macOS 26.3.1，`e36c63a` 构建的 verify 包）：D-WI2、2、3、4、5、10。真实目录的元数据清单在每一步前后都一致。
+  - 验收 8 **通过，附偏离**：`Info.plist` 里 `CFBundleDocumentTypes` 是空数组，不是不存在；Launch Services 不把它列为 `.md` 的候选，默认打开方式没变。
+  - 验收 9 **[实测] macOS 26.3.1**：WebKit 数据与缓存都在运行目录内，真实 `~/Library` 下没有 `com.mdpro.app.verify` 的条目，也没有 Cocoa 偏好或 saved state。**macOS 13 没测**。
+  - 验收 6 **未验证**：要用启动器在已有运行时再 `launch`，WI-003 之前没有启动器。转到 WI-003 的验收里一并跑。
+  - **推翻的假设**：启动器写偏好夹具时不能只写部分字段——`UserPreferences` 有必填字段，部分文件整份解析失败，设置页全报错。WI-003 的夹具要写完整的一份。
+  - WI-001 验收 5（先 `verify` 后 `release` 互不串味）本轮没跑，仍开着。
 
 ### WI-003 最小启动器
 
