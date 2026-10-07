@@ -2,7 +2,7 @@
 
 Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the sources of truth, decisions, open questions, acceptance criteria and tasks.
 
-This appendix lists every literal (non-`var()`) value in the tokenized categories, in every `src/**/*.css` file. It is the deliverable of WI-0.2 ([Stage 0](./stage-0-inventory.md)). Stage 2 tokenizes the class-(a) rows, Stage 3 snaps the class-(b) rows, and the class-(c) rows wait on the rulings linked below.
+This appendix lists every literal (non-`var()`) value in the tokenized categories, in every `src/**/*.css` file. It is the deliverable of WI-0.2 ([Stage 0](./stage-0-inventory.md)). Stage 2 tokenizes the class-(a) rows, Stage 3 snaps the class-(b) rows, and the class-(c) rows are new tokens or exceptions. Every class-(c) row now has a ruling; the user's 2026-10-03 rulings R1–R10 closed the last open ones (see [Rulings](#rulings-user-2026-10-03)).
 
 ## Scope and method
 
@@ -50,7 +50,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 |---|---|
 | **a** | An existing or proposal token has exactly this value, so tokenizing is value-preserving (Stage 2, WI-2.3). |
 | **b** | Tokenizing changes the rendered value. The target token and delta are named, and the stage is where the snap is allowed. |
-| **c** | A new token or an exception is needed. It is linked to Q6–Q10, or flagged "no Q6–Q10 match" when no open question covers it. |
+| **c** | A new token or an exception is needed. It is linked to Q6–Q10, or flagged "no Q6–Q10 match" when no open question covers it. Since the 2026-10-03 rulings, every (c) row is marked `c (ruled Rn)` for a new token or `c (exception, Rn)` for an exception; rows that predate them keep their Q7/Q10 reference. |
 | **allowed** | A fourth marker, added so the counts reconcile. The literal is already permitted under A5 and needs no work, e.g.: rule 31 z-index layers (10/20/30/100/1000), `50%` circles, `0`, `none`, `transparent`, `inherit`, `currentColor`, `em` sizes in editor content, shadows whose geometry is literal but whose colour is a `var()`, and `var(--x, fallback)` defensive fallbacks. |
 
 ### Stage key
@@ -61,9 +61,11 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `3 (WI-3.1, DR23)` | Radius snap in the Stage 3 retune. |
 | `3 (WI-3.2 item N)` | The numbered WI-3.2 bullet that owns the snap. |
 | `4 (WI-4.x)` | The component WI that replaces the selector. |
+| `2 (WI-2.2 new token)` | A new token, ruled 2026-10-03 (R2, R6), declared in WI-2.2 with today's value, so the swap is value-preserving. |
+| `3 (WI-3.2 rulings)` | A value-changing 2026-10-03 ruling (R1, R3, R5, R7, R10), owned by WI-3.2's rulings bullet. |
 | `WI-2.1 exception` | Recorded in the WI-2.1 exception list. |
-| `WI-2.2 per Q6, but not value-preserving` | See [Plan discrepancies](#plan-discrepancies-found-while-inventorying). |
-| `open` / `open (Q9 follow-up)` | Waits on a ruling. |
+| ~~`WI-2.2 per Q6, but not value-preserving`~~ | No rows since the 2026-10-03 rulings: R10 moved the three Q6 rows to `3 (WI-3.2 rulings)`. |
+| ~~`open` / `open (Q9 follow-up)`~~ | No rows since the 2026-10-03 rulings: R1–R9 gave each of them a target. |
 | `skip, dead (A8): …` | The selector's only consumer is dead code; WI-1.x deletes it. |
 | `WI-1.2 deletes` | Recent-dropdown rules that WI-1.2 removes. |
 | `orphan, no consumer` | No `.tsx`/`.ts` file references the selector at a5767d5. A deletion candidate, not a tokenization target. |
@@ -86,7 +88,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:218` | `.sidebar-mode-label` | `font-size` | `10px` | b | `--font-size-ui-sm` (+2px); WI-4.5 later replaces the label | 3 (WI-3.2 item 12) |
 | `globals.css:224` | `.sidebar-mode-label` | `border-radius` | `4px` | b | `--radius-control` (+2px); a chip, not a nested part, so not `--radius-inner`; WI-4.5 later replaces the label | 3 (WI-3.1, DR23) |
 | `globals.css:279` | `.pane-title` | `font-size` | `12px` | a | `--font-size-ui-sm` | orphan, no consumer |
-| `globals.css:349` | `.editor-shell .cm-selectionBackground` | `background` | `rgba(96, 165, 250, 0.25)` | c | new selection-colour token or exception; one use, so A10 keeps it open (no Q6–Q10 match) | open |
+| `globals.css:349` | `.editor-shell .cm-selectionBackground` | `background` | `rgba(96, 165, 250, 0.25)` | b | [R5](#rulings-user-2026-10-03): `color-mix()` from `--color-accent` at 25%. Dark is unchanged (its accent is `#60a5fa`); light becomes `#2563eb` at 25% | 3 (WI-3.2 rulings) |
 | `globals.css:362` | `.editor-shell .cm-table-active-cell` | `border-radius` | `2px` | b | `--radius-inner` (+2px), or `0` if 4px breaks the cell border | 3 (WI-3.1, DR23) |
 | `globals.css:385` | `.toolbar-mode` | `font-size` | `12px` | a | `--font-size-ui-sm` | orphan, no consumer |
 | `globals.css:415` | `.toolbar-recent-list` | `border-radius` | `12px` | b | `--radius-popover` (−2px) | WI-1.2 deletes |
@@ -95,7 +97,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:439` | `.toolbar-recent-empty` | `font-size` | `12px` | a | `--font-size-ui-sm` | WI-1.2 deletes |
 | `globals.css:447` | `.toolbar-button` | `border-radius` | `8px` | b | `--radius-control` (−2px) | 3 (WI-3.1, DR23) |
 | `globals.css:449` | `.toolbar-button` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
-| `globals.css:466` | `.dialog-backdrop` | `background` | `rgba(15, 23, 42, 0.35)` | c | new scrim token or exception; one use, so A10 keeps it open (no Q6–Q10 match) | open |
+| `globals.css:466` | `.dialog-backdrop` | `background` | `rgba(15, 23, 42, 0.35)` | c (ruled R6) | [R6](#rulings-user-2026-10-03): new `--color-scrim`, declared with today's value. One use: a user override of A10 | 2 (WI-2.2 new token) |
 | `globals.css:470` | `.dialog-backdrop` | `z-index` | `20` | allowed | rule 31 z-index table, "Dialog backdrop" | — |
 | `globals.css:477` | `.dialog-card` | `border-radius` | `16px` | b | `--radius-popover` (−6px) | 3 (WI-3.1, DR23) |
 | `globals.css:484` | `.dialog-title` | `font-size` | `16px` | b | `--font-size-ui-lg` (−2px), the DR22 dialog-title role; the value equals `--font-size-title` but DR22 does not give that role to dialog titles | 3 (WI-3.2 item 12) |
@@ -121,13 +123,13 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:734` | `.link-insert-input` | `border-radius` | `8px` | b | `--radius-control` (−2px), input | 3 (WI-3.1, DR23) |
 | `globals.css:738` | `.link-insert-input` | `font-size` | `14px` | a | `--font-size-ui-lg` | 2 (WI-2.3) |
 | `globals.css:746` | `.link-insert-input:focus` | `box-shadow` | `0 0 0 2px var(--color-accent-soft)` | allowed | rule 33 pattern 1 ring; colour is `var()`, 2px geometry (rule 31) | — |
-| `globals.css:751` | `.toolbar-button--primary` | `color` | `#fff` | c | label on accent: no token equals `#fff` in both themes. Candidates: `--color-panel` (rule 34 menu-highlight pattern, as `.image-context-menu-apply` does; changes dark only) or a new `--color-on-accent` (A10: :751, :1187, :1351 are 3 uses). No Q6–Q10 match | open |
-| `globals.css:756` | `.toolbar-button--primary:hover:not(:disabled)` | `background` | `#1d4ed8` | c | primary hover: no token. Candidates: `color-mix()` over `--color-accent`, or drop the darken. Two uses of one role (:756, :1192), so A10 keeps it open (no Q6–Q10 match) | open |
+| `globals.css:751` | `.toolbar-button--primary` | `color` | `#fff` | c (ruled R2) | [R2](#rulings-user-2026-10-03): new `--color-on-accent`, declared with today's `#fff` (A10: :751, :1187, :1351 are 3 uses) | 2 (WI-2.2 new token) |
+| `globals.css:756` | `.toolbar-button--primary:hover:not(:disabled)` | `background` | `#1d4ed8` | b | [R3](#rulings-user-2026-10-03): `color-mix()` over `--color-accent`. No mix reproduces `#1d4ed8` exactly, and dark hover stops being the light-theme blue | 3 (WI-3.2 rulings) |
 | `globals.css:772` | `.recovery-item` | `border-radius` | `12px` | b | `--radius-popover` (−2px), grouped section | 3 (WI-3.1, DR23) |
 | `globals.css:792` | `.recovery-path, .recovery-time` | `font-size` | `12px` | a | `--font-size-ui-sm` | 2 (WI-2.3) |
 | `globals.css:805` | `.loading-spinner` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
 | `globals.css:814` | `.spinner` | `border-radius` | `50%` | allowed | rule 31: `50%` circle | — |
-| `globals.css:815` | `.spinner` | `animation` | `spin 0.8s linear infinite` | c | spinner `0.8s linear`: DR13 keeps spinners rotating, so the zeroed `--motion-duration-fast` cannot carry it; needs a WI-2.1 exception or a non-zeroed token (no Q6–Q10 match) | open |
+| `globals.css:815` | `.spinner` | `animation` | `spin 0.8s linear infinite` | c (exception, R4) | [R4](#rulings-user-2026-10-03): WI-2.1 exception. DR13 keeps spinners rotating, so the zeroed `--motion-duration-fast` cannot carry it | WI-2.1 exception |
 | `globals.css:830` | `.toast` | `border-radius` | `12px` | b | `--radius-popover` (−2px) | 3 (WI-3.1, DR23) |
 | `globals.css:836` | `.toast` | `z-index` | `30` | allowed | rule 31 z-index table, "Toast" | — |
 | `globals.css:842` | `.toast-close` | `font-size` | `18px` | b | × glyph → WI-4.2 icon at `--icon-size-md` (−2px box) | 4 (WI-4.2) |
@@ -168,8 +170,8 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:1152` | `.settings-select` | `border-radius` | `6px` | a | `--radius-control` | 2 (WI-2.3) |
 | `globals.css:1154` | `.settings-select` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
 | `globals.css:1166` | `.settings-form-hint` | `font-size` | `12px` | a | `--font-size-ui-sm` | orphan, no consumer |
-| `globals.css:1187` | `.toolbar-button.primary` | `color` | `white` | c | as :751 (label on accent) | open |
-| `globals.css:1192` | `.toolbar-button.primary:hover` | `background` | `#1d4ed8` | c | as :756 (primary hover) | open |
+| `globals.css:1187` | `.toolbar-button.primary` | `color` | `white` | c (ruled R2) | [R2](#rulings-user-2026-10-03): as :751, `--color-on-accent` | 2 (WI-2.2 new token) |
+| `globals.css:1192` | `.toolbar-button.primary:hover` | `background` | `#1d4ed8` | b | [R3](#rulings-user-2026-10-03): as :756, `color-mix()` over `--color-accent` | 3 (WI-3.2 rulings) |
 | `globals.css:1197` | `.toolbar-button.small` | `font-size` | `12px` | a | `--font-size-ui-sm` | 2 (WI-2.3) |
 | `globals.css:1215` | `.settings-integrations h3` | `font-size` | `18px` | b | `--font-size-title` (−2px) as page title; confirm per page (WI-3.2) | 3 (WI-3.2 item 12) |
 | `globals.css:1221` | `.settings-integrations h4` | `font-size` | `15px` | b | `--font-size-ui` (−2px) as DR22 card heading (judgment) | 3 (WI-3.2 item 12) |
@@ -185,7 +187,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:1339` | `.toggle-slider` | `background-color` | `#ccc` | b | text-based `color-mix()` off-track (item 6) | 4 (WI-4.4) |
 | `globals.css:1340` | `.toggle-slider` | `transition` | `0.2s` | b | remove: `transition: 0.2s` animates every property, including the track colour (DR12) | 3 (WI-3.2 item 11) |
 | `globals.css:1341` | `.toggle-slider` | `border-radius` | `24px` | b | `999px` (DR23 pill); no rendered change, the track is 24px tall | 3 (WI-3.1, DR23) |
-| `globals.css:1351` | `.toggle-slider:before` | `background-color` | `white` | c | knob `white` in both themes; see :751. WI-4.4 retunes the track but names no knob colour (no Q6–Q10 match) | open |
+| `globals.css:1351` | `.toggle-slider:before` | `background-color` | `white` | c (ruled R2) | [R2](#rulings-user-2026-10-03): knob → `--color-on-accent`, as :751. WI-4.4 retunes the track but names no knob colour | 2 (WI-2.2 new token) |
 | `globals.css:1352` | `.toggle-slider:before` | `transition` | `0.2s` | b | `transform var(--motion-duration-fast) var(--motion-ease-out)`: 0.2s → 150ms, `ease` → ease-out curve, `all` → `transform` | 3 (WI-3.2 item 11) |
 | `globals.css:1353` | `.toggle-slider:before` | `border-radius` | `50%` | allowed | rule 31: `50%` circle | — |
 | `globals.css:1370` | `.mcp-status-badge` | `border-radius` | `12px` | b | removed with the fill (DR23, item 6) | 4 (WI-4.4) |
@@ -205,7 +207,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:1485` | `.mcp-installations-description` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
 | `globals.css:1502` | `.mcp-client-row` | `border-radius` | `8px` | b | `--radius-popover` (+2px), grouped section (judgment) | 3 (WI-3.1, DR23) |
 | `globals.css:1512` | `.mcp-client-status` | `font-size` | `16px` | b | `--font-size-ui` (−3px), DR22 | 3 (WI-3.2 item 12) |
-| `globals.css:1517` | `.mcp-client-status.installed` | `color` | `#16a34a` | c | green "installed" status: Q6's "replace, do not declare" names only `.about-status-*`; WI-4.4 says no green token. Needs a ruling extending Q6 (candidate `--color-text`) | open |
+| `globals.css:1517` | `.mcp-client-status.installed` | `color` | `#16a34a` | b | [R1](#rulings-user-2026-10-03): `--color-text`, extending Q6 by analogy (green → text colour) | 3 (WI-3.2 rulings) |
 | `globals.css:1527` | `.mcp-client-details strong` | `font-size` | `14px` | a | `--font-size-ui-lg` | 2 (WI-2.3) |
 | `globals.css:1535` | `.mcp-client-path` | `font-size` | `12px` | a | `--font-size-ui-sm` | 2 (WI-2.3) |
 | `globals.css:1551` | `.dev-toolbar` | `z-index` | `100` | allowed | rule 31 z-index table, "Dev toolbar" | — |
@@ -242,9 +244,9 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:1858` | `.about-app-name` | `font-size` | `18px` | b | `--font-size-title` (−2px), DR22 About app name | 3 (WI-3.2 item 12) |
 | `globals.css:1864` | `.about-version` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
 | `globals.css:1874` | `.about-status-text` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
-| `globals.css:1879` | `.about-status-ok` | `color` | `var(--color-success, #34c759)` | c | Q6 answered: `--color-text` (renders `#1a1a1a` instead of `#34c759`) | WI-2.2 per Q6, but not value-preserving |
-| `globals.css:1883` | `.about-status-error` | `color` | `var(--color-error, #ff3b30)` | c | Q6 answered: `--color-danger` (renders `#dc2626` instead of `#ff3b30`) | WI-2.2 per Q6, but not value-preserving |
-| `globals.css:1887` | `.about-status-disabled` | `color` | `var(--color-text-tertiary, #999)` | c | Q6 answered: delete the colour line (inherits `.about-status-text`'s `--color-text-secondary` instead of `#999`) | WI-2.2 per Q6, but not value-preserving |
+| `globals.css:1879` | `.about-status-ok` | `color` | `var(--color-success, #34c759)` | b | Q6: `--color-text` (renders `#1a1a1a` instead of `#34c759`); [R10](#rulings-user-2026-10-03) moved it out of Stage 2 | 3 (WI-3.2 rulings) |
+| `globals.css:1883` | `.about-status-error` | `color` | `var(--color-error, #ff3b30)` | b | Q6: `--color-danger` (renders `#dc2626` instead of `#ff3b30`); [R10](#rulings-user-2026-10-03) moved it out of Stage 2 | 3 (WI-3.2 rulings) |
+| `globals.css:1887` | `.about-status-disabled` | `color` | `var(--color-text-tertiary, #999)` | b | Q6: delete the colour line (inherits `.about-status-text`'s `--color-text-secondary` instead of `#999`); [R10](#rulings-user-2026-10-03) moved it out of Stage 2 | 3 (WI-3.2 rulings) |
 | `globals.css:1898` | `.about-release-notes` | `font-size` | `12px` | a | `--font-size-ui-sm` | 2 (WI-2.3) |
 | `globals.css:1905` | `.about-release-notes` | `border-radius` | `6px` | a | `--radius-control` (notes box; judgment) | 2 (WI-2.3) |
 | `globals.css:1912` | `.about-release-notes h1, .about-release-notes h2, .about-release-notes h3` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
@@ -264,12 +266,12 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `MilkdownEditor.css:72` | `.milkdown-editor .ProseMirror h4` | `font-size` | `1.1em` | allowed | A5: `em` inside editor content | — |
 | `MilkdownEditor.css:79` | `.milkdown-editor .ProseMirror h5` | `font-size` | `1em` | allowed | A5: `em` inside editor content | — |
 | `MilkdownEditor.css:86` | `.milkdown-editor .ProseMirror h6` | `font-size` | `0.9em` | allowed | A5: `em` inside editor content | — |
-| `MilkdownEditor.css:99` | `.milkdown-editor .ProseMirror code` | `border-radius` | `4px` | c | Q9: DR23 gives editor-content shapes no role; candidate `--radius-inner` (same value) | open (Q9 follow-up) |
-| `MilkdownEditor.css:105` | `.milkdown-editor .ProseMirror pre` | `border-radius` | `8px` | c | Q9: DR23 gives editor-content shapes no role; candidate `--radius-popover` (+2px) or a content exception | open (Q9 follow-up) |
-| `MilkdownEditor.css:141` | `.milkdown-editor .ProseMirror table` | `font-size` | `14px` | c | content `px` size: A5 allows only `em`/`%` in content and DR22 covers chrome only. `0.875em` changes with the editor size; `--font-size-ui-lg` is a chrome token (no Q6–Q10 match) | open |
+| `MilkdownEditor.css:99` | `.milkdown-editor .ProseMirror code` | `border-radius` | `4px` | a | [R9](#rulings-user-2026-10-03): `--radius-inner` (same value), the Q9 follow-up | 2 (WI-2.3) |
+| `MilkdownEditor.css:105` | `.milkdown-editor .ProseMirror pre` | `border-radius` | `8px` | c (exception, R9) | [R9](#rulings-user-2026-10-03): content exception (DR23 gives editor-content shapes no role), the Q9 follow-up | WI-2.1 exception |
+| `MilkdownEditor.css:141` | `.milkdown-editor .ProseMirror table` | `font-size` | `14px` | b | [R7](#rulings-user-2026-10-03): `0.875em`. Equal to 14px only at the default 16px editor size; it now scales with the editor font-size preference (`editorPrefApply.ts:122`) | 3 (WI-3.2 rulings) |
 | `MilkdownEditor.css:214` | `.milkdown-editor .ProseMirror .column-resize-handle` | `z-index` | `1` | c | Q10 answered: local stacking exception for `.column-resize-handle` | WI-2.1 exception |
-| `MilkdownEditor.css:266` | `.milkdown-editor .ProseMirror mark` | `background` | `rgba(255, 85, 130, 0.65)` | c | highlight fill: no token; one use, so A10 keeps it open (no Q6–Q10 match) | open |
-| `MilkdownEditor.css:268` | `.milkdown-editor .ProseMirror mark` | `border-radius` | `4px` | c | Q9: as :99 | open (Q9 follow-up) |
+| `MilkdownEditor.css:266` | `.milkdown-editor .ProseMirror mark` | `background` | `rgba(255, 85, 130, 0.65)` | c (exception, R8) | [R8](#rulings-user-2026-10-03): highlight-fill exception | WI-2.1 exception |
+| `MilkdownEditor.css:268` | `.milkdown-editor .ProseMirror mark` | `border-radius` | `4px` | a | [R9](#rulings-user-2026-10-03): as :99, `--radius-inner` | 2 (WI-2.3) |
 
 ### `src/components/BottomTabs/BottomTabs.css`
 
@@ -313,7 +315,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `imagePastePlugin.css:10` | `.image-paste-placeholder` | `border-radius` | `6px` | a | `--radius-control` (placeholder box; judgment) | 2 (WI-2.3) |
 | `imagePastePlugin.css:12` | `.image-paste-placeholder` | `font-size` | `13px` | a | `--font-size-ui` | 2 (WI-2.3) |
 | `imagePastePlugin.css:23` | `.image-paste-placeholder::before` | `border-radius` | `50%` | allowed | rule 31: `50%` circle | — |
-| `imagePastePlugin.css:24` | `.image-paste-placeholder::before` | `animation` | `spin 0.8s linear infinite` | c | as globals :815 (spinner, DR13) | open |
+| `imagePastePlugin.css:24` | `.image-paste-placeholder::before` | `animation` | `spin 0.8s linear infinite` | c (exception, R4) | [R4](#rulings-user-2026-10-03): as globals :815 (spinner, DR13) | WI-2.1 exception |
 
 ### `src/plugins/codemirror/wysiwygDecorationsPlugin.css`
 
@@ -361,22 +363,24 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 
 | File | a | b | c | allowed | Rows | of which dead or orphan |
 |---|---|---|---|---|---|---|
-| `globals.css` | 76 | 69 | 20 | 12 | 177 | 37 |
-| `MilkdownEditor.css` | 0 | 0 | 6 | 6 | 12 | 0 |
+| `globals.css` | 76 | 76 | 13 | 12 | 177 | 37 |
+| `MilkdownEditor.css` | 2 | 1 | 3 | 6 | 12 | 0 |
 | `BottomTabs.css` | 5 | 6 | 0 | 1 | 12 | 0 |
 | `ImageContextMenu.css` | 3 | 2 | 0 | 1 | 6 | 0 |
 | `inlineEditPlugin.css` | 0 | 1 | 0 | 1 | 2 | 0 |
 | `imagePastePlugin.css` | 2 | 0 | 1 | 1 | 4 | 0 |
 | `wysiwygDecorationsPlugin.css` | 1 | 1 | 0 | 0 | 2 | 0 |
-| **Total** | **87** | **79** | **27** | **22** | **215** | **37** |
-| **Live selectors only** | **68** | **63** | **27** | **20** | **178** | — |
+| **Total** | **89** | **87** | **17** | **22** | **215** | **37** |
+| **Live selectors only** | **70** | **71** | **17** | **20** | **178** | — |
+
+*Recounted 2026-10-03 after the [rulings](#rulings-user-2026-10-03).* Ten class-(c) rows changed class, all of them live: eight became (b) (R1, R3 ×2, R5, R7, R10 ×3) and two became (a) (R9 `code` and `mark`). The other seven rulings' rows stay (c), now as ruled new tokens (R2 ×3, R6) or exceptions (R4 ×2, R8, R9 `pre`). Before the rulings the totals were 87 / 79 / 27 / 22, and the live counts 68 / 63 / 27 / 20. No row was added or removed, so the row totals, the category table and the reconciliation below are unchanged.
 
 The 37 dead or orphan rows are all in `globals.css`:
 - 17 A8-dead rows: 11 `TabBar/` `.tab*` rows (1644–1727) and 6 `Sidebar.tsx` / `FileItem.tsx` rows.
 - 4 recent-dropdown rows that WI-1.2 deletes.
 - 16 orphan rows.
 
-Stage 2's real workload is the live count: **68 value-preserving swaps, 63 snaps, and 27 rulings or exceptions**.
+~~Stage 2's real workload is the live count: **68 value-preserving swaps, 63 snaps, and 27 rulings or exceptions**.~~ **Recounted 2026-10-03:** the live count is **70 class (a) swaps, 71 class (b) snaps deferred to Stages 3–4, and 17 class (c) rows**. The 17 are 4 new-token sites that Stage 2 swaps value-preservingly (R2, R6) and 13 WI-2.1 exceptions (8 dev toolbar, Q10, R4 ×2, R8, R9 `pre`). Stage 2 therefore makes 74 value-preserving swaps, and none of its work changes a computed style.
 
 ### By file and category (in scope)
 
@@ -394,27 +398,52 @@ Stage 2's real workload is the live count: **68 value-preserving swaps, 63 snaps
 
 | Stage | Rows |
 |---|---|
-| 2 (WI-2.3) | 68 |
+| 2 (WI-2.3) | 70 |
 | 3 (WI-3.1, DR23) | 25 |
 | — | 20 |
 | 3 (WI-3.2 item 12) | 16 |
 | orphan, no consumer | 16 |
-| open | 12 |
+| WI-2.1 exception | 13 |
 | skip, dead (A8): `TabBar/` | 11 |
-| WI-2.1 exception | 9 |
+| 3 (WI-3.2 rulings) | 8 |
 | 3 (WI-3.2 item 11) | 6 |
 | 4 (WI-4.2) | 6 |
 | skip, dead (A8): `FileItem.tsx` | 5 |
+| 2 (WI-2.2 new token) | 4 |
 | 4 (WI-4.4) | 4 |
 | WI-1.2 deletes | 3 |
-| WI-2.2 per Q6, but not value-preserving | 3 |
-| open (Q9 follow-up) | 3 |
 | 3 (WI-3.2 item 1) | 2 |
 | 4 (WI-4.3) | 2 |
 | skip, dead (A8): `Sidebar/Sidebar.tsx` | 1 |
 | WI-1.2 deletes (rule and table row) | 1 |
 | 3 (WI-3.2) | 1 |
 | 3 (WI-3.2 hover) | 1 |
+
+The 2026-10-03 rulings emptied three stage values — `open` (was 12), `open (Q9 follow-up)` (was 3) and `WI-2.2 per Q6, but not value-preserving` (was 3) — and added `3 (WI-3.2 rulings)` and `2 (WI-2.2 new token)`. Before them, `2 (WI-2.3)` was 68 and `WI-2.1 exception` was 9.
+
+## Rulings (user, 2026-10-03)
+
+The user ruled on every class-(c) row that was still open, plus the Q9 follow-up and the Q6 staging question ([Plan discrepancies](#plan-discrepancies-found-while-inventorying), item 3). Each ruling's class follows the [class key](#class-key): a new token stays (c), marked ruled; a `color-mix()` or `em` target that changes the rendered value is (b); an exception is (c) with stage `WI-2.1 exception`, as the DR21 and Q10 rows already are. A ruling that changes pixels goes to Stage 3, never to Stage 2, so Stage 2 stays a computed-style no-op with no exceptions to that gate.
+
+| ID | Rows | Ruling | Resulting class | Target token / exception | Stage / WI |
+|---|---|---|---|---|---|
+| R1 | `globals.css:1517` | `.mcp-client-status.installed` `#16a34a` → `--color-text`, extending Q6 by analogy | b | `--color-text`: green becomes the text colour in both themes | 3 (WI-3.2 rulings) |
+| R2 | `globals.css:751`, `:1187`, `:1351` | White on accent → a new token `--color-on-accent`. A10 is met (3 unrelated uses). | c (ruled) | New `--color-on-accent`, declared with today's `#fff` | 2 (WI-2.2 new token). Its rows in rule 31 and DESIGN.md land in the same commit. |
+| R3 | `globals.css:756`, `:1192` | Primary-button hover `#1d4ed8` → `color-mix()` over `--color-accent` | b | `color-mix()` over `--color-accent`. No mix reproduces `#1d4ed8` exactly, and the dark theme's hover stops being the light-theme blue. | 3 (WI-3.2 rulings) |
+| R4 | `globals.css:815`, `imagePastePlugin.css:24` | Spinners `spin 0.8s linear infinite` → a WI-2.1 exception | c (exception) | WI-2.1 exception; DR13 keeps spinners rotating | WI-2.1 exception |
+| R5 | `globals.css:349` | CodeMirror selection `rgba(96, 165, 250, 0.25)` → `color-mix()` derived from `--color-accent` | b | `color-mix()` of `--color-accent` at 25%. Dark is unchanged, because `#60a5fa` is the dark accent; light becomes `#2563eb` at 25%. | 3 (WI-3.2 rulings) |
+| R6 | `globals.css:466` | Dialog scrim `rgba(15, 23, 42, 0.35)` → a new token `--color-scrim` | c (ruled) | New `--color-scrim`, declared with today's value. One use: a user override of A10. | 2 (WI-2.2 new token). Its rows in rule 31 and DESIGN.md land in the same commit. |
+| R7 | `MilkdownEditor.css:141` | Milkdown table `font-size: 14px` → `0.875em` | b | `0.875em`. It equals 14px only at the default 16px editor size and now scales with the editor font-size preference (`editorPrefApply.ts:122`). | 3 (WI-3.2 rulings) |
+| R8 | `MilkdownEditor.css:266` | Milkdown highlight fill `rgba(255, 85, 130, 0.65)` → an exception | c (exception) | WI-2.1 exception | WI-2.1 exception |
+| R9 | `MilkdownEditor.css:99`, `:268`; `:105` | Q9 follow-up on content radii: `code` and `mark` → `--radius-inner`; `pre` → a content exception | a (`code`, `mark`); c (exception) (`pre`) | `--radius-inner` at the same 4px; `pre` 8px stays as a content exception | 2 (WI-2.3) for `code` and `mark`; WI-2.1 exception for `pre` |
+| R10 | `globals.css:1879`, `:1883`, `:1887` | Q6's three `.about-status-*` replacements move from WI-2.2 to Stage 3 | b | Q6's targets are unchanged: `--color-text`, `--color-danger`, and drop the colour line | 3 (WI-3.2 rulings) |
+
+**Obligation carried by R2 and R6.** `--color-on-accent` and `--color-scrim` are added to `.claude/rules/31-design-tokens.md` and to DESIGN.md § Tokens **in the same commit that introduces them** (WI-2.2), not in a later docs pass. [Stage 2](./stage-2-tokenize.md) WI-2.2 carries this as a task.
+
+**Where the rulings sit against the plan's own rules.** These are recorded, not resolved:
+- **R6 vs A10.** A10 (and WI-2.2) give a semantic token only to 3 or more unrelated uses; the scrim has one. R6 is the user's explicit override for this one token, and A10 is otherwise unchanged.
+- **R7 and "zero visual change".** At the default 16px editor size, `0.875em` computes to 14px, so the Stage 2 computed-style diff would stay empty. A user with a different editor font size would still see the table text change, which breaks Deliverable A's "zero visual change". R7 is therefore staged in Stage 3 as class (b), not in Stage 2.
+- **R2 and contrast.** `--color-on-accent` keeps today's `#fff` in both themes, so Stage 2 is unchanged. White on the dark accent `#60a5fa` is about 2.5:1, below A9's 4.5:1 for labels. That is today's rendering, not a regression. The Stage 3 contrast table (primary button labels) is where a per-theme value would be decided.
 
 ## Class (c) grouped by open question
 
@@ -424,9 +453,9 @@ Stage 2's real workload is the live count: **68 value-preserving swaps, 63 snaps
 - `globals.css:1883` `.about-status-error` → `--color-danger`
 - `globals.css:1887` `.about-status-disabled` → drop the colour line
 
-The answer is settled, but it changes rendered values. See [Plan discrepancies](#plan-discrepancies-found-while-inventorying), item 3.
+The answer is settled, but it changes rendered values. See [Plan discrepancies](#plan-discrepancies-found-while-inventorying), item 3. **2026-10-03 ruling R10:** these three rows move to Stage 3 (WI-3.2) and are now class (b).
 
-- `globals.css:1517` `.mcp-client-status.installed` `#16a34a`: a green status that Q6 does not name. WI-4.4 says there is no green token. **Needs a ruling** that extends Q6 by analogy (candidate `--color-text`).
+- `globals.css:1517` `.mcp-client-status.installed` `#16a34a`: a green status that Q6 does not name. WI-4.4 says there is no green token. ~~**Needs a ruling** that extends Q6 by analogy (candidate `--color-text`).~~ **2026-10-03 ruling R1:** `--color-text`, extending Q6 by analogy; class (b) in Stage 3 (WI-3.2).
 
 ### Q7 / DR21 — warning colour (answered: no warning token; dev toolbar is an exception)
 
@@ -447,26 +476,28 @@ Glyph sizes are class (b) as well, going to WI-4.2 icons.
 
 ### Q9 / DR23 — radii (answered for chrome)
 
-These editor-content shapes have no DR23 role. They form a Q9 follow-up:
-- `MilkdownEditor.css:99` (`code`, 4px, candidate `--radius-inner`, same value)
-- `MilkdownEditor.css:105` (`pre`, 8px, candidate `--radius-popover` +2px, or a content exception)
-- `MilkdownEditor.css:268` (`mark`, 4px)
+These editor-content shapes have no DR23 role. They form a Q9 follow-up, **answered by the 2026-10-03 ruling [R9](#rulings-user-2026-10-03)**:
+- `MilkdownEditor.css:99` (`code`, 4px, ~~candidate `--radius-inner`, same value~~) → `--radius-inner`, class (a), Stage 2 (WI-2.3)
+- `MilkdownEditor.css:105` (`pre`, 8px, ~~candidate `--radius-popover` +2px, or a content exception~~) → a content exception, WI-2.1
+- `MilkdownEditor.css:268` (`mark`, 4px) → `--radius-inner`, class (a), Stage 2 (WI-2.3)
 
 ### Q10 — local z-index (answered: local exception)
 
 - `MilkdownEditor.css:214` `.column-resize-handle` `z-index: 1` → a WI-2.1 exception.
 
-### Not covered by Q6–Q10 (new questions needed)
+### Not covered by Q6–Q10 (~~new questions needed~~ ruled 2026-10-03)
 
-| Rows | Literal | Why it is class (c) | Candidate ruling |
-|---|---|---|---|
-| `globals.css:751`, `:1187`, `:1351` | `#fff` / `white` on accent | No token equals white in both themes | `--color-panel` (rule 34 menu-highlight pattern; changes dark only) or a new `--color-on-accent`. A10 is met (3 unrelated uses). |
-| `globals.css:756`, `:1192` | `#1d4ed8` primary hover | No darker-accent token | `color-mix()` over `--color-accent`, or drop the darken (two uses, so A10 keeps it open) |
-| `globals.css:815`, `imagePastePlugin.css:24` | `spin 0.8s linear infinite` | A5 wants animation duration via `var()`, but DR13 keeps spinners rotating, so the zeroed `--motion-duration-fast` cannot carry it | WI-2.1 exception, or a non-zeroed `--motion-duration-spin` |
-| `globals.css:349` | `rgba(96, 165, 250, 0.25)` CodeMirror selection | One use, no token | Exception, or derive from `--color-accent` via `color-mix()` |
-| `globals.css:466` | `rgba(15, 23, 42, 0.35)` dialog scrim | One use, no token | Exception, or a `--color-scrim` token |
-| `MilkdownEditor.css:141` | table `font-size: 14px` | A5 allows only `em`/`%` in content, and DR22 covers chrome only | `0.875em` (scales with editor size), or an exception |
-| `MilkdownEditor.css:266` | `rgba(255, 85, 130, 0.65)` highlight fill | One use, no token | Exception, or a `--color-highlight` token |
+The candidate column is kept as the record of what was weighed. The ruling column is what the user chose; see [Rulings](#rulings-user-2026-10-03).
+
+| Rows | Literal | Why it is class (c) | Candidate ruling | Ruling (2026-10-03) |
+|---|---|---|---|---|
+| `globals.css:751`, `:1187`, `:1351` | `#fff` / `white` on accent | No token equals white in both themes | `--color-panel` (rule 34 menu-highlight pattern; changes dark only) or a new `--color-on-accent`. A10 is met (3 unrelated uses). | R2: new `--color-on-accent`, WI-2.2 |
+| `globals.css:756`, `:1192` | `#1d4ed8` primary hover | No darker-accent token | `color-mix()` over `--color-accent`, or drop the darken (two uses, so A10 keeps it open) | R3: `color-mix()` over `--color-accent`, class (b), WI-3.2 |
+| `globals.css:815`, `imagePastePlugin.css:24` | `spin 0.8s linear infinite` | A5 wants animation duration via `var()`, but DR13 keeps spinners rotating, so the zeroed `--motion-duration-fast` cannot carry it | WI-2.1 exception, or a non-zeroed `--motion-duration-spin` | R4: WI-2.1 exception |
+| `globals.css:349` | `rgba(96, 165, 250, 0.25)` CodeMirror selection | One use, no token | Exception, or derive from `--color-accent` via `color-mix()` | R5: `color-mix()` from `--color-accent`, class (b), WI-3.2 |
+| `globals.css:466` | `rgba(15, 23, 42, 0.35)` dialog scrim | One use, no token | Exception, or a `--color-scrim` token | R6: new `--color-scrim`, WI-2.2 (overrides A10) |
+| `MilkdownEditor.css:141` | table `font-size: 14px` | A5 allows only `em`/`%` in content, and DR22 covers chrome only | `0.875em` (scales with editor size), or an exception | R7: `0.875em`, class (b), WI-3.2 |
+| `MilkdownEditor.css:266` | `rgba(255, 85, 130, 0.65)` highlight fill | One use, no token | Exception, or a `--color-highlight` token | R8: WI-2.1 exception |
 
 ## Reconciliation against the baseline table
 
@@ -515,7 +546,7 @@ The baseline never measured radius/transition/z-index/box-shadow outside `global
 
 ## Plan discrepancies found while inventorying
 
-These are inputs for the lead. This appendix does not resolve them.
+These are inputs for the lead. This appendix does not resolve them; where a later ruling did, the item says so.
 
 1. **`.tab__close` is dead, not a live keep.** Stage 3 lists the `opacity` transition at old `:1667` (now `globals.css:1704`) as a live hover-reveal to keep under DR12. Its only consumer is `TabBar/`, which is A8 dead code. The live hover-reveal is `BottomTabs.css:105` `.bottom-tab__close`.
 2. **`.settings-search` has no consumer.** DR23 and Stage 3 name it as a radius site, but no `.tsx` references it at a5767d5. Nor does any other selector marked `orphan, no consumer`:
@@ -527,12 +558,14 @@ These are inputs for the lead. This appendix does not resolve them.
    - `.settings-form-row`
    - `.settings-form-hint`
    - `.toc-sidebar__header`
-3. **Q6 is not value-preserving, but targets WI-2.2.** Stage 2's gate is an empty computed-style diff. All three Q6 replacements change the rendered colour: `#34c759` → `#1a1a1a`, `#ff3b30` → `#dc2626`, `#999` → inherited secondary. Either Q6 moves to Stage 3 / WI-4.x, or the Stage 2 diff gets a declared Q6 carve-out.
-4. **Spinners fall between A5 and DR13** (see the table above). No allowlist or exception covers `spin 0.8s linear infinite` today.
+3. **Q6 is not value-preserving, but targets WI-2.2.** Stage 2's gate is an empty computed-style diff. All three Q6 replacements change the rendered colour: `#34c759` → `#1a1a1a`, `#ff3b30` → `#dc2626`, `#999` → inherited secondary. Either Q6 moves to Stage 3 / WI-4.x, or the Stage 2 diff gets a declared Q6 carve-out. **Resolved by the 2026-10-03 ruling [R10](#rulings-user-2026-10-03):** Q6 moves to Stage 3 (WI-3.2), and the Stage 2 diff gets no carve-out.
+4. **Spinners fall between A5 and DR13** (see the table above). No allowlist or exception covers `spin 0.8s linear infinite` today. **Resolved by the 2026-10-03 ruling [R4](#rulings-user-2026-10-03):** a WI-2.1 exception.
 5. **Editor-content literals have no DR role.** These are not covered by DR22 or DR23, which are both chrome-scoped:
    - `MilkdownEditor.css` table `14px`
    - the `code`/`pre`/`mark` radii
    - the `mark` fill
+
+   **Resolved by the 2026-10-03 rulings [R7, R8 and R9](#rulings-user-2026-10-03):** the table size becomes `0.875em` (Stage 3), the `mark` fill and the `pre` radius become WI-2.1 exceptions, and `code`/`mark` radii take `--radius-inner`.
 6. **14px role mismatches.** The live class (a) 14px sites map to `--font-size-ui-lg` by value. DESIGN.md § Tokens gives `--font-size-ui-lg` only two roles, dialog titles and the settings header. These rows are body or label text that DESIGN.md's roles would put on `--font-size-ui` (13px):
    - `.dialog-message` (`:490`)
    - the table and link insert inputs (`:695`, `:738`)

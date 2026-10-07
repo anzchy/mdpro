@@ -14,7 +14,7 @@ Each mitigation names the decision or work item that owns it (E24). A mitigation
 | `color-mix()` is unsupported at the WebKit floor | Floor raised to macOS 13.1 in WI-3.4 (E1) |
 | A 70% focus ring misses 3:1 on soft or tinted fills | Contrast table in Stage 3; flag, don't silently retune |
 | Snapping sub-12px text overflows tight chrome (tab badges, TOC) | Screenshot matrix at the default window, at 400×640 (DR16) and with the 2× scale (DR17) |
-| Undeclared fallback tokens hide intended colors | Q6 resolved in Stage 2 |
+| Undeclared fallback tokens hide intended colors | ~~Q6 resolved in Stage 2~~ Q6 resolved in Stage 3, WI-3.2 (2026-10-03 ruling R10: the replacements change rendered colours, so they cannot pass Stage 2's empty computed-style diff) |
 | First run cannot be told apart from an upgrade | File presence decides (observed). Serde defaults cover both the field and the `editor` block; Rust tests cover both plus first run (WI-5.1) |
 | A zero-change stage drifts by 1px or one color without anyone noticing | Computed-style JSON diff instead of visual comparison (E5) |
 | Replacing native checkboxes breaks a setting's persistence | Table-driven per-site regression test (WI-4.3) |

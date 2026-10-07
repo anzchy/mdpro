@@ -9,6 +9,12 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 ### WI-2.1 — Tokenization guard test (RED first) — M
 - Create `tests/css-tokenization.test.ts` with one `it` per in-scope CSS file. Use the source-inspection style of `tests/design-tokens-accent-danger.test.ts`, including its `@module` / `Purpose:` header.
 - The test enforces the A5 definition: the property families in [`baseline-protocol.md`](baseline-protocol.md), the rule 31 § Acceptable hardcoded values allowlist, and the rule 31 § Z-index hierarchy table plus any Q10 exception, and the dev-only toolbar rules (`.dev-toolbar*`, `globals.css:1509-1547`) as an exception with file:line (DR21). `999px` pill radii join `50%` on the allowlist, and WI-2.1 edits rule 31 § Acceptable hardcoded values in the same commit (DR23).
+- **Exception list (2026-10-03 rulings).** The test lists each exception with file:line, a reason and its source. These join the DR21 dev-toolbar rules and the Q10 `.column-resize-handle` `z-index: 1` (`MilkdownEditor.css:214`) above. Line numbers are at a5767d5, per [Appendix A](appendix-a-literals.md#rulings-user-2026-10-03):
+  - **R4, spinners:** `spin 0.8s linear infinite` at `globals.css:815` (`.spinner`) and `imagePastePlugin.css:24` (`.image-paste-placeholder::before`). DR13 keeps spinners rotating, so the zeroed motion token cannot carry them.
+  - **R8, highlight fill:** the `mark` background at `MilkdownEditor.css:266`.
+  - **R9, content radius:** the `pre` `border-radius` at `MilkdownEditor.css:105`, an editor-content shape DR23 gives no role.
+
+  That makes 13 exception rows in all. The list has no other entries. In particular, Stage 2 has **no** computed-style carve-out: R10 moved Q6 to Stage 3 instead.
 - **Deferred list (A12):**
   - Class (b) literals are listed explicitly as `{ file, selector, property, value, stage: 3 | 4, item: N }`. A listed literal passes; anything else fails.
   - A separate `it` asserts the per-stage counts.
@@ -32,6 +38,13 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - the icon size tokens where current sizes match
 - Theme-independent tokens go in `globals.css :root`. Theme-specific tokens go in both theme files together (rule 31 authoring rule 1).
 - Class (c) resolutions come from the answers to Q6–Q10. A10 applies: 3 or more unrelated uses gets a semantic token; fewer uses stays an open question, with no invented token.
+  - ~~Q6's three `.about-status-*` replacements land here.~~ **2026-10-03 ruling R10:** they change rendered colours, so they moved to Stage 3 ([WI-3.2](stage-3-retune.md), rulings bullet). WI-2.2 does not touch `.about-status-*`; WI-2.1's deferred list carries the three rows as `stage: 3`.
+  - The R9 Q9 follow-up assigns editor-content `code` and `mark` (`MilkdownEditor.css:99`, `:268`) the `--radius-inner` role. Their value already matches, so they are class (a) and migrate in WI-2.3.
+- **New tokens (2026-10-03 rulings R2, R6).** Declare each token with the value its sites render today, and migrate its sites in the same commit, so the computed-style diff stays empty:
+  - `--color-on-accent`: the label and knob on accent at `globals.css:751`, `:1187` and `:1351` (R2; A10 is met with 3 unrelated uses).
+  - `--color-scrim`: the dialog backdrop at `globals.css:466` (R6). It has one use, so it is the user's explicit override of A10, not a precedent.
+  - Both values are the same in both themes today, so per rule 31 authoring rule 1 they are theme-independent. Any per-theme retune, e.g. from the Stage 3 contrast table for primary button labels, is Stage 3 work.
+  - **Docs in the same commit (required):** the commit that introduces `--color-on-accent` and `--color-scrim` also adds both to `.claude/rules/31-design-tokens.md` and to DESIGN.md § Tokens. A follow-up docs pass is not enough: a token that ships without its rule 31 row is a token the rules do not know about.
 - **Rule edit (DR14), in the first token commit:** rule 31's "Token rationale and the decisions log live in the design doc that root `DESIGN.md` marks as current" gains an interim clause. While the UI redesign is in progress, its new and redefined tokens are logged in `docs/design/mdpro-ui-new/DESIGN.md` § Tokens. Any other token still goes to the current doc. WI-5.5 removes the clause.
 - Add or confirm each new token's row in DESIGN.md § Tokens (rule 31 authoring rule 4, with the DR14 clause) without mirroring values (rule 31's "read those files" preamble).
 - Don't copy any value into this plan or DESIGN.md; cite `proposal-ab.html:21-61`.
