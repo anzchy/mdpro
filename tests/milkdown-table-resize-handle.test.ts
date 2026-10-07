@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module milkdown-table-resize-handle.test
  * Purpose: Verify the WYSIWYG column-resize handle CSS (Phase 2 WI-2.1).

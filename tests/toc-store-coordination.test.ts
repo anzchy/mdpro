@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3.5.3 — `src/stores/tocStore.ts#setEntries`: document scoping plus the end of the
  * unconditional collapse/active reset.

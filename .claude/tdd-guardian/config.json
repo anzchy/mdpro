@@ -11,12 +11,21 @@
   "lanes": [
     {
       "name": "unit",
-      "description": "Vitest + jsdom frontend tests (tests/**/*.test.{ts,tsx}). No external services.",
+      "description": "Vitest frontend tests (tests/**/*.test.{ts,tsx} minus *.slow.test.*; jsdom by default, node per file per ADR-0049). No external services.",
       "command": "scripts/heavy-lock.sh pnpm exec vitest run --coverage",
       "gateOn": ["taskCompleted", "commit"],
       "coverage": "include",
       "coverageSummaryPath": "coverage/coverage-summary.json",
       "probeCommand": "pnpm exec vitest list",
+      "timeoutMs": 600000
+    },
+    {
+      "name": "slow",
+      "description": "Vitest slow tier (tests/**/*.slow.test.{ts,tsx}): exhaustive, property and cost-enumeration sweeps excluded from the unit lane (ADR-0050). Coverage stays with the unit lane.",
+      "command": "scripts/heavy-lock.sh pnpm exec vitest run --config vitest.slow.config.ts",
+      "gateOn": ["push", "manual"],
+      "coverage": "none",
+      "probeCommand": "pnpm exec vitest list --config vitest.slow.config.ts",
       "timeoutMs": 600000
     },
     {

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-5 (D16) — `quitGuardService.reply`, the typed wrapper over the
  * `quit_guard_reply` IPC command.

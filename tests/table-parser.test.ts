@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-parser.test
  * Purpose: Verify the shared GFM table parser (Phase 2 WI-2.0).

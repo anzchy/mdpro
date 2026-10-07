@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Purpose: pin the shipped Content-Security-Policy so the Tauri IPC custom
  * protocol is not refused in a packaged build (defect D5, BLOCK).

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-4 (D24 follow-up) — the `applyWindowState` effect, extracted from App.tsx
  * into `src/services/windowStateApplier.ts`.

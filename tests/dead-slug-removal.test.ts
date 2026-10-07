@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3.5.8 — matrix case Z2: the fourth (dead) slug generator is gone from the tree,
  * and every comment that cited it is gone with it.

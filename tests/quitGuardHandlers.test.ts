@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0035 A5 / WI-8 — the pure halves of `src/utils/quitGuardHandlers.ts`:
  * payload parsing (`quitEventOf`), the round latch helpers (`sameRound`,

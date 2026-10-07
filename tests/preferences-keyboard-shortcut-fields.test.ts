@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-5 (ADR-0031 step 4), case WI5-D.
  *

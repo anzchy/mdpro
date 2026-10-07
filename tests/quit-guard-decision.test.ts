@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-5 (D16) — the ONE shared per-window unsaved assessment.
  *

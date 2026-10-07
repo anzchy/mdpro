@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3 — loggingService.getLoggingSettings() / hydrateSettings() must FAIL CLOSED.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-cell-at-offset.test
  * D12 WI-3 (ADR-0043 Decision 3): `cellAtOffset(src, span, offset)` reads
@@ -19,6 +20,9 @@
  * is `i + 1` whenever `offset > line(i).end`. The seeded corpus always uses
  * edge pipes, so the NEP / M1 fixtures are the only reach into that rule.
  *
+ * The CAO-6 whole-domain sweep runs in the slow tier,
+ * `table-cell-at-offset.slow.test.ts` (ADR-0050).
+ *
  * Matrix: `.claude/tdd-guardian/tests-20260930-D12.md` cases CAO-1..CAO-6.
  */
 
@@ -26,23 +30,23 @@ import { isDeepStrictEqual } from "node:util";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { linesFromText } from "../src/plugins/codemirror/textLineSource";
-import { findCell } from "../src/utils/tableParser/find";
-import { linesFromString, type TableLineSource } from "../src/utils/tableParser/lines";
 import {
   cellAtOffset,
   cellAtResolvedLine,
   locateTableAtOffset,
 } from "../src/utils/tableParser/locate";
-import { parseTableAtOffset } from "../src/utils/tableParser/parse";
+import { linesFromString, type TableLineSource } from "../src/utils/tableParser/lines";
 import type { TableCell, TableSpan } from "../src/utils/tableParser/types";
-import { makeCorpus, makeOverlapCorpus, OVERLAP_SEED, SEED } from "./support/tableCorpus";
 import {
-  D12_FIXTURES,
-  type D12FixtureName,
-  recordingSource,
-  textOf,
-} from "./support/tableSpanOracle";
+  ADAPTERS,
+  CAO2_FIXTURE_DOCS as FIXTURE_DOCS,
+  corpusDocs,
+  type Doc,
+  DOMAIN_TIMEOUT_MS,
+  legacyCell,
+  offsetsOf,
+} from "./support/tableOffsetDomain";
+import { D12_FIXTURES, recordingSource } from "./support/tableSpanOracle";
 
 // Passthrough counter over the REAL `parseRowCells` — observes, replaces nothing.
 const rowCells = vi.hoisted(() => ({ calls: 0, lastLength: -1 }));
@@ -59,67 +63,8 @@ vi.mock("../src/utils/tableParser/rowCells", async (importOriginal) => {
   };
 });
 
-const CORPUS_COUNT = 200;
-const DOMAIN_TIMEOUT_MS = 120_000;
-
-type AdapterName = "string" | "text";
-const ADAPTERS: ReadonlyArray<[AdapterName, (s: string) => TableLineSource]> = [
-  ["string", (s) => linesFromString(s)],
-  ["text", (s) => linesFromText(textOf(s))],
-];
-
-interface Doc {
-  id: string;
-  source: string;
-}
-
-function corpusDocs(): Doc[] {
-  return [
-    ...makeCorpus(SEED, CORPUS_COUNT).map((d) => ({ id: `corpus#${d.index}`, source: d.source })),
-    ...makeOverlapCorpus(OVERLAP_SEED, CORPUS_COUNT).map((d) => ({
-      id: `overlap#${d.index}`,
-      source: d.source,
-    })),
-  ];
-}
-
-const CAO2_FIXTURES: D12FixtureName[] = [
-  "CRLF",
-  "EOF",
-  "CRLF_LAST_CR",
-  "HEADER_ONLY",
-  "ESC",
-  "CJK",
-  "PAD_TRUNC",
-  "PIPELESS",
-  "PIPELESS_CHAIN",
-  "NEP",
-  "NEP_CRLF",
-  "NEP_EOF",
-  "NEP_TAIL",
-  "M1_NEP",
-  "M1_PIPED",
-  "M1_BLANK",
-  "AFTER_TAIL",
-  "INTRO_TABLE",
-];
-
-const FIXTURE_DOCS: Doc[] = CAO2_FIXTURES.map((id) => ({ id, source: D12_FIXTURES[id] }));
-
-function offsetsOf(source: string): number[] {
-  const out: number[] = [];
-  for (let o = -1; o <= source.length + 2; o += 1) out.push(o);
-  return out;
-}
-
 function cell(start: number, end: number, text: string, row: number, col: number): TableCell {
   return { start, end, text, row, col };
-}
-
-/** The legacy answer: the whole model, then `findCell`. */
-function legacyCell(src: TableLineSource, o: number): TableCell | null {
-  const m = parseTableAtOffset(src, o);
-  return m ? findCell(m, o) : null;
 }
 
 function containmentViolation(c: TableCell | null, span: TableSpan | null, o: number): string | null {
@@ -329,33 +274,8 @@ describe("CAO-5 cost is invariant under R; one row parsed", () => {
 });
 
 describe("CAO-6 wrapper identity: cellAtOffset = cellAtResolvedLine after lineIndexAt (K = 3)", () => {
-  it("agrees in value and in recorded calls over the CAO-1 domain, the CAO-2 fixtures and NaN", () => {
-    const mismatches: string[] = [];
-    for (const { id, source } of [...corpusDocs(), ...FIXTURE_DOCS]) {
-      for (const [name, make] of ADAPTERS) {
-        for (const o of [...offsetsOf(source), Number.NaN]) {
-          const span = locateTableAtOffset(make(source), o);
-          const srcH = recordingSource(make(source));
-          const srcW = recordingSource(make(source));
-          const h = cellAtResolvedLine(srcH, span, srcH.lineIndexAt(o), o);
-          const w = cellAtOffset(srcW, span, o);
-          const expected = legacyCell(make(source), o);
-          const where = `${id}/${name}@${o}`;
-          if (!isDeepStrictEqual(h, w)) mismatches.push(`${where}: helper ${JSON.stringify(h)} wrapper ${JSON.stringify(w)}`);
-          if (!isDeepStrictEqual(w, expected)) mismatches.push(`${where}: wrapper ${JSON.stringify(w)} legacy ${JSON.stringify(expected)}`);
-          if (srcH.lineIndexAtCalls !== srcW.lineIndexAtCalls) {
-            mismatches.push(`${where}: lineIndexAt helper ${srcH.lineIndexAtCalls} wrapper ${srcW.lineIndexAtCalls}`);
-          }
-          if (!isDeepStrictEqual(srcH.lineIndices, srcW.lineIndices)) {
-            mismatches.push(`${where}: line seq helper [${srcH.lineIndices}] wrapper [${srcW.lineIndices}]`);
-          }
-        }
-      }
-    }
-    expect(mismatches.slice(0, 20)).toEqual([]);
-    expect(mismatches.length).toBe(0);
-  }, DOMAIN_TIMEOUT_MS);
-
+  // The CAO-1-domain sweep of this law (~5.5 s under coverage) runs in the slow
+  // tier: table-cell-at-offset.slow.test.ts (ADR-0050).
   for (const [name, make] of ADAPTERS) {
     it(`a resolved index of -1 with a non-null span is null with 0 line calls (${name})`, () => {
       const doc = D12_FIXTURES.P2;

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D19-WI-3 — the store-applying half of a finished save (`applySaveResult` in
  * `src/services/saveService.ts`).

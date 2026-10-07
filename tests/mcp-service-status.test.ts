@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-5 (ADR-0039) — `mcpService.getStatus` returns the typed status Rust sends.
  *

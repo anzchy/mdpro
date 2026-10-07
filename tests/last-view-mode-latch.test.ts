@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-2 (ADR-0031 step 5a, Amendment A1) — the pure `lastViewMode` latch.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3 — the linear block scanner (`src/utils/tableParser/scan.ts#scanTables`)
  * and the `findAllTables` delegation in `src/utils/cursorSync/table.ts`.

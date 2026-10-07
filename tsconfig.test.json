@@ -11,5 +11,5 @@
    */
   "extends": "./tsconfig.json",
   "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable"] },
-  "include": ["src", "tests", "perf", "vitest.perf.config.ts"]
+  "include": ["src", "tests", "perf", "vitest.perf.config.ts", "vitest.slow.config.ts"]
 }

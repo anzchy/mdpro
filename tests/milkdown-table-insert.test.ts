@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module milkdown-table-insert.test
  * Purpose: Verify runInsertTable validates dimensions, dispatches

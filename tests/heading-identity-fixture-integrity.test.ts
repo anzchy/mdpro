@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3.2 — structural integrity of the shared heading-identity corpus.
  *

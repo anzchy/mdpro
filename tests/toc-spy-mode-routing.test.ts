@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3 — `src/utils/tocSpyMode.ts#resolveSpyMode`.
  *

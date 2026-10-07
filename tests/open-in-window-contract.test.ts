@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-7 (D29) — the `file:open-in-window` event name is a string that crosses
  * the Rust/TS boundary. Nothing type-checks it: Rust emits it from

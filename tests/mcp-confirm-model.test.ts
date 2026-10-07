@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0042 WI-6 — the pure confirmation payload model.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3 — App.tsx must hydrate logging settings via loggingService.hydrateSettings(),
  * not from the preference object.

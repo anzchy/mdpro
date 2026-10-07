@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module milkdown-editor-store.test
  * Purpose: Verify the Milkdown editor instance is exposed via a small

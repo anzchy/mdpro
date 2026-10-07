@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for issue #13 — a11y focus order fixes.
  *

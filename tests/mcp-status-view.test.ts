@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0040 — the pure Settings view of the MCP server status.
  *

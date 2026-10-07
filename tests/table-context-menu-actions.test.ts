@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-context-menu-actions.test
  * Purpose: Verify the action-descriptor catalog (WI-1.3) and the pure

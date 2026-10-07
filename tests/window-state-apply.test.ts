@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-4 (D24 follow-up) — the global `windowState` belongs to `main` alone.
  *

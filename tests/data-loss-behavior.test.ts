@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Fix 5 — Behavioral teeth for the data-loss decision logic.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D15-WI-5 — close-guard follow-ups (review findings B and C).
  *

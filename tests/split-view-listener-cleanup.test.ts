@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for SplitView — two-mode-editor refactor (WI-1).
  *

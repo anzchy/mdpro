@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D13 — the column-count linter forced `TableModel.raw`, so D11's lazy
  * `raw` saved nothing on the lint path.

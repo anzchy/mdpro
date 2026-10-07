@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D46 WI-3 / case D46-C1 (spec adversary, round 1) — the `App.tsx` open callers do
  * not report a failed open themselves.

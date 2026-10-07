@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D6.3(c) / WI-4 + WI-5 — the `App.tsx` WYSIWYG large-document guardrail is a
  * THIN CALLER of `src/utils/largeDocumentGuard.ts`, and the frozen constants

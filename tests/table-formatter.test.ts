@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-formatter.test
  * Purpose: Verify the GFM table pretty-printer (Phase 3 WI-3.2). The

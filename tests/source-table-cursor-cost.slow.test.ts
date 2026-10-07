@@ -1,5 +1,6 @@
+// @vitest-environment node
 /**
- * @module source-table-cursor-cost.test
+ * @module source-table-cursor-cost.slow.test
  * D12 WI-6 (ADR-0043 Decision 4): the Source cursor field reuses its span
  * on a selection-only transaction whose RAW `lineIndexAt(head)` stays in
  * the span, so a reused move costs a constant number of rope reads.
@@ -15,7 +16,7 @@
  * so every count is snapshotted before it runs. All spies are PASSTHROUGH.
  *
  * Matrix: `.claude/tdd-guardian/tests-20260930-D12.md` CUR-1, CUR-2, CUR-4.
- * CUR-3 (the re-locate path) is in `source-table-relocate-cost.test.ts`.
+ * CUR-3 (the re-locate path) is in `source-table-relocate-cost.slow.test.ts`.
  */
 
 import { describe, expect, it, vi } from "vitest";

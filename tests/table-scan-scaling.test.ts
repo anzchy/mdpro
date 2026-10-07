@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-1 reproducer: table scan cost must be linear in document length and
  * INDEPENDENT of parse outcome.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for image drag-drop insertion (issue #12).
  *

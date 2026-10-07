@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D27-WI-4 — the pure mapping from a draft-service outcome to what the recovery dialog does
  * (`src/utils/draftRecoveryOutcome.ts`).

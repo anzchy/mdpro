@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Regression test for issue #44
  * Ensures DOMPurify is pinned to >=3.3.2 to avoid two production XSS CVEs:

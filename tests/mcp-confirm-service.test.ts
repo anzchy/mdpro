@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0042 WI-6 — `mcpConfirmService.reply`, the typed wrapper for
  * `mcp_confirm_reply`.

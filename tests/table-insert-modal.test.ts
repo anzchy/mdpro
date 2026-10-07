@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-insert-modal.test
  * Purpose: Verify the TableInsertModal mirrors LinkInsertModal's structural

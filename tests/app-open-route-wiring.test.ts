@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D29 WI-6 — App wires the three routing hooks together (source contract).
  *

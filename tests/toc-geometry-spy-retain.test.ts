@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module toc-geometry-spy-retain.test
  * Purpose: pin `retainAtScrollLimit` and `selectActiveHeading` (D17 WI-2).

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D37 WI-2 — `anchorCaretAcrossReplace` laws P1..P4 over a bounded domain.
  *

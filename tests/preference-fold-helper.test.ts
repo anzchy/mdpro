@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-0 — the shared harness for the preference write-path run.
  *

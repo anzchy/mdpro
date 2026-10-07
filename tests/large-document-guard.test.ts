@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Unit matrix for `src/utils/largeDocumentGuard.ts#decideLargeDocumentGuard`
  * and its exported constants.

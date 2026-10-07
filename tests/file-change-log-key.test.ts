@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D32 WI-4 — `buildFileChangeReceivedLog` (fl5, fl6) and `decisionLogKey` (fl7, fl8).
  */

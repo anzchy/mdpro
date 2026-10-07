@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-8 (ADR-0031 step 4) — the cross-language contract-parity fence, TS half.
  *

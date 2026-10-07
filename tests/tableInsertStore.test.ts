@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module tableInsertStore.test
  * Purpose: Verify the table-insert store mirrors linkInsertStore — sets a

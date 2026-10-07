@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for EditorSettings component logic (source-inspection + pure logic).
  *

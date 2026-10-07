@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3.5.1 — `buildTOCHierarchy` carries the two identity fields through nesting, and
  * `setEntries` is the only thing that mints a `HeadingKey`.

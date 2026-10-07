@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-context-menu-dispatch.test
  * Purpose: Cover the High-severity correctness gaps from the

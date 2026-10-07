@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module scroll-anchor-capture.test
  * Purpose: pin `captureScrollAnchorForTransition` (WI-8) — the one call the

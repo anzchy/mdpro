@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module insert-table-shortcut-wiring.test
  * Purpose: Verify that the existing `paragraphTable` shortcut

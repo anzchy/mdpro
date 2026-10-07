@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module milkdown-table-cell-highlight.test
  * Purpose: Verify the WYSIWYG selected-cell decoration uses the new

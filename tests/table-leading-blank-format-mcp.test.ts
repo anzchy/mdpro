@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module table-leading-blank-format-mcp.test
  * D41 WI-1 consumers: the serializer → parser round-trip, `formatAllTables`

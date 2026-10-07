@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module source-table-fence-late-tree.test
  * D12 WI-6 (ADR-0043 Decision 4): the fence check runs BEFORE span reuse,

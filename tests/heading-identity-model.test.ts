@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3.1 — the heading identity model: `slugBase` + `createAnchorSlugAllocator`
  * (`src/utils/headingIdentity.ts`) and the three identity concepts

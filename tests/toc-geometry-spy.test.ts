@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module toc-geometry-spy.test
  * Purpose: pin `pickActiveHeadingIndex` (D17 WI-2) — the pixel-space picker the

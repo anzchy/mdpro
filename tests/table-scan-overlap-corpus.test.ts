@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-3C — ADR-0007's tier 2, made non-vacuous.
  *

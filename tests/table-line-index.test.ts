@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * WI-2 — characterization suite for `src/utils/tableParser/lines.ts`.
  *

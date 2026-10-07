@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for AppearanceSettings component (WI-8 fixes).
  *

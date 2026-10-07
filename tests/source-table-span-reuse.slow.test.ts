@@ -1,5 +1,6 @@
+// @vitest-environment node
 /**
- * @module source-table-span-reuse.test
+ * @module source-table-span-reuse.slow.test
  * D12 WI-6 (ADR-0043 Decision 4): span reuse on selection-only
  * transactions is invisible. Along any chain of selection transactions,
  * cursor or range, the field equals `legacyCursorOracle` (M3) at every

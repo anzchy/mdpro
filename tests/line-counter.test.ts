@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * `src/utils/lineCounter.ts` exists to remove a quadratic.
  *

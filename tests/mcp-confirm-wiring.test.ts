@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0042 WI-9 (matrix SG-3) — the MCP write-confirmation container is
  * mounted exactly once in `App`, which every window renders (`src/main.tsx`

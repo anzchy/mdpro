@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * D24 review — S4 law for the `applyWindowState` effect.
  *

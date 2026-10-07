@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module wide-table-fit-to-width.test
  * Purpose: Verify the WYSIWYG wide-table fit-to-width CSS lands

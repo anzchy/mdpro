@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for issue #26 — ⌘⇧H highlight routing in WYSIWYG mode.
  *

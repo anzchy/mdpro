@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0040 WI-4 (originally ADR-0039 WI-5) — TS half of the `mcp_get_status`
  * enum-domain contract, plus the `mcp_set_server_enabled` error strings.

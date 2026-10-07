@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * ADR-0042 WI-6 — TS half of the confirmation wire contract.
  *

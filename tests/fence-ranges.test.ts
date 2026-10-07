@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * @module fence-ranges.test
  * Purpose: Verify the pure source-side fenced-code detector
