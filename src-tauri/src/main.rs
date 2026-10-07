@@ -90,34 +90,8 @@ fn main() {
         error: None,
     });
 
-    // One-time migration: move legacy drafts from ~/.mdpro/drafts (pre-audit-128
-    // location) to the current data_dir path. Best-effort — a failure is logged
-    // but does not block startup.
-    match tauri_app_lib::services::draft::migrate_legacy_drafts() {
-        Ok(0) => {} // nothing to migrate
-        Ok(n) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
-                event: "app.draft_migration".to_string(),
-                status: LogStatus::Success,
-                action_id: None,
-                context: Some(json!({ "filesMigrated": n })),
-                duration_ms: None,
-                error: None,
-            });
-        }
-        Err(e) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Error,
-                event: "app.draft_migration".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: None,
-                duration_ms: None,
-                error: Some(e.to_string()),
-            });
-        }
-    }
+    // One-time legacy-draft migration (best-effort, logged; never blocks startup).
+    tauri_app_lib::services::draft::migrate_legacy_drafts_logged();
 
     let app = tauri::Builder::default()
         .setup(move |app| {
