@@ -66,7 +66,7 @@
 
 | # | 级别 | 发现 | 处理 |
 |---|---|---|---|
-| F1 | 可能丢数据 | 开着保存时自动重排，表格某行单元格多于表头时，⌘S 会丢掉多出的格：`\| g \| h \|Z` → `\| g    \| h   \|`，「Z」消失，没有任何提示。这是 GFM 的截断语义，但是静默的 | **已登记为 D44** |
+| F1 | 可能丢数据 | 开着保存时自动重排，表格某行单元格多于表头时，⌘S 会丢掉多出的格：`\| g \| h \|Z` → `\| g    \| h   \|`，「Z」消失，没有任何提示。这是 GFM 的截断语义，但是静默的 | **已登记为 D44**；2026-10-07 代码已修（⌘S 改为把表加宽到最宽行，[ADR-0052](../adr/0052-format-on-save-widens-tables-to-the-widest-row.md)），**未做真机验证**，步骤见 `tests/manual-fixtures/d44-overflow-cells.md` |
 | F2 | NOTE | 每个 ⌘⇧N 新窗口都落在 `156,71`，没有错位层叠 | 仅记录，未登记 |
 | F3 | NOTE（Low，已知） | 对 in-use 草稿点 Recover / Discard 会记两条：一条前端行，一条后端 success 带 `outcome in_use` | 仅记录，未登记 |
 | F4 | NOTE | `mcp.http_server.stop` 只在应用退出时记（`app_exit.rs:67`）；设置里关服务记的是 `mcp.server.toggle phase:disabled` | 仅记录，未登记 |
