@@ -20,6 +20,12 @@
  * - A failed status fetch shows the error and no badge (rule 30.2).
  * - `mcpConfig === null` (not loaded this open, F3): all three toggles are
  *   disabled and described by an inline reason (rule 30.4); toggling is a no-op.
+ *   The saved value is unknown, so the server switch mirrors the live phase
+ *   (checked iff `running` / `starting`) instead of reading Off beside a Running
+ *   badge (D25 issue 1); the other two toggles read off.
+ * - One note (rule 30.5): when the load failed and the status note is
+ *   `unreadable`, the lock paragraph is dropped and the toggles are described
+ *   by the status region's note instead (D25 issue 1).
  * - `mcpSaving` (a write is in flight): the same lock with a "Saving…" reason,
  *   so writes never overlap and a late rejection cannot undo a later write.
  *
@@ -41,6 +47,7 @@ import { McpToggleRow } from "./McpToggleRow";
 import { McpServerInfo } from "./McpServerInfo";
 import { McpClientList } from "./McpClientList";
 import { useMcpServerSwitch, type McpWriteLease } from "../../hooks/useMcpServerSwitch";
+import { mcpStatusView } from "../../utils/mcpStatusView";
 
 interface IntegrationsSettingsProps {
   /** The `mcp` group loaded this open; `null` until it has loaded. */
@@ -56,6 +63,7 @@ interface IntegrationsSettingsProps {
 }
 
 const MCP_REASON_ID = "mcp-config-reason";
+const MCP_NOTE_ID = "mcp-status-note";
 
 export function IntegrationsSettings({
   mcpConfig,
@@ -166,7 +174,17 @@ export function IntegrationsSettings({
   else if (!mcpConfig) lockReason = "Loading MCP settings…";
   else if (mcpSaving || serverSwitch.saving) lockReason = "Saving…";
   const locked = lockReason !== null;
-  const lockedBy = locked ? MCP_REASON_ID : undefined;
+  // One note: a failed load beside an "unreadable" status note says the same
+  // thing twice, so the status note alone stands as the reason (rule 30.5).
+  const unreadableNote = mcpStatusView(status, serverSwitch.switchResult).note === "unreadable";
+  if (mcpConfigFailed && unreadableNote) lockReason = null;
+  let lockedBy: string | undefined;
+  if (lockReason) lockedBy = MCP_REASON_ID;
+  else if (locked) lockedBy = MCP_NOTE_ID;
+  // Saved value unknown: mirror the live server rather than a false "Off".
+  const serverChecked = mcpConfig
+    ? mcpConfig.serverEnabled
+    : status?.phase === "running" || status?.phase === "starting";
 
   if (loading) {
     return (
@@ -194,12 +212,12 @@ export function IntegrationsSettings({
         labelId="mcp-toggle-server-label"
         label="Enable MCP Server"
         description="Allow AI assistants to control mdpro editor"
-        checked={mcpConfig?.serverEnabled ?? false}
+        checked={serverChecked}
         disabled={locked}
         describedBy={lockedBy}
         onChange={(v) => void handleToggle("serverEnabled", v)}
       >
-        <McpServerStatus status={status} switchResult={serverSwitch.switchResult} />
+        <McpServerStatus status={status} switchResult={serverSwitch.switchResult} noteId={MCP_NOTE_ID} />
       </McpToggleRow>
       <McpToggleRow
         labelId="mcp-toggle-launch-label"

@@ -177,6 +177,10 @@ pub fn log_line(message: &str) {
 }
 
 #[cfg(test)]
+#[path = "logger_corrupt_config_tests.rs"]
+mod logger_corrupt_config_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     // Use the crate-level HOME_LOCK so this test cannot race with the draft /
