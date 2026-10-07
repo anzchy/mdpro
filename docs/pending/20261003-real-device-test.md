@@ -206,3 +206,22 @@ narrow 那 8 张在 MacBook 上没有目检过；既然要重拍，不用再看�
 19. **mdpro 窗口会被挪动**：中途发现窗口从 (100,100) 跑到了 (0,92)，原因不明（可能和 Finder 窗口操作有关）。点击脚本只检查坐标落在窗口内，不检查是否点中目标控件，导致一次「Saving…」重拍误点到正文（只移动了光标）。之后每批操作前都先用 `size.sh` 复位窗口
 
 **本次产物**：本节、Appendix B（before 列加一条 shared-setup 说明，订正 fixture 那句过期文字，2026-10-05 复查后又改了 4 行）、进度表的 WI-0.4 行。WI-0.4 仍是 🔄：截图部分完成；E5 要求的 WKWebView JSON 子集，没做（剩下 2 项「could not capture」已经用户确认）。
+
+## 10. E5 JSON：mini 基线、WKWebView 子集、release 对比（2026-10-05，mdpro-remote）
+
+**环境**：mini，`docs/stage-0-redesign` 在 `838fd10`，`git diff a5767d5 -- src src-tauri/src` 为空。开工前退出了 release 版 mdpro（PID 19481）；`pnpm tauri dev` 跑完后已经退出（Vite 1420 也关了）。`snapshot.js` 没有改动。产物都在仓库外，复跑用的脚本放在各自目录的 `tools/` 里。
+
+**① mini 上的 Chromium 基线**（同机规则）：`~/.mdpro-redesign/stage-0/json-mini/`。用 `pnpm dev --port 15420` 加 gstack `/browse`，32 个界面 × 2 个主题，共 64 个文件，全部 `ok: true`。第二次完整采集后 `/usr/bin/diff -r`：**exit 0，0 行**。顺便和 MacBook 的 64 个文件比了一下（只作参考，不算 gate）：**逐字节一致**。
+
+**② WKWebView 子集**：`json-mini-wkwebview/`。`pnpm tauri dev` 的 debug app，窗口 `main`，1200×800（`innerWidth×innerHeight` = 1200×800，dpr 1）。界面是 `main-source`、`settings-general`、`link-modal`，light 和 dark 各一次，共 6 个文件，全部 `ok: true`，各阶段都生效（1、5、4 个）。驱动方式：右键 → Inspect Element，把 Web Inspector 分离成独立窗口，往 console 粘贴一行加载器（从 Vite 拉 `snapshot.js` 再 eval）；采集期间把 mdpro 窗口提到前面，保证页面有焦点；最后用 `copy()` 加 `pbpaste` 取回结果。
+- **确定性：没通过，只差一个字段。** run 2 和 run 1 比，`/usr/bin/diff -r` exit 1，唯一的差异是 `main-source-light` 的 `.cm-line` → `count`（68 对 44）。又补跑了 5 次 `main-source`：light 是 68、44、44、68、68；dark 是 68、68、68、68（另有一次等待超时，没出文件）。这个数是 CodeMirror 已经渲染的行数（虚拟视口），取决于首次测量有没有完成；被采集元素的样式不变。Chromium 下每次都是 44。`settings-general` 和 `link-modal` 两次采集完全一致。
+- 和 mini 的 Chromium JSON 比（不同引擎，只作参考）：`main-source` 差 178 行，`link-modal` 差 174 行，`settings-general` 差 1076 行。比如 WebKit 的默认 `outline-width` 是 3px（Chromium 是 0px），通用字体解析成 `system-ui`（Chromium 是 `Arial`），文字宽度也不同。所以 Stage 1–2 必须有 WKWebView 这一份基线，不能拿 Chromium 的代替。
+
+**③ release 对比：做不了**（按用户要求，没有为了采集去改代码或构建配置）：
+- release 的右键菜单只有「Reload」，没有「Inspect Element」。`src-tauri/Cargo.toml` 里的 `tauri` 只开了 `protocol-asset`，没有 `devtools` feature，所以 release 里没有编进 Web Inspector。`tauri.conf.json` 的 `"devtools": true` 在 release 里不起作用。我也没找到别的注入或执行 JS 的途径：MCP 和 IPC 都没有 eval；Safari 远程检查需要 WebView 是 inspectable 的，release 不是，这条没有实测。
+- 就算能注入，`snapshot.js` 的 `main-source` 和 `link-modal` 也是靠 `.dev-toolbar input[type=file]` 打开 fixture，而 `DevToolbar.tsx:28` 在 `import.meta.env.DEV` 为假时什么都不渲染，所以这两个界面在 release 页面里连 setup 都过不了。
+- 因此 **dev 和 release 的 JSON 没法比，「dev 采集能否代表 release」还没有证据**。已知 dev 独有的差异是 DevToolbar（"DEV MODE" + New/Open）。它在 `main-source` 里被当作 CHROME 选择器采集，所以 dev 的 JSON 本身就包含它。其他候选差异（CSS 合并顺序、压缩、资源路径、环境分支、窗口配置）都没法验证。
+
+**需要用户决定**：
+1. `.cm-line` 的 `count`：(a) 改 `snapshot.js`，对虚拟渲染的 `.cm-line` 不记录 count，或者先等 CodeMirror 测量完成再采；(b) 不改脚本，把这个字段作为已知的不确定项，在比对时排除。选好之后重采子集并重做确定性检查，通过了再把 WI-0.4 标 ✅。
+2. release 对比：(a) 接受用 dev 采集代替，并记下这个前提；(b) 另做一个开了 `devtools` feature 的验证构建（改构建配置，按 CLAUDE.md 应写 ADR），并让 `snapshot.js` 能在没有 DevToolbar 的情况下打开 fixture；(c) 等 MacBook 那边把 DevToolbar 从 tauri dev 去掉之后再议。
