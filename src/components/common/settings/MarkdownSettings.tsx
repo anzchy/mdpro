@@ -11,7 +11,7 @@ export function MarkdownSettings() {
   useEffect(() => {
     let cancelled = false;
     preferencesService
-      .getPreferences()
+      .getPreferences("settings_markdown")
       .then((p) => {
         if (cancelled) return;
         setPrefs({ ...DEFAULT_MARKDOWN_CONFIG, ...p.markdown });

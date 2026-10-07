@@ -110,7 +110,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   useEffect(() => {
     let cancelled = false;
     preferencesService
-      .getPreferences()
+      .getPreferences("settings_shortcuts")
       .then((p) => {
         if (cancelled) return;
         const merged = { ...DEFAULT_KEYBOARD_SHORTCUTS, ...p.keyboardShortcuts };

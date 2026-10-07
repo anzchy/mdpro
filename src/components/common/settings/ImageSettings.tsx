@@ -103,7 +103,7 @@ export function ImageSettings() {
   useEffect(() => {
     let cancelled = false;
     preferencesService
-      .getPreferences()
+      .getPreferences("settings_image")
       .then((p) => {
         if (cancelled) return;
         cachedFullPrefs.current = p;

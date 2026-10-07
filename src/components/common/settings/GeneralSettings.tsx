@@ -30,7 +30,7 @@ export function GeneralSettings() {
 
   useEffect(() => {
     let mounted = true;
-    preferencesService.getPreferences().then((p: UserPreferences) => {
+    preferencesService.getPreferences("settings_general").then((p: UserPreferences) => {
       if (!mounted) return;
       setPrefs({
         defaultViewMode: migrateViewMode(p.defaultViewMode as string),

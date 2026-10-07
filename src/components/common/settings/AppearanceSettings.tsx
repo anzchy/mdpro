@@ -17,7 +17,7 @@ export function AppearanceSettings() {
   useEffect(() => {
     let cancelled = false;
     preferencesService
-      .getPreferences()
+      .getPreferences("settings_appearance")
       .then((p) => {
         if (cancelled) return;
         setPrefs({ ...DEFAULT_APPEARANCE_CONFIG, ...p.appearance });

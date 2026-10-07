@@ -98,24 +98,54 @@ Expected: the empty window opens in **WYSIWYG**; one
 `preferences.last_view_mode` with `reason:"read_applied"`; disk `wysiwyg`
 throughout. Before the fix the relaunch opened in Source.
 
-## M-5: cold-start read counts (needs D24 Part B; not runnable yet)
+## M-5: cold-start read counts (ADR-0032 GA-12)
 
-`preferences.read` does not exist in the source yet; it lands with Part B (WI-4).
-Quit mdpro, mark the log, launch with no file.
+D24 Part B logs one `preferences.read` per frontend preference read, with an
+enum `purpose` and `outcome` (`ok`, or `failed` with `reason:"invoke_rejected"`),
+and one `window.apply_state` per hydration apply. Log lines carry no window
+label, so run each case with only the windows it names. Do not open Settings
+during these cases: each Settings page does its own `settings_*` read.
 
-Expected as planned: exactly one `preferences.read` with `purpose:"app_hydrate"`
-and one with `purpose:"view_mode_startup_settle"`, and one `window.apply_state`
-for `main` with `outcome` `applied` or `maximized`. Two reads in a window with no
-document is the current design; whether ADR-0032 GA-12 should say so is an open
-question in the D24 row. Launched with a file: one read (`app_hydrate`) only.
+Filters:
 
-## M-6: secondary windows and outside Tauri (needs D24 Part B; not runnable yet)
+```
+# every preference read, in order
+select(.event=="preferences.read") | .context.purpose
+# with the outcome, to spot a failed read
+select(.event=="preferences.read") | .context
+# the hydration apply of the window geometry
+select(.event=="window.apply_state") | {level, status, context}
+```
 
-1. Open a second window (M-3 step 3). Expected: that window logs one
-   `window.apply_state` with `outcome:"skipped"`, `reason:"not_main"`
-   (this skip line exists today), and after Part B no `applied` line for it.
-2. `pnpm dev` in a browser: the view switches work and nothing reaches
-   `~/.mdpro/mdpro.log` (no IPC outside Tauri).
+1. **Cold start with no document.** Quit mdpro, mark the log, launch with no
+   file (`open -a mdpro`). Expected: `preferences.read` purposes are exactly
+   `"app_hydrate"` and `"view_mode_startup_settle"` (2 lines, both
+   `outcome:"ok"`); `window.apply_state` is exactly 1 line, `context.outcome`
+   `"applied"` (with `monitor` `"reported"` or `"absent"`) or `"maximized"`.
+   The second read is by design (PRL-05, the GA-12 wording the user accepted
+   on 2026-10-07); a third read, or a `failed` / `skipped` apply, fails.
+2. **Launched with a file.** Quit mdpro, mark the log,
+   `open -a mdpro "$S/small.md"`. Expected: `preferences.read` purposes are
+   exactly `"app_hydrate"` (1 line, no `view_mode_startup_settle`);
+   `window.apply_state` 1 line, `applied` or `maximized`.
+3. **Closing the last document.** With only `small.md` open in one window,
+   mark the log, ⌘W. Expected: `preferences.read` purposes are exactly
+   `"view_mode_restore_on_close"` (1 line); no `window.apply_state` line.
+
+## M-6: secondary windows and outside Tauri
+
+1. Open a second window (M-3 step 3, `?open=`). Expected for that window:
+   one `preferences.read` `"app_hydrate"`, and either zero or one
+   `"view_mode_startup_settle"` (it depends on whether the document lands
+   before the window settles, which races the 300 ms `?open=` retry; record
+   which); one `window.apply_state` with `context` exactly
+   `{"outcome":"skipped","reason":"not_main"}`, and no `applied` or
+   `maximized` line from it.
+2. ⌘⇧N with a document already open in `main`: one `"app_hydrate"` and one
+   `"view_mode_startup_settle"` read, and one `skipped` / `not_main` apply.
+3. `pnpm dev` in a browser: the view switches work and nothing reaches
+   `~/.mdpro/mdpro.log` (no IPC outside Tauri; the browser branch of
+   `getPreferences` does not log).
 
 ## Cleanup
 

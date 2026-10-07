@@ -11,7 +11,7 @@
  *   into the latch → a write only once armed and only when the mode differs
  *   from `lastSeen`. Settle (arms or re-baselines the latch, never writes):
  *   (a) `launchPathsComplete && preferencesLoaded && !activeDocument` →
- *       `getPreferences` → `settled(stored)` → programmatic
+ *       `getPreferences(<phase purpose>)` → `settled(stored)` → programmatic
  *       `useEditorStore.getState().setViewMode(stored)`;
  *   (b) a document is active at that point while still holding →
  *       `settled(viewMode)`, no read;
@@ -42,6 +42,11 @@
  *   holding still loses to the startup read (A1, LVH-02).
  * - `userViewModeChoice` must be a reactive subscription in the caller; a
  *   `getState()` snapshot would never deliver a no-change command (UEP-03c).
+ * - The read is labelled for the `preferences.read` log (D24 WI-4, GA-12):
+ *   `view_mode_startup_settle` while the latch is holding (case (a) at
+ *   startup), `view_mode_restore_on_close` once armed (re-read after the last
+ *   document closes). A window that settles with no document therefore reads
+ *   once more than App's `app_hydrate` read (the "two reads" finding, PRL-05).
  * - Logs carry the settle reason only: no mode, path or label.
  *
  * @coordinates-with src/utils/lastViewModeLatch.ts
@@ -136,7 +141,10 @@ export function useLastViewModePersistence({
     };
     const applyPreferredViewMode = async () => {
       try {
-        const prefs = await preferencesService.getPreferences();
+        // GA-12 read purpose by latch phase at read start (D24 WI-4, PRL-05).
+        const prefs = await (isHolding(latchRef.current)
+          ? preferencesService.getPreferences("view_mode_startup_settle")
+          : preferencesService.getPreferences("view_mode_restore_on_close"));
         if (cancelled || userChoiceRef.current !== choiceAtStart) {
           // Stale: never re-baseline or apply. Still arm a holding latch.
           if (isHolding(latchRef.current)) settleOnCurrent("stale_read_discarded");

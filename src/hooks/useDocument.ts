@@ -210,7 +210,7 @@ export function useDocument() {
     // rewritten as tables.
     let contentToSave = doc.content;
     try {
-      const prefs = await preferencesService.getPreferences();
+      const prefs = await preferencesService.getPreferences("save_reformat_check");
       if (prefs.markdown?.autoReformatTablesOnSave) {
         contentToSave = formatAllTables(doc.content, makeIsFenced(doc.content));
         if (contentToSave !== doc.content) {

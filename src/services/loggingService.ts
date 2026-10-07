@@ -111,11 +111,12 @@ export const loggingService = {
    * Load the backend's logging settings and apply them to the store verbatim.
    *
    * Reads through `getLoggingSettings()` (a direct `safeInvoke`) rather than
-   * `preferencesService.getPreferences()`. The preferences path once used a
-   * `window.__TAURI__` detector that always reported browser mode in the
+   * `preferencesService.getPreferences(purpose)`. The preferences path once
+   * used a `window.__TAURI__` detector that always reported browser mode in the
    * shipping app (D24, fixed in ADR-0031 step 5b by `isTauri()`); the dedicated
    * command stays because it is fail-closed and never rejects, which the full
-   * preferences read does not guarantee.
+   * preferences read does not guarantee. It also logs nothing itself, while a
+   * preferences read emits a `preferences.read` entry (D24 WI-4).
    *
    * Never rejects: `safeInvoke` yields null on an IPC failure and
    * `getLoggingSettings` applies the fail-closed `FAIL_CLOSED_SETTINGS`

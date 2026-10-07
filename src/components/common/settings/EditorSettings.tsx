@@ -11,7 +11,7 @@ export function EditorSettings() {
 
   useEffect(() => {
     let mounted = true;
-    preferencesService.getPreferences().then((p) => {
+    preferencesService.getPreferences("settings_editor").then((p) => {
       if (!mounted) return;
       setPrefs({ ...DEFAULT_EDITOR_CONFIG, ...p.editor });
     }).catch(() => {

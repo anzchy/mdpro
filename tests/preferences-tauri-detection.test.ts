@@ -10,6 +10,15 @@
  * Matrix `.claude/tdd-guardian/tests-20260927-031000.md` D1–D4. D1–D3 drive the
  * `isTauri` spy from `tests/support/tauriCoreMock.ts`; D4 re-imports the service
  * against the package's REAL `isTauri` and enumerates the global markers.
+ *
+ * Fixture (D24 WI-4, plan O-4, matrix PRL-FX): logging is DISABLED for this
+ * file — `useLoggingStore.setState({ enabled: false })` in `beforeEach`, and on
+ * the re-imported store instance in D4 after `vi.resetModules()`. Reason: since
+ * WI-4 a Tauri-branch `getPreferences` emits a `preferences.read` log through
+ * the same mocked `invoke`, which would add `log_event` calls to the exact
+ * lists and counts below. This file's law is how the preferences IPC branch is
+ * chosen; logging is a separate concern, covered by PRL-01..PRL-04 in
+ * `tests/preferences-read-log.test.ts`. No assertion was changed.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -21,6 +30,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
 
 import { isTauri } from "@tauri-apps/api/core";
 import { preferencesService } from "../src/services/preferencesService";
+import { useLoggingStore } from "../src/stores/loggingStore";
 import type { WindowState } from "../src/types/preferences";
 import { makePreferences } from "./support/preferenceFixtures";
 
@@ -70,6 +80,7 @@ describe("preferencesService — branch selection by isTauri() at call time", ()
   beforeEach(() => {
     invokeMock.mockReset();
     routeInvoke();
+    useLoggingStore.setState({ enabled: false });
   });
 
   it("D1: browser branch — all four methods return their browser value without IPC", async () => {
@@ -144,11 +155,15 @@ describe("preferencesService — contract with the real @tauri-apps/api isTauri(
     ];
     expect(rows).toHaveLength(6);
 
+    useLoggingStore.setState({ enabled: false });
     vi.resetModules();
     vi.doMock("@tauri-apps/api/core", async () => ({
       ...(await vi.importActual<typeof import("@tauri-apps/api/core")>("@tauri-apps/api/core")),
       invoke: (...args: unknown[]) => invokeMock(...args),
     }));
+    // The reset registry builds a fresh logging store (enabled by default) for the
+    // re-imported service; disable that instance too (fixture, O-4).
+    (await import("../src/stores/loggingStore")).useLoggingStore.setState({ enabled: false });
     const { preferencesService: real } = await import("../src/services/preferencesService");
 
     const seen: Array<{ name: string; calls: number; autoSaveInterval: number }> = [];

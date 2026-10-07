@@ -203,7 +203,7 @@ function App() {
         // owner. Placed first in the try so no earlier await can throw past it;
         // safe because hydrateSettings never rejects and needs no preferences.
         await loggingService.hydrateSettings();
-        const prefs = await preferencesService.getPreferences();
+        const prefs = await preferencesService.getPreferences("app_hydrate");
         if (!mounted) return;
         // Don't set viewMode here - defer until launch paths are complete
         // to avoid race condition with Finder/CLI file opens
