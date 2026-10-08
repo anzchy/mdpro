@@ -936,3 +936,7 @@ mod preferences_mcp_tests;
 #[cfg(test)]
 #[path = "preferences_retirement_tests.rs"]
 mod preferences_retirement_tests;
+
+#[cfg(test)]
+#[path = "preferences_verify_preset_tests.rs"]
+mod preferences_verify_preset_tests;

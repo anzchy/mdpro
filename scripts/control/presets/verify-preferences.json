@@ -1,0 +1,12 @@
+{
+  "themeMode": "light",
+  "autoSaveInterval": 5,
+  "defaultViewMode": "source",
+  "lastViewMode": "source",
+  "showSidebar": true,
+  "enableScrollSync": true,
+  "recentFiles": [],
+  "windowState": { "width": 1200, "height": 800, "x": 100, "y": 100, "isMaximized": false },
+  "logging": { "enabled": true, "level": "debug" },
+  "markdown": { "autoPair": true, "autoReformatTablesOnSave": false }
+}
