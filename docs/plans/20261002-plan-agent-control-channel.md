@@ -381,7 +381,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   - sidecar 是拷进来的旧文件 → 它的摘要进 `buildId` 和清单；入口负责从同一棵树构建它（现有做法开工时核对）。
 - **Rollback**：回退提交；发布流程不依赖入口。
 - **Estimate**：M。
-- **实施偏离（2026-10-02，实施中，待你确认；与上面「设计」冲突处以这里为准）**
+- **实施偏离（2026-10-02 写；1–8 条你 2026-10-08 已确认；与上面「设计」冲突处以这里为准）**
   1. **`sourceTree` 有排除清单**（修正 PD3）。默认排除 `.claude/`、`docs/`、`**/*.tsbuildinfo`，清单写进构建清单的 `sourceTreeExcludes`，并进 `buildId`。原因：这三类不进任何构建产物，却在每次会话里变，不排除的话 `buildId` 几乎每次都变。代价：排除目录里的文件若被构建引用，`buildId` 就看不见它的改动；由一条守卫测试挡住（构建输入不得指向被排除的目录）。
   2. **`sourceTree` 的算法**。临时 index 从空开始，不拷贝真正的 index；`git add -A` 按内容重新哈希所有未忽略文件；已跟踪但被忽略的文件从真正的 index 只读列出后强制加入。原因：拷贝 index 会带上 `assume-unchanged`、`skip-worktree` 标记和 stat 缓存，改动可能被跳过。结果只取决于内容、文件模式和路径。
   3. **`buildId` 不经 `build.rs`**。`option_env!("MDPRO_BUILD_ID")` 只写在 `tauri-app` 这个 bin（`main.rs`）里，lib 只接收参数。原因：Cargo 把 lib 链进每个 bin，变量放在 lib 或 `build.rs` 里会让 `mdpro_mcp` 跟着重编，sidecar 摘要随之不稳。**已实测（2026-10-03）**：cargo 追踪 `option_env!` 的变量值——只改变量重新链接 `tauri-app`（17 s），变量不变则无操作（0.46 s）；不必退回 `build.rs`。
@@ -389,13 +389,22 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   5. **版本组的来源**。Rust crate 版本取自 `Cargo.lock`，JS 包版本取自 `node_modules/<包>/package.json`（装上的版本，而不是 `package.json` 里的范围）。
   6. **`verify` 配置在 WI-002 之前不可用**。入口在 `src-tauri/tauri.verify.conf.json` 不存在时明确报错退出；验收第 5 条随之移到 WI-002。
   7. **失败不留清单**。入口解析完参数先删掉该配置下旧的 `build-manifest.json`，任何一步失败都不会留下清单。
-  8. **覆盖率**。`scripts/control/*.mjs` 不在 vitest 的 `coverage.include` 里（与 `scripts/ledger/*.mjs` 相同），新代码的覆盖率数字因此不存在。是否纳入由你定。
-- **状态（2026-10-03；提交情况 2026-10-08 更正）**：代码与单测完成，已提交 `e0eed13`、`35e266c`、`da046f1`；验收 5 仍开着（见 WI-002 真机记录末尾）；tdd-guardian 门禁 unit 过、rust 过；review 无代码缺陷，剩四条流程项待你定（集成 lane、覆盖率纳入、rust lane 包装、回执解析）。**真机检查**（`release` 配置，`pnpm control:build`；`verify` 等 WI-002）：
+  8. **覆盖率**。`scripts/control/*.mjs` 原先不在 vitest 的 `coverage.include` 里（与 `scripts/ledger/*.mjs` 相同），新代码的覆盖率数字因此不存在。**你定的是纳入（2026-10-08，review L2）**：`vitest.config.ts` 的 `include` 加了 `scripts/control/**/*.mjs`；总量 L/F/B/S 由 73.96 / 80.97 / 91.42 / 73.96 变为 76.92 / 82.90 / 91.56 / 76.92，门槛 73/80/91/73 不变。没有单测的驱动脚本 `smoke.mjs` 按 0% 计入，是有意的。
+- **状态（2026-10-08）**：**验收 1–6 全部了结；review（`.claude/tdd-guardian/review-20261003-050327.md`）的 L1、L2、Q1、Q2 和 Low 5/6/7/9 已收口，本轮改动待提交**。原提交 `e0eed13`、`35e266c`、`da046f1`；Low 5、6、9 和 Low 7 的措辞已在 `35e266c` 里。偏离 1–8 你 2026-10-08 已确认。Low 8（五个测试文件超 300 行）你定不拆，跳过。WI-001 本身不剩未结的验收项；ADR-0047 仍是 Proposed。
+  - **review 收口（2026-10-08）**
+    - **L1 集成 lane**：tdd-guardian 新增 `integration` lane（`gateOn: ["manual"]`，`coverage: none`），命令 `scripts/heavy-lock.sh node scripts/control/smoke.mjs`：真跑一次 `pnpm control:build --profile verify`，再由纯函数 `scripts/control/smokeChecks.mjs` 检查清单存在且 `updaterArtifacts:false`、`codesign -dvvv` 能解析且 cdhash 一致、bundle 旁边没有 `*.app.tar.gz` 或 `.sig`。`smokeChecks.mjs` 有 63 条单测（`tests/control-build-smoke-checks.test.ts`）。2026-10-08 真跑：exit 0，93 s，`=== 10 passed, 0 failed ===`，buildId `3480d8af…`（之后按 review 改了驱动：构建失败时 total 只计失败数，重抛信号前先设 exitCode 1）。反向检查：把真实 codesign stderr 里的 `CDHash=` 行删掉，`checkVerifyBundle` 报 `parseCodesign: missing or empty CDHash=`。**限制**：只跑 verify 配置，release 的 `--config` 路径没走到；`tauri.verify.conf.json` 自己就设了 `createUpdaterArtifacts:false`，清单里的 `updaterArtifacts:false` 又是常量（`manifest.mjs:180`），所以真正算证据的只有「目录里没有更新产物」这一条。
+    - **L2 覆盖率**：见偏离 8。
+    - **Q1 rust lane 包装**：`rust` 和 `rust-verify-run` 两条 lane 改为 `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test ...`。包装只在输出里有行首的 `test result: FAILED.`（去掉 ANSI 颜色后）时把 exit 101 改成 1；编译错误仍是 101，插件照旧读成 runner-error；其他退出码和信号原样透传。51 条单测（`tests/cargo-test-lane.test.ts`）。
+    - **Q2 回执解析：豁免**。是插件缺陷，不在本仓库修，也不改插件缓存。
+    - **Low 7 补全**：`sourceTree.mjs` 头注释的过度承诺改正（`mkdtemp` 在 try 之外，这一处拒绝不带仓库目录）。另给 `commentBlanker.mjs` 加了列出导入方的头注释，新增 `tests/control-comment-blanker.test.ts`（30 条）。
+  - **上游备注（tdd-guardian 0.10.2）**：vitest 计数正则（`exec.js:97`）认不出摘要里的 `| N todo` 后缀，红灯因此记成 `opaque-failure`、没有计数（Q2）；cargo 计数只取第一处匹配（`exec.js:117`）；`UPGRADE_PATTERNS`（`exec.js:28-33`）会把 exit 1 的输出重新归类。后两条是 Q1 包装的已知边界。
+  - **真机检查**（验收 1–4 于 2026-10-03 在 `release` 配置上跑，`pnpm control:build`；验收 5 于 2026-10-08）：
   - 验收 1 **通过**：同一工作区连打三次，`buildId` 相同（`216fb017…`），三份清单逐字节相同。五种变更情形由 `tests/control-build-identity.test.ts` 在临时仓库上覆盖，真机未重复。
   - 验收 2 **通过**：不带变量直接 `cargo build`，二进制重新链接，里面只剩 `unknown`。
   - 验收 3 **通过**：临时 `HOME` 下冷启动，`app.ready` 的 `pid` 等于进程 pid，`buildId` 等于清单；真实 `~/.mdpro/mdpro.log` 未增一行。
-  - 验收 4 **通过**（清单与 `buildId`）：零处 home 路径、用户名、`/Users/`。**但**入口转发的子工具输出（pnpm 横幅、cargo `Compiling … (<路径>)`、tauri `Built application at:`）含本机 home 路径，`redactPaths` 只管入口自己的消息。要不要截获并脱敏子工具输出，由你定。
-  - 验收 5 → WI-002；验收 6 已做。
+  - 验收 4 **通过**（清单与 `buildId`）：零处 home 路径、用户名、`/Users/`。入口转发的子工具输出（pnpm 横幅、cargo `Compiling … (<路径>)`、tauri `Built application at:`）含本机 home 路径，`redactPaths` 只管入口自己的消息。**你定的是不脱敏（2026-10-08）**：这些输出只到控制台，mdpro 不把它写盘；清单和 `buildId` 已证明不含路径。**附带说明**：tdd-guardian 插件（0.10.2，`exec.js:239-240`）保留一条 lane 最后 80 行 stdout 和 40 行 stderr，这些行会进 hook 消息和会话记录，但不进 `state.json` / `receipts.json`（2026-10-08 对这两个文件 grep `/Users/`，零命中）。
+  - 验收 5 **通过**（2026-10-08，先 `verify` 后 `release` 互不串味）：打了三个包：本工作区 release、本工作区 verify、在干净检出 `verify-23e0007` 里单独打的 release。每个包内嵌恰好一个非零的 64 位十六进制 id，且等于它自己清单里的 `buildId`：分别是 `53534e1f…`、`f562a007…`、`3f2a3349…`。三个包的 `distSha256` 都是 `ea0388941b3e…`，`updaterArtifacts` 都是 `false`；每个 bundle 目录里只有清单和 `.app`。**附带说明**：两处检出的 release `buildId` 不同（`53534e1f` 对 `3f2a3349`），因为 `build.mjs` 每次重编 sidecar，它的 Mach-O `LC_UUID` 和 ad-hoc 签名差 48 字节；验收 5 只要求 `dist` 摘要相等，所以算通过。verify 和 release 共用同一个可变的 sidecar 文件 `src-tauri/binaries/mdpro_mcp-aarch64-apple-darwin`。
+  - 验收 6 已做。
   - 观察：入口每次运行都把主 crate 编两遍（sidecar 用裸 `cargo`，应用在 tauri CLI 的 `TAURI_ENV_*` 环境下），什么都没改也要约 3 分钟；sidecar 摘要和 `buildId` 不受影响。临时 `HOME` 的 `config.json` 里 `mcp.serverEnabled: false` 生效：日志里 `mcp.http_server.start` 的 context 是 `{"outcome":"skipped","reason":"disabled"}`，服务没起。
 
 ### WI-002 验证打包配置与运行隔离
@@ -468,7 +477,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   9. **保留 F5：参数错误什么都不动**。入口在参数解析失败时（包括用户自己传 `verify-run` feature）直接退出，不删旧的 `build-manifest.json`，所以旧清单可能留下来。WI-001 偏离 7 的「先删旧清单」是从参数解析成功之后才开始的。
   10. **WI3-T05 的夹具往上挪了一级**。现在在 `…/mdpro` 放普通文件，让 `create_dir_all` 失败，原来是在 `…/mdpro/drafts` 放。**这暴露了一个已有缺陷，本 WI 不修，只记录**：`…/mdpro/drafts` 是普通文件时，`ensure_dir` 的 `exists()` 检查能通过，接着 rename 报 ENOTDIR，却被静默跳过。启动迁移因此返回 `Ok(0)`，一行日志都不写，旧草稿留在原处。
   11. **tdd-guardian 的 rust lane 仍只跑 feature 关的构建**。`--features verify-run` 的 `cargo test` / `cargo clippy -- -D warnings` 回执是手工跑的，记在 `.claude/tdd-guardian/state.json` 的 ADR47-WI002-4…8 里。
-  12. **覆盖率**。`scripts/control/persistenceRoots.mjs` 和 `rustScopes.mjs` 同 WI-001 偏离 8，不在 vitest 的 `coverage.include` 里，没有覆盖率数字。
+  12. **覆盖率**。`scripts/control/persistenceRoots.mjs` 和 `rustScopes.mjs` 同 WI-001 偏离 8，原先不在 vitest 的 `coverage.include` 里。2026-10-08 起随 `scripts/control/**/*.mjs` 一并纳入：`persistenceRoots.mjs` L 99.45 / B 93.18，`rustScopes.mjs` L 97.77 / B 89.69。
   13. **握手文件从启动前守卫挪进 setup 钩子，「替换」改为「拒绝」，成功日志随之挪进发布**（2026-10-08，修下面状态里记的覆写缺陷；决定见 [ADR-0058](../adr/0058-a-verify-run-publishes-its-handshake-once-and-never-replaces-it.md)）。设计里「守卫写 `instance.json`」原来实现为 `main()` 首条语句里原子替换写入；同一运行里的第二个进程也跑这一段，于是先覆写、再被 single-instance 转走。现在：
       - **校验与发布分开**。`enforce()`（`src-tauri/src/services/verify_run.rs`）只做校验，仍是 `main()` 的第一条语句；不写文件、不写日志，不合格就向 stderr 写一行并以 78 退出。`publish_or_exit(&verified_run, BUILD_ID_RAW)` 是 Tauri `.setup` 闭包的第一条语句。插件的 setup 在 `build()` 里先于这个闭包执行 `[实测 tauri 2.9.5 app.rs:2291 对 1299–1302；插件锁在 2.3.7]`，所以 single-instance 的次进程在发布之前就已转发并 exit 0，主进程则先占下套接字。
       - **发布是排他的**。`publish`（`src-tauri/src/services/verify_run_instance.rs`）先写临时文件 `.instance.json.<uuid>.tmp`（`create_new`、0600、`write_all`、`sync_all`），再 `fs::hard_link` 到 `instance.json`，然后删临时文件。EEXIST → `GuardError::InstanceExists`（`instance.json already exists`），其他失败 → `InstanceWrite`，两者都以 78 退出。不覆写，也不跟随符号链接。只靠插件先跑不够：插件的 macOS 代码在 notify 出错、且错误不是 NotFound / ConnectionRefused 时照常启动 `[实测 插件 2.3.7]`，这样的进程会走到 setup。
