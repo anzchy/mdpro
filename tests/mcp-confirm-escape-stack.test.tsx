@@ -119,9 +119,10 @@ const mcpDialog = () => screen.queryByRole("dialog", { name: /write confirmation
 const unsavedDialog = () => screen.queryByRole("dialog", { name: "Unsaved changes" });
 
 // ---------------------------------------------------------------------------
-// App-like harness: mirrors App.tsx DOM order — `<ConfirmDialog>` (L1049) before
-// `<McpWriteConfirm/>` (L1065). If App's order changes, ADR-0045 must be revisited and this
-// harness with it: the expected Escape order follows DOM order, not open order.
+// App-like harness: a FIXED DOM order — `<ConfirmDialog>` before `<McpWriteConfirm/>` — that
+// models the escape stack's semantics (ADR-0045: Escape follows DOM order). It no longer
+// mirrors App: since D42, AppDialogs renders in open order (ADR-0062), and that real
+// composition is covered by tests/d42-app-dialog-open-order.test.tsx.
 // ---------------------------------------------------------------------------
 
 let cancels = 0;

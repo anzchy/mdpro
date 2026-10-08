@@ -7,12 +7,7 @@ import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
 import { TOCSidebarContainer, getViewModeLabel } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
-import { ConfirmDialog } from "./components/common/ConfirmDialog";
-import { SettingsDialog } from "./components/common/SettingsDialog";
-import { McpWriteConfirm } from "./components/common/McpWriteConfirm";
-import { RecoveryDialog } from "./components/common/RecoveryDialog";
-import { ReloadDialog } from "./components/common/ReloadDialog";
-import { EncodingDialog } from "./components/common/EncodingDialog";
+import { AppDialogs } from "./components/AppDialogs";
 import { LoadingSpinner } from "./components/common/LoadingSpinner";
 import { Toast } from "./components/common/Toast";
 import { useDocument } from "./hooks/useDocument";
@@ -1025,41 +1020,23 @@ function App() {
         onNewDocument={createDocument}
       />
 
-      <RecoveryDialog
+      {/* The App-level dialogs, incl. this window's ADR-0042 MCP prompt (D42 WI-3). */}
+      <AppDialogs
         drafts={drafts}
-        onRecover={handleRecoverDraft}
-        onDiscard={handleDiscardDraft}
-      />
-      <ReloadDialog
-        open={Boolean(reloadMessage)}
-        message={reloadMessage ?? ""}
+        onRecoverDraft={handleRecoverDraft}
+        onDiscardDraft={handleDiscardDraft}
+        reloadMessage={reloadMessage}
         onReload={handleReloadFile}
-        onIgnore={handleIgnoreReload}
+        onIgnoreReload={handleIgnoreReload}
+        encodingIssue={encodingIssue}
+        onEncodingSelect={handleEncodingSelect}
+        onEncodingCancel={clearEncodingIssue}
+        confirmDialog={confirmDialog}
+        onConfirmClose={handleConfirmClose}
+        onCancelClose={handleCancelClose}
+        settingsOpen={settingsOpen}
+        onSettingsClose={() => setSettingsOpen(false)}
       />
-      <EncodingDialog
-        open={Boolean(encodingIssue)}
-        path={encodingIssue?.path ?? ""}
-        detected={encodingIssue?.detected ?? "unknown"}
-        onSelect={handleEncodingSelect}
-        onCancel={clearEncodingIssue}
-      />
-      <ConfirmDialog
-        open={confirmDialog.open}
-        title="Unsaved changes"
-        message={confirmDialog.message}
-        confirmLabel="Discard changes"
-        cancelLabel="Keep editing"
-        onConfirm={handleConfirmClose}
-        onCancel={handleCancelClose}
-      />
-      <SettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
-      {/* ADR-0042: this window's MCP write-confirmation prompt. Every window
-          renders App, so each owns its prompt; after Settings so it stacks
-          above an open Settings dialog. */}
-      <McpWriteConfirm />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />
     </div>
   );
