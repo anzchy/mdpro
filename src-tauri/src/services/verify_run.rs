@@ -4,11 +4,17 @@
 //! or write the user's real home, data dir or preferences. Compiled only with
 //! the `verify-run` Cargo feature; a feature-off build has no guard code.
 //!
-//! Pipeline: `main()` calls `enforce(raw build id)` as its first statement →
+//! Pipeline: `main()` calls `enforce()` as its first statement →
 //! `guard_inputs()` = `(runs_parent(getuid()), getuid())` (passwd home, pure
-//! path computation) → `run(parent, uid, raw)` = `check` (read-only
-//! validation of the environment and the run dir) → atomic `instance.json`
-//! → one `app.verify_run` log line. Any `Err` → one stderr line + exit 78.
+//! path computation) → `check(parent, uid)` (read-only validation of the
+//! environment and the run dir) → returns the `VerifiedRun`; any `Err` → one
+//! stderr line + exit 78. The guard writes nothing and logs nothing.
+//! Publication is a separate, later step: `publish(verified, pid, raw)`
+//! creates `instance.json` exclusively (refused if anything already exists
+//! there) and logs the one `app.verify_run` line; `publish_or_exit` calls it
+//! with this process's pid as the first statement of the Tauri setup hook,
+//! after the single-instance plugin has run, and on `Err` prints one stderr
+//! line and exits 78.
 //!
 //! Key decisions:
 //! - The parent is `<passwd home>/Library/Application Support/mdpro-verify/runs`,
@@ -17,23 +23,25 @@
 //! - `check` is read-only and deterministic. Presence checks visit the four
 //!   variables in the order `Run` → `Nonce` → `Home` → `CfHome`, all before
 //!   any canonicalization, any `dirs::` call and any use of `parent`.
+//! - `enforce` is validation only (no build-id argument, no write, no log):
+//!   publishing before the single-instance plugin ran let a second process
+//!   overwrite the first one's `instance.json`.
 //! - `GuardError` carries no strings: a rejection never echoes a path or the
 //!   nonce. Logs and outputs name the run dir by basename only.
-//! - Rule 60 exception: `enforce` writes its rejection with
-//!   `writeln!(std::io::stderr(), …)`, not the logger. The guard runs before
-//!   anything may touch `$HOME`, and the logger would create `~/.mdpro`; the
-//!   launcher reads exactly one stderr line and exit code 78.
-//! - The success log line is written only after `instance.json` is in place,
-//!   so a failed write leaves no `.mdpro` in the run dir.
+//! - Rule 60 exception: `enforce` and `publish_or_exit` write their
+//!   rejection with `writeln!(std::io::stderr(), …)`, not the logger. The
+//!   guard runs before anything may touch `$HOME`, and the logger would
+//!   create `~/.mdpro`; the launcher reads one stderr line and exit code 78.
+//! - `publish` owns the `app.verify_run` line: `success` only after
+//!   `instance.json` is linked in place, otherwise one `fail` line.
 //!
 //! @coordinates-with services/verify_run_checks.rs — the individual checks
-//! @coordinates-with services/verify_run_instance.rs — `instance.json` and
-//!   the rejection text
-//! @coordinates-with main.rs — calls `enforce` first, behind the feature
+//! @coordinates-with services/verify_run_instance.rs — `publish`
+//!   (`instance.json` and its log line) and the rejection text
+//! @coordinates-with main.rs — `let verified_run = enforce();` is the first
+//!   statement of `main()`, and `publish_or_exit(&verified_run, BUILD_ID_RAW)`
+//!   the first statement of `.setup(move |app|`, both behind the feature
 
-use crate::models::{LogEntryPayload, LogLevel, LogStatus};
-use crate::services::{build_info, logger};
-use serde_json::json;
 use std::ffi::OsStr;
 use std::io::Write;
 use std::os::unix::ffi::OsStrExt;
@@ -44,7 +52,7 @@ mod checks;
 #[path = "verify_run_instance.rs"]
 mod instance;
 
-pub use instance::rejection_line;
+pub use instance::{publish, rejection_line};
 
 /// Exit status of a rejected launch (`EX_CONFIG`); the WI-003 launcher
 /// treats it as "the guard refused".
@@ -98,6 +106,7 @@ pub enum GuardError {
     PasswdHomeNotUtf8,
     PasswdHomeNotAbsolute,
     InstanceWrite,
+    InstanceExists,
 }
 
 /// A run dir that passed every check.
@@ -162,30 +171,6 @@ pub fn check(parent: &Path, uid: u32) -> Result<VerifiedRun, GuardError> {
     })
 }
 
-/// `check`, then write `instance.json` (`buildId` normalized from `raw`),
-/// then log one `app.verify_run` line naming the run dir by basename.
-pub fn run(parent: &Path, uid: u32, raw: Option<&str>) -> Result<VerifiedRun, GuardError> {
-    let verified = check(parent, uid)?;
-    let pid = std::process::id();
-    let build_id = build_info::normalize_build_id(raw);
-    instance::write_instance(&verified.run_dir, &verified.nonce, pid, build_id)?;
-    let base = verified
-        .run_dir
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    logger::log_event(LogEntryPayload {
-        level: LogLevel::Info,
-        event: "app.verify_run".to_string(),
-        status: LogStatus::Success,
-        action_id: None,
-        context: Some(json!({ "runDir": base, "pid": pid, "buildId": build_id })),
-        duration_ms: None,
-        error: None,
-    });
-    Ok(verified)
-}
-
 /// The guard's injected inputs: the passwd-home runs parent and this uid.
 pub fn guard_inputs() -> Result<(PathBuf, u32), GuardError> {
     // SAFETY: getuid has no preconditions and cannot fail.
@@ -193,13 +178,29 @@ pub fn guard_inputs() -> Result<(PathBuf, u32), GuardError> {
     Ok((runs_parent(uid)?, uid))
 }
 
-/// Refuse to start unless this is a prepared verify run: on any rejection,
-/// print one stderr line and exit with `GUARD_EXIT_CODE`.
-pub fn enforce(raw: Option<&str>) {
-    let outcome = guard_inputs().and_then(|(parent, uid)| run(&parent, uid, raw));
-    if let Err(e) = outcome {
+/// Refuse to start unless this is a prepared verify run. Validation only:
+/// `guard_inputs` then `check`, with no write and no log line. On any
+/// rejection, print one stderr line and exit with `GUARD_EXIT_CODE`;
+/// otherwise return the `VerifiedRun` for `publish_or_exit`.
+pub fn enforce() -> VerifiedRun {
+    match guard_inputs().and_then(|(parent, uid)| check(&parent, uid)) {
+        Ok(verified) => verified,
+        Err(e) => {
+            let _ = writeln!(std::io::stderr(), "{}", rejection_line(&e));
+            std::process::exit(GUARD_EXIT_CODE)
+        }
+    }
+}
+
+/// Publish this process's `instance.json` (`publish` with
+/// `std::process::id()`), or print one stderr line and exit with
+/// `GUARD_EXIT_CODE`. Called first in the Tauri setup hook, after the
+/// single-instance plugin has run; exits rather than returning `Err`,
+/// because a setup `Err` is a panic.
+pub fn publish_or_exit(verified: &VerifiedRun, raw: Option<&str>) {
+    if let Err(e) = publish(verified, std::process::id(), raw) {
         let _ = writeln!(std::io::stderr(), "{}", rejection_line(&e));
-        std::process::exit(GUARD_EXIT_CODE);
+        std::process::exit(GUARD_EXIT_CODE)
     }
 }
 
@@ -230,6 +231,18 @@ mod verify_run_mode_tests;
 #[cfg(all(test, feature = "verify-run"))]
 #[path = "verify_run_parent_tests.rs"]
 mod verify_run_parent_tests;
+#[cfg(all(test, feature = "verify-run"))]
+#[path = "verify_run_publish_exec_tests.rs"]
+mod verify_run_publish_exec_tests;
+#[cfg(all(test, feature = "verify-run"))]
+#[path = "verify_run_publish_fixtures.rs"]
+mod verify_run_publish_fixtures;
+#[cfg(all(test, feature = "verify-run"))]
+#[path = "verify_run_publish_law_tests.rs"]
+mod verify_run_publish_law_tests;
+#[cfg(all(test, feature = "verify-run"))]
+#[path = "verify_run_publish_tests.rs"]
+mod verify_run_publish_tests;
 #[cfg(all(test, feature = "verify-run"))]
 #[path = "verify_run_reject_tests.rs"]
 mod verify_run_reject_tests;

@@ -77,7 +77,7 @@ fn move_cache() -> &'static Mutex<HashMap<String, MoveState>> {
 
 fn main() {
     #[cfg(feature = "verify-run")]
-    tauri_app_lib::services::verify_run::enforce(BUILD_ID_RAW);
+    let verified_run = tauri_app_lib::services::verify_run::enforce();
     let startup = std::time::Instant::now();
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -97,6 +97,15 @@ fn main() {
 
     let app = tauri::Builder::default()
         .setup(move |app| {
+            // ADR-0047 WI-002: publish instance.json here, not in main().
+            // Plugin setup (single-instance: exit 0 or claim the socket) runs
+            // in build() before this closure (tauri 2.9.5 app.rs:2291 vs
+            // 1299-1302; tauri-plugin-single-instance 2.3.7), but the plugin
+            // falls through and launches on other notify errors, so publication
+            // must itself be exclusive. A setup Err panics, hence
+            // publish_or_exit prints its own line and exits 78.
+            #[cfg(feature = "verify-run")]
+            tauri_app_lib::services::verify_run::publish_or_exit(&verified_run, BUILD_ID_RAW);
             let watcher =
                 tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone())
                     .map_err(Box::<dyn std::error::Error>::from)?;

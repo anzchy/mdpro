@@ -1,82 +1,44 @@
-//! ADR-0047 WI-002 / WI-5: `verify_run::run` writes `instance.json`
-//! atomically after a passing check (matrix WI5-T01..T06, T10). Every fixture
-//! is `Run::logged()`: the logger is primed outside the tree, and the success
-//! log line lands in `<run>/.mdpro/mdpro.log` because HOME = run.
-//! Feature-on only.
-use super::verify_run_fixtures::{chmod, fresh_nonce, set_var, snapshot, Run, NONCE};
-use super::{run, GuardError, GUARD_EXIT_CODE};
+//! ADR-0047 WI-002 fix / WI-1: `verify_run::publish` writes `instance.json`
+//! exclusively into a verified run dir (matrix `tests-20261007-230837.md`
+//! WI5-T01, T02, T03, T10, and the vanished-dir and foreign-temp cases).
+//! Every fixture is `Run::logged()`: the logger is primed outside the tree,
+//! and `app.verify_run` lines land in `<run>/.mdpro/mdpro.log` because
+//! HOME = run. Refusal cases live in `verify_run_publish_tests.rs`, the laws
+//! in `verify_run_publish_law_tests.rs`. Feature-on only.
+use super::verify_run_fixtures::{fresh_nonce, Run};
+use super::verify_run_publish_fixtures::{
+    assert_published, entries, fingerprint, hex, instance, keys, names, target,
+    verify_run_lines,
+};
+use super::{publish, GuardError, VerifiedRun, GUARD_EXIT_CODE};
 use crate::services::build_info::normalize_build_id;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use serde_json::Value;
 use std::collections::BTreeSet;
 use std::fs;
-use std::os::unix::fs::{symlink, PermissionsExt};
-use std::path::Path;
-
-const HEX: &[u8] = b"0123456789abcdef";
-
-fn hex(rng: &mut StdRng, n: usize) -> String {
-    (0..n).map(|_| HEX[rng.gen_range(0..16)] as char).collect()
-}
-
-fn instance(fx: &Run) -> Value {
-    let text = fs::read_to_string(fx.run.join("instance.json")).expect("read instance.json");
-    serde_json::from_str(&text).expect("instance.json is JSON")
-}
-
-fn keys(v: &Value) -> BTreeSet<String> {
-    v.as_object().expect("object").keys().cloned().collect()
-}
-
-fn entries(dir: &Path) -> BTreeSet<String> {
-    fs::read_dir(dir)
-        .expect("read run dir")
-        .map(|e| e.expect("entry").file_name().to_string_lossy().into_owned())
-        .collect()
-}
-
-fn expected_entries() -> BTreeSet<String> {
-    ["launch.json", "instance.json", ".mdpro"]
-        .map(String::from)
-        .into()
-}
-
-/// T01's postcondition: exact content, mode 0600, no leftovers.
-fn assert_written(fx: &Run, nonce: &str, build_id: &str) {
-    let v = instance(fx);
-    let want: BTreeSet<String> = ["nonce", "pid", "buildId"].map(String::from).into();
-    assert_eq!(keys(&v), want);
-    assert_eq!(v["nonce"], nonce);
-    assert_eq!(v["pid"], std::process::id());
-    assert_eq!(v["buildId"], build_id);
-    let md = fs::symlink_metadata(fx.run.join("instance.json")).expect("instance.json");
-    assert!(
-        md.file_type().is_file(),
-        "instance.json is not a regular file"
-    );
-    assert_eq!(md.permissions().mode() & 0o777, 0o600);
-    assert_eq!(entries(&fx.run), expected_entries());
-}
 
 #[test]
-fn wi5_t01_pass_writes_instance_json() {
+fn wi5_t01_publish_writes_instance_json() {
     let fx = Run::logged();
     let id = hex(&mut StdRng::seed_from_u64(1), 64);
-    let (parent, uid) = fx.args();
+    let v = fx.check().expect("check");
 
-    let got = run(&parent, uid, Some(&id));
+    let got = publish(&v, 4242, Some(&id));
 
-    assert!(got.is_ok(), "{got:?}");
-    assert_written(&fx, &fx.nonce, &id);
+    assert_eq!(got, Ok(()));
+    assert_published(&fx.run.join("instance.json"), &fx.nonce, 4242, &id);
+    assert_eq!(
+        entries(&fx.run),
+        names(&["launch.json", "instance.json", ".mdpro"])
+    );
 }
 
 #[test]
-fn wi5_t02_build_id_round_trips_through_normalize() {
+fn wi5_t02_build_id_round_trips_through_publish() {
     const SEED: u64 = 20261006;
+    const NONCE_CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789\"\\/ ";
     let mut rng = StdRng::seed_from_u64(SEED);
     let fx = Run::logged();
-    let (parent, uid) = fx.args();
     for trial in 0..200 {
         let raw: Option<String> = match rng.gen_range(0..8) {
             0 => Some(hex(&mut rng, 64)),
@@ -93,75 +55,114 @@ fn wi5_t02_build_id_round_trips_through_normalize() {
             6 => Some(String::new()),
             _ => None,
         };
-        let got = run(&parent, uid, raw.as_deref());
-        assert!(
-            got.is_ok(),
-            "seed {SEED} trial {trial} raw {raw:?}: {got:?}"
-        );
-        let v = instance(&fx);
-        let ctx = format!("seed {SEED} trial {trial} raw {raw:?}");
-        assert_eq!(v["buildId"], normalize_build_id(raw.as_deref()), "{ctx}");
-        assert_eq!(v["nonce"], fx.nonce.as_str(), "{ctx}");
-        assert_eq!(v["pid"], std::process::id(), "{ctx}");
+        let pid = rng.gen::<u32>();
+        let nonce = match rng.gen_range(0..3) {
+            0 => fresh_nonce(),
+            1 => "a\"b\\c\n\u{e9}".to_string(),
+            _ => {
+                let n = rng.gen_range(1..=40);
+                (0..n)
+                    .map(|_| NONCE_CHARS[rng.gen_range(0..NONCE_CHARS.len())] as char)
+                    .collect()
+            }
+        };
+        let v = VerifiedRun {
+            nonce: nonce.clone(),
+            ..target(&fx, &format!("d{trial}"))
+        };
+        let ctx = format!("seed {SEED} trial {trial} raw {raw:?} nonce {nonce:?}");
+
+        let got = publish(&v, pid, raw.as_deref());
+
+        assert_eq!(got, Ok(()), "{ctx}");
+        let doc = instance(&v.run_dir.join("instance.json"));
+        assert_eq!(keys(&doc), names(&["nonce", "pid", "buildId"]), "{ctx}");
+        assert_eq!(doc["buildId"], normalize_build_id(raw.as_deref()), "{ctx}");
+        assert_eq!(doc["nonce"], nonce.as_str(), "{ctx}");
+        assert_eq!(doc["pid"], pid, "{ctx}");
+        assert_eq!(entries(&v.run_dir), names(&["instance.json"]), "{ctx}");
     }
 }
 
+/// Regression reproducer: a second publication on one run dir is refused and
+/// leaves the first byte-identical. Red stage ran these calls through the
+/// old `write_instance`, which replaced the file.
 #[test]
-fn wi5_t03_second_run_replaces() {
+fn wi5_t03_second_publish_is_refused() {
     let fx = Run::logged();
-    let (parent, uid) = fx.args();
-    run(&parent, uid, None).expect("run 1");
-    let n2 = fresh_nonce();
-    fx.write_launch(&format!("{{\"nonce\":\"{n2}\"}}"));
-    set_var(NONCE, &n2);
+    let path = fx.run.join("instance.json");
+    let v = fx.check().expect("check");
 
-    run(&parent, uid, None).expect("run 2");
+    let first = publish(&v, 111, None);
+    assert_eq!(first, Ok(()));
+    let b1 = fs::read(&path).expect("read 1");
+    let f1 = fingerprint(&path);
 
-    assert_written(&fx, &n2, "unknown");
+    let id = hex(&mut StdRng::seed_from_u64(3), 64);
+    let second = publish(&v, 222, Some(&id));
+
+    assert!(second.is_err(), "second write was accepted: {second:?}");
+    assert_eq!(second, Err(GuardError::InstanceExists));
+    assert_eq!(fs::read(&path).expect("read 2"), b1, "first publication changed");
+    assert_eq!(fingerprint(&path), f1);
+    assert_eq!(
+        entries(&fx.run),
+        names(&["launch.json", "instance.json", ".mdpro"])
+    );
 }
 
 #[test]
-fn wi5_t04_stale_instance_with_wrong_mode_is_replaced() {
+fn wi1_publish_into_vanished_run_dir_is_instance_write() {
     let fx = Run::logged();
-    let stale = fx.run.join("instance.json");
-    fs::write(&stale, b"junk junk junk").expect("write stale");
-    chmod(&stale, 0o644);
-    let (parent, uid) = fx.args();
+    let gone = fx.run.join("gone");
+    let v = VerifiedRun {
+        run_dir: gone.clone(),
+        nonce: fx.nonce.clone(),
+    };
 
-    run(&parent, uid, None).expect("run");
+    let got = publish(&v, 4242, None);
 
-    assert_written(&fx, &fx.nonce, "unknown");
+    assert_eq!(got, Err(GuardError::InstanceWrite));
+    assert!(!gone.exists(), "publish created the run dir");
+    assert_eq!(entries(&fx.run), names(&["launch.json", ".mdpro"]));
+    let lines = verify_run_lines(&fx);
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    assert_eq!(lines[0]["status"], "fail");
+    let ctx = lines[0]["context"].as_object().expect("context object");
+    let got_keys: BTreeSet<&str> = ctx.keys().map(String::as_str).collect();
+    assert_eq!(got_keys, BTreeSet::from(["runDir", "pid", "reason"]));
+    assert_eq!(ctx["runDir"], "gone");
+    assert_eq!(ctx["pid"], 4242);
+    assert_eq!(ctx["reason"], "instance_write");
 }
 
 #[test]
-fn wi5_t05_symlinked_instance_is_not_followed() {
+fn wi1_foreign_temp_names_do_not_block_publish() {
     let fx = Run::logged();
-    let outside = fx.root.join("outside.json");
-    fs::write(&outside, b"X").expect("write outside");
-    symlink(&outside, fx.run.join("instance.json")).expect("symlink instance.json");
-    let (parent, uid) = fx.args();
+    let a = fx.run.join(".instance.json.tmp");
+    let b = fx
+        .run
+        .join(".instance.json.00000000000000000000000000000000.tmp");
+    fs::write(&a, b"A").expect("seed a");
+    fs::write(&b, b"B").expect("seed b");
+    let (fa, fb) = (fingerprint(&a), fingerprint(&b));
 
-    run(&parent, uid, None).expect("run");
+    let got = publish(&fx.check().expect("check"), 4242, None);
 
-    assert_written(&fx, &fx.nonce, "unknown");
-    assert_eq!(fs::read(&outside).expect("read outside"), b"X");
-}
-
-#[test]
-fn wi5_t06_write_failure_is_instance_write_and_leaves_nothing() {
-    let fx = Run::logged();
-    let blocker = fx.run.join("instance.json");
-    fs::create_dir(&blocker).expect("mkdir instance.json");
-    fs::write(blocker.join("keep"), b"k").expect("write keep");
-    let before = snapshot(&blocker);
-    let (parent, uid) = fx.args();
-
-    let got = run(&parent, uid, None);
-
-    assert_eq!(got.err(), Some(GuardError::InstanceWrite));
-    assert_eq!(snapshot(&blocker), before, "blocker dir changed");
-    let want: BTreeSet<String> = ["launch.json", "instance.json"].map(String::from).into();
-    assert_eq!(entries(&fx.run), want, "temp file or .mdpro left behind");
+    assert_eq!(got, Ok(()));
+    assert_eq!(fingerprint(&a), fa);
+    assert_eq!(fingerprint(&b), fb);
+    assert_eq!(
+        entries(&fx.run),
+        names(&[
+            "launch.json",
+            "instance.json",
+            ".mdpro",
+            ".instance.json.tmp",
+            ".instance.json.00000000000000000000000000000000.tmp",
+        ])
+    );
+    assert_published(&fx.run.join("instance.json"), &fx.nonce, 4242, "unknown");
 }
 
 #[test]

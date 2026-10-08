@@ -1,4 +1,4 @@
-//! ADR-0047 WI-002 / WI-5: rejections write nothing, the success log line is
+//! ADR-0047 WI-002 / WI-5: rejections through `check` write nothing, the success log line is
 //! private, rejection lines are private and distinct, and `enforce`'s inputs
 //! do not follow `HOME` / `MDPRO_VERIFY_RUN` (matrix WI5-T07, T08, T09,
 //! T15(a)). Feature-on only.
@@ -6,7 +6,8 @@ use super::verify_run_defects_fixtures::inject_random;
 use super::verify_run_fixtures::{
     canonical_tmp, contains_named, lock_env, set_var, snapshot, Run, HOME, RUN,
 };
-use super::{guard_inputs, rejection_line, run, runs_parent, GuardError, PathVar, Var};
+use super::verify_run_publish_fixtures::hex;
+use super::{check, guard_inputs, publish, rejection_line, runs_parent, GuardError, PathVar, Var};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use serde_json::Value;
@@ -15,7 +16,7 @@ use std::fs;
 use std::os::unix::fs::MetadataExt;
 
 #[test]
-fn wi5_t07_guard_rejection_through_run_writes_nothing() {
+fn wi5_t07_guard_rejection_through_check_writes_nothing() {
     const SEED: u64 = 20261007;
     let mut rng = StdRng::seed_from_u64(SEED);
     for trial in 0..100 {
@@ -23,7 +24,7 @@ fn wi5_t07_guard_rejection_through_run_writes_nothing() {
         let inj = inject_random(&fx, &mut rng);
         let before = fx.snapshot();
 
-        let got = run(&inj.args.0, inj.args.1, None);
+        let got = check(&inj.args.0, inj.args.1);
 
         let ctx = format!(
             "seed {SEED} trial {trial} defects {:?}: {got:?}",
@@ -46,9 +47,10 @@ fn wi5_t07_guard_rejection_through_run_writes_nothing() {
 #[test]
 fn wi5_t08_one_private_log_line() {
     let fx = Run::logged();
-    let (parent, uid) = fx.args();
+    let id = hex(&mut StdRng::seed_from_u64(1), 64);
+    let parent = fx.parent.clone();
 
-    run(&parent, uid, None).expect("run");
+    publish(&fx.check().expect("check"), 4242, Some(&id)).expect("publish");
 
     let text = fs::read_to_string(fx.run.join(".mdpro").join("mdpro.log")).expect("log file");
     let lines: Vec<Value> = text
@@ -70,7 +72,8 @@ fn wi5_t08_one_private_log_line() {
         .expect("utf8");
     assert_eq!(ctx["runDir"], base);
     assert!(!base.contains('/'));
-    assert_eq!(ctx["pid"], std::process::id());
+    assert_eq!(ctx["pid"], 4242);
+    assert_eq!(ctx["buildId"], id.as_str());
     let canon = fs::canonicalize(&fx.run).expect("canonical run");
     for secret in [
         canon.to_str().expect("utf8"),
@@ -123,6 +126,7 @@ const ALL: &[GuardError] = {
         PasswdHomeNotUtf8,
         PasswdHomeNotAbsolute,
         InstanceWrite,
+        InstanceExists,
     ]
 };
 
@@ -164,6 +168,7 @@ fn idx(e: &GuardError) -> usize {
         PasswdHomeNotUtf8 => 34,
         PasswdHomeNotAbsolute => 35,
         InstanceWrite => 36,
+        InstanceExists => 37,
     }
 }
 

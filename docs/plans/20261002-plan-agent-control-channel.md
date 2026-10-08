@@ -390,7 +390,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   6. **`verify` 配置在 WI-002 之前不可用**。入口在 `src-tauri/tauri.verify.conf.json` 不存在时明确报错退出；验收第 5 条随之移到 WI-002。
   7. **失败不留清单**。入口解析完参数先删掉该配置下旧的 `build-manifest.json`，任何一步失败都不会留下清单。
   8. **覆盖率**。`scripts/control/*.mjs` 不在 vitest 的 `coverage.include` 里（与 `scripts/ledger/*.mjs` 相同），新代码的覆盖率数字因此不存在。是否纳入由你定。
-- **状态（2026-10-03）**：代码与单测完成，未提交；tdd-guardian 门禁 unit 过、rust 过；review 无代码缺陷，剩四条流程项待你定（集成 lane、覆盖率纳入、rust lane 包装、回执解析）。**真机检查**（`release` 配置，`pnpm control:build`；`verify` 等 WI-002）：
+- **状态（2026-10-03；提交情况 2026-10-08 更正）**：代码与单测完成，已提交 `e0eed13`、`35e266c`、`da046f1`；验收 5 仍开着（见 WI-002 真机记录末尾）；tdd-guardian 门禁 unit 过、rust 过；review 无代码缺陷，剩四条流程项待你定（集成 lane、覆盖率纳入、rust lane 包装、回执解析）。**真机检查**（`release` 配置，`pnpm control:build`；`verify` 等 WI-002）：
   - 验收 1 **通过**：同一工作区连打三次，`buildId` 相同（`216fb017…`），三份清单逐字节相同。五种变更情形由 `tests/control-build-identity.test.ts` 在临时仓库上覆盖，真机未重复。
   - 验收 2 **通过**：不带变量直接 `cargo build`，二进制重新链接，里面只剩 `unknown`。
   - 验收 3 **通过**：临时 `HOME` 下冷启动，`app.ready` 的 `pid` 等于进程 pid，`buildId` 等于清单；真实 `~/.mdpro/mdpro.log` 未增一行。
@@ -469,12 +469,26 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   10. **WI3-T05 的夹具往上挪了一级**。现在在 `…/mdpro` 放普通文件，让 `create_dir_all` 失败，原来是在 `…/mdpro/drafts` 放。**这暴露了一个已有缺陷，本 WI 不修，只记录**：`…/mdpro/drafts` 是普通文件时，`ensure_dir` 的 `exists()` 检查能通过，接着 rename 报 ENOTDIR，却被静默跳过。启动迁移因此返回 `Ok(0)`，一行日志都不写，旧草稿留在原处。
   11. **tdd-guardian 的 rust lane 仍只跑 feature 关的构建**。`--features verify-run` 的 `cargo test` / `cargo clippy -- -D warnings` 回执是手工跑的，记在 `.claude/tdd-guardian/state.json` 的 ADR47-WI002-4…8 里。
   12. **覆盖率**。`scripts/control/persistenceRoots.mjs` 和 `rustScopes.mjs` 同 WI-001 偏离 8，不在 vitest 的 `coverage.include` 里，没有覆盖率数字。
-- **状态（2026-10-07）**：**已验证，验收 6 延到 WI-003**。提交 `678b320`、`4390665`、`186910b`、`d455e02`、`e36c63a`；真机记录 [`docs/test/20261007-adr0047-wi002-device.md`](../test/20261007-adr0047-wi002-device.md) 随本提交。门禁情况：unit lane 过；`cargo test` 和 `cargo test --features verify-run` 都过，`cargo clippy -- -D warnings` 两种都过。
+  13. **握手文件从启动前守卫挪进 setup 钩子，「替换」改为「拒绝」，成功日志随之挪进发布**（2026-10-08，修下面状态里记的覆写缺陷；决定见 [ADR-0058](../adr/0058-a-verify-run-publishes-its-handshake-once-and-never-replaces-it.md)）。设计里「守卫写 `instance.json`」原来实现为 `main()` 首条语句里原子替换写入；同一运行里的第二个进程也跑这一段，于是先覆写、再被 single-instance 转走。现在：
+      - **校验与发布分开**。`enforce()`（`src-tauri/src/services/verify_run.rs`）只做校验，仍是 `main()` 的第一条语句；不写文件、不写日志，不合格就向 stderr 写一行并以 78 退出。`publish_or_exit(&verified_run, BUILD_ID_RAW)` 是 Tauri `.setup` 闭包的第一条语句。插件的 setup 在 `build()` 里先于这个闭包执行 `[实测 tauri 2.9.5 app.rs:2291 对 1299–1302；插件锁在 2.3.7]`，所以 single-instance 的次进程在发布之前就已转发并 exit 0，主进程则先占下套接字。
+      - **发布是排他的**。`publish`（`src-tauri/src/services/verify_run_instance.rs`）先写临时文件 `.instance.json.<uuid>.tmp`（`create_new`、0600、`write_all`、`sync_all`），再 `fs::hard_link` 到 `instance.json`，然后删临时文件。EEXIST → `GuardError::InstanceExists`（`instance.json already exists`），其他失败 → `InstanceWrite`，两者都以 78 退出。不覆写，也不跟随符号链接。只靠插件先跑不够：插件的 macOS 代码在 notify 出错、且错误不是 NotFound / ConnectionRefused 时照常启动 `[实测 插件 2.3.7]`，这样的进程会走到 setup。
+      - **日志**：`app.verify_run` 的成功行只在链接成功后写；失败行的 `reason` 是 `instance_exists` 或 `instance_write`。
+      - **门禁**：tdd-guardian 加了 `rust-verify-run` lane（`cargo test --manifest-path src-tauri/Cargo.toml --features verify-run`，提交时跑），偏离 11 的「feature 开靠手工回执」到此为止。`rust` lane 仍是 feature 关，因为 `wi6_t01`（发布版端口 55045）只在 feature 关时成立。
+      - **代价**：被拒的进程已经写过 `app.launch`、在运行目录里跑过草稿迁移，还可能闪一下窗口；setup 里的 `exit(78)` 跳过 `RunEvent::Exit`，si.sock 留下，下一次启动遇到 ConnectionRefused 时清掉；若一个漏过插件的次进程抢先发布，启动器自己起的子进程会以 78 退出（往拒绝一侧失败）。
+- **状态（2026-10-08）**：**已验证，但真机发现一处缺陷；修复已写完、单测与提交门禁（unit / rust / rust-verify-run）都过、修复后真机复测 R1–R4 过（2026-10-08，真机记录 §3），与 ADR-0058 一起提交（`fix(build)` 那条提交）**。验收 6 延到 WI-003。原提交 `678b320`、`4390665`、`186910b`、`d455e02`、`e36c63a`；真机记录 [`docs/test/20261007-adr0047-wi002-device.md`](../test/20261007-adr0047-wi002-device.md)。原门禁情况：unit lane 过；`cargo test` 和 `cargo test --features verify-run` 都过，`cargo clippy -- -D warnings` 两种都过。
+  - **缺陷（2026-10-07 真机实测，记录 § 2）**：同一运行里起第二个进程（J7a），它重跑启动前守卫，把 `<RUN>/instance.json` 的 pid 从 36009 改成 36146，再经 single-instance 把参数转给主实例（日志 `file.open.external`，路由 `broadcast`），然后 exit 0。`instance.json` 于是指向一个死 pid，WI-003 的 `quit` 和 `--via open` 握手会因此出错。
+  - **修复**：见偏离 13。
+  - **测试证据**：新增 `verify_run_publish_*.rs`，重写 `verify_run_instance_tests.rs`——t03 回归重现、拒绝规律、并发下只有一个赢家、EFBIG 的 exec 用例、`publish_or_exit` 的 exec 测试；vitest 结构测试 `tests/control-verify-run-publish-structure.test.ts` 和 `tests/control-verify-run-wiring.test.ts` T15(c)/T17/T18。`cargo test --manifest-path src-tauri/Cargo.toml --features verify-run` 1201 过，vitest 4817 过。
+  - **评审延后两项（你 2026-10-08 定）**：「同一运行目录上两次启动 app 二进制」的端到端检查，由修复后的真机复测（R2 / R3，已过，但是直接执行二进制，不是经启动器）和之后 WI-003 的旅程 lane 覆盖；`app.verify_run.temp_cleanup` 的 warn 分支没有生产代码里的故障接缝就测不到，免测。
+  - **交给 WI-003**：
+    - 每次 `launch` 用新的运行目录，**不要预建 `instance.json`**——发布是排他的，预建就是自己拒绝自己。
+    - `doctor` / `clean` 要处理残留的 `.instance.json.*.tmp`（临时文件清理失败时留下），以及被 `exit(78)` 留下的 si.sock。
+    - debug 的 verify 构建会把日志行回显到 stderr，排在拒绝行之前。启动器要么取 stderr 的**最后一行**，要么只支持 release 构建。**这是 WI-003 要定的事**。
   - 验收 1 **单测通过**：`run_isolation_tests.rs` 在临时 `HOME` 下把登记表里的每个 `production` 根都解析到该目录内（feature 关、开各 6/6）。`tests/control-persistence-roots.test.ts` 让登记表和 `src-tauri/src` 里的 `dirs::` 调用点完全相等。
   - 验收 7 **单测通过**：feature 关时端口恒为 55045，守卫的符号不编入（`http_server_port_tests.rs`、vitest 接线测试）。release 包上的 `nm` 没做。
   - **真机通过**（macOS 26.3.1，`e36c63a` 构建的 verify 包）：D-WI2、2、3、4、5、10。真实目录的元数据清单在每一步前后都一致。
   - 验收 8 **通过，附偏离**：`Info.plist` 里 `CFBundleDocumentTypes` 是空数组，不是不存在；Launch Services 不把它列为 `.md` 的候选，默认打开方式没变。
-  - 验收 9 **[实测] macOS 26.3.1**：WebKit 数据与缓存都在运行目录内，真实 `~/Library` 下没有 `com.mdpro.app.verify` 的条目，也没有 Cocoa 偏好或 saved state。**macOS 13 没测**。
+  - 验收 9 **[实测] macOS 26.3.1**：WebKit 数据与缓存都在运行目录内，真实 `~/Library` 下没有 `com.mdpro.app.verify` 的条目，也没有 Cocoa 偏好或 saved state。**macOS 13 没测——你的决定（2026-10-07）**。
   - 验收 6 **未验证**：要用启动器在已有运行时再 `launch`，WI-003 之前没有启动器。转到 WI-003 的验收里一并跑。
   - **推翻的假设**：启动器写偏好夹具时不能只写部分字段——`UserPreferences` 有必填字段，部分文件整份解析失败，设置页全报错。WI-003 的夹具要写完整的一份。
   - WI-001 验收 5（先 `verify` 后 `release` 互不串味）本轮没跑，仍开着。
@@ -498,6 +512,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   6. 用启动器把 J1a、J1b、J7a、J7b 的 `launcher` 步骤走一遍，握手和日志都对。
 - **Tests (first)**：`tests/control-launcher-*.test.ts`——`doctor` 各检查项（临时目录）；所有权判定的四项各自单独失败；`clean` 的每个拒绝条件；锁的排他；启动超时的清理路径；输出里无凭证。进程表和 `spawn` 在边界处 mock，所有权判定本身不 mock。
 - **Touched areas**：`scripts/control/`（`doctor.mjs`、`launch.mjs`、`quit.mjs`、`clean.mjs`、`ownership.mjs`、`runDir.mjs`）；`package.json` 加一条脚本。每个文件不超过 300 行。
+- **来自 WI-002 的约束**：新运行目录、不预建 `instance.json`、`doctor` / `clean` 处理残留临时文件和 si.sock、stderr 取哪一行——见 WI-002 状态里的「交给 WI-003」。
 - **Risks + mitigations**：`ps` 的启动时间精度只到秒 → 与可执行文件路径、随机数一起用，不单独作数。
 - **Rollback**：回退提交；纯脚本。
 - **Estimate**：M。

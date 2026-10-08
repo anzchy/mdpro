@@ -1,8 +1,9 @@
 //! ADR-0047 WI-002 / WI-4: `verify_run::check` on the env and path rows
-//! (matrix WI4-T01..T08, T10). Feature-on only. Every test holds
+//! (matrix WI4-T01..T08, T10; WI-002 fix WI-2 `wi2_valid_check_writes_nothing`).
+//! Feature-on only. Every test holds
 //! `crate::HOME_LOCK` through `Run`; fixtures live under
 //! `canonicalize(temp_dir())` with an injected parent.
-use super::verify_run_fixtures::Run;
+use super::verify_run_fixtures::{contains_named, Run};
 use super::verify_run_rows_fixtures::{
     assert_rows, rows_t02, rows_t03, rows_t04, rows_t05, rows_t06, rows_t07, rows_t08, rows_t10,
 };
@@ -24,6 +25,28 @@ fn wi4_t01_valid_fixture_passes_and_writes_nothing() {
         })
     );
     assert_eq!(fx.snapshot(), before, "check wrote to the tree");
+}
+
+/// The guard's whole in-process body is `check`: with the logger live, a
+/// valid run dir is accepted and the tree is byte-identical (no
+/// `instance.json`, no `.mdpro`).
+#[test]
+fn wi2_valid_check_writes_nothing() {
+    let fx = Run::logged();
+    let before = fx.snapshot();
+
+    let got = fx.check();
+
+    assert_eq!(
+        got,
+        Ok(VerifiedRun {
+            run_dir: fs::canonicalize(&fx.run).expect("canonical run"),
+            nonce: fx.nonce.clone(),
+        })
+    );
+    assert_eq!(fx.snapshot(), before, "check wrote to the tree");
+    assert!(!contains_named(&fx.root, "instance.json"), "instance.json created");
+    assert!(!contains_named(&fx.root, ".mdpro"), ".mdpro created");
 }
 
 #[test]
