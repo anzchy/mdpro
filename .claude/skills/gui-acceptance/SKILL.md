@@ -28,6 +28,12 @@ automated; bring in the user only where automation truly cannot work.**
 - **Record every deviation in the report** where automation took a different
   path from a real user. Example: refocusing by app activation instead of a
   title-bar click.
+- **Discarding a scratch copy (user ruling, 2026-10-08):**
+  - The executor may click **Discard changes** without the user, but only on the
+    scratch copy of a fixture, either at quit or when closing a tab at the end
+    of the run.
+  - On any other document, Discard still needs the user.
+  - Record each Discard in the report.
 
 WI-7 of the Source-mode scroll-spy plan is the worked reference throughout, and
 the trial-and-error that produced this document is recorded in §8.
@@ -401,9 +407,16 @@ mdpro acts on Escape at `keydown`. Two things on this machine stop that
   - Count the attempt only when the log shows the Esc outcome, e.g.
     `ui.dialog.escape` or `ui.dialog.cancel`.
   - If nothing lands, stop and ask the user to press the physical key.
-  - The `osascript` route has not been proven on this machine yet. Record
-    whether it worked in the first report that tries it, and update this
-    bullet.
+  - **The first trial failed** (D42 run on the Mac mini, 2026-10-08, 4 of 4
+    presses). For each press:
+    - the focus gate passed, and `tauri-app` was frontmost;
+    - `osascript` exited 0;
+    - no escape or cancel line was logged.
+
+    The cause was not investigated. A suspect is that the agent's Bash tool
+    does not inherit Terminal's Accessibility grant. Until a run proves a
+    working route, plan every Esc criterion as a user step: name it in the
+    brief, and warn the user before the run starts.
 - **IMEs such as WeType swallow the Escape `keydown`**, even in their English
   mode. Before an Esc check, have the user switch the input source to ABC.
   This is accepted, not a bug to chase
