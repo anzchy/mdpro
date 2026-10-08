@@ -10,7 +10,8 @@
  *
  * `@module src/utils/milkdownFocusCarry`
  * `@coordinates-with` `src/utils/wholesaleReplace.ts` (capture + arm / carry forward),
- * `src/stores/milkdownEditorStore.ts` (editor getter, generations), `src/stores/editorStore.ts`
+ * `src/stores/milkdownEditorStore.ts` (editor getter, generations),
+ * `src/hooks/useReturnFocusOnClose.ts` (`pendingReturnTarget`, the D38 dialog check), `src/stores/editorStore.ts`
  * (viewMode), `src/stores/documentStore.ts` (activeDocumentId), `src/utils/caretAnchor.ts`
  * (the restore-time head mapping), `src/hooks/useMilkdownFocusRestore.ts` (the WI-4
  * consumer: restore + the `restored` / `skipped:focus-elsewhere` / `skipped:error` lines), `tests/milkdown-focus-carry.test.ts` and
@@ -21,6 +22,13 @@
  *   the immutable `state.doc` plus `selection.head` (a range collapses to its head), and
  *   only when the document is active, the mode is WYSIWYG, an editor is registered and its
  *   view `hasFocus()`. An unfocused editor never pays for, or gains, a carry.
+ * - **A prompt returning into the editor counts as focused** (D38, ADR-0055). Queued MCP confirm
+ *   prompts hand focus from one prompt to the next, so a write approved in the first lands
+ *   while the second holds focus. When focus is inside an open return-focus container
+ *   (`useReturnFocusOnClose`; the MCP confirm dialog is its only adopter) whose pending
+ *   return target is inside this view, the snapshot is taken with `viaDialog: true`, and the
+ *   restore hands the rebuilt view to that container instead of stealing focus from it.
+ *   Focus in any other dialog, or a prompt returning outside the editor, captures nothing.
  * - **The generation is the primary guard** (coordinator amendment O1). `consumeFocusCarry`
  *   returns the record only for an exact `{documentId, generation}` match. A record for an
  *   older generation is dropped as stale; a record for a newer generation survives an older
@@ -49,6 +57,7 @@ import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
+import { pendingReturnTarget } from "../hooks/useReturnFocusOnClose";
 import type { WholesaleReason } from "./wholesaleReplace";
 
 /**
@@ -70,6 +79,8 @@ export interface FocusSnapshot {
   head: number;
   /** The old view's immutable doc, held by reference. */
   oldDoc: Node;
+  /** D38: focus was in a prompt that returns into this view, not in the view itself. */
+  viaDialog?: true;
 }
 
 export interface FocusCarryRecord extends FocusSnapshot {
@@ -145,9 +156,16 @@ function viewOf(editor: Editor, documentId: string): EditorView | null {
   }
 }
 
+/** D38: focus is in an open return-focus container whose return target is inside `dom`. */
+function promptReturnsInto(dom: Element): boolean {
+  const target = pendingReturnTarget(document.activeElement);
+  return target !== null && dom.contains(target);
+}
+
 /**
  * The focused WYSIWYG view's doc and head for `documentId`, or null unless the document
- * is active, the mode is WYSIWYG, an editor is registered and its view has focus.
+ * is active, the mode is WYSIWYG, an editor is registered and its view has focus — or
+ * focus is in a prompt that will return it into this view (`viaDialog`, D38).
  */
 export function snapshotFocusedEditor(documentId: string): FocusSnapshot | null {
   if (useDocumentStore.getState().activeDocumentId !== documentId) return null;
@@ -155,8 +173,10 @@ export function snapshotFocusedEditor(documentId: string): FocusSnapshot | null 
   const editor = useMilkdownEditorStore.getState().getEditor() as Editor | null;
   if (!editor) return null;
   const view = viewOf(editor, documentId);
-  if (!view || !view.hasFocus()) return null;
-  return { documentId, head: view.state.selection.head, oldDoc: view.state.doc };
+  if (!view) return null;
+  const snapshot = { documentId, head: view.state.selection.head, oldDoc: view.state.doc };
+  if (view.hasFocus()) return snapshot;
+  return promptReturnsInto(view.dom) ? { ...snapshot, viaDialog: true } : null;
 }
 
 /** Arm the single slot at `generation` (the post-reload one), superseding any record. */

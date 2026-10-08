@@ -26,10 +26,16 @@
  * - **Fallback only when a prior element existed but is gone** (RF-9): opened from body →
  *   nothing to return to, so nothing is focused.
  * - **Never throws**: a throwing fallback or focus call is contained.
+ * - **Queryable and redirectable** (D38, ADR-0055):`pendingReturnTarget` tells the D37 focus capture
+ *   where an open container holding focus will return it; `redirectReturnFocus` lets the
+ *   rebuilt editor's restore make its new `view.dom` that container's first target, so a
+ *   queued prompt closes onto the rebuilt view instead of the end fallback.
  *
  * @module hooks/useReturnFocusOnClose
  * @coordinates-with src/components/common/McpWriteConfirmDialog.tsx — the first adopter
  * @coordinates-with src/utils/focusActiveMilkdownAtEnd.ts — that dialog's fallback
+ * @coordinates-with src/utils/milkdownFocusCarry.ts — capture reads `pendingReturnTarget` (D38)
+ * @coordinates-with src/hooks/useMilkdownFocusRestore.ts — restore calls `redirectReturnFocus` (D38)
  */
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 
@@ -38,18 +44,43 @@ export type FocusFallback = () => HTMLElement | null | undefined;
 
 interface OpenContainer {
   container: HTMLElement;
+  /** Return targets, first connected wins; `redirectReturnFocus` prepends to it. */
   priors: readonly HTMLElement[];
 }
 
 /** Every mounted instance's container and priors (for the queued-dialog inheritance). */
 const openContainers = new Set<OpenContainer>();
 
+function ownerOf(el: Element | null): OpenContainer | undefined {
+  if (!el) return undefined;
+  return [...openContainers].find((entry) => entry.container.contains(el));
+}
+
 function capturePriors(): HTMLElement[] {
   if (typeof document === "undefined") return [];
   const active = document.activeElement;
   if (!(active instanceof HTMLElement) || active === document.body) return [];
-  const owner = [...openContainers].find((entry) => entry.container.contains(active));
+  const owner = ownerOf(active);
   return owner ? [active, ...owner.priors] : [active];
+}
+
+/**
+ * Where the open container holding `el` would return focus if it closed now: its first
+ * still-connected saved element, or null (no such container, or every target is gone).
+ */
+export function pendingReturnTarget(el: Element | null): HTMLElement | null {
+  return ownerOf(el)?.priors.find((prior) => prior.isConnected) ?? null;
+}
+
+/**
+ * Make `target` the first return target of the open container holding `el` (later
+ * queued containers inherit it). False, changing nothing, when no open container holds `el`.
+ */
+export function redirectReturnFocus(el: Element | null, target: HTMLElement): boolean {
+  const owner = ownerOf(el);
+  if (!owner) return false;
+  owner.priors = [target, ...owner.priors];
+  return true;
 }
 
 function focusOrBodyIn(container: HTMLElement): boolean {
@@ -90,7 +121,7 @@ export function useReturnFocusOnClose(
     openContainers.add(entry);
     return () => {
       openContainers.delete(entry);
-      returnFocus(container, priors, fallbackRef.current);
+      returnFocus(container, entry.priors, fallbackRef.current);
     };
   }, [containerRef, priors]);
 }
