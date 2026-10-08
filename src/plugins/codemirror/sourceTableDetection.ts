@@ -17,6 +17,11 @@
  *
  * Fence guard: positions inside ` ``` ` / ` ~~~ ` blocks give null/null,
  * checked first, so the walker never sees pipe-runs that are code content.
+ * The markdown tree parses incrementally, so a fence can appear in a
+ * transaction that changes neither doc nor selection; when the tree object
+ * changes, the field reruns ONLY the fence check against the held span and
+ * clears it if the head is now fenced (D39). It never rescans tables on a
+ * parse step, and an unchanged context is returned as the same object.
  *
  * Performance: a `docChanged` transaction always runs the full
  * `computeContext` (fence check, `locateTableAtOffset`, `cellAtOffset`)
@@ -93,7 +98,8 @@ const NO_CONTEXT: CursorTableContext = { span: null, cell: null };
 /**
  * StateField holding the cursor's `{ span, cell }` (ADR-0043 D1/D3/D4).
  * Doc changes always recompute from scratch; selection-only moves go
- * through `reuseOrRelocate`.
+ * through `reuseOrRelocate`; a transaction that only advanced the syntax
+ * tree goes through `fenceRecheck` (D39).
  */
 const tableContextField = StateField.define<CursorTableContext>({
   create(state) {
@@ -101,10 +107,22 @@ const tableContextField = StateField.define<CursorTableContext>({
   },
   update(value, transaction) {
     if (transaction.docChanged) return computeContext(transaction.state);
-    if (!transaction.selection) return value;
-    return reuseOrRelocate(value, transaction.state);
+    if (transaction.selection) return reuseOrRelocate(value, transaction.state);
+    if (syntaxTree(transaction.startState) === syntaxTree(transaction.state)) return value;
+    return fenceRecheck(value, transaction.state);
   },
 });
+
+/**
+ * Tree-only update (D39): neither the doc nor the selection changed, but
+ * the incremental parse advanced. Reruns ONLY the fence check: a span the
+ * head now sits inside a fence for is cleared; anything else is returned
+ * as the same object (no table scan, no redraw). A null context stays.
+ */
+function fenceRecheck(prev: CursorTableContext, state: EditorState): CursorTableContext {
+  if (prev.span === null) return prev;
+  return isPositionInFencedCode(state, state.selection.main.head) ? NO_CONTEXT : prev;
+}
 
 /**
  * Fence check first; otherwise locate the span and the head's cell over
