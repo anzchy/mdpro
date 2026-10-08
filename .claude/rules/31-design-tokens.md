@@ -74,7 +74,7 @@ update this table in the same commit.
 | Recent dropdown | `10` | `.toolbar-recent-list` |
 | Dialog backdrop | `20` | `.dialog-backdrop` |
 | Toast | `30` | `.toast` |
-| Dev toolbar (web only) | `100` | `.dev-toolbar` |
+| ~~Dev toolbar (web only)~~ | ~~`100`~~ | none: `.dev-toolbar` was removed in `1703dbb` (2026-10-07) |
 | Inline context menu | `1000` | `.image-context-menu`, `.table-context-menu` |
 | Future portaled modal | `9999` | (reserved) |
 

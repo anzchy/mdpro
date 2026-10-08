@@ -342,3 +342,53 @@ describe("ConfirmDialog Escape (D34 WI-2)", () => {
     expect(dialog()).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// D48 — a destructive dialog opens with focus on Cancel, so Enter cannot discard.
+// ---------------------------------------------------------------------------
+
+describe("ConfirmDialog initial focus (D48)", () => {
+  function FocusHost({ destructive }: { destructive?: boolean }) {
+    const [open, setOpen] = useState(true);
+    return (
+      <ConfirmDialog
+        open={open}
+        title="Unsaved changes"
+        message="Save secret-plan.md?"
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        destructive={destructive}
+        onConfirm={() => {
+          confirms += 1;
+          setOpen(false);
+        }}
+        onCancel={() => {
+          cancels += 1;
+          setOpen(false);
+        }}
+      />
+    );
+  }
+
+  it("CD-11: destructive — Cancel has focus on open and Enter cancels, never confirms (RED reproducer)", async () => {
+    const user = userEvent.setup();
+    render(<FocusHost destructive />);
+    expect(screen.getByRole("button", { name: "Keep editing" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Discard changes" })).not.toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(cancels).toBe(1);
+    expect(confirms).toBe(0);
+    expect(dialog()).toBeNull();
+  });
+
+  it("CD-12: destructive prop omitted — the confirm button keeps focus (AboutSettings restart)", () => {
+    render(<FocusHost />);
+    expect(screen.getByRole("button", { name: "Discard changes" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Keep editing" })).not.toHaveFocus();
+  });
+
+  it("CD-13: destructive={false} — the confirm button keeps focus", () => {
+    render(<FocusHost destructive={false} />);
+    expect(screen.getByRole("button", { name: "Discard changes" })).toHaveFocus();
+  });
+});

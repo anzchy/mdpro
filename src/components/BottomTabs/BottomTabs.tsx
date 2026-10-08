@@ -81,6 +81,7 @@ export function BottomTabs({
         title="Unsaved changes"
         message="Close this document without saving?"
         confirmLabel="Discard"
+        destructive
         cancelLabel="Keep editing"
         onConfirm={confirmClose}
         onCancel={() => setPendingCloseId(null)}

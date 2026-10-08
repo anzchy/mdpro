@@ -81,7 +81,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - [ ] The tokenization deferred list has no `stage: 3` entries, the test has no `it.skip`, and the per-stage count check asserts 0 for Stage 3 (only `stage: 4` entries remain)
 - [ ] Every theme-specific token change landed in both theme files in the same change (rule 31 authoring rule 1); none of the D4 neutral token values changed
 - [ ] No chrome `font-size` below 12px (grep proof); non-ramp sizes are resolved per DR22, and the only chrome size outside the ramp is `--font-size-title`
-- [ ] Every chrome `border-radius` is `--radius-control`, `--radius-popover`, `--radius-inner`, `50%`, `999px` or `0`, apart from the DR21 dev-toolbar exception (DR23)
+- [ ] Every chrome `border-radius` is `--radius-control`, `--radius-popover`, `--radius-inner`, `50%`, `999px` or `0` (DR23). The DR21 dev-toolbar exception is moot: its CSS was deleted in `1703dbb` (2026-10-07)
 - [ ] The title-bar and tab-bar heights are unchanged (computed height in both themes matches the baseline)
 - [ ] A `prefers-reduced-motion: reduce` block exists and zeroes the motion duration token, and rule 32 § Animations describes that block (DR13)
 - [ ] Only `transform` and `opacity` transitions remain, plus spinner keyframes (the DR12 test passes). Switching Light and Dark in `pnpm tauri dev` shows no fade on tabs, TOC rows, switches or the table grid picker, and hover highlights appear instantly

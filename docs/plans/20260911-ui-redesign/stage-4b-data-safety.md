@@ -9,27 +9,40 @@ Stage 4's entry condition, acceptance criteria, commit split and worktree lanes 
 WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last three — **WI-4.16, WI-4.17 and WI-4.18** — came out of the round-2 engineering review and are sequenced with the rest of that series in [`stage-4c-foundation.md`](stage-4c-foundation.md); they live here because each one is a data-safety fix, not because they run with the items above.
 
 ### WI-4.10 — External change dialog (DR5) — M
-- **Why:**
-  - "Modified" and "deleted" share one `ReloadDialog` (`App.tsx:487-494`, `:1163-1168`), and **Reload** has `autoFocus` (`ReloadDialog.tsx:38-40`).
-  - `decideFileChange` never looks at unsaved edits (`src/utils/dataLossGuards.ts:68-88`), so Enter discards them.
-  - A deleted file is offered Reload, which then fails in `handleReloadFile` (`App.tsx:606-620`) with a "Reload failed" toast.
-  - Against rule 32: there is no Tab trap, and the dialog uses `aria-label` where the rule requires `aria-labelledby` / `aria-describedby`.
+- **Why** (citations re-verified 2026-10-07 at 630cb86):
+  - "Modified" and "deleted" share one `ReloadDialog` (`App.tsx:313-327`, mounted at `:1035-1040`), and **Reload** has `autoFocus` (`ReloadDialog.tsx:38-40`).
+  - `decideFileChange` never looks at unsaved edits (`src/utils/dataLossGuards.ts:98-118`), so Enter discards them.
+  - A deleted file is offered Reload, which then fails in `handleReloadFile` (`App.tsx:477-491`) with a "Reload failed" toast.
+  - Against rule 32: there is no Tab trap. Esc is handled by an `onKeyDown` on the backdrop (`ReloadDialog.tsx:17-22`), not the shared `useDialogEscape` stack.
 - **Guard first (pure):** `decideFileChange` also takes the active document's `isModified` and returns one of three prompts: changed with no edits, changed with unsaved edits, or deleted. `rename` and `ignore` are unchanged. The `switch` in `App.tsx` stays exhaustive (rule 60).
 - **Dialog:**
   - Implements the DESIGN.md § External change dialog state table: titles, copy, button order, focus and Esc. The file name comes from the DR4 shared helper.
   - Tab is trapped in the dialog, following `handleDialogKeyDown` in `SettingsDialog.tsx` (rule 32).
   - The state is derived at render from the latest event and the current `isModified`, so a later event can never show the no-edits state over unsaved text.
-- **Deleted → Save As…:** there is no Save As menu item, but the code path exists: `saveActiveDocumentAs` (`useDocument.ts:172-200`) opens the save picker and saves, as untitled documents already do (`:207`). "Save As…" calls it (Q14, closed). Preflight: confirm the file watcher follows the new path.
+  - **Labels:** the card's `aria-label="Reload file"` (`ReloadDialog.tsx:24`) becomes `aria-labelledby` (the title) and `aria-describedby` (the message), as rule 32 requires.
+  - Esc moves to `useDialogEscape`, and focus return to `useReturnFocusOnClose` (see WI-4.6).
+- **Deleted → Save As…:** there is no Save As menu item, but the code path exists: `saveActiveDocumentAs` (`useDocument.ts:184-199`) opens the save picker and saves, as untitled documents already do (`:205`). "Save As…" calls it (Q14, closed). Preflight: confirm the file watcher follows the new path.
+- **States:**
+  - **In flight:** while Reload or Save As runs, the dialog's buttons are disabled, and the busy button reads "Reloading…" or "Saving…" (rule 30 rule 4). The dialog stays open until it finishes.
+  - **Save As cancelled** in the picker: the dialog stays open, nothing changes, and no toast.
+  - **Save As failed:** one error toast, "Save failed" (WI-4.13). The dialog stays open.
+  - **After close:** focus returns to the editor.
+  - **Narrow:** at the 360px dialog width (the 400px minimum window), the buttons wrap to a column.
+  - **Screen reader:** the dialog is named by its title and described by its message (the label fix above).
 - **Tests** (through tdd-guardian, RED first):
   - Guard: changed + clean, changed + dirty, deleted (clean and dirty), renamed, another path, and a null event
   - **Data-loss regression:** in the unsaved-edits state, Enter does not call reload and the content is unchanged. This test fails against today's dialog.
   - In every state, Esc takes the left action and never reloads
   - The deleted state has no Reload button
   - Tab from the last button wraps to the first, and Shift+Tab wraps back
-  - `tests/focus-trap.test.ts:83-93`: replace the ReloadDialog "primary action button has autoFocus" source match with per-state focus assertions (rule 33 asks new dialogs for equivalent assertions)
+  - While Reload or Save As runs, the buttons are disabled and the busy label shows; a cancelled Save As leaves the dialog open with no toast; a rejected Save As shows one error toast and leaves the dialog open
+  - The dialog is named by its title and described by its message
+  - `tests/focus-trap.test.ts:108-119`: replace the ReloadDialog "primary action button has autoFocus" source match with per-state focus assertions (rule 33 asks new dialogs for equivalent assertions)
 - **Logging:** keep `dialog.reload.reload` and `dialog.reload.ignore` (`ReloadDialog.tsx:19,32,43`). Add `dialog.reload.discard` and `dialog.reload.save_as`, each with `context.state`.
 
 ### WI-4.11 — Already-open guard (DR6) — S
+- **Status (2026-10-07): delivered.** `de264bf` (D20) built this guard under [ADR-0028](../../adr/0028-reopening-a-dirty-open-file-focuses-it-instead-of-reloading.md), which passed its real-app acceptance on 2026-09-24. A dirty document is focused and never replaced (ADR-0028 decision 1). A **clean** document reloads, as before (decision 3), so the "whether or not it has unsaved edits" line below no longer holds. The two-spellings gap stays with WI-4.23 (E10). Nothing here runs in Stage 4.
+- *The rest of this item is the original spec (2026-09-11), kept as history. Its line numbers are not re-verified.*
 - **Order:** no UI and no file overlap with the other Stage 4 items, so it runs first in Stage 4. WI-4.14 follows it.
 - **Why:** `openDocumentFromPath` (`useDocument.ts:59-82`) and `openDocumentFromDialog` (`:92-100`) read the file and call `upsertDocument`. That call replaces any document with the same id (`documentStore.ts:45-64`), and the id is a hash of the path (`document.rs:57-64`). So re-opening an open file discards its unsaved edits with no prompt. The routes are ⌘O, recent files, Finder / `file:open` (`openPaths`, `App.tsx:553-567`) and a drop.
 - **Behavior:** if the path is already open, activate that document and do not use the fresh read, whether or not it has unsaved edits.
@@ -52,8 +65,8 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
 - **Order:** Lane B, right after WI-4.2. It uses the `Icon` close glyph and edits failure calls in `App.tsx`.
 - **Why:**
   - `toastStore.ts` holds one `message` and always starts a 3000 ms timer, so every toast disappears on its own.
-  - `Toast.tsx:13` always renders `role="status"` with `aria-live="polite"`. The component already accepts `onClose`, but `App.tsx:1189` passes none, so no toast has a dismiss button today.
-  - About a dozen calls report failures with the same look and timing as successes, including `Save failed: ${message}` (`saveService.ts:40`) next to "Saved" (`:37`). Rule 60 requires save errors to reach the user.
+  - `Toast.tsx:13` always renders `role="status"` with `aria-live="polite"`. The component already accepts `onClose`, but `App.tsx:1065` passes none, so no toast has a dismiss button today.
+  - About a dozen calls report failures with the same look and timing as successes, including `Save failed: ${message}` (`saveService.ts:96`) next to "Saved" (`:93`). Rule 60 requires save errors to reach the user.
   - DESIGN.md § Toasts specifies an error variant that nothing builds.
 - **Store:** `showToast(message, options?)`, where `options.variant` is `"info" | "error"` and defaults to `"info"`.
   - No call passes `durationMs` today, so the options object replaces that parameter. Re-check with grep before changing the signature.
@@ -62,31 +75,36 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
   - Any new toast replaces the current one (rule 32: one at a time), and its own variant decides the timer. A timer started for an earlier `info` toast must never clear a later `error` toast.
 - **Component:** reads the variant from the store.
   - `error`: `role="alert"`, the danger icon and left edge from DESIGN.md § Toasts, and a button named "Dismiss" that calls `clearToast`. Focus does not move to the toast.
+  - **Keyboard and focus:** "Dismiss" is in the normal Tab order, at the end of the document order; there is no global shortcut. It gets the rule 33 button ring (pattern 2, `--color-focus-ring`). `.toast-close` (`globals.css:839`) has a hover rule (`:847`) and no focus rule today.
+  - **Width:** `.toast` (`globals.css:824-836`) has no `max-width` today. It gets one (assumption: `min(480px, calc(100vw - 32px))`), and the message wraps.
   - `info`: unchanged: `role="status"`, `aria-live="polite"` and no button.
 - **Error calls:** re-locate each by its message, since earlier work items move the line numbers.
-  - `App.tsx`: `:530` open, `:596` export, `:614` reload, `:644` recover draft, `:655` discard draft, `:670` reopen with encoding, `:703` new window
-  - `saveService.ts:40`; widen `SaveDeps.showToast` to take the options
-  - `preferencesService.ts:78`
-  - `useUpdater.ts:52` (a save failed, so the update was cancelled)
+  - `App.tsx` (re-verified 2026-10-07 at 630cb86): `:401` open, `:467` export, `:485` reload, `:503` recover and discard draft (the copy is in `draftRecoveryOutcome.ts:27-28`), `:528` reopen with encoding, `:561` new window
+  - `saveService.ts:96`; widen `SaveDeps.showToast` to take the options
+  - `preferencesService.ts:99`
+  - `useUpdater.ts:91` (a save failed, so the update was cancelled)
   - `imagePastePlugin.ts:161` and `:217`, and the batch summary at `:208` when `failureCount > 0`
   - the WI-4.6 "Close failed" toast at both Discard callers
-- **Refusals stay `info`:** `imagePastePlugin.ts:85` and `:110`, `useUpdater.ts:28`, `App.tsx:724` and `:959`, and WI-4.12's unsupported-drop toast. Each tells the user what to do next instead of reporting a failure.
-- **Open failures reach the user** (DESIGN.md § States › Documents):
-  - Today `openDocumentFromPath` returns `null` for every failure that isn't an encoding error (`useDocument.ts:70-79`), and `openPaths` swallows the rest (`App.tsx:553-567`). Recent files, Finder / `file:open` and a drop show nothing (rule 60). Only ⌘O shows "Failed to open file" (`:530`), because the dialog path re-throws (`useDocument.ts:112-114`).
-  - `openDocumentFromPath` re-throws non-encoding failures, as the dialog path already does. An encoding failure still opens the encoding dialog and shows no toast.
-  - `handleOpenPath` shows one error toast, "Failed to open *name*", with the name from the DR4 helper. `openPaths` collects its failures and shows one toast for the batch, for example "Failed to open 3 files". ⌘O uses the same copy.
-  - A file over the limit adds its reason: "Failed to open *name*: larger than 10 MB". The backend returns `FileError::FileTooLarge` for it (`src-tauri/src/commands/file.rs:162-168`). Other raw error text goes to the log only (rule 30 rule 3).
-  - The large-file warning can't fire: it warns above 10 MB (`useDocument.ts:31`, `:66-68`, `:101-103`, `:126-128`; shown at `App.tsx:499-503`), and the backend refuses those files first (`file.rs:16`). It is a dead-code candidate (A8); list it, don't delete it.
-- **Export success:** "Exported HTML to *path*" (`App.tsx:593`) puts an absolute path in primary UI (rule 30 rule 3). It becomes "Exported *name*" with the DR4 helper; the path goes to the log only.
+- **Refusals stay `info`:** `imagePastePlugin.ts:85` and `:110`, `useUpdater.ts:31` and `:65`, `App.tsx:582` and `:831`, the encoding refusal at `App.tsx:525`, and WI-4.12's unsupported-drop toast. Each tells the user what to do next instead of reporting a failure.
+- **Open failures reach the user** (DESIGN.md § States › Documents). D46 built part of this; build on it, don't add a parallel path:
+  - **Today** (re-verified 2026-10-07 at 630cb86): `openDocumentFromPath` passes every failure that isn't an encoding error to `reportOpenFailure` (`useDocument.ts:83-85`; `src/utils/openFailure.ts:69-78`). That shows one fixed toast, `OPEN_FAILED_MESSAGE` = "Failed to open file" (`openFailure.ts:37`), and logs `file.open.report` with only the `FileError` variant as `reason`. So recent files, Finder / `file:open` and a drop already show a toast. ⌘O shows the same copy itself (`App.tsx:401`), because the dialog path re-throws (`useDocument.ts:116-118`). `openPaths` (`App.tsx:424-438`) gets one toast per failed path, and the store keeps only the last.
+  - **What is left** is the name, the batch count and the 10 MB reason, all inside `reportOpenFailure` and its callers:
+    - one error toast, "Failed to open *name*", with the name from the DR4 helper; ⌘O uses the same copy
+    - `openPaths` collects its failures and shows one toast for the batch, for example "Failed to open 3 files". Its per-path calls must not toast: they log each failure (`file.open.report`, one per path) and hand it back, and `openPaths` shows the one summary. A batch with one failure shows the single-file copy
+    - a file over the limit adds its reason: "Failed to open *name*: larger than 10 MB". The backend returns `FileError::FileTooLarge` for it (`src-tauri/src/commands/file.rs:162-168`), and `reportOpenFailure` already reads the variant. Other raw error text goes to the log only (rule 30 rule 3).
+  - An encoding failure still opens the encoding dialog and shows no toast.
+  - The large-file warning can't fire: it warns above 10 MB (`LARGE_FILE_BYTES`, `openWriteGuard.ts:46`, `:149`; set at `useDocument.ts:59`; shown at `App.tsx:332-336`), and the backend refuses those files first (`file.rs:16`). It is a dead-code candidate (A8); list it, don't delete it.
+- **Export success:** "Exported HTML to *path*" (`App.tsx:464`) puts an absolute path in primary UI (rule 30 rule 3). It becomes "Exported *name*" with the DR4 helper; the path goes to the log only.
 - **Logging settings save:** `loggingService.setLoggingSettings` (`loggingService.ts:82-85`) goes through `safeInvoke`, which returns `null` on any failure (`:17-23`). The call then resolves with the requested settings, so a failed save looks saved. It calls `invoke` directly and rejects instead; the `AdvancedSettings` change is in WI-4.3.
 - **Rule 32:** § Toast gains the variant contract in the same commit (DESIGN.md § Rule changes).
 - **Tests** (through tdd-guardian, RED first):
   - The store, with fake timers: `info` clears after 3000 ms; `error` is still set long after; `error` after `info` cancels the pending timer; `info` after `error` replaces it and starts a timer
   - `Toast`, by role: `error` renders an alert whose "Dismiss" button clears the store; `info` renders a status with no button
+  - Tab reaches "Dismiss"; source inspection: `.toast-close:focus-visible` exists and uses `--color-focus-ring`, and `.toast` declares a `max-width`
   - Regression: `tests/save-blink.test.ts:106-115` expects the save rejection to pass the error variant. This test fails today.
   - `tests/preferences-save-failure.test.ts` and `tests/useUpdater.test.ts:96` assert the error variant
   - A source-inspection test, in the style of `tests/focus-trap.test.ts`, finds each `App.tsx` failure message above and asserts its call passes the error variant
-  - **Regression:** opening a missing path through `handleOpenPath` shows one error toast naming the file. This test fails today. A batch of two failures through `openPaths` shows one toast with the count; an encoding failure shows none.
+  - **Regression:** opening a missing path through `handleOpenPath` shows one error toast naming the file. This test fails today (the toast says "Failed to open file"). The D46 tests of `reportOpenFailure` stay green or are updated to the new copy. A batch of two failures through `openPaths` shows one toast with the count; an encoding failure shows none.
   - A `FileTooLarge` rejection gives "larger than 10 MB"; an unknown rejection gives no raw message in the toast
   - The export success toast contains the file name and no `/`
   - `setLoggingSettings` rejects when `invoke` rejects
@@ -94,7 +112,7 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
 
 ### WI-4.14 — WYSIWYG follows text changed outside the editor (DR11) — M
 - **Test surface (E31):** the acceptance sequence runs against **real Milkdown in Vitest browser mode** (Playwright, Chromium and WebKit), mounting the production editor configuration with real plugins and mocking only the Tauri transport behind a controllable persistence adapter. No existing test mounts Milkdown, and this failure crosses debounce state, editor transactions, history plugins and persistence, so a pure module or a bare `EditorState` cannot prove the integrated outcome. Detailed timing permutations stay in deterministic unit tests. A save already in flight when the reload arrives is covered too, which requires a defined version and conflict policy, because cancelling a timer cannot cancel a started write.
-- **Order:** right after WI-4.11, before the lanes split. It touches `App.tsx` and `MilkdownEditor.tsx`, which Lane B also edits.
+- **Order:** right after WI-4.11, before the lanes split. (2026-10-07: WI-4.11 is already delivered in `de264bf`, so WI-4.14 does not wait on it.) It touches `App.tsx` and `MilkdownEditor.tsx`, which Lane B also edits.
 - **Why:**
   - `useEditor` builds the Milkdown instance with `[activeDocumentId]` as its only dependency (`MilkdownEditor.tsx:173-203`) and reads the text once, through `defaultValueCtx` (`:188`). A store write that keeps the id never reaches the screen.
   - Reload writes that way: `handleReloadFile` (`App.tsx:606-620`) calls `replaceDocument`, which is `upsertDocument` with the same id (`useDocument.ts:155-160`). The screen keeps the old text.

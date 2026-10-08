@@ -8,13 +8,13 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 
 ### WI-2.1 — Tokenization guard test (RED first) — M
 - Create `tests/css-tokenization.test.ts` with one `it` per in-scope CSS file. Use the source-inspection style of `tests/design-tokens-accent-danger.test.ts`, including its `@module` / `Purpose:` header.
-- The test enforces the A5 definition: the property families in [`baseline-protocol.md`](baseline-protocol.md), the rule 31 § Acceptable hardcoded values allowlist, and the rule 31 § Z-index hierarchy table plus any Q10 exception, and the dev-only toolbar rules (`.dev-toolbar*`, `globals.css:1509-1547`) as an exception with file:line (DR21). `999px` pill radii join `50%` on the allowlist, and WI-2.1 edits rule 31 § Acceptable hardcoded values in the same commit (DR23).
-- **Exception list (2026-10-03 rulings).** The test lists each exception with file:line, a reason and its source. These join the DR21 dev-toolbar rules and the Q10 `.column-resize-handle` `z-index: 1` (`MilkdownEditor.css:214`) above. Line numbers are at a5767d5, per [Appendix A](appendix-a-literals.md#rulings-user-2026-10-03):
+- The test enforces the A5 definition: the property families in [`baseline-protocol.md`](baseline-protocol.md), the rule 31 § Acceptable hardcoded values allowlist, and the rule 31 § Z-index hierarchy table plus any Q10 exception, and the dev-only toolbar rules (`.dev-toolbar*`, `globals.css:1509-1547`) as an exception with file:line (DR21; 2026-10-07: moot, those rules were deleted in `1703dbb`, so the test lists no dev-toolbar exception). `999px` pill radii join `50%` on the allowlist, and WI-2.1 edits rule 31 § Acceptable hardcoded values in the same commit (DR23).
+- **Exception list (2026-10-03 rulings).** The test lists each exception with file:line, a reason and its source. These join ~~the DR21 dev-toolbar rules and~~ the Q10 `.column-resize-handle` `z-index: 1` (`MilkdownEditor.css:214`) above. Line numbers are at a5767d5, per [Appendix A](appendix-a-literals.md#rulings-user-2026-10-03) (2026-10-07: the dev-toolbar rules are gone, deleted in `1703dbb`):
   - **R4, spinners:** `spin 0.8s linear infinite` at `globals.css:815` (`.spinner`) and `imagePastePlugin.css:24` (`.image-paste-placeholder::before`). DR13 keeps spinners rotating, so the zeroed motion token cannot carry them.
   - **R8, highlight fill:** the `mark` background at `MilkdownEditor.css:266`.
   - **R9, content radius:** the `pre` `border-radius` at `MilkdownEditor.css:105`, an editor-content shape DR23 gives no role.
 
-  That makes 13 exception rows in all. The list has no other entries. In particular, Stage 2 has **no** computed-style carve-out: R10 moved Q6 to Stage 3 instead.
+  That makes 13 exception rows in all (2026-10-07: 5 after `1703dbb` removed the 8 dev-toolbar rows). The list has no other entries. In particular, Stage 2 has **no** computed-style carve-out: R10 moved Q6 to Stage 3 instead.
 - **Deferred list (A12):**
   - Class (b) literals are listed explicitly as `{ file, selector, property, value, stage: 3 | 4, item: N }`. A listed literal passes; anything else fails.
   - A separate `it` asserts the per-stage counts.
