@@ -22,7 +22,7 @@
  *   the immutable `state.doc` plus `selection.head` (a range collapses to its head), and
  *   only when the document is active, the mode is WYSIWYG, an editor is registered and its
  *   view `hasFocus()`. An unfocused editor never pays for, or gains, a carry.
- * - **A prompt returning into the editor counts as focused** (D38, ADR-0055). Queued MCP confirm
+ * - **A prompt returning into the editor counts as focused** (D38, ADR-0060). Queued MCP confirm
  *   prompts hand focus from one prompt to the next, so a write approved in the first lands
  *   while the second holds focus. When focus is inside an open return-focus container
  *   (`useReturnFocusOnClose`; the MCP confirm dialog is its only adopter) whose pending

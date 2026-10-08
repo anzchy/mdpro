@@ -22,7 +22,7 @@
  * - **Never steal focus.** Focus on anything but `<body>`/null (or the new view itself)
  *   means the user moved on: the record is still consumed and logged
  *   `skipped:focus-elsewhere`.
- * - **A prompt holding focus gets the view instead** (D38, ADR-0055). A `viaDialog` record (captured
+ * - **A prompt holding focus gets the view instead** (D38, ADR-0060). A `viaDialog` record (captured
  *   while a queued MCP confirm prompt held focus) whose prompt still holds focus: the
  *   prompt's return target is redirected to the new `view.dom`, the caret is selected and
  *   scrolled, but the view is NOT focused; the prompt's close focuses it. Logged

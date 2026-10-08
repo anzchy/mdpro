@@ -1,4 +1,4 @@
-# 0055. A confirm prompt returning into the editor carries the caret
+# 0060. A confirm prompt returning into the editor carries the caret
 
 **Status**: Accepted (2026-10-08, decided by the user for D38). Amends
 ADR-0044's D37 consequences: the caret is no longer carried "only when the

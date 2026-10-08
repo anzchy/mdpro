@@ -26,7 +26,7 @@
  * - **Fallback only when a prior element existed but is gone** (RF-9): opened from body →
  *   nothing to return to, so nothing is focused.
  * - **Never throws**: a throwing fallback or focus call is contained.
- * - **Queryable and redirectable** (D38, ADR-0055):`pendingReturnTarget` tells the D37 focus capture
+ * - **Queryable and redirectable** (D38, ADR-0060):`pendingReturnTarget` tells the D37 focus capture
  *   where an open container holding focus will return it; `redirectReturnFocus` lets the
  *   rebuilt editor's restore make its new `view.dom` that container's first target, so a
  *   queued prompt closes onto the rebuilt view instead of the end fallback.
