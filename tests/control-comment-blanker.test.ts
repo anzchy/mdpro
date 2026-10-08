@@ -8,6 +8,7 @@
  * blank-everything, so (c) is the law that does the specifying.
  */
 import { describe, expect, it } from "vitest";
+// @ts-expect-error -- plain ESM script, no .d.ts by design
 import { blankComments } from "../scripts/control/commentBlanker.mjs";
 
 type Lang = "js" | "rust" | "css";

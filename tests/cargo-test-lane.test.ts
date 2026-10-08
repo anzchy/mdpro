@@ -13,6 +13,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+// @ts-expect-error -- plain ESM script, no .d.ts by design
 import { classifyCargoExit, createFailedSummaryDetector } from "../scripts/cargo-test-lane.mjs";
 
 const WRAPPER = fileURLToPath(new URL("../scripts/cargo-test-lane.mjs", import.meta.url));
@@ -515,6 +516,7 @@ describe("cargo-test-lane driver (real processes)", () => {
   );
 
   it("CW-15 importing the module runs nothing (main guard)", async () => {
+    // @ts-expect-error -- plain ESM script, no .d.ts by design
     const mod = await import("../scripts/cargo-test-lane.mjs");
     expect(typeof mod.classifyCargoExit).toBe("function");
     expect(typeof mod.createFailedSummaryDetector).toBe("function");

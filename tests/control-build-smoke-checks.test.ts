@@ -15,8 +15,11 @@
  */
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+// @ts-expect-error -- plain ESM script, no .d.ts by design
 import { buildLayout } from "../scripts/control/buildSteps.mjs";
+// @ts-expect-error -- plain ESM script, no .d.ts by design
 import { MANIFEST_FILE } from "../scripts/control/manifest.mjs";
+// @ts-expect-error -- plain ESM script, no .d.ts by design
 import { checkVerifyBundle, formatSmokeSummary, smokeExit } from "../scripts/control/smokeChecks.mjs";
 
 // ---------------------------------------------------------------------------
@@ -617,11 +620,19 @@ describe("smokeExit", () => {
     expect(n).toBe(2054);
   });
 
-  it.each([
+  type SmokeExitRow = [
+    buildStatus: number | null,
+    buildSignal: string | null,
+    failures: string[],
+    expected: { exit: number; failures: string[] } | { signal: string },
+  ];
+  it.each<SmokeExitRow>([
     [0, null, [], { exit: 0, failures: [] }],
     [0, null, ["a"], { exit: 1, failures: ["a"] }],
-    ...[75, 126, 127, 130, 137, 143].map((s) => [s, null, [], { exit: s, failures: [`control:build exited ${s}`] }]),
-    ...[1, 2, 101, 255].map((s) => [s, null, [], { exit: 1, failures: [`control:build exited ${s}`] }]),
+    ...[75, 126, 127, 130, 137, 143].map(
+      (s): SmokeExitRow => [s, null, [], { exit: s, failures: [`control:build exited ${s}`] }],
+    ),
+    ...[1, 2, 101, 255].map((s): SmokeExitRow => [s, null, [], { exit: 1, failures: [`control:build exited ${s}`] }]),
     [null, "SIGTERM", [], { signal: "SIGTERM" }],
     [null, "SIGINT", ["a"], { signal: "SIGINT" }],
   ])("SE-02 status %j signal %j failures %j", (buildStatus, buildSignal, failures, expected) => {
