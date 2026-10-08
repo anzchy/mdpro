@@ -2,8 +2,8 @@
 
 Generated on 2026-09-11 from the execution prompt `.prompts/2026-09-11_050736_FINAL.md`
 Baseline commit: `0a3675e` (re-verify every "observed" fact before relying on it)
-Branch: master
-Status: DRAFT — blocked on the Stage 0 approval gate
+Branch: frontend-backend-redesign
+Status: APPROVED at the Stage 0 gate (stop point 1, user, 2026-10-08); Stage 1 is unblocked
 Sources of truth (precedence on conflict: rules > old DESIGN.md > review > proposal > DESIGN.md):
 
 - [`.claude/rules/30-34`](../../.claude/rules/): enforceable rules. Rule 31 defines "tokenized"; rule 33 defines focus patterns; rule 34 defines the theme classes.
@@ -106,19 +106,21 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 
 ## Assumptions (confirm or change at the Stage 0 gate)
 
+**Confirmed at stop point 1 (user, 2026-10-08).** A2, A5, A9 and A12 as written; A1, A3, A6, A7, A10 and A11 with amended wording; A4 and A8 rewritten to the current state. The rows below are the confirmed text.
+
 | ID | Assumption |
 |---|---|
-| A1 | All 15 review items are in scope. If scope narrows (e.g. P0 only), drop whole work items. |
+| A1 | All 15 review items are in scope. If scope narrows (e.g. P0 only), drop whole work items. The decided DR work items and WI-4.6b (run 2; [ADR-0056](../adr/0056-recovery-stays-a-forced-choice-and-encoding-opens-on-cancel.md), its encoding half superseded by ADR-0057) are also in scope. WI-4.11 (DR6) is already delivered by ADR-0028 (`de264bf`). |
 | A2 | Orchestrate through `/feature-workflow`. Each work item is implemented with `/tdd-guardian:workflow`. |
-| A3 | Visual QA uses `/qa-only` (report-only). `/design-review` runs only when the user asks. |
-| A4 | Screenshots and computed-style JSON are stored at `$TMPDIR/mdpro-redesign/<stage>/<surface>-<theme>.{png,json}` and never committed. |
+| A3 | Visual QA uses `/qa-only` (report-only). `/design-review` runs only when the user asks. Sign-off on the Tauri and release surfaces (the Stage 3/4 mandatory visual sign-off, on the Mac mini) goes through `/gui-acceptance`, with the record in `docs/test/`. |
+| A4 | Evidence lives outside the repo and none of it is committed. The before screenshots are on the Mac mini at `~/.mdpro-redesign/stage-0/shots/<surface>-<theme>.png` (@1x; [Appendix B](20260911-ui-redesign/appendices.md)). The E5 JSON baselines are in `~/.mdpro-redesign/stage-0-post-merge/{json-macbook,json-mini-wkwebview}/`. Stage 3–4 after-captures follow the same same-machine rule. The capture script is in the repo at `scripts/redesign/snapshot.js` (`c936591`). *(Rewritten at stop point 1, 2026-10-08; it read `$TMPDIR/mdpro-redesign/<stage>/<surface>-<theme>.{png,json}` before WI-0.4.)* |
 | A5 | "100% tokenized" follows the definition in [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md). |
-| A6 | Stage 1 is a pure move into ordered partials listed in `src/styles/index.css` (E2). `:root` tokens stay in `globals.css` (rule 31:11-16). |
-| A7 | No new runtime npm or cargo dependency, including icon, image-diff and contrast tools. The only exception is E7's test-only devDependencies — **four** at the E28 floors, since `@testing-library/jest-dom` joins the three E7 names — added in WI-0.0's chore PR before Stage 0, not in WI-1.0. |
-| A8 | `src/App.css`, `src/components/TabBar/`, the unmounted Preview pane (DR10: `src/components/Preview/Preview.tsx`, `ImageRenderer.tsx`, `styles/preview.css`, and `src/hooks/usePreview.ts`) the unmounted document list (`src/components/Sidebar/Sidebar.tsx` and `FileItem.tsx`; **deleted 2026-10-08 by [ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)**, which overrides this row for those two files only) and the unreachable large-file warning (WI-4.13) are dead-code candidates; list them, do not delete them. `src/components/Preview/mathRender.ts` stays live, because HTML export uses it. The tokenization test asserts that no file outside the candidates imports them. Deletion is tracked in TODOS.md. |
+| A6 | Stage 1 is a pure move into ordered partials listed in `src/styles/index.css` (E2). The pure-move baseline is the WI-1.2 commit that deletes `.toolbar-recent*`, and the target is the 15 partials in [`css-file-map.md`](20260911-ui-redesign/css-file-map.md) §3. `:root` tokens stay in `globals.css` (rule 31:11-16). |
+| A7 | No plan-P work item adds a runtime npm or cargo dependency, including icon, image-diff and contrast tools. This is measured by G0's per-WI diff from each work item's own start. Crates added outside plan P are not a breach: `objc2*` (ADR-0025/0027) and `libc` (ADR-0047). E7/E28's four test-only devDependencies (`@testing-library/jest-dom` joins the three E7 names) already landed in `16fb45c`. |
+| A8 | The remaining dead-code candidates are `src/App.css`, `src/components/TabBar/` and the unreachable large-file warning (WI-4.13); list them, do not delete them. The Preview group was deleted in `15b9d35` / `e021f47` (DR10), and `Sidebar/Sidebar.tsx` / `FileItem.tsx` were deleted in `c633aca` ([ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)). `src/services/mathRender.ts` is live, because HTML export uses it. The WI-2.1 guard asserts that nothing imports `App.css` or `TabBar/`. Deletion stays a TODOS.md item. *(Rewritten at stop point 1, 2026-10-08.)* |
 | A9 | Contrast thresholds are WCAG 2.1 AA: 4.5:1 for text, 3:1 for focus indicators and control boundaries. |
-| A10 | Class (c) literals with 3 or more unrelated uses get a semantic token (rule 31's rule of three). |
-| A11 | Manual test guide location: `docs/guide/manual-test-ui-redesign.md`. |
+| A10 | Class (c) literals with 3 or more unrelated uses get a semantic token (rule 31's rule of three). Exception: `--color-scrim` (R6, one use, user ruling 2026-10-03). |
+| A11 | Manual test guide location: `docs/guide/manual-test-ui-redesign.md`. It is created by the first implementing work item and updated per work item. Fixtures go in `tests/manual-fixtures/`, and per-run device records go in `docs/test/`. |
 | A12 | Deferred class (b) literals are tracked in an explicit allowlist inside the tokenization test rather than by `it.skip` on whole files. This refines the prompt so every file stays guarded during Stage 2; see WI-2.1. |
 
 ## Open questions (must be answered at the Stage 0 gate)
@@ -152,10 +154,10 @@ All closed. Q15 and Q16 were answered by the user on 2026-10-07, after a Codex c
 |---|---|---|---|---|
 | A — CSS infrastructure | 1, 2 | None (computed-style diff is empty) | none directly | Stage 2 |
 | B — Visual retune | 3 | Intended | 1, 7, 8, 10, 11, 12, 15 | Stage 3 **(visual sign-off)** |
-| C — Components | 4 | Intended | 2, 4, 5, 6, 9, 13, 14; DR2 main bar and status strip; DR3 empty state; DR5 external-change dialog; DR6 already-open guard; DR7 drop target; DR8 destructive confirmation; DR9 error toasts | Stage 4 **(visual sign-off)** |
+| C — Components | 4 | Intended | 2, 4, 5, 6, 9, 13, 14; DR2 main bar and status strip; DR3 empty state; DR5 external-change dialog; DR6 already-open guard (WI-4.11, already delivered by ADR-0028 `de264bf`); DR7 drop target; DR8 destructive confirmation; DR9 error toasts; WI-4.6b Recovery and Encoding dialog shell (run 2; ADR-0056/0057) | Stage 4 **(visual sign-off)** |
 | D — `sourceFont` | 5 | Intended (Source mode only) | 3 (D2) | Stage 5 |
 
-The item→stage mapping is an assumption (A1). Correct it at the Stage 0 gate.
+The item→stage mapping is an assumption (A1). Corrected and confirmed at the Stage 0 gate (stop point 1, 2026-10-08): the Deliverable C row gained WI-4.6b and marks WI-4.11 as delivered.
 
 ---
 
@@ -223,8 +225,8 @@ Read this file first, then only the stage file you are working on.
 - Review §4 artboard work (designing the undrawn surfaces). Those surfaces get token changes only, except the empty state, which WI-4.9 builds (DR3), the external-change dialog, which WI-4.10 rebuilds (DR5), and the drop target, which WI-4.12 builds (DR7).
 - A command palette, unless the app already has one (Q11).
 - Density changes, title-bar and tab-bar height changes.
-- Deleting `src/App.css`, `src/components/TabBar/`, the Preview pane files, or the large-file warning (list them only). `Sidebar/Sidebar.tsx` and `FileItem.tsx` are the exception: deleted 2026-10-08 ([ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)).
-- Restyling or re-mounting the Preview pane (DR10). Its dark code theme is unsolved, because `Preview.tsx:6` imports only the light `github.css`, and has to be solved before any re-mount.
+- Deleting `src/App.css`, `src/components/TabBar/` or the large-file warning (list them only; A8). The Preview pane files are already gone (`15b9d35` / `e021f47`, DR10), and `Sidebar/Sidebar.tsx` and `FileItem.tsx` were deleted 2026-10-08 ([ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)).
+- Restyling or re-mounting the Preview pane (DR10). The pane was deleted in `15b9d35` / `e021f47`; a re-mount must first solve its dark code theme (the old `Preview.tsx` imported only the light `github.css`).
 - A stylelint setup or any new runtime dependency.
 - The rejected D3 code hue.
 - Fixing the existing `config.json` overwrite inside this plan. It is a separate PR that gates Stage 5 (E6; TODOS.md P1).
@@ -238,7 +240,7 @@ Read this file first, then only the stage file you are working on.
 
 ## Acceptance Criteria
 
-- [ ] Stage 0 gate: the plan is approved and A1–A12 / Q1–Q14 are answered or waived
+- [x] Stage 0 gate: the plan is approved and A1–A12 / Q1–Q14 are answered or waived *(user approval at stop point 1, 2026-10-08; A1–A12 as recorded in the Assumptions table; Q1–Q16 closed)*
 - [ ] Deliverable A: `globals.css` split with a pure-move proof; tokenization guard is green; empty computed-style diff against the baseline
 - [ ] Deliverable B: proposal token retune applied in both themes; deferred list empty; contrast table and rule 33 checklist recorded; **user visual sign-off received**
 - [ ] Deliverable B also raises the macOS floor to 13.1 in `tauri.conf.json`, CLAUDE.md and DESIGN.md
@@ -486,5 +488,7 @@ Implementing WI-4.26 first would write acceptance criteria against a colliding i
 Q2, Q6 and Q10 stood in the list below until 2026-09-12 and are now answered; the Open questions table above is canonical for their wording. Q6's answer is **replace, do not declare**: `.about-status-ok` → `--color-text` for both its phases, `.about-status-error` → `--color-danger`, and `.about-status-disabled` loses its colour line outright. An earlier draft of this block named `--color-muted` as that third replacement, which the table had already shown to be a no-op against `.about-status-text` — the block contradicted the table for as long as both were on master.
 
 **DECISIONS CLOSED 2026-10-07** (user, after a Codex consult): Q15 — WI-4.22 stays before WI-4.8; Q16 — [ADR-0055](../adr/0055-a-missed-performance-budget-changes-the-design-not-the-number.md); WI-4.6b — [ADR-0056](../adr/0056-recovery-stays-a-forced-choice-and-encoding-opens-on-cancel.md): RecoveryDialog stays a forced choice, EncodingDialog opens on Cancel.
+
+**STOP POINT 1 PASSED 2026-10-08** (user, explicit approval of this plan): A1–A12 confirmed as recorded in the Assumptions table; Appendix A plan discrepancies 1, 2, 7 and 8 resolved, 6 deferred to Stage 3/4; Stage 1 is unblocked.
 
 NO UNRESOLVED DECISIONS

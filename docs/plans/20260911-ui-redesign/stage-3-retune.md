@@ -22,7 +22,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - per-theme `--shadow-soft`, which today exists only in `:root`; the Q2 answer decides the `:root` copy (proposed: keep it, guarded for parity)
 - **Item 15 (optional, P2):** derive `--color-code-bg` (review :250).
 - **Radii (DR23, required):** snap each deferred radius to its DR23 role.
-  - 8px `.toolbar-button` and `.settings-category-btn`, 10px `.settings-search` and 4px `.settings-input` become `--radius-control`.
+  - 8px `.toolbar-button` and `.settings-category-btn` and 4px `.settings-input` become `--radius-control`. `.settings-search` (10px) is not a site: no component renders it (an orphan, [Appendix A](appendix-a-literals.md#plan-discrepancies-found-while-inventorying) discrepancy 2, resolved at stop point 1).
   - 8px table and image menus, 16px `.dialog-card` and `.settings-dialog`, 12px `.toast` and 12px grouped sections (`.shortcuts-section`, `.recovery-item`) become `--radius-popover`.
   - Nested parts (menu items, tab close, stepper buttons, inline edit, table and grid-picker cells) become `--radius-inner`. If a cell's before/after capture shows 4px breaking its borders, that cell uses `0`.
   - 24px `.toggle-slider` and the 3px About progress bar become `999px`. `.mcp-status-badge` loses its fill in WI-4.4, so its radius goes too.
@@ -34,7 +34,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - **Item 1:** `globals.css:1032` and `:1747` switch to `--color-accent-soft`.
 - **Item 11 (DR12):** colors change instantly; only shape and visibility animate.
   - **Remove** color transitions (preflight re-lists the live sites): `.grid-picker-cell` (`globals.css:639`), the `.toggle-slider` track (`:1335`, `transition: 0.2s` covers every property), `.toc-entry__content` (`:1739`), and `.bottom-tabs__add` and `.bottom-tab` (`BottomTabs.css:24`, `:66`, both `all`). Preflight checks that `all` animated nothing but color. The dead `.tab` rule (`:1629`) is out of scope (A8).
-  - **Keep, on the motion tokens:** the switch knob `transform` (`:1347`), and the hover-reveal `opacity` on `.tab__close` (`:1667`), `.bottom-tab__close` (`BottomTabs.css:105`) and `.mcp-copy-btn` (`:1423`). Spinner keyframes (`globals.css:810`, `imagePastePlugin.css:24`) keep rotating. Their `spin 0.8s linear infinite` is a WI-2.1 exception (2026-10-03 ruling R4; `globals.css:815` at a5767d5), not a motion-token site.
+  - **Keep, on the motion tokens:** the switch knob `transform` (`:1347`), and the hover-reveal `opacity` on `.bottom-tab__close` (`BottomTabs.css:105`) and `.mcp-copy-btn` (`:1423`). `.tab__close` (`:1667`; `globals.css:1704` at a5767d5) is not a keep: its only consumer is `TabBar/`, so it is dead with `.tab` (A8; Appendix A discrepancy 1, resolved at stop point 1). Spinner keyframes (`globals.css:810`, `imagePastePlugin.css:24`) keep rotating. Their `spin 0.8s linear infinite` is a WI-2.1 exception (2026-10-03 ruling R4; `globals.css:815` at a5767d5), not a motion-token site.
   - Add one `@media (prefers-reduced-motion: reduce)` block that sets the duration token to zero (proposal :60). Spinners keep rotating (DR13).
   - **Rule edit (DR13):** `.claude/rules/32-component-patterns.md` § Animations replaces "Wrap non-essential motion in `@media (prefers-reduced-motion: no-preference)`" with: every duration comes from the motion tokens, one `@media (prefers-reduced-motion: reduce)` block zeroes them, and progress spinners keep rotating. The modal-entry and theme-property sentences stay.
   - **Test:** extend the tokenization test so a `transition` or `transition-property` that names `background`, `background-color`, `color`, `border-color`, `box-shadow` or `all`, or has no property at all, fails in in-scope CSS.
@@ -52,8 +52,8 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - **R5:** the CodeMirror selection (`globals.css:349`) → a `color-mix()` of `--color-accent` at today's 25%. Dark is unchanged; light becomes the light accent.
   - **R7:** the Milkdown table `font-size: 14px` (`MilkdownEditor.css:141`) → `0.875em`. It is unchanged at the default editor size, and it now scales with the editor font-size preference.
   - Each one is an intended Stage 3 change, so it goes in the screenshot index. The About status, the MCP installations row, a primary button's hover, a source-mode selection and a WYSIWYG table must each be captured in both themes. R5's mix uses no literal argument, so it passes WI-2.1's `color-mix()` scanner fixture.
-- **Hover:** row hover moves from `--color-panel` to `--color-hover` (review item 7).
-- **Flat rows and tabs:** TOC rows, settings rail items and tabs get no border or shadow at rest; the radius shows only on the hover or selected fill (DESIGN.md § Tokens). The active tab's `--shadow-soft` is the one exception (proposal :45).
+- **Hover:** row hover moves from `--color-panel` to `--color-hover` (review item 7). This bullet owns the class (b) row `BottomTabs.css:115` (`.bottom-tab__close:hover`, black 8% → `--color-hover`; stage `3 (WI-3.2 hover)`).
+- **Flat rows and tabs:** TOC rows, settings rail items and tabs get no border or shadow at rest; the radius shows only on the hover or selected fill (DESIGN.md § Tokens). The active tab's `--shadow-soft` is the one exception (proposal :45); this bullet owns the class (b) row `BottomTabs.css:79` (`.bottom-tab--active` shadow → `--shadow-soft`; stage `3 (WI-3.2)`). Line numbers are at a5767d5 (Appendix A discrepancy 8, resolved at stop point 1).
 - **Item 8:** menus and toasts may use `--color-border-subtle` with the single `--shadow-soft`.
 - Remove each migrated `stage: 3` entry from the deferred list.
 
