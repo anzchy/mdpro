@@ -38,10 +38,12 @@ export default defineConfig({
       // Without `include` + `all`, the denominator is whatever the tests happened
       // to import — node_modules included — which reported a meaningless 97898
       // lines. Scoping it to first-party source is what makes the thresholds below
-      // mean anything.
-      include: ["src/**/*.{ts,tsx}"],
+      // mean anything. `scripts/control` is first-party build tooling with its own
+      // unit tests (ADR-0047); its untested driver `smoke.mjs` counts as 0%, on purpose.
+      include: ["src/**/*.{ts,tsx}", "scripts/control/**/*.mjs"],
       all: true,
-      // Measured floor, rounded down (2026-10-02, WI-0.1 pre-run): 73.62 / 80.80 / 91.38 / 73.62. These must
+      // Measured floor, rounded down (2026-10-02, WI-0.1 pre-run): 73.62 / 80.80 / 91.38 / 73.62.
+      // With scripts/control included (2026-10-08): 76.92 / 82.90 / 91.56 / 76.92. These must
       // stay identical to coverageThresholds in .claude/tdd-guardian/config.json;
       // the guardian JSON alone cannot make this command fail.
       thresholds: { lines: 73, functions: 80, branches: 91, statements: 73 },
