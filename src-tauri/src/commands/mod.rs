@@ -95,6 +95,10 @@ mod draft_backstop_undiscard_tests;
 #[path = "draft_owner_gate_tests.rs"]
 mod draft_owner_gate_tests;
 
+#[cfg(test)]
+#[path = "draft_log_event_tests.rs"]
+mod draft_log_event_tests;
+
 #[cfg(all(test, unix))]
 #[path = "draft_ctx_under_lock_tests.rs"]
 mod draft_ctx_under_lock_tests;

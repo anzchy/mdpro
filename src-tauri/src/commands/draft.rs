@@ -9,8 +9,10 @@
 //!   session id, the calling window's label). `save_draft_logged` is the
 //!   command body without the injected `WebviewWindow`, so tests can call it.
 //! - `save_draft_gated` keeps its unowned signature for its existing callers.
-//! - The path-bearing `file.write` log is deliberately unchanged here
-//!   (deferred by the D27 plan).
+//! - The save logs as `draft.write` (D56), not `file.write`: it writes the
+//!   draft bundle under the data dir and never the document file. Its start
+//!   line still carries the document's path as `filePath`, naming which
+//!   document the draft belongs to (path-bearing, deferred by the D27 plan).
 //!
 //! @coordinates-with src-tauri/src/commands/draft_recovery.rs
 //! @coordinates-with src-tauri/src/services/draft/owner.rs
@@ -90,7 +92,7 @@ pub async fn save_draft(
 }
 
 /// The `save_draft` command body: a gated save through `QUIT_COMMITTED` that
-/// writes `owner`, with its `file.write` log lines.
+/// writes `owner`, with its `draft.write` start / success / fail log lines.
 pub(crate) fn save_draft_logged(
     owner: Option<DraftOwner>,
     document_id: &str,
@@ -102,7 +104,7 @@ pub(crate) fn save_draft_logged(
     let start = std::time::Instant::now();
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
-        event: "file.write".to_string(),
+        event: "draft.write".to_string(),
         status: LogStatus::Start,
         action_id: Some(action_id.clone()),
         context: Some(json!({
@@ -124,7 +126,7 @@ pub(crate) fn save_draft_logged(
     .inspect_err(|err| {
         logger::log_event(LogEntryPayload {
             level: LogLevel::Error,
-            event: "file.write".to_string(),
+            event: "draft.write".to_string(),
             status: LogStatus::Fail,
             action_id: Some(action_id.clone()),
             context: Some(json!({ "documentId": document_id })),
@@ -134,7 +136,7 @@ pub(crate) fn save_draft_logged(
     })?;
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
-        event: "file.write".to_string(),
+        event: "draft.write".to_string(),
         status: LogStatus::Success,
         action_id: Some(action_id),
         context: Some(json!({
