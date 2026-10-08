@@ -3,7 +3,7 @@
 Opened 2026-10-02
 Branch: `frontend-backend-redesign`（各工作项在 `mdpro-wt/` 下的短分支上做，合回本分支）
 Repo: anzchy/mdpro
-Status: **DRAFT 修订 2（待审核，未开工）**
+Status: **执行中（WI-000–WI-002 已完成并验证，2026-10-08；下一项 WI-003）**
 上游记录：[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed，2026-10-02 已修订）、[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，2026-10-02 已修订）、排序文档 [D30 行](./20260912-frontend-backend-sequencing-order.md#d30)
 
 **分工**：ADR-0047 是决定，本文只写工作项、验收和测试。两者冲突时以 ADR 为准，改的是本文。
@@ -390,7 +390,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   6. **`verify` 配置在 WI-002 之前不可用**。入口在 `src-tauri/tauri.verify.conf.json` 不存在时明确报错退出；验收第 5 条随之移到 WI-002。
   7. **失败不留清单**。入口解析完参数先删掉该配置下旧的 `build-manifest.json`，任何一步失败都不会留下清单。
   8. **覆盖率**。`scripts/control/*.mjs` 原先不在 vitest 的 `coverage.include` 里（与 `scripts/ledger/*.mjs` 相同），新代码的覆盖率数字因此不存在。**你定的是纳入（2026-10-08，review L2）**：`vitest.config.ts` 的 `include` 加了 `scripts/control/**/*.mjs`；总量 L/F/B/S 由 73.96 / 80.97 / 91.42 / 73.96 变为 76.92 / 82.90 / 91.56 / 76.92，门槛 73/80/91/73 不变。没有单测的驱动脚本 `smoke.mjs` 按 0% 计入，是有意的。
-- **状态（2026-10-08）**：**验收 1–6 全部了结；review（`.claude/tdd-guardian/review-20261003-050327.md`）的 L1、L2、Q1、Q2 和 Low 5/6/7/9 已收口，本轮改动待提交**。原提交 `e0eed13`、`35e266c`、`da046f1`；Low 5、6、9 和 Low 7 的措辞已在 `35e266c` 里。偏离 1–8 你 2026-10-08 已确认。Low 8（五个测试文件超 300 行）你定不拆，跳过。WI-001 本身不剩未结的验收项；ADR-0047 仍是 Proposed。
+- **状态（2026-10-08）**：**验收 1–6 全部了结；review（`.claude/tdd-guardian/review-20261003-050327.md`）的 L1、L2、Q1、Q2 和 Low 5/6/7/9 已收口，本轮改动已提交（`78c78e0`、`35c17f2`、`d6c1666`、`8026e37`、`0481bc7`）**。原提交 `e0eed13`、`35e266c`、`da046f1`；Low 5、6、9 和 Low 7 的措辞已在 `35e266c` 里。偏离 1–8 你 2026-10-08 已确认。Low 8（五个测试文件超 300 行）你定不拆，跳过。WI-001 本身不剩未结的验收项；ADR-0047 仍是 Proposed。收据 `ADR47-WI-3`（`buildId.mjs` 与 `tests/control-build-id.test.ts`，落在 `35e266c`）→ SEPARATION-BROKEN（2026-10-02）。高危项 spec-changed-under-green 指的是随机输入生成器里的一行 `sourceTree: str(r, HEX, ...(…))`：绿阶段为过 TS2556 改过，随后原样恢复，上方加一行 `// @ts-expect-error`，没有 `expect` 被改。2026-10-08 按插件的逐行指纹（0.10.2 `lib/verification.js` 的 `fingerprintFile`：去首尾空白、丢空行、sha256 取前 16 位）复核：2026-10-02T13:19Z 的 `ADR47-WI-13` 收据里，这个文件是红时 308 行原样加那一行注释，所以「原样恢复」成立（review-20261002-200447 当时说核不了）；判定那一刻这行被改成了什么，收据没存，查不到。提交版比红时还少两行，即 `genValid` 和 `mutate` 里的 `str(r, FEATURE_ALPHA, 1, 8)`（哈希逐字对上）。这是 WI-19 事先声明的生成器收窄（特征名不许以 `-` 开头，C4），发生在 2026-10-03，晚于这份收据的判定，`ADR47-WI-19` 收据为 HELD。另两条：weak-red 是插件解析不了 vitest 的 `| N todo` 后缀；implementation-already-present 的 7 个文件里，`scripts/control/buildId.mjs` 是本项实现，红时已在工作区（review Q2：红可能是导入失败而非断言失败，靠模块外算出的金值 T01/T02/T10 降级）；3 个 Rust 文件属 `ADR47-WI-1`（`e0eed13`），另 3 个是文档。review 把这份收据降为 Low 并豁免。
   - **review 收口（2026-10-08）**
     - **L1 集成 lane**：tdd-guardian 新增 `integration` lane（`gateOn: ["manual"]`，`coverage: none`），命令 `scripts/heavy-lock.sh node scripts/control/smoke.mjs`：真跑一次 `pnpm control:build --profile verify`，再由纯函数 `scripts/control/smokeChecks.mjs` 检查清单存在且 `updaterArtifacts:false`、`codesign -dvvv` 能解析且 cdhash 一致、bundle 旁边没有 `*.app.tar.gz` 或 `.sig`。`smokeChecks.mjs` 有 63 条单测（`tests/control-build-smoke-checks.test.ts`）。2026-10-08 真跑：exit 0，93 s，`=== 10 passed, 0 failed ===`，buildId `3480d8af…`（之后按 review 改了驱动：构建失败时 total 只计失败数，重抛信号前先设 exitCode 1）。反向检查：把真实 codesign stderr 里的 `CDHash=` 行删掉，`checkVerifyBundle` 报 `parseCodesign: missing or empty CDHash=`。**限制**：只跑 verify 配置，release 的 `--config` 路径没走到；`tauri.verify.conf.json` 自己就设了 `createUpdaterArtifacts:false`，清单里的 `updaterArtifacts:false` 又是常量（`manifest.mjs:180`），所以真正算证据的只有「目录里没有更新产物」这一条。
     - **L2 覆盖率**：见偏离 8。
