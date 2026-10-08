@@ -3,8 +3,11 @@
  * spaces, keeping every newline and every string literal, so the result has
  * the same length and the same line numbers as the input. `buildInputsGuard`
  * runs its reference patterns over this copy, so a path mentioned in a
- * comment is never reported. Consumed by `buildInputsGuard.mjs` (WI-5) and
- * `tests/control-build-inputs-guard-forms.test.ts` through it.
+ * comment is never reported. Direct importers: `buildInputsGuard.mjs` (WI-5),
+ * `persistenceRoots.mjs`, `tests/support/rustSource.ts`,
+ * `tests/control-verify-run-wiring.test.ts`, and its own characterisation test
+ * `tests/control-comment-blanker.test.ts`. `rustScopes.mjs` consumes its
+ * output but does not import it.
  *
  * Key decisions:
  * - Strings are skipped, not blanked: a ref lives inside a string. JS: `"`,
@@ -20,6 +23,8 @@
  *
  * @module scripts/control/commentBlanker
  * @coordinates-with scripts/control/buildInputsGuard.mjs (codeRefs)
+ * @coordinates-with scripts/control/persistenceRoots.mjs (blankComments)
+ * @coordinates-with tests/support/rustSource.ts (blankComments)
  */
 
 /** Longest opener this looks for: `br` + hashes + `"`. */

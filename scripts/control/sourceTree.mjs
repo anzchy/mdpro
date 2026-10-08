@@ -36,9 +36,11 @@
  *   index, so it catches a gitlink whichever step added it. Symlinks (120000)
  *   are content and stay accepted.
  * - The real index and objects are only read; new blobs go to the temp object
- *   dir. Async; every git or filesystem failure rejects with a message naming
- *   the repo dir (an invalid exclude is rejected before that, naming the
- *   exclude).
+ *   dir. Async; every git failure, and every filesystem failure once the temp
+ *   dir exists, rejects with a `SourceTreeError` naming the repo dir. Two
+ *   rejections do not name it: an invalid exclude (rejected before any git
+ *   process, naming the exclude) and a failure to create the temp dir itself
+ *   (the raw `mkdtemp` error).
  * - `headCommit` (the manifest's `commit`) shares the same scrubbed git env and
  *   is read-only; a repo with no commits gives `null`, not an error.
  * - Excludes are validated with `isValidExclude` from `buildId.mjs` (shared,
