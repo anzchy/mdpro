@@ -484,7 +484,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
       - **日志**：`app.verify_run` 的成功行只在链接成功后写；失败行的 `reason` 是 `instance_exists` 或 `instance_write`。
       - **门禁**：tdd-guardian 加了 `rust-verify-run` lane（`cargo test --manifest-path src-tauri/Cargo.toml --features verify-run`，提交时跑），偏离 11 的「feature 开靠手工回执」到此为止。`rust` lane 仍是 feature 关，因为 `wi6_t01`（发布版端口 55045）只在 feature 关时成立。
       - **代价**：被拒的进程已经写过 `app.launch`、在运行目录里跑过草稿迁移，还可能闪一下窗口；setup 里的 `exit(78)` 跳过 `RunEvent::Exit`，si.sock 留下，下一次启动遇到 ConnectionRefused 时清掉；若一个漏过插件的次进程抢先发布，启动器自己起的子进程会以 78 退出（往拒绝一侧失败）。
-- **状态（2026-10-08）**：**已验证，但真机发现一处缺陷；修复已写完、单测与提交门禁（unit / rust / rust-verify-run）都过、修复后真机复测 R1–R4 过（2026-10-08，真机记录 §3），与 ADR-0058 一起提交（`fix(build)` 那条提交）**。验收 6 延到 WI-003。原提交 `678b320`、`4390665`、`186910b`、`d455e02`、`e36c63a`；真机记录 [`docs/test/20261007-adr0047-wi002-device.md`](../test/20261007-adr0047-wi002-device.md)。原门禁情况：unit lane 过；`cargo test` 和 `cargo test --features verify-run` 都过，`cargo clippy -- -D warnings` 两种都过。
+- **状态（2026-10-08）**：**已验证，但真机发现一处缺陷；修复已写完、单测与提交门禁（unit / rust / rust-verify-run）都过、修复后真机复测 R1–R4 过（2026-10-08，真机记录 §3），与 ADR-0058 一起提交（修复 `23e0007`，ADR `c345a75`）**。验收 6 延到 WI-003。复测用的是提交前的工作区，`23e0007` 本身没有再打包上真机；验收 7 的 release 包 `nm` 未做（可选）；R3 窗口是否闪现未观察。原提交 `678b320`、`4390665`、`186910b`、`d455e02`、`e36c63a`；真机记录 [`docs/test/20261007-adr0047-wi002-device.md`](../test/20261007-adr0047-wi002-device.md)。原门禁情况：unit lane 过；`cargo test` 和 `cargo test --features verify-run` 都过，`cargo clippy -- -D warnings` 两种都过。
   - **缺陷（2026-10-07 真机实测，记录 § 2）**：同一运行里起第二个进程（J7a），它重跑启动前守卫，把 `<RUN>/instance.json` 的 pid 从 36009 改成 36146，再经 single-instance 把参数转给主实例（日志 `file.open.external`，路由 `broadcast`），然后 exit 0。`instance.json` 于是指向一个死 pid，WI-003 的 `quit` 和 `--via open` 握手会因此出错。
   - **修复**：见偏离 13。
   - **测试证据**：新增 `verify_run_publish_*.rs`，重写 `verify_run_instance_tests.rs`——t03 回归重现、拒绝规律、并发下只有一个赢家、EFBIG 的 exec 用例、`publish_or_exit` 的 exec 测试；vitest 结构测试 `tests/control-verify-run-publish-structure.test.ts` 和 `tests/control-verify-run-wiring.test.ts` T15(c)/T17/T18。`cargo test --manifest-path src-tauri/Cargo.toml --features verify-run` 1201 过，vitest 4817 过。
@@ -717,9 +717,9 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 ## 9. Manual Test Checklist（人工检查清单）
 
 - [x] WI-000：试探包上的 J1a 和 J5 物理 Esc（2026-10-02 通过）
-- [ ] WI-002：双击验证包，它退出，真实目录没有变化
-- [ ] WI-002：开着日常 mdpro 起隔离运行，日常那边没有多出窗口或标签
-- [ ] WI-002：Finder 里 `.md` 的默认打开方式没变；验证包点「检查更新」不会装上正式版
+- [x] WI-002：双击验证包，它退出，真实目录没有变化（2026-10-07，真机记录验收 2）
+- [x] WI-002：开着日常 mdpro 起隔离运行，日常那边没有多出窗口或标签（2026-10-07，真机记录验收 4）
+- [ ] WI-002：Finder 里 `.md` 的默认打开方式没变；验证包点「检查更新」不会装上正式版（前半已过，真机记录验收 8；后半只确认了二进制里没有更新地址，没实际点过「检查更新」）
 - [ ] WI-003：故意不杀旧进程再 `launch`，被拒绝
 - [ ] WI-004：升级前后两个包各走一遍全部旅程
 - [ ] WI-004：D34 的 Esc、D41 的 Tab 物理重测
