@@ -24,7 +24,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
   - KaTeX
   - `App.css`, which is dead code. Its 26 literals are still listed in [Out of scope: App.css](#out-of-scope-appcss) so nothing is silently dropped.
 
-  Selectors whose only consumer is A8 dead code (`TabBar/`, `Sidebar/Sidebar.tsx`, `FileItem.tsx`) are **kept** in the table. They are marked in the Stage column, because they sit in `globals.css`, which is in scope, and WI-1.x deletes them.
+  Selectors whose only consumer is A8 dead code (`TabBar/`, `Sidebar/Sidebar.tsx`, `FileItem.tsx`) are **kept** in the table. They are marked in the Stage column, because they sit in `globals.css`, which is in scope, and WI-1.x deletes them. **2026-10-08:** the 6 `Sidebar.tsx` / `FileItem.tsx` rows are gone from the tree — the components and their CSS were deleted ([ADR-0059](../../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)). The rows and counts below are kept as the scan recorded them.
 - **Extraction.** A comment-stripping scanner walked every CSS file. It tracked the selector stack (including `@media` / `@keyframes`) and recorded the declaration line, not the rule line. Its raw list was then cross-checked against the baseline's grep counts (see [Reconciliation](#reconciliation-against-the-baseline-table)). Each row was then classified by hand. No row is unclassified.
 - **Proposal tokens used as targets** (`proposal-ab.html:21-61`, DR22, DR23):
 
@@ -210,17 +210,17 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
 | `globals.css:1517` | `.mcp-client-status.installed` | `color` | `#16a34a` | b | [R1](#rulings-user-2026-10-03): `--color-text`, extending Q6 by analogy (green → text colour) | 3 (WI-3.2 rulings) |
 | `globals.css:1527` | `.mcp-client-details strong` | `font-size` | `14px` | a | `--font-size-ui-lg` | 2 (WI-2.3) |
 | `globals.css:1535` | `.mcp-client-path` | `font-size` | `12px` | a | `--font-size-ui-sm` | 2 (WI-2.3) |
-| `globals.css:1551` | `.dev-toolbar` | `z-index` | `100` | allowed | rule 31 z-index table, "Dev toolbar" | — |
-| `globals.css:1556` | `.dev-toolbar` | `background` | `#fef3c7` | c | DR21 dev-toolbar exception (Q7) | WI-2.1 exception |
-| `globals.css:1557` | `.dev-toolbar` | `border` | `1px solid #f59e0b` | c | DR21 dev-toolbar exception (Q7) | WI-2.1 exception |
-| `globals.css:1559` | `.dev-toolbar` | `border-radius` | `0 0 8px 8px` | c | DR21 dev-toolbar exception (Q7; DR23 defers to DR21) | WI-2.1 exception |
-| `globals.css:1560` | `.dev-toolbar` | `font-size` | `12px` | a | `--font-size-ui-sm`, or fold into the DR21 exception | 2 (WI-2.3) |
-| `globals.css:1565` | `.dev-toolbar-label` | `color` | `#92400e` | c | DR21 dev-toolbar exception (Q7) | WI-2.1 exception |
-| `globals.css:1572` | `.dev-toolbar-button` | `background` | `#f59e0b` | c | DR21 dev-toolbar exception (Q7) | WI-2.1 exception |
-| `globals.css:1573` | `.dev-toolbar-button` | `color` | `white` | c | DR21 dev-toolbar exception (Q7) | WI-2.1 exception |
-| `globals.css:1575` | `.dev-toolbar-button` | `border-radius` | `4px` | c | DR21 dev-toolbar exception (Q7; DR23 defers to DR21) | WI-2.1 exception |
-| `globals.css:1576` | `.dev-toolbar-button` | `font-size` | `12px` | a | `--font-size-ui-sm`, or fold into the DR21 exception | 2 (WI-2.3) |
-| `globals.css:1581` | `.dev-toolbar-button:hover` | `background` | `#d97706` | c | DR21 dev-toolbar exception (Q7) | WI-2.1 exception |
+| `globals.css:1551` | `.dev-toolbar` | `z-index` | `100` | allowed | rule 31 z-index table, "Dev toolbar" | removed in `1703dbb` (was: —) |
+| `globals.css:1556` | `.dev-toolbar` | `background` | `#fef3c7` | c | DR21 dev-toolbar exception (Q7) | removed in `1703dbb` (was: WI-2.1 exception) |
+| `globals.css:1557` | `.dev-toolbar` | `border` | `1px solid #f59e0b` | c | DR21 dev-toolbar exception (Q7) | removed in `1703dbb` (was: WI-2.1 exception) |
+| `globals.css:1559` | `.dev-toolbar` | `border-radius` | `0 0 8px 8px` | c | DR21 dev-toolbar exception (Q7; DR23 defers to DR21) | removed in `1703dbb` (was: WI-2.1 exception) |
+| `globals.css:1560` | `.dev-toolbar` | `font-size` | `12px` | a | `--font-size-ui-sm`, or fold into the DR21 exception | removed in `1703dbb` (was: 2 (WI-2.3)) |
+| `globals.css:1565` | `.dev-toolbar-label` | `color` | `#92400e` | c | DR21 dev-toolbar exception (Q7) | removed in `1703dbb` (was: WI-2.1 exception) |
+| `globals.css:1572` | `.dev-toolbar-button` | `background` | `#f59e0b` | c | DR21 dev-toolbar exception (Q7) | removed in `1703dbb` (was: WI-2.1 exception) |
+| `globals.css:1573` | `.dev-toolbar-button` | `color` | `white` | c | DR21 dev-toolbar exception (Q7) | removed in `1703dbb` (was: WI-2.1 exception) |
+| `globals.css:1575` | `.dev-toolbar-button` | `border-radius` | `4px` | c | DR21 dev-toolbar exception (Q7; DR23 defers to DR21) | removed in `1703dbb` (was: WI-2.1 exception) |
+| `globals.css:1576` | `.dev-toolbar-button` | `font-size` | `12px` | a | `--font-size-ui-sm`, or fold into the DR21 exception | removed in `1703dbb` (was: 2 (WI-2.3)) |
+| `globals.css:1581` | `.dev-toolbar-button:hover` | `background` | `#d97706` | c | DR21 dev-toolbar exception (Q7) | removed in `1703dbb` (was: WI-2.1 exception) |
 | `globals.css:1644` | `.tab-bar__new-tab` | `border-radius` | `6px` | a | `--radius-control` | skip, dead (A8): `TabBar/` |
 | `globals.css:1645` | `.tab-bar__new-tab` | `font-size` | `18px` | b | glyph → icon (DR22 skips it) | skip, dead (A8): `TabBar/` |
 | `globals.css:1661` | `.tab` | `border-radius` | `6px` | a | `--radius-control` | skip, dead (A8): `TabBar/` |
@@ -382,6 +382,8 @@ The 37 dead or orphan rows are all in `globals.css`:
 
 ~~Stage 2's real workload is the live count: **68 value-preserving swaps, 63 snaps, and 27 rulings or exceptions**.~~ **Recounted 2026-10-03:** the live count is **70 class (a) swaps, 71 class (b) snaps deferred to Stages 3–4, and 17 class (c) rows**. The 17 are 4 new-token sites that Stage 2 swaps value-preservingly (R2, R6) and 13 WI-2.1 exceptions (8 dev toolbar, Q10, R4 ×2, R8, R9 `pre`). Stage 2 therefore makes 74 value-preserving swaps, and none of its work changes a computed style.
 
+**2026-10-07 — dev toolbar removed.** `1703dbb` deleted the `.dev-toolbar*` rules, so the 11 dev-toolbar rows (`globals.css:1551-1581` at a5767d5) are marked "removed in `1703dbb`" above and no longer count. They were all live: 1 allowed (z-index), 8 class (c) WI-2.1 exceptions and 2 class (a) font sizes. The tables in this summary stay as recorded at a5767d5. After the removal: the live count is **68 (a) / 71 (b) / 9 (c) / 19 allowed = 167** (was 70 / 71 / 17 / 20 = 178); the full total is 87 / 87 / 9 / 21 = 204 (was 215), and `globals.css` has 166 rows (was 177). Stage 2 makes **72** value-preserving swaps (68 (a) + 4 new-token), and the WI-2.1 exceptions drop from 13 to **5** (Q10, R4 ×2, R8, R9 `pre`). In the by-stage table, `2 (WI-2.3)` becomes 68, `WI-2.1 exception` 5 and `—` 19. The by-category table is not recounted.
+
 ### By file and category (in scope)
 
 | File | Colour | Font size | Radius | Transition / animation | z-index | Box shadow |
@@ -419,7 +421,7 @@ The 37 dead or orphan rows are all in `globals.css`:
 | 3 (WI-3.2) | 1 |
 | 3 (WI-3.2 hover) | 1 |
 
-The 2026-10-03 rulings emptied three stage values — `open` (was 12), `open (Q9 follow-up)` (was 3) and `WI-2.2 per Q6, but not value-preserving` (was 3) — and added `3 (WI-3.2 rulings)` and `2 (WI-2.2 new token)`. Before them, `2 (WI-2.3)` was 68 and `WI-2.1 exception` was 9.
+The 2026-10-03 rulings emptied three stage values — `open` (was 12), `open (Q9 follow-up)` (was 3) and `WI-2.2 per Q6, but not value-preserving` (was 3) — and added `3 (WI-3.2 rulings)` and `2 (WI-2.2 new token)`. Before them, `2 (WI-2.3)` was 68 and `WI-2.1 exception` was 9. For the counts after `1703dbb` removed the dev toolbar, see the 2026-10-07 note above.
 
 ## Rulings (user, 2026-10-03)
 
@@ -441,7 +443,7 @@ The user ruled on every class-(c) row that was still open, plus the Q9 follow-up
 **Obligation carried by R2 and R6.** `--color-on-accent` and `--color-scrim` are added to `.claude/rules/31-design-tokens.md` and to DESIGN.md § Tokens **in the same commit that introduces them** (WI-2.2), not in a later docs pass. [Stage 2](./stage-2-tokenize.md) WI-2.2 carries this as a task.
 
 **Where the rulings sit against the plan's own rules.** These are recorded, not resolved:
-- **R6 vs A10.** A10 (and WI-2.2) give a semantic token only to 3 or more unrelated uses; the scrim has one. R6 is the user's explicit override for this one token, and A10 is otherwise unchanged.
+- **R6 vs A10.** A10 (and WI-2.2) give a semantic token only to 3 or more unrelated uses; the scrim has one. R6 is the user's explicit override for this one token, and A10 is otherwise unchanged. **Resolved at stop point 1 (2026-10-08):** A10 now names it — "Exception: `--color-scrim` (R6, one use, user ruling 2026-10-03)."
 - **R7 and "zero visual change".** At the default 16px editor size, `0.875em` computes to 14px, so the Stage 2 computed-style diff would stay empty. A user with a different editor font size would still see the table text change, which breaks Deliverable A's "zero visual change". R7 is therefore staged in Stage 3 as class (b), not in Stage 2.
 - **R2 and contrast.** `--color-on-accent` keeps today's `#fff` in both themes, so Stage 2 is unchanged. White on the dark accent `#60a5fa` is about 2.5:1, below A9's 4.5:1 for labels. That is today's rendering, not a regression. The Stage 3 contrast table (primary button labels) is where a per-theme value would be decided.
 
@@ -459,7 +461,7 @@ The answer is settled, but it changes rendered values. See [Plan discrepancies](
 
 ### Q7 / DR21 — warning colour (answered: no warning token; dev toolbar is an exception)
 
-- **WI-2.1 exception rows** (8): `globals.css:1556`, `:1557`, `:1559`, `:1565`, `:1572`, `:1573`, `:1575`, `:1581` (all `.dev-toolbar*`).
+- **WI-2.1 exception rows** (8): `globals.css:1556`, `:1557`, `:1559`, `:1565`, `:1572`, `:1573`, `:1575`, `:1581` (all `.dev-toolbar*`). (2026-10-07: moot. `1703dbb` deleted these rules, so DR21 now has no exception rows.)
 - The amber dirty banner (`:1070`, `:1071`) is **not** class (c). DR21 moves it to accent-soft in WI-4.3, so it is class (b) at stage 4 (WI-4.3).
 
 ### Q8 / DR22 — chrome font sizes off the ramp (answered)
@@ -546,9 +548,9 @@ The baseline never measured radius/transition/z-index/box-shadow outside `global
 
 ## Plan discrepancies found while inventorying
 
-These are inputs for the lead. This appendix does not resolve them; where a later ruling did, the item says so.
+These are inputs for the lead. This appendix does not resolve them; where a later ruling did, the item says so. Stop point 1 (user, 2026-10-08) resolved 1, 2, 7 and 8 and deferred 6.
 
-1. **`.tab__close` is dead, not a live keep.** Stage 3 lists the `opacity` transition at old `:1667` (now `globals.css:1704`) as a live hover-reveal to keep under DR12. Its only consumer is `TabBar/`, which is A8 dead code. The live hover-reveal is `BottomTabs.css:105` `.bottom-tab__close`.
+1. **`.tab__close` is dead, not a live keep.** Stage 3 lists the `opacity` transition at old `:1667` (now `globals.css:1704`) as a live hover-reveal to keep under DR12. Its only consumer is `TabBar/`, which is A8 dead code. The live hover-reveal is `BottomTabs.css:105` `.bottom-tab__close`. **Resolved at stop point 1 (2026-10-08):** [Stage 3](./stage-3-retune.md) WI-3.2 drops `.tab__close` from the DR12 keep list and names it dead with `TabBar/` (A8).
 2. **`.settings-search` has no consumer.** DR23 and Stage 3 name it as a radius site, but no `.tsx` references it at a5767d5. Nor does any other selector marked `orphan, no consumer`:
    - `.pane-title`
    - `.toolbar-mode`
@@ -558,6 +560,8 @@ These are inputs for the lead. This appendix does not resolve them; where a late
    - `.settings-form-row`
    - `.settings-form-hint`
    - `.toc-sidebar__header`
+
+   **Resolved at stop point 1 (2026-10-08):** [Stage 3](./stage-3-retune.md) WI-3.1 no longer names `.settings-search` as a radius site, and [Stage 4a](./stage-4a-components.md) WI-4.3 marks its `.settings-general p` example as an orphan. The orphan rows stay in the inventory as deletion candidates, not tokenization targets.
 3. **Q6 is not value-preserving, but targets WI-2.2.** Stage 2's gate is an empty computed-style diff. All three Q6 replacements change the rendered colour: `#34c759` → `#1a1a1a`, `#ff3b30` → `#dc2626`, `#999` → inherited secondary. Either Q6 moves to Stage 3 / WI-4.x, or the Stage 2 diff gets a declared Q6 carve-out. **Resolved by the 2026-10-03 ruling [R10](#rulings-user-2026-10-03):** Q6 moves to Stage 3 (WI-3.2), and the Stage 2 diff gets no carve-out.
 4. **Spinners fall between A5 and DR13** (see the table above). No allowlist or exception covers `spin 0.8s linear infinite` today. **Resolved by the 2026-10-03 ruling [R4](#rulings-user-2026-10-03):** a WI-2.1 exception.
 5. **Editor-content literals have no DR role.** These are not covered by DR22 or DR23, which are both chrome-scoped:
@@ -574,9 +578,9 @@ These are inputs for the lead. This appendix does not resolve them; where a late
    - `.settings-row-label strong` (`:1302`)
    - `.mcp-client-details strong` (`:1527`)
 
-   They are classified (a) by value. A role-driven move to 13px is a Stage 3/4 decision.
-7. **`stage-4a-components.md` cites `globals.css:1335` for the toggle track `#ccc`.** At 0a3675e that line is the toggle's `transition`, and `#ccc` was `:1334`. At a5767d5 `#ccc` is `:1339`.
-8. **Two class (b) rows have no numbered owner.** `BottomTabs.css:79` (shadow → `--shadow-soft`) and `:115` (hover → `--color-hover`) fall under WI-3.2's prose bullets, which carry no item number. They are staged as `3 (WI-3.2)` and `3 (WI-3.2 hover)`.
+   They are classified (a) by value. A role-driven move to 13px is a Stage 3/4 decision. **Deferred to Stage 3/4, by user decision at stop point 1 (2026-10-08).** No value changes here.
+7. **`stage-4a-components.md` cites `globals.css:1335` for the toggle track `#ccc`.** At 0a3675e that line is the toggle's `transition`, and `#ccc` was `:1334`. At a5767d5 `#ccc` is `:1339`. **Resolved at stop point 1 (2026-10-08):** stage-4a already cites `globals.css:1339`, re-pointed by the WI-0.6 re-run (`a00f089`).
+8. **Two class (b) rows have no numbered owner.** `BottomTabs.css:79` (shadow → `--shadow-soft`) and `:115` (hover → `--color-hover`) fall under WI-3.2's prose bullets, which carry no item number. They are staged as `3 (WI-3.2)` and `3 (WI-3.2 hover)`. **Resolved at stop point 1 (2026-10-08):** [Stage 3](./stage-3-retune.md) WI-3.2 now names each row under its owning bullet — `:79` under *Flat rows and tabs*, `:115` under *Hover*.
 
 ## Line drift from 0a3675e
 

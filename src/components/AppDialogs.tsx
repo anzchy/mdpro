@@ -166,6 +166,7 @@ export function AppDialogs({
             title="Unsaved changes"
             message={confirmDialog.message}
             confirmLabel="Discard changes"
+            destructive
             cancelLabel="Keep editing"
             onConfirm={onConfirmClose}
             onCancel={onCancelClose}

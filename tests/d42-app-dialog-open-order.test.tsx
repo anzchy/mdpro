@@ -206,7 +206,9 @@ describe("D42: App-level dialogs render in open order", () => {
     await h.open("confirm");
     await settle();
     expect(domDialogOrder()).toEqual(["reload", "confirm"]);
-    expect(screen.getByRole("button", { name: "Discard changes" })).toHaveFocus();
+    // The dialog opened last takes focus. Since D48 (`destructive`) its autoFocus is
+    // Keep editing, not Discard changes.
+    expect(screen.getByRole("button", { name: "Keep editing" })).toHaveFocus();
 
     await user.keyboard("{Escape}");
     await settle();

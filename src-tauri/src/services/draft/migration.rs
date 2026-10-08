@@ -108,8 +108,9 @@ pub fn migrate_legacy_drafts() -> Result<usize, DraftError> {
     Ok(migrated)
 }
 
-/// Legacy draft storage path: `~/.mdpro/drafts`
-fn legacy_drafts_dir() -> Option<PathBuf> {
+/// Legacy draft storage path: `~/.mdpro/drafts`. `pub(crate)` so the
+/// run-isolation test (ADR-0047 WI-002 WI-8) can resolve it under a temp HOME.
+pub(crate) fn legacy_drafts_dir() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(".mdpro").join("drafts"))
 }
 

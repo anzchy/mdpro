@@ -22,7 +22,8 @@ use tauri_app_lib::services::quit_guard::{
     self,
     effects::{AppQuitGuard, TauriQuitEffects},
 };
-use tauri_app_lib::services::{app_exit, http_server, logger, shadow_store};
+use tauri_app_lib::services::{app_exit, app_ready, http_server, logger, shadow_store};
+const BUILD_ID_RAW: Option<&str> = option_env!("MDPRO_BUILD_ID");
 
 // Track whether app has fully initialized (setup complete, main window ready)
 static APP_READY: OnceLock<AtomicBool> = OnceLock::new();
@@ -75,6 +76,8 @@ fn move_cache() -> &'static Mutex<HashMap<String, MoveState>> {
 }
 
 fn main() {
+    #[cfg(feature = "verify-run")]
+    let verified_run = tauri_app_lib::services::verify_run::enforce();
     let startup = std::time::Instant::now();
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -89,37 +92,20 @@ fn main() {
         error: None,
     });
 
-    // One-time migration: move legacy drafts from ~/.mdpro/drafts (pre-audit-128
-    // location) to the current data_dir path. Best-effort — a failure is logged
-    // but does not block startup.
-    match tauri_app_lib::services::draft::migrate_legacy_drafts() {
-        Ok(0) => {} // nothing to migrate
-        Ok(n) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Info,
-                event: "app.draft_migration".to_string(),
-                status: LogStatus::Success,
-                action_id: None,
-                context: Some(json!({ "filesMigrated": n })),
-                duration_ms: None,
-                error: None,
-            });
-        }
-        Err(e) => {
-            logger::log_event(LogEntryPayload {
-                level: LogLevel::Error,
-                event: "app.draft_migration".to_string(),
-                status: LogStatus::Fail,
-                action_id: None,
-                context: None,
-                duration_ms: None,
-                error: Some(e.to_string()),
-            });
-        }
-    }
+    // One-time legacy-draft migration (best-effort, logged; never blocks startup).
+    tauri_app_lib::services::draft::migrate_legacy_drafts_logged();
 
     let app = tauri::Builder::default()
         .setup(move |app| {
+            // ADR-0047 WI-002: publish instance.json here, not in main().
+            // Plugin setup (single-instance: exit 0 or claim the socket) runs
+            // in build() before this closure (tauri 2.9.5 app.rs:2291 vs
+            // 1299-1302; tauri-plugin-single-instance 2.3.7), but the plugin
+            // falls through and launches on other notify errors, so publication
+            // must itself be exclusive. A setup Err panics, hence
+            // publish_or_exit prints its own line and exits 78.
+            #[cfg(feature = "verify-run")]
+            tauri_app_lib::services::verify_run::publish_or_exit(&verified_run, BUILD_ID_RAW);
             let watcher =
                 tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone())
                     .map_err(Box::<dyn std::error::Error>::from)?;
@@ -242,11 +228,10 @@ fn main() {
                 event: "app.ready".to_string(),
                 status: LogStatus::Success,
                 action_id: None,
-                context: Some(json!({
-                    "startupTimeMs": startup.elapsed().as_millis() as u64,
-                    "appVersion": env!("CARGO_PKG_VERSION"),
-                    "platform": std::env::consts::OS
-                })),
+                context: Some(app_ready::current_app_ready_context(
+                    startup.elapsed().as_millis() as u64,
+                    BUILD_ID_RAW,
+                )),
                 duration_ms: Some(startup.elapsed().as_millis() as u64),
                 error: None,
             });

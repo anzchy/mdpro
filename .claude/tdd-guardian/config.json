@@ -30,12 +30,29 @@
     },
     {
       "name": "rust",
-      "description": "cargo test for the Tauri backend: #[cfg(test)] units, tests/render_golden.rs, doc tests.",
-      "command": "scripts/heavy-lock.sh cargo test --manifest-path src-tauri/Cargo.toml",
+      "description": "cargo test for the Tauri backend: #[cfg(test)] units, tests/render_golden.rs, doc tests. Runs through scripts/cargo-test-lane.mjs, which maps cargo exit 101 to 1 when a `test result: FAILED.` summary was printed (a failing test), so tdd-guardian reads it as fail rather than runner-error; a compile error stays 101.",
+      "command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
       "gateOn": ["commit"],
       "coverage": "none",
       "probeCommand": "cargo test --manifest-path src-tauri/Cargo.toml -- --list",
       "timeoutMs": 900000
+    },
+    {
+      "name": "rust-verify-run",
+      "description": "cargo test with --features verify-run (ADR-0047): compiles the feature-gated verify_run* modules and their tests, which the plain rust lane never builds. Not a superset of the rust lane: wi6_t01 (shipping MCP port 55045) is feature-off only. Runs through scripts/cargo-test-lane.mjs, which maps cargo exit 101 to 1 when a `test result: FAILED.` summary was printed (a failing test), so tdd-guardian reads it as fail rather than runner-error; a compile error stays 101.",
+      "command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml --features verify-run",
+      "gateOn": ["commit"],
+      "coverage": "none",
+      "probeCommand": "cargo test --manifest-path src-tauri/Cargo.toml --features verify-run -- --list",
+      "timeoutMs": 900000
+    },
+    {
+      "name": "integration",
+      "description": "Real `pnpm control:build --profile verify` smoke (scripts/control/smoke.mjs, ADR-0047): inspects the build manifest, codesign -dvvv cdhash and the absence of updater artifacts in the bundle dir; verify profile only, the release --config path is not exercised.",
+      "command": "scripts/heavy-lock.sh node scripts/control/smoke.mjs",
+      "gateOn": ["manual"],
+      "coverage": "none",
+      "timeoutMs": 3600000
     }
   ],
   "coverageThresholds": { "lines": 73, "functions": 80, "branches": 91, "statements": 73 },

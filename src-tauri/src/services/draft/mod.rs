@@ -11,7 +11,8 @@
 //! - `lock::draft_lock()` (ADR-0038 §4) is held by `save_draft_as`, guarded
 //!   recover/discard and cleanup; their `*_with` forms build the `LiveContext`
 //!   under it. Lock-free writers: `delete_draft` (deliberate), `load_draft`'s
-//!   legacy migrate-on-read, and startup `migrate_legacy_drafts` (no windows).
+//!   legacy migrate-on-read, and startup `migrate_legacy_drafts` (no windows),
+//!   which `main` reaches through `startup_migration.rs`'s logged wrapper.
 //! - `live_listing.rs` is the only listing/cleanup; it hides or keeps drafts in use.
 //!
 //! @coordinates-with docs/adr/0038-a-draft-in-use-by-a-live-window-is-not-offered-for-recovery.md
@@ -29,6 +30,7 @@ mod migration;
 pub mod owner;
 mod paths;
 mod recovery;
+mod startup_migration;
 mod types;
 mod visibility;
 
@@ -41,6 +43,7 @@ pub(crate) use guarded::{discard_draft_guarded, recover_draft_guarded};
 #[cfg(test)]
 pub(crate) use live_listing::cleanup_old_drafts_for;
 pub use migration::migrate_legacy_drafts;
+pub use startup_migration::migrate_legacy_drafts_logged;
 pub use visibility::visible;
 
 #[cfg(test)]
@@ -49,7 +52,12 @@ pub use owner::{
     in_use, owner_is_live, session_id, InUseReason, LiveContext, OpenSet, ShadowUnavailable,
 };
 pub(crate) use paths::is_valid_draft_id;
-use paths::{bundle_path, drafts_dir, ensure_dir, legacy_draft_path, legacy_meta_path};
+// `drafts_dir` and (tests only) `legacy_drafts_dir` are crate-visible so the
+// run-isolation test (ADR-0047 WI-002 WI-8) resolves them under a temp HOME.
+#[cfg(test)]
+pub(crate) use migration::legacy_drafts_dir;
+pub(crate) use paths::drafts_dir;
+use paths::{bundle_path, ensure_dir, legacy_draft_path, legacy_meta_path};
 pub use types::{
     CleanupCounts, DraftError, DraftListCounts, DraftListing, DraftMetadataEntry, DraftOwner,
     DraftSaveResult, RecoverResult,

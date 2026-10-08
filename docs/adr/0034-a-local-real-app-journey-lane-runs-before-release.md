@@ -15,6 +15,18 @@ fixes:
 - how E39, ADR-0020 and ADR-0032 are cited;
 - the length.
 
+**Amended in place while Proposed** (2026-10-02). ADR-0047 (Proposed)
+decides the control channel this lane drives the app through. Four parts of
+this record now point there instead of deciding the matter twice:
+
+- decision 2's spike order;
+- decision 3's "one Cargo feature";
+- decision 4's security conditions;
+- decision 6's log path.
+
+The lane, its first journeys and its place on the release checklist are
+unchanged. ADR-0047 and its plan do not deliver them.
+
 **Relation to ADR-0032.** ADR-0032 decided that one obligation, the preference
 round trip, is checked by hand, and it asked to be superseded if that proved
 wrong. If this record is accepted **and** the preference journey lands:
@@ -74,28 +86,33 @@ pure and tested, but the real delivery path is not.
    - Its verdict table goes in `docs/test/` and is linked from the release
      row.
 2. **Pick the driver with a time-boxed spike, and add no dependency before
-   it.** `tauri-plugin-mcp-bridge` is tried first. WebdriverIO's Tauri
-   service is the alternative. The spike must show three things:
+   it.** The candidates, their order and the screens are in ADR-0047
+   decisions 4 and 5. `tauri-plugin-mcp-bridge` was first in line here until
+   2026-10-02; it is not a candidate while its hijacking issue (#36) is
+   open. The spike must still show three things:
    - it drives a packaged `.app` on macOS 13+ on Apple Silicon;
    - it can address windows by label;
    - its conditional registration does not reorder or bypass
      `tauri-plugin-single-instance` or the `RunEvent::Opened` handling.
 
    The chosen driver then gets its own dependency ADR.
-3. **The build under test is a release-profile bundle.** It differs from the
-   shipped build by one Cargo feature, which is off by default. It is not a
-   debug build.
-4. **The control surface is treated as an attack surface.** A driver that
-   cannot meet every one of these is rejected:
+3. **The build under test is a release-profile bundle.** It is not a debug
+   build. It differs from the shipped build only in the ways ADR-0047
+   decision 3 and its costs list: a verification packaging profile, the
+   isolation behaviour, and the driver, all off in the shipped build.
+4. **The control surface is treated as an attack surface.** ADR-0047
+   decision 6 states the conditions for each transport, and a driver that
+   cannot meet every one of them is rejected. In short:
    - it uses a dedicated, short-lived credential, never `server.token`;
-   - it listens on loopback only;
-   - it enforces strict Host and Origin checks, with no wildcard CORS;
+   - an HTTP listener is on loopback only, with strict Host and Origin
+     checks and no wildcard CORS;
    - it exposes only narrowly scoped endpoints;
-   - its permissions sit in a separate capability file that exists only in
-     the feature build, never in `capabilities/default.json`, which already
-     covers `main` and `mdpro-*`.
+   - any Tauri permissions it needs sit in a separate capability file that
+     exists only in the feature build, never in `capabilities/default.json`,
+     which already covers `main` and `mdpro-*`.
 
-   The lane checks that the release build is clean in three layers:
+   The lane checks that the release build is clean in three layers, and
+   ADR-0047 adds an attempted runtime activation as a fourth:
    - the default feature graph resolves without the driver crate;
    - the `dist` built for release contains no driver assets;
    - a probe against the release bundle finds no driver endpoint.
@@ -111,7 +128,8 @@ pure and tested, but the real delivery path is not.
      at launch (`gui-acceptance` trap 3).
 6. **Journeys assert on state and logs, never on pixels.** State means
    window labels, the active document and the dirty flag. Logs mean byte-offset
-   slices of `~/.mdpro/mdpro.log`.
+   slices of the run's `mdpro.log`. In an isolated run (ADR-0047 decision 3)
+   that file is in the run directory, not in `~/.mdpro`.
 7. **The first journeys:**
    - D29 on the Finder route;
    - D29 on the single-instance route;
@@ -138,9 +156,10 @@ pure and tested, but the real delivery path is not.
   each release. A regression like D24 or D29 fails a script instead of
   waiting for someone to remember a row.
 - **Costs:**
-  - **It is still not the shipped binary.** One feature differs, and so does
-    the plugin set. A defect that only shows without the driver still needs
-    `gui-acceptance` on the shipped bundle.
+  - **It is still not the shipped binary.** The packaging profile, the
+    isolation behaviour and the plugin set differ (ADR-0047). A defect that
+    only shows without them still needs `gui-acceptance` on the shipped
+    bundle.
   - **It is not per-commit.** A regression can sit until the next release
     run.
   - **It adds a new control surface and a third-party dependency.** Its

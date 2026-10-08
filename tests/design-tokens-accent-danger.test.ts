@@ -117,10 +117,4 @@ describe("hardcoded → token migration in globals.css", () => {
       /\.settings-error[^}]*background:\s*var\(--color-danger-soft\)/s,
     );
   });
-
-  it("file-item.is-active box-shadow uses var(--color-accent-soft)", () => {
-    expect(globalsCss).toMatch(
-      /\.file-item\.is-active[^}]*box-shadow:[^;]*var\(--color-accent-soft\)/s,
-    );
-  });
 });

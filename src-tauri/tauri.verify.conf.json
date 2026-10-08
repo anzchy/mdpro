@@ -1,0 +1,13 @@
+{
+  "identifier": "com.mdpro.app.verify",
+  "productName": "mdpro-verify",
+  "bundle": {
+    "fileAssociations": [],
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": []
+    }
+  }
+}

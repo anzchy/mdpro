@@ -77,7 +77,7 @@ The `globals.css` row moved off its `0a3675e` reading of 1918 / 49 / 88: `0ca5a4
   - `src/App.css` (19 color literals, imported nowhere)
   - `src/components/TabBar/` (re-exported only by its own `index.ts`)
   - the Preview pane (DR10), **already deleted**: `Preview.tsx` was imported nowhere since `4570de3`, and `ImageRenderer.tsx`, `styles/preview.css` and `src/hooks/usePreview.ts` served only it. `15b9d35` deleted all four, and `src/components/Preview/` no longer exists. `mathRender.ts` was the live exception and survived — `e021f47` moved it to `src/services/mathRender.ts` (`exportService.ts:6`).
-  - the old document list: `src/components/Sidebar/Sidebar.tsx` is re-exported at `Sidebar/index.tsx:54` but rendered nowhere, and `FileItem.tsx` is imported only by it (`Sidebar.tsx:3`). The WI-2.1 dead-code guard must allow that re-export or name it.
+  - the old document list: (deleted 2026-10-08, [ADR-0059](../../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)) `src/components/Sidebar/Sidebar.tsx` was re-exported at `Sidebar/index.tsx:54` but rendered nowhere, and `FileItem.tsx` is imported only by it (`Sidebar.tsx:3`). The WI-2.1 dead-code guard must allow that re-export or name it.
   - the large-file warning (`useDocument.ts:31`, `:66-68`, `:101-103`, `:126-128`; `App.tsx:499-503`): it warns above 10 MB, and the backend already refuses those files (`src-tauri/src/commands/file.rs:16`, `:162-168`)
 
 ### Gates and tools
@@ -134,7 +134,7 @@ Do not start the next stage without that reply.
 
 **Visual evidence protocol (E5):**
 - **Zero-change stages (1–2):** the proof is a computed-style snapshot, not a visual comparison.
-  - A throwaway script kept outside the repo (`$TMPDIR/mdpro-redesign/snapshot.js`) runs through `/browse` against `pnpm dev`.
+  - The capture script `scripts/redesign/snapshot.js` (in the repo since `c936591`; plan A4 as amended at stop point 1, 2026-10-08 — it was first planned as a throwaway at `$TMPDIR/mdpro-redesign/snapshot.js`) runs through `/browse` against `pnpm dev`. Its output stays outside the repo: the E5 JSON baselines are in `~/.mdpro-redesign/stage-0-post-merge/{json-macbook,json-mini-wkwebview}/`, and the before screenshots are on the Mac mini at `~/.mdpro-redesign/stage-0/shots/`.
   - For each Appendix B surface, in both themes and at a fixed viewport, it walks a fixed selector list. It records `getComputedStyle` for the A5 property families plus the box size, including `::before` / `::after`, and writes sorted JSON.
   - It also puts each surface into the states the selectors style (checked, disabled, focus-visible, an open modal, a scrolled container) and asserts that each state actually applied, so a missed state fails instead of producing an empty diff. A state that script cannot force (e.g. hover) is marked manual in the index.
   - Before and after files are compared with plain `diff`; an empty diff passes. Screenshots are still taken, as reference only.

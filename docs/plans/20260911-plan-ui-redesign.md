@@ -2,8 +2,8 @@
 
 Generated on 2026-09-11 from the execution prompt `.prompts/2026-09-11_050736_FINAL.md`
 Baseline commit: `0a3675e` (re-verify every "observed" fact before relying on it)
-Branch: master
-Status: DRAFT — blocked on the Stage 0 approval gate
+Branch: frontend-backend-redesign
+Status: APPROVED at the Stage 0 gate (stop point 1, user, 2026-10-08); Stage 1 is unblocked
 Sources of truth (precedence on conflict: rules > old DESIGN.md > review > proposal > DESIGN.md):
 
 - [`.claude/rules/30-34`](../../.claude/rules/): enforceable rules. Rule 31 defines "tokenized"; rule 33 defines focus patterns; rule 34 defines the theme classes.
@@ -11,6 +11,7 @@ Sources of truth (precedence on conflict: rules > old DESIGN.md > review > propo
 - [`docs/design/mdpro-ui-new/mdpro-ui-codex-review.md`](../design/mdpro-ui-new/mdpro-ui-codex-review.md): the change list, items 1–15.
 - [`docs/design/mdpro-ui-new/proposal-ab.html`](../design/mdpro-ui-new/proposal-ab.html): the rendered target. Tokens are at :21-61; the rejected D3 block at :63-69 must never ship.
 - [`docs/design/mdpro-ui-new/DESIGN.md`](../design/mdpro-ui-new/DESIGN.md): the target design system distilled from the review and the proposal. It holds token names (no values), a component contract per surface with proposal line citations, the rule edits the redesign needs, and the open questions. Use it as the per-work-item checklist and at visual sign-off. It ranks below the review and the proposal, so a disagreement with either is a bug in this file and a stop-and-ask. A bare `DESIGN.md` in these plan files means this file: every token, platform-floor and runtime-token doc update in this plan lands here. The root `DESIGN.md` is only an index.
+- `docs/design/mdpro-ui-new/codex-style-audit.md` is **not** a source of truth. Where it disagrees with DR12 (motion), DR15 (focus ring), DR22 (type ramp), DR23 (radius) or D1 (density), the DRs win. Its "no tokens implemented" line predates WI-0.5.
 
 A conflict between any two sources is a stop-and-ask, never a silent pick.
 
@@ -84,7 +85,7 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 | DR3 | Build the no-document state, with New and Open… buttons (WI-4.9) |
 | DR4 | Breadcrumb: muted parent folder, then file name; the full path only in a tooltip |
 | DR5 | Rebuild the external-change dialog with three dirty-aware states (WI-4.10) |
-| DR6 | Opening an already-open file switches to its tab and never re-reads it (WI-4.11, first in Stage 4) |
+| DR6 | Opening an already-open file switches to its tab and never re-reads it (WI-4.11, first in Stage 4). (2026-10-07: superseded in part by ADR-0028 — a dirty document is focused, as here, but a clean document reloads (decision 3). Delivered by `de264bf`.) |
 | DR7 | Build the drop target: an editor-column tint with a label chosen from the file types (WI-4.12) |
 | DR8 | `ConfirmDialog` meets rule 32; destructive dialogs focus the safe action (WI-4.6) |
 | DR9 | Failure toasts use the error variant: `role="alert"`, Dismiss, no auto-dismiss (WI-4.13) |
@@ -99,30 +100,32 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 | DR18 | Word count: one per Han or kana character, one per other letter-digit run; Markdown syntax is not counted (Q12) |
 | DR19 | WYSIWYG has no cursor field (Q13) |
 | DR20 | One Dark stays selectable and unchanged; "Default" follows the app theme (Q3) |
-| DR21 | No warning color; the dev toolbar's literals are a listed exception (Q7) |
+| DR21 | No warning color; the dev toolbar's literals are a listed exception (Q7). (2026-10-07: the dev-toolbar exception is moot — its CSS was deleted in `1703dbb`.) |
 | DR22 | Chrome font sizes outside the ramp take the proposal's roles; one new `--font-size-title` (Q8) |
 | DR23 | Radii snap to `--radius-control`, `--radius-popover` and a new `--radius-inner`; pills use `999px` (Q9) |
 
 ## Assumptions (confirm or change at the Stage 0 gate)
 
+**Confirmed at stop point 1 (user, 2026-10-08).** A2, A5, A9 and A12 as written; A1, A3, A6, A7, A10 and A11 with amended wording; A4 and A8 rewritten to the current state. The rows below are the confirmed text.
+
 | ID | Assumption |
 |---|---|
-| A1 | All 15 review items are in scope. If scope narrows (e.g. P0 only), drop whole work items. |
+| A1 | All 15 review items are in scope. If scope narrows (e.g. P0 only), drop whole work items. The decided DR work items and WI-4.6b (run 2; [ADR-0056](../adr/0056-recovery-stays-a-forced-choice-and-encoding-opens-on-cancel.md), its encoding half superseded by ADR-0057) are also in scope. WI-4.11 (DR6) is already delivered by ADR-0028 (`de264bf`). |
 | A2 | Orchestrate through `/feature-workflow`. Each work item is implemented with `/tdd-guardian:workflow`. |
-| A3 | Visual QA uses `/qa-only` (report-only). `/design-review` runs only when the user asks. |
-| A4 | Screenshots and computed-style JSON are stored at `$TMPDIR/mdpro-redesign/<stage>/<surface>-<theme>.{png,json}` and never committed. |
+| A3 | Visual QA uses `/qa-only` (report-only). `/design-review` runs only when the user asks. Sign-off on the Tauri and release surfaces (the Stage 3/4 mandatory visual sign-off, on the Mac mini) goes through `/gui-acceptance`, with the record in `docs/test/`. |
+| A4 | Evidence lives outside the repo and none of it is committed. The before screenshots are on the Mac mini at `~/.mdpro-redesign/stage-0/shots/<surface>-<theme>.png` (@1x; [Appendix B](20260911-ui-redesign/appendices.md)). The E5 JSON baselines are in `~/.mdpro-redesign/stage-0-post-merge/{json-macbook,json-mini-wkwebview}/`. Stage 3–4 after-captures follow the same same-machine rule. The capture script is in the repo at `scripts/redesign/snapshot.js` (`c936591`). *(Rewritten at stop point 1, 2026-10-08; it read `$TMPDIR/mdpro-redesign/<stage>/<surface>-<theme>.{png,json}` before WI-0.4.)* |
 | A5 | "100% tokenized" follows the definition in [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md). |
-| A6 | Stage 1 is a pure move into ordered partials listed in `src/styles/index.css` (E2). `:root` tokens stay in `globals.css` (rule 31:11-16). |
-| A7 | No new runtime npm or cargo dependency, including icon, image-diff and contrast tools. The only exception is E7's test-only devDependencies — **four** at the E28 floors, since `@testing-library/jest-dom` joins the three E7 names — added in WI-0.0's chore PR before Stage 0, not in WI-1.0. |
-| A8 | `src/App.css`, `src/components/TabBar/`, the unmounted Preview pane (DR10: `src/components/Preview/Preview.tsx`, `ImageRenderer.tsx`, `styles/preview.css`, and `src/hooks/usePreview.ts`) the unmounted document list (`src/components/Sidebar/Sidebar.tsx` and `FileItem.tsx`) and the unreachable large-file warning (WI-4.13) are dead-code candidates; list them, do not delete them. `src/components/Preview/mathRender.ts` stays live, because HTML export uses it. The tokenization test asserts that no file outside the candidates imports them. Deletion is tracked in TODOS.md. |
+| A6 | Stage 1 is a pure move into ordered partials listed in `src/styles/index.css` (E2). The pure-move baseline is the WI-1.2 commit that deletes `.toolbar-recent*`, and the target is the 15 partials in [`css-file-map.md`](20260911-ui-redesign/css-file-map.md) §3. `:root` tokens stay in `globals.css` (rule 31:11-16). |
+| A7 | No plan-P work item adds a runtime npm or cargo dependency, including icon, image-diff and contrast tools. This is measured by G0's per-WI diff from each work item's own start. Crates added outside plan P are not a breach: `objc2*` (ADR-0025/0027) and `libc` (ADR-0047). E7/E28's four test-only devDependencies (`@testing-library/jest-dom` joins the three E7 names) already landed in `16fb45c`. |
+| A8 | The remaining dead-code candidates are `src/App.css`, `src/components/TabBar/` and the unreachable large-file warning (WI-4.13); list them, do not delete them. The Preview group was deleted in `15b9d35` / `e021f47` (DR10), and `Sidebar/Sidebar.tsx` / `FileItem.tsx` were deleted in `c633aca` ([ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)). `src/services/mathRender.ts` is live, because HTML export uses it. The WI-2.1 guard asserts that nothing imports `App.css` or `TabBar/`. Deletion stays a TODOS.md item. *(Rewritten at stop point 1, 2026-10-08.)* |
 | A9 | Contrast thresholds are WCAG 2.1 AA: 4.5:1 for text, 3:1 for focus indicators and control boundaries. |
-| A10 | Class (c) literals with 3 or more unrelated uses get a semantic token (rule 31's rule of three). |
-| A11 | Manual test guide location: `docs/guide/manual-test-ui-redesign.md`. |
+| A10 | Class (c) literals with 3 or more unrelated uses get a semantic token (rule 31's rule of three). Exception: `--color-scrim` (R6, one use, user ruling 2026-10-03). |
+| A11 | Manual test guide location: `docs/guide/manual-test-ui-redesign.md`. It is created by the first implementing work item and updated per work item. Fixtures go in `tests/manual-fixtures/`, and per-run device records go in `docs/test/`. |
 | A12 | Deferred class (b) literals are tracked in an explicit allowlist inside the tokenization test rather than by `it.skip` on whole files. This refines the prompt so every file stays guarded during Stage 2; see WI-2.1. |
 
 ## Open questions (must be answered at the Stage 0 gate)
 
-Q15 and Q16 are still open. The others are closed; their answers are in the decisions they name.
+All closed. Q15 and Q16 were answered by the user on 2026-10-07, after a Codex consult; every answer is in the row or the decision it names.
 
 | ID | Question | Blocks |
 |---|---|---|
@@ -140,8 +143,8 @@ Q15 and Q16 are still open. The others are closed; their answers are in the deci
 | Q12 | Status-strip word count for CJK text and Markdown syntax. **Answered: DR18.** | WI-4.8 |
 | Q13 | A cursor field in WYSIWYG. **Answered: DR19.** | WI-4.8 |
 | Q14 | "Save As…" in the deleted-file state. **Closed:** `saveActiveDocumentAs` (`useDocument.ts:172-200`) already exists; only a menu item is missing. | WI-4.10 |
-| Q15 | WI-4.22 now lands before WI-4.8 (E35), so the first Stage 4 work is render-ownership plumbing with no user-visible result. Accept that delay, or reorder? **Open — no proposal.** Reordering means WI-4.8 mounts the first permanent keystroke-rate consumer into a tree that has no ownership contract yet, which is the failure E32 exists to prevent. | WI-4.8, WI-4.22 |
-| Q16 | E39's budgets (status-related main-thread work p95 ≤ 8 ms, no task ≥ 50 ms, count visible within 1 s) are targets to verify on a named reference machine, not measurements of today. If the reference machine misses them, is the budget revised or the design? **Open — no proposal.** Nothing in the plan says, and E39 bars these numbers from ever blocking CI, so a miss currently has no defined consequence. | WI-4.8, T31 |
+| Q15 | WI-4.22 now lands before WI-4.8 (E35), so the first Stage 4 work is render-ownership plumbing with no user-visible result. Accept that delay, or reorder? **Closed (2026-10-07, user): accept — WI-4.22 stays first.** Codex agreed. Reordering means WI-4.8 mounts the first permanent keystroke-rate consumer into a tree that has no ownership contract yet, which is the failure E32 exists to prevent. | WI-4.8, WI-4.22 |
+| Q16 | E39's budgets (status-related main-thread work p95 ≤ 8 ms, no task ≥ 50 ms, count visible within 1 s) are targets to verify on a named reference machine, not measurements of today. If the reference machine misses them, is the budget revised or the design? **Closed (2026-10-07, user): [ADR-0055](../adr/0055-a-missed-performance-budget-changes-the-design-not-the-number.md).** A miss counts only once it reproduces on the named machine with the committed fixtures; a confirmed miss is a D-defect and the design changes; the budget changes only through a new ADR. Still never a CI gate (E39). | WI-4.8, T31 |
 
 ---
 
@@ -151,10 +154,10 @@ Q15 and Q16 are still open. The others are closed; their answers are in the deci
 |---|---|---|---|---|
 | A — CSS infrastructure | 1, 2 | None (computed-style diff is empty) | none directly | Stage 2 |
 | B — Visual retune | 3 | Intended | 1, 7, 8, 10, 11, 12, 15 | Stage 3 **(visual sign-off)** |
-| C — Components | 4 | Intended | 2, 4, 5, 6, 9, 13, 14; DR2 main bar and status strip; DR3 empty state; DR5 external-change dialog; DR6 already-open guard; DR7 drop target; DR8 destructive confirmation; DR9 error toasts | Stage 4 **(visual sign-off)** |
+| C — Components | 4 | Intended | 2, 4, 5, 6, 9, 13, 14; DR2 main bar and status strip; DR3 empty state; DR5 external-change dialog; DR6 already-open guard (WI-4.11, already delivered by ADR-0028 `de264bf`); DR7 drop target; DR8 destructive confirmation; DR9 error toasts; WI-4.6b Recovery and Encoding dialog shell (run 2; ADR-0056/0057) | Stage 4 **(visual sign-off)** |
 | D — `sourceFont` | 5 | Intended (Source mode only) | 3 (D2) | Stage 5 |
 
-The item→stage mapping is an assumption (A1). Correct it at the Stage 0 gate.
+The item→stage mapping is an assumption (A1). Corrected and confirmed at the Stage 0 gate (stop point 1, 2026-10-08): the Deliverable C row gained WI-4.6b and marks WI-4.11 as delivered.
 
 ---
 
@@ -196,7 +199,7 @@ Read this file first, then only the stage file you are working on.
   - the title-bar and tab-bar heights
   - the editor font size and `--editor-line-height`
 - **No `--color-syntax-code`**; never copy `proposal-ab.html:63-69`.
-- **No behavior changes** outside the numbered review items, WI-4.8 (DR2), WI-4.9 (DR3), WI-4.10 (DR5), WI-4.11 (DR6), WI-4.12 (DR7), WI-4.13 (DR9), WI-4.14 (DR11) and the WI-4.6 dialog fix (DR8). Do not build a command palette (Q11). Do not edit `docs/design/mdpro-ui-old/*` or `docs/design/mdpro-ui-new/proposal-ab.html`.
+- **No behavior changes** outside the numbered review items, WI-4.8 (DR2), WI-4.9 (DR3), WI-4.10 (DR5), WI-4.11 (DR6), WI-4.12 (DR7), WI-4.13 (DR9), WI-4.14 (DR11) the WI-4.6 dialog fix (DR8) and the WI-4.6b Recovery and Encoding dialog shell (run 2). WI-4.6b supersedes DESIGN.md § States › "Unchanged: draft recovery and the encoding dialog" for keyboard and focus behaviour; their copy and actions stay unchanged. Do not build a command palette (Q11). Do not edit `docs/design/mdpro-ui-old/*` or `docs/design/mdpro-ui-new/proposal-ab.html`.
 - **Do not delete** the dead-code candidates (A8).
 - **No commits or pushes** unless the user asks. Never commit screenshots.
 
@@ -204,9 +207,9 @@ Read this file first, then only the stage file you are working on.
 
 | Existing | Reused by |
 |---|---|
-| `.toolbar-button.danger` (`globals.css:1195`) | WI-4.6 destructive confirm |
-| `Toast`'s unused `onClose` prop and the `.toast-close` style (`App.tsx:1189` passes no `onClose`) | WI-4.13 dismiss button |
-| `.toggle-switch` / `.toggle-slider` CSS (`globals.css:1314-1345`) | `ToggleSwitch` wraps it; no new switch styles |
+| `.toolbar-button.danger` (`globals.css:1200`) | WI-4.6 destructive confirm |
+| `Toast`'s unused `onClose` prop and the `.toast-close` style (`App.tsx:1065` passes no `onClose`) | WI-4.13 dismiss button |
+| `.toggle-switch` / `.toggle-slider` CSS (`globals.css:1319-1362`) | `ToggleSwitch` wraps it; no new switch styles |
 | The `fontFamilyToCss` default-branch fallback (`editorPrefApply.ts:46-52`) | `sourceFont` apply (WI-5.3) |
 | `EditorSettings.handleChange`: full `editor` object save plus rollback; the failure toast in `preferencesService.setPreferences` | Source font row (WI-5.4) |
 | `load_preferences` writes defaults when the file is missing (`services/preferences.rs:62-77`) | First-run detection, with no new flag (WI-5.1) |
@@ -222,8 +225,8 @@ Read this file first, then only the stage file you are working on.
 - Review §4 artboard work (designing the undrawn surfaces). Those surfaces get token changes only, except the empty state, which WI-4.9 builds (DR3), the external-change dialog, which WI-4.10 rebuilds (DR5), and the drop target, which WI-4.12 builds (DR7).
 - A command palette, unless the app already has one (Q11).
 - Density changes, title-bar and tab-bar height changes.
-- Deleting `src/App.css`, `src/components/TabBar/`, the Preview pane files, `Sidebar/Sidebar.tsx` and `FileItem.tsx`, or the large-file warning (list them only).
-- Restyling or re-mounting the Preview pane (DR10). Its dark code theme is unsolved, because `Preview.tsx:6` imports only the light `github.css`, and has to be solved before any re-mount.
+- Deleting `src/App.css`, `src/components/TabBar/` or the large-file warning (list them only; A8). The Preview pane files are already gone (`15b9d35` / `e021f47`, DR10), and `Sidebar/Sidebar.tsx` and `FileItem.tsx` were deleted 2026-10-08 ([ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)).
+- Restyling or re-mounting the Preview pane (DR10). The pane was deleted in `15b9d35` / `e021f47`; a re-mount must first solve its dark code theme (the old `Preview.tsx` imported only the light `github.css`).
 - A stylelint setup or any new runtime dependency.
 - The rejected D3 code hue.
 - Fixing the existing `config.json` overwrite inside this plan. It is a separate PR that gates Stage 5 (E6; TODOS.md P1).
@@ -237,7 +240,7 @@ Read this file first, then only the stage file you are working on.
 
 ## Acceptance Criteria
 
-- [ ] Stage 0 gate: the plan is approved and A1–A12 / Q1–Q14 are answered or waived
+- [x] Stage 0 gate: the plan is approved and A1–A12 / Q1–Q14 are answered or waived *(user approval at stop point 1, 2026-10-08; A1–A12 as recorded in the Assumptions table; Q1–Q16 closed)*
 - [ ] Deliverable A: `globals.css` split with a pure-move proof; tokenization guard is green; empty computed-style diff against the baseline
 - [ ] Deliverable B: proposal token retune applied in both themes; deferred list empty; contrast table and rule 33 checklist recorded; **user visual sign-off received**
 - [ ] Deliverable B also raises the macOS floor to 13.1 in `tauri.conf.json`, CLAUDE.md and DESIGN.md
@@ -308,13 +311,13 @@ Read this file first, then only the stage file you are working on.
   - **Files:** `App.tsx`, `Sidebar/index.tsx`, new component
   - **Depends on:** T12
   - **Verify:** `pnpm test:run`
-- [ ] **T10 (S)** — Destructive confirm and settings rail — WI-4.6/4.7
-  - **Files:** `ConfirmDialog.tsx`, the two mounted Discard callers (`App.tsx`, `BottomTabs.tsx`), `tests/focus-trap.test.ts`, `.claude/rules/32-component-patterns.md` (first-focus exception) and rule 33 (pattern 3), theme files, `SettingsDialog.tsx` (rail tabs)
-  - **Depends on:** T17 for WI-4.6 (Lane B); T8 for WI-4.7 (Lane C)
+- [ ] **T10 (S)** — Destructive confirm, recovery and encoding dialogs, and settings rail — WI-4.6/4.6b/4.7
+  - **Files:** `ConfirmDialog.tsx`, the two mounted Discard callers (`App.tsx`, which also hosts the ⌘W / window-close / quit prompt, and `BottomTabs.tsx`), `RecoveryDialog.tsx` and `EncodingDialog.tsx` (WI-4.6b), `tests/focus-trap.test.ts`, `.claude/rules/32-component-patterns.md` (first-focus exception) and rule 33 (pattern 3), theme files, `SettingsDialog.tsx` (rail tabs)
+  - **Depends on:** T17 for WI-4.6 (Lane B), and WI-4.6 for WI-4.6b; T8 for WI-4.7 (Lane C). The Enter-discards fix is D48, made before Stage 4; WI-4.6 does not redo it
   - **Verify:** `pnpm test:run`, including the DR8 Enter regression. Then in `pnpm tauri dev`, press ⌘W on a document with unsaved edits and then Enter; the text must stay. Open Settings at 400×640: the rail is icon-only and rows wrap.
 - [ ] **T12 (M)** — Main bar and status strip — WI-4.8
   - **Files:** `App.tsx`, `Sidebar/index.tsx`, new bar and strip components, a word-count util, the cursor-source wiring, the layout CSS partial
-  - **Depends on:** T7 and T17 (Lane B runs WI-4.2 → WI-4.13 → WI-4.6 → WI-4.8)
+  - **Depends on:** T7 and T17 (Lane B runs WI-4.2 → WI-4.13 → WI-4.6 → WI-4.6b → WI-4.8)
   - **Verify:** `pnpm test:run`; drag region and traffic lights in `pnpm tauri dev`; the window at 400×640 in both sidebar states and at 959px
 - [ ] **T13 (S)** — Empty state — WI-4.9
   - **Files:** `App.tsx`, a new empty-state component, `TOCSidebar.tsx`, the layout CSS partial
@@ -324,7 +327,8 @@ Read this file first, then only the stage file you are working on.
   - **Files:** `src/utils/dataLossGuards.ts`, `src/components/common/ReloadDialog.tsx`, `App.tsx`, `tests/focus-trap.test.ts`, new guard and dialog tests
   - **Depends on:** T13
   - **Verify:** `pnpm test:run`; the three states by hand in `pnpm tauri dev`
-- [ ] **T15 (S)** — Already-open guard — WI-4.11
+- [x] **T15 (S)** — Already-open guard — WI-4.11
+  - **Status (2026-10-07):** delivered by `de264bf` under ADR-0028 (D20); a clean document reloads (ADR-0028 decision 3). The two-spellings gap stays with T27 / WI-4.23 (E10). Nothing left to run in Stage 4.
   - **Files:** `src/hooks/useDocument.ts`, a pure helper, new tests
   - **Depends on:** none (first in Stage 4)
   - **Verify:** `pnpm test:run`; in `pnpm tauri dev`, edit a file, then re-open it by ⌘O, recent files and a drop
@@ -391,7 +395,7 @@ Read this file first, then only the stage file you are working on.
 - [ ] **T31 (S)** — Performance evidence and budgets — E39
   - **Files:** the browser-mode suite (E31), [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md) G0, the named fixtures
   - **Depends on:** T30 and the WI-4.8 task. It records evidence; it gates nothing beyond G0's deterministic line.
-  - **Verify:** the fixtures exist (Source near 10 MiB, WYSIWYG under 500 KiB, each with CJK and very long lines), the reference machine is named, and the p95 ≤ 8 ms / no task ≥ 50 ms / count within 1 s numbers are recorded as targets — with **no** FPS, heap or millisecond threshold wired as a blocking assertion
+  - **Verify:** the fixtures exist (Source near 10 MiB, WYSIWYG under 500 KiB, each with CJK and very long lines), the reference machine is named (model, chip, macOS, display scale) and the fixture generators are committed, per [ADR-0055](../adr/0055-a-missed-performance-budget-changes-the-design-not-the-number.md), and the p95 ≤ 8 ms / no task ≥ 50 ms / count within 1 s numbers are recorded as targets — with **no** FPS, heap or millisecond threshold wired as a blocking assertion
 - [ ] **T11 (M)** — `sourceFont` — WI-5.1…5.4
   - **Files:** `preferences.rs`, `preferences.ts`, `editorPrefApply.ts`, `EditorSettings.tsx`, the shared fixture, `normalizeSourceFont`, rule 31
   - **Depends on:** the E6 fix PR, and T22 (which changes the same Rust preference types)
@@ -412,32 +416,6 @@ Sizes (S/M) are planning estimates, not commitments.
 7. **Contrast table and rule 33 checklist results.**
 8. **`/plan-design-review` or `/qa-only` findings:** each marked fixed, deferred or out of scope.
 9. **Open questions, dead-code candidates, and the proposed commit split.**
-
----
-
-## GSTACK REVIEW REPORT
-
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
-| Codex Review | `/codex review` | Independent 2nd opinion | 3 | ISSUES_FOUND | Plan review: 9 findings, 8 folded, 1 invalid. Decision consult: 10 verdicts (4 agree, 5 agree-with-changes, 1 disagree) plus 3 cross-cutting issues, all accepted. Design outside voices (Codex and an independent Claude subagent): 34 findings, taken into Passes 1–7. |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES_FOUND, all folded in | Round 1: 29 issues, 0 critical gaps, but it predated WI-4.8–4.15 and T12–T19. Round 2 re-ran against the full plan across four sections and produced E9–E39, WI-0.0, WI-4.23–WI-4.26 and T0a / T27–T31. It also corrected eight false claims the plan itself carried. |
-| Design Review | `/plan-design-review` | UI/UX gaps | 1 | ISSUES_OPEN | score: 6/10 → 9/10, 23 decisions (DR1–DR23); 3 proposed answers wait for the Stage 0 gate |
-| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
-
-- **ENG REVIEW ROUND 2 (four sections).** *Architecture (E9–E16):* the owned, flushable editor observer; document identity on UUIDs with path deduplication; an open-result union; insert-modal ownership. *Code quality (E17–E24):* IPC error normalization, a logged-operation wrapper, a cancellation-safe subscription primitive, MCP window routing in Rust, the rule-50 ratchet. *Tests (E25–E31):* the CI triggers were restored — `ci.yml` ran only on `tags` and `workflow_dispatch`, so **all 1138 tests were skipped on every merge path**; the coverage denominator was corrected (3.53% measured against 97898 lines, including `src-tauri/target`, versus a true 30.87% floor); source-text assertions migrate as they are touched; `tests/` gains type checking before the first `.test.tsx`. *Performance (E32–E39):* render isolation became a prerequisite of WI-4.8 rather than a companion optimization, and word count became a worker-computed derived scalar.
-- **DEFECTS FOUND WHILE REVIEWING, not previously known:** `useMcpSync.ts:139` keys its change hash on `content.length`, so an equal-length edit in an already-dirty document schedules no sync at all and MCP tools then read a stale shadow store; `tocStore.ts:86-88` clears `collapsedIds` on every `setEntries`, so typing discards TOC collapse state. Both are correctness bugs. The first is fixed in WI-4.26; the second was moved out of WI-4.26 on 2026-09-12 by the cross-plan sequencing decision below and is delivered by plan M ([`20260912-plan-markdown-source-consolidation.md`](./20260912-plan-markdown-source-consolidation.md)) at order 3, before WI-0.1, together with the heading-identity contract it depends on. Separately, `@milkdown/plugin-listener` constructs its 200 ms debounce **inside** `apply`, so it coalesces nothing across keystrokes — each keystroke still runs a full `serializer(doc)`. **Correction 2026-10-02:** the first defect is still live but has moved to `useMcpSync.ts:199` (same `` `${d.id}:${d.content.length}:${d.isModified}` `` hash). The second is fixed: `2a0e1a4` (sequencing stage 3.5) rewrote `setEntries` — now `tocStore.ts:153`, taking `(entries, documentId)` — to carry `collapsedIds` and the active entry across re-parses by heading key, so `tocStore.ts:86-88` no longer describes the code.
-- **CODEX:** In the eng review, Codex caught three factual errors in the draft: the preferences file is `config.json`, not `preferences.json`; the checkbox inventory was wrong; and so was the `color-mix` release claim. It also showed that the preferences overwrite happens at every launch, which escalated D8 into E6, and it found that Testing Library is not installed (E7). In the design review, it found that Appendix B marked undrawn surfaces as having references, and that this report said "ready to implement" while the Stage 0 gate was still open.
-- **CROSS-MODEL:** In eng review round 1, the two models agreed on D1–D7, D9 and D10, and the changes Codex asked for were accepted as refinements (E3–E5). They disagreed on D8; the user sided with Codex (E6). In round 2 Codex was consulted on all four sections and corrected several of the reviewer's own premises — that `useCallback` only matters for memoized children, that Milkdown serialization sits upstream of every debounce, that the MCP and TOC debounces fire on a fixed interval, and that no performance assertion existed anywhere (`file.rs:718` has a coarse one). It also found the `useMcpSync.ts:139` length-keyed hash, which neither the reviewer nor an independent subagent had found. Each correction was verified against the repository before adoption rather than taken on authority.
-- **VERDICT:** Design reviewed; the eng review has now been re-run against the full plan and its findings are folded in (E9–E39). Implementation starts only after the Stage 0 gate, and the **WI-0.0 chore PR lands before Stage 0** — narrowed 2026-09-12 to the local test toolchain and baseline calibration, with CI trigger restoration and branch protection moved to a separate follow-up PR. **No gate runs on any merge path until that follow-up lands**, so verification through Stage 0 is local: `pnpm build`, `pnpm test:run`, `pnpm typecheck:tests` and `pnpm coverage` against calibrated thresholds. No acceptance box anywhere may be ticked on the grounds that a merge was blocked until the follow-up exists. Stage 5 stays blocked until the E6 fix lands.
-
-**UNRESOLVED DECISIONS:**
-- Q15: accept WI-4.22 landing before WI-4.8, leaving the first Stage 4 work as render-ownership plumbing with no user-visible result — or reorder (open; no proposal)
-- Q16: if the named reference machine misses E39's budgets, whether the budget is revised or the design is (open; no proposal)
-
-**2026-10-03:** the user's rulings R1–R10 closed every class-(c) literal still open in Appendix A, extended Q6 (R1) and moved it to Stage 3 (R10), and answered Q9's content-radius follow-up (R9); see [Appendix A § Rulings](20260911-ui-redesign/appendix-a-literals.md#rulings-user-2026-10-03). None of them was listed here, and the list above is unchanged.
-
-Q2, Q6 and Q10 stood in this list until 2026-09-12 and are now answered; the Open questions table above is canonical for their wording. Q6's answer is **replace, do not declare**: `.about-status-ok` → `--color-text` for both its phases, `.about-status-error` → `--color-danger`, and `.about-status-disabled` loses its colour line outright. An earlier draft of this block named `--color-muted` as that third replacement, which the table had already shown to be a no-op against `.about-status-text` — the block contradicted the table for as long as both were on master.
 
 ---
 
@@ -485,3 +463,32 @@ Implementing WI-4.26 first would write acceptance criteria against a colliding i
 - **`App.tsx` ownership, not just serialization.** The order-3 PR may touch App only for wiring it needs (document id, revision); no layout or lifecycle refactor. WI-4.22 performs the structural migration once, and **the file sets of the remaining App tasks are rewritten immediately after it lands** — the nine tasks must not keep executing against pre-WI-4.22 line numbers. Only one App-modifying implementation PR is open at a time.
 - **The performance gates are not interchangeable.** E39's zero-additional-commit assertion cannot show that remark does not block the main thread. Plan M's TOC work carries its own large-document acceptance, covering document switch, document close and stale parse results.
 - **Export stays on the old semantics after order 3.** That intermediate state and its known divergences are registered in plan M's syntax matrix; until order 5 lands, the plans must not claim semantics are unified.
+
+---
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
+| Codex Review | `/codex review` | Independent 2nd opinion | 4 | ISSUES_FOUND | Run 4 (2026-10-07, WI-0.6 diff): 5 findings (2 P1, 3 P2), all fixed before approval; 20+ citations spot-checked and matched. Plan review: 9 findings, 8 folded, 1 invalid. Decision consult: 10 verdicts (4 agree, 5 agree-with-changes, 1 disagree) plus 3 cross-cutting issues, all accepted. Design outside voices (Codex and an independent Claude subagent): 34 findings, taken into Passes 1–7. |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES_FOUND, all folded in | Round 1: 29 issues, 0 critical gaps, but it predated WI-4.8–4.15 and T12–T19. Round 2 re-ran against the full plan across four sections and produced E9–E39, WI-0.0, WI-4.23–WI-4.26 and T0a / T27–T31. It also corrected eight false claims the plan itself carried. |
+| Design Review | `/plan-design-review` | UI/UX gaps | 2 | CLEAR (decisions closed 2026-10-07) | Run 1 (2026-09-11, `30b353a`): score 6/10 → 9/10, 23 decisions (DR1–DR23). Run 2 (2026-10-07, `630cb86`, WI-0.6, drift-only): score 7/10 → 9/10, 4 decisions — WI-4.6 widened and WI-4.6b added, DR21 amended, WI-4.11 delivered via ADR-0028, States added to six work items; D48 filed |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+- **ENG REVIEW ROUND 2 (four sections).** *Architecture (E9–E16):* the owned, flushable editor observer; document identity on UUIDs with path deduplication; an open-result union; insert-modal ownership. *Code quality (E17–E24):* IPC error normalization, a logged-operation wrapper, a cancellation-safe subscription primitive, MCP window routing in Rust, the rule-50 ratchet. *Tests (E25–E31):* the CI triggers were restored — `ci.yml` ran only on `tags` and `workflow_dispatch`, so **all 1138 tests were skipped on every merge path**; the coverage denominator was corrected (3.53% measured against 97898 lines, including `src-tauri/target`, versus a true 30.87% floor); source-text assertions migrate as they are touched; `tests/` gains type checking before the first `.test.tsx`. *Performance (E32–E39):* render isolation became a prerequisite of WI-4.8 rather than a companion optimization, and word count became a worker-computed derived scalar.
+- **DEFECTS FOUND WHILE REVIEWING, not previously known:** `useMcpSync.ts:139` keys its change hash on `content.length`, so an equal-length edit in an already-dirty document schedules no sync at all and MCP tools then read a stale shadow store; `tocStore.ts:86-88` clears `collapsedIds` on every `setEntries`, so typing discards TOC collapse state. Both are correctness bugs. The first is fixed in WI-4.26; the second was moved out of WI-4.26 on 2026-09-12 by the cross-plan sequencing decision below and is delivered by plan M ([`20260912-plan-markdown-source-consolidation.md`](./20260912-plan-markdown-source-consolidation.md)) at order 3, before WI-0.1, together with the heading-identity contract it depends on. Separately, `@milkdown/plugin-listener` constructs its 200 ms debounce **inside** `apply`, so it coalesces nothing across keystrokes — each keystroke still runs a full `serializer(doc)`. **Correction 2026-10-02:** the first defect is still live but has moved to `useMcpSync.ts:199` (same `` `${d.id}:${d.content.length}:${d.isModified}` `` hash). The second is fixed: `2a0e1a4` (sequencing stage 3.5) rewrote `setEntries` — now `tocStore.ts:153`, taking `(entries, documentId)` — to carry `collapsedIds` and the active entry across re-parses by heading key, so `tocStore.ts:86-88` no longer describes the code.
+- **CODEX:** In the eng review, Codex caught three factual errors in the draft: the preferences file is `config.json`, not `preferences.json`; the checkbox inventory was wrong; and so was the `color-mix` release claim. It also showed that the preferences overwrite happens at every launch, which escalated D8 into E6, and it found that Testing Library is not installed (E7). In the design review, it found that Appendix B marked undrawn surfaces as having references, and that this report said "ready to implement" while the Stage 0 gate was still open.
+- **CROSS-MODEL:** In eng review round 1, the two models agreed on D1–D7, D9 and D10, and the changes Codex asked for were accepted as refinements (E3–E5). They disagreed on D8; the user sided with Codex (E6). In round 2 Codex was consulted on all four sections and corrected several of the reviewer's own premises — that `useCallback` only matters for memoized children, that Milkdown serialization sits upstream of every debounce, that the MCP and TOC debounces fire on a fixed interval, and that no performance assertion existed anywhere (`file.rs:718` has a coarse one). It also found the `useMcpSync.ts:139` length-keyed hash, which neither the reviewer nor an independent subagent had found. Each correction was verified against the repository before adoption rather than taken on authority.
+- **DESIGN REVIEW RUN 2 (2026-10-07, WI-0.6).** A drift-only re-run at `630cb86`: full passes on interaction states, surface ownership and stale facts, quick checks on the rest. UI shipped since run 1 had dropped the plan from 9/10 to 7/10. *Ownership:* four dialogs had no owner (the quit / window-close confirm, `McpWriteConfirmDialog`, Recovery, Encoding); WI-4.6 now covers every `ConfirmDialog` caller and WI-4.6b gives Recovery and Encoding the rule 32 shell. *Stale facts:* DR21's dev-toolbar exception died with `1703dbb`; DR6 is superseded in part by ADR-0028; WI-4.3's MCP-read catch (`8050803`) and part of WI-4.13's open-failure toast (D46) were already built; about 80 citations were re-pointed. *States:* WI-4.3, 4.8, 4.9, 4.10, 4.12 and 4.13 gained error, empty, partial, narrow, keyboard and screen-reader specs. *Live defect found:* Enter in the unsaved-changes dialog discards edits — filed as D48 for a separate fix before Stage 4, off the plan path; still open at `630cb86`. Mockups were not regenerated; DR1's still stand.
+- **VERDICT:** Design reviewed; the eng review has now been re-run against the full plan and its findings are folded in (E9–E39). Implementation starts only after the Stage 0 gate, and the **WI-0.0 chore PR lands before Stage 0** — narrowed 2026-09-12 to the local test toolchain and baseline calibration, with CI trigger restoration and branch protection moved to a separate follow-up PR. **No gate runs on any merge path until that follow-up lands**, so verification through Stage 0 is local: `pnpm build`, `pnpm test:run`, `pnpm typecheck:tests` and `pnpm coverage` against calibrated thresholds. No acceptance box anywhere may be ticked on the grounds that a merge was blocked until the follow-up exists. Stage 5 stays blocked until the E6 fix lands.
+
+**2026-10-03:** the user's rulings R1–R10 closed every class-(c) literal still open in Appendix A, extended Q6 (R1) and moved it to Stage 3 (R10), and answered Q9's content-radius follow-up (R9); see [Appendix A § Rulings](20260911-ui-redesign/appendix-a-literals.md#rulings-user-2026-10-03). None of them was listed here, and the list below is unchanged by them.
+
+Q2, Q6 and Q10 stood in the list below until 2026-09-12 and are now answered; the Open questions table above is canonical for their wording. Q6's answer is **replace, do not declare**: `.about-status-ok` → `--color-text` for both its phases, `.about-status-error` → `--color-danger`, and `.about-status-disabled` loses its colour line outright. An earlier draft of this block named `--color-muted` as that third replacement, which the table had already shown to be a no-op against `.about-status-text` — the block contradicted the table for as long as both were on master.
+
+**DECISIONS CLOSED 2026-10-07** (user, after a Codex consult): Q15 — WI-4.22 stays before WI-4.8; Q16 — [ADR-0055](../adr/0055-a-missed-performance-budget-changes-the-design-not-the-number.md); WI-4.6b — [ADR-0056](../adr/0056-recovery-stays-a-forced-choice-and-encoding-opens-on-cancel.md): RecoveryDialog stays a forced choice, EncodingDialog opens on Cancel.
+
+**STOP POINT 1 PASSED 2026-10-08** (user, explicit approval of this plan): A1–A12 confirmed as recorded in the Assumptions table; Appendix A plan discrepancies 1, 2, 7 and 8 resolved, 6 deferred to Stage 3/4; Stage 1 is unblocked.
+
+NO UNRESOLVED DECISIONS

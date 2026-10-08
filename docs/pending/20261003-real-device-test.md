@@ -252,3 +252,19 @@ narrow 那 8 张在 MacBook 上没有目检过；既然要重拍，不用再看�
   - mini 跑 Chromium gate 前，先用 schema 2 在 mini 上重采。
 
 **合并之后要做**（④ 选了保留 `1703dbb`）：重算 `css-file-map.md` 的行号（删掉第 13 行 `dev-toolbar.css`，后面的行号减 39）；在合并后的代码上重采两套基线；pure-move 证明的基准换成包含 `1703dbb` 的提交；然后做上面的 release 截图对比。
+
+## 12. 合并后复测（2026-10-07，`95e7842`，MacBook 记录）
+
+PR #414 合并后（`4ebfc89`），按 §11「合并之后要做」逐项完成。mini 报告在仓库外 `~/.mdpro-redesign/stage-0-post-merge/reports/`，MacBook 逐项核对过。
+
+- **阻塞和修复**：在 `e5aa3ac` 上，tauri dev 里既没有 `[data-testid=dev-open-file]` 也没有 `.dev-toolbar`，WKWebView 子集里需要打开文档的 4 个文件每次都 `ok:false`（`timeout waiting for: dev file input`）。用户决定让隐藏输入框在所有 DEV 构建里都挂载：`8214a6d`，release（`DEV=false`）仍不渲染。mini 探测确认：输入框存在、`hidden`、`display: none`、0×0、`tabIndex -1`，页面上没有 DEV MODE 工具栏。`e5aa3ac` 那次的输出移到了 `superseded-e5aa3ac/`。
+- **WKWebView 子集，mini**（`20261007-wkwebview-recapture-95e7842.md`）：两次采集 6/6 都是 `ok: true`，一次成功；`/usr/bin/diff -r` 为空。和 `stage-0/json-mini-wkwebview-s3/` 比，6 个文件都只少了 `.dev-toolbar*` 三块（main-source 的 `manual` 还少了 `.dev-toolbar-button:hover`），其余完全一致，包括几何：DEV MODE 条是浮在上面的，不占布局。
+- **Chromium，MacBook**（`verify-95e7842` 工作树）：32 个界面 × 2 个主题，两次采集 64/64 都是 `ok: true`，`/usr/bin/diff -r` 为空。和 `stage-0/json-macbook-s2-focus/` 比，62 个旧文件有 `.dev-toolbar*` 条目；两边都去掉这些条目后 64/64 结构完全一致。
+- **dev 对 release 截图，mini**（`20261007-dev-vs-release-pixel.md`，决定 ③ a+）：main-source、settings-general、link-modal × 浅/深，两边用同一个驱动脚本、同一份 fixture 副本、窗口 1200×800 @1x、指针移出窗口、每个状态隔 0.6 s 连拍两张。6 对都是 0 个像素差异；MacBook 另外核对过 6 对 PNG 的 sha256 相同，而且 release 那组比 dev 晚约两分钟拍。唯一出现过的差异是链接对话框 URL 输入框里闪烁的光标（2×19 px），只在两边拍到不同闪烁相位时出现。12 张图都没有 DEV MODE 工具栏的颜色。**结论**：在这 3 个界面 × 2 个主题上，dev 渲染的就是 release 的像素，不升级到 (b)。仍然是抽样校准：没覆盖其他界面和 hover 状态。
+- **release 构建**：`95e7842` 上 `pnpm tauri build --bundles app`，bundle 晚于提交、`src/` 和 `src-tauri/src/` 没有更新的文件；冷启动日志 `appReady:false`、窗口 `main`。最后报的 updater 签名错误（没有 `TAURI_SIGNING_PRIVATE_KEY`）是已知问题，不影响 bundle。
+- **CSS 文件图**：行号改按 `4ebfc89` 计，15 个 partial（`95e7842`）。
+- **当前基线**（schema 2，只比同机采集）：
+  - MacBook Chromium：`~/.mdpro-redesign/stage-0-post-merge/json-macbook/`（Stage 1–2 E5 gate 的 before）；
+  - mini WKWebView 子集：`~/.mdpro-redesign/stage-0-post-merge/json-mini-wkwebview/`；
+  - `stage-0/` 下合并前的几套只留作记录。
+- **分工**（用户，2026-10-07）：Chromium 基线和 Stage 1–2 的 E5 gate 在 MacBook；WKWebView 子集和真机截图在 mini（迁移手册 §5）。
