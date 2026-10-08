@@ -3,7 +3,7 @@
 Opened 2026-10-02
 Branch: `frontend-backend-redesign`（各工作项在 `mdpro-wt/` 下的短分支上做，合回本分支）
 Repo: anzchy/mdpro
-Status: **执行中（WI-000–WI-002 已完成并验证，2026-10-08；下一项 WI-003）**
+Status: **执行中（WI-000–WI-002 已完成并验证；WI-003 可自动化部分已完成，真机验收待做，2026-10-08）**
 上游记录：[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed，2026-10-02 已修订）、[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，2026-10-02 已修订）、排序文档 [D30 行](./20260912-frontend-backend-sequencing-order.md#d30)
 
 **分工**：ADR-0047 是决定，本文只写工作项、验收和测试。两者冲突时以 ADR 为准，改的是本文。
@@ -520,11 +520,26 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   5. 所有输出里没有 token 和随机数的原文。
   6. 用启动器把 J1a、J1b、J7a、J7b 的 `launcher` 步骤走一遍，握手和日志都对。
 - **Tests (first)**：`tests/control-launcher-*.test.ts`——`doctor` 各检查项（临时目录）；所有权判定的四项各自单独失败；`clean` 的每个拒绝条件；锁的排他；启动超时的清理路径；输出里无凭证。进程表和 `spawn` 在边界处 mock，所有权判定本身不 mock。
-- **Touched areas**：`scripts/control/`（`doctor.mjs`、`launch.mjs`、`quit.mjs`、`clean.mjs`、`ownership.mjs`、`runDir.mjs`）；`package.json` 加一条脚本。每个文件不超过 300 行。
+- **Touched areas**：`scripts/control/`（`doctor.mjs`、`launch.mjs`、`quit.mjs`、`clean.mjs`、`ownership.mjs`、`runDir.mjs`）；`package.json` 加四条脚本（2026-10-08 更正：不是一条）：`pnpm control:doctor`、`pnpm control:launch`、`pnpm control:quit`、`pnpm control:clean`，各自是 `node scripts/control/<动词>.mjs`，与 `pnpm control:build` 并列。每个文件不超过 300 行。
 - **来自 WI-002 的约束**：新运行目录、不预建 `instance.json`、`doctor` / `clean` 处理残留临时文件和 si.sock、stderr 取哪一行——见 WI-002 状态里的「交给 WI-003」。
 - **Risks + mitigations**：`ps` 的启动时间精度只到秒 → 与可执行文件路径、随机数一起用，不单独作数。
 - **Rollback**：回退提交；纯脚本。
 - **Estimate**：M。
+- **偏离**
+  1. **加了 `launch --into <运行> [--via open] <文件>`（你 2026-10-08 定，D1）**。J7a / J7b 要往一个**活着的**运行里再起一个进程，原四条命令做不到。`--into` 先按 `quit` 的四项核对所有权，不碰 `.lock` 和 `owner.json`，不建运行目录；直接执行时要求第二个进程 exit 0。不带 `--into` 的 `launch` 只要有运行活着就拒绝（WI-002 验收 6）。
+  2. **残留的锁一律拒绝，只由 `clean` 清（你定，D2）**。`launch` 遇到 `.lock` 不论活的还是陈旧的都拒绝，不自动接管、不自动清；`doctor` 指出是哪次运行和下一步。评审后补：运行目录已被手删而锁仍指向它时，`clean <运行>` 在扫描为空、套接字不活时释放这把孤儿锁（`clean: absent R; released orphan lock`）；没有任何运行目录时，`clean` 用任意不存在的运行名也能清掉陈旧的 si.sock，`doctor` 的提示照此给出可执行的命令。否则一把孤儿锁会让以后的 `launch` 全部被拒，无路可走。
+  3. **偏好夹具的模板入库（你定，D3）**：`scripts/control/presets/verify-preferences.json`，完整的一份 `UserPreferences`。Rust 侧 `preferences_verify_preset_tests.rs` 在普通 `rust` lane 里把它反序列化，字段一变就红。每次运行的 `config.json` 仍是生成的，不入库。偏离 §10。
+  4. **路径预算是 103 字节，量真实路径**。si.sock 的完整路径要放进 104 字节；运行名 25 字节，算下来家目录的真实路径不能超过 22 字节（`/Users/jackcheng` 是 16）。超了 `launch` 拒绝，不截断。
+  5. **stderr 取哪一行（WI-002 交来的）**：取以守卫前缀开头的**最后一行**，debug 构建回显的日志行不影响；没有这样的行就报 `unknown`。不限定 release 构建。
+  6. **所有权核对是五项，不是四项**：随机数、pid（`owner.json` 与 `instance.json` 一致且是正的安全整数）、活着、启动时间、可执行文件真实路径。`quit` 在 SIGKILL 之前再核一次启动时间和可执行文件，变了或读不出就不杀、不释放锁。
+  7. **`clean` 不写 `launcher.jsonl`**（与日志规则 20 有出入）。它删的正是这个文件所在的目录；结果只在 stdout 的结论行里。
+  8. **删除次序**：`clean` 先核锁，再删运行目录（`launch.json` 最后删），删完才释放锁。中途失败时 `launch.json` 和锁都还在，下一次 `clean` 能重新证明所有权并重试。
+- **状态（2026-10-08）**：**可自动化部分已完成，真机验收（下面 WI-10）待做**。tdd-guardian 全流程：设计测试后对抗两轮、缺口全补；WI-1–WI-9 加评审修复 WI-R1、WI-R2 全部完成；终审第一轮要求修改，修完复审「通过，附说明」。提交门禁 unit（370 个文件，5400 过）、rust（1155 过）、rust-verify-run（1204 过）都过；覆盖率 L 80.19 / F 84.28 / B 92.50 / S 80.19，`scripts/control/` 下启动器每个文件分支覆盖都 ≥ 91%。`slow` lane（真实进程的 LA-INT、QU-INT）未在门禁里跑，推送前跑。
+  - **规格分离**：8 项保持；WI-6、WI-7、WI-8 的测试辅助代码在红之后改过（环境快照的比较方式、目录 mtime、APFS 目录大小），你 2026-10-08 接受，理由记在 `receipts.json`；WI-R1 只改了两行测试文件头注释并已逐字恢复，理由已记，你可否决。
+  - **验收 2、3、4、5 单测通过**：`sourceTree` 不符时 `doctor` 非零退出；记录里的 pid 换成无关活进程时 `quit` 拒绝并指出哪一项；运行目录是符号链接或不在约定父目录下时 `clean` 拒绝；所有输出（stdout、stderr、`launcher.jsonl`）里没有随机数原文。
+  - **验收 1、6 和 WI-002 验收 6 未验证**：要真机包。按 tdd-guardian 计划的 WI-10 记到 `docs/test/` 的新真机记录里。
+  - **评审留下的低风险项（不阻塞）**：`launch` 先占锁后建目录，两步之间的 `clean R` 会释放活的锁（窗口是两次同步调用）；`clean` 删到最后一步、删空目录失败时，下一次 `clean` 证明不了所有权，要手动 `rmdir` 后再 `clean`；`owner.json` 的 pid 被篡改成非正整数时 `doctor` 说去 `clean`，`clean` 却拒绝；`clean.mjs` 288 行，再加东西前先拆。
+  - 提交：运行目录布局与偏好模板 `83a35b0`；启动器、评审修复与本状态段在其后紧接的一次提交里（同一提交更新状态，SHA 见 `git log`）。
 
 ### WI-004 Tauri 升级到钉死的一组版本
 

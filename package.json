@@ -20,6 +20,10 @@
     "ledger:check": "node scripts/ledger/check.mjs",
     "ledger:build": "node scripts/ledger/render.mjs",
     "control:build": "node scripts/control/build.mjs",
+    "control:doctor": "node scripts/control/doctor.mjs",
+    "control:launch": "node scripts/control/launch.mjs",
+    "control:quit": "node scripts/control/quit.mjs",
+    "control:clean": "node scripts/control/clean.mjs",
     "build:mac": "bash scripts/build-mac.sh",
     "build:mac:fast": "bash scripts/build-mac.sh --skip-tests --open",
     "build:windows": "bash scripts/build-windows.sh"
