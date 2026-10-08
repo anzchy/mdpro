@@ -45,6 +45,14 @@
       "coverage": "none",
       "probeCommand": "cargo test --manifest-path src-tauri/Cargo.toml --features verify-run -- --list",
       "timeoutMs": 900000
+    },
+    {
+      "name": "integration",
+      "description": "Real `pnpm control:build --profile verify` smoke (scripts/control/smoke.mjs, ADR-0047): inspects the build manifest, codesign -dvvv cdhash and the absence of updater artifacts in the bundle dir; verify profile only, the release --config path is not exercised.",
+      "command": "scripts/heavy-lock.sh node scripts/control/smoke.mjs",
+      "gateOn": ["manual"],
+      "coverage": "none",
+      "timeoutMs": 3600000
     }
   ],
   "coverageThresholds": { "lines": 73, "functions": 80, "branches": 91, "statements": 73 },
