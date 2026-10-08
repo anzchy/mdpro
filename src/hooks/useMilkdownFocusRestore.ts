@@ -27,6 +27,17 @@
  *   prompt's return target is redirected to the new `view.dom`, the caret is selected and
  *   scrolled, but the view is NOT focused; the prompt's close focuses it. Logged
  *   `restored` with `focus: "deferred"`. Any other focus holder is still left alone.
+ * - **Also a prompt that opened after the capture** (D38R, ADR-0061, amends ADR-0060).
+ *   Rust shows one prompt at a time, so an approved write can land while focus is back on
+ *   the old view and the next prompt opens only afterwards: the record has no `viaDialog`,
+ *   and that prompt saved the old view (now removed) or nothing. When
+ *   `wouldReturnIntoGone(activeElement, record.oldDom)` holds — no saved target still
+ *   connected, and what was saved is the old view or nothing — the restore defers to the
+ *   prompt exactly as above. A prompt with a live target (an outside input) is untouched.
+ * - **Diagnostic categories** (D38R): the `skipped:focus-elsewhere` and deferred `restored`
+ *   lines add `active` (`editor` / `prompt` / `body` / `other`) and `promptTarget` (`none` /
+ *   `empty` / `old-editor` / `live` / `gone` / `other`), read before any redirect, from
+ *   `describeReturnFocus`. Categories only — never an element, its text, or content.
  * - **The restore does not dirty** (G-11): a selection-only transaction with
  *   `addToHistory: false`; edit-sync ignores it and undo depth stays 0.
  * - **Every restore scrolls** (`scrollIntoView`), so the caret is visible after the rebuild.
@@ -39,7 +50,8 @@
  * @coordinates-with src/utils/milkdownFocusCarry.ts — consumeFocusCarry, the record
  * @coordinates-with src/utils/caretAnchor.ts — anchorCaretAcrossReplace
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx — the caller; passes `generation`
- * @coordinates-with src/hooks/useReturnFocusOnClose.ts — `redirectReturnFocus` (D38)
+ * @coordinates-with src/hooks/useReturnFocusOnClose.ts — `redirectReturnFocus` (D38),
+ *   `wouldReturnIntoGone` and `describeReturnFocus` (D38R)
  */
 import { useEffect } from "react";
 import type { useEditor } from "@milkdown/react";
@@ -48,7 +60,7 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { loggingService } from "../services/loggingService";
 import type { LogStatus } from "../types/logging";
 import { anchorCaretAcrossReplace } from "../utils/caretAnchor";
-import { redirectReturnFocus } from "./useReturnFocusOnClose";
+import { describeReturnFocus, redirectReturnFocus, wouldReturnIntoGone } from "./useReturnFocusOnClose";
 import {
   consumeFocusCarry,
   FOCUS_RESTORE_EVENT,
@@ -87,11 +99,14 @@ function focusIsFree(dom: Element): boolean {
 function restore(instance: Editor, record: FocusCarryRecord): void {
   try {
     const view = instance.action((ctx) => ctx.get(editorViewCtx));
+    const active = document.activeElement;
     const free = focusIsFree(view.dom);
-    const deferred =
-      !free && record.viaDialog === true && redirectReturnFocus(document.activeElement, view.dom);
+    // Categories describe the container BEFORE any redirect (why it was or was not taken).
+    const why = free ? {} : describeReturnFocus(active, record.oldDom, view.dom);
+    const promptOwnsReturn = record.viaDialog === true || wouldReturnIntoGone(active, record.oldDom);
+    const deferred = !free && promptOwnsReturn && redirectReturnFocus(active, view.dom);
     if (!free && !deferred) {
-      logOutcome(record, "cancel", "skipped:focus-elsewhere", { generation: record.generation });
+      logOutcome(record, "cancel", "skipped:focus-elsewhere", { generation: record.generation, ...why });
       return;
     }
     const started = performance.now();
@@ -108,7 +123,7 @@ function restore(instance: Editor, record: FocusCarryRecord): void {
     logOutcome(record, "success", "restored", {
       anchor,
       durationMs,
-      ...(deferred ? { focus: "deferred" } : {}),
+      ...(deferred ? { focus: "deferred", ...why } : {}),
     });
   } catch (error) {
     logOutcome(

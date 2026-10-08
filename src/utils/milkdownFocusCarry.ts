@@ -29,6 +29,12 @@
  *   return target is inside this view, the snapshot is taken with `viaDialog: true`, and the
  *   restore hands the rebuilt view to that container instead of stealing focus from it.
  *   Focus in any other dialog, or a prompt returning outside the editor, captures nothing.
+ * - **The old `view.dom` rides along** (D38R, ADR-0061, amends ADR-0060). Rust shows one
+ *   prompt at a time, so an approved write can land while focus is back on the old view,
+ *   before the next prompt exists: the capture is a plain focused one (no `viaDialog`),
+ *   and the next prompt opens afterwards, saving this view (soon removed) or nothing. The
+ *   snapshot keeps `oldDom` so the restore can tell that prompt apart from one opened
+ *   elsewhere (`wouldReturnIntoGone` in `useReturnFocusOnClose`). `carryForward` keeps it.
  * - **The generation is the primary guard** (coordinator amendment O1). `consumeFocusCarry`
  *   returns the record only for an exact `{documentId, generation}` match. A record for an
  *   older generation is dropped as stale; a record for a newer generation survives an older
@@ -39,7 +45,7 @@
  *   fire during a slow remount of a large document, hence the 10 s floor (O1).
  * - **Consume-once, single slot.** A hit clears the slot and the timer. Arming again
  *   supersedes the old record and restarts the timer. `carryForward` re-arms a live record
- *   at a new generation (keeping `oldDoc` and `head`) when a second replace lands before
+ *   at a new generation (keeping `oldDoc`, `oldDom` and `head`) when a second replace lands before
  *   the render, while the view is already gone; it acts only for the active document in
  *   WYSIWYG, otherwise it is a no-op.
  * - **Conservation.** Every armed record (including a carry-forward) ends in exactly one
@@ -79,6 +85,11 @@ export interface FocusSnapshot {
   head: number;
   /** The old view's immutable doc, held by reference. */
   oldDoc: Node;
+  /**
+   * D38R (ADR-0061): the old view's `view.dom`, held by reference. The restore uses it to
+   * recognise a prompt that opened after this capture and saved this (now removed) view.
+   */
+  oldDom: Element;
   /** D38: focus was in a prompt that returns into this view, not in the view itself. */
   viaDialog?: true;
 }
@@ -174,7 +185,7 @@ export function snapshotFocusedEditor(documentId: string): FocusSnapshot | null 
   if (!editor) return null;
   const view = viewOf(editor, documentId);
   if (!view) return null;
-  const snapshot = { documentId, head: view.state.selection.head, oldDoc: view.state.doc };
+  const snapshot = { documentId, head: view.state.selection.head, oldDoc: view.state.doc, oldDom: view.dom };
   if (view.hasFocus()) return snapshot;
   return promptReturnsInto(view.dom) ? { ...snapshot, viaDialog: true } : null;
 }
@@ -190,8 +201,8 @@ export function armFocusCarry(
 
 /**
  * A replace whose snapshot was null (the focused view is already torn down, pending a
- * render): re-arm the live record for `documentId` at `generation`, keeping its `oldDoc`
- * and `head`. No-op, silently, unless a record for `documentId` is live, `documentId` is
+ * render): re-arm the live record for `documentId` at `generation`, keeping its `oldDoc`,
+ * `oldDom` and `head`. No-op, silently, unless a record for `documentId` is live, `documentId` is
  * active and the mode is WYSIWYG.
  */
 export function carryForward(documentId: string, generation: number): void {
