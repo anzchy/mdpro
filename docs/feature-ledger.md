@@ -411,7 +411,7 @@ mdpro 这一列**全部来自仓库核实**，不是回忆。关键命中：
 | 查找与替换 | ◐ | `src/components/Editor/extensions/search.ts` 仅挂在 `Editor.tsx`（CodeMirror）；注释明写 WYSIWYG 搜索 out of scope |
 | 字数统计 | ○ | `wordCount` / `word_count` / `charCount` / `StatusBar` / `字数` 全仓库零命中 |
 | 打印 | ○ | `menu.rs` 及全部组件无 print 路径（唯一命中是 `MarkdownSettings.tsx` 的 "Pretty-print GFM tables"，不相关） |
-| 文件树 / 工作区 | ○ | `src/components/Sidebar/` 只有 `FileItem` / `Sidebar` / `TOCSidebar`；`App.tsx` 的 `workspace` 只是 CSS 类名 |
+| 文件树 / 工作区 | ○ | `src/components/Sidebar/` 只有 `TOCSidebar`（从未渲染的打开文档列表 `Sidebar` / `FileItem` 已按 [ADR-0059](adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md) 删除：打开的文档只在底部标签里显示）；`App.tsx` 的 `workspace` 只是 CSS 类名 |
 | 界面本地化 | ○ | 无 i18n / locale / useTranslation 任何基础设施 |
 | 自定义主题 CSS | ○ | `AppearanceSettings.tsx` 仅暴露 `CODE_THEMES = ["default","oneDark"]`，无用户 CSS 加载路径 |
 | 快捷键自定义 | ●（未入表） | `KeyboardShortcutsSettings.tsx`（10.4K），File/Edit 等分组可改 |

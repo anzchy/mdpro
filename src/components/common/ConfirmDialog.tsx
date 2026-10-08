@@ -1,5 +1,5 @@
 /**
- * Purpose: generic two-button confirm dialog (App "Unsaved changes", Sidebar, BottomTabs,
+ * Purpose: generic two-button confirm dialog (App "Unsaved changes", BottomTabs,
  * AboutSettings restart prompt). Escape means Cancel.
  *
  * Key decisions:
@@ -16,7 +16,7 @@
  *
  * @coordinates-with src/hooks/useDialogEscape.ts — document-level capture-phase Escape stack
  * @coordinates-with tests/confirm-dialog.test.tsx — CD-1 … CD-13
- * @coordinates-with tests/discard-dialog-focus-wiring.test.tsx — DW-1 … DW-3 (D48 callers)
+ * @coordinates-with tests/discard-dialog-focus-wiring.test.tsx — DW-1 (BottomTabs), DW-3 (App.tsx) (D48 callers)
  */
 import { useRef } from "react";
 import { useDialogEscape } from "../../hooks/useDialogEscape";

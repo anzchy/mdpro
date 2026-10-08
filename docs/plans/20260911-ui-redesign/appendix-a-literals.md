@@ -24,7 +24,7 @@ This appendix lists every literal (non-`var()`) value in the tokenized categorie
   - KaTeX
   - `App.css`, which is dead code. Its 26 literals are still listed in [Out of scope: App.css](#out-of-scope-appcss) so nothing is silently dropped.
 
-  Selectors whose only consumer is A8 dead code (`TabBar/`, `Sidebar/Sidebar.tsx`, `FileItem.tsx`) are **kept** in the table. They are marked in the Stage column, because they sit in `globals.css`, which is in scope, and WI-1.x deletes them.
+  Selectors whose only consumer is A8 dead code (`TabBar/`, `Sidebar/Sidebar.tsx`, `FileItem.tsx`) are **kept** in the table. They are marked in the Stage column, because they sit in `globals.css`, which is in scope, and WI-1.x deletes them. **2026-10-08:** the 6 `Sidebar.tsx` / `FileItem.tsx` rows are gone from the tree — the components and their CSS were deleted ([ADR-0059](../../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)). The rows and counts below are kept as the scan recorded them.
 - **Extraction.** A comment-stripping scanner walked every CSS file. It tracked the selector stack (including `@media` / `@keyframes`) and recorded the declaration line, not the rule line. Its raw list was then cross-checked against the baseline's grep counts (see [Reconciliation](#reconciliation-against-the-baseline-table)). Each row was then classified by hand. No row is unclassified.
 - **Proposal tokens used as targets** (`proposal-ab.html:21-61`, DR22, DR23):
 

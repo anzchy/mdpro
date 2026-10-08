@@ -34,7 +34,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - Integrations (re-verified 2026-10-07 at 630cb86): copy buttons `McpServerInfo.tsx:39`, `McpClientList.tsx:61` (📋); "Test Connection" `IntegrationsSettings.tsx:231` (↻); installed status `McpClientList.tsx:50` (`✓` / `○`), which keeps a text label (DESIGN.md § Status indicator)
   - About update status: `AboutSettings.tsx:224`, `:282` (`✓`)
   - Shortcuts conflict warning: `KeyboardShortcutsSettings.tsx:252` (⚠️)
-- **Not icons:** `⌘` and `⌥` in shortcut labels and titles, and the `×` in the table size readout (`TableInsertModal/index.tsx:206`). The dead `TabBar/` and `FileItem.tsx` are out of scope (A8).
+- **Not icons:** `⌘` and `⌥` in shortcut labels and titles, and the `×` in the table size readout (`TableInsertModal/index.tsx:206`). The dead `TabBar/` is out of scope (A8); `FileItem.tsx` was deleted 2026-10-08 ([ADR-0059](../../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)).
 - **Bottom tab markup:**
   - Today the close control is a `span role="button"` inside the tab's `button`, with no name and no key handling (`BottomTabs.tsx:59-75`).
   - Each tab becomes a wrapper holding two sibling buttons: the tab, named by its title with `aria-current="true"` when active, and "Close *name*" with the close icon.
@@ -133,7 +133,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
     - **The App dialog** (`App.tsx:1048-1056`: `title="Unsaved changes"`, `confirmLabel="Discard changes"`, `cancelLabel="Keep editing"`). It is the one prompt for three paths. `quitDialogModel` (`App.tsx:143-149`; `src/utils/quitDialogModel.ts`) picks the message: ⌘W document close and the OS window close (`useWindowCloseGuard`'s `pendingClose`) show `CLOSE_DIALOG_MESSAGE` (`quitDialogModel.ts:46`), and the D16 app quit (`useQuitGuard`'s `quitPrompt`) shows `QUIT_DIALOG_MESSAGE` (`:47`).
     - **Tab close:** `BottomTabs.tsx:79-87` (`confirmLabel="Discard"` at `:83`).
     - **About's "Save and Restart"** (`AboutSettings.tsx:306`), which is not destructive.
-  - At both Discard callers, pressing Enter right after the dialog opens discards unsaved text (D48). `Sidebar/Sidebar.tsx:53` is another caller, but that component is not mounted (A8).
+  - At both Discard callers, pressing Enter right after the dialog opens discards unsaved text (D48). `Sidebar/Sidebar.tsx:53` was another caller, never mounted; it was deleted 2026-10-08 ([ADR-0059](../../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)).
   - It also misses rule 32 in three ways:
     - no Tab trap
     - `aria-label={title}` (`ConfirmDialog.tsx:60`) instead of `aria-labelledby` and `aria-describedby`

@@ -115,7 +115,7 @@ One line per decision. The full text and sources are in [`decisions.md`](2026091
 | A5 | "100% tokenized" follows the definition in [`baseline-protocol.md`](20260911-ui-redesign/baseline-protocol.md). |
 | A6 | Stage 1 is a pure move into ordered partials listed in `src/styles/index.css` (E2). `:root` tokens stay in `globals.css` (rule 31:11-16). |
 | A7 | No new runtime npm or cargo dependency, including icon, image-diff and contrast tools. The only exception is E7's test-only devDependencies — **four** at the E28 floors, since `@testing-library/jest-dom` joins the three E7 names — added in WI-0.0's chore PR before Stage 0, not in WI-1.0. |
-| A8 | `src/App.css`, `src/components/TabBar/`, the unmounted Preview pane (DR10: `src/components/Preview/Preview.tsx`, `ImageRenderer.tsx`, `styles/preview.css`, and `src/hooks/usePreview.ts`) the unmounted document list (`src/components/Sidebar/Sidebar.tsx` and `FileItem.tsx`) and the unreachable large-file warning (WI-4.13) are dead-code candidates; list them, do not delete them. `src/components/Preview/mathRender.ts` stays live, because HTML export uses it. The tokenization test asserts that no file outside the candidates imports them. Deletion is tracked in TODOS.md. |
+| A8 | `src/App.css`, `src/components/TabBar/`, the unmounted Preview pane (DR10: `src/components/Preview/Preview.tsx`, `ImageRenderer.tsx`, `styles/preview.css`, and `src/hooks/usePreview.ts`) the unmounted document list (`src/components/Sidebar/Sidebar.tsx` and `FileItem.tsx`; **deleted 2026-10-08 by [ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)**, which overrides this row for those two files only) and the unreachable large-file warning (WI-4.13) are dead-code candidates; list them, do not delete them. `src/components/Preview/mathRender.ts` stays live, because HTML export uses it. The tokenization test asserts that no file outside the candidates imports them. Deletion is tracked in TODOS.md. |
 | A9 | Contrast thresholds are WCAG 2.1 AA: 4.5:1 for text, 3:1 for focus indicators and control boundaries. |
 | A10 | Class (c) literals with 3 or more unrelated uses get a semantic token (rule 31's rule of three). |
 | A11 | Manual test guide location: `docs/guide/manual-test-ui-redesign.md`. |
@@ -223,7 +223,7 @@ Read this file first, then only the stage file you are working on.
 - Review §4 artboard work (designing the undrawn surfaces). Those surfaces get token changes only, except the empty state, which WI-4.9 builds (DR3), the external-change dialog, which WI-4.10 rebuilds (DR5), and the drop target, which WI-4.12 builds (DR7).
 - A command palette, unless the app already has one (Q11).
 - Density changes, title-bar and tab-bar height changes.
-- Deleting `src/App.css`, `src/components/TabBar/`, the Preview pane files, `Sidebar/Sidebar.tsx` and `FileItem.tsx`, or the large-file warning (list them only).
+- Deleting `src/App.css`, `src/components/TabBar/`, the Preview pane files, or the large-file warning (list them only). `Sidebar/Sidebar.tsx` and `FileItem.tsx` are the exception: deleted 2026-10-08 ([ADR-0059](../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)).
 - Restyling or re-mounting the Preview pane (DR10). Its dark code theme is unsolved, because `Preview.tsx:6` imports only the light `github.css`, and has to be solved before any re-mount.
 - A stylelint setup or any new runtime dependency.
 - The rejected D3 code hue.

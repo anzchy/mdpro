@@ -51,5 +51,4 @@ export function TOCSidebarContainer({
 }
 
 // Re-export components
-export { Sidebar } from "./Sidebar";
 export { TOCSidebar } from "./TOCSidebar";

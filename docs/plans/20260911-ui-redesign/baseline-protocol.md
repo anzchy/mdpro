@@ -77,7 +77,7 @@ The `globals.css` row moved off its `0a3675e` reading of 1918 / 49 / 88: `0ca5a4
   - `src/App.css` (19 color literals, imported nowhere)
   - `src/components/TabBar/` (re-exported only by its own `index.ts`)
   - the Preview pane (DR10), **already deleted**: `Preview.tsx` was imported nowhere since `4570de3`, and `ImageRenderer.tsx`, `styles/preview.css` and `src/hooks/usePreview.ts` served only it. `15b9d35` deleted all four, and `src/components/Preview/` no longer exists. `mathRender.ts` was the live exception and survived — `e021f47` moved it to `src/services/mathRender.ts` (`exportService.ts:6`).
-  - the old document list: `src/components/Sidebar/Sidebar.tsx` is re-exported at `Sidebar/index.tsx:54` but rendered nowhere, and `FileItem.tsx` is imported only by it (`Sidebar.tsx:3`). The WI-2.1 dead-code guard must allow that re-export or name it.
+  - the old document list: (deleted 2026-10-08, [ADR-0059](../../adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md)) `src/components/Sidebar/Sidebar.tsx` was re-exported at `Sidebar/index.tsx:54` but rendered nowhere, and `FileItem.tsx` is imported only by it (`Sidebar.tsx:3`). The WI-2.1 dead-code guard must allow that re-export or name it.
   - the large-file warning (`useDocument.ts:31`, `:66-68`, `:101-103`, `:126-128`; `App.tsx:499-503`): it warns above 10 MB, and the backend already refuses those files (`src-tauri/src/commands/file.rs:16`, `:162-168`)
 
 ### Gates and tools
