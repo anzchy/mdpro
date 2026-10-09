@@ -14,9 +14,10 @@
  *   difference is an edit the disk does not hold.
  * - `next` is built from `current`, not the pre-await snapshot, so non-content
  *   fields changed during the await survive.
- * - The resolver never raises dirty; an edit that landed already set it. So a
- *   document reopened clean under the same id with different content stays clean
- *   (accepted limitation, D19 plan Risks).
+ * - Dirty is raised only when the store holds content this save did not write and
+ *   nothing marked it dirty (D70: an older save landing after a newer one, or a
+ *   document reopened clean under the same id with different content). Clean is
+ *   kept only when the store holds exactly `writtenContent`.
  * - Store content equal to the formatted `writtenContent` but not the snapshot is
  *   treated as edited (conservatively dirty).
  * - Pure: no store, service, IPC or logging imports. The caller owns side effects.
@@ -45,7 +46,8 @@ export interface SaveResultInput {
 export type SaveResolution =
   /** Nothing changed during the await: store takes the written content, clean. */
   | { kind: "applied"; next: Document }
-  /** Content changed during the await: only `path` / `lastSaved` are recorded. */
+  /** Content changed during the await: `path` / `lastSaved` are recorded, and dirty is
+   * raised if the store content is not what was written (D70). */
   | { kind: "edited-during-save"; next: Document }
   /** The document was closed during the await: write nothing. */
   | { kind: "closed" };
@@ -53,15 +55,16 @@ export type SaveResolution =
 /**
  * Resolve a completed save against the document as it is now.
  *
- * Invariant: a save never lowers the edit content and never marks clean content it
+ * Invariant: a save never lowers the edit content and never leaves clean content it
  * did not write. Concretely:
  * - `current === undefined` ⇔ `{ kind: "closed" }` (no `next`);
  * - `current.content !== snapshotContent` ⇒ `next.content === current.content` and
- *   `next.isModified === current.isModified`;
+ *   `next.isModified === (current.isModified || current.content !== writtenContent)`;
  * - a dirty → clean transition happens only in `applied`, with `next.content ===
  *   writtenContent`;
- * - dirty is never raised; fields other than `content`, `isModified`, `path` and
- *   `lastSaved` are carried over from `current` unchanged.
+ * - `!next.isModified` ⇒ `next.content === writtenContent` (D70);
+ * - fields other than `content`, `isModified`, `path` and `lastSaved` are carried
+ *   over from `current` unchanged.
  *
  * Idempotent: resolving again with `current = next` yields a deep-equal `next`.
  * Pure: inputs are not mutated; `next` is always a fresh object.
@@ -80,8 +83,11 @@ export function resolveSaveResult(input: SaveResultInput): SaveResolution {
     };
   }
 
+  // D70: clean content the disk does not hold (an earlier save landing after a newer
+  // one marked the buffer clean) is raised to dirty.
+  const isModified = current.isModified || current.content !== writtenContent;
   return {
     kind: "edited-during-save",
-    next: { ...current, path, lastSaved: savedAt },
+    next: { ...current, isModified, path, lastSaved: savedAt },
   };
 }

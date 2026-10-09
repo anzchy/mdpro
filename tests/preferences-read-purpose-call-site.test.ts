@@ -99,7 +99,9 @@ describe("PRL-06: App.tsx loadPreferences reads with app_hydrate, exactly once",
 
 describe("PRL-07: each caller passes its own purpose", () => {
   const TABLE: Array<[string, string[]]> = [
-    ["src/hooks/useDocument.ts", ["save_reformat_check"]],
+    // D70: the save body moved verbatim from hooks/useDocument.ts into the queued
+    // save service; the call site and its purpose are unchanged.
+    ["src/services/documentSave.ts", ["save_reformat_check"]],
     ["src/components/common/SettingsDialog.tsx", ["settings_dialog"]],
     ["src/components/common/settings/AppearanceSettings.tsx", ["settings_appearance"]],
     ["src/components/common/settings/GeneralSettings.tsx", ["settings_general"]],
