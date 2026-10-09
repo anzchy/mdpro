@@ -25,6 +25,7 @@
 //! @coordinates-with src-tauri/src/commands/window.rs
 //! @coordinates-with src-tauri/src/services/open_route/tauri_glue.rs
 //! @coordinates-with docs/adr/0035-a-window-that-answered-the-quit-prompt-is-re-checked-before-commit.md
+//! @coordinates-with docs/adr/0066-no-new-windows-while-a-quit-request-is-live.md
 use super::driver::{QuitEffects, QuitGuard};
 
 /// The error `create_window` returns while a quit is pending. The frontend
