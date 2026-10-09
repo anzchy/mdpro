@@ -11,11 +11,17 @@
 #                               outside the repo so all worktrees share it.
 #   MDPRO_HEAVY_LOCK_WAIT_SECS  max wait for the lock (default 1800); exit 75.
 #   MDPRO_HEAVY_LOCK_HELD=1     exported to the child; a nested call runs directly.
+#   MDPRO_HEAVY_LOCK_KILL_GRACE_SECS  on INT/TERM, how long the job's process
+#                               group gets after TERM before KILL (default 10).
 #
 # Key decisions: macOS has no flock(1), so the lock is an atomic `mkdir` dir
 #   holding an `owner` file (pid, start time, cwd, command). An owner pid that
 #   fails `kill -0` is stale and reclaimed. The child's exit code propagates
-#   exactly; the lock is released on EXIT/INT/TERM.
+#   exactly; the lock is released on EXIT/INT/TERM — on a signal only after the
+#   child's whole process group has exited (D75), so a queued job never starts
+#   beside orphaned rustc / vitest workers. Cost of the own process group: the
+#   job is not the terminal's foreground group, so a job that reads the tty
+#   (an interactive prompt) is stopped by SIGTTIN; heavy jobs here never do.
 set -euo pipefail
 
 if [[ $# -eq 0 ]]; then
@@ -27,6 +33,7 @@ fi
 LOCK="${MDPRO_HEAVY_LOCK:-$HOME/.cache/mdpro-heavy.lock}"
 MAX_WAIT="${MDPRO_HEAVY_LOCK_WAIT_SECS:-1800}"
 POLL_SECS=5
+KILL_GRACE_SECS="${MDPRO_HEAVY_LOCK_KILL_GRACE_SECS:-10}"
 HEARTBEAT_SECS=60
 TAG="[heavy-lock]"
 mkdir -p "$(dirname "$LOCK")"
@@ -96,11 +103,30 @@ release() {
     rmdir "$LOCK" 2>/dev/null || true
   fi
 }
+group_alive() { kill -0 -- "-$child" 2>/dev/null; }
+# TERM the child's whole process group (rustc, vitest workers, not just the
+# direct child), give it KILL_GRACE_SECS, then KILL; only then may the lock go.
+stop_group() {
+  local ticks=0
+  kill -TERM -- "-$child" 2>/dev/null || return 0
+  while group_alive && ((ticks < KILL_GRACE_SECS * 10)); do
+    sleep 0.1
+    ticks=$((ticks + 1))
+  done
+  if group_alive; then
+    echo "$TAG job ignored TERM for ${KILL_GRACE_SECS}s; sending KILL" >&2
+    kill -KILL -- "-$child" 2>/dev/null || true
+    while group_alive && ((ticks < (KILL_GRACE_SECS + 5) * 10)); do
+      sleep 0.1
+      ticks=$((ticks + 1))
+    done
+  fi
+}
 # Bash defers traps while a foreground child runs, so the child runs in the
-# background and we `wait` (interruptible). Async children of a non-interactive
-# shell ignore SIGINT, so both signals are forwarded to the child as TERM.
+# background and we `wait` (interruptible). Both signals are forwarded to the
+# child's group as TERM.
 on_signal() {
-  [[ -n "$child" ]] && kill -TERM "$child" 2>/dev/null
+  [[ -n "$child" ]] && stop_group
   release
   trap - "$1"
   kill "-$1" $$
@@ -111,8 +137,12 @@ trap 'on_signal TERM' TERM
 
 export MDPRO_HEAVY_LOCK_HELD=1
 set +e
+# Job control gives the async child its own process group (pgid = $child), so
+# stop_group can reach every descendant, even ones orphaned when the child dies.
+set -m
 "$@" <&0 &
 child=$!
+set +m
 wait "$child"
 status=$?
 set -e
