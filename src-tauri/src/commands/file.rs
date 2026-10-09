@@ -18,7 +18,8 @@ const ALLOWED_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
 
 /// Validate that a file path is safe for open/save operations.
 /// Rejects path traversal and non-document file extensions.
-fn validate_file_path(path: &str) -> Result<(), FileError> {
+/// Also used by `draft_recover_watch` to gate the D59 recover-time watch.
+pub(crate) fn validate_file_path(path: &str) -> Result<(), FileError> {
     let p = std::path::Path::new(path);
     if p.components()
         .any(|c| matches!(c, std::path::Component::ParentDir))

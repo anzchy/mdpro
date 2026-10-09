@@ -1,4 +1,5 @@
 pub mod draft;
+pub mod draft_recover_watch;
 pub mod draft_recovery;
 pub mod export;
 pub mod file;
@@ -110,3 +111,15 @@ mod draft_log_redaction_tests;
 #[cfg(all(test, unix))]
 #[path = "draft_log_redaction_failure_tests.rs"]
 mod draft_log_redaction_failure_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_watch_tests.rs"]
+mod draft_recover_watch_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_watch_law_tests.rs"]
+mod draft_recover_watch_law_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_watch_roundtrip_tests.rs"]
+mod draft_recover_watch_roundtrip_tests;
