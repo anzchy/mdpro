@@ -31,11 +31,30 @@ export const escapeHtml = (text) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-/** Only same-document, relative and http(s) targets survive. */
+/** Reverses `escapeHtml`, so a target is escaped exactly once on output. */
+const unescapeHtml = (text) =>
+  String(text)
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+
+const ALLOWED_SCHEME = /^(https?|mailto):/i;
+const ANY_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
+ * Blocklist by scheme, not allowlist by prefix: the ledger links to its
+ * siblings as scheme-less relative paths (`plans/…`, `adr/…`), and the HTML is
+ * written next to the markdown in `docs/`, so those resolve as-is. Any explicit
+ * scheme other than http(s)/mailto (`javascript:`, `data:`, `file:` …) becomes
+ * `#`, and so does protocol-relative `//host`, which would leave the repo.
+ */
 const safeHref = (raw) => {
   const href = raw.trim();
-  if (/^(https?:\/\/|#|\.{0,2}\/|mailto:)/i.test(href)) return escapeHtml(href);
-  return "#";
+  if (href.startsWith("//")) return "#";
+  if (ANY_SCHEME.test(href) && !ALLOWED_SCHEME.test(href)) return "#";
+  return escapeHtml(href);
 };
 
 /**
@@ -51,8 +70,7 @@ export function renderInline(text) {
 
   work = escapeHtml(work)
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label, href) => {
-      const decoded = href.replace(/&amp;/g, "&");
-      return `<a href="${safeHref(decoded)}">${label}</a>`;
+      return `<a href="${safeHref(unescapeHtml(href))}">${label}</a>`;
     })
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
