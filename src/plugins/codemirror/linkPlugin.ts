@@ -9,10 +9,15 @@
  *   this command from both the keymap below and `useKeyboardShortcuts`.
  * - Whenever the request closes (insert, Escape, Cancel, backdrop), focus goes
  *   back to the editor that asked.
+ * - This one view is reused across tabs, so `view.dom.isConnected` alone cannot
+ *   tell that the request's document is gone: `useLinkInsertBinding` binds the
+ *   request to the active document and view mode and cancels it when either
+ *   changes (D73).
  *
  * @coordinates-with src/stores/linkInsertStore.ts
  * @coordinates-with src/components/Editor/LinkInsertModal.tsx
  * @coordinates-with src/hooks/useKeyboardShortcuts.ts
+ * @coordinates-with src/hooks/useLinkInsertBinding.ts — the D73 cancellation
  */
 import { EditorSelection } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";

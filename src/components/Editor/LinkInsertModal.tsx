@@ -12,12 +12,16 @@
  *     `[text](url)` in Source mode).
  *   - Calls clearPendingCallback() to hide the modal.
  *   - ESC or "Cancel" calls clearPendingCallback() without applying.
+ *   - useLinkInsertBinding clears the request (the modal unmounts) when the
+ *     active document switches or closes, or the view mode changes (D73); that
+ *     path logs `ui.link-insert.cancel`, not `ui.link-modal.cancel`.
  *
  * @coordinates-with src/stores/linkInsertStore.ts
  * @coordinates-with src/plugins/milkdown/typoraKeymapPlugin.ts
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
  * @coordinates-with src/components/Editor/SplitView.tsx — Source mode mount (D55)
  * @coordinates-with src/plugins/codemirror/linkPlugin.ts
+ * @coordinates-with src/hooks/useLinkInsertBinding.ts — closes it on a stale request (D73)
  */
 
 import { useEffect, useRef, useState } from "react";

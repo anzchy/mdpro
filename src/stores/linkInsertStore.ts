@@ -14,6 +14,14 @@
  *   3. LinkInsertModal renders, user types URL and submits.
  *   4. Modal calls pendingCallback(url) then clearPendingCallback().
  *   5. ESC or cancel calls clearPendingCallback() without applying the link.
+ *   6. useLinkInsertBinding calls clearPendingCallback() when the request's
+ *      document closes, the active document switches, or the view mode
+ *      changes before the URL arrives (D73).
+ *
+ * Kept free of other store imports on purpose: the keymap plugins import it,
+ * and their node-environment tests must not pull the editor store graph.
+ *
+ * @coordinates-with src/hooks/useLinkInsertBinding.ts — the D73 cancellation
  */
 
 import { create } from "zustand";

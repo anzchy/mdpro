@@ -23,6 +23,7 @@ import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
 import { useMcpEvents } from "./hooks/useMcpEvents";
+import { useLinkInsertBinding } from "./hooks/useLinkInsertBinding";
 import { useRecentFiles } from "./hooks/useRecentFiles";
 import { useRecentFilesMenuRefresh } from "./hooks/useRecentFilesMenuRefresh";
 import { useSidebarPreference } from "./hooks/useSidebarPreference";
@@ -151,6 +152,8 @@ function App() {
     forceMcpSyncRef.current = mcpSync.forceSync;
   }, [mcpSync.forceSync]);
   useMcpEvents();
+  // ⌘K link request: cancel it when its document or view mode changes (D73).
+  useLinkInsertBinding();
 
   // TOC hook for sidebar Table of Contents
   const {
