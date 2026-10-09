@@ -82,6 +82,8 @@ import type { HeadingKey, ParsedTOCEntry } from "../src/types/toc";
 import { useTOCStore } from "../src/stores/tocStore";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
+import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
+import { editorViewCtx, parserCtx, serializerCtx } from "@milkdown/kit/core";
 import { useDocument } from "../src/hooks/useDocument";
 import { useMcpEvents, processTableActionEvent } from "../src/hooks/useMcpEvents";
 import {
@@ -561,6 +563,10 @@ function driverRows(): DriverRow[] {
       path: "MCP table_action",
       mustReset: false,
       drive: async () => {
+        // D58 / ADR-0065: a WYSIWYG-active table action with no Milkdown editor is now
+        // refused ("editor unavailable"), which would leave this row editing nothing.
+        // Source mode reaches the same success write site with no editor double.
+        useEditorStore.setState({ viewMode: "source", editorView: null });
         const beforeContent = useDocumentStore.getState().getDocumentById(DOC_ID)?.content;
         processTableActionEvent(
           {
@@ -579,6 +585,53 @@ function driverRows(): DriverRow[] {
           useDocumentStore.getState().getDocumentById(DOC_ID)?.content,
           "the table edit was rejected — this row would pass without editing anything",
         ).not.toBe(beforeContent);
+      },
+    },
+    // D58 / ADR-0065: the reconcile write site. A WYSIWYG-active table action whose
+    // editor view advanced and then threw aligns the store with the editor. `replaceAll`
+    // is a no-op in this file, so the double's parser stands in for the dispatch: it
+    // advances the view, then throws.
+    {
+      path: "MCP table_action reconcile (view advanced, then threw)",
+      mustReset: false,
+      drive: async () => {
+        const reconciled = OLD_CONTENT.replace("| 1 | 2 |", "| 9 | 2 |");
+        const view = { state: { doc: { eq: () => false } } };
+        const ctx = {
+          get: (slice: unknown) => {
+            if (slice === editorViewCtx) return view;
+            if (slice === serializerCtx) return () => reconciled;
+            if (slice !== parserCtx) return undefined;
+            return () => {
+              view.state = { doc: { eq: () => false } };
+              throw new Error("simulated view-update failure after dispatch");
+            };
+          },
+        };
+        const unregister = useMilkdownEditorStore
+          .getState()
+          .registerEditor(() => ({ action: (fn: (c: typeof ctx) => unknown) => fn(ctx) }));
+        try {
+          processTableActionEvent(
+            {
+              document_id: DOC_ID,
+              action: "add_row",
+              payload: { tableIndex: 0, after: 0 },
+              window_label: "main",
+            },
+            {
+              currentWindowLabel: "main",
+              updateDocumentContent: (id, content) =>
+                useDocumentStore.getState().updateDocumentContent(id, content),
+            },
+          );
+        } finally {
+          unregister();
+        }
+        expect(
+          useDocumentStore.getState().getDocumentById(DOC_ID)?.content,
+          "the reconcile write did not happen — this row would pass without editing anything",
+        ).toBe(reconciled);
       },
     },
     {
