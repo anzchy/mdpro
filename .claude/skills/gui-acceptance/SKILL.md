@@ -376,6 +376,15 @@ Rules for the table:
 - **Call `request_access` before any action**, listing only the applications
   the task needs. Do not request access to an unrelated app to get past a
   blocked coordinate.
+- **Request every app in one call, as the run's first computer-use step.**
+  Grants last only for the current session, and a dispatch that starts with
+  `/clear` is a new session, so each run starts with no grants. No setting
+  pre-approves apps or persists grants
+  (<https://code.claude.com/docs/en/computer-use.md>, "Approve apps per
+  session"). One up-front `request_access` that lists every app the brief
+  touches (`mdpro` plus e.g. `Finder`) means the user clicks **Allow for this
+  session** once. If a later step needs an app nobody foresaw, request it then.
+  Every brief therefore names its full app list in the preconditions.
 - **Never modify system or security settings** to unblock a test.
 - **Never click a web link** with computer-use tools.
 
@@ -467,6 +476,7 @@ follow-up**:
 [ ] Confirmed the criteria genuinely need layout (§1)
 [ ] pnpm tauri build --bundles app                      ← NOT pnpm tauri dev
 [ ] Bundle mtime postdates every source file under test (§3)
+[ ] One up-front request_access listing every app the run needs (§9)
 [ ] Killed stray mdpro / mdpro_mcp processes
 [ ] Launched by absolute path with the fixture argument (§4)
 [ ] ps confirms the PID runs from the build path
