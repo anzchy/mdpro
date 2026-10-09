@@ -1,0 +1,21 @@
+
+
+@media (max-width: 960px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .split-view {
+    flex-direction: column;
+  }
+
+  .split-pane {
+    width: 100% !important;
+  }
+
+  .split-divider {
+    height: 6px;
+    width: 100%;
+    cursor: row-resize;
+  }
+}

@@ -6,8 +6,10 @@
  * `@import` lines of `src/styles/index.css`, so a CSS-reading test survives the
  * Stage 1 partial split without knowing which file a rule moved to.
  *
- * Cases: (a) before the split, the non-theme concatenation is `globals.css`
- * byte for byte; (b) an import of a missing file throws; (c) the entry is
+ * Cases: (a) was "the non-theme concatenation is `globals.css` byte for byte",
+ * true only before the split; the pure-move proof in WI-1.2's commit replaced
+ * it, and the real entry is now pinned by the explicit 18-file import-order
+ * case below. (b) an import of a missing file throws; (c) the entry is
  * rejected for any line that is not a comment or an `@import`, a duplicate
  * import, or a path that resolves outside the styles root. (b) and (c) run
  * against fixture text or temp files, never the real `index.css`.
@@ -50,11 +52,6 @@ afterEach(() => {
 });
 
 describe("appCss — the real src/styles/index.css", () => {
-  it("(a) non-theme concatenation equals globals.css byte for byte (pre-split)", () => {
-    const globals = fs.readFileSync(path.join(STYLES, "globals.css"), "utf-8");
-    expect(readAppCssNonTheme()).toBe(globals);
-  });
-
   it("starts with globals.css and ends with the light then dark theme", () => {
     const rels = readAppCssFiles().map((f) => f.relPath);
     expect(rels[0]).toBe("globals.css");
@@ -66,10 +63,33 @@ describe("appCss — the real src/styles/index.css", () => {
   });
 
   it("full concatenation is every file in import order", () => {
-    const expected = ["globals.css", "themes/light.css", "themes/dark.css"]
+    // Explicit, not derived from index.css: the order is cascade order, so a
+    // reorder of the entry must fail here.
+    const expected = [
+      "globals.css",
+      "sections/app-shell.css",
+      "sections/editor-source.css",
+      "sections/buttons-dialog.css",
+      "sections/table-context-menu.css",
+      "sections/table-insert-modal.css",
+      "sections/link-insert-modal.css",
+      "sections/recovery-toast.css",
+      "sections/settings-shell.css",
+      "sections/settings-pages.css",
+      "sections/settings-rows.css",
+      "sections/settings-mcp.css",
+      "sections/responsive.css",
+      "sections/tab-bar.css",
+      "sections/toc-sidebar.css",
+      "sections/settings-about.css",
+      "themes/light.css",
+      "themes/dark.css",
+    ];
+    expect(readAppCssFiles().map((f) => f.relPath)).toEqual(expected);
+    const expectedCss = expected
       .map((rel) => fs.readFileSync(path.join(STYLES, rel), "utf-8"))
       .join("");
-    expect(readAppCss()).toBe(expected);
+    expect(readAppCss()).toBe(expectedCss);
   });
 
   it("per-file access returns one imported file's bytes", () => {

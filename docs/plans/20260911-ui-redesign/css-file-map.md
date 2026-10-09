@@ -2,67 +2,69 @@
 
 Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the sources of truth, decisions, open questions, acceptance criteria and tasks. Consumed by [Stage 1](stage-1-split.md) (WI-1.1, WI-1.2) and [Stage 3](stage-3-retune.md) (WI-3.3).
 
-**Source:** every line number below is valid at commit `4ebfc89` (`src/styles/globals.css`, 1916 lines). The map was first read at `a5767d5` (1955 lines) from the clean worktree `mdpro-wt/verify-a5767d5`; lines `:1-1544` are identical at both commits, and every line from `:1545` on is 39 lower at `4ebfc89` (see the 2026-10-07 note). Where a number is in the dead-CSS commit's numbering (after WI-1.2 deletes the `.toolbar-recent*` rules), it says so.
+**2026-10-09 — re-based to `a8ddf7c`; the split landed in WI-1.2.** Every line number in §1-§3 is now at `a8ddf7c` (`src/styles/globals.css`, 1805 lines), the WI-1.2 dead-CSS commit, unless it names another commit. Two deletions sit between this map's previous base `4ebfc89` (1916 lines) and `a8ddf7c`: `c633aca` (ADR-0059) removed `.sidebar-empty`, `.sidebar-list` and `.file-item*`, 63 lines at `4ebfc89:130-192`, and `a8ddf7c` removed `.toolbar-recent*`, 48 lines at `c7ab729:333-380`. So a `4ebfc89` line `L` is `L` below `:130`, `L - 63` from `:193` to `:395`, and `L - 111` from `:444` on. WI-1.2 then moved `:77-1805` into the 15 partials of §3.1, and the pure-move proof is empty (§3.4). Blank separator lines between sections sit at the start of the following partial, so that each file ends without a trailing blank and the byte-for-byte concatenation still holds. §4.2 (the DR15 draft) and §5 are unchanged and keep their `a5767d5` numbers.
+
+**Source (history):** the map was first read at `a5767d5` (1955 lines) from the clean worktree `mdpro-wt/verify-a5767d5`, then re-based to `4ebfc89` (1916 lines) on 2026-10-07: lines `:1-1544` are identical at both commits, and every line from `:1545` on is 39 lower at `4ebfc89` (see the 2026-10-07 note).
 
 **2026-10-07 — Dev Toolbar removed.** Commit `1703dbb` deleted the Dev Toolbar block from `globals.css`: the comment `/* Dev Toolbar - only visible in browser mode */` and the `.dev-toolbar*` rules, 39 lines (`a5767d5:1545-1583`; git's diff reports it as `:1545-1561` plus `:1563-1584`, the same text, because the blank lines are interchangeable). Nothing else in the file changed between `a5767d5` and `4ebfc89`. The user decided on 2026-10-05 to keep `1703dbb` and treat it like the `.toolbar-recent*` deletion (the dead-CSS precedent), so the `dev-toolbar.css` partial is gone from the map: 15 partials instead of 16. The block's leftover trailing blank line (`4ebfc89:1545`) stays at the end of `settings-mcp.css`, so `responsive.css` still opens on `@media`. Every range and the dry run below were redone against `4ebfc89`.
 
-**Status:** proposed, awaiting the Stage 0 gate. The map was dry-run in a scratch copy (re-run against `4ebfc89` on 2026-10-07): building the partials from these ranges and running the Stage 1 pure-move proof gives an empty diff, and the plain concatenation is byte-identical to the dead-CSS file (§3.4).
+**Status:** applied in WI-1.2 (2026-10-09). The partials were cut from the ranges in §3.1 at `a8ddf7c`, and the pure-move proof is empty (§3.4). The 2026-10-07 scratch dry run against `4ebfc89` is superseded.
 
 ## 1. Section banners in `globals.css`
 
-`globals.css` has **30 top-level comments**: 8 section banners, 13 settings sub-banners, and 9 rule annotations (a comment that describes the rule below it rather than opening a section). Comments inside a rule block (`:18`, `:25`, `:29`, `:34`, `:42` inside `:root`; `:69`, `:70`, `:112` trailing; `:518` inside `.table-context-menu`) are not banners and are not listed.
+`globals.css` at `a8ddf7c` has **30 top-level comments**: 8 section banners, 13 settings sub-banners, and 9 rule annotations (a comment that describes the rule below it rather than opening a section). Comments inside a rule block (`:18`, `:25`, `:29`, `:34`, `:42` inside `:root`; `:69`, `:70`, `:112` trailing; `:407` inside `.table-context-menu`) are not banners and are not listed.
 
-Each row runs from its comment to the line before the next top-level comment. The ranges cover `:1-1916` with no gap and no overlap.
+Each row runs from its comment to the line before the next top-level comment. The ranges cover `:1-1805` with no gap and no overlap. After WI-1.2 each row lives in the partial named in §3.1.
 
 | # | Lines | Count | Comment text | Kind | What the range actually holds |
 |---|---|---|---|---|---|
 | 0 | 1-64 | 64 | (none) | — | `:root` tokens `:1-47`, reset `*` `:48-50`, `html, body, #root` `:52-56`, `body` `:58-63` |
-| 1 | 65-200 | 136 | macOS + Tauri overlay titlebar: activate traffic-light clearances. | annotation | `body.tauri-macos` `:67-71`; then **unbannered**: `a` `:73-76`, app shell `:78-107`, sidebar and `.file-item*` `:108-192`, `.main` `:193-200` |
-| 2 | 201-215 | 15 | Custom Title Bar (Typora-style) + Sidebar: traffic-lights zone … | banner + annotation | `.sidebar-traffic-area` `:206-214` |
-| 3 | 216-226 | 11 | View-mode badge (WYSIWYG / SPLIT / EDITOR / PREVIEW) | annotation | `.sidebar-mode-label` |
-| 4 | 227-355 | 129 | Main area: traffic-lights zone shown only when the sidebar is hidden. | annotation | `.main-traffic-area` `:230-238`; then **unbannered**: `.busy-indicator` `:240`, `.workspace` `:246`, split view and panes `:253-290`, `.preview-scroll` `:292`, `.editor-shell*` `:298-354` |
-| 5 | 356-498 | 143 | Active table cell highlight in source mode (table-CRUD WI-2.5). | annotation | `.editor-shell .cm-table-active-cell` `:360-363`; then **unbannered**: `.wysiwyg-preview*` `:365-372`, `.toolbar-buttons`/`.toolbar-modes`/`.toolbar-mode*` `:374-394`, **`.toolbar-recent*` `:396-442` (dead, §2)**, `.toolbar-button*` `:444-461`, `.dialog-*` `:463-497` |
-| 6 | 499-504 | 6 | MCP write confirmation (ADR-0042): focus pattern 2, accent follows the theme. | annotation | `.mcp-confirm-dialog .toolbar-button:focus-visible` |
-| 7 | 505-603 | 99 | Table Context Menu (table-CRUD WI-1.3, issue #390) | banner | `.table-context-menu*` |
-| 8 | 604-714 | 111 | Table Insert Modal (table-CRUD WI-1.1, issue #390) | banner | `.table-insert-*`, `.grid-picker*`; **stray** `.dialog-title` `:610-615` and `.dialog-title-hint` `:617-622` |
-| 9 | 715-862 | 148 | Link Insert Modal (issue #25) | banner | `.link-insert-*` `:717-747`; **stray** `.toolbar-button--primary*` `:749-762`; then **unbannered** `.recovery-*` `:764-799`, `.loading-spinner`/`.spinner`/`@keyframes spin` `:801-822`, **`.toast*` `:824-850`**, `.encoding-*` `:851-862` |
-| 10 | 863-1040 | 178 | Settings Dialog | banner | dialog shell `:864-966`; shortcuts page `.shortcuts-*`/`.shortcut-*` `:968-1039` |
-| 11 | 1041-1046 | 6 | Settings nav icon | sub-banner | `.settings-nav-icon` |
-| 12 | 1047-1062 | 16 | Settings page layout | sub-banner | `.settings-page-*` |
-| 13 | 1063-1115 | 53 | Dirty shortcuts banner | sub-banner | `.settings-dirty-banner*`; `.settings-placeholder*` `:1084-1114` |
-| 14 | 1116-1208 | 93 | Settings General Page | sub-banner | `.settings-general`, `.settings-form*`, `.settings-select*`, `.settings-footer*`; **stray** `.toolbar-button.primary/.small/.danger` `:1185-1207` |
-| 15 | 1209-1247 | 39 | Integrations Settings | sub-banner | `.settings-integrations*`, `.settings-error`, `.settings-row` `:1236-1246` |
-| 16 | 1248-1257 | 10 | Section label (TYPOGRAPHY, BEHAVIOR) | sub-banner | `.settings-section-label` |
-| 17 | 1258-1317 | 60 | Custom font size stepper | sub-banner | `.settings-stepper*`; `.settings-row-content/-label/-description/-control` `:1287-1316` |
-| 18 | 1318-1363 | 46 | Toggle Switch | sub-banner | `.toggle-switch*`, `.toggle-slider*` |
-| 19 | 1364-1379 | 16 | MCP Status Badge | sub-banner | `.mcp-status-badge`, `.running` |
-| 20 | 1380-1390 | 11 | ADR-0039 launch states — existing tokens only, so both themes follow. | annotation | `.mcp-status-badge.off/.failed` |
-| 21 | 1391-1397 | 7 | ADR-0040: `stopping` is the live switch's other transition, styled like `starting`. | annotation | `.mcp-status-badge.starting, .stopping` |
-| 22 | 1398-1418 | 21 | Badge + single inline note under the "Enable MCP Server" label | sub-banner | `.mcp-server-status`, `.mcp-status-note`, `.mcp-status-dot` |
-| 23 | 1419-1471 | 53 | MCP Server Info | sub-banner | `.mcp-server-info`, `.mcp-info-*`, `.mcp-copy-btn*` |
-| 24 | 1472-1476 | 5 | MCP Actions | sub-banner | `.mcp-actions` |
-| 25 | 1477-1565 | 89 | MCP Installations | sub-banner | `.mcp-installations*`, `.mcp-client-*` `:1477-1543`; **stray** `@media (max-width: 960px)` `:1546-1565` (app shell and split view; its Dev Toolbar banner went with `1703dbb`) |
-| 26 | 1566-1691 | 126 | ========== Tab Bar Styles ========== | banner | `.tab-bar*`, `.tab*` |
-| 27 | 1692-1787 | 96 | ========== TOC Sidebar Styles ========== | banner | `.toc-sidebar*`, `.toc-entry*` up to `.toc-entry__link` |
-| 28 | 1788-1812 | 25 | Text input used in settings rows | annotation | **stray** `.settings-input` `:1789-1797` inside the TOC section; then TOC resumes: `.toc-entry__text` `:1799-1805`, `.toc-entry__children` `:1807-1811` |
-| 29 | 1813-1916 | 104 | About Settings | banner | `.about-*` |
+| 1 | 65-137 | 73 | macOS + Tauri overlay titlebar: activate traffic-light clearances. | annotation | `body.tauri-macos` `:67-71`; then **unbannered**: `a` `:73-76`, app shell `:78-107`, `.sidebar` and `.sidebar-header` `:108-129`, `.main` `:130-137` |
+| 2 | 138-152 | 15 | Custom Title Bar (Typora-style) + Sidebar: traffic-lights zone … | banner + annotation | `.sidebar-traffic-area` `:143-151` |
+| 3 | 153-163 | 11 | View-mode badge (WYSIWYG / SPLIT / EDITOR / PREVIEW) | annotation | `.sidebar-mode-label` |
+| 4 | 164-292 | 129 | Main area: traffic-lights zone shown only when the sidebar is hidden. | annotation | `.main-traffic-area` `:167-175`; then **unbannered**: `.busy-indicator` `:177`, `.workspace` `:183`, split view and panes `:190-227`, `.preview-scroll` `:229`, `.editor-shell*` `:235-291` |
+| 5 | 293-387 | 95 | Active table cell highlight in source mode (table-CRUD WI-2.5). | annotation | `.editor-shell .cm-table-active-cell` `:297-300`; then **unbannered**: `.wysiwyg-preview*` `:302-309`, `.toolbar-buttons`/`.toolbar-modes`/`.toolbar-mode*` `:311-331`, `.toolbar-button*` `:333-350`, `.dialog-*` `:352-386` (the dead `.toolbar-recent*` rules sat between `.toolbar-mode*` and `.toolbar-button*` until `a8ddf7c`, §2) |
+| 6 | 388-393 | 6 | MCP write confirmation (ADR-0042): focus pattern 2, accent follows the theme. | annotation | `.mcp-confirm-dialog .toolbar-button:focus-visible` |
+| 7 | 394-492 | 99 | Table Context Menu (table-CRUD WI-1.3, issue #390) | banner | `.table-context-menu*` |
+| 8 | 493-603 | 111 | Table Insert Modal (table-CRUD WI-1.1, issue #390) | banner | `.table-insert-*`, `.grid-picker*`; **stray** `.dialog-title` `:499-504` and `.dialog-title-hint` `:506-511` |
+| 9 | 604-751 | 148 | Link Insert Modal (issue #25) | banner | `.link-insert-*` `:606-636`; **stray** `.toolbar-button--primary*` `:638-651`; then **unbannered** `.recovery-*` `:653-688`, `.loading-spinner`/`.spinner`/`@keyframes spin` `:690-711`, **`.toast*` `:713-739`**, `.encoding-*` `:740-751` |
+| 10 | 752-929 | 178 | Settings Dialog | banner | dialog shell `:753-855`; shortcuts page `.shortcuts-*`/`.shortcut-*` `:857-928` |
+| 11 | 930-935 | 6 | Settings nav icon | sub-banner | `.settings-nav-icon` |
+| 12 | 936-951 | 16 | Settings page layout | sub-banner | `.settings-page-*` |
+| 13 | 952-1004 | 53 | Dirty shortcuts banner | sub-banner | `.settings-dirty-banner*`; `.settings-placeholder*` `:973-1003` |
+| 14 | 1005-1097 | 93 | Settings General Page | sub-banner | `.settings-general`, `.settings-form*`, `.settings-select*`, `.settings-footer*`; **stray** `.toolbar-button.primary/.small/.danger` `:1074-1096` |
+| 15 | 1098-1136 | 39 | Integrations Settings | sub-banner | `.settings-integrations*`, `.settings-error`, `.settings-row` `:1125-1135` |
+| 16 | 1137-1146 | 10 | Section label (TYPOGRAPHY, BEHAVIOR) | sub-banner | `.settings-section-label` |
+| 17 | 1147-1206 | 60 | Custom font size stepper | sub-banner | `.settings-stepper*`; `.settings-row-content/-label/-description/-control` `:1176-1205` |
+| 18 | 1207-1252 | 46 | Toggle Switch | sub-banner | `.toggle-switch*`, `.toggle-slider*` |
+| 19 | 1253-1268 | 16 | MCP Status Badge | sub-banner | `.mcp-status-badge`, `.running` |
+| 20 | 1269-1279 | 11 | ADR-0039 launch states — existing tokens only, so both themes follow. | annotation | `.mcp-status-badge.off/.failed` |
+| 21 | 1280-1286 | 7 | ADR-0040: `stopping` is the live switch's other transition, styled like `starting`. | annotation | `.mcp-status-badge.starting, .stopping` |
+| 22 | 1287-1307 | 21 | Badge + single inline note under the "Enable MCP Server" label | sub-banner | `.mcp-server-status`, `.mcp-status-note`, `.mcp-status-dot` |
+| 23 | 1308-1360 | 53 | MCP Server Info | sub-banner | `.mcp-server-info`, `.mcp-info-*`, `.mcp-copy-btn*` |
+| 24 | 1361-1365 | 5 | MCP Actions | sub-banner | `.mcp-actions` |
+| 25 | 1366-1454 | 89 | MCP Installations | sub-banner | `.mcp-installations*`, `.mcp-client-*` `:1366-1432`; **stray** `@media (max-width: 960px)` `:1435-1454` (app shell and split view; its Dev Toolbar banner went with `1703dbb`) |
+| 26 | 1455-1580 | 126 | ========== Tab Bar Styles ========== | banner | `.tab-bar*`, `.tab*` |
+| 27 | 1581-1676 | 96 | ========== TOC Sidebar Styles ========== | banner | `.toc-sidebar*`, `.toc-entry*` up to `.toc-entry__link` |
+| 28 | 1677-1701 | 25 | Text input used in settings rows | annotation | **stray** `.settings-input` `:1678-1686` inside the TOC section; then TOC resumes: `.toc-entry__text` `:1688-1694`, `.toc-entry__children` `:1696-1700` |
+| 29 | 1702-1805 | 104 | About Settings | banner | `.about-*` |
 
-**Rules outside their banner.** All of them stay where they are in Stage 1, because moving any of them reorders the cascade. They are listed so a later stage can rehome them deliberately.
+**Rules outside their banner.** All of them stayed where they were in Stage 1, because moving any of them reorders the cascade. They are listed so a later stage can rehome them deliberately. Lines are at `a8ddf7c`; the last column but one is where WI-1.2 put them.
 
-| Rule | Lines | Sits under | Belongs with | Consumers |
-|---|---|---|---|---|
-| `.dialog-title` (second block) and `.dialog-title-hint` | 610-622 | Table Insert Modal | the dialog rules at `:463-497` | every `.dialog-title` (it adds `display: flex` globally) |
-| `.toolbar-button--primary*` | 749-762 | Link Insert Modal | `.toolbar-button` at `:444-461` | `McpWriteConfirmDialog.tsx:126`, `TableInsertModal/index.tsx:249`, `LinkInsertModal.tsx:131` |
-| `.recovery-*`, spinner, `@keyframes spin`, `.toast*`, `.encoding-*` | 764-862 | Link Insert Modal (no banner of their own) | their own sections | `@keyframes spin` is also used by `src/plugins/milkdown/imagePastePlugin.css:24` |
-| `.toolbar-button.primary/.small/.danger` | 1185-1207 | Settings General Page | `.toolbar-button` | `KeyboardShortcutsSettings.tsx:256`, `McpClientList.tsx:70-86` |
-| `@media (max-width: 960px)` | 1546-1565 | MCP Installations (Dev Toolbar until `1703dbb`) | the app shell rules | overrides `.app-shell`, `.split-view`, `.split-pane`, `.split-divider` |
-| `.settings-input` | 1788-1797 | TOC Sidebar (splits it in two) | settings rows | `ExportSettings.tsx:279` |
+| Rule | Lines | Sits under | Partial after WI-1.2 | Belongs with | Consumers |
+|---|---|---|---|---|---|
+| `.dialog-title` (second block) and `.dialog-title-hint` | 499-511 | Table Insert Modal | `table-insert-modal.css:8-20` | the dialog rules at `:352-386` | every `.dialog-title` (it adds `display: flex` globally) |
+| `.toolbar-button--primary*` | 638-651 | Link Insert Modal | `link-insert-modal.css:36-49` | `.toolbar-button` at `:333-350` | `McpWriteConfirmDialog.tsx:126`, `TableInsertModal/index.tsx:249`, `LinkInsertModal.tsx:136` |
+| `.recovery-*`, spinner, `@keyframes spin`, `.toast*`, `.encoding-*` | 653-751 | Link Insert Modal (no banner of their own) | `recovery-toast.css:2-100` (`.toast` at `:62`) | their own sections | `@keyframes spin` is also used by `src/plugins/milkdown/imagePastePlugin.css:24` |
+| `.toolbar-button.primary/.small/.danger` | 1074-1096 | Settings General Page | `settings-pages.css:146-168` | `.toolbar-button` | `KeyboardShortcutsSettings.tsx:256`, `McpClientList.tsx:70-86` |
+| `@media (max-width: 960px)` | 1435-1454 | MCP Installations (Dev Toolbar until `1703dbb`) | `responsive.css:3-21` | the app shell rules | overrides `.app-shell`, `.split-view`, `.split-pane`, `.split-divider` |
+| `.settings-input` | 1677-1686 | TOC Sidebar (splits it in two) | `toc-sidebar.css:98-107` | settings rows | `ExportSettings.tsx:279`, `ImageSettings.tsx:209` |
 
-The plan's Settings span `:858-1435` is stale twice over. At `0a3675e` the `Settings Dialog` banner was `:858` and `:1435` was the `MCP Actions` banner, so the range already stopped short of MCP Actions and MCP Installations. At `4ebfc89` (as at `a5767d5`) the contiguous Settings block is `:863-1544` (682 lines), and About Settings is a separate block at `:1813-1916` (`:1852-1955` at `a5767d5`).
+The plan's Settings span `:858-1435` is stale twice over. At `0a3675e` the `Settings Dialog` banner was `:858` and `:1435` was the `MCP Actions` banner, so the range already stopped short of MCP Actions and MCP Installations. At `a8ddf7c` the contiguous Settings block is `:752-1433` (682 lines; `:863-1544` at `4ebfc89`), and About Settings is a separate block at `:1702-1805` (`:1813-1916` at `4ebfc89`, `:1852-1955` at `a5767d5`).
 
 ## 2. Dead `.toolbar-recent*` CSS (WI-1.2 first commit)
 
-**Verdict: dead.** Delete `globals.css:396-443` at `4ebfc89` (the same lines at `a5767d5`): the seven rules `:396-442` plus the blank line `:443`, 48 lines. The next line, `.toolbar-button {` at `:444`, becomes `:396`.
+**Verdict: dead.** Delete `globals.css:333-380` at `c7ab729` (`:396-443` at `4ebfc89` and `a5767d5`, before ADR-0059's `c633aca` removed 63 lines above it): the seven rules `:333-379` plus the blank line `:380`, 48 lines. The next line, `.toolbar-button {` at `c7ab729:381`, becomes `:333`. **Done in `a8ddf7c`** (2026-10-09), which is the base of the pure-move proof (§3.4).
 
 Evidence, all at `a5767d5`:
 
@@ -71,9 +73,9 @@ Evidence, all at `a5767d5`:
 - No `<details>` or `<summary>` element exists in `src` (the rules style `summary` and `::-webkit-details-marker`).
 - Recent files exist only as the native "Open Recent" submenu: `build_recent_submenu` is called at `src-tauri/src/menu.rs:124` and defined at `src-tauri/src/menu_recent.rs:60`. (WI-0.5's `menu.rs:73-96` citation is stale.)
 
-**Rule 31 row confirmed stale.** `.claude/rules/31-design-tokens.md:74` reads `| Recent dropdown | \`10\` | \`.toolbar-recent-list\` |`. The only `z-index: 10` in app CSS is `globals.css:421`, inside `.toolbar-recent-list`, so the row and the rule disappear together. Rule 33 `:20` also names "recent dropdown" in pattern 3; WI-3.3 removes it (§4).
+**Rule 31 row confirmed stale.** `.claude/rules/31-design-tokens.md:74` reads `| Recent dropdown | \`10\` | \`.toolbar-recent-list\` |`. The only `z-index: 10` in app CSS was `globals.css:421` at `a5767d5` (`c7ab729:358`), inside `.toolbar-recent-list`, so the row and the rule disappear together. Rule 33 `:20` also names "recent dropdown" in pattern 3; WI-3.3 removes it (§4).
 
-**Further unconsumed selectors, not in WI-1.2's scope.** The same grep finds no consumer in `src` or `tests` for `.toolbar-buttons`, `.toolbar-modes`, `.toolbar-mode*` (`:374-394`), `.pane-title`, `.pane-content`, `.preview-scroll` (`:278-296`), `.wysiwyg-preview*` (`:365-372`) or `.settings-search*` (`:919-931`). WI-1.2 deletes only `.toolbar-recent*`, as planned. These are recorded for a separate dead-CSS item, because deleting them would need its own empty computed-style diff. Separately, `AboutSettings.tsx:246` and `:285` use `className="toolbar-button-primary"`, which no stylesheet defines (the defined names are `.toolbar-button--primary` and `.toolbar-button.primary`), so the About "Install Update" and "Restart to Apply" buttons render as unstyled native buttons.
+**Further unconsumed selectors, not in WI-1.2's scope.** The same grep finds no consumer in `src` or `tests` for `.toolbar-buttons`, `.toolbar-modes`, `.toolbar-mode*` (`a8ddf7c:311-331`), `.pane-title`, `.pane-content`, `.preview-scroll` (`a8ddf7c:215-233`), `.wysiwyg-preview*` (`a8ddf7c:302-309`) or `.settings-search*` (`a8ddf7c:808-820`). WI-1.2 deletes only `.toolbar-recent*`, as planned. These are recorded for a separate dead-CSS item, because deleting them would need its own empty computed-style diff. Separately, `AboutSettings.tsx:246` and `:285` use `className="toolbar-button-primary"`, which no stylesheet defines (the defined names are `.toolbar-button--primary` and `.toolbar-button.primary`), so the About "Install Update" and "Restart to Apply" buttons render as unstyled native buttons.
 
 ## 3. Partial file map (WI-1.1 / WI-1.2)
 
@@ -83,28 +85,30 @@ Location: `src/styles/sections/<name>.css`, as Stage 1 assumes. The names carry 
 
 `globals.css` keeps the `:root` tokens and base rules (A6, rule 31): a contiguous prefix, so keeping it first preserves the order. Every other range moves verbatim. Partials are contiguous, in source order, and none skips or reorders a line.
 
-| Import position | File | Lines at `4ebfc89` | Lines in the dead-CSS commit | Count | Holds |
-|---|---|---|---|---|---|
-| 1 | `globals.css` (kept) | 1-77 | 1-77 | 77 | `:root`, reset, `html/body/#root`, `body`, `body.tauri-macos`, `a` |
-| 2 | `sections/app-shell.css` | 78-297 | 78-297 | **220** | app shell, sidebar, `.file-item*`, `.main`, traffic-light areas, mode badge, busy indicator, workspace, split view, panes |
-| 3 | `sections/editor-source.css` | 298-373 | 298-373 | 76 | `.editor-shell` CodeMirror rules, source table-cell highlight, `.wysiwyg-preview*` |
-| 4 | `sections/buttons-dialog.css` | 374-504 minus 396-443 | 374-456 | 83 | `.toolbar-buttons/-modes/-mode*`, `.toolbar-button` base, `.dialog-backdrop`, `.dialog-card`, `.dialog-title/-message/-actions`, MCP confirm focus rule |
-| 5 | `sections/table-context-menu.css` | 505-603 | 457-555 | 99 | `.table-context-menu*` |
-| 6 | `sections/table-insert-modal.css` | 604-714 | 556-666 | 111 | table insert modal, grid picker, stray `.dialog-title` block |
-| 7 | `sections/link-insert-modal.css` | 715-763 | 667-715 | 49 | `.link-insert-*`, stray `.toolbar-button--primary*` |
-| 8 | `sections/recovery-toast.css` | 764-862 | 716-814 | 99 | recovery list, spinner and `@keyframes spin`, `.toast*`, `.encoding-*` |
-| 9 | `sections/settings-shell.css` | 863-1040 | 815-992 | 178 | sub-banner "Settings Dialog": dialog shell, sidebar rail, categories, shortcuts page |
-| 10 | `sections/settings-pages.css` | 1041-1208 | 993-1160 | 168 | sub-banners nav icon → Settings General Page: page header, dirty banner, placeholders, form, select, footer, stray `.toolbar-button.primary/.small/.danger` |
-| 11 | `sections/settings-rows.css` | 1209-1363 | 1161-1315 | 155 | sub-banners Integrations → Toggle Switch: `.settings-row*`, section label, stepper, toggle switch |
-| 12 | `sections/settings-mcp.css` | 1364-1545 | 1316-1497 | 182 | sub-banners MCP Status Badge → MCP Installations (ends with the two blank lines `:1544-1545`; the second is the Dev Toolbar block's leftover) |
-| 13 | `sections/responsive.css` | 1546-1565 | 1498-1517 | 20 | `@media (max-width: 960px)` for app shell and split view |
-| 14 | `sections/tab-bar.css` | 1566-1691 | 1518-1643 | 126 | `.tab-bar*`, `.tab*` |
-| 15 | `sections/toc-sidebar.css` | 1692-1812 | 1644-1764 | 121 | `.toc-sidebar*`, `.toc-entry*`, stray `.settings-input` |
-| 16 | `sections/settings-about.css` | 1813-1916 | 1765-1868 | 104 | `.about-*` |
-| 17 | `themes/light.css` | — | — | 27 | unchanged |
-| 18 | `themes/dark.css` | — | — | 27 | unchanged |
+| Import position | File | Lines at `a8ddf7c` | Count | Holds |
+|---|---|---|---|---|
+| 1 | `globals.css` (kept) | 1-76 | 76 | `:root`, reset, `html/body/#root`, `body`, `body.tauri-macos`, `a` |
+| 2 | `sections/app-shell.css` | 77-233 | 157 | app shell, `.sidebar`, `.sidebar-header`, `.main`, traffic-light areas, mode badge, busy indicator, workspace, split view, panes |
+| 3 | `sections/editor-source.css` | 234-309 | 76 | `.editor-shell` CodeMirror rules, source table-cell highlight, `.wysiwyg-preview*` |
+| 4 | `sections/buttons-dialog.css` | 310-392 | 83 | `.toolbar-buttons/-modes/-mode*`, `.toolbar-button` base, `.dialog-backdrop`, `.dialog-card`, `.dialog-title/-message/-actions`, MCP confirm focus rule |
+| 5 | `sections/table-context-menu.css` | 393-491 | 99 | `.table-context-menu*` |
+| 6 | `sections/table-insert-modal.css` | 492-602 | 111 | table insert modal, grid picker, stray `.dialog-title` block |
+| 7 | `sections/link-insert-modal.css` | 603-651 | 49 | `.link-insert-*`, stray `.toolbar-button--primary*` |
+| 8 | `sections/recovery-toast.css` | 652-751 | 100 | recovery list, spinner and `@keyframes spin`, `.toast*`, `.encoding-*` |
+| 9 | `sections/settings-shell.css` | 752-928 | 177 | sub-banner "Settings Dialog": dialog shell, sidebar rail, categories, shortcuts page |
+| 10 | `sections/settings-pages.css` | 929-1096 | 168 | sub-banners nav icon → Settings General Page: page header, dirty banner, placeholders, form, select, footer, stray `.toolbar-button.primary/.small/.danger` |
+| 11 | `sections/settings-rows.css` | 1097-1251 | 155 | sub-banners Integrations → Toggle Switch: `.settings-row*`, section label, stepper, toggle switch |
+| 12 | `sections/settings-mcp.css` | 1252-1432 | **181** | sub-banners MCP Status Badge → MCP Installations |
+| 13 | `sections/responsive.css` | 1433-1453 | 21 | `@media (max-width: 960px)` for app shell and split view (opens with the two blank lines `:1433-1434`; the second is the Dev Toolbar block's leftover) |
+| 14 | `sections/tab-bar.css` | 1454-1579 | 126 | `.tab-bar*`, `.tab*` |
+| 15 | `sections/toc-sidebar.css` | 1580-1700 | 121 | `.toc-sidebar*`, `.toc-entry*`, stray `.settings-input` |
+| 16 | `sections/settings-about.css` | 1701-1805 | 105 | `.about-*` |
+| 17 | `themes/light.css` | — | 27 | unchanged |
+| 18 | `themes/dark.css` | — | 27 | unchanged |
 
-**15 partials. The largest is `app-shell.css` at 220 lines**, and every app CSS file is under 300 (the themes are 27 lines each; the largest co-located sheet, `MilkdownEditor.css`, is 269). Settings (682 lines) splits into four partials along its sub-banners. About Settings stays its own partial, because the Tab Bar and TOC sections sit between it and the rest of Settings, and merging it would reorder the cascade.
+Every range was checked on 2026-10-09 with `cmp` between `sed -n '<a>,<b>p'` on `git show a8ddf7c:src/styles/globals.css` and the partial. Each range starts where the previous one ends, so together they cover `:1-1805` with no gap and no overlap. Every partial except `settings-shell.css` opens with the blank separator line that ended the previous section, and every file ends on a rule, not a blank line.
+
+**15 partials. The largest is `settings-mcp.css` at 181 lines**, and every app CSS file is under 300 (the themes are 27 lines each; the largest co-located sheet, `MilkdownEditor.css`, is 269). `app-shell.css` was the largest at 220 lines in the `4ebfc89` map; ADR-0059 (`c633aca`) deleted 63 of them. Settings (682 lines, `:752-1433`) splits into four partials along its sub-banners. About Settings stays its own partial, because the Tab Bar and TOC sections sit between it and the rest of Settings, and merging it would reorder the cascade.
 
 `src/styles/index.css` after WI-1.2:
 
@@ -133,14 +137,18 @@ Location: `src/styles/sections/<name>.css`, as Stage 1 assumes. The names carry 
 
 Source order alone settles each of these: the selectors have equal specificity and set the same property on one element, or a media query restates a rule. All of them cross a partial boundary, so the import order above must hold exactly, and a "tidy" reorder of `index.css` breaks them silently.
 
+Lines are at `a8ddf7c`, with the partial's own line after WI-1.2 in brackets. Re-verified 2026-10-09: the only selectors defined in two partials are the `responsive.css` restatements and `.dialog-title`; the other rows are different selectors on one element at equal specificity.
+
 | Later rule (wins) | Earlier rule | Property | Element | Partials, in required order |
 |---|---|---|---|---|
-| `@media (max-width: 960px)` `.app-shell`, `.split-view`, `.split-pane` (`!important`), `.split-divider` `:1546-1565` | the base rules `:78-290` | `grid-template-columns`, `flex-direction`, `width`, `height`/`cursor` | app shell and split view under 960px | `app-shell` → `responsive` |
-| `.table-insert-modal` `:606` | `.dialog-card` `:473` | `width` (380px vs 420px) | `TableInsertModal/index.tsx:182` | `buttons-dialog` → `table-insert-modal` |
-| `.link-insert-modal` `:717` | `.dialog-card` `:473` | `width` (360px vs 420px) | `LinkInsertModal.tsx:101` | `buttons-dialog` → `link-insert-modal` |
-| `.toolbar-button--primary:disabled` `:759` | `.toolbar-button:disabled` `:458` | `opacity` (0.45 vs 0.5) | the three primary buttons | `buttons-dialog` → `link-insert-modal` |
-| `.toolbar-button.danger` `:1200` | `.toolbar-button:hover` `:454` | `border-color` (danger vs accent on hover) | `McpClientList.tsx:77` | `buttons-dialog` → `settings-pages` |
-| `.dialog-title` `:610` | `.dialog-title` `:482` | additive today (no shared property), but any later edit to either block becomes order-dependent | every dialog title | `buttons-dialog` → `table-insert-modal` |
+| `@media (max-width: 960px)` `.app-shell`, `.split-view`, `.split-pane` (`!important`), `.split-divider` `:1435-1454` [`responsive.css:3-21`] | the base rules `:78-227` [`app-shell.css:2-151`] | `grid-template-columns`, `flex-direction`, `width`, `height`/`cursor` | app shell and split view under 960px | `app-shell` → `responsive` |
+| `.table-insert-modal` `:495` [`table-insert-modal.css:4`] | `.dialog-card` `:362` [`buttons-dialog.css:53`] | `width` (380px vs 420px) | `TableInsertModal/index.tsx:182` | `buttons-dialog` → `table-insert-modal` |
+| `.link-insert-modal` `:606` [`link-insert-modal.css:4`] | `.dialog-card` `:362` [`buttons-dialog.css:53`] | `width` (360px vs 420px) | `LinkInsertModal.tsx:106` | `buttons-dialog` → `link-insert-modal` |
+| `.toolbar-button--primary` `:638` [`link-insert-modal.css:36`] | `.toolbar-button` `:333` [`buttons-dialog.css:24`] | `background`, `color`, `border-color` (accent fill vs surface) | the three primary buttons | `buttons-dialog` → `link-insert-modal` (added 2026-10-09; the earlier map missed it) |
+| `.toolbar-button--primary:disabled` `:648` [`link-insert-modal.css:46`] | `.toolbar-button:disabled` `:347` [`buttons-dialog.css:38`] | `opacity` (0.45 vs 0.5) | the three primary buttons | `buttons-dialog` → `link-insert-modal` |
+| `.toolbar-button.danger` `:1089` [`settings-pages.css:161`] | `.toolbar-button:hover` `:343` [`buttons-dialog.css:34`] | `border-color` (danger vs accent on hover) | `McpClientList.tsx:77` | `buttons-dialog` → `settings-pages` |
+| `.dialog-title` `:499` [`table-insert-modal.css:8`] | `.dialog-title` `:371` [`buttons-dialog.css:62`] | additive today (no shared property), but any later edit to either block becomes order-dependent | every dialog title | `buttons-dialog` → `table-insert-modal` |
+| `themes/light.css`, `themes/dark.css` | everything above | theme tokens and theme-scoped rules | — | all partials → themes |
 | `themes/light.css`, `themes/dark.css` | everything above | theme tokens and theme-scoped rules | — | all partials → themes |
 
 `@keyframes spin` (`recovery-toast.css`) is not order-sensitive: keyframe names are global, so `imagePastePlugin.css` keeps resolving it.
@@ -160,24 +168,24 @@ WI-1.1 switches all four to `src/test/appCss.ts`, so no test path names a partia
 | `tests/source-scroll-layout.test.ts` | `.editor-shell`, `.editor-shell .cm-theme-light,\n.editor-shell .cm-theme-dark`, `.editor-shell .cm-scroller` | `editor-source.css` |
 | `tests/source-table-cell-highlight.test.ts` | `cm-table-active-cell` | `editor-source.css` |
 
-- `source-table-cell-highlight.test.ts:78-92` skips a missing candidate file (`existsSync … continue`) and checks `globals.css` and `MilkdownEditor.css`. Neither holds the rule after the move (`MilkdownEditor.css` has 0 matches), so the test fails loudly unless it uses the helper. It cannot pass silently.
-- `settings-row-layout.test.ts:22` takes the first `\.settings-row\s*\{` match. The concatenation keeps `:1236` first, so the match does not change.
+- WI-1.1 switched all four tests to `src/test/appCss.ts` (`readAppCssNonTheme`, plus `readAppCssFile` for the theme sheets in `design-tokens-accent-danger`), so none of them names a partial, and all four pass unmodified after the move.
+- `source-table-cell-highlight.test.ts:75-92` checks the helper's concatenation and `MilkdownEditor.css`; the rule is in the concatenation (`editor-source.css:64`), and `MilkdownEditor.css` has 0 matches.
+- `settings-row-layout.test.ts` takes the first `.settings-row\s*\{` match. The concatenation keeps `.settings-row` (`a8ddf7c:1125`, `settings-rows.css:29`) first, so the match does not change.
 - `tests/table-alignment-rendering.test.ts:39` names `globals.css` in a comment only and needs no change.
 
-### 3.4 Pure-move proof, dry run
+### 3.4 Pure-move proof
 
-In a scratch copy, `sed '396,443d'` on the `4ebfc89` file (`git show 4ebfc89:src/styles/globals.css`, which includes `1703dbb`) produced the dead-CSS file (1868 lines). The 16 files (`globals.css` plus 15 partials) were built from the dead-CSS column above, and `index.css` was written as in §3.1. Then:
+**Real proof, 2026-10-09.** The base is `a8ddf7c`, the WI-1.2 dead-CSS commit: `globals.css` at 1805 lines, after both `c633aca` (ADR-0059, `.sidebar-empty`/`.sidebar-list`/`.file-item*`, 63 lines) and `a8ddf7c` itself (`.toolbar-recent*`, 48 lines) deleted their rules. The 16 files (`globals.css` plus 15 partials) were cut from the ranges in §3.1, each range checked with `cmp` against `sed -n` on `git show a8ddf7c:src/styles/globals.css`, and `index.css` was written as in §3.1. Then:
 
-- the Stage 1 acceptance command (strip single-line comments from both sides, concatenate the files `index.css` lists minus the themes) gave **no output**;
-- `cmp` of the plain concatenation against the dead-CSS file reported them **byte-identical**;
-- the same 16 files cut from the `4ebfc89` column and concatenated are byte-identical to `globals.css` at `4ebfc89`.
+- the Stage 1 acceptance command (strip single-line comments from both sides, concatenate the files `index.css` lists minus the themes) gives **no output**;
+- `cmp` of the plain concatenation against `a8ddf7c`'s `globals.css` reports them **byte-identical**.
 
-Last run 2026-10-07 against `4ebfc89`. The real proof's base is the WI-1.2 dead-CSS commit, built on a HEAD that includes `1703dbb`; a base without it (`a5767d5`) puts the 39 Dev Toolbar lines in the diff.
+The 2026-10-07 dry run (against `4ebfc89`, 1916 lines, before `c633aca`) is superseded; its ranges are no longer valid.
 
-Two constraints keep the real proof empty:
+Two constraints keep the proof empty:
 
-1. **Partial headers.** The proof strips only one-line `/* … */` comments. A header added to a partial must be a single line with no blank line after it, or the diff is no longer empty. Ten partials already open with their original banner (`table-context-menu`, `table-insert-modal`, `link-insert-modal`, the four `settings-*` Settings partials, `tab-bar`, `toc-sidebar`, `settings-about`). The five that open on a bare rule (`app-shell`, `editor-source`, `buttons-dialog`, `recovery-toast`, `responsive`) can take a one-line header or none.
-2. **Multi-line comments** (`:65-66`, `:202-205`, `:227-229`, `:356-359`, `:518-521`) are not stripped on either side. They must move verbatim.
+1. **Partial headers.** The proof strips only one-line `/* … */` comments. A header added to a partial must be a single line with no blank line after it, or the diff is no longer empty. Ten partials open with their original banner (`table-context-menu`, `table-insert-modal`, `link-insert-modal`, the four `settings-*` Settings partials, `tab-bar`, `toc-sidebar`, `settings-about`). The five that open on a bare rule (`app-shell`, `editor-source`, `buttons-dialog`, `recovery-toast`, `responsive`) carry no header. The blank separator line a partial opens with is part of the moved bytes; a header placed before it is still a one-line comment the proof strips.
+2. **Multi-line comments** (`a8ddf7c:65-66`, `:139-142`, `:164-166`, `:293-296`, `:407-410`) are not stripped on either side. They moved verbatim.
 
 ### 3.5 Rule 32 ownership after the move
 
@@ -197,21 +205,21 @@ Rule 31 keeps `globals.css` for the `:root` tokens.
 
 ### 4.1 Every focus rule in app CSS
 
-`/usr/bin/grep -rn ":focus" src --include='*.css'` finds **6** rules, all in `globals.css`: 3 `:focus-visible` and 3 `:focus`. No component or plugin stylesheet has one. Lines in the "after WI-1.2" column are in the partial.
+`/usr/bin/grep -rn ":focus" src --include='*.css'` finds **6** rules: 3 `:focus-visible` and 3 `:focus`. At `a5767d5` all six were in `globals.css`; after WI-1.2 they are in the partials of the second column (re-run on 2026-10-09: same six, same lines). No component or plugin stylesheet has one.
 
 | `a5767d5` | After WI-1.2 | Selector | Declarations | Pattern | DR15 effect |
 |---|---|---|---|---|---|
-| `globals.css:500` | `buttons-dialog.css:79` | `.mcp-confirm-dialog .toolbar-button:focus-visible` | `outline: 2px solid var(--color-accent); outline-offset: 2px` | 2 | colour → `--color-focus-ring` |
-| `globals.css:577` | `table-context-menu.css:73` | `.table-context-menu-item:focus-visible` | `outline: 2px solid var(--color-accent); outline-offset: -2px` | 2 (inset, inside a scrolling menu) | colour → `--color-focus-ring` |
-| `globals.css:653` | `table-insert-modal.css:50` | `.grid-picker-cell:focus-visible` | `outline: 2px solid var(--color-accent); outline-offset: 1px` | 2 | colour → `--color-focus-ring` |
-| `globals.css:700` | `table-insert-modal.css:97` | `.table-insert-input:focus` (`outline: none` at `:696`) | accent border + `0 0 0 2px var(--color-accent-soft)` ring | 1 | none |
-| `globals.css:744` | `link-insert-modal.css:30` | `.link-insert-input:focus` (`outline: none` at `:739`) | accent border + accent-soft ring | 1 | none |
-| `globals.css:1160` | `settings-pages.css:120` | `.settings-select:focus` | `outline: none; border-color: var(--color-accent)` — **no soft ring** | 1, incomplete | none (the missing ring is a pattern 1 gap, not DR15) |
+| `globals.css:500` | `buttons-dialog.css:80` | `.mcp-confirm-dialog .toolbar-button:focus-visible` | `outline: 2px solid var(--color-accent); outline-offset: 2px` | 2 | colour → `--color-focus-ring` |
+| `globals.css:577` | `table-context-menu.css:74` | `.table-context-menu-item:focus-visible` | `outline: 2px solid var(--color-accent); outline-offset: -2px` | 2 (inset, inside a scrolling menu) | colour → `--color-focus-ring` |
+| `globals.css:653` | `table-insert-modal.css:51` | `.grid-picker-cell:focus-visible` | `outline: 2px solid var(--color-accent); outline-offset: 1px` | 2 | colour → `--color-focus-ring` |
+| `globals.css:700` | `table-insert-modal.css:98` | `.table-insert-input:focus` (`outline: none` at `:696`) | accent border + `0 0 0 2px var(--color-accent-soft)` ring | 1 | none |
+| `globals.css:744` | `link-insert-modal.css:31` | `.link-insert-input:focus` (`outline: none` at `:739`) | accent border + accent-soft ring | 1 | none |
+| `globals.css:1160` | `settings-pages.css:121` | `.settings-select:focus` | `outline: none; border-color: var(--color-accent)` — **no soft ring** | 1, incomplete | none (the missing ring is a pattern 1 gap, not DR15) |
 
 Related findings the draft does not change:
 
-- **No pattern 3 rule exists.** No `:focus-visible` rule targets any pattern 3 surface (`.toc-entry*`, `.tab*`, `.settings-category-btn`, `.file-item*`). WI-3.3's "pattern 3's inset ring on TOC rows uses the token" therefore has to **add** a TOC rule, not retune one. `.toolbar-button:focus-visible` is likewise absent; WI-3.3 already plans to add it.
-- **`outline: none` without a replacement:** `.settings-search` at `globals.css:926` has no `:focus` rule (a hard rule 1 breach), but no component renders it (§2). `src/App.css:91` sets `input, button { outline: none; }` globally (a hard rule 2 breach), but `App.css` is not imported anywhere (A8 dead-code candidate), so it has no runtime effect. `MilkdownEditor.css:42` removes the outline on the contenteditable `.ProseMirror`, where the caret is the indicator.
+- **No pattern 3 rule exists.** No `:focus-visible` rule targets any pattern 3 surface (`.toc-entry*`, `.tab*`, `.settings-category-btn`). WI-3.3's "pattern 3's inset ring on TOC rows uses the token" therefore has to **add** a TOC rule, not retune one. `.toolbar-button:focus-visible` is likewise absent; WI-3.3 already plans to add it.
+- **`outline: none` without a replacement:** `.settings-search` at `globals.css:926` (`a5767d5`; `settings-shell.css:64` after WI-1.2) has no `:focus` rule (a hard rule 1 breach), but no component renders it (§2). `src/App.css:91` sets `input, button { outline: none; }` globally (a hard rule 2 breach), but `App.css` is not imported anywhere (A8 dead-code candidate), so it has no runtime effect. `MilkdownEditor.css:42` removes the outline on the contenteditable `.ProseMirror`, where the caret is the indicator.
 - **Selection outlines, not focus:** `MilkdownEditor.css:191` (`td/th.selectedCell`) and `:261` (`img[data-mdpro-image-selected]`) draw a 2px accent outline for selection. DR15 covers focus only, so they keep `--color-accent`.
 - The pattern 2 offset varies today: 2px, -2px and 1px. The draft keeps "2px" as the default and does not standardise the others.
 

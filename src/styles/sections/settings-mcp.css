@@ -1,0 +1,181 @@
+
+/* MCP Status Badge */
+.mcp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mcp-status-badge.running {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* ADR-0039 launch states — existing tokens only, so both themes follow. */
+.mcp-status-badge.off {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  color: var(--color-muted);
+}
+
+.mcp-status-badge.failed {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* ADR-0040: `stopping` is the live switch's other transition, styled like `starting`. */
+.mcp-status-badge.starting,
+.mcp-status-badge.stopping {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+/* Badge + single inline note under the "Enable MCP Server" label */
+.mcp-server-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mcp-status-note {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.mcp-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* MCP Server Info */
+.mcp-server-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+}
+
+.mcp-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mcp-info-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.mcp-info-value {
+  padding: 2px 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.mcp-info-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.mcp-copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.mcp-copy-btn:hover {
+  opacity: 1;
+}
+
+.mcp-copy-btn.small {
+  font-size: 11px;
+  padding: 1px 3px;
+}
+
+/* MCP Actions */
+.mcp-actions {
+  margin-top: 16px;
+}
+
+/* MCP Installations */
+.mcp-installations {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.mcp-installations-description {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+}
+
+.mcp-client-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mcp-client-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+}
+
+.mcp-client-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mcp-client-status {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+
+.mcp-client-status.installed {
+  color: #16a34a;
+}
+
+.mcp-client-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mcp-client-details strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mcp-client-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.mcp-client-actions {
+  display: flex;
+  gap: 8px;
+}
