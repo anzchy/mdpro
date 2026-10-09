@@ -392,3 +392,131 @@ describe("ConfirmDialog initial focus (D48)", () => {
     expect(screen.getByRole("button", { name: "Discard changes" })).toHaveFocus();
   });
 });
+
+// ---------------------------------------------------------------------------
+// D53 — initial focus is requested as *visible* focus, exactly once per open.
+//
+// On device (WKWebView) a script/autofocus focus after a mouse interaction does not match
+// `:focus-visible`, so rule 33 pattern 2 drew no ring. `focus({ focusVisible: true })` does —
+// but only on an element that does not already have focus, so the request must be the one and
+// only initial focus call. jsdom has no `:focus-visible`; the spy records the focus requests
+// the component makes (target + options), and `toHaveFocus` checks where focus landed.
+// Mock boundary: none beyond the file's Tauri mock — the spy calls through to jsdom's focus.
+// The device check (WKWebView ring visible) is what proves the ring itself.
+// ---------------------------------------------------------------------------
+
+describe("ConfirmDialog visible initial focus (D53)", () => {
+  type FocusCall = { el: HTMLElement; options: FocusOptions | undefined };
+  let focusCalls: FocusCall[];
+  let focusSpy: { mockRestore: () => void } | null = null;
+
+  beforeEach(() => {
+    focusCalls = [];
+    const original = HTMLElement.prototype.focus;
+    focusSpy = vi
+      .spyOn(HTMLElement.prototype, "focus")
+      .mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+        focusCalls.push({ el: this, options });
+        original.call(this, options);
+      });
+  });
+
+  afterEach(() => {
+    focusSpy?.mockRestore();
+    focusSpy = null;
+  });
+
+  function D53Dialog({
+    open,
+    destructive,
+    message = "Save secret-plan.md?",
+  }: {
+    open: boolean;
+    destructive?: boolean;
+    message?: string;
+  }) {
+    return (
+      <ConfirmDialog
+        open={open}
+        title="Unsaved changes"
+        message={message}
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        destructive={destructive}
+        onConfirm={() => {
+          confirms += 1;
+        }}
+        onCancel={() => {
+          cancels += 1;
+        }}
+      />
+    );
+  }
+
+  const visibleFlag = (c: FocusCall) => (c.options as { focusVisible?: boolean } | undefined)?.focusVisible;
+
+  it("CD-14: destructive open — exactly one focus request, on Cancel, with focusVisible: true", () => {
+    render(<D53Dialog open destructive />);
+    const cancel = screen.getByRole("button", { name: "Keep editing" });
+    expect(focusCalls).toHaveLength(1);
+    expect(focusCalls[0].el).toBe(cancel);
+    expect(visibleFlag(focusCalls[0])).toBe(true);
+    expect(cancel).toHaveFocus();
+  });
+
+  it("CD-15: non-destructive open — exactly one focus request, on Confirm, with focusVisible: true", () => {
+    render(<D53Dialog open />);
+    const confirm = screen.getByRole("button", { name: "Discard changes" });
+    expect(focusCalls).toHaveLength(1);
+    expect(focusCalls[0].el).toBe(confirm);
+    expect(visibleFlag(focusCalls[0])).toBe(true);
+    expect(confirm).toHaveFocus();
+  });
+
+  it.each([
+    ["destructive", true],
+    ["non-destructive", false],
+  ])("CD-16: open=false (%s) renders nothing and requests no focus", (_label, destructive) => {
+    render(<D53Dialog open={false} destructive={destructive} />);
+    expect(dialog()).toBeNull();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(focusCalls).toHaveLength(0);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("CD-17: re-rendering while open does not refocus — a user's focus move is not yanked back", () => {
+    const view = render(<D53Dialog open destructive />);
+    const cancel = screen.getByRole("button", { name: "Keep editing" });
+    const confirm = screen.getByRole("button", { name: "Discard changes" });
+    expect(focusCalls).toHaveLength(1);
+
+    // The user moves focus (e.g. Tab) to the other button; not a component request.
+    act(() => {
+      confirm.focus();
+    });
+    expect(confirm).toHaveFocus();
+    const afterMove = focusCalls.length;
+
+    // Ordinary re-renders while open: same props (fresh callbacks), then a changed message.
+    view.rerender(<D53Dialog open destructive />);
+    view.rerender(<D53Dialog open destructive message="Save other-plan.md?" />);
+
+    expect(focusCalls).toHaveLength(afterMove);
+    expect(focusCalls.slice(afterMove)).toStrictEqual([]);
+    expect(confirm).toHaveFocus();
+    expect(cancel).not.toHaveFocus();
+  });
+
+  it("CD-17b: close then reopen requests visible focus again, once", () => {
+    const view = render(<D53Dialog open destructive />);
+    expect(focusCalls).toHaveLength(1);
+    view.rerender(<D53Dialog open={false} destructive />);
+    expect(dialog()).toBeNull();
+    view.rerender(<D53Dialog open destructive />);
+    const cancel = screen.getByRole("button", { name: "Keep editing" });
+    expect(focusCalls).toHaveLength(2);
+    expect(focusCalls[1].el).toBe(cancel);
+    expect(visibleFlag(focusCalls[1])).toBe(true);
+    expect(cancel).toHaveFocus();
+  });
+});

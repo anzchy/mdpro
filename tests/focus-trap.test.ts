@@ -79,8 +79,17 @@ describe("ConfirmDialog keyboard accessibility", () => {
     expect(code).not.toMatch(/onKeyDown/);
   });
 
-  it("primary action button has autoFocus so focus lands inside dialog on open", () => {
-    expect(src).toMatch(/autoFocus/);
+  // D53 (policy rule 12, changed assertion with a stated reason): the assertion this replaces —
+  // `expect(src).toMatch(/autoFocus/)` — certified React `autoFocus` as the initial-focus
+  // mechanism. autoFocus focuses before mount effects run, and WebKit ignores `focusVisible` on
+  // an element that already has focus, so a later visible-focus request would be a no-op and the
+  // rule 33 pattern 2 ring never shows on device. Initial focus is now one
+  // `focus({ focusVisible: true })` call; its behaviour (target, options, exactly once per open)
+  // is specified by `tests/confirm-dialog.test.tsx` CD-14 … CD-17. Checked on comment-stripped
+  // `code` so header prose can neither satisfy nor trip it.
+  it("FT-D53-1: requests visible initial focus and does not use autoFocus", () => {
+    expect(code).toMatch(/focusVisible:\s*true/);
+    expect(code).not.toMatch(/autoFocus/);
   });
 });
 
