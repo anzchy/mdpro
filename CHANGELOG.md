@@ -120,6 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clicking an outline entry in WYSIWYG now jumps there instantly and lands the heading 40 px below the top of the editor, instead of smooth-scrolling it to the very top. This matches Source mode, and the highlight uses the same 40 px line in both modes, so the entry you clicked is the one that stays lit. The smooth scroll is gone because each of its intermediate frames lit whichever heading it was passing, and clicking one of the last headings left the wrong one highlighted ([ADR-0026](docs/adr/0026-wysiwyg-scroll-spy-is-geometric.md))
 
 ### Fixed
+- The About page's "Install Update" and "Restart to Apply" buttons are styled as primary buttons again (D47). They used a CSS class that no stylesheet defines, so they rendered with the browser's default button look
+  - **Not yet checked on a device**: the buttons only appear when a newer release is available
 - The reload prompt and the MCP write confirmation now show which button has focus as soon as they open (D63), the same fix as D53. Focus still starts on Reload and on Reject respectively; only the missing focus ring changed
   - **Not yet checked on a device**: unit tests prove each dialog requests visible focus, not that the ring is drawn
 - The "Unsaved changes" dialogs now show which button has focus as soon as they open (D53). After a click in the editor, ⌘W opened the dialog with focus on Keep editing but no focus ring, so it was invisible until you pressed Tab. The dialog now asks WebKit for visible focus when it opens
