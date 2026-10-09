@@ -49,7 +49,7 @@
 (function () {
   "use strict";
 
-  var SCHEMA = 2; // 2: no `count` for VIRTUALIZED selectors
+  var SCHEMA = 3; // 2: no `count` for VIRTUALIZED selectors; 3: + transform / translate / position / top / right / bottom / left (D75)
   var ITEM_LIMIT = 8;
   var SETTLE_MS = 120;
   var VIRTUALIZED = { ".cm-line": true };
@@ -58,7 +58,8 @@
 
   // A5 families (colour, font-family, font-size, radius, motion, z-index,
   // shadow, icon size via box) plus box model and typography, so a padding or
-  // weight drift in Stages 1-2 also shows up.
+  // weight drift in Stages 1-2 also shows up. Transform and offsets are in so
+  // a moved element (the checked toggle thumb's translateX) is not a no-diff.
   var PROPS = [
     "animation-duration", "animation-name", "animation-timing-function",
     "background-color", "background-image",
@@ -68,16 +69,18 @@
     "border-right-color", "border-right-style", "border-right-width",
     "border-top-color", "border-top-left-radius", "border-top-right-radius",
     "border-top-style", "border-top-width",
-    "box-shadow", "caret-color", "color", "display", "fill",
+    "bottom", "box-shadow", "caret-color", "color", "display", "fill",
     "font-family", "font-size", "font-style", "font-weight", "gap",
-    "height", "letter-spacing", "line-height",
+    "height", "left", "letter-spacing", "line-height",
     "margin-bottom", "margin-left", "margin-right", "margin-top",
     "opacity",
     "outline-color", "outline-offset", "outline-style", "outline-width",
     "padding-bottom", "padding-left", "padding-right", "padding-top",
+    "position", "right",
     "stroke", "text-decoration-color", "text-decoration-line", "text-transform",
+    "top", "transform",
     "transition-duration", "transition-property", "transition-timing-function",
-    "width", "z-index"
+    "translate", "width", "z-index"
   ];
   var PSEUDO_PROPS = PROPS.concat(["content"]);
 
