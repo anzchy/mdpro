@@ -16,11 +16,12 @@
  *   filter without re-parsing the DOM text.
  *
  * @module scripts/ledger/md
- * @coordinates-with scripts/ledger/render.mjs, scripts/ledger/parse.mjs
+ * @coordinates-with scripts/ledger/render.mjs, scripts/ledger/parse.mjs,
+ *   scripts/ledger/table.mjs
  */
-import { LEDGER_STATES, slugify, splitRow } from "./parse.mjs";
+import { LEDGER_STATES, slugify } from "./parse.mjs";
+import { isInventoryHeader, isSeparatorRow, splitRow } from "./table.mjs";
 
-const INVENTORY_HEADER = ["能力", "状态", "在哪", "怎么确认"];
 const SENTINEL = "\u0000";
 
 export const escapeHtml = (text) =>
@@ -78,14 +79,6 @@ export function renderInline(text) {
 
   return work.replace(new RegExp(`${SENTINEL}(\\d+)${SENTINEL}`, "g"), (_m, i) => `<code>${codes[i]}</code>`);
 }
-
-const isSeparatorRow = (cells) =>
-  cells !== null && cells.length > 0 && cells.every((c) => /^:?-{1,}:?$/.test(c));
-
-const isInventoryHeader = (cells) =>
-  cells !== null &&
-  cells.length === INVENTORY_HEADER.length &&
-  cells.every((cell, i) => cell === INVENTORY_HEADER[i]);
 
 const stateBadge = (state) => {
   const known = LEDGER_STATES.includes(state);
