@@ -157,7 +157,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts` | ⌃2 下 ⌘F 打开查找面板，⌘G / ⌘⇧G 跳下一个 / 上一个，⌘H 打开替换 |
 | 源码模式标题级别 | Shipped | `src/plugins/codemirror/headingPlugin.ts` | 光标停在某行按 ⌘1…⌘6（插件 `heading`）前面补上对应数量的 `#`，⌘0 清掉；光标不会跳位 |
 | 提升 / 降低标题级别 | Shipped | `src/plugins/codemirror/headingPlugin.ts` | 在一行上反复按 ⌘- 一路降到 H6 就停住，反复按 ⌘= 一路升回纯文本 |
-| 源码模式插入链接 | Partial | `src/plugins/codemirror/linkPlugin.ts`, `src/components/Editor/LinkInsertModal.tsx` | 限制：走 `window.prompt`，而 rule 30 §6 禁止它；打包后不弹窗，按 ⌘K 没有任何反应（D55，2026-10-08 Mac mini `5154220` release 包真机证实）；WYSIWYG 的 ⌘K 走 `LinkInsertModal`，是好的那条路。用 `pnpm tauri build` 出的包在 ⌃2 下按 ⌘K 即可复现。这条路的插件 id 是 `link` |
+| 源码模式插入链接 | Partial | `src/plugins/codemirror/linkPlugin.ts`, `src/components/Editor/LinkInsertModal.tsx`, `src/components/Editor/SplitView.tsx` | 限制：仅单元测试验证，打包后的真机未验——D55 的毛病只在打包包里出现（`window.prompt` 不弹窗，⌘K 没反应，2026-10-08 Mac mini `5154220` release 包真机证实），所以单测证明不了打包包。自 2026-10-09（[D55](plans/20260912-frontend-backend-sequencing-order.md#d55)）起不再用 `window.prompt`：⌃2 下选中文字按 ⌘K，弹出与 WYSIWYG 同一个「Insert Link」框（`SplitView` 挂载），回车插入 `[文字](网址)`，Esc / Cancel 不改文档，关闭后焦点回到编辑器；日志 `ui.link-modal.*` 的 `screen` 为 `source`。确认：`pnpm tauri build` 出的包在 ⌃2 下按 ⌘K。单测：`tests/d55-source-link-insert.test.tsx`。这条路的插件 id 是 `link` |
 | 隐藏 Markdown 语法标记 | Shipped | `src/plugins/codemirror/wysiwygDecorationsPlugin.ts` | ⌃2 下光标不在的行（插件 `wysiwyg-decorations`），`## ` 收成 `H2` 徽标，列表项收成 `•`，引用收成 `>`，围栏收成 ``` 徽标；光标移回该行恢复原始语法 |
 | 行注释切换 | Shipped | `src/components/Editor/Editor.tsx` | ⌃2 下 ⌘⌥/ 把当前行注释掉，再按一次取消 |
 | 代码块缩进 / 反缩进 | Shipped | `src/plugins/milkdown/codeBlockIndentCommand.ts` | 在围栏代码块里选中几行按 Tab 整体缩进 4 空格，⇧Tab 反缩进 |
