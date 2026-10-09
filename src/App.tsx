@@ -43,6 +43,7 @@ import {
   decideFileChange,
 } from "./utils/dataLossGuards";
 import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
+import { onFirstSuccess } from "./utils/onFirstSuccess";
 import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
 import { buildSourceTablesWithheldLog } from "./utils/sourceTableWithheldLog";
 import { shouldEvaluateGuard, sourceTableVerdictOf } from "./utils/sourceTableVerdict";
@@ -414,13 +415,16 @@ function App() {
     [openDocumentFromPath, updateRecentFiles],
   );
 
+  // `onOpened` runs after each file that opened (never for a failed one); callers
+  // pass an `onFirstSuccess` latch to act once, after the first success (D51).
   const openPaths = useCallback(
-    async (paths: string[]) => {
+    async (paths: string[], onOpened?: () => void) => {
       for (const path of paths) {
         try {
           const doc = await openDocumentFromPath(path);
           if (doc?.path) {
             updateRecentFiles(doc.path);
+            onOpened?.();
           }
         } catch {
           // Ignore launch open errors.
@@ -689,7 +693,9 @@ function App() {
       }
 
       // Always open dropped files in the current window (no extra untitled window).
-      setViewMode(defaultViewMode);
+      // The default view mode applies once, after the first file that opens: a drop
+      // whose every open fails leaves the current document's mode untouched (D51).
+      const applyDefaultViewMode = onFirstSuccess(() => setViewMode(defaultViewMode));
       for (const filePath of mdPaths) {
         const actionId = loggingService.generateActionId();
         loggingService.logEventSync({
@@ -704,6 +710,9 @@ function App() {
           },
         });
         const doc = await handleOpenPath(filePath, actionId);
+        if (doc) {
+          applyDefaultViewMode();
+        }
         loggingService.logEventSync({
           level: doc ? "info" : "error",
           event: "file.open.drop",
@@ -929,7 +938,9 @@ function App() {
           }
           return;
         }
-        // When opening from Finder/command line, use default view mode from preferences
+        // When opening from Finder/command line, use default view mode from preferences.
+        // Switching before the open is safe here: at cold launch there is no current
+        // document for the switch to reload (unlike drop / Finder-while-running, D51).
         setViewMode(defaultViewMode);
         await openPaths(paths);
         setLaunchPathsComplete(true);
@@ -946,9 +957,10 @@ function App() {
       if (!paths || paths.length === 0) return;
       const canHandle = await shouldHandleWindowEvent();
       if (!canHandle) return;
-      // When opening from Finder while app is running, use default view mode from preferences
-      setViewMode(defaultViewMode);
-      void openPaths(paths);
+      // When opening from Finder while app is running, the default view mode from
+      // preferences applies once a file has opened; if every open fails, the current
+      // document keeps its mode (D51).
+      void openPaths(paths, onFirstSuccess(() => setViewMode(defaultViewMode)));
     },
     [defaultViewMode, openPaths, setViewMode, shouldHandleWindowEvent],
   );
