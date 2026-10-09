@@ -1,7 +1,13 @@
 # 0065. MCP table actions flush first, and commit the editor before the store
 
-**Status**: Proposed (2026-10-09, user decision while fixing D58, revised after
-the user's Codex review the same day). Acceptance waits on the D58 device check.
+**Status**: Accepted (2026-10-09). Proposed the same day (user decision while
+fixing D58, revised after the user's Codex review). Accepted on the D49/D58
+device check
+([`docs/test/20261009-d49-d58-device-check.md`](../test/20261009-d49-d58-device-check.md)):
+D58-R and D58-N passed on the Mac mini. D64, the ragged-table shift seen on the
+same commit path, was reproduced at unit level and is byte-identical before
+D58 (`d785ec9^`), so this decision did not introduce it. User's words:
+「改为 Accepted (Recommended)」.
 
 ## Context
 
