@@ -5,6 +5,11 @@
  * scroll was requested and `undoDepth` is 0. Plus: no editor → null, no throw; the
  * document is not dirtied.
  *
+ * D72: a document that ends in a thematic break (`---`, Milkdown's selectable leaf atom
+ * `hr`) must still get an empty TextSelection — inherited `Selection.atEnd` returned a
+ * NodeSelection on the rule, so the next typed character replaced it. The caret lands at
+ * the end of the last textblock instead; a document ending in a paragraph is unchanged.
+ *
  * Real `MilkdownEditor` and stores. Mocked boundaries: `@tauri-apps/api/{core,event,
  * window,webviewWindow}`, `loggingService`, `IntersectionObserver`.
  */
@@ -31,7 +36,7 @@ vi.mock("../src/services/loggingService", () => ({
 
 import type { Mock } from "vitest";
 import { undoDepth } from "@milkdown/kit/prose/history";
-import { TextSelection } from "@milkdown/kit/prose/state";
+import { NodeSelection, Selection, TextSelection } from "@milkdown/kit/prose/state";
 import { EditorView } from "@milkdown/kit/prose/view";
 import { focusActiveMilkdownAtEnd } from "../src/utils/focusActiveMilkdownAtEnd";
 import { useDocumentStore } from "../src/stores/documentStore";
@@ -107,5 +112,63 @@ describe("focusActiveMilkdownAtEnd", { timeout: CASE_TIMEOUT_MS }, () => {
     });
     expect(() => focusActiveMilkdownAtEnd()).not.toThrow();
     expect(focusActiveMilkdownAtEnd()).toBeNull();
+  });
+});
+
+describe("focusActiveMilkdownAtEnd — D72 trailing atom", { timeout: CASE_TIMEOUT_MS }, () => {
+  it("a document ending in `---` gets an empty TextSelection at the end of the last textblock", async () => {
+    resetStores([makeDoc("doc-a", "Hello world\n\n---", "/tmp/a.md")]);
+    const mounted = await mountAndWait();
+    unmountEditor = mounted.unmount;
+    const view = viewOf(mounted.instance);
+    const { doc } = view.state;
+    expect(doc.lastChild?.type.name, "harness: doc ends in a rule").toBe("hr");
+    const paragraph = doc.firstChild!;
+    expect(paragraph.textContent, "harness: paragraph first").toBe("Hello world");
+    const endOfText = 1 + paragraph.content.size;
+
+    focusActiveMilkdownAtEnd();
+
+    const sel = view.state.selection;
+    expect(sel instanceof NodeSelection, "not a NodeSelection on the rule").toBe(false);
+    expect(sel instanceof TextSelection).toBe(true);
+    expect(sel.empty).toBe(true);
+    expect(sel.head).toBe(endOfText);
+    expect(view.hasFocus()).toBe(true);
+
+    // The next typed character is inserted, not a replacement of the rule.
+    view.dispatch(view.state.tr.insertText("!"));
+    expect(view.state.doc.lastChild?.type.name).toBe("hr");
+    expect(view.state.doc.firstChild?.textContent).toBe("Hello world!");
+  });
+
+  it("a document ending in a paragraph keeps the caret at the very end", async () => {
+    resetStores([makeDoc("doc-a", "---\n\nTail paragraph", "/tmp/a.md")]);
+    const mounted = await mountAndWait();
+    unmountEditor = mounted.unmount;
+    const view = viewOf(mounted.instance);
+    const { doc } = view.state;
+    expect(doc.lastChild?.type.name, "harness: doc ends in a paragraph").toBe("paragraph");
+
+    focusActiveMilkdownAtEnd();
+
+    const sel = view.state.selection;
+    expect(sel instanceof TextSelection).toBe(true);
+    expect(sel.empty).toBe(true);
+    expect(sel.head).toBe(doc.content.size - 1);
+  });
+
+  it("a document with no textblock falls back to the end selection without throwing", async () => {
+    resetStores([makeDoc("doc-a", "---", "/tmp/a.md")]);
+    const mounted = await mountAndWait();
+    unmountEditor = mounted.unmount;
+    const view = viewOf(mounted.instance);
+    const { doc } = view.state;
+    expect(doc.childCount, "harness: a lone rule").toBe(1);
+    expect(doc.firstChild?.type.name, "harness: a lone rule").toBe("hr");
+
+    expect(focusActiveMilkdownAtEnd()).toBe(view.dom);
+    expect(view.state.selection.eq(Selection.atEnd(view.state.doc))).toBe(true);
+    expect(view.hasFocus()).toBe(true);
   });
 });
