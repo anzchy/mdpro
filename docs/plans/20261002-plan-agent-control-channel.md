@@ -3,7 +3,7 @@
 Opened 2026-10-02
 Branch: `frontend-backend-redesign`（各工作项在 `mdpro-wt/` 下的短分支上做，合回本分支）
 Repo: anzchy/mdpro
-Status: **执行中（WI-000–WI-002 已完成并验证；WI-003 可自动化部分已完成，真机验收待做，2026-10-08）**
+Status: **执行中（WI-000–WI-003 已完成并验证；WI-003 真机验收 2026-10-08 夜至 2026-10-09 晨跑过、Check D 修复后 2026-10-09 复测通过）**
 上游记录：[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed，2026-10-02 已修订）、[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，2026-10-02 已修订）、排序文档 [D30 行](./20260912-frontend-backend-sequencing-order.md#d30)
 
 **分工**：ADR-0047 是决定，本文只写工作项、验收和测试。两者冲突时以 ADR 为准，改的是本文。
@@ -498,7 +498,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   - **真机通过**（macOS 26.3.1，`e36c63a` 构建的 verify 包）：D-WI2、2、3、4、5、10。真实目录的元数据清单在每一步前后都一致。
   - 验收 8 **通过，附偏离**：`Info.plist` 里 `CFBundleDocumentTypes` 是空数组，不是不存在；Launch Services 不把它列为 `.md` 的候选，默认打开方式没变。
   - 验收 9 **[实测] macOS 26.3.1**：WebKit 数据与缓存都在运行目录内，真实 `~/Library` 下没有 `com.mdpro.app.verify` 的条目，也没有 Cocoa 偏好或 saved state。**macOS 13 没测——你的决定（2026-10-07）**。
-  - 验收 6 **未验证**：要用启动器在已有运行时再 `launch`，WI-003 之前没有启动器。转到 WI-003 的验收里一并跑。
+  - 验收 6 **未验证**：要用启动器在已有运行时再 `launch`，WI-003 之前没有启动器。转到 WI-003 的验收里一并跑。（2026-10-09 更新：**已真机验证**，2026-10-09 WI-003 真机 Check B：运行活着时再 `launch` 退出 1、被拒，不建运行目录，第一个实例日志里没有新增 `file.open.external`。记录 [`docs/test/20261009-adr0047-wi003-device.md`](../test/20261009-adr0047-wi003-device.md) §1。）
   - **推翻的假设**：启动器写偏好夹具时不能只写部分字段——`UserPreferences` 有必填字段，部分文件整份解析失败，设置页全报错。WI-003 的夹具要写完整的一份。
   - WI-001 验收 5（先 `verify` 后 `release` 互不串味）本轮没跑，仍开着。
 
@@ -535,11 +535,13 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   7. **`clean` 不写 `launcher.jsonl`**（与日志规则 20 有出入）。它删的正是这个文件所在的目录；结果只在 stdout 的结论行里。
   8. **删除次序**：`clean` 先核锁，再删运行目录（`launch.json` 最后删），删完才释放锁。中途失败时 `launch.json` 和锁都还在，下一次 `clean` 能重新证明所有权并重试。
   9. **`--into` 要证明文件送到了（WI-R3，2026-10-09 真机 Check D 发现）**：偏离 1 原写「直接执行时要求第二个进程 exit 0」，真机证明 exit 0 不够——`--into --via open` 用的 `open -n` 起一个新实例，文件作为打开文档事件给了新实例，新实例经 single-instance 只转交空参数（`file.open.args_filtered {accepted:0}`）就退出 0，启动器报 pass 而文件没到。改为：`--into --via open` 的 `open` 不带 `-n`（`--env` 照带，竞态下冷启动仍关在运行目录里）；冷启动 `launch --via open` 仍带 `-n`。`--into` 带文件时，除 exit 0 外还要在运行自己的应用日志里、spawn 前的偏移之后、`handshakeTimeoutMs` 之内出现 `file.open.external` / `success` 且 `filePath` 是该文件（真实路径或原样）的一行，否则 `fail — into: file not delivered within <ms> ms`，不杀任何进程。
-- **状态（2026-10-09）**：**真机验收跑过一轮（`69dd5d9`），Check D 失败，修复 WI-R3 已写完、单测通过，待真机复测 D（及 A、C 回归）**。2026-10-09 真机（mini，报告 `~/.mdpro-redesign/dtrack/reports/20261008-wi10.md`）：A 直接启动、B 已有运行时再启动被拒（WI-002 验收 6：不建运行目录，第一个实例日志没有 `file.open.external`）、C `--into` 同一文件、E pid 复用 `quit` 拒绝（`ownership: startTime, exe`）、F 真 `quit` / 残留 si.sock / `clean`、G `--via open` 冷启动、H 运行活着时重打后 `launch` 被拒、I 改源码不重打 `doctor` 报 `sourceTree` 不符、J 输出无随机数，都过；D 假通过（偏离 9）。另记：`doctor` / `launch` 探 si.sock 时活着的应用会记一行 `file.open.args_filtered {accepted:0}`（不打开文件，可能把窗口带到前台；低风险，未改）；H 的重打与原包逐字节相同，「`buildId` 不符」没在真机上触发；应用退出时日志里没有关闭行。WI-R3：新测 `tests/control-launcher-into-delivery.test.ts`（27 例），分离保持；LI-01、LI-04、LA-INT-2 原先把「exit 0 即过」写进了断言，改为假进程写一行送达日志后仍是成功用例，你 2026-10-09 接受，理由记在 `receipts.json`。提交门禁 unit（371 个文件，5427 过）、rust（1155 过）、rust-verify-run（1204 过）都过，slow lane 34 过；覆盖率 L 80.31 / F 84.32 / B 92.53 / S 80.31。终审「通过，附说明」（`.claude/tdd-guardian/review-20261009-wi-r3.md`）：过时的注释已改；未改的跟进项——慢测桩只走「原样路径」分支、`open` 不带 `-n` 会把文件交给同 bundle id 的任一进程（日常 mdpro 的 id 不同，只有另一个验证包会抢）、未规范化的路径可能误判失败、日志里的 `source` 未过滤就打印。
+- **状态（2026-10-09）**：**已验证。真机验收跑过一轮（`69dd5d9`，2026-10-08 23:24 起跑、2026-10-09 08:53 结束），Check D 假通过；修复 WI-R3（`92e3902`）2026-10-09 真机复测 D 通过，A、C 回归通过，负例 D2（送不到的文件）报 `fail`**。真机记录 [`docs/test/20261009-adr0047-wi003-device.md`](../test/20261009-adr0047-wi003-device.md)。
+  - **复测（2026-10-09，mini，macOS 26.4，`92e3902` 构建的 verify 包，`buildId` `2076e34b…78695`，报告 `~/.mdpro-redesign/dtrack/reports/20261009-wi-r3.md`）**：D `--into --via open b.md` → `file delivered (source finder)`，日志 `file.open.external`（`appReady:true`）→ `file.open.route` `new-window` → success，`b.md` 在第二个窗口；没有 `app.launch` 行、只有一个验证进程、`instance.json` 摘要不变。D2 `--into --via open c.txt` → `verdict: fail — into: file not delivered within 15000 ms`，exit 1，属主进程还活着（Launch Services 没把 `c.txt` 交给 app，app 日志没长）。A、C 回归通过（C 报 `file delivered (source single_instance)`，路由 `existing-window`）。收尾 `quit` / `clean` / `doctor` 都过，证据里没有随机数，真实目录清单不变。没覆盖到的：日常 mdpro 当时没开；评审 M2（同 bundle id 的另一份验证包可能收走文件）没测；pnpm 在失败结论之后多打一行 `ELIFECYCLE`，读结论要取启动器自己的最后一行。
+  - **第一轮（2026-10-08 23:24 起跑、2026-10-09 08:53 结束；预检和 A 的 `launch` 在 10-08 23:24–23:25，之后被 Computer Use 权限弹窗挡了约 9 小时，A 的截图和 B–J 在 10-09 08:48–08:53；mini，报告 `~/.mdpro-redesign/dtrack/reports/20261008-wi10.md`）**：A 直接启动、B 已有运行时再启动被拒（WI-002 验收 6：不建运行目录，第一个实例日志没有 `file.open.external`）、C `--into` 同一文件、E pid 复用 `quit` 拒绝（`ownership: startTime, exe`）、F 真 `quit` / 残留 si.sock / `clean`、G `--via open` 冷启动、H 运行活着时重打后 `launch` 被拒、I 改源码不重打 `doctor` 报 `sourceTree` 不符、J 输出无随机数，都过；D 假通过（偏离 9）。另记：`doctor` / `launch` 探 si.sock 时活着的应用会记一行 `file.open.args_filtered {accepted:0}`（不打开文件，可能把窗口带到前台；低风险，未改）；H 的重打与原包逐字节相同，「`buildId` 不符」没在真机上触发；应用退出时日志里没有关闭行。WI-R3：新测 `tests/control-launcher-into-delivery.test.ts`（27 例），分离保持；LI-01、LI-04、LA-INT-2 原先把「exit 0 即过」写进了断言，改为假进程写一行送达日志后仍是成功用例，你 2026-10-09 接受，理由记在 `receipts.json`。WI-R3 提交 `92e3902`；提交门禁 unit（371 个文件，5427 过）、rust（1155 过）、rust-verify-run（1204 过）都过，slow lane 34 过；覆盖率 L 80.31 / F 84.32 / B 92.53 / S 80.31。终审「通过，附说明」（`.claude/tdd-guardian/review-20261009-wi-r3.md`）：过时的注释已改；未改的跟进项（仍开着，真机复测不涉及）——M1 慢测桩只走「原样路径」分支；M2 `open` 不带 `-n` 会把文件交给同 bundle id 的任一进程（日常 mdpro 的 id 不同，只有另一个验证包会抢；抢走时送达检查报 `fail`，但文件开在运行之外）；L4 未规范化的路径可能误判失败；L6 日志里的 `source` 未过滤就打印；L9 测试注释重复、L10 放宽的快照不再查日志只追加；缺测「退出与送达贴着共同时限」和「`--via open` 带相对路径」。
 - **原状态（2026-10-08）**：**可自动化部分已完成，真机验收（下面 WI-10）待做**。tdd-guardian 全流程：设计测试后对抗两轮、缺口全补；WI-1–WI-9 加评审修复 WI-R1、WI-R2 全部完成；终审第一轮要求修改，修完复审「通过，附说明」。提交门禁 unit（370 个文件，5400 过）、rust（1155 过）、rust-verify-run（1204 过）都过；覆盖率 L 80.19 / F 84.28 / B 92.50 / S 80.19，`scripts/control/` 下启动器每个文件分支覆盖都 ≥ 91%。`slow` lane（真实进程的 LA-INT、QU-INT）未在门禁里跑，推送前跑。
   - **规格分离**：8 项保持；WI-6、WI-7、WI-8 的测试辅助代码在红之后改过（环境快照的比较方式、目录 mtime、APFS 目录大小），你 2026-10-08 接受，理由记在 `receipts.json`；WI-R1 只改了两行测试文件头注释并已逐字恢复，理由已记，你可否决。
   - **验收 2、3、4、5 单测通过**：`sourceTree` 不符时 `doctor` 非零退出；记录里的 pid 换成无关活进程时 `quit` 拒绝并指出哪一项；运行目录是符号链接或不在约定父目录下时 `clean` 拒绝；所有输出（stdout、stderr、`launcher.jsonl`）里没有随机数原文。
-  - **验收 1、6 和 WI-002 验收 6 未验证**：要真机包。按 tdd-guardian 计划的 WI-10 记到 `docs/test/` 的新真机记录里。（2026-10-09 更新：WI-002 验收 6 与验收 1 真机已过；验收 6 的 J7b 等 WI-R3 真机复测，见上面的状态。）
+  - **验收 1、6 和 WI-002 验收 6 未验证**：要真机包。按 tdd-guardian 计划的 WI-10 记到 `docs/test/` 的新真机记录里。（2026-10-09 更新：WI-002 验收 6 与验收 1 真机已过；验收 6 的 J7b 等 WI-R3 真机复测，见上面的状态。）（2026-10-09 再更新：**都已真机验证**。验收 1（Trap 3，拒绝理由是已有运行）、WI-002 验收 6、验收 6 的 J1b / J7a 在 2026-10-09 过，J1a 2026-10-08 启动、2026-10-09 截图；J7b 在 2026-10-09 WI-R3 复测过。验收 4 仍只有单测。记录 [`docs/test/20261009-adr0047-wi003-device.md`](../test/20261009-adr0047-wi003-device.md)。）
   - **评审留下的低风险项（不阻塞）**：`launch` 先占锁后建目录，两步之间的 `clean R` 会释放活的锁（窗口是两次同步调用）；`clean` 删到最后一步、删空目录失败时，下一次 `clean` 证明不了所有权，要手动 `rmdir` 后再 `clean`；`owner.json` 的 pid 被篡改成非正整数时 `doctor` 说去 `clean`，`clean` 却拒绝；`clean.mjs` 288 行，再加东西前先拆。
   - 提交：运行目录布局与偏好模板 `83a35b0`；启动器、评审修复与本状态段在其后紧接的一次提交里（同一提交更新状态，SHA 见 `git log`）。
 
@@ -737,7 +739,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - [x] WI-002：双击验证包，它退出，真实目录没有变化（2026-10-07，真机记录验收 2）
 - [x] WI-002：开着日常 mdpro 起隔离运行，日常那边没有多出窗口或标签（2026-10-07，真机记录验收 4）
 - [ ] WI-002：Finder 里 `.md` 的默认打开方式没变；验证包点「检查更新」不会装上正式版（前半已过，真机记录验收 8；后半只确认了二进制里没有更新地址，没实际点过「检查更新」）
-- [ ] WI-003：故意不杀旧进程再 `launch`，被拒绝
+- [x] WI-003：故意不杀旧进程再 `launch`，被拒绝（2026-10-09，真机 Check H：运行活着时重打再 `launch`，以已有运行被拒；重打的包与原包逐字节相同，`buildId` 不符这一支没触发。记录 [`docs/test/20261009-adr0047-wi003-device.md`](../test/20261009-adr0047-wi003-device.md)）
 - [ ] WI-004：升级前后两个包各走一遍全部旅程
 - [ ] WI-004：D34 的 Esc、D41 的 Tab 物理重测
 - [ ] WI-005：两个包上的物理 Esc 基线（回退构建不关、基线头关）

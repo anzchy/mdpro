@@ -2,28 +2,36 @@
   "schemaVersion": 2,
   "lanes": {
     "unit": {
-      "last_passed_at": "2026-10-09T02:48:08.646Z",
-      "last_run_at": "2026-10-09T02:48:08.646Z",
-      "last_head_sha": "69dd5d904c985f436c0ae4f38b86fd758459e2bc",
+      "last_passed_at": "2026-10-09T03:05:22.393Z",
+      "last_run_at": "2026-10-09T03:05:22.393Z",
+      "last_head_sha": "92e3902e3406efb5f0de926f2932381840c4e9cc",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 93000
+      "duration_ms": 100000
     },
     "rust": {
-      "last_passed_at": "2026-10-09T02:48:08.646Z",
-      "last_run_at": "2026-10-09T02:48:08.646Z",
-      "last_head_sha": "69dd5d904c985f436c0ae4f38b86fd758459e2bc",
+      "last_passed_at": "2026-10-09T03:05:22.394Z",
+      "last_run_at": "2026-10-09T03:05:22.394Z",
+      "last_head_sha": "92e3902e3406efb5f0de926f2932381840c4e9cc",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 46000
+      "duration_ms": 47000
     },
     "rust-verify-run": {
-      "last_passed_at": "2026-10-09T02:48:08.646Z",
-      "last_run_at": "2026-10-09T02:48:08.646Z",
-      "last_head_sha": "69dd5d904c985f436c0ae4f38b86fd758459e2bc",
+      "last_passed_at": "2026-10-09T03:05:22.394Z",
+      "last_run_at": "2026-10-09T03:05:22.394Z",
+      "last_head_sha": "92e3902e3406efb5f0de926f2932381840c4e9cc",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 51000
+      "duration_ms": 49000
+    },
+    "slow": {
+      "last_passed_at": "2026-10-09T03:05:22.394Z",
+      "last_run_at": "2026-10-09T03:05:22.394Z",
+      "last_head_sha": "92e3902e3406efb5f0de926f2932381840c4e9cc",
+      "last_result": "passed",
+      "ever_had_tests": true,
+      "duration_ms": 8000
     }
   },
   "coverage": {
