@@ -93,6 +93,11 @@ impl QuitCoordinator {
         }
     }
 
+    /// Is a request open (D74)? `false` once it commits or is cancelled.
+    pub fn is_live(&self) -> bool {
+        self.request.is_some()
+    }
+
     /// The live request's round (ADR-0035 A5): 0 for phase 1, +1 per re-check.
     /// `None` when no request is live.
     pub fn round(&self) -> Option<u32> {

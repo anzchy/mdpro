@@ -38,7 +38,10 @@ pub mod tauri_glue;
 pub use execute::execute_plan;
 pub use lookup::{lookup, lookup_in_shared};
 pub use payload::{OpenInWindowPayload, OPEN_IN_WINDOW_EVENT};
-pub use plan::{lookup_all, plan_route, route_log_context, Outcome, PlanEntry, RoutePlan, Source};
+pub use plan::{
+    lookup_all, plan_route, route_log_context, route_log_severity, Outcome, PlanEntry, RoutePlan,
+    Source,
+};
 pub use tauri_glue::{has_windows_with_documents, open_file_in_new_window, route_external_open};
 
 #[cfg(test)]

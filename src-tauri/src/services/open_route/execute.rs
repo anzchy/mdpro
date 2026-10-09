@@ -3,10 +3,14 @@
 //!
 //! Key decisions:
 //! - **Entries run and are logged in input order**, one log per path.
-//! - **An emit failure opens a new window for that path, in every context,
-//!   and is never broadcast** (ADR-0033 decision 7): the one window a
+//! - **An emit failure opens a new window for that path, in every context
+//!   but a live quit (below), and is never broadcast** (ADR-0033 decision 7): the one window a
 //!   broadcast could reach is the one whose emit just failed. The fallback
 //!   gets the incoming path, and its log carries the emit error.
+//! - **Under a live quit no window is opened at all** (D74): a `Refused`
+//!   entry only logs `refused-quit-pending`, and when
+//!   `plan.new_windows_refused` an emit failure logs that outcome with its
+//!   error instead of falling back to a new window.
 //! - **`broadcast` is called at most once**, after the loop, and never with
 //!   an empty group.
 //! - **The logged `matchCount` is the plan entry's**, never recomputed. A
@@ -49,6 +53,12 @@ pub fn execute_plan<E, N, B, L>(
                     ),
                     None,
                 ),
+                // D74: under a live quit the fallback window is refused too;
+                // the emit error is still reported with the refusal.
+                Err(error) if plan.new_windows_refused => log(
+                    route_log_context(source, Outcome::RefusedQuitPending, None, *match_count),
+                    Some(error),
+                ),
                 Err(error) => {
                     new_window(path.clone());
                     log(
@@ -64,6 +74,10 @@ pub fn execute_plan<E, N, B, L>(
                     None,
                 );
             }
+            PlanEntry::Refused { match_count, .. } => log(
+                route_log_context(source, Outcome::RefusedQuitPending, None, *match_count),
+                None,
+            ),
             PlanEntry::Broadcast { path, match_count } => {
                 group.push(path.clone());
                 log(

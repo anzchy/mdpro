@@ -1,10 +1,11 @@
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, WindowGeometry};
 use crate::services::logger;
 use crate::services::preferences::{load_preferences, preferences_rw_lock, save_preferences};
+use crate::services::quit_guard::{effects::AppQuitGuard, window_gate::new_window_gate};
 use crate::services::window_restore;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tauri::{AppHandle, Emitter, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use uuid::Uuid;
 
 /// The pure geometry rules (validation, clamp, resolve) live in
@@ -29,7 +30,11 @@ pub struct GetWindowGeometryResponse {
     pub geometry: Option<WindowGeometry>,
 }
 
-/// Create a new mdpro window, optionally with a file to open
+/// Create a new mdpro window, optionally with a file to open.
+///
+/// While a quit request is live this returns
+/// `Err(quit_guard::window_gate::QUIT_PENDING_REFUSAL)` and builds nothing
+/// (D74); `windowService.createWindow` treats that error as a quiet `null`.
 #[tauri::command]
 pub async fn create_window(
     app: AppHandle,
@@ -46,6 +51,23 @@ pub async fn create_window(
         duration_ms: None,
         error: None,
     });
+
+    // D74: a window opened while a quit request is live is outside that
+    // request's snapshot — never prompted, never waited for — so it is refused.
+    // The gate drops the coordinator lock before returning; the build below
+    // must never run under it (see `quit_guard::window_gate`).
+    if let Err(refusal) = new_window_gate(app.try_state::<AppQuitGuard>().as_deref()) {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Warn,
+            event: "window.create".to_string(),
+            status: LogStatus::Cancel,
+            action_id: Some(action_id),
+            context: Some(json!({ "reason": "quit_pending" })),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            error: Some(refusal.to_string()),
+        });
+        return Err(refusal.to_string());
+    }
 
     let window_id = format!("mdpro-{}", Uuid::new_v4());
 
@@ -182,3 +204,7 @@ mod window_lookup_tests;
 #[cfg(test)]
 #[path = "window_wiring_tests.rs"]
 mod window_wiring_tests;
+
+#[cfg(test)]
+#[path = "window_quit_gate_tests.rs"]
+mod window_quit_gate_tests;

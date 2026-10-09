@@ -13,8 +13,11 @@
 //! - **Every entry carries its own lookup's `match_count`**: 0 for no match
 //!   and 0 for a lookup `Err`. The executor logs it and computes nothing.
 //! - **The log context carries no path and no content** (decision 8).
+//! - **A live quit request refuses new windows** (D74):
+//!   `RoutePlan::with_quit_pending` turns `NewWindow` into `Refused` and
+//!   disables the emit-failure fallback; see `quit_guard::window_gate`.
 use super::{lookup_in_shared, RouteLookup, RouteTarget};
-use crate::models::SharedShadowStore;
+use crate::models::{LogLevel, LogStatus, SharedShadowStore};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
@@ -43,6 +46,7 @@ pub enum Outcome {
     ExistingWindow,
     NewWindow,
     Broadcast,
+    RefusedQuitPending,
 }
 
 impl Outcome {
@@ -52,6 +56,7 @@ impl Outcome {
             Outcome::ExistingWindow => "existing-window",
             Outcome::NewWindow => "new-window",
             Outcome::Broadcast => "broadcast",
+            Outcome::RefusedQuitPending => "refused-quit-pending",
         }
     }
 }
@@ -70,12 +75,56 @@ pub enum PlanEntry {
     NewWindow { path: String, match_count: usize },
     /// Part of the single `file:open` broadcast group (today's behaviour).
     Broadcast { path: String, match_count: usize },
+    /// Would have opened a new window, but a quit request is live (D74): the
+    /// path is dropped and logged, never opened.
+    Refused { path: String, match_count: usize },
 }
 
 /// The ordered plan: exactly one entry per input path, in input order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoutePlan {
     pub entries: Vec<PlanEntry>,
+    /// A quit request is live (D74): the executor must not open a window,
+    /// not even as the emit-failure fallback (ADR-0033 decision 7).
+    pub new_windows_refused: bool,
+}
+
+impl RoutePlan {
+    /// While a quit is pending, every `NewWindow` entry becomes `Refused` and
+    /// the emit-failure fallback is disabled. Routing to a window that already
+    /// exists and the single-instance broadcast are kept: neither creates a
+    /// window the quit request does not know about. `false` is the identity.
+    pub fn with_quit_pending(self, quit_pending: bool) -> Self {
+        if !quit_pending {
+            return self;
+        }
+        let entries = self
+            .entries
+            .into_iter()
+            .map(|entry| match entry {
+                PlanEntry::NewWindow { path, match_count } => {
+                    PlanEntry::Refused { path, match_count }
+                }
+                other => other,
+            })
+            .collect();
+        RoutePlan {
+            entries,
+            new_windows_refused: true,
+        }
+    }
+}
+
+/// Level and status of one `file.open.route` log line. A failed emit is
+/// Warn/Fail with its error; a refusal under a pending quit (D74) is
+/// Warn/Cancel — the guard working, not a fault; everything else Info/Success.
+pub fn route_log_severity(context: &Value, error: Option<&str>) -> (LogLevel, LogStatus) {
+    let refused = context["outcome"] == Outcome::RefusedQuitPending.as_str();
+    match (error, refused) {
+        (Some(_), _) => (LogLevel::Warn, LogStatus::Fail),
+        (None, true) => (LogLevel::Warn, LogStatus::Cancel),
+        (None, false) => (LogLevel::Info, LogStatus::Success),
+    }
 }
 
 /// Plan every path. `lookups` pairs each incoming path with its lookup
@@ -107,7 +156,10 @@ pub fn plan_route(
             }
         })
         .collect();
-    RoutePlan { entries }
+    RoutePlan {
+        entries,
+        new_windows_refused: false,
+    }
 }
 
 fn fallback(path: String, match_count: usize, broadcast: bool) -> PlanEntry {
@@ -156,3 +208,6 @@ pub fn lookup_all(
 #[cfg(test)]
 #[path = "plan_tests.rs"]
 mod plan_tests;
+#[cfg(test)]
+#[path = "quit_pending_tests.rs"]
+mod quit_pending_tests;

@@ -554,8 +554,9 @@ function App() {
     async (openPath?: string, notifyOnError = true) => {
       try {
         const { windowService } = await import("./services/windowService");
-        await windowService.createWindow(openPath);
-        return true;
+        // `null`: a pending quit refused the window (D74) — already logged,
+        // and not an error worth a toast.
+        return (await windowService.createWindow(openPath)) !== null;
       } catch {
         if (notifyOnError) {
           showToast("Failed to open new window");
