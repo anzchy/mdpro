@@ -13,9 +13,9 @@
  *
  * Key decisions:
  * - **Captured at render, not in an effect**: a lazy `useState` initializer runs before
- *   commit, so it sees focus before the dialog's `autoFocus` child takes it (RF-1).
+ *   commit, so it sees focus before the dialog's initial-focus layout effect takes it (RF-1).
  * - **Unmount-based, via a layout-effect cleanup**: it runs while the container is still
- *   in the document and before the next dialog's `autoFocus`, so the return is
+ *   in the document and before the next dialog's initial-focus layout effect, so the return is
  *   synchronous with the close (Approve → focus back → only then the MCP write lands).
  * - **Queued dialogs inherit** (F6): when the prior element is inside another open
  *   container of this hook (the previous prompt being swapped out by `key`), the new

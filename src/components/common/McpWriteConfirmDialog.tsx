@@ -10,6 +10,11 @@
  *   to rule 32's "most-likely-edited control" default, user decision). The
  *   prompt appears unasked while the user may be typing; a stray Enter must
  *   refuse an external overwrite, never approve it.
+ * - **Initial focus is one visible focus request, not `autoFocus`** (D63, same defect as
+ *   D53): WKWebView drew no `:focus-visible` ring on Reject for an autofocus after a mouse
+ *   interaction. `useVisibleInitialFocus(rejectRef, true)` requests it (the hook explains why
+ *   `autoFocus` is removed, not supplemented); the target is still Reject. It is called after
+ *   `useReturnFocusOnClose`, which captures the prior focus at render, before any effect runs.
  * - **Every dismissal rejects**: Escape, a backdrop click and Reject all call
  *   `onReject`. Escape goes through the shared document-level, capture-phase
  *   stack (`useDialogEscape`, dialog `"mcp_write_confirm"`, outcome `"reject"`),
@@ -36,6 +41,7 @@
  * @coordinates-with src/utils/mcpConfirmModel.ts — `ConfirmRequest`, `confirmMessage`
  * @coordinates-with src/hooks/useDialogEscape.ts — the shared Escape stack
  * @coordinates-with src/hooks/useReturnFocusOnClose.ts — the focus return
+ * @coordinates-with src/hooks/useVisibleInitialFocus.ts — the visible initial focus on Reject
  * @coordinates-with src/utils/focusActiveMilkdownAtEnd.ts — its fallback
  */
 import { useCallback, useId, useRef } from "react";
@@ -43,6 +49,7 @@ import type { KeyboardEvent } from "react";
 
 import { useDialogEscape } from "../../hooks/useDialogEscape";
 import { useReturnFocusOnClose } from "../../hooks/useReturnFocusOnClose";
+import { useVisibleInitialFocus } from "../../hooks/useVisibleInitialFocus";
 import { loggingService } from "../../services/loggingService";
 import { focusActiveMilkdownAtEnd } from "../../utils/focusActiveMilkdownAtEnd";
 import { confirmMessage, type ConfirmRequest } from "../../utils/mcpConfirmModel";
@@ -74,7 +81,9 @@ export function McpWriteConfirmDialog({ request, onApprove, onReject }: McpWrite
   const backdropRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const messageId = useId();
+  const rejectRef = useRef<HTMLButtonElement>(null);
   useReturnFocusOnClose(cardRef, returnToEditor);
+  useVisibleInitialFocus(rejectRef, true);
   // Mounted only while a prompt is shown, so always enabled. The log line carries
   // `{ dialog, outcome }` only — never the request or its title.
   useDialogEscape({
@@ -120,7 +129,7 @@ export function McpWriteConfirmDialog({ request, onApprove, onReject }: McpWrite
           {confirmMessage(request)}
         </p>
         <div className="dialog-actions">
-          <button className="toolbar-button" type="button" autoFocus onClick={onReject}>
+          <button ref={rejectRef} className="toolbar-button" type="button" onClick={onReject}>
             Reject
           </button>
           <button className="toolbar-button toolbar-button--primary" type="button" onClick={onApprove}>

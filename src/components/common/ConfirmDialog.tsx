@@ -16,23 +16,21 @@
  * - **Initial focus is one `focus({ focusVisible: true })` call, not `autoFocus`** (D53): button
  *   rings key only on `:focus-visible` (rule 33 pattern 2), and WKWebView does not treat a
  *   script/autofocus focus after a mouse interaction (click in the editor, then ⌘W) as
- *   focus-visible, so the dialog opened with no visible focus. `focusVisible: true` makes it
- *   match — but WebKit ignores it on an element that already has focus, and `autoFocus`
- *   focuses before mount effects run, so `autoFocus` is removed rather than supplemented. The
- *   `useLayoutEffect` sits before the early return (rules of hooks) and depends only on
- *   `[open, destructive]`, so an ordinary re-render while open never pulls focus back from
- *   where the user Tabbed to.
+ *   focus-visible, so the dialog opened with no visible focus. The request is the shared
+ *   `useVisibleInitialFocus` hook (extracted in D63, which has the WebKit reasoning and why
+ *   `autoFocus` is removed rather than supplemented). It is called before the early return
+ *   (rules of hooks) and re-fires only when `open` or the target (`destructive`) changes, so an
+ *   ordinary re-render while open never pulls focus back from where the user Tabbed to.
  *
  * @coordinates-with src/hooks/useDialogEscape.ts — document-level capture-phase Escape stack
- * @coordinates-with tests/confirm-dialog.test.tsx — CD-1 … CD-17
+ * @coordinates-with src/hooks/useVisibleInitialFocus.ts — the visible initial-focus request (D53/D63)
+ * @coordinates-with tests/confirm-dialog.test.tsx — CD-1 … CD-17b
  * @coordinates-with tests/discard-dialog-focus-wiring.test.tsx — DW-1 (BottomTabs), DW-3 (AppDialogs.tsx) (D48 callers)
  */
-import { useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { useVisibleInitialFocus } from "../../hooks/useVisibleInitialFocus";
 import { loggingService } from "../../services/loggingService";
-
-/** `focusVisible` is not in this TS lib.dom yet; WebKit honours it (D53). */
-const VISIBLE_FOCUS: FocusOptions & { focusVisible?: boolean } = { focusVisible: true };
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -73,10 +71,7 @@ export function ConfirmDialog({
     onEscape: handleCancel,
   });
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    (destructive ? cancelRef : confirmRef).current?.focus(VISIBLE_FOCUS);
-  }, [open, destructive]);
+  useVisibleInitialFocus(destructive ? cancelRef : confirmRef, open);
 
   if (!open) {
     return null;

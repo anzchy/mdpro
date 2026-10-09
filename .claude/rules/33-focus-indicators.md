@@ -45,9 +45,10 @@ surface; don't invent a fifth.
 - [ ] Focus visibility holds at 200% browser zoom.
 
 `tests/focus-trap.test.ts` matches component source text: dialogs handle
-Escape, primary buttons carry `autoFocus` (except `ConfirmDialog`, which
-focuses on open with `focus({ focusVisible: true })` instead, because WebKit
-draws no ring for autofocus after a mouse interaction — D53),
+Escape, primary buttons carry `autoFocus` (except `ConfirmDialog`,
+`ReloadDialog` and `McpWriteConfirmDialog`, which focus on open through
+`useVisibleInitialFocus` — `focus({ focusVisible: true })` — instead, because
+WebKit draws no ring for autofocus after a mouse interaction — D53, D63),
 `RecoveryDialog` has no Escape
 close, and `DevToolbar` is out of tab order (`tabIndex={-1}`). It does not
 test Tab-loop trapping, so verify that by hand. New dialogs must add

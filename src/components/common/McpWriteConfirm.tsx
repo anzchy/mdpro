@@ -10,7 +10,7 @@
  *
  * Key decisions:
  * - **Keyed by `requestId`**, so the next queued prompt mounts a fresh dialog
- *   and `autoFocus` lands on its Reject button again.
+ *   and its visible initial focus lands on its Reject button again (D63).
  * - **No logging here**: the hook already logs each answer and each reply.
  * - **`useMcpConfirm` stays here, called once per window.** The parent learns
  *   the shown id through `onPromptChange` instead of lifting the hook, which
