@@ -146,7 +146,7 @@ describe("WI-8 — cross-language preference contract parity (TS half)", () => {
   it("WI8-C: the fixture's key graph and DEFAULT_PREFERENCES's agree in both directions", async () => {
     const fixture = readContractFixture();
     const { preferencesService } = await import("../src/services/preferencesService");
-    const defaults = await preferencesService.getPreferences();
+    const defaults = await preferencesService.getPreferences("app_hydrate");
 
     expect(invokeMock).not.toHaveBeenCalled();
 

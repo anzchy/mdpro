@@ -75,14 +75,14 @@ beforeEach(() => {
 
 describe("preferencesService — browser-branch defaults (migrated fence A–C)", () => {
   it("B1: getPreferences returns the Rust-matching logging default", async () => {
-    const prefs = await preferencesService.getPreferences();
+    const prefs = await preferencesService.getPreferences("app_hydrate");
 
     expect(prefs.logging).toEqual({ enabled: true, level: "info" });
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
   it("B2: the default key set is exactly the 19 UserPreferences keys", async () => {
-    const prefs = await preferencesService.getPreferences();
+    const prefs = await preferencesService.getPreferences("app_hydrate");
 
     expect(Object.keys(prefs).sort()).toEqual([
       "appearance",
@@ -109,7 +109,7 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
   });
 
   it("B3: literal scalar defaults; nested groups equal the exported constants", async () => {
-    const prefs = await preferencesService.getPreferences();
+    const prefs = await preferencesService.getPreferences("app_hydrate");
 
     expect(prefs.themeMode).toBe("system");
     expect(prefs.autoSaveInterval).toBe(30);
@@ -140,7 +140,7 @@ describe("preferencesService — browser-branch setPreferences merge law", () =>
   it("B4: right-biased merge over every single-key patch, the migrated row, a 3-key patch and {}", async () => {
     expect(SINGLE_KEY_PATCHES).toHaveLength(19);
     expect(PATCHES).toHaveLength(22);
-    const defaults = await preferencesService.getPreferences();
+    const defaults = await preferencesService.getPreferences("app_hydrate");
     const defaultKeys = Object.keys(defaults).sort();
     expect(defaultKeys).toHaveLength(19);
     expect(new Set(SINGLE_KEY_PATCHES.map((p) => Object.keys(p)[0]))).toEqual(new Set(defaultKeys));
@@ -162,7 +162,7 @@ describe("preferencesService — browser-branch setPreferences merge law", () =>
   });
 
   it("B5: setPreferences and mutation of its results never change the defaults", async () => {
-    const snapshot = structuredClone(await preferencesService.getPreferences());
+    const snapshot = structuredClone(await preferencesService.getPreferences("app_hydrate"));
 
     let last: UserPreferences | null = null;
     for (const { patch } of PATCHES) last = await preferencesService.setPreferences(patch);
@@ -173,7 +173,7 @@ describe("preferencesService — browser-branch setPreferences merge law", () =>
     result.recentFiles.push("/mutated.md");
     result.mcp.serverEnabled = false;
 
-    expect(await preferencesService.getPreferences()).toEqual(snapshot);
+    expect(await preferencesService.getPreferences("app_hydrate")).toEqual(snapshot);
     expect(invokeMock).not.toHaveBeenCalled();
   });
 });

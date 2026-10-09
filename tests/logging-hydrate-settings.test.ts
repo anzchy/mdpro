@@ -128,7 +128,7 @@ describe("WI-2-C — real-desktop shape: both paths reach Rust", () => {
       cmd === "get_logging_settings" ? { enabled: true, level: "debug" } : makePreferences(),
     );
 
-    await preferencesService.getPreferences();
+    await preferencesService.getPreferences("app_hydrate");
     await loggingService.hydrateSettings();
 
     expect(callsFor("get_preferences")).toHaveLength(1);

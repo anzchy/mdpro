@@ -50,7 +50,7 @@ import { useLoggingStore } from "../src/stores/loggingStore";
 
 const fx = JSON.parse(
   readFileSync(resolve(__dirname, "fixtures/mcp-confirm-contract.json"), "utf8"),
-) as { events: { request: string }; samples: Array<Record<string, unknown>> };
+) as { events: { request: string; resolved: string }; samples: Array<Record<string, unknown>> };
 
 const replace = fx.samples.find((s) => s.operation === "replace") as Record<string, unknown>;
 
@@ -253,7 +253,7 @@ describe("McpWriteConfirm Escape (D34 WI-3)", () => {
 // and device check G-D42-3 (WI-5).
 // ---------------------------------------------------------------------------
 
-const resolvedEvent = (fx.events as { resolved: string }).resolved;
+const resolvedEvent = fx.events.resolved;
 const resolve1 = (id: string) => ({ requestId: id, outcome: "approved" });
 const confirmDialog = () => screen.queryByRole("dialog", { name: /write confirmation/i });
 

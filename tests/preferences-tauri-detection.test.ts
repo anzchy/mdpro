@@ -62,7 +62,7 @@ function stubMatchMedia(matches: boolean): void {
 /** Call all four methods in the order get, set, theme, save. */
 async function callAll() {
   return {
-    get: await preferencesService.getPreferences(),
+    get: await preferencesService.getPreferences("app_hydrate"),
     set: await preferencesService.setPreferences({ showSidebar: false }),
     theme: await preferencesService.getSystemTheme(),
     save: await preferencesService.saveWindowState(WS),
@@ -86,7 +86,7 @@ describe("preferencesService — branch selection by isTauri() at call time", ()
   it("D1: browser branch — all four methods return their browser value without IPC", async () => {
     vi.mocked(isTauri).mockReturnValue(false);
 
-    const prefs = await preferencesService.getPreferences();
+    const prefs = await preferencesService.getPreferences("app_hydrate");
     expect(prefs.themeMode).toBe("system");
     expect(prefs.autoSaveInterval).toBe(30);
 
@@ -111,7 +111,7 @@ describe("preferencesService — branch selection by isTauri() at call time", ()
     vi.mocked(isTauri).mockReturnValue(true);
     stubMatchMedia(false);
 
-    expect(await preferencesService.getPreferences()).toEqual(GET_REPLY);
+    expect(await preferencesService.getPreferences("app_hydrate")).toEqual(GET_REPLY);
     expect(await preferencesService.setPreferences({ showSidebar: false })).toEqual(SET_REPLY);
     expect(await preferencesService.getSystemTheme()).toBe("dark");
     await expect(preferencesService.saveWindowState(WS)).resolves.toBeUndefined();
@@ -171,7 +171,7 @@ describe("preferencesService — contract with the real @tauri-apps/api isTauri(
       invokeMock.mockReset();
       routeInvoke();
       for (const [key, value] of Object.entries(row.globals)) vi.stubGlobal(key, value);
-      const prefs = await real.getPreferences();
+      const prefs = await real.getPreferences("app_hydrate");
       seen.push({ name: row.name, calls: invokeMock.mock.calls.length, autoSaveInterval: prefs.autoSaveInterval });
       vi.unstubAllGlobals();
     }

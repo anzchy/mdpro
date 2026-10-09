@@ -45,7 +45,8 @@ const MAX_LOG_STRING = 64;
 const ALLOWED_LOG_KEYS = new Set(["documentId", "reason", "outcome", "generation"]);
 
 function snap(documentId: string = "doc-a", text = "Hello", head = 3): FocusSnapshot {
-  return { documentId, head, oldDoc: docOf(schemaA, [text]) };
+  // No prompt is open in this file, so `oldDom` is never read; a detached stand-in.
+  return { documentId, head, oldDoc: docOf(schemaA, [text]), oldDom: document.createElement("div") };
 }
 
 interface LogLine {

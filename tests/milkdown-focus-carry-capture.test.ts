@@ -182,7 +182,7 @@ describe("D37 focus capture", { timeout: CASE_TIMEOUT_MS }, () => {
       const g = gen("doc-a");
       resetFocusCarry();
       applyRow(view, row, realGetter);
-      armFocusCarry({ documentId: "doc-a", head: SENTINEL_HEAD, oldDoc: sentinel }, "mcp-insert", g);
+      armFocusCarry({ documentId: "doc-a", head: SENTINEL_HEAD, oldDoc: sentinel, oldDom: view.dom }, "mcp-insert", g);
       prepareWholesaleReplace("doc-a", "mcp-insert");
       const liveDoc = view.state.doc;
       revertRow(view, realGetter);

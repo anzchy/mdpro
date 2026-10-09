@@ -138,7 +138,7 @@ describe("D25-1 corrupt config: the switch mirrors the server and one note is sh
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(badge));
     if (checked) await waitFor(() => expect(server).toBeChecked());
 
-    expect(server.checked).toBe(checked);
+    expect((server as HTMLInputElement).checked).toBe(checked);
     expect(server).toBeDisabled();
     expect(countOccurrences(panel().textContent ?? "", UNREADABLE_NOTE)).toBe(1);
     expect(screen.queryByText(LOAD_FAILED_REASON)).toBeNull();
@@ -168,7 +168,7 @@ describe("D25-1 corrupt config: the switch mirrors the server and one note is sh
       await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(badge));
       if (checked) await waitFor(() => expect(server).toBeChecked());
 
-      expect(server.checked).toBe(checked);
+      expect((server as HTMLInputElement).checked).toBe(checked);
       expect(server).toBeDisabled();
       expect(screen.queryByText(UNREADABLE_NOTE)).toBeNull();
       expect(describedText(server)).toMatch(LOAD_FAILED_REASON);

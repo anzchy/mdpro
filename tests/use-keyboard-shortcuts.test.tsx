@@ -26,9 +26,9 @@
  * off-mac Cmd→ctrlKey path is deliberately not asserted either way: it has a
  * known pre-existing defect, filed as D50 (not fixed).
  *
- * Not covered: Cmd+K (`formatHyperlink`) inside the editor. Its command calls
- * `window.prompt`, which jsdom does not implement, and only the Tauri boundary
- * is mocked here.
+ * Not covered: Cmd+K (`formatHyperlink`) inside the editor. Its command opens
+ * the in-app `LinkInsertModal` through `linkInsertStore` (D55); that path is
+ * covered by `tests/d55-source-link-insert.test.tsx`.
  *
  * Mock boundary: `@tauri-apps/api/core` only; its `invoke("log_event")` calls
  * are read back to correlate actionIds. loggingService, the editor store and
