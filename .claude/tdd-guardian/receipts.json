@@ -41322,6 +41322,96 @@
           "message": "3 non-test file(s) were already modified when the red was recorded (scripts/cargo-test-lane.mjs, scripts/control/commentBlanker.mjs, scripts/control/sourceTree.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
+    },
+    {
+      "id": "WI-1.0",
+      "lane": "unit",
+      "recorded_at": "2026-10-09T01:01:24.940Z",
+      "head_sha": "c7ab729006818ff6a0466a25778ae45909bf6453",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/testing-library-smoke.test.tsx": {
+          "state": "ok",
+          "sha": "5f2d021653109e5e4d5f8c3d029bd38a1f80bd8ab72267dded80dab1928482e4",
+          "lines": [
+            "8d64a30d9de151b6",
+            "952a5ce5b797ab03",
+            "684888c0ebb17f37",
+            "2d4492f760ab05c0",
+            "7966bd98c4610bf0",
+            "9468379f0bae1157",
+            "684888c0ebb17f37",
+            "ff17e4d7583d67d5",
+            "9f6ac2906ad1304c",
+            "c6af31a3ca3b8f75",
+            "5eb2c6bf8adde206",
+            "c43001dc119daebc",
+            "c0099e5746b33640",
+            "b5e39d9e2271dd04",
+            "684888c0ebb17f37",
+            "16d7d2cde6506e84",
+            "9d125f36ec1a9408",
+            "e6f2dc544e2f9812",
+            "f0fb3683c162191b",
+            "722c78b7cc4f6d0f",
+            "74cee94c927f4722",
+            "1b77e760c853002f",
+            "677a6785c1507851",
+            "ed9623369ff082ab",
+            "b3e7120b9d8e38ea",
+            "1cb3e7a826db122b",
+            "2a443e77e7f1429a",
+            "366491815e014afb",
+            "9b0df4fa49b2b132",
+            "7276225e26f53a83",
+            "01236639d91450f3",
+            "3c8ad4a0f062d4ff",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9",
+            "37d9a300c7b532bb",
+            "f77c1a85027fa4ae",
+            "29576b54e255e3c9",
+            "7100fc1679380e9c",
+            "2e1ee08b8919c5f6",
+            "d6b25fb6470279ad",
+            "b18eea6fa4787fb4",
+            "0705f2a2732a1410",
+            "16bc703b1b1193cd",
+            "6687a10dcd7b2870",
+            "9d8b2b5670d18da8",
+            "eb3ccbfc125a3c4c",
+            "6d3cc6b9c35ad27b",
+            "94e8c27be3fb04ec",
+            "7dda3c2177fbe08c",
+            "fcc3d43171682d9a",
+            "066f54241ce074f9",
+            "0d1772114fc6745e",
+            "99a8cdc1ebb2cecc",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-09T01:06:58.930Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'WI-1.0' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: tests/testing-library-smoke.test.tsx. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
     }
   ]
 }

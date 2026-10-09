@@ -24,7 +24,7 @@
 | **1** | 🔄 | WI-0.0（已收窄为**本地测试工具链与基线校准**）；CI 触发器与分支保护另起一个 PR | P | 本地可验证；**合并门禁仍不存在**，「故意失败的检查挡住合并」这类验收归后续 PR |
 | **2** | ✅ | 死代码清理，独立 PR | P（WI-0.1 之前） | 必须在基线捕获前完成，否则基线记录的是将被删除的文件 |
 | **3** | ✅ | **标题身份契约 + TOC 切换（M 提前）**（入口门禁一已交付 `c17c003`；门禁二**六面已全测** 2026-09-15，硬标准「不永久无响应」违反但**已豁免放行** [ADR-0004](../adr/0004-gate2-waiver-for-stage3-entry.md) ⇒ **两道入口门禁均已通过，3.1 可开工**）。**进度（2026-09-20）：3.0–3.7 ✅ 全部交付并验证，3.8 ⬜ 未动工**（此前本格记「3.3–3.8 未开工」，写于 2026-09-18，其后 3.3+3.4 `909612b`、3.5 `318b72c`/`2a0e1a4`/`7c892e0`、3.6、3.7 相继交付，本格未同步，属状态失实，于此更正）。3.8 的阻塞项曾是 **D6.3(c)**；**2026-09-21：D6.3(c) 的代码与单测已落地**，3.8 现在等的是 D6 的真机复测，而不是这次实现，见阶段 3 表与 D6 行。**2026-09-22 续记：3.8 仍 ⬜。** D6.3(c) 结构分判据（`703a6b4`）与 D6.3(d) 最长行判据（`1e68461`）已落地并经真机矩阵复测确认拦下 `very-long-line.source`（旧构建挂起 259 483 ms → 现 15 ms 进 Source，`6b45000`）；降级事件进日志（`3eb60a7`）；Source 模式 153–183 s 卡顿查明是 `tocService` 的逐标题前缀重扫、已修（`3d37b86`，组件实测 152 551 → 24 ms，归因更正 `72adeac`）。**仍欠**：3.8 逐面出口复测本身；Source 面没有护栏判据（ADR-0022 设计已 Accepted、未实现）；D12/D13 未修。**2026-09-22 再续记：Source 面护栏判据已落地**（[ADR-0022](../adr/0022-source-mode-gets-its-own-guard-keyed-on-table-row-density.md)，`aac8097`：表格行起始数 > 50 000 时卸掉四个源码表格扩展并停用表格右键菜单/快捷键，每份文档每会话判一次；全套单测 2232 通过；真机 MQ-1..MQ-4 已于同日在 `c9a1698` release bundle 上跑完、四项通过（`docs/test/20260922-adr0022-mq.md`；WYSIWYG 入口「恰好 2 个提示」目测 NOT VERIFIED））；D13 已修（`c06c7b5`，上句「D13 未修」已过期）；D12 仍未修（护栏只限制 50 000 行以上的损害范围）。3.8 仍欠。**2026-10-02 结案：3.8 ✅，阶段 3 九行（3.0–3.8）全部 ✅，本格由 🔄 改记 ✅。** 3.8 出口复测在 release v0.3.0（`ef91e24` 构建，`src/`、`src-tauri/` 与 `e471198` 无差异） 上逐面跑完、三条硬标准均达成（2、3 附保留），记录见 [`docs/test/20261002-stage3-exit-perf-retest.md`](../test/20261002-stage3-exit-perf-retest.md)；D6 的性能楔子随之结案（见 D6 行）。上文「3.8 仍欠」均写于此前，按日期保留 | **M** | WI-4.26 依赖的 identity 今天是坏的 |
-| **4** | 🔄 | WI-0.1 重跑 → Stage 0→5 全程。**2026-10-02 登记：WI-0.1 已在 `e471198` 做过一次预跑**（[记录](./20261002-wi-0-1-baseline-draft.md)）；它拍在 3.8 结案之前，按 P 的顺序只算预跑，**正式 WI-0.1 在 3.8 结案后重跑**，状态仍 ⬜。**2026-10-02 续记：3.8 已结案，正式 WI-0.1 的重跑已解锁、尚未开始**，状态仍 ⬜。**2026-10-03：正式 WI-0.1 已在 `a5767d5` 跑完（[记录](./20261003-wi-0-1-baseline.md)），Stage 0 开工**，进度见 § 阶段 4「Stage 0 进度」表。**2026-10-08：停止点 1 通过（用户显式批准计划 P；A1–A12 已确认），Stage 0 结束，Stage 1 解锁、尚未开始**（`535f19c`） | P | 主体工作 |
+| **4** | 🔄 | WI-0.1 重跑 → Stage 0→5 全程。**2026-10-02 登记：WI-0.1 已在 `e471198` 做过一次预跑**（[记录](./20261002-wi-0-1-baseline-draft.md)）；它拍在 3.8 结案之前，按 P 的顺序只算预跑，**正式 WI-0.1 在 3.8 结案后重跑**，状态仍 ⬜。**2026-10-02 续记：3.8 已结案，正式 WI-0.1 的重跑已解锁、尚未开始**，状态仍 ⬜。**2026-10-03：正式 WI-0.1 已在 `a5767d5` 跑完（[记录](./20261003-wi-0-1-baseline.md)），Stage 0 开工**，进度见 § 阶段 4「Stage 0 进度」表。**2026-10-08：停止点 1 通过（用户显式批准计划 P；A1–A12 已确认），Stage 0 结束，Stage 1 解锁**（`535f19c`）。**2026-10-09：Stage 1 开工**，进度见 § 阶段 4「Stage 1 进度」表 | P | 主体工作 |
 | **5** | ⬜ | 导出迁移、旧解析器退役、ammonia 评估 | M | 行为变更，需独立回滚边界 |
 | **并行** | 🔄 | ~~ESLint（未开始，见 1.10）~~ → **2026-09-22 结案：不接 ESLint**，规则 50 §1 改由 TypeScript 解析器脚本把关（`3fb07b6`，[ADR-0023](../adr/0023-one-lint-rule-enters-as-a-typescript-parser-script.md)），见 1.10；**安全收紧：链接点击守卫 C1 已交付并验证**（协议相对链接绕过 `//evil.com/x` → `tauri://evil.com/x`，见 `docs/adr/0002-link-click-routing-and-origin-comparison.md` 与 `docs/adr/0001-wysiwyg-link-scheme-allowlist.md`）；**卫生项已交付**（生成物目录统一入 `.gitignore`；`linkSafety.ts` 与 `useMilkdownLinkClickGuard.ts` 两条 criticalPaths 钉在 100% 行/分支——全局阈值 31/61/82 挡不住只影响这两个文件的回归；2026-10-02 全局阈值上调到 73/80/91/73，这个结论不变） | M Part 6 | 不阻塞主线（但见下方 ESLint 例外） |
 
@@ -205,7 +205,7 @@ A8 也还登记着其他候选。C 只缩小 A8，不消灭整个例外机制。
 
 ## 阶段 4 — 计划 P 主体
 
-**本阶段状态：🔄 Stage 0 已完成，停止点 1 于 2026-10-08 通过，Stage 1 解锁、尚未开始**（见下方「Stage 0 进度」表）。~~🔄 Stage 0 进行中（2026-10-03 起）~~ ~~⬜ 未开始~~（2026-09-18 实测：计划 P 的 Stage 1 产物 `src/styles/index.css`、
+**本阶段状态：🔄 Stage 0 已完成，停止点 1 于 2026-10-08 通过；Stage 1 进行中（2026-10-09 起，worktree `mdpro-wt/refactor-p-stage1-css-split`，分支 `refactor/p-stage1-css-split`）**（见下方「Stage 0 进度」「Stage 1 进度」表）。~~Stage 1 解锁、尚未开始~~~~🔄 Stage 0 进行中（2026-10-03 起）~~ ~~⬜ 未开始~~（2026-09-18 实测：计划 P 的 Stage 1 产物 `src/styles/index.css`、
 `src/styles/sections/`、`ToggleSwitch.tsx`、`Icon.tsx`、`useTauriEvent.ts` **均不在 HEAD**，
 实现为零，不是「部分完成」）。
 ~~另有一条**硬前置至今未满足**：WI-4.21 依赖的 ESLint 在仓库内仍然零存在。~~
@@ -256,6 +256,12 @@ WI-0.5 CSS 文件图 + rule 33 提案 → WI-0.6 设计评审
 WI-1.0 测试工具**验证**（安装已在 1.6 完成）→ WI-1.1 `index.css` + `appCss` helper → WI-1.2 搬入 partials
 
 *WI-1.2 第一个提交先删 `.toolbar-recent*` 与 rule 31 z-index 表中的 Recent 行，纯搬移证明以此提交为基准。*
+
+**Stage 1 进度**（2026-10-09 起，由 mdpro-a3 执行；SHA 无法在自己的提交里自引用，每行的 SHA 记在紧随其后的提交中，同 Stage 0 的约定）：
+
+| WI | 状态 | 产物 | 提交 | 备注 |
+|---|---|---|---|---|
+| WI-1.0 | ✅ | `tests/testing-library-smoke.test.tsx` | （本提交） | 验证步骤，不装东西：四个 devDependency 已由 WI-0.0 装在 E28 下限之上，`package.json` / `pnpm-lock.yaml` diff 为空。烟雾测试渲染原生 checkbox，Tab 聚焦、按 Space 勾选，卸载后计时器清零；tdd-guardian 红→绿收据 `SEPARATION-HELD`。**计划文字订正（用户决定 2026-10-09）**：E28 原写「real timers by default」同时要求 `advanceTimers: vi.advanceTimersByTime`，在 Vitest 3.2.4 下两者互斥（真计时器上抛 "Timers are not mocked"，只开假计时器则 user-event 因缺 `jest` 全局而挂起）。改为套件默认真计时器、用 `advanceTimers` 的测试在自己的 `beforeEach` 里开假计时器并桩 `jest`，`afterEach` 恢复；`decisions.md` E28 与 `stage-1-split.md` 同步订正。G0（基于 `73c7620`）：build、typecheck:tests、vitest 382 文件 5425 passed / 5 todo、覆盖率 81.61 / 84.38 / 92.13 / 81.61、cargo 1197 passed、ledger:check 0 findings |
 
 ### Stage 2（交付物 A）
 
