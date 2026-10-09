@@ -5,8 +5,10 @@
  *
  * Pipeline: `layout(parent, R)` → run dir present → `launch.json`,
  *   `instance.json`, `owner.json` + process facts for the owner pid →
- *   `quitVerdict` → spawn the main binary (or `open`) with R's realpath and
- *   nonce → `awaitExit` → `second process exited N` → verdict.
+ *   `quitVerdict` → app-log offset + clock start → spawn the main binary (or
+ *   `open` without `-n`) with R's realpath and nonce → `awaitExit` →
+ *   `second process exited N` → with a file, `awaitDelivery` on R's app log
+ *   → `file delivered (source S)` → verdict.
  *
  * Key decisions:
  * - The same ownership checks `quit` runs (nonce, pid, alive, startTime,
@@ -16,21 +18,32 @@
  * - Read-only on run identity: never touches `.lock`, `owner.json` or
  *   `instance.json`, never creates a run dir, draws no randomness. The only
  *   writes are appends to R's `launcher-stderr.log` and `launcher.jsonl`.
- * - Exit 0 is the only pass: on direct exec the second process is expected
- *   to hand off to the single-instance owner and exit 0. Exit 78 is the
- *   guard refusing, its reason parsed from the stderr this process appended.
+ * - Exit 0 is necessary, not sufficient (WI-R3, device check D): a second
+ *   process can exit 0 having handed off nothing. With a file, the pass also
+ *   needs R's app log (`layout().appLog`) to gain, after the offset taken
+ *   just before the spawn and within `handshakeTimeoutMs` of it, a
+ *   `file.open.external` / `success` line naming the file (realpath or as
+ *   given, `intoDelivery.mjs`); otherwise `fail — into: file not delivered
+ *   within <ms> ms`. With no file there is nothing to deliver, and exit 0
+ *   stays the pass. Exit 78 is the guard refusing, its reason parsed from
+ *   the stderr this process appended.
+ * - `--via open` runs `open` without `-n`, so macOS hands the file to the
+ *   running instance; the `--env` pairs still confine a racing cold start.
  * - Never signals a pid read from a file; on a timeout only the second
- *   process's own handle is killed, and `--via open` never kills.
+ *   process's own handle is killed, and `--via open` never kills. A file
+ *   that is not delivered kills nothing: the second process already exited.
  *
  * @module scripts/control/launchInto
  * @coordinates-with scripts/control/launch.mjs (dispatches here on `into`)
  * @coordinates-with scripts/control/ownership.mjs (quitVerdict)
  * @coordinates-with scripts/control/ownerFacts.mjs (readRunRecords, ownerFacts)
  * @coordinates-with scripts/control/launchProcess.mjs (spawn, awaitExit)
+ * @coordinates-with scripts/control/intoDelivery.mjs (deliveryNames, awaitDelivery)
  */
 import fs from "node:fs";
 import path from "node:path";
 import { errMessage, GUARD_EXIT, openArgv, parseGuardReason, reporter } from "./launchCore.mjs";
+import { awaitDelivery, deliveryNames } from "./intoDelivery.mjs";
 import { formatQuitRefusal } from "./launcherFormat.mjs";
 import { appendLog } from "./launcherLog.mjs";
 import { awaitExit, readFrom, sizeOf, spawnDirect, spawnOpen } from "./launchProcess.mjs";
@@ -83,9 +96,14 @@ export async function runInto(args, d) {
   const runDirReal = fs.realpathSync(lay.runDir);
   const viaOpen = args.via === "open";
   const offset = sizeOf(lay.stderrLog);
+  const appOffset = sizeOf(lay.appLog);
+  const start = d.now();
   log({ phase: "spawn", run: args.into, via: viaOpen ? "open" : "exec" });
   const sp = viaOpen
-    ? spawnOpen(d, { stderrLog: lay.stderrLog, argv: openArgv({ runDirReal, nonce: launch.nonce, bundle: bundleOf(d), file: args.file }) })
+    ? spawnOpen(d, {
+        stderrLog: lay.stderrLog,
+        argv: openArgv({ runDirReal, nonce: launch.nonce, bundle: bundleOf(d), file: args.file, newInstance: false }),
+      })
     : spawnDirect(d, { stderrLog: lay.stderrLog, file: args.file, env: childEnv({ baseEnv: process.env, runDirReal, nonce: launch.nonce }) });
   if ("failed" in sp) {
     log({ phase: "result", outcome: `spawn failed: ${sp.failed}` });
@@ -105,6 +123,17 @@ export async function runInto(args, d) {
   log({ phase: "result", outcome: `exited ${res.code}` });
   if (res.code === 0) {
     rep.say(`into: run ${args.into} second process exited 0`);
+    if (typeof args.file !== "string" || args.file === "") return rep.verdict("pass");
+    const names = deliveryNames(args.file);
+    const timeoutMs = d.handshakeTimeoutMs;
+    const hit = await awaitDelivery(d, { appLog: lay.appLog, offset: appOffset, names, start, timeoutMs });
+    if (hit === null) {
+      const reason = `into: file not delivered within ${timeoutMs} ms`;
+      log({ phase: "result", outcome: reason });
+      return rep.verdict("fail", reason);
+    }
+    log({ phase: "result", outcome: `file delivered (source ${hit.source})` });
+    rep.say(`into: run ${args.into} file delivered (source ${hit.source})`);
     return rep.verdict("pass");
   }
   const guard = res.code === GUARD_EXIT && !viaOpen ? `: guard refused: ${parseGuardReason(readFrom(lay.stderrLog, offset))}` : "";

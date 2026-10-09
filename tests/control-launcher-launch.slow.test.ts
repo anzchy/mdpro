@@ -37,7 +37,8 @@ const fs = require("node:fs"), path = require("node:path"), crypto = require("no
 const mode = process.argv[2];
 const run = process.env.MDPRO_VERIFY_RUN, nonce = process.env.MDPRO_VERIFY_NONCE;
 const G = ${JSON.stringify(GUARD)};
-if (mode === "exit0") process.exit(0);
+// WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+if (mode === "exit0") { const d = path.join(process.env.HOME, ".mdpro"); fs.mkdirSync(d, { recursive: true }); fs.appendFileSync(path.join(d, "mdpro.log"), JSON.stringify({ event: "file.open.external", status: "success", context: { filePath: process.argv[3], source: "single_instance" } }) + "\\n"); process.exit(0); }
 if (mode === "guard") { process.stderr.write(G + "instance.json already exists\\n"); process.exit(78); }
 const launch = JSON.parse(fs.readFileSync(path.join(run, "launch.json"), "utf8"));
 if (mode !== "silent") {

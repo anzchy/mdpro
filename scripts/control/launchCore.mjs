@@ -4,7 +4,7 @@
  * and the verdict reporter. No fs, no spawn, no clock.
  *
  * Pipeline: `launcher-stderr.log` text → `parseGuardReason`;
- *   `{ runDirReal, nonce, bundle, file }` → `openArgv`;
+ *   `{ runDirReal, nonce, bundle, file, newInstance }` → `openArgv`;
  *   `instance.json` text + expected `{ nonce, buildId, pid }` → `checkHandshake`;
  *   `reporter(deps, secrets)` → `say(line)` / `verdict(kind, reason)` (via
  *   `formatVerdict`) / `finish(line)` for a ready-made verdict line.
@@ -16,9 +16,14 @@
  *   stderr alike.
  * - The handshake names the first failing field, in the order nonce,
  *   buildId, pid; it never prints either value (no nonce leaks).
- * - `open -n --env K=V … -a <bundle>`: `-n` forces a new instance (no
- *   hand-off to a running app); the four values ride on `--env`, never on
- *   the spawn env. The argv carries the nonce, so it is never printed.
+ * - `open [-n] --env K=V … -a <bundle> [file]`: a cold `launch --via open`
+ *   passes `-n` (the default) to force a new instance; `--into --via open`
+ *   passes `newInstance: false`, so macOS delivers the file to the running
+ *   instance as an open-documents event (with `-n` the fresh instance only
+ *   hands an empty argv to the owner over single-instance). Either way the
+ *   four values ride on `--env`, never on the spawn env, so a cold start in
+ *   a race stays confined to the run. The argv carries the nonce, so it is
+ *   never printed.
  * - Every printed line goes through `redact` with the run's secrets; the
  *   last line of every outcome is the verdict.
  *
@@ -56,18 +61,19 @@ export function parseGuardReason(text) {
 }
 
 /**
- * The `open` argv for a run.
- * @param {{ runDirReal: string, nonce: string, bundle: string, file?: string }} input
+ * The `open` argv for a run. `newInstance` (default true) puts `-n` first;
+ * `--into` passes false so the file reaches the running instance.
+ * @param {{ runDirReal: string, nonce: string, bundle: string, file?: string, newInstance?: boolean }} input
  * @returns {string[]}
  */
-export function openArgv({ runDirReal, nonce, bundle, file }) {
+export function openArgv({ runDirReal, nonce, bundle, file, newInstance = true }) {
   const env = [
     `MDPRO_VERIFY_RUN=${runDirReal}`,
     `MDPRO_VERIFY_NONCE=${nonce}`,
     `HOME=${runDirReal}`,
     `CFFIXED_USER_HOME=${runDirReal}`,
   ];
-  const argv = ["-n", ...env.flatMap((kv) => ["--env", kv]), "-a", bundle];
+  const argv = [...(newInstance ? ["-n"] : []), ...env.flatMap((kv) => ["--env", kv]), "-a", bundle];
   return typeof file === "string" && file !== "" ? [...argv, file] : argv;
 }
 

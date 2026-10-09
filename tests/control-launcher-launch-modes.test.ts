@@ -53,8 +53,9 @@ afterEach(() => {
 });
 
 const lockPath = (fx: Fixture) => path.join(fx.parent, ".lock");
-const openArgv = (runReal: string, nonce: string, file: string) => [
-  "-n",
+// WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+const openArgv = (runReal: string, nonce: string, file: string, newInstance = true) => [
+  ...(newInstance ? ["-n"] : []),
   "--env",
   `MDPRO_VERIFY_RUN=${runReal}`,
   "--env",
@@ -143,31 +144,45 @@ async function liveRun(o: FixtureOpts = {}) {
     lock: fileState(lockPath(fx)),
     list: fs.readdirSync(fx.parent),
   };
-  const expectUnchanged = () => {
-    expect(treeSnapshot(fx.lay.runDir)).toEqual(snap.tree);
+  // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+  const appOwned = (t: ReturnType<typeof treeSnapshot>) =>
+    t.filter((e) => e.rel !== path.join(".mdpro", "mdpro.log")).map((e) => (e.rel === ".mdpro" ? { ...e, mtimeMs: 0 } : e));
+  // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+  const expectUnchanged = (appWroteLog = false) => {
+    // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+    if (appWroteLog) expect(appOwned(treeSnapshot(fx.lay.runDir))).toEqual(appOwned(snap.tree));
+    else expect(treeSnapshot(fx.lay.runDir)).toEqual(snap.tree);
     expect(fileState(lockPath(fx))).toEqual(snap.lock);
     expect(fs.readdirSync(fx.parent)).toEqual(snap.list);
+  };
+  // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+  const deliver = (source: string) => {
+    fs.mkdirSync(path.dirname(fx.lay.appLog), { recursive: true });
+    fs.appendFileSync(fx.lay.appLog, `${JSON.stringify({ event: "file.open.external", status: "success", context: { filePath: "/tmp/g.md", source } })}\n`);
   };
   const into = (script: SpawnScript, args: Record<string, unknown> = {}) => {
     const second = fakeSpawn(script, [6000]);
     fx.deps.spawn = second;
     return { second, result: run({ into: fx.name, file: "/tmp/g.md", ...args }, fx.deps) as Promise<Result> };
   };
-  return { fx, firstCall, expectUnchanged, into };
+  return { fx, firstCall, expectUnchanged, into, deliver };
 }
 
 describe("WI-6 launch#run --into <run> (D1)", () => {
   it("LI-01 direct exec into a live run: same env, exit 0, run identity untouched", async () => {
-    const { fx, firstCall, expectUnchanged, into } = await liveRun();
+    const { fx, firstCall, expectUnchanged, into, deliver } = await liveRun();
     const check = envGuard();
-    const { second, result } = into((_c, child) => child.exitSoon(0));
+    // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+    const { second, result } = into((_c, child) => (deliver("single_instance"), child.exitSoon(0)));
     const r = await result;
     const env = second.calls[0].opts.env ?? {};
     for (const k of ENV_KEYS) expect(env[k], k).toBe(firstCall.opts.env?.[k]);
     expect([second.calls[0].cmd, second.calls[0].args]).toEqual([MAIN, ["/tmp/g.md"]]);
-    expect(fx.out.slice(-2)).toEqual([`into: run ${fx.name} second process exited 0`, "verdict: pass"]);
+    // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+    expect(fx.out.slice(-3)).toEqual([`into: run ${fx.name} second process exited 0`, `into: run ${fx.name} file delivered (source single_instance)`, "verdict: pass"]);
     expect(r.exit).toBe(0);
-    expectUnchanged();
+    // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+    expectUnchanged(true);
     expect(fx.rng.draws()).toBe(2);
     expect(fx.kill.calls).toEqual([]);
     check();
@@ -252,18 +267,21 @@ describe("WI-6 launch#run --into <run> (D1)", () => {
     { row: "A", code: 0, verdict: "verdict: pass", exit: 0 },
     { row: "B", code: 1, verdict: "verdict: fail — second process exited 1", exit: 1 },
   ])("LI-04 row $row: --into --via open", async ({ code, verdict, exit }) => {
-    const { fx, firstCall, expectUnchanged, into } = await liveRun();
+    const { fx, firstCall, expectUnchanged, into, deliver } = await liveRun();
     const check = envGuard();
-    const { second, result } = into((_c, child) => child.exitSoon(code), { via: "open" });
+    // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+    const { second, result } = into((_c, child) => (code === 0 && deliver("finder"), child.exitSoon(code)), { via: "open" });
     const r = await result;
     const runReal = String(firstCall.opts.env?.MDPRO_VERIFY_RUN);
     expect(second.calls[0].cmd).toBe("open");
-    expect(second.calls[0].args).toEqual(openArgv(runReal, NONCE, "/tmp/g.md"));
+    // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+    expect(second.calls[0].args).toEqual(openArgv(runReal, NONCE, "/tmp/g.md", false));
     expect(last(fx.out)).toBe(verdict);
     expect(r.exit).toBe(exit);
     expect(fx.kill.calls).toEqual([]);
     expect(second.calls[0].child.signals).toEqual([]);
-    expectUnchanged();
+    // WI-R3 (device Check D, 2026-10-09): exit 0 alone was a false pass; delivery is now required.
+    expectUnchanged(code === 0);
     check();
     expect(launcherText(fx)).not.toContain(NONCE);
   });
