@@ -1,6 +1,6 @@
 # 0052. Format-on-save widens tables to the widest row
 
-**Status**: Accepted (2026-10-07, user decision while fixing D44).
+**Status**: Accepted (2026-10-07, user decision while fixing D44). Superseded by [ADR-0063](./0063-table-edits-widen-like-format-on-save.md) — 2026-10-09.
 
 ## Context
 

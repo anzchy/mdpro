@@ -22,57 +22,23 @@
  *    (`tableParser/rowCells.ts`, GFM's "excess cells are ignored", which
  *    cursor locate, the linter and MCP rely on), so the cells inside the
  *    header's columns come from `model.rows` and only the overflow is read
- *    back from the row's own line with `splitCellTexts`. New columns get an
- *    empty header cell and default alignment (`null`, `---`). Each widened
- *    table logs `editor.table.format-widened` with offsets and widths only.
+ *    back from the row's own line with `splitCellTexts`. The widening itself
+ *    lives in `tableWiden.ts#widenTable` (moved there in D49 so the
+ *    context-menu edits can share it). New columns get an empty header cell
+ *    and default alignment (`null`, `---`). Each widened table logs
+ *    `editor.table.format-widened` with offsets and widths only.
  *
  * @coordinates-with src/utils/tableParser
- * @coordinates-with src/utils/tableParser/lines.ts (splitCellTexts, the overflow read)
+ * @coordinates-with src/utils/tableWiden.ts (widenTable, the overflow read)
  * @coordinates-with src/utils/cursorSync/table.ts
  * @coordinates-with src/hooks/useDocument.ts (auto-reformat on save)
  */
 
-import {
-  serializeRows,
-  type ColumnAlignment,
-  type TableModel,
-} from "./tableParser";
-import { splitCellTexts } from "./tableParser/lines";
+import { serializeRows, type TableModel } from "./tableParser";
+import { widenTable } from "./tableWiden";
 import { findAllTables, type IsFenced } from "./cursorSync/table";
 import { guardTableWrite } from "./tableWriteGuard";
 import { loggingService } from "../services/loggingService";
-
-/** Raw line index of the delimiter row in `model.raw` (0 is the header). */
-const DELIMITER_LINE = 1;
-
-interface WidenedTable {
-  rows: string[][];
-  alignments: ColumnAlignment[];
-}
-
-/**
- * Cell texts and alignments for `model`, widened to its widest row.
- *
- * `model.raw` line 0 is the header, line 1 the delimiter (skipped by
- * index, never by content), and line k >= 2 is model row k - 1. A row's
- * overflow is `splitCellTexts(line).slice(colCount)`, trimmed exactly as
- * `parseRowCells` trims, so the two sources agree (RC-6).
- */
-function widenTable(model: TableModel): WidenedTable {
-  const lines = model.raw.split("\n");
-  const rows = model.rows.map((row, r) => {
-    const line = lines[r === 0 ? 0 : r + DELIMITER_LINE] ?? "";
-    const overflow = splitCellTexts(line)
-      .slice(model.colCount)
-      .map((text) => text.trim());
-    return [...row.map((cell) => cell.text), ...overflow];
-  });
-  // reduce, not Math.max(...spread): a spread over a huge table overflows the stack.
-  const width = rows.reduce((max, row) => Math.max(max, row.length), model.alignments.length);
-  const alignments = [...model.alignments];
-  while (alignments.length < width) alignments.push(null);
-  return { rows, alignments };
-}
 
 /**
  * Serialize `model` with column-aligned padding, widened to its widest

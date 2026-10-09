@@ -121,6 +121,12 @@ the result is visible on the next `GET /api/documents/{id}`).
 `table_index` defaults to `0` (the first table in the document) if
 omitted. `row` and `col` are 0-based; row 0 is the header.
 
+A body row with more cells than the header is widened before any edit
+(D49, [ADR-0064](../adr/0064-mcp-table-actions-widen-and-keep-header-width-coordinates.md)),
+so its extra cells survive as new columns under an empty header cell.
+`col` is still bounded by the header width, so an overflow cell can only
+be addressed after a first write has widened the header.
+
 The architecture is **frontend-driven**: Rust validates inputs and
 forwards a high-level intent to the frontend (`mcp:table_action`
 event). The frontend computes the new content via the shared TS

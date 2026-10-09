@@ -158,6 +158,15 @@ mcurl -X POST "$API/api/v1/delete_column" -d "{\"document_id\":\"$DOC\",\"index\
   number. Offsets and `cursor` are **UTF-16 code units** (ADR-0021), not bytes.
 - `insert_table` with `rows` or `cols` = 0 returns `400 INVALID_PAYLOAD`.
 - A document id that is not open returns `404 NOT_FOUND`.
+- **Rows wider than the header** (D49,
+  [ADR-0064](../adr/0064-mcp-table-actions-widen-and-keep-header-width-coordinates.md)):
+  every table route except `insert_table` first widens the table to its widest
+  row, the same as ⌘S. The extra cells become new columns under an empty header
+  cell, and the frontend logs `editor.table.edit-widened`. `set_cell`'s `col` is
+  still checked against the header width, so a `col` pointing at an overflow
+  cell is dropped (warn line, `reason: "invalid payload"`) until the first write
+  has widened the header. After that, the same `col` is valid. The 202 doesn't
+  say whether widening happened; `GET` the document to find out (D57).
 
 ## 7. The confirm flow (ADR-0042)
 

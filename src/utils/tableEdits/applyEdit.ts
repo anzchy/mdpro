@@ -5,7 +5,17 @@
  * audit-fix gate — disabled actions return null so callers can
  * dispatch without checking `isActionDisabled` themselves.
  *
+ * Logging (D49 WI-1.3, rule 20): when an edit rewrote a table whose body
+ * rows overflow the header (`EditResult.widened`), logs one
+ * `editor.table.edit-widened` entry (info, success) with
+ * `{ action, fromColCount, toColCount }` — counts only, never cell text.
+ * Nothing is logged for a disabled action, for `delete_table`, or for a
+ * table with no overflow. The edits in `edits.ts` stay pure; this
+ * dispatcher is the one place that holds the action id, shared by the
+ * source context menu and the MCP table dispatcher.
+ *
  * @coordinates-with src/utils/tableEdits/edits.ts
+ * @coordinates-with src/utils/tableFormatter.ts (`editor.table.format-widened`, same counts)
  * @coordinates-with src/plugins/milkdown/table/contextMenu.ts (parallel WYSIWYG dispatcher)
  */
 
@@ -15,6 +25,7 @@ import type {
   TableContext,
 } from "../../plugins/milkdown/table/types";
 import { isActionDisabled } from "../../plugins/milkdown/table/actionGate";
+import { loggingService } from "../../services/loggingService";
 import {
   deleteColumn,
   deleteRow,
@@ -35,7 +46,8 @@ import {
 /**
  * Apply the matching edit for the action id. Returns null when the
  * action is disabled at the given context (out-of-range move) or
- * unrecognized.
+ * unrecognized. Logs `editor.table.edit-widened` once when the result
+ * reports that the table widened.
  */
 export function applyEdit(
   model: TableModel,
@@ -43,6 +55,27 @@ export function applyEdit(
   id: TableActionId,
 ): EditResult | null {
   if (isActionDisabled(id, ctx)) return null;
+  const result = runEdit(model, ctx, id);
+  if (result?.widened) {
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.table.edit-widened",
+      status: "success",
+      context: {
+        action: id,
+        fromColCount: result.widened.fromColCount,
+        toColCount: result.widened.toColCount,
+      },
+    });
+  }
+  return result;
+}
+
+function runEdit(
+  model: TableModel,
+  ctx: TableContext,
+  id: TableActionId,
+): EditResult | null {
   switch (id) {
     case "insert_row_before":
       return insertRowBefore(model, ctx);
