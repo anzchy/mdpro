@@ -1,0 +1,4 @@
+/* App CSS entry, imported once by src/main.tsx. Only comments and @import lines; order is cascade order. */
+@import "./globals.css";
+@import "./themes/light.css";
+@import "./themes/dark.css";

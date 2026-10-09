@@ -16,6 +16,7 @@ import {
   computeCellHighlightDecorations,
 } from "../src/plugins/codemirror/sourceTableCellHighlight";
 import { tableDetectionExtension } from "../src/plugins/codemirror/sourceTableDetection";
+import { readAppCssNonTheme } from "../src/test/appCss";
 
 function makeView(doc: string, cursor: number): EditorView {
   const state = EditorState.create({
@@ -76,14 +77,13 @@ describe("sourceTableCellHighlightExtension — wiring", () => {
     // the milkdown-editor scope (if shared) or globals (if source-only).
     const ROOT = path.resolve(__dirname, "..");
     // Consult both candidate stylesheets
+    const milkdownCss = path.join(ROOT, "src/components/Editor/MilkdownEditor.css");
     const candidates = [
-      path.join(ROOT, "src/styles/globals.css"),
-      path.join(ROOT, "src/components/Editor/MilkdownEditor.css"),
+      readAppCssNonTheme(),
+      fs.existsSync(milkdownCss) ? fs.readFileSync(milkdownCss, "utf-8") : "",
     ];
     let found = false;
-    for (const file of candidates) {
-      if (!fs.existsSync(file)) continue;
-      const css = fs.readFileSync(file, "utf-8");
+    for (const css of candidates) {
       if (/cm-table-active-cell|source-table-active-cell|cm-active-table-cell/.test(css)) {
         found = true;
         break;
