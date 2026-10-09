@@ -2,28 +2,28 @@
   "schemaVersion": 2,
   "lanes": {
     "unit": {
-      "last_passed_at": "2026-10-09T03:05:22.393Z",
-      "last_run_at": "2026-10-09T03:05:22.393Z",
-      "last_head_sha": "92e3902e3406efb5f0de926f2932381840c4e9cc",
+      "last_passed_at": "2026-10-09T04:38:20.525Z",
+      "last_run_at": "2026-10-09T04:38:20.525Z",
+      "last_head_sha": "dc1e08607ca4c10593d838b5f2e4d53a12a8e2fe",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 100000
+      "duration_ms": 89000
     },
     "rust": {
-      "last_passed_at": "2026-10-09T03:05:22.394Z",
-      "last_run_at": "2026-10-09T03:05:22.394Z",
-      "last_head_sha": "92e3902e3406efb5f0de926f2932381840c4e9cc",
+      "last_passed_at": "2026-10-09T04:38:20.526Z",
+      "last_run_at": "2026-10-09T04:38:20.526Z",
+      "last_head_sha": "dc1e08607ca4c10593d838b5f2e4d53a12a8e2fe",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 47000
+      "duration_ms": 38000
     },
     "rust-verify-run": {
-      "last_passed_at": "2026-10-09T03:05:22.394Z",
-      "last_run_at": "2026-10-09T03:05:22.394Z",
-      "last_head_sha": "92e3902e3406efb5f0de926f2932381840c4e9cc",
+      "last_passed_at": "2026-10-09T04:38:20.526Z",
+      "last_run_at": "2026-10-09T04:38:20.526Z",
+      "last_head_sha": "dc1e08607ca4c10593d838b5f2e4d53a12a8e2fe",
       "last_result": "passed",
       "ever_had_tests": true,
-      "duration_ms": 49000
+      "duration_ms": 44000
     },
     "slow": {
       "last_passed_at": "2026-10-09T03:05:22.394Z",
@@ -487,14 +487,17 @@
     "WI-1": {
       "status": "DONE",
       "testFiles": [
-        "tests/control-launcher-rundir.test.ts",
-        "tests/support/seededRandom.ts"
+        "tests/updater-errors.test.ts",
+        "tests/about-settings-updater-disabled.test.tsx",
+        "tests/about-settings-updater-ipc.test.tsx",
+        "tests/aboutSettings.test.ts",
+        "src-tauri/tests/updater_error_wire.rs"
       ],
       "sourceFiles": [
-        "scripts/control/runDir.mjs",
-        "scripts/control/launchDeps.mjs"
+        "src/components/common/settings/updaterErrors.ts",
+        "src/components/common/settings/AboutSettings.tsx"
       ],
-      "updatedAt": "2026-10-08T07:51:08.579Z"
+      "updatedAt": "2026-10-09T04:38:20.526Z"
     },
     "WI-2": {
       "status": "DONE",

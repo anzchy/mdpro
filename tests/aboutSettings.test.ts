@@ -10,7 +10,8 @@
  *   2. Critical review fixes: ConfirmDialog, progress bar, disabled states
  *   3. DOMPurify sanitization of release notes
  *   4. Cache-safe state usage (no caching of 'available')
- *   5. updates-disabled phase detection
+ *   5. updates-disabled phase detection — behavioural, in
+ *      about-settings-updater-disabled.test.tsx and updater-errors.test.ts
  *   6. Logging events
  */
 import { describe, it, expect } from "vitest";
@@ -160,11 +161,6 @@ describe("AboutSettings — error handling", () => {
     expect(installFunc).not.toBeNull();
     expect(installFunc![0]).toContain("try {");
     expect(installFunc![0]).toContain("catch (e)");
-  });
-
-  it("detects updates-disabled from empty endpoints error", () => {
-    expect(aboutSrc).toContain('"no endpoints"');
-    expect(aboutSrc).toContain('"Could not fetch a valid release"');
   });
 
   it("caches only safe states (not available)", () => {

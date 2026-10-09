@@ -9,12 +9,14 @@ import { useUpdaterStore } from "../../../stores/updaterStore";
 import type { CacheSafeState } from "../../../stores/updaterStore";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { prepareForRelaunch } from "../../../hooks/useUpdater";
+import { isUpdatesDisabledError } from "./updaterErrors";
 
 /**
  * Purpose: Settings → About page.
  * Shows app version, checks for updates via @tauri-apps/plugin-updater,
  * and handles download + install + relaunch flow.
  *
+ * @coordinates-with updaterErrors (updates-disabled vs network-error detection)
  * @coordinates-with updaterStore (cache-safe state persistence)
  * @coordinates-with useUpdater (prepareForRelaunch save guard)
  * @coordinates-with ConfirmDialog (restart confirmation)
@@ -88,12 +90,8 @@ export function AboutSettings() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
 
-      // Detect updates-disabled: empty endpoints causes immediate error
-      const isDisabled =
-        msg.includes("no endpoints") ||
-        msg.includes("empty") ||
-        msg.includes("Could not fetch a valid release");
-      if (isDisabled) {
+      // Updates disabled (no endpoints / no release) is not an error state
+      if (isUpdatesDisabledError(msg)) {
         const next: CacheSafeState = { phase: "updates-disabled" };
         useUpdaterStore.getState().setCachedResult(next);
         setState(next);
