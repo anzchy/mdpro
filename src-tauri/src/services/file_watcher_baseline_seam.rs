@@ -12,7 +12,9 @@
 //! builds compile to empty fns), file_watcher_baseline_save.rs
 //! (`refresh_after_save` calls `between_copy_and_store`, likewise; D112), file_watcher_baseline_seed.rs (re-exports
 //! `with_read_hook` and `read_once_calls` to `commands` through `kit`), services/file_watcher_baseline.rs (parent; `is_unchanged_with`
-//! wraps `is_unchanged`), file_watcher_baseline_coherent_tests.rs (K5, k6-k8,
+//! wraps the test-only `is_unchanged`), file_watcher_baseline_check.rs
+//! (`is_unchanged_why` reads through `read_once_upto`, so the hook fires
+//! inside it; c6, c10, c11), file_watcher_baseline_coherent_tests.rs (K5, k6-k8,
 //! k11), file_watcher_baseline_coherent_race_tests.rs (k9, k10),
 //! file_watcher_baseline_read_tests.rs (k13)
 //!
@@ -24,7 +26,7 @@
 //!   hook is taken before it runs, so a read inside the hook does not fire
 //!   it again.
 //! - **Any reader**: `register`, `snapshot`, `coherent_read` and
-//!   `is_unchanged` all reach the hook through `read_once`, so one seam covers
+//!   `is_unchanged_why` all reach the hook through `read_once`, so one seam covers
 //!   every read the store makes. `refresh_after_save` no longer reads (D112);
 //!   it fires the same hook between its copy-out and its store, the window
 //!   its read used to open, so the D86 WI-2 g3 legs still land there.

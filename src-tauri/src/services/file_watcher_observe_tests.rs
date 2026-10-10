@@ -11,7 +11,7 @@ use super::kinds_fixture::{
     all_event_kinds, code_lines, fn_slice, stat_spy, unique_path, WriteMark, SPY_STAT, T,
 };
 use super::watch_log::build_watch_event_log;
-use super::{observe_event, process_event, WatchOutcome};
+use super::{observe_event, process_event_checked, WatchOutcome};
 use crate::models::log_entry::LogStatus;
 use notify::event::{DataChange, MetadataKind, ModifyKind};
 use notify::{Event, EventKind};
@@ -64,7 +64,8 @@ fn o16_observe_event_is_process_then_stat_then_build() {
             let e = event_on(kind, &paths);
             let (calls, spy) = stat_spy();
             let (em, line) = observe_event(&e, &fresh(), &BaselineStore::default(), T, spy);
-            let (em_ref, o_ref) = process_event(&e, &fresh(), &BaselineStore::default(), T);
+            let (em_ref, o_ref, check_ref) =
+                process_event_checked(&e, &fresh(), &BaselineStore::default(), T);
             let tag = format!("{kind:?} x {n} paths");
 
             assert_eq!(line.event, "file.watch.event", "{tag}");
@@ -78,7 +79,8 @@ fn o16_observe_event_is_process_then_stat_then_build() {
             } else {
                 Some(SPY_STAT)
             };
-            let reference = build_watch_event_log(&e, o_ref, em_ref.as_ref(), stat_seen, T);
+            let reference =
+                build_watch_event_log(&e, o_ref, check_ref, em_ref.as_ref(), stat_seen, T);
             assert_eq!(
                 to_value(&line).unwrap(),
                 to_value(&reference).unwrap(),

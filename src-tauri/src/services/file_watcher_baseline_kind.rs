@@ -5,8 +5,8 @@
 //! unchanged (`is_filtered_kind`). Pure: no I/O, no store, no lock.
 //!
 //! @coordinates-with services/file_watcher_baseline.rs (parent; re-exports
-//! `is_filtered_kind`), services/file_watcher_route.rs (`process_event` asks
-//! `is_unchanged` for a filtered kind or a replaced file),
+//! `is_filtered_kind`), services/file_watcher_route.rs (`process_event_checked`
+//! asks `is_unchanged_why` for a filtered kind or a replaced file),
 //! file_watcher_baseline_kind_tests.rs, file_watcher_baseline_lock_tests.rs
 //! (B18′ scans this file)
 //!

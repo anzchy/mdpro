@@ -13,10 +13,11 @@
 //! `stable` means `s1 == s2` on `(mtime, size, ctime)` and `p` is the same
 //! file as `s1` on `(dev, ino, mtime, size)`.
 //!
-//! @coordinates-with services/file_watcher_baseline.rs (parent; `is_unchanged`
-//! calls `coherent_read_upto` with a cap derived from the stored size, and
+//! @coordinates-with services/file_watcher_baseline.rs (parent;
 //! `register` / `refresh_if_present` call `snapshot`; the parent re-exports
-//! `hash_bytes`, `snapshot`),
+//! `hash_bytes`, `snapshot`), file_watcher_baseline_check.rs
+//! (`is_unchanged_why` calls `read_once_upto` with a cap derived from the
+//! stored size and names why a read failed open, D112-WI-2),
 //! services/file_watcher_baseline_save.rs (`refresh_after_save` stores
 //! `stat_of` and `hash_bytes` of the written bytes, never a read, D112), file_watcher_baseline_seam.rs (test-only
 //! hook run between the read and `s2`, and the per-thread `read_once` call
@@ -43,7 +44,7 @@
 //!   bytes and `s1`, and a failed one keeps its io error, so the open path can
 //!   use them. Only `coherent_read` turns them into `None`.
 //! - **The cap is the caller's.** `snapshot` and the seed read at most
-//!   `HASH_CAP_BYTES`, so neither ever hashes more; only `is_unchanged` asks
+//!   `HASH_CAP_BYTES`, so neither ever hashes more; only `is_unchanged_why` asks
 //!   for more, and only up to a size a save recorded (D112).
 //! - **Fail open.** An unstable, over-cap or failed read gives a snapshot
 //!   with the path's current stat (or none) and no hash, which never compares

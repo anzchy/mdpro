@@ -103,7 +103,8 @@ fn i1_entry_and_inner_hold_no_ctime_ino_or_dev() {
 }
 
 const READ_SRC: &str = include_str!("file_watcher_baseline_read.rs");
-const BASELINE_SRC: &str = include_str!("file_watcher_baseline.rs");
+// D112-WI-2: `is_unchanged` and `is_unchanged_why` live in the check module.
+const CHECK_SRC: &str = include_str!("file_watcher_baseline_check.rs");
 
 /// Non-comment lines of the production part (before the first test item).
 fn production(src: &str) -> Vec<&str> {
@@ -140,17 +141,25 @@ fn r7_read_module_never_takes_the_lock() {
     }
 }
 
-/// r7b: `is_unchanged` decides from one coherent read (`coherent_read_upto`
-/// since D112), never a path stat or a second open; `snapshot` reads once,
-/// and stats the path only on the no-hash fallback.
+/// r7b: `is_unchanged_why` decides from one read (`read_once_upto` since
+/// D112-WI-2, so it can tell a failed, torn and over-cap read apart), never a
+/// path stat or a second open, and `is_unchanged` only delegates to it;
+/// `snapshot` reads once, and stats the path only on the no-hash fallback.
 #[test]
 fn r7b_is_unchanged_and_snapshot_decide_from_one_read() {
-    let baseline = production(BASELINE_SRC);
-    let is_unchanged = body(&baseline, "fn is_unchanged(");
-    let reads = count(&is_unchanged, "coherent_read(")
-        + count(&is_unchanged, "coherent_read_upto(");
-    assert_eq!(reads, 1, "{is_unchanged:#?}");
+    let check = production(CHECK_SRC);
+    let why = body(&check, "fn is_unchanged_why(");
+    let reads = ["coherent_read(", "coherent_read_upto(", "read_once(", "read_once_upto("]
+        .iter()
+        .map(|t| count(&why, t))
+        .sum::<usize>();
+    assert_eq!(reads, 1, "{why:#?}");
     for token in ["stat_of(", "read_capped(", "File::open(", "metadata("] {
+        assert_eq!(count(&why, token), 0, "{token} in {why:#?}");
+    }
+    let is_unchanged = body(&check, "fn is_unchanged(");
+    assert_eq!(count(&is_unchanged, "is_unchanged_why("), 1, "{is_unchanged:#?}");
+    for token in ["read_once", "coherent_read", "copy_out("] {
         assert_eq!(count(&is_unchanged, token), 0, "{token} in {is_unchanged:#?}");
     }
     let read = production(READ_SRC);

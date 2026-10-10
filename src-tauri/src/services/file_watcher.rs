@@ -2,10 +2,11 @@
 //! `file:changed` / `theme:changed` emits.
 //!
 //! Purpose: own the notify watcher and its watch list, route each notify
-//! event through `process_event` (file_watcher_route.rs), log one
+//! event through `process_event_checked` (file_watcher_route.rs), log one
 //! `file.watch.event` line per event, and emit what the route returns.
 //!
-//! @coordinates-with file_watcher_route.rs (`process_event`),
+//! @coordinates-with file_watcher_route.rs (`process_event_checked`; the
+//! test-only `process_event` drops its `UnchangedCheck`),
 //! file_watcher_gate.rs, file_watcher_outcome.rs, file_watcher_baseline.rs,
 //! file_watcher_seed.rs, file_watcher_log.rs (all mounted here with `#[path]`),
 //! commands/file.rs (`watch_seeded`, `mark_write_*`, the baseline refresh)
@@ -40,7 +41,9 @@ pub(crate) use outcome::WatchOutcome;
 
 #[path = "file_watcher_route.rs"]
 mod route;
+#[cfg(test)]
 use route::process_event;
+use route::process_event_checked;
 
 #[path = "file_watcher_baseline.rs"]
 mod baseline;
@@ -148,9 +151,10 @@ fn emit_file_changed(app_handle: &AppHandle, event: FileChangedEvent) {
     let _ = app_handle.emit("file:changed", event);
 }
 
-/// Route one notify event and describe it: `process_event` (which consults
-/// `baselines` for the D32 drop), then one `stat_of(paths[0])` when there is
-/// a path, then the `file.watch.event` line. Every event yields exactly one
+/// Route one notify event and describe it: `process_event_checked` (which
+/// consults `baselines` for the D32 drop and says why, D112-WI-2), then one
+/// `stat_of(paths[0])` when there is a path, then the `file.watch.event`
+/// line, which carries the check's reason as `unchangedCheck`. Every event yields exactly one
 /// line, emitted or not, and the line shares `timestamp` with the emitted
 /// event (the Rust/frontend join key). The baseline does its own
 /// full-precision stat; `stat_of` is still called at most once.
@@ -161,9 +165,10 @@ fn observe_event(
     timestamp: i64,
     stat_of: impl Fn(&Path) -> Option<FileStat>,
 ) -> (Option<FileChangedEvent>, LogEntryPayload) {
-    let (emitted, outcome) = process_event(event, debounce_map, baselines, timestamp);
+    let (emitted, outcome, check) =
+        process_event_checked(event, debounce_map, baselines, timestamp);
     let stat = event.paths.first().and_then(|path| stat_of(path));
-    let line = build_watch_event_log(event, outcome, emitted.as_ref(), stat, timestamp);
+    let line = build_watch_event_log(event, outcome, check, emitted.as_ref(), stat, timestamp);
     (emitted, line)
 }
 
@@ -243,6 +248,10 @@ mod fsevents_tests;
 #[cfg(test)]
 #[path = "file_watcher_observe_tests.rs"]
 mod observe_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_observe_check_tests.rs"]
+mod observe_check_tests;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "file_watcher_register_live_tests.rs"]

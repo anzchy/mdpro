@@ -11,6 +11,7 @@
 //!
 //! @coordinates-with services/file_watcher.rs (parent; mounts this file with
 //! `#[path]`; `observe_event` and `apply_watch` call these builders),
+//! file_watcher_baseline_check.rs (`UnchangedCheck::as_str`, D112-WI-2),
 //! file_watcher_register_log.rs (child), models/log_entry.rs,
 //! file_watcher_kinds_fixture.rs (test-only kind enumeration)
 //!
@@ -23,8 +24,11 @@
 //!   `AccessMode` is folded into the detail (`open_read`, `close_write`) so
 //!   `Access(Read)` and `Access(Open(Read))` stay distinguishable.
 //! - Kinds and sub-kinds with no payload log `detail: "none"`.
-//! - **One fixed key set.** `file.watch.event` always carries the same 12
+//! - **One fixed key set.** `file.watch.event` always carries the same 13
 //!   context keys, absent values as `null`, so `jq` comparisons never miss.
+//!   `unchangedCheck` (D112-WI-2) is never null: `not_checked` when the
+//!   route did not consult the baseline, else the check's reason, so a
+//!   fail-open emit says whether the read was torn or the file changed.
 //! - **Status follows emission.** Only `Emitted*` outcomes log `Success`; every
 //!   non-emitting one, including `ignored_unchanged` (ADR-0068), logs
 //!   `Cancel` with `changeType: null`. The status `match` has no `_` arm.
@@ -41,6 +45,7 @@ use serde_json::json;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
 
+use super::baseline::UnchangedCheck;
 use super::{FileChangedEvent, WatchOutcome};
 use crate::models::log_entry::{LogEntryPayload, LogLevel, LogStatus};
 
@@ -211,11 +216,14 @@ pub(crate) fn stat_snapshot(path: &Path) -> Option<FileStat> {
 }
 
 /// The `file.watch.event` line for one notify event and its routing result.
-/// Context keys are the fixed 12-key allowlist, absent values as `null`;
-/// status is `Success` iff the event was emitted, else `Cancel`.
+/// Context keys are the fixed 13-key allowlist, absent values as `null`;
+/// `unchangedCheck` is why the D32 check did or did not drop the event
+/// (`not_checked` when the route never asked, D112-WI-2); status is
+/// `Success` iff the event was emitted, else `Cancel`.
 pub(crate) fn build_watch_event_log(
     event: &Event,
     outcome: WatchOutcome,
+    check: UnchangedCheck,
     emitted: Option<&FileChangedEvent>,
     stat: Option<FileStat>,
     timestamp: i64,
@@ -241,6 +249,7 @@ pub(crate) fn build_watch_event_log(
             "kind": class.kind,
             "detail": class.detail,
             "outcome": outcome.as_str(),
+            "unchangedCheck": check.as_str(),
             "changeType": emitted.map(|e| e.change_type.as_str()),
             "path": event.paths.first().map(|p| p.to_string_lossy()),
             "pathCount": event.paths.len(),

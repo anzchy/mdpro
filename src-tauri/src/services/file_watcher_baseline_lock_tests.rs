@@ -140,8 +140,16 @@ const GEN_SRC: &str = include_str!("file_watcher_baseline_gen.rs");
 const SEED_SRC: &str = include_str!("file_watcher_baseline_seed.rs");
 // D112 refactor: `is_filtered_kind`, moved out of the parent.
 const KIND_SRC: &str = include_str!("file_watcher_baseline_kind.rs");
+// D112-WI-2: `is_unchanged_why` and `is_unchanged`, moved out of the parent.
+const CHECK_SRC: &str = include_str!("file_watcher_baseline_check.rs");
 const HELPERS: [&str; 4] = ["copy_out", "put", "put_if_present", "take"];
-const OPS: [&str; 4] = ["register", "refresh_if_present", "remove", "is_unchanged"];
+const OPS: [&str; 5] = [
+    "register",
+    "refresh_if_present",
+    "remove",
+    "is_unchanged",
+    "is_unchanged_why",
+];
 // WI-4b: the K5 test hook may do I/O, so no map helper may reach it.
 const IO_TOKENS: [&str; 14] = [
     "between_read_and_restat(",
@@ -201,6 +209,7 @@ fn b18_prime_lock_only_in_locked_and_only_io_free_helpers_use_it() {
     lines.extend(owned_lines(GEN_SRC));
     lines.extend(owned_lines(SEED_SRC));
     lines.extend(owned_lines(KIND_SRC));
+    lines.extend(owned_lines(CHECK_SRC));
     let defined: Vec<&str> = lines.iter().filter_map(|(_, l)| fn_name(l)).collect();
     for name in HELPERS.iter().chain(&OPS).chain(&["locked"]) {
         assert!(defined.contains(name), "non-vacuity: fn {name} exists");
@@ -247,15 +256,21 @@ fn b18_prime_lock_only_in_locked_and_only_io_free_helpers_use_it() {
             .map(|(_, l)| *l)
             .collect()
     };
-    let is_unchanged = body("is_unchanged");
+    // D112-WI-2: `is_unchanged` delegates to `is_unchanged_why`, so the
+    // copy-out and the I/O are pinned on the latter.
     assert!(
-        is_unchanged.iter().any(|l| l.contains("copy_out(")),
-        "is_unchanged copies out"
+        body("is_unchanged")
+            .iter()
+            .any(|l| l.contains("is_unchanged_why(")),
+        "is_unchanged delegates to is_unchanged_why"
+    );
+    let why = body("is_unchanged_why");
+    assert!(
+        why.iter().any(|l| l.contains("copy_out(")),
+        "is_unchanged_why copies out"
     );
     assert!(
-        is_unchanged
-            .iter()
-            .any(|l| IO_TOKENS.iter().any(|t| l.contains(t))),
-        "non-vacuity: is_unchanged does I/O (outside the helpers)"
+        why.iter().any(|l| IO_TOKENS.iter().any(|t| l.contains(t))),
+        "non-vacuity: is_unchanged_why does I/O (outside the helpers)"
     );
 }

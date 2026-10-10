@@ -8,7 +8,8 @@
 //! `put_if_present`.
 //!
 //! @coordinates-with services/file_watcher_baseline.rs (parent; owns the map
-//! helpers, and `is_unchanged`, which reads up to a save-recorded size),
+//! helpers), file_watcher_baseline_check.rs (`is_unchanged_why`, which
+//! reads up to a save-recorded size),
 //! file_watcher_baseline_read.rs (`stat_of`, `hash_bytes`),
 //! file_watcher_baseline_seam.rs (test-only hook run after the copy-out, so
 //! the D86 WI-2 g3 legs can land a register or remove there; production
@@ -18,7 +19,7 @@
 //! Key decisions:
 //! - **Bound to the written bytes, never re-read (D112).** The entry is the
 //!   path's stat now and the hash of the bytes `atomic_write` wrote. The disk
-//!   check is left to `is_unchanged`, which re-reads coherently and needs
+//!   check is left to `is_unchanged_why`, which re-reads coherently and needs
 //!   both the stat and the hash to match: if another writer got in after our
 //!   rename, the disk no longer hashes to `written` and its event emits (fail
 //!   toward prompting). The editor holds exactly `written`, so dropping only
@@ -27,7 +28,7 @@
 //!   own save's rename event prompted (D112).
 //! - **No size cap on the written bytes.** A save past `HASH_CAP_BYTES` is
 //!   the only way an entry records a hash for more than the cap;
-//!   `is_unchanged` derives its read cap from that size, so the cap is lifted
+//!   `is_unchanged_why` derives its read cap from that size, so the cap is lifted
 //!   only for entries a save wrote.
 //! - **A failed stat stores `stat: None`**, which never compares equal.
 //! - **Same hasher and lock discipline** as the parent: `hash_bytes`,
@@ -43,7 +44,7 @@ impl BaselineStore {
     /// encoded bytes handed to `atomic_write`), only if `raw` is registered:
     /// the path's stat now (`None` if it fails) and the hash of `written`,
     /// whatever its size. Does not read the file (D112); the next event's
-    /// `is_unchanged` compares the disk against it. Never inserts; no I/O
+    /// `is_unchanged_why` compares the disk against it. Never inserts; no I/O
     /// under the lock. Lands only if the slot still has the generation copied
     /// out before the stat (D86 WI-2), so a register or remove meanwhile wins.
     pub(crate) fn refresh_after_save(&self, raw: &Path, written: &[u8]) {

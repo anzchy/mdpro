@@ -1,15 +1,18 @@
 //! Routing for one notify event: which `file:changed` payload it becomes, if
 //! any, and the `WatchOutcome` that says why (D32, D68, D101).
 //!
-//! Purpose: hold `process_event`, the Tauri-free decision between the notify
-//! callback and the emit. It consults the self-write set and the debounce map
-//! (file_watcher_gate.rs) and the D32 baselines (file_watcher_baseline.rs),
-//! and returns the outcome plus the event to emit; the caller logs and emits.
+//! Purpose: hold `process_event_checked`, the Tauri-free decision between the
+//! notify callback and the emit. It consults the self-write set and the
+//! debounce map (file_watcher_gate.rs) and the D32 baselines
+//! (file_watcher_baseline.rs), and returns the event to emit, the outcome and
+//! why the unchanged check answered as it did (`UnchangedCheck`, `NotChecked`
+//! where the route never asked; D112-WI-2); the caller logs and emits.
+//! `process_event` (test-only) drops the reason for the routing tests.
 //!
 //! @coordinates-with services/file_watcher.rs (parent; mounts this file with
-//! `#[path]`, imports `process_event`, and `observe_event` calls it),
+//! `#[path]`, imports `process_event_checked`, and `observe_event` calls it),
 //! file_watcher_gate.rs (`is_self_write`, `is_debounced`),
-//! file_watcher_baseline.rs (`is_filtered_kind`, `is_unchanged`,
+//! file_watcher_baseline.rs (`is_filtered_kind`, `is_unchanged_why`, `UnchangedCheck`,
 //! `refresh_if_present`), file_watcher_outcome.rs (`WatchOutcome`),
 //! file_watcher_tests.rs (o14 reads this file's `process_event` source),
 //! file_watcher_route_replace_tests.rs (D68), file_watcher_route_own_save_tests.rs
@@ -17,7 +20,7 @@
 //!
 //! Key decisions:
 //! - **Check order is the contract** (ADR-0068): kind, path count, self-write,
-//!   the D32 unchanged drop, debounce. See `process_event`'s doc.
+//!   the D32 unchanged drop, debounce. See `process_event_checked`'s doc.
 //! - **A replaced file routes as `modified`** (ADR-0072). On macOS an atomic
 //!   save (temp + rename over the file), ours or an external editor's, is a
 //!   single-path `Modify(Name(_))` or a `Create(_)` on a path that still
@@ -39,7 +42,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Instant;
 
-use super::baseline::{is_filtered_kind, BaselineStore};
+use super::baseline::{is_filtered_kind, BaselineStore, UnchangedCheck};
 use super::gate::{is_debounced, is_self_write};
 use super::{FileChangedEvent, WatchOutcome};
 
@@ -54,6 +57,9 @@ use super::{FileChangedEvent, WatchOutcome};
 /// `IgnoredUnchanged`, again before the debounce check. Then the debounce
 /// check keyed by the first path, shared across kinds. Only an emitted
 /// `modified` advances the baseline, and only for an already-registered path.
+/// The third value is the check's answer (`Unchanged` only on
+/// `IgnoredUnchanged`; a fail-open reason on a later debounce or emit) or
+/// `NotChecked` for an event that returned before it or is not checked.
 ///
 /// A **replaced file** (ADR-0072, D68/D101) is a single-path
 /// `Modify(Name(_))` (any mode) or a `Create(_)` whose first path still
@@ -64,12 +70,13 @@ use super::{FileChangedEvent, WatchOutcome};
 /// `Remove` and two-path renames are not self-write-gated. The existence
 /// check is a stat under no lock; each lock (self-write, baseline, debounce)
 /// is taken alone, and the baseline's file I/O runs under none of them.
-pub(super) fn process_event(
+pub(super) fn process_event_checked(
     event: &Event,
     debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
     baselines: &BaselineStore,
     timestamp: i64,
-) -> (Option<FileChangedEvent>, WatchOutcome) {
+) -> (Option<FileChangedEvent>, WatchOutcome, UnchangedCheck) {
+    let not_checked = UnchangedCheck::NotChecked;
     let first_exists = || event.paths.first().is_some_and(|p| p.exists());
     let (change_type, outcome, replaced) = match event.kind {
         EventKind::Modify(ModifyKind::Name(_)) => ("renamed", WatchOutcome::EmittedRenamed, false),
@@ -77,11 +84,11 @@ pub(super) fn process_event(
         EventKind::Remove(_) => ("deleted", WatchOutcome::EmittedDeleted, false),
         EventKind::Create(_) if first_exists() => ("modified", WatchOutcome::EmittedModified, true),
         EventKind::Any | EventKind::Access(_) | EventKind::Create(_) | EventKind::Other => {
-            return (None, WatchOutcome::IgnoredKind);
+            return (None, WatchOutcome::IgnoredKind, not_checked);
         }
     };
     let Some(path) = event.paths.first() else {
-        return (None, WatchOutcome::IgnoredNoPath);
+        return (None, WatchOutcome::IgnoredNoPath, not_checked);
     };
     let (change_type, outcome, replaced, new_path) = if outcome == WatchOutcome::EmittedRenamed {
         match event.paths.get(1) {
@@ -92,19 +99,24 @@ pub(super) fn process_event(
                 Some(to.to_string_lossy().to_string()),
             ),
             None if path.exists() => ("modified", WatchOutcome::EmittedModified, true, None),
-            None => return (None, WatchOutcome::IgnoredRenameSinglePath),
+            None => return (None, WatchOutcome::IgnoredRenameSinglePath, not_checked),
         }
     } else {
         (change_type, outcome, replaced, None)
     };
     if outcome == WatchOutcome::EmittedModified && is_self_write(path) {
-        return (None, WatchOutcome::SelfWrite);
+        return (None, WatchOutcome::SelfWrite, not_checked);
     }
-    if (replaced || is_filtered_kind(&event.kind)) && baselines.is_unchanged(path) {
-        return (None, WatchOutcome::IgnoredUnchanged);
+    let check = if replaced || is_filtered_kind(&event.kind) {
+        baselines.is_unchanged_why(path)
+    } else {
+        not_checked
+    };
+    if check == UnchangedCheck::Unchanged {
+        return (None, WatchOutcome::IgnoredUnchanged, check);
     }
     if is_debounced(path, debounce_map) {
-        return (None, WatchOutcome::Debounced);
+        return (None, WatchOutcome::Debounced, check);
     }
     if outcome == WatchOutcome::EmittedModified {
         baselines.refresh_if_present(path);
@@ -115,7 +127,20 @@ pub(super) fn process_event(
         new_path,
         timestamp,
     };
-    (Some(emitted), outcome)
+    (Some(emitted), outcome, check)
+}
+
+/// `process_event_checked` without the check's reason, for the routing
+/// tests that predate it (D112-WI-2).
+#[cfg(test)]
+pub(super) fn process_event(
+    event: &Event,
+    debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
+    baselines: &BaselineStore,
+    timestamp: i64,
+) -> (Option<FileChangedEvent>, WatchOutcome) {
+    let (emitted, outcome, _) = process_event_checked(event, debounce_map, baselines, timestamp);
+    (emitted, outcome)
 }
 
 #[cfg(test)]

@@ -80,7 +80,10 @@ and does not change it.
   alone, or retrying, would give up "drop only on proven-equal bytes". Once
   D86 WI-4 removes the 3 s window, this residual is **user-visible as an
   "External change detected" prompt on the user's own save**. It is rare and
-  loses nothing (Reload loads the bytes just saved).
+  loses nothing (Reload loads the bytes just saved). The `file.watch.event`
+  log line says which case it was: its `unchangedCheck` field is
+  `read_failed` or `unstable` here, and `stat_differs` or `hash_differs` for
+  a real external change (D112-WI-2).
 - **Cost: one more stat, plus a hash read.** Each replaced-file event stats
   its path. When the baseline's stat matches, it also hashes the file, up to
   ADR-0068's 10 MiB cap, or up to the size a save recorded (D112). Each
