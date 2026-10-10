@@ -14,6 +14,7 @@ import {
   computeTableContext,
   dispatchTableAction,
 } from "../src/plugins/milkdown/table/contextMenu";
+import { CellSelection } from "@milkdown/kit/prose/tables";
 import type { TableContext } from "../src/plugins/milkdown/table/types";
 
 // ---------------------------------------------------------------------------
@@ -183,12 +184,21 @@ interface MakeEditorOpts {
  *      flag below.
  */
 function makeEditor(opts: MakeEditorOpts) {
+  // D65: dispatch checks that a select command left a CellSelection rather
+  // than trusting its return value, so a select the mock reports as
+  // succeeding also installs one on the shared view.
+  let view: ReturnType<typeof makeView> | null = null;
   const fakeCommands = {
     call: vi.fn((key: unknown, payload?: unknown) => {
       const k = String((key as { displayName?: string } | string));
       const name = inferKeyName(k);
-      if (opts.commandImpl) return opts.commandImpl(name, payload);
-      return opts.commandResult ?? true;
+      const result = opts.commandImpl
+        ? opts.commandImpl(name, payload)
+        : (opts.commandResult ?? true);
+      if (result && name.startsWith("select") && view) {
+        (view.state as { selection: unknown }).selection = Object.create(CellSelection.prototype);
+      }
+      return result;
     }),
   };
   // Stash desired computeTableContext result on a globalish hook the
@@ -217,7 +227,8 @@ function makeEditor(opts: MakeEditorOpts) {
       fn({
         get: (key: unknown) => {
           if ((key as { __which?: string }).__which === "view") {
-            return makeView({ $from });
+            view ??= makeView({ $from });
+            return view;
           }
           return fakeCommands;
         },
@@ -270,6 +281,7 @@ vi.mock("@milkdown/kit/preset/gfm", () => {
 
 // Mock @milkdown/kit/prose/tables — findTable consults a global hook.
 vi.mock("@milkdown/kit/prose/tables", () => ({
+  CellSelection: class CellSelection {},
   findTable: () => {
     const result = (globalThis as { __mockContextResult?: TableContext | null }).__mockContextResult;
     if (!result) return null;
