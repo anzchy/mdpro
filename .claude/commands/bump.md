@@ -19,13 +19,14 @@ Read current version from `package.json`.
 
 Parse `$ARGUMENTS`:
 
+Releases bump the patch number only
+([ADR-0069](../../docs/adr/0069-releases-bump-the-patch-number-only.md)).
+
 | Input | Action |
 |-------|--------|
-| `0.5.0` | Use exactly as specified |
-| `patch` | Increment patch: `0.2.0` → `0.2.1` |
-| `minor` | Increment minor: `0.2.0` → `0.3.0` |
-| `major` | Increment major: `0.2.0` → `1.0.0` |
-| (empty) | Default to `patch` |
+| (empty) or `patch` | Increment patch: `0.3.9` → `0.3.10` (integer, never roll over to `0.4.0`) |
+| `minor` / `major` | **Stop.** Tell the user ADR-0069 forbids it, and ask them to name the exact version and confirm a superseding ADR |
+| An explicit version | Accept it only if it is the next patch. Any other version: same as `minor` / `major` |
 
 Display: `Current: {old} → New: {new}` and ask user to confirm.
 
