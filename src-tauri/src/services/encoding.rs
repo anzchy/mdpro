@@ -66,6 +66,65 @@ fn decode_utf16(bytes: &[u8], little_endian: bool) -> Result<String, String> {
     String::from_utf16(&u16s).map_err(|err| err.to_string())
 }
 
+/// Why a hinted UTF-16 decode was refused (D52, ADR-0057 decision 3). The
+/// `as_str` form is the `reason` in the `file.open.encoding_refused` log.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HintRefusal {
+    /// The decoded text has a U+0000 code unit: binary data or a misread.
+    NulCodeUnit,
+    /// The decoded text has no ASCII-range code unit (U+0001..=U+007F).
+    NoAsciiCodeUnit,
+}
+
+impl HintRefusal {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            HintRefusal::NulCodeUnit => "nul-code-unit",
+            HintRefusal::NoAsciiCodeUnit => "no-ascii-code-unit",
+        }
+    }
+}
+
+/// The plausibility rule for a UTF-16 decode the user picked in the encoding
+/// dialog (D52, ADR-0057 decision 3), applied after `decode_bytes` succeeded
+/// (so the payload was even-length with no unpaired surrogate).
+///
+/// A BOM-less UTF-16LE/BE decode is plausible iff the text contains at least
+/// one code unit in U+0001..=U+007F and no U+0000:
+/// - Legacy 8-bit/CJK data (GBK, Big5, Shift-JIS, Windows-1252) has no 0x00
+///   byte, so every unit it yields is >= 0x0100. Real Markdown has newlines,
+///   spaces or `#`.
+/// - A wrong-endian read of real UTF-16 turns `0A 00` into U+0A00 and `61 00`
+///   into U+6100, which are not ASCII-range either.
+/// - U+0000 never occurs in a text document. It means binary data or a misread.
+///
+/// Returns `None` (plausible, or not a UTF-16 hint) or the reason to refuse.
+/// UTF-8 and ASCII decodes are strict already and are never refused here. A
+/// payload that starts with the hint's own BOM is accepted: the BOM is the
+/// evidence.
+///
+/// Known limits: genuine BOM-less UTF-16 text with no ASCII-range character
+/// at all (one line of pure CJK, no newline) is refused. A wrong-endian read
+/// can pass when the text has a code point of the form U+XX00 whose swap is
+/// ASCII-range (e.g. 一 U+4E00 read swapped is `N`).
+pub fn hinted_decode_refusal(bytes: &[u8], encoding: &str, decoded: &str) -> Option<HintRefusal> {
+    let bom: &[u8] = match encoding.to_uppercase().as_str() {
+        "UTF-16LE" => &[0xFF, 0xFE],
+        "UTF-16BE" => &[0xFE, 0xFF],
+        _ => return None,
+    };
+    if bytes.starts_with(bom) {
+        return None;
+    }
+    if decoded.contains('\0') {
+        return Some(HintRefusal::NulCodeUnit);
+    }
+    if !decoded.chars().any(|c| c.is_ascii()) {
+        return Some(HintRefusal::NoAsciiCodeUnit);
+    }
+    None
+}
+
 /// Confidence of an encoding detection. Used to decide whether to trust the
 /// detected encoding for a lossless save round-trip (WI-0.3). We deliberately
 /// do NOT add a blind Latin-1 decode — a low-confidence non-UTF-8/-16 file is

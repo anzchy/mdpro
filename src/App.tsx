@@ -63,6 +63,7 @@ import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
 import { quitDialogModel } from "./utils/quitDialogModel";
 import { encodingReopenOutcome } from "./utils/openWriteGuard";
+import { encodingRetryRefusalToast } from "./components/common/encodingDialogCopy";
 import { OPEN_FAILED_MESSAGE } from "./utils/openFailure";
 import { recoverDraft, discardRecoveryDraft, type DraftMetadata } from "./services/draftService";
 import { draftRecoveryOutcome, type DraftActionOutcome } from "./utils/draftRecoveryOutcome";
@@ -524,8 +525,12 @@ function App() {
         if (recentPath) updateRecentFiles(recentPath);
         if (toast) showToast(toast);
         clearEncodingIssue();
-      } catch {
-        showToast("Failed to open with selected encoding");
+      } catch (error) {
+        // D52: a refused UTF-16 retry keeps the dialog open (the issue is not
+        // cleared), so the user can try the other byte order or Cancel.
+        const refusal = encodingRetryRefusalToast(error);
+        if (refusal) showToast(refusal);
+        else showToast("Failed to open with selected encoding");
       } finally {
         setBusyLabel(null);
       }

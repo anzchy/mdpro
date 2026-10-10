@@ -147,7 +147,13 @@ describe("AppDialogs (D42 WI-3)", () => {
 
     act(() => h.set({ encodingIssue: { path: "/x/gb.md", detected: "GBK" } }));
     expect(within(dialog("encoding")).getByText("/x/gb.md")).toBeInTheDocument();
-    expect(within(dialog("encoding")).getByText(/detected: GBK/)).toBeInTheDocument();
+    // D52: the user-approved body names no detected encoding (「去掉 detected」).
+    expect(
+      within(dialog("encoding")).getByText(
+        "This file isn't valid UTF-8. Files in legacy encodings such as GBK, Big5 or Shift-JIS can't be opened yet.",
+      ),
+    ).toBeInTheDocument();
+    expect(dialog("encoding").textContent ?? "").not.toMatch(/detected/i);
 
     act(() => h.set({ pendingClose: "document" }));
     expect(within(dialog("confirm")).getByText(CLOSE_DIALOG_MESSAGE)).toBeInTheDocument();

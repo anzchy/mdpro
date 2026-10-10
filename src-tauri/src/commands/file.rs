@@ -153,6 +153,8 @@ pub(crate) fn open_file_from_path(
 /// The decode half of an open: the bytes `open_file_from_path_seeded` read
 /// once, decoded into the document. Never reads the file (D86 WI-3), so the
 /// editor holds exactly the bytes the open's baseline seed describes.
+/// A hinted UTF-16 decode that fails `encoding::hinted_decode_refusal` (D52)
+/// is an `EncodingError`, logged as `file.open.encoding_refused`.
 pub(crate) fn decode_opened(
     path: &str,
     path_buf: PathBuf,
@@ -163,7 +165,8 @@ pub(crate) fn decode_opened(
     // Detect with confidence (WI-0.3): a non-UTF-8 file with no recognised BOM
     // is "unknown"/Low — we refuse to guess (no blind Latin-1) and surface an
     // EncodingError rather than corrupt the content. A user-supplied hint still
-    // takes precedence (explicit conversion).
+    // takes precedence (explicit conversion), but a UTF-16 hint must pass the
+    // D52 plausibility check below.
     let (detected, _confidence) = encoding::detect_encoding_with_confidence(&bytes);
     let encoding_value = encoding_hint.clone().unwrap_or_else(|| detected.clone());
     let content = encoding::decode_bytes(&bytes, &encoding_value).map_err(|_| {
@@ -173,9 +176,35 @@ pub(crate) fn decode_opened(
         ));
         FileError::EncodingError {
             path: path.to_string(),
-            detected,
+            detected: detected.clone(),
         }
     })?;
+    // D52 (ADR-0057 decision 3): a UTF-16 hint from the encoding dialog is
+    // refused unless the decode is plausible, because `from_utf16` accepts
+    // nearly any even-length bytes and ⌘S would then rewrite the file as
+    // UTF-16. Same `EncodingError` shape as above, so no IPC contract change.
+    if let Some(hint) = encoding_hint.as_deref() {
+        if let Some(reason) = encoding::hinted_decode_refusal(&bytes, hint, &content) {
+            log_file_event(
+                "file.open.encoding_refused",
+                LogStatus::Fail,
+                LogLevel::Warn,
+                None,
+                json!({
+                    "filePath": path,
+                    "encodingHint": hint,
+                    "detected": detected.as_str(),
+                    "reason": reason.as_str(),
+                }),
+                None,
+                None,
+            );
+            return Err(FileError::EncodingError {
+                path: path.to_string(),
+                detected,
+            });
+        }
+    }
     logger::log_line(&format!(
         "open_file_from_path: decoded chars {}",
         content.len()
@@ -397,6 +426,10 @@ mod file_size_limit_tests;
 #[cfg(test)]
 #[path = "atomic_write_tests.rs"]
 mod atomic_write_tests;
+
+#[cfg(test)]
+#[path = "file_encoding_hint_tests.rs"]
+mod file_encoding_hint_tests;
 
 #[cfg(test)]
 mod tests {

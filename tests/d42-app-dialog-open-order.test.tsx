@@ -365,10 +365,12 @@ describe("D42: App-level dialogs render in open order", () => {
     act(() => screen.getByRole("button", { name: "Keep editing" }).focus());
 
     const steps: Array<[() => Promise<void>, boolean]> = [
-      [() => h.open("encoding"), true],
-      [() => h.close("encoding"), true],
       [() => h.open("recovery"), true],
       [() => h.close("recovery"), true],
+      // D52 / ADR-0057 decision 1: the encoding dialog takes initial focus (Cancel),
+      // like MCP's Reject, so from here on focus is not held; the node still is.
+      [() => h.open("encoding"), false],
+      [() => h.close("encoding"), false],
       [() => h.open("mcp"), false],
       [() => h.close("mcp"), false],
     ];
@@ -674,6 +676,8 @@ describe("D42: exhaustive pairs", () => {
     reload: "ignoreReload",
     confirm: "cancelClose",
     settings: "settingsClose",
+    // D52 / ADR-0057 decision 1: Escape on the encoding dialog takes Cancel.
+    encoding: "encodingCancel",
   };
 
   it.each(PAIRS)("4.11: open %s then %s, focus in the top one — Escape affects only the top", async (x, y) => {
@@ -695,7 +699,7 @@ describe("D42: exhaustive pairs", () => {
     await user.keyboard("{Escape}");
     await settle();
     expect(dialogFor(x)).not.toBeNull();
-    if (y === "encoding" || y === "recovery") {
+    if (y === "recovery") {
       expect(dialogFor(y)).not.toBeNull();
       expect(h.calls).toEqual(calls0);
       expect(replies()).toHaveLength(replies0);

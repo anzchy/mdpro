@@ -154,7 +154,6 @@ export function AppDialogs({
           <EncodingDialog
             open={Boolean(encodingIssue)}
             path={encodingIssue?.path ?? ""}
-            detected={encodingIssue?.detected ?? "unknown"}
             onSelect={onEncodingSelect}
             onCancel={onEncodingCancel}
           />
