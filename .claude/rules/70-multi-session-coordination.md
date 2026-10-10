@@ -20,13 +20,22 @@ message.
 |---|---|---|---|
 | **mdpro-delegator** | MacBook, main checkout | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `frontend-backend-redesign`, docs only |
 | **mdpro-implementor-\*** (one or more) | MacBook | The work items the delegator hands it, one area at a time | Its own branch and worktree in `mdpro-wt/`. It runs git only inside that worktree; the delegator does cross-tree git for it |
-| **mdpro-codex-audit** | MacBook | Audit fixes the user hands it directly: the branch audit in `docs/audit/` and its fixes (D70–D75 fixed, device check pending; their sequencing rows are authoritative) | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
-| **mdpro-85** | Mac mini | ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
-| **dtrack** | Mac mini, tmux session | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
+| **mdpro-auditor-\*** | MacBook | Audits the user hands it directly (e.g. the branch audit in `docs/audit/`) and the fixes that come out of them. D items it fixes keep their sequencing rows as the authority on status | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
+| **mdpro-device-harness** | Mac mini | The device-test tooling itself: ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
+| **real-device-tester** | Mac mini, tmux session | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
 
-An implementor's concrete session name (e.g. `mdpro-a3`) is only an alias. Which
-implementor owns which area right now lives in the delegator's assignment
-messages, not in this file. Any other new kind of session gets a row here in the
+Every name above except mdpro-delegator is a role. The concrete `ListAgents` or
+tmux name is only an alias; as of 2026-10-10 they are:
+
+| Role | Alias |
+|---|---|
+| mdpro-implementor-\* | `mdpro-a3`, `mdpro-a5` |
+| mdpro-auditor-\* | `mdpro-codex-audit` |
+| mdpro-device-harness | `mdpro-85` |
+| real-device-tester | tmux session `dtrack` |
+
+Which implementor owns which area right now lives in the delegator's
+assignment messages, not in this file. Any other new kind of session gets a row here in the
 commit that starts it working.
 
 ## How work is assigned
@@ -34,7 +43,7 @@ commit that starts it working.
 - **The delegator assigns.** A D item or WI belongs to one session at a
   time. The delegator's assignment message is the record of who owns what;
   the sequencing doc has no owner column.
-- **The user may hand a task straight to a session** (mdpro-codex-audit's
+- **The user may hand a task straight to a session** (an auditor's
   audit is the precedent). That session tells the delegator its scope and the
   files it will touch and **waits for the delegator's reply before it edits
   them**, so the delegator can warn the owners of those files first.
@@ -102,13 +111,14 @@ needs the user's confirmation (rule 25).
 ## The Mac mini
 
 - **Don't switch branches or rebuild in the mini's main checkout**; it belongs
-  to mdpro-85. Builds for device checks use a separate
-  `/Users/jack/Documents/mac-app/mdpro-wt/verify-<sha7>` worktree on the mini. Tell mdpro-85 whenever a mini
+  to mdpro-device-harness. Builds for device checks use a separate
+  `/Users/jack/Documents/mac-app/mdpro-wt/verify-<sha7>` worktree on the mini. Tell mdpro-device-harness whenever a mini
   worktree is created or removed. Never touch `src-tauri/target/verify`, and
   never `cargo clean` there.
-- **Only dtrack runs GUI tests**, one run at a time. Never create, kill or
-  restart the dtrack tmux session over SSH. Run
-  `tmux capture-pane -pt dtrack` before sending it anything. Over SSH, put
+- **Only real-device-tester runs GUI tests**, one run at a time. Never
+  create, kill or restart its tmux session over SSH. Run
+  `tmux capture-pane -pt <its tmux session>` (currently `dtrack`) before
+  sending it anything. Over SSH, put
   `/opt/homebrew/bin` on `PATH` first.
 - Copy files with `rsync`, not `scp`. Never pass
   `StrictHostKeyChecking=no`. Never copy `~/.mdpro` or `~/.claude`, and never
