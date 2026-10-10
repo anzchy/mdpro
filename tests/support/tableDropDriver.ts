@@ -7,6 +7,12 @@
  * dispatched on `view.dom`, with a DataTransfer stub (external drop) or
  * `view.dragging` set (internal drag). Only the layout-dependent
  * `view.posAtCoords` is stubbed.
+ *
+ * Move vs copy: prosemirror-view 1.41.5 does not read `view.dragging.move` on
+ * drop. Its `dragMoves` decides from the drop event's copy modifier — `altKey`
+ * on macOS, `ctrlKey` elsewhere (jsdom is not detected as a Mac) — unless a
+ * `dragCopies` prop answers first. So `move` is expressed on the event: a move
+ * carries neither modifier, a copy carries both (whichever the platform reads).
  */
 import type { Node as PmNode, Slice } from "@milkdown/kit/prose/model";
 import type { EditorView } from "@milkdown/kit/prose/view";
@@ -33,6 +39,12 @@ export interface DropOptions {
   html?: string;
   /** Internal drag: the slice prosemirror-view holds in `view.dragging`. */
   slice?: Slice;
+  /**
+   * Internal drag only: `true` (default) drops as a move — the source range is
+   * deleted; `false` drops as a copy. Set through the event's copy modifier,
+   * which is what prosemirror-view reads (see the module header).
+   */
+  move?: boolean;
 }
 
 /**
@@ -41,13 +53,16 @@ export interface DropOptions {
  */
 export function drop(view: EditorView, pos: number, opts: DropOptions): boolean {
   vi.spyOn(view, "posAtCoords").mockReturnValue({ pos, inside: -1 });
+  const move = opts.move ?? true;
   if (opts.slice) {
-    (view as unknown as { dragging: unknown }).dragging = { slice: opts.slice, move: true };
+    (view as unknown as { dragging: unknown }).dragging = { slice: opts.slice, move };
   }
   const event = new Event("drop", { bubbles: true, cancelable: true });
   Object.defineProperties(event, {
     clientX: { value: 10 },
     clientY: { value: 20 },
+    ctrlKey: { value: !move },
+    altKey: { value: !move },
     dataTransfer: {
       value: {
         getData: (type: string) => (type === "text/html" ? (opts.html ?? "") : ""),

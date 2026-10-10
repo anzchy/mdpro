@@ -8,9 +8,11 @@
  *
  * Real `MilkdownEditor`, real edit-sync plugin, real serializer, real stores, real
  * `useDocument`, real `BottomTabs` wired exactly as `src/App.tsx` wires it
- * (`onClose={closeDocumentById}`). The serializer failure is the real one from D92: a
- * table whose header row has no cells makes the markdown serializer throw. Only
- * process boundaries (`@tauri-apps/api/*`, the logging sink) are mocked.
+ * (`onClose={closeDocumentById}`). The serializer failure is a real one: a list item
+ * with no content makes the markdown serializer throw. (This suite first used a
+ * table whose header row has no cells; D100 made the editor repair that shape, so
+ * path B now pins the repair instead.) Only process boundaries
+ * (`@tauri-apps/api/*`, the logging sink) are mocked.
  *
  * Every case asserts the SAFE behaviour: clicking × either shows the "Unsaved
  * changes" prompt or leaves the document open.
@@ -104,8 +106,21 @@ async function mountEditorAndTabs(): Promise<Editor> {
   return instance;
 }
 
-/** A transaction appending a table whose header row has no cells (serializer throws). */
+/**
+ * A transaction appending a paragraph "LOSTCELL" and a bullet list whose only item
+ * has no content: the real serializer throws on the empty item, and no
+ * appendTransaction repairs it.
+ */
 function breakingTr(instance: Editor): Transaction {
+  const view = viewOf(instance);
+  const s = view.state.schema;
+  const para = s.nodes.paragraph.create(null, s.text("LOSTCELL"));
+  const list = s.nodes.bullet_list.create(null, [s.nodes.list_item.create(null, [])]);
+  return view.state.tr.insert(view.state.doc.content.size, [para, list]);
+}
+
+/** A transaction appending a table whose header row has no cells (D100's shape). */
+function emptyHeaderTableTr(instance: Editor): Transaction {
   const view = viewOf(instance);
   const s = view.state.schema;
   const cell = s.nodes.table_cell.create(null, s.nodes.paragraph.create(null, s.text("LOSTCELL")));
@@ -224,23 +239,24 @@ describe("D97 path A — a user edit that breaks the serializer on a clean docum
   );
 });
 
-describe("D97 path B — a history-less (non-user) change that breaks the serializer", () => {
+describe("D97 path B — a history-less (non-user) change inserting an empty-header table", () => {
   it(
-    "D97-B1 a history-less transaction inserting the serializer-breaking table still dirties the document (prosemirror-tables' fix-tables append is history-carrying), so × prompts",
+    "D97-B1 a history-less transaction inserting a table whose header row has no cells is repaired (D100), dirties the document (the repair append is history-carrying), reaches the store, so × prompts",
     async () => {
       const instance = await mountEditorAndTabs();
       expect(docById("doc-a")!.isModified).toBe(false);
 
-      // Tag the breaking insert as non-user. The table plugin's `fixTables`
-      // appendTransaction still rewrites the malformed table in the same batch, and that
-      // appended transaction carries no `addToHistory: false`, so edit-sync's batch
-      // classification (plugin.ts: any history-carrying doc change) sees a user edit.
+      // Tag the insert as non-user. The header-row repair's appendTransaction fills
+      // the header in the same batch, and that appended transaction carries no
+      // `addToHistory: false`, so edit-sync's batch classification (plugin.ts: any
+      // history-carrying doc change) sees a user edit. Before D100 the serializer
+      // threw on this table and the write failed; now it is written.
       await act(async () => {
-        viewOf(instance).dispatch(breakingTr(instance).setMeta("addToHistory", false));
+        viewOf(instance).dispatch(emptyHeaderTableTr(instance).setMeta("addToHistory", false));
       });
-      await sleep(PAST_EDIT_SYNC_DELAY_MS); // the debounce write fails
-      expect(serializerThrows(instance)).toBe(true);
-      expect(docById("doc-a")!.content).toBe("Hello world");
+      await sleep(PAST_EDIT_SYNC_DELAY_MS); // the debounce write succeeds
+      expect(serializerThrows(instance)).toBe(false);
+      expect(docById("doc-a")!.content).toContain("LOSTCELL");
       expect(docById("doc-a")!.isModified).toBe(true);
 
       await clickTabClose("a.md");

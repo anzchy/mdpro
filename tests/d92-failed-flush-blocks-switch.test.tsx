@@ -8,10 +8,11 @@
  * write was lost with a warn log only.
  *
  * Real `MilkdownEditor`, real edit-sync plugin, real serializer, real stores, real
- * `useDocument`. The failure is injected at the serializer boundary: a table whose
- * header row has no cells (the shape the D90 drop left behind) makes the real
- * markdown serializer throw "Cannot read properties of undefined (reading 'length')".
- * Deleting that table heals the serializer. Only process boundaries are mocked.
+ * `useDocument`. The failure is injected at the serializer boundary: a bullet list
+ * whose only item has no content makes the real markdown serializer throw. (This
+ * suite first used a table whose header row has no cells, the shape the D90 drop
+ * left behind; D100 made the editor repair that shape on every transaction.)
+ * Deleting that list heals the serializer. Only process boundaries are mocked.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "@testing-library/react";
@@ -77,24 +78,20 @@ async function mountEditor(): Promise<Editor> {
   return instance;
 }
 
-/** Append a table whose header row has no cells: the real serializer throws on it. */
+/** Append a bullet list whose only item is empty: the real serializer throws on it. */
 function breakSerializer(instance: Editor): void {
   const view = viewOf(instance);
   const s = view.state.schema;
-  const cell = s.nodes.table_cell.create(null, s.nodes.paragraph.create(null, s.text("x")));
-  const table = s.nodes.table.create(null, [
-    s.nodes.table_header_row.create(null, []),
-    s.nodes.table_row.create(null, [cell]),
-  ]);
-  view.dispatch(view.state.tr.insert(view.state.doc.content.size, table));
+  const list = s.nodes.bullet_list.create(null, [s.nodes.list_item.create(null, [])]);
+  view.dispatch(view.state.tr.insert(view.state.doc.content.size, list));
 }
 
-/** Delete every table again: the serializer is healthy afterwards. */
+/** Delete every bullet list again: the serializer is healthy afterwards. */
 function healSerializer(instance: Editor): void {
   const view = viewOf(instance);
   const ranges: Array<[number, number]> = [];
   view.state.doc.forEach((node, offset) => {
-    if (node.type.name === "table") ranges.push([offset, offset + node.nodeSize]);
+    if (node.type.name === "bullet_list") ranges.push([offset, offset + node.nodeSize]);
   });
   let tr = view.state.tr;
   for (const [from, to] of ranges.reverse()) tr = tr.delete(from, to);
