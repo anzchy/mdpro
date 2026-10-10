@@ -53,10 +53,11 @@ granting from inside the run, no switching to another terminal or tool).
 ## Coordinates
 
 Global display points, with the origin at the top-left of the main display.
-These are the same coordinates computer-use and `screencapture` use on a 1x
-display. The Mac mini runs 1920×1080 at scale 1, so screenshot pixels are
-points. On a Retina display, divide screenshot pixels by the scale that
-`drag.sh` prints:
+The Mac mini runs 1920×1080 at scale 1, so a full-resolution `screencapture`
+pixel is one point. **Don't read coordinates off a computer-use screenshot**:
+the tool may downscale the image it returns, and then its pixels are not
+points. On a Retina display, also divide `screencapture` pixels by the scale
+that `drag.sh` prints:
 
 ```
 drag: scale 1 points (412,318)->(640,455) steps 20 copy false
@@ -65,8 +66,16 @@ drag: scale 1 points (412,318)->(640,455) steps 20 copy false
 ## How to aim
 
 1. Select the text (or put the caret on the node) to drag, then take a screenshot.
-2. Read the coordinates of the **middle of the selection** (the start point)
-   and of the drop point.
+2. Hover each point with computer-use `mouse_move`, first the **middle of the
+   selection** (the start point), then the drop point. After each hover, read
+   the real cursor position in global points:
+
+   ```sh
+   osascript -l JavaScript -e 'ObjC.import("AppKit"); var p=$.NSEvent.mouseLocation; var h=$.NSScreen.screens.objectAtIndex(0).frame.size.height; Math.round(p.x)+" "+Math.round(h-p.y)'
+   ```
+
+   It prints `x y`, top-left origin, the space `drag.sh` takes. It works
+   whatever scale the screenshot was taken at.
 3. Run `drag.sh x1 y1 x2 y2`. A drag shorter than 5 points is refused, because
    WebKit would treat it as a click.
 
