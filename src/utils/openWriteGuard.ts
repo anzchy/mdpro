@@ -31,7 +31,10 @@
  *   received. The guard's decision (focus or write) is unchanged; only the activation
  *   is withheld (`refuseTabSwitch`: warn log + toast), so a fresh open still writes its
  *   tab, inactive. Both stores keep the same active id. A failure that belongs to
- *   another document's flusher still focuses as decision 5 says.
+ *   another document's flusher still focuses as decision 5 says. The refusal log
+ *   carries the open's own `ctx.actionId` when it has one (D95).
+ * - Callers learn whether the tab became active by reading `activeDocumentId` after
+ *   the call (`useDocument.openPathOutcome`, D95); the result shape is unchanged.
  * - Logs (`file.open.focus_dirty`, `file.open.reload_clean`) carry ids and flags only,
  *   never document content (rule 20). Their `success` is the guard's decision; the
  *   `activated` flag says whether the tab actually became active (false after a D92
@@ -115,10 +118,10 @@ function activeEditorFailed(from: string | null, flushFailed: boolean): boolean 
 
 /** Activate `documentId` in both stores, unless that would move away from an active
  *  document whose flush failed (D92). Returns whether it is now active. */
-function activate(documentId: string, flushFailed: boolean): boolean {
+function activate(documentId: string, flushFailed: boolean, ctx: OpenWriteContext): boolean {
   const from = useDocumentStore.getState().activeDocumentId;
   if (documentId !== from && activeEditorFailed(from, flushFailed)) {
-    refuseTabSwitch(from, documentId, "open-write-guard");
+    refuseTabSwitch(from, documentId, "open-write-guard", ctx.actionId);
     return false;
   }
   useDocumentStore.setState({ activeDocumentId: documentId });
@@ -167,14 +170,14 @@ export function commitOpenedDocument(
 
   const focus = pickFocus(idMatch, pathMatches, flushFailed);
   if (focus) {
-    const activated = activate(focus.document.id, flushFailed);
+    const activated = activate(focus.document.id, flushFailed, ctx);
     logFocus(focus, reason, flushFailed, activated, ctx);
     return { kind: "focused-dirty", document: focus.document, matchedBy: focus.matchedBy };
   }
 
   prepareWholesaleReplace(decoded.id, reason);
   useDocumentStore.getState().upsertDocument(decoded);
-  const activated = activate(decoded.id, flushFailed);
+  const activated = activate(decoded.id, flushFailed, ctx);
   if (idMatch || pathMatches.length > 0) {
     loggingService.logEventSync({
       level: "info",
@@ -200,7 +203,7 @@ export function focusDirtyOpenAt(path: string, ctx: OpenWriteContext = {}): Docu
     .documents.filter((doc) => doc.path !== null && doc.path === path);
   const focus = pickFocus(undefined, pathMatches, flushFailed);
   if (!focus) return null;
-  const activated = activate(focus.document.id, flushFailed);
+  const activated = activate(focus.document.id, flushFailed, ctx);
   logFocus(focus, "decode-failure", flushFailed, activated, ctx);
   return focus.document;
 }

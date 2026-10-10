@@ -35,6 +35,19 @@ const getTitleFromPath = (path: string | null) => {
 
 const LARGE_FILE_WARNING = "Large file opened (>10MB). Performance may be affected.";
 
+/** What an open by path did (D95): the document, and whether it became active. */
+export interface OpenPathOutcome {
+  document: Document;
+  /** False exactly when the D92 guard withheld activation (a failed WYSIWYG flush). */
+  activated: boolean;
+}
+
+/** Pair `document` with whether the open left it active, read right after the guard. */
+const withActivation = (document: Document): OpenPathOutcome => ({
+  document,
+  activated: useDocumentStore.getState().activeDocumentId === document.id,
+});
+
 export function useDocument() {
   const documents = useDocumentStore((s) => s.documents);
   const activeDocumentId = useDocumentStore((s) => s.activeDocumentId);
@@ -62,16 +75,19 @@ export function useDocument() {
   // dirty open doc via `focusDirtyOpenAt` before it would show EncodingDialog.
   // D46: any other failure (e.g. FileTooLarge) gets the ⌘O toast and a path-free log
   // from `reportOpenFailure`, then returns null; no caller adds a toast of its own.
-  const openDocumentFromPath = useCallback(
-    async (path: string, actionId?: string) => {
+  // D95: resolves to `{ document, activated }`, so a caller's follow-up (the default
+  // view mode) can skip an open whose activation the D92 guard refused.
+  const openPathOutcome = useCallback(
+    async (path: string, actionId?: string): Promise<OpenPathOutcome | null> => {
       try {
         const result = await fileService.openFile(path, undefined, actionId);
-        return applyOpened(commitOpenedDocument(result.document, "file-open", { actionId }));
+        const opened = commitOpenedDocument(result.document, "file-open", { actionId });
+        return withActivation(applyOpened(opened));
       } catch (error) {
         const encodingError = parseEncodingError(error);
         if (encodingError) {
           const focused = focusDirtyOpenAt(encodingError.path || path, { actionId });
-          if (focused) return focused;
+          if (focused) return withActivation(focused);
           setEncodingIssue({
             path: encodingError.path || path,
             detected: encodingError.detected || "unknown",
@@ -83,6 +99,13 @@ export function useDocument() {
       }
     },
     [applyOpened],
+  );
+
+  /** `openPathOutcome`'s document alone: the opened (or focused) document, or `null`. */
+  const openDocumentFromPath = useCallback(
+    async (path: string, actionId?: string): Promise<Document | null> =>
+      (await openPathOutcome(path, actionId))?.document ?? null,
+    [openPathOutcome],
   );
 
   // D92: documentStore refuses a switch whose WYSIWYG flush failed. editorStore follows
@@ -226,6 +249,7 @@ export function useDocument() {
     activeDocumentTitle: activeDocument
       ? getTitleFromPath(activeDocument.path)
       : "mdpro",
+    openPathOutcome,
     openDocumentFromPath,
     openDocumentFromDialog,
     openDocumentWithEncoding,

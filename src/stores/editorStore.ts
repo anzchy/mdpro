@@ -20,7 +20,7 @@ import { isPositionInFencedCode } from "../plugins/codemirror/sourceTableDetecti
 import { linesFromText } from "../plugins/codemirror/textLineSource";
 import { useDocumentStore } from "./documentStore";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
-import { refuseViewModeChange } from "../utils/flushRefusal";
+import { activeFlushFailed, refuseViewModeChange } from "../utils/flushRefusal";
 
 /**
  * Capture the current table cell on the OUTGOING editor before the
@@ -94,8 +94,10 @@ function nextViewMode(current: ViewMode): ViewMode {
  * mode flips, so the Source editor mounts with every edit. Runs before `set`, never
  * inside the updater. Other transitions do not flush (no spurious serialize work).
  *
- * D92: returns whether the transition may go ahead. A failed flush refuses it (logged
- * and toasted by `refuseViewModeChange`): Milkdown stays mounted with the edits the
+ * D92: returns whether the transition may go ahead. A failed flush of the active
+ * document (documentStore's, the one Milkdown shows) refuses it (logged and toasted by
+ * `refuseViewModeChange`); every flusher still runs, and another document's failure
+ * does not refuse (D95): Milkdown stays mounted with the edits the
  * store never received, instead of unmounting and losing them. A refused command
  * changes nothing, `userViewModeChoice` included. It is not retried: the large-document
  * degrade calls again only when its effect re-runs.
@@ -107,8 +109,7 @@ function mayLeaveMode(
   intent: ViewModeIntent,
 ): boolean {
   if (fromMode !== "wysiwyg" || toMode === "wysiwyg") return true;
-  const { status } = useMilkdownEditorStore.getState().flushPendingEdits("view-mode");
-  if (status !== "failed") return true;
+  if (!activeFlushFailed(useDocumentStore.getState().activeDocumentId, "view-mode")) return true;
   refuseViewModeChange(fromMode, toMode, source, intent);
   return false;
 }
@@ -154,7 +155,8 @@ interface EditorStore extends EditorState {
   /**
    * Switch to `mode`. `intent` defaults to `"programmatic"` (ADR-0031 step 6): only an
    * explicit user command passes `"user"`, which records `userViewModeChoice`. D92:
-   * leaving WYSIWYG is refused (no state change) when the Milkdown flush failed.
+   * leaving WYSIWYG is refused (no state change) when the active document's Milkdown
+   * flush failed (D95: never another document's).
    */
   setViewMode: (mode: ViewMode, intent?: ViewModeIntent) => void;
   /** Cycle to the next mode; `intent` as for `setViewMode`. */

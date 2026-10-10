@@ -193,9 +193,9 @@ describe("a failed sync", () => {
 
 describe("composition with the real useOpenInWindow", () => {
   it("routable becomes true only after the listener resolves", async () => {
-    const openDocumentFromPath = vi.fn(async () => null);
+    const openPathOutcome = vi.fn(async () => null);
     const { result } = renderHook(() => {
-      const openInWindow = useOpenInWindow({ openDocumentFromPath });
+      const openInWindow = useOpenInWindow({ openPathOutcome });
       return useMcpSync({ routable: openInWindow.routable });
     });
 

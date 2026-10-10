@@ -50,7 +50,7 @@ async function settle(): Promise<void> {
 const noop = async () => null;
 
 function Probe() {
-  const { routable } = useOpenInWindow({ openDocumentFromPath: noop });
+  const { routable } = useOpenInWindow({ openPathOutcome: noop });
   return createElement("p", null, `routable:${String(routable)}`);
 }
 
@@ -67,7 +67,7 @@ afterEach(() => {
 describe("useOpenInWindow — getter throws (web preview)", () => {
   it("outside Tauri: no throw, routable false, no listen-fail log, clean unmount", async () => {
     expect("__TAURI_INTERNALS__" in window).toBe(false);
-    const { result, unmount } = renderHook(() => useOpenInWindow({ openDocumentFromPath: noop }));
+    const { result, unmount } = renderHook(() => useOpenInWindow({ openPathOutcome: noop }));
     await settle();
     expect(getter).toHaveBeenCalled();
     expect(result.current.routable).toBe(false);
@@ -88,7 +88,7 @@ describe("useOpenInWindow — getter throws (web preview)", () => {
 
   it("inside Tauri: getter throwing logs one listen failure and stays unroutable", async () => {
     vi.stubGlobal("__TAURI_INTERNALS__", {});
-    const { result, unmount } = renderHook(() => useOpenInWindow({ openDocumentFromPath: noop }));
+    const { result, unmount } = renderHook(() => useOpenInWindow({ openPathOutcome: noop }));
     await settle();
     expect(result.current.routable).toBe(false);
     expect(listenFails()).toHaveLength(1);
@@ -106,7 +106,7 @@ describe("useOpenInWindow — getter throws (web preview)", () => {
     getter.mockImplementationOnce(
       () => ({ label: "mdpro-a", listen: () => Promise.reject(new Error("listen denied by capability")) }) as never,
     );
-    const { result, unmount } = renderHook(() => useOpenInWindow({ openDocumentFromPath: noop }));
+    const { result, unmount } = renderHook(() => useOpenInWindow({ openPathOutcome: noop }));
     await settle();
     expect(result.current.routable).toBe(false);
     expect(listenFails()).toHaveLength(1);

@@ -95,9 +95,9 @@ function seed(list: Document[], active: string | null): void {
   useEditorStore.setState({ activeDocumentId: active, viewMode: "wysiwyg" });
 }
 
-function expectTabRefusal(from: string, to: string): void {
+function expectTabRefusal(from: string, to: string, event = "tab.switch"): void {
   expect(useToastStore.getState().message).toBe(TAB_TOAST);
-  const refusals = logs("tab.switch", "fail");
+  const refusals = logs(event, "fail");
   expect(refusals).toHaveLength(1);
   expect(refusals[0].level).toBe("warn");
   expect(refusals[0].context).toMatchObject({
@@ -171,7 +171,7 @@ describe("D92 — documentStore actions", () => {
     installFlusher("doc-a", "failed");
     expect(useDocumentStore.getState().setActiveDocument("doc-b")).toBe(false);
     expect(useDocumentStore.getState().activeDocumentId).toBe("doc-a");
-    expectTabRefusal("doc-a", "doc-b");
+    expectTabRefusal("doc-a", "doc-b", "document.activate"); // D95: its own event
     expect(logs("document.activate", "success")).toHaveLength(0);
   });
 
@@ -293,8 +293,8 @@ describe("D92 — the open-write guard (ADR-0028) never switches away from a fai
 describe("D92 — event-driven callers", () => {
   function mountOpenInWindow() {
     return renderHook(() => {
-      const { openDocumentFromPath } = useDocument();
-      return useOpenInWindow({ openDocumentFromPath });
+      const { openPathOutcome } = useDocument();
+      return useOpenInWindow({ openPathOutcome });
     });
   }
 

@@ -9,7 +9,7 @@
  * event time, not at subscription time.
  *
  * Mock boundary: `@tauri-apps/api/{webviewWindow,core,event,window}` and the
- * `loggingService` sink. Every store, `useDocument().openDocumentFromPath` and the
+ * `loggingService` sink. Every store, `useDocument().openPathOutcome` and the
  * ADR-0028 guard are real.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,8 +117,8 @@ async function emit(payload: unknown): Promise<void> {
 const seen: boolean[] = [];
 function mount() {
   return renderHook(() => {
-    const { openDocumentFromPath } = useDocument();
-    const state = useOpenInWindow({ openDocumentFromPath });
+    const { openPathOutcome } = useDocument();
+    const state = useOpenInWindow({ openPathOutcome });
     seen.push(state.routable);
     return state;
   });
@@ -251,7 +251,7 @@ describe("useOpenInWindow — guards", () => {
   it("subscribes once, per webview, and calls the latest unstable callback", async () => {
     const calls: Array<[number, string]> = [];
     const { rerender } = renderHook(({ n }: { n: number }) =>
-      useOpenInWindow({ openDocumentFromPath: async (p: string) => void calls.push([n, p]) }), { initialProps: { n: 0 } });
+      useOpenInWindow({ openPathOutcome: async (p: string) => (calls.push([n, p]), null) }), { initialProps: { n: 0 } });
     await settle();
     for (let n = 1; n <= 5; n += 1) {
       act(() => useDocumentStore.getState().upsertDocument(doc(`d${n}`, `/p/d${n}.md`, false)));

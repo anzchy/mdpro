@@ -105,7 +105,8 @@ describe("D51 handleFileDrop — the view mode switches only after a file opened
     expect(invocations, `${latch}() invocations`).toBe(1);
     const call = s.search(new RegExp(`\\b${latch}\\(\\)`));
     expect(call, `${latch}() after handleOpenPath(`).toBeGreaterThan(s.indexOf("handleOpenPath("));
-    expect(s).toMatch(new RegExp(`if\\s*\\(\\s*doc(\\?\\.path)?\\s*\\)\\s*\\{?\\s*${latch}\\(\\)`));
+    // D95: the branch is on the open having activated its document.
+    expect(s).toMatch(new RegExp(`if\\s*\\(\\s*opened\\?\\.activated\\s*\\)\\s*\\{?\\s*${latch}\\(\\)`));
   });
 });
 
@@ -139,8 +140,9 @@ describe("D51 openPaths — onOpened fires only after a successful open", () => 
     const catchAt = s.indexOf("catch");
     expect(catchAt, "catch in slice").toBeGreaterThan(-1);
     expect(call, "onOpened() before catch").toBeLessThan(catchAt);
-    expect(call, "onOpened() after openDocumentFromPath(").toBeGreaterThan(s.indexOf("openDocumentFromPath("));
-    expect(s).toMatch(/if\s*\(\s*doc(\?\.path)?\s*\)\s*\{[^}]*onOpened\??\.?\(\)[^}]*\}/);
+    // D95: opens through openPathOutcome, and fires only for an activated open.
+    expect(call, "onOpened() after openPathOutcome(").toBeGreaterThan(s.indexOf("openPathOutcome("));
+    expect(s).toMatch(/if\s*\(\s*opened\?\.activated\s*\)\s*\{[^}]*onOpened\??\.?\(\)[^}]*\}/);
   });
 });
 

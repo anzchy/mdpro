@@ -464,13 +464,14 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
       const end = src.indexOf("\n  const ", start + 1);
       return src.slice(start, end === -1 ? undefined : end);
     };
-    for (const name of ["openDocumentFromPath", "openDocumentFromDialog", "openDocumentWithEncoding"]) {
+    // D95: openPathOutcome holds the path open; openDocumentFromPath wraps it.
+    for (const name of ["openPathOutcome", "openDocumentFromDialog", "openDocumentWithEncoding"]) {
       const body = slice(name);
       expect(body.includes("prepareWholesaleReplace("), name).toBe(false);
       expect(body.includes("upsertDocument("), name).toBe(false);
       expect(body.includes("commitOpenedDocument("), name).toBe(true);
     }
-    for (const name of ["openDocumentFromPath", "openDocumentFromDialog"]) {
+    for (const name of ["openPathOutcome", "openDocumentFromDialog"]) {
       const body = slice(name);
       const focusAt = body.indexOf("focusDirtyOpenAt(");
       expect(focusAt, name).toBeGreaterThan(-1);

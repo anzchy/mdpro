@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Document } from "../types/document";
 import { loggingService } from "../services/loggingService";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
-import { refuseTabSwitch } from "../utils/flushRefusal";
+import { activeFlushFailed, refuseTabSwitch } from "../utils/flushRefusal";
 
 /**
  * D15: a tab transition pushes the outgoing editor's pending WYSIWYG edits into this
@@ -10,12 +10,14 @@ import { refuseTabSwitch } from "../utils/flushRefusal";
  * computes from post-flush state and cannot overwrite the flush's write. The editor's
  * destroy flush remains the backstop for raw `setState` callers.
  *
- * D92: returns whether the flush failed. A switch refuses on `true` (the editor would
- * unmount and its edits be lost); a close ignores it, because a close is a deliberate
- * discard the close prompt (`dataLossGuards.ts`) already guarded.
+ * D92 / D95: a switch flushes through `activeFlushFailed`, which runs every flusher and
+ * refuses only when the outgoing (active) document's own flush failed (its editor
+ * would unmount and its edits be lost). A close runs this aggregate flush and ignores
+ * the result, because a close is a deliberate discard the close prompt
+ * (`dataLossGuards.ts`) already guarded.
  */
-function flushPendingEdits(reason: "tab-switch" | "tab-close"): boolean {
-  return useMilkdownEditorStore.getState().flushPendingEdits(reason).status === "failed";
+function flushBeforeClose(): void {
+  useMilkdownEditorStore.getState().flushPendingEdits("tab-close");
 }
 
 interface DocumentStore {
@@ -24,7 +26,8 @@ interface DocumentStore {
   setDocuments: (documents: Document[]) => void;
   /**
    * Switch the active document. D92: returns `false` and changes nothing when the
-   * outgoing editor's flush failed (logged, toasted); `true` when it switched or `id`
+   * outgoing (active) document's own flush failed (logged as `tab.switch`, toasted);
+   * another document's failing flush does not refuse (D95); `true` when it switched or `id`
    * is already active. A caller that pairs this with `editorStore.setActiveDocumentId`
    * must only do so on `true`, so the two stores never disagree.
    */
@@ -37,7 +40,8 @@ interface DocumentStore {
   /** Get a document by its ID */
   getDocumentById: (id: string) => Document | undefined;
   /** Set the active document (switches focus). Same D92 refusal and result as
-   *  `setActiveDocumentId`; `false` also when `id` is not open. */
+   *  `setActiveDocumentId`, logged as `document.activate`; `false` also when `id` is
+   *  not open. */
   setActiveDocument: (id: string) => boolean;
   /** Get the currently active document */
   getActiveDocument: () => Document | undefined;
@@ -52,7 +56,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   setActiveDocumentId: (id) => {
     const from = get().activeDocumentId;
     if (id === from) return true;
-    if (flushPendingEdits("tab-switch")) {
+    if (activeFlushFailed(from, "tab-switch")) {
       refuseTabSwitch(from, id, "setActiveDocumentId");
       return false;
     }
@@ -114,8 +118,8 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     })),
   closeDocument: (id) => {
     // Outside the updater: `remaining` below must be computed from post-flush state.
-    // D92: the result is ignored on purpose — a close is never refused.
-    flushPendingEdits("tab-close");
+    // D92: a close is never refused, so no result is read.
+    flushBeforeClose();
     set((state) => {
       const closingDoc = state.documents.find((doc) => doc.id === id);
       if (closingDoc) {
@@ -170,7 +174,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     if (!doc) return false;
 
     if (id !== state.activeDocumentId) {
-      if (flushPendingEdits("tab-switch")) {
+      if (activeFlushFailed(state.activeDocumentId, "tab-switch")) {
         refuseTabSwitch(state.activeDocumentId, id, "setActiveDocument");
         return false;
       }

@@ -82,6 +82,7 @@ function App() {
     activeDocumentTitle,
     openDocumentFromDialog,
     openDocumentFromPath,
+    openPathOutcome,
     openDocumentWithEncoding,
     createDocument,
     updateActiveDocumentContent,
@@ -149,7 +150,7 @@ function App() {
 
   // MCP hooks for Claude Code / Codex CLI integration. The sync also feeds
   // external-open routing, gated on this window's listener (ADR-0033).
-  const openInWindow = useOpenInWindow({ openDocumentFromPath });
+  const openInWindow = useOpenInWindow({ openPathOutcome });
   const mcpSync = useMcpSync({ routable: openInWindow.routable });
   useEffect(() => {
     forceMcpSyncRef.current = mcpSync.forceSync;
@@ -383,31 +384,36 @@ function App() {
     }
   }, [openDocumentFromDialog, showToast, updateRecentFiles]);
 
+  // Resolves to `{ document, activated }` or null (D95). The recent file is recorded
+  // for every open that opened, activated or not: the file did open.
   const handleOpenPath = useCallback(
     async (path: string, actionId?: string) => {
       setBusyLabel("Opening file...");
       try {
-        const doc = await openDocumentFromPath(path, actionId);
-        if (doc?.path) {
-          updateRecentFiles(doc.path);
+        const opened = await openPathOutcome(path, actionId);
+        if (opened?.document.path) {
+          updateRecentFiles(opened.document.path);
         }
-        return doc;
+        return opened;
       } finally {
         setBusyLabel(null);
       }
     },
-    [openDocumentFromPath, updateRecentFiles],
+    [openPathOutcome, updateRecentFiles],
   );
 
-  // `onOpened` runs after each file that opened (never for a failed one); callers
+  // `onOpened` runs after each file that opened AND became active (never for a failed
+  // open, nor for one whose activation a failed WYSIWYG flush refused, D95); callers
   // pass an `onFirstSuccess` latch to act once, after the first success (D51).
   const openPaths = useCallback(
     async (paths: string[], onOpened?: () => void) => {
       for (const path of paths) {
         try {
-          const doc = await openDocumentFromPath(path);
-          if (doc?.path) {
-            updateRecentFiles(doc.path);
+          const opened = await openPathOutcome(path);
+          if (opened?.document.path) {
+            updateRecentFiles(opened.document.path);
+          }
+          if (opened?.activated) {
             onOpened?.();
           }
         } catch {
@@ -415,7 +421,7 @@ function App() {
         }
       }
     },
-    [openDocumentFromPath, updateRecentFiles],
+    [openPathOutcome, updateRecentFiles],
   );
 
   const handleOpenRecent = useCallback(
@@ -683,7 +689,8 @@ function App() {
 
       // Always open dropped files in the current window (no extra untitled window).
       // The default view mode applies once, after the first file that opens: a drop
-      // whose every open fails leaves the current document's mode untouched (D51).
+      // whose every open fails leaves the current document's mode untouched (D51), and
+      // so does an open whose activation a failed WYSIWYG flush refused (D95).
       const applyDefaultViewMode = onFirstSuccess(() => setViewMode(defaultViewMode));
       for (const filePath of mdPaths) {
         const actionId = loggingService.generateActionId();
@@ -698,17 +705,17 @@ function App() {
             dropTarget: "window",
           },
         });
-        const doc = await handleOpenPath(filePath, actionId);
-        if (doc) {
+        const opened = await handleOpenPath(filePath, actionId);
+        if (opened?.activated) {
           applyDefaultViewMode();
         }
         loggingService.logEventSync({
-          level: doc ? "info" : "error",
+          level: opened ? "info" : "error",
           event: "file.open.drop",
-          status: doc ? "success" : "fail",
+          status: opened ? "success" : "fail",
           actionId,
-          context: { filePath, openedInNewWindow: false },
-          error: doc ? undefined : "open failed",
+          context: { filePath, openedInNewWindow: false, activated: opened?.activated ?? false },
+          error: opened ? undefined : "open failed",
         });
       }
     },

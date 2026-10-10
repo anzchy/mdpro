@@ -88,8 +88,8 @@ describe("D46-C1 — App.tsx open callers do not report a failure themselves", (
 // dependency array) would contain nothing and so pass the no-reporter check
 // vacuously. Each slice must reach a call that only its real body makes.
 const SLICE_ANCHORS: ReadonlyArray<[name: (typeof NO_REPORT_CALLERS)[number], anchor: string]> = [
-  ["handleOpenPath", "openDocumentFromPath("],
-  ["openPaths", "openDocumentFromPath("],
+  ["handleOpenPath", "openPathOutcome("], // D95: was openDocumentFromPath(
+  ["openPaths", "openPathOutcome("],
   ["handleOpenRecent", "handleOpenPath("],
   ["handleFileDrop", "handleOpenPath("],
 ];

@@ -10,7 +10,10 @@
  *   yes → set the active id in `documentStore` and `editorStore` (no I/O); D92: when
  *         the WYSIWYG flush failed, `documentStore` refuses and `editorStore` is left
  *         alone too (route logged as `fail`, the refusal toast comes from the store)
- *   no  → the injected `openDocumentFromPath(path)`, so the ADR-0028 guard decides.
+ *   no  → the injected `openPathOutcome(path)`, so the ADR-0028 guard decides; D118:
+ *         the route logs `success` only when the open activated the document. One the
+ *         D92 guard wrote but refused to activate is logged `fail` with
+ *         `activated: false` and error `flush-failed` (ADR-0071; the store toasted).
  *
  * Key decisions:
  * - **Focus by id, never by path, and never reload.** The id came from the shadow
@@ -26,9 +29,13 @@
  * - **`routable` is true only after `listen` resolved while mounted.** It goes into the
  *   sync payload (WI-6): Rust must not route to a window that cannot hear it yet.
  * - **The label is re-checked** even though `emit_to` already targets this window.
- * - **A failed reopen is reported by `openDocumentFromPath`, not here.** That hook shows
- *   the one "Failed to open file" toast (D46); this handler logs the route fail only, so
- *   a failure never toasts twice.
+ * - **A failed reopen is reported by `openPathOutcome`, not here.** That hook shows
+ *   the one "Failed to open file" toast (D46), and the guard shows the one refusal
+ *   toast for an open it would not activate (D92); this handler logs the route fail
+ *   only, so a failure never toasts twice.
+ * - **`success` means the document is now active (D118).** An `opened-path` route that
+ *   wrote the tab but left another active did not do what the route asked; it is a
+ *   `fail` with `activated: false`, mirroring the focused-tab refusal's log.
  * - **Logs carry ids, the label and the outcome — never content.** Under Tauri, a
  *   failed subscription writes one `file.open.route.listen` fail, carrying the
  *   rejection (or getter) error message in `context.error`.
@@ -39,7 +46,7 @@
  *
  * @module src/hooks/useOpenInWindow
  * @coordinates-with src-tauri/src/services/open_route/payload.rs — event name and payload keys
- * @coordinates-with src/hooks/useDocument.ts — openDocumentFromPath (the ADR-0028 guard)
+ * @coordinates-with src/hooks/useDocument.ts — openPathOutcome (the ADR-0028 guard, D92 activation)
  * @coordinates-with src/stores/documentStore.ts — setActiveDocumentId
  * @coordinates-with src/stores/editorStore.ts — setActiveDocumentId
  */
@@ -57,11 +64,13 @@ const LISTEN_LOG_EVENT = "file.open.route.listen";
 
 export interface OpenInWindowOptions {
   /**
-   * `useDocument().openDocumentFromPath`; resolves to the document, or `null` on failure.
-   * A failed reopen gets its "Failed to open file" toast from that hook (D46); the route
-   * handler only logs the `file.open.route` fail and adds no toast of its own.
+   * `useDocument().openPathOutcome`; resolves to `{ activated }` (with the document), or
+   * `null` on failure. `activated` is false when the D92 guard wrote the document but
+   * refused to activate it (ADR-0071). A failed reopen gets its "Failed to open file"
+   * toast from that hook (D46) and a refused one its refusal toast from the store; the
+   * route handler only logs the `file.open.route` fail and adds no toast of its own.
    */
-  openDocumentFromPath: (path: string) => Promise<unknown>;
+  openPathOutcome: (path: string) => Promise<{ activated: boolean } | null>;
 }
 
 export interface OpenInWindowState {
@@ -103,12 +112,12 @@ function logRoute(
   });
 }
 
-export function useOpenInWindow({ openDocumentFromPath }: OpenInWindowOptions): OpenInWindowState {
+export function useOpenInWindow({ openPathOutcome }: OpenInWindowOptions): OpenInWindowState {
   const [routable, setRoutable] = useState(false);
-  const openRef = useRef(openDocumentFromPath);
+  const openRef = useRef(openPathOutcome);
   useLayoutEffect(() => {
-    openRef.current = openDocumentFromPath;
-  }, [openDocumentFromPath]);
+    openRef.current = openPathOutcome;
+  }, [openPathOutcome]);
 
   useEffect(() => {
     // `listen` resolves after an await; a teardown that beats it must not leave the
@@ -170,8 +179,11 @@ export function useOpenInWindow({ openDocumentFromPath }: OpenInWindowOptions): 
       // The tab closed after Rust looked: open the path, and let ADR-0028 decide.
       void openRef.current(path).then(
         (opened) => {
-          if (opened) logRoute("success", { outcome: "opened-path", documentId, windowLabel });
-          else logRoute("fail", { outcome: "opened-path", documentId, windowLabel }, "open returned nothing");
+          const context = { outcome: "opened-path", documentId, windowLabel };
+          if (!opened) logRoute("fail", context, "open returned nothing");
+          // D118: written but not activated (D92); the store already toasted.
+          else if (!opened.activated) logRoute("fail", { ...context, activated: false }, "flush-failed");
+          else logRoute("success", context);
         },
         (error: unknown) =>
           logRoute(
