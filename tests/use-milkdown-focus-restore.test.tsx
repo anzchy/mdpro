@@ -76,7 +76,7 @@ async function setup(recordGeneration: number): Promise<{ next: Editor; view: Ed
   const old = await makeEditor("Hello world");
   const next = await makeEditor("MCP Hello world");
   armFocusCarry(
-    { documentId: "doc-a", head: OLD_HEAD, oldDoc: viewOf(old).state.doc },
+    { documentId: "doc-a", head: OLD_HEAD, oldDoc: viewOf(old).state.doc, oldDom: viewOf(old).dom },
     "mcp-insert",
     recordGeneration,
   );
@@ -128,7 +128,7 @@ describe("useMilkdownFocusRestore (D37 WI-4)", () => {
     const next = await makeEditor("MCP Hello world");
     vi.useFakeTimers();
     armFocusCarry(
-      { documentId: "doc-a", head: OLD_HEAD, oldDoc: viewOf(old).state.doc },
+      { documentId: "doc-a", head: OLD_HEAD, oldDoc: viewOf(old).state.doc, oldDom: viewOf(old).dom },
       "mcp-insert",
       1,
     );
@@ -146,7 +146,7 @@ describe("useMilkdownFocusRestore (D37 WI-4)", () => {
     const next = await makeEditor("MCP Hello world");
     vi.useFakeTimers();
     armFocusCarry(
-      { documentId: "doc-a", head: OLD_HEAD, oldDoc: viewOf(old).state.doc },
+      { documentId: "doc-a", head: OLD_HEAD, oldDoc: viewOf(old).state.doc, oldDom: viewOf(old).dom },
       "mcp-insert",
       1,
     );

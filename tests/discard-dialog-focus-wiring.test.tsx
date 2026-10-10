@@ -5,10 +5,11 @@
  * BottomTabs is prop-driven (no stores), so it is rendered for real and the discard dialog
  * is opened through the close control a user clicks (Level 4 focus state).
  *
- * App.tsx cannot be rendered in this suite — see the reasoned waiver in
- * `tests/large-document-guard-call-site.test.ts` — so its call site is pinned by source
- * text instead (below Level 1): the `ConfirmDialog` whose confirm label is
- * "Discard changes" must carry `destructive`. That pin cannot prove the prop reaches the
+ * The App-level "Unsaved changes" dialog's call site is pinned by source text instead
+ * (below Level 1): the `ConfirmDialog` whose confirm label is "Discard changes" must carry
+ * `destructive`. Since D42 WI-3 that call site lives in `src/components/AppDialogs.tsx`,
+ * not App.tsx (App itself is not renderable here; see the reasoned waiver in
+ * `tests/large-document-guard-call-site.test.ts`). That pin cannot prove the prop reaches the
  * runtime element; CD-11 in `tests/confirm-dialog.test.tsx` proves what the prop does.
  *
  * Mock boundary: only `@tauri-apps/api/core` (ConfirmDialog logs through loggingService).
@@ -61,8 +62,10 @@ describe("discard dialog initial focus wiring (D48)", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("DW-3: App.tsx — the Discard-changes ConfirmDialog passes destructive (source pin; App is not renderable here)", () => {
-    const src = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
+  it("DW-3: AppDialogs.tsx — the Discard-changes ConfirmDialog passes destructive (source pin)", () => {
+    // Retargeted from App.tsx (rule 12): D42 WI-3 moved the App-level dialogs, this
+    // ConfirmDialog included, into AppDialogs.tsx. The assertion is unchanged.
+    const src = readFileSync(resolve(__dirname, "../src/components/AppDialogs.tsx"), "utf8");
     const blocks = src.match(/<ConfirmDialog\b[^>]*?\/>/gs) ?? [];
     const discard = blocks.filter((b) => b.includes('confirmLabel="Discard changes"'));
     expect(discard).toHaveLength(1);

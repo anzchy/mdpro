@@ -36,6 +36,7 @@ describe("WI-5 build-input reference guard", () => {
     for (const single of [
       "src-tauri/build.rs",
       "src-tauri/tauri.conf.json",
+      "src-tauri/tauri.verify.conf.json",
       "src-tauri/capabilities/default.json",
       "src-tauri/Cargo.toml",
       "vite.config.ts",
@@ -128,6 +129,14 @@ describe("WI-5 build-input reference guard", () => {
   it("WI-5/T06 the guarded list comes from the argument", () => {
     const text = ['import a from "../generated/a"', 'import b from "../docs/b"'].join("\n");
     expect(find("src/x.ts", text, ["generated/"])).toEqual([{ file: "src/x.ts", line: 1, ref: "../generated/a" }]);
+  });
+
+  it("D75(c) the verify-profile Tauri config is a build input, resolved against src-tauri/", () => {
+    // `--config src-tauri/tauri.verify.conf.json` merges into the verify build,
+    // so its string values reach the built app exactly like tauri.conf.json's.
+    expect(find("src-tauri/tauri.verify.conf.json", '{"build":{"frontendDist":"../docs"}}')).toEqual([
+      { file: "src-tauri/tauri.verify.conf.json", line: 1, ref: "../docs" },
+    ]);
   });
 
   it("WI-5/T07 the failure message names file and line", () => {

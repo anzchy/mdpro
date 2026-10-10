@@ -1,4 +1,5 @@
 pub mod draft;
+pub mod draft_recover_watch;
 pub mod draft_recovery;
 pub mod export;
 pub mod file;
@@ -39,7 +40,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         window_state::save_window_state,
         preferences::pick_export_folder,
         launch::get_launch_paths,
-        menu::set_recent_files_menu,
+        menu::sync_recent_files_menu,
         draft::save_draft,
         draft::get_draft,
         draft::delete_draft,
@@ -95,6 +96,10 @@ mod draft_backstop_undiscard_tests;
 #[path = "draft_owner_gate_tests.rs"]
 mod draft_owner_gate_tests;
 
+#[cfg(test)]
+#[path = "draft_log_event_tests.rs"]
+mod draft_log_event_tests;
+
 #[cfg(all(test, unix))]
 #[path = "draft_ctx_under_lock_tests.rs"]
 mod draft_ctx_under_lock_tests;
@@ -106,3 +111,15 @@ mod draft_log_redaction_tests;
 #[cfg(all(test, unix))]
 #[path = "draft_log_redaction_failure_tests.rs"]
 mod draft_log_redaction_failure_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_watch_tests.rs"]
+mod draft_recover_watch_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_watch_law_tests.rs"]
+mod draft_recover_watch_law_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_watch_roundtrip_tests.rs"]
+mod draft_recover_watch_roundtrip_tests;

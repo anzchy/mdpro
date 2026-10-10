@@ -2,7 +2,7 @@
  * @module fenceRanges
  * Purpose: Pure source-side fenced-code detector (audit fix H3/H4).
  * Used by code paths that run OUTSIDE a CodeMirror EditorState —
- * `useDocument.saveActiveDocument`, `tableMcp.applyMcpTableAction`,
+ * `documentSave.saveActiveDocument`, `tableMcp.applyMcpTableAction`,
  * and the formatter's whole-document pass — to avoid rewriting
  * "table-shaped" lines that sit inside fenced code blocks.
  *

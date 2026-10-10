@@ -11,7 +11,7 @@
  *
  * Used by:
  * - EditorSettings page on each user change (instant-apply)
- * - App.tsx on startup after getPreferences() resolves (Decision 2A)
+ * - App.tsx on startup after getPreferences("app_hydrate") resolves (Decision 2A)
  * - Editor.tsx onCreateEditor to sync compartments with persisted prefs
  */
 import type { EditorConfig } from "../../../types/preferences";

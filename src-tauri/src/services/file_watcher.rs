@@ -258,6 +258,10 @@ mod watch_log;
 pub(crate) mod kinds_fixture;
 
 #[cfg(test)]
+#[path = "file_watcher_test_support.rs"]
+mod test_support;
+
+#[cfg(test)]
 #[path = "file_watcher_tests.rs"]
 mod tests;
 
@@ -276,3 +280,7 @@ mod observe_tests;
 #[cfg(all(test, target_os = "macos"))]
 #[path = "file_watcher_register_live_tests.rs"]
 mod register_live_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_watcher_test_support_tests.rs"]
+mod test_support_tests;

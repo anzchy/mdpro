@@ -1,0 +1,525 @@
+{
+  "$README": "Shared Rust<->TS contract for the Recent Files list (D43). Read by src-tauri/src/menu_recent_merge_tests.rs and tests/recent-files-ops-parity.test.ts. Expected values are hand-written specifications; never regenerate them from either implementation. merge rows keep pendingNewestFirst non-empty or stored.length <= 10 (TS mergePending does not cap an empty replay; Rust Seed does, so that case lives in seed rows).",
+  "maxRecentFiles": 10,
+  "push": [
+    {
+      "name": "push-front",
+      "list": [
+        "/b.md",
+        "/c.md"
+      ],
+      "path": "/a.md",
+      "expected": [
+        "/a.md",
+        "/b.md",
+        "/c.md"
+      ]
+    },
+    {
+      "name": "push-move-existing",
+      "list": [
+        "/a.md",
+        "/b.md",
+        "/c.md"
+      ],
+      "path": "/c.md",
+      "expected": [
+        "/c.md",
+        "/a.md",
+        "/b.md"
+      ]
+    },
+    {
+      "name": "push-L9-new",
+      "list": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md"
+      ],
+      "path": "/n.md",
+      "expected": [
+        "/n.md",
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md"
+      ]
+    },
+    {
+      "name": "push-L10-new",
+      "list": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md"
+      ],
+      "path": "/n.md",
+      "expected": [
+        "/n.md",
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md"
+      ]
+    },
+    {
+      "name": "push-L11-new",
+      "list": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md",
+        "/s/10.md"
+      ],
+      "path": "/n.md",
+      "expected": [
+        "/n.md",
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md"
+      ]
+    },
+    {
+      "name": "push-L10-existing-last",
+      "list": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md"
+      ],
+      "path": "/s/9.md",
+      "expected": [
+        "/s/9.md",
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md"
+      ]
+    },
+    {
+      "name": "push-empty-path-over-cap",
+      "list": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md",
+        "/s/10.md"
+      ],
+      "path": "",
+      "expected": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md",
+        "/s/10.md"
+      ]
+    },
+    {
+      "name": "push-empty-path-empty-list",
+      "list": [],
+      "path": "",
+      "expected": []
+    },
+    {
+      "name": "push-dup-other",
+      "list": [
+        "/x.md",
+        "/y.md",
+        "/x.md"
+      ],
+      "path": "/z.md",
+      "expected": [
+        "/z.md",
+        "/x.md",
+        "/y.md",
+        "/x.md"
+      ]
+    },
+    {
+      "name": "push-dup-self",
+      "list": [
+        "/x.md",
+        "/y.md",
+        "/x.md"
+      ],
+      "path": "/x.md",
+      "expected": [
+        "/x.md",
+        "/y.md"
+      ]
+    }
+  ],
+  "merge": [
+    {
+      "name": "merge-empty",
+      "stored": [],
+      "pendingNewestFirst": [],
+      "expected": []
+    },
+    {
+      "name": "merge-no-stored",
+      "stored": [],
+      "pendingNewestFirst": [
+        "/b.md",
+        "/a.md"
+      ],
+      "expected": [
+        "/b.md",
+        "/a.md"
+      ]
+    },
+    {
+      "name": "merge-overlap",
+      "stored": [
+        "/a.md",
+        "/b.md",
+        "/c.md"
+      ],
+      "pendingNewestFirst": [
+        "/c.md",
+        "/d.md"
+      ],
+      "expected": [
+        "/c.md",
+        "/d.md",
+        "/a.md",
+        "/b.md"
+      ]
+    },
+    {
+      "name": "merge-cap",
+      "stored": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md"
+      ],
+      "pendingNewestFirst": [
+        "/n.md"
+      ],
+      "expected": [
+        "/n.md",
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md"
+      ]
+    },
+    {
+      "name": "merge-L11-with-pending",
+      "stored": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md",
+        "/s/10.md"
+      ],
+      "pendingNewestFirst": [
+        "/s/10.md"
+      ],
+      "expected": [
+        "/s/10.md",
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md"
+      ]
+    }
+  ],
+  "seed": [
+    {
+      "name": "seed-d43-first-window",
+      "current": [],
+      "stored": [
+        "/d.md",
+        "/c.md",
+        "/b.md",
+        "/g1.md",
+        "/f.md",
+        "/e.md",
+        "/a.md"
+      ],
+      "pendingNewestFirst": [],
+      "expected": [
+        "/d.md",
+        "/c.md",
+        "/b.md",
+        "/g1.md",
+        "/f.md",
+        "/e.md",
+        "/a.md"
+      ]
+    },
+    {
+      "name": "seed-d43",
+      "current": [
+        "/d.md",
+        "/c.md",
+        "/b.md",
+        "/g1.md",
+        "/f.md",
+        "/e.md",
+        "/a.md"
+      ],
+      "stored": null,
+      "pendingNewestFirst": [
+        "/a.md"
+      ],
+      "expected": [
+        "/a.md",
+        "/d.md",
+        "/c.md",
+        "/b.md",
+        "/g1.md",
+        "/f.md",
+        "/e.md"
+      ]
+    },
+    {
+      "name": "seed-null-no-pending",
+      "current": [
+        "/a.md",
+        "/b.md"
+      ],
+      "stored": null,
+      "pendingNewestFirst": [],
+      "expected": [
+        "/a.md",
+        "/b.md"
+      ]
+    },
+    {
+      "name": "seed-L11-no-pending",
+      "current": [],
+      "stored": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md",
+        "/s/10.md"
+      ],
+      "pendingNewestFirst": [],
+      "expected": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md"
+      ]
+    },
+    {
+      "name": "seed-session-prefix",
+      "current": [
+        "/a.md",
+        "/b.md"
+      ],
+      "stored": [
+        "/c.md",
+        "/a.md",
+        "/d.md"
+      ],
+      "pendingNewestFirst": [],
+      "expected": [
+        "/a.md",
+        "/b.md",
+        "/c.md",
+        "/d.md"
+      ]
+    },
+    {
+      "name": "seed-stored-duplicates",
+      "current": [
+        "/a.md"
+      ],
+      "stored": [
+        "/b.md",
+        "/b.md",
+        "/a.md"
+      ],
+      "pendingNewestFirst": [],
+      "expected": [
+        "/a.md",
+        "/b.md",
+        "/b.md"
+      ]
+    },
+    {
+      "name": "seed-pending-overlap",
+      "current": [
+        "/a.md",
+        "/b.md"
+      ],
+      "stored": [
+        "/c.md"
+      ],
+      "pendingNewestFirst": [
+        "/c.md",
+        "/e.md"
+      ],
+      "expected": [
+        "/c.md",
+        "/e.md",
+        "/a.md",
+        "/b.md"
+      ]
+    },
+    {
+      "name": "seed-session-full",
+      "current": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md"
+      ],
+      "stored": [
+        "/x.md"
+      ],
+      "pendingNewestFirst": [],
+      "expected": [
+        "/s/0.md",
+        "/s/1.md",
+        "/s/2.md",
+        "/s/3.md",
+        "/s/4.md",
+        "/s/5.md",
+        "/s/6.md",
+        "/s/7.md",
+        "/s/8.md",
+        "/s/9.md"
+      ]
+    }
+  ],
+  "wire": [
+    {
+      "name": "seed-stored",
+      "op": {
+        "kind": "seed",
+        "stored": [
+          "/a.md"
+        ],
+        "pendingNewestFirst": [
+          "/b.md"
+        ]
+      }
+    },
+    {
+      "name": "seed-null",
+      "op": {
+        "kind": "seed",
+        "stored": null,
+        "pendingNewestFirst": [
+          "/a.md"
+        ]
+      }
+    },
+    {
+      "name": "record",
+      "op": {
+        "kind": "record",
+        "path": "/a.md"
+      }
+    },
+    {
+      "name": "refresh",
+      "op": {
+        "kind": "refresh"
+      }
+    }
+  ]
+}

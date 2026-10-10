@@ -2,11 +2,14 @@
  * Purpose: Core save logic for handleSave, extracted from App.tsx, plus the
  * post-await half of a save: `applySaveResult` writes a finished save back to the
  * store without overwriting edits that landed while the save was awaiting (D19).
+ * The save bodies and the per-document queue that serializes them (D70) live in
+ * `documentSave.ts`.
  *
  * Pipeline (D19): save IPC resolves → `applySaveResult` → settle flush
  *   ("save-settle") → re-read the store → `resolveSaveResult` → apply
- *   (`applied`: upsert + delete draft; `edited-during-save`: upsert path/lastSaved
- *   only; `closed`: nothing) → log.
+ *   (`applied`: upsert + delete draft; `edited-during-save`: upsert path/lastSaved,
+ *   and dirty if the store no longer holds what was written (D70); `closed`:
+ *   nothing) → log.
  *
  * Key decisions:
  * - `applySaveResult` is synchronous and final: no `await` between reading and
@@ -44,13 +47,13 @@ export interface SaveDeps {
  * ~10–50 ms. Local saves don't need a progress indicator; the "Saved" toast
  * is sufficient.
  *
- * Also owns the save-side flush (D15): `flushActiveDocumentForSave` pushes pending
- * WYSIWYG edits into documentStore and returns the fresh active document, so the
+ * Also owns the save-side flush (D15): `flushDocumentForSave` pushes pending
+ * WYSIWYG edits into documentStore and returns the fresh document, so the
  * bytes handed to `save_file` / `save_file_dialog` never come from a render
  * closure. A failed flush throws, which `performSave` surfaces as "Save failed:"
  * and which leaves the document dirty (rule 60: never save stale content silently).
  *
- * @coordinates-with src/hooks/useDocument.ts — saveActiveDocument / saveActiveDocumentAs
+ * @coordinates-with src/services/documentSave.ts — the queued save bodies (D70)
  * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEdits
  * @coordinates-with src/utils/saveResult.ts — resolveSaveResult (D19)
  */
@@ -64,12 +67,13 @@ import type { SaveResult } from "./fileService";
 import { loggingService } from "./loggingService";
 
 /**
- * Flush pending WYSIWYG edits, then read the active document from the store.
+ * Flush pending WYSIWYG edits, then read document `documentId` from the store
+ * (`null` if it was closed, e.g. while its save waited in the queue).
  * Throws when the flush failed: saving would write content older than the editor.
  */
-export function flushActiveDocumentForSave(actionId?: string): Document | null {
+export function flushDocumentForSave(documentId: string, actionId?: string): Document | null {
   const { status } = useMilkdownEditorStore.getState().flushPendingEdits("save");
-  const doc = useDocumentStore.getState().getActiveDocument() ?? null;
+  const doc = useDocumentStore.getState().getDocumentById(documentId) ?? null;
   if (status === "failed") {
     loggingService.logEventSync({
       level: "error",
@@ -143,7 +147,8 @@ function logUnappliedSave(
  * - `applied`: store takes `writtenContent`, clean, with path / lastSaved; the draft
  *   is deleted.
  * - `edited-during-save` (also forced by a failed settle flush): one upsert of path /
- *   lastSaved; content and dirty state untouched; the draft is kept.
+ *   lastSaved; content untouched; dirty raised if the store content is not what was
+ *   written (D70); the draft is kept.
  * - `closed`: no store write, no draft call.
  *
  * Synchronous and returns `undefined`: nothing it does happens after it returns

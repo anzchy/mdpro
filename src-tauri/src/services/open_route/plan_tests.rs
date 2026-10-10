@@ -56,7 +56,10 @@ fn bc(path: &str, mc: usize) -> PlanEntry {
 }
 
 fn plan(entries: Vec<PlanEntry>) -> RoutePlan {
-    RoutePlan { entries }
+    RoutePlan {
+        entries,
+        new_windows_refused: false,
+    }
 }
 
 fn lk(items: Vec<(&str, Result<RouteLookup, String>)>) -> Lookups {
@@ -227,6 +230,7 @@ fn entry_path(e: &PlanEntry) -> &str {
         PlanEntry::ExistingWindow { path, .. } => path,
         PlanEntry::NewWindow { path, .. } => path,
         PlanEntry::Broadcast { path, .. } => path,
+        PlanEntry::Refused { path, .. } => path,
     }
 }
 

@@ -385,3 +385,72 @@ describe("McpWriteConfirmDialog Escape through the shared stack (D34 WI-3)", () 
     expect(onApprove).toHaveBeenCalledTimes(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// D63 — initial focus on Reject is requested as *visible* focus, exactly once per mount.
+//
+// Same defect as D53 (ConfirmDialog): WKWebView does not match `:focus-visible` for an
+// autofocus/script focus after a mouse interaction, so rule 33 pattern 2 drew no ring on
+// Reject. The focus TARGET is unchanged (Reject, ADR-0042 FT-1) — only the request changes.
+// The spy records focus requests (target + options) and calls through to jsdom's focus.
+// Only requests made while mounting are counted: `useReturnFocusOnClose` may focus on unmount,
+// which is D37's behaviour (D-6, RF tests), not this one. Mock boundary: the file's Tauri mock.
+// ---------------------------------------------------------------------------
+
+describe("McpWriteConfirmDialog visible initial focus (D63)", () => {
+  type FocusCall = { el: HTMLElement; options: FocusOptions | undefined };
+  let focusCalls: FocusCall[];
+  let focusSpy: { mockRestore: () => void } | null = null;
+
+  beforeEach(() => {
+    focusCalls = [];
+    const original = HTMLElement.prototype.focus;
+    focusSpy = vi
+      .spyOn(HTMLElement.prototype, "focus")
+      .mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+        focusCalls.push({ el: this, options });
+        original.call(this, options);
+      });
+  });
+
+  afterEach(() => {
+    focusSpy?.mockRestore();
+    focusSpy = null;
+  });
+
+  const visibleFlag = (c: FocusCall) => (c.options as { focusVisible?: boolean } | undefined)?.focusVisible;
+
+  it("MW-1: mount — exactly one focus request, on Reject, with focusVisible: true; Approve never", () => {
+    renderDialog();
+    expect(focusCalls).toHaveLength(1);
+    expect(focusCalls[0].el).toBe(rejectButton());
+    expect(visibleFlag(focusCalls[0])).toBe(true);
+    expect(rejectButton()).toHaveFocus();
+    expect(focusCalls.some((c) => c.el === approveButton())).toBe(false);
+  });
+
+  it("MW-2: opened while an outside input holds focus — one visible request on Reject", () => {
+    const { outside } = renderAnswerable();
+    // The test's own outside.focus() precedes the mount; count only the dialog's requests.
+    const mountCalls = focusCalls.filter((c) => c.el !== outside);
+    expect(mountCalls).toHaveLength(1);
+    expect(mountCalls[0].el).toBe(rejectButton());
+    expect(visibleFlag(mountCalls[0])).toBe(true);
+    expect(rejectButton()).toHaveFocus();
+  });
+
+  it("MW-3: re-rendering the same prompt does not refocus — a user's focus move is kept", () => {
+    const { rerender, onApprove, onReject } = renderDialog();
+    expect(focusCalls).toHaveLength(1);
+    act(() => {
+      approveButton().focus();
+    });
+    const afterMove = focusCalls.length;
+    rerender(<McpWriteConfirmDialog request={REQUEST} onApprove={onApprove} onReject={onReject} />);
+    rerender(
+      <McpWriteConfirmDialog request={{ ...REQUEST, expiresInMs: 30000 }} onApprove={onApprove} onReject={onReject} />,
+    );
+    expect(focusCalls.slice(afterMove)).toStrictEqual([]);
+    expect(approveButton()).toHaveFocus();
+  });
+});

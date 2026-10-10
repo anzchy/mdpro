@@ -53,6 +53,15 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 
+/** The shared visible-initial-focus hook (D63), comment-stripped. */
+const HOOK_CODE = stripComments(readComponent("hooks/useVisibleInitialFocus.ts"));
+
+/** The ref passed as the hook's first argument, or null when the hook is not called with `enabled`. */
+function hookTargetRef(code: string, enabled: string): string | null {
+  const m = code.match(new RegExp(`useVisibleInitialFocus\\(\\s*(\\w+)\\s*,\\s*${enabled}\\s*\\)`));
+  return m ? m[1] : null;
+}
+
 // ---------------------------------------------------------------------------
 // ConfirmDialog — must handle Escape to close
 // ---------------------------------------------------------------------------
@@ -79,8 +88,27 @@ describe("ConfirmDialog keyboard accessibility", () => {
     expect(code).not.toMatch(/onKeyDown/);
   });
 
-  it("primary action button has autoFocus so focus lands inside dialog on open", () => {
-    expect(src).toMatch(/autoFocus/);
+  // D53 (policy rule 12, changed assertion with a stated reason): the assertion this replaces —
+  // `expect(src).toMatch(/autoFocus/)` — certified React `autoFocus` as the initial-focus
+  // mechanism. autoFocus focuses before mount effects run, and WebKit ignores `focusVisible` on
+  // an element that already has focus, so a later visible-focus request would be a no-op and the
+  // rule 33 pattern 2 ring never shows on device. Initial focus is now one
+  // `focus({ focusVisible: true })` call; its behaviour (target, options, exactly once per open)
+  // is specified by `tests/confirm-dialog.test.tsx` CD-14 … CD-17. Checked on comment-stripped
+  // `code` so header prose can neither satisfy nor trip it.
+  //
+  // D63 (policy rule 12, changed assertion with a stated reason): the line this replaces —
+  // `expect(code).toMatch(/focusVisible:\s*true/)` on ConfirmDialog — pinned where the option
+  // literal lives, not what it does. D63 moved the request into the shared
+  // `src/hooks/useVisibleInitialFocus.ts` (three dialogs need it), so the literal now lives in the
+  // hook and ConfirmDialog calls the hook with the same target and trigger as before. The check
+  // follows the literal: the hook carries `focusVisible: true`, and ConfirmDialog calls the hook
+  // with `destructive ? cancelRef : confirmRef` while `open`. The no-autoFocus half is unchanged.
+  // Behaviour stays specified by CD-14 … CD-17b (unmodified) and the hook's own VF-1 … VF-6.
+  it("FT-D53-1: requests visible initial focus and does not use autoFocus", () => {
+    expect(HOOK_CODE).toMatch(/focusVisible:\s*true/);
+    expect(code).toMatch(/useVisibleInitialFocus\(\s*destructive\s*\?\s*cancelRef\s*:\s*confirmRef\s*,\s*open\s*\)/);
+    expect(code).not.toMatch(/autoFocus/);
   });
 });
 
@@ -107,14 +135,32 @@ describe("SettingsDialog keyboard accessibility", () => {
 
 describe("ReloadDialog keyboard accessibility", () => {
   const src = readComponent("components/common/ReloadDialog.tsx");
+  const code = stripComments(src);
 
   it("has onKeyDown handler that checks for Escape key", () => {
     expect(src).toMatch(/onKeyDown/);
     expect(src).toMatch(/Escape/);
   });
 
-  it("primary action button has autoFocus", () => {
-    expect(src).toMatch(/autoFocus/);
+  // D63 (policy rule 12, changed assertion with a stated reason): the assertion this replaces —
+  // "primary action button has autoFocus", `expect(src).toMatch(/autoFocus/)` — certified React
+  // `autoFocus` as the initial-focus mechanism. autoFocus focuses before mount effects run, and
+  // WebKit ignores `focusVisible` on an element that already has focus, so on device Reload
+  // opened with no rule 33 pattern 2 ring (the D53 defect). Initial focus is now one
+  // `useVisibleInitialFocus(ref, open)` request; the TARGET is unchanged — Reload, the primary
+  // action — so this checks that the ref the hook receives sits on the Reload button, that the
+  // hook runs before the `if (!open)` early return (rules of hooks), and that no autoFocus
+  // remains. Behaviour is specified by `tests/reload-dialog.test.tsx` RD-1 … RD-4. Checked on
+  // comment-stripped `code` so header prose can neither satisfy nor trip it.
+  it("FT-D63-1: primary action (Reload) gets visible initial focus through the hook, no autoFocus", () => {
+    expect(code).not.toMatch(/autoFocus/);
+    const ref = hookTargetRef(code, "open");
+    expect(ref).not.toBeNull();
+    const buttons = code.split("<button").slice(1).map((chunk) => chunk.split("</button>")[0]);
+    const holders = buttons.filter((b) => b.includes(`ref={${ref}}`));
+    expect(holders).toHaveLength(1);
+    expect(holders[0]).toMatch(/>\s*Reload\s*$/);
+    expect(code.indexOf("useVisibleInitialFocus(")).toBeLessThan(code.indexOf("if (!open)"));
   });
 });
 
@@ -139,7 +185,7 @@ describe("RecoveryDialog — no Escape handler (forced recovery)", () => {
 describe("McpWriteConfirmDialog keyboard accessibility (FT-1)", () => {
   const src = readComponent("components/common/McpWriteConfirmDialog.tsx");
   const code = stripComments(src);
-  const buttons = src.split("<button").slice(1).map((chunk) => chunk.split("</button>")[0]);
+  const buttons = code.split("<button").slice(1).map((chunk) => chunk.split("</button>")[0]);
 
   // D34 (policy rule 12, changed assertion with a stated reason): the match this replaces —
   // `/Escape[\s\S]{0,200}onReject/` on the raw source — certified the card-level `onKeyDown`
@@ -158,12 +204,24 @@ describe("McpWriteConfirmDialog keyboard accessibility (FT-1)", () => {
     expect(code).not.toMatch(/["'`]Escape["'`]/);
   });
 
-  it("the Reject button carries autoFocus and the Approve button does not", () => {
+  // D63 (policy rule 12, changed assertion with a stated reason): the assertion this replaces —
+  // "the Reject button carries autoFocus and the Approve button does not" — certified React
+  // `autoFocus` as the initial-focus mechanism. autoFocus focuses before mount effects run, and
+  // WebKit ignores `focusVisible` on an element that already has focus, so on device Reject
+  // opened with no rule 33 pattern 2 ring (the D53 defect). Initial focus is now one
+  // `useVisibleInitialFocus(ref, true)` request; the TARGET is unchanged (Reject, ADR-0042 FT-1),
+  // so the check keeps its shape: the ref the hook receives is on the Reject button and not on
+  // Approve, and neither button carries autoFocus. Behaviour is specified by D-2, D-4 and
+  // MW-1 … MW-3 in `tests/mcp-write-confirm-dialog.test.tsx`.
+  it("FT-D63-2: the Reject button gets visible initial focus through the hook and Approve does not", () => {
     const reject = buttons.filter((b) => b.includes("onClick={onReject}"));
     const approve = buttons.filter((b) => b.includes("onClick={onApprove}"));
     expect(reject).toHaveLength(1);
     expect(approve).toHaveLength(1);
-    expect(reject[0]).toMatch(/autoFocus/);
-    expect(approve[0]).not.toMatch(/autoFocus/);
+    expect(code).not.toMatch(/autoFocus/);
+    const ref = hookTargetRef(code, "true");
+    expect(ref).not.toBeNull();
+    expect(reject[0]).toContain(`ref={${ref}}`);
+    expect(approve[0]).not.toContain(`ref={${ref}}`);
   });
 });

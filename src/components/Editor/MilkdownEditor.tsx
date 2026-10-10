@@ -24,6 +24,7 @@ import { inlineEditMilkdownPlugin } from "../../plugins/milkdown/inlineEditPlugi
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
 import { editSyncMilkdownPlugin } from "../../plugins/milkdown/editSync/plugin";
+import { tableParityPlugins } from "../../plugins/milkdown/table/parityPlugins";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
 import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
@@ -144,6 +145,8 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
         })
         .use(commonmark)
         .use(gfm)
+        // ADR-0067: ragged tables widen at parse time; empty cells serialize blank. After gfm.
+        .use(tableParityPlugins)
         .use(tableNodeViewPlugin)
         .use(history)
         // D15: edits reach documentStore through the view lifecycle, bound to this

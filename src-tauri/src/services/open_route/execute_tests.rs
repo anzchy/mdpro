@@ -259,7 +259,8 @@ fn executor_conservation_exhaustive() {
                         match outcome {
                             Outcome::NewWindow => want_new.push(paths[i].to_string()),
                             Outcome::Broadcast => want_bc.push(paths[i].to_string()),
-                            Outcome::ExistingWindow => {}
+                            // This oracle never plans under a live quit (D74).
+                            Outcome::ExistingWindow | Outcome::RefusedQuitPending => {}
                         }
                         want_logs.push(route_log_context(source, outcome, label.as_deref(), mc));
                     }

@@ -1,0 +1,157 @@
+
+.app-shell {
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: 1fr var(--bottom-tabs-height);
+  grid-template-areas:
+    "sidebar main"
+    "tabs tabs";
+  background: var(--color-bg);
+}
+
+.app-shell.no-sidebar {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "main"
+    "tabs";
+}
+
+.app-shell > .sidebar {
+  grid-area: sidebar;
+}
+
+.app-shell > .main {
+  grid-area: main;
+}
+
+.app-shell > .bottom-tabs {
+  grid-area: tabs;
+}
+
+.sidebar {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 16px;
+  padding-top: 0; /* .sidebar-traffic-area handles the traffic-lights zone */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  padding: 0 4px;
+  margin-bottom: 8px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Custom Title Bar (Typora-style) */
+/* Sidebar: traffic-lights zone — drag region + view-mode badge.
+   Sits at the top of the sidebar column, clearing the macOS traffic-light
+   buttons (~78px from window left = var(--traffic-lights-clearance) from
+   the sidebar's content box after its 16px side-padding). */
+.sidebar-traffic-area {
+  height: var(--title-bar-height);
+  display: flex;
+  align-items: center;
+  padding-left: var(--traffic-lights-clearance);
+  padding-right: 8px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* View-mode badge (WYSIWYG / SPLIT / EDITOR / PREVIEW) */
+.sidebar-mode-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  padding: 3px 8px;
+  background: var(--color-surface);
+  border-radius: 4px;
+}
+
+/* Main area: traffic-lights zone shown only when the sidebar is hidden.
+   Uses 80px left padding because .main starts at x=0 of the window in
+   no-sidebar mode and the traffic lights span ~78px from the left edge. */
+.main-traffic-area {
+  height: var(--title-bar-height);
+  display: flex;
+  align-items: center;
+  padding-left: var(--traffic-lights-clearance-main);
+  padding-right: 16px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.busy-indicator {
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-panel);
+}
+
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  background: var(--color-panel);
+}
+
+.split-view {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.split-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.split-pane.full-pane {
+  width: 100%;
+}
+
+.split-divider {
+  width: 6px;
+  cursor: col-resize;
+  background: var(--color-border);
+}
+
+.pane-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+  margin-bottom: 12px;
+}
+
+.pane-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.preview-scroll {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}

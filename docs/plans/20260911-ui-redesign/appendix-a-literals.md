@@ -443,7 +443,7 @@ The user ruled on every class-(c) row that was still open, plus the Q9 follow-up
 **Obligation carried by R2 and R6.** `--color-on-accent` and `--color-scrim` are added to `.claude/rules/31-design-tokens.md` and to DESIGN.md § Tokens **in the same commit that introduces them** (WI-2.2), not in a later docs pass. [Stage 2](./stage-2-tokenize.md) WI-2.2 carries this as a task.
 
 **Where the rulings sit against the plan's own rules.** These are recorded, not resolved:
-- **R6 vs A10.** A10 (and WI-2.2) give a semantic token only to 3 or more unrelated uses; the scrim has one. R6 is the user's explicit override for this one token, and A10 is otherwise unchanged.
+- **R6 vs A10.** A10 (and WI-2.2) give a semantic token only to 3 or more unrelated uses; the scrim has one. R6 is the user's explicit override for this one token, and A10 is otherwise unchanged. **Resolved at stop point 1 (2026-10-08):** A10 now names it — "Exception: `--color-scrim` (R6, one use, user ruling 2026-10-03)."
 - **R7 and "zero visual change".** At the default 16px editor size, `0.875em` computes to 14px, so the Stage 2 computed-style diff would stay empty. A user with a different editor font size would still see the table text change, which breaks Deliverable A's "zero visual change". R7 is therefore staged in Stage 3 as class (b), not in Stage 2.
 - **R2 and contrast.** `--color-on-accent` keeps today's `#fff` in both themes, so Stage 2 is unchanged. White on the dark accent `#60a5fa` is about 2.5:1, below A9's 4.5:1 for labels. That is today's rendering, not a regression. The Stage 3 contrast table (primary button labels) is where a per-theme value would be decided.
 
@@ -548,9 +548,9 @@ The baseline never measured radius/transition/z-index/box-shadow outside `global
 
 ## Plan discrepancies found while inventorying
 
-These are inputs for the lead. This appendix does not resolve them; where a later ruling did, the item says so.
+These are inputs for the lead. This appendix does not resolve them; where a later ruling did, the item says so. Stop point 1 (user, 2026-10-08) resolved 1, 2, 7 and 8 and deferred 6.
 
-1. **`.tab__close` is dead, not a live keep.** Stage 3 lists the `opacity` transition at old `:1667` (now `globals.css:1704`) as a live hover-reveal to keep under DR12. Its only consumer is `TabBar/`, which is A8 dead code. The live hover-reveal is `BottomTabs.css:105` `.bottom-tab__close`.
+1. **`.tab__close` is dead, not a live keep.** Stage 3 lists the `opacity` transition at old `:1667` (now `globals.css:1704`) as a live hover-reveal to keep under DR12. Its only consumer is `TabBar/`, which is A8 dead code. The live hover-reveal is `BottomTabs.css:105` `.bottom-tab__close`. **Resolved at stop point 1 (2026-10-08):** [Stage 3](./stage-3-retune.md) WI-3.2 drops `.tab__close` from the DR12 keep list and names it dead with `TabBar/` (A8).
 2. **`.settings-search` has no consumer.** DR23 and Stage 3 name it as a radius site, but no `.tsx` references it at a5767d5. Nor does any other selector marked `orphan, no consumer`:
    - `.pane-title`
    - `.toolbar-mode`
@@ -560,6 +560,8 @@ These are inputs for the lead. This appendix does not resolve them; where a late
    - `.settings-form-row`
    - `.settings-form-hint`
    - `.toc-sidebar__header`
+
+   **Resolved at stop point 1 (2026-10-08):** [Stage 3](./stage-3-retune.md) WI-3.1 no longer names `.settings-search` as a radius site, and [Stage 4a](./stage-4a-components.md) WI-4.3 marks its `.settings-general p` example as an orphan. The orphan rows stay in the inventory as deletion candidates, not tokenization targets.
 3. **Q6 is not value-preserving, but targets WI-2.2.** Stage 2's gate is an empty computed-style diff. All three Q6 replacements change the rendered colour: `#34c759` → `#1a1a1a`, `#ff3b30` → `#dc2626`, `#999` → inherited secondary. Either Q6 moves to Stage 3 / WI-4.x, or the Stage 2 diff gets a declared Q6 carve-out. **Resolved by the 2026-10-03 ruling [R10](#rulings-user-2026-10-03):** Q6 moves to Stage 3 (WI-3.2), and the Stage 2 diff gets no carve-out.
 4. **Spinners fall between A5 and DR13** (see the table above). No allowlist or exception covers `spin 0.8s linear infinite` today. **Resolved by the 2026-10-03 ruling [R4](#rulings-user-2026-10-03):** a WI-2.1 exception.
 5. **Editor-content literals have no DR role.** These are not covered by DR22 or DR23, which are both chrome-scoped:
@@ -576,9 +578,9 @@ These are inputs for the lead. This appendix does not resolve them; where a late
    - `.settings-row-label strong` (`:1302`)
    - `.mcp-client-details strong` (`:1527`)
 
-   They are classified (a) by value. A role-driven move to 13px is a Stage 3/4 decision.
-7. **`stage-4a-components.md` cites `globals.css:1335` for the toggle track `#ccc`.** At 0a3675e that line is the toggle's `transition`, and `#ccc` was `:1334`. At a5767d5 `#ccc` is `:1339`.
-8. **Two class (b) rows have no numbered owner.** `BottomTabs.css:79` (shadow → `--shadow-soft`) and `:115` (hover → `--color-hover`) fall under WI-3.2's prose bullets, which carry no item number. They are staged as `3 (WI-3.2)` and `3 (WI-3.2 hover)`.
+   They are classified (a) by value. A role-driven move to 13px is a Stage 3/4 decision. **Deferred to Stage 3/4, by user decision at stop point 1 (2026-10-08).** No value changes here.
+7. **`stage-4a-components.md` cites `globals.css:1335` for the toggle track `#ccc`.** At 0a3675e that line is the toggle's `transition`, and `#ccc` was `:1334`. At a5767d5 `#ccc` is `:1339`. **Resolved at stop point 1 (2026-10-08):** stage-4a already cites `globals.css:1339`, re-pointed by the WI-0.6 re-run (`a00f089`).
+8. **Two class (b) rows have no numbered owner.** `BottomTabs.css:79` (shadow → `--shadow-soft`) and `:115` (hover → `--color-hover`) fall under WI-3.2's prose bullets, which carry no item number. They are staged as `3 (WI-3.2)` and `3 (WI-3.2 hover)`. **Resolved at stop point 1 (2026-10-08):** [Stage 3](./stage-3-retune.md) WI-3.2 now names each row under its owning bullet — `:79` under *Flat rows and tabs*, `:115` under *Hover*.
 
 ## Line drift from 0a3675e
 

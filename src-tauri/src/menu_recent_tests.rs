@@ -1,5 +1,7 @@
-//! Unit tests for `menu_recent::publish_after` (WI-12, audit row 18) and the
-//! `[ADV2-1]` contract over the `set_recent_files_menu` command closure.
+//! Unit tests for `menu_recent::publish_after` (WI-12, audit row 18), the
+//! `[ADV2-1]` contract over the recent-files command closure. The D43 WI-3
+//! command source contracts CS-02 / CS-03 live in
+//! `menu_recent_command_contract_tests.rs` and reuse the helpers here.
 
 use super::{publish_after, MenuState};
 use std::cell::{Cell, RefCell};
@@ -114,24 +116,48 @@ fn property_last_ok_wins_over_every_sequence_up_to_length_four() {
     }
 }
 
-const COMMAND_SRC: &str = include_str!("commands/menu.rs");
+pub(super) const COMMAND_SRC: &str = include_str!("commands/menu.rs");
 
-fn is_ident(c: char) -> bool {
+pub(super) fn is_ident(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
-/// `\|(\w+)\|[^}]*build_menu\([^,]+,\s*&?\1` without a regex dependency.
-fn closure_param_feeds_build_menu(src: &str) -> bool {
+/// `\|(\w+)(,\s*\w+)*\|[^}]*build_menu\([^,]+,\s*&?\1` without a regex
+/// dependency: the closure's (first) parameter is `build_menu`'s second arg.
+///
+/// D43 WI-3 (orchestrator decision, ADV2-1 option 2): extended to also accept
+/// closures with more than one parameter, matching the FIRST one, because
+/// `publish_op`'s install now passes `(list, remembered mode)`, so the command
+/// closure is `|list, mode|`. Single-parameter matching is unchanged.
+pub(super) fn closure_param_feeds_build_menu(src: &str) -> bool {
     for (start, c) in src.char_indices() {
         if c != '|' {
             continue;
         }
         let rest = &src[start + 1..];
         let name: String = rest.chars().take_while(|&ch| is_ident(ch)).collect();
-        if name.is_empty() || !rest[name.len()..].starts_with('|') {
+        if name.is_empty() {
             continue;
         }
-        let body_start = start + 1 + name.len() + 1;
+        let after = &rest[name.len()..];
+        let params_len = if after.starts_with('|') {
+            0
+        } else if after.starts_with(',') {
+            let Some(close) = after.find('|') else {
+                continue;
+            };
+            let extra_ok = after[1..close]
+                .split(',')
+                .map(str::trim)
+                .all(|p| !p.is_empty() && p.chars().all(is_ident));
+            if !extra_ok {
+                continue;
+            }
+            close
+        } else {
+            continue;
+        };
+        let body_start = start + 1 + name.len() + params_len + 1;
         let body = &src[body_start..];
         let body = &body[..body.find('}').unwrap_or(body.len())];
         let Some(call) = body.find("build_menu(") else {
@@ -155,9 +181,16 @@ fn closure_param_feeds_build_menu(src: &str) -> bool {
 
 #[test]
 fn adv2_1_command_closure_builds_the_menu_from_its_argument() {
+    // (a) edited for D43 WI-3, ADV2-1 decision pre-approved by the orchestrator.
+    // Reason: the approved design routes the command through
+    // `MenuState::publish_op(`, which holds the sync mutex across read -> merge
+    // -> install -> publish; a command calling `publish_after(` directly would
+    // merge outside that lock (the lost update PO-06 proves real). The token
+    // is now `publish_op(`; CS-02 (`menu_recent_command_contract_tests.rs`)
+    // is the successor specification.
     assert!(
-        COMMAND_SRC.matches("publish_after(").count() >= 1,
-        "(a) command must route through publish_after"
+        COMMAND_SRC.matches("publish_op(").count() >= 1,
+        "(a) command must route through publish_op"
     );
     assert_eq!(
         COMMAND_SRC.matches("recent_files()").count(),

@@ -1,0 +1,76 @@
+
+.editor-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor-shell .cm-theme-light,
+.editor-shell .cm-theme-dark {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.editor-shell .cm-editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  background: var(--color-editor-bg);
+  color: var(--color-text);
+}
+
+.editor-shell .cm-scroller {
+  overflow: auto;
+  background: var(--color-editor-bg);
+}
+
+.editor-shell .cm-content {
+  max-width: var(--editor-content-width);
+  padding-left: var(--content-padding);
+  padding-right: var(--content-padding);
+  margin: 0 auto;
+  caret-color: var(--color-accent);
+  font-size: var(--editor-font-size);
+  line-height: var(--editor-line-height);
+  font-family: var(--editor-font-family);
+}
+
+.editor-shell .cm-gutters {
+  background: var(--color-editor-bg);
+  color: var(--color-muted);
+  border-right: 1px solid var(--color-border);
+}
+
+.editor-shell .cm-activeLine {
+  background: var(--color-surface);
+}
+
+.editor-shell .cm-selectionBackground {
+  background: rgba(96, 165, 250, 0.25);
+}
+
+.editor-shell .cm-cursor {
+  border-left-color: var(--color-accent);
+}
+
+/* Active table cell highlight in source mode (table-CRUD WI-2.5).
+   Pairs visually with the WYSIWYG selectedCell rule in
+   MilkdownEditor.css — both use --color-accent-soft so users get the
+   same "you are here" feedback across modes. */
+.editor-shell .cm-table-active-cell {
+  background: var(--color-accent-soft);
+  border-radius: 2px;
+}
+
+.wysiwyg-preview .cm-gutters {
+  display: none;
+}
+
+.wysiwyg-preview .cm-content {
+  padding-left: 12px;
+  font-family: var(--font-sans);
+}

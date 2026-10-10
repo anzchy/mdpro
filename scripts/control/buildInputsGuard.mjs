@@ -16,7 +16,8 @@
  *   specifiers skipped; `vite.config.*` adds `root` / `publicDir` / `outDir` /
  *   `cacheDir` / `envDir`. Rust: `include!`, `include_str!`, `include_bytes!`,
  *   `#[path = "…"]`. HTML: `<script src>`, `<link href>`. CSS: `@import`,
- *   `url(…)`. Tauri config (`tauri.conf.json`, `capabilities/*.json`): every
+ *   `url(…)`. Tauri config (`tauri.conf.json`, the verify profile's
+ *   `tauri.verify.conf.json`, `capabilities/*.json`): every
  *   string value. `Cargo.toml`: `path` / `build` values (O10). `package.json`:
  *   values under `main`, `module`, `types`, `typings`, `browser`, `bin`,
  *   `files`, `exports`.
@@ -47,9 +48,11 @@ import { blankComments } from "./commentBlanker.mjs";
 
 // prettier-ignore
 const SINGLE_FILES = [
-  "src-tauri/build.rs", "src-tauri/tauri.conf.json", "src-tauri/Cargo.toml",
+  "src-tauri/build.rs", "src-tauri/tauri.conf.json", "src-tauri/tauri.verify.conf.json", "src-tauri/Cargo.toml",
   "vite.config.ts", "index.html", "package.json",
 ];
+// The verify profile merges `tauri.verify.conf.json` via `--config` (D75c).
+const TAURI_CONFIGS = new Set(["src-tauri/tauri.conf.json", "src-tauri/tauri.verify.conf.json"]);
 const PACKAGE_PATH_FIELDS = new Set(["main", "module", "types", "typings", "browser", "bin", "files", "exports"]);
 const JS_EXT = /\.(?:[cm]?[jt]s|[jt]sx)$/;
 const SCHEME = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
@@ -167,7 +170,7 @@ function cargoRefs(text) {
 /** @param {string} relPath @param {string} text @returns {RawRef[]} */
 function rawRefs(relPath, text) {
   const base = relPath.split("/").pop() ?? "";
-  if (relPath === "src-tauri/tauri.conf.json" || /^src-tauri\/capabilities\/[^/]+\.json$/.test(relPath)) {
+  if (TAURI_CONFIGS.has(relPath) || /^src-tauri\/capabilities\/[^/]+\.json$/.test(relPath)) {
     return jsonRefs(text, () => true, "src-tauri");
   }
   if (base === "package.json") return jsonRefs(text, (k) => k !== null && PACKAGE_PATH_FIELDS.has(k));

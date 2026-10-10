@@ -228,7 +228,7 @@ describe("D37 guards, part 1", { timeout: CASE_TIMEOUT_MS }, () => {
     expect(countOutcome(logSpy, "skipped:focus-elsewhere")).toBe(1);
   });
 
-  it("G-6 a dialog focused at capture time: no record, no log", async () => {
+  it("G-6 a prompt focused at capture time keeps focus; the carry is deferred to it (D38)", async () => {
     const oldPm = await mountFocused(
       <>
         <McpWriteConfirm />
@@ -245,6 +245,8 @@ describe("D37 guards, part 1", { timeout: CASE_TIMEOUT_MS }, () => {
     await emitMcp(eventListeners, "mcp:insert_content", insert("end", " MCP-END"));
     await waitForNewPm(oldPm, "Hello world MCP-END");
     expect(document.activeElement).toBe(reject);
-    expect(restoreLogs(logSpy)).toHaveLength(0);
+    expect(restoreLogs(logSpy).map((e) => [e.context?.outcome, e.context?.focus])).toEqual([
+      ["restored", "deferred"],
+    ]);
   });
 });

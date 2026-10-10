@@ -9,6 +9,14 @@
  * - **The end, not the old caret** (D38, known limit): the rebuilt view's default
  *   selection is its start, which is where no one was typing; the end is a predictable
  *   place and the scroll shows it. The cost is a visible jump to the end of the document.
+ * - **The last text position, not `Selection.atEnd`** (D72): `TextSelection.atEnd` is
+ *   the inherited `Selection.atEnd`, which node-selects a trailing selectable atom — a
+ *   document ending in `---` (`hr`) got a NodeSelection and the next keystroke replaced
+ *   the rule. `Selection.findFrom(end, -1, true)` lands at the end of the last textblock.
+ *   A document with no textblock at all (only rules) falls back to `Selection.atEnd`:
+ *   no gapcursor plugin is registered, so a GapCursor would have no key handling or
+ *   drawing, and the fallback is the pre-D72 behaviour on a case with no text to type
+ *   after anyway (known limit; ⌘Z restores).
  * - **Selection-only, `addToHistory: false`**: it neither dirties the document nor adds
  *   an undo step (the `useMilkdownFocusRestore` convention).
  * - **Never throws**: a missing editor, or an editor whose view is not ready yet
@@ -20,7 +28,8 @@
  * @coordinates-with src/hooks/useReturnFocusOnClose.ts — focuses the returned element
  */
 import { editorViewCtx, type Editor } from "@milkdown/kit/core";
-import { TextSelection } from "@milkdown/kit/prose/state";
+import { Selection } from "@milkdown/kit/prose/state";
+import type { Node as ProseNode } from "@milkdown/kit/prose/model";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 
@@ -34,6 +43,15 @@ function activeView(): EditorView | null {
   }
 }
 
+/**
+ * The last text cursor in `doc` (D72): searching backward from the end with
+ * `textOnly`, so a trailing atom such as `hr` is skipped rather than node-selected.
+ * Falls back to `Selection.atEnd` only when the document has no textblock at all.
+ */
+function endCaret(doc: ProseNode): Selection {
+  return Selection.findFrom(doc.resolve(doc.content.size), -1, true) ?? Selection.atEnd(doc);
+}
+
 /** Focus the active Milkdown view with the caret at its end; its DOM, or `null`. */
 export function focusActiveMilkdownAtEnd(): HTMLElement | null {
   const view = activeView();
@@ -41,7 +59,7 @@ export function focusActiveMilkdownAtEnd(): HTMLElement | null {
   const { state } = view;
   view.dispatch(
     state.tr
-      .setSelection(TextSelection.atEnd(state.doc))
+      .setSelection(endCaret(state.doc))
       .scrollIntoView()
       .setMeta("addToHistory", false),
   );

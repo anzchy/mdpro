@@ -2,8 +2,8 @@
 /**
  * D19-WI-2 — the pure save-result resolver (`src/utils/saveResult.ts`).
  *
- * Law: a save never lowers the edit content and never marks clean content it did
- * not write. Matrix: `.claude/tdd-guardian/tests-20260922-232521-d19.md` §3
+ * Law: a save never lowers the edit content and never leaves clean content it did
+ * not write (D70: not even content an earlier, newer save had marked clean). Matrix: `.claude/tdd-guardian/tests-20260922-232521-d19.md` §3
  * (W2-applied-plain … W2-pure). Real implementation, no mocks.
  */
 import { describe, expect, it } from "vitest";
@@ -116,14 +116,23 @@ describe("resolveSaveResult — named cases", () => {
     expect(nextOf(r).isModified).toBe(true);
   });
 
-  it("W2-reopened-clean: reopened clean with different content → edited, never raises dirty (known limitation)", () => {
+  it("W2-clean-but-unwritten (D70): clean store content the save did not write → edited, raised dirty", () => {
+    // D70: a newer save already marked the buffer clean, then this older save landed
+    // last. The disk holds "BASE", so "DISK-X" must not stay clean.
     const current = makeDoc({ content: "DISK-X", isModified: false });
     const r = resolveSaveResult(makeInput({ current, snapshotContent: "BASE", writtenContent: "BASE" }));
     expect(r.kind).toBe("edited-during-save");
     const next = nextOf(r);
     expect(next.content).toBe("DISK-X");
-    expect(next.isModified).toBe(false);
+    expect(next.isModified).toBe(true);
     expect(next.lastSaved).toBe(SAVED_AT);
+  });
+
+  it("W2-clean-and-written (D70): clean store content equal to what was written stays clean", () => {
+    const current = makeDoc({ content: "T0-FMT", isModified: false });
+    const r = resolveSaveResult(makeInput({ current, snapshotContent: "T0", writtenContent: "T0-FMT" }));
+    expect(r.kind).toBe("edited-during-save");
+    expect(nextOf(r).isModified).toBe(false);
   });
 
   it("W2-frame-fields: non-content fields of current survive into next", () => {
@@ -230,9 +239,13 @@ describe("resolveSaveResult — W2-law (exhaustive S5)", () => {
     if (current.isModified && r.kind !== "applied") {
       expect(next.isModified).toBe(true);
     }
-    // (d) never raises dirty.
-    if (!current.isModified) {
-      expect(next.isModified).toBe(false);
+    // (d) honest clean (D70): a clean next holds exactly what was written; dirty is
+    // raised only when the store holds content this save did not write.
+    if (!next.isModified) {
+      expect(next.content).toBe(input.writtenContent);
+    }
+    if (!current.isModified && r.kind === "edited-during-save") {
+      expect(next.isModified).toBe(current.content !== input.writtenContent);
     }
     // (e) frame.
     for (const key of FRAME_KEYS) {

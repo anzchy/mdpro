@@ -8,13 +8,9 @@
  * spread label to left edge and control to right edge).
  */
 import { describe, it, expect } from "vitest";
-import * as fs from "fs";
-import * as path from "path";
+import { readAppCssNonTheme } from "../src/test/appCss";
 
-const globalsCss = fs.readFileSync(
-  path.resolve(__dirname, "../src/styles/globals.css"),
-  "utf-8",
-);
+const globalsCss = readAppCssNonTheme();
 
 /** Extract the declaration block for a given CSS selector. */
 function extractBlock(css: string, selector: string): string {

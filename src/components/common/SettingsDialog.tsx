@@ -137,7 +137,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setMcpConfig(null);
     setMcpLoadFailed(false);
     setMcpSaving(false);
-    void preferencesService.getPreferences()
+    void preferencesService.getPreferences("settings_dialog")
       .then((p) => {
         if (gen !== mcpLoadGenRef.current) return;
         if (p.mcp) setMcpConfig(p.mcp);

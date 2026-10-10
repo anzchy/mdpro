@@ -7,12 +7,7 @@ import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
 import { TOCSidebarContainer, getViewModeLabel } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
-import { ConfirmDialog } from "./components/common/ConfirmDialog";
-import { SettingsDialog } from "./components/common/SettingsDialog";
-import { McpWriteConfirm } from "./components/common/McpWriteConfirm";
-import { RecoveryDialog } from "./components/common/RecoveryDialog";
-import { ReloadDialog } from "./components/common/ReloadDialog";
-import { EncodingDialog } from "./components/common/EncodingDialog";
+import { AppDialogs } from "./components/AppDialogs";
 import { LoadingSpinner } from "./components/common/LoadingSpinner";
 import { Toast } from "./components/common/Toast";
 import { useDocument } from "./hooks/useDocument";
@@ -28,7 +23,9 @@ import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
 import { useMcpEvents } from "./hooks/useMcpEvents";
+import { useLinkInsertBinding } from "./hooks/useLinkInsertBinding";
 import { useRecentFiles } from "./hooks/useRecentFiles";
+import { useRecentFilesMenuRefresh } from "./hooks/useRecentFilesMenuRefresh";
 import { useSidebarPreference } from "./hooks/useSidebarPreference";
 import { useOpenUrlParam } from "./hooks/useOpenUrlParam";
 import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
@@ -47,6 +44,7 @@ import {
   decideFileChange,
 } from "./utils/dataLossGuards";
 import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
+import { onFirstSuccess } from "./utils/onFirstSuccess";
 import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
 import { buildSourceTablesWithheldLog } from "./utils/sourceTableWithheldLog";
 import { shouldEvaluateGuard, sourceTableVerdictOf } from "./utils/sourceTableVerdict";
@@ -54,7 +52,7 @@ import type { ViewMode } from "./types/editor";
 import type { KeyboardShortcuts } from "./types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
-import { isSourceTablesWithheld, useEditorStore } from "./stores/editorStore";
+import { isSourceTablesWithheld, useEditorStore, userViewModeCommands } from "./stores/editorStore";
 import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useTableInsertStore } from "./stores/tableInsertStore";
 import { useToastStore } from "./stores/toastStore";
@@ -98,7 +96,7 @@ function App() {
     clearEncodingIssue,
   } = useDocument();
   const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
-  const { viewMode, setViewMode, cycleViewMode, showSidebar } = useEditor();
+  const { viewMode, setViewMode, showSidebar, userViewModeChoice } = useEditor();
   // Sole writer of showSidebar outside the store; buffers pre-hydration toggles (ADR-0031 5b, WI-5).
   const sidebarPreference = useSidebarPreference();
   const { resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
@@ -107,8 +105,7 @@ function App() {
   // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
   const autoSaveInterval = useEditorStore((s) => s.autoSaveInterval);
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
-  const { recentFiles, updateRecentFiles, hydrateRecentFiles, failRecentFilesHydration } =
-    useRecentFiles();
+  const { updateRecentFiles, hydrateRecentFiles, failRecentFilesHydration } = useRecentFiles();
   const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
   const toastMessage = useToastStore((s) => s.message);
@@ -155,6 +152,8 @@ function App() {
     forceMcpSyncRef.current = mcpSync.forceSync;
   }, [mcpSync.forceSync]);
   useMcpEvents();
+  // ⌘K link request: cancel it when its document or view mode changes (D73).
+  useLinkInsertBinding();
 
   // TOC hook for sidebar Table of Contents
   const {
@@ -174,11 +173,9 @@ function App() {
     viewMode,
   });
 
-  useEffect(() => {
-    invoke("set_recent_files_menu", { recentFiles, viewMode }).catch(() => {
-      // Ignore if running outside Tauri or menu is unavailable.
-    });
-  }, [recentFiles, viewMode]);
+  // The Open Recent menu holds the session list Rust owns (D43); this window
+  // only sends a refresh on a view-mode change, never its own list.
+  useRecentFilesMenuRefresh(viewMode);
 
   // Keep window title static — filename removed per #374
   useEffect(() => {
@@ -205,7 +202,7 @@ function App() {
         // owner. Placed first in the try so no earlier await can throw past it;
         // safe because hydrateSettings never rejects and needs no preferences.
         await loggingService.hydrateSettings();
-        const prefs = await preferencesService.getPreferences();
+        const prefs = await preferencesService.getPreferences("app_hydrate");
         if (!mounted) return;
         // Don't set viewMode here - defer until launch paths are complete
         // to avoid race condition with Finder/CLI file opens
@@ -262,13 +259,13 @@ function App() {
     sidebarPreference,
   ]);
 
-  // Persist view mode as lastViewMode; held until the stored value is read (ADR-0031 5a, WI-2).
+  // Persist explicit user view-mode choices only (ADR-0053); held until the stored value is read (ADR-0031 5a).
   useLastViewModePersistence({
     preferencesLoaded,
     launchPathsComplete,
     activeDocument,
     viewMode,
-    setViewMode,
+    userViewModeChoice,
   });
 
   // `?open=` for secondary windows; waits for hydration, runs once (ADR-0031 5a, WI-1).
@@ -421,13 +418,16 @@ function App() {
     [openDocumentFromPath, updateRecentFiles],
   );
 
+  // `onOpened` runs after each file that opened (never for a failed one); callers
+  // pass an `onFirstSuccess` latch to act once, after the first success (D51).
   const openPaths = useCallback(
-    async (paths: string[]) => {
+    async (paths: string[], onOpened?: () => void) => {
       for (const path of paths) {
         try {
           const doc = await openDocumentFromPath(path);
           if (doc?.path) {
             updateRecentFiles(doc.path);
+            onOpened?.();
           }
         } catch {
           // Ignore launch open errors.
@@ -554,8 +554,9 @@ function App() {
     async (openPath?: string, notifyOnError = true) => {
       try {
         const { windowService } = await import("./services/windowService");
-        await windowService.createWindow(openPath);
-        return true;
+        // `null`: a pending quit refused the window (D74) — already logged,
+        // and not an error worth a toast.
+        return (await windowService.createWindow(openPath)) !== null;
       } catch {
         if (notifyOnError) {
           showToast("Failed to open new window");
@@ -696,7 +697,9 @@ function App() {
       }
 
       // Always open dropped files in the current window (no extra untitled window).
-      setViewMode(defaultViewMode);
+      // The default view mode applies once, after the first file that opens: a drop
+      // whose every open fails leaves the current document's mode untouched (D51).
+      const applyDefaultViewMode = onFirstSuccess(() => setViewMode(defaultViewMode));
       for (const filePath of mdPaths) {
         const actionId = loggingService.generateActionId();
         loggingService.logEventSync({
@@ -711,6 +714,9 @@ function App() {
           },
         });
         const doc = await handleOpenPath(filePath, actionId);
+        if (doc) {
+          applyDefaultViewMode();
+        }
         loggingService.logEventSync({
           level: doc ? "info" : "error",
           event: "file.open.drop",
@@ -875,7 +881,7 @@ function App() {
     onSave: (actionId) => void handleSave(actionId),
     onClose: handleCloseRequest,
     onToggleSidebar: sidebarPreference.toggle,
-    onCycleViewMode: cycleViewMode,
+    onCycleViewMode: userViewModeCommands.cycle,
     onOpenPreferences: handleOpenSettings,
     onInsertTable: triggerTableInsert,
     onTableAction: handleTableShortcut,
@@ -893,8 +899,8 @@ function App() {
     onToggleSidebar: sidebarPreference.toggle,
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
     onInsertTable: triggerTableInsert,
-    onViewModeChange: setViewMode,
-    onCycleViewMode: cycleViewMode,
+    onViewModeChange: userViewModeCommands.set,
+    onCycleViewMode: userViewModeCommands.cycle,
     onThemeModeChange: (mode) => void setThemeMode(mode),
     onOpenPreferences: handleOpenSettings,
   });
@@ -936,7 +942,9 @@ function App() {
           }
           return;
         }
-        // When opening from Finder/command line, use default view mode from preferences
+        // When opening from Finder/command line, use default view mode from preferences.
+        // Switching before the open is safe here: at cold launch there is no current
+        // document for the switch to reload (unlike drop / Finder-while-running, D51).
         setViewMode(defaultViewMode);
         await openPaths(paths);
         setLaunchPathsComplete(true);
@@ -953,9 +961,10 @@ function App() {
       if (!paths || paths.length === 0) return;
       const canHandle = await shouldHandleWindowEvent();
       if (!canHandle) return;
-      // When opening from Finder while app is running, use default view mode from preferences
-      setViewMode(defaultViewMode);
-      void openPaths(paths);
+      // When opening from Finder while app is running, the default view mode from
+      // preferences applies once a file has opened; if every open fails, the current
+      // document keeps its mode (D51).
+      void openPaths(paths, onFirstSuccess(() => setViewMode(defaultViewMode)));
     },
     [defaultViewMode, openPaths, setViewMode, shouldHandleWindowEvent],
   );
@@ -1027,42 +1036,23 @@ function App() {
         onNewDocument={createDocument}
       />
 
-      <RecoveryDialog
+      {/* The App-level dialogs, incl. this window's ADR-0042 MCP prompt (D42 WI-3). */}
+      <AppDialogs
         drafts={drafts}
-        onRecover={handleRecoverDraft}
-        onDiscard={handleDiscardDraft}
-      />
-      <ReloadDialog
-        open={Boolean(reloadMessage)}
-        message={reloadMessage ?? ""}
+        onRecoverDraft={handleRecoverDraft}
+        onDiscardDraft={handleDiscardDraft}
+        reloadMessage={reloadMessage}
         onReload={handleReloadFile}
-        onIgnore={handleIgnoreReload}
+        onIgnoreReload={handleIgnoreReload}
+        encodingIssue={encodingIssue}
+        onEncodingSelect={handleEncodingSelect}
+        onEncodingCancel={clearEncodingIssue}
+        confirmDialog={confirmDialog}
+        onConfirmClose={handleConfirmClose}
+        onCancelClose={handleCancelClose}
+        settingsOpen={settingsOpen}
+        onSettingsClose={() => setSettingsOpen(false)}
       />
-      <EncodingDialog
-        open={Boolean(encodingIssue)}
-        path={encodingIssue?.path ?? ""}
-        detected={encodingIssue?.detected ?? "unknown"}
-        onSelect={handleEncodingSelect}
-        onCancel={clearEncodingIssue}
-      />
-      <ConfirmDialog
-        open={confirmDialog.open}
-        title="Unsaved changes"
-        message={confirmDialog.message}
-        confirmLabel="Discard changes"
-        destructive
-        cancelLabel="Keep editing"
-        onConfirm={handleConfirmClose}
-        onCancel={handleCancelClose}
-      />
-      <SettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
-      {/* ADR-0042: this window's MCP write-confirmation prompt. Every window
-          renders App, so each owns its prompt; after Settings so it stacks
-          above an open Settings dialog. */}
-      <McpWriteConfirm />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />
     </div>
   );

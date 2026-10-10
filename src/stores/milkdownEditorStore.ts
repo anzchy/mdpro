@@ -28,6 +28,9 @@
  *   2. Decision points call `flushPendingEdits(reason)`, which runs every live
  *      flusher and aggregates: `failed` if any failed or threw, else `written`
  *      if any wrote, else `clean`. A flusher's `destroyed` counts as `clean`.
+ *   3. A caller that acts on one document only (MCP table actions, D58) calls
+ *      `flushPendingEditsFor(documentId, reason)`, which runs that document's live
+ *      flusher alone, with the same per-flusher semantics and logging.
  *
  * Reload flow (D15-WI-5): a wholesale replacement of an open document's content
  * from outside the editor (file reload, MCP write_document, and MCP insert_content
@@ -50,10 +53,14 @@
  *   newer registration. The live flusher is the newest un-cleaned entry.
  * - `flushPendingEdits` never throws and never short-circuits: every document's
  *   flusher runs even after one fails, so a save cannot skip another tab's edit.
+ * - `flushPendingEditsFor` shares that per-registration step (`flushLive`), so a
+ *   targeted flush never touches another document's flusher and a throwing one
+ *   cannot refuse an action on a different document (D58, ADR-0065).
  *
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
  * @coordinates-with src/plugins/milkdown/editSync/plugin.ts — registers flushers
  * @coordinates-with src/App.tsx
+ * @coordinates-with src/hooks/mcpTableAction.ts — the flushPendingEditsFor caller
  * @coordinates-with src/utils/wholesaleReplace.ts — the reloadEditor caller
  * @coordinates-with src/utils/milkdownFocusCarry.ts — reads getEditor and
  *   editorGenerations to capture and arm the D37 focus carry
@@ -123,6 +130,13 @@ interface MilkdownEditorState {
    * documentStore. Returns `clean` when nothing is registered.
    */
   flushPendingEdits: (reason: string) => FlushResult;
+  /**
+   * Synchronously flush one document's pending WYSIWYG edits: only the newest
+   * registration for `documentId` runs, exactly as `flushPendingEdits` runs it.
+   * Never throws; a throw is logged and returns `failed`. Returns `clean` when the
+   * id has no registration.
+   */
+  flushPendingEditsFor: (documentId: string, reason: string) => FlushResult;
   /** Per-document editor generation. Absent means 0. */
   editorGenerations: Record<string, number>;
   /**
@@ -150,6 +164,16 @@ function runFlusher(documentId: string, flush: Flusher, reason: string): FlushSt
     });
     return "failed";
   }
+}
+
+/** Run the live (newest) registration of one document; `clean` when there is none. */
+function flushLive(
+  documentId: string,
+  registrations: readonly FlusherRegistration[] | undefined,
+  reason: string,
+): FlushStatus {
+  const live = registrations?.[registrations.length - 1];
+  return live ? runFlusher(documentId, live.flush, reason) : "clean";
 }
 
 export const useMilkdownEditorStore = create<MilkdownEditorState>((set, get) => ({
@@ -189,13 +213,14 @@ export const useMilkdownEditorStore = create<MilkdownEditorState>((set, get) => 
   flushPendingEdits: (reason) => {
     let aggregate: FlushStatus = "clean";
     for (const [documentId, registrations] of Object.entries(get().flushers)) {
-      const live = registrations[registrations.length - 1];
-      if (!live) continue;
-      const status = runFlusher(documentId, live.flush, reason);
+      const status = flushLive(documentId, registrations, reason);
       if (FLUSH_RANK[status] > FLUSH_RANK[aggregate]) aggregate = status;
     }
     return { status: aggregate };
   },
+  flushPendingEditsFor: (documentId, reason) => ({
+    status: flushLive(documentId, get().flushers[documentId], reason),
+  }),
 
   editorGenerations: {},
   reloadEditor: (documentId, reason) => {

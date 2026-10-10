@@ -11,22 +11,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
+import { readAppCssFile, readAppCssNonTheme } from "../src/test/appCss";
 
-const ROOT = path.resolve(__dirname, "..");
-const lightCss = fs.readFileSync(
-  path.join(ROOT, "src/styles/themes/light.css"),
-  "utf-8",
-);
-const darkCss = fs.readFileSync(
-  path.join(ROOT, "src/styles/themes/dark.css"),
-  "utf-8",
-);
-const globalsCss = fs.readFileSync(
-  path.join(ROOT, "src/styles/globals.css"),
-  "utf-8",
-);
+const lightCss = readAppCssFile("themes/light.css");
+const darkCss = readAppCssFile("themes/dark.css");
+const globalsCss = readAppCssNonTheme();
 
 describe("design tokens — light theme declarations", () => {
   it("declares --color-accent-soft", () => {

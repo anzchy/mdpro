@@ -1,19 +1,27 @@
 /**
  * @module LinkInsertModal
- * Purpose: React inline modal for inserting a hyperlink in WYSIWYG mode.
- * Replaces the unreliable window.prompt() (issue #25) with a visible overlay
- * that works correctly inside Tauri's WKWebView on macOS.
+ * Purpose: React inline modal for inserting a hyperlink in WYSIWYG and Source
+ * mode. Replaces the unreliable window.prompt() (issue #25; Source mode D55)
+ * with a visible overlay that works correctly inside Tauri's WKWebView on macOS.
+ * Its log lines carry the requesting editor as `screen` (store `mode`).
  *
  * Lifecycle:
  *   - Renders when useLinkInsertStore.pendingCallback is set (⌘K pressed).
  *   - User types URL and presses Enter or clicks "Insert".
- *   - Calls pendingCallback(url) to apply the ProseMirror link mark.
+ *   - Calls pendingCallback(url) to apply the link (ProseMirror mark, or
+ *     `[text](url)` in Source mode).
  *   - Calls clearPendingCallback() to hide the modal.
  *   - ESC or "Cancel" calls clearPendingCallback() without applying.
+ *   - useLinkInsertBinding clears the request (the modal unmounts) when the
+ *     active document switches or closes, or the view mode changes (D73); that
+ *     path logs `ui.link-insert.cancel`, not `ui.link-modal.cancel`.
  *
  * @coordinates-with src/stores/linkInsertStore.ts
  * @coordinates-with src/plugins/milkdown/typoraKeymapPlugin.ts
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
+ * @coordinates-with src/components/Editor/SplitView.tsx — Source mode mount (D55)
+ * @coordinates-with src/plugins/codemirror/linkPlugin.ts
+ * @coordinates-with src/hooks/useLinkInsertBinding.ts — closes it on a stale request (D73)
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -22,6 +30,7 @@ import { loggingService } from "../../services/loggingService";
 
 export function LinkInsertModal() {
   const pendingCallback = useLinkInsertStore((state) => state.pendingCallback);
+  const mode = useLinkInsertStore((state) => state.mode);
   const [urlValue, setUrlValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -40,10 +49,10 @@ export function LinkInsertModal() {
         event: "ui.link-modal.open",
         status: "success",
         actionId: loggingService.generateActionId(),
-        context: { screen: "wysiwyg" },
+        context: { screen: mode },
       });
     }
-  }, [isOpen]);
+  }, [isOpen, mode]);
 
   if (!isOpen) return null;
 
@@ -63,7 +72,7 @@ export function LinkInsertModal() {
       event: "ui.link-modal.submit",
       status: "success",
       actionId: loggingService.generateActionId(),
-      context: { screen: "wysiwyg", urlLength: url.length },
+      context: { screen: mode, urlLength: url.length },
     });
   };
 
@@ -74,7 +83,7 @@ export function LinkInsertModal() {
       event: "ui.link-modal.cancel",
       status: "cancel",
       actionId: loggingService.generateActionId(),
-      context: { screen: "wysiwyg" },
+      context: { screen: mode },
     });
   };
 

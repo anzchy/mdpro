@@ -2,15 +2,18 @@
 //!
 //! Key decisions:
 //! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`.
-//!   `publish_after` publishes a new recent list only once the menu built from
-//!   it has installed, so a failed rebuild never lets an old item index resolve
-//!   against the new list (audit row 18).
+//!   `MenuState::publish_op` merges a window's op under a sync lock and
+//!   publishes only once the menu built from it has installed (audit row 18);
+//!   the click handler below reads the list through the data mutex only.
+//! - The pure session-list merge (`RecentOp`, `apply_recent_op`) lives in
+//!   `menu_recent_merge.rs` (D43), shared by Rust and TS through a fixture.
 //! - "Stop Waiting and Quit…" sits directly after Quit in the app menu: always
 //!   enabled, no shortcut (ADR-0036). Its arm calls only
 //!   `quit_guard::deliver_escape` and emits no `menu:action`, so it works when
 //!   every webview is wedged (ADR-0030).
 //!
 //! @coordinates-with src/menu_recent.rs
+//! @coordinates-with src/menu_recent_merge.rs
 //! @coordinates-with src/commands/menu.rs
 //! @coordinates-with src-tauri/src/services/quit_guard/driver_escape.rs
 
@@ -49,6 +52,9 @@ pub const MENU_APP_STOP_WAITING_QUIT: &str = "menu.app.stop_waiting_quit";
 mod menu_recent;
 use menu_recent::build_recent_submenu;
 pub use menu_recent::{publish_after, MenuState};
+
+#[path = "menu_recent_merge.rs"]
+pub mod menu_recent_merge;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

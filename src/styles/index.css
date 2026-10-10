@@ -1,0 +1,19 @@
+/* App CSS entry, imported once by src/main.tsx. Only comments and @import lines; order is cascade order. */
+@import "./globals.css";
+@import "./sections/app-shell.css";
+@import "./sections/editor-source.css";
+@import "./sections/buttons-dialog.css";
+@import "./sections/table-context-menu.css";
+@import "./sections/table-insert-modal.css";
+@import "./sections/link-insert-modal.css";
+@import "./sections/recovery-toast.css";
+@import "./sections/settings-shell.css";
+@import "./sections/settings-pages.css";
+@import "./sections/settings-rows.css";
+@import "./sections/settings-mcp.css";
+@import "./sections/responsive.css";
+@import "./sections/tab-bar.css";
+@import "./sections/toc-sidebar.css";
+@import "./sections/settings-about.css";
+@import "./themes/light.css";
+@import "./themes/dark.css";

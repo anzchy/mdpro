@@ -13,6 +13,7 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { useLayoutEffect, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -49,7 +50,7 @@ import { useLoggingStore } from "../src/stores/loggingStore";
 
 const fx = JSON.parse(
   readFileSync(resolve(__dirname, "fixtures/mcp-confirm-contract.json"), "utf8"),
-) as { events: { request: string }; samples: Array<Record<string, unknown>> };
+) as { events: { request: string; resolved: string }; samples: Array<Record<string, unknown>> };
 
 const replace = fx.samples.find((s) => s.operation === "replace") as Record<string, unknown>;
 
@@ -234,4 +235,158 @@ describe("McpWriteConfirm Escape (D34 WI-3)", () => {
       expect(last.ev.defaultPrevented).toBe(false);
     },
   );
+});
+
+// ---------------------------------------------------------------------------
+// D42 WI-2 — `onPromptChange`, the container's report of its shown prompt to its parent
+// (Cases 2.1 … 2.4 of `.claude/tdd-guardian/tests-20261008-131500.md`; Case 2.5 is the
+// unmodified CT-2 … CT-6 above plus every other file that renders `<McpWriteConfirm />`).
+//
+// Law: the reported sequence is the consecutive-deduplicated sequence of
+// `prompt?.requestId` values committed to the screen, initial `null` excluded — `seen`
+// never holds two equal adjacent values, never starts with `null`, and its last element
+// is the id of the dialog in the DOM (`null` when none). Mock boundary: MB-T (the Tauri
+// event transport). Paired real path: PAIR-T —
+// `payload_tests.rs::p1_request_payload_matches_the_contract_for_every_operation`,
+// `::p2_resolved_payload_covers_every_wire_outcome`,
+// `http_tests.rs::h3_each_real_outcome_through_the_gate_yields_its_status` (Rust lane),
+// and device check G-D42-3 (WI-5).
+// ---------------------------------------------------------------------------
+
+const resolvedEvent = fx.events.resolved;
+const resolve1 = (id: string) => ({ requestId: id, outcome: "approved" });
+const confirmDialog = () => screen.queryByRole("dialog", { name: /write confirmation/i });
+
+/** The invariant after every step: a dialog is shown exactly when the last report is non-null. */
+function expectScreenMatches(seen: (string | null)[], title: string | null) {
+  const last = seen.length === 0 ? null : seen[seen.length - 1];
+  const dialog = confirmDialog();
+  if (last === null) {
+    expect(dialog).toBeNull();
+  } else {
+    expect(dialog).not.toBeNull();
+    expect(dialog).toHaveAccessibleDescription(new RegExp(title ?? "^$"));
+  }
+}
+
+describe("McpWriteConfirm onPromptChange (D42 WI-2)", () => {
+  it("2.1: request, resolve, request, resolve-unknown → [r1, null, r2], screen matches after every step", async () => {
+    const seen: (string | null)[] = [];
+    render(<McpWriteConfirm onPromptChange={(id) => seen.push(id)} />);
+    await settle();
+    expect(seen).toStrictEqual([]);
+    expectScreenMatches(seen, null);
+
+    await deliver(fx.events.request, req("r1", "Alpha"));
+    expect(seen).toStrictEqual(["r1"]);
+    expectScreenMatches(seen, "Alpha");
+
+    await deliver(resolvedEvent, resolve1("r1"));
+    expect(seen).toStrictEqual(["r1", null]);
+    expectScreenMatches(seen, null);
+
+    await deliver(fx.events.request, req("r2", "Beta"));
+    expect(seen).toStrictEqual(["r1", null, "r2"]);
+    expectScreenMatches(seen, "Beta");
+
+    await deliver(resolvedEvent, resolve1("zz-unknown"));
+    await settle();
+    expect(seen).toStrictEqual(["r1", null, "r2"]);
+    expectScreenMatches(seen, "Beta");
+
+    expect(replies()).toStrictEqual([]);
+  });
+
+  it("2.2: a queued replacement fires the new id with no null between, and nothing while only queued", async () => {
+    const user = userEvent.setup();
+    const seen: (string | null)[] = [];
+    render(<McpWriteConfirm onPromptChange={(id) => seen.push(id)} />);
+    await settle();
+
+    await deliver(fx.events.request, req("r1", "Alpha"));
+    await deliver(fx.events.request, req("r2", "Beta"));
+    expect(seen).toStrictEqual(["r1"]);
+    expectScreenMatches(seen, "Alpha");
+
+    await deliver(resolvedEvent, resolve1("r1"));
+    expect(seen).toStrictEqual(["r1", "r2"]);
+    expect(confirmDialog()).toHaveAccessibleDescription(/Beta/);
+
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+    await settle();
+    expect(seen).toStrictEqual(["r1", "r2", null]);
+    expect(confirmDialog()).toBeNull();
+    expect(replies()).toStrictEqual([
+      { cmd: "mcp_confirm_reply", args: { requestId: "r2", approved: true } },
+    ]);
+  });
+
+  it("2.3: a duplicate request and unchanged-id re-renders do not fire; the latest callback is the one called", async () => {
+    const a: (string | null)[] = [];
+    const b: (string | null)[] = [];
+    const ctl: { bump: () => void; useB: () => void } = { bump: () => {}, useB: () => {} };
+
+    function Parent() {
+      const [, setTick] = useState(0);
+      const [which, setWhich] = useState<"A" | "B">("A");
+      ctl.bump = () => setTick((t) => t + 1);
+      ctl.useB = () => setWhich("B");
+      // A new inline arrow on every render, so a hook keyed on the callback would re-fire.
+      return <McpWriteConfirm onPromptChange={(id) => (which === "A" ? a : b).push(id)} />;
+    }
+
+    render(<Parent />);
+    await settle();
+
+    await deliver(fx.events.request, req("r1", "Alpha"));
+    await deliver(fx.events.request, req("r1", "Alpha"));
+    for (let i = 0; i < 3; i += 1) act(() => ctl.bump());
+    await settle();
+    expect(a).toStrictEqual(["r1"]);
+    expect(b).toStrictEqual([]);
+
+    act(() => ctl.useB());
+    await deliver(resolvedEvent, resolve1("r1"));
+    await settle();
+    expect(a).toStrictEqual(["r1"]);
+    expect(b).toStrictEqual([null]);
+    expect(confirmDialog()).toBeNull();
+  });
+
+  it("2.4: the report lands in the same commit as the dialog (a layout-phase probe already sees it)", async () => {
+    const seen: (string | null)[] = [];
+    const probeSaw: (string | null)[][] = [];
+
+    // ORDERING DEPENDENCY: layout effects run in sibling order, so the probe must come
+    // AFTER `McpWriteConfirm` in the JSX. Moved before it, this case would fail for a
+    // reason unrelated to the implementation.
+    function CommitProbe() {
+      const [tick, setTick] = useState(0);
+      useLayoutEffect(() => {
+        const set = bus.window.get(fx.events.request) ?? new Set<Cb>();
+        const cb: Cb = () => setTick((t) => t + 1);
+        set.add(cb);
+        bus.window.set(fx.events.request, set);
+        return () => void set.delete(cb);
+      }, []);
+      useLayoutEffect(() => {
+        if (tick > 0) probeSaw.push([...seen]);
+      }, [tick]);
+      return null;
+    }
+
+    render(
+      <>
+        <McpWriteConfirm onPromptChange={(id) => seen.push(id)} />
+        <CommitProbe />
+      </>,
+    );
+    await settle();
+
+    await deliver(fx.events.request, req("r1", "Alpha"));
+    expect(probeSaw.length).toBeGreaterThan(0);
+    expect(probeSaw[probeSaw.length - 1]).toStrictEqual(["r1"]);
+    expect(confirmDialog()).not.toBeNull();
+    expect(seen).toStrictEqual(["r1"]);
+  });
 });

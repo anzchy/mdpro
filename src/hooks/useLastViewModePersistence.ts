@@ -1,58 +1,76 @@
 /**
- * Purpose: persist the window's view mode as `lastViewMode`, and re-apply the
- * stored value when no document is open, without letting startup overwrite the
- * stored value before it has been read (ADR-0031 step 5, WI-2, Amendment A1).
- * Moved out of App.tsx, which wrote `lastViewMode` on the first commit after
- * hydration and so replaced the stored value with a default before the read ran.
+ * Purpose: persist the user's explicit view-mode choice as `lastViewMode`, and
+ * re-apply the stored value when no document is open, without letting startup
+ * overwrite the stored value before it has been read (ADR-0031 step 5, WI-2,
+ * Amendment A1) and without persisting automatic switches (ADR-0031 step 6,
+ * ADR-0053). Moved out of App.tsx, which wrote `lastViewMode` on the first
+ * commit after hydration and so replaced the stored value with a default
+ * before the read ran.
  *
- * Pipeline: every `viewMode` change → `observed` into the latch → a write only
- *   once armed and only when the mode moved. Settle (arms or re-baselines the
- *   latch, never writes):
+ * Pipeline: every new `userViewModeChoice` (a new `seq`) → `observed(choice.mode)`
+ *   into the latch → a write only once armed and only when the mode differs
+ *   from `lastSeen`. Settle (arms or re-baselines the latch, never writes):
  *   (a) `launchPathsComplete && preferencesLoaded && !activeDocument` →
- *       `getPreferences` → `settled(stored)` → `setViewMode(stored)`;
+ *       `getPreferences(<phase purpose>)` → `settled(stored)` → programmatic
+ *       `useEditorStore.getState().setViewMode(stored)`;
  *   (b) a document is active at that point while still holding →
  *       `settled(viewMode)`, no read;
  *   (c) the read rejects → `settled(viewMode)`.
- *   A stale read result (effect cleaned up, or a persisted change since the
- *   read began) is discarded: no re-baseline, no `setViewMode`; a still-holding
- *   latch settles on the current mode instead.
+ *   A stale read result (effect cleaned up, or a user choice since the read
+ *   began) is discarded: no re-baseline, no apply; a still-holding latch
+ *   settles on the current mode instead.
  *
  * Key decisions:
+ * - Only explicit user commands persist (ADR-0053). The hook observes
+ *   `userViewModeChoice`, keyed on its `seq`, never `viewMode`: the
+ *   large-document degrade, drop, Finder open, launch paths and `?open=`
+ *   switch the mode programmatically and write nothing. A user command that
+ *   does not change the mode still counts (D-3); the latch's `lastSeen`
+ *   dedupe stops a duplicate write.
+ * - The stored mode is applied with a programmatic `setViewMode`, so the
+ *   startup apply and the re-apply on closing the last document never record
+ *   a user choice and never write.
  * - The decision logic is the pure latch in `utils/lastViewModeLatch.ts`; this
  *   hook only feeds it events and performs the write it returns.
- * - `viewMode` is read from the parameter only, never from the store, so a
- *   mode change and a document change delivered in one commit are seen together.
+ * - `viewMode` is still read (through a ref) as the settle value in case (b),
+ *   case (c) and after a stale read. It is never persisted by itself.
  * - Case (b) settles only while holding. A later document change must not
- *   re-baseline, or a same-commit mode change would be swallowed.
- * - Closing the last document re-runs the read and re-applies the stored
- *   value (preserved from App.tsx); that is a `settled`, so it never writes.
- * - Automatic changes after settle (e.g. the large-document degrade to source)
- *   are still persisted, as before. Which transitions count as user intent, and
- *   full restore semantics, belong to ADR-0031 step 6.
- * - Staleness counts only persisted changes (made while armed) as a user choice;
- *   a startup change while holding still loses to the read (A1, LVH-02).
+ *   re-baseline, or a same-commit choice would be swallowed.
+ * - Staleness counts user choices, not modes: `userChoiceRef` bumps on EVERY
+ *   choice seen while armed, including one the dedupe skips, so a pending
+ *   close re-read never overrides it (LVI-07, LVI-07b). A choice made while
+ *   holding still loses to the startup read (A1, LVH-02).
+ * - `userViewModeChoice` must be a reactive subscription in the caller; a
+ *   `getState()` snapshot would never deliver a no-change command (UEP-03c).
+ * - The read is labelled for the `preferences.read` log (D24 WI-4, GA-12):
+ *   `view_mode_startup_settle` while the latch is holding (case (a) at
+ *   startup), `view_mode_restore_on_close` once armed (re-read after the last
+ *   document closes). A window that settles with no document therefore reads
+ *   once more than App's `app_hydrate` read (the "two reads" finding, PRL-05).
  * - Logs carry the settle reason only: no mode, path or label.
  *
  * @coordinates-with src/utils/lastViewModeLatch.ts
+ * @coordinates-with src/stores/editorStore.ts — `userViewModeChoice`, `setViewMode`
  * @coordinates-with src/App.tsx
  */
 import { useEffect, useRef } from "react";
 import { preferencesService } from "../services/preferencesService";
 import { loggingService } from "../services/loggingService";
+import { useEditorStore } from "../stores/editorStore";
 import { migrateViewMode } from "../utils/viewModeUtils";
-import { HOLDING, isHolding, reduce, type LatchEvent, type LatchState } from "../utils/lastViewModeLatch";
+import { HOLDING, isHolding, reduce, type LatchState } from "../utils/lastViewModeLatch";
 import type { Document } from "../types/document";
-import type { ViewMode } from "../types/editor";
+import type { UserViewModeChoice, ViewMode } from "../types/editor";
 import type { LogLevel } from "../types/logging";
 
 export interface LastViewModePersistenceOptions {
   preferencesLoaded: boolean;
   launchPathsComplete: boolean;
   activeDocument: Document | null;
-  /** The mode currently shown; the only source the hook observes. */
+  /** The mode currently shown: the settle value for (b), (c) and a stale read. Never persisted. */
   viewMode: ViewMode;
-  /** Applies the stored mode read at settle point (a). */
-  setViewMode: (mode: ViewMode) => void;
+  /** The latest explicit user command (reactive). The only thing the hook persists. */
+  userViewModeChoice: UserViewModeChoice;
 }
 
 type SettleReason = "read_applied" | "document_active" | "read_failed" | "stale_read_discarded";
@@ -76,29 +94,28 @@ export function useLastViewModePersistence({
   launchPathsComplete,
   activeDocument,
   viewMode,
-  setViewMode,
+  userViewModeChoice,
 }: LastViewModePersistenceOptions): void {
   const latchRef = useRef<LatchState<ViewMode>>(HOLDING);
   const viewModeRef = useRef<ViewMode>(viewMode);
-  /** Bumped on every persisted (armed) change: a user choice a pending read must not undo. */
+  /** Bumped on every user choice seen while armed: a choice a pending read must not undo. */
   const userChoiceRef = useRef(0);
   const hasDocument = activeDocument !== null;
+  const { seq: choiceSeq, mode: choiceMode } = userViewModeChoice;
 
   useEffect(() => {
     viewModeRef.current = viewMode;
   });
 
+  // Keyed on the choice (a new `seq` per user command), never on `viewMode`.
   useEffect(() => {
-    const dispatch = (event: LatchEvent<ViewMode>) => {
-      const { state, write } = reduce(latchRef.current, event);
-      latchRef.current = state;
-      if (write === null) return;
-      userChoiceRef.current += 1;
-      // setPreferences logs and toasts its own failure; nothing to add here.
-      preferencesService.setPreferences({ lastViewMode: write }).catch(() => undefined);
-    };
-    dispatch({ kind: "observed", mode: viewMode });
-  }, [viewMode]);
+    if (!isHolding(latchRef.current)) userChoiceRef.current += 1;
+    const { state, write } = reduce(latchRef.current, { kind: "observed", mode: choiceMode });
+    latchRef.current = state;
+    if (write === null) return;
+    // setPreferences logs and toasts its own failure; nothing to add here.
+    preferencesService.setPreferences({ lastViewMode: write }).catch(() => undefined);
+  }, [choiceSeq, choiceMode]);
 
   useEffect(() => {
     if (!launchPathsComplete || !preferencesLoaded) return;
@@ -124,7 +141,10 @@ export function useLastViewModePersistence({
     };
     const applyPreferredViewMode = async () => {
       try {
-        const prefs = await preferencesService.getPreferences();
+        // GA-12 read purpose by latch phase at read start (D24 WI-4, PRL-05).
+        const prefs = await (isHolding(latchRef.current)
+          ? preferencesService.getPreferences("view_mode_startup_settle")
+          : preferencesService.getPreferences("view_mode_restore_on_close"));
         if (cancelled || userChoiceRef.current !== choiceAtStart) {
           // Stale: never re-baseline or apply. Still arm a holding latch.
           if (isHolding(latchRef.current)) settleOnCurrent("stale_read_discarded");
@@ -132,10 +152,10 @@ export function useLastViewModePersistence({
           return;
         }
         const stored = migrateViewMode(prefs.lastViewMode ?? prefs.defaultViewMode);
-        // (a) Settle before applying, so applying the stored mode never writes it.
+        // (a) Settle before applying; the apply is programmatic, so it never writes.
         latchRef.current = reduce(latchRef.current, { kind: "settled", mode: stored }).state;
         logSettle("read_applied");
-        setViewMode(stored);
+        useEditorStore.getState().setViewMode(stored);
       } catch {
         // (c) Keep the current mode and settle on it (a stale failure only if holding).
         if (cancelled && !isHolding(latchRef.current)) return;
@@ -146,5 +166,5 @@ export function useLastViewModePersistence({
     return () => {
       cancelled = true;
     };
-  }, [launchPathsComplete, preferencesLoaded, hasDocument, setViewMode]);
+  }, [launchPathsComplete, preferencesLoaded, hasDocument]);
 }

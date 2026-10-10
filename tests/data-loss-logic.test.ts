@@ -45,6 +45,11 @@ const APP_SRC = [
   fs.readFileSync(path.resolve(__dirname, "../src/App.tsx"), "utf-8"),
   fs.readFileSync(path.resolve(__dirname, "../src/hooks/useWindowCloseGuard.ts"), "utf-8"),
 ].join("\n");
+// D42 WI-3 moved App's dialog JSX into AppDialogs.tsx; the handlers stay in App.tsx.
+const APP_DIALOGS_SRC = fs.readFileSync(
+  path.resolve(__dirname, "../src/components/AppDialogs.tsx"),
+  "utf-8",
+);
 const WATCHER_SRC = fs.readFileSync(
   path.resolve(__dirname, "../src/hooks/useFileWatcher.ts"),
   "utf-8",
@@ -84,10 +89,13 @@ describe("data-loss: unsaved-changes → window close", () => {
   });
 
   it("renders a styled ConfirmDialog for unsaved changes (rule 30: no window.confirm)", () => {
-    expect(APP_SRC).toMatch(/ConfirmDialog/);
-    expect(APP_SRC).toMatch(/unsaved changes/i);
-    // Guardrail: must not regress to the unreliable native confirm.
+    // Retargeted in D42 WI-3 (policy rule 12): the dialog JSX moved from App.tsx into
+    // AppDialogs.tsx; the specification (a styled ConfirmDialog, never window.confirm) did not.
+    expect(APP_DIALOGS_SRC).toMatch(/ConfirmDialog/);
+    expect(APP_DIALOGS_SRC).toMatch(/unsaved changes/i);
+    // Guardrail: must not regress to the unreliable native confirm, in either file.
     expect(APP_SRC).not.toMatch(/window\.confirm\(/);
+    expect(APP_DIALOGS_SRC).not.toMatch(/window\.confirm\(/);
   });
 
   it("Cancel aborts the close without discarding (handleCancelClose clears pending state only)", () => {

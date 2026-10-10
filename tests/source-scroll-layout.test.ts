@@ -1,10 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import fs from "fs";
-import path from "path";
+import { readAppCssNonTheme } from "../src/test/appCss";
 
-const cssPath = path.resolve(__dirname, "../src/styles/globals.css");
-const css = fs.readFileSync(cssPath, "utf-8");
+const css = readAppCssNonTheme();
 
 function blockFor(selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -18,7 +18,8 @@ const ALLOWED_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
 
 /// Validate that a file path is safe for open/save operations.
 /// Rejects path traversal and non-document file extensions.
-fn validate_file_path(path: &str) -> Result<(), FileError> {
+/// Also used by `draft_recover_watch` to gate the D59 recover-time watch.
+pub(crate) fn validate_file_path(path: &str) -> Result<(), FileError> {
     let p = std::path::Path::new(path);
     if p.components()
         .any(|c| matches!(c, std::path::Component::ParentDir))
@@ -276,13 +277,31 @@ fn encode_for_save(content: &str, encoding_hint: Option<&str>) -> Result<Vec<u8>
     encoding::encode_bytes(content, enc).map_err(|message| FileError::IoError { message })
 }
 
+/// Process-wide sequence that makes every `atomic_write` temp name unique (D70).
+static ATOMIC_WRITE_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Same-directory temp path for one `atomic_write` call:
+/// `.{file_name}.{pid}.{seq}.tmp`. The pid scopes it to this process and the
+/// sequence number to this call, so two concurrent saves of one target (D70)
+/// never write through the same temp file.
+fn atomic_temp_path(parent: &std::path::Path, target: &std::path::Path) -> PathBuf {
+    let file_name = target
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("mdpro");
+    let seq = ATOMIC_WRITE_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    parent.join(format!(".{}.{}.{}.tmp", file_name, std::process::id(), seq))
+}
+
 /// Atomically write `bytes` to `target`.
 ///
 /// Truncate-then-write (`std::fs::write`) destroys the original file if the
 /// process dies or the disk fills mid-write: the user is left with a truncated
 /// or empty file and the prior contents are gone. Instead we:
 ///   1. Write to a temp file in the *same directory* (so the final `rename` is a
-///      same-filesystem atomic operation, not a cross-device copy).
+///      same-filesystem atomic operation, not a cross-device copy). The temp
+///      name is unique per call and created with `create_new` (D70), so
+///      concurrent writes to one target each rename a whole payload.
 ///   2. `flush` + `sync_all` (fsync) the temp file so its bytes are durable.
 ///   3. `rename` the temp over the target — atomic on POSIX: a concurrent reader
 ///      sees either the whole old file or the whole new file, never a partial.
@@ -302,18 +321,16 @@ fn atomic_write(target: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
     // replacement keeps the same mode rather than inheriting the temp's.
     let original_perms = std::fs::metadata(target).ok().map(|m| m.permissions());
 
-    // Unique same-dir temp name: process id + target file name keeps it scoped
-    // and avoids clobbering a concurrent save of a different file.
-    let file_name = target
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("mdpro");
-    let tmp_name = format!(".{}.{}.tmp", file_name, std::process::id());
-    let tmp_path = parent.join(tmp_name);
+    // D70: a temp path unique to this call, opened with `create_new`, so two
+    // concurrent saves of the same file never share (or truncate) one temp.
+    let tmp_path = atomic_temp_path(parent, target);
 
     // Scoped block so the File handle is closed before the rename.
     let write_and_sync = || -> std::io::Result<()> {
-        let mut file = std::fs::File::create(&tmp_path)?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp_path)?;
         file.write_all(bytes)?;
         file.flush()?;
         file.sync_all()?;
@@ -400,6 +417,10 @@ fn validate_save_path(path: &std::path::Path) -> Result<(), &'static str> {
 #[cfg(test)]
 #[path = "file_size_limit_tests.rs"]
 mod file_size_limit_tests;
+
+#[cfg(test)]
+#[path = "atomic_write_tests.rs"]
+mod atomic_write_tests;
 
 #[cfg(test)]
 mod tests {

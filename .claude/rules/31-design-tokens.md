@@ -71,7 +71,6 @@ update this table in the same commit.
 | Layer | z-index | Used by |
 |---|---|---|
 | Base | `auto` | Editor, sidebar, split divider |
-| Recent dropdown | `10` | `.toolbar-recent-list` |
 | Dialog backdrop | `20` | `.dialog-backdrop` |
 | Toast | `30` | `.toast` |
 | ~~Dev toolbar (web only)~~ | ~~`100`~~ | none: `.dev-toolbar` was removed in `1703dbb` (2026-10-07) |

@@ -29,6 +29,7 @@ vi.mock("../src/services/loggingService", () => ({
   },
 }));
 
+import { editorViewCtx, parserCtx } from "@milkdown/kit/core";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
@@ -90,7 +91,20 @@ function event(
 
 describe("processTableActionEvent — Risk R12 (WYSIWYG live update)", () => {
   it("calls replaceAll on the live Milkdown editor when WYSIWYG is active", () => {
-    const actionSpy = vi.fn();
+    // D58 / ADR-0065: the WYSIWYG apply now runs inside `editor.action(ctx => …)`, reads
+    // the view and pre-parses through `ctx`, and checks the view advanced. The double runs
+    // the callback against a ctx with a view and a parser, and the mocked replaceAll
+    // advances that view, as a real dispatch would.
+    const view = { state: { doc: { eq: () => false } } };
+    const ctx = {
+      get: (slice: unknown) =>
+        slice === editorViewCtx ? view : slice === parserCtx ? () => ({ eq: () => false }) : undefined,
+    };
+    replaceAllMock.mockImplementationOnce((markdown: string) => () => {
+      view.state = { doc: { eq: () => false } };
+      return { replacedWith: markdown, ctx };
+    });
+    const actionSpy = vi.fn((fn: (c: typeof ctx) => unknown) => fn(ctx));
     useMilkdownEditorStore.setState({
       getEditor: () => ({ action: actionSpy }),
     });

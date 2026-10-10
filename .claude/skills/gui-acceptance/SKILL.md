@@ -6,9 +6,34 @@ description: Run empirical GUI acceptance QA for mdpro by driving the real app w
 # GUI Acceptance (computer use)
 
 Empirical acceptance testing of mdpro by driving the shipping app on the real
-desktop. This is the lane of last resort: it is slow, it is manual, and it puts
-the user's personal desktop on screen. Use it only for obligations the automated
-lanes provably cannot discharge.
+desktop. This is the lane of last resort: it is slow, and it puts the user's
+personal desktop on screen. Use it only for obligations the automated lanes
+provably cannot discharge.
+
+**Automation policy (user ruling, 2026-10-08): automate every step that can be
+automated; bring in the user only where automation truly cannot work.**
+
+- **Default executor:** computer use plus shell drives the whole run, i.e.
+  typing, shortcuts, clicks, focus changes, MCP requests and log reads. Nobody
+  needs to sit at the console.
+- **When the user steps in:** only for a step with a known, recorded tool
+  limit, such as the Escape `keydown` (§9). Or when an automated attempt fails
+  because of the tool rather than the app.
+  - The brief names each such step up front.
+  - At that step the run stops and asks the user, then continues automatically.
+  - The user is not handed whole checks "just in case".
+- **Verdict when the tool can't do a step:** if a step fails for a tool reason
+  and the user is not available, record the criterion as **NOT VERIFIED (tool
+  limit)**, never FAIL. Rerun that step with the user later.
+- **Record every deviation in the report** where automation took a different
+  path from a real user. Example: refocusing by app activation instead of a
+  title-bar click.
+- **Discarding a scratch copy (user ruling, 2026-10-08):**
+  - The executor may click **Discard changes** without the user, but only on the
+    scratch copy of a fixture, either at quit or when closing a tab at the end
+    of the run.
+  - On any other document, Discard still needs the user.
+  - Record each Discard in the report.
 
 WI-7 of the Source-mode scroll-spy plan is the worked reference throughout, and
 the trial-and-error that produced this document is recorded in §8.
@@ -351,6 +376,15 @@ Rules for the table:
 - **Call `request_access` before any action**, listing only the applications
   the task needs. Do not request access to an unrelated app to get past a
   blocked coordinate.
+- **Request every app in one call, as the run's first computer-use step.**
+  Grants last only for the current session, and a dispatch that starts with
+  `/clear` is a new session, so each run starts with no grants. No setting
+  pre-approves apps or persists grants
+  (<https://code.claude.com/docs/en/computer-use.md>, "Approve apps per
+  session"). One up-front `request_access` that lists every app the brief
+  touches (`mdpro` plus e.g. `Finder`) means the user clicks **Allow for this
+  session** once. If a later step needs an app nobody foresaw, request it then.
+  Every brief therefore names its full app list in the preconditions.
 - **Never modify system or security settings** to unblock a test.
 - **Never click a web link** with computer-use tools.
 
@@ -374,8 +408,24 @@ mdpro acts on Escape at `keydown`. Two things on this machine stop that
 `keydown` from reaching WKWebView (found in the D34 device check, 2026-10-02):
 
 - **The computer-use `key escape` delivers only a `keyup`**, under any input
-  source. A harness Escape proves nothing either way. Every Esc criterion
-  needs the user to press the physical key.
+  source. A harness Escape proves nothing either way.
+  - Under the automation policy (top of this file), first try a real key event
+    from the console session's shell, with mdpro frontmost:
+    `osascript -e 'tell application "System Events" to key code 53'`. That
+    shell holds Terminal's Accessibility grant; an SSH shell does not.
+  - Count the attempt only when the log shows the Esc outcome, e.g.
+    `ui.dialog.escape` or `ui.dialog.cancel`.
+  - If nothing lands, stop and ask the user to press the physical key.
+  - **The first trial failed** (D42 run on the Mac mini, 2026-10-08, 4 of 4
+    presses). For each press:
+    - the focus gate passed, and `tauri-app` was frontmost;
+    - `osascript` exited 0;
+    - no escape or cancel line was logged.
+
+    The cause was not investigated. A suspect is that the agent's Bash tool
+    does not inherit Terminal's Accessibility grant. Until a run proves a
+    working route, plan every Esc criterion as a user step: name it in the
+    brief, and warn the user before the run starts.
 - **IMEs such as WeType swallow the Escape `keydown`**, even in their English
   mode. Before an Esc check, have the user switch the input source to ABC.
   This is accepted, not a bug to chase
@@ -389,7 +439,14 @@ was eaten before the page, not that the handler is wrong.
 **MCP write-confirm prompt.** The write applies at once, with no prompt, when
 the window owning the document is focused. To get a prompt, activate Finder
 first, send the request in the background, then bring mdpro forward. The prompt
-times out after 60 s (`408`), so have the user ready at the key.
+times out after 60 s (`408`). Script the whole sequence so it finishes well
+inside that window. If a step in it needs the user, warn them before the
+request goes out.
+
+**Focus over computer use.** While Terminal is frontmost, a computer-use click
+on mdpro's title bar does not reach mdpro (r4, 2026-10-08). Refocus mdpro with
+`open_application("mdpro")`, and confirm `window.focus` in the log before the
+next key. Record the activation as a deviation from a real click.
 
 ---
 
@@ -419,6 +476,7 @@ follow-up**:
 [ ] Confirmed the criteria genuinely need layout (§1)
 [ ] pnpm tauri build --bundles app                      ← NOT pnpm tauri dev
 [ ] Bundle mtime postdates every source file under test (§3)
+[ ] One up-front request_access listing every app the run needs (§9)
 [ ] Killed stray mdpro / mdpro_mcp processes
 [ ] Launched by absolute path with the fixture argument (§4)
 [ ] ps confirms the PID runs from the build path

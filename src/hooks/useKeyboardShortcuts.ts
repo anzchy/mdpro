@@ -188,7 +188,9 @@ export function useKeyboardShortcuts({
         onClose(actionId);
       } else if (onCycleViewMode && !inCodeMirror && matchesShortcut(event, shortcuts.viewCycleViewMode)) {
         // CodeMirror has its own high-precedence Mod-/ binding (see Editor.tsx
-        // viewModeKeymap) that calls cycleViewMode directly. The !inCodeMirror
+        // viewModeKeymap) that calls userViewModeCommands.cycle directly. App
+        // passes the same adapter here, so both paths carry the user intent
+        // (ADR-0031 step 6). The !inCodeMirror
         // guard prevents this window-level handler from firing a second time
         // when the editor consumes the event. WYSIWYG / non-editor contexts
         // bubble up here and cycle through this branch.

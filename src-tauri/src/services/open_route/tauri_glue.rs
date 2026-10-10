@@ -9,8 +9,13 @@
 //!   with `get_webview_window` first, because `emit_to` a missing label is
 //!   not an error: without the lookup a window closed between building the
 //!   live set and the emit would silently swallow the open.
-//! - **The route log is Info/Success**, except when the executor passes an
-//!   emit error (the new-window fallback): then it is Warn/Fail with the text.
+//! - **The route log's level and status come from `route_log_severity`**:
+//!   Info/Success, Warn/Fail with the text when the executor passes an emit
+//!   error, Warn/Cancel for a path refused under a pending quit.
+//! - **The D74 quit gate is read once per open**, through
+//!   `quit_guard::window_gate::new_window_gate`, and handed to the plan
+//!   (`with_quit_pending`); the coordinator lock is not held while any window
+//!   is emitted to or built.
 //! - `open_file_in_new_window` and `has_windows_with_documents` live here so
 //!   the shim can call them. `open_file_in_new_window` restores the file's
 //!   stored geometry (D24 follow-up) through
@@ -20,11 +25,12 @@
 //!
 //! @coordinates-with src-tauri/src/main.rs, services/window_restore.rs
 use super::{
-    execute_plan, lookup_all, plan_route, OpenInWindowPayload, RouteTarget, Source,
-    OPEN_IN_WINDOW_EVENT,
+    execute_plan, lookup_all, plan_route, route_log_severity, OpenInWindowPayload, RouteTarget,
+    Source, OPEN_IN_WINDOW_EVENT,
 };
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::logger;
+use crate::services::quit_guard::{effects::AppQuitGuard, window_gate::new_window_gate};
 use crate::services::window_restore;
 use serde_json::json;
 use std::collections::HashSet;
@@ -36,7 +42,11 @@ pub fn route_external_open(app: &AppHandle, paths: Vec<String>, source: Source) 
     let live: HashSet<String> = app.webview_windows().into_keys().collect();
     let store = app.try_state::<SharedShadowStore>();
     let lookups = lookup_all(store.as_deref(), &paths, &live);
-    let plan = plan_route(source, &lookups, has_windows_with_documents(app));
+    // D74: read once, with the coordinator lock released before any window is
+    // touched; the plan carries the answer from here on.
+    let quit_pending = new_window_gate(app.try_state::<AppQuitGuard>().as_deref()).is_err();
+    let plan = plan_route(source, &lookups, has_windows_with_documents(app))
+        .with_quit_pending(quit_pending);
     execute_plan(
         &plan,
         source,
@@ -46,11 +56,7 @@ pub fn route_external_open(app: &AppHandle, paths: Vec<String>, source: Source) 
             let _ = app.emit("file:open", group);
         },
         |context, error: Option<String>| {
-            // A failed emit (fell back to a new window) is a Warn/Fail with its reason.
-            let (level, status) = match error {
-                Some(_) => (LogLevel::Warn, LogStatus::Fail),
-                None => (LogLevel::Info, LogStatus::Success),
-            };
+            let (level, status) = route_log_severity(&context, error.as_deref());
             logger::log_event(LogEntryPayload {
                 level,
                 event: "file.open.route".to_string(),

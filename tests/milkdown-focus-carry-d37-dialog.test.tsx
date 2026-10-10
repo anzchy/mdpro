@@ -1,7 +1,7 @@
 /**
  * D37 WI-6 — the confirm dialog on the real path: G-14 (approve, insert, type: the O2
- * pin), G-15 (an approved background-doc write) and G-17 (queued prompts: the fallback
- * puts focus and the caret at the end, the D38 known limit).
+ * pin), G-15 (an approved background-doc write) and G-17 (queued prompts: amended by D38,
+ * the caret is carried under the second prompt instead of the end fallback).
  *
  * Matrix: `.claude/tdd-guardian/tests-20260930-233000.md` G-14, G-15, and G-17 from
  * "Gap 2 decided" / "Gap 2 (a) amended". G-14 and G-15 are RED before WI-6: without a
@@ -54,7 +54,6 @@ vi.mock("../src/services/loggingService", () => ({
 }));
 
 import type { Mock } from "vitest";
-import { TextSelection } from "@milkdown/kit/prose/state";
 import { EditorView } from "@milkdown/kit/prose/view";
 import { MilkdownEditor } from "../src/components/Editor/MilkdownEditor";
 import { McpWriteConfirm } from "../src/components/common/McpWriteConfirm";
@@ -181,7 +180,7 @@ describe("D37 confirm dialog on the real path (WI-6)", { timeout: CASE_TIMEOUT_M
     expect(restoreLogs(logSpy)).toHaveLength(0);
   });
 
-  it("G-17 queued prompts: keystrokes land at the end, scrolled into view (D38 known limit)", async () => {
+  it("G-17 queued prompts: keystrokes land once, at the caret, scrolled into view (D38 fixed)", async () => {
     const oldPm = await mountWithDialog();
     await emitConfirmRequest(webviewBus, confirm("r1"));
     await emitConfirmRequest(webviewBus, confirm("r2"));
@@ -189,24 +188,21 @@ describe("D37 confirm dialog on the real path (WI-6)", { timeout: CASE_TIMEOUT_M
     expect(document.activeElement, "harness: r2's Reject has focus").toBe(
       screen.getByRole("button", { name: "Reject" }),
     );
+    // Spied before the rebuild: ProseMirror binds `this.dispatch` when the new view is
+    // constructed, so the rebuilt view's restore scroll is recorded (the spy calls through).
+    const dispatchSpy = vi.spyOn(EditorView.prototype, "dispatch");
     await emitMcp(eventListeners, "mcp:insert_content", insert("end", " ONE"));
     await waitForNewPm(oldPm, "Hello world ONE");
-    expect(restoreLogs(logSpy), "harness: the dialog held focus, no carry").toHaveLength(0);
+    expect(countOutcome(logSpy, "restored"), "D38: the carry ran under the prompt").toBe(1);
 
-    const dispatchSpy = vi.spyOn(EditorView.prototype, "dispatch");
-    // ProseMirror binds `this.dispatch` per instance, and the rebuilt view already exists:
-    // re-bind it to the spied prototype method (the spy calls through).
-    liveView().dispatch = EditorView.prototype.dispatch.bind(liveView());
     await click("Approve");
     expect(screen.queryByRole("dialog"), "harness: queue drained").toBeNull();
     expect(liveView(), "harness: the spied EditorView is the one Milkdown uses").toBeInstanceOf(EditorView);
-    expect(focusInLiveView(), "fallback: focus is in the rebuilt editor").toBe(true);
+    expect(focusInLiveView(), "D38: the prompt's close focuses the rebuilt editor").toBe(true);
     const view = liveView();
-    expect(view.state.selection.head, "fallback: caret at the end").toBe(
-      TextSelection.atEnd(view.state.doc).head,
-    );
+    expect(view.state.selection.head, "D38: caret where it was").toBe(END);
     const scrolled = liveScrollDispatches(dispatchSpy as unknown as Mock);
-    expect(scrolled.length, "fallback: a scrollIntoView transaction").toBeGreaterThanOrEqual(1);
+    expect(scrolled.length, "D38: the deferred restore requested a scrollIntoView").toBeGreaterThanOrEqual(1);
     expect(scrolled.every((tr) => tr.getMeta("addToHistory") === false), "history off").toBe(true);
 
     const pm1 = pmEl();
@@ -216,6 +212,6 @@ describe("D37 confirm dialog on the real path (WI-6)", { timeout: CASE_TIMEOUT_M
     expect(typed.outcome).toBe("typed");
     const text = content("doc-a");
     expect(text.split("Z")).toHaveLength(2);
-    expect(text).toBe("TWO Hello world ONEZ");
+    expect(text).toBe("TWO Hello worldZ ONE");
   });
 });

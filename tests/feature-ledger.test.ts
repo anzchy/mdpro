@@ -29,6 +29,7 @@ import {
   checkNoRawPipeInCode,
   checkPartialHasLimit,
   checkStates,
+  checkTableSeparators,
   extractPathClaims,
   parseLedger,
   // @ts-expect-error -- plain ESM script, no .d.ts by design
@@ -96,6 +97,36 @@ describe("parseLedger", () => {
     const anchor = sections[1].anchor;
     expect(anchor).toBe("1-文件与文档");
     expect(anchor).not.toContain("--");
+  });
+});
+
+describe("inventory table without a separator row (D71 / audit #45)", () => {
+  const NO_SEPARATOR = [
+    "## 1. 文件与文档",
+    "",
+    "| 能力 | 状态 | 在哪 | 怎么确认 |",
+    "| 打开文件 | Shipped | `src/a.ts` | 调用 open_file |",
+    "",
+  ].join("\n");
+
+  it("does not count its body as inventory rows — the renderer shows it as prose", () => {
+    expect(parseLedger(NO_SEPARATOR).rows).toEqual([]);
+  });
+
+  it("is reported as a finding at the header line", () => {
+    const findings = checkTableSeparators(parseLedger(NO_SEPARATOR).malformedTables);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].rule).toBe("table-separator");
+    expect(findings[0].lineNumber).toBe(3);
+  });
+
+  it("reports nothing for a well-formed ledger", () => {
+    expect(checkTableSeparators(parseLedger(FIXTURE).malformedTables)).toEqual([]);
+  });
+
+  it("ignores a header-shaped line inside a code fence", () => {
+    const fenced = ["```", "| 能力 | 状态 | 在哪 | 怎么确认 |", "```"].join("\n");
+    expect(parseLedger(fenced).malformedTables).toEqual([]);
   });
 });
 
@@ -209,6 +240,14 @@ describe("checkNoLineNumbers", () => {
 describe("checkNoBuildOutputs", () => {
   it("flags a claim on a build output", () => {
     const findings = checkNoBuildOutputs([{ path: "dist/bundle.js", row: null, lineNumber: 6 }]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].rule).toBe("no-build-outputs");
+  });
+
+  it("flags the Tauri crate's build output under src-tauri/target/ (audit #46)", () => {
+    const findings = checkNoBuildOutputs([
+      { path: "src-tauri/target/release/mdpro", row: null, lineNumber: 7 },
+    ]);
     expect(findings).toHaveLength(1);
     expect(findings[0].rule).toBe("no-build-outputs");
   });

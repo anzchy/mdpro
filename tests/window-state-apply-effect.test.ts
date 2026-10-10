@@ -251,3 +251,140 @@ describe("applyWindowState — degenerate monitor scale falls back to 1 (D24 rev
     expect(win.setPosition.mock.calls[0][0]).toEqual(new win.LogicalPosition(0, 0));
   });
 });
+
+/*
+ * D24 WI-5 — `window.apply_state` outcomes (matrix
+ * `.claude/tdd-guardian/tests-20261007-171405.md`, cases WA-01..WA-06).
+ *
+ * Law: every call emits exactly one `window.apply_state` entry whatever the
+ * branch; its context is a closed enum (keys ⊆ {outcome, reason, monitor}, no
+ * number values), and the outcome is a total function of (throwOnGet, label,
+ * isMaximized, monitor) with precedence failed > skipped > maximized >
+ * applied/absent > applied/reported. WA-05 checks it exhaustively (24 rows)
+ * against the independent `expectedOutcome` table below.
+ */
+const WE3_STATE = { width: 2400, height: 1600, x: 200, y: 200, isMaximized: false };
+const WE5_STATE = { x: 9000, y: 9000, width: 100, height: 100, isMaximized: true };
+const WE6_STATE = { x: -50, y: 10, width: 300, height: 200, isMaximized: false };
+const ALLOWED_CONTEXT_KEYS = ["outcome", "reason", "monitor"];
+
+/** Order-insensitive canonical form of a flat context, for failure collection. */
+const canon = (context: Record<string, unknown>): string =>
+  JSON.stringify(Object.entries(context).sort(([a], [b]) => a.localeCompare(b)));
+
+describe("applyAndReportWindowState — window.apply_state outcomes (D24 WI-5)", () => {
+  it("WA-01: main with a monitor logs one info applied/reported", async () => {
+    await applyAndReportWindowState(WE3_STATE);
+
+    const logged = applyStateEntries();
+    expect(logged).toHaveLength(1);
+    expect(logged[0].level).toBe("info");
+    expect(logged[0].context).toEqual({ outcome: "applied", monitor: "reported" });
+  });
+
+  it("WA-02: main with no monitor logs applied/absent", async () => {
+    win.currentMonitor.mockImplementation(async () => null);
+
+    await applyAndReportWindowState(WE6_STATE);
+
+    const logged = applyStateEntries();
+    expect(logged).toHaveLength(1);
+    expect(logged[0].context).toEqual({ outcome: "applied", monitor: "absent" });
+  });
+
+  it("WA-03: a maximized main window logs maximized with no monitor key", async () => {
+    await applyAndReportWindowState(WE5_STATE);
+
+    const logged = applyStateEntries();
+    expect(logged).toHaveLength(1);
+    expect(logged[0].context).toEqual({ outcome: "maximized" });
+  });
+
+  it("WA-04: a window API throw logs one warn failed and no error entry", async () => {
+    win.throwOnGet = true;
+
+    expect(await applyAndReportWindowState(DEFAULT_STATE)).toBeNull();
+
+    const logged = applyStateEntries();
+    expect(logged).toHaveLength(1);
+    expect(logged[0].level).toBe("warn");
+    expect(logged[0].context).toEqual({ outcome: "failed" });
+    expect(entries().filter((e) => e.level === "error")).toHaveLength(0);
+  });
+
+  it("WA-05: exactly one exact enum-only entry per call over the 24-row cross product", async () => {
+    type Row = { label: string; isMaximized: boolean; monitor: typeof RETINA_MONITOR | null; throwOnGet: boolean };
+    const expectedOutcome = (row: Row): { level: string; context: Record<string, string> } => {
+      if (row.throwOnGet) return { level: "warn", context: { outcome: "failed" } };
+      if (row.label !== "main") return { level: "info", context: { outcome: "skipped", reason: "not_main" } };
+      if (row.isMaximized) return { level: "info", context: { outcome: "maximized" } };
+      if (row.monitor === null) return { level: "info", context: { outcome: "applied", monitor: "absent" } };
+      return { level: "info", context: { outcome: "applied", monitor: "reported" } };
+    };
+
+    const rows: Row[] = [];
+    for (const label of ["main", "mdpro-x", "Main"])
+      for (const isMaximized of [true, false])
+        for (const monitor of [RETINA_MONITOR, null])
+          for (const throwOnGet of [true, false]) rows.push({ label, isMaximized, monitor, throwOnGet });
+    expect(rows).toHaveLength(24);
+
+    const failures: string[] = [];
+    for (const row of rows) {
+      vi.clearAllMocks();
+      win.label = row.label;
+      win.throwOnGet = row.throwOnGet;
+      win.currentMonitor.mockImplementation(async () => row.monitor);
+
+      await applyAndReportWindowState({ ...DEFAULT_STATE, isMaximized: row.isMaximized });
+
+      const logged = applyStateEntries();
+      const want = expectedOutcome(row);
+      const tag = JSON.stringify({ ...row, monitor: row.monitor ? "retina" : null });
+      if (logged.length !== 1) {
+        failures.push(`${tag}: ${logged.length} entries`);
+        continue;
+      }
+      const context = logged[0].context ?? {};
+      if (logged[0].level !== want.level) failures.push(`${tag}: level ${logged[0].level}`);
+      if (canon(context) !== canon(want.context)) failures.push(`${tag}: context ${JSON.stringify(context)}`);
+      const badKeys = Object.keys(context).filter((k) => !ALLOWED_CONTEXT_KEYS.includes(k));
+      if (badKeys.length > 0) failures.push(`${tag}: extra keys ${badKeys.join(",")}`);
+      if (Object.values(context).some((v) => typeof v === "number")) failures.push(`${tag}: numeric value`);
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it.each([
+    ["setSize", WE3_STATE],
+    ["maximize", WE5_STATE],
+    ["currentMonitor", WE3_STATE],
+  ] as const)("WA-06: a rejected %s logs only failed at warn, never applied first", async (method, state) => {
+    win[method].mockRejectedValueOnce(new Error("x"));
+
+    expect(await applyAndReportWindowState(state)).toBeNull();
+
+    const logged = applyStateEntries();
+    expect(logged).toHaveLength(1);
+    expect(logged[0].level).toBe("warn");
+    expect(logged[0].context).toEqual({ outcome: "failed" });
+    expect(
+      logged.filter((e) => e.context?.outcome === "applied" || e.context?.outcome === "maximized"),
+    ).toHaveLength(0);
+  });
+
+  // WA-06(setPosition) — S3: `applied` is logged only after BOTH setSize and
+  // setPosition resolve; a rejection between them must leave only `failed`.
+  it("WA-06: a rejected setPosition after a resolved setSize logs only failed at warn, never applied", async () => {
+    win.setPosition.mockRejectedValueOnce(new Error("x"));
+
+    expect(await applyAndReportWindowState(WE3_STATE)).toBeNull();
+
+    expect(win.setSize).toHaveBeenCalledTimes(1);
+    const logged = applyStateEntries();
+    expect(logged).toHaveLength(1);
+    expect(logged[0].level).toBe("warn");
+    expect(logged[0].context).toEqual({ outcome: "failed" });
+    expect(logged.filter((e) => e.context?.outcome === "applied")).toHaveLength(0);
+  });
+});

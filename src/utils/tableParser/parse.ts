@@ -46,7 +46,10 @@
  *    such holder wraps the rope EditorState already retains.
  *  - Body-row cells are padded / truncated to the header's column count
  *    per GFM, which loses the raw cell count; `countTableLineCells`
- *    exposes the pre-pad number for the column-count linter.
+ *    exposes the pre-pad number for the column-count linter. D44
+ *    (ADR-0052) keeps that truncation: format-on-save widens instead,
+ *    and `tableFormatter.ts` reads the overflow cells back from the
+ *    row's own line with `lines.ts#splitCellTexts`.
  *  - Block-level CommonMark rules this parser must lose to (setext
  *    underlines, indentation in columns) live in `./commonmark`, not here
  *    — WI-C1 / WI-C2, plan `20260917-plan-table-over-detection-vs-gfm.md`.

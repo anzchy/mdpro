@@ -76,16 +76,19 @@ A separate chore PR on master that lands **before** Stage 0 begins. It changes n
 - Fold non-controversial findings into this file. List the rest as open questions.
 
 ### Stage 0 acceptance criteria
-- [ ] WI-0.0 (narrowed) landed on master: `pnpm coverage` reports the corrected four metrics with calibrated thresholds that actually fail the command, `pnpm typecheck:tests` exits 0, a `.test.tsx` is discovered and type-checked, and the three negative proofs were demonstrated. **The CI gate is explicitly not part of this box** — it moved to the deferred follow-up PR, and Stage 0 may begin without it
-- [ ] tdd-guardian readiness confirmed, or the user was asked to run `/tdd-guardian:init` (the stage does not pass until it is ready)
-- [ ] Baseline G0 results recorded, including pre-existing failures
-- [ ] Appendix A lists every non-token value in the tokenized categories with file:line and class a/b/c; the counts reconcile with the Baseline table, or the discrepancy is explained
-- [ ] Appendix B lists every surface × theme with a reference flag, including the review §4 surfaces (recent files, which is a native submenu; disabled-with-reason button; the external-change dialog, formerly a banner; drag-and-drop target; empty/no-tabs state)
-- [ ] Every Appendix B cell has a baseline screenshot path, or a "could not capture" mark with the user asked
-- [ ] Every `pnpm dev` surface × theme has baseline computed-style JSON, and ~~the baseline `git status --porcelain` is saved~~ the global baseline (start SHA, dirty-change patches, untracked inventory) is saved *(rewritten 2026-10-02 to match G0, `d6d8f38`)*
-- [ ] The CSS file map is decided: every partial is ≤ ~300 lines and its import position is listed
-- [ ] The rule 33 edit is drafted (text only)
-- [ ] `/plan-design-review` findings are recorded
-- [ ] **Gate:** the user explicitly approves the plan and answers or waives A1–A12 and Q1–Q14
+
+**All ticked at stop point 1 (user approval, 2026-10-08).** Each box names its evidence.
+
+- [x] WI-0.0 (narrowed) landed on master (`d6d8f38`, `16fb45c`, 2026-09-12, before the branch rule `0d025a8`): `pnpm coverage` reports the corrected four metrics with calibrated thresholds that actually fail the command, `pnpm typecheck:tests` exits 0, a `.test.tsx` is discovered and type-checked, and the three negative proofs were demonstrated. The later threshold recalibration `9633720` and the PR-trigger restoration `1925896` are on `frontend-backend-redesign` only. The negative proofs are attested only by the `16fb45c` commit message. **The CI gate is explicitly not part of this box** — it moved to the deferred follow-up PR, and Stage 0 may begin without it; CI and branch protection stay out of this box, so sequencing phase 1 stays 🔄
+- [x] tdd-guardian readiness confirmed, or the user was asked to run `/tdd-guardian:init` (the stage does not pass until it is ready) — confirmed from the HEAD config ([`20261003-wi-0-1-baseline.md`](../20261003-wi-0-1-baseline.md) R1, `:25`); `/tdd-guardian:status` was deliberately not called, because it writes `state.json` (WI-0.1 R1, `:198`)
+- [x] Baseline G0 results recorded, including pre-existing failures — `ddb1cfe` ([`20261003-wi-0-1-baseline.md`](../20261003-wi-0-1-baseline.md) §2, `:33-48`): all five commands exit 0, no pre-existing failures, the non-fatal warnings listed
+- [x] Appendix A lists every non-token value in the tokenized categories with file:line and class a/b/c; the counts reconcile with the Baseline table, or the discrepancy is explained — `0acdb0d`, rulings `da8b8b8`; [Reconciliation](./appendix-a-literals.md#reconciliation-against-the-baseline-table) explains each difference
+- [x] Appendix B lists every surface × theme with a reference flag, including the review §4 surfaces (recent files, which is a native submenu; disabled-with-reason button; the external-change dialog, formerly a banner; drag-and-drop target; empty/no-tabs state) — `cfbc5cd`; [Appendix B](./appendices.md) has a row for each §4 surface
+- [x] Every Appendix B cell has a baseline screenshot path, or a "could not capture" mark with the user asked — before-shot paths filled on the Mac mini (WI-0.4); the two `NOT CAPTURED` cells (`appendices.md:54`, the "Saving…" reason) and the About offline state (`:52`, `NOT VERIFIED`) were accepted by the user on 2026-10-05
+- [x] Every `pnpm dev` surface × theme has baseline computed-style JSON, and ~~the baseline `git status --porcelain` is saved~~ the global baseline (start SHA, dirty-change patches, untracked inventory) is saved *(rewritten 2026-10-02 to match G0, `d6d8f38`)* — post-merge JSON: MacBook Chromium 64/64 and mini WKWebView 6/6, each with an empty repeat diff (`630cb86`; paths per plan A4); the global baseline is in `ddb1cfe` ([`20261003-wi-0-1-baseline.md`](../20261003-wi-0-1-baseline.md) §3)
+- [x] The CSS file map is decided: every partial is ≤ ~300 lines and its import position is listed — [`css-file-map.md`](./css-file-map.md) §3.1: 15 partials, the largest 220 lines, with an Import position column (`3f903bc`, re-based on `4ebfc89` in `95e7842`)
+- [x] The rule 33 edit is drafted (text only) — [`css-file-map.md`](./css-file-map.md) §4; the rule file is unchanged
+- [x] `/plan-design-review` findings are recorded — run 2 (at `630cb86`, recorded in `a00f089`, 4 decisions; ADR-0055/0056) in the plan's GSTACK REVIEW REPORT
+- [x] **Gate:** the user explicitly approves the plan and answers or waives A1–A12 and Q1–Q14 — user approved 2026-10-08; A1–A12 per the plan's Assumptions table; Q1–Q16 closed
 
 **Rollback:** nothing to roll back; Stage 0 changes only this plan document.

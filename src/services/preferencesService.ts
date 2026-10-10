@@ -14,9 +14,17 @@
  *     rejection is re-thrown unchanged for awaiting callers.
  *   - The browser branch returns a fresh copy of the defaults on every call
  *     (right-biased merge for `setPreferences`), so no caller can mutate them.
+ *   - `getPreferences(purpose)` takes a REQUIRED closed-enum purpose, so tsc
+ *     rejects an unlabelled caller in `src/` (D24 WI-4, ADR-0032 GA-12). The
+ *     Tauri branch logs exactly one `preferences.read` entry after the IPC
+ *     settles: info `{ purpose, outcome: "ok" }`, or warn
+ *     `{ purpose, outcome: "failed", reason: "invoke_rejected" }` followed by a
+ *     rethrow of the same error. Enum-only context: never a preference value,
+ *     path or error text. Reads raise no toast. The browser branch logs nothing,
+ *     so it stays at zero `invoke` calls.
  *
  * @coordinates-with src-tauri/src/commands/preferences.rs — the IPC commands
- * @coordinates-with src/services/loggingService.ts — fail log sink
+ * @coordinates-with src/services/loggingService.ts — read log and fail log sink
  * @coordinates-with src/stores/toastStore.ts — the save-failure toast
  * @module services/preferencesService
  */
@@ -68,12 +76,51 @@ function browserDefaults(): UserPreferences {
   return structuredClone(DEFAULT_PREFERENCES);
 }
 
+/**
+ * Why a caller reads preferences — the only thing a `preferences.read` log
+ * entry says about the read. One literal per call site (the hook picks one of
+ * its two by latch phase). Keep it a closed union of literals.
+ */
+export type PreferenceReadPurpose =
+  | "app_hydrate"
+  | "view_mode_startup_settle"
+  | "view_mode_restore_on_close"
+  | "save_reformat_check"
+  | "settings_dialog"
+  | "settings_appearance"
+  | "settings_general"
+  | "settings_markdown"
+  | "settings_editor"
+  | "settings_export"
+  | "settings_image"
+  | "settings_shortcuts";
+
+function logRead(purpose: PreferenceReadPurpose, ok: boolean): void {
+  loggingService.logEventSync({
+    level: ok ? "info" : "warn",
+    event: "preferences.read",
+    status: ok ? "success" : "fail",
+    actionId: loggingService.generateActionId(),
+    context: ok
+      ? { purpose, outcome: "ok" }
+      : { purpose, outcome: "failed", reason: "invoke_rejected" },
+  });
+}
+
 export const preferencesService = {
-  async getPreferences(): Promise<UserPreferences> {
+  async getPreferences(purpose: PreferenceReadPurpose): Promise<UserPreferences> {
     if (!isTauri()) {
       return browserDefaults();
     }
-    return invoke<UserPreferences>("get_preferences", {});
+    let prefs: UserPreferences;
+    try {
+      prefs = await invoke<UserPreferences>("get_preferences", {});
+    } catch (error) {
+      logRead(purpose, false);
+      throw error;
+    }
+    logRead(purpose, true);
+    return prefs;
   },
 
   async setPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences> {

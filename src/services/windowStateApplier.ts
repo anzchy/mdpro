@@ -1,14 +1,15 @@
 /**
  * Purpose: Apply the global `windowState` preference to the current window
- * during App hydration, but only in `main` (D24 WI-4, ADR-0037). Extracted
+ * during App hydration, but only in `main` (D24, plan-20260926 WI-4). Extracted
  * from `App.tsx#applyWindowState` so the effect is unit-testable without
  * rendering App.
  *
  * Pipeline: `getCurrentWindow().label` → `ownsGlobalWindowState` (the gate)
  *   → for the owner, `currentMonitor()` → logical work area (or `null`)
- *   → `windowStateAction` → `skip` (log only) | `maximize()` |
- *   `setSize` + `setPosition` with the clamped geometry → the action carried
- *   out is returned by `applyAndReportWindowState` (`null` if it could not run).
+ *   → `windowStateAction` → `skip` | `maximize()` |
+ *   `setSize` + `setPosition` with the clamped geometry → one `window.apply_state`
+ *   entry per branch (including the failure path) → the action carried out is
+ *   returned by `applyAndReportWindowState` (`null` if it could not run).
  *
  * Key decisions:
  * - **Non-`main` windows are never moved by hydration.** Their geometry
@@ -29,8 +30,14 @@
  *   already applies; `Infinity` once produced a 0x0 work area.
  * - `applyWindowState` stays `void` for its caller; the action is exposed by
  *   `applyAndReportWindowState` so tests can assert what was carried out.
- * - A skip logs `window.apply_state` with enum-only context; no path or
- *   coordinate is logged.
+ * - **Every call logs exactly one `window.apply_state` entry** (D24 WI-5,
+ *   ADR-0032 GA-12), with enum-only context: `skipped`/`not_main`,
+ *   `maximized`, `applied` with `monitor: "reported" | "absent"`, or `failed`.
+ *   No geometry, label, monitor name or error text is logged. The success
+ *   outcomes are logged only after the window calls resolve, so a rejection
+ *   never leaves an `applied` entry behind. `failed` is logged at **warn**, never
+ *   error: outside Tauri it is the expected path. There is no `no_state`
+ *   outcome, because `windowState` is never absent (plan O-3).
  *
  * @module src/services/windowStateApplier
  * @coordinates-with src/App.tsx (called from `loadPreferences`)
@@ -80,20 +87,17 @@ export async function applyAndReportWindowState(
     const action = windowStateAction(owner, state, workArea);
     switch (action.kind) {
       case "skip":
-        loggingService.logEventSync({
-          level: "info",
-          event: "window.apply_state",
-          status: "success",
-          actionId: loggingService.generateActionId(),
-          context: { outcome: "skipped", reason: "not_main" },
-        });
+        logApplyState("info", "success", { outcome: "skipped", reason: "not_main" });
         return action;
       case "maximize":
         await currentWindow.maximize();
+        logApplyState("info", "success", { outcome: "maximized" });
         return action;
       case "set":
         await currentWindow.setSize(new LogicalSize(action.geometry.width, action.geometry.height));
         await currentWindow.setPosition(new LogicalPosition(action.geometry.x, action.geometry.y));
+        // Logged only after both calls resolved, so a rejection never leaves an `applied` entry.
+        logApplyState("info", "success", { outcome: "applied", monitor: workArea ? "reported" : "absent" });
         return action;
       default: {
         const _exhaustive: never = action;
@@ -102,8 +106,28 @@ export async function applyAndReportWindowState(
     }
   } catch {
     // The window API is unavailable outside Tauri; hydration must continue.
+    // Warn, not error: this is expected under `pnpm dev`. No error text is logged.
+    logApplyState("warn", "fail", { outcome: "failed" });
     return null;
   }
+}
+
+/** Enum-only context of a `window.apply_state` entry — no geometry, label or monitor name. */
+type ApplyStateContext =
+  | { outcome: "skipped"; reason: "not_main" }
+  | { outcome: "maximized" }
+  | { outcome: "applied"; monitor: "reported" | "absent" }
+  | { outcome: "failed" };
+
+/** Emit the single `window.apply_state` entry for one `applyAndReportWindowState` call. */
+function logApplyState(level: "info" | "warn", status: "success" | "fail", context: ApplyStateContext): void {
+  loggingService.logEventSync({
+    level,
+    event: "window.apply_state",
+    status,
+    actionId: loggingService.generateActionId(),
+    context,
+  });
 }
 
 /**

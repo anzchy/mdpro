@@ -49,6 +49,15 @@
  * tell them apart), so the wholesale keys go 6 → 7. The site count stays 14. This edits
  * recorded assertions (policy rule 12): the specification changed by locked decision (a).
  *
+ * **14 → 15 (D58 / ADR-0065, 2026-10-09).** `processTableActionEvent` now commits a
+ * WYSIWYG table edit to the Milkdown editor before the store. When the editor throws after
+ * its view advanced, the store is aligned to the editor through a second, separate line,
+ * `deps.updateDocumentContent(event.document_id, reconciledMarkdown)`, so the success line
+ * keeps its key. The new site is `ordinary` (table cells only), with the behavioural row
+ * "MCP table_action reconcile" in `tests/toc-wholesale-reset.test.ts`. The wholesale set is
+ * unchanged. This edits a recorded assertion (policy rule 12, the count 14 → 15): the
+ * specification changed by plan D58 amendment A §A4 and the test matrix's WI-4 constraints.
+ *
  * Key shape is `` `${relPath}::${trimmedLine}::${ordinal}` `` and deliberately **not**
  * `file:line`: line numbers churn on unrelated edits above the call, which would turn
  * this case into a maintenance tax that eventually gets deleted. The trimmed call text
@@ -186,6 +195,13 @@ const CLASSIFIED_SITES: readonly ClassifiedSite[] = [
     class: "ordinary",
     why: "table cells only",
   },
+  // D58 / ADR-0065 (2026-10-09): the reconcile write, a second site in the same function.
+  {
+    key: "hooks/mcpTableAction.ts::deps.updateDocumentContent(event.document_id, reconciledMarkdown);::0",
+    enclosingFunction: "processTableActionEvent",
+    class: "ordinary",
+    why: "store aligned to the editor's own doc after a post-dispatch throw — table cells only",
+  },
   {
     key: "hooks/useMcpEvents.ts::updateDocumentContent(event.document_id, event.content);::0",
     enclosingFunction: "handleWriteDocument",
@@ -250,8 +266,9 @@ describe("W5 — the wholesale/ordinary partition is derived from src/, not from
   });
 
   // Was 16 ("the site count is sixteen — …"); see the 16 → 14 paragraph in the header.
-  it("the site count is fourteen — D20/ADR-0028 decision 4 collapsed the three open writes into one", () => {
-    expect(found.length).toBe(14);
+  // Was 14 ("the site count is fourteen — …"); see the 14 → 15 paragraph in the header.
+  it("the site count is fifteen — D58/ADR-0065 added the table-action reconcile write", () => {
+    expect(found.length).toBe(15);
   });
 
   // Was "exactly the eight wholesale sites"; D20/ADR-0028 decision 4, 8 → 6.

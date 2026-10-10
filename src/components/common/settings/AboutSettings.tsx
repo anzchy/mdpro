@@ -241,7 +241,7 @@ export function AboutSettings() {
               Update available — v{state.version}
             </span>
             <button
-              className="toolbar-button-primary"
+              className="toolbar-button toolbar-button--primary"
               onClick={() => void handleInstall()}
               type="button"
             >
@@ -280,7 +280,7 @@ export function AboutSettings() {
               ✓ Ready to install
             </span>
             <button
-              className="toolbar-button-primary"
+              className="toolbar-button toolbar-button--primary"
               onClick={() => setShowRestartDialog(true)}
               type="button"
             >

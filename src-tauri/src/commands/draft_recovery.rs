@@ -22,14 +22,22 @@
 //!   log the count structs, `file.draft.recover` / `.discard` an `outcome` in
 //!   {ok, in_use, not_found, error}, and failures `error = DraftError::kind()`.
 //!   Never an id, path, title or window label.
+//! - **`recover_draft` watches the recovered file (D59)** through
+//!   `recover_draft_watched_with`, which registers the stored path only after
+//!   `recover_draft_logged_with` returns, i.e. after the gate and
+//!   `DRAFT_LOCK` are released; the watcher mutex is never nested in them.
 //! - Wire compatibility: `list_drafts` still returns the entry array and
 //!   `cleanup_old_drafts` the deleted count, as the frontend expects.
 //!
 //! @coordinates-with src-tauri/src/services/draft/guarded.rs
 //! @coordinates-with src-tauri/src/services/draft/live_listing.rs
 //! @coordinates-with src-tauri/src/commands/draft.rs
+//! @coordinates-with src-tauri/src/commands/draft_recover_watch.rs
+//! @coordinates-with src-tauri/src/services/file_watcher.rs
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Manager, State, WebviewWindow};
+
+use super::draft_recover_watch::recover_draft_watched_with;
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::draft::{
@@ -37,6 +45,7 @@ use crate::services::draft::{
     recover_draft_guarded_with, session_id, CleanupCounts, DraftError, DraftListing,
     DraftMetadataEntry, DraftOwner, LiveContext, OpenSet, RecoverResult, ShadowUnavailable,
 };
+use crate::services::file_watcher::FileWatcher;
 use crate::services::logger;
 use crate::services::quit_guard::{DraftGate, QUIT_COMMITTED};
 
@@ -246,15 +255,15 @@ pub async fn list_drafts(app: AppHandle) -> Result<Vec<DraftMetadataEntry>, Draf
 #[tauri::command]
 pub async fn recover_draft(
     window: WebviewWindow,
+    watcher: State<'_, FileWatcher>,
     document_id: String,
 ) -> Result<RecoverResult, DraftError> {
     let caller = DraftOwner {
         session_id: session_id().to_string(),
         window_label: window.label().to_string(),
     };
-    recover_draft_logged_with(&QUIT_COMMITTED, &document_id, &caller, || {
-        live_context(window.app_handle())
-    })
+    let make_ctx = || live_context(window.app_handle());
+    recover_draft_watched_with(&QUIT_COMMITTED, &document_id, &caller, make_ctx, &watcher)
 }
 
 #[tauri::command]

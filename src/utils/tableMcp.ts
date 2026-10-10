@@ -13,10 +13,19 @@
  * Rust. Rust returns 202 Accepted; the MCP client confirms via a
  * follow-up `read_document`.
  *
+ * Overflow (D49 WI-2, ADR-0064 Variant A1): every rewriting action keeps
+ * body cells past the header's column count by widening the table first —
+ * `set_cell` through `widenTable` directly (and logs
+ * `editor.table.edit-widened` itself), the row/column actions through
+ * `applyEdit`, which widens and logs with its own action id. MCP
+ * coordinates stay header-width. `insert_table` writes a new table and is
+ * unaffected.
+ *
  * @coordinates-with src-tauri/src/services/http_server.rs
  * @coordinates-with src/hooks/useMcpEvents.ts
  * @coordinates-with src/utils/tableEdits
  * @coordinates-with src/utils/tableParser
+ * @coordinates-with src/utils/tableWiden.ts (set_cell widening)
  */
 
 import {
@@ -28,6 +37,8 @@ import { findAllTables } from "./cursorSync/table";
 import { applyEdit } from "./tableEdits";
 import { makeIsFenced } from "./fenceRanges";
 import { guardTableWrite } from "./tableWriteGuard";
+import { widenTable } from "./tableWiden";
+import { loggingService } from "../services/loggingService";
 import type {
   TableActionId,
   TableContext,
@@ -117,6 +128,19 @@ export function escapeCellContent(content: string): string | null {
   return out;
 }
 
+/**
+ * Replace one cell of the `tableIndex`-th unfenced table. Returns the new
+ * source, or null on invalid content, a refused model, or out-of-range
+ * coordinates.
+ *
+ * D49 WI-2 (ADR-0064, Variant A1): the table is rewritten from
+ * `widenTable`, so body cells past the header's column count ("overflow")
+ * are kept and the table widens to its widest row. `col` is still bounded
+ * by the header width, so an overflow column is rejected. When the write
+ * widened, logs one `editor.table.edit-widened` entry (info, success) with
+ * `{ action: "set_cell", fromColCount, toColCount }` — counts only, never
+ * cell text, the same shape `applyEdit` logs.
+ */
 export function setCell(
   source: string,
   payload: SetCellPayload,
@@ -136,9 +160,23 @@ export function setCell(
   if (payload.row < 0 || payload.row >= table.rowCount) return null;
   if (payload.col < 0 || payload.col >= table.colCount) return null;
 
-  const rows = table.rows.map((r) => r.map((c) => c.text));
+  // D49 WI-2 (ADR-0064): rebuild from the widened rows so body cells past
+  // the header survive; the bound above stays the header width (A1).
+  const { rows, alignments } = widenTable(table);
   rows[payload.row][payload.col] = safeContent;
-  const formatted = serializeRows(rows, table.alignments);
+  if (alignments.length > table.colCount) {
+    loggingService.logEventSync({
+      level: "info",
+      event: "editor.table.edit-widened",
+      status: "success",
+      context: {
+        action: "set_cell",
+        fromColCount: table.colCount,
+        toColCount: alignments.length,
+      },
+    });
+  }
+  const formatted = serializeRows(rows, alignments);
   return source.slice(0, table.start) + formatted + source.slice(table.end);
 }
 

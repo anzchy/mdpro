@@ -121,7 +121,7 @@ export function ExportSettings() {
   useEffect(() => {
     let cancelled = false;
     preferencesService
-      .getPreferences()
+      .getPreferences("settings_export")
       .then((p) => {
         if (cancelled) return;
         commitPrefs({ ...DEFAULT_EXPORT_CONFIG, ...p.export });

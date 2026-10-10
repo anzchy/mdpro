@@ -86,7 +86,7 @@ async function flush() {
 
 /** The App's `loadPreferences` shape: read, then hydrate with what was read. */
 function startLoad() {
-  return preferencesService.getPreferences();
+  return preferencesService.getPreferences("app_hydrate");
 }
 
 beforeEach(() => {

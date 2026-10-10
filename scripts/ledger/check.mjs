@@ -33,6 +33,7 @@ import {
   checkNoRawPipeInCode,
   checkPartialHasLimit,
   checkStates,
+  checkTableSeparators,
   extractPathClaims,
   parseLedger,
 } from "./parse.mjs";
@@ -75,12 +76,13 @@ function main() {
   }
 
   const markdown = fs.readFileSync(ledgerPath, "utf8");
-  const { rows } = parseLedger(markdown);
+  const { rows, malformedTables } = parseLedger(markdown);
   const claims = extractPathClaims(rows);
   const declared = collectDeclaredNames(REPO_ROOT);
 
   const coverageFindings = checkCoverage(declared, markdown);
   const findings = [
+    ...checkTableSeparators(malformedTables),
     ...checkStates(rows),
     ...checkPartialHasLimit(rows),
     ...checkAbsentWhere(rows),

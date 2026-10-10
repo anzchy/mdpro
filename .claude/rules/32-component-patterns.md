@@ -8,25 +8,32 @@ paths:
 # 32 — Component Patterns
 
 Component contracts only. CSS examples live in the component's own
-`.css` file or `globals.css`. See `DESIGN.md` for visual narrative.
+`.css` file or the app CSS partial that owns the surface (table below).
+See `DESIGN.md` for visual narrative.
 
 ## Single source of truth for styles
 
 A component's styles live in **one** file. Do not redeclare them in
-both `globals.css` and a co-located stylesheet — import order silently
-picks a winner.
+both an app CSS file (`globals.css` or a `src/styles/sections/` partial)
+and a co-located stylesheet — import order silently picks a winner.
+App CSS loads through `src/styles/index.css`, whose `@import` order is
+the cascade order; do not reorder it.
 
 | Surface | File |
 |---|---|
-| App shell, sidebar, dialog backdrop, toast, settings | `src/styles/globals.css` |
+| `:root` tokens, reset, base | `src/styles/globals.css` |
+| App shell, sidebar | `src/styles/sections/app-shell.css` |
+| Dialog backdrop, `.dialog-card` | `src/styles/sections/buttons-dialog.css` |
+| Toast | `src/styles/sections/recovery-toast.css` |
+| Settings | `src/styles/sections/settings-shell.css`, `settings-pages.css`, `settings-rows.css`, `settings-mcp.css`, `settings-about.css` |
 | Milkdown editor surface | `src/components/Editor/MilkdownEditor.css` |
 | Image context menu | `src/components/Editor/ImageContextMenu.css` |
-| Link insert modal | `globals.css` (`.link-insert-*`) |
+| Link insert modal | `src/styles/sections/link-insert-modal.css` (`.link-insert-*`) |
 | Future per-component | co-locate as `Component.tsx` + `Component.css` |
 
 ## Modal contract
 
-- Use `.dialog-backdrop` + `.dialog-card` from `globals.css`.
+- Use `.dialog-backdrop` + `.dialog-card` from `src/styles/sections/buttons-dialog.css`.
 - `role="dialog"` + `aria-modal="true"` + `aria-labelledby` (title) +
   `aria-describedby` (subtitle / live message).
 - **Trap Tab inside the dialog with an inline `onKeyDown` loop.** No shared

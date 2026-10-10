@@ -6,13 +6,18 @@
  * modes.
  *
  * Implementation: ViewPlugin that recomputes a single Decoration on
- * `update.docChanged || update.selectionSet`, marking the source
- * range of the active cell with a `cm-table-active-cell` class.
+ * `update.docChanged || update.selectionSet`, or when the field's active
+ * cell object changed without either (D39: the parse reached a fence
+ * around the head), marking the source range of the active cell with a
+ * `cm-table-active-cell` class.
  *
  * Key decisions:
  *   - The cell comes from `getActiveTableCell` — the one cell the
  *     detection field already located (D12, ADR-0043 D3). The highlight
  *     parses nothing and builds no `TableModel`.
+ *   - Change detection on a tree-only update is by cell identity: the
+ *     field returns the same cell object when nothing changed, so an
+ *     idle parse step costs two field reads and no redraw.
  *
  * @coordinates-with src/plugins/codemirror/sourceTableDetection.ts
  * @coordinates-with src/components/Editor/MilkdownEditor.css (CSS rule)
@@ -55,7 +60,8 @@ const cellHighlightPlugin = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (!update.docChanged && !update.selectionSet) return;
+      const cellChanged = getActiveTableCell(update.startState) !== getActiveTableCell(update.state);
+      if (!update.docChanged && !update.selectionSet && !cellChanged) return;
       this.decorations = computeCellHighlightDecorations(update.state);
     }
   },

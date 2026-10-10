@@ -1,4 +1,5 @@
 import { Editor } from "./Editor";
+import { LinkInsertModal } from "./LinkInsertModal";
 import { SourceTableContextMenu } from "./SourceTableContextMenu";
 
 interface SplitViewProps {
@@ -28,6 +29,9 @@ export function SplitView({
           right-clicks inside markdown tables (Phase 2 WI-2.4). Mirror
           of MilkdownEditor's <TableContextMenu />. */}
       <SourceTableContextMenu />
+      {/* ⌘K URL input for Source mode (D55) — the same modal MilkdownEditor
+          mounts; window.prompt never shows in the packaged app. */}
+      <LinkInsertModal />
     </div>
   );
 }

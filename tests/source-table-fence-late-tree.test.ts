@@ -82,20 +82,20 @@ describe("D12 WI-6 — fence check sees a tree that completed after create", () 
     expect(field(next)).toEqual({ span: null, cell: null });
   });
 
-  it("characterisation (legacy-equivalent, not a desired property): a transaction with no doc or selection change keeps the old value", () => {
+  it("D39: a transaction with no doc or selection change that adopts the fence clears the span at once", () => {
     const state = lateTreeState();
     const before = field(state);
     expect(ensureSyntaxTree(state, state.doc.length, FULL_PARSE_MS)).not.toBeNull();
 
     const idle = state.update({}).state;
 
-    // The idle transaction adopted the complete tree, yet the field only
-    // recomputes on doc or selection changes, so it keeps the stale span.
+    // The idle transaction adopted the complete tree; the field reruns the
+    // fence check on a tree change (D39), so the stale span is gone.
+    expect(before.span).not.toBeNull();
     expect(isPositionInFencedCode(idle, IN_HEADER)).toBe(true);
-    expect(field(idle).span).toBe(before.span);
-    expect(field(idle).span).not.toBeNull();
+    expect(field(idle)).toEqual({ span: null, cell: null });
 
-    // The next selection move then clears it.
+    // The next selection move keeps it cleared.
     const moved = idle.update({ selection: { anchor: IN_BODY } }).state;
     expect(field(moved)).toEqual({ span: null, cell: null });
   });

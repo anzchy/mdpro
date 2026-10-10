@@ -111,6 +111,13 @@ impl<E: QuitEffects> QuitGuard<E> {
         &self.effects
     }
 
+    /// Is a quit request open — any phase, the native alert's included? The
+    /// D74 new-window gate (`window_gate.rs`) asks this; the lock is held for
+    /// the read only, so the caller may build a window afterwards.
+    pub fn is_request_live(&self) -> bool {
+        self.lock().coordinator.is_live()
+    }
+
     pub fn last_commit_report(&self) -> Option<CommitReport> {
         self.lock().last_commit_report
     }

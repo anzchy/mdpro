@@ -13,10 +13,17 @@
  *   the gate; matching them would make the gate fight the prose.
  * - The state enum is CLOSED. `Shipped (WYSIWYG)` is a finding, because a state
  *   nobody can filter on is a state nobody can audit.
+ * - An inventory header with no separator row is NOT a table — the renderer
+ *   shows it as a paragraph — so its body is not rows; it is reported through
+ *   `malformedTables` instead (table primitives shared via `table.mjs`).
  *
  * @module scripts/ledger/parse
- * @coordinates-with scripts/ledger/check.mjs, scripts/ledger/render.mjs
+ * @coordinates-with scripts/ledger/check.mjs, scripts/ledger/render.mjs,
+ *   scripts/ledger/table.mjs
  */
+import { isInventoryHeader, isSeparatorRow, splitRow } from "./table.mjs";
+
+export { splitRow };
 
 /** The closed set of ledger states. Nothing else is a valid 状态 cell. */
 export const LEDGER_STATES = Object.freeze([
@@ -27,12 +34,12 @@ export const LEDGER_STATES = Object.freeze([
   "Unknown",
 ]);
 
-const INVENTORY_HEADER = ["能力", "状态", "在哪", "怎么确认"];
 const EM_DASH = "—";
 const PARTIAL_LIMIT_MARKER = "限制：";
 const BUILD_OUTPUT_PREFIXES = [
   "dist/",
   "target/",
+  "src-tauri/target/",
   "coverage/",
   "node_modules/",
   "src-tauri/gen/",
@@ -44,39 +51,6 @@ const finding = (rule, message, lineNumber) => ({
   message,
   ...(lineNumber === undefined ? {} : { lineNumber }),
 });
-
-/**
- * Split one markdown table line into trimmed cells, honouring `\|` escapes.
- * Returns null when the line is not a table row.
- */
-export function splitRow(line) {
-  const trimmed = line.trim();
-  if (!trimmed.startsWith("|")) return null;
-  const cells = [];
-  let current = "";
-  for (let i = 1; i < trimmed.length; i += 1) {
-    const ch = trimmed[i];
-    if (ch === "\\" && trimmed[i + 1] === "|") {
-      current += "|";
-      i += 1;
-    } else if (ch === "|") {
-      cells.push(current.trim());
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  if (current.trim() !== "") cells.push(current.trim());
-  return cells;
-}
-
-const isSeparatorRow = (cells) =>
-  cells !== null && cells.length > 0 && cells.every((c) => /^:?-{1,}:?$/.test(c));
-
-const isInventoryHeader = (cells) =>
-  cells !== null &&
-  cells.length === INVENTORY_HEADER.length &&
-  cells.every((cell, i) => cell === INVENTORY_HEADER[i]);
 
 /**
  * GitHub-style anchor slug.
@@ -99,12 +73,14 @@ export function slugify(heading) {
 /**
  * Parse the ledger markdown into its `##`/`###` sections and its inventory rows.
  * `lineNumber` is the 1-based source line and exists only so findings can point
- * at something a human can open.
+ * at something a human can open. `malformedTables` holds the header line of
+ * every inventory header that lacks a separator row.
  */
 export function parseLedger(markdown) {
   const lines = String(markdown).split(/\r?\n/);
   const sections = [];
   const rows = [];
+  const malformedTables = [];
   let current = null;
   let inFence = false;
 
@@ -131,9 +107,12 @@ export function parseLedger(markdown) {
 
     if (!isInventoryHeader(splitRow(line))) continue;
 
-    // Header matched: skip the separator, then consume contiguous body rows.
-    let cursor = i + 1;
-    if (isSeparatorRow(splitRow(lines[cursor] ?? ""))) cursor += 1;
+    // Header matched: require the separator, then consume contiguous body rows.
+    if (!isSeparatorRow(splitRow(lines[i + 1] ?? ""))) {
+      malformedTables.push({ lineNumber: i + 1 });
+      continue;
+    }
+    let cursor = i + 2;
     while (cursor < lines.length) {
       const cells = splitRow(lines[cursor]);
       if (cells === null || cells.length === 0) break;
@@ -154,7 +133,14 @@ export function parseLedger(markdown) {
     i = cursor - 1;
   }
 
-  return { sections, rows };
+  return { sections, rows, malformedTables };
+}
+
+/** An inventory header without a separator renders as prose, not a table. */
+export function checkTableSeparators(malformedTables) {
+  return malformedTables.map(({ lineNumber }) =>
+    finding("table-separator", "清单表头下缺少分隔行 `| --- | … |`，HTML 会把它渲染成段落", lineNumber),
+  );
 }
 
 /** Every 状态 cell must be exactly one of LEDGER_STATES. */
@@ -248,7 +234,8 @@ export function checkNoLineNumbers(claims) {
 /**
  * A Where claim on a build output is red on every fresh clone — `dist/` and
  * `target/` do not exist until somebody builds, so the gate would fail in CI
- * for a reason that has nothing to do with the ledger.
+ * for a reason that has nothing to do with the ledger. The Rust crate builds
+ * into `src-tauri/target/`; there is no repo-root `target/`.
  */
 export function checkNoBuildOutputs(claims) {
   return claims

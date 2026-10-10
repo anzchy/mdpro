@@ -16,11 +16,12 @@
  *
  * Key decisions:
  * - **Topmost = last in DOM order** (`compareDocumentPosition`), ties to the later
- *   registration (D34 user decision, 2026-10-01). Open order is wrong: `App.tsx` renders the MCP
- *   prompt after `ConfirmDialog` at the same z-index, so it paints on top either way.
+ *   registration (D34 user decision, 2026-10-01). DOM order is what paints on top at a shared
+ *   z-index; since D42 (ADR-0062) `AppDialogs.tsx` renders the App-level dialogs in open
+ *   order, so for them DOM order and open order agree.
  * - **Yield to a later unregistered modal** (D34 WI-6, review C-1, user decision): `App.tsx`
- *   renders Reload / Recovery / Encoding / Settings after the BottomTabs and Sidebar
- *   `ConfirmDialog`s, unregistered. When one of them is open later in the DOM than the
+ *   renders `AppDialogs` after the BottomTabs and Sidebar `ConfirmDialog`s, and its Reload /
+ *   Recovery / Encoding / Settings are unregistered. When one of them is open later in the DOM than the
  *   topmost registered dialog, the event is left untouched (no consume, no `onEscape`, no
  *   log) so the visible dialog's own `onKeyDown` can take it — which still needs focus inside
  *   it. An `aria-modal` inside a registered container (its own card) does not count, and an

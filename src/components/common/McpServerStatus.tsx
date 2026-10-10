@@ -23,6 +23,9 @@
  *   file was changed by something else. A failed save is signalled by its
  *   toast alone (rule 30.5).
  * - No path, binary path or token is ever rendered here (rule 30.3).
+ * - `noteId` puts an id on the note span, so the caller can point its locked
+ *   toggles' `aria-describedby` at this note when it is the only reason shown
+ *   (D25: corrupt config, rule 30.4 + 30.5).
  *
  * @coordinates-with src/utils/mcpStatusView.ts — decides badge and note
  * @coordinates-with src/components/common/IntegrationsSettings.tsx — sole caller
@@ -36,6 +39,8 @@ interface McpServerStatusProps {
   status: McpStatus | null;
   /** The last live-switch outcome this session; `null` if none applies. */
   switchResult: McpSwitchResult;
+  /** Optional DOM id for the note span, so a locked control can be described by it. */
+  noteId?: string;
 }
 
 const BADGE_COPY: Record<Exclude<McpBadge, "none">, string> = {
@@ -54,7 +59,7 @@ const NOTE_COPY: Record<Exclude<McpNote, "none">, string> = {
   notSaved: MCP_NOT_SAVED_COPY,
 };
 
-export function McpServerStatus({ status, switchResult }: McpServerStatusProps) {
+export function McpServerStatus({ status, switchResult, noteId }: McpServerStatusProps) {
   const { badge, note } = mcpStatusView(status, switchResult);
   if (status === null || (badge === "none" && note === "none")) return null;
 
@@ -68,7 +73,7 @@ export function McpServerStatus({ status, switchResult }: McpServerStatusProps) 
           {BADGE_COPY[badge]}
         </span>
       )}
-      {noteText && <span className="mcp-status-note">{noteText}</span>}
+      {noteText && <span id={noteId} className="mcp-status-note">{noteText}</span>}
     </div>
   );
 }

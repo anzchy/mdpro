@@ -2,12 +2,13 @@
 //!
 //! Pipeline: `applicationShouldTerminate:` (`macos`) -> `driver` ->
 //! `coordinator` -> `effects` -> NSApp reply; escape menu -> `driver_escape`
-//! -> `coordinator` -> ADR-0027 alert.
+//! -> `coordinator` -> ADR-0027 alert; new window -> `window_gate` (D74).
 //!
 //! Key decisions:
 //! - The decision logic is a pure state machine in `coordinator`: no
-//!   `AppHandle`, no objc, no clock. It compiles on every platform.
-//! - Only `macos` (the hook) is cfg-gated; `effects` branches inside per target.
+//!   `AppHandle`, no objc, no clock. It compiles on every platform. Only
+//!   `macos` (the hook) is cfg-gated; `effects` branches inside per target.
+//! - **No new window opens while a request is live** (D74, `window_gate.rs`).
 //! - **One quit-committed gate.** `QUIT_COMMITTED` is the single static that
 //!   `QuitGuard::new` closes on commit and `commands::draft::save_draft` passes
 //!   its write through. Two gates would let an auto-save tick recreate a draft
@@ -31,6 +32,7 @@ pub mod reply;
 mod request;
 mod rounds;
 mod types;
+pub mod window_gate;
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
@@ -287,13 +289,11 @@ mod driver_deadline_tests;
 mod driver_fixtures_tests;
 
 #[cfg(test)]
-#[path = "driver_redaction_tests.rs"]
-mod driver_redaction_tests;
-
-#[cfg(test)]
 #[path = "driver_cap_tests.rs"]
 mod driver_cap_tests;
-
 #[cfg(test)]
 #[path = "driver_commit_log_tests.rs"]
 mod driver_commit_log_tests;
+#[cfg(test)]
+#[path = "driver_redaction_tests.rs"]
+mod driver_redaction_tests;

@@ -134,7 +134,7 @@ Do not start the next stage without that reply.
 
 **Visual evidence protocol (E5):**
 - **Zero-change stages (1–2):** the proof is a computed-style snapshot, not a visual comparison.
-  - A throwaway script kept outside the repo (`$TMPDIR/mdpro-redesign/snapshot.js`) runs through `/browse` against `pnpm dev`.
+  - The capture script `scripts/redesign/snapshot.js` (in the repo since `c936591`; plan A4 as amended at stop point 1, 2026-10-08 — it was first planned as a throwaway at `$TMPDIR/mdpro-redesign/snapshot.js`) runs through `/browse` against `pnpm dev`. Its output stays outside the repo: the E5 JSON baselines are in `~/.mdpro-redesign/stage-0-post-merge/{json-macbook,json-mini-wkwebview}/`, and the before screenshots are on the Mac mini at `~/.mdpro-redesign/stage-0/shots/`.
   - For each Appendix B surface, in both themes and at a fixed viewport, it walks a fixed selector list. It records `getComputedStyle` for the A5 property families plus the box size, including `::before` / `::after`, and writes sorted JSON.
   - It also puts each surface into the states the selectors style (checked, disabled, focus-visible, an open modal, a scrolled container) and asserts that each state actually applied, so a missed state fails instead of producing an empty diff. A state that script cannot force (e.g. hover) is marked manual in the index.
   - Before and after files are compared with plain `diff`; an empty diff passes. Screenshots are still taken, as reference only.

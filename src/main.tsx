@@ -1,8 +1,6 @@
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import "./styles/globals.css";
-import "./styles/themes/light.css";
-import "./styles/themes/dark.css";
+import "./styles/index.css";
 
 // Apply macOS traffic-light clearances only when running inside Tauri on macOS.
 // Windows/Linux Tauri builds and web preview get the 0-offset defaults.
