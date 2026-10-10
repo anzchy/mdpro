@@ -28,6 +28,7 @@ import { useRecentFiles } from "./hooks/useRecentFiles";
 import { useRecentFilesMenuRefresh } from "./hooks/useRecentFilesMenuRefresh";
 import { useSidebarPreference } from "./hooks/useSidebarPreference";
 import { useOpenUrlParam } from "./hooks/useOpenUrlParam";
+import { useStartupDrafts } from "./hooks/useStartupDrafts";
 import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
@@ -65,7 +66,7 @@ import { quitDialogModel } from "./utils/quitDialogModel";
 import { encodingReopenOutcome } from "./utils/openWriteGuard";
 import { encodingRetryRefusalToast } from "./components/common/encodingDialogCopy";
 import { OPEN_FAILED_MESSAGE } from "./utils/openFailure";
-import { recoverDraft, discardRecoveryDraft, type DraftMetadata } from "./services/draftService";
+import { recoverDraft, discardRecoveryDraft } from "./services/draftService";
 import { draftRecoveryOutcome, type DraftActionOutcome } from "./utils/draftRecoveryOutcome";
 
 /**
@@ -107,7 +108,8 @@ function App() {
   const autoSaveInterval = useEditorStore((s) => s.autoSaveInterval);
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
   const { updateRecentFiles, hydrateRecentFiles, failRecentFilesHydration } = useRecentFiles();
-  const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
+  // Recovery drafts listed at startup (old ones pruned first).
+  const [drafts, setDrafts] = useStartupDrafts();
   const [reloadMessage, setReloadMessage] = useState<string | null>(null);
   const toastMessage = useToastStore((s) => s.message);
   const showToast = useToastStore((s) => s.showToast);
@@ -283,28 +285,6 @@ function App() {
     root.classList.remove("theme-light", "theme-dark");
     root.classList.add(resolvedTheme === "dark" ? "theme-dark" : "theme-light");
   }, [resolvedTheme]);
-
-  useEffect(() => {
-    let mounted = true;
-    const loadDrafts = async () => {
-      // Run cleanup independently so a failure does not prevent draft listing.
-      try {
-        await invoke("cleanup_old_drafts", {});
-      } catch {
-        // Best-effort — stale drafts may linger until next launch.
-      }
-      try {
-        const found = await invoke<DraftMetadata[]>("list_drafts", {});
-        if (mounted) setDrafts(found);
-      } catch {
-        // Ignore draft loading errors.
-      }
-    };
-    void loadDrafts();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!activeDocument) return;
