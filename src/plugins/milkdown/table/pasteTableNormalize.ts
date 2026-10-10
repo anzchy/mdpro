@@ -39,26 +39,33 @@
  *   - Drag-and-drop does not pass through `handlePaste`, and prosemirror-tables
  *     has no `handleDrop`, so the same split happens on a drop (D90). `handleDrop`
  *     refuses a table-carrying slice when the place prosemirror-view would insert
- *     it — `dropPoint` from the pointer position, as its drop handler computes it
- *     — is strictly inside a table cell (`tableCellStartAt`). Returning true
- *     consumes the drop, so nothing is inserted and the source of a move-drag is
- *     not deleted; it logs `editor.table.drop` as `fail` and toasts. A closed
- *     pure-table slice gets a `dropPoint` beside the host table and is left alone.
+ *     it — `dropPoint` from the pointer position, falling back to the pointer
+ *     position as its drop handler does — lies anywhere inside a table's content
+ *     (`findTable`): in a cell (D90) or at an interior boundary between cells or
+ *     rows (D94), where `dropPoint` finds no place and the fallback still splits
+ *     the host. Returning true consumes the drop, so nothing is inserted and the
+ *     source of a move-drag is not deleted; it logs `editor.table.drop` as `fail`
+ *     and toasts. A closed pure-table slice gets a `dropPoint` beside the host
+ *     table, outside it, and is left alone.
  *
  * @coordinates-with src/plugins/milkdown/table/parityPlugins.ts
  * @coordinates-with src/plugins/milkdown/table/raggedTableWiden.ts
- * @coordinates-with src/plugins/milkdown/table/tableContext.ts — strict cell lookup
  * @coordinates-with src/stores/toastStore.ts — refusal feedback
  */
 import { Fragment, type Node as PmNode, Slice } from "@milkdown/kit/prose/model";
 import { type EditorState, Plugin, PluginKey } from "@milkdown/kit/prose/state";
-import { __pastedCells, CellSelection, isInTable, TableMap } from "@milkdown/kit/prose/tables";
+import {
+  __pastedCells,
+  CellSelection,
+  findTable,
+  isInTable,
+  TableMap,
+} from "@milkdown/kit/prose/tables";
 import { dropPoint } from "@milkdown/kit/prose/transform";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { $prose } from "@milkdown/kit/utils";
 import { loggingService } from "../../../services/loggingService";
 import { useToastStore } from "../../../stores/toastStore";
-import { tableCellStartAt } from "./tableContext";
 
 type RefusalKind = "paste" | "drop";
 
@@ -160,16 +167,18 @@ function refuseTableInCell(kind: RefusalKind, slice: Slice): true {
 }
 
 /**
- * Whether prosemirror-view would insert this dropped slice strictly inside a table
- * cell: the `dropPoint` from the pointer position (falling back to the pointer
- * position itself, as the view's drop handler does) resolves inside a cell.
+ * Whether prosemirror-view would insert this dropped slice inside a table: the
+ * `dropPoint` from the pointer position (falling back to the pointer position
+ * itself, as the view's drop handler does) has a table ancestor. That covers a
+ * cell (D90) and the boundaries between cells and rows (D94); a `dropPoint`
+ * relocated before or after the table is outside it and is not refused.
  */
-function dropLandsInCell(view: EditorView, event: DragEvent, slice: Slice): boolean {
+function dropLandsInTable(view: EditorView, event: DragEvent, slice: Slice): boolean {
   const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
   if (!coords) return false;
   const { doc } = view.state;
   const insertPos = dropPoint(doc, coords.pos, slice) ?? coords.pos;
-  return tableCellStartAt(doc.resolve(insertPos)) !== null;
+  return findTable(doc.resolve(insertPos)) !== null;
 }
 
 export const tablePasteNormalizePlugin = $prose(
@@ -185,7 +194,7 @@ export const tablePasteNormalizePlugin = $prose(
           return refuseTableInCell("paste", slice);
         },
         handleDrop: (view, event, slice) => {
-          if (!sliceHasTable(slice) || !dropLandsInCell(view, event, slice)) return false;
+          if (!sliceHasTable(slice) || !dropLandsInTable(view, event, slice)) return false;
           return refuseTableInCell("drop", slice);
         },
       },

@@ -21,11 +21,12 @@
  * The drop is driven through prosemirror-view's own `drop` handler: a `drop`
  * event dispatched on `view.dom`, with a DataTransfer stub (external drop) or
  * `view.dragging` set (internal drag). Only the layout-dependent
- * `view.posAtCoords` is stubbed. Real Milkdown commonmark + gfm + the parity list.
+ * `view.posAtCoords` is stubbed (driver: `tests/support/tableDropDriver.ts`).
+ * Real Milkdown commonmark + gfm + the parity list.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Editor } from "@milkdown/kit/core";
-import { Slice } from "@milkdown/kit/prose/model";
+import type { Slice } from "@milkdown/kit/prose/model";
 import { type Plugin, TextSelection } from "@milkdown/kit/prose/state";
 import { __parseFromClipboard, type EditorView } from "@milkdown/kit/prose/view";
 import { loggingService } from "../src/services/loggingService";
@@ -40,8 +41,8 @@ import {
   tableShapes,
   viewOf,
 } from "./support/raggedTableD64";
+import { DROP_TOAST, drop, HOST, MIXED, TABLE } from "./support/tableDropDriver";
 
-const DROP_TOAST = "A table can't be dropped inside a table cell. Drop it outside the table.";
 const PASTE_TOAST = "A table can't be pasted inside a table cell. Paste it outside the table.";
 
 let logSpy: ReturnType<typeof vi.spyOn>;
@@ -56,50 +57,6 @@ afterEach(async () => {
   useToastStore.getState().clearToast();
   await destroyParityEditors();
 });
-
-const row = (tag: "th" | "td", cells: string[]) =>
-  `<tr>${cells.map((c) => `<${tag}>${c}</${tag}>`).join("")}</tr>`;
-
-const TABLE =
-  `<table><thead>${row("th", ["h1", "h2"])}</thead>` +
-  `<tbody>${row("td", ["a", "b"])}</tbody></table>`;
-
-const MIXED = `<p>before</p>${TABLE}<p>after</p>`;
-
-/** An existing rectangular table whose values share nothing with the dropped one. */
-const HOST = "| X1 | X2 |\n| -- | -- |\n| y1 | y2 |\n";
-
-interface DropOptions {
-  /** External drop: the dataTransfer's `text/html`. */
-  html?: string;
-  /** Internal drag: the slice prosemirror-view holds in `view.dragging`. */
-  slice?: Slice;
-}
-
-/**
- * Drop at document position `pos` through prosemirror-view's drop handler.
- * Returns whether the event's default was prevented.
- */
-function drop(view: EditorView, pos: number, opts: DropOptions): boolean {
-  vi.spyOn(view, "posAtCoords").mockReturnValue({ pos, inside: -1 });
-  if (opts.slice) {
-    (view as unknown as { dragging: unknown }).dragging = { slice: opts.slice, move: true };
-  }
-  const event = new Event("drop", { bubbles: true, cancelable: true });
-  Object.defineProperties(event, {
-    clientX: { value: 10 },
-    clientY: { value: 20 },
-    dataTransfer: {
-      value: {
-        getData: (type: string) => (type === "text/html" ? (opts.html ?? "") : ""),
-        files: [],
-        types: opts.html ? ["text/html"] : [],
-      },
-    },
-  });
-  view.dom.dispatchEvent(event);
-  return event.defaultPrevented;
-}
 
 const dropHtml = (e: Editor, needle: string, html: string) =>
   drop(viewOf(e), posAfter(viewOf(e), needle), { html });
@@ -150,17 +107,34 @@ describe("D90 — a table-carrying drop that would split the host table is refus
   });
 
   it("D90-3: an internal move-drag into a cell is refused and the drag source is kept", async () => {
-    const e = await mountParityEditor(`Src para\n\n${HOST}`);
-    const view = viewOf(e);
-    const slice = __parseFromClipboard(view, "", MIXED, false, view.state.doc.resolve(1));
-    if (!slice) throw new Error("no slice parsed");
-    view.dispatch(
-      view.state.tr.setSelection(TextSelection.create(view.state.doc, 1, posAfter(view, "Src"))),
+    const e = await mountParityEditor(
+      `Pre\n\n| s1 | s2 |\n| -- | -- |\n| t1 | t2 |\n\nPost\n\n${HOST}`,
     );
+    const view = viewOf(e);
+    // A real drag source: the user's selection from "Pre" through "Post", spanning
+    // paragraph + the source table + paragraph, outside the host table.
+    const from = posAfter(view, "Pre") - "Pre".length;
+    view.dispatch(
+      view.state.tr.setSelection(TextSelection.create(view.state.doc, from, posAfter(view, "Post"))),
+    );
+    const slice = view.state.selection.content();
+    expect(slice.content.childCount).toBe(3);
+    expect(slice.content.child(1).type.name).toBe("table");
     const before = docOf(e);
     drop(view, posAfter(view, "y1"), { slice });
     expect(docOf(e).eq(before)).toBe(true);
-    expect(docOf(e).firstChild?.textContent).toBe("Src para");
+    const cells = tableShapes(docOf(e)).map((s) => s.cells);
+    expect(cells).toEqual([
+      [
+        ["s1", "s2"],
+        ["t1", "t2"],
+      ],
+      [
+        ["X1", "X2"],
+        ["y1", "y2"],
+      ],
+    ]);
+    expect(docOf(e).firstChild?.textContent).toBe("Pre");
   });
 
   it("D90-4: the refusal consumes the drop, logs editor.table.drop (fail, with a reason) and toasts", async () => {
