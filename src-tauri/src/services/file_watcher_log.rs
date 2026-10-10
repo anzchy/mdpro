@@ -24,6 +24,9 @@
 //! - Kinds and sub-kinds with no payload log `detail: "none"`.
 //! - **One fixed key set.** `file.watch.event` always carries the same 12
 //!   context keys, absent values as `null`, so `jq` comparisons never miss.
+//! - **Status follows emission.** Only `Emitted*` outcomes log `Success`; every
+//!   non-emitting one, including `ignored_unchanged` (ADR-0068), logs
+//!   `Cancel` with `changeType: null`. The status `match` has no `_` arm.
 //! - **Paths, never content.** The full path is logged (a D32-scoped
 //!   diagnostic decision, to be reduced when D32 closes); file content,
 //!   xattr values and messages never are. The stat reads metadata only.
@@ -225,7 +228,8 @@ pub(crate) fn build_watch_event_log(
         | WatchOutcome::SelfWrite
         | WatchOutcome::IgnoredKind
         | WatchOutcome::IgnoredNoPath
-        | WatchOutcome::IgnoredRenameSinglePath => LogStatus::Cancel,
+        | WatchOutcome::IgnoredRenameSinglePath
+        | WatchOutcome::IgnoredUnchanged => LogStatus::Cancel,
     };
     LogEntryPayload {
         level: LogLevel::Info,

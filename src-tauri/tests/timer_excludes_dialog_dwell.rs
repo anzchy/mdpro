@@ -75,7 +75,14 @@ fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
 }
 
 fn fn_name_at(line: &str) -> Option<String> {
-    for prefix in ["pub async fn ", "pub fn ", "async fn ", "fn "] {
+    for prefix in [
+        "pub async fn ",
+        "pub fn ",
+        "pub(crate) async fn ",
+        "pub(crate) fn ",
+        "async fn ",
+        "fn ",
+    ] {
         if let Some(rest) = line.strip_prefix(prefix) {
             let name: String = rest
                 .chars()
@@ -205,20 +212,37 @@ fn t3_save_file_is_correctly_outside_this_invariant() {
     // Pinned here so nobody "fixes" a path that was never broken — and so that
     // moving a dialog into `save_file` fails loudly instead of quietly
     // reintroducing D1.
-    let save_file = all_functions()
-        .into_iter()
-        .find(|f| f.name == "save_file" && f.file.ends_with("commands/file.rs"))
-        .expect("save_file must exist");
+    //
+    // Moved with the code by D32 WI-6 (ADR-0068), with this stated reason: the
+    // timed body now lives in `save_file_with`, a seam that takes the watcher's
+    // baselines, and the `save_file` command is a thin wrapper that calls it.
+    // The timer check follows the body; the no-dialog check covers both.
+    let functions = all_functions();
+    let find = |name: &str| {
+        functions
+            .iter()
+            .find(|f| f.name == name && f.file.ends_with("commands/file.rs"))
+            .unwrap_or_else(|| panic!("{name} must exist"))
+    };
+    let save_file = find("save_file");
+    let save_file_with = find("save_file_with");
 
     assert!(
-        save_file.body.contains("Instant::now()"),
-        "premise guard: save_file is only interesting because it IS timed"
+        save_file.body.contains("save_file_with("),
+        "premise guard: the save_file command delegates to save_file_with"
     );
     assert!(
-        !save_file.body.contains("rfd::"),
-        "save_file must not open a dialog — its timing is sound precisely because \
-         save_file_dialog closes the picker before calling it"
+        save_file_with.body.contains("Instant::now()"),
+        "premise guard: save_file_with is only interesting because it IS timed"
     );
+    for f in [save_file, save_file_with] {
+        assert!(
+            !f.body.contains("rfd::"),
+            "{} must not open a dialog — the save timing is sound precisely because \
+             save_file_dialog closes the picker before calling it",
+            f.name
+        );
+    }
 }
 
 #[test]

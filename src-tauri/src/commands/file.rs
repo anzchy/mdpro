@@ -9,11 +9,11 @@ use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, Share
 use crate::services::{
     draft::delete_draft as delete_draft_service,
     encoding,
-    file_watcher::{self, FileWatcher},
+    file_watcher::{self, BaselineStore, FileWatcher},
     logger, shadow_store,
 };
 
-const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
+pub(crate) const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 const ALLOWED_EXTENSIONS: &[&str] = &["md", "markdown", "txt", "mdx"];
 
 /// Validate that a file path is safe for open/save operations.
@@ -537,13 +537,14 @@ mod tests {
 
         // The editor saves its LF content back; the original EOL must be restored.
         let edited_lf = format!("{}line three\n", opened.document.content);
-        save_file(
+        save_file_with(
             "d1".into(),
             edited_lf,
             Some(path.to_string_lossy().to_string()),
             Some(opened.document.encoding.clone()),
             Some(opened.document.line_ending.clone()),
             None,
+            &BaselineStore::default(),
         )
         .await
         .expect("save");
@@ -570,13 +571,14 @@ mod tests {
         assert_eq!(opened.document.line_ending, "crlf");
         assert_eq!(opened.document.content, "héllo\nwörld\n", "editor sees LF");
 
-        save_file(
+        save_file_with(
             "d1".into(),
             opened.document.content.clone(),
             Some(path.to_string_lossy().to_string()),
             Some(opened.document.encoding.clone()),
             Some(opened.document.line_ending.clone()),
             None,
+            &BaselineStore::default(),
         )
         .await
         .expect("save");
@@ -605,9 +607,9 @@ mod tests {
     // -----------------------------------------------------------------------
     // WI-0.4 — I/O failure paths
     //
-    // These exercise save_file against the real filesystem. save_file is a
-    // plain async fn (no Tauri State), so it is callable directly under
-    // #[tokio::test].
+    // These exercise the save path against the real filesystem through
+    // save_file_with (the command needs a Tauri State no test can build),
+    // with an empty baseline store so no notify watcher is started.
     // -----------------------------------------------------------------------
 
     fn io_test_dir(label: &str) -> std::path::PathBuf {
@@ -623,13 +625,14 @@ mod tests {
         let dir = io_test_dir("roundtrip");
         let path = dir.join("doc.md");
         std::fs::write(&path, b"old").unwrap();
-        let res = save_file(
+        let res = save_file_with(
             "d1".into(),
             "new content".into(),
             Some(path.to_string_lossy().to_string()),
             None,
             None,
             None,
+            &BaselineStore::default(),
         )
         .await;
         assert!(res.is_ok(), "save should succeed: {res:?}");
@@ -646,13 +649,14 @@ mod tests {
         let path = dir.join("new.md");
         std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
 
-        let res = save_file(
+        let res = save_file_with(
             "d1".into(),
             "content".into(),
             Some(path.to_string_lossy().to_string()),
             None,
             None,
             None,
+            &BaselineStore::default(),
         )
         .await;
 
@@ -683,13 +687,14 @@ mod tests {
         std::fs::remove_file(&path).unwrap();
         assert!(!path.exists());
 
-        let res = save_file(
+        let res = save_file_with(
             "d1".into(),
             "rescued edits".into(),
             Some(path.to_string_lossy().to_string()),
             None,
             None,
             None,
+            &BaselineStore::default(),
         )
         .await;
         assert!(res.is_ok(), "save after delete should recreate: {res:?}");
@@ -702,13 +707,14 @@ mod tests {
         let dir = io_test_dir("fancy_names");
         for name in ["my notes.md", "memo 📝 draft.md", "über café.md"] {
             let path = dir.join(name);
-            let res = save_file(
+            let res = save_file_with(
                 "d1".into(),
                 "body".into(),
                 Some(path.to_string_lossy().to_string()),
                 None,
                 None,
                 None,
+                &BaselineStore::default(),
             )
             .await;
             assert!(res.is_ok(), "save of {name:?} should succeed: {res:?}");
@@ -722,13 +728,14 @@ mod tests {
         let dir = io_test_dir("quote_name");
         // A single quote in the filename must not break the write path.
         let path = dir.join("o'brien's list.md");
-        let res = save_file(
+        let res = save_file_with(
             "d1".into(),
             "x".into(),
             Some(path.to_string_lossy().to_string()),
             None,
             None,
             None,
+            &BaselineStore::default(),
         )
         .await;
         assert!(
@@ -747,13 +754,14 @@ mod tests {
         let path = dir.join("big.md");
         let big = "a".repeat(10 * 1024 * 1024 - 16); // just under the 10MB open cap
         let start = std::time::Instant::now();
-        let res = save_file(
+        let res = save_file_with(
             "d1".into(),
             big.clone(),
             Some(path.to_string_lossy().to_string()),
             None,
             None,
             None,
+            &BaselineStore::default(),
         )
         .await;
         let elapsed = start.elapsed();
@@ -1193,6 +1201,35 @@ pub async fn save_file(
     encoding: Option<String>,
     line_ending: Option<String>,
     action_id: Option<String>,
+    watcher: State<'_, FileWatcher>,
+) -> Result<SaveResult, FileError> {
+    save_file_with(
+        _document_id,
+        content,
+        path,
+        encoding,
+        line_ending,
+        action_id,
+        watcher.baselines(),
+    )
+    .await
+}
+
+/// `save_file`'s body. After a successful `atomic_write`, and before the
+/// self-write mark clears, it refreshes the D32 baseline of the final path
+/// if one is registered, so late FSEvents flags for this write compare
+/// against the saved bytes (ADR-0068 decision 4). The hash is kept only if
+/// the disk still holds the bytes written; if another writer got in after
+/// the rename, the entry keeps no hash and that writer's event still emits
+/// (`refresh_after_save`, D32 WI-6b). A failed write refreshes nothing.
+pub(crate) async fn save_file_with(
+    _document_id: String,
+    content: String,
+    path: Option<String>,
+    encoding: Option<String>,
+    line_ending: Option<String>,
+    action_id: Option<String>,
+    baselines: &BaselineStore,
 ) -> Result<SaveResult, FileError> {
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
         path: "missing path".to_string(),
@@ -1285,6 +1322,9 @@ pub async fn save_file(
     let path_for_error = path_value.clone();
     file_watcher::mark_write_start(&path_buf);
     let write_result = atomic_write(&path_buf, &bytes);
+    if write_result.is_ok() {
+        baselines.refresh_after_save(&path_buf, &bytes);
+    }
     file_watcher::mark_write_end(&path_buf);
     write_result.map_err(|err| {
         let mapped = to_file_error(err, &path_value);
@@ -1320,6 +1360,7 @@ pub async fn save_file(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn save_file_dialog(
     _window: Window,
     document_id: String,
@@ -1328,6 +1369,7 @@ pub async fn save_file_dialog(
     encoding: Option<String>,
     line_ending: Option<String>,
     action_id: Option<String>,
+    watcher: State<'_, FileWatcher>,
 ) -> Result<Option<SaveResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let mut dialog = rfd::FileDialog::new().add_filter("Markdown", &["md", "markdown"]);
@@ -1348,13 +1390,14 @@ pub async fn save_file_dialog(
         return Ok(None);
     };
 
-    save_file(
+    save_file_with(
         document_id,
         content,
         Some(path.to_string_lossy().to_string()),
         encoding,
         line_ending,
         Some(action_id),
+        watcher.baselines(),
     )
     .await
     .map(Some)

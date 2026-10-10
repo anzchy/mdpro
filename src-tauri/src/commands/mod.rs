@@ -123,3 +123,20 @@ mod draft_recover_watch_law_tests;
 #[cfg(all(test, target_os = "macos"))]
 #[path = "draft_recover_watch_roundtrip_tests.rs"]
 mod draft_recover_watch_roundtrip_tests;
+
+// D32 WI-6: the save-refresh suites (ADR-0068 decision 4).
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_save_fixture.rs"]
+mod file_save_fixture;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_save_baseline_tests.rs"]
+mod file_save_baseline_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_save_burst_tests.rs"]
+mod file_save_burst_tests;
+
+#[cfg(test)]
+#[path = "file_save_wiring_tests.rs"]
+mod file_save_wiring_tests;

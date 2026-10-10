@@ -9,6 +9,11 @@ use tauri::{AppHandle, Emitter, Theme};
 
 use crate::models::log_entry::LogEntryPayload;
 use crate::services::logger;
+use baseline::is_filtered_kind;
+#[cfg(test)]
+pub(crate) use baseline::snapshot;
+/// `save_file` refreshes through it (ADR-0068 decision 4).
+pub(crate) use baseline::BaselineStore;
 use gate::{is_debounced, is_self_write};
 pub use gate::{mark_write_end, mark_write_start};
 use watch_log::{
@@ -18,6 +23,13 @@ use watch_log::{
 
 #[path = "file_watcher_gate.rs"]
 mod gate;
+
+#[path = "file_watcher_outcome.rs"]
+mod outcome;
+pub(crate) use outcome::WatchOutcome;
+
+#[path = "file_watcher_baseline.rs"]
+mod baseline;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -37,6 +49,8 @@ pub struct ThemeChangedEvent {
 pub struct FileWatcher {
     watcher: Mutex<RecommendedWatcher>,
     watched_paths: Arc<Mutex<Vec<String>>>,
+    /// D32 baselines (ADR-0068), the same `Arc` the notify callback holds.
+    baselines: Arc<BaselineStore>,
 }
 
 impl FileWatcher {
@@ -45,9 +59,11 @@ impl FileWatcher {
         let last_events: Arc<Mutex<HashMap<PathBuf, Instant>>> =
             Arc::new(Mutex::new(HashMap::new()));
         let debounce_map = Arc::clone(&last_events);
+        let baselines = Arc::new(BaselineStore::default());
+        let callback_baselines = Arc::clone(&baselines);
         let watcher = RecommendedWatcher::new(
             move |res| match res {
-                Ok(event) => handle_event(&app_handle, event, &debounce_map),
+                Ok(event) => handle_event(&app_handle, event, &debounce_map, &callback_baselines),
                 Err(e) => logger::log_event(build_watch_error_log(&e)),
             },
             Config::default(),
@@ -58,11 +74,14 @@ impl FileWatcher {
         Ok(Self {
             watcher,
             watched_paths,
+            baselines,
         })
     }
 
-    /// Watch `path` and log one `file.watch.register` line with notify's Result.
-    /// The line is built under both locks and written after they drop.
+    /// Watch `path`, log one `file.watch.register` line with notify's Result,
+    /// then record its baseline, overwriting any (ADR-0068 decision 4). The
+    /// line is built under both locks; the log write and the baseline's stat
+    /// and read run after they drop.
     pub fn watch(&self, path: &Path) {
         let line = {
             let (Ok(mut watcher), Ok(mut list)) = (self.watcher.lock(), self.watched_paths.lock())
@@ -72,10 +91,12 @@ impl FileWatcher {
             apply_watch(&mut watcher, &mut list, path, WatchOp::Register)
         };
         logger::log_event(line);
+        self.baselines.register(path);
     }
 
-    /// Unwatch `path` and log one `file.watch.unregister` line with notify's Result.
-    /// The line is built under both locks and written after they drop.
+    /// Unwatch `path`, log one `file.watch.unregister` line with notify's
+    /// Result, then drop the baseline `watch` recorded. The line is built
+    /// under both locks; the log write and the removal run after they drop.
     pub fn unwatch(&self, path: &Path) {
         let line = {
             let (Ok(mut watcher), Ok(mut list)) = (self.watcher.lock(), self.watched_paths.lock())
@@ -85,6 +106,13 @@ impl FileWatcher {
             apply_watch(&mut watcher, &mut list, path, WatchOp::Unregister)
         };
         logger::log_event(line);
+        self.baselines.remove(path);
+    }
+
+    /// The store the notify callback consults, for `save_file`'s refresh
+    /// (ADR-0068 decision 4, D32 WI-6).
+    pub(crate) fn baselines(&self) -> &BaselineStore {
+        &self.baselines
     }
 }
 
@@ -92,63 +120,23 @@ fn emit_file_changed(app_handle: &AppHandle, event: FileChangedEvent) {
     let _ = app_handle.emit("file:changed", event);
 }
 
-/// Why one notify event did or did not become a `file:changed` emission.
-/// Closed on purpose: the D32 diagnostic log (WI-3) writes `as_str()` and the
-/// device checklist greps for these exact strings.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum WatchOutcome {
-    EmittedModified,
-    EmittedDeleted,
-    EmittedRenamed,
-    /// Same first path emitted less than `DEBOUNCE_INTERVAL` ago.
-    Debounced,
-    /// A `Modify` on a path `save_file` is writing right now.
-    SelfWrite,
-    /// `Any`, `Access`, `Create` and `Other`: never routed.
-    IgnoredKind,
-    IgnoredNoPath,
-    /// `Modify(Name(_))` with one path (e.g. macOS FSEvents `ITEM_RENAMED`).
-    IgnoredRenameSinglePath,
-}
-
-impl WatchOutcome {
-    /// Every outcome, for the tests that enumerate the domain.
-    #[cfg(test)]
-    pub(crate) const ALL: [WatchOutcome; 8] = [
-        WatchOutcome::EmittedModified,
-        WatchOutcome::EmittedDeleted,
-        WatchOutcome::EmittedRenamed,
-        WatchOutcome::Debounced,
-        WatchOutcome::SelfWrite,
-        WatchOutcome::IgnoredKind,
-        WatchOutcome::IgnoredNoPath,
-        WatchOutcome::IgnoredRenameSinglePath,
-    ];
-
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            WatchOutcome::EmittedModified => "emitted_modified",
-            WatchOutcome::EmittedDeleted => "emitted_deleted",
-            WatchOutcome::EmittedRenamed => "emitted_renamed",
-            WatchOutcome::Debounced => "debounced",
-            WatchOutcome::SelfWrite => "self_write",
-            WatchOutcome::IgnoredKind => "ignored_kind",
-            WatchOutcome::IgnoredNoPath => "ignored_no_path",
-            WatchOutcome::IgnoredRenameSinglePath => "ignored_rename_single_path",
-        }
-    }
-}
-
 /// Tauri-free routing for one notify event: the `file:changed` payload to
-/// emit (if any) and the reason. Order matters and is today's behaviour:
-/// the kind is matched first (so ignored kinds never touch the debounce map),
-/// then the path count, then the self-write check (`Modify` only, and before
-/// the debounce check so a save never records a debounce entry), then the
-/// debounce check keyed by the first path, shared across kinds. `Remove` and
-/// renames are not self-write-gated.
+/// emit (if any) and the reason. Order matters: the kind is matched first (so
+/// ignored kinds never touch the debounce map), then the path count, then the
+/// self-write check (`Modify` only, and before the debounce check so a save
+/// never records a debounce entry), then the D32 drop: a
+/// `Modify(Metadata(Extended))`, `Modify(Metadata(Any))` or
+/// `Modify(Data(Content))` whose first path is unchanged since its baseline,
+/// read coherently (ADR-0068), is `IgnoredUnchanged`, again before the
+/// debounce check. Then the debounce check keyed by the first path, shared
+/// across kinds. Only an emitted `modified` advances the baseline, and only
+/// for an already-registered path. `Remove` and renames are not
+/// self-write-gated. Each lock (self-write, baseline, debounce) is taken
+/// alone, and the baseline's file I/O runs under none of them.
 fn process_event(
     event: &Event,
     debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
+    baselines: &BaselineStore,
     timestamp: i64,
 ) -> (Option<FileChangedEvent>, WatchOutcome) {
     let (change_type, outcome) = match event.kind {
@@ -173,8 +161,14 @@ fn process_event(
     if outcome == WatchOutcome::EmittedModified && is_self_write(path) {
         return (None, WatchOutcome::SelfWrite);
     }
+    if is_filtered_kind(&event.kind) && baselines.is_unchanged(path) {
+        return (None, WatchOutcome::IgnoredUnchanged);
+    }
     if is_debounced(path, debounce_map) {
         return (None, WatchOutcome::Debounced);
+    }
+    if outcome == WatchOutcome::EmittedModified {
+        baselines.refresh_if_present(path);
     }
     let emitted = FileChangedEvent {
         path: path.to_string_lossy().to_string(),
@@ -185,17 +179,20 @@ fn process_event(
     (Some(emitted), outcome)
 }
 
-/// Route one notify event and describe it: `process_event`, then one
-/// `stat_of(paths[0])` when there is a path, then the `file.watch.event`
-/// line. Every event yields exactly one line, emitted or not, and the line
-/// shares `timestamp` with the emitted event (the Rust/frontend join key).
+/// Route one notify event and describe it: `process_event` (which consults
+/// `baselines` for the D32 drop), then one `stat_of(paths[0])` when there is
+/// a path, then the `file.watch.event` line. Every event yields exactly one
+/// line, emitted or not, and the line shares `timestamp` with the emitted
+/// event (the Rust/frontend join key). The baseline does its own
+/// full-precision stat; `stat_of` is still called at most once.
 fn observe_event(
     event: &Event,
     debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
+    baselines: &BaselineStore,
     timestamp: i64,
     stat_of: impl Fn(&Path) -> Option<FileStat>,
 ) -> (Option<FileChangedEvent>, LogEntryPayload) {
-    let (emitted, outcome) = process_event(event, debounce_map, timestamp);
+    let (emitted, outcome) = process_event(event, debounce_map, baselines, timestamp);
     let stat = event.paths.first().and_then(|path| stat_of(path));
     let line = build_watch_event_log(event, outcome, emitted.as_ref(), stat, timestamp);
     (emitted, line)
@@ -224,13 +221,14 @@ fn handle_event(
     app_handle: &AppHandle,
     event: Event,
     debounce_map: &Arc<Mutex<HashMap<PathBuf, Instant>>>,
+    baselines: &BaselineStore,
 ) {
     let timestamp = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as i64;
 
-    let (emitted, line) = observe_event(&event, debounce_map, timestamp, stat_snapshot);
+    let (emitted, line) = observe_event(&event, debounce_map, baselines, timestamp, stat_snapshot);
     logger::log_event(line);
     if let Some(changed) = emitted {
         emit_file_changed(app_handle, changed);

@@ -3,6 +3,7 @@
 //! Wired from `file_watcher_log.rs` with `#[cfg(test)] #[path = ...] mod event_tests;`,
 //! so `super` is the log module and `super::super` is `file_watcher`.
 
+use super::super::baseline::BaselineStore;
 use super::super::kinds_fixture::{all_event_kinds, unique_path, T};
 use super::super::{process_event, FileChangedEvent, WatchOutcome};
 use super::{build_watch_event_log, classify_event_kind, stat_snapshot, FileStat};
@@ -57,6 +58,7 @@ fn outcome_table() -> Vec<(WatchOutcome, LogStatus, Option<&'static str>)> {
         (IgnoredKind, Cancel, None),
         (IgnoredNoPath, Cancel, None),
         (IgnoredRenameSinglePath, Cancel, None),
+        (IgnoredUnchanged, Cancel, None),
     ]
 }
 
@@ -80,6 +82,34 @@ fn w1_emitted_metadata_extended_line_is_exact() {
             "changeType":"modified","path":"/private/tmp/b.md","pathCount":1,"info":null,
             "rescan":false,"ownEvent":false,"mtimeMs":1700000000123_i64,"size":42,
             "timestamp":1700000000777_i64},"durationMs":null,"error":null})
+    );
+}
+
+#[test]
+fn w_ignored_unchanged_line_is_exact() {
+    let o = WatchOutcome::ALL
+        .into_iter()
+        .find(|o| o.as_str() == "ignored_unchanged")
+        .expect("ALL has no outcome named ignored_unchanged");
+    assert_eq!(o, WatchOutcome::IgnoredUnchanged);
+    let path = "/private/tmp/b.md";
+    let e = ev(
+        EventKind::Modify(ModifyKind::Metadata(MetadataKind::Extended)),
+        &[PathBuf::from(path)],
+    );
+    let stat = Some(FileStat {
+        mtime_ms: 1_700_000_000_123,
+        size: 42,
+    });
+    let line = build_watch_event_log(&e, o, None, stat, T);
+    assert_eq!(
+        to_value(&line).unwrap(),
+        json!({"level":"info","event":"file.watch.event","status":"cancel","actionId":null,
+            "context":{"kind":"modify_metadata","detail":"extended",
+            "outcome":"ignored_unchanged","changeType":null,"path":"/private/tmp/b.md",
+            "pathCount":1,"info":null,"rescan":false,"ownEvent":false,
+            "mtimeMs":1700000000123_i64,"size":42,"timestamp":1700000000777_i64},
+            "durationMs":null,"error":null})
     );
 }
 
@@ -180,7 +210,12 @@ fn w5_builder_agrees_with_routing_and_classification() {
         for n in 0..=2usize {
             let paths: Vec<PathBuf> = (0..n).map(|_| unique_path("w5")).collect();
             let e = ev(kind, &paths);
-            let (em, o) = process_event(&e, &Mutex::new(HashMap::new()), T);
+            let (em, o) = process_event(
+                &e,
+                &Mutex::new(HashMap::new()),
+                &BaselineStore::default(),
+                T,
+            );
             let line = build_watch_event_log(&e, o, em.as_ref(), None, T);
             let ctx = line.context.clone().unwrap_or(Value::Null);
             let class = classify_event_kind(&kind);

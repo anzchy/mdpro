@@ -5,6 +5,7 @@
 //! These pin the routing exactly as it was before the extraction; the gate
 //! state laws (debounce, self-write) live in `file_watcher_gate_tests.rs`.
 
+use super::baseline::BaselineStore;
 use super::kinds_fixture::{
     all_event_kinds, code_lines, fn_slice, is_bare_binding_arm, unique_path, T,
 };
@@ -48,7 +49,7 @@ fn run(kind: EventKind, paths: &[PathBuf], map: &Map) -> (Value, WatchOutcome) {
     let event = paths
         .iter()
         .fold(Event::new(kind), |ev, p| ev.add_path(p.clone()));
-    let (emitted, outcome) = process_event(&event, map, T);
+    let (emitted, outcome) = process_event(&event, map, &BaselineStore::default(), T);
     (serde_json::to_value(&emitted).unwrap(), outcome)
 }
 
@@ -89,8 +90,8 @@ fn table() -> Vec<(EventKind, WatchOutcome)> {
         (Modify(Data(DataChange::Size)), EmittedModified),
         (Modify(Data(DataChange::Content)), EmittedModified),
         (Modify(Data(DataChange::Other)), EmittedModified),
-        // CURRENT behaviour. The D32 fix will flip `Metadata(*)` deliberately;
-        // update these rows in that commit, not before.
+        // Routed with an empty baseline store, so every row is unchanged by
+        // D32; the three-kind unchanged filter is pinned by route-law R11.
         (Modify(Metadata(MetadataKind::Any)), EmittedModified),
         (Modify(Metadata(MetadataKind::AccessTime)), EmittedModified),
         (Modify(Metadata(MetadataKind::WriteTime)), EmittedModified),
@@ -202,7 +203,7 @@ fn o5_emission_agrees_with_outcome_over_all_kinds_and_path_counts() {
             let event = ps
                 .iter()
                 .fold(Event::new(kind), |ev, p| ev.add_path(p.clone()));
-            let (em, outcome) = process_event(&event, &fresh(), T);
+            let (em, outcome) = process_event(&event, &fresh(), &BaselineStore::default(), T);
             let label = format!("{kind:?} with {n} paths -> {outcome:?}");
             let change_type = match outcome {
                 WatchOutcome::EmittedModified => Some("modified"),

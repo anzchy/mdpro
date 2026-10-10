@@ -6,6 +6,7 @@
 //! Uses the real `is_self_write` / `is_debounced` with unique temp paths; no
 //! clock seam, so expiry is exercised by pre-seeding the map.
 
+use super::baseline::BaselineStore;
 use super::kinds_fixture::{all_event_kinds, unique_path, WriteMark, T};
 use super::{process_event, WatchOutcome};
 use notify::event::{DataChange, MetadataKind, ModifyKind, RemoveKind, RenameMode};
@@ -36,7 +37,7 @@ fn run(kind: EventKind, paths: &[&PathBuf], map: &Map) -> (Value, WatchOutcome) 
     let event = paths
         .iter()
         .fold(Event::new(kind), |ev, p| ev.add_path((*p).clone()));
-    let (emitted, outcome) = process_event(&event, map, T);
+    let (emitted, outcome) = process_event(&event, map, &BaselineStore::default(), T);
     (serde_json::to_value(&emitted).unwrap(), outcome)
 }
 
@@ -62,11 +63,12 @@ fn o1_as_str_is_exact_injective_and_all_is_complete() {
             WatchOutcome::IgnoredKind => "ignored_kind",
             WatchOutcome::IgnoredNoPath => "ignored_no_path",
             WatchOutcome::IgnoredRenameSinglePath => "ignored_rename_single_path",
+            WatchOutcome::IgnoredUnchanged => "ignored_unchanged",
         }
     }
-    assert_eq!(WatchOutcome::ALL.len(), 8);
+    assert_eq!(WatchOutcome::ALL.len(), 9);
     let strings: HashSet<&str> = WatchOutcome::ALL.iter().map(|o| o.as_str()).collect();
-    assert_eq!(strings.len(), 8, "as_str must be injective: {strings:?}");
+    assert_eq!(strings.len(), 9, "as_str must be injective: {strings:?}");
     for o in WatchOutcome::ALL {
         assert_eq!(o.as_str(), tripwire(o), "{o:?}");
     }
@@ -79,6 +81,7 @@ fn o1_as_str_is_exact_injective_and_all_is_complete() {
         "ignored_kind",
         "ignored_no_path",
         "ignored_rename_single_path",
+        "ignored_unchanged",
     ]
     .into_iter()
     .collect();

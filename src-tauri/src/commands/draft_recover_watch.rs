@@ -21,7 +21,8 @@
 //!   and the recover result is returned unchanged in every case.
 //!
 //! @coordinates-with commands/draft_recovery.rs — `recover_draft` calls this seam
-//! @coordinates-with services/file_watcher.rs — `watch` and its register log
+//! @coordinates-with services/file_watcher.rs — `watch`, its register log, and the
+//!   D32 baseline it records for the recovered path (ADR-0068 decision 4)
 //! @coordinates-with commands/file.rs — `validate_file_path`, shared with `open_file`
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};

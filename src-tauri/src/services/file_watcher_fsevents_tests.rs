@@ -6,6 +6,7 @@
 //! Ignored by default because it depends on the OS event stream; run it
 //! manually with `cargo test -- --ignored fsevents` (device step R0).
 
+use super::baseline::BaselineStore;
 use super::kinds_fixture::{unique_path, T};
 use super::watch_log::{classify_event_kind, ALL_KINDS};
 use super::{process_event, WatchOutcome};
@@ -58,7 +59,7 @@ fn o15_fsevents_content_write_reaches_process_event_as_emitted_modify() {
         received += 1;
         let class = classify_event_kind(&event.kind);
         assert!(ALL_KINDS.contains(&class.kind), "{:?}", event.kind);
-        let (emitted, outcome) = process_event(&event, &map, T);
+        let (emitted, outcome) = process_event(&event, &map, &BaselineStore::default(), T);
         if let (Some(em), WatchOutcome::EmittedModified) = (emitted, outcome) {
             let emitted_path = std::fs::canonicalize(&em.path).ok();
             found |= emitted_path.as_ref() == Some(&target);

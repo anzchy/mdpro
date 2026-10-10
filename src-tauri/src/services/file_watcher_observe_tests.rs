@@ -6,6 +6,7 @@
 //! shared timestamp; o18/w14 are source tripwires proving `handle_event`,
 //! `watch` and `unwatch` log unconditionally through the tested units.
 
+use super::baseline::BaselineStore;
 use super::kinds_fixture::{
     all_event_kinds, code_lines, fn_slice, stat_spy, unique_path, WriteMark, SPY_STAT, T,
 };
@@ -62,8 +63,8 @@ fn o16_observe_event_is_process_then_stat_then_build() {
             let paths: Vec<PathBuf> = (0..n).map(|_| unique_path("o16")).collect();
             let e = event_on(kind, &paths);
             let (calls, spy) = stat_spy();
-            let (em, line) = observe_event(&e, &fresh(), T, spy);
-            let (em_ref, o_ref) = process_event(&e, &fresh(), T);
+            let (em, line) = observe_event(&e, &fresh(), &BaselineStore::default(), T, spy);
+            let (em_ref, o_ref) = process_event(&e, &fresh(), &BaselineStore::default(), T);
             let tag = format!("{kind:?} x {n} paths");
 
             assert_eq!(line.event, "file.watch.event", "{tag}");
@@ -113,7 +114,13 @@ fn o17_sequence_on_one_map_logs_each_step_with_its_own_outcome() {
     let entry = |m: &Map| m.lock().unwrap().get(&p).copied();
 
     let (_c1, spy1) = stat_spy();
-    let (em1, line1) = observe_event(&event_on(content, &[p.clone()]), &map, T, spy1);
+    let (em1, line1) = observe_event(
+        &event_on(content, &[p.clone()]),
+        &map,
+        &BaselineStore::default(),
+        T,
+        spy1,
+    );
     let ctx1 = line1.context.clone().unwrap_or(Value::Null);
     assert_eq!(
         to_value(&em1).unwrap(),
@@ -127,7 +134,13 @@ fn o17_sequence_on_one_map_logs_each_step_with_its_own_outcome() {
     assert!(after_1.is_some(), "step 1 must record a debounce entry");
 
     let (_c2, spy2) = stat_spy();
-    let (em2, line2) = observe_event(&event_on(extended, &[p.clone()]), &map, T + 1, spy2);
+    let (em2, line2) = observe_event(
+        &event_on(extended, &[p.clone()]),
+        &map,
+        &BaselineStore::default(),
+        T + 1,
+        spy2,
+    );
     let ctx2 = line2.context.clone().unwrap_or(Value::Null);
     assert!(em2.is_none(), "step 2 must be debounced");
     assert_eq!(line2.status, LogStatus::Cancel);
@@ -139,7 +152,13 @@ fn o17_sequence_on_one_map_logs_each_step_with_its_own_outcome() {
 
     let _g = WriteMark::new(&p);
     let (_c3, spy3) = stat_spy();
-    let (em3, line3) = observe_event(&event_on(content, &[p.clone()]), &map, T + 2, spy3);
+    let (em3, line3) = observe_event(
+        &event_on(content, &[p.clone()]),
+        &map,
+        &BaselineStore::default(),
+        T + 2,
+        spy3,
+    );
     let ctx3 = line3.context.clone().unwrap_or(Value::Null);
     assert!(em3.is_none(), "step 3 must be a self-write");
     assert_eq!(line3.status, LogStatus::Cancel);

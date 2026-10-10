@@ -13,6 +13,10 @@
 //!   suppresses the watcher event for that path.
 //! - The debounce map is owned by the watcher and keyed by the event's first
 //!   path; a debounced event does not refresh its entry.
+//! - Gate order in `process_event` (ADR-0068): self-write, then the D32
+//!   unchanged-file drop (`file_watcher_baseline.rs`), then debounce. So
+//!   neither a save nor a dropped event records a debounce entry, and a
+//!   debounced event never advances the baseline.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
