@@ -62,17 +62,31 @@ and does not change it.
 - **Cost: a replace inside the own-save mark is suppressed.** An external
   replace that lands during mdpro's own write and refresh is `SelfWrite`.
   The window is a few milliseconds.
-- **Cost: an own save with no stored hash is reported as external** (D112).
-  Decision 1 keeps own ⌘S quiet only when `refresh_after_save` stores the
-  hash of the written bytes. It stores no hash in two cases:
-  (1) the document is over the 10 MiB hash cap, and such saves happen;
-  (2) the post-save read is unstable, or its bytes differ from the bytes
-  written. In both cases the own rename is `EmittedModified`. **Today only
-  the frontend's 3 s save-suppression window hides this.** D112 closes it,
-  and it is a hard precondition of removing that window (D86 WI-4).
+- **Closed by D112: an own save with no stored hash.** Decision 1 keeps own
+  ⌘S quiet only when `refresh_after_save` stores the hash of the written
+  bytes. It used to re-read the file and store no hash when (1) the
+  document was over the 10 MiB hash cap, or (2) the post-save read was
+  unstable or differed from the bytes written; the own rename was then
+  `EmittedModified`, hidden only by the frontend's 3 s save-suppression
+  window. Since D112 it stores the path's stat and the hash of the written
+  bytes, uncapped, without a read, and `is_unchanged` reads up to the stored
+  size when that is over the cap. Only a save can record such a size, so
+  entries from a register or a refresh keep the cap.
+- **Cost: an own save whose event-time check fails open is reported as
+  external.** `is_unchanged` still needs one stable read that hashes to the
+  stored value (ADR-0068 decision 3). If that read fails, or is torn by a
+  metadata change (an xattr or Spotlight write in the same instant), the own
+  rename is `EmittedModified`. This is kept on purpose: dropping on stat
+  alone, or retrying, would give up "drop only on proven-equal bytes". Once
+  D86 WI-4 removes the 3 s window, this residual is **user-visible as an
+  "External change detected" prompt on the user's own save**. It is rare and
+  loses nothing (Reload loads the bytes just saved).
 - **Cost: one more stat, plus a hash read.** Each replaced-file event stats
   its path. When the baseline's stat matches, it also hashes the file, up to
-  ADR-0068's 10 MiB cap.
+  ADR-0068's 10 MiB cap, or up to the size a save recorded (D112). Each
+  save also hashes its own bytes once. Measured on 10.5 MB / 20 MiB: about
+  2–4 ms per save (on the save command) and 4–7 ms per check (on the
+  watcher thread) in a release build; 60–80 ms each in a debug build.
 - **Not covered: a file moved away** (D107). The document keeps its old
   path, and ⌘S recreates the file there. This is unchanged.
 - **Not covered: two spellings of one path** (D106). They share or split a

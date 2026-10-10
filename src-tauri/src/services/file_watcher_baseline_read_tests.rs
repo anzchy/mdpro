@@ -140,14 +140,16 @@ fn r7_read_module_never_takes_the_lock() {
     }
 }
 
-/// r7b: `is_unchanged` decides from one `coherent_read`, never a path stat
-/// or a second open; `snapshot` reads once, and stats the path only on the
-/// no-hash fallback.
+/// r7b: `is_unchanged` decides from one coherent read (`coherent_read_upto`
+/// since D112), never a path stat or a second open; `snapshot` reads once,
+/// and stats the path only on the no-hash fallback.
 #[test]
 fn r7b_is_unchanged_and_snapshot_decide_from_one_read() {
     let baseline = production(BASELINE_SRC);
     let is_unchanged = body(&baseline, "fn is_unchanged(");
-    assert_eq!(count(&is_unchanged, "coherent_read("), 1, "{is_unchanged:#?}");
+    let reads = count(&is_unchanged, "coherent_read(")
+        + count(&is_unchanged, "coherent_read_upto(");
+    assert_eq!(reads, 1, "{is_unchanged:#?}");
     for token in ["stat_of(", "read_capped(", "File::open(", "metadata("] {
         assert_eq!(count(&is_unchanged, token), 0, "{token} in {is_unchanged:#?}");
     }

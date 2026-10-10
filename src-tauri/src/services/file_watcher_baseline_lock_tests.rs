@@ -138,12 +138,16 @@ const READ_SRC: &str = include_str!("file_watcher_baseline_read.rs");
 const GEN_SRC: &str = include_str!("file_watcher_baseline_gen.rs");
 // D86 WI-3: the open path's seed module (`read_for_open`, `register_seeded`).
 const SEED_SRC: &str = include_str!("file_watcher_baseline_seed.rs");
+// D112 refactor: `is_filtered_kind`, moved out of the parent.
+const KIND_SRC: &str = include_str!("file_watcher_baseline_kind.rs");
 const HELPERS: [&str; 4] = ["copy_out", "put", "put_if_present", "take"];
 const OPS: [&str; 4] = ["register", "refresh_if_present", "remove", "is_unchanged"];
 // WI-4b: the K5 test hook may do I/O, so no map helper may reach it.
-const IO_TOKENS: [&str; 12] = [
+const IO_TOKENS: [&str; 14] = [
     "between_read_and_restat(",
     "coherent_read(",
+    "coherent_read_upto(",
+    "read_once_upto(",
     "read_once(",
     "snapshot(",
     "metadata(",
@@ -196,6 +200,7 @@ fn b18_prime_lock_only_in_locked_and_only_io_free_helpers_use_it() {
     lines.extend(owned_lines(READ_SRC));
     lines.extend(owned_lines(GEN_SRC));
     lines.extend(owned_lines(SEED_SRC));
+    lines.extend(owned_lines(KIND_SRC));
     let defined: Vec<&str> = lines.iter().filter_map(|(_, l)| fn_name(l)).collect();
     for name in HELPERS.iter().chain(&OPS).chain(&["locked"]) {
         assert!(defined.contains(name), "non-vacuity: fn {name} exists");

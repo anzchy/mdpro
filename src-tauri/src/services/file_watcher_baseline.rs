@@ -1,13 +1,13 @@
 //! Per-path content baselines for the D32 unchanged-file filter (ADR-0068).
 //!
-//! Purpose: remember `(mtime, size, content hash)` for each watched file,
-//! name the event kinds the watcher may drop (`is_filtered_kind`), and answer
-//! one question for it: "is this file byte-for-byte what it was at the last
+//! Purpose: remember `(mtime, size, content hash)` for each watched file
+//! and answer one question for the watcher: "is this file byte-for-byte what it was at the last
 //! advance?" (`BaselineStore::is_unchanged`). Tauri-free.
 //!
 //! Pipeline (`is_unchanged`): copy the slot out under the lock; outside it,
-//! one `coherent_read` (file_watcher_baseline_read.rs) must match its `(mtime,
-//! size)` and hash, and a second copy-out must show the same generation.
+//! one `coherent_read_upto` (file_watcher_baseline_read.rs; cap: the larger
+//! of `HASH_CAP_BYTES` and the stored size) must match its `(mtime, size)` and
+//! hash, and a second copy-out must show the same generation.
 //!
 //! @coordinates-with services/file_watcher.rs (parent; `FileWatcher` owns one
 //! `Arc<BaselineStore>` shared with its notify callback; `process_event` asks
@@ -17,19 +17,17 @@
 //! ticket taken under them — D32 WI-4, WI-5, D86 WI-2),
 //! commands/file.rs (`save_file` refreshes after a successful write, WI-6;
 //! `MAX_FILE_SIZE` is the hash cap), file_watcher_baseline_save.rs (that
-//! refresh, bound to the written bytes, WI-6b), file_watcher_gate.rs (self-write, then
-//! this check, then debounce), file_watcher_baseline_read.rs (`read_once`,
-//! `coherent_read`, `snapshot`, `hash_bytes`; re-exported here, D86 WI-1),
+//! refresh, bound to the written bytes without a read, WI-6b, D112),
+//! file_watcher_gate.rs (self-write, then this check, then debounce),
+//! file_watcher_baseline_read.rs (`read_once`, `coherent_read(_upto)`,
+//! `snapshot`, `hash_bytes`; the last two re-exported here, D86 WI-1),
 //! file_watcher_baseline_seam.rs (test-only read hook and read counter),
 //! file_watcher_baseline_gen.rs (tickets, `Slot`, `admit`),
 //! file_watcher_baseline_seed.rs (the open path's seed, `register_seeded`,
-//! D86 WI-3), docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md
+//! D86 WI-3), file_watcher_baseline_kind.rs (`is_filtered_kind`, the kinds
+//! the drop applies to; re-exported here), docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md
 //!
 //! Key decisions:
-//! - **Three filtered kinds** (ADR-0068 decision 1): `Modify(Metadata(Extended))`,
-//!   `Modify(Metadata(Any))` and `Modify(Data(Content))`, the residual flags
-//!   FSEvents reports for an xattr write within ~30 s of a real one. The
-//!   route also checks a replaced file (ADR-0072); other kinds never are.
 //! - **Presence means registered.** A register (snapshot or seed) that lands
 //!   always inserts or overwrites, even for a missing or unreadable file
 //!   (fields `None`, which fails open); a refresh never inserts.
@@ -41,27 +39,31 @@
 //!   record and drops the entry under the previous key, and `remove` uses
 //!   the record, so a key change between the two cannot leak an entry.
 //! - **One read, one handle** (ADR-0068 decision 3, D86 WI-1). `snapshot`
-//!   and `is_unchanged` each decide from a single `coherent_read`: stat, bytes
+//!   and `is_unchanged` each decide from a single coherent read: stat, bytes
 //!   and restat through one open file, plus a path-identity check. A read torn
 //!   by a write, rename or metadata change fails open: `snapshot` stores the
-//!   path stat with no hash, `is_unchanged` answers false. More than
-//!   `HASH_CAP_BYTES` means no hash. ctime and ino prove stability and are
+//!   path stat with no hash, `is_unchanged` answers false. A read past
+//!   `HASH_CAP_BYTES` stores no hash. ctime and ino prove stability and are
 //!   never stored (D32): `Entry` stays `(mtime, size)` plus a hash.
+//! - **Only save-recorded entries read past the cap (D112).** Register, seed
+//!   and `refresh_if_present` hash at most `HASH_CAP_BYTES`; only
+//!   `refresh_after_save` hashes the written bytes whatever their size. So
+//!   `is_unchanged` reads up to the stored size when it is larger: the size
+//!   is the marker, bounded by what we wrote, and needs no extra state.
 //! - **The mutex (lock L5) is a leaf.** It is taken only in `locked()`, and
 //!   only the map helpers `copy_out` / `put` / `put_if_present` / `take` call
 //!   that; they do no I/O. Every stat, read and `canonicalize` runs outside
 //!   the lock. A poisoned lock is recovered, never unwrapped: this code runs
 //!   on notify's callback thread.
 
-use notify::event::{DataChange, MetadataKind, ModifyKind};
-use notify::EventKind;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::SystemTime;
 
-/// Files larger than this get no hash, so `is_unchanged` fails open on them.
-/// Equal to the open cap, `commands::file::MAX_FILE_SIZE`.
+/// Files larger than this get no hash from a read, so `is_unchanged` fails
+/// open on them unless a save recorded their hash (D112). Equal to the open
+/// cap, `commands::file::MAX_FILE_SIZE`.
 pub(crate) const HASH_CAP_BYTES: u64 = 10 * 1024 * 1024;
 
 /// One file's baseline. `stat` is the full-precision mtime and the size;
@@ -76,17 +78,6 @@ pub(crate) struct Entry {
 /// cannot be canonicalised (missing file or directory).
 pub(crate) fn baseline_key(raw: &Path) -> PathBuf {
     std::fs::canonicalize(raw).unwrap_or_else(|_| raw.to_path_buf())
-}
-
-/// The kinds the unchanged-file drop applies to (ADR-0068 decision 1).
-pub(crate) fn is_filtered_kind(kind: &EventKind) -> bool {
-    matches!(
-        kind,
-        EventKind::Modify(
-            ModifyKind::Metadata(MetadataKind::Extended | MetadataKind::Any)
-                | ModifyKind::Data(DataChange::Content)
-        )
-    )
 }
 
 /// `entries`: key -> slot. `keys`: raw -> key at the last register.
@@ -137,9 +128,11 @@ impl BaselineStore {
 
     /// True only if `raw` has an entry with a stored hash and one stable,
     /// in-cap read of it has the stored `(mtime, size)` and hashes equal to
-    /// it (ADR-0068 decision 3). Every other case, an unstable read included,
-    /// fails open, as does a register or remove landing during the read: the
-    /// slot generation must not move across it (D109). I/O runs unlocked.
+    /// it (ADR-0068 decision 3). The cap is `HASH_CAP_BYTES`, or the stored
+    /// size when larger, which only a save can record (D112). Every other
+    /// case, an unstable read included, fails open, as does a register or
+    /// remove landing during the read: the slot generation must not move
+    /// across it (D109). I/O runs unlocked.
     pub(crate) fn is_unchanged(&self, raw: &Path) -> bool {
         let key = baseline_key(raw);
         let Some(Slot { entry, gen }) = self.copy_out(&key) else {
@@ -148,7 +141,8 @@ impl BaselineStore {
         let (Some(stat), Some(hash)) = (entry.stat, entry.hash) else {
             return false;
         };
-        coherent_read(raw).is_some_and(|(s1, bytes)| s1 == stat && hash_bytes(&bytes) == hash)
+        let cap = HASH_CAP_BYTES.max(stat.1);
+        coherent_read_upto(raw, cap).is_some_and(|(s1, b)| s1 == stat && hash_bytes(&b) == hash)
             && self.copy_out(&key).is_some_and(|slot| slot.gen == gen)
     }
 
@@ -204,6 +198,10 @@ impl BaselineStore {
     }
 }
 
+#[path = "file_watcher_baseline_kind.rs"]
+mod kind;
+pub(crate) use kind::is_filtered_kind;
+
 #[path = "file_watcher_baseline_save.rs"]
 mod save;
 
@@ -214,7 +212,8 @@ pub(crate) use gen::{next_ticket, Slot, StoreOutcome};
 
 #[path = "file_watcher_baseline_read.rs"]
 mod read;
-pub(crate) use read::{coherent_read, hash_bytes, snapshot};
+use read::coherent_read_upto;
+pub(crate) use read::{hash_bytes, snapshot};
 
 #[path = "file_watcher_baseline_seed.rs"]
 pub(crate) mod seed;

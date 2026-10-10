@@ -1,18 +1,21 @@
 //! D32 WI-6b: the save refresh binds the baseline to the bytes the save wrote
 //! (ADR-0068 decision 4). An external write landing between our rename and
-//! the refresh's read must not become the baseline, or its event would be
-//! dropped as unchanged while the editor holds different bytes.
+//! the refresh must not become the baseline, or its event would be dropped
+//! as unchanged while the editor holds different bytes. Since D112 the
+//! refresh stores the hash of the written bytes without reading the disk;
+//! `is_unchanged` then finds the disk differs, so the event still emits.
 //! Real store, real temp files, synthetic events through `process_event`.
 use super::super::super::WatchOutcome::{EmittedModified, IgnoredUnchanged};
 use super::super::fixture::{fresh, h, modified, route, TempDir, EXTENDED, FILTERED};
-use super::super::{snapshot, Entry};
+use super::super::{hash_bytes, snapshot, Entry};
 use super::BaselineStore;
 use std::fs;
 
 /// R1: the race. Disk holds external bytes; the save wrote ours. The entry
-/// keeps the fresh stat but no hash, so the external write's event emits.
+/// is the fresh stat and the hash of our bytes (D112; before it: no hash),
+/// which the disk does not match, so the external write's event emits.
 #[test]
-fn r1_disk_differs_from_written_bytes_stores_no_hash_and_emits() {
+fn r1_disk_differs_from_written_bytes_stores_our_hash_and_emits() {
     let d = TempDir::new("r1");
     let p = d.file("a.md", b"before the save");
     let store = BaselineStore::default();
@@ -27,7 +30,7 @@ fn r1_disk_differs_from_written_bytes_stores_no_hash_and_emits() {
         store.get(&p),
         Some(Entry {
             stat: fresh_stat,
-            hash: None
+            hash: Some(hash_bytes(b"our saved bytes"))
         })
     );
     assert!(!store.is_unchanged(&p), "the drop fails open");
@@ -43,9 +46,10 @@ fn r1_disk_differs_from_written_bytes_stores_no_hash_and_emits() {
     }
 }
 
-/// R1b: same-length external bytes (equal size) still differ.
+/// R1b: same-length external bytes (equal size) still differ: the stored
+/// hash is ours (D112), the disk's is not, so the event emits.
 #[test]
-fn r1b_same_length_external_bytes_still_store_no_hash() {
+fn r1b_same_length_external_bytes_still_emit() {
     let d = TempDir::new("r1b");
     let p = d.file("a.md", b"xxxx");
     let store = BaselineStore::default();
@@ -54,7 +58,11 @@ fn r1b_same_length_external_bytes_still_store_no_hash() {
 
     store.refresh_after_save(&p, b"ours");
 
-    assert_eq!(store.get(&p).map(|e| e.hash), Some(None));
+    assert_eq!(
+        store.get(&p).map(|e| e.hash),
+        Some(Some(hash_bytes(b"ours")))
+    );
+    assert!(!store.is_unchanged(&p));
     assert_eq!(
         route(EXTENDED, &[&p], &fresh(), &store),
         (modified(&p), EmittedModified)
@@ -100,11 +108,12 @@ fn r3_unregistered_path_creates_no_entry() {
     assert_eq!(store.len(), 0);
 }
 
-/// R4: the read fails (file gone after the write): no hash, so it fails open.
-/// The path is canonical, as `save_file_with` passes it, so the key still
-/// resolves once the file is gone.
+/// R4: the stat fails (file gone after the write): no stat, so it fails
+/// open (D112: the hash of the written bytes is still stored; before it, no
+/// hash). The path is canonical, as `save_file_with` passes it, so the key
+/// still resolves once the file is gone.
 #[test]
-fn r4_failed_disk_read_stores_no_hash() {
+fn r4_failed_stat_stores_no_stat_and_fails_open() {
     let d = TempDir::new("r4");
     let p = fs::canonicalize(d.file("a.md", b"bytes")).expect("canonical");
     let store = BaselineStore::default();
@@ -114,15 +123,20 @@ fn r4_failed_disk_read_stores_no_hash() {
     store.refresh_after_save(&p, b"bytes");
 
     assert!(store.get(&p).is_some(), "the entry stays registered");
-    assert_eq!(store.get(&p).and_then(|e| e.hash), None);
+    assert_eq!(store.get(&p).and_then(|e| e.stat), None);
+    assert_eq!(
+        store.get(&p).and_then(|e| e.hash),
+        Some(hash_bytes(b"bytes"))
+    );
     assert!(!store.is_unchanged(&p));
 }
 
-/// R5 (S4 law): over a table of (disk, written) pairs, the stored entry has a
-/// hash exactly when the disk bytes equal the written bytes, and then it is
-/// the hash of those bytes; the stat is always the fresh one.
+/// R5 (S4 law): over a table of (disk, written) pairs, the stored entry is
+/// the fresh stat and the hash of the written bytes (D112; before it, a hash
+/// only when the disk equalled them), and the file reads as unchanged
+/// exactly when the disk bytes equal the written bytes.
 #[test]
-fn r5_hash_is_stored_iff_disk_equals_written() {
+fn r5_unchanged_iff_disk_equals_written() {
     let pairs: &[(&[u8], &[u8])] = &[
         (b"", b""),
         (b"", b"x"),
@@ -145,8 +159,13 @@ fn r5_hash_is_stored_iff_disk_equals_written() {
 
         let got = store.get(&p).expect("still registered");
         assert_eq!(got.stat, snapshot(&p).stat, "pair {i}: fresh stat");
-        let want = if disk == written { h(disk) } else { None };
-        assert_eq!(got.hash, want, "pair {i}: {disk:?} vs {written:?}");
+        assert_eq!(got.hash, Some(hash_bytes(written)), "pair {i}");
+        let unchanged = store.is_unchanged(&p);
+        assert_eq!(
+            unchanged,
+            disk == written,
+            "pair {i}: {disk:?} vs {written:?}"
+        );
     }
 }
 

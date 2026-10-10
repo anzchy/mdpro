@@ -2,7 +2,8 @@
 //! writer. `refresh_if_present` and `refresh_after_save` compare the slot
 //! generation `copy_out` captured with the slot's generation at store time,
 //! so a register or remove landing inside the refresh's read wins. The read
-//! hook fires inside the refresh's snapshot, outside the lock.
+//! hook fires inside the refresh's snapshot, outside the lock; the save
+//! refresh no longer reads (D112) and fires it between copy-out and store.
 use super::super::fixture::{h, rewrite_keep_stat, TempDir};
 use super::super::seam::with_read_hook;
 use super::super::{baseline_key, snapshot, BaselineStore, Entry};

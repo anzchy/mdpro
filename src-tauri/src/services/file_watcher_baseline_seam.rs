@@ -9,7 +9,8 @@
 //!
 //! @coordinates-with services/file_watcher_baseline_read.rs (`read_once`
 //! calls `note_read_call` and `between_read_and_restat`, which production
-//! builds compile to empty fns), file_watcher_baseline_seed.rs (re-exports
+//! builds compile to empty fns), file_watcher_baseline_save.rs
+//! (`refresh_after_save` calls `between_copy_and_store`, likewise; D112), file_watcher_baseline_seed.rs (re-exports
 //! `with_read_hook` and `read_once_calls` to `commands` through `kit`), services/file_watcher_baseline.rs (parent; `is_unchanged_with`
 //! wraps `is_unchanged`), file_watcher_baseline_coherent_tests.rs (K5, k6-k8,
 //! k11), file_watcher_baseline_coherent_race_tests.rs (k9, k10),
@@ -24,7 +25,9 @@
 //!   it again.
 //! - **Any reader**: `register`, `snapshot`, `coherent_read` and
 //!   `is_unchanged` all reach the hook through `read_once`, so one seam covers
-//!   every read the store makes.
+//!   every read the store makes. `refresh_after_save` no longer reads (D112);
+//!   it fires the same hook between its copy-out and its store, the window
+//!   its read used to open, so the D86 WI-2 g3 legs still land there.
 //! - **The hook runs where production runs nothing**, outside the store's
 //!   lock: the read module never takes it (r7), and B18′ lists
 //!   `between_read_and_restat(` as an I/O name, so no map helper can call it
@@ -54,6 +57,12 @@ pub(super) fn between_read_and_restat() {
     if let Some(hook) = HOOK.with(|h| h.borrow_mut().take()) {
         hook();
     }
+}
+
+/// Test build of the production no-op in `refresh_after_save`: run the
+/// installed hook, if any (D112).
+pub(super) fn between_copy_and_store() {
+    between_read_and_restat();
 }
 
 /// Clears this thread's hook on drop, so `f` panicking cannot leak it.

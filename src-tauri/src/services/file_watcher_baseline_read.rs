@@ -6,17 +6,19 @@
 //! stat of a stable read (`coherent_read`) and a store entry (`snapshot`).
 //! Tauri-free and lock-free: nothing here touches the store's mutex.
 //!
-//! Pipeline (`read_once`): open the path once; fstat the handle (`s1`); read
-//! at most `HASH_CAP_BYTES + 1` bytes through it; run the test seam; fstat
+//! Pipeline (`read_once_upto`): open the path once; fstat the handle (`s1`);
+//! read at most `cap + 1` bytes through it (`read_once` and `coherent_read`
+//! use `cap = HASH_CAP_BYTES`); run the test seam; fstat
 //! the handle again (`s2`); stat the path (`p`, following symlinks).
 //! `stable` means `s1 == s2` on `(mtime, size, ctime)` and `p` is the same
 //! file as `s1` on `(dev, ino, mtime, size)`.
 //!
 //! @coordinates-with services/file_watcher_baseline.rs (parent; `is_unchanged`
-//! calls `coherent_read`, and `register` / `refresh_if_present` call
-//! `snapshot`; the parent re-exports `coherent_read`, `hash_bytes`, `snapshot`),
-//! services/file_watcher_baseline_save.rs (`refresh_after_save` binds a
-//! `snapshot` to the written bytes), file_watcher_baseline_seam.rs (test-only
+//! calls `coherent_read_upto` with a cap derived from the stored size, and
+//! `register` / `refresh_if_present` call `snapshot`; the parent re-exports
+//! `hash_bytes`, `snapshot`),
+//! services/file_watcher_baseline_save.rs (`refresh_after_save` stores
+//! `stat_of` and `hash_bytes` of the written bytes, never a read, D112), file_watcher_baseline_seam.rs (test-only
 //! hook run between the read and `s2`, and the per-thread `read_once` call
 //! counter; production compiles both to nothing),
 //! file_watcher_baseline_seed.rs (`read_for_open`, the open path's one read),
@@ -40,6 +42,9 @@
 //! - **Keep what was read.** An unstable or over-cap read still returns its
 //!   bytes and `s1`, and a failed one keeps its io error, so the open path can
 //!   use them. Only `coherent_read` turns them into `None`.
+//! - **The cap is the caller's.** `snapshot` and the seed read at most
+//!   `HASH_CAP_BYTES`, so neither ever hashes more; only `is_unchanged` asks
+//!   for more, and only up to a size a save recorded (D112).
 //! - **Fail open.** An unstable, over-cap or failed read gives a snapshot
 //!   with the path's current stat (or none) and no hash, which never compares
 //!   equal: a missing file has neither, an unreadable file or a directory a
@@ -56,7 +61,8 @@ use std::path::Path;
 use std::time::SystemTime;
 
 /// One read through one handle. `s1` is the `(mtime, size)` of the handle
-/// before the read; `bytes` holds at most `HASH_CAP_BYTES + 1` bytes.
+/// before the read; `bytes` holds at most `cap + 1` bytes, and `over_cap`
+/// says it holds more than `cap`.
 #[derive(Debug)]
 pub(crate) struct ReadOnce {
     pub(crate) s1: (SystemTime, u64),
@@ -65,18 +71,23 @@ pub(crate) struct ReadOnce {
     pub(crate) over_cap: bool,
 }
 
-/// Open `path` once, fstat, read through the handle, fstat again, then stat
-/// the path. Errors from the open, the first fstat or the read are returned
-/// as they are; a failed second fstat or path stat only makes the read
-/// unstable.
+/// `read_once_upto` with the hash cap, `HASH_CAP_BYTES`.
 pub(crate) fn read_once(path: &Path) -> io::Result<ReadOnce> {
+    read_once_upto(path, HASH_CAP_BYTES)
+}
+
+/// Open `path` once, fstat, read at most `cap + 1` bytes through the handle,
+/// fstat again, then stat the path. Errors from the open, the first fstat or
+/// the read are returned as they are; a failed second fstat or path stat
+/// only makes the read unstable.
+pub(crate) fn read_once_upto(path: &Path, cap: u64) -> io::Result<ReadOnce> {
     note_read_call();
     let mut file = File::open(path)?;
     let m1 = file.metadata()?;
     let s1 = (m1.modified()?, m1.len());
     let mut bytes = Vec::new();
     (&mut file)
-        .take(HASH_CAP_BYTES + 1)
+        .take(cap.saturating_add(1))
         .read_to_end(&mut bytes)?;
     between_read_and_restat();
     let same_fd = file
@@ -85,15 +96,21 @@ pub(crate) fn read_once(path: &Path) -> io::Result<ReadOnce> {
     let same_path = std::fs::metadata(path).is_ok_and(|p| path_proof(&p) == path_proof(&m1));
     Ok(ReadOnce {
         s1,
-        over_cap: bytes.len() as u64 > HASH_CAP_BYTES,
+        over_cap: bytes.len() as u64 > cap,
         bytes,
         stable: same_fd && same_path,
     })
 }
 
-/// The bytes and `(mtime, size)` of a stable, in-cap read; `None` otherwise.
+/// `coherent_read_upto` with the hash cap, `HASH_CAP_BYTES`.
 pub(crate) fn coherent_read(path: &Path) -> Option<((SystemTime, u64), Vec<u8>)> {
-    let read = read_once(path).ok()?;
+    coherent_read_upto(path, HASH_CAP_BYTES)
+}
+
+/// The bytes and `(mtime, size)` of a stable read of at most `cap` bytes;
+/// `None` otherwise.
+pub(crate) fn coherent_read_upto(path: &Path, cap: u64) -> Option<((SystemTime, u64), Vec<u8>)> {
+    let read = read_once_upto(path, cap).ok()?;
     (read.stable && !read.over_cap).then_some((read.s1, read.bytes))
 }
 
@@ -112,7 +129,7 @@ pub(crate) fn snapshot(path: &Path) -> Entry {
 }
 
 /// Full-precision mtime and size, or `None` when either is unavailable.
-fn stat_of(path: &Path) -> Option<(SystemTime, u64)> {
+pub(crate) fn stat_of(path: &Path) -> Option<(SystemTime, u64)> {
     let meta = std::fs::metadata(path).ok()?;
     Some((meta.modified().ok()?, meta.len()))
 }
