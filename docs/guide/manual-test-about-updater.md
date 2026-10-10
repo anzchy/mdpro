@@ -259,6 +259,7 @@ All updater actions emit structured logs. Verify the following events appear in
 |-------|--------|------|
 | `ui.about.update_check` | `start` | When check begins |
 | `ui.about.update_check` | `success` or `fail` | When check completes |
+| `ui.about.update_check` | `success` (context `outcome: "updates-disabled"`, plus `error`) | When check ends as "Automatic updates coming soon." (no endpoint / no release manifest); same `actionId` as the start line. A cached result logs no `update_check` line |
 | `ui.about.update_install` | `start` | When "Install Update" is clicked |
 | `ui.about.update_install` | `success` or `fail` | When download completes or fails |
 | `ui.about.relaunch` | `start` | When relaunch is triggered |

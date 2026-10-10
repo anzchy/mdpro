@@ -4,6 +4,7 @@ import DOMPurify from "dompurify";
 import { relaunch } from "@tauri-apps/plugin-process";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { loggingService } from "../../../services/loggingService";
+import type { LogContext } from "../../../types/logging";
 import { updaterService } from "../../../services/updaterService";
 import { useUpdaterStore } from "../../../stores/updaterStore";
 import type { CacheSafeState } from "../../../stores/updaterStore";
@@ -14,7 +15,9 @@ import { isUpdatesDisabledError } from "./updaterErrors";
 /**
  * Purpose: Settings → About page.
  * Shows app version, checks for updates via @tauri-apps/plugin-updater,
- * and handles download + install + relaunch flow.
+ * and handles download + install + relaunch flow. Each non-cached check logs
+ * one `ui.about.update_check` start line and one terminal line (success,
+ * success with `outcome: "updates-disabled"`, or fail); a cache hit logs none.
  *
  * @coordinates-with updaterErrors (updates-disabled vs network-error detection)
  * @coordinates-with updaterStore (cache-safe state persistence)
@@ -39,6 +42,15 @@ export function AboutSettings() {
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const actionId = useRef(loggingService.generateActionId());
 
+  // One place for the update-check log shape; level follows status (fail → error).
+  // Reads actionId.current, so it is safe inside useCallback([]).
+  function logCheck(status: "start" | "success" | "fail", context: LogContext) {
+    const level = status === "fail" ? "error" : "info";
+    loggingService.logEventSync({
+      level, event: "ui.about.update_check", status, actionId: actionId.current, context,
+    });
+  }
+
   useEffect(() => {
     void updaterService.getAppVersion().then((v) => setCurrentVersion(v));
     void runCheck(false);
@@ -53,13 +65,7 @@ export function AboutSettings() {
     }
 
     setState({ phase: "checking" });
-    loggingService.logEventSync({
-      level: "info",
-      event: "ui.about.update_check",
-      status: "start",
-      actionId: actionId.current,
-      context: { forceRefresh },
-    });
+    logCheck("start", { forceRefresh });
 
     try {
       // Dynamic import to avoid bundling the plugin when not needed
@@ -80,21 +86,17 @@ export function AboutSettings() {
         setState(next);
       }
 
-      loggingService.logEventSync({
-        level: "info",
-        event: "ui.about.update_check",
-        status: "success",
-        actionId: actionId.current,
-        context: { hasUpdate: !!update, version: update?.version },
-      });
+      logCheck("success", { hasUpdate: !!update, version: update?.version });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
 
-      // Updates disabled (no endpoints / no release) is not an error state
+      // Updates disabled (no endpoints / no release) is not an error state: a
+      // definite answer, logged as success and told apart by `outcome`
       if (isUpdatesDisabledError(msg)) {
         const next: CacheSafeState = { phase: "updates-disabled" };
         useUpdaterStore.getState().setCachedResult(next);
         setState(next);
+        logCheck("success", { outcome: "updates-disabled", error: msg });
         return;
       }
 
@@ -104,13 +106,7 @@ export function AboutSettings() {
       };
       useUpdaterStore.getState().setCachedResult(next);
       setState(next);
-      loggingService.logEventSync({
-        level: "error",
-        event: "ui.about.update_check",
-        status: "fail",
-        actionId: actionId.current,
-        context: { error: msg },
-      });
+      logCheck("fail", { error: msg });
     }
   }, []);
 
