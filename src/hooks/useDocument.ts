@@ -198,7 +198,8 @@ export function useDocument() {
       // WI-3.5.5 eviction: close→reopen returns the same path-derived id.
       useTOCStore.getState().resetCoordination(activeDocument.id);
       useDocumentStore.getState().closeDocument(activeDocument.id);
-      setEditorActiveDocumentId(null);
+      // D96: follow the neighbour documentStore moved to, so the two stores agree.
+      setEditorActiveDocumentId(useDocumentStore.getState().activeDocumentId);
       return;
     },
     [activeDocument, setEditorActiveDocumentId],
@@ -211,9 +212,9 @@ export function useDocument() {
       // WI-3.5.5 eviction: the tab-bar X, which never reaches closeActiveDocument.
       useTOCStore.getState().resetCoordination(id);
       useDocumentStore.getState().closeDocument(id);
-      if (useDocumentStore.getState().activeDocumentId === id) {
-        setEditorActiveDocumentId(null);
-      }
+      // D96: closeDocument has already moved the active id off `id`, so re-read it
+      // rather than compare against `id`, which was never true here.
+      setEditorActiveDocumentId(useDocumentStore.getState().activeDocumentId);
       return;
     },
     [setEditorActiveDocumentId],
