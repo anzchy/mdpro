@@ -40,7 +40,8 @@ fn prepared(d: &TempDir, name: &str, state: State) -> (BaselineStore, PathBuf) {
 }
 
 /// R11 (law 1): a populated store changes the route only for the three
-/// filtered kinds (Metadata(Any), Extended, Content) on an unchanged
+/// filtered kinds (Metadata(Any), Extended, Content) and the replaced-file
+/// kinds (any `Create`, a single-path `Name`; ADR-0072) on an unchanged
 /// registered file with at least one path, and then only to a drop.
 #[test]
 fn r11_filter_locality_over_every_kind_path_count_and_store_state() {
@@ -67,11 +68,19 @@ fn r11_filter_locality_over_every_kind_path_count_and_store_state() {
         }
     }
     assert_eq!(cells, 41 * 3 * 4);
+    let creates = all_event_kinds()
+        .into_iter()
+        .filter(|k| matches!(k, EventKind::Create(_)));
+    let renames = all_event_kinds()
+        .into_iter()
+        .filter(|k| matches!(k, EventKind::Modify(ModifyKind::Name(_))));
     let expected: HashSet<_> = FILTERED
         .into_iter()
+        .chain(creates)
         .flat_map(|k| [(k, 1, Unchanged), (k, 2, Unchanged)])
+        .chain(renames.map(|k| (k, 1, Unchanged)))
         .collect();
-    assert_eq!(expected.len(), 6);
+    assert_eq!(expected.len(), 6 + 8 + 5);
     assert_eq!(differing, expected);
 }
 
@@ -80,6 +89,8 @@ enum Paths {
     Zero,
     One,
     Two,
+    /// One path, moved away before the event (ADR-0072: not a replace).
+    OneGone,
 }
 
 /// R12 (law 2): only an emitted `modified` advances the entry.
@@ -89,7 +100,7 @@ fn r12_ignored_event_does_not_advance_baseline() {
         (
             "create",
             EventKind::Create(CreateKind::File),
-            Paths::One,
+            Paths::OneGone,
             false,
             None,
             IgnoredKind,
@@ -98,7 +109,7 @@ fn r12_ignored_event_does_not_advance_baseline() {
         (
             "rename 1",
             EventKind::Modify(ModifyKind::Name(RenameMode::Any)),
-            Paths::One,
+            Paths::OneGone,
             false,
             None,
             IgnoredRenameSinglePath,
@@ -164,7 +175,9 @@ fn r12_ignored_event_does_not_advance_baseline() {
     let d = TempDir::new("r12");
     let mut targets = HashSet::new();
     for (i, (label, kind, paths, mark, live_ms, target)) in rows.into_iter().enumerate() {
-        let (store, p) = prepared(&d, &format!("r{i}.md"), State::ChangedAppend);
+        let (store, raw) = prepared(&d, &format!("r{i}.md"), State::ChangedAppend);
+        // Canonical, so `get` still finds the entry once the file is gone.
+        let p = std::fs::canonicalize(&raw).unwrap();
         let q = d.path().join(format!("q{i}.md"));
         let pre = store.get(&p);
         let map = fresh();
@@ -177,6 +190,10 @@ fn r12_ignored_event_does_not_advance_baseline() {
             Paths::Zero => &[],
             Paths::One => &all[..1],
             Paths::Two => &all,
+            Paths::OneGone => {
+                std::fs::rename(&p, d.path().join(format!("gone{i}.md"))).unwrap();
+                &all[..1]
+            }
         };
         let (_, outcome) = route(kind, ps, &map, &store);
         assert_eq!(outcome, target, "{label}: row reached its target outcome");

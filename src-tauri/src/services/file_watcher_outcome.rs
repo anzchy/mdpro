@@ -18,9 +18,10 @@
 //!   exact strings, so renaming one is a contract change; o1 is the tripwire.
 //! - **`ignored_unchanged`** (ADR-0068) is the outcome for a
 //!   `Modify(Metadata(Extended))`, `Modify(Metadata(Any))` or
-//!   `Modify(Data(Content))` event on a file whose bytes and stat equal its
-//!   baseline; it is non-emitting and logs as `Cancel`, like the other
-//!   `ignored_*` outcomes. Renamed from `ignored_metadata_unchanged` when the
+//!   `Modify(Data(Content))` event, or a replaced file (ADR-0072: a
+//!   single-path rename or a `Create` on an existing path, such as our own
+//!   atomic ⌘S), on a file whose bytes and stat equal its baseline; it is
+//!   non-emitting and logs as `Cancel`, like the other `ignored_*` outcomes. Renamed from `ignored_metadata_unchanged` when the
 //!   filter widened to Content (D32 WI-4b).
 //! - **`ALL` is test-only** and enumerates every variant, so the tests that
 //!   iterate the domain see a new variant as soon as it is added.
@@ -32,21 +33,27 @@
 /// device checklist greps for these exact strings.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum WatchOutcome {
+    /// A `Modify` that changed the file, or a replaced file: a single-path
+    /// `Modify(Name(_))` or a `Create` whose path still exists (ADR-0072).
     EmittedModified,
     EmittedDeleted,
     EmittedRenamed,
     /// Same first path emitted less than `DEBOUNCE_INTERVAL` ago.
     Debounced,
-    /// A `Modify` on a path `save_file` is writing right now.
+    /// A `Modify` or a replaced file on a path `save_file` is writing right now.
     SelfWrite,
-    /// `Any`, `Access`, `Create` and `Other`: never routed.
+    /// `Any`, `Access` and `Other`, and a `Create` whose path does not exist:
+    /// never routed.
     IgnoredKind,
     IgnoredNoPath,
-    /// `Modify(Name(_))` with one path (e.g. macOS FSEvents `ITEM_RENAMED`).
+    /// `Modify(Name(_))` with one path that no longer exists, i.e. the file
+    /// was moved away (macOS FSEvents `ITEM_RENAMED`; D107). With the path
+    /// still present it is a replaced file instead (ADR-0072).
     IgnoredRenameSinglePath,
     /// One of the three filtered kinds (`Metadata(Extended)`, `Metadata(Any)`,
-    /// `Data(Content)`) on a file whose mtime, size and content hash all equal
-    /// its baseline, read coherently (ADR-0068 decision 3); not emitted.
+    /// `Data(Content)`) or a replaced file (ADR-0072) on a file whose mtime,
+    /// size and content hash all equal its baseline, read coherently
+    /// (ADR-0068 decision 3); not emitted.
     IgnoredUnchanged,
 }
 

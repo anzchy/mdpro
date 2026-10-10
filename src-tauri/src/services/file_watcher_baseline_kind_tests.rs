@@ -13,7 +13,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use WatchOutcome::{EmittedModified, IgnoredKind, IgnoredUnchanged};
+use WatchOutcome::{EmittedModified, IgnoredUnchanged};
 
 fn registered(d: &TempDir, name: &str) -> (BaselineStore, PathBuf) {
     let p = d.file(name, b"hello world");
@@ -148,6 +148,8 @@ fn burst(
 }
 
 /// K4: the residual burst on an unchanged registered file emits nothing.
+/// The `Create` on an existing path is a replaced file (ADR-0072), so it is
+/// dropped as unchanged too.
 #[test]
 fn k4_residual_burst_on_an_unchanged_file_emits_nothing() {
     let d = TempDir::new("k4");
@@ -158,7 +160,7 @@ fn k4_residual_burst_on_an_unchanged_file_emits_nothing() {
     assert_eq!(
         outcomes,
         vec![
-            IgnoredKind,
+            IgnoredUnchanged,
             IgnoredUnchanged,
             IgnoredUnchanged,
             IgnoredUnchanged

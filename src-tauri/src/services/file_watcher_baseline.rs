@@ -11,7 +11,7 @@
 //!
 //! @coordinates-with services/file_watcher.rs (parent; `FileWatcher` owns one
 //! `Arc<BaselineStore>` shared with its notify callback; `process_event` asks
-//! `is_unchanged` for an `is_filtered_kind` event and advances with
+//! `is_unchanged` for a filtered kind or replaced file and advances with
 //! `refresh_if_present` after an emitted `modified`; `watch` / `unwatch`
 //! call `register_at` / `remove_at` after the watcher locks drop, with a
 //! ticket taken under them — D32 WI-4, WI-5, D86 WI-2),
@@ -28,8 +28,8 @@
 //! Key decisions:
 //! - **Three filtered kinds** (ADR-0068 decision 1): `Modify(Metadata(Extended))`,
 //!   `Modify(Metadata(Any))` and `Modify(Data(Content))`, the residual flags
-//!   FSEvents reports for an xattr write within ~30 s of a real one. Every
-//!   other kind routes as before.
+//!   FSEvents reports for an xattr write within ~30 s of a real one. The
+//!   route also checks a replaced file (ADR-0072); other kinds never are.
 //! - **Presence means registered.** A register (snapshot or seed) that lands
 //!   always inserts or overwrites, even for a missing or unreadable file
 //!   (fields `None`, which fails open); a refresh never inserts.
@@ -233,7 +233,7 @@ mod read_tests;
 
 #[cfg(test)]
 #[path = "file_watcher_baseline_fixture.rs"]
-mod fixture;
+pub(super) mod fixture;
 
 #[cfg(test)]
 #[path = "file_watcher_baseline_tests.rs"]

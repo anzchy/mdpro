@@ -124,10 +124,11 @@ mod draft_recover_watch_law_tests;
 #[path = "draft_recover_watch_roundtrip_tests.rs"]
 mod draft_recover_watch_roundtrip_tests;
 
-// D32 WI-6: the save-refresh suites (ADR-0068 decision 4).
+// D32 WI-6: the save-refresh suites (ADR-0068 decision 4). The fixture is
+// pub(crate) for the D101 own-save route tests in services/.
 #[cfg(all(test, target_os = "macos"))]
 #[path = "file_save_fixture.rs"]
-mod file_save_fixture;
+pub(crate) mod file_save_fixture;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "file_save_baseline_tests.rs"]
