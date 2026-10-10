@@ -38,6 +38,25 @@ Which implementor owns which area right now lives in the delegator's
 assignment messages, not in this file. Any other new kind of session gets a row here in the
 commit that starts it working.
 
+**Start an implementor or the device tester with its role set**:
+`MDPRO_ROLE=implementor claude` or `MDPRO_ROLE=real-device-tester claude`.
+The PreToolUse hook `.claude/hooks/role-guard.sh` reads it and refuses what
+the role may not do: an implementor's `AskUserQuestion`, `git push`, a
+commit, merge, rebase or reset on `master` or `frontend-backend-redesign`,
+blanket staging (`git add -A` / `.` / `-u`, `commit -a`) and staging
+`state.json`; the tester's state-changing git and any write outside
+`$MDPRO_REPORT_DIR` (default `~/.mdpro-redesign/dtrack`) or its scratch dir.
+The hook is a backstop, not the rule: everything else in this file still
+binds a session whatever its `MDPRO_ROLE`. No role set means no checks, so
+the delegator and the user's own sessions run unchanged.
+
+The delegator has two subagents of its own:
+`mdpro-landing-verifier` re-checks a handoff (ancestry, scope, that
+`receipts.json` keeps every record of the parent, the named lanes in a
+detached `verify-<sha7>` worktree) before `git merge --ff-only`, and
+`mdpro-number-registrar` finds the next free ADR and D numbers. Neither
+merges or reserves; the delegator does.
+
 ## How work is assigned
 
 - **The delegator assigns.** A D item or WI belongs to one session at a
@@ -85,7 +104,19 @@ commit that starts it working.
 3. **A session that lands commits on `frontend-backend-redesign` itself** (by
    cherry-pick) tells the delegator the SHAs and the lanes that passed, so it can warn the peers to
    fast-forward before their next commit.
-4. The sequencing-doc row and the ledger row change in the same commit as
+4. **Every landed WI or finished module goes to an mdpro-auditor for a mini
+   audit.** After the `--ff-only`, the delegator sends the auditor the
+   landed SHA range, the WI or D id and the owner. The auditor runs
+   `/cc-suite:audit --mini` on it with preflight bypassed, model
+   `gpt-6.1-sol` and effort `high`, unless the delegator names others. Nobody
+   asks the user first: the user approved this standing order on 2026-10-10
+   so that no human sits in the loop. The approval covers the audit run
+   only; rule 25 commands still need their own confirmation. A docs-only or
+   device-record commit is not audited. The auditor reports its findings to
+   the delegator, not to the implementor. The delegator gives a new finding a
+   D number and hands it to the session that owns the area; it does not
+   reopen the landed commit.
+5. The sequencing-doc row and the ledger row change in the same commit as
    the behaviour they describe. A peer edits **only the D and WI rows it owns**. The
    shared release-freeze paragraph belongs to the delegator.
 
@@ -94,7 +125,9 @@ Stage only paths you can name, and never the user's own dirty files — anything
 change (on 2026-10-10: their
 `.claude/*` edits, `docs/pending/`, `docs/reference/`, the `docs/plans`
 archive moves, `tsconfig.node.tsbuildinfo`). Deleting a branch or worktree
-needs the user's confirmation (rule 25).
+needs the user's confirmation (rule 25). The one exception is a detached
+`verify-<sha7>` worktree that `mdpro-landing-verifier` created for its own run;
+it removes that one when it finishes.
 
 ## Reserving numbers
 
@@ -107,6 +140,10 @@ needs the user's confirmation (rule 25).
   has already handed out. After a restart it asks each session which numbers
   it holds before handing out another. Then it announces the reservation to all sessions.
 - **D numbers** work the same way (see above).
+- **tdd-guardian receipt ids carry the work's prefix** (`D32-WI-6`,
+  `ADR47-WI003-2`), never a bare `WI-n`. Receipts are keyed by id, so two
+  efforts that both record `WI-4` overwrite each other; on 2026-10-10 a merge
+  carried six redesign receipts away this way.
 
 ## The Mac mini
 
