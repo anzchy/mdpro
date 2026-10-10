@@ -142,7 +142,11 @@ export function useMcpEvents() {
       // document, in which case `upsertDocument` replaces it in place.
       useTOCStore.getState().resetCoordination(event.document_id);
       upsertDocument(newDoc);
-      setActiveDocumentId(event.document_id);
+      // D92: a failed WYSIWYG flush refuses the switch (the new tab stays inactive);
+      // editorStore follows only a switch that happened, so the stores agree.
+      if (setActiveDocumentId(event.document_id)) {
+        useEditorStore.getState().setActiveDocumentId(event.document_id);
+      }
     },
     [upsertDocument, setActiveDocumentId]
   );

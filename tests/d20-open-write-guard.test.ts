@@ -127,6 +127,15 @@ const activeIds = () => [
   useEditorStore.getState().activeDocumentId,
 ];
 
+/**
+ * D92: the seed makes doc-o active. When doc-o's own flusher fails, activating any
+ * other document would unmount the editor holding edits the store never received, so
+ * the guard keeps its decision (focus / write) but withholds the activation: both
+ * stores stay on doc-o. A failure on another document's flusher still activates.
+ */
+const expectedActive = (target: string, activeFlushFailed: boolean) =>
+  activeFlushFailed ? ["doc-o", "doc-o"] : [target, target];
+
 function omit<T extends Record<string, unknown>>(obj: T, key: string): Record<string, unknown> {
   const { [key]: _drop, ...rest } = obj;
   void _drop;
@@ -305,6 +314,7 @@ function runA1Rows(): LawRow[] {
               entry: "file-open",
               matchedBy: expectedMatchedBy,
               flushFailed: flush === "failed",
+              activated: true,
             });
           } else {
             expect(result, label).toEqual({ kind: "written", document: decoded, largeFile: false });
@@ -315,7 +325,9 @@ function runA1Rows(): LawRow[] {
             expect(omit(gens, "doc-t"), label).toEqual(omit(pre.generations, "doc-t"));
             expect(useTOCStore.getState().documentId, label).not.toBe("doc-t");
             expect(useTOCStore.getState().byDocument.has("doc-t"), label).toBe(false);
-            expect(activeIds(), label).toEqual(["doc-t", "doc-t"]);
+            expect(activeIds(), label).toEqual(
+              expectedActive("doc-t", writeTo === "doc-o" && flush === "failed"),
+            );
             const grows = match === "path" || match === "none" ? 1 : 0;
             expect(docs().length, label).toBe(preDocs.length + grows);
             expect(focusDirtyLogs.length, label).toBe(0);
@@ -386,13 +398,14 @@ function runA16Rows(): LawRow[] {
               expect(docs().length, label).toBe(3);
               expect(useMilkdownEditorStore.getState().editorGenerations, label).toEqual(pre.generations);
               expect(tocSnapshot(), label).toEqual(pre.toc);
-              expect(activeIds(), label).toEqual([focused, focused]);
+              expect(activeIds(), label).toEqual(expectedActive(focused, flush === "failed"));
               expect(focusDirtyLogs.length, label).toBe(1);
               expect(focusDirtyLogs[0].context, label).toEqual({
                 documentId: focused,
                 entry: "file-open",
                 matchedBy,
                 flushFailed: flush === "failed",
+                activated: expectedActive(focused, flush === "failed")[0] === focused,
               });
             } else {
               expect(result, label).toEqual({ kind: "written", document: decoded, largeFile: false });
@@ -528,7 +541,9 @@ describe("Unit A — commitOpenedDocument", () => {
     expect(result).toEqual({ kind: "written", document: decoded, largeFile: false });
     expect(docById("doc-t")).toEqual(decoded);
     expect(docById("doc-o")).toEqual(docO(true));
-    expect(activeIds()).toEqual(["doc-t", "doc-t"]);
+    // D92: written but not activated; the active doc-o's flusher still throws.
+    expect(activeIds()).toEqual(expectedActive("doc-t", true));
+    expect(logCalls().filter((c) => c.event === "tab.switch")).toHaveLength(1);
     expect(useMilkdownEditorStore.getState().editorGenerations["doc-t"]).toBe(1);
   });
 
@@ -653,7 +668,7 @@ describe("Unit A — commitOpenedDocument", () => {
     const focus = eventsSince(start, "file.open.focus_dirty");
     expect(focus.length).toBe(1);
     expect(focus[0].context).toEqual({
-      documentId: "doc-t", entry: "file-open", matchedBy: "id", flushFailed: false,
+      documentId: "doc-t", entry: "file-open", matchedBy: "id", flushFailed: false, activated: true,
     });
     expect(docById("doc-t")).toEqual(X);
     expect(activeIds()).toEqual(["doc-t", "doc-t"]);
@@ -696,7 +711,7 @@ describe("Unit A — commitOpenedDocument", () => {
       const focus = eventsSince(start, "file.open.focus_dirty");
       expect(focus.length, order).toBe(1);
       expect(focus[0].context, order).toEqual({
-        documentId: "doc-t", entry: "file-open", matchedBy: "id", flushFailed: false,
+        documentId: "doc-t", entry: "file-open", matchedBy: "id", flushFailed: false, activated: true,
       });
       expect(eventsSince(start, "file.open.reload_clean").length, order).toBe(0);
     }
@@ -726,12 +741,13 @@ describe("Unit A — commitOpenedDocument", () => {
         expect(post.documents, label).toEqual(pre.documents);
         expect(post.generations, label).toEqual(pre.generations);
         expect(post.toc, label).toEqual(pre.toc);
-        expect(activeIds(), label).toEqual(["doc-t", "doc-t"]);
+        expect(activeIds(), label).toEqual(expectedActive("doc-t", row.flush === "failed"));
         const focus = eventsSince(start, "file.open.focus_dirty");
         expect(focus.length, label).toBe(1);
         expect(focus[0].context, label).toEqual({
           documentId: "doc-t", entry: "file-open", matchedBy: "id",
           flushFailed: row.flush === "failed",
+          activated: expectedActive("doc-t", row.flush === "failed")[0] === "doc-t",
         });
         count += 1;
       }
@@ -787,12 +803,13 @@ describe("Unit A — commitOpenedDocument", () => {
       expect(post.generations, row.name).toEqual(pre.generations);
       expect("doc-t" in post.generations, row.name).toBe(false);
       expect(post.toc, row.name).toEqual(pre.toc);
-      expect(activeIds(), row.name).toEqual([row.focused, row.focused]);
+      expect(activeIds(), row.name).toEqual(expectedActive(row.focused, row.flush === "failed"));
       const focus = eventsSince(start, "file.open.focus_dirty");
       expect(focus.length, row.name).toBe(1);
       expect(focus[0].context, row.name).toEqual({
         documentId: row.focused, entry: "file-open", matchedBy: "path",
         flushFailed: row.flush === "failed",
+        activated: expectedActive(row.focused, row.flush === "failed")[0] === row.focused,
       });
       expect(eventsSince(start, "file.open.reload_clean").length, row.name).toBe(0);
     }
@@ -878,7 +895,7 @@ describe("Unit B — focusDirtyOpenAt", () => {
       expect(post.generations, row.name).toEqual(pre.generations);
       expect("doc-t" in post.generations, row.name).toBe(false);
       expect(post.toc, row.name).toEqual(pre.toc);
-      expect(activeIds(), row.name).toEqual([row.focused, row.focused]);
+      expect(activeIds(), row.name).toEqual(expectedActive(row.focused, row.flush === "failed"));
       const focus = eventsSince(start, "file.open.focus_dirty");
       expect(focus.length, row.name).toBe(1);
       expect(focus[0].context, row.name).toMatchObject({

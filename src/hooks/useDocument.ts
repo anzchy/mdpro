@@ -85,12 +85,22 @@ export function useDocument() {
     [applyOpened],
   );
 
-  const setActiveDocumentById = useCallback(
-    (id: string) => {
-      useDocumentStore.getState().setActiveDocumentId(id);
-      setEditorActiveDocumentId(id);
+  // D92: documentStore refuses a switch whose WYSIWYG flush failed. editorStore follows
+  // only a switch that happened, so the two stores never name different documents.
+  const activateInBothStores = useCallback(
+    (id: string): boolean => {
+      const switched = useDocumentStore.getState().setActiveDocumentId(id);
+      if (switched) setEditorActiveDocumentId(id);
+      return switched;
     },
     [setEditorActiveDocumentId],
+  );
+
+  const setActiveDocumentById = useCallback(
+    (id: string) => {
+      activateInBothStores(id);
+    },
+    [activateInBothStores],
   );
 
   const openDocumentFromDialog = useCallback(async (actionId?: string) => {
@@ -141,20 +151,19 @@ export function useDocument() {
     // WI-3.5.5 wholesale: `upsertDocument` overwrites in place on an id collision.
     useTOCStore.getState().resetCoordination(document.id);
     useDocumentStore.getState().upsertDocument(document);
-    useDocumentStore.getState().setActiveDocumentId(document.id);
-    setEditorActiveDocumentId(document.id);
+    // D92: a refused switch leaves the new tab open but inactive.
+    activateInBothStores(document.id);
     return document;
-  }, [setEditorActiveDocumentId]);
+  }, [activateInBothStores]);
 
   const upsertAndActivateDocument = useCallback(
     (document: Document) => {
       // WI-3.5.5 wholesale: draft recovery / dev open, under the original path's id.
       prepareWholesaleReplace(document.id, "draft-recovery");
       useDocumentStore.getState().upsertDocument(document);
-      useDocumentStore.getState().setActiveDocumentId(document.id);
-      setEditorActiveDocumentId(document.id);
+      activateInBothStores(document.id); // D92: refused → upserted, not active
     },
-    [setEditorActiveDocumentId],
+    [activateInBothStores],
   );
 
   const replaceDocument = useCallback((document: Document) => {

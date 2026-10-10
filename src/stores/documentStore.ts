@@ -2,22 +2,33 @@ import { create } from "zustand";
 import type { Document } from "../types/document";
 import { loggingService } from "../services/loggingService";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
+import { refuseTabSwitch } from "../utils/flushRefusal";
 
 /**
  * D15: a tab transition pushes the outgoing editor's pending WYSIWYG edits into this
  * store first. Always called before `set`, never inside an updater, so the transition
  * computes from post-flush state and cannot overwrite the flush's write. The editor's
  * destroy flush remains the backstop for raw `setState` callers.
+ *
+ * D92: returns whether the flush failed. A switch refuses on `true` (the editor would
+ * unmount and its edits be lost); a close ignores it, because a close is a deliberate
+ * discard the close prompt (`dataLossGuards.ts`) already guarded.
  */
-function flushPendingEdits(reason: "tab-switch" | "tab-close"): void {
-  useMilkdownEditorStore.getState().flushPendingEdits(reason);
+function flushPendingEdits(reason: "tab-switch" | "tab-close"): boolean {
+  return useMilkdownEditorStore.getState().flushPendingEdits(reason).status === "failed";
 }
 
 interface DocumentStore {
   documents: Document[];
   activeDocumentId: string | null;
   setDocuments: (documents: Document[]) => void;
-  setActiveDocumentId: (id: string | null) => void;
+  /**
+   * Switch the active document. D92: returns `false` and changes nothing when the
+   * outgoing editor's flush failed (logged, toasted); `true` when it switched or `id`
+   * is already active. A caller that pairs this with `editorStore.setActiveDocumentId`
+   * must only do so on `true`, so the two stores never disagree.
+   */
+  setActiveDocumentId: (id: string | null) => boolean;
   upsertDocument: (document: Document) => void;
   updateDocumentContent: (id: string, content: string) => void;
   markDocumentModified: (id: string, isModified: boolean) => void;
@@ -25,8 +36,9 @@ interface DocumentStore {
   closeDocument: (id: string) => void;
   /** Get a document by its ID */
   getDocumentById: (id: string) => Document | undefined;
-  /** Set the active document (switches focus) */
-  setActiveDocument: (id: string) => void;
+  /** Set the active document (switches focus). Same D92 refusal and result as
+   *  `setActiveDocumentId`; `false` also when `id` is not open. */
+  setActiveDocument: (id: string) => boolean;
   /** Get the currently active document */
   getActiveDocument: () => Document | undefined;
   /** Check if a document with the given path is already open */
@@ -38,7 +50,12 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   activeDocumentId: null,
   setDocuments: (documents) => set({ documents }),
   setActiveDocumentId: (id) => {
-    if (id !== get().activeDocumentId) flushPendingEdits("tab-switch");
+    const from = get().activeDocumentId;
+    if (id === from) return true;
+    if (flushPendingEdits("tab-switch")) {
+      refuseTabSwitch(from, id, "setActiveDocumentId");
+      return false;
+    }
     set((state) => {
       if (id && id !== state.activeDocumentId) {
         loggingService.logEventSync({
@@ -54,6 +71,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       }
       return { activeDocumentId: id };
     });
+    return true;
   },
   upsertDocument: (document) =>
     set((state) => {
@@ -96,6 +114,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     })),
   closeDocument: (id) => {
     // Outside the updater: `remaining` below must be computed from post-flush state.
+    // D92: the result is ignored on purpose — a close is never refused.
     flushPendingEdits("tab-close");
     set((state) => {
       const closingDoc = state.documents.find((doc) => doc.id === id);
@@ -148,10 +167,13 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   setActiveDocument: (id) => {
     const state = get();
     const doc = state.documents.find((d) => d.id === id);
-    if (!doc) return;
+    if (!doc) return false;
 
     if (id !== state.activeDocumentId) {
-      flushPendingEdits("tab-switch");
+      if (flushPendingEdits("tab-switch")) {
+        refuseTabSwitch(state.activeDocumentId, id, "setActiveDocument");
+        return false;
+      }
       loggingService.logEventSync({
         level: "info",
         event: "document.activate",
@@ -166,6 +188,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     }
 
     set({ activeDocumentId: id });
+    return true;
   },
 
   getActiveDocument: () => {

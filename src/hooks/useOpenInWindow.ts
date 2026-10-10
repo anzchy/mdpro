@@ -7,7 +7,9 @@
  * Pipeline: `getCurrentWebviewWindow().listen(OPEN_IN_WINDOW_EVENT)` → validate the
  * payload (three non-empty strings) → drop it unless `windowLabel` is this window's
  * label → `useDocumentStore.getState()` has `documentId`?
- *   yes → set the active id in `documentStore` and `editorStore` (no I/O)
+ *   yes → set the active id in `documentStore` and `editorStore` (no I/O); D92: when
+ *         the WYSIWYG flush failed, `documentStore` refuses and `editorStore` is left
+ *         alone too (route logged as `fail`, the refusal toast comes from the store)
  *   no  → the injected `openDocumentFromPath(path)`, so the ADR-0028 guard decides.
  *
  * Key decisions:
@@ -155,7 +157,12 @@ export function useOpenInWindow({ openDocumentFromPath }: OpenInWindowOptions): 
       // Read at event time: the subscription outlives every render.
       const exists = useDocumentStore.getState().documents.some((doc) => doc.id === documentId);
       if (exists) {
-        useDocumentStore.getState().setActiveDocumentId(documentId);
+        // D92: a failed WYSIWYG flush refuses the switch; editorStore follows only a
+        // switch that happened.
+        if (!useDocumentStore.getState().setActiveDocumentId(documentId)) {
+          logRoute("fail", { outcome: "focused-tab", documentId, windowLabel }, "flush-failed");
+          return;
+        }
         useEditorStore.getState().setActiveDocumentId(documentId);
         logRoute("success", { outcome: "focused-tab", documentId, windowLabel });
         return;

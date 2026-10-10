@@ -25,21 +25,34 @@
  *   `documentStore.setActiveDocumentId`: that action flushes again with reason
  *   "tab-switch", which is redundant — the "reopen" flush above already ran every
  *   live flusher in this same synchronous block.
+ * - D92: when that flush FAILED and the active document's own flusher still fails
+ *   (`flushPendingEditsFor`, asked only on that path), activation never moves away
+ *   from it — moving would unmount the WYSIWYG editor whose edits the store never
+ *   received. The guard's decision (focus or write) is unchanged; only the activation
+ *   is withheld (`refuseTabSwitch`: warn log + toast), so a fresh open still writes its
+ *   tab, inactive. Both stores keep the same active id. A failure that belongs to
+ *   another document's flusher still focuses as decision 5 says.
  * - Logs (`file.open.focus_dirty`, `file.open.reload_clean`) carry ids and flags only,
- *   never document content (rule 20).
+ *   never document content (rule 20). Their `success` is the guard's decision; the
+ *   `activated` flag says whether the tab actually became active (false after a D92
+ *   refusal, which also logs `tab.switch` fail).
  *
  * @coordinates-with src/utils/dataLossGuards.ts — assessWindowUnsaved("reopen")
  * @coordinates-with src/utils/wholesaleReplace.ts — prepareWholesaleReplace
  * @coordinates-with src/stores/documentStore.ts — upsertDocument / activeDocumentId
  * @coordinates-with src/stores/editorStore.ts — setActiveDocumentId
  * @coordinates-with src/hooks/useDocument.ts — the three open entry points that call it
+ * @coordinates-with src/utils/flushRefusal.ts — refuseTabSwitch (D92)
+ * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEditsFor (D92)
  * @module utils/openWriteGuard
  */
 import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
+import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
 import { assessWindowUnsaved } from "./dataLossGuards";
+import { refuseTabSwitch } from "./flushRefusal";
 import { prepareWholesaleReplace } from "./wholesaleReplace";
 
 /** Files above this size open with a performance warning. */
@@ -90,12 +103,36 @@ function pickFocus(
   return firstPath ? { document: firstPath, matchedBy: "path" } : null;
 }
 
-function activate(documentId: string): void {
-  useDocumentStore.setState({ activeDocumentId: documentId });
-  useEditorStore.getState().setActiveDocumentId(documentId);
+/**
+ * D92: true when moving off the active document would unmount an editor whose edits
+ * the store never received. Only asked after the "reopen" flush failed; the aggregate
+ * cannot say whose flusher failed, so the active document's own flusher is asked.
+ */
+function activeEditorFailed(from: string | null, flushFailed: boolean): boolean {
+  if (!flushFailed || from === null) return false;
+  return useMilkdownEditorStore.getState().flushPendingEditsFor(from, "tab-switch").status === "failed";
 }
 
-function logFocus(focus: Focus, entry: string, flushFailed: boolean, ctx: OpenWriteContext): void {
+/** Activate `documentId` in both stores, unless that would move away from an active
+ *  document whose flush failed (D92). Returns whether it is now active. */
+function activate(documentId: string, flushFailed: boolean): boolean {
+  const from = useDocumentStore.getState().activeDocumentId;
+  if (documentId !== from && activeEditorFailed(from, flushFailed)) {
+    refuseTabSwitch(from, documentId, "open-write-guard");
+    return false;
+  }
+  useDocumentStore.setState({ activeDocumentId: documentId });
+  useEditorStore.getState().setActiveDocumentId(documentId);
+  return true;
+}
+
+function logFocus(
+  focus: Focus,
+  entry: string,
+  flushFailed: boolean,
+  activated: boolean,
+  ctx: OpenWriteContext,
+): void {
   loggingService.logEventSync({
     level: "info",
     event: "file.open.focus_dirty",
@@ -106,6 +143,7 @@ function logFocus(focus: Focus, entry: string, flushFailed: boolean, ctx: OpenWr
       entry,
       matchedBy: focus.matchedBy,
       flushFailed,
+      activated,
     },
   });
 }
@@ -129,21 +167,21 @@ export function commitOpenedDocument(
 
   const focus = pickFocus(idMatch, pathMatches, flushFailed);
   if (focus) {
-    activate(focus.document.id);
-    logFocus(focus, reason, flushFailed, ctx);
+    const activated = activate(focus.document.id, flushFailed);
+    logFocus(focus, reason, flushFailed, activated, ctx);
     return { kind: "focused-dirty", document: focus.document, matchedBy: focus.matchedBy };
   }
 
   prepareWholesaleReplace(decoded.id, reason);
   useDocumentStore.getState().upsertDocument(decoded);
-  activate(decoded.id);
+  const activated = activate(decoded.id, flushFailed);
   if (idMatch || pathMatches.length > 0) {
     loggingService.logEventSync({
       level: "info",
       event: "file.open.reload_clean",
       status: "success",
       actionId: ctx.actionId ?? loggingService.generateActionId(),
-      context: { documentId: decoded.id, entry: reason },
+      context: { documentId: decoded.id, entry: reason, activated },
     });
   }
   const largeFile = decoded.fileSize !== null && decoded.fileSize > LARGE_FILE_BYTES;
@@ -162,8 +200,8 @@ export function focusDirtyOpenAt(path: string, ctx: OpenWriteContext = {}): Docu
     .documents.filter((doc) => doc.path !== null && doc.path === path);
   const focus = pickFocus(undefined, pathMatches, flushFailed);
   if (!focus) return null;
-  activate(focus.document.id);
-  logFocus(focus, "decode-failure", flushFailed, ctx);
+  const activated = activate(focus.document.id, flushFailed);
+  logFocus(focus, "decode-failure", flushFailed, activated, ctx);
   return focus.document;
 }
 
