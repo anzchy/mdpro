@@ -140,6 +140,9 @@ function mountWysiwyg(): HTMLElement {
   });
   const fakeView = {
     posAtCoords: () => ({ pos: cellPos }),
+    // D87: the menu maps the clicked td through posAtDOM; this fake td is
+    // not rendered by ProseMirror, so map it to the same in-cell position.
+    posAtDOM: () => cellPos,
     state: { doc, selection: { $from: doc.resolve(cellPos) } },
   };
   const fakeEditor = { action: (fn: (ctx: unknown) => void) => fn({ get: () => fakeView }) };

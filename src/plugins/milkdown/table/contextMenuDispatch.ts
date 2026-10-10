@@ -22,6 +22,12 @@
  *     longer looks the way it did.
  *   - Disabled actions (M1) are refused before the selection moves, so a
  *     refused pick leaves the caret where it was.
+ *   - D87: the target must be strictly inside a cell (`computeTableContext`
+ *     no longer guesses at cell or row boundaries); anything else is
+ *     refused as `not-in-table`. The menu supplies an in-cell position
+ *     derived from the right-clicked td/th, often `cellPos + 1`, whose
+ *     parent is the cell rather than a textblock — `selectionInCell` then
+ *     places the caret with `TextSelection.near`.
  *
  * @coordinates-with src/plugins/milkdown/table/contextMenu.ts
  * @coordinates-with src/plugins/milkdown/table/contextMenuCommands.ts
@@ -47,7 +53,8 @@ interface CtxLike {
 }
 
 /**
- * The cell a right-click chose: `pos` from `view.posAtCoords`, and the
+ * The cell a right-click chose: `pos`, a position strictly inside that cell
+ * (D87: derived from the clicked td/th by `resolveMenuTarget.ts`), and the
  * `view.state.doc` it was resolved against (identity-compared at dispatch).
  */
 export interface TableTarget {
@@ -70,7 +77,11 @@ export interface TableDispatchResult {
 
 type Resolved = { ctx: TableContext } | { reason: TableDispatchReason };
 
-/** Selection inside cell (row, col) of the table at `$pos`: the click itself when it is inline there. */
+/**
+ * Selection inside cell (row, col) of the table at `$pos`: the click itself
+ * when it is inline there, else the nearest text position from the cell's
+ * content start (e.g. a D87 target at `cellPos + 1`).
+ */
 function selectionInCell(doc: PmNode, $pos: ResolvedPos, ctx: TableContext): Selection | null {
   const table = findTable($pos);
   if (!table) return null;
@@ -83,7 +94,10 @@ function selectionInCell(doc: PmNode, $pos: ResolvedPos, ctx: TableContext): Sel
   return TextSelection.near(doc.resolve(cellPos + 1), 1);
 }
 
-/** Validate the target, gate the action there, then move the selection into the clicked cell. */
+/**
+ * Validate the target, gate the action there, then move the selection into
+ * the clicked cell. A target not strictly inside a cell is `not-in-table` (D87).
+ */
 function resolveTarget(view: EditorView, id: TableActionId, target: TableTarget): Resolved {
   const { doc } = view.state;
   if (doc !== target.doc) return { reason: "stale-position" };
@@ -117,7 +131,8 @@ function resolveCaret(view: EditorView, id: TableActionId): Resolved {
  * Dispatch the Milkdown command(s) for `id` and say why it did not apply.
  *
  * With `target` (the context menu), the action runs on the right-clicked
- * cell; a target from an older doc is refused as `stale-position`.
+ * cell; a target from an older doc is refused as `stale-position`, and a
+ * target that is not strictly inside a cell as `not-in-table` (D87).
  * Without it, the action runs on the caret's cell (keyboard shortcuts).
  *
  * The context is always recomputed from the live view (audit fix H3);

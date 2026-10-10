@@ -11,9 +11,16 @@
  * refused, and its `editor.table.<id>` fail log carries the reason
  * (`stale-position`); the menu closes after every pick.
  *
+ * D87: the target comes from the right-clicked `td`/`th`, not from
+ * `posAtCoords` alone (`resolveMenuTarget`), so a click on a cell border
+ * cannot retarget a neighbouring cell; with no verified cell the menu does
+ * not open. A `stale-position` pick also shows the shared toast
+ * ("Document changed — reopen the menu"), so the refusal is visible.
+ *
  * Layered architecture:
  *   - This file: DOM listener, menu open/close lifecycle, action
  *     dispatch with try/catch + logging.
+ *   - `resolveMenuTarget`: clicked td/th → verified cell context + target.
  *   - `useClampedMenuPosition` + `menuPosition`: position clamping by the
  *     menu's measured size (D67), shared with `SourceTableContextMenu`.
  *   - `ActionList`: pure presentational — renders the grouped action list.
@@ -23,11 +30,12 @@
  * @coordinates-with src/plugins/milkdown/table/contextMenu.ts
  * @coordinates-with src/stores/milkdownEditorStore.ts
  * @coordinates-with src/components/Editor/TableContextMenu/useClampedMenuPosition.ts
+ * @coordinates-with src/components/Editor/TableContextMenu/resolveMenuTarget.ts
+ * @coordinates-with src/stores/toastStore.ts
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  computeTableContext,
   dispatchTableActionDetailed,
   getTableActions,
   type TableDispatchResult,
@@ -40,17 +48,19 @@ import type {
 } from "../../../plugins/milkdown/table/actionDescriptors";
 import { editorViewCtx } from "@milkdown/kit/core";
 import { useMilkdownEditorStore } from "../../../stores/milkdownEditorStore";
+import { useToastStore } from "../../../stores/toastStore";
 import { loggingService } from "../../../services/loggingService";
 import { ActionList } from "./ActionList";
 import { MENU_WIDTH, type Point } from "./menuPosition";
+import { type MenuTarget, type MenuViewLike, resolveMenuTarget } from "./resolveMenuTarget";
 import { useClampedMenuPosition } from "./useClampedMenuPosition";
 
 interface MenuState {
   /** Raw click point (viewport coords); clamped by `useClampedMenuPosition`. */
   anchor: Point;
   context: TableContext;
-  /** The right-clicked position (D81); absent when posAtCoords found none. */
-  target?: TableTarget;
+  /** A position strictly inside the right-clicked cell (D81, D87). */
+  target: TableTarget;
 }
 
 export function TableContextMenu() {
@@ -76,39 +86,34 @@ export function TableContextMenu() {
 
       const inTable = target.closest(".ProseMirror table");
       if (!inTable || !container.contains(inTable)) return;
+      // D87: the clicked cell element decides the target.
+      const cellEl = target.closest("td,th");
+      if (!cellEl || !inTable.contains(cellEl)) return;
 
       const editor = useMilkdownEditorStore.getState().getEditor();
       if (!editor) return;
 
-      const captured: { ctx: TableContext | null; target?: TableTarget } = { ctx: null };
+      const captured: { menu: MenuTarget | null } = { menu: null };
       try {
         (editor as { action: (fn: (ctx: unknown) => void) => void }).action((ctx) => {
           const view = (ctx as { get: (k: unknown) => unknown }).get(
             editorViewCtx,
-          ) as {
-            posAtCoords: (coords: { left: number; top: number }) => { pos: number } | null;
-            state: { doc: { resolve: (pos: number) => unknown }; selection: unknown };
-          };
+          ) as MenuViewLike;
           // Audit fix H5: resolve the right-click target rather than
           // reading the cursor — browsers don't move the cursor on
-          // contextmenu, so reading state.selection would mutate
-          // whichever cell happened to hold the cursor (often a
-          // different cell than the one the user clicked).
-          const coordPos = view.posAtCoords({
+          // contextmenu. D87: from the clicked td/th, so a posAtCoords
+          // on a cell border cannot pick the neighbouring cell.
+          captured.menu = resolveMenuTarget(view, cellEl, {
             left: event.clientX,
             top: event.clientY,
           });
-          const $pos = coordPos
-            ? (view.state.doc.resolve(coordPos.pos) as never)
-            : undefined;
-          captured.ctx = computeTableContext(view, $pos);
-          if (coordPos) captured.target = { pos: coordPos.pos, doc: view.state.doc };
         });
       } catch {
         return;
       }
-      const tableCtx = captured.ctx;
-      if (!tableCtx) return;
+      const opened = captured.menu;
+      if (!opened) return;
+      const tableCtx = opened.context;
 
       event.preventDefault();
       event.stopPropagation();
@@ -116,7 +121,7 @@ export function TableContextMenu() {
       setMenu({
         anchor: { x: event.clientX, y: event.clientY },
         context: tableCtx,
-        target: captured.target,
+        target: opened.target,
       });
 
       loggingService.logEventSync({
@@ -232,6 +237,10 @@ export function TableContextMenu() {
     }
     const succeeded = result.applied;
     const reason = editor ? result.reason : "editor-unavailable";
+    // D87: the user sees a stale refusal, not only the log.
+    if (reason === "stale-position") {
+      useToastStore.getState().showToast("Document changed — reopen the menu");
+    }
 
     loggingService.logEventSync({
       level: succeeded ? "info" : "warn",

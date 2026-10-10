@@ -156,6 +156,7 @@ function makeResolvedPos(opts: { depth: number }) {
     depth: opts.depth,
     pos: 0,
     node: () => ({ type: { name: "doc" }, attrs: {} }),
+    before: () => 0,
   };
 }
 
@@ -206,16 +207,16 @@ function makeEditor(opts: MakeEditorOpts) {
   (globalThis as { __mockContextResult?: TableContext | null }).__mockContextResult =
     opts.tableExists ? (opts.contextOverride ?? FRESH_CTX) : null;
 
-  // computeTableContext derives rowIndex/colIndex from $pos.pos by
-  // scanning TableMap. With map = [1, 2, 3, …], the loop assigns
-  // cellIndex while map[i] < cellRel and breaks when map[i] >= cellRel.
-  // To get cellIndex = N, set $pos.pos = N + 2 (so the loop walks
-  // through indices 0..N before breaking).
+  // computeTableContext (D87) finds the cell node at table depth + 2 and
+  // asks TableMap.findCell for its offset (`$pos.before(cellDepth) - start`).
+  // The mocked table sits at depth 1 with start 0 and map = [1, 2, 3, …],
+  // so cell N starts at offset N + 1 and the cell node is at depth 3.
   const ctxResult = opts.contextOverride ?? FRESH_CTX;
   const targetCellIndex = ctxResult.rowIndex * ctxResult.colCount + ctxResult.colIndex;
   const $from = {
-    depth: 1,
+    depth: 3,
     pos: targetCellIndex + 2,
+    before: () => targetCellIndex + 1,
     node: () => ({
       type: { name: "table_cell" },
       attrs: { alignment: ctxResult.alignment },
@@ -296,10 +297,16 @@ vi.mock("@milkdown/kit/prose/tables", () => ({
     get: () => {
       const result = (globalThis as { __mockContextResult?: TableContext | null }).__mockContextResult;
       const r = result ?? FRESH_CTX;
+      const map = Array.from({ length: r.rowCount * r.colCount }, (_, i) => i + 1);
       return {
-        map: Array.from({ length: r.rowCount * r.colCount }, (_, i) => i + 1),
+        map,
         width: r.colCount,
         height: r.rowCount,
+        findCell: (offset: number) => {
+          const i = map.indexOf(offset);
+          if (i < 0) throw new RangeError(`No cell with offset ${offset} found`);
+          return { left: i % r.colCount, top: Math.floor(i / r.colCount) };
+        },
       };
     },
   },

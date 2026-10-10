@@ -6,7 +6,9 @@
  *   1. `computeTableContext(view, $pos?)` — impure; reads the live
  *      ProseMirror view to resolve row/column, table dimensions, and the
  *      cell's alignment at `$pos` (the right-clicked position) or at the
- *      caret. Returns null outside a table. Lives in `tableContext.ts`.
+ *      caret. Returns null unless the position is strictly inside a cell
+ *      (D87); `tableCellStartAt($pos)` names that cell. Both live in
+ *      `tableContext.ts`.
  *
  *   2. `getTableActions(ctx)` — pure; given a TableContext, returns the
  *      ordered list of actions with isDisabled / isActive flags. The
@@ -33,7 +35,7 @@ import {
 } from "./actionDescriptors";
 import { isActionDisabled } from "./actionGate";
 
-export { computeTableContext } from "./tableContext";
+export { computeTableContext, tableCellStartAt } from "./tableContext";
 export {
   dispatchTableAction,
   dispatchTableActionDetailed,

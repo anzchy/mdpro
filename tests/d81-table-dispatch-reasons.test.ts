@@ -76,19 +76,17 @@ describe("D81: dispatchTableActionDetailed reasons", () => {
     });
   });
 
-  it("R-6 a target position between cells (row level) resolves to a cell and moves the caret into it", async () => {
+  it("R-6 a target position between cells (row level) is refused as not-in-table (D87: no guessing)", async () => {
     const e = await mountParityEditor(MD);
     caretAfter(e, "A0");
     // Position just before B1's cell node: inside the row, not inside a cell.
+    // Before D87 this resolved to the PREVIOUS cell (B0) and acted there.
     const view = viewOf(e);
     const $b1 = view.state.doc.resolve(posAfter(view, "B1"));
     let cellDepth = $b1.depth;
     while (cellDepth > 0 && !/table_(cell|header)/.test($b1.node(cellDepth).type.name)) cellDepth -= 1;
     const target = { pos: $b1.before(cellDepth), doc: view.state.doc };
-    const ctxAtTarget = computeTableContext(view, view.state.doc.resolve(target.pos));
-    expect(detailed(e, "align_right", target)).toEqual({ applied: true });
-    const after = computeTableContext(viewOf(e));
-    expect(after).toMatchObject({ rowIndex: ctxAtTarget!.rowIndex, colIndex: ctxAtTarget!.colIndex });
-    expect(viewOf(e).state.selection.$from.parent.inlineContent).toBe(true);
+    expect(computeTableContext(view, view.state.doc.resolve(target.pos))).toBeNull();
+    expect(detailed(e, "align_right", target)).toEqual({ applied: false, reason: "not-in-table" });
   });
 });
