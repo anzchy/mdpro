@@ -4,11 +4,15 @@
  * (ADR-0067 Decision 4, D64 WI-3). HTML paste bypasses remark, so the parse-time
  * widener (`raggedTableWiden.ts`) never sees it; left alone, prosemirror-tables'
  * `fixTables` would repair the table at the row start. Also refuses a
- * table-carrying paste inside a table cell that would split the host (D83).
+ * table-carrying paste (D83) or drop (D90) inside a table cell that would split
+ * the host.
  *
  * Pipeline: clipboard HTML → `transformPastedHTML` (sanitizer) → ProseMirror DOM
  * parser → `transformPasted` (this plugin: end-pad) → `handlePaste` (prosemirror-
- * tables first, then this plugin: refuse) → `replaceSelection`.
+ * tables first, then this plugin: refuse) → `replaceSelection`. A drop: the
+ * dragged slice (`transformPasted`) or the dropped HTML (parsed as above) →
+ * `handleDrop` (this plugin: refuse) → prosemirror-view's `dropPoint` →
+ * `replaceRange`.
  *
  * Key decisions:
  *   - Uses `TableMap`'s `missing` problems as the width rule, so colspan and
@@ -32,20 +36,41 @@
  *     the document serializing. Padding the pasted table does not prevent that,
  *     so `handlePaste` consumes the paste with no change (a selected range is not
  *     deleted), logs `editor.table.paste` as `fail` and shows the shared toast.
- *     Drag-and-drop does not pass through `handlePaste` and is not covered.
+ *   - Drag-and-drop does not pass through `handlePaste`, and prosemirror-tables
+ *     has no `handleDrop`, so the same split happens on a drop (D90). `handleDrop`
+ *     refuses a table-carrying slice when the place prosemirror-view would insert
+ *     it — `dropPoint` from the pointer position, as its drop handler computes it
+ *     — is strictly inside a table cell (`tableCellStartAt`). Returning true
+ *     consumes the drop, so nothing is inserted and the source of a move-drag is
+ *     not deleted; it logs `editor.table.drop` as `fail` and toasts. A closed
+ *     pure-table slice gets a `dropPoint` beside the host table and is left alone.
  *
  * @coordinates-with src/plugins/milkdown/table/parityPlugins.ts
  * @coordinates-with src/plugins/milkdown/table/raggedTableWiden.ts
+ * @coordinates-with src/plugins/milkdown/table/tableContext.ts — strict cell lookup
  * @coordinates-with src/stores/toastStore.ts — refusal feedback
  */
 import { Fragment, type Node as PmNode, Slice } from "@milkdown/kit/prose/model";
 import { type EditorState, Plugin, PluginKey } from "@milkdown/kit/prose/state";
 import { __pastedCells, CellSelection, isInTable, TableMap } from "@milkdown/kit/prose/tables";
+import { dropPoint } from "@milkdown/kit/prose/transform";
+import type { EditorView } from "@milkdown/kit/prose/view";
 import { $prose } from "@milkdown/kit/utils";
 import { loggingService } from "../../../services/loggingService";
 import { useToastStore } from "../../../stores/toastStore";
+import { tableCellStartAt } from "./tableContext";
 
-const REFUSAL_TOAST = "A table can't be pasted inside a table cell. Paste it outside the table.";
+type RefusalKind = "paste" | "drop";
+
+const REFUSAL_TOAST: Record<RefusalKind, string> = {
+  paste: "A table can't be pasted inside a table cell. Paste it outside the table.",
+  drop: "A table can't be dropped inside a table cell. Drop it outside the table.",
+};
+
+const REFUSAL_REASON: Record<RefusalKind, string> = {
+  paste: "table in a non-cell slice pasted inside a table would split the host table",
+  drop: "table in a slice dropped inside a table cell would split the host table",
+};
 
 /** Append the cells TableMap reports missing to the end of each short row. */
 function padTable(table: PmNode): PmNode {
@@ -117,6 +142,36 @@ function sliceHasTable(slice: Slice): boolean {
   return found;
 }
 
+/**
+ * Refuse a table-carrying paste or drop that would split the host table: log
+ * `editor.table.<kind>` as `fail` with the reason and the slice's top-level node
+ * count, and show the toast. Returns true, so the caller's prop consumes the event.
+ */
+function refuseTableInCell(kind: RefusalKind, slice: Slice): true {
+  loggingService.logEventSync({
+    level: "warn",
+    event: `editor.table.${kind}`,
+    status: "fail",
+    actionId: loggingService.generateActionId(),
+    context: { reason: REFUSAL_REASON[kind], nodes: slice.content.childCount },
+  });
+  useToastStore.getState().showToast(REFUSAL_TOAST[kind]);
+  return true;
+}
+
+/**
+ * Whether prosemirror-view would insert this dropped slice strictly inside a table
+ * cell: the `dropPoint` from the pointer position (falling back to the pointer
+ * position itself, as the view's drop handler does) resolves inside a cell.
+ */
+function dropLandsInCell(view: EditorView, event: DragEvent, slice: Slice): boolean {
+  const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
+  if (!coords) return false;
+  const { doc } = view.state;
+  const insertPos = dropPoint(doc, coords.pos, slice) ?? coords.pos;
+  return tableCellStartAt(doc.resolve(insertPos)) !== null;
+}
+
 export const tablePasteNormalizePlugin = $prose(
   () =>
     new Plugin({
@@ -127,18 +182,11 @@ export const tablePasteNormalizePlugin = $prose(
         handlePaste: (view, _event, slice) => {
           if (!isInTable(view.state) || takenByTables(view.state, slice)) return false;
           if (!sliceHasTable(slice)) return false;
-          loggingService.logEventSync({
-            level: "warn",
-            event: "editor.table.paste",
-            status: "fail",
-            actionId: loggingService.generateActionId(),
-            context: {
-              reason: "table in a non-cell slice pasted inside a table would split the host table",
-              nodes: slice.content.childCount,
-            },
-          });
-          useToastStore.getState().showToast(REFUSAL_TOAST);
-          return true;
+          return refuseTableInCell("paste", slice);
+        },
+        handleDrop: (view, event, slice) => {
+          if (!sliceHasTable(slice) || !dropLandsInCell(view, event, slice)) return false;
+          return refuseTableInCell("drop", slice);
         },
       },
     }),
