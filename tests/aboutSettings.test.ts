@@ -97,8 +97,9 @@ describe("AboutSettings — update phases", () => {
   });
 
   it("uses mechanical microcopy for error", () => {
+    // D85 / rule 12: error copy changed (user-approved).
     expect(aboutSrc).toContain(
-      "Couldn't reach the update server",
+      "Couldn't get update information. Try again later.",
     );
   });
 

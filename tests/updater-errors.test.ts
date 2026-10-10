@@ -2,11 +2,10 @@
 /**
  * isUpdatesDisabledError — classifies an updater check() rejection message as
  * "updates disabled" versus a genuine failure (WI-1, plan-20261009-122014;
- * narrowed by WI-1, plan-20261010-093842).
+ * narrowed by WI-1, plan-20261010-093842; narrowed again by D85-WI-1).
  *
  * Law: for every m,
- *   isUpdatesDisabledError(m) === (m.includes("does not have any endpoints")
- *                                  || m.includes("Could not fetch a valid release"))
+ *   isUpdatesDisabledError(m) === m.includes("does not have any endpoints")
  * Case-sensitive and unanchored. Consequences: superstring closure (wrapping a
  * positive keeps it positive) and noise invariance (adding "empty" / "no endpoints"
  * never changes the result). U6 and U11 enumerate the wrapping domain, U7 checks
@@ -15,9 +14,14 @@
  * U2/U6/U7 changed (rule 12): the prior spec asserted 'no endpoints' / 'empty' as
  * disabled markers; tauri-plugin-updater 2.9.0 never emits them (K1 pins its only
  * two Display texts), and 'empty' misclassified real failures.
+ *
+ * D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx
+ * (updater.rs:442-446), so "disabled" was a false spec. It is now pinned as the
+ * uncertain class: U2, U6, U7, U10 changed; U12 and U13 are new.
  */
 import { describe, it, expect } from "vitest";
 import { isUpdatesDisabledError } from "../src/components/common/settings/updaterErrors";
+import { MALFORMED_METADATA_TEXTS } from "./support/updaterErrorTexts";
 
 /** tauri-plugin-updater 2.9.0 `Error::EmptyEndpoints` Display text. */
 const REAL_EMPTY_ENDPOINTS = "Updater does not have any endpoints set.";
@@ -32,8 +36,9 @@ const NETWORK_MESSAGE =
   "error sending request for url (https://github.com/anzchy/mdpro/releases/latest/download/latest.json)";
 
 /** Independent oracle for the law; must not import production code. */
+// D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a false spec.
 function oracle(m: string): boolean {
-  return m.includes("does not have any endpoints") || m.includes("Could not fetch a valid release");
+  return m.includes("does not have any endpoints");
 }
 
 const NETWORK_FALSE = [
@@ -62,14 +67,24 @@ const wrap = (bases: string[]) =>
  * "empty" as positives. The plugin never emits them, and "empty" misclassified
  * real failures; that half is now FORMER_WRAPPED (U11, all false).
  */
-const WRAPPED = wrap([REAL_EMPTY_ENDPOINTS, REAL_RELEASE_NOT_FOUND]);
+// D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a false spec.
+const WRAPPED = wrap([REAL_EMPTY_ENDPOINTS]);
+/** D85: ReleaseNotFound under every wrapping — all uncertain, never disabled (U12). */
+const RNF_WRAPPED = wrap([REAL_RELEASE_NOT_FOUND]);
+const MALFORMED = [...MALFORMED_METADATA_TEXTS];
 const FORMER_WRAPPED = wrap(FORMER_MARKERS);
 
 const NOISE = ["empty", "no endpoints", " is empty", "no endpoints configured"];
-const U10_POSITIVE_BASES = [REAL_EMPTY_ENDPOINTS, REAL_RELEASE_NOT_FOUND].flatMap((m) =>
-  PREFIXES.map((p) => ({ p, m })),
-);
-const U10_NEGATIVE_BASES = [...NETWORK_FALSE, ...BLANK, ...NEAR_MISS_FALSE, "endpoints"];
+// D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a
+// false spec; it moves from the positive to the negative bases.
+const U10_POSITIVE_BASES = [REAL_EMPTY_ENDPOINTS].flatMap((m) => PREFIXES.map((p) => ({ p, m })));
+const U10_NEGATIVE_BASES = [
+  ...NETWORK_FALSE,
+  ...BLANK,
+  ...NEAR_MISS_FALSE,
+  "endpoints",
+  REAL_RELEASE_NOT_FOUND,
+];
 
 function u10Pairs(): { base: string; variant: string }[] {
   const pairs: { base: string; variant: string }[] = [];
@@ -98,8 +113,9 @@ describe("isUpdatesDisabledError", () => {
 
   // Rule 12: formerly "U2: keeps the legacy marker" over three fixtures; the two
   // "no endpoints" / "empty" fixtures are never emitted by plugin 2.9.0 and moved to U9.
-  it("U2: recognises the plugin ReleaseNotFound message", () => {
-    expect(isUpdatesDisabledError(REAL_RELEASE_NOT_FOUND)).toBe(true);
+  // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a false spec.
+  it("U2: treats the plugin ReleaseNotFound message as uncertain, not disabled", () => {
+    expect(isUpdatesDisabledError(REAL_RELEASE_NOT_FOUND)).toBe(false);
   });
 
   it.each(NETWORK_FALSE)("U3: treats a network failure %j as not disabled", (m) => {
@@ -116,8 +132,10 @@ describe("isUpdatesDisabledError", () => {
 
   // Rule 12: domain narrowed 64 → 32 — "no endpoints" / "empty" are not plugin
   // 2.9.0 messages and "empty" misclassified real failures; their half is U11.
-  it("U6: both real messages stay recognised under any prefix/suffix wrapping (32 inputs)", () => {
-    expect(WRAPPED).toHaveLength(32);
+  // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a
+  // false spec; domain 32 → 16, its half is U12.
+  it("U6: the empty-endpoints message stays recognised under any prefix/suffix wrapping (16 inputs)", () => {
+    expect(WRAPPED).toHaveLength(16);
     const failures = WRAPPED.filter((m) => !isUpdatesDisabledError(m));
     expect(failures).toEqual([]);
   });
@@ -125,7 +143,9 @@ describe("isUpdatesDisabledError", () => {
   // Rule 12: the frozen legacy() oracle encoded "no endpoints" / "empty", which
   // plugin 2.9.0 never emits and which misclassified real failures. The oracle body
   // is replaced by the two-fragment law; the input list is only extended.
-  it("U7: agrees with the two-fragment oracle on every listed input and near-miss", () => {
+  // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a
+  // false spec; the oracle is now the one-fragment law, inputs only extended (RNF_WRAPPED, MALFORMED).
+  it("U7: agrees with the one-fragment oracle on every listed input and near-miss", () => {
     const inputs = [
       REAL_EMPTY_ENDPOINTS,
       REAL_RELEASE_NOT_FOUND,
@@ -133,6 +153,8 @@ describe("isUpdatesDisabledError", () => {
       ...BLANK,
       ...UPPERCASED,
       ...WRAPPED,
+      ...RNF_WRAPPED,
+      ...MALFORMED,
       ...FORMER_WRAPPED,
       ...EMPTY_NEGATIVES,
       ...NEAR_MISS_FALSE,
@@ -175,5 +197,15 @@ describe("isUpdatesDisabledError", () => {
     expect(FORMER_WRAPPED).toHaveLength(32);
     const matches = FORMER_WRAPPED.filter((m) => isUpdatesDisabledError(m));
     expect(matches).toEqual([]);
+  });
+
+  it("U12: ReleaseNotFound under any wrapping is never disabled (16 inputs)", () => {
+    expect(RNF_WRAPPED).toHaveLength(16);
+    const matches = RNF_WRAPPED.filter((m) => isUpdatesDisabledError(m));
+    expect(matches).toEqual([]);
+  });
+
+  it.each(MALFORMED)("U13: malformed release metadata %j is a failure, not disabled", (m) => {
+    expect(isUpdatesDisabledError(m)).toBe(false);
   });
 });

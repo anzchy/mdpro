@@ -1,6 +1,6 @@
 # Manual Testing Guide: In-App Update Checker (Settings > About)
 
-Last updated: 2026-04-02
+Last updated: 2026-10-10
 
 ---
 
@@ -8,9 +8,11 @@ Last updated: 2026-04-02
 
 The About page (Settings > About) displays the app version, checks for updates
 via the Tauri updater plugin, and manages the download/install/relaunch flow.
-Because the updater is currently configured with **empty endpoints** (Approach B+),
-the full update flow cannot be exercised until signing keys and a release endpoint
-are configured. This guide covers everything that CAN be tested today and
+`tauri.conf.json` points the updater at the real release endpoint
+(`releases/latest/download/latest.json`), which answers 404 until the 0.3.1 release
+assets are published (D76); the verify overlay `tauri.verify.conf.json` sets
+**empty endpoints**. The full update flow cannot be exercised until signing keys and
+a published release manifest exist. This guide covers everything that CAN be tested today and
 documents what requires the full pipeline.
 
 ---
@@ -60,21 +62,23 @@ Before starting, confirm the app launches and the main editor is functional.
 
 ### 3.2 Updates-disabled state (current default behavior)
 
-Because `tauri.conf.json` has `"endpoints": []`, the updater plugin will fail
-immediately on check. The About page detects this and shows the "updates-disabled"
-state.
+Run with the verify overlay, which sets `"endpoints": []`:
+`pnpm tauri dev --config src-tauri/tauri.verify.conf.json`. The updater plugin then
+fails immediately on check with "Updater does not have any endpoints set.", the only
+error the About page maps to the "updates-disabled" state. The default
+`tauri.conf.json` uses the real endpoint and lands in the error state instead (5.4).
 
 | Step | Action | Expected Result |
 |------|--------|-----------------|
 | 1 | Open Settings > About | After a brief "Checking for updates..." flash, the status text reads: **"Automatic updates coming soon."** |
 | 2 | Observe the button area | There is **no** "Check Again" button visible (it is hidden when phase is `updates-disabled`) |
-| 3 | Check logs: `tail -1 ~/.mdpro/mdpro.log \| jq .` | A log entry with `event: "ui.about.update_check"` and `status: "start"` should be present |
+| 3 | Check logs: `grep update_check ~/.mdpro/mdpro.log \| tail -2` | A `status: "start"` line, then a `status: "success"` line with `context.outcome: "updates-disabled"`, both with the same `actionId` |
 
 ### 3.3 State caching across tab switches
 
 | Step | Action | Expected Result |
 |------|--------|-----------------|
-| 1 | Open Settings > About and confirm "Automatic updates coming soon." is shown | updates-disabled state displayed |
+| 1 | With the verify overlay (3.2), open Settings > About and confirm "Automatic updates coming soon." is shown | updates-disabled state displayed |
 | 2 | Click "General" in the sidebar | General page loads, About component unmounts |
 | 3 | Click "About" again | About page loads immediately with "Automatic updates coming soon." -- no "Checking for updates..." flash |
 
@@ -88,7 +92,7 @@ This works because the `updates-disabled` state is cached in `updaterStore`.
 
 | Step | Action | Expected Result |
 |------|--------|-----------------|
-| 1 | Open Settings > About | "Automatic updates coming soon." displayed |
+| 1 | With the verify overlay (3.2), open Settings > About | "Automatic updates coming soon." displayed |
 | 2 | Close the Settings dialog (click Close button, click backdrop, or press Esc) | Dialog closes |
 | 3 | Reopen Settings (Cmd + ,) and navigate to About | "Automatic updates coming soon." appears immediately with no "Checking..." flash |
 
@@ -111,24 +115,26 @@ click About again, but the cached updater state loads instantly when they do.
 
 This is tested in section 3.2 above. The empty-endpoints configuration produces an
 error that is caught and mapped to the `updates-disabled` phase. Confirm that the
-error message "Couldn't reach the update server..." does NOT appear -- instead, the
-friendlier "Automatic updates coming soon." is shown.
+error message "Couldn't get update information. Try again later." does NOT appear --
+instead, the friendlier "Automatic updates coming soon." is shown. Only the plugin's
+"does not have any endpoints" text maps here; every other error, including "Could
+not fetch a valid release JSON from the remote", is the error state (5.4).
 
 ### 5.2 Network-error state (optional, requires network toggle)
 
 NOTE: This test requires temporarily editing `tauri.conf.json` to add a dummy
-endpoint. If you only have `endpoints: []`, the updates-disabled path will trigger
-before any network call is made.
+endpoint. With the verify overlay (`endpoints: []`), the updates-disabled path
+triggers before any network call is made.
 
 | Step | Action | Expected Result |
 |------|--------|-----------------|
 | 1 | Edit `src-tauri/tauri.conf.json`: set `"endpoints": ["https://invalid.example.com/update/{{target}}/{{current_version}}"]` | Fake endpoint configured |
 | 2 | Rebuild: `pnpm tauri dev` | App restarts |
 | 3 | Turn off WiFi / disconnect network | No internet |
-| 4 | Open Settings > About | After "Checking for updates...", shows: **"Couldn't reach the update server. Check your connection and try again."** |
+| 4 | Open Settings > About | After "Checking for updates...", shows: **"Couldn't get update information. Try again later."** |
 | 5 | Observe "Check Again" button | Button is visible and enabled |
 | 6 | Turn WiFi back on and click "Check Again" | Shows "Checking for updates..." then resolves (likely to error again since endpoint is fake, but the retry mechanism works) |
-| 7 | Revert `tauri.conf.json` to `"endpoints": []` | Restore default |
+| 7 | Revert the `tauri.conf.json` edit from step 1 | Restore default |
 
 ### 5.3 Error state caching
 
@@ -138,6 +144,37 @@ before any network call is made.
 | 2 | Switch to General tab, then back to About | Error message persists (cached in updaterStore) |
 | 3 | Close and reopen Settings, navigate to About | Error message still persists |
 | 4 | Click "Check Again" | "Checking for updates..." appears, then resolves to the new result |
+
+### 5.4 Release manifest not found (non-2xx) shows the error, not "coming soon" (D85)
+
+The plugin answers every non-2xx response (404, 401/403, 5xx) with the same
+"Could not fetch a valid release JSON from the remote". The pane cannot tell those
+apart; all of them show the error state. Before D85 this case showed "Automatic
+updates coming soon." with no Check Again.
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Use a build pointed at the real endpoint before the 0.3.1 assets exist: `pnpm tauri dev` or a release build with the default `tauri.conf.json`. Confirm the 404 with `curl -sIL https://github.com/anzchy/mdpro/releases/latest/download/latest.json \| grep HTTP` | Last line is `HTTP/2 404` |
+| 2 | Open Settings > About | After "Checking for updates...", shows **"Couldn't get update information. Try again later."**, not "Automatic updates coming soon." |
+| 3 | Observe "Check Again" button | Button is visible and enabled |
+| 4 | Check logs: `grep update_check ~/.mdpro/mdpro.log \| tail -2` | A `status: "start"` line, then a `status: "fail"` line at `level: "error"` with `context.error` containing "Could not fetch a valid release JSON from the remote" and no `outcome`; same `actionId` |
+
+Once 0.3.1 is published the real endpoint stops returning 404. To reproduce then,
+point a dev build at a local server that has no `latest.json` (see 5.5, step 1).
+
+### 5.5 Recovery after an error survives reopening Settings (D85)
+
+Needs a dev build (`pnpm tauri dev`), which allows an `http://` endpoint, and a local
+directory served over HTTP.
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | In an empty scratch directory run `python3 -m http.server 8765`. Edit `src-tauri/tauri.conf.json`: set `"endpoints": ["http://localhost:8765/latest.json"]`, then `pnpm tauri dev` | Server answers 404 for `latest.json` |
+| 2 | Open Settings > About | Error text "Couldn't get update information. Try again later." and an enabled Check Again |
+| 3 | In the scratch directory create `latest.json` with `{"version":"9.9.9","url":"http://localhost:8765/x.tar.gz","signature":"dummy"}` | Server now answers 200 |
+| 4 | Click "Check Again" | "Update available -- v9.9.9" with the Install Update button |
+| 5 | Close the Settings dialog, reopen it and navigate to About | "Checking for updates..." flashes, then "Update available -- v9.9.9" again. The old error does **not** come back (before D85 the cached error was shown here) |
+| 6 | Stop the server and revert the `tauri.conf.json` edit | Restore default. Do not click Install Update: the dummy signature fails verification |
 
 ---
 
@@ -215,8 +252,8 @@ The About page has 7 possible phases. This table summarizes expected UI for each
 |-------|-------------|-------------------|----------------|-----------------|
 | `checking` | "Checking for updates..." | Disabled | Spinner (if styled) | Yes (briefly on load) |
 | `up-to-date` | "You're up to date" (with checkmark) | Enabled | None | No (needs real endpoint) |
-| `error` | Error message text | Enabled | None | Partial (needs fake endpoint) |
-| `updates-disabled` | "Automatic updates coming soon." | Hidden | None | Yes (default config) |
+| `error` | Error message text ("Couldn't get update information. Try again later.") | Enabled | None | Yes (default config, until 0.3.1 is published) |
+| `updates-disabled` | "Automatic updates coming soon." | Hidden | None | Yes (verify overlay, `endpoints: []`) |
 | `available` | "Update available -- v{version}" | Enabled | "Install Update" button, release notes area | No (needs real endpoint) |
 | `downloading` | "Downloading update (X%)..." or "Downloading update..." | Disabled | Progress bar | No (needs real endpoint) |
 | `ready` | "Ready to install" (with checkmark) | Disabled | "Restart to Apply" button | No (needs real endpoint) |
@@ -259,7 +296,8 @@ All updater actions emit structured logs. Verify the following events appear in
 |-------|--------|------|
 | `ui.about.update_check` | `start` | When check begins |
 | `ui.about.update_check` | `success` or `fail` | When check completes |
-| `ui.about.update_check` | `success` (context `outcome: "updates-disabled"`, plus `error`) | When check ends as "Automatic updates coming soon." (no endpoint / no release manifest); same `actionId` as the start line. A cached result logs no `update_check` line |
+| `ui.about.update_check` | `success` (context `outcome: "updates-disabled"`, plus `error`) | When check ends as "Automatic updates coming soon." (no endpoint configured only); same `actionId` as the start line. A cached result logs no `update_check` line |
+| `ui.about.update_check` | `fail` (level `error`, context `{ error }`, no `outcome`) | When check ends in the error state, including a non-2xx answer ("Could not fetch a valid release JSON from the remote") |
 | `ui.about.update_install` | `start` | When "Install Update" is clicked |
 | `ui.about.update_install` | `success` or `fail` | When download completes or fails |
 | `ui.about.relaunch` | `start` | When relaunch is triggered |
@@ -308,6 +346,8 @@ Run this checklist after any change to the updater feature or the About page:
 - [ ] Version matches `Cargo.toml` / `package.json` / `tauri.conf.json`
 - [ ] With `endpoints: []`, the "Automatic updates coming soon." message appears
 - [ ] No "Check Again" button is shown in the `updates-disabled` state
+- [ ] With the real endpoint returning 404 (or any non-2xx), the error text and an enabled Check Again appear, not "coming soon" (5.4)
+- [ ] After Check Again recovers from an error, reopening Settings does not show the old error (5.5)
 - [ ] Switching tabs in Settings and returning to About preserves the cached state
 - [ ] Closing and reopening the Settings dialog preserves the cached state
 - [ ] Opening Settings always lands on the "General" tab (not stuck on About)

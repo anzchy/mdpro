@@ -9,6 +9,10 @@
  * `ui.about.update_check` start and one terminal line (success, success with
  * `outcome: "updates-disabled"`, or fail), observed as `log_event` IPC payloads
  * through the real loggingService; a cache hit logs nothing.
+ * D85: only EmptyEndpoints is disabled. ReleaseNotFound (the plugin's answer to
+ * any non-2xx) is a failure — error text, enabled Check Again, `fail` logged;
+ * A4, L2, L6′ and L9 classes 3–4 changed under rule 12. More D85 cases live in
+ * d85-about-settings-release-not-found.test.tsx.
  *
  * Mock boundary: the Tauri IPC surface only (`check`, `invoke`, `relaunch`) —
  * there is no Tauri runtime under jsdom. Paired real paths: A6
@@ -37,7 +41,8 @@ const REAL_RELEASE_NOT_FOUND = "Could not fetch a valid release JSON from the re
 const NETWORK_MESSAGE =
   "error sending request for url (https://github.com/anzchy/mdpro/releases/latest/download/latest.json)";
 const DISABLED_TEXT = "Automatic updates coming soon.";
-const ERROR_TEXT = /Couldn't reach the update server/;
+// D85 / rule 12: error copy changed (user-approved).
+const ERROR_TEXT = /Couldn't get update information\. Try again later\./;
 const UP_TO_DATE_TEXT = /You're up to date/;
 
 function checkAgainButton() {
@@ -109,11 +114,14 @@ describe("AboutSettings — updates-disabled detection", () => {
     expect(useUpdaterStore.getState().cachedResult?.phase).toBe("error");
   });
 
-  it("A4: the plugin ReleaseNotFound message shows the disabled text", async () => {
+  // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a false spec.
+  it("A4: the plugin ReleaseNotFound message shows the error text and an enabled Check Again", async () => {
     mockCheck.mockRejectedValue("Could not fetch a valid release JSON from the remote");
     render(<AboutSettings />);
 
-    await expectDisabledPane();
+    expect(await screen.findByText(ERROR_TEXT)).toBeInTheDocument();
+    expect(screen.queryByText(DISABLED_TEXT)).toBeNull();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
   });
 
   it("A5: the disabled result survives repeated remounts without re-checking", async () => {
@@ -186,16 +194,17 @@ describe("AboutSettings — update-check log lines (WI-2)", () => {
     expect(useUpdaterStore.getState().cachedResult).toEqual({ phase: "updates-disabled" });
   });
 
-  it("L2: the plain-string ReleaseNotFound rejection logs the same outcome", async () => {
+  // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a false spec.
+  it("L2: the plain-string ReleaseNotFound rejection logs start then an error fail", async () => {
     mockCheck.mockRejectedValue(REAL_RELEASE_NOT_FOUND);
     render(<AboutSettings />);
 
-    await expectDisabledPane();
+    expect(await screen.findByText(ERROR_TEXT)).toBeInTheDocument();
     await waitFor(() => expect(updateCheckLogs()).toHaveLength(2));
     const logs = updateCheckLogs();
-    expect(logs.map((p) => p.status)).toEqual(["start", "success"]);
-    expect(logs[1].level).toBe("info");
-    expect(logs[1].context).toEqual({ outcome: "updates-disabled", error: REAL_RELEASE_NOT_FOUND });
+    expect(logs.map((p) => p.status)).toEqual(["start", "fail"]);
+    expect(logs[1].level).toBe("error");
+    expect(logs[1].context).toEqual({ error: REAL_RELEASE_NOT_FOUND });
   });
 
   it("L3: a network rejection logs start then an error fail, never the outcome", async () => {
@@ -235,7 +244,8 @@ describe("AboutSettings — update-check log lines (WI-2)", () => {
     render(<AboutSettings />);
     expect(await screen.findByText(ERROR_TEXT)).toBeInTheDocument();
 
-    mockCheck.mockRejectedValue(REAL_RELEASE_NOT_FOUND);
+    // D85 / rule 12: ReleaseNotFound is no longer in the disabled class; network → RNF is D3.
+    mockCheck.mockRejectedValue(REAL_EMPTY_ENDPOINTS);
     await user.click(screen.getByRole("button", { name: "Check Again" }));
     await expectDisabledPane();
 
@@ -297,8 +307,9 @@ describe("AboutSettings — update-check log lines (WI-2)", () => {
   it.each([
     { cls: 1, setup: () => mockCheck.mockRejectedValue(new Error(REAL_EMPTY_ENDPOINTS)), text: DISABLED_TEXT, status: "success", level: "info", outcome: true },
     { cls: 2, setup: () => mockCheck.mockRejectedValue(REAL_EMPTY_ENDPOINTS), text: DISABLED_TEXT, status: "success", level: "info", outcome: true },
-    { cls: 3, setup: () => mockCheck.mockRejectedValue(REAL_RELEASE_NOT_FOUND), text: DISABLED_TEXT, status: "success", level: "info", outcome: true },
-    { cls: 4, setup: () => mockCheck.mockRejectedValue(new Error(REAL_RELEASE_NOT_FOUND)), text: DISABLED_TEXT, status: "success", level: "info", outcome: true },
+    // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a false spec.
+    { cls: 3, setup: () => mockCheck.mockRejectedValue(REAL_RELEASE_NOT_FOUND), text: ERROR_TEXT, status: "fail", level: "error", outcome: false },
+    { cls: 4, setup: () => mockCheck.mockRejectedValue(new Error(REAL_RELEASE_NOT_FOUND)), text: ERROR_TEXT, status: "fail", level: "error", outcome: false },
     { cls: 5, setup: () => mockCheck.mockRejectedValue(NETWORK_MESSAGE), text: ERROR_TEXT, status: "fail", level: "error", outcome: false },
     { cls: 6, setup: () => mockCheck.mockRejectedValue(new Error(BODY_EMPTY)), text: ERROR_TEXT, status: "fail", level: "error", outcome: false },
     { cls: 7, setup: () => mockCheck.mockResolvedValue(null), text: UP_TO_DATE_TEXT, status: "success", level: "info", outcome: false },

@@ -13,11 +13,12 @@ import { prepareForRelaunch } from "../../../hooks/useUpdater";
 import { isUpdatesDisabledError } from "./updaterErrors";
 
 /**
- * Purpose: Settings → About page.
- * Shows app version, checks for updates via @tauri-apps/plugin-updater,
- * and handles download + install + relaunch flow. Each non-cached check logs
- * one `ui.about.update_check` start line and one terminal line (success,
- * success with `outcome: "updates-disabled"`, or fail); a cache hit logs none.
+ * Purpose: Settings → About page: app version, update check via
+ * @tauri-apps/plugin-updater, download + install + relaunch. Each non-cached
+ * check logs one `ui.about.update_check` start and one terminal line: success,
+ * success + `outcome: "updates-disabled"` (no endpoints configured only), or
+ * fail (incl. ReleaseNotFound, D85); a cache hit logs none. Finding an update
+ * clears the cached result, so a remount re-checks instead of a stale error.
  *
  * @coordinates-with updaterErrors (updates-disabled vs network-error detection)
  * @coordinates-with updaterStore (cache-safe state persistence)
@@ -73,13 +74,10 @@ export function AboutSettings() {
       const update = await check();
 
       if (update) {
-        // Don't cache 'available' — handle may go stale on remount
-        setState({
-          phase: "available",
-          version: update.version,
-          body: update.body ?? null,
-          handle: update,
-        });
+        // Don't cache 'available' (handle may go stale); drop any earlier error (D85)
+        useUpdaterStore.getState().clearCache();
+        const { version, body } = update;
+        setState({ phase: "available", version, body: body ?? null, handle: update });
       } else {
         const next: CacheSafeState = { phase: "up-to-date" };
         useUpdaterStore.getState().setCachedResult(next);
@@ -90,8 +88,8 @@ export function AboutSettings() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
 
-      // Updates disabled (no endpoints / no release) is not an error state: a
-      // definite answer, logged as success and told apart by `outcome`
+      // Updates disabled (no endpoints configured) is a definite answer, not an
+      // error: success + `outcome`. ReleaseNotFound (any non-2xx) is a fail (D85).
       if (isUpdatesDisabledError(msg)) {
         const next: CacheSafeState = { phase: "updates-disabled" };
         useUpdaterStore.getState().setCachedResult(next);
@@ -102,7 +100,7 @@ export function AboutSettings() {
 
       const next: CacheSafeState = {
         phase: "error",
-        message: "Couldn't reach the update server. Check your connection and try again.",
+        message: "Couldn't get update information. Try again later.",
       };
       useUpdaterStore.getState().setCachedResult(next);
       setState(next);
