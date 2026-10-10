@@ -5,9 +5,9 @@
 //! one question for it: "is this file byte-for-byte what it was at the last
 //! advance?" (`BaselineStore::is_unchanged`). Tauri-free.
 //!
-//! Pipeline (`is_unchanged`): copy the entry out under the lock, then, outside
-//! it, one `coherent_read` (file_watcher_baseline_read.rs): its `(mtime,
-//! size)` and the hash of its bytes must both equal the entry.
+//! Pipeline (`is_unchanged`): copy the slot out under the lock; outside it,
+//! one `coherent_read` (file_watcher_baseline_read.rs) must match its `(mtime,
+//! size)` and hash, and a second copy-out must show the same generation.
 //!
 //! @coordinates-with services/file_watcher.rs (parent; `FileWatcher` owns one
 //! `Arc<BaselineStore>` shared with its notify callback; `process_event` asks
@@ -138,16 +138,18 @@ impl BaselineStore {
     /// True only if `raw` has an entry with a stored hash and one stable,
     /// in-cap read of it has the stored `(mtime, size)` and hashes equal to
     /// it (ADR-0068 decision 3). Every other case, an unstable read included,
-    /// fails open. Read-only; all I/O runs after the lock is released.
+    /// fails open, as does a register or remove landing during the read: the
+    /// slot generation must not move across it (D109). I/O runs unlocked.
     pub(crate) fn is_unchanged(&self, raw: &Path) -> bool {
         let key = baseline_key(raw);
-        let Some(stored) = self.copy_out(&key).map(|slot| slot.entry) else {
+        let Some(Slot { entry, gen }) = self.copy_out(&key) else {
             return false;
         };
-        let (Some(stat), Some(hash)) = (stored.stat, stored.hash) else {
+        let (Some(stat), Some(hash)) = (entry.stat, entry.hash) else {
             return false;
         };
         coherent_read(raw).is_some_and(|(s1, bytes)| s1 == stat && hash_bytes(&bytes) == hash)
+            && self.copy_out(&key).is_some_and(|slot| slot.gen == gen)
     }
 
     /// The only place the mutex is taken. Poison is recovered: the map holds

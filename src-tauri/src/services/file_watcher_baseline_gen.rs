@@ -87,3 +87,7 @@ mod refresh_tests;
 #[cfg(test)]
 #[path = "file_watcher_baseline_gen_watch_tests.rs"]
 mod watch_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_baseline_gen_unchanged_tests.rs"]
+mod unchanged_tests;

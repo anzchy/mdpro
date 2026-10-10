@@ -107870,6 +107870,95 @@
       "verified_at": "2026-10-10T05:51:29.652Z",
       "verdict": "SEPARATION-HELD",
       "findings": []
+    },
+    {
+      "id": "D109-WI-1",
+      "lane": "rust",
+      "recorded_at": "2026-10-10T06:09:20.592Z",
+      "head_sha": "0ba1cdeb29dbdd67700a27a8f6551ed18e3ee49a",
+      "dirty_source": [
+        "src-tauri/src/services/file_watcher_baseline_gen.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "2 of 1343 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/services/file_watcher_baseline_gen_unchanged_tests.rs": {
+          "state": "ok",
+          "sha": "5234fec7e32a91003762f38d1a04fd57cc2732b17c88817dd9f399ee074f6200",
+          "lines": [
+            "263a5abe363d0168",
+            "bc14b72784e58a50",
+            "445fc463cdadac33",
+            "b25168fe7a660b77",
+            "47643b6f0238fb94",
+            "a5b27422e5d59162",
+            "213e5a4c671c28ef",
+            "f7e6ca6702c575bf",
+            "2313d4fc18464e0a",
+            "4acd0e0316674055",
+            "cefc51b788e6fb49",
+            "2f38907f44f16a2d",
+            "8dcdcaa2e0c8f760",
+            "02c5ffaf66106269",
+            "207a91008b066706",
+            "6910a853ec52cbc5",
+            "f629b42d772f4073",
+            "d10b36aa74a59bcf",
+            "05b0e051ee015bab",
+            "a5309f2732bf3792",
+            "d10b36aa74a59bcf",
+            "e3b1aa14ee6b9601",
+            "236fabb5d5f6bfee",
+            "fa446a9ff7394384",
+            "f26b026d7f98839d",
+            "9d394cc76a49e0b7",
+            "18900e4078391742",
+            "fb783a9becad9631",
+            "5b4f2c905d61fbb7",
+            "1555acdcb1ce05e0",
+            "df3982fd61017359",
+            "10e3ec50ddba5482",
+            "e79900ff67c0d18e",
+            "70f85aba9ade6ed8",
+            "29576b54e255e3c9",
+            "1adf5e4a9baa5ca5",
+            "9aa4a87a833378bb",
+            "d10b36aa74a59bcf",
+            "ccf352cc396b738b",
+            "fa446a9ff7394384",
+            "30fd11138693f575",
+            "6650bba52638c402",
+            "18900e4078391742",
+            "10e3ec50ddba5482",
+            "e79900ff67c0d18e",
+            "13184a6997894139",
+            "29576b54e255e3c9",
+            "9d14d50ed85fd032",
+            "045c4fe902b39670",
+            "d10b36aa74a59bcf",
+            "32b83084c1969d59",
+            "fa446a9ff7394384",
+            "10a262c8407092f2",
+            "16237309aebbf83c",
+            "18900e4078391742",
+            "9741776d3e8d12bb",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-10T06:11:05.842Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "1 non-test file(s) were already modified when the red was recorded (src-tauri/src/services/file_watcher_baseline_gen.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

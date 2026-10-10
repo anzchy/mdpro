@@ -185,6 +185,24 @@ understood on 2026-10-09 and 2026-10-10:
   filtered. No unexpected unstable read appeared in the test suites except
   on a FIFO, which can never be proven stable. The device rate is measured
   by the D86 WI-5 recheck; if it is high, this comes back for discussion.
+  A register or remove that lands on the path during that read also fails
+  open, because the check re-reads the slot generation after the read (D109).
+- **Limits found during D86 review and audit** (2026-10-10, recorded, not fixed):
+  - **Racing refreshes are unordered.** `refresh_if_present` checks the
+    generation but does not advance it, so of two refreshes racing on one
+    path the slower one stores its bytes. A stale hash only fails the next
+    comparison, so the cost is a prompt, not a dropped change.
+  - **The cap bounds size, not time.** A read of a FIFO or another blocking
+    file waits in `File::open` / `read` until a writer feeds or closes it,
+    and holds the watcher thread while it waits.
+  - **Coarse timestamps.** On a filesystem whose mtime and ctime are coarser
+    than the read (some Linux setups), a same-size rewrite during the read
+    can leave both stats equal and pass as stable. The tests that pin
+    stability run on macOS only.
+  - **The first write after open can be missed.** A write landing between
+    the open's read and notify registering produces no event. The seed
+    baseline (the opened bytes) catches the next write, but that first one
+    never prompts.
 - **Cost: the open path's read is capped.** `open_file`, `open_file_dialog`
   and `reload_file` read once, up to the cap plus one byte. A file that
   passes the size check but reads past 10 MiB (it grew, or it is a device
