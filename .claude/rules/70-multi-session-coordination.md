@@ -29,7 +29,7 @@ tmux name is only an alias; as of 2026-10-10 they are:
 
 | Role | Alias |
 |---|---|
-| mdpro-implementor-\* | `mdpro-a3`, `mdpro-a5` |
+| mdpro-implementor-\* | `mdpro-a3`, `mdpro-a6` (took over from `mdpro-a5`, retired 2026-10-10) |
 | mdpro-auditor-\* | `mdpro-codex-audit` |
 | mdpro-device-harness | `mdpro-85` |
 | real-device-tester | tmux session `dtrack` |
@@ -144,6 +144,49 @@ it removes that one when it finishes.
   `ADR47-WI003-2`), never a bare `WI-n`. Receipts are keyed by id, so two
   efforts that both record `WI-4` overwrite each other; on 2026-10-10 a merge
   carried six redesign receipts away this way.
+
+## Session rotation
+
+**A session that has been compacted many times writes a handoff and is
+rotated.** Each compaction drops a layer of detail. After enough of them the
+session works from summaries of summaries, which is how verified facts turn
+into guesses. The model cannot count this reliably itself, so a hook counts for
+it. (User decision, 2026-10-10.)
+
+- **The PostToolUse hook `.claude/hooks/session-size-guard.sh`** reads the
+  session transcript and warns once per level:
+  - **soft** at 5 compactions: rotate at the next WI or D boundary;
+  - **strong** at 10 compactions, or at a transcript of 25 MiB or more:
+    rotate as soon as the current step is done.
+
+  The user sees the message. The session gets the same instruction as
+  context.
+- **On a warning, write the handoff before anything is lost.** Put it at
+  `~/.mdpro-redesign/handoff/<alias>-<YYYYMMDD-HHMM>.md`. It names:
+  - the current WI or D and its stage;
+  - the branch, its HEAD and whether it is landed;
+  - uncommitted state (save a patch next to the handoff rather than
+    committing half a step);
+  - the next concrete step;
+  - ADR and D numbers held;
+  - open questions and pending messages from other sessions.
+
+  Verify each fact in it with a command; don't copy it from memory.
+- **An implementor or auditor then sends the delegator the handoff path.**
+  The delegator writes its own handoff the same way and tells the user.
+- **The user chooses one of two ways to rotate.** Both start from the same
+  handoff file, e.g.
+  `~/.mdpro-redesign/handoff/mdpro-85-20261010-1051.md`.
+
+  | | **A. `/clear` in place** | **B. New session** |
+  |---|---|---|
+  | How | In that session, type `/clear`, then 「读 `~/.mdpro-redesign/handoff/mdpro-85-20261010-1051.md` 继续」 | Close the old one. Start a new one with the same role (`MDPRO_ROLE=implementor claude`) and the same permission mode as the other sessions, then send the same 「读 … 继续」 |
+  | `ListAgents` name | Usually kept; nothing to update | New alias: the delegator updates the alias table above in its next commit |
+  | Worktree and branch | Kept; work carries on in them | The successor gets a new worktree, or the old one is handed over. A retired session's worktree is removed only after its handoff is archived and the user confirms (rule 25) |
+  | Use when | The same session carries on the same area | The role changes, the area is handed to someone else, or the session itself misbehaves |
+
+  The transcript starts fresh either way, so the hook's counts start again
+  from zero.
 
 ## The Mac mini
 
