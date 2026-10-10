@@ -1,6 +1,6 @@
 /**
  * @module table/contextMenu
- * Purpose: Two layers behind the WYSIWYG table context menu (WI-1.3):
+ * Purpose: Three layers behind the WYSIWYG table context menu (WI-1.3):
  *
  *   1. `computeTableContext(view)` — impure; reads the live ProseMirror
  *      view to resolve current row/column, table dimensions, and the
@@ -10,29 +10,18 @@
  *      ordered list of actions with isDisabled / isActive flags. The
  *      React component renders this list directly.
  *
- *   3. `dispatchTableAction(editor, id, ctx)` — runs the matching
- *      Milkdown command(s) against the active editor. Composes
- *      select-then-delete for the destructive actions because Milkdown
- *      doesn't ship dedicated delete-row / delete-column commands.
+ *   3. `dispatchTableAction(editor, id, ctx)` — re-gates the action on a
+ *      fresh context and hands it to `runCommandFor`
+ *      (`contextMenuCommands.ts`), which maps each action to its
+ *      Milkdown command(s).
  *
+ * @coordinates-with src/plugins/milkdown/table/contextMenuCommands.ts
  * @coordinates-with src/components/Editor/TableContextMenu/
  * @coordinates-with src/stores/milkdownEditorStore.ts
  */
 
 import { commandsCtx, editorViewCtx } from "@milkdown/kit/core";
-import {
-  addColAfterCommand,
-  addColBeforeCommand,
-  addRowAfterCommand,
-  addRowBeforeCommand,
-  deleteSelectedCellsCommand,
-  moveColCommand,
-  moveRowCommand,
-  selectColCommand,
-  selectRowCommand,
-  selectTableCommand,
-  setAlignCommand,
-} from "@milkdown/kit/preset/gfm";
+import type { EditorView } from "@milkdown/kit/prose/view";
 import { findTable, TableMap } from "@milkdown/kit/prose/tables";
 import {
   TABLE_ACTION_DESCRIPTORS,
@@ -42,13 +31,10 @@ import {
   type TableContext,
 } from "./actionDescriptors";
 import { isActionDisabled } from "./actionGate";
+import { type CommandsLike, runCommandFor } from "./contextMenuCommands";
 
 interface MilkdownEditorLike {
   action: (fn: (ctx: unknown) => void) => void;
-}
-
-interface CommandsLike {
-  call: (key: unknown, payload?: unknown) => boolean;
 }
 
 interface CtxLike {
@@ -215,7 +201,7 @@ export function dispatchTableAction(
       // Reject disabled actions at the fresh boundary.
       if (isActionDisabled(id, fresh)) return;
 
-      applied = runCommandFor(id, commands, fresh);
+      applied = runCommandFor(id, commands, view as EditorView, fresh);
     });
   } catch {
     // ProseMirror or Milkdown threw — return false so the caller can
@@ -228,86 +214,4 @@ export function dispatchTableAction(
   // identity comparison against `fresh`.
   void ctx;
   return applied;
-}
-
-function runCommandFor(
-  id: TableActionId,
-  commands: CommandsLike,
-  ctx: TableContext,
-): boolean {
-  switch (id) {
-    case "insert_row_before":
-      return commands.call(addRowBeforeCommand.key);
-    case "insert_row_after":
-      return commands.call(addRowAfterCommand.key);
-    case "insert_column_before":
-      return commands.call(addColBeforeCommand.key);
-    case "insert_column_after":
-      return commands.call(addColAfterCommand.key);
-
-    case "move_row_up":
-      return commands.call(moveRowCommand.key, {
-        from: ctx.rowIndex,
-        to: ctx.rowIndex - 1,
-      });
-    case "move_row_down":
-      return commands.call(moveRowCommand.key, {
-        from: ctx.rowIndex,
-        to: ctx.rowIndex + 1,
-      });
-    case "move_column_left":
-      return commands.call(moveColCommand.key, {
-        from: ctx.colIndex,
-        to: ctx.colIndex - 1,
-      });
-    case "move_column_right":
-      return commands.call(moveColCommand.key, {
-        from: ctx.colIndex,
-        to: ctx.colIndex + 1,
-      });
-
-    case "align_left":
-      return commands.call(setAlignCommand.key, "left");
-    case "align_center":
-      return commands.call(setAlignCommand.key, "center");
-    case "align_right":
-      return commands.call(setAlignCommand.key, "right");
-
-    case "reformat_table":
-      // Phase 3 WI-3.2: in WYSIWYG, "Reformat table" is a visible no-op.
-      // Milkdown's GFM serializer emits compact (unpadded) markdown on
-      // every keystroke via the listener; padding our way and writing
-      // back would be undone the moment the user types. The action is
-      // kept in the descriptor catalog for menu parity — source mode
-      // does the real work via tableEdits.applyEdit.
-      return false;
-
-    case "delete_row":
-      // H4 fix: short-circuit on select failure — without the &&, a
-      // failed select would leave the existing selection in place and
-      // the delete would mutate the wrong row (or worse, the user's
-      // current text selection).
-      return (
-        commands.call(selectRowCommand.key, { index: ctx.rowIndex }) &&
-        commands.call(deleteSelectedCellsCommand.key)
-      );
-    case "delete_column":
-      return (
-        commands.call(selectColCommand.key, { index: ctx.colIndex }) &&
-        commands.call(deleteSelectedCellsCommand.key)
-      );
-    case "delete_table":
-      return (
-        commands.call(selectTableCommand.key) &&
-        commands.call(deleteSelectedCellsCommand.key)
-      );
-
-    default: {
-      // Exhaustiveness check — TS will error if a new TableActionId is
-      // added without a case here.
-      const _exhaustive: never = id;
-      void _exhaustive;
-      return false;
-    }
-  }
 }
