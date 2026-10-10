@@ -200,6 +200,14 @@ it. (User decision, 2026-10-10.)
   `tmux capture-pane -pt <its tmux session>` (currently `dtrack`) before
   sending it anything. Over SSH, put
   `/opt/homebrew/bin` on `PATH` first.
+- **When the tester is stuck on a Computer Use permission prompt for mdpro,
+  pick "Allow for this session" yourself; don't wait for the user.** The
+  tester's `/clear` before every brief drops the earlier grant, so every run
+  starts at this prompt. Check with `capture-pane` that `mdpro` is the only
+  app listed, then `tmux send-keys -t dtrack Down` and `Enter`, and
+  `capture-pane` again to confirm the run went on. If the prompt names any
+  other app, or offers anything other than a session-scoped grant, leave it
+  and ask the user. (User decision, 2026-10-10.)
 - Copy files with `rsync`, not `scp`. Never pass
   `StrictHostKeyChecking=no`. Never copy `~/.mdpro` or `~/.claude`, and never
   print the MCP token.
