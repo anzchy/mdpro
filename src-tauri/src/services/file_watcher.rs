@@ -1,5 +1,16 @@
-use notify::event::ModifyKind;
-use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+//! The file watcher: notify registration, the D32 baselines, and the
+//! `file:changed` / `theme:changed` emits.
+//!
+//! Purpose: own the notify watcher and its watch list, route each notify
+//! event through `process_event` (file_watcher_route.rs), log one
+//! `file.watch.event` line per event, and emit what the route returns.
+//!
+//! @coordinates-with file_watcher_route.rs (`process_event`),
+//! file_watcher_gate.rs, file_watcher_outcome.rs, file_watcher_baseline.rs,
+//! file_watcher_seed.rs, file_watcher_log.rs (all mounted here with `#[path]`),
+//! commands/file.rs (`watch_seeded`, `mark_write_*`, the baseline refresh)
+
+use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -9,12 +20,11 @@ use tauri::{AppHandle, Emitter, Theme};
 
 use crate::models::log_entry::LogEntryPayload;
 use crate::services::logger;
+use baseline::next_ticket;
 #[cfg(test)]
 pub(crate) use baseline::snapshot;
 /// `save_file` refreshes through it (ADR-0068 decision 4).
 pub(crate) use baseline::BaselineStore;
-use baseline::{is_filtered_kind, next_ticket};
-use gate::{is_debounced, is_self_write};
 pub use gate::{mark_write_end, mark_write_start};
 use watch_log::{
     apply_watch_list, build_watch_error_log, build_watch_event_log, build_watch_register_log,
@@ -27,6 +37,10 @@ mod gate;
 #[path = "file_watcher_outcome.rs"]
 mod outcome;
 pub(crate) use outcome::WatchOutcome;
+
+#[path = "file_watcher_route.rs"]
+mod route;
+use route::process_event;
 
 #[path = "file_watcher_baseline.rs"]
 mod baseline;
@@ -132,65 +146,6 @@ impl FileWatcher {
 
 fn emit_file_changed(app_handle: &AppHandle, event: FileChangedEvent) {
     let _ = app_handle.emit("file:changed", event);
-}
-
-/// Tauri-free routing for one notify event: the `file:changed` payload to
-/// emit (if any) and the reason. Order matters: the kind is matched first (so
-/// ignored kinds never touch the debounce map), then the path count, then the
-/// self-write check (`Modify` only, and before the debounce check so a save
-/// never records a debounce entry), then the D32 drop: a
-/// `Modify(Metadata(Extended))`, `Modify(Metadata(Any))` or
-/// `Modify(Data(Content))` whose first path is unchanged since its baseline,
-/// read coherently (ADR-0068), is `IgnoredUnchanged`, again before the
-/// debounce check. Then the debounce check keyed by the first path, shared
-/// across kinds. Only an emitted `modified` advances the baseline, and only
-/// for an already-registered path. `Remove` and renames are not
-/// self-write-gated. Each lock (self-write, baseline, debounce) is taken
-/// alone, and the baseline's file I/O runs under none of them.
-fn process_event(
-    event: &Event,
-    debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
-    baselines: &BaselineStore,
-    timestamp: i64,
-) -> (Option<FileChangedEvent>, WatchOutcome) {
-    let (change_type, outcome) = match event.kind {
-        EventKind::Modify(ModifyKind::Name(_)) => ("renamed", WatchOutcome::EmittedRenamed),
-        EventKind::Modify(_) => ("modified", WatchOutcome::EmittedModified),
-        EventKind::Remove(_) => ("deleted", WatchOutcome::EmittedDeleted),
-        EventKind::Any | EventKind::Access(_) | EventKind::Create(_) | EventKind::Other => {
-            return (None, WatchOutcome::IgnoredKind);
-        }
-    };
-    let Some(path) = event.paths.first() else {
-        return (None, WatchOutcome::IgnoredNoPath);
-    };
-    let new_path = if outcome == WatchOutcome::EmittedRenamed {
-        match event.paths.get(1) {
-            Some(to) => Some(to.to_string_lossy().to_string()),
-            None => return (None, WatchOutcome::IgnoredRenameSinglePath),
-        }
-    } else {
-        None
-    };
-    if outcome == WatchOutcome::EmittedModified && is_self_write(path) {
-        return (None, WatchOutcome::SelfWrite);
-    }
-    if is_filtered_kind(&event.kind) && baselines.is_unchanged(path) {
-        return (None, WatchOutcome::IgnoredUnchanged);
-    }
-    if is_debounced(path, debounce_map) {
-        return (None, WatchOutcome::Debounced);
-    }
-    if outcome == WatchOutcome::EmittedModified {
-        baselines.refresh_if_present(path);
-    }
-    let emitted = FileChangedEvent {
-        path: path.to_string_lossy().to_string(),
-        change_type: change_type.to_string(),
-        new_path,
-        timestamp,
-    };
-    (Some(emitted), outcome)
 }
 
 /// Route one notify event and describe it: `process_event` (which consults

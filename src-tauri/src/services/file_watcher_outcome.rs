@@ -6,7 +6,8 @@
 //! `file.watch.event` log line carries in its `outcome` field.
 //!
 //! @coordinates-with services/file_watcher.rs (parent; mounts this file with
-//! `#[path]`, re-exports `WatchOutcome`, and `process_event` returns it),
+//! `#[path]` and re-exports `WatchOutcome`), file_watcher_route.rs
+//! (`process_event` returns it),
 //! file_watcher_log.rs (`build_watch_event_log` writes `as_str()` and maps
 //! each outcome to a status and change type), file_watcher_gate_tests.rs
 //! (o1: `as_str` is exact and injective, `ALL` is complete),

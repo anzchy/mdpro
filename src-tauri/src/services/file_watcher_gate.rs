@@ -6,6 +6,7 @@
 //!
 //! @coordinates-with services/file_watcher.rs (parent; mounts this file with
 //! `#[path]` and re-exports `mark_write_start` / `mark_write_end`),
+//! file_watcher_route.rs (`process_event` consults both gates),
 //! commands/file.rs (`save_file` brackets its write with the marks)
 //!
 //! Key decisions:

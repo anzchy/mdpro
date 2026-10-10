@@ -239,7 +239,7 @@ fn o6_extra_path_is_irrelevant_for_non_name_kinds() {
 
 #[test]
 fn o14_process_event_has_no_wildcard_or_bare_binding_arm() {
-    let slice = fn_slice(include_str!("file_watcher.rs"), "fn process_event");
+    let slice = fn_slice(include_str!("file_watcher_route.rs"), "fn process_event");
     assert!(!slice.trim().is_empty(), "process_event slice is empty");
     let offending: Vec<&str> = code_lines(slice)
         .filter(|l| is_bare_binding_arm(l))
