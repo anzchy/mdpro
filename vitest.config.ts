@@ -40,7 +40,9 @@ export default defineConfig({
       // lines. Scoping it to first-party source is what makes the thresholds below
       // mean anything. `scripts/control` is first-party build tooling with its own
       // unit tests (ADR-0047); its untested driver `smoke.mjs` counts as 0%, on purpose.
-      include: ["src/**/*.{ts,tsx}", "scripts/control/**/*.mjs"],
+      // `scripts/release` (D76, plan D-6) is the release pipeline's pure modules and CLIs,
+      // counted the same way.
+      include: ["src/**/*.{ts,tsx}", "scripts/control/**/*.mjs", "scripts/release/**/*.mjs"],
       all: true,
       // Measured floor, rounded down (2026-10-02, WI-0.1 pre-run): 73.62 / 80.80 / 91.38 / 73.62.
       // With scripts/control included (2026-10-08): 76.92 / 82.90 / 91.56 / 76.92. These must
