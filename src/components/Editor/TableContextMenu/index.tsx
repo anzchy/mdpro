@@ -6,14 +6,17 @@
  * is an image (the ImageContextMenu owns those — eng-review R7).
  *
  * Layered architecture:
- *   - This file: DOM listener, menu open/close lifecycle, position
- *     clamping, action dispatch with try/catch + logging.
+ *   - This file: DOM listener, menu open/close lifecycle, action
+ *     dispatch with try/catch + logging.
+ *   - `useClampedMenuPosition` + `menuPosition`: position clamping by the
+ *     menu's measured size (D67), shared with `SourceTableContextMenu`.
  *   - `ActionList`: pure presentational — renders the grouped action list.
  *   - `actionDescriptors` + `contextMenu` modules: pure data + logic
  *     (see src/plugins/milkdown/table/).
  *
  * @coordinates-with src/plugins/milkdown/table/contextMenu.ts
  * @coordinates-with src/stores/milkdownEditorStore.ts
+ * @coordinates-with src/components/Editor/TableContextMenu/useClampedMenuPosition.ts
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -31,22 +34,13 @@ import { editorViewCtx } from "@milkdown/kit/core";
 import { useMilkdownEditorStore } from "../../../stores/milkdownEditorStore";
 import { loggingService } from "../../../services/loggingService";
 import { ActionList } from "./ActionList";
+import { MENU_WIDTH, type Point } from "./menuPosition";
+import { useClampedMenuPosition } from "./useClampedMenuPosition";
 
 interface MenuState {
-  /** Viewport coordinates (pre-clamped to fit on screen). */
-  x: number;
-  y: number;
+  /** Raw click point (viewport coords); clamped by `useClampedMenuPosition`. */
+  anchor: Point;
   context: TableContext;
-}
-
-const MENU_WIDTH = 220;
-const MENU_HEIGHT_MAX = 480;
-const VIEWPORT_PADDING = 8;
-
-function clampPosition(x: number, y: number): { x: number; y: number } {
-  const cx = Math.max(VIEWPORT_PADDING, Math.min(x, window.innerWidth - MENU_WIDTH - VIEWPORT_PADDING));
-  const cy = Math.max(VIEWPORT_PADDING, Math.min(y, window.innerHeight - MENU_HEIGHT_MAX - VIEWPORT_PADDING));
-  return { x: cx, y: cy };
 }
 
 export function TableContextMenu() {
@@ -108,8 +102,7 @@ export function TableContextMenu() {
       event.preventDefault();
       event.stopPropagation();
 
-      const { x, y } = clampPosition(event.clientX, event.clientY);
-      setMenu({ x, y, context: tableCtx });
+      setMenu({ anchor: { x: event.clientX, y: event.clientY }, context: tableCtx });
 
       loggingService.logEventSync({
         level: "info",
@@ -198,7 +191,10 @@ export function TableContextMenu() {
     first?.focus();
   }, [menu]);
 
-  if (!menu) return null;
+  // D67: clamp by the measured menu height, corrected before paint.
+  const position = useClampedMenuPosition(menuRef, menu?.anchor ?? null);
+
+  if (!menu || !position) return null;
 
   const actions = getTableActions(menu.context);
 
@@ -239,7 +235,7 @@ export function TableContextMenu() {
       className="table-context-menu"
       role="menu"
       aria-label="Table actions"
-      style={{ left: menu.x, top: menu.y, width: MENU_WIDTH }}
+      style={{ left: position.x, top: position.y, width: MENU_WIDTH }}
       onContextMenu={(event) => event.preventDefault()}
     >
       <ActionList actions={actions as TableAction[]} onPick={handlePick} />

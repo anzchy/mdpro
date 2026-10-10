@@ -6,7 +6,10 @@
  *
  * Layered architecture:
  *   - This file: DOM listener (`#source-container`), menu open/close
- *     lifecycle, position clamping, action dispatch with try/catch.
+ *     lifecycle, action dispatch with try/catch.
+ *   - `useClampedMenuPosition` + `menuPosition` (shared from
+ *     `TableContextMenu/`): position clamping by the menu's measured
+ *     size (D67).
  *   - `ActionList` (reused from `TableContextMenu/`): pure
  *     presentational — renders the grouped action list.
  *   - `getTableActions` (reused from
@@ -32,6 +35,7 @@
  * @coordinates-with src/stores/editorStore.ts — `editorView`,
  *   `isSourceTablesWithheld`.
  * @coordinates-with src/stores/documentStore.ts — `activeDocumentId`.
+ * @coordinates-with src/components/Editor/TableContextMenu/useClampedMenuPosition.ts
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -49,31 +53,16 @@ import { isSourceTablesWithheld, useEditorStore } from "../../../stores/editorSt
 import { useDocumentStore } from "../../../stores/documentStore";
 import { loggingService } from "../../../services/loggingService";
 import { ActionList } from "../TableContextMenu/ActionList";
+import { MENU_WIDTH, type Point } from "../TableContextMenu/menuPosition";
+import { useClampedMenuPosition } from "../TableContextMenu/useClampedMenuPosition";
 
 interface MenuState {
-  /** Viewport coordinates (clamped to fit on screen). */
-  x: number;
-  y: number;
+  /** Raw click point (viewport coords); clamped by `useClampedMenuPosition`. */
+  anchor: Point;
   /** Source offset that was right-clicked — re-parsed fresh on dispatch. */
   pos: number;
   /** Snapshot at menu-open, used only to render is-active / is-disabled. */
   context: TableContext;
-}
-
-const MENU_WIDTH = 220;
-const MENU_HEIGHT_MAX = 480;
-const VIEWPORT_PADDING = 8;
-
-function clampPosition(x: number, y: number): { x: number; y: number } {
-  const cx = Math.max(
-    VIEWPORT_PADDING,
-    Math.min(x, window.innerWidth - MENU_WIDTH - VIEWPORT_PADDING),
-  );
-  const cy = Math.max(
-    VIEWPORT_PADDING,
-    Math.min(y, window.innerHeight - MENU_HEIGHT_MAX - VIEWPORT_PADDING),
-  );
-  return { x: cx, y: cy };
 }
 
 export function SourceTableContextMenu() {
@@ -118,8 +107,7 @@ export function SourceTableContextMenu() {
       event.preventDefault();
       event.stopPropagation();
 
-      const { x, y } = clampPosition(event.clientX, event.clientY);
-      setMenu({ x, y, pos, context: result.ctx });
+      setMenu({ anchor: { x: event.clientX, y: event.clientY }, pos, context: result.ctx });
 
       loggingService.logEventSync({
         level: "info",
@@ -222,7 +210,10 @@ export function SourceTableContextMenu() {
     first?.focus();
   }, [menu]);
 
-  if (!menu) return null;
+  // D67: clamp by the measured menu height, corrected before paint.
+  const position = useClampedMenuPosition(menuRef, menu?.anchor ?? null);
+
+  if (!menu || !position) return null;
 
   const actions = getTableActions(menu.context);
 
@@ -260,7 +251,7 @@ export function SourceTableContextMenu() {
       className="table-context-menu"
       role="menu"
       aria-label="Table actions"
-      style={{ left: menu.x, top: menu.y, width: MENU_WIDTH }}
+      style={{ left: position.x, top: position.y, width: MENU_WIDTH }}
       onContextMenu={(event) => event.preventDefault()}
     >
       <ActionList actions={actions as TableAction[]} onPick={handlePick} />

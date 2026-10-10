@@ -12,10 +12,11 @@
   box-shadow: var(--shadow-soft);
   font-size: 13px;
   user-select: none;
-  /* Table-CRUD bug #1 (2026-05-04): the menu has 14 actions across 4
-     groups — taller than MENU_HEIGHT_MAX on small windows, so the
-     destructive group was clipped off the bottom. Cap at viewport
-     height with internal scroll so every action stays reachable. */
+  /* D67: the components clamp the menu's position by its measured
+     height (menuPosition.ts), so a menu that fits is moved up until its
+     bottom edge is inside the window. This cap only matters when the
+     window is shorter than the menu itself: the menu pins to the top
+     padding and scrolls internally so every action stays reachable. */
   max-height: calc(100vh - 16px);
   overflow-y: auto;
 }
