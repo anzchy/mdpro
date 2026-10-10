@@ -9,16 +9,16 @@ use tauri::{AppHandle, Emitter, Theme};
 
 use crate::models::log_entry::LogEntryPayload;
 use crate::services::logger;
-use baseline::is_filtered_kind;
 #[cfg(test)]
 pub(crate) use baseline::snapshot;
 /// `save_file` refreshes through it (ADR-0068 decision 4).
 pub(crate) use baseline::BaselineStore;
+use baseline::{is_filtered_kind, next_ticket};
 use gate::{is_debounced, is_self_write};
 pub use gate::{mark_write_end, mark_write_start};
 use watch_log::{
     apply_watch_list, build_watch_error_log, build_watch_event_log, build_watch_register_log,
-    stat_snapshot, FileStat, WatchOp,
+    stat_snapshot, with_baseline, FileStat, WatchOp,
 };
 
 #[path = "file_watcher_gate.rs"]
@@ -30,6 +30,8 @@ pub(crate) use outcome::WatchOutcome;
 
 #[path = "file_watcher_baseline.rs"]
 mod baseline;
+#[path = "file_watcher_seed.rs"]
+pub(crate) mod seed;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,35 +80,47 @@ impl FileWatcher {
         })
     }
 
-    /// Watch `path`, log one `file.watch.register` line with notify's Result,
-    /// then record its baseline, overwriting any (ADR-0068 decision 4). The
-    /// line is built under both locks; the log write and the baseline's stat
-    /// and read run after they drop.
+    /// Watch `path`, record a fresh snapshot as its baseline, overwriting any
+    /// (ADR-0068 decision 4), then log one `file.watch.register` line with
+    /// notify's Result and what the store did (`context.baseline`). The line
+    /// and the store ticket are taken under both locks, so ticket order is
+    /// list order; the baseline's read and the log write run after they drop,
+    /// and a newer unwatch landing during that read wins (D86 WI-2). The open
+    /// path uses `watch_seeded` instead (file_watcher_seed.rs, D86 WI-3).
     pub fn watch(&self, path: &Path) {
-        let line = {
-            let (Ok(mut watcher), Ok(mut list)) = (self.watcher.lock(), self.watched_paths.lock())
-            else {
+        let (line, ticket) = {
+            let (Ok(mut watcher), Ok(mut list), ticket) = (
+                self.watcher.lock(),
+                self.watched_paths.lock(),
+                next_ticket(),
+            ) else {
                 return;
             };
-            apply_watch(&mut watcher, &mut list, path, WatchOp::Register)
+            let line = apply_watch(&mut watcher, &mut list, path, WatchOp::Register);
+            (line, ticket)
         };
-        logger::log_event(line);
-        self.baselines.register(path);
+        let stored = self.baselines.register_at(path, ticket);
+        logger::log_event(with_baseline(line, seed::baseline_log(stored, false)));
     }
 
     /// Unwatch `path`, log one `file.watch.unregister` line with notify's
-    /// Result, then drop the baseline `watch` recorded. The line is built
-    /// under both locks; the log write and the removal run after they drop.
+    /// Result, then drop the baseline `watch` recorded. The line
+    /// and the store ticket are taken under both locks; the log write and the
+    /// removal run after they drop, and a newer watch wins (D86 WI-2).
     pub fn unwatch(&self, path: &Path) {
-        let line = {
-            let (Ok(mut watcher), Ok(mut list)) = (self.watcher.lock(), self.watched_paths.lock())
-            else {
+        let (line, ticket) = {
+            let (Ok(mut watcher), Ok(mut list), ticket) = (
+                self.watcher.lock(),
+                self.watched_paths.lock(),
+                next_ticket(),
+            ) else {
                 return;
             };
-            apply_watch(&mut watcher, &mut list, path, WatchOp::Unregister)
+            let line = apply_watch(&mut watcher, &mut list, path, WatchOp::Unregister);
+            (line, ticket)
         };
         logger::log_event(line);
-        self.baselines.remove(path);
+        self.baselines.remove_at(path, ticket);
     }
 
     /// The store the notify callback consults, for `save_file`'s refresh

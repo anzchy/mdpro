@@ -140,53 +140,25 @@ fn log_file_event(
     });
 }
 
-fn open_file_from_path(
+/// Open `path` from one read and return the document; the seed is dropped.
+/// `reload_file` uses it (no watcher registers there), and the D86 WI-3 tests
+/// use it as the reference the seeded open must equal.
+pub(crate) fn open_file_from_path(
     path: &str,
     encoding_hint: Option<String>,
 ) -> Result<OpenFileResult, FileError> {
-    logger::log_line(&format!("open_file_from_path: {}", path));
-    let path_buf = PathBuf::from(path);
-    if !path_buf.exists() {
-        logger::log_line(&format!("open_file_from_path: file not found {}", path));
-        return Err(FileError::FileNotFound {
-            path: path.to_string(),
-        });
-    }
+    open_file_from_path_seeded(path, encoding_hint).map(|(result, _)| result)
+}
 
-    let metadata = std::fs::metadata(&path_buf).map_err(|err| {
-        logger::log_line(&format!(
-            "open_file_from_path: metadata error {}: {}",
-            path, err
-        ));
-        to_file_error(err, path)
-    })?;
-    if metadata.len() > MAX_FILE_SIZE {
-        logger::log_line(&format!(
-            "open_file_from_path: file too large {} size={}",
-            path,
-            metadata.len()
-        ));
-        return Err(FileError::FileTooLarge {
-            path: path.to_string(),
-            size: metadata.len(),
-        });
-    }
-
-    if let Ok(modified) = metadata.modified() {
-        if let Ok(duration) = modified.duration_since(std::time::SystemTime::UNIX_EPOCH) {
-            if let Ok(mut cache) = mtime_cache().lock() {
-                cache.insert(path.to_string(), duration.as_millis() as i64);
-            }
-        }
-    }
-
-    let bytes = std::fs::read(&path_buf).map_err(|err| {
-        logger::log_line(&format!(
-            "open_file_from_path: read error {}: {}",
-            path, err
-        ));
-        to_file_error(err, path)
-    })?;
+/// The decode half of an open: the bytes `open_file_from_path_seeded` read
+/// once, decoded into the document. Never reads the file (D86 WI-3), so the
+/// editor holds exactly the bytes the open's baseline seed describes.
+pub(crate) fn decode_opened(
+    path: &str,
+    path_buf: PathBuf,
+    bytes: Vec<u8>,
+    encoding_hint: Option<String>,
+) -> Result<OpenFileResult, FileError> {
     logger::log_line(&format!("open_file_from_path: read bytes {}", bytes.len()));
     // Detect with confidence (WI-0.3): a non-UTF-8 file with no recognised BOM
     // is "unknown"/Low — we refuse to guess (no blind Latin-1) and surface an
@@ -226,6 +198,10 @@ fn open_file_from_path(
         recovered_draft: None,
     })
 }
+
+#[path = "file_open_seed.rs"]
+pub(crate) mod open_seed;
+pub(crate) use open_seed::open_file_from_path_seeded;
 
 /// Normalize all line endings to LF (`\n`).
 ///
@@ -1088,7 +1064,7 @@ pub async fn open_file(
         None,
     );
     let path_for_error = path.clone();
-    let result = open_file_from_path(&path, encoding).inspect_err(|err| {
+    let (result, seed) = open_file_from_path_seeded(&path, encoding).inspect_err(|err| {
         log_file_event(
             "file.open",
             LogStatus::Fail,
@@ -1099,7 +1075,7 @@ pub async fn open_file(
             Some(file_error_message(err)),
         );
     })?;
-    watcher.watch(&PathBuf::from(&path));
+    watcher.watch_seeded(&PathBuf::from(&path), seed);
     log_file_event(
         "file.open",
         LogStatus::Success,
@@ -1164,7 +1140,7 @@ pub async fn open_file_dialog(
 
     let path_string = path.to_string_lossy().to_string();
     let path_for_error = path_string.clone();
-    let result = open_file_from_path(&path_string, None).inspect_err(|err| {
+    let (result, seed) = open_file_from_path_seeded(&path_string, None).inspect_err(|err| {
         log_file_event(
             "file.open",
             LogStatus::Fail,
@@ -1175,7 +1151,7 @@ pub async fn open_file_dialog(
             Some(file_error_message(err)),
         );
     })?;
-    watcher.watch(&PathBuf::from(&path_string));
+    watcher.watch_seeded(&PathBuf::from(&path_string), seed);
     log_file_event(
         "file.open",
         LogStatus::Success,

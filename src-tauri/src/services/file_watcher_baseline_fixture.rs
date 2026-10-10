@@ -148,7 +148,7 @@ pub(crate) fn h(bytes: &[u8]) -> Option<u64> {
 impl BaselineStore {
     pub(crate) fn get(&self, p: &Path) -> Option<Entry> {
         let key = baseline_key(p);
-        self.locked().entries.get(&key).copied()
+        self.locked().entries.get(&key).map(|s| s.entry)
     }
 
     pub(crate) fn len(&self) -> usize {

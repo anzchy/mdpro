@@ -1,7 +1,10 @@
 //! Purpose: register a recovered draft's file with the file watcher (D59).
 //! A draft recovered into a tab with an `original_path` must be watched
-//! exactly as `open_file` watches the files it opens, or an external edit
-//! to that file goes unnoticed for the rest of the session.
+//! like the files `open_file` opens, or an external edit to that file goes
+//! unnoticed for the rest of the session. Unlike `open_file` (which seeds the
+//! baseline from its own read, `watch_seeded`, D86 WI-3), recovery keeps the
+//! plain `watch`: the editor holds the draft, not the disk bytes, so the
+//! baseline is a fresh snapshot of the disk (ADR-0068 decision 4).
 //!
 //! Pipeline: `recover_draft` (command) → [`recover_draft_watched_with`] →
 //! `recover_draft_logged_with` (gate → `DRAFT_LOCK` → recovery) → on `Ok`
@@ -21,8 +24,9 @@
 //!   and the recover result is returned unchanged in every case.
 //!
 //! @coordinates-with commands/draft_recovery.rs — `recover_draft` calls this seam
-//! @coordinates-with services/file_watcher.rs — `watch`, its register log, and the
-//!   D32 baseline it records for the recovered path (ADR-0068 decision 4)
+//! @coordinates-with services/file_watcher.rs — `watch` (never `watch_seeded`),
+//!   its register log, and the D32 snapshot baseline it records for the
+//!   recovered path (ADR-0068 decision 4)
 //! @coordinates-with commands/file.rs — `validate_file_path`, shared with `open_file`
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};

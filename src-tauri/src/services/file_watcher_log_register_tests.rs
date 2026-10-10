@@ -161,3 +161,48 @@ fn w12_already_watched_is_measured_before_mutation() {
     );
     assert!(absent.is_empty());
 }
+
+/// w15 (D86 WI-3): the register line carries the store's outcome as
+/// `context.baseline`, one exact string per `BaselineLog` value.
+#[test]
+fn w15_register_line_carries_baseline_outcome() {
+    use super::{with_baseline, BaselineLog};
+    for (outcome, want) in [
+        (BaselineLog::Seeded, "seeded"),
+        (BaselineLog::Snapshot, "snapshot"),
+        (BaselineLog::FailOpen, "failopen"),
+        (BaselineLog::StaleSkipped, "stale_skipped"),
+    ] {
+        let line = build_watch_register_log(
+            WatchOp::Register,
+            Path::new(B),
+            Ok(()),
+            true,
+            Some(STAT),
+            3,
+        );
+        let got = to_value(with_baseline(line, outcome)).unwrap();
+        assert_eq!(
+            got,
+            json!({
+                "level": "info",
+                "event": "file.watch.register",
+                "status": "success",
+                "actionId": null,
+                "context": {
+                    "path": B,
+                    "ok": true,
+                    "alreadyWatched": true,
+                    "mtimeMs": 5,
+                    "size": 7,
+                    "watchedCount": 3,
+                    "baseline": want,
+                },
+                "durationMs": null,
+                "error": null,
+            }),
+            "{outcome:?}"
+        );
+        assert_eq!(got["context"].as_object().unwrap().len(), 7, "{outcome:?}");
+    }
+}

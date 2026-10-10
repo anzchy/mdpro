@@ -140,3 +140,16 @@ mod file_save_burst_tests;
 #[cfg(test)]
 #[path = "file_save_wiring_tests.rs"]
 mod file_save_wiring_tests;
+
+// D86 WI-3: the open path's seed (finding ②).
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_open_seed_tests.rs"]
+mod file_open_seed_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_open_seed_watch_tests.rs"]
+mod file_open_seed_watch_tests;
+
+#[cfg(test)]
+#[path = "file_open_seed_wiring_tests.rs"]
+mod file_open_seed_wiring_tests;

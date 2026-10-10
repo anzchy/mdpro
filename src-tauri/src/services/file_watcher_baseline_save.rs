@@ -17,6 +17,8 @@
 //! - **Same hasher, same cap, same lock discipline** as the parent: `hash_bytes`
 //!   over at most `HASH_CAP_BYTES`, presence via `copy_out`, store via
 //!   `put_if_present`, all I/O outside the lock.
+//! - **Generation-checked** (D86 WI-2): the store lands only if the slot's
+//!   generation is still the one `copy_out` returned before the read.
 use super::{baseline_key, hash_bytes, snapshot, BaselineStore, Entry, HASH_CAP_BYTES};
 use std::path::Path;
 
@@ -26,14 +28,16 @@ impl BaselineStore {
     /// The fresh snapshot is stored as is when its hash equals `written`'s;
     /// when it differs, or the read failed or went over the cap, the entry
     /// keeps the fresh stat with no hash, so the next filtered event emits
-    /// (ADR-0068 decision 4). Never inserts; no I/O under the lock.
+    /// (ADR-0068 decision 4). Never inserts; no I/O under the lock. Lands
+    /// only if the slot still has the generation copied out before the read
+    /// (D86 WI-2), so a register or remove inside the read wins.
     pub(crate) fn refresh_after_save(&self, raw: &Path, written: &[u8]) {
         let key = baseline_key(raw);
-        if self.copy_out(&key).is_none() {
+        let Some(slot) = self.copy_out(&key) else {
             return;
-        }
+        };
         let entry = bind_to_written(snapshot(raw), written);
-        self.put_if_present(&key, entry);
+        self.put_if_present(&key, entry, slot.gen);
     }
 }
 

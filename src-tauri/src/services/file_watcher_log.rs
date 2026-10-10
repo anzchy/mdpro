@@ -6,7 +6,8 @@
 //! build the `file.watch.event` line for each notify event; and take the
 //! read-only `stat_snapshot` both lines carry. The register/unregister and
 //! `file.watch.error` lines live in `file_watcher_register_log.rs` and are
-//! re-exported here.
+//! re-exported here, with `with_baseline` / `BaselineLog`, which stamp the
+//! register line's closed `baseline` field (D86 WI-3).
 //!
 //! @coordinates-with services/file_watcher.rs (parent; mounts this file with
 //! `#[path]`; `observe_event` and `apply_watch` call these builders),
@@ -258,7 +259,8 @@ pub(crate) fn build_watch_event_log(
 #[path = "file_watcher_register_log.rs"]
 mod register_log;
 pub(crate) use register_log::{
-    apply_watch_list, build_watch_error_log, build_watch_register_log, WatchOp,
+    apply_watch_list, build_watch_error_log, build_watch_register_log, with_baseline, BaselineLog,
+    WatchOp,
 };
 
 #[cfg(test)]

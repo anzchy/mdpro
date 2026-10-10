@@ -1,15 +1,18 @@
 //! Register/unregister and error log lines for the file watcher (D32 step 1,
 //! WI-3, follow-up L1).
 //!
-//! Purpose: describe one `FileWatcher::watch` / `unwatch` call as a single
-//! `file.watch.register` / `file.watch.unregister` log entry carrying
-//! notify's real `Result`, keep the watch-list bookkeeping pure, and describe
-//! each `Err` the notify callback receives as one `file.watch.error` line.
+//! Purpose: describe one `FileWatcher::watch` / `watch_seeded` / `unwatch`
+//! call as a single `file.watch.register` / `file.watch.unregister` log entry
+//! carrying notify's real `Result` (and, for a register, what the baseline
+//! store did: `context.baseline`, D86 WI-3), keep the watch-list bookkeeping
+//! pure, and describe each `Err` the notify callback receives as one
+//! `file.watch.error` line.
 //!
 //! @coordinates-with services/file_watcher_log.rs (parent; mounts this file
 //! with `#[path]` and re-exports its items), services/file_watcher.rs
 //! (`apply_watch` calls notify, then these; the `RecommendedWatcher::new`
-//! callback logs its `Err` arm), models/log_entry.rs
+//! callback logs its `Err` arm), services/file_watcher_seed.rs
+//! (`baseline_log` picks the `BaselineLog` for a register), models/log_entry.rs
 //!
 //! Key decisions:
 //! - **The level is a total function of `(op, ok)`**: register failure is
@@ -22,6 +25,10 @@
 //!   variant, matched with no `_` arm. `Io` carries only an OS error from a
 //!   syscall (metadata, walk, watch setup) and `InvalidConfig` only the
 //!   watcher `Config`; neither can carry file content.
+//! - **`baseline` is closed too**: four strings, one per `BaselineLog`
+//!   variant, matched with no `_` arm. It names the entry actually stored
+//!   (`failopen` for one with no hash, whichever path stored it), never the
+//!   path that was asked for.
 
 use super::FileStat;
 use crate::models::log_entry::{LogEntryPayload, LogLevel, LogStatus};
@@ -83,6 +90,35 @@ pub(crate) fn build_watch_register_log(
         duration_ms: None,
         error,
     }
+}
+
+/// What the baseline store did after a `file.watch.register` line's notify
+/// call (D86 WI-3): the value of the line's `context.baseline` field.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BaselineLog {
+    /// `watch_seeded` stored an entry with a hash.
+    Seeded,
+    /// Plain `watch` stored an entry with a hash.
+    Snapshot,
+    /// Either path stored an entry with no hash.
+    FailOpen,
+    /// The ticket rule skipped the store.
+    StaleSkipped,
+}
+
+/// `line` with `context.baseline` set to `outcome`'s closed string.
+/// A line without a JSON-object context is returned unchanged.
+pub(crate) fn with_baseline(mut line: LogEntryPayload, outcome: BaselineLog) -> LogEntryPayload {
+    let value = match outcome {
+        BaselineLog::Seeded => "seeded",
+        BaselineLog::Snapshot => "snapshot",
+        BaselineLog::FailOpen => "failopen",
+        BaselineLog::StaleSkipped => "stale_skipped",
+    };
+    if let Some(context) = line.context.as_mut().and_then(|c| c.as_object_mut()) {
+        context.insert("baseline".to_string(), json!(value));
+    }
+    line
 }
 
 /// Watch-list bookkeeping: push on register (once), retain on unregister.

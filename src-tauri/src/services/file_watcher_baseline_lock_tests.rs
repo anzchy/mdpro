@@ -87,19 +87,25 @@ fn b14_store_lock_is_not_held_across_file_io_in_register_and_refresh() {
 
     let plain = d.file("plain.md", b"plain");
     assert_store_usable_while_blocked(&store, &pipe, &plain, BaselineStore::register, b"x");
-    assert_eq!(
-        store.get(&pipe).and_then(|e| e.hash),
-        h(b"x"),
-        "register phase"
-    );
+    assert_fifo_entry(&store, &pipe, b"x", "register phase");
 
     let plain2 = d.file("plain2.md", b"plain two");
     let refresh: fn(&BaselineStore, &Path) = BaselineStore::refresh_if_present;
     assert_store_usable_while_blocked(&store, &pipe, &plain2, refresh, b"y");
-    assert_eq!(
-        store.get(&pipe).and_then(|e| e.hash),
-        h(b"y"),
-        "refresh phase"
+    assert_fifo_entry(&store, &pipe, b"y", "refresh phase");
+}
+
+/// D86-WI-1: feeding a FIFO moves its mtime/ctime past the reader's first
+/// fstat, so a blocked read is unstable and fails open (hash `None`). The
+/// writer can still win the race, in which case the read is stable.
+#[cfg(unix)]
+fn assert_fifo_entry(store: &BaselineStore, pipe: &Path, fed: &[u8], phase: &str) {
+    let e = store.get(pipe).unwrap_or_else(|| panic!("{phase}: entry stored"));
+    assert!(e.stat.is_some(), "{phase}: stat recorded");
+    assert!(
+        e.hash.is_none() || e.hash == h(fed),
+        "{phase}: hash is None (fail open) or the fed bytes, got {:?}",
+        e.hash
     );
 }
 
@@ -125,11 +131,20 @@ fn b15_store_survives_a_poisoned_lock_without_panicking() {
 }
 
 const SRC: &str = include_str!("file_watcher_baseline.rs");
+// D86 WI-1: the read module (`read_once`, `coherent_read`, `snapshot`) is
+// scanned too, so it can neither lock nor be called under the lock.
+const READ_SRC: &str = include_str!("file_watcher_baseline_read.rs");
+// D86 WI-2: the ticket module (`register_at`, `remove_at`, `admit`) too.
+const GEN_SRC: &str = include_str!("file_watcher_baseline_gen.rs");
+// D86 WI-3: the open path's seed module (`read_for_open`, `register_seeded`).
+const SEED_SRC: &str = include_str!("file_watcher_baseline_seed.rs");
 const HELPERS: [&str; 4] = ["copy_out", "put", "put_if_present", "take"];
 const OPS: [&str; 4] = ["register", "refresh_if_present", "remove", "is_unchanged"];
 // WI-4b: the K5 test hook may do I/O, so no map helper may reach it.
-const IO_TOKENS: [&str; 10] = [
+const IO_TOKENS: [&str; 12] = [
     "between_read_and_restat(",
+    "coherent_read(",
+    "read_once(",
     "snapshot(",
     "metadata(",
     "File::open(",
@@ -141,11 +156,12 @@ const IO_TOKENS: [&str; 10] = [
     "stat_of(",
 ];
 
-/// `fn <name>` on this line, after any `pub` / `pub(crate)`.
+/// `fn <name>` on this line, after any `pub` / `pub(crate)` / `pub(super)`.
 fn fn_name(line: &str) -> Option<&str> {
     let t = line.trim_start();
     let t = t
         .strip_prefix("pub(crate) ")
+        .or_else(|| t.strip_prefix("pub(super) "))
         .or_else(|| t.strip_prefix("pub "))
         .unwrap_or(t);
     let rest = t.strip_prefix("fn ")?;
@@ -176,7 +192,10 @@ fn owned_lines(src: &str) -> Vec<(&str, &str)> {
 /// call `locked()`, and those helpers do no I/O.
 #[test]
 fn b18_prime_lock_only_in_locked_and_only_io_free_helpers_use_it() {
-    let lines = owned_lines(SRC);
+    let mut lines = owned_lines(SRC);
+    lines.extend(owned_lines(READ_SRC));
+    lines.extend(owned_lines(GEN_SRC));
+    lines.extend(owned_lines(SEED_SRC));
     let defined: Vec<&str> = lines.iter().filter_map(|(_, l)| fn_name(l)).collect();
     for name in HELPERS.iter().chain(&OPS).chain(&["locked"]) {
         assert!(defined.contains(name), "non-vacuity: fn {name} exists");

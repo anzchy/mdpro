@@ -7,6 +7,9 @@ showed residual FSEvents flags and a second Codex review, the user chose the
 widened scope below (Codex-amended option 2). Acceptance waits on the D32
 device check. Drafted as 0066 and renumbered to 0068 on 2026-10-10, because
 0066 and 0067 were taken on other branches first.
+Amended 2026-10-10: decisions 3 and 4 (D86 WI-1..3, after the D32 mini
+audit found silent-drop paths). Still Proposed; it becomes Accepted only
+after the D32 + D86 device recheck (D86 WI-5).
 
 ## Context
 
@@ -70,20 +73,36 @@ understood on 2026-10-09 and 2026-10-10:
    - The hash is std's `DefaultHasher` (64-bit SipHash) over the bytes read
      from disk. It is never computed from the editor's text. No new dependency.
    - When the file is over 10 MiB or unreadable, the hash is absent.
-3. **Drop rule, read coherently.** One of the three kinds is dropped only if
-   all of these hold:
+3. **Drop rule, read coherently through one handle** (amended 2026-10-10,
+   D86 ③). One of the three kinds is dropped only if all of these hold:
    - a baseline exists, with a stored hash;
-   - the stat taken before the read equals the baseline's mtime and size;
-   - the file, read again (only for this candidate), hashes to the stored
-     hash;
-   - the stat taken after the read also equals the baseline.
+   - the file is opened once; `fstat` on that handle before the read (s1)
+     equals the baseline's mtime and size;
+   - the bytes read through that handle (only for this candidate, capped at
+     10 MiB) hash to the stored hash;
+   - the read is proven stable: `fstat` after the read (s2) equals s1 in
+     mtime, size and ctime, and a stat of the path (following symlinks)
+     names the same device and inode, with the same mtime and size.
 
-   The second stat closes a write that lands during the read. A dropped event
-   logs the closed `WatchOutcome` `ignored_unchanged`. In every other case the
-   event is emitted as today: no stat, no baseline, a differing field, no
-   stored hash, a file over 10 MiB, or a read error.
-4. **The baseline advances only on these four:**
-   - `watch`, including an already-watched re-register, which overwrites it;
+   ctime, device and inode are used only as proof that the read was stable.
+   They are never stored in the baseline, because a LaunchServices xattr
+   write moves ctime, and storing it would bring D32 back. A read that cannot
+   be proven stable **fails open**: the event is emitted and no hash is
+   stored. This catches a same-length rewrite that restores mtime and a
+   rename-over, which the earlier stat-read-stat by path missed. A dropped
+   event logs the closed `WatchOutcome` `ignored_unchanged`. In every other
+   case the event is emitted as today: no stat, no baseline, a differing
+   field, no stored hash, a file over 10 MiB, an unstable read, or a read
+   error.
+4. **The baseline advances only on these four** (amended 2026-10-10,
+   D86 ② and ④):
+   - `watch`, including an already-watched re-register, which overwrites it.
+     When `open_file` or `open_file_dialog` registers, the entry is
+     **seeded from the same single read the document was decoded from**
+     (`watch_seeded`), so a write landing between the open and the watch is
+     never baselined as unchanged. Other registrations (D59 recovery) take
+     their own snapshot. The `file.watch.register` log line names which
+     (`baseline`: `seeded`, `snapshot`, `failopen` or `stale_skipped`);
    - an event that was actually emitted as `modified`;
    - a successful `save_file` write, refreshed synchronously right after
      `atomic_write` returns and before the self-write mark clears, and only
@@ -93,6 +112,17 @@ understood on 2026-10-09 and 2026-10-10:
      read, the entry keeps the stat but no hash, so that writer's event
      still emits;
    - `unwatch`, which removes it.
+
+   Every `watch` and `unwatch` draws a ticket from one global counter while
+   it holds the watch-list locks, so ticket order is watch-list order. The
+   store applies a register or remove only if its ticket is not older than
+   the latest one for that raw path; a remove leaves the ticket behind as a
+   tombstone. So a register whose read finishes after a newer unwatch cannot
+   bring the baseline back. Each entry carries the ticket that wrote it, and
+   a refresh (an emitted `modified`, or a save) writes only if the entry
+   still carries the ticket it read, so it never overwrites a newer
+   register. Re-registering still overwrites; merging instead is a follow-up
+   after D86, not a 0.3.1 blocker (user decision 2026-10-10).
 
    `Debounced`, `IgnoredKind`, `SelfWrite`, dropped events and failed
    lookups never touch it. That keeps the existing debounce invariant.
@@ -144,7 +174,21 @@ understood on 2026-10-09 and 2026-10-10:
   does not need a collision.
 - **Cost: more shared state.** The baseline map sits under its own mutex, taken
   in the event callback, `watch`/`unwatch` and `save_file`. It is never held
-  while another lock is taken, and no file I/O runs under it.
+  while another lock is taken, and no file I/O runs under it. Since the D86
+  amendment it also holds the latest ticket per raw path ever watched or
+  unwatched; those tombstones are never pruned, one small entry per path
+  for the life of the process.
+- **Cost: failing open on an unstable read** (D86 amendment, accepted by the
+  user 2026-10-10). An xattr write, chmod or touch that lands during the few
+  milliseconds of a hash read makes that event prompt once, even though the
+  bytes are unchanged. Outside the read window the D32 case is still
+  filtered. No unexpected unstable read appeared in the test suites except
+  on a FIFO, which can never be proven stable. The device rate is measured
+  by the D86 WI-5 recheck; if it is high, this comes back for discussion.
+- **Cost: the open path's read is capped.** `open_file`, `open_file_dialog`
+  and `reload_file` read once, up to the cap plus one byte. A file that
+  passes the size check but reads past 10 MiB (it grew, or it is a device
+  behind a symlink) is refused as too large rather than read unbounded.
 - **Forecloses**: deciding "did the file really change" in the frontend for this
   case. `decideFileChange` keeps trusting every `modified`.
 - **Not decided here**:

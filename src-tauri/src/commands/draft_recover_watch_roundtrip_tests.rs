@@ -132,3 +132,37 @@ fn d59_l2_the_watch_is_transparent_to_recovery() {
         );
     }
 }
+
+// D86 WI-3 (matrix recover_watch_keeps_snapshot_semantics): the D59 recover
+// watch still registers `snapshot(disk)`, and overwrites a seed the path
+// already had (ADR-0068 decision 4). Two partitions: unwatched, seeded.
+use crate::services::file_watcher::seed::{kit, read_for_open};
+
+fn recover_leg(seeded: bool) {
+    let home = TempHome::new(&format!("d86_wi3_recover_{seeded}"));
+    let p = home.path().join("a.md");
+    fs::write(&p, "hello").unwrap();
+    let p_str = s(&p);
+    fx::seed(&home, "d1", Some(&p_str));
+    let fw = FileWatcher::for_tests();
+    if seeded {
+        let other = home.path().join("other.md");
+        fs::write(&other, "other").unwrap();
+        let stale = read_for_open(&other).expect("read other").1;
+        assert_eq!(stale.hash, kit::h(b"other"), "precondition: a real seed");
+        fw.watch_seeded(&p, stale);
+        assert_eq!(fw.baseline_of(&p), Some(stale), "precondition: seeded");
+    }
+    recover(&DraftGate::new(), "d1", &fw).expect("recover");
+    let want = kit::snapshot(&p);
+    assert_eq!(fw.baseline_of(&p), Some(want), "seeded={seeded}");
+    assert_eq!(want.hash, kit::h(b"hello"), "seeded={seeded}");
+    assert_ne!(want.hash, kit::h(b"body"), "seeded={seeded}");
+    assert_eq!(fw.watched(), vec![p_str], "seeded={seeded}");
+}
+
+#[test]
+fn recover_watch_keeps_snapshot_semantics() {
+    recover_leg(false);
+    recover_leg(true);
+}
