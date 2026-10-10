@@ -5,6 +5,12 @@
  * target isn't a `.ProseMirror table` cell, and bails when the target
  * is an image (the ImageContextMenu owns those — eng-review R7).
  *
+ * D81: the menu captures the right-clicked position and the doc it was
+ * resolved against (`TableTarget`) and dispatches the pick on that cell,
+ * not on the caret's. A pick whose doc changed while the menu was open is
+ * refused, and its `editor.table.<id>` fail log carries the reason
+ * (`stale-position`); the menu closes after every pick.
+ *
  * Layered architecture:
  *   - This file: DOM listener, menu open/close lifecycle, action
  *     dispatch with try/catch + logging.
@@ -22,8 +28,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   computeTableContext,
-  dispatchTableAction,
+  dispatchTableActionDetailed,
   getTableActions,
+  type TableDispatchResult,
+  type TableTarget,
 } from "../../../plugins/milkdown/table/contextMenu";
 import type {
   TableAction,
@@ -41,6 +49,8 @@ interface MenuState {
   /** Raw click point (viewport coords); clamped by `useClampedMenuPosition`. */
   anchor: Point;
   context: TableContext;
+  /** The right-clicked position (D81); absent when posAtCoords found none. */
+  target?: TableTarget;
 }
 
 export function TableContextMenu() {
@@ -70,7 +80,7 @@ export function TableContextMenu() {
       const editor = useMilkdownEditorStore.getState().getEditor();
       if (!editor) return;
 
-      const captured: { ctx: TableContext | null } = { ctx: null };
+      const captured: { ctx: TableContext | null; target?: TableTarget } = { ctx: null };
       try {
         (editor as { action: (fn: (ctx: unknown) => void) => void }).action((ctx) => {
           const view = (ctx as { get: (k: unknown) => unknown }).get(
@@ -92,6 +102,7 @@ export function TableContextMenu() {
             ? (view.state.doc.resolve(coordPos.pos) as never)
             : undefined;
           captured.ctx = computeTableContext(view, $pos);
+          if (coordPos) captured.target = { pos: coordPos.pos, doc: view.state.doc };
         });
       } catch {
         return;
@@ -102,7 +113,11 @@ export function TableContextMenu() {
       event.preventDefault();
       event.stopPropagation();
 
-      setMenu({ anchor: { x: event.clientX, y: event.clientY }, context: tableCtx });
+      setMenu({
+        anchor: { x: event.clientX, y: event.clientY },
+        context: tableCtx,
+        target: captured.target,
+      });
 
       loggingService.logEventSync({
         level: "info",
@@ -201,19 +216,22 @@ export function TableContextMenu() {
   const handlePick = (id: TableActionId) => {
     const editor = useMilkdownEditorStore.getState().getEditor();
     const actionId = loggingService.generateActionId();
-    let succeeded = false;
+    let result: TableDispatchResult = { applied: false, reason: "threw" };
 
     if (editor) {
       try {
-        succeeded = dispatchTableAction(
-          editor as Parameters<typeof dispatchTableAction>[0],
+        result = dispatchTableActionDetailed(
+          editor as Parameters<typeof dispatchTableActionDetailed>[0],
           id,
           menu.context,
+          menu.target,
         );
       } catch {
-        succeeded = false;
+        result = { applied: false, reason: "threw" };
       }
     }
+    const succeeded = result.applied;
+    const reason = editor ? result.reason : "editor-unavailable";
 
     loggingService.logEventSync({
       level: succeeded ? "info" : "warn",
@@ -223,6 +241,7 @@ export function TableContextMenu() {
       context: {
         rowIndex: menu.context.rowIndex,
         colIndex: menu.context.colIndex,
+        ...(reason ? { reason } : {}),
       },
     });
 
