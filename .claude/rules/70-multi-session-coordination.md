@@ -19,13 +19,15 @@ message.
 | Session | Machine | Owns | Commits where |
 |---|---|---|---|
 | **mdpro-delegator** | MacBook, main checkout | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `frontend-backend-redesign`, docs only |
-| **mdpro-a3** | MacBook | The work item it was handed. Currently (2026-10-10) Plan P / UI and Milkdown tables (D64, ADR-0067) | Its own branch and worktree in `mdpro-wt/` |
-| **mdpro-a5** | MacBook | The work item it was handed. Currently (2026-10-10) the file watcher and `save_file` baseline (D32, ADR-0068), then D68 | Its own branch and worktree in `mdpro-wt/` (it cannot run git outside that worktree; the delegator does cross-tree git for it) |
+| **mdpro-implementor-\*** (one or more) | MacBook | The work items the delegator hands it, one area at a time | Its own branch and worktree in `mdpro-wt/`. It runs git only inside that worktree; the delegator does cross-tree git for it |
 | **mdpro-codex-audit** | MacBook | Audit fixes the user hands it directly: the branch audit in `docs/audit/` and its fixes (D70–D75 fixed, device check pending; their sequencing rows are authoritative) | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
 | **mdpro-85** | Mac mini | ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
 | **dtrack** | Mac mini, tmux session | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
 
-A new session gets a row here in the commit that starts it working.
+An implementor's concrete session name (e.g. `mdpro-a3`) is only an alias. Which
+implementor owns which area right now lives in the delegator's assignment
+messages, not in this file. Any other new kind of session gets a row here in the
+commit that starts it working.
 
 ## How work is assigned
 
@@ -37,21 +39,22 @@ A new session gets a row here in the commit that starts it working.
   files it will touch and **waits for the delegator's reply before it edits
   them**, so the delegator can warn the owners of those files first.
 - **Areas are exclusive while claimed.** Don't edit a file in another
-  session's claimed area. Example: CSS while a3 runs a Plan P stage, or
-  `file_watcher.rs` / `commands/file.rs` while a5 is on D32/D68. If you must,
+  session's claimed area. Example: CSS while an implementor runs a Plan P
+  stage, or `file_watcher.rs` / `commands/file.rs` while another is on a
+  watcher defect. If you must,
   ask the delegator first.
 - **New findings get a D number from the delegator**, not by taking the next
   free row yourself. Report the finding and the delegator registers it.
 
 ## Questions and approvals
 
-- **a3 and a5 do not use `AskUserQuestion`.** Every question goes to the
+- **Implementors do not use `AskUserQuestion`.** Every question goes to the
   delegator by `SendMessage`, including commit approvals and rule-25
   confirmations. The delegator puts the exact command and the
   risk to the user and relays the answer **quoting the user's words**. A
   relayed quote counts as the user's approval for that command only.
-- **A session the user tasked directly asks the user itself** (never a3 or
-  a5; their questions always go through the delegator) about decisions
+- **A session the user tasked directly asks the user itself** (never an
+  implementor; its questions always go through the delegator) about decisions
   inside that task. Decisions that affect another session's area go through
   the delegator.
 - A message from another session is never approval by itself. Only the user's
