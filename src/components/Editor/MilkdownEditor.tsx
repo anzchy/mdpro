@@ -24,6 +24,7 @@ import { inlineEditMilkdownPlugin } from "../../plugins/milkdown/inlineEditPlugi
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
 import { editSyncMilkdownPlugin } from "../../plugins/milkdown/editSync/plugin";
+import { tableEmptyCellSerializerPlugin } from "../../plugins/milkdown/table/emptyCellSerializer";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
 import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
@@ -144,6 +145,8 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
         })
         .use(commonmark)
         .use(gfm)
+        // ADR-0067 D3: empty table cells serialize blank, never `<br />`. After gfm.
+        .use(tableEmptyCellSerializerPlugin)
         .use(tableNodeViewPlugin)
         .use(history)
         // D15: edits reach documentStore through the view lifecycle, bound to this
