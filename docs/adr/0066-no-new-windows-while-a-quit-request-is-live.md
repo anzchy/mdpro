@@ -1,7 +1,7 @@
 # 0066. No new windows while a quit request is live
 
-**Status**: Proposed (2026-10-10, taken while fixing D74 under the branch audit
-MoSCoW pass; awaiting user acceptance). Narrows the window set that
+**Status**: Accepted (2026-10-10, user decision: 「接受 ADR-0066」). Proposed
+the same day, taken while fixing D74 under the branch audit MoSCoW pass. Narrows the window set that
 [ADR-0035](./0035-a-window-that-answered-the-quit-prompt-is-re-checked-before-commit.md)
 re-checks; does not supersede it.
 
