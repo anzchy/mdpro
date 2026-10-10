@@ -34,6 +34,10 @@
  *   event in the middle of an edit never sends the pre-edit content. WYSIWYG
  *   emits no selection events and reports no caret (`resolveMcpCursor` → 0),
  *   so nothing there can go stale. Pinned by tests/d36-mcp-cursor-sync.test.tsx.
+ * - Content changes are detected by comparing each document's content string,
+ *   not its length (D84): a same-length edit on an already-dirty document
+ *   (WYSIWYG has no selection event to mask it) otherwise never reached Rust.
+ *   Pinned by tests/useMcpSync.content.test.ts.
  *
  * @coordinates-with src/hooks/useOpenInWindow.ts — supplies `routable`
  * @coordinates-with src/hooks/useWindowCloseGuard.ts — `onCloseCancelled` → `forceSync` (via App)
@@ -81,6 +85,19 @@ function resolveWindowLabel(): string {
  */
 function liveCaretHead(): number | undefined {
   return useEditorStore.getState().editorView?.state.selection.main.head;
+}
+
+/** One document's sync-relevant content state: id, content, dirty flag. */
+type ContentEntry = readonly [string, string, boolean];
+
+/**
+ * Whether any document's id, content or dirty flag differs. Compares the
+ * strings themselves, not their lengths, so a same-length edit (typing into
+ * table-cell padding, overtyping a selection) still counts (D84).
+ */
+function contentChanged(prev: readonly ContentEntry[], next: readonly ContentEntry[]): boolean {
+  if (prev.length !== next.length) return true;
+  return next.some((entry, i) => entry[0] !== prev[i][0] || entry[1] !== prev[i][1] || entry[2] !== prev[i][2]);
 }
 
 export interface McpSyncOptions {
@@ -213,18 +230,19 @@ export function useMcpSync({ routable = false }: McpSyncOptions = {}) {
     }
   }, [activeDocumentId, immediateSync]);
 
-  // Track content changes (debounced)
-  const prevContentHashRef = useRef("");
+  // Track content changes (debounced). Compares the content itself, per id
+  // (D84): a length signature missed same-length edits on a dirty document.
+  const prevContentRef = useRef<ContentEntry[]>([]);
   useEffect(() => {
-    const contentHash = documents.map((d) => `${d.id}:${d.content.length}:${d.isModified}`).join("|");
-    if (contentHash !== prevContentHashRef.current) {
-      prevContentHashRef.current = contentHash;
+    const next = documents.map((d): ContentEntry => [d.id, d.content, d.isModified]);
+    if (contentChanged(prevContentRef.current, next)) {
+      prevContentRef.current = next;
       debouncedSync();
     }
   }, [documents, debouncedSync]);
 
   // Track path changes (Save As) — immediate, so routing never lags the rename.
-  // The content hash above ignores `path`, so the debounce would not fire.
+  // The content check above ignores `path`, so the debounce would not fire.
   const pathSignature = JSON.stringify(documents.map((d) => [d.id, d.path]));
   const prevPathSignatureRef = useRef(pathSignature);
   useEffect(() => {
