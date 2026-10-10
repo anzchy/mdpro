@@ -203,3 +203,33 @@ it. (User decision, 2026-10-10.)
 - Copy files with `rsync`, not `scp`. Never pass
   `StrictHostKeyChecking=no`. Never copy `~/.mdpro` or `~/.claude`, and never
   print the MCP token.
+
+## Device-check batches
+
+**The delegator sends device checks in batches by area, not by count.** A
+fixed count mixes unrelated areas into one brief and holds a ready BLOCK
+back until the count fills. (User decision, 2026-10-10.)
+
+- **A batch is one area**: editor and tables, the file watcher, MCP,
+  update and release. Every item in it is checked on one build, so the
+  tester stays in one setup and each result is context for the next.
+- **Send a batch when its area is done**, i.e. no item in that area is
+  expected to land within the next handoff. A ready 0.3.1 gate item waits
+  for at most one more landing in its area, never longer.
+- **Size: 6–10 items, or about 45 minutes of tester time.** Ten is a ceiling,
+  not a trigger. The 2026-10-10 run took 9 items and 20 minutes and still
+  had one operator slip. Split a larger set by area.
+- **The gate's combined runs stay whole.** The watcher regression
+  (D32 / D68 / D69 / D86) and the release-candidate regression on the locked
+  SHA run as written in the sequencing doc's `#release-031-gate`, never
+  split into routine batches.
+- **Every item in a brief states its failure condition and the code path it
+  must reach**, with the log line that proves the path was reached. A probe
+  that passes without reaching its path is recorded as not exercised, not
+  as passed (the D86 ⌘S×20 probe on `eb061fa`).
+- **Items that need no device check**: tooling-only changes (verified
+  where they run) and changes with no user-visible effect (say so in the
+  row). An item that needs a special setup (an old client, a second
+  machine) gets its own brief.
+- The delegator keeps the pending list per area in its handoff, and the
+  item's row keeps `真机未验` until a committed record says otherwise.
