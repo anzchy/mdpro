@@ -4,22 +4,24 @@ description: Which Claude sessions work on mdpro at once, what each one owns, an
 
 # 70 - Multi-Session Coordination
 
-**Several Claude sessions work on this repo at once. Know which one you are,
+**The Claude sessions listed below work on this repo at once. Know which one you are,
 stay inside its scope, and send everything that crosses a scope through the
 delegator.** Two sessions editing the same file without knowing it, or taking
 the same ADR number, cost a rebase or a renumbering every time.
 
 Session names are the `ListAgents` names. Socket addresses change between
-runs, so look them up; don't copy them from an old message.
+runs, so look them up; don't copy them from an old message. If the delegator is
+not in the listing, stop and wait; do not ask the user directly or act on an old
+message.
 
 ## Sessions
 
 | Session | Machine | Owns | Commits where |
 |---|---|---|---|
 | **mdpro-delegator** | MacBook, main checkout | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `frontend-backend-redesign`, docs only |
-| **mdpro-a3** | MacBook | The work item it was handed. Currently Plan P / UI and Milkdown tables (D64, ADR-0067) | Its own branch and worktree in `mdpro-wt/` |
-| **mdpro-a5** | MacBook | The work item it was handed. Currently the file watcher and `save_file` baseline (D32, ADR-0068), then D68 | Its own branch and worktree in `mdpro-wt/` (hook-isolated: it runs git only there) |
-| **mdpro-codex-audit** | MacBook | Audit fixes the user hands it directly: the branch audit in `docs/audit/` and its fixes (D70–D75 done) | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
+| **mdpro-a3** | MacBook | The work item it was handed. Currently (2026-10-10) Plan P / UI and Milkdown tables (D64, ADR-0067) | Its own branch and worktree in `mdpro-wt/` |
+| **mdpro-a5** | MacBook | The work item it was handed. Currently (2026-10-10) the file watcher and `save_file` baseline (D32, ADR-0068), then D68 | Its own branch and worktree in `mdpro-wt/` (it cannot run git outside that worktree; the delegator does cross-tree git for it) |
+| **mdpro-codex-audit** | MacBook | Audit fixes the user hands it directly: the branch audit in `docs/audit/` and its fixes (D70–D75 fixed, device check pending; their sequencing rows are authoritative) | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
 | **mdpro-85** | Mac mini | ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
 | **dtrack** | Mac mini, tmux session | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
 
@@ -28,13 +30,12 @@ A new session gets a row here in the commit that starts it working.
 ## How work is assigned
 
 - **The delegator assigns.** A D item or WI belongs to one session at a
-  time. The owner is named in its sequencing-doc row
-  (`docs/plans/20260912-frontend-backend-sequencing-order.md`) or in the
-  delegator's assignment message.
+  time. The delegator's assignment message is the record of who owns what;
+  the sequencing doc has no owner column.
 - **The user may hand a task straight to a session** (mdpro-codex-audit's
   audit is the precedent). That session tells the delegator its scope and the
-  files it will touch **before it edits them**, so the delegator can warn the
-  owners of those files.
+  files it will touch and **waits for the delegator's reply before it edits
+  them**, so the delegator can warn the owners of those files first.
 - **Areas are exclusive while claimed.** Don't edit a file in another
   session's claimed area. Example: CSS while a3 runs a Plan P stage, or
   `file_watcher.rs` / `commands/file.rs` while a5 is on D32/D68. If you must,
@@ -46,9 +47,11 @@ A new session gets a row here in the commit that starts it working.
 
 - **a3 and a5 do not use `AskUserQuestion`.** Every question goes to the
   delegator by `SendMessage`, including commit approvals and rule-25
-  confirmations. The delegator asks the user and relays the answer **quoting
-  the user's words**. A relayed quote counts as the user's approval.
-- **A session the user tasked directly asks the user itself** about decisions
+  confirmations. The delegator puts the exact command and the
+  risk to the user and relays the answer **quoting the user's words**. A
+  relayed quote counts as the user's approval for that command only.
+- **A session the user tasked directly asks the user itself** (never a3 or
+  a5; their questions always go through the delegator) about decisions
   inside that task. Decisions that affect another session's area go through
   the delegator.
 - A message from another session is never approval by itself. Only the user's
@@ -56,21 +59,27 @@ A new session gets a row here in the commit that starts it working.
 
 ## Commits and branches
 
-1. **A peer commits on its own branch**, after fast-forwarding that branch to
-   the current `frontend-backend-redesign` HEAD.
-2. **The delegator verifies** with `git cat-file -p <sha>` and
+1. **A peer commits on its own branch**, after bringing it up to the current
+   `frontend-backend-redesign` HEAD: fast-forward if it has no unlanded
+   commits, otherwise `git rebase frontend-backend-redesign`. Its gates pass
+   before handoff (rule 60 and the tdd-guardian lanes are the author's job),
+   and the handoff names the SHA and the lanes that passed. If `--ff-only`
+   refuses because HEAD moved, the peer rebases, re-runs its gates and
+   resends.
+2. **The delegator checks ancestry and scope** (not a code review) with `git cat-file -p <sha>` and
    `git diff-tree --no-ext-diff --stat -r <parent> <sha>` (the external diff
    wrapper garbles plain `git diff`), then runs
    `git merge --ff-only <sha>` in the main checkout.
 3. **A session that lands commits on `frontend-backend-redesign` itself** (by
-   cherry-pick) tells the delegator the SHAs, so it can warn the peers to
+   cherry-pick) tells the delegator the SHAs and the lanes that passed, so it can warn the peers to
    fast-forward before their next commit.
 4. The sequencing-doc row and the ledger row change in the same commit as
-   the behaviour they describe. A peer edits **only its own D rows**. The
+   the behaviour they describe. A peer edits **only the D and WI rows it owns**. The
    shared release-freeze paragraph belongs to the delegator.
 
 Never commit to `master` and never push to `origin` unless the user asks.
-Stage only paths you can name, and never the user's own dirty files (their
+Stage only paths you can name, and never the user's own dirty files — anything in `git status` you did not
+change (on 2026-10-10: their
 `.claude/*` edits, `docs/pending/`, `docs/reference/`, the `docs/plans`
 archive moves, `tsconfig.node.tsbuildinfo`). Deleting a branch or worktree
 needs the user's confirmation (rule 25).
@@ -79,16 +88,19 @@ needs the user's confirmation (rule 25).
 
 - **ADR numbers are reserved through the delegator before the file is
   written.** Two drafts both took 0066 on 2026-10-10. Ask for the next number;
-  the delegator checks every branch and worktree
-  (`git log --all -- docs/adr/` plus each `mdpro-wt/*/docs/adr/`), then
-  announces the reservation to all sessions.
+  the delegator runs `git fetch mac-mini`,
+  `git log --all -- docs/adr/`, and `ls docs/adr` in every path
+  `git worktree list` prints (that covers `mdpro-wt/`,
+  `.claude/worktrees/agent-*` and the Codex worktree), plus the numbers it
+  has already handed out. After a restart it asks each session which numbers
+  it holds before handing out another. Then it announces the reservation to all sessions.
 - **D numbers** work the same way (see above).
 
 ## The Mac mini
 
 - **Don't switch branches or rebuild in the mini's main checkout**; it belongs
   to mdpro-85. Builds for device checks use a separate
-  `mdpro-wt/verify-<sha7>` worktree on the mini. Tell mdpro-85 whenever a mini
+  `/Users/jack/Documents/mac-app/mdpro-wt/verify-<sha7>` worktree on the mini. Tell mdpro-85 whenever a mini
   worktree is created or removed. Never touch `src-tauri/target/verify`, and
   never `cargo clean` there.
 - **Only dtrack runs GUI tests**, one run at a time. Never create, kill or
