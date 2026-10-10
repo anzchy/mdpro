@@ -1,9 +1,9 @@
 /**
  * @module tests/support/tableEditsOverflowLaws
  * Purpose: D49 WI-1.2 laws for the source-mode context-menu edits on tables
- * whose body rows overflow the header. Shared by
- * `tests/table-edits-overflow-law.test.ts` (seeded, default lane) and
- * `tests/table-edits-overflow-law.slow.test.ts` (exhaustive, ADR-0050).
+ * whose body rows overflow the header. Shared by the seeded and the
+ * exhaustive describes of `tests/table-edits-overflow-law.slow.test.ts`
+ * (ADR-0050; the seeded half left the default lane in D93 / D119).
  *
  * Matrix: `.claude/tdd-guardian/tests-20261009-111653.md` "# WI-1.2" L-1 to
  * L-10, with the adversary-round-1 amendment to L-10 (column-insert targets).
