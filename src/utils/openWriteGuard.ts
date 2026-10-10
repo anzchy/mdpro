@@ -39,7 +39,13 @@
  *   never document content (rule 20). Their `success` is the guard's decision; the
  *   `activated` flag says whether the tab actually became active (false after a D92
  *   refusal, which also logs `tab.switch` fail).
+ * - D121: an encoding retry whose signal was aborted before its read settled never
+ *   reaches the guard. `supersedeRetry` (newer retry aborts the older) and
+ *   `encodingRetryCancelled` (`file.open.encoding_retry` cancel log, `cancelled` result)
+ *   live here so App.tsx and useDocument share them; `cancelled` maps to no toast and
+ *   leaves the encoding issue alone.
  *
+ * @coordinates-with src/App.tsx — handleEncodingSelect / handleEncodingCancel own the retry controller (D121)
  * @coordinates-with src/utils/dataLossGuards.ts — assessWindowUnsaved("reopen")
  * @coordinates-with src/utils/wholesaleReplace.ts — prepareWholesaleReplace
  * @coordinates-with src/stores/documentStore.ts — upsertDocument / activeDocumentId
@@ -73,11 +79,13 @@ export type OpenWriteResult =
 
 /**
  * What `useDocument.openDocumentWithEncoding` returns (ADR-0028 decision 2): the
- * re-decoded document, or an explicit refusal naming the dirty tab that was focused.
+ * re-decoded document, an explicit refusal naming the dirty tab that was focused, or
+ * (D121) `cancelled` when the retry's signal was aborted before it could commit.
  */
 export type EncodingReopenResult =
   | { kind: "opened"; document: Document }
-  | { kind: "refused-dirty"; documentId: string };
+  | { kind: "refused-dirty"; documentId: string }
+  | { kind: "cancelled" };
 
 export interface OpenWriteContext {
   actionId?: string;
@@ -208,10 +216,34 @@ export function focusDirtyOpenAt(path: string, ctx: OpenWriteContext = {}): Docu
   return focus.document;
 }
 
+/**
+ * D121: start a new encoding retry in `ref`, aborting the one it holds, so a newer
+ * retry supersedes an older one. Returns the new retry's signal.
+ */
+export function supersedeRetry(ref: { current: AbortController | null }): AbortSignal {
+  ref.current?.abort();
+  ref.current = new AbortController();
+  return ref.current.signal;
+}
+
+/** D121: log an encoding retry that settled after it was cancelled; nothing is written. */
+export function encodingRetryCancelled(actionId?: string): EncodingReopenResult {
+  loggingService.logEventSync({
+    level: "info",
+    event: "file.open.encoding_retry",
+    status: "cancel",
+    actionId: actionId ?? loggingService.generateActionId(),
+    context: { reason: "cancelled-before-commit" },
+  });
+  return { kind: "cancelled" };
+}
+
 /** What `handleEncodingSelect` shows and records for an encoding-reopen result. */
 export interface EncodingReopenOutcome {
   toast: string | null;
   recentPath: string | null;
+  /** False for a cancelled retry: the dialog's cancel already cleared it, or a newer retry owns it. */
+  clearIssue: boolean;
 }
 
 /** Toast shown when an encoding reopen is refused because the open tab is dirty. */
@@ -220,14 +252,17 @@ export const ENCODING_REOPEN_REFUSED_TOAST =
 
 /**
  * Map an encoding-reopen result to its single user signal: `refused-dirty` gives
- * one toast and no recent-files update; `opened` gives no toast and the path to record.
+ * one toast and no recent-files update; `opened` gives no toast and the path to record;
+ * `cancelled` (D121) gives nothing and leaves the encoding issue alone.
  */
 export function encodingReopenOutcome(result: EncodingReopenResult): EncodingReopenOutcome {
   switch (result.kind) {
     case "refused-dirty":
-      return { toast: ENCODING_REOPEN_REFUSED_TOAST, recentPath: null };
+      return { toast: ENCODING_REOPEN_REFUSED_TOAST, recentPath: null, clearIssue: true };
     case "opened":
-      return { toast: null, recentPath: result.document.path };
+      return { toast: null, recentPath: result.document.path, clearIssue: true };
+    case "cancelled":
+      return { toast: null, recentPath: null, clearIssue: false };
     default:
       return result satisfies never;
   }

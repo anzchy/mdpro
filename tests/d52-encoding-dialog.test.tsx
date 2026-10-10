@@ -9,6 +9,9 @@
  *   card does not.
  * - ED-5 each UTF-16 button selects its own encoding.
  * - ED-6 every visible string comes from `ENCODING_DIALOG_COPY`.
+ * - ED-7 … ED-9 (D121, rule 32) Tab and Shift+Tab wrap inside the dialog, and
+ *   Escape still cancels after tabbing around (without the trap, focus left the
+ *   dialog and the backdrop's Escape handler no longer heard the key).
  *
  * Mock boundary: `loggingService` (Tauri IPC does not exist in jsdom).
  */
@@ -100,5 +103,53 @@ describe("D52 EncodingDialog", () => {
   it("ED-6 the copy names the legacy encodings it cannot open", () => {
     expect(ENCODING_DIALOG_COPY.body).toMatch(/GBK/);
     expect(ENCODING_DIALOG_COPY.refusedToast).toMatch(/UTF-16/);
+  });
+});
+
+describe("D121 EncodingDialog traps Tab", () => {
+  function renderBetweenOutsiders() {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <>
+        <button type="button">before</button>
+        <EncodingDialog open path="/x/gb.md" onSelect={onSelect} onCancel={onCancel} />
+        <button type="button">after</button>
+      </>,
+    );
+    const dialog = screen.getByRole("dialog", { name: ENCODING_DIALOG_COPY.ariaLabel });
+    const button = (name: string) => within(dialog).getByRole("button", { name });
+    return { user, onSelect, onCancel, dialog, button };
+  }
+
+  it("ED-7 Tab from Cancel (last) wraps to UTF-16LE (first)", async () => {
+    const { user, button } = renderBetweenOutsiders();
+    expect(button(ENCODING_DIALOG_COPY.cancel)).toHaveFocus();
+    await user.tab();
+    expect(button(ENCODING_DIALOG_COPY.utf16le)).toHaveFocus();
+  });
+
+  it("ED-8 Shift+Tab from UTF-16LE (first) wraps to Cancel (last)", async () => {
+    const { user, button } = renderBetweenOutsiders();
+    await user.tab();
+    expect(button(ENCODING_DIALOG_COPY.utf16le)).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(button(ENCODING_DIALOG_COPY.cancel)).toHaveFocus();
+  });
+
+  it("ED-9 focus never leaves the dialog, and Escape still cancels afterwards", async () => {
+    const { user, onSelect, onCancel, dialog } = renderBetweenOutsiders();
+    for (let i = 0; i < 4; i++) {
+      await user.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+    for (let i = 0; i < 4; i++) {
+      await user.tab({ shift: true });
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+    await user.keyboard("{Escape}");
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });

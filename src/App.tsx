@@ -10,7 +10,7 @@ import { useTOC } from "./hooks/useTOC";
 import { AppDialogs } from "./components/AppDialogs";
 import { LoadingSpinner } from "./components/common/LoadingSpinner";
 import { Toast } from "./components/common/Toast";
-import { useDocument } from "./hooks/useDocument";
+import { supersedeRetry, useDocument } from "./hooks/useDocument";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { useEditor } from "./hooks/useEditor";
 import { useFileWatcher } from "./hooks/useFileWatcher";
@@ -124,6 +124,7 @@ function App() {
   const openDialogLockRef = useRef(false);
   const openDialogCooldownRef = useRef(0);
   const launchPathsRetryRef = useRef(0);
+  const encodingRetryRef = useRef<AbortController | null>(null); // D121: the pending encoding retry
   const { event: fileChangeEvent, clearEvent, markSaveInProgress } = useFileWatcher(
     activeDocument?.path ?? null,
   );
@@ -505,12 +506,12 @@ function App() {
       if (!encodingIssue?.path) return;
       setBusyLabel("Opening file...");
       try {
-        const { toast, recentPath } = encodingReopenOutcome(
-          await openDocumentWithEncoding(encodingIssue.path, encoding),
+        const { toast, recentPath, clearIssue } = encodingReopenOutcome(
+          await openDocumentWithEncoding(encodingIssue.path, encoding, undefined, supersedeRetry(encodingRetryRef)),
         );
         if (recentPath) updateRecentFiles(recentPath);
         if (toast) showToast(toast);
-        clearEncodingIssue();
+        if (clearIssue) clearEncodingIssue();
       } catch (error) {
         // D52: a refused UTF-16 retry keeps the dialog open (the issue is not
         // cleared), so the user can try the other byte order or Cancel.
@@ -521,14 +522,13 @@ function App() {
         setBusyLabel(null);
       }
     },
-    [
-      clearEncodingIssue,
-      encodingIssue,
-      openDocumentWithEncoding,
-      showToast,
-      updateRecentFiles,
-    ],
+    [clearEncodingIssue, encodingIssue, openDocumentWithEncoding, showToast, updateRecentFiles],
   );
+  // D121: Cancel / Esc / backdrop all land here; a pending retry must not commit after it.
+  const handleEncodingCancel = useCallback(() => {
+    encodingRetryRef.current?.abort();
+    clearEncodingIssue();
+  }, [clearEncodingIssue]);
 
   const shouldHandleWindowEvent = useCallback(async () => {
     try {
@@ -1038,7 +1038,7 @@ function App() {
         onIgnoreReload={handleIgnoreReload}
         encodingIssue={encodingIssue}
         onEncodingSelect={handleEncodingSelect}
-        onEncodingCancel={clearEncodingIssue}
+        onEncodingCancel={handleEncodingCancel}
         confirmDialog={confirmDialog}
         onConfirmClose={handleConfirmClose}
         onCancelClose={handleCancelClose}

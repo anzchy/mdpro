@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { fileService } from "../services/fileService";
+import { fileService, type OpenFileResult } from "../services/fileService";
 import * as documentSave from "../services/documentSave";
 import type { Document } from "../types/document";
 import { useDocumentStore } from "../stores/documentStore";
@@ -8,11 +8,14 @@ import { prepareWholesaleReplace } from "../utils/wholesaleReplace";
 import { useEditorStore } from "../stores/editorStore";
 import {
   commitOpenedDocument,
+  encodingRetryCancelled,
   focusDirtyOpenAt,
   type EncodingReopenResult,
   type OpenWriteResult,
 } from "../utils/openWriteGuard";
 import { parseEncodingError, reportOpenFailure } from "../utils/openFailure";
+
+export { supersedeRetry } from "../utils/openWriteGuard";
 
 const createEmptyDocument = (): Document => ({
   id:
@@ -150,10 +153,28 @@ export function useDocument() {
     }
   }, [applyOpened]);
 
-  /** Re-decode under `encoding`; a dirty target is refused (kept and focused), not replaced. */
+  /**
+   * Re-decode under `encoding`; a dirty target is refused (kept and focused), not replaced.
+   * D121: when `signal` is aborted by the time the read settles (the dialog was cancelled,
+   * or a newer retry superseded this one), nothing is committed, the encoding issue is
+   * left alone, a late rejection is swallowed, and the result is `cancelled`. Without a
+   * signal the behaviour is unchanged.
+   */
   const openDocumentWithEncoding = useCallback(
-    async (path: string, encoding: string, actionId?: string): Promise<EncodingReopenResult> => {
-      const result = await fileService.openFile(path, encoding, actionId);
+    async (
+      path: string,
+      encoding: string,
+      actionId?: string,
+      signal?: AbortSignal,
+    ): Promise<EncodingReopenResult> => {
+      let result: OpenFileResult;
+      try {
+        result = await fileService.openFile(path, encoding, actionId);
+      } catch (error) {
+        if (signal?.aborted) return encodingRetryCancelled(actionId);
+        throw error;
+      }
+      if (signal?.aborted) return encodingRetryCancelled(actionId);
       const outcome = commitOpenedDocument(result.document, "encoding-reopen", { actionId });
       setEncodingIssue(null);
       if (outcome.kind === "focused-dirty") {

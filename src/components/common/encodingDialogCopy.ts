@@ -9,8 +9,9 @@
  *   UTF-16 retry is checked in Rust (`encoding::hinted_decode_refusal`) and refused
  *   when implausible.
  * - **A refused retry is an `EncodingError`**, the same IPC shape as the first
- *   failed open. During a retry no other cause produces one, so
- *   `encodingRetryRefusalToast` maps it to `refusedToast`; anything else (I/O,
+ *   failed open. During a retry it also covers a UTF-16 decode that fails outright
+ *   (odd byte length, unpaired surrogate); `encodingRetryRefusalToast` maps every
+ *   one of them to `refusedToast` (D121, see its TSDoc). Anything else (I/O,
  *   permission, a vanished file) returns null and the caller keeps its generic
  *   toast.
  * - The copy is user-approved (2026-10-10). It names no detected encoding: detection
@@ -43,7 +44,18 @@ export const ENCODING_DIALOG_OPTIONS = [
   { encoding: "UTF-16BE", label: ENCODING_DIALOG_COPY.utf16be },
 ] as const;
 
-/** The refusal toast when a retry failed as an encoding refusal, otherwise null. */
+/**
+ * The refusal toast when a UTF-16 retry failed with an `EncodingError`, otherwise null.
+ *
+ * One message covers three Rust causes on purpose (D121, approved 2026-10-10):
+ * the plausibility refusal (`encoding::hinted_decode_refusal`), an odd byte length,
+ * and an unpaired surrogate. The frontend cannot tell them apart: D52 deliberately
+ * reused `FileError::EncodingError` for the refusal so the IPC contract stayed
+ * unchanged, and the decode failures were already that shape. The message is true
+ * for all three (none of them looks like UTF-16), and the user's next step is the
+ * same. The Rust log tells them apart: the refusal logs `file.open.encoding_refused`
+ * with a `reason`, a decode failure logs `open_file_from_path: encoding error`.
+ */
 export function encodingRetryRefusalToast(error: unknown): string | null {
   return parseEncodingError(error) ? ENCODING_DIALOG_COPY.refusedToast : null;
 }

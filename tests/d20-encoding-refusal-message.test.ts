@@ -35,6 +35,7 @@ describe("encodingReopenOutcome (Unit C)", () => {
     expect(outcome).toEqual({
       toast: "Kept your unsaved changes; the file was not re-decoded",
       recentPath: null,
+      clearIssue: true,
     });
     expect(outcome.toast).toMatch(/unsaved changes/);
   });
@@ -43,6 +44,7 @@ describe("encodingReopenOutcome (Unit C)", () => {
     expect(encodingReopenOutcome({ kind: "opened", document: doc("/tmp/t.md") })).toEqual({
       toast: null,
       recentPath: "/tmp/t.md",
+      clearIssue: true,
     });
   });
 
@@ -50,6 +52,7 @@ describe("encodingReopenOutcome (Unit C)", () => {
     expect(encodingReopenOutcome({ kind: "opened", document: doc(null) })).toEqual({
       toast: null,
       recentPath: null,
+      clearIssue: true,
     });
   });
 });

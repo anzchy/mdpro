@@ -225,3 +225,39 @@ describe("McpWriteConfirmDialog keyboard accessibility (FT-1)", () => {
     expect(approve[0]).not.toContain(`ref={${ref}}`);
   });
 });
+
+// ---------------------------------------------------------------------------
+// EncodingDialog — Tab trap (D121, rule 32 modal contract)
+// ---------------------------------------------------------------------------
+
+/** The focusable query of SettingsDialog's `handleDialogKeyDown`, the loop rule 32 names. */
+function focusableQuery(code: string): string | null {
+  const m = code.match(/querySelectorAll<HTMLElement>\(\s*(['"`])([\s\S]*?)\1\s*,?\s*\)/);
+  return m ? m[2] : null;
+}
+
+describe("EncodingDialog Tab trap (D121)", () => {
+  const code = stripComments(readComponent("components/common/EncodingDialog.tsx"));
+  const settings = stripComments(readComponent("components/common/SettingsDialog.tsx"));
+
+  it("FT-D121-1: the dialog card carries the Tab-trap onKeyDown", () => {
+    const card = code.match(/<div[^>]*role="dialog"[\s\S]*?>/)?.[0] ?? "";
+    expect(card).toMatch(/onKeyDown=\{handleDialogKeyDown\}/);
+    expect(card).toMatch(/ref=\{dialogRef\}/);
+  });
+
+  it("FT-D121-2: the loop uses SettingsDialog's focusable query and wraps both ways", () => {
+    const query = focusableQuery(settings);
+    expect(query).not.toBeNull();
+    expect(focusableQuery(code)).toBe(query);
+    expect(code).toMatch(/e\.key\s*!==\s*"Tab"/);
+    expect(code).toMatch(/e\.shiftKey/);
+    expect(code).toMatch(/last\.focus\(\)/);
+    expect(code).toMatch(/first\.focus\(\)/);
+  });
+
+  it("FT-D121-3: Escape and Cancel's initial focus are unchanged", () => {
+    expect(code).toMatch(/e\.key === "Escape"\) handleCancel\(\)/);
+    expect(hookTargetRef(code, "open")).toBe("cancelRef");
+  });
+});

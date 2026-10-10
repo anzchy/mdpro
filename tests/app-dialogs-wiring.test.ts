@@ -42,7 +42,7 @@ describe("3.5 App renders AppDialogs once, wired to App's own handlers", () => {
     ["onIgnoreReload", "handleIgnoreReload"],
     ["encodingIssue", "encodingIssue"],
     ["onEncodingSelect", "handleEncodingSelect"],
-    ["onEncodingCancel", "clearEncodingIssue"],
+    ["onEncodingCancel", "handleEncodingCancel"], // D121: aborts a pending retry first
     ["confirmDialog", "confirmDialog"],
     ["onConfirmClose", "handleConfirmClose"],
     ["onCancelClose", "handleCancelClose"],
