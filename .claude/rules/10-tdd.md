@@ -50,3 +50,28 @@ passes with it.
 
 - **jsdom is the default; a DOM-free file opts into node** with `// @vitest-environment node` as its first line. `tests/setup.ts` then makes any first-party read of `window`, `document`, `navigator` and the rest fail the file — if it trips, remove the marker rather than stubbing around it ([ADR-0049](../../docs/adr/0049-dom-free-test-files-opt-into-the-node-environment.md)).
 - **An exhaustive, property or cost-enumeration test that takes ≥ 2 s under coverage goes in a `*.slow.test.ts` sibling.** The default run and the per-commit `unit` lane exclude it; `pnpm test:slow` and the tdd-guardian `slow` lane (push / manual) run it. Share the domain through `tests/support/`, never by copying it ([ADR-0050](../../docs/adr/0050-exhaustive-tests-run-in-a-separate-slow-lane.md)).
+
+## How much to run, and when
+
+Several sessions share one machine, so **run the full suite once per commit,
+not once per step**. The full unit lane (413 files, with coverage) and two
+`cargo test` builds are the heaviest jobs here, and repeating them is most of
+the CPU load.
+
+| When | Run | Coverage |
+|------|-----|----------|
+| RED → GREEN while writing a WI | Only the affected files: `pnpm exec vitest run tests/<files>`, or `pnpm exec vitest related <changed src files> --run` | Off |
+| Once, just before each commit | The full `unit` lane, plus typecheck and build **under the lock**: `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'` | On (the gate reads it) |
+| Only when `src-tauri/` changed | The `rust` and `rust-verify-run` lanes | — |
+| After a rebase or fast-forward that only brought docs or `.claude` changes | Nothing new: `src/` and `tests/` are tree-identical, so the earlier gate still holds. Re-run only the tests touching any conflicted file | — |
+
+- **Every heavy command goes through `scripts/heavy-lock.sh`**: vitest
+  with coverage, `tsc`, `pnpm build`, `cargo test`, `tauri build`. A command
+  outside the lock runs in parallel with another session's locked job, so the
+  lock only stops half of the overload.
+- **A full run happens once per commit.** When a subagent has already run the
+  full lane on the exact tree being committed, the session reviewing its work
+  reads that log and re-runs only the decisive test files. Run it again only
+  if the tree changed after that run.
+- Need the machine for something else? Lower `VITEST_MAX_WORKERS` (default
+  `50%`, e.g. `30%`). The cost is a longer run.
