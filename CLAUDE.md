@@ -119,15 +119,21 @@ See `.claude/rules/40-version-bump.md` for the full procedure (3 files must
 stay in sync: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`).
 Or use the `/bump` command, which handles all three atomically.
 
-```bash
-# 1. Bump versions (use /bump or follow rule 40)
-# 2. Test locally
-pnpm tauri build
+Releases are built by a manually dispatched workflow, not by pushing a tag
+([ADR-0073](./docs/adr/0073-release-workflow-auto-publishes-only-after-verifying-the-uploaded-draft.md);
+runbook: [`docs/guide/release-runbook.md`](./docs/guide/release-runbook.md)).
 
-# 3. Tag and push (triggers GitHub Actions → builds DMG)
-git tag v0.1.2
-git push origin master --tags
+```bash
+# 1. Bump the three files (/bump or rule 40) and land the commit on master
+# 2. Precondition: the 0.3.1 device regression passed on the locked SHA
+# 3. Rehearse, then release (mode: build-only | draft | rehearsal-draft)
+gh workflow run release.yml -f ref=<sha> -f version=0.3.1 -f mode=build-only
+gh workflow run release.yml -f ref=<sha> -f version=0.3.1 -f mode=draft
 ```
+
+`mode=draft` publishes on its own, but only after `verify-release` passes on
+the uploaded draft. Never `gh release create` by hand. A leftover draft is
+deleted only after confirmation (rule 25).
 
 ## Git Commit Conventions
 
