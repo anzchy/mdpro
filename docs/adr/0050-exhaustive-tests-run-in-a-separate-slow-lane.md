@@ -1,6 +1,6 @@
 # 0050. Exhaustive tests run in a separate slow lane
 
-**Status**: Accepted (2026-10-07, user decision). Proposed 2026-10-07.
+**Status**: Accepted (2026-10-07, user decision). Proposed 2026-10-07. Partially superseded by [ADR-0074](0074-the-menu-events-d3-and-a9-properties-move-to-the-slow-lane.md) (D3/A9 clause), 2026-10-10.
 
 ## Context
 
