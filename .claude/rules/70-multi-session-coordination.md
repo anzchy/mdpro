@@ -112,7 +112,10 @@ merges or reserves; the delegator does.
    asks the user first: the user approved this standing order on 2026-10-10
    so that no human sits in the loop. The approval covers the audit run
    only; rule 25 commands still need their own confirmation. A docs-only or
-   device-record commit is not audited. The auditor reports its findings to
+   device-record commit is not audited. **The auditor reports only Critical
+   and High findings** and drops Medium and Low ones, keeping just their
+   count in a single line of the verdict. Nobody registers them as D items
+   (user decision, 2026-10-10). The auditor reports to
    the delegator, not to the implementor. The delegator gives a new finding a
    D number and hands it to the session that owns the area; it does not
    reopen the landed commit.
