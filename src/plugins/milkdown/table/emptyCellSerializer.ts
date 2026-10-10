@@ -18,7 +18,8 @@
  *   - `extendSchema` re-registers the node under the same id; `$node` replaces
  *     the earlier spec, so this plugin must be `.use`d after `gfm`.
  *
- * @coordinates-with src/components/Editor/MilkdownEditor.tsx — registers it after gfm
+ * @coordinates-with src/plugins/milkdown/table/parityPlugins.ts — exported in `tableParityPlugins`,
+ *   which MilkdownEditor.tsx registers after gfm
  * @coordinates-with src/utils/tableWiden.ts — the source-side widener whose blank cells this matches
  */
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";

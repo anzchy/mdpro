@@ -25,11 +25,16 @@
  *    reads `undefined`. `serializeRows` already pads, so the formatter's
  *    bytes are unchanged by this.
  *  - The width is a `reduce`, never `Math.max(...spread)`.
+ *  - The rule itself is `widenRows`, generic over the cell type (D64 WI-2):
+ *    `widenTable` feeds it strings, and the Milkdown parse-time transformer
+ *    feeds it mdast `tableCell`s, so WYSIWYG load and source-side writers
+ *    widen identically (ADR-0067 Decision 1).
  *
  * @coordinates-with src/utils/tableFormatter.ts (format on save / formatTable)
  * @coordinates-with src/utils/tableEdits/edits.ts (context-menu edits)
  * @coordinates-with src/utils/tableParser/lines.ts (splitCellTexts, the overflow read)
  * @coordinates-with src/utils/tableParser/rowCells.ts (parseRowCells, RC-6 agreement)
+ * @coordinates-with src/plugins/milkdown/table/raggedTableWiden.ts (widenRows over mdast cells)
  */
 
 import type { ColumnAlignment, TableModel } from "./tableParser";
@@ -63,13 +68,32 @@ export function widenTable(model: TableModel): WidenedTable {
       .map((text) => text.trim());
     return [...row.map((cell) => cell.text), ...overflow];
   });
-  // reduce, not Math.max(...spread): a spread over a huge table overflows the stack.
-  const width = ragged.reduce((max, row) => Math.max(max, row.length), model.alignments.length);
-  const alignments = [...model.alignments];
-  while (alignments.length < width) alignments.push(null);
-  const rows = ragged.map((row) => {
-    while (row.length < width) row.push("");
-    return row;
-  });
-  return { rows, alignments };
+  return widenRows(ragged, model.alignments, () => "");
 }
+
+/**
+ * The shared widening rule (ADR-0063, ADR-0067 Decision 1), generic over the cell
+ * type so the source-side `widenTable` and the Milkdown parse-time transformer
+ * (`plugins/milkdown/table/raggedTableWiden.ts`) apply one rule instead of two copies.
+ *
+ * The width is the widest row, never less than `alignments.length`; a cell counts
+ * however blank it is. Each row is padded IN PLACE at its end with `blank()` (one
+ * fresh value per missing cell), so every existing cell keeps its column index.
+ * The returned alignments are a NEW array extended with explicit `null`; the
+ * caller's array is not mutated.
+ */
+export function widenRows<T>(
+  rows: T[][],
+  alignments: readonly ColumnAlignment[],
+  blank: () => T,
+): { rows: T[][]; alignments: ColumnAlignment[] } {
+  // reduce, not Math.max(...spread): a spread over a huge table overflows the stack.
+  const width = rows.reduce((max, row) => Math.max(max, row.length), alignments.length);
+  const widened = [...alignments];
+  while (widened.length < width) widened.push(null);
+  for (const row of rows) {
+    while (row.length < width) row.push(blank());
+  }
+  return { rows, alignments: widened };
+}
+
