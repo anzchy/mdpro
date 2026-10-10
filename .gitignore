@@ -70,3 +70,6 @@ tests/image-test/
 # nothing reads this file. Ignored rather than deleted — see the hygiene report;
 # deleting it is the cleaner end state.
 stryker.config.json
+
+# D76: collect-assets output (scripts/release/collect-assets.mjs)
+dist-release/
