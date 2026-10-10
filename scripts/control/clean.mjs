@@ -4,14 +4,16 @@
  * lock or a stale `si.sock` (decision D2: nothing auto-cleans).
  *
  * Pipeline: `run(args, deps)` → `layout` (name check) →
- *   `lstat(<parent>/R)` (absent → `absentRun`: lock state, scan, probe →
- *   `releaseOrphanLock` for a lock naming R → stale `si.sock` unlink → pass)
+ *   `lstat(<parent>/R)` (absent → `absentRun` in cleanSocket.mjs: lock state,
+ *   scan, probe → stale `si.sock` step while an orphan lock naming R is held
+ *   → `releaseOrphanLock` → pass)
  *   → facts: `realpath`, `stat` of the realpath, `launch.json`, liveness from
  *   `owner.json` | `instance.json` | the verify scan, `readLock` →
  *   `cleanVerdict` → probe `si.sock` (live refuses) → re-`lstat` R →
  *   `checkLockOwner` (a lock naming R) → `removeRunDir` (R's entries,
- *   `launch.json` last, then R) → `releaseLock` → stale
- *   `si.sock` unlink (scan `[]` only) → verdict.
+ *   `launch.json` last, then R) → `siSock` (scan `[]` only, re-probe `stale`
+ *   → unlink) while the lock is still held → `settle`: `releaseLock`, then
+ *   the removed line, the held socket line, the verdict.
  *
  * Key decisions:
  * - The runs parent is `runsParent(realpath(passwd home))`, and R's realpath
@@ -38,7 +40,14 @@
  *   exactly `[]`; with neither, the scan alone must be `[]`. Unknown refuses.
  * - A corrupt lock is `corrupt` (a refusal), never `absent`; its bytes stay.
  * - `si.sock` is decided only after the run verdict passed: `live` refuses
- *   the whole clean, `stale` is unlinked only when the scan is exactly `[]`.
+ *   the whole clean, `stale` is unlinked only when the scan is exactly `[]`
+ *   and a re-probe right before the unlink still says `stale`.
+ * - The socket step runs before the lock is released (D82-WI-2): remove R,
+ *   then the socket step, then release, so a launch racing `clean` is refused
+ *   instead of binding a socket `clean` then deletes. The socket line is held
+ *   and printed after the removed line on success, before the driver-failure
+ *   verdict when the release fails. With no lock to hold, the window between
+ *   the re-probe and the unlink stays open (accepted limit, cleanSocket.mjs).
  * - Every refusal is read-only. No `launcher.jsonl` record is written: on a
  *   refusal it would change R, and on success R is gone. `process.env` is
  *   never read for a child or assigned; stdout never carries the nonce.
@@ -47,7 +56,8 @@
  * @coordinates-with scripts/control/ownership.mjs (cleanVerdict)
  * @coordinates-with scripts/control/ownerFacts.mjs (goodPid)
  * @coordinates-with scripts/control/launcherCli.mjs (`pnpm control:clean`: parseCleanArgs, runIfMain)
- * @coordinates-with scripts/control/lock.mjs (readLock, checkLockOwner, releaseLock, releaseOrphanLock)
+ * @coordinates-with scripts/control/cleanSocket.mjs (absentRun, siSock, settle, lockState, normScan, lstatOrNull, UNKNOWN)
+ * @coordinates-with scripts/control/lock.mjs (checkLockOwner, releaseLock)
  * @coordinates-with scripts/control/doctor.mjs (defaultProcFacts; doctor names `clean <run>` as the next step)
  * @coordinates-with scripts/control/doctorChecks.mjs (the stale-socket hint names a `clean` this file honours)
  */
@@ -58,14 +68,14 @@ import { errCode, errMessage, reporter } from "./launchCore.mjs";
 import { defaultDeps as launchDeps } from "./launchDeps.mjs";
 import { runIfMain } from "./launcherCli.mjs";
 import { formatCleanRefusal } from "./launcherFormat.mjs";
-import { checkLockOwner, readLock, releaseLock, releaseOrphanLock } from "./lock.mjs";
+import { absentRun, lockState, lstatOrNull, normScan, settle, siSock, UNKNOWN } from "./cleanSocket.mjs";
+import { checkLockOwner, releaseLock } from "./lock.mjs";
 import { goodPid } from "./ownerFacts.mjs";
 import { cleanVerdict } from "./ownership.mjs";
 import { layout, runsParent } from "./runDir.mjs";
 
 export { parseCleanArgs } from "./launcherCli.mjs";
 
-const UNKNOWN = "unknown";
 const DIR_MODE = 0o700;
 const LAUNCH_FIELDS = ["nonce", "buildId", "mainBinary"];
 
@@ -80,15 +90,6 @@ export function defaultDeps() {
     out: (/** @type {string} */ line) => process.stdout.write(`${line}\n`),
     err: (/** @type {string} */ line) => process.stderr.write(`${line}\n`),
   };
-}
-
-/** @param {string} p @returns {fs.Stats | null} */
-function lstatOrNull(p) {
-  try {
-    return fs.lstatSync(p);
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -123,9 +124,6 @@ function removeRunDir(rmSync, runDir) {
 const isLaunchBody = (v) =>
   v !== null && typeof v === "object" && LAUNCH_FIELDS.every((k) => typeof v[k] === "string" && v[k] !== "");
 
-/** @param {unknown} s @returns {number[] | "unknown"} */
-const normScan = (s) => (Array.isArray(s) && s.every(goodPid) ? s : UNKNOWN);
-
 /** @returns {Promise<boolean>} true only when the pid is valid and reported dead */
 async function deadPid(pf, pid) {
   return goodPid(pid) && (await pf.alive(pid)) === false;
@@ -137,13 +135,6 @@ async function ownedLive(pf, owner, inst, scan) {
   const scanClear = Array.isArray(scan) && scan.length === 0;
   if (inst.present) return !(scanClear && (await deadPid(pf, inst.value?.pid)));
   return !scanClear;
-}
-
-/** @returns {"absent" | "thisRun" | "otherRun" | "corrupt"} */
-function lockState(parent, name) {
-  const lock = readLock(parent);
-  if (lock.state === "held") return lock.run === name ? "thisRun" : "otherRun";
-  return lock.state === "absent" ? "absent" : "corrupt";
 }
 
 /** Every `cleanVerdict` fact for R, plus what the removal steps need. */
@@ -226,63 +217,14 @@ export async function run(args = {}, deps = {}) {
   } catch (e) {
     return rep.verdict("driver failure", `remove failed: ${errCode(e)}`);
   }
-  try {
-    if (ours) releaseLock(parent, owner);
-  } catch (e) {
-    return rep.verdict("driver failure", `removed ${name}, lock not released: ${errMessage(e)}`);
-  }
-  rep.say(`clean: removed ${name}`);
-  siSock(d, rep, probe, g.scan);
-  return rep.verdict("pass");
-}
-
-/** Why an orphan lock must stay, or null when the scan is `[]` and `si.sock` is stale or absent. */
-function orphanBlocker(scan, probe) {
-  if (scan === UNKNOWN) return "process scan unknown";
-  if (scan.length > 0) return "verify binary running";
-  if (probe === "live") return "si.sock live";
-  return probe === "stale" || probe === "absent" ? null : "si.sock probe unknown";
-}
-
-/** R is absent: release an orphan lock naming R, then a stale `si.sock`, under the same proofs. */
-async function absentRun(d, rep, parent, name) {
-  const lock = lockState(parent, name);
-  if (lock === "corrupt") return rep.finish(formatCleanRefusal(["lock"]));
-  if (lock === "otherRun") {
-    rep.say(`clean: absent ${name}`);
-    return rep.verdict("pass");
-  }
-  const scan = normScan(await d.procFacts.scan());
-  const probe = await d.procFacts.probe(d.siSockPath);
-  let released = "absent";
-  if (lock === "thisRun") {
-    const why = orphanBlocker(scan, probe);
-    if (why !== null) return rep.verdict("fail", `orphan lock kept: ${why}`);
-    try {
-      released = releaseOrphanLock(parent, name);
-    } catch (e) {
-      return rep.verdict("driver failure", `lock not released: ${errMessage(e)}`);
-    }
-  }
-  rep.say(released === "released" ? `clean: absent ${name}; released orphan lock` : `clean: absent ${name}`);
-  siSock(d, rep, probe, scan);
-  return rep.verdict("pass");
-}
-
-/** After R is gone: unlink a stale `si.sock` only when no verify binary may be running. */
-function siSock(d, rep, probe, scan) {
-  if (probe === UNKNOWN) return rep.say("[info] si.sock kept: probe unknown");
-  if (probe !== "stale") return;
-  if (scan === UNKNOWN) return rep.say("[info] si.sock kept: process scan unknown");
-  if (scan.length > 0) return rep.say("[info] si.sock kept: verify binary running");
-  const st = lstatOrNull(d.siSockPath);
-  if (st === null || !st.isSocket()) return rep.say("[info] si.sock kept: not a socket");
-  try {
-    fs.unlinkSync(d.siSockPath);
-    rep.say("clean: removed stale si.sock");
-  } catch (e) {
-    rep.say(`[info] si.sock kept: unlink failed: ${errCode(e)}`);
-  }
+  const sockLine = await siSock(d, probe, g.scan);
+  return settle(
+    rep,
+    sockLine,
+    () => (ours ? releaseLock(parent, owner) : "absent"),
+    () => `clean: removed ${name}`,
+    (msg) => `removed ${name}, lock not released: ${msg}`,
+  );
 }
 
 runIfMain(import.meta.url, "clean", run);

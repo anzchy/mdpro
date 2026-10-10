@@ -22,6 +22,10 @@
  * - A missing or unreadable log, a malformed line, a partial trailing line,
  *   another file's line and a `status:"start"` line are all "not yet"; the
  *   poll never throws and ends at the deadline with `null`.
+ * - A hit counts only from a read whose elapsed time, measured after the read
+ *   completes, is <= `timeoutMs` (D82 M2). The bound is inclusive: the poll
+ *   reads at exactly T before it gives up. A read that lands past T because a
+ *   sleep ran long is not in the window, even when it sees the line.
  * - Read-only: nothing here writes, spawns or signals.
  *
  * @module scripts/control/intoDelivery
@@ -76,7 +80,8 @@ export function findDelivery(text, names) {
 }
 
 /**
- * Poll R's app log until a delivery line appears or the deadline passes.
+ * Poll R's app log until a read within the window (elapsed <= `timeoutMs`)
+ * sees a delivery line, or the deadline passes.
  * @param {any} d deps (`now`, `sleep`)
  * @param {{ appLog: string, offset: number, names: string[], start: number, timeoutMs: number }} input
  * @returns {Promise<{ source: string } | null>}
@@ -84,8 +89,9 @@ export function findDelivery(text, names) {
 export async function awaitDelivery(d, { appLog, offset, names, start, timeoutMs }) {
   for (;;) {
     const hit = findDelivery(readFrom(appLog, offset), names);
-    if (hit) return hit;
-    if (d.now() - start >= timeoutMs) return null;
+    const elapsed = d.now() - start;
+    if (hit && elapsed <= timeoutMs) return hit;
+    if (elapsed >= timeoutMs) return null;
     await d.sleep(POLL_MS);
   }
 }

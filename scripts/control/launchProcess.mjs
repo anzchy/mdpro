@@ -12,6 +12,11 @@
  * Key decisions:
  * - stderr goes to `<RUN>/launcher-stderr.log` as an fd, never a pipe (a
  *   full pipe can block the app); the parent's copy is closed after spawn.
+ * - Opening that log is part of the spawn (D82 M1): an open that fails
+ *   (EACCES, ENOENT) returns `{ failed: <code> }` like a failed spawn, and
+ *   nothing is spawned. It never throws past the driver, so `launch` still
+ *   releases its lock and prints `driver failure — spawn failed: <code>`,
+ *   and `--into` ends with that verdict. Only an fd that was opened is closed.
  * - The direct child is spawned detached and unref'd, so the launcher can
  *   exit while the app lives on. `open` gets no spawn env: the run's values
  *   ride on its `--env` argv.
@@ -46,8 +51,10 @@ function watch(child) {
 
 /** @param {any} d @param {string} stderrLog @param {string} cmd @param {string[]} args @param {object} opts */
 function spawnLogged(d, stderrLog, cmd, args, opts) {
-  const fd = fs.openSync(stderrLog, "a", LOG_MODE);
+  /** @type {number | null} */
+  let fd = null;
   try {
+    fd = fs.openSync(stderrLog, "a", LOG_MODE);
     const child = d.spawn(cmd, args, { ...opts, stdio: ["ignore", "ignore", fd] });
     const st = watch(child);
     if (typeof child.unref === "function") child.unref();
@@ -55,7 +62,7 @@ function spawnLogged(d, stderrLog, cmd, args, opts) {
   } catch (e) {
     return { failed: errCode(e) };
   } finally {
-    fs.closeSync(fd);
+    if (fd !== null) fs.closeSync(fd);
   }
 }
 

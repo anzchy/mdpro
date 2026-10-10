@@ -73,7 +73,8 @@ describe("procFacts#parseLsofTxt", () => {
 
 const SCAN = [
   "  101 /Applications/mdpro.app/Contents/MacOS/tauri-app",
-  " 4242 /r/src-tauri/target/verify/release/bundle/macos/mdpro-verify.app/Contents/MacOS/tauri-app --x",
+  // D82 finding 9 / rule 12: ps column changed to comm=, which carries no args.
+  " 4242 /r/src-tauri/target/verify/release/bundle/macos/mdpro-verify.app/Contents/MacOS/tauri-app",
   "   77 /usr/bin/login",
 ].join("\n");
 

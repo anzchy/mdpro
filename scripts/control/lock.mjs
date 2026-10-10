@@ -8,6 +8,9 @@
  *   `releaseLock(parent, { run, nonce })` → "released" | "absent";
  *   `checkLockOwner(parent, { run, nonce })` → "held" | "absent" (no change);
  *   `releaseOrphanLock(parent, run)` → "released" | "absent".
+ *   Both releases: pre-check `.lock` → rename it to a tomb → check the tomb's
+ *   bytes → unlink the tomb (ours) | `linkSync` it back, unlink the tomb, throw
+ *   (both unlinks best-effort).
  *
  * Key decisions:
  * - Acquire is the `wx` open itself, never exists-then-write (TOCTOU); a
@@ -17,20 +20,50 @@
  * - Release removes only a lock whose `run` and `nonceDigest` both match the
  *   caller; any mismatch throws and leaves the file byte-identical. Release
  *   of an absent lock is a no-op ("absent"), so `clean` stays idempotent.
+ * - Release is atomic (D82-WI-1, the tomb protocol). A check followed by a
+ *   separate `unlinkSync` let two removers both pass the check and the second
+ *   delete a lock a third run took in between. Now the lock is first moved
+ *   aside with `renameSync(.lock → .lock.<pid>-<random hex>.tomb)`, which only
+ *   one remover can win, and ownership is judged on the tomb's bytes. Ours:
+ *   the tomb is unlinked. Not ours (another run, another nonce, or bytes that
+ *   read corrupt, e.g. a newcomer still writing): it is put back with
+ *   `linkSync(tomb, .lock)`, which keeps the inode (bytes, mtime, a writer's
+ *   open fd) and fails on EEXIST like `wx`, then the tomb name is unlinked and
+ *   the usual mismatch error is thrown. Never `renameSync` back: that would
+ *   overwrite a newcomer.
+ * - The tomb name is unique per call (pid plus random bytes), never derived
+ *   from the nonce, so two removers in one process never share a tomb.
+ * - `ENOENT` on the rename means another remover won: "absent". Any other
+ *   rename error (e.g. EACCES) is rethrown with nothing moved.
+ * - If the restore hits EEXIST (yet another run took `.lock` while the record
+ *   was in the tomb), the newcomer is kept, the tomb is kept for diagnosis and
+ *   `lock displaced: kept <tomb basename>` is thrown. Nothing auto-cleans a
+ *   tomb, and its name fails the run-name grammar, so `doctor` skips it.
+ * - Error paths keep the primary outcome (D82-WI-9). Every failed restore
+ *   `linkSync` names the tomb: EEXIST as above, any other code appended, e.g.
+ *   `lock displaced: kept <tomb basename> (EPERM)`, never a raw error that
+ *   leaves the record in an unnamed tomb. Unlinking a tomb is best-effort:
+ *   ours still returns "released" (the leftover holds only our record, and
+ *   no reader opens a tomb), and a restore still throws its mismatch, with
+ *   `; tomb kept: <tomb basename>` appended so `quit`'s prefix match holds.
+ * - A non-mutating pre-check (`readRecord`) still refuses an absent, corrupt,
+ *   directory or plainly foreign lock before any rename: a directory `.lock`
+ *   could be renamed but never `linkSync`-ed back (K-R3).
  * - An unparsable lock is `corrupt`: acquire and release both refuse with
  *   `lock unreadable`. Nothing auto-takes or auto-cleans a lock (D2).
  * - `releaseOrphanLock` is for a lock whose run dir is already gone, so the
- *   nonce went with it: it re-reads the lock and matches on `run` only. Any
- *   other holder, or a corrupt lock, throws and the bytes stay.
+ *   nonce went with it: it matches on `run` only. Any other holder, or a
+ *   corrupt lock, throws and the bytes stay.
  * - Callers release the lock only on launch failure cleanup, a
  *   confirmed-dead `quit`, or `clean` of the run it names (its orphan lock
  *   included, once `clean` has proved no verify binary may be running).
+ *   `checkLockOwner` stays for callers that check before an irreversible step.
  *
  * @module scripts/control/lock
  * @coordinates-with scripts/control/runDir.mjs (layout().lock is this path)
  * @coordinates-with scripts/control/ownership.mjs (cleanVerdict lockNamesThisRun)
  */
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -38,6 +71,7 @@ const LOCK_NAME = ".lock";
 const LOCK_MODE = 0o600;
 const DIGEST_RE = /^[0-9a-f]{64}$/;
 const UNREADABLE = "lock unreadable";
+const TOMB_RANDOM_BYTES = 8;
 
 const lockPath = (parent) => path.join(parent, LOCK_NAME);
 const digest = (nonce) => createHash("sha256").update(String(nonce)).digest("hex");
@@ -77,9 +111,7 @@ export function acquireLock(parent, { run, nonce }) {
  * @returns {"released" | "absent"}
  */
 export function releaseLock(parent, owner) {
-  if (checkLockOwner(parent, owner) === "absent") return "absent";
-  fs.unlinkSync(lockPath(parent));
-  return "released";
+  return releaseAtomically(parent, (rec) => ownerMismatch(rec, owner));
 }
 
 /**
@@ -89,15 +121,73 @@ export function releaseLock(parent, owner) {
  * @param {{ run: string, nonce: string }} owner
  * @returns {"held" | "absent"}
  */
-export function checkLockOwner(parent, { run, nonce }) {
+export function checkLockOwner(parent, owner) {
   const held = readRecord(parent);
   if (held.state === "absent") return "absent";
-  if (held.state === "corrupt") throw new Error(UNREADABLE);
-  if (held.run !== run) throw new Error(`lock names run ${held.run}, not ${run}`);
-  if (held.nonceDigest !== digest(nonce)) {
-    throw new Error(`lock for run ${held.run} holds another nonce`);
-  }
+  const mismatch = ownerMismatch(held, owner);
+  if (mismatch) throw new Error(mismatch);
   return "held";
+}
+
+/** @returns {string | null} why `rec` is not the lock of `run`, or null if it is */
+function runMismatch(rec, run) {
+  if (rec.state !== "held") return UNREADABLE;
+  return rec.run === run ? null : `lock names run ${rec.run}, not ${run}`;
+}
+
+/** @returns {string | null} why `rec` is not `{ run, nonce }`'s lock, or null if it is */
+function ownerMismatch(rec, { run, nonce }) {
+  const byRun = runMismatch(rec, run);
+  if (byRun) return byRun;
+  return rec.nonceDigest === digest(nonce) ? null : `lock for run ${rec.run} holds another nonce`;
+}
+
+/**
+ * The tomb protocol (see Key decisions): pre-check, move aside, judge the
+ * tomb, then unlink it (ours) or restore it and throw.
+ * @param {string} parent
+ * @param {(rec: ReturnType<typeof readRecord>) => string | null} mismatchOf
+ * @returns {"released" | "absent"}
+ */
+function releaseAtomically(parent, mismatchOf) {
+  const pre = readRecord(parent);
+  if (pre.state === "absent") return "absent";
+  const refused = mismatchOf(pre);
+  if (refused) throw new Error(refused);
+  const tomb = path.join(parent, `${LOCK_NAME}.${process.pid}-${randomBytes(TOMB_RANDOM_BYTES).toString("hex")}.tomb`);
+  try {
+    fs.renameSync(lockPath(parent), tomb);
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") return "absent";
+    throw error;
+  }
+  const mismatch = mismatchOf(readRecordAt(tomb));
+  if (!mismatch) {
+    unlinkBestEffort(tomb);
+    return "released";
+  }
+  try {
+    fs.linkSync(tomb, lockPath(parent));
+  } catch (error) {
+    const code = errorCode(error);
+    throw new Error(`lock displaced: kept ${path.basename(tomb)}${code === "EEXIST" ? "" : ` (${String(code)})`}`);
+  }
+  throw new Error(unlinkBestEffort(tomb) ? mismatch : `${mismatch}; tomb kept: ${path.basename(tomb)}`);
+}
+
+/** Unlink a tomb; a failure only leaves it behind. @returns {boolean} whether it is gone */
+function unlinkBestEffort(tomb) {
+  try {
+    fs.unlinkSync(tomb);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** @param {unknown} error @returns {unknown} */
+function errorCode(error) {
+  return error instanceof Error ? /** @type {any} */ (error).code : undefined;
 }
 
 /**
@@ -108,24 +198,21 @@ export function checkLockOwner(parent, { run, nonce }) {
  * @returns {"released" | "absent"}
  */
 export function releaseOrphanLock(parent, run) {
-  const held = readRecord(parent);
-  if (held.state === "absent") return "absent";
-  if (held.state === "corrupt") throw new Error(UNREADABLE);
-  if (held.run !== run) throw new Error(`lock names run ${held.run}, not ${run}`);
-  fs.unlinkSync(lockPath(parent));
-  return "released";
+  return releaseAtomically(parent, (rec) => runMismatch(rec, run));
 }
 
 /** @returns {{ state: "absent" } | { state: "corrupt" } | { state: "held", run: string, nonceDigest: string }} */
 function readRecord(parent) {
+  return readRecordAt(lockPath(parent));
+}
+
+/** @param {string} file @returns {ReturnType<typeof readRecord>} */
+function readRecordAt(file) {
   let text;
   try {
-    text = fs.readFileSync(lockPath(parent), "utf8");
+    text = fs.readFileSync(file, "utf8");
   } catch (error) {
-    if (error instanceof Error && /** @type {any} */ (error).code === "ENOENT") {
-      return { state: "absent" };
-    }
-    return { state: "corrupt" };
+    return errorCode(error) === "ENOENT" ? { state: "absent" } : { state: "corrupt" };
   }
   let rec;
   try {

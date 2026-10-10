@@ -13,6 +13,11 @@
  *   line touches no file, no lock and no process.
  * - A usage error is the one outcome whose last line is not a verdict: it
  *   is `usage: …`, and the exit is 2 (0 pass, 1 refusal or failure).
+ * - A flag's value is never an option token: a missing next token or one
+ *   starting with `-` is `<flag> needs a value` (D82 M3), matching the rule
+ *   that a positional starting with `-` is an unknown option.
+ * - Flags are looked up with `Object.hasOwn`, never `in`, so inherited keys
+ *   (`toString`, `constructor`, `__proto__`) are plain positionals (D82 L1).
  * - Value checks that belong to a driver stay there (`--view-mode`, the run
  *   name grammar); the parser only checks shape, and `--via` against `open`.
  * - Every stdout line passes through `redact` with the repo root and home
@@ -57,7 +62,7 @@ export class UsageError extends Error {
 const tokens = (argv) => (argv[0] === PNPM_SEPARATOR ? argv.slice(1) : [...argv]);
 
 /**
- * Split argv into flags (each taking one value) and positionals.
+ * Split argv into flags (each taking one non-option value) and positionals.
  * @param {"launch" | "quit" | "clean" | "doctor"} verb
  * @param {string[]} argv
  * @param {Record<string, string>} flags flag → args key
@@ -68,9 +73,11 @@ function split(verb, argv, flags) {
   const list = tokens(argv);
   for (let i = 0; i < list.length; i++) {
     const t = list[i];
-    if (t in flags) {
-      if (i + 1 >= list.length) throw new UsageError(verb, `${t} needs a value`);
-      out[flags[t]] = list[++i];
+    if (Object.hasOwn(flags, t)) {
+      const value = list[i + 1];
+      if (value === undefined || value.startsWith("-")) throw new UsageError(verb, `${t} needs a value`);
+      out[flags[t]] = value;
+      i++;
     } else if (t.startsWith("-")) {
       throw new UsageError(verb, `unknown option ${t}`);
     } else {

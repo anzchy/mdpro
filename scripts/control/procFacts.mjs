@@ -5,7 +5,7 @@
  *
  * Pipeline: `ps -p <pid> -o lstart=` → `parseLstart` → `readStartTime`;
  *   `lsof -a -p <pid> -d txt -Fn` → `parseLsofTxt` → realpath → `readExe`;
- *   `ps -axww -o pid=,command=` → `parseVerifyScan` → `scanVerifyPids`;
+ *   `ps -axww -o pid=,comm=` → `parseVerifyScan` → `scanVerifyPids`;
  *   `net.connect(sock)` → live | `classifySocketError` → `probeSocket`.
  *
  * Key decisions:
@@ -22,6 +22,20 @@
  * - Socket: a connect that succeeds is `live`; `ECONNREFUSED` is `stale` (a
  *   file with no listener); `ENOENT` is `absent`; any other error or a
  *   timeout is `unknown`.
+ * - Verify scan (D82-WI-6, M5): match on the `comm=` column, not `command=`.
+ *   A process whose *arguments* name the verify binary (`grep …/tauri-app`,
+ *   an editor with the path open) must not count. Probe PF-M5-0 on macOS
+ *   (Darwin 25.3.0, 2026-10-10): `comm` prints the exact spawned path,
+ *   spaces included and not realpathed, but with `argv0: "x"` it prints `x`.
+ *   So `comm` is `argv[0]`, not the executable: membership depends only on
+ *   `argv[0]`, never on later arguments. A process started with a spoofed
+ *   `argv0` can enter or leave the scan. A true executable check (the `lsof`
+ *   `txt` entry `readExe` reads) costs one `lsof` per process; not adopted.
+ *   `comm` carries no arguments, so `SCAN_LINE_RE` keeps `(\S.*)` and paths
+ *   with spaces are supported. `VERIFY_MAIN_RE` is anchored with `$`: the
+ *   column is the whole path, so `…/tauri-app foo/bar` is another file, not
+ *   the verify binary. (Fixture F-05 was re-recorded without `--x` for this,
+ *   D82 finding 9 / rule 12.)
  *
  * @module scripts/control/procFacts
  * @coordinates-with scripts/control/ownership.mjs (consumes these facts)
@@ -36,7 +50,7 @@ const EXEC_TIMEOUT_MS = 5000;
 const LSTART_RE =
   /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [ \d]\d \d\d:\d\d:\d\d \d{4}$/;
 const SCAN_LINE_RE = /^\s*(\d+)\s+(\S.*)$/;
-const VERIFY_MAIN_RE = /\/mdpro-verify\.app\/Contents\/MacOS\/tauri-app(?:\s|$)/;
+const VERIFY_MAIN_RE = /\/mdpro-verify\.app\/Contents\/MacOS\/tauri-app$/;
 
 /**
  * @param {string} text stdout of `ps -p <pid> -o lstart=`
@@ -63,8 +77,8 @@ export function parseLsofTxt(text) {
 }
 
 /**
- * @param {string} text stdout of `ps -axww -o pid=,command=`
- * @returns {number[] | "unknown"} pids of running verify main binaries
+ * @param {string} text stdout of `ps -axww -o pid=,comm=`
+ * @returns {number[] | "unknown"} pids whose argv[0] is a verify main binary
  */
 export function parseVerifyScan(text) {
   const pids = [];
@@ -135,10 +149,11 @@ export async function readExe(pid) {
 }
 
 /**
- * @returns {Promise<number[] | "unknown">} pids of running verify main binaries
+ * @returns {Promise<number[] | "unknown">} pids whose argv[0] is a verify main
+ *   binary; arguments are never matched (see Key decisions)
  */
 export async function scanVerifyPids() {
-  const out = await run("ps", ["-axww", "-o", "pid=,command="]);
+  const out = await run("ps", ["-axww", "-o", "pid=,comm="]);
   return out === null ? UNKNOWN : parseVerifyScan(out);
 }
 

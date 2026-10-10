@@ -13,6 +13,8 @@
  * Key decisions:
  * - The runs parent is built from the **passwd** home the caller supplies,
  *   never `$HOME` (the WI-002 R3 nesting mistake). See `launchDeps.mjs`.
+ *   Its components are defined once, as the exported frozen `RUNS_SUFFIX`
+ *   (D82-WI-7 L2), which `launch.mjs` uses to create them.
  * - A run name is the 128-bit integer of 16 random bytes in base36, zero
  *   padded to 25 chars: `[0-9a-z]{25}`, injective, so names never collide
  *   unless the bytes do.
@@ -31,6 +33,7 @@
  *
  * @module scripts/control/runDir
  * @coordinates-with scripts/control/launchDeps.mjs (passwd home, randomness)
+ * @coordinates-with scripts/control/launch.mjs (`makeParent` creates `RUNS_SUFFIX`)
  * @coordinates-with src-tauri/src/services/verify_run.rs (the launch guard)
  */
 import path from "node:path";
@@ -38,7 +41,12 @@ import path from "node:path";
 /** Bytes allowed for the longest in-run socket path (104-byte sun_path − NUL). */
 export const SOCKET_PATH_BUDGET = 103;
 
-const RUNS_SUFFIX = ["Library", "Application Support", "mdpro-verify", "runs"];
+/**
+ * The runs parent's path components under the home, in creation order. The
+ * single definition: `runsParent` joins them and `launch.mjs` `makeParent`
+ * creates them one by one at 0700. Frozen.
+ */
+export const RUNS_SUFFIX = Object.freeze(["Library", "Application Support", "mdpro-verify", "runs"]);
 const CTL_SOCKET = "ctl.sock";
 const NAME_BYTES = 16;
 const NAME_LENGTH = 25;

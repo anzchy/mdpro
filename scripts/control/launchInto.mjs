@@ -32,6 +32,9 @@
  * - Never signals a pid read from a file; on a timeout only the second
  *   process's own handle is killed, and `--via open` never kills. A file
  *   that is not delivered kills nothing: the second process already exited.
+ * - `runInto` only sequences four steps (D82-WI-7 L4): `resolveOwnedRun` →
+ *   `spawnSecond` → `judgeExit` → `awaitFileDelivery`; each returns early
+ *   with the final verdict, in the order the Pipeline lists.
  *
  * @module scripts/control/launchInto
  * @coordinates-with scripts/control/launch.mjs (dispatches here on `into`)
@@ -70,31 +73,34 @@ export function bundleOf(d) {
 }
 
 /**
- * Run `--into`.
- * @param {{ into: string, via?: string, file?: string }} args
- * @param {any} d resolved deps
- * @returns {Promise<{ exit: 0 | 1, lines: string[] }>}
+ * Step 1: resolve R's layout and run the `quit` ownership checks. Pushes the
+ * run's nonce onto `secrets` as soon as it is read.
+ * @returns {Promise<{ done: { exit: 0 | 1, lines: string[] } } | { lay: any, launch: any }>}
  */
-export async function runInto(args, d) {
-  const secrets = /** @type {string[]} */ ([]);
-  const rep = reporter(d, secrets);
+async function resolveOwnedRun(args, d, rep, secrets) {
   let lay;
   try {
     lay = layout(runsParent(fs.realpathSync(d.passwdHome)), args.into);
   } catch (e) {
-    return rep.verdict("fail", errMessage(e));
+    return { done: rep.verdict("fail", errMessage(e)) };
   }
-  if (!isDir(lay.runDir)) return rep.verdict("fail", "into: run not found");
+  if (!isDir(lay.runDir)) return { done: rep.verdict("fail", "into: run not found") };
   const records = readRunRecords(lay);
   const { launch } = records;
   if (typeof launch?.nonce === "string") secrets.push(launch.nonce);
   const v = quitVerdict(await ownerFacts(d.procFacts, records));
-  if (!v.ok) return rep.finish(formatQuitRefusal(v.failed, { secrets }));
+  if (!v.ok) return { done: rep.finish(formatQuitRefusal(v.failed, { secrets })) };
+  return { lay, launch };
+}
 
-  const log = (/** @type {Record<string, unknown>} */ rec) =>
-    appendLog(lay.launcherLog, { event: "launcher.into", ...rec }, { secrets, now: d.now });
+/**
+ * Step 2: take the stderr and app-log offsets and the clock start, then spawn
+ * the second process (main binary, or `open` without `-n`).
+ * @returns {{ done: { exit: 0 | 1, lines: string[] } } | { sp: any, offset: number, appOffset: number, start: number }}
+ */
+function spawnSecond(ctx, launch) {
+  const { args, d, rep, log, lay, viaOpen } = ctx;
   const runDirReal = fs.realpathSync(lay.runDir);
-  const viaOpen = args.via === "open";
   const offset = sizeOf(lay.stderrLog);
   const appOffset = sizeOf(lay.appLog);
   const start = d.now();
@@ -107,15 +113,25 @@ export async function runInto(args, d) {
     : spawnDirect(d, { stderrLog: lay.stderrLog, file: args.file, env: childEnv({ baseEnv: process.env, runDirReal, nonce: launch.nonce }) });
   if ("failed" in sp) {
     log({ phase: "result", outcome: `spawn failed: ${sp.failed}` });
-    return rep.verdict("driver failure", `spawn failed: ${sp.failed}`);
+    return { done: rep.verdict("driver failure", `spawn failed: ${sp.failed}`) };
   }
-  const res = await awaitExit(d, sp.st, d.handshakeTimeoutMs);
+  return { sp, offset, appOffset, start };
+}
+
+/**
+ * Step 3: wait for the second process and judge its exit. `null` means it
+ * exited 0 (already reported); anything else is the final verdict.
+ * @returns {Promise<{ exit: 0 | 1, lines: string[] } | null>}
+ */
+async function judgeExit(ctx, second) {
+  const { args, d, rep, log, lay, viaOpen } = ctx;
+  const res = await awaitExit(d, second.sp.st, d.handshakeTimeoutMs);
   if ("error" in res) {
     log({ phase: "result", outcome: `spawn failed: ${res.error}` });
     return rep.verdict("driver failure", `spawn failed: ${res.error}`);
   }
   if ("timeout" in res) {
-    if (!viaOpen) sp.child.kill("SIGKILL");
+    if (!viaOpen) second.sp.child.kill("SIGKILL");
     const reason = `second process timeout after ${d.handshakeTimeoutMs} ms`;
     log({ phase: "result", outcome: reason });
     return rep.verdict("driver failure", reason);
@@ -123,19 +139,52 @@ export async function runInto(args, d) {
   log({ phase: "result", outcome: `exited ${res.code}` });
   if (res.code === 0) {
     rep.say(`into: run ${args.into} second process exited 0`);
-    if (typeof args.file !== "string" || args.file === "") return rep.verdict("pass");
-    const names = deliveryNames(args.file);
-    const timeoutMs = d.handshakeTimeoutMs;
-    const hit = await awaitDelivery(d, { appLog: lay.appLog, offset: appOffset, names, start, timeoutMs });
-    if (hit === null) {
-      const reason = `into: file not delivered within ${timeoutMs} ms`;
-      log({ phase: "result", outcome: reason });
-      return rep.verdict("fail", reason);
-    }
-    log({ phase: "result", outcome: `file delivered (source ${hit.source})` });
-    rep.say(`into: run ${args.into} file delivered (source ${hit.source})`);
-    return rep.verdict("pass");
+    return null;
   }
-  const guard = res.code === GUARD_EXIT && !viaOpen ? `: guard refused: ${parseGuardReason(readFrom(lay.stderrLog, offset))}` : "";
+  const guard = res.code === GUARD_EXIT && !viaOpen ? `: guard refused: ${parseGuardReason(readFrom(lay.stderrLog, second.offset))}` : "";
   return rep.verdict("fail", `second process exited ${res.code}${guard}`);
+}
+
+/**
+ * Step 4: with a file, require R's app log to name it within
+ * `handshakeTimeoutMs` of the spawn; with none, exit 0 is the pass.
+ * @returns {Promise<{ exit: 0 | 1, lines: string[] }>}
+ */
+async function awaitFileDelivery(ctx, second) {
+  const { args, d, rep, log, lay } = ctx;
+  if (typeof args.file !== "string" || args.file === "") return rep.verdict("pass");
+  const names = deliveryNames(args.file);
+  const timeoutMs = d.handshakeTimeoutMs;
+  const hit = await awaitDelivery(d, { appLog: lay.appLog, offset: second.appOffset, names, start: second.start, timeoutMs });
+  if (hit === null) {
+    const reason = `into: file not delivered within ${timeoutMs} ms`;
+    log({ phase: "result", outcome: reason });
+    return rep.verdict("fail", reason);
+  }
+  log({ phase: "result", outcome: `file delivered (source ${hit.source})` });
+  rep.say(`into: run ${args.into} file delivered (source ${hit.source})`);
+  return rep.verdict("pass");
+}
+
+/**
+ * Run `--into`: resolve and verify ownership → spawn → judge the exit →
+ * await delivery. Each step returns early with the final verdict.
+ * @param {{ into: string, via?: string, file?: string }} args
+ * @param {any} d resolved deps
+ * @returns {Promise<{ exit: 0 | 1, lines: string[] }>}
+ */
+export async function runInto(args, d) {
+  const secrets = /** @type {string[]} */ ([]);
+  const rep = reporter(d, secrets);
+  const owned = await resolveOwnedRun(args, d, rep, secrets);
+  if ("done" in owned) return owned.done;
+  const { lay } = owned;
+  const log = (/** @type {Record<string, unknown>} */ rec) =>
+    appendLog(lay.launcherLog, { event: "launcher.into", ...rec }, { secrets, now: d.now });
+  const ctx = { args, d, rep, log, lay, viaOpen: args.via === "open" };
+  const second = spawnSecond(ctx, owned.launch);
+  if ("done" in second) return second.done;
+  const verdict = await judgeExit(ctx, second);
+  if (verdict !== null) return verdict;
+  return awaitFileDelivery(ctx, second);
 }

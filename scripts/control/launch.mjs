@@ -56,14 +56,13 @@ import { bundleOf, runInto } from "./launchInto.mjs";
 import { awaitHandshake, spawnDirect, spawnOpen, verifyIdentity } from "./launchProcess.mjs";
 import { acquireLock, releaseLock } from "./lock.mjs";
 import { writePreferences } from "./preset.mjs";
-import { checkBudget, childEnv, launchJsonBody, layout, runsParent } from "./runDir.mjs";
+import { checkBudget, childEnv, launchJsonBody, layout, RUNS_SUFFIX } from "./runDir.mjs";
 
 export { GUARD_EXIT, GUARD_PREFIX, HANDSHAKE_TIMEOUT_MS, parseGuardReason, POLL_MS } from "./launchCore.mjs";
 export { parseLaunchArgs } from "./launcherCli.mjs";
 
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
-const RUNS_SUFFIX = ["Library", "Application Support", "mdpro-verify", "runs"];
 
 /** Production deps; tests inject their own. */
 export function defaultDeps() {
@@ -80,7 +79,7 @@ export function defaultDeps() {
   };
 }
 
-/** mkdir each missing component of the runs parent at 0700; existing ones are left alone. */
+/** mkdir each missing `RUNS_SUFFIX` component (runDir.mjs) at 0700; existing ones are left alone. */
 function makeParent(homeReal) {
   let p = homeReal;
   for (const part of RUNS_SUFFIX) {

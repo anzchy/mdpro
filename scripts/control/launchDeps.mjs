@@ -1,11 +1,13 @@
 /**
  * Purpose: The launcher drivers' default boundary deps (ADR-0047 WI-003
- * WI-1): the passwd home and the CSPRNG, plus the three small helpers that
- * consume them (`resolveRunsParent`, `newRunName`, `newNonce`). Tests inject
- * their own `deps`; production uses `defaultDeps()`.
+ * WI-1): the passwd home and the CSPRNG, plus the two small helpers that
+ * consume the CSPRNG (`newRunName`, `newNonce`). Tests inject their own
+ * `deps`; production uses `defaultDeps()`. The drivers build the runs
+ * parent from `passwdHome` themselves (`runDir.mjs` `runsParent` /
+ * `RUNS_SUFFIX`); this module exports no runs-parent helper.
  *
  * Pipeline: `defaultDeps()` → `{ passwdHome, randomBytes }`
- *   → `resolveRunsParent` / `newRunName` (16 bytes) / `newNonce` (32 bytes).
+ *   → `newRunName` (16 bytes) / `newNonce` (32 bytes).
  *
  * Key decisions:
  * - The home is `os.userInfo().homedir` (the passwd entry), never
@@ -17,11 +19,11 @@
  * - `process.env` is read nowhere here and assigned nowhere (hard constraint 5).
  *
  * @module scripts/control/launchDeps
- * @coordinates-with scripts/control/runDir.mjs (runsParent, runName)
+ * @coordinates-with scripts/control/runDir.mjs (runName)
  */
 import { randomBytes } from "node:crypto";
 import os from "node:os";
-import { runName, runsParent } from "./runDir.mjs";
+import { runName } from "./runDir.mjs";
 
 const NAME_BYTES = 16;
 const NONCE_BYTES = 32;
@@ -32,15 +34,6 @@ const NONCE_BYTES = 32;
  */
 export function defaultDeps() {
   return { passwdHome: os.userInfo().homedir, randomBytes };
-}
-
-/**
- * The runs parent for `deps.passwdHome`. Ignores `$HOME`.
- * @param {{ passwdHome: string }} deps
- * @returns {string}
- */
-export function resolveRunsParent(deps) {
-  return runsParent(deps.passwdHome);
 }
 
 /**

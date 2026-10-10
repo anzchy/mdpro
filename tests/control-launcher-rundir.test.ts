@@ -27,7 +27,6 @@ import {
   defaultDeps,
   newNonce,
   newRunName,
-  resolveRunsParent,
   // @ts-expect-error -- plain ESM script, no .d.ts by design
 } from "../scripts/control/launchDeps.mjs";
 import { bytes, int, mulberry32, pick, str } from "./support/seededRandom";
@@ -72,12 +71,13 @@ describe("runDir#runsParent", () => {
   });
 
   it("R-02 a contaminated HOME does not nest the new run", () => {
-    const deps = { passwdHome: "/Users/jackcheng" };
-    vi.stubEnv("HOME", `/Users/jackcheng${SUFFIX}/0abc0abc0abc0abc0abc0abc0`);
-    const a = resolveRunsParent(deps);
+    // D82-WI-7 L3 / rule 12: the launchDeps runs-parent helper was removed (no production caller); same $HOME-independence claim.
+    const home = os.userInfo().homedir;
+    vi.stubEnv("HOME", `${home}${SUFFIX}/0abc0abc0abc0abc0abc0abc0`);
+    const a = runsParent(defaultDeps().passwdHome);
     vi.stubEnv("HOME", "/tmp");
-    const b = resolveRunsParent(deps);
-    expect(a).toBe(`/Users/jackcheng${SUFFIX}`);
+    const b = runsParent(defaultDeps().passwdHome);
+    expect(a).toBe(`${home}${SUFFIX}`);
     expect(b).toBe(a);
     expect(a).not.toContain("runs/0abc");
   });
