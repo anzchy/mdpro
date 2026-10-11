@@ -14,7 +14,9 @@
 # - The executor's exit status is the script's (2 = no Accessibility grant).
 #
 # Exit codes: 0 ok, 1 malformed plan, 2 no Accessibility, 3 executor missing
-# or stale, 64 bad arguments; install exits with swiftc's status on failure.
+# or stale, 64 bad arguments (incl. a plan over the 30 s cap, D133), 129/130/143
+# executor interrupted by SIGHUP/SIGINT/SIGTERM after releasing the button and
+# Option; install exits with swiftc's status on failure.
 set -eu
 
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

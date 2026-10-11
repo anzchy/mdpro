@@ -17,6 +17,11 @@
  *   and `alt: true` stamped on every mouse event, so the drop is a copy-drop.
  * - Intermediate points are linearly interpolated and rounded to 0.01; the
  *   last dragged point is set to the end point exactly, not a rounding of it.
+ * - The plan's total duration (hold + steps × step-ms + settle, the sum of
+ *   every wait) is capped at `MAX_PLAN_MS` (D133). A 400 s drag outlived the
+ *   120 s Bash timeout, which killed the executor with the button held; a
+ *   capped drag always finishes, and releases, well inside it. `drag.swift`
+ *   mirrors the cap (tests/device-drag-release.test.ts pins the two equal).
  *
  * @module scripts/device/dragPlan
  * @coordinates-with scripts/device/drag.mjs (CLI that prints the plan)
@@ -31,6 +36,8 @@
  */
 
 export const MIN_DRAG_POINTS = 5;
+/** Upper bound, in ms, on the sum of every wait in one plan (D133). */
+export const MAX_PLAN_MS = 30000;
 const COORD_RE = /^\d+(\.\d+)?$/;
 const INT_RE = /^\d+$/;
 
@@ -43,6 +50,17 @@ const INT_FLAGS = {
 };
 
 const DEFAULTS = { copy: false, steps: 20, holdMs: 150, stepMs: 16, settleMs: 100 };
+
+/** The sum of every wait the plan for `opts` will contain. */
+const planDurationMs = ({ holdMs, steps, stepMs, settleMs }) => holdMs + steps * stepMs + settleMs;
+
+/** The over-cap error text, or null when the plan fits under `MAX_PLAN_MS`. */
+function capError(opts) {
+  const total = planDurationMs(opts);
+  return total > MAX_PLAN_MS
+    ? `plan duration ${total} ms exceeds the ${MAX_PLAN_MS} ms cap (hold + steps × step-ms + settle)`
+    : null;
+}
 
 /**
  * Validate the CLI arguments.
@@ -80,6 +98,8 @@ export function parseDragArgs(argv) {
   if (Math.hypot(x2 - x1, y2 - y1) < MIN_DRAG_POINTS) {
     return { ok: false, error: `drag distance below ${MIN_DRAG_POINTS} points` };
   }
+  const overCap = capError(opts);
+  if (overCap) return { ok: false, error: overCap };
   return { ok: true, opts: { x1, y1, x2, y2, ...opts } };
 }
 
@@ -89,8 +109,11 @@ const round2 = (n) => Math.round(n * 100) / 100;
  * The ordered events for one drag. Pure: the same opts give the same plan.
  * @param {DragOpts} opts validated by `parseDragArgs`
  * @returns {DragEvent[]}
+ * @throws {RangeError} when the plan's waits would sum past `MAX_PLAN_MS`
  */
 export function buildDragPlan(opts) {
+  const overCap = capError(opts);
+  if (overCap) throw new RangeError(overCap);
   const { x1, y1, x2, y2, copy, steps, holdMs, stepMs, settleMs } = opts;
   /** @type {DragEvent[]} */
   const plan = [];

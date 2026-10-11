@@ -6,8 +6,9 @@
  * Pipeline: `drag.sh` → `node drag.mjs "$@"` → stdout JSON → `drag-bin`.
  *
  * Key decisions:
- * - A parse error prints `drag: <error>` and the usage line to stderr, prints
- *   nothing to stdout, and exits 64 (EX_USAGE). `drag.sh` captures stdout
+ * - A parse error (including a plan over the 30 s `MAX_PLAN_MS` cap, D133)
+ *   prints `drag: <error>` and the usage line to stderr, prints nothing to
+ *   stdout, and exits 64 (EX_USAGE). `drag.sh` captures stdout
  *   before starting the executor, so no partial plan is ever posted.
  *
  * @module scripts/device/drag
