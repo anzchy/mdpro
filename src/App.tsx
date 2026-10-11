@@ -34,7 +34,7 @@ import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/common/settings/editorPrefApply";
-import { fileService } from "./services/fileService";
+import { reloadActiveFromDisk } from "./utils/reloadTarget";
 import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
 import { performSave } from "./services/saveService";
@@ -436,9 +436,9 @@ function App() {
     if (!fileChangeEvent?.path) return;
     setBusyLabel("Reloading...");
     try {
-      const doc = await fileService.reloadFile(fileChangeEvent.path);
-      replaceDocument(doc as Document);
-      showToast("File reloaded");
+      // D138: in place under the prompted tab's id; no target (closed/switched) → no toast.
+      const outcome = await reloadActiveFromDisk(fileChangeEvent.path, replaceDocument);
+      if (outcome.kind === "reloaded") showToast("File reloaded");
     } catch {
       showToast("Reload failed");
     } finally {

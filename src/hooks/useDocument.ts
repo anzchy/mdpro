@@ -205,7 +205,8 @@ export function useDocument() {
   );
 
   const replaceDocument = useCallback((document: Document) => {
-    // WI-3.5.5 wholesale: the file-reload leg, incl. the external file watcher.
+    // WI-3.5.5 wholesale: the file-reload leg, incl. the external file watcher. D138: the
+    // caller (`utils/reloadTarget.ts`) passes the prompted tab's id, not reload_file's.
     prepareWholesaleReplace(document.id, "file-reload"); // + WYSIWYG rebuild (D15-WI-5)
     useDocumentStore.getState().upsertDocument(document);
   }, []);

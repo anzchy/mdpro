@@ -137,11 +137,16 @@ describe("data-loss: external-edit conflict", () => {
   });
 
   it("reload is user-initiated only (handleReloadFile is the sole reloadFile caller)", () => {
-    expect(APP_SRC).toMatch(/handleReloadFile/);
-    expect(APP_SRC).toMatch(/fileService\.reloadFile\(/);
+    // D138 moved the reload body into utils/reloadTarget.ts (in place, by the prompted
+    // tab's id). The chain is still single: handleReloadFile → reloadActiveFromDisk →
+    // the one fileService.reloadFile call.
+    const RELOAD_SRC = fs.readFileSync(path.resolve(__dirname, "../src/utils/reloadTarget.ts"), "utf-8");
+    const handler = APP_SRC.slice(APP_SRC.indexOf("const handleReloadFile"));
+    expect(handler.slice(0, handler.indexOf("}, ["))).toMatch(/reloadActiveFromDisk\(/);
+    expect(APP_SRC.match(/reloadActiveFromDisk\(/g) ?? []).toHaveLength(1);
+    expect(APP_SRC).not.toMatch(/fileService\.reloadFile\(/);
     // Exactly one call site for the clobbering reload.
-    const matches = APP_SRC.match(/fileService\.reloadFile\(/g) ?? [];
-    expect(matches.length).toBe(1);
+    expect(RELOAD_SRC.match(/fileService\.reloadFile\(/g) ?? []).toHaveLength(1);
   });
 
   it("ignoring the reload keeps the in-editor content (clears event, no replace)", () => {
