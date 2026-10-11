@@ -62,7 +62,7 @@ gh run watch                                   # or: gh run view <id> --log-fail
 - **R2 (`rehearsal-draft`)** creates `rehearsal-d76-<sha7>`. **The session that dispatched it
   deletes it** once the run has been read: `gh release delete rehearsal-d76-<sha7> --yes`,
   without `--cleanup-tag` (a draft has no git tag). It is deleted only after the user confirms
-  that command (rule 25). For the D76 rehearsal that is mdpro-85.
+  that command (rule 25). For the D76 rehearsal that is adr047-verify (formerly mdpro-85).
 - **Negative rehearsal** (WI-8): put one broken `.sig` into a rehearsal draft, then run the
   rehearsal check mode by hand, which the workflow never runs:
 
@@ -75,9 +75,11 @@ gh run watch                                   # or: gh run view <id> --log-fail
   the signature. To reach that check, break an installer's `.sig` (the `.deb`'s, which
   `latest.json` does not carry) and also re-upload a `manifest.json` recomputed over the
   changed set (`buildManifest` in `assetSet.mjs`). Otherwise the byte check refuses the draft
-  first, which proves the byte check, not the signature check. On a good rehearsal draft it exits 0 and still prints "never publishable":
-  `may-publish` refuses every rehearsal tag. Without `--rehearsal`, verify-release refuses a
-  rehearsal tag before reading any asset.
+  first, which proves the byte check, not the signature check.
+- On a good rehearsal draft `--rehearsal` exits 0 and prints "never publishable". **Exit 0
+  here does not mean publishable**: `may-publish` refuses every rehearsal tag. Without
+  `--rehearsal`, verify-release refuses a rehearsal tag before reading any asset
+  ([ADR-0076](../adr/0076-verify-release-gains-a-rehearsal-only-check-mode.md)).
 
 ## After the release
 
