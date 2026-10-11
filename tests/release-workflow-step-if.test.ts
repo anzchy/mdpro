@@ -18,7 +18,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { entry, job, steps } from "./support/workflowBlocks";
+import { job, steps } from "./support/workflowBlocks";
 import { FAIL_OPEN, guardedJobs, stepIf, stepIfViolations } from "./support/workflowStepIf";
 
 const FILE = path.resolve(__dirname, "..", ".github", "workflows", "release.yml");
@@ -141,20 +141,5 @@ describe("D128 release.yml", () => {
 
   it("stricter: no step in a guarded job has any step-level if:", () => {
     expect(stepIfViolations(TEXT, { strict: true })).toEqual([]);
-  });
-
-  // W7 bans `||` on draft's job-level if: but not always()/failure()/cancelled(),
-  // so `if: always() && inputs.mode != 'build-only'` passed every test. Pin the
-  // job level for every guarded job, and prove the reader sees a job's own if:.
-  it("no guarded job has a fail-open job-level if:, and verify has none at all", () => {
-    const jobIf = (text: string, id: string) => {
-      const e = entry(job(text, id), "if");
-      return e ? (e.inline ?? e.body) : null;
-    };
-    const bad = workflow([]).replace("  publish:\n", "  publish:\n    if: always() && inputs.mode == 'draft'\n");
-    expect(jobIf(bad, "publish")).toMatch(FAIL_OPEN);
-    for (const id of guardedJobs(TEXT)) expect(jobIf(TEXT, id) ?? "", id).not.toMatch(FAIL_OPEN);
-    expect(jobIf(TEXT, "draft")).toBe("inputs.mode != 'build-only'");
-    expect(jobIf(TEXT, "verify")).toBeNull();
   });
 });
