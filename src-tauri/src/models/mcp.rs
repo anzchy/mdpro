@@ -270,6 +270,10 @@ pub struct InsertContentEvent {
     pub text: String,
     pub position: InsertPosition,
     pub window_label: Option<String>,
+    /// D153: the id `insert_content` minted for this request. Its
+    /// `stage: "scheduled"` log line carries the same id, and the frontend's
+    /// `stage: "applied"` line reuses it. Serialized as `action_id`.
+    pub action_id: String,
 }
 
 /// Server configuration for HTTP server. `Debug` prints the token as `<redacted>`.

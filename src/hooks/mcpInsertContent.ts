@@ -26,8 +26,10 @@
  * - Branch on `viewMode === "wysiwyg"`, never on `editorView === null`: source mode
  *   can also have no live view. Source-mode and non-active inserts stay incremental.
  * - The whole step runs in one synchronous block, as `utils/wholesaleReplace.ts` requires.
- * - Logs `mcp.insert` with `{ documentId, wholesale }` or `{ documentId, reason }` only,
- *   never the inserted text or its length.
+ * - Logs `mcp.insert` with `{ documentId, stage: "applied", wholesale }` or
+ *   `{ documentId, stage: "applied", reason }` only, never the inserted text or its
+ *   length. Every line carries the payload's `action_id` as `actionId` (a generated one
+ *   when an older emitter sent none), joining it to Rust's `stage: "scheduled"` line (D153).
  *
  * @coordinates-with src/hooks/useMcpEvents.ts — the `mcp:insert_content` listener
  * @coordinates-with src/utils/wholesaleReplace.ts — reason "mcp-insert"; D37 focus capture
@@ -45,6 +47,8 @@ import { prepareWholesaleReplace } from "../utils/wholesaleReplace";
 
 const INSERT_EVENT = "mcp.insert";
 const INSERT_REASON = "mcp-insert";
+/** D153: this handler's log lines report the insert applied, not just scheduled. */
+const STAGE_APPLIED = "applied";
 
 /** Insert position for MCP insert_content. */
 export type InsertPosition = "cursor" | "start" | "end" | number;
@@ -55,6 +59,11 @@ export interface InsertContentEvent {
   text: string;
   position: InsertPosition;
   window_label: string | null;
+  /**
+   * D153: the id Rust minted for this request and logged with `stage: "scheduled"`.
+   * Optional so an older emitter without it still works.
+   */
+  action_id?: string;
 }
 
 export interface InsertContentDeps {
@@ -64,8 +73,14 @@ export interface InsertContentDeps {
   updateDocumentContent: (id: string, content: string) => void;
 }
 
-function logFail(documentId: string, reason: string): void {
-  loggingService.logEventSync({ level: "warn", event: INSERT_EVENT, status: "fail", context: { documentId, reason } });
+function logFail(documentId: string, actionId: string, reason: string): void {
+  loggingService.logEventSync({
+    level: "warn",
+    event: INSERT_EVENT,
+    status: "fail",
+    actionId,
+    context: { documentId, stage: STAGE_APPLIED, reason },
+  });
 }
 
 /** Apply one `mcp:insert_content` event. Synchronous; returns nothing. */
@@ -78,8 +93,9 @@ export function processInsertContentEvent(
   }
 
   const documentId = event.document_id;
+  const actionId = event.action_id ?? loggingService.generateActionId();
   if (!useDocumentStore.getState().getDocumentById(documentId)) {
-    logFail(documentId, "not found");
+    logFail(documentId, actionId, "not found");
     return;
   }
 
@@ -92,7 +108,7 @@ export function processInsertContentEvent(
   if (isWysiwygActive) {
     const flush = useMilkdownEditorStore.getState().flushPendingEdits(INSERT_REASON);
     if (flush.status === "failed") {
-      logFail(documentId, "flush failed");
+      logFail(documentId, actionId, "flush failed");
       return;
     }
   }
@@ -143,6 +159,7 @@ export function processInsertContentEvent(
     level: "info",
     event: INSERT_EVENT,
     status: "success",
-    context: { documentId, wholesale: isWysiwygActive },
+    actionId,
+    context: { documentId, stage: STAGE_APPLIED, wholesale: isWysiwygActive },
   });
 }

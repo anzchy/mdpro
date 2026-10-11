@@ -32,6 +32,13 @@
 //! - The server's lifecycle is the `McpController`'s (ADR-0040 WI-5); this
 //!   file only supplies the app's `ControllerEnv` (`app_controller_env`:
 //!   address and dir) and its router (`router_factory`).
+//! - D153: a write the frontend applies (`insert_content`,
+//!   `dispatch_table_action`) mints one uuid action id per request. Its emit
+//!   lines (`mcp.insert`, `mcp.table.<action>`) carry it and
+//!   `stage: "scheduled"` (`scheduled_entry`), and the event payload carries
+//!   it as `action_id`, so the frontend's `stage: "applied"` line under the
+//!   same event name joins them. `update_document` and `create_document` are
+//!   unchanged: their frontend handlers log no success line of their own.
 //! - Auth is `with_token_auth(router, SharedServerConfig)`: the middleware
 //!   reads the shared config per request, so a rotated or cleared token
 //!   applies to the next request, and a `None` config rejects everything.
@@ -527,11 +534,13 @@ async fn insert_content(
     Path(id): Path<String>,
     Json(request): Json<InsertContentRequest>,
 ) -> Result<Response, Response> {
+    // D153: one id per request, on the start and scheduled lines and the event.
+    let action_id = uuid::Uuid::new_v4().to_string();
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "mcp.insert".to_string(),
         status: LogStatus::Start,
-        action_id: None,
+        action_id: Some(action_id.clone()),
         context: Some(json!({ "documentId": id, "textLength": request.text.len() })),
         duration_ms: None,
         error: None,
@@ -580,6 +589,7 @@ async fn insert_content(
         text: request.text,
         position: request.position,
         window_label,
+        action_id: action_id.clone(),
     };
 
     if let Err(e) = state.app_handle.emit("mcp:insert_content", &event) {
@@ -591,17 +601,14 @@ async fn insert_content(
                 Ok(false) => "not rolled back: document not found",
                 Err(_) => "not rolled back: mutex error",
             };
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Error,
-            event: "mcp.insert".to_string(),
-            status: LogStatus::Fail,
-            action_id: None,
-            context: Some(
-                json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") }),
-            ),
-            duration_ms: None,
-            error: Some(e.to_string()),
-        });
+        logger::log_event(scheduled_entry(
+            LogLevel::Error,
+            "mcp.insert",
+            LogStatus::Fail,
+            &action_id,
+            json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") }),
+            Some(e.to_string()),
+        ));
         let error = ErrorResponse {
             error: format!("Failed to emit insert event: {}", e),
             code: Some("EMIT_FAILED".to_string()),
@@ -609,17 +616,15 @@ async fn insert_content(
         return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response());
     }
 
-    logger::log_event(LogEntryPayload {
-        level: LogLevel::Info,
-        event: "mcp.insert".to_string(),
-        status: LogStatus::Success,
-        action_id: None,
-        context: Some(
-            json!({ "documentId": id, "insertOffset": insert_offset, "newCursor": new_cursor }),
-        ),
-        duration_ms: None,
-        error: None,
-    });
+    // "Scheduled": the frontend logs `stage: "applied"` with this id (D153).
+    logger::log_event(scheduled_entry(
+        LogLevel::Info,
+        "mcp.insert",
+        LogStatus::Success,
+        &action_id,
+        json!({ "documentId": id, "insertOffset": insert_offset, "newCursor": new_cursor }),
+        None,
+    ));
 
     let result = InsertResult {
         success: true,
@@ -673,6 +678,58 @@ struct TableActionEvent {
     action: String,
     payload: serde_json::Value,
     window_label: Option<String>,
+    /// D153: minted once per request; also on the `stage: "scheduled"` log.
+    action_id: String,
+}
+
+/// Build the `mcp:table_action` payload (D153: with the request's action id).
+fn table_action_event(
+    document_id: &str,
+    action: TableAction,
+    payload: serde_json::Value,
+    window_label: Option<String>,
+    action_id: &str,
+) -> TableActionEvent {
+    TableActionEvent {
+        document_id: document_id.to_string(),
+        action: action.as_str().to_string(),
+        payload,
+        window_label,
+        action_id: action_id.to_string(),
+    }
+}
+
+/// The `stage` a Rust log line reports for a write it hands to the frontend:
+/// the emit happened, the edit has not been applied yet (D153).
+const STAGE_SCHEDULED: &str = "scheduled";
+
+/// A log line for a write handed to the frontend (D153): `context` gains
+/// `stage: "scheduled"` and the line carries `action_id`, the id the emitted
+/// payload also carries, so the frontend's `stage: "applied"` line under the
+/// same event name can be joined to it. A non-object `context` is replaced
+/// by `{ "stage": "scheduled" }`.
+fn scheduled_entry(
+    level: LogLevel,
+    event: &str,
+    status: LogStatus,
+    action_id: &str,
+    context: serde_json::Value,
+    error: Option<String>,
+) -> LogEntryPayload {
+    let mut context = match context {
+        serde_json::Value::Object(map) => map,
+        _ => serde_json::Map::new(),
+    };
+    context.insert("stage".to_string(), json!(STAGE_SCHEDULED));
+    LogEntryPayload {
+        level,
+        event: event.to_string(),
+        status,
+        action_id: Some(action_id.to_string()),
+        context: Some(serde_json::Value::Object(context)),
+        duration_ms: None,
+        error,
+    }
 }
 
 /// Common helper — gates the write on the owning window's confirmation
@@ -693,6 +750,7 @@ async fn dispatch_table_action(
     payload: serde_json::Value,
 ) -> Response {
     let log_event = format!("mcp.table.{}", action.as_str());
+    let action_id = uuid::Uuid::new_v4().to_string();
     let gate = confirm_gate(
         &state.confirm,
         &state.shadow_store,
@@ -715,23 +773,17 @@ async fn dispatch_table_action(
         Err(e) => return store_error(e),
     };
 
-    let event = TableActionEvent {
-        document_id: document_id.to_string(),
-        action: action.as_str().to_string(),
-        payload,
-        window_label,
-    };
+    let event = table_action_event(document_id, action, payload, window_label, &action_id);
 
     if let Err(e) = state.app_handle.emit("mcp:table_action", &event) {
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Error,
-            event: log_event,
-            status: LogStatus::Fail,
-            action_id: None,
-            context: Some(json!({ "documentId": document_id })),
-            duration_ms: None,
-            error: Some(e.to_string()),
-        });
+        logger::log_event(scheduled_entry(
+            LogLevel::Error,
+            &log_event,
+            LogStatus::Fail,
+            &action_id,
+            json!({ "documentId": document_id }),
+            Some(e.to_string()),
+        ));
         let error = ErrorResponse {
             error: format!("Failed to emit table action event: {}", e),
             code: Some("EMIT_FAILED".to_string()),
@@ -739,15 +791,16 @@ async fn dispatch_table_action(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
 
-    logger::log_event(LogEntryPayload {
-        level: LogLevel::Info,
-        event: log_event,
-        status: LogStatus::Success,
-        action_id: None,
-        context: Some(json!({ "documentId": document_id })),
-        duration_ms: None,
-        error: None,
-    });
+    // "Scheduled", not "applied": the frontend logs its own `stage: "applied"`
+    // line under this event name and `action_id` once it has made the edit.
+    logger::log_event(scheduled_entry(
+        LogLevel::Info,
+        &log_event,
+        LogStatus::Success,
+        &action_id,
+        json!({ "documentId": document_id }),
+        None,
+    ));
 
     (StatusCode::ACCEPTED, Json(json!({ "scheduled": true }))).into_response()
 }
@@ -954,6 +1007,10 @@ mod insert_reread_tests;
 #[cfg(test)]
 #[path = "http_server_port_tests.rs"]
 mod port_tests;
+
+#[cfg(test)]
+#[path = "http_server_log_stage_tests.rs"]
+mod log_stage_tests;
 
 #[cfg(test)]
 mod tests {
@@ -1341,6 +1398,7 @@ mod tests {
             action: "insert_table".to_string(),
             payload: serde_json::json!({ "rows": 2, "cols": 3 }),
             window_label: Some("main".to_string()),
+            action_id: "a-1".to_string(),
         };
         let s = serde_json::to_string(&event).unwrap();
         assert!(s.contains("\"document_id\":\"doc-1\""));

@@ -78,7 +78,13 @@ describe("MA-6: set_cell on an overflow document reaches the store and the live 
     expect(view.state.doc.toString()).toBe(EXPECTED);
 
     expect(logs("mcp.table.set_cell")).toEqual([
-      { level: "info", event: "mcp.table.set_cell", status: "success", context: { documentId: "doc-1" } },
+      {
+        level: "info",
+        event: "mcp.table.set_cell",
+        status: "success",
+        actionId: expect.any(String),
+        context: { documentId: "doc-1", stage: "applied" },
+      },
     ]);
     expect(logs("editor.table.edit-widened").map((p) => p.context)).toEqual([
       { action: "set_cell", fromColCount: 2, toColCount: 3 },

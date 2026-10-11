@@ -38,6 +38,7 @@ import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
 import { docById, makeDoc, mountAndWait, resetStores, sleep, typeAtEnd } from "./helpers/milkdownEditorHarness";
 import {
+  D58_ACTION_ID,
   F,
   R,
   bindInvoke,
@@ -63,6 +64,7 @@ const setCell = (content: string) => ({
   action: "set_cell",
   payload: { row: 1, col: 0, content },
   window_label: null,
+  action_id: D58_ACTION_ID,
 });
 
 let unmountEditor: (() => void) | null = null;

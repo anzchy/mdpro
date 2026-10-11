@@ -31,8 +31,10 @@
  *   resulting document is the same `newContent` either way.
  * - Both store writes are classified `ordinary` in tests/wholesale-path-partition.test.ts
  *   (table cells only), so they do not reset TOC coordination.
- * - Logs `mcp.table.<action>` with `{ documentId }` plus `reason` / `error` /
- *   `storeReconciled` on failure, never cell text.
+ * - Logs `mcp.table.<action>` with `{ documentId, stage: "applied" }` plus `reason` /
+ *   `error` / `storeReconciled` on failure, never cell text. Every line carries the
+ *   payload's `action_id` as `actionId` (a generated one when an older emitter sent
+ *   none), joining it to Rust's `stage: "scheduled"` line under the same event (D153).
  * - Moved out of `useMcpEvents.ts` (D35 WI-1), which re-exports both symbols.
  *
  * @coordinates-with src/hooks/useMcpEvents.ts — registers the listener and calls this
@@ -53,6 +55,8 @@ import { minimalTextChange } from "../utils/minimalTextChange";
 import { REASON_THREW, applyTableToMilkdown } from "./mcpTableApplyMilkdown";
 
 const FLUSH_REASON = "mcp-table";
+/** D153: this handler's log lines report the edit applied, not just scheduled. */
+const STAGE_APPLIED = "applied";
 
 /**
  * Event payload for mcp:table_action (Phase 3 WI-3.3). Rust HTTP
@@ -65,6 +69,11 @@ export interface TableActionEvent {
   action: McpTableAction;
   payload: Record<string, unknown>;
   window_label: string | null;
+  /**
+   * D153: the id Rust minted for this request and logged with `stage: "scheduled"`.
+   * Optional so an older emitter without it still works.
+   */
+  action_id?: string;
 }
 
 /**
@@ -73,7 +82,8 @@ export interface TableActionEvent {
  * Reads the same Zustand stores the hook does; `currentWindowLabel` and
  * `updateDocumentContent` are passed in to avoid useEffect / useRef
  * indirection. Never throws; every refusal or failure logs exactly one
- * `mcp.table.<action>` fail entry, and a success logs exactly one success.
+ * `mcp.table.<action>` fail entry, and a success logs exactly one success, each
+ * with `stage: "applied"` and the event's `action_id` as `actionId` (D153).
  */
 export function processTableActionEvent(
   event: TableActionEvent,
@@ -85,12 +95,14 @@ export function processTableActionEvent(
   if (event.window_label && event.window_label !== deps.currentWindowLabel) {
     return;
   }
+  const actionId = event.action_id ?? loggingService.generateActionId();
   const fail = (context: Record<string, unknown>) =>
     loggingService.logEventSync({
       level: "warn",
       event: `mcp.table.${event.action}`,
       status: "fail",
-      context: { documentId: event.document_id, ...context },
+      actionId,
+      context: { documentId: event.document_id, stage: STAGE_APPLIED, ...context },
     });
   const documents = useDocumentStore.getState();
   if (!documents.getDocumentById(event.document_id)) {
@@ -165,6 +177,7 @@ export function processTableActionEvent(
     level: "info",
     event: `mcp.table.${event.action}`,
     status: "success",
-    context: { documentId: event.document_id },
+    actionId,
+    context: { documentId: event.document_id, stage: STAGE_APPLIED },
   });
 }

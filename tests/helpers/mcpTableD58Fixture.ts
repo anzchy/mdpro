@@ -54,6 +54,9 @@ export const DISPATCH_THROW = "D58 simulated dispatch failure";
 export const VIEW_CTX_THROW = "D58 simulated view ctx failure";
 export const SERIALIZER_THROW = "D58 simulated serializer failure";
 
+/** D153: the Rust-minted id every fixture event carries; every handler log line reuses it. */
+export const D58_ACTION_ID = "d58-action-id";
+
 /** Build a table event; defaults to EV (set_cell CELL on doc-a, window "main"). */
 export function tableEvt(overrides: Partial<TableActionEvent> = {}): TableActionEvent {
   return {
@@ -61,6 +64,7 @@ export function tableEvt(overrides: Partial<TableActionEvent> = {}): TableAction
     action: "set_cell",
     payload: { row: 1, col: 0, content: CELL },
     window_label: "main",
+    action_id: D58_ACTION_ID,
     ...overrides,
   };
 }
@@ -273,17 +277,26 @@ export const tableLogs = (): LogPayload[] => allLogs().filter((p) => p.event.sta
 export const flushContexts = (): Array<Record<string, unknown> | undefined> =>
   logs("editor.milkdown.flush").map((p) => p.context);
 
+// D153: every handler line carries `stage: "applied"` and the event's `action_id`.
 export const successLog = (action: string, documentId: string): LogPayload => ({
   level: "info",
   event: `mcp.table.${action}`,
   status: "success",
-  context: { documentId },
+  actionId: D58_ACTION_ID,
+  context: { documentId, stage: "applied" },
 });
 
 export const failLog = (
   action: string,
   context: Record<string, unknown>,
-): LogPayload => ({ level: "warn", event: `mcp.table.${action}`, status: "fail", context });
+): LogPayload => ({
+  level: "warn",
+  event: `mcp.table.${action}`,
+  status: "fail",
+  actionId: D58_ACTION_ID,
+  // Key order matches the handler's, for the JSON-equality law checks.
+  context: { documentId: context.documentId, stage: "applied", ...context },
+});
 
 /** D58-7: neither sentinel appears in any serialized `log_event` call. */
 export function sentinelViolations(sentinels: readonly string[] = SENTINELS): string[] {
@@ -307,7 +320,9 @@ const FLUSH_TOP = new Set(["level", "event", "status", "actionId", "context", "e
 
 const keysOf = (o: object | undefined): string => Object.keys(o ?? {}).sort().join(",");
 
-function tableContextOk(ctx: Record<string, unknown>, status: string | undefined): boolean {
+function tableContextOk(ctxWithStage: Record<string, unknown>, status: string | undefined): boolean {
+  const { stage, ...ctx } = ctxWithStage;
+  if (stage !== "applied") return false; // D153
   const keys = keysOf(ctx);
   if (status === "success") return keys === "documentId";
   if (keys === "documentId,reason") return PLAIN_REASONS.has(ctx.reason as string);
@@ -343,7 +358,7 @@ export function closedWorldViolations(actions: readonly string[], onlyAllowed = 
       if (extra.length) out.push(`flush top-level keys: ${extra.join(",")}`);
       if (("error" in p) !== (p.status === "fail")) out.push("flush: error present iff status fail");
     } else {
-      if (keysOf(p) !== "context,event,level,status") out.push(`${p.event} top-level keys: ${keysOf(p)}`);
+      if (keysOf(p) !== "actionId,context,event,level,status") out.push(`${p.event} top-level keys: ${keysOf(p)}`);
       if (!tableContextOk(ctx, p.status)) out.push(`${p.event} context shape: ${keysOf(ctx)} / ${String(ctx.reason)}`);
     }
   }

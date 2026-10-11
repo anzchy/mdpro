@@ -48,8 +48,8 @@ const throwing = () => {
   throw new Error("serializer down");
 };
 const FLUSH_FAILED = (documentId: string) => ({
-  level: "warn", event: "mcp.insert", status: "fail",
-  context: { documentId, reason: "flush failed" },
+  level: "warn", event: "mcp.insert", status: "fail", actionId: "test-action-id",
+  context: { documentId, stage: "applied", reason: "flush failed" },
 });
 
 let view: EditorView | null = null;
@@ -215,7 +215,7 @@ describe("D35-7 reload logged once as mcp-insert; wholesale flag tracks active-a
       }
       const success = logs("mcp.insert").filter((e) => e.status === "success");
       expect(success).toHaveLength(1);
-      expect(success[0].context).toEqual({ documentId: "doc-a", wholesale: row.wholesale });
+      expect(success[0].context).toEqual({ documentId: "doc-a", stage: "applied", wholesale: row.wholesale });
       noLeak();
     });
   }
@@ -242,8 +242,8 @@ describe("D35-8 guards run before any flush", () => {
     const insertLogs = logs("mcp.insert");
     expect(insertLogs).toHaveLength(1);
     expect(insertLogs[0]).toEqual({
-      level: "warn", event: "mcp.insert", status: "fail",
-      context: { documentId: "doc-missing", reason: "not found" },
+      level: "warn", event: "mcp.insert", status: "fail", actionId: "test-action-id",
+      context: { documentId: "doc-missing", stage: "applied", reason: "not found" },
     });
     noLeak();
     expect(c.flush("probe")).toEqual({ status: "written" });
