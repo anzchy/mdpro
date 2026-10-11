@@ -9,8 +9,8 @@
  *
  * Pipeline: clipboard HTML → `transformPastedHTML` (sanitizer) → ProseMirror DOM
  * parser → `transformPasted` (this plugin: end-pad) → `handlePaste` (the front
- * guard `pasteRefusalGuard.ts` asks `pasteRefusal` and refuses, then
- * prosemirror-tables) → `replaceSelection`. A drop: the
+ * guard `pasteRefusalGuard.ts` asks `pasteRefusal` and refuses, then the cell
+ * paste `pasteCells.ts`) → `replaceSelection`. A drop: the
  * dragged slice (`transformPasted`) or the dropped HTML (parsed as above) →
  * `handleDrop` (this plugin: replay the default drop on a scratch transaction,
  * refuse if it breaks the host table) → prosemirror-view's `dropPoint` →

@@ -5,8 +5,9 @@
  * `handlePaste` sees it.
  *
  * Pipeline: paste → `transformPasted` → `handlePaste` (this plugin, FIRST in the
- * plugin list: `pasteRefusal` → `refuseTableBreak`) → prosemirror-tables'
- * `handlePaste` (gfm's `tableEditing`) → `replaceSelection`.
+ * plugin list: `pasteRefusal` → `refuseTableBreak`) → the cell paste
+ * (`pasteWidenAlignment.ts` → `pasteCells.ts`, also at the front) → gfm's
+ * `tableEditing` → `replaceSelection`.
  *
  * Key decisions:
  *   - Registered at the FRONT of `prosePluginsCtx`, not appended like `$prose`.
