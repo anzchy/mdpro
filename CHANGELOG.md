@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- In dark mode the Source editor's search panel (⌘F), its fields and buttons, the line-number gutter and the lint tooltips are dark too (D158). They used to stay light grey with black text whatever the app theme, because the editor always ran CodeMirror's light theme. They now follow the app theme, live, and use mdpro's own colours, with a visible focus ring on the search field and buttons
+  - **Known limit**: the search panel's checkboxes stay light in dark mode for now
 - Pasting a web table whose last row is covered by a merged cell from the row above no longer loses the whole table (D162). Since the D149 change the table turned into an empty paragraph, and inside a table that empty paragraph replaced the selected cells; the merged cell is now shortened to end above that row, which is filled with empty cells
 - Pasting a web table that has only a header row, outside any table, no longer loses its text (D149); it now pastes as a table with that header and one empty row. A web table with only body rows no longer gets a left-aligned header (D150); its added header row is empty and unaligned, and every body row is kept
 - In WYSIWYG, Insert row above on a table's header row no longer splits the table in two (D155). The saved file used to gain an extra, empty table above the original. The header row is now emptied and its old text moves down into a new first body row, as in Source mode; column alignment is kept and one undo restores the table

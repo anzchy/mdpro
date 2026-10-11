@@ -19,8 +19,10 @@ describe("source mode scroll layout", () => {
     expect(block).toContain("min-height: 0");
   });
 
+  // D158: Editor passes @uiw an Extension theme, so its wrapper class is `cm-theme`
+  // in both app themes (never `cm-theme-light` / `cm-theme-dark`).
   it("constrains the CodeMirror theme wrapper instead of letting content set height", () => {
-    const block = blockFor(".editor-shell .cm-theme-light,\n.editor-shell .cm-theme-dark");
+    const block = blockFor(".editor-shell .cm-theme");
 
     expect(block).toContain("display: flex");
     expect(block).toContain("flex: 1");

@@ -12,9 +12,11 @@ import {
   initialTabSize,
   initialWordWrap,
 } from "./extensions/dynamicExtensions";
+import { sourceEditorTheme } from "./extensions/appTheme";
 import { reapplyEditorPrefs } from "../common/settings/editorPrefApply";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useEditorStore, userViewModeCommands } from "../../stores/editorStore";
+import { useThemeStore } from "../../stores/themeStore";
 import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
 import { isPositionInFencedCode } from "../../plugins/codemirror/sourceTableDetection";
@@ -44,6 +46,8 @@ export function Editor({
   const viewRef = useRef<EditorView | null>(null);
   const initializedRef = useRef(false);
   const setEditorView = useEditorStore((state) => state.setEditorView);
+  // D158: CodeMirror's base theme follows the app theme (see extensions/appTheme).
+  const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   // ADR-0022: true when the active document's Source table verdict is
   // "withheld". A subscription (not a getState() read) because App's guard
   // effect records the verdict after this component mounts.
@@ -175,6 +179,7 @@ export function Editor({
       <CodeMirror
         value={value}
         height="100%"
+        theme={sourceEditorTheme(resolvedTheme)}
         extensions={extensions}
         onChange={(nextValue) => {
           if (!readOnly) {

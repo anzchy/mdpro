@@ -27,51 +27,14 @@ import { EditorView, drawSelection, highlightActiveLine } from "@codemirror/view
 import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { readAppCssFile } from "../src/test/appCss";
-
-interface CssRule {
-  selectors: string[];
-  decls: Map<string, string>;
-}
-
-/** Flat rule parser — enough for editor-source.css and CodeMirror's generated CSS (no nesting, no at-rules). */
-function parseRules(css: string): CssRule[] {
-  const rules: CssRule[] = [];
-  const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  const re = /([^{}]+)\{([^{}]*)\}/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    const selectors = m[1].split(",").map((s) => s.trim()).filter(Boolean);
-    const decls = new Map<string, string>();
-    for (const part of m[2].split(";")) {
-      const idx = part.indexOf(":");
-      if (idx < 0) continue;
-      decls.set(part.slice(0, idx).trim().toLowerCase(), part.slice(idx + 1).trim());
-    }
-    rules.push({ selectors, decls });
-  }
-  return rules;
-}
-
-/** [ids, classes/attributes/pseudo-classes, types] — sufficient for these selectors. */
-function specificity(selector: string): [number, number, number] {
-  const s = selector.replace(/::[\w-]+/g, "");
-  const ids = (s.match(/#[^\s.#:>+~[]+/g) ?? []).length;
-  const classes =
-    (s.match(/\.[^\s.#:>+~[]+/g) ?? []).length +
-    (s.match(/\[[^\]]*\]/g) ?? []).length +
-    (s.match(/:[\w-]+/g) ?? []).length;
-  const types = (s.match(/(^|[\s>+~])[a-zA-Z][\w-]*/g) ?? []).length;
-  return [ids, classes, types];
-}
-
-function compareSpecificity(a: [number, number, number], b: [number, number, number]): number {
-  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i];
-  return 0;
-}
-
-function background(rule: CssRule): string | undefined {
-  return rule.decls.get("background-color") ?? rule.decls.get("background");
-}
+import {
+  background,
+  codemirrorCss,
+  compareSpecificity,
+  lastCompound,
+  parseRules,
+  specificity,
+} from "./support/cssRules";
 
 /** A background is see-through when it is `transparent` or a color-mix toward transparent below 100%. */
 function isTranslucent(value: string): boolean {
@@ -79,8 +42,6 @@ function isTranslucent(value: string): boolean {
   const mix = /^color-mix\(\s*in srgb\s*,\s*var\(--[\w-]+\)\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)$/.exec(value);
   return mix !== null && Number(mix[1]) < 100;
 }
-
-const lastCompound = (selector: string): string => selector.split(/[\s>+~]+/).filter(Boolean).pop() ?? "";
 
 const views: EditorView[] = [];
 afterEach(() => {
@@ -104,15 +65,6 @@ function mount(codeTheme: Extension): EditorView {
   });
   views.push(view);
   return view;
-}
-
-/** Every CSS rule CodeMirror injected into the document for the mounted views. */
-function codemirrorCss(): string {
-  const parts: string[] = [];
-  document.querySelectorAll("style").forEach((el) => parts.push(el.textContent ?? ""));
-  const adopted = (document as Document & { adoptedStyleSheets?: CSSStyleSheet[] }).adoptedStyleSheets ?? [];
-  for (const sheet of adopted) for (const r of Array.from(sheet.cssRules)) parts.push(r.cssText);
-  return parts.join("\n");
 }
 
 const sourceCss = () => parseRules(readAppCssFile("sections/editor-source.css"));

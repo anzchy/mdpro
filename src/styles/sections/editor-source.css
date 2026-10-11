@@ -6,8 +6,9 @@
   overflow: hidden;
 }
 
-.editor-shell .cm-theme-light,
-.editor-shell .cm-theme-dark {
+/* D158: Editor.tsx hands @uiw an Extension theme, so its wrapper is `.cm-theme`
+   in both app themes. */
+.editor-shell .cm-theme {
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -67,6 +68,81 @@
 
 .editor-shell .cm-cursor {
   border-left-color: var(--color-accent);
+}
+
+/* D158: CodeMirror's base theme paints this chrome with hard-coded light or dark
+   colours (and oneDark with its own). Each rule below sits one class above the
+   highest CodeMirror / oneDark rule for the same element and property, so the
+   tokens win in either code theme.
+   Literal stand-ins for redesign tokens not in the CSS yet
+   (docs/design/mdpro-ui-new/DESIGN.md § Tokens):
+     --color-hover       → color-mix(in srgb, var(--color-text) 4–5%, transparent)
+     --color-focus-ring  → var(--color-accent)
+     --radius-control    → 6px
+     --radius-popover    → 10px */
+.editor-shell .cm-editor .cm-activeLineGutter {
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+  color: var(--color-text);
+}
+
+/* Find / replace (top) and lint (bottom) panels. */
+.editor-shell .cm-editor .cm-panels {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.editor-shell .cm-editor .cm-panels.cm-panels-top {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.editor-shell .cm-editor .cm-panels.cm-panels-bottom {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Text input: --color-bg fill, hairline; focus pattern 1 (rule 33). */
+.editor-shell .cm-editor .cm-panels .cm-textfield {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.editor-shell .cm-editor .cm-panels .cm-textfield:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  outline: none;
+}
+
+/* Secondary button; focus pattern 2 (rule 33). No :active state. */
+.editor-shell .cm-editor .cm-panels .cm-button {
+  background: var(--color-panel);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.editor-shell .cm-editor .cm-panels .cm-button:hover {
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.editor-shell .cm-editor .cm-panels .cm-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* The close "×" is a plain <button>: without this it keeps the UA's ButtonText
+   colour, near-black on the dark panel. */
+.editor-shell .cm-editor .cm-panel [name="close"] {
+  color: inherit;
+}
+
+/* Lint and autocomplete tooltips: the popover contract. */
+.editor-shell .cm-editor .cm-tooltip {
+  background: var(--color-panel);
+  color: var(--color-text);
+  border-radius: 10px;
+  box-shadow: var(--shadow-soft);
+  /* stand-in until the ringed --shadow-soft lands (redesign WI-3.x), remove with it */
+  border: 1px solid var(--color-border);
 }
 
 /* Active table cell highlight in source mode (table-CRUD WI-2.5).
