@@ -11,7 +11,8 @@
 //! use `cap = HASH_CAP_BYTES`); run the test seam; fstat
 //! the handle again (`s2`); stat the path (`p`, following symlinks).
 //! `stable` means `s1 == s2` on `(mtime, size, ctime)` and `p` is the same
-//! file as `s1` on `(dev, ino, mtime, size)`.
+//! file as `s1` on `(dev, ino, mtime, size)`. Off Unix a read is never
+//! `stable` (D159).
 //!
 //! @coordinates-with services/file_watcher_baseline.rs (parent;
 //! `register` / `refresh_if_present` call `snapshot`; the parent re-exports
@@ -52,11 +53,21 @@
 //!   stat only (B7, B8, B10).
 //! - **64-bit SipHash** (std `DefaultHasher`, fixed keys) over the disk bytes,
 //!   never the editor's text. Collisions are accepted by the ADR.
+//! - **The stability proof is Unix-only; elsewhere every read is unstable
+//!   (D159).** `fd_proof` and `path_proof` read ctime, dev and ino through
+//!   `std::os::unix::fs::MetadataExt`, which exists on macOS and Linux only.
+//!   Off Unix they are rebuilt from portable `Metadata` (mtime, length, zeros
+//!   for the rest), but without ctime or an inode they cannot prove a read
+//!   coherent, so `STABILITY_PROVABLE` is false and no read is ever `stable`:
+//!   no hash is stored or matched, and every watcher event emits (fail open,
+//!   ADR-0068). mdpro targets macOS 13+; a Windows build is best effort, where
+//!   an extra "changed externally" prompt is better than a dropped one.
 use super::{Entry, HASH_CAP_BYTES};
 use std::collections::hash_map::DefaultHasher;
 use std::fs::{File, Metadata};
 use std::hash::Hasher;
 use std::io::{self, Read};
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::time::SystemTime;
@@ -99,9 +110,14 @@ pub(crate) fn read_once_upto(path: &Path, cap: u64) -> io::Result<ReadOnce> {
         s1,
         over_cap: bytes.len() as u64 > cap,
         bytes,
-        stable: same_fd && same_path,
+        stable: STABILITY_PROVABLE && same_fd && same_path,
     })
 }
+
+/// Whether this platform's metadata can prove a read stable: true on Unix
+/// (ctime and inode identity), false elsewhere, where every read is unstable
+/// and so fails open (D159).
+const STABILITY_PROVABLE: bool = cfg!(unix);
 
 /// `coherent_read_upto` with the hash cap, `HASH_CAP_BYTES`.
 pub(crate) fn coherent_read(path: &Path) -> Option<((SystemTime, u64), Vec<u8>)> {
@@ -144,6 +160,7 @@ pub(crate) fn hash_bytes(bytes: &[u8]) -> u64 {
 
 /// What must not move on the handle between `s1` and `s2`. Compared, never
 /// stored.
+#[cfg(unix)]
 fn fd_proof(m: &Metadata) -> (i64, i64, i64, i64, u64) {
     (
         m.mtime(),
@@ -156,8 +173,41 @@ fn fd_proof(m: &Metadata) -> (i64, i64, i64, i64, u64) {
 
 /// Path identity: the path still names the inode that was read, with the
 /// same `(mtime, size)`. Compared, never stored.
+#[cfg(unix)]
 fn path_proof(m: &Metadata) -> (u64, u64, i64, i64, u64) {
     (m.dev(), m.ino(), m.mtime(), m.mtime_nsec(), m.size())
+}
+
+/// Portable stand-in for the Unix `fd_proof` (D159): mtime and length, zero
+/// ctime. It proves nothing on its own; `STABILITY_PROVABLE` is false here,
+/// so a read is never judged stable whatever this returns.
+#[cfg(not(unix))]
+fn fd_proof(m: &Metadata) -> (i64, i64, i64, i64, u64) {
+    let (secs, nanos) = mtime_parts(m);
+    (secs, nanos, 0, 0, m.len())
+}
+
+/// Portable stand-in for the Unix `path_proof` (D159): no dev or inode, so
+/// zeros; see `fd_proof`.
+#[cfg(not(unix))]
+fn path_proof(m: &Metadata) -> (u64, u64, i64, i64, u64) {
+    let (secs, nanos) = mtime_parts(m);
+    (0, 0, secs, nanos, m.len())
+}
+
+/// mtime as whole seconds and nanoseconds since `UNIX_EPOCH`; `(0, 0)` when
+/// it is unavailable or before the epoch (harmless: the read is unstable).
+#[cfg(not(unix))]
+fn mtime_parts(m: &Metadata) -> (i64, i64) {
+    m.modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or((0, 0), |d| {
+            (
+                i64::try_from(d.as_secs()).unwrap_or(i64::MAX),
+                i64::from(d.subsec_nanos()),
+            )
+        })
 }
 
 /// Production no-op; the test build runs the installed read hook here

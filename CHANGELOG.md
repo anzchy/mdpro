@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The Windows build compiles again. The file watcher's unchanged-file check uses Unix-only file metadata on macOS and Linux, and a weaker portable stamp on Windows, where it never drops a change event (D159).
+
 ## [0.3.1] - 2026-10-11
 
 ### Highlights
