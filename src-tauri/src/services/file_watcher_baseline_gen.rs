@@ -81,10 +81,12 @@ impl BaselineStore {
 }
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_gen_tests.rs"]
 mod tests;
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_gen_refresh_tests.rs"]
 mod refresh_tests;
 

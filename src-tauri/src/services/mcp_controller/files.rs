@@ -43,6 +43,7 @@ pub(crate) const TOKEN_TMP_NAME: &str = "server.token.tmp";
 /// Temp name the port is written under before the rename.
 pub(crate) const PORT_TMP_NAME: &str = "server.port.tmp";
 /// Owner read/write only.
+#[cfg(unix)]
 const OWNER_ONLY_MODE: u32 = 0o600;
 
 /// Why `publish` failed. Deliberately payload-free: no path, no OS text.
@@ -163,6 +164,7 @@ pub fn unpublish(dir: &Path) {
 }
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "files_tests.rs"]
 mod tests;
 

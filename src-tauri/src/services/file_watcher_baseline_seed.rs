@@ -93,10 +93,14 @@ impl BaselineStore {
 /// services/file_watcher_seed.rs.
 #[cfg(test)]
 pub(crate) mod kit {
+    #[cfg(unix)]
+    pub(crate) use super::super::fixture::chmod_000_unreadable;
     pub(crate) use super::super::fixture::{
-        chmod_000_unreadable, h, modified, rewrite_keep_stat, set_mtime, sparse, TempDir,
+        h, modified, rewrite_keep_stat, set_mtime, sparse, TempDir,
     };
-    pub(crate) use super::super::race_fixture::{file_symlink, stat_pair};
+    #[cfg(unix)]
+    pub(crate) use super::super::race_fixture::file_symlink;
+    pub(crate) use super::super::race_fixture::stat_pair;
     pub(crate) use super::super::read::read_once;
     pub(crate) use super::super::seam::{read_once_calls, with_read_hook};
     pub(crate) use super::super::{snapshot, HASH_CAP_BYTES};

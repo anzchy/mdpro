@@ -37,6 +37,7 @@ pub fn hook_install_log_context(delegate_class: Option<&str>, outcome: InstallOu
 
 /// A failed install is logged at error level with a reason. The worst outcome is
 /// a silent one: the app looks fine and quits past unsaved work.
+#[cfg(target_os = "macos")]
 pub(super) fn log_hook_installed(delegate_class: Option<&str>, outcome: InstallOutcome) {
     let status = if outcome.installed() {
         LogStatus::Success

@@ -70,9 +70,11 @@ impl Inner {
 }
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_spelling_tests.rs"]
 mod spelling_tests;
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_spelling_gen_tests.rs"]
 mod spelling_gen_tests;

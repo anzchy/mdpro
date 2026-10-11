@@ -155,5 +155,6 @@ impl BaselineStore {
 }
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_check_tests.rs"]
 mod tests;

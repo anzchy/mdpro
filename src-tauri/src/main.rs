@@ -5,11 +5,15 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use tauri::{Manager, RunEvent, WindowEvent};
+#[cfg(target_os = "macos")]
+use tauri::RunEvent;
+use tauri::{Manager, WindowEvent};
 use tauri_app_lib::launch_args::{self, LaunchSource};
 use tauri_app_lib::models::{
     LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
 };
+#[cfg(target_os = "macos")]
+use tauri_app_lib::services::app_exit;
 use tauri_app_lib::services::mcp_confirm::{
     self,
     effects::{AppConfirmBroker, TauriConfirmEffects},
@@ -22,12 +26,13 @@ use tauri_app_lib::services::quit_guard::{
     self,
     effects::{AppQuitGuard, TauriQuitEffects},
 };
-use tauri_app_lib::services::{app_exit, app_ready, http_server, logger, shadow_store};
+use tauri_app_lib::services::{app_ready, http_server, logger, shadow_store};
 const BUILD_ID_RAW: Option<&str> = option_env!("MDPRO_BUILD_ID");
 
 // Track whether app has fully initialized (setup complete, main window ready)
 static APP_READY: OnceLock<AtomicBool> = OnceLock::new();
 
+#[cfg(target_os = "macos")]
 fn is_app_ready() -> bool {
     APP_READY
         .get()
@@ -49,6 +54,7 @@ fn pending_paths() -> &'static Mutex<Vec<String>> {
     PENDING_OPEN_PATHS.get_or_init(|| Mutex::new(Vec::new()))
 }
 
+#[cfg(target_os = "macos")]
 fn add_pending_paths(paths: Vec<String>) {
     if let Ok(mut pending) = pending_paths().lock() {
         pending.extend(paths);

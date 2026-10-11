@@ -78,6 +78,7 @@ use super::seam::between_copy_and_store;
 mod tests;
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_save_cap_tests.rs"]
 mod cap_tests;
 

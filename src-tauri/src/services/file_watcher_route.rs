@@ -165,6 +165,7 @@ pub(super) fn process_event(
 }
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_route_replace_tests.rs"]
 mod replace_tests;
 

@@ -18,6 +18,10 @@ use super::coordinator::FallbackAnswer;
 use super::driver::QuitGuard;
 use super::logging;
 
+// Only macos.rs presents the alert, but the wording stays compiled and
+// tested on every target (alert_text.rs, Key decisions), so it is dead code
+// elsewhere by design rather than gated (D160).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 #[path = "alert_text.rs"]
 pub(super) mod alert_text;
 

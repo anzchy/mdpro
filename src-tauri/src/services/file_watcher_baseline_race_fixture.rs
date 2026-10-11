@@ -3,9 +3,13 @@
 //! that both keep the path's `(mtime, size)`, and a same-directory file
 //! symlink. Every helper asserts its own precondition, so a filesystem that
 //! does not behave as assumed fails loudly instead of making a case vacuous.
-//! The readers use `fs::metadata` and so follow symlinks.
+//! The readers use `fs::metadata` and so follow symlinks. Everything but
+//! `stat_pair` and `latest_of` is `#[cfg(unix)]` (D160): they need inodes,
+//! ctimes or symlinks, and their suites are unix-only.
+#[cfg(unix)]
 use super::fixture::{mtime, set_mtime};
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -17,20 +21,24 @@ pub(crate) fn stat_pair(p: &Path) -> Option<(SystemTime, u64)> {
     Some((m.modified().ok()?, m.len()))
 }
 
+#[cfg(unix)]
 /// `p`'s ctime in nanoseconds since the epoch.
 pub(crate) fn ctime_ns(p: &Path) -> i128 {
     meta_ctime_ns(&fs::metadata(p).expect("stat for ctime"))
 }
 
+#[cfg(unix)]
 fn meta_ctime_ns(m: &fs::Metadata) -> i128 {
     i128::from(m.ctime()) * 1_000_000_000 + i128::from(m.ctime_nsec())
 }
 
+#[cfg(unix)]
 /// ctime of the inode behind an open handle.
 fn fd_ctime_ns(f: &fs::File) -> i128 {
     meta_ctime_ns(&f.metadata().expect("fstat probe"))
 }
 
+#[cfg(unix)]
 /// `p`'s inode number.
 pub(crate) fn ino(p: &Path) -> u64 {
     fs::metadata(p).expect("stat for ino").ino()
@@ -57,12 +65,14 @@ pub(crate) fn set_xattr(p: &Path, name: &str, value: &[u8]) {
     assert_eq!(rc, 0, "setxattr on {p:?}");
 }
 
+#[cfg(unix)]
 /// What a probe handle on the replaced inode saw across a rename-over.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RenameProbe {
     pub(crate) old_ctime_moved: bool,
 }
 
+#[cfg(unix)]
 /// Replace `p` by renaming a same-length sibling holding `bytes` over it,
 /// with the sibling's mtime set to `p`'s. Asserts the path's `(mtime, size)`
 /// is unchanged and its inode is new; reports whether the old inode's ctime
@@ -87,6 +97,7 @@ pub(crate) fn rename_over_keep_stat(p: &Path, bytes: &[u8]) -> RenameProbe {
     }
 }
 
+#[cfg(unix)]
 /// `p` is `<base>/sub/<name>`. Build `<base>/sub_new/<name>` holding the
 /// same-length `bytes` with `p`'s mtime, then swap the directories:
 /// `sub -> sub_old`, `sub_new -> sub`. The old file inode is never written,
@@ -114,6 +125,7 @@ pub(crate) fn swap_parent_dir_keep_stat(p: &Path, bytes: &[u8]) {
     assert_eq!(fs::read(p).expect("read swapped"), bytes, "precondition: new bytes");
 }
 
+#[cfg(unix)]
 /// `<d>/<link> -> <target>` (relative, same directory). Asserts it is a
 /// symlink and returns its path.
 pub(crate) fn file_symlink(d: &Path, link: &str, target: &str) -> PathBuf {

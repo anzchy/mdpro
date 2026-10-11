@@ -212,10 +212,12 @@ pub(crate) mod seed;
 mod race_fixture;
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 #[path = "file_watcher_baseline_coherent_race_tests.rs"]
 mod coherent_race_tests;
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_read_tests.rs"]
 mod read_tests;
 
@@ -232,6 +234,7 @@ mod tests;
 mod cap_tests;
 
 #[cfg(test)]
+#[cfg(unix)]
 #[path = "file_watcher_baseline_store_tests.rs"]
 mod store_tests;
 
@@ -268,6 +271,7 @@ mod kind_tests;
 mod kind_emit_tests;
 
 #[cfg(test)]
+#[cfg(target_os = "macos")]
 #[path = "file_watcher_baseline_coherent_tests.rs"]
 mod coherent_tests;
 

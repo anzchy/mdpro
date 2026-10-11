@@ -1,3 +1,10 @@
+// D160: many test suites are macOS- or unix-only (FSEvents, inodes, chmod,
+// symlinks), so off macOS the fixtures and test-only helpers they share look
+// dead. Gating each helper to its consumers' target would ripple through a
+// dozen modules; this allow covers test builds on other targets only and
+// never applies to a macOS build or to any non-test build.
+#![cfg_attr(all(test, not(target_os = "macos")), allow(dead_code, unused_imports))]
+
 pub mod commands;
 pub mod launch;
 pub mod launch_args;
