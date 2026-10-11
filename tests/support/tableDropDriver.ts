@@ -1,7 +1,7 @@
 /**
  * @module tests/support/tableDropDriver
- * Purpose: the drop driver, slice fixtures and position oracles shared by the
- * D90 / D94 / D102 table-drop suites. Not a `*.test.ts`, so vitest does not
+ * Purpose: the drop driver, slice fixtures, position oracles and refusal
+ * copy / log oracles shared by the D83 / D90 / D91 / D94 / D102 table suites. Not a `*.test.ts`, so vitest does not
  * collect it.
  *
  * The drop goes through prosemirror-view's own `drop` handler: a `drop` event
@@ -41,7 +41,31 @@ export const DROPPED_CELLS = [
 /** An existing rectangular table whose values share nothing with the dropped one. */
 export const HOST = "| X1 | X2 |\n| -- | -- |\n| y1 | y2 |\n";
 
-export const DROP_TOAST = "A table can't be dropped inside a table cell. Drop it outside the table.";
+/** Refusal copy, per operation (D91 ⑤): what is checked is the host table splitting. */
+export const PASTE_TOAST = "This paste would split the current table. Paste it outside the table.";
+export const DROP_TOAST = "This drop would split the current table. Drop it outside the table.";
+
+/** The `reason` a refusal's `fail` log carries, per operation (D91 ⑤). */
+export const PASTE_REASON = "table-carrying slice not pasted as cells would split the host table";
+export const DROP_REASON = "table-carrying drop would break the host table";
+
+/** The shape of an `editor.table.paste` / `editor.table.drop` log call. */
+export interface RefusalLog {
+  level: string;
+  event: string;
+  status: string;
+  actionId?: string;
+  context?: Record<string, unknown>;
+}
+
+/**
+ * Assert `logs` (one event's calls) is exactly one refusal: a `start` then a
+ * `fail` under the same actionId (D91 ④, rule 20).
+ */
+export function expectOneRefusal(logs: RefusalLog[]): void {
+  expect(logs.map((l) => l.status)).toEqual(["start", "fail"]);
+  expect(logs[1].actionId).toBe(logs[0].actionId);
+}
 
 export interface DropOptions {
   /** External drop: the dataTransfer's `text/html`. */

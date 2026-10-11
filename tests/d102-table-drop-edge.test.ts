@@ -40,9 +40,11 @@ import {
   DROPPED_CELLS,
   drop,
   expectLandsAt,
+  expectOneRefusal,
   HOST,
   inTableNonCellPositions,
   MIXED,
+  type RefusalLog,
 } from "./support/tableDropDriver";
 
 let logSpy: ReturnType<typeof vi.spyOn>;
@@ -60,7 +62,7 @@ afterEach(async () => {
 
 const dropLogs = () =>
   logSpy.mock.calls
-    .map((c) => c[0] as { event: string; status: string })
+    .map((c) => c[0] as RefusalLog)
     .filter((p) => p.event === "editor.table.drop");
 
 const HOST_CELLS = [
@@ -104,7 +106,7 @@ describe("D102 ① — a drop at the table's outer-edge chain lands beside the i
       const logs = dropLogs();
       if (logs.length > 0) {
         refused.push(pos);
-        expect(logs).toHaveLength(1);
+        expectOneRefusal(logs);
         expect(docOf(e).eq(before), `doc changed at ${pos}`).toBe(true);
       } else {
         const cells = tableShapes(docOf(e)).map((s) => s.cells);
@@ -161,7 +163,7 @@ describe("D102 ① — a drop at the table's outer-edge chain lands beside the i
     // HOST's between-rows boundary is 15 table-relative positions in.
     expect(drop(view, lastTablePos(before) + 15, { slice })).toBe(true);
     expect(docOf(e).eq(before)).toBe(true);
-    expect(dropLogs()).toHaveLength(1);
+    expectOneRefusal(dropLogs());
   });
 });
 

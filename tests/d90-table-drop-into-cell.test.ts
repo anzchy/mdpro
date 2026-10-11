@@ -41,9 +41,17 @@ import {
   tableShapes,
   viewOf,
 } from "./support/raggedTableD64";
-import { DROP_TOAST, drop, HOST, MIXED, TABLE } from "./support/tableDropDriver";
-
-const PASTE_TOAST = "A table can't be pasted inside a table cell. Paste it outside the table.";
+import {
+  DROP_TOAST,
+  drop,
+  expectOneRefusal,
+  HOST,
+  MIXED,
+  PASTE_REASON,
+  PASTE_TOAST,
+  type RefusalLog,
+  TABLE,
+} from "./support/tableDropDriver";
 
 let logSpy: ReturnType<typeof vi.spyOn>;
 
@@ -61,15 +69,8 @@ afterEach(async () => {
 const dropHtml = (e: Editor, needle: string, html: string) =>
   drop(viewOf(e), posAfter(viewOf(e), needle), { html });
 
-type LogPayload = {
-  level: string;
-  event: string;
-  status: string;
-  context?: Record<string, unknown>;
-};
-
 const logsOf = (event: string) =>
-  logSpy.mock.calls.map((c) => c[0] as LogPayload).filter((p) => p.event === event);
+  logSpy.mock.calls.map((c) => c[0] as RefusalLog).filter((p) => p.event === event);
 
 /** The normalizer's own `handleDrop`, as the editor registered it. */
 function handleDropOf(view: EditorView) {
@@ -137,15 +138,14 @@ describe("D90 — a table-carrying drop that would split the host table is refus
     expect(docOf(e).firstChild?.textContent).toBe("Pre");
   });
 
-  it("D90-4: the refusal consumes the drop, logs editor.table.drop (fail, with a reason) and toasts", async () => {
+  it("D90-4: the refusal consumes the drop, logs editor.table.drop (start + fail, with a reason) and toasts", async () => {
     const e = await mountParityEditor(HOST);
     expect(dropHtml(e, "y1", MIXED)).toBe(true);
     const logs = logsOf("editor.table.drop");
-    expect(logs).toHaveLength(1);
-    expect(logs[0].level).toBe("warn");
-    expect(logs[0].status).toBe("fail");
-    expect(typeof logs[0].context?.reason).toBe("string");
-    expect(String(logs[0].context?.reason).length).toBeGreaterThan(0);
+    expectOneRefusal(logs);
+    expect(logs[1].level).toBe("warn");
+    expect(typeof logs[1].context?.reason).toBe("string");
+    expect(String(logs[1].context?.reason).length).toBeGreaterThan(0);
     expect(logsOf("editor.table.paste")).toHaveLength(0);
     expect(useToastStore.getState().message).toBe(DROP_TOAST);
   });
@@ -217,13 +217,9 @@ describe("D90 — the shared refusal keeps the paste refusal as it was", () => {
     const event = new Event("paste") as ClipboardEvent;
     expect(view.someProp("handlePaste", (f) => f(view, event, slice))).toBe(true);
     const logs = logsOf("editor.table.paste");
-    expect(logs).toHaveLength(1);
-    expect(logs[0].level).toBe("warn");
-    expect(logs[0].status).toBe("fail");
-    expect(logs[0].context).toEqual({
-      reason: "table in a non-cell slice pasted inside a table would split the host table",
-      nodes: slice.content.childCount,
-    });
+    expectOneRefusal(logs);
+    expect(logs[1].level).toBe("warn");
+    expect(logs[1].context).toEqual({ reason: PASTE_REASON, nodes: slice.content.childCount });
     expect(logsOf("editor.table.drop")).toHaveLength(0);
     expect(useToastStore.getState().message).toBe(PASTE_TOAST);
   });

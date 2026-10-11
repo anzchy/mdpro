@@ -19,6 +19,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Editor } from "@milkdown/kit/core";
+import type { Node as PmNode } from "@milkdown/kit/prose/model";
+import { TableMap } from "@milkdown/kit/prose/tables";
 import type { EditorView } from "@milkdown/kit/prose/view";
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -83,8 +85,8 @@ function dispatchAt(e: Editor, id: Parameters<typeof dispatchTableActionDetailed
 }
 
 /** Mount the editor inside `#milkdown-container` and register it in the store. */
-async function mountMenu(): Promise<Editor> {
-  const e = await mountParityEditor(MD);
+async function mountMenu(md: string = MD): Promise<Editor> {
+  const e = await mountParityEditor(md);
   const root = viewOf(e).dom.closest("body > div");
   if (!(root instanceof HTMLElement)) throw new Error("editor root not found");
   root.id = "milkdown-container";
@@ -102,6 +104,32 @@ function rightClickCell(e: Editor, needle: string, coordPos: number | null): voi
     (el) => el.textContent === needle,
   );
   if (!cell) throw new Error(`cell ${needle} not rendered`);
+  fireEvent.contextMenu(cell, { clientX: 200, clientY: 100 });
+}
+
+/** Every top-level table in `doc` with its position, in document order. */
+function tablesOf(doc: PmNode): { node: PmNode; pos: number }[] {
+  const out: { node: PmNode; pos: number }[] = [];
+  doc.forEach((node, pos) => {
+    if (node.type.name === "table") out.push({ node, pos });
+  });
+  return out;
+}
+
+/** Position before cell (row, col) of table `t`, derived from the doc's TableMap. */
+function cellPosOf(view: EditorView, t: number, row: number, col: number): number {
+  const { node, pos } = tablesOf(view.state.doc)[t];
+  const map = TableMap.get(node);
+  return pos + 1 + map.map[row * map.width + col];
+}
+
+/** Right-click the rendered td/th (row, col) of table `t` while posAtCoords reports `coordPos`. */
+function rightClickAt(e: Editor, t: number, row: number, col: number, coordPos: number): void {
+  const view = viewOf(e);
+  view.posAtCoords = (() => ({ pos: coordPos, inside: -1 })) as typeof view.posAtCoords;
+  const table = view.dom.querySelectorAll("table")[t];
+  const cell = table?.querySelectorAll("tr")[row]?.querySelectorAll("td, th")[col];
+  if (!(cell instanceof HTMLElement)) throw new Error(`cell (${t}, ${row}, ${col}) not rendered`);
   fireEvent.contextMenu(cell, { clientX: 200, clientY: 100 });
 }
 
@@ -243,6 +271,69 @@ describe("D87 ② the menu targets the right-clicked td/th", () => {
     rightClickCell(e, "A1", posAfter(viewOf(e), "A1"));
     await user.click(screen.getByRole("menuitem", { name: "Reformat table" }));
     expect(useToastStore.getState().message).toBeNull();
+  });
+});
+
+/** An untouched second table: a pick aimed elsewhere must leave it exactly as is. */
+const SENTINEL_MD = "| S0 | S1 |\n| --- | --- |\n| T0 | T1 |\n";
+const SENTINEL = [
+  ["S0", "S1"],
+  ["T0", "T1"],
+];
+const MD_EMPTY = "| H0 | H1 | H2 |\n| --- | --- | --- |\n| A0 |  | A2 |\n| B0 | B1 | B2 |\n";
+const MD_IMAGE = "| H0 | H1 |\n| --- | --- |\n| ![pic](x.png) | A1 |\n| B0 | B1 |\n";
+
+type CoordKind = "cell-start" | "cell-end" | "inside";
+interface BoundaryCase {
+  name: string;
+  /** The document: the clicked table is `t`; every other table is a sentinel. */
+  md: string;
+  t: number;
+  row: number;
+  col: number;
+  coord: CoordKind;
+  item: "Delete row" | "Delete column";
+  /** Cells of every table after the pick, in document order. */
+  after: string[][][];
+}
+
+const dropCol = (rows: string[][], c: number) => rows.map((r) => r.filter((_, i) => i !== c));
+const dropRow = (rows: string[][], r: number) => rows.filter((_, i) => i !== r);
+const HAB = [H, A, B];
+
+const BOUNDARY_CASES: BoundaryCase[] = [
+  { name: "header cell H1 at its start boundary", md: `${MD}\n${SENTINEL_MD}`, t: 0, row: 0, col: 1, coord: "cell-start", item: "Delete column", after: [dropCol(HAB, 1), SENTINEL] },
+  { name: "first header cell H0 at its start boundary (table content start + 1)", md: `${MD}\n${SENTINEL_MD}`, t: 0, row: 0, col: 0, coord: "cell-start", item: "Delete column", after: [dropCol(HAB, 0), SENTINEL] },
+  { name: "last cell B2 at its start boundary", md: `${MD}\n${SENTINEL_MD}`, t: 0, row: 2, col: 2, coord: "cell-start", item: "Delete row", after: [dropRow(HAB, 2), SENTINEL] },
+  { name: "last cell B2 at its end boundary (the row's end)", md: `${MD}\n${SENTINEL_MD}`, t: 0, row: 2, col: 2, coord: "cell-end", item: "Delete column", after: [dropCol(HAB, 2), SENTINEL] },
+  { name: "last cell B2 with real in-cell coordinates", md: `${MD}\n${SENTINEL_MD}`, t: 0, row: 2, col: 2, coord: "inside", item: "Delete row", after: [dropRow(HAB, 2), SENTINEL] },
+  { name: "an empty cell (1, 1) at its start boundary", md: `${MD_EMPTY}\n${SENTINEL_MD}`, t: 0, row: 1, col: 1, coord: "cell-start", item: "Delete column", after: [[["H0", "H2"], ["A0", "A2"], ["B0", "B2"]], SENTINEL] },
+  { name: "a cell holding only an image (1, 0) at its start boundary", md: `${MD_IMAGE}\n${SENTINEL_MD}`, t: 0, row: 1, col: 0, coord: "cell-start", item: "Delete row", after: [[["H0", "H1"], ["B0", "B1"]], SENTINEL] },
+  { name: "the second table's cell T1 at its start boundary", md: `${SENTINEL_MD}\n${MD}`, t: 1, row: 1, col: 1, coord: "cell-start", item: "Delete column", after: [SENTINEL, dropCol(HAB, 1)] },
+  { name: "the second table's cell B0 with real coordinates", md: `${SENTINEL_MD}\n${MD}`, t: 1, row: 2, col: 0, coord: "inside", item: "Delete row", after: [SENTINEL, dropRow(HAB, 2)] },
+];
+
+describe("D87 ② real-menu boundary matrix (D91 ⑥): only the clicked row/column changes", () => {
+  it.each(BOUNDARY_CASES.map((c) => [c.name, c] as const))("%s", async (_name, c) => {
+    const user = userEvent.setup();
+    const e = await mountMenu(c.md);
+    // The caret sits in a table other than the clicked one, so a pick that
+    // fell back to the caret would hit that table.
+    caretAfter(e, c.t === 0 ? "T1" : "B2");
+    const view = viewOf(e);
+    const before = cellPosOf(view, c.t, c.row, c.col);
+    const cellNode = view.state.doc.nodeAt(before);
+    if (!cellNode) throw new Error("no cell node");
+    const coordPos =
+      c.coord === "cell-start" ? before : c.coord === "cell-end" ? before + cellNode.nodeSize : before + 2;
+    // Non-vacuous: a boundary coordinate resolves to no cell; an inside one does.
+    expect(ctxAt(view, coordPos) === null).toBe(c.coord !== "inside");
+    rightClickAt(e, c.t, c.row, c.col, coordPos);
+    expect(openEvents().at(-1)).toMatchObject({
+      context: expect.objectContaining({ rowIndex: c.row, colIndex: c.col }),
+    });
+    await user.click(screen.getByRole("menuitem", { name: c.item }));
+    expect(tableShapes(docOf(e)).map((s) => s.cells)).toEqual(c.after);
   });
 });
 

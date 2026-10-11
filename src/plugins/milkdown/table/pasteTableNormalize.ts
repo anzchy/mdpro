@@ -36,7 +36,8 @@
  *     the row start — values shift a column right, or an empty header row stops
  *     the document serializing. Padding the pasted table does not prevent that,
  *     so `handlePaste` consumes the paste with no change (a selected range is not
- *     deleted), logs `editor.table.paste` as `fail` and shows the shared toast.
+ *     deleted), logs `editor.table.paste` as `start` + `fail` under one actionId
+ *     and toasts.
  *   - Drag-and-drop does not pass through `handlePaste`, and prosemirror-tables
  *     has no `handleDrop`, so the same split happens on a drop (D90). `handleDrop`
  *     decides by the property itself (D102): it replays prosemirror-view's default
@@ -55,7 +56,11 @@
  *     rule by ancestry alone refused that chain needlessly. A replay that throws
  *     is refused too, since the default drop would throw the same way. Returning
  *     true consumes the drop, so nothing is inserted and the source of a
- *     move-drag is not deleted; it logs `editor.table.drop` as `fail` and toasts.
+ *     move-drag is not deleted; it logs `editor.table.drop` the same way and toasts.
+ *   - The toast is per operation and names what is checked — the current table
+ *     would be split — not "inside a table cell": a pure table pasted into a
+ *     cell is taken by prosemirror-tables (D83-3), and a drop at an interior
+ *     boundary is refused though it is in no cell (D91).
  *   - A paste is still decided by `isInTable` (the selection head's cell). A
  *     TextSelection whose head sits between rows would slip past it, but the view
  *     never holds one: the DOM selection read, mapping and `Selection.near` all
@@ -83,14 +88,15 @@ import { useToastStore } from "../../../stores/toastStore";
 
 type RefusalKind = "paste" | "drop";
 
+/** Per-operation copy: what is checked is the host table splitting, not "in a cell". */
 const REFUSAL_TOAST: Record<RefusalKind, string> = {
-  paste: "A table can't be pasted inside a table cell. Paste it outside the table.",
-  drop: "A table can't be dropped inside a table cell. Drop it outside the table.",
+  paste: "This paste would split the current table. Paste it outside the table.",
+  drop: "This drop would split the current table. Drop it outside the table.",
 };
 
 const REFUSAL_REASON: Record<RefusalKind, string> = {
-  paste: "table in a non-cell slice pasted inside a table would split the host table",
-  drop: "table in a slice dropped inside a table cell would split the host table",
+  paste: "table-carrying slice not pasted as cells would split the host table",
+  drop: "table-carrying drop would break the host table",
 };
 
 /** Append the cells TableMap reports missing to the end of each short row. */
@@ -164,17 +170,23 @@ function sliceHasTable(slice: Slice): boolean {
 }
 
 /**
- * Refuse a table-carrying paste or drop that would split the host table: log
- * `editor.table.<kind>` as `fail` with the reason and the slice's top-level node
- * count, and show the toast. Returns true, so the caller's prop consumes the event.
+ * Refuse a table-carrying paste or drop that would break the host table: log
+ * `editor.table.<kind>` as `start` then `fail` under one actionId (rule 20) —
+ * the `fail` with the reason — both with the slice's top-level node count, and
+ * show the per-operation toast. Returns true, so the caller's prop consumes the
+ * event. A paste or drop this plugin lets through logs nothing.
  */
-function refuseTableInCell(kind: RefusalKind, slice: Slice): true {
+function refuseTableBreak(kind: RefusalKind, slice: Slice): true {
+  const event = `editor.table.${kind}`;
+  const actionId = loggingService.generateActionId();
+  const nodes = slice.content.childCount;
+  loggingService.logEventSync({ level: "info", event, status: "start", actionId, context: { nodes } });
   loggingService.logEventSync({
     level: "warn",
-    event: `editor.table.${kind}`,
+    event,
     status: "fail",
-    actionId: loggingService.generateActionId(),
-    context: { reason: REFUSAL_REASON[kind], nodes: slice.content.childCount },
+    actionId,
+    context: { reason: REFUSAL_REASON[kind], nodes },
   });
   useToastStore.getState().showToast(REFUSAL_TOAST[kind]);
   return true;
@@ -247,11 +259,11 @@ export const tablePasteNormalizePlugin = $prose(
         handlePaste: (view, _event, slice) => {
           if (!isInTable(view.state) || takenByTables(view.state, slice)) return false;
           if (!sliceHasTable(slice)) return false;
-          return refuseTableInCell("paste", slice);
+          return refuseTableBreak("paste", slice);
         },
         handleDrop: (view, event, slice, moved) => {
           if (!sliceHasTable(slice) || !dropBreaksTable(view, event, slice, moved)) return false;
-          return refuseTableInCell("drop", slice);
+          return refuseTableBreak("drop", slice);
         },
       },
     }),

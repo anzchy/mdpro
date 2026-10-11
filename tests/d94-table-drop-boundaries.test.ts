@@ -33,11 +33,13 @@ import {
 import {
   DROP_TOAST,
   drop,
+  expectOneRefusal,
   expectLandsAt,
   HOST,
   inTableNonCellPositions,
   MIXED,
   outerEdgeChain,
+  type RefusalLog,
   TABLE,
 } from "./support/tableDropDriver";
 
@@ -56,7 +58,7 @@ afterEach(async () => {
 
 const dropLogs = () =>
   logSpy.mock.calls
-    .map((c) => c[0] as { event: string; status: string })
+    .map((c) => c[0] as RefusalLog)
     .filter((p) => p.event === "editor.table.drop");
 
 const indent = (md: string, prefix: string) =>
@@ -90,9 +92,7 @@ async function expectRefusedAt(md: string, pos: number): Promise<void> {
   expect(tableShapes(docOf(e))).toHaveLength(1);
   expect(() => serialize(e)).not.toThrow();
   expect(serialize(e)).toBe(mdBefore);
-  const logs = dropLogs();
-  expect(logs).toHaveLength(1);
-  expect(logs[0].status).toBe("fail");
+  expectOneRefusal(dropLogs());
   expect(useToastStore.getState().message).toBe(DROP_TOAST);
   await destroyParityEditors();
   logSpy.mockClear();

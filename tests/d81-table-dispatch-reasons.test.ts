@@ -87,6 +87,12 @@ describe("D81: dispatchTableActionDetailed reasons", () => {
     while (cellDepth > 0 && !/table_(cell|header)/.test($b1.node(cellDepth).type.name)) cellDepth -= 1;
     const target = { pos: $b1.before(cellDepth), doc: view.state.doc };
     expect(computeTableContext(view, view.state.doc.resolve(target.pos))).toBeNull();
+    const docBefore = view.state.doc;
+    const selBefore = view.state.selection;
     expect(detailed(e, "align_right", target)).toEqual({ applied: false, reason: "not-in-table" });
+    // Refused means untouched: no change to the doc, and the caret did not move
+    // (a "mutate, then refuse" dispatch would pass the reason check alone).
+    expect(view.state.doc.eq(docBefore)).toBe(true);
+    expect(view.state.selection.eq(selBefore)).toBe(true);
   });
 });

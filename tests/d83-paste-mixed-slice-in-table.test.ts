@@ -13,7 +13,8 @@
  *     throws — the document can no longer be saved.
  * End-padding the pasted table first changes neither outcome (it already came out
  * rectangular), so the paste is refused: the document is left unchanged, the
- * refusal is logged as `editor.table.paste` (status "fail"), and a toast says why.
+ * refusal is logged as `editor.table.paste` (a "start" and a "fail" under one
+ * actionId), and a toast says why.
  *
  * Shapes prosemirror-tables takes itself (a CellSelection, or a slice its
  * `pastedCells` accepts) are left to it, untouched by the normalizer.
@@ -40,6 +41,7 @@ import {
   tableShapes,
   viewOf,
 } from "./support/raggedTableD64";
+import { expectOneRefusal, PASTE_TOAST, type RefusalLog } from "./support/tableDropDriver";
 
 let logSpy: ReturnType<typeof vi.spyOn>;
 
@@ -85,7 +87,7 @@ function transformPastedOf(view: EditorView): (slice: Slice, view: EditorView, p
 /** `editor.table.paste` calls the spy saw. */
 const tablePasteLogs = () =>
   logSpy.mock.calls
-    .map((c) => c[0] as { event: string; status: string; context?: Record<string, unknown> })
+    .map((c) => c[0] as RefusalLog)
     .filter((p) => p.event === "editor.table.paste");
 
 const row = (tag: "th" | "td", cells: string[]) =>
@@ -107,6 +109,51 @@ const HOST = "| X1 | X2 |\n| -- | -- |\n| y1 | y2 |\n";
 
 /** Serialized table lines that start with an empty cell (`|` then only spaces then `|`). */
 const leadingEmptyCellLines = (md: string) => md.split("\n").filter((l) => /^\|\s*\|/.test(l));
+
+/** A copy source: header s1/s2, then two body rows q and r. */
+const SOURCE = "| s1 | s2 |\n| -- | -- |\n| q1 | q2 |\n| r1 | r2 |\n";
+const SOURCE_CELLS = [
+  ["s1", "s2"],
+  ["q1", "q2"],
+  ["r1", "r2"],
+];
+
+/** Position before the cell holding `needle`. */
+function cellPosOf(view: EditorView, needle: string): number {
+  const $p = view.state.doc.resolve(posAfter(view, needle));
+  let d = $p.depth;
+  while (d > 0 && !/table_(cell|header)/.test($p.node(d).type.name)) d -= 1;
+  return $p.before(d);
+}
+
+/**
+ * Select the cells from `fromNeedle` to `toNeedle` as a CellSelection and copy
+ * them through prosemirror-view's own copy handler; returns the clipboard HTML.
+ */
+function copyCells(view: EditorView, fromNeedle: string, toNeedle: string): string {
+  const sel = CellSelection.create(view.state.doc, cellPosOf(view, fromNeedle), cellPosOf(view, toNeedle));
+  view.dispatch(view.state.tr.setSelection(sel));
+  const data = new Map<string, string>();
+  const event = new Event("copy", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: { clearData: () => data.clear(), setData: (t: string, v: string) => data.set(t, v) },
+  });
+  view.dom.dispatchEvent(event);
+  const html = data.get("text/html");
+  if (!html) throw new Error("copy produced no text/html");
+  return html;
+}
+
+/** D83-3: RAGGED pasted as cells at (1, 0), end-padded to width 3. */
+const D83_3_CELLS = [
+  ["X1", "X2", ""],
+  ["h1", "h2", ""],
+  ["a", "b", "c"],
+  ["d", "", ""],
+];
+
+/** D83-3's host rows as serialized: values in their columns (delimiter row not pinned). */
+const D83_3_ROWS = ["| X1 | X2 |    |", "| h1 | h2 |    |", "| a  | b  | c  |", "| d  |    |    |"];
 
 describe("D83 — a table-carrying slice that would split the host table is refused", () => {
   it("D83-1: caret in a body cell — the document is left unchanged", async () => {
@@ -157,16 +204,15 @@ describe("D83 — a table-carrying slice that would split the host table is refu
     ]);
   });
 
-  it("D83-8: the refusal is logged as editor.table.paste (fail, with a reason) and toasted", async () => {
+  it("D83-8: the refusal is logged as editor.table.paste (start + fail, with a reason) and toasted", async () => {
     const e = await mountParityEditor(HOST);
     caretAfter(e, "y1");
     pasteHtml(e, MIXED);
     const logs = tablePasteLogs();
-    expect(logs).toHaveLength(1);
-    expect(logs[0].status).toBe("fail");
-    expect(typeof logs[0].context?.reason).toBe("string");
-    expect(String(logs[0].context?.reason).length).toBeGreaterThan(0);
-    expect(useToastStore.getState().message).toMatch(/table/i);
+    expectOneRefusal(logs);
+    expect(typeof logs[1].context?.reason).toBe("string");
+    expect(String(logs[1].context?.reason).length).toBeGreaterThan(0);
+    expect(useToastStore.getState().message).toBe(PASTE_TOAST);
   });
 
   it("D83-9: a rectangular table in a mixed slice is refused too — the split does not need raggedness", async () => {
@@ -175,7 +221,7 @@ describe("D83 — a table-carrying slice that would split the host table is refu
     const before = docOf(e);
     pasteHtml(e, RECT_MIXED);
     expect(docOf(e).eq(before)).toBe(true);
-    expect(tablePasteLogs()).toHaveLength(1);
+    expectOneRefusal(tablePasteLogs());
   });
 
   it("D83-10: with a text range selected in the cell, the refusal does not delete the selection", async () => {
@@ -184,8 +230,12 @@ describe("D83 — a table-carrying slice that would split the host table is refu
     const end = posAfter(view, "y1");
     view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, end - 2, end)));
     const before = docOf(e);
+    const selBefore = view.state.selection;
+    expect(selBefore.empty).toBe(false);
     pasteHtml(e, MIXED);
     expect(docOf(e).eq(before)).toBe(true);
+    // The selected range is neither deleted nor collapsed by the refusal.
+    expect(view.state.selection.eq(selBefore)).toBe(true);
   });
 });
 
@@ -204,6 +254,13 @@ describe("D83 — slices prosemirror-tables takes itself are left to it", () => 
     expect(() => pasteHtml(e, RAGGED)).not.toThrow();
     for (const shape of tableShapes(docOf(e))) expect(shape.problems).toBeNull();
     expect(tablePasteLogs()).toHaveLength(0);
+    // The values landed as cells from the caret's cell (1, 0), end-padded by
+    // prosemirror-tables to the paste's width; the header row is kept.
+    const shapes = tableShapes(docOf(e));
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].cells).toEqual(D83_3_CELLS);
+    const md = serialize(e).trimEnd().split("\n");
+    expect([md[0], ...md.slice(2)]).toEqual(D83_3_ROWS);
   });
 
   it("D83-4: an open slice of table rows is passed through untouched", async () => {
@@ -217,6 +274,37 @@ describe("D83 — slices prosemirror-tables takes itself are left to it", () => 
     expect(transformPastedOf(view)(rows, view, false)).toBe(rows);
   });
 
+  it("D83-4b: copied open body rows pasted in a cell land as cells at the caret, host values kept", async () => {
+    const e = await mountParityEditor(`${HOST}\n${SOURCE}`);
+    const view = viewOf(e);
+    // A real copy: a CellSelection over the source table's two body rows,
+    // through prosemirror-view's own copy handler — an open slice of rows.
+    const html = copyCells(view, "q1", "r2");
+    expect(html).toContain("data-pm-slice");
+    const parsed = __parseFromClipboard(view, "", html, false, view.state.doc.resolve(posAfter(view, "y2")));
+    expect(parsed?.openStart).toBeGreaterThan(0);
+    expect(parsed?.content.firstChild?.type.name).not.toBe("paragraph");
+    caretAfter(e, "y2");
+    paste(e, "", html, false);
+    expect(tablePasteLogs()).toHaveLength(0);
+    const shapes = tableShapes(docOf(e));
+    expect(shapes).toHaveLength(2);
+    for (const shape of shapes) expect(shape.problems).toBeNull();
+    // Written from the caret's cell (1, 1): q1 in column 1, q2 widening to
+    // column 2; r1/r2 in a new row at the same columns. X1, X2 and y1 kept.
+    expect(shapes[0].cells).toEqual([
+      ["X1", "X2", ""],
+      ["y1", "q1", "q2"],
+      ["", "r1", "r2"],
+    ]);
+    // The copy source is untouched.
+    expect(shapes[1].cells).toEqual(SOURCE_CELLS);
+    const hostLines = serialize(e).split("\n").slice(0, 4);
+    expect(hostLines[0]).toMatch(/^\| X1 \| X2 \| +\|$/);
+    expect(hostLines[2]).toBe("| y1 | q1 | q2 |");
+    expect(hostLines[3]).toMatch(/^\| +\| r1 \| r2 \|$/);
+  });
+
   it("D83-11: a mixed slice over a CellSelection is left to prosemirror-tables — not refused", async () => {
     const e = await mountParityEditor(HOST);
     const view = viewOf(e);
@@ -226,6 +314,13 @@ describe("D83 — slices prosemirror-tables takes itself are left to it", () => 
     expect(() => pasteHtml(e, MIXED)).not.toThrow();
     expect(tablePasteLogs()).toHaveLength(0);
     for (const shape of tableShapes(docOf(e))) expect(shape.problems).toBeNull();
+    // prosemirror-tables fits the whole slice into the selected cell (1, 0):
+    // the paste lands there, every other host value is kept.
+    const shapes = tableShapes(docOf(e));
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].cells[0]).toEqual(["X1", "X2"]);
+    expect(shapes[0].cells[1][1]).toBe("y2");
+    expect(shapes[0].cells[1][0]).toMatch(/^before/);
   });
 
   it("D83-7: the same mixed slice pasted outside any table is end-padded, not refused (control)", async () => {
