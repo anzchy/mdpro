@@ -30,6 +30,7 @@
  *   `{ documentId, stage: "applied", reason }` only, never the inserted text or its
  *   length. Every line carries the payload's `action_id` as `actionId` (a generated one
  *   when an older emitter sent none), joining it to Rust's `stage: "scheduled"` line (D153).
+ *   A document gone at the post-flush re-read logs reason `not found after flush` (D156).
  *
  * @coordinates-with src/hooks/useMcpEvents.ts — the `mcp:insert_content` listener
  * @coordinates-with src/utils/wholesaleReplace.ts — reason "mcp-insert"; D37 focus capture
@@ -115,7 +116,11 @@ export function processInsertContentEvent(
 
   // Re-read: the flush may just have written a pending WYSIWYG edit.
   const doc = useDocumentStore.getState().getDocumentById(documentId);
-  if (!doc) return;
+  if (!doc) {
+    // D156: gone between the guard and the re-read; refused, never silent.
+    logFail(documentId, actionId, "not found after flush");
+    return;
+  }
 
   let offset: number;
   if (event.position === "cursor") {

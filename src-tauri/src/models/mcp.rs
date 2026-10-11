@@ -255,12 +255,17 @@ pub struct CreateDocumentResponse {
     pub id: String,
 }
 
-/// Event payload for Rust → Frontend write notification.
+/// Event payload for Rust → Frontend write notification (`mcp:write_document`;
+/// `create_document` emits the same shape as `mcp:create_document`).
 #[derive(Debug, Clone, Serialize)]
 pub struct WriteDocumentEvent {
     pub document_id: String,
     pub content: String,
     pub window_label: Option<String>,
+    /// D156: the id `update_document` / `create_document` minted for this
+    /// request. Its `stage: "scheduled"` log line carries the same id, and the
+    /// frontend's `stage: "applied"` line reuses it. Serialized as `action_id`.
+    pub action_id: String,
 }
 
 /// Event payload for Rust → Frontend insert notification.

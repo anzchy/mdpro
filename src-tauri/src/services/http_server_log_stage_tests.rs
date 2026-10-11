@@ -3,13 +3,15 @@
 //! line says `stage: "scheduled"` and carries one action id minted per
 //! request; the same id rides on the emitted payload as `action_id`, so the
 //! frontend's `stage: "applied"` line joins it.
+//! D156 adds the same for `mcp:write_document` / `mcp:create_document` and
+//! the `mcp.create` lines (s7–s11).
 //!
 //! Wired from `http_server.rs` with `#[cfg(test)] #[path = ...]`, so
 //! `http_server.rs` does not grow. The handlers themselves need an
 //! `AppHandle` (the Tauri `test` feature is not enabled), so these pin the
 //! builders the handlers call: the payload builder and the log builder.
 
-use super::{scheduled_entry, table_action_event};
+use super::{create_scheduled_entry, scheduled_entry, table_action_event, write_document_event};
 use crate::models::{InsertContentEvent, InsertPosition, LogLevel, LogStatus};
 use crate::services::mcp_confirm::payload::TableAction;
 use serde_json::{json, Value};
@@ -120,4 +122,72 @@ fn s6_a_non_object_context_is_wrapped_rather_than_dropped() {
         None,
     );
     assert_eq!(entry.context, Some(json!({ "stage": "scheduled" })));
+}
+
+// ---------------------------------------------------------------------------
+// D156: `write_document` and `create_document` follow the same pattern. Both
+// routes emit a `WriteDocumentEvent` (`mcp:write_document`,
+// `mcp:create_document`) that now carries the request's `action_id`, and
+// `create_document` gains its own `mcp.create` scheduled lines.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn s7_write_document_payload_carries_the_action_id_under_its_snake_case_key() {
+    let event = write_document_event("doc-1", "body".to_string(), Some("main".to_string()), ID);
+    let wire = serde_json::to_value(&event).expect("serializes");
+    assert_eq!(
+        wire,
+        json!({
+            "document_id": "doc-1",
+            "content": "body",
+            "window_label": "main",
+            "action_id": ID,
+        })
+    );
+}
+
+#[test]
+fn s8_create_document_payload_carries_the_action_id_and_no_window() {
+    let event = write_document_event("doc-new", String::new(), None, ID);
+    let wire = serde_json::to_value(&event).expect("serializes");
+    assert_eq!(wire["action_id"], json!(ID));
+    assert_eq!(wire["window_label"], Value::Null);
+}
+
+#[test]
+fn s9_the_create_scheduled_success_line_carries_stage_the_id_and_the_length_only() {
+    let entry = create_scheduled_entry(ID, "doc-new", 5, None);
+    assert_eq!(entry.event, "mcp.create");
+    assert_eq!(entry.level, LogLevel::Info);
+    assert_eq!(entry.status, LogStatus::Success);
+    assert_eq!(entry.action_id.as_deref(), Some(ID));
+    assert_eq!(
+        entry.context,
+        Some(json!({ "documentId": "doc-new", "contentLength": 5, "stage": "scheduled" }))
+    );
+    assert_eq!(entry.error, None);
+}
+
+#[test]
+fn s10_the_create_emit_failure_line_is_an_error_with_a_reason_and_the_emit_error() {
+    let entry = create_scheduled_entry(ID, "doc-new", 5, Some("no webview".to_string()));
+    assert_eq!(entry.event, "mcp.create");
+    assert_eq!(entry.level, LogLevel::Error);
+    assert_eq!(entry.status, LogStatus::Fail);
+    assert_eq!(entry.action_id.as_deref(), Some(ID));
+    assert_eq!(
+        entry.context,
+        Some(json!({ "documentId": "doc-new", "reason": "emit failed", "stage": "scheduled" }))
+    );
+    assert_eq!(entry.error.as_deref(), Some("no webview"));
+}
+
+#[test]
+fn s11_the_create_line_and_payload_share_one_id_and_the_line_never_carries_content() {
+    let event = write_document_event("doc-new", "secret-body".to_string(), None, ID);
+    let entry = create_scheduled_entry(ID, "doc-new", "secret-body".len(), None);
+    let event_wire = serde_json::to_value(&event).expect("serializes");
+    let log_wire: Value = serde_json::to_value(&entry).expect("serializes");
+    assert_eq!(event_wire["action_id"], log_wire["actionId"]);
+    assert!(!log_wire.to_string().contains("secret-body"));
 }

@@ -12,6 +12,14 @@
  * The `mcp:table_action` dispatch (`TableActionEvent`, `processTableActionEvent`)
  * lives in `./mcpTableAction.ts` (moved D35 WI-1, 2026-09-30) and is re-exported
  * here so existing imports from this module keep working.
+ *
+ * Logging (D156, the D153 pattern): `mcp:write_document` logs `mcp.write` and
+ * `mcp:create_document` logs `mcp.create`, each with `stage: "applied"` and the
+ * payload's `action_id` as `actionId` (a generated one when an older emitter sent
+ * none), joining Rust's `stage: "scheduled"` line for the same request. A write
+ * logs success or fail `not found`; a create logs success `{ activated: true }`,
+ * or fail `activation refused` with `created: true` when D92 refuses the switch.
+ * Never the content. A foreign-window event logs nothing.
  */
 
 import { useEffect, useCallback, useRef } from "react";
@@ -33,6 +41,8 @@ interface WriteDocumentEvent {
   document_id: string;
   content: string;
   window_label: string | null;
+  /** D156: the id Rust minted and logged with `stage: "scheduled"`; optional for older emitters. */
+  action_id?: string;
 }
 
 /**
@@ -42,7 +52,12 @@ interface CreateDocumentEvent {
   document_id: string;
   content: string;
   window_label: string | null;
+  /** D156: the id Rust minted and logged with `stage: "scheduled"`; optional for older emitters. */
+  action_id?: string;
 }
+
+/** D156: these handlers' log lines report the event applied, not just scheduled. */
+const STAGE_APPLIED = "applied";
 
 /**
  * Hook to listen for MCP events and apply them to documents.
@@ -77,9 +92,16 @@ export function useMcpEvents() {
         return;
       }
 
+      const actionId = event.action_id ?? loggingService.generateActionId();
       const doc = useDocumentStore.getState().getDocumentById(event.document_id);
       if (!doc) {
-        loggingService.logEventSync({ level: "warn", event: "mcp.write", status: "fail", context: { documentId: event.document_id, reason: "not found" } });
+        loggingService.logEventSync({
+          level: "warn",
+          event: "mcp.write",
+          status: "fail",
+          actionId,
+          context: { documentId: event.document_id, stage: STAGE_APPLIED, reason: "not found" },
+        });
         return;
       }
 
@@ -103,6 +125,14 @@ export function useMcpEvents() {
         });
         currentEditorView.dispatch(transaction);
       }
+
+      loggingService.logEventSync({
+        level: "info",
+        event: "mcp.write",
+        status: "success",
+        actionId,
+        context: { documentId: event.document_id, stage: STAGE_APPLIED },
+      });
     },
     [updateDocumentContent]
   );
@@ -144,8 +174,29 @@ export function useMcpEvents() {
       upsertDocument(newDoc);
       // D92: a failed WYSIWYG flush refuses the switch (the new tab stays inactive);
       // editorStore follows only a switch that happened, so the stores agree.
+      const actionId = event.action_id ?? loggingService.generateActionId();
       if (setActiveDocumentId(event.document_id)) {
         useEditorStore.getState().setActiveDocumentId(event.document_id);
+        loggingService.logEventSync({
+          level: "info",
+          event: "mcp.create",
+          status: "success",
+          actionId,
+          context: { documentId: event.document_id, stage: STAGE_APPLIED, activated: true },
+        });
+      } else {
+        loggingService.logEventSync({
+          level: "warn",
+          event: "mcp.create",
+          status: "fail",
+          actionId,
+          context: {
+            documentId: event.document_id,
+            stage: STAGE_APPLIED,
+            created: true,
+            reason: "activation refused",
+          },
+        });
       }
     },
     [upsertDocument, setActiveDocumentId]

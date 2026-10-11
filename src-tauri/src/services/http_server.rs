@@ -37,8 +37,10 @@
 //!   lines (`mcp.insert`, `mcp.table.<action>`) carry it and
 //!   `stage: "scheduled"` (`scheduled_entry`), and the event payload carries
 //!   it as `action_id`, so the frontend's `stage: "applied"` line under the
-//!   same event name joins them. `update_document` and `create_document` are
-//!   unchanged: their frontend handlers log no success line of their own.
+//!   same event name joins them. D156 extends this to `update_document`
+//!   (`mcp.write`) and `create_document` (`mcp.create`): both emit a
+//!   `WriteDocumentEvent` built by `write_document_event` with `action_id`,
+//!   and their frontend handlers log `stage: "applied"` under it.
 //! - Auth is `with_token_auth(router, SharedServerConfig)`: the middleware
 //!   reads the shared config per request, so a rotated or cleared token
 //!   applies to the next request, and a `None` config rejects everything.
@@ -52,7 +54,7 @@ use crate::models::{
     CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo, ErrorResponse,
     InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult, LogEntryPayload,
     LogLevel, LogStatus, SharedServerConfig, SharedShadowStore, StatusResponse,
-    UpdateDocumentRequest, WriteDocumentEvent, WriteResult,
+    UpdateDocumentRequest, WriteResult,
 };
 use crate::services::mcp_confirm::effects::AppConfirmBroker;
 use crate::services::mcp_confirm::http::confirm_gate;
@@ -436,11 +438,13 @@ async fn update_document(
         content: new_content,
     }): Json<UpdateDocumentRequest>,
 ) -> impl IntoResponse {
+    // D156: one id per request, on the start and scheduled lines and the event.
+    let action_id = uuid::Uuid::new_v4().to_string();
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: "mcp.write".to_string(),
         status: LogStatus::Start,
-        action_id: None,
+        action_id: Some(action_id.clone()),
         context: Some(json!({ "documentId": id, "contentLength": new_content.len() })),
         duration_ms: None,
         error: None,
@@ -482,11 +486,7 @@ async fn update_document(
     }
 
     // Emit event to frontend to update the document
-    let event = WriteDocumentEvent {
-        document_id: id.clone(),
-        content: new_content,
-        window_label,
-    };
+    let event = write_document_event(&id, new_content, window_label, &action_id);
 
     if let Err(e) = state.app_handle.emit("mcp:write_document", &event) {
         // Roll back the shadow store so it doesn't diverge from the editor (#243).
@@ -497,17 +497,14 @@ async fn update_document(
                 Ok(false) => "not rolled back: document not found",
                 Err(_) => "not rolled back: mutex error",
             };
-        logger::log_event(LogEntryPayload {
-            level: LogLevel::Error,
-            event: "mcp.write".to_string(),
-            status: LogStatus::Fail,
-            action_id: None,
-            context: Some(
-                json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") }),
-            ),
-            duration_ms: None,
-            error: Some(e.to_string()),
-        });
+        logger::log_event(scheduled_entry(
+            LogLevel::Error,
+            "mcp.write",
+            LogStatus::Fail,
+            &action_id,
+            json!({ "documentId": id, "reason": format!("emit failed, shadow store {rollback_status}") }),
+            Some(e.to_string()),
+        ));
         let error = ErrorResponse {
             error: format!("Failed to emit write event: {}", e),
             code: Some("EMIT_FAILED".to_string()),
@@ -515,15 +512,15 @@ async fn update_document(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
 
-    logger::log_event(LogEntryPayload {
-        level: LogLevel::Info,
-        event: "mcp.write".to_string(),
-        status: LogStatus::Success,
-        action_id: None,
-        context: Some(json!({ "documentId": id })),
-        duration_ms: None,
-        error: None,
-    });
+    // "Scheduled": the frontend logs `stage: "applied"` with this id (D156).
+    logger::log_event(scheduled_entry(
+        LogLevel::Info,
+        "mcp.write",
+        LogStatus::Success,
+        &action_id,
+        json!({ "documentId": id }),
+        None,
+    ));
 
     (StatusCode::OK, Json(WriteResult { success: true })).into_response()
 }
@@ -640,22 +637,35 @@ async fn create_document(
 ) -> impl IntoResponse {
     // Generate a new document ID
     let id = uuid::Uuid::new_v4().to_string();
+    // D156: one id per request, on the scheduled line and the event.
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let content_length = request.content.len();
 
-    // Emit event to frontend to create the document
-    // For now, we use write_document event with a special marker
-    let event = WriteDocumentEvent {
-        document_id: id.clone(),
-        content: request.content,
-        window_label: None, // Will be created in the focused window
-    };
+    // Emit event to frontend to create the document. It reuses the
+    // write_document payload shape; no window label, so it is broadcast.
+    let event = write_document_event(&id, request.content, None, &action_id);
 
     if let Err(e) = state.app_handle.emit("mcp:create_document", &event) {
+        logger::log_event(create_scheduled_entry(
+            &action_id,
+            &id,
+            content_length,
+            Some(e.to_string()),
+        ));
         let error = ErrorResponse {
             error: format!("Failed to emit create event: {}", e),
             code: Some("EMIT_FAILED".to_string()),
         };
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response();
     }
+
+    // "Scheduled": the frontend logs `stage: "applied"` with this id (D156).
+    logger::log_event(create_scheduled_entry(
+        &action_id,
+        &id,
+        content_length,
+        None,
+    ));
 
     (StatusCode::CREATED, Json(CreateDocumentResponse { id })).into_response()
 }
@@ -672,65 +682,11 @@ async fn create_document(
 // returns 202 Accepted; the MCP client can confirm with a follow-up
 // `read_document` call.
 
-#[derive(serde::Serialize)]
-struct TableActionEvent {
-    document_id: String,
-    action: String,
-    payload: serde_json::Value,
-    window_label: Option<String>,
-    /// D153: minted once per request; also on the `stage: "scheduled"` log.
-    action_id: String,
-}
-
-/// Build the `mcp:table_action` payload (D153: with the request's action id).
-fn table_action_event(
-    document_id: &str,
-    action: TableAction,
-    payload: serde_json::Value,
-    window_label: Option<String>,
-    action_id: &str,
-) -> TableActionEvent {
-    TableActionEvent {
-        document_id: document_id.to_string(),
-        action: action.as_str().to_string(),
-        payload,
-        window_label,
-        action_id: action_id.to_string(),
-    }
-}
-
-/// The `stage` a Rust log line reports for a write it hands to the frontend:
-/// the emit happened, the edit has not been applied yet (D153).
-const STAGE_SCHEDULED: &str = "scheduled";
-
-/// A log line for a write handed to the frontend (D153): `context` gains
-/// `stage: "scheduled"` and the line carries `action_id`, the id the emitted
-/// payload also carries, so the frontend's `stage: "applied"` line under the
-/// same event name can be joined to it. A non-object `context` is replaced
-/// by `{ "stage": "scheduled" }`.
-fn scheduled_entry(
-    level: LogLevel,
-    event: &str,
-    status: LogStatus,
-    action_id: &str,
-    context: serde_json::Value,
-    error: Option<String>,
-) -> LogEntryPayload {
-    let mut context = match context {
-        serde_json::Value::Object(map) => map,
-        _ => serde_json::Map::new(),
-    };
-    context.insert("stage".to_string(), json!(STAGE_SCHEDULED));
-    LogEntryPayload {
-        level,
-        event: event.to_string(),
-        status,
-        action_id: Some(action_id.to_string()),
-        context: Some(serde_json::Value::Object(context)),
-        duration_ms: None,
-        error,
-    }
-}
+#[path = "http_server_log_stage.rs"]
+mod log_stage;
+use log_stage::{
+    create_scheduled_entry, scheduled_entry, table_action_event, write_document_event,
+};
 
 /// Common helper — gates the write on the owning window's confirmation
 /// (ADR-0042), then emits the event to the document's owning window.
@@ -1393,7 +1349,7 @@ mod tests {
 
     #[test]
     fn table_action_event_serializes_with_window_label() {
-        let event = TableActionEvent {
+        let event = super::log_stage::TableActionEvent {
             document_id: "doc-1".to_string(),
             action: "insert_table".to_string(),
             payload: serde_json::json!({ "rows": 2, "cols": 3 }),
