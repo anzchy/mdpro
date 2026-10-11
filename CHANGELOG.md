@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- The Windows build compiles again. The file watcher's unchanged-file check uses Unix-only file metadata on macOS and Linux, and a weaker portable stamp on Windows, where it never drops a change event (D159).
-
 ## [0.3.1] - 2026-10-11
 
 ### Highlights
@@ -77,6 +73,7 @@ The full development log for this release, with every defect record, decision re
 - **Build, test and release tooling.** New `pnpm control:*` commands build and drive an isolated verification app for development checks, the CI release workflow generates `latest.json`, the update-check log line now closes for disabled updates, and the `micromark-extension-gfm-table` override is pinned to `2.1.2`.
 
 ### Fixed
+- The Windows build compiles again. The file watcher's unchanged-file check uses Unix-only file metadata on macOS and Linux, and a weaker portable stamp on Windows, where it never drops a change event (D159).
 - **Late edits survive quit.** A window edited after it answered the quit prompt is asked again, and every unsaved document is drafted just before exit.
 - **No more endless quit.** A quit can no longer hang forever with no alert, and a quit prompt now appears only in the window it was meant for.
 - **Accurate stuck-quit alert.** The Stop Waiting and Quit… alert now says what actually happened.
