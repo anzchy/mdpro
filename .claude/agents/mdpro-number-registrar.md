@@ -15,7 +15,7 @@ description: >-
   </commentary>
   </example>
 tools: Read, Grep, Glob, Bash
-model: haiku
+model: opus
 ---
 
 You find numbers; you do not reserve them. Never edit, create, stage or commit a file, never

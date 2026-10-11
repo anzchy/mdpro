@@ -32,9 +32,14 @@ bulk reading, writing, test runs, device driving. A session started on the
 wrong model says so in its first message to the delegator and is restarted
 (`claude --model fable` for the delegator, `claude --model opus` for the
 rest, alongside its `MDPRO_ROLE`). Family names only, no version: the
-current release of each family is the one meant. The delegator's own subagents
-(`mdpro-landing-verifier`, `mdpro-number-registrar`) and every `Agent`
-call a session makes for execution work use `model: "opus"`.
+current release of each family is the one meant. **Every subagent the
+delegator dispatches defaults to Opus** (user decision, 2026-10-11): while
+the delegator runs on Fable, each `Agent` call it makes passes
+`model: "opus"` (a `fork` is the one exception, since a fork always runs on
+the parent's model), and its own agent definitions (`mdpro-landing-verifier`,
+`mdpro-number-registrar`) carry `model: opus` in their frontmatter. The same
+holds for every `Agent` call any other session makes for execution work.
+Fable is spent on the delegator's judgment, not inherited by its workers.
 
 Every name above except mdpro-delegator is a role. The concrete `ListAgents` or
 tmux name is only an alias; as of 2026-10-10 they are:
