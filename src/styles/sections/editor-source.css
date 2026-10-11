@@ -45,12 +45,24 @@
   border-right: 1px solid var(--color-border);
 }
 
+/* D154: drawSelection paints .cm-selectionBackground in .cm-selectionLayer,
+   which CodeMirror stacks BEHIND .cm-content. The active line holds the
+   selection head, so any opaque background here hides a one-line selection
+   completely. Keep it translucent. */
 .editor-shell .cm-activeLine {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
 }
 
-.editor-shell .cm-selectionBackground {
-  background: rgba(96, 165, 250, 0.25);
+/* D154: these must out-rank CodeMirror's base theme, whose focused rule is
+   `.ͼ2.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`
+   (0,5,0); a plain `.editor-shell .cm-selectionBackground` never applied while
+   the editor had focus. Focused = accent; unfocused = neutral, as in CodeMirror. */
+.editor-shell .cm-editor .cm-selectionLayer .cm-selectionBackground {
+  background: color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+
+.editor-shell .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+  background: var(--color-accent-soft);
 }
 
 .editor-shell .cm-cursor {

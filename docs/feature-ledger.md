@@ -156,7 +156,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
 |---|---|---|---|
-| 源码编辑 | Shipped | `src/components/Editor/Editor.tsx` | ⌃2（`menu.view.source`）切到原始 Markdown，有语法着色、行号和当前行高亮 |
+| 源码编辑 | Shipped | `src/components/Editor/Editor.tsx`, `src/styles/sections/editor-source.css` | ⌃2（`menu.view.source`）切到原始 Markdown，有语法着色、行号和当前行高亮选区可见：编辑器有焦点时选区用强调色淡底（`--color-accent-soft`），失焦时用中性灰；当前行只是一层极淡的半透明底，不再盖住选区（[D154](plans/20260912-frontend-backend-sequencing-order.md#d154)：此前当前行是不透明的 `--color-surface`，单行选区与多行选区的末行都看不见高亮，且应用自己的选区色在有焦点时被 CodeMirror 的规则压掉；仅单元验证，真机未复核）。 |
 | 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts` | ⌃2 下 ⌘F 打开查找面板，⌘G / ⌘⇧G 跳下一个 / 上一个，⌘H 打开替换 |
 | 源码模式标题级别 | Shipped | `src/plugins/codemirror/headingPlugin.ts` | 光标停在某行按 ⌘1…⌘6（插件 `heading`）前面补上对应数量的 `#`，⌘0 清掉；光标不会跳位 |
 | 提升 / 降低标题级别 | Shipped | `src/plugins/codemirror/headingPlugin.ts` | 在一行上反复按 ⌘- 一路降到 H6 就停住，反复按 ⌘= 一路升回纯文本 |
