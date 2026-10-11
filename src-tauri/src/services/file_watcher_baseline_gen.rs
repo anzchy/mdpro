@@ -22,6 +22,9 @@
 //! - **`latest` is keyed by the raw path, and a remove leaves a tombstone.**
 //!   The canonical key can change between a register's read and a remove
 //!   (the file is deleted), but the raw spelling the caller passed cannot.
+//!   So the ticket rule orders ops per spelling, and a landed remove drops
+//!   only that spelling's claim on the shared entry (D106,
+//!   file_watcher_baseline_claims.rs).
 //! - **An equal ticket is admitted**, so re-applying an op is idempotent.
 //! - **No lock here.** The admit decision runs inside the parent's map
 //!   helpers; this module only snapshots outside the lock and calls them.
@@ -68,8 +71,9 @@ impl BaselineStore {
         self.put(raw, key, entry, ticket)
     }
 
-    /// Drop `raw`'s entry and record `ticket` as its tombstone, unless an op
-    /// newer than `ticket` already landed on `raw`.
+    /// Drop `raw`'s claim (the entry too once no other spelling holds it)
+    /// and record `ticket` as its tombstone, unless an op newer than
+    /// `ticket` already landed on `raw`.
     pub(crate) fn remove_at(&self, raw: &Path, ticket: u64) -> StoreOutcome {
         let fallback = baseline_key(raw);
         self.take(raw, fallback, ticket)

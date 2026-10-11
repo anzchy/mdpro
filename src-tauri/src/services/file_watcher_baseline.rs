@@ -27,6 +27,7 @@
 //! re-exported here; test-only `is_unchanged`, D112-WI-2),
 //! file_watcher_baseline_seam.rs (test-only read hook and read counter),
 //! file_watcher_baseline_gen.rs (tickets, `Slot`, `admit`),
+//! file_watcher_baseline_claims.rs (`Inner::claim` / `release`, D106),
 //! file_watcher_baseline_seed.rs (the open path's seed, `register_seeded`,
 //! D86 WI-3), file_watcher_baseline_kind.rs (`is_filtered_kind`, the kinds
 //! the drop applies to; re-exported here), docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md
@@ -40,8 +41,10 @@
 //!   refresh stores only if the slot generation it copied out is unchanged.
 //! - **Canonical key** (ADR decision 5), falling back to the raw path. The
 //!   store records `raw -> key` at `register`; a re-register replaces the
-//!   record and drops the entry under the previous key, and `remove` uses
-//!   the record, so a key change between the two cannot leak an entry.
+//!   record, and `remove` uses it, so a key change cannot leak an entry.
+//!   Each record is that spelling's claim: an entry is dropped only when no
+//!   spelling still holds it, so closing one of two spellings of a file
+//!   keeps the other's baseline (D106, file_watcher_baseline_claims.rs).
 //! - **One read, one handle** (ADR-0068 decision 3, D86 WI-1). `snapshot`
 //!   and `is_unchanged_why` each decide from a single coherent read: stat, bytes
 //!   and restat through one open file, plus a path-identity check. A read torn
@@ -84,7 +87,8 @@ pub(crate) fn baseline_key(raw: &Path) -> PathBuf {
     std::fs::canonicalize(raw).unwrap_or_else(|_| raw.to_path_buf())
 }
 
-/// `entries`: key -> slot. `keys`: raw -> key at the last register.
+/// `entries`: key -> slot. `keys`: raw -> key at the last register, i.e.
+/// which spellings hold each entry (D106).
 /// `latest`: raw -> ticket of the last register or remove that landed on
 /// that spelling; a remove leaves it behind as a tombstone (D86 WI-2).
 #[derive(Default)]
@@ -150,12 +154,7 @@ impl BaselineStore {
             return StoreOutcome::StaleSkipped;
         }
         inner.latest.insert(raw.to_path_buf(), ticket);
-        if let Some(previous) = inner.keys.insert(raw.to_path_buf(), key.clone()) {
-            if previous != key {
-                inner.entries.remove(&previous);
-            }
-        }
-        inner.entries.insert(key, Slot { entry, gen: ticket });
+        inner.claim(raw, key, Slot { entry, gen: ticket });
         StoreOutcome::Stored(entry)
     }
 
@@ -168,16 +167,16 @@ impl BaselineStore {
         }
     }
 
-    /// Remove `raw`'s entry and leave its ticket as a tombstone, unless a
-    /// newer op already landed; a skipped remove leaves `keys` untouched.
+    /// Drop `raw`'s claim and leave its ticket as a tombstone, unless a
+    /// newer op already landed; the entry goes once no spelling holds it
+    /// (D106). A skipped remove leaves `keys` untouched.
     fn take(&self, raw: &Path, fallback: PathBuf, ticket: u64) -> StoreOutcome {
         let mut inner = self.locked();
         if !admit(inner.latest.get(raw).copied(), ticket) {
             return StoreOutcome::StaleSkipped;
         }
         inner.latest.insert(raw.to_path_buf(), ticket);
-        let key = inner.keys.remove(raw).unwrap_or(fallback);
-        inner.entries.remove(&key);
+        inner.release(raw, fallback);
         StoreOutcome::Removed
     }
 }
@@ -193,6 +192,9 @@ mod save;
 mod gen;
 use gen::admit;
 pub(crate) use gen::{next_ticket, Slot, StoreOutcome};
+
+#[path = "file_watcher_baseline_claims.rs"]
+mod claims;
 
 #[path = "file_watcher_baseline_read.rs"]
 mod read;
