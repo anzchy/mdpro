@@ -20,9 +20,15 @@
  *     serialize as `:-`. `insertUnalignedColumn` inserts the column unaligned,
  *     as MCP `add_column` does. Insert row keeps preset-gfm's commands, which
  *     copy each column's header alignment.
+ *   - D155: Insert row above on the header row does not use preset-gfm's
+ *     `addRowBeforeCommand`, which puts a body row before the header and splits
+ *     the table. `insertRowAboveHeader` adds an empty header row and moves the
+ *     old header down into the first body row. Every other row insert is
+ *     unchanged.
  *
  * @coordinates-with src/plugins/milkdown/table/contextMenu.ts
  * @coordinates-with src/plugins/milkdown/table/insertColumn.ts
+ * @coordinates-with src/plugins/milkdown/table/insertRow.ts
  */
 
 import {
@@ -39,6 +45,7 @@ import type { EditorView } from "@milkdown/kit/prose/view";
 import { CellSelection, findTable, TableMap } from "@milkdown/kit/prose/tables";
 import type { TableActionId, TableContext } from "./actionDescriptors";
 import { insertUnalignedColumn } from "./insertColumn";
+import { insertRowAboveHeader } from "./insertRow";
 
 export interface CommandsLike {
   call: (key: unknown, payload?: unknown) => boolean;
@@ -90,7 +97,9 @@ export function runCommandFor(
 ): boolean {
   switch (id) {
     case "insert_row_before":
-      return commands.call(addRowBeforeCommand.key);
+      return ctx.rowIndex === 0
+        ? insertRowAboveHeader(view)
+        : commands.call(addRowBeforeCommand.key);
     case "insert_row_after":
       return commands.call(addRowAfterCommand.key);
     case "insert_column_before":

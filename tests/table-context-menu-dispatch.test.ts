@@ -247,8 +247,6 @@ function inferKeyName(k: string): string {
   if (k.includes("deleteSelected")) return "deleteSelectedCellsCommand";
   if (k.includes("addRowBefore")) return "addRowBeforeCommand";
   if (k.includes("addRowAfter")) return "addRowAfterCommand";
-  if (k.includes("addColBefore")) return "addColBeforeCommand";
-  if (k.includes("addColAfter")) return "addColAfterCommand";
   if (k.includes("moveRow")) return "moveRowCommand";
   if (k.includes("moveCol")) return "moveColCommand";
   if (k.includes("setAlign")) return "setAlignCommand";
@@ -266,8 +264,6 @@ vi.mock("@milkdown/kit/core", () => ({
 vi.mock("@milkdown/kit/preset/gfm", () => {
   const cmd = (name: string) => ({ key: { displayName: name, toString: () => name } });
   return {
-    addColAfterCommand: cmd("addColAfterCommand"),
-    addColBeforeCommand: cmd("addColBeforeCommand"),
     addRowAfterCommand: cmd("addRowAfterCommand"),
     addRowBeforeCommand: cmd("addRowBeforeCommand"),
     deleteSelectedCellsCommand: cmd("deleteSelectedCellsCommand"),
