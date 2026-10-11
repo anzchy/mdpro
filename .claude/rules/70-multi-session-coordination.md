@@ -16,13 +16,24 @@ message.
 
 ## Sessions
 
-| Session | Machine | Owns | Commits where |
-|---|---|---|---|
-| **mdpro-delegator** | MacBook, main checkout | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `frontend-backend-redesign`, docs only |
-| **mdpro-implementor-\*** (one or more) | MacBook | The work items the delegator hands it, one area at a time | Its own branch and worktree in `mdpro-wt/`. It runs git only inside that worktree; the delegator does cross-tree git for it |
-| **mdpro-auditor-\*** | MacBook | Audits the user hands it directly (e.g. the branch audit in `docs/audit/`) and the fixes that come out of them. D items it fixes keep their sequencing rows as the authority on status | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
-| **mdpro-device-harness** | Mac mini | The device-test tooling itself: ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
-| **real-device-tester** | Mac mini, tmux session | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
+| Session | Machine | Model | Owns | Commits where |
+|---|---|---|---|---|
+| **mdpro-delegator** | MacBook, main checkout | **Fable 5.1** | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `frontend-backend-redesign`, docs only |
+| **mdpro-implementor-\*** (one or more) | MacBook | Opus 5.5 | The work items the delegator hands it, one area at a time | Its own branch and worktree in `mdpro-wt/`. It runs git only inside that worktree; the delegator does cross-tree git for it |
+| **mdpro-auditor-\*** | MacBook | Opus 5.5 (the Codex job it dispatches runs `gpt-6.1-sol`) | Audits the user hands it directly (e.g. the branch audit in `docs/audit/`) and the fixes that come out of them. D items it fixes keep their sequencing rows as the authority on status | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
+| **mdpro-device-harness** | Mac mini | Opus 5.5 | The device-test tooling itself: ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
+| **real-device-tester** | Mac mini, tmux session | Opus 5.5 | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
+
+**The model column is a pairing, not a preference** (user decision,
+2026-10-11). The delegator runs on **Fable 5.1** because its work is
+judgment: rulings, scope checks, what to ask the user, and what to relay.
+Every other session runs on **Opus 5.5** because its work is execution:
+bulk reading, writing, test runs, device driving. A session started on the
+wrong model says so in its first message to the delegator and is restarted
+(`claude --model fable` for the delegator, `claude --model opus` for the
+rest, alongside its `MDPRO_ROLE`). The delegator's own subagents
+(`mdpro-landing-verifier`, `mdpro-number-registrar`) and every `Agent`
+call a session makes for execution work use `model: "opus"`.
 
 Every name above except mdpro-delegator is a role. The concrete `ListAgents` or
 tmux name is only an alias; as of 2026-10-10 they are:
