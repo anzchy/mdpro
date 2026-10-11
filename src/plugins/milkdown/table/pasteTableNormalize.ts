@@ -4,14 +4,15 @@
  * (ADR-0067 Decision 4, D64 WI-3). HTML paste bypasses remark, so the parse-time
  * widener (`raggedTableWiden.ts`) never sees it; left alone, prosemirror-tables'
  * `fixTables` would repair the table at the row start. Also refuses a
- * table-carrying paste (D83) or drop (D90) inside a table cell that would split
- * the host.
+ * table-carrying paste (D83) or drop (D90 / D94 / D102) that would split the
+ * host table.
  *
  * Pipeline: clipboard HTML → `transformPastedHTML` (sanitizer) → ProseMirror DOM
  * parser → `transformPasted` (this plugin: end-pad) → `handlePaste` (prosemirror-
  * tables first, then this plugin: refuse) → `replaceSelection`. A drop: the
  * dragged slice (`transformPasted`) or the dropped HTML (parsed as above) →
- * `handleDrop` (this plugin: refuse) → prosemirror-view's `dropPoint` →
+ * `handleDrop` (this plugin: replay the default drop on a scratch transaction,
+ * refuse if it breaks the host table) → prosemirror-view's `dropPoint` →
  * `replaceRange`.
  *
  * Key decisions:
@@ -38,22 +39,35 @@
  *     deleted), logs `editor.table.paste` as `fail` and shows the shared toast.
  *   - Drag-and-drop does not pass through `handlePaste`, and prosemirror-tables
  *     has no `handleDrop`, so the same split happens on a drop (D90). `handleDrop`
- *     refuses a table-carrying slice when the place prosemirror-view would insert
- *     it — `dropPoint` from the pointer position, falling back to the pointer
- *     position as its drop handler does — lies anywhere inside a table's content
- *     (`findTable`): in a cell (D90) or at an interior boundary between cells or
- *     rows (D94), where `dropPoint` finds no place and the fallback still splits
- *     the host. Returning true consumes the drop, so nothing is inserted and the
- *     source of a move-drag is not deleted; it logs `editor.table.drop` as `fail`
- *     and toasts. A closed pure-table slice gets a `dropPoint` beside the host
- *     table, outside it, and is left alone.
+ *     decides by the property itself (D102): it replays prosemirror-view's default
+ *     drop on a scratch transaction — the move deletion, `dropPoint` from the
+ *     pointer position (falling back to the pointer position), then
+ *     `replaceRange` (`replaceRangeWith` for a closed single node) — and refuses
+ *     a table-carrying slice iff the insert position lies in a table
+ *     (`findTable`) and that host table does not come through intact: the result
+ *     must hold exactly the tables it held plus the slice's, with the host's
+ *     unchanged copy among them. A zero-sized table shell is not counted:
+ *     the replace at the table's start leaves one, and `fixTables` deletes it in
+ *     the same dispatch. That refuses a drop in a cell (D90) and at an
+ *     interior boundary between cells or rows (D94), where the replace splits
+ *     the host, but not at the table's outer-edge chain (content start, first row
+ *     start, last row end, content end), where it lands beside the host. A D94
+ *     rule by ancestry alone refused that chain needlessly. A replay that throws
+ *     is refused too, since the default drop would throw the same way. Returning
+ *     true consumes the drop, so nothing is inserted and the source of a
+ *     move-drag is not deleted; it logs `editor.table.drop` as `fail` and toasts.
+ *   - A paste is still decided by `isInTable` (the selection head's cell). A
+ *     TextSelection whose head sits between rows would slip past it, but the view
+ *     never holds one: the DOM selection read, mapping and `Selection.near` all
+ *     move such a position into a cell's text, and no gapcursor plugin is
+ *     registered (D102 ②, `tests/d102-table-drop-edge.test.ts`).
  *
  * @coordinates-with src/plugins/milkdown/table/parityPlugins.ts
  * @coordinates-with src/plugins/milkdown/table/raggedTableWiden.ts
  * @coordinates-with src/stores/toastStore.ts — refusal feedback
  */
 import { Fragment, type Node as PmNode, Slice } from "@milkdown/kit/prose/model";
-import { type EditorState, Plugin, PluginKey } from "@milkdown/kit/prose/state";
+import { type EditorState, type NodeSelection, Plugin, PluginKey } from "@milkdown/kit/prose/state";
 import {
   __pastedCells,
   CellSelection,
@@ -166,19 +180,61 @@ function refuseTableInCell(kind: RefusalKind, slice: Slice): true {
   return true;
 }
 
+/** Whether `fixTables` deletes this table as `zero_sized` (no cell at all). */
+function isZeroSized(table: PmNode): boolean {
+  return (TableMap.get(table).problems ?? []).some((problem) => problem.type === "zero_sized");
+}
+
 /**
- * Whether prosemirror-view would insert this dropped slice inside a table: the
- * `dropPoint` from the pointer position (falling back to the pointer position
- * itself, as the view's drop handler does) has a table ancestor. That covers a
- * cell (D90) and the boundaries between cells and rows (D94); a `dropPoint`
- * relocated before or after the table is outside it and is not refused.
+ * Every table in `node` (not descending into a table), and how many equal
+ * `host`. A zero-sized table is not counted: `fixTables` deletes it in the same
+ * dispatch, as it does the empty shell a replace leaves at the table's start.
  */
-function dropLandsInTable(view: EditorView, event: DragEvent, slice: Slice): boolean {
+function countTables(node: PmNode | Fragment, host: PmNode): { all: number; host: number } {
+  const count = { all: 0, host: 0 };
+  node.descendants((child) => {
+    if (child.type.spec.tableRole !== "table") return true;
+    if (isZeroSized(child)) return false;
+    count.all += 1;
+    if (child.eq(host)) count.host += 1;
+    return false;
+  });
+  return count;
+}
+
+/**
+ * Whether prosemirror-view's default drop of this table-carrying slice would
+ * break the table it lands in. Replays the view's drop handler on a scratch
+ * transaction: delete the move source, map `dropPoint(...) ?? pointer`, then
+ * insert. No table at the insert position → false. Otherwise true unless the
+ * result holds exactly the old tables plus the slice's, the host's unchanged
+ * copy among them (a split adds a table and loses the host; an edit in a cell
+ * loses the host). A replay that throws is true: the default drop would throw.
+ */
+function dropBreaksTable(view: EditorView, event: DragEvent, slice: Slice, moved: boolean): boolean {
   const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
   if (!coords) return false;
-  const { doc } = view.state;
-  const insertPos = dropPoint(doc, coords.pos, slice) ?? coords.pos;
-  return findTable(doc.resolve(insertPos)) !== null;
+  const { state } = view;
+  const tr = state.tr;
+  if (moved) {
+    const source = (view.dragging as { node?: NodeSelection } | null)?.node;
+    if (source) source.replace(tr);
+    else tr.deleteSelection();
+  }
+  const pos = tr.mapping.map(dropPoint(state.doc, coords.pos, slice) ?? coords.pos);
+  const host = findTable(tr.doc.resolve(pos));
+  if (!host) return false;
+  const before = countTables(tr.doc, host.node);
+  const added = countTables(slice.content, host.node);
+  const single = slice.openStart === 0 && slice.openEnd === 0 && slice.content.childCount === 1;
+  try {
+    if (single && slice.content.firstChild) tr.replaceRangeWith(pos, pos, slice.content.firstChild);
+    else tr.replaceRange(pos, pos, slice);
+  } catch {
+    return true;
+  }
+  const after = countTables(tr.doc, host.node);
+  return after.all !== before.all + added.all || after.host !== before.host + added.host;
 }
 
 export const tablePasteNormalizePlugin = $prose(
@@ -193,8 +249,8 @@ export const tablePasteNormalizePlugin = $prose(
           if (!sliceHasTable(slice)) return false;
           return refuseTableInCell("paste", slice);
         },
-        handleDrop: (view, event, slice) => {
-          if (!sliceHasTable(slice) || !dropLandsInTable(view, event, slice)) return false;
+        handleDrop: (view, event, slice, moved) => {
+          if (!sliceHasTable(slice) || !dropBreaksTable(view, event, slice, moved)) return false;
           return refuseTableInCell("drop", slice);
         },
       },

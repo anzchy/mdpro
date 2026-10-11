@@ -1,7 +1,8 @@
 /**
  * @module tests/support/tableDropDriver
- * Purpose: the drop driver and slice fixtures shared by the D90 / D94 table-drop
- * suites. Not a `*.test.ts`, so vitest does not collect it.
+ * Purpose: the drop driver, slice fixtures and position oracles shared by the
+ * D90 / D94 / D102 table-drop suites. Not a `*.test.ts`, so vitest does not
+ * collect it.
  *
  * The drop goes through prosemirror-view's own `drop` handler: a `drop` event
  * dispatched on `view.dom`, with a DataTransfer stub (external drop) or
@@ -16,7 +17,9 @@
  */
 import type { Node as PmNode, Slice } from "@milkdown/kit/prose/model";
 import type { EditorView } from "@milkdown/kit/prose/view";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
+import { useToastStore } from "../../src/stores/toastStore";
+import { destroyParityEditors, docOf, mountParityEditor, serialize, tableShapes, viewOf } from "./raggedTableD64";
 
 const row = (tag: "th" | "td", cells: string[]) =>
   `<tr>${cells.map((c) => `<${tag}>${c}</${tag}>`).join("")}</tr>`;
@@ -28,6 +31,12 @@ export const TABLE =
 
 /** paragraph + table + paragraph: parsed open at its paragraph edges. */
 export const MIXED = `<p>before</p>${TABLE}<p>after</p>`;
+
+/** The dropped table's cells, header row first. */
+export const DROPPED_CELLS = [
+  ["h1", "h2"],
+  ["a", "b"],
+];
 
 /** An existing rectangular table whose values share nothing with the dropped one. */
 export const HOST = "| X1 | X2 |\n| -- | -- |\n| y1 | y2 |\n";
@@ -91,4 +100,48 @@ export function inTableNonCellPositions(doc: PmNode): number[] {
     if (inTable && !inCell) out.push(p);
   }
   return out;
+}
+
+/**
+ * The outer-edge chain of the first table in `doc`: its content start, its first
+ * row's start, its last row's end and its content end. Derived from the table's
+ * own position and size, not from the code under test.
+ */
+export function outerEdgeChain(doc: PmNode): number[] {
+  let at = -1;
+  let size = 0;
+  doc.descendants((node, pos) => {
+    if (at >= 0) return false;
+    if (node.type.name !== "table") return true;
+    at = pos;
+    size = node.nodeSize;
+    return false;
+  });
+  if (at < 0) throw new Error("no table in doc");
+  return [at + 1, at + 2, at + size - 2, at + size - 1];
+}
+
+/**
+ * Mount `md` (one host table), drop MIXED at `pos`, and assert the drop LANDED:
+ * no refusal log or toast, the dropped table beside the host, the host's cells
+ * unchanged, both paragraphs present, and the document still serializes with the
+ * host's rows intact. `dropLogs` returns the `editor.table.drop` log calls so far.
+ */
+export async function expectLandsAt(md: string, pos: number, dropLogs: () => unknown[]): Promise<void> {
+  const e = await mountParityEditor(md);
+  const host = tableShapes(docOf(e)).map((s) => s.cells);
+  expect(host).toHaveLength(1);
+  drop(viewOf(e), pos, { html: MIXED });
+  expect(dropLogs(), `refused at ${pos}`).toHaveLength(0);
+  expect(useToastStore.getState().message).toBeNull();
+  const cells = tableShapes(docOf(e)).map((s) => s.cells);
+  expect(cells, `tables after a drop at ${pos}`).toHaveLength(2);
+  expect(cells).toContainEqual(host[0]);
+  expect(cells).toContainEqual(DROPPED_CELLS);
+  expect(docOf(e).textContent).toContain("before");
+  expect(docOf(e).textContent).toContain("after");
+  expect(() => serialize(e)).not.toThrow();
+  expect(serialize(e)).toContain("| X1 | X2 |");
+  expect(serialize(e)).toContain("| y1 | y2 |");
+  await destroyParityEditors();
 }

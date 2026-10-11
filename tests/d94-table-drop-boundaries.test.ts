@@ -7,8 +7,14 @@
  * prosemirror-view's `replaceRange` split the host table (3 tables) and
  * `serialize()` threw. Same inside a list item and a blockquote.
  *
+ * D102 narrowed the refusal: the four positions of the table's outer-edge chain
+ * (table content start, first row start, last row end, table content end) are
+ * not refused, because the default insert there lands beside the host table and
+ * leaves it intact. Every other in-table non-cell position is still refused.
+ *
  * Positions are derived from the document (every in-table, not-in-cell
- * position), never trusted from hard-coded numbers alone. Driver:
+ * position; the outer-edge chain from the table's own position and size), never
+ * trusted from hard-coded numbers alone. Driver:
  * `tests/support/tableDropDriver.ts` (real prosemirror-view drop handler, only
  * `posAtCoords` stubbed).
  */
@@ -27,9 +33,11 @@ import {
 import {
   DROP_TOAST,
   drop,
+  expectLandsAt,
   HOST,
   inTableNonCellPositions,
   MIXED,
+  outerEdgeChain,
   TABLE,
 } from "./support/tableDropDriver";
 
@@ -91,7 +99,7 @@ async function expectRefusedAt(md: string, pos: number): Promise<void> {
   useToastStore.getState().clearToast();
 }
 
-describe("D94 — a mixed slice dropped at an in-table boundary is refused", () => {
+describe("D94 / D102 — a mixed slice dropped at an interior in-table boundary is refused", () => {
   it("the five named boundary positions are in the table and not in a cell (guard)", async () => {
     const e = await mountParityEditor(HOST);
     const boundaries = inTableNonCellPositions(docOf(e));
@@ -108,31 +116,47 @@ describe("D94 — a mixed slice dropped at an in-table boundary is refused", () 
     await expectRefusedAt(HOST, pos as number);
   });
 
-  it("D94-1..5 sweep: every in-table non-cell position of the host is refused", async () => {
+  /**
+   * Every in-table non-cell position of `md`: the outer-edge chain lands (D102),
+   * every other one is refused (D94).
+   */
+  async function sweep(md: string): Promise<void> {
+    const e = await mountParityEditor(md);
+    const positions = inTableNonCellPositions(docOf(e));
+    const edges = outerEdgeChain(docOf(e));
+    await destroyParityEditors();
+    expect(positions.length).toBeGreaterThanOrEqual(9);
+    // Non-vacuous: the chain is four in-table non-cell positions.
+    expect(edges).toHaveLength(4);
+    expect(positions).toEqual(expect.arrayContaining(edges));
+    for (const pos of positions) {
+      if (edges.includes(pos)) await expectLandsAt(md, pos, dropLogs);
+      else await expectRefusedAt(md, pos);
+    }
+  }
+
+  it("D94-1..5 / D102 sweep: every in-table non-cell position is refused except the outer-edge chain", async () => {
     const e = await mountParityEditor(HOST);
-    const positions = inTableNonCellPositions(docOf(e));
+    expect(outerEdgeChain(docOf(e))).toEqual([1, 2, 28, 29]);
     await destroyParityEditors();
-    expect(positions.length).toBeGreaterThanOrEqual(9);
-    for (const pos of positions) await expectRefusedAt(HOST, pos);
+    await sweep(HOST);
   });
 
-  it("D94-6: a table inside a list item — every in-table non-cell position is refused", async () => {
+  it("D94-6: a table inside a list item — the same sweep holds", async () => {
     const e = await mountParityEditor(IN_LIST);
-    const positions = inTableNonCellPositions(docOf(e));
+    const first = inTableNonCellPositions(docOf(e))[0];
     // The table really is nested in the list item.
-    expect(ancestors(e, positions[0]).slice(0, 3)).toEqual(["doc", "bullet_list", "list_item"]);
+    expect(ancestors(e, first).slice(0, 3)).toEqual(["doc", "bullet_list", "list_item"]);
     await destroyParityEditors();
-    expect(positions.length).toBeGreaterThanOrEqual(9);
-    for (const pos of positions) await expectRefusedAt(IN_LIST, pos);
+    await sweep(IN_LIST);
   });
 
-  it("D94-7: a table inside a blockquote — every in-table non-cell position is refused", async () => {
+  it("D94-7: a table inside a blockquote — the same sweep holds", async () => {
     const e = await mountParityEditor(IN_QUOTE);
-    const positions = inTableNonCellPositions(docOf(e));
-    expect(ancestors(e, positions[0]).slice(0, 2)).toEqual(["doc", "blockquote"]);
+    const first = inTableNonCellPositions(docOf(e))[0];
+    expect(ancestors(e, first).slice(0, 2)).toEqual(["doc", "blockquote"]);
     await destroyParityEditors();
-    expect(positions.length).toBeGreaterThanOrEqual(9);
-    for (const pos of positions) await expectRefusedAt(IN_QUOTE, pos);
+    await sweep(IN_QUOTE);
   });
 });
 
