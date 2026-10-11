@@ -30,12 +30,21 @@
  *   - A row is invented when it has no cells and no rowspan from a row above
  *     covers it. A covered row is real: dropping or filling it would move the
  *     rows below it (b51). Its width is the table's widest row.
+ *   - Except at the end (D162): gfm's rule reads the LAST row's cell count as the
+ *     table's width, so a covered, cell-less last row would still turn the table
+ *     into an empty paragraph. The trailing run of such rows is uncovered — every
+ *     rowspan reaching into it is cut to stop above it — and then filled like an
+ *     invented row. No cell moves, the row count is kept (GFM has no rowspan to
+ *     keep anyway), and every table with a cell ends in a row with cells, so gfm's
+ *     empty-table branch is unreachable for it. A covered row in the middle is
+ *     left as it is.
  *   - Only closed top-level tables, the ones gfm's rule reads; a table on the
  *     slice's open edge is a cut fragment, left as cut.
  *   - A table with no cell at all (`<table></table>`) is dropped whole: there is
  *     no width to fill, and gfm's rule would turn it into an empty paragraph,
  *     which splits a host table. A slice left with nothing is `Slice.empty`.
- *   - Logs `editor.table.paste-rows-filled` when it filled a row and
+ *   - Logs `editor.table.paste-rows-filled` when it filled a row (with
+ *     `uncoveredRows`, the covered tail rows among them) and
  *     `editor.table.paste-rows-dropped` when it dropped a table (rule 20).
  *
  * @coordinates-with src/plugins/milkdown/table/pasteCells.ts — drops the filled rows from a cell paste
@@ -87,19 +96,47 @@ function filledRow(row: PmNode, width: number): PmNode | null {
   return out;
 }
 
-/** `table` with its invented rows filled; null when it has no cell at all. */
-function completed(table: PmNode): { table: PmNode | null; filled: number } {
+/** Index of the first row of the trailing run of covered, cell-less rows; the row count when none. */
+function coveredTailStart(table: PmNode, covered: boolean[]): number {
+  let end = table.childCount;
+  while (end > 0 && covered[end - 1] && table.child(end - 1).childCount === 0) end -= 1;
+  return end;
+}
+
+/** `row`, at index `r`, with every rowspan cut to stop above row `end`. */
+function spansClippedTo(row: PmNode, r: number, end: number): PmNode {
+  let clipped = false;
+  const cells: PmNode[] = [];
+  row.forEach((cell) => {
+    const keep = end - r;
+    if (Number(cell.attrs.rowspan ?? 1) <= keep) cells.push(cell);
+    else {
+      cells.push(cell.type.create({ ...cell.attrs, rowspan: keep }, cell.content, cell.marks));
+      clipped = true;
+    }
+  });
+  return clipped ? row.copy(Fragment.from(cells)) : row;
+}
+
+/**
+ * `table` with its invented rows filled, its covered cell-less tail uncovered and
+ * filled too; null when it has no cell at all.
+ */
+function completed(table: PmNode): { table: PmNode | null; filled: number; uncovered: number } {
   const { widths, covered } = rowLayout(table);
   const width = Math.max(0, ...widths);
-  if (width === 0) return { table: null, filled: 0 };
+  if (width === 0) return { table: null, filled: 0, uncovered: 0 };
+  const end = coveredTailStart(table, covered);
   let filled = 0;
   const rows: PmNode[] = [];
   table.forEach((row, _offset, r) => {
-    const next = row.childCount === 0 && !covered[r] ? filledRow(row, width) : null;
+    const empty = row.childCount === 0 && (!covered[r] || r >= end);
+    const next = empty ? filledRow(row, width) : null;
     if (next) filled += 1;
-    rows.push(next ?? row);
+    rows.push(next ?? (r < end ? spansClippedTo(row, r, end) : row));
   });
-  return { table: filled > 0 ? table.copy(Fragment.from(rows)) : table, filled };
+  const uncovered = table.childCount - end;
+  return { table: filled > 0 ? table.copy(Fragment.from(rows)) : table, filled, uncovered };
 }
 
 /** Map every closed top-level table of `slice` through `fn` (null drops it). */
@@ -120,20 +157,28 @@ function mapClosedTables(slice: Slice, fn: (table: PmNode) => PmNode | null): Sl
 }
 
 /**
- * Fill the invented rows of every closed top-level table in `slice`, and drop
- * such a table with no cell at all. Returns the same slice when nothing changed,
- * with the rows filled and the rows of the tables dropped.
+ * Fill the invented rows of every closed top-level table in `slice` (a covered,
+ * cell-less tail uncovered first), and drop such a table with no cell at all.
+ * Returns the same slice when nothing changed, with the rows filled, the tail
+ * rows among them, and the rows of the tables dropped.
  */
-export function completeInventedRows(slice: Slice): { slice: Slice; filled: number; dropped: number } {
+export function completeInventedRows(slice: Slice): {
+  slice: Slice;
+  filled: number;
+  uncovered: number;
+  dropped: number;
+} {
   let filled = 0;
+  let uncovered = 0;
   let dropped = 0;
   const out = mapClosedTables(slice, (table) => {
     const result = completed(table);
     filled += result.filled;
+    uncovered += result.uncovered;
     if (!result.table) dropped += table.childCount;
     return result.table;
   });
-  return { slice: out, filled, dropped };
+  return { slice: out, filled, uncovered, dropped };
 }
 
 /**
@@ -171,7 +216,9 @@ export const tablePasteInventedRowsRule = $pasteRule(() => ({
   run: (slice, _view, isPlainText) => {
     if (isPlainText) return slice;
     const result = completeInventedRows(slice);
-    if (result.filled > 0) log(PASTE_ROWS_FILLED_EVENT, { filledRows: result.filled });
+    if (result.filled > 0) {
+      log(PASTE_ROWS_FILLED_EVENT, { filledRows: result.filled, uncoveredRows: result.uncovered });
+    }
     if (result.dropped > 0) log(PASTE_ROWS_DROPPED_EVENT, { droppedRows: result.dropped });
     return result.slice;
   },
