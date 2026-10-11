@@ -217,6 +217,10 @@ scratchpad is wiped.
   worktree in `../mdpro-wt/`. If it does, **ask the user before creating it**,
   naming the branch, the directory, and the base commit. Small fixes and
   doc-only edits stay on the current checkout.
+- **Implementor sessions (rule 70) get one worktree per item in flight**, created
+  without asking each time (user decision, 2026-10-11: 「同意，作为常设安排」).
+  A held item's rebase must not wait for the active item's worktree. Removal
+  still goes through the delegator under rule 25, once the item has landed.
 - **Branch**: `<type>/<id>-<slug>`. `<type>` comes from the commit types table,
   and `<id>` is the defect or work item, e.g. `fix/d41-source-tab-gaps` or
   `docs/d35-device-verified`.
