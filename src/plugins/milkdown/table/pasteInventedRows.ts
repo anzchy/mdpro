@@ -37,7 +37,7 @@
  *     invented row. No cell moves, the row count is kept (GFM has no rowspan to
  *     keep anyway), and every table with a cell ends in a row with cells, so gfm's
  *     empty-table branch is unreachable for it. A covered row in the middle is
- *     left as it is.
+ *     left as it is, and with no such tail no rowspan is cut (audit b63).
  *   - Only closed top-level tables, the ones gfm's rule reads; a table on the
  *     slice's open edge is a cut fragment, left as cut.
  *   - A table with no cell at all (`<table></table>`) is dropped whole: there is
@@ -120,7 +120,10 @@ function spansClippedTo(row: PmNode, r: number, end: number): PmNode {
 
 /**
  * `table` with its invented rows filled, its covered cell-less tail uncovered and
- * filled too; null when it has no cell at all.
+ * filled too; null when it has no cell at all. Rowspans are clipped only when
+ * such a covered tail exists: a span running past the table's last row with no
+ * tail to uncover is left as pasted (prosemirror-tables pastes it over a
+ * CellSelection; clipping it there broke the cell paste, audit b63).
  */
 function completed(table: PmNode): { table: PmNode | null; filled: number; uncovered: number } {
   const { widths, covered } = rowLayout(table);
@@ -133,7 +136,8 @@ function completed(table: PmNode): { table: PmNode | null; filled: number; uncov
     const empty = row.childCount === 0 && (!covered[r] || r >= end);
     const next = empty ? filledRow(row, width) : null;
     if (next) filled += 1;
-    rows.push(next ?? (r < end ? spansClippedTo(row, r, end) : row));
+    const clip = r < end && end < table.childCount;
+    rows.push(next ?? (clip ? spansClippedTo(row, r, end) : row));
   });
   const uncovered = table.childCount - end;
   return { table: filled > 0 ? table.copy(Fragment.from(rows)) : table, filled, uncovered };
