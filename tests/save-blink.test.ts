@@ -35,10 +35,10 @@ describe("App.tsx — handleSave blink fix (#377)", () => {
     expect(appSrc).not.toMatch(/setBusyLabel\("Saving\.\.\."\)/);
   });
 
-  it("handleSave still has markSaveInProgress() to suppress external change detection", () => {
-    // markSaveInProgress() must remain — it prevents the file-watcher from
-    // treating the save as an external change and prompting a reload.
-    expect(appSrc).toMatch(/markSaveInProgress/);
+  it("handleSave no longer marks a frontend save window (D86 WI-4)", () => {
+    // Rust recognises our own saves; the frontend window that used to hide them
+    // also swallowed real external changes right after ⌘S.
+    expect(appSrc).not.toMatch(/markSaveInProgress/);
   });
 
   it("other handlers (open, export, reload) still use setBusyLabel for long operations", () => {
@@ -62,10 +62,9 @@ describe("App.tsx — handleSave blink fix (#377)", () => {
 // no component rendering or mock gymnastics needed.
 
 describe("performSave — behavioral contracts (#377)", () => {
-  it("on success: markSaveInProgress fires before save, toast fires after", async () => {
+  it("on success: save, then recent files, then the toast", async () => {
     const callOrder: string[] = [];
     const deps = {
-      markSaveInProgress: vi.fn(() => { callOrder.push("mark"); }),
       saveActiveDocument: vi.fn(async () => { callOrder.push("save"); return { success: true, path: "/doc.md" }; }),
       updateRecentFiles: vi.fn(() => { callOrder.push("recent"); }),
       showToast: vi.fn(() => { callOrder.push("toast"); }),
@@ -73,14 +72,13 @@ describe("performSave — behavioral contracts (#377)", () => {
 
     await performSave("action-id", deps);
 
-    expect(callOrder).toEqual(["mark", "save", "recent", "toast"]);
+    expect(callOrder).toEqual(["save", "recent", "toast"]);
     expect(deps.showToast).toHaveBeenCalledWith("Saved");
     expect(deps.updateRecentFiles).toHaveBeenCalledWith("/doc.md");
   });
 
   it("on save failure (success=false): no toast shown", async () => {
     const deps = {
-      markSaveInProgress: vi.fn(),
       saveActiveDocument: vi.fn().mockResolvedValue({ success: false, path: null }),
       updateRecentFiles: vi.fn(),
       showToast: vi.fn(),
@@ -89,12 +87,11 @@ describe("performSave — behavioral contracts (#377)", () => {
     await performSave(undefined, deps);
 
     expect(deps.showToast).not.toHaveBeenCalled();
-    expect(deps.markSaveInProgress).toHaveBeenCalledTimes(1);
+    expect(deps.saveActiveDocument).toHaveBeenCalledTimes(1);
   });
 
   it("on null result (no active doc): no toast, no crash", async () => {
     const deps = {
-      markSaveInProgress: vi.fn(),
       saveActiveDocument: vi.fn().mockResolvedValue(null),
       updateRecentFiles: vi.fn(),
       showToast: vi.fn(),
@@ -106,7 +103,6 @@ describe("performSave — behavioral contracts (#377)", () => {
 
   it("on saveActiveDocument rejection: shows error toast, does not throw", async () => {
     const deps = {
-      markSaveInProgress: vi.fn(),
       saveActiveDocument: vi.fn().mockRejectedValue(new Error("disk full")),
       updateRecentFiles: vi.fn(),
       showToast: vi.fn(),

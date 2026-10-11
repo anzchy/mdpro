@@ -5,6 +5,8 @@ D68 + D101. It becomes Accepted after the watcher device recheck (D86 WI-5),
 which covers D32, D68 and D86 together. It builds on
 [ADR-0068](0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md)
 and does not change it.
+Amended 2026-10-11: two consequences restated in the present tense, because
+D86 WI-4 has removed the frontend's 3 s save-suppression window.
 
 ## Context
 
@@ -67,8 +69,8 @@ and does not change it.
   bytes. It used to re-read the file and store no hash when (1) the
   document was over the 10 MiB hash cap, or (2) the post-save read was
   unstable or differed from the bytes written; the own rename was then
-  `EmittedModified`, hidden only by the frontend's 3 s save-suppression
-  window. Since D112 it stores the hash of the written bytes, uncapped,
+  `EmittedModified`, and only the frontend's 3 s save-suppression window
+  (removed since by D86 WI-4) kept it from prompting. Since D112 it stores the hash of the written bytes, uncapped,
   without a read, and the path's on-disk stat taken after the rename; since
   D129 that stat is stored only when its size equals the written length,
   and is `None` otherwise. `is_unchanged` reads up to the stored size when
@@ -81,10 +83,10 @@ and does not change it.
   stored value (ADR-0068 decision 3). If that read fails, or is torn by a
   metadata change (an xattr or Spotlight write in the same instant), the own
   rename is `EmittedModified`. This is kept on purpose: dropping on stat
-  alone, or retrying, would give up "drop only on proven-equal bytes". Once
-  D86 WI-4 removes the 3 s window, this residual is **user-visible as an
-  "External change detected" prompt on the user's own save**. It is rare and
-  loses nothing (Reload loads the bytes just saved). The `file.watch.event`
+  alone, or retrying, would give up "drop only on proven-equal bytes". D86
+  WI-4 has removed the frontend's 3 s window, so this residual is
+  **user-visible as an "External change detected" prompt on the user's own
+  save**, as is the `no_baseline` case below. It is rare and loses nothing (Reload loads the bytes just saved). The `file.watch.event`
   log line says which case it was: its `unchangedCheck` field is
   `read_failed` or `unstable` here, and `stat_differs` or `hash_differs` for
   a real external change (D112-WI-2).

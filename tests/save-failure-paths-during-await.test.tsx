@@ -95,7 +95,6 @@ async function finish(
 
 function performSaveDeps(api: Api) {
   return {
-    markSaveInProgress: vi.fn(),
     saveActiveDocument: api.saveActiveDocument,
     updateRecentFiles: vi.fn(),
     showToast: vi.fn(),

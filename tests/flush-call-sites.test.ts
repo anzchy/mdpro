@@ -64,7 +64,6 @@ describe("S-save-flush-failed — a failed flush aborts the save (L-S2)", () => 
     const showToast = vi.fn();
 
     await performSave(undefined, {
-      markSaveInProgress: vi.fn(),
       saveActiveDocument: result.current.saveActiveDocument,
       updateRecentFiles: vi.fn(),
       showToast,

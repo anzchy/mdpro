@@ -294,7 +294,7 @@ describe("D19 red — an edit during the save's await survives it (L-H1, L-H2)",
     const { api } = await mountApi();
     const showToast = vi.fn();
     const updateRecentFiles = vi.fn();
-    const deps = { markSaveInProgress: vi.fn(), saveActiveDocument: api.saveActiveDocument, updateRecentFiles, showToast };
+    const deps = { saveActiveDocument: api.saveActiveDocument, updateRecentFiles, showToast };
     const p = await start(() => performSave(undefined, deps), "save_file");
     await write("doc-a", "BASE+NEW");
     await finish(p, "save_file", ok(A_PATH));

@@ -14,7 +14,6 @@ import {
 const TS = 1700000000777;
 const OUTCOMES: FileChangeReceivedOutcome[] = [
   "other-path",
-  "save-suppressed",
   "scheduled",
   "delivered",
 ];
@@ -25,7 +24,7 @@ const ACTIONS: Array<FileChangeAction["action"]> = [
   "deleted-prompt",
 ];
 
-describe("fl5: the four received outcomes, exact payloads", () => {
+describe("fl5: the three received outcomes, exact payloads", () => {
   const event: FileChangeLogEvent = {
     path: "/private/tmp/b.md",
     changeType: "modified",
@@ -33,7 +32,6 @@ describe("fl5: the four received outcomes, exact payloads", () => {
   };
   const expectedStatus = {
     "other-path": "cancel",
-    "save-suppressed": "cancel",
     scheduled: "start",
     delivered: "success",
   } as const;

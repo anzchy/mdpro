@@ -1,7 +1,7 @@
 /**
  * Purpose: subscribe the active document to the Rust watcher's `file:changed`
- * broadcast, drop events for other paths and events right after our own save,
- * and debounce the rest into `event` state for App.tsx's reload decision.
+ * broadcast, drop events for other paths, and debounce the rest into `event`
+ * state for App.tsx's reload decision.
  *
  * @module src/hooks/useFileWatcher
  * @coordinates-with src-tauri/src/services/file_watcher.rs — emits `file:changed`.
@@ -10,11 +10,16 @@
  * @coordinates-with src/utils/currentWindowLabel.ts — the window label, with the
  *   "unknown" fallback.
  *
- * Pipeline: file:changed -> path filter -> save-suppress window -> 300ms
- *   debounce -> setEvent. Every event logs one `file.change.received` line:
- *   other-path | save-suppressed | scheduled, and `delivered` after setEvent.
+ * Pipeline: file:changed -> path filter -> 300ms debounce -> setEvent. Every
+ *   event logs one `file.change.received` line: other-path | scheduled, and
+ *   `delivered` after setEvent.
  *
  * Key decisions:
+ * - **No save-suppression window (D86 WI-4).** Our own ⌘S is recognised in Rust:
+ *   the self-write mark held while `save_file` writes (`self_write`) and the
+ *   baseline bound to the written bytes (`ignored_unchanged`). The 3 s window
+ *   that used to sit here also swallowed a real external change landing right
+ *   after a save, which Rust never re-reports (ADR-0068 decision 7).
  * - **Logging never alters control flow.** Each log call sits beside the
  *   existing return / schedule / setEvent; `setEvent` stays first in the timer.
  * - **`delivered` reuses its `scheduled` actionId** (a `const` captured by the
@@ -22,7 +27,7 @@
  * - **Window label falls back to "unknown"** when `getCurrentWindow()` throws, so
  *   a missing window never costs the event.
  */
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { loggingService } from "../services/loggingService";
 import { currentWindowLabel } from "../utils/currentWindowLabel";
@@ -37,9 +42,6 @@ export interface FileChangedEvent {
   newPath?: string;
   timestamp: number;
 }
-
-// Suppress window in ms after a save operation
-const SAVE_SUPPRESS_WINDOW_MS = 3000;
 
 const FRONTEND_DEBOUNCE_MS = 300;
 
@@ -62,13 +64,7 @@ function logReceived(
 
 export function useFileWatcher(activePath: string | null) {
   const [event, setEvent] = useState<FileChangedEvent | null>(null);
-  const lastSaveTimestampRef = useRef<number>(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Call this when saving to suppress the next file change event
-  const markSaveInProgress = useCallback(() => {
-    lastSaveTimestampRef.current = Date.now();
-  }, []);
 
   useEffect(() => {
     if (!activePath) return;
@@ -79,13 +75,6 @@ export function useFileWatcher(activePath: string | null) {
       if (cancelled) return;
       if (payload.payload.path !== activePath) {
         logReceived(payload.payload, activePath, "other-path");
-        return;
-      }
-
-      // Suppress external change events shortly after we saved
-      const timeSinceSave = Date.now() - lastSaveTimestampRef.current;
-      if (timeSinceSave < SAVE_SUPPRESS_WINDOW_MS) {
-        logReceived(payload.payload, activePath, "save-suppressed");
         return;
       }
 
@@ -118,6 +107,5 @@ export function useFileWatcher(activePath: string | null) {
   return {
     event,
     clearEvent: () => setEvent(null),
-    markSaveInProgress,
   };
 }

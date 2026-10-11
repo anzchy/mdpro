@@ -152,11 +152,12 @@ describe("data-loss: external-edit conflict", () => {
     expect(ignoreBody).not.toMatch(/reloadFile\(/);
   });
 
-  it("suppresses self-inflicted change events within the save window", () => {
-    // Without this, our own save would fire a spurious external-change reload
-    // dialog and risk clobbering the just-saved content.
-    expect(WATCHER_SRC).toMatch(/SAVE_SUPPRESS_WINDOW_MS/);
-    expect(WATCHER_SRC).toMatch(/timeSinceSave\s*<\s*SAVE_SUPPRESS_WINDOW_MS/);
+  it("does not drop the active path's change events after a save (D86 WI-4)", () => {
+    // Rust recognises our own saves (self-write mark + written-bytes baseline);
+    // a frontend window after ⌘S would swallow a real external change that Rust
+    // never re-reports. Behaviour: tests/d86-wi4-no-save-suppress.test.ts.
+    expect(WATCHER_SRC).not.toMatch(/SAVE_SUPPRESS_WINDOW_MS/);
+    expect(WATCHER_SRC).not.toMatch(/timeSinceSave/);
   });
 
   it("filters change events to the active document only", () => {

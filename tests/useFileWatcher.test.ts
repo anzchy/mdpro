@@ -4,7 +4,7 @@
  *
  * Since @testing-library/react is not available, we verify the hook's
  * source contract via static analysis: cleanup, path filtering,
- * save-suppression, and event structure.
+ * no save-suppression window (D86 WI-4), and event structure.
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "fs";
@@ -32,13 +32,13 @@ describe("useFileWatcher — source contract", () => {
     expect(src).toMatch(/cancelled\s*=\s*true/);
   });
 
-  it("suppresses events within save window", () => {
-    expect(src).toMatch(/SAVE_SUPPRESS_WINDOW_MS/);
-    expect(src).toMatch(/timeSinceSave\s*<\s*SAVE_SUPPRESS_WINDOW_MS/);
+  it("has no save-suppression window: Rust recognises our own saves (D86 WI-4)", () => {
+    expect(src).not.toMatch(/SAVE_SUPPRESS_WINDOW_MS/);
+    expect(src).not.toMatch(/timeSinceSave/);
   });
 
-  it("exports markSaveInProgress for save coordination", () => {
-    expect(src).toMatch(/markSaveInProgress/);
+  it("no longer exports markSaveInProgress (D86 WI-4)", () => {
+    expect(src).not.toMatch(/markSaveInProgress/);
   });
 
   it("exports clearEvent to reset event state", () => {

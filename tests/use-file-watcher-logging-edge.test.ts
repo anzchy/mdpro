@@ -100,7 +100,7 @@ describe("fh6: getCurrentWindow throws", () => {
 
 type Setting = { enabled: boolean; level: LogLevel };
 
-/** One script: other-path, a suppressed event, then a [100] burst after the window. */
+/** One script: other-path, an active-path event, then a [100] burst (no save window since D86 WI-4). */
 async function runScript(setting: Setting) {
   resetHarness();
   vi.setSystemTime(T0);
@@ -114,10 +114,8 @@ async function runScript(setting: Setting) {
 
   emit(change(T0 + 1, "/private/tmp/b.md"));
   step(300);
-  act(() => result.current.markSaveInProgress());
   emit(change(T0 + 2));
   step(300);
-  vi.setSystemTime(T0 + 5000);
   emit(change(T0 + 3));
   step(100);
   emit(change(T0 + 4));
@@ -135,7 +133,7 @@ describe("fh7: behaviour neutrality across logging settings", () => {
     const off = await runScript({ enabled: false, level: "info" });
     const warn = await runScript({ enabled: true, level: "warn" });
 
-    expect(on.trajectory).toEqual([null, null, null, change(T0 + 4), change(T0 + 4)]);
+    expect(on.trajectory).toEqual([null, change(T0 + 2), change(T0 + 2), change(T0 + 4), change(T0 + 4)]);
     expect(off.trajectory).toEqual(on.trajectory);
     expect(warn.trajectory).toEqual(on.trajectory);
     expect(on.logInvokes).toBeGreaterThan(0);

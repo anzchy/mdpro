@@ -125,7 +125,7 @@ function App() {
   const openDialogCooldownRef = useRef(0);
   const launchPathsRetryRef = useRef(0);
   const encodingRetryRef = useRef<AbortController | null>(null); // D121: the pending encoding retry
-  const { event: fileChangeEvent, clearEvent, markSaveInProgress } = useFileWatcher(
+  const { event: fileChangeEvent, clearEvent } = useFileWatcher(
     activeDocument?.path ?? null,
   );
   useFileChangeDecisionLog(fileChangeEvent, activeDocument);
@@ -403,8 +403,8 @@ function App() {
   );
 
   const handleSave = useCallback(async (actionId?: string) => {
-    await performSave(actionId, { markSaveInProgress, saveActiveDocument, updateRecentFiles, showToast });
-  }, [markSaveInProgress, saveActiveDocument, showToast, updateRecentFiles]);
+    await performSave(actionId, { saveActiveDocument, updateRecentFiles, showToast });
+  }, [saveActiveDocument, showToast, updateRecentFiles]);
 
   const handleExportHtml = useCallback(async (_actionId?: string) => {
     if (!activeDocument) return;

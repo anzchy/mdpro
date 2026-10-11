@@ -109,7 +109,6 @@ function mountApi() {
 
 function deps(api: ReturnType<typeof mountApi>, toasts: string[]) {
   return {
-    markSaveInProgress: () => {},
     saveActiveDocument: (id?: string) => api.current.saveActiveDocument(id),
     updateRecentFiles: () => {},
     showToast: (m: string) => { toasts.push(m); },

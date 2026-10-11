@@ -31,7 +31,6 @@
 
 /** Dependencies injected by handleSave — separated for unit-testability. */
 export interface SaveDeps {
-  markSaveInProgress: () => void;
   saveActiveDocument: (
     id?: string,
   ) => Promise<{ path?: string | null; success?: boolean } | null | undefined>;
@@ -90,7 +89,6 @@ export async function performSave(
   actionId: string | undefined,
   deps: SaveDeps,
 ): Promise<void> {
-  deps.markSaveInProgress();
   try {
     const result = await deps.saveActiveDocument(actionId);
     if (result?.path) deps.updateRecentFiles(result.path);

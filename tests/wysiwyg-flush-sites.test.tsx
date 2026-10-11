@@ -181,7 +181,6 @@ describe("S — save flushes before it reads (L-S1, L-S2)", () => {
           await expect(api!.saveActiveDocumentAs(), row).rejects.toThrow(/./);
         } else {
           await performSave(undefined, {
-            markSaveInProgress: vi.fn(),
             saveActiveDocument: api!.saveActiveDocument,
             updateRecentFiles: vi.fn(),
             showToast,

@@ -10,6 +10,8 @@ device check. Drafted as 0066 and renumbered to 0068 on 2026-10-10, because
 Amended 2026-10-10: decisions 3 and 4 (D86 WI-1..3, after the D32 mini
 audit found silent-drop paths). Still Proposed; it becomes Accepted only
 after the D32 + D86 device recheck (D86 WI-5).
+Amended 2026-10-11: decision 7 (D86 WI-4 removed the frontend's 3 s
+save-suppression window).
 
 ## Context
 
@@ -134,8 +136,20 @@ understood on 2026-10-09 and 2026-10-10:
    the old baseline until that path is unwatched. The new path has no
    baseline, so it fails open. Save As registers no watch (D69). Rename-over
    external saves are D68.
-7. **No frontend or IPC change.** The `file:changed` payload is unchanged.
+7. **No IPC change; the frontend's save window is gone** (amended
+   2026-10-11, D86 WI-4). The `file:changed` payload is unchanged.
    `save_file` gains a `State<FileWatcher>`, which is not visible over IPC.
+   The frontend used to drop every `file:changed` for the active path for
+   3 s after its own save (`SAVE_SUPPRESS_WINDOW_MS` in `useFileWatcher.ts`).
+   Rust now identifies our own saves by itself, through the self-write mark
+   held while `save_file` writes (`self_write`) and the baseline bound to the
+   written bytes (`ignored_unchanged`), so D86 WI-4 removed that window. It
+   also hid a real external change landing within 3 s after ⌘S, and Rust,
+   having already advanced its baseline to those bytes, never reported it
+   again (D86 ①). The user approved the removal on the condition that a
+   ⌘S×20 device probe pass; it passed on `8c996b1` (18 `ignored_unchanged`,
+   2 `self_write`, no own-save event reached the frontend;
+   [record](../test/20261010-watcher-reprobe-8c996b1-device-check.md)).
 
 ## Consequences
 
@@ -169,6 +183,15 @@ understood on 2026-10-09 and 2026-10-10:
   re-opened. The next residual event matches the new baseline and is dropped.
   Before this ADR, that event's false prompt happened to surface the earlier
   write. The debounce miss itself is pre-existing.
+- **Gained: a real external change right after ⌘S prompts** (D86 WI-4). A
+  sync client, a formatter or a `git checkout` landing within 3 s after a
+  save used to be dropped by the frontend window and never re-reported.
+- **Cost: an own-save event that fails open now prompts** (D86 WI-4). With
+  the frontend window gone, nothing hides an own-save event that lands after
+  the mark clears and whose check cannot prove the file unchanged
+  (`unchangedCheck` `unstable`, `read_failed` or `no_baseline`). It raises one
+  "External change detected" prompt. That is rare (none in the ⌘S×20 probe)
+  and loses nothing: Reload loads the bytes just saved.
 - **Cost: a 64-bit non-cryptographic hash.** An accidental collision would hide
   a real change. We accept that chance; an adversary who can write the file
   does not need a collision.

@@ -76,40 +76,28 @@ describe("fh1: other-path event", () => {
   });
 });
 
-describe("fh2: save-suppress window boundary", () => {
-  it("suppresses at +1000 and +2999, schedules and delivers at +3000", async () => {
+describe("fh2: no save-suppress window (D86 WI-4)", () => {
+  it("schedules and delivers active-path events at +1000, +2999 and +3000", async () => {
     const { result } = await mount(ACTIVE);
-    act(() => result.current.markSaveInProgress());
 
-    vi.setSystemTime(T0 + 1000);
-    emit(change(T0 + 1000));
-    advance(300);
-    expect(result.current.event).toBeNull();
+    for (const at of [T0 + 1000, T0 + 2999, T0 + 3000]) {
+      vi.setSystemTime(at);
+      emit(change(at));
+      advance(300);
+      expect(result.current.event).toEqual(change(at));
+    }
 
-    vi.setSystemTime(T0 + 2999);
-    emit(change(T0 + 2999));
-    advance(300);
-    expect(result.current.event).toBeNull();
-
-    vi.setSystemTime(T0 + 3000);
-    emit(change(T0 + 3000));
-    expect(byOutcome("scheduled")).toHaveLength(1);
-    expect(byOutcome("delivered")).toHaveLength(0);
-    advance(300);
-
-    expect(result.current.event).toEqual(change(T0 + 3000));
-    const suppressed = byOutcome("save-suppressed");
-    expect(suppressed).toHaveLength(2);
-    expect(suppressed.every((l) => l.status === "cancel")).toBe(true);
-    expect(suppressed.map((l) => (l.context as { eventTimestamp: number }).eventTimestamp)).toEqual([
+    const delivered = byOutcome("delivered");
+    expect(delivered.map((l) => (l.context as { eventTimestamp: number }).eventTimestamp)).toEqual([
       T0 + 1000,
       T0 + 2999,
+      T0 + 3000,
     ]);
-    expect(byOutcome("scheduled")).toHaveLength(1);
-    expect(byOutcome("delivered")).toHaveLength(1);
     expect(logLines(RECEIVED).map((l) => (l.context as { outcome: string }).outcome)).toEqual([
-      "save-suppressed",
-      "save-suppressed",
+      "scheduled",
+      "delivered",
+      "scheduled",
+      "delivered",
       "scheduled",
       "delivered",
     ]);

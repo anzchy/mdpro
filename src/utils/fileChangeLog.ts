@@ -34,8 +34,9 @@
  *
  * - **Every line is `info`.** Statuses: decision reload-prompt / deleted-prompt
  *   / rename -> success, ignore -> cancel (exhaustive switch; a fifth action is
- *   a compile error). Received other-path / save-suppressed -> cancel,
- *   scheduled -> start, delivered -> success.
+ *   a compile error). Received other-path -> cancel, scheduled -> start,
+ *   delivered -> success. (`save-suppressed` went with the frontend's 3 s save
+ *   window in D86 WI-4.)
  *
  * - **`decisionLogKey` is a JSON tuple** of (timestamp, path, changeType,
  *   docId, action), so no separator inside a path or id can make two distinct
@@ -57,7 +58,6 @@ export interface FileChangeLogEvent {
 /** What the `file:changed` listener did with one event. */
 export type FileChangeReceivedOutcome =
   | "other-path"
-  | "save-suppressed"
   | "scheduled"
   | "delivered";
 
@@ -83,7 +83,6 @@ export const FILE_CHANGE_DECISION_EVENT = "file.change.decision";
 function receivedStatus(outcome: FileChangeReceivedOutcome): LogStatus {
   switch (outcome) {
     case "other-path":
-    case "save-suppressed":
       return "cancel";
     case "scheduled":
       return "start";
