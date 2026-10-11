@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In WYSIWYG, Insert row above on a table's header row no longer splits the table in two (D155). The saved file used to gain an extra, empty table above the original. The header row is now emptied and its old text moves down into a new first body row, as in Source mode; column alignment is kept and one undo restores the table
 - In Source mode a selection is visible again (D154). A selection within one line, and the last line of a longer one, showed no highlight at all, because the current-line background was opaque and covered it; while the editor had focus, mdpro's own selection colour was also overridden by CodeMirror's. The current line now has a faint translucent tint, and a selection shows in the accent colour while the editor has focus and in neutral grey when it doesn't
 - In WYSIWYG, a column added with the table context menu's Insert column left / right, or its shortcut, no longer comes out left-aligned (D141). Each insert used to write a `:-` delimiter nobody had set; the new column is now unaligned, and the existing columns keep their alignment
+- **Moved files prompt.** Moving an open file away from outside mdpro (`mv`, Finder, a sync client) now raises "File was deleted externally", so the next ⌘S no longer silently recreates the file at its old path (D107, [ADR-0078](docs/adr/0078-a-watched-file-moved-away-is-reported-as-deleted.md)). An editor that saves by renaming the old file aside first may briefly show that prompt before "modified externally" replaces it.
+  - **Not yet checked on a device**
 
 ## [0.3.1] - 2026-10-11
 

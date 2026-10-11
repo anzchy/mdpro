@@ -18,7 +18,9 @@
 //! file_watcher_route_replace_tests.rs (D68), file_watcher_route_own_save_tests.rs
 //! (D101), file_watcher_route_debounce_kind_tests.rs (D116),
 //! file_watcher_route_remove_present_tests.rs (D152),
-//! docs/adr/0072-a-replaced-watched-file-is-checked-like-a-content-change.md
+//! file_watcher_route_moved_away_tests.rs (D107),
+//! docs/adr/0072-a-replaced-watched-file-is-checked-like-a-content-change.md,
+//! docs/adr/0078-a-watched-file-moved-away-is-reported-as-deleted.md
 //!
 //! Key decisions:
 //! - **Check order is the contract** (ADR-0068): kind, path count, self-write,
@@ -33,11 +35,19 @@
 //!   through the self-write gate and the unchanged drop like `Data(Content)`,
 //!   so our ⌘S is `SelfWrite` or `IgnoredUnchanged` (the save refresh stored
 //!   its bytes) and an external replace with other bytes or a new mtime emits.
-//!   No new outcome and no IPC change. A renamed or created path that is
-//!   gone stays ignored (moved away, D107); a `Remove` on a gone path is the
-//!   real delete and stays `deleted`. Before D152 every `Remove` was
-//!   `deleted`: with D116's per-kind keys the `Remove` of an external atomic
-//!   save emitted "deleted" for a file that exists.
+//!   No new outcome and no IPC change. A created path that is gone stays
+//!   ignored; a `Remove` on a gone path is the real delete and stays
+//!   `deleted`. Before D152 every `Remove` was `deleted`: with D116's
+//!   per-kind keys the `Remove` of an external atomic save emitted
+//!   "deleted" for a file that exists.
+//! - **A moved-away file routes as `deleted`** (ADR-0078, D107). The same
+//!   single-path rename on a path that no longer exists when the event is
+//!   handled is `EmittedDeleted`, exactly like a `Remove` on a gone path:
+//!   not self-write-gated, never unchanged-checked (`NotChecked`, there is
+//!   no file to read), debounced under (path, `deleted`), and it leaves the
+//!   baseline entry alone (ADR-0068 decision 4 lists no `deleted` advance).
+//!   A safe save's later `modified` still emits because of the per-kind
+//!   debounce (D116). `IgnoredRenameSinglePath` is no longer produced.
 //! - **No wildcard arm** on the kind match, so a new `EventKind` is a compile
 //!   error here rather than a silent drop; o14 pins it on the source text.
 //! - Split out of `file_watcher.rs` (D68 WI-1) so the parent keeps headroom
@@ -53,7 +63,7 @@ use super::{FileChangedEvent, WatchOutcome};
 /// Tauri-free routing for one notify event: the `file:changed` payload to
 /// emit (if any) and the reason. Order matters: the kind is matched first (so
 /// ignored kinds never touch the debounce map), then the path count, then the
-/// self-write check (`Modify` and replaced files only, and before the
+/// self-write check (`modified` candidates only, and before the
 /// debounce check so a save never records a debounce entry), then the D32
 /// drop: a `Modify(Metadata(Extended))`, `Modify(Metadata(Any))` or
 /// `Modify(Data(Content))`, or a replaced file, whose first path is
@@ -72,11 +82,12 @@ use super::{FileChangedEvent, WatchOutcome};
 /// external editor's atomic save or by our own `atomic_write`, and FSEvents
 /// reports that save as a `Create`, a `Remove` and a rename for the one path.
 /// It routes as a `modified` candidate. The same rename whose path is gone
-/// (moved away) is `IgnoredRenameSinglePath`; a `Create` on a missing path is
-/// `IgnoredKind`; a `Remove` on a missing path is a real delete, `deleted`
-/// and not checked. A `Remove` on a missing path and two-path renames are
-/// not self-write-gated. The existence check is a stat under no lock; each
-/// lock (self-write, baseline, debounce) is taken alone, and the baseline's
+/// (moved away) is a `deleted`, routed like a `Remove` on a missing path
+/// (ADR-0078, D107); a `Create` on a missing path is `IgnoredKind`; a
+/// `Remove` on a missing path is a real delete, `deleted` and not checked.
+/// A `Remove` or rename on a missing path and two-path renames are not
+/// self-write-gated. The existence check is a stat under no lock; each lock
+/// (self-write, baseline, debounce) is taken alone, and the baseline's
 /// file I/O runs under none of them.
 pub(super) fn process_event_checked(
     event: &Event,
@@ -109,7 +120,7 @@ pub(super) fn process_event_checked(
                 Some(to.to_string_lossy().to_string()),
             ),
             None if path.exists() => ("modified", WatchOutcome::EmittedModified, true, None),
-            None => return (None, WatchOutcome::IgnoredRenameSinglePath, not_checked),
+            None => ("deleted", WatchOutcome::EmittedDeleted, false, None),
         }
     } else {
         (change_type, outcome, replaced, None)
@@ -168,3 +179,7 @@ mod debounce_kind_tests;
 #[cfg(test)]
 #[path = "file_watcher_route_remove_present_tests.rs"]
 mod remove_present_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_route_moved_away_tests.rs"]
+mod moved_away_tests;

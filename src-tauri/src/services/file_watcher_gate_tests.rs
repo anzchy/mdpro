@@ -260,9 +260,10 @@ fn o13_remove_and_rename_are_not_self_write_gated() {
         WatchOutcome::EmittedRenamed
     );
 
+    // `p` does not exist: a moved-away rename is `deleted` (ADR-0078), and
+    // like a `Remove` it is not self-write-gated.
     let rename_any = EventKind::Modify(ModifyKind::Name(RenameMode::Any));
-    assert_eq!(
-        run(rename_any, &[&p], &fresh()),
-        (Value::Null, WatchOutcome::IgnoredRenameSinglePath)
-    );
+    let (json, outcome) = run(rename_any, &[&p], &fresh());
+    assert_eq!(outcome, WatchOutcome::EmittedDeleted);
+    assert_eq!(json["changeType"], json!("deleted"));
 }

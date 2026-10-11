@@ -3,8 +3,8 @@
 //! single-path `Modify(Name(_))` or a `Create(_)` whose path still exists.
 //! It routes like a content modification: self-write gate, the D32
 //! unchanged drop, debounce, then `modified`. A single-path rename whose path
-//! is gone (moved away) is still `IgnoredRenameSinglePath` (D107), and a
-//! `Create` on a missing path is still `IgnoredKind`. Real store, real temp
+//! is gone (moved away) is `deleted` (D107, ADR-0078), and a `Create` on a
+//! missing path is still `IgnoredKind`. Real store, real temp
 //! files, synthetic events through `process_event`.
 use super::super::baseline::fixture::{fresh, h, modified, mtime, route, seed, set_mtime, TempDir};
 use super::super::kinds_fixture::T;
@@ -18,8 +18,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use WatchOutcome::{
-    Debounced, EmittedModified, EmittedRenamed, IgnoredKind, IgnoredRenameSinglePath,
-    IgnoredUnchanged,
+    Debounced, EmittedDeleted, EmittedModified, EmittedRenamed, IgnoredKind, IgnoredUnchanged,
 };
 
 const RENAME_ANY: EventKind = EventKind::Modify(ModifyKind::Name(RenameMode::Any));
@@ -159,10 +158,10 @@ fn rp4_replace_with_identical_bytes_but_new_mtime_emits() {
 }
 
 /// RP5: the watched file moved away (its path is gone): a single-path
-/// rename is still `IgnoredRenameSinglePath` (known limit, D107), with no
-/// debounce entry and the store untouched.
+/// rename is `deleted` (D107, ADR-0078; was `IgnoredRenameSinglePath`),
+/// with a `deleted` debounce entry and the store entry kept.
 #[test]
-fn rp5_single_path_rename_of_a_moved_away_file_is_still_ignored() {
+fn rp5_single_path_rename_of_a_moved_away_file_is_deleted() {
     let d = TempDir::new("rp5");
     for (i, mode) in RENAME_MODES.into_iter().enumerate() {
         let (store, p) = registered(&d, &format!("g{i}.md"), b"bytes");
@@ -176,10 +175,16 @@ fn rp5_single_path_rename_of_a_moved_away_file_is_still_ignored() {
                 &map,
                 &store
             ),
-            (Value::Null, IgnoredRenameSinglePath),
+            (
+                json!({"path": p.to_string_lossy(), "changeType": "deleted", "newPath": null, "timestamp": T}),
+                EmittedDeleted
+            ),
             "{mode:?}"
         );
-        assert!(map.lock().unwrap().is_empty(), "{mode:?}: debounce");
+        assert!(
+            map.lock().unwrap().contains_key(&(p.clone(), "deleted")),
+            "{mode:?}: debounce"
+        );
         assert_eq!(store.len(), 1, "{mode:?}: entry kept");
     }
 }

@@ -90,7 +90,7 @@ enum Paths {
     Zero,
     One,
     Two,
-    /// One path, moved away before the event (ADR-0072: not a replace).
+    /// One path, moved away before the event (ADR-0078: `deleted`).
     OneGone,
 }
 
@@ -113,7 +113,7 @@ fn r12_ignored_event_does_not_advance_baseline() {
             Paths::OneGone,
             false,
             None,
-            IgnoredRenameSinglePath,
+            EmittedDeleted,
         ),
         (
             "self-write data",
@@ -206,9 +206,10 @@ fn r12_ignored_event_does_not_advance_baseline() {
         }
         targets.insert(target);
     }
+    // `IgnoredRenameSinglePath` is no longer produced (ADR-0078).
     let expected: HashSet<WatchOutcome> = WatchOutcome::ALL
         .into_iter()
-        .filter(|o| *o != IgnoredUnchanged)
+        .filter(|o| !matches!(o, IgnoredUnchanged | IgnoredRenameSinglePath))
         .collect();
     assert_eq!(targets, expected);
 }

@@ -7,6 +7,7 @@ which covers D32, D68 and D86 together. It builds on
 and does not change it.
 Amended 2026-10-11: two consequences restated in the present tense, because
 D86 WI-4 has removed the frontend's 3 s save-suppression window.
+Partially superseded: decision 3 by [ADR-0078](0078-a-watched-file-moved-away-is-reported-as-deleted.md) (2026-10-11).
 
 ## Context
 

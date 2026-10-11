@@ -63,7 +63,7 @@ fn table() -> Vec<(EventKind, WatchOutcome)> {
     use AccessMode as M;
     use EventKind::{Access, Create, Modify, Remove};
     use ModifyKind::{Data, Metadata, Name};
-    use WatchOutcome::{EmittedDeleted, EmittedModified, IgnoredKind, IgnoredRenameSinglePath};
+    use WatchOutcome::{EmittedDeleted, EmittedModified, IgnoredKind};
     vec![
         (EventKind::Any, IgnoredKind),
         (EventKind::Other, IgnoredKind),
@@ -99,11 +99,12 @@ fn table() -> Vec<(EventKind, WatchOutcome)> {
         (Modify(Metadata(MetadataKind::Ownership)), EmittedModified),
         (Modify(Metadata(MetadataKind::Extended)), EmittedModified),
         (Modify(Metadata(MetadataKind::Other)), EmittedModified),
-        (Modify(Name(RenameMode::Any)), IgnoredRenameSinglePath),
-        (Modify(Name(RenameMode::To)), IgnoredRenameSinglePath),
-        (Modify(Name(RenameMode::From)), IgnoredRenameSinglePath),
-        (Modify(Name(RenameMode::Both)), IgnoredRenameSinglePath),
-        (Modify(Name(RenameMode::Other)), IgnoredRenameSinglePath),
+        // The one path does not exist: moved away, so `deleted` (ADR-0078).
+        (Modify(Name(RenameMode::Any)), EmittedDeleted),
+        (Modify(Name(RenameMode::To)), EmittedDeleted),
+        (Modify(Name(RenameMode::From)), EmittedDeleted),
+        (Modify(Name(RenameMode::Both)), EmittedDeleted),
+        (Modify(Name(RenameMode::Other)), EmittedDeleted),
         (Remove(RemoveKind::Any), EmittedDeleted),
         (Remove(RemoveKind::File), EmittedDeleted),
         (Remove(RemoveKind::Folder), EmittedDeleted),
@@ -197,7 +198,10 @@ fn o4_path_count_boundaries() {
             &one,
             &fresh()
         ),
-        (Value::Null, WatchOutcome::IgnoredRenameSinglePath)
+        (
+            emitted(&one[0], "deleted", None),
+            WatchOutcome::EmittedDeleted
+        )
     );
 }
 

@@ -3,7 +3,6 @@
 use super::{plan_route, route_log_context, Outcome, PlanEntry, RoutePlan, Source};
 use crate::services::open_route::{RouteLookup, RouteTarget};
 use serde_json::json;
-use std::collections::HashSet;
 
 type Lookups = Vec<(String, Result<RouteLookup, String>)>;
 
