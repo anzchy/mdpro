@@ -1,9 +1,12 @@
-//! The open path's seed for the D32 baseline (D86 WI-3, finding ②).
+//! The open path's seed for the D32 baseline (D86 WI-3, finding ②), and the
+//! Save As path's (`seed_for_written`, D69).
 //!
 //! Purpose: give `open_file` the bytes it decodes together with the baseline
 //! entry that describes exactly those bytes, from one read (`read_for_open`),
 //! and store that entry without reading again
-//! (`BaselineStore::register_seeded`). Tauri-free and lock-free.
+//! (`BaselineStore::register_seeded`). For a Save As, `seed_for_written`
+//! builds the entry from the bytes the save wrote instead of a read.
+//! Tauri-free and lock-free.
 //!
 //! Pipeline: `read_for_open` → one `read_once` (fstat `s1`, capped read,
 //! fstat `s2`, path stat) → `(bytes, Entry { stat: s1, hash })`. The caller
@@ -12,13 +15,15 @@
 //! ticket rule.
 //!
 //! @coordinates-with services/file_watcher_baseline.rs (parent; `put`,
-//! `baseline_key`), file_watcher_baseline_read.rs (`read_once`, `hash_bytes`),
+//! `baseline_key`), file_watcher_baseline_read.rs (`read_once`, `stat_of`,
+//! `hash_bytes`),
 //! file_watcher_baseline_gen.rs (tickets, `StoreOutcome`),
 //! services/file_watcher_seed.rs (`FileWatcher::watch_seeded` calls
-//! `register_seeded`; re-exports `read_for_open` for `commands`),
-//! commands/file_open_seed.rs (`open_file_from_path_seeded` decodes the bytes
-//! `read_for_open` returns), file_watcher_baseline_lock_tests.rs (B18′ scans
-//! this file)
+//! `register_seeded`; re-exports `read_for_open` and `seed_for_written` for
+//! `commands`), commands/file_open_seed.rs (`open_file_from_path_seeded`
+//! decodes the bytes `read_for_open` returns), commands/save_as_watch.rs
+//! (seeds the Save As target with `seed_for_written`, D69),
+//! file_watcher_baseline_lock_tests.rs (B18′ scans this file)
 //!
 //! Key decisions:
 //! - **Hash the raw disk bytes**, before any decoding, exactly as `snapshot`
@@ -32,7 +37,12 @@
 //! - **`register_seeded` never reads.** The seed is the read; a second read
 //!   would hash bytes the editor never saw (matrix r8). A seed overwrites any
 //!   entry, subject only to the WI-2 ticket rule (ADR-0068 decision 4).
-use super::read::read_once;
+//! - **`seed_for_written` hashes the written bytes uncapped** (the D112 rule
+//!   `refresh_after_save` uses) and does not read; it stores `stat: None`
+//!   when the stat's size is not the written length (D129), because another
+//!   writer got in after our rename and its size must not raise
+//!   `is_unchanged_why`'s read cap.
+use super::read::{read_once, stat_of};
 use super::{baseline_key, hash_bytes, BaselineStore, Entry, StoreOutcome};
 use std::io;
 use std::path::Path;
@@ -47,6 +57,20 @@ pub(crate) fn read_for_open(path: &Path) -> io::Result<(Vec<u8>, Entry)> {
         hash,
     };
     Ok((read.bytes, seed))
+}
+
+/// The seed for a file a save just wrote: the path's stat now and the hash
+/// of `written` (the exact encoded bytes handed to `atomic_write`), whatever
+/// its size (D112), with no read. If the stat's size is not `written.len()`,
+/// another writer replaced the file after our rename, so the stat is stored
+/// as `None` and the check fails open (D129): a size we never wrote must not
+/// raise `is_unchanged_why`'s read cap. The Save As register uses it (D69).
+pub(crate) fn seed_for_written(path: &Path, written: &[u8]) -> Entry {
+    let stat = stat_of(path).filter(|&(_, size)| size == written.len() as u64);
+    Entry {
+        stat,
+        hash: Some(hash_bytes(written)),
+    }
 }
 
 impl BaselineStore {

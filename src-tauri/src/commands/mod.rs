@@ -12,6 +12,7 @@ pub mod mcp_server_switch;
 pub mod menu;
 pub mod preferences;
 pub mod quit_guard;
+pub mod save_as_watch;
 pub mod toc;
 pub mod updater;
 pub mod window;

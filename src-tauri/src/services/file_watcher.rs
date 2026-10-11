@@ -9,7 +9,8 @@
 //! test-only `process_event` drops its `UnchangedCheck`),
 //! file_watcher_gate.rs, file_watcher_outcome.rs, file_watcher_baseline.rs,
 //! file_watcher_seed.rs, file_watcher_log.rs (all mounted here with `#[path]`),
-//! commands/file.rs (`watch_seeded`, `mark_write_*`, the baseline refresh)
+//! commands/file.rs (`watch_seeded`, `mark_write_*`, the baseline refresh),
+//! commands/save_as_watch.rs (`watch_seeded` for a Save As target, D69)
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;

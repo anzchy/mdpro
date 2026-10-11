@@ -217,6 +217,11 @@ fn t3_save_file_is_correctly_outside_this_invariant() {
     // timed body now lives in `save_file_with`, a seam that takes the watcher's
     // baselines, and the `save_file` command is a thin wrapper that calls it.
     // The timer check follows the body; the no-dialog check covers both.
+    //
+    // Moved again by D69: the body now lives in `save_file_written`, which
+    // also returns the written bytes so the Save As seam can seed its watch;
+    // `save_file_with` drops them. Same rule: the timer check follows the
+    // body, the no-dialog check covers every layer.
     let functions = all_functions();
     let find = |name: &str| {
         functions
@@ -226,16 +231,21 @@ fn t3_save_file_is_correctly_outside_this_invariant() {
     };
     let save_file = find("save_file");
     let save_file_with = find("save_file_with");
+    let save_file_written = find("save_file_written");
 
     assert!(
         save_file.body.contains("save_file_with("),
         "premise guard: the save_file command delegates to save_file_with"
     );
     assert!(
-        save_file_with.body.contains("Instant::now()"),
-        "premise guard: save_file_with is only interesting because it IS timed"
+        save_file_with.body.contains("save_file_written("),
+        "premise guard: save_file_with delegates to save_file_written"
     );
-    for f in [save_file, save_file_with] {
+    assert!(
+        save_file_written.body.contains("Instant::now()"),
+        "premise guard: save_file_written is only interesting because it IS timed"
+    );
+    for f in [save_file, save_file_with, save_file_written] {
         assert!(
             !f.body.contains("rfd::"),
             "{} must not open a dialog — the save timing is sound precisely because \

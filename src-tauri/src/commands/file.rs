@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
+use super::save_as_watch::save_as_watched_with;
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::{
     draft::delete_draft as delete_draft_service,
@@ -1224,8 +1225,9 @@ pub async fn save_file(
     .await
 }
 
-/// `save_file`'s body. After a successful `atomic_write`, and before the
-/// self-write mark clears, it refreshes the D32 baseline of the final path
+/// `save_file`'s body: `save_file_written` with the written bytes dropped.
+/// After a successful `atomic_write`, and before the
+/// self-write mark clears, the save refreshes the D32 baseline of the final path
 /// if one is registered, so late FSEvents flags for this write compare
 /// against the saved bytes (ADR-0068 decision 4). The entry is the path's
 /// stat and the hash of the bytes written, whatever their size, with no
@@ -1241,6 +1243,32 @@ pub(crate) async fn save_file_with(
     action_id: Option<String>,
     baselines: &BaselineStore,
 ) -> Result<SaveResult, FileError> {
+    save_file_written(
+        _document_id,
+        content,
+        path,
+        encoding,
+        line_ending,
+        action_id,
+        baselines,
+    )
+    .await
+    .map(|(result, _)| result)
+}
+
+/// The save itself (the refresh described on `save_file_with` lives here),
+/// also returning the exact encoded bytes `atomic_write` wrote, so the Save
+/// As seam can seed the new path's baseline from them (D69,
+/// `save_as_watch.rs`). The IPC result is unchanged.
+pub(crate) async fn save_file_written(
+    _document_id: String,
+    content: String,
+    path: Option<String>,
+    encoding: Option<String>,
+    line_ending: Option<String>,
+    action_id: Option<String>,
+    baselines: &BaselineStore,
+) -> Result<(SaveResult, Vec<u8>), FileError> {
     let path_value = path.ok_or_else(|| FileError::InvalidPath {
         path: "missing path".to_string(),
     })?;
@@ -1362,13 +1390,18 @@ pub(crate) async fn save_file_with(
         Some(start.elapsed().as_millis() as u64),
         None,
     );
-    Ok(SaveResult {
+    let result = SaveResult {
         success: true,
         path: path_value,
         saved_at: chrono::Utc::now().timestamp_millis(),
-    })
+    };
+    Ok((result, bytes))
 }
 
+/// Show the Save As dialog and save to the path picked. The save and the
+/// watch registration of that path (seeded from the bytes written, only on
+/// a successful save) run in `save_as_watch::save_as_watched_with` (D69). A
+/// cancelled dialog logs a `file.save` cancel and touches nothing.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn save_file_dialog(
@@ -1400,14 +1433,14 @@ pub async fn save_file_dialog(
         return Ok(None);
     };
 
-    save_file_with(
+    save_as_watched_with(
         document_id,
         content,
-        Some(path.to_string_lossy().to_string()),
+        path.to_string_lossy().to_string(),
         encoding,
         line_ending,
         Some(action_id),
-        watcher.baselines(),
+        &watcher,
     )
     .await
     .map(Some)

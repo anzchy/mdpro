@@ -10,7 +10,9 @@
 //! plain snapshot and is the shape this mirrors), file_watcher_baseline_seed.rs
 //! (`read_for_open`, `register_seeded`), file_watcher_register_log.rs
 //! (`BaselineLog`, `with_baseline`), commands/file.rs (`open_file` /
-//! `open_file_dialog` call `watch_seeded`), commands/file_open_seed.rs
+//! `open_file_dialog` call `watch_seeded`), commands/file_open_seed.rs,
+//! commands/save_as_watch.rs (the Save As register calls `watch_seeded` with
+//! `seed_for_written`, re-exported here, D69)
 //!
 //! Key decisions:
 //! - **The same shape as `watch`** (W14, g8): notify through
@@ -20,7 +22,8 @@
 //! - **The log line follows the store**, so its `context.baseline` reports
 //!   what was actually stored (`seeded`, `failopen`, or `stale_skipped` when a
 //!   newer op on the path won), never an assumed `seeded`.
-//! - `watch_seeded` never reads the file: the seed is the open's read.
+//! - `watch_seeded` never reads the file: the seed is the open's read, or
+//!   for Save As the bytes the save wrote (D69).
 use super::apply_watch;
 use super::baseline::{next_ticket, StoreOutcome};
 use super::watch_log::{with_baseline, BaselineLog, WatchOp};
@@ -28,7 +31,7 @@ use super::FileWatcher;
 use crate::services::logger;
 use std::path::Path;
 
-pub(crate) use super::baseline::seed::read_for_open;
+pub(crate) use super::baseline::seed::{read_for_open, seed_for_written};
 pub(crate) use super::baseline::Entry;
 
 impl FileWatcher {
