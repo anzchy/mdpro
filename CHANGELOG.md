@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- When a save fails, the notice now gives the reason, for example "Save failed: permission denied: …/notes.md" in a read-only folder (D163). It used to read "Save failed: [object Object]". Save As reports its failures the same way
 - In dark mode the Source editor's search panel (⌘F), its fields and buttons, the line-number gutter and the lint tooltips are dark too (D158). They used to stay light grey with black text whatever the app theme, because the editor always ran CodeMirror's light theme. They now follow the app theme, live, and use mdpro's own colours, with a visible focus ring on the search field and buttons
   - **Known limit**: the search panel's checkboxes stay light in dark mode for now
   - The Go to Line dialog's close button and the selected row of the lint panel follow the app theme too; with the light app theme and the oneDark code theme, a selected lint diagnostic is no longer dark text on a dark row

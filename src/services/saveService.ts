@@ -51,16 +51,20 @@ export interface SaveDeps {
  * bytes handed to `save_file` / `save_file_dialog` never come from a render
  * closure. A failed flush throws, which `performSave` surfaces as "Save failed:"
  * and which leaves the document dirty (rule 60: never save stale content silently).
+ * A rejected save IPC (a serialized `FileError`) is shown in Rust's wording through
+ * `ipcErrorMessage`, never as `[object Object]` (D163).
  *
  * @coordinates-with src/services/documentSave.ts — the queued save bodies (D70)
  * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEdits
  * @coordinates-with src/utils/saveResult.ts — resolveSaveResult (D19)
+ * @coordinates-with src/utils/ipcErrorMessage.ts — the "Save failed:" text (D163)
  */
 
 import { invoke } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../stores/documentStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
+import { ipcErrorMessage } from "../utils/ipcErrorMessage";
 import { resolveSaveResult, type SaveResolution } from "../utils/saveResult";
 import type { SaveResult } from "./fileService";
 import { loggingService } from "./loggingService";
@@ -94,8 +98,8 @@ export async function performSave(
     if (result?.path) deps.updateRecentFiles(result.path);
     if (result?.success) deps.showToast("Saved");
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    deps.showToast(`Save failed: ${message}`);
+    // D163: a rejected save IPC is a serialized `FileError` object, not an `Error`.
+    deps.showToast(`Save failed: ${ipcErrorMessage(err)}`);
   }
 }
 
