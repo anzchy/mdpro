@@ -19,6 +19,10 @@
  *   resolved (`driver failure — home unresolvable: <code>`).
  * - Failure after acquire releases only the lock this launch wrote (run and
  *   nonce must both match); a failed acquire never touches the existing lock.
+ * - Acquire and that release run inside `.lock.mutex` (D105-WI-2,
+ *   lockMutex.mjs). A mutex still busy after its wait is `driver failure —
+ *   lock busy: …` before the run dir exists; `deps.lockMutexWaitMs` (tests)
+ *   bounds the wait, production uses `MUTEX_WAIT_MS`.
  *   The run dir is kept for diagnosis (`pnpm control:clean <run>`).
  * - Direct exec: on a failed handshake only the spawned handle is killed
  *   (SIGKILL); a pid read from `instance.json` is never signalled, and a
@@ -143,7 +147,7 @@ export async function run(args = {}, deps = {}) {
   let parent;
   try {
     parent = makeParent(homeReal);
-    acquireLock(parent, { run: name, nonce });
+    acquireLock(parent, { run: name, nonce }, { mutexWaitMs: d.lockMutexWaitMs });
   } catch (e) {
     return rep.verdict("driver failure", errMessage(e));
   }
@@ -219,7 +223,7 @@ function fail(ctx, sp, reason, extra = {}) {
   const { d, rep, parent, name, nonce } = ctx;
   if (sp && !sp.st.exited && !sp.st.error) sp.child.kill("SIGKILL");
   try {
-    releaseLock(parent, { run: name, nonce });
+    releaseLock(parent, { run: name, nonce }, { mutexWaitMs: d.lockMutexWaitMs });
   } catch (e) {
     d.err(`lock not released: ${errMessage(e)}`);
   }

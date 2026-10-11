@@ -48,6 +48,10 @@
  *   and printed after the removed line on success, before the driver-failure
  *   verdict when the release fails. With no lock to hold, the window between
  *   the re-probe and the unlink stays open (accepted limit, cleanSocket.mjs).
+ * - The release runs inside `.lock.mutex` (D105-WI-2, lockMutex.mjs); a mutex
+ *   still busy after its wait is `removed R, lock not released: lock busy: …`.
+ *   `deps.lockMutexWaitMs` (tests) bounds the wait, production uses
+ *   `MUTEX_WAIT_MS`. `checkLockOwner` stays an unlocked read.
  * - Every refusal is read-only. No `launcher.jsonl` record is written: on a
  *   refusal it would change R, and on success R is gone. `process.env` is
  *   never read for a child or assigned; stdout never carries the nonce.
@@ -221,7 +225,7 @@ export async function run(args = {}, deps = {}) {
   return settle(
     rep,
     sockLine,
-    () => (ours ? releaseLock(parent, owner) : "absent"),
+    () => (ours ? releaseLock(parent, owner, { mutexWaitMs: d.lockMutexWaitMs }) : "absent"),
     () => `clean: removed ${name}`,
     (msg) => `removed ${name}, lock not released: ${msg}`,
   );

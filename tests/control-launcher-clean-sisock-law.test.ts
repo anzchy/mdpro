@@ -35,6 +35,7 @@ import {
   scriptedProbe,
   SOCK_REMOVED,
 } from "./support/cleanSockFixtures";
+import { rawAcquire } from "./support/lockSchedules";
 
 const realRename = fs.renameSync;
 const realUnlink = fs.unlinkSync;
@@ -98,7 +99,13 @@ async function runAt(kind: Kind, j: string): Promise<string[]> {
     if (rec.fired++ > 0 || fx === null) return;
     const f = fx;
     try {
-      acquireLock(f.parent, { run: B, nonce: N2 });
+      // rule 12: D105-WI-2. At `pre-release` the competitor fires inside clean's
+      // release section (`.lock.mutex` held), where `acquireLock` is now a re-entry
+      // refused at once. There it models a launch that ignores the mutex
+      // (`rawAcquire`: same `wx` create, same `lock held by run X` refusal), so CS-5
+      // still tests the D82-WI-2 ordering itself. Every other boundary is unchanged.
+      if (j === "pre-release") rawAcquire(f.parent, B, N2);
+      else acquireLock(f.parent, { run: B, nonce: N2 });
       rec.acquire = "acquired";
       realRename(pre, f.siSock);
       rec.installed = true;

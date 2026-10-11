@@ -10,6 +10,15 @@
  * calls pass straight through (a re-entrancy guard) and are not counted, but
  * the rename recorder logs them too.
  *
+ * D105-WI-2: a shot is `protocol: "raw"` (default) or `"in"`. A raw
+ * competitor models a writer that ignores `.lock.mutex` (an older checkout):
+ * it fires at its point even inside the caller's held mutex. An `"in"`
+ * competitor follows the protocol, so it would wait for the mutex: when its
+ * point falls while the caller holds `.lock.mutex` (between the caller's
+ * successful `wx` create and its unlink), it is deferred and fires right after
+ * the real unlink of `.lock.mutex`, in shot order. An `"in"` shot whose point
+ * never came fires at `finish()`, after the numeric k = n shots, in shot order.
+ *
  * Matrix: `.claude/tdd-guardian/tests-20261010-103136.md`, D82-WI-1.
  */
 import { createHash } from "node:crypto";
@@ -27,12 +36,16 @@ export const N3 = "cd".repeat(32);
 export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 export const SECRETS = [N1, N2, N3, sha256(N1), sha256(N2), sha256(N3)];
 
-const METHODS = ["readFileSync", "renameSync", "linkSync", "unlinkSync", "lstatSync"] as const;
+// D105-WI-1: `writeFileSync` / `openSync` are counted too, so a schedule can
+// land between the `.lock.mutex` (or `.lock.mutex.break`) create and the next
+// step. Sweeps recompute their index range by a dry run; named points are unaffected.
+const METHODS = ["readFileSync", "renameSync", "linkSync", "unlinkSync", "lstatSync", "writeFileSync", "openSync"] as const;
 type Method = (typeof METHODS)[number];
 
 /** Where a shot fires: a global call index, or a named point. */
 export type At = number | "pre-rename" | "pre-mutate" | "pre-link";
-export type Shot = { at: At; competitor: () => void };
+// rule 12: D105-WI-2 adds the optional `protocol` (default "raw", today's behaviour).
+export type Shot = { at: At; competitor: () => void; protocol?: "in" | "raw" };
 
 const dirs: string[] = [];
 export function freshParent(): string {
@@ -55,6 +68,27 @@ export const tombsIn = (parent: string) => fs.readdirSync(parent).filter((n) => 
 
 /** The exact bytes `acquireLock` writes for `{ run, nonce }`. */
 export const recordBytes = (run: string, nonce: string) => JSON.stringify({ run, nonceDigest: sha256(nonce) });
+
+/**
+ * D105-WI-2: `acquireLock`'s observable contract without `.lock.mutex` — a `wx`
+ * create of the exact record, else `lock held by run X` / `lock unreadable` — as
+ * a launch from an older checkout would behave. A competitor that fires inside a
+ * lock section uses it: `acquireLock` there is now a re-entry and refuses at once.
+ */
+export function rawAcquire(parent: string, run: string, nonce: string): void {
+  try {
+    fs.writeFileSync(lockFile(parent), recordBytes(run, nonce), { flag: "wx", mode: 0o600 });
+  } catch (e) {
+    if ((e as { code?: unknown }).code !== "EEXIST") throw e;
+    let held: unknown = null;
+    try {
+      held = JSON.parse(fs.readFileSync(lockFile(parent), "utf8"))?.run;
+    } catch {
+      // unreadable
+    }
+    throw new Error(typeof held === "string" && held !== "" ? `lock held by run ${held}` : "lock unreadable");
+  }
+}
 
 export function thrown(fn: () => unknown): string {
   try {
@@ -93,7 +127,17 @@ export function interleave(parent: string, shots: Shot[]): Interleave {
   const real = Object.fromEntries(METHODS.map((m) => [m, fs[m]])) as Record<Method, (...a: unknown[]) => unknown>;
   const state = { calls: 0, fired: shots.map(() => 0), firedAt: shots.map(() => undefined as number | undefined), renames: [] as string[] };
   let inside = false;
+  // D105-WI-2: `.lock.mutex` held by the caller (not by a competitor), and the "in" shots waiting for it.
+  const mutex = path.join(parent, ".lock.mutex");
+  const deferred = shots.map(() => false);
+  let held = false;
   const fire = (i: number, idx: number) => {
+    if (deferred[i]) return;
+    if (shots[i].protocol === "in" && held) {
+      deferred[i] = true;
+      state.firedAt[i] = idx;
+      return;
+    }
     state.fired[i]++;
     state.firedAt[i] = idx;
     inside = true;
@@ -102,6 +146,20 @@ export function interleave(parent: string, shots: Shot[]): Interleave {
     } finally {
       inside = false;
     }
+  };
+  /** Fire every deferred "in" shot, in shot order, at the index it was due. */
+  const wake = () =>
+    shots.forEach((_, i) => {
+      if (!deferred[i]) return;
+      deferred[i] = false;
+      fire(i, state.firedAt[i] as number);
+    });
+  /** The caller's own create / unlink of `.lock.mutex`: real call, then track `held`. */
+  const track = (m: Method, args: unknown[]) => {
+    const value = real[m](...args);
+    held = m === "writeFileSync";
+    if (!held) wake();
+    return value;
   };
   const hits = (at: At, m: Method, args: unknown[], idx: number) => {
     if (typeof at === "number") return at === idx;
@@ -118,6 +176,7 @@ export function interleave(parent: string, shots: Shot[]): Interleave {
           if (state.fired[i] === 0 && hits(s.at, m, args, idx)) fire(i, idx);
         });
       }
+      if (!inside && args[0] === mutex && (m === "writeFileSync" || m === "unlinkSync")) return track(m, args);
       return real[m](...args);
     }) as never),
   );
@@ -129,8 +188,15 @@ export function interleave(parent: string, shots: Shot[]): Interleave {
     firedAt: state.firedAt,
     renames: state.renames,
     finish() {
+      held = false; // D105-WI-2: the caller is done, so nothing it holds can defer a shot any more.
       shots.forEach((s, i) => {
         if (state.fired[i] === 0 && typeof s.at === "number" && s.at >= state.calls) fire(i, state.calls);
+      });
+      // D105-WI-2: then every "in" shot still waiting, or whose point never came.
+      shots.forEach((s, i) => {
+        if (state.fired[i] !== 0 || s.protocol !== "in") return;
+        deferred[i] = false;
+        fire(i, state.firedAt[i] ?? state.calls);
       });
       for (const s of spies) s.mockRestore();
     },

@@ -37,6 +37,7 @@ import {
   cleanupParents,
   freshParent,
   lockFile,
+  recordBytes,
   runSchedule,
   thrown,
   tombsIn,
@@ -60,7 +61,10 @@ afterEach(() => {
 /** c1: unlink `.lock` with the real fs, then take it for B. Returns B's bytes. */
 const steal = (parent: string, sink: { bytes?: Buffer }) => () => {
   fs.unlinkSync(lockFile(parent));
-  acquireLock(parent, { run: B, nonce: N2 });
+  // rule 12: D105-WI-2. Was `acquireLock(B)`, which now takes `.lock.mutex` and so
+  // cannot run inside the release section. A raw `wx` write of B's exact bytes
+  // (a writer that ignores the mutex) keeps the steal at the same point.
+  fs.writeFileSync(lockFile(parent), recordBytes(B, N2), { flag: "wx", mode: 0o600 });
   sink.bytes = fs.readFileSync(lockFile(parent));
 };
 
@@ -93,6 +97,10 @@ describe("D82-WI-1 K-H1-4 double release is idempotent at every injection index"
         [
           {
             at: k,
+            // rule 12: D105-WI-2. The inner release follows the protocol, so it
+            // waits for the outer's `.lock.mutex`: "in" defers it to just after
+            // the outer's mutex unlink when k falls inside the section.
+            protocol: "in",
             competitor: () => {
               innerResult = thrownOr(() => inner(parent));
             },
@@ -128,7 +136,10 @@ describe("D82-WI-1 K-H1-5 displaced restore (two-shot schedule)", () => {
           at: "pre-rename",
           competitor: () => {
             fs.unlinkSync(lockFile(parent));
-            acquireLock(parent, { run: B, nonce: N2 });
+            // rule 12: D105-WI-2. Raw `wx` writes replace `acquireLock(B)` here and
+            // `acquireLock(C)` below: an in-protocol acquire can no longer run inside
+            // the section, so only a writer that ignores `.lock.mutex` displaces.
+            fs.writeFileSync(lockFile(parent), recordBytes(B, N2), { flag: "wx", mode: 0o600 });
             b.bytes = fs.readFileSync(lockFile(parent));
             b.mtimeMs = fs.statSync(lockFile(parent)).mtimeMs;
           },
@@ -136,7 +147,7 @@ describe("D82-WI-1 K-H1-5 displaced restore (two-shot schedule)", () => {
         {
           at: "pre-link",
           competitor: () => {
-            acquireLock(parent, { run: C, nonce: N3 });
+            fs.writeFileSync(lockFile(parent), recordBytes(C, N3), { flag: "wx", mode: 0o600 });
             cBytes = fs.readFileSync(lockFile(parent));
           },
         },

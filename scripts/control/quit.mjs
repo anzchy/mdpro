@@ -45,6 +45,10 @@
  *   The only write is appending to R's `launcher.jsonl`; `process.env` is
  *   never read for the child or assigned. The quit guard is bypassed by
  *   design: this is a signal, not a menu quit.
+ * - The release runs inside `.lock.mutex` (D105-WI-2, lockMutex.mjs); a mutex
+ *   still busy after its wait is a `lock not released: lock busy: …` failure.
+ *   `deps.lockMutexWaitMs` (tests) bounds the wait, production uses
+ *   `MUTEX_WAIT_MS`.
  * - Every printed line and log record is redacted with the run's nonces.
  *
  * @module scripts/control/quit
@@ -181,7 +185,7 @@ export async function run(args = {}, deps = {}) {
     log({ phase: "result", outcome: outcome.failure });
     return rep.verdict("driver failure", outcome.failure);
   }
-  const rel = release(parent, name, launch.nonce);
+  const rel = release(parent, name, launch.nonce, d.lockMutexWaitMs);
   rep.say(`quit: run ${name} ${outcome.how}`);
   if (rel.failure !== undefined) {
     log({ phase: "result", outcome: outcome.how, pid, lock: "not released" });
@@ -230,11 +234,12 @@ const NAMES_ANOTHER_RUN = "lock names run ";
  *   re-read confirms it (the only error the re-read can turn into a pass).
  * - `{ failure }`: anything else (another nonce, unreadable, displaced, an fs
  *   error). The lock's bytes, or the displaced tomb, are left where they are.
+ * @param {number | undefined} mutexWaitMs how long to wait for `.lock.mutex`
  * @returns {{ failure?: string, other?: string }}
  */
-function release(parent, name, nonce) {
+function release(parent, name, nonce, mutexWaitMs) {
   try {
-    releaseLock(parent, { run: name, nonce });
+    releaseLock(parent, { run: name, nonce }, { mutexWaitMs });
     return {};
   } catch (e) {
     const msg = errMessage(e);

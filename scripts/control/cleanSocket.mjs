@@ -33,7 +33,8 @@
  *   successful release.
  * - An orphan lock (absent R, a lock naming R) is released by
  *   `releaseOrphanLock` only when the scan is exactly `[]` and `si.sock` is
- *   not live or unknown; otherwise refused, lock kept.
+ *   not live or unknown; otherwise refused, lock kept. The release runs inside
+ *   `.lock.mutex` (D105-WI-2); `deps.lockMutexWaitMs` (tests) bounds its wait.
  *
  * @module scripts/control/cleanSocket
  * @coordinates-with scripts/control/clean.mjs (run: the present-run path calls siSock and settle)
@@ -116,7 +117,7 @@ export async function absentRun(d, rep, parent, name) {
   return settle(
     rep,
     sockLine,
-    () => (lock === "thisRun" ? releaseOrphanLock(parent, name) : "absent"),
+    () => (lock === "thisRun" ? releaseOrphanLock(parent, name, { mutexWaitMs: d.lockMutexWaitMs }) : "absent"),
     (released) => (released === "released" ? `clean: absent ${name}; released orphan lock` : `clean: absent ${name}`),
     (msg) => `lock not released: ${msg}`,
   );

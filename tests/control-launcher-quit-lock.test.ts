@@ -44,7 +44,11 @@ const DEATHS: Death[] = [
 /** Replace `.lock` with `{ run, nonce }`'s record, as a newcomer would. */
 const swapLock = (q: Q, run: string, nonce: string) => {
   fs.unlinkSync(q.lockPath);
-  acquireLock(q.fx.parent, { run, nonce });
+  // rule 12: D105-WI-2. Was `acquireLock(q.fx.parent, { run, nonce })`. QU-M4-4 and
+  // QU-M4-6 fire this at `pre-rename`, inside quit's release section, where an
+  // in-protocol acquire is now a re-entry refused at once. A raw `wx` write of the
+  // same exact bytes keeps every swap; the atDeath callers see no difference.
+  fs.writeFileSync(q.lockPath, recordBytes(run, nonce), { flag: "wx", mode: 0o600 });
 };
 const lastLog = (q: Q) => logLines(q.fx.lay.runDir).at(-1) as Record<string, unknown>;
 const expectNoSecret = (q: Q) => {
@@ -218,7 +222,10 @@ describe("D82-WI-5 quit: a displaced release is a driver failure that keeps the 
       {
         at: "pre-link",
         competitor: () => {
-          acquireLock(q.fx.parent, { run: C, nonce: N3 });
+          // rule 12: D105-WI-2. Was `acquireLock(C)`, which now takes `.lock.mutex`
+          // and so cannot run inside quit's release section; a raw `wx` write of
+          // C's exact bytes (a writer that ignores the mutex) keeps the displacement.
+          fs.writeFileSync(q.lockPath, recordBytes(C, N3), { flag: "wx", mode: 0o600 });
           cBytes = fs.readFileSync(q.lockPath, "utf8");
         },
       },

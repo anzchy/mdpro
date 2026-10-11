@@ -3,16 +3,27 @@
  * `<runs parent>/.lock`, created atomically with `wx` at mode 0600, holding
  * `{ run, nonceDigest }`. At most one verify run holds it at a time.
  *
- * Pipeline: `acquireLock(parent, { run, nonce })` → `.lock`;
+ * Pipeline: `acquireLock(parent, { run, nonce }, { mutexWaitMs })` → `.lock`;
  *   `readLock(parent)` → absent | held(run) | corrupt;
- *   `releaseLock(parent, { run, nonce })` → "released" | "absent";
+ *   `releaseLock(parent, { run, nonce }, { mutexWaitMs })` → "released" | "absent";
  *   `checkLockOwner(parent, { run, nonce })` → "held" | "absent" (no change);
- *   `releaseOrphanLock(parent, run)` → "released" | "absent".
+ *   `releaseOrphanLock(parent, run, { mutexWaitMs })` → "released" | "absent".
+ *   Acquire and both releases run inside `withLockMutex` (`.lock.mutex`,
+ *   lockMutex.mjs; `mutexWaitMs` bounds the wait, default `MUTEX_WAIT_MS`).
  *   Both releases: pre-check `.lock` → rename it to a tomb → check the tomb's
  *   bytes → unlink the tomb (ours) | `linkSync` it back, unlink the tomb, throw
  *   (both unlinks best-effort).
  *
  * Key decisions:
+ * - Acquire and release are serialised by one outside mutex (D105-WI-2,
+ *   lockMutex.mjs). The tomb protocol alone let an acquire land between a
+ *   release's rename and its restore: the restore then hit EEXIST and two
+ *   runs believed they held the lock (D105 ①). Now no in-protocol acquire or
+ *   release can run inside another's section; a busy mutex throws
+ *   `lock busy: …` before anything is read or moved. `readLock` and
+ *   `checkLockOwner` stay unlocked reads. The tomb protocol is kept as the
+ *   guard against writers that ignore the mutex (scripts from an older
+ *   checkout sharing the runs parent).
  * - Acquire is the `wx` open itself, never exists-then-write (TOCTOU); a
  *   losing caller learns the holder's run name, never its nonce.
  * - The file stores `sha256(nonce)` as hex, never the plaintext nonce, so
@@ -60,12 +71,14 @@
  *   `checkLockOwner` stays for callers that check before an irreversible step.
  *
  * @module scripts/control/lock
+ * @coordinates-with scripts/control/lockMutex.mjs (withLockMutex: every acquire and release section)
  * @coordinates-with scripts/control/runDir.mjs (layout().lock is this path)
  * @coordinates-with scripts/control/ownership.mjs (cleanVerdict lockNamesThisRun)
  */
 import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { withLockMutex } from "./lockMutex.mjs";
 
 const LOCK_NAME = ".lock";
 const LOCK_MODE = 0o600;
@@ -87,31 +100,42 @@ export function readLock(parent) {
 }
 
 /**
- * Take the lock for `run`, or throw naming the current holder.
+ * Take the lock for `run`, or throw naming the current holder. Runs inside
+ * `.lock.mutex`; a busy mutex throws `lock busy: …` and writes nothing.
  * @param {string} parent the runs parent (must exist)
  * @param {{ run: string, nonce: string }} owner
+ * @param {MutexOpts} [opts]
  * @returns {{ run: string }}
  */
-export function acquireLock(parent, { run, nonce }) {
+export function acquireLock(parent, { run, nonce }, opts = {}) {
   const body = JSON.stringify({ run, nonceDigest: digest(nonce) });
-  try {
-    fs.writeFileSync(lockPath(parent), body, { flag: "wx", mode: LOCK_MODE });
-  } catch (error) {
-    if (!(error instanceof Error) || /** @type {any} */ (error).code !== "EEXIST") throw error;
-    const held = readRecord(parent);
-    throw new Error(held.state === "held" ? `lock held by run ${held.run}` : UNREADABLE);
-  }
-  return { run };
+  return withLockMutex(
+    parent,
+    () => {
+      try {
+        fs.writeFileSync(lockPath(parent), body, { flag: "wx", mode: LOCK_MODE });
+      } catch (error) {
+        if (!(error instanceof Error) || /** @type {any} */ (error).code !== "EEXIST") throw error;
+        const held = readRecord(parent);
+        throw new Error(held.state === "held" ? `lock held by run ${held.run}` : UNREADABLE);
+      }
+      return { run };
+    },
+    { waitMs: opts.mutexWaitMs },
+  );
 }
+
+/** @typedef {{ mutexWaitMs?: number }} MutexOpts how long to wait for `.lock.mutex` (default `MUTEX_WAIT_MS`) */
 
 /**
  * Release the lock if, and only if, `{ run, nonce }` wrote it.
  * @param {string} parent the runs parent
  * @param {{ run: string, nonce: string }} owner
+ * @param {MutexOpts} [opts]
  * @returns {"released" | "absent"}
  */
-export function releaseLock(parent, owner) {
-  return releaseAtomically(parent, (rec) => ownerMismatch(rec, owner));
+export function releaseLock(parent, owner, opts = {}) {
+  return releaseAtomically(parent, (rec) => ownerMismatch(rec, owner), opts);
 }
 
 /**
@@ -143,13 +167,19 @@ function ownerMismatch(rec, { run, nonce }) {
 }
 
 /**
- * The tomb protocol (see Key decisions): pre-check, move aside, judge the
- * tomb, then unlink it (ours) or restore it and throw.
+ * The tomb protocol (see Key decisions), inside `.lock.mutex`: pre-check,
+ * move aside, judge the tomb, then unlink it (ours) or restore it and throw.
  * @param {string} parent
  * @param {(rec: ReturnType<typeof readRecord>) => string | null} mismatchOf
+ * @param {MutexOpts} opts
  * @returns {"released" | "absent"}
  */
-function releaseAtomically(parent, mismatchOf) {
+function releaseAtomically(parent, mismatchOf, opts) {
+  return withLockMutex(parent, () => releaseSection(parent, mismatchOf), { waitMs: opts.mutexWaitMs });
+}
+
+/** The release section itself; the caller holds `.lock.mutex`. */
+function releaseSection(parent, mismatchOf) {
   const pre = readRecord(parent);
   if (pre.state === "absent") return "absent";
   const refused = mismatchOf(pre);
@@ -195,10 +225,11 @@ function errorCode(error) {
  * still names `run`. The caller must already have proved nothing is running.
  * @param {string} parent the runs parent
  * @param {string} run
+ * @param {MutexOpts} [opts]
  * @returns {"released" | "absent"}
  */
-export function releaseOrphanLock(parent, run) {
-  return releaseAtomically(parent, (rec) => runMismatch(rec, run));
+export function releaseOrphanLock(parent, run, opts = {}) {
+  return releaseAtomically(parent, (rec) => runMismatch(rec, run), opts);
 }
 
 /** @returns {{ state: "absent" } | { state: "corrupt" } | { state: "held", run: string, nonceDigest: string }} */
