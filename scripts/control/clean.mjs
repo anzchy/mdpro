@@ -12,8 +12,9 @@
  *   `cleanVerdict` → probe `si.sock` (live refuses) → re-`lstat` R →
  *   `checkLockOwner` (a lock naming R) → `removeRunDir` (R's entries,
  *   `launch.json` last, then R) → `siSock` (scan `[]` only, re-probe `stale`
- *   → unlink) while the lock is still held → `settle`: `releaseLock`, then
- *   the removed line, the held socket line, the verdict.
+ *   → lock re-check inside `.lock.mutex` → unlink) while the lock is still
+ *   held → `settle`: `releaseLock`, then the removed line, the held socket
+ *   line, the verdict.
  *
  * Key decisions:
  * - The runs parent is `runsParent(realpath(passwd home))`, and R's realpath
@@ -46,8 +47,11 @@
  *   then the socket step, then release, so a launch racing `clean` is refused
  *   instead of binding a socket `clean` then deletes. The socket line is held
  *   and printed after the removed line on success, before the driver-failure
- *   verdict when the release fails. With no lock to hold, the window between
- *   the re-probe and the unlink stays open (accepted limit, cleanSocket.mjs).
+ *   verdict when the release fails. Right before the unlink the lock is
+ *   re-checked inside `.lock.mutex` (D105-WI-4, cleanSocket.mjs): a lock
+ *   naming another run, or an unreadable one, keeps the socket, so a launch
+ *   that took the lock in the meantime (another `clean` released R's lock, or
+ *   there was none) keeps its live socket.
  * - The release runs inside `.lock.mutex` (D105-WI-2, lockMutex.mjs); a mutex
  *   still busy after its wait is `removed R, lock not released: lock busy: …`.
  *   `deps.lockMutexWaitMs` (tests) bounds the wait, production uses
@@ -221,7 +225,7 @@ export async function run(args = {}, deps = {}) {
   } catch (e) {
     return rep.verdict("driver failure", `remove failed: ${errCode(e)}`);
   }
-  const sockLine = await siSock(d, probe, g.scan);
+  const sockLine = await siSock(d, probe, g.scan, { parent, run: name });
   return settle(
     rep,
     sockLine,

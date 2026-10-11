@@ -9,7 +9,8 @@
  *   `quitVerdict` → SIGTERM → poll until dead or `graceMs` → re-check
  *   `startTime` + `exe` → SIGKILL → poll until dead or `killConfirmMs` →
  *   `releaseLock(R, nonce)` → `quit: run R terminated (SIGTERM)` |
- *   `killed (SIGKILL)` → [`lock: held by run X (ours already released)`] →
+ *   `killed (SIGKILL)` → [`lock: held by run X (ours already released)` |
+ *   `[warn] lock tomb kept: <tomb>`] →
  *   verdict (pass, or `driver failure — lock not released: <msg>`). A stop
  *   that fails while the lock R held at the start now names X ends in
  *   `driver failure — lock stolen by run X while run R was live`.
@@ -45,6 +46,9 @@
  *   The only write is appending to R's `launcher.jsonl`; `process.env` is
  *   never read for the child or assigned. The quit guard is bypassed by
  *   design: this is a signal, not a menu quit.
+ * - A release that kept its own tomb (`released; tomb kept: <tomb>`, D105-WI-3)
+ *   still passes: `[warn] lock tomb kept: <tomb>` precedes `verdict: pass`,
+ *   logged with `tombKept`. The tomb refuses the next acquire until removed.
  * - The release runs inside `.lock.mutex` (D105-WI-2, lockMutex.mjs); a mutex
  *   still busy after its wait is a `lock not released: lock busy: …` failure.
  *   `deps.lockMutexWaitMs` (tests) bounds the wait, production uses
@@ -54,7 +58,7 @@
  * @module scripts/control/quit
  * @coordinates-with scripts/control/ownership.mjs (quitVerdict)
  * @coordinates-with scripts/control/launcherCli.mjs (`pnpm control:quit`: parseQuitArgs, runIfMain)
- * @coordinates-with scripts/control/lock.mjs (readLock, releaseLock)
+ * @coordinates-with scripts/control/lock.mjs (readLock, releaseLock, keptTomb)
  * @coordinates-with scripts/control/doctor.mjs (defaultProcFacts)
  * @coordinates-with scripts/control/ownerFacts.mjs (readRunRecords, ownerFacts: shared with launchInto, doctor)
  */
@@ -65,7 +69,7 @@ import { defaultDeps as launchDeps } from "./launchDeps.mjs";
 import { runIfMain } from "./launcherCli.mjs";
 import { formatQuitRefusal } from "./launcherFormat.mjs";
 import { appendLog } from "./launcherLog.mjs";
-import { readLock, releaseLock } from "./lock.mjs";
+import { keptTomb, readLock, releaseLock } from "./lock.mjs";
 import { ownerFacts, readRunRecords } from "./ownerFacts.mjs";
 import { quitVerdict } from "./ownership.mjs";
 import { layout, runsParent } from "./runDir.mjs";
@@ -196,6 +200,11 @@ export async function run(args = {}, deps = {}) {
     rep.say(`lock: held by run ${rel.other} (ours already released)`);
     return rep.verdict("pass");
   }
+  if (rel.tomb !== undefined) {
+    log({ phase: "result", outcome: outcome.how, pid, tombKept: rel.tomb });
+    rep.say(`[warn] lock tomb kept: ${rel.tomb}`);
+    return rep.verdict("pass");
+  }
   log({ phase: "result", outcome: outcome.how, pid });
   return rep.verdict("pass");
 }
@@ -230,17 +239,18 @@ const NAMES_ANOTHER_RUN = "lock names run ";
 /**
  * Release R's lock once R's process is confirmed dead.
  * - `{}`: released, or already absent.
+ * - `{ tomb }`: released, but its own tomb could not be unlinked (D105-WI-3).
  * - `{ other }`: `releaseLock` refused because `.lock` names another run, and a
  *   re-read confirms it (the only error the re-read can turn into a pass).
  * - `{ failure }`: anything else (another nonce, unreadable, displaced, an fs
  *   error). The lock's bytes, or the displaced tomb, are left where they are.
  * @param {number | undefined} mutexWaitMs how long to wait for `.lock.mutex`
- * @returns {{ failure?: string, other?: string }}
+ * @returns {{ failure?: string, other?: string, tomb?: string }}
  */
 function release(parent, name, nonce, mutexWaitMs) {
   try {
-    releaseLock(parent, { run: name, nonce }, { mutexWaitMs });
-    return {};
+    const tomb = keptTomb(releaseLock(parent, { run: name, nonce }, { mutexWaitMs }));
+    return tomb === null ? {} : { tomb };
   } catch (e) {
     const msg = errMessage(e);
     if (!msg.startsWith(NAMES_ANOTHER_RUN)) return { failure: msg };

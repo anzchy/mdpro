@@ -7,9 +7,10 @@
  *   throws `lock displaced: kept <tomb>`; a non-EEXIST failure appends its
  *   code, e.g. ` (EPERM)`. The other run's record stays in the named tomb.
  * - S-2: a failing tomb `unlinkSync` is best-effort. On the success path the
- *   release still returns "released"; on the restore path the mismatch is
- *   still thrown, with `; tomb kept: <tomb>` appended, and quit's verdict is
- *   unchanged.
+ *   release returns `released; tomb kept: <tomb>` (D105-WI-3; it was a silent
+ *   "released"), and that tomb refuses the next acquire; on the restore path
+ *   the mismatch is still thrown, with `; tomb kept: <tomb>` appended, and
+ *   quit's verdict is unchanged.
  *
  * Schedule: `.lock` is A's at the pre-check; just before the
  * `renameSync(.lock)` it is swapped to B's, so the tomb check refuses and the
@@ -101,15 +102,22 @@ describe("D82-WI-9 S-2: a failing tomb unlink on the success path", () => {
     const r = outcome(() => call(parent));
     vi.restoreAllMocks();
 
-    expect(r).toBe("released");
-    expect(fs.existsSync(lockFile(parent))).toBe(false);
     const tombs = tombsIn(parent);
+    // rule 12: D105-WI-3. Was `expect(r).toBe("released")`. D105 names that silent
+    // "released" as a defect: a kept own tomb is now reported in the result.
+    expect(r).toBe(`released; tomb kept: ${tombs[0]}`);
+    expect(fs.existsSync(lockFile(parent))).toBe(false);
     expect(tombs).toHaveLength(1);
     expect(fs.readFileSync(path.join(parent, tombs[0]), "utf8")).toBe(recordBytes(A, N1));
-    // Nothing reads a tomb as a lock: the lock reads absent and C can take it.
+    // Nothing reads a tomb as a lock: the lock reads absent.
     expect(readLock(parent)).toEqual({ state: "absent" });
-    expect(acquireLock(parent, { run: C, nonce: N3 })).toEqual({ run: C });
-    expect(fs.readFileSync(lockFile(parent), "utf8")).toBe(recordBytes(C, N3));
+    // rule 12: D105-WI-3. Was `expect(acquireLock(C)).toEqual({ run: C })` and C's
+    // bytes at .lock. Any tomb now refuses the next acquire (D105-WI-3, D2: nothing
+    // auto-cleans), naming the tomb and the run it holds; .lock stays absent.
+    expect(outcome(() => JSON.stringify(acquireLock(parent, { run: C, nonce: N3 })))).toEqual({
+      error: `lock interrupted: kept ${tombs[0]} (run ${A})`,
+    });
+    expect(fs.existsSync(lockFile(parent))).toBe(false);
   });
 });
 

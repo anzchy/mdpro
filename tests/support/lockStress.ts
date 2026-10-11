@@ -20,6 +20,14 @@
  * `ownersAfterTheirPairs` injects the interleaving D131 hit under load: an
  * owner starts only once its releaser pair has written its `.rounds` marker
  * (finished its first `ROUNDS` rounds).
+ *
+ * D105-WI-5: `strict` adds `Observed.strict`: the acquirers' non-own re-reads
+ * (`stolen` / `vanished`), the `lock busy` results, the resurrections and lost
+ * own releases summed over acquirers, and the `.lock.mutex*` files left at the
+ * end. `killInsideMutex` adds one more child, started with the others, that
+ * SIGKILLs itself inside its first acquire's mutex section (at the `.lock`
+ * write, after recording the pid `.lock.mutex` names); `strict.killer` reports
+ * its pid, its signal and that recorded pid.
  */
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -48,7 +56,16 @@ export const ACQUIRERS: Who[] = [
   { run: "b".repeat(24) + "2", nonce: "n2".repeat(32) },
 ];
 
-export type StressOptions = { ownersAfterTheirPairs?: boolean };
+export type StressOptions = { ownersAfterTheirPairs?: boolean; strict?: boolean; killInsideMutex?: boolean };
+export type Killer = { pid: number | undefined; signal: string | null; mutexPidAtKill: number | null };
+export type StrictObserved = {
+  nonOwnRereads: number;
+  busy: number;
+  resurrected: number;
+  lostOwnReleases: number;
+  mutexFiles: string[];
+  killer?: Killer;
+};
 export type Observed = {
   perAcquirer: { run: string; counts: { lostOwnReleases: number; resurrected: number; inTombs: number; atLock: number } }[];
   results: string[];
@@ -56,6 +73,7 @@ export type Observed = {
   tombs: number;
   own: number;
   releasedByPairs: number;
+  strict?: StrictObserved;
 };
 
 const dirs: string[] = [];
@@ -124,6 +142,31 @@ function runChild(src: string): Promise<void> {
   });
 }
 
+const KILLER: Who = { run: "k".repeat(25), nonce: "k1".repeat(32) };
+
+/** D105-WI-5 ST-2: a child that SIGKILLs itself at its first acquire's `.lock` write, inside `.lock.mutex`. */
+function killerSource(parent: string, mark: string, startAt: number): string {
+  const J = JSON.stringify;
+  return (
+    `import fs from "node:fs";` +
+    `const P = ${J(parent)}; const real = fs.writeFileSync;` +
+    `fs.writeFileSync = (f, ...a) => { if (f === P + "/.lock") { let pid = null;` +
+    `  try { pid = JSON.parse(fs.readFileSync(P + "/.lock.mutex", "utf8")).pid; } catch {}` +
+    `  real(${J(mark)}, JSON.stringify({ pid })); process.kill(process.pid, "SIGKILL"); } return real(f, ...a); };` +
+    `const { acquireLock } = await import(${J(pathToFileURL(LOCK_MODULE).href)});` +
+    `while (Date.now() < ${startAt}) {}` +
+    `acquireLock(P, ${J(KILLER)});`
+  );
+}
+
+function runKiller(src: string): Promise<{ pid: number | undefined; signal: string | null }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ["--input-type=module", "-e", src], { stdio: "ignore" });
+    child.on("error", reject);
+    child.on("close", (_code, signal) => resolve({ pid: child.pid, signal }));
+  });
+}
+
 /** Run every child to completion, then read the logs and the parent's listing. */
 export async function runStress(opts: StressOptions = {}): Promise<Observed> {
   const parent = scratch("lks-");
@@ -142,7 +185,10 @@ export async function runStress(opts: StressOptions = {}): Promise<Observed> {
     children.push({ role: "acquirer", who, log: file(`acquirer-${i}.jsonl`), rounds: file(`acquirer-${i}.rounds`), gates: [] }),
   );
   const startAt = Date.now() + START_DELAY_MS;
+  const killMark = file("killer.json");
+  const killer = opts.killInsideMutex ? runKiller(killerSource(parent, killMark, startAt)) : null;
   await Promise.all(children.map((c) => runChild(childSource(c, parent, marks, startAt))));
+  const killed = killer === null ? null : await killer;
 
   const read = (f: string): Entry[] => fs.readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   const all = children.map((c) => ({ ...c, entries: read(c.log) }));
@@ -165,7 +211,20 @@ export async function runStress(opts: StressOptions = {}): Promise<Observed> {
       },
     };
   });
+  const acquirerEntries = all.filter((c) => c.role === "acquirer").flatMap((c) => c.entries);
+  const sum = (k: "resurrected" | "lostOwnReleases") => perAcquirer.reduce((n, a) => n + a.counts[k], 0);
+  const strict: StrictObserved | undefined = opts.strict
+    ? {
+        nonOwnRereads: acquirerEntries.filter((e) => e.kind === "reread" && e.reread !== "own").length,
+        busy: results.filter((r) => r.startsWith("lock busy: ")).length,
+        resurrected: sum("resurrected"),
+        lostOwnReleases: sum("lostOwnReleases"),
+        mutexFiles: fs.readdirSync(parent).filter((n) => n.startsWith(".lock.mutex")).sort(),
+        ...(killed === null ? {} : { killer: { ...killed, mutexPidAtKill: readKillMark(killMark) } }),
+      }
+    : undefined;
   return {
+    ...(strict ? { strict } : {}),
     perAcquirer,
     results,
     displaced: results.filter((r) => r.startsWith("lock displaced: kept ")).length,
@@ -176,4 +235,13 @@ export async function runStress(opts: StressOptions = {}): Promise<Observed> {
       .flatMap((c) => c.entries)
       .filter((e) => e.result === "released").length,
   };
+}
+
+/** The pid `.lock.mutex` named when the killer died, or null when it never got there. */
+function readKillMark(mark: string): number | null {
+  try {
+    return JSON.parse(fs.readFileSync(mark, "utf8")).pid;
+  } catch {
+    return null;
+  }
 }

@@ -118,6 +118,7 @@ export type Interleave = {
   /** Destination basenames of every `renameSync` into `parent`, competitors' included. */
   readonly renames: string[];
   /** Fire every numeric shot that has not fired yet (k = n: after the run), then restore. */
+  // D105-WI-2: before the restore, `finish()` also fires every `"in"` shot still deferred, or whose point never came, in shot order.
   finish(): void;
 };
 
@@ -226,4 +227,16 @@ export function finalFiles(parent: string): Map<string, string> {
     if (fs.lstatSync(p).isFile()) out.set(n, fs.readFileSync(p, "latin1"));
   }
   return out;
+}
+
+/**
+ * D105-WI-3: every `unlinkSync` of a `.tomb` path throws `code`; any other unlink
+ * is real. The caller restores it (`vi.restoreAllMocks()`).
+ */
+export function failTombUnlink(code: string): void {
+  const realUnlink = fs.unlinkSync;
+  vi.spyOn(fs, "unlinkSync").mockImplementation(((p: fs.PathLike) => {
+    if (typeof p === "string" && p.endsWith(".tomb")) throw Object.assign(new Error(`${code}: injected fault, unlink`), { code });
+    return realUnlink(p);
+  }) as never);
 }

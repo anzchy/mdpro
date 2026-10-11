@@ -23,7 +23,10 @@
  *   lockMutex.mjs). A mutex still busy after its wait is `driver failure —
  *   lock busy: …` before the run dir exists; `deps.lockMutexWaitMs` (tests)
  *   bounds the wait, production uses `MUTEX_WAIT_MS`.
- *   The run dir is kept for diagnosis (`pnpm control:clean <run>`).
+ *   The run dir is kept for diagnosis (`pnpm control:clean <run>`). A release
+ *   that kept its own tomb (D105-WI-3) prints `[warn] lock tomb kept: <tomb>`
+ *   on stderr; the driver-failure verdict is unchanged. Any tomb refuses the
+ *   acquire: `driver failure — lock interrupted: kept <tomb> (…)`.
  * - Direct exec: on a failed handshake only the spawned handle is killed
  *   (SIGKILL); a pid read from `instance.json` is never signalled, and a
  *   child that already exited or failed to spawn is not signalled at all.
@@ -58,7 +61,7 @@ import { formatOpenArgvError, formatReady } from "./launcherFormat.mjs";
 import { appendLog } from "./launcherLog.mjs";
 import { bundleOf, runInto } from "./launchInto.mjs";
 import { awaitHandshake, spawnDirect, spawnOpen, verifyIdentity } from "./launchProcess.mjs";
-import { acquireLock, releaseLock } from "./lock.mjs";
+import { acquireLock, keptTomb, releaseLock } from "./lock.mjs";
 import { writePreferences } from "./preset.mjs";
 import { checkBudget, childEnv, launchJsonBody, layout, RUNS_SUFFIX } from "./runDir.mjs";
 
@@ -223,7 +226,8 @@ function fail(ctx, sp, reason, extra = {}) {
   const { d, rep, parent, name, nonce } = ctx;
   if (sp && !sp.st.exited && !sp.st.error) sp.child.kill("SIGKILL");
   try {
-    releaseLock(parent, { run: name, nonce }, { mutexWaitMs: d.lockMutexWaitMs });
+    const tomb = keptTomb(releaseLock(parent, { run: name, nonce }, { mutexWaitMs: d.lockMutexWaitMs }));
+    if (tomb !== null) d.err(`[warn] lock tomb kept: ${tomb}`);
   } catch (e) {
     d.err(`lock not released: ${errMessage(e)}`);
   }

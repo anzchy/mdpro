@@ -12,6 +12,9 @@
  * - `preBound`: a real `net` listener at a sibling path, which the competitor
  *   renames onto `si.sock` (CS-0 checks the renamed socket stays live).
  *
+ * - `mutexGate` (D105-WI-4): defers an in-protocol competitor past `.lock.mutex`.
+ * - `secondCleaner` (D105-WI-4): another `clean` on the same home and socket.
+ *
  * Only `deps.procFacts`, `deps.uid` and `deps.rmSync` are injected; the lock,
  * the ownership verdict, the sockets and the fs are real.
  * Matrix: `.claude/tdd-guardian/tests-20261010-103136.md`, D82-WI-2.
@@ -30,6 +33,8 @@ import { acquireLock } from "../../scripts/control/lock.mjs";
 import { probeSocket } from "../../scripts/control/procFacts.mjs";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import { layout, runName, runsParent } from "../../scripts/control/runDir.mjs";
+// @ts-expect-error -- plain ESM script, no .d.ts by design
+import { RUNS_SUFFIX } from "../../scripts/control/runDir.mjs";
 
 export type Result = { exit: number; lines: string[] };
 export type Probe = "live" | "stale" | "absent" | "unknown";
@@ -146,3 +151,35 @@ export const exists = (p: string) => {
   }
 };
 export const isSocket = (p: string) => exists(p) && fs.lstatSync(p).isSocket();
+
+/**
+ * D105-WI-4: an in-protocol competitor waits for `.lock.mutex`. `run(fn)` calls
+ * `fn` now, or, while `<parent>/.lock.mutex` exists (clean's socket step holds
+ * it from its lock re-check through the unlink), queues it to run right after
+ * the real unlink of `.lock.mutex`, in order, as a waiting process would.
+ * The test's `unlinkSync` spy calls `unlinked(p)` after each real unlink.
+ */
+export function mutexGate(parent: string) {
+  const mutex = path.join(parent, ".lock.mutex");
+  const queue: (() => void)[] = [];
+  return {
+    run(fn: () => void): void {
+      if (exists(mutex)) queue.push(fn);
+      else fn();
+    },
+    unlinked(p: unknown): void {
+      if (p !== mutex) return;
+      for (const fn of queue.splice(0)) fn();
+    },
+  };
+}
+
+/**
+ * D105-WI-4: a second `clean` (another process) on `fx`'s home and `si.sock`,
+ * with its own probe, scan and output lines.
+ */
+export function secondCleaner(fx: Fx, o: Common = {}) {
+  const home = path.join(fx.parent, ...RUNS_SUFFIX.map(() => ".."));
+  const out: string[] = [];
+  return { out, clean: cleaner(home, fx.siSock, o, out) };
+}

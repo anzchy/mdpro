@@ -9,7 +9,8 @@
  * The competitor models a launch: `acquireLock(B)`, and only on success it
  * moves a real listening socket onto `si.sock` (a rename keeps it live, CS-0).
  * It fires from a pass-through `vi.spyOn(fs, "unlinkSync")` when the path is
- * `si.sock`; every fs action stays real. No sleeps.
+ * `si.sock`; every fs action stays real. No sleeps. Since D105-WI-4 the
+ * unlink runs inside `.lock.mutex`, so the hooks wait for it (`mutexGate`).
  */
 import fs from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -22,6 +23,7 @@ import {
   FAIL,
   isSocket,
   makeStaleSocket,
+  mutexGate,
   N2,
   NAME,
   NONCE,
@@ -73,16 +75,25 @@ function competitor(fx: Fx, pre: string) {
 }
 
 /** Pass-through `unlinkSync` spy: `before` / `after` run once around the real unlink of `si.sock`. */
+// rule 12: D105-WI-4 (harness only; no assertion changed). clean's `si.sock` unlink
+// now runs inside `.lock.mutex`, where the hooks' `acquireLock` would be a re-entry
+// refused at once. The hooks model in-protocol processes (a launch, a racing
+// owner), so they wait for the mutex: `mutexGate` runs them right after its real
+// unlink, `before` then `after`. That is still before clean's lock release, so
+// `lockAtUnlink` (read by `before`) sees the same lock; SG-6 pins the mutex at
+// the unlink itself. Without a mutex they run exactly as before.
 function onSockUnlink(fx: Fx, hooks: { before?: () => void; after?: () => void }) {
   let fired = 0;
+  const gate = mutexGate(fx.parent);
   vi.spyOn(fs, "unlinkSync").mockImplementation(((p: fs.PathLike) => {
     const mine = p === fx.siSock && fired === 0;
     if (mine) {
       fired += 1;
-      hooks.before?.();
+      gate.run(() => hooks.before?.());
     }
     realUnlink(p);
-    if (mine) hooks.after?.();
+    if (mine) gate.run(() => hooks.after?.());
+    gate.unlinked(p);
   }) as typeof fs.unlinkSync);
   return () => fired;
 }

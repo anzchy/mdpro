@@ -22,6 +22,7 @@ import {
   type Fx,
   isSocket,
   makeStaleSocket,
+  mutexGate,
   N2,
   NAME,
   NONCE,
@@ -129,10 +130,17 @@ async function runAt(kind: Kind, j: string): Promise<string[]> {
   fx = f;
   await makeStaleSocket(f.siSock);
   pre = await preBound(f.dir);
+  // rule 12: D105-WI-4 (harness only; no assertion changed). The `si.sock` unlink
+  // now runs inside `.lock.mutex`, where `acquireLock` is a re-entry refused at
+  // once. The `pre-sock-unlink` competitor is an in-protocol launch, so it waits
+  // for the mutex: `mutexGate` fires it right after the mutex unlink, still before
+  // clean's release (the lock still names R). Without a mutex it fires as before.
+  const gate = mutexGate(f.parent);
   vi.spyOn(fs, "unlinkSync").mockImplementation(((p: fs.PathLike) => {
-    if (p === f.siSock && j === "pre-sock-unlink") fire();
+    if (p === f.siSock && j === "pre-sock-unlink") gate.run(fire);
     if (p === f.lockPath && j === "pre-release") fire();
     realUnlink(p);
+    gate.unlinked(p);
   }) as typeof fs.unlinkSync);
   vi.spyOn(fs, "renameSync").mockImplementation(((a: fs.PathLike, b: fs.PathLike) => {
     if (a === f.lockPath && j === "pre-release") fire();

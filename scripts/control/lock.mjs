@@ -5,14 +5,16 @@
  *
  * Pipeline: `acquireLock(parent, { run, nonce }, { mutexWaitMs })` → `.lock`;
  *   `readLock(parent)` → absent | held(run) | corrupt;
- *   `releaseLock(parent, { run, nonce }, { mutexWaitMs })` → "released" | "absent";
+ *   `releaseLock(parent, { run, nonce }, { mutexWaitMs })` → "released" |
+ *   "absent" | `released; tomb kept: <tomb>`;
  *   `checkLockOwner(parent, { run, nonce })` → "held" | "absent" (no change);
- *   `releaseOrphanLock(parent, run, { mutexWaitMs })` → "released" | "absent".
+ *   `releaseOrphanLock(parent, run, { mutexWaitMs })` → as `releaseLock`.
  *   Acquire and both releases run inside `withLockMutex` (`.lock.mutex`,
  *   lockMutex.mjs; `mutexWaitMs` bounds the wait, default `MUTEX_WAIT_MS`).
+ *   Acquire: any tomb → `lock interrupted: …` → `wx` create.
  *   Both releases: pre-check `.lock` → rename it to a tomb → check the tomb's
  *   bytes → unlink the tomb (ours) | `linkSync` it back, unlink the tomb, throw
- *   (both unlinks best-effort).
+ *   (both unlinks best-effort). Tomb helpers live in lockTomb.mjs.
  *
  * Key decisions:
  * - Acquire and release are serialised by one outside mutex (D105-WI-2,
@@ -26,6 +28,12 @@
  *   checkout sharing the runs parent).
  * - Acquire is the `wx` open itself, never exists-then-write (TOCTOU); a
  *   losing caller learns the holder's run name, never its nonce.
+ * - Any tomb refuses acquire, checked first under the mutex, before the held
+ *   check (D105-WI-3): `lock interrupted: kept <tomb> (run <run>|unreadable)`.
+ *   A tomb is a release that did not finish: a crash between the rename and
+ *   the restore leaves the record there and `.lock` absent, which used to let
+ *   the next launch take the lock silently. Nothing is auto-restored (D2); a
+ *   human removes the tomb. The cost: a leftover tomb blocks every launch.
  * - The file stores `sha256(nonce)` as hex, never the plaintext nonce, so
  *   reading the lock reveals no credential.
  * - Release removes only a lock whose `run` and `nonceDigest` both match the
@@ -54,9 +62,12 @@
  *   `linkSync` names the tomb: EEXIST as above, any other code appended, e.g.
  *   `lock displaced: kept <tomb basename> (EPERM)`, never a raw error that
  *   leaves the record in an unnamed tomb. Unlinking a tomb is best-effort:
- *   ours still returns "released" (the leftover holds only our record, and
- *   no reader opens a tomb), and a restore still throws its mismatch, with
- *   `; tomb kept: <tomb basename>` appended so `quit`'s prefix match holds.
+ *   ours still released (the leftover holds only our record) but is no
+ *   longer silent (D105-WI-3): the result is `released; tomb kept: <tomb
+ *   basename>` (`keptTomb` parses it), callers print `[warn] lock tomb kept:
+ *   <tomb basename>`, and the tomb refuses the next acquire. A restore still
+ *   throws its mismatch, with `; tomb kept: <tomb basename>` appended so
+ *   `quit`'s prefix match holds.
  * - A non-mutating pre-check (`readRecord`) still refuses an absent, corrupt,
  *   directory or plainly foreign lock before any rename: a directory `.lock`
  *   could be renamed but never `linkSync`-ed back (K-R3).
@@ -72,19 +83,22 @@
  *
  * @module scripts/control/lock
  * @coordinates-with scripts/control/lockMutex.mjs (withLockMutex: every acquire and release section)
+ * @coordinates-with scripts/control/lockTomb.mjs (tomb names, the acquire refusal, the kept-tomb result)
  * @coordinates-with scripts/control/runDir.mjs (layout().lock is this path)
  * @coordinates-with scripts/control/ownership.mjs (cleanVerdict lockNamesThisRun)
  */
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { withLockMutex } from "./lockMutex.mjs";
+import { firstTomb, newTombPath, tombKeptResult, unlinkTomb } from "./lockTomb.mjs";
+
+export { keptTomb } from "./lockTomb.mjs";
 
 const LOCK_NAME = ".lock";
 const LOCK_MODE = 0o600;
 const DIGEST_RE = /^[0-9a-f]{64}$/;
 const UNREADABLE = "lock unreadable";
-const TOMB_RANDOM_BYTES = 8;
 
 const lockPath = (parent) => path.join(parent, LOCK_NAME);
 const digest = (nonce) => createHash("sha256").update(String(nonce)).digest("hex");
@@ -101,7 +115,9 @@ export function readLock(parent) {
 
 /**
  * Take the lock for `run`, or throw naming the current holder. Runs inside
- * `.lock.mutex`; a busy mutex throws `lock busy: …` and writes nothing.
+ * `.lock.mutex`; a busy mutex throws `lock busy: …` and writes nothing. Any
+ * tomb in `parent` throws `lock interrupted: kept <tomb> (run <run>|unreadable)`
+ * first, and writes nothing.
  * @param {string} parent the runs parent (must exist)
  * @param {{ run: string, nonce: string }} owner
  * @param {MutexOpts} [opts]
@@ -112,6 +128,7 @@ export function acquireLock(parent, { run, nonce }, opts = {}) {
   return withLockMutex(
     parent,
     () => {
+      refuseOnTomb(parent);
       try {
         fs.writeFileSync(lockPath(parent), body, { flag: "wx", mode: LOCK_MODE });
       } catch (error) {
@@ -125,6 +142,15 @@ export function acquireLock(parent, { run, nonce }, opts = {}) {
   );
 }
 
+/** Throw `lock interrupted: …` when any tomb is in `parent` (D105-WI-3). */
+function refuseOnTomb(parent) {
+  const tomb = firstTomb(parent);
+  if (tomb === null) return;
+  const rec = readRecordAt(path.join(parent, tomb));
+  throw new Error(`lock interrupted: kept ${tomb} (${rec.state === "held" ? `run ${rec.run}` : "unreadable"})`);
+}
+
+/** @typedef {"released" | "absent" | `released; tomb kept: ${string}`} ReleaseResult */
 /** @typedef {{ mutexWaitMs?: number }} MutexOpts how long to wait for `.lock.mutex` (default `MUTEX_WAIT_MS`) */
 
 /**
@@ -132,7 +158,7 @@ export function acquireLock(parent, { run, nonce }, opts = {}) {
  * @param {string} parent the runs parent
  * @param {{ run: string, nonce: string }} owner
  * @param {MutexOpts} [opts]
- * @returns {"released" | "absent"}
+ * @returns {ReleaseResult}
  */
 export function releaseLock(parent, owner, opts = {}) {
   return releaseAtomically(parent, (rec) => ownerMismatch(rec, owner), opts);
@@ -172,7 +198,7 @@ function ownerMismatch(rec, { run, nonce }) {
  * @param {string} parent
  * @param {(rec: ReturnType<typeof readRecord>) => string | null} mismatchOf
  * @param {MutexOpts} opts
- * @returns {"released" | "absent"}
+ * @returns {ReleaseResult}
  */
 function releaseAtomically(parent, mismatchOf, opts) {
   return withLockMutex(parent, () => releaseSection(parent, mismatchOf), { waitMs: opts.mutexWaitMs });
@@ -184,7 +210,7 @@ function releaseSection(parent, mismatchOf) {
   if (pre.state === "absent") return "absent";
   const refused = mismatchOf(pre);
   if (refused) throw new Error(refused);
-  const tomb = path.join(parent, `${LOCK_NAME}.${process.pid}-${randomBytes(TOMB_RANDOM_BYTES).toString("hex")}.tomb`);
+  const tomb = newTombPath(parent);
   try {
     fs.renameSync(lockPath(parent), tomb);
   } catch (error) {
@@ -192,27 +218,14 @@ function releaseSection(parent, mismatchOf) {
     throw error;
   }
   const mismatch = mismatchOf(readRecordAt(tomb));
-  if (!mismatch) {
-    unlinkBestEffort(tomb);
-    return "released";
-  }
+  if (!mismatch) return unlinkTomb(tomb) ? "released" : tombKeptResult(tomb);
   try {
     fs.linkSync(tomb, lockPath(parent));
   } catch (error) {
     const code = errorCode(error);
     throw new Error(`lock displaced: kept ${path.basename(tomb)}${code === "EEXIST" ? "" : ` (${String(code)})`}`);
   }
-  throw new Error(unlinkBestEffort(tomb) ? mismatch : `${mismatch}; tomb kept: ${path.basename(tomb)}`);
-}
-
-/** Unlink a tomb; a failure only leaves it behind. @returns {boolean} whether it is gone */
-function unlinkBestEffort(tomb) {
-  try {
-    fs.unlinkSync(tomb);
-    return true;
-  } catch {
-    return false;
-  }
+  throw new Error(unlinkTomb(tomb) ? mismatch : `${mismatch}; tomb kept: ${path.basename(tomb)}`);
 }
 
 /** @param {unknown} error @returns {unknown} */
@@ -226,7 +239,7 @@ function errorCode(error) {
  * @param {string} parent the runs parent
  * @param {string} run
  * @param {MutexOpts} [opts]
- * @returns {"released" | "absent"}
+ * @returns {ReleaseResult}
  */
 export function releaseOrphanLock(parent, run, opts = {}) {
   return releaseAtomically(parent, (rec) => runMismatch(rec, run), opts);
