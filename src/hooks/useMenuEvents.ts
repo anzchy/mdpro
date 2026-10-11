@@ -32,11 +32,16 @@
  *     and the failure is logged so a device run can see it.
  *   - The label is read per log line from `getCurrentWindow()` (a static
  *     import, like `useMcpSync.ts`); outside Tauri it falls back to "unknown".
+ *   - Tab-changing actions (close, new, open, open recent) are refused while a
+ *     modal is open (D165): on macOS the accelerator reaches this handler
+ *     whatever the DOM does, so the check is here, after the `ui.menu.select`
+ *     line, which the refusal line shares its actionId with.
  *   - Not unit-testable: two windows receiving one broadcast click (jsdom has
  *     one global `getCurrentWindow`, D30) — covered by the device run.
  *
  * @coordinates-with src-tauri/src/menu.rs — emits `menu:action` to every webview
  * @coordinates-with src/App.tsx — supplies the handlers
+ * @coordinates-with src/utils/modalTabActionGuard.ts — the D165 modal refusal
  */
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
@@ -44,6 +49,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { ViewMode } from "../types/editor";
 import type { UserPreferences } from "../types/preferences";
 import { loggingService } from "../services/loggingService";
+import { refuseTabActionWhileModalOpen, type TabChangingAction } from "../utils/modalTabActionGuard";
 
 interface MenuActionPayload {
   action: string;
@@ -117,6 +123,21 @@ export function useMenuEvents(menuHandlers: MenuHandlers) {
     const logMenuSelect = (controlId: string, context: Record<string, unknown> = {}) =>
       loggingService.logMenuSelect(controlId, { ...context, windowLabel: windowLabel() });
 
+    /**
+     * A tab-changing action: nothing (not even the select line) without a handler,
+     * as the optional call did before; refused while a modal is open (D165).
+     */
+    const runTabAction = (
+      action: TabChangingAction,
+      controlId: string,
+      run: ((actionId: string) => void) | undefined,
+      context: Record<string, unknown> = {},
+    ) => {
+      if (!run) return;
+      const actionId = logMenuSelect(controlId, context);
+      if (!refuseTabActionWhileModalOpen(action, "menu", actionId)) run(actionId);
+    };
+
     const handleMenuAction = async ({ action, value }: MenuActionPayload) => {
       const canHandle = await shouldHandleMenuAction();
       // An event parked on the focus check must not act after unmount.
@@ -125,19 +146,19 @@ export function useMenuEvents(menuHandlers: MenuHandlers) {
       const handlers = handlersRef.current;
       switch (action) {
         case "file.new":
-          handlers.onNew?.(logMenuSelect("menu.file.new"));
+          runTabAction("file.new", "menu.file.new", handlers.onNew);
           break;
         case "file.new_window":
           handlers.onNewWindow?.(logMenuSelect("menu.file.new_window"));
           break;
         case "file.open":
-          handlers.onOpen?.(logMenuSelect("menu.file.open"));
+          runTabAction("file.open", "menu.file.open", handlers.onOpen);
           break;
         case "file.save":
           handlers.onSave?.(logMenuSelect("menu.file.save"));
           break;
         case "file.close":
-          handlers.onClose?.(logMenuSelect("menu.file.close"));
+          runTabAction("file.close", "menu.file.close", handlers.onClose);
           break;
         case "file.export_html":
           handlers.onExportHtml?.(logMenuSelect("menu.file.export_html"));
@@ -147,10 +168,13 @@ export function useMenuEvents(menuHandlers: MenuHandlers) {
           break;
         case "file.open_recent":
           if (value) {
-            const actionId = logMenuSelect("menu.file.open_recent", {
-              filePath: value,
-            });
-            handlers.onOpenRecent?.(value, actionId);
+            // Logged even without a handler, as before D165.
+            runTabAction(
+              "file.open_recent",
+              "menu.file.open_recent",
+              (actionId) => handlers.onOpenRecent?.(value, actionId),
+              { filePath: value },
+            );
           }
           break;
         case "cycle-view-mode":

@@ -131,7 +131,7 @@ describe("data-loss: external-edit conflict", () => {
     // must NOT call reloadFile directly, which would clobber in-editor unsaved
     // edits without asking. (Behavior asserted in data-loss-behavior.test.ts.)
     const effect = APP_SRC.slice(APP_SRC.indexOf("const decision = decideFileChange("));
-    expect(effect).toMatch(/setReloadMessage\(/);
+    expect(effect).toMatch(/raiseReload\(/); // D165: the prompt is bound to its document
     const effectBody = effect.slice(0, effect.indexOf("}, ["));
     expect(effectBody).not.toMatch(/reloadFile\(/);
   });

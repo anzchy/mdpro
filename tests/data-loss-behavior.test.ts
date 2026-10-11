@@ -148,7 +148,7 @@ describe("data-loss behavior: external-edit conflict", () => {
     const ev: FileChangeEvent = { path: "/docs/a.md", changeType: "modified" };
 
     const decision = decideFileChange(ev, activeDoc);
-    // App effect would call setReloadMessage(...), NOT reloadFile(...).
+    // App effect would call raiseReload(...), NOT reloadFile(...).
     if (decision.action === "reload-prompt") {
       // no IPC here
     }

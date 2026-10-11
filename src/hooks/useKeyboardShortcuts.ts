@@ -14,6 +14,7 @@ import {
   paragraphCommand,
 } from "../plugins/codemirror/headingPlugin";
 import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
+import { refuseTabActionWhileModalOpen } from "../utils/modalTabActionGuard";
 
 interface ShortcutHandlers {
   onOpen?: (actionId?: string) => void;
@@ -161,7 +162,7 @@ export function useKeyboardShortcuts({
       if (onNew && matchesShortcut(event, shortcuts.fileNew)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileNew, { action: "file.new" });
-        onNew(actionId);
+        if (!refuseTabActionWhileModalOpen("file.new", "shortcut", actionId)) onNew(actionId);
       } else if (onHighlight && !inCodeMirror && matchesShortcut(event, shortcuts.formatHighlight)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.formatHighlight, { action: "format.highlight" });
@@ -177,7 +178,7 @@ export function useKeyboardShortcuts({
       } else if (onOpen && matchesShortcut(event, shortcuts.fileOpen)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileOpen, { action: "file.open" });
-        onOpen(actionId);
+        if (!refuseTabActionWhileModalOpen("file.open", "shortcut", actionId)) onOpen(actionId);
       } else if (onSave && matchesShortcut(event, shortcuts.fileSave)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileSave, { action: "file.save" });
@@ -185,7 +186,8 @@ export function useKeyboardShortcuts({
       } else if (onClose && matchesShortcut(event, shortcuts.fileClose)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileClose, { action: "file.close" });
-        onClose(actionId);
+        // D165: a modal is up (the native accelerator path has the same check).
+        if (!refuseTabActionWhileModalOpen("file.close", "shortcut", actionId)) onClose(actionId);
       } else if (onCycleViewMode && !inCodeMirror && matchesShortcut(event, shortcuts.viewCycleViewMode)) {
         // CodeMirror has its own high-precedence Mod-/ binding (see Editor.tsx
         // viewModeKeymap) that calls userViewModeCommands.cycle directly. App

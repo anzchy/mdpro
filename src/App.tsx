@@ -19,6 +19,7 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
 import { useQuitGuard } from "./hooks/useQuitGuard";
+import { useReloadPrompt } from "./hooks/useReloadPrompt";
 import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
@@ -112,7 +113,6 @@ function App() {
   const { updateRecentFiles, hydrateRecentFiles, failRecentFilesHydration } = useRecentFiles();
   // Recovery drafts listed at startup (old ones pruned first).
   const [drafts, setDrafts] = useStartupDrafts();
-  const [reloadMessage, setReloadMessage] = useState<string | null>(null);
   const toastMessage = useToastStore((s) => s.message);
   const showToast = useToastStore((s) => s.showToast);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
@@ -130,6 +130,7 @@ function App() {
     activeDocument?.path ?? null,
   );
   useFileChangeDecisionLog(fileChangeEvent, activeDocument);
+  const { reloadMessage, raiseReload, dismissReload } = useReloadPrompt(clearEvent);
 
   useAutoSave(autoSaveInterval);
 
@@ -301,14 +302,14 @@ function App() {
         return;
       case "deleted-prompt":
         // Surface a prompt; do NOT reload (would clobber in-editor edits).
-        setReloadMessage(decision.message);
+        raiseReload(decision.message, activeDocument.id);
         return;
       case "reload-prompt":
         // Surface a prompt; reload is user-initiated via handleReloadFile.
-        setReloadMessage(decision.message);
+        raiseReload(decision.message, activeDocument.id);
         return;
     }
-  }, [activeDocument, clearEvent, fileChangeEvent, updateDocumentPath]);
+  }, [activeDocument, clearEvent, fileChangeEvent, raiseReload, updateDocumentPath]);
 
   useEffect(() => {
     if (largeFileWarning) {
@@ -445,14 +446,14 @@ function App() {
     } finally {
       setBusyLabel(null);
       clearEvent();
-      setReloadMessage(null);
+      dismissReload();
     }
-  }, [clearEvent, fileChangeEvent, replaceDocument, showToast]);
+  }, [clearEvent, dismissReload, fileChangeEvent, replaceDocument, showToast]);
 
   const handleIgnoreReload = useCallback(() => {
     clearEvent();
-    setReloadMessage(null);
-  }, [clearEvent]);
+    dismissReload();
+  }, [clearEvent, dismissReload]);
 
   const applyDraftOutcome = useCallback(
     (draftId: string, input: DraftActionOutcome) => {
