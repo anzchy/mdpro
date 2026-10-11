@@ -93,9 +93,9 @@ Rust emits events that frontend listens to via `listen()`:
 | `file:changed`  | `{ path, changeType }` | External file modification (file\_watcher.rs) |
 | `file:open-in-window` | `{ windowLabel, documentId, path }` | External open of an already-open file, `emit_to` the one window that has it (services/open\_route/tauri\_glue.rs) → `useOpenInWindow.ts` |
 | `theme:changed` | `"light" \| "dark"`    | System theme change                           |
-| `mcp:write_document` | `{ document_id, content, window_label }` | MCP `write_document` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:write_document` | `{ document_id, content, window_label, action_id }` | MCP `write_document` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:insert_content` | `{ document_id, text, position, window_label, action_id }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |
-| `mcp:create_document` | `{ document_id, content, window_label }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:create_document` | `{ document_id, content, window_label, action_id }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:table_action` | `{ document_id, action, payload, window_label, action_id }` | MCP table tools (http\_server.rs) → `useMcpEvents.ts` |
 | `mcp:confirm_request` | `{ requestId, documentId, documentTitle, operation, action?, expiresInMs }` | MCP write awaiting approval (ADR-0042), `emit_to` the window that owns the document (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
 | `mcp:confirm_resolved` | `{ requestId, outcome }` (`approved` \| `rejected` \| `timedOut` \| `cancelled` \| `withdrawn`) | Closes that prompt, `emit_to` the owning window (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
