@@ -41,8 +41,9 @@ fn prepared(d: &TempDir, name: &str, state: State) -> (BaselineStore, PathBuf) {
 
 /// R11 (law 1): a populated store changes the route only for the three
 /// filtered kinds (Metadata(Any), Extended, Content) and the replaced-file
-/// kinds (any `Create`, a single-path `Name`; ADR-0072) on an unchanged
-/// registered file with at least one path, and then only to a drop.
+/// kinds (any `Create`, a single-path `Name`; ADR-0072; any `Remove` on a
+/// present path, D152) on an unchanged registered file with at least one
+/// path, and then only to a drop.
 #[test]
 fn r11_filter_locality_over_every_kind_path_count_and_store_state() {
     use State::*;
@@ -68,19 +69,19 @@ fn r11_filter_locality_over_every_kind_path_count_and_store_state() {
         }
     }
     assert_eq!(cells, 41 * 3 * 4);
-    let creates = all_event_kinds()
+    let creates_and_removes = all_event_kinds()
         .into_iter()
-        .filter(|k| matches!(k, EventKind::Create(_)));
+        .filter(|k| matches!(k, EventKind::Create(_) | EventKind::Remove(_)));
     let renames = all_event_kinds()
         .into_iter()
         .filter(|k| matches!(k, EventKind::Modify(ModifyKind::Name(_))));
     let expected: HashSet<_> = FILTERED
         .into_iter()
-        .chain(creates)
+        .chain(creates_and_removes)
         .flat_map(|k| [(k, 1, Unchanged), (k, 2, Unchanged)])
         .chain(renames.map(|k| (k, 1, Unchanged)))
         .collect();
-    assert_eq!(expected.len(), 6 + 8 + 5);
+    assert_eq!(expected.len(), 6 + 8 + 8 + 5);
     assert_eq!(differing, expected);
 }
 
@@ -157,7 +158,7 @@ fn r12_ignored_event_does_not_advance_baseline() {
         (
             "remove",
             EventKind::Remove(RemoveKind::File),
-            Paths::One,
+            Paths::OneGone,
             false,
             None,
             EmittedDeleted,

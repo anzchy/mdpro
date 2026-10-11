@@ -1,5 +1,5 @@
 //! Routing for one notify event: which `file:changed` payload it becomes, if
-//! any, and the `WatchOutcome` that says why (D32, D68, D101).
+//! any, and the `WatchOutcome` that says why (D32, D68, D101, D152).
 //!
 //! Purpose: hold `process_event_checked`, the Tauri-free decision between the
 //! notify callback and the emit. It consults the self-write set and the
@@ -17,6 +17,7 @@
 //! file_watcher_tests.rs (o14 reads this file's `process_event` source),
 //! file_watcher_route_replace_tests.rs (D68), file_watcher_route_own_save_tests.rs
 //! (D101), file_watcher_route_debounce_kind_tests.rs (D116),
+//! file_watcher_route_remove_present_tests.rs (D152),
 //! docs/adr/0072-a-replaced-watched-file-is-checked-like-a-content-change.md
 //!
 //! Key decisions:
@@ -26,13 +27,17 @@
 //!   delete, or a delete then a replacement, both reach the frontend.
 //! - **A replaced file routes as `modified`** (ADR-0072). On macOS an atomic
 //!   save (temp + rename over the file), ours or an external editor's, is a
-//!   single-path `Modify(Name(_))` or a `Create(_)` on a path that still
-//!   exists; notify never pairs the rename or marks our own events. It goes
+//!   single-path `Modify(Name(_))`, a `Create(_)` or a `Remove(_)` (D152) on a
+//!   path that still exists; notify never pairs the rename or marks our own
+//!   events. It goes
 //!   through the self-write gate and the unchanged drop like `Data(Content)`,
 //!   so our ⌘S is `SelfWrite` or `IgnoredUnchanged` (the save refresh stored
 //!   its bytes) and an external replace with other bytes or a new mtime emits.
-//!   No new outcome and no IPC change. A path that is gone stays ignored
-//!   (moved away, D107).
+//!   No new outcome and no IPC change. A renamed or created path that is
+//!   gone stays ignored (moved away, D107); a `Remove` on a gone path is the
+//!   real delete and stays `deleted`. Before D152 every `Remove` was
+//!   `deleted`: with D116's per-kind keys the `Remove` of an external atomic
+//!   save emitted "deleted" for a file that exists.
 //! - **No wildcard arm** on the kind match, so a new `EventKind` is a compile
 //!   error here rather than a silent drop; o14 pins it on the source text.
 //! - Split out of `file_watcher.rs` (D68 WI-1) so the parent keeps headroom
@@ -61,15 +66,18 @@ use super::{FileChangedEvent, WatchOutcome};
 /// `IgnoredUnchanged`; a fail-open reason on a later debounce or emit) or
 /// `NotChecked` for an event that returned before it or is not checked.
 ///
-/// A **replaced file** (ADR-0072, D68/D101) is a single-path
-/// `Modify(Name(_))` (any mode) or a `Create(_)` whose first path still
-/// exists: another inode was renamed onto the watched name, by an external
-/// editor's atomic save or by our own `atomic_write`. It routes as a
-/// `modified` candidate. The same rename whose path is gone (moved away) is
-/// `IgnoredRenameSinglePath`; a `Create` on a missing path is `IgnoredKind`.
-/// `Remove` and two-path renames are not self-write-gated. The existence
-/// check is a stat under no lock; each lock (self-write, baseline, debounce)
-/// is taken alone, and the baseline's file I/O runs under none of them.
+/// A **replaced file** (ADR-0072, D68/D101, D152) is a single-path
+/// `Modify(Name(_))` (any mode), a `Create(_)` or a `Remove(_)` whose first
+/// path still exists: another inode was renamed onto the watched name, by an
+/// external editor's atomic save or by our own `atomic_write`, and FSEvents
+/// reports that save as a `Create`, a `Remove` and a rename for the one path.
+/// It routes as a `modified` candidate. The same rename whose path is gone
+/// (moved away) is `IgnoredRenameSinglePath`; a `Create` on a missing path is
+/// `IgnoredKind`; a `Remove` on a missing path is a real delete, `deleted`
+/// and not checked. A `Remove` on a missing path and two-path renames are
+/// not self-write-gated. The existence check is a stat under no lock; each
+/// lock (self-write, baseline, debounce) is taken alone, and the baseline's
+/// file I/O runs under none of them.
 pub(super) fn process_event_checked(
     event: &Event,
     debounce_map: &DebounceMap,
@@ -81,8 +89,10 @@ pub(super) fn process_event_checked(
     let (change_type, outcome, replaced) = match event.kind {
         EventKind::Modify(ModifyKind::Name(_)) => ("renamed", WatchOutcome::EmittedRenamed, false),
         EventKind::Modify(_) => ("modified", WatchOutcome::EmittedModified, false),
+        EventKind::Create(_) | EventKind::Remove(_) if first_exists() => {
+            ("modified", WatchOutcome::EmittedModified, true)
+        }
         EventKind::Remove(_) => ("deleted", WatchOutcome::EmittedDeleted, false),
-        EventKind::Create(_) if first_exists() => ("modified", WatchOutcome::EmittedModified, true),
         EventKind::Any | EventKind::Access(_) | EventKind::Create(_) | EventKind::Other => {
             return (None, WatchOutcome::IgnoredKind, not_checked);
         }
@@ -154,3 +164,7 @@ mod own_save_tests;
 #[cfg(test)]
 #[path = "file_watcher_route_debounce_kind_tests.rs"]
 mod debounce_kind_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_route_remove_present_tests.rs"]
+mod remove_present_tests;
