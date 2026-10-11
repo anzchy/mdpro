@@ -76,9 +76,10 @@ the CPU load.
 - **An unlocked partial run takes at most 2 workers.** The RED → GREEN
   runs in the first row are outside the lock, so three sessions doing them at
   once stack their workers on the same cores; on 2026-10-11 the machine sat at
-  load 45 on 10 cores with one locked lane running. Until D147 makes it the
-  default, prefix them with `VITEST_MAX_WORKERS=2`. The locked full lane
-  keeps `50%`. (User decision, 2026-10-11.)
+  load 45 on 10 cores with one locked lane running. Since D147 (`bce24d3`)
+  `vitest.workers.ts` makes 2 the default whenever `heavy-lock.sh` is not the
+  parent; a locked run gets `50%`, and an explicit `VITEST_MAX_WORKERS` still
+  wins. (User decision, 2026-10-11.)
 - **Two handoffs on the same parent cost one full run, not two.** The one
   that arrived first is verified and landed; the other waits for that landing,
   rebases once, and is verified by tree identity (rule 70 § Commits). A peer
