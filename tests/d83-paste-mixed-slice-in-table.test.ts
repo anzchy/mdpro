@@ -16,8 +16,10 @@
  * refusal is logged as `editor.table.paste` (a "start" and a "fail" under one
  * actionId), and a toast says why.
  *
- * Shapes prosemirror-tables takes itself (a CellSelection, or a slice its
- * `pastedCells` accepts) are left to it, untouched by the normalizer.
+ * Shapes prosemirror-tables takes itself (a slice its `pastedCells` accepts, or
+ * any slice over a CellSelection) are left to it, untouched by the normalizer —
+ * except a table-carrying slice over a CellSelection that `pastedCells` rejects,
+ * which is refused too (D136, D83-11; see tests/d136-cellselection-mixed-paste.test.ts).
  *
  * Paste is driven the way prosemirror-view's doPaste does it (same driver as
  * tests/table-paste-normalize.test.ts): parseFromClipboard → handlePaste →
@@ -27,7 +29,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Editor } from "@milkdown/kit/core";
 import { Fragment, Slice } from "@milkdown/kit/prose/model";
 import { type Plugin, TextSelection } from "@milkdown/kit/prose/state";
-import { CellSelection } from "@milkdown/kit/prose/tables";
 import { __parseFromClipboard, type EditorView } from "@milkdown/kit/prose/view";
 import { loggingService } from "../src/services/loggingService";
 import { useToastStore } from "../src/stores/toastStore";
@@ -41,7 +42,15 @@ import {
   tableShapes,
   viewOf,
 } from "./support/raggedTableD64";
-import { expectOneRefusal, PASTE_TOAST, type RefusalLog } from "./support/tableDropDriver";
+import {
+  CELL_PASTE_REASON,
+  CELL_PASTE_TOAST,
+  copyCells,
+  expectOneRefusal,
+  PASTE_TOAST,
+  type RefusalLog,
+  selectCells,
+} from "./support/tableDropDriver";
 
 let logSpy: ReturnType<typeof vi.spyOn>;
 
@@ -117,32 +126,6 @@ const SOURCE_CELLS = [
   ["q1", "q2"],
   ["r1", "r2"],
 ];
-
-/** Position before the cell holding `needle`. */
-function cellPosOf(view: EditorView, needle: string): number {
-  const $p = view.state.doc.resolve(posAfter(view, needle));
-  let d = $p.depth;
-  while (d > 0 && !/table_(cell|header)/.test($p.node(d).type.name)) d -= 1;
-  return $p.before(d);
-}
-
-/**
- * Select the cells from `fromNeedle` to `toNeedle` as a CellSelection and copy
- * them through prosemirror-view's own copy handler; returns the clipboard HTML.
- */
-function copyCells(view: EditorView, fromNeedle: string, toNeedle: string): string {
-  const sel = CellSelection.create(view.state.doc, cellPosOf(view, fromNeedle), cellPosOf(view, toNeedle));
-  view.dispatch(view.state.tr.setSelection(sel));
-  const data = new Map<string, string>();
-  const event = new Event("copy", { bubbles: true, cancelable: true });
-  Object.defineProperty(event, "clipboardData", {
-    value: { clearData: () => data.clear(), setData: (t: string, v: string) => data.set(t, v) },
-  });
-  view.dom.dispatchEvent(event);
-  const html = data.get("text/html");
-  if (!html) throw new Error("copy produced no text/html");
-  return html;
-}
 
 /** D83-3: RAGGED pasted as cells at (1, 0), end-padded to width 3. */
 const D83_3_CELLS = [
@@ -305,22 +288,21 @@ describe("D83 — slices prosemirror-tables takes itself are left to it", () => 
     expect(hostLines[3]).toMatch(/^\| +\| r1 \| r2 \|$/);
   });
 
-  it("D83-11: a mixed slice over a CellSelection is left to prosemirror-tables — not refused", async () => {
+  it("D83-11: a mixed slice over a CellSelection is refused, not fitted into the cell (D136)", async () => {
     const e = await mountParityEditor(HOST);
     const view = viewOf(e);
-    const $cell = view.state.doc.resolve(posAfter(view, "y1"));
-    const cellPos = $cell.before($cell.depth - 1);
-    view.dispatch(view.state.tr.setSelection(CellSelection.create(view.state.doc, cellPos)));
+    selectCells(view, "y1", "y1");
+    const before = docOf(e);
+    const selBefore = view.state.selection;
     expect(() => pasteHtml(e, MIXED)).not.toThrow();
-    expect(tablePasteLogs()).toHaveLength(0);
-    for (const shape of tableShapes(docOf(e))) expect(shape.problems).toBeNull();
-    // prosemirror-tables fits the whole slice into the selected cell (1, 0):
-    // the paste lands there, every other host value is kept.
-    const shapes = tableShapes(docOf(e));
-    expect(shapes).toHaveLength(1);
-    expect(shapes[0].cells[0]).toEqual(["X1", "X2"]);
-    expect(shapes[0].cells[1][1]).toBe("y2");
-    expect(shapes[0].cells[1][0]).toMatch(/^before/);
+    // Before D136, prosemirror-tables fitted the slice into the cell: only
+    // "before" landed, the table and "after" were dropped without a notice.
+    expect(docOf(e).eq(before)).toBe(true);
+    expect(view.state.selection.eq(selBefore)).toBe(true);
+    const logs = tablePasteLogs();
+    expectOneRefusal(logs);
+    expect(logs[1].context?.reason).toBe(CELL_PASTE_REASON);
+    expect(useToastStore.getState().message).toBe(CELL_PASTE_TOAST);
   });
 
   it("D83-7: the same mixed slice pasted outside any table is end-padded, not refused (control)", async () => {

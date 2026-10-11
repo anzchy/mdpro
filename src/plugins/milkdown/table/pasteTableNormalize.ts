@@ -4,12 +4,13 @@
  * (ADR-0067 Decision 4, D64 WI-3). HTML paste bypasses remark, so the parse-time
  * widener (`raggedTableWiden.ts`) never sees it; left alone, prosemirror-tables'
  * `fixTables` would repair the table at the row start. Also refuses a
- * table-carrying paste (D83) or drop (D90 / D94 / D102) that would split the
- * host table.
+ * table-carrying paste (D83, D136) or drop (D90 / D94 / D102) that would split
+ * the host table or be dropped by a cell selection.
  *
  * Pipeline: clipboard HTML → `transformPastedHTML` (sanitizer) → ProseMirror DOM
- * parser → `transformPasted` (this plugin: end-pad) → `handlePaste` (prosemirror-
- * tables first, then this plugin: refuse) → `replaceSelection`. A drop: the
+ * parser → `transformPasted` (this plugin: end-pad) → `handlePaste` (the front
+ * guard `pasteRefusalGuard.ts` asks `pasteRefusal` and refuses, then
+ * prosemirror-tables) → `replaceSelection`. A drop: the
  * dragged slice (`transformPasted`) or the dropped HTML (parsed as above) →
  * `handleDrop` (this plugin: replay the default drop on a scratch transaction,
  * refuse if it breaks the host table) → prosemirror-view's `dropPoint` →
@@ -27,7 +28,7 @@
  *     carries no table.
  *   - Inside a table, only the shapes prosemirror-tables' `handlePaste` takes
  *     itself — a CellSelection, or a slice its `pastedCells` accepts — are passed
- *     through untouched. Its `pastedCells` already end-pads ragged rows, and a
+ *     through `transformPasted` untouched. Its `pastedCells` already end-pads ragged rows, and a
  *     slice padded here with header cells makes its `insertCells` throw against
  *     Milkdown's body-row schema (`tests/table-paste-normalize.test.ts` P-6).
  *   - Any other slice carrying a table, pasted with the caret inside a table, is
@@ -35,9 +36,17 @@
  *     the host table around the paste and `fixTables` repairs the ragged tail at
  *     the row start — values shift a column right, or an empty header row stops
  *     the document serializing. Padding the pasted table does not prevent that,
- *     so `handlePaste` consumes the paste with no change (a selected range is not
+ *     so the paste is consumed with no change (a selected range is not
  *     deleted), logs `editor.table.paste` as `start` + `fail` under one actionId
  *     and toasts.
+ *   - Over a CellSelection prosemirror-tables takes every paste and fits a slice
+ *     `pastedCells` rejects into one cell: the table and all after it are dropped,
+ *     or `insertCells` throws over a header cell (D136). A table-carrying slice
+ *     there is refused too, with its own reason and copy; cells and a slice with
+ *     no table are left to prosemirror-tables.
+ *   - The decision is the pure `pasteRefusal`; `refuseTableBreak` refuses. Both
+ *     serve `pasteRefusalGuard.ts`, which must precede gfm's `tableEditing`, so
+ *     this plugin (appended after it) has no `handlePaste`.
  *   - Drag-and-drop does not pass through `handlePaste`, and prosemirror-tables
  *     has no `handleDrop`, so the same split happens on a drop (D90). `handleDrop`
  *     decides by the property itself (D102): it replays prosemirror-view's default
@@ -57,10 +66,11 @@
  *     is refused too, since the default drop would throw the same way. Returning
  *     true consumes the drop, so nothing is inserted and the source of a
  *     move-drag is not deleted; it logs `editor.table.drop` the same way and toasts.
- *   - The toast is per operation and names what is checked — the current table
+ *   - The toast is per refusal and names what is checked — the current table
  *     would be split — not "inside a table cell": a pure table pasted into a
  *     cell is taken by prosemirror-tables (D83-3), and a drop at an interior
- *     boundary is refused though it is in no cell (D91).
+ *     boundary is refused though it is in no cell (D91). Only the CellSelection
+ *     copy names cells: nothing splits there (D136).
  *   - A paste is still decided by `isInTable` (the selection head's cell). A
  *     TextSelection whose head sits between rows would slip past it, but the view
  *     never holds one: the DOM selection read, mapping and `Selection.near` all
@@ -68,6 +78,7 @@
  *     registered (D102 ②, `tests/d102-table-drop-edge.test.ts`).
  *
  * @coordinates-with src/plugins/milkdown/table/parityPlugins.ts
+ * @coordinates-with src/plugins/milkdown/table/pasteRefusalGuard.ts — the front `handlePaste`
  * @coordinates-with src/plugins/milkdown/table/raggedTableWiden.ts
  * @coordinates-with src/stores/toastStore.ts — refusal feedback
  */
@@ -86,17 +97,27 @@ import { $prose } from "@milkdown/kit/utils";
 import { loggingService } from "../../../services/loggingService";
 import { useToastStore } from "../../../stores/toastStore";
 
-type RefusalKind = "paste" | "drop";
+/** Why a paste is refused: it would split the host table, or be dropped by a CellSelection. */
+export type PasteRefusal = "paste" | "cellPaste";
+type RefusalKind = PasteRefusal | "drop";
 
-/** Per-operation copy: what is checked is the host table splitting, not "in a cell". */
-const REFUSAL_TOAST: Record<RefusalKind, string> = {
-  paste: "This paste would split the current table. Paste it outside the table.",
-  drop: "This drop would split the current table. Drop it outside the table.",
-};
-
-const REFUSAL_REASON: Record<RefusalKind, string> = {
-  paste: "table-carrying slice not pasted as cells would split the host table",
-  drop: "table-carrying drop would break the host table",
+/** Per-refusal copy, reason and logged operation (`editor.table.<event>`). */
+const REFUSAL: Record<RefusalKind, { event: "paste" | "drop"; toast: string; reason: string }> = {
+  paste: {
+    event: "paste",
+    toast: "This paste would split the current table. Paste it outside the table.",
+    reason: "table-carrying slice not pasted as cells would split the host table",
+  },
+  cellPaste: {
+    event: "paste",
+    toast: "A table mixed with other content can't be pasted over selected cells. Paste it outside the table.",
+    reason: "table-carrying slice not pasted as cells would be dropped by the cell selection",
+  },
+  drop: {
+    event: "drop",
+    toast: "This drop would split the current table. Drop it outside the table.",
+    reason: "table-carrying drop would break the host table",
+  },
 };
 
 /** Append the cells TableMap reports missing to the end of each short row. */
@@ -170,14 +191,26 @@ function sliceHasTable(slice: Slice): boolean {
 }
 
 /**
- * Refuse a table-carrying paste or drop that would break the host table: log
- * `editor.table.<kind>` as `start` then `fail` under one actionId (rule 20) —
- * the `fail` with the reason — both with the slice's top-level node count, and
- * show the per-operation toast. Returns true, so the caller's prop consumes the
- * event. A paste or drop this plugin lets through logs nothing.
+ * Whether a paste of `slice` into `state` is refused, and why. Pure. Null outside a
+ * table and for a slice carrying no table. Over a CellSelection, "cellPaste" unless
+ * `pastedCells` takes the slice as cells (D136); elsewhere in a table, "paste"
+ * unless it does (D83) — `replaceSelection` would split the host table.
  */
-function refuseTableBreak(kind: RefusalKind, slice: Slice): true {
-  const event = `editor.table.${kind}`;
+export function pasteRefusal(state: EditorState, slice: Slice): PasteRefusal | null {
+  if (!isInTable(state) || !sliceHasTable(slice) || __pastedCells(slice) !== null) return null;
+  return state.selection instanceof CellSelection ? "cellPaste" : "paste";
+}
+
+/**
+ * Refuse a table-carrying paste or drop: log `editor.table.<operation>` as `start`
+ * then `fail` under one actionId (rule 20) — the `fail` with the refusal's reason —
+ * both with the slice's top-level node count, and show the refusal's toast.
+ * Returns true, so the caller's prop consumes the event. A paste or drop that is
+ * let through logs nothing.
+ */
+export function refuseTableBreak(kind: RefusalKind, slice: Slice): true {
+  const { event: operation, toast, reason } = REFUSAL[kind];
+  const event = `editor.table.${operation}`;
   const actionId = loggingService.generateActionId();
   const nodes = slice.content.childCount;
   loggingService.logEventSync({ level: "info", event, status: "start", actionId, context: { nodes } });
@@ -186,9 +219,9 @@ function refuseTableBreak(kind: RefusalKind, slice: Slice): true {
     event,
     status: "fail",
     actionId,
-    context: { reason: REFUSAL_REASON[kind], nodes },
+    context: { reason, nodes },
   });
-  useToastStore.getState().showToast(REFUSAL_TOAST[kind]);
+  useToastStore.getState().showToast(toast);
   return true;
 }
 
@@ -256,11 +289,6 @@ export const tablePasteNormalizePlugin = $prose(
       props: {
         transformPasted: (slice, view, plain) =>
           plain || takenByTables(view.state, slice) ? slice : normalizePastedTables(slice),
-        handlePaste: (view, _event, slice) => {
-          if (!isInTable(view.state) || takenByTables(view.state, slice)) return false;
-          if (!sliceHasTable(slice)) return false;
-          return refuseTableBreak("paste", slice);
-        },
         handleDrop: (view, event, slice, moved) => {
           if (!sliceHasTable(slice) || !dropBreaksTable(view, event, slice, moved)) return false;
           return refuseTableBreak("drop", slice);

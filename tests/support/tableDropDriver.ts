@@ -1,7 +1,8 @@
 /**
  * @module tests/support/tableDropDriver
- * Purpose: the drop driver, slice fixtures, position oracles and refusal
- * copy / log oracles shared by the D83 / D90 / D91 / D94 / D102 table suites. Not a `*.test.ts`, so vitest does not
+ * Purpose: the drop driver, cell-selection and copy helpers, slice fixtures,
+ * position oracles and refusal copy / log oracles shared by the D83 / D90 / D91 /
+ * D94 / D102 / D136 table suites. Not a `*.test.ts`, so vitest does not
  * collect it.
  *
  * The drop goes through prosemirror-view's own `drop` handler: a `drop` event
@@ -16,10 +17,19 @@
  * carries neither modifier, a copy carries both (whichever the platform reads).
  */
 import type { Node as PmNode, Slice } from "@milkdown/kit/prose/model";
+import { CellSelection } from "@milkdown/kit/prose/tables";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { expect, vi } from "vitest";
 import { useToastStore } from "../../src/stores/toastStore";
-import { destroyParityEditors, docOf, mountParityEditor, serialize, tableShapes, viewOf } from "./raggedTableD64";
+import {
+  destroyParityEditors,
+  docOf,
+  mountParityEditor,
+  posAfter,
+  serialize,
+  tableShapes,
+  viewOf,
+} from "./raggedTableD64";
 
 const row = (tag: "th" | "td", cells: string[]) =>
   `<tr>${cells.map((c) => `<${tag}>${c}</${tag}>`).join("")}</tr>`;
@@ -49,6 +59,15 @@ export const DROP_TOAST = "This drop would split the current table. Drop it outs
 export const PASTE_REASON = "table-carrying slice not pasted as cells would split the host table";
 export const DROP_REASON = "table-carrying drop would break the host table";
 
+/**
+ * Refusal copy and reason for a table-carrying slice pasted over a CellSelection
+ * (D136): prosemirror-tables would fit it into the selected cells, dropping the
+ * table and everything after it — nothing is split.
+ */
+export const CELL_PASTE_TOAST =
+  "A table mixed with other content can't be pasted over selected cells. Paste it outside the table.";
+export const CELL_PASTE_REASON = "table-carrying slice not pasted as cells would be dropped by the cell selection";
+
 /** The shape of an `editor.table.paste` / `editor.table.drop` log call. */
 export interface RefusalLog {
   level: string;
@@ -65,6 +84,37 @@ export interface RefusalLog {
 export function expectOneRefusal(logs: RefusalLog[]): void {
   expect(logs.map((l) => l.status)).toEqual(["start", "fail"]);
   expect(logs[1].actionId).toBe(logs[0].actionId);
+}
+
+/** Position before the table cell holding `needle`. */
+export function cellPosOf(view: EditorView, needle: string): number {
+  const $p = view.state.doc.resolve(posAfter(view, needle));
+  let d = $p.depth;
+  while (d > 0 && !/table_(cell|header)/.test($p.node(d).type.name)) d -= 1;
+  return $p.before(d);
+}
+
+/** Select the cells from `fromNeedle` to `toNeedle` as a CellSelection. */
+export function selectCells(view: EditorView, fromNeedle: string, toNeedle: string): void {
+  const sel = CellSelection.create(view.state.doc, cellPosOf(view, fromNeedle), cellPosOf(view, toNeedle));
+  view.dispatch(view.state.tr.setSelection(sel));
+}
+
+/**
+ * Select the cells from `fromNeedle` to `toNeedle` and copy them through
+ * prosemirror-view's own copy handler; returns the clipboard HTML.
+ */
+export function copyCells(view: EditorView, fromNeedle: string, toNeedle: string): string {
+  selectCells(view, fromNeedle, toNeedle);
+  const data = new Map<string, string>();
+  const event = new Event("copy", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: { clearData: () => data.clear(), setData: (t: string, v: string) => data.set(t, v) },
+  });
+  view.dom.dispatchEvent(event);
+  const html = data.get("text/html");
+  if (!html) throw new Error("copy produced no text/html");
+  return html;
 }
 
 export interface DropOptions {
