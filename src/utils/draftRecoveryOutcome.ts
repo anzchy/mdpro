@@ -10,6 +10,8 @@
  *
  * @coordinates-with src/services/draftService.ts — produces the outcomes
  * @coordinates-with src/App.tsx — applies the result (upsert, drop row, toast)
+ * @coordinates-with src/utils/recoverIntoOpenTab.ts — places the `upsert` document: into an
+ *   open clean tab of the same path under that tab's id, else under the draft id (D146)
  */
 import type { Document } from "../types/document";
 import type { DiscardOutcome, RecoverOutcome, RecoverResult } from "../services/draftService";

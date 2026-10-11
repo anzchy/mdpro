@@ -69,6 +69,7 @@ import { encodingRetryRefusalToast } from "./components/common/encodingDialogCop
 import { OPEN_FAILED_MESSAGE } from "./utils/openFailure";
 import { recoverDraft, discardRecoveryDraft } from "./services/draftService";
 import { draftRecoveryOutcome, type DraftActionOutcome } from "./utils/draftRecoveryOutcome";
+import { applyRecoveredDocument } from "./utils/recoverIntoOpenTab";
 
 /**
  * What an open ConfirmDialog is about. Only `"document"` originates here now —
@@ -456,7 +457,13 @@ function App() {
   const applyDraftOutcome = useCallback(
     (draftId: string, input: DraftActionOutcome) => {
       const { dropRow, upsert, toast } = draftRecoveryOutcome(draftId, input);
-      if (upsert) upsertAndActivateDocument(upsert);
+      // D146: into the open clean tab of the same path, else its own tab.
+      if (upsert) {
+        void applyRecoveredDocument(draftId, upsert, {
+          upsertAndActivate: upsertAndActivateDocument,
+          showToast,
+        });
+      }
       if (dropRow) setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
       if (toast) showToast(toast);
     },
