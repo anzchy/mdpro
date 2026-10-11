@@ -67,7 +67,8 @@ fn ret_04_retirement_is_exact_match_never_prefix_suffix_or_substring() {
         ("mcp", "v"),
         ("xmcp.enabled", "v"),
     ];
-    let rows: [(&[(&str, &str)], &[(&str, &str)], &[(&str, &str)]); 3] = [
+    type Pairs<'a> = &'a [(&'a str, &'a str)];
+    let rows: [(Pairs, Pairs, Pairs); 3] = [
         (
             &[
                 ("mcp", "v"),

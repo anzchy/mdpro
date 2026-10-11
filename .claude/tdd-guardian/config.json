@@ -47,6 +47,15 @@
       "timeoutMs": 900000
     },
     {
+      "name": "clippy",
+      "description": "cargo clippy --all-targets with -D warnings (D157): every lint is an error, so a new lint from a toolchain update fails the commit gate until it is fixed.",
+      "command": "scripts/heavy-lock.sh cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
+      "gateOn": ["commit"],
+      "coverage": "none",
+      "probeCommand": "cargo clippy --version",
+      "timeoutMs": 900000
+    },
+    {
       "name": "integration",
       "description": "Real `pnpm control:build --profile verify` smoke (scripts/control/smoke.mjs, ADR-0047): inspects the build manifest, codesign -dvvv cdhash and the absence of updater artifacts in the bundle dir; verify profile only, the release --config path is not exercised.",
       "command": "scripts/heavy-lock.sh node scripts/control/smoke.mjs",

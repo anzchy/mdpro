@@ -198,7 +198,7 @@ fn sl05_property_no_path_in_any_record_across_generated_ops() {
             match next() % 3 {
                 0 => record(&marker(n)),
                 1 => RecentOp::Seed {
-                    stored: if next() % 2 == 0 {
+                    stored: if next().is_multiple_of(2) {
                         None
                     } else {
                         Some(vec![marker(n + 100)])
@@ -208,7 +208,7 @@ fn sl05_property_no_path_in_any_record_across_generated_ops() {
                 _ => RecentOp::Refresh,
             }
         };
-        let pass = next() % 2 == 0;
+        let pass = next().is_multiple_of(2);
         let _ = state.publish_op(op, None, |_, _| {
             if pass {
                 Ok(())

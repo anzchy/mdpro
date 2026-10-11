@@ -544,7 +544,8 @@ async fn wi3_i_eviction_keeps_the_hundred_most_recent_by_last_accessed() {
 async fn wi3_j_eviction_never_drops_the_entry_the_call_just_inserted() {
     let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let now = chrono::Utc::now().timestamp();
-    let structures: [(&str, Box<dyn Fn(u32) -> i64>); 4] = [
+    type StampFn = Box<dyn Fn(u32) -> i64>;
+    let structures: [(&str, StampFn); 4] = [
         ("all distinct and older", Box::new(|i: u32| 1000 + i as i64)),
         ("all identical to each other", Box::new(|_| 1_500)),
         ("all identical and equal to now", Box::new(move |_| now)),

@@ -96,6 +96,8 @@ enum Paths {
 
 /// R12 (law 2): only an emitted `modified` advances the entry.
 #[test]
+// D157: an allow, not a type alias, so this recorded spec's lines stay unchanged.
+#[allow(clippy::type_complexity)]
 fn r12_ignored_event_does_not_advance_baseline() {
     let rows: [(&str, EventKind, Paths, bool, Option<u64>, WatchOutcome); 11] = [
         (

@@ -71,10 +71,10 @@ fn rng(seed: u64) -> impl FnMut() -> u64 {
 /// Empty with p=1/6; otherwise ASCII / `é` (2 bytes) / `文` (3 bytes), and
 /// with p=1/3 a byte length within MAX±2.
 fn gen_path(next: &mut impl FnMut() -> u64) -> String {
-    if next() % 6 == 0 {
+    if next().is_multiple_of(6) {
         return String::new();
     }
-    let target = if next() % 3 == 0 {
+    let target = if next().is_multiple_of(3) {
         MAX_RECENT_PATH_BYTES - 2 + (next() % 5) as usize
     } else {
         1 + (next() % 24) as usize
@@ -112,7 +112,7 @@ fn sv05_property_exact_filter_then_trim_bounded_idempotent_total() {
     for case in 0..1000 {
         let x = match next() % 3 {
             0 => {
-                let stored = if next() % 4 == 0 {
+                let stored = if next().is_multiple_of(4) {
                     None
                 } else {
                     Some(gen_list(&mut next))

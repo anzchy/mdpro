@@ -184,6 +184,8 @@ fn k10_is_unchanged_during_read_partition() {
 /// precondition needs ctime to move, which ext4 need not do this quickly.
 #[cfg(target_os = "macos")]
 #[test]
+// D157: an allow, not a type alias, so this recorded spec's lines stay unchanged.
+#[allow(clippy::type_complexity)]
 fn k10_is_unchanged_before_read_partition() {
     let rows: [(&str, fn(&std::path::Path)); 2] = [
         ("ChmodBeforeRead", |p| chmod(p, 0o600)),

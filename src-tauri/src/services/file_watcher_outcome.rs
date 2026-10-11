@@ -59,6 +59,7 @@ pub(crate) enum WatchOutcome {
     /// (ADR-0072). Kept because the D68 and D86 device-check records cite
     /// `ignored_rename_single_path` as evidence, and those logs must still
     /// read against this vocabulary.
+    #[allow(dead_code)] // never constructed since ADR-0078; kept for its log string
     IgnoredRenameSinglePath,
     /// One of the three filtered kinds (`Metadata(Extended)`, `Metadata(Any)`,
     /// `Data(Content)`) or a replaced file (ADR-0072) on a file whose mtime,

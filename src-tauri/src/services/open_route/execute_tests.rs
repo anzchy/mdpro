@@ -42,6 +42,8 @@ struct Calls {
     broadcasts: Vec<Vec<String>>,
     logs: Vec<Value>,
     /// The error passed alongside each log, in the same order as `logs`.
+    // Recorded so a failing assert's `{:?}` of `Calls` shows it; no test reads it.
+    #[allow(dead_code)]
     log_errors: Vec<Option<String>>,
 }
 

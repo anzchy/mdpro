@@ -188,6 +188,8 @@ fn w3_key_set_is_invariant_over_the_grid() {
 }
 
 #[test]
+// D157: an allow, not `from_ref`, so this recorded spec's lines stay unchanged.
+#[allow(clippy::cloned_ref_to_slice_refs)]
 fn w4_attrs_pass_through_in_both_partitions() {
     let kind = EventKind::Modify(ModifyKind::Metadata(MetadataKind::Other));
     let p = PathBuf::from("/tmp/w4.md");
@@ -240,6 +242,8 @@ fn w5_builder_agrees_with_routing_and_classification() {
 }
 
 #[test]
+// D157: an allow, not `from_ref`, so this recorded spec's lines stay unchanged.
+#[allow(clippy::cloned_ref_to_slice_refs)]
 fn w6_no_file_content_leaks_into_the_line() {
     let f = unique_path("w6");
     std::fs::write(&f, "D32-SECRET-BODY-9c1e").unwrap();

@@ -106,7 +106,7 @@ fn r3_exact_key_loses_to_a_newer_alias_key() {
 #[test]
 fn r4_newest_alias_wins_even_in_the_middle_of_key_order() {
     let fx = Fixture::new();
-    let mut keys = vec![fx.a.clone(), fx.canon_a.clone(), fx.dotted_a.clone()];
+    let mut keys = [fx.a.clone(), fx.canon_a.clone(), fx.dotted_a.clone()];
     keys.sort();
     let states = map(&[
         (&keys[0], geo(0, 100)),
@@ -161,10 +161,7 @@ fn r7_no_match_is_none() {
 
     let mut unrelated = HashMap::new();
     for i in 0..100 {
-        unrelated.insert(
-            format!("/nonexistent-mdpro/seed-{i}.md"),
-            geo(i as i32, i as i64),
-        );
+        unrelated.insert(format!("/nonexistent-mdpro/seed-{i}.md"), geo(i, i as i64));
     }
     assert_eq!(find_stored_geometry(&unrelated, &fx.a), None);
 

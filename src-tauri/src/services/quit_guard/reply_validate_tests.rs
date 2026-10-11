@@ -80,6 +80,8 @@ fn wi3_per_id_cap_is_counted_in_bytes_at_the_boundary() {
 }
 
 #[test]
+// The constant check stays a runtime assert so it reports under this test's name.
+#[allow(clippy::assertions_on_constants)]
 fn wi3_real_frontend_id_formats_fit_under_the_cap() {
     // `useDocument.ts` mints `doc-${Date.now()}-${hex}`; Rust mints UUIDs.
     let real = owned(&[

@@ -1,8 +1,8 @@
 //! Test-only fixture for the draft tests: a temp `$HOME` held under
 //! `crate::HOME_LOCK`, raw bundle and legacy-pair I/O, raw bundle JSON
 //! builders, and `LiveContext` builders. Not every test file uses every
-//! helper, hence `dead_code`.
-#![allow(dead_code)]
+//! helper, so each `#[path]` mount outside `draft/` carries its own
+//! `#[allow(dead_code)]` (D157: an inner allow here duplicated those).
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
