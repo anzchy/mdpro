@@ -287,19 +287,33 @@ someone who wasn't in the room: picking a rendering surface, adding or refusing
 a dependency, changing an IPC contract, accepting a known defect, or deciding
 **not** to build something. Decisions that reach for `AskUserQuestion` are
 usually ADR-worthy — if it was worth interrupting a human, it is worth a record.
+So is a consequential decision where **two or more viable options were weighed**:
+the losing options are what the next person will reach for.
 
 - **Location**: `docs/adr/NNNN-kebab-title.md`, numbered sequentially from
   `0001`, never renumbered and never deleted.
 - **Structure** (Nygard): `# NNNN. Title` → **Status** → **Context** →
-  **Decision** → **Consequences**. Context states the forces *as they were
-  understood at the time*, not as they look in hindsight. Keep it to one page;
-  an ADR is a record, not a design doc.
-- **Status** is one of `Proposed` / `Accepted` / `Superseded by ADR-NNNN` /
-  `Deprecated`. Date every status change.
-- **An accepted ADR is immutable.** Changing your mind writes a **new** ADR that
-  supersedes the old one and links back; both stay in the tree. Editing an
-  accepted record destroys the evidence of why the earlier decision looked right
-  at the time — which is the only thing that stops it being remade by accident.
+  **Options considered** → **Decision** → **Consequences**. Context states the
+  forces *as they were understood at the time*, not as they look in hindsight.
+  Options considered names every option that was on the table, with the reason
+  each losing one lost; a record without them cannot stop the re-litigation it
+  exists to prevent. Keep it to a page where you can; evidence (log lines, device
+  runs, probe output) goes in a linked record under `docs/test/` or
+  `docs/reference/`, not in the ADR.
+- **Status** is one of `Proposed` / `Accepted` / `Rejected` /
+  `Superseded by ADR-NNNN` / `Deprecated`. Date every status change, and on
+  `Accepted` or `Rejected` say **who decided**, quoting the user's words when the
+  user did. `Rejected` keeps a proposal that was turned down, with the reason, so
+  it is not proposed again from scratch.
+- **An accepted ADR's body is immutable.** Only its Status line and a forward
+  link (`Superseded by ADR-NNNN`, `partially superseded: <clause> by ADR-NNNN`)
+  may change after acceptance. Changing your mind writes a **new** ADR that
+  supersedes the old one, in whole or for a named clause, and links back; both
+  stay in the tree. Editing an accepted record destroys the evidence of why the
+  earlier decision looked right at the time — which is the only thing that stops
+  it being remade by accident. (Rules amended 2026-10-11 after the vendor
+  comparison in `docs/reference/20261011-adr-criteria-best-practices.md`;
+  ADRs accepted before then keep their shape.)
 - **Record the costs, not just the benefits.** An ADR whose Consequences section
   lists only upsides is advocacy, not a record. Name what the decision gives up
   and what it forecloses.

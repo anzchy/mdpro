@@ -56,6 +56,7 @@ Findings in this category are **blockers**. Do not commit until resolved.
 - [ ] A new IPC command that a reader needs to know about is added to the "Key commands:" list under CLAUDE.md § "Commands (Frontend → Rust)"; a new Rust→frontend event gets a row in the events table below it.
 - [ ] **A diff that changes user-visible behaviour rewrites its row in `docs/feature-ledger.md` in this same commit** — new capability, state change (`Stub` → `Shipped`, `Shipped` → `Partial`), or a claim the work proved false. `pnpm ledger:check` passes, and `pnpm ledger:build` was re-run if the markdown changed.
 - [ ] A new Tauri command, HTTP route, `MENU_*` id, plugin id, or store has a ledger row describing *that* surface — not a name parked on an unrelated row to turn the coverage count green.
+- [ ] The diff does not contradict an `Accepted` ADR it touches on (`/usr/bin/grep -l <topic> docs/adr/*.md`). If it must, the change ships with a new ADR that supersedes the old one or the clause, never with a silent edit of the accepted record.
 
 ---
 
