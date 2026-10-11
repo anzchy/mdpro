@@ -213,3 +213,75 @@ Nothing else differed from the brief.
 14568: {"ts":"2026-10-11T12:50:27.607+08:00","level":"info","event":"file.watch.unregister","status":"success","actionId":null,"context":{"alreadyWatched":true,"mtimeMs":1791693654871,"ok":true,"path":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w9.md","size":42,"watchedCount":6},"durationMs":null,"error":null}
 14574: {"ts":"2026-10-11T12:50:54.887+08:00","level":"info","event":"view.mode.change","status":"success","actionId":"ac75751a-7b79-4610-b0c6-953f479cf8ed","context":{"fromMode":"source","intent":"user","source":"setViewMode","toMode":"wysiwyg"},"durationMs":null,"error":null}
 ```
+
+## W6c re-run: queued save pair with no delay (`w6c.md`), 2026-10-11 13:05–13:07
+
+Delegator addendum: re-run only W6c, with the `delay 0.2` between the first ⌘S and `b` removed (0 s), five pairs, and the same proof lines. A pair without a `file.save.queued` line is still NOT EXERCISED. The original W6c section and verdict above are unchanged.
+
+**Setup.** This ran in a separate app session, after the encoding brief's session had quit (`reports/20261011-encoding-819fa2c.md`). Checks: the binary was re-checked (`stat` `1791693243`, `shasum` `8cbc3f5d…d65ddb`, HEAD `819fa2c`); `pgrep -fl tauri-app` was empty before launch; cold launch with `open -a "$APP"` (no file); PID `62658 Sun Oct 11 13:05:50 2026 …/builds/819fa2c/mdpro.app/Contents/MacOS/tauri-app` (L14772 `app.ready`); no Recover drafts (L14782 `listed:0`). Gate → ⌃2 → L14798 `view.mode.change` →`source`. `$S` = `scratch/819fa2c-watcher` as before. `w6c.md` started at **53 bytes**, ending `Second paragraph.ababababab` from the first run.
+
+**`pair()` used** (the brief's `pair()` with the `delay 0.2` line removed; nothing else changed):
+```
+osascript -e 'tell application "System Events" to tell (first process whose name is "tauri-app")
+  set frontmost to true
+  keystroke "a"
+  keystroke "s" using {command down}
+  keystroke "b"
+  keystroke "s" using {command down}
+end tell'
+```
+
+**Action.** OPEN(`$S/w6c.md`): L14808 `file.watch.register` `ok:true`, `baseline:"seeded"`, `size:53`. Clicked at the end of `Second paragraph.ababababab`, waited 5 s. Gate, `mark 14816` (`NA=14816`). Five times: gate (each printed `window.focus` / `main`), `pair`, wait 4 s. Pair starts: 13:06:30.311, 34.552, 38.782, 43.018, 47.250. Waited 5 s; the slice ends at L14917 (`scratch/w6c-rerun-slice.txt`). No prompt appeared, so no `w6c-dlg-*` shot; `shots/w6c-rerun.png` was taken after the slice.
+
+| Pair | 1st `file.save` start → success (ms) | 2nd `file.save` start → success (ms) | 1st success → 2nd start | `file.save.queued` | watch |
+|---|---|---|---|---|---|
+| 1 | 13:06:30.486 → 30.496 L14820 (9) | 30.520 → 30.528 L14831 (7) | 24 ms | **0** | `ignored_unchanged/unchanged` 4 |
+| 2 | 34.712 → 34.722 L14841 (9) | 34.747 → 34.755 L14853 (7) | 25 ms | **0** | `ignored_unchanged/unchanged` 2, `self_write/not_checked` 2 (L14851, L14852) |
+| 3 | 38.944 → 38.953 L14861 (9) | 38.979 → 38.987 L14871 (8) | 26 ms | **0** | `ignored_unchanged/unchanged` 4 |
+| 4 | 43.178 → 43.187 L14881 (9) | 43.212 → 43.220 L14891 (8) | 25 ms | **0** | `ignored_unchanged/unchanged` 4 |
+| 5 | 47.411 → 47.420 L14901 (8) | 47.441 → 47.449 L14911 (7) | 21 ms | **0** | `ignored_unchanged/unchanged` 4 |
+
+Each pair has two `file.save` success lines for `$X`, 29–34 ms apart by `ts`, with sizes 54…63 (one byte per keystroke).
+
+- `since 'file\.save\.queued'` (from L14816): **empty**.
+- `tally 14816`: `{"saves":10,"watch":{"ignored_unchanged/unchanged":18,"self_write/not_checked":2},"recv":null,"prompts":0}`
+- `persave 14816`: `{"1":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"],"2":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"],"3":["ignored_unchanged/unchanged","ignored_unchanged/unchanged","self_write/not_checked","self_write/not_checked"],"5":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"],"6":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"],"7":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"],"8":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"],"9":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"],"10":["ignored_unchanged/unchanged","ignored_unchanged/unchanged"]}`. Row 4 (pair 2's second save) is missing because its two `self_write/not_checked` events (L14851, L14852) were logged inside the save, before its `success` line (L14853), so `persave` counts them under row 3.
+- `tail -c 30 $X` → `aragraph.abababababababababab` plus a newline: the first run's 5 `ab` and this run's 5 ✔.
+- `save-suppressed` in L14817–L14917: **0**. Prompts: **0**. `unchangedCheck` values: `unchanged` 18, `not_checked` 2. No `stat_differs` / `hash_differs` / `unstable` / `read_failed` / `no_baseline`, so **0 RESIDUAL** and no race-1 sign.
+
+**Verdict: W6c re-run NOT EXERCISED (5 of 5: no `file.save.queued` line in any pair).** RESIDUAL 0. No prompt and no FAIL sign. Every pair has its two `file.save` successes within about 1 s, but the D70 queue never engaged.
+
+**Why.** With the delay gone, System Events still spaces the four keystrokes. The second save **starts** 21–26 ms after the first save's `success`, and each save takes 7–9 ms. A ⌘S queues only while the previous save of the same document is still running, so even 0 s is not fast enough. One sign the gap was nearly closed: in pair 1, the frontend's save completion (L14821, 13:06:30.500) carries `"editedDuringSave":true`, meaning the `b` keystroke landed while save 1 was running, but the second ⌘S came after it finished. To exercise W6c, the second ⌘S must arrive within one save's duration. Two ways to get that: a slower save (a larger file, as W6b's bursts effectively got by sending five ⌘S back to back), or the brief's `burst`-style repeated ⌘S after `b`. W6b already exercised the queue on this build (9 `file.save.queued` lines, no race-1 sign).
+
+**Close.** Gate, ⌃4 → L14920 `view.mode.change` `source`→`wysiwyg`. mdpro › Quit mdpro: no Unsaved changes dialog, L14936 `app.quit.check` `"answer":"clean","dirtyCount":0`, L14947 `app.quit`. `pgrep -fl tauri-app` is empty. The settings re-read equals the as-found JSON (`cmp` exit 0). The window stayed 1200 × 800.
+
+**Operator slips (re-run):** none beyond the brief's own procedure. Each gate ran before its `pair`. The ⌘O / ⌘⇧G pair for OPEN was gated once, as in the first run. No Enter, no Esc, no ⌘Z.
+
+### W6c re-run proof lines, verbatim (`mdpro.log` line: content)
+
+```
+14819: {"ts":"2026-10-11T13:06:30.486+08:00","level":"info","event":"file.save","status":"start","actionId":"42f29748-8e2e-4401-8708-25c31ca4e262","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14820: {"ts":"2026-10-11T13:06:30.496+08:00","level":"info","event":"file.save","status":"success","actionId":"42f29748-8e2e-4401-8708-25c31ca4e262","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":54},"durationMs":9,"error":null}
+14821: {"ts":"2026-10-11T13:06:30.500+08:00","level":"info","event":"file.save","status":"success","actionId":"42f29748-8e2e-4401-8708-25c31ca4e262","context":{"documentId":"a801183620718182","editedDuringSave":true},"durationMs":null,"error":null}
+14830: {"ts":"2026-10-11T13:06:30.520+08:00","level":"info","event":"file.save","status":"start","actionId":"aa9af145-b7d9-40f2-bd78-5c862c8d3102","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14831: {"ts":"2026-10-11T13:06:30.528+08:00","level":"info","event":"file.save","status":"success","actionId":"aa9af145-b7d9-40f2-bd78-5c862c8d3102","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":55},"durationMs":7,"error":null}
+14840: {"ts":"2026-10-11T13:06:34.712+08:00","level":"info","event":"file.save","status":"start","actionId":"29e482de-e4b2-4492-8130-1a80f33a350b","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14841: {"ts":"2026-10-11T13:06:34.722+08:00","level":"info","event":"file.save","status":"success","actionId":"29e482de-e4b2-4492-8130-1a80f33a350b","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":56},"durationMs":9,"error":null}
+14850: {"ts":"2026-10-11T13:06:34.747+08:00","level":"info","event":"file.save","status":"start","actionId":"bbcc3f0c-f3e7-45b7-9528-544d8edcd81a","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14853: {"ts":"2026-10-11T13:06:34.755+08:00","level":"info","event":"file.save","status":"success","actionId":"bbcc3f0c-f3e7-45b7-9528-544d8edcd81a","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":57},"durationMs":7,"error":null}
+14860: {"ts":"2026-10-11T13:06:38.944+08:00","level":"info","event":"file.save","status":"start","actionId":"0f0aa7fc-c822-4a4e-a488-feb61f3c3838","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14861: {"ts":"2026-10-11T13:06:38.953+08:00","level":"info","event":"file.save","status":"success","actionId":"0f0aa7fc-c822-4a4e-a488-feb61f3c3838","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":58},"durationMs":9,"error":null}
+14870: {"ts":"2026-10-11T13:06:38.979+08:00","level":"info","event":"file.save","status":"start","actionId":"749a51f1-356b-4003-b88f-9115b4b35dba","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14871: {"ts":"2026-10-11T13:06:38.987+08:00","level":"info","event":"file.save","status":"success","actionId":"749a51f1-356b-4003-b88f-9115b4b35dba","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":59},"durationMs":8,"error":null}
+14880: {"ts":"2026-10-11T13:06:43.178+08:00","level":"info","event":"file.save","status":"start","actionId":"cfeeeb12-3785-4fdc-9865-2526c4342c41","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14881: {"ts":"2026-10-11T13:06:43.187+08:00","level":"info","event":"file.save","status":"success","actionId":"cfeeeb12-3785-4fdc-9865-2526c4342c41","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":60},"durationMs":9,"error":null}
+14890: {"ts":"2026-10-11T13:06:43.212+08:00","level":"info","event":"file.save","status":"start","actionId":"31f258fb-73ad-480b-a0ea-ba25926c0b40","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14891: {"ts":"2026-10-11T13:06:43.220+08:00","level":"info","event":"file.save","status":"success","actionId":"31f258fb-73ad-480b-a0ea-ba25926c0b40","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":61},"durationMs":8,"error":null}
+14900: {"ts":"2026-10-11T13:06:47.411+08:00","level":"info","event":"file.save","status":"start","actionId":"0b5b676c-ad98-48f0-b353-79dcf60eb669","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14901: {"ts":"2026-10-11T13:06:47.420+08:00","level":"info","event":"file.save","status":"success","actionId":"0b5b676c-ad98-48f0-b353-79dcf60eb669","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":62},"durationMs":8,"error":null}
+14910: {"ts":"2026-10-11T13:06:47.441+08:00","level":"info","event":"file.save","status":"start","actionId":"03c82da0-dbba-43c0-9fdc-25636d808951","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md"},"durationMs":null,"error":null}
+14911: {"ts":"2026-10-11T13:06:47.449+08:00","level":"info","event":"file.save","status":"success","actionId":"03c82da0-dbba-43c0-9fdc-25636d808951","context":{"filePath":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","fileSizeBytes":63},"durationMs":7,"error":null}
+14851: {"ts":"2026-10-11T13:06:34.753+08:00","level":"info","event":"file.watch.event","status":"cancel","actionId":null,"context":{"changeType":null,"detail":"any","info":null,"kind":"modify_name","mtimeMs":1791695194747,"outcome":"self_write","ownEvent":false,"path":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","pathCount":1,"rescan":false,"size":57,"timestamp":1791695194753,"unchangedCheck":"not_checked"},"durationMs":null,"error":null}
+14852: {"ts":"2026-10-11T13:06:34.755+08:00","level":"info","event":"file.watch.event","status":"cancel","actionId":null,"context":{"changeType":null,"detail":"any","info":null,"kind":"modify_name","mtimeMs":1791695194747,"outcome":"self_write","ownEvent":false,"path":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","pathCount":1,"rescan":false,"size":57,"timestamp":1791695194755,"unchangedCheck":"not_checked"},"durationMs":null,"error":null}
+14808: {"ts":"2026-10-11T13:06:12.776+08:00","level":"info","event":"file.watch.register","status":"success","actionId":null,"context":{"alreadyWatched":false,"baseline":"seeded","mtimeMs":1791694009705,"ok":true,"path":"/Users/jack/.mdpro-redesign/dtrack/scratch/819fa2c-watcher/w6c.md","size":53,"watchedCount":1},"durationMs":null,"error":null}
+```
