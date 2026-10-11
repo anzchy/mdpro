@@ -31,7 +31,7 @@ tmux name is only an alias; as of 2026-10-10 they are:
 |---|---|
 | mdpro-implementor-\* | `mdpro-a3`, `mdpro-a6` (took over from `mdpro-a5`, retired 2026-10-10) |
 | mdpro-auditor-\* | `mdpro-codex-audit` |
-| mdpro-device-harness | `mdpro-85` |
+| mdpro-device-harness | `adr047-verify` (renamed from `mdpro-85` by the user, 2026-10-11) |
 | real-device-tester | tmux session `dtrack` |
 
 Which implementor owns which area right now lives in the delegator's
