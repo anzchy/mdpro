@@ -1,6 +1,6 @@
 # 0072. A replaced watched file is checked like a content change
 
-**Status**: Proposed (2026-10-10). The coordinator approved the design for
+**Status**: Accepted (2026-10-11; proposed 2026-10-10). The combined watcher device regression on `819fa2c` passed ([record](../test/20261011-watcher-819fa2c-device-check.md)).. The coordinator approved the design for
 D68 + D101. It becomes Accepted after the watcher device recheck (D86 WI-5),
 which covers D32, D68 and D86 together. It builds on
 [ADR-0068](0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md)

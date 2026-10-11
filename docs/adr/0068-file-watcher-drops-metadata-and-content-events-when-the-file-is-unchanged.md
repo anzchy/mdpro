@@ -1,6 +1,6 @@
 # 0068. The file watcher drops metadata and content events when the file is unchanged
 
-**Status**: Proposed (2026-10-09; scope amended 2026-10-10). The user approved
+**Status**: Accepted (2026-10-11; proposed 2026-10-09; scope amended 2026-10-10). The combined watcher device regression on `819fa2c` passed ([record](../test/20261011-watcher-819fa2c-device-check.md)).. The user approved
 the first draft on 2026-10-09 after a Codex review: findings 1, 2, 3 and 6
 were adopted, and 4 and 5 went to D68 and D69. On 2026-10-10, after a probe
 showed residual FSEvents flags and a second Codex review, the user chose the
