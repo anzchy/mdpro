@@ -14,9 +14,15 @@ See [`progress.md`](./progress.md) for accumulated implementation lessons — bu
 
 ## Design System
 
-Always read [`DESIGN.md`](./DESIGN.md) before making any visual or UI decisions.
-Aesthetic register, "memorable thing", and decisions log live there. Enforceable
-rules live in `.claude/rules/30-34`:
+**The design every UI decision references is
+[`docs/design/mdpro-ui-new/DESIGN.md`](./docs/design/mdpro-ui-new/DESIGN.md)**
+(user decision, 2026-10-11: 「mark 这个就是最后所有的 UI 设计都参考的设计方案」).
+Read it before making any visual or UI decision; the root
+[`DESIGN.md`](./DESIGN.md) is only the index into `docs/design/`, and
+`docs/design/mdpro-ui-old/DESIGN.md` describes the UI as shipped, not where it
+is going. Aesthetic register, "memorable thing", token names and component
+contracts live in the new file. Enforceable rules live in `.claude/rules/30-34`
+and win any conflict with it:
 
 - `30-ui-consistency.md` — index + 6 universal discipline rules
 - `31-design-tokens.md` — color, type, spacing, z-index reference
