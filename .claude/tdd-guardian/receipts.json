@@ -120655,6 +120655,86 @@
           "message": "The red for 'D136-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
+    },
+    {
+      "id": "D131-WI-1",
+      "lane": "slow",
+      "recorded_at": "2026-10-11T05:23:31.644Z",
+      "head_sha": "62c04912ffbc2c5afa29cfa9ae297844aafffcba",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 89 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/control-launcher-lock.slow.test.ts": {
+          "state": "ok",
+          "sha": "0b46769fccaa040a79ed3dcddde4616d59d4fc7d61f89036ced99caa298442c4",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "d12ca47ce336f5ca",
+            "046999a068f0f88a",
+            "ac10548eb08b74de",
+            "1508427a4dca8e4b",
+            "b7d2d3a1c40a0a39",
+            "b7f38111b06a6fe2",
+            "684888c0ebb17f37",
+            "c5b60e64436a1494",
+            "0651a96384a68030",
+            "4762f9e9c9c33cf7",
+            "2ffeaef8f6aecf44",
+            "691c6779a8a7873f",
+            "45bb5304df94b784",
+            "684888c0ebb17f37",
+            "2adc4d35cf6cf67d",
+            "f7adec0bf2cbb14a",
+            "221cc5613c05ae3d",
+            "260c0c19ca5721b6",
+            "ed9623369ff082ab",
+            "9234ed86c2c3c22a",
+            "68373556e34be61a",
+            "7c1fc2b148e60f5d",
+            "6ba9c7830cf9f110",
+            "59706f06ea3eafe8",
+            "8e81b1ffd698488f",
+            "19e2aac0ec2ceb8e",
+            "f7d9a5df72f37508",
+            "c46a6a9b4958dc20",
+            "1522f4ebfa857e6e",
+            "1a510cb6c961e153",
+            "358ba3f2223784d8",
+            "ed644e9ddcf9ffe3",
+            "b6abb35fd6893cfe",
+            "61a59a132afaab48",
+            "920f646e94a98368",
+            "412cf3677e51a2c3",
+            "9663670ff2727673",
+            "469b4d5aa07258c7",
+            "60a52b248e95f256",
+            "21aec16101c31f5f",
+            "65a9a98f03aa5ad6",
+            "36ef412561b39ed7",
+            "9a5cc93ca46f351e",
+            "2fcf6d9fc0433e1c",
+            "e2fe029cb5389abd",
+            "d10b36aa74a59bcf",
+            "ff3cf821ed3be47e",
+            "c8b64975087c2ef1",
+            "e10145f2739ce17c",
+            "1667a34dcf1d745c",
+            "8cce2ff7d04a5284",
+            "d69b1a823f044848",
+            "1667a34dcf1d745c",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-11T05:29:52.603Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": []
     }
   ]
 }
