@@ -1,5 +1,5 @@
 //! Emission gates for the file watcher: the save self-write set and the
-//! per-path debounce check.
+//! per-(path, kind) debounce check.
 //!
 //! Purpose: hold the two pieces of state `process_event` consults before a
 //! notify event becomes a `file:changed` emission, apart from the routing.
@@ -13,7 +13,13 @@
 //! - The self-write set is process-global, so a save from any window
 //!   suppresses the watcher event for that path.
 //! - The debounce map is owned by the watcher and keyed by the event's first
-//!   path; a debounced event does not refresh its entry.
+//!   path (raw, ADR-0068 decision 5) **and the change type it would emit**
+//!   (`modified` / `deleted` / `renamed`; D116). Same kind on the same path
+//!   inside 500 ms is debounced; another kind is never swallowed by it, so a
+//!   replace then a delete reports the delete, and a delete then a
+//!   replacement (a safe save, D107) reports the new file. Exempting `Remove`
+//!   alone was rejected: it fixes only the first order and lets a burst of
+//!   `Remove`s through. A debounced event does not refresh its entry.
 //! - Gate order in `process_event` (ADR-0068): self-write, then the D32
 //!   unchanged-file drop (`file_watcher_baseline.rs`), then debounce. So
 //!   neither a save nor a dropped event records a debounce entry, and a
@@ -57,16 +63,27 @@ pub(super) fn is_self_write(path: &Path) -> bool {
     }
 }
 
-/// Returns `true` if the event for `path` should be suppressed (fired too recently).
-pub(super) fn is_debounced(path: &Path, debounce_map: &Mutex<HashMap<PathBuf, Instant>>) -> bool {
+/// A debounce entry's key: the event's first path and the change type it
+/// would emit (`modified` / `deleted` / `renamed`).
+pub(crate) type DebounceKey = (PathBuf, &'static str);
+
+/// The watcher's debounce map: when each key last emitted.
+pub(crate) type DebounceMap = Mutex<HashMap<DebounceKey, Instant>>;
+
+/// Returns `true` if an event for `path` that would emit `kind` should be
+/// suppressed: the same (path, kind) emitted less than `DEBOUNCE_INTERVAL`
+/// ago (D116). Another kind's entry on the same path never suppresses it.
+/// A suppressed event does not refresh the entry; a passing one records it.
+pub(super) fn is_debounced(path: &Path, kind: &'static str, debounce_map: &DebounceMap) -> bool {
     let now = Instant::now();
+    let key = (path.to_path_buf(), kind);
     if let Ok(mut map) = debounce_map.lock() {
-        if let Some(last) = map.get(path) {
+        if let Some(last) = map.get(&key) {
             if now.duration_since(*last) < DEBOUNCE_INTERVAL {
                 return true;
             }
         }
-        map.insert(path.to_path_buf(), now);
+        map.insert(key, now);
     }
     false
 }

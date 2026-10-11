@@ -9,7 +9,9 @@
 //! @coordinates-with services/file_watcher_baseline.rs (parent; `put` and
 //! `take` call these under lock L5 after the ticket check),
 //! file_watcher_baseline_gen.rs (the per-spelling ticket rule that decides
-//! whether a claim or release lands at all), services/file_watcher.rs
+//! whether a claim or release lands at all, and `next_ticket` for the
+//! kept-entry generation), file_watcher_baseline_spelling_gen_tests.rs
+//! (D116-WI-2), services/file_watcher.rs
 //! (`watch` / `unwatch` per raw spelling; its watch list keeps raw strings)
 //!
 //! Key decisions:
@@ -23,9 +25,15 @@
 //!   through A, however old relative to B's register, releases only A's
 //!   claim; a register through A older than A's own remove is skipped before
 //!   it reaches `claim`, so it cannot revive A.
+//! - **A kept entry gets a new generation** (D116-WI-2, from the b42 audit
+//!   of D106). When a release or a moved claim leaves an entry that another
+//!   spelling still holds, its slot generation becomes a fresh
+//!   `next_ticket()`, so a `refresh_if_present` / `refresh_after_save` that
+//!   copied the slot out before the change cannot land in it.
 //! - **Pure map edits.** They run inside the parent's map helpers with the
-//!   guard held, so they do no I/O and take no lock.
-use super::{Inner, Slot};
+//!   guard held, so they do no I/O and take no lock (`next_ticket` is an
+//!   atomic counter).
+use super::{next_ticket, Inner, Slot};
 use std::path::{Path, PathBuf};
 
 impl Inner {
@@ -48,9 +56,15 @@ impl Inner {
         self.drop_if_unclaimed(&key);
     }
 
+    /// Drop `key`'s entry if no spelling holds it. If one still does, bump
+    /// the kept slot's generation to a fresh ticket, so a refresh that
+    /// copied the slot out before this claim changed fails its generation
+    /// check instead of storing into the surviving entry (D116-WI-2).
     fn drop_if_unclaimed(&mut self, key: &Path) {
         if !self.keys.values().any(|held| held == key) {
             self.entries.remove(key);
+        } else if let Some(slot) = self.entries.get_mut(key) {
+            slot.gen = next_ticket();
         }
     }
 }
@@ -58,3 +72,7 @@ impl Inner {
 #[cfg(test)]
 #[path = "file_watcher_baseline_spelling_tests.rs"]
 mod spelling_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_baseline_spelling_gen_tests.rs"]
+mod spelling_gen_tests;

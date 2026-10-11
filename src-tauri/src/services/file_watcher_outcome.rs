@@ -38,7 +38,8 @@ pub(crate) enum WatchOutcome {
     EmittedModified,
     EmittedDeleted,
     EmittedRenamed,
-    /// Same first path emitted less than `DEBOUNCE_INTERVAL` ago.
+    /// Same first path and same change type emitted less than
+    /// `DEBOUNCE_INTERVAL` ago (D116).
     Debounced,
     /// A `Modify` or a replaced file on a path `save_file` is writing right now.
     SelfWrite,

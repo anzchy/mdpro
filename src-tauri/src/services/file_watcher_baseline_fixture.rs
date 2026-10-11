@@ -185,19 +185,22 @@ pub(crate) const META_ANY: notify::EventKind = notify::EventKind::Modify(
 /// Every kind the unchanged-file drop applies to (ADR-0068 decision 1).
 pub(crate) const FILTERED: [notify::EventKind; 3] = [META_ANY, EXTENDED, CONTENT];
 
-/// The watcher's debounce map type.
-pub(crate) type Map = std::sync::Mutex<std::collections::HashMap<PathBuf, std::time::Instant>>;
+/// The watcher's debounce map type, keyed by (path, change type) (D116).
+pub(crate) type Map = super::super::gate::DebounceMap;
 
 pub(crate) fn fresh() -> Map {
     Map::default()
 }
 
-/// Set (or overwrite) `p`'s debounce entry to `ms` milliseconds ago.
+/// Set (or overwrite) `p`'s `modified` debounce entry to `ms` milliseconds
+/// ago.
 pub(crate) fn seed(map: &Map, p: &Path, ms: u64) {
     let at = std::time::Instant::now()
         .checked_sub(Duration::from_millis(ms))
         .expect("monotonic clock is older than the offset");
-    map.lock().unwrap().insert(p.to_path_buf(), at);
+    map.lock()
+        .unwrap()
+        .insert((p.to_path_buf(), "modified"), at);
 }
 
 pub(crate) fn ev(kind: notify::EventKind, paths: &[&Path]) -> notify::Event {

@@ -13,11 +13,11 @@ use notify::event::{DataChange, MetadataKind, ModifyKind, RemoveKind, RenameMode
 use notify::{Event, EventKind};
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-type Map = Mutex<HashMap<PathBuf, Instant>>;
+type Map = Mutex<HashMap<(PathBuf, &'static str), Instant>>;
 
 const CONTENT: EventKind = EventKind::Modify(ModifyKind::Data(DataChange::Content));
 const REMOVE_FILE: EventKind = EventKind::Remove(RemoveKind::File);
@@ -30,7 +30,7 @@ fn fresh() -> Map {
 // `&PathBuf` so it composes with the `Vec<PathBuf>` / `Option<&PathBuf>` the cases hold.
 #[allow(clippy::ptr_arg)]
 fn seeded(p: &PathBuf, at: Instant) -> Map {
-    Mutex::new(HashMap::from([(p.clone(), at)]))
+    Mutex::new(HashMap::from([((p.clone(), "modified"), at)]))
 }
 
 fn run(kind: EventKind, paths: &[&PathBuf], map: &Map) -> (Value, WatchOutcome) {
@@ -41,8 +41,14 @@ fn run(kind: EventKind, paths: &[&PathBuf], map: &Map) -> (Value, WatchOutcome) 
     (serde_json::to_value(&emitted).unwrap(), outcome)
 }
 
+/// `p`'s `modified` entry.
+#[allow(clippy::ptr_arg)]
 fn entry(map: &Map, p: &PathBuf) -> Option<Instant> {
-    map.lock().unwrap().get(p).copied()
+    entry_of(map, p, "modified")
+}
+
+fn entry_of(map: &Map, p: &Path, kind: &'static str) -> Option<Instant> {
+    map.lock().unwrap().get(&(p.to_path_buf(), kind)).copied()
 }
 
 fn ago(ms: u64) -> Instant {
@@ -126,27 +132,47 @@ fn o8_debounce_expiry_boundary() {
     assert_eq!(entry(&map_b, &p), Some(seed_b), "live entry is untouched");
 }
 
+/// D116: the debounce is keyed by (first path, change type). A different
+/// kind on the same path passes; the same kind inside the interval is still
+/// debounced.
 #[test]
-fn o9_debounce_is_per_first_path_and_shared_across_kinds() {
+fn o9_debounce_is_per_first_path_and_per_kind() {
     let (p, q, r) = (unique_path("o9"), unique_path("o9"), unique_path("o9"));
     let map = fresh();
     assert_eq!(run(CONTENT, &[&p], &map).1, WatchOutcome::EmittedModified);
+    assert_eq!(
+        run(REMOVE_FILE, &[&p], &map).1,
+        WatchOutcome::EmittedDeleted
+    );
     assert_eq!(
         run(REMOVE_FILE, &[&p], &map),
         (Value::Null, WatchOutcome::Debounced)
     );
     assert_eq!(run(CONTENT, &[&q], &map).1, WatchOutcome::EmittedModified);
     assert_eq!(
-        run(RENAME_BOTH, &[&q, &r], &map),
+        run(RENAME_BOTH, &[&q, &r], &map).1,
+        WatchOutcome::EmittedRenamed
+    );
+    assert_eq!(
+        run(CONTENT, &[&q], &map),
         (Value::Null, WatchOutcome::Debounced)
     );
     assert_eq!(run(CONTENT, &[&r], &map).1, WatchOutcome::EmittedModified);
-    let keys: HashSet<PathBuf> = map.lock().unwrap().keys().cloned().collect();
-    assert_eq!(keys, HashSet::from([p, q, r]));
+    let keys: HashSet<(PathBuf, &str)> = map.lock().unwrap().keys().cloned().collect();
+    let expected = HashSet::from([
+        (p.clone(), "modified"),
+        (p, "deleted"),
+        (q.clone(), "modified"),
+        (q, "renamed"),
+        (r, "modified"),
+    ]);
+    assert_eq!(keys, expected);
 }
 
+/// D116: an emitted Remove records only its `deleted` entry, so a following
+/// modify on the same path emits and leaves that entry alone.
 #[test]
-fn o9b_emitted_remove_records_the_path_so_a_following_modify_is_debounced() {
+fn o9b_emitted_remove_does_not_debounce_a_following_modify() {
     let p = unique_path("o9b");
     let map = fresh();
     let expected = json!({"path": p.to_string_lossy(), "changeType": "deleted", "newPath": null, "timestamp": T});
@@ -154,12 +180,9 @@ fn o9b_emitted_remove_records_the_path_so_a_following_modify_is_debounced() {
         run(REMOVE_FILE, &[&p], &map),
         (expected, WatchOutcome::EmittedDeleted)
     );
-    let after_remove = entry(&map, &p).expect("emitted Remove inserts into the shared map");
-    assert_eq!(
-        run(CONTENT, &[&p], &map),
-        (Value::Null, WatchOutcome::Debounced)
-    );
-    assert_eq!(entry(&map, &p), Some(after_remove));
+    let after_remove = entry_of(&map, &p, "deleted").expect("emitted Remove records its kind");
+    assert_eq!(run(CONTENT, &[&p], &map).1, WatchOutcome::EmittedModified);
+    assert_eq!(entry_of(&map, &p, "deleted"), Some(after_remove));
 }
 
 #[test]
@@ -202,7 +225,7 @@ fn o11_self_write_suppresses_modify_without_consuming_debounce() {
         (Value::Null, WatchOutcome::SelfWrite)
     );
     assert!(
-        !map.lock().unwrap().contains_key(&p),
+        !map.lock().unwrap().keys().any(|(k, _)| k == &p),
         "self-write must not insert"
     );
     drop(mark);

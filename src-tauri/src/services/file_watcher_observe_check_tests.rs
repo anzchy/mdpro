@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
 
-type Map = Mutex<HashMap<PathBuf, std::time::Instant>>;
+type Map = Mutex<HashMap<(PathBuf, &'static str), std::time::Instant>>;
 
 fn fresh() -> Map {
     Mutex::new(HashMap::new())

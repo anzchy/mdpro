@@ -91,7 +91,10 @@ fn rp1_replace_with_different_bytes_emits_modified_and_advances() {
             (modified(&p), EmittedModified),
             "{kind:?}"
         );
-        assert!(map.lock().unwrap().contains_key(&p), "{kind:?}: debounce");
+        assert!(
+            map.lock().unwrap().contains_key(&(p.clone(), "modified")),
+            "{kind:?}: debounce"
+        );
         let entry = store.get(&p).expect("still registered");
         assert_eq!(entry, snapshot(&p), "{kind:?}: advanced to the disk");
         assert_eq!(entry.hash, h(b"new bytes from elsewhere"), "{kind:?}");

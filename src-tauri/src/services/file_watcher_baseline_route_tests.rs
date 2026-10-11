@@ -58,8 +58,8 @@ fn r2_dropped_event_records_no_debounce_entry() {
         route(CONTENT, &[&p], &map, &store),
         (modified(&p), EmittedModified)
     );
-    let keys: Vec<PathBuf> = map.lock().unwrap().keys().cloned().collect();
-    assert_eq!(keys, vec![p]);
+    let keys: Vec<(PathBuf, &str)> = map.lock().unwrap().keys().cloned().collect();
+    assert_eq!(keys, vec![(p, "modified")]);
 }
 
 /// R3: same stat, different bytes: the hash catches it, and the emit advances.

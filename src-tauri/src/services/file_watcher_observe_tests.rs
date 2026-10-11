@@ -21,7 +21,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Instant;
 
-type Map = Mutex<HashMap<PathBuf, Instant>>;
+type Map = Mutex<HashMap<(PathBuf, &'static str), Instant>>;
 
 const SRC: &str = include_str!("file_watcher.rs");
 
@@ -113,11 +113,11 @@ fn o17_sequence_on_one_map_logs_each_step_with_its_own_outcome() {
     let p = unique_path("o17");
     let content = EventKind::Modify(ModifyKind::Data(DataChange::Content));
     let extended = EventKind::Modify(ModifyKind::Metadata(MetadataKind::Extended));
-    let entry = |m: &Map| m.lock().unwrap().get(&p).copied();
+    let entry = |m: &Map| m.lock().unwrap().get(&(p.clone(), "modified")).copied();
 
     let (_c1, spy1) = stat_spy();
     let (em1, line1) = observe_event(
-        &event_on(content, &[p.clone()]),
+        &event_on(content, std::slice::from_ref(&p)),
         &map,
         &BaselineStore::default(),
         T,
@@ -137,7 +137,7 @@ fn o17_sequence_on_one_map_logs_each_step_with_its_own_outcome() {
 
     let (_c2, spy2) = stat_spy();
     let (em2, line2) = observe_event(
-        &event_on(extended, &[p.clone()]),
+        &event_on(extended, std::slice::from_ref(&p)),
         &map,
         &BaselineStore::default(),
         T + 1,
@@ -155,7 +155,7 @@ fn o17_sequence_on_one_map_logs_each_step_with_its_own_outcome() {
     let _g = WriteMark::new(&p);
     let (_c3, spy3) = stat_spy();
     let (em3, line3) = observe_event(
-        &event_on(content, &[p.clone()]),
+        &event_on(content, std::slice::from_ref(&p)),
         &map,
         &BaselineStore::default(),
         T + 2,

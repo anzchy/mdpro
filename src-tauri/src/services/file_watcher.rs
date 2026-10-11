@@ -14,10 +14,9 @@
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::time::{Instant, SystemTime};
+use std::time::SystemTime;
 use tauri::{AppHandle, Emitter, Theme};
 
 use crate::models::log_entry::LogEntryPayload;
@@ -27,6 +26,7 @@ use baseline::next_ticket;
 pub(crate) use baseline::snapshot;
 /// `save_file` refreshes through it (ADR-0068 decision 4).
 pub(crate) use baseline::BaselineStore;
+use gate::DebounceMap;
 pub use gate::{mark_write_end, mark_write_start};
 use watch_log::{
     apply_watch_list, build_watch_error_log, build_watch_event_log, build_watch_register_log,
@@ -76,8 +76,7 @@ pub struct FileWatcher {
 impl FileWatcher {
     pub fn new(app_handle: AppHandle) -> Result<Self, String> {
         let watched_paths = Arc::new(Mutex::new(Vec::new()));
-        let last_events: Arc<Mutex<HashMap<PathBuf, Instant>>> =
-            Arc::new(Mutex::new(HashMap::new()));
+        let last_events: Arc<DebounceMap> = Arc::new(DebounceMap::default());
         let debounce_map = Arc::clone(&last_events);
         let baselines = Arc::new(BaselineStore::default());
         let callback_baselines = Arc::clone(&baselines);
@@ -161,7 +160,7 @@ fn emit_file_changed(app_handle: &AppHandle, event: FileChangedEvent) {
 /// full-precision stat; `stat_of` is still called at most once.
 fn observe_event(
     event: &Event,
-    debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
+    debounce_map: &DebounceMap,
     baselines: &BaselineStore,
     timestamp: i64,
     stat_of: impl Fn(&Path) -> Option<FileStat>,
@@ -195,7 +194,7 @@ fn apply_watch(
 fn handle_event(
     app_handle: &AppHandle,
     event: Event,
-    debounce_map: &Arc<Mutex<HashMap<PathBuf, Instant>>>,
+    debounce_map: &Arc<DebounceMap>,
     baselines: &BaselineStore,
 ) {
     let timestamp = SystemTime::now()

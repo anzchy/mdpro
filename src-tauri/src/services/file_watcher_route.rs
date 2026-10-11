@@ -16,11 +16,14 @@
 //! `refresh_if_present`), file_watcher_outcome.rs (`WatchOutcome`),
 //! file_watcher_tests.rs (o14 reads this file's `process_event` source),
 //! file_watcher_route_replace_tests.rs (D68), file_watcher_route_own_save_tests.rs
-//! (D101), docs/adr/0072-a-replaced-watched-file-is-checked-like-a-content-change.md
+//! (D101), file_watcher_route_debounce_kind_tests.rs (D116),
+//! docs/adr/0072-a-replaced-watched-file-is-checked-like-a-content-change.md
 //!
 //! Key decisions:
 //! - **Check order is the contract** (ADR-0068): kind, path count, self-write,
 //!   the D32 unchanged drop, debounce. See `process_event_checked`'s doc.
+//! - **The debounce is per (path, change type)** (D116): a replace then a
+//!   delete, or a delete then a replacement, both reach the frontend.
 //! - **A replaced file routes as `modified`** (ADR-0072). On macOS an atomic
 //!   save (temp + rename over the file), ours or an external editor's, is a
 //!   single-path `Modify(Name(_))` or a `Create(_)` on a path that still
@@ -37,13 +40,9 @@
 
 use notify::event::ModifyKind;
 use notify::{Event, EventKind};
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::Mutex;
-use std::time::Instant;
 
 use super::baseline::{is_filtered_kind, BaselineStore, UnchangedCheck};
-use super::gate::{is_debounced, is_self_write};
+use super::gate::{is_debounced, is_self_write, DebounceMap};
 use super::{FileChangedEvent, WatchOutcome};
 
 /// Tauri-free routing for one notify event: the `file:changed` payload to
@@ -55,7 +54,8 @@ use super::{FileChangedEvent, WatchOutcome};
 /// `Modify(Data(Content))`, or a replaced file, whose first path is
 /// unchanged since its baseline, read coherently (ADR-0068), is
 /// `IgnoredUnchanged`, again before the debounce check. Then the debounce
-/// check keyed by the first path, shared across kinds. Only an emitted
+/// check keyed by the first path and the change type it would emit (D116),
+/// so one kind's entry never debounces another kind. Only an emitted
 /// `modified` advances the baseline, and only for an already-registered path.
 /// The third value is the check's answer (`Unchanged` only on
 /// `IgnoredUnchanged`; a fail-open reason on a later debounce or emit) or
@@ -72,7 +72,7 @@ use super::{FileChangedEvent, WatchOutcome};
 /// is taken alone, and the baseline's file I/O runs under none of them.
 pub(super) fn process_event_checked(
     event: &Event,
-    debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
+    debounce_map: &DebounceMap,
     baselines: &BaselineStore,
     timestamp: i64,
 ) -> (Option<FileChangedEvent>, WatchOutcome, UnchangedCheck) {
@@ -115,7 +115,7 @@ pub(super) fn process_event_checked(
     if check == UnchangedCheck::Unchanged {
         return (None, WatchOutcome::IgnoredUnchanged, check);
     }
-    if is_debounced(path, debounce_map) {
+    if is_debounced(path, change_type, debounce_map) {
         return (None, WatchOutcome::Debounced, check);
     }
     if outcome == WatchOutcome::EmittedModified {
@@ -135,7 +135,7 @@ pub(super) fn process_event_checked(
 #[cfg(test)]
 pub(super) fn process_event(
     event: &Event,
-    debounce_map: &Mutex<HashMap<PathBuf, Instant>>,
+    debounce_map: &DebounceMap,
     baselines: &BaselineStore,
     timestamp: i64,
 ) -> (Option<FileChangedEvent>, WatchOutcome) {
@@ -150,3 +150,7 @@ mod replace_tests;
 #[cfg(all(test, target_os = "macos"))]
 #[path = "file_watcher_route_own_save_tests.rs"]
 mod own_save_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_route_debounce_kind_tests.rs"]
+mod debounce_kind_tests;

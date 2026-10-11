@@ -21,7 +21,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Instant;
 
-type Map = Mutex<HashMap<PathBuf, Instant>>;
+type Map = Mutex<HashMap<(PathBuf, &'static str), Instant>>;
 
 const RENAME_MODES: [RenameMode; 5] = [
     RenameMode::Any,
@@ -146,8 +146,14 @@ fn o3_rename_with_two_or_more_paths_emits_renamed_for_every_mode() {
             assert_eq!(json, emitted(&ps[0], "renamed", Some(&ps[1])), "{label}");
             assert_eq!(outcome, WatchOutcome::EmittedRenamed, "{label}");
             let map = map.lock().unwrap();
-            assert!(map.contains_key(&ps[0]), "{label}: source is debounce key");
-            assert!(!map.contains_key(&ps[1]), "{label}: destination is not");
+            assert!(
+                map.contains_key(&(ps[0].clone(), "renamed")),
+                "{label}: source is debounce key"
+            );
+            assert!(
+                !map.keys().any(|(k, _)| k == &ps[1]),
+                "{label}: destination is not"
+            );
         }
     }
 }
