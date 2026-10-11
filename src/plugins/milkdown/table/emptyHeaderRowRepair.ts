@@ -10,7 +10,8 @@
  * The header stays empty, the markdown serializer throws, and every flush and ⌘S fails.
  *
  * Pipeline: any doc-changing transaction → `appendTransaction` (this plugin, FIRST in
- * the plugin list) fills each empty header row in the tables the batch changed → the
+ * the plugin list) fills each empty header row in the tables the batch's doc diff
+ * visits (see `changedDescendants` for what that covers) → the
  * other plugins' `appendTransaction`s, prosemirror-tables' `fixTables` among them, see
  * a header that has cells and repair the table by its normal rules.
  *
@@ -23,9 +24,12 @@
  *   - Width is the table's `TableMap` width (the widest row, counting colspan). A table
  *     with no cell at all has width 0: it is left alone, and `fixTables` deletes it as
  *     `zero_sized` — there is no content to keep and no column count to restore.
- *   - Each added header cell copies the alignment of the first body row's cell at the
- *     same index (null when that row is shorter): the serializer takes a table's column
- *     alignment from its header row, so this keeps the column's delimiter.
+ *   - Each added header cell copies the alignment of the first body row's cell that
+ *     covers the same LOGICAL column, found through the `TableMap` (D108), so a colspan
+ *     cell lends its alignment to every column it spans and the columns after it do not
+ *     shift. Null when the table has no body row or that row does not reach the column.
+ *     The serializer takes a table's column alignment from its header row, so this
+ *     keeps the column's delimiter.
  *   - Only header rows (a row type whose default cell is a `header_cell`) with zero
  *     cells are touched. A short header row that still has a cell is `fixTables`' job
  *     (it takes the cell type from that first cell), and a healthy table is never seen
@@ -34,6 +38,12 @@
  *     appended transaction into its root's event, so one undo restores the document as
  *     it was before the root change. Edit-sync classifies it like `fixTables`' own
  *     append (history-carrying).
+ *   - Accepted cost of appending (D108): preset-commonmark's `syncListOrderPlugin`
+ *     skips any batch holding a non-generic transaction, and an appended one always
+ *     carries `appendedTransaction` meta. So when one transaction both renumbers an
+ *     ordered list (deletes its first item) and empties a header, the list keeps its
+ *     old labels until the next ordinary transaction. `fixTables`' own appends cause
+ *     the same skip; pinned by tests/d108-header-repair-list-order.test.ts.
  *   - Logs `editor.table.header_repair` (info, success) once per repairing pass, with
  *     `count` (tables repaired), `widths`, `trigger` (the root transaction's
  *     `uiEvent` meta — `drop` / `paste` / `cut` — or `edit` when it has none:
@@ -68,24 +78,46 @@ function missingHeaderCells(table: PmNode): PmNode[] | null {
   if (!header || header.childCount > 0) return null;
   const cellType = header.type.contentMatch.defaultType;
   if (!cellType || cellType.spec.tableRole !== "header_cell") return null;
-  const { width } = TableMap.get(table);
-  if (width === 0) return null;
-  const firstBody = table.childCount > 1 ? table.child(1) : null;
+  const map = TableMap.get(table);
+  if (map.width === 0) return null;
   const cells: PmNode[] = [];
-  for (let col = 0; col < width; col += 1) {
-    const alignment = firstBody?.maybeChild(col)?.attrs.alignment ?? null;
-    const cell = cellType.createAndFill({ alignment });
+  for (let col = 0; col < map.width; col += 1) {
+    const cell = cellType.createAndFill({ alignment: firstBodyAlignment(table, map, col) });
     if (cell) cells.push(cell);
   }
   return cells.length > 0 ? cells : null;
 }
 
+/**
+ * The alignment of the first body row's cell that covers logical column `col` (by
+ * `TableMap`, so a colspan cell covers each of its columns), or null when that row does
+ * not reach the column. Only called with width > 0 and an empty header, so a body row
+ * exists; without one the lookup is past the map's end and also gives null.
+ */
+function firstBodyAlignment(table: PmNode, map: TableMap, col: number): string | null {
+  // A map entry is the covering cell's offset inside the table. No cell starts at 0
+  // (that is the header row's own offset), and 0 is what TableMap leaves for a column
+  // no cell covers.
+  const offset = map.map[map.width + col];
+  if (!offset) return null;
+  return (table.nodeAt(offset)?.attrs.alignment as string | undefined) ?? null;
+}
+
 type Visit = (node: PmNode, pos: number) => void;
 
 /**
- * Call `visit` for every node of `cur` that differs from `old` (the same walk as
- * prosemirror-tables' `changedDescendants`), so a keystroke costs a scan of the
- * changed path only, not the whole document.
+ * Call `visit` for the nodes of `cur` that are not identical (`===`) to their counterpart
+ * in `old` (the same walk as prosemirror-tables' `changedDescendants`): every ancestor of
+ * a change, plus the whole subtree of a node that is new or whose counterpart differs in
+ * markup. Identical siblings are skipped after an identity check, not descended into.
+ *
+ * It is not strictly the changed path. Identity is only looked for among old siblings
+ * up to index `i + 2`, so an unchanged sibling whose index fell by three or more (three
+ * or more siblings deleted before it) is visited with its whole subtree; and after a
+ * mismatch a node is diffed against the old sibling at the current old index, which need
+ * not be its real counterpart, so more of it can be visited than changed. Visiting extra
+ * nodes is harmless here (a healthy table yields no repair); what matters is that a
+ * keystroke costs one root-to-leaf path plus sibling identity checks, not a full walk.
  */
 function changedDescendants(old: PmNode, cur: PmNode, offset: number, visit: Visit): void {
   const oldSize = old.childCount;
