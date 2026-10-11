@@ -124,9 +124,13 @@ describe("WI-3 — HTML paste end-pads ragged tables", () => {
       ["h1", "h2"],
       ["a", "b"],
     ]);
+    // Changed assertion with a stated reason (D99): this pinned preset-gfm's
+    // reading of an un-styled <th>/<td> as `left`, which is the D99 defect (an
+    // unaligned table pasted back as `| :- |`). "Keeps its alignment" for cells
+    // that carry none is `null`; tests/d99-html-paste-alignment.test.ts owns the rule.
     expect(shape.align).toEqual([
-      ["left", "left"],
-      ["left", "left"],
+      [null, null],
+      [null, null],
     ]);
   });
 
