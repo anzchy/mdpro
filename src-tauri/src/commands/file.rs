@@ -1229,10 +1229,11 @@ pub async fn save_file(
 /// After a successful `atomic_write`, and before the
 /// self-write mark clears, the save refreshes the D32 baseline of the final path
 /// if one is registered, so late FSEvents flags for this write compare
-/// against the saved bytes (ADR-0068 decision 4). The entry is the path's
-/// stat and the hash of the bytes written, whatever their size, with no
-/// re-read; if another writer got in after the rename, the disk no longer
-/// hashes to them and that writer's event still emits (`refresh_after_save`,
+/// against the saved bytes (ADR-0068 decision 4). The entry is the hash of
+/// the bytes written, whatever their size, with no re-read, and the path's
+/// stat only when its size is the written length (`None` otherwise, D129);
+/// if another writer got in after the rename, the disk no longer hashes to
+/// them and that writer's event still emits (`refresh_after_save`,
 /// D32 WI-6b, D112). A failed write refreshes nothing.
 pub(crate) async fn save_file_with(
     _document_id: String,

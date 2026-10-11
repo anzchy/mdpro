@@ -109,10 +109,11 @@ impl BaselineStore {
     /// Why `raw` is or is not unchanged since its baseline (ADR-0068
     /// decision 3, D112-WI-2). `Unchanged` only if `raw` has an entry with a
     /// stored stat and hash, one stable read of at most the cap (the larger
-    /// of `HASH_CAP_BYTES` and the stored size, which only a save can push
-    /// past it, D112) has the stored `(mtime, size)` and hash, and the slot
-    /// generation did not move across the read (D109). Every other answer
-    /// fails open. Never `NotChecked`. I/O runs unlocked.
+    /// of `HASH_CAP_BYTES` and the stored size; only a save or the Save As
+    /// seed can store a hashed size past it, and that size is always the
+    /// written length, D112, D129) has the stored `(mtime, size)` and hash,
+    /// and the slot generation did not move across the read (D109). Every
+    /// other answer fails open. Never `NotChecked`. I/O runs unlocked.
     pub(crate) fn is_unchanged_why(&self, raw: &Path) -> UnchangedCheck {
         let key = baseline_key(raw);
         let Some(Slot { entry, gen }) = self.copy_out(&key) else {

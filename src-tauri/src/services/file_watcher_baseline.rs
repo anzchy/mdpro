@@ -49,11 +49,11 @@
 //!   path stat with no hash, `is_unchanged_why` answers `unstable`. A read past
 //!   `HASH_CAP_BYTES` stores no hash. ctime and ino prove stability and are
 //!   never stored (D32): `Entry` stays `(mtime, size)` plus a hash.
-//! - **Only save-recorded entries read past the cap (D112).** Register, seed
-//!   and `refresh_if_present` hash at most `HASH_CAP_BYTES`; only
-//!   `refresh_after_save` hashes the written bytes whatever their size. So
-//!   `is_unchanged_why` reads up to the stored size when it is larger: the size
-//!   is the marker, bounded by what we wrote, and needs no extra state.
+//! - **Only written-bytes entries read past the cap (D112, D129).** Register,
+//!   the open seed and `refresh_if_present` hash at most `HASH_CAP_BYTES`;
+//!   `seed_for_written` (save refresh, Save As seed) hashes the written bytes
+//!   uncapped and keeps a stat only if its size is theirs, so the stored size
+//!   that sets `is_unchanged_why`'s read cap is bounded by what we wrote.
 //! - **The mutex (lock L5) is a leaf.** It is taken only in `locked()`, and
 //!   only the map helpers `copy_out` / `put` / `put_if_present` / `take` call
 //!   that; they do no I/O. Every stat, read and `canonicalize` runs outside

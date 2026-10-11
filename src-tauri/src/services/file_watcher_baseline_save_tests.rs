@@ -12,8 +12,9 @@ use super::BaselineStore;
 use std::fs;
 
 /// R1: the race. Disk holds external bytes; the save wrote ours. The entry
-/// is the fresh stat and the hash of our bytes (D112; before it: no hash),
-/// which the disk does not match, so the external write's event emits.
+/// is the hash of our bytes (D112; before it: no hash) and no stat, because
+/// the disk's size is not the written length (D129; before it: the fresh
+/// stat), so the check fails open and the external write's event emits.
 #[test]
 fn r1_disk_differs_from_written_bytes_stores_our_hash_and_emits() {
     let d = TempDir::new("r1");
@@ -29,7 +30,7 @@ fn r1_disk_differs_from_written_bytes_stores_our_hash_and_emits() {
     assert_eq!(
         store.get(&p),
         Some(Entry {
-            stat: fresh_stat,
+            stat: None,
             hash: Some(hash_bytes(b"our saved bytes"))
         })
     );
@@ -132,9 +133,10 @@ fn r4_failed_stat_stores_no_stat_and_fails_open() {
 }
 
 /// R5 (S4 law): over a table of (disk, written) pairs, the stored entry is
-/// the fresh stat and the hash of the written bytes (D112; before it, a hash
-/// only when the disk equalled them), and the file reads as unchanged
-/// exactly when the disk bytes equal the written bytes.
+/// the hash of the written bytes (D112; before it, a hash only when the disk
+/// equalled them) and the fresh stat when its size is the written length,
+/// else no stat (D129), and the file reads as unchanged exactly when the
+/// disk bytes equal the written bytes.
 #[test]
 fn r5_unchanged_iff_disk_equals_written() {
     let pairs: &[(&[u8], &[u8])] = &[
@@ -158,7 +160,9 @@ fn r5_unchanged_iff_disk_equals_written() {
         store.refresh_after_save(&p, written);
 
         let got = store.get(&p).expect("still registered");
-        assert_eq!(got.stat, snapshot(&p).stat, "pair {i}: fresh stat");
+        let ours = |&(_, size): &(_, u64)| size == written.len() as u64;
+        let want = snapshot(&p).stat.filter(ours);
+        assert_eq!(got.stat, want, "pair {i}: fresh stat if the size is ours");
         assert_eq!(got.hash, Some(hash_bytes(written)), "pair {i}");
         let unchanged = store.is_unchanged(&p);
         assert_eq!(
