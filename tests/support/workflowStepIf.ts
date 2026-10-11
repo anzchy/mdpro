@@ -14,8 +14,10 @@
  * job, never "no if:" — a flow-mapped step (`- {…}`), any quoted or complex key
  * at the step's own level, or an `if:` value that is quoted with a backslash,
  * a flow value, or continues past its line. Such a step's raw text also counts
- * when deciding whether its job is guarded. Pinned by
- * tests/release-workflow-step-if.test.ts and tests/release-workflow-if-fail-closed.test.ts.
+ * when deciding whether its job is guarded. A comment line inside a step that sits
+ * left of the step's keys is `unparseable` too (D128-WI-3). Pinned by
+ * tests/release-workflow-step-if.test.ts, tests/release-workflow-if-fail-closed.test.ts
+ * and tests/release-workflow-if-comment-indent.test.ts.
  */
 import { entry, job, jobIds, stepRun, steps } from "./workflowBlocks";
 
@@ -49,12 +51,24 @@ export function stepIf(step: string): string | null {
   return e.inline ?? e.body;
 }
 
-/** Why a (dedented) step's own `if:` cannot be read with certainty, or null when it can. */
+const isComment = (l: string) => l.trimStart().startsWith("#");
+const leadOf = (l: string) => l.length - l.trimStart().length;
+
+/**
+ * Why a (dedented) step's own `if:` cannot be read with certainty, or null when it can.
+ * The key indent comes from non-comment lines only (D128-WI-3): `items()` dedents by
+ * comments too, so a comment left of the keys would otherwise hide every key.
+ */
 export function unparseableReason(step: string): string | null {
-  const lines = step.split(/\r?\n/);
+  const lines = step.split(/\r?\n/).filter((l) => l.trim() !== "");
+  const keyLines = lines.filter((l) => !isComment(l));
+  const keyIndent = keyLines.length ? Math.min(...keyLines.map(leadOf)) : 0;
+  const under = lines.find((l) => isComment(l) && leadOf(l) < keyIndent);
+  if (under !== undefined) return `comment indented less than the step's keys: ${under.trim()}`;
   let rawIf: string | null = null;
-  for (const l of lines) {
-    if (l.trim() === "" || /^\s/.test(l) || l.startsWith("#")) continue;
+  for (const line of keyLines) {
+    if (leadOf(line) !== keyIndent) continue;
+    const l = line.slice(keyIndent);
     if (!PLAIN_KEY_LINE.test(l)) return `not a plain key line: ${l}`;
     const m = IF_LINE.exec(l);
     if (m) rawIf = m[1].trim();
