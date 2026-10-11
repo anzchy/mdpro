@@ -2,20 +2,24 @@
  * Purpose: place a recovered draft in the store (D146). When its file is already open
  * under another id (e.g. the path-derived id of a file opened at launch), the draft goes
  * into that tab instead of a second tab for the same file, unless that tab holds unsaved
- * text of its own.
+ * text of its own or another draft is already stored under its id (D151).
  *
- * Pipeline: recovered document (`draftRecoveryOutcome`, under the draft id) →
- *   `placeRecovered`: open tab with the same non-null path and another id → flush that
- *   tab's pending WYSIWYG edits (`flushPendingEditsFor`) → re-read it →
- *   - clean, flush ok → `merged-into-clean`: the draft's content into that tab, under its
- *     id, modified → `upsertAndActivate` (→ `prepareWholesaleReplace(id,
- *     "draft-recovery")`, so the WYSIWYG view rebuilds) → `file.draft.recover.merge` →
- *     re-key the draft: `save_draft` under the tab's id, then `delete_draft` of the draft
+ * Pipeline: recovered document (`draftRecoveryOutcome`, under the draft id) → open tab
+ *   with the same non-null path and another id → `get_draft` under that tab's id (D151)
+ *   → `placeRecovered`: flush that tab's pending WYSIWYG edits (`flushPendingEditsFor`)
+ *   → re-read it →
+ *   - dirty, or the flush failed → `collision-dirty`: today's second tab under the draft
+ *     id, a toast naming the file, `file.draft.recover.merge` (warn);
+ *   - clean, a draft stored under its id → `collision-existing-draft`; the check
+ *     rejected (or ran for an id no longer matching) → `collision-draft-check-failed`:
+ *     the same second tab, toast and warn line, nothing saved or deleted;
+ *   - clean, flush ok, no draft under its id → `merged-into-clean`: the draft's content
+ *     into that tab, under its id, modified → `upsertAndActivate`
+ *     (→ `prepareWholesaleReplace(id, "draft-recovery")`, so the WYSIWYG view rebuilds)
+ *     → `file.draft.recover.merge` → re-key the draft: `save_draft` under the tab's id, then `delete_draft` of the draft
  *     id → `file.draft.delete` (reason `rekeyed`, the target id and byte count; the
  *     audit line for the one draft deletion outside the recovery dialog, WI-2) →
  *     `file.draft.rekey`;
- *   - dirty, or the flush failed → `collision-dirty`: today's second tab under the draft
- *     id, a toast naming the file, `file.draft.recover.merge` (warn);
  *   - no match, or no path → `new`: today's tab under the draft id, nothing logged here.
  *
  * Key decisions:
@@ -39,6 +43,13 @@
  *   text is never left only in memory. `delete_draft` (unguarded, as saveService uses
  *   it) is right here: the guarded discard refuses a draft owned by a live window, and
  *   this window owns it.
+ * - A draft already stored under the open tab's id blocks the merge (D151). `save_draft`
+ *   replaces the bundle under that id unconditionally, so the re-key would overwrite it,
+ *   and so would the merged tab's next autosave. That draft is a second unrecovered
+ *   version of the file (a crash with two dirty tabs on it; both drafts are listed, the
+ *   file reopens clean under one id). So the recovered draft keeps its own tab and id,
+ *   the open tab stays clean and untouched, and both drafts survive. A failed check is
+ *   treated the same way: the merge only runs on a confirmed absence.
  * - Logs carry ids, enums and a byte count only, never the path, content or error text.
  *
  * @coordinates-with src/App.tsx — applyDraftOutcome calls applyRecoveredDocument
@@ -46,6 +57,7 @@
  * @coordinates-with src/hooks/useDocument.ts — upsertAndActivateDocument (the store write)
  * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEditsFor
  * @coordinates-with src/hooks/useAutoSave.ts — the same `save_draft` payload shape
+ * @coordinates-with src-tauri/src/commands/draft.rs — `get_draft` (the D151 check), `save_draft`
  * @coordinates-with src-tauri/src/commands/draft_recover_watch.rs — the watch on the path
  * @module utils/recoverIntoOpenTab
  */
@@ -56,10 +68,23 @@ import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
 import { extractTitle } from "./draftTitle";
 
+/** Whether a draft is stored under the open tab's id (D151): `get_draft`'s answer. */
+export type DraftUnderOpenId = "absent" | "present" | "check-failed";
+
+/** The id `get_draft` was asked about and its answer. */
+export interface OpenIdDraftCheck {
+  id: string;
+  state: DraftUnderOpenId;
+}
+
 export type RecoverPlacement =
   | { kind: "merged-into-clean"; document: Document }
   | { kind: "collision-dirty"; document: Document; open: Document }
+  | { kind: "collision-existing-draft"; document: Document; open: Document }
+  | { kind: "collision-draft-check-failed"; document: Document; open: Document }
   | { kind: "new"; document: Document };
+
+type CollisionKind = Exclude<RecoverPlacement["kind"], "merged-into-clean" | "new">;
 
 export interface RecoverIntoStoreDeps {
   /** `useDocument().upsertAndActivateDocument`: wholesale prep, upsert, activate. */
@@ -73,16 +98,52 @@ const fileName = (path: string): string => path.split(/[/\\]/).pop() || path;
 export const collisionToast = (path: string): string =>
   `A recovered draft and an unsaved edit of ${fileName(path)} are both open.`;
 
-/**
- * Where `recovered` (under its draft id) goes. Flushes the matching tab's pending
- * WYSIWYG edits before judging it; reads nothing else and writes no document.
- */
-export function placeRecovered(recovered: Document): RecoverPlacement {
+/** The toast for a recovered draft kept in its own tab: another draft of the file waits (D151). */
+export const existingDraftToast = (path: string): string =>
+  "Another unsaved draft of " +
+  `${fileName(path)} is still waiting to be recovered, so this one opened in its own tab.`;
+
+/** The toast for a draft opened in its own tab because the check for another draft failed. */
+export const draftCheckFailedToast = (path: string): string =>
+  "Could not check for another unsaved draft of " +
+  `${fileName(path)}, so this one opened in its own tab.`;
+
+const TOASTS: Record<CollisionKind, (path: string) => string> = {
+  "collision-dirty": collisionToast,
+  "collision-existing-draft": existingDraftToast,
+  "collision-draft-check-failed": draftCheckFailedToast,
+};
+
+/** The open tab sharing `recovered`'s non-null path under another id, if any. */
+function findOpenMatch(recovered: Document): Document | undefined {
   const { path } = recovered;
-  if (path === null) return { kind: "new", document: recovered };
-  const match = useDocumentStore
+  if (path === null) return undefined;
+  return useDocumentStore
     .getState()
     .documents.find((doc) => doc.id !== recovered.id && doc.path === path);
+}
+
+/**
+ * Ask `get_draft` whether a draft is stored under `id`. `null` (Rust `None`) is absent;
+ * a rejection is `check-failed`, which callers treat like `present`. Never rejects.
+ */
+export async function checkDraftUnder(id: string): Promise<OpenIdDraftCheck> {
+  try {
+    const draft = await invoke<unknown>("get_draft", { documentId: id });
+    return { id, state: draft == null ? "absent" : "present" };
+  } catch {
+    return { id, state: "check-failed" };
+  }
+}
+
+/**
+ * Where `recovered` (under its draft id) goes, given `check`: what `get_draft` said
+ * about the matching tab's id. A check about another id (the tab changed while it ran)
+ * counts as failed. Flushes the matching tab's pending WYSIWYG edits before judging it;
+ * reads nothing else and writes no document.
+ */
+export function placeRecovered(recovered: Document, check?: OpenIdDraftCheck): RecoverPlacement {
+  const match = findOpenMatch(recovered);
   if (!match) return { kind: "new", document: recovered };
   const { status } = useMilkdownEditorStore
     .getState()
@@ -90,6 +151,13 @@ export function placeRecovered(recovered: Document): RecoverPlacement {
   const open = useDocumentStore.getState().getDocumentById(match.id) ?? match;
   if (status === "failed" || open.isModified) {
     return { kind: "collision-dirty", document: recovered, open };
+  }
+  const draftState = check?.id === match.id ? check.state : "check-failed";
+  if (draftState === "present") {
+    return { kind: "collision-existing-draft", document: recovered, open };
+  }
+  if (draftState === "check-failed") {
+    return { kind: "collision-draft-check-failed", document: recovered, open };
   }
   return {
     kind: "merged-into-clean",
@@ -99,7 +167,7 @@ export function placeRecovered(recovered: Document): RecoverPlacement {
 
 function logMerge(draftId: string, documentId: string, outcome: RecoverPlacement["kind"]) {
   loggingService.logEventSync({
-    level: outcome === "collision-dirty" ? "warn" : "info",
+    level: outcome === "merged-into-clean" ? "info" : "warn",
     event: "file.draft.recover.merge",
     status: "success",
     actionId: loggingService.generateActionId(),
@@ -160,22 +228,28 @@ function logRekeyDelete(draftId: string, merged: Document) {
 }
 
 /**
- * Put the recovered document in the store (synchronously, before the first await),
- * then, after a merge, re-key its draft. Resolves when the re-key settles.
+ * Put the recovered document in the store, then, after a merge, re-key its draft.
+ * With no open tab of the same path this is synchronous, before the first await; with
+ * one, it first awaits `get_draft` under that tab's id (D151), then places and writes
+ * the store in one synchronous step. Resolves when the re-key settles.
  */
 export async function applyRecoveredDocument(
   draftId: string,
   recovered: Document,
   deps: RecoverIntoStoreDeps,
 ): Promise<RecoverPlacement["kind"]> {
-  const placement = placeRecovered(recovered);
+  const match = findOpenMatch(recovered);
+  const check = match ? await checkDraftUnder(match.id) : undefined;
+  const placement = placeRecovered(recovered, check);
   deps.upsertAndActivate(placement.document);
   switch (placement.kind) {
     case "new":
       return placement.kind;
     case "collision-dirty":
+    case "collision-existing-draft":
+    case "collision-draft-check-failed":
       logMerge(draftId, placement.open.id, placement.kind);
-      deps.showToast(collisionToast(placement.open.path ?? ""));
+      deps.showToast(TOASTS[placement.kind](placement.open.path ?? ""));
       return placement.kind;
     case "merged-into-clean":
       logMerge(draftId, placement.document.id, placement.kind);
