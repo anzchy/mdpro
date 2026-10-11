@@ -15,13 +15,17 @@
  *     `setCellAttr`) changes only the caret's cell, and with a column
  *     selection it skips the whole column when the selection's last cell
  *     already has the value. Align writes every cell of the column itself.
+ *   - D141: Insert column does not use preset-gfm's `addColBeforeCommand` /
+ *     `addColAfterCommand`, whose cells take the schema default `left` and
+ *     serialize as `:-`. `insertUnalignedColumn` inserts the column unaligned,
+ *     as MCP `add_column` does. Insert row keeps preset-gfm's commands, which
+ *     copy each column's header alignment.
  *
  * @coordinates-with src/plugins/milkdown/table/contextMenu.ts
+ * @coordinates-with src/plugins/milkdown/table/insertColumn.ts
  */
 
 import {
-  addColAfterCommand,
-  addColBeforeCommand,
   addRowAfterCommand,
   addRowBeforeCommand,
   deleteSelectedCellsCommand,
@@ -34,6 +38,7 @@ import {
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { CellSelection, findTable, TableMap } from "@milkdown/kit/prose/tables";
 import type { TableActionId, TableContext } from "./actionDescriptors";
+import { insertUnalignedColumn } from "./insertColumn";
 
 export interface CommandsLike {
   call: (key: unknown, payload?: unknown) => boolean;
@@ -89,9 +94,9 @@ export function runCommandFor(
     case "insert_row_after":
       return commands.call(addRowAfterCommand.key);
     case "insert_column_before":
-      return commands.call(addColBeforeCommand.key);
+      return insertUnalignedColumn(view, "before");
     case "insert_column_after":
-      return commands.call(addColAfterCommand.key);
+      return insertUnalignedColumn(view, "after");
 
     case "move_row_up":
       return commands.call(moveRowCommand.key, {

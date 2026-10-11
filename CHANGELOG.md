@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- In WYSIWYG, a column added with the table context menu's Insert column left / right, or its shortcut, no longer comes out left-aligned (D141). Each insert used to write a `:-` delimiter nobody had set; the new column is now unaligned, and the existing columns keep their alignment
+
 ## [0.3.1] - 2026-10-11
 
 ### Highlights

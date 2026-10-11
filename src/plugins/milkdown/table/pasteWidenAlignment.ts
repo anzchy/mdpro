@@ -14,9 +14,11 @@
  *
  * Key decisions:
  *   - Tied to the paste, not an `appendTransaction`: only the transaction
- *     prosemirror-tables builds for this paste is touched, so Insert Table, the
- *     context menu's add column / add row and MCP table actions keep the schema
- *     default (D99 kept it `left` for them on purpose).
+ *     prosemirror-tables builds for this paste is touched, so Insert Table and
+ *     MCP table actions keep their own behaviour (D99 kept the schema default
+ *     `left` on purpose). The context menu's Insert column resets its own column
+ *     the same way (D141, `insertColumn.ts`); its Insert row copies the header
+ *     alignment, as preset-gfm's `addRowWithAlignment` does.
  *   - The schema default is not changed, for the same reason.
  *   - A grown cell is one outside the host's old width or height and outside the
  *     pasted rectangle, which `insertCells` leaves as the transaction's
