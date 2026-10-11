@@ -10,9 +10,11 @@
  * `emptyCellRule` (serialize an empty cell blank, never `<br />`, WI-1) with
  * `cellAlignmentDomRule` (HTML keeps "no alignment" apart from `left`, D99);
  * paste — `tablePasteNormalizePlugin` end-pads ragged tables in an HTML paste,
- * which bypasses remark (WI-3), and `tablePasteRefusalGuardPlugin` refuses a
+ * which bypasses remark (WI-3); `tablePasteRefusalGuardPlugin` refuses a
  * table-carrying paste that would split the host table or be dropped by a cell
- * selection (D83 / D136); edit —
+ * selection (D83 / D136); and `tablePasteWidenAlignmentPlugin` keeps a cell paste
+ * that grows the host table from giving the added columns an alignment (D135);
+ * edit —
  * `tableHeaderRepairPlugin` refills a header row a deletion or drop left with no
  * cells, before `fixTables` runs (D103 / D100). Together a widened table serializes
  * byte-identically to `tableWiden`'s output, and no edit leaves a table the
@@ -24,9 +26,11 @@
  *   - Both cell rules go through a single `extendSchema` per schema: each
  *     extension starts from the preset's spec, so two separate ones would not
  *     compose — the later would silently drop the earlier.
- *   - The header repair and the paste refusal guard do not depend on their place
- *     in this list: each puts itself at the front of `prosePluginsCtx`, ahead of
- *     gfm's `tableEditing`.
+ *   - The header repair, the paste refusal guard and the paste-widen alignment
+ *     reset do not depend on their place in this list: each puts itself at the
+ *     front of `prosePluginsCtx`, ahead of gfm's `tableEditing`. The widen reset
+ *     declines any paste `pasteRefusal` would refuse, so whichever of the two
+ *     runs first, a refused paste is refused and never reaches prosemirror-tables.
  *
  * @coordinates-with src/plugins/milkdown/table/raggedTableWiden.ts
  * @coordinates-with src/plugins/milkdown/table/emptyCellSerializer.ts
@@ -34,6 +38,7 @@
  * @coordinates-with src/plugins/milkdown/table/pasteTableNormalize.ts
  * @coordinates-with src/plugins/milkdown/table/pasteRefusalGuard.ts
  * @coordinates-with src/plugins/milkdown/table/emptyHeaderRowRepair.ts
+ * @coordinates-with src/plugins/milkdown/table/pasteWidenAlignment.ts
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx — `.use(tableParityPlugins)` after gfm
  */
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
@@ -43,6 +48,7 @@ import { emptyCellRule } from "./emptyCellSerializer";
 import { tableHeaderRepairPlugin } from "./emptyHeaderRowRepair";
 import { tablePasteRefusalGuardPlugin } from "./pasteRefusalGuard";
 import { tablePasteNormalizePlugin } from "./pasteTableNormalize";
+import { tablePasteWidenAlignmentPlugin } from "./pasteWidenAlignment";
 import { remarkTableWidenPlugin } from "./raggedTableWiden";
 
 /** gfm's two cell schemas with both mdpro cell rules, each in one extension. */
@@ -56,5 +62,6 @@ export const tableParityPlugins: MilkdownPlugin[] = [
   ...tableCellSchemaPlugins,
   tablePasteNormalizePlugin,
   tablePasteRefusalGuardPlugin,
+  tablePasteWidenAlignmentPlugin,
   tableHeaderRepairPlugin,
 ];

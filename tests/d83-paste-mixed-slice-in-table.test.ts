@@ -135,8 +135,15 @@ const D83_3_CELLS = [
   ["d", "", ""],
 ];
 
-/** D83-3's host rows as serialized: values in their columns (delimiter row not pinned). */
-const D83_3_ROWS = ["| X1 | X2 |    |", "| h1 | h2 |    |", "| a  | b  | c  |", "| d  |    |    |"];
+/** D83-3's host rows as serialized: values in their columns. */
+const D83_3_ROWS = ["| X1 | X2 |   |", "| h1 | h2 |   |", "| a  | b  | c |", "| d  |    |   |"];
+
+/**
+ * D83-3's delimiter row (D135): the column the paste added carries no alignment.
+ * Before D135 it read `| -- | -- | :- |` — prosemirror-tables' `growTable` gave
+ * the added header cell the schema default `left`.
+ */
+const D83_3_DELIMITER = "| -- | -- | - |";
 
 describe("D83 — a table-carrying slice that would split the host table is refused", () => {
   it("D83-1: caret in a body cell — the document is left unchanged", async () => {
@@ -244,6 +251,7 @@ describe("D83 — slices prosemirror-tables takes itself are left to it", () => 
     expect(shapes[0].cells).toEqual(D83_3_CELLS);
     const md = serialize(e).trimEnd().split("\n");
     expect([md[0], ...md.slice(2)]).toEqual(D83_3_ROWS);
+    expect(md[1]).toBe(D83_3_DELIMITER);
   });
 
   it("D83-4: an open slice of table rows is passed through untouched", async () => {
