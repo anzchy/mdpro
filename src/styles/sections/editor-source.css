@@ -130,9 +130,28 @@
 }
 
 /* The close "×" is a plain <button>: without this it keeps the UA's ButtonText
-   colour, near-black on the dark panel. */
-.editor-shell .cm-editor .cm-panel [name="close"] {
+   colour, near-black on the dark panel. Search and lint name it
+   `[name="close"]`; Go to Line's dialog (⌥⌘G) uses `.cm-dialog-close`, whose
+   only CodeMirror rule (0,2,0) sets no colour (D158-WI-2). */
+.editor-shell .cm-editor .cm-panel [name="close"],
+.editor-shell .cm-editor .cm-panel .cm-dialog-close {
   color: inherit;
+}
+
+/* Selected diagnostic in the lint panel (⌘⇧M). Lint paints it #ddd / #2e343e
+   unfocused and with system Highlight focused, keyed to CodeMirror's dark
+   facet, not to the app theme: oneDark in the light app theme put dark text on
+   #2e343e (~1.39:1). Same convention as the editor selection (D154): neutral
+   while the list is unfocused, accent-soft while it has focus. Both beat lint's
+   rules: (0,5,1) > (0,4,1) unfocused, (0,6,1) > (0,5,1) focused (D158-WI-2). */
+.editor-shell .cm-editor .cm-panel.cm-panel-lint ul [aria-selected] {
+  background: color-mix(in srgb, var(--color-text) 12%, transparent);
+  color: var(--color-text);
+}
+
+.editor-shell .cm-editor .cm-panel.cm-panel-lint ul:focus [aria-selected] {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
 }
 
 /* Lint and autocomplete tooltips: the popover contract. */

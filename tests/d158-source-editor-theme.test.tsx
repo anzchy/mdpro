@@ -32,6 +32,8 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) })
 import { act } from "@testing-library/react";
 import { EditorView } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { openLintPanel, setDiagnostics } from "@codemirror/lint";
+import { gotoLine } from "@codemirror/search";
 import { codeThemeCompartment } from "../src/components/Editor/extensions/dynamicExtensions";
 import { useThemeStore, type ResolvedTheme } from "../src/stores/themeStore";
 import { readAppCssFile } from "../src/test/appCss";
@@ -269,5 +271,145 @@ describe("D158 — Source editor theme follows the app theme", () => {
       hover.some((r) => r.decls.get("background") === "color-mix(in srgb, var(--color-text) 5%, transparent)"),
     ).toBe(true);
     expect(find(/^\.cm-button:active$/)).toHaveLength(0);
+  });
+});
+
+/**
+ * D158-WI-2 (audit follow-ups): chrome the first pass missed.
+ *   - Go to Line's close "×" is `.cm-dialog-close`, not `[name="close"]`, so it
+ *     kept the UA's near-black ButtonText on the dark panel.
+ *   - With oneDark in the LIGHT app theme, an unfocused selected lint diagnostic
+ *     sat on lint's `&dark` `#2e343e` row under mdpro's dark text (~1.39:1).
+ * Selectors are matched against the real elements CodeMirror builds, so a rule
+ * that names the wrong element fails here, not on the device.
+ */
+describe("D158-WI-2 — dialog close button and lint selection follow the app theme", () => {
+  /** App rules in editor-source.css (under .editor-shell) whose element matches `re`. */
+  const appRulesFor = (re: RegExp): Array<{ selector: string; rule: CssRule }> =>
+    sourceCss().flatMap((rule) =>
+      rule.selectors
+        .filter((s) => s.startsWith(".editor-shell ") && re.test(s))
+        .map((selector) => ({ selector, rule })),
+    );
+
+  const LINT_SELECTED = /\.cm-panel-lint ul(:focus)? \[aria-selected\]$/;
+  const DIALOG_CLOSE = /\.cm-dialog-close$/;
+
+  /** Mount with oneDark, a diagnostic and the lint panel open (the 1.39:1 setup). */
+  function mountLintPanel(theme: ResolvedTheme): { view: EditorView; ul: HTMLElement; item: HTMLElement } {
+    const view = mountIn(theme);
+    act(() => view.dispatch({ effects: codeThemeCompartment.reconfigure(oneDark) }));
+    act(() =>
+      view.dispatch(setDiagnostics(view.state, [{ from: 0, to: 7, severity: "warning", message: "probe" }])),
+    );
+    act(() => {
+      openLintPanel(view);
+    });
+    const ul = view.dom.querySelector<HTMLElement>(".cm-panel-lint ul");
+    expect(ul, "lint panel list not rendered").not.toBeNull();
+    const item = ul!.querySelector<HTMLElement>("[aria-selected]");
+    expect(item, "no selected diagnostic in the lint panel").not.toBeNull();
+    return { view, ul: ul!, item: item! };
+  }
+
+  it("Go to Line's close button gets a token text colour from a rule that reaches it", () => {
+    const view = mountIn("dark");
+    act(() => {
+      gotoLine(view);
+    });
+    const close = view.dom.querySelector<HTMLElement>(".cm-dialog-close");
+    expect(close, "Go to Line dialog has no .cm-dialog-close").not.toBeNull();
+    const rules = appRulesFor(DIALOG_CLOSE);
+    expect(rules).not.toHaveLength(0);
+    for (const { selector, rule } of rules) {
+      expect(close!.matches(selector), `${selector} does not match the real button`).toBe(true);
+      expect(rule.decls.get("color")).toMatch(/^(inherit|var\(--color-[\w-]+\))$/);
+    }
+    // Every CodeMirror / oneDark rule for the button (none sets colour today) loses.
+    const cm = parseRules(codemirrorCss()).flatMap((r) =>
+      r.selectors.filter((s) => cmClasses(lastCompound(s)).includes("cm-dialog-close")),
+    );
+    expect(cm, "CodeMirror generated no rule for .cm-dialog-close").not.toHaveLength(0);
+    for (const { selector } of rules) {
+      for (const cmSel of cm) {
+        expect(compareSpecificity(specificity(selector), specificity(cmSel)), `${selector} vs ${cmSel}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  for (const theme of ["light", "dark"] as const) {
+    it(`${theme} app theme + oneDark: the selected lint diagnostic is painted with tokens, focused or not`, () => {
+      const { ul, item } = mountLintPanel(theme);
+      const rules = appRulesFor(LINT_SELECTED);
+      const unfocused = rules.filter(({ selector }) => !selector.includes(":focus"));
+      const focused = rules.filter(({ selector }) => selector.includes(":focus"));
+      expect(unfocused, "no app rule for the unfocused selected diagnostic").not.toHaveLength(0);
+      expect(focused, "no app rule for the focused selected diagnostic").not.toHaveLength(0);
+      for (const { rule } of rules) {
+        expect(rule.decls.get("background")).toMatch(/var\(--color-[\w-]+\)/);
+        expect(rule.decls.get("color")).toMatch(/^var\(--color-[\w-]+\)$/);
+      }
+      // Unfocused: neutral (as the editor's own unfocused selection, D154); focused: accent-soft.
+      expect(unfocused.some(({ rule }) => rule.decls.get("background") === "color-mix(in srgb, var(--color-text) 12%, transparent)")).toBe(true);
+      expect(focused.some(({ rule }) => rule.decls.get("background") === "var(--color-accent-soft)")).toBe(true);
+      for (const { rule } of rules) expect(rule.decls.get("color")).toBe("var(--color-text)");
+
+      // The selectors reach the real row, in the matching focus state.
+      // openLintPanel focuses the list; blur it to reach the unfocused state the bug lives in.
+      act(() => ul.blur());
+      expect(document.activeElement).not.toBe(ul);
+      expect(unfocused.every(({ selector }) => item.matches(selector))).toBe(true);
+      expect(focused.some(({ selector }) => item.matches(selector))).toBe(false);
+      act(() => ul.focus());
+      expect(document.activeElement).toBe(ul);
+      expect(focused.every(({ selector }) => item.matches(selector))).toBe(true);
+
+      // Out-rank lint's own rules (light `#ddd`, dark `#2e343e`, focused Highlight):
+      // the unfocused rule every non-:focus one, the focused rule all of them.
+      const cm = parseRules(codemirrorCss()).flatMap((r) =>
+        r.selectors.filter((s) => /\.cm-panel-lint ul(:focus)? \[aria-selected\]$/.test(s)),
+      );
+      expect(cm.some((s) => s.includes(":focus")), "lint generated no focused rule").toBe(true);
+      expect(cm.some((s) => !s.includes(":focus")), "lint generated no unfocused rule").toBe(true);
+      const losses: string[] = [];
+      for (const { selector } of rules) {
+        for (const cmSel of cm) {
+          if (cmSel.includes(":focus") && !selector.includes(":focus")) continue;
+          if (compareSpecificity(specificity(selector), specificity(cmSel)) <= 0) losses.push(`${selector} vs ${cmSel}`);
+        }
+      }
+      expect(losses).toEqual([]);
+    });
+  }
+
+  it("every token the WI-2 rules use is defined in both themes", () => {
+    const light = readAppCssFile("themes/light.css");
+    const dark = readAppCssFile("themes/dark.css");
+    const rules = [...appRulesFor(DIALOG_CLOSE), ...appRulesFor(LINT_SELECTED)];
+    expect(rules).not.toHaveLength(0);
+    for (const { rule } of rules) {
+      for (const value of rule.decls.values()) {
+        for (const m of value.matchAll(/var\((--[\w-]+)\)/g)) {
+          expect(light, `${m[1]} missing in light.css`).toContain(`${m[1]}:`);
+          expect(dark, `${m[1]} missing in dark.css`).toContain(`${m[1]}:`);
+        }
+      }
+    }
+  });
+
+  it("editor-source.css as a whole has no prefers-color-scheme and no literal colours", () => {
+    // Whole-file guard, comments stripped. No allowlist: as of D158-WI-2 the file
+    // has no colour literal outside comments, so any new one is a regression.
+    const css = readAppCssFile("sections/editor-source.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(css).not.toMatch(/prefers-color-scheme/i);
+    const literals: string[] = [];
+    for (const rule of parseRules(css)) {
+      for (const [prop, value] of rule.decls) {
+        if (/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(|\bwhite\b|\bblack\b/i.test(value)) {
+          literals.push(`${rule.selectors.join(", ")} { ${prop}: ${value} }`);
+        }
+      }
+    }
+    expect(literals).toEqual([]);
   });
 });
