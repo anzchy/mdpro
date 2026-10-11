@@ -111,6 +111,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 未保存文档禁粘贴守卫 | Shipped | `src/plugins/milkdown/imagePastePlugin.ts` | 在未命名文档里粘贴图片，toast 提示「Save the document before pasting images」 |
 | 批量多图粘贴 | Shipped | `src-tauri/src/commands/image.rs` | 一次选中多张图再 ⌘V，`upload_images_batch` 一趟处理完，收到一条汇总 toast，例如「3 images pasted, 1 failed」 |
 | 图片拖放插入 | Shipped | `src/App.tsx` | 从 Finder 拖一张 png 丢到编辑区，光标处插入 Markdown 图片引用 |
+| 编辑器内拖拽文字 / 表格 | Absent | — | 选中一段文字按住拖到同一文档别处：触控板按下只会重新选择；鼠标能拖出拖影，松开后文字原地不动。`src-tauri/tauri.conf.json` 的 `dragDropEnabled: true` 下 tauri-runtime-wry 截走所有页内 drop，WebKit 收不到（`docs/adr/0075-0-3-1-ships-without-in-editor-drag-and-drop.md`，0.3.1 不做）。Finder 文件拖入不受影响 |
 | 图片缩放菜单 | Shipped | `src/components/Editor/ImageContextMenu.tsx`, `src/plugins/milkdown/imageResizePlugin.ts` | 右键点一张图，选 25% / 50% / 75% / 100%，或在自定义框里填 1–200 之间的数 |
 | 图片宽度写回 Markdown | Shipped | `src/plugins/milkdown/imageResizePlugin.ts` | 设完宽度 ⌘S，源码里出现 `{mdpro-width=50%}` 标记；导出 HTML 后变成行内 style，且鼠标悬停时 tooltip 不显示这段标记 |
 | 本地图片渲染 | Shipped | `src/hooks/useMilkdownImages.ts`, `src-tauri/src/commands/image.rs` | 写一个相对路径 `![](./assets/a.png)`，`resolve_image_path` 把它解析成 asset:// URL，图片直接显示；刚粘贴完的图也立刻可见 |
