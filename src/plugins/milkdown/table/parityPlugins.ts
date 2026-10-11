@@ -9,9 +9,9 @@
  * PM doc exists (WI-2); cell schemas — one extension per cell schema composes
  * `emptyCellRule` (serialize an empty cell blank, never `<br />`, WI-1) with
  * `cellAlignmentDomRule` (HTML keeps "no alignment" apart from `left`, D99);
- * paste — `tablePasteInventedRowsRule` drops the empty rows the HTML parser
- * invents for a table pasted into a table, before preset-gfm's paste rule reads
- * them (D142); `tablePasteNormalizePlugin` end-pads ragged tables in an HTML paste,
+ * paste — `tablePasteInventedRowsRule` fills the empty rows the HTML parser
+ * invents for a pasted or dropped table, before preset-gfm's paste rule reads
+ * them (D149 / D150; a cell paste drops them again, D142); `tablePasteNormalizePlugin` end-pads ragged tables in an HTML paste,
  * which bypasses remark (WI-3); `tablePasteRefusalGuardPlugin` refuses a
  * table-carrying paste that would split the host table or be dropped by a cell
  * selection (D83 / D136); and `tablePasteWidenAlignmentPlugin` pastes cells with

@@ -11,7 +11,7 @@
  * not prevented.
  *
  * Pipeline: paste → `pasteWidenAlignment.ts`'s front `handlePaste` → `pasteAsCells`:
- * `pastedCells` → over a CellSelection `clipCells` to the selection, else at the
+ * `withoutInventedRows` → `pastedCells` → over a CellSelection `clipCells` to the selection, else at the
  * caret's cell → `retypeRows` → prosemirror-tables' `insertCells` → `dispatch`.
  *
  * Key decisions:
@@ -25,11 +25,16 @@
  *     prosemirror-tables does, but each copy takes its column's header alignment:
  *     the schema default `left` would otherwise write `:-` into the header row's
  *     delimiter (D135's rule for added rows).
+ *   - The rows the paste rule filled for the HTML parser's invented rows
+ *     (`pasteInventedRows.ts`) are dropped first: the rule cannot know the target
+ *     (a drop lands away from the selection), this function can. As cells they
+ *     would blank a host row; a tbody-only table would paste an empty row first.
  *   - Logs `editor.table.paste-retyped` (rule 20) only when a cell was retyped,
- *     after `insertCells` returned; a paste that needed none logs nothing here.
+ *     and `editor.table.paste-rows-dropped` only when a filled row was dropped,
+ *     after `insertCells` returned; a paste that needed neither logs nothing here.
  *
  * @coordinates-with src/plugins/milkdown/table/pasteWidenAlignment.ts — the caller, and its dispatch wrapper
- * @coordinates-with src/plugins/milkdown/table/pasteInventedRows.ts — drops the parser's invented rows before this
+ * @coordinates-with src/plugins/milkdown/table/pasteInventedRows.ts — fills the parser's invented rows; `withoutInventedRows` drops them here
  * @coordinates-with prosemirror-tables `handlePaste` / `pastedCells` / `clipCells` / `insertCells`
  */
 import { Fragment, type Node as PmNode, type NodeType, type Slice } from "@milkdown/kit/prose/model";
@@ -47,6 +52,7 @@ import {
 } from "@milkdown/kit/prose/tables";
 import { Transform } from "@milkdown/kit/prose/transform";
 import { loggingService } from "../../../services/loggingService";
+import { PASTE_ROWS_DROPPED_EVENT, withoutInventedRows } from "./pasteInventedRows";
 
 export const PASTE_RETYPED_EVENT = "editor.table.paste-retyped";
 
@@ -93,17 +99,22 @@ function fittedCells(state: EditorState, slice: Slice, table: PmNode, left: numb
 }
 
 /**
- * Paste `slice` as cells, like prosemirror-tables' `handlePaste`, with each row
- * retyped for the host row it lands in. Returns false, dispatching nothing, when
+ * Paste `original` as cells, like prosemirror-tables' `handlePaste`, without the
+ * rows the paste rule filled for the parser, and with each row retyped for the
+ * host row it lands in. Returns false, dispatching nothing, when
  * the selection is not in a table, or is not a CellSelection and the slice is not
  * cells or rows.
  */
 export function pasteAsCells(
   state: EditorState,
   dispatch: (tr: Transaction) => void,
-  slice: Slice,
+  original: Slice,
 ): boolean {
   if (!isInTable(state)) return false;
+  // The rows the paste rule filled for the parser are not content: as cells they
+  // would blank a host row. The target is known here, so they come out here.
+  const trimmed = withoutInventedRows(original);
+  const slice = trimmed.slice;
   const pasted = __pastedCells(slice);
   const sel = state.selection;
   let start: number;
@@ -126,6 +137,15 @@ export function pasteAsCells(
   }
   const typed = retypeRows(cells, table, rect.top);
   __insertCells(state, dispatch, start, rect, typed.cells);
+  if (trimmed.dropped > 0) {
+    loggingService.logEventSync({
+      level: "info",
+      event: PASTE_ROWS_DROPPED_EVENT,
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: { droppedRows: trimmed.dropped },
+    });
+  }
   if (typed.retyped > 0) {
     loggingService.logEventSync({
       level: "info",

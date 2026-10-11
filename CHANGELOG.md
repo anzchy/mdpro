@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Pasting a web table that has only a header row, outside any table, no longer loses its text (D149); it now pastes as a table with that header and one empty row. A web table with only body rows no longer gets a left-aligned header (D150); its added header row is empty and unaligned, and every body row is kept
 - In WYSIWYG, Insert row above on a table's header row no longer splits the table in two (D155). The saved file used to gain an extra, empty table above the original. The header row is now emptied and its old text moves down into a new first body row, as in Source mode; column alignment is kept and one undo restores the table
 - In Source mode a selection is visible again (D154). A selection within one line, and the last line of a longer one, showed no highlight at all, because the current-line background was opaque and covered it; while the editor had focus, mdpro's own selection colour was also overridden by CodeMirror's. The current line now has a faint translucent tint, and a selection shows in the accent colour while the editor has focus and in neutral grey when it doesn't
 - In WYSIWYG, a column added with the table context menu's Insert column left / right, or its shortcut, no longer comes out left-aligned (D141). Each insert used to write a `:-` delimiter nobody had set; the new column is now unaligned, and the existing columns keep their alignment
