@@ -7,8 +7,9 @@
  *   verifyAssetSet(files, version) → shape → duplicate names → every required
  *     platform's expected files present and non-empty (zero bytes fails,
  *     signed or not, D127-WI-2), signatures non-empty → optional
- *     platforms: each installer and its `.sig` together or not at all → any
- *     other name is unexpected → { ok, errors, signed }
+ *     platforms: all or none (D127-WI-4) — any one of a platform's files or
+ *     `.sig`s present makes every one of them required, under the same
+ *     checks → any other name is unexpected → { ok, errors, signed }
  *   buildManifest(files)           → [{ name, size, sha256 }] sorted by name
  *
  * Key decisions:
@@ -67,15 +68,18 @@ export function verifyAssetSet(files, version) {
 
   for (const platform of [...REQUIRED_PLATFORMS, ...OPTIONAL_PLATFORMS]) {
     const required = REQUIRED_PLATFORMS.includes(platform);
-    for (const n of expectedAssets(platform, version)) known.add(n);
+    const names = expectedAssets(platform, version);
+    for (const n of names) known.add(n);
+    // D127-WI-4: an optional platform is all or none. One of its files (or
+    // `.sig`s) present makes every one of its files required.
+    if (!required && !names.some((n) => byName.has(n))) continue;
     for (const spec of platformSpec(platform).files) {
       const name = spec.final(version);
       const sig = `${name}.sig`;
       const hasFile = byName.has(name);
       const hasSig = spec.signed && byName.has(sig);
-      if (!required && !hasFile && !hasSig) continue;
       if (!hasFile) {
-        errors.push(`${platform}: missing ${name}`);
+        errors.push(`${platform}: missing ${name}${required ? "" : " (an optional platform is all or none)"}`);
         continue;
       }
       if (byteLength(byName.get(name)) === 0) {

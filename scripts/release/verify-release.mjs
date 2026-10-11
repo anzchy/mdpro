@@ -6,20 +6,31 @@
  *
  * Usage:
  *   node scripts/release/verify-release.mjs --tag vX.Y.Z --sha <40-hex> [--repo owner/name]
+ *   node scripts/release/verify-release.mjs --rehearsal --tag rehearsal-d76-<sha7> --sha <40-hex>
+ *        --version X.Y.Z [--repo owner/name]
  *
- * Pipeline: args (tag must be vX.Y.Z, rehearsal tags refused; --sha 40 hex) →
+ * Pipeline: args (default: tag must be vX.Y.Z, rehearsal tags refused;
+ *   --rehearsal: tag must be rehearsal-d76-<sha7 of --sha>, --version X.Y.Z;
+ *   --sha 40 hex) →
  *   list releases for the tag → exactly one draft → checkDraftRelease (draft,
  *   target_commitish = --sha, no published release for the tag) → the
  *   draft's asset list matches its own manifest.json (gate.postUpload) →
  *   download every asset → latest.json and manifest.json present →
- *   verify-assets check-only, mode draft (asset set, latest.json, manifest
- *   bytes, signatures) → exit 0 only if all pass.
+ *   verify-assets check-only, mode draft (rehearsal-draft under --rehearsal)
+ *   (asset set, latest.json, manifest bytes, signatures) → exit 0 only if all
+ *   pass.
  *
  * Key decisions:
  * - It never changes state: every gh call is a GET `gh api`. The one publish
  *   call lives in the workflow, after `gate.mjs may-publish` exits 0.
- * - Argument errors are caught before any network call, so a rehearsal tag
- *   or a short SHA cannot even reach the API.
+ * - Argument errors are caught before any network call, so in the default
+ *   mode a rehearsal tag or a short SHA cannot even reach the API.
+ * - `--rehearsal` (D127-WI-5) exists so a negative rehearsal (a broken `.sig`
+ *   in a rehearsal draft) reaches the signature check. It runs the same
+ *   target, byte and signature checks, and accepts only the rehearsal tag of
+ *   `--sha`. Exit 0 there means "the checks passed", never "publishable":
+ *   publishing is `gate.mjs may-publish`, which refuses every rehearsal tag,
+ *   and the workflow never passes `--rehearsal`.
  * - Fail closed: any gh failure, a missing release, or two drafts → exit 1.
  *
  * @module scripts/release/verify-release
@@ -34,8 +45,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { REHEARSAL_PREFIX, checkDraftRelease, isFullSha, isReleaseTag, manifestWithSelf, postUpload } from "./gate.mjs";
 import { GENERATED, main as verifyAssetsMain } from "./verify-assets.mjs";
+import { STRICT_VERSION } from "./sourceCheck.mjs";
 
-export const USAGE = "usage: verify-release.mjs --tag vX.Y.Z --sha <40-hex commit> [--repo owner/name]";
+export const USAGE =
+  "usage: verify-release.mjs --tag vX.Y.Z --sha <40-hex commit> [--repo owner/name]\n" +
+  "       verify-release.mjs --rehearsal --tag rehearsal-d76-<sha7> --sha <40-hex commit> --version X.Y.Z [--repo owner/name]";
 
 /** Large enough for every release asset (archives are tens of MB). */
 const MAX_ASSET_BYTES = 1 << 30;
@@ -52,24 +66,45 @@ function defaultRunGh(args) {
 }
 /* v8 ignore stop */
 
-/** @param {string[]} argv @param {NodeJS.ProcessEnv} env */
+/**
+ * @param {string[]} argv
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {{ o: {tag: string, sha: string, repo: string, version: string, rehearsal: boolean}, error?: undefined }
+ *         | { error: string, o?: undefined }}
+ */
 function parseArgs(argv, env) {
   /** @type {Record<string, string>} */
   const o = {};
+  let rehearsal = false;
   for (let i = 0; i < argv.length; i += 2) {
-    if (!["--tag", "--sha", "--repo"].includes(argv[i]) || argv[i + 1] === undefined) {
+    if (argv[i] === "--rehearsal") {
+      rehearsal = true;
+      i -= 1;
+      continue;
+    }
+    if (!["--tag", "--sha", "--repo", "--version"].includes(argv[i]) || argv[i + 1] === undefined) {
       return { error: `unexpected argument ${JSON.stringify(argv[i])}` };
     }
     o[argv[i].slice(2)] = argv[i + 1];
   }
   o.repo ??= env.GITHUB_REPOSITORY ?? "";
-  if (typeof o.tag === "string" && o.tag.startsWith(REHEARSAL_PREFIX)) {
-    return { error: `${o.tag}: rehearsal drafts are never publishable` };
+  if (!rehearsal) {
+    // The default (publish) path: a rehearsal tag is refused here, before any gh call.
+    if (typeof o.tag === "string" && o.tag.startsWith(REHEARSAL_PREFIX)) {
+      return { error: `${o.tag}: rehearsal drafts are never publishable` };
+    }
+    if (o.version !== undefined) return { error: "--version is only for --rehearsal (a vX.Y.Z tag carries its version)" };
+    if (!isReleaseTag(o.tag)) return { error: `--tag ${JSON.stringify(o.tag)} is not vX.Y.Z` };
   }
-  if (!isReleaseTag(o.tag)) return { error: `--tag ${JSON.stringify(o.tag)} is not vX.Y.Z` };
   if (!isFullSha(o.sha)) return { error: `--sha ${JSON.stringify(o.sha)} is not a 40-hex lowercase commit` };
+  if (rehearsal) {
+    const want = `${REHEARSAL_PREFIX}${o.sha.slice(0, 7)}`;
+    if (o.tag !== want) return { error: `--rehearsal checks only ${want}, the rehearsal draft for --sha; got --tag ${JSON.stringify(o.tag)}` };
+    if (!STRICT_VERSION.test(o.version ?? "")) return { error: "--rehearsal needs --version X.Y.Z (a rehearsal tag carries none)" };
+  }
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(o.repo)) return { error: "--repo (or GITHUB_REPOSITORY) must be owner/name" };
-  return { o };
+  const version = rehearsal ? o.version : o.tag.slice(1);
+  return { o: { tag: o.tag, sha: o.sha, repo: o.repo, version, rehearsal } };
 }
 
 /**
@@ -94,7 +129,7 @@ export function main(argv, io = {}) {
     err(USAGE);
     return fail([parsed.error]);
   }
-  const { tag, sha, repo } = parsed.o;
+  const { tag, sha, repo, version, rehearsal } = parsed.o;
 
   const list = runGh([
     "api",
@@ -148,10 +183,14 @@ export function main(argv, io = {}) {
     });
     if (!listed.ok) return fail(listed.errors);
 
-    const version = tag.slice(1);
-    const code = verifyAssetsMain(["--dir", tmp, "--version", version, "--repo", repo, "--mode", "draft"], { cwd, env, out, err });
+    const mode = rehearsal ? "rehearsal-draft" : "draft";
+    const code = verifyAssetsMain(["--dir", tmp, "--version", version, "--repo", repo, "--mode", mode], { cwd, env, out, err });
     if (code !== 0) return fail([`the draft's downloaded assets for ${tag} did not verify`]);
-    out(`${tag}: draft pinned to ${sha} verified (${assets.length} assets)`);
+    if (rehearsal) {
+      out(`${tag}: rehearsal draft pinned to ${sha} verified (${assets.length} assets); rehearsal drafts are never publishable`);
+    } else {
+      out(`${tag}: draft pinned to ${sha} verified (${assets.length} assets)`);
+    }
     return 0;
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

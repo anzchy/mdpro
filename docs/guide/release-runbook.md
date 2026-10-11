@@ -50,13 +50,10 @@ gh run watch                                   # or: gh run view <id> --log-fail
   `check-source`, `collect-assets`, `verify-assets`, `gate` and `verify-release` are the
   versions at that commit. A fix to a release script has to land before the SHA is locked;
   a bug in the scripts at that SHA is a bug in the check itself.
-- **Windows and Linux are optional per file, not per platform.** `assetSet.mjs` skips any
-  optional file whose installer and `.sig` are both absent, so a set holding the Linux `.deb`
-  but no `.rpm` passes `verify-assets` and `verify-release`. In a normal run the build job
-  prevents this: `collect-assets.mjs` needs exactly one source for every expected file of its
-  row, and every matrix row is required. The verify-side gap only matters if the set loses a
-  file between build and verify. The intent (D-3) is optional *platforms*; tightening the
-  verifier to all-or-none per optional platform has been proposed alongside D127.
+- **Windows and Linux are optional per platform, all or none.** An optional platform's files
+  are either all present or all absent. `collect-assets.mjs` (build), `verify-assets` and
+  `verify-release` all fail a partial row, such as a Linux `.deb` without the `.rpm`. The build
+  job does not guarantee complete rows by itself; these checks do.
 
 ## Rehearsals
 
@@ -66,11 +63,21 @@ gh run watch                                   # or: gh run view <id> --log-fail
   deletes it** once the run has been read: `gh release delete rehearsal-d76-<sha7> --yes`,
   without `--cleanup-tag` (a draft has no git tag). It is deleted only after the user confirms
   that command (rule 25). For the D76 rehearsal that is mdpro-85.
-- **Negative rehearsal** (WI-8): put one broken `.sig` into a rehearsal draft and confirm
-  that verification refuses it. Today `verify-release.mjs` refuses every rehearsal tag
-  before it reads a single asset, so this needs a rehearsal-only checking mode first. That
-  mode checks the target, the bytes and the signatures, and `may-publish` still refuses the
-  tag. Until that lands, the negative path is covered only by the unit tests.
+- **Negative rehearsal** (WI-8): put one broken `.sig` into a rehearsal draft, then run the
+  rehearsal check mode by hand, which the workflow never runs:
+
+  ```bash
+  node scripts/release/verify-release.mjs --rehearsal --tag rehearsal-d76-<sha7> \
+    --sha <sha> --version 0.3.1 --repo anzchy/mdpro
+  ```
+
+  It runs the same target, byte and signature checks as the publish path and must exit 1 on
+  the signature. To reach that check, break an installer's `.sig` (the `.deb`'s, which
+  `latest.json` does not carry) and also re-upload a `manifest.json` recomputed over the
+  changed set (`buildManifest` in `assetSet.mjs`). Otherwise the byte check refuses the draft
+  first, which proves the byte check, not the signature check. On a good rehearsal draft it exits 0 and still prints "never publishable":
+  `may-publish` refuses every rehearsal tag. Without `--rehearsal`, verify-release refuses a
+  rehearsal tag before reading any asset.
 
 ## After the release
 

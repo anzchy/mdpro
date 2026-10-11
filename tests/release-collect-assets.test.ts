@@ -184,10 +184,17 @@ describe("collect-assets CLI", () => {
     expect(listOut("windows-x86_64")).toEqual([]);
   });
 
-  it("D-3 Linux: present installers are copied with sigs; an absent one is not an error", () => {
+  // rule 12: D127-WI-4 makes an optional platform all or none, so "an absent
+  // one is not an error" (deb + AppImage without rpm → exit 0) is now the defect
+  // itself. The case keeps its purpose (present installers copied with sigs) on
+  // a complete Linux row; the partial row is specified to fail in
+  // tests/release-optional-all-or-none.test.ts.
+  it("D-3 Linux: present installers are copied with sigs (all three kinds present)", () => {
     const b = bundle("x86_64-unknown-linux-gnu");
     put(path.join(b, "deb", "mdpro_0.3.1_amd64.deb"), "deb");
     put(path.join(b, "deb", "mdpro_0.3.1_amd64.deb.sig"), SIG);
+    put(path.join(b, "rpm", "mdpro-0.3.1-1.x86_64.rpm"), "rpm");
+    put(path.join(b, "rpm", "mdpro-0.3.1-1.x86_64.rpm.sig"), SIG);
     put(path.join(b, "appimage", "mdpro_0.3.1_amd64.AppImage"), "img");
     put(path.join(b, "appimage", "mdpro_0.3.1_amd64.AppImage.sig"), SIG);
     expect(run(["--platform", "linux-x86_64", "--version", "0.3.1"])).toBe(0);
@@ -197,6 +204,8 @@ describe("collect-assets CLI", () => {
         "mdpro_0.3.1_amd64.AppImage.sig",
         "mdpro_0.3.1_amd64.deb",
         "mdpro_0.3.1_amd64.deb.sig",
+        "mdpro-0.3.1-1.x86_64.rpm",
+        "mdpro-0.3.1-1.x86_64.rpm.sig",
       ].sort(),
     );
   });

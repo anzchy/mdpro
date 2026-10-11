@@ -8,7 +8,9 @@
  *        --version X.Y.Z [--root <repo>] [--out <dir>]
  *
  * Pipeline: parseArgs → planCollect (list candidates per FileSpec — a readdir
- *   error other than ENOENT fails — exactly one source each, non-empty `.sig`) → on any error: print all, write nothing →
+ *   error other than ENOENT fails — an optional platform with any candidate
+ *   needs every kind — exactly one source each, non-empty `.sig`) → on any
+ *   error: print all, write nothing →
  *   else copy into a temp dir beside the output and rename it into place.
  *
  * Key decisions:
@@ -16,8 +18,10 @@
  *   stale bundle) lists every candidate. Nothing ever picks the first.
  * - A `.sig` that is absent, empty or whitespace-only fails here, in the build
  *   job, before any artifact is uploaded (requirement ③).
- * - Optional platforms (D-3): a file kind with no candidates at all is skipped;
- *   a present one follows the same rules as a required one.
+ * - Optional platforms (D-3) are all or none (D127-WI-4): with no candidate in
+ *   any of its kinds the platform is skipped; with a candidate in any kind,
+ *   every kind follows the same rules as a required platform's, so a Linux
+ *   row with a `.deb` but no `.rpm` fails.
  * - Only ENOENT means a bundle subdirectory is absent. Any other readdir error
  *   (ENOTDIR, EACCES, EIO, ...) fails the collect, naming the code, for
  *   required and optional platforms alike (D127-WI-3).
@@ -89,23 +93,31 @@ export function planCollect({ root, platform, version }) {
   const rel = (/** @type {string} */ p) => path.relative(root, p);
   const errors = [];
   const copies = [];
-  for (const f of spec.files) {
+  const kinds = spec.files.map((f) => {
     const dir = path.join(bundle, f.dir);
     const listed = filesIn(dir);
+    const candidates = "code" in listed ? [] : listed.names.filter((n) => f.candidates.test(n));
+    return { f, dir, listed, candidates };
+  });
+  // D127-WI-4: an optional platform is all or none. Any file kind with a
+  // candidate makes every kind of that platform required.
+  const required = isRequired(platform);
+  const mustHaveAll = required || kinds.some((k) => k.candidates.length > 0);
+  const allOrNone = required ? "" : ` (${platform} is optional, but all or none of its files)`;
+  for (const { f, dir, listed, candidates } of kinds) {
     if ("code" in listed) {
       errors.push(`cannot list ${rel(dir)} (${listed.code})`);
       continue;
     }
-    const candidates = listed.names.filter((n) => f.candidates.test(n));
-    if (candidates.length === 0 && !isRequired(platform)) continue;
+    if (!mustHaveAll) continue;
     const exact = f.source(version);
     const want = exact ?? `*${f.candidates.source.replace(/\\/g, "").replace(/\$$/, "")}`;
     if (exact !== null && !candidates.includes(exact)) {
-      errors.push(`missing ${rel(path.join(dir, exact))}`);
+      errors.push(`missing ${rel(path.join(dir, exact))}${allOrNone}`);
       continue;
     }
     if (candidates.length === 0) {
-      errors.push(`missing ${rel(path.join(dir, want))}`);
+      errors.push(`missing ${rel(path.join(dir, want))}${allOrNone}`);
       continue;
     }
     if (candidates.length > 1) {

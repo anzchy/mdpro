@@ -10,8 +10,9 @@
  *
  * Key decisions:
  * - D-3: the updater platforms are REQUIRED_PLATFORMS (in `latest.json`, must be
- *   present); Windows/Linux are OPTIONAL_PLATFORMS (installers only, checked
- *   only when present). Dropping Windows/Linux is emptying OPTIONAL_PLATFORMS.
+ *   present); Windows/Linux are OPTIONAL_PLATFORMS (installers only, all of a
+ *   platform's files or none, D127-WI-4). Dropping Windows/Linux is emptying
+ *   OPTIONAL_PLATFORMS.
  * - The macOS updater archive is renamed from Tauri's `mdpro.app.tar.gz` to the
  *   v0.2.6 names (`mdpro_aarch64.app.tar.gz`, `mdpro_x64.app.tar.gz`), so
  *   `latest.json` URLs keep the shape existing 0.2.x clients followed.
@@ -32,7 +33,7 @@ export const PRODUCT = "mdpro";
 /** Updater platforms: required, and the exact key set of `latest.json` (D-3). */
 export const REQUIRED_PLATFORMS = Object.freeze(["darwin-aarch64", "darwin-x86_64"]);
 
-/** Installer-only platforms: never in `latest.json`, checked only when present (D-3). */
+/** Installer-only platforms: never in `latest.json`; all of a platform's files or none (D-3, D127-WI-4). */
 export const OPTIONAL_PLATFORMS = Object.freeze(["windows-x86_64", "linux-x86_64"]);
 
 /** Relative to the repo root; `<triple>` is replaced. */
