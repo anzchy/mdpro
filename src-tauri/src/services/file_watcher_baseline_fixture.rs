@@ -182,8 +182,18 @@ pub(crate) const CONTENT: notify::EventKind = notify::EventKind::Modify(
 pub(crate) const META_ANY: notify::EventKind = notify::EventKind::Modify(
     notify::event::ModifyKind::Metadata(notify::event::MetadataKind::Any),
 );
-/// Every kind the unchanged-file drop applies to (ADR-0068 decision 1).
+/// ADR-0068 decision 1's three kinds, the FSEvents residual burst.
 pub(crate) const FILTERED: [notify::EventKind; 3] = [META_ANY, EXTENDED, CONTENT];
+/// The two kinds ADR-0080 added to the unchanged check (D164): a `chmod` or
+/// `chown`. With `FILTERED`, every kind `is_filtered_kind` accepts.
+pub(crate) const CHMOD_CHOWN: [notify::EventKind; 2] = [
+    notify::EventKind::Modify(notify::event::ModifyKind::Metadata(
+        notify::event::MetadataKind::Permissions,
+    )),
+    notify::EventKind::Modify(notify::event::ModifyKind::Metadata(
+        notify::event::MetadataKind::Ownership,
+    )),
+];
 
 /// The watcher's debounce map type, keyed by (path, change type) (D116).
 pub(crate) type Map = super::super::gate::DebounceMap;

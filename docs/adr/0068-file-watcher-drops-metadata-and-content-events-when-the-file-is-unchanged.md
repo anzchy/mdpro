@@ -12,6 +12,8 @@ audit found silent-drop paths). Still Proposed; it becomes Accepted only
 after the D32 + D86 device recheck (D86 WI-5).
 Amended 2026-10-11: decision 7 (D86 WI-4 removed the frontend's 3 s
 save-suppression window).
+Partially superseded: decision 1's list of filtered kinds by
+[ADR-0080](0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md) (2026-10-11).
 
 ## Context
 

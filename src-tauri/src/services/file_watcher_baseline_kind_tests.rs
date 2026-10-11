@@ -4,7 +4,7 @@
 use super::super::kinds_fixture::all_event_kinds;
 use super::super::WatchOutcome;
 use super::fixture::{
-    append, fresh, modified, route, TempDir, CONTENT, EXTENDED, FILTERED, META_ANY,
+    append, fresh, modified, route, TempDir, CHMOD_CHOWN, CONTENT, EXTENDED, FILTERED, META_ANY,
 };
 use super::{snapshot, BaselineStore};
 use notify::event::{CreateKind, DataChange, MetadataKind, ModifyKind, RenameMode};
@@ -48,11 +48,10 @@ fn k1_each_filtered_kind_on_an_unchanged_file_is_dropped() {
 }
 
 /// The Modify subkinds that route exactly as before WI-4b (closed list).
-const UNTOUCHED: [EventKind; 10] = [
+/// Permissions and Ownership left it for `CHMOD_CHOWN` (ADR-0080, D164).
+const UNTOUCHED: [EventKind; 8] = [
     EventKind::Modify(ModifyKind::Metadata(MetadataKind::AccessTime)),
     EventKind::Modify(ModifyKind::Metadata(MetadataKind::WriteTime)),
-    EventKind::Modify(ModifyKind::Metadata(MetadataKind::Permissions)),
-    EventKind::Modify(ModifyKind::Metadata(MetadataKind::Ownership)),
     EventKind::Modify(ModifyKind::Metadata(MetadataKind::Other)),
     EventKind::Modify(ModifyKind::Data(DataChange::Any)),
     EventKind::Modify(ModifyKind::Data(DataChange::Size)),
@@ -71,10 +70,9 @@ fn bucket(kind: &EventKind) -> Option<&'static str> {
     };
     Some(match m {
         ModifyKind::Data(D::Content) | ModifyKind::Metadata(M::Any | M::Extended) => "filtered",
+        ModifyKind::Metadata(M::Permissions | M::Ownership) => "chmod_chown",
         ModifyKind::Data(D::Any | D::Size | D::Other)
-        | ModifyKind::Metadata(
-            M::AccessTime | M::WriteTime | M::Permissions | M::Ownership | M::Other,
-        )
+        | ModifyKind::Metadata(M::AccessTime | M::WriteTime | M::Other)
         | ModifyKind::Any
         | ModifyKind::Other => "untouched",
         ModifyKind::Name(
@@ -87,8 +85,8 @@ fn bucket(kind: &EventKind) -> Option<&'static str> {
     })
 }
 
-/// K3 tripwire: UNTOUCHED + FILTERED + the five renames are exactly the
-/// Modify leaves notify 6.1.1 defines, with no overlap.
+/// K3 tripwire: UNTOUCHED + FILTERED + CHMOD_CHOWN + the five renames are
+/// exactly the Modify leaves notify 6.1.1 defines, with no overlap.
 #[test]
 fn k3_untouched_list_plus_filtered_covers_every_modify_leaf() {
     let modify: Vec<EventKind> = all_event_kinds()
@@ -98,16 +96,43 @@ fn k3_untouched_list_plus_filtered_covers_every_modify_leaf() {
     assert_eq!(modify.len(), 18, "notify 6.1.1 has 18 Modify leaves");
     let untouched: HashSet<EventKind> = UNTOUCHED.into_iter().collect();
     let filtered: HashSet<EventKind> = FILTERED.into_iter().collect();
-    assert_eq!((untouched.len(), filtered.len()), (10, 3), "no duplicates");
+    let chmod_chown: HashSet<EventKind> = CHMOD_CHOWN.into_iter().collect();
+    assert_eq!(
+        (untouched.len(), filtered.len(), chmod_chown.len()),
+        (8, 3, 2),
+        "no duplicates"
+    );
     assert!(untouched.is_disjoint(&filtered));
+    assert!(untouched.is_disjoint(&chmod_chown));
+    assert!(filtered.is_disjoint(&chmod_chown));
     for k in &modify {
         let expected = match bucket(k) {
-            Some("filtered") => (false, true),
-            Some("untouched") => (true, false),
-            _ => (false, false),
+            Some("filtered") => (false, true, false),
+            Some("chmod_chown") => (false, false, true),
+            Some("untouched") => (true, false, false),
+            _ => (false, false, false),
         };
-        let got = (untouched.contains(k), filtered.contains(k));
+        let got = (
+            untouched.contains(k),
+            filtered.contains(k),
+            chmod_chown.contains(k),
+        );
         assert_eq!(got, expected, "{k:?}");
+    }
+}
+
+/// K3 (ADR-0080): each `CHMOD_CHOWN` kind on an unchanged registered file is
+/// dropped like a `FILTERED` one.
+#[test]
+fn k3b_chmod_chown_subkinds_on_an_unchanged_file_are_dropped() {
+    let d = TempDir::new("k3b");
+    for (i, kind) in CHMOD_CHOWN.into_iter().enumerate() {
+        let (store, p) = registered(&d, &format!("c{i}.md"));
+        assert_eq!(
+            route(kind, &[&p], &fresh(), &store),
+            (Value::Null, IgnoredUnchanged),
+            "{kind:?}"
+        );
     }
 }
 

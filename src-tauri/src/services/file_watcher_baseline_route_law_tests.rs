@@ -4,8 +4,8 @@
 use super::super::kinds_fixture::{all_event_kinds, WriteMark};
 use super::super::WatchOutcome;
 use super::fixture::{
-    append, fresh, modified, rewrite_keep_stat, route, seed, TempDir, CONTENT, EXTENDED, FILTERED,
-    META_ANY,
+    append, fresh, modified, rewrite_keep_stat, route, seed, TempDir, CHMOD_CHOWN, CONTENT,
+    EXTENDED, FILTERED, META_ANY,
 };
 use super::{snapshot, BaselineStore};
 use notify::event::{CreateKind, ModifyKind, RemoveKind, RenameMode};
@@ -39,8 +39,9 @@ fn prepared(d: &TempDir, name: &str, state: State) -> (BaselineStore, PathBuf) {
     (store, p)
 }
 
-/// R11 (law 1): a populated store changes the route only for the three
-/// filtered kinds (Metadata(Any), Extended, Content) and the replaced-file
+/// R11 (law 1): a populated store changes the route only for the filtered
+/// kinds (Metadata(Any), Extended, Content; ADR-0080 adds Permissions and
+/// Ownership) and the replaced-file
 /// kinds (any `Create`, a single-path `Name`; ADR-0072; any `Remove` on a
 /// present path, D152) on an unchanged registered file with at least one
 /// path, and then only to a drop.
@@ -77,11 +78,12 @@ fn r11_filter_locality_over_every_kind_path_count_and_store_state() {
         .filter(|k| matches!(k, EventKind::Modify(ModifyKind::Name(_))));
     let expected: HashSet<_> = FILTERED
         .into_iter()
+        .chain(CHMOD_CHOWN)
         .chain(creates_and_removes)
         .flat_map(|k| [(k, 1, Unchanged), (k, 2, Unchanged)])
         .chain(renames.map(|k| (k, 1, Unchanged)))
         .collect();
-    assert_eq!(expected.len(), 6 + 8 + 8 + 5);
+    assert_eq!(expected.len(), 6 + 4 + 8 + 8 + 5);
     assert_eq!(differing, expected);
 }
 

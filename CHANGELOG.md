@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In WYSIWYG, a column added with the table context menu's Insert column left / right, or its shortcut, no longer comes out left-aligned (D141). Each insert used to write a `:-` delimiter nobody had set; the new column is now unaligned, and the existing columns keep their alignment
 - **Moved files prompt.** Moving an open file away from outside mdpro (`mv`, Finder, a sync client) now raises "File was deleted externally", so the next ⌘S no longer silently recreates the file at its old path (D107, [ADR-0078](docs/adr/0078-a-watched-file-moved-away-is-reported-as-deleted.md)). An editor that saves by renaming the old file aside first may briefly show that prompt before "modified externally" replaces it.
   - **Not yet checked on a device**
+- Changing only the permissions or the owner of an open file whose contents are unchanged (`chmod 444`, `chmod 644`, `chown`) no longer raises "modified externally"; making the file unreadable (`chmod 000`) still does (D164, [ADR-0080](docs/adr/0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md))
+  - **Not yet checked on a device**
 
 ## [0.3.1] - 2026-10-11
 

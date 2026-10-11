@@ -114,11 +114,12 @@ fn r5_metadata_any_equal_stat_is_ignored() {
     );
 }
 
-/// R5 (rest): the five unfiltered metadata subkinds still emit.
+/// R5 (rest): the three unfiltered metadata subkinds still emit. Permissions
+/// and Ownership are checked since ADR-0080 (D164).
 #[test]
 fn r5b_other_metadata_subkinds_equal_stat_emit() {
-    use MetadataKind::{AccessTime, Other, Ownership, Permissions, WriteTime};
-    for m in [AccessTime, WriteTime, Permissions, Ownership, Other] {
+    use MetadataKind::{AccessTime, Other, WriteTime};
+    for m in [AccessTime, WriteTime, Other] {
         let d = TempDir::new("r5b");
         let (store, p) = registered(&d, "a.md", b"abc");
         assert!(

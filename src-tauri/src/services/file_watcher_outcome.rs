@@ -61,8 +61,9 @@ pub(crate) enum WatchOutcome {
     /// read against this vocabulary.
     #[allow(dead_code)] // never constructed since ADR-0078; kept for its log string
     IgnoredRenameSinglePath,
-    /// One of the three filtered kinds (`Metadata(Extended)`, `Metadata(Any)`,
-    /// `Data(Content)`) or a replaced file (ADR-0072) on a file whose mtime,
+    /// One of the filtered kinds (`Metadata(Extended)`, `Metadata(Any)`,
+    /// `Data(Content)`; `Metadata(Ownership)`, `Metadata(Permissions)` since
+    /// ADR-0080) or a replaced file (ADR-0072) on a file whose mtime,
     /// size and content hash all equal its baseline, read coherently
     /// (ADR-0068 decision 3); not emitted.
     IgnoredUnchanged,

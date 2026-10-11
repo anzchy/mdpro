@@ -19,8 +19,10 @@
 //! (D101), file_watcher_route_debounce_kind_tests.rs (D116),
 //! file_watcher_route_remove_present_tests.rs (D152),
 //! file_watcher_route_moved_away_tests.rs (D107),
+//! file_watcher_route_permission_tests.rs (D164),
 //! docs/adr/0072-a-replaced-watched-file-is-checked-like-a-content-change.md,
-//! docs/adr/0078-a-watched-file-moved-away-is-reported-as-deleted.md
+//! docs/adr/0078-a-watched-file-moved-away-is-reported-as-deleted.md,
+//! docs/adr/0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md
 //!
 //! Key decisions:
 //! - **Check order is the contract** (ADR-0068): kind, path count, self-write,
@@ -65,8 +67,9 @@ use super::{FileChangedEvent, WatchOutcome};
 /// ignored kinds never touch the debounce map), then the path count, then the
 /// self-write check (`modified` candidates only, and before the
 /// debounce check so a save never records a debounce entry), then the D32
-/// drop: a `Modify(Metadata(Extended))`, `Modify(Metadata(Any))` or
-/// `Modify(Data(Content))`, or a replaced file, whose first path is
+/// drop: a `Modify(Metadata(Extended))`, `Modify(Metadata(Any))`,
+/// `Modify(Data(Content))`, `Modify(Metadata(Ownership))` or
+/// `Modify(Metadata(Permissions))` (ADR-0080), or a replaced file, whose first path is
 /// unchanged since its baseline, read coherently (ADR-0068), is
 /// `IgnoredUnchanged`, again before the debounce check. Then the debounce
 /// check keyed by the first path and the change type it would emit (D116),
@@ -184,3 +187,7 @@ mod remove_present_tests;
 #[cfg(test)]
 #[path = "file_watcher_route_moved_away_tests.rs"]
 mod moved_away_tests;
+
+#[cfg(all(test, unix))]
+#[path = "file_watcher_route_permission_tests.rs"]
+mod permission_tests;

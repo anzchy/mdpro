@@ -91,7 +91,8 @@ fn table() -> Vec<(EventKind, WatchOutcome)> {
         (Modify(Data(DataChange::Content)), EmittedModified),
         (Modify(Data(DataChange::Other)), EmittedModified),
         // Routed with an empty baseline store, so every row is unchanged by
-        // D32; the three-kind unchanged filter is pinned by route-law R11.
+        // D32; the five-kind unchanged filter (ADR-0068, ADR-0080) is pinned
+        // by route-law R11.
         (Modify(Metadata(MetadataKind::Any)), EmittedModified),
         (Modify(Metadata(MetadataKind::AccessTime)), EmittedModified),
         (Modify(Metadata(MetadataKind::WriteTime)), EmittedModified),
