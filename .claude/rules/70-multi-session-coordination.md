@@ -113,7 +113,13 @@ merges or reserves; the delegator does.
    before handoff (rule 60 and the tdd-guardian lanes are the author's job),
    and the handoff names the SHA and the lanes that passed. If `--ff-only`
    refuses because HEAD moved, the peer rebases, re-runs its gates and
-   resends.
+   resends. **Re-runs are by tree identity**: if `git rev-parse <sha>:src`,
+   `:tests` and `:src-tauri` equal the trees the lanes already ran on, the
+   handoff says so and names that commit, and only the decisive test files,
+   typecheck, build and `ledger:check` run again. When two handoffs share a
+   parent, the delegator lands the one that arrived first and tells the
+   other to hold, then rebase once; the held peer starts no lane run until
+   told (user decision, 2026-10-11: one full run per commit, machine-wide).
 2. **The delegator checks ancestry and scope** (not a code review) with `git cat-file -p <sha>` and
    `git diff-tree --no-ext-diff --stat -r <parent> <sha>` (the external diff
    wrapper garbles plain `git diff`), then runs
@@ -217,20 +223,35 @@ it. (User decision, 2026-10-10.)
   never `cargo clean` there.
 - **Only real-device-tester runs GUI tests**, one run at a time. Never
   create, kill or restart its tmux session over SSH. Run
-  `tmux capture-pane -pt <its tmux session>` (currently `dtrack`) before
-  sending it anything. Over SSH, put
+  `tmux capture-pane -pt <its tmux session>` (currently `dtrack`) once
+  before sending it anything. Over SSH, put
   `/opt/homebrew/bin` on `PATH` first.
+- **Wait for the tester's hook event; don't poll its screen.** dtrack's
+  project settings on the mini push `Stop`, `Notification`
+  (`permission_prompt|idle_prompt|agent_needs_input|elicitation_dialog`)
+  and `SessionStart` to the MacBook receiver (`~/.mdpro-redesign/hooks/`,
+  launchd `com.mdpro.hook-receiver`, Tailscale IP only, token header).
+  After a brief or a message, run
+  `~/.mdpro-redesign/hooks/wait-dtrack.sh -t <secs> [-e <regex>]` in the
+  background (prints the event, exit 124 on timeout) and read the latest
+  with `last-dtrack.sh`. `capture-pane` is for what the event cannot say
+  (which prompt it sits on, what it printed), not a 20-second loop.
+  Verified 2026-10-11: two real `Stop` events arrived without restarting
+  dtrack. If the MacBook's Tailscale IP changes, re-run
+  `build-mini-settings.py` and rsync the result. The hook token is a
+  secret like the MCP token: never print it. (User decision, 2026-10-11.)
 - **When the tester is stuck on a Computer Use permission prompt for mdpro,
   pick "Allow for this session" yourself; don't wait for the user.** The
   tester's `/clear` before every brief drops the earlier grant, so every run
-  starts at this prompt. Check with `capture-pane` that `mdpro` is the only
+  starts at this prompt; the hook's `permission_prompt` notification (about
+  6 s after the prompt appears) is the signal to look. Check with `capture-pane` that `mdpro` is the only
   app listed, then `tmux send-keys -t dtrack Down` and `Enter`, and
   `capture-pane` again to confirm the run went on. If the prompt names any
   other app, or offers anything other than a session-scoped grant, leave it
   and ask the user. (User decision, 2026-10-10.)
 - Copy files with `rsync`, not `scp`. Never pass
   `StrictHostKeyChecking=no`. Never copy `~/.mdpro` or `~/.claude`, and never
-  print the MCP token.
+  print the MCP token or the hook receiver token.
 
 ## Device-check batches
 

@@ -1,7 +1,7 @@
 # 跨机器驱动 Claude session：MacBook ↔ Mac mini 调研记录
 
 - 日期：2026-10-11
-- 状态：调研记录；**3.1 Remote Control 直发已于 2026-10-11 验证通过（§ 2.3）**，hook 与 Warp 镜像仍待用户决定
+- 状态：调研记录；**3.1 Remote Control 直发已于 2026-10-11 验证通过（§ 2.3）；3.2 hook 推送已于 2026-10-11 14:03 落地并验证（§ 2.4）**，Warp 镜像仍待用户决定
 - 来源：delegator 会话 `f6e5ee76-…` 的 transcript。该会话派出两个研究 subagent：一个查 Claude Code 官方文档（code.claude.com，2026-10-11 抓取），一个查 tmux 官方文档（OpenBSD tmux(1) man page、tmux wiki 的 FAQ 与 Control-Mode 页）。两个 subagent 都没有执行任何改变状态的命令。
 - 本文只整理 transcript 里已有的内容。没有调研到的点会直接注明「未调研」。
 
@@ -80,6 +80,17 @@
 - `dtrack` 这个 session 没设 `MDPRO_ROLE`，role-guard 钩子在它那里没生效；下次重启时用 `MDPRO_ROLE=real-device-tester claude`。
 - 仍然要走 ssh + tmux 的两步不变：`/clear`（消息里的 slash 命令只是纯文本），以及 Computer Use 的「Allow for this session」放行。
 
+### 2.4 hook 推送：mini 的 `dtrack` 事件直达本机（2026-10-11 14:03 验证通过）
+
+按 § 3.2 实现，用户决定「用 http 推送通知代替轮询」。当天 14:03:04 与 14:05:03 两条真实 `Stop` 事件到达本机接收器，dtrack **没有重启**，所以新建的项目级 settings 也会被文件监视自动加载。
+
+- **mini 侧**：只新建了 `~/.mdpro-redesign/dtrack/.claude/settings.json`（0600，之前不存在；用户级配置未动，所以只影响在该目录启动的 dtrack）。三个 `type: "http"` hook：`Stop`（无 matcher）、`Notification`（matcher `permission_prompt|idle_prompt|agent_needs_input|elicitation_dialog`）、`SessionStart`（`clear|startup|resume`），都 POST 到 `http://<本机 Tailscale IP>:8787/hook`，header `X-Mdpro-Token`，timeout 10 s。token 以明文放在这个文件里，没有更好的传法。
+- **本机侧** `~/.mdpro-redesign/hooks/`：`receiver.py`（python3 标准库，只绑 Tailscale IP，POST 且 token 常量时间比较通过才收；401 / 405 其余拒掉；事件追加到 `events.jsonl`，同时覆盖写 `latest.json`，日志 `receiver.log`），launchd `com.mdpro.hook-receiver` 常驻；`wait-dtrack.sh -t <秒> [-e <正则>]` 阻塞到下一条匹配事件（打印事件，超时 exit 124）；`last-dtrack.sh` 打印最近一条；`build-mini-settings.py` 从 token 文件生成 mini 那份 settings。
+- **从 mini 实测**：带 token POST → 200 并落一行；无 token / 错 token → 401；GET → 405。本机 curl 被权限系统挡住，所以这些测试全部从 mini 发起。
+- **怎么用**（已写进 rule 70「The Mac mini」）：发 brief 或消息后，后台跑 `wait-dtrack.sh`，事件到了再看；`capture-pane` 只用来看事件说不清的东西（停在哪个提示上、打印了什么），不再每 20 秒轮询一次。Computer Use 放行的信号是 `permission_prompt` 通知（提示挂起约 6 秒后触发）。
+- **已知限制**：本机 Tailscale IP 变了要重跑 `build-mini-settings.py` 并 rsync；`Notification` 在 `claude -p` 下是否触发仍未验证；事件里带 `last_assistant_message` 全文，所以 `events.jsonl` 不要公开。
+
+---
 ## 3. 备选方案
 
 ### 3.1 Claude Code Remote Control（`/rc`）+ 跨机器 SendMessage
@@ -112,7 +123,7 @@
   - 文档没有说明能否从 `-p` 运行里启动 `/remote-control`。
 - **代价**：零代码。需要用户在 mini 的 `dtrack` 里输入 `/rc`，delegator 侧也执行 `/rc`。消息会经过 Anthropic 服务器。
 
-### 3.2 Claude Code hooks：用 http 推送通知代替轮询
+### 3.2 Claude Code hooks：用 http 推送通知代替轮询（已落地，见 § 2.4）
 
 - **是什么**：在 mini 的 `~/.claude/settings.json` 里配置 `Stop` hook 和 `Notification` hook（matcher `permission_prompt`），hook 类型用 `type: "http"`，把事件 JSON POST 到本机的一个接收器。
 - **能带来什么**：`dtrack` 跑完，或者停在权限提示上时，本机能立刻知道。这样可以替换 delegator 现在每 20 秒一次 `capture-pane` 的 Monitor 轮询。

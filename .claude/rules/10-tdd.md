@@ -73,5 +73,15 @@ the CPU load.
   full lane on the exact tree being committed, the session reviewing its work
   reads that log and re-runs only the decisive test files. Run it again only
   if the tree changed after that run.
+- **An unlocked partial run takes at most 2 workers.** The RED → GREEN
+  runs in the first row are outside the lock, so three sessions doing them at
+  once stack their workers on the same cores; on 2026-10-11 the machine sat at
+  load 45 on 10 cores with one locked lane running. Until D147 makes it the
+  default, prefix them with `VITEST_MAX_WORKERS=2`. The locked full lane
+  keeps `50%`. (User decision, 2026-10-11.)
+- **Two handoffs on the same parent cost one full run, not two.** The one
+  that arrived first is verified and landed; the other waits for that landing,
+  rebases once, and is verified by tree identity (rule 70 § Commits). A peer
+  does not start a lane run on a handoff it has been told to hold.
 - Need the machine for something else? Lower `VITEST_MAX_WORKERS` (default
   `50%`, e.g. `30%`). The cost is a longer run.
