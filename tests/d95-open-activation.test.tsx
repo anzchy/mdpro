@@ -215,17 +215,8 @@ describe("D95 ② — openPathOutcome reports whether the opened document became
     expect(outcome).toBeNull();
   });
 
-  it("D95-2.7 openDocumentFromPath keeps its contract: the document, or null", async () => {
-    installFlusher("doc-a", "failed");
-    const decoded = doc("doc-n", "/tmp/n.md");
-    answerOpen(decoded);
-    const api = mount();
-    let returned: Document | null = null;
-    await act(async () => {
-      returned = await api.current.openDocumentFromPath("/tmp/n.md");
-    });
-    expect(returned).toBe(decoded);
-  });
+  // D95-2.7 (the `openDocumentFromPath` wrapper's document-or-null contract) was removed
+  // with the wrapper in D126: every by-path open now reads `openPathOutcome`.
 });
 
 describe("D95 ② — the view-mode follow-up runs only for an activated open", () => {

@@ -1,9 +1,10 @@
 /**
  * Purpose: a one-shot latch, `onFirstSuccess(fn)`, that runs `fn` on its first
- * invocation and never again. App.tsx creates one per multi-file open (drop,
- * Finder `open -a` while running) and invokes it after each file that opened,
- * so the default view mode is applied exactly once — after the first success —
- * and not at all when every file fails (D51).
+ * invocation and never again. One is created per multi-file open (the drop in
+ * `useOpenPaths.openDroppedMarkdown`, Finder `open -a` while running in App.tsx)
+ * and invoked after each file that opened and became active, so the default view
+ * mode is applied exactly once — after the first success — and not at all when
+ * every file fails or is refused (D51, D95).
  *
  * Key decisions:
  * - The latch is marked fired before `fn` runs, so an `fn` that throws is not
@@ -12,7 +13,8 @@
  *   await the CURRENT document would already be loaded into the new mode, and a
  *   Source → WYSIWYG load drops surplus table cells (ADR-0063).
  *
- * @coordinates-with src/App.tsx — handleFileDrop, handleFileOpenEvent / openPaths
+ * @coordinates-with src/hooks/useOpenPaths.ts — openDroppedMarkdown, openPaths
+ * @coordinates-with src/App.tsx — handleFileOpenEvent
  */
 export function onFirstSuccess(fn: () => void): () => void {
   let fired = false;

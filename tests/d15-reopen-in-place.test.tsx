@@ -141,9 +141,9 @@ afterEach(async () => {
 });
 
 describe("R — reopen-in-place rebuilds the editor on the reopened content", { timeout: CASE_TIMEOUT_MS }, () => {
-  it("R1 ⌘O on the open, active path (openDocumentFromPath)", async () => {
+  it("R1 ⌘O on the open, active path (openPathOutcome)", async () => {
     const old = await mount();
-    await withApi((api) => api.openDocumentFromPath(A_PATH));
+    await withApi((api) => api.openPathOutcome(A_PATH).then((o) => o?.document ?? null));
     await expectRebuiltOn(old, NEW_TEXT, false);
   });
 
@@ -173,7 +173,7 @@ describe("R — reopen-in-place rebuilds the editor on the reopened content", { 
     const { result } = renderHook(() => useDocument());
     let opened: unknown;
     await act(async () => {
-      opened = await result.current.openDocumentFromPath(A_PATH);
+      opened = await result.current.openPathOutcome(A_PATH).then((o) => o?.document ?? null);
     });
     expect(opened).toMatchObject({ id: "doc-a", isModified: true });
     await sleep(SETTLE_MS);

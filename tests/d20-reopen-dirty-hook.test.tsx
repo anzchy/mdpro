@@ -145,7 +145,7 @@ function installFlusher(mode: "pending" | "failed"): string[] {
 }
 
 const ENTRIES = {
-  path: { cmd: "open_file", run: (api: Api) => api.openDocumentFromPath(A_PATH) },
+  path: { cmd: "open_file", run: (api: Api) => api.openPathOutcome(A_PATH).then((o) => o?.document ?? null) },
   dialog: { cmd: "open_file_dialog", run: (api: Api) => api.openDocumentFromDialog() },
   encoding: { cmd: "open_file", run: (api: Api) => api.openDocumentWithEncoding(A_PATH, "GBK") },
 } as const;
@@ -302,18 +302,18 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
       const pre = structuredClone(docs());
       rejectWith("open_file", encErr(p, "GBK"));
       const r = hook();
-      expect(await call(r, (api) => api.openDocumentFromPath(p))).toBeNull();
+      expect(await call(r, (api) => api.openPathOutcome(p).then((o) => o?.document ?? null))).toBeNull();
       expect(r.current.encodingIssue).toEqual({ path: p, detected: "GBK" });
       expect(docs()).toEqual(pre);
       expect(activeIds()).toEqual(["doc-b", "doc-b"]);
     });
   }
 
-  it("D-6 Save As shape through openDocumentFromPath(P2): focus on the original id, one tab", async () => {
+  it("D-6 Save As shape through openPathOutcome(P2): focus on the original id, one tab", async () => {
     seed([doc("doc-x", "EDIT", "/tmp/p2.md", true), doc("doc-b", "B-EDIT", null, false)]);
     const preX = structuredClone(byId("doc-x"));
     held.reply("open_file", () => ({ document: doc("doc-y", "DISK", "/tmp/p2.md", false) }));
-    const out = await call(hook(), (api) => api.openDocumentFromPath("/tmp/p2.md"));
+    const out = await call(hook(), (api) => api.openPathOutcome("/tmp/p2.md").then((o) => o?.document ?? null));
     expect(out).toEqual(preX);
     expect(docs().filter((d) => d.path === "/tmp/p2.md").length).toBe(1);
     expect(byId("doc-y")).toBeUndefined();
@@ -415,7 +415,7 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
     const pre = structuredClone(docs());
     rejectWith("open_file", encErr("", ""));
     const r = hook();
-    expect(await call(r, (api) => api.openDocumentFromPath("/b.md"))).toBeNull();
+    expect(await call(r, (api) => api.openPathOutcome("/b.md").then((o) => o?.document ?? null))).toBeNull();
     expect(r.current.encodingIssue).toEqual({ path: "/b.md", detected: "unknown" });
     expect(docs()).toEqual(pre);
   });
@@ -464,7 +464,7 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
       const end = src.indexOf("\n  const ", start + 1);
       return src.slice(start, end === -1 ? undefined : end);
     };
-    // D95: openPathOutcome holds the path open; openDocumentFromPath wraps it.
+    // D95: openPathOutcome holds the path open (D126 removed the openDocumentFromPath wrapper).
     for (const name of ["openPathOutcome", "openDocumentFromDialog", "openDocumentWithEncoding"]) {
       const body = slice(name);
       expect(body.includes("prepareWholesaleReplace("), name).toBe(false);

@@ -1,5 +1,6 @@
 /**
- * D46 WI-2 — `openDocumentFromPath` reports a non-encoding failure with the ⌘O
+ * D46 WI-2 — `useDocument().openPathOutcome` (D126: formerly via the `openDocumentFromPath`
+ * wrapper, now removed) reports a non-encoding failure with the ⌘O
  * toast ("Failed to open file"), so an external open of a file over 10 MB is no
  * longer silent.
  *
@@ -119,12 +120,12 @@ function seed(documents: Document[], activeId: string | null) {
 }
 
 function useUrlHarness() {
-  const { openDocumentFromPath } = useDocument();
+  const { openPathOutcome } = useDocument();
   const { updateRecentFiles } = useRecentFiles();
   useOpenUrlParam({
     preferencesLoaded: true,
     defaultViewMode: "source",
-    openDocumentFromPath: (p: string, a?: string) => openDocumentFromPath(p, a),
+    openPathOutcome: (p: string, a?: string) => openPathOutcome(p, a),
     setViewMode: (m) => useEditorStore.getState().setViewMode(m),
     updateRecentFiles,
   });
@@ -219,7 +220,7 @@ describe("D46 — external open (?open=) of a file over 10 MB", () => {
   });
 });
 
-describe("D46 — useDocument.openDocumentFromPath directly", () => {
+describe("D46 — useDocument.openPathOutcome directly", () => {
   it("D46-R3 exactly one signal, documents conserved, over rejection × store state", async () => {
     type Row = [label: string, error: unknown, encoding: null | { path: string; detected: string }];
     const rows: Row[] = [
@@ -264,7 +265,7 @@ describe("D46 — useDocument.openDocumentFromPath directly", () => {
         let returned: Document | null = null;
         try {
           await act(async () => {
-            returned = await result.current.openDocumentFromPath(T_PATH);
+            returned = await result.current.openPathOutcome(T_PATH).then((o) => o?.document ?? null);
           });
         } finally {
           rec.stop();
@@ -305,7 +306,7 @@ describe("D46 — useDocument.openDocumentFromPath directly", () => {
     const rec = recordToastEmissions();
     let returned: Document | null = null;
     await act(async () => {
-      returned = await result.current.openDocumentFromPath(T_PATH);
+      returned = await result.current.openPathOutcome(T_PATH).then((o) => o?.document ?? null);
     });
     rec.stop();
 
@@ -322,7 +323,7 @@ describe("D46 — useDocument.openDocumentFromPath directly", () => {
     const first = renderHook(() => useDocument());
     const rec1 = recordToastEmissions();
     await act(async () => {
-      await first.result.current.openDocumentFromPath("/tmp/ok.md");
+      await first.result.current.openPathOutcome("/tmp/ok.md").then((o) => o?.document ?? null);
     });
     rec1.stop();
     expect(rec1.emissions, "(i) emissions").toEqual([]);
@@ -336,7 +337,7 @@ describe("D46 — useDocument.openDocumentFromPath directly", () => {
     const second = renderHook(() => useDocument());
     const rec2 = recordToastEmissions();
     await act(async () => {
-      await second.result.current.openDocumentFromPath("/tmp/ok.md");
+      await second.result.current.openPathOutcome("/tmp/ok.md").then((o) => o?.document ?? null);
     });
     rec2.stop();
     expect(rec2.emissions, "(ii) emissions").toEqual([]);
@@ -351,13 +352,13 @@ describe("D46 — useDocument.openDocumentFromPath directly", () => {
     const rec = recordToastEmissions();
     try {
       await act(async () => {
-        await result.current.openDocumentFromPath("/tmp/big.md");
+        await result.current.openPathOutcome("/tmp/big.md").then((o) => o?.document ?? null);
       });
       act(() => {
         vi.advanceTimersByTime(1000);
       });
       await act(async () => {
-        await result.current.openDocumentFromPath("/tmp/big.md");
+        await result.current.openPathOutcome("/tmp/big.md").then((o) => o?.document ?? null);
       });
       act(() => {
         vi.advanceTimersByTime(2999); // t = 3999
@@ -380,7 +381,7 @@ describe("D46 — useDocument.openDocumentFromPath directly", () => {
     const rec = recordToastEmissions();
     let returned: Document | null = doc("sentinel", null);
     await act(async () => {
-      returned = await result.current.openDocumentFromPath("/tmp/odd.md");
+      returned = await result.current.openPathOutcome("/tmp/odd.md").then((o) => o?.document ?? null);
     });
     rec.stop();
 

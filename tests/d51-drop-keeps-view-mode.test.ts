@@ -21,6 +21,11 @@
  * matching so prose cannot satisfy or defeat a check. Every slice fails loudly
  * when its anchor is missing rather than leaving an empty, vacuous slice.
  *
+ * D125 moved the drop's open loop (`openDroppedMarkdown`) and `openPaths` out of
+ * App.tsx into `src/hooks/useOpenPaths.ts`; those slices are taken there, and App's
+ * `handleFileDrop` must hand its markdown paths over without switching itself. The
+ * same callbacks are driven behaviourally in `tests/d95-app-open-activation.test.ts`.
+ *
  * Residual risk: a latch invoked from a dead branch, or an alias of
  * `setViewMode`, can evade text matching.
  */
@@ -28,11 +33,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-function readApp(): string {
+function readSrc(relative: string): string {
   const testPath = expect.getState().testPath;
   if (!testPath) throw new Error("testPath unavailable");
-  return fs.readFileSync(path.resolve(path.dirname(testPath), "../src/App.tsx"), "utf-8");
+  const file = path.resolve(path.dirname(testPath), "../src", relative);
+  // A missing source file fails as an assertion, not as an ENOENT throw.
+  expect(fs.existsSync(file), `src/${relative} exists`).toBe(true);
+  return fs.readFileSync(file, "utf-8");
 }
+const readApp = (): string => readSrc("App.tsx");
 
 /** Strip block and line comments (App.tsx has no `//` inside string literals in these regions). */
 function stripComments(src: string): string {
@@ -70,21 +79,31 @@ function launchSlice(src: string): string {
 }
 
 const app = () => stripComments(readApp());
+const openPathsHook = () => stripComments(readSrc("hooks/useOpenPaths.ts"));
 const count = (s: string, needle: string | RegExp): number =>
   typeof needle === "string" ? s.split(needle).length - 1 : (s.match(new RegExp(needle.source, "g")) ?? []).length;
 
 /** `onFirstSuccess(() => setViewMode(defaultViewMode))` — the only allowed form of the switch. */
 const LATCHED_SWITCH = /onFirstSuccess\(\s*\(\)\s*=>\s*setViewMode\(defaultViewMode\)\s*,?\s*\)/;
 
-describe("D51 handleFileDrop — the view mode switches only after a file opened", () => {
-  it("has no setViewMode call outside the onFirstSuccess latch", () => {
+describe("D51 handleFileDrop — App hands the markdown paths to openDroppedMarkdown and never switches", () => {
+  it("has no setViewMode call and opens through openDroppedMarkdown", () => {
     const s = callbackSlice(app(), "handleFileDrop");
+    expect(s).not.toContain("setViewMode(");
+    expect(s).not.toContain("onFirstSuccess(");
+    expect(s).toMatch(/\bopenDroppedMarkdown\(\s*mdPaths\s*\)/);
+  });
+});
+
+describe("D51 openDroppedMarkdown — the view mode switches only after a file opened", () => {
+  it("has no setViewMode call outside the onFirstSuccess latch", () => {
+    const s = callbackSlice(openPathsHook(), "openDroppedMarkdown");
     expect(count(s, LATCHED_SWITCH), "latched switch").toBe(1);
     expect(count(s, "setViewMode("), "every setViewMode( is the latched one").toBe(1);
   });
 
   it("nothing before the first handleOpenPath( can switch the view mode", () => {
-    const s = callbackSlice(app(), "handleFileDrop");
+    const s = callbackSlice(openPathsHook(), "openDroppedMarkdown");
     const firstOpen = s.indexOf("handleOpenPath(");
     expect(firstOpen, "handleOpenPath( in slice").toBeGreaterThan(-1);
     const beforeOpen = s.slice(0, firstOpen).replace(new RegExp(LATCHED_SWITCH.source, "g"), "");
@@ -92,7 +111,7 @@ describe("D51 handleFileDrop — the view mode switches only after a file opened
   });
 
   it("creates one latch before the loop and invokes it only in a branch on the opened doc", () => {
-    const s = callbackSlice(app(), "handleFileDrop");
+    const s = callbackSlice(openPathsHook(), "openDroppedMarkdown");
     const decl = s.match(/const\s+(\w+)\s*=\s*onFirstSuccess\(/);
     expect(decl, "const <latch> = onFirstSuccess(").not.toBeNull();
     const latch = decl![1];
@@ -129,12 +148,12 @@ describe("D51 handleFileOpenEvent — the view mode switches only after a file o
 
 describe("D51 openPaths — onOpened fires only after a successful open", () => {
   it("accepts an optional onOpened callback", () => {
-    const s = callbackSlice(app(), "openPaths");
+    const s = callbackSlice(openPathsHook(), "openPaths");
     expect(s).toMatch(/async\s*\(\s*paths:\s*string\[\]\s*,\s*onOpened\?:\s*\(\)\s*=>\s*void\s*,?\s*\)/);
   });
 
   it("invokes onOpened once, inside the doc branch of the try, never in the catch", () => {
-    const s = callbackSlice(app(), "openPaths");
+    const s = callbackSlice(openPathsHook(), "openPaths");
     expect(count(s, /onOpened\??\.?\(\)/), "onOpened invocations").toBe(1);
     const call = s.search(/onOpened\??\.?\(\)/);
     const catchAt = s.indexOf("catch");

@@ -88,7 +88,7 @@ async function mountWithIssue() {
     return new Promise((resolve, reject) => pending.push({ resolve, reject }));
   });
   const hook = renderHook(() => useDocument());
-  await act(async () => { await hook.result.current.openDocumentFromPath(GBK_PATH); });
+  await act(async () => { await hook.result.current.openPathOutcome(GBK_PATH).then((o) => o?.document ?? null); });
   expect(hook.result.current.encodingIssue).toEqual(ISSUE);
   return hook;
 }

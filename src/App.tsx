@@ -28,6 +28,7 @@ import { useRecentFiles } from "./hooks/useRecentFiles";
 import { useRecentFilesMenuRefresh } from "./hooks/useRecentFilesMenuRefresh";
 import { useSidebarPreference } from "./hooks/useSidebarPreference";
 import { useOpenUrlParam } from "./hooks/useOpenUrlParam";
+import { useOpenPaths } from "./hooks/useOpenPaths";
 import { useStartupDrafts } from "./hooks/useStartupDrafts";
 import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
 import { exportService } from "./services/exportService";
@@ -81,7 +82,6 @@ function App() {
     activeDocument,
     activeDocumentTitle,
     openDocumentFromDialog,
-    openDocumentFromPath,
     openPathOutcome,
     openDocumentWithEncoding,
     createDocument,
@@ -277,7 +277,7 @@ function App() {
   useOpenUrlParam({
     preferencesLoaded,
     defaultViewMode,
-    openDocumentFromPath,
+    openPathOutcome,
     setViewMode,
     updateRecentFiles,
   });
@@ -385,45 +385,15 @@ function App() {
     }
   }, [openDocumentFromDialog, showToast, updateRecentFiles]);
 
-  // Resolves to `{ document, activated }` or null (D95). The recent file is recorded
-  // for every open that opened, activated or not: the file did open.
-  const handleOpenPath = useCallback(
-    async (path: string, actionId?: string) => {
-      setBusyLabel("Opening file...");
-      try {
-        const opened = await openPathOutcome(path, actionId);
-        if (opened?.document.path) {
-          updateRecentFiles(opened.document.path);
-        }
-        return opened;
-      } finally {
-        setBusyLabel(null);
-      }
-    },
-    [openPathOutcome, updateRecentFiles],
-  );
-
-  // `onOpened` runs after each file that opened AND became active (never for a failed
-  // open, nor for one whose activation a failed WYSIWYG flush refused, D95); callers
-  // pass an `onFirstSuccess` latch to act once, after the first success (D51).
-  const openPaths = useCallback(
-    async (paths: string[], onOpened?: () => void) => {
-      for (const path of paths) {
-        try {
-          const opened = await openPathOutcome(path);
-          if (opened?.document.path) {
-            updateRecentFiles(opened.document.path);
-          }
-          if (opened?.activated) {
-            onOpened?.();
-          }
-        } catch {
-          // Ignore launch open errors.
-        }
-      }
-    },
-    [openPathOutcome, updateRecentFiles],
-  );
+  // By-path opens and the drop's open loop (D95 / D125): recent file for every open,
+  // view-mode follow-up only for an activated one.
+  const { handleOpenPath, openPaths, openDroppedMarkdown } = useOpenPaths({
+    openPathOutcome,
+    updateRecentFiles,
+    setBusyLabel,
+    defaultViewMode,
+    setViewMode,
+  });
 
   const handleOpenRecent = useCallback(
     async (path: string, actionId?: string) => {
@@ -687,39 +657,11 @@ function App() {
         return;
       }
 
-      // Always open dropped files in the current window (no extra untitled window).
-      // The default view mode applies once, after the first file that opens: a drop
-      // whose every open fails leaves the current document's mode untouched (D51), and
-      // so does an open whose activation a failed WYSIWYG flush refused (D95).
-      const applyDefaultViewMode = onFirstSuccess(() => setViewMode(defaultViewMode));
-      for (const filePath of mdPaths) {
-        const actionId = loggingService.generateActionId();
-        loggingService.logEventSync({
-          level: "info",
-          event: "file.open.drop",
-          status: "start",
-          actionId,
-          context: {
-            filePath,
-            fileCount: mdPaths.length,
-            dropTarget: "window",
-          },
-        });
-        const opened = await handleOpenPath(filePath, actionId);
-        if (opened?.activated) {
-          applyDefaultViewMode();
-        }
-        loggingService.logEventSync({
-          level: opened ? "info" : "error",
-          event: "file.open.drop",
-          status: opened ? "success" : "fail",
-          actionId,
-          context: { filePath, openedInNewWindow: false, activated: opened?.activated ?? false },
-          error: opened ? undefined : "open failed",
-        });
-      }
+      // Always open dropped files in the current window (no extra untitled window);
+      // the default view mode applies once, after the first activated open (D51, D95).
+      await openDroppedMarkdown(mdPaths);
     },
-    [defaultViewMode, handleImageDrop, handleOpenPath, setViewMode],
+    [handleImageDrop, openDroppedMarkdown],
   );
 
   // Set up Tauri drag-drop event listener

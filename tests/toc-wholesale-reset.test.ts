@@ -502,7 +502,7 @@ function driverRows(): DriverRow[] {
     {
       path: "Open an already-open path",
       mustReset: true,
-      drive: () => withDocumentHook((api) => api.openDocumentFromPath(DOC_PATH)),
+      drive: () => withDocumentHook((api) => api.openPathOutcome(DOC_PATH).then((o) => o?.document ?? null)),
     },
     {
       path: "Open via dialog onto an open path",
@@ -745,7 +745,7 @@ describe("W4 — close then reopen the same path does not inherit", () => {
 
 describe("W6 — reopen-in-place resets, through all four open arms", () => {
   const arms: Array<[string, (api: ReturnType<typeof useDocument>) => Promise<unknown>]> = [
-    ["openDocumentFromPath", (api) => api.openDocumentFromPath(DOC_PATH)],
+    ["openPathOutcome", (api) => api.openPathOutcome(DOC_PATH).then((o) => o?.document ?? null)],
     ["openDocumentFromDialog", (api) => api.openDocumentFromDialog()],
     ["openDocumentWithEncoding", (api) => api.openDocumentWithEncoding(DOC_PATH, "GBK")],
     ["createDocument", (api) => api.createDocument()],

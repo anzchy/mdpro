@@ -90,7 +90,7 @@ interface TOCStoreActions {
    * with an id the store has never seen.
    *
    * **The callers.** Six wholesale replacement sites — `openWriteGuard.ts`
-   * `commitOpenedDocument` (the one write for `useDocument.ts` `openDocumentFromPath`,
+   * `commitOpenedDocument` (the one write for `useDocument.ts` `openPathOutcome`,
    * `openDocumentFromDialog` and `openDocumentWithEncoding`, D20 / ADR-0028 decision 4;
    * it resets only when the target is clean — a dirty tab is focused, not replaced);
    * `useDocument.ts` `createDocument`, `upsertAndActivateDocument` (draft recovery, dev

@@ -79,7 +79,8 @@ export function useDocument() {
   // D46: any other failure (e.g. FileTooLarge) gets the ⌘O toast and a path-free log
   // from `reportOpenFailure`, then returns null; no caller adds a toast of its own.
   // D95: resolves to `{ document, activated }`, so a caller's follow-up (the default
-  // view mode) can skip an open whose activation the D92 guard refused.
+  // view mode) can skip an open whose activation the D92 guard refused. D126: the one
+  // by-path open; the `openDocumentFromPath` wrapper (document only) was removed.
   const openPathOutcome = useCallback(
     async (path: string, actionId?: string): Promise<OpenPathOutcome | null> => {
       try {
@@ -102,13 +103,6 @@ export function useDocument() {
       }
     },
     [applyOpened],
-  );
-
-  /** `openPathOutcome`'s document alone: the opened (or focused) document, or `null`. */
-  const openDocumentFromPath = useCallback(
-    async (path: string, actionId?: string): Promise<Document | null> =>
-      (await openPathOutcome(path, actionId))?.document ?? null,
-    [openPathOutcome],
   );
 
   // D92: documentStore refuses a switch whose WYSIWYG flush failed. editorStore follows
@@ -271,7 +265,6 @@ export function useDocument() {
       ? getTitleFromPath(activeDocument.path)
       : "mdpro",
     openPathOutcome,
-    openDocumentFromPath,
     openDocumentFromDialog,
     openDocumentWithEncoding,
     createDocument,

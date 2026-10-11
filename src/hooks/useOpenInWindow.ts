@@ -9,11 +9,12 @@
  * label → `useDocumentStore.getState()` has `documentId`?
  *   yes → set the active id in `documentStore` and `editorStore` (no I/O); D92: when
  *         the WYSIWYG flush failed, `documentStore` refuses and `editorStore` is left
- *         alone too (route logged as `fail`, the refusal toast comes from the store)
- *   no  → the injected `openPathOutcome(path)`, so the ADR-0028 guard decides; D118:
- *         the route logs `success` only when the open activated the document. One the
- *         D92 guard wrote but refused to activate is logged `fail` with
- *         `activated: false` and error `flush-failed` (ADR-0071; the store toasted).
+ *         alone too (route logged as `fail` — nothing opened — with the shared
+ *         activation fields; the refusal toast comes from the store)
+ *   no  → the injected `openPathOutcome(path, actionId)`, so the ADR-0028 guard decides; D125:
+ *         an open that returned a document logs `success` with `activated`, and one the
+ *         D92 guard wrote but refused to activate adds `reason: "flush-failed"`
+ *         (ADR-0071 decision 3, the `file.open.drop` shape; the store toasted).
  *
  * Key decisions:
  * - **Focus by id, never by path, and never reload.** The id came from the shadow
@@ -33,9 +34,13 @@
  *   the one "Failed to open file" toast (D46), and the guard shows the one refusal
  *   toast for an open it would not activate (D92); this handler logs the route fail
  *   only, so a failure never toasts twice.
- * - **`success` means the document is now active (D118).** An `opened-path` route that
- *   wrote the tab but left another active did not do what the route asked; it is a
- *   `fail` with `activated: false`, mirroring the focused-tab refusal's log.
+ * - **`success` means the open happened; `activated` says whether it became active
+ *   (D125, superseding D118's `fail`).** Every outcome log of the route carries
+ *   `openActivationContext`'s fields, the same names as `file.open.drop`. The
+ *   focused-tab refusal stays `fail`: no open happened, as `tab.switch` logs it.
+ * - **One actionId per event (D126).** It is generated when the event arrives; every
+ *   `file.open.route` line for that event carries it, and an `opened-path` route
+ *   passes it to `openPathOutcome`, so the read and the guard's logs join up.
  * - **Logs carry ids, the label and the outcome — never content.** Under Tauri, a
  *   failed subscription writes one `file.open.route.listen` fail, carrying the
  *   rejection (or getter) error message in `context.error`.
@@ -49,12 +54,14 @@
  * @coordinates-with src/hooks/useDocument.ts — openPathOutcome (the ADR-0028 guard, D92 activation)
  * @coordinates-with src/stores/documentStore.ts — setActiveDocumentId
  * @coordinates-with src/stores/editorStore.ts — setActiveDocumentId
+ * @coordinates-with src/utils/openActivationLog.ts — the outcome log's activation fields
  */
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
+import { ACTIVATION_REFUSED_REASON, openActivationContext } from "../utils/openActivationLog";
 
 /** The event `src-tauri/src/services/open_route/payload.rs` emits. */
 export const OPEN_IN_WINDOW_EVENT = "file:open-in-window";
@@ -68,9 +75,9 @@ export interface OpenInWindowOptions {
    * `null` on failure. `activated` is false when the D92 guard wrote the document but
    * refused to activate it (ADR-0071). A failed reopen gets its "Failed to open file"
    * toast from that hook (D46) and a refused one its refusal toast from the store; the
-   * route handler only logs the `file.open.route` fail and adds no toast of its own.
+   * route handler only logs the `file.open.route` outcome and adds no toast of its own.
    */
-  openPathOutcome: (path: string) => Promise<{ activated: boolean } | null>;
+  openPathOutcome: (path: string, actionId?: string) => Promise<{ activated: boolean } | null>;
 }
 
 export interface OpenInWindowState {
@@ -98,6 +105,7 @@ function parsePayload(payload: unknown): OpenInWindowPayload | null {
 }
 
 function logRoute(
+  actionId: string,
   status: "success" | "fail" | "cancel",
   context: Record<string, unknown>,
   error?: string,
@@ -106,7 +114,7 @@ function logRoute(
     level: status === "success" ? "info" : "warn",
     event: ROUTE_LOG_EVENT,
     status,
-    actionId: loggingService.generateActionId(),
+    actionId,
     context,
     error,
   });
@@ -153,14 +161,15 @@ export function useOpenInWindow({ openPathOutcome }: OpenInWindowOptions): OpenI
     }
 
     const handle = (raw: unknown) => {
+      const actionId = loggingService.generateActionId();
       const payload = parsePayload(raw);
       if (!payload) {
-        logRoute("fail", { ownLabel }, "open-in-window payload was malformed");
+        logRoute(actionId, "fail", { ownLabel }, "open-in-window payload was malformed");
         return;
       }
       const { windowLabel, documentId, path } = payload;
       if (windowLabel !== ownLabel) {
-        logRoute("cancel", { outcome: "ignored-label", documentId, windowLabel, ownLabel });
+        logRoute(actionId, "cancel", { outcome: "ignored-label", documentId, windowLabel, ownLabel });
         return;
       }
       // Read at event time: the subscription outlives every render.
@@ -169,26 +178,27 @@ export function useOpenInWindow({ openPathOutcome }: OpenInWindowOptions): OpenI
         // D92: a failed WYSIWYG flush refuses the switch; editorStore follows only a
         // switch that happened.
         if (!useDocumentStore.getState().setActiveDocumentId(documentId)) {
-          logRoute("fail", { outcome: "focused-tab", documentId, windowLabel }, "flush-failed");
+          const refused = { outcome: "focused-tab", documentId, windowLabel, activated: false };
+          logRoute(actionId, "fail", { ...refused, reason: ACTIVATION_REFUSED_REASON }, ACTIVATION_REFUSED_REASON);
           return;
         }
         useEditorStore.getState().setActiveDocumentId(documentId);
-        logRoute("success", { outcome: "focused-tab", documentId, windowLabel });
+        logRoute(actionId, "success", { outcome: "focused-tab", documentId, windowLabel, activated: true });
         return;
       }
       // The tab closed after Rust looked: open the path, and let ADR-0028 decide.
-      void openRef.current(path).then(
+      void openRef.current(path, actionId).then(
         (opened) => {
-          const context = { outcome: "opened-path", documentId, windowLabel };
-          if (!opened) logRoute("fail", context, "open returned nothing");
-          // D118: written but not activated (D92); the store already toasted.
-          else if (!opened.activated) logRoute("fail", { ...context, activated: false }, "flush-failed");
-          else logRoute("success", context);
+          // D125: a refused activation (D92) is a success with `reason`; the store toasted.
+          const context = { outcome: "opened-path", documentId, windowLabel, ...openActivationContext(opened) };
+          if (!opened) logRoute(actionId, "fail", context, "open returned nothing");
+          else logRoute(actionId, "success", context);
         },
         (error: unknown) =>
           logRoute(
+            actionId,
             "fail",
-            { outcome: "opened-path", documentId, windowLabel },
+            { outcome: "opened-path", documentId, windowLabel, ...openActivationContext(null) },
             error instanceof Error ? error.message : String(error),
           ),
       );

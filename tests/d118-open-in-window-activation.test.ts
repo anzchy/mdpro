@@ -1,15 +1,20 @@
 /**
- * D118 — an external open routed to a closed tab logs whether the open activated.
+ * D118 / D125 — an external open routed to a closed tab logs whether the open activated.
  *
  * `useOpenInWindow`'s "tab closed after Rust looked" branch reopens the path. Before
  * D118 it logged `file.open.route` `success` with outcome `opened-path` whenever the
- * open returned a document, even when the D92 flush guard (ADR-0071) wrote the tab but
- * refused to activate it. The hook now takes `useDocument().openPathOutcome` and logs:
- * - activated → `success` `{ outcome: "opened-path", documentId, windowLabel }`;
- * - opened but not activated → `fail`, same context plus `activated: false`, error
- *   `"flush-failed"` (as the focused-tab refusal), and no toast of its own — the store
- *   already showed the one refusal toast;
- * - `null` → `fail` "open returned nothing"; rejection → `fail` with its message.
+ * open returned a document, with no sign that the D92 flush guard (ADR-0071) wrote the
+ * tab but refused to activate it. D118 made that a `fail`; D125 aligned it with
+ * `file.open.drop` instead (ADR-0071 decision 3: `success` is the open, `activated` is
+ * the activation). The hook takes `useDocument().openPathOutcome` and logs:
+ * - activated → `success` `{ outcome: "opened-path", documentId, windowLabel, activated: true }`;
+ * - opened but not activated → `success`, same context with `activated: false` and
+ *   `reason: "flush-failed"`, no error, and no toast of its own — the store already
+ *   showed the one refusal toast;
+ * - `null` → `fail` "open returned nothing"; rejection → `fail` with its message; both
+ *   with `activated: false` and no reason.
+ * The focused-tab refusal opens nothing, so it stays a `fail` (as `tab.switch` does)
+ * and carries the same two fields.
  *
  * Mock boundary: `@tauri-apps/api/{webviewWindow,core,event,window}` and the
  * `loggingService` sink. `useDocument`, the open-write guard and every store are real;
@@ -153,26 +158,35 @@ describe("D118 — the opened-path route log follows activation", () => {
     expect(routeLogs()).toHaveLength(1);
     expect(routeLogs()[0]).toMatchObject({
       status: "success",
-      context: { outcome: "opened-path", documentId: "doc-z", windowLabel: LABEL },
+      context: { outcome: "opened-path", documentId: "doc-z", windowLabel: LABEL, activated: true },
     });
     expect(routeLogs()[0].error).toBeUndefined();
+    expect(routeLogs()[0].context).not.toHaveProperty("reason");
     expect(toasts).toEqual([]);
   });
 
-  it("D118-2 an open the flush guard refused to activate logs fail flush-failed, activated false, no extra toast", async () => {
+  it("D125-1 an open the flush guard refused to activate logs success, activated false, reason flush-failed, no extra toast", async () => {
     installFlusher("doc-a", "failed");
     answerOpen(doc("doc-z", "/tmp/z.md"));
     await mountReal();
     await emit({ windowLabel: LABEL, documentId: "doc-z", path: "/tmp/z.md" });
     expect(docIds()).toContain("doc-z");
     expect(activeIds()).toEqual(["doc-a", "doc-a"]);
-    expect(routeLogs().filter((p) => p.status === "success")).toHaveLength(0);
+    // Same shape as file.open.drop's refusal: a status:fail filter sees neither.
+    expect(routeLogs().filter((p) => p.status === "fail")).toHaveLength(0);
     expect(routeLogs()).toHaveLength(1);
     expect(routeLogs()[0]).toMatchObject({
-      status: "fail",
-      error: "flush-failed",
-      context: { outcome: "opened-path", documentId: "doc-z", windowLabel: LABEL, activated: false },
+      level: "info",
+      status: "success",
+      context: {
+        outcome: "opened-path",
+        documentId: "doc-z",
+        windowLabel: LABEL,
+        activated: false,
+        reason: "flush-failed",
+      },
     });
+    expect(routeLogs()[0].error).toBeUndefined();
     // The store's refusal toast, once; the route handler adds none.
     expect(toasts).toEqual([TAB_TOAST]);
   });
@@ -189,8 +203,9 @@ describe("D118 — the opened-path route log follows activation", () => {
     expect(routeLogs()[0]).toMatchObject({
       status: "fail",
       error: "open returned nothing",
-      context: { outcome: "opened-path", documentId: "doc-z", windowLabel: LABEL },
+      context: { outcome: "opened-path", documentId: "doc-z", windowLabel: LABEL, activated: false },
     });
+    expect(routeLogs()[0].context).not.toHaveProperty("reason");
   });
 
   it("D118-4 a rejected open logs fail with its message", async () => {
@@ -205,11 +220,12 @@ describe("D118 — the opened-path route log follows activation", () => {
     expect(routeLogs()[0]).toMatchObject({
       status: "fail",
       error: "boom",
-      context: { outcome: "opened-path", documentId: "doc-z", windowLabel: LABEL },
+      context: { outcome: "opened-path", documentId: "doc-z", windowLabel: LABEL, activated: false },
     });
+    expect(routeLogs()[0].context).not.toHaveProperty("reason");
   });
 
-  it("D118-5 control: the focused-tab refusal is unchanged (fail flush-failed, no open)", async () => {
+  it("D118-5 the focused-tab refusal stays fail flush-failed, with activated false and reason (no open)", async () => {
     useDocumentStore.setState({ documents: [doc("doc-a", "/tmp/a.md"), doc("doc-b", "/tmp/b.md")] });
     installFlusher("doc-a", "failed");
     await mountReal();
@@ -220,8 +236,28 @@ describe("D118 — the opened-path route log follows activation", () => {
     expect(routeLogs()[0]).toMatchObject({
       status: "fail",
       error: "flush-failed",
-      context: { outcome: "focused-tab", documentId: "doc-b", windowLabel: LABEL },
+      context: {
+        outcome: "focused-tab",
+        documentId: "doc-b",
+        windowLabel: LABEL,
+        activated: false,
+        reason: "flush-failed",
+      },
     });
+  });
+
+  it("D125-2 a focused tab that activates logs success with activated true and no reason", async () => {
+    useDocumentStore.setState({ documents: [doc("doc-a", "/tmp/a.md"), doc("doc-b", "/tmp/b.md")] });
+    installFlusher("doc-a", "clean");
+    await mountReal();
+    await emit({ windowLabel: LABEL, documentId: "doc-b", path: "/tmp/b.md" });
+    expect(activeIds()).toEqual(["doc-b", "doc-b"]);
+    expect(routeLogs()).toHaveLength(1);
+    expect(routeLogs()[0]).toMatchObject({
+      status: "success",
+      context: { outcome: "focused-tab", documentId: "doc-b", windowLabel: LABEL, activated: true },
+    });
+    expect(routeLogs()[0].context).not.toHaveProperty("reason");
   });
 });
 

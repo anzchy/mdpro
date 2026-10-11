@@ -222,7 +222,7 @@ describe("D19 red — an edit during the save's await survives it (L-H1, L-H2)",
     let reopenReturn: unknown;
     await act(async () => {
       await api.closeDocumentById("doc-a", true);
-      reopenReturn = await api.openDocumentFromPath(A_PATH);
+      reopenReturn = await api.openPathOutcome(A_PATH).then((o) => o?.document ?? null);
     });
     // REOPEN-PRECONDITION("OLD"): the setup reached "reopened under the same id".
     expect(reopenReturn, "REOPEN-PRECONDITION: reopen returned null").not.toBeNull();
@@ -375,7 +375,7 @@ describe("D19 guards — pass before and after the fix", () => {
     let reopenReturn: unknown;
     await act(async () => {
       await api.closeDocumentById("doc-a", true);
-      reopenReturn = await api.openDocumentFromPath(A_PATH);
+      reopenReturn = await api.openPathOutcome(A_PATH).then((o) => o?.document ?? null);
     });
     // REOPEN-PRECONDITION("BASE"): the setup reached "reopened under the same id".
     expect(reopenReturn, "REOPEN-PRECONDITION: reopen returned null").not.toBeNull();

@@ -38,8 +38,9 @@
  *   degrade arm  `buildLargeDocumentDegradeLog(` → `case "withhold-table-extensions"`
  *                (the bare name also occurs in the import line, so the anchor
  *                carries the paren)
- *   drop         `const handleFileDrop = useCallback(`
- *                → `[defaultViewMode, handleImageDrop, handleOpenPath, setViewMode],`
+ *   drop         `const openDroppedMarkdown = useCallback(` in hooks/useOpenPaths.ts
+ *                → `[defaultViewMode, handleOpenPath, setViewMode],` (D125 moved the
+ *                drop's open loop there from App.tsx `handleFileDrop`)
  *   launch paths `const checkLaunchPaths`
  *                → `[defaultViewMode, openPaths, preferencesLoaded, setViewMode]`
  *   Finder open  `const handleFileOpenEvent`
@@ -64,7 +65,10 @@ import * as path from "path";
 function readSrc(relative: string): string {
   const testPath = expect.getState().testPath;
   if (!testPath) throw new Error("testPath unavailable");
-  return fs.readFileSync(path.resolve(path.dirname(testPath), "../src", relative), "utf-8");
+  const file = path.resolve(path.dirname(testPath), "../src", relative);
+  // A missing source file fails as an assertion, not as an ENOENT throw.
+  expect(fs.existsSync(file), `src/${relative} exists`).toBe(true);
+  return fs.readFileSync(file, "utf-8");
 }
 
 const readAppSrc = () => readSrc("App.tsx");
@@ -109,30 +113,34 @@ describe("UEP-03 App.tsx and Editor.tsx call sites (source text, supplement)", (
   it.each([
     {
       label: "degrade arm",
+      file: "App.tsx",
       start: "buildLargeDocumentDegradeLog(",
       end: 'case "withhold-table-extensions"',
       anchor: 'setViewMode("source")',
     },
     {
       label: "drop handler",
-      start: "const handleFileDrop = useCallback(",
-      end: "[defaultViewMode, handleImageDrop, handleOpenPath, setViewMode],",
+      file: "hooks/useOpenPaths.ts",
+      start: "const openDroppedMarkdown = useCallback(",
+      end: "[defaultViewMode, handleOpenPath, setViewMode],",
       anchor: "setViewMode(defaultViewMode)",
     },
     {
       label: "launch paths",
+      file: "App.tsx",
       start: "const checkLaunchPaths",
       end: "[defaultViewMode, openPaths, preferencesLoaded, setViewMode]",
       anchor: "setViewMode(defaultViewMode)",
     },
     {
       label: "Finder open",
+      file: "App.tsx",
       start: "const handleFileOpenEvent",
       end: "[defaultViewMode, openPaths, setViewMode, shouldHandleWindowEvent]",
       anchor: "setViewMode(defaultViewMode)",
     },
-  ])("the $label stays programmatic", ({ label, start, end, anchor }) => {
-    const region = slice(readAppSrc(), start, end, label);
+  ])("the $label stays programmatic", ({ label, file, start, end, anchor }) => {
+    const region = slice(readSrc(file), start, end, label);
     // Non-vacuity: the programmatic call is inside the slice.
     expect(region).toContain(anchor);
     expect(region).not.toMatch(USER_ADAPTER);

@@ -152,7 +152,7 @@ describe("useLastViewModePersistence — only user choices persist (D24 WI-3)", 
         preferencesLoaded: p.loaded,
         defaultViewMode: "wysiwyg",
         setViewMode: useEditorStore.getState().setViewMode,
-        openDocumentFromPath: async () => opened,
+        openPathOutcome: async () => ({ document: opened, activated: true }),
         updateRecentFiles: vi.fn(),
       }),
     { initialProps: { loaded: false } });

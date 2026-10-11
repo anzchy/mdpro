@@ -1,7 +1,8 @@
 // @vitest-environment node
 /**
- * D46 WI-3 / case D46-C1 (spec adversary, round 1) — the `App.tsx` open callers do
- * not report a failed open themselves.
+ * D46 WI-3 / case D46-C1 (spec adversary, round 1) — the `App.tsx` open callers (and,
+ * since D125, the `useOpenPaths` callbacks App took them from) do not report a failed
+ * open themselves.
  *
  * Matrix: `.claude/tdd-guardian/tests-20261003-130127.md` § WI-3, case D46-C1.
  *
@@ -13,7 +14,8 @@
  *
  * ── SPEC LEVEL: SOURCE-TEXT INSPECTION ─────────────────────────────────────
  *
- * These cases read `src/App.tsx` off disk and match it as text, following
+ * These cases read `src/App.tsx` and `src/hooks/useOpenPaths.ts` off disk and match
+ * them as text, following
  * `tests/large-document-guard-call-site.test.ts`. No test renders `App` (see the
  * waiver recorded there). This file cannot prove a callback runs, only that its
  * body contains no second reporter. It replaces the WI-3 `git diff | grep showToast`
@@ -29,11 +31,15 @@ import { describe, expect, it } from "vitest";
 
 // Same resolution as tests/large-document-guard-call-site.test.ts: under vitest's
 // transform import.meta.url is not a file:// URL, so resolve from the test path.
-function readApp(): string {
+function readSrc(relative: string): string {
   const testPath = expect.getState().testPath;
   if (!testPath) throw new Error("testPath unavailable");
-  return fs.readFileSync(path.resolve(path.dirname(testPath), "../src/App.tsx"), "utf-8");
+  const file = path.resolve(path.dirname(testPath), "../src", relative);
+  // A missing source file fails as an assertion, not as an ENOENT throw.
+  expect(fs.existsSync(file), `src/${relative} exists`).toBe(true);
+  return fs.readFileSync(file, "utf-8");
 }
+const readApp = (): string => readSrc("App.tsx");
 
 /** End of a `useCallback(...)` call: its dependency array, then `)` and `;`. */
 const DEPENDENCY_ARRAY_END = /\]\s*,?\s*\)\s*;/;
@@ -57,17 +63,38 @@ function callbackSlice(src: string, name: string): string {
 
 const count = (src: string, needle: string): number => src.split(needle).length - 1;
 
-const NO_REPORT_CALLERS = ["handleOpenPath", "openPaths", "handleOpenRecent", "handleFileDrop"] as const;
+const NO_REPORT_CALLERS = [
+  "handleOpenPath",
+  "openPaths",
+  "openDroppedMarkdown",
+  "handleOpenRecent",
+  "handleFileDrop",
+] as const;
+
+/** D125: the by-path opens moved from App.tsx into `useOpenPaths`. */
+const OWNER: Record<(typeof NO_REPORT_CALLERS)[number], string> = {
+  handleOpenPath: "hooks/useOpenPaths.ts",
+  openPaths: "hooks/useOpenPaths.ts",
+  openDroppedMarkdown: "hooks/useOpenPaths.ts",
+  handleOpenRecent: "App.tsx",
+  handleFileDrop: "App.tsx",
+};
+const callerSlice = (name: (typeof NO_REPORT_CALLERS)[number]): string =>
+  callbackSlice(readSrc(OWNER[name]), name);
 
 describe("D46-C1 — App.tsx open callers do not report a failure themselves", () => {
   it.each(NO_REPORT_CALLERS)("%s adds no toast or reporter of its own", (name) => {
-    const slice = callbackSlice(readApp(), name);
+    const slice = callerSlice(name);
     expect(slice.length, name).toBeGreaterThan(0);
     expect(slice, name).not.toMatch(/reportOpenFailure|showToast|OPEN_FAILED_MESSAGE|useToastStore/);
   });
 
   it("App.tsx never calls reportOpenFailure", () => {
     expect(count(readApp(), "reportOpenFailure")).toBe(0);
+  });
+
+  it("useOpenPaths.ts never reports or toasts", () => {
+    expect(readSrc("hooks/useOpenPaths.ts")).not.toMatch(/reportOpenFailure|showToast|OPEN_FAILED_MESSAGE|useToastStore/);
   });
 
   it("OPEN_FAILED_MESSAGE appears exactly twice: the import and the handleOpenDialog catch", () => {
@@ -90,8 +117,9 @@ describe("D46-C1 — App.tsx open callers do not report a failure themselves", (
 const SLICE_ANCHORS: ReadonlyArray<[name: (typeof NO_REPORT_CALLERS)[number], anchor: string]> = [
   ["handleOpenPath", "openPathOutcome("], // D95: was openDocumentFromPath(
   ["openPaths", "openPathOutcome("],
+  ["openDroppedMarkdown", "handleOpenPath("],
   ["handleOpenRecent", "handleOpenPath("],
-  ["handleFileDrop", "handleOpenPath("],
+  ["handleFileDrop", "openDroppedMarkdown("], // D125: was handleOpenPath(
 ];
 
 describe("D46-C1 — each caller slice reaches its real body", () => {
@@ -100,7 +128,7 @@ describe("D46-C1 — each caller slice reaches its real body", () => {
   });
 
   it.each(SLICE_ANCHORS)("%s slice contains %s", (name, anchor) => {
-    const slice = callbackSlice(readApp(), name);
+    const slice = callerSlice(name);
     expect(count(slice, anchor), `${name} → ${anchor}`).toBeGreaterThanOrEqual(1);
   });
 });

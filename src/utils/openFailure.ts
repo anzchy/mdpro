@@ -14,7 +14,7 @@
  * - `OPEN_FAILED_MESSAGE` is the ⌘O copy and carries no path, so a toast or log
  *   built from it never leaks a file location.
  * - `reportOpenFailure` (D46 WI-2) is the single reporter for a non-encoding
- *   failure of `openDocumentFromPath`, so every external open (`?open=`, drop,
+ *   failure of `useDocument.openPathOutcome`, so every external open (`?open=`, drop,
  *   recent files, launch paths, open-in-window) shows the same toast as ⌘O.
  *   It reuses the per-window toast store rather than adding a second channel.
  *   ⌘O does not call it: `openDocumentFromDialog` re-throws and `App.tsx`

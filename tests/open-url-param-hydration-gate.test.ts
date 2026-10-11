@@ -16,6 +16,11 @@
  * **vmHistory** records every call the hook makes through its `setViewMode`
  * parameter (revision 3, Defect A), not store notifications.
  *
+ * **D126.** The hook opens through `useDocument().openPathOutcome`, so its
+ * `file.open.url_param` outcome carries the shared activation fields
+ * (`activated`, and `reason: "flush-failed"` on a D92 refusal) and its `open_file`
+ * read carries the log's actionId (WI1-05, WI1-09).
+ *
  * **Mocked:** only `@tauri-apps/api/core#invoke` (recording `vi.fn`) and
  * `@tauri-apps/api/window#getCurrentWindow` (label `mdpro-abc`). `useDocument`,
  * `useRecentFiles`, the stores, `preferencesService` and `loggingService` are
@@ -50,6 +55,7 @@ import { useRecentFiles } from "../src/hooks/useRecentFiles";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
+import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import type { Document } from "../src/types/document";
 import type { ViewMode } from "../src/types/editor";
 import { BASE_PREFERENCES } from "./support/preferenceFixtures";
@@ -89,7 +95,7 @@ interface HarnessProps {
 }
 
 function useHarness({ loaded, defaultViewMode, stored }: HarnessProps) {
-  const { openDocumentFromPath } = useDocument();
+  const { openPathOutcome } = useDocument();
   const recent = useRecentFiles();
   const { hydrateRecentFiles, updateRecentFiles } = recent;
   // Declared before the hook under test, so it runs first in the same commit
@@ -105,7 +111,7 @@ function useHarness({ loaded, defaultViewMode, stored }: HarnessProps) {
   useOpenUrlParam({
     preferencesLoaded: loaded,
     defaultViewMode,
-    openDocumentFromPath: (p: string, a?: string) => openDocumentFromPath(p, a),
+    openPathOutcome: (p: string, a?: string) => openPathOutcome(p, a),
     setViewMode,
     updateRecentFiles,
   });
@@ -262,6 +268,8 @@ describe("useOpenUrlParam — hydration gate", () => {
     const opens = callsFor("open_file");
     expect(opens).toHaveLength(1);
     expect((opens[0][1] as { path: string }).path).toBe("/tmp/my file.md");
+    // D126: the read carries the log's actionId.
+    expect((opens[0][1] as { actionId?: string }).actionId).toBe(logPayloads("file.open.url_param")[0]?.actionId);
     expect(window.location.search).toBe("");
     const logs = logPayloads("file.open.url_param");
     const actionId = logs[0]?.actionId;
@@ -284,6 +292,7 @@ describe("useOpenUrlParam — hydration gate", () => {
           fileBasename: "my file.md",
           documentId: "d1",
           hasContent: true,
+          activated: true,
         },
         error: undefined,
       },
@@ -318,14 +327,16 @@ describe("useOpenUrlParam — hydration gate", () => {
     const fails = logPayloads("file.open.url_param").filter((p) => p.status === "fail");
     expect(fails).toHaveLength(1);
     expect(fails[0].level).toBe("error");
-    expect(fails[0].error).toBe("openDocumentFromPath returned null");
+    expect(fails[0].error).toBe("open returned nothing");
+    expect(fails[0].context).toMatchObject({ documentId: null, hasContent: false, activated: false });
+    expect(fails[0].context).not.toHaveProperty("reason");
     expect(callsFor("set_preferences")).toHaveLength(0);
     expect(window.location.search).toBe("");
     expect(useEditorStore.getState().viewMode).toBe("source");
   });
 
   it("WI1-08 log contexts carry no new path-bearing keys", async () => {
-    const allowed = new Set(["windowLabel", "hasOpenParam", "fileBasename", "documentId", "hasContent"]);
+    const allowed = new Set(["windowLabel", "hasOpenParam", "fileBasename", "documentId", "hasContent", "activated", "reason"]);
     const eventsOfHook = new Set(["app.url_param_check", "file.open.url_param"]);
 
     // WI1-05 setup: open success.
@@ -348,5 +359,33 @@ describe("useOpenUrlParam — hydration gate", () => {
       for (const key of Object.keys(context)) expect(allowed.has(key)).toBe(true);
       expect(Object.values(context)).not.toContain("/tmp/my file.md");
     }
+  });
+
+  it("WI1-09 (D126) a D92-refused open logs success, activated false, reason flush-failed, and still records the recent file", async () => {
+    useDocumentStore.setState({ documents: [doc("d0", "/tmp/current.md")], activeDocumentId: "d0" });
+    useEditorStore.setState({ activeDocumentId: "d0" });
+    const unregister = useMilkdownEditorStore.getState().registerFlusher("d0", () => ({ status: "failed" }));
+    try {
+      mount({ loaded: true, defaultViewMode: "source", stored: [] });
+      await flush();
+      await flush();
+    } finally {
+      unregister();
+    }
+
+    const outcomes = logPayloads("file.open.url_param").filter((p) => p.status !== "start");
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0]).toMatchObject({ level: "info", status: "success", error: undefined });
+    expect(outcomes[0].context).toEqual({
+      windowLabel: "mdpro-abc",
+      fileBasename: "x.md",
+      documentId: "d1",
+      hasContent: true,
+      activated: false,
+      reason: "flush-failed",
+    });
+    expect(useDocumentStore.getState().activeDocumentId).toBe("d0");
+    expect(callsFor("set_preferences").map((c) => c[1])).toEqual([{ preferences: { recentFiles: ["/tmp/x.md"] } }]);
+    expect(window.location.search).toBe("");
   });
 });

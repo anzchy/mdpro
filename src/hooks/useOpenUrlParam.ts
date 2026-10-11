@@ -5,8 +5,8 @@
  * (`open_route/tauri_glue.rs`).
  *
  * Pipeline: mount → wait for `preferencesLoaded` → log `app.url_param_check`
- *   → with `?open=`: `setViewMode(defaultViewMode)` → `openDocumentFromPath`
- *   → `updateRecentFiles(doc.path)` → `replaceState` clears the query.
+ *   → with `?open=`: `setViewMode(defaultViewMode)` → `openPathOutcome(path, actionId)`
+ *   → `updateRecentFiles(document.path)` → `replaceState` clears the query.
  *
  * Key decisions:
  * - Hydration gate: nothing runs until `preferencesLoaded`, mirroring the
@@ -19,21 +19,33 @@
  *   read through a ref, so the effect depends on the gate alone.
  * - The query is kept until hydration (consuming it early would lose the open)
  *   and cleared after the open attempt, success or not.
+ * - The view mode is set BEFORE the open, not gated on `activated` after it (D126):
+ *   the window is fresh, so there is no current document for the switch to touch,
+ *   and loading the document first in the store's mode and switching afterwards is
+ *   the ADR-0063 table-cell loss the latch in `onFirstSuccess` avoids elsewhere.
+ * - Opens through `openPathOutcome` like every other by-path open (D126): the
+ *   outcome log keeps `success` for "a document came back" and adds the shared
+ *   activation fields (`activated`, `reason: "flush-failed"` on a D92 refusal); the
+ *   recent file is recorded for every open that opened, activated or not (D95).
+ *   The start log, the read and the outcome share one actionId.
  * - Logs carry the window label, a presence flag and the file basename
  *   (pre-existing, finding F7); never the full path.
  *
  * @coordinates-with src/App.tsx
  * @coordinates-with src/hooks/useRecentFiles.ts
+ * @coordinates-with src/hooks/useDocument.ts — openPathOutcome
+ * @coordinates-with src/utils/openActivationLog.ts — the outcome log's activation fields
  */
 import { useEffect, useRef } from "react";
 import { loggingService } from "../services/loggingService";
-import type { Document } from "../types/document";
+import { openActivationContext } from "../utils/openActivationLog";
+import type { OpenPathOutcome } from "./useDocument";
 import type { ViewMode } from "../types/editor";
 
 export interface OpenUrlParamOptions {
   preferencesLoaded: boolean;
   defaultViewMode: ViewMode;
-  openDocumentFromPath: (path: string, actionId?: string) => Promise<Document | null>;
+  openPathOutcome: (path: string, actionId?: string) => Promise<OpenPathOutcome | null>;
   setViewMode: (mode: ViewMode) => void;
   updateRecentFiles: (path: string) => void;
 }
@@ -47,7 +59,7 @@ export function useOpenUrlParam(options: OpenUrlParamOptions): void {
   useEffect(() => {
     if (!preferencesLoaded || ranRef.current) return;
     ranRef.current = true;
-    const { defaultViewMode, openDocumentFromPath, setViewMode, updateRecentFiles } =
+    const { defaultViewMode, openPathOutcome, setViewMode, updateRecentFiles } =
       latestRef.current;
     const checkUrlParam = async () => {
       const params = new URLSearchParams(window.location.search);
@@ -88,7 +100,8 @@ export function useOpenUrlParam(options: OpenUrlParamOptions): void {
 
         // Use default view mode from preferences for externally opened files
         setViewMode(defaultViewMode);
-        const doc = await openDocumentFromPath(openPath, actionId);
+        const opened = await openPathOutcome(openPath, actionId);
+        const doc = opened?.document ?? null;
         loggingService.logEventSync({
           level: doc ? "info" : "error",
           event: "file.open.url_param",
@@ -99,8 +112,9 @@ export function useOpenUrlParam(options: OpenUrlParamOptions): void {
             fileBasename,
             documentId: doc?.id || null,
             hasContent: doc ? doc.content.length > 0 : false,
+            ...openActivationContext(opened),
           },
-          error: doc ? undefined : "openDocumentFromPath returned null",
+          error: doc ? undefined : "open returned nothing",
         });
         if (doc?.path) {
           updateRecentFiles(doc.path);
