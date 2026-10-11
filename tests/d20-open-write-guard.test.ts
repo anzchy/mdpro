@@ -317,18 +317,23 @@ function runA1Rows(): LawRow[] {
               activated: true,
             });
           } else {
-            expect(result, label).toEqual({ kind: "written", document: decoded, largeFile: false });
-            expect(docs().filter((d) => d.id === "doc-t"), label).toEqual([decoded]);
+            // D145: a clean path-only match is reloaded in place under its own id
+            // (doc-x); before D145 these rows pinned a second tab under doc-t.
+            const writtenId = match === "path" ? "doc-x" : "doc-t";
+            const written = { ...decoded, id: writtenId };
+            expect(result, label).toEqual({ kind: "written", document: written, largeFile: false });
+            expect(docs().filter((d) => d.id === writtenId), label).toEqual([written]);
+            if (match === "path") expect(docById("doc-t"), label).toBeUndefined();
             expect(docById("doc-o"), label).toEqual(sPost.find((d) => d.id === "doc-o"));
             const gens = useMilkdownEditorStore.getState().editorGenerations;
-            expect(gens["doc-t"], label).toBe(pre.generations["doc-t"] + 1);
-            expect(omit(gens, "doc-t"), label).toEqual(omit(pre.generations, "doc-t"));
-            expect(useTOCStore.getState().documentId, label).not.toBe("doc-t");
-            expect(useTOCStore.getState().byDocument.has("doc-t"), label).toBe(false);
+            expect(gens[writtenId], label).toBe(pre.generations[writtenId] + 1);
+            expect(omit(gens, writtenId), label).toEqual(omit(pre.generations, writtenId));
+            expect(useTOCStore.getState().documentId, label).not.toBe(writtenId);
+            expect(useTOCStore.getState().byDocument.has(writtenId), label).toBe(false);
             expect(activeIds(), label).toEqual(
-              expectedActive("doc-t", writeTo === "doc-o" && flush === "failed"),
+              expectedActive(writtenId, writeTo === "doc-o" && flush === "failed"),
             );
-            const grows = match === "path" || match === "none" ? 1 : 0;
+            const grows = match === "none" ? 1 : 0;
             expect(docs().length, label).toBe(preDocs.length + grows);
             expect(focusDirtyLogs.length, label).toBe(0);
             if (exists) {

@@ -2,7 +2,9 @@
  * Purpose: the one guard every open path writes through (D20 / ADR-0028). A document's
  * id is derived from its path, so reopening an open file lands on an existing entry;
  * this module decides, in one synchronous block, whether the freshly decoded document
- * may replace it or whether the existing (dirty) tab is focused instead.
+ * may replace it or whether the existing (dirty) tab is focused instead. An open tab
+ * whose id is not path-derived (an Untitled document keeps its UUID after Save As) is
+ * found by its path and reloaded in place under its own id (D145).
  *
  * Pipeline (synchronous end to end, no suspension point — ADR-0028 decision 4):
  *   flush pending WYSIWYG edits (`assessWindowUnsaved("reopen")`)
@@ -10,7 +12,8 @@
  *   → collect the candidates: the doc whose id equals `decoded.id`, plus every doc
  *     whose path equals `decoded.path`
  *   → decide → either focus the existing tab (nothing written), or
- *     `prepareWholesaleReplace` → `upsertDocument` → activate.
+ *     `prepareWholesaleReplace` → `upsertDocument` → activate (under the existing
+ *     tab's id when only a path matched, D145).
  *
  * Key decisions:
  * - The write happens only when every candidate is clean after the flush AND the
@@ -19,6 +22,12 @@
  *   candidate still writes (a fresh open is not blocked).
  * - Focus priority: the dirty id match; else the first dirty path match in store
  *   order; else (failed flush) the id match, else the first path match.
+ * - D145: with no id match, a clean path match is written IN PLACE as
+ *   `{ ...decoded, id: match.id }` and activated, mirroring a clean same-id reload, so
+ *   Open Recent / ⌘O / drop never add a second tab on one file (two tabs on a file
+ *   overwrite each other; the watcher follows only the active path). Several path
+ *   matches: the active one if among them, else the first in store order. An id match
+ *   keeps precedence and is written under its id as before.
  * - The guard runs BEFORE `prepareWholesaleReplace`, because preparation discards
  *   pending editor edits unwritten.
  * - Activation writes `activeDocumentId` directly rather than through
@@ -36,7 +45,8 @@
  * - Callers learn whether the tab became active by reading `activeDocumentId` after
  *   the call (`useDocument.openPathOutcome`, D95); the result shape is unchanged.
  * - Logs (`file.open.focus_dirty`, `file.open.reload_clean`) carry ids and flags only,
- *   never document content (rule 20). Their `success` is the guard's decision; the
+ *   never document content (rule 20). A D145 reload adds `decodedId`, `matchedBy:
+ *   "path"` and `pathMatchCount`. Their `success` is the guard's decision; the
  *   `activated` flag says whether the tab actually became active (false after a D92
  *   refusal, which also logs `tab.switch` fail).
  * - D121: an encoding retry whose signal was aborted before its read settled never
@@ -114,6 +124,14 @@ function pickFocus(
   return firstPath ? { document: firstPath, matchedBy: "path" } : null;
 }
 
+/** D145: the clean path match to reload in place when no document has the decoded id:
+ *  the active one if it is among `pathMatches`, else the first in store order. */
+function inPlaceTarget(idMatch: Document | undefined, pathMatches: Document[]): Document | undefined {
+  if (idMatch) return undefined;
+  const { activeDocumentId } = useDocumentStore.getState();
+  return pathMatches.find((doc) => doc.id === activeDocumentId) ?? pathMatches[0];
+}
+
 /**
  * D92: true when moving off the active document would unmount an editor whose edits
  * the store never received. Only asked after the "reopen" flush failed; the aggregate
@@ -162,18 +180,19 @@ function logFocus(
 /**
  * Write the decoded document for an open action, unless a candidate is dirty (or the
  * flush failed while a candidate exists), in which case the existing tab is focused
- * and nothing is written. Synchronous by contract: never returns a thenable.
+ * and nothing is written. A clean path-only match is written in place under its own id
+ * (D145), so `result.document.id` is the tab's id. Synchronous: never returns a thenable.
  */
 export function commitOpenedDocument(
-  decoded: Document,
+  opened: Document,
   reason: OpenWriteReason,
   ctx: OpenWriteContext = {},
 ): OpenWriteResult {
   const { flushFailed } = assessWindowUnsaved("reopen");
   const { documents } = useDocumentStore.getState();
-  const idMatch = documents.find((doc) => doc.id === decoded.id);
+  const idMatch = documents.find((doc) => doc.id === opened.id);
   const pathMatches = documents.filter(
-    (doc) => doc.id !== decoded.id && decoded.path !== null && doc.path === decoded.path,
+    (doc) => doc.id !== opened.id && opened.path !== null && doc.path === opened.path,
   );
 
   const focus = pickFocus(idMatch, pathMatches, flushFailed);
@@ -183,16 +202,21 @@ export function commitOpenedDocument(
     return { kind: "focused-dirty", document: focus.document, matchedBy: focus.matchedBy };
   }
 
+  const target = inPlaceTarget(idMatch, pathMatches);
+  const decoded = target ? { ...opened, id: target.id } : opened;
   prepareWholesaleReplace(decoded.id, reason);
   useDocumentStore.getState().upsertDocument(decoded);
   const activated = activate(decoded.id, flushFailed, ctx);
-  if (idMatch || pathMatches.length > 0) {
+  if (idMatch || target) {
+    const byPath = target
+      ? { decodedId: opened.id, matchedBy: "path", pathMatchCount: pathMatches.length }
+      : {};
     loggingService.logEventSync({
       level: "info",
       event: "file.open.reload_clean",
       status: "success",
       actionId: ctx.actionId ?? loggingService.generateActionId(),
-      context: { documentId: decoded.id, entry: reason, activated },
+      context: { documentId: decoded.id, entry: reason, activated, ...byPath },
     });
   }
   const largeFile = decoded.fileSize !== null && decoded.fileSize > LARGE_FILE_BYTES;
