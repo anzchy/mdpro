@@ -6,7 +6,8 @@
  *
  * Pipeline: `run(args, deps)` → doctor gate (`collectDoctorFacts` →
  *   `evaluate`) → `checkBudget(realpath(passwdHome))` → name + nonce → runs
- *   parent at 0700 → `acquireLock` (`wx`) → `mkdir` run dir (never reused) →
+ *   parent at 0700 → `acquireLock` (`wx`, then `mkdir` run dir, never reused,
+ *   in the same `.lock.mutex` section) →
  *   `launch.json` (`wx`, 0600) + preferences → spawn (direct, or `open -n
  *   --env …`) → `awaitHandshake` (`instance.json`) → `verifyIdentity` →
  *   `owner.json` (`wx`, 0600) → `ready: L1 run <R> pid <P>` → `verdict: pass`.
@@ -22,7 +23,11 @@
  * - Acquire and that release run inside `.lock.mutex` (D105-WI-2,
  *   lockMutex.mjs). A mutex still busy after its wait is `driver failure —
  *   lock busy: …` before the run dir exists; `deps.lockMutexWaitMs` (tests)
- *   bounds the wait, production uses `MUTEX_WAIT_MS`.
+ *   bounds the wait, production uses `MUTEX_WAIT_MS`. The run dir is made
+ *   inside the acquire's section (`inSection`, D148-WI-1), so a `clean` that
+ *   follows the mutex never sees this launch's lock without its run dir and
+ *   never takes it for an orphan. A failed mkdir is returned, not thrown,
+ *   and goes through `fail()` as before.
  *   The run dir is kept for diagnosis (`pnpm control:clean <run>`). A release
  *   that kept its own tomb (D105-WI-3) prints `[warn] lock tomb kept: <tomb>`
  *   on stderr; the driver-failure verdict is unchanged. Any tomb refuses the
@@ -101,6 +106,17 @@ function makeParent(homeReal) {
   return p;
 }
 
+/** mkdir + chmod the run dir at 0700. @returns {unknown} the error, or null; never throws (it runs inside the acquire's section) */
+function makeRunDir(runDir) {
+  try {
+    fs.mkdirSync(runDir, { mode: DIR_MODE });
+    fs.chmodSync(runDir, DIR_MODE);
+    return null;
+  } catch (e) {
+    return e;
+  }
+}
+
 /**
  * Run the doctor gate. On pass, prints its lines minus its verdict.
  * @returns {Promise<{ ok: true, facts: any } | { ok: false, result: { exit: 0 | 1, lines: string[] } }>}
@@ -148,21 +164,20 @@ export async function run(args = {}, deps = {}) {
   const nonce = newNonce(d);
   secrets.push(nonce);
   let parent;
+  let lay;
+  let mkdirError = null;
   try {
     parent = makeParent(homeReal);
-    acquireLock(parent, { run: name, nonce }, { mutexWaitMs: d.lockMutexWaitMs });
+    lay = layout(parent, name);
+    const inSection = () => (mkdirError = makeRunDir(lay.runDir));
+    acquireLock(parent, { run: name, nonce }, { mutexWaitMs: d.lockMutexWaitMs, inSection });
   } catch (e) {
     return rep.verdict("driver failure", errMessage(e));
   }
-  const lay = layout(parent, name);
-  const ctx = { d, rep, secrets, parent, name, nonce, lay, ownsRunDir: false };
-  try {
-    fs.mkdirSync(lay.runDir, { mode: DIR_MODE });
-    fs.chmodSync(lay.runDir, DIR_MODE);
-    ctx.ownsRunDir = true;
-  } catch (e) {
-    const code = e && typeof e === "object" && "code" in e ? e.code : "";
-    return fail(ctx, null, code === "EEXIST" ? `run dir already exists: ${name}` : errMessage(e));
+  const ctx = { d, rep, secrets, parent, name, nonce, lay, ownsRunDir: mkdirError === null };
+  if (mkdirError !== null) {
+    const code = errCode(mkdirError);
+    return fail(ctx, null, code === "EEXIST" ? `run dir already exists: ${name}` : errMessage(mkdirError));
   }
   const viaOpen = args.via === "open";
   log(ctx, { phase: "start", run: name, via: viaOpen ? "open" : "exec" });

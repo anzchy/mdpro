@@ -2,8 +2,9 @@
  * Purpose: The outside mutex for the launcher's one-run lock (D105-WI-1):
  * `<runs parent>/.lock.mutex`, created atomically with `wx` at mode 0600,
  * holding `{ pid, token }`. `withLockMutex` runs one synchronous section
- * (an acquire, a release, clean's socket step) while no other process that
- * follows this protocol is inside its own.
+ * (an acquire with launch's run-dir mkdir, a release, clean's socket step,
+ * or taking or dropping a clean claim) while no other process that follows
+ * this protocol is inside its own.
  *
  * Pipeline: `withLockMutex(parent, fn, { waitMs })` → `wx` create
  *   `.lock.mutex` | on EEXIST read the holder:

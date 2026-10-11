@@ -3,7 +3,8 @@
  * `<runs parent>/.lock`, created atomically with `wx` at mode 0600, holding
  * `{ run, nonceDigest }`. At most one verify run holds it at a time.
  *
- * Pipeline: `acquireLock(parent, { run, nonce }, { mutexWaitMs })` → `.lock`;
+ * Pipeline: `acquireLock(parent, { run, nonce }, { mutexWaitMs, inSection })`
+ *   → `.lock`, then `inSection()` in the same section;
  *   `readLock(parent)` → absent | held(run) | corrupt;
  *   `releaseLock(parent, { run, nonce }, { mutexWaitMs })` → "released" |
  *   "absent" | `released; tomb kept: <tomb>`;
@@ -75,7 +76,14 @@
  *   `lock unreadable`. Nothing auto-takes or auto-cleans a lock (D2).
  * - `releaseOrphanLock` is for a lock whose run dir is already gone, so the
  *   nonce went with it: it matches on `run` only. Any other holder, or a
- *   corrupt lock, throws and the bytes stay.
+ *   corrupt lock, throws and the bytes stay. Any entry named `run` in the
+ *   parent, checked inside the section, throws `run <run> is launching: run
+ *   dir appeared` (D148-WI-1): `clean`'s `lstat` is an unlocked read and can
+ *   land between a launch's acquire and its mkdir.
+ * - `inSection` (D148-WI-1) runs right after the `wx` write, still inside the
+ *   acquire's section: `launch` makes its run dir there, so no mutex follower
+ *   ever sees the lock without its run dir. Its error passes through with the
+ *   lock kept (the caller releases it).
  * - Callers release the lock only on launch failure cleanup, a
  *   confirmed-dead `quit`, or `clean` of the run it names (its orphan lock
  *   included, once `clean` has proved no verify binary may be running).
@@ -136,6 +144,7 @@ export function acquireLock(parent, { run, nonce }, opts = {}) {
         const held = readRecord(parent);
         throw new Error(held.state === "held" ? `lock held by run ${held.run}` : UNREADABLE);
       }
+      opts.inSection?.();
       return { run };
     },
     { waitMs: opts.mutexWaitMs },
@@ -151,7 +160,7 @@ function refuseOnTomb(parent) {
 }
 
 /** @typedef {"released" | "absent" | `released; tomb kept: ${string}`} ReleaseResult */
-/** @typedef {{ mutexWaitMs?: number }} MutexOpts how long to wait for `.lock.mutex` (default `MUTEX_WAIT_MS`) */
+/** @typedef {{ mutexWaitMs?: number, inSection?: () => void }} MutexOpts the `.lock.mutex` wait (default `MUTEX_WAIT_MS`); acquire's in-section step */
 
 /**
  * Release the lock if, and only if, `{ run, nonce }` wrote it.
@@ -242,7 +251,18 @@ function errorCode(error) {
  * @returns {ReleaseResult}
  */
 export function releaseOrphanLock(parent, run, opts = {}) {
-  return releaseAtomically(parent, (rec) => runMismatch(rec, run), opts);
+  const appeared = () => (entryAbsent(path.join(parent, run)) ? null : `run ${run} is launching: run dir appeared`);
+  return releaseAtomically(parent, (rec) => runMismatch(rec, run) ?? appeared(), opts);
+}
+
+/** @param {string} p @returns {boolean} true only when `lstat` says ENOENT (any entry type counts as present) */
+function entryAbsent(p) {
+  try {
+    fs.lstatSync(p);
+    return false;
+  } catch (error) {
+    return errorCode(error) === "ENOENT";
+  }
 }
 
 /** @returns {{ state: "absent" } | { state: "corrupt" } | { state: "held", run: string, nonceDigest: string }} */

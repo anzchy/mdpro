@@ -32,13 +32,13 @@ import {
   preBound,
   type Probe,
   probeSocket,
-  RELEASED,
+  // rule 12: D148-WI-2 drops RELEASED (only SG-1/SG-3 used it; B no longer releases).
   runFixture,
   secondCleaner,
   SOCK_REMOVED,
   tombsIn,
 } from "./support/cleanSockFixtures";
-import { recordBytes } from "./support/lockSchedules";
+import { rawAcquire, recordBytes } from "./support/lockSchedules";
 
 const children: ChildProcess[] = [];
 afterEach(async () => {
@@ -47,6 +47,8 @@ afterEach(async () => {
   await disposeAll();
 });
 
+/** D148-WI-2: a second `clean R` while A holds R's clean claim. */
+const BEING_CLEANED = `${DF}run ${NAME} is being cleaned (cleaner pid ${process.pid}, .clean.${NAME})`;
 const mutexFiles = (p: string) => fs.readdirSync(p).filter((n) => n.startsWith(".lock.mutex"));
 const lockBytes = (p: string) => (fs.existsSync(path.join(p, ".lock")) ? fs.readFileSync(path.join(p, ".lock"), "utf8") : null);
 
@@ -61,7 +63,14 @@ function racingProbe(window: () => Promise<void> | void) {
 }
 
 describe("D105-WI-4 a launch that takes the lock during the re-probe keeps its si.sock", () => {
-  it("SG-1 (②) A cleans R; meanwhile B orphan-cleans R and C launches and binds: A keeps C's live socket and fails loudly", async () => {
+  // rule 12: D148-WI-2. The title, the competitor C and B's expected lines change.
+  // B's orphan release of R's lock while A is mid-clean is the defect D148 removes:
+  // B now refuses (`run R is being cleaned`) and leaves the lock, so an in-protocol
+  // `acquireLock(C)` is refused too (`lock held by run R`, D148 CC-3). C becomes a
+  // writer outside the protocol (raw unlink + raw `wx`, an older checkout), which
+  // keeps what SG-1 pins: A's re-check keeps a live socket under a lock naming
+  // another run, and A fails loudly. A's expected lines are unchanged.
+  it("SG-1 (②) A cleans R; meanwhile B is refused and C takes the lock raw and binds: A keeps C's live socket and fails loudly", async () => {
     let fx: ReturnType<typeof runFixture> | null = null;
     let pre = "";
     let bOut: string[] = [];
@@ -70,14 +79,15 @@ describe("D105-WI-4 a launch that takes the lock during the re-probe keeps its s
       const b = secondCleaner(f, { probe: async (): Promise<Probe> => "absent", scan: [] });
       await b.clean();
       bOut = b.out;
-      acquireLock(f.parent, { run: OTHER, nonce: N2 });
+      fs.unlinkSync(f.lockPath);
+      rawAcquire(f.parent, OTHER, N2);
       fs.renameSync(pre, f.siSock);
     });
     fx = runFixture({ probe });
     await makeStaleSocket(fx.siSock);
     pre = await preBound(fx.dir);
     const r = await fx.clean();
-    expect(bOut).toEqual([RELEASED, "verdict: pass"]);
+    expect(bOut).toEqual([BEING_CLEANED]);
     expect({ exit: r.exit, out: fx.out }).toEqual({
       exit: 1,
       out: [`[info] si.sock kept: lock held by run ${OTHER}`, `${DF}removed ${NAME}, lock not released: lock names run ${OTHER}, not ${NAME}`],
@@ -111,7 +121,10 @@ describe("D105-WI-4 a launch that takes the lock during the re-probe keeps its s
 });
 
 describe("D105-WI-4 the lock re-check, its other outcomes", () => {
-  it("SG-3 B releases R's lock during the re-probe and nobody takes it: the stale socket is removed, A passes", async () => {
+  // rule 12: D148-WI-2. The title and B's expected lines change: B no longer releases
+  // R's lock while A is mid-clean (the D148 defect); it refuses, and A's own release
+  // frees the lock. A's expected lines and the end state are unchanged.
+  it("SG-3 B is refused during the re-probe and nobody takes the lock: the stale socket is removed, A passes", async () => {
     let fx: ReturnType<typeof runFixture> | null = null;
     let bOut: string[] = [];
     const probe = racingProbe(async () => {
@@ -122,7 +135,7 @@ describe("D105-WI-4 the lock re-check, its other outcomes", () => {
     fx = runFixture({ probe });
     await makeStaleSocket(fx.siSock);
     const r = await fx.clean();
-    expect(bOut).toEqual([RELEASED, "verdict: pass"]);
+    expect(bOut).toEqual([BEING_CLEANED]);
     expect({ exit: r.exit, out: fx.out }).toEqual({ exit: 0, out: [`clean: removed ${NAME}`, SOCK_REMOVED, "verdict: pass"] });
     expect(await probeSocket(fx.siSock)).toBe("absent");
     expect(lockBytes(fx.parent)).toBeNull();

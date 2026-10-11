@@ -5,16 +5,17 @@
  *
  * Pipeline: `run(args, deps)` → `layout` (name check) →
  *   `lstat(<parent>/R)` (absent → `absentRun` in cleanSocket.mjs: lock state,
- *   scan, probe → stale `si.sock` step while an orphan lock naming R is held
- *   → `releaseOrphanLock` → pass)
+ *   scan, probe → [clean claim] → stale `si.sock` step while an orphan lock
+ *   naming R is held → `releaseOrphanLock` → pass)
  *   → facts: `realpath`, `stat` of the realpath, `launch.json`, liveness from
  *   `owner.json` | `instance.json` | the verify scan, `readLock` →
  *   `cleanVerdict` → probe `si.sock` (live refuses) → re-`lstat` R →
- *   `checkLockOwner` (a lock naming R) → `removeRunDir` (R's entries,
+ *   `checkLockOwner` (a lock naming R) → `underClaim` (`.clean.R`,
+ *   cleanClaim.mjs) → `removeRunDir` (R's entries,
  *   `launch.json` last, then R) → `siSock` (scan `[]` only, re-probe `stale`
  *   → lock re-check inside `.lock.mutex` → unlink) while the lock is still
  *   held → `settle`: `releaseLock`, then the removed line, the held socket
- *   line, the verdict.
+ *   line, the verdict → drop the claim.
  *
  * Key decisions:
  * - The runs parent is `runsParent(realpath(passwd home))`, and R's realpath
@@ -32,7 +33,9 @@
  * - Absent R with a lock naming R (an orphan, left by a crash): released by
  *   `releaseOrphanLock` (run match only; the nonce went with R) when the scan
  *   is exactly `[]` and `si.sock` is not live or unknown; otherwise refused,
- *   lock kept. A lock naming another run is never touched (`clean: absent R`,
+ *   lock kept; an entry named R that appeared meanwhile (a launch's run dir,
+ *   D148-WI-1) refuses inside the release's section, lock kept. A lock naming
+ *   another run is never touched (`clean: absent R`,
  *   pass); a corrupt one refuses as `ownership: lock`. With no lock left, a
  *   stale `si.sock` follows the same rule as below, so `clean <any absent
  *   name>` is the way out of a stale socket with no run dir (doctor's hint).
@@ -56,6 +59,12 @@
  *   still busy after its wait is `removed R, lock not released: lock busy: …`.
  *   `deps.lockMutexWaitMs` (tests) bounds the wait, production uses
  *   `MUTEX_WAIT_MS`. `checkLockOwner` stays an unlocked read.
+ * - One cleaner per run (D148-WI-2): right before its first mutation (the
+ *   removal here, the socket step on the orphan path) `clean` claims
+ *   `.clean.R` and drops it on exit. A second `clean R` meanwhile is `driver
+ *   failure — run R is being cleaned (cleaner pid <n>, .clean.R)`, so it can
+ *   no longer judge R's lock an orphan and release it under the first one.
+ *   The claim comes after every refusal, so refusals stay read-only.
  * - Every refusal is read-only. No `launcher.jsonl` record is written: on a
  *   refusal it would change R, and on success R is gone. `process.env` is
  *   never read for a child or assigned; stdout never carries the nonce.
@@ -66,6 +75,7 @@
  * @coordinates-with scripts/control/launcherCli.mjs (`pnpm control:clean`: parseCleanArgs, runIfMain)
  * @coordinates-with scripts/control/cleanSocket.mjs (absentRun, siSock, settle, lockState, normScan, lstatOrNull, UNKNOWN)
  * @coordinates-with scripts/control/lock.mjs (checkLockOwner, releaseLock)
+ * @coordinates-with scripts/control/cleanClaim.mjs (underClaim: the per-run clean claim)
  * @coordinates-with scripts/control/doctor.mjs (defaultProcFacts; doctor names `clean <run>` as the next step)
  * @coordinates-with scripts/control/doctorChecks.mjs (the stale-socket hint names a `clean` this file honours)
  */
@@ -77,6 +87,7 @@ import { defaultDeps as launchDeps } from "./launchDeps.mjs";
 import { runIfMain } from "./launcherCli.mjs";
 import { formatCleanRefusal } from "./launcherFormat.mjs";
 import { absentRun, lockState, lstatOrNull, normScan, settle, siSock, UNKNOWN } from "./cleanSocket.mjs";
+import { underClaim } from "./cleanClaim.mjs";
 import { checkLockOwner, releaseLock } from "./lock.mjs";
 import { goodPid } from "./ownerFacts.mjs";
 import { cleanVerdict } from "./ownership.mjs";
@@ -220,12 +231,17 @@ export async function run(args = {}, deps = {}) {
   } catch (e) {
     return rep.verdict("driver failure", `lock not released: ${errMessage(e)}`);
   }
+  return underClaim(d, rep, parent, name, () => removeAndRelease(d, rep, { parent, lay, name, scan: g.scan, probe, owner, ours }));
+}
+
+/** The mutating half of the present-run path; the caller holds the clean claim (cleanClaim.mjs). */
+async function removeAndRelease(d, rep, { parent, lay, name, scan, probe, owner, ours }) {
   try {
     removeRunDir(d.rmSync, lay.runDir);
   } catch (e) {
     return rep.verdict("driver failure", `remove failed: ${errCode(e)}`);
   }
-  const sockLine = await siSock(d, probe, g.scan, { parent, run: name });
+  const sockLine = await siSock(d, probe, scan, { parent, run: name });
   return settle(
     rep,
     sockLine,
