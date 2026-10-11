@@ -12,7 +12,7 @@
  * refuse on failure → re-read the document, `activeDocumentId`, `viewMode` and the
  * editor → compute → WYSIWYG-active: commit to Milkdown first
  * (`mcpTableApplyMilkdown.ts`), then the store → source-active: store first, then
- * the CodeMirror dispatch → non-active: store only.
+ * the CodeMirror dispatch of the differing span → non-active: store only.
  *
  * Key decisions (D58, ADR-0065):
  * - Flush first, targeted: a pending WYSIWYG keystroke reaches the store before the
@@ -25,6 +25,10 @@
  * - WYSIWYG-active with no editor is refused ("editor unavailable"), never store-only.
  * - Source mode keeps store-first; a CodeMirror dispatch throw is logged, not thrown.
  *   Source success output is unchanged.
+ * - Source mode dispatches only the span that differs from the live CodeMirror text
+ *   (`minimalTextChange`), not a whole-document replace, so a caret or selection
+ *   outside the table maps through the change instead of collapsing to 0 (D66). The
+ *   resulting document is the same `newContent` either way.
  * - Both store writes are classified `ordinary` in tests/wholesale-path-partition.test.ts
  *   (table cells only), so they do not reset TOC coordination.
  * - Logs `mcp.table.<action>` with `{ documentId }` plus `reason` / `error` /
@@ -34,6 +38,7 @@
  * @coordinates-with src/hooks/useMcpEvents.ts — registers the listener and calls this
  * @coordinates-with src/hooks/mcpTableApplyMilkdown.ts — the WYSIWYG editor phase
  * @coordinates-with src/utils/tableMcp.ts — `applyMcpTableAction` computes the content
+ * @coordinates-with src/utils/minimalTextChange.ts — the source-mode change span
  * @coordinates-with src/stores/documentStore.ts, editorStore.ts, milkdownEditorStore.ts
  * @module hooks/mcpTableAction
  */
@@ -44,6 +49,7 @@ import { useEditorStore } from "../stores/editorStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import { loggingService } from "../services/loggingService";
 import { applyMcpTableAction, type McpTableAction } from "../utils/tableMcp";
+import { minimalTextChange } from "../utils/minimalTextChange";
 import { REASON_THREW, applyTableToMilkdown } from "./mcpTableApplyMilkdown";
 
 const FLUSH_REASON = "mcp-table";
@@ -143,11 +149,9 @@ export function processTableActionEvent(
   const cmView = isActive && viewMode === "source" ? useEditorStore.getState().editorView : null;
   if (cmView) {
     try {
-      cmView.dispatch(
-        cmView.state.update({
-          changes: { from: 0, to: cmView.state.doc.length, insert: newContent },
-        }),
-      );
+      // D66: only the span that differs, so CodeMirror maps the caret through it.
+      const change = minimalTextChange(cmView.state.doc.toString(), newContent);
+      cmView.dispatch(cmView.state.update({ changes: change }));
     } catch (err) {
       fail({
         reason: "codemirror dispatch threw",
