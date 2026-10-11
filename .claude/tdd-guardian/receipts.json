@@ -121111,6 +121111,63 @@
           "message": "The red for 'D145-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
+    },
+    {
+      "id": "D147-WI-1",
+      "lane": "unit",
+      "recorded_at": "2026-10-11T06:25:52.827Z",
+      "head_sha": "50db39fcadf1084ffa510e9e3cd33375a7dd955c",
+      "dirty_source": [
+        "vitest.workers.ts"
+      ],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/vitest-workers.test.ts": {
+          "state": "ok",
+          "sha": "2e5ba5c3aae9091bc0dea173c1c27aa0958a146398905ece12414099ddb46056",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "9c94784f8cfa14e6",
+            "04b6b7604798915b",
+            "8abc8ad7241c6ad5",
+            "58a043adc1d3853b",
+            "45c5da3ac5bfa48b",
+            "29576b54e255e3c9",
+            "77cbb4d2fe7bd180",
+            "363c6b9fa7e077ca",
+            "29576b54e255e3c9",
+            "904771f7212088db",
+            "b158c7b9e20db86e",
+            "bdf286c95bf3d4b5",
+            "29576b54e255e3c9",
+            "5df15b97524a5244",
+            "d499180112d45682",
+            "643a4ff4fb28dbde",
+            "e5dbd0f890483f3e",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-11T06:31:41.986Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D147-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "1 non-test file(s) were already modified when the red was recorded (vitest.workers.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

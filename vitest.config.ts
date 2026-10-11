@@ -1,11 +1,12 @@
 import react from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
+import { resolveMaxWorkers } from "./vitest.workers";
 
 // Concurrent Claude sessions and worktrees each run this suite; vitest's default
-// (cores - 1 forks) per run overloads the machine. Cap at half the cores unless
-// VITEST_MAX_WORKERS overrides it ("4" → 4 workers, "25%" → a percentage).
-const rawMaxWorkers = process.env.VITEST_MAX_WORKERS ?? "50%";
-const maxWorkers = /^\d+$/.test(rawMaxWorkers) ? Number(rawMaxWorkers) : rawMaxWorkers;
+// (cores - 1 forks) per run overloads the machine. A run under scripts/heavy-lock.sh
+// takes half the cores, any other run 2 workers, and VITEST_MAX_WORKERS overrides
+// both ("4" → 4 workers, "25%" → a percentage). See vitest.workers.ts (D147).
+const maxWorkers = resolveMaxWorkers(process.env);
 
 /**
  * The slow tier (ADR-0050): exhaustive / property / cost-enumeration tests that
