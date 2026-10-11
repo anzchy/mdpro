@@ -188,14 +188,19 @@ describe("D42: App-level dialogs render in open order", () => {
     expect(
       logs.filter((p) => p.event === "ui.dialog.cancel").map((p) => p.context?.controlId),
     ).toContain("dialog.reload.ignore");
-    expect(escapeLines()).toEqual([]);
+    // D140 (changed assertion with a stated reason): ReloadDialog is now on the
+    // `useDialogEscape` stack, so its Escape also logs `ui.dialog.escape`.
+    expect(escapeLines().map((p) => p.context)).toStrictEqual([{ dialog: "reload", outcome: "ignore" }]);
 
     act(() => screen.getByRole("button", { name: "Keep editing" }).focus());
     await user.keyboard("{Escape}");
     await settle();
     expect(dialogFor("confirm")).toBeNull();
     expect(handlerCount(h, "cancelClose")).toBe(1);
-    expect(escapeLines().map((p) => p.context)).toStrictEqual([{ dialog: "confirm", outcome: "cancel" }]);
+    expect(escapeLines().map((p) => p.context)).toStrictEqual([
+      { dialog: "reload", outcome: "ignore" },
+      { dialog: "confirm", outcome: "cancel" },
+    ]);
   });
 
   it("4.2 reverse order: Reload, then Unsaved → Unsaved is on top", async () => {
@@ -458,9 +463,11 @@ describe("D42: App-level dialogs render in open order", () => {
     expect(escapeLines().map((p) => p.context)).toStrictEqual([{ dialog: "confirm", outcome: "cancel" }]);
   });
 
-  it("4.13 known cost (ADR-0062 / ADR-0045 Cost e): focus on <body> under Reload → Escape does nothing", async () => {
-    // Registering ReloadDialog on `useDialogEscape` (deferred, plan § Deferred) changes this
-    // deliberately: Escape would then ignore Reload from <body>.
+  // D140 (changed assertion with a stated reason): this case pinned ADR-0045 Cost e — focus on
+  // <body> under Reload, Escape did nothing — as a known cost "until ReloadDialog is registered
+  // on `useDialogEscape`". D140 registers it, so the cost is gone: Escape from <body> takes the
+  // top dialog (Reload) and leaves the covered one open.
+  it("4.13 (D140): focus on <body> under Reload → Escape ignores Reload only", async () => {
     const h = makeHarness();
     await mount(h);
     await h.open("confirm");
@@ -470,12 +477,12 @@ describe("D42: App-level dialogs render in open order", () => {
     const before = h.calls.length;
     const { ev, ok } = escapeOn(document.body);
     await settle();
-    expect(ok).toBe(true);
-    expect(ev.defaultPrevented).toBe(false);
+    expect(ok).toBe(false);
+    expect(ev.defaultPrevented).toBe(true);
     expect(dialogFor("confirm")).not.toBeNull();
-    expect(dialogFor("reload")).not.toBeNull();
-    expect(h.calls).toHaveLength(before);
-    expect(escapeLines()).toEqual([]);
+    expect(dialogFor("reload")).toBeNull();
+    expect(h.calls.slice(before)).toEqual([{ handler: "ignoreReload" }]);
+    expect(escapeLines().map((p) => p.context)).toStrictEqual([{ dialog: "reload", outcome: "ignore" }]);
   });
 
   it("4.14 ui.dialog.stack is the exact projection of order changes with ≥ 2 open, ids only", async () => {
@@ -680,6 +687,8 @@ describe("D42: exhaustive pairs", () => {
     encoding: "encodingCancel",
   };
 
+  const ON_STACK: ReadonlySet<HarnessDialogId> = new Set(["confirm", "mcp", "reload", "encoding"]);
+
   it.each(PAIRS)("4.11: open %s then %s, focus in the top one — Escape affects only the top", async (x, y) => {
     if (x === "settings" || y === "settings") vi.mocked(isTauri).mockReturnValue(true);
     const user = userEvent.setup();
@@ -709,6 +718,7 @@ describe("D42: exhaustive pairs", () => {
       expect(h.calls.slice(calls0.length)).toEqual(effect ? [{ handler: effect }] : []);
       expect(replies().slice(replies0)).toStrictEqual(y === "mcp" ? [rejected("r1")] : []);
     }
-    expect(escapeLines().length - esc0).toBe(y === "confirm" || y === "mcp" ? 1 : 0);
+    // D140: Reload and Encoding joined the `useDialogEscape` stack, so they log `ui.dialog.escape` too.
+    expect(escapeLines().length - esc0).toBe(ON_STACK.has(y) ? 1 : 0);
   });
 });

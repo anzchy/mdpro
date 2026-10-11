@@ -7,7 +7,7 @@ import { ReloadDialog } from "../src/components/common/ReloadDialog";
 // Boundary mock: the real service writes JSONL through Tauri IPC, which does not
 // exist in jsdom. The dialog's own behaviour is what's under test.
 vi.mock("../src/services/loggingService", () => ({
-  loggingService: { logDialogAction: vi.fn() },
+  loggingService: { logDialogAction: vi.fn(), logUiEvent: vi.fn() },
 }));
 
 describe("ReloadDialog", () => {
@@ -27,10 +27,9 @@ describe("ReloadDialog", () => {
 
     expect(screen.getByRole("dialog", { name: "Reload file" })).toBeInTheDocument();
 
-    // Escape is handled on the backdrop, which is not itself focusable, so the
-    // key only reaches it by bubbling from the autoFocused button. If focus were
-    // lost the keystroke would land on document.body — outside React's root —
-    // and the assertion below would pass for the wrong reason.
+    // Escape goes through the document-level `useDialogEscape` stack (D140), so it
+    // works wherever focus is; the initial focus on Reload is checked here only
+    // because Enter, not Escape, depends on it.
     expect(screen.getByRole("button", { name: "Reload" })).toHaveFocus();
 
     await user.keyboard("{Escape}");

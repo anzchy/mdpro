@@ -9,23 +9,29 @@
  *   (`encoding::hinted_decode_refusal`) and App shows the refusal toast.
  * - **Cancel is the initial focus; Escape and a backdrop click take Cancel**
  *   (decision 1), so Enter never commits a retry. Focus is one visible focus request
- *   (`useVisibleInitialFocus`, D53/D63), called before the early return. Escape is a
- *   backdrop `onKeyDown`, as in ReloadDialog: it reaches the backdrop by bubbling from
- *   the focused Cancel. Moving it onto the shared `useDialogEscape` stack is WI-4.6b.
+ *   (`useVisibleInitialFocus`, D53/D63), called before the early return.
+ * - **Escape goes through the shared `useDialogEscape` stack** (D140, as ConfirmDialog
+ *   since D34), dialog `"encoding"`, outcome `"cancel"`, calling the same `handleCancel`
+ *   as the button and the backdrop, so App's `onCancel` aborts a pending retry (D121).
+ *   The former backdrop `onKeyDown` only heard Escape while focus was inside the card; a
+ *   click on the card's text (or on a button, which WebKit on macOS does not focus) left
+ *   focus on `<body>` and Escape did nothing.
  * - **Tab is trapped in the card** (rule 32, D121) by an inline `onKeyDown` loop that
  *   mirrors `SettingsDialog.handleDialogKeyDown`: same focusable query, Tab wraps last
- *   to first, Shift+Tab first to last. Without it Tab left the dialog, and the
- *   backdrop's Escape handler no longer heard the key.
+ *   to first, Shift+Tab first to last. Without it Tab left the dialog.
  * - Every string comes from `ENCODING_DIALOG_COPY`. The dialog takes no `detected`
  *   prop: the approved copy does not name a detected encoding.
  *
  * @coordinates-with src/components/common/encodingDialogCopy.ts — the copy and options
  * @coordinates-with src/hooks/useVisibleInitialFocus.ts — the initial focus on Cancel
+ * @coordinates-with src/hooks/useDialogEscape.ts — document-level capture-phase Escape stack
  * @coordinates-with tests/d52-encoding-dialog.test.tsx — ED-1 … ED-9
  * @coordinates-with tests/focus-trap.test.ts — FT-D121-1 … FT-D121-3
+ * @coordinates-with tests/d140-dialog-escape-device-path.test.tsx — DP-1 … DP-6
  */
 import { useCallback, useRef } from "react";
 
+import { useDialogEscape } from "../../hooks/useDialogEscape";
 import { useVisibleInitialFocus } from "../../hooks/useVisibleInitialFocus";
 import { loggingService } from "../../services/loggingService";
 import { ENCODING_DIALOG_COPY, ENCODING_DIALOG_OPTIONS } from "./encodingDialogCopy";
@@ -38,8 +44,23 @@ interface EncodingDialogProps {
 }
 
 export function EncodingDialog({ open, path, onSelect, onCancel }: EncodingDialogProps) {
+  const backdropRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  const handleCancel = () => {
+    loggingService.logDialogAction("dialog.encoding.cancel", "cancel");
+    onCancel();
+  };
+
+  useDialogEscape({
+    enabled: open,
+    containerRef: backdropRef,
+    dialog: "encoding",
+    outcome: "cancel",
+    onEscape: handleCancel,
+  });
+
   useVisibleInitialFocus(cancelRef, open);
 
   // Focus trap: keep keyboard focus inside the dialog while it is open (rule 32)
@@ -68,18 +89,11 @@ export function EncodingDialog({ open, path, onSelect, onCancel }: EncodingDialo
 
   if (!open) return null;
 
-  const handleCancel = () => {
-    loggingService.logDialogAction("dialog.encoding.cancel", "cancel");
-    onCancel();
-  };
-
   return (
     <div
+      ref={backdropRef}
       className="dialog-backdrop"
       role="presentation"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") handleCancel();
-      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) handleCancel();
       }}

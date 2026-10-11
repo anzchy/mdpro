@@ -1,6 +1,6 @@
 # 0045. Modal Escape goes to the last open dialog in DOM order
 
-**Status**: Accepted (2026-10-02). Proposed 2026-10-01. Device check (D34 row,
+**Status**: Accepted (2026-10-02). Proposed 2026-10-01. Partially superseded: decision 5 (Reload, Encoding) by [ADR-0079](0079-the-encoding-and-reload-dialogs-join-the-escape-stack.md), 2026-10-11. Device check (D34 row,
 sequencing doc): a physical Esc closed both dialogs and the G5b stack, with
 `ui.dialog.escape` / `ui.dialog.cancel` lines in `~/.mdpro/mdpro.log`. It ran
 on a debug bundle of `ef91e24` (needed for Web Inspector) rather than the

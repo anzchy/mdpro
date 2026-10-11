@@ -363,6 +363,10 @@ describe("ConfirmDialog yields Escape to a later unregistered modal (D34 WI-6)",
     expect(deleteDialog()).not.toBeNull();
   });
 
+  // D140 (changed assertion with a stated reason): ES-6 pinned the yield path with the real
+  // ReloadDialog — the stack left the key alone and Reload's backdrop `onKeyDown` took it. Reload
+  // is now on the stack itself, so the stack consumes the key and calls Reload's Ignore; the
+  // yield path keeps its coverage through ES-5 and DE-21 (synthetic unregistered modals).
   it("ES-6: the real ReloadDialog rendered after an open ConfirmDialog receives Escape (Ignore)", () => {
     let ignores = 0;
     render(
@@ -378,13 +382,13 @@ describe("ConfirmDialog yields Escape to a later unregistered modal (D34 WI-6)",
 
     expect(ignores).toBe(1);
     expect(cancels).toBe(0);
-    expect(ok).toBe(true);
-    expect(ev.defaultPrevented).toBe(false);
+    expect(ok).toBe(false);
+    expect(ev.defaultPrevented).toBe(true);
     expect(deleteDialog()).not.toBeNull();
-    expect(escapeLines()).toStrictEqual([]);
+    expect(escapeLines().map((p) => p.context)).toStrictEqual([{ dialog: "reload", outcome: "ignore" }]);
   });
 
-  it("ES-7: an unregistered ReloadDialog EARLIER in the DOM does not block the ConfirmDialog after it", () => {
+  it("ES-7: a ReloadDialog EARLIER in the DOM does not block the ConfirmDialog after it", () => {
     let ignores = 0;
     render(
       <>

@@ -137,9 +137,14 @@ describe("ReloadDialog keyboard accessibility", () => {
   const src = readComponent("components/common/ReloadDialog.tsx");
   const code = stripComments(src);
 
-  it("has onKeyDown handler that checks for Escape key", () => {
-    expect(src).toMatch(/onKeyDown/);
-    expect(src).toMatch(/Escape/);
+  // D140 (policy rule 12, changed assertion with a stated reason): the check this replaces —
+  // `/onKeyDown/` + `/Escape/` on the raw source — certified the backdrop `onKeyDown`, which only
+  // hears Escape while focus is inside the card. Escape now goes through the shared
+  // `useDialogEscape` stack with the Ignore handler; behaviour is specified by DP-3 in
+  // `tests/d140-dialog-escape-device-path.test.tsx` and `tests/reload-dialog.test.tsx`.
+  it("FT-D140-1: registers Escape through useDialogEscape with the Ignore handler, no residual Escape literal", () => {
+    expect(code).toMatch(/useDialogEscape\(\s*\{[\s\S]{0,300}onEscape:\s*handleIgnore/);
+    expect(code).not.toMatch(/["'`]Escape["'`]/);
   });
 
   // D63 (policy rule 12, changed assertion with a stated reason): the assertion this replaces —
@@ -256,8 +261,14 @@ describe("EncodingDialog Tab trap (D121)", () => {
     expect(code).toMatch(/first\.focus\(\)/);
   });
 
-  it("FT-D121-3: Escape and Cancel's initial focus are unchanged", () => {
-    expect(code).toMatch(/e\.key === "Escape"\) handleCancel\(\)/);
+  // D140 (policy rule 12, changed assertion with a stated reason): the match this replaces —
+  // `e.key === "Escape") handleCancel()` — certified the backdrop `onKeyDown`, which only hears
+  // Escape while focus is inside the card (the D34 failure). Escape now goes through the shared
+  // `useDialogEscape` stack with the same `handleCancel`, and its behaviour is specified by
+  // DP-1 … DP-6 in `tests/d140-dialog-escape-device-path.test.tsx`. Initial focus is unchanged.
+  it("FT-D121-3: Escape registers through useDialogEscape with handleCancel; Cancel keeps initial focus", () => {
+    expect(code).toMatch(/useDialogEscape\(\s*\{[\s\S]{0,300}onEscape:\s*handleCancel/);
+    expect(code).not.toMatch(/["'`]Escape["'`]/);
     expect(hookTargetRef(code, "open")).toBe("cancelRef");
   });
 });

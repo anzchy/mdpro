@@ -20,13 +20,13 @@
  *   z-index; since D42 (ADR-0062) `AppDialogs.tsx` renders the App-level dialogs in open
  *   order, so for them DOM order and open order agree.
  * - **Yield to a later unregistered modal** (D34 WI-6, review C-1, user decision): `App.tsx`
- *   renders `AppDialogs` after the BottomTabs and Sidebar `ConfirmDialog`s, and its Reload /
- *   Recovery / Encoding / Settings are unregistered. When one of them is open later in the DOM than the
- *   topmost registered dialog, the event is left untouched (no consume, no `onEscape`, no
- *   log) so the visible dialog's own `onKeyDown` can take it — which still needs focus inside
- *   it. An `aria-modal` inside a registered container (its own card) does not count, and an
- *   unregistered modal earlier in the DOM, or one containing the registered dialog, does not
- *   block it.
+ *   renders `AppDialogs` after the BottomTabs and Sidebar `ConfirmDialog`s, and its Recovery /
+ *   Settings are unregistered (Reload and Encoding joined the stack in D140). When one of them
+ *   is open later in the DOM than the topmost registered dialog, the event is left untouched
+ *   (no consume, no `onEscape`, no log) so the visible dialog's own `onKeyDown` can take it —
+ *   which still needs focus inside it. An `aria-modal` inside a registered container (its own
+ *   card) does not count, and an unregistered modal earlier in the DOM, or one containing the
+ *   registered dialog, does not block it.
  * - **Unattached entries are never topmost** (C-3): an entry whose `containerRef` is null is
  *   skipped; with only such entries Escape is not consumed.
  * - **Registry keyed by registration identity**, never by `dialog` name — four
@@ -41,7 +41,8 @@
  *
  * @coordinates-with src/services/loggingService.ts — `logUiEvent("ui.dialog.escape")`
  * @coordinates-with tests/use-dialog-escape.test.tsx — DE-1 … DE-28
- * @coordinates-with tests/mcp-confirm-escape-stack.test.tsx — ES-5 … ES-7 (yield, real ReloadDialog)
+ * @coordinates-with tests/mcp-confirm-escape-stack.test.tsx — ES-5 … ES-7 (yield; ReloadDialog on the stack)
+ * @coordinates-with tests/d140-dialog-escape-device-path.test.tsx — DP-1 … DP-6 (Reload, Encoding)
  */
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { loggingService } from "../services/loggingService";
@@ -74,9 +75,9 @@ const ESCAPE_EVENT = "ui.dialog.escape";
 /** `keyCode` browsers report for a keydown that belongs to an IME composition. */
 const IME_KEY_CODE = 229;
 /**
- * An open modal that may not be on the stack. Every unregistered app modal (Reload,
- * Recovery, Encoding, Settings, LinkInsertModal, TableInsertModal) renders its card with
- * `aria-modal="true"` only while open.
+ * An open modal that may not be on the stack. Every unregistered app modal (Recovery,
+ * Settings, LinkInsertModal, TableInsertModal) renders its card with `aria-modal="true"`
+ * only while open.
  */
 const MODAL_SELECTOR = '[aria-modal="true"]';
 /** Logged `outcome` when the topmost dialog's `onEscape` throws. */

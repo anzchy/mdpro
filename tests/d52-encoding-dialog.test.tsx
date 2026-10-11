@@ -10,8 +10,8 @@
  * - ED-5 each UTF-16 button selects its own encoding.
  * - ED-6 every visible string comes from `ENCODING_DIALOG_COPY`.
  * - ED-7 … ED-9 (D121, rule 32) Tab and Shift+Tab wrap inside the dialog, and
- *   Escape still cancels after tabbing around (without the trap, focus left the
- *   dialog and the backdrop's Escape handler no longer heard the key).
+ *   Escape still cancels after tabbing around. Since D140 Escape goes through the
+ *   document-level `useDialogEscape` stack, so it no longer depends on focus.
  *
  * Mock boundary: `loggingService` (Tauri IPC does not exist in jsdom).
  */
@@ -23,7 +23,7 @@ import { EncodingDialog } from "../src/components/common/EncodingDialog";
 import { ENCODING_DIALOG_COPY } from "../src/components/common/encodingDialogCopy";
 
 vi.mock("../src/services/loggingService", () => ({
-  loggingService: { logDialogAction: vi.fn() },
+  loggingService: { logDialogAction: vi.fn(), logUiEvent: vi.fn() },
 }));
 
 function renderDialog() {
