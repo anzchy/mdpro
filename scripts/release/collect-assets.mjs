@@ -7,8 +7,8 @@
  *   node scripts/release/collect-assets.mjs --platform <darwin-aarch64|darwin-x86_64|windows-x86_64|linux-x86_64>
  *        --version X.Y.Z [--root <repo>] [--out <dir>]
  *
- * Pipeline: parseArgs → planCollect (list candidates per FileSpec, exactly one
- *   source each, non-empty `.sig`) → on any error: print all, write nothing →
+ * Pipeline: parseArgs → planCollect (list candidates per FileSpec — a readdir
+ *   error other than ENOENT fails — exactly one source each, non-empty `.sig`) → on any error: print all, write nothing →
  *   else copy into a temp dir beside the output and rename it into place.
  *
  * Key decisions:
@@ -18,6 +18,9 @@
  *   job, before any artifact is uploaded (requirement ③).
  * - Optional platforms (D-3): a file kind with no candidates at all is skipped;
  *   a present one follows the same rules as a required one.
+ * - Only ENOENT means a bundle subdirectory is absent. Any other readdir error
+ *   (ENOTDIR, EACCES, EIO, ...) fails the collect, naming the code, for
+ *   required and optional platforms alike (D127-WI-3).
  * - All-or-nothing output: the set is checked before the first copy, and the
  *   copy lands in a temp dir that is renamed into place, so a failure never
  *   leaves a partial set for the upload step.
@@ -54,16 +57,24 @@ function parseArgs(argv) {
   return { opts };
 }
 
-/** Regular files in `dir` (a missing dir has none). @param {string} dir */
+/**
+ * Regular files in `dir`. Only ENOENT (the directory is not there) means "no
+ * files"; any other readdir error (ENOTDIR, EACCES, EIO, ...) is returned with
+ * its code so the caller fails instead of reading it as absent (D127-WI-3).
+ * @param {string} dir
+ * @returns {{ names: string[] } | { code: string }}
+ */
 function filesIn(dir) {
   try {
-    return fs
+    const names = fs
       .readdirSync(dir, { withFileTypes: true })
       .filter((e) => e.isFile())
       .map((e) => e.name)
       .sort();
-  } catch {
-    return [];
+    return { names };
+  } catch (e) {
+    const code = e instanceof Error && "code" in e ? String(e.code) : "UNKNOWN";
+    return code === "ENOENT" ? { names: [] } : { code };
   }
 }
 
@@ -80,7 +91,12 @@ export function planCollect({ root, platform, version }) {
   const copies = [];
   for (const f of spec.files) {
     const dir = path.join(bundle, f.dir);
-    const candidates = filesIn(dir).filter((n) => f.candidates.test(n));
+    const listed = filesIn(dir);
+    if ("code" in listed) {
+      errors.push(`cannot list ${rel(dir)} (${listed.code})`);
+      continue;
+    }
+    const candidates = listed.names.filter((n) => f.candidates.test(n));
     if (candidates.length === 0 && !isRequired(platform)) continue;
     const exact = f.source(version);
     const want = exact ?? `*${f.candidates.source.replace(/\\/g, "").replace(/\$$/, "")}`;

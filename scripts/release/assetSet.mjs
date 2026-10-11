@@ -5,7 +5,8 @@
  *
  * Pipeline:
  *   verifyAssetSet(files, version) → shape → duplicate names → every required
- *     platform's expected files present, signatures non-empty → optional
+ *     platform's expected files present and non-empty (zero bytes fails,
+ *     signed or not, D127-WI-2), signatures non-empty → optional
  *     platforms: each installer and its `.sig` together or not at all → any
  *     other name is unexpected → { ok, errors, signed }
  *   buildManifest(files)           → [{ name, size, sha256 }] sorted by name
@@ -40,6 +41,9 @@ const isFile = (f) =>
 /** @param {Buffer | string | undefined} data */
 const isBlank = (data) => data === undefined || Buffer.from(data).toString("utf8").trim() === "";
 
+/** @param {Buffer | string | undefined} data */
+const byteLength = (data) => (data === undefined ? 0 : Buffer.byteLength(data));
+
 /**
  * @param {unknown} files
  * @param {string} version X.Y.Z
@@ -72,6 +76,10 @@ export function verifyAssetSet(files, version) {
       if (!required && !hasFile && !hasSig) continue;
       if (!hasFile) {
         errors.push(`${platform}: missing ${name}`);
+        continue;
+      }
+      if (byteLength(byName.get(name)) === 0) {
+        errors.push(`${platform}: ${name} is empty (0 bytes)`);
         continue;
       }
       if (!spec.signed) continue;

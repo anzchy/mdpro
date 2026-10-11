@@ -15,8 +15,10 @@
  *   latest.json / manifest.json is set aside) → verifyAssetSet → minisign
  *   verifyFile on every signed pair (key from `--tauri-conf`, default
  *   `src-tauri/tauri.conf.json`; absent or unparsable fails) → resolveNotes →
- *   buildLatestJson + validateLatestJson (self-check) → an input latest.json is
- *   validated, an input manifest.json must equal the recomputed one → on any
+ *   buildLatestJson + validateLatestJson (self-check) → an input latest.json
+ *   must parse to a JSON object and is then validated (null, an array or any
+ *   other non-object fails, D127-WI-1), an input manifest.json must equal the
+ *   recomputed one → on any
  *   error print all and write nothing → else write to a temp dir and rename it
  *   to `--out`.
  *
@@ -141,6 +143,14 @@ function checkSignatures(signed, assets, confFile) {
 }
 
 /**
+ * What a parsed JSON value is, as the error names it. Only "an object" is a
+ * plain `{...}`; `null` and arrays are their own kinds (D127-WI-1).
+ * @param {unknown} v
+ */
+const jsonKind = (v) =>
+  v === null ? "null" : Array.isArray(v) ? "an array" : typeof v === "object" ? "an object" : `a ${typeof v}`;
+
+/**
  * Re-verify a generated `latest.json` / `manifest.json` found in the input.
  * @param {{name: string, data: Buffer}[]} generated
  * @param {{name: string, data: Buffer}[]} assets
@@ -151,13 +161,17 @@ function checkGenerated(generated, assets, ctx) {
   const latest = generated.find((f) => f.name === "latest.json");
   const manifest = generated.find((f) => f.name === "manifest.json");
   if (latest) {
-    let json = null;
+    let json;
+    let parsed = false;
     try {
       json = JSON.parse(latest.data.toString("utf8"));
+      parsed = true;
     } catch {
       errors.push("input latest.json is not valid JSON");
     }
-    if (json !== null) errors.push(...validateLatestJson(json, { ...ctx, files: assets }).errors);
+    const kind = jsonKind(json);
+    if (parsed && kind !== "an object") errors.push(`input latest.json is ${kind}, not a JSON object`);
+    else if (parsed) errors.push(...validateLatestJson(json, { ...ctx, files: assets }).errors);
   }
   if (manifest) {
     const want = JSON.stringify(buildManifest(latest ? [...assets, latest] : assets));
