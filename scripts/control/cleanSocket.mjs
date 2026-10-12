@@ -13,7 +13,7 @@
  *   `siSock(d, probe, scan, { parent, run })` → the line to print (or null):
  *   first-probe and scan gates → `lstat` (a socket) → re-probe (`stale` only)
  *   → inside `.lock.mutex`: `readLock` → `unlinkSync` only when the lock is
- *   absent, or names `run` while `<parent>/<run>` is absent.
+ *   absent, or names `run` while `<parent>/<run>` is absent (ENOENT).
  *
  * Key decisions:
  * - The socket step runs while `clean` still holds the lock (D82-WI-2, H2).
@@ -38,7 +38,9 @@
  *   there. A lock naming `run` whose run dir has appeared is a launch in
  *   flight, not this clean's leftover (D148-WI-1): `[info] si.sock kept: run
  *   <run> is launching`. On the present-run path this clean already removed
- *   the run dir, so only the absent-run path can hit it.
+ *   the run dir, so only the absent-run path can hit it. Only ENOENT reads as
+ *   absent there (D148-WI-4): any other `lstat` error keeps the socket, `[info]
+ *   si.sock kept: run dir lstat failed: <code>`, as `releaseOrphanLock` does.
  * - A release that succeeded but kept its own tomb (`released; tomb kept:
  *   <tomb>`, D105-WI-3) prints `[warn] lock tomb kept: <tomb>` right after the
  *   removed/absent line; the verdict stays `pass` (the release itself
@@ -183,11 +185,29 @@ function unlinkUnlessTaken(sock, parent, run) {
   const lock = readLock(parent);
   if (lock.state === "corrupt") return "[info] si.sock kept: lock unreadable";
   if (lock.state === "held" && lock.run !== run) return `[info] si.sock kept: lock held by run ${lock.run}`;
-  if (lock.state === "held" && lstatOrNull(path.join(parent, run)) !== null) return `[info] si.sock kept: run ${run} is launching`;
+  if (lock.state === "held") {
+    const dir = entryState(path.join(parent, run));
+    if (dir === "present") return `[info] si.sock kept: run ${run} is launching`;
+    if (dir !== "absent") return `[info] si.sock kept: run dir lstat failed: ${dir}`;
+  }
   try {
     fs.unlinkSync(sock);
     return "clean: removed stale si.sock";
   } catch (e) {
     return `[info] si.sock kept: unlink failed: ${errCode(e)}`;
+  }
+}
+
+/**
+ * Fail-closed (D148-WI-4): only ENOENT is absent; any other `lstat` error may
+ * hide a launch's run dir, so it is returned as its code and read as present.
+ * @param {string} p @returns {"absent" | "present" | string}
+ */
+function entryState(p) {
+  try {
+    fs.lstatSync(p);
+    return "present";
+  } catch (e) {
+    return errCode(e) === "ENOENT" ? "absent" : errCode(e);
   }
 }

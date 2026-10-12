@@ -6,8 +6,8 @@
  * orphan and releasing it under the first cleaner.
  *
  * Pipeline: `claimClean(parent, run, { mutexWaitMs })` → inside `.lock.mutex`:
- *   read `.clean.<run>` → absent, or held by an ESRCH pid → write ours →
- *   token | alive, EPERM or this pid → throw `run <run> is being cleaned
+ *   read `.clean.<run>` → absent, or held by an ESRCH pid → write ours
+ *   (whole, via a temp and a link) → token | alive, EPERM or this pid → throw `run <run> is being cleaned
  *   (cleaner pid <n>, .clean.<run>)` | unparsable → throw `clean marker
  *   unreadable (.clean.<run>)`.
  *   `dropClean(parent, run, token, { mutexWaitMs })` → inside `.lock.mutex`:
@@ -21,6 +21,12 @@
  *   awaits (scan, probe, re-probe), but no await is ever inside a section.
  *   Because the mutex serialises the read-then-replace, a dead holder's
  *   marker is replaced in place with no break file.
+ * - The marker is never seen incomplete (D148-WI-3): the body goes to a
+ *   unique `.clean.<run>.<pid>-<hex>.tmp` first, which is then linked onto the
+ *   marker name, so an existing marker still refuses with EEXIST (a rename
+ *   would replace it). The temp is removed in `finally`. A cleaner killed
+ *   mid-claim leaves at most a temp, which nothing reads; an empty marker
+ *   from older code still refuses as unreadable.
  * - Liveness is `kill(pid, 0)` only, fail-closed: only ESRCH frees a marker.
  *   A reused pid reads as alive, so `clean R` refuses until a human removes
  *   the file the message names. No age rule.
@@ -72,7 +78,7 @@ export function claimClean(parent, run, { mutexWaitMs } = {}) {
         throw new Error(`run ${run} is being cleaned (cleaner pid ${h.pid}, ${markerName(run)})`);
       }
       if (h.state === "held") fs.unlinkSync(file);
-      fs.writeFileSync(file, JSON.stringify({ pid: process.pid, token }), { flag: "wx", mode: FILE_MODE });
+      writeWhole(file, JSON.stringify({ pid: process.pid, token }));
       return token;
     },
     { waitMs: mutexWaitMs },
@@ -122,6 +128,30 @@ export async function underClaim(d, rep, parent, run, body) {
       why = errMessage(e);
     }
     if (why !== null) d.err(`[warn] clean marker kept: ${markerName(run)} (${why})`);
+  }
+}
+
+/**
+ * Create `file` holding all of `body`, or throw EEXIST when it exists: write a
+ * unique temp beside it, then link the temp onto `file`. The temp is removed
+ * whatever happens; a temp left by a killed cleaner blocks nothing.
+ * @param {string} file @param {string} body
+ */
+function writeWhole(file, body) {
+  const temp = `${file}.${process.pid}-${randomBytes(TOKEN_BYTES).toString("hex")}.tmp`;
+  let made = false;
+  try {
+    fs.writeFileSync(temp, body, { flag: "wx", mode: FILE_MODE });
+    made = true;
+    fs.linkSync(temp, file);
+  } finally {
+    if (made) {
+      try {
+        fs.unlinkSync(temp);
+      } catch {
+        // Kept temp: harmless. Throwing here would fail a claim whose marker exists, held by a live pid.
+      }
+    }
   }
 }
 
