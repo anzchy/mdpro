@@ -23,7 +23,7 @@
  *   marker is replaced in place with no break file.
  * - The marker is never seen incomplete (D148-WI-3): the body goes to a
  *   unique `.clean.<run>.<pid>-<hex>.tmp` first, which is then linked onto the
- *   marker name, so an existing marker still refuses with EEXIST (a rename
+ *   marker name (`writeWhole.mjs`), so an existing marker still refuses with EEXIST (a rename
  *   would replace it). The temp is removed in `finally`. A cleaner killed
  *   mid-claim leaves at most a temp, which nothing reads; an empty marker
  *   from older code still refuses as unreadable.
@@ -45,12 +45,14 @@
  * @coordinates-with scripts/control/clean.mjs (the present-run path claims before removing R)
  * @coordinates-with scripts/control/cleanSocket.mjs (the orphan path claims before the socket step)
  * @coordinates-with scripts/control/lockMutex.mjs (withLockMutex: every section here)
+ * @coordinates-with scripts/control/writeWhole.mjs (writeWhole: the temp-and-link create of the marker)
  */
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { errMessage } from "./launchCore.mjs";
 import { withLockMutex } from "./lockMutex.mjs";
+import { writeWhole } from "./writeWhole.mjs";
 
 const FILE_MODE = 0o600;
 const TOKEN_BYTES = 8;
@@ -78,7 +80,7 @@ export function claimClean(parent, run, { mutexWaitMs } = {}) {
         throw new Error(`run ${run} is being cleaned (cleaner pid ${h.pid}, ${markerName(run)})`);
       }
       if (h.state === "held") fs.unlinkSync(file);
-      writeWhole(file, JSON.stringify({ pid: process.pid, token }));
+      writeWhole(file, JSON.stringify({ pid: process.pid, token }), FILE_MODE);
       return token;
     },
     { waitMs: mutexWaitMs },
@@ -128,30 +130,6 @@ export async function underClaim(d, rep, parent, run, body) {
       why = errMessage(e);
     }
     if (why !== null) d.err(`[warn] clean marker kept: ${markerName(run)} (${why})`);
-  }
-}
-
-/**
- * Create `file` holding all of `body`, or throw EEXIST when it exists: write a
- * unique temp beside it, then link the temp onto `file`. The temp is removed
- * whatever happens; a temp left by a killed cleaner blocks nothing.
- * @param {string} file @param {string} body
- */
-function writeWhole(file, body) {
-  const temp = `${file}.${process.pid}-${randomBytes(TOKEN_BYTES).toString("hex")}.tmp`;
-  let made = false;
-  try {
-    fs.writeFileSync(temp, body, { flag: "wx", mode: FILE_MODE });
-    made = true;
-    fs.linkSync(temp, file);
-  } finally {
-    if (made) {
-      try {
-        fs.unlinkSync(temp);
-      } catch {
-        // Kept temp: harmless. Throwing here would fail a claim whose marker exists, held by a live pid.
-      }
-    }
   }
 }
 

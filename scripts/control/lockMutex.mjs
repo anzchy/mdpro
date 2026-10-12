@@ -1,14 +1,15 @@
 /**
  * Purpose: The outside mutex for the launcher's one-run lock (D105-WI-1):
- * `<runs parent>/.lock.mutex`, created atomically with `wx` at mode 0600,
- * holding `{ pid, token }`. `withLockMutex` runs one synchronous section
+ * `<runs parent>/.lock.mutex`, created whole and exclusively at mode 0600
+ * (a temp, then a link: `writeWhole.mjs`), holding `{ pid, token }`. `withLockMutex` runs one synchronous section
  * (an acquire with launch's run-dir mkdir, a release, clean's socket step,
  * or taking or dropping a clean claim) while no other process that follows
  * this protocol is inside its own.
  *
- * Pipeline: `withLockMutex(parent, fn, { waitMs })` → `wx` create
- *   `.lock.mutex` | on EEXIST read the holder:
- *   this pid → throw at once; ESRCH → break (`.lock.mutex.break` `wx` → re-read
+ * Pipeline: `withLockMutex(parent, fn, { waitMs })` → create `.lock.mutex`
+ *   whole (temp → link) | on EEXIST read the holder:
+ *   this pid → throw at once; ESRCH → break (`.lock.mutex.break` created the
+ *   same way → re-read
  *   → unlink the mutex only if its bytes are unchanged and its pid still
  *   ESRCH → unlink the break file) → retry; alive, EPERM, unreadable or a
  *   break file present → poll every `MUTEX_POLL_MS` until `waitMs`, then
@@ -26,9 +27,15 @@
  *   ESRCH proves the holder dead. A reused pid reads as alive, so the wait
  *   times out (`lock busy: mutex held by pid <n>`) and a human removes the file.
  *   Age never breaks a mutex: an age rule could make two holders.
- * - An unparsable mutex (a crash between create and write, a directory, a bad
- *   pid) is never broken: `lock busy: mutex unreadable`, bytes kept.
- * - Breaking happens only under `.lock.mutex.break` (itself `wx`), so two
+ * - Neither file is ever seen incomplete (D170-WI-1): the body goes to a
+ *   unique `<name>.<pid>-<hex>.tmp` beside it, which is linked onto the name,
+ *   so an existing file still means EEXIST ("held"); the temp is removed in
+ *   `finally`. A process killed in between leaves at most a temp, which
+ *   nothing reads, so it blocks nothing.
+ * - An unparsable mutex (empty or partial from code before D170, a directory,
+ *   a bad pid) is never broken: `lock busy: mutex unreadable`, bytes kept. An
+ *   empty or partial break file is waited on like any other.
+ * - Breaking happens only under `.lock.mutex.break` (itself exclusive), so two
  *   breakers cannot both pass the re-read and delete a newcomer's mutex. An
  *   existing break file is waited on and never removed by anyone but its
  *   creator: `lock busy: mutex break file kept (.lock.mutex.break)`.
@@ -41,10 +48,12 @@
  *
  * @module scripts/control/lockMutex
  * @coordinates-with scripts/control/lock.mjs (acquire and release sections)
+ * @coordinates-with scripts/control/writeWhole.mjs (writeWhole: the create of both files)
  */
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { writeWhole } from "./writeWhole.mjs";
 
 /** How long a section waits for a live or unreadable holder before `lock busy`. */
 export const MUTEX_WAIT_MS = 2000;
@@ -93,7 +102,7 @@ function enter(parent, file, body, waitMs) {
   const deadline = Date.now() + waitMs;
   for (;;) {
     try {
-      fs.writeFileSync(file, body, { flag: "wx", mode: FILE_MODE });
+      writeWhole(file, body, FILE_MODE);
       return;
     } catch (error) {
       if (errorCode(error) !== "EEXIST") throw error;
@@ -118,7 +127,7 @@ function enter(parent, file, body, waitMs) {
 function breakDead(parent, file, seen, body) {
   const breakFile = path.join(parent, BREAK_NAME);
   try {
-    fs.writeFileSync(breakFile, body, { flag: "wx", mode: FILE_MODE });
+    writeWhole(breakFile, body, FILE_MODE);
   } catch (error) {
     if (errorCode(error) === "EEXIST") return false;
     throw error;

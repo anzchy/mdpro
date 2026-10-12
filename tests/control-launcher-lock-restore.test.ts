@@ -42,7 +42,11 @@ describe("D82 lock restore: a non-EEXIST link failure", () => {
         return realRename(from, to);
       }) as never);
       const links: unknown[][] = [];
-      vi.spyOn(fs, "linkSync").mockImplementationOnce(((...a: unknown[]) => {
+      const realLink = fs.linkSync;
+      // rule 12: D170-WI-1 creates `.lock.mutex` by a link too, before the restore, so the one fault is aimed at the
+      // first link onto `.lock` (the restore) and every other link is real (was `mockImplementationOnce` on any link).
+      vi.spyOn(fs, "linkSync").mockImplementation(((...a: unknown[]) => {
+        if (a[1] !== lock || links.length > 0) return realLink(...(a as Parameters<typeof fs.linkSync>));
         links.push(a);
         throw Object.assign(new Error("EPERM: operation not permitted, link"), { code: "EPERM" });
       }) as never);

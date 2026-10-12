@@ -76,7 +76,13 @@ describe("D82-WI-9 S-1: a non-EEXIST restore failure names the tomb", () => {
     acquireLock(parent, { run: A, nonce: N1 });
     const lock = lockFile(parent);
     swapBeforeRename(lock);
-    vi.spyOn(fs, "linkSync").mockImplementationOnce((() => {
+    const realLink = fs.linkSync;
+    let faulted = false;
+    // rule 12: D170-WI-1 creates `.lock.mutex` by a link too, before the restore, so the one fault is aimed at the
+    // first link onto `.lock` (the restore) and every other link is real (was `mockImplementationOnce` on any link).
+    vi.spyOn(fs, "linkSync").mockImplementation(((from: fs.PathLike, to: fs.PathLike) => {
+      if (to !== lock || faulted) return realLink(from, to);
+      faulted = true;
       throw fault(code, "link");
     }) as never);
 

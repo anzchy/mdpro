@@ -158,13 +158,15 @@ export function interleave(parent: string, shots: Shot[]): Interleave {
   /** The caller's own create / unlink of `.lock.mutex`: real call, then track `held`. */
   const track = (m: Method, args: unknown[]) => {
     const value = real[m](...args);
-    held = m === "writeFileSync";
+    // rule 12: D170-WI-1 creates `.lock.mutex` by `linkSync(temp, .lock.mutex)`, so a link onto it is a create too (was `m === "writeFileSync"` alone).
+    held = m === "writeFileSync" || m === "linkSync";
     if (!held) wake();
     return value;
   };
   const hits = (at: At, m: Method, args: unknown[], idx: number) => {
     if (typeof at === "number") return at === idx;
-    if (at === "pre-link") return m === "linkSync";
+    // rule 12: D170-WI-1 links the mutex and break files too; "pre-link" stays lock.mjs's link back onto `.lock` (was any `linkSync`).
+    if (at === "pre-link") return m === "linkSync" && args[1] === lock;
     if (at === "pre-rename") return m === "renameSync" && args[0] === lock;
     return (m === "renameSync" || m === "unlinkSync") && args[0] === lock;
   };
@@ -177,7 +179,9 @@ export function interleave(parent: string, shots: Shot[]): Interleave {
           if (state.fired[i] === 0 && hits(s.at, m, args, idx)) fire(i, idx);
         });
       }
+      // rule 12: D170-WI-1 adds the `linkSync(temp, .lock.mutex)` create (was the `writeFileSync` / `unlinkSync` of args[0] only).
       if (!inside && args[0] === mutex && (m === "writeFileSync" || m === "unlinkSync")) return track(m, args);
+      if (!inside && m === "linkSync" && args[1] === mutex) return track(m, args);
       return real[m](...args);
     }) as never),
   );
