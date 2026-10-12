@@ -11,34 +11,19 @@
  *
  * Each case spawns the real hook with Claude Code's PreToolUse JSON on stdin;
  * exit 2 means the call is denied, exit 0 means it is allowed. Branch-dependent
- * cases run against throwaway git repos in os.tmpdir().
+ * cases run against throwaway git repos in os.tmpdir(). The spawn harness lives
+ * in tests/support/roleGuardHarness.ts; ref moves by name (D180) are covered in
+ * tests/d180-role-guard-ref-moves.test.ts.
  */
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
+import { type Input, bashInput, makeRepo, makeRoot, runHook } from "./support/roleGuardHarness";
 
-const HOOK = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.claude/hooks/role-guard.sh");
-
-const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "role-guard-")));
+const root = makeRoot();
 afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
 
-const baseEnv: NodeJS.ProcessEnv = { ...process.env };
-for (const k of ["MDPRO_ROLE", "MDPRO_REPORT_DIR", "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"]) delete baseEnv[k];
-
-function repo(name: string, branch: string): string {
-  const dir = path.join(root, name);
-  fs.mkdirSync(dir, { recursive: true });
-  const git = (...args: string[]) => {
-    const r = spawnSync("git", ["-C", dir, ...args], { env: baseEnv, encoding: "utf8" });
-    if (r.status !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr}`);
-  };
-  git("init", "-q");
-  git("symbolic-ref", "HEAD", `refs/heads/${branch}`);
-  return dir;
-}
+const repo = (name: string, branch: string): string => makeRepo(root, name, branch);
 
 // The `redesign` fixture and every case that uses it are deleted together with
 // the name `frontend-backend-redesign` from PROTECTED on 2026-11-11 (ADR-0083, timing per ADR-0084).
@@ -58,20 +43,11 @@ fs.symlinkSync(path.join(outside, "victim.md"), path.join(reportDir, "escape-fil
 const home = path.join(root, "home");
 fs.mkdirSync(path.join(home, ".mdpro-redesign", "dtrack"), { recursive: true });
 
-type Input = { tool_name: string; tool_input?: Record<string, unknown>; cwd?: string };
-
 function run(role: string | undefined, input: Input | string, extraEnv: NodeJS.ProcessEnv = {}) {
-  const env: NodeJS.ProcessEnv = { ...baseEnv, MDPRO_REPORT_DIR: reportDir, ...extraEnv };
-  if (role !== undefined) env.MDPRO_ROLE = role;
-  const r = spawnSync("/bin/bash", [HOOK], {
-    input: typeof input === "string" ? input : JSON.stringify({ cwd: feature, ...input }),
-    env,
-    encoding: "utf8",
-  });
-  return { status: r.status, stderr: r.stderr };
+  return runHook(role, input, feature, { MDPRO_REPORT_DIR: reportDir, ...extraEnv });
 }
 
-const bash = (command: string, cwd = feature): Input => ({ tool_name: "Bash", tool_input: { command }, cwd });
+const bash = (command: string, cwd = feature): Input => bashInput(command, cwd);
 const write = (file_path: string, cwd = feature): Input => ({ tool_name: "Write", tool_input: { file_path, content: "x" }, cwd });
 const ask: Input = { tool_name: "AskUserQuestion", tool_input: { questions: [] } };
 

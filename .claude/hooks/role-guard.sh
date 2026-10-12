@@ -9,7 +9,13 @@
 #   SendMessage); no `git push`; no commit / merge / rebase / cherry-pick / reset
 #   while the branch is `master` (the single integration trunk, ADR-0083) or a
 #   `release/*` hotfix branch, both landed only by the delegator; the old trunk
-#   `frontend-backend-redesign` stays protected until 2026-11-11 (ADR-0084); no broad staging
+#   `frontend-backend-redesign` stays protected until 2026-11-11 (ADR-0084); no moving
+#   a protected branch by name from anywhere (`branch -f/-d/-m/-c`, `update-ref`
+#   incl. any `--stdin`, fetch/pull refspec destinations, `checkout -B`,
+#   `switch -C`, `worktree add -B`; D180, see role_guard_refs.py). If that module
+#   is missing or fails to import, every implementor Bash call is refused (fail
+#   closed); other tools and the other roles do not need it. A missing python3
+#   still fails open (the hook exits non-2, a non-blocking error). No broad staging
 #   (`git add -A/--all/./-u`, `git commit -a/--all`) and no staging of
 #   `.claude/tdd-guardian/state.json`.
 # - real-device-tester: no git subcommand that changes state (read-only git
@@ -29,7 +35,7 @@
 # Exit 0 = allowed. Malformed JSON exits 0 (fail open, like block-target-scan.sh):
 # a guard that crashes on input it cannot read would block every tool call in
 # every session, which costs more than the one call it might have caught.
-# Regression tests: tests/role-guard-hook.test.ts.
+# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-ref-moves.test.ts.
 set -euo pipefail
 
 role="${MDPRO_ROLE:-}"
@@ -39,8 +45,11 @@ case "$role" in
 esac
 
 input="$(cat)"
-HOOK_INPUT="$input" python3 - <<'PY'
+HOOK_INPUT="$input" ROLE_GUARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" python3 - <<'PY'
 import json, os, shlex, subprocess, sys
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.environ["ROLE_GUARD_DIR"])
 
 try:
     data = json.loads(os.environ["HOOK_INPUT"])
@@ -183,10 +192,22 @@ def names_state_json(arg):
     return p.endswith(os.path.join(".claude", "tdd-guardian", "state.json")) or \
         p.endswith(os.path.join(".claude", "tdd-guardian"))
 
+def load_ref_move(cmd):
+    """D180 checks, imported lazily; a missing or broken module refuses the call (fail closed)."""
+    try:
+        from role_guard_refs import ref_move
+        return ref_move
+    except BaseException:  # incl. SystemExit from a module that exits on import
+        deny(f"role-guard: refs module missing or broken, refusing {cmd}; fix .claude/hooks/role_guard_refs.py")
+
 def implementor_bash(cmd):
+    ref_move = load_ref_move(cmd)
     for d, sub, args in git_calls(cmd, cwd):
         if sub == "push":
             deny("implementors never run `git push`; the delegator lands commits (rule 70).")
+        moved = ref_move(sub, args, lambda: branch_of(d), is_protected)
+        if moved:
+            deny(moved)
         if sub in ("commit", "merge", "rebase", "cherry-pick", "reset"):
             b = branch_of(d)
             if is_protected(b):
