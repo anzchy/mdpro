@@ -137,12 +137,17 @@ Two things to know before touching it:
 
 ## Branches
 
-mdpro does **not** allocate numbered branches. One long-lived branch carries this effort:
+mdpro does **not** allocate numbered branches. Since 2026-10-12 `master` is the only permanent
+branch ([ADR-0083](../../../docs/adr/0083-master-is-the-single-integration-trunk.md)):
 
-**Every commit for the UI-redesign × Markdown-consolidation effort goes to
-`frontend-backend-redesign`. Never commit it directly to `master`.**
+**Every work item is a short-lived `<type>/<id>-<slug>` branch (`fix/…`, `feat/…`, `docs/…`,
+`chore/…`) off `master` in its own worktree, rebased onto `master` before handoff, and landed
+only by the delegator with `git merge --ff-only`. Never commit to `master` directly, never land by
+merge commit.**
 
-Everything else is a short-lived `fix/…`, `feat/…`, `docs/…`, or `chore/…` branch off `master`.
+`release/x.y` exists only for a hotfix to a released version: cut from the tag when needed, fixed
+by `cherry-pick -x` from `master`, never merged back. `frontend-backend-redesign`, which carried
+the UI-redesign × Markdown-consolidation effort until 2026-10-12, is frozen.
 Plans consumed by the autonomous small-feature loop have their own naming contract —
 `docs/plans/<YYYYMMDD>-feat-<slug>.md` with a `## Acceptance Criteria` checklist the verifier
 parses; see `docs/plans/README.md`.

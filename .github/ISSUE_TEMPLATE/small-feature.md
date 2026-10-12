@@ -13,7 +13,7 @@ parses this schema (plan WI-F3 / WI-F6).
 Flow: `small-feature` alone is only a REQUEST. A maintainer must review the linked
 plan and apply the `feature-approved` label; an approval recorder then pins this
 issue body's hash. Editing the body after approval halts the build. The linked plan
-must already be merged to `master` before approval (WI-F6).
+must already be landed on `master` before approval (WI-F6).
 -->
 
 ## Plan

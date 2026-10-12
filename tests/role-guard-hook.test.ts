@@ -3,8 +3,11 @@
  * Rule 70 role guard: the PreToolUse hook `.claude/hooks/role-guard.sh` reads
  * the session's role from `MDPRO_ROLE` and refuses the tool calls that role may
  * not make. An implementor never asks the user directly, never pushes, and never
- * commits on `master` / `frontend-backend-redesign`; real-device-tester never
- * changes git state and writes only into its report dir or session scratch.
+ * commits, merges, rebases, cherry-picks or resets on `master` (the single
+ * integration trunk, ADR-0083) or on a `release/*` hotfix branch; the old trunk
+ * name `frontend-backend-redesign` stays protected only until 2026-10-19.
+ * real-device-tester never changes git state and writes only into its report
+ * dir or session scratch.
  *
  * Each case spawns the real hook with Claude Code's PreToolUse JSON on stdin;
  * exit 2 means the call is denied, exit 0 means it is allowed. Branch-dependent
@@ -37,9 +40,14 @@ function repo(name: string, branch: string): string {
   return dir;
 }
 
+// The `redesign` fixture and every case that uses it are deleted together with
+// the name `frontend-backend-redesign` from PROTECTED on 2026-10-19 (ADR-0083).
 const redesign = repo("redesign", "frontend-backend-redesign");
 const master = repo("master", "master");
 const feature = repo("feature", "fix/d99-role-guard");
+const featureB = repo("feature-b", "fix/d180-example");
+const release = repo("release", "release/0.3");
+const releaseLike = repo("release-like", "release-notes-tidy");
 
 const reportDir = path.join(root, "report");
 const outside = path.join(root, "outside");
@@ -131,6 +139,15 @@ describe("role-guard: implementor", () => {
   });
 
   it.each([
+    ["git commit -m x", release],
+    ["git rebase master", release],
+  ])("denies on a release/* hotfix branch: %s (cwd %s)", (command, cwd) => {
+    const r = impl(bash(command, cwd));
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("release/0.3");
+  });
+
+  it.each([
     ["git add -A"],
     ["git add --all"],
     ["git add ."],
@@ -152,8 +169,11 @@ describe("role-guard: implementor", () => {
     ['git commit -m "git push later; git add -A"', feature],
     ["git commit -m x", feature],
     ['git commit -m "add all"', feature],
-    ["git merge frontend-backend-redesign", feature],
-    ["git rebase frontend-backend-redesign", feature],
+    ["git merge frontend-backend-redesign", feature], // deleted with the old trunk name on 2026-10-19
+    ["git rebase frontend-backend-redesign", feature], // deleted with the old trunk name on 2026-10-19
+    ["git rebase master", featureB],
+    ["git merge master", featureB],
+    ["git commit -m x", releaseLike],
     ["git reset --soft HEAD~1", feature],
     ["git add src/a.ts tests/a.test.ts", feature],
     ["git add .claude/tdd-guardian/receipts.json", feature],

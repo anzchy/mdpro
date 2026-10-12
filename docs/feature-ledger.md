@@ -1,6 +1,6 @@
 # 功能账簿
 
-**mdpro** · 首次建账 2026-09-17 · 分支 `frontend-backend-redesign`
+**mdpro** · 首次建账 2026-09-17 · 分支 `master`（2026-10-12 前为 `frontend-backend-redesign`）
 
 一份文档，两个任务。
 

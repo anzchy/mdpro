@@ -130,7 +130,8 @@ Releases are built by a manually dispatched workflow, not by pushing a tag
 runbook: [`docs/guide/release-runbook.md`](./docs/guide/release-runbook.md)).
 
 ```bash
-# 1. Bump the three files (/bump or rule 40) and land the commit on master
+# 1. Bump the three files (/bump or rule 40) on a chore/ branch; the delegator
+#    lands it on master by `git merge --ff-only` and pushes origin master
 # 2. Precondition: the 0.3.1 device regression passed on the locked SHA
 # 3. Rehearse, then release (mode: build-only | draft | rehearsal-draft)
 gh workflow run release.yml -f ref=<sha> -f version=0.3.1 -f mode=build-only
@@ -196,8 +197,11 @@ Before each commit, verify:
 Sequencing for this effort lives in
 [`docs/plans/20260912-frontend-backend-sequencing-order.md`](./docs/plans/20260912-frontend-backend-sequencing-order.md).
 
-- **Branch**: every commit for this effort goes to `frontend-backend-redesign`.
-  Do not commit it directly to `master`.
+- **Branch**: every work item lands on `master`, the single trunk, and only
+  through the delegator's `git merge --ff-only` of a short-lived branch
+  (rule 70). Nobody lands by merge commit, and the only direct commits are
+  the delegator's docs-only ones. Before 2026-10-12 this effort lived on `frontend-backend-redesign`,
+  now frozen ([ADR-0083](./docs/adr/0083-master-is-the-single-integration-trunk.md)).
 - **Updating the status is part of finishing the work item, not a follow-up.**
   When an independent WI is implemented **and verified**, update its row in the
   sequencing doc — status marker, commit SHAs, and anything the work proved
@@ -233,7 +237,7 @@ scratchpad is wiped.
 - **Directory**: the branch name with `/` → `-`, e.g.
   `mdpro-wt/fix-d41-source-tab-gaps`. A detached checkout for verifying a commit
   is `mdpro-wt/verify-<sha7>`.
-- **Create**: `git worktree add ../mdpro-wt/<dir> -b <branch> frontend-backend-redesign`.
+- **Create**: `git worktree add ../mdpro-wt/<dir> -b <branch> master`.
   Copy the gitignored sidecar `src-tauri/binaries/mdpro_mcp-aarch64-apple-darwin`
   in before `pnpm tauri build`.
 - **Move only with `git worktree move`**, never `mv`. A plain `mv` leaves git's

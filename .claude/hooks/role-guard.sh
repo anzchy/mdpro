@@ -7,7 +7,9 @@
 #   value is unknown and also passes silently, so a typo never locks a session.
 # - implementor: no AskUserQuestion (questions go to mdpro-delegator by
 #   SendMessage); no `git push`; no commit / merge / rebase / cherry-pick / reset
-#   while the branch is `master` or `frontend-backend-redesign`; no broad staging
+#   while the branch is `master` (the single integration trunk, ADR-0083) or a
+#   `release/*` hotfix branch, both landed only by the delegator; the old trunk
+#   `frontend-backend-redesign` stays protected until 2026-10-19; no broad staging
 #   (`git add -A/--all/./-u`, `git commit -a/--all`) and no staging of
 #   `.claude/tdd-guardian/state.json`.
 # - real-device-tester: no git subcommand that changes state (read-only git
@@ -53,7 +55,11 @@ tin = data.get("tool_input") or {}
 if not isinstance(tin, dict):
     tin = {}
 cwd = data.get("cwd") or os.getcwd()
-PROTECTED = {"master", "frontend-backend-redesign"}
+PROTECTED = {"master", "frontend-backend-redesign"}  # drop the old trunk name on 2026-10-19
+PROTECTED_PREFIXES = ("release/",)
+
+def is_protected(b):
+    return b in PROTECTED or b.startswith(PROTECTED_PREFIXES)
 
 def deny(msg):
     sys.stderr.write(f"Blocked by role-guard ({role}): {msg}\n")
@@ -183,7 +189,7 @@ def implementor_bash(cmd):
             deny("implementors never run `git push`; the delegator lands commits (rule 70).")
         if sub in ("commit", "merge", "rebase", "cherry-pick", "reset"):
             b = branch_of(d)
-            if b in PROTECTED:
+            if is_protected(b):
                 deny(f"`git {sub}` on `{b}` is the delegator's job; work on your own branch in mdpro-wt/ (rule 70).")
         if sub == "add":
             for a in args:

@@ -17,7 +17,7 @@
 
 **状态维护规则**：一个独立 WI **实现并验证完毕**后，在**同一个提交里**更新它在本文的状态、
 提交 SHA 与被证伪的结论；不要留到后续清理批次。「验证完毕」指它自己的门禁跑绿，不是代码写完。
-本效力范围内的所有提交都进 `frontend-backend-redesign` 分支，不直接进 `master`。
+自 2026-10-12 起，`master` 是唯一主干（[ADR-0083](../adr/0083-master-is-the-single-integration-trunk.md)）：每个工作项在从 `master` 切出的短命分支上完成，只由 delegator 以 `git merge --ff-only` 落到 `master`，不用 merge commit，直接提交只有 delegator 的纯文档提交；此前本效力范围内的提交都进 `frontend-backend-redesign`（现已冻结）。
 
 | 阶段 | 状态 | 内容 | 归属 | 为什么在这个位置 |
 |---|---|---|---|---|

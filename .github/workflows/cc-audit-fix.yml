@@ -151,11 +151,12 @@ jobs:
             - If a fix requires touching more than 3 files, comment on the issue
               explaining why and skip (leave for human review)
             - If build/test gates fail after 2 attempts, comment on the issue and move on
-            - Never commit to master directly
-            - IMPORTANT: if you ever merge directly to master instead of via PR, you MUST
-              include "Closes #N" in the merge commit message (not just the branch commit).
-              GitHub only fires the issue-close webhook for the PR body or newly-pushed
-              commits — commits already known to the remote are not re-evaluated.
+            - Never commit to master, and never merge anything on GitHub (no PR merge,
+              no merge commit). Your branch is handed to mdpro-delegator, which rebases
+              it onto master and lands it with `git merge --ff-only` (ADR-0083).
+            - IMPORTANT: put "Closes #N" in the fix commit's own message, not only in the
+              PR body. The landing is a fast-forward, so there is no merge commit to carry
+              it; GitHub closes the issue when that commit is pushed to master.
 
       - name: Flag unfixable issue on failure (WI-2 brake)
         if: failure() && steps.find-issues.outputs.ISSUE_NUMBERS != ''

@@ -11,10 +11,11 @@ the copy of the file on the ref you dispatch from, so this version applies only 
 ## Before dispatching
 
 1. Bump the three files (`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`)
-   and land the commit on `master`.
+   on a `chore/` branch; the delegator lands it on `master` with `git merge --ff-only` and
+   pushes `origin master` ([ADR-0083](../adr/0083-master-is-the-single-integration-trunk.md)).
 2. Lock the release SHA. **Precondition for `mode=draft`:** the 0.3.1 device regression has
    passed on that exact SHA (sequencing doc, `#release-031-gate`).
-3. Tag caveat: `/bump` pushes `v<version>` at the bump commit. Preflight accepts an existing
+3. Tag caveat: the delegator tags `v<version>` at the landed bump commit and pushes it. Preflight accepts an existing
    tag only when it points at `ref`. If the locked SHA is a later commit, `mode=draft` refuses
    with "tag vX.Y.Z already exists at …". In that case either release the tagged commit, or
    bump again. Never move the tag.
@@ -80,6 +81,20 @@ gh run watch                                   # or: gh run view <id> --log-fail
   here does not mean publishable**: `may-publish` refuses every rehearsal tag. Without
   `--rehearsal`, verify-release refuses a rehearsal tag before reading any asset
   ([ADR-0076](../adr/0076-verify-release-gains-a-rehearsal-only-check-mode.md)).
+
+## Hotfix to a released version
+
+Per [ADR-0083](../adr/0083-master-is-the-single-integration-trunk.md) Decision 3. `master` keeps
+moving, so a fix for a shipped version cannot always be released from `master`.
+
+1. Cut `release/x.y` from the released tag, and only when a hotfix is actually needed:
+   `git branch release/x.y vX.Y.Z`.
+2. The fix lands on `master` first (upstream first), the normal way.
+3. `git cherry-pick -x <master-sha>` onto `release/x.y`. The branch gets its own `/bump` and tag,
+   and runs the full lanes once.
+4. Dispatch as above, with `-f ref=` set to the release-branch SHA.
+5. `release/x.y` is never merged back into `master`. It is deleted once the next minor ships,
+   with confirmation (rule 25).
 
 ## After the release
 

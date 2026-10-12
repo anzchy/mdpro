@@ -18,9 +18,9 @@ message.
 
 | Session | Machine | Model | Owns | Commits where |
 |---|---|---|---|---|
-| **mdpro-delegator** | MacBook, main checkout | **Fable** | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `frontend-backend-redesign`, docs only |
+| **mdpro-delegator** | MacBook, main checkout | **Fable** | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `master`, docs only; lands peer commits by `git merge --ff-only` and pushes `origin master` after each landing |
 | **mdpro-implementor-\*** (one or more) | MacBook | Opus | The work items the delegator hands it, one area at a time | Its own branch and worktree in `mdpro-wt/`. It runs git only inside that worktree; the delegator does cross-tree git for it |
-| **mdpro-auditor-\*** | MacBook | Opus (the Codex job it dispatches runs `gpt-6.1-sol`) | Audits the user hands it directly (e.g. the branch audit in `docs/audit/`) and the fixes that come out of them. D items it fixes keep their sequencing rows as the authority on status | `isolation: "worktree"` subagents, then cherry-picks onto `frontend-backend-redesign` |
+| **mdpro-auditor-\*** | MacBook | Opus (the Codex job it dispatches runs `gpt-6.1-sol`) | Audits the user hands it directly (e.g. the branch audit in `docs/audit/`) and the fixes that come out of them. D items it fixes keep their sequencing rows as the authority on status | `isolation: "worktree"` subagents; the fix branch, rebased onto `master`, is handed to the delegator to land |
 | **mdpro-device-harness** | Mac mini | Opus | The device-test tooling itself: ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
 | **real-device-tester** | Mac mini, tmux session | Opus | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
 
@@ -59,7 +59,8 @@ commit that starts it working.
 `MDPRO_ROLE=implementor claude` or `MDPRO_ROLE=real-device-tester claude`.
 The PreToolUse hook `.claude/hooks/role-guard.sh` reads it and refuses what
 the role may not do: an implementor's `AskUserQuestion`, `git push`, a
-commit, merge, rebase or reset on `master` or `frontend-backend-redesign`,
+commit, merge, rebase or reset on `master` (and on the frozen
+`frontend-backend-redesign` until it is deleted),
 blanket staging (`git add -A` / `.` / `-u`, `commit -a`) and staging
 `state.json`; the tester's state-changing git and any write outside
 `$MDPRO_REPORT_DIR` (default `~/.mdpro-redesign/dtrack`) or its scratch dir.
@@ -108,8 +109,8 @@ merges or reserves; the delegator does.
 ## Commits and branches
 
 1. **A peer commits on its own branch**, after bringing it up to the current
-   `frontend-backend-redesign` HEAD: fast-forward if it has no unlanded
-   commits, otherwise `git rebase frontend-backend-redesign`. Its gates pass
+   `master` HEAD: fast-forward if it has no unlanded
+   commits, otherwise `git rebase master`. Its gates pass
    before handoff (rule 60 and the tdd-guardian lanes are the author's job),
    and the handoff names the SHA and the lanes that passed. If `--ff-only`
    refuses because HEAD moved, the peer rebases, re-runs its gates and
@@ -123,10 +124,13 @@ merges or reserves; the delegator does.
 2. **The delegator checks ancestry and scope** (not a code review) with `git cat-file -p <sha>` and
    `git diff-tree --no-ext-diff --stat -r <parent> <sha>` (the external diff
    wrapper garbles plain `git diff`), then runs
-   `git merge --ff-only <sha>` in the main checkout.
-3. **A session that lands commits on `frontend-backend-redesign` itself** (by
-   cherry-pick) tells the delegator the SHAs and the lanes that passed, so it can warn the peers to
-   fast-forward before their next commit.
+   `git merge --ff-only <sha>` in the main checkout, and right after it
+   `git push origin master`.
+3. **No other session lands on `master` itself**, by cherry-pick or
+   otherwise. An auditor's fixes reach `master` the way a peer's do: a
+   branch rebased onto `master`, handed to the delegator with the SHAs and
+   the lanes that passed, landed by `--ff-only`. After each landing the
+   delegator warns the peers to fast-forward before their next commit.
 4. **Every landed WI or finished module goes to an mdpro-auditor for a mini
    audit.** After the `--ff-only`, the delegator sends the auditor the
    landed SHA range, the WI or D id and the owner. The auditor runs
@@ -146,7 +150,18 @@ merges or reserves; the delegator does.
    the behaviour they describe. A peer edits **only the D and WI rows it owns**. The
    shared release-freeze paragraph belongs to the delegator.
 
-Never commit to `master` and never push to `origin` unless the user asks.
+**Only the delegator lands on `master`**, by `git merge --ff-only`, and it
+pushes `origin master` right after every landing (user decision, 2026-10-12:
+「落地即推」). No one else pushes, and no one else commits to `master`.
+`master` never takes a merge commit, and the only direct commits on it are
+the delegator's own docs-only ones (device-check records, sequencing-row SHA
+fills, the release-freeze paragraph), pushed at once; a one-commit branch
+fast-forwarded would be the same commit with more ceremony. A
+`release/x.y` hotfix branch (ADR-0083) is protected the same way: only the
+delegator lands on it and pushes it. `frontend-backend-redesign` is frozen
+as of 2026-10-12: nothing lands on it, it is tagged
+`archive/frontend-backend-redesign`, and it is deleted after 2026-10-19 with
+the user's confirmation (rule 25).
 Stage only paths you can name, and never the user's own dirty files — anything in `git status` you did not
 change (on 2026-10-10: their
 `.claude/*` edits, `docs/pending/`, `docs/reference/`, the `docs/plans`

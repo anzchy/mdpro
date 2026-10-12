@@ -1,8 +1,11 @@
 name: CI
 on:
-  # Tests gate pull requests, not master. A direct push to master deliberately
-  # runs nothing: master is meant to be reached through a PR, and a second run
-  # on merge would re-test an already-tested tree at twice the Actions spend.
+  # Tests gate pull requests and `v*` tags, not pushes to master. master is
+  # reached by the delegator's fast-forward push after each local landing
+  # (ADR-0083), and that push deliberately runs nothing: the local lanes and the
+  # landing verifier gate every landing, and the `v*` tag build runs this
+  # workflow on every release. If a Linux canary on master is wanted, add a
+  # daily `schedule` trigger, not a per-push one.
   #
   # The default `pull_request` types are [opened, synchronize, reopened], and
   # `synchronize` is the one that matters — it fires on every push to the PR

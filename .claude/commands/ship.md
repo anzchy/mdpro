@@ -1,11 +1,11 @@
 ---
-description: Full pre-merge pipeline — test, review, bump, commit, push, open PR
+description: Full pre-landing pipeline — rebase, test, review, bump, commit, hand off for landing
 argument-hint: "[bump-type: patch|minor|major] [optional: pr-title]"
 ---
 
 # Ship
 
-Automated pre-merge pipeline. Runs tests → pre-landing review → version bump → commit → push → open PR. Non-interactive except for MINOR/MAJOR bumps and any BLOCK-level findings.
+Automated pre-landing pipeline. Runs rebase → tests → pre-landing review → version bump → commit → handoff to mdpro-delegator, which lands on `master` by `git merge --ff-only` ([ADR-0083](../../docs/adr/0083-master-is-the-single-integration-trunk.md)). Non-interactive except for MINOR/MAJOR bumps and any BLOCK-level findings.
 
 ## Context
 
@@ -27,12 +27,12 @@ git rev-parse --abbrev-ref HEAD
 **Stop** if on `master` or `main`. Ship must run from a feature or fix branch.
 
 ```bash
-# Sync with base
-git fetch origin master
-git merge origin/master --no-edit
+# Sync with base: rebase onto local master, never merge it in
+git rebase master
 ```
 
 Resolve simple conflicts automatically (whitespace, lock files). Ask for guidance on logic conflicts.
+A merge commit here would make the delegator's `--ff-only` landing impossible.
 
 ---
 
@@ -56,7 +56,7 @@ cargo check --manifest-path src-tauri/Cargo.toml && cargo test --manifest-path s
 Apply the checklist from `.claude/rules/60-review-checklist.md` against the full diff:
 
 ```bash
-git diff origin/master...HEAD
+git diff master...HEAD
 ```
 
 - **BLOCK** findings: Fix immediately, re-run gates, then continue.
@@ -129,38 +129,23 @@ Follow the commit format from CLAUDE.md: `type(scope): summary` with conventiona
 
 ---
 
-## Step 7 — Push and Open PR
+## Step 7 — Hand Off for Landing
 
-```bash
-git push -u origin HEAD
-```
+Do not push and do not open a PR. Send mdpro-delegator a handoff (rule 70 § Commits and branches):
 
-Then open PR:
+- the branch and the commit SHA, rebased onto the current `master` HEAD;
+- the paths the commit touches;
+- the lanes that passed on that tree (`pnpm build`, `pnpm test:run`, Rust lanes if run);
+- the SHOULD/NOTE findings from Step 3, or "All BLOCK/MUST items resolved".
 
-```bash
-gh pr create \
-  --title "<type>(<scope>): <summary>" \
-  --body "$(cat <<'EOF'
-## Summary
-- <bullet summary of changes>
-
-## Test plan
-- [ ] pnpm build passes
-- [ ] pnpm test:run passes
-- [ ] Manual smoke test: <key flows tested>
-- [ ] CHANGELOG.md updated
-
-## Pre-landing review
-<paste SHOULD/NOTE findings from Step 3, or "All BLOCK/MUST items resolved">
-EOF
-)"
-```
+The delegator verifies it, lands it with `git merge --ff-only <sha>` and pushes `origin master`.
+If `master` moved in the meantime, rebase again, re-run the gates and resend.
 
 ---
 
 ## Step 8 — Sync Docs (if feature changes)
 
-If the PR introduces new IPC commands, keyboard shortcuts, or user-facing behaviors:
+If the change introduces new IPC commands, keyboard shortcuts, or user-facing behaviors:
 - Update CLAUDE.md IPC table
 - Update `docs/guide/keyboard-shortcuts.md` if shortcuts changed (rule 41)
 - Update relevant `docs/guide/*.md` if behavior changed
@@ -181,5 +166,6 @@ If the PR introduces new IPC commands, keyboard shortcuts, or user-facing behavi
 - Force push (`git push -f`)
 - Skip tests or review
 - Ship from `master` / `main`
+- Push, open a PR, or land on `master` itself — only the delegator lands, by `--ff-only`
 - Auto-resolve logic-level merge conflicts
 - Commit without explicit file staging

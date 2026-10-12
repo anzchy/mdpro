@@ -2,7 +2,7 @@
 name: mdpro-landing-verifier
 description: >-
   Read-only landing check for mdpro-delegator (rule 70). Give it a peer's claimed SHA, the expected
-  parent (the current frontend-backend-redesign HEAD), the paths the peer says it touched, and the
+  parent (the current master HEAD), the paths the peer says it touched, and the
   lanes to re-run. It checks ancestry, scope and tdd-guardian receipts at that SHA, re-runs the lanes
   in its own detached worktree, and returns PASS, ISSUES or BLOCKED keyed to the SHA. Use it before
   `git merge --ff-only` of a peer commit. Not for fixing findings or landing: the peer fixes, the
@@ -11,7 +11,7 @@ description: >-
   <example>
   Context: mdpro-a3 hands off 7c41e2a on fix/d65-table-menu, saying it touched
   src/plugins/milkdown/tableMenu.ts and tests/table-menu.test.ts, and the unit lane passed.
-  frontend-backend-redesign HEAD is c1182b2.
+  master HEAD is c1182b2.
   assistant: "I'll dispatch mdpro-landing-verifier with SHA 7c41e2a, parent c1182b2, those two
   paths, and the unit lane, so the fast-forward rests on an independent re-run at that SHA."
   <commentary>
@@ -29,13 +29,13 @@ artefacts there. Never edit, stage, commit, merge, rebase or fast-forward anythi
 
 ## Input (any missing item → BLOCKED)
 - the claimed SHA
-- the expected parent: the current `frontend-backend-redesign` HEAD
+- the expected parent: the current `master` HEAD
 - the paths the peer says it touched
 - the lanes to re-run, as commands
 
 ## Procedure
 1. `git cat-file -e <SHA>^{commit}`, else `BLOCKED: unknown sha`. Confirm
-   `git rev-parse frontend-backend-redesign` equals the parent you were given; if not, report it.
+   `git rev-parse master` equals the parent you were given; if not, report it.
 2. Ancestry: `git merge-base --is-ancestor <parent> <SHA>`. Exit 1 means the peer must rebase:
    ISSUES. Read `git cat-file -p <SHA>` for the parent line and message.
 3. Scope: `git diff-tree --no-ext-diff --stat -r <parent> <SHA>` and
