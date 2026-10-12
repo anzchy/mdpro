@@ -167,3 +167,28 @@ landed.
   evidence capture in one step**. Plan the run around the agent's turn latency,
   not the human's reaction time. Record a timeout caused by the harness as
   harness timing, not as a defect.
+
+---
+
+## A `.resolves` on RTL's `act()` thenable resumes before the awaited IPC rejects (2026-10-12, D184 second round)
+
+**Symptom.** A hook test asserted `expect(act(() => result.current.save())).resolves.toBeUndefined()`
+and passed, while the production path it covered threw: the mocked `invoke`
+rejected, the hook caught nothing, and the error surfaced only in a later
+`unhandledrejection` that vitest attributed to the *next* test file.
+
+**Root cause.** `act()` from `@testing-library/react` returns a thenable, not a
+native promise. Vitest's `.resolves` wraps it with `Promise.resolve()`, which
+adopts the thenable's `then` callback as soon as the React work inside `act`
+has flushed. The `await invoke(...)` inside the callback is still pending at
+that point, so the assertion settles before the rejection exists. The test
+proved only that `act` finished, not that `save()` resolved.
+
+**Rule.**
+- Await the action itself, then assert: `await act(async () => { await result.current.save(); })`,
+  with the error-path test wrapping that in `await expect(...).rejects`.
+- If a `.resolves` / `.rejects` on an `act()` call is unavoidable, pass it
+  through `Promise.resolve(act(...))` first so the promise chain includes the
+  awaited work, and make sure the test fails when the hook's catch is removed.
+- A `.resolves` that cannot be made to fail by deleting the code under test is
+  a wiring assertion. Treat it as red that never went red.

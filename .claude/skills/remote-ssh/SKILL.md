@@ -1,6 +1,6 @@
 ---
 name: remote-ssh
-description: Connect to a remote device over Tailscale SSH — default host is `mac-mini` (Jack's Mac mini). Use when the user asks to ssh / connect / run a command on the mac mini or another tailnet device, move work or files to it, or when an SSH to a 100.x address fails (403 banner, permission denied, host key verification failed).
+description: Connect to a remote device over Tailscale SSH — default host is `mac-mini` (Jack's Mac mini); `win-desktop` is the Windows host (see reference/windows-desktop.md). Use when the user asks to ssh / connect / run a command on the mac mini or another tailnet device, move work or files to it, or when an SSH to a 100.x address fails (403 banner, permission denied, host key verification failed).
 ---
 
 # Remote SSH over Tailscale
@@ -17,6 +17,12 @@ Host mac-mini
 
 Use a different host only when the user names one (`$ARGUMENTS` = host alias or
 tailnet name; empty → `mac-mini`).
+
+**Windows desktop (`win-desktop`, `desktop-home` / `100.123.111.19`, user
+`jack`):** read `reference/windows-desktop.md` first. The remote shell is
+PowerShell, there is no rsync and no `dtrack`, key login goes through
+`administrators_authorized_keys`, and device tests have their own rules there.
+Everything below this line is written for the mini.
 
 **Paths and users are different on each machine. Never assume they mirror each
 other:**
@@ -209,3 +215,5 @@ Full write-up: `docs/reference/clash-tailscale/clash-verge-tailscale-complete-gu
 - Never edit permission settings to unblock a remote command. Ask the user.
 - GUI device checks run only in the user's `dtrack` tmux session (§6). Never open
   extra Terminal windows for them, and never kill or recreate `dtrack` from SSH.
+- On `win-desktop` follow `reference/windows-desktop.md`: ssh pipes instead of
+  rsync, one command per call, no GUI work from SSH.
