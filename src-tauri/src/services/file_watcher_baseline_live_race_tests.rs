@@ -188,6 +188,7 @@ fn release(p: &Path) {
 /// `watch` / `unwatch` still completes, so the read runs under neither the
 /// watcher lock nor the list lock.
 #[test]
+#[ignore = "flaky FIFO timing (D120): superseded by l8b in file_watcher_baseline_live_race_l8b_tests.rs"]
 fn l8_watch_does_not_read_file_bytes_under_the_watcher_locks() {
     let _home = home("l8");
     let d = TempDir::new("l8");
@@ -227,3 +228,7 @@ fn l8_watch_does_not_read_file_bytes_under_the_watcher_locks() {
     assert!(a_done, "watch(pipe) finished once the FIFO had a writer");
     assert!(fw.watched().contains(&s(&pipe)), "{:?}", fw.watched());
 }
+
+/// D120: L8 with an explicit FIFO handshake instead of a sleep.
+#[path = "file_watcher_baseline_live_race_l8b_tests.rs"]
+mod l8b;
