@@ -9,7 +9,8 @@
  *   `computeSourceTree(repoRoot, { excludes: manifest.sourceTreeExcludes })`
  *     === `manifest.sourceTree`;
  *   `runsParent(realpath(passwdHome))` → `readLock` (+ owner facts →
- *     `quitVerdict` for liveness), run dirs, `.instance.json.*.tmp` files;
+ *     `quitVerdict` for liveness), run dirs, `.instance.json.*.tmp` files,
+ *     `collectLockLeftovers(parent)` (doctorLeftovers.mjs, D174);
  *   `procFacts.scan()`, `procFacts.probe(siSockPath)`
  *   → `evaluate(facts)` → `formatDoctorLines` → `deps.out(line)` for each
  *   line → `{ exit }`. `deps.collectFacts` is the fact seam (default:
@@ -40,6 +41,7 @@
  * @coordinates-with scripts/control/procFacts.mjs (the real process facts)
  * @coordinates-with scripts/control/lock.mjs, ownership.mjs, runDir.mjs, sourceTree.mjs
  * @coordinates-with scripts/control/ownerFacts.mjs (readRunRecords, ownerFacts, goodPid)
+ * @coordinates-with scripts/control/doctorLeftovers.mjs (collectLockLeftovers: the lock leftovers)
  * @coordinates-with scripts/control/launcherCli.mjs (`pnpm control:doctor`: parseDoctorArgs, runIfMain)
  */
 import fs from "node:fs";
@@ -47,6 +49,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildLayout } from "./buildSteps.mjs";
 import { evaluate } from "./doctorChecks.mjs";
+import { collectLockLeftovers } from "./doctorLeftovers.mjs";
 import { runIfMain } from "./launcherCli.mjs";
 import { formatDoctorLines } from "./launcherFormat.mjs";
 import { defaultDeps as launchDeps } from "./launchDeps.mjs";
@@ -209,6 +212,7 @@ export async function collectFacts(deps) {
     siSock: await deps.procFacts.probe(deps.siSockPath),
     leftoverRuns: runs,
     leftoverTmps: tmps,
+    lockLeftovers: collectLockLeftovers(parent),
     siSockPath: deps.siSockPath,
   };
 }

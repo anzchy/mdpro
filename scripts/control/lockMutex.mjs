@@ -49,6 +49,7 @@
  * @module scripts/control/lockMutex
  * @coordinates-with scripts/control/lock.mjs (acquire and release sections)
  * @coordinates-with scripts/control/writeWhole.mjs (writeWhole: the create of both files)
+ * @coordinates-with scripts/control/doctorLeftovers.mjs (readHolder: doctor's `.lock.mutex` / `.lock.mutex.break` lines, D174)
  */
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
@@ -164,7 +165,7 @@ function isDead(pid) {
  * @param {string} file
  * @returns {{ state: "absent" } | { state: "unreadable" } | { state: "held", pid: number, token: string, bytes: string }}
  */
-function readHolder(file) {
+export function readHolder(file) {
   let bytes;
   try {
     bytes = fs.readFileSync(file, "utf8");

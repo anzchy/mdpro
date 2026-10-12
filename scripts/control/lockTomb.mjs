@@ -13,7 +13,8 @@
  * Key decisions:
  * - The name is unique per call (pid plus random bytes), never derived from
  *   the nonce, so two removers in one process never share a tomb, and the
- *   name fails the run-name grammar, so `doctor` skips it.
+ *   name fails the run-name grammar, so `doctor` never takes it for a run
+ *   dir; it lists it as a lock leftover with its run and an `rm` (D174).
  * - Any entry named `.lock.<anything>.tomb` counts, whoever made it (a crash
  *   between rename and restore, a failed own-tomb unlink, an older checkout):
  *   each one refuses the next acquire until a human removes it (D2: nothing

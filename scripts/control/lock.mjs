@@ -58,7 +58,7 @@
  * - If the restore hits EEXIST (yet another run took `.lock` while the record
  *   was in the tomb), the newcomer is kept, the tomb is kept for diagnosis and
  *   `lock displaced: kept <tomb basename>` is thrown. Nothing auto-cleans a
- *   tomb, and its name fails the run-name grammar, so `doctor` skips it.
+ *   tomb; `doctor` lists it as a lock leftover (D174), never as a run.
  * - Error paths keep the primary outcome (D82-WI-9). Every failed restore
  *   `linkSync` names the tomb: EEXIST as above, any other code appended, e.g.
  *   `lock displaced: kept <tomb basename> (EPERM)`, never a raw error that
@@ -94,6 +94,7 @@
  * @coordinates-with scripts/control/lockTomb.mjs (tomb names, the acquire refusal, the kept-tomb result)
  * @coordinates-with scripts/control/runDir.mjs (layout().lock is this path)
  * @coordinates-with scripts/control/ownership.mjs (cleanVerdict lockNamesThisRun)
+ * @coordinates-with scripts/control/doctorLeftovers.mjs (readRecordAt: doctor's tomb line, D174)
  */
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -271,7 +272,7 @@ function readRecord(parent) {
 }
 
 /** @param {string} file @returns {ReturnType<typeof readRecord>} */
-function readRecordAt(file) {
+export function readRecordAt(file) {
   let text;
   try {
     text = fs.readFileSync(file, "utf8");

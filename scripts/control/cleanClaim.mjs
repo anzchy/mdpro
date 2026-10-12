@@ -33,7 +33,8 @@
  * - This process's own pid counts as alive: in one process it is another
  *   async `clean` of the same run, which must refuse like a second process.
  * - The marker carries only `{ pid, token }`, never a nonce or digest. Its
- *   name fails the run-name grammar, so `doctor` skips it, and it is not a
+ *   name fails the run-name grammar, so `doctor` never takes it for a run
+ *   dir (it lists it as a lock leftover, D174), and it is not a
  *   tomb (`.lock.*.tomb`), so it never refuses an acquire.
  * - `dropClean` never removes a marker it does not hold (another token, or
  *   unreadable); it reports false and leaves it. `underClaim` reports a drop
@@ -46,6 +47,7 @@
  * @coordinates-with scripts/control/cleanSocket.mjs (the orphan path claims before the socket step)
  * @coordinates-with scripts/control/lockMutex.mjs (withLockMutex: every section here)
  * @coordinates-with scripts/control/writeWhole.mjs (writeWhole: the temp-and-link create of the marker)
+ * @coordinates-with scripts/control/doctorLeftovers.mjs (readMarker: doctor's `.clean.<run>` line, D174)
  */
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
@@ -147,7 +149,7 @@ function isDead(pid) {
  * @param {string} file
  * @returns {{ state: "absent" } | { state: "unreadable" } | { state: "held", pid: number, token: string }}
  */
-function readMarker(file) {
+export function readMarker(file) {
   let rec;
   try {
     rec = JSON.parse(fs.readFileSync(file, "utf8"));

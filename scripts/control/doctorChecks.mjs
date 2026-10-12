@@ -14,27 +14,36 @@
  *   probe of `"unknown"`, a lock whose liveness is unknown).
  * - D2: any `.lock` blocks, live or stale. A stale lock names its run and the
  *   next step `clean <run>`; doctor never cleans anything itself.
+ * - A lock leftover that blocks launches (doctorLeftovers `blocksLaunch`: what
+ *   the next acquire refuses on and nothing clears) fails `no run lock` when
+ *   `.lock` itself is absent, naming every such file; its `[info]` line
+ *   carries the `rm`. Other leftovers are `[info]` only (D174).
  * - The verdict is `NOT VERIFIED` if and only if `sourceTree matches` fails;
  *   a manifest that cannot be read skips the three checks that read it.
  * - Leftover run dirs, `.instance.json.*.tmp` files (named against their
  *   run), a stale `si.sock` and the fixed outside-state list are `[info]`
- *   only and never change the exit.
+ *   only and never change the exit. Each lock leftover (D174) is one
+ *   `[info] lock leftover <name>: …` line, worded by doctorLeftovers.mjs.
  * - The stale-`si.sock` hint names a `clean` that really removes it: `<run>`
  *   when run dirs exist, else the stale lock's run, else any valid run name
  *   (`clean` of an absent run unlinks a stale socket); a corrupt lock is
  *   named as the thing to fix first, because `clean` refuses on it.
  * - Lines carry run names, pids, manifest `buildId` / `profile` and fixed
- *   paths only: never a nonce, a digest or a home path (the corrupt-lock
- *   step is written home-relative, `~/…`).
+ *   paths only: never a nonce, a digest or a token, and no home path except
+ *   inside a lock leftover's `rm '<absolute path>'`, which must name the
+ *   passwd home's realpath to be exact (`~` would expand `$HOME`). The
+ *   corrupt-lock step stays home-relative, `~/…`.
  *
  * @module scripts/control/doctorChecks
  * @coordinates-with scripts/control/doctor.mjs (collects the facts, prints the lines)
  * @coordinates-with scripts/control/runDir.mjs (runsParent, layout().siSock)
  * @coordinates-with scripts/control/buildSteps.mjs (buildLayout: the bundle path)
  * @coordinates-with scripts/control/clean.mjs (absent-run clean: the stale-socket hint's command)
+ * @coordinates-with scripts/control/doctorLeftovers.mjs (leftoverLine: the lock leftover lines)
  */
 import path from "node:path";
 import { buildLayout } from "./buildSteps.mjs";
+import { blocksLaunch, leftoverLine } from "./doctorLeftovers.mjs";
 import { layout, runsParent } from "./runDir.mjs";
 
 const PLACEHOLDER_ROOT = "/r";
@@ -46,6 +55,7 @@ const LOCK_HOME_REL = `~${path.join(runsParent("/"), ".lock")}`;
 const NEXT_BUILD = "pnpm control:build --profile verify";
 const NEXT_QUIT = "pnpm control:quit";
 const NEXT_RERUN = "pnpm control:doctor";
+const NEXT_LEFTOVERS = `remove the blocking lock leftovers listed below, then ${NEXT_RERUN}`;
 const MANIFEST_UNAVAILABLE = "manifest unavailable";
 const OUTSIDE_STATE = [
   `outside run dir: ${SI_SOCK}`,
@@ -61,10 +71,18 @@ const fail = (detail, next) => ({ kind: "fail", detail, next });
 /** @param {any} m @returns {boolean} */
 const manifestOk = (m) => m !== null && typeof m === "object" && m.ok === true;
 
-/** @param {any} lock */
-function lockCheck(lock) {
+/**
+ * The run lock can be taken: no `.lock`, and no lock leftover that blocks
+ * launches (D174). A failing `.lock` is judged first and keeps its own step.
+ * @param {any} lock @param {unknown} leftovers
+ */
+function lockCheck(lock, leftovers) {
   const state = lock && typeof lock === "object" ? lock.state : undefined;
-  if (state === "absent") return pass();
+  if (state === "absent") {
+    const blocking = (Array.isArray(leftovers) ? leftovers : []).filter(blocksLaunch).map((e) => e.name);
+    if (blocking.length === 0) return pass();
+    return fail(`lock leftover blocks launches: ${blocking.join(", ")}`, NEXT_LEFTOVERS);
+  }
   if (state === "held" && typeof lock.run === "string") {
     if (lock.live === true) return fail(`lock held by run ${lock.run} (live)`, `${NEXT_QUIT} ${lock.run}`);
     if (lock.live === false) return fail(`stale lock names run ${lock.run}`, `pnpm control:clean ${lock.run}`);
@@ -110,7 +128,7 @@ function checks(f, sockPath) {
       !ok ? skip() : m.profile === "verify" ? pass() : fail(`profile is ${JSON.stringify(m.profile ?? null)}`, NEXT_BUILD),
     ],
     ["sourceTree matches", ok ? tree() : skip()],
-    ["no run lock", lockCheck(f.lock)],
+    ["no run lock", lockCheck(f.lock, f.lockLeftovers)],
     ["no verify binary running", pidsCheck(f.verifyPids)],
     ["si.sock not live", sockCheck(f.siSock, sockPath)],
   ];
@@ -136,6 +154,7 @@ function infoLines(f, sockPath) {
   const out = [];
   for (const run of Array.isArray(f.leftoverRuns) ? f.leftoverRuns : []) out.push(`leftover run ${run}`);
   for (const t of Array.isArray(f.leftoverTmps) ? f.leftoverTmps : []) out.push(`leftover tmp ${t.run}/${t.file}`);
+  for (const e of Array.isArray(f.lockLeftovers) ? f.lockLeftovers : []) out.push(leftoverLine(e));
   if (f.siSock === "stale") out.push(`stale si.sock ${sockPath} (${sockHint(f)})`);
   return [...out, ...OUTSIDE_STATE].map((l) => `[info] ${l}`);
 }
@@ -146,6 +165,7 @@ function infoLines(f, sockPath) {
  *   manifest: { ok: true, buildId: unknown, profile: unknown } | { ok: false, why: string },
  *   sourceTreeMatches: boolean | "unknown",
  *   lock: { state: "absent" } | { state: "corrupt" } | { state: "held", run: string, live: boolean | "unknown" },
+ *   lockLeftovers?: import("./doctorLeftovers.mjs").Leftover[],
  *   verifyPids: number[] | "unknown", siSock: "live" | "stale" | "absent" | "unknown",
  *   leftoverRuns: string[], leftoverTmps: { run: string, file: string }[],
  *   siSockPath?: string }} facts `siSockPath` defaults to the app's fixed path
