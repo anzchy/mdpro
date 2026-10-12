@@ -192,3 +192,22 @@ proved only that `act` finished, not that `save()` resolved.
   awaited work, and make sure the test fails when the hook's catch is removed.
 - A `.resolves` that cannot be made to fail by deleting the code under test is
   a wiring assertion. Treat it as red that never went red.
+
+---
+
+## Format before you record: a Rust red recorded on unformatted files cannot survive the fmt lane (2026-10-12, D173 commit 1 → D187)
+
+**Symptom.** After `cargo fmt`, the tdd-guardian verify step reported the
+recorded red spec files as changed in 8 of 9 Rust files, although no test had
+been edited. The only option left that kept both lanes green was
+`#[rustfmt::skip]` on those modules, freezing them unformatted.
+
+**Root cause.** `receipt.js record` fingerprints a recorded test file by its
+whole-file sha256. `cargo fmt` rewrites line layout, so a file recorded before
+formatting never matches again. The line-subsequence fallback tolerates
+*added* lines, not reflowed ones. Nothing in the record step checks that the
+file is already `rustfmt`-clean.
+
+**Rule.** Run `cargo fmt` on the test files **before** `receipt.js record`,
+and never run it between record and verify. Until D187 makes `record` refuse
+an unformatted `.rs` file, this is a manual step in every Rust red.

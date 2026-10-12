@@ -51,6 +51,11 @@ passes with it.
 - **jsdom is the default; a DOM-free file opts into node** with `// @vitest-environment node` as its first line. `tests/setup.ts` then makes any first-party read of `window`, `document`, `navigator` and the rest fail the file — if it trips, remove the marker rather than stubbing around it ([ADR-0049](../../docs/adr/0049-dom-free-test-files-opt-into-the-node-environment.md)).
 - **An exhaustive, property or cost-enumeration test that takes ≥ 2 s under coverage goes in a `*.slow.test.ts` sibling.** The default run and the per-commit `unit` lane exclude it; `pnpm test:slow` and the tdd-guardian `slow` lane (push / manual) run it. Share the domain through `tests/support/`, never by copying it ([ADR-0050](../../docs/adr/0050-exhaustive-tests-run-in-a-separate-slow-lane.md)).
 
+**Format before you record.** A Rust red is recorded on `rustfmt`-clean test
+files (`cargo fmt` first, then `receipt.js record`), and `cargo fmt` is never
+run between record and verify: the receipt fingerprints the file's bytes, and a
+later reformat breaks it for good (D187).
+
 ## How much to run, and when
 
 Several sessions share one machine, so **run the full suite once per commit,
