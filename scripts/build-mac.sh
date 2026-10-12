@@ -13,7 +13,15 @@
 #
 # Exits non-zero if `pnpm tauri build` fails, or if no DMG for this version was
 # written by this run (a DMG left by an earlier build is rejected as stale,
-# never deleted) — D182.
+# never deleted) — D182. Also (D183):
+#   - rustc is checked with the other prerequisites;
+#   - package.json's version must equal the one Tauri bundles with — the
+#     `version` in src-tauri/tauri.conf.json (following it when it is a path to
+#     a .json file), or, when that is absent, src-tauri/Cargo.toml's
+#     [package] version (Tauri 2's fallback) — checked before install/build;
+#   - of several fresh DMGs for the version, the newest by mtime is reported;
+#   - mdpro.app counts only if a file in Contents/MacOS or its Info.plist was
+#     written by this run; an older .app is rejected as stale.
 
 set -euo pipefail
 
@@ -53,10 +61,35 @@ step "Checking prerequisites"
 command -v pnpm  >/dev/null 2>&1 || fail "pnpm not found (brew install pnpm)"
 command -v cargo >/dev/null 2>&1 || fail "cargo not found (install Rust via rustup)"
 command -v node  >/dev/null 2>&1 || fail "node not found"
+command -v rustc >/dev/null 2>&1 || fail "rustc not found (install Rust via rustup)"
 ok "pnpm $(pnpm --version)  |  rustc $(rustc --version | awk '{print $2}')  |  node $(node --version)"
 
 # ── Version ───────────────────────────────────────────────────────────────────
 VERSION=$(node -p "require('./package.json').version")
+# The version Tauri names the DMG with (Tauri 2 config rules): tauri.conf.json's
+# `version`, which may be a path (relative to src-tauri/) to a .json file
+# holding one; without it, Cargo.toml's [package] version. Prints
+# "<version>\t<source file>".
+TAURI_VERSION_INFO=$(node -e '
+  const fs = require("fs"), path = require("path");
+  const dir = "src-tauri", conf = path.join(dir, "tauri.conf.json");
+  const v = JSON.parse(fs.readFileSync(conf, "utf8")).version;
+  if (typeof v === "string" && v.endsWith(".json")) {
+    const f = path.join(dir, v);
+    console.log(JSON.parse(fs.readFileSync(f, "utf8")).version + "\t" + f);
+  } else if (typeof v === "string") {
+    console.log(v + "\t" + conf);
+  } else {
+    const toml = path.join(dir, "Cargo.toml");
+    const pkg = fs.readFileSync(toml, "utf8").split(/^\[/m).find((s) => s.startsWith("package]")) || "";
+    const m = pkg.match(/^version\s*=\s*"([^"]+)"/m);
+    console.log((m ? m[1] : "") + "\t" + toml);
+  }
+') || fail "could not read the Tauri version from src-tauri/"
+TAURI_VERSION=${TAURI_VERSION_INFO%%$'\t'*}
+TAURI_VERSION_SRC=${TAURI_VERSION_INFO#*$'\t'}
+[ "$VERSION" = "$TAURI_VERSION" ] || \
+  fail "version mismatch: package.json is $VERSION, $TAURI_VERSION_SRC is ${TAURI_VERSION:-<none>} — make them agree"
 dim "Building version: v$VERSION"
 
 # ── Install deps ─────────────────────────────────────────────────────────────
@@ -108,7 +141,10 @@ DMG_DIR="$ROOT/src-tauri/target/release/bundle/dmg"
 APP_DIR="$ROOT/src-tauri/target/release/bundle/macos"
 
 [ -d "$DMG_DIR" ] || fail "DMG not found: $DMG_DIR does not exist — check build output above"
-DMG=$(find "$DMG_DIR" -name "mdpro_${VERSION}_*.dmg" -newer "$BUILD_MARKER" | head -1)
+# Newest by mtime among this run's DMGs for the version; "<mtime> <path>"
+# lines, so the cut keeps paths with spaces whole.
+DMG=$(find "$DMG_DIR" -name "mdpro_${VERSION}_*.dmg" -newer "$BUILD_MARKER" -exec stat -f '%m %N' {} + \
+  | sort -rn | head -1 | cut -d' ' -f2-)
 APP="$APP_DIR/mdpro.app"
 
 if [ ! -f "$DMG" ]; then
@@ -118,6 +154,10 @@ if [ ! -f "$DMG" ]; then
   fail "DMG not found at $DMG_DIR — check build output above"
 fi
 [ -d "$APP" ] || fail "mdpro.app not found at $APP_DIR"
+# The bundler rewrites the main binary and Info.plist; if neither is newer than
+# the marker, this .app is left from an earlier build.
+APP_FRESH=$(find "$APP/Contents/MacOS" "$APP/Contents/Info.plist" -newer "$BUILD_MARKER" 2>/dev/null | head -1 || true)
+[ -n "$APP_FRESH" ] || fail "mdpro.app is stale — not produced by this build"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 END_TIME=$(date +%s)
