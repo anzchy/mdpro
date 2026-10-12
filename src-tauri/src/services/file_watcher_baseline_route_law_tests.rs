@@ -210,10 +210,9 @@ fn r12_ignored_event_does_not_advance_baseline() {
         }
         targets.insert(target);
     }
-    // `IgnoredRenameSinglePath` is no longer produced (ADR-0078).
     let expected: HashSet<WatchOutcome> = WatchOutcome::ALL
         .into_iter()
-        .filter(|o| !matches!(o, IgnoredUnchanged | IgnoredRenameSinglePath))
+        .filter(|o| !matches!(o, IgnoredUnchanged))
         .collect();
     assert_eq!(targets, expected);
 }

@@ -49,7 +49,7 @@
 //!   no file to read), debounced under (path, `deleted`), and it leaves the
 //!   baseline entry alone (ADR-0068 decision 4 lists no `deleted` advance).
 //!   A safe save's later `modified` still emits because of the per-kind
-//!   debounce (D116). `IgnoredRenameSinglePath` is no longer produced.
+//!   debounce (D116). The retired `IgnoredRenameSinglePath` was removed (D167).
 //! - **No wildcard arm** on the kind match, so a new `EventKind` is a compile
 //!   error here rather than a silent drop; o14 pins it on the source text.
 //! - Split out of `file_watcher.rs` (D68 WI-1) so the parent keeps headroom

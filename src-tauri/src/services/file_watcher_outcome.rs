@@ -23,10 +23,11 @@
 //!   atomic ⌘S), on a file whose bytes and stat equal its baseline; it is
 //!   non-emitting and logs as `Cancel`, like the other `ignored_*` outcomes. Renamed from `ignored_metadata_unchanged` when the
 //!   filter widened to Content (D32 WI-4b).
-//! - **`ignored_rename_single_path` is retired, not removed** (ADR-0078):
-//!   a moved-away file is `emitted_deleted` now, so the route never returns
-//!   it, but the variant and its string stay so the device-check records
-//!   that cite it still match the vocabulary.
+//! - **`ignored_rename_single_path` was removed** (D167, 2026-10-12): since
+//!   ADR-0078 a moved-away file is `emitted_deleted` and the route never
+//!   returned it. The D68 and D86 device-check records still cite the
+//!   string: a single-path `Modify(Name(_))` on a path that no longer
+//!   existed, not routed (ADR-0072 decision 3, superseded by ADR-0078).
 //! - **`ALL` is test-only** and enumerates every variant, so the tests that
 //!   iterate the domain see a new variant as soon as it is added.
 //! - Lives in its own sibling file so `file_watcher.rs` keeps headroom under
@@ -53,14 +54,6 @@ pub(crate) enum WatchOutcome {
     /// never routed.
     IgnoredKind,
     IgnoredNoPath,
-    /// No longer produced (ADR-0078, 2026-10-11): a single-path
-    /// `Modify(Name(_))` on a missing path, i.e. a file moved away, is now
-    /// `EmittedDeleted` (D107), and on an existing path it is a replaced file
-    /// (ADR-0072). Kept because the D68 and D86 device-check records cite
-    /// `ignored_rename_single_path` as evidence, and those logs must still
-    /// read against this vocabulary.
-    #[allow(dead_code)] // never constructed since ADR-0078; kept for its log string
-    IgnoredRenameSinglePath,
     /// One of the filtered kinds (`Metadata(Extended)`, `Metadata(Any)`,
     /// `Data(Content)`; `Metadata(Ownership)`, `Metadata(Permissions)` since
     /// ADR-0080) or a replaced file (ADR-0072) on a file whose mtime,
@@ -72,7 +65,7 @@ pub(crate) enum WatchOutcome {
 impl WatchOutcome {
     /// Every outcome, for the tests that enumerate the domain.
     #[cfg(test)]
-    pub(crate) const ALL: [WatchOutcome; 9] = [
+    pub(crate) const ALL: [WatchOutcome; 8] = [
         WatchOutcome::EmittedModified,
         WatchOutcome::EmittedDeleted,
         WatchOutcome::EmittedRenamed,
@@ -80,7 +73,6 @@ impl WatchOutcome {
         WatchOutcome::SelfWrite,
         WatchOutcome::IgnoredKind,
         WatchOutcome::IgnoredNoPath,
-        WatchOutcome::IgnoredRenameSinglePath,
         WatchOutcome::IgnoredUnchanged,
     ];
 
@@ -93,7 +85,6 @@ impl WatchOutcome {
             WatchOutcome::SelfWrite => "self_write",
             WatchOutcome::IgnoredKind => "ignored_kind",
             WatchOutcome::IgnoredNoPath => "ignored_no_path",
-            WatchOutcome::IgnoredRenameSinglePath => "ignored_rename_single_path",
             WatchOutcome::IgnoredUnchanged => "ignored_unchanged",
         }
     }

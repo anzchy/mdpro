@@ -68,13 +68,12 @@ fn o1_as_str_is_exact_injective_and_all_is_complete() {
             WatchOutcome::SelfWrite => "self_write",
             WatchOutcome::IgnoredKind => "ignored_kind",
             WatchOutcome::IgnoredNoPath => "ignored_no_path",
-            WatchOutcome::IgnoredRenameSinglePath => "ignored_rename_single_path",
             WatchOutcome::IgnoredUnchanged => "ignored_unchanged",
         }
     }
-    assert_eq!(WatchOutcome::ALL.len(), 9);
+    assert_eq!(WatchOutcome::ALL.len(), 8);
     let strings: HashSet<&str> = WatchOutcome::ALL.iter().map(|o| o.as_str()).collect();
-    assert_eq!(strings.len(), 9, "as_str must be injective: {strings:?}");
+    assert_eq!(strings.len(), 8, "as_str must be injective: {strings:?}");
     for o in WatchOutcome::ALL {
         assert_eq!(o.as_str(), tripwire(o), "{o:?}");
     }
@@ -86,7 +85,6 @@ fn o1_as_str_is_exact_injective_and_all_is_complete() {
         "self_write",
         "ignored_kind",
         "ignored_no_path",
-        "ignored_rename_single_path",
         "ignored_unchanged",
     ]
     .into_iter()
@@ -187,7 +185,7 @@ fn o9b_emitted_remove_does_not_debounce_a_following_modify() {
 
 #[test]
 fn o10_ignored_outcomes_never_touch_the_map() {
-    use WatchOutcome::{IgnoredKind, IgnoredNoPath, IgnoredRenameSinglePath};
+    use WatchOutcome::{IgnoredKind, IgnoredNoPath};
     let mut ignored_inputs = 0;
     for kind in all_event_kinds() {
         for n in 0..=2 {
@@ -195,10 +193,7 @@ fn o10_ignored_outcomes_never_touch_the_map() {
             let refs: Vec<&PathBuf> = ps.iter().collect();
             let map = fresh();
             let (_, outcome) = run(kind, &refs, &map);
-            if !matches!(
-                outcome,
-                IgnoredKind | IgnoredNoPath | IgnoredRenameSinglePath
-            ) {
+            if !matches!(outcome, IgnoredKind | IgnoredNoPath) {
                 continue;
             }
             ignored_inputs += 1;

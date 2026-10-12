@@ -62,7 +62,6 @@ fn outcome_table() -> Vec<(WatchOutcome, LogStatus, Option<&'static str>)> {
         (SelfWrite, Cancel, None),
         (IgnoredKind, Cancel, None),
         (IgnoredNoPath, Cancel, None),
-        (IgnoredRenameSinglePath, Cancel, None),
         (IgnoredUnchanged, Cancel, None),
     ]
 }

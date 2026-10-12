@@ -237,7 +237,6 @@ pub(crate) fn build_watch_event_log(
         | WatchOutcome::SelfWrite
         | WatchOutcome::IgnoredKind
         | WatchOutcome::IgnoredNoPath
-        | WatchOutcome::IgnoredRenameSinglePath
         | WatchOutcome::IgnoredUnchanged => LogStatus::Cancel,
     };
     LogEntryPayload {
