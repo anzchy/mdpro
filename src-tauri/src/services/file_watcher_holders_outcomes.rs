@@ -24,6 +24,9 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Reservation {
     pub(crate) gen: u64,
+    /// Audit M1: the gen this window's hold on `raw` had before a duplicate
+    /// reservation replaced it; `None` for a new hold.
+    pub(crate) prior_gen: Option<u64>,
     pub(super) raw: PathBuf,
     pub(super) label: String,
     pub(super) group: GroupKey,
@@ -68,6 +71,7 @@ pub(super) struct Counts {
 /// A reservation as the map recorded it.
 pub(super) struct Reserved {
     pub(super) gen: u64,
+    pub(super) prior: Option<u64>,
     pub(super) group: GroupKey,
     pub(super) transition: &'static str,
     pub(super) counts: Counts,

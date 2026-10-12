@@ -6,8 +6,9 @@
 //! the group owns the notify watch: notify `unwatch` runs only when the group
 //! has no consumer, because notify 6.1.1 keeps one canonical filter entry per
 //! file and unwatching any spelling silences the others. `HoldMap` decides
-//! (reserve, confirm check, release, fence) with no I/O; the `FileWatcher`
-//! API that takes the locks and does what a decision needs lives in
+//! (reserve, confirm check, release, restore, fence, a group's spellings for
+//! the save notice) with no I/O; the `FileWatcher` API that takes the locks
+//! and does what a decision needs (bar `consumer_spellings`, here) lives in
 //! file_watcher_holders_teardown.rs, and the values a decision returns
 //! (`Reservation`, `ReleaseOutcome`, `Released`, ...) in
 //! file_watcher_holders_outcomes.rs.
@@ -104,6 +105,7 @@ impl HoldMap {
         self.next_gen += 1;
         let gen = self.next_gen;
         let key = (label.to_string(), raw.to_path_buf());
+        let prior = self.holds.get(&key).map(|h| h.gen);
         let duplicate = self.holds.get(&key).map(|h| h.group.clone());
         let group = duplicate.clone().unwrap_or_else(|| group.to_path_buf());
         let g = self.groups.entry(group.clone()).or_default();
@@ -132,9 +134,33 @@ impl HoldMap {
         );
         Some(Reserved {
             gen,
+            prior,
             group,
             transition,
             counts,
+        })
+    }
+
+    /// Audit M1: put back the hold's `prior` gen when (label, raw) still
+    /// holds the duplicate reservation's `gen`. True when it did.
+    fn restore(&mut self, label: &str, raw: &Path, gen: u64, prior: u64) -> bool {
+        let key = (label.to_string(), raw.to_path_buf());
+        match self.holds.get_mut(&key) {
+            Some(hold) if hold.gen == gen => {
+                hold.gen = prior;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Every raw spelling the group `group` has a consumer for (D173-WI-2).
+    fn spellings(&self, group: &Path) -> Vec<String> {
+        self.groups.get(group).map_or_else(Vec::new, |g| {
+            g.consumers
+                .keys()
+                .map(|s| s.to_string_lossy().into_owned())
+                .collect()
         })
     }
 
@@ -224,6 +250,17 @@ impl Holders {
     /// The only place H is taken: one pure `HoldMap` step, poison recovered.
     fn with_map(&self, step: impl FnOnce(&mut HoldMap)) {
         step(&mut self.map.lock().unwrap_or_else(PoisonError::into_inner));
+    }
+}
+
+impl super::FileWatcher {
+    /// Every raw spelling held in the canonical group `target` (already a
+    /// group key), each once, in a stable order: the save notice's
+    /// recipients (D173-WI-2). Lock H only, no I/O.
+    pub(crate) fn consumer_spellings(&self, target: &Path) -> Vec<String> {
+        let mut out = Vec::new();
+        self.holders.with_map(|m| out = m.spellings(target));
+        out
     }
 }
 

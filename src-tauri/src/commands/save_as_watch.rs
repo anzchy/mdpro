@@ -55,7 +55,12 @@
 //! @coordinates-with services/file_watcher_baseline_seed.rs — `seed_for_written`
 //! @coordinates-with commands/draft_recover_watch.rs — the D59 sibling seam
 //! @coordinates-with services/file_watcher_holders.rs — `save_file_dialog`
-//!   reserves the hold before this seam and confirms or releases it after
+//!   reserves the hold before this seam and confirms it after, or on a
+//!   failed save restores the window's earlier hold (audit M1) or releases it;
+//!   a fenced window saves nothing (audit M2, [`log_fenced_save_as`]). The
+//!   test-only `save_as_held_with` mirrors those steps, and the save notice
+//!   (`notice_saved`, D173-WI-2) after the confirm
+//! @coordinates-with services/file_watcher_save_notice.rs — the notice
 
 use crate::services::file_watcher::seed::seed_for_written;
 use crate::services::file_watcher::FileWatcher;
@@ -131,6 +136,74 @@ pub(crate) async fn save_as_checked_with(
     .await
 }
 
+/// D173: `save_file_dialog`'s steps after the dialog and the refusal, for
+/// window `label`: reserve the hold on `picked` (a fenced window returns
+/// `None` before saving, audit M2), save through [`save_as_watched_with`],
+/// then confirm and notice on `Ok`, or on `Err` put back the hold the window
+/// had (audit M1) else release the reservation. `save_file_dialog` runs the
+/// same steps inline (the D69 and D173-WI-1 wiring pin them there), so this
+/// composition is test-only; save_as_hold_wiring_tests.rs keeps them in step.
+#[cfg(test)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn save_as_held_with(
+    label: &str,
+    document_id: String,
+    content: String,
+    picked: String,
+    encoding: Option<String>,
+    line_ending: Option<String>,
+    action_id: Option<String>,
+    watcher: &FileWatcher,
+) -> Result<Option<SaveResult>, FileError> {
+    let raw = PathBuf::from(&picked);
+    let Some(hold) = watcher.reserve_hold(label, &raw) else {
+        log_fenced_save_as(action_id.as_deref());
+        return Ok(None);
+    };
+    let origin = crate::services::file_watcher::save_notice::SaveOrigin::new(label, &document_id);
+    let saved = save_as_watched_with(
+        document_id,
+        content,
+        picked,
+        encoding,
+        line_ending,
+        action_id.clone(),
+        watcher,
+    )
+    .await;
+    match saved {
+        Ok(mut result) => {
+            if watcher.confirm_hold(&hold) {
+                result.hold_gen = hold.gen;
+            }
+            if let Some(written_to) = &result.written_to {
+                watcher.notice_saved(&origin, &result.path, written_to, action_id.as_deref());
+            }
+            Ok(Some(result))
+        }
+        Err(err) => {
+            if !watcher.restore_hold(&hold) {
+                watcher.release_hold(label, &raw, hold.gen);
+            }
+            Err(err)
+        }
+    }
+}
+
+/// Audit M2: a Save As from a fenced (destroyed) window writes and watches
+/// nothing; log the `file.save` cancel (reason `window_fenced`, no path).
+pub(crate) fn log_fenced_save_as(action_id: Option<&str>) {
+    log_file_event(
+        "file.save",
+        LogStatus::Cancel,
+        LogLevel::Warn,
+        action_id,
+        json!({ "source": "dialog", "reason": "window_fenced" }),
+        None,
+        None,
+    );
+}
+
 /// The refused Save As reply when `refuse` names the same file as `picked`
 /// (the same string, or both canonicalise to one path), after logging a
 /// `file.save` cancel with reason `external_change_pending` (no path). `None`
@@ -160,6 +233,7 @@ pub(crate) fn refused_save_as(
         changed_since_read: false,
         blocked_by_pending_change: true,
         hold_gen: 0,
+        written_to: None,
     })
 }
 
@@ -183,37 +257,10 @@ fn between_save_and_register() {}
 use hook::between_save_and_register;
 
 /// Test-only seam: run code after the save returned and before the watch
-/// is registered, the window a re-snapshot would baseline.
+/// is registered (save_as_watch_hook.rs).
 #[cfg(test)]
-pub(crate) mod hook {
-    use std::cell::RefCell;
-
-    type Hook = Box<dyn FnOnce()>;
-
-    thread_local! {
-        static HOOK: RefCell<Option<Hook>> = RefCell::new(None);
-    }
-
-    /// Clears this thread's hook on drop, fired or not.
-    pub(crate) struct HookGuard;
-    impl Drop for HookGuard {
-        fn drop(&mut self) {
-            HOOK.with(|h| h.borrow_mut().take());
-        }
-    }
-
-    /// Install `hook` for the next Save As on this thread.
-    pub(crate) fn install(hook: impl FnOnce() + 'static) -> HookGuard {
-        HOOK.with(|h| *h.borrow_mut() = Some(Box::new(hook)));
-        HookGuard
-    }
-
-    pub(super) fn between_save_and_register() {
-        if let Some(hook) = HOOK.with(|h| h.borrow_mut().take()) {
-            hook();
-        }
-    }
-}
+#[path = "save_as_watch_hook.rs"]
+pub(crate) mod hook;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "save_as_watch_tests.rs"]
@@ -222,6 +269,17 @@ mod tests;
 #[cfg(all(test, target_os = "macos"))]
 #[path = "save_as_refuse_tests.rs"]
 mod refuse_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "save_as_hold_tests.rs"]
+mod hold_tests;
+
+#[cfg(test)]
+#[path = "save_as_hold_wiring_tests.rs"]
+// The recorded spec's module docs end in a lazy list continuation; its bytes are
+// the D173-WI-2-rust receipt's evidence, so the lint is allowed here.
+#[allow(clippy::doc_lazy_continuation)]
+mod hold_wiring_tests;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "save_as_seed_check_tests.rs"]

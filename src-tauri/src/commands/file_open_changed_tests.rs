@@ -56,6 +56,7 @@ fn d111_wi3_replies_serialise_changed_since_read_camel_case() {
         changed_since_read: true,
         blocked_by_pending_change: false,
         hold_gen: 0,
+        written_to: None,
     };
     let v = serde_json::to_value(&save).expect("json");
     assert_eq!(v["changedSinceRead"], json!(true), "{v}");

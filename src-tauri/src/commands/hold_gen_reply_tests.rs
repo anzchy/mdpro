@@ -39,6 +39,7 @@ fn d173_wi1_s1_replies_serialise_hold_gen_camel_case() {
         changed_since_read: false,
         blocked_by_pending_change: false,
         hold_gen: 7,
+        written_to: None,
     };
     assert_hold_gen(&serde_json::to_value(&save).expect("json"), "save as");
     let recover = RecoverResult {

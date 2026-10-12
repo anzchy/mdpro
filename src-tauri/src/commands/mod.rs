@@ -174,6 +174,14 @@ mod file_holder_wiring_tests;
 #[path = "hold_gen_reply_tests.rs"]
 mod hold_gen_reply_tests;
 
+// D173-WI-2: where the save notice sits in the save commands.
+#[cfg(test)]
+#[path = "file_save_notice_wiring_tests.rs"]
+// The recorded spec's module docs end in a lazy list continuation; its bytes are
+// the D173-WI-2-rust receipt's evidence, so the lint is allowed here.
+#[allow(clippy::doc_lazy_continuation)]
+mod file_save_notice_wiring_tests;
+
 #[cfg(all(test, target_os = "macos"))]
 #[path = "draft_recover_hold_tests.rs"]
 // D173-WI-1-rust: recorded red spec, bytes are the receipt's evidence

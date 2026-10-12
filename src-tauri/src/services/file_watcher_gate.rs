@@ -11,7 +11,11 @@
 //!
 //! Key decisions:
 //! - The self-write set is process-global, so a save from any window
-//!   suppresses the watcher event for that path.
+//!   suppresses the watcher event for that path, for every window. That is
+//!   only the watcher route: since D173-WI-2 (ADR-0086) the other windows
+//!   holding the file learn of the save from the save notice
+//!   (file_watcher_save_notice.rs, `file:changed` with `origin`), not from
+//!   this event.
 //! - The debounce map is owned by the watcher and keyed by the event's first
 //!   path (raw, ADR-0068 decision 5) **and the change type it would emit**
 //!   (`modified` / `deleted` / `renamed`; D116). Same kind on the same path

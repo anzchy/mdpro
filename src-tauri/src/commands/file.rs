@@ -5,12 +5,12 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
-use super::save_as_watch::{refused_save_as, save_as_watched_with};
+use super::save_as_watch::{log_fenced_save_as, refused_save_as, save_as_watched_with};
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::{
     draft::delete_draft as delete_draft_service,
     encoding,
-    file_watcher::{self, BaselineStore, FileWatcher},
+    file_watcher::{self, save_notice::SaveOrigin, BaselineStore, FileWatcher},
     logger, shadow_store,
 };
 
@@ -70,6 +70,10 @@ pub struct SaveResult {
     /// 0 when it took none (refused, fenced, failed). Gen 0 is never issued.
     #[serde(default)]
     pub hold_gen: u64,
+    /// D173: the file the save actually wrote (canonical), so its notice
+    /// names that file rather than re-resolving `path`. Never serialised.
+    #[serde(skip)]
+    pub written_to: Option<std::path::PathBuf>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1237,9 +1241,15 @@ pub async fn open_file_dialog(
     Ok(Some(result))
 }
 
+/// Save through [`save_file_with`]; on `Ok` only, tell every other holder
+/// of the written file (D173-WI-2, `FileWatcher::notice_saved`), with this
+/// window and document as the notice's origin. The notice never fails the
+/// save, and it names the target the save resolved (`written_to`).
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn save_file(
-    _document_id: String,
+    window: Window,
+    document_id: String,
     content: String,
     path: Option<String>,
     encoding: Option<String>,
@@ -1247,16 +1257,28 @@ pub async fn save_file(
     action_id: Option<String>,
     watcher: State<'_, FileWatcher>,
 ) -> Result<SaveResult, FileError> {
-    save_file_with(
-        _document_id,
+    let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let saved = save_file_with(
+        document_id.clone(),
         content,
         path,
         encoding,
         line_ending,
-        action_id,
+        Some(action_id.clone()),
         watcher.baselines(),
     )
-    .await
+    .await;
+    if let Ok(result) = &saved {
+        if let Some(written_to) = &result.written_to {
+            watcher.notice_saved(
+                &SaveOrigin::new(window.label(), &document_id),
+                &result.path,
+                written_to,
+                Some(&action_id),
+            );
+        }
+    }
+    saved
 }
 
 /// `save_file`'s body: `save_file_written` with the written bytes dropped.
@@ -1432,6 +1454,7 @@ pub(crate) async fn save_file_written(
         changed_since_read: false,
         blocked_by_pending_change: false,
         hold_gen: 0,
+        written_to: Some(path_buf),
     };
     Ok((result, bytes))
 }
@@ -1444,8 +1467,11 @@ pub(crate) async fn save_file_written(
 /// has an unresolved external change: a pick of that path writes nothing and
 /// returns `blocked_by_pending_change` (`save_as_watch::refused_save_as`).
 /// D173: a save that is not refused reserves this window's hold on the
-/// picked path first, confirms it after the register (reply `hold_gen`), and
-/// releases it if the save fails.
+/// picked path first, confirms it after the register (reply `hold_gen`),
+/// then tells the target's other holders (`notice_saved`, WI-2). A failed
+/// save puts back the hold the window already had on that path, else
+/// releases the reservation (audit M1). A fenced (destroyed) window saves
+/// nothing and replies `None` (audit M2, `save_as_watch::log_fenced_save_as`).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn save_file_dialog(
@@ -1483,29 +1509,39 @@ pub async fn save_file_dialog(
         return Ok(Some(blocked));
     }
     let raw = PathBuf::from(&picked);
-    let hold = watcher.reserve_hold(window.label(), &raw);
+    let Some(hold) = watcher.reserve_hold(window.label(), &raw) else {
+        log_fenced_save_as(Some(&action_id));
+        return Ok(None);
+    };
     let saved = save_as_watched_with(
-        document_id,
+        document_id.clone(),
         content,
         picked,
         encoding,
         line_ending,
-        Some(action_id),
+        Some(action_id.clone()),
         &watcher,
     )
     .await;
-    let Some(hold) = hold else {
-        return saved.map(Some);
-    };
     match saved {
         Ok(mut result) => {
             if watcher.confirm_hold(&hold) {
                 result.hold_gen = hold.gen;
             }
+            if let Some(written_to) = &result.written_to {
+                watcher.notice_saved(
+                    &SaveOrigin::new(window.label(), &document_id),
+                    &result.path,
+                    written_to,
+                    Some(&action_id),
+                );
+            }
             Ok(Some(result))
         }
         Err(err) => {
-            watcher.release_hold(window.label(), &raw, hold.gen);
+            if !watcher.restore_hold(&hold) {
+                watcher.release_hold(window.label(), &raw, hold.gen);
+            }
             Err(err)
         }
     }

@@ -8,7 +8,8 @@
  *   `changedSinceRead` → `recordOpenDivergence(id)`) → presented by `usePresentedFileChange` when that
  *   document is active → settled by `acknowledgeFileChange` (Reload / Ignore / rename)
  *   or dropped by `forgetFileChange` (prompt withdrawn) and the documentStore prune
- *   (close, path change) · `pendingFileChangeFor` is the save path's check.
+ *   (close, path change) · `pendingFileChangeFor` is the save path's check. A save
+ *   notice (`origin`, D173-WI-3) skips only its origin document in its origin window.
  *
  * Key decisions:
  * - **Keyed by document id, owned by the document's lifetime.** The path is only the
@@ -36,7 +37,12 @@
  *   never repeats across lifetimes of the same id.
  * - **A path change retires the slot** (Save As, rename-follow): the change was about
  *   the old path, and later events are recorded under the new one. A rename this
- *   store follows itself writes the moved slot first, so the prune keeps it.
+ *   store follows itself writes the moved slots first, then moves every document in
+ *   one `updateDocumentPaths` (b87), so the prune keeps them all.
+ * - **A save notice never records against its saver (D173-WI-3).** The exact origin
+ *   (`origin.documentId` in the window `origin.windowLabel`) is skipped and its slot
+ *   left untouched: an own save never clears or replaces a pending change. Every other
+ *   matching document records it, a same-path sibling tab in the saving window too.
  * - **Nothing global across windows**: each window has its own JS store.
  * - **Two sources, one slot** (D111): `source` says whether a watcher event or an open
  *   or Save As reply's seed check recorded it. Both settle the same way. A reply whose
@@ -51,12 +57,14 @@
  * @coordinates-with src/stores/documentStore.ts — the prune subscription
  * @coordinates-with src/utils/fileChangeCapture.ts — `recordOpenDivergence` and the
  *   replay of events held during an open or Save As (D111)
+ * @coordinates-with src/utils/fileChangeOrigin.ts — the save-notice origin filter
  * @module stores/externalChangeStore
  */
 import { create } from "zustand";
 import { loggingService } from "../services/loggingService";
 import type { Document } from "../types/document";
 import type { FileChangedEvent, PendingFileChange } from "../types/fileChange";
+import { skipOrigin } from "../utils/fileChangeOrigin";
 import { useDocumentStore } from "./documentStore";
 
 /** Why a slot was settled; `acknowledged` for a user answer, `cleared` otherwise. */
@@ -104,6 +112,9 @@ export function logPending(
 export interface RecordResult {
   documentIds: string[];
   activeRecorded: boolean;
+  /** D173-WI-3: set (only) when the event was this window's own save of a matching
+   *  document, which was skipped (`utils/fileChangeOrigin.ts`). */
+  ownSkipped?: true;
 }
 
 /** A slot that is only a rename not yet followed: the path it will move to, else undefined. */
@@ -142,17 +153,21 @@ function nextSlot(
 
 /**
  * Record `event` against every open document whose path is the event's, or whose
- * pending rename leads to it (D178), at once. A rename never replaces a pending content
- * change: the document follows it at once and the change moves to the new path.
+ * pending rename leads to it (D178), at once, except the origin of this window's own
+ * save notice (D173-WI-3), whose slot is left untouched. A rename never replaces a
+ * pending content change: the document follows it at once and the change moves to the
+ * new path.
  */
 export function recordFileChange(event: FileChangedEvent, actionId: string, now = Date.now()): RecordResult {
-  const { documents, activeDocumentId, updateDocumentPath } = useDocumentStore.getState();
+  const { documents, activeDocumentId, updateDocumentPaths } = useDocumentStore.getState();
   const pending = useExternalChangeStore.getState().pending;
-  const owners = documents.filter(
+  const matched = documents.filter(
     (doc): doc is Document & { path: string } =>
       doc.path !== null && (doc.path === event.path || pendingRenameTarget(pending[doc.id]) === event.path),
   );
-  if (owners.length === 0) return { documentIds: [], activeRecorded: false };
+  const { owners, ownSkipped } = skipOrigin(matched, event);
+  const own = ownSkipped ? { ownSkipped: true as const } : {};
+  if (owners.length === 0) return { documentIds: [], activeRecorded: false, ...own };
   const next = { ...pending };
   const moves: Array<{ id: string; path: string }> = [];
   for (const doc of owners) {
@@ -170,11 +185,13 @@ export function recordFileChange(event: FileChangedEvent, actionId: string, now 
     );
   }
   useExternalChangeStore.setState({ pending: next });
-  // After the slots: the prune below then finds each moved slot already at the new path.
-  for (const { id, path } of moves) updateDocumentPath(id, path);
+  // After the slots, and in one `set` (b87): the prune below then runs once, against
+  // the final paths, and finds every moved slot already at its document's new path.
+  if (moves.length > 0) updateDocumentPaths(moves);
   return {
     documentIds: owners.map((doc) => doc.id),
     activeRecorded: owners.some((doc) => doc.id === activeDocumentId),
+    ...own,
   };
 }
 

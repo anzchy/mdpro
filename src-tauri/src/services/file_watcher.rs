@@ -15,7 +15,8 @@
 //! `confirm_hold`, `mark_write_*`, the baseline refresh),
 //! commands/save_as_watch.rs (`watch_seeded` for a Save As target, D69),
 //! commands/watch_hold.rs (`release_watch_hold`), main.rs (`release_window`
-//! on `WindowEvent::Destroyed`)
+//! on `WindowEvent::Destroyed`), file_watcher_save_notice.rs (D173-WI-2: a
+//! save's `file:changed` with `origin` to every holder, through `notices`)
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -60,6 +61,10 @@ pub(crate) mod seed;
 pub mod holders;
 use holders::Holders;
 
+#[path = "file_watcher_save_notice.rs"]
+pub(crate) mod save_notice;
+use save_notice::{AppNoticeSink, NoticeSink};
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileChangedEvent {
@@ -82,6 +87,8 @@ pub struct FileWatcher {
     baselines: Arc<BaselineStore>,
     /// D173: who holds each watched path, per window and canonical group.
     holders: Holders,
+    /// D173-WI-2: where save notices go (`file:changed` with `origin`).
+    notices: Arc<dyn NoticeSink>,
 }
 
 impl FileWatcher {
@@ -91,6 +98,7 @@ impl FileWatcher {
         let debounce_map = Arc::clone(&last_events);
         let baselines = Arc::new(BaselineStore::default());
         let callback_baselines = Arc::clone(&baselines);
+        let notice_handle = app_handle.clone();
         let watcher = RecommendedWatcher::new(
             move |res| match res {
                 Ok(event) => handle_event(&app_handle, event, &debounce_map, &callback_baselines),
@@ -106,6 +114,7 @@ impl FileWatcher {
             watched_paths,
             baselines,
             holders: Holders::default(),
+            notices: Arc::new(AppNoticeSink(notice_handle)),
         })
     }
 

@@ -4,6 +4,11 @@ export interface FileChangedEvent {
   changeType: "modified" | "deleted" | "renamed";
   newPath?: string;
   timestamp: number;
+  /**
+   * D173-WI-2: present only on a save notice (`save_file` / `save_file_dialog`), never
+   * on a watcher event: the window and document that saved.
+   */
+  origin?: { windowLabel: string; documentId: string };
 }
 
 /**

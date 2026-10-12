@@ -35,7 +35,7 @@
  *
  * - **Every line is `info`.** Statuses: decision reload-prompt / deleted-prompt
  *   / rename -> success, ignore -> cancel (exhaustive switch; a fifth action is
- *   a compile error). Received other-path -> cancel, scheduled / recorded ->
+ *   a compile error). Received other-path / own-save -> cancel, scheduled / recorded ->
  *   start, delivered -> success. Since D171 `other-path` means no open document
  *   has the path (not "not the active path"), and `recorded` is a change kept
  *   for a background document. (`save-suppressed` went with the frontend's 3 s save
@@ -64,13 +64,16 @@ export interface FileChangeLogEvent {
  * has the path yet, but an open or Save As in flight may commit one, so the event is
  * held for it (`utils/fileChangeCapture.ts`); `scheduled` — recorded, the active
  * document among the owners, its prompt waits out the debounce; `recorded` — recorded
- * for background documents only; `delivered` — a recorded change was presented.
+ * for background documents only; `own-save` (D173-WI-3) — a save notice whose only
+ * matching document was its saver in this window, skipped and never captured;
+ * `delivered` — a recorded change was presented.
  */
 export type FileChangeReceivedOutcome =
   | "other-path"
   | "captured"
   | "scheduled"
   | "recorded"
+  | "own-save"
   | "delivered";
 
 export interface FileChangeReceivedLogInput {
@@ -95,6 +98,7 @@ export const FILE_CHANGE_DECISION_EVENT = "file.change.decision";
 function receivedStatus(outcome: FileChangeReceivedOutcome): LogStatus {
   switch (outcome) {
     case "other-path":
+    case "own-save":
       return "cancel";
     case "captured":
     case "scheduled":

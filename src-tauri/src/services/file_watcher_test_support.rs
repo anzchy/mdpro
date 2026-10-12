@@ -16,6 +16,8 @@
 //!   production sharing in `new` is pinned by L9 (source tripwire) instead.
 //! - `route_burst_for_tests` shares one debounce map across a burst and
 //!   reports what it left, for the save-then-residual-burst case (WI-6 S10).
+//! - `for_tests_noticed` swaps in a `NoticeRecorder` as the save-notice sink
+//!   (D173-WI-2), so a test sees every notice and can make the emit fail.
 //! - Wired `#[cfg(test)] #[path] mod` from `file_watcher.rs`: no production
 //!   surface, and a child module so it may read the private fields.
 //!
@@ -26,11 +28,47 @@
 //! @coordinates-with src-tauri/src/commands/file_save_baseline_tests.rs
 use super::baseline::{BaselineStore, Entry};
 use super::kinds_fixture::T;
+use super::save_notice::{NoticeSink, SaveNotice};
 use super::{process_event, FileChangedEvent, FileWatcher, WatchOutcome};
 use notify::{Config, Event, RecommendedWatcher, Watcher};
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+
+/// D173-WI-2: a `NoticeSink` that records every notice it is handed, and
+/// refuses each one (after recording it) while `fail` is set.
+#[derive(Default)]
+pub(crate) struct NoticeRecorder {
+    sent: Mutex<Vec<SaveNotice>>,
+    fail: AtomicBool,
+}
+
+impl NoticeRecorder {
+    /// Every notice handed to the sink so far, refused ones included.
+    pub(crate) fn sent(&self) -> Vec<SaveNotice> {
+        self.sent.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    /// From now on, record and then refuse every notice.
+    pub(crate) fn refuse(&self) {
+        self.fail.store(true, Ordering::SeqCst);
+    }
+}
+
+impl NoticeSink for NoticeRecorder {
+    fn emit_notice(&self, notice: &SaveNotice) -> Result<(), String> {
+        self.sent
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(notice.clone());
+        if self.fail.load(Ordering::SeqCst) {
+            Err("notice recorder: emit refused".to_string())
+        } else {
+            Ok(())
+        }
+    }
+}
 
 impl FileWatcher {
     /// A `FileWatcher` over a real notify watcher whose events go nowhere.
@@ -42,6 +80,7 @@ impl FileWatcher {
             watched_paths: Arc::new(Mutex::new(Vec::new())),
             baselines: Arc::new(BaselineStore::default()),
             holders: Default::default(),
+            notices: Arc::new(NoticeRecorder::default()),
         }
     }
 
@@ -64,8 +103,17 @@ impl FileWatcher {
             watched_paths: Arc::new(Mutex::new(Vec::new())),
             baselines: Arc::new(BaselineStore::default()),
             holders: Default::default(),
+            notices: Arc::new(NoticeRecorder::default()),
         };
         (fw, rx)
+    }
+
+    /// `for_tests`, with a `NoticeRecorder` as the save-notice sink.
+    pub(crate) fn for_tests_noticed() -> (Self, Arc<NoticeRecorder>) {
+        let recorder = Arc::new(NoticeRecorder::default());
+        let mut fw = Self::for_tests();
+        fw.notices = Arc::clone(&recorder) as Arc<dyn NoticeSink>;
+        (fw, recorder)
     }
 
     /// A copy of the watch list, in registration order.

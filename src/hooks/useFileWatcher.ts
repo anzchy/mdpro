@@ -5,7 +5,8 @@
  * active document's prompt should show (`usePresentedFileChange`).
  *
  * @module src/hooks/useFileWatcher
- * @coordinates-with src-tauri/src/services/file_watcher.rs — emits `file:changed`.
+ * @coordinates-with src-tauri/src/services/file_watcher.rs — emits `file:changed`
+ *   (and file_watcher_save_notice.rs, the save notices with `origin`, D173-WI-2).
  * @coordinates-with src/stores/externalChangeStore.ts — the per-document records.
  * @coordinates-with src/hooks/usePresentedFileChange.ts — the 300 ms presentation
  *   debounce and the `delivered` line.
@@ -18,8 +19,9 @@
  *   document, including one whose pending rename leads to the path, D178) -> usePresentedFileChange(active document) -> `change` / `event`. Every
  *   event logs one `file.change.received` line: `other-path` (no open document has
  *   that path or a pending rename to it; dropped), `captured` (no open document has it yet, held for an open or
- *   Save As in flight, `utils/fileChangeCapture.ts`, D111), `scheduled` (recorded, the active document among them) or
- *   `recorded` (recorded for background documents only); `delivered` when presented.
+ *   Save As in flight, `utils/fileChangeCapture.ts`, D111), `scheduled` (recorded, the active document among them),
+ *   `recorded` (recorded for background documents only) or `own-save` (only this window's
+ *   saving document matched a save notice, D173-WI-3; never captured); `delivered` when presented.
  *
  * Key decisions:
  * - **Not keyed on the active path (D171).** Keyed on it, the listener dropped every
@@ -30,8 +32,10 @@
  *   already sees the record (the save-time check, `utils/externalChangeGuard.ts`).
  * - **The records live as long as the listener**: they are dropped when it mounts and
  *   when it unmounts, so nothing outlives the window's listener.
- * - **No save-suppression window (D86 WI-4).** Our own ⌘S is recognised in Rust (the
- *   self-write mark and the written-bytes baseline, ADR-0068 decision 7).
+ * - **No save-suppression window (D86 WI-4).** Our own ⌘S is recognised in Rust for the
+ *   watcher event (the self-write mark and the written-bytes baseline, ADR-0068 decision
+ *   7); save notices carry `origin`, and only the saving document in the saving window
+ *   skips its own (`utils/fileChangeOrigin.ts`, D173-WI-3).
  * - **Logging never alters control flow.** `delivered` reuses the receipt's actionId,
  *   so a superseded event is a receipt line with no delivered twin.
  * - **`clearEvent` is memoised (D172)** and settles only the change it names:
@@ -58,15 +62,17 @@ export type { FileChangedEvent } from "../types/fileChange";
 /** Record one event (or hold it for an open in flight, D111) and log what the receipt did. */
 function receive(event: FileChangedEvent): void {
   const actionId = loggingService.generateActionId();
-  const { documentIds, activeRecorded } = recordFileChange(event, actionId);
+  const { documentIds, activeRecorded, ownSkipped } = recordFileChange(event, actionId);
   const outcome =
     documentIds.length > 0
       ? activeRecorded
         ? "scheduled"
         : "recorded"
-      : captureUnmatched(event, actionId)
-        ? "captured"
-        : "other-path";
+      : ownSkipped
+        ? "own-save"
+        : captureUnmatched(event, actionId)
+          ? "captured"
+          : "other-path";
   logFileChangeReceived(event, outcome, actionId);
 }
 

@@ -36,6 +36,8 @@ interface DocumentStore {
   updateDocumentContent: (id: string, content: string) => void;
   markDocumentModified: (id: string, isModified: boolean) => void;
   updateDocumentPath: (id: string, path: string) => void;
+  /** Apply every move in one `set`, so subscribers see only the final paths (b87). */
+  updateDocumentPaths: (moves: ReadonlyArray<{ id: string; path: string }>) => void;
   closeDocument: (id: string) => void;
   /** Get a document by its ID */
   getDocumentById: (id: string) => Document | undefined;
@@ -116,6 +118,16 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         doc.id === id ? { ...doc, path } : doc,
       ),
     })),
+  updateDocumentPaths: (moves) => {
+    if (moves.length === 0) return;
+    const to = new Map(moves.map(({ id, path }) => [id, path]));
+    set((state) => ({
+      documents: state.documents.map((doc) => {
+        const path = to.get(doc.id);
+        return path === undefined ? doc : { ...doc, path };
+      }),
+    }));
+  },
   closeDocument: (id) => {
     // Outside the updater: `remaining` below must be computed from post-flush state.
     // D92: a close is never refused, so no result is read.

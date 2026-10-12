@@ -17,6 +17,7 @@ const OUTCOMES: FileChangeReceivedOutcome[] = [
   "captured",
   "scheduled",
   "recorded", // D171: kept for a background document
+  "own-save", // D173-WI-3: only this window's saving document matched a save notice
   "delivered",
 ];
 const ACTIONS: Array<FileChangeAction["action"]> = [
@@ -37,6 +38,7 @@ describe("fl5: the four received outcomes, exact payloads", () => {
     captured: "start",
     scheduled: "start",
     recorded: "start",
+    "own-save": "cancel",
     delivered: "success",
   } as const;
 

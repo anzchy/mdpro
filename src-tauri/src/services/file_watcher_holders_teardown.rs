@@ -1,13 +1,12 @@
 //! The `FileWatcher` side of the D173 holders (plan r2 §3): the acquisition
 //! and release API, and the I/O each holders-map decision needs.
 //!
-//! Purpose: `reserve_hold` / `confirm_hold` / `release_hold` /
-//! `release_window` take lock T, ask the pure `HoldMap` (parent module) under
-//! H, then, outside H, do what it decided to the watch list, the baselines
-//! and notify (rows 7, 7b, 9), and log it: one `file.watch.hold` line per
-//! reservation, one `file.watch.release` line per release or orphan, one
-//! `file.watch.alias_cleanup` line per extra notify spelling a teardown
-//! drops.
+//! Purpose: `reserve_hold` / `confirm_hold` / `release_hold` / `restore_hold`
+//! (audit M1) / `release_window` take lock T, ask the pure `HoldMap` (parent)
+//! under H, then, outside H, do what it decided to the watch list, the
+//! baselines and notify (rows 7, 7b, 9), and log it: one `file.watch.hold`
+//! line per reservation, one `file.watch.release` line per release, restore
+//! or orphan, one `file.watch.alias_cleanup` line per extra notify spelling.
 //!
 //! Key decisions:
 //! - **Lock T is held through every notify `unwatch`.** Each function here
@@ -71,6 +70,7 @@ impl FileWatcher {
         let r = reserved?;
         Some(Reservation {
             gen: r.gen,
+            prior_gen: r.prior,
             raw: raw.to_path_buf(),
             label: label.to_string(),
             group: r.group,
@@ -97,6 +97,26 @@ impl FileWatcher {
     pub(crate) fn release_hold(&self, label: &str, raw: &Path, gen: u64) -> ReleaseOutcome {
         let t = self.holders.transition();
         self.release_locked(&t, label, raw, gen, "release")
+    }
+
+    /// Audit M1: a failed Save As settles a duplicate reservation by putting
+    /// back the hold's prior gen, so the window keeps the hold it had. False,
+    /// changing nothing, for a new hold (the caller releases it) or one that
+    /// is no longer current. Logs a `file.watch.release` line when it restores.
+    pub(crate) fn restore_hold(&self, r: &Reservation) -> bool {
+        let Some(prior) = r.prior_gen else {
+            return false;
+        };
+        let _t = self.holders.transition();
+        let mut restored = false;
+        self.holders
+            .with_map(|m| restored = m.restore(&r.label, &r.raw, r.gen, prior));
+        if restored {
+            let context = json!({ "transition": "save_as_failed", "outcome": "restored",
+                "windowLabel": r.label, "gen": prior, "path": r.raw.to_string_lossy() });
+            log_release(context);
+        }
+        restored
     }
 
     /// `WindowEvent::Destroyed`: fence `label`, then release each of its
@@ -140,12 +160,7 @@ impl FileWatcher {
             "rawConsumers": counts.raw,
             "path": raw.to_string_lossy(),
         });
-        logger::log_event(line(
-            RELEASE_EVENT,
-            LogLevel::Info,
-            LogStatus::Success,
-            context,
-        ));
+        log_release(context);
         released.outcome
     }
 
@@ -174,12 +189,7 @@ impl FileWatcher {
             "gen": r.gen,
             "path": r.raw.to_string_lossy(),
         });
-        logger::log_event(line(
-            RELEASE_EVENT,
-            LogLevel::Info,
-            LogStatus::Success,
-            context,
-        ));
+        log_release(context);
     }
 
     /// The group emptied: the legacy `unwatch` of the last spelling, then
@@ -236,6 +246,16 @@ impl FileWatcher {
             .map(|list| list.iter().any(|p| *p == raw));
         listed.unwrap_or(false)
     }
+}
+
+/// One info `file.watch.release` line with `context`.
+fn log_release(context: Value) {
+    logger::log_event(line(
+        RELEASE_EVENT,
+        LogLevel::Info,
+        LogStatus::Success,
+        context,
+    ));
 }
 
 /// The `file.watch.hold` line for one reservation; a refused one (fenced
