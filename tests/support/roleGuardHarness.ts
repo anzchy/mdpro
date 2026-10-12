@@ -46,6 +46,18 @@ export function makeDetachedRepo(root: string, name: string): string {
   return dir;
 }
 
+/**
+ * `<root>/repo` with two commits on `master`, checked out, and a linked worktree
+ * `<root>/fix-x` on a new branch `fix/x` (the D180 verifier's probe setup).
+ */
+export function makeMainWithWorktree(root: string): { main: string; fixX: string } {
+  const main = makeRepo(root, "repo", "master");
+  for (const m of ["a", "b"]) gitIn(main, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", m);
+  const fixX = path.join(root, "fix-x");
+  gitIn(main, "worktree", "add", "-q", "-b", "fix/x", fixX);
+  return { main, fixX };
+}
+
 /** Runs the hook once. `defaultCwd` fills `cwd` when the input has none. */
 export function runHook(
   role: string | undefined,

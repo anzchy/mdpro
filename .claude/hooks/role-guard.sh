@@ -15,8 +15,10 @@
 #   worktree add -B / rebase <upstream> <P> / rebase --update-refs); no broad staging
 #   (`git add -A/--all/./-u`, `git commit -a/--all`) and no staging of
 #   `.claude/tdd-guardian/state.json`. These checks live in role_guard_refs.py
-#   (D180); if it is missing or fails to import, every implementor Bash call is
-#   refused (fail closed). Other tools and roles do not import it. A missing
+#   (D180) and role_guard_opts.py (D184: abbreviated long options, `rebase.updateRefs`
+#   set by `-c` / `--config-env` / GIT_CONFIG_*); if either is missing or fails to
+#   import, every implementor Bash call is refused (fail closed). Other tools and
+#   roles do not import them. A missing
 #   python3 still fails open (the hook exits non-2, a non-blocking error).
 # - real-device-tester: no git subcommand that changes state (read-only git
 #   passes); Write / Edit / NotebookEdit only inside $MDPRO_REPORT_DIR (default
@@ -29,7 +31,9 @@
 # are skipped. `bash|sh|zsh|dash [opts] -c '…'` is checked recursively, where any
 # short-option cluster holding `c` (`-lc`, `-ec`) counts and `-o`/`-O`/`--rcfile`
 # values are skipped. `cd DIR`, `git -C DIR`, `--git-dir`, `--work-tree` and a
-# GIT_DIR / GIT_WORK_TREE prefix decide where the current branch is read.
+# GIT_DIR / GIT_WORK_TREE prefix decide where the current branch is read; `-c`,
+# `--config-env` and inline `VAR=x` prefixes (inherited by a nested `bash -c`) are
+# passed on for the config checks.
 # Not covered: backticks, `eval`, scripts that run git, and Bash writing files.
 #
 # Input: Claude Code's hook JSON on stdin (`tool_name`, `tool_input.command` /
@@ -38,7 +42,8 @@
 # Exit 0 = allowed. Malformed JSON exits 0 (fail open, like block-target-scan.sh):
 # a guard that crashes on input it cannot read would block every tool call in
 # every session, which costs more than the one call it might have caught.
-# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts.
+# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts,
+# tests/d180-verifier-probes.test.ts, tests/d184-role-guard-*.test.ts.
 set -euo pipefail
 
 role="${MDPRO_ROLE:-}"
@@ -122,12 +127,14 @@ def is_assignment(t):
 ENV_VALUE_OPTS = {"-u", "--unset", "-P", "-C", "--chdir"}
 
 def strip_prefix(seg, here):
-    """Drop `VAR=x` / wrapper / `env [opts]` prefixes; return (rest, GIT_DIR-style env, dir)."""
-    i, genv = 0, {}
+    """Drop `VAR=x` / wrapper / `env [opts]` prefixes; return (rest, GIT_DIR-style env, dir, all VAR=x)."""
+    i, genv, assigns = 0, {}, {}
     while i < len(seg):
         t = seg[i]
         if is_assignment(t) or t in WRAPPERS:
             name, _, val = t.partition("=")
+            if is_assignment(t):
+                assigns[name] = val
             if name in ("GIT_DIR", "GIT_WORK_TREE"):
                 genv[name] = os.path.join(here, os.path.expanduser(val))
             i += 1
@@ -138,6 +145,8 @@ def strip_prefix(seg, here):
                 if o in ("-S", "--split-string") and i + 1 < len(seg):
                     seg = seg[:i] + tokens(seg[i + 1]) + seg[i + 2:]  # `env -S 'cmd args'`
                     continue
+                if is_assignment(o):
+                    assigns[o.split("=", 1)[0]] = o.split("=", 1)[1]
                 if is_assignment(o) and o.split("=", 1)[0] in ("GIT_DIR", "GIT_WORK_TREE"):
                     genv[o.split("=", 1)[0]] = os.path.join(here, os.path.expanduser(o.split("=", 1)[1]))
                 if o in ("-C", "--chdir") and i + 1 < len(seg):
@@ -145,7 +154,7 @@ def strip_prefix(seg, here):
                 i += 2 if o in ENV_VALUE_OPTS else 1
         else:
             break
-    return seg[i:], genv, here
+    return seg[i:], genv, here, assigns
 
 SHELL_VALUE_OPTS = {"-o", "+o", "-O", "+O", "--rcfile", "--init-file"}
 
@@ -167,8 +176,8 @@ def shell_script(args):
 GIT_OPT_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--super-prefix", "--exec-path"}
 
 def parse_git(args, here):
-    """Return (dir, subcommand, sub_args, [(--git-dir|--work-tree, value)]) for `git <global opts> sub ...`."""
-    d, gopts, i = here, [], 0
+    """Return (dir, sub, sub_args, [(--git-dir|--work-tree, v)], [(-c|--config-env, v)]) for `git <opts> sub ...`."""
+    d, gopts, cfg, i = here, [], [], 0
     while i < len(args):
         a = args[i]
         opt, eq, val = a.partition("=")
@@ -178,18 +187,22 @@ def parse_git(args, here):
         elif opt in ("--git-dir", "--work-tree"):
             gopts.append((opt, val if eq else (args[i + 1] if i + 1 < len(args) else "")))
             i += 1 if eq else 2
+        elif a == "-c" or opt == "--config-env":
+            cfg.append((opt, val if eq else (args[i + 1] if i + 1 < len(args) else "")))
+            i += 1 if eq else 2
         elif a in GIT_OPT_ARG:
             i += 2
         elif a.startswith("-"):
             i += 1
         else:
-            return d, a, args[i + 1:], gopts
-    return d, None, [], gopts
+            return d, a, args[i + 1:], gopts, cfg
+    return d, None, [], gopts, cfg
 
-def git_calls(cmd, here, depth=0):
-    """Yield (dir, sub, args, (git-dir opts, GIT_DIR env)) for every git invocation in a Bash command."""
+def git_calls(cmd, here, depth=0, outer=({}, {})):
+    """Yield (dir, sub, args, (gopts, genv, (cfg, VAR=x))) per git call; `outer` is inherited by `bash -c`."""
     for seg in segments(cmd):
-        seg, genv, there = strip_prefix(seg, here)  # `env -C DIR` moves this command only
+        seg, genv, there, assigns = strip_prefix(seg, here)  # `env -C DIR` moves this command only
+        genv, assigns = {**outer[0], **genv}, {**outer[1], **assigns}
         if not seg:
             continue
         prog = os.path.basename(seg[0])
@@ -199,10 +212,10 @@ def git_calls(cmd, here, depth=0):
         elif prog in SHELLS and depth < 3:
             script = shell_script(seg[1:])
             if script is not None:
-                yield from git_calls(script, there, depth + 1)
+                yield from git_calls(script, there, depth + 1, (genv, assigns))
         elif prog == "git":
-            d, sub, args, gopts = parse_git(seg[1:], there)
-            yield d, sub, args, (gopts, genv)
+            d, sub, args, gopts, cfg = parse_git(seg[1:], there)
+            yield d, sub, args, (gopts, genv, (cfg, assigns))
 
 # ---- implementor ---------------------------------------------------------
 
@@ -212,7 +225,7 @@ def load_checks(cmd):
         from role_guard_refs import implementor_git
         return implementor_git
     except BaseException:  # incl. SystemExit from a module that exits on import
-        deny(f"role-guard: refs module missing or broken, refusing {cmd}; fix .claude/hooks/role_guard_refs.py")
+        deny(f"role-guard: refs module missing or broken, refusing {cmd}; fix .claude/hooks/role_guard_refs.py or role_guard_opts.py")
 
 def implementor_bash(cmd):
     check, chain = load_checks(cmd), {}

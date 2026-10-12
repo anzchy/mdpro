@@ -10,23 +10,33 @@
 # - fetch/pull refspecs and `--refmap` values whose destination is <P>, `heads/<P>`
 #   or `refs/heads/<P>`, or a glob that could expand to one (`*`, `release/0.*`);
 # - `checkout -B`, `switch -C/--force-create`, `worktree add -B` <P>;
-# - `rebase … <upstream> <P>`, `rebase --root <P>`, `rebase --update-refs` (or an abbreviation);
+# - `rebase … <upstream> <P>`, `rebase --root <P>`, `rebase --update-refs`, and
+#   `rebase.updateRefs` set for the command (`-c`, `--config-env`, GIT_CONFIG_*) on a
+#   rebase or on a pull that may rebase, unless `--no-update-refs` / `--no-rebase`;
 # - `symbolic-ref <P> <ref>` and `symbolic-ref -d <P>` (reads allowed).
+# Long options are normalized first by role_guard_opts.py (D184): an unambiguous
+# prefix is read as the full name, and an ambiguous one naming an inspected option
+# is refused. Boolean options are read in order, the last of `--x` / `--no-x` / `-x`
+# winning (`last_flag`, audit b91). Broad-staging checks live there too.
 # The current branch is read where git will act (`-C`, `--git-dir`, `--work-tree`,
 # GIT_DIR/GIT_WORK_TREE); a named git dir whose HEAD cannot be read counts as
 # protected (fail closed). In one command chain, `checkout|switch <P>` and
 # `worktree add <dir> <P>` make <P> current for that dir (protected names only).
 # `heads/<P>` counts only in refspec destinations and symbolic-ref; branch,
 # checkout -B and update-ref read it as another name.
-# Not covered: `checkout -b`/`switch -c` creating <P>; abbreviated long options
-# other than `--update-refs`; refspecs and `rebase.updateRefs` from git config;
-# aliases; `git replace`; `export GIT_DIR=…` earlier in a chain; raw .git/refs writes.
+# Not covered: `checkout -b`/`switch -c` creating <P>; refspecs, `rebase.updateRefs`
+# and `pull.rebase` from git config files; aliases; `git replace`; `export GIT_DIR=…`
+# earlier in a chain; raw .git/refs writes.
 # Entry: implementor_git(dir, sub, args, ctx, chain, is_protected) → refusal text or
-# None; ctx = ([(--git-dir|--work-tree, value)], {GIT_DIR…: path}); chain is per command.
+# None; ctx = ([(--git-dir|--work-tree, value)], {GIT_DIR…: path}, conf) with conf as
+# in role_guard_opts.rebase_update_refs; chain is per command.
 # The hook imports this lazily for every implementor Bash call and refuses the
-# call if the import fails (fail closed).
-# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts.
+# call if this module or role_guard_opts.py fails to import (fail closed).
+# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts,
+# tests/d180-verifier-probes.test.ts, tests/d184-role-guard-*.test.ts.
 import fnmatch, os, subprocess
+
+from role_guard_opts import ambiguous_refusal, last_flag, normalize, pull_rebases, rebase_update_refs, staging
 
 NAMED = ("master", "frontend-backend-redesign")
 UNRESOLVED = "an unresolvable HEAD"
@@ -83,7 +93,8 @@ BRANCH_VALUE_LONG = {"--set-upstream-to", "--contains", "--no-contains", "--merg
                      "--points-at", "--sort", "--format"}
 
 def _branch(args, current_branch, is_protected):
-    modes, pos, i, rest = set(), [], 0, False
+    """git reads these in order: `--no-X` clears what `--X`/`-x` set (bit 1), never `-D/-M/-C` (bit 2)."""
+    modes, pos, i, rest = dict.fromkeys("fdmcl", 0), [], 0, False
     while i < len(args):
         a = args[i]
         i += 1
@@ -93,53 +104,53 @@ def _branch(args, current_branch, is_protected):
             rest = True
         elif a.startswith("--"):
             if a in BRANCH_MODES:
-                modes.add(BRANCH_MODES[a])
+                modes[BRANCH_MODES[a]] |= 1
+            elif a.startswith("--no-") and "--" + a[5:] in BRANCH_MODES:
+                modes[BRANCH_MODES["--" + a[5:]]] &= ~1
             elif a in BRANCH_VALUE_LONG:
                 i += 1
         else:
             for k, ch in enumerate(a[1:]):
                 if ch in "fdDmMcCl":
-                    modes.add(ch.lower())
-                    if ch in "DMC":
-                        modes.add("f")
+                    modes[ch.lower()] |= 2 if ch in "DMC" else 1
                 elif ch == "u":
                     if k == len(a) - 2:
                         i += 1
                     break
-    if "l" in modes:
+    if modes["l"]:
         return None
-    if "d" in modes:
+    if modes["d"]:
         hit = next((p for p in pos if protected_ref(p, is_protected)), None)
         return _refusal("branch --delete", hit) if hit else None
-    if "m" in modes:
+    if modes["m"]:
         names = pos[:2] if len(pos) >= 2 else pos[:1] + [current_branch()]
         if None in names:
             return _refusal("branch --move", UNRESOLVED)
         hit = next((p for p in names if p and protected_ref(p, is_protected)), None)
         return _refusal("branch --move", hit) if hit else None
-    if "c" in modes:
+    if modes["c"]:
         dst = pos[1] if len(pos) >= 2 else (pos[0] if pos else "")
         return _refusal("branch --copy", dst) if dst and protected_ref(dst, is_protected) else None
-    if "f" in modes and pos and protected_ref(pos[0], is_protected):
+    if modes["f"] and pos and protected_ref(pos[0], is_protected):
         return _refusal("branch --force", pos[0])
     return None
 
 # ---- git update-ref / symbolic-ref ---------------------------------------
 
 def _update_ref(args, current_branch, is_protected):
-    if "--stdin" in args:
+    if last_flag(args, ("--stdin",), ("--no-stdin",)):
         return f"`git update-ref --stdin` takes its refs from stdin, which the guard cannot read; {TAIL}"
     pos = _positionals(args, {"-m"})
     if not pos:
         return None
     if pos[0] == "HEAD":
-        b = "" if "--no-deref" in args else current_branch()
+        b = "" if last_flag(args, ("--no-deref",), ("--deref",)) else current_branch()
         return _refusal("update-ref HEAD", b or UNRESOLVED) if b is None or (b and is_protected(b)) else None
     return _refusal("update-ref", pos[0]) if protected_ref(pos[0], is_protected, bare_is_branch=False) else None
 
 def _symbolic_ref(args, is_protected):
     pos = _positionals(args, {"-m"})
-    deleting = any(a in ("-d", "--delete") for a in args)
+    deleting = last_flag(args, ("--delete",), ("--no-delete",), "d", "m")
     if pos and (deleting or len(pos) > 1) and protected_ref(pos[0], is_protected, dwim=True):
         return _refusal("symbolic-ref " + ("-d " if deleting else "") + pos[0], pos[0])
     return None
@@ -153,7 +164,7 @@ FETCH_VALUE_OPTS = {"--depth", "--deepen", "--shallow-since", "--shallow-exclude
 def _fetch(sub, args, is_protected):
     refmaps = [a[len("--refmap="):] for a in args if a.startswith("--refmap=")]
     refmaps += [args[i + 1] for i, a in enumerate(args[:-1]) if a == "--refmap"]
-    pos = [] if "--multiple" in args else _positionals(args, FETCH_VALUE_OPTS)[1:]
+    pos = [] if last_flag(args, ("--multiple",), ("--no-multiple",)) else _positionals(args, FETCH_VALUE_OPTS)[1:]
     for spec in refmaps + pos:
         if ":" in spec:
             dst = spec.rsplit(":", 1)[1]
@@ -162,12 +173,17 @@ def _fetch(sub, args, is_protected):
     return None
 
 REBASE_VALUE_OPTS = {"--onto", "-s", "--strategy", "-X", "--strategy-option", "-x", "--exec"}
+UPDATE_REFS_CONFIG = ("`git {}` with rebase.updateRefs set moves every branch inside the rebased range, "
+                      "protected ones too; pass {} or drop the setting; " + TAIL)
 
-def _rebase(args, is_protected):
-    if any(a.startswith("--up") and "--update-refs".startswith(a) for a in args):
+def _rebase(args, is_protected, conf):
+    flags = [a for a in args if a in ("--update-refs", "--no-update-refs")]
+    if flags and flags[-1] == "--update-refs":
         return f"`git rebase --update-refs` moves every branch inside the rebased range, protected ones too; {TAIL}"
+    if not flags and rebase_update_refs(conf):
+        return UPDATE_REFS_CONFIG.format("rebase", "--no-update-refs")
     pos = _positionals(args, REBASE_VALUE_OPTS)
-    k = 0 if "--root" in args else 1  # --root takes no upstream
+    k = 0 if last_flag(args, ("--root",), ("--no-root",)) else 1  # --root takes no upstream
     branch = pos[k] if len(pos) > k else None
     if branch and protected_ref(branch, is_protected):
         return _refusal(f"rebase … {branch}", branch)
@@ -189,8 +205,10 @@ def _forced_create(args, letter, long_opt=None):
                 return a[k + 1:] or nxt
     return None
 
-def ref_move(sub, args, current_branch, is_protected):
-    """Refusal text when this git call moves a protected branch by name, else None."""
+def ref_move(sub, args, current_branch, is_protected, conf=([], {})):
+    """Refusal text when this git call (long options normalized) moves a protected branch by name."""
+    if sub == "pull" and pull_rebases(args) and rebase_update_refs(conf):
+        return UPDATE_REFS_CONFIG.format("pull", "--no-rebase")
     if sub == "branch":
         return _branch(args, current_branch, is_protected)
     if sub == "update-ref":
@@ -198,7 +216,7 @@ def ref_move(sub, args, current_branch, is_protected):
     if sub in ("fetch", "pull"):
         return _fetch(sub, args, is_protected)
     if sub == "rebase":
-        return _rebase(args, is_protected)
+        return _rebase(args, is_protected, conf)
     if sub == "symbolic-ref":
         return _symbolic_ref(args, is_protected)
     target, what = None, sub
@@ -216,7 +234,7 @@ def ref_move(sub, args, current_branch, is_protected):
 
 def resolve_branch(d, ctx):
     """Branch checked out where git will act; "" when detached; None when a named git dir is unreadable."""
-    gopts, genv = ctx
+    gopts, genv = ctx[:2]
     named = bool(gopts or genv)
     cmd = ["git", "-C", d] + [f"{k}={v}" for k, v in gopts] + ["symbolic-ref", "--short", "-q", "HEAD"]
     try:
@@ -230,50 +248,20 @@ def resolve_branch(d, ctx):
 def _switched_to(d, sub, args):
     """(dir, branch) that checkout / switch / worktree add leaves checked out, else None."""
     if sub in ("checkout", "switch"):
-        if "--" in args or "--detach" in args or (sub == "switch" and "-d" in args):
+        detach = last_flag(args, ("--detach",), ("--no-detach",), "d" if sub == "switch" else "", "cC")
+        if "--" in args or detach:
             return None
         pos = _positionals(args)
         return (d, pos[0]) if pos else None
     if sub == "worktree" and args[:1] == ["add"]:
         rest = args[1:]
-        if "--detach" in rest or "-d" in rest:
+        if last_flag(rest, ("--detach",), ("--no-detach",), "d", "bB"):
             return None
         pos = _positionals(rest, {"-b", "-B", "--reason"})
         if not pos:
             return None
         new = next((rest[i + 1] for i, a in enumerate(rest[:-1]) if a in ("-b", "-B")), None)
         return os.path.join(d, pos[0]), new or (pos[1] if len(pos) > 1 else os.path.basename(pos[0]))
-    return None
-
-def _short_has(arg, letter, value_letters=""):
-    """True when a `-xyz` cluster sets `letter` before any value-taking letter."""
-    if not arg.startswith("-") or arg.startswith("--") or len(arg) < 2:
-        return False
-    for ch in arg[1:]:
-        if ch == letter:
-            return True
-        if ch in value_letters:
-            return False
-    return False
-
-def _names_state_json(arg):
-    p = os.path.normpath(arg)
-    return p.endswith(os.path.join(".claude", "tdd-guardian", "state.json")) or \
-        p.endswith(os.path.join(".claude", "tdd-guardian"))
-
-def _staging(sub, args):
-    if sub == "add":
-        for a in args:
-            if a in ("-A", "--all", ".", "./", "-u", "--update") or _short_has(a, "A") or _short_has(a, "u"):
-                return f"`git add {a}` stages files you did not name; stage named paths only (rule 70)."
-            if not a.startswith("-") and _names_state_json(a):
-                return "never stage .claude/tdd-guardian/state.json; it is per-worktree gate state."
-    if sub == "commit":
-        for a in args:
-            if a == "--":
-                break
-            if a == "--all" or _short_has(a, "a", "mFCctS"):
-                return "`git commit -a/--all` stages files you did not name; `git add` named paths first (rule 70)."
     return None
 
 def implementor_git(d, sub, args, ctx, chain, is_protected):
@@ -285,14 +273,17 @@ def implementor_git(d, sub, args, ctx, chain, is_protected):
 
     if sub == "push":
         return "implementors never run `git push`; the delegator lands commits (rule 70)."
-    msg = ref_move(sub, args, current, is_protected)
+    args, ambiguous = normalize(sub, args)
+    if ambiguous:
+        return ambiguous_refusal(sub, ambiguous)
+    msg = ref_move(sub, args, current, is_protected, ctx[2] if len(ctx) > 2 else ([], {}))
     if msg:
         return msg
     if sub in ("commit", "merge", "rebase", "cherry-pick", "reset"):
         b = current()
         if b is None or is_protected(b):
             return f"`git {sub}` on `{b or UNRESOLVED}` is the delegator's job; work on your own branch in mdpro-wt/ (rule 70)."
-    msg = _staging(sub, args)
+    msg = staging(sub, args)
     moved = None if msg else _switched_to(d, sub, args)
     if moved and is_protected(moved[1]):
         chain[os.path.normpath(moved[0])] = moved[1]

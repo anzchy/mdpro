@@ -25,7 +25,11 @@ function hooksDir(name: string, module: "absent" | "broken" | "intact"): string 
   fs.mkdirSync(dir, { recursive: true });
   fs.copyFileSync(HOOK, path.join(dir, "role-guard.sh"));
   if (module === "broken") fs.writeFileSync(path.join(dir, "role_guard_refs.py"), "raise RuntimeError('broken on import')\n");
-  if (module === "intact") fs.copyFileSync(MODULE, path.join(dir, "role_guard_refs.py"));
+  if (module === "intact") {
+    for (const f of fs.readdirSync(path.dirname(MODULE)).filter((n) => /^role_guard_.*\.py$/.test(n))) {
+      fs.copyFileSync(path.join(path.dirname(MODULE), f), path.join(dir, f));
+    }
+  }
   return dir;
 }
 
