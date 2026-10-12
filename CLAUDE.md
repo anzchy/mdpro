@@ -198,8 +198,11 @@ Sequencing for this effort lives in
 [`docs/plans/20260912-frontend-backend-sequencing-order.md`](./docs/plans/20260912-frontend-backend-sequencing-order.md).
 
 - **Branch**: every work item lands on `master`, the single trunk, and only
-  through the delegator's `git merge --ff-only` of a short-lived branch
-  (rule 70). Nobody lands by merge commit, and the only direct commits are
+  through the delegator's `git merge --ff-only` of a short-lived branch that
+  has passed `mdpro-landing-verifier` **and** a mini audit with no Critical
+  or High finding (rule 70,
+  [ADR-0085](./docs/adr/0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md)).
+  Nobody lands by merge commit, and the only direct commits are
   the delegator's docs-only ones. Before 2026-10-12 this effort lived on `frontend-backend-redesign`,
   now frozen ([ADR-0083](./docs/adr/0083-master-is-the-single-integration-trunk.md)).
 - **Updating the status is part of finishing the work item, not a follow-up.**

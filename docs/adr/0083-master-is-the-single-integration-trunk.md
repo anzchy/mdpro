@@ -9,6 +9,7 @@ recorded by mdpro-delegator. Supersedes the standing rule "never commit to
 `master`" in `CLAUDE.md` and rule 70 for the delegator's fast-forward landings
 only; every other clause of those rules stands.
 **Partially superseded** (2026-10-12): the one-week deletion of the old branch in Decision 4 and the release-branch deletion timing in Decision 3 by [ADR-0084](0084-remote-branches-are-kept-thirty-days-after-their-work-lands.md) (thirty days after the work lands).
+**Partially superseded** (2026-10-12): Decision 5 ("rule 70's landing protocol is unchanged") by [ADR-0085](0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md): the mini audit now runs on the branch before the fast-forward, and zero Critical / zero High is a landing condition.
 
 ## Context
 

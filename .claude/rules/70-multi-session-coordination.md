@@ -123,7 +123,10 @@ merges or reserves; the delegator does.
    told (user decision, 2026-10-11: one full run per commit, machine-wide).
 2. **The delegator checks ancestry and scope** (not a code review) with `git cat-file -p <sha>` and
    `git diff-tree --no-ext-diff --stat -r <parent> <sha>` (the external diff
-   wrapper garbles plain `git diff`), then runs
+   wrapper garbles plain `git diff`), then dispatches two independent checks
+   on that SHA at once: `mdpro-landing-verifier` (lanes, receipts, tree
+   identity) and the mini audit of item 4. Only when the verifier says PASS
+   **and** the audit counts zero Critical and zero High findings does it run
    `git merge --ff-only <sha>` in the main checkout, and right after it
    `git push origin master`.
 3. **No other session lands on `master` itself**, by cherry-pick or
@@ -131,21 +134,33 @@ merges or reserves; the delegator does.
    branch rebased onto `master`, handed to the delegator with the SHAs and
    the lanes that passed, landed by `--ff-only`. After each landing the
    delegator warns the peers to fast-forward before their next commit.
-4. **Every landed WI or finished module goes to an mdpro-auditor for a mini
-   audit.** After the `--ff-only`, the delegator sends the auditor the
-   landed SHA range, the WI or D id and the owner. The auditor runs
-   `/cc-suite:audit --mini` on it with preflight bypassed, model
+4. **Every WI or finished module is audited before it lands**
+   ([ADR-0085](../../docs/adr/0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md);
+   user decision 2026-10-12: 「只有分支branch 经过Codex audit 并且修复，没有critical /
+   high severity findings之后，才允许ff 到master」). When a handoff passes the
+   ancestry and scope check, the delegator sends the auditor the branch SHA,
+   its parent, the WI or D id and the owner. The auditor runs
+   `/cc-suite:audit --mini` on `<parent>..<sha>` with preflight bypassed, model
    `gpt-6.1-sol` and effort `high`, unless the delegator names others. Nobody
    asks the user first: the user approved this standing order on 2026-10-10
    so that no human sits in the loop. The approval covers the audit run
    only; rule 25 commands still need their own confirmation. A docs-only or
    device-record commit is not audited. **The auditor reports only Critical
    and High findings** and drops Medium and Low ones, keeping just their
-   count in a single line of the verdict. Nobody registers them as D items
-   (user decision, 2026-10-10). The auditor reports to
-   the delegator, not to the implementor. The delegator gives a new finding a
-   D number and hands it to the session that owns the area; it does not
-   reopen the landed commit.
+   count; the verdict ends with one line counting Critical, High, Medium and
+   Low, and the delegator reads the gate off that line. Nobody registers
+   Medium or Low findings as D items (user decision, 2026-10-10). The
+   auditor reports to the delegator, not to the implementor. **Zero Critical
+   and zero High is the landing condition.** A Critical or High goes to the
+   owner on the same branch: the owner fixes it there (new SHA, rebased if
+   `master` moved, decisive tests re-run), the auditor confirms the fix on
+   the new SHA (scoped to its findings, not a fresh full audit), the
+   verifier re-checks by tree identity, and then the delegator lands. A
+   partial fix does not land; deferring a Critical or High instead of fixing
+   it needs the user's word, quoted in the row. Audits requested before
+   2026-10-12 on already-landed ranges finish under the old order: a
+   Critical or High there gets a D number and goes to the owner, and the
+   landed commit is not reopened.
 5. The sequencing-doc row and the ledger row change in the same commit as
    the behaviour they describe. A peer edits **only the D and WI rows it owns**. The
    shared release-freeze paragraph belongs to the delegator.
