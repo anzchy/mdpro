@@ -100,9 +100,12 @@ leaves a draft behind.
 ## g. Out of scope: rename-over saves (D68)
 
 An external save that writes a temporary file and renames it over the
-document (`printf x > "$S/t" && mv "$S/t" "$S/f.md"`) raises no prompt and
-logs `ignored_rename_single_path`. That is D68, still open and in the release
-freeze; it is not part of this check. Do not record it as a D32 failure.
+document (`printf x > "$S/t" && mv "$S/t" "$S/f.md"`) is D68, not part of
+this check; do not record its result either way as a D32 finding. (History:
+when this fixture was written such a save raised no prompt and logged
+`ignored_rename_single_path`. D68 was fixed in `658bc1d` (ADR-0072), the
+replaced file is now checked like a content change and does raise the
+prompt, and D167 (`c552974`) removed the retired outcome altogether.)
 
 Mark every expectation you did not observe NOT VERIFIED.
 
