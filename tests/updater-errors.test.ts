@@ -2,14 +2,20 @@
 /**
  * isUpdatesDisabledError — classifies an updater check() rejection message as
  * "updates disabled" versus a genuine failure (WI-1, plan-20261009-122014;
- * narrowed by WI-1, plan-20261010-093842; narrowed again by D85-WI-1).
+ * narrowed by WI-1, plan-20261010-093842; narrowed again by D85-WI-1; anchored
+ * by D110-WI-2).
  *
- * Law: for every m,
- *   isUpdatesDisabledError(m) === m.includes("does not have any endpoints")
- * Case-sensitive and unanchored. Consequences: superstring closure (wrapping a
- * positive keeps it positive) and noise invariance (adding "empty" / "no endpoints"
- * never changes the result). U6 and U11 enumerate the wrapping domain, U7 checks
- * the law against an independent oracle, U10 checks the noise relation.
+ * Law (D110): for every m,
+ *   isUpdatesDisabledError(m) === (m.trim() === "Updater does not have any endpoints set.")
+ * Case-sensitive and anchored on the full plugin Display text; only surrounding
+ * whitespace is tolerated. Consequences: any non-whitespace wrapping of the
+ * positive is negative (U6, U14, U15), and noise never turns a negative positive
+ * (U10). U7 checks the law against an independent oracle.
+ *
+ * D110 / rule 12: the former law was an unanchored substring match, so a
+ * Serialization error echoing a response body that contains the marker read as
+ * "updates disabled". Superstring closure was the defect, not a property:
+ * U6, U7 (oracle) and U10 (positive half) changed; U14-U16 are new.
  *
  * U2/U6/U7 changed (rule 12): the prior spec asserted 'no endpoints' / 'empty' as
  * disabled markers; tauri-plugin-updater 2.9.0 never emits them (K1 pins its only
@@ -37,8 +43,9 @@ const NETWORK_MESSAGE =
 
 /** Independent oracle for the law; must not import production code. */
 // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a false spec.
+// D110 / rule 12: a substring oracle accepts an echoed body containing the marker; the law is anchored.
 function oracle(m: string): boolean {
-  return m.includes("does not have any endpoints");
+  return m.trim() === REAL_EMPTY_ENDPOINTS;
 }
 
 const NETWORK_FALSE = [
@@ -134,10 +141,12 @@ describe("isUpdatesDisabledError", () => {
   // 2.9.0 messages and "empty" misclassified real failures; their half is U11.
   // D85 / rule 12: ReleaseNotFound is what the plugin returns for any non-2xx, so "disabled" was a
   // false spec; domain 32 → 16, its half is U12.
-  it("U6: the empty-endpoints message stays recognised under any prefix/suffix wrapping (16 inputs)", () => {
+  // D110 / rule 12: formerly "stays recognised under any prefix/suffix wrapping" — that
+  // superstring closure is the D110 defect. Only whitespace around the exact text is accepted.
+  it("U6: of the 16 wrappings of the empty-endpoints message only the bare and newline-suffixed ones are recognised", () => {
     expect(WRAPPED).toHaveLength(16);
-    const failures = WRAPPED.filter((m) => !isUpdatesDisabledError(m));
-    expect(failures).toEqual([]);
+    const recognised = WRAPPED.filter((m) => isUpdatesDisabledError(m));
+    expect(recognised).toEqual([REAL_EMPTY_ENDPOINTS, `${REAL_EMPTY_ENDPOINTS}\n`]);
   });
 
   // Rule 12: the frozen legacy() oracle encoded "no endpoints" / "empty", which
@@ -181,16 +190,23 @@ describe("isUpdatesDisabledError", () => {
     expect(isUpdatesDisabledError(m)).toBe(false);
   });
 
-  it("U10: adding the former markers as noise never changes the classification", () => {
+  // D110 / rule 12: formerly "never changes the classification" — noise invariance held for
+  // positives only because matching was unanchored. Noise still never makes a negative
+  // positive; noise on a positive now makes it negative (anchored on the full text).
+  it("U10: noise never makes a negative positive, and always makes a positive negative", () => {
     expect(U10_POSITIVE_BASES.length).toBeGreaterThan(0);
     expect(U10_NEGATIVE_BASES.length).toBeGreaterThan(0);
     expect(U10_POSITIVE_BASES.some(({ p, m }) => isUpdatesDisabledError(`${p}${m}`))).toBe(true);
     expect(U10_NEGATIVE_BASES.some((m) => !isUpdatesDisabledError(m))).toBe(true);
 
     const violations = u10Pairs().filter(
-      ({ base, variant }) => isUpdatesDisabledError(variant) !== isUpdatesDisabledError(base),
+      ({ base, variant }) => isUpdatesDisabledError(variant) && !isUpdatesDisabledError(base),
     );
     expect(violations).toEqual([]);
+    const surviving = u10Pairs().filter(
+      ({ base, variant }) => isUpdatesDisabledError(base) && isUpdatesDisabledError(variant),
+    );
+    expect(surviving).toEqual([]);
   });
 
   it("U11: the former markers under any wrapping are not disabled (32 inputs)", () => {
@@ -207,5 +223,47 @@ describe("isUpdatesDisabledError", () => {
 
   it.each(MALFORMED)("U13: malformed release metadata %j is a failure, not disabled", (m) => {
     expect(isUpdatesDisabledError(m)).toBe(false);
+  });
+
+  // D110: a Serialization error echoing a response body that happens to contain the
+  // marker must not read as "updates disabled".
+  it.each([
+    `expected value at line 1 column 1: ${REAL_EMPTY_ENDPOINTS}`,
+    `invalid type: string "${REAL_EMPTY_ENDPOINTS}", expected struct RemoteRelease`,
+    `error decoding response body: ${REAL_EMPTY_ENDPOINTS}`,
+    `${REAL_EMPTY_ENDPOINTS} trailing garbage`,
+    "Updater does not have any endpoints",
+    "does not have any endpoints",
+  ])("U14: %j carries the marker but is not the plugin's message, so it is not disabled", (m) => {
+    expect(isUpdatesDisabledError(m)).toBe(false);
+  });
+
+  it.each([
+    REAL_EMPTY_ENDPOINTS,
+    `${REAL_EMPTY_ENDPOINTS}\n`,
+    `  ${REAL_EMPTY_ENDPOINTS}  `,
+    `\t${REAL_EMPTY_ENDPOINTS}\r\n`,
+  ])("U15: the exact Display text with only surrounding whitespace %j is disabled", (m) => {
+    expect(isUpdatesDisabledError(m)).toBe(true);
+  });
+
+  it("U16: any non-whitespace text before or after the Display text makes it not disabled (generated)", () => {
+    // Deterministic generator over printable ASCII fragments of length 1-6.
+    let seed = 110;
+    const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648);
+    const fragment = () => {
+      const len = 1 + (next() % 6);
+      let out = "";
+      for (let i = 0; i < len; i++) out += String.fromCharCode(33 + (next() % 94));
+      return out;
+    };
+    const accepted: string[] = [];
+    for (let i = 0; i < 300; i++) {
+      const f = fragment();
+      for (const m of [`${f}${REAL_EMPTY_ENDPOINTS}`, `${REAL_EMPTY_ENDPOINTS}${f}`, `${f} ${REAL_EMPTY_ENDPOINTS} ${f}`]) {
+        if (isUpdatesDisabledError(m)) accepted.push(m);
+      }
+    }
+    expect(accepted).toEqual([]);
   });
 });

@@ -1,9 +1,10 @@
 //! Wire contract: tauri-plugin-updater error text vs the frontend classifier.
 //!
 //! `src/components/common/settings/updaterErrors.ts` decides "updates disabled"
-//! by substring over the string the plugin's `check` command rejects with. The
-//! plugin serialises its `Error` as a plain string of its Display text, so that
-//! text is the contract. EmptyEndpoints is the only marker; ReleaseNotFound is
+//! by comparing the (whitespace-trimmed) string the plugin's `check` command
+//! rejects with against the full EmptyEndpoints Display text (D110). The plugin
+//! serialises its `Error` as a plain string of its Display text, so that text is
+//! the contract, and K1-exact pins every character of it. ReleaseNotFound is
 //! pinned as the uncertain class (the plugin's answer to any non-2xx, D85),
 //! which the About pane shows as an error and the log carries verbatim (K1).
 //!
@@ -30,6 +31,14 @@ fn empty_endpoints_serialises_to_the_does_not_have_any_endpoints_fragment() {
         text.contains("does not have any endpoints"),
         "EmptyEndpoints wire text changed: {text:?}"
     );
+}
+
+/// The exact text `updaterErrors.ts` (`EMPTY_ENDPOINTS_DISPLAY`) compares against (D110).
+const EMPTY_ENDPOINTS_DISPLAY: &str = "Updater does not have any endpoints set.";
+
+#[test]
+fn k1_exact_empty_endpoints_wire_text_is_the_full_display_text() {
+    assert_eq!(wire_text(Error::EmptyEndpoints), EMPTY_ENDPOINTS_DISPLAY);
 }
 
 #[test]

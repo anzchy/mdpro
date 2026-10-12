@@ -19,6 +19,9 @@ import { isUpdatesDisabledError } from "./updaterErrors";
  * success + `outcome: "updates-disabled"` (no endpoints configured only), or
  * fail (incl. ReleaseNotFound, D85); a cache hit logs none. Finding an update
  * clears the cached result, so a remount re-checks instead of a stale error.
+ * Each check takes a request id from updaterStore and writes the cache only
+ * while it is still the newest check; its screen update additionally needs
+ * the panel to be mounted (D110). A superseded check still logs its terminal line.
  *
  * @coordinates-with updaterErrors (updates-disabled vs network-error detection)
  * @coordinates-with updaterStore (cache-safe state persistence)
@@ -42,19 +45,24 @@ export function AboutSettings() {
   const [state, setState] = useState<UpdateState>({ phase: "checking" });
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const actionId = useRef(loggingService.generateActionId());
+  const mounted = useRef(false);
 
-  // One place for the update-check log shape; level follows status (fail → error).
+  // One place for the About log shape; level follows status (fail → error).
   // Reads actionId.current, so it is safe inside useCallback([]).
-  function logCheck(status: "start" | "success" | "fail", context: LogContext) {
+  function logAbout(event: string, status: "start" | "success" | "fail", context?: LogContext) {
     const level = status === "fail" ? "error" : "info";
     loggingService.logEventSync({
-      level, event: "ui.about.update_check", status, actionId: actionId.current, context,
+      level, event, status, actionId: actionId.current, ...(context && { context }),
     });
   }
+  const logCheck = (status: "start" | "success" | "fail", context: LogContext) =>
+    logAbout("ui.about.update_check", status, context);
 
   useEffect(() => {
-    void updaterService.getAppVersion().then((v) => setCurrentVersion(v));
+    mounted.current = true;
+    void updaterService.getAppVersion().then((v) => mounted.current && setCurrentVersion(v));
     void runCheck(false);
+    return () => { mounted.current = false; };
   }, []);
 
   const runCheck = useCallback(async (forceRefresh: boolean) => {
@@ -67,6 +75,16 @@ export function AboutSettings() {
 
     setState({ phase: "checking" });
     logCheck("start", { forceRefresh });
+    const store = useUpdaterStore.getState();
+    const requestId = store.beginRequest();
+    // Only the newest check, on a mounted panel, may change what is shown (D110).
+    const show = (next: UpdateState) => {
+      if (mounted.current && useUpdaterStore.getState().activeRequestId === requestId) setState(next);
+    };
+    const commit = (next: CacheSafeState) => {
+      store.setCachedResult(next, requestId);
+      show(next);
+    };
 
     try {
       // Dynamic import to avoid bundling the plugin when not needed
@@ -75,13 +93,11 @@ export function AboutSettings() {
 
       if (update) {
         // Don't cache 'available' (handle may go stale); drop any earlier error (D85)
-        useUpdaterStore.getState().clearCache();
+        store.clearCache(requestId);
         const { version, body } = update;
-        setState({ phase: "available", version, body: body ?? null, handle: update });
+        show({ phase: "available", version, body: body ?? null, handle: update });
       } else {
-        const next: CacheSafeState = { phase: "up-to-date" };
-        useUpdaterStore.getState().setCachedResult(next);
-        setState(next);
+        commit({ phase: "up-to-date" });
       }
 
       logCheck("success", { hasUpdate: !!update, version: update?.version });
@@ -91,19 +107,12 @@ export function AboutSettings() {
       // Updates disabled (no endpoints configured) is a definite answer, not an
       // error: success + `outcome`. ReleaseNotFound (any non-2xx) is a fail (D85).
       if (isUpdatesDisabledError(msg)) {
-        const next: CacheSafeState = { phase: "updates-disabled" };
-        useUpdaterStore.getState().setCachedResult(next);
-        setState(next);
+        commit({ phase: "updates-disabled" });
         logCheck("success", { outcome: "updates-disabled", error: msg });
         return;
       }
 
-      const next: CacheSafeState = {
-        phase: "error",
-        message: "Couldn't get update information. Try again later.",
-      };
-      useUpdaterStore.getState().setCachedResult(next);
-      setState(next);
+      commit({ phase: "error", message: "Couldn't get update information. Try again later." });
       logCheck("fail", { error: msg });
     }
   }, []);
@@ -115,12 +124,7 @@ export function AboutSettings() {
     let total = 0;
 
     setState({ phase: "downloading", progress: 0 });
-    loggingService.logEventSync({
-      level: "info",
-      event: "ui.about.update_install",
-      status: "start",
-      actionId: actionId.current,
-    });
+    logAbout("ui.about.update_install", "start");
 
     try {
       await handle.downloadAndInstall((event) => {
@@ -134,25 +138,14 @@ export function AboutSettings() {
         }
       });
       setState({ phase: "ready" });
-      loggingService.logEventSync({
-        level: "info",
-        event: "ui.about.update_install",
-        status: "success",
-        actionId: actionId.current,
-      });
+      logAbout("ui.about.update_install", "success");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setState({
         phase: "error",
         message: `Download failed: ${msg}`,
       });
-      loggingService.logEventSync({
-        level: "error",
-        event: "ui.about.update_install",
-        status: "fail",
-        actionId: actionId.current,
-        context: { error: msg },
-      });
+      logAbout("ui.about.update_install", "fail", { error: msg });
     }
   }
 
@@ -160,12 +153,7 @@ export function AboutSettings() {
     const canProceed = await prepareForRelaunch();
     if (!canProceed) return;
 
-    loggingService.logEventSync({
-      level: "info",
-      event: "ui.about.relaunch",
-      status: "start",
-      actionId: actionId.current,
-    });
+    logAbout("ui.about.relaunch", "start");
     try {
       await relaunch();
     } catch (e) {
@@ -174,13 +162,7 @@ export function AboutSettings() {
         phase: "error",
         message: `Restart failed: ${msg}`,
       });
-      loggingService.logEventSync({
-        level: "error",
-        event: "ui.about.relaunch",
-        status: "fail",
-        actionId: actionId.current,
-        context: { error: msg },
-      });
+      logAbout("ui.about.relaunch", "fail", { error: msg });
     }
   }
 
