@@ -6,7 +6,8 @@
   "packageManager": "pnpm@10.26.1",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/deps/check-patched.mjs && tsc && vite build",
+    "postinstall": "node scripts/deps/check-patched.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest",
