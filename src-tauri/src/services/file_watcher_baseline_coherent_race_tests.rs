@@ -7,9 +7,9 @@
 //! mtime restored, chmod, xattr), the before-read partition and the k16 pin
 //! are macOS only: ext4's coarse timestamps (Linux, WSL) need not move ctime
 //! between two quick operations.
+use super::fixture::{append, shift_mtime, TempDir};
 #[cfg(target_os = "macos")]
 use super::fixture::{chmod, mtime, rewrite_keep_stat, set_mtime};
-use super::fixture::{append, shift_mtime, TempDir};
 #[cfg(target_os = "macos")]
 use super::race_fixture::{ctime_ns, set_xattr};
 use super::race_fixture::{
@@ -76,7 +76,11 @@ fn row_file(m: M) -> (TempDir, PathBuf) {
         M::NoneThroughFileSymlink => {
             let target = d.file("a.md", b"hello world");
             let l = file_symlink(d.path(), "l.md", "a.md");
-            assert_eq!(stat_pair(&l), stat_pair(&target), "precondition: link stat is the target's");
+            assert_eq!(
+                stat_pair(&l),
+                stat_pair(&target),
+                "precondition: link stat is the target's"
+            );
             l
         }
         _ => d.file("a.md", b"hello world"),
@@ -143,10 +147,18 @@ fn k9_coherent_read_never_reports_a_stale_read_as_stable() {
         let note = take_note();
         assert!(ran.get(), "{m:?}: the hook ran");
         if let Some((stat, bytes)) = &r {
-            assert_eq!(bytes, &fs::read(&p).unwrap(), "{m:?}: law, bytes ({note:?})");
+            assert_eq!(
+                bytes,
+                &fs::read(&p).unwrap(),
+                "{m:?}: law, bytes ({note:?})"
+            );
             assert_eq!(Some(*stat), stat_pair(&p), "{m:?}: law, stat ({note:?})");
         }
-        assert_eq!(r.is_some(), expect_stable(m), "{m:?}: table (old_ctime_moved {note:?})");
+        assert_eq!(
+            r.is_some(),
+            expect_stable(m),
+            "{m:?}: table (old_ctime_moved {note:?})"
+        );
         if expect_stable(m) {
             let expected = (stat_pair(&p).unwrap(), b"hello world".to_vec());
             assert_eq!(r, Some(expected), "{m:?}: exact read");
@@ -172,7 +184,11 @@ fn k10_is_unchanged_during_read_partition() {
             assert_eq!(fs::read(&p).unwrap(), b"hello world", "{m:?}: law, bytes");
             assert_eq!(ino(&p), ino_at_register, "{m:?}: law, inode");
         }
-        assert_eq!(r, expect_stable(m), "{m:?}: table (old_ctime_moved {note:?})");
+        assert_eq!(
+            r,
+            expect_stable(m),
+            "{m:?}: table (old_ctime_moved {note:?})"
+        );
         if m == M::NoneThroughFileSymlink {
             assert!(store.is_unchanged(&p), "{m:?}: follow-up with no hook");
         }

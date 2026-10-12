@@ -78,7 +78,14 @@ fn w1_emitted_metadata_extended_line_is_exact() {
         mtime_ms: 1_700_000_000_123,
         size: 42,
     });
-    let line = build_watch_event_log(&e, WatchOutcome::EmittedModified, NC, Some(&emitted), stat, T);
+    let line = build_watch_event_log(
+        &e,
+        WatchOutcome::EmittedModified,
+        NC,
+        Some(&emitted),
+        stat,
+        T,
+    );
     assert_eq!(
         to_value(&line).unwrap(),
         json!({"level":"info","event":"file.watch.event","status":"success","actionId":null,
@@ -252,7 +259,14 @@ fn w6_no_file_content_leaks_into_the_line() {
         &[f.clone()],
     );
     let emitted = changed(&f.to_string_lossy(), "modified");
-    let line = build_watch_event_log(&e, WatchOutcome::EmittedModified, NC, Some(&emitted), stat, T);
+    let line = build_watch_event_log(
+        &e,
+        WatchOutcome::EmittedModified,
+        NC,
+        Some(&emitted),
+        stat,
+        T,
+    );
     let _ = std::fs::remove_file(&f);
     let text = to_string(&line).unwrap();
     assert!(!text.contains("D32-SECRET-BODY"), "content leaked: {text}");

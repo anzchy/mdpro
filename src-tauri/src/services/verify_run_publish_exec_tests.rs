@@ -141,8 +141,16 @@ fn wi3_publish_or_exit_refuses_existing_instance_exits_78() {
 
     let (_, out) = spawn(&fx, "publish-refuse", &fx.run, None);
     let stderr = text(&out.stderr);
-    assert_eq!(out.status.code(), Some(78), "status {:?}; stderr {stderr:?}", out.status);
-    assert_eq!(stderr, format!("{}\n", rejection_line(&GuardError::InstanceExists)));
+    assert_eq!(
+        out.status.code(),
+        Some(78),
+        "status {:?}; stderr {stderr:?}",
+        out.status
+    );
+    assert_eq!(
+        stderr,
+        format!("{}\n", rejection_line(&GuardError::InstanceExists))
+    );
     assert_eq!(fingerprint(&inst), f0, "instance.json changed");
     assert_eq!(entries(&fx.run), names(&["launch.json", "instance.json"]));
 }
@@ -155,15 +163,27 @@ fn wi3_publish_or_exit_publishes_child_pid() {
     let (pid, out) = spawn(&fx, "publish", &fx.run, Some(&id));
     let stdout = text(&out.stdout);
     let stderr = text(&out.stderr);
-    let ctx = format!("status {:?}; stdout {stdout:?}; stderr {stderr:?}", out.status);
+    let ctx = format!(
+        "status {:?}; stdout {stdout:?}; stderr {stderr:?}",
+        out.status
+    );
     assert_eq!(out.status.code(), Some(0), "{ctx}");
-    assert!(stdout.contains(&format!("{RETURNED} {pid}")), "no sentinel: {ctx}");
-    assert!(stdout.contains("test result: ok. 1 passed"), "no summary: {ctx}");
+    assert!(
+        stdout.contains(&format!("{RETURNED} {pid}")),
+        "no sentinel: {ctx}"
+    );
+    assert!(
+        stdout.contains("test result: ok. 1 passed"),
+        "no summary: {ctx}"
+    );
     assert!(!stderr.contains("refusing"), "{ctx}");
     assert_ne!(pid, std::process::id());
     let build_id = normalize_build_id(Some(&id));
     assert_published(&fx.run.join("instance.json"), &fx.nonce, pid, build_id);
-    assert_eq!(entries(&fx.run), names(&["launch.json", "instance.json", ".mdpro"]));
+    assert_eq!(
+        entries(&fx.run),
+        names(&["launch.json", "instance.json", ".mdpro"])
+    );
 
     let lines = verify_run_lines(&fx);
     assert_eq!(lines.len(), 1, "app.verify_run lines: {lines:?}");
@@ -183,8 +203,16 @@ fn wi3_publish_or_exit_write_failure_exits_78() {
 
     let (_, out) = spawn(&fx, "publish-refuse", &gone, None);
     let stderr = text(&out.stderr);
-    assert_eq!(out.status.code(), Some(78), "status {:?}; stderr {stderr:?}", out.status);
-    assert_eq!(stderr, format!("{}\n", rejection_line(&GuardError::InstanceWrite)));
+    assert_eq!(
+        out.status.code(),
+        Some(78),
+        "status {:?}; stderr {stderr:?}",
+        out.status
+    );
+    assert_eq!(
+        stderr,
+        format!("{}\n", rejection_line(&GuardError::InstanceWrite))
+    );
     assert!(!gone.exists(), "publish created the vanished run dir");
     assert_eq!(entries(&fx.run), names(&["launch.json"]));
 }
@@ -221,6 +249,9 @@ fn wi3_publish_or_exit_write_failure_after_temp_exits_78() {
         out.status,
         text(&out.stdout)
     );
-    assert_eq!(stderr, format!("{}\n", rejection_line(&GuardError::InstanceWrite)));
+    assert_eq!(
+        stderr,
+        format!("{}\n", rejection_line(&GuardError::InstanceWrite))
+    );
     assert_eq!(entries(&fx.run), names(&["launch.json"]));
 }

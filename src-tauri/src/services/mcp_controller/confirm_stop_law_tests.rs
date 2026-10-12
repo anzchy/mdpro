@@ -58,7 +58,10 @@ async fn run_sequence(seq: &[Op], k: usize) {
             waiting.push(spawn_confirm(&b, "B"));
         }
         let expected = waiting.len();
-        assert!(wait_until(GENEROUS, || b.pending_len() == expected).await, "enqueue");
+        assert!(
+            wait_until(GENEROUS, || b.pending_len() == expected).await,
+            "enqueue"
+        );
         let live = c.snapshot().expect("snap").phase == McpPhase::Running;
         let at = format!("{seq:?} k={k} step {step} ({op:?}, live={live})");
         match op {
@@ -79,7 +82,10 @@ async fn run_sequence(seq: &[Op], k: usize) {
             assert_eq!(b.pending_len(), waiting.len(), "{at}");
         }
     }
-    timeout(GENEROUS, c.stop()).await.expect("stop").expect("snap");
+    timeout(GENEROUS, c.stop())
+        .await
+        .expect("stop")
+        .expect("snap");
     for h in waiting {
         h.abort();
     }
@@ -111,25 +117,46 @@ async fn s7_begin_exit_cancels_as_app_exit_and_its_cause_wins() {
     let fx = RecordingEffects::new();
     let b = broker(&fx);
     let c = McpController::new(test_env0(&dir).with_stop_hook(stop_hook(b.clone())));
-    let s = timeout(GENEROUS, c.start(plain())).await.expect("start").expect("snap");
+    let s = timeout(GENEROUS, c.start(plain()))
+        .await
+        .expect("start")
+        .expect("snap");
     assert_eq!(s.phase, McpPhase::Running, "precondition");
     let first = spawn_confirm(&b, "B");
-    assert!(wait_until(GENEROUS, || b.shown("B").is_some()).await, "shown");
+    assert!(
+        wait_until(GENEROUS, || b.shown("B").is_some()).await,
+        "shown"
+    );
     let before = fx.calls().len();
 
     c.begin_exit();
-    timeout(GENEROUS, c.stop()).await.expect("stop").expect("snap");
+    timeout(GENEROUS, c.stop())
+        .await
+        .expect("stop")
+        .expect("snap");
 
-    let out = timeout(GENEROUS, first).await.expect("woken").expect("task");
-    assert_eq!(out, Outcome::Cancelled(Cause::AppExit), "the first cause wins");
-    let later = timeout(GENEROUS, b.confirm("A", meta())).await.expect("immediate");
+    let out = timeout(GENEROUS, first)
+        .await
+        .expect("woken")
+        .expect("task");
+    assert_eq!(
+        out,
+        Outcome::Cancelled(Cause::AppExit),
+        "the first cause wins"
+    );
+    let later = timeout(GENEROUS, b.confirm("A", meta()))
+        .await
+        .expect("immediate");
     assert_eq!(later, Outcome::Cancelled(Cause::AppExit));
     let requests: Vec<Call> = fx.calls()[before..]
         .iter()
         .filter(|c| matches!(c, Call::Emit { event, .. } if event == CONFIRM_REQUEST_EVENT))
         .cloned()
         .collect();
-    assert!(requests.is_empty(), "prompted after begin_exit: {requests:?}");
+    assert!(
+        requests.is_empty(),
+        "prompted after begin_exit: {requests:?}"
+    );
     assert_eq!(b.pending_len(), 0);
     remove_test_dir(&dir);
 }

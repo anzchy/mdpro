@@ -56,6 +56,15 @@
       "timeoutMs": 900000
     },
     {
+      "name": "fmt",
+      "description": "cargo fmt --check on src-tauri (D167): the tree was formatted once in full, so any unformatted Rust line fails the commit gate. Run `cargo fmt --manifest-path src-tauri/Cargo.toml` to fix it, but never on a file whose receipt is still unsettled; see docs/reference/20261012-d167-rustfmt-proof.md. Not under heavy-lock: it only parses, finishes in about a second, and is not a heavy command in rule 10's sense.",
+      "command": "cargo fmt --manifest-path src-tauri/Cargo.toml --check",
+      "gateOn": ["commit"],
+      "coverage": "none",
+      "probeCommand": "cargo fmt --version",
+      "timeoutMs": 120000
+    },
+    {
       "name": "integration",
       "description": "Real `pnpm control:build --profile verify` smoke (scripts/control/smoke.mjs, ADR-0047): inspects the build manifest, codesign -dvvv cdhash and the absence of updater artifacts in the bundle dir; verify profile only, the release --config path is not exercised.",
       "command": "scripts/heavy-lock.sh node scripts/control/smoke.mjs",

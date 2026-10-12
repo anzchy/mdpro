@@ -56,15 +56,32 @@ fn l3_real_log_lines_through_the_gate_carry_no_secrets() {
         let handle = spawn_gate(&broker, &store);
         settle().await;
         let id = broker.shown("B").expect("shown in B");
-        assert_eq!(reply_from(&broker, "B", &id, true), Ok(ReplyVerdict::Resolved));
-        assert!(handle.await.expect("gate task").is_ok(), "approved proceeds");
+        assert_eq!(
+            reply_from(&broker, "B", &id, true),
+            Ok(ReplyVerdict::Resolved)
+        );
+        assert!(
+            handle.await.expect("gate task").is_ok(),
+            "approved proceeds"
+        );
         id
     });
 
     let lines = lines_for(&home.dir, &id);
-    assert!(count(&lines, "mcp.confirm", "start") >= 1, "lines: {lines:?}");
-    assert_eq!(count(&lines, "mcp.confirm", "success"), 1, "lines: {lines:?}");
-    assert_eq!(count(&lines, "mcp.confirm.reply", "success"), 1, "lines: {lines:?}");
+    assert!(
+        count(&lines, "mcp.confirm", "start") >= 1,
+        "lines: {lines:?}"
+    );
+    assert_eq!(
+        count(&lines, "mcp.confirm", "success"),
+        1,
+        "lines: {lines:?}"
+    );
+    assert_eq!(
+        count(&lines, "mcp.confirm.reply", "success"),
+        1,
+        "lines: {lines:?}"
+    );
     let reply = lines
         .iter()
         .find(|v| v["event"] == "mcp.confirm.reply" && v["status"] == "success")

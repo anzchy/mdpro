@@ -188,7 +188,11 @@ impl TestServer {
     }
 
     /// Bind `127.0.0.1:0`; every authorized request gets `status` + `body`.
-    pub(super) async fn start_answering(token: &str, status: StatusCode, body: serde_json::Value) -> Self {
+    pub(super) async fn start_answering(
+        token: &str,
+        status: StatusCode,
+        body: serde_json::Value,
+    ) -> Self {
         let listener = TcpListener::bind(loopback(0)).await.expect("bind :0");
         Self::serve_answering(listener, Some(token), Some((status, body)))
     }

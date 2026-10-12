@@ -53,14 +53,23 @@ fn run(end: End, requests: usize) {
                 }
             }
             None => {
-                let any = calls.iter().any(|c| matches!(c, Call::Emit { event, .. }
-                    if event == crate::services::mcp_confirm::payload::CONFIRM_RESOLVED_EVENT));
+                let any = calls.iter().any(|c| {
+                    matches!(c, Call::Emit { event, .. }
+                    if event == crate::services::mcp_confirm::payload::CONFIRM_RESOLVED_EVENT)
+                });
                 assert!(!any, "{ctx}: no close is sent to a destroyed window");
             }
         }
         if matches!(end, End::CancelAll | End::Close) {
-            assert_eq!(request_index(&calls, "A", "r1"), None, "{ctx}: r1 never shown");
-            assert!(resolved_for(&calls, "r1").is_empty(), "{ctx}: nothing for r1");
+            assert_eq!(
+                request_index(&calls, "A", "r1"),
+                None,
+                "{ctx}: r1 never shown"
+            );
+            assert!(
+                resolved_for(&calls, "r1").is_empty(),
+                "{ctx}: nothing for r1"
+            );
         }
         for id in ["r0", "r1"] {
             for (_, window, _) in resolved_for(&calls, id) {
@@ -72,7 +81,13 @@ fn run(end: End, requests: usize) {
 
 #[test]
 fn b11_every_end_of_a_shown_request_closes_it_once_before_the_next_show() {
-    let ends = [End::Expire, End::Withdraw, End::CancelAll, End::Close, End::CancelWindow];
+    let ends = [
+        End::Expire,
+        End::Withdraw,
+        End::CancelAll,
+        End::Close,
+        End::CancelWindow,
+    ];
     let mut runs = 0;
     for end in ends {
         for requests in [1, 2] {

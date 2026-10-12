@@ -40,7 +40,11 @@ fn ct1_verdict_serialization_equals_the_fixture_verdicts() {
         .iter()
         .map(|v| v.as_str().expect("string").to_string())
         .collect();
-    assert_eq!(want.len(), ALL_VERDICTS.len(), "every verdict is enumerated");
+    assert_eq!(
+        want.len(),
+        ALL_VERDICTS.len(),
+        "every verdict is enumerated"
+    );
     let serialized: Vec<String> = ALL_VERDICTS
         .iter()
         .map(|v| serde_json::to_value(v).expect("serializes"))
@@ -57,7 +61,15 @@ fn ct1_verdict_serialization_equals_the_fixture_verdicts() {
 fn r1_malformed_ids_are_err_with_no_state_change_and_no_panic() {
     let long = "a".repeat(10_240);
     let canonical_plus_x = format!("{}x", nth_uuid(0));
-    let inputs: [&str; 7] = ["", " ", &long, "not-a-uuid", "42", &canonical_plus_x, "\u{0}"];
+    let inputs: [&str; 7] = [
+        "",
+        " ",
+        &long,
+        "not-a-uuid",
+        "42",
+        &canonical_plus_x,
+        "\u{0}",
+    ];
     assert_eq!(inputs.len(), 7);
     let rt = paused_runtime();
     rt.block_on(async {
@@ -69,7 +81,9 @@ fn r1_malformed_ids_are_err_with_no_state_change_and_no_panic() {
         let pending = broker.pending_len();
         for input in inputs {
             let result = catch_unwind(AssertUnwindSafe(|| reply_from(&broker, "A", input, true)))
-                .unwrap_or_else(|_| panic!("reply_from panicked on {:?}", &input[..input.len().min(16)]));
+                .unwrap_or_else(|_| {
+                    panic!("reply_from panicked on {:?}", &input[..input.len().min(16)])
+                });
             let msg = result.expect_err("a malformed id is an Err");
             assert!(msg.len() < 200, "short error");
             assert!(!msg.contains(&long), "the input is not echoed");
@@ -112,7 +126,10 @@ fn r3_wrong_label_is_ignored_and_the_right_label_resolves() {
         );
         settle().await;
         assert!(!waiter.is_finished(), "a sibling's reply leaves it pending");
-        assert_eq!(reply_from(&broker, "B", &r0, true), Ok(ReplyVerdict::Resolved));
+        assert_eq!(
+            reply_from(&broker, "B", &r0, true),
+            Ok(ReplyVerdict::Resolved)
+        );
         assert_eq!(outcome(waiter).await, Outcome::Approved);
     });
 }
@@ -133,9 +150,16 @@ fn r4_law_reply_idempotence() {
                 let waiter = spawn_confirm(&broker, "B");
                 settle().await;
                 let r0 = broker.shown("B").expect("r0 shown");
-                assert_eq!(reply_from(&broker, "B", &r0, first), Ok(ReplyVerdict::Resolved));
+                assert_eq!(
+                    reply_from(&broker, "B", &r0, first),
+                    Ok(ReplyVerdict::Resolved)
+                );
                 let again = reply_from(&broker, label, &r0, second);
-                assert_eq!(again, Ok(ReplyVerdict::IgnoredUnknown), "{first} then {label}/{second}");
+                assert_eq!(
+                    again,
+                    Ok(ReplyVerdict::IgnoredUnknown),
+                    "{first} then {label}/{second}"
+                );
                 assert_eq!(outcome(waiter).await, first_outcome);
             });
             ran += 1;
@@ -161,10 +185,16 @@ fn r5_textual_variants_of_a_pending_uuid_resolve_it() {
             settle().await;
             let r0 = broker.shown("B").expect("r0 shown");
             let text = variant(&r0);
-            assert_eq!(reply_from(&broker, "B", &text, true), Ok(ReplyVerdict::Resolved));
+            assert_eq!(
+                reply_from(&broker, "B", &text, true),
+                Ok(ReplyVerdict::Resolved)
+            );
             assert_eq!(outcome(waiter).await, Outcome::Approved);
             settle().await;
-            assert!(!other.is_finished(), "a variant never resolves another request");
+            assert!(
+                !other.is_finished(),
+                "a variant never resolves another request"
+            );
         });
     }
 }
@@ -202,11 +232,16 @@ fn r6_reply_lines_through_the_core_never_carry_the_title() {
         let waiter = tokio::spawn(async move { b.confirm("B", meta).await });
         settle().await;
         let r0 = broker.shown("B").expect("r0 shown");
-        assert_eq!(reply_from(&broker, "B", &r0, true), Ok(ReplyVerdict::Resolved));
+        assert_eq!(
+            reply_from(&broker, "B", &r0, true),
+            Ok(ReplyVerdict::Resolved)
+        );
         assert_eq!(waiter.await.expect("waiter"), Outcome::Approved);
         let lines = lines.lock().expect("lines");
-        let replies: Vec<&LogEntryPayload> =
-            lines.iter().filter(|l| l.event == REPLY_LOG_EVENT).collect();
+        let replies: Vec<&LogEntryPayload> = lines
+            .iter()
+            .filter(|l| l.event == REPLY_LOG_EVENT)
+            .collect();
         assert_eq!(replies.len(), 2, "a start and an end line: {replies:?}");
         assert_eq!(replies[0].status, LogStatus::Start);
         assert_eq!(replies[1].status, LogStatus::Success);

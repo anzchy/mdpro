@@ -19,16 +19,7 @@ fn s(p: &Path) -> String {
 
 /// Save As `content` to `p` with the default (UTF-8, LF) options.
 async fn save_as(p: &Path, content: &str, fw: &FileWatcher) -> Result<SaveResult, FileError> {
-    save_as_watched_with(
-        "d1".into(),
-        content.into(),
-        s(p),
-        None,
-        None,
-        None,
-        fw,
-    )
-    .await
+    save_as_watched_with("d1".into(), content.into(), s(p), None, None, None, fw).await
 }
 
 /// a: a successful Save As to a new path registers that exact path string,
@@ -38,7 +29,11 @@ async fn d69_a_save_as_to_a_new_path_is_watched_with_a_baseline() {
     let d = Dir::new("d69a");
     let p = d.path().join("new.md");
     assert!(!p.exists(), "precondition: a new path");
-    assert_ne!(s(&canon(d.path())), s(d.path()), "precondition: non-canonical");
+    assert_ne!(
+        s(&canon(d.path())),
+        s(d.path()),
+        "precondition: non-canonical"
+    );
     let fw = FileWatcher::for_tests();
 
     let r = save_as(&p, "hello\n", &fw).await.expect("save as");
@@ -47,7 +42,11 @@ async fn d69_a_save_as_to_a_new_path_is_watched_with_a_baseline() {
     assert_eq!(fw.watched(), vec![r.path.clone()], "registered by r.path");
     assert!(fw.baseline_of(&p).is_some(), "a baseline entry");
     fw.unwatch(Path::new(&r.path));
-    assert_eq!(fw.watched(), Vec::<String>::new(), "close_document's unwatch");
+    assert_eq!(
+        fw.watched(),
+        Vec::<String>::new(),
+        "close_document's unwatch"
+    );
     assert_eq!(fw.baseline_of(&p), None, "and its baseline goes with it");
 }
 
@@ -76,13 +75,19 @@ async fn d69_b_the_baseline_is_the_written_bytes() {
     assert_eq!(entry.hash, kit::h(&disk), "hash of the written bytes");
     assert_ne!(entry.hash, kit::h(b"a\nb\n"), "not the editor text");
     assert_eq!(entry.stat.map(|s| s.1), Some(disk.len() as u64));
-    assert!(fw.baselines().is_unchanged(&p), "untouched file is unchanged");
+    assert!(
+        fw.baselines().is_unchanged(&p),
+        "untouched file is unchanged"
+    );
     let (emitted, outcome) = fw.route_for_tests(&ev(CONTENT, &canon(&p)));
     assert!(emitted.is_none(), "{emitted:?}");
     assert_eq!(outcome, WatchOutcome::IgnoredUnchanged);
 
     fs::write(&p, b"external, other bytes").expect("external write");
-    assert!(!fw.baselines().is_unchanged(&p), "an external write is a change");
+    assert!(
+        !fw.baselines().is_unchanged(&p),
+        "an external write is a change"
+    );
     let (emitted, outcome) = fw.route_for_tests(&ev(CONTENT, &canon(&p)));
     assert!(emitted.is_some());
     assert_eq!(outcome, WatchOutcome::EmittedModified);
@@ -121,7 +126,10 @@ async fn d69_c_a_write_between_save_and_register_is_not_baselined() {
 
     assert_eq!(fw.watched(), vec![s(&p2)], "leg 2: watched");
     let entry = fw.baseline_of(&p2).expect("leg 2: a baseline entry");
-    assert_eq!(entry.stat, None, "leg 2: a size we never wrote is not stored");
+    assert_eq!(
+        entry.stat, None,
+        "leg 2: a size we never wrote is not stored"
+    );
     assert_eq!(entry.hash, kit::h(b"AAAA"), "leg 2: our bytes");
     assert!(!fw.baselines().is_unchanged(&p2), "leg 2: fails open");
 }

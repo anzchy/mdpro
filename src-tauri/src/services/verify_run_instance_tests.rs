@@ -7,8 +7,7 @@
 //! in `verify_run_publish_law_tests.rs`. Feature-on only.
 use super::verify_run_fixtures::{fresh_nonce, Run};
 use super::verify_run_publish_fixtures::{
-    assert_published, entries, fingerprint, hex, instance, keys, names, target,
-    verify_run_lines,
+    assert_published, entries, fingerprint, hex, instance, keys, names, target, verify_run_lines,
 };
 use super::{publish, GuardError, VerifiedRun, GUARD_EXIT_CODE};
 use crate::services::build_info::normalize_build_id;
@@ -103,7 +102,11 @@ fn wi5_t03_second_publish_is_refused() {
 
     assert!(second.is_err(), "second write was accepted: {second:?}");
     assert_eq!(second, Err(GuardError::InstanceExists));
-    assert_eq!(fs::read(&path).expect("read 2"), b1, "first publication changed");
+    assert_eq!(
+        fs::read(&path).expect("read 2"),
+        b1,
+        "first publication changed"
+    );
     assert_eq!(fingerprint(&path), f1);
     assert_eq!(
         entries(&fx.run),

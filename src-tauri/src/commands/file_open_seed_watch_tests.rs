@@ -70,6 +70,10 @@ fn reregister_overwrites_with_the_seed() {
     fs::write(&p, b"bbbb").expect("rewrite bbbb");
     fw.watch(&p);
     assert_eq!(fw.baseline_of(&p), Some(kit::snapshot(&p)), "B");
-    assert_eq!(fw.baseline_of(&p).and_then(|e| e.hash), kit::h(b"bbbb"), "B");
+    assert_eq!(
+        fw.baseline_of(&p).and_then(|e| e.hash),
+        kit::h(b"bbbb"),
+        "B"
+    );
     assert_eq!(fw.watched(), vec![s(&p)], "B: listed once");
 }

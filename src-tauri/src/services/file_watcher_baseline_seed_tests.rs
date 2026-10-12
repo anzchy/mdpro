@@ -62,7 +62,10 @@ fn r8_seed_module_never_takes_the_lock_and_never_rereads() {
         "fs::read",
         "read_for_open(",
     ] {
-        assert!(!reg.contains(banned), "`{banned}` in register_seeded:\n{reg}");
+        assert!(
+            !reg.contains(banned),
+            "`{banned}` in register_seeded:\n{reg}"
+        );
     }
     assert!(
         reg.contains("put(") || reg.contains("put_at("),
@@ -75,7 +78,11 @@ fn r8_seed_module_never_takes_the_lock_and_never_rereads() {
 /// The binding `let NAME = read_once(` introduces, or `None` for a
 /// destructuring `let ReadOnce { .. } = read_once(`.
 fn read_binding(line: &str) -> Option<String> {
-    let lhs = line.trim().strip_prefix("let ")?.split(" = read_once(").next()?;
+    let lhs = line
+        .trim()
+        .strip_prefix("let ")?
+        .split(" = read_once(")
+        .next()?;
     (!lhs.starts_with("ReadOnce")).then(|| lhs.trim().to_string())
 }
 

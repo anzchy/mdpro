@@ -88,7 +88,14 @@ fn context_keys(entry: &LogEntryPayload) -> BTreeSet<String> {
 
 fn assert_redacted(entry: &LogEntryPayload, label: &str) {
     let line = serde_json::to_string(entry).expect("serializes");
-    for sentinel in [TITLE, "TITLE-SENTINEL", CONTENT, PATH, "PATH-SENTINEL", TOKEN] {
+    for sentinel in [
+        TITLE,
+        "TITLE-SENTINEL",
+        CONTENT,
+        PATH,
+        "PATH-SENTINEL",
+        TOKEN,
+    ] {
         assert!(!line.contains(sentinel), "{label}: {sentinel} in {line}");
     }
     assert!(!line.contains("documentTitle"), "{label}: {line}");
@@ -115,7 +122,13 @@ fn l1_fault_entries_are_redacted_too() {
 
 #[test]
 fn l2_required_keys_are_present_per_phase() {
-    let start_keys = ["requestId", "documentId", "windowLabel", "operation", "queueDepth"];
+    let start_keys = [
+        "requestId",
+        "documentId",
+        "windowLabel",
+        "operation",
+        "queueDepth",
+    ];
     for (phase, op, outcome, entry) in domain() {
         let label = format!("{phase:?}/{op:?}/{outcome:?}");
         let keys = context_keys(&entry);
@@ -159,7 +172,9 @@ fn l2_outcome_and_operation_values() {
         (Outcome::Cancelled(Cause::ServerStop), "cancelled"),
     ];
     for (outcome, wire) in cases {
-        let ctx = end_entry("r0", "B", &m, 1, outcome, 0).context.expect("ctx");
+        let ctx = end_entry("r0", "B", &m, 1, outcome, 0)
+            .context
+            .expect("ctx");
         assert_eq!(ctx["outcome"], wire);
         assert_eq!(ctx["operation"], "table:set_cell");
     }

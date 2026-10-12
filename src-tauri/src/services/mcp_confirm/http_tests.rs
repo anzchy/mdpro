@@ -100,8 +100,14 @@ fn h1_mapping_over_every_outcome() {
         (GateResult::ApplyNow, None),
         (GateResult::Confirmed(Outcome::Approved), None),
         (GateResult::NoOwner, Some((404, "NOT_FOUND"))),
-        (GateResult::Confirmed(Outcome::Rejected), Some((403, "USER_REJECTED"))),
-        (GateResult::Confirmed(Outcome::TimedOut), Some((408, "CONFIRM_TIMEOUT"))),
+        (
+            GateResult::Confirmed(Outcome::Rejected),
+            Some((403, "USER_REJECTED")),
+        ),
+        (
+            GateResult::Confirmed(Outcome::TimedOut),
+            Some((408, "CONFIRM_TIMEOUT")),
+        ),
         (
             GateResult::Confirmed(Outcome::Cancelled(Cause::ServerStop)),
             Some((503, "CONFIRM_CANCELLED")),
@@ -137,7 +143,11 @@ fn h1_mapping_over_every_outcome() {
             }
         }
     }
-    assert_eq!(distinct.len(), 4, "NoOwner/Rejected/TimedOut/Cancelled differ");
+    assert_eq!(
+        distinct.len(),
+        4,
+        "NoOwner/Rejected/TimedOut/Cancelled differ"
+    );
     assert!(!distinct.contains(&(403, "CONFIRM_TIMEOUT".to_string())));
 }
 
@@ -188,7 +198,11 @@ fn h3_each_real_outcome_through_the_gate_yields_its_status() {
     assert_eq!(rejected, (403, "USER_REJECTED".to_string()), "(a) reject");
 
     let timed_out = h3_run(RecordingEffects::new(), |_, _| {});
-    assert_eq!(timed_out, (408, "CONFIRM_TIMEOUT".to_string()), "(b) timeout");
+    assert_eq!(
+        timed_out,
+        (408, "CONFIRM_TIMEOUT".to_string()),
+        "(b) timeout"
+    );
 
     let stopped = h3_run(RecordingEffects::new(), |b, _| {
         b.cancel_all(Cause::ServerStop).expect("cancel_all");
@@ -197,7 +211,11 @@ fn h3_each_real_outcome_through_the_gate_yields_its_status() {
 
     let first = nth_uuid(0);
     let emit_failed = h3_run(RecordingEffects::failing(&[&first]), |_, _| {});
-    assert_eq!(emit_failed, (503, "CONFIRM_CANCELLED".to_string()), "(d) emit");
+    assert_eq!(
+        emit_failed,
+        (503, "CONFIRM_CANCELLED".to_string()),
+        "(d) emit"
+    );
 }
 
 // ---- H-4 ---------------------------------------------------------------
@@ -219,7 +237,10 @@ fn h4_not_found_and_poisoned_store_fail_closed_with_no_prompt() {
         })
         .join();
         let result = confirm_gate(&broker, &store, "d", Operation::Replace).await;
-        assert_eq!(error_parts(result).await, (500, "INTERNAL_ERROR".to_string()));
+        assert_eq!(
+            error_parts(result).await,
+            (500, "INTERNAL_ERROR".to_string())
+        );
         assert_eq!(fx.calls(), Vec::<Call>::new());
         assert_eq!(broker.pending_len(), 0);
     });
@@ -245,7 +266,10 @@ fn h5_owner_unfocused_prompts_in_the_owner_and_approval_proceeds() {
                 event,
                 payload,
             } => {
-                assert_eq!((window.as_str(), event.as_str()), ("B", CONFIRM_REQUEST_EVENT));
+                assert_eq!(
+                    (window.as_str(), event.as_str()),
+                    ("B", CONFIRM_REQUEST_EVENT)
+                );
                 assert_eq!(payload["requestId"], id.as_str());
                 assert_eq!(payload["documentId"], "d");
                 assert_eq!(payload["documentTitle"], SENTINEL);
@@ -258,7 +282,10 @@ fn h5_owner_unfocused_prompts_in_the_owner_and_approval_proceeds() {
             window: "B".to_string(),
         };
         assert_eq!(calls[1], attention);
-        assert_eq!(reply_from(&broker, "B", &id, true), Ok(ReplyVerdict::Resolved));
+        assert_eq!(
+            reply_from(&broker, "B", &id, true),
+            Ok(ReplyVerdict::Resolved)
+        );
         let result = handle.await.expect("gate task");
         assert!(result.is_ok(), "an approved write proceeds");
     });

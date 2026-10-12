@@ -80,7 +80,11 @@ pub(crate) struct RenameProbe {
 pub(crate) fn rename_over_keep_stat(p: &Path, bytes: &[u8]) -> RenameProbe {
     let pre = stat_pair(p);
     let ino_before = ino(p);
-    assert_eq!(pre.map(|s| s.1), Some(bytes.len() as u64), "precondition: same length");
+    assert_eq!(
+        pre.map(|s| s.1),
+        Some(bytes.len() as u64),
+        "precondition: same length"
+    );
     let mut tmp = p.as_os_str().to_owned();
     tmp.push(".tmp");
     let tmp = PathBuf::from(tmp);
@@ -122,7 +126,11 @@ pub(crate) fn swap_parent_dir_keep_stat(p: &Path, bytes: &[u8]) {
     assert_eq!(c0, c1, "precondition: the old inode's ctime did not move");
     assert_eq!(stat_pair(p), pre, "precondition: path stat unchanged");
     assert_ne!(ino(p), ino_before, "precondition: a new inode");
-    assert_eq!(fs::read(p).expect("read swapped"), bytes, "precondition: new bytes");
+    assert_eq!(
+        fs::read(p).expect("read swapped"),
+        bytes,
+        "precondition: new bytes"
+    );
 }
 
 #[cfg(unix)]
@@ -132,7 +140,10 @@ pub(crate) fn file_symlink(d: &Path, link: &str, target: &str) -> PathBuf {
     let l = d.join(link);
     std::os::unix::fs::symlink(target, &l).expect("symlink");
     assert!(
-        fs::symlink_metadata(&l).expect("lstat").file_type().is_symlink(),
+        fs::symlink_metadata(&l)
+            .expect("lstat")
+            .file_type()
+            .is_symlink(),
         "precondition: {l:?} is a symlink"
     );
     l

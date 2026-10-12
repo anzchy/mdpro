@@ -46,7 +46,11 @@ pub(super) fn fingerprint(p: &Path) -> Fingerprint {
         len: md.len(),
         mtime_ns: i128::from(md.mtime()) * 1_000_000_000 + i128::from(md.mtime_nsec()),
         bytes: if ft.is_file() { fs::read(p).ok() } else { None },
-        link: if ft.is_symlink() { fs::read_link(p).ok() } else { None },
+        link: if ft.is_symlink() {
+            fs::read_link(p).ok()
+        } else {
+            None
+        },
     }
 }
 
@@ -81,7 +85,10 @@ pub(super) fn assert_published(path: &Path, nonce: &str, pid: u32, build_id: &st
     assert_eq!(v["pid"], pid);
     assert_eq!(v["buildId"], build_id);
     let md = fs::symlink_metadata(path).expect("instance.json");
-    assert!(md.file_type().is_file(), "instance.json is not a regular file");
+    assert!(
+        md.file_type().is_file(),
+        "instance.json is not a regular file"
+    );
     assert_eq!(md.permissions().mode() & 0o777, 0o600);
     assert_eq!(md.nlink(), 1, "instance.json has another hard link");
 }
@@ -153,7 +160,11 @@ pub(super) fn seed_entry(rng: &mut StdRng, fx: &Run, v: &VerifiedRun, pid_b: u32
             seed("empty file", vec![entry], None)
         }
         2 => {
-            let pid_a = if rng.gen() { pid_b } else { pid_b.wrapping_add(1) };
+            let pid_a = if rng.gen() {
+                pid_b
+            } else {
+                pid_b.wrapping_add(1)
+            };
             super::publish(v, pid_a, None).expect("prior publication");
             seed("prior publication", vec![entry], None)
         }

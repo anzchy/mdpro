@@ -170,7 +170,14 @@ fn w15_last_baseline(log: &Path, path: &Path, tag: &str) -> Value {
         })
         .unwrap_or_else(|| panic!("{tag}: no register line for {path:?} in {text}"));
     let ctx = &line["context"];
-    for key in ["path", "ok", "alreadyWatched", "mtimeMs", "size", "watchedCount"] {
+    for key in [
+        "path",
+        "ok",
+        "alreadyWatched",
+        "mtimeMs",
+        "size",
+        "watchedCount",
+    ] {
         assert!(
             ctx.as_object().is_some_and(|o| o.contains_key(key)),
             "{tag}: `{key}` missing: {line}"
@@ -195,9 +202,12 @@ fn w15_live_register_line_reports_the_real_outcome() {
     // (b) a torn seed: the read went unstable, so no hash.
     let q = d.file("b.md", b"AAAA");
     let q2 = q.clone();
-    let torn = with_read_hook(move || rewrite_keep_stat(&q2, b"BBBB"), || read_for_open(&q))
-        .expect("read b")
-        .1;
+    let torn = with_read_hook(
+        move || rewrite_keep_stat(&q2, b"BBBB"),
+        || read_for_open(&q),
+    )
+    .expect("read b")
+    .1;
     assert_eq!(torn.hash, None, "(b) precondition: a torn seed");
     FileWatcher::for_tests().watch_seeded(&q, torn);
     assert_eq!(w15_last_baseline(&log, &q, "(b)"), json!("failopen"));

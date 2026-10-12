@@ -85,7 +85,10 @@ fn run_b5(n: usize, script: &[Answer]) -> (usize, usize) {
                     approved_outcomes += usize::from(outcome(h).await == Outcome::Approved);
                 }
             }
-            assert_eq!(finished_now, resolved_now, "n={n} {script:?}: one reply, one waiter");
+            assert_eq!(
+                finished_now, resolved_now,
+                "n={n} {script:?}: one reply, one waiter"
+            );
         }
         (approved_outcomes, approving_replies)
     })
@@ -146,13 +149,23 @@ async fn apply(step: Step, b: &TestBroker, waiters: &mut Vec<Waiter>) {
         let id = format!("r{}", waiters.len());
         let handle = Some(spawn_confirm(b, w));
         let (arrival, outcome, aborted) = (Instant::now(), None, false);
-        waiters.push(Waiter { id, arrival, handle, outcome, aborted });
+        waiters.push(Waiter {
+            id,
+            arrival,
+            handle,
+            outcome,
+            aborted,
+        });
     };
     match step {
         Step::ConfirmA => confirm("A"),
         Step::ConfirmB => confirm("B"),
         Step::ReplyHeadAApprove | Step::ReplyHeadBReject => {
-            let (w, approved) = if step == Step::ReplyHeadAApprove { ("A", true) } else { ("B", false) };
+            let (w, approved) = if step == Step::ReplyHeadAApprove {
+                ("A", true)
+            } else {
+                ("B", false)
+            };
             if let Some(head) = b.shown(w) {
                 b.reply(&head, w, approved).expect("reply");
             }
@@ -198,10 +211,16 @@ fn run_b10(script: &[Step]) {
             assert_eq!(b.pending_len(), live, "{ctx}: (ii) pending == live waiters");
             for w in waiters.iter().filter(|w| w.live()) {
                 let age = Instant::now() - w.arrival;
-                assert!(age < Duration::from_secs(60), "{ctx}: (iii) {} aged {age:?}", w.id);
+                assert!(
+                    age < Duration::from_secs(60),
+                    "{ctx}: (iii) {} aged {age:?}",
+                    w.id
+                );
             }
             let calls = fx.calls();
-            checker.feed(&calls).unwrap_or_else(|e| panic!("{ctx}: (iv) {e}"));
+            checker
+                .feed(&calls)
+                .unwrap_or_else(|e| panic!("{ctx}: (iv) {e}"));
             if *step == Step::CancelWindowA {
                 checker.forget_window("A");
             }

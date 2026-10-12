@@ -173,14 +173,8 @@ fn w15_register_line_carries_baseline_outcome() {
         (BaselineLog::FailOpen, "failopen"),
         (BaselineLog::StaleSkipped, "stale_skipped"),
     ] {
-        let line = build_watch_register_log(
-            WatchOp::Register,
-            Path::new(B),
-            Ok(()),
-            true,
-            Some(STAT),
-            3,
-        );
+        let line =
+            build_watch_register_log(WatchOp::Register, Path::new(B), Ok(()), true, Some(STAT), 3);
         let got = to_value(with_baseline(line, outcome)).unwrap();
         assert_eq!(
             got,

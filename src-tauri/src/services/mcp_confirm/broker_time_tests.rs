@@ -35,9 +35,11 @@ async fn b1_a_fresh_request_times_out_at_60_s() {
 
 fn request_payload(calls: &[Call], id: &str) -> Option<serde_json::Value> {
     calls.iter().find_map(|c| match c {
-        Call::Emit {
-            event, payload, ..
-        } if event == CONFIRM_REQUEST_EVENT && payload["requestId"] == id => Some(payload.clone()),
+        Call::Emit { event, payload, .. }
+            if event == CONFIRM_REQUEST_EVENT && payload["requestId"] == id =>
+        {
+            Some(payload.clone())
+        }
         Call::Emit { .. } | Call::FailedEmit { .. } | Call::Attention { .. } => None,
     })
 }

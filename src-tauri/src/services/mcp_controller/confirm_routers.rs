@@ -118,8 +118,7 @@ pub(crate) fn confirm_parked(
         entered: Some(entered_tx),
         release: Some(release_rx),
     }));
-    let factory =
-        move |config| ready(with_token_auth(routes(broker, store, Some(park)), config));
+    let factory = move |config| ready(with_token_auth(routes(broker, store, Some(park)), config));
     Parked {
         factory,
         entered,

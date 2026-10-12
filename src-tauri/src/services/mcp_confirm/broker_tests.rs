@@ -26,9 +26,18 @@ async fn run_b4(fx: &RecordingEffects) -> (Vec<Outcome>, WireChecker) {
         settle().await;
     }
     assert_eq!(b.shown("A").as_deref(), Some("r0"));
-    assert_eq!(b.shown("B").as_deref(), Some("r3"), "both windows show at once");
+    assert_eq!(
+        b.shown("B").as_deref(),
+        Some("r3"),
+        "both windows show at once"
+    );
     checker.feed(&fx.calls()).expect("wire after enqueue");
-    let answers = [("r0", "A", false), ("r3", "B", true), ("r1", "A", true), ("r2", "A", true)];
+    let answers = [
+        ("r0", "A", false),
+        ("r3", "B", true),
+        ("r1", "A", true),
+        ("r2", "A", true),
+    ];
     for (id, w, approved) in answers {
         assert_eq!(b.reply(id, w, approved), Ok(ReplyVerdict::Resolved), "{id}");
         settle().await;
@@ -68,7 +77,12 @@ async fn b8_attention_once_per_shown_prompt() {
         }
         if let Call::Emit { window, event, .. } = call {
             if event == CONFIRM_REQUEST_EVENT {
-                assert_eq!(calls.get(i + 1), Some(&Call::Attention { window: window.clone() }));
+                assert_eq!(
+                    calls.get(i + 1),
+                    Some(&Call::Attention {
+                        window: window.clone()
+                    })
+                );
             }
         }
     }
@@ -126,7 +140,10 @@ async fn b7_emit_failure_cascades_without_stalling() {
     settle().await;
     let mut hs = hs.into_iter();
     let (h0, h1, h2) = (hs.next().unwrap(), hs.next().unwrap(), hs.next().unwrap());
-    assert!(h0.is_finished() && h1.is_finished(), "no time advance needed");
+    assert!(
+        h0.is_finished() && h1.is_finished(),
+        "no time advance needed"
+    );
     assert_eq!(outcome(h0).await, Outcome::Cancelled(Cause::EmitFailed));
     assert_eq!(outcome(h1).await, Outcome::Cancelled(Cause::EmitFailed));
     assert_eq!(b.shown("A").as_deref(), Some("r2"));
@@ -201,6 +218,9 @@ async fn the_broker_logs_start_and_end_through_its_sink() {
     );
     let waited = lines[2].context.as_ref().expect("ctx")["waitedMs"].as_u64();
     assert_eq!(waited, Some(250));
-    assert!(fx.calls().iter().all(|c| !matches!(c, Call::Emit { window, event, .. }
+    assert!(fx
+        .calls()
+        .iter()
+        .all(|c| !matches!(c, Call::Emit { window, event, .. }
         if event == CONFIRM_RESOLVED_EVENT && window != "A")));
 }

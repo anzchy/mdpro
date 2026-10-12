@@ -14,7 +14,10 @@ fn registered(d: &TempDir) -> (Arc<BaselineStore>, std::path::PathBuf) {
     let p = d.file("p.md", b"aaaa");
     let store = Arc::new(BaselineStore::default());
     store.register(&p);
-    assert!(store.is_unchanged(&p), "precondition: unchanged with no hook");
+    assert!(
+        store.is_unchanged(&p),
+        "precondition: unchanged with no hook"
+    );
     (store, p)
 }
 
@@ -58,5 +61,8 @@ fn d109_b_remove_during_the_read_fails_open() {
 fn d109_c_untouched_slot_still_reads_unchanged() {
     let d = TempDir::new("d109c");
     let (store, p) = registered(&d);
-    assert!(check_with_hook(&store, &p, || {}), "no store change, still unchanged");
+    assert!(
+        check_with_hook(&store, &p, || {}),
+        "no store change, still unchanged"
+    );
 }

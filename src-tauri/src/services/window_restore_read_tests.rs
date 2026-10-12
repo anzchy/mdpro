@@ -84,8 +84,11 @@ fn rd3_corrupt_config_is_an_error_and_is_not_rewritten() {
         matches!(result, Err(RestoreReadError::Parse(_))),
         "expected a parse error, got {result:?}"
     );
-    let (r, o) =
-        decide_window_geometry(Some("/tmp/x.md"), result, work_area(0.0, 0.0, 1440.0, 900.0));
+    let (r, o) = decide_window_geometry(
+        Some("/tmp/x.md"),
+        result,
+        work_area(0.0, 0.0, 1440.0, 900.0),
+    );
     assert_eq!(
         o,
         RestoreOutcome {
@@ -151,8 +154,11 @@ fn rd5_poisoned_lock_is_a_typed_error_and_nothing_is_written() {
         "expected LockPoisoned, got {result:?}"
     );
     assert_eq!(read_config_bytes(&h.dir), before, "bytes unchanged");
-    let (_, o) =
-        decide_window_geometry(Some("/tmp/x.md"), result, work_area(0.0, 0.0, 1440.0, 900.0));
+    let (_, o) = decide_window_geometry(
+        Some("/tmp/x.md"),
+        result,
+        work_area(0.0, 0.0, 1440.0, 900.0),
+    );
     assert_eq!(o.reason, RestoreReason::ReadFailed);
 }
 

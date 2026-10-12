@@ -57,8 +57,16 @@ async fn app_exit_cancels_pending_and_closes_the_broker() {
     let before = fx.calls().len();
     hook(StopCause::ServerStop);
     let later = b.confirm("A", meta()).await;
-    assert_eq!(later, Outcome::Cancelled(Cause::AppExit), "first cause wins");
-    assert_eq!(requests_after(&fx.calls(), before), 0, "nothing shown after exit");
+    assert_eq!(
+        later,
+        Outcome::Cancelled(Cause::AppExit),
+        "first cause wins"
+    );
+    assert_eq!(
+        requests_after(&fx.calls(), before),
+        0,
+        "nothing shown after exit"
+    );
     assert_eq!(b.pending_len(), 0);
 }
 

@@ -143,7 +143,10 @@ fn k6_same_length_rewrite_restoring_mtime_during_read_fails_open() {
         store.get(&p).and_then(|e| e.stat),
         "precondition: the path stat still equals the stored one"
     );
-    assert!(!unchanged, "a same-length rewrite during the read must emit");
+    assert!(
+        !unchanged,
+        "a same-length rewrite during the read must emit"
+    );
     assert!(!store.is_unchanged(&p), "and it stays changed");
 }
 
@@ -156,7 +159,9 @@ fn k7_rename_over_after_open_fails_open() {
     let moved = Rc::new(Cell::new(None));
     let (target, seen) = (p.clone(), Rc::clone(&moved));
     let hook = probe.hook(&store, move || {
-        seen.set(Some(rename_over_keep_stat(&target, b"HELLO WORLD").old_ctime_moved));
+        seen.set(Some(
+            rename_over_keep_stat(&target, b"HELLO WORLD").old_ctime_moved,
+        ));
     });
     let unchanged = store.is_unchanged_with(&p, hook);
     probe.assert_ran_outside_the_lock();
@@ -182,7 +187,11 @@ fn k8_xattr_write_only_still_ignored_unchanged() {
     let (_d, store, p) = setup("k8");
     let (c0, b0, s0) = (ctime_ns(&p), std::fs::read(&p).unwrap(), stat_pair(&p));
     set_xattr(&p, "com.apple.mdpro.test", b"1");
-    assert_eq!(std::fs::read(&p).unwrap(), b0, "precondition: bytes unchanged");
+    assert_eq!(
+        std::fs::read(&p).unwrap(),
+        b0,
+        "precondition: bytes unchanged"
+    );
     assert_eq!(stat_pair(&p), s0, "precondition: (mtime, size) unchanged");
     assert_ne!(ctime_ns(&p), c0, "precondition: ctime moved");
     assert!(store.is_unchanged(&p), "an xattr write is not a change");
@@ -193,7 +202,11 @@ fn k8_xattr_write_only_still_ignored_unchanged() {
             "{kind:?}"
         );
     }
-    assert_eq!(store.get(&p), Some(snapshot(&p)), "entry neither advanced nor degraded");
+    assert_eq!(
+        store.get(&p),
+        Some(snapshot(&p)),
+        "entry neither advanced nor degraded"
+    );
 }
 
 /// k11: a register whose read is torn by a same-length, stat-keeping rewrite

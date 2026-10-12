@@ -71,7 +71,10 @@ fn k2_missing_url_pins_the_url_not_set_text() {
 #[test]
 fn k2_missing_signature_pins_the_signature_not_set_text() {
     let text = malformed_wire_text(json!({ "version": "0.3.1", "url": URL }));
-    assert_eq!(text, "the `signature` field was not set on the updater response");
+    assert_eq!(
+        text,
+        "the `signature` field was not set on the updater response"
+    );
 }
 
 #[test]

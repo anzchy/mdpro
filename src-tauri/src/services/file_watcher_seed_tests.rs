@@ -70,8 +70,13 @@ fn g8_watch_seeded_takes_its_ticket_inside_the_watcher_lock_block() {
     });
     let close = position(&b, lock, "the block end", |l| l.trim() == "};");
     let ticket = position(&b, 0, "next_ticket(", |l| l.contains("next_ticket("));
-    assert!(lock <= ticket && ticket < close, "ticket under the locks: {b:#?}");
-    let call = position(&b, 0, "register_seeded(", |l| l.contains("register_seeded("));
+    assert!(
+        lock <= ticket && ticket < close,
+        "ticket under the locks: {b:#?}"
+    );
+    let call = position(&b, 0, "register_seeded(", |l| {
+        l.contains("register_seeded(")
+    });
     assert!(call > close, "store after the locks drop: {b:#?}");
     assert!(!b.iter().any(|l| l.contains("register_at(")), "{b:#?}");
 }
@@ -93,7 +98,10 @@ fn every_outcome_has_a_row(o: O) {
 #[test]
 fn baseline_log_maps_every_store_outcome_and_seeded_flag() {
     let stat = Some((std::time::SystemTime::UNIX_EPOCH, 4));
-    let hashed = Entry { stat, hash: Some(7) };
+    let hashed = Entry {
+        stat,
+        hash: Some(7),
+    };
     let unhashed = Entry { stat, hash: None };
     let rows = [
         (O::Stored(unhashed), true, L::FailOpen),
@@ -104,7 +112,11 @@ fn baseline_log_maps_every_store_outcome_and_seeded_flag() {
         (O::StaleSkipped, false, L::StaleSkipped),
     ];
     for (stored, seeded, want) in rows {
-        assert_eq!(baseline_log(stored, seeded), want, "{stored:?}, seeded={seeded}");
+        assert_eq!(
+            baseline_log(stored, seeded),
+            want,
+            "{stored:?}, seeded={seeded}"
+        );
     }
 }
 

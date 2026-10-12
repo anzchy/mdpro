@@ -60,7 +60,11 @@ fn check_row(label: &str, p: &Path, hint: Option<&str>, differ: bool, symlink: b
     assert_eq!(n1.wrapping_sub(n0), 1, "{label}: (4) one read_once");
     let (r, seed) = got.expect("checked");
     assert_eq!(seed, kit::snapshot(p), "{label}: (1) seed == snapshot");
-    assert_eq!(seed.hash, kit::h(&raw), "{label}: (2) hash of the raw bytes");
+    assert_eq!(
+        seed.hash,
+        kit::h(&raw),
+        "{label}: (2) hash of the raw bytes"
+    );
     if differ {
         let content = kit::h(r.document.content.as_bytes());
         assert_ne!(kit::h(&raw), content, "{label}: precondition, raw != text");
@@ -69,7 +73,10 @@ fn check_row(label: &str, p: &Path, hint: Option<&str>, differ: bool, symlink: b
         .unwrap_or_else(|e| panic!("{label}: wrapper {e:?}"));
     assert_eq!(r.document.content, w.document.content, "{label}: (3)");
     assert_eq!(r.document.encoding, w.document.encoding, "{label}: (3)");
-    assert_eq!(r.document.line_ending, w.document.line_ending, "{label}: (3)");
+    assert_eq!(
+        r.document.line_ending, w.document.line_ending,
+        "{label}: (3)"
+    );
     if symlink {
         assert!(seed.hash.is_some(), "{label}: (5) a file symlink is stable");
     }
@@ -149,14 +156,30 @@ fn seeded_open_preserves_error_mapping() {
     let d = Dir::new("errmap");
     let missing = d.path().join("nope.md");
     let want = json(FileError::FileNotFound { path: s(&missing) });
-    assert_eq!(err_of(open_file_from_path_seeded(&s(&missing), None)), want, "(a)");
-    assert_eq!(err_of(open_file_from_path(&s(&missing), None)), want, "(a) wrapper");
+    assert_eq!(
+        err_of(open_file_from_path_seeded(&s(&missing), None)),
+        want,
+        "(a)"
+    );
+    assert_eq!(
+        err_of(open_file_from_path(&s(&missing), None)),
+        want,
+        "(a) wrapper"
+    );
 
     let locked = d.file("locked.md", b"secret");
     kit::chmod_000_unreadable(&locked);
     let want = json(FileError::PermissionDenied { path: s(&locked) });
-    assert_eq!(err_of(open_file_from_path_seeded(&s(&locked), None)), want, "(b)");
-    assert_eq!(err_of(open_file_from_path(&s(&locked), None)), want, "(b) wrapper");
+    assert_eq!(
+        err_of(open_file_from_path_seeded(&s(&locked), None)),
+        want,
+        "(b)"
+    );
+    assert_eq!(
+        err_of(open_file_from_path(&s(&locked), None)),
+        want,
+        "(b) wrapper"
+    );
 
     let gone = d.file("gone.md", b"x");
     fs::remove_file(&gone).expect("remove");
@@ -169,8 +192,16 @@ fn seeded_open_preserves_error_mapping() {
         path: s(&big),
         size: CAP + 1,
     });
-    assert_eq!(err_of(open_file_from_path_seeded(&s(&big), None)), want, "(d)");
-    assert_eq!(err_of(open_file_from_path(&s(&big), None)), want, "(d) wrapper");
+    assert_eq!(
+        err_of(open_file_from_path_seeded(&s(&big), None)),
+        want,
+        "(d)"
+    );
+    assert_eq!(
+        err_of(open_file_from_path(&s(&big), None)),
+        want,
+        "(d) wrapper"
+    );
 }
 
 #[test]
@@ -198,12 +229,19 @@ fn open_seeded_over_cap_device_is_file_too_large() {
     std::os::unix::fs::symlink("/dev/zero", &z).expect("symlink");
     let meta = fs::metadata(&z).expect("stat z");
     assert_eq!(meta.len(), 0, "precondition: metadata size passes");
-    assert!(meta.file_type().is_char_device(), "precondition: char device");
+    assert!(
+        meta.file_type().is_char_device(),
+        "precondition: char device"
+    );
     assert_eq!(MAX_FILE_SIZE, CAP, "precondition: one cap");
     let want = json(FileError::FileTooLarge {
         path: s(&z),
         size: CAP + 1,
     });
-    assert_eq!(err_of(open_file_from_path_seeded(&s(&z), None)), want, "seeded");
+    assert_eq!(
+        err_of(open_file_from_path_seeded(&s(&z), None)),
+        want,
+        "seeded"
+    );
     assert_eq!(err_of(open_file_from_path(&s(&z), None)), want, "wrapper");
 }

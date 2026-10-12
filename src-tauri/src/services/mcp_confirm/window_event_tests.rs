@@ -103,7 +103,9 @@ async fn w2_only_destroyed_on_the_owner_has_an_effect() {
             let resolved = fx
                 .calls()
                 .iter()
-                .filter(|c| matches!(c, Call::Emit { event, .. } if event == CONFIRM_RESOLVED_EVENT))
+                .filter(
+                    |c| matches!(c, Call::Emit { event, .. } if event == CONFIRM_RESOLVED_EVENT),
+                )
                 .count();
             assert_eq!(resolved, 0, "no confirm_resolved at {at}");
             pairs += 1;
@@ -194,5 +196,8 @@ fn sg1_viii_on_window_event_tests_destroyed_with_matches_only() {
     assert!(allowed.contains(&arg.as_str()), "matches! argument: {arg}");
     assert!(!arg.contains('|'), "no alternation");
     assert!(!has_match_on_event(&body), "no match on the event: {body}");
-    assert!(!body.contains("CloseRequested"), "CloseRequested is vetoable");
+    assert!(
+        !body.contains("CloseRequested"),
+        "CloseRequested is vetoable"
+    );
 }

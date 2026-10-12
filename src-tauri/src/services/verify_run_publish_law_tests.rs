@@ -86,7 +86,11 @@ fn wi1_concurrent_publish_has_exactly_one_winner() {
         assert_eq!(doc["pid"], winners[0], "trial {trial}");
         assert_eq!(keys(&doc), names(&["nonce", "pid", "buildId"]));
         assert_eq!(fs::metadata(&path).expect("instance").nlink(), 1);
-        assert_eq!(entries(&v.run_dir), names(&["instance.json"]), "trial {trial}");
+        assert_eq!(
+            entries(&v.run_dir),
+            names(&["instance.json"]),
+            "trial {trial}"
+        );
     }
 }
 

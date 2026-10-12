@@ -45,7 +45,10 @@ fn wi2_valid_check_writes_nothing() {
         })
     );
     assert_eq!(fx.snapshot(), before, "check wrote to the tree");
-    assert!(!contains_named(&fx.root, "instance.json"), "instance.json created");
+    assert!(
+        !contains_named(&fx.root, "instance.json"),
+        "instance.json created"
+    );
     assert!(!contains_named(&fx.root, ".mdpro"), ".mdpro created");
 }
 

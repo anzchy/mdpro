@@ -4,12 +4,12 @@
 //! Temp `$HOME`, `temp_files_dir`, `127.0.0.1` ephemeral ports only.
 
 use super::*;
+use crate::services::mcp_confirm::payload::CONFIRM_REQUEST_EVENT;
 use crate::services::mcp_confirm::queue::{Cause, Outcome};
 use crate::services::mcp_confirm::stop_hook;
 use crate::services::mcp_confirm::test_effects::{
     broker, meta, resolved_for, spawn_confirm, Call, RecordingEffects,
 };
-use crate::services::mcp_confirm::payload::CONFIRM_REQUEST_EVENT;
 use crate::services::mcp_controller::controller::McpController;
 use crate::services::mcp_controller::snapshot::McpPhase;
 use crate::services::mcp_controller::test_routers::plain;
@@ -40,24 +40,35 @@ async fn s8_exit_cleanup_twice_cancels_as_app_exit_once() {
     let b = broker(&fx);
     let env = test_env0(&dir).with_stop_hook(stop_hook(b.clone()));
     let c = Arc::new(McpController::new(env));
-    let s = timeout(GENEROUS, c.start(plain())).await.expect("start").expect("snap");
+    let s = timeout(GENEROUS, c.start(plain()))
+        .await
+        .expect("start")
+        .expect("snap");
     assert_eq!(s.phase, McpPhase::Running, "precondition");
     let waiter = spawn_confirm(&b, "B");
-    assert!(wait_until(GENEROUS, || b.shown("B").is_some()).await, "shown");
+    assert!(
+        wait_until(GENEROUS, || b.shown("B").is_some()).await,
+        "shown"
+    );
 
     let mut states = Vec::new();
     for run in 1..=2 {
         assert!(run_once(&c), "run {run}: panicked or hung");
         assert_eq!(b.pending_len(), 0, "run {run}");
         assert_eq!(files_present(&dir), (false, false), "run {run}");
-        let later = timeout(GENEROUS, b.confirm("A", meta())).await.expect("immediate");
+        let later = timeout(GENEROUS, b.confirm("A", meta()))
+            .await
+            .expect("immediate");
         assert_eq!(later, Outcome::Cancelled(Cause::AppExit), "run {run}");
         let snap = format!("{:?}", c.snapshot());
         states.push((b.pending_len(), files_present(&dir), snap));
     }
     assert_eq!(states[0], states[1], "run 2 differs from run 1");
 
-    let out = timeout(GENEROUS, waiter).await.expect("woken").expect("task");
+    let out = timeout(GENEROUS, waiter)
+        .await
+        .expect("woken")
+        .expect("task");
     assert_eq!(out, Outcome::Cancelled(Cause::AppExit));
     let calls = fx.calls();
     let ends = resolved_for(&calls, "r0");

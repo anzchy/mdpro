@@ -5,8 +5,8 @@ use super::fixture::{chmod_000_unreadable, shift_mtime, sparse, sparse_last_byte
 use super::race_fixture::stat_pair;
 use super::read::{coherent_read, read_once};
 use super::seam::with_read_hook;
-use super::{snapshot, BaselineStore, Entry, Inner, HASH_CAP_BYTES};
 use super::Slot;
+use super::{snapshot, BaselineStore, Entry, Inner, HASH_CAP_BYTES};
 use std::collections::HashMap;
 use std::fs;
 use std::io::ErrorKind;
@@ -43,7 +43,10 @@ fn k13_unstable_read_keeps_the_bytes_and_s1() {
 fn k14_read_once_keeps_the_io_error_kind() {
     let d = TempDir::new("k14");
     let missing = d.path().join("missing.md");
-    assert_eq!(read_once(&missing).err().map(|e| e.kind()), Some(ErrorKind::NotFound));
+    assert_eq!(
+        read_once(&missing).err().map(|e| e.kind()),
+        Some(ErrorKind::NotFound)
+    );
     let locked = d.file("locked.md", b"secret");
     chmod_000_unreadable(&locked);
     assert_eq!(
@@ -54,7 +57,13 @@ fn k14_read_once_keeps_the_io_error_kind() {
     fs::create_dir(&dir).expect("mkdir");
     assert!(read_once(&dir).is_err(), "a directory is not readable");
     assert!(
-        matches!(snapshot(&dir), Entry { stat: Some(_), hash: None }),
+        matches!(
+            snapshot(&dir),
+            Entry {
+                stat: Some(_),
+                hash: None
+            }
+        ),
         "{:?}",
         snapshot(&dir)
     );
@@ -88,14 +97,22 @@ fn i1_entry_and_inner_hold_no_ctime_ino_or_dev() {
     let store = BaselineStore::default();
     store.register(&p);
     let inner = store.locked();
-    let Inner { entries: _, keys: _, latest: _ } = &*inner;
+    let Inner {
+        entries: _,
+        keys: _,
+        latest: _,
+    } = &*inner;
     let _: &HashMap<PathBuf, Slot> = &inner.entries;
     let _: &HashMap<PathBuf, PathBuf> = &inner.keys;
     // D86 WI-2: the slot wrapper and the ticket map are pinned too.
     let _: &HashMap<PathBuf, u64> = &inner.latest;
     let slot = inner.entries.values().next().copied().expect("registered");
     let Slot { entry: _, gen: _ } = slot;
-    assert_eq!(slot.entry, snapshot(&p), "the slot wraps the entry unchanged");
+    assert_eq!(
+        slot.entry,
+        snapshot(&p),
+        "the slot wraps the entry unchanged"
+    );
     assert_eq!(
         std::mem::size_of::<Entry>(),
         std::mem::size_of::<(Option<(SystemTime, u64)>, Option<u64>)>()
@@ -109,7 +126,9 @@ const CHECK_SRC: &str = include_str!("file_watcher_baseline_check.rs");
 /// Non-comment lines of the production part (before the first test item).
 fn production(src: &str) -> Vec<&str> {
     let code = src.split("\n#[cfg(test)]").next().unwrap_or(src);
-    code.lines().filter(|l| !l.trim_start().starts_with("//")).collect()
+    code.lines()
+        .filter(|l| !l.trim_start().starts_with("//"))
+        .collect()
 }
 
 /// The lines of the fn whose header contains `anchor`, up to the closing
@@ -121,7 +140,10 @@ fn body<'a>(lines: &[&'a str], anchor: &str) -> Vec<&'a str> {
         .unwrap_or_else(|| panic!("`{anchor}` not found"));
     let indent = lines[start].len() - lines[start].trim_start().len();
     let close = format!("{}}}", " ".repeat(indent));
-    let end = lines[start..].iter().position(|l| *l == close).expect("fn closes");
+    let end = lines[start..]
+        .iter()
+        .position(|l| *l == close)
+        .expect("fn closes");
     lines[start..=start + end].to_vec()
 }
 
@@ -135,9 +157,15 @@ fn r7_read_module_never_takes_the_lock() {
     let code = production(READ_SRC);
     assert!(code.len() > 5, "non-vacuity: the scan sees code");
     let text = code.join("\n");
-    assert!(text.contains("fn read_once") && text.contains("fn coherent_read"), "non-vacuity");
+    assert!(
+        text.contains("fn read_once") && text.contains("fn coherent_read"),
+        "non-vacuity"
+    );
     for line in &code {
-        assert!(!line.contains(".lock(") && !line.contains("locked("), "{line}");
+        assert!(
+            !line.contains(".lock(") && !line.contains("locked("),
+            "{line}"
+        );
     }
 }
 
@@ -149,24 +177,40 @@ fn r7_read_module_never_takes_the_lock() {
 fn r7b_is_unchanged_and_snapshot_decide_from_one_read() {
     let check = production(CHECK_SRC);
     let why = body(&check, "fn is_unchanged_why(");
-    let reads = ["coherent_read(", "coherent_read_upto(", "read_once(", "read_once_upto("]
-        .iter()
-        .map(|t| count(&why, t))
-        .sum::<usize>();
+    let reads = [
+        "coherent_read(",
+        "coherent_read_upto(",
+        "read_once(",
+        "read_once_upto(",
+    ]
+    .iter()
+    .map(|t| count(&why, t))
+    .sum::<usize>();
     assert_eq!(reads, 1, "{why:#?}");
     for token in ["stat_of(", "read_capped(", "File::open(", "metadata("] {
         assert_eq!(count(&why, token), 0, "{token} in {why:#?}");
     }
     let is_unchanged = body(&check, "fn is_unchanged(");
-    assert_eq!(count(&is_unchanged, "is_unchanged_why("), 1, "{is_unchanged:#?}");
+    assert_eq!(
+        count(&is_unchanged, "is_unchanged_why("),
+        1,
+        "{is_unchanged:#?}"
+    );
     for token in ["read_once", "coherent_read", "copy_out("] {
-        assert_eq!(count(&is_unchanged, token), 0, "{token} in {is_unchanged:#?}");
+        assert_eq!(
+            count(&is_unchanged, token),
+            0,
+            "{token} in {is_unchanged:#?}"
+        );
     }
     let read = production(READ_SRC);
     let snapshot = body(&read, "fn snapshot(");
     let reads = count(&snapshot, "read_once(") + count(&snapshot, "coherent_read(");
     assert_eq!(reads, 1, "{snapshot:#?}");
     for line in snapshot.iter().filter(|l| l.contains("stat_of(")) {
-        assert!(line.contains("hash: None"), "stat_of only on the fallback: {line}");
+        assert!(
+            line.contains("hash: None"),
+            "stat_of only on the fallback: {line}"
+        );
     }
 }

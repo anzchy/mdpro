@@ -100,7 +100,9 @@ fn b14_store_lock_is_not_held_across_file_io_in_register_and_refresh() {
 /// writer can still win the race, in which case the read is stable.
 #[cfg(unix)]
 fn assert_fifo_entry(store: &BaselineStore, pipe: &Path, fed: &[u8], phase: &str) {
-    let e = store.get(pipe).unwrap_or_else(|| panic!("{phase}: entry stored"));
+    let e = store
+        .get(pipe)
+        .unwrap_or_else(|| panic!("{phase}: entry stored"));
     assert!(e.stat.is_some(), "{phase}: stat recorded");
     assert!(
         e.hash.is_none() || e.hash == h(fed),

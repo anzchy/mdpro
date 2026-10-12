@@ -132,7 +132,11 @@ fn p2_resolved_payload_covers_every_wire_outcome() {
         Outcome::Rejected.into(),
         Outcome::TimedOut.into(),
     ];
-    domain.extend(CAUSES.iter().map(|c| ResolvedOutcome::from(Outcome::Cancelled(*c))));
+    domain.extend(
+        CAUSES
+            .iter()
+            .map(|c| ResolvedOutcome::from(Outcome::Cancelled(*c))),
+    );
     domain.push(ResolvedOutcome::Withdrawn);
     assert_eq!(domain.len(), 8, "outcome domain");
     let resolved_keys: BTreeSet<String> = strings(&fx["$resolvedKeys"]).into_iter().collect();
