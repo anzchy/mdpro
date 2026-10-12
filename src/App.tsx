@@ -291,7 +291,7 @@ function App() {
   }, [resolvedTheme]);
 
   useEffect(() => {
-    if (!activeDocument) return;
+    if (!activeDocument || !fileChangeEvent) return;
     const decision = decideFileChange(fileChangeEvent, activeDocument);
     switch (decision.action) {
       case "ignore":
@@ -302,11 +302,11 @@ function App() {
         return;
       case "deleted-prompt":
         // Surface a prompt; do NOT reload (would clobber in-editor edits).
-        raiseReload(decision.message, activeDocument.id);
+        raiseReload(decision.message, activeDocument.id, fileChangeEvent.path);
         return;
       case "reload-prompt":
         // Surface a prompt; reload is user-initiated via handleReloadFile.
-        raiseReload(decision.message, activeDocument.id);
+        raiseReload(decision.message, activeDocument.id, fileChangeEvent.path);
         return;
     }
   }, [activeDocument, clearEvent, fileChangeEvent, raiseReload, updateDocumentPath]);

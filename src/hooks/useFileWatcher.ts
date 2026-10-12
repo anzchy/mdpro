@@ -26,8 +26,15 @@
  *   timer), so a superseded event is a scheduled line with no delivered twin.
  * - **Window label falls back to "unknown"** when `getCurrentWindow()` throws, so
  *   a missing window never costs the event.
+ * - **`clearEvent` is memoised (D172).** App's decision effect lists it in its
+ *   deps; a new function every render re-ran that effect every render, and with
+ *   the reload prompt up that was a render loop.
+ * - **`clearEvent(path)` clears only that path's event (D172).** The reload
+ *   prompt's withdrawal passes the path it was raised for, so closing document A
+ *   cannot drop document B's event delivered in the same React commit. With no
+ *   argument it clears unconditionally (Reload / Ignore / rename).
  */
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { loggingService } from "../services/loggingService";
 import { currentWindowLabel } from "../utils/currentWindowLabel";
@@ -104,8 +111,10 @@ export function useFileWatcher(activePath: string | null) {
     };
   }, [activePath]);
 
-  return {
-    event,
-    clearEvent: () => setEvent(null),
-  };
+  /** Drop the pending event; given `path`, only when the pending event is that path's. */
+  const clearEvent = useCallback((path?: string) => {
+    setEvent((current) => (path === undefined || current?.path === path ? null : current));
+  }, []);
+
+  return { event, clearEvent };
 }

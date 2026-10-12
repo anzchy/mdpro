@@ -9,8 +9,9 @@
  *
  * Pinned here, with the real `documentStore` and the real `ReloadDialog`:
  *   - the prompt raised for document `a` survives closing another document;
- *   - closing `a` removes the prompt, calls the owner's `onWithdrawn` once (App passes
- *     the file watcher's `clearEvent`) and logs `ui.dialog.cancel`
+ *   - closing `a` removes the prompt, calls the owner's `onWithdrawn` once with the
+ *     path the prompt was raised for (App passes the file watcher's `clearEvent`,
+ *     which clears only that path's event — D172) and logs `ui.dialog.cancel`
  *     `controlId: "dialog.reload.withdraw"`, `reason: "document-closed"`;
  *   - so no Reload button is left to press for a closed document;
  *   - Ignore still dismisses without withdrawing.
@@ -47,7 +48,7 @@ const calls: string[] = [];
 let api: ReturnType<typeof useReloadPrompt> | null = null;
 
 function Host() {
-  const prompt = useReloadPrompt(() => void calls.push("withdrawn"));
+  const prompt = useReloadPrompt((path) => void calls.push(`withdrawn ${path}`));
   api = prompt;
   return (
     <ReloadDialog
@@ -74,7 +75,7 @@ beforeEach(() => {
 describe("D165 — the reload prompt is withdrawn when its document closes", () => {
   it("survives closing another document, and is withdrawn (once, logged) when its own closes", () => {
     render(<Host />);
-    act(() => api?.raiseReload("a.md changed on disk", "a"));
+    act(() => api?.raiseReload("a.md changed on disk", "a", "/x/a.md"));
     expect(dialog()).not.toBeNull();
 
     close("b");
@@ -84,7 +85,7 @@ describe("D165 — the reload prompt is withdrawn when its document closes", () 
     close("a");
     expect(dialog()).toBeNull();
     expect(api?.reloadMessage).toBeNull();
-    expect(calls).toEqual(["withdrawn"]);
+    expect(calls).toEqual(["withdrawn /x/a.md"]);
     expect(withdrawLines()).toHaveLength(1);
     expect(withdrawLines()[0]).toMatchObject({
       event: "ui.dialog.cancel",
@@ -94,7 +95,7 @@ describe("D165 — the reload prompt is withdrawn when its document closes", () 
 
   it("leaves no Reload button for a closed document", () => {
     render(<Host />);
-    act(() => api?.raiseReload("a.md changed on disk", "a"));
+    act(() => api?.raiseReload("a.md changed on disk", "a", "/x/a.md"));
     close("a");
     expect(screen.queryByRole("button", { name: "Reload" })).toBeNull();
     expect(calls).not.toContain("reload");
@@ -103,7 +104,7 @@ describe("D165 — the reload prompt is withdrawn when its document closes", () 
   it("Ignore dismisses without a withdraw line or callback", async () => {
     const user = userEvent.setup();
     render(<Host />);
-    act(() => api?.raiseReload("a.md changed on disk", "a"));
+    act(() => api?.raiseReload("a.md changed on disk", "a", "/x/a.md"));
 
     await user.click(screen.getByRole("button", { name: "Ignore" }));
 
@@ -116,8 +117,8 @@ describe("D165 — the reload prompt is withdrawn when its document closes", () 
 
   it("a re-raise for the same document keeps the newest message", () => {
     render(<Host />);
-    act(() => api?.raiseReload("first", "a"));
-    act(() => api?.raiseReload("second", "a"));
+    act(() => api?.raiseReload("first", "a", "/x/a.md"));
+    act(() => api?.raiseReload("second", "a", "/x/a.md"));
     expect(screen.getByText("second")).toBeTruthy();
   });
 });

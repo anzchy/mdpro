@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- The app no longer spins while an "External change detected" prompt is open (D172). Since the D165 change, a file changed or deleted outside mdpro re-rendered the window continuously for as long as the prompt stayed up. Closing one document's prompt also no longer drops another document's change that arrives at the same moment, which had left that document's Reload doing nothing
 - While any dialog is open, ⌘W, ⌘N, ⌘O and Open Recent no longer change tabs behind it (D165). ⌘W used to close the tab behind an "External change detected" prompt, leaving the prompt on screen for a document that was gone; with "Unsaved changes" open, ⌘N or ⌘O switched documents so that "Discard changes" closed the wrong one. The refused action is logged, and an external-change prompt now goes away if its document is closed some other way
 - When a save fails, the notice now gives the reason, for example "Save failed: permission denied: …/notes.md" in a read-only folder (D163). It used to read "Save failed: [object Object]". Save As reports its failures the same way
 - In dark mode the Source editor's search panel (⌘F), its fields and buttons, the line-number gutter and the lint tooltips are dark too (D158). They used to stay light grey with black text whatever the app theme, because the editor always ran CodeMirror's light theme. They now follow the app theme, live, and use mdpro's own colours, with a visible focus ring on the search field and buttons
