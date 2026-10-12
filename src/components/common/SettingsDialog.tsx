@@ -10,6 +10,8 @@
  * - One MCP write at a time: `beginMcpWrite` grants a lease used both by the
  *   whole-group `setPreferences` writes and by the live server switch
  *   (ADR-0040, `useMcpServerSwitch`).
+ * - Every open lands on General, reset during render: the dialog stays mounted
+ *   while closed, and a stale About would mount and re-run its check (D166).
  *
  * @coordinates-with src/components/common/IntegrationsSettings.tsx — consumes mcpConfig and the lease
  * @coordinates-with src/hooks/useMcpServerSwitch.ts — McpWriteLease contract
@@ -72,6 +74,9 @@ function logMcpSave(status: "cancel" | "fail", context: Record<string, string>):
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [activePage, setActivePage] = useState("general");
+  const [seenOpen, setSeenOpen] = useState(open);
+  // Reset before any page mounts; the open effect ran one render late (D166).
+  if (seenOpen !== open) { setSeenOpen(open); if (open) setActivePage("general"); }
   // The `mcp` group loaded in THIS open; null until it loads (F3, ADR-0039).
   // Never seeded from the default config: the backend replaces the group
   // wholesale, so a pre-hydration toggle would write defaults over disk.
@@ -91,7 +96,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   useEffect(() => {
     if (open) {
       previousFocusRef.current = document.activeElement as HTMLElement;
-      setActivePage("general");
       setTimeout(() => firstNavRef.current?.focus(), 50);
     } else {
       previousFocusRef.current?.focus();

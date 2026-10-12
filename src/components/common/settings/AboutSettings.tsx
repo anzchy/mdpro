@@ -22,6 +22,8 @@ import { isUpdatesDisabledError } from "./updaterErrors";
  * Each check takes a request id from updaterStore and writes the cache only
  * while it is still the newest check; its screen update additionally needs
  * the panel to be mounted (D110). A superseded check still logs its terminal line.
+ * Showing a cached result also takes a request id, so a check still in flight
+ * from an earlier open can no longer change the cache this panel shows (D166).
  *
  * @coordinates-with updaterErrors (updates-disabled vs network-error detection)
  * @coordinates-with updaterStore (cache-safe state persistence)
@@ -69,6 +71,7 @@ export function AboutSettings() {
     // Read from store directly to avoid stale closure (rule 50)
     const cached = useUpdaterStore.getState().cachedResult;
     if (!forceRefresh && cached) {
+      useUpdaterStore.getState().beginRequest(); // supersede older checks (D166)
       setState(cached);
       return;
     }
