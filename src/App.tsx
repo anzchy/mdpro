@@ -13,13 +13,11 @@ import { Toast } from "./components/common/Toast";
 import { supersedeRetry, useDocument } from "./hooks/useDocument";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { useEditor } from "./hooks/useEditor";
-import { useFileWatcher } from "./hooks/useFileWatcher";
-import { useFileChangeDecisionLog } from "./hooks/useFileChangeDecisionLog";
+import { useExternalChangePrompt } from "./hooks/useExternalChangePrompt";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
 import { useQuitGuard } from "./hooks/useQuitGuard";
-import { useReloadPrompt } from "./hooks/useReloadPrompt";
 import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
@@ -35,7 +33,6 @@ import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
 import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/common/settings/editorPrefApply";
-import { reloadActiveFromDisk } from "./utils/reloadTarget";
 import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
 import { performSave } from "./services/saveService";
@@ -44,7 +41,6 @@ import type { Document } from "./types/document";
 import {
   activeDocumentAfterFlush,
   decideCloseRequest,
-  decideFileChange,
 } from "./utils/dataLossGuards";
 import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
 import { onFirstSuccess } from "./utils/onFirstSuccess";
@@ -100,7 +96,6 @@ function App() {
     encodingIssue,
     clearEncodingIssue,
   } = useDocument();
-  const updateDocumentPath = useDocumentStore((state) => state.updateDocumentPath);
   const { viewMode, setViewMode, showSidebar, userViewModeChoice } = useEditor();
   // Sole writer of showSidebar outside the store; buffers pre-hydration toggles (ADR-0031 5b, WI-5).
   const sidebarPreference = useSidebarPreference();
@@ -126,11 +121,13 @@ function App() {
   const openDialogCooldownRef = useRef(0);
   const launchPathsRetryRef = useRef(0);
   const encodingRetryRef = useRef<AbortController | null>(null); // D121: the pending encoding retry
-  const { event: fileChangeEvent, clearEvent } = useFileWatcher(
-    activeDocument?.path ?? null,
-  );
-  useFileChangeDecisionLog(fileChangeEvent, activeDocument);
-  const { reloadMessage, raiseReload, dismissReload } = useReloadPrompt(clearEvent);
+  // External changes to any open document: watcher, prompt, Reload / Ignore (D171).
+  const { reloadMessage, handleReloadFile, handleIgnoreReload } = useExternalChangePrompt({
+    activeDocument,
+    replaceDocument,
+    showToast,
+    setBusyLabel,
+  });
 
   useAutoSave(autoSaveInterval);
 
@@ -291,27 +288,6 @@ function App() {
   }, [resolvedTheme]);
 
   useEffect(() => {
-    if (!activeDocument || !fileChangeEvent) return;
-    const decision = decideFileChange(fileChangeEvent, activeDocument);
-    switch (decision.action) {
-      case "ignore":
-        return;
-      case "rename":
-        updateDocumentPath(activeDocument.id, decision.newPath);
-        clearEvent();
-        return;
-      case "deleted-prompt":
-        // Surface a prompt; do NOT reload (would clobber in-editor edits).
-        raiseReload(decision.message, activeDocument.id, fileChangeEvent.path);
-        return;
-      case "reload-prompt":
-        // Surface a prompt; reload is user-initiated via handleReloadFile.
-        raiseReload(decision.message, activeDocument.id, fileChangeEvent.path);
-        return;
-    }
-  }, [activeDocument, clearEvent, fileChangeEvent, raiseReload, updateDocumentPath]);
-
-  useEffect(() => {
     if (largeFileWarning) {
       showToast(largeFileWarning);
       clearLargeFileWarning();
@@ -433,27 +409,6 @@ function App() {
   const handleOpenSettings = useCallback((_actionId?: string) => {
     setSettingsOpen(true);
   }, []);
-
-  const handleReloadFile = useCallback(async () => {
-    if (!fileChangeEvent?.path) return;
-    setBusyLabel("Reloading...");
-    try {
-      // D138: in place under the prompted tab's id; no target (closed/switched) → no toast.
-      const outcome = await reloadActiveFromDisk(fileChangeEvent.path, replaceDocument);
-      if (outcome.kind === "reloaded") showToast("File reloaded");
-    } catch {
-      showToast("Reload failed");
-    } finally {
-      setBusyLabel(null);
-      clearEvent();
-      dismissReload();
-    }
-  }, [clearEvent, dismissReload, fileChangeEvent, replaceDocument, showToast]);
-
-  const handleIgnoreReload = useCallback(() => {
-    clearEvent();
-    dismissReload();
-  }, [clearEvent, dismissReload]);
 
   const applyDraftOutcome = useCallback(
     (draftId: string, input: DraftActionOutcome) => {

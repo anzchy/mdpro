@@ -3,6 +3,7 @@ import { useToastStore } from "../stores/toastStore";
 import { fileService } from "../services/fileService";
 import { loggingService } from "../services/loggingService";
 import { assessWindowUnsaved } from "../utils/dataLossGuards";
+import { saveBlockedByPendingChange } from "../utils/externalChangeGuard";
 import type { Document } from "../types/document";
 
 /**
@@ -11,13 +12,15 @@ import type { Document } from "../types/document";
  * (D16 WI-8 / ADR-0025) — the relaunch, window-close and quit paths share one
  * unsaved-changes rule — then saves every document the flush left modified,
  * using the content the flush wrote into documentStore. Blocks relaunch when
- * the flush failed, when a dirty document is untitled, or when a save fails.
+ * the flush failed, when a dirty document is untitled, when a dirty document has
+ * an unresolved external change (D171), or when a save fails.
  *
  * Reading `isModified` without flushing first would answer "clean" for an edit
  * still inside the edit-sync delay and silently discard it at relaunch.
  *
  * @coordinates-with src/utils/dataLossGuards.ts — assessWindowUnsaved
  * @coordinates-with src/stores/milkdownEditorStore.ts — the flusher registry
+ * @coordinates-with src/utils/externalChangeGuard.ts — the pending-change check (D171)
  */
 export async function prepareForRelaunch(): Promise<boolean> {
   const actionId = loggingService.generateActionId();
@@ -71,6 +74,22 @@ export async function prepareForRelaunch(): Promise<boolean> {
       status: "fail",
       actionId,
       context: { reason: "untitled_document", documentId: untitled.id },
+    });
+    return false;
+  }
+
+  // D171: a dirty document with an unresolved external change is not written over.
+  const changed = modified.find((doc) => saveBlockedByPendingChange(doc.id, "relaunch", actionId));
+  if (changed) {
+    useToastStore.getState().showToast(
+      "A file changed on disk. Reload or ignore that change before updating.",
+    );
+    loggingService.logEventSync({
+      level: "warn",
+      event: "updater.prepare_relaunch",
+      status: "fail",
+      actionId,
+      context: { reason: "pending_external_change", documentId: changed.id },
     });
     return false;
   }

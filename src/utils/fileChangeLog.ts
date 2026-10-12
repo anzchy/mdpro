@@ -10,6 +10,7 @@
  *   the `FileChangeAction` union; this module only reports what it decided.
  * @coordinates-with src/hooks/useFileWatcher.ts — the `received` caller (WI-5);
  *   its `FileChangedEvent` is structurally a `FileChangeLogEvent`.
+ * @coordinates-with src/hooks/usePresentedFileChange.ts — logs `delivered` (D171).
  * @coordinates-with src-tauri/src/services/file_watcher_log.rs — the Rust
  *   `file.watch.event` line; `eventTimestamp` here is that event's `timestamp`
  *   verbatim, the join key between the two logs.
@@ -34,8 +35,10 @@
  *
  * - **Every line is `info`.** Statuses: decision reload-prompt / deleted-prompt
  *   / rename -> success, ignore -> cancel (exhaustive switch; a fifth action is
- *   a compile error). Received other-path -> cancel, scheduled -> start,
- *   delivered -> success. (`save-suppressed` went with the frontend's 3 s save
+ *   a compile error). Received other-path -> cancel, scheduled / recorded ->
+ *   start, delivered -> success. Since D171 `other-path` means no open document
+ *   has the path (not "not the active path"), and `recorded` is a change kept
+ *   for a background document. (`save-suppressed` went with the frontend's 3 s save
  *   window in D86 WI-4.)
  *
  * - **`decisionLogKey` is a JSON tuple** of (timestamp, path, changeType,
@@ -55,10 +58,16 @@ export interface FileChangeLogEvent {
   timestamp: number;
 }
 
-/** What the `file:changed` listener did with one event. */
+/**
+ * What the `file:changed` listener did with one event (D171): `other-path` — no open
+ * document in this window has the path, dropped; `scheduled` — recorded, the active
+ * document among the owners, its prompt waits out the debounce; `recorded` — recorded
+ * for background documents only; `delivered` — a recorded change was presented.
+ */
 export type FileChangeReceivedOutcome =
   | "other-path"
   | "scheduled"
+  | "recorded"
   | "delivered";
 
 export interface FileChangeReceivedLogInput {
@@ -85,6 +94,7 @@ function receivedStatus(outcome: FileChangeReceivedOutcome): LogStatus {
     case "other-path":
       return "cancel";
     case "scheduled":
+    case "recorded":
       return "start";
     case "delivered":
       return "success";

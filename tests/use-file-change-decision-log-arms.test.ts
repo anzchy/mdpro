@@ -79,8 +79,9 @@ describe("dh7: a new event on the same doc re-logs", () => {
   });
 });
 
-describe("dh8: App.tsx wiring (source text)", () => {
-  const src = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
+describe("dh8: wiring (source text) — in useExternalChangePrompt since D171", () => {
+  const src = readFileSync(resolve(__dirname, "../src/hooks/useExternalChangePrompt.ts"), "utf8");
+  const app = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
 
   it("calls the hook exactly once with (fileChangeEvent, activeDocument), after useFileWatcher(", () => {
     const calls = [...src.matchAll(/useFileChangeDecisionLog\(\s*fileChangeEvent\s*,\s*activeDocument\s*\)/g)];
@@ -90,12 +91,13 @@ describe("dh8: App.tsx wiring (source text)", () => {
     expect(calls[0].index).toBeGreaterThan(watcherIdx);
   });
 
-  it("keeps a single `const decision = decideFileChange(` in App.tsx", () => {
+  it("keeps a single `const decision = decideFileChange(`, and none left in App.tsx", () => {
     expect((src.match(/const decision = decideFileChange\(/g) ?? []).length).toBe(1);
+    expect(app).not.toMatch(/decideFileChange\(/);
   });
 
-  it("imports the hook from ./hooks/useFileChangeDecisionLog", () => {
-    expect(src).toMatch(/import\s*\{[^}]*\buseFileChangeDecisionLog\b[^}]*\}\s*from\s*"\.\/hooks\/useFileChangeDecisionLog"/);
+  it("imports the hook from ./useFileChangeDecisionLog", () => {
+    expect(src).toMatch(/import\s*\{[^}]*\buseFileChangeDecisionLog\b[^}]*\}\s*from\s*"\.\/useFileChangeDecisionLog"/);
   });
 });
 

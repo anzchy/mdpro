@@ -14,11 +14,13 @@ import {
   bus,
   invokeCount,
   logLines,
+  makeDoc,
   resetHarness,
   setLogEventRejects,
   setWindowThrows,
 } from "./helpers/fileWatcherLogHarness";
 import { useFileWatcher, type FileChangedEvent } from "../src/hooks/useFileWatcher";
+import { useDocumentStore } from "../src/stores/documentStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import type { LogLevel } from "../src/types/logging";
 
@@ -54,6 +56,8 @@ const byOutcome = (outcome: string) =>
 beforeEach(() => {
   resetHarness();
   useLoggingStore.setState({ enabled: true, level: "info" });
+  // D171: changes are recorded against open documents; ACTIVE is open and active.
+  useDocumentStore.setState({ documents: [makeDoc({ path: ACTIVE })], activeDocumentId: "doc-1" });
   vi.useFakeTimers();
   vi.setSystemTime(T0);
 });
@@ -142,14 +146,16 @@ describe("fh7: behaviour neutrality across logging settings", () => {
   });
 });
 
-describe("fh8: null activePath", () => {
-  it("subscribes to nothing and logs nothing", async () => {
+describe("fh8: no document open (D171: the listener no longer waits for an active path)", () => {
+  it("subscribes anyway, logs other-path, records and presents nothing", async () => {
+    useDocumentStore.setState({ documents: [], activeDocumentId: null });
     const { result } = await mount(null);
+    expect(bus.count("file:changed")).toBe(1);
     emit(change(T0 + 1));
     advance(1000);
 
-    expect(bus.count("file:changed")).toBe(0);
-    expect(logLines()).toHaveLength(0);
+    expect(byOutcome("other-path")).toHaveLength(1);
+    expect(logLines()).toHaveLength(1);
     expect(result.current.event).toBeNull();
   });
 });

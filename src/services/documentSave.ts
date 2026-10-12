@@ -19,13 +19,19 @@
  *   state); different documents never wait for each other.
  * - A failed save settles the queue like a successful one, so it cannot wedge it.
  * - A queued save logs `file.save.queued` (document id and actionId only).
+ * - D171: right before `save_file` the Save body asks `saveBlockedByPendingChange`; with
+ *   an unresolved external change it writes nothing and throws
+ *   `ExternalChangePendingError` (performSave toasts it; the document stays dirty and its
+ *   reload prompt shows). Save As is not checked: it writes where the user chose.
  *
  * @coordinates-with src/hooks/useDocument.ts — exposes these as the hook's save API
  * @coordinates-with src/services/saveService.ts — flushDocumentForSave, applySaveResult
+ * @coordinates-with src/utils/externalChangeGuard.ts — the pending-change check (D171)
  * @module services/documentSave
  */
 import { useDocumentStore } from "../stores/documentStore";
 import { makeIsFenced } from "../utils/fenceRanges";
+import { ExternalChangePendingError, saveBlockedByPendingChange } from "../utils/externalChangeGuard";
 import { formatAllTables } from "../utils/tableFormatter";
 import { fileService, type SaveResult } from "./fileService";
 import { loggingService } from "./loggingService";
@@ -130,6 +136,9 @@ async function saveDocumentNow(documentId: string, actionId?: string): Promise<S
   } catch {
     // Preference read failed — fall through with original content.
   }
+  // D171: checked here, at the write, not at ⌘S — a change recorded while this save
+  // waited (queue, get_preferences) must stop it too.
+  if (saveBlockedByPendingChange(doc.id, "save", actionId)) throw new ExternalChangePendingError();
   const result = await fileService.saveFile({
     documentId: doc.id,
     content: contentToSave,

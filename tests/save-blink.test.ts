@@ -21,10 +21,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { performSave } from "../src/services/saveService";
 
-const appSrc = fs.readFileSync(
-  path.resolve(__dirname, "../src/App.tsx"),
-  "utf-8",
-);
+const appSrc = [
+  fs.readFileSync(path.resolve(__dirname, "../src/App.tsx"), "utf-8"),
+  // D171: the Reload handler (and its busy label) moved into this hook.
+  fs.readFileSync(path.resolve(__dirname, "../src/hooks/useExternalChangePrompt.ts"), "utf-8"),
+].join("\n");
 
 // ── A) Source regression tests ────────────────────────────────────────────────
 

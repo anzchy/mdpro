@@ -4,8 +4,9 @@
  * changes. Observe-only: it never touches App.tsx's prompt / reload effect.
  *
  * @module src/hooks/useFileChangeDecisionLog
- * @coordinates-with src/App.tsx — the one caller, next to `useFileWatcher`; its
- *   own decision effect acts on the same inputs.
+ * @coordinates-with src/hooks/useExternalChangePrompt.ts — the one caller, next to
+ *   `useFileWatcher`; its own decision effect acts on the same inputs (moved out of
+ *   App.tsx in D171).
  * @coordinates-with src/utils/dataLossGuards.ts — `decideFileChange`, the same
  *   function App.tsx acts on, so the logged action cannot drift from the real one.
  * @coordinates-with src/utils/fileChangeLog.ts — the line builder and the
@@ -27,8 +28,8 @@
  *   returning after an Ignore/clear is a new run and logs again.
  * - **Never throws out of render or effect.** The window label degrades to
  *   "unknown"; `logEventSync` swallows invoke failures.
- * - **Lives outside App.tsx** so App gains one call and no second
- *   `decideFileChange(` or `useEffect(() => {` (source-text tests pin both).
+ * - **Lives outside the decision effect's file** so that file has one
+ *   `decideFileChange(` (source-text tests pin it, dh8).
  */
 import { useEffect, useRef } from "react";
 import { loggingService } from "../services/loggingService";

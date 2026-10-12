@@ -10,8 +10,9 @@ vi.mock("@tauri-apps/api/event", async () => (await import("./helpers/fileWatche
 vi.mock("@tauri-apps/api/core", async () => (await import("./helpers/fileWatcherLogHarness")).coreModule);
 vi.mock("@tauri-apps/api/window", async () => (await import("./helpers/fileWatcherLogHarness")).windowModule);
 
-import { bus, logLines, resetHarness } from "./helpers/fileWatcherLogHarness";
+import { bus, logLines, makeDoc, resetHarness } from "./helpers/fileWatcherLogHarness";
 import { useFileWatcher, type FileChangedEvent } from "../src/hooks/useFileWatcher";
+import { useDocumentStore } from "../src/stores/documentStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
 
 const RECEIVED = "file.change.received";
@@ -46,6 +47,8 @@ const byOutcome = (outcome: string) =>
 beforeEach(() => {
   resetHarness();
   useLoggingStore.setState({ enabled: true, level: "info" });
+  // D171: changes are recorded against open documents; ACTIVE is open and active.
+  useDocumentStore.setState({ documents: [makeDoc({ path: ACTIVE })], activeDocumentId: "doc-1" });
   vi.useFakeTimers();
   vi.setSystemTime(T0);
 });

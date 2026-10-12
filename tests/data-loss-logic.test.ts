@@ -44,6 +44,8 @@ vi.mock("../src/services/loggingService", () => ({
 const APP_SRC = [
   fs.readFileSync(path.resolve(__dirname, "../src/App.tsx"), "utf-8"),
   fs.readFileSync(path.resolve(__dirname, "../src/hooks/useWindowCloseGuard.ts"), "utf-8"),
+  // D171 moved the file-change decision and the Reload / Ignore handlers into this hook.
+  fs.readFileSync(path.resolve(__dirname, "../src/hooks/useExternalChangePrompt.ts"), "utf-8"),
 ].join("\n");
 // D42 WI-3 moved App's dialog JSX into AppDialogs.tsx; the handlers stay in App.tsx.
 const APP_DIALOGS_SRC = fs.readFileSync(
@@ -150,9 +152,10 @@ describe("data-loss: external-edit conflict", () => {
   });
 
   it("ignoring the reload keeps the in-editor content (clears event, no replace)", () => {
-    const ignore = APP_SRC.slice(APP_SRC.indexOf("handleIgnoreReload"));
+    const ignore = APP_SRC.slice(APP_SRC.indexOf("const handleIgnoreReload"));
     const ignoreBody = ignore.slice(0, ignore.indexOf("}, ["));
-    expect(ignoreBody).toMatch(/clearEvent\(\)/);
+    // D171: Ignore acknowledges only the change the prompt displays.
+    expect(ignoreBody).toMatch(/acknowledgeFileChange\(token\.documentId, token\.seq, "ignored"\)/);
     expect(ignoreBody).not.toMatch(/replaceDocument\(/);
     expect(ignoreBody).not.toMatch(/reloadFile\(/);
   });
@@ -165,8 +168,9 @@ describe("data-loss: external-edit conflict", () => {
     expect(WATCHER_SRC).not.toMatch(/timeSinceSave/);
   });
 
-  it("filters change events to the active document only", () => {
-    expect(WATCHER_SRC).toMatch(/payload\.path\s*!==\s*activePath/);
+  it("records change events for every open document, not only the active one (D171)", () => {
+    expect(WATCHER_SRC).not.toMatch(/payload\.path\s*!==\s*activePath/);
+    expect(WATCHER_SRC).toMatch(/recordFileChange\(/);
   });
 
   // [→E2E BLOCKED] A real notify(2) filesystem event on the open file must raise

@@ -14,9 +14,10 @@
  *   under the path-derived id, but a document that started Untitled keeps its UUID
  *   through Save As; upserting the result added a duplicate tab, and a later ⌘S in the
  *   stale original overwrote the external edit the user had just reloaded (D138).
- * - The target is the ACTIVE document with that path, because `useFileWatcher` only
- *   listens for the active path. When none matches (the tab was closed or switched)
- *   nothing is read and nothing is written.
+ * - The target is the ACTIVE document with that path: the prompt is only shown for
+ *   the active document (D171 records changes for every open document but presents
+ *   the active one's). When none matches (the tab was closed or switched) nothing is
+ *   read and nothing is written.
  * - The target is re-read after the await: a tab closed during `reload_file` is not
  *   resurrected. A tab switch during the await still reloads the target (by id).
  * - The store write stays in `useDocument.replaceDocument`, the one file-reload upsert
@@ -27,7 +28,7 @@
  *   `documentId` (and `reloadedId` when the result's id differs), cancel with
  *   `reason: "no-target"`.
  *
- * @coordinates-with src/App.tsx — handleReloadFile calls reloadActiveFromDisk
+ * @coordinates-with src/hooks/useExternalChangePrompt.ts — handleReloadFile calls reloadActiveFromDisk
  * @coordinates-with src/hooks/useDocument.ts — replaceDocument (the store write)
  * @coordinates-with src/services/fileService.ts — reloadFile (`reload_file`)
  * @module utils/reloadTarget

@@ -3,8 +3,9 @@
  * Tests for useFileWatcher hook logic.
  *
  * Since @testing-library/react is not available, we verify the hook's
- * source contract via static analysis: cleanup, path filtering,
- * no save-suppression window (D86 WI-4), and event structure.
+ * source contract via static analysis: cleanup, one listener for the window's
+ * lifetime (D171), no save-suppression window (D86 WI-4), and event structure.
+ * The behaviour is pinned by tests/d171-*.test.tsx and the D32 logging tests.
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "fs";
@@ -12,14 +13,18 @@ import * as path from "path";
 
 const SRC_PATH = path.resolve(__dirname, "../src/hooks/useFileWatcher.ts");
 const src = fs.readFileSync(SRC_PATH, "utf-8");
+// D171: the 300 ms presentation debounce and the event type moved out of the hook.
+const presenter = fs.readFileSync(path.resolve(__dirname, "../src/hooks/usePresentedFileChange.ts"), "utf-8");
+const types = fs.readFileSync(path.resolve(__dirname, "../src/types/fileChange.ts"), "utf-8");
 
 describe("useFileWatcher — source contract", () => {
   it("listens for file:changed events", () => {
     expect(src).toMatch(/listen.*["']file:changed["']/);
   });
 
-  it("filters events by activePath", () => {
-    expect(src).toMatch(/payload\.path\s*!==\s*activePath/);
+  it("no longer filters events by activePath (D171): every event is recorded", () => {
+    expect(src).not.toMatch(/payload\.path\s*!==\s*activePath/);
+    expect(src).toMatch(/recordFileChange\(/);
   });
 
   it("cleans up listener on unmount (calls unlisten)", () => {
@@ -45,50 +50,41 @@ describe("useFileWatcher — source contract", () => {
     expect(src).toMatch(/clearEvent/);
   });
 
-  it("returns early when activePath is null", () => {
-    expect(src).toMatch(/if\s*\(\s*!activePath\s*\)\s*return/);
+  it("subscribes even when no path is active (D171)", () => {
+    expect(src).not.toMatch(/if\s*\(\s*!activePath\s*\)\s*return/);
   });
 
-  it("depends on activePath in useEffect", () => {
-    expect(src).toMatch(/\[activePath\]/);
+  it("mounts the listener once for the window's lifetime, not per active path (D171)", () => {
+    expect(src).not.toMatch(/\[activePath\]/);
+    expect(src).toMatch(/\}\s*,\s*\[\]\s*\);/);
   });
 });
 
 describe("useFileWatcher — debounce (regression for #211)", () => {
   it("defines the debounce interval as a named constant, not a magic number", () => {
-    expect(src).toMatch(/const\s+FRONTEND_DEBOUNCE_MS\s*=\s*\d+/);
+    expect(presenter).toMatch(/const\s+PRESENTATION_DEBOUNCE_MS\s*=\s*\d+/);
   });
 
-  it("coalesces bursts by clearing the pending timer before scheduling a new one", () => {
-    // Without this clear, every event would fire its own setEvent (the #211 flicker).
-    expect(src).toMatch(
-      /if\s*\(\s*debounceTimerRef\.current\s*\)\s*clearTimeout\(\s*debounceTimerRef\.current\s*\)/,
-    );
+  it("presents through a timer measured from the latest receipt, not synchronously", () => {
+    // Only the trailing change of a burst is presented (the #211 flicker).
+    expect(presenter).toMatch(/receivedAt\s*\+\s*PRESENTATION_DEBOUNCE_MS/);
+    expect(presenter).toMatch(/setTimeout\(\s*\(\)\s*=>\s*setPresented\(slot\)/);
   });
 
-  it("emits the event through a debounced setTimeout, not synchronously", () => {
-    // setEvent must be inside a setTimeout(..., FRONTEND_DEBOUNCE_MS), so only the
-    // trailing event of a burst reaches state.
-    expect(src).toMatch(
-      /setTimeout\(\s*\(\)\s*=>\s*\{\s*setEvent\(payload\.payload\)/,
-    );
-    expect(src).toMatch(/\}\s*,\s*FRONTEND_DEBOUNCE_MS\s*\)/);
-  });
-
-  it("clears the pending debounce timer on cleanup to avoid setState after unmount", () => {
-    const cleanup = src.slice(src.indexOf("return () =>"));
-    expect(cleanup).toMatch(/clearTimeout\(\s*debounceTimerRef\.current\s*\)/);
+  it("clears the pending presentation timer on cleanup to avoid setState after unmount", () => {
+    expect(presenter).toMatch(/return\s*\(\)\s*=>\s*clearTimeout\(\s*timer\s*\)/);
   });
 });
 
 describe("useFileWatcher — FileChangedEvent type", () => {
   it("exports FileChangedEvent interface with required fields", () => {
-    expect(src).toMatch(/path:\s*string/);
-    expect(src).toMatch(/changeType:\s*["']modified["']/);
-    expect(src).toMatch(/timestamp:\s*number/);
+    expect(src).toMatch(/export type \{ FileChangedEvent \}/);
+    expect(types).toMatch(/path:\s*string/);
+    expect(types).toMatch(/changeType:\s*["']modified["']/);
+    expect(types).toMatch(/timestamp:\s*number/);
   });
 
   it("supports optional newPath for rename events", () => {
-    expect(src).toMatch(/newPath\?\s*:\s*string/);
+    expect(types).toMatch(/newPath\?\s*:\s*string/);
   });
 });

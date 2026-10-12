@@ -1,97 +1,81 @@
 /**
- * Purpose: subscribe the active document to the Rust watcher's `file:changed`
- * broadcast, drop events for other paths, and debounce the rest into `event`
- * state for App.tsx's reload decision.
+ * Purpose: the window's one `file:changed` listener (D171, ADR-0081). Mounted once
+ * for the window's lifetime, it records every event at once against each open
+ * document whose path matches (`externalChangeStore`), and hands App the change the
+ * active document's prompt should show (`usePresentedFileChange`).
  *
  * @module src/hooks/useFileWatcher
  * @coordinates-with src-tauri/src/services/file_watcher.rs — emits `file:changed`.
+ * @coordinates-with src/stores/externalChangeStore.ts — the per-document records.
+ * @coordinates-with src/hooks/usePresentedFileChange.ts — the 300 ms presentation
+ *   debounce and the `delivered` line.
  * @coordinates-with src/utils/fileChangeLog.ts — builds the `file.change.received`
  *   line (D32 diagnostics).
- * @coordinates-with src/utils/currentWindowLabel.ts — the window label, with the
- *   "unknown" fallback.
  *
- * Pipeline: file:changed -> path filter -> 300ms debounce -> setEvent. Every
- *   event logs one `file.change.received` line: other-path | scheduled, and
- *   `delivered` after setEvent.
+ * Pipeline: file:changed -> recordFileChange (immediately, every matching open
+ *   document) -> usePresentedFileChange(active document) -> `change` / `event`. Every
+ *   event logs one `file.change.received` line: `other-path` (no open document has
+ *   that path; dropped), `scheduled` (recorded, the active document among them) or
+ *   `recorded` (recorded for background documents only); `delivered` when presented.
  *
  * Key decisions:
- * - **No save-suppression window (D86 WI-4).** Our own ⌘S is recognised in Rust:
- *   the self-write mark held while `save_file` writes (`self_write`) and the
- *   baseline bound to the written bytes (`ignored_unchanged`). The 3 s window
- *   that used to sit here also swallowed a real external change landing right
- *   after a save, which Rust never re-reports (ADR-0068 decision 7).
- * - **Logging never alters control flow.** Each log call sits beside the
- *   existing return / schedule / setEvent; `setEvent` stays first in the timer.
- * - **`delivered` reuses its `scheduled` actionId** (a `const` captured by the
- *   timer), so a superseded event is a scheduled line with no delivered twin.
- * - **Window label falls back to "unknown"** when `getCurrentWindow()` throws, so
- *   a missing window never costs the event.
- * - **`clearEvent` is memoised (D172).** App's decision effect lists it in its
- *   deps; a new function every render re-ran that effect every render, and with
- *   the reload prompt up that was a render loop.
- * - **`clearEvent(path)` clears only that path's event (D172).** The reload
- *   prompt's withdrawal passes the path it was raised for, so closing document A
- *   cannot drop document B's event delivered in the same React commit. With no
- *   argument it clears unconditionally (Reload / Ignore / rename).
+ * - **Not keyed on the active path (D171).** Keyed on it, the listener dropped every
+ *   other path and its teardown on each tab switch cancelled the debounce; Rust
+ *   re-baselines when it emits, so those changes were never reported again. The
+ *   `activePath` argument is accepted for its callers and ignored.
+ * - **Recording is never debounced; only presentation is.** A save during the 300 ms
+ *   already sees the record (the save-time check, `utils/externalChangeGuard.ts`).
+ * - **The records live as long as the listener**: they are dropped when it mounts and
+ *   when it unmounts, so nothing outlives the window's listener.
+ * - **No save-suppression window (D86 WI-4).** Our own ⌘S is recognised in Rust (the
+ *   self-write mark and the written-bytes baseline, ADR-0068 decision 7).
+ * - **Logging never alters control flow.** `delivered` reuses the receipt's actionId,
+ *   so a superseded event is a receipt line with no delivered twin.
+ * - **`clearEvent` is memoised (D172)** and settles only the change it names:
+ *   `clearEvent(path, documentId)` (the prompt's withdrawal) drops that document's
+ *   record; `clearEvent(path)` acknowledges the presented change only if it is that
+ *   path's; `clearEvent()` acknowledges the presented change.
  */
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { loggingService } from "../services/loggingService";
-import { currentWindowLabel } from "../utils/currentWindowLabel";
+import { useDocumentStore } from "../stores/documentStore";
 import {
-  buildFileChangeReceivedLog,
-  type FileChangeReceivedOutcome,
-} from "../utils/fileChangeLog";
+  acknowledgeFileChange,
+  forgetFileChange,
+  recordFileChange,
+  resetFileChanges,
+} from "../stores/externalChangeStore";
+import type { FileChangedEvent, PendingFileChange } from "../types/fileChange";
+import { logFileChangeReceived, usePresentedFileChange } from "./usePresentedFileChange";
 
-export interface FileChangedEvent {
-  path: string;
-  changeType: "modified" | "deleted" | "renamed";
-  newPath?: string;
-  timestamp: number;
+export type { FileChangedEvent } from "../types/fileChange";
+
+/** Record one event and log what the receipt did. */
+function receive(event: FileChangedEvent): void {
+  const actionId = loggingService.generateActionId();
+  const { documentIds, activeRecorded } = recordFileChange(event, actionId);
+  const outcome = documentIds.length === 0 ? "other-path" : activeRecorded ? "scheduled" : "recorded";
+  logFileChangeReceived(event, outcome, actionId);
 }
 
-const FRONTEND_DEBOUNCE_MS = 300;
-
-function logReceived(
-  event: FileChangedEvent,
-  activePath: string,
-  outcome: FileChangeReceivedOutcome,
-  actionId: string = loggingService.generateActionId(),
-): void {
-  loggingService.logEventSync(
-    buildFileChangeReceivedLog({
-      event,
-      activePath,
-      outcome,
-      windowLabel: currentWindowLabel(),
-      actionId,
-    }),
-  );
+export interface FileWatcher {
+  /** The presented change's event, as Rust emitted it; null when nothing is shown. */
+  event: FileChangedEvent | null;
+  /** The presented change with its document id and sequence. */
+  change: PendingFileChange | null;
+  clearEvent: (path?: string, documentId?: string) => void;
 }
 
-export function useFileWatcher(activePath: string | null) {
-  const [event, setEvent] = useState<FileChangedEvent | null>(null);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+export function useFileWatcher(_activePath?: string | null): FileWatcher {
   useEffect(() => {
-    if (!activePath) return;
+    resetFileChanges();
     let unlistenFn: (() => void) | null = null;
     let cancelled = false;
 
     listen<FileChangedEvent>("file:changed", (payload) => {
       if (cancelled) return;
-      if (payload.payload.path !== activePath) {
-        logReceived(payload.payload, activePath, "other-path");
-        return;
-      }
-
-      const actionId = loggingService.generateActionId();
-      logReceived(payload.payload, activePath, "scheduled", actionId);
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = setTimeout(() => {
-        setEvent(payload.payload);
-        logReceived(payload.payload, activePath, "delivered", actionId);
-      }, FRONTEND_DEBOUNCE_MS);
+      receive(payload.payload);
     })
       .then((fn) => {
         if (cancelled) {
@@ -106,15 +90,27 @@ export function useFileWatcher(activePath: string | null) {
 
     return () => {
       cancelled = true;
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       unlistenFn?.();
+      resetFileChanges();
     };
-  }, [activePath]);
-
-  /** Drop the pending event; given `path`, only when the pending event is that path's. */
-  const clearEvent = useCallback((path?: string) => {
-    setEvent((current) => (path === undefined || current?.path === path ? null : current));
   }, []);
 
-  return { event, clearEvent };
+  const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
+  const change = usePresentedFileChange(activeDocumentId);
+  const changeRef = useRef(change);
+  useLayoutEffect(() => {
+    changeRef.current = change;
+  });
+
+  const clearEvent = useCallback((path?: string, documentId?: string) => {
+    if (documentId !== undefined) {
+      forgetFileChange(documentId, "withdrawn");
+      return;
+    }
+    const shown = changeRef.current;
+    if (!shown || (path !== undefined && shown.path !== path)) return;
+    acknowledgeFileChange(shown.documentId, shown.seq, "ignored");
+  }, []);
+
+  return { event: change?.event ?? null, change, clearEvent };
 }
