@@ -46,6 +46,7 @@ import {
   parseRules,
   specificity,
 } from "./support/cssRules";
+import { CSS_NAMED_COLORS, colourLiterals } from "./support/cssNamedColors";
 
 const DOC = "# Title\n\nSome text\n";
 
@@ -408,6 +409,39 @@ describe("D158-WI-2 — dialog close button and lint selection follow the app th
         if (/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(|\bwhite\b|\bblack\b/i.test(value)) {
           literals.push(`${rule.selectors.join(", ")} { ${prop}: ${value} }`);
         }
+      }
+    }
+    expect(literals).toEqual([]);
+  });
+});
+
+describe("D158 audit b70 — the whole-file literal scan knows every named colour", () => {
+  it("flags named colours beyond white/black, color() and the other colour syntaxes", () => {
+    expect(CSS_NAMED_COLORS.size).toBe(148);
+    expect(colourLiterals("red")).toEqual(["red"]);
+    expect(colourLiterals("1px solid RebeccaPurple")).toEqual(["RebeccaPurple"]);
+    expect(colourLiterals("color(srgb 1 0 0)")).toEqual(["color("]);
+    expect(colourLiterals("color-mix(in srgb, var(--accent), tomato)")).toEqual(["tomato"]);
+    expect(colourLiterals("#fff")).toEqual(["#fff"]);
+    expect(colourLiterals("oklch(0.7 0.1 200)")).toEqual(["oklch("]);
+  });
+
+  it("passes keywords and tokens that name no literal colour", () => {
+    for (const value of ["transparent", "currentColor", "inherit", "initial", "unset", "none", "revert"]) {
+      expect(colourLiterals(value), value).toEqual([]);
+    }
+    expect(colourLiterals("var(--accent-red)")).toEqual([]);
+    expect(colourLiterals("color-mix(in srgb, var(--text-primary) 20%, transparent)")).toEqual([]);
+    expect(colourLiterals("1px solid var(--border-color)")).toEqual([]);
+  });
+
+  it("editor-source.css has no colour literal by the full scan", () => {
+    const css = readAppCssFile("sections/editor-source.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    const literals: string[] = [];
+    for (const rule of parseRules(css)) {
+      for (const [prop, value] of rule.decls) {
+        const found = colourLiterals(value);
+        if (found.length > 0) literals.push(`${rule.selectors.join(", ")} { ${prop}: ${value} } → ${found.join(" ")}`);
       }
     }
     expect(literals).toEqual([]);

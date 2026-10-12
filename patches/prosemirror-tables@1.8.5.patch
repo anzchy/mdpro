@@ -1,0 +1,44 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 6c65eb7d57e207a8cd1f2a2ae3bb99507c405cef..7d8e33f1c63e1253396cc52975cfdd7ebff8435f 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -1993,7 +1993,7 @@ function clipCells({ width, height, rows }, newWidth, newHeight) {
+ 				let cell = source.child(j);
+ 				if (row + cell.attrs.rowspan > newHeight) cell = cell.type.create({
+ 					...cell.attrs,
+-					rowspan: Math.max(1, newHeight - cell.attrs.rowspan)
++					rowspan: Math.max(1, newHeight - row)
+ 				}, cell.content);
+ 				cells.push(cell);
+ 			}
+@@ -2104,7 +2104,7 @@ function insertCells(state, dispatch, tableStart, rect, cells) {
+ 		tr.replace(tr.mapping.slice(mapFrom).map(from + tableStart), tr.mapping.slice(mapFrom).map(to + tableStart), new prosemirror_model.Slice(cells.rows[row - top], 0, 0));
+ 	}
+ 	recomp();
+-	tr.setSelection(new CellSelection(tr.doc.resolve(tableStart + map.positionAt(top, left, table)), tr.doc.resolve(tableStart + map.positionAt(bottom - 1, right - 1, table))));
++	tr.setSelection(new CellSelection(tr.doc.resolve(tableStart + map.map[top * map.width + left]), tr.doc.resolve(tableStart + map.map[(bottom - 1) * map.width + right - 1])));
+ 	dispatch(tr);
+ }
+ 
+diff --git a/dist/index.js b/dist/index.js
+index 5b4ac25594ba5722409332b1e5c812f108c9bf11..ae3082b966ad3bdcfee2a7123b5e3383f79a5646 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1993,7 +1993,7 @@ function clipCells({ width, height, rows }, newWidth, newHeight) {
+ 				let cell = source.child(j);
+ 				if (row + cell.attrs.rowspan > newHeight) cell = cell.type.create({
+ 					...cell.attrs,
+-					rowspan: Math.max(1, newHeight - cell.attrs.rowspan)
++					rowspan: Math.max(1, newHeight - row)
+ 				}, cell.content);
+ 				cells.push(cell);
+ 			}
+@@ -2104,7 +2104,7 @@ function insertCells(state, dispatch, tableStart, rect, cells) {
+ 		tr.replace(tr.mapping.slice(mapFrom).map(from + tableStart), tr.mapping.slice(mapFrom).map(to + tableStart), new Slice(cells.rows[row - top], 0, 0));
+ 	}
+ 	recomp();
+-	tr.setSelection(new CellSelection(tr.doc.resolve(tableStart + map.positionAt(top, left, table)), tr.doc.resolve(tableStart + map.positionAt(bottom - 1, right - 1, table))));
++	tr.setSelection(new CellSelection(tr.doc.resolve(tableStart + map.map[top * map.width + left]), tr.doc.resolve(tableStart + map.map[(bottom - 1) * map.width + right - 1])));
+ 	dispatch(tr);
+ }
+ 

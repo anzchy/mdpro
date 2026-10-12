@@ -8,7 +8,10 @@
  * cell in the header row) made `insertCells`' row replace fit the cells by
  * closing the row: the host's rows were mangled, and `insertCells`' closing
  * `TableMap.positionAt` threw out of the paste listener, so the native paste was
- * not prevented.
+ * not prevented. The upstream `clipCells` / `insertCells` it calls are patched by
+ * `patches/prosemirror-tables@1.8.5.patch` (ADR-0082, D162-WI-3): 1.8.5 clipped
+ * an overlong pasted rowspan to `newHeight - rowspan` rows and picked its final
+ * selection with `positionAt`, crashing with `No cell with offset …`.
  *
  * Pipeline: paste → `pasteWidenAlignment.ts`'s front `handlePaste` → `pasteAsCells`:
  * `withoutInventedRows` → `pastedCells` → over a CellSelection `clipCells` to the selection, else at the
@@ -29,13 +32,19 @@
  *     (`pasteInventedRows.ts`) are dropped first: the rule cannot know the target
  *     (a drop lands away from the selection), this function can. As cells they
  *     would blank a host row; a tbody-only table would paste an empty row first.
+ *   - The fit and the insert stay prosemirror-tables' own `__clipCells` /
+ *     `__insertCells`, fixed by an exact-version pnpm patch rather than ported
+ *     here (ADR-0082): the patch must be rebased, and the guard test
+ *     `tests/d162-prosemirror-tables-patch-guard.test.ts` updated, whenever the
+ *     version `@milkdown/prose` resolves changes; both go once upstream ships
+ *     both fixes.
  *   - Logs `editor.table.paste-retyped` (rule 20) only when a cell was retyped,
  *     and `editor.table.paste-rows-dropped` only when a filled row was dropped,
  *     after `insertCells` returned; a paste that needed neither logs nothing here.
  *
  * @coordinates-with src/plugins/milkdown/table/pasteWidenAlignment.ts — the caller, and its dispatch wrapper
  * @coordinates-with src/plugins/milkdown/table/pasteInventedRows.ts — fills the parser's invented rows; `withoutInventedRows` drops them here
- * @coordinates-with prosemirror-tables `handlePaste` / `pastedCells` / `clipCells` / `insertCells`
+ * @coordinates-with prosemirror-tables `handlePaste` / `pastedCells` / `clipCells` / `insertCells` — the last two patched by patches/prosemirror-tables@1.8.5.patch
  */
 import { Fragment, type Node as PmNode, type NodeType, type Slice } from "@milkdown/kit/prose/model";
 import type { EditorState, Transaction } from "@milkdown/kit/prose/state";

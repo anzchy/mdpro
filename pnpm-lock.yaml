@@ -9,6 +9,11 @@ overrides:
   picomatch: '>=4.0.4'
   rollup: '>=4.59.0'
 
+patchedDependencies:
+  prosemirror-tables@1.8.5:
+    hash: 6fc7e27ff7eaef78bca7be9d9cd4059c256d2d9319797902e71e5c909627ec87
+    path: patches/prosemirror-tables@1.8.5.patch
+
 importers:
 
   .:
@@ -3041,7 +3046,7 @@ snapshots:
       prosemirror-model: 1.25.4
       prosemirror-schema-list: 1.5.1
       prosemirror-state: 1.4.4
-      prosemirror-tables: 1.8.5
+      prosemirror-tables: 1.8.5(patch_hash=6fc7e27ff7eaef78bca7be9d9cd4059c256d2d9319797902e71e5c909627ec87)
       prosemirror-transform: 1.10.5
       prosemirror-view: 1.41.5
 
@@ -4351,7 +4356,7 @@ snapshots:
       prosemirror-transform: 1.10.5
       prosemirror-view: 1.41.5
 
-  prosemirror-tables@1.8.5:
+  prosemirror-tables@1.8.5(patch_hash=6fc7e27ff7eaef78bca7be9d9cd4059c256d2d9319797902e71e5c909627ec87):
     dependencies:
       prosemirror-keymap: 1.2.3
       prosemirror-model: 1.25.4
