@@ -6,7 +6,8 @@ Pipeline: POST -> X-Mdpro-Token check (401) -> length (413) -> JSON object (400)
   -> receiver_spool.spool_fields: legacy body | spooled body | invalid (400)
   -> spooled: SeqState.plan -> duplicate / stale epoch: 200, nothing stored
   -> append the record to events.jsonl -> commit the seq, save seq-state.json
-     and gaps.json -> mirror latest.json. A failed write -> 500.
+     and gaps.json -> mirror latest.json (not for a late event). A failed
+     write -> 500.
 
 Key decisions:
 - Binds to this MacBook's Tailscale IPv4 only (MDPRO_HOOK_BIND overrides, for
@@ -20,6 +21,16 @@ Key decisions:
   sender keeps the entry and retries, and the retry is stored, not answered
   "duplicate". latest.json is mirrored last, so a failure there at worst
   turns the retry into a duplicate, never into a second events.jsonl line.
+- A seq below the source's floor (receiver_spool.py) is "late": its record
+  gains "spool_late": true and is appended but not mirrored to latest.json,
+  so last-dtrack keeps showing the newest real event; the log says "late".
+  wait-dtrack still returns it and flags it with "late seq N (source)".
+- Log hygiene (D177-H-4, audit b95 M3): session, event and type are logged
+  only as a str of at most 64 [A-Za-z0-9._-] chars; otherwise as "-" (None),
+  "<str>", "<long str>" or "<type name>". The request path follows the same
+  rule over [A-Za-z0-9._/-] ("<path>", "<long path>"), on every line,
+  including the 401 line written before the token check. A value from the
+  request can never inject a line or flood the log.
 - The token is never logged, stored or echoed; logs carry statuses, event
   names and spool ids only. stdlib only.
 """
@@ -27,6 +38,7 @@ import datetime
 import hmac
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -51,11 +63,31 @@ MAX_LAST_MSG = 2000
 FIELDS = ("hook_event_name", "session_id", "cwd", "notification_type", "title",
           "message", "last_assistant_message", "stop_hook_active", "matcher", "source")
 WRITE_LOCK = Lock()
+LOG_VALUE_MAX = 64
+SAFE_VALUE_RE = re.compile(r"[A-Za-z0-9._-]+")
+SAFE_PATH_RE = re.compile(r"[A-Za-z0-9._/-]+")
 STATE = SeqState()
 
 
 def now_iso():
     return datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def log_value(v):
+    """A request value as it may appear in the log: itself if short and plain, else its kind."""
+    if v is None:
+        return "-"
+    if isinstance(v, str):
+        if len(v) > LOG_VALUE_MAX:
+            return "<long str>"
+        return v if SAFE_VALUE_RE.fullmatch(v) else "<str>"
+    return f"<{type(v).__name__}>"
+
+
+def log_path(p):
+    if len(p) > LOG_VALUE_MAX:
+        return "<long path>"
+    return p if SAFE_PATH_RE.fullmatch(p) else "<path>"
 
 
 def log(line):
@@ -105,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _reject_method(self):
-        log(f"{self.client_address[0]} {self.command} {self.path} -> 405")
+        log(f"{self.client_address[0]} {self.command} {log_path(self.path)} -> 405")
         self._reply(405, b'{"error":"method not allowed"}')
 
     do_GET = do_PUT = do_DELETE = do_PATCH = do_HEAD = _reject_method
@@ -115,18 +147,18 @@ class Handler(BaseHTTPRequestHandler):
         try:
             expected = read_token()
         except Exception as e:
-            log(f"{peer} POST {self.path} -> 500 token file unreadable: {type(e).__name__}")
+            log(f"{peer} POST {log_path(self.path)} -> 500 token file unreadable: {type(e).__name__}")
             return self._reply(500, b'{"error":"server misconfigured"}')
         given = self.headers.get("X-Mdpro-Token", "")
         if not expected or not hmac.compare_digest(given.encode(), expected.encode()):
-            log(f"{peer} POST {self.path} -> 401 (token {'missing' if not given else 'mismatch'})")
+            log(f"{peer} POST {log_path(self.path)} -> 401 (token {'missing' if not given else 'mismatch'})")
             return self._reply(401, b'{"error":"unauthorized"}')
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             length = -1
         if length < 0 or length > MAX_BODY:
-            log(f"{peer} POST {self.path} -> 413 length={length}")
+            log(f"{peer} POST {log_path(self.path)} -> 413 length={length}")
             return self._reply(413, b'{"error":"bad length"}')
         raw = self.rfile.read(length) if length else b""
         try:
@@ -134,12 +166,12 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError("payload is not an object")
         except Exception as e:
-            log(f"{peer} POST {self.path} -> 400 bad json: {type(e).__name__}")
+            log(f"{peer} POST {log_path(self.path)} -> 400 bad json: {type(e).__name__}")
             return self._reply(400, b'{"error":"bad json"}')
         try:
             spool = spool_fields(payload)
         except ValueError as e:
-            log(f"{peer} POST {self.path} -> 400 bad {e}")
+            log(f"{peer} POST {log_path(self.path)} -> 400 bad {e}")
             return self._reply(400, b'{"error":"bad spool fields"}')
         rec = {"received_at": now_iso(), "remote": peer}
         for k in FIELDS:
@@ -151,42 +183,45 @@ class Handler(BaseHTTPRequestHandler):
         if spool is not None:
             rec.update(spool)
             tag = f" spool={spool['spool_source']}/{spool['spool_epoch']}#{spool['spool_seq']}"
-        line = json.dumps(rec, ensure_ascii=False)
         try:
-            outcome = self._store(spool, line)
+            outcome = self._store(spool, rec)
         except Exception as e:  # disk full, EACCES, a directory in the way...
-            log(f"{peer} POST {self.path} -> 500 write failed: {type(e).__name__}{tag}")
+            log(f"{peer} POST {log_path(self.path)} -> 500 write failed: {type(e).__name__}{tag}")
             return self._reply(500, b'{"error":"write failed"}')
-        if outcome != "new":
-            log(f"{peer} POST {self.path} -> 200 {'stale epoch' if outcome == 'stale' else 'duplicate'}{tag}")
+        if outcome in ("stale", "duplicate"):
+            log(f"{peer} POST {log_path(self.path)} -> 200 {'stale epoch' if outcome == 'stale' else 'duplicate'}{tag}")
             return self._reply(200)
-        log(f"{peer} POST {self.path} -> 200 event={rec.get('hook_event_name')} "
-            f"type={rec.get('notification_type')} session={rec.get('session_id')}{tag}")
+        late = "late " if outcome == "late" else ""
+        log(f"{peer} POST {log_path(self.path)} -> 200 {late}event={log_value(rec.get('hook_event_name'))} "
+            f"type={log_value(rec.get('notification_type'))} session={log_value(rec.get('session_id'))}{tag}")
         self._reply(200)
 
     @staticmethod
-    def _store(spool, line):
+    def _store(spool, rec):
         """Under WRITE_LOCK: dedupe a spooled event, else append it, then commit its seq.
 
-        Returns the SeqState outcome; raises if a write fails, with the seq not committed
-        when the append itself failed.
+        Returns the SeqState outcome, or "late" for a new seq below the floor; raises if
+        a write fails, with the seq not committed when the append itself failed.
         """
         with WRITE_LOCK:  # log() takes the same lock, so nothing in here logs
-            outcome, source, entry = STATE.plan(spool) if spool is not None else ("new", None, None)
+            outcome, source, entry, late = STATE.plan(spool) if spool is not None else ("new", None, None, False)
             if outcome == "stale":
                 return outcome
+            if late:
+                rec["spool_late"] = True
+            line = json.dumps(rec, ensure_ascii=False)
             if outcome == "new":
                 with open(EVENTS, "a", encoding="utf-8") as f:
                     f.write(line + "\n")
             if spool is not None:
                 STATE.commit(source, entry)
                 STATE.save(SEQ_STATE, GAPS)
-            if outcome == "new":
+            if outcome == "new" and not late:
                 tmp = LATEST + ".tmp"
                 with open(tmp, "w", encoding="utf-8") as f:
                     f.write(line + "\n")
                 os.replace(tmp, LATEST)
-            return outcome
+            return "late" if late else outcome
 
 
 def main():

@@ -3,7 +3,7 @@ spool_* fields of a POST body, dedupe on (source, epoch, seq), and keep the
 per-source seq state that gaps.json is made from.
 
 Pipeline: spool_fields(payload) -> None (legacy body) | SpoolFields | ValueError
-  -> SeqState.plan(fields) -> ("new" | "duplicate" | "stale", source, entry),
+  -> SeqState.plan(fields) -> ("new" | "duplicate" | "stale", source, entry, late),
      nothing mutated -> the caller stores the event -> SeqState.commit(source,
      entry) -> SeqState.save(state_path, gaps_path) (each a tmp file +
      os.replace). SeqState.apply is plan + commit in one step.
@@ -24,9 +24,16 @@ Key decisions:
 - At most MAX_RETIRED_EPOCHS retired epochs are kept per source, oldest dropped
   first. Accepted limit: a replay from a dropped epoch is indistinguishable
   from a new epoch, so it restarts that source's tracking and is stored.
-- At most MAX_MISSING missing seqs are kept per source (the highest ones). A
-  lower one dropped from the list then reads as seen. Accepted limit: it only
-  matters after a jump of more than MAX_MISSING seqs.
+- At most MAX_MISSING missing seqs are kept per source (the highest ones).
+  Whatever the cap discards raises the source's `floor`, the lowest seq it can
+  still judge (D177-H-4, audit b95 M2): after a trim, the lowest retained
+  missing seq; after a capped jump, that jump's `low`. A seq below the floor
+  is unknown, so it is accepted as "new" with late=True, never "duplicate":
+  a retry that was dropped from `missing` would otherwise be lost. It leaves
+  max, missing and floor alone. Accepted cost: a genuine duplicate below the
+  floor is stored twice (marked spool_late by the receiver). `floor` persists
+  in seq-state.json (older state without it reads as 1), restarts at 1 with a
+  new epoch, and shows in gaps.json only while > 1.
 - Planning never mutates (D177-H-2, audit b92 finding 3): the receiver commits
   a seq only after the event is on disk, so a failed append leaves the seq
   unseen and the sender's retry is stored, not answered "duplicate".
@@ -83,13 +90,13 @@ def spool_fields(payload):
 
 
 def _fresh(epoch):
-    return {"epoch": epoch, "max": 0, "missing": [], "dead": 0, "orphans": 0, "retired": []}
+    return {"epoch": epoch, "max": 0, "missing": [], "dead": 0, "orphans": 0, "floor": 1, "retired": []}
 
 
 def _valid_entry(e):
     return (isinstance(e, dict) and isinstance(e.get("epoch"), str) and _is_int(e.get("max"))
             and isinstance(e.get("missing"), list) and all(_is_int(m) for m in e["missing"])
-            and _is_int(e.get("dead")) and _is_int(e.get("orphans", 0))
+            and _is_int(e.get("dead")) and _is_int(e.get("orphans", 0)) and _is_int(e.get("floor", 1))
             and isinstance(e.get("retired"), list)
             and all(isinstance(r, str) for r in e["retired"]))
 
@@ -130,9 +137,9 @@ class SeqState:
     def plan(self, f):
         """What one valid spooled event would do, without mutating anything.
 
-        Returns (outcome, source, entry): outcome "new" (store the event, then
-        commit), "duplicate" (commit only: dead/orphans may rise) or "stale"
-        (drop; entry is None).
+        Returns (outcome, source, entry, late): outcome "new" (store the event,
+        then commit), "duplicate" (commit only: dead/orphans may rise) or "stale"
+        (drop; entry is None). late is True for a "new" seq below the floor.
         """
         source, epoch, seq, dead = f["spool_source"], f["spool_epoch"], f["spool_seq"], f["spool_dead"]
         cur = self.sources.get(source)
@@ -140,22 +147,30 @@ class SeqState:
             st = _fresh(epoch)
         elif cur["epoch"] != epoch:
             if epoch in cur["retired"]:
-                return "stale", source, None
+                return "stale", source, None, False
             st = _fresh(epoch)
             st["retired"] = (cur["retired"] + [cur["epoch"]])[-MAX_RETIRED_EPOCHS:]
         else:
             st = dict(cur, missing=list(cur["missing"]), retired=list(cur["retired"]))
         st["dead"] = max(st["dead"], dead)
         st["orphans"] = max(st.get("orphans", 0), f.get("spool_orphans", 0))
+        floor = st.get("floor", 1)
+        if seq < floor:
+            # Unknown: the cap discarded what would say whether it arrived. Accept it
+            # rather than lose a retry; a genuine duplicate is then stored twice.
+            return "new", source, st, True
         if seq <= st["max"] and seq not in st["missing"]:
-            return "duplicate", source, st
+            return "duplicate", source, st, False
         if seq > st["max"]:
             low = max(st["max"] + 1, seq - MAX_MISSING)  # cap before building: a jump costs O(MAX_MISSING)
-            st["missing"] = (st["missing"] + list(range(low, seq)))[-MAX_MISSING:]
-            st["max"] = seq
+            built = st["missing"] + list(range(low, seq))
+            kept = built[-MAX_MISSING:]
+            if low > st["max"] + 1 or len(kept) < len(built):
+                floor = max(floor, kept[0] if kept else low)
+            st["missing"], st["max"], st["floor"] = kept, seq, floor
         else:
             st["missing"].remove(seq)
-        return "new", source, st
+        return "new", source, st, False
 
     def commit(self, source, entry):
         if entry is not None:
@@ -163,7 +178,7 @@ class SeqState:
 
     def apply(self, f):
         """plan + commit: records one valid spooled event and returns its outcome."""
-        outcome, source, entry = self.plan(f)
+        outcome, source, entry, _late = self.plan(f)
         self.commit(source, entry)
         return outcome
 
@@ -173,6 +188,8 @@ class SeqState:
             g = out[s] = {"epoch": e["epoch"], "max": e["max"], "missing": e["missing"], "dead": e["dead"]}
             if e.get("orphans", 0) > 0:
                 g["orphans"] = e["orphans"]
+            if e.get("floor", 1) > 1:
+                g["floor"] = e["floor"]
         return out
 
     def save(self, state_path, gaps_path):
