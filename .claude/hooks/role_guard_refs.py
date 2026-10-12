@@ -10,9 +10,18 @@
 #   away from <P> (one-name form: the checked-out branch), `-c/-C/--copy` onto <P>;
 # - `update-ref [-d] refs/heads/<P>`, `update-ref HEAD` (without `--no-deref`)
 #   while <P> is checked out, and `update-ref --stdin` in any form (unparseable);
-# - `fetch` / `pull` refspecs whose destination is <P> or `refs/heads/<P>`, with
-#   or without `+`, including globs such as `refs/heads/*:refs/heads/*`;
-# - `checkout -B <P>`, `switch -C/--force-create[=]<P>`, `worktree add -B <P>`.
+# - `fetch` / `pull` refspecs whose destination is <P>, `heads/<P>` (git expands
+#   it to `refs/heads/<P>`) or `refs/heads/<P>`, with or without `+`, including
+#   globs such as `refs/heads/*:refs/heads/*`;
+# - `checkout -B <P>`, `switch -C/--force-create[=]<P>`, `worktree add -B <P>`;
+# - `rebase [opts] <upstream> <P>` and `rebase --root <P>`, which check out and
+#   rewrite <P> whatever was checked out before (value options skipped: `--onto`,
+#   `-s/--strategy`, `-X/--strategy-option`, `-x/--exec`);
+# - `symbolic-ref <P> <ref>` (makes <P> an alias) and `symbolic-ref -d <P>`, with
+#   <P> bare, `heads/<P>` or `refs/heads/<P>`; reading one is allowed.
+# `heads/<P>` counts only where git expands it (refspec destinations) and for
+# symbolic-ref by ruling; `branch`, `checkout -B` and `update-ref` take it as a
+# different name (`refs/heads/heads/<P>`, `$GIT_DIR/heads/<P>`).
 # Not covered: `checkout -b` / `switch -c` creating <P> (moves no existing ref),
 # git aliases from config, `git replace`, and raw writes under .git/refs.
 #
@@ -22,17 +31,25 @@
 # only resolved for the forms that depend on it.
 # The hook imports this lazily for implementor Bash calls; if the import fails
 # for any reason it refuses the call (fail closed).
-# Regression tests: tests/d180-role-guard-ref-moves.test.ts, tests/d180-role-guard-fail-closed.test.ts.
+# Regression tests: tests/d180-role-guard-ref-moves.test.ts, tests/d180-role-guard-ref-moves-2.test.ts,
+# tests/d180-role-guard-fail-closed.test.ts.
 import fnmatch
 
 GLOB_SAMPLES = ("master", "frontend-backend-redesign", "release/x")
 TAIL = "that is the delegator's job; move only your own fix/ branch (rule 70)."
 
 
-def protected_ref(name, is_protected, bare_is_branch=True):
-    """True when `name` (a branch name, `refs/heads/...`, or a glob) names a protected branch."""
+def protected_ref(name, is_protected, bare_is_branch=True, dwim=False):
+    """True when `name` (a branch name, `refs/heads/...`, or a glob) names a protected branch.
+
+    `dwim` applies git's refspec-destination expansion: `heads/x` is `refs/heads/x`,
+    while `tags/…` and `remotes/…` are not branches."""
     n = name.lstrip("+")
-    if n.startswith("refs/heads/"):
+    if dwim and n.startswith(("tags/", "remotes/")):
+        return False
+    if dwim and n.startswith("heads/"):
+        n = n[len("heads/"):]
+    elif n.startswith("refs/heads/"):
         n = n[len("refs/heads/"):]
     elif n.startswith("refs/") or not bare_is_branch:
         return False
@@ -139,8 +156,49 @@ def _fetch(sub, args, is_protected):
     for spec in pos[1:]:
         if ":" in spec:
             dst = spec.rsplit(":", 1)[1]
-            if protected_ref(dst, is_protected):
+            if protected_ref(dst, is_protected, dwim=True):
                 return _refusal(f"{sub} … {spec}", dst)
+    return None
+
+
+# ---- git rebase <upstream> <branch> --------------------------------------
+
+REBASE_VALUE_OPTS = {"--onto", "-s", "--strategy", "-X", "--strategy-option", "-x", "--exec"}
+
+
+def _rebase(args, is_protected):
+    pos, i = [], 0
+    while i < len(args):
+        a = args[i]
+        i += 1
+        if a in REBASE_VALUE_OPTS:
+            i += 1
+        elif a == "--":
+            pos.extend(args[i:])
+            break
+        elif not a.startswith("-"):
+            pos.append(a)
+    k = 0 if "--root" in args else 1  # --root takes no upstream
+    branch = pos[k] if len(pos) > k else None
+    if branch and protected_ref(branch, is_protected):
+        return _refusal(f"rebase … {branch}", branch)
+    return None
+
+
+# ---- git symbolic-ref ----------------------------------------------------
+
+def _symbolic_ref(args, is_protected):
+    pos, i = [], 0
+    while i < len(args):
+        a = args[i]
+        i += 1
+        if a == "-m":
+            i += 1
+        elif not a.startswith("-"):
+            pos.append(a)
+    deleting = any(a in ("-d", "--delete") for a in args)
+    if pos and (deleting or len(pos) > 1) and protected_ref(pos[0], is_protected, dwim=True):
+        return _refusal("symbolic-ref " + ("-d " if deleting else "") + pos[0], pos[0])
     return None
 
 
@@ -170,6 +228,10 @@ def ref_move(sub, args, current_branch, is_protected):
         return _update_ref(args, current_branch, is_protected)
     if sub in ("fetch", "pull"):
         return _fetch(sub, args, is_protected)
+    if sub == "rebase":
+        return _rebase(args, is_protected)
+    if sub == "symbolic-ref":
+        return _symbolic_ref(args, is_protected)
     target, what = None, sub
     if sub == "checkout":
         target, what = _forced_create(args, "B"), "checkout -B"
