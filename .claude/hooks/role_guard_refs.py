@@ -1,5 +1,5 @@
 # Purpose: implementor git checks for the rule 70 role guard (.claude/hooks/role-guard.sh,
-# D180). The hook parses a Bash command into git calls (shell `-c` in any option
+# D180). role_guard_shell.py parses a Bash command into git calls (shell `-c` in any option
 # cluster, `env` options, `cd`, `-C`, `--git-dir`/`--work-tree`, `GIT_DIR=`) and
 # hands each to `implementor_git`, which refuses: `git push`; commit / merge /
 # rebase / cherry-pick / reset on a protected branch (`master`, `release/*`, and
@@ -30,8 +30,8 @@
 # Entry: implementor_git(dir, sub, args, ctx, chain, is_protected) → refusal text or
 # None; ctx = ([(--git-dir|--work-tree, value)], {GIT_DIR…: path}, conf) with conf as
 # in role_guard_opts.rebase_update_refs; chain is per command.
-# The hook imports this lazily for every implementor Bash call and refuses the
-# call if this module or role_guard_opts.py fails to import (fail closed).
+# The hook imports this lazily for every implementor Bash call and refuses the call
+# if this module, role_guard_opts.py or role_guard_shell.py fails to import (fail closed).
 # Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts,
 # tests/d180-verifier-probes.test.ts, tests/d184-role-guard-*.test.ts.
 import fnmatch, os, subprocess

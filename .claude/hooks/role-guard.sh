@@ -16,34 +16,36 @@
 #   (`git add -A/--all/./-u`, `git commit -a/--all`) and no staging of
 #   `.claude/tdd-guardian/state.json`. These checks live in role_guard_refs.py
 #   (D180) and role_guard_opts.py (D184: abbreviated long options, `rebase.updateRefs`
-#   set by `-c` / `--config-env` / GIT_CONFIG_*); if either is missing or fails to
-#   import, every implementor Bash call is refused (fail closed). Other tools and
-#   roles do not import them. A missing
-#   python3 still fails open (the hook exits non-2, a non-blocking error).
-# - real-device-tester: no git subcommand that changes state (read-only git
-#   passes); Write / Edit / NotebookEdit only inside $MDPRO_REPORT_DIR (default
-#   $HOME/.mdpro-redesign/dtrack) or the session scratch under /tmp/claude-*.
+#   set by `-c` / `--config-env` / GIT_CONFIG_*); if either, or role_guard_shell.py,
+#   is missing or fails to import, every implementor Bash call is refused (fail
+#   closed). Other tools and roles do not import them. A missing python3 still
+#   fails open (the hook exits non-2, a non-blocking error).
+# - real-device-tester: git only from a read-only allowlist (D186: fixed read-only
+#   subcommands plus the read-only forms of branch / tag / stash / worktree / remote /
+#   config / symbolic-ref / reflog / notes; anything else, unknown subcommands
+#   included, is refused); Write / Edit / NotebookEdit only inside $MDPRO_REPORT_DIR
+#   (default $HOME/.mdpro-redesign/dtrack) or the session scratch under /tmp/claude-*.
+#   These checks live in role_guard_tester.py with its option tables in
+#   role_guard_tester_opts.py; if either, role_guard_opts.py or role_guard_shell.py is
+#   missing or fails to import, every such tester call is refused (fail closed).
 #
-# Bash commands are tokenised with shlex (quotes respected, so a commit message
-# saying "push" is not a push) and split on `&&`, `||`, `|`, `;`, newlines and
-# `$(`. Leading `VAR=x`, `command`, `time`, `nohup`, `exec` and `env` (with its
-# `-u NAME`, `--unset NAME`, `-P` values, `-C DIR` as a cd, `-S 'cmd'` split)
-# are skipped. `bash|sh|zsh|dash [opts] -c '…'` is checked recursively, where any
-# short-option cluster holding `c` (`-lc`, `-ec`) counts and `-o`/`-O`/`--rcfile`
-# values are skipped. `cd DIR`, `git -C DIR`, `--git-dir`, `--work-tree` and a
-# GIT_DIR / GIT_WORK_TREE prefix decide where the current branch is read; `-c`,
-# `--config-env` and inline `VAR=x` prefixes (inherited by a nested `bash -c`) are
-# passed on for the config checks.
-# Not covered: backticks, `eval`, scripts that run git, and Bash writing files.
+# Bash commands are parsed into git calls by role_guard_shell.py (quotes, `&&` /
+# `|` / `;` / `$(` splitting, `VAR=x` / `env` / wrapper prefixes, nested
+# `bash|sh|zsh|dash -c`, `cd`, `git -C`, `--git-dir`, `--work-tree`, GIT_DIR, `-c`,
+# `--config-env`); the implementor path imports it too, under the same fail-closed
+# rule. Not covered: backticks, `eval`, scripts that run git, and Bash writing files.
 #
 # Input: Claude Code's hook JSON on stdin (`tool_name`, `tool_input.command` /
 # `file_path` / `notebook_path`, `cwd`).
-# Exit 2 + one stderr line = the call is denied and the line goes to the model.
+# Exit 2 + one stderr line = the call is denied and the line goes to the model. Any
+# exception while checking a role's call (parsing included) is denied the same way,
+# naming the exception class (audit b93 H4), so a crash never exits 1 and lets it through.
 # Exit 0 = allowed. Malformed JSON exits 0 (fail open, like block-target-scan.sh):
 # a guard that crashes on input it cannot read would block every tool call in
 # every session, which costs more than the one call it might have caught.
 # Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts,
-# tests/d180-verifier-probes.test.ts, tests/d184-role-guard-*.test.ts.
+# tests/d180-verifier-probes.test.ts, tests/d184-role-guard-*.test.ts,
+# tests/d186-*.test.ts.
 set -euo pipefail
 
 role="${MDPRO_ROLE:-}"
@@ -54,7 +56,7 @@ esac
 
 input="$(cat)"
 HOOK_INPUT="$input" ROLE_GUARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" python3 - <<'PY'
-import json, os, shlex, sys
+import json, os, sys
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.environ["ROLE_GUARD_DIR"])
@@ -82,153 +84,20 @@ def deny(msg):
     sys.stderr.write(f"Blocked by role-guard ({role}): {msg}\n")
     sys.exit(2)
 
-# ---- Bash parsing --------------------------------------------------------
-
-SEPARATORS = {"&&", "||", "|", ";", ";;", "&", "|&", "\n", "(", ")"}
-WRAPPERS = {"command", "time", "nohup", "exec", "builtin"}
-SHELLS = {"bash", "sh", "zsh", "dash"}
-
-def tokens(cmd):
-    lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()\n")
-    lex.whitespace = " \t\r"
-    lex.whitespace_split = True
-    lex.commenters = ""
-    return list(lex)
-
-def segments(cmd):
-    try:
-        toks = tokens(cmd)
-    except ValueError:
-        return []  # unbalanced quotes: bash would refuse to run it too
-    seg, out = [], []
-    for t in toks:
-        if t in SEPARATORS or (t and set(t) <= set(";&|()\n")):
-            if seg:
-                out.append(seg)
-            seg = []
-        elif t.endswith("$") and t != "$":
-            seg.append(t[:-1])  # `foo$(` → word `foo`, then a new segment
-            out.append(seg)
-            seg = []
-        elif t == "$":
-            if seg:
-                out.append(seg)
-            seg = []
-        else:
-            seg.append(t)
-    if seg:
-        out.append(seg)
-    return out
-
-def is_assignment(t):
-    name, eq, _ = t.partition("=")
-    return bool(eq) and name.replace("_", "a").isalnum() and not name[0].isdigit()
-
-ENV_VALUE_OPTS = {"-u", "--unset", "-P", "-C", "--chdir"}
-
-def strip_prefix(seg, here):
-    """Drop `VAR=x` / wrapper / `env [opts]` prefixes; return (rest, GIT_DIR-style env, dir, all VAR=x)."""
-    i, genv, assigns = 0, {}, {}
-    while i < len(seg):
-        t = seg[i]
-        if is_assignment(t) or t in WRAPPERS:
-            name, _, val = t.partition("=")
-            if is_assignment(t):
-                assigns[name] = val
-            if name in ("GIT_DIR", "GIT_WORK_TREE"):
-                genv[name] = os.path.join(here, os.path.expanduser(val))
-            i += 1
-        elif t == "env":
-            i += 1
-            while i < len(seg) and (is_assignment(seg[i]) or seg[i].startswith("-")):
-                o = seg[i]
-                if o in ("-S", "--split-string") and i + 1 < len(seg):
-                    seg = seg[:i] + tokens(seg[i + 1]) + seg[i + 2:]  # `env -S 'cmd args'`
-                    continue
-                if is_assignment(o):
-                    assigns[o.split("=", 1)[0]] = o.split("=", 1)[1]
-                if is_assignment(o) and o.split("=", 1)[0] in ("GIT_DIR", "GIT_WORK_TREE"):
-                    genv[o.split("=", 1)[0]] = os.path.join(here, os.path.expanduser(o.split("=", 1)[1]))
-                if o in ("-C", "--chdir") and i + 1 < len(seg):
-                    here = os.path.join(here, os.path.expanduser(seg[i + 1]))
-                i += 2 if o in ENV_VALUE_OPTS else 1
-        else:
-            break
-    return seg[i:], genv, here, assigns
-
-SHELL_VALUE_OPTS = {"-o", "+o", "-O", "+O", "--rcfile", "--init-file"}
-
-def shell_script(args):
-    """The script of `bash|sh|zsh|dash [opts] -c script`: any short cluster holding `c` counts."""
-    has_c, i = False, 0
-    while i < len(args):
-        a = args[i]
-        if a in SHELL_VALUE_OPTS:
-            i += 2
-        elif len(a) > 1 and a[0] in "-+" and a != "--":
-            has_c = has_c or (a[0] == "-" and a[1] != "-" and "c" in a[1:])
-            i += 1
-        else:
-            i += a == "--"
-            return args[i] if has_c and i < len(args) else None
-    return None
-
-GIT_OPT_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--super-prefix", "--exec-path"}
-
-def parse_git(args, here):
-    """Return (dir, sub, sub_args, [(--git-dir|--work-tree, v)], [(-c|--config-env, v)]) for `git <opts> sub ...`."""
-    d, gopts, cfg, i = here, [], [], 0
-    while i < len(args):
-        a = args[i]
-        opt, eq, val = a.partition("=")
-        if a == "-C" and i + 1 < len(args):
-            d = os.path.join(d, os.path.expanduser(args[i + 1]))
-            i += 2
-        elif opt in ("--git-dir", "--work-tree"):
-            gopts.append((opt, val if eq else (args[i + 1] if i + 1 < len(args) else "")))
-            i += 1 if eq else 2
-        elif a == "-c" or opt == "--config-env":
-            cfg.append((opt, val if eq else (args[i + 1] if i + 1 < len(args) else "")))
-            i += 1 if eq else 2
-        elif a in GIT_OPT_ARG:
-            i += 2
-        elif a.startswith("-"):
-            i += 1
-        else:
-            return d, a, args[i + 1:], gopts, cfg
-    return d, None, [], gopts, cfg
-
-def git_calls(cmd, here, depth=0, outer=({}, {})):
-    """Yield (dir, sub, args, (gopts, genv, (cfg, VAR=x))) per git call; `outer` is inherited by `bash -c`."""
-    for seg in segments(cmd):
-        seg, genv, there, assigns = strip_prefix(seg, here)  # `env -C DIR` moves this command only
-        genv, assigns = {**outer[0], **genv}, {**outer[1], **assigns}
-        if not seg:
-            continue
-        prog = os.path.basename(seg[0])
-        if prog == "cd":
-            target = seg[1] if len(seg) > 1 else os.path.expanduser("~")
-            here = os.path.join(here, os.path.expanduser(target))
-        elif prog in SHELLS and depth < 3:
-            script = shell_script(seg[1:])
-            if script is not None:
-                yield from git_calls(script, there, depth + 1, (genv, assigns))
-        elif prog == "git":
-            d, sub, args, gopts, cfg = parse_git(seg[1:], there)
-            yield d, sub, args, (gopts, genv, (cfg, assigns))
-
 # ---- implementor ---------------------------------------------------------
 
 def load_checks(cmd):
     """D180 checks, imported lazily; a missing or broken module refuses the call (fail closed)."""
     try:
+        from role_guard_shell import git_calls
         from role_guard_refs import implementor_git
-        return implementor_git
+        return git_calls, implementor_git
     except BaseException:  # incl. SystemExit from a module that exits on import
-        deny(f"role-guard: refs module missing or broken, refusing {cmd}; fix .claude/hooks/role_guard_refs.py or role_guard_opts.py")
+        deny(f"role-guard: refs module missing or broken, refusing {cmd}; fix .claude/hooks/role_guard_refs.py, "
+             "role_guard_opts.py or role_guard_shell.py")
 
 def implementor_bash(cmd):
-    check, chain = load_checks(cmd), {}
+    (git_calls, check), chain = load_checks(cmd), {}
     for d, sub, args, ctx in git_calls(cmd, cwd):
         msg = check(d, sub, args, ctx, chain, is_protected)
         if msg:
@@ -236,64 +105,38 @@ def implementor_bash(cmd):
 
 # ---- real-device-tester --------------------------------------------------
 
-ALWAYS_MUTATING = {"add", "commit", "push", "merge", "rebase", "reset", "cherry-pick", "checkout",
-                   "switch", "restore", "clean", "pull", "revert", "rm", "mv", "am", "apply", "update-ref"}
-READ_ONLY_SUBSUB = {"stash": {"list", "show"}, "worktree": {"list"}}
-BRANCH_MUTATING = {"-d", "-D", "--delete", "-m", "-M", "--move", "-c", "-C", "--copy", "-f", "--force",
-                   "-u", "--set-upstream-to", "--unset-upstream", "--edit-description"}
-
-def tester_git_mutates(sub, args):
-    if sub in ALWAYS_MUTATING:
-        return True
-    if sub in READ_ONLY_SUBSUB:
-        return not args or args[0] not in READ_ONLY_SUBSUB[sub]
-    if sub == "branch":
-        if any(a in BRANCH_MUTATING or a.startswith("--set-upstream-to=") for a in args):
-            return True
-        listing = any(a in ("-l", "--list") for a in args)
-        return not listing and any(not a.startswith("-") for a in args)
-    if sub == "tag":
-        return bool(args) and not any(a in ("-l", "--list") for a in args)
-    return False
-
-def tester_bash(cmd):
-    for _d, sub, args, _ctx in git_calls(cmd, cwd):
-        if sub and tester_git_mutates(sub, args):
-            deny(f"real-device-tester never changes git state (`git {sub}`); read-only git only (rule 70).")
-
-def resolve(p):
-    return os.path.realpath(os.path.join(cwd, os.path.expanduser(p)))
-
-def inside(path, root):
-    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
-
-def in_scratch(path):
-    parts = path.split(os.sep)
-    for prefix in (["", "private", "tmp"], ["", "tmp"]):
-        n = len(prefix)
-        if parts[:n] == prefix and len(parts) > n + 1 and parts[n].startswith("claude-"):
-            return True
-    return False
-
-def tester_write(p):
-    report = os.environ.get("MDPRO_REPORT_DIR") or os.path.join(os.path.expanduser("~"), ".mdpro-redesign", "dtrack")
-    report_real = os.path.realpath(report)
-    if p and (inside(resolve(p), report_real) or in_scratch(resolve(p))):
-        return
-    deny(f"real-device-tester writes only under {report} or the session scratch /tmp/claude-*; got {p or '(no path)'}.")
+def load_tester(what):
+    """D186 tester checks, imported lazily; a missing or broken module refuses the call (fail closed)."""
+    try:
+        import role_guard_tester
+        return role_guard_tester
+    except BaseException:  # incl. SystemExit from a module that exits on import
+        deny(f"role-guard: tester module missing or broken, refusing {what}; fix .claude/hooks/role_guard_tester.py, "
+             "role_guard_tester_opts.py, role_guard_opts.py or role_guard_shell.py")
 
 # ---- dispatch ------------------------------------------------------------
 
+def check_call():
+    if role == "implementor":
+        if tool == "AskUserQuestion":
+            deny("implementors do not ask the user; send the question to mdpro-delegator by SendMessage (rule 70).")
+        if tool == "Bash" and cmd:
+            implementor_bash(cmd)
+    elif role == "real-device-tester":
+        msg = None
+        if tool == "Bash" and cmd:
+            msg = load_tester(cmd).tester_bash(cmd, cwd)
+        elif tool in ("Write", "Edit", "NotebookEdit"):
+            p = tin.get("notebook_path") if tool == "NotebookEdit" else tin.get("file_path")
+            msg = load_tester(f"{tool} {p or '(no path)'}").tester_write(p, cwd)
+        if msg:
+            deny(msg)
+
 cmd = tin.get("command") or ""
-if role == "implementor":
-    if tool == "AskUserQuestion":
-        deny("implementors do not ask the user; send the question to mdpro-delegator by SendMessage (rule 70).")
-    if tool == "Bash" and cmd:
-        implementor_bash(cmd)
-elif role == "real-device-tester":
-    if tool == "Bash" and cmd:
-        tester_bash(cmd)
-    elif tool in ("Write", "Edit", "NotebookEdit"):
-        tester_write(tin.get("notebook_path") if tool == "NotebookEdit" else tin.get("file_path"))
+try:
+    check_call()
+except Exception as e:  # audit b93 H4: a crash exits 1, which Claude Code lets through; deny() is SystemExit
+    what = " ".join(str(cmd or tool).split())[:120]
+    deny(f"role-guard: internal error ({type(e).__name__}) while checking {what}; refusing")
 sys.exit(0)
 PY
