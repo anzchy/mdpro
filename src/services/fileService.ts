@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Document } from "../types/document";
+import { noteHold } from "../utils/watchHoldLedger";
 
 export interface Draft {
   id: string;
@@ -17,6 +18,8 @@ export interface OpenFileResult {
    * check failed open; the document may not hold what is on disk (ADR-0081).
    */
   changedSinceRead: boolean;
+  /** D173: the gen of the watch hold this open confirmed for this window; 0 = none. */
+  holdGen?: number;
 }
 
 export interface SaveResult {
@@ -33,6 +36,8 @@ export interface SaveResult {
    * sent while it has a pending external change): nothing was written, `success` is false.
    */
   blockedByPendingChange?: boolean;
+  /** D173: Save As only. The gen of the watch hold on `path` for this window; 0 = none. */
+  holdGen?: number;
 }
 
 export interface CloseResult {
@@ -46,13 +51,22 @@ export interface FileModifiedResult {
   currentMtime: number;
 }
 
+/**
+ * D173: every acquisition reply's `holdGen` goes into this window's ledger as soon as it
+ * arrives, whether or not the caller then commits a document, so the window can later
+ * release that hold with the latest gen (`utils/watchHolds.ts`).
+ */
 export const fileService = {
   async openFile(path: string, encoding?: string, actionId?: string): Promise<OpenFileResult> {
-    return invoke("open_file", { path, encoding, actionId });
+    const result = await invoke<OpenFileResult>("open_file", { path, encoding, actionId });
+    noteHold(path, result?.holdGen); // Rust holds the string it was sent
+    return result;
   },
 
   async openFileDialog(actionId?: string): Promise<OpenFileResult | null> {
-    return invoke("open_file_dialog", { actionId });
+    const result = await invoke<OpenFileResult | null>("open_file_dialog", { actionId });
+    noteHold(result?.document?.path, result?.holdGen);
+    return result;
   },
 
   async createDocument(): Promise<Document> {
@@ -92,7 +106,7 @@ export const fileService = {
     refusePath?: string | null;
   }): Promise<SaveResult | null> {
     const { documentId, content, suggestedName, encoding, lineEnding, actionId, refusePath } = options;
-    return invoke("save_file_dialog", {
+    const result = await invoke<SaveResult | null>("save_file_dialog", {
       documentId,
       content,
       suggestedName,
@@ -101,10 +115,22 @@ export const fileService = {
       actionId,
       refusePath: refusePath ?? null,
     });
+    noteHold(result?.path, result?.holdGen);
+    return result;
   },
 
-  async closeDocument(documentId: string, discardChanges: boolean, path?: string | null): Promise<CloseResult> {
-    return invoke("close_document", { documentId, discardChanges, path: path ?? null });
+  /** D173: no path; closing a document no longer unwatches (see `releaseWatchHold`). */
+  async closeDocument(documentId: string, discardChanges: boolean): Promise<CloseResult> {
+    return invoke("close_document", { documentId, discardChanges });
+  },
+
+  /**
+   * D173: give up this window's watch hold on `path` at `gen` (the latest `holdGen` seen).
+   * Resolves to Rust's outcome (`stale` / `keptRaw` / `unclaimedRaw` / `backendReleased`
+   * / `notHeld`); rejects on an invalid request.
+   */
+  async releaseWatchHold(path: string, gen: number): Promise<string> {
+    return invoke("release_watch_hold", { path, gen });
   },
 
   async checkFileModified(path: string): Promise<FileModifiedResult> {

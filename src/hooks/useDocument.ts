@@ -247,7 +247,7 @@ export function useDocument() {
   const closeActiveDocument = useCallback(
     async (discardChanges: boolean) => {
       if (!activeDocument) return null;
-      await fileService.closeDocument(activeDocument.id, discardChanges, activeDocument.path);
+      await fileService.closeDocument(activeDocument.id, discardChanges);
       // WI-3.5.5 eviction: close→reopen returns the same path-derived id.
       useTOCStore.getState().resetCoordination(activeDocument.id);
       useDocumentStore.getState().closeDocument(activeDocument.id);
@@ -260,8 +260,7 @@ export function useDocument() {
 
   const closeDocumentById = useCallback(
     async (id: string, discardChanges: boolean) => {
-      const doc = useDocumentStore.getState().documents.find((d) => d.id === id);
-      await fileService.closeDocument(id, discardChanges, doc?.path);
+      await fileService.closeDocument(id, discardChanges); // D173: holds go via watchHolds
       // WI-3.5.5 eviction: the tab-bar X, which never reaches closeActiveDocument.
       useTOCStore.getState().resetCoordination(id);
       useDocumentStore.getState().closeDocument(id);

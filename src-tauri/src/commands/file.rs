@@ -47,6 +47,10 @@ pub struct OpenFileResult {
     /// registration (or the check failed open), so the document may not hold
     /// what is on disk (`FileWatcher::watch_seeded`, ADR-0081).
     pub changed_since_read: bool,
+    /// D173: the gen of the watch hold this reply's acquisition confirmed;
+    /// 0 when it took none (refused, fenced, failed). Gen 0 is never issued.
+    #[serde(default)]
+    pub hold_gen: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,6 +66,10 @@ pub struct SaveResult {
     /// it has an unresolved external change, so nothing was written
     /// (`success` is `false`). Always `false` from `save_file`.
     pub blocked_by_pending_change: bool,
+    /// D173: the gen of the watch hold this reply's acquisition confirmed;
+    /// 0 when it took none (refused, fenced, failed). Gen 0 is never issued.
+    #[serde(default)]
+    pub hold_gen: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -238,6 +246,7 @@ pub(crate) fn decode_opened(
         document,
         recovered_draft: None,
         changed_since_read: false,
+        hold_gen: 0,
     })
 }
 
@@ -1092,6 +1101,7 @@ mod tests {
 
 #[tauri::command]
 pub async fn open_file(
+    window: Window,
     path: String,
     encoding: Option<String>,
     action_id: Option<String>,
@@ -1121,7 +1131,13 @@ pub async fn open_file(
             Some(file_error_message(err)),
         );
     })?;
-    result.changed_since_read = watcher.watch_seeded(&PathBuf::from(&path), seed).changed();
+    let raw = PathBuf::from(&path);
+    if let Some(hold) = watcher.reserve_hold(window.label(), &raw) {
+        result.changed_since_read = watcher.watch_seeded(&raw, seed).changed();
+        if watcher.confirm_hold(&hold) {
+            result.hold_gen = hold.gen;
+        }
+    }
     log_file_event(
         "file.open",
         LogStatus::Success,
@@ -1145,7 +1161,7 @@ pub fn create_document() -> Result<Document, String> {
 
 #[tauri::command]
 pub async fn open_file_dialog(
-    _window: Window,
+    window: Window,
     watcher: State<'_, FileWatcher>,
     action_id: Option<String>,
 ) -> Result<Option<OpenFileResult>, FileError> {
@@ -1197,9 +1213,13 @@ pub async fn open_file_dialog(
             Some(file_error_message(err)),
         );
     })?;
-    result.changed_since_read = watcher
-        .watch_seeded(&PathBuf::from(&path_string), seed)
-        .changed();
+    let raw = PathBuf::from(&path_string);
+    if let Some(hold) = watcher.reserve_hold(window.label(), &raw) {
+        result.changed_since_read = watcher.watch_seeded(&raw, seed).changed();
+        if watcher.confirm_hold(&hold) {
+            result.hold_gen = hold.gen;
+        }
+    }
     log_file_event(
         "file.open",
         LogStatus::Success,
@@ -1411,6 +1431,7 @@ pub(crate) async fn save_file_written(
         saved_at: chrono::Utc::now().timestamp_millis(),
         changed_since_read: false,
         blocked_by_pending_change: false,
+        hold_gen: 0,
     };
     Ok((result, bytes))
 }
@@ -1422,10 +1443,13 @@ pub(crate) async fn save_file_written(
 /// `refuse_path` (D111-WI-1) is the document's own path, sent only while it
 /// has an unresolved external change: a pick of that path writes nothing and
 /// returns `blocked_by_pending_change` (`save_as_watch::refused_save_as`).
+/// D173: a save that is not refused reserves this window's hold on the
+/// picked path first, confirms it after the register (reply `hold_gen`), and
+/// releases it if the save fails.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn save_file_dialog(
-    _window: Window,
+    window: Window,
     document_id: String,
     content: String,
     suggested_name: Option<String>,
@@ -1458,7 +1482,9 @@ pub async fn save_file_dialog(
     if let Some(blocked) = refused_save_as(&picked, refuse_path.as_deref(), Some(&action_id)) {
         return Ok(Some(blocked));
     }
-    save_as_watched_with(
+    let raw = PathBuf::from(&picked);
+    let hold = watcher.reserve_hold(window.label(), &raw);
+    let saved = save_as_watched_with(
         document_id,
         content,
         picked,
@@ -1467,8 +1493,22 @@ pub async fn save_file_dialog(
         Some(action_id),
         &watcher,
     )
-    .await
-    .map(Some)
+    .await;
+    let Some(hold) = hold else {
+        return saved.map(Some);
+    };
+    match saved {
+        Ok(mut result) => {
+            if watcher.confirm_hold(&hold) {
+                result.hold_gen = hold.gen;
+            }
+            Ok(Some(result))
+        }
+        Err(err) => {
+            watcher.release_hold(window.label(), &raw, hold.gen);
+            Err(err)
+        }
+    }
 }
 
 /// Delete the draft for `document_id` and return the close result.
@@ -1494,22 +1534,19 @@ fn discard_and_close(document_id: &str) -> CloseResult {
     }
 }
 
+/// Close a document: delete its draft and drop it from the shadow store.
+/// D173: it no longer unwatches; the window releases its watch hold through
+/// `release_watch_hold` once no document in it holds the path.
 #[tauri::command]
 pub async fn close_document(
     document_id: String,
     discard_changes: bool,
-    path: Option<String>,
-    watcher: State<'_, FileWatcher>,
     shadow: State<'_, SharedShadowStore>,
 ) -> Result<CloseResult, FileError> {
     if !discard_changes {
         return Err(FileError::IoError {
             message: format!("Document {document_id} has unsaved changes"),
         });
-    }
-
-    if let Some(ref p) = path {
-        watcher.unwatch(&PathBuf::from(p));
     }
 
     let _ = shadow_store::remove_document(&shadow, &document_id);

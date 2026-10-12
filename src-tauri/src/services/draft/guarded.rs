@@ -138,6 +138,7 @@ fn recover_locked(
             content: bundle.content,
             original_path: bundle.original_path,
             title: bundle.title,
+            hold_gen: 0,
         });
     }
 

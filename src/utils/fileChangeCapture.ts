@@ -26,17 +26,22 @@
  * - **Bounded**: at most `MAX_HELD` events per capture, oldest dropped first; a slot
  *   keeps only the latest change anyway.
  * - `settle` is idempotent, so a `finally` may call it after a success path did.
+ * - D173: a capture also reserves its path's watch hold (`reserveWatchHold`; null: every
+ *   path), so the window releases nothing the open or Save As may still commit; `settle`
+ *   ends the reservation and runs the release check, committed or not.
  *
  * @coordinates-with src/hooks/useFileWatcher.ts — calls `captureUnmatched`
  * @coordinates-with src/stores/externalChangeStore.ts — `recordFileChange`, `recordOpenDivergence`
  * @coordinates-with src/hooks/useDocument.ts — the three open entry points
  * @coordinates-with src/services/documentSave.ts — Save As (`saveAsCommitTarget`)
+ * @coordinates-with src/utils/watchHolds.ts — `reserveWatchHold`
  * @module utils/fileChangeCapture
  */
 import { useDocumentStore } from "../stores/documentStore";
 import { recordFileChange, recordOpenDivergence } from "../stores/externalChangeStore";
 import type { FileChangedEvent } from "../types/fileChange";
 import type { OpenWriteResult } from "./openWriteGuard";
+import { reserveWatchHold } from "./watchHolds";
 
 /** Events held per capture before the oldest is dropped. */
 export const MAX_HELD = 32;
@@ -71,6 +76,7 @@ export function beginCapture(path: string | null): FileChangeCapture {
   nextId += 1;
   const id = nextId;
   captures.set(id, { path, events: [] });
+  const endReservation = reserveWatchHold(path);
   return {
     settleOpen(outcome, changedSinceRead, actionId) {
       this.settle(openCommitTarget(outcome), changedSinceRead, actionId);
@@ -80,11 +86,13 @@ export function beginCapture(path: string | null): FileChangeCapture {
       const held = captures.get(id);
       if (!held) return;
       captures.delete(id);
-      if (!target) return;
-      if (changedSinceRead) recordOpenDivergence(target.documentId, actionId);
-      for (const { event, actionId: receipt } of held.events) {
-        if (target.path !== null && event.path === target.path) recordFileChange(event, receipt);
+      if (target) {
+        if (changedSinceRead) recordOpenDivergence(target.documentId, actionId);
+        for (const { event, actionId: receipt } of held.events) {
+          if (target.path !== null && event.path === target.path) recordFileChange(event, receipt);
+        }
       }
+      endReservation();
     },
   };
 }

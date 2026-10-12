@@ -12,11 +12,14 @@
  * Key decisions:
  * - Saves keep calling the unguarded `delete_draft` (saveService); this module never does.
  * - Logs carry the outcome enum only — no document id, path, title or error text.
+ * - D173: a recover's `holdGen` goes into the window's watch-hold ledger; with no
+ *   reservation it is checked only when a document on that path goes away.
  *
  * @coordinates-with src/utils/draftRecoveryOutcome.ts — maps outcomes to dialog effects
  * @coordinates-with src-tauri/src/commands/draft_recovery.rs — the guarded commands
  */
 import { invoke } from "@tauri-apps/api/core";
+import { noteHold } from "../utils/watchHoldLedger";
 import { loggingService } from "./loggingService";
 
 export interface DraftMetadata {
@@ -31,6 +34,8 @@ export interface RecoverResult {
   content: string;
   originalPath: string | null;
   title: string;
+  /** D173: the gen of the watch hold on `originalPath` for this window; 0 = none. */
+  holdGen?: number;
 }
 
 export type GoneReason = "in_use" | "not_found";
@@ -80,6 +85,7 @@ export async function recoverDraft(documentId: string): Promise<RecoverOutcome> 
   let outcome: RecoverOutcome;
   try {
     const result = await invoke<RecoverResult>("recover_draft", { documentId });
+    noteHold(result?.originalPath, result?.holdGen); // D173: released when its tab goes
     outcome = { kind: "ok", result };
   } catch (error: unknown) {
     outcome = classifyDraftError(error);

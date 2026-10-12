@@ -41,7 +41,31 @@ impl FileWatcher {
             watcher: Mutex::new(watcher),
             watched_paths: Arc::new(Mutex::new(Vec::new())),
             baselines: Arc::new(BaselineStore::default()),
+            holders: Default::default(),
         }
+    }
+
+    /// `for_tests`, but the real notify watcher sends every event it
+    /// delivers to the returned receiver (D173 live tests: the callback is
+    /// observed, not just the list and the baseline).
+    pub(crate) fn for_tests_recording() -> (Self, std::sync::mpsc::Receiver<Event>) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let watcher = RecommendedWatcher::new(
+            move |res: notify::Result<Event>| {
+                if let Ok(event) = res {
+                    let _ = tx.send(event);
+                }
+            },
+            Config::default(),
+        )
+        .expect("create a real notify watcher");
+        let fw = Self {
+            watcher: Mutex::new(watcher),
+            watched_paths: Arc::new(Mutex::new(Vec::new())),
+            baselines: Arc::new(BaselineStore::default()),
+            holders: Default::default(),
+        };
+        (fw, rx)
     }
 
     /// A copy of the watch list, in registration order.

@@ -8,14 +8,19 @@
 //!
 //! Pipeline: `recover_draft` (command) → [`recover_draft_watched_with`] →
 //! `recover_draft_logged_with` (gate → `DRAFT_LOCK` → recovery) → on `Ok`
-//! with a path: `validate_file_path` + absolute check → `FileWatcher::watch`.
+//! with a path: `validate_file_path` + absolute check → `reserve_hold` for
+//! the caller's window → `FileWatcher::watch` → `confirm_hold`, whose gen
+//! goes back as `RecoverResult.hold_gen` (D173).
 //!
 //! Key decisions:
 //! - The watch is registered only after `recover_draft_logged_with` has
 //!   returned, so the quit gate and `DRAFT_LOCK` are already released and
 //!   the watcher mutex is never taken under either.
 //! - The path registered is the exact stored string — no canonicalisation —
-//!   so the later `close_document` unwatch of the same string removes it.
+//!   and the hold is keyed by it and the caller's window label (D173), so
+//!   that window's `release_watch_hold` of the same string, or its
+//!   destruction, releases it and another window's does not. A fenced
+//!   (destroyed) caller registers nothing; `hold_gen` 0 means no hold.
 //! - A stored path that `open_file` would refuse (traversal, wrong extension)
 //!   or a relative path is not watched. It logs one warn `cancel` line for
 //!   `file.watch.register` with context `{source, reason}` only: the path is
@@ -24,6 +29,8 @@
 //!   and the recover result is returned unchanged in every case.
 //!
 //! @coordinates-with commands/draft_recovery.rs — `recover_draft` calls this seam
+//! @coordinates-with services/file_watcher_holders.rs — `reserve_hold` /
+//!   `confirm_hold` around the register (D173)
 //! @coordinates-with services/file_watcher.rs — `watch` (never `watch_seeded`),
 //!   its register log, and the D32 snapshot baseline it records for the
 //!   recovered path (ADR-0068 decision 4)
@@ -44,8 +51,9 @@ use super::file::validate_file_path;
 const WATCH_REGISTER_EVENT: &str = "file.watch.register";
 
 /// Recover `document_id`, then watch its stored `original_path` if it is one
-/// `open_file` would accept and is absolute. Returns the recover result
-/// unchanged; the watch never turns a successful recover into an error.
+/// `open_file` would accept and is absolute, held for `caller`'s window.
+/// Returns the recover result with `hold_gen` set (0 when no hold was
+/// taken); the watch never turns a successful recover into an error.
 pub(crate) fn recover_draft_watched_with(
     gate: &DraftGate,
     document_id: &str,
@@ -53,18 +61,28 @@ pub(crate) fn recover_draft_watched_with(
     make_ctx: impl FnOnce() -> LiveContext,
     watcher: &FileWatcher,
 ) -> Result<RecoverResult, DraftError> {
-    let result = recover_draft_logged_with(gate, document_id, caller, make_ctx)?;
+    let mut result = recover_draft_logged_with(gate, document_id, caller, make_ctx)?;
     if let Some(path) = result.original_path.as_deref() {
-        watch_recovered(path, watcher);
+        result.hold_gen = watch_recovered(path, &caller.window_label, watcher);
     }
     Ok(result)
 }
 
-fn watch_recovered(path: &str, watcher: &FileWatcher) {
+/// Reserve, register and confirm `path` for window `label`; the confirmed
+/// gen, or 0 when the path is refused, the window is fenced, or the hold
+/// was lost during the register.
+fn watch_recovered(path: &str, label: &str, watcher: &FileWatcher) -> u64 {
     let p = Path::new(path);
     if validate_file_path(path).is_ok() && p.is_absolute() {
+        let Some(hold) = watcher.reserve_hold(label, p) else {
+            return 0;
+        };
         watcher.watch(p);
-        return;
+        return if watcher.confirm_hold(&hold) {
+            hold.gen
+        } else {
+            0
+        };
     }
     logger::log_event(LogEntryPayload {
         level: LogLevel::Warn,
@@ -75,4 +93,5 @@ fn watch_recovered(path: &str, watcher: &FileWatcher) {
         duration_ms: None,
         error: None,
     });
+    0
 }

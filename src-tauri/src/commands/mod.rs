@@ -15,6 +15,7 @@ pub mod quit_guard;
 pub mod save_as_watch;
 pub mod toc;
 pub mod updater;
+pub mod watch_hold;
 pub mod window;
 pub mod window_state;
 
@@ -32,6 +33,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         file::close_document,
         file::check_file_modified,
         file::reload_file,
+        watch_hold::release_watch_hold,
         logging::log_event,
         logging::get_logging_settings,
         logging::set_logging_settings,
@@ -160,3 +162,20 @@ mod file_open_seed_wiring_tests;
 #[cfg(test)]
 #[path = "file_open_changed_tests.rs"]
 mod file_open_changed_tests;
+
+// D173-WI-1: the window holds on watched paths.
+#[cfg(test)]
+#[path = "file_holder_wiring_tests.rs"]
+// D173-WI-1-rust: recorded red spec, bytes are the receipt's evidence
+#[rustfmt::skip]
+mod file_holder_wiring_tests;
+
+#[cfg(test)]
+#[path = "hold_gen_reply_tests.rs"]
+mod hold_gen_reply_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_hold_tests.rs"]
+// D173-WI-1-rust: recorded red spec, bytes are the receipt's evidence
+#[rustfmt::skip]
+mod draft_recover_hold_tests;

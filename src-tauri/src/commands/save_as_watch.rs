@@ -28,10 +28,12 @@
 //!   is stored as `None` (fail open, D129).
 //! - **The registered string is `SaveResult.path`**, the dialog's path as
 //!   given, with no canonicalisation: it is what the frontend stores as the
-//!   document path and later hands to `close_document`'s `unwatch`, like the
-//!   string `open_file` registers. (The baseline key is canonicalised inside
-//!   the store either way.)
-//! - **The old path is not unwatched.** Another tab may hold it.
+//!   document path and the string `save_file_dialog` holds for the window
+//!   (D173), like the string `open_file` registers. (The baseline key is
+//!   canonicalised inside the store either way.)
+//! - **The old path is not unwatched here.** Another tab may hold it; the
+//!   frontend releases the window's hold on it once no document in the
+//!   window holds it (`release_watch_hold`, D173).
 //! - **Refuse only the own file** (D111-WI-1). The frontend sends
 //!   `refuse_path` (the document's path) only while the document has a
 //!   pending external change; the picked path is refused when it is the
@@ -52,6 +54,8 @@
 //!   `SeedCheck`
 //! @coordinates-with services/file_watcher_baseline_seed.rs — `seed_for_written`
 //! @coordinates-with commands/draft_recover_watch.rs — the D59 sibling seam
+//! @coordinates-with services/file_watcher_holders.rs — `save_file_dialog`
+//!   reserves the hold before this seam and confirms or releases it after
 
 use crate::services::file_watcher::seed::seed_for_written;
 use crate::services::file_watcher::FileWatcher;
@@ -155,6 +159,7 @@ pub(crate) fn refused_save_as(
         saved_at: 0,
         changed_since_read: false,
         blocked_by_pending_change: true,
+        hold_gen: 0,
     })
 }
 

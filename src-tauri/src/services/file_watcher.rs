@@ -9,8 +9,13 @@
 //! test-only `process_event` drops its `UnchangedCheck`),
 //! file_watcher_gate.rs, file_watcher_outcome.rs, file_watcher_baseline.rs,
 //! file_watcher_seed.rs, file_watcher_log.rs (all mounted here with `#[path]`),
-//! commands/file.rs (`watch_seeded`, `mark_write_*`, the baseline refresh),
-//! commands/save_as_watch.rs (`watch_seeded` for a Save As target, D69)
+//! file_watcher_holders.rs (D173: who holds each path, per window and per
+//! canonical group; production releases through it and no longer calls
+//! `unwatch` directly), commands/file.rs (`reserve_hold` / `watch_seeded` /
+//! `confirm_hold`, `mark_write_*`, the baseline refresh),
+//! commands/save_as_watch.rs (`watch_seeded` for a Save As target, D69),
+//! commands/watch_hold.rs (`release_watch_hold`), main.rs (`release_window`
+//! on `WindowEvent::Destroyed`)
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -51,6 +56,10 @@ mod baseline;
 #[path = "file_watcher_seed.rs"]
 pub(crate) mod seed;
 
+#[path = "file_watcher_holders.rs"]
+pub mod holders;
+use holders::Holders;
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileChangedEvent {
@@ -71,6 +80,8 @@ pub struct FileWatcher {
     watched_paths: Arc<Mutex<Vec<String>>>,
     /// D32 baselines (ADR-0068), the same `Arc` the notify callback holds.
     baselines: Arc<BaselineStore>,
+    /// D173: who holds each watched path, per window and canonical group.
+    holders: Holders,
 }
 
 impl FileWatcher {
@@ -94,6 +105,7 @@ impl FileWatcher {
             watcher,
             watched_paths,
             baselines,
+            holders: Holders::default(),
         })
     }
 

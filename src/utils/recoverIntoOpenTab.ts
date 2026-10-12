@@ -29,8 +29,9 @@
  * - The merged tab keeps its path, encoding, line ending, saved time and size: a draft
  *   carries only content, path and title (`RecoverResult`), so the file's encoding is
  *   the open tab's, not the UTF-8 / LF `draftRecoveryOutcome` assumes.
- * - The match is the exact path string, the same string `recover_draft` watched (D59),
- *   so the one watch per path is what `close_document` of that tab unwatches.
+ * - The match is the exact path string, the same string `recover_draft` watched (D59)
+ *   and held for this window (D173), so the window's one hold on that path is what
+ *   `watchHolds` releases once no tab here holds it, with the recover's newer gen.
  *   `FileWatcher::watch` on a watched path is a set insert (`alreadyWatched`), not a
  *   second registration; it re-snapshots the baseline, as recovery always does
  *   (ADR-0068 decision 4).

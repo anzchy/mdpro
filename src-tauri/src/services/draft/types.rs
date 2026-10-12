@@ -82,6 +82,10 @@ pub struct RecoverResult {
     pub content: String,
     pub original_path: Option<String>,
     pub title: String,
+    /// D173: the gen of the watch hold this reply's acquisition confirmed;
+    /// 0 when it took none (refused, fenced, failed). Gen 0 is never issued.
+    #[serde(default)]
+    pub hold_gen: u64,
 }
 
 /// Who is using a draft: the launch that wrote it and the window in it

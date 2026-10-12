@@ -74,6 +74,7 @@ pub(super) fn recover_draft(document_id: &str) -> Result<RecoverResult, DraftErr
         content,
         original_path,
         title,
+        hold_gen: 0,
     })
 }
 

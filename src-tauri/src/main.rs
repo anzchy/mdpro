@@ -14,6 +14,7 @@ use tauri_app_lib::models::{
 };
 #[cfg(target_os = "macos")]
 use tauri_app_lib::services::app_exit;
+use tauri_app_lib::services::file_watcher::{self, FileWatcher};
 use tauri_app_lib::services::mcp_confirm::{
     self,
     effects::{AppConfirmBroker, TauriConfirmEffects},
@@ -115,9 +116,8 @@ fn main() {
             // publish_or_exit prints its own line and exits 78.
             #[cfg(feature = "verify-run")]
             tauri_app_lib::services::verify_run::publish_or_exit(&verified_run, BUILD_ID_RAW);
-            let watcher =
-                tauri_app_lib::services::file_watcher::FileWatcher::new(app.handle().clone())
-                    .map_err(Box::<dyn std::error::Error>::from)?;
+            let watcher = FileWatcher::new(app.handle().clone())
+                .map_err(Box::<dyn std::error::Error>::from)?;
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
 
@@ -313,10 +313,7 @@ fn main() {
             }
             match event {
                 WindowEvent::ThemeChanged(theme) => {
-                    tauri_app_lib::services::file_watcher::emit_theme_changed(
-                        window.app_handle(),
-                        theme,
-                    );
+                    file_watcher::emit_theme_changed(window.app_handle(), theme);
                 }
                 WindowEvent::Focused(is_focused) => {
                     let event_name = if *is_focused {
@@ -401,6 +398,14 @@ fn main() {
                             }
                         }
                     });
+                }
+                WindowEvent::Destroyed => {
+                    // D173: the window's watch holds go with it (never on
+                    // the vetoable CloseRequested), and its label is fenced
+                    // so a late open, Save As or recover cannot hold again.
+                    if let Some(watcher) = window.try_state::<FileWatcher>() {
+                        watcher.release_window(window.label());
+                    }
                 }
                 _ => {}
             }
