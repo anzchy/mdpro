@@ -1,10 +1,10 @@
 # 0086. A save tells every other holder of the file, and the watch is owned per canonical group
 
-**Status**: Proposed (2026-10-12, mdpro-a6, for D173). The user chose 「Let Codex
+**Status**: Accepted (2026-10-12, landed with D173 commit 1 `8b57388`; decided by mdpro-delegator on the plan r2 the user had sent to Codex: 「Let Codex weigh in — deliberate, then recommend」). Proposed earlier the same day (mdpro-a6, for D173). The user chose 「Let Codex
 weigh in — deliberate, then recommend」; Codex's plan review
 (`~/.mdpro-redesign/reviews/d173-codex-review-20261012.md`) said NEEDS REVISION,
-2 BLOCK + 8 MUST, resolved in plan r2, which mdpro-delegator approved. Accepted
-when D173's commit 1 lands. It then partially supersedes
+2 BLOCK + 8 MUST, resolved in plan r2, which mdpro-delegator approved; accepted
+when D173's commit 1 landed. It then partially supersedes
 [ADR-0068](0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md)
 decision 4 ("`unwatch`, which removes it", now only when the canonical group
 empties) and decision 7 ("No IPC change"; "The `file:changed` payload is
