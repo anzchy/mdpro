@@ -10,6 +10,10 @@
 # Output:
 #   src-tauri/target/release/bundle/dmg/mdpro_<version>_aarch64.dmg
 #   src-tauri/target/release/bundle/macos/mdpro.app
+#
+# Exits non-zero if `pnpm tauri build` fails, or if no DMG for this version was
+# written by this run (a DMG left by an earlier build is rejected as stale,
+# never deleted) — D182.
 
 set -euo pipefail
 
@@ -82,16 +86,37 @@ ok "Rust compiles cleanly"
 # ── Tauri build ───────────────────────────────────────────────────────────────
 step "Building mdpro.app (this takes a few minutes)"
 dim "pnpm tauri build  →  tsc + vite build + cargo release + bundle"
-pnpm tauri build 2>&1 | grep -v "^$" | grep -v "warning\[" || true
+# Marker older than anything this build writes: the DMG must be newer than it,
+# so a DMG left by an earlier build cannot pass as this run's output.
+BUILD_MARKER=$(mktemp "${TMPDIR:-/tmp}/mdpro-build-mac.XXXXXX")
+trap 'rm -f "$BUILD_MARKER"' EXIT
+
+# The greps only drop blank lines and warning[ lines. Read each status from
+# PIPESTATUS: tauri's decides success, and grep exiting 1 (every line filtered
+# out) is not a failure.
+set +e
+pnpm tauri build 2>&1 | grep -v "^$" | grep -v "warning\["
+BUILD_STATUS=("${PIPESTATUS[@]}")
+set -e
+[ "${BUILD_STATUS[0]}" -eq 0 ] || fail "pnpm tauri build failed (exit ${BUILD_STATUS[0]}) — check build output above"
+for GREP_STATUS in "${BUILD_STATUS[1]}" "${BUILD_STATUS[2]}"; do
+  [ "$GREP_STATUS" -le 1 ] || fail "build output filter failed (grep exit $GREP_STATUS)"
+done
 
 # ── Locate output ─────────────────────────────────────────────────────────────
 DMG_DIR="$ROOT/src-tauri/target/release/bundle/dmg"
 APP_DIR="$ROOT/src-tauri/target/release/bundle/macos"
 
-DMG=$(find "$DMG_DIR" -name "mdpro_${VERSION}_*.dmg" | head -1)
+[ -d "$DMG_DIR" ] || fail "DMG not found: $DMG_DIR does not exist — check build output above"
+DMG=$(find "$DMG_DIR" -name "mdpro_${VERSION}_*.dmg" -newer "$BUILD_MARKER" | head -1)
 APP="$APP_DIR/mdpro.app"
 
-[ -f "$DMG" ] || fail "DMG not found at $DMG_DIR — check build output above"
+if [ ! -f "$DMG" ]; then
+  if [ -n "$(find "$DMG_DIR" -name "mdpro_${VERSION}_*.dmg" | head -1)" ]; then
+    fail "DMG for v$VERSION in $DMG_DIR is stale — not produced by this build"
+  fi
+  fail "DMG not found at $DMG_DIR — check build output above"
+fi
 [ -d "$APP" ] || fail "mdpro.app not found at $APP_DIR"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
