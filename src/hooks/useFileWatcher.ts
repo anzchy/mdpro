@@ -9,13 +9,16 @@
  * @coordinates-with src/stores/externalChangeStore.ts — the per-document records.
  * @coordinates-with src/hooks/usePresentedFileChange.ts — the 300 ms presentation
  *   debounce and the `delivered` line.
+ * @coordinates-with src/utils/fileChangeCapture.ts — holds unmatched events for an
+ *   open or Save As in flight (D111).
  * @coordinates-with src/utils/fileChangeLog.ts — builds the `file.change.received`
  *   line (D32 diagnostics).
  *
  * Pipeline: file:changed -> recordFileChange (immediately, every matching open
  *   document) -> usePresentedFileChange(active document) -> `change` / `event`. Every
  *   event logs one `file.change.received` line: `other-path` (no open document has
- *   that path; dropped), `scheduled` (recorded, the active document among them) or
+ *   that path; dropped), `captured` (no open document has it yet, held for an open or
+ *   Save As in flight, `utils/fileChangeCapture.ts`, D111), `scheduled` (recorded, the active document among them) or
  *   `recorded` (recorded for background documents only); `delivered` when presented.
  *
  * Key decisions:
@@ -47,15 +50,23 @@ import {
   resetFileChanges,
 } from "../stores/externalChangeStore";
 import type { FileChangedEvent, PendingFileChange } from "../types/fileChange";
+import { captureUnmatched } from "../utils/fileChangeCapture";
 import { logFileChangeReceived, usePresentedFileChange } from "./usePresentedFileChange";
 
 export type { FileChangedEvent } from "../types/fileChange";
 
-/** Record one event and log what the receipt did. */
+/** Record one event (or hold it for an open in flight, D111) and log what the receipt did. */
 function receive(event: FileChangedEvent): void {
   const actionId = loggingService.generateActionId();
   const { documentIds, activeRecorded } = recordFileChange(event, actionId);
-  const outcome = documentIds.length === 0 ? "other-path" : activeRecorded ? "scheduled" : "recorded";
+  const outcome =
+    documentIds.length > 0
+      ? activeRecorded
+        ? "scheduled"
+        : "recorded"
+      : captureUnmatched(event, actionId)
+        ? "captured"
+        : "other-path";
   logFileChangeReceived(event, outcome, actionId);
 }
 

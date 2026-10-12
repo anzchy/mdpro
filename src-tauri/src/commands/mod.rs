@@ -155,3 +155,8 @@ mod file_open_seed_watch_tests;
 #[cfg(test)]
 #[path = "file_open_seed_wiring_tests.rs"]
 mod file_open_seed_wiring_tests;
+
+// D111-WI-3: the open replies carry the seed check (`changedSinceRead`).
+#[cfg(test)]
+#[path = "file_open_changed_tests.rs"]
+mod file_open_changed_tests;

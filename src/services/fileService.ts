@@ -12,12 +12,27 @@ export interface Draft {
 export interface OpenFileResult {
   document: Document;
   recoveredDraft: Draft | null;
+  /**
+   * D111: the file changed between the open's read and the watch registration, or the
+   * check failed open; the document may not hold what is on disk (ADR-0081).
+   */
+  changedSinceRead: boolean;
 }
 
 export interface SaveResult {
   success: boolean;
   path: string;
   savedAt: number;
+  /**
+   * D111: Save As only. The target changed between the write and the watch registration,
+   * or the check failed open. Rust always sends it (optional so pre-D111 fixtures stay valid).
+   */
+  changedSinceRead?: boolean;
+  /**
+   * D111-WI-1: Save As only. The dialog picked `refusePath` (the document's own file,
+   * sent while it has a pending external change): nothing was written, `success` is false.
+   */
+  blockedByPendingChange?: boolean;
 }
 
 export interface CloseResult {
@@ -73,8 +88,10 @@ export const fileService = {
     encoding?: string;
     lineEnding?: string;
     actionId?: string;
+    /** D111-WI-1: the document's own path while it has a pending external change. */
+    refusePath?: string | null;
   }): Promise<SaveResult | null> {
-    const { documentId, content, suggestedName, encoding, lineEnding, actionId } = options;
+    const { documentId, content, suggestedName, encoding, lineEnding, actionId, refusePath } = options;
     return invoke("save_file_dialog", {
       documentId,
       content,
@@ -82,6 +99,7 @@ export const fileService = {
       encoding,
       lineEnding,
       actionId,
+      refusePath: refusePath ?? null,
     });
   },
 

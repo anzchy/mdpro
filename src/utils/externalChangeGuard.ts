@@ -6,8 +6,10 @@
  *
  * Routes (audited for D171): ⌘S / menu Save → `documentSave.saveDocumentNow`
  * (guarded, also when queued); the relaunch save → `useUpdater.prepareForRelaunch`
- * (guarded, refuses the relaunch). Not guarded: Save As (`save_file_dialog`, the user
- * picks the target), autosave (`save_draft`, never the file), close / window close /
+ * (guarded, refuses the relaunch); Save As (`save_file_dialog`, D111-WI-1) refuses only
+ * when the picked target is the document's own file: the dialog writes in Rust, so the
+ * document's path goes along as `refusePath` (`saveAsRefusePath`) and Rust decides.
+ * Not guarded: autosave (`save_draft`, never the file), close / window close /
  * quit (they discard or draft, ADR-0035, never `save_file`).
  *
  * Key decisions:
@@ -24,7 +26,7 @@
  */
 import { logPending, pendingFileChangeFor } from "../stores/externalChangeStore";
 
-export type GuardedSaveRoute = "save" | "relaunch";
+export type GuardedSaveRoute = "save" | "relaunch" | "save-as";
 
 /** The text a blocked save shows (after "Save failed: " on ⌘S). */
 export const SAVE_BLOCKED_MESSAGE =
@@ -51,4 +53,20 @@ export function saveBlockedByPendingChange(
   if (!slot) return false;
   logPending("save-blocked", documentId, slot.seq, { route }, actionId);
   return true;
+}
+
+/**
+ * D111-WI-1: the path a Save As of `doc` must refuse to write: its own path while it has
+ * an unresolved external change, else null (any target may be written). Also returns the
+ * pending `seq` for the `save-blocked` log line if Rust refuses.
+ */
+export function saveAsRefusePath(doc: { id: string; path: string | null }): { path: string; seq: number } | null {
+  if (!doc.path) return null;
+  const slot = pendingFileChangeFor(doc.id);
+  return slot ? { path: doc.path, seq: slot.seq } : null;
+}
+
+/** D111-WI-1: log a Save As that Rust refused onto the own path (route `save-as`). */
+export function logSaveAsBlocked(documentId: string, seq: number, actionId?: string): void {
+  logPending("save-blocked", documentId, seq, { route: "save-as" satisfies GuardedSaveRoute }, actionId);
 }

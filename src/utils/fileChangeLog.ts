@@ -60,12 +60,15 @@ export interface FileChangeLogEvent {
 
 /**
  * What the `file:changed` listener did with one event (D171): `other-path` — no open
- * document in this window has the path, dropped; `scheduled` — recorded, the active
+ * document in this window has the path, dropped; `captured` (D111) — no open document
+ * has the path yet, but an open or Save As in flight may commit one, so the event is
+ * held for it (`utils/fileChangeCapture.ts`); `scheduled` — recorded, the active
  * document among the owners, its prompt waits out the debounce; `recorded` — recorded
  * for background documents only; `delivered` — a recorded change was presented.
  */
 export type FileChangeReceivedOutcome =
   | "other-path"
+  | "captured"
   | "scheduled"
   | "recorded"
   | "delivered";
@@ -93,6 +96,7 @@ function receivedStatus(outcome: FileChangeReceivedOutcome): LogStatus {
   switch (outcome) {
     case "other-path":
       return "cancel";
+    case "captured":
     case "scheduled":
     case "recorded":
       return "start";

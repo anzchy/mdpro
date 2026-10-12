@@ -14,6 +14,7 @@ import {
   type OpenWriteResult,
 } from "../utils/openWriteGuard";
 import { parseEncodingError, reportOpenFailure } from "../utils/openFailure";
+import { beginCapture } from "../utils/fileChangeCapture";
 
 export { supersedeRetry } from "../utils/openWriteGuard";
 
@@ -81,13 +82,16 @@ export function useDocument() {
   // D95: resolves to `{ document, activated }`, so a caller's follow-up (the default
   // view mode) can skip an open whose activation the D92 guard refused. D126: the one
   // by-path open; the `openDocumentFromPath` wrapper (document only) was removed.
+  // D111: each open settles its in-flight events and flag on the committed doc (fileChangeCapture).
   const openPathOutcome = useCallback(
     async (path: string, actionId?: string): Promise<OpenPathOutcome | null> => {
+      const capture = beginCapture(path);
       try {
         const result = await fileService.openFile(path, undefined, actionId);
         const opened = commitOpenedDocument(result.document, "file-open", { actionId });
-        return withActivation(applyOpened(opened));
+        return withActivation(applyOpened(capture.settleOpen(opened, result.changedSinceRead, actionId)));
       } catch (error) {
+        capture.settle(null);
         const encodingError = parseEncodingError(error);
         if (encodingError) {
           const focused = focusDirtyOpenAt(encodingError.path || path, { actionId });
@@ -124,12 +128,14 @@ export function useDocument() {
   );
 
   const openDocumentFromDialog = useCallback(async (actionId?: string) => {
+    const capture = beginCapture(null); // the dialog picks the path in Rust
     try {
       const result = await fileService.openFileDialog(actionId);
       if (!result) {
         return null;
       }
-      return applyOpened(commitOpenedDocument(result.document, "file-open", { actionId }));
+      const opened = commitOpenedDocument(result.document, "file-open", { actionId });
+      return applyOpened(capture.settleOpen(opened, result.changedSinceRead, actionId));
     } catch (error) {
       const encodingError = parseEncodingError(error);
       if (encodingError) {
@@ -144,6 +150,8 @@ export function useDocument() {
         throw error;
       }
       return null;
+    } finally {
+      capture.settle(null);
     }
   }, [applyOpened]);
 
@@ -162,19 +170,25 @@ export function useDocument() {
       signal?: AbortSignal,
     ): Promise<EncodingReopenResult> => {
       let result: OpenFileResult;
+      const capture = beginCapture(path);
       try {
-        result = await fileService.openFile(path, encoding, actionId);
-      } catch (error) {
+        try {
+          result = await fileService.openFile(path, encoding, actionId);
+        } catch (error) {
+          if (signal?.aborted) return encodingRetryCancelled(actionId);
+          throw error;
+        }
         if (signal?.aborted) return encodingRetryCancelled(actionId);
-        throw error;
+        const committed = commitOpenedDocument(result.document, "encoding-reopen", { actionId });
+        const outcome = capture.settleOpen(committed, result.changedSinceRead, actionId);
+        setEncodingIssue(null);
+        if (outcome.kind === "focused-dirty") {
+          return { kind: "refused-dirty", documentId: outcome.document.id };
+        }
+        return { kind: "opened", document: applyOpened(outcome) };
+      } finally {
+        capture.settle(null);
       }
-      if (signal?.aborted) return encodingRetryCancelled(actionId);
-      const outcome = commitOpenedDocument(result.document, "encoding-reopen", { actionId });
-      setEncodingIssue(null);
-      if (outcome.kind === "focused-dirty") {
-        return { kind: "refused-dirty", documentId: outcome.document.id };
-      }
-      return { kind: "opened", document: applyOpened(outcome) };
     },
     [applyOpened],
   );

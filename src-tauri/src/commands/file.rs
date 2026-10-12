@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
-use super::save_as_watch::save_as_watched_with;
+use super::save_as_watch::{refused_save_as, save_as_watched_with};
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::{
     draft::delete_draft as delete_draft_service,
@@ -43,6 +43,10 @@ pub(crate) fn validate_file_path(path: &str) -> Result<(), FileError> {
 pub struct OpenFileResult {
     pub document: Document,
     pub recovered_draft: Option<Draft>,
+    /// D111: the file changed between the open's read and the watch
+    /// registration (or the check failed open), so the document may not hold
+    /// what is on disk (`FileWatcher::watch_seeded`, ADR-0081).
+    pub changed_since_read: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,6 +55,13 @@ pub struct SaveResult {
     pub success: bool,
     pub path: String,
     pub saved_at: i64,
+    /// D111: Save As only. The target changed between the write and the watch
+    /// registration (or the check failed open). Always `false` from `save_file`.
+    pub changed_since_read: bool,
+    /// D111-WI-1: Save As only. The dialog picked the document's own path while
+    /// it has an unresolved external change, so nothing was written
+    /// (`success` is `false`). Always `false` from `save_file`.
+    pub blocked_by_pending_change: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -121,7 +132,7 @@ fn file_error_message(error: &FileError) -> String {
     }
 }
 
-fn log_file_event(
+pub(crate) fn log_file_event(
     event: &str,
     status: LogStatus,
     level: LogLevel,
@@ -226,6 +237,7 @@ pub(crate) fn decode_opened(
     Ok(OpenFileResult {
         document,
         recovered_draft: None,
+        changed_since_read: false,
     })
 }
 
@@ -1098,7 +1110,7 @@ pub async fn open_file(
         None,
     );
     let path_for_error = path.clone();
-    let (result, seed) = open_file_from_path_seeded(&path, encoding).inspect_err(|err| {
+    let (mut result, seed) = open_file_from_path_seeded(&path, encoding).inspect_err(|err| {
         log_file_event(
             "file.open",
             LogStatus::Fail,
@@ -1109,7 +1121,7 @@ pub async fn open_file(
             Some(file_error_message(err)),
         );
     })?;
-    watcher.watch_seeded(&PathBuf::from(&path), seed);
+    result.changed_since_read = watcher.watch_seeded(&PathBuf::from(&path), seed).changed();
     log_file_event(
         "file.open",
         LogStatus::Success,
@@ -1174,7 +1186,7 @@ pub async fn open_file_dialog(
 
     let path_string = path.to_string_lossy().to_string();
     let path_for_error = path_string.clone();
-    let (result, seed) = open_file_from_path_seeded(&path_string, None).inspect_err(|err| {
+    let (mut result, seed) = open_file_from_path_seeded(&path_string, None).inspect_err(|err| {
         log_file_event(
             "file.open",
             LogStatus::Fail,
@@ -1185,7 +1197,9 @@ pub async fn open_file_dialog(
             Some(file_error_message(err)),
         );
     })?;
-    watcher.watch_seeded(&PathBuf::from(&path_string), seed);
+    result.changed_since_read = watcher
+        .watch_seeded(&PathBuf::from(&path_string), seed)
+        .changed();
     log_file_event(
         "file.open",
         LogStatus::Success,
@@ -1395,6 +1409,8 @@ pub(crate) async fn save_file_written(
         success: true,
         path: path_value,
         saved_at: chrono::Utc::now().timestamp_millis(),
+        changed_since_read: false,
+        blocked_by_pending_change: false,
     };
     Ok((result, bytes))
 }
@@ -1403,6 +1419,9 @@ pub(crate) async fn save_file_written(
 /// watch registration of that path (seeded from the bytes written, only on
 /// a successful save) run in `save_as_watch::save_as_watched_with` (D69). A
 /// cancelled dialog logs a `file.save` cancel and touches nothing.
+/// `refuse_path` (D111-WI-1) is the document's own path, sent only while it
+/// has an unresolved external change: a pick of that path writes nothing and
+/// returns `blocked_by_pending_change` (`save_as_watch::refused_save_as`).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn save_file_dialog(
@@ -1413,6 +1432,7 @@ pub async fn save_file_dialog(
     encoding: Option<String>,
     line_ending: Option<String>,
     action_id: Option<String>,
+    refuse_path: Option<String>,
     watcher: State<'_, FileWatcher>,
 ) -> Result<Option<SaveResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -1434,10 +1454,14 @@ pub async fn save_file_dialog(
         return Ok(None);
     };
 
+    let picked = path.to_string_lossy().to_string();
+    if let Some(blocked) = refused_save_as(&picked, refuse_path.as_deref(), Some(&action_id)) {
+        return Ok(Some(blocked));
+    }
     save_as_watched_with(
         document_id,
         content,
-        path.to_string_lossy().to_string(),
+        picked,
         encoding,
         line_ending,
         Some(action_id),

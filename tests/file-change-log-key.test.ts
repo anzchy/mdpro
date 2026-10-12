@@ -14,6 +14,7 @@ import {
 const TS = 1700000000777;
 const OUTCOMES: FileChangeReceivedOutcome[] = [
   "other-path",
+  "captured",
   "scheduled",
   "recorded", // D171: kept for a background document
   "delivered",
@@ -33,6 +34,7 @@ describe("fl5: the four received outcomes, exact payloads", () => {
   };
   const expectedStatus = {
     "other-path": "cancel",
+    captured: "start",
     scheduled: "start",
     recorded: "start",
     delivered: "success",

@@ -4,7 +4,8 @@
  * here at once; the reload prompt, Reload / Ignore and the save path read and settle it.
  *
  * Pipeline: `useFileWatcher` listener → `recordFileChange(event)` → a slot per open
- *   document whose path matches → presented by `usePresentedFileChange` when that
+ *   document whose path matches (or, D111, an open / Save As reply's
+ *   `changedSinceRead` → `recordOpenDivergence(id)`) → presented by `usePresentedFileChange` when that
  *   document is active → settled by `acknowledgeFileChange` (Reload / Ignore / rename)
  *   or dropped by `forgetFileChange` (prompt withdrawn) and the documentStore prune
  *   (close, path change) · `pendingFileChangeFor` is the save path's check.
@@ -26,6 +27,9 @@
  * - **A path change retires the slot** (Save As, rename-follow): the change was about
  *   the old path, and later events are recorded under the new one.
  * - **Nothing global across windows**: each window has its own JS store.
+ * - **Two sources, one slot** (D111): `source` says whether a watcher event or an open
+ *   or Save As reply's seed check recorded it. Both settle the same way. A reply whose
+ *   flag is false records nothing and clears nothing.
  * - Logs (`file.change.pending`) carry the document id, `seq`, an action and a reason,
  *   never the path or content.
  *
@@ -34,6 +38,8 @@
  * @coordinates-with src/hooks/useReloadPrompt.ts — `forgetFileChange` on withdrawal
  * @coordinates-with src/utils/externalChangeGuard.ts — the save-time check
  * @coordinates-with src/stores/documentStore.ts — the prune subscription
+ * @coordinates-with src/utils/fileChangeCapture.ts — `recordOpenDivergence` and the
+ *   replay of events held during an open or Save As (D111)
  * @module stores/externalChangeStore
  */
 import { create } from "zustand";
@@ -97,14 +103,54 @@ export function recordFileChange(event: FileChangedEvent, actionId: string, now 
   const next = { ...useExternalChangeStore.getState().pending };
   for (const doc of owners) {
     lastSeq += 1;
-    next[doc.id] = { documentId: doc.id, seq: lastSeq, path: event.path, event, receivedAt: now, actionId };
-    logPending("recorded", doc.id, lastSeq, { changeType: event.changeType }, actionId);
+    const slot: PendingFileChange = {
+      documentId: doc.id,
+      seq: lastSeq,
+      path: event.path,
+      event,
+      receivedAt: now,
+      actionId,
+      source: "watcher",
+    };
+    next[doc.id] = slot;
+    logPending("recorded", doc.id, lastSeq, { changeType: event.changeType, source: "watcher" }, actionId);
   }
   useExternalChangeStore.setState({ pending: next });
   return {
     documentIds: owners.map((doc) => doc.id),
     activeRecorded: owners.some((doc) => doc.id === activeDocumentId),
   };
+}
+
+/**
+ * D111: record that `documentId`'s file changed after the read (or Save As write) its
+ * buffer holds, as an open or Save As reply's `changedSinceRead` reported. The slot is
+ * a `modified` change at the document's current path with source `open-check`; like a
+ * watcher event it replaces any earlier slot with a newer `seq`, so acknowledging an
+ * older change never clears it. Returns false (and records nothing) when the document
+ * is not in the store or has no path. Nothing here ever clears a slot.
+ */
+export function recordOpenDivergence(
+  documentId: string,
+  actionId: string = loggingService.generateActionId(),
+  now = Date.now(),
+): boolean {
+  const doc = useDocumentStore.getState().documents.find((d) => d.id === documentId);
+  if (!doc?.path) return false;
+  lastSeq += 1;
+  const event: FileChangedEvent = { path: doc.path, changeType: "modified", timestamp: now };
+  const slot: PendingFileChange = {
+    documentId,
+    seq: lastSeq,
+    path: doc.path,
+    event,
+    receivedAt: now,
+    actionId,
+    source: "open-check",
+  };
+  useExternalChangeStore.setState({ pending: { ...useExternalChangeStore.getState().pending, [documentId]: slot } });
+  logPending("recorded", documentId, lastSeq, { changeType: "modified", source: "open-check" }, actionId);
+  return true;
 }
 
 /** The unresolved change of `documentId`, if any. */

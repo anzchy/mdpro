@@ -52,6 +52,10 @@ use super::{baseline_key, hash_bytes, BaselineStore, Entry, StoreOutcome};
 use std::io;
 use std::path::Path;
 
+#[path = "file_watcher_baseline_seed_check.rs"]
+mod check;
+pub(crate) use check::{check_seed, with_seed_check, SeedCheck};
+
 /// One read of `path` for `open_file`: the bytes read (at most
 /// `HASH_CAP_BYTES + 1`) and the entry that describes them.
 pub(crate) fn read_for_open(path: &Path) -> io::Result<(Vec<u8>, Entry)> {

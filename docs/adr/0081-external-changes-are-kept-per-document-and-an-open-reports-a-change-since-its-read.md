@@ -3,12 +3,13 @@
 **Status**: Proposed (2026-10-12, mdpro-a6, for D171 and D111). The user chose
 「让 Codex 权衡」 on 2026-10-12. Codex reviewed the options (thread
 `01a12dc4-f5f2-7fd2-a00d-e672e192c1fa`) and recommended A for the open path
-plus E's retention mechanism. mdpro-delegator ruled the same day: "A +
-E-retention, not E's register-side broadcast". Acceptance is relayed by
+plus E's retention mechanism. mdpro-delegator and mdpro-a6 decided on that
+review: "A + E-retention, not E's register-side broadcast". Both halves are
+built (D171 retention, D111 the open-time check). Acceptance is relayed by
 mdpro-delegator. If accepted, this record partially supersedes
 [ADR-0068](0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md):
 its Consequences limit "The first write after open can be missed" is closed,
-and its limit "Racing refreshes are unordered" is corrected.
+and its clause "Racing refreshes are unordered" is corrected.
 
 ## Context
 
@@ -90,20 +91,42 @@ is pending.
   - **Ignore:** acknowledges only the displayed sequence.
   - **Save:** re-checks for an unresolved pending change when the queued save
     is about to call `save_file`, and does not write while one is pending.
+    Save As refuses the same way, but only onto the document's own file: the
+    dialog picks the target in Rust, so the frontend sends the document's path
+    as `refusePath` while a change is pending, and `save_file_dialog` answers
+    a pick of that file (same string, or same once canonicalised) with
+    `blockedByPendingChange` and writes nothing. Any other target is written.
 - **Open-time check (D111, Rust + IPC).** `changedSinceRead: boolean` is
-  added to the open and Save As replies.
-  - **The comparison:** a coherent fresh read is compared with the **seed
-    passed to `watch_seeded`**, not with the current baseline, which a notify
-    callback may already have refreshed.
-  - **Fail-open:** a missing hash, an unstable read or a failed read counts as
-    changed.
-  - **The baseline:** the probe never advances the baseline, and it never
-    restores the seed over a newer legitimate refresh.
-  - **Logging:** `watch_seeded` keeps its one log line, which gains a
-    `seedCheck` field.
+  added to the `open_file`, `open_file_dialog` and `save_file_dialog` replies.
+  - **The comparison:** after `register_seeded`, one coherent fresh read is
+    compared with the **seed passed to `watch_seeded`**, not with the current
+    baseline, which a notify callback may already have refreshed. Both the
+    `(mtime, size)` and the hash must match: equal bytes under a different
+    mtime count as changed. The check runs even when the ticket rule skipped
+    the store, since the caller's read is just as stale.
+  - **Fail-open:** every answer but `unchanged` counts as changed, and names
+    its reason: `failopen_seed` (the seed has no stat or no hash, so there is
+    nothing to compare), `failopen_cap` (the file grew past the cap),
+    `failopen_unstable` (a torn read), `failopen_read` (an io error).
+  - **The baseline:** the probe never writes the baseline. It neither advances
+    it to the bytes it read nor restores the seed over a newer refresh.
+  - **Logging:** `watch_seeded` keeps its one `file.watch.register` line,
+    which gains `context.seedCheck` (`unchanged` / `changed` / `failopen_*`).
   - **The frontend:** attaches the flag to the document the open guard
     actually committed (an open can focus an existing dirty document without
-    installing the read) and feeds it into the retention store.
+    installing the read) and records it in the retention store with source
+    `open-check`. A false flag records nothing and never clears a record.
+- **Capture and replay during an open or Save As (D111, frontend).** Rust
+  registers the watch before it replies, so a `file:changed` event for the
+  path can reach the listener before the document holding it is in the
+  store; retention alone would drop it as `other-path`. Each open and Save As
+  therefore opens a capture before its IPC call. An event that matches no
+  open document is held (`file.change.received` outcome `captured`), at most
+  32 per capture, oldest dropped. A dialog, whose path is not known yet,
+  holds every unmatched event. Once the guard (or the Save As result) commits
+  a document, the flag is recorded first and then the held events for its
+  path are replayed in order, so the latest watcher event is the one shown.
+  A failed, cancelled or refused operation drops what it held.
 - **ADR-0068.** Limit "The first write after open can be missed"
   (:227–230) is closed by the open-time check. Limit "Racing refreshes are
   unordered" (:216–219) is corrected to: a stale refresh can store
@@ -112,8 +135,8 @@ is pending.
   one. It stays a recorded limit: advancing the generation in
   `put_if_present` would risk a prompt storm. Decision 4 (when the baseline
   advances) gains no exception, because nothing here emits without advancing
-  it: the open-time check emits nothing, and retention changes only the
-  frontend.
+  it: the open-time check emits nothing, and retention and capture change
+  only the frontend.
 - **③** stays a recorded limit with no code change. Letting a fail-open
   result bypass the debounce would admit "maybe changed" where "definitely
   changed" is held back. It would also add prompts from the torn reads of the
@@ -124,20 +147,29 @@ is pending.
 - **Gained:** a change to a file in a background tab prompts when the tab is
   shown, and ⌘S cannot overwrite it unseen. A write between an open's read and
   registration is reported to that open. D137's catch-up emits become useful.
-- **Cost: an IPC contract change.** Three replies gain a field. The Rust
-  replies and the TypeScript types must change together, and any caller that
-  ignores the field keeps the old gap.
+- **Cost: an IPC contract change.** Three replies gain `changedSinceRead`;
+  `save_file_dialog` also takes `refusePath` and its reply gains
+  `blockedByPendingChange` (`save_file`, which shares the reply type, always
+  sends both as `false`). The Rust replies and the TypeScript types must
+  change together, and any caller that ignores the flag keeps the old gap.
 - **Cost: frontend state with lifetimes.** A store, a window-lifetime
   listener and a save-time check replace a single hook. Each lifecycle edge
   (activation, close, Save As, Reload, Ignore, save) is a place where the
   record can be wrongly kept or wrongly cleared, and each needs a test.
 - **Cost: a save can be refused.** With a pending change, ⌘S, and a queued
   save, show the prompt instead of writing until the user reloads or ignores.
-  That is deliberate, but it is a new way for a save not to happen.
+  That is deliberate, but it is a new way for a save not to happen. Save As
+  onto the document's own file is refused too; no menu or shortcut runs Save
+  As on a titled document today, so that refusal is not yet reachable.
 - **Cost: conservative prompts.** A boolean is not a file revision. A write
   after the open-time check but before the frontend commits is caught by
-  retention, so the same change can prompt twice, and a fail-open read
-  prompts for a file that did not change.
+  capture, so the same change can prompt twice, and a fail-open read (or the
+  same bytes under a new mtime) prompts for content that did not change.
+- **Cost: a focused-dirty open drops what it held.** When the open guard
+  focuses an existing dirty document instead of installing the read, the
+  flag attaches to nothing and the held events are dropped. That path was
+  already watched, so its own events reach the dirty document, but an event
+  caught only by the capture is lost.
 - **Not covered: two windows on one path (D173).** The Rust watch list has no
   owner count, closing the file in one window unwatches it for both, and
   one window's save is treated as a self-write for every window. Retention

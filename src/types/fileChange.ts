@@ -20,4 +20,9 @@ export interface PendingFileChange {
   receivedAt: number;
   /** The `file.change.received` line's actionId, reused by `delivered`. */
   actionId: string;
+  /**
+   * `watcher`: a `file:changed` event. `open-check` (D111): an open or Save As reply
+   * said the file changed between its read (or write) and the watch registration.
+   */
+  source: "watcher" | "open-check";
 }
