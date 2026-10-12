@@ -9,6 +9,12 @@
  *   `appendJsonl` | `deadCount(epoch)` | `orphanCount` | `logLine`.
  *
  * Key decisions:
+ * - A stored seq must be a safe integer below `MAX_SEQ`
+ *   (`Number.MAX_SAFE_INTEGER - 1`; D177-H-3, audit b92 finding 6): past
+ *   2^53 `seq + 1` stops changing and seqs would repeat. At or past it the
+ *   file takes the corrupt path, so the natural rollover is a new epoch at
+ *   seq 1 (logged "seq state corrupt"); at one hook a second that is about
+ *   285 million years away.
  * - Every file is created mode 0600; rewrites go through a tmp file and a
  *   rename, so a reader never sees half a spool.
  * - An unparsable spool line is kept out of the replay: `readSpool` returns
@@ -22,6 +28,8 @@
 import crypto from "node:crypto";
 
 export const EPOCH_RE = /^[A-Za-z0-9_-]{8,64}$/;
+/** A stored seq at or past this is corrupt (D177-H-3): the next one could no longer be exact. */
+export const MAX_SEQ = Number.MAX_SAFE_INTEGER - 1;
 const FILE_MODE = 0o600;
 
 export const newEpoch = () => crypto.randomBytes(12).toString("base64url");
@@ -56,8 +64,9 @@ function validSeqState(v) {
     !Array.isArray(v) &&
     typeof v.epoch === "string" &&
     EPOCH_RE.test(v.epoch) &&
-    Number.isInteger(v.seq) &&
-    v.seq >= 0
+    Number.isSafeInteger(v.seq) &&
+    v.seq >= 0 &&
+    v.seq < MAX_SEQ
   );
 }
 

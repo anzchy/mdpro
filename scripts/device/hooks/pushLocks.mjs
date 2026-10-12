@@ -5,7 +5,8 @@
  * Pipeline: `acquireLock(ctx, path, deadline)` → mkdir (atomic) → write
  *   `owner` = our pid → held | EEXIST → owner dead (`isAlive` false) →
  *   reclaim (rename aside, re-check, remove) and retry | owner alive or not
- *   yet written → poll every `LOCK_POLL_MS` until `deadline` → not held.
+ *   yet written, or a reclaim that failed → poll every `LOCK_POLL_MS` until
+ *   `deadline` → not held.
  *   `releaseLock` removes the dir only while its owner is still us.
  *
  * Key decisions:
@@ -17,6 +18,11 @@
  * - A reclaim renames the stale dir to a unique name first, so two
  *   reclaimers cannot both delete it; if the renamed dir turns out to hold a
  *   different owner than the one judged dead, it is put back.
+ * - A failed reclaim (the rename throws, or the dir aside held another owner)
+ *   is treated like a live holder: it uses up the deadline and sleeps
+ *   `LOCK_POLL_MS`, so a stale lock that cannot be removed never spins the
+ *   CPU (D177-H-1, audit b92 finding 1). Only a reclaim that removed the dir
+ *   retries at once.
  *
  * @module scripts/device/hooks/pushLocks
  * @coordinates-with scripts/device/hooks/pushCore.mjs (lock order spool → seq; flush alone)
@@ -58,13 +64,14 @@ function isStale(ctx, lockPath, owner) {
   }
 }
 
+/** True only when the stale dir was moved aside and removed. */
 function reclaim(ctx, lockPath, owner) {
   const { fs } = ctx;
   const aside = `${lockPath}.stale-${ctx.pid}-${crypto.randomBytes(4).toString("hex")}`;
   try {
     fs.renameSync(lockPath, aside);
   } catch {
-    return; // someone else reclaimed or released it first
+    return false; // released or reclaimed by someone else, or the rename itself fails
   }
   if (readOwner(fs, aside) !== owner) {
     try {
@@ -72,9 +79,10 @@ function reclaim(ctx, lockPath, owner) {
     } catch {
       /* the name is taken again; the slipped-in holder lost its dir, nothing safer to do */
     }
-    return;
+    return false;
   }
   fs.rmSync(aside, { recursive: true, force: true });
+  return true;
 }
 
 /** Tries until `deadline` (ms epoch) to take the lock; true when held. */
@@ -89,10 +97,7 @@ export function acquireLock(ctx, lockPath, deadline) {
       if (!e || e.code !== "EEXIST") throw e;
     }
     const owner = readOwner(fs, lockPath);
-    if (isStale(ctx, lockPath, owner)) {
-      reclaim(ctx, lockPath, owner);
-      continue;
-    }
+    if (isStale(ctx, lockPath, owner) && reclaim(ctx, lockPath, owner)) continue;
     const left = deadline - Date.now();
     if (left <= 0) return false;
     sleepSync(Math.min(LOCK_POLL_MS, left));

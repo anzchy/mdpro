@@ -3,8 +3,10 @@ spool_* fields of a POST body, dedupe on (source, epoch, seq), and keep the
 per-source seq state that gaps.json is made from.
 
 Pipeline: spool_fields(payload) -> None (legacy body) | SpoolFields | ValueError
-  -> SeqState.apply(fields) -> "new" | "duplicate" | "stale"
-  -> SeqState.save(state_path, gaps_path) (each a tmp file + os.replace).
+  -> SeqState.plan(fields) -> ("new" | "duplicate" | "stale", source, entry),
+     nothing mutated -> the caller stores the event -> SeqState.commit(source,
+     entry) -> SeqState.save(state_path, gaps_path) (each a tmp file +
+     os.replace). SeqState.apply is plan + commit in one step.
 
 Key decisions:
 - A body with no key starting "spool_" is the legacy http-hook payload and is
@@ -25,6 +27,13 @@ Key decisions:
 - At most MAX_MISSING missing seqs are kept per source (the highest ones). A
   lower one dropped from the list then reads as seen. Accepted limit: it only
   matters after a jump of more than MAX_MISSING seqs.
+- Planning never mutates (D177-H-2, audit b92 finding 3): the receiver commits
+  a seq only after the event is on disk, so a failed append leaves the seq
+  unseen and the sender's retry is stored, not answered "duplicate".
+- Every integer field must be a safe integer, <= MAX_SAFE_INT (2**53 - 1), the
+  largest the JS sender can count to exactly (D177-H-3, finding 6). A jump to
+  a large seq builds at most MAX_MISSING missing entries, never a list the
+  size of the jump (finding 4): the cap applies before the list is built.
 - A corrupt seq-state.json is moved aside and the state starts empty; the
   receiver keeps running.
 
@@ -38,13 +47,14 @@ import re
 SOURCE_RE = re.compile(r"[A-Za-z0-9._-]{1,64}")
 EPOCH_RE = re.compile(r"[A-Za-z0-9_-]{8,64}")
 MAX_RETIRED_EPOCHS = 64
+MAX_SAFE_INT = 2**53 - 1
 MAX_MISSING = 10000
 SPOOL_KEYS = ("spool_source", "spool_epoch", "spool_seq", "spool_ts", "spool_dead")
 OPTIONAL_KEYS = ("spool_orphans",)
 
 
 def _is_int(v):
-    return isinstance(v, int) and not isinstance(v, bool)
+    return isinstance(v, int) and not isinstance(v, bool) and -MAX_SAFE_INT <= v <= MAX_SAFE_INT
 
 
 def spool_fields(payload):
@@ -117,29 +127,45 @@ class SeqState:
             log(f"seq-state.json unreadable ({type(e).__name__}); moved to {os.path.basename(aside)}, starting empty")
             return cls()
 
-    def apply(self, f):
-        """Records one valid spooled event: "new" (store it), "duplicate" or "stale" (drop it)."""
+    def plan(self, f):
+        """What one valid spooled event would do, without mutating anything.
+
+        Returns (outcome, source, entry): outcome "new" (store the event, then
+        commit), "duplicate" (commit only: dead/orphans may rise) or "stale"
+        (drop; entry is None).
+        """
         source, epoch, seq, dead = f["spool_source"], f["spool_epoch"], f["spool_seq"], f["spool_dead"]
-        st = self.sources.get(source)
-        if st is None:
-            st = self.sources[source] = _fresh(epoch)
-        elif st["epoch"] != epoch:
-            if epoch in st["retired"]:
-                return "stale"
-            retired = (st["retired"] + [st["epoch"]])[-MAX_RETIRED_EPOCHS:]
-            st = self.sources[source] = _fresh(epoch)
-            st["retired"] = retired
+        cur = self.sources.get(source)
+        if cur is None:
+            st = _fresh(epoch)
+        elif cur["epoch"] != epoch:
+            if epoch in cur["retired"]:
+                return "stale", source, None
+            st = _fresh(epoch)
+            st["retired"] = (cur["retired"] + [cur["epoch"]])[-MAX_RETIRED_EPOCHS:]
+        else:
+            st = dict(cur, missing=list(cur["missing"]), retired=list(cur["retired"]))
         st["dead"] = max(st["dead"], dead)
         st["orphans"] = max(st.get("orphans", 0), f.get("spool_orphans", 0))
         if seq <= st["max"] and seq not in st["missing"]:
-            return "duplicate"
+            return "duplicate", source, st
         if seq > st["max"]:
-            st["missing"].extend(range(st["max"] + 1, seq))
-            st["missing"] = st["missing"][-MAX_MISSING:]
+            low = max(st["max"] + 1, seq - MAX_MISSING)  # cap before building: a jump costs O(MAX_MISSING)
+            st["missing"] = (st["missing"] + list(range(low, seq)))[-MAX_MISSING:]
             st["max"] = seq
         else:
             st["missing"].remove(seq)
-        return "new"
+        return "new", source, st
+
+    def commit(self, source, entry):
+        if entry is not None:
+            self.sources[source] = entry
+
+    def apply(self, f):
+        """plan + commit: records one valid spooled event and returns its outcome."""
+        outcome, source, entry = self.plan(f)
+        self.commit(source, entry)
+        return outcome
 
     def gaps(self):
         out = {}

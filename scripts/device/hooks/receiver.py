@@ -4,9 +4,9 @@
 
 Pipeline: POST -> X-Mdpro-Token check (401) -> length (413) -> JSON object (400)
   -> receiver_spool.spool_fields: legacy body | spooled body | invalid (400)
-  -> spooled: SeqState.apply -> duplicate / stale epoch: 200, nothing stored
-  -> append the record to events.jsonl, mirror latest.json, save seq-state.json
-     and gaps.json.
+  -> spooled: SeqState.plan -> duplicate / stale epoch: 200, nothing stored
+  -> append the record to events.jsonl -> commit the seq, save seq-state.json
+     and gaps.json -> mirror latest.json. A failed write -> 500.
 
 Key decisions:
 - Binds to this MacBook's Tailscale IPv4 only (MDPRO_HOOK_BIND overrides, for
@@ -15,6 +15,11 @@ Key decisions:
   before, never deduped. A spooled body (push.mjs) also stores its spool_*
   fields (five required, spool_orphans optional); SessionStart's own `source` field is kept apart from spool_source.
 - Dedupe, gaps and retired epochs live in receiver_spool.py.
+- The seq is committed only after the event is appended (D177-H-2, audit b92
+  finding 3). If the append (or a later write) raises, the reply is 500: the
+  sender keeps the entry and retries, and the retry is stored, not answered
+  "duplicate". latest.json is mirrored last, so a failure there at worst
+  turns the retry into a duplicate, never into a second events.jsonl line.
 - The token is never logged, stored or echoed; logs carry statuses, event
   names and spool ids only. stdlib only.
 """
@@ -147,7 +152,11 @@ class Handler(BaseHTTPRequestHandler):
             rec.update(spool)
             tag = f" spool={spool['spool_source']}/{spool['spool_epoch']}#{spool['spool_seq']}"
         line = json.dumps(rec, ensure_ascii=False)
-        outcome = self._store(spool, line)
+        try:
+            outcome = self._store(spool, line)
+        except Exception as e:  # disk full, EACCES, a directory in the way...
+            log(f"{peer} POST {self.path} -> 500 write failed: {type(e).__name__}{tag}")
+            return self._reply(500, b'{"error":"write failed"}')
         if outcome != "new":
             log(f"{peer} POST {self.path} -> 200 {'stale epoch' if outcome == 'stale' else 'duplicate'}{tag}")
             return self._reply(200)
@@ -157,22 +166,26 @@ class Handler(BaseHTTPRequestHandler):
 
     @staticmethod
     def _store(spool, line):
-        """Under WRITE_LOCK: dedupe a spooled event, else append it; returns the SeqState outcome."""
+        """Under WRITE_LOCK: dedupe a spooled event, else append it, then commit its seq.
+
+        Returns the SeqState outcome; raises if a write fails, with the seq not committed
+        when the append itself failed.
+        """
         with WRITE_LOCK:  # log() takes the same lock, so nothing in here logs
-            outcome = STATE.apply(spool) if spool is not None else "new"
+            outcome, source, entry = STATE.plan(spool) if spool is not None else ("new", None, None)
             if outcome == "stale":
                 return outcome
-            if outcome == "duplicate":
-                STATE.save(SEQ_STATE, GAPS)
-                return outcome
-            with open(EVENTS, "a", encoding="utf-8") as f:
-                f.write(line + "\n")
-            tmp = LATEST + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                f.write(line + "\n")
-            os.replace(tmp, LATEST)
+            if outcome == "new":
+                with open(EVENTS, "a", encoding="utf-8") as f:
+                    f.write(line + "\n")
             if spool is not None:
+                STATE.commit(source, entry)
                 STATE.save(SEQ_STATE, GAPS)
+            if outcome == "new":
+                tmp = LATEST + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as f:
+                    f.write(line + "\n")
+                os.replace(tmp, LATEST)
             return outcome
 
 
