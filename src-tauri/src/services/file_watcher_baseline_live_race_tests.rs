@@ -59,6 +59,7 @@ fn join_all(rx: &mpsc::Receiver<Vec<WatchOutcome>>, n: usize) -> Vec<WatchOutcom
 /// L6: per-thread paths, watch/unwatch loops, routing and self-write marks
 /// all finish, and afterwards "watched" and "has an entry" agree per path.
 #[test]
+#[ignore = "flaky under load (D139): superseded by l6b in file_watcher_baseline_live_race_l6b_tests.rs"]
 fn l6_concurrent_watch_unwatch_and_routing_do_not_deadlock() {
     let _home = home("l6");
     let d = TempDir::new("l6");
@@ -111,6 +112,10 @@ fn l6_concurrent_watch_unwatch_and_routing_do_not_deadlock() {
     watched.sort();
     assert_eq!(watched, vec![s(&paths[0]), s(&paths[2])]);
 }
+
+/// D139: L6 with a progress watchdog instead of a wall-clock join.
+#[path = "file_watcher_baseline_live_race_l6b_tests.rs"]
+mod l6b;
 
 /// L7: two threads racing watch/unwatch on one unchanged file, plus routing:
 /// no deadlock, any entry is the file's own snapshot, at most one entry.
