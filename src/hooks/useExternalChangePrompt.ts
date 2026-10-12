@@ -22,6 +22,9 @@
  *   prompt and clears nothing; a moved document's record was retired by the move.
  * - A rename / delete that arrived while the document was in the background is
  *   applied / prompted when it becomes active (the same decision, presented later).
+ *   The rename branch here only ever sees a lone rename: a rename on top of a pending
+ *   content change is followed at receipt by `recordFileChange` (D178), which moves
+ *   the change to the new path, so it arrives here as a `reload-prompt` for that path.
  * - Extracted from App.tsx so the wiring is tested as it runs
  *   (`tests/support/externalChangeHarness.tsx`).
  *

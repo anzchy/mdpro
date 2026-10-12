@@ -1,12 +1,16 @@
 # 0081. External changes are kept per document, and an open reports a change since its read
 
-**Status**: Proposed (2026-10-12, mdpro-a6, for D171 and D111). The user chose
-「让 Codex 权衡」 on 2026-10-12. Codex reviewed the options (thread
+**Status**: Accepted (2026-10-12). Proposed the same day by mdpro-a6 for D171
+and D111. The user chose 「让 Codex 权衡」; Codex reviewed the options (thread
 `01a12dc4-f5f2-7fd2-a00d-e672e192c1fa`) and recommended A for the open path
-plus E's retention mechanism. mdpro-delegator and mdpro-a6 decided on that
-review: "A + E-retention, not E's register-side broadcast". Both halves are
-built (D171 retention, D111 the open-time check). Acceptance is relayed by
-mdpro-delegator. If accepted, this record partially supersedes
+plus E's retention mechanism, and mdpro-delegator and mdpro-a6 decided on that
+review: "A + E-retention, not E's register-side broadcast". Once both halves
+were built (D171 retention, D111 the open-time check), the user asked Codex to
+review the record against the code (thread
+`01a12f07-44ec-7752-85dc-8286728c9678`); it confirmed the mechanical claims
+and named five gaps. The user accepted with 「补五句，随 D178 落地接受」
+(relayed by mdpro-delegator); the five are added in the D178 commit, which
+accepts this record. Partially supersedes
 [ADR-0068](0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md):
 its Consequences limit "The first write after open can be missed" is closed,
 and its clause "Racing refreshes are unordered" is corrected.
@@ -42,7 +46,10 @@ re-checks a file when its tab is activated. So:
    same generation, so `put_if_present` accepts it and writes A back. A later
    exact-stat restore to A is then dropped as unchanged, because
    `is_unchanged`'s final check compares only the generation. ADR-0068 is
-   Accepted, so its body cannot be corrected in place.
+   Accepted, so its body cannot be corrected in place. D111 ① also named a
+   second window (B): while a path is already watched, `register`'s put can
+   land after `is_unchanged`'s second `copy_out`, so the event was judged
+   `IgnoredUnchanged` before the seed was committed.
 5. **D111 ③.** A fail-open `modified` can be swallowed by the debounce. Since
    D116 that happens only after an earlier emitted `modified` on the same path
    within 500 ms. That emit already prompted, and Reload reads the disk at
@@ -112,9 +119,11 @@ is pending.
     it to the bytes it read nor restores the seed over a newer refresh.
   - **Logging:** `watch_seeded` keeps its one `file.watch.register` line,
     which gains `context.seedCheck` (`unchanged` / `changed` / `failopen_*`).
+    The exception, as before: when a watcher lock is poisoned the register is
+    skipped and no line is written, though the check still runs and answers.
   - **The frontend:** attaches the flag to the document the open guard
-    actually committed (an open can focus an existing dirty document without
-    installing the read) and records it in the retention store with source
+    actually committed, meaning the guard returned `written` (it can instead
+    focus an existing dirty document without installing the read) and records it in the retention store with source
     `open-check`. A false flag records nothing and never clears a record.
 - **Capture and replay during an open or Save As (D111, frontend).** Rust
   registers the watch before it replies, so a `file:changed` event for the
@@ -136,7 +145,11 @@ is pending.
   `put_if_present` would risk a prompt storm. Decision 4 (when the baseline
   advances) gains no exception, because nothing here emits without advancing
   it: the open-time check emits nothing, and retention and capture change
-  only the frontend.
+  only the frontend. D111 ①B (register's put landing after `is_unchanged`'s
+  second check) is **not** fixed: watcher ordering is unchanged. The probe
+  compensates for it only in opens the guard committed, because their reply
+  reports the write the dropped event carried; outside an open the window
+  remains.
 - **③** stays a recorded limit with no code change. Letting a fail-open
   result bypass the debounce would admit "maybe changed" where "definitely
   changed" is held back. It would also add prompts from the torn reads of the
@@ -145,7 +158,12 @@ is pending.
 ## Consequences
 
 - **Gained:** a change to a file in a background tab prompts when the tab is
-  shown, and ⌘S cannot overwrite it unseen. A write between an open's read and
+  shown, and ⌘S cannot overwrite it unseen. Until the D178 commit that second
+  claim was false: a later `renamed` event replaced a pending `modified`
+  record, so activating the tab followed the rename with no prompt and ⌘S
+  wrote the old buffer to the new path. D178 keeps the content change through
+  the rename; its regression (modify → rename → activate → ⌘S prompts and
+  writes nothing) is `tests/d178-rename-keeps-pending-modify.test.tsx`. A write between an open's read and
   registration is reported to that open. D137's catch-up emits become useful.
 - **Cost: an IPC contract change.** Three replies gain `changedSinceRead`;
   `save_file_dialog` also takes `refusePath` and its reply gains
@@ -161,10 +179,24 @@ is pending.
   That is deliberate, but it is a new way for a save not to happen. Save As
   onto the document's own file is refused too; no menu or shortcut runs Save
   As on a titled document today, so that refusal is not yet reachable.
+- **Cost: one more read per open.** The open and Save As probe is one extra
+  synchronous read and hash of the whole file before the reply, capped at the
+  larger of 10 MiB and the seed's size
+  (`file_watcher_baseline_seed_check.rs:97`), with no time bound: a slow
+  volume delays the open by that read.
 - **Cost: conservative prompts.** A boolean is not a file revision. A write
-  after the open-time check but before the frontend commits is caught by
-  capture, so the same change can prompt twice, and a fail-open read (or the
+  after the open-time check but before the frontend commits is normally
+  caught by capture, so the same change can prompt twice, and a fail-open read (or the
   same bytes under a new mtime) prompts for content that did not change.
+- **Cost: the capture cap can lose the event.** A capture whose path is not
+  known yet (the Open and Save As dialogs) holds every unmatched event, and
+  keeps only the latest 32. If 32 unrelated events arrive after the target's
+  only one, that event is evicted; when the seed check said `unchanged`, the
+  write then goes unreported.
+- **Cost: a titled Save As samples the pending state early.** The frontend
+  decides `refusePath` before the dialog opens. A change that becomes pending
+  while the dialog is up is not refused by that Save As; the save-time check
+  of later saves still sees it.
 - **Cost: a focused-dirty open drops what it held.** When the open guard
   focuses an existing dirty document instead of installing the read, the
   flag attaches to nothing and the held events are dropped. That path was

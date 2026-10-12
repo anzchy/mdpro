@@ -15,6 +15,11 @@ save-suppression window).
 Partially superseded: decision 1's list of filtered kinds by
 [ADR-0080](0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md) (2026-10-11).
 
+Partially superseded: the Consequences limit "The first write after open can
+be missed" (closed) and the clause "Racing refreshes are unordered"
+(corrected) by
+[ADR-0081](0081-external-changes-are-kept-per-document-and-an-open-reports-a-change-since-its-read.md) (2026-10-12).
+
 ## Context
 
 D32 (row in

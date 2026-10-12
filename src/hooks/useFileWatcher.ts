@@ -15,9 +15,9 @@
  *   line (D32 diagnostics).
  *
  * Pipeline: file:changed -> recordFileChange (immediately, every matching open
- *   document) -> usePresentedFileChange(active document) -> `change` / `event`. Every
+ *   document, including one whose pending rename leads to the path, D178) -> usePresentedFileChange(active document) -> `change` / `event`. Every
  *   event logs one `file.change.received` line: `other-path` (no open document has
- *   that path; dropped), `captured` (no open document has it yet, held for an open or
+ *   that path or a pending rename to it; dropped), `captured` (no open document has it yet, held for an open or
  *   Save As in flight, `utils/fileChangeCapture.ts`, D111), `scheduled` (recorded, the active document among them) or
  *   `recorded` (recorded for background documents only); `delivered` when presented.
  *

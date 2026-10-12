@@ -4,7 +4,7 @@
  * here at once; the reload prompt, Reload / Ignore and the save path read and settle it.
  *
  * Pipeline: `useFileWatcher` listener → `recordFileChange(event)` → a slot per open
- *   document whose path matches (or, D111, an open / Save As reply's
+ *   document whose path matches, or whose pending rename leads to it (D178) (or, D111, an open / Save As reply's
  *   `changedSinceRead` → `recordOpenDivergence(id)`) → presented by `usePresentedFileChange` when that
  *   document is active → settled by `acknowledgeFileChange` (Reload / Ignore / rename)
  *   or dropped by `forgetFileChange` (prompt withdrawn) and the documentStore prune
@@ -18,6 +18,16 @@
  *   document and is dropped.
  * - **One slot per document, the latest change.** Every change replaces the previous
  *   one with a higher `seq`; a prompt for the latest change covers the earlier ones.
+ * - **A rename never replaces a pending content change (D178).** A `renamed` event
+ *   for a document with a pending `modified` / `deleted` (or `open-check`) slot is
+ *   followed at once (`updateDocumentPath`), and the change moves to the new path as
+ *   a `modified` there (a file exists at it) under a new `seq`, keeping its receipt
+ *   time so it is presented without a fresh wait; a prompt already up is re-raised
+ *   for the new path, and the old prompt's token can no longer settle it. A rename
+ *   with nothing pending is recorded as before and followed silently on activation;
+ *   until then its target is indexed, so a change at the new path is recorded
+ *   against the document (which then follows the rename at once) and a further
+ *   rename chains to one rename from the document's own path.
  *   `acknowledgeFileChange(id, seq)` clears the slot only when its `seq` is ≤ the one
  *   acknowledged, so a change that arrived after the prompt was shown stays pending.
  * - **`settled` remembers the highest `seq` the user answered** while a newer change
@@ -25,7 +35,8 @@
  * - **`seq` comes from one window-wide counter**, so it increases per document and
  *   never repeats across lifetimes of the same id.
  * - **A path change retires the slot** (Save As, rename-follow): the change was about
- *   the old path, and later events are recorded under the new one.
+ *   the old path, and later events are recorded under the new one. A rename this
+ *   store follows itself writes the moved slot first, so the prune keeps it.
  * - **Nothing global across windows**: each window has its own JS store.
  * - **Two sources, one slot** (D111): `source` says whether a watcher event or an open
  *   or Save As reply's seed check recorded it. Both settle the same way. A reply whose
@@ -95,27 +106,72 @@ export interface RecordResult {
   activeRecorded: boolean;
 }
 
-/** Record `event` against every open document whose path is the event's, at once. */
+/** A slot that is only a rename not yet followed: the path it will move to, else undefined. */
+function pendingRenameTarget(slot: PendingFileChange | undefined): string | undefined {
+  return slot?.event.changeType === "renamed" ? slot.event.newPath : undefined;
+}
+
+/** The slot `event` leaves for `doc`, and the path the document moves to now, if any (D178). */
+function nextSlot(
+  doc: Document & { path: string },
+  prior: PendingFileChange | undefined,
+  event: FileChangedEvent,
+  base: Omit<PendingFileChange, "path" | "event">,
+): { slot: PendingFileChange; moveTo?: string } {
+  const newPath = event.changeType === "renamed" ? event.newPath : undefined;
+  if (newPath !== undefined && prior && pendingRenameTarget(prior) === undefined) {
+    // A content change is pending: follow the rename now and carry the change to the
+    // new path as a `modified` there (a file exists at it), presented without a new wait.
+    const carried: FileChangedEvent = { path: newPath, changeType: "modified", timestamp: event.timestamp };
+    return {
+      slot: { ...base, path: newPath, event: carried, receivedAt: prior.receivedAt, source: prior.source },
+      moveTo: newPath,
+    };
+  }
+  if (doc.path !== event.path) {
+    // Matched through a rename not yet followed (`pendingRenameTarget`).
+    if (newPath !== undefined) {
+      // A rename of the target chains: still one rename, from the document's own path.
+      return { slot: { ...base, path: doc.path, event: { ...event, path: doc.path } } };
+    }
+    // A change at the target: follow the rename now so the change is recorded at its path.
+    return { slot: { ...base, path: event.path, event }, moveTo: event.path };
+  }
+  return { slot: { ...base, path: event.path, event } };
+}
+
+/**
+ * Record `event` against every open document whose path is the event's, or whose
+ * pending rename leads to it (D178), at once. A rename never replaces a pending content
+ * change: the document follows it at once and the change moves to the new path.
+ */
 export function recordFileChange(event: FileChangedEvent, actionId: string, now = Date.now()): RecordResult {
-  const { documents, activeDocumentId } = useDocumentStore.getState();
-  const owners = documents.filter((doc) => doc.path !== null && doc.path === event.path);
+  const { documents, activeDocumentId, updateDocumentPath } = useDocumentStore.getState();
+  const pending = useExternalChangeStore.getState().pending;
+  const owners = documents.filter(
+    (doc): doc is Document & { path: string } =>
+      doc.path !== null && (doc.path === event.path || pendingRenameTarget(pending[doc.id]) === event.path),
+  );
   if (owners.length === 0) return { documentIds: [], activeRecorded: false };
-  const next = { ...useExternalChangeStore.getState().pending };
+  const next = { ...pending };
+  const moves: Array<{ id: string; path: string }> = [];
   for (const doc of owners) {
     lastSeq += 1;
-    const slot: PendingFileChange = {
-      documentId: doc.id,
-      seq: lastSeq,
-      path: event.path,
-      event,
-      receivedAt: now,
-      actionId,
-      source: "watcher",
-    };
+    const base = { documentId: doc.id, seq: lastSeq, receivedAt: now, actionId, source: "watcher" as const };
+    const { slot, moveTo } = nextSlot(doc, pending[doc.id], event, base);
     next[doc.id] = slot;
-    logPending("recorded", doc.id, lastSeq, { changeType: event.changeType, source: "watcher" }, actionId);
+    if (moveTo !== undefined) moves.push({ id: doc.id, path: moveTo });
+    logPending(
+      "recorded",
+      doc.id,
+      lastSeq,
+      { changeType: event.changeType, source: slot.source, followed: moveTo !== undefined },
+      actionId,
+    );
   }
   useExternalChangeStore.setState({ pending: next });
+  // After the slots: the prune below then finds each moved slot already at the new path.
+  for (const { id, path } of moves) updateDocumentPath(id, path);
   return {
     documentIds: owners.map((doc) => doc.id),
     activeRecorded: owners.some((doc) => doc.id === activeDocumentId),
