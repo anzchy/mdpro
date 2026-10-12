@@ -9,9 +9,10 @@
  * Pipeline: `collectLockLeftovers(parent)` → sorted `readdir` → classify by
  *   name → `lstat` (not a regular file → `irregular`) → read the record with
  *   the lock code's own reader (`readHolder`, `readMarker`, `readRecordAt`)
- *   → `holderLiveness(pid)` → entries; `leftoverLine(entry)` → the line
- *   (`doctorChecks` prefixes `[info] `); `blocksLaunch(entry)` → whether the
- *   next launch's acquire refuses on it with nothing that would clear it.
+ *   → `holderLiveness(pid)` → entries; `leftoverLine(entry, entries)` → the
+ *   line (`doctorChecks` prefixes `[info] `); `blocksLaunch(entry, entries)`
+ *   → whether the next launch's acquire refuses on it with nothing that
+ *   would clear it (a break file is judged with the mutex beside it).
  *
  * Key decisions:
  * - Read-only: nothing is created, replaced or removed, and a file that
@@ -24,12 +25,19 @@
  *   hurt a live holder: a dead holder, a tomb, an unreadable record, a temp.
  *   A live or unknown holder, a non-regular file, or a name that cannot be
  *   printed on one line gets none. The path is absolute (the passwd home's
- *   realpath, never `~`, which expands `$HOME`) and single-quoted for sh.
+ *   realpath) and single-quoted for sh. The CLI then redacts the home to
+ *   `~`; `redact` moves the quote past it (`rm ~/'Library/…'`, D179), so the
+ *   printed command still runs in the shell whose `$HOME` doctor redacted.
  * - What blocks launches is what `acquireLock` refuses on and nothing ever
  *   clears: any tomb; a mutex that is unreadable, irregular or held by an
- *   unknown pid; a break file in any state but a live holder. A dead mutex
- *   holder is not counted: the next lock section breaks it. A clean marker
- *   only ever blocks `clean <run>`; a temp blocks nothing.
+ *   unknown pid; a break file in any state but a live holder, but only beside
+ *   a `.lock.mutex` whose holder is dead (D179-WI-2, audit b80): lockMutex
+ *   `enter()` reads the break file only when creating the mutex hits EEXIST
+ *   and the holder is ESRCH, so a break file alone is never read, and beside
+ *   a live, unknown or unreadable mutex the wait is on the mutex. A dead
+ *   mutex holder is not counted: the next lock section breaks it (unless such
+ *   a break file is there, which is then the one named). A clean marker only
+ *   ever blocks `clean <run>`; a temp blocks nothing.
  * - Lines carry file names, pids and validated run names only: never a
  *   token, nonce or digest. A tomb whose run is not a run name reads as
  *   unreadable; a name with a non-printable byte is shown JSON-escaped.
@@ -147,18 +155,20 @@ export function collectLockLeftovers(parent) {
 
 /**
  * Whether the next launch's acquire refuses on `e` and nothing will clear it.
- * @param {Leftover} e @returns {boolean}
+ * A break file blocks only beside a dead-holder `.lock.mutex` in `entries`.
+ * @param {Leftover} e @param {Leftover[]} entries every leftover in the same runs parent
+ * @returns {boolean}
  */
-export function blocksLaunch(e) {
+export function blocksLaunch(e, entries) {
   if (e.kind === "tomb") return true;
   if (e.kind === "mutex") return e.state !== "alive" && e.state !== "dead";
-  if (e.kind === "break") return e.state !== "alive";
+  if (e.kind === "break") return e.state !== "alive" && entries.some((m) => m.kind === "mutex" && m.state === "dead");
   return false;
 }
 
-/** @param {Leftover} e @returns {string | null} */
-function blocks(e) {
-  if (blocksLaunch(e)) return "blocks launches";
+/** @param {Leftover} e @param {Leftover[]} entries @returns {string | null} */
+function blocks(e, entries) {
+  if (blocksLaunch(e, entries)) return "blocks launches";
   const stuck = e.state === "unknown" || e.state === "unreadable" || e.state === "irregular";
   return e.kind === "clean" && stuck ? `blocks clean ${e.run}` : null;
 }
@@ -197,10 +207,11 @@ function action(e, printable) {
 
 /**
  * The line for one leftover: `lock leftover <name>: <what>[; blocks …][; <action>]`.
- * @param {Leftover} e @returns {string}
+ * @param {Leftover} e @param {Leftover[]} entries every leftover in the same runs parent
+ * @returns {string}
  */
-export function leftoverLine(e) {
+export function leftoverLine(e, entries) {
   const shown = PRINTABLE_RE.test(e.name) ? e.name : JSON.stringify(e.name);
-  const parts = [describe(e), blocks(e), action(e, PRINTABLE_RE.test(e.path))].filter((p) => p !== null);
+  const parts = [describe(e), blocks(e, entries), action(e, PRINTABLE_RE.test(e.path))].filter((p) => p !== null);
   return `lock leftover ${shown}: ${parts.join("; ")}`;
 }

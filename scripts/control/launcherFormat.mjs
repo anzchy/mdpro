@@ -6,7 +6,8 @@
  * lines, a thrown error). Every formatter ends in `redact`.
  *
  * Pipeline: text → each non-empty secret, longest first → `<redacted>`
- *   → `repoRoot` prefix → `.` → `homeDir` prefix → `~`.
+ *   → `repoRoot` prefix → `.` → a single-quoted word starting with
+ *   `homeDir` → `~/'rest'` (or `~`) → any other `homeDir` prefix → `~`.
  *
  * Key decisions:
  * - Longest secret first, so an overlapping shorter secret never leaves a
@@ -16,6 +17,13 @@
  *   changes nothing (idempotence).
  * - The repo root is replaced before the home, because it usually lies
  *   inside the home.
+ * - The home is quote-aware (D179): doctor's `remove: rm '<path>'` is a sh
+ *   command, and `~` does not expand inside single quotes, so a quoted
+ *   `'<home>/rest'` becomes `~/'rest'` (the quote moves past the tilde) and
+ *   the printed command still runs. `~` expands `$HOME`, which is the home
+ *   `processIo` redacts (`os.homedir()`), so the command names the same file
+ *   in the shell doctor ran from. The repo root gets no such rule: no
+ *   quoted command names a path inside the repo.
  * - A formatter takes the redaction options as its last argument and never
  *   builds a line it does not redact; an unknown verdict kind prints as a
  *   driver failure rather than a line the verdict grammar would reject.
@@ -46,8 +54,25 @@ export function redact(text, { secrets = [], repoRoot, homeDir } = {}) {
   const live = secrets.filter((s) => typeof s === "string" && s !== "");
   for (const s of [...live].sort((a, b) => b.length - a.length)) out = replaceAll(out, s, REDACTED);
   if (typeof repoRoot === "string" && repoRoot !== "") out = replaceAll(out, repoRoot, ".");
-  if (typeof homeDir === "string" && homeDir !== "") out = replaceAll(out, homeDir, "~");
+  if (typeof homeDir === "string" && homeDir !== "") out = replaceAll(redactQuotedHome(out, homeDir), homeDir, "~");
   return out;
+}
+
+/** @param {string} s @returns {string} `s` as a literal inside a RegExp */
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The home inside a single-quoted sh word (D179): `'<home>/rest'` →
+ * `~/'rest'` and `'<home>'` → `~`, so the word still expands to the same
+ * path (a `~` inside the quotes would not expand). Only a quote that opens a
+ * word (start of text or after whitespace) counts, and the home must end at
+ * a `/` or at the word's closing quote, so a path that merely shares the
+ * home's prefix is left to the plain replacement.
+ * @param {string} s @param {string} home @returns {string}
+ */
+function redactQuotedHome(s, home) {
+  const re = new RegExp(`(^|\\s)'${escapeRe(home)}(?:(/)|'(?=\\s|$))`, "g");
+  return s.replace(re, (_m, lead, slash) => (slash ? `${lead}~/'` : `${lead}~`));
 }
 
 /** @typedef {{ secrets?: unknown[], repoRoot?: string, homeDir?: string }} RedactOpts */

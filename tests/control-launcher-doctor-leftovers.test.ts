@@ -69,7 +69,11 @@ describe("D174-WI-1 doctor: what is and is not a lock leftover", () => {
 });
 
 describe("D174-WI-1 doctor: holder files ({ pid, token })", () => {
-  const BLOCKS: Record<string, string> = { [MUTEX]: "blocks launches; ", [BREAK]: "blocks launches; ", [CLEAN]: `blocks clean ${RUN}; ` };
+  // rule 12: D174-WI-1 recorded BREAK as "blocks launches; "; D179-WI-2 corrects it
+  // (audit b80, device C7). D179-WI-2: a break file alone blocks nothing (acquire reads it only when
+  // `.lock.mutex` exists); the break-beside-mutex cases are in
+  // control-launcher-doctor-leftovers-break.test.ts.
+  const BLOCKS: Record<string, string> = { [MUTEX]: "blocks launches; ", [BREAK]: "", [CLEAN]: `blocks clean ${RUN}; ` };
 
   it.each([MUTEX, BREAK, CLEAN])("LL-02 %s with a live holder: pid alive, in use, no removal command", async (name) => {
     const e = env();
@@ -80,7 +84,8 @@ describe("D174-WI-1 doctor: holder files ({ pid, token })", () => {
 
   it.each([
     [MUTEX, ""],
-    [BREAK, "blocks launches; "],
+    // rule 12: was "blocks launches; " under D174-WI-1; D179-WI-2 (b80).
+    [BREAK, ""],
     [CLEAN, ""],
   ])("LL-03 %s with a dead (ESRCH) holder: pid dead and the exact rm", async (name, blocks) => {
     const e = env();

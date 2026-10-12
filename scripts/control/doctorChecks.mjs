@@ -79,7 +79,8 @@ const manifestOk = (m) => m !== null && typeof m === "object" && m.ok === true;
 function lockCheck(lock, leftovers) {
   const state = lock && typeof lock === "object" ? lock.state : undefined;
   if (state === "absent") {
-    const blocking = (Array.isArray(leftovers) ? leftovers : []).filter(blocksLaunch).map((e) => e.name);
+    const all = Array.isArray(leftovers) ? leftovers : [];
+    const blocking = all.filter((e) => blocksLaunch(e, all)).map((e) => e.name);
     if (blocking.length === 0) return pass();
     return fail(`lock leftover blocks launches: ${blocking.join(", ")}`, NEXT_LEFTOVERS);
   }
@@ -154,7 +155,8 @@ function infoLines(f, sockPath) {
   const out = [];
   for (const run of Array.isArray(f.leftoverRuns) ? f.leftoverRuns : []) out.push(`leftover run ${run}`);
   for (const t of Array.isArray(f.leftoverTmps) ? f.leftoverTmps : []) out.push(`leftover tmp ${t.run}/${t.file}`);
-  for (const e of Array.isArray(f.lockLeftovers) ? f.lockLeftovers : []) out.push(leftoverLine(e));
+  const leftovers = Array.isArray(f.lockLeftovers) ? f.lockLeftovers : [];
+  for (const e of leftovers) out.push(leftoverLine(e, leftovers));
   if (f.siSock === "stale") out.push(`stale si.sock ${sockPath} (${sockHint(f)})`);
   return [...out, ...OUTSIDE_STATE].map((l) => `[info] ${l}`);
 }

@@ -6,9 +6,11 @@
  * verdict is `fail` and `launch`'s doctor gate refuses before it creates
  * anything: any tomb; a `.lock.mutex` that is unreadable, irregular or held by
  * an unknown (EPERM) pid; a `.lock.mutex.break` in any state but a live
- * holder. Everything else stays `[info]` only: temps, a mutex whose holder is
- * dead (the next section breaks it) or alive (in use), a live break holder,
- * and every `.clean.<run>` marker (it never touches launch).
+ * holder, but only beside a mutex whose holder is dead (D179-WI-2: acquire
+ * reads the break file only then). Everything else stays `[info]` only:
+ * temps, a mutex whose holder is dead (the next section breaks it) or alive
+ * (in use), a break file on its own, and every `.clean.<run>` marker (it
+ * never touches launch).
  *
  * The bundle, manifest and source-tree facts are set to their good values;
  * the runs-parent facts are collected for real (as LA-05 row 3 does). Real
@@ -64,22 +66,29 @@ function env(): Env {
   return e;
 }
 
-/** One seed: a file name and how to write it (a dir, or a body built from the live / dead pid). */
-type Seed = { row: string; name: string; dir?: true; body?: () => string; eperm?: true };
+/**
+ * One seed: a file name and how to write it (a dir, or a body built from the
+ * live / dead pid). `stuck` marks a break file that blocks beside a
+ * `deadMutex` seed and nowhere else (D179-WI-2).
+ */
+type Seed = { row: string; name: string; dir?: true; body?: () => string; eperm?: true; stuck?: true; deadMutex?: true };
 const BLOCKING: Seed[] = [
   { row: "a readable tomb", name: TOMB, body: () => tombBody(RUN) },
   { row: "an empty tomb", name: TOMB, body: () => "" },
   { row: "an empty mutex", name: MUTEX, body: () => "" },
   { row: "a mutex that is a directory", name: MUTEX, dir: true },
   { row: "a mutex held by pid 1 (EPERM)", name: MUTEX, body: () => holderBody(1), eperm: true },
-  { row: "a break file with a dead holder", name: BREAK, body: () => holderBody(dead) },
-  { row: "a partial break file", name: BREAK, body: () => '{"pid":' },
-  { row: "a break file held by pid 1 (EPERM)", name: BREAK, body: () => holderBody(1), eperm: true },
 ];
 const NON_BLOCKING: Seed[] = [
   { row: "a mutex temp", name: ".lock.mutex.4242-fedcba9876543210.tmp", body: () => holderBody(live.pid) },
   { row: "a clean temp", name: `.clean.${RUN}.4242-fedcba9876543210.tmp`, body: () => "" },
-  { row: "a mutex with a dead holder", name: MUTEX, body: () => holderBody(dead) },
+  // rule 12: these three break seeds sat in BLOCKING under D174-WI-2; a break file alone does
+  // not block acquire (lockMutex enter() reads it only on EEXIST), so D179-WI-2 moves them (b80).
+  { row: "a break file with a dead holder", name: BREAK, body: () => holderBody(dead), stuck: true },
+  { row: "a partial break file", name: BREAK, body: () => '{"pid":', stuck: true },
+  { row: "a break file held by pid 1 (EPERM)", name: BREAK, body: () => holderBody(1), eperm: true, stuck: true },
+  // rule 12: `deadMutex` added (D179-WI-2) so LV-06 can pair it with a stuck break file.
+  { row: "a mutex with a dead holder", name: MUTEX, body: () => holderBody(dead), deadMutex: true },
   { row: "a mutex with a live holder", name: MUTEX, body: () => holderBody(live.pid) },
   { row: "a break file with a live holder", name: BREAK, body: () => holderBody(live.pid) },
   { row: "a clean marker with a live holder", name: CLEAN, body: () => holderBody(live.pid) },
@@ -145,7 +154,8 @@ describe("D174-WI-2 doctor verdict: which leftovers block", () => {
     expect(r.exit).toBe(1);
   });
 
-  it("LV-06 conjunction law: over every pair of distinct-name seeds, doctor fails exactly when one of them blocks", async () => {
+  // rule 12: LV-06 (D174-WI-2) gains the break-beside-dead-mutex pair, the one case acquire refuses on a break file (D179-WI-2).
+  it("LV-06 conjunction law: over every pair of distinct-name seeds, doctor fails exactly when one of them blocks, or a stuck break file sits beside a dead mutex", async () => {
     const all = [...BLOCKING.map((s) => ({ s, blocks: true })), ...NON_BLOCKING.map((s) => ({ s, blocks: false }))].filter(
       (x) => runnable(x.s),
     );
@@ -159,7 +169,9 @@ describe("D174-WI-2 doctor verdict: which leftovers block", () => {
           seed(e, a.s);
           seed(e, b.s);
           const r = await passingDoctor(e);
-          const want = a.blocks || b.blocks ? 1 : 0;
+          const pairBlocks = (a.s.stuck && b.s.deadMutex) || (b.s.stuck && a.s.deadMutex);
+          // rule 12: was `a.blocks || b.blocks` under D174-WI-2; see LV-06 note above.
+          const want = a.blocks || b.blocks || pairBlocks ? 1 : 0;
           expect(r.exit, `${a.s.row} + ${b.s.row}`).toBe(want);
           expect(leftoverLines(r.lines), `${a.s.row} + ${b.s.row}`).toHaveLength(2);
           pairs++;
