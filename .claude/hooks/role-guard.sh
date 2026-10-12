@@ -9,7 +9,7 @@
 #   SendMessage); no `git push`; no commit / merge / rebase / cherry-pick / reset
 #   while the branch is `master` (the single integration trunk, ADR-0083) or a
 #   `release/*` hotfix branch, both landed only by the delegator; the old trunk
-#   `frontend-backend-redesign` stays protected until 2026-10-19; no broad staging
+#   `frontend-backend-redesign` stays protected until 2026-11-11 (ADR-0084); no broad staging
 #   (`git add -A/--all/./-u`, `git commit -a/--all`) and no staging of
 #   `.claude/tdd-guardian/state.json`.
 # - real-device-tester: no git subcommand that changes state (read-only git
@@ -55,7 +55,7 @@ tin = data.get("tool_input") or {}
 if not isinstance(tin, dict):
     tin = {}
 cwd = data.get("cwd") or os.getcwd()
-PROTECTED = {"master", "frontend-backend-redesign"}  # drop the old trunk name on 2026-10-19
+PROTECTED = {"master", "frontend-backend-redesign"}  # drop the old trunk name on 2026-11-11 (ADR-0084)
 PROTECTED_PREFIXES = ("release/",)
 
 def is_protected(b):

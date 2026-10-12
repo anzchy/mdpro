@@ -5,7 +5,7 @@
  * not make. An implementor never asks the user directly, never pushes, and never
  * commits, merges, rebases, cherry-picks or resets on `master` (the single
  * integration trunk, ADR-0083) or on a `release/*` hotfix branch; the old trunk
- * name `frontend-backend-redesign` stays protected only until 2026-10-19.
+ * name `frontend-backend-redesign` stays protected only until 2026-11-11 (ADR-0084).
  * real-device-tester never changes git state and writes only into its report
  * dir or session scratch.
  *
@@ -41,7 +41,7 @@ function repo(name: string, branch: string): string {
 }
 
 // The `redesign` fixture and every case that uses it are deleted together with
-// the name `frontend-backend-redesign` from PROTECTED on 2026-10-19 (ADR-0083).
+// the name `frontend-backend-redesign` from PROTECTED on 2026-11-11 (ADR-0083, timing per ADR-0084).
 const redesign = repo("redesign", "frontend-backend-redesign");
 const master = repo("master", "master");
 const feature = repo("feature", "fix/d99-role-guard");
@@ -169,8 +169,8 @@ describe("role-guard: implementor", () => {
     ['git commit -m "git push later; git add -A"', feature],
     ["git commit -m x", feature],
     ['git commit -m "add all"', feature],
-    ["git merge frontend-backend-redesign", feature], // deleted with the old trunk name on 2026-10-19
-    ["git rebase frontend-backend-redesign", feature], // deleted with the old trunk name on 2026-10-19
+    ["git merge frontend-backend-redesign", feature], // deleted with the old trunk name on 2026-11-11
+    ["git rebase frontend-backend-redesign", feature], // deleted with the old trunk name on 2026-11-11
     ["git rebase master", featureB],
     ["git merge master", featureB],
     ["git commit -m x", releaseLike],

@@ -93,7 +93,7 @@ moving, so a fix for a shipped version cannot always be released from `master`.
 3. `git cherry-pick -x <master-sha>` onto `release/x.y`. The branch gets its own `/bump` and tag,
    and runs the full lanes once.
 4. Dispatch as above, with `-f ref=` set to the release-branch SHA.
-5. `release/x.y` is never merged back into `master`. It is deleted once the next minor ships,
+5. `release/x.y` is never merged back into `master`. It is deleted no earlier than thirty days after its last tag was published, and never before the next minor ships ([ADR-0084](../adr/0084-remote-branches-are-kept-thirty-days-after-their-work-lands.md)),
    with confirmation (rule 25).
 
 ## After the release

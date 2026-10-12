@@ -160,8 +160,12 @@ fast-forwarded would be the same commit with more ceremony. A
 `release/x.y` hotfix branch (ADR-0083) is protected the same way: only the
 delegator lands on it and pushes it. `frontend-backend-redesign` is frozen
 as of 2026-10-12: nothing lands on it, it is tagged
-`archive/frontend-backend-redesign`, and it is deleted after 2026-10-19 with
-the user's confirmation (rule 25).
+`archive/frontend-backend-redesign`, and it is deleted no earlier than
+2026-11-11 with the user's confirmation (rule 25). **A branch on `origin` is
+kept thirty days after its work landed before it is deleted**
+([ADR-0084](../../docs/adr/0084-remote-branches-are-kept-thirty-days-after-their-work-lands.md),
+user decision 2026-10-12: 「remote上的分支branch 满30天再删」); local
+worktrees and local branches are still removed once the landing is confirmed.
 Stage only paths you can name, and never the user's own dirty files — anything in `git status` you did not
 change (on 2026-10-10: their
 `.claude/*` edits, `docs/pending/`, `docs/reference/`, the `docs/plans`

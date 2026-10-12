@@ -8,6 +8,7 @@ plan review, thread `01a12e34-1aee-7e21-ba49-6d1ebb31dcfa`). Decided by the user
 recorded by mdpro-delegator. Supersedes the standing rule "never commit to
 `master`" in `CLAUDE.md` and rule 70 for the delegator's fast-forward landings
 only; every other clause of those rules stands.
+**Partially superseded** (2026-10-12): the one-week deletion of the old branch in Decision 4 and the release-branch deletion timing in Decision 3 by [ADR-0084](0084-remote-branches-are-kept-thirty-days-after-their-work-lands.md) (thirty days after the work lands).
 
 ## Context
 
