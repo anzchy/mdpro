@@ -1,43 +1,43 @@
-# Purpose: ref-move checks for the rule 70 role guard (.claude/hooks/role-guard.sh,
-# D180). The hook's current-branch checks only see the branch that is checked
-# out; this module finds git invocations that move a protected branch *by name*
-# without switching to it, so an implementor cannot move `master`, `release/*`
-# (or `frontend-backend-redesign` until 2026-11-11, ADR-0084) from a feature
-# branch or a detached HEAD.
-#
-# Covered (implementor only; the hook decides the role):
-# - `branch -f/--force <P>`, `-d/-D/--delete ... <P> ...`, `-m/-M/--move` onto or
-#   away from <P> (one-name form: the checked-out branch), `-c/-C/--copy` onto <P>;
-# - `update-ref [-d] refs/heads/<P>`, `update-ref HEAD` (without `--no-deref`)
-#   while <P> is checked out, and `update-ref --stdin` in any form (unparseable);
-# - `fetch` / `pull` refspecs whose destination is <P>, `heads/<P>` (git expands
-#   it to `refs/heads/<P>`) or `refs/heads/<P>`, with or without `+`, including
-#   globs such as `refs/heads/*:refs/heads/*`;
-# - `checkout -B <P>`, `switch -C/--force-create[=]<P>`, `worktree add -B <P>`;
-# - `rebase [opts] <upstream> <P>` and `rebase --root <P>`, which check out and
-#   rewrite <P> whatever was checked out before (value options skipped: `--onto`,
-#   `-s/--strategy`, `-X/--strategy-option`, `-x/--exec`);
-# - `symbolic-ref <P> <ref>` (makes <P> an alias) and `symbolic-ref -d <P>`, with
-#   <P> bare, `heads/<P>` or `refs/heads/<P>`; reading one is allowed.
-# `heads/<P>` counts only where git expands it (refspec destinations) and for
-# symbolic-ref by ruling; `branch`, `checkout -B` and `update-ref` take it as a
-# different name (`refs/heads/heads/<P>`, `$GIT_DIR/heads/<P>`).
-# Not covered: `checkout -b` / `switch -c` creating <P> (moves no existing ref),
-# git aliases from config, `git replace`, and raw writes under .git/refs.
-#
-# Entry point: ref_move(sub, args, current_branch, is_protected) returns the
-# refusal text (without the `Blocked by role-guard (<role>): ` prefix the hook
-# adds) or None. `current_branch` is a zero-argument callable, so the branch is
-# only resolved for the forms that depend on it.
-# The hook imports this lazily for implementor Bash calls; if the import fails
-# for any reason it refuses the call (fail closed).
-# Regression tests: tests/d180-role-guard-ref-moves.test.ts, tests/d180-role-guard-ref-moves-2.test.ts,
-# tests/d180-role-guard-fail-closed.test.ts.
-import fnmatch
+# Purpose: implementor git checks for the rule 70 role guard (.claude/hooks/role-guard.sh,
+# D180). The hook parses a Bash command into git calls (shell `-c` in any option
+# cluster, `env` options, `cd`, `-C`, `--git-dir`/`--work-tree`, `GIT_DIR=`) and
+# hands each to `implementor_git`, which refuses: `git push`; commit / merge /
+# rebase / cherry-pick / reset on a protected branch (`master`, `release/*`, and
+# `frontend-backend-redesign` until 2026-11-11, ADR-0084); broad staging; and
+# moving a protected branch *by name* without switching to it:
+# - `branch -f/-d/-D/-m/-M/-c/-C` onto, away from or deleting <P> (`-l/--list` wins);
+# - `update-ref [-d] refs/heads/<P>`, `update-ref HEAD` on <P>, any `update-ref --stdin`;
+# - fetch/pull refspecs and `--refmap` values whose destination is <P>, `heads/<P>`
+#   or `refs/heads/<P>`, or a glob that could expand to one (`*`, `release/0.*`);
+# - `checkout -B`, `switch -C/--force-create`, `worktree add -B` <P>;
+# - `rebase … <upstream> <P>`, `rebase --root <P>`, `rebase --update-refs` (or an abbreviation);
+# - `symbolic-ref <P> <ref>` and `symbolic-ref -d <P>` (reads allowed).
+# The current branch is read where git will act (`-C`, `--git-dir`, `--work-tree`,
+# GIT_DIR/GIT_WORK_TREE); a named git dir whose HEAD cannot be read counts as
+# protected (fail closed). In one command chain, `checkout|switch <P>` and
+# `worktree add <dir> <P>` make <P> current for that dir (protected names only).
+# `heads/<P>` counts only in refspec destinations and symbolic-ref; branch,
+# checkout -B and update-ref read it as another name.
+# Not covered: `checkout -b`/`switch -c` creating <P>; abbreviated long options
+# other than `--update-refs`; refspecs and `rebase.updateRefs` from git config;
+# aliases; `git replace`; `export GIT_DIR=…` earlier in a chain; raw .git/refs writes.
+# Entry: implementor_git(dir, sub, args, ctx, chain, is_protected) → refusal text or
+# None; ctx = ([(--git-dir|--work-tree, value)], {GIT_DIR…: path}); chain is per command.
+# The hook imports this lazily for every implementor Bash call and refuses the
+# call if the import fails (fail closed).
+# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts.
+import fnmatch, os, subprocess
 
-GLOB_SAMPLES = ("master", "frontend-backend-redesign", "release/x")
+NAMED = ("master", "frontend-backend-redesign")
+UNRESOLVED = "an unresolvable HEAD"
 TAIL = "that is the delegator's job; move only your own fix/ branch (rule 70)."
 
+def _glob_protected(n, is_protected):
+    """True when glob `n` could expand to a protected branch name."""
+    prefix = n[:min(n.find(c) for c in "*?[" if c in n)]
+    if any(is_protected(s) and fnmatch.fnmatchcase(s, n) for s in NAMED):
+        return True
+    return is_protected("release/x") and ("release/".startswith(prefix) or prefix.startswith("release/"))
 
 def protected_ref(name, is_protected, bare_is_branch=True, dwim=False):
     """True when `name` (a branch name, `refs/heads/...`, or a glob) names a protected branch.
@@ -56,20 +56,31 @@ def protected_ref(name, is_protected, bare_is_branch=True, dwim=False):
     if not n:
         return False
     if any(ch in n for ch in "*?["):
-        return any(is_protected(s) and fnmatch.fnmatchcase(s, n) for s in GLOB_SAMPLES)
+        return _glob_protected(n, is_protected)
     return is_protected(n)
-
 
 def _refusal(what, name):
     return f"`git {what}` moves the protected branch `{name}`; {TAIL}"
 
+def _positionals(args, value_opts=()):
+    """Non-option words; `value_opts` consume the next word; everything after `--` counts."""
+    pos, i = [], 0
+    while i < len(args):
+        a = args[i]
+        i += 1
+        if a in value_opts:
+            i += 1
+        elif a == "--":
+            return pos + list(args[i:])
+        elif not a.startswith("-") or a == "-":
+            pos.append(a)
+    return pos
 
 # ---- git branch ----------------------------------------------------------
 
-BRANCH_MODES = {"--force": "f", "--delete": "d", "--move": "m", "--copy": "c"}
+BRANCH_MODES = {"--force": "f", "--delete": "d", "--move": "m", "--copy": "c", "--list": "l"}
 BRANCH_VALUE_LONG = {"--set-upstream-to", "--contains", "--no-contains", "--merged", "--no-merged",
                      "--points-at", "--sort", "--format"}
-
 
 def _branch(args, current_branch, is_protected):
     modes, pos, i, rest = set(), [], 0, False
@@ -87,7 +98,7 @@ def _branch(args, current_branch, is_protected):
                 i += 1
         else:
             for k, ch in enumerate(a[1:]):
-                if ch in "fdDmMcC":
+                if ch in "fdDmMcCl":
                     modes.add(ch.lower())
                     if ch in "DMC":
                         modes.add("f")
@@ -95,11 +106,15 @@ def _branch(args, current_branch, is_protected):
                     if k == len(a) - 2:
                         i += 1
                     break
+    if "l" in modes:
+        return None
     if "d" in modes:
         hit = next((p for p in pos if protected_ref(p, is_protected)), None)
         return _refusal("branch --delete", hit) if hit else None
     if "m" in modes:
         names = pos[:2] if len(pos) >= 2 else pos[:1] + [current_branch()]
+        if None in names:
+            return _refusal("branch --move", UNRESOLVED)
         hit = next((p for p in names if p and protected_ref(p, is_protected)), None)
         return _refusal("branch --move", hit) if hit else None
     if "c" in modes:
@@ -109,100 +124,54 @@ def _branch(args, current_branch, is_protected):
         return _refusal("branch --force", pos[0])
     return None
 
-
-# ---- git update-ref ------------------------------------------------------
+# ---- git update-ref / symbolic-ref ---------------------------------------
 
 def _update_ref(args, current_branch, is_protected):
     if "--stdin" in args:
         return f"`git update-ref --stdin` takes its refs from stdin, which the guard cannot read; {TAIL}"
-    pos, i = [], 0
-    while i < len(args):
-        a = args[i]
-        i += 1
-        if a == "-m":
-            i += 1
-        elif not a.startswith("-"):
-            pos.append(a)
+    pos = _positionals(args, {"-m"})
     if not pos:
         return None
-    ref = pos[0]
-    if ref == "HEAD":
+    if pos[0] == "HEAD":
         b = "" if "--no-deref" in args else current_branch()
-        return _refusal("update-ref HEAD", b) if b and is_protected(b) else None
-    return _refusal("update-ref", ref) if protected_ref(ref, is_protected, bare_is_branch=False) else None
+        return _refusal("update-ref HEAD", b or UNRESOLVED) if b is None or (b and is_protected(b)) else None
+    return _refusal("update-ref", pos[0]) if protected_ref(pos[0], is_protected, bare_is_branch=False) else None
 
+def _symbolic_ref(args, is_protected):
+    pos = _positionals(args, {"-m"})
+    deleting = any(a in ("-d", "--delete") for a in args)
+    if pos and (deleting or len(pos) > 1) and protected_ref(pos[0], is_protected, dwim=True):
+        return _refusal("symbolic-ref " + ("-d " if deleting else "") + pos[0], pos[0])
+    return None
 
-# ---- git fetch / pull ----------------------------------------------------
+# ---- git fetch / pull / rebase -------------------------------------------
 
 FETCH_VALUE_OPTS = {"--depth", "--deepen", "--shallow-since", "--shallow-exclude", "-j", "--jobs", "--refmap",
                     "-o", "--server-option", "--negotiation-tip", "--upload-pack",
                     "--recurse-submodules-default", "-s", "--strategy", "-X", "--strategy-option"}
 
-
 def _fetch(sub, args, is_protected):
-    if "--multiple" in args:
-        return None
-    pos, i = [], 0
-    while i < len(args):
-        a = args[i]
-        i += 1
-        if a in FETCH_VALUE_OPTS:
-            i += 1
-        elif a == "--":
-            pos.extend(args[i:])
-            break
-        elif not a.startswith("-"):
-            pos.append(a)
-    for spec in pos[1:]:
+    refmaps = [a[len("--refmap="):] for a in args if a.startswith("--refmap=")]
+    refmaps += [args[i + 1] for i, a in enumerate(args[:-1]) if a == "--refmap"]
+    pos = [] if "--multiple" in args else _positionals(args, FETCH_VALUE_OPTS)[1:]
+    for spec in refmaps + pos:
         if ":" in spec:
             dst = spec.rsplit(":", 1)[1]
             if protected_ref(dst, is_protected, dwim=True):
                 return _refusal(f"{sub} … {spec}", dst)
     return None
 
-
-# ---- git rebase <upstream> <branch> --------------------------------------
-
 REBASE_VALUE_OPTS = {"--onto", "-s", "--strategy", "-X", "--strategy-option", "-x", "--exec"}
 
-
 def _rebase(args, is_protected):
-    pos, i = [], 0
-    while i < len(args):
-        a = args[i]
-        i += 1
-        if a in REBASE_VALUE_OPTS:
-            i += 1
-        elif a == "--":
-            pos.extend(args[i:])
-            break
-        elif not a.startswith("-"):
-            pos.append(a)
+    if any(a.startswith("--up") and "--update-refs".startswith(a) for a in args):
+        return f"`git rebase --update-refs` moves every branch inside the rebased range, protected ones too; {TAIL}"
+    pos = _positionals(args, REBASE_VALUE_OPTS)
     k = 0 if "--root" in args else 1  # --root takes no upstream
     branch = pos[k] if len(pos) > k else None
     if branch and protected_ref(branch, is_protected):
         return _refusal(f"rebase … {branch}", branch)
     return None
-
-
-# ---- git symbolic-ref ----------------------------------------------------
-
-def _symbolic_ref(args, is_protected):
-    pos, i = [], 0
-    while i < len(args):
-        a = args[i]
-        i += 1
-        if a == "-m":
-            i += 1
-        elif not a.startswith("-"):
-            pos.append(a)
-    deleting = any(a in ("-d", "--delete") for a in args)
-    if pos and (deleting or len(pos) > 1) and protected_ref(pos[0], is_protected, dwim=True):
-        return _refusal("symbolic-ref " + ("-d " if deleting else "") + pos[0], pos[0])
-    return None
-
-
-# ---- checkout -B / switch -C / worktree add -B ---------------------------
 
 def _forced_create(args, letter, long_opt=None):
     """The value of `-<letter>` (separate, attached or ending a cluster) or `--long[=]`."""
@@ -220,8 +189,8 @@ def _forced_create(args, letter, long_opt=None):
                 return a[k + 1:] or nxt
     return None
 
-
 def ref_move(sub, args, current_branch, is_protected):
+    """Refusal text when this git call moves a protected branch by name, else None."""
     if sub == "branch":
         return _branch(args, current_branch, is_protected)
     if sub == "update-ref":
@@ -242,3 +211,89 @@ def ref_move(sub, args, current_branch, is_protected):
     if target and protected_ref(target, is_protected):
         return _refusal(what, target)
     return None
+
+# ---- current branch and the command chain --------------------------------
+
+def resolve_branch(d, ctx):
+    """Branch checked out where git will act; "" when detached; None when a named git dir is unreadable."""
+    gopts, genv = ctx
+    named = bool(gopts or genv)
+    cmd = ["git", "-C", d] + [f"{k}={v}" for k, v in gopts] + ["symbolic-ref", "--short", "-q", "HEAD"]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=5, env={**os.environ, **genv})
+    except Exception:
+        return None if named else ""
+    if r.returncode == 0:
+        return r.stdout.strip()
+    return "" if r.returncode == 1 or not named else None
+
+def _switched_to(d, sub, args):
+    """(dir, branch) that checkout / switch / worktree add leaves checked out, else None."""
+    if sub in ("checkout", "switch"):
+        if "--" in args or "--detach" in args or (sub == "switch" and "-d" in args):
+            return None
+        pos = _positionals(args)
+        return (d, pos[0]) if pos else None
+    if sub == "worktree" and args[:1] == ["add"]:
+        rest = args[1:]
+        if "--detach" in rest or "-d" in rest:
+            return None
+        pos = _positionals(rest, {"-b", "-B", "--reason"})
+        if not pos:
+            return None
+        new = next((rest[i + 1] for i, a in enumerate(rest[:-1]) if a in ("-b", "-B")), None)
+        return os.path.join(d, pos[0]), new or (pos[1] if len(pos) > 1 else os.path.basename(pos[0]))
+    return None
+
+def _short_has(arg, letter, value_letters=""):
+    """True when a `-xyz` cluster sets `letter` before any value-taking letter."""
+    if not arg.startswith("-") or arg.startswith("--") or len(arg) < 2:
+        return False
+    for ch in arg[1:]:
+        if ch == letter:
+            return True
+        if ch in value_letters:
+            return False
+    return False
+
+def _names_state_json(arg):
+    p = os.path.normpath(arg)
+    return p.endswith(os.path.join(".claude", "tdd-guardian", "state.json")) or \
+        p.endswith(os.path.join(".claude", "tdd-guardian"))
+
+def _staging(sub, args):
+    if sub == "add":
+        for a in args:
+            if a in ("-A", "--all", ".", "./", "-u", "--update") or _short_has(a, "A") or _short_has(a, "u"):
+                return f"`git add {a}` stages files you did not name; stage named paths only (rule 70)."
+            if not a.startswith("-") and _names_state_json(a):
+                return "never stage .claude/tdd-guardian/state.json; it is per-worktree gate state."
+    if sub == "commit":
+        for a in args:
+            if a == "--":
+                break
+            if a == "--all" or _short_has(a, "a", "mFCctS"):
+                return "`git commit -a/--all` stages files you did not name; `git add` named paths first (rule 70)."
+    return None
+
+def implementor_git(d, sub, args, ctx, chain, is_protected):
+    """Refusal text for one git call of an implementor's Bash command, else None."""
+    key = os.path.normpath(d)
+
+    def current():
+        return chain[key] if key in chain else resolve_branch(d, ctx)
+
+    if sub == "push":
+        return "implementors never run `git push`; the delegator lands commits (rule 70)."
+    msg = ref_move(sub, args, current, is_protected)
+    if msg:
+        return msg
+    if sub in ("commit", "merge", "rebase", "cherry-pick", "reset"):
+        b = current()
+        if b is None or is_protected(b):
+            return f"`git {sub}` on `{b or UNRESOLVED}` is the delegator's job; work on your own branch in mdpro-wt/ (rule 70)."
+    msg = _staging(sub, args)
+    moved = None if msg else _switched_to(d, sub, args)
+    if moved and is_protected(moved[1]):
+        chain[os.path.normpath(moved[0])] = moved[1]
+    return msg
