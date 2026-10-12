@@ -28,6 +28,9 @@ use tauri_app_lib::services::quit_guard::{
 };
 use tauri_app_lib::services::{app_ready, http_server, logger, shadow_store};
 const BUILD_ID_RAW: Option<&str> = option_env!("MDPRO_BUILD_ID");
+// D175: `<version>@<sha>`, set only by release.yml's app build step; read
+// here, not in the lib, so a new id recompiles only this bin (release_info.rs).
+const RELEASE_ID_RAW: Option<&str> = option_env!("MDPRO_RELEASE_ID");
 
 // Track whether app has fully initialized (setup complete, main window ready)
 static APP_READY: OnceLock<AtomicBool> = OnceLock::new();
@@ -237,6 +240,7 @@ fn main() {
                 context: Some(app_ready::current_app_ready_context(
                     startup.elapsed().as_millis() as u64,
                     BUILD_ID_RAW,
+                    RELEASE_ID_RAW,
                 )),
                 duration_ms: Some(startup.elapsed().as_millis() as u64),
                 error: None,

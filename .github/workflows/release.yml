@@ -1,8 +1,7 @@
 name: Release
 
-# Manual dispatch only (D76, ADR-0073). One fail-closed run: preflight → build → verify → draft
-# (not build-only) → publish (mode=draft only, after verify-release + gate.mjs may-publish pass).
-# Shape pinned by tests/release-workflow-shape.test.ts; ADR-0073 records why.
+# Manual dispatch only (D76, ADR-0073, which records why). One fail-closed run: preflight → build → verify → draft
+# (not build-only) → publish (mode=draft only, after verify-release + gate.mjs may-publish pass). Shape: tests/release-workflow-*.test.ts.
 on:
   workflow_dispatch:
     inputs:
@@ -164,6 +163,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          MDPRO_RELEASE_ID: ${{ needs.preflight.outputs.version }}@${{ needs.preflight.outputs.sha }} # D175: app.ready releaseId; app build only, never the sidecar
         run: pnpm tauri build --target ${{ matrix.rust_target }} --bundles ${{ matrix.bundles }}
       - name: Collect assets under their final names
         shell: bash

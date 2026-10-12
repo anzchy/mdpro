@@ -27,6 +27,7 @@ pub mod open_route;
 pub mod preferences;
 pub mod preferences_mcp;
 pub mod quit_guard;
+pub mod release_info;
 #[cfg(test)]
 mod run_isolation_fixtures;
 #[cfg(test)]

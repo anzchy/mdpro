@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- A released build's log now says which release it is (D175). The `app.ready` line carries a new `releaseId`, `<version>@<full commit SHA>`, set only by the release workflow; `buildId` is unchanged and still reads `unknown` in released builds. Before publishing, the release workflow now refuses a draft whose macOS app was not built with that exact id
+  - **Not yet checked on a device**
 - A file changed outside mdpro while it is open in a background tab now raises "External change detected" when you switch to that tab, and ⌘S no longer writes over that change until you choose Reload or Ignore (D171, [ADR-0081](docs/adr/0081-external-changes-are-kept-per-document-and-an-open-reports-a-change-since-its-read.md)). The change used to be dropped, so the next save silently overwrote it. A save blocked this way shows "Save failed: the file changed on disk; reload or ignore that change before saving" and leaves the tab unsaved. A failed Reload now keeps the prompt up, and a change that arrives during a Reload prompts again afterwards
   - **Not yet checked on a device**
 - Reopening Settings no longer runs an update check before you open the About page (D166). Once a check had found an update, every ⌘, briefly mounted the About page left over from the last visit and checked again, and visiting About then checked a second time. Settings now always opens on General, and a Check Again still running when Settings was closed can no longer replace the result a reopened About page is showing

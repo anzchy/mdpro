@@ -17,7 +17,8 @@
  *   draft's asset list matches its own manifest.json (gate.postUpload) →
  *   download every asset → latest.json and manifest.json present →
  *   verify-assets check-only, mode draft (rehearsal-draft under --rehearsal)
- *   (asset set, latest.json, manifest bytes, signatures) → exit 0 only if all
+ *   (asset set, latest.json, manifest bytes, signatures) → releaseId: each
+ *   macOS app binary carries `<version>@<--sha>` (D175) → exit 0 only if all
  *   pass.
  *
  * Key decisions:
@@ -32,10 +33,15 @@
  *   publishing is `gate.mjs may-publish`, which refuses every rehearsal tag,
  *   and the workflow never passes `--rehearsal`.
  * - Fail closed: any gh failure, a missing release, or two drafts → exit 1.
+ * - D175: the release-id check reads the downloaded `.app.tar.gz` bytes, so a
+ *   draft whose app was built without `MDPRO_RELEASE_ID`, or from another
+ *   commit than `--sha`, is refused. Windows and Linux installers are not
+ *   inspected (see releaseId.mjs).
  *
  * @module scripts/release/verify-release
  * @coordinates-with scripts/release/gate.mjs (checkDraftRelease, postUpload)
  * @coordinates-with scripts/release/verify-assets.mjs (byte-level checks)
+ * @coordinates-with scripts/release/releaseId.mjs (release id in the app binary)
  * @coordinates-with .github/workflows/release.yml (job publish)
  */
 import { spawnSync } from "node:child_process";
@@ -44,6 +50,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { REHEARSAL_PREFIX, checkDraftRelease, isFullSha, isReleaseTag, manifestWithSelf, postUpload } from "./gate.mjs";
+import { checkReleaseId } from "./releaseId.mjs";
 import { GENERATED, main as verifyAssetsMain } from "./verify-assets.mjs";
 import { STRICT_VERSION } from "./sourceCheck.mjs";
 
@@ -186,6 +193,9 @@ export function main(argv, io = {}) {
     const mode = rehearsal ? "rehearsal-draft" : "draft";
     const code = verifyAssetsMain(["--dir", tmp, "--version", version, "--repo", repo, "--mode", mode], { cwd, env, out, err });
     if (code !== 0) return fail([`the draft's downloaded assets for ${tag} did not verify`]);
+    const rid = checkReleaseId({ dir: tmp, version, sha });
+    if (!rid.ok) return fail(rid.errors);
+    out(`${tag}: release id ${rid.releaseId} found in every macOS app binary`);
     if (rehearsal) {
       out(`${tag}: rehearsal draft pinned to ${sha} verified (${assets.length} assets); rehearsal drafts are never publishable`);
     } else {

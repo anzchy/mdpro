@@ -1,4 +1,6 @@
 use super::{app_ready_context, current_app_ready_context};
+
+use super::app_ready_release_tests::KEYS_WITH_RELEASE;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -105,7 +107,8 @@ fn t04_key_set_and_passthrough_property() {
 
 #[test]
 fn t05_pid_equals_the_real_process_id() {
-    let ctx = current_app_ready_context(7, None);
+    // rule 12: D175 adds the raw release id parameter; None here.
+    let ctx = current_app_ready_context(7, None, None);
     assert_eq!(ctx["pid"].as_u64(), Some(std::process::id() as u64));
 }
 
@@ -120,7 +123,8 @@ fn t06_build_id_flows_through_normalisation() {
         (Some(" "), "unknown"),
     ];
     for (raw, expected) in cases {
-        let ctx = current_app_ready_context(7, raw);
+        // rule 12: D175 adds the raw release id parameter; None here.
+        let ctx = current_app_ready_context(7, raw, None);
         assert_eq!(ctx["buildId"].as_str(), Some(expected), "raw {raw:?}");
     }
 }
@@ -128,11 +132,13 @@ fn t06_build_id_flows_through_normalisation() {
 #[test]
 fn t07_remaining_fields_are_real_and_key_set_is_closed() {
     for startup in [7u64, 9] {
-        let ctx = current_app_ready_context(startup, None);
+        // rule 12: D175 adds the raw release id parameter; None here.
+        let ctx = current_app_ready_context(startup, None, None);
         assert_eq!(ctx["startupTimeMs"].as_u64(), Some(startup));
         assert_eq!(ctx["appVersion"].as_str(), Some(env!("CARGO_PKG_VERSION")));
         assert_eq!(ctx["platform"].as_str(), Some(std::env::consts::OS));
-        assert_eq!(sorted_keys(&ctx), KEYS);
+        // rule 12: D175 closes the key set at six: the five plus `releaseId`.
+        assert_eq!(sorted_keys(&ctx), KEYS_WITH_RELEASE);
     }
 }
 

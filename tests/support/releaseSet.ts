@@ -6,20 +6,30 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { appTarball } from "./appTarball";
 import { type MinisignKey, signTauri } from "./minisignFixture";
 
 export type AssetFile = { name: string; data: Buffer };
 
 export const REPO = "anzchy/mdpro";
 
-/** Archive bytes per arch; distinct so a swapped signature is detectable. */
-export const archiveBytes = (arch: string): Buffer => Buffer.from(`\u001f\u008b fake ${arch} app tarball`);
+/** The commit every draft fixture is pinned to (`releaseDraft.ts` SHA). */
+export const FIXTURE_SHA = "0123456789abcdef0123456789abcdef01234567";
 
-/** The six macOS files of a complete two-platform set, signed by `key`. */
-export function completeSet(key: MinisignKey, version: string): AssetFile[] {
+/**
+ * Archive bytes per arch: a real `.app.tar.gz` whose `tauri-app` carries
+ * `releaseId` (D175), distinct per arch so a swapped signature is detectable.
+ */
+export const archiveBytes = (arch: string, releaseId?: string): Buffer => appTarball(arch, { releaseId });
+
+/**
+ * The six macOS files of a complete two-platform set, signed by `key`. The
+ * app binaries carry `releaseId`, by default `<version>@FIXTURE_SHA` (D175).
+ */
+export function completeSet(key: MinisignKey, version: string, releaseId = `${version}@${FIXTURE_SHA}`): AssetFile[] {
   const files: AssetFile[] = [];
   for (const arch of ["aarch64", "x64"]) {
-    const archive = archiveBytes(arch);
+    const archive = archiveBytes(arch, releaseId);
     files.push({ name: `mdpro_${arch}.app.tar.gz`, data: archive });
     files.push({ name: `mdpro_${arch}.app.tar.gz.sig`, data: Buffer.from(signTauri(key, archive)) });
     files.push({ name: `mdpro_${version}_${arch}.dmg`, data: Buffer.from(`dmg ${arch} ${version}`) });

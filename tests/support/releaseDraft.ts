@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { type MinisignKey, signTauri } from "./minisignFixture";
-import { REPO, writeSet, type AssetFile } from "./releaseSet";
+import { FIXTURE_SHA, REPO, writeSet, type AssetFile } from "./releaseSet";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import { buildManifest } from "../../scripts/release/assetSet.mjs";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
@@ -16,7 +16,7 @@ import { main as verifyAssetsMain } from "../../scripts/release/verify-assets.mj
 
 export type Gh = { status: number; stdout: Buffer | string; stderr: string };
 
-export const SHA = "0123456789abcdef0123456789abcdef01234567";
+export const SHA = FIXTURE_SHA;
 export const REHEARSAL_TAG = `rehearsal-d76-${SHA.slice(0, 7)}`;
 
 /** The three Linux installers and their signatures, signed by `key`. */
