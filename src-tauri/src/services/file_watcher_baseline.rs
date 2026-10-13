@@ -185,6 +185,8 @@ impl BaselineStore {
 #[path = "file_watcher_baseline_kind.rs"]
 mod kind;
 pub(crate) use kind::is_filtered_kind;
+#[cfg(test)]
+pub(crate) use kind::is_filtered_kind_on;
 
 #[path = "file_watcher_baseline_save.rs"]
 mod save;
@@ -264,7 +266,7 @@ mod fsevents_tests;
 
 #[cfg(test)]
 #[path = "file_watcher_baseline_seam.rs"]
-mod seam;
+pub(super) mod seam;
 
 #[cfg(test)]
 #[path = "file_watcher_baseline_kind_tests.rs"]

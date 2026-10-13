@@ -22,7 +22,9 @@
 //! file_watcher_route_permission_tests.rs (D164),
 //! docs/adr/0072-a-replaced-watched-file-is-checked-like-a-content-change.md,
 //! docs/adr/0078-a-watched-file-moved-away-is-reported-as-deleted.md,
-//! docs/adr/0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md
+//! docs/adr/0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md,
+//! file_watcher_route_windows_atomic_save_tests.rs and
+//! file_watcher_route_windows_modify_any_tests.rs (D190-WI-2, ADR-0093)
 //!
 //! Key decisions:
 //! - **Check order is the contract** (ADR-0068): kind, path count, self-write,
@@ -42,6 +44,10 @@
 //!   `deleted`. Before D152 every `Remove` was `deleted`: with D116's
 //!   per-kind keys the `Remove` of an external atomic save emitted
 //!   "deleted" for a file that exists.
+//!   On Windows notify reports our save as a `Remove` then a
+//!   `Modify(Name(To))` on the watched path (ADR-0093): the same branch, the
+//!   self-write gate matching by normalised key, and the check by the
+//!   portable stability proof.
 //! - **A moved-away file routes as `deleted`** (ADR-0078, D107). The same
 //!   single-path rename on a path that no longer exists when the event is
 //!   handled is `EmittedDeleted`, exactly like a `Remove` on a gone path:
@@ -69,7 +75,8 @@ use super::{FileChangedEvent, WatchOutcome};
 /// debounce check so a save never records a debounce entry), then the D32
 /// drop: a `Modify(Metadata(Extended))`, `Modify(Metadata(Any))`,
 /// `Modify(Data(Content))`, `Modify(Metadata(Ownership))` or
-/// `Modify(Metadata(Permissions))` (ADR-0080), or a replaced file, whose first path is
+/// `Modify(Metadata(Permissions))` (ADR-0080), on Windows also `Modify(Any)`
+/// (ADR-0093), or a replaced file, whose first path is
 /// unchanged since its baseline, read coherently (ADR-0068), is
 /// `IgnoredUnchanged`, again before the debounce check. Then the debounce
 /// check keyed by the first path and the change type it would emit (D116),
@@ -191,3 +198,11 @@ mod moved_away_tests;
 #[cfg(all(test, unix))]
 #[path = "file_watcher_route_permission_tests.rs"]
 mod permission_tests;
+
+#[cfg(all(test, unix))]
+#[path = "file_watcher_route_windows_atomic_save_tests.rs"]
+mod windows_atomic_save_tests;
+
+#[cfg(all(test, unix))]
+#[path = "file_watcher_route_windows_modify_any_tests.rs"]
+mod windows_modify_any_tests;

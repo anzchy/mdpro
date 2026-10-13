@@ -20,6 +20,11 @@ be missed" (closed) and the clause "Racing refreshes are unordered"
 (corrected) by
 [ADR-0081](0081-external-changes-are-kept-per-document-and-an-open-reports-a-change-since-its-read.md) (2026-10-12).
 
+Partially superseded: decision 3 (Windows clause) by
+[ADR-0093](0093-windows-reads-are-proven-stable-by-file-identity-and-the-self-write-gate-matches-every-spelling.md)
+(2026-10-13). Decision 1 scope amended by ADR-0093: on Windows
+`Modify(Any)` is also checked.
+
 ## Context
 
 D32 (row in

@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - On Windows, files opened by double-click or a second launch show their file name as the tab label and are stored with plain C:\… paths (D190)
   - **Not yet checked on a device**
+- On Windows, saving a file no longer raises a false "External change detected" (D190, [ADR-0093](docs/adr/0093-windows-reads-are-proven-stable-by-file-identity-and-the-self-write-gate-matches-every-spelling.md)). The check that drops a watcher event for a file whose bytes have not changed could never succeed on Windows, so every save prompted. It now proves its read by file identity, and the save's own mark now matches the path however it is spelled
+  - **Not yet checked on a device**
 - On Windows, local images in documents are shown again (the content security policy blocked `http://asset.localhost`, the address Windows serves them from) (D190)
   - **Not yet checked on a device**
 - Opening a file with a `<br>` tag inside a line (for example `first<br />second`, or `x<br>y` in a table cell) no longer deletes it (D192). The tag used to disappear as the file loaded, and the first edit anywhere in the document then saved the text without it. A `<br />` on a line of its own still opens as an empty line

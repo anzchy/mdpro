@@ -7,7 +7,9 @@
 //! count `read_once` calls per thread, so a test can show the open path reads
 //! the file exactly once (D86 WI-3).
 //!
-//! @coordinates-with services/file_watcher_baseline_read.rs (`read_once`
+//! @coordinates-with file_watcher_baseline_read_proof.rs
+//! (`portable_proof_forced`), file_watcher_baseline_kind.rs
+//! (`windows_kinds_forced`), services/file_watcher_baseline_read.rs (`read_once`
 //! calls `note_read_call` and `between_read_and_restat`, which production
 //! builds compile to empty fns), file_watcher_baseline_save.rs
 //! (`refresh_after_save` calls `between_copy_and_store`, likewise; D112), file_watcher_baseline_seed.rs (re-exports
@@ -30,6 +32,14 @@
 //!   every read the store makes. `refresh_after_save` no longer reads (D112);
 //!   it fires the same hook between its copy-out and its store, the window
 //!   its read used to open, so the D86 WI-2 g3 legs still land there.
+//! - **Windows routing, on a Unix host (D190-WI-2, ADR-0093).**
+//!   `with_portable_proof` makes every read `f` makes on this thread go
+//!   through the portable stability proof a non-Unix build uses (identity +
+//!   `(mtime, size)`; `same-file` gives dev + inode here, volume serial + file
+//!   index on Windows), and `with_windows_kinds` makes the unchanged drop
+//!   apply to Windows' kinds; `with_windows` is both. So the Windows answers
+//!   are specified on the macOS test host, where `cargo test` runs. Each
+//!   flag is thread-local and cleared by a drop guard, like the hook.
 //! - **The hook runs where production runs nothing**, outside the store's
 //!   lock: the read module never takes it (r7), and B18′ lists
 //!   `between_read_and_restat(` as an I/O name, so no map helper can call it
@@ -43,6 +53,8 @@ type Hook = Box<dyn FnOnce()>;
 thread_local! {
     static HOOK: RefCell<Option<Hook>> = RefCell::new(None);
     static READS: Cell<u64> = const { Cell::new(0) };
+    static PORTABLE: Cell<bool> = const { Cell::new(false) };
+    static WINDOWS_KINDS: Cell<bool> = const { Cell::new(false) };
 }
 
 impl BaselineStore {
@@ -92,4 +104,54 @@ pub(crate) fn read_once_calls() -> u64 {
 /// Test build of the production no-op in `read_once`: count the call.
 pub(super) fn note_read_call() {
     READS.with(|n| n.set(n.get() + 1));
+}
+
+/// Clears this thread's portable-proof flag on drop (D190-WI-2).
+struct ClearPortable;
+impl Drop for ClearPortable {
+    fn drop(&mut self) {
+        PORTABLE.with(|p| p.set(false));
+    }
+}
+
+/// Run `f` with every read on this thread judged by the off-Unix stability
+/// proof, as a Windows build judges it, and always restore the platform's
+/// own proof afterwards, even if `f` panics (D190-WI-2).
+pub(crate) fn with_portable_proof<R>(f: impl FnOnce() -> R) -> R {
+    PORTABLE.with(|p| p.set(true));
+    let _clear = ClearPortable;
+    f()
+}
+
+/// Test build of the production `false` in the read proof module: whether
+/// `with_portable_proof` is in force on this thread.
+pub(super) fn portable_proof_forced() -> bool {
+    PORTABLE.with(Cell::get)
+}
+
+/// Clears this thread's Windows-kinds flag on drop (D190-WI-2).
+struct ClearWindowsKinds;
+impl Drop for ClearWindowsKinds {
+    fn drop(&mut self) {
+        WINDOWS_KINDS.with(|w| w.set(false));
+    }
+}
+
+/// Run `f` with the unchanged-file drop applying to the kinds a Windows
+/// build applies it to (`is_filtered_kind`), and always restore the host's
+/// kinds afterwards, even if `f` panics (D190-WI-2).
+pub(crate) fn with_windows_kinds<R>(f: impl FnOnce() -> R) -> R {
+    WINDOWS_KINDS.with(|w| w.set(true));
+    let _clear = ClearWindowsKinds;
+    f()
+}
+
+/// Run `f` as a Windows build routes: its kinds and its stability proof.
+pub(crate) fn with_windows<R>(f: impl FnOnce() -> R) -> R {
+    with_windows_kinds(|| with_portable_proof(f))
+}
+
+/// Whether `with_windows_kinds` is in force on this thread.
+pub(super) fn windows_kinds_forced() -> bool {
+    WINDOWS_KINDS.with(Cell::get)
 }

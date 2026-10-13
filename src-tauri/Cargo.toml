@@ -27,6 +27,9 @@ tauri-plugin-process = "2"
 pulldown-cmark = "0.11"
 ammonia = "4"
 notify = "6"
+# File identity for the off-Unix stability proof (ADR-0093); already in the
+# graph through notify -> walkdir.
+same-file = "1.0.6"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 rfd = "0.14"

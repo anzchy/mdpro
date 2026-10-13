@@ -4536,6 +4536,7 @@ dependencies = [
  "reqwest",
  "rfd",
  "rmcp",
+ "same-file",
  "serde",
  "serde_json",
  "tauri",

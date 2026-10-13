@@ -7,12 +7,13 @@
 //! Tauri-free and lock-free: nothing here touches the store's mutex.
 //!
 //! Pipeline (`read_once_upto`): open the path once; fstat the handle (`s1`);
-//! read at most `cap + 1` bytes through it (`read_once` and `coherent_read`
-//! use `cap = HASH_CAP_BYTES`); run the test seam; fstat
-//! the handle again (`s2`); stat the path (`p`, following symlinks).
-//! `stable` means `s1 == s2` on `(mtime, size, ctime)` and `p` is the same
-//! file as `s1` on `(dev, ino, mtime, size)`. Off Unix a read is never
-//! `stable` (D159).
+//! `Proof::begin` (file_watcher_baseline_read_proof.rs); read at most
+//! `cap + 1` bytes through the handle (`read_once` and `coherent_read` use
+//! `cap = HASH_CAP_BYTES`); run the test seam; `Proof::holds` decides
+//! `stable`. On Unix that is `s1 == s2` on `(mtime, size, ctime)` and the
+//! path stat naming the same file on `(dev, ino, mtime, size)`; elsewhere
+//! the handle and a fresh open of the path share one file identity and the
+//! same `(mtime, size)` (ADR-0093).
 //!
 //! @coordinates-with services/file_watcher_baseline.rs (parent;
 //! `register` / `refresh_if_present` call `snapshot`; the parent re-exports
@@ -24,6 +25,7 @@
 //! hook run between the read and `s2`, and the per-thread `read_once` call
 //! counter; production compiles both to nothing),
 //! file_watcher_baseline_seed.rs (`read_for_open`, the open path's one read),
+//! file_watcher_baseline_read_proof.rs (`Proof`, the stability proof, ADR-0093),
 //! file_watcher_baseline_lock_tests.rs (B18′ scans this file too),
 //! docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md
 //!
@@ -53,22 +55,17 @@
 //!   stat only (B7, B8, B10).
 //! - **64-bit SipHash** (std `DefaultHasher`, fixed keys) over the disk bytes,
 //!   never the editor's text. Collisions are accepted by the ADR.
-//! - **The stability proof is Unix-only; elsewhere every read is unstable
-//!   (D159).** `fd_proof` and `path_proof` read ctime, dev and ino through
-//!   `std::os::unix::fs::MetadataExt`, which exists on macOS and Linux only.
-//!   Off Unix they are rebuilt from portable `Metadata` (mtime, length, zeros
-//!   for the rest), but without ctime or an inode they cannot prove a read
-//!   coherent, so `STABILITY_PROVABLE` is false and no read is ever `stable`:
-//!   no hash is stored or matched, and every watcher event emits (fail open,
-//!   ADR-0068). mdpro targets macOS 13+; a Windows build is best effort, where
-//!   an extra "changed externally" prompt is better than a dropped one.
+//! - **Off Unix the proof is identity + `(mtime, size)` (ADR-0093,
+//!   D190-WI-2),** superseding D159's "never stable": with no stable read
+//!   on Windows, mdpro's own save prompted "External change detected" every
+//!   time. The proof lives in file_watcher_baseline_read_proof.rs; its
+//!   accepted limits are in ADR-0093.
 use super::{Entry, HASH_CAP_BYTES};
+use proof::Proof;
 use std::collections::hash_map::DefaultHasher;
-use std::fs::{File, Metadata};
+use std::fs::File;
 use std::hash::Hasher;
 use std::io::{self, Read};
-#[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::time::SystemTime;
 
@@ -97,27 +94,20 @@ pub(crate) fn read_once_upto(path: &Path, cap: u64) -> io::Result<ReadOnce> {
     let mut file = File::open(path)?;
     let m1 = file.metadata()?;
     let s1 = (m1.modified()?, m1.len());
+    let proof = Proof::begin(&file, &m1);
     let mut bytes = Vec::new();
     (&mut file)
         .take(cap.saturating_add(1))
         .read_to_end(&mut bytes)?;
     between_read_and_restat();
-    let same_fd = file
-        .metadata()
-        .is_ok_and(|m2| fd_proof(&m1) == fd_proof(&m2));
-    let same_path = std::fs::metadata(path).is_ok_and(|p| path_proof(&p) == path_proof(&m1));
+    let stable = proof.holds(&file, path);
     Ok(ReadOnce {
         s1,
         over_cap: bytes.len() as u64 > cap,
         bytes,
-        stable: STABILITY_PROVABLE && same_fd && same_path,
+        stable,
     })
 }
-
-/// Whether this platform's metadata can prove a read stable: true on Unix
-/// (ctime and inode identity), false elsewhere, where every read is unstable
-/// and so fails open (D159).
-const STABILITY_PROVABLE: bool = cfg!(unix);
 
 /// `coherent_read_upto` with the hash cap, `HASH_CAP_BYTES`.
 pub(crate) fn coherent_read(path: &Path) -> Option<((SystemTime, u64), Vec<u8>)> {
@@ -158,58 +148,6 @@ pub(crate) fn hash_bytes(bytes: &[u8]) -> u64 {
     hasher.finish()
 }
 
-/// What must not move on the handle between `s1` and `s2`. Compared, never
-/// stored.
-#[cfg(unix)]
-fn fd_proof(m: &Metadata) -> (i64, i64, i64, i64, u64) {
-    (
-        m.mtime(),
-        m.mtime_nsec(),
-        m.ctime(),
-        m.ctime_nsec(),
-        m.size(),
-    )
-}
-
-/// Path identity: the path still names the inode that was read, with the
-/// same `(mtime, size)`. Compared, never stored.
-#[cfg(unix)]
-fn path_proof(m: &Metadata) -> (u64, u64, i64, i64, u64) {
-    (m.dev(), m.ino(), m.mtime(), m.mtime_nsec(), m.size())
-}
-
-/// Portable stand-in for the Unix `fd_proof` (D159): mtime and length, zero
-/// ctime. It proves nothing on its own; `STABILITY_PROVABLE` is false here,
-/// so a read is never judged stable whatever this returns.
-#[cfg(not(unix))]
-fn fd_proof(m: &Metadata) -> (i64, i64, i64, i64, u64) {
-    let (secs, nanos) = mtime_parts(m);
-    (secs, nanos, 0, 0, m.len())
-}
-
-/// Portable stand-in for the Unix `path_proof` (D159): no dev or inode, so
-/// zeros; see `fd_proof`.
-#[cfg(not(unix))]
-fn path_proof(m: &Metadata) -> (u64, u64, i64, i64, u64) {
-    let (secs, nanos) = mtime_parts(m);
-    (0, 0, secs, nanos, m.len())
-}
-
-/// mtime as whole seconds and nanoseconds since `UNIX_EPOCH`; `(0, 0)` when
-/// it is unavailable or before the epoch (harmless: the read is unstable).
-#[cfg(not(unix))]
-fn mtime_parts(m: &Metadata) -> (i64, i64) {
-    m.modified()
-        .ok()
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map_or((0, 0), |d| {
-            (
-                i64::try_from(d.as_secs()).unwrap_or(i64::MAX),
-                i64::from(d.subsec_nanos()),
-            )
-        })
-}
-
 /// Production no-op; the test build runs the installed read hook here
 /// instead (file_watcher_baseline_seam.rs).
 #[cfg(not(test))]
@@ -221,3 +159,6 @@ fn note_read_call() {}
 
 #[cfg(test)]
 use super::seam::{between_read_and_restat, note_read_call};
+
+#[path = "file_watcher_baseline_read_proof.rs"]
+mod proof;
