@@ -7,11 +7,14 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Every value interpolated into a remote PowerShell command goes through psq (inside '...')
 # and one of the validators: a ' in a value would otherwise end the string and run the rest.
-psq() { printf '%s' "${1//\'/\'\'}"; }
+# psq: double every ' (the quote char sits in a variable: /bin/bash 3.2 keeps backslashes in a
+# literal ${x//\'/\'\'} replacement). Only ever applied after a validator below.
+psq() { local q="'"; printf '%s' "${1//$q/$q$q}"; }
 # Patterns live in variables: /bin/bash 3.2 treats backslashes inside a literal [[ =~ ]] bracket differently.
-RE_WINPATH='^[A-Za-z]:\\[^"'"'"'`$]*$'     # C:\… with no quote, backtick or $ anywhere
+RE_WINPATH='^[A-Za-z]:\\[A-Za-z0-9 ._\\-]*$'   # allow-list: C:\ then letters, digits, space . _ \ - only
+                                              # (blocks every quote incl. U+2018-201B, $, `, %, &, newline, non-ASCII)
 RE_NAME='^[A-Za-z0-9._-]+$'
-check_winpath() { [[ $1 =~ $RE_WINPATH ]] || { echo "refusing Windows path: $1" >&2; exit 2; }; }
+check_winpath() { [[ $1 =~ $RE_WINPATH && $1 != *..* ]] || { echo "refusing Windows path: $1" >&2; exit 2; }; }
 check_name() { [[ $1 =~ $RE_NAME && $1 != .* ]] || { echo "refusing file name: $1" >&2; exit 2; }; }
 check_winpath "$WIN_DIR"
 mkdir -p "$OUT"
