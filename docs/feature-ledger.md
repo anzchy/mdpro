@@ -126,7 +126,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 拼写检查 | Stub | `src/plugins/codemirror/spellCheckPlugin.ts` | 插件 id `spell-check`：`codemirrorExtension: () => []`，`displayName` 字面写着 "Spell Check (Stub)"。故意拼错一个词，不会有任何标注 |
 | 专注模式 / 打字机模式 | Stub | `src/plugins/codemirror/focusModePlugin.ts`, `src/plugins/codemirror/typewriterModePlugin.ts`, `src/plugins/core/pluginConfig.ts` | 插件 id `focus-mode` 与 `typewriter-mode`：注册了，默认关，没有任何设置 UI 能打开。翻遍 ⌘, 的十个设置页也找不到开关 |
 | WYSIWYG 下的数学公式排版 | Absent | — | ⌃4 切到 WYSIWYG，输入 `$E=mc^2$` 仍是字面文本，不会排版。Phase 2，决策 B3 |
-| WYSIWYG 下的脚注渲染 | Absent | — | ⌃4 下输入 `[^1]` 与脚注定义，两者都以字面文本显示，没有跳转也没有回链。同 B3 |
+| WYSIWYG 下的脚注渲染 | Partial | `src/components/Editor/MilkdownEditor.tsx` | 限制：有渲染、无跳转也无回链。⌃4 下输入 `[^1]` 与脚注定义，引用渲染成上标 1（`footnote_reference` 节点），定义渲染成 `dl[data-type=footnote_definition]` 块；点上标不跳转，脚注末尾没有回链。2026-10-12 Windows 审计实测纠正（原记 Absent、字面文本）。同 B3 |
 | WYSIWYG 下的查找替换 | Absent | — | ⌃4 下按 ⌘F 不会出现查找面板；⌃2 切回源码模式才有 |
 
 ### 表格
