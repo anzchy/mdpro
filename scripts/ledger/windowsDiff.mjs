@@ -11,7 +11,9 @@
  * Key decisions:
  * - Placement is strict. A difference table counts only inside Part 1 (from the
  *   `## Part 1` heading to the next `##`), under a `###` area, after that
- *   area's inventory table, and at most once per area. Anything else is a
+ *   area's inventory table with only prose in between (no heading of level
+ *   ≤ 4 and no other table: audit b104, D191-F-1), and at most once per
+ *   area. Anything else is a
  *   `windows-diff-structure` finding, never a silent skip, and its rows are not
  *   gated further: one finding per defect.
  * - A difference header without its heading, a heading with no table or the
@@ -70,6 +72,7 @@ function misplacement(inPart1, area) {
   if (area === null) return "不在任何 `###` 分区之下";
   if (area.inventory === null) return `在分区「${area.name}」的清单表之前，上方没有可对照的清单表`;
   if (area.hasDiff) return `是分区「${area.name}」的第二张差异表，每个分区至多一张`;
+  if (!area.adjacent) return `与分区「${area.name}」的清单表之间隔着别的标题或表格，只允许正文段落`;
   return null;
 }
 
@@ -102,7 +105,8 @@ export function parseWindowsDiffs(markdown) {
         inPart1 = /^Part 1(?!\d)/.test(text);
         area = null;
       } else {
-        area = { name: text, inventory: null, hasDiff: false };
+        // `adjacent`: nothing but prose since the end of the latest inventory table.
+        area = { name: text, inventory: null, hasDiff: false, adjacent: false };
       }
       continue;
     }
@@ -111,7 +115,10 @@ export function parseWindowsDiffs(markdown) {
     if (isInventoryHeader(cells)) {
       if (!isSeparatorRow(splitRow(lines[i + 1] ?? ""))) continue; // parse.mjs reports it
       const [body, next] = consumeBody(lines, i + 2);
-      if (area !== null) area.inventory = body.map((r) => r.cells[0] ?? "");
+      if (area !== null) {
+        area.inventory = body.map((r) => r.cells[0] ?? "");
+        area.adjacent = true;
+      }
       i = next - 1;
       continue;
     }
@@ -119,10 +126,17 @@ export function parseWindowsDiffs(markdown) {
     if (isDiffHeader(cells)) {
       structural.push({ lineNumber: i + 1, message: `差异表头 ${HEADER_TEXT} 前缺少 \`#### ${WINDOWS_DIFF_HEADING}\` 标题` });
       i = consumeBody(lines, i + 1)[1] - 1;
+      if (area !== null) area.adjacent = false;
       continue;
     }
 
-    if (!isDiffHeading(line)) continue;
+    if (!isDiffHeading(line)) {
+      // Any other `####` heading, or any other table, breaks "immediately above".
+      const otherTable = cells !== null && cells.length > 1 && isSeparatorRow(splitRow(lines[i + 1] ?? ""));
+      if (area !== null && (/^####\s/.test(line) || otherTable)) area.adjacent = false;
+      if (otherTable) i = consumeBody(lines, i + 2)[1] - 1;
+      continue;
+    }
 
     const headingLine = i + 1;
     let j = i + 1;
