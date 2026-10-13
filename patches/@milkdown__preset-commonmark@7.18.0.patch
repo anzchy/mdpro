@@ -1,0 +1,129 @@
+diff --git a/lib/index.js b/lib/index.js
+index e3114679f34ceec3296f0095159c582933e419bc..3359b1cc8a18e82a090d9c9cbf76e59569140f5c 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -5,7 +5,7 @@ import { findWrapping, ReplaceStep, AddMarkStep } from "@milkdown/prose/transfor
+ import { $markAttr, $markSchema, $inputRule, $command, $useKeymap, $node, $remark, $nodeAttr, $nodeSchema, $ctx, $prose } from "@milkdown/utils";
+ import { remarkStringifyOptionsCtx, commandsCtx, editorViewCtx } from "@milkdown/core";
+ import { toggleMark, setBlockType, wrapIn, joinBackward } from "@milkdown/prose/commands";
+-import { visitParents } from "unist-util-visit-parents";
++import { SKIP, visitParents } from "unist-util-visit-parents";
+ import { expectDomTypeError } from "@milkdown/exception";
+ import { textblockTypeInputRule, wrappingInputRule, InputRule } from "@milkdown/prose/inputrules";
+ import { sinkListItem, splitListItem, liftListItem } from "@milkdown/prose/schema-list";
+@@ -411,21 +411,40 @@ withMeta(docSchema, {
+   displayName: "NodeSchema<doc>",
+   group: "Doc"
+ });
++// mdpro patch (D192): backport of the narrow visitEmptyLine from
++// @milkdown/preset-commonmark 7.22.3. 7.18.0 spliced every `<br>`-only html
++// node wherever it sat, so an inline `a<br />b` lost its break on load.
++// Retire this patch when the Milkdown kit moves to >= 7.22.
++// 7.18 has no blockContainerTypes ctx, so the block containers are a static
++// set (7.22.3's DEFAULT_BLOCK_CONTAINER_TYPES).
++const BR_PATTERN = /^<br\s*\/?\s*>$/i;
++const isBrHtmlValue = (value) => typeof value === "string" && BR_PATTERN.test(value.trim());
++const PLACEHOLDER_PARENTS = /* @__PURE__ */ new Set(["paragraph", "tableCell"]);
++const BLOCK_CONTAINERS = /* @__PURE__ */ new Set([
++  "root",
++  "blockquote",
++  "listItem",
++  "footnoteDefinition"
++]);
+ function visitEmptyLine(ast) {
+   return visitParents(
+     ast,
+-    (node) => node.type === "html" && ["<br />", "<br>", "<br >", "<br/>"].includes(
+-      node.value?.trim()
+-    ),
++    (node) => node.type === "html" && isBrHtmlValue(node.value),
+     (node, parents) => {
+-      if (!parents.length) return;
+       const parent = parents[parents.length - 1];
+-      if (!parent) return;
+-      const index = parent.children.indexOf(node);
+-      if (index === -1) return;
+-      parent.children.splice(index, 1);
+-    },
+-    true
++      if (!parent) return void 0;
++      if (PLACEHOLDER_PARENTS.has(parent.type)) {
++        if (parent.children.length === 1) parent.children = [];
++        return;
++      }
++      if (BLOCK_CONTAINERS.has(parent.type)) {
++        const mutable = node;
++        mutable.children = [];
++        delete mutable.value;
++        mutable.type = "paragraph";
++        return SKIP;
++      }
++    }
+   );
+ }
+ const remarkPreserveEmptyLinePlugin = $remark(
+diff --git a/src/plugin/remark-preserve-empty-line.ts b/src/plugin/remark-preserve-empty-line.ts
+index 5c11ab21aa0a22643c02f91fa0ba80bf6ae0359d..42224da58636fa9bc8f01a6fbb572c6755150efd 100644
+--- a/src/plugin/remark-preserve-empty-line.ts
++++ b/src/plugin/remark-preserve-empty-line.ts
+@@ -1,30 +1,48 @@
+ import type { Node } from '@milkdown/transformer'
+ 
+ import { $remark } from '@milkdown/utils'
+-import { visitParents } from 'unist-util-visit-parents'
++import { SKIP, visitParents } from 'unist-util-visit-parents'
+ 
+ import { withMeta } from '../__internal__'
+ 
++// mdpro patch (D192): backport of the narrow visitEmptyLine from
++// @milkdown/preset-commonmark 7.22.3. Retire when the kit moves to >= 7.22.
++// 7.18 has no blockContainerTypes ctx, so the block containers are static.
++const BR_PATTERN = /^<br\s*\/?\s*>$/i
++const isBrHtmlValue = (value: unknown): boolean =>
++  typeof value === 'string' && BR_PATTERN.test(value.trim())
++const PLACEHOLDER_PARENTS = new Set(['paragraph', 'tableCell'])
++const BLOCK_CONTAINERS = new Set([
++  'root',
++  'blockquote',
++  'listItem',
++  'footnoteDefinition',
++])
++
+ function visitEmptyLine(ast: Node) {
+   return visitParents(
+     ast,
+     (node: Node) =>
+       node.type === 'html' &&
+-      ['<br />', '<br>', '<br >', '<br/>'].includes(
+-        (node as Node & { value: string }).value?.trim()
+-      ),
++      isBrHtmlValue((node as Node & { value?: string }).value),
+     (node: Node, parents: Node[]) => {
+-      if (!parents.length) return
+       const parent = parents[parents.length - 1] as
+         | (Node & { children: Node[] })
+         | undefined
+-      if (!parent) return
+-      const index = parent.children.indexOf(node)
+-      if (index === -1) return
+-
+-      parent.children.splice(index, 1)
+-    },
+-    true
++      if (!parent) return undefined
++      if (PLACEHOLDER_PARENTS.has(parent.type)) {
++        if (parent.children.length === 1) parent.children = []
++        return undefined
++      }
++      if (BLOCK_CONTAINERS.has(parent.type)) {
++        const mutable = node as Node & { children?: Node[]; value?: string }
++        mutable.children = []
++        delete mutable.value
++        mutable.type = 'paragraph'
++        return SKIP
++      }
++      return undefined
++    }
+   )
+ }
+ 
