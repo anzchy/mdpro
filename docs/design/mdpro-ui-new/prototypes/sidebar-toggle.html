@@ -1,0 +1,325 @@
+<!doctype html>
+<!--
+  Prototype: sidebar toggle button (mdpro), 2026-10-12.
+  Pattern source: VMark (xiaolai/vmark @ 7916d41) — PanelLeftClose in the sidebar footer
+  while open (src/components/Sidebar/Sidebar.tsx:253-262), PanelLeft at the left end of
+  the status bar while closed (src/components/StatusBar/StatusBar.tsx:200-213).
+  Built to docs/design/mdpro-ui-new/DESIGN.md: icon button 24px square, transparent, muted
+  icon, --color-hover on hover; icons 24 viewBox / 1.75 stroke / round caps / currentColor;
+  colors change instantly and the sidebar does not animate (DR12). Sidebar width is fixed
+  at --sidebar-width at every window width (issue #416). Not production code.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>mdpro — sidebar toggle prototype</title>
+<style>
+  :root {
+    --font-sans: "SF Pro Text", -apple-system, "Avenir Next", "Helvetica Neue", sans-serif;
+    --font-mono: "SF Mono", ui-monospace, Menlo, monospace;
+    --font-size-ui-sm: 12px; --font-size-ui: 13px; --font-size-ui-lg: 14px;
+    --radius-control: 6px; --radius-popover: 10px; --radius-inner: 4px;
+    --icon-size-sm: 14px; --icon-size-md: 16px;
+    --title-bar-height: 38px; --bottom-tabs-height: 36px; --sidebar-width: 220px;
+    --traffic-lights-end: 78px;
+    --motion-duration-fast: 150ms; --motion-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .theme-light, .theme-dark { --color-focus-ring: color-mix(in srgb, var(--color-accent) 70%, transparent); }
+  .theme-light {
+    color-scheme: light;
+    --color-bg: #ffffff; --color-surface: #f6f7fb; --color-panel: #ffffff;
+    --color-text: #1a1a1a; --color-muted: #6b7280; --color-accent: #2563eb; --color-editor-bg: #ffffff;
+    --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    --color-border: color-mix(in srgb, var(--color-text) 10%, transparent);
+    --color-border-subtle: color-mix(in srgb, var(--color-text) 6%, transparent);
+    --color-hover: color-mix(in srgb, var(--color-text) 5%, transparent);
+    --color-pressed: color-mix(in srgb, var(--color-text) 9%, transparent);
+    --shadow-soft: 0 0 0 0.5px color-mix(in srgb, var(--color-text) 12%, transparent), 0 6px 20px rgba(0,0,0,.08);
+    --page-bg: #e9ebf0;
+  }
+  .theme-dark {
+    color-scheme: dark;
+    --color-bg: #0f1115; --color-surface: #161a22; --color-panel: #141821;
+    --color-text: #e5e7eb; --color-muted: #9aa4b2; --color-accent: #60a5fa; --color-editor-bg: #0f1115;
+    --color-accent-soft: color-mix(in srgb, var(--color-accent) 22%, transparent);
+    --color-border: color-mix(in srgb, var(--color-text) 12%, transparent);
+    --color-border-subtle: color-mix(in srgb, var(--color-text) 7%, transparent);
+    --color-hover: color-mix(in srgb, var(--color-text) 8%, transparent);
+    --color-pressed: color-mix(in srgb, var(--color-text) 13%, transparent);
+    --shadow-soft: 0 0 0 0.5px color-mix(in srgb, var(--color-text) 16%, transparent), 0 8px 24px rgba(0,0,0,.45);
+    --page-bg: #07080b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--page-bg); color: var(--color-text); font: var(--font-size-ui)/1.45 var(--font-sans); padding: 24px 32px 48px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  .lead { color: var(--color-muted); margin: 0 0 18px; max-width: 900px; }
+  code { font-family: var(--font-mono); font-size: 12px; }
+
+  /* ---------- controls ---------- */
+  .controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-bottom: 18px; }
+  .ctl { display: flex; align-items: center; gap: 8px; font-size: var(--font-size-ui-sm); color: var(--color-muted); }
+  .seg { display: inline-flex; height: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-bg); padding: 1px; }
+  .seg button { all: unset; padding: 0 10px; border-radius: var(--radius-inner); font-size: var(--font-size-ui-sm); color: var(--color-muted); cursor: default; display: flex; align-items: center; }
+  .seg button:hover { color: var(--color-text); }
+  .seg button[aria-checked="true"] { background: var(--color-hover); color: var(--color-text); font-weight: 500; }
+  .seg button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+  /* ---------- the mock window ---------- */
+  .stage { display: flex; gap: 28px; align-items: flex-start; }
+  .window {
+    height: 520px; border-radius: 12px; overflow: hidden; background: var(--color-bg);
+    box-shadow: var(--shadow-soft); display: grid; flex: none;
+    grid-template-columns: var(--sidebar-width) 1fr;          /* fixed 220px at every width (#416) */
+    grid-template-rows: 1fr var(--bottom-tabs-height);
+    grid-template-areas: "sidebar main" "tabs tabs";
+  }
+  .window.no-sidebar { grid-template-columns: 1fr; grid-template-areas: "main" "tabs"; }
+  .window.no-sidebar .sidebar { display: none; }               /* instant, no width animation (DR12) */
+  .window-label { font-size: var(--font-size-ui-sm); color: var(--color-muted); margin: 0 0 6px 2px; }
+
+  .sidebar { grid-area: sidebar; background: var(--color-surface); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; min-width: 0; }
+  .traffic { height: var(--title-bar-height); display: flex; align-items: center; gap: 8px; padding-left: 14px; flex: none; }
+  .traffic i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .traffic i:nth-child(1) { background: #ff5f57; } .traffic i:nth-child(2) { background: #febc2e; } .traffic i:nth-child(3) { background: #28c840; }
+  .contents-label { font-size: var(--font-size-ui-sm); color: var(--color-muted); padding: 6px 16px 4px; }
+  .toc { list-style: none; margin: 0; padding: 2px 8px; flex: 1; overflow: auto; }
+  .toc li { height: 26px; display: flex; align-items: center; padding: 0 8px; border-radius: var(--radius-control); font-size: var(--font-size-ui); color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toc li.l2 { padding-left: 20px; color: var(--color-muted); } .toc li.l3 { padding-left: 32px; color: var(--color-muted); }
+  .toc li:hover { background: var(--color-hover); color: var(--color-text); }
+  .toc li.active { background: var(--color-accent-soft); color: var(--color-accent); }
+  .sidebar-footer { flex: none; display: flex; justify-content: flex-end; align-items: center; height: 36px; padding: 0 8px; }
+
+  .main { grid-area: main; display: flex; flex-direction: column; min-width: 0; background: var(--color-editor-bg); }
+  .main-bar { height: var(--title-bar-height); flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 12px; border-bottom: 1px solid var(--color-border-subtle); }
+  .window.no-sidebar .main-bar { padding-left: calc(var(--traffic-lights-end) + 2px); position: relative; }
+  .window.no-sidebar .main-bar::before { content: ""; position: absolute; left: 14px; top: 13px; width: 52px; height: 12px;
+    background: radial-gradient(circle at 6px 6px, #ff5f57 6px, transparent 6.5px), radial-gradient(circle at 26px 6px, #febc2e 6px, transparent 6.5px), radial-gradient(circle at 46px 6px, #28c840 6px, transparent 6.5px); }
+  .crumb { font-size: var(--font-size-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .crumb .folder { color: var(--color-muted); } .crumb .file { font-weight: 500; }
+  .mode { flex: none; }
+  .editor { flex: 1; overflow: hidden; padding: 28px 40px; }
+  .editor h2 { font-size: 22px; margin: 0 0 10px; }
+  .editor p { margin: 0 0 12px; color: var(--color-text); max-width: 620px; }
+  .editor p.dim { color: var(--color-muted); }
+  .status { height: 26px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 12px; border-top: 1px solid var(--color-border-subtle); font-size: var(--font-size-ui-sm); color: var(--color-muted); white-space: nowrap; overflow: hidden; }
+  .status .right { margin-left: auto; display: flex; gap: 16px; }
+
+  .tabs { grid-area: tabs; background: var(--color-surface); border-top: 1px solid var(--color-border); display: flex; align-items: center; gap: 4px; padding: 0 6px; min-width: 0; }
+  .tabs .sep { width: 1px; height: 16px; background: var(--color-border); margin: 0 4px; flex: none; }
+  .tab { height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: var(--radius-control); font-size: var(--font-size-ui-sm); color: var(--color-muted); white-space: nowrap; }
+  .tab.active { background: var(--color-panel); color: var(--color-text); box-shadow: var(--shadow-soft); }
+  .tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); }
+
+  /* ---------- icon button (DESIGN.md § Buttons → Icon button) ---------- */
+  .icon-btn {
+    all: unset; box-sizing: border-box; width: 24px; height: 24px; flex: none;
+    display: inline-grid; place-items: center; border-radius: var(--radius-control);
+    color: var(--color-muted); background: transparent; cursor: default; position: relative;
+  }
+  .icon-btn svg { width: var(--icon-size-md); height: var(--icon-size-md); }
+  .icon-btn:hover, .icon-btn.force-hover { background: var(--color-hover); color: var(--color-text); }
+  .icon-btn:active, .icon-btn.force-pressed { background: var(--color-pressed); color: var(--color-text); }
+  .icon-btn:focus-visible, .icon-btn.force-focus { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+  .icon-btn svg { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* tooltip (prototype stand-in for the native title) */
+  .icon-btn[data-tip]:hover::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 0; white-space: nowrap;
+    background: var(--color-panel); color: var(--color-text); box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-inner); padding: 3px 8px; font-size: var(--font-size-ui-sm); pointer-events: none; z-index: 5;
+  }
+  .sidebar-footer .icon-btn[data-tip]:hover::after { left: auto; right: 0; }
+
+  /* ---------- side panel: notes + state sheet ---------- */
+  .notes { width: 360px; flex: none; font-size: var(--font-size-ui); }
+  .card { background: var(--color-bg); border-radius: var(--radius-popover); box-shadow: var(--shadow-soft); padding: 14px 16px; margin-bottom: 16px; }
+  .card h3 { font-size: var(--font-size-ui-lg); margin: 0 0 8px; font-weight: 600; }
+  .card p, .card li { color: var(--color-muted); margin: 0 0 6px; }
+  .card ul { margin: 0; padding-left: 18px; }
+  .sheet { display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 8px 10px; align-items: center; font-size: var(--font-size-ui-sm); color: var(--color-muted); }
+  .sheet .h { font-weight: 500; color: var(--color-text); }
+  .zoom { display: inline-grid; place-items: center; width: 96px; height: 96px; border-radius: 12px; background: var(--color-surface); color: var(--color-muted); }
+  .zoom svg { width: 64px; height: 64px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .zoomrow { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+  .zoomrow figure { margin: 0; text-align: center; font-size: var(--font-size-ui-sm); color: var(--color-muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body class="theme-light">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <!-- Same geometry as lucide PanelLeft / PanelLeftClose (what VMark uses), redrawn to mdpro's
+         icon contract: 24 viewBox, 1.75 stroke, round caps and joins, currentColor, no fill. -->
+    <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="i-panel-left-close" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  </svg>
+
+  <h1>Sidebar toggle — prototype</h1>
+  <p class="lead">Click the panel button to hide or show the sidebar. Pattern from VMark (<code>xiaolai/vmark</code> @ <code>7916d41</code>): while the sidebar is open, a <b>close</b> button sits at the right of the sidebar footer; while it is closed, an <b>open</b> button appears at the window's bottom-left. Switch the window width to see the sidebar keep the same 220px at full, ½ and ⅓ screen (issue #416).</p>
+
+  <div class="controls" role="group" aria-label="Prototype controls">
+    <div class="ctl">Variant
+      <div class="seg" role="radiogroup" aria-label="Variant" id="variant">
+        <button role="radio" aria-checked="true" data-v="a">A · VMark: two buttons</button>
+        <button role="radio" aria-checked="false" data-v="b">B · one fixed button</button>
+      </div>
+    </div>
+    <div class="ctl">Window width
+      <div class="seg" role="radiogroup" aria-label="Window width" id="width">
+        <button role="radio" aria-checked="true" data-w="1512">Full · 1512</button>
+        <button role="radio" aria-checked="false" data-w="756">½ · 756</button>
+        <button role="radio" aria-checked="false" data-w="504">⅓ · 504</button>
+      </div>
+    </div>
+    <div class="ctl">Theme
+      <div class="seg" role="radiogroup" aria-label="Theme" id="theme">
+        <button role="radio" aria-checked="true" data-t="light">Light</button>
+        <button role="radio" aria-checked="false" data-t="dark">Dark</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div>
+      <p class="window-label" id="wlabel"></p>
+      <div class="window" id="win">
+        <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="contents-label">Contents</div>
+          <ul class="toc">
+            <li>Release notes 0.3.1</li>
+            <li class="l2 active">Windows fixes</li>
+            <li class="l2">Sidebar toggle</li>
+            <li class="l3">Narrow windows</li>
+            <li class="l3">Keyboard</li>
+            <li class="l2">Known issues</li>
+            <li>Appendix</li>
+          </ul>
+          <div class="sidebar-footer">
+            <!-- Variant A: close button, only while the sidebar is open -->
+            <button class="icon-btn js-toggle variant-a" data-tip="Hide Sidebar  ⌘⇧L" aria-label="Hide Sidebar" aria-expanded="true">
+              <svg aria-hidden="true"><use href="#i-panel-left-close"/></svg>
+            </button>
+          </div>
+        </aside>
+
+        <section class="main">
+          <div class="main-bar">
+            <div class="crumb"><span class="folder">docs / </span><span class="file">release-notes.md</span></div>
+            <div class="mode seg" role="radiogroup" aria-label="Editor mode">
+              <button role="radio" aria-checked="false">Source</button>
+              <button role="radio" aria-checked="true">WYSIWYG</button>
+            </div>
+          </div>
+          <div class="editor">
+            <h2>Windows fixes</h2>
+            <p>The sidebar keeps its width at every window size. Hiding it is the user's choice, made with the button at the bottom-left or ⌘⇧L — never a side effect of snapping the window to half the screen.</p>
+            <p class="dim">While the sidebar is hidden, the main bar's left padding clears the traffic lights, as DESIGN.md § Main bar requires.</p>
+          </div>
+          <div class="status"><span>Ln 14, Col 8</span><span class="right"><span>1,284 words</span><span>UTF-8</span></span></div>
+        </section>
+
+        <nav class="tabs" aria-label="Open documents">
+          <!-- Variant A: open button, only while the sidebar is closed. Variant B: always here. -->
+          <button class="icon-btn js-toggle slot-tabs" id="tabsToggle" data-tip="Show Sidebar  ⌘⇧L" aria-label="Show Sidebar" aria-expanded="false">
+            <svg aria-hidden="true"><use href="#i-panel-left"/></svg>
+          </button>
+          <span class="sep slot-tabs-sep"></span>
+          <button class="icon-btn" aria-label="New document" data-tip="New Document  ⌘N"><svg aria-hidden="true" style="width:var(--icon-size-sm);height:var(--icon-size-sm)"><use href="#i-plus"/></svg></button>
+          <span class="sep"></span>
+          <span class="tab active"><span class="dot"></span>release-notes.md</span>
+          <span class="tab">todo.md</span>
+          <span class="tab">draft.md</span>
+        </nav>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="card">
+        <h3>States (actual size)</h3>
+        <div class="sheet">
+          <span></span><span class="h">Rest</span><span class="h">Hover</span><span class="h">Pressed</span><span class="h">Focus</span>
+          <span>Close (open)</span>
+          <button class="icon-btn" tabindex="-1" aria-label="Hide Sidebar"><svg><use href="#i-panel-left-close"/></svg></button>
+          <button class="icon-btn force-hover" tabindex="-1" aria-label="Hide Sidebar"><svg><use href="#i-panel-left-close"/></svg></button>
+          <button class="icon-btn force-pressed" tabindex="-1" aria-label="Hide Sidebar"><svg><use href="#i-panel-left-close"/></svg></button>
+          <button class="icon-btn force-focus" tabindex="-1" aria-label="Hide Sidebar"><svg><use href="#i-panel-left-close"/></svg></button>
+          <span>Open (closed)</span>
+          <button class="icon-btn" tabindex="-1" aria-label="Show Sidebar"><svg><use href="#i-panel-left"/></svg></button>
+          <button class="icon-btn force-hover" tabindex="-1" aria-label="Show Sidebar"><svg><use href="#i-panel-left"/></svg></button>
+          <button class="icon-btn force-pressed" tabindex="-1" aria-label="Show Sidebar"><svg><use href="#i-panel-left"/></svg></button>
+          <button class="icon-btn force-focus" tabindex="-1" aria-label="Show Sidebar"><svg><use href="#i-panel-left"/></svg></button>
+        </div>
+        <div class="zoomrow">
+          <figure><span class="zoom"><svg><use href="#i-panel-left-close"/></svg></span><figcaption>panel-left-close</figcaption></figure>
+          <figure><span class="zoom"><svg><use href="#i-panel-left"/></svg></span><figcaption>panel-left</figcaption></figure>
+        </div>
+      </div>
+      <div class="card">
+        <h3>What this proposes</h3>
+        <ul>
+          <li><b>A (VMark):</b> close button at the right of the sidebar footer while open; open button as the first item of the bottom tab bar while closed. Clicking it moves the button about 200px, so undoing a click means finding it again.</li>
+          <li><b>B:</b> one button that never moves, first in the bottom tab bar; its icon and label swap (Hide ↔ Show), so a second click undoes the first in place.</li>
+          <li>Icon button per DESIGN.md: 24px, transparent, muted, <code>--color-hover</code> on hover, <code>--color-focus-ring</code> outline. Icons redrawn to mdpro's 1.75-stroke set (VMark uses lucide at 2px, 14px).</li>
+          <li>No width animation and no auto-collapse: the sidebar is 220px at full, ½ and ⅓ width (#416). VMark has neither either.</li>
+          <li>Shortcut stays ⌘⇧L (VMark: ⌃⇧0; Codex app: ⌘B).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Open questions</h3>
+        <ul>
+          <li>A or B?</li>
+          <li>Should the sidebar become resizable (VMark: 180–480px, drag handle)? Not in DESIGN.md today.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const win = document.getElementById("win"), wlabel = document.getElementById("wlabel");
+  const state = { open: true, variant: "a", width: 1512 };
+  const SCALE = 0.62; // the mock is drawn at 62% of the logical width so all three fit on screen
+  function render() {
+    win.classList.toggle("no-sidebar", !state.open);
+    win.style.width = Math.round(state.width * SCALE) + "px";
+    wlabel.textContent = `Window ${state.width} pt wide (drawn at ${Math.round(SCALE * 100)}%) · sidebar ${state.open ? "220px" : "hidden"}`;
+    const a = state.variant === "a";
+    document.querySelectorAll(".variant-a").forEach(el => el.hidden = !a);
+    const tabsBtn = document.getElementById("tabsToggle"), showTabsBtn = !a || !state.open;
+    tabsBtn.hidden = !showTabsBtn; document.querySelector(".slot-tabs-sep").hidden = !showTabsBtn;
+    const use = tabsBtn.querySelector("use");
+    use.setAttribute("href", state.open ? "#i-panel-left-close" : "#i-panel-left");
+    const label = state.open ? "Hide Sidebar" : "Show Sidebar";
+    tabsBtn.setAttribute("aria-label", label); tabsBtn.dataset.tip = label + "  ⌘⇧L";
+    document.querySelectorAll(".js-toggle").forEach(b => b.setAttribute("aria-expanded", String(state.open)));
+  }
+  document.querySelectorAll(".js-toggle").forEach(b => b.addEventListener("click", () => {
+    state.open = !state.open; render();
+    // keep focus on a visible toggle after the clicked one unmounts (variant A)
+    const next = [...document.querySelectorAll(".js-toggle")].find(x => !x.hidden && x.offsetParent);
+    if (document.activeElement && document.activeElement.offsetParent === null && next) next.focus();
+  }));
+  function seg(id, key, cast = v => v) {
+    document.getElementById(id).addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      [...e.currentTarget.children].forEach(x => x.setAttribute("aria-checked", String(x === b)));
+      const v = b.dataset.v ?? b.dataset.w ?? b.dataset.t;
+      if (key === "theme") document.body.className = "theme-" + v; else state[key] = cast(v);
+      render();
+    });
+  }
+  seg("variant", "variant"); seg("width", "width", Number); seg("theme", "theme");
+  document.addEventListener("keydown", e => { if (e.metaKey && e.shiftKey && e.key.toLowerCase() === "l") { e.preventDefault(); state.open = !state.open; render(); } });
+  // URL params for screenshots: ?open=0&variant=b&width=756&theme=dark
+  const q = new URLSearchParams(location.search);
+  if (q.has("open")) state.open = q.get("open") !== "0";
+  if (q.has("variant")) state.variant = q.get("variant");
+  if (q.has("width")) state.width = Number(q.get("width"));
+  if (q.get("theme") === "dark") document.body.className = "theme-dark";
+  const sync = (id, attr, val) => [...document.getElementById(id).children].forEach(b => b.setAttribute("aria-checked", String(b.dataset[attr] === String(val))));
+  sync("variant", "v", state.variant); sync("width", "w", state.width); sync("theme", "t", document.body.className.replace("theme-", ""));
+  render();
+</script>
+</body>
+</html>
