@@ -54,7 +54,9 @@ passes with it.
 **Format before you record.** A Rust red is recorded on `rustfmt`-clean test
 files (`cargo fmt` first, then `receipt.js record`), and `cargo fmt` is never
 run between record and verify: the receipt fingerprints the file's bytes, and a
-later reformat breaks it for good (D187).
+later reformat breaks it for good (D187). The PreToolUse hook
+`.claude/hooks/receipt-rustfmt-guard.sh` enforces this: it refuses the record
+and names each Rust file that is not `rustfmt`-clean.
 
 ## How much to run, and when
 
