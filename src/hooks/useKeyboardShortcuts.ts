@@ -52,16 +52,23 @@ export type TableShortcutAction =
   | "delete_column";
 
 // Detect macOS once at module load. On macOS the primary shortcut modifier is
-// Cmd (metaKey); on Windows/Linux it is Ctrl (ctrlKey).
+// Cmd (metaKey) and Ctrl is a separate secondary modifier; on Windows/Linux the
+// primary modifier is Ctrl (ctrlKey) and the Windows/Super key (metaKey) is
+// never a shortcut modifier.
 const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
 
 /** Test a live KeyboardEvent against a stored shortcut string (e.g. "Cmd+Shift+K").
  *
  *  Modifier tokens:
  *   "Cmd"    → primary modifier: metaKey on macOS, ctrlKey on other platforms
- *   "Ctrl"   → literal ctrlKey
+ *   "Ctrl"   → ctrlKey. On macOS a modifier distinct from Cmd; off-Mac it is
+ *              the primary modifier too, so "Cmd+S", "Ctrl+S" and
+ *              "Cmd+Ctrl+S" all mean Ctrl+S there (D190; D50).
  *   "Option" → altKey
  *   "Shift"  → shiftKey
+ *
+ *  Off-Mac a pressed metaKey (Windows/Super key), or AltGr
+ *  (`getModifierState("AltGraph")`), never matches any binding.
  *
  *  Key tokens: uppercase letters/digits map case-insensitively; arrow
  *  abbreviations (Up/Down/Left/Right) map to ArrowX; "Space" maps to " ".
@@ -82,9 +89,17 @@ function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
     else keyPart = p; // last non-modifier segment is the key
   }
 
+  // Off-Mac, AltGr arrives as ctrlKey + altKey, the same flags a "Cmd+Option+…"
+  // binding wants there. It is a character-input key, never a shortcut chord
+  // (#38 excluded it; D190 audit b98). macOS Option is not AltGr: untouched.
+  if (!isMac && event.getModifierState?.("AltGraph")) return false;
+
   const primaryMod = isMac ? event.metaKey : event.ctrlKey;
-  if (wantCmd !== primaryMod) return false;
-  if (wantCtrl !== event.ctrlKey) return false;
+  const secondaryMod = isMac ? event.ctrlKey : event.metaKey;
+  const wantPrimary = isMac ? wantCmd : wantCmd || wantCtrl;
+  const wantSecondary = isMac ? wantCtrl : false;
+  if (wantPrimary !== primaryMod) return false;
+  if (wantSecondary !== secondaryMod) return false;
   if (wantOption !== event.altKey) return false;
   if (wantShift !== event.shiftKey) return false;
 
