@@ -21,6 +21,14 @@ interface ShortcutHandlers {
   onSave?: (actionId?: string) => void;
   onClose?: (actionId?: string) => void;
   onNew?: (actionId?: string) => void;
+  /**
+   * Fires for `fileNewWindow` (default ⌘⇧N / Ctrl+Shift+N) **off-Mac only**.
+   * On Windows the native menu accelerator never fires (WebView2 keeps the key
+   * from Tauri's accelerator hook, D190 WI-1b), so the hook covers it there. On
+   * macOS the native accelerator owns the key and the hook stays out of it, so
+   * nothing fires twice. Wired in App.tsx to the same call as the menu path.
+   */
+  onNewWindow?: (actionId?: string) => void;
   onHighlight?: (actionId?: string) => void;
   onExportHtml?: (actionId?: string) => void;
   onToggleSidebar?: (actionId?: string) => void;
@@ -124,6 +132,7 @@ export function useKeyboardShortcuts({
   onSave,
   onClose,
   onNew,
+  onNewWindow,
   onHighlight,
   onExportHtml,
   onToggleSidebar,
@@ -178,6 +187,13 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileNew, { action: "file.new" });
         if (!refuseTabActionWhileModalOpen("file.new", "shortcut", actionId)) onNew(actionId);
+      } else if (onNewWindow && !isMac && matchesShortcut(event, shortcuts.fileNewWindow)) {
+        // Off-Mac only: the native accelerator never reaches Tauri on Windows
+        // (D190 WI-1b). No modal refusal: a new window leaves this window's tabs
+        // alone, as on the menu path.
+        event.preventDefault();
+        const actionId = loggingService.logShortcut(shortcuts.fileNewWindow, { action: "file.new_window" });
+        onNewWindow(actionId);
       } else if (onHighlight && !inCodeMirror && matchesShortcut(event, shortcuts.formatHighlight)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.formatHighlight, { action: "format.highlight" });
@@ -261,6 +277,7 @@ export function useKeyboardShortcuts({
     onInsertTable,
     onTableAction,
     onNew,
+    onNewWindow,
     onOpen,
     onOpenPreferences,
     onSave,

@@ -772,6 +772,7 @@ function App() {
 
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
+    onNewWindow: () => void openNewWindow(),
     onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
     onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpen: (actionId) => void handleOpenDialog(actionId),
