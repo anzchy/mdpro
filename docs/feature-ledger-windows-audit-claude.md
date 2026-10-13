@@ -6,13 +6,15 @@
 
 ## 结论与范围
 
-- 通过：49 行
-- 部分：28 行
+> **2026-10-13 更正**：168（Hide）、029、031 三行的结论有误或证据不足，已改，计数随之调整。原因是测试脚本的用法，不是 app：菜单在一次 `ui.sh` 运行里打开、在下一次运行里点击，期间菜单已被关掉；029 用的合成反引号键码不对。详见 `.claude/skills/remote-windows-device-test/reference/pitfalls.md` 第 1、2 条。
+
+- 通过：50 行
+- 部分：29 行
 - 一致（无入口）：17 行
-- Windows 不通过：13 行
+- Windows 不通过：10 行
 - 与 ledger 不符：1 行
 - 平台不适用：10 行
-- 未验证：62 行
+- 未验证：63 行
 
 「一致（无入口）」= ledger 标 Absent/Stub，本次在菜单全量导出或设置十页逐页读出中确认确实没有入口。
 
@@ -44,7 +46,7 @@ ProseMirror 的 `Mod` 在 Windows 是 Ctrl：行内代码 `Mod-Shift-\`` 与删�
 
 ### W7 macOS 专属界面照搬到 Windows
 
-原生菜单有「mdpro」应用菜单，含 Services / Hide(Ctrl+H) / Hide Others / Show All，点 Hide 无任何效果，Ctrl+H 被占用；设置 → Keyboard Shortcuts 全部显示 Cmd+…；Advanced 提示 `~/.mdpro/mdpro.log`；新建按钮提示「(⌘N)」；导出对话框建议文件名 `basic.md.html`（双扩展名）；草稿时间戳显示原始 UTC 串。
+原生菜单有「mdpro」应用菜单，含 Services / Hide(Ctrl+H) / Hide Others / Show All（Hide 实测有效：窗口隐藏、任务栏按钮保留；Hide Others / Show All / Services 未测；Ctrl+H 被 Hide 占用）；设置 → Keyboard Shortcuts 全部显示 Cmd+…；Advanced 提示 `~/.mdpro/mdpro.log`；新建按钮提示「(⌘N)」；导出对话框建议文件名 `basic.md.html`（双扩展名）；草稿时间戳显示原始 UTC 串。
 
 ### W8 270% 缩放下窄窗口布局
 
@@ -60,7 +62,7 @@ Codex 草稿（`D:\mac-app\mdpro\docs\feature-ledger-windows-audit.md`，未提�
 
 **一致的结论**：001、049、080、088、124、144、172 的通过；055 与 ledger 不符；WYSIWYG 数学为字面、Mermaid 为代码块；HTTP 401/200；更新检查 hasUpdate=false；UTF-16 读写。
 
-**Codex 没发现、本次新增的 Windows 缺陷**：W1（全部应用快捷键失效及其代码根因）、W3（CSP 拦截本地图片）、W4（Exit 绕过退出守卫、服务文件残留）、W6（快捷键冲突，029 不通过）、W7 中的 Hide 空操作；以及 031 WYSIWYG 插入链接不生效。
+**Codex 没发现、本次新增的 Windows 缺陷**：W1（全部应用快捷键失效及其代码根因）、W3（CSP 拦截本地图片）、W4（Exit 绕过退出守卫、服务文件残留）、W6（快捷键冲突，代码层面确认）；以及 031 WYSIWYG 插入链接疑似不生效（待真人复核）。
 
 **结论不同的地方**：
 
@@ -70,7 +72,7 @@ Codex 草稿（`D:\mac-app\mdpro\docs\feature-ledger-windows-audit.md`，未提�
 
 - **004**：Codex 记「部分验证（保存对话框后保存成功）」。保存功能本身可用，但 Windows 用户最常用的 Ctrl+S 不工作，本次记为 Windows 不通过。
 
-- **168**：Codex 记「Windows 原生 Window 与应用菜单可见」为部分验证；本次点了 Hide，确认这些 macOS 项在 Windows 是空操作。
+- **168**：Codex 记「Windows 原生 Window 与应用菜单可见」为部分验证。本次先误记为「Hide 是空操作」，2026-10-13 在同一次运行里打开并点击复核：Hide 有效，窗口隐藏、任务栏按钮保留，与 macOS 语义一致。
 
 **Codex 记「未验证」、本次给出确定结论的行**：005、009、011、020、031（不通过）、033（不通过）、035（不通过）、044（不通过）、061（不通过）、079、094、104、140（不通过）、141、173（不通过）。
 
@@ -124,9 +126,9 @@ Codex 草稿（`D:\mac-app\mdpro\docs\feature-ledger-windows-audit.md`，未提�
 | 026 | 编辑 / WYSIWYG | 行内源码显隐 | Shipped | 未验证 | 未测光标进出时的语法展开。 | 未验证 |
 | 027 | 编辑 / WYSIWYG | 粗体 / 斜体 | Shipped | 通过 | WYSIWYG Ctrl+B / Ctrl+I（页内键位）→ strong / em。 | 部分验证 |
 | 028 | 编辑 / WYSIWYG | 标题 1–6 与正文 | Shipped | 通过 | Ctrl+3 → h3，Ctrl+0 → p（页内键位）。 | 部分验证 |
-| 029 | 编辑 / WYSIWYG | 行内代码 | Shipped | Windows 不通过 | Ctrl+Shift+` 产生 <del>（删除线），行内代码无法用键盘得到：Mod-Shift-` 与 Ctrl-Shift-` 在 Windows 是同一组合（W3）。 | 部分验证 |
+| 029 | 编辑 / WYSIWYG | 行内代码 | Shipped | 部分 | Mod-Shift-` 与 Ctrl-Shift-` 在 Windows 是同一组合，冲突在代码层面确认（W6）。实测得到 <del>，但用的是键码不正确的合成键（2026-10-13 更正），哪个绑定胜出需用真实按键复核。 | 部分验证 |
 | 030 | 编辑 / WYSIWYG | 删除线 | Shipped | 通过 | Ctrl+Shift+` → <del>。 | 部分验证 |
-| 031 | 编辑 / WYSIWYG | 插入链接（WYSIWYG） | Shipped | Windows 不通过 | WYSIWYG 选中后 Ctrl+K 弹「Insert Link」并记 ui.link-modal.submit，但文档里没有生成任何 <a>（两次）。源码模式同样流程成功（见 080），故疑为 WYSIWYG 插入路径问题；建议人工复核一次。 | 未验证 |
+| 031 | 编辑 / WYSIWYG | 插入链接（WYSIWYG） | Shipped | 未验证 | WYSIWYG 选中后 Ctrl+K 弹「Insert Link」并记 ui.link-modal.submit，但文档里没有生成任何 <a>（两次）。源码模式同样流程成功（见 080），故疑为 WYSIWYG 插入路径问题；建议人工复核一次。 | 未验证 |
 | 032 | 编辑 / WYSIWYG | 链接 URL 消毒 | Shipped | 部分 | 源码模式 example.com 自动补成 https://example.com；javascript:alert(1) 未生成链接（但无错误提示）。 | 未验证 |
 | 033 | 编辑 / WYSIWYG | 高亮选区 | Partial | Windows 不通过 | WYSIWYG 下 Ctrl+Shift+H 无效（走菜单加速键，W1）；Format → Highlight Selection 菜单未测。 | 未验证 |
 | 034 | 编辑 / WYSIWYG | `==text==` 往返 | Shipped | 未验证 | fixture 中 ==marked== 在 WYSIWYG 显示为高亮，存盘往返未测。 | 部分验证 |
@@ -263,7 +265,7 @@ Codex 草稿（`D:\mac-app\mdpro\docs\feature-ledger-windows-audit.md`，未提�
 | 165 | 窗口与标签页 | 标签栏配置 `TabBarConfig` | Stub | 一致（无入口） | 设置里没有标签栏配置。 | 未验证 |
 | 166 | 窗口与标签页 | 标签页进阶能力 | Stub | 未验证 | 未在标签上右键/中键。 | 未验证 |
 | 167 | 平台集成 | 原生 macOS 菜单栏 | Shipped | 平台不适用 | Windows 有原生菜单栏：mdpro / File / Edit / View / Format / Theme / Window / Help，结构照搬 macOS（含「mdpro」应用菜单）。 | 平台不适用 |
-| 168 | 平台集成 | 应用菜单基础项 | Shipped | Windows 不通过 | Windows 上 mdpro 菜单显示 Services / Hide(Ctrl+H) / Hide Others / Show All；点 Hide 窗口仍可见——这些 macOS 专属项在 Windows 是空操作，且 Ctrl+H 被占用。 | 部分验证 |
+| 168 | 平台集成 | 应用菜单基础项 | Shipped | 通过 | Windows 上 mdpro 菜单有 About / Preferences / Services / Hide(Ctrl+H) / Hide Others / Show All / Exit。Hide（同一次运行里打开并点击）使窗口隐藏、任务栏按钮保留，与 macOS 一致；Hide Others / Show All / Services 未测。2026-10-13 更正：原记「Hide 是空操作」是脚本误用。 | 部分验证 |
 | 169 | 平台集成 | 应用内更新检查 | Partial | 通过 | About 打开即检查：「You're up to date」（ui.about.update_check hasUpdate=false）。 | 与描述不符 |
 | 170 | 平台集成 | 重启应用更新 | Shipped | 未验证 | 当前无可用更新。 | 未验证 |
 | 171 | 平台集成 | 重启前保存守卫 | Shipped | 未验证 | 无可用更新，无法触发重启。 | 未验证 |
@@ -287,7 +289,7 @@ Codex 草稿（`D:\mac-app\mdpro\docs\feature-ledger-windows-audit.md`，未提�
 - `image-blocked-by-csp.png`：相对路径图片显示为破图（044 / W3）。
 - `theme-dark-source.png`：Theme → Dark，源码模式与 H2 徽标（121、081）。
 - `narrow-window-sidebar-collapsed.png`：270% 缩放下窄窗口侧栏被挤压（W8）。
-- `native-file-menu.png`、`native-mdpro-app-menu.png`：Windows 原生菜单，含 macOS 专属的 Services / Hide（167、168 / W7）。
+- `native-file-menu.png`、`native-mdpro-app-menu.png`：Windows 原生菜单，含 macOS 风格的 Services / Hide（167、168）。
 
 ## 运行记录与清理
 

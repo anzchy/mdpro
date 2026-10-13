@@ -84,3 +84,8 @@ tooling: after a second window is closed, GetMenu(main) returns an invalid HMENU
 173 FAIL on Windows: mdpro > Exit with several dirty tabs -> process gone at once, NO quit prompt, no app.quit / quit-guard log lines (predefined Quit item bypasses the guard)
 140 FAIL on Windows: after Exit, %APPDATA%\mdpro\server.port and server.token still exist
 173 mitigation: relaunch -> Recover drafts lists the 4 dirty docs (drafts <=30s old survive)
+
+## 2026-10-13 corrections
+- 168: "Hide clicked -> window stays visible" was a harness artefact: the menu was opened in one ui.sh run and Hide clicked in the next, after the menu had been dismissed. Re-checked with open+click in one run: Hide hides the main window (UIA window list empty, IsWindowVisible false), the taskbar button stays; restored with EnumWindows + ShowWindow. Verdict now 通过.
+- 029: the synthetic backtick key had an empty code and vk 96 (NumPad0); the binding collision stands in code, which binding wins needs a real key. Verdict now 部分.
+- 031: no positive control on the same route; verdict now 未验证 (needs a person).
