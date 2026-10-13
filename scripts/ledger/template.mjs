@@ -9,6 +9,9 @@
  *   invent). Two hues have no counterpart in the app palette — it has no
  *   success or warning token — so `--ledger-ok` / `--ledger-warn` are declared
  *   doc-local and used only by the state badges.
+ * - The Windows difference tables (ADR-0089) reuse the same badge classes, so
+ *   a Windows chip has the macOS colours for its state; `.badge-na` is the one
+ *   addition, neutral (`--color-muted` only, dashed) because N/A is not a state.
  * - Theme switches on `prefers-color-scheme` alone. The app's
  *   `.theme-light` / `.theme-dark` classes (rule 34) are toggled by React at
  *   runtime; a static file:// page has no React, so the media query is the
@@ -123,6 +126,7 @@ tr.hidden { display: none; }
 .badge-stub { color: var(--ledger-warn); border-color: var(--ledger-warn); background: color-mix(in srgb, var(--ledger-warn) 14%, transparent); }
 .badge-absent { color: var(--color-muted); border-color: var(--color-border); background: var(--color-surface); }
 .badge-unknown { color: var(--color-danger); border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, transparent); }
+.badge-na { color: var(--color-muted); border-color: var(--color-muted); background: transparent; border-style: dashed; }
 .badge-invalid { color: var(--color-danger); border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 22%, transparent); text-decoration: underline wavy; }
 @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { display: none; } }
 `;

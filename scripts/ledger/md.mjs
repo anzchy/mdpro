@@ -14,13 +14,20 @@
  *   highlight-plugin config value); it must read as text, never become markup.
  * - Inventory `<tr>`s are tagged `data-state` so the client-side chips can
  *   filter without re-parsing the DOM text.
+ * - A `| 能力 | Windows | 说明 |` table (ADR-0089) renders as
+ *   `<table class="windows-diff">`, recognised by its header alone, whatever
+ *   heading stands above it (placement is `ledger:check`'s job). Its Windows
+ *   cell reuses the macOS badge class for the same state, `N/A` gets the
+ *   neutral `badge-na`, and its rows are NOT `inv-row`, so the state chips
+ *   count macOS rows only.
  *
  * @module scripts/ledger/md
  * @coordinates-with scripts/ledger/render.mjs, scripts/ledger/parse.mjs,
- *   scripts/ledger/table.mjs
+ *   scripts/ledger/table.mjs, scripts/ledger/windowsDiff.mjs
  */
 import { LEDGER_STATES, slugify } from "./parse.mjs";
 import { isInventoryHeader, isSeparatorRow, splitRow } from "./table.mjs";
+import { WINDOWS_DIFF_HEADER } from "./windowsDiff.mjs";
 
 const SENTINEL = "\u0000";
 
@@ -80,16 +87,26 @@ export function renderInline(text) {
   return work.replace(new RegExp(`${SENTINEL}(\\d+)${SENTINEL}`, "g"), (_m, i) => `<code>${codes[i]}</code>`);
 }
 
-const stateBadge = (state) => {
-  const known = LEDGER_STATES.includes(state);
-  const cls = known ? `badge badge-${state.toLowerCase()}` : "badge badge-invalid";
+const NOT_APPLICABLE = "N/A";
+
+/** The 状态 badge; `allowNA` admits `N/A`, which only a Windows cell may hold. */
+const stateBadge = (state, allowNA = false) => {
+  let cls = "badge badge-invalid";
+  if (LEDGER_STATES.includes(state)) cls = `badge badge-${state.toLowerCase()}`;
+  else if (allowNA && state === NOT_APPLICABLE) cls = "badge badge-na";
   return `<span class="${cls}">${escapeHtml(state)}</span>`;
 };
+
+const isWindowsDiffHeader = (cells) =>
+  cells !== null &&
+  cells.length === WINDOWS_DIFF_HEADER.length &&
+  cells.every((cell, i) => cell === WINDOWS_DIFF_HEADER[i]);
 
 function renderTable(lines, start) {
   const header = splitRow(lines[start]);
   if (!isSeparatorRow(splitRow(lines[start + 1] ?? ""))) return null;
   const inventory = isInventoryHeader(header);
+  const windowsDiff = isWindowsDiffHeader(header);
 
   let cursor = start + 2;
   const body = [];
@@ -104,6 +121,12 @@ function renderTable(lines, start) {
   const rows = body
     .map((cells) => {
       const padded = header.map((_c, i) => cells[i] ?? "");
+      if (windowsDiff) {
+        const tds = padded
+          .map((cell, i) => `<td>${i === 1 ? stateBadge(cell.trim(), true) : renderInline(cell)}</td>`)
+          .join("");
+        return `<tr>${tds}</tr>`;
+      }
       if (!inventory) {
         return `<tr>${padded.map((c) => `<td>${renderInline(c)}</td>`).join("")}</tr>`;
       }
@@ -115,7 +138,7 @@ function renderTable(lines, start) {
     })
     .join("");
 
-  const cls = inventory ? ' class="inventory"' : "";
+  const cls = inventory ? ' class="inventory"' : windowsDiff ? ' class="windows-diff"' : "";
   return {
     html: `<div class="table-wrap"><table${cls}><thead>${head}</thead><tbody>${rows}</tbody></table></div>`,
     next: cursor,

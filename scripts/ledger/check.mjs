@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Purpose: The mechanical gate for `docs/feature-ledger.md`. Runs every rule in
- * `parse.mjs`, resolves every backticked path claim against the working tree,
+ * `parse.mjs` and the Windows-difference gates in `windowsDiff.mjs` (ADR-0089),
+ * resolves every backticked path claim against the working tree,
  * and exits non-zero on any finding. stdout IS the interface here, so
  * `console.log` is correct in this file (rule 60's no-console rule scopes to
  * `src/`).
@@ -18,7 +19,8 @@
  *   cwd, so the gate gives the same answer from any directory.
  *
  * @module scripts/ledger/check
- * @coordinates-with scripts/ledger/parse.mjs, scripts/ledger/declared.mjs
+ * @coordinates-with scripts/ledger/parse.mjs, scripts/ledger/declared.mjs,
+ *   scripts/ledger/windowsDiff.mjs
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -37,6 +39,7 @@ import {
   extractPathClaims,
   parseLedger,
 } from "./parse.mjs";
+import { checkWindowsDiffs } from "./windowsDiff.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const LEDGER_REL = "docs/feature-ledger.md";
@@ -89,6 +92,7 @@ function main() {
     ...checkNoLineNumbers(claims),
     ...checkNoBuildOutputs(claims),
     ...checkNoRawPipeInCode(markdown),
+    ...checkWindowsDiffs(markdown),
     ...checkPathsResolve(claims),
     ...coverageFindings,
   ];
