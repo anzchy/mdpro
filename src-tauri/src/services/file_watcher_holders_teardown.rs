@@ -25,14 +25,19 @@
 //! - **An orphan register** (its confirm found the hold gone) is undone only
 //!   if nothing else consumes its spelling: `unclaim` while the group lives,
 //!   the legacy `unwatch` when the group is gone and the spelling is listed.
+//! - **D173-WI-4**: `reserve_hold` copies the prior baseline entry out before
+//!   T; a current `confirm_hold` drops T, then runs the reconcile.
 //!
 //! @coordinates-with services/file_watcher_holders.rs (parent; the map and
 //! its decisions), services/file_watcher.rs (`unwatch`, the watch list),
-//! services/file_watcher_register_log.rs (`apply_watch_list`)
+//! services/file_watcher_register_log.rs (`apply_watch_list`),
+//! services/file_watcher_holders_reconcile.rs (`prior_entry`,
+//! `reconcile_hold`, and the shared log `line`)
 use super::super::watch_log::{apply_watch_list, WatchOp};
 use super::super::{next_ticket, FileWatcher};
+use super::reconcile::line;
 use super::{GroupKey, Orphan, ReleaseOutcome, Released, Reservation, Reserved, TransitionGuard};
-use crate::models::log_entry::{LogEntryPayload, LogLevel, LogStatus};
+use crate::models::log_entry::{LogLevel, LogStatus};
 use crate::services::logger;
 use notify::Watcher;
 use serde_json::{json, Value};
@@ -61,6 +66,7 @@ impl FileWatcher {
     /// `file.watch.hold` line.
     pub(crate) fn reserve_hold(&self, label: &str, raw: &Path) -> Option<Reservation> {
         let group = group_key(raw);
+        let prior = self.prior_entry(&group, raw);
         let t = self.holders.transition();
         let mut reserved = None;
         self.holders
@@ -74,12 +80,15 @@ impl FileWatcher {
             raw: raw.to_path_buf(),
             label: label.to_string(),
             group: r.group,
+            prior,
+            reconcile: true,
         })
     }
 
     /// After the register: true when the reservation is still the current
-    /// hold. Otherwise the window was destroyed or the hold released during
-    /// the register, and what the register left is torn down (row 9).
+    /// hold, and then, with T dropped, the second-holder reconcile (D173-WI-4).
+    /// Otherwise the window was destroyed or the hold released during the
+    /// register, what the register left is torn down (row 9), and no notice.
     pub(crate) fn confirm_hold(&self, reservation: &Reservation) -> bool {
         let t = self.holders.transition();
         let mut current = false;
@@ -88,8 +97,11 @@ impl FileWatcher {
             .with_map(|m| current = m.is_current(label, raw, gen));
         if !current {
             self.retire_orphan(&t, reservation);
+            return false;
         }
-        current
+        drop(t);
+        self.reconcile_hold(reservation);
+        true
     }
 
     /// Release window `label`'s hold on `raw` if `gen` is its current one
@@ -284,16 +296,4 @@ fn log_hold(label: &str, raw: &Path, reserved: Option<&Reserved>) {
         ),
     };
     logger::log_event(entry);
-}
-
-fn line(event: &str, level: LogLevel, status: LogStatus, context: Value) -> LogEntryPayload {
-    LogEntryPayload {
-        level,
-        event: event.to_string(),
-        status,
-        action_id: None,
-        context: Some(context),
-        duration_ms: None,
-        error: None,
-    }
 }

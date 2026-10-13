@@ -29,7 +29,8 @@
 //! file_watcher_baseline_gen.rs (tickets, `Slot`, `admit`),
 //! file_watcher_baseline_claims.rs (`Inner::claim` / `release`, D106),
 //! file_watcher_baseline_seed.rs (the open path's seed, `register_seeded`,
-//! D86 WI-3), file_watcher_baseline_kind.rs (`is_filtered_kind`, the kinds
+//! D86 WI-3), file_watcher_baseline_peek.rs (`entry_of`, the D173-WI-4
+//! reconcile's copy), file_watcher_baseline_kind.rs (`is_filtered_kind`, the kinds
 //! the drop applies to; re-exported here), docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md
 //!
 //! Key decisions:
@@ -206,6 +207,9 @@ pub(crate) use check::UnchangedCheck;
 
 #[path = "file_watcher_baseline_seed.rs"]
 pub(crate) mod seed;
+
+#[path = "file_watcher_baseline_peek.rs"]
+mod peek;
 
 #[cfg(test)]
 #[path = "file_watcher_baseline_race_fixture.rs"]

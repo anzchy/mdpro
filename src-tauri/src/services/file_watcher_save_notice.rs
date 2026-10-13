@@ -22,6 +22,9 @@
 //!   (`externalChangeStore.recordFileChange`, by `origin`).
 //! - **No lock but H, no I/O, no retry.** An emit `Err` is serialisation or
 //!   a torn-down runtime, not a transient.
+//! - **`emit_plain` carries no `origin`** (D173-WI-4): the second-holder
+//!   reconcile notice (file_watcher_holders_reconcile.rs, which also shares
+//!   `now_millis`) is recorded by every window, the acquiring one too.
 //! - The save's own notify event still routes `SelfWrite` /
 //!   `IgnoredUnchanged` (D101); the notice, not the route, tells the others.
 //!
@@ -71,6 +74,9 @@ pub struct SaveNotice {
 /// tests inject a recorder that can refuse.
 pub(crate) trait NoticeSink: Send + Sync {
     fn emit_notice(&self, notice: &SaveNotice) -> Result<(), String>;
+    /// A plain `file:changed` with no `origin`: the second-holder reconcile
+    /// notice (D173-WI-4, plan r2 §5), which every window records.
+    fn emit_plain(&self, event: &FileChangedEvent) -> Result<(), String>;
 }
 
 /// The production sink: `AppHandle::emit("file:changed", notice)`.
@@ -80,6 +86,12 @@ impl NoticeSink for AppNoticeSink {
     fn emit_notice(&self, notice: &SaveNotice) -> Result<(), String> {
         self.0
             .emit("file:changed", notice)
+            .map_err(|e| e.to_string())
+    }
+
+    fn emit_plain(&self, event: &FileChangedEvent) -> Result<(), String> {
+        self.0
+            .emit("file:changed", event)
             .map_err(|e| e.to_string())
     }
 }
@@ -157,7 +169,7 @@ fn notice_line(
     }
 }
 
-fn now_millis() -> i64 {
+pub(super) fn now_millis() -> i64 {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
@@ -171,3 +183,15 @@ mod shape_tests;
 #[cfg(all(test, target_os = "macos"))]
 #[path = "file_watcher_save_notice_tests.rs"]
 mod tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_watcher_reconcile_tests.rs"]
+mod reconcile_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_watcher_notice_spelling_tests.rs"]
+mod notice_spelling_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_reconcile_lock_tests.rs"]
+mod reconcile_lock_tests;

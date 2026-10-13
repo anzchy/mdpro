@@ -10,12 +10,16 @@
 //! - **`impl HoldMap` stays in the parent.** Tripwire d173_wi1_k reads only
 //!   file_watcher_holders.rs and file_watcher_holders_teardown.rs to prove
 //!   the map is pure, so the decisions must stay where it looks.
+//! - **A `Reservation` carries the prior baseline entry** (D173-WI-4) from
+//!   `reserve_hold` to `confirm_hold`'s reconcile, and whether to run it:
+//!   a Save As opts out with `without_reconcile` (D173-WI-4b).
 //! - Fields the parent kept private are `pub(super)` here, which is the same
 //!   reach: the parent and its child modules.
 //!
 //! @coordinates-with services/file_watcher_holders.rs (parent; re-exports
 //! these, `pub use ReleaseOutcome`), services/file_watcher_holders_teardown.rs
 //! (consumes them), commands/watch_hold.rs (`ReleaseOutcome` on the wire)
+use super::super::seed::Entry;
 use super::GroupKey;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -30,6 +34,23 @@ pub(crate) struct Reservation {
     pub(super) raw: PathBuf,
     pub(super) label: String,
     pub(super) group: GroupKey,
+    /// D173-WI-4: the group's baseline entry copied out before the register,
+    /// `None` for a first holder; the reconcile compares it with the stored one.
+    pub(super) prior: Option<Entry>,
+    /// D173-WI-4b: false for a Save As, whose save notice (with `origin`)
+    /// already tells the holders; a plain notice would prompt the saver.
+    pub(super) reconcile: bool,
+}
+
+impl Reservation {
+    /// The Save As acquisition (`save_file_dialog`, `save_as_held_with`):
+    /// `confirm_hold` runs no reconcile for it.
+    pub(crate) fn without_reconcile(self) -> Self {
+        Self {
+            reconcile: false,
+            ..self
+        }
+    }
 }
 
 /// What a release did (plan §3 rows 7 / 7b).

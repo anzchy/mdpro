@@ -187,3 +187,8 @@ mod file_save_notice_wiring_tests;
 // D173-WI-1-rust: recorded red spec, bytes are the receipt's evidence
 #[rustfmt::skip]
 mod draft_recover_hold_tests;
+
+// D173-WI-4: recovery's snapshot register reconciles a live group.
+#[cfg(all(test, target_os = "macos"))]
+#[path = "draft_recover_reconcile_tests.rs"]
+mod draft_recover_reconcile_tests;

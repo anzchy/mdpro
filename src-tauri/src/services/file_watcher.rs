@@ -16,7 +16,10 @@
 //! commands/save_as_watch.rs (`watch_seeded` for a Save As target, D69),
 //! commands/watch_hold.rs (`release_watch_hold`), main.rs (`release_window`
 //! on `WindowEvent::Destroyed`), file_watcher_save_notice.rs (D173-WI-2: a
-//! save's `file:changed` with `origin` to every holder, through `notices`)
+//! save's `file:changed` with `origin` to every holder, through `notices`),
+//! file_watcher_holders_reconcile.rs (D173-WI-4: `confirm_hold`'s
+//! second-holder reconcile, a plain `file:changed` per held spelling when a
+//! register replaced a diverged baseline, through `notices.emit_plain`)
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;

@@ -55,7 +55,8 @@
 //! @coordinates-with services/file_watcher_baseline_seed.rs — `seed_for_written`
 //! @coordinates-with commands/draft_recover_watch.rs — the D59 sibling seam
 //! @coordinates-with services/file_watcher_holders.rs — `save_file_dialog`
-//!   reserves the hold before this seam and confirms it after, or on a
+//!   reserves the hold (`without_reconcile`: a Save As sends no origin-less
+//!   reconcile notice, D173-WI-4b) before this seam and confirms it after, or on a
 //!   failed save restores the window's earlier hold (audit M1) or releases it;
 //!   a fenced window saves nothing (audit M2, [`log_fenced_save_as`]). The
 //!   test-only `save_as_held_with` mirrors those steps, and the save notice
@@ -156,7 +157,10 @@ pub(crate) async fn save_as_held_with(
     watcher: &FileWatcher,
 ) -> Result<Option<SaveResult>, FileError> {
     let raw = PathBuf::from(&picked);
-    let Some(hold) = watcher.reserve_hold(label, &raw) else {
+    let Some(hold) = watcher
+        .reserve_hold(label, &raw)
+        .map(|r| r.without_reconcile())
+    else {
         log_fenced_save_as(action_id.as_deref());
         return Ok(None);
     };
@@ -275,6 +279,10 @@ mod refuse_tests;
 mod hold_tests;
 
 #[cfg(test)]
+#[path = "save_as_reconcile_wiring_tests.rs"]
+mod reconcile_wiring_tests;
+
+#[cfg(test)]
 #[path = "save_as_hold_wiring_tests.rs"]
 // The recorded spec's module docs end in a lazy list continuation; its bytes are
 // the D173-WI-2-rust receipt's evidence, so the lint is allowed here.
@@ -284,3 +292,7 @@ mod hold_wiring_tests;
 #[cfg(all(test, target_os = "macos"))]
 #[path = "save_as_seed_check_tests.rs"]
 mod seed_check_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "save_as_reconcile_tests.rs"]
+mod reconcile_tests;

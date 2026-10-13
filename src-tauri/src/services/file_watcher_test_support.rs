@@ -17,7 +17,8 @@
 //! - `route_burst_for_tests` shares one debounce map across a burst and
 //!   reports what it left, for the save-then-residual-burst case (WI-6 S10).
 //! - `for_tests_noticed` swaps in a `NoticeRecorder` as the save-notice sink
-//!   (D173-WI-2), so a test sees every notice and can make the emit fail.
+//!   (D173-WI-2), so a test sees every notice and can make the emit fail;
+//!   `sent_plain` returns the origin-less reconcile notices (D173-WI-4).
 //! - Wired `#[cfg(test)] #[path] mod` from `file_watcher.rs`: no production
 //!   surface, and a child module so it may read the private fields.
 //!
@@ -41,6 +42,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Default)]
 pub(crate) struct NoticeRecorder {
     sent: Mutex<Vec<SaveNotice>>,
+    plain: Mutex<Vec<FileChangedEvent>>,
     fail: AtomicBool,
 }
 
@@ -48,6 +50,12 @@ impl NoticeRecorder {
     /// Every notice handed to the sink so far, refused ones included.
     pub(crate) fn sent(&self) -> Vec<SaveNotice> {
         self.sent.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    /// Every plain (origin-less) notice handed to the sink so far: the
+    /// D173-WI-4 reconcile notices.
+    pub(crate) fn sent_plain(&self) -> Vec<FileChangedEvent> {
+        self.plain.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     /// From now on, record and then refuse every notice.
@@ -62,6 +70,18 @@ impl NoticeSink for NoticeRecorder {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .push(notice.clone());
+        if self.fail.load(Ordering::SeqCst) {
+            Err("notice recorder: emit refused".to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn emit_plain(&self, event: &FileChangedEvent) -> Result<(), String> {
+        self.plain
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(event.clone());
         if self.fail.load(Ordering::SeqCst) {
             Err("notice recorder: emit refused".to_string())
         } else {

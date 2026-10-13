@@ -1509,7 +1509,10 @@ pub async fn save_file_dialog(
         return Ok(Some(blocked));
     }
     let raw = PathBuf::from(&picked);
-    let Some(hold) = watcher.reserve_hold(window.label(), &raw) else {
+    let Some(hold) = watcher
+        .reserve_hold(window.label(), &raw)
+        .map(|r| r.without_reconcile())
+    else {
         log_fenced_save_as(Some(&action_id));
         return Ok(None);
     };

@@ -1,41 +1,37 @@
 //! Who holds each watched file, per window and per canonical group (D173,
 //! ADR-0086 decisions 1-3): the registry's state and its pure decisions.
 //!
-//! Purpose: layer 1 keys a hold by (window label, raw spelling) and gives it
-//! a monotonic generation. Layer 2 groups spellings by canonical file, and
-//! the group owns the notify watch: notify `unwatch` runs only when the group
-//! has no consumer, because notify 6.1.1 keeps one canonical filter entry per
-//! file and unwatching any spelling silences the others. `HoldMap` decides
-//! (reserve, confirm check, release, restore, fence, a group's spellings for
-//! the save notice) with no I/O; the `FileWatcher` API that takes the locks
-//! and does what a decision needs (bar `consumer_spellings`, here) lives in
-//! file_watcher_holders_teardown.rs, and the values a decision returns
-//! (`Reservation`, `ReleaseOutcome`, `Released`, ...) in
-//! file_watcher_holders_outcomes.rs.
+//! Purpose: layer 1 keys a hold by (window label, raw spelling) with a
+//! monotonic generation. Layer 2 groups spellings by canonical file and owns
+//! the notify watch: notify `unwatch` runs only when the group has no
+//! consumer, as notify 6.1.1 keeps one canonical filter entry per file.
+//! `HoldMap` decides with no I/O (reserve, confirm check, release, restore,
+//! fence, a group's spellings); the locked `FileWatcher` API lives in
+//! file_watcher_holders_teardown.rs (bar `consumer_spellings`, here), the
+//! reconcile (D173-WI-4) in file_watcher_holders_reconcile.rs, the values
+//! returned in file_watcher_holders_outcomes.rs.
 //!
-//! Pipeline: an acquisition is `reserve_hold` → the legacy register (`watch`
-//! / `watch_seeded`, unchanged) → `confirm_hold`. A release is `release_hold`
-//! (a stale generation is a no-op) or `release_window` on
-//! `WindowEvent::Destroyed`, which also fences the label so a late
-//! acquisition is refused or, if its register raced the fence, torn down on
-//! confirm.
+//! Pipeline: `reserve_hold` → the legacy register (`watch` / `watch_seeded`,
+//! unchanged) → `confirm_hold` (→ the reconcile, outside every lock). A
+//! release is `release_hold` (a stale gen is a no-op) or `release_window` on
+//! `Destroyed`, which fences the label: a late acquisition is refused, or
+//! torn down on confirm if its register raced the fence.
 //!
 //! Key decisions:
-//! - **Locks.** T (`transitions`) serialises reservations, confirms and
-//!   releases, and is held through a teardown's notify I/O: everything that
-//!   reaches notify `unwatch` takes a `TransitionGuard`. H (`map`) is a leaf,
-//!   taken only in `with_map` around one pure `HoldMap` call: no I/O, no
-//!   other lock. Order: T → H, and T → watcher → list → L5. A register takes
-//!   neither T nor H. The notify callback never takes T: notify's `stop()`
-//!   joins the callback thread, so waiting on T there would deadlock a
-//!   teardown.
-//! - **Every acquisition still runs the legacy register**, so the D86 seed,
-//!   the D111 seed check and the baseline overwrite are what they were; only
-//!   release is layered.
+//! - **Locks.** T (`transitions`) serialises reserve, confirm and release,
+//!   held through a teardown's notify I/O (a `TransitionGuard`). H (`map`)
+//!   is a leaf, only in `with_map` around one pure `HoldMap` call. Order:
+//!   T → H, T → watcher → list → L5; a register takes neither. The notify
+//!   callback never takes T: notify's `stop()` joins its thread.
+//! - **Every acquisition still runs the legacy register** (D86 seed, D111
+//!   seed check, baseline overwrite); only release is layered.
 //! - **A spelling joins `notify_spellings` when it is reserved**, so a
 //!   register raced by its own release is still cleared at the teardown.
 //! - **A duplicate keeps its group**: the group is fixed at the first
 //!   acquisition, and a later symlink retarget is not followed.
+//! - **Recipients are raw strings** (audit b97 M1). The holds key stays
+//!   (label, `PathBuf`), a recorded limit: one window's `/d/./x.md` and
+//!   `/d/x.md` are one hold, noticed under the string it first reserved.
 //! - Gen 0 is never issued; replies use 0 for "no hold".
 //!
 //! @coordinates-with services/file_watcher.rs (parent; the `holders` field
@@ -43,10 +39,10 @@
 //! (the `FileWatcher` API: `reserve_hold`, `confirm_hold`, `release_hold`,
 //! `release_window`, and the I/O and log lines behind them),
 //! commands/file.rs and commands/draft_recover_watch.rs (the acquisitions),
-//! commands/watch_hold.rs (`release_watch_hold`), main.rs (`release_window`
-//! on `Destroyed`), file_watcher_holders_outcomes.rs (the decisions' return
-//! values; `impl HoldMap` stays here, where tripwire d173_wi1_k reads it)
-use std::collections::{BTreeMap, HashMap, HashSet};
+//! commands/watch_hold.rs, main.rs (`release_window` on `Destroyed`),
+//! file_watcher_holders_outcomes.rs (`impl HoldMap` stays here, where
+//! tripwire d173_wi1_k reads it), file_watcher_holders_reconcile.rs
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
@@ -80,6 +76,8 @@ struct HoldMap {
 struct Hold {
     gen: u64,
     group: GroupKey,
+    /// The raw string first reserved: a notice recipient (audit b97 M1).
+    spelling: String,
 }
 
 #[derive(Default)]
@@ -105,9 +103,12 @@ impl HoldMap {
         self.next_gen += 1;
         let gen = self.next_gen;
         let key = (label.to_string(), raw.to_path_buf());
-        let prior = self.holds.get(&key).map(|h| h.gen);
-        let duplicate = self.holds.get(&key).map(|h| h.group.clone());
-        let group = duplicate.clone().unwrap_or_else(|| group.to_path_buf());
+        let held = self.holds.get(&key);
+        let prior = held.map(|h| h.gen);
+        let duplicate = held.map(|h| (h.group.clone(), h.spelling.clone()));
+        let (group, spelling) = duplicate
+            .clone()
+            .unwrap_or_else(|| (group.to_path_buf(), raw.to_string_lossy().into_owned()));
         let g = self.groups.entry(group.clone()).or_default();
         let transition = match (&duplicate, g.consumers.get(raw)) {
             (Some(_), _) => "duplicate",
@@ -125,13 +126,12 @@ impl HoldMap {
             group: g.consumers.values().sum(),
             raw: g.consumers.get(raw).copied().unwrap_or(0),
         };
-        self.holds.insert(
-            key,
-            Hold {
-                gen,
-                group: group.clone(),
-            },
-        );
+        let hold = Hold {
+            gen,
+            group: group.clone(),
+            spelling,
+        };
+        self.holds.insert(key, hold);
         Some(Reserved {
             gen,
             prior,
@@ -154,14 +154,13 @@ impl HoldMap {
         }
     }
 
-    /// Every raw spelling the group `group` has a consumer for (D173-WI-2).
+    /// Every distinct raw STRING held in the group `group` (D173-WI-2).
+    /// From the holds, not `consumers`: `PathBuf` compares components, so
+    /// `/d/./x.md` and `/d/x.md` are one key there but two notices (b97 M1).
     fn spellings(&self, group: &Path) -> Vec<String> {
-        self.groups.get(group).map_or_else(Vec::new, |g| {
-            g.consumers
-                .keys()
-                .map(|s| s.to_string_lossy().into_owned())
-                .collect()
-        })
+        let held = self.holds.values().filter(|h| h.group == group);
+        let distinct: BTreeSet<String> = held.map(|h| h.spelling.clone()).collect();
+        distinct.into_iter().collect()
     }
 
     fn is_current(&self, label: &str, raw: &Path, gen: u64) -> bool {
@@ -254,9 +253,9 @@ impl Holders {
 }
 
 impl super::FileWatcher {
-    /// Every raw spelling held in the canonical group `target` (already a
-    /// group key), each once, in a stable order: the save notice's
-    /// recipients (D173-WI-2). Lock H only, no I/O.
+    /// Every distinct raw string held in the canonical group `target`
+    /// (already a group key), in a stable order: the save notice's and the
+    /// reconcile's recipients (D173-WI-2, WI-4). Lock H only, no I/O.
     pub(crate) fn consumer_spellings(&self, target: &Path) -> Vec<String> {
         let mut out = Vec::new();
         self.holders.with_map(|m| out = m.spellings(target));
@@ -266,6 +265,9 @@ impl super::FileWatcher {
 
 #[path = "file_watcher_holders_teardown.rs"]
 mod teardown;
+
+#[path = "file_watcher_holders_reconcile.rs"]
+mod reconcile;
 
 #[cfg(test)]
 #[path = "file_watcher_holders_fixture.rs"]
