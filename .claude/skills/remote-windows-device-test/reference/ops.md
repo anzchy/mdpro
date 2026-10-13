@@ -69,11 +69,17 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
   (2.7 at 270 %). On a maximized window the menu bar sits at y ≈ 47 and the window rect starts at
   -11,-11. Prefer `cdp.sh` clicks for page elements, and convert only when you need real input.
 
+## Safety rules in the scripts
+
+- Every one-off scheduled task (`runi.ps1`) is waited for and then **unregistered** (try/finally). `ui-run.ps1` deletes its step and output files, so nothing can replay them.
+- Every value interpolated into a remote PowerShell command goes through `psq` (it doubles `'`) inside `'…'`, after a validator: Windows paths must match `^[A-Za-z]:\\` with no quote, backtick or `$`; file names must match `^[A-Za-z0-9._-]+$`, not starting with a dot. `WIN_DIR` is validated once, in `common.sh`. Keep this for any new wrapper.
+- The only listener is WebView2's DevTools port, on `127.0.0.1:9222`, and only while mdpro runs from `launch.cmd`.
+
 ## Other scripts
 
 | Script | Use |
 |---|---|
-| `mac/mdpro.sh debug \| normal \| status \| cleanup` | Restarts mdpro with or without the port (it refuses to relaunch if mdpro didn't close), maximizes, and checks `innerWidth`; `cleanup` removes the scheduled tasks. |
+| `mac/mdpro.sh debug --yes \| normal --yes \| status \| cleanup` | Restarts mdpro with or without the port. `--yes` is required, given only after the user confirms nothing is unsaved. It refuses to relaunch if mdpro didn't close, maximizes, and checks `innerWidth`. `cleanup` (also run on exit) removes any leftover task. |
 | `mac/log.sh mark` / `log.sh since [regex]` | mdpro.log events since the mark. A failed mark is an error, never an empty number. |
 | `mac/push.sh local winpath` | Chunked upload, verified by SHA-256 (`hash ok` / `HASH MISMATCH`). |
 | `mac/pull.sh winpath name` | Binary download into `$MDPRO_WIN_OUT`. |

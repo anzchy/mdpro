@@ -71,24 +71,27 @@ produced **wrong verdicts**; the rest cost time.
     - File → Open gives plain `C:\…`.
     - Path-related rows behave differently by route (e.g. the image asset URL), so test the
       route the row names.
-14. **Exit / kill / relaunch:**
+14. **Scheduled tasks persisted** (fixed 2026-10-13, independent review C1): before the fix, every
+    `mdpro-audit-*` task stayed registered until a manual `cleanup`, and `mdpro-audit-ui`
+    would replay a leftover `steps.json`. `runi.ps1` now unregisters its task in `finally`.
+15. **Exit / kill / relaunch:**
     - On 0.3.1, mdpro → Exit quits instantly, even with dirty documents.
     - A relaunch shows a modal "Recover drafts" dialog that blocks later probes.
     - Never Exit or kill with the user's own documents open.
     - After a relaunch, Discard the test drafts, then `max` again.
-15. **Hide really hides.**
+16. **Hide really hides.**
     - After mdpro → Hide the window is invisible, and `windows` / `MainWin` find nothing.
     - Restore it with the `showall` op (EnumWindows) in the same run.
-16. **Empty output is a transport failure, never a result.**
+17. **Empty output is a transport failure, never a result.**
     - Example: "Connection reset … port 22", after which `log.sh mark` wrote an empty mark and
       `since` failed.
     - `common.sh` retries once on ssh exit 255, and the wrappers refuse empty output.
     - If it happens again, run `ssh win-desktop hostname` and repeat the call.
-17. **CDP hang triage:**
+18. **CDP hang triage:**
     - It hung for about a minute twice, then recovered, and the renderer CPU was idle.
     - Check in this order: `ssh win-desktop hostname`, then `Invoke-WebRequest
       127.0.0.1:9222/json/list` on the PC, then `node cdp.mjs eval 1+1` on the PC, then retry.
-18. **The Claude Code Bash tool:**
+19. **The Claude Code Bash tool:**
     - Calls over 120 s move to the background, so keep each call to one action plus its check.
     - Run `deploy.sh` with `run_in_background`.
     - Wait with an `until <check>; do sleep 3; done` loop, never `sleep N; cat`, which is
@@ -96,6 +99,6 @@ produced **wrong verdicts**; the rest cost time.
     - `rm -rf` of a scratch folder is denied, so use a new folder name.
     - A backgrounded command can leave the shell in another directory, so set
       `S="$(git rev-parse --show-toplevel)/.claude/skills/remote-windows-device-test/scripts/mac"`.
-19. **Screenshots on the Mac:** `sips -c` crops around the centre, not the top. Downscale with
+20. **Screenshots on the Mac:** `sips -c` crops around the centre, not the top. Downscale with
     `sips -Z 1300` before reading. A full-screen shot shows the user's private desktop: delete
     it after use and never commit it.

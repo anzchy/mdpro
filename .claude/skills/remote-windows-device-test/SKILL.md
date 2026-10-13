@@ -10,8 +10,10 @@ description: Drive and test the installed mdpro on the Windows desktop (`win-des
 1. **No computer use, no TeamViewer.** Everything goes over SSH; the user keeps working on
    the Mac (user decision, 2026-10-12). Connection basics:
    `.claude/skills/remote-ssh/reference/windows-desktop.md`.
-2. **`mdpro.sh debug` restarts the user's running mdpro.** Say so first. It refuses to
-   relaunch if an unsaved prompt keeps mdpro open. Never Exit or kill mdpro with the user's
+2. **`mdpro.sh debug --yes` restarts the user's running mdpro.** Ask the user first and pass
+   `--yes` only after they confirm nothing in mdpro is unsaved. On 0.3.1 the window-close
+   prompt is unverified with dirty documents, and Exit skips the quit guard. The script
+   refuses to relaunch if mdpro didn't close. Never Exit or kill mdpro with the user's
    documents open.
 3. **Open a native menu and click its item in ONE `ui.sh` run** (`menuclick` / `menuat`). A
    split across runs dismisses the menu and produced a false verdict on 2026-10-12.
@@ -26,7 +28,7 @@ description: Drive and test the installed mdpro on the Windows desktop (`win-des
 ```bash
 S="$(git rev-parse --show-toplevel)/.claude/skills/remote-windows-device-test/scripts/mac"
 $S/deploy.sh            # copies scripts/windows/* to C:\Users\jack\mdpro-audit (hash-checked); run in background
-$S/mdpro.sh debug       # graceful close, restart with DevTools port 9222, maximize, print innerWidth
+$S/mdpro.sh debug --yes # (after the user confirms nothing is unsaved) restart with DevTools port 9222, maximize, print innerWidth
 $S/mdpro.sh status      # 1 tauri-app, 9222 on 127.0.0.1, one page http://tauri.localhost/
 ```
 
@@ -91,12 +93,14 @@ A result obtained on one route says nothing about the other.
 ## 4. Cleanup (always)
 
 ```bash
-$S/mdpro.sh normal     # graceful close, restart WITHOUT the DevTools port, maximized
-$S/mdpro.sh cleanup    # unregister the mdpro-audit-* scheduled tasks
+$S/mdpro.sh normal --yes  # restart WITHOUT the DevTools port, maximized
+$S/mdpro.sh cleanup        # backstop: unregister any mdpro-audit-* task (runi.ps1 already removes its own)
 ```
 
 - **Discard** the drafts the run created (Recover drafts → Discard).
 - **Restore** what you changed: font size, theme, and a hidden window (`showall`).
-- **Left behind:** `%WIN_DIR%` keeps the scripts, `fx\`, `out\`, `steps.json`, `ui-out.json`
-  and PNGs. Delete full-screen shots right away.
+- **Left behind:** `%WIN_DIR%` keeps the scripts, `fx\`, `out\` and PNGs. No scheduled task
+  stays registered: `runi.ps1` unregisters each one when it finishes, `ui-run.ps1` deletes
+  `steps.json` / `ui-out.json`, and `mdpro.sh` runs `cleanup` on exit. Delete full-screen shots
+  right away.
 - **Deleting the folder itself** is a rule-25 action: ask first.
