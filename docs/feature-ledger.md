@@ -54,6 +54,8 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 **改变行为的那一次提交，重写它的那一行。** 不是后续的清理批次——留到清理批次的状态列，是没有人能信任的状态列。这跟 `CLAUDE.md` 里对 sequencing doc 的要求是同一条规则。
 
+**每个分区的「Windows 差异」表与 Part 1 同一次提交改写**（ADR-0089）：改变 Windows 行为的提交重写差异表里那一行；差异表里没有的能力，等于声称「与 macOS 同状态，且已在 Windows 上验证」，所以没验证过的一律写 `Unknown`，不要省略。
+
 一次审计 pass 写成一个带日期的小节，**追加，不覆盖**，并且必须以一段「**这次没有关掉什么**」结尾。声称自己做了一次全面扫描，正是上一次 pass 存在的意义所要记录的那种过度声称。
 
 ---
@@ -92,6 +94,25 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 陈旧草稿清理 | Partial | `src-tauri/src/commands/draft_recovery.rs`, `src-tauri/src/services/draft/live_listing.rs` | 每个窗口挂载时调一次 `cleanup_old_drafts`，删掉超过 7 天未动、且已恢复过的草稿，恢复列表不会无限增长；未恢复的、旧格式（两文件）的和损坏的草稿不清。D27 起（ADR-0038 §5）清理**跳过正被占用的草稿**（所属窗口仍活着，或文档正开着），恢复会刷新时间戳，所以开一个新窗口不会再删掉另一个窗口刚恢复的旧草稿；影子存储读不了时一份都不删。整个扫描与删除持草稿锁。日志 `file.draft.cleanup` 只带 `deleted` / `skippedLive` 两个计数。限制：跳过规则只有单元测试——D27 d3–d6 已于 2026-10-02 真机通过，但它们测的是恢复列表与点击时复查，没有直接演练清理跳过，这条仍算真机未验；超过 7 天、所属窗口已死的已恢复草稿仍会被清掉 |
 | 文件增删重命名 | Absent | — | 没有任何从 app 内删除或重命名磁盘文件的入口——没有文件树，标签上的 `×` 只关标签不动文件。仓库里 `remove_file` 的全部命中都是内部清理（原子写入的临时文件、MCP 的端口/令牌文件、一个测试），没有一条是用户可触发的 |
 
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 新建文档 | Unknown | ⌘N 对应的 Ctrl+N 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
+| 打开文件 | Unknown | Windows 审计仅部分验证（ead8c30），.md 过滤与重开已开文件未测；Ctrl+O（W1）D190 WI-1 f044aba 已修，真机未验 |
+| 最近打开 | Unknown | Windows 审计仅部分验证（ead8c30），多窗口写盘顺序未测 |
+| 保存 | Partial | 限制：每次自己保存后都弹「External change detected」（W2，D190 WI-2 未修）；Ctrl+S 经 D190 WI-1 f044aba 已修，真机未验 |
+| 关闭文档 | Unknown | ⌘W 对应的 Ctrl+W 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
+| 拖拽打开文件 | Unknown | Windows 审计未验证（ead8c30） |
+| Finder 文件关联 | N/A | Finder 关联是 macOS 专有；Windows 的 .md 关联未检查 |
+| 原子写入保存 | Unknown | Windows 审计未验证（ead8c30） |
+| 大文件提示横幅 | Unknown | Windows 审计未验证（ead8c30） |
+| 外部变更监听 | Partial | 限制：mdpro 自己保存也被当成外部改动弹提示（W2，D190 WI-2 未修） |
+| 后台标签的外部变更 | Unknown | 审计之后新增的行，Windows 未验证；自存误报（W2）可能波及 |
+| 按 id 读取单份草稿 | Unknown | Windows 审计未验证（ead8c30） |
+| 保存后清理草稿 | Unknown | Windows 审计未验证（ead8c30） |
+| 陈旧草稿清理 | Unknown | Windows 审计未验证（ead8c30） |
+
 ### 编辑 / WYSIWYG
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
@@ -129,6 +150,36 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | WYSIWYG 下的脚注渲染 | Partial | `src/components/Editor/MilkdownEditor.tsx` | 限制：有渲染、无跳转也无回链。⌃4 下输入 `[^1]` 与脚注定义，引用渲染成上标 1（`footnote_reference` 节点），定义渲染成 `dl[data-type=footnote_definition]` 块；点上标不跳转，脚注末尾没有回链。2026-10-12 Windows 审计实测纠正（原记 Absent、字面文本）。同 B3 |
 | WYSIWYG 下的查找替换 | Absent | — | ⌃4 下按 ⌘F 不会出现查找面板；⌃2 切回源码模式才有 |
 
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| WYSIWYG 编辑 | Unknown | Windows 审计仅部分验证（ead8c30），整体替换后的焦点边界未测 |
+| 行内源码显隐 | Unknown | Windows 审计未验证（ead8c30） |
+| 行内代码 | Unknown | 行内代码 Mod-Shift-` 与删除线 Ctrl-Shift-` 在 Windows 是同一组合（W6，D190 WI-6 未修），哪个胜出待真实按键复核 |
+| 插入链接（WYSIWYG） | Unknown | Windows 审计未验证（ead8c30）；审计中 WYSIWYG Ctrl+K 提交后未生成链接，待真人复核 |
+| 链接 URL 消毒 | Unknown | Windows 审计仅部分验证（ead8c30），WYSIWYG 路径与 `javascript:` 的提示未测 |
+| 高亮选区 | Unknown | Ctrl+Shift+H 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
+| `==text==` 往返 | Unknown | Windows 审计未验证（ead8c30） |
+| 图片粘贴 | Unknown | D190 WI-3 41487a2 修了 CSP，真机未验 |
+| 图片粘贴校验 | Unknown | Windows 审计未验证（ead8c30） |
+| 上传进度占位 | Unknown | Windows 审计未验证（ead8c30） |
+| 未保存文档禁粘贴守卫 | Unknown | Windows 审计未验证（ead8c30） |
+| 批量多图粘贴 | Unknown | Windows 审计未验证（ead8c30） |
+| 图片拖放插入 | Unknown | Windows 审计未验证（ead8c30）；显示依赖的 D190 WI-3 41487a2 修了 CSP，真机未验 |
+| 编辑器内拖拽文字 / 表格 | Unknown | Windows 审计未验证（ead8c30） |
+| 图片缩放菜单 | Unknown | Windows 审计未验证（ead8c30） |
+| 图片宽度写回 Markdown | Unknown | Windows 审计未验证（ead8c30） |
+| 本地图片渲染 | Unknown | D190 WI-3 41487a2 修了 CSP，真机未验 |
+| 粘贴 HTML 消毒 | Unknown | Windows 审计未验证（ead8c30） |
+| 粘贴参差表格（WYSIWYG） | Unknown | Windows 审计未验证（ead8c30） |
+| 空表头行自动补齐（WYSIWYG） | Unknown | Windows 审计未验证（ead8c30） |
+| 链接点击守卫 | Unknown | Windows 审计未验证（ead8c30） |
+| 剪切 / 复制 / 粘贴 / 全选 | Unknown | Windows 审计仅部分验证（ead8c30），Edit 菜单各项的实际操作未测 |
+| 插件架构（注册表管理插件生命周期） | Unknown | Windows 审计未验证（ead8c30） |
+| 拼写检查 | Unknown | Windows 审计未验证（ead8c30） |
+| WYSIWYG 下的查找替换 | Unknown | Windows 审计未验证（ead8c30） |
+
 ### 表格
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
@@ -153,6 +204,26 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 宽表格滚动 | Shipped | `src/components/Editor/MilkdownEditor.css` | 插一张 15 列的表，横向滚动条出现在表格自己的容器上，整个编辑区不跟着横移 |
 | HTTP 驱动的表格编辑 | Partial | `src/hooks/useMcpEvents.ts`, `src/utils/tableMcp.ts`, `src/hooks/mcpTableAction.ts`, `src/utils/minimalTextChange.ts`, `src-tauri/src/services/http_server.rs` | 限制：只能从 HTTP 端点驱动，走不到 MCP——`mdpro_mcp.rs` 只注册了 get_open_documents、read_document、write_document、insert_content 四个工具，表格操作不在其中，AI 客户端调不到（与「HTTP 表格端点」是同一道墙的两面）。开着 mdpro，用 curl 带 token 打 `/api/v1/insert_table`、`/api/v1/set_cell`、`/api/v1/add_row`、`/api/v1/delete_row`、`/api/v1/add_column`、`/api/v1/delete_column`，后端发 `mcp:table_action`，`useMcpEvents.ts` 收下并把改动落到当前可见的编辑器里。D41 修复前（2026-10-02 之前），对首格为空的行（如 `\| \| x \|`）调 `set_cell` 会写进错误的列——第 0 列会覆盖 `x`；`add_row`/`delete_column` 同样错列。D41 解析器修复后这三个端点都落在正确的列。**D49（2026-10-09 代码已修，同日 Mac mini 真机验证，`docs/test/20261009-d49-d58-device-check.md` D49-H：`set_cell`、`add_column` 各加宽 2→4，9 个溢出记号都在，越界列号被拒且内容不变）**：目标表某行单元格多于表头时，任何一次表格操作都先把整张表加宽到最宽那一行（与 ⌘S、右键菜单一致），多出的格不再丢；`set_cell` 的列号上限仍是表头宽度，指向多出列的调用当作无效 payload 拒绝，但第一次写入加宽后同一列号就合法了（[ADR-0064](adr/0064-mcp-table-actions-widen-and-keep-header-width-coordinates.md)）。限制补充：路由在应用前就回 202，调用方看不到是否加宽，只能读回文档（D57，延后）；**D58（2026-10-09 代码已修，同日真机验证：WYSIWYG 里打字后 200 ms 内的 `set_cell` 记 `outcome:"written"` 冲刷，打的字与表格改动都保留；ADR-0065 同日 Accepted；[D64](plans/20260912-frontend-backend-sequencing-order.md#d64) 经单元复现确认早于 D58，单独跟踪）**：目标为活动的 WYSIWYG 文档时，先只冲刷该文档未同步的编辑再计算，刚打的字不再被覆盖；先改编辑器再写 store，编辑器没应用或冲刷失败就整次拒绝、store 不变（[ADR-0065](adr/0065-mcp-table-actions-flush-first-and-commit-the-editor-before-the-store.md)）。限制补充：被拒绝的操作也已回 202，调用方只能读回文档才知道（D57）；源码模式仍先写 store，CodeMirror 抛错只记日志；成功后约 500 ms 才同步到 MCP 影子存储。**D64（2026-10-10 代码已修，单元验证；同日 Mac mini `f504e14` 的 release 包真机验证，`docs/test/20261010-d64wi2-d65-d78-device-check.md`：对 T0 `set_cell` 后 T1–T3 在行尾补格、无 `<br />`、不右移，⌘S 后磁盘上是矩形；越界列号的拒绝那一步跑在整篇写入之后，没有观察到，待复核）**：目标为活动的 WYSIWYG 文档时，一次表格操作不再把同一文档里**没被操作**的参差表整行右移一列——参差表在载入时就在行尾补成矩形，对 T0 的 `set_cell` 之后 T1–T3 逐字节不变（[ADR-0067](adr/0067-wysiwyg-widens-ragged-tables-at-parse-time.md)，`tests/d64-ragged-table-shift.test.ts`）。2026-10-09 真机看到的是右移一列、表头补 `<br />`、store 内容被改（[D64](plans/20260912-frontend-backend-sequencing-order.md#d64)）；源码模式下打字途中到达的 `set_cell` 曾把光标移到文首、后打的字落在文首（[D66](plans/20260912-frontend-backend-sequencing-order.md#d66)）；现只派发改动的那一段，表格之外的光标与选区随文字映射、留在原处，后打的字接在原处（`tests/d66-source-caret-mcp-set-cell.test.tsx`，仅单元验证）。限制：光标若在被改写的那个格里，会落到改动文字的边上；源码分支仍是先写 store、编辑器出错不回滚（ADR-0024 修订 B 未完成，D66 不改这一点） |
 
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 插入表格对话框 | Unknown | Windows 审计未验证（ead8c30） |
+| 插入行 / 列 | Unknown | Ctrl+Alt+方向键在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验；右键插入行已通过 |
+| 删除行 / 列 / 整表 | Unknown | Ctrl+Alt+Backspace 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
+| 移动行 / 列 | Unknown | Windows 审计仅部分验证（ead8c30），移动结果与首行置灰未测 |
+| 列对齐 | Unknown | Windows 审计未验证（ead8c30） |
+| 重排表格 | Unknown | Windows 审计未验证（ead8c30） |
+| 保存时自动重排 | Unknown | Windows 审计未验证（ead8c30） |
+| Esc 退出表格 | Unknown | Windows 审计未验证（ead8c30） |
+| 输入法安全的表格导航 | Unknown | Windows 审计未验证（ead8c30） |
+| 源码模式的表格识别范围 | Unknown | Windows 审计未验证（ead8c30） |
+| 列数校验提示 | Unknown | Windows 审计未验证（ead8c30） |
+| 列宽拖拽 | Unknown | Windows 审计未验证（ead8c30） |
+| 跨模式单元格光标同步 | Unknown | Windows 审计未验证（ead8c30） |
+| 宽表格滚动 | Unknown | Windows 审计未验证（ead8c30） |
+| HTTP 驱动的表格编辑 | Unknown | Windows 审计未验证（ead8c30） |
+
 ### 源码模式
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
@@ -169,6 +240,17 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 自动换行与缩进宽度 | Partial | `src/components/common/settings/EditorSettings.tsx` | 限制：真机未验（ADR-0032 GUI 验收）。在 ⌘, → Editor 里切换 word wrap 与 2 / 4 空格，编辑器当场生效；2026-09-27（ADR-0031 第 5b 步，`8b9d8d3`）起两项都落盘——关掉设置再打开仍是所选的值，重启后启动水合经 `applyEditorPref` 还原。此前（D24）只改得动本次会话，重开即回到默认（换行开、4 空格） |
 | 代码块主题 | Shipped | `src/components/common/settings/AppearanceSettings.tsx` | 2026-10-02 在 `ef91e24` 的 release 包上真机验证（D24 DC-M，`docs/test/20261002-dtrack-device-retest.md`）：换成 One Dark 后正常退出、冷启动，UI 与 `config.json` 都保持。在 ⌘, → Appearance 里把代码主题从 Default 换成 One Dark，⌃2 下的着色立刻变；2026-09-27（ADR-0031 第 5b 步，`8b9d8d3`）起这一项落盘——关掉设置再打开仍是 One Dark，重启后启动水合经 `applyCodeTheme` 还原着色。此前（D24）只改得动本次会话 |
 | 大文档性能保护 | Partial | `src/utils/largeDocumentGuard.ts`, `src/utils/largeDocumentDegradeLog.ts`, `src/utils/sourceTableWithheldLog.ts`, `src/utils/sourceTableVerdict.ts`, `src/stores/editorStore.ts`, `src/plugins/codemirror/sourceTableExtensions.ts`, `src/hooks/useSourceTablesWithheld.ts`, `src/App.tsx` | 限制：⌃4 与 ⌃2 **各有一条判据**，三个计数都在同一趟前向扫描里算完，不解析 Markdown、不额外分配内存。**⌃4 这一面**是**两个计数对两条阈值，任一条超了就降级**——结构元素数（ADR-0016，`docs/adr/0016-large-document-guard-predicate-is-a-source-structure-score.md`）= 换行数 +（竖线数 − 表格行起始数），阈值 25,000；最长行长度（ADR-0019，`docs/adr/0019-large-document-guard-adds-a-longest-line-trigger.md`）以 UTF-16 码元计，阈值 1,000,000。两条都是 `<=` 放行；`fileSize` 已从判据输入里彻底删除，字节数不再参与判断。ADR-0019 是对 ADR-0016 的**扩展而非取代**。降级会写一条 `editor.large_document.degrade`（warn / fail）到 `~/.mdpro/mdpro.log`，载荷带 `trigger`、`elements`、`longestLine`、当时生效的两条阈值与文档 id `documentId`（UUID，非内容）。**⌃2 这一面**（[ADR-0022](adr/0022-source-mode-gets-its-own-guard-keyed-on-table-row-density.md)，已实现；真机 MQ-1..MQ-4 见本行末）：同一趟扫描多数一个「表格行起始数」（行首跳过空格与制表符后第一个字符是 `\|` 的行；NBSP 与 `\r` 不跳过），阈值 `SOURCE_TABLE_ROW_THRESHOLD = 50_000`，`<=` 放行；超过则**不切模式**，只对这份文档卸掉源码模式的四个表格扩展（表格识别、Tab 键位、单元格高亮、列数检查器，四个一起卸），表格右键菜单与表格快捷键也对它停用（右键出系统原生菜单、不解析表格），弹一次「This document has too many table rows. Table editing tools are turned off for it.」并写一条 warn 级 `editor.large_document.source_tables_withheld`（载荷带 `tableRows`、`sourceTableRowThreshold` 与 `documentId`）。⌃2 下**每份文档每个会话只判一次**（裁定存在 editorStore 的 `sourceTableVerdicts`，首个裁定生效），不是每次按键重扫；⌃4 行为不变。仍然是 Partial 的几点：**（1）⌃4 两条阈值的证据都很薄**——结构阈值只拟合在五份约 472 KB 的语料上，每份一次有效测量、同一台机器；行长阈值干脆**没有拟合**，实测只有两个点（359,285 码元 / 155 ms 放行，7,583,742 码元 / 259,483 ms 拦下），1,000,000 是在这中间整整一个数量级的空白里随手取的整数；**（2）⌃4 除了换行和行长以外，对行内结构仍然失明**——一份 12 行、每行 900,000 字符的文档结构分是 11、最长行 900,000，两条阈值都过得去，却带着 10.8 MB 行内内容进了 ⌃4；**（3）竖线算术两个方向都会错**——围栏代码块里的 `\|` 被当成单元格、以 `\|` 开头的代码行也被算成表格行起始（高估，⌃2 的计数原样继承），省略首尾竖线的表格行被少算（低估）；**（4）⌃2 的 50,000 是政策判断不是读数**（按实测兑换率约合一次光标移动 30.0 MB；密度曲线在 1,000 行以上严格线性、没有拐点，只能给兑换率给不出阈值；50,000 约为唯一实测会卡的文档 232,981 行的五分之一）；**（5）⌃2 护栏只限制损害范围，不修代价**——50,000 行以下的文档一切照旧，D12 的对象图（见下）原样还在；每次打开时的解析代价也不受这条护栏约束；**（6）⌃2 裁定按会话粘住**——删掉行降回阈值以下，工具要重开文档才回来；编辑或同一 id 外部重载涨过阈值，也沿用打开时的裁定；**（7）挂载时、裁定落地之前仍会做一次表格解析**。⌃2 上定位过的代价：**`tocService` 的 O(n²) 已修**——过去对每个标题都把文档从头切一遍数换行，TOC 不分模式都解析；同机对照（dense-math.source.md，性能语料未入库，9,110,964 字符、70,886 个标题）行号计算 152,551 ms → 24 ms，输出校验和一致。**表格整表拷贝已修（D11）**——`TableModel.raw` 过去是急求值的 `src.slice(start, end)`，而源码模式的光标上下文路径（`src/plugins/codemirror/sourceTableDetection.ts` 里的 `tableContextField`，`docChanged \|\| selection` 两者之一成立就重跑）从不读它；现在是惰性记忆化 getter。**对象图没修（D12）**：实测（2026-09-22，Node，每档独立进程、`--expose-gc`，合成 9,785,220 字符 / 232,981 行的四列表格文档）一次 `parseTableAtOffset` 返回 931,924 个单元格、保留 120,458,072 B，一次光标移动连同行源重建是 139,037,640 B；`src/utils/tableParser/find.ts` 的 `findCell` 对 `model.cells` 线性扫描，由 `src/plugins/codemirror/sourceTableCellHighlight.ts` 在每次光标移动时调用，要修得改单元格查找的契约，属于设计决定。**列数检查器强制求值 `raw` 已修（D13）**——`src/plugins/codemirror/lintTableColumnCount.ts` 改为逐行走表，`slice()` 由 1 降到 0。**整机复测 2026-10-02 做了**（阶段 3.8 出口复测，`ef91e24` 的 release 包，`docs/test/20261002-stage3-exit-perf-retest.md`）：9.96 MB 的五份 Source 档全部打开并在 ≤15 s 内回到空闲（large-table.source 打开 25 ms 并卸掉表格扩展），门禁二时的不收敛未再出现；dense-math.source 首次切标签有过一次 8–12 s 的输入延迟（n=1，未复现，没取 `sample`）；关掉所有标签后 WebContent RSS 停在约 1.75 GB 不回落（[D45](plans/20260912-frontend-backend-sequencing-order.md#d45)，疑似泄漏，未修）。release 包没有 DevTools，所以 ⌃2 这一面只有这些观察值，没有逐次就绪毫秒数。⌃4 确认：用 `node scripts/perf/generate-corpus.mjs <目录>` 生成语料，在 ⌃4 下打开 `large-table.wysiwyg.md`（471,880 B，结构分 57,190）或 `many-short-nodes.wysiwyg.md`（471,867 B、零表格，结构分 32,657）：都会弹出「This document is too complex for WYSIWYG. Switched to Source mode for performance.」并自动切到源码模式——这两份在旧的 500KB 字节阈值下都是放行的，正是 ADR-0004 记的 D6 漏判。再打开 `very-long-line.source.md`（9,961,475 B，结构分只有 3，最长行 7,583,742 码元）：也会弹同一条提示并降级，由行长这条触发——这份语料实测冷开阻塞 259,483 ms（`docs/test/20260921-d5-d6-real-device-measurement.md`）。打开 `dense-math.wysiwyg.md`（471,942 B，结构分 20,664）或 `very-long-line.wysiwyg.md`（471,862 B，结构分 3，最长行 359,285 码元）则两条阈值都不触发，停在 ⌃4。四份 472 KB 语料的结构分与 D6.1 实测冷开阻塞严格同序（`docs/plans/20260920-d61-wkwebview-sweep-record.md`：12,004 ms / 7,409 ms / 1,793 ms / 0 ms）。确认日志：降级后跑 `grep large_document.degrade ~/.mdpro/mdpro.log \| tail -1 \| jq .`，应看到 `context.trigger` 为 `structure` / `line-length` / `both` 三者之一。D11 肉眼看不出来，改用计数确认：`npx vitest run tests/table-parser-lazy-raw.test.ts`。⌃2 确认：单测 `npx vitest run tests/large-document-guard.test.ts tests/large-document-guard-call-site.test.ts tests/source-tables-withheld-log.test.ts tests/editorStore-source-tables-withheld.test.ts tests/source-table-verdict.test.ts tests/source-table-extensions.test.ts tests/use-source-tables-withheld.test.ts tests/source-table-context-menu-withheld.test.tsx`（全套 2352 通过、0 失败）；真机 MQ-1..MQ-4（⌃2 打开 `large-table.source.md`：恰好一次提示、装订线无表格三角、Tab 为原生缩进、右键出原生菜单、表格快捷键不改文本；敲 20 个字后 `grep -c editor.large_document.source_tables_withheld ~/.mdpro/mdpro.log` 只多 1；小表格文档工具照常；两份文档来回切换工具跟着文档走）**2026-09-22 已在 `c9a1698` release bundle 上执行、四项通过**（`docs/test/20260922-adr0022-mq.md`）；唯一未验：WYSIWYG 打开大表格文档时「降级提示 + 护栏提示」两个提示能否都被看到——提示是单槽 3 s，后一个替换前一个，截屏采样不到，日志两行齐全 |
+
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 行注释切换 | Unknown | Windows 审计未验证（ead8c30） |
+| 代码块缩进 / 反缩进 | Unknown | Windows 审计未验证（ead8c30） |
+| 括号自动配对 | Unknown | Windows 审计未验证（ead8c30） |
+| 自动换行与缩进宽度 | Unknown | Windows 审计未验证（ead8c30） |
+| 代码块主题 | Unknown | Windows 审计仅部分验证（ead8c30），切换代码块主题未测 |
+| 大文档性能保护 | Unknown | Windows 审计未验证（ead8c30） |
 
 ### 导出
 
@@ -189,6 +271,15 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | Word / DOCX 导出 | Absent | — | File 菜单里没有 Word / DOCX 项。立场 |
 | 打印 | Absent | — | ⌘P 没有反应，File 菜单里也没有 Print 项。全仓库没有任何 `window.print` 或打印命令；要打印只能先 ⌘⇧E 导出 HTML，再在浏览器里打。这条**不是**已记录的立场——PDF 导出是被评估后否掉的，打印从没被评估过 |
 | 引文 / BibTeX | Absent | — | 写 `[@citekey]` 不会被解析，导出后仍是字面文本；没有文献库设置页 |
+
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 导出 HTML | Unknown | ⌘⇧E 对应的 Ctrl+Shift+E 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验；建议文件名为双扩展名 `basic.md.html`（W7） |
+| 默认导出目录 | Unknown | Windows 审计未验证（ead8c30） |
+| 内嵌样式开关 | Unknown | Windows 审计未验证（ead8c30） |
+| 导出 HTML 片段命令 | Unknown | Windows 审计未验证（ead8c30） |
 
 ### 导航与界面
 
@@ -213,6 +304,20 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 命令面板 | Absent | — | ⌘⇧P / ⌘P 都没有反应，没有可搜索的命令列表 |
 | 演示模式 | Absent | — | 没有把文档投成幻灯片的入口，`---` 不会被当作分页符 |
 
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 大纲侧栏 | Partial | 限制：270% 缩放的窄窗口下侧栏被挤到约 25 CSS px、大纲项点不到（W8，归 D189） |
+| 切换侧栏 | Unknown | ⌘⇧L 对应的 Ctrl+Shift+L 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
+| 底部标签条 | Partial | 限制：经单实例路由打开的标签显示整条 `\\?\C:\…` 路径、无法区分（W5，D190 WI-5 未修），新建按钮提示仍写 ⌘N（W7） |
+| 视图模式切换 | Partial | 限制：Ctrl+2 / Ctrl+4 不切模式且与标题快捷键冲突（D190 WI-6 未修）；Ctrl+/ 经 D190 WI-1 f044aba 已修，真机未验 |
+| 恢复上次视图模式 | Unknown | Windows 审计未验证（ead8c30） |
+| Toast 通知 | Unknown | Windows 审计仅部分验证（ead8c30），关闭按钮未测 |
+| 加载指示 | Unknown | Windows 审计未验证（ead8c30） |
+| 窗口拖拽区 | N/A | Windows 用原生标题栏，没有 overlay 拖拽区 |
+| 文档内导航 | Unknown | Windows 审计未验证（ead8c30） |
+
 ### 主题与排版
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
@@ -226,6 +331,17 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 自定义主题 CSS | Absent | — | ⌘, → Appearance 只给 default / oneDark 两个**代码**主题，没有任何加载用户 CSS 的入口，也没有主题文件夹。`customCss` / `userStylesheet` 一类标识符全仓库零命中。界面配色由 `.theme-light` / `.theme-dark` 两套内置 token 决定，改不了 |
 | 界面本地化 | Absent | — | 界面文案全是硬编码英文（「Discard changes」「Opening file…」），没有语言设置项。`i18n` / `useTranslation` / locale 相关基础设施一律不存在——这不是「还差几个翻译文件」，是这条路还没开 |
 | RTL / 竖排书写 | Unknown | `src/components/Editor/MilkdownEditor.tsx`, `src/components/Editor/Editor.tsx` | 继承自 webview 与 CodeMirror/ProseMirror，此处从未测过，不要声称它能用。要判断请自己粘一段阿拉伯语或希伯来语进两种模式实测 |
+
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 浅色 / 深色 / 跟随系统 | Unknown | Windows 审计仅部分验证（ead8c30），落盘与重启未测；暗色下编辑区滚动条仍是浅色原生样式 |
+| 跟随系统主题变化 | Unknown | Windows 审计未验证（ead8c30） |
+| 编辑器字体 | Unknown | Windows 审计仅部分验证（ead8c30），切换字体未测 |
+| 行高 | Unknown | Windows 审计仅部分验证（ead8c30），切换行高未测 |
+| 内容宽度 | Unknown | Windows 审计仅部分验证（ead8c30），切换内容宽度未测 |
+| RTL / 竖排书写 | Unknown | Windows 审计仅部分验证（ead8c30），方向与光标行为未测 |
 
 ### MCP 集成
 
@@ -246,6 +362,22 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | MCP 服务器信息查询 | Partial | `src-tauri/src/commands/mcp.rs`, `src-tauri/src/services/mcp_launch.rs`, `src-tauri/src/services/mcp_controller/snapshot.rs`, `src/components/common/McpServerInfo.tsx` | 限制：`mcp_get_server_info` 注册着，但 `src/` 与 `tests/` 里零调用点——设置页的端口与运行状态全部来自 `mcp_get_status`（它从不携带 token）。它不是坏的，是没人接。`mcp_get_status` 报 `phase`（disabled / starting / running / stopping / failed，控制器此刻的状态；2026-09-28 起按 ADR-0040 决定 5 取代 ADR-0039 的 `launch`）、`error`（bind_in_use / bind_failed / publish_failed / serve_failed，只在 failed 时有值）与 `configured`（enabled / disabled / unreadable，每次调用只读地现读盘），`running` 仍等于「有端口绑定」。设置页的「Listening on localhost:…」只在绑了端口时出现，关着或启动失败时整块不渲染 |
 | 验证构建的 MCP 端口 | Shipped | `src-tauri/src/services/http_server.rs`, `src-tauri/src/services/mcp_controller/controller.rs` | 2026-10-07 真机通过（WI-002 验收 5，`docs/test/20261007-adr0047-wi002-device.md`）：日常 mdpro 开着时起一个验证运行，日常仍监听 55045，验证实例监听系统分配的端口并写进运行目录里的 `server.port`；各用自己的 token 发 `GET /api/documents`，两边都 200，各自只列出自己的文档。发布构建和普通 dev 构建不变，端口恒为 55045。只有带 cargo feature `verify-run` 的验证构建（[ADR-0047](adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)）让 `mcp_server_port()` 返回 0，由系统分配端口；controller 照旧把实际绑定的端口写进数据目录下的 `server.port`，验证运行里这个目录在运行目录内。单测：`cd src-tauri && cargo test http_server_port`（feature 关：T01、T04）和 `cargo test --features verify-run http_server_port`（T02、T03、T04） |
 
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| MCP 服务开关 | Unknown | Windows 审计仅部分验证（ead8c30），切换开关未测 |
+| 启动时自动运行 | Unknown | Windows 审计未验证（ead8c30） |
+| 自动批准 AI 编辑 | Unknown | Windows 审计未验证（ead8c30） |
+| HTTP 表格端点 | Unknown | Windows 审计未验证（ead8c30） |
+| 影子存储同步 | Unknown | Windows 审计仅部分验证（ead8c30），内容同步未测 |
+| 写入确认对话框 | Unknown | Windows 审计未验证（ead8c30） |
+| 客户端配置安装器 | Unknown | Windows 审计仅部分验证（ead8c30），点 Install 写客户端配置未测 |
+| 连接测试与端口复制 | Unknown | Windows 审计仅部分验证（ead8c30），连接测试结果与端口复制未测 |
+| 退出时清理服务配置 | Partial | 限制：经 mdpro → Exit 退出后 `server.port` / `server.token` 留在原处（W4，D190 WI-4 未修） |
+| MCP 服务器信息查询 | Unknown | Windows 审计未验证（ead8c30） |
+| 验证构建的 MCP 端口 | N/A | ADR-0047 验证构建只在 macOS |
+
 ### 日志与诊断
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
@@ -261,6 +393,20 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 验证运行启动器 | Shipped | `scripts/control/doctor.mjs`, `scripts/control/doctorLeftovers.mjs`, `scripts/control/launch.mjs`, `scripts/control/quit.mjs`, `scripts/control/clean.mjs`, `scripts/control/launcherCli.mjs`, `scripts/control/launchInto.mjs`, `scripts/control/intoDelivery.mjs`, `scripts/control/launcherFormat.mjs`, `scripts/control/launcherLog.mjs`, `scripts/control/lock.mjs`, `scripts/control/lockMutex.mjs`, `scripts/control/lockTomb.mjs`, `scripts/control/cleanClaim.mjs`, `scripts/control/cleanSocket.mjs`, `scripts/control/launchProcess.mjs`, `scripts/control/procFacts.mjs`, `scripts/control/runDir.mjs`, `package.json` | 2026-10-11 起锁由外部互斥串行化（D105，[ADR-0077](adr/0077-the-verify-launcher-lock-is-serialised-by-an-outside-mutex.md)）：获取与放锁都在 `.lock.mutex` 之下，有墓碑时获取拒绝并点名墓碑，`clean` 只在锁不存在或指向被清理的 run 时删 `si.sock`；启动时写锁与建 run 目录在同一区段，`clean` 不会把在途启动当孤儿；同一 run 的两个 `clean` 由 `.clean.<R>` 标记互斥（D148）。`doctor` 逐个列出锁的残留文件（持有者 pid、是否存活、死持有者的删除命令），会挡住启动的残留让门禁不通过（D174）；2026-10-12 起打印的 `rm ~/'…'` 照抄即可执行，单独的 `.lock.mutex.break` 不再判为阻塞，只有它与持有者已死的 `.lock.mutex` 同在时才算（D179，真机未验）。这部分只过单测和 slow lane，未上 mini。2026-10-08 夜至 2026-10-09 在 mini 的真 verify 包上验收过（记录 `docs/test/20261009-adr0047-wi003-device.md`）。第一轮（`69dd5d9`，2026-10-08 23:24 起跑、2026-10-09 08:53 结束）：直接启动、已有运行时再启动被拒、`--into` 同一文件、pid 复用时 `quit` 拒绝、真 `quit` / `clean` / 残留 si.sock、`--via open` 冷启动、改源码不重打 `doctor` 报 `sourceTree` 不符、输出无随机数，都过；`--into --via open` 当时报 `verdict: pass` 而文件没送到（`open -n` 起的新实例只转交空参数），于是改成 `open` 不带 `-n`，且 `--into` 要等运行自己的日志出现该文件的 `file.open.external` 成功行才算过，否则 `fail — into: file not delivered within <ms> ms`。2026-10-09（`92e3902`）复测：`--into --via open` 把文件送进活着的运行、开在新窗口，没留下第二个进程，`instance.json` 不变；送不到的文件报 `fail`、exit 1，运行照常活着。没测到的：重打的包与原包逐字节相同，所以「`buildId` 不符」没真机触发过（被拒的理由是已有运行）；复测时日常 mdpro 没开；同 bundle id 的另一份验证包开着时，`--via open` 的文件可能被它收走（送达检查此时报 `fail`，不会假通过）。`doctor` / `launch` 探 si.sock 时活着的应用会记一行 `file.open.args_filtered {accepted:0}`（不打开任何文件）。就绪只到 L1（握手文件），L2 / L3 属于 WI-009 / WI-010。开发和 agent 验证用，不是 app 功能（[ADR-0047](adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md) WI-003）。四个命令与 `pnpm control:build` 并列：`pnpm control:doctor` 每项检查一行结论（包、清单、`buildId`、`sourceTree`、残留的运行 / 锁 / 进程 / 套接字），只读不删；`pnpm control:launch [--into <run>] [--via open] [--view-mode source\|wysiwyg] [<file>]` 在 `~/Library/Application Support/mdpro-verify/runs/` 下建随机名 0700 运行目录、起 `mdpro-verify.app`、等 `instance.json` 握手，一次只允许一个运行；`pnpm control:quit [<run>]` 与 `pnpm control:clean <run>` 只在随机数、pid、进程启动时间、可执行文件真实路径都对上时才动手，否则拒绝并写明哪一项。每个命令 stdout 的最后一行是 `verdict: pass` / `fail` / `driver failure` / `NOT VERIFIED`，pass 退出 0，其余 1；命令行写错退出 2，末行是 `usage: …`。stdout、stderr、`<RUN>/launcher.jsonl` 里没有启动随机数原文（显示为 `<redacted>`），也不在运行目录之外写任何文件。2026-10-10 D82 审计修复（只过单测，还没上 mini）：放锁走墓碑改名再复核，不会删掉别的 run 刚拿到的锁，放不回去时报 `lock displaced: kept <墓碑名>`；`clean` 持锁清 si.sock、删前重探，没删时记 `[info] si.sock kept: re-probe <x>`；`quit` 放锁失败末行是 `driver failure`（锁被别的 run 拿走、或锁文件损坏都算），不再判 `pass`；选项值像选项（`--view-mode --into R`）时报 `needs a value`、exit 2；「运行中」的扫描按 argv[0]（`ps -o comm=`）以 `tauri-app$` 锚定，`grep …/tauri-app` 不再算，但把 argv0 伪装成这个名字的进程仍会被算作运行中（只误报，不误杀）。确认（只读）：`pnpm control:doctor`，末行是一条 verdict。单测：`npx vitest run tests/control-launcher-*.test.ts`；慢测：`pnpm exec vitest run --config vitest.slow.config.ts tests/control-launcher-launch.slow.test.ts` |
 | 真机测试 hook 事件管线 | Partial | `scripts/device/hooks/push.mjs`, `scripts/device/hooks/pushCore.mjs`, `scripts/device/hooks/pushLocks.mjs`, `scripts/device/hooks/pushStore.mjs`, `scripts/device/hooks/receiver.py`, `scripts/device/hooks/receiver_spool.py`, `scripts/device/hooks/gap-lines.py`, `scripts/device/hooks/last-dtrack.sh`, `scripts/device/hooks/wait-dtrack.sh`, `scripts/device/hooks/build-mini-settings.mjs` | 限制：mini 侧切换尚未完成（dtrack 仍用内置 `type:"http"` hook，需用户重启 dtrack 的 claude 进程，步骤见 `scripts/device/hooks/README.md`）；断开 Tailscale 的真机验证未做（用户决定，以停掉接收端代替）。开发期工具，不是 app 功能：mini 上的 dtrack 会话把 `Stop` / `Notification` / `SessionStart` 交给 `push.mjs`，先落本地 spool、带 `spool_source` / `spool_epoch` / `spool_seq` 按序重放，MacBook 上的 `receiver.py` 按 (source, epoch, seq) 去重并写 `gaps.json`（D177，[ADR-0087](adr/0087-device-check-hook-events-are-spooled-on-the-mini-and-replayed-in-sequence.md)）。切换完成后在 MacBook 跑 `~/.mdpro-redesign/hooks/last-dtrack.sh`：先打印最新事件（含 `spool_seq`），有缺口时再打印 `missing seq A..B (dtrack-mini)`、`dead N` / `orphans N` 行，无缺口则没有这些行；`wait-dtrack.sh -t 1` 超时退出 124 时把同样的行打到 stderr。spool 只在下一次 hook 触发时补发，dtrack 静默时事件会一直等着 |
 
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 日志开关 | Partial | 限制：提示文字写的是 macOS 路径 `~/.mdpro/mdpro.log`（W7，D190 WI-7 未修），开关未切换验证 |
+| 日志级别 | Unknown | Windows 审计仅部分验证（ead8c30），切换级别未测 |
+| DevTools | Unknown | Windows 审计仅部分验证（ead8c30），WebView2 调试端口可用，右键 Inspect 与 F12 未测 |
+| 构建身份 | N/A | 构建身份与验证构建只在 macOS 流程 |
+| 验证构建（独立身份） | N/A | 验证构建只在 macOS |
+| 验证运行启动守卫 | N/A | 验证运行只在 macOS |
+| 持久化根登记表 | N/A | 验证运行的持久化根只在 macOS |
+| 验证运行启动器 | N/A | 验证运行启动器只在 macOS |
+| 真机测试 hook 事件管线 | N/A | 开发期工具，跑在 MacBook 与 Mac mini 之间，不是 Windows 上的 app 功能 |
+
 ### 偏好设置
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
@@ -273,6 +419,17 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 偏好写入的原子性 | Partial | `src-tauri/src/services/preferences.rs` | 限制：嵌套组（`editor` / `export` / `image` 等）按整组替换，只改一个字段的调用方必须带齐同组兄弟字段。Rust 这一侧的合并写带锁、原子，读坏的 `config.json` 不会被默认值整份重写（ADR-0031 第 1 步）。2026-09-27（ADR-0031 第 5b 步，`8b9d8d3`）起前端 `preferencesService.setPreferences` 真的调到 `set_preferences`：快速连续改多个设置项再重启，每一项都保住——2026-10-02 在 `ef91e24` 的 release 包上真机验证（D24 DC-M，`docs/test/20261002-dtrack-device-retest.md`）：连续改 4 项得 4 对 `preferences.set` start/success，正常退出冷启动后 Source、侧栏隐藏、One Dark、17px、自动重排全部保持。此前（D24）没有任何一次前端写入到得了它，结果是一项都没写进去。`set_preferences` / `save_window_state` 失败时 Rust 日志只记错误种类（`IoError` / `ParseError`），不记错误文本。真机 GA 2026-09-27 在 `8b9d8d3` 的 release 包上跑过（见 [D24](plans/20260912-frontend-backend-sequencing-order.md#d24)）：坏掉的 `config.json` 在启动、开文件、退出全程字节不变（ADR-0032 GA-6、ADR-0039 GA-4）；Rust 的整份写入把 `mcp` 组里退役的 `enabled` 去掉、补上 `serverEnabled` |
 | 图片配置读写命令 | Stub | `src-tauri/src/commands/image.rs` | 调 `get_image_config` 永远拿到默认值，即使刚在 ⌘, → Images 里改过；`set_image_config` 写进去也没有任何人会读到。函数体里写着 `// TODO: Load from preferences`——2026-09-27（第 5b 步）起 ⌘, 里的改动真的落进了 `config.json` 的 `image` 组，所以**现在拦路的就是这条 TODO**。本行此前把账算在 D24 上，当时成立（写入从没落盘，改成从偏好读也只读到默认值），5b 之后不再成立 |
 
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 快捷键改键 | Stub | 设置页在 Windows 上全显示 Cmd+…（W7，D190 WI-7 未修）；绑定本身经 D190 WI-1 f044aba 已修，真机未验 |
+| 默认视图模式 | Unknown | Windows 审计仅部分验证（ead8c30），改默认视图后重开未测 |
+| 自动保存间隔 | Unknown | Windows 审计仅部分验证（ead8c30），非默认间隔未测 |
+| 图片目录与外链复制 | Unknown | Windows 审计未验证（ead8c30） |
+| 偏好写入的原子性 | Unknown | Windows 审计未验证（ead8c30） |
+| 图片配置读写命令 | Unknown | Windows 审计未验证（ead8c30） |
+
 ### 窗口与标签页
 
 | 能力 | 状态 | 在哪 | 怎么确认 |
@@ -284,6 +441,16 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 原生 Window 菜单 | Shipped | `src-tauri/src/menu.rs` | Window 菜单里有 Minimize（⌘M）、Maximize、Close Window（⌘W） |
 | 标签栏配置 `TabBarConfig` | Stub | `src-tauri/src/models/preferences.rs`, `src/types/preferences.ts` | Rust 与 TS 两边都有默认值（位置、最大可见标签数、关闭后的焦点行为），没有 UI、没有消费者，README 却把它当成已交付的可配置功能。翻遍 ⌘, 十个页面都找不到标签栏设置 |
 | 标签页进阶能力 | Stub | `src/stores/tabStore.ts`, `src/components/TabBar/TabBar.tsx` | 固定标签、拖拽重排、撤销关闭标签（最近 10 个）、MRU 切换、按标签恢复滚动与光标——`tabStore.ts` 全部实现且有测试，但只被死掉的 `TabBar.tsx` 引用，UI 上到不了。在底部标签条上右键或中键点击都没有固定 / 撤销关闭的入口 |
+
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 新建窗口 | Unknown | Ctrl+Shift+N 在审计时无效（W1），D190 WI-1b 37a3f6d 已修，真机未验；层叠未测 |
+| 多窗口文档 | Unknown | Windows 审计未验证（ead8c30） |
+| 全局窗口状态持久化 | Unknown | Windows 审计未验证（ead8c30） |
+| 按文件记忆窗口几何 | Unknown | Windows 审计未验证（ead8c30） |
+| 标签页进阶能力 | Unknown | Windows 审计未验证（ead8c30） |
 
 ### 平台集成
 
@@ -302,7 +469,20 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 版本历史 | Absent | — | 没有查看或回滚历史版本的入口（草稿恢复只针对崩溃，不是版本史）。立场 |
 | 第三方插件市场 | Absent | — | 设置里没有插件浏览或安装入口；`src/plugins/` 是编辑器内部结构，不对外开放。立场 |
 | 移动端 | Absent | — | 没有 iOS / iPadOS 构建目标，只发 macOS 的 .dmg |
-| Windows 构建 | Unknown | `scripts/build-windows.sh` | `scripts/build-windows.sh` 在仓库里，但目标平台只声明 macOS 13+ ARM64，从未在此验证。不要据此声称 Windows 可用 |
+| Windows 构建 | Absent | — | macOS 无此能力；Windows 上的实际状态见本分区「Windows 差异」表（D191，ADR-0089） |
+
+#### Windows 差异
+
+| 能力 | Windows | 说明 |
+|---|---|---|
+| 原生 macOS 菜单栏 | N/A | Windows 是窗口内原生菜单栏，结构照搬 macOS（含「mdpro」应用菜单，W7） |
+| 重启应用更新 | Unknown | Windows 审计未验证（ead8c30） |
+| 重启前保存守卫 | Unknown | Windows 审计未验证（ead8c30） |
+| 退出守卫：原生钩子、逐窗口提示与回复通道 `quit_guard_reply` | Partial | 限制：有脏文档时 mdpro → Exit 不提示直接退出、不走退出守卫（W4，D190 WI-4 未修） |
+| 退出卡住时的逃生口：mdpro 菜单 → Stop Waiting and Quit…（`menu.app.stop_waiting_quit`） | Unknown | Windows 审计仅部分验证（ead8c30），菜单项在但未点；Exit 本身绕过退出守卫（W4） |
+| 协作编辑 | Unknown | Windows 审计未验证（ead8c30） |
+| 移动端 | N/A | 移动端与桌面平台无关 |
+| Windows 构建 | Partial | 0.3.1 安装包由 `.github/workflows/release.yml` 的 windows-latest 矩阵产出，能装能跑；`scripts/build-windows.sh` 本地构建从未验证；Windows 专属缺陷见 D190（审计 ead8c30 第 180 行） |
 
 > **关于「45 个定义、44 个注册」**：核对下来不成立。`src-tauri/src/commands/mod.rs::handlers()` 里注册了 46 个（D16 WI-3 加入 `quit_guard_reply` 之前是 45 个；D27 加入 `discard_recovery_draft` 后是 47 个），仓库里带 `#[tauri::command]` 的定义与之同数，逐名对齐没有漏网的。当年数出 44 多半是按逗号数的——列表最后一项后面没有逗号（那时是 `updater::get_app_version`，现在是 `quit_guard::quit_guard_reply`）；而直接 grep `tauri::command` 会数出 49，多出的三处在 `src-tauri/src/commands/logging.rs`（两处）与 `src-tauri/src/services/markdown.rs`（一处）的文档注释里。真正该记的不是漏注册，是注册了却没人调用的那四条：`get_draft`、`mcp_get_server_info`、`preview_html`、`export_html`，上面每条都有自己的一行。
 
