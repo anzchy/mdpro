@@ -21,6 +21,9 @@
     { "file": "src-tauri/src/services/draft/draft_store_tests.rs", "call": "data_dir", "count": 2, "scope": "test" },
     { "file": "src-tauri/src/services/draft/draft_test_home.rs", "call": "data_dir", "count": 1, "scope": "test" },
     { "file": "src-tauri/src/services/mcp_launch_skip_tests.rs", "call": "data_dir", "count": 1, "scope": "test" },
-    { "file": "src-tauri/src/services/quit_guard/driver_fixtures.rs", "call": "data_dir", "count": 1, "scope": "test" }
+    { "file": "src-tauri/src/services/quit_guard/driver_fixtures.rs", "call": "data_dir", "count": 1, "scope": "test" },
+    { "file": "src-tauri/src/services/draft/startup_migration_tests.rs", "call": "data_dir", "count": 1, "scope": "test" },
+    { "file": "src-tauri/src/services/http_server_port_tests.rs", "call": "data_dir", "count": 1, "scope": "test" },
+    { "file": "src-tauri/src/services/run_isolation_tests.rs", "call": "data_dir", "count": 1, "scope": "test" }
   ]
 }

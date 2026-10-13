@@ -75,12 +75,23 @@ impl Fixture {
         self.home.join(".mdpro").join("drafts")
     }
 
+    /// Where production moves the drafts: `dirs::data_dir()/mdpro/drafts`
+    /// (`draft::paths::drafts_dir`). D193: this was the macOS path on every OS,
+    /// so on Linux the tests looked in a directory nothing writes. The data
+    /// dir is first proven to be inside the fixture HOME and, where the OS has
+    /// one, equal to its literal location there.
     fn dest_dir(&self) -> PathBuf {
-        self.home
-            .join("Library")
-            .join("Application Support")
-            .join("mdpro")
-            .join("drafts")
+        let data = dirs::data_dir().expect("data_dir()");
+        assert!(
+            data.starts_with(&self.home),
+            "data_dir() {data:?} escaped the fixture HOME {:?}",
+            self.home
+        );
+        #[cfg(target_os = "macos")]
+        assert_eq!(data, self.home.join("Library").join("Application Support"));
+        #[cfg(target_os = "linux")]
+        assert_eq!(data, self.home.join(".local").join("share"));
+        data.join("mdpro").join("drafts")
     }
 
     fn write_legacy(&self, name: &str, bytes: &[u8]) {

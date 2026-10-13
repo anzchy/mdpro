@@ -46,10 +46,22 @@ impl Drop for TempHome {
     }
 }
 
+/// `dirs::data_dir()/mdpro` under `home`, where production puts the app's
+/// files on this OS. D193: this was the macOS path on every OS. The data dir
+/// is proven to be inside `home` and, where the OS has one, equal to its
+/// literal location there, so the expectation is not production's own call
+/// echoed back.
 fn mdpro_dir(home: &Path) -> PathBuf {
-    home.join("Library")
-        .join("Application Support")
-        .join("mdpro")
+    let data = dirs::data_dir().expect("data_dir()");
+    assert!(
+        data.starts_with(home),
+        "data_dir() {data:?} escaped HOME {home:?}"
+    );
+    #[cfg(target_os = "macos")]
+    assert_eq!(data, home.join("Library").join("Application Support"));
+    #[cfg(target_os = "linux")]
+    assert_eq!(data, home.join(".local").join("share"));
+    data.join("mdpro")
 }
 
 #[cfg(not(feature = "verify-run"))]
@@ -116,6 +128,9 @@ fn wi6_t04_files_dir_follows_home() {
         env.files_dir.starts_with(&h.dir),
         "files_dir not under HOME"
     );
+    #[cfg(target_os = "macos")]
     assert!(env.files_dir.ends_with("Library/Application Support/mdpro"));
+    #[cfg(target_os = "linux")]
+    assert!(env.files_dir.ends_with(".local/share/mdpro"));
     assert_eq!(env.files_dir, mdpro_dir(&h.dir));
 }

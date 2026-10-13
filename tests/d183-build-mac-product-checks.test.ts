@@ -15,6 +15,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync } from 'n
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type BuildMacProject, createBuildMacProject, VERSION } from './support/buildMacHarness';
+import { skipUnlessMac } from './support/buildMacHarness';
 
 let project: BuildMacProject;
 let stubLog: string;
@@ -27,6 +28,9 @@ beforeEach(() => {
 afterEach(() => {
   project.cleanup();
 });
+
+// D193: build-mac.sh is a macOS-only script (BSD stat/find, .app/.dmg bundles).
+skipUnlessMac();
 
 function run(env: Record<string, string>, path?: string) {
   return project.run({ VERSION, STUB_LOG: stubLog, ...env }, path);

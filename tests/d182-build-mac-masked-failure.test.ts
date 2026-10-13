@@ -11,6 +11,7 @@
 import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type BuildMacProject, createBuildMacProject, VERSION } from './support/buildMacHarness';
+import { skipUnlessMac } from './support/buildMacHarness';
 
 let project: BuildMacProject;
 const placeStaleBuild = () => project.placeStaleBuild();
@@ -23,6 +24,9 @@ beforeEach(() => {
 afterEach(() => {
   project.cleanup();
 });
+
+// D193: build-mac.sh is a macOS-only script (BSD stat/find, .app/.dmg bundles).
+skipUnlessMac();
 
 describe('D182 build-mac.sh', () => {
   it('fails with a build-failed message when tauri build fails, even with an old DMG present', () => {

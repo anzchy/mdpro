@@ -26,14 +26,20 @@ type Resolved = Result<PathBuf, String>;
 /// `(root id, production function, resolver)`. Several rows may share a root.
 type Row = (&'static str, &'static str, fn() -> Resolved);
 
-/// Every `McpClient`, with its root id and the path relative to HOME on macOS.
+/// Claude Desktop's config relative to HOME, per OS, as
+/// `mcp::get_client_config_path` builds it (D193: the macOS path was used on
+/// every OS). Windows has no row: there the path comes from
+/// `dirs::config_dir()`, which does not follow HOME, so this file cannot run.
+#[cfg(target_os = "macos")]
+const CLAUDE_DESKTOP_REL: &str = "Library/Application Support/Claude/claude_desktop_config.json";
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+const CLAUDE_DESKTOP_REL: &str = ".config/Claude/claude_desktop_config.json";
+
+/// Every `McpClient`, with its root id and the path relative to HOME on this OS.
 /// The `match` makes a new variant a compile error here until it is added.
 fn client(c: McpClient) -> (&'static str, &'static str) {
     match c {
-        McpClient::ClaudeDesktop => (
-            "mcp-client/claude_desktop",
-            "Library/Application Support/Claude/claude_desktop_config.json",
-        ),
+        McpClient::ClaudeDesktop => ("mcp-client/claude_desktop", CLAUDE_DESKTOP_REL),
         McpClient::ClaudeCode => ("mcp-client/claude_code", ".claude/settings.json"),
         McpClient::CodexCli => ("mcp-client/codex_cli", ".codex/config.toml"),
         McpClient::GeminiCli => ("mcp-client/gemini_cli", ".config/gemini/settings.json"),
@@ -208,12 +214,24 @@ fn wi8_t03_every_root_resolves_inside_temp_home_a() {
 fn wi8_t04_root_id_agrees_with_location() {
     let mut env = Locked::new();
     let a = env.home("A");
+    // D193: `data/` roots live under `dirs::data_dir()`, which is
+    // `Library/Application Support` on macOS and `.local/share` on Linux; the
+    // literal was macOS-only. Pinned to the per-OS literal where there is one.
+    let data_rel = dirs::data_dir()
+        .expect("data_dir()")
+        .strip_prefix(&a)
+        .expect("data_dir() inside the temp HOME")
+        .to_path_buf();
+    #[cfg(target_os = "macos")]
+    assert_eq!(data_rel, Path::new("Library/Application Support"));
+    #[cfg(target_os = "linux")]
+    assert_eq!(data_rel, Path::new(".local/share"));
     for (root, label, p) in resolve_all(&a) {
         let rel = p.strip_prefix(&a).unwrap();
         let ok = if let Some(x) = root.strip_prefix("home/") {
             rel.starts_with(x)
         } else if let Some(x) = root.strip_prefix("data/") {
-            rel.starts_with(Path::new("Library/Application Support").join(x))
+            rel.starts_with(data_rel.join(x))
         } else {
             CLIENTS
                 .iter()

@@ -20,9 +20,30 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { beforeEach } from 'vitest';
 
 export const SCRIPT = resolve(__dirname, '..', '..', 'scripts', 'build-mac.sh');
 export const VERSION = '9.8.7';
+
+/** Why every build-mac.sh test is skipped off macOS (D193). */
+export const MAC_ONLY_REASON =
+  'build-mac.sh is a macOS-only script (BSD stat/find, .app/.dmg bundles)';
+
+/**
+ * Skips every test in the calling file unless it runs on macOS (D193). The
+ * script calls BSD `stat -f '%m %N'` (GNU stat reads -f as "file system"), and
+ * the dmg-two stub calls BSD `date -v`, so on Linux the run fails for reasons
+ * that say nothing about the script's checks.
+ *
+ * Call it at the top level after the file's own beforeEach, so the project
+ * already exists when the skip lands and afterEach's cleanup() still has one
+ * to remove.
+ */
+export function skipUnlessMac(): void {
+  beforeEach((ctx) => {
+    ctx.skip(process.platform !== 'darwin', MAC_ONLY_REASON);
+  });
+}
 
 // Stub pnpm. Behaviour is chosen per test through env vars:
 //   STUB_LOG=<file>       → every invocation appends its arguments to <file>
