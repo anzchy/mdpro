@@ -27,7 +27,8 @@ Key decisions:
   wait-dtrack still returns it and flags it with "late seq N (source)".
 - Log hygiene (D177-H-4, audit b95 M3): session, event and type are logged
   only as a str of at most 64 [A-Za-z0-9._-] chars; otherwise as "-" (None),
-  "<str>", "<long str>" or "<type name>". The request path follows the same
+  "<str>", "<long str>" or "<type name>"; so is the raw Content-Length on the
+  413 line (b96 L4). The request path follows the same
   rule over [A-Za-z0-9._/-] ("<path>", "<long path>"), on every line,
   including the 401 line written before the token check. A value from the
   request can never inject a line or flood the log.
@@ -153,12 +154,13 @@ class Handler(BaseHTTPRequestHandler):
         if not expected or not hmac.compare_digest(given.encode(), expected.encode()):
             log(f"{peer} POST {log_path(self.path)} -> 401 (token {'missing' if not given else 'mismatch'})")
             return self._reply(401, b'{"error":"unauthorized"}')
+        length_raw = self.headers.get("Content-Length", "0")
         try:
-            length = int(self.headers.get("Content-Length", "0"))
+            length = int(length_raw)
         except ValueError:
             length = -1
         if length < 0 or length > MAX_BODY:
-            log(f"{peer} POST {log_path(self.path)} -> 413 length={length}")
+            log(f"{peer} POST {log_path(self.path)} -> 413 length={log_value(length_raw)}")
             return self._reply(413, b'{"error":"bad length"}')
         raw = self.rfile.read(length) if length else b""
         try:
@@ -238,8 +240,20 @@ def main():
     if not host:
         log("startup failed: no Tailscale IPv4 found; refusing to bind")
         sys.exit(1)
-    httpd = ThreadingHTTPServer((host, PORT), Handler)
+    # D177-H5-WI-2: bind, log, then listen. A bound socket that is not yet
+    # listening refuses connects, so "listening on" is in the log before any
+    # client (or test fixture) can connect and then read the port from it.
+    httpd = ThreadingHTTPServer((host, PORT), Handler, bind_and_activate=False)
+    try:
+        httpd.server_bind()
+    except Exception:
+        httpd.server_close()
+        raise
+    test_delay = os.environ.get("MDPRO_HOOK_TEST_LISTEN_LOG_DELAY_MS")  # test seam (D177-H5-WI-2)
+    if test_delay and test_delay.isdigit():  # test seam (D177-H5-WI-2)
+        time.sleep(min(int(test_delay), 5000) / 1000)  # test seam (D177-H5-WI-2)
     log(f"listening on {host}:{PORT}")
+    httpd.server_activate()
     httpd.serve_forever()
 
 

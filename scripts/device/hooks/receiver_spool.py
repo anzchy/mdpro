@@ -30,10 +30,17 @@ Key decisions:
   missing seq; after a capped jump, that jump's `low`. A seq below the floor
   is unknown, so it is accepted as "new" with late=True, never "duplicate":
   a retry that was dropped from `missing` would otherwise be lost. It leaves
-  max, missing and floor alone. Accepted cost: a genuine duplicate below the
-  floor is stored twice (marked spool_late by the receiver). `floor` persists
+  max, missing and floor alone. `floor` persists
   in seq-state.json (older state without it reads as 1), restarts at 1 with a
   new epoch, and shows in gaps.json only while > 1.
+- Below the floor, `late_seen` (D177-H5-WI-1, audit b96 M1) remembers the late
+  seqs already stored, oldest first, at most MAX_LATE_SEEN: a retry of one is
+  "duplicate", so a sender stuck retrying an old seq cannot fill events.jsonl.
+  It lives in seq-state.json only and resets with a new epoch. Accepted
+  limit: once a late seq is evicted from the bounded set, a retry of it is
+  stored again (marked spool_late by the receiver).
+- On load, floor must be a safe integer >= 1 and late_seen a list of them
+  (b96 L3); anything else is corrupt state, never clamped.
 - Planning never mutates (D177-H-2, audit b92 finding 3): the receiver commits
   a seq only after the event is on disk, so a failed append leaves the seq
   unseen and the sender's retry is stored, not answered "duplicate".
@@ -54,6 +61,7 @@ import re
 SOURCE_RE = re.compile(r"[A-Za-z0-9._-]{1,64}")
 EPOCH_RE = re.compile(r"[A-Za-z0-9_-]{8,64}")
 MAX_RETIRED_EPOCHS = 64
+MAX_LATE_SEEN = 1024
 MAX_SAFE_INT = 2**53 - 1
 MAX_MISSING = 10000
 SPOOL_KEYS = ("spool_source", "spool_epoch", "spool_seq", "spool_ts", "spool_dead")
@@ -90,13 +98,19 @@ def spool_fields(payload):
 
 
 def _fresh(epoch):
-    return {"epoch": epoch, "max": 0, "missing": [], "dead": 0, "orphans": 0, "floor": 1, "retired": []}
+    return {"epoch": epoch, "max": 0, "missing": [], "dead": 0, "orphans": 0, "floor": 1, "late_seen": [],
+            "retired": []}
+
+
+def _is_seq(v):
+    return _is_int(v) and v >= 1
 
 
 def _valid_entry(e):
     return (isinstance(e, dict) and isinstance(e.get("epoch"), str) and _is_int(e.get("max"))
             and isinstance(e.get("missing"), list) and all(_is_int(m) for m in e["missing"])
-            and _is_int(e.get("dead")) and _is_int(e.get("orphans", 0)) and _is_int(e.get("floor", 1))
+            and _is_int(e.get("dead")) and _is_int(e.get("orphans", 0)) and _is_seq(e.get("floor", 1))
+            and isinstance(e.get("late_seen", []), list) and all(_is_seq(s) for s in e.get("late_seen", []))
             and isinstance(e.get("retired"), list)
             and all(isinstance(r, str) for r in e["retired"]))
 
@@ -151,13 +165,19 @@ class SeqState:
             st = _fresh(epoch)
             st["retired"] = (cur["retired"] + [cur["epoch"]])[-MAX_RETIRED_EPOCHS:]
         else:
-            st = dict(cur, missing=list(cur["missing"]), retired=list(cur["retired"]))
+            st = dict(cur, missing=list(cur["missing"]), retired=list(cur["retired"]),
+                      late_seen=list(cur.get("late_seen", [])))
         st["dead"] = max(st["dead"], dead)
         st["orphans"] = max(st.get("orphans", 0), f.get("spool_orphans", 0))
         floor = st.get("floor", 1)
         if seq < floor:
             # Unknown: the cap discarded what would say whether it arrived. Accept it
-            # rather than lose a retry; a genuine duplicate is then stored twice.
+            # once rather than lose a retry; late_seen turns later retries into
+            # duplicates until the seq is evicted from that bounded set.
+            late_seen = st.get("late_seen", [])
+            if seq in late_seen:
+                return "duplicate", source, st, False
+            st["late_seen"] = (late_seen + [seq])[-MAX_LATE_SEEN:]
             return "new", source, st, True
         if seq <= st["max"] and seq not in st["missing"]:
             return "duplicate", source, st, False

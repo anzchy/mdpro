@@ -78,7 +78,8 @@ st.apply(ev(1))
 st.apply(ev(1000000))
 print(json.dumps([st.apply(ev(1)), st.apply(ev(1))]))
 `);
-    expect(out).toEqual(["new", "new"]);
+    // D177-H5: b96 M1 supersedes H-4's accepted cost
+    expect(out).toEqual(["new", "duplicate"]);
   });
 
   it("g5: the floor persists across save and load, and shows in gaps.json only while above 1", () => {
