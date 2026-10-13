@@ -4,6 +4,7 @@ import { fileService } from "../services/fileService";
 import { loggingService } from "../services/loggingService";
 import { assessWindowUnsaved } from "../utils/dataLossGuards";
 import { saveBlockedByPendingChange } from "../utils/externalChangeGuard";
+import { basename } from "../utils/pathBasename";
 import type { Document } from "../types/document";
 
 /**
@@ -108,7 +109,7 @@ export async function prepareForRelaunch(): Promise<boolean> {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       useToastStore.getState().showToast(
-        `Failed to save "${path.split("/").pop()}". Update cancelled.`,
+        `Failed to save "${basename(path)}". Update cancelled.`,
       );
       loggingService.logEventSync({
         level: "error",

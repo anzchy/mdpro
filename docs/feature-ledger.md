@@ -310,7 +310,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 |---|---|---|
 | 大纲侧栏 | Partial | 限制：270% 缩放的窄窗口下侧栏被挤到约 25 CSS px、大纲项点不到（W8，归 D189） |
 | 切换侧栏 | Unknown | ⌘⇧L 对应的 Ctrl+Shift+L 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
-| 底部标签条 | Partial | 限制：经单实例路由打开的标签显示整条 `\\?\C:\…` 路径、无法区分（W5，D190 WI-5 未修），新建按钮提示仍写 ⌘N（W7） |
+| 底部标签条 | Partial | 限制：新建按钮提示仍写 ⌘N（W7，D190 WI-7 暂缓）。审计所见经单实例路由打开的标签显示整条 `\\?\C:\…` 路径（W5），D190 WI-5 已修：启动参数去掉 `\\?\` 前缀，标签按 `/` 与 `\` 取文件名，真机未验 |
 | 视图模式切换 | Partial | 限制：Ctrl+2 / Ctrl+4 不切模式且与标题快捷键冲突（D190 WI-6 未修）；Ctrl+/ 经 D190 WI-1 f044aba 已修，真机未验 |
 | 恢复上次视图模式 | Unknown | Windows 审计未验证（ead8c30） |
 | Toast 通知 | Unknown | Windows 审计仅部分验证（ead8c30），关闭按钮未测 |

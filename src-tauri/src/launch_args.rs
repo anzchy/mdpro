@@ -11,7 +11,8 @@
 //!
 //! @coordinates-with launch.rs (`filter_launch_paths` delegates here),
 //! launch_args_log.rs (child: `LaunchSource`, `args_filtered_log_*`),
-//! main.rs (first-process and single-instance call sites)
+//! main.rs (first-process and single-instance call sites),
+//! services/path_plain.rs (`simplify_verbatim` on every accepted path)
 //!
 //! Key decisions:
 //! - **The base is explicit.** A second process forwarded by the
@@ -31,10 +32,15 @@
 //!   flag, relative-without-cwd, unresolved, not-regular-file, not-markdown,
 //!   non-UTF-8. Order and duplicates are preserved; no state crosses
 //!   arguments.
-//! - **Canonicalized output.** Accepted paths resolve `..` and symlinks, and
-//!   the extension check runs on the canonical target. A canonical path that
-//!   is not UTF-8 is dropped rather than lossily coerced.
+//! - **Canonicalized output, in its plain spelling.** Accepted paths resolve
+//!   `..` and symlinks, and the extension check runs on the canonical target.
+//!   On Windows `canonicalize` returns the `\\?\C:\…` verbatim form; the
+//!   accepted string drops that prefix whenever the plain `C:\…` spelling
+//!   names the same file (`services/path_plain.rs`, D190-WI-5), so tab titles,
+//!   drafts and MCP never see it. A canonical path that is not UTF-8 is
+//!   dropped rather than lossily coerced.
 
+use crate::services::path_plain::simplify_verbatim;
 use std::path::{Path, PathBuf};
 
 /// Why one launch argument was not opened. Closed set; see [`DropReason::ALL`].
@@ -139,9 +145,17 @@ fn classify(arg: &str, base: Option<&Path>) -> Result<String, DropReason> {
     if !is_markdown_ext(&canonical) {
         return Err(DropReason::NotMarkdown);
     }
+    accepted_path_string(&canonical)
+}
+
+/// The string an accepted argument is opened under, from its canonical path:
+/// its plain spelling (a Windows `\\?\` verbatim prefix removed when that
+/// names the same file, D190-WI-5), or [`DropReason::NonUtf8`] when the path
+/// is not UTF-8.
+fn accepted_path_string(canonical: &Path) -> Result<String, DropReason> {
     canonical
         .to_str()
-        .map(str::to_string)
+        .map(simplify_verbatim)
         .ok_or(DropReason::NonUtf8)
 }
 
@@ -193,6 +207,10 @@ mod test_fixtures;
 #[cfg(test)]
 #[path = "launch_args_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "launch_args_verbatim_tests.rs"]
+mod verbatim_tests;
 
 #[cfg(test)]
 #[path = "launch_args_law_tests.rs"]

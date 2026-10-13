@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Document } from "../../types/document";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import { basename } from "../../utils/pathBasename";
 import "./BottomTabs.css";
 
 interface BottomTabsProps {
@@ -13,8 +14,7 @@ interface BottomTabsProps {
 
 function getDocumentTitle(doc: Document): string {
   if (doc.path) {
-    const parts = doc.path.split("/");
-    return parts[parts.length - 1];
+    return basename(doc.path);
   }
   return "Untitled";
 }

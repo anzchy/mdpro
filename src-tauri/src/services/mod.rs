@@ -24,6 +24,7 @@ pub mod mcp_confirm;
 pub mod mcp_controller;
 pub mod mcp_launch;
 pub mod open_route;
+pub mod path_plain;
 pub mod preferences;
 pub mod preferences_mcp;
 pub mod quit_guard;

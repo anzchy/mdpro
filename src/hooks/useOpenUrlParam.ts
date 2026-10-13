@@ -39,6 +39,7 @@
 import { useEffect, useRef } from "react";
 import { loggingService } from "../services/loggingService";
 import { openActivationContext } from "../utils/openActivationLog";
+import { basename } from "../utils/pathBasename";
 import type { OpenPathOutcome } from "./useDocument";
 import type { ViewMode } from "../types/editor";
 
@@ -89,7 +90,7 @@ export function useOpenUrlParam(options: OpenUrlParamOptions): void {
 
       if (openPath) {
         const actionId = loggingService.generateActionId();
-        const fileBasename = openPath.split("/").pop() ?? openPath;
+        const fileBasename = basename(openPath);
         loggingService.logEventSync({
           level: "info",
           event: "file.open.url_param",

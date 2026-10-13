@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- On Windows, files opened by double-click or a second launch show their file name as the tab label and are stored with plain C:\… paths (D190)
+  - **Not yet checked on a device**
 - On Windows, local images in documents are shown again (the content security policy blocked `http://asset.localhost`, the address Windows serves them from) (D190)
   - **Not yet checked on a device**
 - Opening a file with a `<br>` tag inside a line (for example `first<br />second`, or `x<br>y` in a table cell) no longer deletes it (D192). The tag used to disappear as the file loaded, and the first edit anywhere in the document then saved the text without it. A `<br />` on a line of its own still opens as an empty line
