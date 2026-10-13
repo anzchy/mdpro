@@ -1,14 +1,18 @@
 //! Purpose: the guarded app-quit path (D16).
 //!
 //! Pipeline: `applicationShouldTerminate:` (`macos`) -> `driver` ->
-//! `coordinator` -> `effects` -> NSApp reply; escape menu -> `driver_escape`
-//! -> `coordinator` -> ADR-0027 alert; new window -> `window_gate` (D74).
+//! `coordinator` -> `effects` -> NSApp reply; off macOS, the Exit menu item ->
+//! `driver_request` -> the same driver -> `AppHandle::exit` (ADR-0090); escape
+//! menu -> `driver_escape` -> `coordinator` -> ADR-0027 alert (headless off
+//! macOS); new window -> `window_gate` (D74).
 //!
 //! Key decisions:
 //! - The decision logic is a pure state machine in `coordinator`: no
 //!   `AppHandle`, no objc, no clock. It compiles on every platform. Only
 //!   `macos` (the hook) is cfg-gated; `effects` branches inside per target.
 //! - **No new window opens while a request is live** (D74, `window_gate.rs`).
+//! - AppKit's raw reply / alert values and the tables over them live in
+//!   `native.rs`, re-exported here.
 //! - **One quit-committed gate.** `QUIT_COMMITTED` is the single static that
 //!   `QuitGuard::new` closes on commit and `commands::draft::save_draft` passes
 //!   its write through. Two gates would let an auto-save tick recreate a draft
@@ -27,6 +31,7 @@ mod events;
 pub mod logging;
 #[cfg(target_os = "macos")]
 pub mod macos;
+mod native;
 mod plan;
 pub mod reply;
 mod request;
@@ -38,94 +43,17 @@ use std::sync::{RwLock, RwLockWriteGuard};
 
 pub use coordinator::{Begin, FallbackAnswer};
 pub use driver::{deliver_escape, CommitReport, QuitEffects, QuitEvent, QuitGuard};
+pub use native::{
+    fallback_answer_for, ns_reply_for, InstallOutcome, NS_ALERT_FIRST_BUTTON, NS_TERMINATE_CANCEL,
+    NS_TERMINATE_LATER, NS_TERMINATE_NOW,
+};
 pub use reply::{QuitAnswer, MAX_DISCARD_IDS};
-
-/// AppKit's `NSApplicationTerminateReply` values, as raw `NSUInteger`s. They are
-/// an ABI, not a preference: AppKit reads the number the IMP returns.
-pub const NS_TERMINATE_CANCEL: usize = 0;
-pub const NS_TERMINATE_NOW: usize = 1;
-pub const NS_TERMINATE_LATER: usize = 2;
-
-/// AppKit's `NSAlertFirstButtonReturn`. Buttons are numbered from this in the
-/// order they were added, not the order they are drawn.
-pub const NS_ALERT_FIRST_BUTTON: isize = 1000;
-
-/// What `begin` tells `applicationShouldTerminate:` to return.
-///
-/// Pure, and compiled on every platform, so the table that AppKit reads is
-/// covered by a test that does not need AppKit.
-pub fn ns_reply_for(begin: &Begin) -> usize {
-    match begin {
-        // Nothing to guard: let AppKit tear the app down now.
-        Begin::TerminateNow => NS_TERMINATE_NOW,
-        // The coordinator owns the decision; AppKit waits for
-        // `replyToApplicationShouldTerminate:`.
-        Begin::Later { .. } => NS_TERMINATE_LATER,
-        // A nested `terminate:` while a request is live. Cancelling the nested
-        // call leaves the pending request intact (ADR-0025 §2).
-        Begin::AlreadyPending => NS_TERMINATE_CANCEL,
-    }
-}
-
-/// Map the timeout alert's button onto the fallback answer (ADR-0027).
-///
-/// Takes the raw `NSModalResponse` that `runModal` returns rather than a 0-based
-/// index, so the whole mapping — including the offset AppKit applies — is inside
-/// the tested pure function instead of split across an untestable conversion.
-/// Anything that is not the second button is `KeepOpen`: the safe direction,
-/// because it never discards.
-pub fn fallback_answer_for(modal_response: isize) -> FallbackAnswer {
-    if modal_response == NS_ALERT_FIRST_BUTTON + 1 {
-        FallbackAnswer::QuitAnyway
-    } else {
-        FallbackAnswer::KeepOpen
-    }
-}
-
-/// The result of adding `applicationShouldTerminate:` to the delegate class.
-///
-/// `AlreadyDefined` is the tao-upgrade failure mode: a future tao that defines
-/// the method itself would leave the app quitting unguarded, so it is reported
-/// rather than papered over with `class_replaceMethod`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum InstallOutcome {
-    Added,
-    AlreadyDefined,
-    NoDelegate,
-}
-
-impl InstallOutcome {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            InstallOutcome::Added => "added",
-            InstallOutcome::AlreadyDefined => "alreadyDefined",
-            InstallOutcome::NoDelegate => "noDelegate",
-        }
-    }
-
-    /// Only `Added` means the quit is guarded.
-    pub fn installed(self) -> bool {
-        matches!(self, InstallOutcome::Added)
-    }
-
-    /// Why the install failed, for the log's `error` field. A silent failure
-    /// here looks like a working app and discards data, so it is never `None`
-    /// for a non-`Added` outcome.
-    pub fn failure_reason(self) -> Option<&'static str> {
-        match self {
-            InstallOutcome::Added => None,
-            InstallOutcome::AlreadyDefined => {
-                Some("the delegate class already implements applicationShouldTerminate:")
-            }
-            InstallOutcome::NoDelegate => Some("NSApp has no delegate to hook"),
-        }
-    }
-}
 
 /// Install the native terminate hook.
 ///
-/// A no-op off macOS: there is no `applicationShouldTerminate:` to add, and the
-/// coordinator has no other caller there.
+/// A no-op off macOS: there is no `applicationShouldTerminate:` to add. There
+/// the app menu's Exit item opens the request instead (`request_quit`,
+/// ADR-0090).
 pub fn install(app: &tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     macos::install(app);
@@ -297,3 +225,9 @@ mod driver_commit_log_tests;
 #[cfg(test)]
 #[path = "driver_redaction_tests.rs"]
 mod driver_redaction_tests;
+#[cfg(test)]
+#[path = "driver_request_tests.rs"]
+mod driver_request_tests;
+#[cfg(test)]
+#[path = "effects_exit_tests.rs"]
+mod effects_exit_tests;

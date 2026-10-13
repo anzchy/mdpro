@@ -80,5 +80,11 @@ mod confirm_tests;
 #[path = "app_exit_idempotence_tests.rs"]
 mod idempotence_tests;
 #[cfg(test)]
+#[path = "app_exit_imports_tests.rs"]
+mod imports_tests;
+#[cfg(test)]
 #[path = "app_exit_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "app_exit_wiring_tests.rs"]
+mod wiring_tests;

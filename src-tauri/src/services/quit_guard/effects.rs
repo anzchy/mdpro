@@ -8,7 +8,10 @@
 //! - It holds an `AppHandle` and nothing else. The ack timer reaches the guard
 //!   back through Tauri managed state rather than an `Arc` cycle.
 //! - `reply` and `native_fallback` post to `macos` on macOS (a failed post is
-//!   `false`, which the driver logs as `effect_failed`); elsewhere a no-op `true`.
+//!   `false`, which the driver logs as `effect_failed`). Off macOS (ADR-0090)
+//!   `reply(true)` is `AppHandle::exit(0)` and `reply(false)` a no-op; the
+//!   alert is not drawn: the escape posts `headless_fallback_answer` to the
+//!   guard, and a timeout reports `false` so the driver releases the request.
 //! - `native_fallback` forwards its `FallbackCause` to the alert, which picks
 //!   its title and body from it; the buttons do not depend on it.
 //! - Every event goes out as `{requestId, round}` (`QuitEventPayload`,
@@ -24,6 +27,8 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
+#[cfg(not(target_os = "macos"))]
+use super::driver::{deliver_fallback, headless_fallback_answer};
 use super::driver::{FallbackCause, QuitEffects, QuitEvent, QuitGuard};
 use super::logging;
 
@@ -150,15 +155,19 @@ impl QuitEffects for TauriQuitEffects {
     }
 
     fn reply(&self, terminate: bool) -> bool {
-        // Off macOS there is no deferred terminate to resolve, so this stays a
-        // no-op, as the plan requires — and a no-op always succeeds.
+        // Off macOS there is no deferred terminate to resolve: the reply IS the
+        // exit (D190-WI-4). `AppHandle::exit` goes through `ExitRequested` and
+        // `RunEvent::Exit`, where `main.rs` runs the server-file cleanup; a
+        // cancel has nothing to resolve.
         #[cfg(target_os = "macos")]
         {
             super::macos::reply_to_should_terminate(&self.app, terminate)
         }
         #[cfg(not(target_os = "macos"))]
         {
-            let _ = terminate;
+            if terminate {
+                self.app.exit(0);
+            }
             true
         }
     }
@@ -178,10 +187,24 @@ impl QuitEffects for TauriQuitEffects {
         {
             super::macos::present_fallback_alert(&self.app, request_id, cause)
         }
+        // Off macOS no alert is drawn (ADR-0090). A timeout reports `false`,
+        // so the driver hands the request back to the windows; the escape is
+        // answered for the person who chose it, posted like the macOS alert's
+        // button so it never re-enters the driver from inside `fallback`.
         #[cfg(not(target_os = "macos"))]
         {
-            let _ = (request_id, cause);
-            true
+            match headless_fallback_answer(cause) {
+                Some(answer) => {
+                    let app = self.app.clone();
+                    self.app
+                        .run_on_main_thread(move || {
+                            let guard = app.try_state::<AppQuitGuard>();
+                            deliver_fallback(guard.as_deref(), request_id, answer);
+                        })
+                        .is_ok()
+                }
+                None => false,
+            }
         }
     }
 }
@@ -191,3 +214,7 @@ impl QuitEffects for TauriQuitEffects {
 #[cfg(test)]
 #[path = "effects_payload_tests.rs"]
 mod effects_payload_tests;
+
+#[cfg(test)]
+#[path = "effects_headless_tests.rs"]
+mod effects_headless_tests;

@@ -5,14 +5,12 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-#[cfg(target_os = "macos")]
 use tauri::RunEvent;
 use tauri::{Manager, WindowEvent};
 use tauri_app_lib::launch_args::{self, LaunchSource};
 use tauri_app_lib::models::{
     LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
 };
-#[cfg(target_os = "macos")]
 use tauri_app_lib::services::app_exit;
 use tauri_app_lib::services::file_watcher::{self, FileWatcher};
 use tauri_app_lib::services::mcp_confirm::{
@@ -432,9 +430,11 @@ fn main() {
         }
     };
 
-    #[cfg(target_os = "macos")]
+    // One run loop for every target (D190-WI-4): the Exit cleanup below must
+    // run on Windows and Linux too. Only `RunEvent::Opened` is macOS-only.
     app.run(|app_handle, event| {
         // Handle macOS "Open With" file associations
+        #[cfg(target_os = "macos")]
         if let RunEvent::Opened { ref urls } = event {
             let paths: Vec<String> = urls
                 .iter()
@@ -519,7 +519,4 @@ fn main() {
             }
         }
     });
-
-    #[cfg(not(target_os = "macos"))]
-    app.run(|_, _| {});
 }

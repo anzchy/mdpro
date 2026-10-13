@@ -1,0 +1,107 @@
+//! Purpose: the Edit, View, Theme, Window and Help submenus of the native menu
+//! bar. Moved verbatim out of `menu.rs::build_menu` under rule 50 §6 (D190-WI-4);
+//! the ids stay declared in `menu.rs`, where the ledger gate and the click
+//! dispatch read them.
+//!
+//! @coordinates-with src-tauri/src/menu.rs
+
+use tauri::menu::{CheckMenuItem, MenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder};
+use tauri::{AppHandle, Wry};
+
+use super::{
+    MENU_THEME_DARK, MENU_THEME_LIGHT, MENU_THEME_SYSTEM, MENU_VIEW_CYCLE, MENU_VIEW_SOURCE,
+    MENU_VIEW_TOGGLE_SIDEBAR, MENU_VIEW_WYSIWYG,
+};
+
+pub(super) fn edit_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
+    SubmenuBuilder::new(app, "Edit")
+        .item(&PredefinedMenuItem::undo(app, None)?)
+        .item(&PredefinedMenuItem::redo(app, None)?)
+        .separator()
+        .item(&PredefinedMenuItem::cut(app, None)?)
+        .item(&PredefinedMenuItem::copy(app, None)?)
+        .item(&PredefinedMenuItem::paste(app, None)?)
+        .separator()
+        .item(&PredefinedMenuItem::select_all(app, None)?)
+        .build()
+}
+
+/// `active_view_mode` checks the Source or WYSIWYG item.
+pub(super) fn view_menu(
+    app: &AppHandle<Wry>,
+    active_view_mode: Option<&str>,
+) -> tauri::Result<Submenu<Wry>> {
+    // Cmd+/ to cycle through view modes (Typora-style)
+    let view_cycle = MenuItem::with_id(
+        app,
+        MENU_VIEW_CYCLE,
+        "Cycle View Mode",
+        true,
+        Some("CmdOrCtrl+/"),
+    )?;
+    let is_active = |mode: &str| active_view_mode == Some(mode);
+    let view_source = CheckMenuItem::with_id(
+        app,
+        MENU_VIEW_SOURCE,
+        "Source",
+        true,
+        is_active("source"),
+        Some("Ctrl+2"),
+    )?;
+    let view_wysiwyg = CheckMenuItem::with_id(
+        app,
+        MENU_VIEW_WYSIWYG,
+        "WYSIWYG",
+        true,
+        is_active("wysiwyg"),
+        Some("Ctrl+4"),
+    )?;
+    let view_toggle_sidebar = MenuItem::with_id(
+        app,
+        MENU_VIEW_TOGGLE_SIDEBAR,
+        "Toggle Sidebar",
+        true,
+        Some("CmdOrCtrl+Shift+L"),
+    )?;
+
+    SubmenuBuilder::new(app, "View")
+        .item(&view_cycle)
+        .separator()
+        .item(&view_source)
+        .item(&view_wysiwyg)
+        .separator()
+        .item(&view_toggle_sidebar)
+        .build()
+}
+
+pub(super) fn theme_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
+    let theme_light = MenuItem::with_id(app, MENU_THEME_LIGHT, "Light", true, None::<&str>)?;
+    let theme_dark = MenuItem::with_id(app, MENU_THEME_DARK, "Dark", true, None::<&str>)?;
+    let theme_system = MenuItem::with_id(app, MENU_THEME_SYSTEM, "System", true, None::<&str>)?;
+    SubmenuBuilder::new(app, "Theme")
+        .item(&theme_light)
+        .item(&theme_dark)
+        .item(&theme_system)
+        .build()
+}
+
+pub(super) fn window_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
+    SubmenuBuilder::new(app, "Window")
+        .item(&PredefinedMenuItem::minimize(app, None)?)
+        .item(&PredefinedMenuItem::maximize(app, None)?)
+        .separator()
+        .item(&PredefinedMenuItem::close_window(app, None)?)
+        .build()
+}
+
+pub(super) fn help_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
+    SubmenuBuilder::new(app, "Help")
+        .item(&MenuItem::with_id(
+            app,
+            "menu.help.placeholder",
+            "mdpro Help",
+            false,
+            None::<&str>,
+        )?)
+        .build()
+}

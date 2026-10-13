@@ -57,6 +57,9 @@ mod commit;
 #[path = "driver_escape.rs"]
 mod escape;
 pub use escape::{deliver_escape, EscapeSink};
+#[path = "driver_request.rs"]
+mod request_quit;
+pub use request_quit::headless_fallback_answer;
 #[path = "driver_rounds.rs"]
 mod rounds;
 #[path = "driver_wire.rs"]

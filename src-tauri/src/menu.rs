@@ -1,7 +1,9 @@
-//! Purpose: the native macOS menu bar and its `menu:action` dispatch.
+//! Purpose: the native menu bar (macOS, and Windows/Linux since D190) and its
+//! `menu:action` dispatch.
 //!
 //! Key decisions:
-//! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`.
+//! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`;
+//!   the Edit, View, Theme, Window and Help submenus in `menu_submenus.rs`.
 //!   `MenuState::publish_op` merges a window's op under a sync lock and
 //!   publishes only once the menu built from it has installed (audit row 18);
 //!   the click handler below reads the list through the data mutex only.
@@ -11,14 +13,20 @@
 //!   enabled, no shortcut (ADR-0036). Its arm calls only
 //!   `quit_guard::deliver_escape` and emits no `menu:action`, so it works when
 //!   every webview is wedged (ADR-0030).
+//! - Off macOS the Quit item is a custom "Exit" (`MENU_APP_QUIT`, ADR-0090):
+//!   muda's predefined Quit posts `WM_QUIT` on Windows and bypasses the quit
+//!   guard. Its arm calls `QuitGuard::request_quit` and emits no `menu:action`;
+//!   the escape item follows it as it follows Quit on macOS.
 //!
+//! @coordinates-with src/menu_quit.rs
+//! @coordinates-with src/menu_submenus.rs
 //! @coordinates-with src/menu_recent.rs
 //! @coordinates-with src/menu_recent_merge.rs
 //! @coordinates-with src/commands/menu.rs
 //! @coordinates-with src-tauri/src/services/quit_guard/driver_escape.rs
 
 use serde::Serialize;
-use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
+use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
 use crate::services::quit_guard::{self, effects::AppQuitGuard};
@@ -48,6 +56,10 @@ const MENU_THEME_SYSTEM: &str = "menu.theme.system";
 /// in Rust only; it never reaches the frontend as a `menu:action`.
 pub const MENU_APP_STOP_WAITING_QUIT: &str = "menu.app.stop_waiting_quit";
 
+/// "Exit" — the guarded quit off macOS (D190-WI-4, ADR-0090). Routed in Rust
+/// only, into `QuitGuard::request_quit`.
+pub const MENU_APP_QUIT: &str = "menu.app.quit";
+
 #[path = "menu_recent.rs"]
 mod menu_recent;
 use menu_recent::build_recent_submenu;
@@ -55,6 +67,13 @@ pub use menu_recent::{publish_after, MenuState};
 
 #[path = "menu_recent_merge.rs"]
 pub mod menu_recent_merge;
+
+#[path = "menu_quit.rs"]
+mod menu_quit;
+
+#[path = "menu_submenus.rs"]
+mod menu_submenus;
+pub(crate) use menu_quit::{log_menu_exit, quit_item_for, QuitItem};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -98,8 +117,20 @@ pub fn build_menu(
         .item(&PredefinedMenuItem::hide(app, None)?)
         .item(&PredefinedMenuItem::hide_others(app, None)?)
         .item(&PredefinedMenuItem::show_all(app, None)?)
-        .separator()
-        .item(&PredefinedMenuItem::quit(app, None)?)
+        .separator();
+    // Guarded first: the predefined arm must stay directly before the escape
+    // item, which follows whichever Quit this target carries (ADR-0036).
+    let app_menu = match quit_item_for(std::env::consts::OS) {
+        QuitItem::Guarded => app_menu.item(&MenuItem::with_id(
+            app,
+            MENU_APP_QUIT,
+            "Exit",
+            true,
+            None::<&str>,
+        )?),
+        QuitItem::Predefined => app_menu.item(&PredefinedMenuItem::quit(app, None)?),
+    };
+    let app_menu = app_menu
         .item(&MenuItem::with_id(
             app,
             MENU_APP_STOP_WAITING_QUIT,
@@ -141,58 +172,8 @@ pub fn build_menu(
         .item(&file_close)
         .build()?;
 
-    let edit_menu = SubmenuBuilder::new(app, "Edit")
-        .item(&PredefinedMenuItem::undo(app, None)?)
-        .item(&PredefinedMenuItem::redo(app, None)?)
-        .separator()
-        .item(&PredefinedMenuItem::cut(app, None)?)
-        .item(&PredefinedMenuItem::copy(app, None)?)
-        .item(&PredefinedMenuItem::paste(app, None)?)
-        .separator()
-        .item(&PredefinedMenuItem::select_all(app, None)?)
-        .build()?;
-
-    // Cmd+/ to cycle through view modes (Typora-style)
-    let view_cycle = MenuItem::with_id(
-        app,
-        MENU_VIEW_CYCLE,
-        "Cycle View Mode",
-        true,
-        Some("CmdOrCtrl+/"),
-    )?;
-    let is_active = |mode: &str| active_view_mode == Some(mode);
-    let view_source = CheckMenuItem::with_id(
-        app,
-        MENU_VIEW_SOURCE,
-        "Source",
-        true,
-        is_active("source"),
-        Some("Ctrl+2"),
-    )?;
-    let view_wysiwyg = CheckMenuItem::with_id(
-        app,
-        MENU_VIEW_WYSIWYG,
-        "WYSIWYG",
-        true,
-        is_active("wysiwyg"),
-        Some("Ctrl+4"),
-    )?;
-    let view_toggle_sidebar = MenuItem::with_id(
-        app,
-        MENU_VIEW_TOGGLE_SIDEBAR,
-        "Toggle Sidebar",
-        true,
-        Some("CmdOrCtrl+Shift+L"),
-    )?;
-
-    let view_menu = SubmenuBuilder::new(app, "View")
-        .item(&view_cycle)
-        .separator()
-        .item(&view_source)
-        .item(&view_wysiwyg)
-        .separator()
-        .item(&view_toggle_sidebar)
-        .build()?;
+    let edit_menu = menu_submenus::edit_menu(app)?;
+    let view_menu = menu_submenus::view_menu(app, active_view_mode)?;
 
     let format_highlight = MenuItem::with_id(
         app,
@@ -213,31 +194,9 @@ pub fn build_menu(
         .item(&format_insert_table)
         .build()?;
 
-    let theme_light = MenuItem::with_id(app, MENU_THEME_LIGHT, "Light", true, None::<&str>)?;
-    let theme_dark = MenuItem::with_id(app, MENU_THEME_DARK, "Dark", true, None::<&str>)?;
-    let theme_system = MenuItem::with_id(app, MENU_THEME_SYSTEM, "System", true, None::<&str>)?;
-    let theme_menu = SubmenuBuilder::new(app, "Theme")
-        .item(&theme_light)
-        .item(&theme_dark)
-        .item(&theme_system)
-        .build()?;
-
-    let window_menu = SubmenuBuilder::new(app, "Window")
-        .item(&PredefinedMenuItem::minimize(app, None)?)
-        .item(&PredefinedMenuItem::maximize(app, None)?)
-        .separator()
-        .item(&PredefinedMenuItem::close_window(app, None)?)
-        .build()?;
-
-    let help_menu = SubmenuBuilder::new(app, "Help")
-        .item(&MenuItem::with_id(
-            app,
-            "menu.help.placeholder",
-            "mdpro Help",
-            false,
-            None::<&str>,
-        )?)
-        .build()?;
+    let theme_menu = menu_submenus::theme_menu(app)?;
+    let window_menu = menu_submenus::window_menu(app)?;
+    let help_menu = menu_submenus::help_menu(app)?;
 
     menu.append(&app_menu)?;
     menu.append(&file_menu)?;
@@ -257,6 +216,7 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_APP_STOP_WAITING_QUIT => {
             quit_guard::deliver_escape(app.try_state::<AppQuitGuard>().as_deref())
         }
+        MENU_APP_QUIT => request_guarded_quit(app),
         MENU_FILE_NEW => emit_menu_action(app, "file.new", None),
         MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
         MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),
@@ -287,6 +247,25 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
     }
 }
 
+/// The Exit item off macOS: ask the guard, over a sorted snapshot of the open
+/// windows (ADR-0025 §2). No guard means setup never finished, so there is no
+/// document state to lose and the app exits, as the macOS hook does.
+fn request_guarded_quit(app: &AppHandle<Wry>) {
+    let mut labels: Vec<String> = app.webview_windows().into_keys().collect();
+    labels.sort();
+    let begin = app
+        .try_state::<AppQuitGuard>()
+        .map(|guard| guard.request_quit(&labels, quit_guard::effects::now_ms()));
+    log_menu_exit(begin.as_ref(), labels.len());
+    if begin.is_none() {
+        app.exit(0);
+    }
+}
+
 #[cfg(test)]
 #[path = "menu_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "menu_quit_tests.rs"]
+mod quit_tests;

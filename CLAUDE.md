@@ -117,6 +117,7 @@ Native macOS menu defined in `src-tauri/src/menu.rs`. Menu events are handled vi
 - File: New (⌘N), Open (⌘O), Save (⌘S), Export HTML (⌘⇧E), Close (⌘W)
 - View: Source (⌃2), WYSIWYG (⌃4), Toggle Sidebar (⌘⇧L)
 - Format: Highlight Selection (⌘⇧H)
+- App (Windows/Linux): Exit → quit guard; Stop Waiting and Quit… (ADR-0090)
 - Theme: Light, Dark, System
 
 ## Release Workflow
