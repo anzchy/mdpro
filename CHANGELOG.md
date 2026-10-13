@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- On Windows, local images in documents are shown again (the content security policy blocked `http://asset.localhost`, the address Windows serves them from) (D190)
+  - **Not yet checked on a device**
 - On Windows the app shortcuts work again: Ctrl+S, Ctrl+N, Ctrl+O, Ctrl+W, Ctrl+, and the rest were all ignored, because a binding written as Cmd was also required to have Ctrl released (D190, closes D50; a regression of the #38 fix)
   - **Not yet checked on a device**
 - On Windows Ctrl+Shift+N opens a new window. The native menu shortcut never reaches the app there, so the in-app shortcut handler now covers New Window off macOS, using the existing New Window shortcut setting (D190)

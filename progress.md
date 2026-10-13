@@ -19,7 +19,7 @@
 **Lesson:** In Tauri 2, displaying local images via `convertFileSrc()` requires **three** things in sync:
 1. `tauri.conf.json` → `security.assetProtocol.enable: true` + `scope`
 2. `Cargo.toml` → `tauri` dependency must include `"protocol-asset"` feature
-3. `tauri.conf.json` → CSP `img-src` must include `asset:` and `https://asset.localhost`
+3. `tauri.conf.json` → CSP `img-src` must include `asset:` and `https://asset.localhost`, and on Windows also `http://asset.localhost` — Tauri 2 serves the asset protocol there over `http` unless `useHttpsScheme` is set (D190-WI-3)
 
 Missing any one of these silently fails — the `<img>` tag gets a valid-looking `asset://` URL but the webview returns 403 or blocks the request.
 
