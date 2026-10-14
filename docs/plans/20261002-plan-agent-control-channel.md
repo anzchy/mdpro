@@ -569,8 +569,10 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 
 - **Goal**：spike 的对照组备齐。
 - **Acceptance**
-  1. 两个 `verify` 包：**基线头**（含 WI-001–004），和**回退构建**（基线头上回退 `c39dfb1` 的四个 `src/` 文件）。两个包都打开 Tauri 的 `devtools` feature：S2 四项记录里的 DOM 焦点和「哪个窗口收到按键」要靠 Web Inspector 里装的被动记录器读（规程见旅程文档），release 配置的包默认没有它。这一条差异写进 spike 记录的「Builds」。选型之后的包（WI-009 起）不开，改由固定探针读。这四个文件之后没有再被改过 `[实测 git log]`。回退构建只用于 S2，不合入、不跑门禁：D34 的测试在它上面会失败，这是预期的，记在 spike 记录里。
+  1. ~~两个 `verify` 包：**基线头**（含 WI-001–004），和**回退构建**（基线头上回退 `c39dfb1` 的四个 `src/` 文件）。两个包都打开 Tauri 的 `devtools` feature：S2 四项记录里的 DOM 焦点和「哪个窗口收到按键」要靠 Web Inspector 里装的被动记录器读（规程见旅程文档），release 配置的包默认没有它。这一条差异写进 spike 记录的「Builds」。选型之后的包（WI-009 起）不开，改由固定探针读。这四个文件之后没有再被改过 `[实测 git log]`。回退构建只用于 S2，不合入、不跑门禁：D34 的测试在它上面会失败，这是预期的，记在 spike 记录里。~~
+     **改为（2026-10-15，[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)，用户选「Minimal ConfirmDialog patch (Recommended)」）**：「这四个文件之后没有再被改过」到 2026-10-15 已不成立（`c39dfb1..9940be9` 里 10 个提交改过它们，`useDialogEscape` 还被 D140 的两个对话框共用）。回退构建改为基线头上只给 `ConfirmDialog` 打一个约 10 行的补丁：去掉它的 `useDialogEscape` 注册，换回 D34 之前挂在 backdrop 上的 `onKeyDown` Escape。补丁不提交、不推送，全文写进 spike 记录的「Builds」。`devtools` 两个包都开，用 mini 工作树里未提交的一行 `devtools = ["tauri/devtools"]`（delegator 2026-10-15 裁定；随 WI-006 的第一个提交正式加入），差异照样写进「Builds」。
   2. 人在两个包上各做一次 J5 的物理 Esc，四项记录齐全。这一步在装任何驱动之前做，为的是先确认负对照成立，再花 spike 的时间。预期：回退构建上对话框不关，基线头上关。`ConfirmDialog` 的确认按钮带 `autoFocus`，所以回退构建上的结果必须实测，不能假定。**回退构建上若关了，S2 作废，spike 暂停，回来重新设计负对照。**
+     **人工部分（2026-10-15，用户选「Only physical Esc, ~12 min (Recommended)」）**：人只按物理 Esc——两个包上 J5 第 3 步各一次，比较二里 release 包上 J5 第 3 步一次；比较一与比较二的其余步骤由 dtrack 经 computer use 走，与 WI-004 第 3 条 2026-10-14 的分法相同。
   3. **比较一**（驱动的影响）：人经启动器在基线头（`control-channel` 关）上手工走全部旅程，语义投影存档。与 WI-004 第 3 条的升级后记录是同一棵树时（`buildId` 相等）直接复用。
   4. **比较二**（打包配置的影响）：人在 `release` 配置的包上手工走 J1a、J2、J5，启动时把 `HOME` 指到临时目录，**日常 mdpro 关着**（同一个 identifier 和端口）。与比较一的同名旅程对比语义投影。差异逐条写进记录。
 - **Tests (first)**：无代码。
