@@ -17,7 +17,9 @@
 //!   it and unpublishes without taking the transition lock; app exit then
 //!   waits on `stop` for at most `exit_budget` (WI-5).
 //! - `ControllerEnv::pre_publish` is a `#[cfg(test)]` seam that parks a
-//!   start in that window; production builds have no such field.
+//!   start in that window, and `post_serve_exit` one that parks a serve
+//!   task right after it applied its own exit (D205); production builds
+//!   have neither field.
 //! - `switch_lock` (a `tokio::sync::Mutex<()>`) serializes whole switches
 //!   in `switch.rs` (WI-7b), so a persist and its reconcile are never split
 //!   by another switch. Only the switch takes it; launch and exit do not.
@@ -83,6 +85,11 @@ pub struct ControllerEnv {
     /// the publish, so a test can land `begin_exit` in that window (M2).
     #[cfg(test)]
     pub(crate) pre_publish: Option<PrePublishHook>,
+    /// Test-only: runs in a serve task right after it applied its own exit
+    /// to the snapshot, so a test can look at the files and the token, or
+    /// start the next generation, in that moment (D205).
+    #[cfg(test)]
+    pub(crate) post_serve_exit: Option<PrePublishHook>,
 }
 
 /// Why the controller is ending in-flight work (ADR-0042).
@@ -98,7 +105,7 @@ pub enum StopCause {
 /// The `stop_hook` callback.
 pub type StopHook = Arc<dyn Fn(StopCause) + Send + Sync>;
 
-/// The `pre_publish` test seam.
+/// The `pre_publish` and `post_serve_exit` test seams.
 #[cfg(test)]
 pub(crate) type PrePublishHook = Arc<dyn Fn() + Send + Sync>;
 
@@ -115,6 +122,8 @@ impl ControllerEnv {
             stop_hook: None,
             #[cfg(test)]
             pre_publish: None,
+            #[cfg(test)]
+            post_serve_exit: None,
         }
     }
 

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Borders are now a soft mix of the text colour, popovers and dialogs share one lighter hairline-ring shadow, the light theme's selection tint is lighter, and each theme sets `color-scheme` so native scrollbars and controls follow it (UI redesign Deliverable B)
 
+### Fixed
+- The MCP server no longer loses its connection files or its token when it is switched back on right after it failed while serving (D205). The failed server's late cleanup could delete the new server's `server.port` and `server.token` and clear its token, so clients could not find it or were refused until the next restart
+
 ## [0.3.4] - 2026-10-15
 
 ### Highlights

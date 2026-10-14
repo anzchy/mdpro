@@ -15,8 +15,10 @@
 //! - The serve task watches itself: when its future returns, it applies
 //!   `apply_serve_exit` with the generation captured at spawn (PC-5), and
 //!   if that turned the snapshot `Failed` it unpublishes and clears the
-//!   token, so "files present <=> Running" keeps holding. An abort
-//!   (`Cancelled`) never runs that code.
+//!   token inside that same snapshot update, so "files present <=> Running"
+//!   holds for every reader, and a next generation (which must write
+//!   `Starting` through the same cell first) never loses its files or token
+//!   to an older one (D205). An abort (`Cancelled`) never runs that code.
 //! - Nothing is published once `exiting` is set, and a start whose server
 //!   died before it could report `Running` removes what it published.
 //!   `begin_exit` runs outside the transition lock, so it can land between
@@ -210,22 +212,30 @@ impl McpController {
     }
 
     /// Spawn the serve future of generation `gen`; when it returns by
-    /// itself, apply `apply_serve_exit` and clean up if that failed it.
+    /// itself, apply `apply_serve_exit`, and if that failed it, unpublish and
+    /// clear the token **inside the same snapshot update** (D205). Done after
+    /// the update, a reader saw `Failed` with the files still there, and a
+    /// next generation started in between lost its files and its token.
+    /// Lock order is cell -> config; nothing takes config -> cell.
     fn spawn_watched(&self, served: ServeFuture, gen: u64) -> ServeHandle {
         let cell = self.snapshot.clone();
         let dir = self.env.files_dir.clone();
         let config = self.server_config.clone();
+        #[cfg(test)]
+        let post_serve_exit = self.env.post_serve_exit.clone();
         tokio::spawn(async move {
             let result = served.await;
-            let mut failed = false;
             snap::update(&cell, |s| {
                 let next = apply_serve_exit(s, gen, ServeExit::Finished(result));
-                failed = next != s;
+                if next != s {
+                    files::unpublish(&dir);
+                    set_config(&config, None);
+                }
                 next
             });
-            if failed {
-                files::unpublish(&dir);
-                set_config(&config, None);
+            #[cfg(test)]
+            if let Some(hook) = &post_serve_exit {
+                hook();
             }
             result
         })

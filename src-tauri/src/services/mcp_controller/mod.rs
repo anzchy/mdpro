@@ -50,6 +50,8 @@ mod lifecycle_tests;
 #[cfg(test)]
 mod reconcile_tests;
 #[cfg(test)]
+mod serve_exit_order_tests;
+#[cfg(test)]
 mod serve_exit_tests;
 #[cfg(test)]
 mod stop_abort_tests;
