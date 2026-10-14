@@ -193,6 +193,29 @@ Before each commit, verify:
 - [ ] Body explains WHY, not WHAT
 - [ ] No secrets or large binaries included
 
+## User questions and answers
+
+**Every question put to the user, and the answer, goes into
+[`docs/reference/user-question-and-answer.md`](./docs/reference/user-question-and-answer.md)**
+(user decision, 2026-10-14: 「目前我在本session和各个session直接问的问题的回答会被很多消息淹没掉，之后你单独维护一个md文档」).
+Answers given in a chat get buried under peer messages; this file is where a
+session looks one up.
+
+- **The delegator maintains it** and commits it to `master` as a docs-only
+  commit, pushed at once, in the same turn the answer arrives.
+- **A session that asks the user itself** (an auditor inside its own task,
+  the device harness) sends the delegator the question, the options and the
+  answer quoted verbatim right after the answer arrives. The delegator records it.
+  Implementors never ask the user (rule 70); their questions already go
+  through the delegator, which records the relayed answer.
+- **One entry per question, newest first**: date, who asked, the item,
+  the question, the answer quoted exactly, and where it was acted on (ADR,
+  row, rule, commit, or "—" for a one-off permission). Entries are
+  append-only; a changed answer is a new entry naming the one it replaces.
+- **Look here before asking.** If an earlier entry already answers the
+  question, cite it instead of asking again. A one-off permission (a rule-25
+  command, "nothing unsaved") covers only what it named.
+
 ## Plan Status Tracking (UI redesign × Markdown consolidation)
 
 Sequencing for this effort lives in
