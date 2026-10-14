@@ -14,19 +14,23 @@ use crate::services::mcp_controller::controller::McpController;
 use crate::services::mcp_controller::snapshot::{McpPhase, McpServerError};
 use crate::services::mcp_controller::test_routers::{failable_serve, plain, stuck_serve_once};
 use crate::services::mcp_controller::test_support::{
-    files_present, read_published, remove_test_dir, temp_files_dir, test_env0, wait_until, GENEROUS,
+    files_present, read_published, remove_test_dir, temp_files_dir, test_env0, GENEROUS,
 };
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 use tokio::time::timeout;
 
 /// A parking `post_serve_exit` hook: it counts its calls, reports that it
-/// parked, and waits for the release (bounded by `GENEROUS`).
+/// parked, and waits for the release (bounded by `GENEROUS`). `holding` is
+/// true exactly while it is parked, and `returned` fires once it has
+/// returned, so tests wait on signals rather than sleeps.
 struct Park {
     calls: Arc<AtomicUsize>,
     parked: mpsc::Receiver<()>,
     release: mpsc::Sender<()>,
+    holding: Arc<AtomicBool>,
+    returned: mpsc::Receiver<()>,
 }
 
 fn park_hook() -> (Park, Arc<dyn Fn() + Send + Sync>) {
@@ -35,14 +39,23 @@ fn park_hook() -> (Park, Arc<dyn Fn() + Send + Sync>) {
     let (release_tx, release_rx) = mpsc::channel::<()>();
     let parked_tx = Mutex::new(parked_tx);
     let release_rx = Mutex::new(release_rx);
+    let (returned_tx, returned_rx) = mpsc::channel::<()>();
+    let returned_tx = Mutex::new(returned_tx);
+    let holding = Arc::new(AtomicBool::new(false));
     let counter = calls.clone();
+    let held = holding.clone();
     let hook: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
         counter.fetch_add(1, Ordering::SeqCst);
+        held.store(true, Ordering::SeqCst);
         if let Ok(tx) = parked_tx.lock() {
             let _ = tx.send(());
         }
         if let Ok(rx) = release_rx.lock() {
             let _ = rx.recv_timeout(GENEROUS);
+        }
+        held.store(false, Ordering::SeqCst);
+        if let Ok(tx) = returned_tx.lock() {
+            let _ = tx.send(());
         }
     });
     (
@@ -50,6 +63,8 @@ fn park_hook() -> (Park, Arc<dyn Fn() + Send + Sync>) {
             calls,
             parked: parked_rx,
             release: release_tx,
+            holding,
+            returned: returned_rx,
         },
         hook,
     )
@@ -132,10 +147,13 @@ async fn o2_a_failed_generation_never_removes_the_next_generations_files_or_toke
     let port2 = up2.port.expect("gen-2 port");
 
     park.release.send(()).expect("serve task still parked");
-    // Let gen 1's serve task finish whatever follows the seam.
-    let finished = wait_until(GENEROUS, || park.calls.load(Ordering::SeqCst) == 1).await;
-    assert!(finished, "seam reached once");
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    // Gen 1's serve task has returned from the seam; nothing after the seam
+    // touches files or the token (a cleanup moved back after the seam is
+    // caught by O1, which sees the files while parked).
+    park.returned
+        .recv_timeout(GENEROUS)
+        .expect("gen 1's serve task never left the seam");
+    assert_eq!(park.calls.load(Ordering::SeqCst), 1, "seam reached once");
 
     assert_eq!(
         read_published(&dir),
@@ -188,8 +206,12 @@ async fn o3_guard_an_aborted_task_runs_no_cleanup() {
         "{up2:?}"
     );
     let _fail2 = fails.recv_timeout(GENEROUS).expect("gen-2 fail sender");
-    let _ = fail1.send(());
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    // The stuck gen-1 task was aborted by the stop, so its fail receiver is
+    // gone: it can never apply an exit or clean up.
+    assert!(
+        fail1.send(()).is_err(),
+        "gen 1's stuck serve task is still alive after the stop"
+    );
 
     assert_eq!(
         park.calls.load(Ordering::SeqCst),
@@ -252,6 +274,10 @@ async fn o5_guard_snapshot_answers_while_the_serve_task_is_parked() {
         let _ = tx.send(reader.snapshot().map(|s| s.phase));
     });
     let phase = rx.recv_timeout(GENEROUS).expect("snapshot() answered");
+    assert!(
+        park.holding.load(Ordering::SeqCst),
+        "snapshot() answered only after the serve task left the seam"
+    );
     assert_eq!(phase.expect("snapshot"), McpPhase::Failed);
 
     park.release.send(()).expect("serve task still parked");

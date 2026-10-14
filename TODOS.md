@@ -230,6 +230,22 @@ the app in the dark theme and watch the first frame.
 
 ---
 
+## MCP: server-file removal runs under the snapshot lock (D205 audit b133 M1)
+
+**What:** Since D205, a serve task that fails unpublishes `server.port` / `server.token`
+(two `remove_file` calls) inside `snap::update`, i.e. under the `std::sync::Mutex` that
+`snapshot()` and `mcp_get_status` read. A status read can wait on those two syscalls.
+
+**Why deferred:** The removal has to be ordered before any reader or next generation sees
+`Failed`, which is what fixed the D205 race; moving it out of the lock needs a second
+ordering mechanism (e.g. a files lock taken by `start_locked` too). It runs only on the
+serve-failure path, and the wait is two unlinks on a local disk.
+
+**Context:** `src-tauri/src/services/mcp_controller/transitions.rs` `spawn_watched`;
+audit b133 (2026-10-15), M1.
+
+---
+
 ## Completed
 
 ### Create DESIGN.md design system

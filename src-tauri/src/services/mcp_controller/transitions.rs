@@ -15,10 +15,13 @@
 //! - The serve task watches itself: when its future returns, it applies
 //!   `apply_serve_exit` with the generation captured at spawn (PC-5), and
 //!   if that turned the snapshot `Failed` it unpublishes and clears the
-//!   token inside that same snapshot update, so "files present <=> Running"
-//!   holds for every reader, and a next generation (which must write
-//!   `Starting` through the same cell first) never loses its files or token
-//!   to an older one (D205). An abort (`Cancelled`) never runs that code.
+//!   token inside that same snapshot update. A reader that sees this
+//!   generation `Failed` therefore never finds its files or token, and a
+//!   next generation (which must write `Starting` through the same cell
+//!   first) never loses its files or token to an older one (D205). Files
+//!   can still be present while a start is `Starting`, and `begin_exit`
+//!   removes them without the cell. An abort (`Cancelled`) never runs
+//!   that code.
 //! - Nothing is published once `exiting` is set, and a start whose server
 //!   died before it could report `Running` removes what it published.
 //!   `begin_exit` runs outside the transition lock, so it can land between
