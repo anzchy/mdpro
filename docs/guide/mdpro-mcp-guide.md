@@ -143,6 +143,8 @@ mcurl -X POST "$API/api/documents/$DOC/insert" -d '{"text":"X","position":"curso
 mcurl -X POST "$API/api/documents/$DOC/insert" -d '{"text":"X","position":12}'
 
 # create_document -> 201 {"id":"<uuid>"}; body may be {} (content defaults to "")
+# The tab opens in one window: the focused one, else the most recently focused
+# (D161). With no mdpro window open -> 503 {"code":"NO_WINDOW"}, nothing created.
 mcurl -X POST "$API/api/documents/new" -d '{"content":"# New from curl\n"}'
 
 # Table tools -> 202 {"scheduled":true}; GET the document to see the result
@@ -251,7 +253,10 @@ In dev, the install button finds the binary under `src-tauri/target/debug/`.
   and `mcp:table_action` with the `window_label` of the window that owns the
   document; every other window's `useMcpEvents` ignores the event. The confirm
   prompt also shows in the owning window only. `mcp:create_document` carries
-  `window_label: null`, so every open window applies it.
+  the label of the window that should open the new document: the focused
+  window, else the most recently focused one (`ShadowStore::get_target_window`,
+  the rule `GET /api/documents/active` uses). A create with a null label is
+  refused (D161; before it, every open window applied it).
 - **202 is not "done"** for tables: the frontend computes the edit and syncs it
   back. `GET` the document to confirm.
 - **WYSIWYG insert is a wholesale replace** (D35 / D37,

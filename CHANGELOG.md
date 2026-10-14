@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Creating a document through the local API (`POST /api/documents/new`) opens one tab, in the focused mdpro window or else the one used last, instead of one tab in every open window (D161). With no mdpro window open the request now fails with `503 {"code":"NO_WINDOW"}` instead of returning an id no window ever opened
+  - **Not yet checked on a device**
 - A file opened under another spelling, through a symlink, as `/tmp/…` instead of `/private/tmp/…`, or with different letter case, now raises "External change detected" when another program changes it (D185). The watcher used to report only the file's real path, so a tab opened under any other spelling never heard about the change and its ⌘S could write over it. Every tab holding the file, under any spelling, is now told; a renamed file is followed by every tab
   - **Known limit**: two spellings that differ only in Unicode normalization (NFC versus NFD) are still treated as different files
   - **Not yet checked on a device**

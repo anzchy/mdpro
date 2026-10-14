@@ -20,6 +20,11 @@
  * logs success or fail `not found`; a create logs success `{ activated: true }`,
  * or fail `activation refused` with `created: true` when D92 refuses the switch.
  * Never the content. A foreign-window event logs nothing.
+ *
+ * Create routing (D161): Rust names the one owner window in `window_label`
+ * (focused, else most recently focused). A create with a null label is refused
+ * with a warn `mcp.create` fail `no window label` instead of opening a tab in
+ * every window.
  */
 
 import { useEffect, useCallback, useRef } from "react";
@@ -46,7 +51,8 @@ interface WriteDocumentEvent {
 }
 
 /**
- * Event payload for mcp:create_document.
+ * Event payload for mcp:create_document. Since D161 Rust always names the
+ * owner window; a null label is refused.
  */
 interface CreateDocumentEvent {
   document_id: string;
@@ -151,8 +157,19 @@ export function useMcpEvents() {
   // Handle create document event
   const handleCreateDocument = useCallback(
     (event: CreateDocumentEvent) => {
-      // Check if this event is for our window (or no specific window)
-      if (event.window_label && event.window_label !== windowLabelRef.current) {
+      // D161: Rust names one owner window. A null label would open the tab in
+      // every window, so it is refused; another window's create is ignored.
+      if (event.window_label == null) {
+        loggingService.logEventSync({
+          level: "warn",
+          event: "mcp.create",
+          status: "fail",
+          actionId: event.action_id ?? loggingService.generateActionId(),
+          context: { documentId: event.document_id, stage: STAGE_APPLIED, reason: "no window label" },
+        });
+        return;
+      }
+      if (event.window_label !== windowLabelRef.current) {
         return;
       }
 

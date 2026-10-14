@@ -204,7 +204,7 @@ describe("D156-② mcp:create_document logs the applied stage under Rust's actio
   const create = (overrides: Record<string, unknown> = {}) => ({
     document_id: "doc-new",
     content: "hello",
-    window_label: null,
+    window_label: "main",
     action_id: RUST_ID,
     ...overrides,
   });

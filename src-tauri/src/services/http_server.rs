@@ -641,9 +641,20 @@ async fn create_document(
     let action_id = uuid::Uuid::new_v4().to_string();
     let content_length = request.content.len();
 
-    // Emit event to frontend to create the document. It reuses the
-    // write_document payload shape; no window label, so it is broadcast.
-    let event = write_document_event(&id, request.content, None, &action_id);
+    // D161: the event names one owner window (focused, else most recent);
+    // with no window registered nothing is emitted and the route answers 503.
+    let event = {
+        let store = match state.shadow_store.lock() {
+            Ok(store) => store,
+            Err(e) => return store_error(format!("Failed to lock shadow store: {e}")),
+        };
+        create::create_document_event(&store, &id, request.content, &action_id)
+    };
+    let Some(event) = event else {
+        logger::log_event(create::no_window_entry(&action_id, &id));
+        let error = create::no_window_error();
+        return (StatusCode::SERVICE_UNAVAILABLE, Json(error)).into_response();
+    };
 
     if let Err(e) = state.app_handle.emit("mcp:create_document", &event) {
         logger::log_event(create_scheduled_entry(
@@ -687,6 +698,9 @@ mod log_stage;
 use log_stage::{
     create_scheduled_entry, scheduled_entry, table_action_event, write_document_event,
 };
+
+#[path = "http_server_create.rs"]
+mod create;
 
 /// Common helper — gates the write on the owning window's confirmation
 /// (ADR-0042), then emits the event to the document's owning window.

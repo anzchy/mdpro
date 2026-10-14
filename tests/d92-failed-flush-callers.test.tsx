@@ -317,7 +317,7 @@ describe("D92 — event-driven callers", () => {
   it("D92-M1 mcp:create_document with a failed flush keeps both stores on doc-a", async () => {
     installFlusher("doc-a", "failed");
     renderHook(() => useMcpEvents());
-    await emit("mcp:create_document", { document_id: "doc-m", content: "", window_label: null });
+    await emit("mcp:create_document", { document_id: "doc-m", content: "", window_label: "main" });
     expect(docIds()).toContain("doc-m");
     expect(activeIds()).toEqual(["doc-a", "doc-a"]);
     expectTabRefusal("doc-a", "doc-m");
@@ -326,7 +326,7 @@ describe("D92 — event-driven callers", () => {
   it("D92-M2 control: mcp:create_document with a clean flush activates doc-m in both stores", async () => {
     installFlusher("doc-a", "clean");
     renderHook(() => useMcpEvents());
-    await emit("mcp:create_document", { document_id: "doc-m", content: "", window_label: null });
+    await emit("mcp:create_document", { document_id: "doc-m", content: "", window_label: "main" });
     expect(activeIds()).toEqual(["doc-m", "doc-m"]);
   });
 });
