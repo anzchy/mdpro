@@ -92,6 +92,30 @@ merges or reserves; the delegator does.
 - **New findings get a D number from the delegator**, not by taking the next
   free row yourself. Report the finding and the delegator registers it.
 
+### When a session is idle: pull from its queue
+
+**An idle session pulls the next item from its queue instead of waiting**
+([ADR-0097](../../docs/adr/0097-idle-sessions-pull-prep-from-a-queue-and-implement-only-under-a-grant.md);
+user decision, 2026-10-15: 「Adopt revised (Recommended)」). The delegator
+keeps a short queue per session in its assignment messages and in its own
+handoff. Each item is tagged `prep` or `impl`.
+
+- **Prep is the default and needs no grant**: reading, read-only
+  investigation, scratch documents outside the repo. Tracked edits, heavy
+  commands, numbered artifacts and device runs keep their usual controls.
+- **`impl` needs a grant**: the queue entry reserves its file scope. Send the
+  delegator one line when you start. A path outside the grant needs a
+  revised grant first.
+- **Deferred items stay `prep`** until the user's priority order makes them
+  current.
+- **Cap**: one unlanded implementation item per session and two machine-wide.
+  Dirty, committed, waiting and fix work all count; the auditor's audits do not.
+- **Precedence**: audit fixes on your own work, then the current priority
+  item, then a pull.
+- **Landing order is unchanged.** Among eligible items the user's priority
+  decides; arrival order decides only among equals.
+- **No new pulls while `mdpro-delegator` is missing from `ListAgents`.**
+
 ## Questions and approvals
 
 - **Implementors do not use `AskUserQuestion`.** Every question goes to the
