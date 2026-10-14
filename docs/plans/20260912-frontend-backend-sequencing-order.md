@@ -271,6 +271,12 @@ WI-2.1 tokenization 守卫（先 RED）→ WI-2.2 等值 token → WI-2.3 迁移
 
 → **停止点 2（交付物 A）**
 
+**Stage 2 进度**（2026-10-14 起，由 mdpro-a3 执行；SHA 记在紧随其后的提交中，同 Stage 0/1 的约定）：
+
+| WI | 状态 | 产物 | 提交 | 备注 |
+|---|---|---|---|---|
+| WI-2.1 | ✅ | `tests/css-tokenization.test.ts`、`tests/support/cssTokenScan.ts`、rule 31 § Acceptable hardcoded values | （本提交） | **守卫**：扫描 `src/` 下全部 app CSS（除 `App.css`、两个主题文件与 `globals.css :root`），按 A5 查颜色、chrome 字号、字体、圆角、动效、z-index、图标尺寸，一条声明一条发现；每个 in-scope 文件一个 `it`。三张表：例外 5 行（Q10、R4 ×2、R8、R9 `pre`，带行号、理由、出处）；延后表 class (b) 71 行（stage 3 59、stage 4 12，各带 item）；不渲染表 27 行（`TabBar/` 死代码 11 行、无消费者的孤儿 16 行，Appendix A 记为 skip，删死代码时一并去掉）。另有：扫描器 fixture（注释里的字面量、多行值、`@media` / `@keyframes`、`var()` 回退、`color-mix()` 字面参数、rule 31 的 rgba→color-mix 回退）；表项必须仍对得上树里的声明；Q2 `:root` 与 `.theme-light` 同名 token 值一致（别名按同块解析后比较：`--color-text-secondary`、`--color-bg-secondary` 在 `.theme-light` 写成 `var()`，解析后相同）；A8 死代码守卫（`index.html` 与 `src/` 不引 `App.css`、`TabBar/`，失败信息指 TODOS.md「Remove dead App.css and TabBar; fix rule 34's App.css claim」）。rule 31 允许表加 `999px` 胶囊（DR23），并写明 `var()` 回退只在 token 已声明时算防御性回退。**RED（严格守卫，收据 `P-WI-2.1`）**：17 个文件不过，共 74 条未列字面量：BottomTabs 5、ImageContextMenu 3、MilkdownEditor 2、wysiwygDecorations 1、imagePaste 2、buttons-dialog 3、editor-source 2、link-insert-modal 3、recovery-toast 3、settings-about 6、settings-mcp 10、settings-pages 8、settings-rows 7、settings-shell 6、table-context-menu 1、table-insert-modal 8、toc-sidebar 4（= class (a) 70 + R2/R6 4）；其余文件、fixture、表一致性、Q2、A8 均过。**计划细化（delegator 批准，2026-10-14）**：严格守卫在 WI-2.3 之前必红，而交接要 ci-gate 绿，`stage-2-tokenize.md` 的 Rollback 也要求每个提交都绿。故记录 RED 之后在同一提交里把这 74 条作为过渡项加进延后表，`stage: 2` 并标出由谁移除（`WI-2.2` 4 条、`WI-2.3` 70 条），计数 `it` 按 WI 钉住；WI-2.2、WI-2.3 各自归零，停止点 2 时延后表只剩 stage 3/4 的 class (b)，`stage-2-tokenize.md` 的验收原文不改。**相对 Appendix A（a5767d5）的漂移**：新增 3 行——`editor-source.css` `.cm-panels .cm-button` `border-radius: 6px`（按钮，`--radius-control`，class (a)）、`.cm-tooltip` `border-radius: 10px`（popover 契约，`--radius-popover`，class (a)）、`linkDefinitions.css` `.mdpro-link-definition` `border-radius: 4px`（D194，编辑区内容形状，同 R9 的问题，不算明确的 (a)，按 delegator 指示放延后表 stage 3，**留作停止点 2 的开放问题**）。消失 1 行：R5 的 CodeMirror 选区 `rgba(96, 165, 250, 0.25)` 已由 D154 换成 `color-mix(… var(--color-text) 12% …)` / `var(--color-accent-soft)`，守卫里不再有它。其余行逐条对上（死代码表外的 Sidebar / FileItem / Recent / dev toolbar 行已随删除消失）。**开放问题（停止点 2）**：不渲染表不在验收「只含 class (b)」的延后表里，建议随 TODOS 的死代码删除一起去掉，不在 Stage 2 迁移。 |
+
 ### Stage 3（交付物 B）
 
 WI-3.0 `--color-border` 当填充审计 → WI-3.1 主题 token 重调 → WI-3.2 class (b) 字面量 →

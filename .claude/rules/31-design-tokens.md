@@ -45,16 +45,21 @@ a wrapper means moving the frame onto it.
 
 ## Acceptable hardcoded values (do not tokenize)
 
+`tests/css-tokenization.test.ts` enforces this list, the z-index table below
+and its own exception and deferred lists (plan P WI-2.1).
+
 - `0.5px` retina sub-pixel borders
 - `1px` and `2px` borders, dividers, focus underlines
 - `3px` fine positioning offsets
 - Focus indicator geometry (`bottom: 2px; left: 4px;` on `::after`)
 - `0`, `auto`, `inherit`, `initial`, `unset`, `none`
 - `50%` for circles
+- `999px` for pills (DR23)
 - Animation keyframe percentages
 - `transform: scale()/translate()` arithmetic
 - `rgba()` lines that precede `color-mix()` lines (browser fallback)
-- Defensive `var(--xyz, #fallback)` fallbacks
+- Defensive `var(--xyz, #fallback)` fallbacks, when `--xyz` is declared
+  (an undeclared token's fallback is what renders, so it is a literal)
 
 Spacing literals from the ad-hoc scale (4 / 6 / 8 / 12 / 16 / 20 /
 24 / 32 / 40px) are also acceptable. Don't introduce a primitive
