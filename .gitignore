@@ -78,3 +78,7 @@ dist-release/
 # tracked copy only ever shows up as someone's unrelated dirty file.
 .claude/scheduled_tasks.lock
 .claude/nlpm-history.json
+
+# Session handoffs and device briefs in flight (D215). Each session keeps its own;
+# the committed record of a decision lives in docs/adr, docs/plans or docs/test.
+docs/pending/
