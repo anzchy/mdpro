@@ -100,8 +100,13 @@ jobs:
           cargo build --release --bin mdpro_mcp
           cp target/release/mdpro_mcp.exe binaries/mdpro_mcp-x86_64-pc-windows-msvc.exe
 
+      # tauri.conf.json carries the updater public key, so the bundler refuses
+      # to build without the matching private key (same secrets as release.yml).
       - name: Build NSIS installer
         shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm tauri build --bundles nsis
 
       # ── Publish ──────────────────────────────────────────────────────────────
