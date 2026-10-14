@@ -66,9 +66,10 @@ Known in advance, from the WI-3.0 rulings (delegator, 2026-10-15):
   available update, then **Install Update**). That needs a published release newer than the running build, served from the
   updater endpoint in `tauri.conf.json`; the verify overlay `tauri.verify.conf.json` has empty endpoints
   ([`manual-test-about-updater.md`](./manual-test-about-updater.md)). The `pnpm dev` computed-style capture
-  does not reach it either: its `browser-settings-about` surface is the idle About page, which renders no
-  progress bar. Until a capture surface drives the downloading state, the track is pinned by source
-  inspection only (`tests/color-border-fills.test.ts`).
+  does not reach it either: its `browser-settings-about` surface is the About page in the update-check
+  error state (`scripts/redesign/snapshot.js`, `browser-settings-about`), which renders no progress bar. Screenshot index label: **no screenshot (downloading state not capturable)**. The cell
+  rests on source inspection plus the measured contrast above (delegator ruling, 2026-10-15: no capture
+  tooling change in Stage 3).
 
 ---
 
