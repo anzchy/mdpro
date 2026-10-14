@@ -6,8 +6,8 @@
  * every list item holding a nested list) gained blank lines on the first save after an edit.
  *
  * Each row opens the bytes in a fresh real editor, pins the structure, types `!` at the end
- * of `a`, and pins the bytes edit-sync writes to documentStore. The `*` marker and the
- * `1.`-renumbering are the stock writer's, unchanged by D195.
+ * of `a`, and pins the bytes edit-sync writes to documentStore. Markers are D204's: a list
+ * keeps its source marker, and one with none (S3, P1, P2, P4) is written with `-`.
  *
  * The P rows reach the other producer of `spread`: the schema's parseDOM (a pasted HTML
  * list), which stores a boolean for `ul` / `li` and the `data-spread` string for `ol`.
@@ -68,63 +68,63 @@ async function editedBytes(row: Row): Promise<string> {
 }
 
 const ROWS: Row[] = [
-  { id: "L1 tight bullet", file: "- a\n- b\n", reopens: "ul[li[p(a)] li[p(b)]]", saved: "* a!\n* b\n" },
-  { id: "L2 guard: loose bullet", file: "- a\n\n- b\n", reopens: "ul[li[p(a)] li[p(b)]]", saved: "* a!\n\n* b\n" },
+  { id: "L1 tight bullet", file: "- a\n- b\n", reopens: "ul[li[p(a)] li[p(b)]]", saved: "- a!\n- b\n" },
+  { id: "L2 guard: loose bullet", file: "- a\n\n- b\n", reopens: "ul[li[p(a)] li[p(b)]]", saved: "- a!\n\n- b\n" },
   { id: "L3 guard: tight ordered", file: "1. a\n2. b\n", reopens: "ol[li[p(a)] li[p(b)]]", saved: "1. a!\n2. b\n" },
   { id: "L4 guard: loose ordered", file: "1. a\n\n2. b\n", reopens: "ol[li[p(a)] li[p(b)]]", saved: "1. a!\n\n2. b\n" },
   {
     id: "L5 tight bullet nested in tight bullet",
     file: "- a\n  - x\n  - y\n- b\n",
     reopens: "ul[li[p(a) ul[li[p(x)] li[p(y)]]] li[p(b)]]",
-    saved: "* a!\n  * x\n  * y\n* b\n",
+    saved: "- a!\n  - x\n  - y\n- b\n",
   },
   {
     id: "L6 tight bullet nested in loose bullet",
     file: "- a\n\n  - x\n  - y\n\n- b\n",
     reopens: "ul[li[p(a) ul[li[p(x)] li[p(y)]]] li[p(b)]]",
-    saved: "* a!\n\n  * x\n  * y\n\n* b\n",
+    saved: "- a!\n\n  - x\n  - y\n\n- b\n",
   },
   {
     id: "L7 tight ordered nested in tight bullet",
     file: "- a\n  1. x\n  2. y\n- b\n",
     reopens: "ul[li[p(a) ol[li[p(x)] li[p(y)]]] li[p(b)]]",
-    saved: "* a!\n  1. x\n  2. y\n* b\n",
+    saved: "- a!\n  1. x\n  2. y\n- b\n",
   },
   {
     id: "L8 tight bullet nested in tight ordered",
     file: "1. a\n   - x\n   - y\n2. b\n",
     reopens: "ol[li[p(a) ul[li[p(x)] li[p(y)]]] li[p(b)]]",
-    saved: "1. a!\n   * x\n   * y\n2. b\n",
+    saved: "1. a!\n   - x\n   - y\n2. b\n",
   },
   {
     id: "L9 tight task list (gfm list item)",
     file: "- [ ] a\n- [x] b\n",
     reopens: "ul[li[p(a)] li[p(b)]]",
-    saved: "* [ ] a!\n* [x] b\n",
+    saved: "- [ ] a!\n- [x] b\n",
   },
   {
     id: "L10 guard: loose task list",
     file: "- [ ] a\n\n- [x] b\n",
     reopens: "ul[li[p(a)] li[p(b)]]",
-    saved: "* [ ] a!\n\n* [x] b\n",
+    saved: "- [ ] a!\n\n- [x] b\n",
   },
   {
     id: "L11 tight list after a D188 blank-line gap",
     file: "p\n\n\n\n- a\n- b\n",
     reopens: "p(p) ∅ ul[li[p(a)] li[p(b)]]",
-    saved: "p\n\n\n\n* a!\n* b\n",
+    saved: "p\n\n\n\n- a!\n- b\n",
   },
   {
     id: "L12 tight list before a D188 blank-line gap",
     file: "- a\n- b\n\n\n\nq\n",
     reopens: "ul[li[p(a)] li[p(b)]] ∅ p(q)",
-    saved: "* a!\n* b\n\n\n\nq\n",
+    saved: "- a!\n- b\n\n\n\nq\n",
   },
   {
     id: "L13 tight list inside a blockquote",
     file: "> - a\n> - b\n",
     reopens: "bq[ul[li[p(a)] li[p(b)]]]",
-    saved: "> * a!\n> * b\n",
+    saved: "> - a!\n> - b\n",
   },
 ];
 
@@ -161,7 +161,7 @@ describe("D195 — stability", () => {
       ]),
     ]);
     await rig.settle();
-    expect(rig.doc().content).toBe("* a\n* b\n");
+    expect(rig.doc().content).toBe("- a\n- b\n");
   });
 });
 
@@ -189,7 +189,7 @@ describe("D195 — spread from parseDOM (pasted HTML)", () => {
       '<ul data-spread="false"><li data-spread="false"><p>a</p></li><li data-spread="false"><p>b</p></li></ul>',
     );
     expect(r.spreads).toEqual(["bullet_list:boolean", "list_item:boolean", "list_item:boolean"]);
-    expect(r.bytes).toBe("* a\n* b\n");
+    expect(r.bytes).toBe("- a\n- b\n");
   });
 
   it("P2 a pasted loose <ul> (boolean true) is written loose", async () => {
@@ -197,7 +197,7 @@ describe("D195 — spread from parseDOM (pasted HTML)", () => {
       '<ul data-spread="true"><li data-spread="true"><p>a</p></li><li data-spread="true"><p>b</p></li></ul>',
     );
     expect(r.spreads).toEqual(["bullet_list:boolean", "list_item:boolean", "list_item:boolean"]);
-    expect(r.bytes).toBe("* a\n\n* b\n");
+    expect(r.bytes).toBe("- a\n\n- b\n");
   });
 
   it("P3 a pasted loose <ol> (the data-spread string) is written loose", async () => {
@@ -213,6 +213,6 @@ describe("D195 — spread from parseDOM (pasted HTML)", () => {
       '<ul data-spread="false"><li data-spread="false"><p>a</p><ul data-spread="false">' +
         '<li data-spread="false"><p>x</p></li></ul></li><li data-spread="false"><p>b</p></li></ul>',
     );
-    expect(r.bytes).toBe("* a\n  * x\n* b\n");
+    expect(r.bytes).toBe("- a\n  - x\n- b\n");
   });
 });

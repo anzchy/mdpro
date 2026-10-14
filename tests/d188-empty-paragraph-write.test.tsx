@@ -145,33 +145,34 @@ const CONTAINER_ROWS: Row[] = [
   {
     id: "C2 list item [a,∅,b]",
     build: (s) => [b.ul(s, [b.li(s, [b.p(s, "a"), b.e(s), b.p(s, "b")])])],
-    bytes: "* a\n\n\n\n  b\n",
+    bytes: "- a\n\n\n\n  b\n",
     reopens: "ul[li[p(a) ∅ p(b)]]",
   },
   {
     id: "C3 item [a,∅] then root c",
     build: (s) => [b.ul(s, [b.li(s, [b.p(s, "a"), b.e(s)])]), b.p(s, "c")],
-    bytes: "* a\n\nc\n",
+    bytes: "- a\n\nc\n",
     reopens: "ul[li[p(a)]] p(c)",
   },
   {
-    // Measured: stock [li(a), li(c)] is the tight `* a\n* c\n`; stock [li(a,∅), li(c)] is
-    // `* a\n\n\n* c\n`. With the strip the list must come out tight, as [li(a), li(c)].
+    // Measured before D204 made `-` the default: stock [li(a), li(c)] is the tight
+    // `* a\n* c\n`; stock [li(a,∅), li(c)] is `* a\n\n\n* c\n`. With the strip the list
+    // must come out tight, as [li(a), li(c)].
     id: "C3b [li(a,∅), li(c)] writes the tight list",
     build: (s) => [b.ul(s, [b.li(s, [b.p(s, "a"), b.e(s)]), b.li(s, [b.p(s, "c")])])],
-    bytes: "* a\n* c\n",
+    bytes: "- a\n- c\n",
     reopens: "ul[li[p(a)] li[p(c)]]",
   },
   {
     id: "C3d list item [∅,a] (leading strip in an item)",
     build: (s) => [b.ul(s, [b.li(s, [b.e(s), b.p(s, "a")])])],
-    bytes: "* a\n",
+    bytes: "- a\n",
     reopens: "ul[li[p(a)]]",
   },
   {
     id: "C4 root [list(a),∅,c]",
     build: (s) => [b.ul(s, [b.li(s, [b.p(s, "a")])]), b.e(s), b.p(s, "c")],
-    bytes: "* a\n\n\n\nc\n",
+    bytes: "- a\n\n\n\nc\n",
     reopens: "ul[li[p(a)]] ∅ p(c)",
   },
 ];
@@ -262,8 +263,8 @@ describe("D188 C — containers", () => {
   it("C7 ACCEPTED LIMIT root [list(a), ∅, list(b)] writes a gap but reopens as ONE list", async () => {
     await expectWrites(
       (s) => [b.ul(s, [b.li(s, [b.p(s, "a")])]), b.e(s), b.ul(s, [b.li(s, [b.p(s, "b")])])],
-      "* a\n\n\n\n* b\n",
+      "- a\n\n\n\n- b\n",
     );
-    await expectReopens("* a\n\n\n\n* b\n", "ul[li[p(a)] li[p(b)]]");
+    await expectReopens("- a\n\n\n\n- b\n", "ul[li[p(a)] li[p(b)]]");
   });
 });

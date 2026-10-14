@@ -173,7 +173,7 @@ rows("D188 D — hard breaks and inline <br> (D192 must hold)", [
     file: "- item<br/>more\n",
     reopens: "ul[li[p(item<br/>more)]]",
     edit: { at: "start", needle: "item", text: "X" },
-    saved: "* Xitem<br/>more\n",
+    saved: "- Xitem<br/>more\n",
   },
   {
     id: "D6 inline <br> in a table cell",

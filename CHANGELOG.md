@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - A window opened while mdpro is running (⌘⇧N, or a file opened from Finder into a new window) now records that it has focus as soon as it opens, so MCP writes and external opens go to it; before, it was recorded only after focus left the window and came back (D217)
 
+### Fixed
+- In WYSIWYG, a list keeps the marker it was written with when you save after an edit (D204). A file of `-` bullets used to come back with `*`, `+` bullets too, two adjacent lists swapped markers, and an ordered list written `1)` came back as `1.`. Lists made in the editor or pasted are now written with `-`
+- In WYSIWYG, an ordered list that starts at a number other than 1 keeps that number when you save after an edit (D208). A list starting `5.` used to be renumbered from 1
+
 ## [0.3.3] - 2026-10-14
 
 ### Highlights

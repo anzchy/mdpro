@@ -140,7 +140,7 @@ describe("D192 — an inline <br> survives load → serialize (RED until the vis
 
   it("R3 keeps `<br/>` inside a list item", async () => {
     const e = await load("- item<br/>more\n");
-    expect(serialize(e), "list-item <br/> was dropped on load").toBe("* item<br/>more\n");
+    expect(serialize(e), "list-item <br/> was dropped on load").toBe("- item<br/>more\n");
   });
 
   it("R4 keeps `<br>` inside a table cell, through the app's table plugins", async () => {
