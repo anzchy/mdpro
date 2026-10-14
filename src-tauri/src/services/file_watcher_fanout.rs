@@ -1,4 +1,4 @@
-//! The watcher's emit step (D185-WI-1): where a routed `file:changed` goes.
+//! The watcher's emit step (D185): where a routed `file:changed` goes.
 //!
 //! Purpose: `emit_file_changed` sends the event `handle_event` routed to every
 //! recipient through the watcher's `NoticeSink::emit_plain`, the same
@@ -16,10 +16,14 @@
 //!   `Holders`.** Its `holders` is a `HoldsLeaf` (file_watcher_holders_fanout.rs),
 //!   which reaches lock H only, so the callback cannot take lock T
 //!   (ADR-0086 decision 2: notify's `stop()` joins the callback's thread).
-//! - **WI-1 changes nothing observable.** The recipients are exactly the
-//!   event's own path, the payload is the routed `FileChangedEvent` byte for
-//!   byte, and the line is logged only on a failure. D185-WI-2 adds the held
-//!   spellings of the event's canonical group.
+//! - **Recipients (D185-WI-2):** the event's own path plus every spelling
+//!   held in its canonical group, de-duplicated by exact string. Each copy is
+//!   the routed `FileChangedEvent` with only `path` changed: the same
+//!   timestamp and change type, and a rename's `newPath` stays the reported
+//!   real path, so a renamed alias tab follows the real file. With no alias
+//!   held the single emit is byte-identical to before D185.
+//! - **The line** is logged when a spelling was added or an emit failed; it
+//!   carries `recipients` (a count) and `failed_spellings`.
 //! - **Paths, never content**, as in file_watcher_log.rs.
 //!
 //! @coordinates-with services/file_watcher.rs (parent; `new` builds the
@@ -32,6 +36,7 @@ use super::FileChangedEvent;
 use crate::models::log_entry::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
 use serde_json::json;
+use std::path::Path;
 use std::sync::Arc;
 
 const FANOUT_EVENT: &str = "file.watch.fanout";
@@ -40,7 +45,6 @@ const FANOUT_EVENT: &str = "file.watch.fanout";
 /// leaf (H-only) half of the holders. Deliberately holds no `Holders`.
 pub(super) struct EventSink {
     pub(super) notices: Arc<dyn NoticeSink>,
-    #[expect(dead_code, reason = "D185-WI-2 reads the held spellings")]
     pub(super) holders: HoldsLeaf,
 }
 
@@ -55,8 +59,9 @@ pub(super) fn emit_file_changed(sink: &EventSink, event: FileChangedEvent) {
 /// The emits `emit_file_changed` makes, and the line it would log: `Some`
 /// when an emit failed or the recipients went beyond the event's own path.
 fn fan_out(sink: &EventSink, event: &FileChangedEvent) -> Option<LogEntryPayload> {
-    let recipients = recipients(event);
+    let recipients = recipients(sink, event);
     let mut first_error: Option<String> = None;
+    let mut failed_spellings: Vec<String> = Vec::new();
     let mut emitted = 0usize;
     for path in &recipients {
         let copy = FileChangedEvent {
@@ -67,25 +72,35 @@ fn fan_out(sink: &EventSink, event: &FileChangedEvent) -> Option<LogEntryPayload
             Ok(()) => emitted += 1,
             Err(e) => {
                 first_error.get_or_insert(e);
+                failed_spellings.push(path.clone());
             }
         }
     }
     let added = recipients.len() > 1;
     (added || first_error.is_some())
-        .then(|| fanout_line(event, recipients.len(), emitted, first_error))
+        .then(|| fanout_line(event, &recipients, emitted, failed_spellings, first_error))
 }
 
-/// Who gets `event`. D185-WI-1: exactly the event's own path.
-fn recipients(event: &FileChangedEvent) -> Vec<String> {
-    vec![event.path.clone()]
+/// Who gets `event` (D185-WI-2): the event's own path, then every spelling
+/// held in its canonical group, de-duplicated by exact string. With no alias
+/// held this is exactly the event's own path, as before D185.
+fn recipients(sink: &EventSink, event: &FileChangedEvent) -> Vec<String> {
+    let mut out = vec![event.path.clone()];
+    for spelling in sink.holders.spellings_of(Path::new(&event.path)) {
+        if !out.contains(&spelling) {
+            out.push(spelling);
+        }
+    }
+    out
 }
 
 /// The `file.watch.fanout` line: `success`/info when every emit went out,
 /// `fail`/error with the first error otherwise.
 fn fanout_line(
     event: &FileChangedEvent,
-    recipients: usize,
+    recipients: &[String],
     emitted: usize,
+    failed_spellings: Vec<String>,
     error: Option<String>,
 ) -> LogEntryPayload {
     let (level, status) = match error {
@@ -101,9 +116,10 @@ fn fanout_line(
             "path": event.path,
             "changeType": event.change_type,
             "timestamp": event.timestamp,
-            "recipients": recipients,
+            "recipients": recipients.len(),
             "emitted": emitted,
-            "failed": recipients - emitted,
+            "failed": recipients.len() - emitted,
+            "failed_spellings": failed_spellings,
         })),
         duration_ms: None,
         error,
@@ -113,3 +129,7 @@ fn fanout_line(
 #[cfg(test)]
 #[path = "file_watcher_fanout_seam_tests.rs"]
 mod seam_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "file_watcher_fanout_tests.rs"]
+mod tests;

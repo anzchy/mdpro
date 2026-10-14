@@ -96,7 +96,7 @@ Rust emits events that frontend listens to via `listen()`:
 | --------------- | ---------------------- | --------------------------------------------- |
 | `menu:action`   | `{ action, value }`    | Native menu clicks (menu.rs)                  |
 | `file:open`     | `string[]`             | Single-instance file open (launch.rs)         |
-| `file:changed`  | `{ path, changeType, newPath?, origin? }` | External file modification (file\_watcher.rs), and a save in another window: the save notice carries `origin: { windowLabel, documentId }` (services/file\_watcher\_save\_notice.rs, ADR-0086) |
+| `file:changed`  | `{ path, changeType, newPath?, origin? }` | External file modification (file\_watcher.rs), sent once to every spelling the file is open under (services/file\_watcher\_fanout.rs, D185), and a save in another window: the save notice carries `origin: { windowLabel, documentId }` (services/file\_watcher\_save\_notice.rs, ADR-0086) |
 | `file:open-in-window` | `{ windowLabel, documentId, path }` | External open of an already-open file, `emit_to` the one window that has it (services/open\_route/tauri\_glue.rs) → `useOpenInWindow.ts` |
 | `theme:changed` | `"light" \| "dark"`    | System theme change                           |
 | `mcp:write_document` | `{ document_id, content, window_label, action_id }` | MCP `write_document` tool (http\_server.rs) → `useMcpEvents.ts` |

@@ -88,6 +88,7 @@ fn d185_wi1_h_refused_emit_is_logged_once_at_error_not_retried() {
             "recipients": 1,
             "emitted": 0,
             "failed": 1,
+            "failed_spellings": [event.path],
         }))
     );
 }

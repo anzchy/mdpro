@@ -19,6 +19,10 @@
 //! - `for_tests_noticed` swaps in a `NoticeRecorder` as the save-notice sink
 //!   (D173-WI-2), so a test sees every notice and can make the emit fail;
 //!   `sent_plain` returns the origin-less reconcile notices (D173-WI-4).
+//! - `for_tests_delivering` (D185-WI-2) runs the production `handle_event`
+//!   in the real notify callback, over an `EventSink` built like `new`'s
+//!   (a `NoticeRecorder` and this watcher's own holders' leaf), so a live
+//!   test sees every `file:changed` the watcher emits, fanned out.
 //! - Wired `#[cfg(test)] #[path] mod` from `file_watcher.rs`: no production
 //!   surface, and a child module so it may read the private fields.
 //!
@@ -28,6 +32,10 @@
 //! @coordinates-with src-tauri/src/services/file_watcher_baseline_live_race_tests.rs
 //! @coordinates-with src-tauri/src/commands/file_save_baseline_tests.rs
 use super::baseline::{BaselineStore, Entry};
+use super::fanout::EventSink;
+use super::gate::DebounceMap;
+use super::handle_event;
+use super::holders::Holders;
 use super::kinds_fixture::T;
 use super::save_notice::{NoticeSink, SaveNotice};
 use super::{process_event, FileChangedEvent, FileWatcher, WatchOutcome};
@@ -126,6 +134,39 @@ impl FileWatcher {
             notices: Arc::new(NoticeRecorder::default()),
         };
         (fw, rx)
+    }
+
+    /// A `FileWatcher` whose real notify callback runs the production
+    /// `handle_event` (route, log, emit) into the returned recorder, over
+    /// this watcher's own holders and baselines, as `new` wires it (D185).
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub(crate) fn for_tests_delivering() -> (Self, Arc<NoticeRecorder>) {
+        let recorder = Arc::new(NoticeRecorder::default());
+        let holders = Holders::default();
+        let baselines = Arc::new(BaselineStore::default());
+        let callback_baselines = Arc::clone(&baselines);
+        let debounce_map: Arc<DebounceMap> = Arc::default();
+        let sink = EventSink {
+            notices: Arc::clone(&recorder) as Arc<dyn NoticeSink>,
+            holders: holders.leaf(),
+        };
+        let watcher = RecommendedWatcher::new(
+            move |res: notify::Result<Event>| {
+                if let Ok(event) = res {
+                    handle_event(&sink, event, &debounce_map, &callback_baselines);
+                }
+            },
+            Config::default(),
+        )
+        .expect("create a real notify watcher");
+        let fw = Self {
+            watcher: Mutex::new(watcher),
+            watched_paths: Arc::new(Mutex::new(Vec::new())),
+            baselines,
+            holders,
+            notices: Arc::clone(&recorder) as Arc<dyn NoticeSink>,
+        };
+        (fw, recorder)
     }
 
     /// `for_tests`, with a `NoticeRecorder` as the save-notice sink.

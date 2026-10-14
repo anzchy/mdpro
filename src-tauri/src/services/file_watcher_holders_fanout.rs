@@ -49,7 +49,6 @@ impl Holders {
 impl HoldsLeaf {
     /// Every distinct raw string held in `raw`'s canonical group, in a stable
     /// order. Canonicalizes first with no lock held, then takes H once.
-    #[expect(dead_code, reason = "D185-WI-2 fans the watcher emit out with it")]
     pub(crate) fn spellings_of(&self, raw: &Path) -> Vec<String> {
         let key = group_key(raw);
         let mut out = Vec::new();

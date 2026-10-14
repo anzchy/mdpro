@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- A file opened under another spelling, through a symlink, as `/tmp/…` instead of `/private/tmp/…`, or with different letter case, now raises "External change detected" when another program changes it (D185). The watcher used to report only the file's real path, so a tab opened under any other spelling never heard about the change and its ⌘S could write over it. Every tab holding the file, under any spelling, is now told; a renamed file is followed by every tab
+  - **Known limit**: two spellings that differ only in Unicode normalization (NFC versus NFD) are still treated as different files
+  - **Not yet checked on a device**
 - On Windows, files opened by double-click or a second launch show their file name as the tab label and are stored with plain C:\… paths (D190)
   - **Not yet checked on a device**
 - On Windows, saving a file no longer raises a false "External change detected" (D190, [ADR-0093](docs/adr/0093-windows-reads-are-proven-stable-by-file-identity-and-the-self-write-gate-matches-every-spelling.md)). The check that drops a watcher event for a file whose bytes have not changed could never succeed on Windows, so every save prompted. It now proves its read by file identity, and the save's own mark now matches the path however it is spelled
