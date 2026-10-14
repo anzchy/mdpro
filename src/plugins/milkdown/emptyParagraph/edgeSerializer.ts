@@ -24,15 +24,19 @@
  *     `extendSchema`, so it is re-declared with the preset's own parse rule.
  *   - Register after `commonmark` and `gfm`: a schema id registered later replaces
  *     the earlier spec (precedent: table/emptyCellSerializer.ts).
+ *   - `list_item` is registered here once for both write rules: D195's boolean
+ *     `spread` (listSpread) runs inside the edge strip.
  *
  * @coordinates-with src/plugins/milkdown/emptyParagraph/blankLineGaps.ts — the reader half
  * @coordinates-with src/plugins/milkdown/emptyParagraph/index.ts — exports the plugin list
+ * @coordinates-with src/plugins/milkdown/listSpread/index.ts — `listItemSpreadRule` (D195)
  */
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { Fragment, type Node as PmNode } from "@milkdown/kit/prose/model";
 import { blockquoteSchema } from "@milkdown/kit/preset/commonmark";
 import { extendListItemSchemaForTask } from "@milkdown/kit/preset/gfm";
 import { $node, type GetNodeSchema } from "@milkdown/kit/utils";
+import { listItemSpreadRule } from "../listSpread";
 
 /** An empty paragraph: no inline content at all (a hard break is content). */
 export function isEmptyParagraph(node: PmNode): boolean {
@@ -91,5 +95,5 @@ const docWithEdgeStrip = $node("doc", () => ({
 export const emptyParagraphEdgeSerializerPlugins: MilkdownPlugin[] = [
   docWithEdgeStrip,
   ...blockquoteSchema.extendSchema(edgeStripRule),
-  ...extendListItemSchemaForTask.extendSchema(edgeStripRule),
+  ...extendListItemSchemaForTask.extendSchema((prev) => edgeStripRule(listItemSpreadRule(prev))),
 ];

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- In WYSIWYG, a tight list opened from a file stays tight when you save after an edit (D195). A bullet list such as `- a` / `- b`, a list item holding a nested list, and a task list used to gain a blank line between their items on the first save; loose lists still keep their blank lines
+
 ## [0.3.2] - 2026-10-14
 
 ### Highlights

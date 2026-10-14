@@ -1,8 +1,9 @@
 /**
  * @module commonmarkPreset
  * Purpose: mdpro's preset-commonmark: the stock plugin list with two remark plugins
- * swapped, in place, for mdpro's own. The ONE composition the app and the test rigs
- * `.use`, so they cannot drift.
+ * swapped, in place, for mdpro's own, and the two list schemas re-registered with a
+ * boolean `spread` on write. The ONE composition the app and the test rigs `.use`, so
+ * they cannot drift.
  *
  * Pipeline:
  *   - `remarkInlineLinkPlugin` → `linkDefinitionPlugins` (ADR-0094, D194): references
@@ -11,6 +12,9 @@
  *     blank-line gaps read as empty paragraphs. Dropping the preset plugin is what
  *     stops the `<br />` writer (the preset's paragraph serializer only writes it while
  *     that plugin's id is in ctx).
+ *   - `bullet_list` / `ordered_list` → `listSpreadPlugins` (D195): tight lists are written
+ *     tight. Appended last, because a schema id registered later replaces the earlier
+ *     spec; `list_item` gets the same rule in emptyParagraph/edgeSerializer.ts.
  *
  * Key decisions:
  *   - Swapping in place keeps the preset's order: the definitions transformer runs
@@ -29,12 +33,16 @@ import {
 } from "@milkdown/kit/preset/commonmark";
 import { remarkBlankLineGapsPlugin } from "./emptyParagraph";
 import { linkDefinitionPlugins } from "./linkDefinitions";
+import { listSpreadPlugins } from "./listSpread";
 
-/** preset-commonmark with mdpro's definition and empty-line plugins swapped in. */
-export const mdproCommonmark: MilkdownPlugin[] = commonmark.flatMap((plugin) => {
-  if (plugin === remarkInlineLinkPlugin.options) return linkDefinitionPlugins;
-  if (plugin === remarkInlineLinkPlugin.plugin) return [];
-  if (plugin === remarkPreserveEmptyLinePlugin.options) return [...remarkBlankLineGapsPlugin];
-  if (plugin === remarkPreserveEmptyLinePlugin.plugin) return [];
-  return [plugin];
-});
+/** preset-commonmark with mdpro's definition, empty-line and list-spread plugins. */
+export const mdproCommonmark: MilkdownPlugin[] = [
+  ...commonmark.flatMap((plugin) => {
+    if (plugin === remarkInlineLinkPlugin.options) return linkDefinitionPlugins;
+    if (plugin === remarkInlineLinkPlugin.plugin) return [];
+    if (plugin === remarkPreserveEmptyLinePlugin.options) return [...remarkBlankLineGapsPlugin];
+    if (plugin === remarkPreserveEmptyLinePlugin.plugin) return [];
+    return [plugin];
+  }),
+  ...listSpreadPlugins,
+];
