@@ -238,7 +238,7 @@ Paragraph  Heading 1…6 ⌘1…⌘6 · Paragraph ⇧⌘0 · — ·
 Format     Bold ⌘B · Italic ⌘I (mode: W) · Underline ⌘U (n/a) · Code ⇧⌘` · Strikethrough ⇧⌘X (mode: W) ·
            Highlight ⇧⌘M · — · Link… ⌘K · Image… ⇧⌘I (n/a) · — · Clear Format ⌘\ (n/a)
 View       Source ⌃2 · WYSIWYG ⌃4 · Toggle Source Mode F6 · — · Toggle Sidebar ⌃⇧0 ·
-           Switch Documents ⌃Tab (n/a) · — · (Enter Full Screen ⌃⌘F, inserted by macOS)
+           Switch Documents ⌃Tab (n/a) · — · (Enter Full Screen fn F, inserted by macOS)
 Themes     Light · Dark · System   (check items, the active one ticked)
 Window     Minimize ⌘M · Zoom · — · Bring All to Front   (Close Window removed)
 Help       Keyboard Shortcuts… (opens Settings › Keyboard Shortcuts)   (disabled placeholder removed)
@@ -356,8 +356,8 @@ runs or is shown there (`platformLabels.ts:36-58`, `predefined.rs:306-346`).
 | Source | — | — | ⌃2 | none (ADR-0096) | ⌃2 / none | K2: VMark has no direct-mode key; ⌃2 is free in VMark |
 | WYSIWYG | — | — | ⌃4 | none | ⌃4 / none | K2 |
 | Toggle Source Mode (Cycle) | F6 | F6 | ⌘/ | Ctrl+/ | **F6 / F6** | Supersedes ADR-0096's Ctrl+/ clause; open question 2 |
-| Toggle Sidebar | ⌃⇧0 | Alt+Shift+0 | ⇧⌘L | Ctrl+Shift+L | **⌃⇧0 / Alt+Shift+0** | Frees ⇧⌘L for CodeMirror's select-all-matches, as in VMark (C12). Changes ADR-0088's tooltip text |
-| Toggle Fullscreen | system item (⌃⌘F) | none | ⌥⌘F (unbound) | Ctrl+Alt+F (unbound) | **system ⌃⌘F / —**, disabled off-Mac | C5 |
+| Toggle Sidebar | ⌃⇧0 | Alt+Shift+0 | ⇧⌘L | Ctrl+Shift+L | **⌃⇧0 / Alt+Shift+0** | Frees ⇧⌘L for CodeMirror's select-all-matches; the key is VMark's (C12). VMark binds it in its keymap only and has no Toggle Sidebar menu item (`shortcutDefinitions.ts:134`: a Rust accelerator would clash with Paragraph's Mod-Shift-0 off-Mac). mdpro keeps the menu item, because its off-Mac key is Alt+Shift+0, not Ctrl+Shift+0, so the clash does not arise. Changes ADR-0088's tooltip text |
+| Toggle Fullscreen | system item (⌃⌘F) | none | ⌥⌘F (unbound) | Ctrl+Alt+F (unbound) | **system fn F / —**, disabled off-Mac (VMark also relies on the system-added fn F item) | C5 |
 | Switch Documents | ⌃Tab (Last Used Tab) | Ctrl+Tab | ⌘\` (macOS window cycling) | Ctrl+\` | **⌃Tab / Ctrl+Tab**, disabled | C4 |
 | Table: insert row above / below, column left / right | — | — | ⌥⌘↑ ↓ ← → | Ctrl+Alt+arrows | same | K2. VMark's ⌥⌘↑/↓ is Add Cursor; CodeMirror binds it too (`@codemirror/commands/dist/index.js:1747-1748`). Open question 5 |
 | Table: delete row / column | — | — | ⌥⌘⌫ / ⌥⇧⌘⌫ | Ctrl+Alt+Backspace / +Shift | same | K2 |
@@ -402,7 +402,7 @@ ADR-0090 get only a forward link in their Status lines (CLAUDE.md § ADR).
 | C7 | Off-Mac, ⌥⌘ chords are Ctrl+Alt = AltGr on international layouts | `preferences.ts:197-202, 231-236`; `useKeyboardShortcuts.ts:69-80` | Follows VMark (keeps Ctrl+Alt). Open question 3 | M6 |
 | C8 | Help › mdpro Help is permanently disabled | `menu_submenus.rs:118-127` | Replace with Keyboard Shortcuts… | M4 |
 | C9 | Themes has no checkmark | `menu_submenus.rs:98-107` | `CheckMenuItem`, as View already does (`:63-79`) | M4 |
-| C10 | Windows predefined clipboard items enter the Win32 accelerator table; VMark #1354 saw lost keys and broken IME from it | `menu_submenus.rs:21-25`; `predefined.rs:308-321`; VMark `localized/edit_menu.rs:209-222` | Follow VMark: accelerator-free custom Cut / Copy / Paste / Select All off-Mac, routed to the clipboard path. M2 records whether mdpro showed the symptom | M5 |
+| C10 | Windows predefined clipboard items enter the Win32 accelerator table; VMark #1354 saw lost keys and broken IME from it | `menu_submenus.rs:21-25`; `predefined.rs:308-321`; VMark `localized/edit_menu.rs:209-222` | Follow VMark: accelerator-free custom Cut / Copy / Paste / Select All **on Windows only** (VMark's override is Windows-only; Linux keeps the predefined items), routed to the clipboard path. M2 records whether mdpro showed the symptom | M5 |
 | C11 | ⇧⌘L also matches CodeMirror `Mod-Shift-l` | `index.js:1035` | Gone once Toggle Sidebar moves to ⌃⇧0 | M1 |
 
 ## 6. Work items
@@ -466,4 +466,4 @@ same commit and runs `pnpm ledger:check` (and `pnpm ledger:build`). Each menu cl
 - Whether Ctrl+Y still redoes in both editors once the Windows Redo label becomes
   Ctrl+Shift+Z, and whether Ctrl+Shift+0 and F6 reach the webview on each platform.
 - The macOS reserved chords in K5 not device-tested in mdpro: all but ⌘H, ⌥⌘Q and ⌘\`.
-- VMark's keys are read from its source and guide at `e0a982d`, not from a running VMark.
+- VMark's keys are read from its source and guide at `e0a982d`. **macOS checked live (2026-10-15, mdpro-codex-audit)**: the running VMark 0.9.99 on the Mac mini (e0a982d is v0.9.99 plus two CI/dependency-only commits) shows the § 4.1 layout and every macOS key in § 5.3.2 that has a VMark menu item, read from its menu tree with System Events (archive `~/.mdpro-redesign/handoff/mdpro-codex-audit-20261015-vmark-0.9.99-menus.txt`). Three corrections came from it: Toggle Sidebar is keymap-only in VMark; its full screen is the system fn F item, not ⌃⌘F; and its clipboard override is Windows-only. The Windows and Linux columns are still source-only.
