@@ -19,7 +19,8 @@
  * `state.schema` at dispatch time.  This makes the shortcuts independent of
  * which Milkdown presets are loaded.
  *
- * Exception: inlineCode (⌘⇧`) and strikethrough (⌃⇧`) still use the Milkdown
+ * Exception: inlineCode (⌘⇧`) and strikethrough (⌃⇧`; Alt+Shift+5 on
+ * Windows / Linux, see `strikethroughShortcut`) still use the Milkdown
  * command registry because their ProseMirror mark names in the GFM schema are
  * not stable public API.  These commands are registered by the GFM preset that
  * IS loaded, so they work correctly.
@@ -151,10 +152,15 @@ function isTableTabHandlerEligible(
 }
 
 /**
- * The raw keymap config passed to $useKeymap — exported so unit tests can
- * verify shortcut strings and command dispatch without requiring a live editor.
+ * The strikethrough chord for a platform. macOS: ⌃⇧`. Windows / Linux:
+ * Alt+Shift+5 (Typora's Windows key), because `Mod` is Ctrl there and
+ * Ctrl-Shift-` would be the inline-code chord too (D190-WI-6, ADR-0096).
  */
-export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
+export function strikethroughShortcut(isMac: boolean): string {
+  return isMac ? "Ctrl-Shift-`" : "Alt-Shift-5";
+}
+
+const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
   heading1: { shortcuts: "Mod-1", command: () => makeHeadingCommand(1) },
   heading2: { shortcuts: "Mod-2", command: () => makeHeadingCommand(2) },
   heading3: { shortcuts: "Mod-3", command: () => makeHeadingCommand(3) },
@@ -271,6 +277,22 @@ export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = {
     },
   },
 };
+
+/** The keymap config for a platform; only the strikethrough chord differs. */
+export function typoraKeymapConfig(isMac: boolean): Record<string, CommandEntry> {
+  return {
+    ...TYPORA_KEYMAP_ENTRIES,
+    strikethrough: { ...TYPORA_KEYMAP_ENTRIES.strikethrough, shortcuts: strikethroughShortcut(isMac) },
+  };
+}
+
+const IS_MAC = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+
+/**
+ * The raw keymap config passed to $useKeymap — exported so unit tests can
+ * verify shortcut strings and command dispatch without requiring a live editor.
+ */
+export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = typoraKeymapConfig(IS_MAC);
 
 const createTyporaKeymap = () => $useKeymap("typora", TYPORA_KEYMAP_CONFIG);
 

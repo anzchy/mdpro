@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * Tests for WYSIWYG keybindings (issue #27)
  *
@@ -46,7 +45,7 @@ vi.mock("../src/plugins/core/pluginTypes", () => ({
 }));
 
 // Import AFTER mocks are declared (hoisting guarantees this order).
-import { TYPORA_KEYMAP_CONFIG } from "../src/plugins/milkdown/typoraKeymapPlugin";
+import { TYPORA_KEYMAP_CONFIG, typoraKeymapConfig } from "../src/plugins/milkdown/typoraKeymapPlugin";
 
 // ---------------------------------------------------------------------------
 // Minimal ctx stub — mimics the Milkdown Ctx.get(commandsCtx) pattern
@@ -104,9 +103,9 @@ describe("TYPORA_KEYMAP_CONFIG — issue #27: previously missing bindings", () =
     expect(mockCall).toHaveBeenCalledWith("ToggleInlineCode");
   });
 
-  it("has strikethrough entry with Ctrl-Shift-` shortcut", () => {
+  it("has strikethrough entry with Ctrl-Shift-` shortcut on macOS", () => {
     expect(TYPORA_KEYMAP_CONFIG).toHaveProperty("strikethrough");
-    expect(TYPORA_KEYMAP_CONFIG.strikethrough.shortcuts).toBe("Ctrl-Shift-`");
+    expect(typoraKeymapConfig(true).strikethrough.shortcuts).toBe("Ctrl-Shift-`");
   });
 
   it("calls toggleStrikethroughCommand key when strikethrough command executes", () => {

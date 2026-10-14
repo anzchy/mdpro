@@ -26,12 +26,33 @@ pub(super) fn edit_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
         .build()
 }
 
+/// The two view items whose accelerator depends on the platform.
+#[derive(Clone, Copy)]
+pub(super) enum ViewItem {
+    Source,
+    Wysiwyg,
+}
+
+/// The accelerator on View → Source / WYSIWYG: ⌃2 / ⌃4 on macOS, none on
+/// Windows and Linux, where Ctrl+1–6 are headings and Cycle View Mode
+/// (`CmdOrCtrl+/`) is the view switch (D190-WI-6, ADR-0096).
+pub(super) fn view_item_accelerator(item: ViewItem, macos: bool) -> Option<&'static str> {
+    if !macos {
+        return None;
+    }
+    match item {
+        ViewItem::Source => Some("Ctrl+2"),
+        ViewItem::Wysiwyg => Some("Ctrl+4"),
+    }
+}
+
 /// `active_view_mode` checks the Source or WYSIWYG item.
 pub(super) fn view_menu(
     app: &AppHandle<Wry>,
     active_view_mode: Option<&str>,
 ) -> tauri::Result<Submenu<Wry>> {
-    // Cmd+/ to cycle through view modes (Typora-style)
+    // Cmd+/ to cycle through view modes (Typora-style); off-Mac it is the
+    // only view-switch key (ADR-0096).
     let view_cycle = MenuItem::with_id(
         app,
         MENU_VIEW_CYCLE,
@@ -46,7 +67,7 @@ pub(super) fn view_menu(
         "Source",
         true,
         is_active("source"),
-        Some("Ctrl+2"),
+        view_item_accelerator(ViewItem::Source, cfg!(target_os = "macos")),
     )?;
     let view_wysiwyg = CheckMenuItem::with_id(
         app,
@@ -54,7 +75,7 @@ pub(super) fn view_menu(
         "WYSIWYG",
         true,
         is_active("wysiwyg"),
-        Some("Ctrl+4"),
+        view_item_accelerator(ViewItem::Wysiwyg, cfg!(target_os = "macos")),
     )?;
     let view_toggle_sidebar = MenuItem::with_id(
         app,
@@ -105,3 +126,7 @@ pub(super) fn help_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
         )?)
         .build()
 }
+
+#[cfg(test)]
+#[path = "menu_submenus_wi6_tests.rs"]
+mod wi6_tests;

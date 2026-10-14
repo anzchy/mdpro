@@ -494,13 +494,15 @@ fn default_export_html() -> String {
     "Cmd+Shift+E".to_string()
 }
 
-/// Mirrors the `menu.rs` accelerator `Some("Ctrl+2")` on the View → Source
-/// item and `src/types/preferences.ts`'s `viewSource` (rule 41).
+/// Mirrors the macOS accelerator ⌃2 on the View → Source item
+/// (`menu_submenus.rs` `view_item_accelerator`; Windows and Linux have none,
+/// ADR-0096) and `src/types/preferences.ts`'s `viewSource` (rule 41).
 fn default_view_source() -> String {
     "Ctrl+2".to_string()
 }
-/// Mirrors the `menu.rs` accelerator `Some("Ctrl+4")` on the View → WYSIWYG
-/// item and `src/types/preferences.ts`'s `viewWysiwyg` (rule 41).
+/// Mirrors the macOS accelerator ⌃4 on the View → WYSIWYG item
+/// (`menu_submenus.rs` `view_item_accelerator`; Windows and Linux have none,
+/// ADR-0096) and `src/types/preferences.ts`'s `viewWysiwyg` (rule 41).
 fn default_view_wysiwyg() -> String {
     "Ctrl+4".to_string()
 }

@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * @module typora-keymap-table-nav.test
  * Purpose: Verify Tab / Shift-Tab / Escape keymap entries for table-cell

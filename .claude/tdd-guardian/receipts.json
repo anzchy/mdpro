@@ -156410,6 +156410,183 @@
           "message": "The red for 'D195-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
+    },
+    {
+      "id": "D190-WI-6-RS",
+      "lane": "rust",
+      "recorded_at": "2026-10-14T11:32:28.502Z",
+      "head_sha": "bff93239ae550fccd42d2d131d808c1580f91f55",
+      "dirty_source": [
+        "CHANGELOG.md",
+        "docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md",
+        "docs/feature-ledger.md",
+        "docs/plans/20260912-frontend-backend-sequencing-order.md",
+        "src-tauri/src/menu_submenus.rs",
+        "src/plugins/milkdown/typoraKeymapPlugin.ts"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "2 of 1655 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/menu_submenus_wi6_tests.rs": {
+          "state": "ok",
+          "sha": "78c7cbc06e5c382160ba65a6977a69065f0bc0efce785f16c6e48f6f54a7b4e1",
+          "lines": [
+            "60ff0253c27e24dc",
+            "74fbfa78242976c3",
+            "5cf0ffb51ca01f11",
+            "baf9e4161202d5ff",
+            "322050fa474e4a66",
+            "fa446a9ff7394384",
+            "a10200e8b1f16553",
+            "119fe0b5b92fc3f6",
+            "c4cfe1b41a7d4118",
+            "cd48168d647ade72",
+            "9d8b2b5670d18da8",
+            "119fe0b5b92fc3f6",
+            "595ca30ff504a20c",
+            "05d0898a6792457c",
+            "9d8b2b5670d18da8",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "5d1da9d8475b22b3",
+            "d5e1d3b5606df9d9",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "095888731a90f93e",
+            "6b87b29beeb4c40a",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-14T11:37:46.190Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/menu_submenus.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "D190-WI-6",
+      "lane": "unit",
+      "recorded_at": "2026-10-14T11:34:33.750Z",
+      "head_sha": "bff93239ae550fccd42d2d131d808c1580f91f55",
+      "dirty_source": [
+        "CHANGELOG.md",
+        "docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md",
+        "docs/feature-ledger.md",
+        "docs/plans/20260912-frontend-backend-sequencing-order.md",
+        "src-tauri/src/menu_submenus.rs",
+        "src/plugins/milkdown/typoraKeymapPlugin.ts"
+      ],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/d190-wi6-windows-keymap.test.ts": {
+          "state": "ok",
+          "sha": "727741384d77fd5321d2e1332e706045179d7189b3f42888c66145ca7b6aca1e",
+          "lines": [
+            "8d64a30d9de151b6",
+            "c0b5ead84a7d930f",
+            "ad6191724bc39400",
+            "175debaf9314cce7",
+            "1d4a275f577aa1e8",
+            "5c3b0d5ac410ba6b",
+            "57f0999310c858f7",
+            "684888c0ebb17f37",
+            "0d9cf92072a08e9b",
+            "5a366f5e1e1a1f7f",
+            "04e296d75cd976f8",
+            "601de948954ba8c6",
+            "4cdada1918d0a391",
+            "9ec59fba5935c7db",
+            "01c7625666a82e94",
+            "ed9623369ff082ab",
+            "b8cbd764da70a65b",
+            "6b72ee52bde315aa",
+            "9b2fc156d845c83e",
+            "d0915362a054c160",
+            "488f7d3ead18b457",
+            "5afe8aa33b5c6a18",
+            "4a0e51c4c2043c54",
+            "c73a2134bec09afc",
+            "2d8edd606da953e0",
+            "a9b600736f3c25c4",
+            "acef1dd4ccea15b5",
+            "ce91c0fe23365fd3",
+            "5afe8aa33b5c6a18",
+            "ba6e77f5435ec331",
+            "679f5e352d73dfcd",
+            "1678929526141f78",
+            "0238b74c2f6219da",
+            "18687e92f9868924",
+            "2eff528c2c3da32b",
+            "29f7246fbddecfd2",
+            "004d4ba8909c2ec7",
+            "98c71ae48c10f5ab",
+            "ee841a52e45ac52c",
+            "4156a8fc05254c88",
+            "2c58b0f2b094944d",
+            "f71bb70ea6e1dd32",
+            "d10b36aa74a59bcf",
+            "677eea672e3380b7",
+            "6edc6e1799368681",
+            "66ec6c39885f0177",
+            "78ac78eec936d863",
+            "12b5f227d92995e2",
+            "e048f1b579c49971",
+            "29576b54e255e3c9",
+            "a439b6ec4a660158",
+            "b45bcc1af75e6bf0",
+            "29576b54e255e3c9",
+            "fcdf8709aa225bc0",
+            "747a72c312154497",
+            "29576b54e255e3c9",
+            "10f1064e8fb88e61",
+            "11d7157536a482b6",
+            "c561153a5e16c016",
+            "29576b54e255e3c9",
+            "41ca5bb4ccdd2419",
+            "a72e6ea1be6c3413",
+            "26aae0e51b278444",
+            "4ad3791ed1171290",
+            "76ef52d99beafc75",
+            "ffbded7f5876446e",
+            "e86b28df0ecc6342",
+            "29576b54e255e3c9",
+            "5bc868360e7e42a7",
+            "b4e680a4ce544a35",
+            "3791d804d8273cb8",
+            "58e42bbf27fa5e9a",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-14T11:50:33.495Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D190-WI-6' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/menu_submenus.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

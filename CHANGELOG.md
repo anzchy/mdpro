@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- On Windows and Linux, strikethrough is Alt+Shift+5 and Ctrl+Shift+` is inline code only; the two used to share Ctrl+Shift+`, so inline code had no key (D190, [ADR-0096](docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md))
+- On Windows and Linux, Ctrl+1–6 are headings and Ctrl+/ switches between Source and WYSIWYG. View → Source and View → WYSIWYG no longer advertise Ctrl+2 and Ctrl+4, which made headings 2 and 4 (D190). macOS is unchanged
+
 ### Fixed
 
 - In WYSIWYG, a tight list opened from a file stays tight when you save after an edit (D195). A bullet list such as `- a` / `- b`, a list item holding a nested list, and a task list used to gain a blank line between their items on the first save; loose lists still keep their blank lines
