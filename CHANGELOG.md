@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The app's stylesheets are split into ordered section files, and chrome font sizes, radii, the hover-reveal transition, the dialog backdrop and text on accent fills now come from design tokens. Nothing looks different; a test now fails on any new untokenized literal (UI redesign Deliverable A)
+
 ## [0.3.3] - 2026-10-14
 
 ### Highlights

@@ -20,9 +20,9 @@
   padding: 10px 12px;
   background: var(--color-danger-soft);
   border: 1px solid var(--color-danger);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--color-danger);
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   margin-bottom: 16px;
 }
 
@@ -54,7 +54,7 @@
   align-items: center;
   gap: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 2px 6px;
 }
 .settings-stepper button {
@@ -74,7 +74,7 @@
 .settings-stepper span {
   min-width: 40px;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--font-size-ui);
 }
 
 .settings-row-content {
@@ -92,12 +92,12 @@
 }
 
 .settings-row-label strong {
-  font-size: 14px;
+  font-size: var(--font-size-ui-lg);
   font-weight: 500;
 }
 
 .settings-row-description {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-text-secondary);
 }
 

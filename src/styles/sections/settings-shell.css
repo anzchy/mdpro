@@ -84,7 +84,7 @@
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-ui-lg);
   color: var(--color-text);
 }
 
@@ -117,7 +117,7 @@
 .shortcuts-header p {
   margin: 4px 0 0;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: var(--font-size-ui);
 }
 
 .shortcuts-section {
@@ -129,7 +129,7 @@
 
 .shortcuts-section h4 {
   margin: 0 0 8px;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-muted);
@@ -150,15 +150,15 @@
 }
 
 .shortcut-label {
-  font-size: 14px;
+  font-size: var(--font-size-ui-lg);
 }
 
 .shortcut-value {
   background: var(--settings-input-bg);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   font-family: var(--font-mono);
   cursor: pointer;
   min-width: 140px;

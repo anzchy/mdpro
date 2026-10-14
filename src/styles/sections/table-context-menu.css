@@ -10,7 +10,7 @@
   background: var(--color-panel);
   color: var(--color-text);
   box-shadow: var(--shadow-soft);
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   user-select: none;
   /* D67: the components clamp the menu's position by its measured
      height (menuPosition.ts), so a menu that fits is moved up until its

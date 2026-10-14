@@ -16,7 +16,7 @@
   color: var(--color-text);
 }
 .settings-page-desc {
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   color: var(--color-muted);
   margin: 0;
 }
@@ -30,8 +30,8 @@
   margin-bottom: 12px;
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.4);
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-ui);
 }
 .settings-dirty-banner button {
   padding: 3px 10px;
@@ -39,7 +39,7 @@
   border: 1px solid var(--color-border);
   background: transparent;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
 }
 
 .settings-placeholder h3 {
@@ -110,9 +110,9 @@
 .settings-select {
   background: var(--settings-input-bg);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   color: var(--color-text);
   cursor: pointer;
   min-width: 140px;
@@ -155,7 +155,7 @@
 
 .toolbar-button.small {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
 }
 
 .toolbar-button.danger {

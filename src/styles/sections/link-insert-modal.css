@@ -7,7 +7,7 @@
 
 .link-insert-label {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   font-weight: 500;
   color: var(--color-muted);
   margin-bottom: 6px;
@@ -22,7 +22,7 @@
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: var(--font-size-ui-lg);
   outline: none;
   margin-bottom: 16px;
   box-sizing: border-box;

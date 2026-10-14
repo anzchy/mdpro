@@ -235,10 +235,10 @@ describe("D158 — Source editor theme follows the app theme", () => {
     expect(gutter.some(({ rule }) => rule.decls.get("color") === "var(--color-text)")).toBe(true);
   });
 
-  it("the tooltip follows the popover contract: --shadow-soft, popover radius (10px), panel fill", () => {
+  it("the tooltip follows the popover contract: --shadow-soft, --radius-popover, panel fill", () => {
     const tip = appChromeRules().filter(({ selector }) => lastCompound(selector) === ".cm-tooltip");
     expect(tip.some(({ rule }) => rule.decls.get("box-shadow") === "var(--shadow-soft)")).toBe(true);
-    expect(tip.some(({ rule }) => rule.decls.get("border-radius") === "10px")).toBe(true);
+    expect(tip.some(({ rule }) => rule.decls.get("border-radius") === "var(--radius-popover)")).toBe(true);
     expect(tip.some(({ rule }) => rule.decls.get("background") === "var(--color-panel)")).toBe(true);
   });
 
@@ -266,7 +266,7 @@ describe("D158 — Source editor theme follows the app theme", () => {
     const base = find(/^\.cm-button$/);
     expect(base.some((r) => r.decls.get("background") === "var(--color-panel)")).toBe(true);
     expect(base.some((r) => r.decls.get("border") === "1px solid var(--color-border)")).toBe(true);
-    expect(base.some((r) => r.decls.get("border-radius") === "6px")).toBe(true);
+    expect(base.some((r) => r.decls.get("border-radius") === "var(--radius-control)")).toBe(true);
     const hover = find(/^\.cm-button:hover$/);
     expect(
       hover.some((r) => r.decls.get("background") === "color-mix(in srgb, var(--color-text) 5%, transparent)"),

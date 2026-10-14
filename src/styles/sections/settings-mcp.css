@@ -6,7 +6,7 @@
   gap: 6px;
   padding: 3px 8px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   font-weight: 500;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .mcp-status-note {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-text-secondary);
 }
 
@@ -69,22 +69,22 @@
 }
 
 .mcp-info-label {
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   color: var(--color-text-secondary);
 }
 
 .mcp-info-value {
   padding: 2px 8px;
   background: var(--color-bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-inner);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
 }
 
 .mcp-info-hint {
   display: block;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-text-secondary);
 }
 
@@ -95,7 +95,7 @@
   padding: 2px 4px;
   font-size: 14px;
   opacity: 0.6;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-duration-fast);
 }
 
 .mcp-copy-btn:hover {
@@ -120,7 +120,7 @@
 }
 
 .mcp-installations-description {
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   color: var(--color-text-secondary);
   margin-bottom: 16px;
 }
@@ -162,7 +162,7 @@
 }
 
 .mcp-client-details strong {
-  font-size: 14px;
+  font-size: var(--font-size-ui-lg);
   font-weight: 500;
 }
 
@@ -170,7 +170,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-text-secondary);
   font-family: var(--font-mono);
 }

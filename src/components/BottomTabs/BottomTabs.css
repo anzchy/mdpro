@@ -18,7 +18,7 @@
   border: none;
   background: transparent;
   color: var(--color-muted);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   font-size: 18px;
   transition: all 0.15s;
@@ -56,12 +56,12 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   font-weight: 500;
   color: var(--color-muted);
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
@@ -99,10 +99,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-inner);
   font-size: 14px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-duration-fast);
   flex-shrink: 0;
 }
 

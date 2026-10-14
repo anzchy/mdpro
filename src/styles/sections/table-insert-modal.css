@@ -13,7 +13,7 @@
 }
 
 .dialog-title-hint {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   font-weight: 400;
   color: var(--color-muted);
   font-family: var(--font-mono);
@@ -54,14 +54,14 @@
 }
 
 .table-insert-count {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-muted);
   text-align: center;
   margin: 4px 0 12px;
 }
 
 .table-insert-divider {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-muted);
   text-align: center;
   margin: 8px 0;
@@ -78,7 +78,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-muted);
 }
 
@@ -86,11 +86,11 @@
   width: 100%;
   padding: 6px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: var(--font-size-ui-lg);
   outline: none;
   box-sizing: border-box;
 }
@@ -101,11 +101,11 @@
 }
 
 .table-insert-error {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-danger);
   background: var(--color-danger-soft);
   border: 1px solid var(--color-danger);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 8px 10px;
   margin-bottom: 12px;
 }

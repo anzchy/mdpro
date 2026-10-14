@@ -13,7 +13,7 @@
 .image-context-menu-label {
   padding: 6px 8px;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
 }
 
 .image-context-menu-button {
@@ -48,7 +48,7 @@
   width: 72px;
   min-height: 30px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 0 8px;
   background: var(--color-bg);
   color: var(--color-text);
@@ -57,7 +57,7 @@
 .image-context-menu-apply {
   min-height: 30px;
   border: 1px solid var(--color-accent);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 0 10px;
   background: var(--color-accent);
   color: var(--color-panel);

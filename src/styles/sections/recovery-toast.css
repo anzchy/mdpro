@@ -27,7 +27,7 @@
 
 .recovery-path,
 .recovery-time {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-muted);
 }
 
@@ -40,7 +40,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   color: var(--color-muted);
 }
 
@@ -87,7 +87,7 @@
 }
 
 .encoding-path {
-  font-size: 12px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-muted);
   margin-bottom: 12px;
   word-break: break-all;

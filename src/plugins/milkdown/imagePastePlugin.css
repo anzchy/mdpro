@@ -7,9 +7,9 @@
   padding: 4px 10px;
   background: var(--color-surface);
   border: 1px dashed var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   font-style: italic;
 }
 

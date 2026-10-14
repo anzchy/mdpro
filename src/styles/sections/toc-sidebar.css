@@ -19,7 +19,7 @@
 }
 
 .toc-sidebar__empty-message {
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   color: var(--color-muted);
   padding: 8px 0;
 }
@@ -42,7 +42,7 @@
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -102,12 +102,12 @@
   border-radius: 4px;
   background: var(--settings-input-bg);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   min-width: 160px;
 }
 
 .toc-entry__text {
-  font-size: 13px;
+  font-size: var(--font-size-ui);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
