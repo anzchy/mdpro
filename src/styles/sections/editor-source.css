@@ -170,7 +170,7 @@
    same "you are here" feedback across modes. */
 .editor-shell .cm-table-active-cell {
   background: var(--color-accent-soft);
-  border-radius: 2px;
+  border-radius: var(--radius-inner);
 }
 
 .wysiwyg-preview .cm-gutters {

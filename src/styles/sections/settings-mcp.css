@@ -59,7 +59,7 @@
   margin-top: 16px;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-popover);
 }
 
 .mcp-info-row {
@@ -137,7 +137,7 @@
   align-items: center;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 
 .mcp-client-info {

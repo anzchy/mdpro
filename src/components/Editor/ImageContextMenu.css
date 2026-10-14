@@ -4,7 +4,7 @@
   min-width: 168px;
   padding: 6px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-popover);
   background: var(--color-panel);
   color: var(--color-text);
   box-shadow: var(--shadow-soft);
@@ -23,7 +23,7 @@
   align-items: center;
   justify-content: space-between;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-inner);
   padding: 0 8px;
   background: transparent;
   color: var(--color-text);

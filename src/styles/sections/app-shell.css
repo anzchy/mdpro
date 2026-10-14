@@ -82,7 +82,7 @@
   color: var(--color-muted);
   padding: 3px 8px;
   background: var(--color-surface);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
 }
 
 /* Main area: traffic-lights zone shown only when the sidebar is hidden.

@@ -11,7 +11,7 @@
   text-decoration: none;
   cursor: text;
   background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-  border-radius: 3px;
+  border-radius: var(--radius-inner);
   padding: 0 2px;
 }
 

@@ -58,6 +58,10 @@ Open each surface in both themes and compare with the previous build.
 | 3.3 | Source mode: select text; put the cursor in a table cell | Light: the selection and active-cell tint is a little lighter than before. Dark: unchanged |
 | 3.4 | Dark theme, in the Tauri window: scroll a long document; open Settings › Editor | The native scrollbar and checkboxes are dark (`color-scheme: dark`). Light theme: light. **Device check, batched at STOP 3** |
 | 3.5 | Light ↔ dark switch | Tokens swap at once; no surface keeps the other theme's border or shadow |
+| 3.6 | Toolbar and settings buttons, inputs, the settings rail, the MCP client rows, the view-mode badge | Corners are 6px (`--radius-control`); before they were 8px, or 4px for inputs and the badge |
+| 3.7 | Dialogs, Settings, menus, toasts, the shortcut and recovery groups, the MCP server box | Corners are 10px (`--radius-popover`); dialogs and Settings were 16px, toasts and groups 12px, menus 8px |
+| 3.8 | Menu items, settings stepper buttons, the inline link editor, the table grid picker, the source-mode active cell, a link definition in WYSIWYG | Corners are 4px (`--radius-inner`). Grid-picker cells keep a whole border at 4px (checked on the capture, both themes) |
+| 3.9 | Settings › Editor switches; the About progress bar while downloading | Fully round ends (`999px`); the progress bar is not reachable without an update download |
 
 Computed-style evidence: `~/.mdpro-redesign/stage-3/index-wi31.md` (the browser harness renders every dark
 settings surface with light tokens, because `SettingsDialog.tsx` puts its own theme class on the dialog

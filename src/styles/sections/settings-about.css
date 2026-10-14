@@ -79,18 +79,18 @@
 .about-progress-bar {
   width: 100%;
   height: 6px;
-  border-radius: 3px;
+  border-radius: 999px;
   appearance: none;
 }
 
 .about-progress-bar::-webkit-progress-bar {
   background: var(--color-border-subtle);
-  border-radius: 3px;
+  border-radius: 999px;
 }
 
 .about-progress-bar::-webkit-progress-value {
   background: var(--color-accent, #007aff);
-  border-radius: 3px;
+  border-radius: 999px;
 }
 
 .about-progress-label {
