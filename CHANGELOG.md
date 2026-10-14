@@ -7,14 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-10-15
+
+### Highlights
+
+- **Lists keep the markers you wrote.** Saving after an edit in WYSIWYG no longer turns `-` bullets into `*`, swaps markers between adjacent lists, rewrites `1)` as `1.`, or renumbers a list that starts at 5 from 1.
+- **A new window knows it has focus.** A window opened with ⌘⇧N, or a file opened from Finder into a new window, is the one MCP writes and later opens go to, from the moment it opens.
+- **Newer Tauri underneath.** mdpro now runs on Tauri 2.12.1. Nothing is meant to look or behave differently.
+
 ### Changed
 - The app's stylesheets are split into ordered section files, and chrome font sizes, radii, the hover-reveal transition, the dialog backdrop and text on accent fills now come from design tokens. Nothing looks different; a test now fails on any new untokenized literal (UI redesign Deliverable A)
 - Tauri 2.9.5 → 2.12.1, with wry 0.57, tao 0.37 and the single-instance, updater, process and opener plugins on their matching releases; no app code changed (ADR-0047 WI-004)
 
 ### Fixed
 - A window opened while mdpro is running (⌘⇧N, or a file opened from Finder into a new window) now records that it has focus as soon as it opens, so MCP writes and external opens go to it; before, it was recorded only after focus left the window and came back (D217)
-
-### Fixed
 - In WYSIWYG, a list keeps the marker it was written with when you save after an edit (D204). A file of `-` bullets used to come back with `*`, `+` bullets too, two adjacent lists swapped markers, and an ordered list written `1)` came back as `1.`. Lists made in the editor or pasted are now written with `-`
 - In WYSIWYG, an ordered list that starts at a number other than 1 keeps that number when you save after an edit (D208). A list starting `5.` used to be renumbered from 1
 
