@@ -1,0 +1,7 @@
+12:59:03.322 ui.shortcut.trigger success {"action": "file.save", "shortcut": "Cmd+S"} 
+12:59:03.326 file.save start {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f.md"} 
+12:59:03.331 file.watch.event cancel {"changeType": null, "detail": "any", "info": null, "kind": "remove", "mtimeMs": 1791953943326, "outcome": "self_write", "ownEvent": false, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f.md", "pathCount": 1, "rescan": false, "size": 22, "timestamp": 1791953943331, "unchangedCheck": "not_checked"} 
+12:59:03.331 file.save success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f.md", "fileSizeBytes": 22} 
+12:59:03.332 file.save.notice success {"emitted": 1, "failed": 0, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f.md", "spellings": 1} 
+12:59:03.333 file.change.received cancel {"changeType": "modified", "eventTimestamp": 1791953943332, "outcome": "own-save", "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f.md", "windowLabel": "main"} 
+12:59:03.338 file.watch.event cancel {"changeType": null, "detail": "to", "info": null, "kind": "modify_name", "mtimeMs": 1791953943326, "outcome": "ignored_unchanged", "ownEvent": false, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f.md", "pathCount": 1, "rescan": false, "size": 22, "timestamp": 1791953943332, "unchangedCheck": "unchanged"} 

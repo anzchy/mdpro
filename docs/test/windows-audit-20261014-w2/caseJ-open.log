@@ -1,0 +1,6 @@
+12:51:12.445 ui.menu.select success {"controlId": "menu.file.open", "windowLabel": "main"} 
+12:51:12.445 file.open start {"source": "dialog"} 
+12:51:16.027 file.watch.hold success {"gen": 4, "groupConsumers": 1, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\ro.md", "rawConsumers": 1, "transition": "first", "windowLabel": "main"} 
+12:51:16.028 file.watch.register success {"alreadyWatched": false, "baseline": "seeded", "mtimeMs": 1791951798444, "ok": true, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\ro.md", "seedCheck": "unchanged", "size": 15, "watchedCount": 4} 
+12:51:16.028 file.open success {"encoding": "UTF-8", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\ro.md", "fileSizeBytes": 15, "source": "dialog"} 
+12:51:16.033 editor.milkdown.reload success {"documentId": "3c652949a7732c9", "droppedPendingEdit": false, "generation": 1, "reason": "file-open"} 

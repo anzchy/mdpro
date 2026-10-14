@@ -1,0 +1,15 @@
+12:46:07.827 file.save.queued start {"documentId": "31de10937f23b934"} 
+12:46:07.826 ui.shortcut.trigger success {"action": "file.save", "shortcut": "Cmd+S"} 
+12:46:07.827 ui.shortcut.trigger success {"action": "file.save", "shortcut": "Cmd+S"} 
+12:46:07.830 file.save start {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md"} 
+12:46:07.835 file.save success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "fileSizeBytes": 71} 
+12:46:07.835 file.watch.event cancel {"changeType": null, "detail": "any", "info": null, "kind": "remove", "mtimeMs": 1791953167830, "outcome": "self_write", "ownEvent": false, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "pathCount": 1, "rescan": false, "size": 71, "timestamp": 1791953167834, "unchangedCheck": "not_checked"} 
+12:46:07.835 file.save.notice success {"emitted": 1, "failed": 0, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "spellings": 1} 
+12:46:07.837 file.change.received cancel {"changeType": "modified", "eventTimestamp": 1791953167835, "outcome": "own-save", "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "windowLabel": "main"} 
+12:46:07.841 file.watch.event cancel {"changeType": null, "detail": "to", "info": null, "kind": "modify_name", "mtimeMs": 1791953167830, "outcome": "ignored_unchanged", "ownEvent": false, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "pathCount": 1, "rescan": false, "size": 71, "timestamp": 1791953167836, "unchangedCheck": "unchanged"} 
+12:46:07.862 file.save start {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md"} 
+12:46:07.868 file.watch.event cancel {"changeType": null, "detail": "any", "info": null, "kind": "remove", "mtimeMs": 1791953167863, "outcome": "self_write", "ownEvent": false, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "pathCount": 1, "rescan": false, "size": 71, "timestamp": 1791953167867, "unchangedCheck": "not_checked"} 
+12:46:07.868 file.save success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "fileSizeBytes": 71} 
+12:46:07.868 file.save.notice success {"emitted": 1, "failed": 0, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "spellings": 1} 
+12:46:07.868 file.watch.event cancel {"changeType": null, "detail": "to", "info": null, "kind": "modify_name", "mtimeMs": 1791953167863, "outcome": "ignored_unchanged", "ownEvent": false, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "pathCount": 1, "rescan": false, "size": 71, "timestamp": 1791953167868, "unchangedCheck": "unchanged"} 
+12:46:07.874 file.change.received cancel {"changeType": "modified", "eventTimestamp": 1791953167868, "outcome": "own-save", "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md", "windowLabel": "main"} 

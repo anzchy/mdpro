@@ -1,0 +1,3 @@
+12:52:16.225 ui.shortcut.trigger success {"action": "file.save", "shortcut": "Cmd+S"} 
+12:52:16.227 file.save start {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\ro.md"} 
+12:52:16.233 file.save fail {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\ro.md"} permission denied: C:\Users\jack\mdpro-audit\fx\d190w2\ro.md

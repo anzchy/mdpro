@@ -1,0 +1,10 @@
+12:35:53.788 file.change.pending success {"action": "acknowledged", "documentId": "31de10937f23b934", "reason": "reloaded", "seq": 6} 
+12:36:16.804 file.open.args_filtered success {"accepted": 1, "dropped": {"flag": 0, "non_utf8": 0, "not_markdown": 0, "not_regular_file": 0, "relative_without_cwd": 0, "unresolved": 0}, "source": "single_instance"} 
+12:36:16.804 file.open.external start {"filePaths": ["C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2b.md"], "source": "single_instance"} 
+12:36:16.805 file.open.route success {"matchCount": 0, "outcome": "broadcast", "source": "single_instance", "windowLabel": null} 
+12:36:16.805 file.open.external success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2b.md", "source": "single_instance"} 
+12:36:16.812 file.open start {"encodingHint": null, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2b.md"} 
+12:36:16.813 file.watch.hold success {"gen": 2, "groupConsumers": 1, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2b.md", "rawConsumers": 1, "transition": "first", "windowLabel": "main"} 
+12:36:16.814 file.watch.register success {"alreadyWatched": false, "baseline": "seeded", "mtimeMs": 1791951703720, "ok": true, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2b.md", "seedCheck": "unchanged", "size": 16, "watchedCount": 2} 
+12:36:16.814 file.open success {"encoding": "UTF-8", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2b.md", "fileSizeBytes": 16} 
+12:36:16.817 editor.milkdown.reload success {"documentId": "1cdb50ebb0d0c009", "droppedPendingEdit": false, "generation": 1, "reason": "file-open"} 

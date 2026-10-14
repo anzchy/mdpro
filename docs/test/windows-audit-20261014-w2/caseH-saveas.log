@@ -1,0 +1,7 @@
+12:56:39.793 ui.shortcut.trigger success {"action": "file.save", "shortcut": "Cmd+S"} 
+12:56:43.302 file.watch.hold success {"gen": 6, "groupConsumers": 1, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f-as.md", "rawConsumers": 1, "transition": "first", "windowLabel": "main"} 
+12:56:43.302 file.save start {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f-as.md"} 
+12:56:43.308 file.save success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f-as.md", "fileSizeBytes": 13} 
+12:56:43.313 file.watch.register success {"alreadyWatched": false, "baseline": "seeded", "mtimeMs": 1791953803302, "ok": true, "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f-as.md", "seedCheck": "unchanged", "size": 13, "watchedCount": 6} 
+12:56:43.314 file.save.notice success {"emitted": 1, "failed": 0, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f-as.md", "spellings": 1} 
+12:56:43.316 file.change.received start {"changeType": "modified", "eventTimestamp": 1791953803314, "outcome": "captured", "path": "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f-as.md", "windowLabel": "main"} 
