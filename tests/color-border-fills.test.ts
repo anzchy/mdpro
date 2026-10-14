@@ -20,7 +20,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { colorBorderFillUses } from "./support/colorBorderFills";
+import { colorBorderAliases, colorBorderFillUses } from "./support/colorBorderFills";
 
 const ROOT = join(__dirname, "..");
 const SRC = join(ROOT, "src");
@@ -137,6 +137,24 @@ describe("scanner fixtures", () => {
 .b { background: var(--baz); }`;
     expect(colorBorderFillUses(css, [other]).map((d) => d.selector)).toEqual([".a"]);
   });
+
+  it("counts border-image, which paints an image (and with `fill` the whole box)", () => {
+    const css = `.a { border-image: linear-gradient(var(--color-border), transparent) 1 fill; }
+.b { border-image-source: linear-gradient(var(--color-border), transparent); }`;
+    expect(selectors(css)).toEqual([".a", ".b"]);
+  });
+
+  it("reads an alias whose value has a ; inside a quoted string", () => {
+    const css = `.a { --track: url("data:image/svg+xml;utf8,<svg/>") var(--color-border); background: var(--track); }`;
+    expect(selectors(css)).toEqual([".a"]);
+  });
+
+  it("matches var() case-insensitively and ignores the token inside a string", () => {
+    const css = `.a { background: VAR(--color-border); }
+.b { content: "var(--color-border)"; }
+.c { background: url('x.svg#var(--color-border)'); }`;
+    expect(selectors(css)).toEqual([".a"]);
+  });
 });
 
 describe("--color-border fill uses in app CSS", () => {
@@ -150,8 +168,9 @@ describe("--color-border fill uses in app CSS", () => {
     expect(counts).toEqual(KIND_COUNTS);
   });
 
-  it("no TS, TSX or index.html source names the token (inline styles are out of reach of the CSS scan)", () => {
-    const token = /--color-border(?![\w-])/;
+  it("no TS, TSX or index.html source names the token or a CSS alias of it (inline styles are out of reach of the CSS scan)", () => {
+    const names = [...colorBorderAliases(context)].map((n) => n.replace(/-/g, "\\-"));
+    const token = new RegExp(`(${names.join("|")})(?![\\w-])`);
     const sources = files.filter((p) => /\.(tsx?)$/.test(p)).map((p) => [p, read(p)] as const);
     sources.push(["../index.html", readFileSync(join(ROOT, "index.html"), "utf8")]);
     expect(sources.filter(([, text]) => token.test(text)).map(([p]) => p)).toEqual([]);
