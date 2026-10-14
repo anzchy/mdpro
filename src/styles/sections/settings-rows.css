@@ -141,7 +141,7 @@
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--color-on-accent);
   transition: 0.2s;
   border-radius: 50%;
 }

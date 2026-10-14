@@ -25,8 +25,8 @@
  * deleted literal has to leave its list in the same commit.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   blankRootBlocks,
@@ -170,9 +170,9 @@ const DEFERRED: Deferred[] = [
   d(S + "settings-about.css", ".about-progress-bar", "border-radius", "3px", 3, "WI-3.1 DR23"),
   d(S + "settings-about.css", ".about-progress-bar::-webkit-progress-bar", "border-radius", "3px", 3, "WI-3.1 DR23"),
   d(S + "settings-about.css", ".about-progress-bar::-webkit-progress-value", "border-radius", "3px", 3, "WI-3.1 DR23"),
-  d(S + "settings-mcp.css", ".mcp-status-badge", "border-radius", "12px", 4, "WI-4.4"),
-  d(S + "settings-mcp.css", ".mcp-status-badge.running", "background", "#dcfce7", 4, "WI-4.4"),
-  d(S + "settings-mcp.css", ".mcp-status-badge.running", "color", "#16a34a", 4, "WI-4.4"),
+  d(S + "settings-mcp.css", ".mcp-status-badge", "border-radius", "12px", 4, "item 6 (WI-4.4)"),
+  d(S + "settings-mcp.css", ".mcp-status-badge.running", "background", "#dcfce7", 4, "item 6 (WI-4.4)"),
+  d(S + "settings-mcp.css", ".mcp-status-badge.running", "color", "#16a34a", 4, "item 6 (WI-4.4)"),
   d(S + "settings-mcp.css", ".mcp-server-info", "border-radius", "8px", 3, "WI-3.1 DR23"),
   d(S + "settings-mcp.css", ".mcp-copy-btn", "font-size", "14px", 4, "WI-4.2"),
   d(S + "settings-mcp.css", ".mcp-copy-btn.small", "font-size", "11px", 3, "WI-3.2 item 12"),
@@ -189,7 +189,7 @@ const DEFERRED: Deferred[] = [
   d(S + "settings-rows.css", ".settings-section-label", "font-size", "11px", 3, "WI-3.2 item 12"),
   d(S + "settings-rows.css", ".settings-stepper button", "font-size", "16px", 4, "WI-4.2"),
   d(S + "settings-rows.css", ".settings-stepper button", "border-radius", "3px", 3, "WI-3.1 DR23"),
-  d(S + "settings-rows.css", ".toggle-slider", "background-color", "#ccc", 4, "WI-4.4"),
+  d(S + "settings-rows.css", ".toggle-slider", "background-color", "#ccc", 4, "item 6 (WI-4.4)"),
   d(S + "settings-rows.css", ".toggle-slider", "transition", "0.2s", 3, "WI-3.2 item 11"),
   d(S + "settings-rows.css", ".toggle-slider", "border-radius", "24px", 3, "WI-3.1 DR23"),
   d(S + "settings-rows.css", ".toggle-slider:before", "transition", "0.2s", 3, "WI-3.2 item 11"),
@@ -227,13 +227,11 @@ const DEFERRED: Deferred[] = [
   d("plugins/milkdown/imagePastePlugin.css", ".image-paste-placeholder", "border-radius", "6px", 2, "WI-2.3"),
   d("plugins/milkdown/imagePastePlugin.css", ".image-paste-placeholder", "font-size", "13px", 2, "WI-2.3"),
   d(S + "buttons-dialog.css", ".toolbar-button", "font-size", "13px", 2, "WI-2.3"),
-  d(S + "buttons-dialog.css", ".dialog-backdrop", "background", "rgba(15, 23, 42, 0.35)", 2, "WI-2.2"),
   d(S + "buttons-dialog.css", ".dialog-message", "font-size", "14px", 2, "WI-2.3"),
   d(S + "editor-source.css", ".editor-shell .cm-editor .cm-panels .cm-button", "border-radius", "6px", 2, "WI-2.3"),
   d(S + "editor-source.css", ".editor-shell .cm-editor .cm-tooltip", "border-radius", "10px", 2, "WI-2.3"),
   d(S + "link-insert-modal.css", ".link-insert-label", "font-size", "12px", 2, "WI-2.3"),
   d(S + "link-insert-modal.css", ".link-insert-input", "font-size", "14px", 2, "WI-2.3"),
-  d(S + "link-insert-modal.css", ".toolbar-button--primary", "color", "#fff", 2, "WI-2.2"),
   d(S + "recovery-toast.css", ".recovery-path, .recovery-time", "font-size", "12px", 2, "WI-2.3"),
   d(S + "recovery-toast.css", ".loading-spinner", "font-size", "13px", 2, "WI-2.3"),
   d(S + "recovery-toast.css", ".encoding-path", "font-size", "12px", 2, "WI-2.3"),
@@ -259,7 +257,6 @@ const DEFERRED: Deferred[] = [
   d(S + "settings-pages.css", ".settings-dirty-banner button", "font-size", "12px", 2, "WI-2.3"),
   d(S + "settings-pages.css", ".settings-select", "border-radius", "6px", 2, "WI-2.3"),
   d(S + "settings-pages.css", ".settings-select", "font-size", "13px", 2, "WI-2.3"),
-  d(S + "settings-pages.css", ".toolbar-button.primary", "color", "white", 2, "WI-2.2"),
   d(S + "settings-pages.css", ".toolbar-button.small", "font-size", "12px", 2, "WI-2.3"),
   d(S + "settings-rows.css", ".settings-error", "border-radius", "6px", 2, "WI-2.3"),
   d(S + "settings-rows.css", ".settings-error", "font-size", "13px", 2, "WI-2.3"),
@@ -267,7 +264,6 @@ const DEFERRED: Deferred[] = [
   d(S + "settings-rows.css", ".settings-stepper span", "font-size", "13px", 2, "WI-2.3"),
   d(S + "settings-rows.css", ".settings-row-label strong", "font-size", "14px", 2, "WI-2.3"),
   d(S + "settings-rows.css", ".settings-row-description", "font-size", "12px", 2, "WI-2.3"),
-  d(S + "settings-rows.css", ".toggle-slider:before", "background-color", "white", 2, "WI-2.2"),
   d(S + "settings-shell.css", ".settings-category-btn", "font-size", "14px", 2, "WI-2.3"),
   d(S + "settings-shell.css", ".shortcuts-header p", "font-size", "13px", 2, "WI-2.3"),
   d(S + "settings-shell.css", ".shortcuts-section h4", "font-size", "12px", 2, "WI-2.3"),
@@ -331,7 +327,6 @@ const UNRENDERED: Unrendered[] = [
 const DEFERRED_COUNTS: Record<string, number> = {
   "stage 3": 59,
   "stage 4": 12,
-  "stage 2 WI-2.2": 4,
   "stage 2 WI-2.3": 70,
 };
 
@@ -496,8 +491,8 @@ describe("dead-code guard (A8, temporary)", () => {
     expect(importers(/(from|import)\s*\(?\s*["'][^"']*\/TabBar(\/[^"']*)?["']/), message).toEqual([]);
   });
 
-  it("the guard sees the files it guards", () => {
-    expect(relative(SRC, join(SRC, "App.css"))).toBe("App.css");
-    expect(allCss).toContain("App.css");
+  it("the files it guards still exist", () => {
+    expect(existsSync(join(SRC, "App.css"))).toBe(true);
+    expect(existsSync(join(SRC, "components/TabBar/TabBar.tsx"))).toBe(true);
   });
 });

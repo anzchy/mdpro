@@ -105,6 +105,8 @@ DR14).
 | `--color-syntax-meta` | new | `:root`, from muted | Link targets, URLs, fence info strings, HTML | :26 | 2 |
 | `--color-code-bg` | redefined as an editor-bg mix | both themes | Code surfaces; keeps the cool tint (D4) | review item 15 | 15 |
 | `--settings-sidebar-bg` | points at `--color-surface` | both themes | Settings rail | — | 14 |
+| `--color-on-accent` | new | `:root` (same in both themes today) | Labels and the switch knob on an accent fill. Any per-theme value is Stage 3's contrast table. | — | R2 |
+| `--color-scrim` | new | `:root` (same in both themes today) | Dialog backdrop. One use: the user overrode the rule of three for it (A10). | — | R6 |
 
 - **`--color-border`:** before redefining it, audit consumers that use it as a
   fill (WI-3.0).

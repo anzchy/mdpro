@@ -43,6 +43,18 @@
   --color-text-secondary: #6b7280;
   --color-bg-secondary: #f6f7fb;
   --color-bg-tertiary: #eeeff3;
+
+  /* Redesign tokens (plan P WI-2.2), theme-independent. Each holds the value
+     its sites render today; Stage 3 retunes them. */
+  --color-on-accent: #fff;
+  --color-scrim: rgba(15, 23, 42, 0.35);
+  --font-size-ui-sm: 12px;
+  --font-size-ui: 13px;
+  --font-size-ui-lg: 14px;
+  --radius-inner: 4px;
+  --radius-control: 6px;
+  --radius-popover: 10px;
+  --motion-duration-fast: 150ms;
 }
 
 * {

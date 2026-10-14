@@ -20,6 +20,24 @@ here — the doc would silently rot.
 
 Token rationale and the decisions log live in the design doc that root
 `DESIGN.md` marks as current (today `docs/design/mdpro-ui-old/DESIGN.md`).
+While the UI redesign is in progress, its new and redefined tokens are
+logged in `docs/design/mdpro-ui-new/DESIGN.md` § Tokens instead; any other
+token still goes to the current doc (DR14; plan P WI-5.5 removes this
+clause).
+
+## Redesign tokens (plan P)
+
+Declared once in `globals.css :root`, because today they have the same value
+in both themes. Roles are in the new design doc's § Tokens.
+
+- `--color-on-accent`: text and knobs on an accent fill (R2)
+- `--color-scrim`: the dialog backdrop (R6; one use, a user override of the
+  rule of three)
+- `--font-size-ui-sm`, `--font-size-ui`, `--font-size-ui-lg`: the chrome type
+  ramp
+- `--radius-inner`, `--radius-control`, `--radius-popover`: the chrome radii
+  (DR23)
+- `--motion-duration-fast`: hover-reveal opacity transitions (DR12)
 
 ## Authoring rules
 
