@@ -9,7 +9,8 @@
  *   `useKeyboardShortcuts.matchesShortcut` reads them. Only the label changes:
  *   off-Mac "Cmd" shows as "Ctrl", "Option" as "Alt", and "Cmd+Ctrl" collapses
  *   to one "Ctrl". The recorder stores Ctrl as "Cmd" off-Mac and refuses a
- *   chord with the Windows key, which never triggers a shortcut there.
+ *   chord with the Windows key or AltGr, neither of which triggers a shortcut
+ *   there (audit b121).
  * - ADR-0096's three off-Mac keys (Source, WYSIWYG, strikethrough) are shown
  *   in place of their stored defaults, which bind nothing.
  *
@@ -57,7 +58,9 @@ export function displayedShortcut(
 }
 
 /** The keydown fields the recorder reads. */
-export type RecordedKey = Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">;
+export type RecordedKey = Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey"> & {
+  getModifierState?: (key: string) => boolean;
+};
 
 /** Keys that are not actionable on their own and are ignored during capture. */
 const NON_ACTIONABLE_KEYS = new Set([
@@ -71,6 +74,9 @@ export function recordedShortcut(event: RecordedKey, isMac: boolean): string | n
   if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) return null;
   // Off-Mac the Windows / Super key is never a shortcut modifier.
   if (!isMac && event.metaKey) return null;
+  // Off-Mac AltGr (Ctrl+Alt) types characters; the matcher refuses it, so a
+  // binding recorded from it could never fire (audit b121).
+  if (!isMac && event.getModifierState?.("AltGraph")) return null;
 
   const parts: string[] = [];
   if (isMac) {

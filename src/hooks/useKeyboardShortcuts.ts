@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { EditorView } from "@codemirror/view";
 import { useEditorStore } from "../stores/editorStore";
 import { loggingService } from "../services/loggingService";
-import type { KeyboardShortcuts } from "../types/preferences";
+import type { ShortcutHandlers, TableShortcutAction } from "./useKeyboardShortcuts.types";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../types/preferences";
 import {
   heading1Command,
@@ -16,54 +16,18 @@ import {
 import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
 import { refuseTabActionWhileModalOpen } from "../utils/modalTabActionGuard";
 
-interface ShortcutHandlers {
-  onOpen?: (actionId?: string) => void;
-  onSave?: (actionId?: string) => void;
-  onClose?: (actionId?: string) => void;
-  onNew?: (actionId?: string) => void;
-  /**
-   * Fires for `fileNewWindow` (default ⌘⇧N / Ctrl+Shift+N) **off-Mac only**.
-   * On Windows the native menu accelerator never fires (WebView2 keeps the key
-   * from Tauri's accelerator hook, D190 WI-1b), so the hook covers it there. On
-   * macOS the native accelerator owns the key and the hook stays out of it, so
-   * nothing fires twice. Wired in App.tsx to the same call as the menu path.
-   */
-  onNewWindow?: (actionId?: string) => void;
-  onHighlight?: (actionId?: string) => void;
-  onExportHtml?: (actionId?: string) => void;
-  onToggleSidebar?: (actionId?: string) => void;
-  onCycleViewMode?: (actionId?: string) => void;
-  onOpenPreferences?: (actionId?: string) => void;
-  /**
-   * Fires for `paragraphTable` (default ⌘⌥T). Opens the Insert Table
-   * modal via `tableInsertStore.requestInsert`. Wired in App.tsx.
-   */
-  onInsertTable?: (actionId?: string) => void;
-  /**
-   * Fires for the 6 in-table shortcuts (insert row above/below,
-   * insert column left/right, delete row, delete column). The
-   * dispatcher in App.tsx routes to the WYSIWYG or source-mode
-   * dispatcher based on the active viewMode and falls through to a
-   * no-op when the cursor isn't inside a table.
-   */
-  onTableAction?: (id: TableShortcutAction, actionId?: string) => void;
-  /** Live keyboard shortcut map. Defaults to DEFAULT_KEYBOARD_SHORTCUTS. */
-  shortcuts?: KeyboardShortcuts;
-}
-
-export type TableShortcutAction =
-  | "insert_row_before"
-  | "insert_row_after"
-  | "insert_column_before"
-  | "insert_column_after"
-  | "delete_row"
-  | "delete_column";
+export type { TableShortcutAction } from "./useKeyboardShortcuts.types";
 
 // Detect macOS once at module load. On macOS the primary shortcut modifier is
 // Cmd (metaKey) and Ctrl is a separate secondary modifier; on Windows/Linux the
 // primary modifier is Ctrl (ctrlKey) and the Windows/Super key (metaKey) is
 // never a shortcut modifier.
 const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+
+// Off-Mac second pass (audit b121): events being re-dispatched with the
+// Shift-typed symbol fallback, and events some binding has matched.
+const relaxedPass = new WeakSet<KeyboardEvent>();
+const matched = new WeakSet<KeyboardEvent>();
 
 /** Test a live KeyboardEvent against a stored shortcut string (e.g. "Cmd+Shift+K").
  *
@@ -77,9 +41,11 @@ const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform
  *
  *  Off-Mac a pressed metaKey (Windows/Super key), or AltGr
  *  (`getModifierState("AltGraph")`), never matches any binding.
- *  Off-Mac, a symbol key bound without Shift also matches when the layout
- *  needs Shift to type it (`event.key` is the symbol itself, e.g. "/" as
- *  Shift+7 on German); letters keep the exact Shift check.
+ *  On the off-Mac second pass only, a symbol key bound without Shift also
+ *  matches when the layout needs Shift to type it (`event.key` is the symbol
+ *  itself, e.g. "/" as Shift+7 on German); letters keep the exact Shift
+ *  check. The pass runs only when no binding matched exactly, so a binding
+ *  that wants the Shift wins (audit b121).
  *
  *  Key tokens: uppercase letters/digits map case-insensitively; arrow
  *  abbreviations (Up/Down/Left/Right) map to ArrowX; "Space" maps to " ".
@@ -124,16 +90,19 @@ function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
 
   // Off-Mac, a symbol the layout types with Shift ("/" is Shift+7 on German)
   // arrives as that symbol with shiftKey set; a binding without Shift still
-  // matches it. Letters keep the exact check (D190-WI-7, audit b120).
+  // matches it on the second pass. Letters keep the exact check (D190-WI-7,
+  // audits b120, b121).
   const shiftTypedSymbol =
-    !isMac && !wantShift && normalizedKey.length === 1 && !/[a-z]/i.test(normalizedKey) && event.key === normalizedKey;
+    relaxedPass.has(event) && !wantShift && normalizedKey.length === 1 && !/[a-z]/i.test(normalizedKey) && event.key === normalizedKey;
   if (wantShift !== event.shiftKey && !shiftTypedSymbol) return false;
 
   // Single-character keys: compare case-insensitively
-  if (normalizedKey.length === 1) {
-    return event.key.toUpperCase() === normalizedKey.toUpperCase();
-  }
-  return event.key === normalizedKey;
+  const hit =
+    normalizedKey.length === 1
+      ? event.key.toUpperCase() === normalizedKey.toUpperCase()
+      : event.key === normalizedKey;
+  if (hit) matched.add(event);
+  return hit;
 }
 
 export function useKeyboardShortcuts({
@@ -154,7 +123,7 @@ export function useKeyboardShortcuts({
   const editorView = useEditorStore((state) => state.editorView);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const dispatch = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const inCodeMirror = !!target?.closest?.(".cm-editor");
 
@@ -273,6 +242,12 @@ export function useKeyboardShortcuts({
           }
         }
       }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      dispatch(event);
+      if (isMac || matched.has(event)) return;
+      relaxedPass.add(event);
+      dispatch(event);
     };
 
     window.addEventListener("keydown", handleKeyDown);
