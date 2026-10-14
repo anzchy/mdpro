@@ -58,6 +58,30 @@ export async function waitFor(cond: () => boolean | Promise<boolean>, ms: number
   return cond();
 }
 
+export interface DrainSteps {
+  /** Resolves once no flusher holds flush.lock. */
+  flushIdle: () => Promise<unknown>;
+  /** Runs one `push.mjs --flush` to completion. */
+  flushOnce: () => Promise<unknown>;
+  spoolEmpty: () => boolean;
+}
+
+/**
+ * Drives explicit flushes until the spool is empty, and throws if it is not
+ * empty by the deadline. A flusher that finds flush.lock held skips, and one
+ * that gets a 503 stops, so no fixed number of runs is enough on a slow
+ * machine (D196): each round waits for the lock to be free and runs one more
+ * flush.
+ */
+export async function drainSpool(steps: DrainSteps, deadlineMs = 20_000): Promise<void> {
+  const deadline = Date.now() + deadlineMs;
+  while (!steps.spoolEmpty()) {
+    if (Date.now() >= deadline) throw new Error(`drainSpool: spool not empty after ${deadlineMs} ms`);
+    await steps.flushIdle();
+    await steps.flushOnce();
+  }
+}
+
 export interface Receiver {
   child: ChildProcess;
   port: number;

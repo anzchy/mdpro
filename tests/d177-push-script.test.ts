@@ -4,7 +4,8 @@
  *
  * s1 the hook never waits on the network; s2 events survive an outage and
  * are replayed once each, in order, with their original spool_ts and one
- * epoch, and two concurrent flushers do not double-send; s3 malformed stdin
+ * epoch, also when a slow receiver makes the hook-spawned flushers skip
+ * (D196), and two concurrent flushers do not double-send; s3 malformed stdin
  * is logged and still exits 0; s4 a seq lock held by a live process sends
  * the event to orphan.jsonl and the hook still returns within 1 s.
  *
@@ -17,7 +18,7 @@ import http from "node:http";
 import net from "node:net";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { PUSH, fakeToken, freePort, makeTemp, readJsonl, readText, rmTemp, waitFor } from "./support/d177Hooks";
+import { PUSH, drainSpool, fakeToken, freePort, makeTemp, readJsonl, readText, rmTemp, waitFor } from "./support/d177Hooks";
 
 let home: string;
 let dir: string;
@@ -58,7 +59,8 @@ interface Hit {
   token: string | undefined;
 }
 
-async function recordingServer(failFirst: number): Promise<{ port: number; hits: Hit[] }> {
+/** Answers 503 to the first `failFirst` requests, each held `failDelayMs` before it is answered. */
+async function recordingServer(failFirst: number, failDelayMs = 0): Promise<{ port: number; hits: Hit[] }> {
   const hits: Hit[] = [];
   let failures = 0;
   const server = http.createServer((req, res) => {
@@ -69,7 +71,8 @@ async function recordingServer(failFirst: number): Promise<{ port: number; hits:
       const status = failures < failFirst ? 503 : 200;
       if (status === 503) failures++;
       hits.push({ status, seq: body.spool_seq, ts: body.spool_ts, epoch: body.spool_epoch, dead: body.spool_dead, token: req.headers["x-mdpro-token"] as string | undefined });
-      res.writeHead(status).end("{}");
+      if (status === 503 && failDelayMs > 0) setTimeout(() => res.writeHead(status).end("{}"), failDelayMs);
+      else res.writeHead(status).end("{}");
     });
   });
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
@@ -110,9 +113,14 @@ describe("D177-WI-2 push.mjs", () => {
     expect(spool().map((e) => [e.spool_source, e.spool_seq, e.n])).toEqual([["dtrack-mini", 1, 1]]);
   }, 15_000);
 
-  it("s2: after an outage every seq arrives exactly once, in order, with its original spool_ts", async () => {
+  it.each([
+    ["an outage", 0],
+    // D196: each 503 is held long enough that the flushers spawned by hooks 2-5
+    // find flush.lock taken and skip, the interleaving a slow CI runner hits.
+    ["an outage behind a slow receiver", 1500],
+  ])("s2: after %s every seq arrives exactly once, in order, with its original spool_ts", async (_n, failDelayMs) => {
     const N = 5;
-    const { port, hits } = await recordingServer(3);
+    const { port, hits } = await recordingServer(3, failDelayMs);
     writeConfig(port);
     const windows: [number, number][] = [];
     for (let i = 1; i <= N; i++) {
@@ -120,9 +128,14 @@ describe("D177-WI-2 push.mjs", () => {
       expect((await runPush([], hookJson(i))).code).toBe(0);
       windows.push([before, Date.now()]);
     }
-    await flushIdle();
-    expect((await runPush(["--flush"], "")).code).toBe(0);
-    await waitFor(() => spool().length === 0, 8000);
+    // The hooks' own detached flushers must reach the receiver before any
+    // explicit flush runs; waited for, since a one-shot check would race them.
+    expect(await waitFor(() => hits.length > 0, 8000), "a hook-spawned flusher POSTed").toBe(true);
+    await drainSpool({
+      flushIdle,
+      flushOnce: async () => expect((await runPush(["--flush"], "")).code).toBe(0),
+      spoolEmpty: () => spool().length === 0,
+    });
     await flushIdle();
     const ok = hits.filter((h) => h.status === 200);
     expect(ok.map((h) => h.seq)).toEqual([1, 2, 3, 4, 5]);
@@ -137,7 +150,7 @@ describe("D177-WI-2 push.mjs", () => {
       expect(t).toBeLessThanOrEqual(after);
       expect(h.ts).toBe(ok[h.seq - 1].ts);
     }
-  }, 15_000);
+  }, 30_000);
 
   it("s2: two concurrent --flush runs deliver each seq once", async () => {
     writeConfig(await freePort());
