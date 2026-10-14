@@ -1,0 +1,22 @@
+/*
+ * Purpose: ADR-0094 display (i) — a kept link reference definition renders as a muted,
+ * monospace, non-editable block showing its source text. Tokens swap per theme
+ * (.theme-light / .theme-dark), so no override is needed.
+ */
+.milkdown-editor .ProseMirror .mdpro-link-definition {
+  margin: 4px 0;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--color-muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-radius: 4px;
+  cursor: default;
+  user-select: none;
+}
+
+.milkdown-editor .ProseMirror .mdpro-link-definition.ProseMirror-selectednode {
+  background: var(--color-accent-soft);
+  outline: none;
+}

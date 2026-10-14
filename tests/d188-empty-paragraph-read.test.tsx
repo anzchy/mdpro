@@ -113,18 +113,17 @@ rows("D188 B — reader-only inputs", [
     saved: "```\n!x\n\n\n\ny\n```\n",
   },
   {
-    // An edited save loses the definition: a separate, pre-existing defect outside D188.
-    // The untouched save keeps it (F3).
+    // D194 / ADR-0094: the definition is kept and is an anchor, so three blank lines give one gap.
     id: "B7 a leading definition is not an anchor",
     file: "[r]: http://x\n\n\n\na\n",
-    reopens: "p(a)",
+    reopens: "link_definition[] ∅ p(a)",
     edit: { at: "end", needle: "a", text: "!" },
-    saved: "a!\n",
+    saved: "[r]: http://x\n\n\n\na!\n",
   },
   {
     id: "B7b a definition between paragraphs is not counted as blank lines",
     file: "a\n\n[r]: http://x\n\n\n\nb\n",
-    reopens: "p(a) p(b)",
+    reopens: "p(a) link_definition[] ∅ p(b)",
   },
   {
     id: "B9 code fence followed by 3 blank lines",

@@ -1,6 +1,6 @@
 /**
- * Purpose: a REAL Milkdown editor (commonmark + gfm and the ADR-0091 empty-paragraph
- * plugins, as MilkdownEditor.tsx registers them)
+ * Purpose: a REAL Milkdown editor (mdpro's commonmark preset + gfm and the ADR-0091
+ * empty-paragraph edge serializer, as MilkdownEditor.tsx registers them)
  * mounted in jsdom, with its block geometry scripted from a per-block height table that
  * can grow after the first scroll write (D22 WI-1). Modelled on the adapter rig in
  * `tests/scroll-anchor-correspondence.test.ts` (which stays unedited); contract: WI-1 of
@@ -33,10 +33,8 @@
 import { defaultValueCtx, Editor, editorViewCtx, rootCtx } from "@milkdown/kit/core";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import type { EditorView } from "@milkdown/kit/prose/view";
-import {
-  commonmarkWithBlankLineGaps,
-  emptyParagraphEdgeSerializerPlugins,
-} from "../../src/plugins/milkdown/emptyParagraph";
+import { mdproCommonmark } from "../../src/plugins/milkdown/commonmarkPreset";
+import { emptyParagraphEdgeSerializerPlugins } from "../../src/plugins/milkdown/emptyParagraph";
 
 export interface MilkdownRigOptions {
   /** Height of each top-level block, px. Its length must equal the doc's childCount. */
@@ -101,7 +99,7 @@ export async function mountScriptedMilkdownRig(
       ctx.set(rootCtx, root);
       ctx.set(defaultValueCtx, markdown);
     })
-    .use(commonmarkWithBlankLineGaps)
+    .use(mdproCommonmark)
     .use(gfm)
     .use(emptyParagraphEdgeSerializerPlugins)
     .create();

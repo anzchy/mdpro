@@ -8,8 +8,9 @@
  * transformer receives the source as `file.value` (the same route preset-commonmark's
  * own `remarkMarker` reads). This plugin replaces the preset's
  * `remarkPreserveEmptyLinePlugin` at the same place in the plugin order, so it runs
- * after `remarkInlineLink` (definitions are already spliced out) and after
- * `remarkHTMLTransformer` (block html already sits inside a paragraph).
+ * after the ADR-0094 link-definition transformer (definitions are kept, with their
+ * positions) and after `remarkHTMLTransformer` (block html already sits inside a
+ * paragraph).
  *
  * Key decisions:
  *   - A NEW `$remark` id. The preset's paragraph writer (`shouldPreserveEmptyLine`)
@@ -19,8 +20,8 @@
  *     `listItem`, `b` blank LINES between them (CRLF and whitespace-only lines count
  *     as one each; `>`-only lines count inside a quote) become floor((b−1)/2) empty
  *     paragraphs. An odd leftover is ignored. The whole source interval between the
- *     two siblings must be blank: a definition removed by link inlining leaves a
- *     non-blank interval, so it adds no gap (matrix B7b).
+ *     two siblings must be blank. A kept link definition (ADR-0094) is an ordinary
+ *     positioned sibling, so blank lines next to it count (matrix B7, B7b, D194 R13).
  *   - Leading and trailing blank lines in a container are never counted: only pairs.
  *   - `<br>` handling is D192's narrow reader, copied from the retired pnpm patch
  *     (a backport of `visitEmptyLine` in @milkdown/preset-commonmark 7.22.3): a
@@ -28,7 +29,7 @@
  *     br becomes an empty paragraph, an inline br is left alone. Case-insensitive.
  *
  * @coordinates-with src/plugins/milkdown/emptyParagraph/edgeSerializer.ts — the writer half
- * @coordinates-with src/plugins/milkdown/emptyParagraph/index.ts — swaps this into the preset
+ * @coordinates-with src/plugins/milkdown/commonmarkPreset.ts — swaps this into the preset
  */
 import { $remark } from "@milkdown/kit/utils";
 

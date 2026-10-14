@@ -25,10 +25,8 @@ import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlig
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
 import { editSyncMilkdownPlugin } from "../../plugins/milkdown/editSync/plugin";
 import { tableParityPlugins } from "../../plugins/milkdown/table/parityPlugins";
-import {
-  commonmarkWithBlankLineGaps,
-  emptyParagraphEdgeSerializerPlugins,
-} from "../../plugins/milkdown/emptyParagraph";
+import { mdproCommonmark } from "../../plugins/milkdown/commonmarkPreset";
+import { emptyParagraphEdgeSerializerPlugins } from "../../plugins/milkdown/emptyParagraph";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
 import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
@@ -149,7 +147,10 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
         })
         // ADR-0091 (D188): empty paragraphs are written as blank lines and read back by
         // count; the preset's `<br />` empty-line plugin is swapped out of commonmark.
-        .use(commonmarkWithBlankLineGaps)
+        // ADR-0094 (D194): link definitions are kept as `link_definition` blocks; the
+        // preset's `remarkInlineLink` is swapped out the same way. Both swaps live in
+        // mdproCommonmark, the one composition the test rigs use too.
+        .use(mdproCommonmark)
         .use(gfm)
         .use(emptyParagraphEdgeSerializerPlugins)
         // ADR-0067: ragged tables widen at parse time; empty cells serialize blank. After gfm.
