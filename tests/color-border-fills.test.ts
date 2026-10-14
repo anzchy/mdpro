@@ -68,19 +68,12 @@ const USES: Use[] = [
     kind: "line",
     note: "1px column-resize hairline",
   },
-  {
-    file: S + "settings-about.css",
-    selector: ".about-progress-bar::-webkit-progress-bar",
-    ...BG,
-    kind: "retarget",
-    note: "WI-3.1",
-  },
   { file: S + "app-shell.css", selector: ".split-divider", ...BG, kind: "dead", note: "orphan: no src/ file references split-divider" },
   { file: S + "tab-bar.css", selector: ".tab__close:hover", ...BG, kind: "dead", note: "A8 dead code: only src/components/TabBar/ renders it" },
 ];
 
-/** Expected rows per kind; WI-3.1 takes `retarget` to 0. */
-const KIND_COUNTS: Record<Kind, number> = { line: 2, retarget: 1, dead: 2 };
+/** Expected rows per kind. WI-3.1 moved the one `retarget` row, the About progress track, to `--color-border-subtle`. */
+const KIND_COUNTS: Record<Kind, number> = { line: 2, retarget: 0, dead: 2 };
 
 /** Rows are pinned by the whole declaration and compared as multisets (audit b129). */
 const keyOf = (u: { file: string; selector: string; property: string; value: string }) =>

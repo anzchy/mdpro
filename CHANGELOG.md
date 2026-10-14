@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Borders are now a soft mix of the text colour, popovers and dialogs share one lighter hairline-ring shadow, the light theme's selection tint is lighter, and each theme sets `color-scheme` so native scrollbars and controls follow it (UI redesign Deliverable B)
+
 ## [0.3.4] - 2026-10-15
 
 ### Highlights

@@ -84,7 +84,7 @@
 }
 
 .about-progress-bar::-webkit-progress-bar {
-  background: var(--color-border);
+  background: var(--color-border-subtle);
   border-radius: 3px;
 }
 

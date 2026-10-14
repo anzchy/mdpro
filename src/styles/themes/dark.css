@@ -1,12 +1,17 @@
 .theme-dark {
+  color-scheme: dark;
   --color-bg: #0f1115;
   --color-surface: #161a22;
   --color-panel: #141821;
   --color-text: #e5e7eb;
   --color-muted: #9aa4b2;
-  --color-border: #242a36;
+  --color-border: color-mix(in srgb, var(--color-text) 12%, transparent);
+  --color-border-subtle: color-mix(in srgb, var(--color-text) 7%, transparent);
+  --color-hover: color-mix(in srgb, var(--color-text) 8%, transparent);
+  --shadow-soft: 0 0 0 0.5px color-mix(in srgb, var(--color-text) 16%, transparent),
+                 0 8px 24px color-mix(in srgb, black 45%, transparent);
   --color-accent: #60a5fa;
-  --color-accent-soft: color-mix(in srgb, #60a5fa 22%, transparent);
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 22%, transparent);
   --color-danger: #f87171;
   --color-danger-soft: color-mix(in srgb, #f87171 18%, transparent);
   --color-editor-bg: #0f1115;

@@ -1,12 +1,17 @@
 .theme-light {
+  color-scheme: light;
   --color-bg: #ffffff;
   --color-surface: #f6f7fb;
   --color-panel: #ffffff;
   --color-text: #1a1a1a;
   --color-muted: #6b7280;
-  --color-border: #e5e7eb;
+  --color-border: color-mix(in srgb, var(--color-text) 10%, transparent);
+  --color-border-subtle: color-mix(in srgb, var(--color-text) 6%, transparent);
+  --color-hover: color-mix(in srgb, var(--color-text) 5%, transparent);
+  --shadow-soft: 0 0 0 0.5px color-mix(in srgb, var(--color-text) 12%, transparent),
+                 0 8px 24px color-mix(in srgb, var(--color-text) 8%, transparent);
   --color-accent: #2563eb;
-  --color-accent-soft: color-mix(in srgb, #2563eb 18%, transparent);
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
   --color-danger: #dc2626;
   --color-danger-soft: color-mix(in srgb, #dc2626 12%, transparent);
   --color-editor-bg: #ffffff;

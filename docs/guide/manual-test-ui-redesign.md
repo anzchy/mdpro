@@ -47,9 +47,23 @@ Nothing to check by hand: the computed-style capture for this commit is an empty
 
 ---
 
-## 3. WI-3.1 — Theme token retune (to be written by WI-3.1)
+## 3. WI-3.1 — Theme token retune
 
-Known in advance, from the WI-3.0 rulings (delegator, 2026-10-15):
+Open each surface in both themes and compare with the previous build.
+
+| # | Where | Expected |
+|---|---|---|
+| 3.1 | Any dialog or menu: Settings (⌘,), the table context menu, the image context menu, a toast | Border is a soft text-coloured hairline; the shadow is a thin ring plus one faint drop shadow, not the old wide blur |
+| 3.2 | Bottom tab strip, settings rows, the TOC rail edge | Hairlines are slightly softer in light and slightly lighter in dark; none disappears |
+| 3.3 | Source mode: select text; put the cursor in a table cell | Light: the selection and active-cell tint is a little lighter than before. Dark: unchanged |
+| 3.4 | Dark theme, in the Tauri window: scroll a long document; open Settings › Editor | The native scrollbar and checkboxes are dark (`color-scheme: dark`). Light theme: light. **Device check, batched at STOP 3** |
+| 3.5 | Light ↔ dark switch | Tokens swap at once; no surface keeps the other theme's border or shadow |
+
+Computed-style evidence: `~/.mdpro-redesign/stage-3/index-wi31.md` (the browser harness renders every dark
+settings surface with light tokens, because `SettingsDialog.tsx` puts its own theme class on the dialog
+from the store; this is a harness artifact, not app behaviour, so check 3.1 in the Tauri window).
+
+From the WI-3.0 rulings (delegator, 2026-10-15):
 
 - **About progress-bar track → `--color-border-subtle`.** An intended change, by analogy with the Switch
   off-track ("a low text mix", DESIGN.md § Switch). Measured contrast, track on the settings dialog surface

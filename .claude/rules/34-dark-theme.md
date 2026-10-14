@@ -14,6 +14,8 @@ All styling must work in both themes.
 
 mdpro toggles **`.theme-light`** / **`.theme-dark`** on the `<html>`
 element in `App.tsx`. Token file locations: `31-design-tokens.md`.
+Each theme class also sets `color-scheme` (`light` / `dark`), so native
+scrollbars and form controls follow the theme in WKWebView (plan P WI-3.1).
 
 | Selector | Status |
 |---|---|

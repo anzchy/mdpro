@@ -39,6 +39,14 @@ in both themes. Roles are in the new design doc's § Tokens.
   (DR23)
 - `--motion-duration-fast`: hover-reveal opacity transitions (DR12)
 
+Per theme (both theme files, with a light copy in `:root`, Q2), derived
+from `--color-text` by `color-mix()` (WI-3.1):
+
+- `--color-border`: redefined as a text mix — hairlines and control edges
+- `--color-border-subtle`: row dividers, dialog header/footer, rail edge
+- `--color-hover`: hover fill for rows, tabs and icon buttons
+- `--shadow-soft`: now per theme, a hairline ring plus one faint shadow
+
 ## Authoring rules
 
 1. **Add to both theme files in the same commit.** Light-only or
