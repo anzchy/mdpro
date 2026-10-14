@@ -7,7 +7,12 @@
  * committer and dates, so the tests see neither the developer's git config nor
  * a hostile env a test has stubbed into `process.env` for the module.
  * `GIT_OPTIONAL_LOCKS=0` is always set, so a read (`status`) never refreshes the
- * index a snapshot is guarding.
+ * index a snapshot is guarding. Every call also passes
+ * `-c maintenance.auto=false -c gc.auto=0`, so a commit never leaves git's
+ * detached auto-maintenance running: it holds `objects/maintenance.lock`,
+ * which `snapshotRepo` would catch in one snapshot and not the next (D198).
+ * These are command-line settings, not repo config, so clones and raw
+ * `init`s get them too and a test's own `GIT_CONFIG_*` env cannot drop them.
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -26,6 +31,9 @@ export const FIXED_GIT_ENV: Record<string, string> = {
   GIT_AUTHOR_DATE: "2026-01-01T00:00:00Z",
   GIT_COMMITTER_DATE: "2026-01-01T00:00:00Z",
 };
+
+/** Leading `git` options that stop a commit from starting auto-maintenance (D198). */
+const NO_AUTO_MAINTENANCE = ["-c", "maintenance.auto=false", "-c", "gc.auto=0"];
 
 export type RepoSnapshot = {
   indexBytes: string | null;
@@ -102,7 +110,12 @@ export class GitSandbox {
       ...opts.env,
     };
     try {
-      return execFileSync("git", args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+      return execFileSync("git", [...NO_AUTO_MAINTENANCE, ...args], {
+        cwd,
+        env,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
     } catch (error) {
       if (opts.allowFail) return "";
       throw error;
