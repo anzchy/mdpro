@@ -98,11 +98,11 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | Windows | 说明 |
 |---|---|---|
-| 新建文档 | Unknown | ⌘N 对应的 Ctrl+N 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
-| 打开文件 | Unknown | Windows 审计仅部分验证（ead8c30），.md 过滤与重开已开文件未测；Ctrl+O（W1）D190 WI-1 f044aba 已修，真机未验 |
+| 新建文档 | Unknown | ⌘N 对应的 Ctrl+N 在审计时无效（W1），D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：Ctrl+N 新开 Untitled 标签 |
+| 打开文件 | Unknown | Windows 审计仅部分验证（ead8c30），.md 过滤与重开已开文件未测；Ctrl+O（W1）D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：弹出打开对话框 |
 | 最近打开 | Unknown | Windows 审计仅部分验证（ead8c30），多窗口写盘顺序未测 |
-| 保存 | Unknown | 审计时每次自己保存后都弹「External change detected」（W2），D190 WI-2 已修（读取改按文件身份判稳定，自写标记认每种写法，[ADR-0093](adr/0093-windows-reads-are-proven-stable-by-file-identity-and-the-self-write-gate-matches-every-spelling.md)），真机未验；Ctrl+S 经 D190 WI-1 f044aba 已修，真机未验 |
-| 关闭文档 | Unknown | ⌘W 对应的 Ctrl+W 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
+| 保存 | Unknown | 审计时每次自己保存后都弹「External change detected」（W2），D190 WI-2 已修（读取改按文件身份判稳定，自写标记认每种写法，[ADR-0093](adr/0093-windows-reads-are-proven-stable-by-file-identity-and-the-self-write-gate-matches-every-spelling.md)），真机未验；Ctrl+S 经 D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）（该次运行用的是 WI-2 之前的构建，仍弹 W2 提示） |
+| 关闭文档 | Unknown | ⌘W 对应的 Ctrl+W 在审计时无效（W1），D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：关闭未修改的标签 |
 | 拖拽打开文件 | Unknown | Windows 审计未验证（ead8c30） |
 | Finder 文件关联 | N/A | Finder 关联是 macOS 专有；Windows 的 .md 关联未检查 |
 | 原子写入保存 | Unknown | Windows 审计未验证（ead8c30） |
@@ -160,18 +160,18 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 行内代码 | Unknown | 行内代码 Mod-Shift-` 与删除线 Ctrl-Shift-` 在 Windows 是同一组合（W6，D190 WI-6 未修），哪个胜出待真实按键复核 |
 | 插入链接（WYSIWYG） | Unknown | Windows 审计未验证（ead8c30）；审计中 WYSIWYG Ctrl+K 提交后未生成链接，待真人复核 |
 | 链接 URL 消毒 | Unknown | Windows 审计仅部分验证（ead8c30），WYSIWYG 路径与 `javascript:` 的提示未测 |
-| 高亮选区 | Unknown | Ctrl+Shift+H 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
+| 高亮选区 | Unknown | Ctrl+Shift+H 在审计时无效（W1），D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)） |
 | `==text==` 往返 | Unknown | Windows 审计未验证（ead8c30） |
-| 图片粘贴 | Unknown | D190 WI-3 41487a2 修了 CSP，真机未验 |
+| 图片粘贴 | Unknown | D190 WI-3 41487a2 修了 CSP；本地图片显示已在 Windows 真机验证（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)），粘贴本身未测 |
 | 图片粘贴校验 | Unknown | Windows 审计未验证（ead8c30） |
 | 上传进度占位 | Unknown | Windows 审计未验证（ead8c30） |
 | 未保存文档禁粘贴守卫 | Unknown | Windows 审计未验证（ead8c30） |
 | 批量多图粘贴 | Unknown | Windows 审计未验证（ead8c30） |
-| 图片拖放插入 | Unknown | Windows 审计未验证（ead8c30）；显示依赖的 D190 WI-3 41487a2 修了 CSP，真机未验 |
+| 图片拖放插入 | Unknown | Windows 审计未验证（ead8c30）；显示依赖的 D190 WI-3 41487a2 修了 CSP，显示已在 Windows 真机验证（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)），拖放本身未测 |
 | 编辑器内拖拽文字 / 表格 | Unknown | Windows 审计未验证（ead8c30） |
 | 图片缩放菜单 | Unknown | Windows 审计未验证（ead8c30） |
 | 图片宽度写回 Markdown | Unknown | Windows 审计未验证（ead8c30） |
-| 本地图片渲染 | Unknown | D190 WI-3 41487a2 修了 CSP，真机未验 |
+| 本地图片渲染 | Unknown | D190 WI-3 41487a2 修了 CSP，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：File → Open 与单实例打开两条路径下 `asset.localhost` 图片都能加载，无 img-src 违规 |
 | 粘贴 HTML 消毒 | Unknown | Windows 审计未验证（ead8c30） |
 | 粘贴参差表格（WYSIWYG） | Unknown | Windows 审计未验证（ead8c30） |
 | 空表头行自动补齐（WYSIWYG） | Unknown | Windows 审计未验证（ead8c30） |
@@ -210,7 +210,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 能力 | Windows | 说明 |
 |---|---|---|
 | 插入表格对话框 | Unknown | Windows 审计未验证（ead8c30） |
-| 插入行 / 列 | Unknown | Ctrl+Alt+方向键在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验；右键插入行已通过 |
+| 插入行 / 列 | Unknown | Ctrl+Alt+方向键在审计时无效（W1），D190 WI-1 f044aba 已修，Ctrl+Alt+↑ 已在 Windows 真机验证（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)），其余方向未测；右键插入行已通过 |
 | 删除行 / 列 / 整表 | Unknown | Ctrl+Alt+Backspace 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
 | 移动行 / 列 | Unknown | Windows 审计仅部分验证（ead8c30），移动结果与首行置灰未测 |
 | 列对齐 | Unknown | Windows 审计未验证（ead8c30） |
@@ -277,7 +277,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | Windows | 说明 |
 |---|---|---|
-| 导出 HTML | Unknown | ⌘⇧E 对应的 Ctrl+Shift+E 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验；建议文件名为双扩展名 `basic.md.html`（W7） |
+| 导出 HTML | Unknown | ⌘⇧E 对应的 Ctrl+Shift+E 在审计时无效（W1），D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：弹出另存为对话框；建议文件名为双扩展名 `basic.md.html`（W7） |
 | 默认导出目录 | Unknown | Windows 审计未验证（ead8c30） |
 | 内嵌样式开关 | Unknown | Windows 审计未验证（ead8c30） |
 | 导出 HTML 片段命令 | Unknown | Windows 审计未验证（ead8c30） |
@@ -310,9 +310,9 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 能力 | Windows | 说明 |
 |---|---|---|
 | 大纲侧栏 | Partial | 限制：270% 缩放的窄窗口下侧栏被挤到约 25 CSS px、大纲项点不到（W8，归 D189） |
-| 切换侧栏 | Unknown | ⌘⇧L 对应的 Ctrl+Shift+L 在审计时无效（W1），D190 WI-1 f044aba 已修，真机未验 |
-| 底部标签条 | Partial | 限制：新建按钮提示仍写 ⌘N（W7，D190 WI-7 暂缓）。审计所见经单实例路由打开的标签显示整条 `\\?\C:\…` 路径（W5），D190 WI-5 已修：启动参数去掉 `\\?\` 前缀，标签按 `/` 与 `\` 取文件名，真机未验 |
-| 视图模式切换 | Partial | 限制：Ctrl+2 / Ctrl+4 不切模式且与标题快捷键冲突（D190 WI-6 未修）；Ctrl+/ 经 D190 WI-1 f044aba 已修，真机未验 |
+| 切换侧栏 | Unknown | ⌘⇧L 对应的 Ctrl+Shift+L 在审计时无效（W1），D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)） |
+| 底部标签条 | Partial | 限制：新建按钮提示仍写 ⌘N（W7，D190 WI-7 暂缓）。审计所见经单实例路由打开的标签显示整条 `\\?\C:\…` 路径（W5），D190 WI-5 已修：启动参数去掉 `\\?\` 前缀，标签按 `/` 与 `\` 取文件名，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)） |
+| 视图模式切换 | Partial | 限制：Ctrl+2 / Ctrl+4 不切模式且与标题快捷键冲突（D190 WI-6 未修）；Ctrl+/ 经 D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)） |
 | 恢复上次视图模式 | Unknown | Windows 审计未验证（ead8c30） |
 | Toast 通知 | Unknown | Windows 审计仅部分验证（ead8c30），关闭按钮未测 |
 | 加载指示 | Unknown | Windows 审计未验证（ead8c30） |
@@ -375,7 +375,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 写入确认对话框 | Unknown | Windows 审计未验证（ead8c30） |
 | 客户端配置安装器 | Unknown | Windows 审计仅部分验证（ead8c30），点 Install 写客户端配置未测 |
 | 连接测试与端口复制 | Unknown | Windows 审计仅部分验证（ead8c30），连接测试结果与端口复制未测 |
-| 退出时清理服务配置 | Partial | 限制：经 mdpro → Exit 退出后 `server.port` / `server.token` 留在原处（W4，D190 WI-4 未修） |
+| 退出时清理服务配置 | Shipped | 审计时经 mdpro → Exit 退出后 `server.port` / `server.token` 留在原处（W4）；D190 WI-4 `da93e80` 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：每种退出前两文件都在，退出后都不在 |
 | MCP 服务器信息查询 | Unknown | Windows 审计未验证（ead8c30） |
 | 验证构建的 MCP 端口 | N/A | ADR-0047 验证构建只在 macOS |
 
@@ -424,7 +424,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | Windows | 说明 |
 |---|---|---|
-| 快捷键改键 | Stub | 设置页在 Windows 上全显示 Cmd+…（W7，D190 WI-7 未修）；绑定本身经 D190 WI-1 f044aba 已修，真机未验 |
+| 快捷键改键 | Stub | 设置页在 Windows 上全显示 Cmd+…（W7，D190 WI-7 未修）；绑定本身经 D190 WI-1 f044aba 已修，所测 11 个组合键已在 Windows 真机验证（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)） |
 | 默认视图模式 | Unknown | Windows 审计仅部分验证（ead8c30），改默认视图后重开未测 |
 | 自动保存间隔 | Unknown | Windows 审计仅部分验证（ead8c30），非默认间隔未测 |
 | 图片目录与外链复制 | Unknown | Windows 审计未验证（ead8c30） |
@@ -447,7 +447,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 
 | 能力 | Windows | 说明 |
 |---|---|---|
-| 新建窗口 | Unknown | Ctrl+Shift+N 在审计时无效（W1），D190 WI-1b 37a3f6d 已修，真机未验；层叠未测 |
+| 新建窗口 | Unknown | Ctrl+Shift+N 在审计时无效（W1），D190 WI-1b 37a3f6d 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：一次按键只开一个窗口；层叠未测 |
 | 多窗口文档 | Unknown | Windows 审计未验证（ead8c30） |
 | 全局窗口状态持久化 | Unknown | Windows 审计未验证（ead8c30） |
 | 按文件记忆窗口几何 | Unknown | Windows 审计未验证（ead8c30） |
@@ -463,9 +463,9 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 重启应用更新 | Shipped | `src/components/common/settings/AboutSettings.tsx` | 下载完成后弹出「Save and Restart / Don't restart yet」二选一 |
 | 重启前保存守卫 | Shipped | `src/hooks/useUpdater.ts` | 留一个未命名的脏文档再点重启，被拦下并提示；把它保存好之后重启才放行。在 WYSIWYG 里打字后立刻点重启，写盘的是刚打的字而不是旧内容（先 flush 再判断，与关窗口、⌘Q 共用 `assessWindowUnsaved`）；flush 失败则一个字都不写、只弹一次提示 |
 | 版本号显示 | Shipped | `src-tauri/src/commands/updater.rs` | ⌘, → About 里显示 `get_app_version` 返回的版本号，与 `tauri.conf.json` 里的一致 |
-| 退出守卫：原生钩子、逐窗口提示与回复通道 `quit_guard_reply` | Partial | `src-tauri/src/services/quit_guard/macos.rs`, `src-tauri/src/services/quit_guard/driver_request.rs`, `src-tauri/src/commands/quit_guard.rs`, `src-tauri/src/services/quit_guard/driver.rs`, `src-tauri/src/services/quit_guard/rounds.rs`, `src-tauri/src/services/quit_guard/backstop.rs`, `src/hooks/useQuitGuard.ts`, `src/utils/quitGuardHandlers.ts`, `src/utils/quitDraftBackstop.ts`, `src/utils/quitDiscardSnapshot.ts`, `src/utils/quitDialogModel.ts` | **限制：对话框送达之后渲染进程才冻死时，两秒超时已不适用（ADR-0029），出路只有 ADR-0030 的菜单逃生口 *Stop Waiting and Quit…*（见下一行；2026-09-25 已对着 `SIGSTOP` 冻住的渲染进程真机验过，`docs/test/20260925-r7-d29-d24-gui-acceptance.md`），且在草稿兜底阶段（ADR-0035，≤2 秒）点它不起作用；D26（窗口答完退出提示后仍可编辑、commit 时被静默丢弃）已按 ADR-0035 修复并于 2026-09-25 真机验收通过（ADR-0035 Accepted），但仍有两条限制：①原生警告的 Quit Without Saving（ADR-0027 §5）仍丢掉用户已接受的 discard，且后台标签页的编辑在这条路上仍被静默丢弃——改它须另立 ADR 取代 ADR-0027 §5；②commit 时等 `DraftGate::close()` 没有上界，一次卡住的保存会冻住主线程（`app.quit.commit` 的 `gateWaitMs` 只记录等了多久，不设限）。** 探针已实测：`NSTerminateLater` 未答复期间 AppKit 完全屏蔽退出路径，第二次 ⌘Q 连 IMP 都进不去（日志零字节增长），所以「再按一次 ⌘Q」不是逃生口。 2026-09-23 先在 `ab54ee6` 的 release 包上跑过一轮（`docs/test/20260923-d16-gui-acceptance.md`）：G2 / G13 / G15 / G22 通过，**G20 / G21 失败**——`useQuitGuard.ts` 当时用全局 `listen`，一条点对点的提示被每个窗口都收到了，于是两个窗口同时弹框，没被提示的那个点 Cancel 则毫无效果。改为按 webview 订阅之后**已在 `8a7c1a7` 上真机复验通过**：两个脏窗口只弹一个框，错相 cancel 被拒且日志里带 `outOfPhase`。同一轮里 **ADR-0027 / ADR-0029 的超时与原生警告也第一次被实测通过**——超时在 +2.00 s 弹出警告框，选 Quit Without Saving 后提交 `deleted:0` 并在 3 ms 内退出，证明 `runModal` 的嵌套 run loop 不与驱动死锁，草稿文件逐字节未变；先应答 `delivered` 再挂住 3 分 29 秒不会超时。**这批证据横跨两个二进制**：G20/G21 复验、超时与警告框跑在一个 `--features tauri/devtools` 的构建上，release 包上跑的是另外四条。警告框里选了什么原先不记日志（选 Quit Without Saving 只留 `commit`，选 Keep Open 只留 `cancel {reason:userKeptOpen}`），**已在 `0989941` 补上** `app.quit.fallback`（见下方怎么确认）。另外 ADR-0027 警告框上 Escape 不做任何事——AppKit 只把 Escape 绑给标题字面为 "Cancel" 的按钮，而 Keep Open 必须占 Return 默认位。WI-4 已把 `applicationShouldTerminate:` 用 `class_addMethod` 加到运行中的 tao 委托类上（ADR-0025 §1），WI-7 已接上 webview 应答方：⌘Q 时 `app:quit-requested` 问每个窗口脏不脏，`app:quit-prompt` 再逐个提示，答案经 `quit_guard_reply` 回到协调器。**怎么确认**：启动时 `~/.mdpro/mdpro.log` 应有一条 `app.quit.hook_installed`，`context.delegateClass` 为 tao 的 `TaoAppDelegateParent`、`outcome` 为 `added`；不是 `added` 就说明钩子没装上，那一行是 error 级、带 `error` 原因。改脏一个文档后 ⌘Q 应出现 `app.quit.request` 并弹出该窗口的保存提示；窗口两秒内不应答才出现 `app.quit.timeout` 与原生警告「mdpro isn't responding to the quit request」，Keep Open 取消退出，Quit Without Saving 直接退出且**不删任何草稿**（ADR-0027 §5）。**两秒只卡机器、不卡人**（ADR-0029）：提示弹出后窗口立刻回一条 `delivered`，日志里 `app.quit.answer` 的 `answer` 为 `delivered`；这条 ack 到了之后对话框可以开多久都不会超时，读半小时再点 Discard 依然生效。提示本身另有两秒的**送达**预算，从发提示那一刻起算；送不到（`emit_to` 失败或窗口没回 ack）直接转原生警告，不会把退出请求永远吊着。派发失败的效果会留下 `app.quit.effect_failed`（error 级，`context.effect` 为 `activate` / `emitPrompt` / `emitCancelled` / `reply` / `nativeFallback` / `timerDispatch` 之一，`0989941` 起不再有静默失败）；提示没送到记的是 `emitPrompt`，**不会**再记成 `app.quit.timeout`。警告框里的选择记为 `app.quit.fallback`，`context.answer` 只可能是 `keepOpen` / `quitWithoutSaving`，不带 id 与路径。提交时有草稿删除失败，`app.quit.commit` 为 `status: fail`。前端退出事件订阅失败记为 `app.quit.listen`（只带数量）；`quit_guard_reply` 的报错文本不再回显文档 id（`943846b`）。另外提示是**点对点**的：多窗口时只有被提示的那个窗口弹框，日志里 `app.quit.check` `phase: prompt` 只应有一条。被协调器拒绝的应答不再记成成功——`app.quit.answer` 会是 `status: fail`，`error` 里带 `outOfPhase` 之类的原因。参数校验可单独验：DevTools 里 `invoke('quit_guard_reply', { requestId: 1, answer: 'clean', documentIds: [] })` 会被拒绝并提示 documentIds 只能跟 discard 一起用。**ADR-0035 的复查与草稿兜底**：每次退出（即使全都干净）在 commit 前都多一轮 `app.quit.recheck`（`{requestId, round, windowCount}`），所有事件与应答都带 `round`，过期轮次的应答被忽略；答完之后又被改过的窗口会再弹一次提示，每个窗口每次退出最多再提示一次，已 Discard 且未再改动的文档不会再触发提示。已 Discard 之后又改过的文档会被兜底写草稿并**保留**该草稿（`drafted` 应答用 `documentIds` 点名，Rust 只认同一窗口自己 discard 过的 id；新编辑胜过旧的 Discard），`app.quit.commit` 的 `undiscarded` 记其数量。commit 前有一轮 `app.quit.backstop`：每个窗口给每个仍未保存的文档（不论是否活动标签页）写草稿并回 `drafted` 与计数，下次启动可恢复；这一轮自有 2 秒期限，到期直接 commit，不弹原生警告。`app.quit.commit` 里多了 `drafted` / `draftFailed` / `draftMissing` / `capped` / `undiscarded` / `backstop` / `gateWaitMs`，只有数量；应答送不到时前端记 `app.quit.send`（warn）；`draftFailed` / `draftMissing` / `capped` 任一大于 0 即为 `status: fail`。**2026-09-25 真机验收**（`docs/test/20260925-d26-gui-acceptance.md`）：窗口 A 在 round 0 答 `clean`，窗口 B 对话框开着时在 A 的后台标签页改字，B 答 Discard 后 round 1 里 A 被再提示；A 用掉再提示后又被改，会在下一轮被 capped（`capped:1`）而不再弹框，其编辑由兜底写成草稿，下次启动 *Recover drafts* 可恢复；在再提示上点 Keep editing 记 `app.quit.cancel`，两窗口都留着且可编辑。**退出请求进行中不开新窗口**（D74，`src-tauri/src/services/quit_guard/window_gate.rs`，2026-10-10 Mac mini `2a590cf` 的 release 包真机通过，`docs/test/20261010-d64-d70-d72-d73-d74-device-check.md`；被拒的外部打开之后日志仍多一条 `file.open.external` `success`，只是误导、什么都没打开）：提示开着时 New Window 无反应、不弹 toast，日志记 `window.create` `status: cancel` `context.reason: quit_pending`；从 Finder 打开一个未打开的文件记 `file.open.route` `outcome: refused-quit-pending`；已打开的文件照旧聚焦其窗口；Cancel 之后 New Window 恢复。**Windows / Linux（D190-WI-4，[ADR-0090](adr/0090-windows-and-linux-quit-through-the-quit-guard.md)，真机未验）**：原生钩子只在 macOS；那里由应用菜单的 Exit（见下方 `menu.app.quit` 行）经 `request_quit` 发起同一个请求，提交时 `reply(true)` 即 `AppHandle::exit(0)`；原生警告不画——超时把请求交还给窗口（不退出），逃生口直接按 Quit Without Saving 提交 |
+| 退出守卫：原生钩子、逐窗口提示与回复通道 `quit_guard_reply` | Partial | `src-tauri/src/services/quit_guard/macos.rs`, `src-tauri/src/services/quit_guard/driver_request.rs`, `src-tauri/src/commands/quit_guard.rs`, `src-tauri/src/services/quit_guard/driver.rs`, `src-tauri/src/services/quit_guard/rounds.rs`, `src-tauri/src/services/quit_guard/backstop.rs`, `src/hooks/useQuitGuard.ts`, `src/utils/quitGuardHandlers.ts`, `src/utils/quitDraftBackstop.ts`, `src/utils/quitDiscardSnapshot.ts`, `src/utils/quitDialogModel.ts` | **限制：对话框送达之后渲染进程才冻死时，两秒超时已不适用（ADR-0029），出路只有 ADR-0030 的菜单逃生口 *Stop Waiting and Quit…*（见下一行；2026-09-25 已对着 `SIGSTOP` 冻住的渲染进程真机验过，`docs/test/20260925-r7-d29-d24-gui-acceptance.md`），且在草稿兜底阶段（ADR-0035，≤2 秒）点它不起作用；D26（窗口答完退出提示后仍可编辑、commit 时被静默丢弃）已按 ADR-0035 修复并于 2026-09-25 真机验收通过（ADR-0035 Accepted），但仍有两条限制：①原生警告的 Quit Without Saving（ADR-0027 §5）仍丢掉用户已接受的 discard，且后台标签页的编辑在这条路上仍被静默丢弃——改它须另立 ADR 取代 ADR-0027 §5；②commit 时等 `DraftGate::close()` 没有上界，一次卡住的保存会冻住主线程（`app.quit.commit` 的 `gateWaitMs` 只记录等了多久，不设限）。** 探针已实测：`NSTerminateLater` 未答复期间 AppKit 完全屏蔽退出路径，第二次 ⌘Q 连 IMP 都进不去（日志零字节增长），所以「再按一次 ⌘Q」不是逃生口。 2026-09-23 先在 `ab54ee6` 的 release 包上跑过一轮（`docs/test/20260923-d16-gui-acceptance.md`）：G2 / G13 / G15 / G22 通过，**G20 / G21 失败**——`useQuitGuard.ts` 当时用全局 `listen`，一条点对点的提示被每个窗口都收到了，于是两个窗口同时弹框，没被提示的那个点 Cancel 则毫无效果。改为按 webview 订阅之后**已在 `8a7c1a7` 上真机复验通过**：两个脏窗口只弹一个框，错相 cancel 被拒且日志里带 `outOfPhase`。同一轮里 **ADR-0027 / ADR-0029 的超时与原生警告也第一次被实测通过**——超时在 +2.00 s 弹出警告框，选 Quit Without Saving 后提交 `deleted:0` 并在 3 ms 内退出，证明 `runModal` 的嵌套 run loop 不与驱动死锁，草稿文件逐字节未变；先应答 `delivered` 再挂住 3 分 29 秒不会超时。**这批证据横跨两个二进制**：G20/G21 复验、超时与警告框跑在一个 `--features tauri/devtools` 的构建上，release 包上跑的是另外四条。警告框里选了什么原先不记日志（选 Quit Without Saving 只留 `commit`，选 Keep Open 只留 `cancel {reason:userKeptOpen}`），**已在 `0989941` 补上** `app.quit.fallback`（见下方怎么确认）。另外 ADR-0027 警告框上 Escape 不做任何事——AppKit 只把 Escape 绑给标题字面为 "Cancel" 的按钮，而 Keep Open 必须占 Return 默认位。WI-4 已把 `applicationShouldTerminate:` 用 `class_addMethod` 加到运行中的 tao 委托类上（ADR-0025 §1），WI-7 已接上 webview 应答方：⌘Q 时 `app:quit-requested` 问每个窗口脏不脏，`app:quit-prompt` 再逐个提示，答案经 `quit_guard_reply` 回到协调器。**怎么确认**：启动时 `~/.mdpro/mdpro.log` 应有一条 `app.quit.hook_installed`，`context.delegateClass` 为 tao 的 `TaoAppDelegateParent`、`outcome` 为 `added`；不是 `added` 就说明钩子没装上，那一行是 error 级、带 `error` 原因。改脏一个文档后 ⌘Q 应出现 `app.quit.request` 并弹出该窗口的保存提示；窗口两秒内不应答才出现 `app.quit.timeout` 与原生警告「mdpro isn't responding to the quit request」，Keep Open 取消退出，Quit Without Saving 直接退出且**不删任何草稿**（ADR-0027 §5）。**两秒只卡机器、不卡人**（ADR-0029）：提示弹出后窗口立刻回一条 `delivered`，日志里 `app.quit.answer` 的 `answer` 为 `delivered`；这条 ack 到了之后对话框可以开多久都不会超时，读半小时再点 Discard 依然生效。提示本身另有两秒的**送达**预算，从发提示那一刻起算；送不到（`emit_to` 失败或窗口没回 ack）直接转原生警告，不会把退出请求永远吊着。派发失败的效果会留下 `app.quit.effect_failed`（error 级，`context.effect` 为 `activate` / `emitPrompt` / `emitCancelled` / `reply` / `nativeFallback` / `timerDispatch` 之一，`0989941` 起不再有静默失败）；提示没送到记的是 `emitPrompt`，**不会**再记成 `app.quit.timeout`。警告框里的选择记为 `app.quit.fallback`，`context.answer` 只可能是 `keepOpen` / `quitWithoutSaving`，不带 id 与路径。提交时有草稿删除失败，`app.quit.commit` 为 `status: fail`。前端退出事件订阅失败记为 `app.quit.listen`（只带数量）；`quit_guard_reply` 的报错文本不再回显文档 id（`943846b`）。另外提示是**点对点**的：多窗口时只有被提示的那个窗口弹框，日志里 `app.quit.check` `phase: prompt` 只应有一条。被协调器拒绝的应答不再记成成功——`app.quit.answer` 会是 `status: fail`，`error` 里带 `outOfPhase` 之类的原因。参数校验可单独验：DevTools 里 `invoke('quit_guard_reply', { requestId: 1, answer: 'clean', documentIds: [] })` 会被拒绝并提示 documentIds 只能跟 discard 一起用。**ADR-0035 的复查与草稿兜底**：每次退出（即使全都干净）在 commit 前都多一轮 `app.quit.recheck`（`{requestId, round, windowCount}`），所有事件与应答都带 `round`，过期轮次的应答被忽略；答完之后又被改过的窗口会再弹一次提示，每个窗口每次退出最多再提示一次，已 Discard 且未再改动的文档不会再触发提示。已 Discard 之后又改过的文档会被兜底写草稿并**保留**该草稿（`drafted` 应答用 `documentIds` 点名，Rust 只认同一窗口自己 discard 过的 id；新编辑胜过旧的 Discard），`app.quit.commit` 的 `undiscarded` 记其数量。commit 前有一轮 `app.quit.backstop`：每个窗口给每个仍未保存的文档（不论是否活动标签页）写草稿并回 `drafted` 与计数，下次启动可恢复；这一轮自有 2 秒期限，到期直接 commit，不弹原生警告。`app.quit.commit` 里多了 `drafted` / `draftFailed` / `draftMissing` / `capped` / `undiscarded` / `backstop` / `gateWaitMs`，只有数量；应答送不到时前端记 `app.quit.send`（warn）；`draftFailed` / `draftMissing` / `capped` 任一大于 0 即为 `status: fail`。**2026-09-25 真机验收**（`docs/test/20260925-d26-gui-acceptance.md`）：窗口 A 在 round 0 答 `clean`，窗口 B 对话框开着时在 A 的后台标签页改字，B 答 Discard 后 round 1 里 A 被再提示；A 用掉再提示后又被改，会在下一轮被 capped（`capped:1`）而不再弹框，其编辑由兜底写成草稿，下次启动 *Recover drafts* 可恢复；在再提示上点 Keep editing 记 `app.quit.cancel`，两窗口都留着且可编辑。**退出请求进行中不开新窗口**（D74，`src-tauri/src/services/quit_guard/window_gate.rs`，2026-10-10 Mac mini `2a590cf` 的 release 包真机通过，`docs/test/20261010-d64-d70-d72-d73-d74-device-check.md`；被拒的外部打开之后日志仍多一条 `file.open.external` `success`，只是误导、什么都没打开）：提示开着时 New Window 无反应、不弹 toast，日志记 `window.create` `status: cancel` `context.reason: quit_pending`；从 Finder 打开一个未打开的文件记 `file.open.route` `outcome: refused-quit-pending`；已打开的文件照旧聚焦其窗口；Cancel 之后 New Window 恢复。**Windows / Linux（D190-WI-4，[ADR-0090](adr/0090-windows-and-linux-quit-through-the-quit-guard.md)，Windows 真机已验 2026-10-14）**：原生钩子只在 macOS；那里由应用菜单的 Exit（见下方 `menu.app.quit` 行）经 `request_quit` 发起同一个请求，提交时 `reply(true)` 即 `AppHandle::exit(0)`；原生警告不画——超时把请求交还给窗口（不退出），逃生口直接按 Quit Without Saving 提交 |
 | 退出卡住时的逃生口：mdpro 菜单 → Stop Waiting and Quit…（`menu.app.stop_waiting_quit`） | Shipped | `src-tauri/src/menu.rs`, `src-tauri/src/services/quit_guard/driver_escape.rs`, `src-tauri/src/services/quit_guard/escape.rs`, `src-tauri/src/services/quit_guard/logging_escape.rs`, `src-tauri/src/services/quit_guard/alert_text.rs` | **2026-09-25 在 `3b6c157` 的 release 包上真机验收通过**（`docs/test/20260925-r7-d29-d24-gui-acceptance.md`，ADR-0036 Accepted）：m1 位置 / 可点 / 无快捷键，m2 空闲点击记 `noop`，m3 对话框开着时点击弹原生警告、Keep Open 恢复正常，以及它存在的理由——ADR-0030 的残留检查：提示送达后用 `SIGSTOP` 冻住渲染进程，点它仍弹出原生警告，Quit Without Saving 退出后下次启动草稿可恢复。须知：草稿兜底阶段（ADR-0035，≤2 秒）点它被忽略，要等兜底自己的期限到；从这里进入的原生警告有自己的标题与正文（「Stop waiting and quit mdpro?」，文案由 `alert_text.rs` 按触发原因选取）：说明 mdpro 还没查完每个窗口的未保存修改，现在退出会丢掉所有窗口的未保存修改、草稿保留；按钮与超时警告相同，超时那条的文案不变（2026-09-26 修复，仅单元与契约测试覆盖）。ADR-0030 / ADR-0036：mdpro 菜单里紧挨 Quit 下方，无快捷键、始终可点；只在 Rust 里处理，不发 `menu:action`，不依赖任何 webview。按协调器所处阶段裁决：空闲或已 commit 时什么都不做；一阶段、复查轮、提示未送达、对话框已弹出（`deciding`）时把这次退出请求交给 ADR-0027 的原生警告（Keep Open / Quit Without Saving），与超时走同一条路，此后迟到的窗口应答以 `fallbackOwns` 拒掉；警告框已在显示时再点被忽略，一个请求最多一个警告框；Keep Open 之后请求即结束，再 ⌘Q 卡住再点会再弹一次。**怎么确认**：空闲时点它，`tail -f ~/.mdpro/mdpro.log` 里（用 `jq` 看）应看到一条 `app.quit.escape`，`context.outcome` 为 `noop`、`phase` 为 `idle`；有脏文档时 ⌘Q、等保存对话框弹出后再点，应先出现 `app.quit.escape` `outcome: fallback`（不会有 `app.quit.timeout`）再弹原生警告，选 Keep Open 后有 `app.quit.fallback` `answer: keepOpen`、app 恢复正常。日志只带 `outcome` / `phase` / `requestId` / `round` / `unresolvedCount` / `reason`，全是数量与枚举，不含窗口标签、文档 id 或路径。**逃生口专用文案的真机检查待做**：`deciding` 时点它，警告标题应为「Stop waiting and quit mdpro?」、Keep Open 为默认按钮；另用 `SIGSTOP` 触发超时，警告应仍是「mdpro isn’t responding to the quit request」；浅色与深色外观各看一遍 |
-| 应用菜单 Exit 走退出守卫（Windows / Linux，`menu.app.quit`） | Absent | — | macOS 上没有这个菜单项：那里是预置的 Quit（⌘Q）与原生钩子，见「退出守卫」行。只在 Windows / Linux 上构建（`MENU_APP_QUIT`，id `menu.app.quit`，D190-WI-4，[ADR-0090](adr/0090-windows-and-linux-quit-through-the-quit-guard.md)），紧跟其后是 Stop Waiting and Quit…；它的 Windows 状态记在本区（平台集成）的「Windows 差异」表里，D191 首次填写时记 Unknown：WI-4 修了，真机未验。Windows 上的确认方法：改脏两个文档后点 mdpro → Exit，应弹出保存提示，`%USERPROFILE%\.mdpro\mdpro.log` 里有 `app.quit.menu_exit`（`context.outcome: requested`、`windowCount`）与 `app.quit.request`；退出后 `%APPDATA%\mdpro\server.port` / `server.token` 都不在，并有 `app.quit` 与 `mcp.http_server.stop` |
+| 应用菜单 Exit 走退出守卫（Windows / Linux，`menu.app.quit`） | Absent | — | macOS 上没有这个菜单项：那里是预置的 Quit（⌘Q）与原生钩子，见「退出守卫」行。只在 Windows / Linux 上构建（`MENU_APP_QUIT`，id `menu.app.quit`，D190-WI-4，[ADR-0090](adr/0090-windows-and-linux-quit-through-the-quit-guard.md)），紧跟其后是 Stop Waiting and Quit…；它的 Windows 状态记在本区（平台集成）的「Windows 差异」表里，D191 首次填写时记 Unknown：WI-4 修了，2026-10-14 Windows 真机已验。Windows 上的确认方法：改脏两个文档后点 mdpro → Exit，应弹出保存提示，`%USERPROFILE%\.mdpro\mdpro.log` 里有 `app.quit.menu_exit`（`context.outcome: requested`、`windowCount`）与 `app.quit.request`；退出后 `%APPDATA%\mdpro\server.port` / `server.token` 都不在，并有 `app.quit` 与 `mcp.http_server.stop` |
 | 云同步 | Absent | — | 设置里没有任何账号或同步项；文件只在本地。立场 |
 | 协作编辑 | Absent | — | 两个人同时开同一个文件不会看到对方的光标或改动。立场 |
 | 版本历史 | Absent | — | 没有查看或回滚历史版本的入口（草稿恢复只针对崩溃，不是版本史）。立场 |
@@ -480,8 +480,8 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 原生 macOS 菜单栏 | N/A | Windows 是窗口内原生菜单栏，结构照搬 macOS（含「mdpro」应用菜单，W7） |
 | 重启应用更新 | Unknown | Windows 审计未验证（ead8c30） |
 | 重启前保存守卫 | Unknown | Windows 审计未验证（ead8c30） |
-| 退出守卫：原生钩子、逐窗口提示与回复通道 `quit_guard_reply` | Partial | 限制：有脏文档时 mdpro → Exit 不提示直接退出、不走退出守卫（W4，D190 WI-4 未修） |
-| 退出卡住时的逃生口：mdpro 菜单 → Stop Waiting and Quit…（`menu.app.stop_waiting_quit`） | Unknown | Windows 审计仅部分验证（ead8c30），菜单项在但未点；Exit 本身绕过退出守卫（W4） |
+| 退出守卫：原生钩子、逐窗口提示与回复通道 `quit_guard_reply` | Partial | 限制：保存提示里的「保存后退出」一支未在 Windows 真机测。审计时有脏文档 Exit 不提示直接退出（W4）；D190 WI-4 `da93e80` 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：弹出保存提示，Cancel 与 Esc 取消退出，Discard 退出，干净时不提示，关闭最后一个窗口可退出 |
+| 退出卡住时的逃生口：mdpro 菜单 → Stop Waiting and Quit…（`menu.app.stop_waiting_quit`） | Unknown | Windows 审计仅部分验证（ead8c30），菜单项在但未点；Exit 已走退出守卫（D190 WI-4，Windows 真机已验） |
 | 协作编辑 | Unknown | Windows 审计未验证（ead8c30） |
 | 移动端 | N/A | 移动端与桌面平台无关 |
 | Windows 构建 | Partial | 0.3.1 安装包由 `.github/workflows/release.yml` 的 windows-latest 矩阵产出，能装能跑；`scripts/build-windows.sh` 本地构建从未验证；Windows 专属缺陷见 D190（审计 ead8c30 第 180 行） |
