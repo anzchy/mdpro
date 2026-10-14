@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The app's stylesheets are split into ordered section files, and chrome font sizes, radii, the hover-reveal transition, the dialog backdrop and text on accent fills now come from design tokens. Nothing looks different; a test now fails on any new untokenized literal (UI redesign Deliverable A)
 - Tauri 2.9.5 → 2.12.1, with wry 0.57, tao 0.37 and the single-instance, updater, process and opener plugins on their matching releases; no app code changed (ADR-0047 WI-004)
 
+### Fixed
+- A window opened while mdpro is running (⌘⇧N, or a file opened from Finder into a new window) now records that it has focus as soon as it opens, so MCP writes and external opens go to it; before, it was recorded only after focus left the window and came back (D217)
+
 ## [0.3.3] - 2026-10-14
 
 ### Highlights

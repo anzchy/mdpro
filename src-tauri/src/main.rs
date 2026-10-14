@@ -25,7 +25,7 @@ use tauri_app_lib::services::quit_guard::{
     self,
     effects::{AppQuitGuard, TauriQuitEffects},
 };
-use tauri_app_lib::services::{app_ready, http_server, logger, shadow_store};
+use tauri_app_lib::services::{app_ready, http_server, logger, shadow_store, window_focus};
 const BUILD_ID_RAW: Option<&str> = option_env!("MDPRO_BUILD_ID");
 // D175: `<version>@<sha>`, set only by release.yml's app build step; read
 // here, not in the lib, so a new id recompiles only this bin (release_info.rs).
@@ -313,34 +313,6 @@ fn main() {
                 WindowEvent::ThemeChanged(theme) => {
                     file_watcher::emit_theme_changed(window.app_handle(), theme);
                 }
-                WindowEvent::Focused(is_focused) => {
-                    let event_name = if *is_focused {
-                        "window.focus"
-                    } else {
-                        "window.blur"
-                    };
-                    logger::log_event(LogEntryPayload {
-                        level: LogLevel::Info,
-                        event: event_name.to_string(),
-                        status: LogStatus::Success,
-                        action_id: None,
-                        context: Some(json!({
-                            "windowId": window.label(),
-                            "windowLabel": window.label()
-                        })),
-                        duration_ms: None,
-                        error: None,
-                    });
-
-                    // Update MCP Shadow Store focused window
-                    if *is_focused {
-                        if let Some(store) = window.try_state::<SharedShadowStore>() {
-                            let _ = shadow_store::set_focused_window(&store, window.label());
-                        }
-                    } else if let Some(store) = window.try_state::<SharedShadowStore>() {
-                        let _ = shadow_store::clear_focused_window_if(&store, window.label());
-                    }
-                }
                 WindowEvent::CloseRequested { .. } => {
                     logger::log_event(LogEntryPayload {
                         level: LogLevel::Info,
@@ -507,6 +479,20 @@ fn main() {
                     });
                 }
             }
+        }
+
+        // D217: focus is recorded here, not in `on_window_event`. That
+        // listener is registered on a new window after it is built and made
+        // key, so a runtime-created window's first focus could arrive before
+        // it and be lost; this callback sees every known window's events.
+        if let RunEvent::WindowEvent {
+            ref label,
+            event: WindowEvent::Focused(focused),
+            ..
+        } = event
+        {
+            let store = app_handle.try_state::<SharedShadowStore>();
+            window_focus::on_focus_event(store.as_deref(), label, focused);
         }
 
         // Exit is the only cleanup site. The request-stage event that precedes

@@ -36,5 +36,6 @@ mod run_isolation_tests;
 pub mod shadow_store;
 #[cfg(feature = "verify-run")]
 pub mod verify_run;
+pub mod window_focus;
 pub(crate) mod window_geometry;
 pub mod window_restore;

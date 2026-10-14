@@ -562,6 +562,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - **Rollback**：回退这一个提交。
 - **Estimate**：M。
 - **结果（2026-10-14，adr047-verify，代码完成、真机未验；分支 `chore/adr47-wi004-tauri-upgrade`，按 delegator 裁定在 v0.3.3 发布后合入、单独发版）**：lock 与 spike 记录的钉死表逐项相等（tauri 2.12.1、tauri-build 2.7.1、wry 0.57.0、tao 0.37.1、single-instance 2.5.2、updater 2.13.1、process 2.4.0、opener 2.7.0、`@tauri-apps/api` 与 `cli` 2.12.1），`@tauri-apps/api` 在 lock 里只剩一份。`eval_with_callback` 在 2.12.1 存在（`webview/mod.rs:2185`、`webview_window.rs:2584`）。源码与 `Cargo.toml` 未改。源码对读（只读）发现两处真实变化，都进真机项：single-instance 2.5.2 把套接字的 bind 挪进异步任务（`platform_impl/macos.rs:100`），冷启动后极短窗口内的第二次启动可能成为第二个主进程（verify 构建由 `instance.json` 的排他链接挡住，普通构建挡不住）；原生菜单 muda 0.17.1 → 0.20.0，快捷键解析重写。updater 2.9 客户端只读 `darwin-*` 键，新签名的 trusted comment 多一个它不解析的 `version:` 字段，所以 0.3.x 仍能更新；发布脚本不需改，但 build-only 运行要确认产物文件名。
+- **真机第一轮（2026-10-15，dtrack，`a6131ec`）**：A1、A2、A4、A5（重跑）、A6 通过；A3 快捷键 94 行里 93 行与 v0.3.3 相同，F2 不同：⌘⇧N 开出的窗口没有 `window.focus`。原因是我们的接线有竞态（v0.3.3 也有，只是赢了），登记为 [D217](20260912-frontend-backend-sequencing-order.md#d217)，修在本分支的第二个提交：焦点改由 `app.run` 记录。WI-004 因此不再是「源码未改」：`main.rs` 与新的 `services/window_focus.rs` 有改动。真机复查 F2 与一次外部打开，等新的 mini 包。
 
 ### WI-005 两个构建与人工基线
 
