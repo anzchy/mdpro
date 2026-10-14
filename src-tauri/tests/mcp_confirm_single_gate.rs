@@ -184,6 +184,29 @@ fn sg1_v_vii_a_insert_reads_after_the_gate_and_rolls_back_to_the_reread() {
         .find("resolve_insert_in(")
         .expect("(vi) resolve_insert_in( anchor");
     assert!(resolve > gate, "(v) the insert is resolved after the gate");
+    // (v) the snapshot it resolves is read after the awaited gate (D98 L1).
+    let awaited = gate
+        + body[gate..]
+            .find(".await")
+            .expect("(v) the gate is awaited");
+    let snapshot = top_level_args(&call_args(&body, resolve))
+        .first()
+        .map(|a| a.trim().to_string())
+        .expect("(v) resolve_insert_in has a snapshot argument");
+    let read = body[..resolve]
+        .rfind("get_document(")
+        .expect("(v) a get_document( read feeds the resolve");
+    let read_stmt = &body[body[..read]
+        .rfind("let ")
+        .expect("(v) let … = get_document(")..read];
+    assert!(
+        read_stmt.contains(&format!("Some({snapshot})")),
+        "(v) the read binds `{snapshot}`: {read_stmt}"
+    );
+    assert!(
+        read > awaited,
+        "(v) the snapshot is read after the gate's await"
+    );
 
     for field in ["content", "cursor"] {
         let reads = field_reads(&body, field);
