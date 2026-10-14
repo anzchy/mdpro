@@ -205,7 +205,7 @@ A8 也还登记着其他候选。C 只缩小 A8，不消灭整个例外机制。
 
 ## 阶段 4 — 计划 P 主体
 
-**本阶段状态：🔄 Stage 0 已完成，停止点 1 于 2026-10-08 通过；Stage 1 已完成并验证（2026-10-09，Tauri-only 验收见 [记录](../test/20261009-stage1-appendix-b-device-check.md)）；Stage 2 尚未开始**（见下方「Stage 0 进度」「Stage 1 进度」表）。~~Stage 1 进行中（2026-10-09 起，worktree `mdpro-wt/refactor-p-stage1-css-split`，分支 `refactor/p-stage1-css-split`）~~~~Stage 1 解锁、尚未开始~~~~🔄 Stage 0 进行中（2026-10-03 起）~~ ~~⬜ 未开始~~（2026-09-18 实测：计划 P 的 Stage 1 产物 `src/styles/index.css`、
+**本阶段状态：🔄 Stage 0 已完成，停止点 1 于 2026-10-08 通过；Stage 1 已完成并验证（2026-10-09，Tauri-only 验收见 [记录](../test/20261009-stage1-appendix-b-device-check.md)）；Stage 2 进行中**（2026-10-14 v0.3.3 发布后指派 mdpro-a3；WI-2.1 → WI-2.2 → WI-2.3 → 停止点 2）（见下方「Stage 0 进度」「Stage 1 进度」表）。~~Stage 1 进行中（2026-10-09 起，worktree `mdpro-wt/refactor-p-stage1-css-split`，分支 `refactor/p-stage1-css-split`）~~~~Stage 1 解锁、尚未开始~~~~🔄 Stage 0 进行中（2026-10-03 起）~~ ~~⬜ 未开始~~（2026-09-18 实测：计划 P 的 Stage 1 产物 `src/styles/index.css`、
 `src/styles/sections/`、`ToggleSwitch.tsx`、`Icon.tsx`、`useTauriEvent.ts` **均不在 HEAD**，
 实现为零，不是「部分完成」）。
 ~~另有一条**硬前置至今未满足**：WI-4.21 依赖的 ESLint 在仓库内仍然零存在。~~
