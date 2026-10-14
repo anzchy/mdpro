@@ -181,8 +181,8 @@ fn sg1_v_vii_a_insert_reads_after_the_gate_and_rolls_back_to_the_reread() {
         .find("confirm_gate(")
         .expect("(vi) confirm_gate( anchor");
     let resolve = body
-        .find("resolve_insert_current(")
-        .expect("(vi) resolve_insert_current( anchor");
+        .find("resolve_insert_in(")
+        .expect("(vi) resolve_insert_in( anchor");
     assert!(resolve > gate, "(v) the insert is resolved after the gate");
 
     for field in ["content", "cursor"] {
@@ -195,7 +195,7 @@ fn sg1_v_vii_a_insert_reads_after_the_gate_and_rolls_back_to_the_reread() {
 
     let let_at = body[..resolve]
         .rfind("let ")
-        .expect("(vi) let … = resolve_insert_current(");
+        .expect("(vi) let … = resolve_insert_in(");
     let pattern = body[let_at + 4..resolve]
         .trim_end()
         .strip_suffix('=')

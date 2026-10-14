@@ -3,12 +3,16 @@
 //!
 //! Every MCP read and write route calls `over_limit_refusal` first, before
 //! the ADR-0042 confirmation gate, so no prompt opens for a request that
-//! would be refused anyway. A store error or a missing document is left to
-//! the handler, which already answers those.
+//! would be refused anyway, and checks again after the gate on the snapshot
+//! it then uses (`refuse_over_limit_doc`): a document can cross the cap while
+//! the prompt is open (audit b122). A store error or a missing document is
+//! left to the handler, which already answers those.
 //!
 //! @coordinates-with src-tauri/src/commands/mcp_sync_cap.rs
 
-use crate::models::{ErrorResponse, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
+use crate::models::{
+    DocumentState, ErrorResponse, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore,
+};
 use crate::services::{logger, shadow_store};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -26,9 +30,17 @@ pub(super) fn over_limit_refusal(
     event: &str,
 ) -> Option<Response> {
     let doc = shadow_store::get_document(store, id).ok().flatten()?;
+    refuse_over_limit_doc(&doc, event)
+}
+
+/// `Some(413)` (logged under `event`) when this snapshot of a document is
+/// over the cap. The handlers call it on the snapshot they go on to use, so
+/// a document that crosses the cap between two lock takes is still caught.
+pub(super) fn refuse_over_limit_doc(doc: &DocumentState, event: &str) -> Option<Response> {
     if !doc.over_limit {
         return None;
     }
+    let id = &doc.id;
     logger::log_event(LogEntryPayload {
         level: LogLevel::Warn,
         event: event.to_string(),
@@ -48,3 +60,7 @@ pub(super) fn over_limit_refusal(
 #[cfg(test)]
 #[path = "http_server_over_limit_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "http_server_over_limit_d98_wi2_tests.rs"]
+mod wi2_tests;

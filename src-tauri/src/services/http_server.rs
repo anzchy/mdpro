@@ -22,8 +22,8 @@
 //!   withdraws the prompt (ADR-0042 F3).
 //! - After the gate the handler re-reads the document (F1): the user may
 //!   have edited or closed it while the prompt was up. `insert_content`
-//!   resolves through `resolve_insert_current`, whose `current` is the
-//!   rollback baseline, never the pre-confirm snapshot.
+//!   resolves that re-read snapshot through `resolve_insert_in`, whose
+//!   `current` is the rollback baseline, never the pre-confirm snapshot.
 //! - Server-file I/O lives in `mcp_controller::files` (ADR-0040 WI-1); this
 //!   file only names the app's dir, `data_dir()/mdpro` (`app_controller_env`).
 //! - The port is 55045, or 0 (ephemeral) with the `verify-run` feature
@@ -51,9 +51,9 @@
 //! @coordinates-with src/services/mcp_confirm/http.rs (`confirm_gate`)
 
 use crate::models::{
-    CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo, ErrorResponse,
-    InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult, LogEntryPayload,
-    LogLevel, LogStatus, SharedServerConfig, SharedShadowStore, StatusResponse,
+    CreateDocumentRequest, CreateDocumentResponse, DocumentContent, DocumentInfo, DocumentState,
+    ErrorResponse, InsertContentEvent, InsertContentRequest, InsertPosition, InsertResult,
+    LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore, StatusResponse,
     UpdateDocumentRequest, WriteResult,
 };
 use crate::services::mcp_confirm::effects::AppConfirmBroker;
@@ -165,6 +165,7 @@ fn resolve_insert(
 /// here and is the handler's rollback baseline, `new` is `current` with
 /// `text` inserted at byte offset `off` (a char boundary). `Ok(None)` when
 /// the document was closed meanwhile; `Err` when the store is poisoned.
+#[cfg(test)]
 fn resolve_insert_current(
     store: &SharedShadowStore,
     id: &str,
@@ -174,10 +175,19 @@ fn resolve_insert_current(
     let Some(doc) = shadow_store::get_document(store, id)? else {
         return Ok(None);
     };
+    Ok(Some(resolve_insert_in(doc, position, text)))
+}
+
+/// `resolve_insert_current` on a snapshot the caller already holds.
+fn resolve_insert_in(
+    doc: DocumentState,
+    position: &InsertPosition,
+    text: &str,
+) -> (String, String, usize) {
     let (off, _new_cursor) = resolve_insert(&doc.content, doc.cursor, position, text);
     let mut new = doc.content.clone();
     new.insert_str(off, text);
-    Ok(Some((doc.content, new, off)))
+    (doc.content, new, off)
 }
 
 /// Snap a byte offset to the nearest valid UTF-8 char boundary.
@@ -349,6 +359,9 @@ async fn get_document(State(state): State<AppState>, Path(id): Path<String>) -> 
 
     match shadow_store::get_document(&state.shadow_store, &id) {
         Ok(Some(doc)) => {
+            if let Some(refused) = refuse_over_limit_doc(&doc, "mcp.read") {
+                return refused;
+            }
             logger::log_event(LogEntryPayload {
                 level: LogLevel::Info,
                 event: "mcp.read".to_string(),
@@ -472,6 +485,9 @@ async fn update_document(
         Ok(None) => return doc_gone("mcp.write", &id, "Document closed during confirmation"),
         Err(e) => return store_error(e),
     };
+    if let Some(refused) = refuse_over_limit_doc(&doc, "mcp.write") {
+        return refused;
+    }
 
     let window_label = shadow_store::get_window_for_document(&state.shadow_store, &id)
         .ok()
@@ -560,16 +576,15 @@ async fn insert_content(
     // ADR-0042 F1: the insert is computed from the content current after
     // approval, never the pre-confirm snapshot, and `current` is the rollback
     // baseline, so an edit made while the prompt was up survives both paths.
-    let Some((current, new, insert_offset)) =
-        resolve_insert_current(&state.shadow_store, &id, &request.position, &request.text)
-            .map_err(store_error)?
+    let Some(doc) = shadow_store::get_document(&state.shadow_store, &id).map_err(store_error)?
     else {
-        return Err(doc_gone(
-            "mcp.insert",
-            &id,
-            "Document closed during confirmation",
-        ));
+        let reason = "Document closed during confirmation";
+        return Err(doc_gone("mcp.insert", &id, reason));
     };
+    if let Some(refused) = refuse_over_limit_doc(&doc, "mcp.insert") {
+        return Err(refused);
+    }
+    let (current, new, insert_offset) = resolve_insert_in(doc, &request.position, &request.text);
     let new_cursor = byte_offset_to_utf16(&new, insert_offset + request.text.len());
 
     // Get the window label for the document
@@ -713,7 +728,7 @@ mod create;
 
 #[path = "http_server_over_limit.rs"]
 mod over_limit;
-use over_limit::over_limit_refusal;
+use over_limit::{over_limit_refusal, refuse_over_limit_doc};
 
 /// Common helper — gates the write on the owning window's confirmation
 /// (ADR-0042), then emits the event to the document's owning window.
@@ -747,6 +762,10 @@ async fn dispatch_table_action(
         return gate_refused(&log_event, document_id, refused);
     }
 
+    // It may have crossed the cap while the prompt was up (audit b122).
+    if let Some(refused) = over_limit_refusal(&state.shadow_store, document_id, &log_event) {
+        return refused;
+    }
     // Re-read the owner after the confirmation: a document closed while the
     // prompt was up is a 404, not an event nobody handles.
     let window_label = match shadow_store::get_window_for_document(&state.shadow_store, document_id)

@@ -32,6 +32,10 @@ use serde::{Deserialize, Serialize};
 #[path = "mdpro_mcp/conn.rs"]
 mod conn;
 
+#[cfg(test)]
+#[path = "mdpro_mcp/document_info_d98_tests.rs"]
+mod document_info_d98_tests;
+
 use conn::Conn;
 
 /// Document info returned from list endpoint
@@ -41,6 +45,10 @@ struct DocumentInfo {
     title: String,
     path: Option<String>,
     is_dirty: bool,
+    /// The app flags a document over its 10 MiB MCP limit (D98); absent from
+    /// an older app, and relayed only when true.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    over_limit: bool,
 }
 
 /// Document content returned from read endpoint
