@@ -3,7 +3,8 @@
 //!
 //! Purpose: own the notify watcher and its watch list, route each notify
 //! event through `process_event_checked` (file_watcher_route.rs), log one
-//! `file.watch.event` line per event, and emit what the route returns.
+//! `file.watch.event` line per event, and emit what the route returns through
+//! file_watcher_fanout.rs (`emit_file_changed` over an `EventSink`, D185).
 //!
 //! @coordinates-with file_watcher_route.rs (`process_event_checked`; the
 //! test-only `process_event` drops its `UnchangedCheck`),
@@ -19,7 +20,9 @@
 //! save's `file:changed` with `origin` to every holder, through `notices`),
 //! file_watcher_holders_reconcile.rs (D173-WI-4: `confirm_hold`'s
 //! second-holder reconcile, a plain `file:changed` per held spelling when a
-//! register replaced a diverged baseline, through `notices.emit_plain`)
+//! register replaced a diverged baseline, through `notices.emit_plain`),
+//! file_watcher_fanout.rs (D185-WI-1: the callback's emit step; its
+//! `EventSink` shares `notices` and holds only the holders' H-only `HoldsLeaf`)
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -68,6 +71,10 @@ use holders::Holders;
 pub(crate) mod save_notice;
 use save_notice::{AppNoticeSink, NoticeSink};
 
+#[path = "file_watcher_fanout.rs"]
+mod fanout;
+use fanout::{emit_file_changed, EventSink};
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileChangedEvent {
@@ -88,9 +95,11 @@ pub struct FileWatcher {
     watched_paths: Arc<Mutex<Vec<String>>>,
     /// D32 baselines (ADR-0068), the same `Arc` the notify callback holds.
     baselines: Arc<BaselineStore>,
-    /// D173: who holds each watched path, per window and canonical group.
+    /// D173: who holds each watched path, per window and canonical group;
+    /// the notify callback shares only its H-only `HoldsLeaf` (D185).
     holders: Holders,
-    /// D173-WI-2: where save notices go (`file:changed` with `origin`).
+    /// D173-WI-2: where save notices go (`file:changed` with `origin`); the
+    /// notify callback's `EventSink` emits through the same `Arc` (D185).
     notices: Arc<dyn NoticeSink>,
 }
 
@@ -101,10 +110,15 @@ impl FileWatcher {
         let debounce_map = Arc::clone(&last_events);
         let baselines = Arc::new(BaselineStore::default());
         let callback_baselines = Arc::clone(&baselines);
-        let notice_handle = app_handle.clone();
+        let notices: Arc<dyn NoticeSink> = Arc::new(AppNoticeSink(app_handle));
+        let holders = Holders::default();
+        let sink = EventSink {
+            notices: Arc::clone(&notices),
+            holders: holders.leaf(),
+        };
         let watcher = RecommendedWatcher::new(
             move |res| match res {
-                Ok(event) => handle_event(&app_handle, event, &debounce_map, &callback_baselines),
+                Ok(event) => handle_event(&sink, event, &debounce_map, &callback_baselines),
                 Err(e) => logger::log_event(build_watch_error_log(&e)),
             },
             Config::default(),
@@ -116,8 +130,8 @@ impl FileWatcher {
             watcher,
             watched_paths,
             baselines,
-            holders: Holders::default(),
-            notices: Arc::new(AppNoticeSink(notice_handle)),
+            holders,
+            notices,
         })
     }
 
@@ -171,10 +185,6 @@ impl FileWatcher {
     }
 }
 
-fn emit_file_changed(app_handle: &AppHandle, event: FileChangedEvent) {
-    let _ = app_handle.emit("file:changed", event);
-}
-
 /// Route one notify event and describe it: `process_event_checked` (which
 /// consults `baselines` for the D32 drop and says why, D112-WI-2), then one
 /// `stat_of(paths[0])` when there is a path, then the `file.watch.event`
@@ -215,8 +225,10 @@ fn apply_watch(
     build_watch_register_log(op, path, result, already_watched, stat, watched_count)
 }
 
+/// The notify callback's body: route and log one event (`observe_event`),
+/// then emit what it routed through `sink` (file_watcher_fanout.rs).
 fn handle_event(
-    app_handle: &AppHandle,
+    sink: &EventSink,
     event: Event,
     debounce_map: &Arc<DebounceMap>,
     baselines: &BaselineStore,
@@ -229,7 +241,7 @@ fn handle_event(
     let (emitted, line) = observe_event(&event, debounce_map, baselines, timestamp, stat_snapshot);
     logger::log_event(line);
     if let Some(changed) = emitted {
-        emit_file_changed(app_handle, changed);
+        emit_file_changed(sink, changed);
     }
 }
 

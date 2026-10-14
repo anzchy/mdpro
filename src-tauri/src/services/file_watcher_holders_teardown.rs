@@ -49,8 +49,8 @@ const ALIAS_CLEANUP_EVENT: &str = "file.watch.alias_cleanup";
 
 /// The group `raw` belongs to: `canonicalize(raw)`, else the canonical
 /// parent joined with the file name, else `raw`. File-system I/O: never
-/// called under H.
-fn group_key(raw: &Path) -> GroupKey {
+/// called under H. Also `HoldsLeaf::spellings_of`'s lookup (D185).
+pub(super) fn group_key(raw: &Path) -> GroupKey {
     if let Ok(canonical) = std::fs::canonicalize(raw) {
         return canonical;
     }

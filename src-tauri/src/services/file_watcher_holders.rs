@@ -4,56 +4,47 @@
 //! Purpose: layer 1 keys a hold by (window label, raw spelling) with a
 //! monotonic generation. Layer 2 groups spellings by canonical file and owns
 //! the notify watch: notify `unwatch` runs only when the group has no
-//! consumer, as notify 6.1.1 keeps one canonical filter entry per file.
-//! `HoldMap` decides with no I/O (reserve, confirm check, release, restore,
-//! fence, a group's spellings); the locked `FileWatcher` API lives in
-//! file_watcher_holders_teardown.rs (bar `consumer_spellings`, here), the
-//! reconcile (D173-WI-4) in file_watcher_holders_reconcile.rs, the values
-//! returned in file_watcher_holders_outcomes.rs.
+//! consumer (notify 6.1.1 keeps one canonical filter entry per file).
+//! `HoldMap` decides with no I/O. Siblings `file_watcher_holders_*.rs`:
+//! `teardown` (the locked `FileWatcher` API, bar `consumer_spellings`),
+//! `reconcile`, `outcomes`, `fanout` (the callback's `HoldsLeaf`, D185).
 //!
-//! Pipeline: `reserve_hold` → the legacy register (`watch` / `watch_seeded`,
-//! unchanged) → `confirm_hold` (→ the reconcile, outside every lock). A
-//! release is `release_hold` (a stale gen is a no-op) or `release_window` on
+//! Pipeline: `reserve_hold` → the legacy register (`watch` / `watch_seeded`)
+//! → `confirm_hold` (→ the reconcile, outside every lock). A release is
+//! `release_hold` (a stale gen is a no-op) or `release_window` on
 //! `Destroyed`, which fences the label: a late acquisition is refused, or
 //! torn down on confirm if its register raced the fence.
 //!
 //! Key decisions:
 //! - **Locks.** T (`transitions`) serialises reserve, confirm and release,
-//!   held through a teardown's notify I/O (a `TransitionGuard`). H (`map`)
-//!   is a leaf, only in `with_map` around one pure `HoldMap` call. Order:
-//!   T → H, T → watcher → list → L5; a register takes neither. The notify
-//!   callback never takes T: notify's `stop()` joins its thread.
-//! - **Every acquisition still runs the legacy register** (D86 seed, D111
-//!   seed check, baseline overwrite); only release is layered.
-//! - **A spelling joins `notify_spellings` when it is reserved**, so a
-//!   register raced by its own release is still cleared at the teardown.
-//! - **A duplicate keeps its group**: the group is fixed at the first
-//!   acquisition, and a later symlink retarget is not followed.
-//! - **Recipients are raw strings** (audit b97 M1). The holds key stays
-//!   (label, `PathBuf`), a recorded limit: one window's `/d/./x.md` and
-//!   `/d/x.md` are one hold, noticed under the string it first reserved.
-//! - Gen 0 is never issued; replies use 0 for "no hold".
+//!   held through a teardown's notify I/O (a `TransitionGuard`). H (`map`,
+//!   an `Arc` shared with `HoldsLeaf`) is a leaf, taken only in the free
+//!   `with_map` around one pure `HoldMap` call. Order: T → H, T → watcher →
+//!   list → L5. The notify callback never takes T (notify's `stop()` joins
+//!   its thread): it is handed a `HoldsLeaf`, which cannot reach T.
+//! - **Every acquisition still runs the legacy register**; only release is
+//!   layered. A spelling joins `notify_spellings` when it is reserved.
+//! - **A duplicate keeps its group**: a later symlink retarget is ignored.
+//! - **Recipients are raw strings** (audit b97 M1); the holds key stays
+//!   (label, `PathBuf`), a recorded limit. Gen 0 is never issued.
 //!
-//! @coordinates-with services/file_watcher.rs (parent; the `holders` field
-//! and the legacy `watch` / `unwatch`), file_watcher_holders_teardown.rs
-//! (the `FileWatcher` API: `reserve_hold`, `confirm_hold`, `release_hold`,
-//! `release_window`, and the I/O and log lines behind them),
-//! commands/file.rs and commands/draft_recover_watch.rs (the acquisitions),
+//! @coordinates-with services/file_watcher.rs (parent; `holders`, the legacy
+//! `watch` / `unwatch`), commands/file.rs, commands/draft_recover_watch.rs,
 //! commands/watch_hold.rs, main.rs (`release_window` on `Destroyed`),
 //! file_watcher_holders_outcomes.rs (`impl HoldMap` stays here, where
-//! tripwire d173_wi1_k reads it), file_watcher_holders_reconcile.rs
+//! tripwire d173_wi1_k reads it), file_watcher_fanout.rs (D185)
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 /// Layer 2 key: the backend watch is owned per canonical group.
 pub(crate) type GroupKey = PathBuf;
 
-/// The holder registry: lock T (`transitions`) and lock H (`map`).
+/// The registry: lock T (`transitions`), lock H (`map`, shared with `HoldsLeaf`).
 #[derive(Default)]
 pub(crate) struct Holders {
     transitions: Mutex<()>,
-    map: Mutex<HoldMap>,
+    map: Arc<Mutex<HoldMap>>,
 }
 
 /// Proof that lock T is held, passed to everything that may unwatch.
@@ -237,6 +228,11 @@ impl HoldMap {
     }
 }
 
+/// The only place H is taken (by `Holders` and `HoldsLeaf`), poison recovered.
+fn with_map(map: &Mutex<HoldMap>, step: impl FnOnce(&mut HoldMap)) {
+    step(&mut map.lock().unwrap_or_else(PoisonError::into_inner));
+}
+
 impl Holders {
     fn transition(&self) -> TransitionGuard<'_> {
         let held = self
@@ -246,9 +242,9 @@ impl Holders {
         TransitionGuard { _held: held }
     }
 
-    /// The only place H is taken: one pure `HoldMap` step, poison recovered.
+    /// This registry's H, through the free `with_map`.
     fn with_map(&self, step: impl FnOnce(&mut HoldMap)) {
-        step(&mut self.map.lock().unwrap_or_else(PoisonError::into_inner));
+        with_map(&self.map, step);
     }
 }
 
@@ -268,6 +264,9 @@ mod teardown;
 
 #[path = "file_watcher_holders_reconcile.rs"]
 mod reconcile;
+
+#[path = "file_watcher_holders_fanout.rs"]
+pub(crate) mod fanout;
 
 #[cfg(test)]
 #[path = "file_watcher_holders_fixture.rs"]
