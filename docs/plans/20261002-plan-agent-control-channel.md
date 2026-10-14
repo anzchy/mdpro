@@ -563,6 +563,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - **Estimate**：M。
 - **结果（2026-10-14，adr047-verify，代码完成、真机未验；分支 `chore/adr47-wi004-tauri-upgrade`，按 delegator 裁定在 v0.3.3 发布后合入、单独发版）**：lock 与 spike 记录的钉死表逐项相等（tauri 2.12.1、tauri-build 2.7.1、wry 0.57.0、tao 0.37.1、single-instance 2.5.2、updater 2.13.1、process 2.4.0、opener 2.7.0、`@tauri-apps/api` 与 `cli` 2.12.1），`@tauri-apps/api` 在 lock 里只剩一份。`eval_with_callback` 在 2.12.1 存在（`webview/mod.rs:2185`、`webview_window.rs:2584`）。源码与 `Cargo.toml` 未改。源码对读（只读）发现两处真实变化，都进真机项：single-instance 2.5.2 把套接字的 bind 挪进异步任务（`platform_impl/macos.rs:100`），冷启动后极短窗口内的第二次启动可能成为第二个主进程（verify 构建由 `instance.json` 的排他链接挡住，普通构建挡不住）；原生菜单 muda 0.17.1 → 0.20.0，快捷键解析重写。updater 2.9 客户端只读 `darwin-*` 键，新签名的 trusted comment 多一个它不解析的 `version:` 字段，所以 0.3.x 仍能更新；发布脚本不需改，但 build-only 运行要确认产物文件名。
 - **真机第一轮（2026-10-15，dtrack，`a6131ec`）**：A1、A2、A4、A5（重跑）、A6 通过；A3 快捷键 94 行里 93 行与 v0.3.3 相同，F2 不同：⌘⇧N 开出的窗口没有 `window.focus`。原因是我们的接线有竞态（v0.3.3 也有，只是赢了），登记为 [D217](20260912-frontend-backend-sequencing-order.md#d217)，修在本分支的第二个提交：焦点改由 `app.run` 记录。WI-004 因此不再是「源码未改」：`main.rs` 与新的 `services/window_focus.rs` 有改动。真机复查 F2 与一次外部打开，等新的 mini 包。
+- **落地（2026-10-15，delegator）**：`df2a879`（依赖钉死）+ `9940be9`（D217）经 PR #443 快进到 `master`；verifier PASS，审计 b130 C0/H0/M1，CI 绿。真机：F2 复查 R1 对照 3/3 复现、R2 5/5、R3、R4 通过；A7 第 5 部分 33 段语义投影相等（第 3 条）；A8.1 更新签名离线校验通过；第 4 条的人工那一次：D34 物理 Esc、D41 Tab 由用户按过，通过；⌘Q 保存提示按用户要求由 dtrack 脚本按键代按，通过；中文输入法组字中 Esc 不取消，v0.3.3 同样如此（TextEdit 对照会取消），不是升级回归，登记 [D219](20260912-frontend-backend-sequencing-order.md#d219)。记录：[`docs/test/20261015-wi004-tauri-upgrade-device-check.md`](../test/20261015-wi004-tauri-upgrade-device-check.md)。
 
 ### WI-005 两个构建与人工基线
 
@@ -744,8 +745,8 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - [x] WI-002：开着日常 mdpro 起隔离运行，日常那边没有多出窗口或标签（2026-10-07，真机记录验收 4）
 - [x] WI-002：Finder 里 `.md` 的默认打开方式没变；验证包点「检查更新」不会装上正式版（前半已过，真机记录验收 8。后半：2026-10-09 查明没有单独的「检查更新」按钮，About 打开即自动检查；空地址的报错原先被误判成网络错误，`e457cdb` 已修（`updaterErrors.ts`）。同日在 mini 上用 `e457cdb` 的验证包（buildId `13b68953…`）真机看过：About 显示 “Automatic updates coming soon.”，没有 Check Again，也没有安装按钮；日志只有一条 `ui.about.update_check` start，没有 fail。记录：[`docs/test/20261009-adr0047-wi002-about-updater-device.md`](../test/20261009-adr0047-wi002-about-updater-device.md)）
 - [x] WI-003：故意不杀旧进程再 `launch`，被拒绝（2026-10-09，真机 Check H：运行活着时重打再 `launch`，以已有运行被拒；重打的包与原包逐字节相同，`buildId` 不符这一支没触发。记录 [`docs/test/20261009-adr0047-wi003-device.md`](../test/20261009-adr0047-wi003-device.md)）
-- [ ] WI-004：升级前后两个包各走一遍全部旅程
-- [ ] WI-004：D34 的 Esc、D41 的 Tab 物理重测
+- [x] WI-004：升级前后两个包各走一遍全部旅程（2026-10-15，dtrack，33 段相等；记录 [`docs/test/20261015-wi004-tauri-upgrade-device-check.md`](../test/20261015-wi004-tauri-upgrade-device-check.md)）
+- [x] WI-004：D34 的 Esc、D41 的 Tab 物理重测（2026-10-15，用户按键，通过；同一记录 H2、H3）
 - [ ] WI-005：两个包上的物理 Esc 基线（回退构建不关、基线头关）
 - [ ] WI-005：比较一（驱动关的全部旅程）、比较二（`release` 包的 J1a、J2、J5，日常 mdpro 关着）
 - [ ] WI-006 / WI-007：每个候选的两个带驱动的包上，各按一次物理 Esc
