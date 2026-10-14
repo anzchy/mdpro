@@ -25,8 +25,43 @@ concurrency:
 permissions:
   contents: read
 
+# ADR-0095: branch protection requires one check, `ci-gate`. `scope` decides
+# whether the PR touches anything but prose; `frontend` and `rust-test` skip
+# for a prose-only PR, and `ci-gate` reports every job's result as one check,
+# so a skipped job never leaves a required check pending.
 jobs:
+  scope:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: scope
+        name: Classify the change (prose-only skips the heavy jobs)
+        shell: bash
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        # Outside a pull request (tags, manual runs) BASE is empty, and the
+        # script answers code=true.
+        run: node scripts/ci/change-scope.mjs "$BASE" "$HEAD"
+
+  prose-checks:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - run: node scripts/ledger/check.mjs
+
   frontend:
+    needs: [scope]
+    if: needs.scope.outputs.code == 'true'
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -52,9 +87,13 @@ jobs:
 
       - run: pnpm build
 
+      - run: pnpm typecheck:tests
+
       - run: pnpm test:run
 
   rust-test:
+    needs: [scope]
+    if: needs.scope.outputs.code == 'true'
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -101,3 +140,27 @@ jobs:
         run: cargo audit
         working-directory: src-tauri
         continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+  ci-gate:
+    needs: [scope, prose-checks, frontend, rust-test]
+    if: always()
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job succeeded, or skipped for a prose-only change
+        shell: bash
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        # scope and prose-checks must succeed. frontend and rust-test must
+        # succeed, or be skipped because scope said code=false. A failure,
+        # a cancellation, or a skip that scope did not ask for fails the gate.
+        run: |
+          # NEEDS holds toJSON(needs), set in env above (not inlined here).
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e '
+            (.scope.result == "success") and
+            (.["prose-checks"].result == "success") and
+            ([.frontend.result, .["rust-test"].result] | all(. == "success" or
+              (. == "skipped" and $code == "false")))
+          ' --arg code "$(echo "$NEEDS" | jq -r '.scope.outputs.code')" >/dev/null \
+            || { echo "ci-gate: a job ended in failure, was cancelled, or skipped without scope's code=false"; exit 1; }

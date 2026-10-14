@@ -19,6 +19,15 @@ This rule is **always active** — it is not session-scoped.
 | `git clean -f` / `-fd` | `git clean -fd` | Removes untracked files permanently |
 | `git branch -D` | `git branch -D feature/xyz` | Force-deletes local branch |
 
+## Standing Exception: Re-pushing a PR Branch
+
+The delegator may run `git push --force-with-lease=<branch>:<old head>` on a
+pull-request branch without asking, when the new head is a rebase or fix of
+the same handoff. It never applies to `master`, a `release/x.y` branch or a tag;
+every other force-push still asks (user decision, 2026-10-14:
+「Standing force-with-lease (Recommended)」;
+[ADR-0095](../../docs/adr/0095-pull-request-ci-is-a-landing-gate.md)).
+
 ## Safe Exceptions (No Confirmation Needed)
 
 These common cleanup targets are safe to delete without asking:

@@ -125,10 +125,21 @@ merges or reserves; the delegator does.
    `git diff-tree --no-ext-diff --stat -r <parent> <sha>` (the external diff
    wrapper garbles plain `git diff`), then dispatches two independent checks
    on that SHA at once: `mdpro-landing-verifier` (lanes, receipts, tree
-   identity) and the mini audit of item 4. Only when the verifier says PASS
-   **and** the audit counts zero Critical and zero High findings does it run
-   `git merge --ff-only <sha>` in the main checkout, and right after it
-   `git push origin master`.
+   identity) and the mini audit of item 4. It also pushes that SHA as the
+   PR's head, so CI tests what will land. When the branch was rebased or fixed
+   after an earlier push, it re-pushes with
+   `git push --force-with-lease=<branch>:<old head>`, a standing exception to
+   rule 25 for PR branches only, never `master`, `release/x.y` or a tag
+   ([ADR-0095](../../docs/adr/0095-pull-request-ci-is-a-landing-gate.md)). It
+   runs `git merge --ff-only <sha>` in the main checkout, and right after it
+   `git push origin master`, only when all three hold:
+   - the verifier says PASS;
+   - the audit counts zero Critical and zero High findings;
+   - the PR's head is that SHA and its required `ci-gate` check is green on it.
+
+   A red result from a registered intermittent test (D196) may be rerun once
+   with `gh run rerun <id> --failed`. A second red blocks the landing.
+   A docs-only commit that item 4 leaves unaudited also needs no PR and no CI.
 3. **No other session lands on `master` itself**, by cherry-pick or
    otherwise. An auditor's fixes reach `master` the way a peer's do: a
    branch rebased onto `master`, handed to the delegator with the SHAs and

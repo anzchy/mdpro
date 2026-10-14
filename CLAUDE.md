@@ -200,9 +200,10 @@ Sequencing for this effort lives in
 
 - **Branch**: every work item lands on `master`, the single trunk, and only
   through the delegator's `git merge --ff-only` of a short-lived branch that
-  has passed `mdpro-landing-verifier` **and** a mini audit with no Critical
-  or High finding (rule 70,
-  [ADR-0085](./docs/adr/0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md)).
+  has passed `mdpro-landing-verifier`, a mini audit with no Critical
+  or High finding, **and** a green `ci-gate` check on its PR's head (rule 70,
+  [ADR-0085](./docs/adr/0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md),
+  [ADR-0095](./docs/adr/0095-pull-request-ci-is-a-landing-gate.md)).
   Nobody lands by merge commit, and the only direct commits are
   the delegator's docs-only ones. Before 2026-10-12 this effort lived on `frontend-backend-redesign`,
   now frozen ([ADR-0083](./docs/adr/0083-master-is-the-single-integration-trunk.md)).
