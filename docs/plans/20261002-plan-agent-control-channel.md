@@ -551,14 +551,17 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - **Acceptance**
   1. lock 文件里的版本等于那一组；`eval_with_callback` 在该版本存在；`@tauri-apps/api` 在 lock 里若仍有两份，写明是谁带进来的。
   2. `pnpm test:run`、`pnpm build`、`pnpm typecheck:tests`、`cd src-tauri && cargo test`、`pnpm coverage`、`pnpm ledger:check` 全绿，覆盖率不低于现有阈值；`cargo clippy` 没有新增告警。
-  3. 升级前、升级后各用构建入口打一个 `verify` 包（驱动关），由人经启动器手工走全部旅程。两次的语义投影相等。
+  3. ~~升级前、升级后各用构建入口打一个 `verify` 包（驱动关），由人经启动器手工走全部旅程。两次的语义投影相等。~~
+     **改为（2026-10-14，用户：「需要我手动测的到时候发给我」，回答「哪些可全自动、哪些必须人手、尽量减少手工项」的分法）**：升级前、升级后的 `verify` 包（驱动关）都由 dtrack 经启动器走全部旅程，`cli` 与 `native` 类的步骤由 computer-use 完成，两次的语义投影相等；`human` 类步骤（J5 的物理 Esc）并入第 4 条的人工那一次。升级前一侧的 `human` 步骤引用 D34、D41 已有的真机记录与 v0.3.3 的那一轮，不重测。其余真机项同样不要人：快速连开（经 SSH 循环 20 次，失败条件为出现两个各有窗口的 `tauri-app` 进程）、从 Finder 打开（`open -a`，冷启动与运行中各一次）、菜单快捷键（复用快捷键矩阵 brief，与 v0.3.3 那一轮逐项对比）、退出前保存提示（菜单「退出」）、本地图片、全屏；更新路径分两步：发布前用 updater 2.9 的校验逻辑离线验新签名，发布后由 dtrack 从 0.3.3 走一次更新。
   4. 物理按键回归：D34（Esc 关闭 `ConfirmDialog`）和 D41（Source 表格里的 Tab）在升级后的包上由人重测，结果与各自的验收记录一致。
+     **人工的那一次（2026-10-14 起，只此一次，约 15 分钟，在升级后的包上）**：中文输入法组字并在组字中按一次 Esc；D34 的物理 Esc（同时算 J5 的 `human` 步骤）；D41 的 Tab；有未保存内容时按物理 ⌘Q，保存提示弹出。清单由 delegator 转给用户。
   5. 这个提交只含依赖变更和 API 适配。
 - **Tests (first)**：没有可以先写的新测试。防线是现有两条车道加第 3、4 条的人工对照。升级若迫使某处改代码，那处先补测试再改。
 - **Touched areas**：`src-tauri/Cargo.toml`、`Cargo.lock`、`package.json`、`pnpm-lock.yaml`；若 API 有变，调用点。
 - **Risks + mitigations**：wry、tao 升级会改变 WKWebView 的键盘、焦点、IME 行为，而近期修掉的缺陷正好在这些地方 → 第 4 条；WI-000 的试探已经提前看过一遍。
 - **Rollback**：回退这一个提交。
 - **Estimate**：M。
+- **结果（2026-10-14，adr047-verify，代码完成、真机未验；分支 `chore/adr47-wi004-tauri-upgrade`，按 delegator 裁定在 v0.3.3 发布后合入、单独发版）**：lock 与 spike 记录的钉死表逐项相等（tauri 2.12.1、tauri-build 2.7.1、wry 0.57.0、tao 0.37.1、single-instance 2.5.2、updater 2.13.1、process 2.4.0、opener 2.7.0、`@tauri-apps/api` 与 `cli` 2.12.1），`@tauri-apps/api` 在 lock 里只剩一份。`eval_with_callback` 在 2.12.1 存在（`webview/mod.rs:2185`、`webview_window.rs:2584`）。源码与 `Cargo.toml` 未改。源码对读（只读）发现两处真实变化，都进真机项：single-instance 2.5.2 把套接字的 bind 挪进异步任务（`platform_impl/macos.rs:100`），冷启动后极短窗口内的第二次启动可能成为第二个主进程（verify 构建由 `instance.json` 的排他链接挡住，普通构建挡不住）；原生菜单 muda 0.17.1 → 0.20.0，快捷键解析重写。updater 2.9 客户端只读 `darwin-*` 键，新签名的 trusted comment 多一个它不解析的 `version:` 字段，所以 0.3.x 仍能更新；发布脚本不需改，但 build-only 运行要确认产物文件名。
 
 ### WI-005 两个构建与人工基线
 

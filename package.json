@@ -41,10 +41,10 @@
     "@codemirror/view": "^6.26.3",
     "@milkdown/kit": "^7.18.0",
     "@milkdown/react": "^7.18.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-process": "^2.3.1",
-    "@tauri-apps/plugin-updater": "^2.9.0",
+    "@tauri-apps/api": "^2.12.1",
+    "@tauri-apps/plugin-opener": "^2.7.0",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.13.1",
     "@uiw/react-codemirror": "^4.24.2",
     "dompurify": "^3.3.2",
     "katex": "^0.17.0",
@@ -65,7 +65,7 @@
     }
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
+    "@tauri-apps/cli": "^2.12.1",
     "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.1.0",
