@@ -10,9 +10,6 @@ overrides:
   rollup: '>=4.59.0'
 
 patchedDependencies:
-  '@milkdown/preset-commonmark@7.18.0':
-    hash: 9e7db98d3f666754de4a955dd550348e04e71b2654d02fda29a9dc15f5902e35
-    path: patches/@milkdown__preset-commonmark@7.18.0.patch
   prosemirror-tables@1.8.5:
     hash: 6fc7e27ff7eaef78bca7be9d9cd4059c256d2d9319797902e71e5c909627ec87
     path: patches/prosemirror-tables@1.8.5.patch
@@ -2825,7 +2822,7 @@ snapshots:
       '@milkdown/ctx': 7.18.0
       '@milkdown/exception': 7.18.0
       '@milkdown/plugin-tooltip': 7.18.0
-      '@milkdown/preset-commonmark': 7.18.0(patch_hash=9e7db98d3f666754de4a955dd550348e04e71b2654d02fda29a9dc15f5902e35)
+      '@milkdown/preset-commonmark': 7.18.0
       '@milkdown/preset-gfm': 7.18.0
       '@milkdown/prose': 7.18.0
       '@milkdown/transformer': 7.18.0
@@ -2899,7 +2896,7 @@ snapshots:
       '@milkdown/plugin-tooltip': 7.18.0
       '@milkdown/plugin-trailing': 7.18.0
       '@milkdown/plugin-upload': 7.18.0
-      '@milkdown/preset-commonmark': 7.18.0(patch_hash=9e7db98d3f666754de4a955dd550348e04e71b2654d02fda29a9dc15f5902e35)
+      '@milkdown/preset-commonmark': 7.18.0
       '@milkdown/preset-gfm': 7.18.0
       '@milkdown/prose': 7.18.0
       '@milkdown/transformer': 7.18.0
@@ -3008,7 +3005,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/preset-commonmark@7.18.0(patch_hash=9e7db98d3f666754de4a955dd550348e04e71b2654d02fda29a9dc15f5902e35)':
+  '@milkdown/preset-commonmark@7.18.0':
     dependencies:
       '@milkdown/core': 7.18.0
       '@milkdown/ctx': 7.18.0
@@ -3027,7 +3024,7 @@ snapshots:
       '@milkdown/core': 7.18.0
       '@milkdown/ctx': 7.18.0
       '@milkdown/exception': 7.18.0
-      '@milkdown/preset-commonmark': 7.18.0(patch_hash=9e7db98d3f666754de4a955dd550348e04e71b2654d02fda29a9dc15f5902e35)
+      '@milkdown/preset-commonmark': 7.18.0
       '@milkdown/prose': 7.18.0
       '@milkdown/transformer': 7.18.0
       '@milkdown/utils': 7.18.0

@@ -11,7 +11,7 @@ import {
   editorViewCtx,
   rootCtx,
 } from "@milkdown/kit/core";
-import { commonmark, imageAttr } from "@milkdown/kit/preset/commonmark";
+import { imageAttr } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
 import { Plugin } from "@milkdown/kit/prose/state";
@@ -25,6 +25,10 @@ import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlig
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
 import { editSyncMilkdownPlugin } from "../../plugins/milkdown/editSync/plugin";
 import { tableParityPlugins } from "../../plugins/milkdown/table/parityPlugins";
+import {
+  commonmarkWithBlankLineGaps,
+  emptyParagraphEdgeSerializerPlugins,
+} from "../../plugins/milkdown/emptyParagraph";
 import { useMilkdownImages } from "../../hooks/useMilkdownImages";
 import { useMilkdownLinkClickGuard } from "../../hooks/useMilkdownLinkClickGuard";
 import { useMilkdownTableCursorRestore } from "../../hooks/useMilkdownTableCursorRestore";
@@ -143,8 +147,11 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
           ctx.set(defaultValueCtx, initialMarkdown);
           ctx.set(imageAttr.key, getImageResizeDomAttrs);
         })
-        .use(commonmark)
+        // ADR-0091 (D188): empty paragraphs are written as blank lines and read back by
+        // count; the preset's `<br />` empty-line plugin is swapped out of commonmark.
+        .use(commonmarkWithBlankLineGaps)
         .use(gfm)
+        .use(emptyParagraphEdgeSerializerPlugins)
         // ADR-0067: ragged tables widen at parse time; empty cells serialize blank. After gfm.
         .use(tableParityPlugins)
         .use(tableNodeViewPlugin)
