@@ -41,7 +41,7 @@ import { bulletListSchema, orderedListSchema } from "@milkdown/kit/preset/common
 import type { DOMOutputSpec, TagParseRule } from "@milkdown/kit/prose/model";
 import type { GetNodeSchema } from "@milkdown/kit/utils";
 import type { JSONRecord } from "@milkdown/kit/transformer";
-import { listMarkerStringify } from "./listMarker";
+import { listMarkerStringify, MAX_ORDERED_NUMBER } from "./listMarker";
 import { BULLET_MARKERS, ORDERED_DELIMITERS, remarkListMarkerPlugin } from "./remarkListMarker";
 
 /** A `spread` attr as mdast wants it: only `true` and `"true"` are loose. */
@@ -59,9 +59,14 @@ function mdastMarker(node: { mdproMarker?: unknown }, allowed: ReadonlySet<strin
   return typeof node.mdproMarker === "string" && allowed.has(node.mdproMarker) ? node.mdproMarker : null;
 }
 
-/** A start number for the `order` attr: a non-negative integer, else 1. */
+/**
+ * A start number for the `order` attr: an integer CommonMark can write (0 to nine digits),
+ * else 1. A larger one only arrives through the DOM (a pasted `<ol start>`).
+ */
 function startOf(value: unknown): number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 1;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= MAX_ORDERED_NUMBER
+    ? value
+    : 1;
 }
 
 /**

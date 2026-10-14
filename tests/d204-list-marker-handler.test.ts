@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { withListMarker } from "../src/plugins/milkdown/listSpread/listMarker";
+import { alternateBullet, overflowsNumbering } from "../src/plugins/milkdown/listSpread/listMarker";
 
 type Opts = { bullet?: string; bulletOther?: string; bulletOrdered?: string };
 
@@ -56,18 +57,39 @@ describe("D204 — withListMarker", () => {
     expect(state.options).toEqual({ bullet: "-" });
   });
 
-  it("H4 no marker, or one that is not a valid marker for the list kind, leaves options alone", () => {
-    for (const props of [
-      { ordered: false },
-      { ordered: false, mdproMarker: "x" },
-      { ordered: false, mdproMarker: ")" },
-      { ordered: true, mdproMarker: "-" },
-    ]) {
+  it("H4 no marker, or one that is not a valid marker for the list kind, gets that kind's default for that call (b131)", () => {
+    for (const [props, key, want] of [
+      [{ ordered: false }, "bullet", "-"],
+      [{ ordered: false, mdproMarker: "x" }, "bullet", "-"],
+      [{ ordered: false, mdproMarker: ")" }, "bullet", "-"],
+      [{ ordered: true }, "bulletOrdered", "."],
+      [{ ordered: true, mdproMarker: "-" }, "bulletOrdered", "."],
+    ] as const) {
       const seen: Opts[] = [];
-      const state = fakeState({ bullet: "-", bulletOther: "*", bulletOrdered: "." });
+      // A parent list's own marker is in effect when a nested list is written.
+      const state = fakeState({ bullet: "*", bulletOther: "-", bulletOrdered: ")" });
       withListMarker(recorder(seen))(list(props), undefined, state, {} as never);
-      expect(seen[0], JSON.stringify(props)).toEqual({ bullet: "-", bulletOther: "*", bulletOrdered: "." });
+      expect(seen[0][key], JSON.stringify(props)).toBe(want);
+      expect(state.options).toEqual({ bullet: "*", bulletOther: "-", bulletOrdered: ")" });
     }
+  });
+});
+
+describe("D204 b131 — the alternate bullet and the numbering limit", () => {
+  it("H5 the alternate is the stock default unless that clashes, then the bullet that avoids both rules", () => {
+    expect(alternateBullet("-", [])).toBeUndefined();
+    expect(alternateBullet("*", ["-"])).toBe("+");
+    expect(alternateBullet("-", ["*"])).toBe("+");
+    expect(alternateBullet("+", ["*"])).toBe("-");
+    expect(alternateBullet("*", ["-", "*"])).toBe("+");
+  });
+
+  it("H6 numbers count up only while the last one fits in nine digits", () => {
+    const items = (n: number) => Array.from({ length: n }, () => ({ type: "listItem" }));
+    expect(overflowsNumbering({ start: 999_999_998, children: items(2) })).toBe(false);
+    expect(overflowsNumbering({ start: 999_999_999, children: items(1) })).toBe(false);
+    expect(overflowsNumbering({ start: 999_999_999, children: items(2) })).toBe(true);
+    expect(overflowsNumbering({ start: null, children: items(3) })).toBe(false);
   });
 });
 
