@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- In Source mode, ⌘Z after switching tabs no longer replaces the document with the previous tab's text (D203). One undo after a switch used to write the other tab's whole content into the active document, where a ⌘S would save it over the file, and typing within a moment of a switch could do the same without any undo. Each tab now has its own undo history in Source mode: undo and redo don't reach across a switch, and returning to a tab starts with the cursor at the top and the search panel closed. Focus stays in the editor across the switch
 - In WYSIWYG, a tight list opened from a file stays tight when you save after an edit (D195). A bullet list such as `- a` / `- b`, a list item holding a nested list, and a task list used to gain a blank line between their items on the first save; loose lists still keep their blank lines
 - On Windows and Linux, Settings → Keyboard Shortcuts shows Ctrl and Alt instead of Cmd and Option, recording a shortcut no longer stores the Windows key as Cmd, and the New Document button names Ctrl+N. The recorder refuses AltGr chords, which never trigger a shortcut there (D190)
 - Pressing a shortcut while recording it in Settings no longer also runs it, for shortcuts the window handles itself; recording Ctrl+S used to save. On macOS a native menu shortcut such as ⌘S or ⌘⇧N still fires while recording (D190)

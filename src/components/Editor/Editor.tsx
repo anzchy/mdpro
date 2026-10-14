@@ -35,6 +35,8 @@ interface EditorProps {
   onChange: (value: string) => void;
   readOnly?: boolean;
   highlightRequest?: number;
+  /** D203: focus the view once it is created (a tab switch made while Source had focus). */
+  focusOnMount?: boolean;
 }
 
 export function Editor({
@@ -42,6 +44,7 @@ export function Editor({
   onChange,
   readOnly = false,
   highlightRequest,
+  focusOnMount = false,
 }: EditorProps) {
   const viewRef = useRef<EditorView | null>(null);
   const initializedRef = useRef(false);
@@ -222,6 +225,7 @@ export function Editor({
           // WI-8: restore the outgoing editor's top visible line. After the
           // table-cell restore so the scroll position wins over the cursor.
           restoreSourceScrollAnchor(view, docId);
+          if (focusOnMount) view.focus();
         }}
         editable={!readOnly}
         basicSetup={{
