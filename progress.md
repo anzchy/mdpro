@@ -211,3 +211,41 @@ file is already `rustfmt`-clean.
 **Rule.** Run `cargo fmt` on the test files **before** `receipt.js record`,
 and never run it between record and verify. Until D187 makes `record` refuse
 an unformatted `.rs` file, this is a manual step in every Rust red.
+
+---
+
+## A fast-forward across a `patches/` landing leaves every other worktree's `node_modules` stale (2026-10-13, D192 → D191-F-1)
+
+**Symptom.** Right after D192 (`bcba314`, a pnpm patch on `@milkdown/preset-commonmark`)
+landed, adr047-verify's first locked build on its own branch went red in the
+D181 guard (`check-patched` refused the build), and so did the main checkout.
+No test had changed in either tree.
+
+**Root cause.** A patch lands as a change to `patches/` and `pnpm-lock.yaml`,
+but `node_modules` is per worktree and nothing re-installs it on fast-forward
+or rebase. The guard compares the installed tree with the patch set and
+refuses, by design.
+
+**Rule.** After any fast-forward or rebase that brought a `patches/` or
+lockfile change, run `pnpm install --force --frozen-lockfile --offline` in
+every worktree you build in before the gate (rule 10 table). The delegator
+names the patch in its "landed" message so peers know to do it.
+
+---
+
+## Code that leaves a `cfg` block takes its imports with it (2026-10-13, D190 WI-4, audit b106)
+
+**Symptom.** `main.rs` made the `app.run` closure unconditional (Exit cleanup
+on every platform) while `use tauri::RunEvent;` and `use …app_exit;` stayed
+under `#[cfg(target_os = "macos")]`. macOS compiled; the ubuntu job failed
+with E0433 (unresolved path) and the audit flagged it High.
+
+**Root cause.** `cargo check` on the author's platform cannot see an import
+whose `cfg` no longer matches the code that uses it. The compiler only reports
+it on a platform where the `cfg` is false.
+
+**Rule.** When code moves out of a `cfg` block, grep the `cfg` attribute of
+every name it uses, and keep a regression test that fails on the mismatch
+(`app_exit_imports_tests.rs`). A platform-conditional import is reviewed with
+its platform-conditional use, never on its own.
+

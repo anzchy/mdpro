@@ -71,6 +71,7 @@ the CPU load.
 | Once, just before each commit | The full `unit` lane, plus typecheck and build **under the lock**: `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'` | On (the gate reads it) |
 | Only when `src-tauri/` changed | The `rust` and `rust-verify-run` lanes | — |
 | After a rebase or fast-forward that only brought docs or `.claude` changes | Nothing new: `src/` and `tests/` are tree-identical, so the earlier gate still holds. Re-run only the tests touching any conflicted file | — |
+| After a rebase or fast-forward that brought a `patches/` or lockfile change | `pnpm install --force --frozen-lockfile --offline` first, in every worktree you build in: the D181 guard refuses a build whose `node_modules` predates the patch set (2026-10-13, D192's patch landing broke adr047's and the main checkout's builds) | — |
 
 - **Every heavy command goes through `scripts/heavy-lock.sh`**: vitest
   with coverage, `tsc`, `pnpm build`, `cargo test`, `tauri build`. A command
