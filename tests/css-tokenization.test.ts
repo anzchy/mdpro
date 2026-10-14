@@ -389,6 +389,28 @@ describe("scanner fixtures", () => {
   });
 });
 
+describe("scanner fixtures (audit b125)", () => {
+  const count = (css: string, tokens?: string[]) => scanCss(css, tokens ? new Set(tokens) : undefined).length;
+
+  it("checks the size and the family of the font shorthand separately", () => {
+    expect(count(".a { font: 12px var(--font-sans); }")).toBe(1);
+    expect(count(".a { font: var(--font-size-ui) Arial, sans-serif; }")).toBe(1);
+    expect(count(".a { font: var(--font-size-ui) var(--font-sans); }")).toBe(0);
+    expect(count(".a { font: 600 var(--font-size-ui)/1.4 var(--font-sans); }")).toBe(0);
+  });
+
+  it("treats a var() fallback for an undeclared token as a literal in every category", () => {
+    expect(count(".a { font-size: var(--nope, 12px); }", ["--x"])).toBe(1);
+    expect(count(".a { border-radius: var(--nope, 6px); }", ["--x"])).toBe(1);
+    expect(count(".a { font-size: var(--x, 12px); }", ["--x"])).toBe(0);
+  });
+
+  it("flags a signed motion time", () => {
+    expect(count(".a { transition-delay: -0.2s; }")).toBe(1);
+    expect(count(".a { animation-delay: -.5s; }")).toBe(1);
+  });
+});
+
 describe("app CSS is tokenized (A5)", () => {
   it("scans the app's CSS files", () => {
     expect(inScope).toContain("styles/globals.css");

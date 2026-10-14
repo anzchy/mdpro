@@ -20,6 +20,9 @@
  * - A literal colour declaration directly followed, in the same block, by
  *   the same property set through `color-mix()` is the rule 31 browser
  *   fallback and is allowed.
+ * - A `font` shorthand passes only when its size and its family are each a
+ *   `var()`, and a whole-value `var(--x, fallback)` counts as a token only
+ *   when `--x` is declared (audit b125).
  * - Pure functions over strings; the test supplies file contents.
  */
 
@@ -221,10 +224,38 @@ export function hasColourLiteral(value: string, declared?: ReadonlySet<string>):
     .some((word) => NAMED_COLOURS.has(word));
 }
 
-function onlyVarOrKeyword(value: string): boolean {
-  const v = value.replace(/!important/i, "").trim().toLowerCase();
-  if (KEYWORDS_OK.has(v)) return true;
-  return /^var\(--[\w-]+(,.*)?\)$/.test(v);
+/**
+ * True when the value is a keyword or one `var()`. A fallback counts only
+ * when its token is declared: otherwise the fallback is what renders.
+ */
+function onlyVarOrKeyword(value: string, declared?: ReadonlySet<string>): boolean {
+  const v = value.replace(/!important/i, "").trim();
+  if (KEYWORDS_OK.has(v.toLowerCase())) return true;
+  const m = /^var\((--[\w-]+)\s*(,.*)?\)$/.exec(v);
+  if (!m) return false;
+  return m[2] === undefined || declared === undefined || declared.has(m[1]);
+}
+
+/**
+ * Why a `font` shorthand breaks A5, or null. Its size and its family are
+ * checked separately: each must be a `var()` (audit b125).
+ */
+function fontShorthand(value: string, selector: string, declared?: ReadonlySet<string>): CssFinding["category"] | null {
+  if (onlyVarOrKeyword(value, declared)) return null;
+  const vars: string[] = [];
+  const v = value.replace(/var\([^()]*(\([^()]*\)[^()]*)*\)/g, (m) => {
+    vars.push(m);
+    return `\u0000${vars.length - 1}\u0000`;
+  });
+  const isVar = (t: string) => /^\u0000\d+\u0000$/.test(t) && onlyVarOrKeyword(vars[Number(t.slice(1, -1))], declared);
+  const tokens = v.trim().split(/\s+/);
+  const at = tokens.findIndex((t) => /^(\u0000\d+\u0000|[\d.]+[a-z%]+)(\/\S+)?$/i.test(t));
+  if (at < 0) return "font-family";
+  const size = tokens[at].split("/")[0];
+  const sizeOk = isVar(size) || (/^[\d.]+(em|%)$/.test(size) && CONTENT_SELECTOR.test(selector));
+  if (!sizeOk) return "font-size";
+  const family = tokens.slice(at + 1).join(" ");
+  return isVar(family) || family.toLowerCase() === "inherit" ? null : "font-family";
 }
 
 /** Why a declaration breaks A5, or null when it is allowed. */
@@ -236,20 +267,20 @@ export function categorize(
   const value = decl.value.replace(/\s*!important$/i, "");
   if (COLOUR_PROPERTIES.has(property) && hasColourLiteral(value, declared)) return "colour";
   if (property === "font-size") {
-    if (onlyVarOrKeyword(value)) return null;
+    if (onlyVarOrKeyword(value, declared)) return null;
     if (/^[\d.]+(em|%)$/.test(value) && CONTENT_SELECTOR.test(selector)) return null;
     return "font-size";
   }
-  if (property === "font-family") return onlyVarOrKeyword(value) ? null : "font-family";
-  if (property === "font") return /var\(--/.test(value) || KEYWORDS_OK.has(value) ? null : "font-family";
+  if (property === "font-family") return onlyVarOrKeyword(value, declared) ? null : "font-family";
+  if (property === "font") return fontShorthand(value, selector, declared);
   if (RADIUS_PROPERTIES.test(property)) {
-    if (ALLOWED_RADIUS.has(value) || onlyVarOrKeyword(value)) return null;
+    if (ALLOWED_RADIUS.has(value) || onlyVarOrKeyword(value, declared)) return null;
     return "radius";
   }
   if (MOTION_PROPERTIES.has(property)) {
-    if (value === "none" || value === "0" || onlyVarOrKeyword(value)) return null;
+    if (value === "none" || value === "0" || onlyVarOrKeyword(value, declared)) return null;
     const bare = value.replace(/var\(--[\w-]+(,[^)]*)?\)/g, " ");
-    const literalTime = /(^|[\s,])[\d.]+m?s\b/.test(bare);
+    const literalTime = /(^|[\s,(])[-+]?[\d.]+m?s\b/.test(bare);
     const literalEase = /\b(ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end)\b|cubic-bezier\(|steps\(/.test(bare);
     return literalTime || literalEase ? "motion" : null;
   }
