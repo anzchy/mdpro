@@ -73,3 +73,8 @@ stryker.config.json
 
 # D76: collect-assets output (scripts/release/collect-assets.mjs)
 dist-release/
+
+# Per-machine Claude Code tool state (D215): rewritten by every session, so a
+# tracked copy only ever shows up as someone's unrelated dirty file.
+.claude/scheduled_tasks.lock
+.claude/nlpm-history.json
