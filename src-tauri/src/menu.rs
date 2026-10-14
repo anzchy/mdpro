@@ -73,7 +73,7 @@ mod menu_quit;
 
 #[path = "menu_submenus.rs"]
 mod menu_submenus;
-pub(crate) use menu_quit::{log_menu_exit, quit_item_for, QuitItem};
+pub(crate) use menu_quit::{app_menu_has_macos_items, log_menu_exit, quit_item_for, QuitItem};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,13 +111,19 @@ pub fn build_menu(
         .item(&about)
         .separator()
         .item(&preferences_item)
-        .separator()
-        .item(&PredefinedMenuItem::services(app, None)?)
-        .separator()
-        .item(&PredefinedMenuItem::hide(app, None)?)
-        .item(&PredefinedMenuItem::hide_others(app, None)?)
-        .item(&PredefinedMenuItem::show_all(app, None)?)
         .separator();
+    // Services / Hide / Hide Others / Show All are macOS-only (D190-WI-7).
+    let app_menu = if app_menu_has_macos_items(std::env::consts::OS) {
+        app_menu
+            .item(&PredefinedMenuItem::services(app, None)?)
+            .separator()
+            .item(&PredefinedMenuItem::hide(app, None)?)
+            .item(&PredefinedMenuItem::hide_others(app, None)?)
+            .item(&PredefinedMenuItem::show_all(app, None)?)
+            .separator()
+    } else {
+        app_menu
+    };
     // Guarded first: the predefined arm must stay directly before the escape
     // item, which follows whichever Quit this target carries (ADR-0036).
     let app_menu = match quit_item_for(std::env::consts::OS) {

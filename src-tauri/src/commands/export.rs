@@ -5,6 +5,18 @@ use tauri::Window;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::{html_template, markdown};
 
+/// The file name the export dialog suggests for a document titled `title`:
+/// a trailing `.md` / `.markdown` (any case) is dropped first, so `basic.md`
+/// suggests `basic.html`, not `basic.md.html` (D190-WI-7, W7).
+pub(crate) fn export_file_name(title: &str) -> String {
+    let lower = title.to_ascii_lowercase();
+    let stem = [".markdown", ".md"]
+        .iter()
+        .find(|ext| lower.ends_with(*ext) && title.len() > ext.len())
+        .map_or(title, |ext| &title[..title.len() - ext.len()]);
+    format!("{stem}.html")
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RenderMarkdownResult {
@@ -65,7 +77,7 @@ pub async fn export_html(
 
     let Some(path) = rfd::FileDialog::new()
         .add_filter("HTML", &["html"])
-        .set_file_name(format!("{title}.html"))
+        .set_file_name(export_file_name(&title))
         .save_file()
     else {
         crate::services::logger::log_event(LogEntryPayload {
@@ -173,7 +185,7 @@ pub async fn export_rendered_html(
 
     let Some(path) = rfd::FileDialog::new()
         .add_filter("HTML", &["html"])
-        .set_file_name(format!("{title}.html"))
+        .set_file_name(export_file_name(&title))
         .save_file()
     else {
         crate::services::logger::log_event(LogEntryPayload {
@@ -233,3 +245,7 @@ pub async fn export_rendered_html(
         html_size: html.len() as u64,
     })
 }
+
+#[cfg(test)]
+#[path = "export_file_name_wi7_tests.rs"]
+mod file_name_wi7_tests;

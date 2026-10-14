@@ -36,6 +36,8 @@ const kbSrc = fs.readFileSync(
   path.join(SRC, "components/common/settings/KeyboardShortcutsSettings.tsx"),
   "utf-8",
 );
+// The recorder's key → string logic moved to utils/platformLabels.ts (D190-WI-7).
+const labelsSrc = fs.readFileSync(path.join(SRC, "utils/platformLabels.ts"), "utf-8");
 
 // ---------------------------------------------------------------------------
 // Source structure
@@ -122,17 +124,17 @@ describe("KeyboardShortcutsSettings — source structure", () => {
   });
 
   it("NON_ACTIONABLE_KEYS set includes Dead and Unidentified", () => {
-    expect(kbSrc).toContain("NON_ACTIONABLE_KEYS");
-    expect(kbSrc).toContain('"Dead"');
-    expect(kbSrc).toContain('"Unidentified"');
-    expect(kbSrc).toContain('"CapsLock"');
+    expect(labelsSrc).toContain("NON_ACTIONABLE_KEYS");
+    expect(labelsSrc).toContain('"Dead"');
+    expect(labelsSrc).toContain('"Unidentified"');
+    expect(labelsSrc).toContain('"CapsLock"');
   });
 
   it("handleKeyCapture requires at least one modifier key", () => {
-    expect(kbSrc).toContain("event.metaKey");
-    expect(kbSrc).toContain("event.ctrlKey");
-    expect(kbSrc).toContain("event.altKey");
-    expect(kbSrc).toContain("event.shiftKey");
+    expect(labelsSrc).toContain("event.metaKey");
+    expect(labelsSrc).toContain("event.ctrlKey");
+    expect(labelsSrc).toContain("event.altKey");
+    expect(labelsSrc).toContain("event.shiftKey");
   });
 
   it("conflict detection: conflicts computed from localShortcuts", () => {

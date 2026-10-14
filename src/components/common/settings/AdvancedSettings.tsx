@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLoggingStore } from "../../../stores/loggingStore";
 import type { LogLevel } from "../../../types/logging";
 import { loggingService } from "../../../services/loggingService";
+import { isWindowsPlatform, logFileHint } from "../../../utils/platformLabels";
 
 const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string }[] = [
   { value: "debug", label: "Debug" },
@@ -72,7 +73,7 @@ export function AdvancedSettings() {
         <div className="settings-row-label">
           <label htmlFor="adv-logging-enabled">
             <h4>Enable Logging</h4>
-            <p>Write structured logs to ~/.mdpro/mdpro.log</p>
+            <p>{logFileHint(isWindowsPlatform())}</p>
           </label>
         </div>
         <div className="settings-row-control">

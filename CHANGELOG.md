@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - In WYSIWYG, a tight list opened from a file stays tight when you save after an edit (D195). A bullet list such as `- a` / `- b`, a list item holding a nested list, and a task list used to gain a blank line between their items on the first save; loose lists still keep their blank lines
+- On Windows and Linux, Settings → Keyboard Shortcuts shows Ctrl and Alt instead of Cmd and Option, recording a shortcut no longer stores the Windows key as Cmd, and the New Document button names Ctrl+N (D190)
+- Pressing a shortcut while recording it in Settings no longer also runs it; recording Ctrl+S used to save (D190)
+- On Windows and Linux the mdpro menu no longer lists the macOS-only Services, Hide, Hide Others and Show All (D190)
+- On Windows and Linux, a symbol shortcut such as Ctrl+/ works on layouts that type the symbol with Shift, e.g. German, where / is Shift+7 (D190)
+- Export HTML suggests `notes.html` for `notes.md` instead of `notes.md.html`, and the draft recovery dialog shows draft times in local time (D190)
+- On Windows the Advanced settings page names the log file as `%USERPROFILE%\.mdpro\mdpro.log` (D190)
 
 ## [0.3.2] - 2026-10-14
 

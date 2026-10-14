@@ -77,6 +77,9 @@ const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform
  *
  *  Off-Mac a pressed metaKey (Windows/Super key), or AltGr
  *  (`getModifierState("AltGraph")`), never matches any binding.
+ *  Off-Mac, a symbol key bound without Shift also matches when the layout
+ *  needs Shift to type it (`event.key` is the symbol itself, e.g. "/" as
+ *  Shift+7 on German); letters keep the exact Shift check.
  *
  *  Key tokens: uppercase letters/digits map case-insensitively; arrow
  *  abbreviations (Up/Down/Left/Right) map to ArrowX; "Space" maps to " ".
@@ -109,7 +112,6 @@ function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
   if (wantPrimary !== primaryMod) return false;
   if (wantSecondary !== secondaryMod) return false;
   if (wantOption !== event.altKey) return false;
-  if (wantShift !== event.shiftKey) return false;
 
   // Normalize the stored key name to what event.key produces
   let normalizedKey: string;
@@ -119,6 +121,13 @@ function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
   else if (keyPart === "Left") normalizedKey = "ArrowLeft";
   else if (keyPart === "Right") normalizedKey = "ArrowRight";
   else normalizedKey = keyPart;
+
+  // Off-Mac, a symbol the layout types with Shift ("/" is Shift+7 on German)
+  // arrives as that symbol with shiftKey set; a binding without Shift still
+  // matches it. Letters keep the exact check (D190-WI-7, audit b120).
+  const shiftTypedSymbol =
+    !isMac && !wantShift && normalizedKey.length === 1 && !/[a-z]/i.test(normalizedKey) && event.key === normalizedKey;
+  if (wantShift !== event.shiftKey && !shiftTypedSymbol) return false;
 
   // Single-character keys: compare case-insensitively
   if (normalizedKey.length === 1) {

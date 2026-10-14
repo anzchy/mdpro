@@ -3,6 +3,7 @@ import type { KeyboardShortcuts } from "../../../types/preferences";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { loggingService } from "../../../services/loggingService";
+import { displayedShortcut, isMacPlatform, recordedShortcut } from "../../../utils/platformLabels";
 
 interface KeyboardShortcutsSettingsProps {
   onClose: () => void;
@@ -93,12 +94,6 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   },
 ];
 
-/** Keys that are not actionable on their own and should be ignored during capture. */
-const NON_ACTIONABLE_KEYS = new Set([
-  "Meta", "Control", "Alt", "Shift",
-  "Dead", "Unidentified", "CapsLock", "Fn", "Process", "OS", "Win",
-]);
-
 export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettingsProps) {
   const [savedShortcuts, setSavedShortcuts] = useState<KeyboardShortcuts | null>(null);
   const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts | null>(null);
@@ -151,28 +146,10 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         return;
       }
 
-      // Ignore non-actionable keys (lone modifiers, dead keys, system keys).
-      if (NON_ACTIONABLE_KEYS.has(event.key)) return;
-
-      // Require at least one modifier to avoid bare key captures.
-      if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) return;
-
-      const parts: string[] = [];
-      if (event.metaKey) parts.push("Cmd");
-      if (event.ctrlKey) parts.push("Ctrl");
-      if (event.altKey) parts.push("Option");
-      if (event.shiftKey) parts.push("Shift");
-
-      let keyName = event.key;
-      if (keyName === " ") keyName = "Space";
-      else if (keyName === "ArrowUp") keyName = "Up";
-      else if (keyName === "ArrowDown") keyName = "Down";
-      else if (keyName === "ArrowLeft") keyName = "Left";
-      else if (keyName === "ArrowRight") keyName = "Right";
-      else if (keyName.length === 1) keyName = keyName.toUpperCase();
-
-      parts.push(keyName);
-      const shortcut = parts.join("+");
+      // Lone modifiers, dead keys, bare keys and (off-Mac) the Windows key
+      // keep the recorder waiting.
+      const shortcut = recordedShortcut(event, isMacPlatform());
+      if (shortcut === null) return;
 
       setLocalShortcuts((prev) => (prev ? { ...prev, [editingKey]: shortcut } : prev));
       setIsDirty(true);
@@ -181,10 +158,13 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     [editingKey],
   );
 
+  // Capture phase: the recorder sees the key before `useKeyboardShortcuts`'
+  // bubble-phase window listener, and its stopPropagation keeps the chord
+  // being recorded from also running its command (D190-WI-7, audit b100).
   useEffect(() => {
     if (editingKey) {
-      window.addEventListener("keydown", handleKeyCapture);
-      return () => window.removeEventListener("keydown", handleKeyCapture);
+      window.addEventListener("keydown", handleKeyCapture, true);
+      return () => window.removeEventListener("keydown", handleKeyCapture, true);
     }
   }, [editingKey, handleKeyCapture]);
 
@@ -287,7 +267,9 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
                       setEditingKey(item.key);
                     }}
                   >
-                    {editingKey === item.key ? "Press keys..." : shortcutValue}
+                    {editingKey === item.key
+                      ? "Press keys..."
+                      : displayedShortcut(item.key, shortcutValue, isMacPlatform())}
                   </button>
                 </div>
               );

@@ -38,6 +38,14 @@ pub(crate) fn quit_item_for(os: &str) -> QuitItem {
     }
 }
 
+/// Whether the app menu carries macOS's Services / Hide / Hide Others /
+/// Show All items on `os` (`std::env::consts::OS`).
+/// muda reports Services and Show All unsupported on Windows, and Hide /
+/// Hide Others are not a Windows idiom (D190-WI-7, W7).
+pub(crate) fn app_menu_has_macos_items(os: &str) -> bool {
+    os == "macos"
+}
+
 /// The wire name of what the guarded Exit click did. `None` means no guard was
 /// managed (setup never finished), and the app exited directly.
 pub(crate) fn exit_outcome_str(begin: Option<&Begin>) -> &'static str {
@@ -77,3 +85,7 @@ mod escape_order_tests;
 #[cfg(test)]
 #[path = "menu_quit_log_tests.rs"]
 mod log_tests;
+
+#[cfg(test)]
+#[path = "menu_app_items_wi7_tests.rs"]
+mod app_items_wi7_tests;

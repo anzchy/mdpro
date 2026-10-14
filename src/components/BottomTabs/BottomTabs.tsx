@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Document } from "../../types/document";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { basename } from "../../utils/pathBasename";
+import { isMacPlatform, newDocumentTooltip } from "../../utils/platformLabels";
 import "./BottomTabs.css";
 
 interface BottomTabsProps {
@@ -49,7 +50,7 @@ export function BottomTabs({
       <button
         className="bottom-tabs__add"
         onClick={onNewDocument}
-        title="New Document (⌘N)"
+        title={newDocumentTooltip(isMacPlatform())}
       >
         +
       </button>

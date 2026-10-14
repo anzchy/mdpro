@@ -7,6 +7,7 @@ interface DraftMetadata {
 }
 
 import { loggingService } from "../../services/loggingService";
+import { draftTimeLabel } from "../../utils/platformLabels";
 
 interface RecoveryDialogProps {
   drafts: DraftMetadata[];
@@ -32,7 +33,7 @@ export function RecoveryDialog({ drafts, onRecover, onDiscard }: RecoveryDialogP
                 <div className="recovery-path">
                   {draft.originalPath ? draft.originalPath : "Unsaved document"}
                 </div>
-                <div className="recovery-time">{draft.lastModified}</div>
+                <div className="recovery-time">{draftTimeLabel(draft.lastModified)}</div>
               </div>
               <div className="recovery-actions">
                 <button
