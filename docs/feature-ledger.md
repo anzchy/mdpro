@@ -101,14 +101,14 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 新建文档 | Unknown | ⌘N 对应的 Ctrl+N 在审计时无效（W1），D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：Ctrl+N 新开 Untitled 标签 |
 | 打开文件 | Unknown | Windows 审计仅部分验证（ead8c30），.md 过滤与重开已开文件未测；Ctrl+O（W1）D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：弹出打开对话框 |
 | 最近打开 | Unknown | Windows 审计仅部分验证（ead8c30），多窗口写盘顺序未测 |
-| 保存 | Unknown | 审计时每次自己保存后都弹「External change detected」（W2），D190 WI-2 已修（读取改按文件身份判稳定，自写标记认每种写法，[ADR-0093](adr/0093-windows-reads-are-proven-stable-by-file-identity-and-the-self-write-gate-matches-every-spelling.md)），真机未验；Ctrl+S 经 D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）（该次运行用的是 WI-2 之前的构建，仍弹 W2 提示） |
+| 保存 | Shipped | 审计时每次自己保存后都弹「External change detected」（W2），D190 WI-2 已修（读取改按文件身份判稳定，自写标记认每种写法，[ADR-0093](adr/0093-windows-reads-are-proven-stable-by-file-identity-and-the-self-write-gate-matches-every-spelling.md)），Windows 真机已验（[Windows W2 真机记录 2026-10-14](test/20261014-d190-w2-windows-device-check.md)，0742ee3 构建，NTFS）：自己保存不再提示，连存 5 次也不提示；只读文件与被占用文件保存失败时报错、标签保持未保存；Ctrl+S 经 D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）（该次运行用的是 WI-2 之前的构建，仍弹 W2 提示） |
 | 关闭文档 | Unknown | ⌘W 对应的 Ctrl+W 在审计时无效（W1），D190 WI-1 f044aba 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：关闭未修改的标签 |
 | 拖拽打开文件 | Unknown | Windows 审计未验证（ead8c30） |
 | Finder 文件关联 | N/A | Finder 关联是 macOS 专有；Windows 的 .md 关联未检查 |
 | 原子写入保存 | Unknown | Windows 审计未验证（ead8c30） |
 | 大文件提示横幅 | Unknown | Windows 审计未验证（ead8c30） |
-| 外部变更监听 | Unknown | 审计时 mdpro 自己保存也被当成外部改动弹提示（W2），D190 WI-2 已修，真机未验；ReFS / SMB / 可移动盘未验证：取文件身份失败时 fail open（照旧提示），ReFS 上 64 位文件 id 不保证唯一（ADR-0093） |
-| 后台标签的外部变更 | Unknown | 审计之后新增的行，Windows 未验证；自存误报（W2）已由 D190 WI-2 修复，真机未验 |
+| 外部变更监听 | Partial | 限制：ReFS / SMB / 可移动盘未验证：取文件身份失败时 fail open（照旧提示），ReFS 上 64 位文件 id 不保证唯一（ADR-0093）。审计时 mdpro 自己保存也被当成外部改动弹提示（W2），D190 WI-2 已修，NTFS 上 Windows 真机已验（[Windows W2 真机记录 2026-10-14](test/20261014-d190-w2-windows-device-check.md)）：外部追加、原子替换、等长改写、改写后还原 mtime 都提示，删除与移走报已删除 |
+| 后台标签的外部变更 | Unknown | 审计之后新增的行，Windows 未验证；自存误报（W2）已由 D190 WI-2 修复，前台标签已在 Windows 真机验证（[Windows W2 真机记录 2026-10-14](test/20261014-d190-w2-windows-device-check.md)），后台标签未测 |
 | 按 id 读取单份草稿 | Unknown | Windows 审计未验证（ead8c30） |
 | 保存后清理草稿 | Unknown | Windows 审计未验证（ead8c30） |
 | 陈旧草稿清理 | Unknown | Windows 审计未验证（ead8c30） |

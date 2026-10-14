@@ -1,0 +1,24 @@
+
+InputObject                                                SideIndicator
+-----------                                                -------------
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190\\w4.md",       =>           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190\\w3.md",       =>           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190\\w1.md",       =>           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\image2.md",         =>           
+    "\\\\?\\C:\\Users\\jack\\mdpro-audit\\fx\\image.md",   =>           
+    "\\\\?\\C:\\Users\\jack\\mdpro-audit\\fx\\long.md",    =>           
+    "\\\\?\\C:\\Users\\jack\\mdpro-audit\\fx\\basic.md",   =>           
+    "\\\\?\\C:\\Users\\jack\\mdpro-audit\\fx\\work2.md",   =>           
+    "\\\\?\\C:\\Users\\jack\\mdpro-audit\\fx\\work16.md"   =>           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2e.md",    <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2d.md",    <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f.md",    <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2f-as.md", <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\ro.md",     <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2c.md",    <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2a.md",    <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190w2\\w2b.md",    <=           
+    "C:\\Users\\jack\\mdpro-audit\\fx\\d190\\w4.md"        <=           
+
+
+
