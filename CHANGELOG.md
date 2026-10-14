@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-14
+
+### Highlights
+
+- **Windows keys make sense.** Ctrl+1–6 are headings, Ctrl+/ switches between Source and WYSIWYG, inline code and strikethrough each have their own key, and Settings shows Ctrl and Alt instead of Cmd and Option.
+- **Undo stays in its own tab.** In Source mode, ⌘Z after switching tabs, or typing right through a switch, no longer pulls another tab's text into the document.
+- **Tight lists stay tight.** Saving after an edit in WYSIWYG no longer adds blank lines between list items.
+- **One large document no longer stalls MCP.** A document over 10 MiB is refused with a clear error while the rest of its window stays in sync.
+
 ### Changed
 - On Windows and Linux, strikethrough is Alt+Shift+5 and Ctrl+Shift+` is inline code only; the two used to share Ctrl+Shift+`, so inline code had no key (D190, [ADR-0096](docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md))
 - On Windows and Linux, Ctrl+1–6 are headings and Ctrl+/ switches between Source and WYSIWYG. View → Source and View → WYSIWYG no longer advertise Ctrl+2 and Ctrl+4, which made headings 2 and 4 (D190). macOS is unchanged
