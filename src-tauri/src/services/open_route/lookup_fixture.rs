@@ -104,6 +104,7 @@ pub(super) fn doc(id: &str, path: Option<&str>, dirty: bool) -> DocumentState {
         cursor: 0,
         is_dirty: dirty,
         is_active: false,
+        over_limit: false,
     }
 }
 

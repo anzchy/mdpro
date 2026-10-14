@@ -82,6 +82,7 @@ fn lookup_all_with_populated_store_hits_the_stored_document_and_misses_others() 
                 cursor: 0,
                 is_dirty: false,
                 is_active: true,
+                over_limit: false,
             }],
             last_focused_at: 1,
             routable: true,

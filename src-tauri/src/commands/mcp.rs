@@ -29,8 +29,11 @@ use tauri::State;
 /// the quit guard's discard cap, so it is defined once at the crate root.
 pub(crate) use crate::MAX_DOCUMENTS_PER_WINDOW;
 
-/// Maximum size of a single document's content in bytes (10 MB).
-const MAX_DOCUMENT_CONTENT_BYTES: usize = 10 * 1024 * 1024;
+#[path = "mcp_sync_cap.rs"]
+mod sync_cap;
+#[cfg(test)]
+use sync_cap::MAX_DOCUMENT_CONTENT_BYTES;
+use sync_cap::{cap_oversize_documents, capped_entry};
 
 /// Maximum byte length of the window_label field.
 const MAX_WINDOW_LABEL_BYTES: usize = 256;
@@ -39,9 +42,10 @@ const MAX_WINDOW_LABEL_BYTES: usize = 256;
 
 /// Validate that a SyncDocumentsPayload does not exceed any size limit.
 ///
-/// Returns `Err` with a descriptive message if any limit is exceeded so the
-/// Tauri command can propagate the error to the frontend without touching the
-/// shadow store.
+/// Returns `Err` with a descriptive message if the window label or the
+/// document count is over its limit, so the Tauri command can propagate the
+/// error without touching the shadow store. Per-document size is not checked
+/// here: an oversize document is capped instead (D98).
 fn validate_sync_payload(payload: &SyncDocumentsPayload) -> Result<(), String> {
     if payload.window_label.len() > MAX_WINDOW_LABEL_BYTES {
         return Err(format!(
@@ -59,17 +63,8 @@ fn validate_sync_payload(payload: &SyncDocumentsPayload) -> Result<(), String> {
         ));
     }
 
-    for doc in &payload.documents {
-        if doc.content.len() > MAX_DOCUMENT_CONTENT_BYTES {
-            return Err(format!(
-                "document {} content exceeds {} byte limit ({} bytes)",
-                doc.id,
-                MAX_DOCUMENT_CONTENT_BYTES,
-                doc.content.len()
-            ));
-        }
-    }
-
+    // A document over MAX_DOCUMENT_CONTENT_BYTES is capped, not refused
+    // (D98, `cap_oversize_documents`): refusing it stopped the whole window.
     Ok(())
 }
 
@@ -80,9 +75,13 @@ fn validate_sync_payload(payload: &SyncDocumentsPayload) -> Result<(), String> {
 #[tauri::command]
 pub async fn mcp_sync_documents(
     state: State<'_, SharedShadowStore>,
-    payload: SyncDocumentsPayload,
+    mut payload: SyncDocumentsPayload,
 ) -> Result<(), String> {
     validate_sync_payload(&payload)?;
+    let capped = cap_oversize_documents(&mut payload);
+    if !capped.is_empty() {
+        logger::log_event(capped_entry(&payload.window_label, &capped));
+    }
     shadow_store::sync_documents(&state, payload)
 }
 
@@ -519,6 +518,7 @@ mod tests {
             cursor: 0,
             is_dirty: false,
             is_active: false,
+            over_limit: false,
         }
     }
 
@@ -560,18 +560,6 @@ mod tests {
     }
 
     #[test]
-    fn validate_rejects_oversized_document_content() {
-        let big_content = "x".repeat(MAX_DOCUMENT_CONTENT_BYTES + 1);
-        let payload = make_payload("main", vec![make_doc("doc-1", &big_content)]);
-        let err = validate_sync_payload(&payload).unwrap_err();
-        assert!(err.contains("content exceeds"), "unexpected error: {err}");
-        assert!(
-            err.contains("doc-1"),
-            "error should name the document: {err}"
-        );
-    }
-
-    #[test]
     fn validate_accepts_exactly_max_content_size() {
         let content = "x".repeat(MAX_DOCUMENT_CONTENT_BYTES);
         let payload = make_payload("main", vec![make_doc("doc-1", &content)]);
@@ -591,20 +579,6 @@ mod tests {
         let label = "a".repeat(MAX_WINDOW_LABEL_BYTES);
         let payload = make_payload(&label, vec![]);
         assert!(validate_sync_payload(&payload).is_ok());
-    }
-
-    #[test]
-    fn validate_rejects_first_oversized_doc_in_mixed_payload() {
-        // Ensures validation catches an oversized doc that is not the first in the list
-        let ok_doc = make_doc("ok", "content");
-        let big_content = "x".repeat(MAX_DOCUMENT_CONTENT_BYTES + 1);
-        let big_doc = make_doc("too-big", &big_content);
-        let payload = make_payload("main", vec![ok_doc, big_doc]);
-        let err = validate_sync_payload(&payload).unwrap_err();
-        assert!(
-            err.contains("too-big"),
-            "error must identify the offending document: {err}"
-        );
     }
 
     // ── get_client_config_path tests ──────────────────────────────────────────

@@ -93,9 +93,9 @@ Every tool is defined in `src-tauri/src/bin/mdpro_mcp.rs`; there are no others.
 
 | Tool | Parameters | Does | HTTP route | Gated | Errors | Notes |
 |---|---|---|---|---|---|---|
-| `get_open_documents` | none | Lists open documents | `GET /api/documents` | No | 401, 500 | Returns `id`, `title`, `path`, `is_dirty` |
-| `read_document` | `id: string` | Reads one document | `GET /api/documents/{id}` | No | 404 `NOT_FOUND` | Returns `content` only (the route also has `cursor`) |
-| `write_document` | `id: string`, `content: string` | Replaces the whole document | `POST /api/documents/{id}` | Yes (`replace`) | 403 `USER_REJECTED`, 408 `CONFIRM_TIMEOUT`, 503 `CONFIRM_CANCELLED`, 404 `NOT_FOUND`, 500 `EMIT_FAILED` | Rebuilds WYSIWYG (ADR-0044) |
+| `get_open_documents` | none | Lists open documents | `GET /api/documents` | No | 401, 500 | Returns `id`, `title`, `path`, `is_dirty`, plus `over_limit: true` on a document over 10 MiB (D98) |
+| `read_document` | `id: string` | Reads one document | `GET /api/documents/{id}` | No | 404 `NOT_FOUND`, 413 `DOCUMENT_TOO_LARGE` | Returns `content` only (the route also has `cursor`) |
+| `write_document` | `id: string`, `content: string` | Replaces the whole document | `POST /api/documents/{id}` | Yes (`replace`) | 403 `USER_REJECTED`, 408 `CONFIRM_TIMEOUT`, 503 `CONFIRM_CANCELLED`, 404 `NOT_FOUND`, 413 `DOCUMENT_TOO_LARGE`, 500 `EMIT_FAILED` | Rebuilds WYSIWYG (ADR-0044) |
 | `insert_content` | `id: string`, `text: string`, `position: string` | Inserts text | `POST /api/documents/{id}/insert` | Yes (`insert`) | same as `write_document` | `position` is `cursor` / `start` / `end` or digits (sent as a JSON number). UTF-16 offsets (ADR-0021) |
 
 The binary reloads port and token after a `401` or a connection failure. It
@@ -160,6 +160,10 @@ mcurl -X POST "$API/api/v1/delete_column" -d "{\"document_id\":\"$DOC\",\"index\
   number. Offsets and `cursor` are **UTF-16 code units** (ADR-0021), not bytes.
 - `insert_table` with `rows` or `cols` = 0 returns `400 INVALID_PAYLOAD`.
 - A document id that is not open returns `404 NOT_FOUND`.
+- A document over 10 MiB returns `413 DOCUMENT_TOO_LARGE` on every read and
+  write route, the six table routes included, before any confirm prompt (D98).
+  mdpro does not mirror its content to the MCP server; the rest of that
+  window's documents sync as usual.
 - **Rows wider than the header** (D49,
   [ADR-0064](../adr/0064-mcp-table-actions-widen-and-keep-header-width-coordinates.md)):
   every table route except `insert_table` first widens the table to its widest

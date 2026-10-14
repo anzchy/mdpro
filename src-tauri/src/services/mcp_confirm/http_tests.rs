@@ -52,6 +52,7 @@ pub(crate) fn store_with_d(window: &str, title: &str, content: &str) -> SharedSh
         cursor: 0,
         is_dirty: false,
         is_active: true,
+        over_limit: false,
     };
     let payload = SyncDocumentsPayload {
         window_label: window.to_string(),

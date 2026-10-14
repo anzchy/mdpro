@@ -14,6 +14,7 @@ fn doc(id: &str) -> DocumentState {
         cursor: 0,
         is_dirty: false,
         is_active: true,
+        over_limit: false,
     }
 }
 

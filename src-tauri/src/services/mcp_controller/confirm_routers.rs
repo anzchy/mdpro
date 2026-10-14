@@ -42,6 +42,7 @@ pub(crate) fn store_with_d_in_b() -> SharedShadowStore {
         cursor: 0,
         is_dirty: false,
         is_active: true,
+        over_limit: false,
     };
     let payload = SyncDocumentsPayload {
         window_label: "B".to_string(),

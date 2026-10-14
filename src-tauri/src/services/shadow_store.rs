@@ -211,6 +211,7 @@ mod tests {
             cursor: 0,
             is_dirty: false,
             is_active: false,
+            over_limit: false,
         }
     }
 
@@ -309,6 +310,7 @@ mod tests {
                 cursor: 0,
                 is_dirty: false,
                 is_active: true,
+                over_limit: false,
             }],
             active_document_id: Some("doc1".to_string()),
             routable: false,
@@ -355,6 +357,7 @@ mod tests {
                 cursor: 0,
                 is_dirty: false,
                 is_active: true,
+                over_limit: false,
             }],
             active_document_id: Some("doc1".to_string()),
             routable: false,

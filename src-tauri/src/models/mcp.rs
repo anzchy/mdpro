@@ -31,6 +31,12 @@ pub struct DocumentState {
 
     /// Whether this is the active document in its window
     pub is_active: bool,
+
+    /// Set by the sync when the frontend's content was over the per-document
+    /// cap: `content` is then empty, not the document (D98). Never sent by the
+    /// frontend, never serialized.
+    #[serde(default, skip_serializing)]
+    pub over_limit: bool,
 }
 
 /// Per-window state tracking for multi-window MCP routing.
@@ -171,6 +177,10 @@ pub struct DocumentInfo {
     pub title: String,
     pub path: Option<String>,
     pub is_dirty: bool,
+    /// Present, and true, only for a document over the sync cap (D98): its
+    /// content can't be read or written through MCP.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub over_limit: bool,
 }
 
 impl From<&DocumentState> for DocumentInfo {
@@ -180,6 +190,7 @@ impl From<&DocumentState> for DocumentInfo {
             title: doc.title.clone(),
             path: doc.path.clone(),
             is_dirty: doc.is_dirty,
+            over_limit: doc.over_limit,
         }
     }
 }

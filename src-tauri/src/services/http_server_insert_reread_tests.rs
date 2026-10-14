@@ -26,6 +26,7 @@ fn put(store: &SharedShadowStore, content: &str, cursor: usize) {
         cursor,
         is_dirty: false,
         is_active: true,
+        over_limit: false,
     };
     let payload = SyncDocumentsPayload {
         window_label: "W".to_string(),

@@ -343,6 +343,9 @@ async fn get_document(State(state): State<AppState>, Path(id): Path<String>) -> 
         duration_ms: None,
         error: None,
     });
+    if let Some(refused) = over_limit_refusal(&state.shadow_store, &id, "mcp.read") {
+        return refused;
+    }
 
     match shadow_store::get_document(&state.shadow_store, &id) {
         Ok(Some(doc)) => {
@@ -453,6 +456,9 @@ async fn update_document(
     // ADR-0042: applies at once only if the owning window is focused;
     // otherwise waits (<= 60 s) on that window's in-window prompt. Awaited
     // here, never spawned, so a client disconnect withdraws the prompt (F3).
+    if let Some(refused) = over_limit_refusal(&state.shadow_store, &id, "mcp.write") {
+        return refused;
+    }
     let gate = confirm_gate(&state.confirm, &state.shadow_store, &id, Operation::Replace);
     if let Err(refused) = gate.await {
         return gate_refused("mcp.write", &id, refused);
@@ -543,6 +549,9 @@ async fn insert_content(
         error: None,
     });
 
+    if let Some(refused) = over_limit_refusal(&state.shadow_store, &id, "mcp.insert") {
+        return Err(refused);
+    }
     // ADR-0042 gate, as in `update_document` (awaited here, never spawned).
     confirm_gate(&state.confirm, &state.shadow_store, &id, Operation::Insert)
         .await
@@ -702,6 +711,10 @@ use log_stage::{
 #[path = "http_server_create.rs"]
 mod create;
 
+#[path = "http_server_over_limit.rs"]
+mod over_limit;
+use over_limit::over_limit_refusal;
+
 /// Common helper — gates the write on the owning window's confirmation
 /// (ADR-0042), then emits the event to the document's owning window.
 ///
@@ -721,6 +734,9 @@ async fn dispatch_table_action(
 ) -> Response {
     let log_event = format!("mcp.table.{}", action.as_str());
     let action_id = uuid::Uuid::new_v4().to_string();
+    if let Some(refused) = over_limit_refusal(&state.shadow_store, document_id, &log_event) {
+        return refused;
+    }
     let gate = confirm_gate(
         &state.confirm,
         &state.shadow_store,

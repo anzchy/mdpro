@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - On Windows and Linux, a symbol shortcut such as Ctrl+/ works on layouts that type the symbol with Shift, e.g. German, where / is Shift+7; a shortcut bound with Shift still wins over it (D190)
 - Export HTML suggests `notes.html` for `notes.md` instead of `notes.md.html`, and the draft recovery dialog shows draft times in local time (D190)
 - On Windows the Advanced settings page names the log file as `%USERPROFILE%\.mdpro\mdpro.log` (D190)
+- One document over 10 MiB no longer stops MCP sync for its whole window (D98). The other documents stay current, and MCP reads and writes on the large one answer `413 DOCUMENT_TOO_LARGE` instead of returning stale content
 
 ## [0.3.2] - 2026-10-14
 
