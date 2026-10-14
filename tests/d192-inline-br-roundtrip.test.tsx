@@ -170,7 +170,7 @@ describe("D192 guards — behaviour the fix must keep (GREEN now)", () => {
     expect(doc.childCount).toBe(3);
     expect(doc.child(1).type.name).toBe("paragraph");
     expect(doc.child(1).childCount, "the block br must load as an EMPTY paragraph").toBe(0);
-    expect(serialize(e)).toBe("first\n\n<br />\n\nsecond\n");
+    expect(serialize(e)).toBe("first\n\n\n\nsecond\n");
   });
 
   it("G2 plain text without a br round-trips unchanged", async () => {

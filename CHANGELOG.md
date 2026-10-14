@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Not yet checked on a device**
 - Opening a file with a `<br>` tag inside a line (for example `first<br />second`, or `x<br>y` in a table cell) no longer deletes it (D192). The tag used to disappear as the file loaded, and the first edit anywhere in the document then saved the text without it. A `<br />` on a line of its own still opens as an empty line
   - **Not yet checked on a device**
+- Pressing Enter in WYSIWYG no longer writes a `<br />` line into the file (D188, issue #415, [ADR-0091](docs/adr/0091-an-empty-wysiwyg-paragraph-is-saved-as-blank-lines-and-read-back-by-count.md)). An empty paragraph is now saved as blank lines, two more for each empty paragraph, as Typora does, and a file with such blank lines opens with the empty paragraphs back in place. Opening a file still changes nothing on disk; an old `<br />` line opens as an empty paragraph and is rewritten as blank lines on the next edited save
+  - **Known limits**: an empty paragraph at the start or end of the document, a quote or a list item is not saved; one odd extra blank line is dropped on the next save; an empty paragraph between two lists of the same kind comes back as one list
+  - **Not yet checked on a device**
 - On Windows the app shortcuts work again: Ctrl+S, Ctrl+N, Ctrl+O, Ctrl+W, Ctrl+, and the rest were all ignored, because a binding written as Cmd was also required to have Ctrl released (D190, closes D50; a regression of the #38 fix)
   - **Not yet checked on a device**
 - On Windows Ctrl+Shift+N opens a new window. The native menu shortcut never reaches the app there, so the in-app shortcut handler now covers New Window off macOS, using the existing New Window shortcut setting (D190)
