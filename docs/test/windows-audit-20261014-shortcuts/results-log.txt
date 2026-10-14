@@ -1,0 +1,46 @@
+CM-M 通过 menuclick File>Save: 22:23:14.073 ui.menu.select menu.file.save; file.save success w.md
+CM-H 通过 / F1 通过 ctrl+n: 22:23:54.226 ui.shortcut.trigger file.new; tab.open Untitled
+F6 通过 ctrl+w: 22:24:42.259 ui.shortcut.trigger file.close; tab.close wasModified false
+F4 通过 ctrl+s: 22:25:58.213 ui.shortcut.trigger file.save; file.save success w.md 752 B
+F5 不通过(无绑定) ctrl+shift+s: no ui.shortcut/ui.menu line, no dialog, windows lists only main (control F4 passed same route)
+F3 通过 ctrl+o: 22:27:47.822 ui.shortcut.trigger file.open; dialog '打开' shown; file.open cancel (dialog cancelled)
+F7 通过 ctrl+comma: 22:27:53.663 ui.shortcut.trigger file.preferences; Settings dialog open
+LABELS: Settings page shows 49 entries, Windows labels as matrix; Image -> Ctrl+I AND Italic -> Ctrl+I (T7 collision confirmed); Source/WYSIWYG -> Ctrl+/ (toggle); Strikethrough -> Alt+Shift+5
+F2 通过 ctrl+shift+n: 22:29:18.683 ui.shortcut.trigger file.new_window; window.create mdpro-b6364d8d…; window.focus on B. (B closed with title-bar click + Alt+F4; main intact)
+NOTE: a second window has now been closed; menu clicks after this use menuat if menuclick fails (pitfall 10)
+V3-W 通过 ctrl+shift+l: 22:31:15.609 ui.shortcut.trigger view.toggle_sidebar; sidebar 220->0 (toggled back: 220)
+V5 不通过(无绑定) ctrl+alt+f: no ui.shortcut line, window rect unchanged -11,-11,3862,2110 (control: V3 same route passed)
+V1 通过 / V4a 通过 ctrl+slash from W: 22:33:34.435 ui.shortcut.trigger view.cycle; view.mode.change wysiwyg->source
+V3-S 通过 ctrl+shift+l in Source: 22:34:25.554 ui.shortcut.trigger view.toggle_sidebar; sidebar 220->0; no selection side effect (sel "", 0 cm-selectionBackground). Toggled back.
+V2 通过 / V4b 通过 ctrl+slash from S: 22:36:02.267 view.mode.change source->wysiwyg (CodeMirror viewModeKeymap; no hook line, by design)
+V6 不通过(无绑定) ctrl+backtick, 2 tabs: active stays Untitled, no ui.shortcut/tab.switch line (control: V3/V1 same route passed)
+PARA-W diff (w.md, base->after one Ctrl+S): P1..P6 -> "#".."######" 通过; P7 "# P7" -> "P7" 通过; P8 unchanged (W: none, expected); P9 unchanged (W: none, expected); P11 wrapped in ``` 通过; P12 P13 P14 P15 unchanged -> 不通过(无绑定) (control CM-P/P1 passed same route); P16 item nested 通过; P17 item lifted 通过
+KD: ctrl+alt chords arrive as ctrlKey+altKey, getModifierState("AltGraph") false, isTrusted true (code "" from keybd_event)
+P10 通过 ctrl+alt+t (W): 22:43:29.719 ui.shortcut.trigger paragraph.table; Insert Table modal open; cancelled. EXTRA: modal header shows "⌘⌥T" on Windows (macOS label)
+PARA-S diff (s.md, s.before->after Ctrl+S 22:50:11): P1..P6 "#".."######" 通过, one ui.shortcut.trigger per press (paragraph.heading1..6, no double apply); P7 "# P7"->"P7" 通过 (paragraph.paragraph once); P8 "###"->"##" 通过; P9 "##"->"###" 通过; P11 unchanged (S: none expected, 一致) ; P12-P15 unchanged -> 不通过(无绑定); P16 nested (4 spaces) 通过
+P17-S first press (clickat y=2066, near bottom edge) left the line unchanged = harness miss (caret not on line); retry centred y=1029: "  - P17 outdent item" -> "- P17 outdent item", saved 22:53:42 -> 通过. keydown "[" code "" ctrl true.
+CM-C 通过 (S): typed x on CTRL -> 'CTRL control linex'; Ctrl+Z -> 'CTRL control line'
+FMT-S (s.md, each word selected via DOM selection, getSelection confirmed; diff after Ctrl+S 23:09:11 vs s.paraS2 = NO DIFF): T1 ctrl+b, T2 ctrl+i, T3 ctrl+u, T4 ctrl+shift+backtick, T5 alt+shift+5, T7 ctrl+i, T8 ctrl+backslash -> unchanged, no ui.shortcut line -> 不通过(无绑定) in S (matrix expects — in S for all of these; control CM-C passed, T6 same route passed). T8: line selection by Shift+Home not visible in DOM; keydown "\\" ctrl defaultPrevented=false (no handler).
+T6-S 通过 ctrl+k: 23:01:58.095 ui.shortcut.trigger format.hyperlink; Insert Link modal opened (shot t6-s-link-modal.png), cancelled with its Cancel. NOTE harness: first T7/T8/Ctrl+S ran while the modal was open -> discarded and redone (T7 23:07, T8 23:09).
+FMT-W (w.md, DOM check after each press, not yet saved): CM-P/T1 ctrl+b -> <strong>alpha</strong> 通过; T2 ctrl+i -> <em>bravo</em> 通过; T3 ctrl+u unchanged (— expected) -> 不通过(无绑定); T4 ctrl+shift+backtick -> <code>delta</code> 通过.
+T5-W alt+shift+5: 23:17:42 press left "echo" unchanged; retry ~23:19-23:21 recorded NO keydown at all (not even for ctrl+shift+5 / alt+5 controls) and document.hasFocus() went false. A user Chrome window (StartTime 23:20:05) came to the foreground and its page scrolled between two transient screen shots (deleted) with no input from me -> the desktop may be in use. RUN PAUSED at 23:25. T5-W 未验证 (focus). Windows has zh-Hans-CN + en-US input languages, so Alt+Shift may be the language-switch hotkey: recheck.
+Remaining on Windows: T5-T8 W, save+diff W; E1-E11 W and S; restore + cleanup.
+T5-W 通过 alt+shift+5 (K2 route, 23:32 after focus+max): <del>echo</del>; keydowns Alt,Shift,% reached page; kl.txt 23:32:08.832 fg=mdpro hkl=0x08040804 -> 23:32:38.878 fg=mdpro hkl=0x08040804 (no input-language switch). Earlier NOT-VERIFIED was the focus loss.
+T6-W 通过 ctrl+k: Insert Link modal (link-insert-modal) opened, no ui.shortcut line (Milkdown/typora route); typed x.t with real keys, Insert -> <a href="https://x.t">foxtrot</a>
+T7-W 不通过 ctrl+i: Settings lists Image = Ctrl+I; pressing it on selected 'T7 image line' ran ITALIC -> <em>T7 image line</em>; no image action, no ui.shortcut line (confirms T7 label collision)
+T8-W 不通过(无绑定) ctrl+backslash: whole line selected ('T8 clear golf format'), unchanged <strong>golf</strong>, no ui.shortcut line, no dialog
+E1-W 不通过(无绑定) ctrl+shift+c on selected hotel: clipboard SENTINEL-E1 before (23:39:56) and after (23:41:19); no ui.shortcut line; no inspector opened (CDP lists one page)
+E2-W 通过（WebView2 原生）ctrl+shift+v: clipboard 'hotel' copied with Ctrl+C from bold E1 word (23:42:21 clip=hotel = clipboard control), caret at E2 end -> 'E2 paste target linehotel' with no <strong>; no ui.shortcut line (Chromium native plain paste, not an mdpro binding)
+IME: at the user's request mdpro's input language switched to English (US): kl.txt 23:46:55 hkl=0x08040804 -> 23:47:16 hkl=0x04090409 (il.ps1 PostMessage WM_INPUTLANGCHANGEREQUEST). E3-E5 W rerun after it.
+E3-W 不通过(无绑定) ctrl+l: selection "" after key, typed Z inserted at caret ("lineZZ" incl. first pre-IME run); E4-W 不通过(无绑定) ctrl+d: sel "", Z at caret "indZia"; E5-W 不通过(无绑定) ctrl+shift+d: sel "", juliet not deleted, Z at caret. No ui.shortcut lines. (First pre-IME batch: E4's Z landed in E5 — discarded.)
+E6-W 不通过(无绑定) ctrl+up: caret at end of "LAST line", typed Q landed in the previous paragraph "E8 find kiQlo…" (native paragraph-up), not the first line.
+E7-W 不通过(无绑定) ctrl+down: caret at start of the H1, typed Q landed at the start of the next paragraph "QCTRL control line…" (native paragraph-down), not the last line.
+E8-W 一致（WebView2 原生）ctrl+f: no mdpro find, no ui.shortcut line, no DOM search panel; WebView2's own find bar opened top-right (shot e8-w.png). Typing needs a click into its box (ui.sh runs drop its focus); "kilo" -> 2/2.
+E9-W ctrl+g in WebView2 find bar: counter 2/2 -> 1/2 (next, wraps) (e9w2.png); E10-W ctrl+shift+g: 1/2 -> 2/2 (previous) (e10w2.png). Both are WebView2 native, not mdpro bindings.
+E11-W 不通过(无绑定) ctrl+h: nothing happens (shot e11-w.png): no dialog, no ui.shortcut line, LAST line unchanged; find bar was closed first with its X
+E1-S 不通过(无绑定) ctrl+shift+c on selected hotel (getSelection=hotel): clipboard SENTINEL-E1S unchanged (00:11:23); control Ctrl+C same selection -> clip=hotel (00:11:49); no ui.shortcut line, no inspector. (A first attempt at 00:06 found no line: CodeMirror had not rendered the E lines; discarded.)
+E2-S 通过（WebView2 原生）ctrl+shift+v: clip=hotel, caret at E2 end -> "E2 paste target linehotel"; no ui.shortcut line.
+E3-S 不通过(无绑定) ctrl+l: sel "" ; Z at caret ("lineZ target"). E4-S 通过 ctrl+d: sel "india" (CodeMirror Mod-d), typed Z replaced it -> "E4 select word Z". E5-S 不通过(无绑定) ctrl+shift+d: sel "", juliet intact, Z at caret.
+E6-S 不通过(无绑定) ctrl+up: caret end of LAST line -> typed Q on the blank line just above it (s.md line 65), not line 1 (CodeMirror on Win binds only Mod-Home). E7-S 不通过(无绑定) ctrl+down: caret start of H1 -> Q on line 2 (blank after H1), not the last line. Saved 00:19:43.
+E8-S 通过 ctrl+f: CodeMirror search panel opened, focus in its search box; typed "kilo" -> 3 matches (shot e8-s.png). E9-S 通过 ctrl+g: 1st press selects the 1st kilo (E8 line offset 8), 2nd press the 2nd (offset 14), via DOM .cm-searchMatch-selected. E10-S 通过 ctrl+shift+g: back to offset 8 (e10-s.png). No ui.shortcut lines (CodeMirror route).
+E11-S 不通过(无绑定) ctrl+h: nothing (shot e11-s.png): no panel, no dialog, no ui.shortcut line, LAST line unchanged. Search panel was closed first with its close button.

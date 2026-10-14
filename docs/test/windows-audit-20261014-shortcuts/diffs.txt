@@ -1,0 +1,167 @@
+# w.md (WYSIWYG) — Paragraph: w.before.md -> w.paraW.md
+5c5
+< P1 heading target
+---
+> # P1 heading target
+7c7
+< P2 heading target
+---
+> ## P2 heading target
+9c9
+< P3 heading target
+---
+> ### P3 heading target
+11c11
+< P4 heading target
+---
+> #### P4 heading target
+13c13
+< P5 heading target
+---
+> ##### P5 heading target
+15c15
+< P6 heading target
+---
+> ###### P6 heading target
+17c17
+< # P7 paragraph target
+---
+> P7 paragraph target
+22a23
+> ```
+23a25
+> ```
+34c36
+< * P16 indent item two
+---
+>   * P16 indent item two
+36c38
+<   * P17 outdent item
+---
+> * P17 outdent item
+
+# w.md — Format: w.paraW.md -> w.fmtW.md
+40c40
+< T1 bold word: alpha
+---
+> T1 bold word: **alpha**
+42c42
+< T2 italic word: bravo
+---
+> T2 italic word: *bravo*
+46c46
+< T4 code word: delta
+---
+> T4 code word: `delta`
+48c48
+< T5 strike word: echo
+---
+> T5 strike word: ~~echo~~
+50c50
+< T6 link word: foxtrot
+---
+> T6 link word: [foxtrot](https://x.t)
+52c52
+< T7 image line
+---
+> *T7 image line*
+
+# w.md — Edit: w.fmtW.md -> w.editW.md
+3c3
+< CTRL control linexy
+---
+> QCTRL control linexy
+58c58
+< E2 paste target line
+---
+> E2 paste target linehotel
+60c60
+< E3 select line target
+---
+> E3 select lineZZ target
+62c62
+< E4 select word india
+---
+> E4 select word indZia
+64c64
+< E5 delete word juliet
+---
+> E5 delete word juliZZZet
+66c66
+< E8 find kilo, kilo again, last kilo
+---
+> E8 find kiQlo, kilo again, last kilo
+
+# s.md (Source) — Paragraph: s.before.md -> s.paraS2.md
+5c5
+< P1 heading target
+---
+> # P1 heading target
+7c7
+< P2 heading target
+---
+> ## P2 heading target
+9c9
+< P3 heading target
+---
+> ### P3 heading target
+11c11
+< P4 heading target
+---
+> #### P4 heading target
+13c13
+< P5 heading target
+---
+> ##### P5 heading target
+15c15
+< P6 heading target
+---
+> ###### P6 heading target
+17c17
+< # P7 paragraph target
+---
+> P7 paragraph target
+19c19
+< ### P8 increase target
+---
+> ## P8 increase target
+21c21
+< ## P9 decrease target
+---
+> ### P9 decrease target
+34c34
+< - P16 indent item two
+---
+>     - P16 indent item two
+36c36
+<   - P17 outdent item
+---
+> - P17 outdent item
+
+# s.md — Format: s.paraS2.md -> s.fmtS.md (no diff = nothing changed)
+
+# s.md — Edit: s.fmtS.md -> s.editS1.md
+2c2
+< 
+---
+> Q
+56c56
+< E2 paste target line
+---
+> E2 paste target linehotel
+58c58
+< E3 select line target
+---
+> E3 select lineZ target
+60c60
+< E4 select word india
+---
+> E4 select word Z
+62c62
+< E5 delete word juliet
+---
+> E5 delete word juliZet
+65c65
+< 
+---
+> Q
