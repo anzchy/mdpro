@@ -209,6 +209,13 @@ carry an extra "still unimported" assertion to keep them out of its tokenization
 
 **Pros:** About 120 fewer lines of dead CSS/TSX. Rule 34 matches reality. The tokenization scope needs no exclusions.
 
+**Also delete the dead CSS that went with them** (plan P STOP 2, user 2026-10-15: 「Delete with the TODOS cleanup
+(Recommended)」; WI-3.0 delegator ruling): the selectors on the `UNRENDERED` list in `tests/css-tokenization.test.ts`
+(the `.tab*` rules in `src/styles/sections/tab-bar.css` and the orphans, 27 literals), plus two `--color-border` fills
+with no literal that `tests/color-border-fills.test.ts` lists as dead: `.split-divider` (`app-shell.css`, an orphan;
+`SplitView.tsx` renders no divider) and `.tab__close:hover` (`tab-bar.css`, rendered only by `TabBar/`). Drop their
+rows from both tests in the same change, and the A8 dead-code guard in `tests/css-tokenization.test.ts` with them.
+
 **Cons:** Must first confirm nothing references them implicitly. It is unverified whether a pre-React theme flash
 actually happens; if it does, fix it in `index.html` rather than reviving `App.css`.
 

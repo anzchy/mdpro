@@ -1,0 +1,81 @@
+# Manual Testing Guide: UI Redesign (Plan P)
+
+Last updated: 2026-10-15
+
+---
+
+## Overview
+
+Plan P ([`docs/plans/20260911-plan-ui-redesign.md`](../plans/20260911-plan-ui-redesign.md)) restyles mdpro
+against [`docs/design/mdpro-ui-new/DESIGN.md`](../design/mdpro-ui-new/DESIGN.md) in stages. This guide is
+the manual check for every surface a work item changes (assumption A11). It was created by WI-3.0, the
+first Stage 3 work item; each later work item adds or updates its own section in the same commit.
+
+- **Stages 1 and 2 (Deliverable A)** changed no computed style: the CSS split and the value-preserving
+  tokens were checked by the computed-style capture alone (empty diff, 32 surfaces × 2 themes), so they
+  have no manual steps here.
+- **Stage 3 (Deliverable B)** changes rendered values on purpose. Each intended change is listed below
+  with the surface to open and what should be different.
+
+---
+
+## 1. Prerequisites
+
+- Run the app with `pnpm tauri dev` (E5). `pnpm dev` alone is enough for the computed-style capture, but
+  WKWebView-only behaviour (native scrollbars, form controls, `color-scheme`) needs the Tauri window.
+- Check every step in **both themes**: Theme › Light, then Theme › Dark.
+- Fixtures live in `tests/manual-fixtures/`. Copy a fixture to a scratch folder and open the copy, never
+  the committed original (CLAUDE.md § Manual test fixtures).
+- Record each device run in `docs/test/` with the commit, the build and who ran each check.
+
+---
+
+## 2. WI-3.0 — `--color-border` used as a fill
+
+**Visual change: none.** WI-3.0 classifies the five places that paint an area with `--color-border`
+before WI-3.1 redefines that token as a translucent text mix (`tests/color-border-fills.test.ts`):
+
+| Selector | Kind | What happens in Stage 3 |
+|---|---|---|
+| `.bottom-tabs__divider` | line | Follows WI-3.1's border change (DESIGN.md: hairlines and control edges) |
+| `.column-resize-handle::after` (WYSIWYG tables) | line | Follows WI-3.1's border change |
+| `.about-progress-bar::-webkit-progress-bar` | fill | Retargeted by WI-3.1, see § 3 |
+| `.split-divider` | dead | Orphan; deleted with the TODOS.md dead-code entry |
+| `.tab__close:hover` | dead | Rendered only by the dead `TabBar/`; deleted with the same entry |
+
+Nothing to check by hand: the computed-style capture for this commit is an empty diff.
+
+---
+
+## 3. WI-3.1 — Theme token retune (to be written by WI-3.1)
+
+Known in advance, from the WI-3.0 rulings (delegator, 2026-10-15):
+
+- **About progress-bar track → `--color-border-subtle`.** An intended change, by analogy with the Switch
+  off-track ("a low text mix", DESIGN.md § Switch). Measured contrast, track on the settings dialog surface
+  (`--color-panel`):
+
+  | Theme | Track vs surface, before → after | Accent fill vs track, before → after |
+  |---|---|---|
+  | Light | 1.24 → 1.13 | 4.17 → 4.59 |
+  | Dark | 1.23 → 1.18 | 5.66 → 5.92 |
+
+  The fill carries the progress and stays above 3:1; the track was already below 3:1 (accepted by the
+  delegator, 2026-10-15).
+- **On device: NOT EXERCISED.** The bar renders only while Settings › About downloads an update (an
+  available update, then **Install Update**). That needs a published release newer than the running build, served from the
+  updater endpoint in `tauri.conf.json`; the verify overlay `tauri.verify.conf.json` has empty endpoints
+  ([`manual-test-about-updater.md`](./manual-test-about-updater.md)). The `pnpm dev` computed-style capture
+  does not reach it either: its `browser-settings-about` surface is the idle About page, which renders no
+  progress bar. Until a capture surface drives the downloading state, the track is pinned by source
+  inspection only (`tests/color-border-fills.test.ts`).
+
+---
+
+## 4. WI-3.2 — Class (b) literals, motion and type ramp (to be written by WI-3.2)
+
+## 5. WI-3.3 — Focus ring (to be written by WI-3.3)
+
+## 6. WI-3.4 — macOS 13.1 floor (to be written by WI-3.4)
+
+## 7. WI-3.5 — Docs, evidence and QA (to be written by WI-3.5)
