@@ -250,7 +250,7 @@ def main():
         httpd.server_close()
         raise
     test_delay = os.environ.get("MDPRO_HOOK_TEST_LISTEN_LOG_DELAY_MS")  # test seam (D177-H5-WI-2)
-    if test_delay and test_delay.isdigit():  # test seam (D177-H5-WI-2)
+    if test_delay and re.fullmatch(r"[0-9]{1,4}", test_delay):  # test seam (D177-H5-WI-2); ASCII only (D207)
         time.sleep(min(int(test_delay), 5000) / 1000)  # test seam (D177-H5-WI-2)
     log(f"listening on {host}:{PORT}")
     httpd.server_activate()
