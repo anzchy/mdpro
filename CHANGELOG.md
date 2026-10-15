@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - On Windows and Linux, mdpro › About opens an About box with the version and a link to the project page; it used to do nothing (D225). macOS keeps its own About panel.
 - In the table right-click menu (WYSIWYG and Source), moving with the arrow keys, Home or End now shows the focus ring on the item you move to. It used to move without showing where you were, because the menu was opened with the mouse (D232).
-- In the Insert Link dialog, Tab and Shift-Tab now cycle through the dialog's own controls instead of moving focus to the window behind it (D230).
+- In the Insert Link dialog, Tab and Shift-Tab now cycle through the dialog's own controls instead of moving focus to the window behind it, and Enter on Cancel cancels: only Enter in the URL field inserts the link (D230).
 - On Windows and Linux, Settings › About no longer says "Couldn't get update information" every time it opens (D224). Those platforms are not offered in-app updates yet, so About now says "Automatic updates coming soon.", as it does in builds without an update server. macOS is unchanged.
 - In WYSIWYG, a numbered list that starts at a number other than 1 is shown from that number (D226). A list saved as `5.` / `6.` used to be displayed as 1, 2, though the file was right.
 - The sidebar keeps its width when the window is narrow (half or a third of the screen, or high display scaling on Windows). At 960 px or less it used to be squeezed to a sliver when a document was open, and to stretch across most of the window when none was. It now gives way only as far as needed to keep 320 px for the editor (D189, #416)

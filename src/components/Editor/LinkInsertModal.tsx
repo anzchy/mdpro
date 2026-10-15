@@ -95,8 +95,12 @@ export function LinkInsertModal() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+      // Only the URL field submits on Enter; on Cancel or Insert, Enter
+      // activates that button (D230-WI-2).
+      if (e.target === inputRef.current) {
+        e.preventDefault();
+        handleSubmit();
+      }
     } else if (e.key === "Escape") {
       e.preventDefault();
       handleCancel();
