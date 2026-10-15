@@ -17,6 +17,7 @@
  * @coordinates-with src/components/common/settings/KeyboardShortcutsSettings.tsx
  * @coordinates-with src/components/common/settings/AdvancedSettings.tsx
  * @coordinates-with src/components/BottomTabs/BottomTabs.tsx
+ * @coordinates-with src/components/BottomTabs/SidebarToggleButton.tsx
  * @coordinates-with src/components/common/RecoveryDialog.tsx
  */
 import type { KeyboardShortcuts } from "../types/preferences";
@@ -103,6 +104,12 @@ export function recordedShortcut(event: RecordedKey, isMac: boolean): string | n
 /** The New Document button's tooltip. */
 export function newDocumentTooltip(isMac: boolean): string {
   return isMac ? "New Document (⌘N)" : "New Document (Ctrl+N)";
+}
+
+/** The sidebar toggle's accessible name and tooltip (ADR-0088). */
+export function sidebarToggleLabel(shown: boolean, isMac: boolean): string {
+  const action = shown ? "Hide Sidebar" : "Show Sidebar";
+  return `${action} (${isMac ? "⌘⇧L" : "Ctrl+Shift+L"})`;
 }
 
 /** Where the log file is, as the Advanced settings page names it. */

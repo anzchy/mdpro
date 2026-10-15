@@ -21,6 +21,7 @@ import { linesFromText } from "../plugins/codemirror/textLineSource";
 import { useDocumentStore } from "./documentStore";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
 import { activeFlushFailed, refuseViewModeChange } from "../utils/flushRefusal";
+import { clampSidebarWidth, SIDEBAR_WIDTH_DEFAULT } from "../utils/sidebarWidth";
 
 /**
  * Capture the current table cell on the OUTGOING editor before the
@@ -148,6 +149,8 @@ function capturePendingTableCellForTransition(
 
 interface EditorStore extends EditorState {
   showSidebar: boolean;
+  sidebarWidth: number; // CSS px, clamped to 180–480 (D189, ADR-0088)
+  setSidebarWidth: (width: number) => void;
   /** Auto-save interval in seconds (0 = off). Decision 1A: lives here so useAutoSave reacts immediately. */
   autoSaveInterval: number;
   setAutoSaveInterval: (seconds: number) => void;
@@ -227,6 +230,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   activeDocumentId: null,
   viewMode: "wysiwyg",
   showSidebar: true,
+  sidebarWidth: SIDEBAR_WIDTH_DEFAULT,
+  setSidebarWidth: (width) => set({ sidebarWidth: clampSidebarWidth(width) }),
   autoSaveInterval: 30,
   setAutoSaveInterval: (seconds) => set({ autoSaveInterval: seconds }),
   editorView: null,

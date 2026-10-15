@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { DevToolbar } from "./components/DevToolbar";
@@ -99,6 +99,7 @@ function App() {
   const { viewMode, setViewMode, showSidebar, userViewModeChoice } = useEditor();
   // Sole writer of showSidebar outside the store; buffers pre-hydration toggles (ADR-0031 5b, WI-5).
   const sidebarPreference = useSidebarPreference();
+  const sidebarWidth = useEditorStore((s) => s.sidebarWidth);
   const { resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
@@ -212,6 +213,7 @@ function App() {
         // to avoid race condition with Finder/CLI file opens
         setDefaultViewMode(migrateViewMode(prefs.defaultViewMode));
         sidebarPreference.hydrate(prefs.showSidebar);
+        sidebarPreference.hydrateWidth(prefs.sidebarWidth);
         setAutoSaveInterval(prefs.autoSaveInterval);
         hydrateRecentFiles(prefs.recentFiles);
         if (prefs.keyboardShortcuts) {
@@ -884,7 +886,10 @@ function App() {
   }, [handleFileOpenEvent]);
 
   return (
-    <div className={`app-shell${showSidebar ? "" : " no-sidebar"}`}>
+    <div
+      className={`app-shell${showSidebar ? "" : " no-sidebar"}`}
+      style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}
+    >
       <DevToolbar
         onOpenFile={handleDevOpenFile}
       />
@@ -896,6 +901,8 @@ function App() {
           onTocEntryClick={navigateToTocEntry}
           onTocToggleCollapse={toggleTocCollapsed}
           viewMode={viewMode}
+          sidebarWidth={sidebarWidth}
+          onSidebarResize={sidebarPreference.resize}
         />
       ) : null}
       <div className="main">
@@ -932,6 +939,8 @@ function App() {
         onSelect={setActiveDocumentById}
         onClose={closeDocumentById}
         onNewDocument={createDocument}
+        sidebarShown={showSidebar}
+        onToggleSidebar={sidebarPreference.toggle}
       />
 
       {/* The App-level dialogs, incl. this window's ADR-0042 MCP prompt (D42 WI-3). */}

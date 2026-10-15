@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- The sidebar can be resized: drag its right edge, or focus the edge and use the arrow keys (Shift for bigger steps, Home/End for the limits, Enter or double-click to reset). The width stays between 180 and 480 px and is remembered across launches (D189, #453).
+- A button at the left end of the bottom tab bar hides and shows the sidebar. It stays in the same place in both states, so a second click undoes the first (D189, ADR-0088).
+
 ### Changed
 - Borders are now a soft mix of the text colour, popovers and dialogs share one lighter hairline-ring shadow, the light theme's selection tint is lighter, and each theme sets `color-scheme` so native scrollbars and controls follow it (UI redesign Deliverable B)
 - Hover highlights and theme switches no longer fade; only the switch knob and hover-revealed buttons animate, and they stop animating when macOS Reduce Motion is on (spinners keep turning) (UI redesign Deliverable B)

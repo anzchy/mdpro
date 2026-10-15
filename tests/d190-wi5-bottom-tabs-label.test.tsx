@@ -30,6 +30,8 @@ describe("BottomTabs label (D190-WI-5)", () => {
         onSelect={noop}
         onClose={noop}
         onNewDocument={noop}
+        sidebarShown
+        onToggleSidebar={noop}
       />,
     );
     expect(screen.getByText("notes.md")).toBeTruthy();

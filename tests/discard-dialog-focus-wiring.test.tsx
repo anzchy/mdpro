@@ -50,6 +50,8 @@ describe("discard dialog initial focus wiring (D48)", () => {
         onSelect={() => {}}
         onClose={onClose}
         onNewDocument={() => {}}
+        sidebarShown
+        onToggleSidebar={() => {}}
       />,
     );
     const close = container.querySelector(".bottom-tab__close");

@@ -1,5 +1,7 @@
 import type { HeadingKey, TOCEntry } from "../../types/toc";
 import type { ViewMode } from "../../types/editor";
+import { SIDEBAR_ELEMENT_ID, type SidebarResizeSource } from "../../utils/sidebarWidth";
+import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { TOCSidebar } from "./TOCSidebar";
 
 export function getViewModeLabel(mode: ViewMode): string {
@@ -22,6 +24,10 @@ interface TOCSidebarContainerProps {
   onTocToggleCollapse: (key: HeadingKey) => void;
   /** Current editor view mode — shown in the traffic-lights area */
   viewMode: ViewMode;
+  /** Stored sidebar width, for the resize handle (D189) */
+  sidebarWidth: number;
+  /** Called once per settled resize */
+  onSidebarResize: (width: number, source: SidebarResizeSource) => void;
 }
 
 export function TOCSidebarContainer({
@@ -31,9 +37,11 @@ export function TOCSidebarContainer({
   onTocEntryClick,
   onTocToggleCollapse,
   viewMode,
+  sidebarWidth,
+  onSidebarResize,
 }: TOCSidebarContainerProps) {
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" id={SIDEBAR_ELEMENT_ID}>
       {/* Traffic-lights zone: drag region + view-mode badge */}
       <div className="sidebar-traffic-area" data-tauri-drag-region>
         <span className="sidebar-mode-label" data-tauri-drag-region="false">{getViewModeLabel(viewMode)}</span>
@@ -46,6 +54,7 @@ export function TOCSidebarContainer({
         onEntryClick={onTocEntryClick}
         onToggleCollapse={onTocToggleCollapse}
       />
+      <SidebarResizeHandle width={sidebarWidth} onCommit={onSidebarResize} />
     </aside>
   );
 }

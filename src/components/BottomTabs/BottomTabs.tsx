@@ -3,6 +3,7 @@ import type { Document } from "../../types/document";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { basename } from "../../utils/pathBasename";
 import { isMacPlatform, newDocumentTooltip } from "../../utils/platformLabels";
+import { SidebarToggleButton } from "./SidebarToggleButton";
 import "./BottomTabs.css";
 
 interface BottomTabsProps {
@@ -11,6 +12,9 @@ interface BottomTabsProps {
   onSelect: (id: string) => void;
   onClose: (id: string, discardChanges: boolean) => void | Promise<void>;
   onNewDocument: () => void;
+  /** Whether the sidebar is shown; drives the toggle's icon and name. */
+  sidebarShown: boolean;
+  onToggleSidebar: () => void;
 }
 
 function getDocumentTitle(doc: Document): string {
@@ -26,6 +30,8 @@ export function BottomTabs({
   onSelect,
   onClose,
   onNewDocument,
+  sidebarShown,
+  onToggleSidebar,
 }: BottomTabsProps) {
   const [pendingCloseId, setPendingCloseId] = useState<string | null>(null);
 
@@ -47,6 +53,8 @@ export function BottomTabs({
 
   return (
     <nav className="bottom-tabs">
+      <SidebarToggleButton shown={sidebarShown} onToggle={onToggleSidebar} />
+      <div className="bottom-tabs__divider" />
       <button
         className="bottom-tabs__add"
         onClick={onNewDocument}

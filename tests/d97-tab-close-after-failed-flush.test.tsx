@@ -89,6 +89,8 @@ function TabStrip() {
       onSelect={docApi.setActiveDocumentById}
       onClose={docApi.closeDocumentById}
       onNewDocument={docApi.createDocument}
+      sidebarShown
+      onToggleSidebar={() => {}}
     />
   );
 }
