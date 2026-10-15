@@ -56,7 +56,7 @@
 }
 
 .toc-entry__content--active .toc-entry__text {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: 500;
 }
 

@@ -12,6 +12,12 @@
                  0 8px 24px color-mix(in srgb, black 45%, transparent);
   --color-accent: #60a5fa;
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  /* D222: the accent already reads on accent-soft; white on #60a5fa does not
+     (2.54:1), so primary buttons fill deeper and hover toward black. The fill
+     is only ~2.8:1 against the background: the button reads by its label. */
+  --color-accent-text: var(--color-accent);
+  --color-accent-fill: #1d4ed8;
+  --color-accent-fill-hover: color-mix(in srgb, var(--color-accent-fill) 88%, #000);
   --color-danger: #f87171;
   --color-danger-soft: color-mix(in srgb, #f87171 18%, transparent);
   --color-editor-bg: #0f1115;

@@ -11,6 +11,11 @@
                  0 8px 24px color-mix(in srgb, var(--color-text) 8%, transparent);
   --color-accent: #2563eb;
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  /* D222: selected-state text on accent-soft (4.5:1), and the primary-button
+     fill and its hover under --color-on-accent. */
+  --color-accent-text: color-mix(in srgb, var(--color-accent) 80%, var(--color-text));
+  --color-accent-fill: var(--color-accent);
+  --color-accent-fill-hover: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
   /* DR15: the solid accent. The theme classes sit on <html> with :root, so it
      follows each theme's accent; theme files do not redefine it. */
   --color-focus-ring: var(--color-accent);

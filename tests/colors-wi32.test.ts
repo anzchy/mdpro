@@ -29,7 +29,8 @@ const valuesOf = (file: string, selector: string, property: string) =>
     .filter((d) => d.selector === selector && d.property === property)
     .map((d) => d.value);
 
-const PRIMARY_HOVER = "color-mix(in srgb, var(--color-accent) 88%, var(--color-text))";
+// D222 (WI-3.3) moved the hover into a token: tests/contrast-d222.test.ts measures it.
+const PRIMARY_HOVER = "var(--color-accent-fill-hover)";
 
 const ROWS: Array<[file: string, selector: string, property: string, values: string[]]> = [
   // item 1

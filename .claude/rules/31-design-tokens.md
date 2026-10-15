@@ -41,6 +41,8 @@ in both themes. Roles are in the new design doc's § Tokens.
 - `--radius-inner`, `--radius-control`, `--radius-popover`: the chrome radii
   (DR23)
 - `--motion-duration-fast`: hover-reveal opacity transitions (DR12)
+- `--color-focus-ring`: `var(--color-accent)`, so it follows the theme;
+  rule 33 pattern 2 outlines and the TOC inset ring (DR15, WI-3.3)
 
 Per theme (both theme files, with a light copy in `:root`, Q2), derived
 from `--color-text` by `color-mix()` (WI-3.1):
@@ -51,6 +53,17 @@ from `--color-text` by `color-mix()` (WI-3.1):
 - `--shadow-soft`: now per theme, a hairline ring plus one faint shadow.
   A surface that uses it takes no separate `border`: the ring is the edge
   (DESIGN.md:123; `tests/colors-wi32.test.ts`, WI-3.2)
+
+Per theme, for text contrast on accent surfaces (D222, WI-3.3; ratios
+measured in `tests/contrast-d222.test.ts`):
+
+- `--color-accent-text`: selected-state text on `--color-accent-soft`
+  (active TOC row, the shortcut being recorded). Light mixes the accent 80%
+  with the text colour to reach 4.5:1; dark is the accent
+- `--color-accent-fill`, `--color-accent-fill-hover`: the primary-button
+  fill and hover under `--color-on-accent`. Light is the accent, hovering
+  toward the text colour; dark is `#1d4ed8`, hovering toward black, because
+  white on `#60a5fa` is 2.54:1
 
 ## Authoring rules
 

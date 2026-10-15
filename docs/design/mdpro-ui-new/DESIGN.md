@@ -106,6 +106,9 @@ DR14).
 | `--color-code-bg` | redefined as an editor-bg mix | both themes | Code surfaces; keeps the cool tint (D4) | review item 15 | 15 |
 | `--settings-sidebar-bg` | points at `--color-surface` | both themes | Settings rail | — | 14 |
 | `--color-on-accent` | new | `:root` (same in both themes today) | Labels and the switch knob on an accent fill. Any per-theme value is Stage 3's contrast table. | — | R2 |
+| `--color-accent-text` | new | both themes (D222) | Selected-state text on accent-soft: active TOC row, the shortcut being recorded. Light is the accent mixed 80% with the text colour (5.20:1 on the TOC row); dark is the accent. User ruling on prototype/d222-contrast: 「A: derived accent text (Recommended)」 | — | D222 |
+| `--color-accent-fill` | new | both themes (D222) | Primary-button fill under `--color-on-accent`. Light is the accent; dark is `#1d4ed8` (white 6.70:1), only ~2.82:1 against the dark background, so the button reads by its label, not its edge. User ruling: 「B: deeper fill, white text」 | — | D222 |
+| `--color-accent-fill-hover` | new | both themes (D222) | Primary-button hover. Light mixes the accent 88% toward the text colour; dark mixes the fill 88% toward black (7.96:1) | — | D222 |
 | `--color-scrim` | new | `:root` (same in both themes today) | Dialog backdrop. One use: the user overrode the rule of three for it (A10). | — | R6 |
 
 - **`--color-border`:** before redefining it, audit consumers that use it as a

@@ -173,5 +173,5 @@
 .shortcut-value.is-editing {
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }

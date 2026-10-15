@@ -144,13 +144,13 @@
 }
 
 .toolbar-button.primary {
-  background: var(--color-accent);
+  background: var(--color-accent-fill);
   color: var(--color-on-accent);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-fill);
 }
 
 .toolbar-button.primary:hover {
-  background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
+  background: var(--color-accent-fill-hover);
 }
 
 .toolbar-button.small {
