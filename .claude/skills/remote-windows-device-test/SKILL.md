@@ -55,6 +55,9 @@ $S/log.sh raw run1.jsonl                                       # raw JSONL to ju
 ```
 
 - **Every op and helper:** [`reference/ops.md`](reference/ops.md).
+- **A run that changes settings, drafts or MCP state:** snapshot and restore them, since no
+  environment variable isolates mdpro on Windows:
+  [`reference/config-isolation.md`](reference/config-isolation.md).
 - **Everything that went wrong once, and what to do instead:**
   [`reference/pitfalls.md`](reference/pitfalls.md).
 - **What 0.3.1 already does wrong on Windows** (don't re-diagnose it; re-check it on newer
