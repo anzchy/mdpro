@@ -1,7 +1,7 @@
 # Plan：固定的 e2e 旅程（e2e journeys），覆盖 macOS 与 Windows，并映射到 feature ledger
 
 - **Opened**：2026-10-15，adr047-verify 起草（delegator 转达用户原话：「关于test fixture/ e2e journey，采纳vmark的思路，看看如何给本project设定e2e journey，同时涵盖各个platform(MacOS/Windows), make a comprehensive plan and save it to docs/plan in md，这个让adr047-verify session去draft plan」）
-- **Revision**：rev2（2026-10-15），base `master` `42094b2`。rev1 `b02b059` 经用户选定「Codex review first」后送审：Codex `review-plan-mv9470lo-rsc315`，结论 NEEDS REVISION，25 条发现（0 Critical），§0 的 Q1–Q4 保留但须加限定。逐条处置见 §12
+- **Revision**：rev3（2026-10-15），base `master` `d2781e6`，补上 Codex 复审 `review-plan-mv94qrr4-rqovhp` 的三处（见 §12 rev3）。rev2（同日，base `42094b2`）：rev1 `b02b059` 经用户选定「Codex review first」后送审：Codex `review-plan-mv9470lo-rsc315`，结论 NEEDS REVISION，25 条发现（0 Critical），§0 的 Q1–Q4 保留但须加限定。逐条处置见 §12
 - **Status**：⬜ 草案，待用户审定 §0。本计划不改 `src/`、`tests/`；每个工作项落地时再按 rule 70 领取范围
 - **上游**：[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，本地真机旅程 lane）；[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed）与 [控制通道计划](20261002-plan-agent-control-channel.md)；[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)；[ADR-0089](../adr/0089-the-feature-ledger-records-windows-state-in-a-per-area-difference-table.md)（ledger 的 Windows 差异表）
 - **起因**：用户 2026-10-15 问 codex-audit：「当前的Windows和Mac端 device test，每次都是random生成的，我需要固定一组fixture，涵盖App主要的快捷键和各种功能，随着迭代开发，不断完善，fixture需与 feature-ledger 尽量映射，当然有的feature不一定需要UI test。」（[Q&A](../reference/user-question-and-answer.md) 2026-10-15 条）
@@ -12,7 +12,7 @@
 
 | # | 问题 | 推荐（rev2，含 Codex 的限定） | 备选 |
 |---|---|---|---|
-| Q1 | 旅程用什么形式写 | **一旅程一个 Markdown 文件。机器读的元数据放在文件开头一个 ` ```json journey ` 代码块里，步骤表给 agent 和人读**（§4.1）。阶段 A 由 agent 按步骤表执行；把步骤编译成可执行输入**明确推迟**到 WI-E2E-9，接 ADR-0047 WI-011 的 `run-journey` 输入格式，不另造。rev1 写的是 YAML frontmatter，改成 JSON 块是因为仓库没有 YAML 依赖、`prose-checks` 也不装依赖（§4.8），JSON 用 node 自带的解析器就够 | (a) YAML frontmatter：要么加一个 YAML 依赖并在 `prose-checks` 装 pnpm，要么手写 YAML 子集解析器。(b) VMark 式 `.mjs`：技术上可行（现有 SSH / CDP / 原生驱动都能执行动作），不选的理由是取舍：今天的两个执行者（dtrack 的 computer use、Windows SSH 驱动）读的是自然语言步骤，可执行模块要先为两个平台各写适配层，并且会与 WI-011 的编排器重复 |
+| Q1 | 旅程用什么形式写 | **一旅程一个 Markdown 文件。机器读的元数据放在文件开头一个 ` ```json journey ` 代码块里，步骤表给 agent 和人读**（§4.1）。阶段 A 由 agent 按步骤表执行；把步骤编译成可执行输入**明确推迟**到 WI-E2E-9，接 ADR-0047 WI-011 的 `run-journey` 输入格式，不另造。rev1 写的是 YAML frontmatter，改成 JSON 块是因为仓库里没有门禁脚本能用的 YAML 加载器（锁文件里只有 CodeMirror / Lezer 的 YAML 语法解析，以及 `yaml` 作为可选 peer，都不是给脚本读元数据用的），`prose-checks` 也不装依赖（§4.8），JSON 用 node 自带的解析器就够 | (a) YAML frontmatter：要么加一个 YAML 依赖并在 `prose-checks` 装 pnpm，要么手写 YAML 子集解析器。(b) VMark 式 `.mjs`：技术上可行（现有 SSH / CDP / 原生驱动都能执行动作），不选的理由是取舍：今天的两个执行者（dtrack 的 computer use、Windows SSH 驱动）读的是自然语言步骤，可执行模块要先为两个平台各写适配层，并且会与 WI-011 的编排器重复 |
 | Q2 | ledger 怎么引用旅程 | **格内标记**：inventory 行写在「怎么确认」，Windows 差异表写在「说明」（该表没有「怎么确认」列 `[实测 scripts/ledger/windowsDiff.mjs:39-40]`）。门禁按**每个平台的有效状态**检查，包括 Windows 表里没有的行（ADR-0089：省略等于声称与 macOS 同状态且已在 Windows 验证）；豁免按身份记在一个基线文件里，只许减少（§4.5） | 给 ledger 加一列：185 行 inventory 与 12 张 Windows 表（共 118 行）全部改形 |
 | Q3 | Tier-0 与旅程是否共用期望 | **共用同一份 golden 数据，但每一层只断言它看得见的那一部分**：Tier-0 断言真实编辑器的序列化结果与发往 IPC 的载荷（内容、编码、换行），Rust 测试断言由该载荷写出的字节，真机断言磁盘字节（§4.3）。假 fs 不得自己产出 golden 字节 | 注释链接（VMark 的做法）：ledger 从不引用 Tier-0 文件，计数也已过时（§3.2） |
 | Q4 | 是否在托管 CI 上跑真机旅程 | **阶段 A 不跑**。这是范围与成本上的决定，不是做不到：控制通道选型之前没有驱动能在托管 runner 上操作 WebView，设备时间也要先实测（§9）。CI 只跑 Tier-0 与门禁 | 加 macOS / Windows 托管 runner，周跑 |
@@ -49,7 +49,7 @@
 | `ledger:check` | `scripts/ledger/check.mjs`：表结构、状态枚举、`限制：`、路径可解析、Windows 差异表四项、声明面覆盖（command / route / `MENU_*` / plugin id / store 只要在文中出现）。backlog 机制只是去掉标记块后重算覆盖，并打印 hollow-pass 数；**不读任何历史基线，也不拒绝新增** `[实测 check.mjs:47-55,113-119]`。CI 的 `prose-checks` 用浅克隆和裸 node 跑它，不装 pnpm `[实测 .github/workflows/ci.yml:52-60]` |
 | 手工 fixture | `tests/manual-fixtures/` 29 个 `<id>-<slug>.md` + `img/`；`scripts/manual-fixtures/generate-large.mjs` 生成多 MB 文件并 `--check` sha256 |
 | macOS 驱动 | `gui-acceptance`（computer use，按字节偏移读日志，PASS / FAIL / partial / NOT VERIFIED）；`gui-manual-verify`（人在回路）；dtrack 按 delegator 的 brief 跑 |
-| Windows 驱动 | `remote-windows-device-test`：全 SSH，页面输入走 WebView2 DevTools 9222 端口，原生输入走桌面会话里的 PowerShell。已知缺口，都是 Codex 指出、经 codex-audit 复核的：`common.sh:22-26` 在 ssh 退出 255 后把任何命令重试一次，**包括变更**（delegator 已另行登记 D 项）；`log.sh:5-19` 截断 context（240 字符）和 error（120 字符），丢掉 `level` 与 `actionId`，静默跳过坏 JSON；`cdp.mjs:25-32` 取第一个页面，`ui.ps1:49-58` 取前台或第一个 mdpro 窗口，不能按窗口标签定位；`ui.ps1:159` 出错后继续，`cdp.mjs:93-103` 打印求值异常后仍退出 0 |
+| Windows 驱动 | `remote-windows-device-test`：全 SSH，页面输入走 WebView2 DevTools 9222 端口，原生输入走桌面会话里的 PowerShell。已知缺口，都是 Codex 指出、经 codex-audit 复核的：`common.sh:22-26` 在 ssh 退出 255 后把任何命令重试一次，**包括变更**（[D228](20260912-frontend-backend-sequencing-order.md#d228)）；Mac 侧的包装脚本也吞掉失败：`cdp.sh` 的 `eval` / `evalf` 写成 `out=$(win …); need "$out"`，丢掉了 `win` 的退出码，`ui.sh` → `ui-run.ps1` → `runi.ps1` 也不把计划任务的结果传回来（Codex 复审 N1：让 `win` 输出异常 JSON 并返回 7，`cdp.sh` 仍返回 0）；`log.sh:5-19` 截断 context（240 字符）和 error（120 字符），丢掉 `level` 与 `actionId`，静默跳过坏 JSON；`cdp.mjs:25-32` 取第一个页面，`ui.ps1:49-58` 取前台或第一个 mdpro 窗口，不能按窗口标签定位；`ui.ps1:159` 出错后继续，`cdp.mjs:93-103` 打印求值异常后仍退出 0 |
 | 快捷键矩阵 | brief `docs/pending/20261014-brief-shortcuts-matrix.md`（未跟踪，只在主检出）：Settings 页 49 项，路由 M/H/P/C，对照 CM-M/CM-H/CM-P/CM-C，模式 W/S，用例 F1–F7、E1–E11、P1–P17、T1–T8、V1–V6；brief 明说「没有绑定」就是没兑现 Settings 页的承诺（`:54-58`）。macOS 记录 86 例 + 8 次对照；Windows 记录与 v0.3.4 Windows 重跑。两版输出不同：v0.3.4 保留 `-` 列表标记，v0.3.3 产出 `*`（`docs/test/20261015-v034-windows-device-check.md:28,68-72`） |
 | ADR-0034 | Proposed：一条本地 `app` lane 跑真机旅程，作为发版清单的一项而非强制门禁；被测的是 release profile 的 bundle；判据是状态和日志，不看像素；每条入口路由一条旅程；首批旅程为 D29 的三条（Finder 路由、单实例路由、双窗口里脏的那个赢）、D20 G1、ADR-0032 的偏好往返（决定 1、3、5–7） |
 | ADR-0047 旅程 | `docs/test/20261002-adr0047-journeys.md`：J1a、J1b、J2、J3、J4a、J4b、J5、J6、J7a、J7b；步骤类别 `cli` / `launcher` / `native` / `human`（`:34-39`）；**按顺序在共享会话里跑**，不是各自重置的独立测试（`:91-99`）；「语义投影」比较规则（`:379` 起），其白名单不含 watcher、MCP、TOC 和多数编辑器事件，并要求报告未知事件（`:390-417`） |
@@ -130,6 +130,7 @@
 ```
 
 - `platforms.<p>.status` 取 `required` / `optional` / `n/a` 之一；`n/a` 必须带 `reason`。
+- **用例的必跑性由平台继承**：平台是 `required` 时，它的每个用例都是必跑的，除非该用例写了 `"optional": ["<平台>"]`；平台是 `optional` 时，它的用例全是可选的；平台是 `n/a` 时，它的用例在该平台上全记 `N/A`。只在某个平台上适用的用例写 `"platforms": ["macos"]`，在其他平台上记 `N/A`，不算必跑。§4.6 的聚合规则按这样算出的「必跑用例」执行。
 - `group` 用于必须按顺序在共享会话里跑的旅程（ADR-0047 的 spike 组、watcher 合跑组、RC 回归组）：同组旅程带 `group` 和 `order`，组作为一个整体运行，不拆开跑（rule 70）。
 - `ledger[].covers` 写该行里被这条旅程证明的那几条不变量，用短语，取自该行的「怎么确认」；`partial` 写该行里没有被证明的部分。没有 `partial` 就是声称覆盖全行（Codex 发现 6：「保存」一行包含排队保存、保存中编辑、关闭标签、错误和原子写，一个普通 ⌘S 用例证明不了全部）。
 - 用例 id 在一条旅程里唯一，引用写成 `EJ-030/F2`。快捷键矩阵已有的 F1…V6 原样保留。用例也永不复用：删掉的用例在 `cases` 里留着，并标 `"status": "retired"`。
@@ -256,7 +257,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 
 **Windows 驱动在阶段 A 的前置加固**（WI-E2E-W；归属由 delegator 指派，因为它改的是 skill 的脚本）：
 
-1. **变更不重试**（Codex 发现 14；对应的工具缺陷 delegator 已另行登记 D 项）：读操作可以重试；变更类操作（UI 输入、CDP 求值、文件写入）只执行一次，或者必须证明是幂等的。变更的响应丢失时，结论是「结果未知」：停止依赖它的后续步骤，先核对状态，再决定继续还是记 `BLOCKED`。`ui.ps1` 出错和 `cdp.mjs` 求值异常都要返回非零退出码。
+1. **变更不重试**（Codex 发现 14；工具缺陷即 [D228](20260912-frontend-backend-sequencing-order.md#d228)）：读操作可以重试；变更类操作（UI 输入、CDP 求值、文件写入）只执行一次，或者必须证明是幂等的。变更的响应丢失时，结论是「结果未知」：停止依赖它的后续步骤，先核对状态，再决定继续还是记 `BLOCKED`。`ui.ps1` 出错和 `cdp.mjs` 求值异常都要返回非零退出码，**并且这个失败要一路传到 Mac 侧调用者**：`cdp.sh`、`ui.sh` 以及经它们调用的 `ui-run.ps1` / `runi.ps1` 都要保留并返回下层的退出码，不能因为输出非空就当成成功（Codex 复审 N1）。
 2. **原始日志捕获**（Codex 发现 12）：新增一个取原始 JSONL 的命令，按字节偏移取片段；保留全部字段；记录文件身份（路径、大小、首行哈希），用来发现轮转或截断；坏 JSON 行要计数并报出来。现有的格式化输出只给人看，不作判据。
 3. **按窗口标签定位**（Codex 发现 13）：每次变更之前，先把窗口标签绑定到 CDP target 和 HWND，并做身份核对（在 target 里读当前窗口的标签，与期望的标签比对）。这项做好之前，Windows 上的多窗口用例（J6 / J7 一类）一律记 `BLOCKED`，不能用前台窗口代替。
 
@@ -277,7 +278,12 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 `prose-checks` 今天用浅克隆和裸 node（Codex 发现 11）。本计划需要：
 
 - `actions/checkout` 加 `fetch-depth: 0`，或者显式 fetch base ref，用于 REGISTRY 只增、旅程不删、backlog 基线只减这三项历史检查。
-- base 的取法：PR 上用 `github.event.pull_request.base.sha`；tag 和手动触发时，用与 `origin/master` 的 merge-base。**base 解析不出来时，检查失败，不跳过。**
+- base 的取法（Codex 复审：tag 和手动触发时，与 `origin/master` 的 merge-base 可能就是 HEAD 本身，等于自己和自己比）：
+  - PR：`github.event.pull_request.base.sha`。
+  - `v*` tag：上一个发布 tag（`git describe --tags --abbrev=0 --match 'v*' <tag>^`）。这样两次发布之间落到 `master` 上的每个提交都被覆盖到，包括 delegator 直接提交的 docs 提交。
+  - 手动触发：必须给 `base` 输入，没有默认值。
+  - **base 解析不出来，或者解析出来等于 HEAD 时，检查失败，不跳过。**
+- **历史检查在哪里执行**：`master` 的推送按设计不跑 CI（`ci.yml:3-7`），所以合入前的执行点有两个：PR 的 `ci-gate`；以及 delegator 落地前 `mdpro-landing-verifier` 跑一次 `journeys:check --base <当前 master HEAD>`。改动 `tests/journeys/` 或基线文件的提交不走 delegator 的 docs 直提，一律走分支和 PR（ADR 提议 P2 写明）。tag 构建的比较兜住两次发布之间的漏网之鱼。
 - `scripts/journeys/check.mjs` 与 `ledger:check` 一样不引入依赖，用 `node scripts/journeys/check.mjs` 直接跑，不需要 pnpm。这是 Q1 推荐 JSON 元数据块的原因。
 - 在本机跑时，base 默认取与 `master` 的 merge-base。
 
@@ -361,9 +367,9 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 ### WI-E2E-W Windows 驱动加固
 - **Acceptance**
   1. §4.7 的三项都实现：变更单次执行、结果未知时停止；原始 JSONL 捕获；窗口标签与 CDP target、HWND 绑定，变更前核对身份。每一项都在 win-desktop 上演示一次。其中「响应丢失」用注入的方式演示：转发后断开链路，驱动报告「结果未知」，且不重放。
-  2. `ui.ps1` 出错和 `cdp.mjs` 求值异常都返回非零退出码，有测试或演示。
+  2. **从 Mac 侧命令验收，而不只看叶子脚本**（Codex 复审 N1，与 [D228](20260912-frontend-backend-sequencing-order.md#d228) 一起修）：直接调用 `cdp.sh eval`、`cdp.sh evalf` 和 `ui.sh`，用注入的方式让下层输出非空的错误内容并返回非零状态，证明三件事：调用者拿到非零退出码和错误输出；依赖它的后续变更不会执行；计划任务失败和超时同样传回来（不只是响应丢失）。每种情况一个测试或演示，记录在案。
   3. 核实 Windows 上的配置隔离办法（例如换一个 `APPDATA` 或配置目录）；做不到的话，写清楚「现场快照加恢复」的确切步骤。
-- **Touched**：`.claude/skills/remote-windows-device-test/`；修重试的部分与 delegator 已登记的那个 D 项合并处理，不重复。
+- **Touched**：`.claude/skills/remote-windows-device-test/`；修重试和退出码传递的部分与 [D228](20260912-frontend-backend-sequencing-order.md#d228) 合并处理，不重复。
 
 ### WI-E2E-3 第一批：快捷键矩阵
 - **Goal**：把今天最成熟的矩阵编成第一批旅程。依据：Settings 页 49 项、macOS 记录 86 例、Windows 记录与 v0.3.4 重跑。
@@ -482,7 +488,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 | 11 CI 撑不住历史检查 | High，阻塞 | §4.8：`fetch-depth`、base 的取法、缺 base 即失败、不加依赖 |
 | 12 Windows `log.sh` 撑不住判据 | High | §4.7 加固第 2 条，WI-E2E-W |
 | 13 Windows 不能按窗口定位 | High | §4.7 加固第 3 条；做好之前多窗口用例记 BLOCKED |
-| 14 重试会重放变更 | High，阻塞 | §4.7 加固第 1 条；工具缺陷由 delegator 另行登记 D 项 |
+| 14 重试会重放变更 | High，阻塞 | §4.7 加固第 1 条；工具缺陷即 D228 |
 | 15 共用 golden 需要分层断言 | Medium | §4.3 分层表；假 fs 不得自己产出 golden |
 | 16 可执行步骤契约未定义 | High | §0 Q1、§4.1：阶段 A 是结构化散文，可执行化明确推迟到 WI-E2E-9；改了否决 `.mjs` 的理由 |
 | 17 已知缺陷会变成需求 | High | §4.1：`intended` / `knownDefect` / `XFAIL` / `XPASS` |
@@ -500,3 +506,14 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 | VMark 说法 4：VMark 的链接已漂移 | 言过 | 改为只说过时的散文计数和 ledger 从不引用 Tier-0 |
 
 这次修订改变了 §4.5（标记位置、有效状态、基线）和 §4.6（聚合、替代顺序）的形状，也新增了 WI-E2E-0 和 WI-E2E-W；方向（Q1–Q4）没变，只是 Q1 的元数据从 YAML 改为 JSON。是否要先做一次简短复审再交用户，由 delegator 定。
+
+**rev3**（2026-10-15，base `d2781e6`）：Codex 范围复审 `review-plan-mv94qrr4-rqovhp`（报告 `~/.mdpro-redesign/prep/codex-rereview-e2e-journeys-plan-rev2.md`）判 #1、#5、#10、#21 已关，其余三处如下补上。
+
+| 发现 | 严重度 | 处置 |
+|---|---|---|
+| N1（#14 剩下的部分）：只改叶子脚本的退出码，Mac 侧包装脚本仍会报成功 | High | §3.1、§4.7 第 1 条写明 `cdp.sh` / `ui.sh` 链路；WI-E2E-W 第 2 条改为从 Mac 侧命令验收，覆盖错误输出加非零状态、依赖变更不执行、任务失败与超时；与 D228 一起修 |
+| #11（部分）：tag 和手动触发时，base 可能等于 HEAD | Medium | §4.8：tag 用上一个发布 tag，手动触发必须给 base，base 等于 HEAD 也算失败；写明历史检查在 PR `ci-gate` 和落地前的 verifier 执行，改目录或基线的提交一律走 PR |
+| 聚合按用例算，必跑性却在平台层定义 | Medium | §4.1：用例的必跑性由平台继承，并可逐用例写 `optional` 或 `platforms` |
+| Q1 的理由「仓库没有 YAML 依赖」字面上不成立 | Low | §0 Q1 改为「没有门禁脚本能用的 YAML 加载器」 |
+
+另外把「delegator 已另行登记 D 项」都改成了 D228。
