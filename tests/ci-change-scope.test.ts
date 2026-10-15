@@ -48,6 +48,19 @@ describe("ADR95-WI-1 classifyPaths", () => {
   });
 });
 
+describe("D215-WI-1 docs/research/ is prose", () => {
+  // The four research notes moved out of the repo root into docs/research/; nothing
+  // executable reads them, so a range that only touches them skips the heavy jobs.
+  it("answers prose for a note in docs/research/", () => {
+    expect(classifyPaths(["docs/research/milkdown-research.md"])).toBe("prose");
+    expect(classifyPaths(["docs/adr/0095-x.md", "docs/research/tauri-mac-app-best-practices.md"])).toBe("prose");
+  });
+
+  it("still answers code for a sibling that only shares the prefix's letters", () => {
+    expect(classifyPaths(["docs/researchx/y.md"])).toBe("code");
+  });
+});
+
 /** A throwaway repo with one base commit; returns a helper that commits `file` on a branch and runs the CLI. */
 function repoFixture() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ci-scope-"));

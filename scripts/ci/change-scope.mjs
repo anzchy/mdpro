@@ -29,6 +29,7 @@ export const PROSE_PREFIXES = [
   "docs/pending/",
   "docs/plans/",
   "docs/reference/",
+  "docs/research/",
   "docs/test/",
 ];
 

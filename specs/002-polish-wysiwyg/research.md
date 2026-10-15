@@ -4,7 +4,7 @@
 
 ## Research Summary
 
-All technical unknowns have been resolved. This document consolidates findings from the comprehensive Milkdown research (`/milkdown-research.md`) and codebase analysis.
+All technical unknowns have been resolved. This document consolidates findings from the comprehensive Milkdown research (`docs/research/milkdown-research.md`) and codebase analysis.
 
 ---
 
@@ -157,4 +157,4 @@ const handleEnterWYSIWYG = () => {
 - Milkdown GitHub: https://github.com/Milkdown/milkdown
 - Milkdown Docs: https://milkdown.dev/docs
 - ProseMirror Guide: https://prosemirror.net/docs/guide/
-- Comprehensive research: `/milkdown-research.md` (root)
+- Comprehensive research: `docs/research/milkdown-research.md`
