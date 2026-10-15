@@ -113,7 +113,7 @@
     "windows": { "status": "required" }
   },
   "fixtures": ["save-basic"],
-  "tier0": ["tests/journeys/tier0/EJ-012-save.test.ts"],
+  "tier0": ["tests/ej-012-save.test.ts"],
   "rust": ["src-tauri/src/commands/file_save_golden_tests.rs"],
   "projection": "tests/journeys/projections/EJ-012.json",
   "ledger": [
@@ -181,13 +181,14 @@
 
 | 层 | 位置 | 断言 | 每次提交 |
 |---|---|---|---|
-| 前端 Tier-0 | `tests/journeys/tier0/EJ-NNN-<slug>.test.ts(x)` | 用真实编辑器（`milkdownEditorHarness`）和真实菜单总线（`menuEventsHarness`）从 `menu:action` 或快捷键钩子开始；断言序列化结果，以及发往 IPC 的载荷（内容、编码、换行元数据），都与 golden 一致；断言前端日志事件（在 `loggingService` 边界 mock） | 是 |
+| 前端 Tier-0 | `tests/ej-NNN-<slug>.test.ts(x)`（`tests/` 根目录） | 用真实编辑器（`milkdownEditorHarness`）和真实菜单总线（`menuEventsHarness`）从 `menu:action` 或快捷键钩子开始；断言序列化结果，以及发往 IPC 的载荷（内容、编码、换行元数据），都与 golden 一致；断言前端日志事件（在 `loggingService` 边界 mock） | 是 |
 | Rust | 旅程元数据的 `rust:` 列出的测试 | 以相同的载荷调用命令层，断言写出的字节等于 golden；断言 Rust 日志事件 | 是（`rust` lane） |
 | 真机 | 旅程本身 | 磁盘字节等于 golden；完整日志投影；窗口和对话框状态 | 按 tier |
 
 - 只在边界 mock（Tauri `invoke` / event、fs）。**假 fs 不得自己产出 golden 字节**：前端层只能断言发出去的载荷，不能断言假 fs 写出来的结果，否则测的是假 fs 自己的实现。
 - **每条旅程至少有一个快速、每次提交都跑的不变量测试**；更费时的穷举放进 `*.slow.test.ts` 作为补充，不能拿它充当唯一的对应测试（Codex 发现 3）。
 - 文件首行写 `// Tier-0 for EJ-NNN`，旅程元数据的 `tier0:` 指回它；门禁双向核对。
+- **测试文件放在哪里按 [ADR-0098](../adr/0098-launcher-tooling-and-perf-tests-move-into-their-own-folders-under-tests.md) 执行，不设例外**（delegator 2026-10-15 裁定）。Tier-0 测试的是应用行为，所以放在 `tests/` 根目录；门禁脚本自己的测试放在 `tests/tooling/`。`tests/journeys/` 下只放非测试的资产：旅程 `.md`、REGISTRY、fixture、golden、投影和 backlog 基线。
 - 原生菜单、原生对话框、IME、窗口焦点这些 jsdom 够不着的部分，Why 一节写明 Tier-0 覆盖到哪一步为止。
 
 ### 4.4 日志判据：按旅程声明的投影
@@ -350,12 +351,12 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 - **Acceptance**
   1. `tests/journeys/README.md` 写明格式、判定词汇、聚合规则和 id 规则（引用 ADR-0103）；README 里的计数由脚本生成。
   2. `tests/journeys/REGISTRY.md` 列出所有发放过的 id，包括已退役的。
-  3. `scripts/journeys/check.mjs` 和 `pnpm journeys:check`，**每条规则都对应一个先失败后通过的测试**（`tests/journeys-check.test.ts`，node 环境）：坏 JSON；缺字段或枚举非法；`n/a` 没有 reason；id 重复；id 未登记；REGISTRY 删行；删了旅程文件；用例 id 重复或被复用；`supersedes` 指向不存在的 id、成环，或旧 id 仍被当作现行引用；`knownDefect` 指向不存在的 D；fixture 或 golden 的 sha256 不符；生成器 `--check` 失败；`tier0` / `rust` 文件不存在，或没有指回（只有单向引用）；投影文件解析失败；计数不一致；运行清单 schema 不合法，或中断的运行没有写原因。
+  3. `scripts/journeys/check.mjs` 和 `pnpm journeys:check`，**每条规则都对应一个先失败后通过的测试**（`tests/tooling/journeys-check.test.ts`，node 环境，按 ADR-0098 放在 tooling 目录）：坏 JSON；缺字段或枚举非法；`n/a` 没有 reason；id 重复；id 未登记；REGISTRY 删行；删了旅程文件；用例 id 重复或被复用；`supersedes` 指向不存在的 id、成环，或旧 id 仍被当作现行引用；`knownDefect` 指向不存在的 D；fixture 或 golden 的 sha256 不符；生成器 `--check` 失败；`tier0` / `rust` 文件不存在，或没有指回（只有单向引用）；投影文件解析失败；计数不一致；运行清单 schema 不合法，或中断的运行没有写原因。
   4. `scripts/journeys/projection.mjs` 有测试，覆盖归一化、计数、顺序、未知事件报告和意外失败行。
   5. `ci.yml` 的 `prose-checks` 按 §4.8 修改；在 PR、tag 和手动触发三种情况下各验证一次 base 的解析；base 缺失时失败。
   6. 样例旅程 `EJ-001`（冷启动打开文件，即 ADR-0047 J1a，含 `launcher` 步）通过检查。
 - **Tests (first)**：上面每条规则先 RED 后 GREEN（rule 10）。
-- **Touched**：`scripts/journeys/`、`tests/journeys/`、`tests/journeys-check.test.ts`、`package.json`、`.github/workflows/ci.yml`。
+- **Touched**：`scripts/journeys/`、`tests/journeys/`、`tests/tooling/journeys-check.test.ts`、`package.json`、`.github/workflows/ci.yml`。
 - **Risks**：schema 太严会卡住第一批迁移。缓解：`status: draft` 的旅程只做结构检查。
 - **Rollback**：删掉脚本和 CI 步骤；目录文件本身无害。
 
@@ -521,3 +522,5 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 另外把「delegator 已另行登记 D 项」都改成了 D228。
 
 **审定**（2026-10-15，base `9d9c000`）：rev3 经 Codex 确认复审，0 条发现。用户审定 §0：「Q1-Q3 agree」，以及听了大白话解释后的「Q4 同意」。状态与 §0 按此改写；提议 P1–P3 落成 ADR-0103、0104、0105。
+
+**测试位置**（2026-10-15，base `73cda31`）：按 [ADR-0098](../adr/0098-launcher-tooling-and-perf-tests-move-into-their-own-folders-under-tests.md) 改了测试文件的位置，不设例外（delegator 裁定）。Tier-0 对应测试改为 `tests/ej-NNN-<slug>.test.ts(x)`（根目录），门禁脚本的测试改为 `tests/tooling/journeys-check.test.ts`。旅程文件、fixture 和投影仍在 `tests/journeys/` 下。
