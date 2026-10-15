@@ -160,9 +160,11 @@ export function TableContextMenu() {
       }
       // Audit fix M10: arrow-key / Home / End traversal + Enter/Space activate.
       if (!menuRef.current) return;
+      // The Alignment group is role="menuitemradio" (ActionList.tsx).
       const items = Array.from(
         menuRef.current.querySelectorAll<HTMLElement>(
-          'button[role="menuitem"]:not([aria-disabled="true"]):not([disabled])',
+          'button[role="menuitem"]:not([aria-disabled="true"]):not([disabled]), ' +
+            'button[role="menuitemradio"]:not([aria-disabled="true"]):not([disabled])',
         ),
       );
       if (items.length === 0) return;
@@ -171,7 +173,7 @@ export function TableContextMenu() {
       if (moveMenuFocus(items, event.key)) {
         event.preventDefault();
       } else if (event.key === "Enter" || event.key === " ") {
-        if (active instanceof HTMLElement && active.matches('button[role="menuitem"]')) {
+        if (active instanceof HTMLElement && active.matches('button[role="menuitem"], button[role="menuitemradio"]')) {
           event.preventDefault();
           active.click();
         }
@@ -198,7 +200,8 @@ export function TableContextMenu() {
   useEffect(() => {
     if (!menu || !menuRef.current) return;
     const first = menuRef.current.querySelector<HTMLElement>(
-      'button[role="menuitem"]:not([aria-disabled="true"]):not([disabled])',
+      'button[role="menuitem"]:not([aria-disabled="true"]):not([disabled]), ' +
+        'button[role="menuitemradio"]:not([aria-disabled="true"]):not([disabled])',
     );
     first?.focus();
   }, [menu]);

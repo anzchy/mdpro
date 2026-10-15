@@ -87,3 +87,19 @@ describe("D232 both table menus use it", () => {
     expect(src).not.toMatch(/items\[[^\]]*\]\?\.focus\(\)/);
   });
 });
+
+describe("D232 the arrow keys reach the alignment items", () => {
+  // The Alignment group's items are role="menuitemradio" (ActionList.tsx). The
+  // WYSIWYG menu collected only role="menuitem", so its arrows skipped them;
+  // the Source menu already took both.
+  const ROOT = path.resolve(__dirname, "..");
+  const read = (dir: string) => fs.readFileSync(path.join(ROOT, `src/components/Editor/${dir}/index.tsx`), "utf-8");
+  const traversalSelector = (src: string) =>
+    src.match(/const items = Array\.from\(\s*menuRef\.current\.querySelectorAll<HTMLElement>\(([\s\S]*?)\),\s*\);/)?.[1] ?? "";
+
+  it.each(["TableContextMenu", "SourceTableContextMenu"])("%s traverses menuitem and menuitemradio", (dir) => {
+    const sel = traversalSelector(read(dir));
+    expect(sel).toContain('button[role="menuitem"]');
+    expect(sel).toContain('button[role="menuitemradio"]');
+  });
+});
