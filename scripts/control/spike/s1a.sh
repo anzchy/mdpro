@@ -63,6 +63,9 @@ DELETE /session/x/actions
 POST /session/x/cookie
 POST /session/x/alert/accept
 POST /session/x/alert/text"
+# The app logs its own startup for a moment after "ready"; count only once the log has been still for 2 s.
+settle() { local a b; a=$(wc -l < "$LOG" 2>/dev/null || echo 0); for _ in $(seq 1 30); do sleep 2; b=$(wc -l < "$LOG" 2>/dev/null || echo 0); [ "$a" = "$b" ] && return 0; a=$b; done; }
+settle
 # a1: no token on every route → 401, and no new log line
 before=$(wc -l < "$LOG" 2>/dev/null || echo 0); bad=""
 while read -r m p; do c=$(code -X "$m" -H "X-Request-Id: a1-$RANDOM$RANDOM" "$B$p"); [ "$c" = 401 ] || bad="$bad $m$p=$c"; done <<<"$ROUTES"
@@ -104,3 +107,4 @@ grep -c '"control.listen"' "$LOG" | xargs -I{} say log INFO "control.listen line
 grep -q "$TOKEN" "$LOG" && say tok FAIL "token appears in mdpro.log" || say tok PASS "token absent from mdpro.log"
 quit "$R"
 echo "FAILS $fails"
+[ $fails -eq 0 ]

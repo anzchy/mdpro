@@ -92,3 +92,4 @@ say c6-eval INFO "/wdio/eval with eval on → $c"
 grep -qF "$TOKEN" "$LOG" && say tok FAIL "token in mdpro.log" || say tok PASS "token absent from mdpro.log"
 wd DELETE "$G" >/dev/null; quit "$R"
 echo "FAILS $fails"
+[ $fails -eq 0 ]
