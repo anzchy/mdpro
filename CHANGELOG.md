@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - mdpro now requires macOS 13.1 or later (was 10.13 as declared, 13 in practice): the new theme colours use CSS `color-mix()`, which macOS ships from 13.1. On macOS 13.0 the in-app updater still offers this release, and the updated app will not open; update macOS, or reinstall an earlier mdpro from GitHub Releases (UI redesign Deliverable B, ADR-0101)
 
 ### Fixed
+- While a dialog is open (for example Insert Link), Format › Insert Table (⌘⌥T) and Preferences (⌘,) no longer open a second dialog on top of it (D235).
 - In Source mode, the close button (×) of the Find panel and of the Go to Line dialog now shows its whole focus ring when you Tab to it. The ring used to be cut off at the panel's top and right edges (D233).
 - On Windows and Linux, mdpro › About opens an About box with the version and a link to the project page; it used to do nothing (D225). macOS keeps its own About panel.
 - In the table right-click menu (WYSIWYG and Source), moving with the arrow keys, Home or End now shows the focus ring on the item you move to. It used to move without showing where you were, because the menu was opened with the mouse (D232).

@@ -62,14 +62,17 @@ describe("useMenuEvents — paragraph.table handler", () => {
   });
 
   it("handles the paragraph.table action and forwards to onInsertTable", () => {
+    // D235: through runModalAction, which refuses it while a modal is open.
     expect(useMenuEvents).toMatch(
-      /case\s+"paragraph\.table":[\s\S]{0,200}handlers\.onInsertTable/,
+      /case\s+"paragraph\.table":[\s\S]{0,200}runModalAction\("paragraph\.table",\s*"menu\.format\.insert_table",\s*handlers\.onInsertTable\)/,
     );
   });
 
   it("logs the menu select for the action", () => {
+    // D235: runModalAction logs its control id before the modal check.
+    expect(useMenuEvents).toMatch(/"menu\.format\.insert_table"/);
     expect(useMenuEvents).toMatch(
-      /logMenuSelect\("menu\.format\.insert_table"\)/,
+      /const runModalAction = [\s\S]{0,300}const actionId = logMenuSelect\(controlId\);/,
     );
   });
 

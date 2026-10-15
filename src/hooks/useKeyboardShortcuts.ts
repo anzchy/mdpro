@@ -14,7 +14,7 @@ import {
   paragraphCommand,
 } from "../plugins/codemirror/headingPlugin";
 import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
-import { refuseTabActionWhileModalOpen } from "../utils/modalTabActionGuard";
+import { refuseModalOpenWhileModalOpen, refuseTabActionWhileModalOpen } from "../utils/modalTabActionGuard";
 
 export type { TableShortcutAction } from "./useKeyboardShortcuts.types";
 
@@ -211,14 +211,15 @@ export function useKeyboardShortcuts({
       } else if (onOpenPreferences && matchesShortcut(event, shortcuts.filePreferences)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.filePreferences, { action: "file.preferences" });
-        onOpenPreferences(actionId);
+        if (!refuseModalOpenWhileModalOpen("file.preferences", "shortcut", actionId)) onOpenPreferences(actionId);
       } else if (onInsertTable && !inCodeMirror && matchesShortcut(event, shortcuts.paragraphTable)) {
         // ⌘⌥T (paragraphTable) — opens TableInsertModal in WYSIWYG mode.
         // CodeMirror gets first dibs (source-mode inserts a literal table is
         // separate Phase 2 work in the table-CRUD plan).
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.paragraphTable, { action: "paragraph.table" });
-        onInsertTable(actionId);
+        // D235: not over an open modal (Insert Link, Settings, …).
+        if (!refuseModalOpenWhileModalOpen("paragraph.table", "shortcut", actionId)) onInsertTable(actionId);
       } else if (onTableAction) {
         // Phase 1.5 follow-up — table action shortcuts (Cmd+Option+arrows
         // for insert row/col directions; Cmd+Option+Backspace for delete

@@ -32,7 +32,8 @@
  *     and the failure is logged so a device run can see it.
  *   - The label is read per log line from `getCurrentWindow()` (a static
  *     import, like `useMcpSync.ts`); outside Tauri it falls back to "unknown".
- *   - Tab-changing actions (close, new, open, open recent) are refused while a
+ *   - Tab-changing actions (close, new, open, open recent), and Insert Table and
+ *     Preferences, which open a modal of their own (D235), are refused while a
  *     modal is open (D165): on macOS the accelerator reaches this handler
  *     whatever the DOM does, so the check is here, after the `ui.menu.select`
  *     line, which the refusal line shares its actionId with.
@@ -41,7 +42,7 @@
  *
  * @coordinates-with src-tauri/src/menu.rs — emits `menu:action` to every webview
  * @coordinates-with src/App.tsx — supplies the handlers
- * @coordinates-with src/utils/modalTabActionGuard.ts — the D165 modal refusal
+ * @coordinates-with src/utils/modalTabActionGuard.ts — the D165 / D235 modal refusals
  */
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
@@ -49,7 +50,12 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { ViewMode } from "../types/editor";
 import type { UserPreferences } from "../types/preferences";
 import { loggingService } from "../services/loggingService";
-import { refuseTabActionWhileModalOpen, type TabChangingAction } from "../utils/modalTabActionGuard";
+import {
+  refuseModalOpenWhileModalOpen,
+  refuseTabActionWhileModalOpen,
+  type ModalOpeningAction,
+  type TabChangingAction,
+} from "../utils/modalTabActionGuard";
 
 interface MenuActionPayload {
   action: string;
@@ -138,6 +144,17 @@ export function useMenuEvents(menuHandlers: MenuHandlers) {
       if (!refuseTabActionWhileModalOpen(action, "menu", actionId)) run(actionId);
     };
 
+    /** An action that opens its own modal: refused while one is already open (D235). */
+    const runModalAction = (
+      action: ModalOpeningAction,
+      controlId: string,
+      run: ((actionId: string) => void) | undefined,
+    ) => {
+      if (!run) return;
+      const actionId = logMenuSelect(controlId);
+      if (!refuseModalOpenWhileModalOpen(action, "menu", actionId)) run(actionId);
+    };
+
     const handleMenuAction = async ({ action, value }: MenuActionPayload) => {
       const canHandle = await shouldHandleMenuAction();
       // An event parked on the focus check must not act after unmount.
@@ -164,7 +181,7 @@ export function useMenuEvents(menuHandlers: MenuHandlers) {
           handlers.onExportHtml?.(logMenuSelect("menu.file.export_html"));
           break;
         case "file.preferences":
-          handlers.onOpenPreferences?.(logMenuSelect("menu.file.preferences"));
+          runModalAction("file.preferences", "menu.file.preferences", handlers.onOpenPreferences);
           break;
         case "file.open_recent":
           if (value) {
@@ -200,7 +217,7 @@ export function useMenuEvents(menuHandlers: MenuHandlers) {
         case "paragraph.table":
           // Wired to the same insert-table flow as the ⌘⌥T shortcut; both
           // open TableInsertModal via tableInsertStore.requestInsert.
-          handlers.onInsertTable?.(logMenuSelect("menu.format.insert_table"));
+          runModalAction("paragraph.table", "menu.format.insert_table", handlers.onInsertTable);
           break;
         case "theme.light":
           handlers.onThemeModeChange?.(

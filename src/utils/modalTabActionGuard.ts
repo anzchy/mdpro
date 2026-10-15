@@ -1,7 +1,9 @@
 /**
  * @module utils/modalTabActionGuard
  * Purpose: refuse the actions that change this window's tabs (close, new, open,
- * open recent) while a modal dialog is on screen, and log the refusal (D165).
+ * open recent), and the actions that open a modal of their own (Insert Table,
+ * Preferences), while a modal dialog is on screen, and log the refusal (D165,
+ * D235).
  *
  * On macOS the native menu accelerator (⌘W, ⌘N, ⌘O) fires through `menu:action`
  * whatever the DOM is doing, so a modal's backdrop or a keydown `stopPropagation`
@@ -17,16 +19,20 @@
  *   confirm), the BottomTabs and Sidebar ConfirmDialogs, LinkInsertModal and
  *   TableInsertModal. `AppDialogs`' open order is component state that misses the
  *   last four, so it is not used.
- * - **Only tab-changing actions are refused.** Save, export, view mode, theme,
- *   Preferences and New Window leave this window's tabs as they are.
+ * - **Refused: tab-changing actions, and actions that open a second modal.**
+ *   Insert Table and Preferences opened their dialog over an open one (D235: Format
+ *   › Insert Table over Insert Link). Save, export (a native panel), view mode,
+ *   theme, highlight and New Window open no DOM modal and still run.
  * - **Log line**: `tab.close` for a close, `tab.open` for new / open / open recent,
- *   status `cancel`, context `{ action, source, reason: "modal-open" }`, with the
- *   dispatcher's actionId when it has one. Ids and enums only, no paths.
+ *   `ui.dialog.open` for Insert Table / Preferences, status `cancel`, context
+ *   `{ action, source, reason: "modal-open" }`, with the dispatcher's actionId when
+ *   it has one. Ids and enums only, no paths.
  *
- * @coordinates-with src/hooks/useMenuEvents.ts — guards file.close / new / open / open_recent
- * @coordinates-with src/hooks/useKeyboardShortcuts.ts — guards fileClose / fileNew / fileOpen
+ * @coordinates-with src/hooks/useMenuEvents.ts — guards file.close / new / open / open_recent, paragraph.table, file.preferences
+ * @coordinates-with src/hooks/useKeyboardShortcuts.ts — guards fileClose / fileNew / fileOpen, paragraphTable, filePreferences
  * @coordinates-with src/hooks/useDialogEscape.ts — the same `aria-modal` selector
  * @coordinates-with tests/d165-modal-blocks-tab-actions.test.tsx
+ * @coordinates-with tests/d235-modal-opening-actions-refused.test.tsx
  */
 import { loggingService } from "../services/loggingService";
 
@@ -65,6 +71,30 @@ export function refuseTabActionWhileModalOpen(
   loggingService.logEventSync({
     level: "info",
     event: REFUSAL_EVENT[action],
+    status: "cancel",
+    actionId,
+    context: { action, source, reason: REFUSAL_REASON },
+  });
+  return true;
+}
+
+/** The actions that open a modal of their own (D235). */
+export type ModalOpeningAction = "paragraph.table" | "file.preferences";
+
+/**
+ * Returns true, after logging the refusal, when `action` must not run because a modal
+ * is already open, so a second one would stack on it (D235); false (and logs nothing)
+ * otherwise. The caller skips its handler on true.
+ */
+export function refuseModalOpenWhileModalOpen(
+  action: ModalOpeningAction,
+  source: TabActionSource,
+  actionId: string = loggingService.generateActionId(),
+): boolean {
+  if (!isModalOpen()) return false;
+  loggingService.logEventSync({
+    level: "info",
+    event: "ui.dialog.open",
     status: "cancel",
     actionId,
     context: { action, source, reason: REFUSAL_REASON },
