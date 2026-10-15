@@ -3,7 +3,8 @@
 Usage: faultproxy.py <listen_port> <upstream_port> <mode> [delay_s]
   lost        forward the request, read the whole response, close without sending it
   delay       forward, hold the response for delay_s, then send it (client has timed out by then)
-  disconnect  forward the request, then close both sides at once (the server sees the client go)
+  disconnect  forward the request, give the server 0.3 s to take it, then close both sides at once
+              (the server sees the client go while the request is in hand; closing at once lost it before the server read it)
 Prints one line to stdout: "upstream <first status line or '-'>"."""
 import socket, sys, time
 
@@ -35,6 +36,7 @@ u = socket.create_connection(("127.0.0.1", up))
 u.settimeout(30)
 u.sendall(head + b"\r\n\r\n" + body)
 if mode == "disconnect":
+    time.sleep(0.3)
     u.close()
     c.close()
     print("upstream -")
