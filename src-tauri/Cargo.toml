@@ -24,6 +24,8 @@ tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# ADR-0047 WI-006 spike (candidate A), pinned; vendored below via [patch.crates-io].
+tauri-plugin-wdio-webdriver = { version = "=1.4.0", optional = true }
 pulldown-cmark = "0.11"
 ammonia = "4"
 notify = "6"
@@ -73,6 +75,10 @@ objc2-app-kit = { version = "0.3", features = [
 # ADR-0047 WI-002: the agent-verification launch guard. Default off; only the
 # verify build turns it on, and a feature-off build carries no guard code.
 verify-run = []
+# ADR-0047 WI-006 spike: the agent control channel (candidate A). Default off.
+control-channel = ["dep:tauri-plugin-wdio-webdriver"]
+# WebKit inspector for the S2 key recorder (delegator ruling 2026-10-15). Default off.
+devtools = ["tauri/devtools"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }
@@ -84,3 +90,8 @@ path = "src/main.rs"
 [[bin]]
 name = "mdpro_mcp"
 path = "src/bin/mdpro_mcp.rs"
+
+# ADR-0047 WI-006 spike: candidate A's pinned 1.4.0 source, vendored once (user ruling
+# 2026-10-15 「Vendor as a local path (Recommended)」); its patch is a diff against this copy.
+[patch.crates-io]
+tauri-plugin-wdio-webdriver = { path = "vendor/tauri-plugin-wdio-webdriver" }
