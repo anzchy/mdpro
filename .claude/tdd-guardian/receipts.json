@@ -171453,6 +171453,73 @@
           "message": "The red for 'D232-WI-2' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
+    },
+    {
+      "id": "D225-WI-1",
+      "lane": "rust",
+      "recorded_at": "2026-10-15T10:25:09.350Z",
+      "head_sha": "602623cef57e7856dcaa0aad174231498fabc889",
+      "dirty_source": [
+        "src-tauri/src/menu.rs",
+        "src-tauri/src/menu_about.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 1712 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/menu_about_d225_tests.rs": {
+          "state": "ok",
+          "sha": "6b8c528521dfa6ab55171779a0280a4ee39047c9bb87ef4d81595f398f11f450",
+          "lines": [
+            "416fc0b4b2595ed9",
+            "0db8805359e9a530",
+            "b149a6cccdca90e6",
+            "5e87cdfd84c71ef8",
+            "c6a6d2a8d1d81b8d",
+            "fa446a9ff7394384",
+            "0630fabac2f4e6ae",
+            "609740e4f44d168a",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "6eb25660f4765260",
+            "1db242d09c3b77da",
+            "c20ee0ab30988540",
+            "d9957d804cb2dd2a",
+            "1053ea44f02d28f4",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "bbd0d89e3e0c74e2",
+            "4339da18983b91da",
+            "c20ee0ab30988540",
+            "d9957d804cb2dd2a",
+            "1053ea44f02d28f4",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "7def4e175e439893",
+            "c037e33c7a14550c",
+            "e81f8dda94024d01",
+            "e651574d22ae5539",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "f3e2e95657fe99c7",
+            "1db242d09c3b77da",
+            "7e879195df8f5f27",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-15T10:34:10.781Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (src-tauri/src/menu.rs, src-tauri/src/menu_about.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

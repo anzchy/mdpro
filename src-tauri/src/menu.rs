@@ -18,6 +18,10 @@
 //!   guard. Its arm calls `QuitGuard::request_quit` and emits no `menu:action`;
 //!   the escape item follows it as it follows Quit on macOS.
 //!
+//! - The predefined About carries metadata off macOS (`menu_about.rs`, D225):
+//!   without it muda's About does nothing on Windows and Linux.
+//!
+//! @coordinates-with src/menu_about.rs
 //! @coordinates-with src/menu_quit.rs
 //! @coordinates-with src/menu_submenus.rs
 //! @coordinates-with src/menu_recent.rs
@@ -73,6 +77,10 @@ mod menu_quit;
 
 #[path = "menu_submenus.rs"]
 mod menu_submenus;
+
+#[path = "menu_about.rs"]
+mod menu_about;
+use menu_about::about_metadata_for;
 pub(crate) use menu_quit::{app_menu_has_macos_items, log_menu_exit, quit_item_for, QuitItem};
 
 #[derive(Clone, Serialize)]
@@ -97,7 +105,12 @@ pub fn build_menu(
 ) -> tauri::Result<Menu<Wry>> {
     let menu = Menu::new(app)?;
     let app_name = app.package_info().name.clone();
-    let about = PredefinedMenuItem::about(app, None, None)?;
+    let about_metadata = about_metadata_for(
+        std::env::consts::OS,
+        &app_name,
+        &app.package_info().version.to_string(),
+    );
+    let about = PredefinedMenuItem::about(app, None, about_metadata)?;
 
     let preferences_item = MenuItem::with_id(
         app,
