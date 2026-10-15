@@ -231,7 +231,9 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         <div className="settings-dirty-banner" role="alert">
           <span aria-hidden="true">⚠️</span>
           <span>Unsaved shortcut changes</span>
-          <button onClick={handleDiscard}>Discard</button>
+          <button className="settings-dirty-banner__discard" onClick={handleDiscard}>
+            Discard
+          </button>
           <button
             className="toolbar-button primary"
             style={{ marginLeft: "auto" }}

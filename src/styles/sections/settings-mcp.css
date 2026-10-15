@@ -103,6 +103,14 @@
   opacity: 1;
 }
 
+/* D244: pattern 2, and full strength on keyboard focus as on hover (the D231 (c)
+   reveal-on-focus), so the ring is not drawn at the resting 0.6. */
+.mcp-copy-btn:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .mcp-copy-btn.small {
   font-size: 11px;
   padding: 1px 3px;

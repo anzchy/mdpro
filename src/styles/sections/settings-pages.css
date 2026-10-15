@@ -42,6 +42,12 @@
   font-size: var(--font-size-ui-sm);
 }
 
+/* D244: keyboard focus gets rule 33 pattern 2, not WebKit's default ring. */
+.settings-dirty-banner__discard:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .settings-placeholder h3 {
   margin: 0;
   font-size: 18px;

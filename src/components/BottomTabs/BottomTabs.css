@@ -54,6 +54,12 @@
   color: var(--color-text);
 }
 
+/* D244: keyboard focus gets rule 33 pattern 2, not WebKit's default ring. */
+.bottom-tabs__add:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .bottom-tabs__divider {
   width: 1px;
   height: 20px;

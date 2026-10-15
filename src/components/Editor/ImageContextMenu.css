@@ -37,6 +37,18 @@
   color: var(--color-panel);
 }
 
+/* D244: the table menu's rings (「D234:a」): inset on an item, and on the
+   accent-filled current size the panel colour inset 4px. */
+.image-context-menu-button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.image-context-menu-button.is-active:focus-visible {
+  outline-color: var(--color-panel);
+  outline-offset: -4px;
+}
+
 .image-context-menu-custom {
   display: flex;
   gap: 6px;
@@ -61,4 +73,10 @@
   background: var(--color-accent);
   color: var(--color-panel);
   cursor: pointer;
+}
+
+/* D244: keyboard focus gets rule 33 pattern 2, not WebKit's default ring. */
+.image-context-menu-apply:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }

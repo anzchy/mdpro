@@ -85,6 +85,12 @@
   color: var(--color-accent);
 }
 
+/* D244: keyboard focus gets rule 33 pattern 2, not WebKit's default ring. */
+.toast-close:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .encoding-path {
   font-size: var(--font-size-ui-sm);
   color: var(--color-muted);

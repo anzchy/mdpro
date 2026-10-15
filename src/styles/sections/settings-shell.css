@@ -37,6 +37,12 @@
   color: var(--color-text);
 }
 
+/* D244: keyboard focus gets rule 33 pattern 2, not WebKit's default ring. */
+.settings-close:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .settings-content {
   flex: 1;
   display: flex;
@@ -174,4 +180,10 @@
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
   color: var(--color-accent-text);
+}
+
+/* D244: keyboard focus gets rule 33 pattern 2, not WebKit's default ring. */
+.shortcut-value:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
