@@ -27,8 +27,6 @@ const valuesOf = (file: string, selector: string, property: string) =>
     .map((d) => d.value);
 
 const ROLES: Array<[file: string, selector: string, token: string]> = [
-  [S + "app-shell.css", ".sidebar-header", "--font-size-ui-sm"],
-  [S + "app-shell.css", ".sidebar-mode-label", "--font-size-ui-sm"],
   [S + "settings-rows.css", ".settings-section-label", "--font-size-ui-sm"],
   [S + "table-context-menu.css", ".table-context-menu-group-label", "--font-size-ui-sm"],
   [S + "table-context-menu.css", ".table-context-menu-item-hint", "--font-size-ui-sm"],

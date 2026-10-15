@@ -78,16 +78,6 @@
   outline-offset: -2px;
 }
 
-.sidebar-header {
-  font-size: var(--font-size-ui-sm);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-muted);
-  padding: 0 4px;
-  margin-bottom: 8px;
-}
-
 .main {
   display: flex;
   flex-direction: column;
@@ -97,7 +87,7 @@
 }
 
 /* Custom Title Bar (Typora-style) */
-/* Sidebar: traffic-lights zone — drag region + view-mode badge.
+/* Sidebar: traffic-lights zone, an empty drag region (D223).
    Sits at the top of the sidebar column, clearing the macOS traffic-light
    buttons (~78px from window left = var(--traffic-lights-clearance) from
    the sidebar's content box after its 16px side-padding). */
@@ -109,17 +99,6 @@
   padding-right: 8px;
   flex-shrink: 0;
   user-select: none;
-}
-
-/* View-mode badge (WYSIWYG / SPLIT / EDITOR / PREVIEW) */
-.sidebar-mode-label {
-  font-size: var(--font-size-ui-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-muted);
-  padding: 3px 8px;
-  background: var(--color-surface);
-  border-radius: var(--radius-control);
 }
 
 /* Main area: traffic-lights zone shown only when the sidebar is hidden.

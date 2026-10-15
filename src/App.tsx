@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { DevToolbar } from "./components/DevToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
-import { TOCSidebarContainer, getViewModeLabel } from "./components/Sidebar";
+import { TOCSidebarContainer } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
 import { AppDialogs } from "./components/AppDialogs";
@@ -900,20 +900,15 @@ function App() {
           collapsedTocIds={collapsedTocIds}
           onTocEntryClick={navigateToTocEntry}
           onTocToggleCollapse={toggleTocCollapsed}
-          viewMode={viewMode}
           sidebarWidth={sidebarWidth}
           onSidebarResize={sidebarPreference.resize}
         />
       ) : null}
       <div className="main">
-        {/* When sidebar is hidden, the main area needs its own traffic-lights zone
-            (drag affordance + mode badge). When sidebar is visible, the sidebar's
-            .sidebar-traffic-area provides the drag region and badge. */}
-        {!showSidebar ? (
-          <div className="main-traffic-area" data-tauri-drag-region>
-            <span className="sidebar-mode-label" data-tauri-drag-region="false">{getViewModeLabel(viewMode)}</span>
-          </div>
-        ) : null}
+        {/* When the sidebar is hidden, the main area needs its own traffic-lights
+            zone, an empty drag region (D223: no mode badge). When it is shown,
+            the sidebar's .sidebar-traffic-area is the drag region. */}
+        {!showSidebar ? <div className="main-traffic-area" data-tauri-drag-region /> : null}
         {busyLabel ? (
           <div className="busy-indicator">
             <LoadingSpinner label={busyLabel} />

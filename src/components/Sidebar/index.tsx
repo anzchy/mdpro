@@ -1,15 +1,8 @@
 import type { HeadingKey, TOCEntry } from "../../types/toc";
-import type { ViewMode } from "../../types/editor";
 import { SIDEBAR_ELEMENT_ID, type SidebarResizeSource } from "../../utils/sidebarWidth";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { TOCSidebar } from "./TOCSidebar";
 
-export function getViewModeLabel(mode: ViewMode): string {
-  switch (mode) {
-    case "wysiwyg": return "WYSIWYG";
-    case "source": return "SOURCE";
-  }
-}
 
 interface TOCSidebarContainerProps {
   /** TOC entries */
@@ -22,8 +15,6 @@ interface TOCSidebarContainerProps {
   onTocEntryClick: (key: HeadingKey) => void;
   /** Handler for TOC collapse toggle */
   onTocToggleCollapse: (key: HeadingKey) => void;
-  /** Current editor view mode — shown in the traffic-lights area */
-  viewMode: ViewMode;
   /** Stored sidebar width, for the resize handle (D189) */
   sidebarWidth: number;
   /** Called once per settled resize */
@@ -36,17 +27,14 @@ export function TOCSidebarContainer({
   collapsedTocIds,
   onTocEntryClick,
   onTocToggleCollapse,
-  viewMode,
   sidebarWidth,
   onSidebarResize,
 }: TOCSidebarContainerProps) {
   return (
     <aside className="sidebar" id={SIDEBAR_ELEMENT_ID}>
-      {/* Traffic-lights zone: drag region + view-mode badge */}
-      <div className="sidebar-traffic-area" data-tauri-drag-region>
-        <span className="sidebar-mode-label" data-tauri-drag-region="false">{getViewModeLabel(viewMode)}</span>
-      </div>
-      <div className="sidebar-header">Table of Contents</div>
+      {/* Traffic-lights zone: an empty window drag region. No header or mode
+          badge (D223); the outline's nav keeps its accessible name. */}
+      <div className="sidebar-traffic-area" data-tauri-drag-region />
       <TOCSidebar
         entries={tocEntries}
         activeEntryId={activeTocEntryId}

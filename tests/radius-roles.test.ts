@@ -33,7 +33,6 @@ const ROLES: Array<[file: string, selector: string, value: string]> = [
   [S + "settings-pages.css", ".settings-dirty-banner button", CONTROL],
   [S + "settings-mcp.css", ".mcp-client-row", CONTROL],
   // No rounded container: `.sidebar-traffic-area` and `.main-traffic-area` have no radius (DESIGN.md:139).
-  [S + "app-shell.css", ".sidebar-mode-label", CONTROL],
   ["components/Editor/ImageContextMenu.css", ".image-context-menu", POPOVER],
   [S + "table-context-menu.css", ".table-context-menu", POPOVER],
   [S + "buttons-dialog.css", ".dialog-card", POPOVER],
