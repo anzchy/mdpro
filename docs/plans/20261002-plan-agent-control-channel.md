@@ -1,9 +1,9 @@
 # Plan: Agent 在真实 app 里验证工作的控制通道（ADR-0047 的执行计划）
 
 Opened 2026-10-02
-Branch: `frontend-backend-redesign`（各工作项在 `mdpro-wt/` 下的短分支上做，合回本分支）
+Branch: `master`（ADR-0083；各工作项在 `mdpro-wt/` 下的短分支上做，由 delegator 以 `--ff-only` 落地。2026-10-12 之前是 `frontend-backend-redesign`，现已冻结）
 Repo: anzchy/mdpro
-Status: **执行中（WI-000–WI-003 已完成并验证；WI-003 真机验收 2026-10-08 夜至 2026-10-09 晨跑过、Check D 修复后 2026-10-09 复测通过）**
+Status: **执行中（2026-10-15：WI-000–WI-004 已完成并验证，WI-004 为 `9940be9`；WI-005 构建已备、人工基线待 dtrack 排期；WI-006 已获实现名额。此前：WI-000–WI-003 已完成并验证；WI-003 真机验收 2026-10-08 夜至 2026-10-09 晨跑过、Check D 修复后 2026-10-09 复测通过）**
 上游记录：[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed，2026-10-02 已修订）、[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，2026-10-02 已修订）、排序文档 [D30 行](./20260912-frontend-backend-sequencing-order.md#d30)
 
 **分工**：ADR-0047 是决定，本文只写工作项、验收和测试。两者冲突时以 ADR 为准，改的是本文。
@@ -92,7 +92,7 @@ Codex 的 21 条各自落在哪里：
 | # | 问题 | 默认值（我的建议） | 影响 |
 |---|---|---|---|
 | Q1 | spike 的时间盒：每个候选两个工作日 | 确认。到点未过即按决定 5 处理，不延长 | WI-006、WI-007 |
-| Q2 | 候选先后做，WebdriverIO 插件在前；维护预算多少行 | 先后做。预算约 300 行，只限监听、鉴权、路由表三处。**数字需要你确认** | WI-006、WI-007 |
+| Q2 | 候选先后做，WebdriverIO 插件在前；维护预算多少行 | 先后做。~~预算约 300 行~~ **预算约 400 行**（2026-10-15 用户原话「Raise to ~400」，经 delegator 转达），只限监听、鉴权、路由表三处 | WI-006、WI-007 |
 | Q3 | 数据目录的隔离机制 | `HOME` 加 `CFFIXED_USER_HOME` 指向运行目录，称为「部分隔离」。不引入发布版也认的数据根目录变量 | WI-002 |
 | Q4 | 验证构建是否用独立 identifier | 用 `com.mdpro.app.verify`，连同完整的打包配置。**不设「退回同 identifier」的自动退路**：S4 若因此失败，停下来问你 | WI-002 |
 | Q5 | `pid`、`buildId` 进所有构建还是只进验证构建 | 所有构建的 `app.ready` 都带。不强制写日志：用户关了日志就没有这一行。自动化不依赖它，另有握手文件 | WI-001、WI-003 |
@@ -605,7 +605,13 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   3. `/wdio/eval` 在 WebKit 回收完成回调时会重发同一段脚本（最多三次），S1 第 4 项必须删掉这段。
   4. 插件在每个 webview 创建时就替换 `WKUIDelegate`，`window.prompt` 会卡住主线程 30 秒。Source 模式的 ⌘K（`linkPlugin.ts:9`）在带驱动的包里不能用，旅程不走它。
   
-  补丁估计 225–290 行（监听、鉴权、路由表之内），预算约 300 行（Q2）。UI delegate 改成按需安装另需 30–60 行，且在这三处之外，做不做待定。
+  补丁估计 225–290 行（监听、鉴权、路由表之内），~~预算约 300 行（Q2）~~。UI delegate 改成按需安装另需 30–60 行，且在这三处之外，~~做不做待定~~。
+
+  **用户裁定（2026-10-15，经 delegator 转达，WI-006 开工前）**：
+  - **B1 预算**：「Raise to ~400」。候选 A 的补丁预算改为约 400 行，仍只限监听、鉴权、路由表三处。ADR-0047 决定 6 写的是「300 lines at most」；ADR-0047 仍是 Proposed，所以由本计划修订这个数字，ADR 的文字在 WI-008 把它改为 Accepted 时一并更正。
+  - **B2 ⌘K**：「Accept as known diff (Recommended)」。不做按需安装的补丁。带驱动的包里 Source 模式 ⌘K 卡住约 30 秒，记为**只属于测试包的已知差异**，写进 spike 记录；旅程（含 e2e 旅程目录，ADR-0103）一律不在 Source 模式走 ⌘K。发布包不带驱动，不受影响。
+  - **B4 取得 crate**：「Vendor as a local path (Recommended)」。把钉死的 1.4.0 下载一次放进 spike 分支，用 `[patch.crates-io]` 指向本地路径；补丁就是对这份副本的一个可审的 diff。用户的这句话涵盖这一次联网下载。
+  - **B3** 已于 2026-10-15 落地（S2 的对照改用 ADR-0100 的补丁，见上面 S2 一条）。
 - **Estimate**：2 天时间盒。
 
 ### WI-007 候选 B：自研插件
