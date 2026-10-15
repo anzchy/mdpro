@@ -4,6 +4,9 @@
 # --features control-channel,devtools`. Usage: s1a.sh <feature-off worktree>   (e.g. verify-9940be9-wi005-base)
 # Prints one "CASE <id> PASS|FAIL <detail>" line per check; never prints the token.
 set -u
+export LC_ALL=en_US.UTF-8
+# Never leave an app behind: on any exit, quit the run still open (a second quit of a closed run is a harmless refusal).
+trap '[ -n "${R:-}" ] && pnpm -s control:quit "$R" >/dev/null 2>&1' EXIT
 OFF_WT="$1"; ON_WT="$(pwd)"
 RUNS="$HOME/Library/Application Support/mdpro-verify/runs"
 fails=0
@@ -64,7 +67,7 @@ POST /session/x/alert/text"
 before=$(wc -l < "$LOG" 2>/dev/null || echo 0); bad=""
 while read -r m p; do c=$(code -X "$m" -H "X-Request-Id: a1-$RANDOM$RANDOM" "$B$p"); [ "$c" = 401 ] || bad="$bad $m$p=$c"; done <<<"$ROUTES"
 after=$(wc -l < "$LOG" 2>/dev/null || echo 0)
-[ -z "$bad" ] && [ "$before" = "$after" ] && say a1 PASS "$(grep -c . <<<"$ROUTES") routes 401, log lines $before→$after" || say a1 FAIL "bad:$bad log $before→$after"
+[ -z "$bad" ] && [ "$before" = "$after" ] && say a1 PASS "$(grep -c . <<<"$ROUTES") routes 401, log lines ${before}→$after" || say a1 FAIL "bad:$bad log ${before}→$after"
 # a2: wrong token of the same length → 401 (and rough timing against no-token)
 WRONG=$(printf '%s' "$TOKEN" | tr '0-9a-f' 'f0-9a-e')
 c=$(code -H "Authorization: Bearer $WRONG" "$B/status"); [ "$c" = 401 ] && say a2 PASS "wrong token 401" || say a2 FAIL "wrong token $c"

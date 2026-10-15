@@ -4,6 +4,9 @@
 # Each mutation is one click on #md-auto-pair; "ran" = new `preferences.set` Start lines in the run's log.
 # Prints one "CASE <id> PASS|FAIL|INFO <detail>" line per check; never prints the token.
 set -u
+export LC_ALL=en_US.UTF-8
+# Never leave an app behind: on any exit, quit the run still open (a second quit of a closed run is a harmless refusal).
+trap '[ -n "${R:-}" ] && pnpm -s control:quit "$R" >/dev/null 2>&1' EXIT
 HERE="$(cd "$(dirname "$0")" && pwd)"
 RUNS="$HOME/Library/Application Support/mdpro-verify/runs"
 TMP="${TMPDIR:-/tmp}/s1b.$$"; mkdir -p "$TMP"
@@ -44,7 +47,7 @@ fault() {  # fault <id> <mode>: one click through the proxy, a same-id retry, th
   re=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST "${A[@]}" -H "$ID" -d '{}' "$B$G/element/$CB/click")
   sleep 1; x1=$(selected); s1=$(starts)
   local ran=$((s1-s0)) flipped=0; [ "$x0" != "$x1" ] && flipped=1
-  local d="client=$out $(cat "$TMP/proxy") retry=$re ran=$ran state $x0→$x1"
+  local d="client=$out $(cat "$TMP/proxy") retry=$re ran=$ran state ${x0}→$x1"
   if [ "$re" = 409 ] && [ $ran -le 1 ] && [ $ran -eq $flipped ]; then say "$id" PASS "$d"; else say "$id" FAIL "$d"; fi
 }
 
@@ -58,7 +61,7 @@ fault f3-disconnect disconnect
 s0=$(starts); x0=$(selected); ID=$(rid f4)
 for i in 1 2; do curl -s -o /dev/null -w '%{http_code}\n' -m 10 -X POST "${A[@]}" -H "$ID" -d '{}' "$B$G/element/$CB/click" > "$TMP/dup$i" & done; wait
 sleep 1; ran=$(( $(starts)-s0 )); x1=$(selected); codes=$(cat "$TMP/dup1" "$TMP/dup2" | sort | tr '\n' ' ')
-[ "$codes" = "200 409 " ] && [ $ran -eq 1 ] && say f4-dup PASS "codes $codes ran=$ran state $x0→$x1" || say f4-dup FAIL "codes $codes ran=$ran state $x0→$x1"
+[ "$codes" = "200 409 " ] && [ $ran -eq 1 ] && say f4-dup PASS "codes $codes ran=$ran state ${x0}→$x1" || say f4-dup FAIL "codes $codes ran=$ran state ${x0}→$x1"
 # a fresh id after the faults is a new intent and runs once
 s0=$(starts); wd POST "$G/element/$CB/click" '{}' >/dev/null; sleep 1; ran=$(( $(starts)-s0 ))
 [ $ran -eq 1 ] && say f5-fresh PASS "new id runs once" || say f5-fresh FAIL "new id ran $ran"
