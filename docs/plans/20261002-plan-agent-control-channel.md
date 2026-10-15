@@ -606,6 +606,16 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   4. 插件在每个 webview 创建时就替换 `WKUIDelegate`，`window.prompt` 会卡住主线程 30 秒。Source 模式的 ⌘K（`linkPlugin.ts:9`）在带驱动的包里不能用，旅程不走它。
   
   补丁估计 225–290 行（监听、鉴权、路由表之内），预算约 300 行（Q2）。UI delegate 改成按需安装另需 30–60 行，且在这三处之外，做不做待定。
+
+  **S1 时段 A 结果（2026-10-15，mini，只在 spike 分支）**：
+  - **计数的是第三次运行**，17:35 跑完，26/26 通过、0 失败。构建 `7a6d121`（`verify`，`control-channel`+`devtools`，buildId `a34467cb…`）；关掉通道的对照用 `verify-9940be9-wi005-base`（`verify`，只有 `devtools`）。脚本 `scripts/control/spike/s1a.sh`，版本 `9c5c14d3`，从 `~/.mdpro-redesign/spike-scripts/` 运行，构建工作树保持干净。日志在 mini 的 `~/.mdpro-redesign/wi006-slotA-3.log`；跑前跑后 `pgrep tauri-app` 都为空，`~/.mdpro/config.json` 的 sha256 前后一致（`b6e87ce3…`）。
+  - **第一次运行作废**（`wi006-slotA.log`）：nohup 下没有 UTF-8 locale，bash 把 `$before` 后面的「→」读成变量名的一部分，`set -u` 让脚本在 a1 处退出，它启动的 app 没有关。app 已经用 launcher 的 quit 关掉。修复是 `57628755`：变量名加花括号、设 UTF-8 locale、加一个退出时 quit 的 trap。
+  - **第二次运行作废**（`wi006-slotA-2.log`）：只有 a1 失败。日志从 23 行增到 29 行，新增的 6 行全是 app 在 ready 之后 12 ms 内写的启动事件；那次运行的整份日志里，与通道有关的只有启动时那一行 `control.listen`，没有一行是请求引起的。这是脚本的计数方法有问题，不是 app 的行为。修复是 `9c5c14d3`：等日志静止 2 秒再计数；另外，有失败时脚本以非零退出。
+  - **结果**：
+    - S1.1：关掉通道的构建只有 MCP 一个监听，且不应答 WebDriver `/status`。开通道的构建 `control.json` 权限 600，`eval=false`；只绑 `127.0.0.1:<临时端口>`，Tailscale 地址上连不上；`TAURI_WEBDRIVER_PORT` 被忽略。
+    - S1.2：探测的 24 个路由，不带令牌一律 401，且 `mdpro.log` 一行不增。错误令牌 401；外来 Host 403；带 Origin 403；令牌不出现在日志里。
+    - S1.3：`eval` 关闭时，`/wdio/eval`、`execute/sync`、`execute/async`、`back`、`forward`、`refresh`、`window/new`、`print` 都是 404；`POST url`、`DELETE window` 是 405（路径因 GET 保留，方法被删）。查找元素和点击照常可用。缺 `X-Request-Id` 的变更请求 400，重复的 id 409。
+  - **还欠的**：S1.2 要求按钉死的源码**逐条**列出路由。路由表有 48 个路径、56 个「方法+路径」，这次只探测了 24 个。完整清单和全量拒绝检查放进时段 B 之前的脚本。在那之前，S1.2 不在 spike 记录里填 `pass`。S1.4、S1.5 等时段 B（dtrack 10 月 18 日额度重置后跑完批次 3、4，由 delegator 通知）。
 - **Estimate**：2 天时间盒。
 
 ### WI-007 候选 B：自研插件
