@@ -39,30 +39,10 @@ printf '%s\n' "$L" | grep -q ':4445$' && say a6 FAIL "something on 4445" || say 
 printf '%s\n' "$L" | grep -q "^127.0.0.1:$PORT$" && say a5a PASS "bound to 127.0.0.1:$PORT only" || say a5a FAIL "listener list: $L"
 B="http://127.0.0.1:$PORT"; LOG="$RUNS/$R/.mdpro/mdpro.log"
 code() { curl -s -o /dev/null -w '%{http_code}' -m 5 "$@"; }
-ROUTES="GET /status
-POST /session
-DELETE /session/x
-GET /session/x/url
-GET /session/x/title
-POST /session/x/element
-POST /session/x/elements
-GET /session/x/element/active
-POST /session/x/element/e/click
-POST /session/x/element/e/clear
-POST /session/x/element/e/value
-GET /session/x/element/e/text
-GET /session/x/source
-GET /session/x/screenshot
-GET /session/x/window
-POST /session/x/window
-GET /session/x/window/handles
-POST /session/x/window/rect
-POST /session/x/window/maximize
-POST /session/x/actions
-DELETE /session/x/actions
-POST /session/x/cookie
-POST /session/x/alert/accept
-POST /session/x/alert/text"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# S1.2: every method+path in the pinned router, the eval-gated ones included (with no token they 401 before they 404)
+ROUTES=$(python3 -I "$HERE/routes.py" "$ON_WT/src-tauri/vendor/tauri-plugin-wdio-webdriver/src/server/router.rs" | awk '{gsub(/\{[a-z_]+\}/,"x",$2); print $1, $2}')
+[ "$(grep -c . <<<"$ROUTES")" -ge 56 ] || { say a1 FAIL "route listing failed"; exit 1; }
 # The app logs its own startup for a moment after "ready"; count only once the log has been still for 2 s.
 settle() { local a b; a=$(wc -l < "$LOG" 2>/dev/null || echo 0); for _ in $(seq 1 30); do sleep 2; b=$(wc -l < "$LOG" 2>/dev/null || echo 0); [ "$a" = "$b" ] && return 0; a=$b; done; }
 settle
