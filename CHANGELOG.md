@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The sidebar toggle's tooltip names your own Toggle Sidebar shortcut if you changed it, and the resize line on the sidebar edge is drawn in a darker grey so it is easy to see. In a narrow window, the arrow keys on the resize handle now move the width you see (D189).
 
 ### Changed
+- Inline code and code blocks in WYSIWYG use a neutral grey derived from the editor background and text colours (light #f1f1f1, dark #1c1e22); in the dark theme they lose their blue tint (UI redesign Stage 3 sign-off, ADR-0110).
 - The sidebar no longer shows a "Table of Contents" header or a WYSIWYG / SOURCE badge at its top, and the badge is gone from the editor corner when the sidebar is hidden, so the top of the window is clean (D223). The View menu's Source and WYSIWYG items still show which mode is on.
 - Borders are now a soft mix of the text colour, popovers and dialogs share one lighter hairline-ring shadow, the light theme's selection tint is lighter, and each theme sets `color-scheme` so native scrollbars and controls follow it (UI redesign Deliverable B)
 - Hover highlights and theme switches no longer fade; only the switch knob and hover-revealed buttons animate, and they stop animating when macOS Reduce Motion is on (spinners keep turning) (UI redesign Deliverable B)

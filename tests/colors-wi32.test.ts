@@ -8,7 +8,7 @@
  * (`box-shadow: var(--shadow-soft)`) adds no separate border, because the
  * ring is part of the shadow (audit b134 M1); an elevated CodeMirror surface
  * also resets the border CodeMirror's own theme draws (audit b136 M1). Item 15 (`--color-code-bg`)
- * stays deferred: tests/design-tokens-retune.test.ts pins it unchanged.
+ * was deferred here and landed at STOP 3 (S2, ADR-0110): tests/design-tokens-retune.test.ts pins it.
  *
  * Strategy: source inspection, one row per declaration; the elevation rule
  * is checked over every in-scope stylesheet.

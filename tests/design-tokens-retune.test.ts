@@ -6,7 +6,9 @@
  * (rule 31 authoring rule 1), set `color-scheme`, and leave the D4 neutrals
  * alone; `:root` keeps a light copy of every shared token (Q2). The About
  * progress track moves off `--color-border` (WI-3.0, Option B). Rule 34 and
- * rule 31 name what changed, in the same commit.
+ * rule 31 name what changed, in the same commit. STOP 3 S2 (ADR-0110) derives
+ * `--color-code-bg` from the editor background and the text, dropping D4's
+ * cool cast on code surfaces by the user's choice.
  *
  * Strategy: source inspection over the theme files, `globals.css`, the
  * settings partial and the two rules.
@@ -17,6 +19,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, parseDeclarations, tokenBlock } from "./support/cssTokenScan";
 import { readAppCssFile } from "../src/test/appCss";
+import { contrast, resolveColor, themeTokens, type Rgba, type Theme } from "./support/contrast";
 
 const ROOT = join(__dirname, "..");
 const lightCss = readAppCssFile("themes/light.css");
@@ -98,13 +101,25 @@ describe("theme retune (WI-3.1)", () => {
     for (const [name, value] of Object.entries(RETUNED.light)) expect(root.get(name), name).toBe(value);
   });
 
-  it("--color-code-bg is unchanged; item 15 stays deferred as optional P2 (WI-3.2 ruling (c))", () => {
+  it("--color-code-bg is the review's derived mix in both themes and :root (STOP 3 S2, 「Review formula」, ADR-0110)", () => {
+    const derived = "color-mix(in srgb, var(--color-editor-bg) 94%, var(--color-text))";
     expect([root.get("--color-code-bg"), light.get("--color-code-bg"), dark.get("--color-code-bg")]).toEqual([
-      "#f4f4f4",
-      "#f4f4f4",
-      "#1b2230",
+      derived,
+      derived,
+      derived,
     ]);
   });
+
+  it.each<Theme>(["light", "dark"])(
+    "%s: the code fill resolves to the prototype's value and code text stays at least 4.5:1 on it",
+    (theme) => {
+      const t = themeTokens(theme);
+      const fill = resolveColor("var(--color-code-bg)", t);
+      const hexOf = (c: Rgba) => "#" + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+      expect(hexOf(fill)).toBe(theme === "light" ? "#f1f1f1" : "#1c1e22");
+      expect(contrast(resolveColor("var(--color-text)", t), fill)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });
 
 describe("About progress track (WI-3.0 Option B)", () => {

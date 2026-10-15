@@ -53,6 +53,10 @@ from `--color-text` by `color-mix()` (WI-3.1):
 - `--shadow-soft`: now per theme, a hairline ring plus one faint shadow.
   A surface that uses it takes no separate `border`: the ring is the edge
   (DESIGN.md:123; `tests/colors-wi32.test.ts`, WI-3.2)
+- `--color-code-bg`: the editor background mixed 94% with the text — the
+  inline-code and code-block fill; neutral in both themes, so code surfaces
+  no longer carry D4's cool cast (STOP 3 S2,
+  [ADR-0110](../../docs/adr/0110-code-surfaces-take-the-neutral-derived-background.md))
 
 Per theme, for text contrast on accent surfaces (D222, WI-3.3; ratios
 measured in `tests/contrast-d222.test.ts`):

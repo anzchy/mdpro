@@ -103,7 +103,7 @@ DR14).
 | `--color-focus-ring` | new | `:root`, equal to the accent (DR15) | Focus outlines and inset rings (see [Focus](#focus)) | :24, not its mix | 7 |
 | `--color-syntax-markup` | new | `:root`, from accent | Source markers: heading, list, quote, emphasis, fence, backtick, table pipe, link brackets | :25 | 2 |
 | `--color-syntax-meta` | new | `:root`, from muted | Link targets, URLs, fence info strings, HTML | :26 | 2 |
-| `--color-code-bg` | redefined as an editor-bg mix | both themes | Code surfaces; keeps the cool tint (D4) | review item 15 | 15 |
+| `--color-code-bg` | redefined as an editor-bg mix | both themes | Code surfaces. Neutral, by the user's choice at STOP 3 ([ADR-0110](../../adr/0110-code-surfaces-take-the-neutral-derived-background.md)), which drops D4's cool tint here | review item 15 | 15 |
 | `--settings-sidebar-bg` | points at `--color-surface` | both themes | Settings rail | — | 14 |
 | `--color-on-accent` | new | `:root` (same in both themes today) | Labels and the switch knob on an accent fill. Any per-theme value is Stage 3's contrast table. | — | R2 |
 | `--color-accent-text` | new | both themes (D222) | Selected-state text on accent-soft: active TOC row, the shortcut being recorded. Light is the accent mixed 80% with the text colour (5.20:1 on the TOC row); dark is the accent. User ruling on prototype/d222-contrast: 「A: derived accent text (Recommended)」 | — | D222 |

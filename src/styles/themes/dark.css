@@ -28,7 +28,8 @@
   /* D227: form-control edges, measured to A9 (tests/contrast-stage3.test.ts) */
   --color-control-border: color-mix(in srgb, var(--color-text) 50%, transparent);
   --color-editor-bg: #0f1115;
-  --color-code-bg: #1b2230;
+  /* STOP 3 S2 (ADR-0110): derived, neutral; drops D4's cool cast on code */
+  --color-code-bg: color-mix(in srgb, var(--color-editor-bg) 94%, var(--color-text));
 
   /* Settings dialog specific */
   --settings-sidebar-bg: linear-gradient(180deg, rgba(17, 22, 32, 0.92), rgba(14, 18, 26, 0.98));
