@@ -6,6 +6,10 @@
  * Each page answers `Runtime.evaluate` through its own `evaluate(expression)`; every other method
  * gets an empty result. `evaluated` records each page's expressions, so a test can tell which page
  * ran the user's eval.
+ *
+ * `connections` records each WebSocket the client opened and whether it sent a close frame before
+ * the TCP connection ended (D248). The server answers a close frame with its own, as a real one
+ * does, so the client's `close` event can fire.
  */
 import crypto from "node:crypto";
 import http from "node:http";
@@ -22,15 +26,29 @@ export interface FakePage {
    * `{ code: -32000, message: "Execution context was destroyed." }`. Undefined → answer normally.
    */
   error?: (method: string, expression: string) => { code: number; message: string } | undefined;
+  /** Never answer this call (D248: drives cdp.mjs into its CDP_TIMEOUT path). */
+  hang?: (method: string, expression: string) => boolean;
+}
+
+/** One client WebSocket: its page, whether it sent a close frame, and whether TCP has ended. */
+export interface FakeConnection {
+  page: string;
+  closeFrame: boolean;
+  ended: boolean;
 }
 
 export interface FakeCdp {
   port: number;
   evaluated: Map<string, string[]>;
+  connections: FakeConnection[];
+  /** Resolves once every connection's TCP has ended, or after `ms`. */
+  settled(ms?: number): Promise<void>;
   close(): Promise<void>;
 }
 
 const GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+/** A server close frame, status 1000 (normal closure). */
+const CLOSE_FRAME = Buffer.from([0x88, 0x02, 0x03, 0xe8]);
 
 function frame(text: string): Buffer {
   const body = Buffer.from(text, "utf8");
@@ -80,6 +98,7 @@ function unframe(buf: Buffer): { texts: string[]; rest: Buffer; closed: boolean 
 export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
   const evaluated = new Map<string, string[]>(pages.map((p) => [p.id, []]));
   const sockets = new Set<Socket>();
+  const connections: FakeConnection[] = [];
   const server = http.createServer((req, res) => {
     const { port } = server.address() as AddressInfo;
     if (req.url === "/json/list") {
@@ -104,6 +123,10 @@ export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
     socket.on("close", () => sockets.delete(socket));
     const page = pages.find((p) => req.url === `/devtools/page/${p.id}`);
     if (!page) return socket.destroy();
+    const conn: FakeConnection = { page: page.id, closeFrame: false, ended: false };
+    connections.push(conn);
+    socket.on("end", () => (conn.ended = true));
+    socket.on("close", () => (conn.ended = true));
     const accept = crypto
       .createHash("sha1")
       .update(String(req.headers["sec-websocket-key"]) + GUID)
@@ -117,6 +140,7 @@ export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
       buf = r.rest;
       for (const text of r.texts) {
         const msg = JSON.parse(text) as { id: number; method: string; params?: { expression?: string } };
+        if (page.hang?.(msg.method, msg.params?.expression ?? "")) continue;
         const err = page.error?.(msg.method, msg.params?.expression ?? "");
         if (err) {
           socket.write(frame(JSON.stringify({ id: msg.id, error: err })));
@@ -130,13 +154,21 @@ export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
         }
         socket.write(frame(JSON.stringify({ id: msg.id, result })));
       }
-      if (r.closed) socket.end();
+      if (r.closed) {
+        conn.closeFrame = true;
+        socket.end(CLOSE_FRAME);
+      }
     });
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   return {
     port: (server.address() as AddressInfo).port,
     evaluated,
+    connections,
+    settled: async (ms = 2000) => {
+      const until = Date.now() + ms;
+      while (connections.some((c) => !c.ended) && Date.now() < until) await new Promise((r) => setTimeout(r, 10));
+    },
     close: () =>
       new Promise<void>((resolve) => {
         for (const s of sockets) s.destroy();

@@ -60,6 +60,8 @@ An expression that throws prints `{"exception": "…"}` **and exits 1**, so `cdp
 stops there.
 `"CDP_PORT_CLOSED: …"` means mdpro is running without the debugging port: run `mdpro.sh debug`.
 `"CDP_TIMEOUT"` means no answer within 25 s; see the triage in `pitfalls.md`.
+`cdp.mjs` closes every socket it opened before it exits, so a multi-window probe no longer aborts
+Node on Windows after printing the answer (D248).
 
 ### `__a` helpers, inside an expression (trusted CDP input, page only)
 
@@ -108,6 +110,8 @@ A read never returns 0 with an empty answer: a failed read keeps ssh's status.
 - Every one-off scheduled task (`runi.ps1`) is waited for and then **unregistered** (try/finally). `ui-run.ps1` deletes its step and output files, so nothing can replay them.
 - Every value interpolated into a remote PowerShell command goes through `psq` (it doubles `'`) inside `'…'`, after a validator: Windows paths must match `^[A-Za-z]:\\` with no quote, backtick or `$`; file names must match `^[A-Za-z0-9._-]+$`, not starting with a dot. `WIN_DIR` is validated once, in `common.sh`. Keep this for any new wrapper.
 - **A lost response is never replayed** (D228). `common.sh` has two ssh calls: `win` for anything that changes state, never retried, and `win_read` for idempotent reads, retried once on ssh exit 255. When `win` loses the connection the wrapper exits **3**, `UNKNOWN OUTCOME`: the command may or may not have run, so check the state before anything else (pitfalls 21). `cdp.mjs`'s own exit 3, `CDP_TIMEOUT`, means the same thing.
+- **The Windows side's exit codes reach the Mac caller** (D247). OpenSSH there runs every command in PowerShell 5.1, which exits 1 for any failure; `win` and `win_read` wrap each command (`ps_wrap` in `common.sh`) so a failed program's own code comes back: `ui.sh`'s 124, `cdp.mjs`'s 1–6. A failed cmdlet is still 1, success 0.
+- **Exit 70, `NATIVE_CRASH`: the remote program crashed** (D248). A Windows crash code is an NTSTATUS (0xC0000409, 0xC0000005), outside 0–255; ssh would cut it to a byte that can look like a driver's own code (0xC0000005 → 5, `WINDOW_NOT_FOUND`), so `ps_wrap` reports any code outside 0–255 as 70. The outcome is unknown, as for 3: check the state, never re-run a mutation on it.
 - The only listener is WebView2's DevTools port, on `127.0.0.1:9222`, and only while mdpro runs from `launch.cmd`.
 
 ## Other scripts

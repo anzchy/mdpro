@@ -26,7 +26,10 @@ export interface SshReply {
   stderr?: string;
   /** The remote command ran (it goes in the ledger), whatever the exit code says. */
   execute?: boolean;
-  /** PS 5.1 mode: the exit code of the last native program the remote command ran. */
+  /**
+   * PS 5.1 mode: the exit code of the last native program the remote command ran, as PowerShell
+   * sees it: an Int32, so an NTSTATUS crash such as 0xC0000409 is negative (-1073740791).
+   */
   remote?: number;
   /** PS 5.1 mode: the last statement was a cmdlet that failed (`$?` false, no native code). */
   cmdletFailed?: boolean;
@@ -35,7 +38,9 @@ export interface SshReply {
 /** The D247 wrapper around every remote command (scripts/mac/common.sh `ps_wrap`). */
 export const PS51_HEAD = "$global:LASTEXITCODE = 0; ";
 export const PS51_TAIL =
-  "; $mdproOk = $?; $mdproRc = $LASTEXITCODE; if (-not $mdproOk) { if ($mdproRc) { exit $mdproRc }; exit 1 }; exit 0";
+  "; $mdproOk = $?; $mdproRc = $LASTEXITCODE; if (-not $mdproOk) { if ($mdproRc -lt 0 -or $mdproRc -gt 255) { exit 70 }; if ($mdproRc) { exit $mdproRc }; exit 1 }; exit 0";
+/** D248: the code a wrapped command exits with when its native program crashed (NTSTATUS). */
+export const NATIVE_CRASH = 70;
 
 export interface FakeSsh {
   dir: string;
@@ -67,7 +72,8 @@ let code = r.exit;
 if (code === undefined && (r.remote !== undefined || r.cmdletFailed)) {
   const failed = (r.remote ?? 0) !== 0 || !!r.cmdletFailed;
   const wrapped = cmd.startsWith(HEAD) && cmd.endsWith(TAIL);
-  code = !failed ? 0 : wrapped && r.remote ? r.remote : 1;
+  const rc = r.remote ?? 0;
+  code = !failed ? 0 : !wrapped || !rc ? 1 : rc < 0 || rc > 255 ? 70 : rc;
 }
 process.exitCode = code ?? 0;
 `;

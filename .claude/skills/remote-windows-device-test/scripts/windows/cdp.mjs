@@ -15,6 +15,10 @@
 // or several with the label (WINDOW_AMBIGUOUS). 5 and 6 print the candidates and evaluate nothing.
 // A protocol error instead of a result (e.g. "Execution context was destroyed") prints
 // {"error":"CDP_ERROR", code, message} and exits 1: the eval may or may not have run.
+// Once a socket is open, every exit goes through end(): it closes each socket and waits for the
+// close (at most 1 s) before process.exit. Exiting while they were still closing aborted Node 24
+// on Windows in libuv (UV_HANDLE_CLOSING, 0xC0000409) after the answer was printed (D248).
+// MDPRO_CDP_TIMEOUT_MS overrides the 25 s CDP_TIMEOUT (tests).
 // Env: MDPRO_CDP_PORT (default 9222), MDPRO_CDP_URL_PREFIX (default http://tauri.localhost),
 // MDPRO_CDP_LABEL (same as --window).
 // The expression may use `return`; it runs inside an async function. Helpers on window.__a
@@ -35,7 +39,18 @@ let argv = process.argv.slice(2);
 let label = process.env.MDPRO_CDP_LABEL || "";
 if (argv[0] === "--window") { label = argv[1] || ""; argv = argv.slice(2); }
 const [mode, arg] = argv;
-setTimeout(() => { console.log(JSON.stringify("CDP_TIMEOUT")); process.exit(3); }, 25000).unref?.();
+const sockets = new Set();
+const CLOSE_WAIT_MS = 1000;
+const closed = (ws) => new Promise((done) => {
+  if (ws.readyState === WebSocket.CLOSED) return done();
+  ws.addEventListener("close", () => done(), { once: true });
+  setTimeout(done, CLOSE_WAIT_MS).unref?.();
+  ws.close();
+});
+const end = async (code) => { await Promise.all([...sockets].map(closed)); process.exit(code); };
+// Never resolves: the caller stops here while end() closes the sockets and exits.
+const stop = (code) => { end(code); return new Promise(() => {}); };
+setTimeout(() => { console.log(JSON.stringify("CDP_TIMEOUT")); end(3); }, Number(process.env.MDPRO_CDP_TIMEOUT_MS) || 25000).unref?.();
 const PORT = process.env.MDPRO_CDP_PORT || "9222";
 const PREFIX = process.env.MDPRO_CDP_URL_PREFIX || "http://tauri.localhost";
 let list;
@@ -45,6 +60,8 @@ const pages = list.filter((t) => t.type === "page" && t.url.startsWith(PREFIX));
 if (!pages.length) { console.error(`no page starting with ${PREFIX} on port ${PORT}`); process.exit(2); }
 const connect = (url) => new Promise((open) => {
   const ws = new WebSocket(url);
+  sockets.add(ws);
+  ws.addEventListener("close", () => sockets.delete(ws));
   let id = 0; const waiting = new Map();
   ws.addEventListener("message", (m) => { const d = JSON.parse(m.data); if (d.id && waiting.has(d.id)) { waiting.get(d.id)(d); waiting.delete(d.id); } });
   const send = (method, params = {}) => new Promise((res) => { id += 1; waiting.set(id, res); ws.send(JSON.stringify({ id, method, params })); });
@@ -53,14 +70,14 @@ const connect = (url) => new Promise((open) => {
 // Tauri 2 puts the window's label in its injected metadata (to be confirmed on WebView2 in demo W6).
 const LABEL_PROBE = "window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label ?? null";
 const labelOf = async (send) => (await send("Runtime.evaluate", { expression: LABEL_PROBE, returnByValue: true })).result?.result?.value ?? null;
-const fail = (code, error, extra) => { console.log(JSON.stringify({ error, ...extra }, null, 1)); process.exit(code); };
+const fail = (code, error, extra) => { console.log(JSON.stringify({ error, ...extra }, null, 1)); return stop(code); };
 let page = pages[0];
 if (label || pages.length > 1) {
   const candidates = [];
-  for (const p of pages) { const c = await connect(p.webSocketDebuggerUrl); candidates.push({ id: p.id, label: await labelOf(c.send), url: p.url }); c.ws.close(); }
-  if (!label) fail(6, "WINDOW_AMBIGUOUS", { hint: "several mdpro windows: pass --window <label>", candidates });
+  for (const p of pages) { const c = await connect(p.webSocketDebuggerUrl); candidates.push({ id: p.id, label: await labelOf(c.send), url: p.url }); await closed(c.ws); }
+  if (!label) await fail(6, "WINDOW_AMBIGUOUS", { hint: "several mdpro windows: pass --window <label>", candidates });
   const hits = candidates.filter((c) => c.label === label);
-  if (hits.length !== 1) fail(hits.length ? 6 : 5, hits.length ? "WINDOW_AMBIGUOUS" : "WINDOW_NOT_FOUND", { label, candidates });
+  if (hits.length !== 1) await fail(hits.length ? 6 : 5, hits.length ? "WINDOW_AMBIGUOUS" : "WINDOW_NOT_FOUND", { label, candidates });
   page = pages.find((p) => p.id === hits[0].id);
 }
 const { ws, send } = await connect(page.webSocketDebuggerUrl);
@@ -119,24 +136,24 @@ const helpers = `(() => { if (window.__a) return; let seq = 0; const pend = new 
   }; })()`;
 await send("Runtime.evaluate", { expression: helpers });
 // Identity check on the connection that will act: the page must still be the labelled window.
-if (label) { const now = await labelOf(send); if (now !== label) fail(5, "WINDOW_MISMATCH", { label, now }); }
+if (label) { const now = await labelOf(send); if (now !== label) await fail(5, "WINDOW_MISMATCH", { label, now }); }
 let code = 0;
 // A top-level CDP `error` is a failed call, never an `undefined` answer (audit b163 H1).
-const cdpError = (r) => { if (r.error || !r.result) fail(1, "CDP_ERROR", { code: r.error?.code ?? null, message: r.error?.message ?? "no result" }); };
+const cdpError = async (r) => { if (r.error || !r.result) await fail(1, "CDP_ERROR", { code: r.error?.code ?? null, message: r.error?.message ?? "no result" }); };
 if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
   const expr = mode === "eval64" ? Buffer.from(arg, "base64").toString("utf8") : mode === "evalfile" ? fs.readFileSync(arg, "utf8") : arg;
   const r = await send("Runtime.evaluate", { expression: `(async () => { ${/\breturn\b/.test(expr) ? expr : "return (" + expr + ")"} })()`, awaitPromise: true, returnByValue: true });
-  cdpError(r);
+  await cdpError(r);
   const v = r.result?.exceptionDetails ? { exception: r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text } : r.result?.result?.value;
   console.log(JSON.stringify(v, null, 1));
   if (r.result?.exceptionDetails) code = 1; // a thrown eval fails its caller (cdp.sh eval … && next)
 } else if (mode === "shot") {
   const r = await send("Page.captureScreenshot", { format: "png" });
-  cdpError(r);
-  if (typeof r.result.data !== "string") fail(1, "CDP_ERROR", { code: null, message: "no screenshot data" });
+  await cdpError(r);
+  if (typeof r.result.data !== "string") await fail(1, "CDP_ERROR", { code: null, message: "no screenshot data" });
   fs.writeFileSync(arg, Buffer.from(r.result.data, "base64"));
   console.log("saved", arg);
 } else {
-  console.error("usage: node cdp.mjs [--window <label>] eval|eval64|evalfile|shot <arg>"); process.exit(2);
+  console.error("usage: node cdp.mjs [--window <label>] eval|eval64|evalfile|shot <arg>"); await stop(2);
 }
-ws.close(); process.exit(code);
+await end(code);

@@ -23,9 +23,12 @@ mkdir -p "$OUT"
 # for any failure, so a native program's own code (ui-run.ps1's 124, cdp.mjs's 3 CDP_TIMEOUT, 4, 5,
 # 6) reached the Mac as 1 (D247). ps_wrap keeps the same rule (the last statement's $?, so a failed
 # cmdlet is still 1 and success 0) but returns a failed native program's $LASTEXITCODE. An explicit
-# `exit N` inside the command still wins. The tail is matched exactly by tests/support/fakeSsh.ts.
+# `exit N` inside the command still wins. A code outside 0-255 is a native crash (an NTSTATUS such
+# as 0xC0000409, negative in PowerShell), which ssh would cut to its low byte (9, or 5 for an access
+# violation, which reads as WINDOW_NOT_FOUND): it exits 70, NATIVE_CRASH, an unknown outcome like
+# 3, never retried (D248). The tail is matched exactly by tests/support/fakeSsh.ts.
 ps_wrap() {
-  printf '%s' '$global:LASTEXITCODE = 0; '"$*"'; $mdproOk = $?; $mdproRc = $LASTEXITCODE; if (-not $mdproOk) { if ($mdproRc) { exit $mdproRc }; exit 1 }; exit 0'
+  printf '%s' '$global:LASTEXITCODE = 0; '"$*"'; $mdproOk = $?; $mdproRc = $LASTEXITCODE; if (-not $mdproOk) { if ($mdproRc -lt 0 -or $mdproRc -gt 255) { exit 70 }; if ($mdproRc) { exit $mdproRc }; exit 1 }; exit 0'
 }
 
 # ssh exits 255 both when it never connected and when the connection dropped after the remote
