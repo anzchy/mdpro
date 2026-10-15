@@ -5,10 +5,12 @@
  * user's answer back. One instance per window.
  *
  * Pipeline: `mcp:confirm_request` → `confirmRequestOf` → FIFO queue (dedup by
- * `requestId`) → `prompt` is the head · `approve` / `reject` → drop the head →
- * `mcp_confirm_reply` (fire-and-forget) · `mcp:confirm_resolved` →
- * `confirmResolvedOf` → drop that id wherever it is queued; if it was the head,
- * the next prompt shows. A resolved event never sends a reply.
+ * `requestId`, deadline = arrival + `expiresInMs`) → `prompt` is the head, unless
+ * another modal is open (then `null`, the head waits) · `approve` / `reject` →
+ * drop the head → `mcp_confirm_reply` (fire-and-forget) · `mcp:confirm_resolved`
+ * → `confirmResolvedOf` → drop that id wherever it is queued; if it was the head,
+ * the next prompt shows · the last other modal closes (a `MutationObserver`) →
+ * the oldest request still live shows. A resolved event never sends a reply.
  *
  * Key decisions:
  * - **Per-webview `listen`, never the global one.** Rust targets the owning
@@ -31,6 +33,16 @@
  *   `useQuitGuard` pattern): a teardown that beats `listen` unlistens the late
  *   registration, and under Tauri any failed subscription logs one
  *   `mcp.confirm.listen` fail with counts only.
+ * - **A prompt waits while another modal is open** (D240, ADR-0108). It mounted on
+ *   top of Insert Link or Settings and took focus, so the next Enter or Escape
+ *   meant for that dialog rejected an unrelated write. While any `[aria-modal]`
+ *   other than this prompt's own card is in the document, a head that is not
+ *   already shown renders nothing, takes no focus and registers no Escape. A
+ *   prompt already on screen stays when a dialog opens over it (ADR-0062).
+ * - **Rust's deadline, never restarted.** A held request keeps arrival +
+ *   `expiresInMs`. One past it is dropped without a reply when the queue next
+ *   publishes, so Rust's own timeout (408) ends it: never a reject, never an
+ *   approve. Rust's `confirm_resolved` usually drops it first.
  * - **Logs carry the request id and operation only** — never the document title,
  *   its id, or content. A malformed payload logs `{ reason: "malformed" }`.
  *
@@ -38,6 +50,7 @@
  * @coordinates-with src-tauri/src/services/mcp_confirm/ — emits the two events
  * @coordinates-with src/services/mcpConfirmService.ts — the `mcp_confirm_reply` IPC
  * @coordinates-with src/utils/mcpConfirmModel.ts — payload guards and types
+ * @coordinates-with src/utils/modalTabActionGuard.ts — `isModalOpen`, what holds a prompt
  */
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -45,6 +58,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 import { loggingService } from "../services/loggingService";
 import { mcpConfirmService } from "../services/mcpConfirmService";
+import { isModalOpen } from "../utils/modalTabActionGuard";
 import {
   confirmRequestOf,
   confirmResolvedOf,
@@ -56,6 +70,9 @@ import {
 export const MCP_CONFIRM_REQUEST_EVENT = "mcp:confirm_request";
 export const MCP_CONFIRM_RESOLVED_EVENT = "mcp:confirm_resolved";
 
+/** This prompt's own card (`McpWriteConfirmDialog`), which never holds the queue. */
+const OWN_CARD_SELECTOR = ".mcp-confirm-dialog";
+
 export interface McpConfirm {
   /** The confirmation this window is showing, or `null`. */
   prompt: ConfirmRequest | null;
@@ -63,6 +80,16 @@ export interface McpConfirm {
   approve: () => void;
   /** The user rejected the shown write: reply `approved: false`. */
   reject: () => void;
+}
+
+function logHeld(event: string, { requestId, operation }: ConfirmRequest): void {
+  loggingService.logEventSync({
+    level: "info",
+    event,
+    status: "cancel",
+    actionId: loggingService.generateActionId(),
+    context: { requestId, operation },
+  });
 }
 
 function logMalformed(event: string): void {
@@ -79,6 +106,10 @@ export function useMcpConfirm(): McpConfirm {
   const [prompt, setPrompt] = useState<ConfirmRequest | null>(null);
   const queueRef = useRef<ConfirmRequest[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
+  // Rust's deadline per queued id (arrival + expiresInMs), never restarted.
+  const deadlineRef = useRef<Map<string, number>>(new Map());
+  // Ids already logged as held behind another modal: one line each.
+  const heldRef = useRef<Set<string>>(new Set());
   // The prompt last committed to the screen: what the user can be answering.
   const shownRef = useRef<ConfirmRequest | null>(null);
 
@@ -86,14 +117,38 @@ export function useMcpConfirm(): McpConfirm {
     shownRef.current = prompt;
   }, [prompt]);
 
-  const publish = useCallback(() => {
-    setPrompt(queueRef.current[0] ?? null);
+  // A request leaving the queue drops its deadline and held mark with it.
+  const forget = useCallback((requestId: string) => {
+    deadlineRef.current.delete(requestId);
+    heldRef.current.delete(requestId);
   }, []);
+
+  const publish = useCallback(() => {
+    const now = Date.now();
+    const live = queueRef.current.filter((req) => (deadlineRef.current.get(req.requestId) ?? now + 1) > now);
+    for (const req of queueRef.current) {
+      if (live.includes(req)) continue;
+      logHeld("ui.mcp_confirm.expired", req);
+      forget(req.requestId);
+    }
+    queueRef.current = live;
+    const head = live[0] ?? null;
+    if (head && head.requestId !== shownRef.current?.requestId && isModalOpen(OWN_CARD_SELECTOR)) {
+      if (!heldRef.current.has(head.requestId)) {
+        heldRef.current.add(head.requestId);
+        logHeld("ui.mcp_confirm.held", head);
+      }
+      setPrompt(null);
+      return;
+    }
+    setPrompt(head);
+  }, [forget]);
 
   const handleRequest = useCallback(
     (req: ConfirmRequest) => {
       if (seenRef.current.has(req.requestId)) return;
       seenRef.current.add(req.requestId);
+      deadlineRef.current.set(req.requestId, Date.now() + req.expiresInMs);
       queueRef.current = [...queueRef.current, req];
       if (queueRef.current.length === 1) publish();
     },
@@ -107,9 +162,10 @@ export function useMcpConfirm(): McpConfirm {
       const index = queue.findIndex((req) => req.requestId === requestId);
       if (index < 0) return;
       queueRef.current = queue.filter((_, i) => i !== index);
+      forget(requestId);
       if (index === 0) publish();
     },
-    [publish],
+    [forget, publish],
   );
 
   const answer = useCallback(
@@ -118,6 +174,7 @@ export function useMcpConfirm(): McpConfirm {
       const head = queueRef.current[0];
       if (!shown || !head || head.requestId !== shown.requestId) return;
       queueRef.current = queueRef.current.slice(1);
+      forget(head.requestId);
       publish();
       const { requestId, operation } = head;
       loggingService.logUiEvent(
@@ -128,11 +185,27 @@ export function useMcpConfirm(): McpConfirm {
       // lost reply is not an unhandled rejection. Rust's timeout ends it.
       void mcpConfirmService.reply(requestId, approved).catch(() => {});
     },
-    [publish],
+    [forget, publish],
   );
 
   const approve = useCallback(() => answer(true), [answer]);
   const reject = useCallback(() => answer(false), [answer]);
+
+  // The last other modal closing is a DOM change: re-publish then, so the oldest
+  // live request shows. Cheap when there is nothing waiting.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      if (queueRef.current.length === 0 || shownRef.current) return;
+      publish();
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["aria-modal"],
+    });
+    return () => observer.disconnect();
+  }, [publish]);
 
   useEffect(() => {
     // `listen` resolves after an await, so a teardown can beat it; the flag

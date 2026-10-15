@@ -7,6 +7,8 @@ rule, "Escape goes to the last open dialog in DOM order", is unchanged. What
 changes is that DOM order now equals open order for the six App-level dialogs,
 and ADR-0045's Context statement that the MCP prompt always paints on top no
 longer holds. ADR-0045 is otherwise unchanged.
+Partially superseded: Decision 1 for arriving MCP prompts, by
+[ADR-0108](0108-an-mcp-prompt-waits-while-another-modal-is-open.md) (2026-10-15).
 
 ## Context
 

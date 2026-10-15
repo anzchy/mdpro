@@ -14,7 +14,11 @@
  *   request to the active document and view mode and cancels it when either
  *   changes (D73).
  *
+ * - ⌘K while another modal is open (Recovery, Settings, …) is refused and logged
+ *   by `refuseModalOpenWhileModalOpen`, as Insert Table is (D235-WI-2).
+ *
  * @coordinates-with src/stores/linkInsertStore.ts
+ * @coordinates-with src/utils/modalTabActionGuard.ts — the D235 refusal
  * @coordinates-with src/components/Editor/LinkInsertModal.tsx
  * @coordinates-with src/hooks/useKeyboardShortcuts.ts
  * @coordinates-with src/hooks/useLinkInsertBinding.ts — the D73 cancellation
@@ -24,6 +28,7 @@ import type { EditorView } from "@codemirror/view";
 import { keymap } from "@codemirror/view";
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
+import { refuseModalOpenWhileModalOpen } from "../../utils/modalTabActionGuard";
 
 /** Insert `[text](url)` over every selection range; a blocked URL inserts nothing. */
 const applyLink = (view: EditorView, href: string): void => {
@@ -71,6 +76,8 @@ export const insertLinkCommand = (view: EditorView): boolean => {
 
   const store = useLinkInsertStore.getState();
   if (store.pendingCallback !== null) return true;
+  // D235-WI-2: not over another open modal (Recovery, Settings, …).
+  if (refuseModalOpenWhileModalOpen("format.hyperlink", "shortcut")) return true;
 
   const apply = (href: string) => {
     if (view.dom.isConnected) applyLink(view, href);

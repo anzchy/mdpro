@@ -18,6 +18,10 @@
  * and `services/logger.rs` `mod tests`.
  *
  * jsdom cannot reproduce WKWebView focus: "blur to body" simulates the D34 hypothesis only.
+ *
+ * D240 (ADR-0108): a prompt that arrives while another modal is open is held until it closes,
+ * so "MCP above" now only arises when MCP opened first. ES-1 (confirm-then-mcp) and ES-2 were
+ * rewritten: the first Escape goes to the dialog that is open, and the prompt shows after it.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -169,7 +173,7 @@ afterEach(() => {
 
 describe("MCP prompt on the shared Escape stack (D34 WI-3)", () => {
   it.each(["confirm-then-mcp", "mcp-then-confirm"] as const)(
-    "ES-1: G5b, open order %s — Escape 1 rejects MCP only, Escape 2 cancels the ConfirmDialog",
+    "ES-1: G5b, open order %s — each Escape answers one dialog, MCP's only once it is on screen",
     async (order) => {
       const user = userEvent.setup();
       render(<AppLike />);
@@ -185,6 +189,27 @@ describe("MCP prompt on the shared Escape stack (D34 WI-3)", () => {
       } else {
         await openMcp();
         openConfirm();
+      }
+      if (order === "confirm-then-mcp") {
+        // ADR-0108: held under the ConfirmDialog; Escape 1 is the ConfirmDialog's.
+        expect(mcpDialog()).toBeNull();
+        expect(unsavedDialog()).not.toBeNull();
+        blurToBody();
+        await user.keyboard("{Escape}");
+        await settle();
+        expect(unsavedDialog()).toBeNull();
+        expect(cancels).toBe(1);
+        expect(replies()).toStrictEqual([]);
+        expect(mcpDialog()).not.toBeNull();
+        expect(screen.getByRole("button", { name: "Reject" })).toHaveFocus();
+
+        await user.keyboard("{Escape}");
+        await settle();
+        expect(replies()).toStrictEqual([rejected("r1")]);
+        expect(mcpDialog()).toBeNull();
+        expect(confirms).toBe(0);
+        expect(escapeLines().map((p) => p.context?.dialog)).toStrictEqual(["confirm", "mcp_write_confirm"]);
+        return;
       }
       expect(mcpDialog()).not.toBeNull();
       expect(unsavedDialog()).not.toBeNull();
@@ -211,35 +236,36 @@ describe("MCP prompt on the shared Escape stack (D34 WI-3)", () => {
     },
   );
 
-  it("ES-2: MCP prompt above the real SettingsDialog — only MCP closes; Settings' own Escape works afterwards", async () => {
+  it("ES-2: a prompt arriving over the real SettingsDialog is held (ADR-0108) — Escape is Settings', the prompt shows once Settings closes", async () => {
     vi.mocked(isTauri).mockReturnValue(true);
     let settingsCloses = 0;
     const user = userEvent.setup();
-    render(
+    const view = (open: boolean) => (
       <>
-        <SettingsDialog open onClose={() => (settingsCloses += 1)} />
+        <SettingsDialog open={open} onClose={() => (settingsCloses += 1)} />
         <McpWriteConfirm />
-      </>,
+      </>
     );
+    const { rerender } = render(view(true));
     await screen.findByRole("dialog", { name: "Settings" });
     await settle();
     await deliver(fx.events.request, req("r1", "Alpha"));
-    expect(mcpDialog()).not.toBeNull();
+    expect(mcpDialog()).toBeNull();
 
     const general = screen.getByRole("button", { name: "General" });
     await user.click(general);
     expect(general).toHaveFocus();
     await user.keyboard("{Escape}");
     await settle();
-    expect(mcpDialog()).toBeNull();
-    expect(replies()).toStrictEqual([rejected("r1")]);
-    expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
-    expect(settingsCloses).toBe(0);
-
-    await user.click(screen.getByRole("button", { name: "General" }));
-    expect(screen.getByRole("button", { name: "General" })).toHaveFocus();
-    await user.keyboard("{Escape}");
     expect(settingsCloses).toBe(1);
+    expect(replies()).toStrictEqual([]);
+    expect(mcpDialog()).toBeNull();
+
+    rerender(view(false));
+    await settle();
+    expect(mcpDialog()).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Reject" })).toHaveFocus();
+    expect(replies()).toStrictEqual([]);
   });
 
   it("ES-3: MCP prompt above a stand-in card-Escape dialog — the stand-in stays open", async () => {

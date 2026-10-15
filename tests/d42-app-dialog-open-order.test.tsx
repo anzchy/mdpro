@@ -15,6 +15,12 @@
  * Expected orders come from literals or from `tests/support/dialogOpenOrderOracle.ts`, never
  * from `src/utils/dialogOpenOrder.ts`.
  *
+ * D240 (ADR-0108, partially superseding ADR-0062 decision 1): an MCP prompt that arrives, or
+ * replaces the shown one, while another dialog is open is held: it is not rendered and not in
+ * the order until the last other dialog closes, then it shows with Reject focused. Cases 4.4,
+ * 4.5, 4.8 (i), 4.9, 4.10, 4.11, 4.14, 4.16 and 4.20 (a) were rewritten to that behaviour; the
+ * expected orders apply the hold through `heldApply` in `tests/support/d42DialogDriver.ts`.
+ *
  * Mock boundaries (MB-T): `@tauri-apps/api/webviewWindow` (a fake bus) and
  * `@tauri-apps/api/core` `invoke`, routed: `log_event` → `logs`, `mcp_confirm_reply` →
  * recorded, the SettingsDialog loads → fixtures. `loggingService` / `loggingStore`, every
@@ -240,7 +246,7 @@ describe("D42: App-level dialogs render in open order", () => {
   });
 
   it.each(["confirm-then-mcp", "mcp-then-confirm"] as const)(
-    "4.4 MCP and Unsaved, %s: the later one is on top and takes Escape 1 (MCP not pinned)",
+    "4.4 MCP and Unsaved, %s: MCP opened first is covered; MCP arriving later waits (ADR-0108)",
     async (order) => {
       const user = userEvent.setup();
       const h = makeHarness();
@@ -256,19 +262,23 @@ describe("D42: App-level dialogs render in open order", () => {
       blurToBody();
 
       if (order === "confirm-then-mcp") {
-        expect(domDialogOrder()).toEqual(["confirm", "mcp"]);
+        // ADR-0108: the arriving prompt is held while Unsaved is open.
+        expect(domDialogOrder()).toEqual(["confirm"]);
+        expect(dialogFor("mcp")).toBeNull();
+        await user.keyboard("{Escape}");
+        await settle();
+        expect(handlerCount(h, "cancelClose")).toBe(1);
+        expect(dialogFor("confirm")).toBeNull();
+        expect(replies()).toStrictEqual([]);
+        expect(domDialogOrder()).toEqual(["mcp"]);
+        expect(within(dialog("mcp")).getByRole("button", { name: "Reject" })).toHaveFocus();
         await user.keyboard("{Escape}");
         await settle();
         expect(replies()).toStrictEqual([rejected("r1")]);
         expect(dialogFor("mcp")).toBeNull();
-        expect(dialogFor("confirm")).not.toBeNull();
-        expect(handlerCount(h, "cancelClose")).toBe(0);
-        await user.keyboard("{Escape}");
-        await settle();
-        expect(dialogFor("confirm")).toBeNull();
         expect(escapeLines().map((p) => p.context)).toStrictEqual([
-          { dialog: "mcp_write_confirm", outcome: "reject" },
           { dialog: "confirm", outcome: "cancel" },
+          { dialog: "mcp_write_confirm", outcome: "reject" },
         ]);
       } else {
         expect(domDialogOrder()).toEqual(["mcp", "confirm"]);
@@ -291,7 +301,7 @@ describe("D42: App-level dialogs render in open order", () => {
   );
 
   it.each(["queued", "close-then-new"] as const)(
-    "4.5 (%s) an MCP token change re-raises it; r2 lands on top with focus on Reject",
+    "4.5 (%s) an MCP token change under Reload holds r2 (ADR-0108); it shows, Reject focused, when Reload closes",
     async (shape) => {
       const h = makeHarness();
       await mount(h);
@@ -312,15 +322,19 @@ describe("D42: App-level dialogs render in open order", () => {
       const records = watcher.drain();
       watcher.stop();
 
-      expect(domDialogOrder()).toEqual(["reload", "mcp"]);
+      expect(domDialogOrder()).toEqual(["reload"]);
+      expect(dialogFor("mcp")).toBeNull();
+      expect(replies()).toStrictEqual([]);
+      expect(removedDialogIds(records)).toContain("mcp");
+      expect(offendingRemovals(records, ["reload"], false)).toEqual([]);
+
+      await h.close("reload");
+      await settle();
+      expect(domDialogOrder()).toEqual(["mcp"]);
       expect(within(dialog("mcp")).getByText(/Doc r2/)).toBeInTheDocument();
       expect(within(dialog("mcp")).getByRole("button", { name: "Reject" })).toHaveFocus();
       expect(replies()).toStrictEqual([]);
-      if (shape === "queued") {
-        expect(removedDialogIds(records)).toContain("mcp");
-        expect(offendingRemovals(records, ["reload", "mcp"], true)).toEqual([]);
-      }
-      expect(stackContexts()).toStrictEqual([{ order: ["mcp", "reload"] }, { order: ["reload", "mcp"] }]);
+      expect(stackContexts()).toStrictEqual([{ order: ["mcp", "reload"] }]);
     },
   );
 
@@ -390,7 +404,7 @@ describe("D42: App-level dialogs render in open order", () => {
     expect(handlerCount(h, "confirmClose")).toBe(0);
   });
 
-  it("4.8 (i) the MCP lag render moves no open dialog", async () => {
+  it("4.8 (i) an MCP prompt held under Unsaved moves no open dialog (ADR-0108), and shows once it closes", async () => {
     const h = makeHarness();
     await mount(h);
     await h.open("confirm");
@@ -400,8 +414,12 @@ describe("D42: App-level dialogs render in open order", () => {
     await settle();
     const records = watcher.drain();
     watcher.stop();
-    expect(domDialogOrder()).toEqual(["confirm", "mcp"]);
+    expect(domDialogOrder()).toEqual(["confirm"]);
+    expect(dialogFor("mcp")).toBeNull();
     expect(removedDialogIds(records)).toEqual([]);
+    await h.close("confirm");
+    await settle();
+    expect(domDialogOrder()).toEqual(["mcp"]);
   });
 
   it("4.9 SettingsDialog keeps its state, and the MCP subscription survives every reorder", async () => {
@@ -437,8 +455,13 @@ describe("D42: App-level dialogs render in open order", () => {
       await settle();
       holds();
     }
+    // ADR-0108: r2 replaced r1 while Settings was open, so it is held.
+    expect(dialogFor("mcp")).toBeNull();
+    expect(domDialogOrder()).toEqual(["settings"]);
+    await h.close("settings");
+    await settle();
     expect(within(dialog("mcp")).getByText(/Doc r2/)).toBeInTheDocument();
-    expect(domDialogOrder()).toEqual(["settings", "mcp"]);
+    expect(within(dialog("mcp")).getByRole("button", { name: "Reject" })).toHaveFocus();
   });
 
   it("4.12 Recovery under Unsaved: Escape cancels Unsaved and Recovery stays", async () => {
@@ -494,9 +517,10 @@ describe("D42: App-level dialogs render in open order", () => {
     });
     const h = makeHarness(secretReq);
     await mount(h);
+    // ADR-0108: MCP opens first; a prompt arriving under Reload would be held, not stacked.
+    await h.open("mcp");
     act(() => h.set({ reloadMessage: "TOP-SECRET-ROADMAP.md changed" }));
     await h.open("confirm");
-    await h.open("mcp");
     act(() => h.set({ encodingIssue: { path: "/Users/x/TOP-SECRET-ROADMAP.md", detected: "GBK" } }));
     await h.close("reload");
     await h.close("confirm");
@@ -505,10 +529,10 @@ describe("D42: App-level dialogs render in open order", () => {
     await settle();
 
     expect(stackContexts()).toStrictEqual([
-      { order: ["reload", "confirm"] },
-      { order: ["reload", "confirm", "mcp"] },
-      { order: ["reload", "confirm", "mcp", "encoding"] },
-      { order: ["confirm", "mcp", "encoding"] },
+      { order: ["mcp", "reload"] },
+      { order: ["mcp", "reload", "confirm"] },
+      { order: ["mcp", "reload", "confirm", "encoding"] },
+      { order: ["mcp", "confirm", "encoding"] },
       { order: ["mcp", "encoding"] },
     ]);
     for (const line of stackLines()) {
@@ -553,8 +577,12 @@ describe("D42: App-level dialogs render in open order", () => {
         () => h.open("reload"),
         () => h.close("reload"),
         () => h.close("confirm"),
-        () => h.open("confirm"),
+        // ADR-0108: MCP first, then Unsaved over it; then a prompt held under Unsaved.
         () => h.open("mcp"),
+        () => h.open("confirm"),
+        () => h.close("mcp"),
+        () => h.open("mcp"),
+        () => h.close("confirm"),
       ]) {
         await step();
         await settle();
@@ -572,10 +600,13 @@ describe("D42: App-level dialogs render in open order", () => {
       ["confirm", "reload"],
       ["confirm"],
       [],
+      ["mcp"],
+      ["mcp", "confirm"],
       ["confirm"],
-      ["confirm", "mcp"],
+      ["confirm"],
+      ["mcp"],
     ]);
-    expect(plain.stacks).toStrictEqual([{ order: ["confirm", "reload"] }, { order: ["confirm", "mcp"] }]);
+    expect(plain.stacks).toStrictEqual([{ order: ["confirm", "reload"] }, { order: ["mcp", "confirm"] }]);
     expect(strict.orders).toEqual(plain.orders);
     expect(strict.stacks).toStrictEqual(plain.stacks);
   });
@@ -600,7 +631,7 @@ describe("D42: App-level dialogs render in open order", () => {
     expect(stackContexts()).toStrictEqual([{ order: ["settings", "reload"] }]);
   });
 
-  it("4.20 (a) an MCP token change that keeps the open count is logged", async () => {
+  it("4.20 (a) an MCP token change under other dialogs holds r2 and logs the shorter order (ADR-0108)", async () => {
     const h = makeHarness();
     await mount(h);
     await h.open("mcp");
@@ -611,9 +642,15 @@ describe("D42: App-level dialogs render in open order", () => {
     expect(stackContexts()).toStrictEqual([
       { order: ["mcp", "reload"] },
       { order: ["mcp", "reload", "confirm"] },
-      { order: ["reload", "confirm", "mcp"] },
+      { order: ["reload", "confirm"] },
     ]);
-    expect(domDialogOrder()).toEqual(["reload", "confirm", "mcp"]);
+    expect(domDialogOrder()).toEqual(["reload", "confirm"]);
+    expect(dialogFor("mcp")).toBeNull();
+    await h.close("reload");
+    await h.close("confirm");
+    await settle();
+    expect(domDialogOrder()).toEqual(["mcp"]);
+    expect(within(dialog("mcp")).getByText(/Doc r2/)).toBeInTheDocument();
   });
 
   it("4.20 (b) a same-commit swap that keeps the open count is logged, in one commit", async () => {
@@ -666,6 +703,15 @@ describe("D42: exhaustive pairs", () => {
       };
       order = await applyDomainEvent(h, order, { kind: "open", id: x }, check);
       order = await applyDomainEvent(h, order, { kind: "open", id: y }, check);
+      if (y === "mcp") {
+        // ADR-0108: MCP arriving under X is held; it is on screen once X closes.
+        expect(order).toEqual([x]);
+        expect(dialogFor("mcp")).toBeNull();
+        order = await applyDomainEvent(h, order, { kind: "close", id: x }, check);
+        watcher.stop();
+        expect(order).toEqual(["mcp"]);
+        return;
+      }
       watcher.stop();
       expect(order).toEqual([x, y]);
     },
@@ -698,6 +744,29 @@ describe("D42: exhaustive pairs", () => {
     await h.open(y);
     await settle();
     if (x === "settings" || y === "settings") await waitPastSettingsTimer();
+    if (y === "mcp") {
+      // ADR-0108: the prompt is held under X, so X is the top dialog and Escape is X's.
+      expect(dialogFor("mcp")).toBeNull();
+      const inX = within(dialog(x)).getByRole("button", { name: FOCUS_IN[x] });
+      act(() => inX.focus());
+      const calls0 = [...h.calls];
+      const esc0 = escapeLines().length;
+      await user.keyboard("{Escape}");
+      await settle();
+      expect(replies()).toStrictEqual([]);
+      if (x === "recovery") {
+        expect(dialogFor("recovery")).not.toBeNull();
+        expect(dialogFor("mcp")).toBeNull();
+        expect(h.calls).toEqual(calls0);
+      } else {
+        const effect = EFFECT[x];
+        expect(h.calls.slice(calls0.length)).toEqual(effect ? [{ handler: effect }] : []);
+        expect(dialogFor(x)).toBeNull();
+        expect(within(dialog("mcp")).getByRole("button", { name: "Reject" })).toHaveFocus();
+      }
+      expect(escapeLines().length - esc0).toBe(ON_STACK.has(x) ? 1 : 0);
+      return;
+    }
     const target = within(dialog(y)).getByRole("button", { name: FOCUS_IN[y] });
     act(() => target.focus());
     expect(target).toHaveFocus();
@@ -716,7 +785,7 @@ describe("D42: exhaustive pairs", () => {
       expect(dialogFor(y)).toBeNull();
       const effect = EFFECT[y];
       expect(h.calls.slice(calls0.length)).toEqual(effect ? [{ handler: effect }] : []);
-      expect(replies().slice(replies0)).toStrictEqual(y === "mcp" ? [rejected("r1")] : []);
+      expect(replies().slice(replies0)).toStrictEqual([]);
     }
     // D140: Reload and Encoding joined the `useDialogEscape` stack, so they log `ui.dialog.escape` too.
     expect(escapeLines().length - esc0).toBe(ON_STACK.has(y) ? 1 : 0);

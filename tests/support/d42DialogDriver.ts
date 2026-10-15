@@ -12,12 +12,19 @@
  * - Law (d), the `ui.dialog.stack` projection (Case 4.14): one `{ order }` per
  *   step whose oracle order changed and has two or more ids.
  *
+ * - D240 (ADR-0108): an MCP prompt that arrives, or replaces the shown one, while
+ *   a non-MCP dialog is open is held: it is not on screen and not in the order.
+ *   When the last non-MCP dialog closes it is appended. `heldApply` layers that
+ *   on the oracle's transition. The pure open-order helper is unchanged, so
+ *   `dialogOpenOrderOracle.ts` is too.
+ *
  * Independence: expected orders come from `dialogOpenOrderOracle.ts`, never from
  * `src/utils/dialogOpenOrder.ts`. Not a `*.test.ts`, so vitest does not collect it.
  */
 import {
   oracleApply,
   type DomainEvent,
+  type EventKind,
   type OracleDialogId,
 } from "./dialogOpenOrderOracle";
 import {
@@ -26,6 +33,38 @@ import {
   type AppDialogsHarness,
   type HarnessDialogId,
 } from "./appDialogsHarness";
+
+/** The on-screen order plus whether an MCP request is held off screen (D240). */
+export interface HeldState {
+  order: OracleDialogId[];
+  mcpHeld: boolean;
+}
+
+const hasNonMcp = (order: readonly OracleDialogId[]) => order.some((id) => id !== "mcp");
+
+/**
+ * One logical event at the AppDialogs level (D240): the oracle's transition, with
+ * an MCP request held while a non-MCP dialog is open. Mirrors the harness: MCP
+ * `open` queues a request only when none is queued, `close` resolves them all,
+ * `reopen` queues the next and resolves the head.
+ */
+export function heldApply(state: HeldState, kind: EventKind, id: OracleDialogId): HeldState {
+  const { order, mcpHeld } = state;
+  if (id === "mcp") {
+    const shown = order.includes("mcp");
+    if (kind === "close") return { order: oracleApply(order, "close", id), mcpHeld: false };
+    if (kind === "open" && (shown || mcpHeld)) return { order: [...order], mcpHeld };
+    if (kind === "reopen" && mcpHeld) return { order: [...order], mcpHeld };
+    if (hasNonMcp(order)) return { order: oracleApply(order, "close", id), mcpHeld: true };
+    return { order: oracleApply(order, kind === "reopen" && shown ? "reopen" : "open", id), mcpHeld: false };
+  }
+  const next = oracleApply(order, kind, id);
+  if (mcpHeld && !hasNonMcp(next)) return { order: [...next, "mcp"], mcpHeld: false };
+  return { order: next, mcpHeld };
+}
+
+/** Whether each harness has an MCP request held off screen. */
+const held = new WeakMap<AppDialogsHarness, boolean>();
 
 /** One snapshot a domain event produced, as the checker sees it. */
 export interface DriverStep {
@@ -50,19 +89,24 @@ export async function applyDomainEvent(
 ): Promise<OracleDialogId[]> {
   const { kind, id } = event;
   const isOpen = order.includes(id);
+  const step = (from: readonly OracleDialogId[], k: EventKind): OracleDialogId[] => {
+    const next = heldApply({ order: [...from], mcpHeld: held.get(h) ?? false }, k, id);
+    held.set(h, next.mcpHeld);
+    return next.order;
+  };
   if (kind === "reopen" && id !== "mcp" && isOpen) {
     await h.close(id);
-    const closed = oracleApply(order, "close", id);
+    const closed = step(order, "close");
     await check({ oracle: closed, before: [...order], mcpTokenChanged: false });
     await h.open(id);
-    const reopened = oracleApply(closed, "open", id);
+    const reopened = step(closed, "open");
     await check({ oracle: reopened, before: closed, mcpTokenChanged: false });
     return reopened;
   }
   if (kind === "open") await h.open(id);
   else if (kind === "close") await h.close(id);
   else await h.reopen(id);
-  const next = oracleApply(order, kind === "reopen" && !isOpen ? "open" : kind, id);
+  const next = step(order, kind === "reopen" && !isOpen && id !== "mcp" ? "open" : kind);
   const mcpTokenChanged = id === "mcp" && kind === "reopen" && isOpen;
   await check({ oracle: next, before: [...order], mcpTokenChanged });
   return next;

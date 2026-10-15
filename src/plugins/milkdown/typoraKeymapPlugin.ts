@@ -30,6 +30,7 @@
  * command to bind. The preference entry exists but is intentionally
  * unbound in WYSIWYG mode.
  *
+ * @coordinates-with src/utils/modalTabActionGuard.ts — ⌘K is refused over an open modal (D235-WI-2)
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
  * @coordinates-with src/plugins/index.ts
  */
@@ -54,6 +55,7 @@ import type { Command } from "@milkdown/kit/prose/state";
 type EditorStateLike = Parameters<Command>[0];
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
+import { refuseModalOpenWhileModalOpen } from "../../utils/modalTabActionGuard";
 import { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
 
 export { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
@@ -240,6 +242,8 @@ const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
     command: () => (state: Parameters<Command>[0], dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
       const linkMark = state.schema.marks["link"];
       if (!linkMark) return false;
+      // D235-WI-2: not over another open modal (Recovery, Settings, …).
+      if (refuseModalOpenWhileModalOpen("format.hyperlink", "shortcut")) return false;
 
       // Snapshot ProseMirror state/dispatch/view at keypress time.
       // ProseMirror state is immutable so this snapshot is safe; dispatch and

@@ -71,17 +71,20 @@ import {
 } from "./support/appDialogsHarness";
 import {
   applyDomainEvent,
+  heldApply,
   offendingRemovals,
   removedDialogIds,
   stackProjection,
   watchRemovals,
   type DriverStep,
+  type HeldState,
 } from "./support/d42DialogDriver";
 import {
   EVENTS,
   eventLabel,
   mulberry32,
   type DomainEvent,
+  type EventKind,
   type OracleDialogId,
 } from "./support/dialogOpenOrderOracle";
 
@@ -167,7 +170,18 @@ describe("D42 slow: open order over real dialogs", () => {
               { kind: "close", id: x },
               { kind: "open", id: x },
             ]);
-            expect(end).toEqual([y, z, x]);
+            // ADR-0108: an MCP prompt arriving under another dialog is held until it closes.
+            const want = [
+              { kind: "open", id: x },
+              { kind: "open", id: y },
+              { kind: "open", id: z },
+              { kind: "close", id: x },
+              { kind: "open", id: x },
+            ].reduce<HeldState>((state, e) => heldApply(state, e.kind as EventKind, e.id), {
+              order: [],
+              mcpHeld: false,
+            });
+            expect(end).toEqual(want.order);
             runs += 1;
           }
         }
