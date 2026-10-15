@@ -106,10 +106,29 @@ export function newDocumentTooltip(isMac: boolean): string {
   return isMac ? "New Document (⌘N)" : "New Document (Ctrl+N)";
 }
 
-/** The sidebar toggle's accessible name and tooltip (ADR-0088). */
-export function sidebarToggleLabel(shown: boolean, isMac: boolean): string {
+const MAC_MODIFIER_SYMBOLS: Record<string, string> = { Cmd: "⌘", Ctrl: "⌃", Option: "⌥", Shift: "⇧" };
+
+/** A stored shortcut as macOS draws it in menus: "Cmd+Shift+L" → "⌘⇧L". */
+export function macShortcutSymbols(stored: string): string {
+  return stored
+    .split("+")
+    .map((t) => MAC_MODIFIER_SYMBOLS[t] ?? t)
+    .join("");
+}
+
+/**
+ * The sidebar toggle's accessible name and tooltip (ADR-0088): the action
+ * plus the user's live `viewToggleSidebar` binding (b137 Low). A cleared
+ * binding names the action alone.
+ */
+export function sidebarToggleLabel(
+  shown: boolean,
+  isMac: boolean,
+  binding: string = DEFAULT_KEYBOARD_SHORTCUTS.viewToggleSidebar,
+): string {
   const action = shown ? "Hide Sidebar" : "Show Sidebar";
-  return `${action} (${isMac ? "⌘⇧L" : "Ctrl+Shift+L"})`;
+  if (binding === "") return action;
+  return `${action} (${isMac ? macShortcutSymbols(binding) : shortcutLabel(binding, false)})`;
 }
 
 /** Where the log file is, as the Advanced settings page names it. */

@@ -27,6 +27,8 @@ interface SidebarToggleButtonProps {
   /** Whether the sidebar is shown now. */
   shown: boolean;
   onToggle: () => void;
+  /** The live `viewToggleSidebar` binding; the default when absent. */
+  shortcut?: string;
 }
 
 const ICON_SIZE = 16;
@@ -51,8 +53,8 @@ function PanelIcon({ shown }: { shown: boolean }) {
   );
 }
 
-export function SidebarToggleButton({ shown, onToggle }: SidebarToggleButtonProps) {
-  const label = sidebarToggleLabel(shown, isMacPlatform());
+export function SidebarToggleButton({ shown, onToggle, shortcut }: SidebarToggleButtonProps) {
+  const label = sidebarToggleLabel(shown, isMacPlatform(), shortcut);
   const handleClick = () => {
     loggingService.logUiEvent("ui.sidebar.toggle", {
       source: "button",

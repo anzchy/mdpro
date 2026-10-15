@@ -1,6 +1,6 @@
 /**
  * Purpose: the sidebar's right-edge resize handle (D189, ADR-0088 decision
- * 3): a focusable vertical separator that carries the width and its range.
+ * 3): a focusable vertical separator that carries the drawn width and its range.
  * Behaviour lives in `useSidebarResize`; this file is the ARIA surface.
  *
  * @coordinates-with src/hooks/useSidebarResize.ts
@@ -22,15 +22,18 @@ interface SidebarResizeHandleProps {
 }
 
 export function SidebarResizeHandle({ width, onCommit }: SidebarResizeHandleProps) {
-  const handlers = useSidebarResize({ width, onCommit });
+  const { ref, valueNow, ...handlers } = useSidebarResize({ width, onCommit });
   return (
     <div
+      ref={(el) => {
+        ref.current = el;
+      }}
       className="sidebar-resize-handle"
       role="separator"
       aria-orientation="vertical"
       aria-label="Resize sidebar"
       aria-controls={SIDEBAR_ELEMENT_ID}
-      aria-valuenow={width}
+      aria-valuenow={valueNow}
       aria-valuemin={SIDEBAR_WIDTH_MIN}
       aria-valuemax={SIDEBAR_WIDTH_MAX}
       tabIndex={0}

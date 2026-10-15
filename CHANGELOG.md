@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - The sidebar can be resized: drag its right edge, or focus the edge and use the arrow keys (Shift for bigger steps, Home/End for the limits, Enter or double-click to reset). The width stays between 180 and 480 px and is remembered across launches (D189, #453).
 - A button at the left end of the bottom tab bar hides and shows the sidebar. It stays in the same place in both states, so a second click undoes the first (D189, ADR-0088).
+- The sidebar toggle's tooltip names your own Toggle Sidebar shortcut if you changed it, and the resize line on the sidebar edge is drawn in a darker grey so it is easy to see. In a narrow window, the arrow keys on the resize handle now move the width you see (D189).
 
 ### Changed
 - Borders are now a soft mix of the text colour, popovers and dialogs share one lighter hairline-ring shadow, the light theme's selection tint is lighter, and each theme sets `color-scheme` so native scrollbars and controls follow it (UI redesign Deliverable B)

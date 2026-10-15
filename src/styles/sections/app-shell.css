@@ -66,9 +66,11 @@
   background: transparent;
 }
 
+/* Muted, not --color-border: the bar must read at 3:1 (4.52 light, 6.91
+   dark); user's prototype ruling on b137 M4. */
 .sidebar-resize-handle:hover::after,
 .sidebar-resize-handle:active::after {
-  background: var(--color-border);
+  background: var(--color-muted);
 }
 
 .sidebar-resize-handle:focus-visible {

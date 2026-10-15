@@ -121,3 +121,52 @@ describe("D189 sidebar toggle button", () => {
     expect(toggleLogs().map((p) => p.context)).toEqual([{ source: "button", to: "hidden" }]);
   });
 });
+
+/** b137 Low (D189-WI-4): the name carries the user's live binding, not a fixed string. */
+describe("D189-WI-4 the toggle names the live viewToggleSidebar binding", () => {
+  function renderWith(shortcut: string | undefined, shown = true) {
+    render(
+      <BottomTabs
+        documents={[]}
+        activeDocumentId={null}
+        onSelect={noop}
+        onClose={noop}
+        onNewDocument={noop}
+        sidebarShown={shown}
+        onToggleSidebar={noop}
+        sidebarToggleShortcut={shortcut}
+      />,
+    );
+    return screen.getAllByRole("button")[0];
+  }
+
+  it("the default binding reads as before", () => {
+    expect(renderWith("Cmd+Shift+L").getAttribute("aria-label")).toBe("Hide Sidebar (⌘⇧L)");
+  });
+
+  it("a rebound shortcut shows on macOS as symbols", () => {
+    const button = renderWith("Cmd+Option+S", false);
+    expect(button.getAttribute("aria-label")).toBe("Show Sidebar (⌘⌥S)");
+    expect(button.getAttribute("title")).toBe("Show Sidebar (⌘⌥S)");
+  });
+
+  it("a rebound shortcut shows off-Mac with Ctrl and Alt", () => {
+    Object.defineProperty(navigator, "platform", { value: "Win32", configurable: true });
+    expect(renderWith("Cmd+Option+S").getAttribute("aria-label")).toBe("Hide Sidebar (Ctrl+Alt+S)");
+  });
+
+  it("a cleared binding names the action alone", () => {
+    expect(renderWith("").getAttribute("aria-label")).toBe("Hide Sidebar");
+  });
+
+  it("no binding passed falls back to the default label", () => {
+    expect(renderWith(undefined).getAttribute("aria-label")).toBe("Hide Sidebar (⌘⇧L)");
+  });
+
+  it("App passes the live binding to the bottom bar", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const app = readFileSync(join(__dirname, "..", "src/App.tsx"), "utf8");
+    expect(app).toMatch(/sidebarToggleShortcut=\{keyboardShortcuts\.viewToggleSidebar\}/);
+  });
+});

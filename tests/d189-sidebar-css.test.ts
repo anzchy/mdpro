@@ -72,11 +72,11 @@ describe("D189 resize handle (ADR-0088 decision 3)", () => {
     expect(valuesOf(APP_SHELL, H, property)).toEqual([value]);
   });
 
-  it("shows a 2px bar on the edge on hover and while dragging, none at rest", () => {
+  it("shows a 2px muted bar on the edge on hover and while dragging, none at rest", () => {
     expect(valuesOf(APP_SHELL, `${H}::after`, "width")).toEqual(["2px"]);
     expect(valuesOf(APP_SHELL, `${H}::after`, "background")).toEqual(["transparent"]);
     expect(valuesOf(APP_SHELL, `${H}:hover::after, ${H}:active::after`, "background")).toEqual([
-      "var(--color-border)",
+      "var(--color-muted)", // b137 M4, user's prototype ruling: 4.52:1 light, 6.91:1 dark (was --color-border, 1.22 / 1.37)
     ]);
   });
 

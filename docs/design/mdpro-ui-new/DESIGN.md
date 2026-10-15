@@ -247,7 +247,7 @@ cited proposal lines in both themes.
 - **Box:** the § Buttons icon button. Focus is rule 33 pattern 2 (outline).
 - **Icon and name:** the sidebar glyphs above. The accessible name and the
   tooltip read "Hide Sidebar" or "Show Sidebar" plus the platform shortcut
-  (⌘⇧L on macOS, Ctrl+Shift+L elsewhere). `aria-expanded` follows the
+  (the user's live binding, ⌘⇧L / Ctrl+Shift+L by default). `aria-expanded` follows the
   state; `aria-controls` names the sidebar while it is shown.
 - **Behaviour:** the same toggle as the menu and ⌘⇧L, one preference write
   per click. No animation (DR12).
@@ -257,12 +257,15 @@ cited proposal lines in both themes.
 - **Place:** the sidebar's right edge, an 8px hit area inside the edge (the
   sidebar clips its overflow). Cursor `col-resize`.
 - **Look:** at rest only the existing hairline. On hover and while dragging,
-  a 2px `--color-border` bar on the edge. Focus is rule 33 pattern 2, with
+  a 2px `--color-muted` bar on the edge (3:1 or better in both themes; user's
+  prototype ruling, 2026-10-15). Focus is rule 33 pattern 2, with
   the outline inset.
 - **Semantics:** a focusable `role="separator"`, vertical, named "Resize
-  sidebar", carrying `aria-valuenow`, `-min` (180) and `-max` (480).
-- **Keyboard:** ←/→ step 8px, Shift+←/→ 32px, Home/End go to the limits,
-  Enter or a double-click resets to 220.
+  sidebar", carrying `aria-valuenow` (the drawn width), `-min` (180) and
+  `-max` (480).
+- **Keyboard:** ←/→ step 8px, Shift+←/→ 32px, from the drawn width; when a
+  narrow window has clamped the sidebar, → does nothing. Home/End go to the
+  limits, Enter or a double-click resets to 220.
 - **Writes:** a drag changes only `--sidebar-width` until it ends; each drag,
   key step or reset writes the preference once. No animation (DR12).
 

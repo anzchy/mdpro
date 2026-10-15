@@ -941,6 +941,7 @@ function App() {
         onNewDocument={createDocument}
         sidebarShown={showSidebar}
         onToggleSidebar={sidebarPreference.toggle}
+        sidebarToggleShortcut={keyboardShortcuts.viewToggleSidebar}
       />
 
       {/* The App-level dialogs, incl. this window's ADR-0042 MCP prompt (D42 WI-3). */}

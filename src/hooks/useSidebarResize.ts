@@ -17,12 +17,20 @@
  *   that commits nothing puts the stored width back on the shell.
  * - A step that cannot move the width (already at an end, or Enter at the
  *   default) commits nothing; a handled key is always prevented.
+ * - Arrow keys step from the drawn width, like a drag: when a narrow window
+ *   has clamped the sidebar below its stored width, ← narrows what is seen,
+ *   and → (which cannot widen it) commits nothing rather than lowering the
+ *   stored width. Home, End and Enter name absolute widths (b137 M2).
+ * - Unmounting mid-drag (the sidebar hidden while dragging) settles the drag
+ *   once, like pointercancel (b137 M1).
+ * - `valueNow` is the drawn width, kept current by a ResizeObserver where
+ *   one exists, for the handle's `aria-valuenow`.
  *
  * @coordinates-with src/components/Sidebar/SidebarResizeHandle.tsx
  * @coordinates-with src/hooks/useSidebarPreference.ts
  * @coordinates-with src/utils/sidebarWidth.ts
  */
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
   clampSidebarWidth,
@@ -56,8 +64,12 @@ function renderedWidth(handle: HTMLElement, fallback: number): number {
   return measured > 0 ? Math.round(measured) : fallback;
 }
 
+const ARROW_KEYS = new Set(["ArrowLeft", "ArrowRight"]);
+
 export function useSidebarResize({ width, onCommit }: SidebarResizeOptions) {
   const dragRef = useRef<Drag | null>(null);
+  const handleRef = useRef<HTMLElement | null>(null);
+  const [drawn, setDrawn] = useState<number | null>(null);
 
   const endDrag = useCallback(() => {
     const drag = dragRef.current;
@@ -66,6 +78,22 @@ export function useSidebarResize({ width, onCommit }: SidebarResizeOptions) {
     if (drag.live !== drag.startWidth) onCommit(drag.live, "drag");
     else setShellWidth(drag.shell, width);
   }, [onCommit, width]);
+
+  // M1: the latest endDrag, so the unmount cleanup settles with current props.
+  const endDragRef = useRef(endDrag);
+  endDragRef.current = endDrag;
+  useEffect(() => () => endDragRef.current(), []);
+
+  useEffect(() => {
+    const sidebar = handleRef.current?.parentElement;
+    if (!sidebar || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      const measured = Math.round(sidebar.getBoundingClientRect().width);
+      setDrawn(measured > 0 ? measured : null);
+    });
+    observer.observe(sidebar);
+    return () => observer.disconnect();
+  }, []);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {
@@ -93,9 +121,13 @@ export function useSidebarResize({ width, onCommit }: SidebarResizeOptions) {
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLElement>) => {
-      const next = sidebarWidthForKey(width, e.key, e.shiftKey);
+      const arrow = ARROW_KEYS.has(e.key);
+      const base = arrow ? renderedWidth(e.currentTarget, width) : width;
+      const next = sidebarWidthForKey(base, e.key, e.shiftKey);
       if (!next) return;
       e.preventDefault();
+      const clampedByWindow = base < width;
+      if (arrow && clampedByWindow && next.width > base) return;
       if (next.width !== width) onCommit(next.width, next.source);
     },
     [onCommit, width],
@@ -106,6 +138,8 @@ export function useSidebarResize({ width, onCommit }: SidebarResizeOptions) {
   }, [onCommit, width]);
 
   return {
+    ref: handleRef,
+    valueNow: drawn ?? width,
     onPointerDown,
     onPointerMove,
     onPointerUp: endDrag,

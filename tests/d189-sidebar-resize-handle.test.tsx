@@ -7,8 +7,8 @@
  * Nothing is mocked: the handle reports through its `onCommit` prop, and the
  * live width is read off the real `.app-shell` element.
  */
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SidebarResizeHandle } from "../src/components/Sidebar/SidebarResizeHandle";
 
@@ -157,5 +157,118 @@ describe("D189 SidebarResizeHandle — pointer drag", () => {
     const { handle, onCommit, user } = setup(220);
     await user.dblClick(handle);
     expect(onCommit).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * b137 M1 / M2 (D189-WI-4): a drag interrupted by unmount still settles once,
+ * and keys step from, and aria-valuenow reports, the width that is drawn
+ * when a narrow window has clamped it below the stored width.
+ */
+function setupRendered(width: number, rendered: number) {
+  const onCommit = vi.fn();
+  const view = render(
+    <div className="app-shell" data-testid="shell">
+      <aside id="app-sidebar" data-testid="aside">
+        <SidebarResizeHandle width={width} onCommit={onCommit} />
+      </aside>
+    </div>,
+  );
+  const aside = screen.getByTestId("aside");
+  aside.getBoundingClientRect = () => ({ width: rendered }) as DOMRect;
+  const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+  return { onCommit, handle, view, user: userEvent.setup() };
+}
+
+describe("D189-WI-4 M1: unmount mid-drag", () => {
+  it("commits the last live width once when the handle unmounts during a drag", async () => {
+    const { handle, onCommit, view, user } = setupRendered(220, 0);
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: handle, coords: { clientX: 100 } },
+      { coords: { clientX: 170 } },
+    ]);
+    view.unmount();
+    expect(onCommit.mock.calls).toEqual([[290, "drag"]]);
+  });
+
+  it("an unmount with no drag in progress commits nothing", () => {
+    const { onCommit, view } = setupRendered(220, 0);
+    view.unmount();
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("an unmount after a finished drag does not commit it again", async () => {
+    const { handle, onCommit, view, user } = setupRendered(220, 0);
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: handle, coords: { clientX: 100 } },
+      { coords: { clientX: 140 } },
+      { keys: "[/MouseLeft]" },
+    ]);
+    view.unmount();
+    expect(onCommit.mock.calls).toEqual([[260, "drag"]]);
+  });
+});
+
+describe("D189-WI-4 M2: keys follow the drawn width in a narrow window", () => {
+  it.each([
+    ["{ArrowLeft}", 339],
+    ["{Shift>}{ArrowLeft}{/Shift}", 315],
+  ])("stored 480 drawn at 347: %s commits %s", async (keys, want) => {
+    const { handle, onCommit, user } = setupRendered(480, 347);
+    handle.focus();
+    await user.keyboard(keys);
+    expect(onCommit.mock.calls).toEqual([[want, "keyboard"]]);
+  });
+
+  it("ArrowRight cannot widen a clamped sidebar: nothing commits, the stored width is kept, the key is still handled", () => {
+    const { handle, onCommit } = setupRendered(480, 347);
+    expect(fireEvent.keyDown(handle, { key: "ArrowRight" })).toBe(false);
+    expect(fireEvent.keyDown(handle, { key: "ArrowRight", shiftKey: true })).toBe(false);
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("Home, End and Enter still name absolute widths while clamped", async () => {
+    const { handle, onCommit, user } = setupRendered(400, 347);
+    handle.focus();
+    await user.keyboard("{End}{Home}{Enter}");
+    expect(onCommit.mock.calls).toEqual([
+      [480, "keyboard"],
+      [180, "keyboard"],
+      [220, "reset"],
+    ]);
+  });
+
+  it("unclamped, arrows step from the stored width as before", async () => {
+    const { handle, onCommit, user } = setupRendered(300, 300);
+    handle.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(onCommit.mock.calls).toEqual([[308, "keyboard"]]);
+  });
+});
+
+describe("D189-WI-4 M2: aria-valuenow reports the drawn width", () => {
+  const RealResizeObserver = globalThis.ResizeObserver;
+  afterEach(() => {
+    globalThis.ResizeObserver = RealResizeObserver;
+  });
+
+  it("uses the measured width when the sidebar is resized", () => {
+    let fire: (() => void) | null = null;
+    globalThis.ResizeObserver = class {
+      constructor(cb: ResizeObserverCallback) {
+        fire = () => cb([], this as unknown as ResizeObserver);
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    const { handle } = setupRendered(480, 347);
+    act(() => fire?.());
+    expect(handle.getAttribute("aria-valuenow")).toBe("347");
+  });
+
+  it("falls back to the stored width where nothing can be measured", () => {
+    const { handle } = setupRendered(480, 0);
+    expect(handle.getAttribute("aria-valuenow")).toBe("480");
   });
 });

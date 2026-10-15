@@ -15,6 +15,8 @@ interface BottomTabsProps {
   /** Whether the sidebar is shown; drives the toggle's icon and name. */
   sidebarShown: boolean;
   onToggleSidebar: () => void;
+  /** The live `viewToggleSidebar` binding, named in the toggle's label. */
+  sidebarToggleShortcut?: string;
 }
 
 function getDocumentTitle(doc: Document): string {
@@ -32,6 +34,7 @@ export function BottomTabs({
   onNewDocument,
   sidebarShown,
   onToggleSidebar,
+  sidebarToggleShortcut,
 }: BottomTabsProps) {
   const [pendingCloseId, setPendingCloseId] = useState<string | null>(null);
 
@@ -53,7 +56,11 @@ export function BottomTabs({
 
   return (
     <nav className="bottom-tabs">
-      <SidebarToggleButton shown={sidebarShown} onToggle={onToggleSidebar} />
+      <SidebarToggleButton
+        shown={sidebarShown}
+        onToggle={onToggleSidebar}
+        shortcut={sidebarToggleShortcut}
+      />
       <div className="bottom-tabs__divider" />
       <button
         className="bottom-tabs__add"
