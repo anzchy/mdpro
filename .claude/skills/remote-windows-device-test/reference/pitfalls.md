@@ -123,3 +123,14 @@ produced **wrong verdicts**; the rest cost time.
     - A new remote call is classified when it is written: `win` for anything that changes
       state, `win_read` only if running it twice is harmless.
       `tests/tooling/windows-driver-transport.test.ts` T7 fails on an unlisted `win` call.
+22. **Several mdpro windows: the drivers used to pick one** (WI-E2E-W item 3, 2026-10-15).
+    - What happened: `cdp.mjs` evaluated in the first page `/json/list` returned, and `ui.ps1`'s
+      `MainWin` took the first mdpro window when none was in front, so a run could type into a
+      window it never meant to.
+    - Now: `cdp.sh --window <label>` binds the eval to a Tauri window label and re-checks it on
+      the eval's own connection; without a label, several pages exit 6. `ui.ps1` refuses a step
+      with a `"window"` field and refuses to guess among several windows with none in front.
+    - Not built yet: binding a label to an HWND for `ui.sh` (option (a) match the page's screen
+      rectangle to `GetWindowRect`, (b) set a distinctive title through Tauri and match the UIA
+      name; measure both in demo W6). Until then multi-window cases on Windows are `BLOCKED`, and
+      the window in front does not stand in for a label.

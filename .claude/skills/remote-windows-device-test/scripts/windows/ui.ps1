@@ -53,7 +53,10 @@ function MdproWindows {
   $c = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Window)
   $AE::RootElement.FindAll($TS::Children, $c) | Where-Object { $ids -contains $_.Current.ProcessId }
 }
-function MainWin { $w = @(MdproWindows); if ($w.Count -eq 0) { throw "no mdpro window" }; $fg = [W32]::GetForegroundWindow(); $hit = $w | Where-Object { [IntPtr]$_.Current.NativeWindowHandle -eq $fg }; if ($hit) { $hit } else { $w[0] } }
+# With several mdpro windows, only the one in front is used; none in front is an error, never the
+# first in the list (WI-E2E-W item 3). Binding a label to an HWND is not built yet: multi-window
+# cases on Windows stay BLOCKED until demo W6 measures it.
+function MainWin { $w = @(MdproWindows); if ($w.Count -eq 0) { throw "no mdpro window" }; $fg = [W32]::GetForegroundWindow(); $hit = $w | Where-Object { [IntPtr]$_.Current.NativeWindowHandle -eq $fg }; if ($hit) { return $hit }; if ($w.Count -gt 1) { throw "several mdpro windows ($($w.Count)) and none in front: refusing to guess" }; $w[0] }
 function Focus($el) {
   $h = [IntPtr]$el.Current.NativeWindowHandle
   [W32]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero); [W32]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero) # Alt tap unlocks SetForegroundWindow
@@ -87,6 +90,7 @@ $failed = $false; $n = 0
 foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
   $n++
   try {
+    if ($null -ne $s.window) { throw "window-bound steps are not available yet (WI-E2E-W item 3: no label-to-HWND binding); this case is BLOCKED" }
     switch ($s.op) {
       "windows" { foreach ($w in MdproWindows) { L ("window '" + $w.Current.Name + "' hwnd=" + $w.Current.NativeWindowHandle + " rect=" + $w.Current.BoundingRectangle) } }
       "focus"   { Focus (MainWin); L "focused" }

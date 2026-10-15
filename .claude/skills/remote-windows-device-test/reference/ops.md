@@ -9,7 +9,9 @@ Each step logs one line. **An error stops the run**: it logs `ERROR <op>: …` a
 `ABORTED at step N`, no later step runs, and `ui.sh` exits 1 after printing the log. So
 `ui.sh '[…click…, …type…]' && cdp.sh eval …` never types or evaluates after a failed click. A
 read-only step can opt out with `"onError":"continue"`, e.g. `{"op":"windows","onError":"continue"}`:
-its error is logged and the run goes on. Coordinates are **physical screen pixels**, the same space
+its error is logged and the run goes on. **`ui.sh` cannot bind a window by label yet**: a step
+with a `"window"` field is refused, and with several mdpro windows open and none in front it
+refuses rather than taking the first (pitfalls 22). Coordinates are **physical screen pixels**, the same space
 as a `shot` with `"screen":true`.
 
 | Op | Arguments | What it does |
@@ -43,7 +45,16 @@ On 2026-10-12 this split produced a false "Hide does nothing" verdict.
 cdp.sh eval '<js>'        # up to ~5 KB; uses `return`; runs inside an async function
 cdp.sh evalf file.js      # any size: pushes the file, then node cdp.mjs evalfile
 cdp.sh shot name          # page viewport PNG -> $MDPRO_WIN_OUT/name.png
+cdp.sh --window <label> eval '<js>'   # in the mdpro window with that Tauri label (any of the above)
 ```
+
+**With several mdpro windows open, name the window.** `cdp.mjs` asks every page for its Tauri
+label (`__TAURI_INTERNALS__.metadata.currentWindow.label`; confirmed on WebView2 only once demo
+W6 runs), evaluates in the one that matches, and asks that page again on the eval's own
+connection just before the eval. No label with several pages exits **6** `WINDOW_AMBIGUOUS`; a
+label no page has, or one that changed before the eval, exits **5** (`WINDOW_NOT_FOUND`,
+`WINDOW_MISMATCH`); two pages with the label exit 6. Each prints the candidates and evaluates
+nothing. One page and no label behaves as before.
 
 An expression that throws prints `{"exception": "…"}` **and exits 1**, so `cdp.sh eval … && next`
 stops there.
@@ -84,6 +95,8 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 | 2 | Refused before running: usage, a validator, a missing `--yes`, no page. | Fix the call. |
 | 3 | **Unknown outcome**: the connection dropped after the command was sent (`UNKNOWN OUTCOME`), or `cdp.mjs` timed out (`CDP_TIMEOUT`). The command may or may not have run. | Check the state on the PC before anything else (pitfalls 21). |
 | 4 | The DevTools port is closed. | `mdpro.sh debug --yes`. |
+| 5 | `cdp.sh --window`: no page has the label, or the page's label changed before the eval. Nothing was evaluated. | Pick a label from the printed candidates. |
+| 6 | `cdp.sh`: several mdpro windows and no `--window`, or several with that label. Nothing was evaluated. | Pass `--window <label>`. |
 | 7 | `log.sh raw` / `since`: the mark no longer fits the log. It is `truncated` (the file is smaller than the mark), `replaced` (another creation time or first line), a v1 line-count mark, or the bytes returned don't match the size. Nothing is written. | `log.sh mark` again and repeat the action. |
 | 124 | `ui.sh`: no log came back before the timeout. | The steps may have partly run; check, then re-run. |
 | 255 | ssh never got through, even after the one retry a read gets. | `ssh win-desktop hostname`. |

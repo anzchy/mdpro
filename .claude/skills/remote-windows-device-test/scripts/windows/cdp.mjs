@@ -5,9 +5,16 @@
 //   node cdp.mjs eval64 <base64>    same, expression base64-encoded (no quoting issues; ssh line ~8 KB)
 //   node cdp.mjs evalfile <path>    same, expression read from a UTF-8 file (no size limit)
 //   node cdp.mjs shot <out.png>     capture the page viewport
+//   node cdp.mjs --window <label> … run in the page whose Tauri window label is <label> (WI-E2E-W
+//                                     item 3). Each page is asked for its label, and the chosen page is
+//                                     asked again on the eval's own connection just before the eval.
+//                                     Without a label, several pages is an error, never "the first".
 // Exit: 0 ok; 1 the expression threw (the JSON {exception} is still printed); 2 usage / no page;
-// 3 CDP_TIMEOUT (the eval may have run); 4 the port is closed.
-// Env: MDPRO_CDP_PORT (default 9222), MDPRO_CDP_URL_PREFIX (default http://tauri.localhost).
+// 3 CDP_TIMEOUT (the eval may have run); 4 the port is closed; 5 no page has the label, or its
+// label changed before the eval (WINDOW_NOT_FOUND / WINDOW_MISMATCH); 6 several pages and no label,
+// or several with the label (WINDOW_AMBIGUOUS). 5 and 6 print the candidates and evaluate nothing.
+// Env: MDPRO_CDP_PORT (default 9222), MDPRO_CDP_URL_PREFIX (default http://tauri.localhost),
+// MDPRO_CDP_LABEL (same as --window).
 // The expression may use `return`; it runs inside an async function. Helpers on window.__a
 // (trusted CDP input; installed on every run):
 //   __a.q(sel)                        document.querySelector
@@ -22,20 +29,39 @@
 // Limits: CDP input reaches the page only. It does not move Windows keyboard focus into the WebView
 // and does not trigger native menu accelerators — use ui.ps1 (clickat + chord) for real input.
 import fs from "node:fs";
-const [mode, arg] = process.argv.slice(2);
+let argv = process.argv.slice(2);
+let label = process.env.MDPRO_CDP_LABEL || "";
+if (argv[0] === "--window") { label = argv[1] || ""; argv = argv.slice(2); }
+const [mode, arg] = argv;
 setTimeout(() => { console.log(JSON.stringify("CDP_TIMEOUT")); process.exit(3); }, 25000).unref?.();
 const PORT = process.env.MDPRO_CDP_PORT || "9222";
 const PREFIX = process.env.MDPRO_CDP_URL_PREFIX || "http://tauri.localhost";
 let list;
 try { list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json(); }
 catch { console.log(JSON.stringify(`CDP_PORT_CLOSED: nothing on 127.0.0.1:${PORT}; start mdpro with scripts/mac/mdpro.sh debug`)); process.exit(4); }
-const page = list.find((t) => t.type === "page" && t.url.startsWith(PREFIX));
-if (!page) { console.error(`no page starting with ${PREFIX} on port ${PORT}`); process.exit(2); }
-const ws = new WebSocket(page.webSocketDebuggerUrl);
-let id = 0; const waiting = new Map();
-ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && waiting.has(d.id)) { waiting.get(d.id)(d); waiting.delete(d.id); } };
-const send = (method, params = {}) => new Promise((res) => { id += 1; waiting.set(id, res); ws.send(JSON.stringify({ id, method, params })); });
-await new Promise((r) => (ws.onopen = r));
+const pages = list.filter((t) => t.type === "page" && t.url.startsWith(PREFIX));
+if (!pages.length) { console.error(`no page starting with ${PREFIX} on port ${PORT}`); process.exit(2); }
+const connect = (url) => new Promise((open) => {
+  const ws = new WebSocket(url);
+  let id = 0; const waiting = new Map();
+  ws.addEventListener("message", (m) => { const d = JSON.parse(m.data); if (d.id && waiting.has(d.id)) { waiting.get(d.id)(d); waiting.delete(d.id); } });
+  const send = (method, params = {}) => new Promise((res) => { id += 1; waiting.set(id, res); ws.send(JSON.stringify({ id, method, params })); });
+  ws.onopen = () => open({ ws, send });
+});
+// Tauri 2 puts the window's label in its injected metadata (to be confirmed on WebView2 in demo W6).
+const LABEL_PROBE = "window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label ?? null";
+const labelOf = async (send) => (await send("Runtime.evaluate", { expression: LABEL_PROBE, returnByValue: true })).result?.result?.value ?? null;
+const fail = (code, error, extra) => { console.log(JSON.stringify({ error, ...extra }, null, 1)); process.exit(code); };
+let page = pages[0];
+if (label || pages.length > 1) {
+  const candidates = [];
+  for (const p of pages) { const c = await connect(p.webSocketDebuggerUrl); candidates.push({ id: p.id, label: await labelOf(c.send), url: p.url }); c.ws.close(); }
+  if (!label) fail(6, "WINDOW_AMBIGUOUS", { hint: "several mdpro windows: pass --window <label>", candidates });
+  const hits = candidates.filter((c) => c.label === label);
+  if (hits.length !== 1) fail(hits.length ? 6 : 5, hits.length ? "WINDOW_AMBIGUOUS" : "WINDOW_NOT_FOUND", { label, candidates });
+  page = pages.find((p) => p.id === hits[0].id);
+}
+const { ws, send } = await connect(page.webSocketDebuggerUrl);
 // Trusted input goes through CDP Input.* (isTrusted=true), driven from Node via a binding.
 await send("Runtime.addBinding", { name: "__cdpInput" });
 ws.addEventListener("message", async (m) => {
@@ -90,6 +116,8 @@ const helpers = `(() => { if (window.__a) return; let seq = 0; const pend = new 
       img.onload = () => fin(true); img.onerror = () => fin(false); img.src = url + (url.includes("?") ? "&" : "?") + "probe=" + Date.now(); setTimeout(() => fin(false), 4000); }),
   }; })()`;
 await send("Runtime.evaluate", { expression: helpers });
+// Identity check on the connection that will act: the page must still be the labelled window.
+if (label) { const now = await labelOf(send); if (now !== label) fail(5, "WINDOW_MISMATCH", { label, now }); }
 let code = 0;
 if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
   const expr = mode === "eval64" ? Buffer.from(arg, "base64").toString("utf8") : mode === "evalfile" ? fs.readFileSync(arg, "utf8") : arg;
@@ -102,6 +130,6 @@ if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
   fs.writeFileSync(arg, Buffer.from(r.result.data, "base64"));
   console.log("saved", arg);
 } else {
-  console.error("usage: node cdp.mjs eval|eval64|evalfile|shot <arg>"); process.exit(2);
+  console.error("usage: node cdp.mjs [--window <label>] eval|eval64|evalfile|shot <arg>"); process.exit(2);
 }
 ws.close(); process.exit(code);

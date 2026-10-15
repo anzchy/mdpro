@@ -127,7 +127,8 @@ describe("D228 — an idempotent read still retries once on a lost connection", 
 
 /** Mutation call sites: each `win` call must contain one of these, in this file. */
 const MUTATIONS: Record<string, string[]> = {
-  "cdp.sh": ["node cdp.mjs evalfile", "node cdp.mjs eval64"],
+  // WI-E2E-W item 3: ${W} is the optional --window label, the same two mutations.
+  "cdp.sh": ["node cdp.mjs ${W}evalfile", "node cdp.mjs ${W}eval64"],
   "ui.sh": ["ui-run.ps1"],
   "mdpro.sh": ["runi.ps1"],
   "push.sh": ["Add-Content", "WriteAllBytes"],
