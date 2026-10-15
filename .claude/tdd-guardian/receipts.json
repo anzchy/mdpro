@@ -176380,6 +176380,86 @@
           "message": "The red for 'D247-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
+    },
+    {
+      "id": "D249-WI-1",
+      "lane": "unit",
+      "recorded_at": "2026-10-15T23:41:59.458Z",
+      "head_sha": "0da387f5115a3a941197a2fdd9d3f38a8c62501d",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/d249-muted-code-contrast.test.ts": {
+          "state": "ok",
+          "sha": "3f8e0d9b92b189456ff49c5283d14454056404fbe34811aa0c046e48c71a3afa",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "ed90fdb683fe1390",
+            "76ac4f58c9049814",
+            "6aaf569bad73b07d",
+            "7b61d226fe3064b4",
+            "9296cb3288ee1b71",
+            "32cd014e4d8143d6",
+            "09fc78cbe7c35067",
+            "684888c0ebb17f37",
+            "f6f09f3e2485d67d",
+            "6c8eaf6026036924",
+            "ed9623369ff082ab",
+            "7571c7236d81e917",
+            "f84a38b0fd7dfc39",
+            "9c94784f8cfa14e6",
+            "5cb359d17a435523",
+            "8762c52847d59606",
+            "8b351704925a66b8",
+            "524941683796e10f",
+            "1c5655909d901c4c",
+            "f20059c660d8e86a",
+            "c117d7305f3e790f",
+            "6ac16c4574e5e049",
+            "09d6172564e464f9",
+            "05c345b9b085f240",
+            "4dca6dd1907e945b",
+            "0d3e272dc114b87c",
+            "17a38b1c93b05268",
+            "e753fadc849b82e5",
+            "29576b54e255e3c9",
+            "979f04fb5fe3e0e2",
+            "231a4597b4ccda91",
+            "a0993cb8d71db217",
+            "e7e9c9fd13c72e5e",
+            "d09e50b26edbea8d",
+            "dd91570ba8bc1f82",
+            "29576b54e255e3c9",
+            "a0d4e94173a19ab1",
+            "37a2ca425e161db7",
+            "9aef1b2312f7f5a8",
+            "d21ea4737e698d67",
+            "c35bf8fd65088af3",
+            "e5d246302bd459dc",
+            "3a80303d44e538ef",
+            "c5ace24293e4c344",
+            "9d8b2b5670d18da8",
+            "547bf0ea65417737",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-15T23:56:10.046Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D249-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     }
   ]
 }

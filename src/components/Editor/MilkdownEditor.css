@@ -267,3 +267,12 @@
   padding: 0 2px;
   border-radius: var(--radius-inner);
 }
+
+/* D249: code takes its context's colour. In a quote or an h6 that is the
+   muted grey, which reads under 4.5:1 on the code fill in light; nudge it 10%
+   toward the text so it stays muted but readable. Code inside a link is
+   excluded so it keeps the accent it inherits from the link. */
+.milkdown-editor .ProseMirror blockquote code:not(a code),
+.milkdown-editor .ProseMirror h6 code:not(a code) {
+  color: color-mix(in srgb, var(--color-muted) 90%, var(--color-text));
+}
