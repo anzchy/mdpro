@@ -1,0 +1,31 @@
+name: Rust audit (daily)
+# ADR-0107: RustSec publishes advisories against Cargo.lock at any time, and
+# ci.yml runs only for pull requests, `v*` tags and manual dispatch. This runs
+# the same `cargo audit` as ci.yml's rust-audit job on master once a day, so an
+# advisory is seen before the next release tag rather than at it. It is its own
+# workflow so a scheduled run executes nothing else. A failure shows only in
+# the Actions tab and GitHub's failed-run email, not on any pull request.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-audit:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      # src-tauri/.cargo/audit.toml lists the advisories accepted as unreachable.
+      - name: Security audit (Rust)
+        run: cargo audit
+        working-directory: src-tauri

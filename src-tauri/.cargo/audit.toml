@@ -1,0 +1,19 @@
+# cargo-audit configuration (D237, ADR-0107). Read by `cargo audit` run from
+# src-tauri/, locally and in ci.yml's rust-audit job.
+#
+# Every ignore names its advisory, the reason it does not reach mdpro, and
+# what removes it. Reachability for each comes from mdpro-codex-audit's
+# read-only triage of 2026-10-15
+# (~/.mdpro-redesign/prep/d237-cargo-audit-triage.md, summarised in the D237
+# row of docs/plans/20260912-frontend-backend-sequencing-order.md).
+# tests/tooling/ci-workflow-gate.test.ts pins this list.
+
+[advisories]
+ignore = [
+  # rmcp 0.14.0: DNS rebinding in the Streamable HTTP server transport.
+  # Not compiled: Cargo.toml enables only rmcp's `server` + `transport-io`
+  # features, never `transport-streamable-http-server`; the mdpro_mcp sidecar
+  # talks stdio, and http_server.rs is mdpro's own axum server. There is no
+  # 0.14.x fix. Removed by the follow-up rmcp >= 1.4 major bump.
+  "RUSTSEC-2026-0189",
+]

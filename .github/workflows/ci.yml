@@ -4,8 +4,10 @@ on:
   # reached by the delegator's fast-forward push after each local landing
   # (ADR-0083), and that push deliberately runs nothing: the local lanes and the
   # landing verifier gate every landing, and the `v*` tag build runs this
-  # workflow on every release. If a Linux canary on master is wanted, add a
-  # daily `schedule` trigger, not a per-push one.
+  # workflow on every release. The one daily check on master, `cargo audit`,
+  # lives in rust-audit-daily.yml (ADR-0107), so this workflow has no
+  # `schedule` trigger; a Linux canary, if wanted, would follow that pattern
+  # rather than run per push.
   #
   # The default `pull_request` types are [opened, synchronize, reopened], and
   # `synchronize` is the one that matters — it fires on every push to the PR
@@ -146,13 +148,27 @@ jobs:
 
       - run: cargo test --manifest-path src-tauri/Cargo.toml
 
+  # ADR-0107: cargo audit runs on its own and is not in ci-gate's `needs`. A
+  # new RustSec advisory says nothing about the diff under review, so on a PR
+  # it shows as a red check without blocking the landing; on a tag or manual
+  # run the failed job turns the run red. src-tauri/.cargo/audit.toml lists
+  # the advisories accepted as unreachable, each with its reason.
+  rust-audit:
+    needs: [scope]
+    if: needs.scope.outputs.code == 'true'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
 
       - name: Security audit (Rust)
         run: cargo audit
         working-directory: src-tauri
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
 
   ci-gate:
     needs: [scope, prose-checks, frontend, rust-test]

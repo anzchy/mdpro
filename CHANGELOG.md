@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Form controls are easier to see: text inputs, selects, steppers and the Source find fields have a darker edge (was about 1.2:1 against the dialog) (D227)
 - The MCP server no longer loses its connection files or its token when it is switched back on right after it failed while serving (D205). The failed server's late cleanup could delete the new server's `server.port` and `server.token` and clear its token, so clients could not find it or were refused until the next restart
 
+### Security
+- Updated the bundled HTML sanitizer (ammonia 4.1.7) and the update checker's network libraries (rustls 0.23.46, rustls-webpki 0.103.15, h2 0.4.20), plus plist 1.10.0, which Tauri uses only to read the app's own Info.plist, to clear 14 RustSec advisories. None was reachable in mdpro as shipped: the export sanitizer's allowlist already blocks the affected tags, and the TLS fixes cover only update checks against GitHub, which are signature-verified (D237)
+
 ## [0.3.4] - 2026-10-15
 
 ### Highlights
