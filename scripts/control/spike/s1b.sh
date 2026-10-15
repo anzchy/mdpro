@@ -7,6 +7,8 @@ set -u
 export LC_ALL=en_US.UTF-8
 # Never leave an app behind: on any exit, quit the run still open (a second quit of a closed run is a harmless refusal).
 trap '[ -n "${R:-}" ] && pnpm -s control:quit "$R" >/dev/null 2>&1' EXIT
+# STOP_AT=HH:MM (local, same day) is the slot's hard stop: past it no new phase starts, and the trap quits the app.
+deadline() { [ -z "${STOP_AT:-}" ] && return 0; [ "$(date +%H%M)" -lt "${STOP_AT/:/}" ] && return 0; say stop INFO "hard stop $STOP_AT reached before $1"; echo "FAILS $fails (stopped)"; exit 3; }
 HERE="$(cd "$(dirname "$0")" && pwd)"
 RUNS="$HOME/Library/Application Support/mdpro-verify/runs"
 TMP="${TMPDIR:-/tmp}/s1b.$$"; mkdir -p "$TMP"
@@ -52,11 +54,16 @@ fault() {  # fault <id> <mode>: one click through the proxy, a same-id retry, th
 }
 
 # ---------- S1.4, eval off ----------
+deadline s1.4
 open_run
 setup_prefs
+deadline f1-lost
 fault f1-lost lost
+deadline f2-delay
 fault f2-delay delay
+deadline f3-disconnect
 fault f3-disconnect disconnect
+deadline f4-dup
 # f4 duplicate: the same id twice at once → one 200, one 409, one run
 s0=$(starts); x0=$(selected); ID=$(rid f4)
 for i in 1 2; do curl -s -o /dev/null -w '%{http_code}\n' -m 10 -X POST "${A[@]}" -H "$ID" -d '{}' "$B$G/element/$CB/click" > "$TMP/dup$i" & done; wait
@@ -66,6 +73,7 @@ sleep 1; ran=$(( $(starts)-s0 )); x1=$(selected); codes=$(cat "$TMP/dup1" "$TMP/
 s0=$(starts); wd POST "$G/element/$CB/click" '{}' >/dev/null; sleep 1; ran=$(( $(starts)-s0 ))
 [ $ran -eq 1 ] && say f5-fresh PASS "new id runs once" || say f5-fresh FAIL "new id ran $ran"
 
+deadline s1.5a
 # ---------- S1.5 part 1, eval off: correlation id and error envelope ----------
 H=$(curl -s -D - -o /dev/null -m 5 "${A[@]}" -H "X-Request-Id: corr-$RANDOM$RANDOM" -X POST -d '{"using":"css selector","value":"body"}' "$B$G/element" | tr -d '\r' | grep -i '^x-request-id:')
 [ -n "$H" ] && say c1-corr PASS "echoed: $H" || say c1-corr INFO "response does not echo X-Request-Id (correlation is client-side only)"
@@ -76,6 +84,7 @@ else say c2-envelope FAIL "body: ${E:0:120}"; fi
 wd DELETE "$G" >/dev/null; quit "$R"
 
 # ---------- S1.5 part 2, eval on: awaited Promise, timeout, late result discarded ----------
+deadline s1.5b
 open_run MDPRO_CONTROL_EVAL=1
 [ "$(jget "$RUNS/$R/control.json" eval)" = True ] && say e0 PASS "eval flag set" || say e0 FAIL "eval flag not set in control.json"
 new_session
