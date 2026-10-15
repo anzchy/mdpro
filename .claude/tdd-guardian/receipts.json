@@ -167536,6 +167536,55 @@
           "message": "The red for 'D223-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
+    },
+    {
+      "id": "D223-WI-2",
+      "lane": "unit",
+      "recorded_at": "2026-10-15T04:13:50.763Z",
+      "head_sha": "c96f974d946b285a57d127437eeca2b13dc940bc",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "3 of 671 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/d223-snapshot-selectors.test.ts": {
+          "state": "ok",
+          "sha": "c9914e03c2b1bb7c50daaa7273c9bf3fece67fd409d0d9d1a3197fc4a2eb19ca",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "15a8d7a55d8a4023",
+            "c5215778cefc8ee7",
+            "4fa41933b069c7d1",
+            "9fb3abe4198e94af",
+            "ceebed63f2124178",
+            "ed9623369ff082ab",
+            "7571c7236d81e917",
+            "f84a38b0fd7dfc39",
+            "9c94784f8cfa14e6",
+            "1f20cf27a4a8ddb2",
+            "54f778371b0c7c5a",
+            "9941be6df6dc25b2",
+            "94c74700eaea3544",
+            "05e2a932c18ac0dd",
+            "29576b54e255e3c9",
+            "adc2a27047fd50bd",
+            "d1ceda8057441d4f",
+            "058d6b7c6eeb1b58",
+            "29576b54e255e3c9",
+            "1f39572a954ffb24",
+            "080ee5e9e84e3eeb",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-15T04:18:40.712Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": []
     }
   ]
 }

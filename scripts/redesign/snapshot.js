@@ -278,11 +278,6 @@
     });
   }
 
-  function modeLabel() {
-    var el = q(".sidebar-mode-label");
-    return el ? el.textContent.trim() : null;
-  }
-
   function currentMode() {
     if (q("#source-container")) return "source";
     if (q("#milkdown-container")) return "wysiwyg";
@@ -426,7 +421,8 @@
     ".app-shell", ".main", ".workspace",
     ".bottom-tabs", ".bottom-tabs__add"
   ];
-  var SIDEBAR = [".sidebar-header", ".sidebar-mode-label"];
+  // D223 removed the header and the mode badge; the top band is what remains.
+  var SIDEBAR = [".sidebar-traffic-area"];
   var TABS_OPEN = [".bottom-tab", ".bottom-tab--active", ".bottom-tab__name", ".bottom-tab__close"];
   var SOURCE = ["#source-container", ".cm-editor", ".cm-scroller", ".cm-content", ".cm-line"];
   var WYSIWYG = [".milkdown-editor", ".milkdown-editor .ProseMirror"];
@@ -522,7 +518,7 @@
     "main-source": {
       viewport: [1200, 800],
       setup: function () { return co(function* () { yield openFixture(); yield setMode("source"); }); },
-      phases: [phase("base", "document open", null, function () { return modeLabel() === "SOURCE" && qa(".bottom-tab").length === 1; },
+      phases: [phase("base", "document open", null, function () { return currentMode() === "source" && qa(".bottom-tab").length === 1; },
         cat(CHROME, SIDEBAR, TABS_OPEN, SOURCE))],
       manual: [".bottom-tab:hover", ".bottom-tab__close:hover"]
     },
@@ -567,7 +563,7 @@
       viewport: [1200, 800],
       setup: function () { return co(function* () { yield openFixture(); yield setMode("wysiwyg"); }); },
       phases: [
-        phase("base", "document open", null, function () { return modeLabel() === "WYSIWYG"; },
+        phase("base", "document open", null, function () { return currentMode() === "wysiwyg"; },
           cat(CHROME, SIDEBAR, TABS_OPEN, WYSIWYG, MD_CONTENT)),
         phase("caret in link", "inline expansion", function () {
           return co(function* () {
@@ -604,7 +600,7 @@
         });
       },
       phases: [phase("base", "sidebar hidden", null, function () { return !!q(".app-shell.no-sidebar") && !!q(".main-traffic-area"); },
-        cat(CHROME, TABS_OPEN, SOURCE, [".app-shell.no-sidebar", ".main-traffic-area", ".main-traffic-area .sidebar-mode-label"]))],
+        cat(CHROME, TABS_OPEN, SOURCE, [".app-shell.no-sidebar", ".main-traffic-area"]))],
       manual: []
     },
 
@@ -682,7 +678,7 @@
     "empty-source": {
       viewport: [1200, 800],
       setup: function () { return setMode("source"); },
-      phases: [phase("base", "no tabs", null, function () { return qa(".bottom-tab").length === 0 && modeLabel() === "SOURCE"; },
+      phases: [phase("base", "no tabs", null, function () { return qa(".bottom-tab").length === 0 && currentMode() === "source"; },
         cat(CHROME, SIDEBAR, SOURCE, [".toc-sidebar__empty-message"]))],
       manual: []
     },
@@ -690,7 +686,7 @@
     "empty-wysiwyg": {
       viewport: [1200, 800],
       setup: function () { return setMode("wysiwyg"); },
-      phases: [phase("base", "no tabs", null, function () { return qa(".bottom-tab").length === 0 && modeLabel() === "WYSIWYG"; },
+      phases: [phase("base", "no tabs", null, function () { return qa(".bottom-tab").length === 0 && currentMode() === "wysiwyg"; },
         cat(CHROME, SIDEBAR, WYSIWYG, [".toc-sidebar__empty-message"]))],
       manual: []
     },
@@ -950,7 +946,7 @@
         });
       },
       phases: [phase("base", v[2] ? "sidebar shown" : "sidebar hidden", null, function () { return v[2] ? !q(".app-shell.no-sidebar") : !!q(".app-shell.no-sidebar"); },
-        cat(CHROME, TABS_OPEN, SOURCE, [".sidebar-mode-label"], v[2] ? [".toc-sidebar"] : [".main-traffic-area"]))],
+        cat(CHROME, TABS_OPEN, SOURCE, v[2] ? [".sidebar-traffic-area", ".toc-sidebar"] : [".main-traffic-area"]))],
       manual: []
     };
   });
