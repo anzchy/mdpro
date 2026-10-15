@@ -85,8 +85,9 @@ produced **wrong verdicts**; the rest cost time.
 17. **Empty output is a transport failure, never a result.**
     - Example: "Connection reset … port 22", after which `log.sh mark` wrote an empty mark and
       `since` failed.
-    - `common.sh` retries once on ssh exit 255, and the wrappers refuse empty output.
-    - If it happens again, run `ssh win-desktop hostname` and repeat the call.
+    - `common.sh`'s `win_read` retries a read once on ssh exit 255, and the wrappers refuse empty
+      output. A mutation is never retried (entry 21).
+    - If a read fails again, run `ssh win-desktop hostname` and repeat the call.
 18. **CDP hang triage:**
     - It hung for about a minute twice, then recovered, and the renderer CPU was idle.
     - Check in this order: `ssh win-desktop hostname`, then `Invoke-WebRequest
@@ -107,3 +108,18 @@ produced **wrong verdicts**; the rest cost time.
 20. **Screenshots on the Mac:** `sips -c` crops around the centre, not the top. Downscale with
     `sips -Z 1300` before reading. A full-screen shot shows the user's private desktop: delete
     it after use and never commit it.
+21. **A retried mutation ran twice** (D228, fixed 2026-10-15).
+    - What happened: `win` retried every ssh exit 255. But 255 also comes back when the
+      connection drops *after* the remote command ran, so a lost response replayed a whole eval,
+      `ui.sh` run or chunk append: a doubled keystroke, a doubled chunk.
+    - Now: `win` (evals, `ui.sh` steps, `runi` restarts, chunk appends, the upload's decode)
+      never retries. On 255 it prints `UNKNOWN OUTCOME: transport lost after send; reconcile
+      state before continuing` and the wrapper exits **3**. `win_read` (status, logs, hashes,
+      pulls, screenshots, the upload's truncate) still retries once.
+    - Do: on exit 3, look before you act again. Check the editor, the log or the file, undo a
+      half-applied step, then go on. `push.sh` stops with "partial upload; re-run push": re-run
+      it, since it starts by truncating the upload. `mdpro.sh debug`/`normal` never relaunch
+      over a close whose outcome is unknown.
+    - A new remote call is classified when it is written: `win` for anything that changes
+      state, `win_read` only if running it twice is harmless.
+      `tests/tooling/windows-driver-transport.test.ts` T7 fails on an unlisted `win` call.

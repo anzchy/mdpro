@@ -3,4 +3,4 @@
 # The Windows path must be C:\… without quotes; the local name is a plain file name (no / or ..).
 source "$(dirname "$0")/common.sh"
 check_winpath "$1"; check_name "$2"
-win "[Convert]::ToBase64String([IO.File]::ReadAllBytes('$(psq "$1")'))" | tr -d '\r\n' | base64 -D > "$OUT/$2"; echo "$OUT/$2"
+win_read "[Convert]::ToBase64String([IO.File]::ReadAllBytes('$(psq "$1")'))" | tr -d '\r\n' | base64 --decode > "$OUT/$2"; echo "$OUT/$2"

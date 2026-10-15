@@ -73,6 +73,7 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 
 - Every one-off scheduled task (`runi.ps1`) is waited for and then **unregistered** (try/finally). `ui-run.ps1` deletes its step and output files, so nothing can replay them.
 - Every value interpolated into a remote PowerShell command goes through `psq` (it doubles `'`) inside `'…'`, after a validator: Windows paths must match `^[A-Za-z]:\\` with no quote, backtick or `$`; file names must match `^[A-Za-z0-9._-]+$`, not starting with a dot. `WIN_DIR` is validated once, in `common.sh`. Keep this for any new wrapper.
+- **A lost response is never replayed** (D228). `common.sh` has two ssh calls: `win` for anything that changes state, never retried, and `win_read` for idempotent reads, retried once on ssh exit 255. When `win` loses the connection the wrapper exits **3**, `UNKNOWN OUTCOME`: the command may or may not have run, so check the state before anything else (pitfalls 21). `cdp.mjs`'s own exit 3, `CDP_TIMEOUT`, means the same thing.
 - The only listener is WebView2's DevTools port, on `127.0.0.1:9222`, and only while mdpro runs from `launch.cmd`.
 
 ## Other scripts
@@ -81,7 +82,7 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 |---|---|
 | `mac/mdpro.sh debug --yes \| normal --yes \| status \| cleanup` | Restarts mdpro with or without the port. `--yes` is required, given only after the user confirms nothing is unsaved. It refuses to relaunch if mdpro didn't close, maximizes, and checks `innerWidth`. `cleanup` (also run on exit) removes any leftover task. |
 | `mac/log.sh mark` / `log.sh since [regex]` | mdpro.log events since the mark. A failed mark is an error, never an empty number. |
-| `mac/push.sh local winpath` | Chunked upload, verified by SHA-256 (`hash ok` / `HASH MISMATCH`). |
+| `mac/push.sh local winpath` | Chunked upload, verified by SHA-256 (`hash ok` / `HASH MISMATCH`). A lost chunk stops it with "partial upload; re-run push" (exit 3); re-running is safe, because it truncates first. |
 | `mac/pull.sh winpath name` | Binary download into `$MDPRO_WIN_OUT`. |
 | `mac/deploy.sh` | Uploads `scripts/windows/*`, skipping unchanged files. Can exceed 120 s: run it in the background. |
 | `windows/mcp-probe.ps1` | `mdpro_mcp.exe` over stdio: initialize, tools/list, get_open_documents. |

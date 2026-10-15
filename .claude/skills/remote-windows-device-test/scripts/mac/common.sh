@@ -19,10 +19,25 @@ check_name() { [[ $1 =~ $RE_NAME && $1 != .* ]] || { echo "refusing file name: $
 check_winpath "$WIN_DIR"
 mkdir -p "$OUT"
 
-# One ssh call; on a transport failure (exit 255, e.g. "Connection reset") retry once.
+# ssh exits 255 both when it never connected and when the connection dropped after the remote
+# command ran, so a 255 says nothing about whether the command happened (D228).
+# win: a command that changes state (a keystroke, an eval, an append, a restart). Never retried:
+# on 255 it reports an unknown outcome and returns 3; the caller stops, and the state on the PC is
+# checked by hand before anything else runs.
 win() {
   ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$@"; local r=$?
-  if [ $r -eq 255 ]; then sleep 2; ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$@"; r=$?; fi
+  if [ $r -eq 255 ]; then
+    echo "UNKNOWN OUTCOME: transport lost after send; reconcile state before continuing" >&2
+    return 3
+  fi
+  return $r
+}
+# win_read: an idempotent read (or an overwrite that is safe to repeat). Retried once on 255.
+win_read() {
+  ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$@"; local r=$?
+  if [ $r -eq 255 ]; then
+    sleep "${WIN_RETRY_SLEEP:-2}"; ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$@"; r=$?
+  fi
   return $r
 }
 # Fail loudly on empty output: an empty result is a transport problem, never an answer.

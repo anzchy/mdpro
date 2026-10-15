@@ -4,12 +4,12 @@
 source "$(dirname "$0")/common.sh"
 mark="$OUT/.logmark"
 if [ "$1" = mark ]; then
-  n=$(win '(Get-Content $env:USERPROFILE\.mdpro\mdpro.log -Encoding UTF8 | Measure-Object -Line).Lines' | tr -d '\r\n ')
+  n=$(win_read '(Get-Content $env:USERPROFILE\.mdpro\mdpro.log -Encoding UTF8 | Measure-Object -Line).Lines' | tr -d '\r\n ')
   [[ $n =~ ^[0-9]+$ ]] || { echo "mark failed (ssh?): '$n'" >&2; exit 1; }
   echo "$n" > "$mark"; echo "mark $n"
 else
   n=$(cat "$mark" 2>/dev/null); [[ $n =~ ^[0-9]+$ ]] || { echo "no valid mark; run: log.sh mark" >&2; exit 1; }
-  win "[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(((Get-Content \$env:USERPROFILE\.mdpro\mdpro.log -Encoding UTF8 | Select-Object -Skip $n) -join \"\`n\")))" | tr -d '\r\n' | base64 -D | python3 -c "
+  win_read "[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(((Get-Content \$env:USERPROFILE\.mdpro\mdpro.log -Encoding UTF8 | Select-Object -Skip $n) -join \"\`n\")))" | tr -d '\r\n' | base64 --decode | python3 -c "
 import json,sys,re
 pat=re.compile(sys.argv[1]) if len(sys.argv)>1 and sys.argv[1] else None
 for l in sys.stdin.read().splitlines():
