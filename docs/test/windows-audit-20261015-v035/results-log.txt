@@ -1,0 +1,445 @@
+===== c1.log
+=== case1 D224 Settings > About (click About page)
+"Settings | × | ⚙️General | ✏️Editor | 📝Markdown | 🖼️Image | 🔗Integrations | 📤Export | 🎨Appearance | ⌨️Keyboard Shortcuts | 🔧Advanced | ℹ️About | About | mdpro | Version v0.3.4 | Checking for updates... | Check Again | Close"
+--- all buttons:
+"[\"×\",\"⚙️General\",\"✏️Editor\",\"📝Markdown\",\"🖼️Image\",\"🔗Integrations\",\"📤Export\",\"🎨Appearance\",\"⌨️Keyboard Shortcuts\",\"🔧Advanced\",\"ℹ️About\",\"Check Again\",\"Close\"]"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c1-about-settings.png
+--- log
+22:48:12.530 preferences.read success {"outcome": "ok", "purpose": "settings_dialog"} 
+22:48:49.602 ui.button.click success {"controlId": "settings.category.about"} 
+22:48:49.602 ui.about.update_check start {"forceRefresh": false} 
+=== case1 recheck after ~40s
+22:49:03
+"Settings | × | ⚙️General | ✏️Editor | 📝Markdown | 🖼️Image | 🔗Integrations | 📤Export | 🎨Appearance | ⌨️Keyboard Shortcuts | 🔧Advanced | ℹ️About | About | mdpro | Version v0.3.4 | Automatic updates coming soon. | Close"
+{"ts":"2026-10-15T21:41:22.108+08:00","level":"info","event":"ui.about.update_check","status":"start","actionId":"078cbe12-a9c9-4ea3-8e35-511619304ee7","context":{"forceRefresh":false},"durationMs":null,"error":null}
+{"ts":"2026-10-15T21:41:30.840+08:00","level":"info","event":"ui.about.update_check","status":"success","actionId":"078cbe12-a9c9-4ea3-8e35-511619304ee7","context":{"error":"None of the fallback platforms `[\"windows-x86_64-nsis\", \"windows-x86_64\"]` were found in the response `platforms` object","outcome":"platform-not-offered"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T21:41:31.835+08:00","level":"info","event":"ui.about.update_check","status":"success","actionId":"0dd89d04-cd25-40cd-a487-787352758959","context":{"error":"None of the fallback platforms `[\"windows-x86_64-nsis\", \"windows-x86_64\"]` were found in the response `platforms` object","outcome":"platform-not-offered"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:48:49.602+08:00","level":"info","event":"ui.button.click","status":"success","actionId":"85e61072-6c15-46d8-9027-192603eb99e2","context":{"controlId":"settings.category.about"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:48:49.602+08:00","level":"info","event":"ui.about.update_check","status":"start","actionId":"b22ee502-0816-4c13-b5f3-d3a708d6efbd","context":{"forceRefresh":false},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:49:02.306+08:00","level":"info","event":"ui.about.update_check","status":"success","actionId":"b22ee502-0816-4c13-b5f3-d3a708d6efbd","context":{"error":"None of the fallback platforms `[\"windows-x86_64-nsis\", \"windows-x86_64\"]` were found in the response `platforms` object","outcome":"platform-not-offered"},"durationMs":null,"error":null}
+
+===== c2.log
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c1-about-settings-final.png
+false
+=== case2 D225 mdpro > About
+click 'mdpro' at 40,48
+click 'About' at 196,84
+shot C:\Users\jack\mdpro-audit\v035-c2-about.png
+"no DOM dialog"
+window 'mdpro' hwnd=85724248 rect=-11,-11,3862,2110
+fg 'About mdpro'
+  Image 'MainInstructionIcon'
+  Text 'Name: mdpro
+Version: 0.3.4
+Website: GitHub https://github.com/anzchy/mdpro
+'
+  Pane '确定'
+--- log
+chord enter
+fg 'mdpro'
+  Pane ''
+    Pane 'mdpro'
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c2-about.png
+
+===== c3.log
+=== case3 D226 d226
+opened C:\Users\jack\mdpro-audit\fx\v035\d226.md
+mode=W
+"{\"active\":\"d226.md×\",\"mode\":\"W\",\"start\":\"5\",\"olStartProp\":5,\"items\":[\"five\",\"six\",\"seven\"],\"markers\":[\"normal\",\"normal\",\"normal\"],\"counterReset\":\"none\",\"dataOrder\":\"5\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c3-d226.png
+chord ctrl+s
+22:50:13.741 file.open.args_filtered success {"accepted": 1, "dropped": {"flag": 0, "non_utf8": 0, "not_markdown": 0, "not_regular_file": 0, "relative_without_cwd": 0, "unresolved": 0}, "source": "single_instance"} 
+22:50:13.741 file.open.external start {"filePaths": ["C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d226.md"], "source": "single_instance"} 
+22:50:13.742 file.open.route success {"matchCount": 0, "outcome": "broadcast", "source": "single_instance", "windowLabel": null} 
+22:50:13.742 file.open.external success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d226.md", "source": "single_instance"} 
+22:50:13.754 file.open start {"encodingHint": null, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d226.md"} 
+22:50:13.757 file.open success {"encoding": "UTF-8", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d226.md", "fileSizeBytes": 35} 
+22:50:13.805 view.mode.change success {"fromMode": "source", "intent": "programmatic", "source": "setViewMode", "toMode": "wysiwyg"} 
+22:50:27.973 file.save start {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d226.md"} 
+22:50:27.979 file.save success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d226.md", "fileSizeBytes": 36} 
+--- diff vs original
+5c5,6
+< EDIT here
+---
+> EDIT herex
+> 
+=== case3 D226 d208
+opened C:\Users\jack\mdpro-audit\fx\v035\d208.md
+mode=W
+"{\"active\":\"d208.md×\",\"mode\":\"W\",\"start\":\"5\",\"olStartProp\":5,\"items\":[\"five\",\"six\"],\"markers\":[\"normal\",\"normal\"],\"counterReset\":\"none\",\"dataOrder\":\"5\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c3-d208.png
+chord ctrl+s
+22:50:34.760 file.open.args_filtered success {"accepted": 1, "dropped": {"flag": 0, "non_utf8": 0, "not_markdown": 0, "not_regular_file": 0, "relative_without_cwd": 0, "unresolved": 0}, "source": "single_instance"} 
+22:50:34.761 file.open.external start {"filePaths": ["C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d208.md"], "source": "single_instance"} 
+22:50:34.761 file.open.route success {"matchCount": 0, "outcome": "broadcast", "source": "single_instance", "windowLabel": null} 
+22:50:34.761 file.open.external success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d208.md", "source": "single_instance"} 
+22:50:34.768 file.open start {"encodingHint": null, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d208.md"} 
+22:50:34.770 file.open success {"encoding": "UTF-8", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d208.md", "fileSizeBytes": 26} 
+22:50:48.904 file.save start {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d208.md"} 
+22:50:48.913 file.save success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\d208.md", "fileSizeBytes": 27} 
+--- diff vs original
+4c4,5
+< EDIT here
+---
+> EDIT herex
+> 
+
+===== c4a.log
+doc id 75f0a79fb3d20b69
+ok
+"LINK"
+chord t
+--- after Ctrl+K + typing:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=LINK\"],\"doc\":\"Link check | LINK here | EDIT here\"}"
+ran powershell.exe
+--- 3 s after the write (Link still open, prompt must be held):
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=LINK\"],\"doc\":\"Link check | LINK here | EDIT here\"}"
+False
+chord enter
+--- after real enter in Link:
+"{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":true,\"mcpText\":\"MCP write confirmation | An MCP client wants to replace all of the content of “lk.md”. | Reject | Approve\",\"active\":\"BUTTON.toolbar-button:Reject\",\"modals\":1,\"links\":[],\"doc\":\"Link check | LINK here | EDIT here\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c4a-prompt.png
+write still pending (no reply yet)
+clickat 2335,1194
+--- after clicking Approve:
+"{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":false,\"mcpText\":null,\"active\":\"BODY.:Link checkLink check\",\"modals\":0,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+STATUS 200 {"success":true} t0=22:55:01.928 t1=22:55:19.875
+--- log
+22:54:54.350 ui.link-modal.open success {"screen": "wysiwyg"} 
+22:55:01.958 mcp.write start {"contentLength": 42, "documentId": "75f0a79fb3d20b69"} 
+22:55:01.959 mcp.confirm start {"documentId": "75f0a79fb3d20b69", "operation": "replace", "queueDepth": 1, "requestId": "d0314005-196b-46d4-9105-11643e72dc3a", "windowLabel": "main"} 
+22:55:01.961 ui.mcp_confirm.held cancel {"operation": "replace", "requestId": "d0314005-196b-46d4-9105-11643e72dc3a"} 
+22:55:11.565 ui.link-modal.submit success {"screen": "wysiwyg", "urlLength": 3} 
+22:55:19.829 ui.mcp_confirm.approve success {"operation": "replace", "requestId": "d0314005-196b-46d4-9105-11643e72dc3a"} 
+22:55:19.833 mcp.confirm.reply start {"approved": true, "requestId": "d0314005-196b-46d4-9105-11643e72dc3a"} 
+22:55:19.834 mcp.confirm.reply success {"approved": true, "requestId": "d0314005-196b-46d4-9105-11643e72dc3a", "verdict": "resolved"} 
+22:55:19.834 mcp.confirm success {"documentId": "75f0a79fb3d20b69", "operation": "replace", "outcome": "approved", "queueDepth": 1, "requestId": "d0314005-196b-46d4-9105-11643e72dc3a", "waitedMs": 17875, "windowLabel": "main"} 
+22:55:19.835 mcp.write success {"documentId": "75f0a79fb3d20b69", "stage": "scheduled"} 
+22:55:19.836 editor.milkdown.reload success {"documentId": "75f0a79fb3d20b69", "droppedPendingEdit": false, "generation": 2, "reason": "mcp-write"} 
+22:55:19.836 mcp.write success {"documentId": "75f0a79fb3d20b69", "stage": "applied"} 
+
+===== c4b.log
+doc id 75f0a79fb3d20b69
+ok
+"EDIT"
+chord t
+--- after Ctrl+K + typing:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+ran powershell.exe
+--- 3 s after the write (Link still open, prompt must be held):
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+False
+chord esc
+--- after real esc in Link (polled):
+"15:00:16.466 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:16.770 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:17.082 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:17.393 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:17.705 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:18.013 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:18.324 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:18.636 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:18.949 link=false mcp=true active=BUTTON.toolbar-button:Reject || 15:00:19.260 link=false mcp=true active=BUTTON.toolbar-button:Reject"
+"{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":true,\"mcpText\":\"MCP write confirmation | An MCP client wants to replace all of the content of “lk.md”. | Reject | Approve\",\"active\":\"BUTTON.toolbar-button:Reject\",\"modals\":1,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c4b-prompt.png
+write still pending (no reply yet)
+clickat 1406,660
+--- after clicking Reject:
+"{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":false,\"mcpText\":null,\"active\":\"BODY.:Link checkLink check\",\"modals\":0,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+STATUS 403  t0=23:00:03.100 t1=23:00:24.051
+--- log
+22:59:55.677 ui.link-modal.open success {"screen": "wysiwyg"} 
+23:00:03.125 mcp.write start {"contentLength": 42, "documentId": "75f0a79fb3d20b69"} 
+23:00:03.126 mcp.confirm start {"documentId": "75f0a79fb3d20b69", "operation": "replace", "queueDepth": 1, "requestId": "f8f02dec-a967-48d3-af47-ed6635156d9c", "windowLabel": "main"} 
+23:00:03.128 ui.mcp_confirm.held cancel {"operation": "replace", "requestId": "f8f02dec-a967-48d3-af47-ed6635156d9c"} 
+23:00:12.767 ui.link-modal.cancel cancel {"screen": "wysiwyg"} 
+23:00:24.027 ui.mcp_confirm.reject success {"operation": "replace", "requestId": "f8f02dec-a967-48d3-af47-ed6635156d9c"} 
+23:00:24.027 mcp.confirm.reply start {"approved": false, "requestId": "f8f02dec-a967-48d3-af47-ed6635156d9c"} 
+23:00:24.027 mcp.confirm.reply success {"approved": false, "requestId": "f8f02dec-a967-48d3-af47-ed6635156d9c", "verdict": "resolved"} 
+23:00:24.027 mcp.confirm fail {"documentId": "75f0a79fb3d20b69", "operation": "replace", "outcome": "rejected", "queueDepth": 1, "requestId": "f8f02dec-a967-48d3-af47-ed6635156d9c", "waitedMs": 20901, "windowLabel": "main"} 
+23:00:24.028 mcp.write fail {"documentId": "75f0a79fb3d20b69", "httpStatus": 403} write not confirmed
+
+===== c4late.log
+doc id 75f0a79fb3d20b69
+ok
+"MCP-A"
+chord t
+--- after Ctrl+K + typing:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+ran powershell.exe
+--- 3 s after the write (Link still open, prompt must be held):
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+False
+--- holding Link open 40 s more
+chord enter
+--- after real enter in Link (polled):
+"14:57:13.582 link=false mcp=false active=BODY.:Link checkLink check || 14:57:13.888 link=false mcp=false active=BODY.:Link checkLink check || 14:57:14.199 link=false mcp=false active=BODY.:Link checkLink check || 14:57:14.509 link=false mcp=false active=BODY.:Link checkLink check || 14:57:14.819 link=false mcp=false active=BODY.:Link checkLink check || 14:57:15.130 link=false mcp=false active=BODY.:Link checkLink check || 14:57:15.442 link=false mcp=false active=BODY.:Link checkLink check || 14:57:15.753 link=false mcp=false active=BODY.:Link checkLink check || 14:57:16.061 link=false mcp=false active=BODY.:Link checkLink check || 14:57:16.373 link=false mcp=false active=BODY.:Link checkLink check"
+"{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":false,\"mcpText\":null,\"active\":\"BODY.:Link checkLink check\",\"modals\":0,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c4a-prompt.png
+STATUS 403  t0=22:56:20.303 t1=22:57:09.889
+ABORT: no Approve button
+
+===== c4late2.log
+doc id 75f0a79fb3d20b69
+ok
+"MCP-A"
+chord t
+--- after Ctrl+K + typing:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+ran powershell.exe
+--- 3 s after the write (Link still open, prompt must be held):
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+False
+focused
+fg 'mdpro'
+--- after early focus:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+--- holding Link open 42 s more
+--- before key:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+chord enter
+--- after real enter in Link (polled):
+"14:59:24.488 link=false mcp=true active=BUTTON.toolbar-button:Reject || 14:59:24.800 link=false mcp=false active=BODY.:Link checkLink check || 14:59:25.112 link=false mcp=false active=BODY.:Link checkLink check || 14:59:25.424 link=false mcp=false active=BODY.:Link checkLink check || 14:59:25.737 link=false mcp=false active=BODY.:Link checkLink check || 14:59:26.047 link=false mcp=false active=BODY.:Link checkLink check || 14:59:26.361 link=false mcp=false active=BODY.:Link checkLink check || 14:59:26.670 link=false mcp=false active=BODY.:Link checkLink check || 14:59:26.982 link=false mcp=false active=BODY.:Link checkLink check || 14:59:27.292 link=false mcp=false active=BODY.:Link checkLink check"
+"{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":false,\"mcpText\":null,\"active\":\"BODY.:Link checkLink check\",\"modals\":0,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c4a-prompt.png
+STATUS 408  t0=22:58:24.508 t1=22:59:24.580
+ABORT: no Approve button
+
+===== c4exp.log
+{"ts":"2026-10-15T22:53:04.196+08:00","level":"info","event":"ui.link-modal.open","status":"success","actionId":"259eb627-37b9-4c6b-b5c9-f5eb124b4e9d","context":{"screen":"wysiwyg"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:53:11.575+08:00","level":"info","event":"mcp.write","status":"start","actionId":"088b81e0-94ba-49f1-9f25-98768f7f3cd7","context":{"contentLength":42,"documentId":"75f0a79fb3d20b69"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:53:11.576+08:00","level":"info","event":"mcp.confirm","status":"start","actionId":null,"context":{"documentId":"75f0a79fb3d20b69","operation":"replace","queueDepth":1,"requestId":"114c1a9c-7cae-4ef0-98e6-7a81c21f0de3","windowLabel":"main"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:53:11.579+08:00","level":"info","event":"ui.mcp_confirm.held","status":"cancel","actionId":"5fd9e2b6-ba85-4cf3-b940-d12434b9b0a8","context":{"operation":"replace","requestId":"114c1a9c-7cae-4ef0-98e6-7a81c21f0de3"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:54:08.887+08:00","level":"info","event":"ui.link-modal.submit","status":"success","actionId":"742be39f-44e0-43d1-9979-6cefa4db8dfb","context":{"screen":"wysiwyg","urlLength":3},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:54:11.604+08:00","level":"info","event":"mcp.confirm","status":"fail","actionId":null,"context":{"documentId":"75f0a79fb3d20b69","operation":"replace","outcome":"timedOut","queueDepth":1,"requestId":"114c1a9c-7cae-4ef0-98e6-7a81c21f0de3","waitedMs":60028,"windowLabel":"main"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:54:11.605+08:00","level":"warn","event":"mcp.write","status":"fail","actionId":null,"context":{"documentId":"75f0a79fb3d20b69","httpStatus":408},"durationMs":null,"error":"write not confirmed"}
+{"ts":"2026-10-15T22:54:16.675+08:00","level":"info","event":"draft.write","status":"start","actionId":"731589b1-32b0-4ee9-b194-80a2e8e8aa94","context":{"documentId":"75f0a79fb3d20b69","filePath":"C:\\Users\\jack\\mdpro-audit\\fx\\v035\\lk.md","title":"Link check"},"durationMs":null,"error":null}
+
+===== c4exp2.log
+doc id 75f0a79fb3d20b69
+ok
+"here"
+chord t
+--- after Ctrl+K + typing:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+ran powershell.exe
+--- 3 s after the write (Link still open, prompt must be held):
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+False
+focused
+fg 'mdpro'
+--- after early focus:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+--- holding Link open 62 s more
+--- before key:
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[\"https://x.t=MCP-A\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+chord enter
+--- after real enter in Link (polled):
+"15:02:15.971 link=false mcp=false active=BODY.:Link checkLink check || 15:02:16.283 link=false mcp=false active=BODY.:Link checkLink check || 15:02:16.594 link=false mcp=false active=BODY.:Link checkLink check || 15:02:16.906 link=false mcp=false active=BODY.:Link checkLink check || 15:02:17.216 link=false mcp=false active=BODY.:Link checkLink check || 15:02:17.527 link=false mcp=false active=BODY.:Link checkLink check || 15:02:17.836 link=false mcp=false active=BODY.:Link checkLink check || 15:02:18.149 link=false mcp=false active=BODY.:Link checkLink check || 15:02:18.460 link=false mcp=false active=BODY.:Link checkLink check || 15:02:18.772 link=false mcp=false active=BODY.:Link checkLink check"
+"{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":false,\"mcpText\":null,\"active\":\"BODY.:Link checkLink check\",\"modals\":0,\"links\":[\"https://x.t=MCP-A\",\"https://x.t=here\"],\"doc\":\"Link check | MCP-A wrote this | EDIT here\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c4a-prompt.png
+STATUS 408  t0=23:00:55.397 t1=23:01:55.459
+ABORT: no Approve button
+
+===== c4diag.log
+=== diag: log since the write
+{"ts":"2026-10-15T22:52:52.997+08:00","level":"info","event":"mcp.list","status":"start","actionId":null,"context":null,"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:52:52.998+08:00","level":"info","event":"mcp.list","status":"success","actionId":null,"context":{"documentCount":3},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:52:56.304+08:00","level":"info","event":"mcp.list","status":"start","actionId":null,"context":null,"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:52:56.305+08:00","level":"info","event":"mcp.list","status":"success","actionId":null,"context":{"documentCount":3},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:53:04.196+08:00","level":"info","event":"ui.link-modal.open","status":"success","actionId":"259eb627-37b9-4c6b-b5c9-f5eb124b4e9d","context":{"screen":"wysiwyg"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:53:11.575+08:00","level":"info","event":"mcp.write","status":"start","actionId":"088b81e0-94ba-49f1-9f25-98768f7f3cd7","context":{"contentLength":42,"documentId":"75f0a79fb3d20b69"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:53:11.576+08:00","level":"info","event":"mcp.confirm","status":"start","actionId":null,"context":{"documentId":"75f0a79fb3d20b69","operation":"replace","queueDepth":1,"requestId":"114c1a9c-7cae-4ef0-98e6-7a81c21f0de3","windowLabel":"main"},"durationMs":null,"error":null}
+{"ts":"2026-10-15T22:53:11.579+08:00","level":"info","event":"ui.mcp_confirm.held","status":"cancel","actionId":"5fd9e2b6-ba85-4cf3-b940-d12434b9b0a8","context":{"operation":"replace","requestId":"114c1a9c-7cae-4ef0-98e6-7a81c21f0de3"},"durationMs":null,"error":null}
+"armed"
+chord end
+chord enter
+"{\"kd\":[],\"st\":{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | LINK here | EDIT here\"}}"
+
+===== c4diag2.log
+=== diag2
+fg 'Windows PowerShell'
+  Pane ''
+  Pane ''
+"{\"linkOpen\":true,\"linkValue\":\"x.t\",\"mcpOpen\":false,\"mcpText\":null,\"active\":\"INPUT.link-insert-input:\",\"modals\":1,\"links\":[],\"doc\":\"Link check | LINK here | EDIT here\"}"
+focused
+clickat 1921,1089
+fg 'mdpro'
+  Pane ''
+chord end
+chord enter
+--- after Enter:
+"{\"kd\":[\"keydown:End:35::\",\"keyup:End:35::\",\"keydown:Enter:13::\"],\"st\":{\"linkOpen\":false,\"linkValue\":null,\"mcpOpen\":false,\"mcpText\":null,\"active\":\"BODY.:Link checkLink check\",\"modals\":0,\"links\":[\"https://x.t=LINK\"],\"doc\":\"Link check | LINK here | EDIT here\"}}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c4a-prompt.png
+STATUS 408  t0=22:53:11.534 t1=22:54:11.666
+
+===== c5.log
+click at 894 297
+== control: Ctrl+K in the editor, no modal open
+chord ctrl+k
+"{\"link\":true,\"dialogs\":[\"dialog-card link-insert-modal\"],\"active\":\"link-insert-input\"}"
+chord esc
+"{\"link\":false,\"dialogs\":[],\"active\":\"\"}"
+== case: open Preferences by real menu, then Ctrl+K
+click 'Preferences...' at 134,87
+"{\"link\":false,\"dialogs\":[\"settings-dialog theme-light\"],\"active\":\"settings-category-btn is-active\"}"
+chord ctrl+k
+"{\"link\":false,\"dialogs\":[\"settings-dialog theme-light\"],\"active\":\"settings-category-btn is-active\"}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c5-settings-ctrlk.png
+== log
+23:48:56.627 ui.link-modal.open success {"screen": "wysiwyg"} 
+23:49:02.350 ui.link-modal.cancel cancel {"screen": "wysiwyg"} 
+23:49:09.127 ui.menu.select success {"controlId": "menu.file.preferences", "windowLabel": "main"} 
+23:49:09.150 preferences.read success {"outcome": "ok", "purpose": "settings_general"} 
+23:49:09.150 preferences.read success {"outcome": "ok", "purpose": "settings_dialog"} 
+chord esc
+"[]"
+# v0.3.4 Windows 真机检查，win-desktop（2026-10-15）
+
+执行方：mdpro-codex-audit，从 MacBook 经 SSH 操作，用项目 skill `remote-windows-device-test`。delegator 转达的用户原话：「Windows device test还是需要做测试」；安装与重启的批准：「Nothing unsaved, go ahead (Recommended)」。没有用 computer use，没有用 TeamViewer。时间均为 +0800，08:23–12:35。
+
+本次是 0.3.3 快捷键逐项记录（[`20261014-shortcuts-windows-device-check.md`](20261014-shortcuts-windows-device-check.md)，下称「0.3.3 记录」）在 0.3.4 上的重跑，路线、fixture 与结论用词相同；另加 delegator 指定的检查 2–8。
+
+===== c6.log
+chord ctrl+k
+1
+== type nihao (real keys)
+chord o
+"{\"link\":true,\"value\":\"nihao\",\"active\":\"link-insert-input\",\"ev\":[]}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c6-composing.png
+== real Enter during composition
+chord enter
+"{\"link\":false,\"active\":\"\",\"ev\":[\"Enter isComposing=false keyCode=13\"]}"
+== log
+23:50:14.266 ui.link-modal.open success {"screen": "wysiwyg"} 
+23:50:27.570 ui.link-modal.submit success {"screen": "wysiwyg", "urlLength": 5} 
+
+===== c6b.log
+chord ctrl+k
+1
+== Shift (toggle Chinese mode), then nihao
+chord o
+"{\"link\":true,\"type\":\"text\",\"value\":\"nihao\",\"active\":\"link-insert-input\",\"ev\":[]}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c6-composing2.png
+== clear, Win+Space, nihao
+chord o
+"{\"link\":true,\"value\":\"ni'h'ao\",\"active\":\"link-insert-input\",\"ev\":[\"Process isComposing=false keyCode=229\",\"compositionstart:\",\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\"]}"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c6-composing3.png
+== real Enter during composition
+chord enter
+"{\"link\":true,\"value\":\"\",\"active\":\"link-insert-input\",\"ev\":[\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\",\"compositionend:ni'h'ao\"]}"
+== second real Enter, composition finished (control: should submit)
+chord enter
+"{\"link\":true,\"value\":\"\",\"active\":\"link-insert-input\",\"ev\":[\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\",\"compositionend:ni'h'ao\",\"Enter isComposing=false keyCode=13\"]}"
+== log
+23:50:27.570 ui.link-modal.submit success {"screen": "wysiwyg", "urlLength": 5} 
+23:50:49.196 ui.link-modal.open success {"screen": "wysiwyg"} 
+== control A: nihao + Space (candidate commit) in Link field
+chord space
+"{\"link\":true,\"value\":\"你好奥\",\"ev\":[\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\",\"compositionend:你好奥\"]}"
+chord back
+== control B: nihao + Enter in the Link field again
+chord enter
+"{\"link\":true,\"value\":\"nihao\",\"ev\":[\"Process isComposing=true keyCode=229\",\"Process isComposing=true keyCode=229\",\"compositionend:nihao\"]}"
+== Enter with no composition: should submit
+chord enter
+"{\"link\":false,\"ev\":[\"compositionend:nihao\",\"Enter isComposing=false keyCode=13\"]}"
+== restore input method (Win+Space back)
+chord esc
+== log
+23:50:27.570 ui.link-modal.submit success {"screen": "wysiwyg", "urlLength": 5} 
+23:50:49.196 ui.link-modal.open success {"screen": "wysiwyg"} 
+23:52:26.625 ui.link-modal.submit success {"screen": "wysiwyg", "urlLength": 5} 
+
+===== c7.log
+chord ctrl+k
+start: "link-insert-input||link=true"
+Tab 1: "toolbar-button|Cancel|link=true"
+Tab 2: "link-insert-input||link=true"
+Tab 3: "toolbar-button|Cancel|link=true"
+Tab 4: "link-insert-input||link=true"
+Shift+Tab: "toolbar-button|Cancel|link=true"
+== Tab until Cancel, then Enter
+on: "toolbar-button|Cancel|link=true"
+chord enter
+after Enter: "BODY|Link checkLi|link=false"
+doc unchanged: yes (f16862f389f9296a19e465e88c228c4e / f16862f389f9296a19e465e88c228c4e)
+== log
+23:52:54.403 ui.link-modal.open success {"screen": "wysiwyg"} 
+23:53:25.398 ui.link-modal.cancel cancel {"screen": "wysiwyg"} 
+chord ctrl+k
+"[\"Cancel:disabled=false\",\"Insert:disabled=true\"]"
+"[\"Cancel:disabled=false\",\"Insert:disabled=false\"]"
+Tab 1: "toolbar-button|Cancel|link=true"
+Tab 2: "toolbar-button toolbar-button--primary|Insert|link=true"
+Tab 3: "link-insert-input||link=true"
+chord esc
+after Esc: "BODY|Link checkLi|link=false"
+
+===== c8.log
+opened C:\Users\jack\mdpro-audit\fx\v035\t1.md
+opened C:\Users\jack\mdpro-audit\fx\v035\t2.md
+opened C:\Users\jack\mdpro-audit\fx\v035\t3.md
+maximized
+"{\"w\":1407,\"tabs\":[\"d226.md× cls=bottom-tab bg=rgba(0, 0, 0, 0) x.op=0 x.vis=visible\",\"d208.md× cls=bottom-tab bg=rgba(0, 0, 0, 0) x.op=0 x.vis=visible\",\"lk.md× cls=bottom-tab bg=rgba(0, 0, 0, 0) x.op=0 x.vis=visible\",\"t1.md× cls=bottom-tab bg=rgba(0, 0, 0, 0) x.op=0 x.vis=visible\",\"t2.md× cls=bottom-tab bg=rgba(0, 0, 0, 0) x.op=0 x.vis=visible\",\"t3.md× cls=bottom-tab bottom-tab--active bg=color(srgb 0.826667 0.829961 0.843137) x.op=0.5 x.vis=visible\"]}"
+23:54:22.210 file.open.args_filtered success {"accepted": 1, "dropped": {"flag": 0, "non_utf8": 0, "not_markdown": 0, "not_regular_file": 0, "relative_without_cwd": 0, "unresolved": 0}, "source": "sin
+23:54:22.211 file.open.external start {"filePaths": ["C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t1.md"], "source": "single_instance"} 
+23:54:22.211 file.open.route success {"matchCount": 0, "outcome": "broadcast", "source": "single_instance", "windowLabel": null} 
+23:54:22.212 file.open.external success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t1.md", "source": "single_instance"} 
+23:54:22.219 file.open start {"encodingHint": null, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t1.md"} 
+23:54:22.220 file.open success {"encoding": "UTF-8", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t1.md", "fileSizeBytes": 19} 
+23:54:22.223 tab.open success {"documentId": "9056d9c3a7a8b24b", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t1.md", "tabIndex": 3} 
+23:54:28.956 file.open.args_filtered success {"accepted": 1, "dropped": {"flag": 0, "non_utf8": 0, "not_markdown": 0, "not_regular_file": 0, "relative_without_cwd": 0, "unresolved": 0}, "source": "sin
+23:54:28.957 file.open.external start {"filePaths": ["C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t2.md"], "source": "single_instance"} 
+23:54:28.957 file.open.route success {"matchCount": 0, "outcome": "broadcast", "source": "single_instance", "windowLabel": null} 
+23:54:28.957 file.open.external success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t2.md", "source": "single_instance"} 
+23:54:28.964 file.open start {"encodingHint": null, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t2.md"} 
+23:54:28.965 file.open success {"encoding": "UTF-8", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t2.md", "fileSizeBytes": 19} 
+23:54:28.969 tab.open success {"documentId": "7e93c0863a7f18df", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t2.md", "tabIndex": 4} 
+23:54:35.567 file.open.args_filtered success {"accepted": 1, "dropped": {"flag": 0, "non_utf8": 0, "not_markdown": 0, "not_regular_file": 0, "relative_without_cwd": 0, "unresolved": 0}, "source": "sin
+23:54:35.567 file.open.external start {"filePaths": ["C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t3.md"], "source": "single_instance"} 
+23:54:35.568 file.open.route success {"matchCount": 0, "outcome": "broadcast", "source": "single_instance", "windowLabel": null} 
+23:54:35.568 file.open.external success {"filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t3.md", "source": "single_instance"} 
+23:54:35.574 file.open start {"encodingHint": null, "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t3.md"} 
+23:54:35.576 file.open success {"encoding": "UTF-8", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t3.md", "fileSizeBytes": 19} 
+23:54:35.581 tab.open success {"documentId": "6938d016ed9647b4", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t3.md", "tabIndex": 5} 
+t1 select at 756 1092
+clickat 756,1092
+start: "bottom-tab__select@t1.md outline=none/2.77778px/rgb(26, 26, 26) op=1 fv=false"
+Tab 1: "bottom-tab__close@t1.md outline=solid/1.66667px/rgb(37, 99, 235) op=1 fv=true"
+Tab 2: "bottom-tab__select@t2.md outline=none/2.77778px/rgb(107, 114, 128) op=1 fv=true"
+Tab 3: "bottom-tab__close@t2.md outline=solid/1.66667px/rgb(37, 99, 235) op=1 fv=true"
+Tab 4: "bottom-tab__select@t3.md outline=none/2.77778px/rgb(107, 114, 128) op=1 fv=true"
+Tab 5: "bottom-tab__close@t3.md outline=solid/1.66667px/rgb(37, 99, 235) op=1 fv=true"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c8-tabwalk.png
+before: "d226.md,d208.md,lk.md,t1.md,t2.md,t3.md dialogs="
+on: "bottom-tab__close@t2.md"
+after Enter: "d226.md,d208.md,lk.md,t1.md,t3.md dialogs=" | focus "@-"
+on: "bottom-tab__close@t1.md"
+after Space: "d226.md,d208.md,lk.md,t3.md dialogs=" | focus "@-"
+== make t3 dirty
+"t3.md×"
+on: "bottom-tab__close@t3.md"
+after Enter on dirty ×: "d226.md,d208.md,lk.md,t3.md dialogs=dialog-card"
+"[\"Keep editing\",\"Discard\"]"
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/v035-c8-dirty-confirm.png
+focused: "Keep editing"
+chord enter
+"d226.md×,d208.md×,lk.md×(dirty),t3.md×(dirty) dialogs=0"
+== log
+23:56:22.785 editor.milkdown.flush success {"documentId": "7e93c0863a7f18df", "outcome": "clean", "reason": "tab-close"} 
+23:56:22.785 tab.close success {"documentId": "7e93c0863a7f18df", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t2.md", "wasModified": false} 
+23:56:22.786 file.close success {"documentId": "7e93c0863a7f18df", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t2.md"} 
+23:56:35.249 file.close success {"documentId": "9056d9c3a7a8b24b", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t1.md"} 
+23:56:35.249 editor.milkdown.flush success {"documentId": "9056d9c3a7a8b24b", "outcome": "clean", "reason": "tab-close"} 
+23:56:35.250 tab.close success {"documentId": "9056d9c3a7a8b24b", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t1.md", "wasModified": false} 
+23:57:10.765 ui.dialog.cancel success {"controlId": "dialog.confirm.cancel", "title": "Unsaved changes"} 
+
+===== cleanup.log
+lk.md: focused '"Discard"'
+t3.md: focused '"Discard"'
+"d226.md×,d208.md× dialogs=0"
+23:57:41.672 tab.close success {"documentId": "75f0a79fb3d20b69", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\lk.md", "wasModified": true} 
+23:57:55.155 tab.close success {"documentId": "6938d016ed9647b4", "filePath": "C:\\Users\\jack\\mdpro-audit\\fx\\v035\\t3.md", "wasModified": true} 
+tauri-app: 1
+
+port 9222 closed
+maximized
+window 'mdpro' hwnd=72878488 rect=-8,-8,2548,1138
+exit 0
+tauri-app: 1
+
+port 9222 closed
+

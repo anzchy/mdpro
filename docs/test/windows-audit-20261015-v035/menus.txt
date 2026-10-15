@@ -1,0 +1,57 @@
+mdpro
+  &About
+  ----
+  Preferences... | Ctrl+,
+  ----
+  Exit
+  Stop Waiting and Quit…
+File
+  New | Ctrl+N
+  New Window | Ctrl+Shift+N
+  Open... | Ctrl+O
+  Open Recent
+    qg.md
+    d208.md
+    d204.md
+    w.md
+    urw.md
+    urs.md
+    s.md
+    s.md
+    w.md
+    basic.md
+  ----
+  Save | Ctrl+S
+  Export HTML... | Ctrl+Shift+E
+  ----
+  Close | Ctrl+W
+Edit
+  Undo | Ctrl+Z
+  Redo | Ctrl+Y
+  ----
+  Cu&t | Ctrl+X
+  &Copy | Ctrl+C
+  &Paste | Ctrl+V
+  ----
+  Select &All | Ctrl+A
+View
+  Cycle View Mode | Ctrl+/
+  ----
+  Source [checked]
+  WYSIWYG
+  ----
+  Toggle Sidebar | Ctrl+Shift+L
+Format
+  Highlight Selection | Ctrl+Shift+H
+  Insert Table | Ctrl+Alt+T
+Theme
+  Light
+  Dark
+  System
+Window
+  &Minimize | Ctrl+M
+  Ma&ximize
+  ----
+  Close | Alt+F4
+Help
+  mdpro Help [disabled]
