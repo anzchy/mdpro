@@ -26,11 +26,12 @@
   color: var(--color-danger);
 }
 
-/* ADR-0040: `stopping` is the live switch's other transition, styled like `starting`. */
+/* ADR-0040: `stopping` is the live switch's other transition, styled like `starting`.
+   Text on accent-soft takes --color-accent-text for 4.5:1 (D222, audit b138 M6). */
 .mcp-status-badge.starting,
 .mcp-status-badge.stopping {
   background: var(--color-accent-soft);
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 /* Badge + single inline note under the "Enable MCP Server" label */

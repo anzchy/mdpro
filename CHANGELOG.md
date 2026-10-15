@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The sidebar keeps its width when the window is narrow (half or a third of the screen, or high display scaling on Windows). At 960 px or less it used to be squeezed to a sliver when a document was open, and to stretch across most of the window when none was. It now gives way only as far as needed to keep 320 px for the editor (D189, #416)
-- Text on accent surfaces is readable again: in dark mode primary buttons use a deeper blue with white text (was 2.54:1), and in light mode the active TOC row and the shortcut being recorded use a darker accent for their text (was 3.99:1) (D222)
+- Text on accent surfaces is readable again: in dark mode primary buttons use a deeper blue with white text (was 2.54:1), and in light mode the active TOC row, the shortcut being recorded and the MCP Starting / Stopping badge use a darker accent for their text (was 3.99:1) (D222)
 - The MCP server no longer loses its connection files or its token when it is switched back on right after it failed while serving (D205). The failed server's late cleanup could delete the new server's `server.port` and `server.token` and clear its token, so clients could not find it or were refused until the next restart
 
 ## [0.3.4] - 2026-10-15

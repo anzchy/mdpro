@@ -81,6 +81,19 @@ describe("selected-state text on accent-soft", () => {
   });
 });
 
+describe("audit b138 M6: the MCP Starting / Stopping badge is accent text on accent-soft", () => {
+  // One rule with a selector list styles both states.
+  const colorFor = (state: string) =>
+    parseDeclarations(readFileSync(join(S, "settings-mcp.css"), "utf8")).find(
+      (d) => d.property === "color" && d.selector.split(",").map((x) => x.trim()).includes(`.mcp-status-badge.${state}`),
+    )?.value;
+
+  it("uses --color-accent-text, so the 4.5:1 cases above cover it", () => {
+    expect(colorFor("starting")).toBe("var(--color-accent-text)");
+    expect(colorFor("stopping")).toBe("var(--color-accent-text)");
+  });
+});
+
 describe("primary buttons: --color-on-accent on --color-accent-fill", () => {
   for (const theme of ["light", "dark"] as const) {
     for (const state of ["--color-accent-fill", "--color-accent-fill-hover"]) {

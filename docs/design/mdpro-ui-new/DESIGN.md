@@ -308,8 +308,11 @@ cited proposal lines in both themes.
 - **Secondary (default):** `--color-panel` fill and a hairline border;
   `--color-hover` on hover.
 - **Primary:**
-  - `--color-accent` fill with `--color-panel` text. Hover mixes the accent
-    toward the text color.
+  - `--color-accent-fill` fill and edge with `--color-on-accent` text, hover
+    `--color-accent-fill-hover` (D222). Light: the accent, hovering toward
+    the text color. Dark: `#1d4ed8` with white text, hovering toward black,
+    because white on the dark accent `#60a5fa` is 2.54:1 (user ruling:
+    「B: deeper fill, white text」).
   - Never a black or foreground fill.
   - One per surface (rule 30 rule 1).
 - **Danger:** transparent, with `--color-danger` text and border, and
@@ -685,6 +688,8 @@ Rule 33's four patterns stay; only the color source changes.
   - No borrowed brand font and no borrowed gray ramp: `--font-sans` and the
     current neutrals stay.
   - No black or foreground-colored primary button: primary is the accent.
+    The one exception is the dark primary fill, a deeper blue for its white
+    label (D222, § Buttons).
   - No separate control blue: switches, focus and selection all derive from
     the one accent.
   - No neutral-step menu hover: menus keep the solid-accent highlight.
