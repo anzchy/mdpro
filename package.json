@@ -20,6 +20,7 @@
     "typecheck:tests": "tsc -p tsconfig.test.json",
     "ledger:check": "node scripts/ledger/check.mjs",
     "ledger:build": "node scripts/ledger/render.mjs",
+    "journeys:check": "node scripts/journeys/check.mjs",
     "control:build": "node scripts/control/build.mjs",
     "control:doctor": "node scripts/control/doctor.mjs",
     "control:launch": "node scripts/control/launch.mjs",

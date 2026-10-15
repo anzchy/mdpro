@@ -13,7 +13,14 @@ on:
   pull_request:
   push:
     tags: ['v*']
+  # A manual run names the commit the journey catalogue is compared against
+  # (scripts/journeys/check.mjs); there is no event to take it from.
   workflow_dispatch:
+    inputs:
+      base:
+        description: Base commit for the journey-catalogue history check
+        required: true
+        type: string
 
 # A new push to the same PR cancels the run still in flight. Only the tip
 # commit's result is worth having, and this is where most of the saving is.
@@ -53,11 +60,17 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
+      # Full history: the journey check compares the catalogue with a base
+      # commit (the PR's base, the previous v* tag, or the manual `base` input)
+      # and fails, never skips, when that commit is missing (ADR-0103).
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: 22
       - run: node scripts/ledger/check.mjs
+      - run: node scripts/journeys/check.mjs
 
   frontend:
     needs: [scope]

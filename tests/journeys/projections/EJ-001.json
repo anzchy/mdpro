@@ -1,0 +1,33 @@
+{
+  "projectionVersion": 1,
+  "source": "docs/test/20261002-adr0047-journeys.md § Semantic projection (J1a)",
+  "events": {
+    "app.launch": { "fields": [] },
+    "file.open.args_filtered": { "fields": ["source", "accepted", "dropped"] },
+    "file.open.cli": { "fields": ["filePaths", "source"] },
+    "app.launch_state.set": { "fields": ["count", "paths"] },
+    "window.open": { "fields": ["windowLabel", "filePath"] },
+    "app.ready": { "fields": [] },
+    "app.url_param_check": { "fields": ["windowLabel", "hasOpenParam"] },
+    "app.launch_state.take": { "fields": ["count", "paths", "windowLabel"] },
+    "app.launch_paths_check": { "fields": ["windowLabel", "pathCount"] },
+    "file.open": { "fields": ["filePath", "windowLabel", "fileSizeBytes", "encoding", "documentId", "hasContent"] },
+    "tab.open": { "fields": ["documentId", "filePath", "tabIndex"] },
+    "tab.switch": { "fields": ["fromDocumentId", "toDocumentId"] },
+    "view.mode.change": { "fields": ["fromMode", "toMode", "source"] },
+    "preferences.set": { "fields": [] },
+    "draft.write": { "fields": ["documentId"] }
+  },
+  "ignore": [
+    "window.focus", "window.blur", "window.move",
+    "mcp.*", "plugin.*", "editor.milkdown.*", "editor.scroll_anchor.*", "ui.toc.*", "toc.extract", "file.watch.*",
+    "ui.menu.listen", "file.open.route.listen", "app.quit", "app.quit.*", "legacy.log", "app.draft_migration",
+    "file.draft.cleanup", "file.draft.list", "ui.sidebar.preference",
+    "app.verify_run", "preferences.read", "menu.recent_files.sync", "window.apply_state",
+    "preferences.last_view_mode", "preferences.window_state.save", "preferences.recent_files.buffer"
+  ],
+  "order": [
+    ["app.launch", "file.open.args_filtered", "file.open.cli", "app.launch_state.set", "window.open", "app.ready"],
+    ["file.open", "tab.open"]
+  ]
+}

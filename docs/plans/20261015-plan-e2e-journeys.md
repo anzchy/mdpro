@@ -2,7 +2,7 @@
 
 - **Opened**：2026-10-15，adr047-verify 起草（delegator 转达用户原话：「关于test fixture/ e2e journey，采纳vmark的思路，看看如何给本project设定e2e journey，同时涵盖各个platform(MacOS/Windows), make a comprehensive plan and save it to docs/plan in md，这个让adr047-verify session去draft plan」）
 - **Revision**：rev3（2026-10-15），base `master` `d2781e6`，补上 Codex 复审 `review-plan-mv94qrr4-rqovhp` 的三处（见 §12 rev3）。rev2（同日，base `42094b2`）：rev1 `b02b059` 经用户选定「Codex review first」后送审：Codex `review-plan-mv9470lo-rsc315`，结论 NEEDS REVISION，25 条发现（0 Critical），§0 的 Q1–Q4 保留但须加限定。逐条处置见 §12
-- **Status**：✅ 方向已定（2026-10-15）。用户审定 §0 的四个问题，原话「Q1-Q3 agree」和「Q4 同意」（经 delegator 转达）。工作项都还没开始（⬜），实现要等 delegator 按 rule 70 发放名额。本计划不改 `src/`、`tests/`。
+- **Status**：✅ 方向已定（2026-10-15）。用户审定 §0 的四个问题，原话「Q1-Q3 agree」和「Q4 同意」（经 delegator 转达）。WI-E2E-0 已完成，WI-E2E-1 已实现、待落地（分支 `test/e2e-wi0-wi1-catalogue`，mdpro-a3）；其余工作项未开始（⬜），实现要等 delegator 按 rule 70 发放名额。本计划不改 `src/`。
 - **上游**：[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，本地真机旅程 lane）；[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed）与 [控制通道计划](20261002-plan-agent-control-channel.md)；[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)；[ADR-0089](../adr/0089-the-feature-ledger-records-windows-state-in-a-per-area-difference-table.md)（ledger 的 Windows 差异表）
 - **起因**：用户 2026-10-15 问 codex-audit：「当前的Windows和Mac端 device test，每次都是random生成的，我需要固定一组fixture，涵盖App主要的快捷键和各种功能，随着迭代开发，不断完善，fixture需与 feature-ledger 尽量映射，当然有的feature不一定需要UI test。」（[Q&A](../reference/user-question-and-answer.md) 2026-10-15 条）
 
@@ -326,8 +326,8 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 
 | WI | 名称 | 依赖 | 估计 | 需真机 |
 |---|---|---|---|---|
-| WI-E2E-0 | 区域与不变量矩阵（prep） | 用户审定 §0 | S | 否 |
-| WI-E2E-1 | 旅程格式、REGISTRY、投影归一化器、`journeys:check`、CI 改动 | WI-E2E-0，ADR-0103 | M | 否 |
+| WI-E2E-0 | 区域与不变量矩阵（prep）✅ 2026-10-15，[矩阵](../reference/20261015-e2e-area-invariant-matrix.md) | 用户审定 §0 | S | 否 |
+| WI-E2E-1 | 旅程格式、REGISTRY、投影归一化器、`journeys:check`、CI 改动 ✅ 已实现并验证，待落地（`test/e2e-wi0-wi1-catalogue`）；tag 与手动触发两种 base 由 delegator 落地后在 CI 上各跑一次 | WI-E2E-0，ADR-0103 | M | 否 |
 | WI-E2E-2 | fixture 语料与 golden、生成脚本、CLAUDE.md 补一句 | WI-E2E-1 | S | 否 |
 | WI-E2E-W | Windows 驱动加固：变更不重试、原始日志、窗口绑定、错误码、配置隔离核实 | 无（可与 1、2 并行；由 delegator 指派） | M | 是（Windows） |
 | WI-E2E-3 | 第一批：快捷键矩阵编成旅程，加 Tier-0 与 Rust 对应测试 | WI-E2E-1、2；Windows 腿还依赖 W | L | 是 |
@@ -345,6 +345,11 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
   2. 标出 smoke 的候选：每个区域一条主路径。
   3. 由此重估旅程数量与 full 的批数，替换 §9 的推断。
 - **Touched**：只是 prep 文档，可放 `~/.mdpro-redesign/prep/`；结论回填到本计划。
+- **结果**（2026-10-15，mdpro-a3）：矩阵入库为 [`docs/reference/20261015-e2e-area-invariant-matrix.md`](../reference/20261015-e2e-area-invariant-matrix.md)（delegator 同意入库）。
+  - 有效状态为 `Shipped` 的：macOS 80 行、Windows 28 行，共 **108 个 {平台, 能力} 身份**（ledger `73cda31`）。Windows 的 99 行是 `Unknown`，所以 Windows 的义务随 WI-E2E-7 的验证而增长。
+  - 拟定 **39 条**旅程（WI-E2E-3 的 5 条快捷键旅程 + 34 条其余），覆盖 80 行里的 76 行；豁免 3 行（原子写入 `rust-only`；验证构建的 MCP 端口与验证运行启动器 `not-user-visible`）。加上 ADR-0034 决定 7 的 5 条和 ADR-0047 spike 组的 10 条，**目录约 54 条**。
+  - smoke **11 条**，每个平台约 35–55 分钟；full 约 217 分钟 / 平台，约 5 批（§9）。
+  - 裁定（adr047-verify 答复，delegator 转达并接受，矩阵 §6）：Q1 原子写入在 macOS 走 `rust-only` 豁免，标记引用 `src-tauri/src/commands/atomic_write_tests.rs`，并注明 CI 没有 Windows 的 cargo 腿；Q2 导出是一条旅程、一份 fixture、一份整块比较的 golden HTML，各行经 `ledger[].cases/covers` 指向各自用例；Q3 富剪贴板和假更新源**各开一个 WI，由 adr047-verify 在审本次回填时加进 §6**，此前相关用例记 BLOCKED、留在基线，PJ-35 只在发版金丝雀上跑，拖入文件在两个平台都是 `human` 步（ADR-0075），都不进 WI-E2E-W；Q4 Esc 是 `native` 步（macOS 用 computer use 的按键或 `key code 53`，Windows 用 ui.ps1 的组合键）；Q5 本回填在 WI-E2E-1 的分支里做，adr047-verify 审；Q6 加载指示没有日志事件，登记为 [D229](20260912-frontend-backend-sequencing-order.md#d229)，落地前 PJ-26 留在基线；Q7 验证构建的端口与启动器走 `not-user-visible` 豁免，测试在 `tests/control/`，Windows 的「重启应用更新」改为 `Absent` 由 delegator 另行修正（`4c7784a`）。
 
 ### WI-E2E-1 旅程格式、REGISTRY、投影与 `journeys:check`
 - **Goal**：把 §4.1、§4.4、§4.5（`journeys:check` 部分）、§4.6（清单 schema）、§4.8 落成可校验的契约。
@@ -359,10 +364,17 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 - **Touched**：`scripts/journeys/`、`tests/journeys/`、`tests/tooling/journeys-check.test.ts`、`package.json`、`.github/workflows/ci.yml`。
 - **Risks**：schema 太严会卡住第一批迁移。缓解：`status: draft` 的旅程只做结构检查。
 - **Rollback**：删掉脚本和 CI 步骤；目录文件本身无害。
+- **实现说明**（2026-10-15，mdpro-a3；delegator 裁定 Q-a 至 Q-c）
+  - 规则测试按模块分成七个文件 `tests/tooling/journeys-{schema,catalogue,links,history,manifest,projection,check}.test.ts`（node 环境），共用 `tests/support/journeysFixture.ts`；第 3 条列出的每条规则都在其中先 RED 后 GREEN。
+  - **Q-a**：本 WI 只做最小的 `fixture.json`：`files` 里每个文件的 sha256，以及可选的生成器 `--check`。golden 来源字段、golden 键格式和真实语料留给 WI-E2E-2。
+  - **Q-b**：PR、tag、手动触发三种 base 的解析都有单元测试，本机也按三种事件的环境变量各跑过一次；落地后 delegator 在 CI 上实跑 tag 与手动触发两种。手动触发的 `base` 输入是必填的，`ci.yml` 里每次手动运行都要给。
+  - **Q-c**：Rust 测试的回指写在第一行，`// Rust golden for EJ-NNN`；Tier-0 写 `// Tier-0 for EJ-NNN`，可以放在第二行，紧跟 `// @vitest-environment` 那一行。
+  - 本机不在 CI 事件里时，base 默认取与 `master` 的 merge-base，`--base` 可覆盖，且允许等于 HEAD；只有 CI 事件下 base 等于 HEAD 才算失败。
+  - `EJ-001` 暂无 Tier-0 和 Rust 对应测试（`tier0`、`rust` 为空），由 WI-E2E-6 收编 spike 组时补上；它的 Windows 一栏是 `n/a`，理由写在元数据里。
 
 ### WI-E2E-2 fixture 语料与 golden
 - **Acceptance**
-  1. `fixture.json` 的格式（含 golden 来源）和 sha256 校验并入 `journeys:check`。
+  1. `fixture.json` 的格式（含 golden 来源）和 sha256 校验并入 `journeys:check`。WI-E2E-1 已有最小契约（`files` 的 sha256 与生成器 `--check`，Q-a），本 WI 补 golden 来源字段与 golden 键格式。
   2. 生成脚本覆盖大文件和 CRLF fixture，`--check` 通过。
   3. CLAUDE.md § Manual test fixtures 补一句：被复用的 fixture 搬进旅程语料。
 - **Tests (first)**：sha256 不符、引用缺失、golden 键格式不对，各先写一个 RED 测试。
@@ -438,12 +450,12 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 
 ## §9 成本与刻意不做的
 
-**成本**（分开四类，Codex 发现 25；数字在 WI-E2E-0 和 WI-E2E-5 实测之前都是 `[推断]`）
+**成本**（分开四类，Codex 发现 25；无人值守耗时一行已按 WI-E2E-0 的矩阵重估，仍是 `[推断]`，WI-E2E-5 实测后替换）
 
 | 类 | 估计 |
 |---|---|
 | 实现工时 | WI-E2E-1、4 各约 1–2 天；W 约 1–2 天；每条旅程连同 Tier-0 和 Rust 对应测试约半天到一天；阶段 B 另计 |
-| 无人值守耗时 | smoke 约 45 分钟/平台/RC；full = 4–6 批 × 45 分钟 × 2 个平台 ≈ **每次发版 6–9 设备小时**，这还没算构建、传输安装、准备、对照、物理输入、重试、证据审阅和清理 |
+| 无人值守耗时 | smoke 11 条，约 35–55 分钟/平台/RC；full 39 条约 217 分钟/平台 ≈ 5 批 × 45 分钟 × 2 个平台 ≈ **每次发版 7–8 设备小时**（[WI-E2E-0 矩阵](../reference/20261015-e2e-area-invariant-matrix.md) §3；rev3 估 4–6 批、6–9 小时），这还没算合跑组、ADR-0034 首批与 spike 组，也没算构建、传输安装、准备、对照、物理输入、重试、证据审阅和清理。Windows 今天能跑的远少于此：富剪贴板、拖入、多窗口与配置隔离在 WI-E2E-W 和 Q3 的两个 WI 之前都是 BLOCKED |
 | 操作者时间 | `human` 步（IME、物理 Esc）每次运行都要有人在场；delegator 写 brief、审记录的时间 |
 | 稀缺设备时间 | mini 和 win-desktop 同时只能跑一个运行；参照：v0.3.4 的 Windows 检查从 08:23 跑到 12:35，含额外检查 |
 
@@ -468,7 +480,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 ## §11 What this plan could not verify
 
 - VMark 的旅程与不变量对照表在维护者本地，不在仓库里；VMark 其余 46 条旅程和 Tier-0 测试的本体没读到，所以「从不用日志」「Tier-0 只 mock `@tauri-apps/*`」「bridge 无鉴权」都未证实。
-- 旅程数量与设备耗时都是估计，要到 WI-E2E-0 和 WI-E2E-5 才有实数。
+- 旅程数量已由 WI-E2E-0 按 ledger 盘点估出（约 54 条）；设备耗时仍是估计，要到 WI-E2E-5 才有实数。
 - `docs/pending/` 下的快捷键 brief 只在主检出、未跟踪；WI-E2E-3 开工时以它和已提交的记录为准。
 - Windows 驱动的三个缺口是读代码得出的；codex-audit 把 v0.3.4 Windows 运行里 E3 多出的 `z` 和 D208 里重复的 `x` 推断为重放的变更，未证实。
 
@@ -524,3 +536,5 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 **审定**（2026-10-15，base `9d9c000`）：rev3 经 Codex 确认复审，0 条发现。用户审定 §0：「Q1-Q3 agree」，以及听了大白话解释后的「Q4 同意」。状态与 §0 按此改写；提议 P1–P3 落成 ADR-0103、0104、0105。
 
 **测试位置**（2026-10-15，base `73cda31`）：按 [ADR-0098](../adr/0098-launcher-tooling-and-perf-tests-move-into-their-own-folders-under-tests.md) 改了测试文件的位置，不设例外（delegator 裁定）。Tier-0 对应测试改为 `tests/ej-NNN-<slug>.test.ts(x)`（根目录），门禁脚本的测试改为 `tests/tooling/journeys-check.test.ts`。旅程文件、fixture 和投影仍在 `tests/journeys/` 下。
+
+**WI-E2E-0 回填**（2026-10-15，mdpro-a3，分支 `test/e2e-wi0-wi1-catalogue`，Q5 由 adr047-verify 审）：§6 表加完成标记；WI-E2E-0 写入结果与 Q1–Q7 裁定；WI-E2E-1 写入实现说明（Q-a 至 Q-c）；WI-E2E-2 第 1 条注明与 WI-E2E-1 的分工；§9 无人值守耗时按矩阵重估；§11 相应改写。
