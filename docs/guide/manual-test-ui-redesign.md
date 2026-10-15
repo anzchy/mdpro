@@ -135,6 +135,16 @@ If Tab skips buttons, turn on macOS System Settings › Keyboard › Keyboard na
 | 5.10 | Source mode, light theme: hover a lint marker to show its tooltip | No grey 1px border, only the shadow's hairline ring (b136 M1) |
 | 5.11 | Window at its 400×640 minimum, and with `zoom: 2` on `<html>` in Web Inspector, repeat 5.1 and 5.4 | Every ring is still visible and not clipped (rule 33 checklist, DR17) |
 
-## 6. WI-3.4 — macOS 13.1 floor (to be written by WI-3.4)
+## 6. WI-3.4 — macOS 13.1 floor
+
+The theme tokens use `color-mix()`, which macOS's WebKit has only from 13.1 (E1), so the bundle now
+declares 13.1 as its minimum (`bundle.macOS.minimumSystemVersion` in `src-tauri/tauri.conf.json`). This is
+a packaging check, not a theme check: build once, no theme switch needed.
+
+| # | Check | Expected |
+|---|---|---|
+| 6.1 | `pnpm tauri build --bundles app`, then `/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' src-tauri/target/release/bundle/macos/mdpro.app/Contents/Info.plist` | `13.1` (before WI-3.4 it was Tauri's default, `10.13`) |
+| 6.2 | Open that build on macOS 13.1 or later | It launches as before |
+| 6.3 | Only if a macOS 13.0 machine is at hand: open the same build there | Finder refuses it with "You can't use this version of the application with this version of macOS". This is the accepted risk in [ADR-0101](../adr/0101-macs-on-macos-13-0-can-be-updated-to-a-build-they-cannot-open.md): the updater still offers the release on 13.0 |
 
 ## 7. WI-3.5 — Docs, evidence and QA (to be written by WI-3.5)

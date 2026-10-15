@@ -167585,6 +167585,67 @@
       "verified_at": "2026-10-15T04:18:40.712Z",
       "verdict": "SEPARATION-HELD",
       "findings": []
+    },
+    {
+      "id": "P-WI-3.4",
+      "lane": "unit",
+      "recorded_at": "2026-10-15T04:11:01.353Z",
+      "head_sha": "e613e122803b8463b841dd7b49b254102a2c6074",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/macos-floor-wi34.test.ts": {
+          "state": "ok",
+          "sha": "2f6a3cd51a131adbcaf1292dac81b79205e87d2c8d5e00129f0a6c96b63973a8",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "a533f28eb260b502",
+            "42e9ab0a03137f0c",
+            "f8c7c5fc22eeb418",
+            "2af4bd4c846b0752",
+            "4e41ec3986e0f204",
+            "59913d12351c7446",
+            "0ef23b0b24077691",
+            "684888c0ebb17f37",
+            "2cb0cd4b2e1a8fb6",
+            "265416917e6e637b",
+            "ed9623369ff082ab",
+            "7571c7236d81e917",
+            "f84a38b0fd7dfc39",
+            "9c94784f8cfa14e6",
+            "4a0a3239c76bc248",
+            "730e98391266cc42",
+            "cc3af550d3fc81d7",
+            "1e0061e2c57f741e",
+            "e9da5648ccd96474",
+            "29576b54e255e3c9",
+            "33cb1e4aeb764795",
+            "1140dfdef0032814",
+            "f0950d3799990620",
+            "9d4ff16bf3d8d948",
+            "c0341122abaf1dd8",
+            "3b3a7433aa4e6cb6",
+            "d10b36aa74a59bcf",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-15T04:21:41.758Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'P-WI-3.4' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     }
   ]
 }

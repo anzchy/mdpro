@@ -21,7 +21,7 @@ documents what requires the full pipeline.
 
 | Item | Details |
 |------|---------|
-| OS | macOS 13+ (Apple Silicon) |
+| OS | macOS 13.1+ (Apple Silicon); the bundle declares 13.1 as its minimum ([ADR-0101](../adr/0101-macs-on-macos-13-0-can-be-updated-to-a-build-they-cannot-open.md)) |
 | Build | Development build via `pnpm tauri dev` |
 | Sample workspace | At least one `.md` file on disk for save-guard tests |
 | Log monitoring | Terminal with `tail -f ~/.mdpro/mdpro.log \| jq .` running |

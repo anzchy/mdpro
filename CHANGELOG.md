@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hover fills, the active TOC row and the active tab use the new theme tokens; menus, dialogs, Settings, toasts and Source-mode tooltips drop their 1px border for the shadow's hairline ring; primary-button hover follows the accent in both themes; the MCP client ✓ status is no longer green (UI redesign Deliverable B)
 - Keyboard focus is drawn with one focus-ring colour, the theme's accent: toolbar buttons now show a focus outline (only the MCP confirm dialog's did), and a focused TOC row gets the selection tint plus an inset ring (UI redesign Deliverable B)
 - Interface text uses one four-step size scale: small labels and hints are 12px, dialog and Settings headers 14px, page titles 16px; WYSIWYG tables scale with the editor font (UI redesign Deliverable B)
+- mdpro now requires macOS 13.1 or later (was 10.13 as declared, 13 in practice): the new theme colours use CSS `color-mix()`, which macOS ships from 13.1. On macOS 13.0 the in-app updater still offers this release, and the updated app will not open; update macOS, or reinstall an earlier mdpro from GitHub Releases (UI redesign Deliverable B, ADR-0101)
 
 ### Fixed
 - The sidebar keeps its width when the window is narrow (half or a third of the screen, or high display scaling on Windows). At 960 px or less it used to be squeezed to a sliver when a document was open, and to stretch across most of the window when none was. It now gives way only as far as needed to keep 320 px for the editor (D189, #416)
