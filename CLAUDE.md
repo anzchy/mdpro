@@ -33,6 +33,16 @@ and win any conflict with it:
 Do not deviate without explicit user approval. In QA mode, flag any code that
 doesn't match the rules.
 
+**A UI question is answered on a prototype, not in prose.** Before asking the
+user to choose between visual options (colours, layout, spacing, a component's
+look), build them with `/mattpocock-skills:prototype` so the user can switch
+between them, then let the user choose (user decision, 2026-10-15: 「for the
+above two and subsequent UI questions, use /mattpocock-skills:prototype to
+visualize it, then let me choose」). The prototype lives on a throwaway
+`prototype/<id>-<slug>` branch in its own `mdpro-wt/` worktree, never lands on
+`master`, and records the user's verdict in a commit there. The D222 contrast
+prototype (`prototype/d222-contrast`) is the reference.
+
 ## Project Overview
 
 mdpro is a local Markdown editor for macOS, combining Typora's WYSIWYG experience with modern design. Built with Tauri 2.0 (Rust backend + React frontend).
