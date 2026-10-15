@@ -158,8 +158,10 @@ Command: `grep -rh -o -E 'border-radius:\s*[^;]+' src --include='*.css' | sort |
 - every hex, `rgb(` and `hsl(` in in-scope CSS is a token definition, one of
   the five ruled exceptions, or on the deferred or unrendered lists;
 - the lists are exact (no stale entry);
-- the deferred list holds only `stage: 4` entries, 14 of them. It was 15
-  until D227 tokenized the toggle track, the colour half of WI-4.4.
+- the deferred list holds only `stage: 4` entries, 15 of them. D227
+  briefly tokenized the toggle track (14), and D227-WI-3 restored the `#ccc`
+  entry when the user accepted the track as an exception (ADR-0106); it is
+  the colour half of WI-4.4 again.
 
 **Reduced motion (DR13).** `src/styles/globals.css:80` has the one
 `@media (prefers-reduced-motion: reduce)` block. It sets

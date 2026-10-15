@@ -52,7 +52,8 @@ surface around the control or against the control's own fill.
   - **accept (chosen)**;
   - `--color-danger-text`, light danger 80% mixed with text (the first
     verdict; rest 6.05, hovered 5.04, landed and now reverted);
-  - a lighter `--color-danger-soft` hover fill (8%).
+  - a lighter `--color-danger-soft` hover fill (8%), which still left the
+    light hovered label at 4.00:1, below 4.5.
 - **Shortcut value edge (Q4)**:
   - **accept (chosen)**;
   - `--color-control-border` (3.18 / 4.43).
@@ -62,8 +63,8 @@ surface around the control or against the control's own fill.
   - the lightest passing edge, light 48% / dark 40% (3.15 / 3.12), which
     would have needed its own token.
 
-Every losing option reached the target at the cost of a visibly heavier or
-darker control. For the grid, that meant 100 squares outlined at mid-grey. The
+Every losing option but the 8% hover fill reached the target, at the cost of
+a visibly heavier or darker control. For the grid, that meant 100 squares outlined at mid-grey. The
 user preferred the look of today's controls.
 
 ## Decision
