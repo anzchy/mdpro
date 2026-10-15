@@ -40,7 +40,7 @@
 }
 
 .toolbar-button--primary:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
 }
 
 .toolbar-button--primary:disabled {

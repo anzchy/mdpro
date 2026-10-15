@@ -98,7 +98,7 @@ describe("theme retune (WI-3.1)", () => {
     for (const [name, value] of Object.entries(RETUNED.light)) expect(root.get(name), name).toBe(value);
   });
 
-  it("--color-code-bg is unchanged in WI-3.1; item 15 is deferred to WI-3.2", () => {
+  it("--color-code-bg is unchanged; item 15 stays deferred as optional P2 (WI-3.2 ruling (c))", () => {
     expect([root.get("--color-code-bg"), light.get("--color-code-bg"), dark.get("--color-code-bg")]).toEqual([
       "#f4f4f4",
       "#f4f4f4",

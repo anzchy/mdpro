@@ -26,15 +26,14 @@
 }
 
 .about-status-ok {
-  color: var(--color-success, #34c759);
+  color: var(--color-text);
 }
 
 .about-status-error {
-  color: var(--color-error, #ff3b30);
+  color: var(--color-danger);
 }
 
 .about-status-disabled {
-  color: var(--color-text-tertiary, #999);
   font-style: italic;
 }
 

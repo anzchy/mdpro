@@ -47,11 +47,11 @@
 }
 
 .toc-entry__content:hover {
-  background: var(--color-panel);
+  background: var(--color-hover);
 }
 
 .toc-entry__content--active {
-  background: rgba(37, 99, 235, 0.1);
+  background: var(--color-accent-soft);
 }
 
 .toc-entry__content--active .toc-entry__text {

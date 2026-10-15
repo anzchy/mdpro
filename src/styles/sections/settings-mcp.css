@@ -152,7 +152,7 @@
 }
 
 .mcp-client-status.installed {
-  color: #16a34a;
+  color: var(--color-text);
 }
 
 .mcp-client-details {

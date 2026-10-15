@@ -99,6 +99,15 @@ From the WI-3.0 rulings (delegator, 2026-10-15):
 | 4.2 | Light ↔ dark switch with tabs, TOC and a switch on screen | No fade on tabs, TOC rows, switches or the grid picker (Stage 3 acceptance) |
 | 4.3 | Settings › Editor: flip a switch | The knob slides (150ms); the track colour changes at once |
 | 4.4 | macOS System Settings › Accessibility › Display › Reduce motion on, then repeat 4.3 and hover a tab's × | The knob jumps and the × appears without a fade. The recovery and image-paste spinners still rotate |
+| 4.5 | Hover a bottom tab, the + button, a tab's × and a TOC row | One faint text-tinted fill (`--color-hover`), the same on all four; in dark it is a light tint, not the old grey panel or black 8% |
+| 4.6 | Look at the active bottom tab | It carries the hairline-ring shadow, the same edge as the menus in 4.8 |
+| 4.7 | Click a TOC heading; Settings › Shortcuts, click a shortcut to record it | The active TOC row and the shortcut being recorded share one accent tint (`--color-accent-soft`), slightly stronger than before |
+| 4.8 | Open the table and image context menus, an unsaved-changes dialog, Settings, a recovery toast and, in Source mode, a lint tooltip | No 1px border; the edge is the shadow's hairline ring. A fixed-width box keeps its width and its content gains 2px; a box sized by its content is 2px shorter (expected) |
+| 4.9 | Hover the primary button in Settings (MCP **Install**) and in Insert Link | The hover is the accent mixed 12% toward the text colour: darker in light, lighter in dark (it was a fixed dark blue in both) |
+| 4.10 | Settings › Integrations with a connected client; Settings › About after a failed update check | The client's ✓ status is the text colour, not green; the About error text is the theme's danger red; a disabled status is italic in the default colour |
+
+Code block backgrounds (`--color-code-bg`) are unchanged: review item 15 stays deferred (optional P2, open
+question for STOP 3).
 
 ## 5. WI-3.3 — Focus ring (to be written by WI-3.3)
 

@@ -140,31 +140,23 @@ const d = (file: string, selector: string, property: string, value: string, stag
 /** Class (b): the snap changes pixels, so it waits for its stage. */
 const DEFERRED: Deferred[] = [
   d("components/BottomTabs/BottomTabs.css", ".bottom-tabs__add", "font-size", "18px", 4, "WI-4.2"),
-  d("components/BottomTabs/BottomTabs.css", ".bottom-tab--active", "box-shadow", "0 1px 2px rgba(0, 0, 0, 0.05)", 3, "WI-3.2 flat rows and tabs"),
   d("components/BottomTabs/BottomTabs.css", ".bottom-tab__close", "font-size", "14px", 4, "WI-4.2"),
-  d("components/BottomTabs/BottomTabs.css", ".bottom-tab__close:hover", "background", "rgba(0, 0, 0, 0.08)", 3, "WI-3.2 hover"),
   d("components/Editor/MilkdownEditor.css", ".milkdown-editor .ProseMirror table", "font-size", "14px", 3, "WI-3.2 rulings R7"),
   d("plugins/codemirror/wysiwygDecorationsPlugin.css", ".wysiwyg-marker", "font-size", "10px", 3, "WI-3.2 item 12"),
   d(S + "app-shell.css", ".sidebar-header", "font-size", "11px", 3, "WI-3.2 item 12"),
   d(S + "app-shell.css", ".sidebar-mode-label", "font-size", "10px", 3, "WI-3.2 item 12"),
   d(S + "buttons-dialog.css", ".dialog-title", "font-size", "16px", 3, "WI-3.2 item 12"),
-  d(S + "link-insert-modal.css", ".toolbar-button--primary:hover:not(:disabled)", "background", "#1d4ed8", 3, "WI-3.2 rulings R3"),
   d(S + "recovery-toast.css", ".toast-close", "font-size", "18px", 4, "WI-4.2"),
   d(S + "settings-about.css", ".about-app-name", "font-size", "18px", 3, "WI-3.2 item 12"),
-  d(S + "settings-about.css", ".about-status-ok", "color", "var(--color-success, #34c759)", 3, "WI-3.2 rulings R10"),
-  d(S + "settings-about.css", ".about-status-error", "color", "var(--color-error, #ff3b30)", 3, "WI-3.2 rulings R10"),
-  d(S + "settings-about.css", ".about-status-disabled", "color", "var(--color-text-tertiary, #999)", 3, "WI-3.2 rulings R10"),
   d(S + "settings-mcp.css", ".mcp-status-badge", "border-radius", "12px", 4, "item 6 (WI-4.4)"),
   d(S + "settings-mcp.css", ".mcp-status-badge.running", "background", "#dcfce7", 4, "item 6 (WI-4.4)"),
   d(S + "settings-mcp.css", ".mcp-status-badge.running", "color", "#16a34a", 4, "item 6 (WI-4.4)"),
   d(S + "settings-mcp.css", ".mcp-copy-btn", "font-size", "14px", 4, "WI-4.2"),
   d(S + "settings-mcp.css", ".mcp-copy-btn.small", "font-size", "11px", 3, "WI-3.2 item 12"),
   d(S + "settings-mcp.css", ".mcp-client-status", "font-size", "16px", 3, "WI-3.2 item 12"),
-  d(S + "settings-mcp.css", ".mcp-client-status.installed", "color", "#16a34a", 3, "WI-3.2 rulings R1"),
   d(S + "settings-pages.css", ".settings-page-title", "font-size", "15px", 3, "WI-3.2 item 12"),
   d(S + "settings-pages.css", ".settings-dirty-banner", "background", "rgba(245, 158, 11, 0.12)", 4, "WI-4.3"),
   d(S + "settings-pages.css", ".settings-dirty-banner", "border", "1px solid rgba(245, 158, 11, 0.4)", 4, "WI-4.3"),
-  d(S + "settings-pages.css", ".toolbar-button.primary:hover", "background", "#1d4ed8", 3, "WI-3.2 rulings R3"),
   d(S + "settings-rows.css", ".settings-integrations h3", "font-size", "18px", 3, "WI-3.2 item 12"),
   d(S + "settings-rows.css", ".settings-integrations h4", "font-size", "15px", 3, "WI-3.2 item 12"),
   d(S + "settings-rows.css", ".settings-section-label", "font-size", "11px", 3, "WI-3.2 item 12"),
@@ -173,10 +165,8 @@ const DEFERRED: Deferred[] = [
   d(S + "settings-shell.css", ".settings-title", "font-size", "18px", 3, "WI-3.2 item 12"),
   d(S + "settings-shell.css", ".settings-close", "font-size", "24px", 4, "WI-4.2"),
   d(S + "settings-shell.css", ".shortcuts-header h3", "font-size", "18px", 3, "WI-3.2 item 12"),
-  d(S + "settings-shell.css", ".shortcut-value.is-editing", "background", "rgba(37, 99, 235, 0.1)", 3, "WI-3.2 item 1"),
   d(S + "table-context-menu.css", ".table-context-menu-group-label", "font-size", "11px", 3, "WI-3.2 item 12"),
   d(S + "table-context-menu.css", ".table-context-menu-item-hint", "font-size", "11px", 3, "WI-3.2 item 12"),
-  d(S + "toc-sidebar.css", ".toc-entry__content--active", "background", "rgba(37, 99, 235, 0.1)", 3, "WI-3.2 item 1"),
   d(S + "toc-sidebar.css", ".toc-entry__collapse-icon", "font-size", "10px", 3, "WI-3.2 item 12"),
 ];
 
@@ -220,7 +210,7 @@ const UNRENDERED: Unrendered[] = [
 
 /** Expected list sizes per stage and item; a list change has to update this too. */
 const DEFERRED_COUNTS: Record<string, number> = {
-  "stage 3": 27,
+  "stage 3": 17,
   "stage 4": 12,
 };
 

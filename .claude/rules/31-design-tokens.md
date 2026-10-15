@@ -45,7 +45,9 @@ from `--color-text` by `color-mix()` (WI-3.1):
 - `--color-border`: redefined as a text mix — hairlines and control edges
 - `--color-border-subtle`: row dividers, dialog header/footer, rail edge
 - `--color-hover`: hover fill for rows, tabs and icon buttons
-- `--shadow-soft`: now per theme, a hairline ring plus one faint shadow
+- `--shadow-soft`: now per theme, a hairline ring plus one faint shadow.
+  A surface that uses it takes no separate `border`: the ring is the edge
+  (DESIGN.md:123; `tests/colors-wi32.test.ts`, WI-3.2)
 
 ## Authoring rules
 

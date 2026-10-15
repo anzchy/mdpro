@@ -74,12 +74,11 @@
    colours (and oneDark with its own). Each rule below sits one class above the
    highest CodeMirror / oneDark rule for the same element and property, so the
    tokens win in either code theme.
-   Literal stand-ins for redesign tokens not in the CSS yet
+   Stand-in for a redesign token not in the CSS yet
    (docs/design/mdpro-ui-new/DESIGN.md § Tokens):
-     --color-hover       → color-mix(in srgb, var(--color-text) 4–5%, transparent)
-     --color-focus-ring  → var(--color-accent)
-     --radius-control    → 6px
-     --radius-popover    → 10px */
+     --color-focus-ring  → var(--color-accent)   (WI-3.3)
+   The active-line and panel-button tints keep their own 4–5% text mixes;
+   `--color-hover` (WI-3.1) is the row and tab hover fill. */
 .editor-shell .cm-editor .cm-activeLineGutter {
   background: color-mix(in srgb, var(--color-text) 4%, transparent);
   color: var(--color-text);
@@ -160,8 +159,6 @@
   color: var(--color-text);
   border-radius: var(--radius-popover);
   box-shadow: var(--shadow-soft);
-  /* stand-in until the ringed --shadow-soft lands (redesign WI-3.x), remove with it */
-  border: 1px solid var(--color-border);
 }
 
 /* Active table cell highlight in source mode (table-CRUD WI-2.5).
