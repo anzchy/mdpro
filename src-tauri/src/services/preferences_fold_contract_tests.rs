@@ -39,6 +39,7 @@ fn empty_partial() -> PartialPreferences {
         default_view_mode: None,
         last_view_mode: None,
         show_sidebar: None,
+        sidebar_width: None,
         enable_scroll_sync: None,
         recent_files: None,
         window_state: None,
@@ -66,6 +67,7 @@ fn seeded() -> UserPreferences {
         default_view_mode: ViewMode::Source,
         last_view_mode: ViewMode::Wysiwyg,
         show_sidebar: false,
+        sidebar_width: 345,
         enable_scroll_sync: false,
         recent_files: vec!["/seed/one.md".to_string()],
         window_state: WindowState {

@@ -49,6 +49,7 @@ export const BASE_PREFERENCES: UserPreferences = {
   defaultViewMode: "wysiwyg",
   lastViewMode: "source",
   showSidebar: true,
+  sidebarWidth: 260,
   enableScrollSync: true,
   recentFiles: ["/base/one.md", "/base/two.md"],
   windowState: {

@@ -17,6 +17,12 @@ pub struct UserPreferences {
     pub last_view_mode: ViewMode,
     /// Show sidebar on startup
     pub show_sidebar: bool,
+    /// Sidebar width in CSS px, 180–480, clamped on read (D189, ADR-0088)
+    #[serde(
+        default = "crate::models::sidebar_width::default_sidebar_width",
+        deserialize_with = "crate::models::sidebar_width::deserialize_stored"
+    )]
+    pub sidebar_width: u32,
     /// Enable scroll sync between editor and preview
     pub enable_scroll_sync: bool,
     /// Recently opened files (max 10)
@@ -891,6 +897,7 @@ impl Default for UserPreferences {
             default_view_mode: ViewMode::Wysiwyg,
             last_view_mode: ViewMode::Wysiwyg,
             show_sidebar: true,
+            sidebar_width: crate::models::sidebar_width::SIDEBAR_WIDTH_DEFAULT,
             enable_scroll_sync: true,
             recent_files: Vec::new(),
             window_state: WindowState {

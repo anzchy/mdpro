@@ -26,6 +26,7 @@ fn empty_partial() -> PartialPreferences {
         default_view_mode: None,
         last_view_mode: None,
         show_sidebar: None,
+        sidebar_width: None,
         enable_scroll_sync: None,
         recent_files: None,
         window_state: None,

@@ -45,6 +45,7 @@ const SINGLE_KEY_PATCHES: Array<Partial<UserPreferences>> = [
   { defaultViewMode: "source" },
   { lastViewMode: "source" },
   { showSidebar: false },
+  { sidebarWidth: 333 },
   { enableScrollSync: false },
   { recentFiles: ["/a.md"] },
   { windowState: { width: 1, height: 2, x: 3, y: 4, isMaximized: true } },
@@ -81,7 +82,7 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  it("B2: the default key set is exactly the 19 UserPreferences keys", async () => {
+  it("B2: the default key set is exactly the 20 UserPreferences keys", async () => {
     const prefs = await preferencesService.getPreferences("app_hydrate");
 
     expect(Object.keys(prefs).sort()).toEqual([
@@ -100,6 +101,7 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
       "mcp",
       "recentFiles",
       "showSidebar",
+      "sidebarWidth",
       "tabBar",
       "themeMode",
       "windowState",
@@ -116,6 +118,7 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
     expect(prefs.defaultViewMode).toBe("wysiwyg");
     expect(prefs.lastViewMode).toBe("wysiwyg");
     expect(prefs.showSidebar).toBe(true);
+    expect(prefs.sidebarWidth).toBe(220);
     expect(prefs.enableScrollSync).toBe(true);
     expect(prefs.recentFiles).toEqual([]);
     expect(prefs.windowState).toEqual({ width: 1200, height: 800, x: 100, y: 100, isMaximized: false });
@@ -138,11 +141,11 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
 
 describe("preferencesService — browser-branch setPreferences merge law", () => {
   it("B4: right-biased merge over every single-key patch, the migrated row, a 3-key patch and {}", async () => {
-    expect(SINGLE_KEY_PATCHES).toHaveLength(19);
-    expect(PATCHES).toHaveLength(22);
+    expect(SINGLE_KEY_PATCHES).toHaveLength(20);
+    expect(PATCHES).toHaveLength(23);
     const defaults = await preferencesService.getPreferences("app_hydrate");
     const defaultKeys = Object.keys(defaults).sort();
-    expect(defaultKeys).toHaveLength(19);
+    expect(defaultKeys).toHaveLength(20);
     expect(new Set(SINGLE_KEY_PATCHES.map((p) => Object.keys(p)[0]))).toEqual(new Set(defaultKeys));
 
     for (const { name, patch } of PATCHES) {

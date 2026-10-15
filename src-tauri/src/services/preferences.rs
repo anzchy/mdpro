@@ -3,6 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
+use crate::models::sidebar_width::clamp_sidebar_width;
 use crate::models::{
     AppearanceConfig, AutoSaveConfig, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts,
     LogSettings, MarkdownConfig, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode,
@@ -18,6 +19,11 @@ pub struct PartialPreferences {
     pub default_view_mode: Option<ViewMode>,
     pub last_view_mode: Option<ViewMode>,
     pub show_sidebar: Option<bool>,
+    #[serde(
+        default,
+        deserialize_with = "crate::models::sidebar_width::deserialize_partial"
+    )]
+    pub sidebar_width: Option<u32>,
     pub enable_scroll_sync: Option<bool>,
     pub recent_files: Option<Vec<String>>,
     pub window_state: Option<WindowState>,
@@ -173,6 +179,12 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
             .unwrap_or(current.default_view_mode),
         last_view_mode: updates.last_view_mode.unwrap_or(current.last_view_mode),
         show_sidebar: updates.show_sidebar.unwrap_or(current.show_sidebar),
+        // Clamped again here: a `PartialPreferences` built in Rust never went
+        // through `deserialize_partial`.
+        sidebar_width: updates
+            .sidebar_width
+            .map(|w| clamp_sidebar_width(f64::from(w)))
+            .unwrap_or(current.sidebar_width),
         enable_scroll_sync: updates
             .enable_scroll_sync
             .unwrap_or(current.enable_scroll_sync),
@@ -220,6 +232,7 @@ mod tests {
             default_view_mode: None,
             last_view_mode: None,
             show_sidebar: None,
+            sidebar_width: None,
             enable_scroll_sync: None,
             recent_files: None,
             window_state: None,

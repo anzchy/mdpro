@@ -17,6 +17,9 @@ export interface UserPreferences {
   /** Show sidebar on startup */
   showSidebar: boolean;
 
+  /** Sidebar width in CSS px, 180–480, clamped on read (D189, ADR-0088) */
+  sidebarWidth: number;
+
   /** Enable scroll sync */
   enableScrollSync: boolean;
 

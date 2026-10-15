@@ -3,6 +3,7 @@ pub mod draft;
 pub mod log_entry;
 pub mod mcp;
 pub mod preferences;
+pub mod sidebar_width;
 
 pub use document::Document;
 pub use draft::{Draft, DraftMetadata};
