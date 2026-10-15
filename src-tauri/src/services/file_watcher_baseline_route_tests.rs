@@ -250,15 +250,22 @@ fn r18_fail_open_unreadable_emits() {
     assert_eq!(hash_after, None, "the post-emit refresh read nothing");
 }
 
-/// R19: a missing stat fails open.
+/// R19: a missing file still emits, never dropped as unchanged. Since D246
+/// (ADR-0109) it emits `deleted`: the modify is the trailing flag of a delete.
 #[test]
 fn r19_fail_open_missing_stat_emits() {
     let d = TempDir::new("r19");
     let (store, p) = registered(&d, "a.md", b"abc");
     std::fs::remove_file(&p).unwrap();
+    let deleted = serde_json::json!({
+        "path": p.to_string_lossy(),
+        "changeType": "deleted",
+        "newPath": null,
+        "timestamp": super::super::kinds_fixture::T,
+    });
     assert_eq!(
         route(EXTENDED, &[&p], &fresh(), &store),
-        (modified(&p), EmittedModified)
+        (deleted, super::super::WatchOutcome::EmittedDeleted)
     );
     assert!(!store.is_unchanged(&p));
 }

@@ -118,8 +118,9 @@ fn m4_other_hosts_still_emit_modify_any_unchecked() {
     );
 }
 
-/// M5 (control): on Windows, `Modify(Any)` on a file that is gone fails
-/// open and emits, as on every host today.
+/// M5 (control): on Windows, `Modify(Any)` on a file that is gone still
+/// emits, as on every host. Since D246 (ADR-0109) it emits `deleted`, the
+/// same as a `Remove` on a gone path, not `modified`.
 #[test]
 fn m5_windows_modify_any_on_a_missing_file_still_emits() {
     with_windows(|| {
@@ -128,7 +129,7 @@ fn m5_windows_modify_any_on_a_missing_file_still_emits() {
         fs::remove_file(&c).expect("delete");
         assert_eq!(
             route(MODIFY_ANY, &[&c], &fresh(), &store).1,
-            EmittedModified
+            WatchOutcome::EmittedDeleted
         );
     });
 }

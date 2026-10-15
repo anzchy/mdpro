@@ -117,6 +117,15 @@ pub(crate) fn unique_path(label: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("mdpro_fw_{label}_{pid}_{n}.md"))
 }
 
+/// `unique_path` with an empty file created at it, for a test whose `Modify`
+/// must stay a `modified` candidate: on a path that does not exist, a
+/// non-Name modify routes as `deleted` (D246, ADR-0109).
+pub(crate) fn existing_path(label: &str) -> std::path::PathBuf {
+    let p = unique_path(label);
+    std::fs::write(&p, b"").expect("create the fixture file");
+    p
+}
+
 /// RAII self-write mark: `mark_write_start` on `new`, `mark_write_end` on
 /// drop, so a panicking test never leaks a mark into another test.
 pub(crate) struct WriteMark(pub(crate) std::path::PathBuf);

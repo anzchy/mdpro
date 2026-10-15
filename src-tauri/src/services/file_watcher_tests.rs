@@ -63,7 +63,7 @@ fn table() -> Vec<(EventKind, WatchOutcome)> {
     use AccessMode as M;
     use EventKind::{Access, Create, Modify, Remove};
     use ModifyKind::{Data, Metadata, Name};
-    use WatchOutcome::{EmittedDeleted, EmittedModified, IgnoredKind};
+    use WatchOutcome::{EmittedDeleted, IgnoredKind};
     vec![
         (EventKind::Any, IgnoredKind),
         (EventKind::Other, IgnoredKind),
@@ -84,22 +84,23 @@ fn table() -> Vec<(EventKind, WatchOutcome)> {
         (Create(CreateKind::File), IgnoredKind),
         (Create(CreateKind::Folder), IgnoredKind),
         (Create(CreateKind::Other), IgnoredKind),
-        (Modify(ModifyKind::Any), EmittedModified),
-        (Modify(ModifyKind::Other), EmittedModified),
-        (Modify(Data(DataChange::Any)), EmittedModified),
-        (Modify(Data(DataChange::Size)), EmittedModified),
-        (Modify(Data(DataChange::Content)), EmittedModified),
-        (Modify(Data(DataChange::Other)), EmittedModified),
-        // Routed with an empty baseline store, so every row is unchanged by
-        // D32; the five-kind unchanged filter (ADR-0068, ADR-0080) is pinned
-        // by route-law R11.
-        (Modify(Metadata(MetadataKind::Any)), EmittedModified),
-        (Modify(Metadata(MetadataKind::AccessTime)), EmittedModified),
-        (Modify(Metadata(MetadataKind::WriteTime)), EmittedModified),
-        (Modify(Metadata(MetadataKind::Permissions)), EmittedModified),
-        (Modify(Metadata(MetadataKind::Ownership)), EmittedModified),
-        (Modify(Metadata(MetadataKind::Extended)), EmittedModified),
-        (Modify(Metadata(MetadataKind::Other)), EmittedModified),
+        // The one path does not exist, so a non-Name modify is the trailing
+        // flag of a delete: `deleted`, like a `Remove` (D246, ADR-0109).
+        (Modify(ModifyKind::Any), EmittedDeleted),
+        (Modify(ModifyKind::Other), EmittedDeleted),
+        (Modify(Data(DataChange::Any)), EmittedDeleted),
+        (Modify(Data(DataChange::Size)), EmittedDeleted),
+        (Modify(Data(DataChange::Content)), EmittedDeleted),
+        (Modify(Data(DataChange::Other)), EmittedDeleted),
+        // The five-kind unchanged filter (ADR-0068, ADR-0080) is pinned by
+        // route-law R11.
+        (Modify(Metadata(MetadataKind::Any)), EmittedDeleted),
+        (Modify(Metadata(MetadataKind::AccessTime)), EmittedDeleted),
+        (Modify(Metadata(MetadataKind::WriteTime)), EmittedDeleted),
+        (Modify(Metadata(MetadataKind::Permissions)), EmittedDeleted),
+        (Modify(Metadata(MetadataKind::Ownership)), EmittedDeleted),
+        (Modify(Metadata(MetadataKind::Extended)), EmittedDeleted),
+        (Modify(Metadata(MetadataKind::Other)), EmittedDeleted),
         // The one path does not exist: moved away, so `deleted` (ADR-0078).
         (Modify(Name(RenameMode::Any)), EmittedDeleted),
         (Modify(Name(RenameMode::To)), EmittedDeleted),

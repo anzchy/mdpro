@@ -7,7 +7,7 @@
 //! clock seam, so expiry is exercised by pre-seeding the map.
 
 use super::baseline::BaselineStore;
-use super::kinds_fixture::{all_event_kinds, unique_path, WriteMark, T};
+use super::kinds_fixture::{all_event_kinds, existing_path, unique_path, WriteMark, T};
 use super::{process_event, WatchOutcome};
 use notify::event::{DataChange, MetadataKind, ModifyKind, RemoveKind, RenameMode};
 use notify::{Event, EventKind};
@@ -94,7 +94,7 @@ fn o1_as_str_is_exact_injective_and_all_is_complete() {
 
 #[test]
 fn o7_debounce_within_window_does_not_refresh_the_entry() {
-    let p = unique_path("o7");
+    let p = existing_path("o7");
     let map = fresh();
     assert_eq!(run(CONTENT, &[&p], &map).1, WatchOutcome::EmittedModified);
     let first = entry(&map, &p).expect("emission records the path");
@@ -112,7 +112,7 @@ fn o7_debounce_within_window_does_not_refresh_the_entry() {
 
 #[test]
 fn o8_debounce_expiry_boundary() {
-    let p = unique_path("o8");
+    let p = existing_path("o8");
     let seed_a = ago(600);
     let map_a = seeded(&p, seed_a);
     assert_eq!(run(CONTENT, &[&p], &map_a).1, WatchOutcome::EmittedModified);
@@ -135,9 +135,16 @@ fn o8_debounce_expiry_boundary() {
 /// debounced.
 #[test]
 fn o9_debounce_is_per_first_path_and_per_kind() {
-    let (p, q, r) = (unique_path("o9"), unique_path("o9"), unique_path("o9"));
+    // The files exist, so a modify is a `modified` candidate; `p` is removed
+    // before its `Remove`, which is then the real delete (D246, ADR-0109).
+    let (p, q, r) = (
+        existing_path("o9"),
+        existing_path("o9"),
+        existing_path("o9"),
+    );
     let map = fresh();
     assert_eq!(run(CONTENT, &[&p], &map).1, WatchOutcome::EmittedModified);
+    std::fs::remove_file(&p).expect("rm p");
     assert_eq!(
         run(REMOVE_FILE, &[&p], &map).1,
         WatchOutcome::EmittedDeleted
@@ -167,10 +174,12 @@ fn o9_debounce_is_per_first_path_and_per_kind() {
     assert_eq!(keys, expected);
 }
 
-/// D116: an emitted Remove records only its `deleted` entry, so a following
-/// modify on the same path emits and leaves that entry alone.
+/// D116: an emitted Remove records only its `deleted` entry. Rewritten for
+/// D246 (ADR-0109): a modify on the path while it is still gone is a
+/// `deleted` too, so the entry debounces it; once the file exists again a
+/// modify emits `modified` and leaves the `deleted` entry alone.
 #[test]
-fn o9b_emitted_remove_does_not_debounce_a_following_modify() {
+fn o9b_emitted_remove_debounces_a_modify_on_the_gone_path_only() {
     let p = unique_path("o9b");
     let map = fresh();
     let expected = json!({"path": p.to_string_lossy(), "changeType": "deleted", "newPath": null, "timestamp": T});
@@ -179,6 +188,11 @@ fn o9b_emitted_remove_does_not_debounce_a_following_modify() {
         (expected, WatchOutcome::EmittedDeleted)
     );
     let after_remove = entry_of(&map, &p, "deleted").expect("emitted Remove records its kind");
+    assert_eq!(
+        run(CONTENT, &[&p], &map),
+        (Value::Null, WatchOutcome::Debounced)
+    );
+    std::fs::write(&p, b"recreated").expect("recreate");
     assert_eq!(run(CONTENT, &[&p], &map).1, WatchOutcome::EmittedModified);
     assert_eq!(entry_of(&map, &p, "deleted"), Some(after_remove));
 }
@@ -200,6 +214,8 @@ fn o10_ignored_outcomes_never_touch_the_map() {
             let label = format!("{kind:?} with {n} paths -> {outcome:?}");
             assert!(map.lock().unwrap().is_empty(), "{label}: map was touched");
             let follow = ps.first().cloned().unwrap_or_else(|| unique_path("o10"));
+            // The follow-up must be a `modified` candidate (D246, ADR-0109).
+            std::fs::write(&follow, b"").expect("create the follow-up file");
             assert_eq!(
                 run(CONTENT, &[&follow], &map).1,
                 WatchOutcome::EmittedModified,
@@ -212,7 +228,7 @@ fn o10_ignored_outcomes_never_touch_the_map() {
 
 #[test]
 fn o11_self_write_suppresses_modify_without_consuming_debounce() {
-    let p = unique_path("o11");
+    let p = existing_path("o11");
     let map = fresh();
     let mark = WriteMark::new(&p);
     assert_eq!(
@@ -229,7 +245,7 @@ fn o11_self_write_suppresses_modify_without_consuming_debounce() {
 
 #[test]
 fn o12_self_write_dominates_a_live_debounce_entry() {
-    let p = unique_path("o12");
+    let p = existing_path("o12");
     let seed = Instant::now();
     let map = seeded(&p, seed);
     let _mark = WriteMark::new(&p);

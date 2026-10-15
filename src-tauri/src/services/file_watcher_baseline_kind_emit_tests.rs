@@ -1,7 +1,9 @@
 //! D32 WI-4b K2: each of the three filtered kinds still emits whenever the
 //! file is not provably unchanged. The over-cap row lives in the cap tests
 //! with the other 10 MiB cases. Real store, real temp files, synthetic events.
-use super::super::WatchOutcome::EmittedModified;
+//! A missing file still emits, but as `deleted` since D246 (ADR-0109): the
+//! modify is the trailing flag of the delete, not a content change.
+use super::super::WatchOutcome::{EmittedDeleted, EmittedModified};
 use super::fixture::{
     append, fresh, modified, rewrite_keep_stat, route, shift_mtime, TempDir, FILTERED,
 };
@@ -60,7 +62,8 @@ fn restore(p: &Path, miss: Miss) {
     let _ = (p, miss);
 }
 
-/// K2: kind x miss, every cell emits the exact `modified` payload.
+/// K2: kind x miss, every cell emits: the exact `modified` payload, or for
+/// a missing file the exact `deleted` one (D246, ADR-0109).
 #[test]
 fn k2_each_filtered_kind_emits_when_the_file_is_not_provably_unchanged() {
     let d = TempDir::new("k2");
@@ -71,7 +74,18 @@ fn k2_each_filtered_kind_emits_when_the_file_is_not_provably_unchanged() {
             let (store, p) = prepared(&d, &format!("c{cells}.md"), miss);
             let got = route(kind, &[&p], &fresh(), &store);
             restore(&p, miss);
-            assert_eq!(got, (modified(&p), EmittedModified), "{kind:?} x {miss:?}");
+            let want = if matches!(miss, Miss::Missing) {
+                let deleted = serde_json::json!({
+                    "path": p.to_string_lossy(),
+                    "changeType": "deleted",
+                    "newPath": null,
+                    "timestamp": super::super::kinds_fixture::T,
+                });
+                (deleted, EmittedDeleted)
+            } else {
+                (modified(&p), EmittedModified)
+            };
+            assert_eq!(got, want, "{kind:?} x {miss:?}");
         }
     }
     assert_eq!(cells, 3 * MISSES.len());

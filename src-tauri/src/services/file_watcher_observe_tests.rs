@@ -8,7 +8,8 @@
 
 use super::baseline::BaselineStore;
 use super::kinds_fixture::{
-    all_event_kinds, code_lines, fn_slice, stat_spy, unique_path, WriteMark, SPY_STAT, T,
+    all_event_kinds, code_lines, existing_path, fn_slice, stat_spy, unique_path, WriteMark,
+    SPY_STAT, T,
 };
 use super::watch_log::build_watch_event_log;
 use super::{observe_event, process_event_checked, WatchOutcome};
@@ -110,7 +111,7 @@ fn o16_observe_event_is_process_then_stat_then_build() {
 #[test]
 fn o17_sequence_on_one_map_logs_each_step_with_its_own_outcome() {
     let map = fresh();
-    let p = unique_path("o17");
+    let p = existing_path("o17");
     let content = EventKind::Modify(ModifyKind::Data(DataChange::Content));
     let extended = EventKind::Modify(ModifyKind::Metadata(MetadataKind::Extended));
     let entry = |m: &Map| m.lock().unwrap().get(&(p.clone(), "modified")).copied();

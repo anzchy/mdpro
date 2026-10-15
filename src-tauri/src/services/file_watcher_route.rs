@@ -24,7 +24,9 @@
 //! docs/adr/0078-a-watched-file-moved-away-is-reported-as-deleted.md,
 //! docs/adr/0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md,
 //! file_watcher_route_windows_atomic_save_tests.rs and
-//! file_watcher_route_windows_modify_any_tests.rs (D190-WI-2, ADR-0093)
+//! file_watcher_route_windows_modify_any_tests.rs (D190-WI-2, ADR-0093),
+//! file_watcher_route_modify_gone_tests.rs (D246),
+//! docs/adr/0109-a-modify-on-a-gone-watched-path-is-reported-as-deleted.md
 //!
 //! Key decisions:
 //! - **Check order is the contract** (ADR-0068): kind, path count, self-write,
@@ -56,6 +58,15 @@
 //!   baseline entry alone (ADR-0068 decision 4 lists no `deleted` advance).
 //!   A safe save's later `modified` still emits because of the per-kind
 //!   debounce (D116). The retired `IgnoredRenameSinglePath` was removed (D167).
+//! - **A modify on a gone path routes as `deleted`** (ADR-0109, D246). On
+//!   macOS `rm` of an open file is a `Remove` then a trailing
+//!   `Modify(Metadata(_))` or `Modify(Data(_))` for the same path. Routed as
+//!   `modified`, it got its own debounce key (D116) and replaced the
+//!   `deleted` in the frontend's latest-wins slot, so the user saw a reload
+//!   prompt for a file that only exists in memory. A non-Name `Modify(_)`
+//!   whose first path is gone is now `EmittedDeleted`, `NotChecked`,
+//!   debounced under (path, `deleted`), exactly like a moved-away rename;
+//!   the unchanged check runs only for a `modified` candidate.
 //! - **No wildcard arm** on the kind match, so a new `EventKind` is a compile
 //!   error here rather than a silent drop; o14 pins it on the source text.
 //! - Split out of `file_watcher.rs` (D68 WI-1) so the parent keeps headroom
@@ -94,7 +105,9 @@ use super::{FileChangedEvent, WatchOutcome};
 /// It routes as a `modified` candidate. The same rename whose path is gone
 /// (moved away) is a `deleted`, routed like a `Remove` on a missing path
 /// (ADR-0078, D107); a `Create` on a missing path is `IgnoredKind`; a
-/// `Remove` on a missing path is a real delete, `deleted` and not checked.
+/// `Remove` on a missing path is a real delete, `deleted` and not checked, and
+/// so is a non-Name `Modify(_)` on a missing path (ADR-0109, D246): the
+/// trailing metadata or data flag of an `rm` batch, debounced by its delete.
 /// A `Remove` or rename on a missing path and two-path renames are not
 /// self-write-gated. The existence check is a stat under no lock; each lock
 /// (self-write, baseline, debounce) is taken alone, and the baseline's
@@ -109,11 +122,16 @@ pub(super) fn process_event_checked(
     let first_exists = || event.paths.first().is_some_and(|p| p.exists());
     let (change_type, outcome, replaced) = match event.kind {
         EventKind::Modify(ModifyKind::Name(_)) => ("renamed", WatchOutcome::EmittedRenamed, false),
-        EventKind::Modify(_) => ("modified", WatchOutcome::EmittedModified, false),
+        EventKind::Modify(_) if first_exists() => {
+            ("modified", WatchOutcome::EmittedModified, false)
+        }
         EventKind::Create(_) | EventKind::Remove(_) if first_exists() => {
             ("modified", WatchOutcome::EmittedModified, true)
         }
-        EventKind::Remove(_) => ("deleted", WatchOutcome::EmittedDeleted, false),
+        // A `Remove`, or a non-Name `Modify` (D246, ADR-0109), on a gone path.
+        EventKind::Modify(_) | EventKind::Remove(_) => {
+            ("deleted", WatchOutcome::EmittedDeleted, false)
+        }
         EventKind::Any | EventKind::Access(_) | EventKind::Create(_) | EventKind::Other => {
             return (None, WatchOutcome::IgnoredKind, not_checked);
         }
@@ -138,7 +156,9 @@ pub(super) fn process_event_checked(
     if outcome == WatchOutcome::EmittedModified && is_self_write(path) {
         return (None, WatchOutcome::SelfWrite, not_checked);
     }
-    let check = if replaced || is_filtered_kind(&event.kind) {
+    let check = if outcome == WatchOutcome::EmittedModified
+        && (replaced || is_filtered_kind(&event.kind))
+    {
         baselines.is_unchanged_why(path)
     } else {
         not_checked
@@ -206,3 +226,7 @@ mod windows_atomic_save_tests;
 #[cfg(all(test, unix))]
 #[path = "file_watcher_route_windows_modify_any_tests.rs"]
 mod windows_modify_any_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_route_modify_gone_tests.rs"]
+mod modify_gone_tests;
