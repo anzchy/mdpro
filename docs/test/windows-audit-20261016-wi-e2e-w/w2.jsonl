@@ -1,0 +1,2 @@
+{"ts":"2026-10-16T00:32:02.141+08:00","level":"info","event":"window.blur","status":"success","actionId":null,"context":{"windowId":"main","windowLabel":"main"},"durationMs":null,"error":null}
+{"ts":"2026-10-16T00:32:02.505+08:00","level":"info","event":"window.focus","status":"success","actionId":null,"context":{"windowId":"main","windowLabel":"main"},"durationMs":null,"error":null}

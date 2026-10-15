@@ -1,0 +1,446 @@
+===== w0-debug-start
+   "description": "",
+   "faviconUrl": "http://tauri.localhost/vite.svg",
+   "id": "38C1968F08ECBAF5A904199B833E36C6",
+   "title": "mdpro",
+   "type": "page",
+   "url": "http://tauri.localhost/",
+} ]
+
+maximized
+window 'mdpro' hwnd=176751798 rect=-8,-8,2548,1138
+page innerWidth: 1407  (expect ~1120 maximized at 270%)
+debug exit 
+{
+ "w": 1407,
+ "label": "main",
+ "tabs": []
+}
+
+
+===== w1
+== W1a: cdp.sh eval (state change: counter++), transport lost after send
+0
+[fakessh] call 1: real ssh exited 0, reporting 255
+UNKNOWN OUTCOME: transport lost after send; reconcile state before continuing
+1
+exit 3  ssh calls: 1
+counter on the page now: 1
+== W1b: ui.sh real Ctrl+N, transport lost after send
+mark v2 2005836 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f
+[fakessh] call 1: real ssh exited 0, reporting 255
+UNKNOWN OUTCOME: transport lost after send; reconcile state before continuing
+exit 3  ssh calls (ui.sh + its cleanup trap): 3
+raw: bytes 2005836..2006223 lines: 2 malformed: 0 (identity 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f)
+/Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/out/w1b.jsonl
+file.new lines: 0  tab.open lines: 0
+"ts":"2026-10-16T00:30:40.105+08:00","level":"info","event":"window.blur","status":"success"
+"ts":"2026-10-16T00:30:40.452+08:00","level":"info","event":"window.focus","status":"success"
+tabs: ""
+== W1b control: no fault
+clickat 1500,700
+chord ctrl+n
+exit 
+raw: bytes 2006223..2008167 lines: 8 malformed: 0 (identity 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f)
+control: file.new=0 tab.open=1
+tabs: "Untitled"
+== W1b: same steps, transport lost after send
+[fakessh] call 1: real ssh exited 0, reporting 255
+UNKNOWN OUTCOME: transport lost after send; reconcile state before continuing
+exit 3  ssh calls: 2
+raw: bytes 2008167..2010145 lines: 8 malformed: 0 (identity 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f)
+faulted: file.new=0 tab.open=1
+tabs: "Untitled,Untitled"
+== W1c control: a read (log.sh mark) loses its first response
+[fakessh] call 1: real ssh exited 0, reporting 255
+mark v2 2010145 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f
+exit 0  ssh calls: 2
+== W1c': the read loses every response
+[fakessh] call 1: real ssh exited 0, reporting 255
+[fakessh] call 2: real ssh exited 0, reporting 255
+exit 255  ssh calls: 2
+
+
+===== w2
+== W2: failing step 3 (menuclick on a menu that does not exist), Ctrl+N at step 5 must not run
+focused
+clickat 1500,700
+ERROR menuclick: menu item not found: NoSuchMenu
+ABORTED at step 3
+exit 1
+raw: bytes 2010145..2010532 lines: 2 malformed: 0 (identity 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f)
+tab.open after the abort: 0
+tabs: "CDP_TIMEOUT"
+== W2b: a refused op (keys) in step 1
+ERROR keys: unsupported: see reference/ops.md (never reached mdpro on 2026-10-12)
+ABORTED at step 1
+exit 1
+== W2c: onError continue on a read-only step
+fg 'mdpro'
+ERROR tree: 无法将值“notanumber”转换为类型“System.Int32”。错误:“输入字符串的格式不正确。”
+window 'mdpro' hwnd=176751798 rect=-8,-8,2548,1138
+exit 0
+== after W2: page state
+"Untitled,Untitled"
+exit 0
+fg 'mdpro'
+  Pane ''
+
+
+===== w3
+== W3: a 100 s wait step against ui-run's 90 s timeout
+00:33:08
+TIMEOUT: no ui-out.json after 90 s
+exit 1
+00:34:41
+tasks left: 0
+steps.json: False ui-out.json: False
+ui.ps1 processes: 0
+
+
+===== w3b
+== W3b: the task unregisters itself, so its info cannot be read
+real runi exit: 1
+ssh exit 0
+== W3 again, real codes: runi timeout, and a task exiting 7
+runi: mdpro-audit-w3 stopped after 3 s
+real runi exit: 124
+real runi exit (task exit 7): 7
+real ui-run exit: 124
+tasks left: 0
+ssh exit 0
+== W3b rerun, full output
+real runi exit: 0
+task still registered: 0
+== W3b: a second ssh session unregisters the running task
+injector: unregistered at 00:37:19.805
+runi: powershell : Get-ScheduledTask : 找不到任何“TaskName”属性等于“mdpro-audit-w3b”的 MSFT_ScheduledTask 对象。请验证属性值，然后重试  [GBK]
+所在位置 行:1 字符: 1  [GBK]
++ powershell -NoProfile -ExecutionPoli
+runi: 。  [GBK]
+runi: 所在位置 C:\Users\jack\mdpro-audit\runi.ps1:21 字符: 49  [GBK]
+runi: + ... Milliseconds 300; $state = (Get-ScheduledTask -TaskName $Name).State  ...
+runi: +                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+runi: + CategoryInfo          : ObjectNotFound: (mdpro-audit-w3b:String) [Get-ScheduledTask], CimJobException
+runi: + FullyQualifiedErrorId : CmdletizationQuery_NotFound_TaskName,Get-ScheduledTask
+runi: 
+runi: runi: mdpro-audit-w3b has no result
+real runi exit: 1
+ended 00:37:21.580
+
+
+===== w4
+== W4a: an eval that throws, then && next must not run
+{
+ "exception": "SyntaxError: Unexpected token 'throw'"
+}
+exit 1
+== W4b: CDP top-level error (cyclic object returned by value)
+{
+ "error": "CDP_ERROR",
+ "code": -32000,
+ "message": "Object reference chain is too long"
+}
+exit 1
+   real cdp.mjs exit on the PC:
+real exit: 1
+== W4c: pull into a read-only folder
+使用“1”个参数调用“ReadAllBytes”时发生异常:“未能找到文件“C:\Users\jack\mdpro-audit\menus.txt”。”  [GBK]
+所在位置 行:1 字符: 1  [GBK]
++ [Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\Users\jack\mdpr ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : FileNotFoundException
+ 
+exit 1
+(empty)
+   control, writable folder:
+/Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/out/w4c-control.txt
+exit 0
+== W4d: a read that fails on the PC (no such file)
+使用“1”个参数调用“ReadAllBytes”时发生异常:“未能找到文件“C:\Users\jack\mdpro-audit\no-such-file.txt”。”  [GBK]
+所在位置 行:1 字符: 1  [GBK]
++ [Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\Users\jack\mdpr ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : FileNotFoundException
+ 
+exit 1
+ls: /Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/out/w4d.txt: No such file or directory
+== W4a redo: a runtime throw
+{
+ "exception": "Error: w4a boom\n    at <anonymous>:1:32\n    at <anonymous>:1:66"
+}
+exit 1
+== W4c redo: pull an existing file into a read-only folder
+/private/tmp/claude-501/-Users-jackcheng-Documents-01-Coding-mac-app-mdpro/84b9f940-389b-4b15-985d-4e4ff5a217fd/scratchpad/w712/.claude/skills/remote-windows-device-test/scripts/mac/pull.sh: line 11: /Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/ro2/w4c.txt.part: Permission denied
+pull failed: could not decode or write /Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/ro2/w4c.txt
+exit 1
+files in ro2: 0
+== W4e: cdp.sh shot into the read-only folder (shot goes through pull)
+/private/tmp/claude-501/-Users-jackcheng-Documents-01-Coding-mac-app-mdpro/84b9f940-389b-4b15-985d-4e4ff5a217fd/scratchpad/w712/.claude/skills/remote-windows-device-test/scripts/mac/pull.sh: line 11: /Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/ro2/w4e.png.part: Permission denied
+pull failed: could not decode or write /Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/ro2/w4e.png
+exit 1
+files in ro2: 0
+
+
+===== w4f
+== W4f: CDP_TIMEOUT (an eval that waits 30 s against cdp.mjs's 25 s)
+"CDP_TIMEOUT"
+Mac exit 1  (ops.md: 3)
+real cdp.mjs exit: 3
+
+
+===== w5
+== W5 redo: mark, 5 x (Ctrl+K, Esc) in the Source editor, raw
+mark v2 2015563 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f
+"ok"
+raw: bytes 2015563..2018913 lines: 15 malformed: 0 (identity 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f)
+/Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/out/w5.jsonl
+local file: 3350 bytes, so PC range 2015563..2018913
+open=5 cancel=5 lines=15 last-byte=0a first-byte={
+local sha256: 1ceda17bc61d5f3127343c568a31c271ca296262f06ba61a240cc4e7068abe97
+PC sha256:    1ceda17bc61d5f3127343c568a31c271ca296262f06ba61a240cc4e7068abe97 (3350 bytes)
+PC log size now: 2018913
+
+
+===== w5-exit7
+mark v2 2018913 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f
+== W5 exit 7 (simulated on the mark side)
+-- truncated (the log is now smaller than the mark): mark = v2 2118913 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f
+truncated: the log is 2018913 bytes, below the mark's 2118913; re-mark
+raw exit 7; file written: no
+truncated: the log is 2018913 bytes, below the mark's 2118913; re-mark
+since exit 7
+-- replaced (another creation time): mark = v2 2018913 639107389086063953-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f
+replaced: the log's identity is 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f, not the mark's 639107389086063953-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f; re-mark
+raw exit 7; file written: no
+replaced: the log's identity is 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f, not the mark's 639107389086063953-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f; re-mark
+since exit 7
+-- replaced (another first line): mark = v2 2018913 639107389086063952-c668b8739f44ed3ac70d7477dcfdc349a9b809369fcf3e28d88d2faf15f69230
+replaced: the log's identity is 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f, not the mark's 639107389086063952-c668b8739f44ed3ac70d7477dcfdc349a9b809369fcf3e28d88d2faf15f69230; re-mark
+raw exit 7; file written: no
+replaced: the log's identity is 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f, not the mark's 639107389086063952-c668b8739f44ed3ac70d7477dcfdc349a9b809369fcf3e28d88d2faf15f69230; re-mark
+since exit 7
+-- v1 line-count mark: mark = 1234
+no v2 mark (a v1 line-count mark no longer fits): re-mark with log.sh mark
+raw exit 7; file written: no
+no v2 mark (a v1 line-count mark no longer fits): re-mark with log.sh mark
+since exit 7
+-- control: the real mark again
+raw: bytes 2018913..2018913 lines: 0 malformed: 0 (identity 639107389086063952-b557a7628e33dc29b6fc6366cbecb23898a7f8258ebe2d17c77c1e9e04e5812f)
+/Users/jackcheng/.mdpro-redesign/handoff/mdpro-codex-audit-wie2ew/out/w5-control.jsonl
+raw exit 0
+
+
+===== w6
+== W6 setup: a second window by real Ctrl+Shift+N
+focused
+clickat 1500,700
+chord ctrl+shift+n
+window 'mdpro' hwnd=92801050 rect=156,156,1216,839
+window 'mdpro' hwnd=176751798 rect=-8,-8,2548,1138
+exit 0
+00:40:00.090 window.blur success {"windowId": "main", "windowLabel": "main"} 
+00:40:00.448 window.focus success {"windowId": "main", "windowLabel": "main"} 
+00:40:02.603 window.create start {"filePath": null} 
+00:40:02.999 window.blur success {"windowId": "main", "windowLabel": "main"} 
+00:40:03.000 window.create success {"filePath": null, "geometry": "default", "geometryClamped": false, "geometryReason": "no_path", "windowId": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:40:03.010 window.focus success {"windowId": "mdpro-6134535a-186d-4633-926b-cbe3849504b1", "windowLabel": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:40:03.254 window.apply_state success {"outcome": "skipped", "reason": "not_main"} 
+== W6a: cdp.sh eval with no label, two pages
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+{
+ "error": "WINDOW_AMBIGUOUS",
+ "hint": "several mdpro windows: pass --window <label>",
+ "candidates": [
+  {
+   "id": "D4CB75B2D2E2A54B8C0E33B4B7AF0632",
+   "label": "mdpro-6134535a-186d-4633-926b-cbe3849504b1",
+   "url": "http://tauri.localhost/"
+  },
+  {
+   "id": "38C1968F08ECBAF5A904199B833E36C6",
+   "label": "main",
+   "url": "http://tauri.localhost/"
+  }
+ ]
+}
+Mac exit 1  (ops.md: 6)
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+real cdp.mjs exit: -1073740791
+== W6b: --window main
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+{
+ "label": "main",
+ "tabs": 2,
+ "w": 1407
+}
+Mac exit 1
+real cdp.mjs exit: -1
+== W6c: --window <second window's label>
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+{
+ "label": "mdpro-6134535a-186d-4633-926b-cbe3849504b1",
+ "tabs": 0,
+ "w": 667
+}
+Mac exit 1
+== W6d: --window nosuch
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+{
+ "error": "WINDOW_NOT_FOUND",
+ "label": "nosuch",
+Mac exit (zsh pipestatus) 1  (ops.md: 5)
+real cdp.mjs exit: -1
+== W6e: an invalid label is refused before running
+refusing window label: a;b
+Mac exit 2  (ops.md: 2)
+v24.15.0
+== W6f: ui.ps1 refuses a step with a window field
+ERROR windows: window-bound steps are not available yet (WI-E2E-W item 3: no label-to-HWND binding); this case is BLOCKED
+ABORTED at step 1
+exit 1
+== W6g option (a): page geometry x devicePixelRatio vs GetWindowRect
+{"label":"main","dpr":1.7999999523162842,"screenXY":[0,24],"outer":[1407,601],"phys":[0,43,2533,1125]}
+{"label":"mdpro-6134535a-186d-4633-926b-cbe3849504b1","dpr":1.7999999523162842,"screenXY":[91,115],"outer":[667,434],"phys":[164,207,1364,988]}
+window 'mdpro' hwnd=92801050 rect=156,156,1216,839
+window 'mdpro' hwnd=176751798 rect=-8,-8,2548,1138
+== W6h option (b): set a distinctive title through Tauri
+"set_title ok: mdpro"
+"document.title mdpro -> mdpro W6doc"
+window 'mdpro W6-6134535a' hwnd=92801050 rect=156,156,1216,839
+window 'mdpro' hwnd=176751798 rect=-8,-8,2548,1138
+"restored"
+window 'mdpro' hwnd=92801050 rect=156,156,1216,839
+window 'mdpro' hwnd=176751798 rect=-8,-8,2548,1138
+"closing mdpro-6134535a-186d-4633-926b-cbe3849504b1"
+window 'mdpro' hwnd=176751798 rect=-8,-8,2548,1138
+hwnd=176751798 hmenu=15799005 count=-1 lastErr=203
+{
+ "label": "main",
+ "tabs": [
+  "Untitled",
+  "Untitled"
+ ]
+}
+single-page eval exit 0
+00:41:39.897 window.close success {"windowId": "mdpro-6134535a-186d-4633-926b-cbe3849504b1", "windowLabel": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:41:39.899 window.close_requested start {"allowWindowClose": false, "decision": "save-and-close", "windowLabel": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:41:39.907 window.save_state success {"outcome": "skipped", "reason": "not_main"} 
+00:41:39.908 window.close success {"windowId": "mdpro-6134535a-186d-4633-926b-cbe3849504b1", "windowLabel": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:41:39.908 window.close_requested success {"action": "no_unsaved_closing", "windowLabel": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:41:39.909 window.close_requested start {"allowWindowClose": true, "decision": "allow", "windowLabel": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:41:39.909 window.close_requested success {"action": "allowed_close", "windowLabel": "mdpro-6134535a-186d-4633-926b-cbe3849504b1"} 
+00:41:39.977 window.focus success {"windowId": "main", "windowLabel": "main"} 
+00:41:43.922 window.blur success {"windowId": "main", "windowLabel": "main"} 
+00:41:44.289 window.focus success {"windowId": "main", "windowLabel": "main"} 
+
+
+===== state-0-start
+procs 1
+config F417022A644B6388 4414 23:58:05.960
+log 1985332 created 639107389086063952
+dot-mdpro:
+  \.mdpro\config.json 4414 10-15 23:58:05
+  \.mdpro\config.json.d190-before 3932 10-12 23:32:58
+  \.mdpro\config.json.d190w2-before 4237 10-14 12:03:33
+  \.mdpro\config.json.d190wi67-before 4245 10-14 19:33:07
+  \.mdpro\server.port 5 04-01 00:27:38
+  \.mdpro\server.token 64 04-01 00:27:38
+appdata-mdpro:
+  \mdpro\server.port 5 10-15 23:58:10
+  \mdpro\server.token 64 10-15 23:58:10
+tasks: 0
+
+
+===== state-1-snapshot
+procs 0
+robocopy dot-mdpro 1
+robocopy appdata-mdpro 0
+  \dot-mdpro\config.json 4414
+  \dot-mdpro\config.json.d190-before 3932
+  \dot-mdpro\config.json.d190w2-before 4237
+  \dot-mdpro\config.json.d190wi67-before 4245
+  \dot-mdpro\server.port 5
+  \dot-mdpro\server.token 64
+config hash F417022A644B6388 snap F417022A644B6388
+
+
+===== state-2-appdata
+procs 1
+real %APPDATA%\mdpro:
+  drafts 10-15 23:57:55
+  server.port 10-16 00:29:15
+  server.token 10-16 00:29:15
+fake dir:
+fake count 0
+pid 15128 started 00:29:14
+{"ts":"2026-10-15T23:58:10.363+08:00","level":"info","event":"app.ready","status":"success","actionId":null,"context":{"appVersion":"0.3.4","buildId":"unknown","pid":20256,"platform":"windows","releaseId":"0.3.4@f8f3f664d950279c3de733978e0ef17f582fad6b","startupTimeMs":723},"durationMs":723,"error":
+{"ts":"2026-10-16T00:29:15.435+08:00","level":"info","event":"app.ready","status":"success","actionId":null,"context":{"appVersion":"0.3.4","buildId":"unknown","pid":15128,"platform":"windows","releaseId":"0.3.4@f8f3f664d950279c3de733978e0ef17f582fad6b","startupTimeMs":515},"durationMs":515,"error":
+APPDATA=C:\Users\jack\mdpro-audit\fakeappdata
+
+
+===== state-3-restore
+procs 0
+before restore:
+log size 2033627 created 639107389086063952 written 00:42:08.070 sha 210624069944169C
+config before restore 826C9D8087081994
+appdata before restore:
+  \mdpro\drafts
+6	C:\Users\jack\mdpro-audit\snap\e2e-20261016-1\dot-mdpro\
+	    较旧的    		    4414	config.json  [GBK]
+
+------------------------------------------------------------------------------
+
+                  总数        复制        跳过       不匹配        失败        其他  [GBK]
+       Ŀ¼:         1         0         1         0         0         0
+       文件:         6         1         5         0         0         1  [GBK]
+       字节:    16.5 k     4.3 k    12.1 k         0         0    1.93 m  [GBK]
+       时间:   0:00:00   0:00:00                       0:00:00   0:00:00  [GBK]
+
+
+       速度:           4,414,000 字节/秒。  [GBK]
+       速度:             252.571 MB/分钟。  [GBK]
+   已结束: 2026年10月16日 0:42:10  [GBK]
+robocopy dot-mdpro exit 3
+robocopy appdata-mdpro exit 0
+after restore:
+log size 2033627 created 639107389086063952 written 00:42:08.070 sha 210624069944169C
+config after F417022A644B6388 snapshot F417022A644B6388
+dot-mdpro now:
+  config.json 4414
+  config.json.d190-before 3932
+  config.json.d190w2-before 4237
+  config.json.d190wi67-before 4245
+  mdpro.log 2033627
+  server.port 5
+  server.token 64
+appdata now:
+  \mdpro\drafts
+
+
+===== state-4-end
+tauri-app: 1
+
+port 9222 closed
+maximized
+window 'mdpro' hwnd=123276116 rect=-8,-8,2548,1138
+normal exit: 0
+procs 1
+config F417022A644B6388 4414 00:28:36.607
+log 2041310 created 639107389086063952
+dot-mdpro:
+  \.mdpro\config.json 4414 10-16 00:28:36
+  \.mdpro\config.json.d190-before 3932 10-12 23:32:58
+  \.mdpro\config.json.d190w2-before 4237 10-14 12:03:33
+  \.mdpro\config.json.d190wi67-before 4245 10-14 19:33:07
+  \.mdpro\server.port 5 04-01 00:27:38
+  \.mdpro\server.token 64 04-01 00:27:38
+appdata-mdpro:
+  \mdpro\server.port 5 10-16 00:42:30
+  \mdpro\server.token 64 10-16 00:42:30
+tasks: 0
+fakeappdata entries: 0
+snapshot kept: C:\Users\jack\mdpro-audit\snap\e2e-20261016-1
+
