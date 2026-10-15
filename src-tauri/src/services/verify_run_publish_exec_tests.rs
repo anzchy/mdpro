@@ -16,6 +16,8 @@
 //! each log line to stderr and the refusal cases compare stderr exactly. The
 //! child primes the logger's settings cache under a throwaway HOME outside
 //! the run dir first, so `load_preferences()` never writes into the run dir.
+//! The parent builds its fixture with `Run::for_child()` and never points its
+//! own HOME at the run dir; only the child's environment does (D239).
 use super::verify_run_fixtures::{Run, CF_HOME, HOME, NONCE, RUN};
 use super::verify_run_publish_fixtures::{
     assert_published, entries, fingerprint, hex, names, verify_run_lines,
@@ -133,7 +135,7 @@ fn text(b: &[u8]) -> String {
 
 #[test]
 fn wi3_publish_or_exit_refuses_existing_instance_exits_78() {
-    let fx = Run::logged();
+    let fx = Run::for_child();
     let inst = fx.run.join("instance.json");
     fs::write(&inst, br#"{"nonce":"old","pid":1}"#).expect("seed instance.json");
     fs::set_permissions(&inst, fs::Permissions::from_mode(0o644)).expect("chmod");
@@ -157,7 +159,7 @@ fn wi3_publish_or_exit_refuses_existing_instance_exits_78() {
 
 #[test]
 fn wi3_publish_or_exit_publishes_child_pid() {
-    let fx = Run::logged();
+    let fx = Run::for_child();
     let id = hex(&mut rand::rngs::StdRng::seed_from_u64(2), 64);
 
     let (pid, out) = spawn(&fx, "publish", &fx.run, Some(&id));
@@ -198,7 +200,7 @@ fn wi3_publish_or_exit_publishes_child_pid() {
 
 #[test]
 fn wi3_publish_or_exit_write_failure_exits_78() {
-    let fx = Run::logged();
+    let fx = Run::for_child();
     let gone = fx.run.join("gone");
 
     let (_, out) = spawn(&fx, "publish-refuse", &gone, None);
@@ -219,7 +221,7 @@ fn wi3_publish_or_exit_write_failure_exits_78() {
 
 #[test]
 fn wi3_publish_or_exit_write_failure_after_temp_exits_78() {
-    let fx = Run::logged();
+    let fx = Run::for_child();
 
     // Precondition: the EFBIG mechanism is alive. A dead mechanism panics,
     // never skips, so it cannot read as a pass.
@@ -254,4 +256,18 @@ fn wi3_publish_or_exit_write_failure_after_temp_exits_78() {
         format!("{}\n", rejection_line(&GuardError::InstanceWrite))
     );
     assert_eq!(entries(&fx.run), names(&["launch.json"]));
+}
+
+/// D239: the parent never points its own process-wide HOME, CFFIXED_USER_HOME
+/// or MDPRO_VERIFY_RUN at the run dir. With them pointed there, any test in
+/// this binary that logs without `HOME_LOCK` wrote `<run>/.mdpro`, and the
+/// strict `entries` checks above failed intermittently. `spawn` hands the
+/// child its environment explicitly.
+#[test]
+fn d239_child_fixture_leaves_the_parent_env_alone() {
+    let fx = Run::for_child();
+    let run = Some(fx.run.clone().into_os_string());
+    for var in [HOME, CF_HOME, RUN] {
+        assert_ne!(std::env::var_os(var), run, "{var} points at the run dir");
+    }
 }

@@ -1,5 +1,6 @@
 //! Test-only fixture for the verify-run guard (ADR-0047 WI-002 / WI-4, WI-5):
-//! `Run::valid()`, a run dir that passes every check, built under
+//! `Run::valid()`, a run dir that passes every check (and `Run::for_child()`,
+//! the same dir with the parent's environment left alone, D239), built under
 //! `canonicalize(temp_dir())` with an injected parent (the real
 //! `<passwd home>/Library/Application Support/mdpro-verify/runs` is never
 //! touched), plus env, mode and snapshot helpers.
@@ -133,17 +134,26 @@ pub(super) struct Run {
 
 impl Run {
     pub(super) fn valid() -> Self {
-        Self::build(false)
+        Self::build(false, true)
     }
 
     /// `valid()` with the logger forced on at Info. The settings cache is
     /// primed under a throwaway HOME outside `root` first (matrix F3), so
     /// `load_preferences()` writes neither the fixture nor the real `~/.mdpro`.
     pub(super) fn logged() -> Self {
-        Self::build(true)
+        Self::build(true, true)
     }
 
-    fn build(log: bool) -> Self {
+    /// A run dir for a test that hands it to a spawned child (D239). The
+    /// parent's HOME, CFFIXED_USER_HOME, MDPRO_VERIFY_RUN, MDPRO_VERIFY_NONCE
+    /// and logger stay as they were: pointing the process-wide HOME at the
+    /// run dir let any test logging without `HOME_LOCK` write `<run>/.mdpro`.
+    /// The child gets its environment from `Command::env`.
+    pub(super) fn for_child() -> Self {
+        Self::build(false, false)
+    }
+
+    fn build(log: bool, repoint: bool) -> Self {
         let lock = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let env = EnvRestore::capture();
         let tmp = canonical_tmp();
@@ -178,8 +188,10 @@ impl Run {
             _env: env,
             _lock: lock,
         };
-        fx.point_paths_at(&fx.run.clone());
-        set_var(NONCE, &fx.nonce);
+        if repoint {
+            fx.point_paths_at(&fx.run.clone());
+            set_var(NONCE, &fx.nonce);
+        }
         fx
     }
 
