@@ -94,8 +94,13 @@ produced **wrong verdicts**; the rest cost time.
 19. **The Claude Code Bash tool:**
     - Calls over 120 s move to the background, so keep each call to one action plus its check.
     - Run `deploy.sh` with `run_in_background`.
-    - Wait with an `until <check>; do sleep 3; done` loop, never `sleep N; cat`, which is
-      blocked.
+    - Wait with a bounded loop:
+      `end=$((SECONDS+600)); until <check> || [ $SECONDS -ge $end ]; do sleep 3; done`.
+      Never `sleep N; cat`, which is blocked. When the wait reads a background task's output,
+      the check also stops on `^\[exited with code`, so a producer that died (ssh 255) ends
+      the wait. On 2026-10-15 an unbounded loop waited hours for a hash from a transfer that
+      had already failed.
+    - Before reporting, stop every background shell the run no longer needs.
     - `rm -rf` of a scratch folder is denied, so use a new folder name.
     - A backgrounded command can leave the shell in another directory, so set
       `S="$(git rev-parse --show-toplevel)/.claude/skills/remote-windows-device-test/scripts/mac"`.
