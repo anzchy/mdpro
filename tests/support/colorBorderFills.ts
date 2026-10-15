@@ -13,10 +13,11 @@
  *   stroke, mask, …), so a new kind of fill cannot slip past an allowlist.
  * - `var(` matches case-insensitively but the property name does not:
  *   `--COLOR-BORDER` is another custom property (audit b136). Quoted strings
- *   (with backslash escapes) are blanked before matching, so
- *   `content: "var(--color-border)"` is text, not a use, and a `;` inside a
- *   quoted string or an unquoted `url()` does not end an alias's value
- *   (audits b134, b136).
+ *   (with backslash escapes, a backslash-newline included) and unquoted
+ *   `url()` bodies are blanked before matching, so `content:
+ *   "var(--color-border)"` and `url(x#var(--color-border))` are text, not
+ *   uses, and a `;` or an escaped `)` inside them does not end an alias's
+ *   value (audits b134, b136, b138).
  * - Custom-property aliases are followed: `--x: var(--color-border)` makes
  *   `var(--x)` a use, transitively, across the files passed as `context`.
  * - Only the exact token counts: `--color-border-subtle` is another token.
@@ -29,18 +30,19 @@ import { blankComments, parseDeclarations, type CssDeclaration } from "./cssToke
 
 const TOKEN = "--color-border";
 const EDGE_PROPERTIES = /^(border(?!-image)|outline|box-shadow$|column-rule)/;
-/** A quoted string, honouring backslash escapes. */
-const STRING = String.raw`"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'`;
-/** An unquoted `url(…)`, whose body may hold `;` (a `data:` URL). */
-const BARE_URL = String.raw`url\([^)"']*\)`;
+/** A quoted string, honouring backslash escapes (a backslash-newline continues it). */
+const STRING = String.raw`"(?:[^"\\]|\\[\s\S])*"|'(?:[^'\\]|\\[\s\S])*'`;
+/** An unquoted `url(…)`, whose body may hold `;` (a `data:` URL) or an escaped `\)`. */
+const BARE_URL = String.raw`url\((?:[^)"'\\]|\\[\s\S])*\)`;
 /**
  * A custom-property definition; its value may contain quoted strings or an
  * unquoted `url()` with `;`, `{` or `}` inside.
  */
 const CUSTOM_PROPERTY = new RegExp(String.raw`(--[\w-]+)\s*:\s*((?:${STRING}|${BARE_URL}|[^;{}"'])*)`, "gi");
 
-/** `value` with the contents of every quoted string blanked. */
-const unquote = (value: string) => value.replace(new RegExp(STRING, "g"), '""');
+/** `value` with the contents of every quoted string and unquoted `url()` blanked. */
+const unquote = (value: string) =>
+  value.replace(new RegExp(STRING, "g"), '""').replace(new RegExp(BARE_URL, "gi"), "url()");
 
 const escape = (name: string) => name.replace(/[-]/g, "\\-");
 /** Matches `var(<one of names>` followed by `,` or `)`; `var` in any case, the name exactly. */

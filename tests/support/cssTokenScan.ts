@@ -147,9 +147,17 @@ export function parseDeclarations(css: string): CssDeclaration[] {
     const ch = text[i];
     if (buf === "") bufLine = line;
     if (ch === "\n") line += 1;
+    // A backslash escapes the next character, newline included, in or out of a
+    // string, so `"a\\"` closes and `url(a\))` does not end at `\)` (audit b138).
+    if (ch === "\\" && i + 1 < text.length) {
+      if (text[i + 1] === "\n") line += 1;
+      buf += ch + text[i + 1];
+      i += 1;
+      continue;
+    }
     if (quote) {
       buf += ch;
-      if (ch === quote && text[i - 1] !== "\\") quote = null;
+      if (ch === quote) quote = null;
       continue;
     }
     if (ch === '"' || ch === "'") {

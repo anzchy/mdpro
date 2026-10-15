@@ -181,6 +181,31 @@ describe("scanner fixtures", () => {
   });
 });
 
+describe("scanner fixtures: audit b138", () => {
+  const selectors = (css: string, context: string[] = []) => colorBorderFillUses(css, context).map((d) => d.selector);
+
+  it("M1: a string continued with backslash-newline does not end an alias's value", () => {
+    const css = `.a { --x: "a\\\n;b" var(--color-border); background: var(--x); }`;
+    expect(selectors(css)).toEqual([".a"]);
+  });
+
+  it("M2: an even run of backslashes before a quote closes the string", () => {
+    const css = `.a { --x: "a\\\\" var(--color-border); background: var(--x); }`;
+    expect(selectors(css)).toEqual([".a"]);
+  });
+
+  it("M3: an escaped ) inside an unquoted url() does not end it", () => {
+    const css = `.a { --x: url(data:a\\);b) var(--color-border); background: var(--x); }`;
+    expect(selectors(css)).toEqual([".a"]);
+  });
+
+  it("M4: the token inside an unquoted url() is URL text, not a use or an alias", () => {
+    const css = `.a { background: url(x.svg#var(--color-border)); }
+.b { --y: url(var(--color-border)); background: var(--y); }`;
+    expect(selectors(css)).toEqual([]);
+  });
+});
+
 describe("--color-border fill uses in app CSS", () => {
   it("the found uses equal the classified rows exactly (multiset)", () => {
     expect(found).toEqual(USES.map(keyOf).sort());
