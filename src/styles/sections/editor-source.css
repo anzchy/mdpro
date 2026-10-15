@@ -135,6 +135,36 @@
   color: inherit;
 }
 
+/* Both "×" sit on their panel's top-right corner and .editor-shell clips
+   overflow, so an outer ring was cut on the top and right (D233). Pattern 2
+   is drawn inside instead, on a box padded 0 4px so it clears the glyph;
+   right: 0 keeps the glyph where CodeMirror put it (right: 4px, no padding).
+   The search rule names .cm-search to outrank CodeMirror's base theme, which
+   loads later and would win a tie. */
+.editor-shell .cm-editor .cm-panel.cm-search [name="close"] {
+  color: inherit;
+  right: 0;
+  padding: 0 4px;
+  border-radius: var(--radius-inner);
+}
+
+.editor-shell .cm-editor .cm-panel .cm-dialog-close {
+  color: inherit;
+  right: 0;
+  padding: 0 4px;
+  border-radius: var(--radius-inner);
+}
+
+.editor-shell .cm-editor .cm-panel.cm-search [name="close"]:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.editor-shell .cm-editor .cm-panel .cm-dialog-close:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
 /* Selected diagnostic in the lint panel (⌘⇧M). Lint paints it #ddd / #2e343e
    unfocused and with system Highlight focused, keyed to CodeMirror's dark
    facet, not to the app theme: oneDark in the light app theme put dark text on

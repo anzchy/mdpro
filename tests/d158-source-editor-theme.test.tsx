@@ -383,16 +383,18 @@ describe("D158-WI-2 — dialog close button and lint selection follow the app th
     });
   }
 
-  it("every token the WI-2 rules use is defined in both themes", () => {
+  it("every token the WI-2 rules use is defined in both themes, or once in :root", () => {
     const light = readAppCssFile("themes/light.css");
     const dark = readAppCssFile("themes/dark.css");
+    // A theme-independent token (D233's --radius-inner) is declared once in globals.css :root.
+    const root = readAppCssFile("globals.css").match(/:root\s*\{([^}]*)\}/)?.[1] ?? "";
     const rules = [...appRulesFor(DIALOG_CLOSE), ...appRulesFor(LINT_SELECTED)];
     expect(rules).not.toHaveLength(0);
     for (const { rule } of rules) {
       for (const value of rule.decls.values()) {
         for (const m of value.matchAll(/var\((--[\w-]+)\)/g)) {
-          expect(light, `${m[1]} missing in light.css`).toContain(`${m[1]}:`);
-          expect(dark, `${m[1]} missing in dark.css`).toContain(`${m[1]}:`);
+          const inBothThemes = light.includes(`${m[1]}:`) && dark.includes(`${m[1]}:`);
+          expect(inBothThemes || root.includes(`${m[1]}:`), `${m[1]} is in neither both themes nor :root`).toBe(true);
         }
       }
     }
