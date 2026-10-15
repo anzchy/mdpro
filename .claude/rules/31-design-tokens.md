@@ -121,6 +121,10 @@ Only four tokens change at runtime: `--editor-font-family`,
 chrome (`--font-sans`) is fixed — never set `system-ui` /
 `-apple-system` directly on a non-editor surface.
 
+`--sidebar-width` is the fifth: `App.tsx` sets the user's stored width
+inline on `.app-shell`, and the resize handle sets it during a drag (D189,
+[ADR-0088](../../docs/adr/0088-the-sidebar-keeps-its-width-is-resizable-and-is-toggled-by-one-fixed-button.md)).
+
 `--traffic-lights-end` and `--traffic-lights-clearance{,-main}` are
 toggled by `body.tauri-macos` in `main.tsx`. Top-of-window chrome
 must respect them or it collides with the macOS traffic-light buttons.

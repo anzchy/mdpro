@@ -161,12 +161,23 @@ shadow.
 - **Sidebar:** on `--color-surface` with a hairline right edge. The top strip
   clears the traffic lights, using the existing tokens. The "Contents" label
   is small and muted.
+  - **Width ([ADR-0088](../../adr/0088-the-sidebar-keeps-its-width-is-resizable-and-is-toggled-by-one-fixed-button.md)):**
+    the user sets it by dragging the right edge, 180–480px, default 220
+    (`--sidebar-width`, stored as the `sidebarWidth` preference). It keeps
+    that width at every window width and never collapses because the window
+    is narrow. The one exception: the *rendered* width yields so the main
+    column keeps `--main-min-width` (320px), never below
+    `--sidebar-width-min` (180px). The stored width is unchanged, so widening
+    the window restores it. See § Sidebar resize handle.
+  - **Visibility:** hidden and shown only by the user, through § Sidebar
+    toggle, View → Toggle Sidebar or ⌘⇧L (ADR-0088).
 - **Main column:**
   - **Bar:** breadcrumb on the left, the Source | WYSIWYG segmented control
     on the right, in both sidebar states (item 9). See § Main bar.
   - **Editor:** on `--color-editor-bg`.
   - **Status strip:** below the editor. See § Status strip.
 - **Bottom tab bar:** full width on `--color-surface`, with a hairline top.
+  Its first control is the § Sidebar toggle (ADR-0088).
 - **Heights:** the shipped title-bar and tab-bar heights stay. Density is a
   product choice.
 - **Narrow windows (DR16):** the 400×640 minimum stays.
@@ -193,7 +204,7 @@ read past.
 │         ├─────────────────────────────────────┤
 │         │ Ln 14, Col 8     1,284 words  UTF-8 │  status strip
 ├─────────┴─────────────────────────────────────┤
-│ + │ tab │ tab │ tab                           │  bottom tabs
+│ ◧ │ + │ tab │ tab │ tab                       │  bottom tabs
 └───────────────────────────────────────────────┘
 ```
 
@@ -220,6 +231,37 @@ cited proposal lines in both themes.
   replace text carets. No emoji or text glyphs as icons. Plan WI-4.2 lists
   every site. Shortcut symbols (⌘, ⌥) are text, not icons.
 - **Accessible names:** icon-only controls always have one.
+- **Sidebar glyphs (ADR-0088):** `panel-left-close` (rect `3,3,18,18 rx2`,
+  `M9 3v18`, `m16 15-3-3 3-3`) while the sidebar is shown, and `panel-left`
+  (the rect and divider only) while it is hidden. Same geometry as lucide,
+  drawn inline.
+
+### Sidebar toggle (ADR-0088 decision 1)
+
+- **Place:** first in the bottom tab bar, before New Document, then a
+  hairline separator. It stays in the same place in both states, so a second
+  click undoes the first.
+- **Box:** the § Buttons icon button. Focus is rule 33 pattern 2 (outline).
+- **Icon and name:** the sidebar glyphs above. The accessible name and the
+  tooltip read "Hide Sidebar" or "Show Sidebar" plus the platform shortcut
+  (⌘⇧L on macOS, Ctrl+Shift+L elsewhere). `aria-expanded` follows the
+  state; `aria-controls` names the sidebar while it is shown.
+- **Behaviour:** the same toggle as the menu and ⌘⇧L, one preference write
+  per click. No animation (DR12).
+
+### Sidebar resize handle (ADR-0088 decision 3)
+
+- **Place:** the sidebar's right edge, an 8px hit area inside the edge (the
+  sidebar clips its overflow). Cursor `col-resize`.
+- **Look:** at rest only the existing hairline. On hover and while dragging,
+  a 2px `--color-border` bar on the edge. Focus is rule 33 pattern 2, with
+  the outline inset.
+- **Semantics:** a focusable `role="separator"`, vertical, named "Resize
+  sidebar", carrying `aria-valuenow`, `-min` (180) and `-max` (480).
+- **Keyboard:** ←/→ step 8px, Shift+←/→ 32px, Home/End go to the limits,
+  Enter or a double-click resets to 220.
+- **Writes:** a drag changes only `--sidebar-width` until it ends; each drag,
+  key step or reset writes the preference once. No animation (DR12).
 
 ### Main bar (D1, DR2; proposal :143-146, :384-385)
 
@@ -711,6 +753,7 @@ Leave these open; don't pick an answer while building.
 
 | Date | Decision | Rationale |
 |---|---|---|
+| 2026-10-15 | ADR-0088: the sidebar is resizable (180–480px, default 220) and keeps its width at every window width; two new layout tokens, `--sidebar-width-min` (180px) and `--main-min-width` (320px), set the grid's `clamp()`. One fixed toggle leads the bottom tab bar | The width was a fixed 220px and a leftover 960px media query squeezed the sidebar to 33px or stretched it across the window (#416). Hiding it is the user's choice, never a side effect of window size. The tokens name the two limits instead of literals in the grid. |
 | 2026-09-11 | DR23: Radii snap by role to `--radius-control`, `--radius-popover` and a new `--radius-inner` (4px); circles `50%`, pills `999px` | Nested parts need a smaller radius than their container to look concentric, and the proposal already draws 4px for them. Seven ad-hoc values collapse to three roles with no exceptions. |
 | 2026-09-11 | DR22: Off-ramp chrome sizes follow the proposal's roles; one new `--font-size-title` (16px) for page titles; glyph sizes become icons | Every size gets a named role and the guard needs no exceptions. The one size the proposal hard-codes, its 16px page title, becomes a token. |
 | 2026-09-11 | DR21: No warning color. The Shortcuts unsaved banner uses the accent-soft fill; the dev-only toolbar's literals are a guard exception | Unsaved already means accent, on the tab dot. A warning token would give one state two colors, and only one shipped banner would use it. |

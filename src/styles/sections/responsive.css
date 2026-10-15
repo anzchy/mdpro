@@ -1,10 +1,8 @@
 
 
+/* No .app-shell override here: the sidebar keeps its width at every window
+   width (D189, ADR-0088, issue #416). */
 @media (max-width: 960px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
-
   .split-view {
     flex-direction: column;
   }

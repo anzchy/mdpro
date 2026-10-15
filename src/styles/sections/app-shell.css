@@ -2,7 +2,9 @@
 .app-shell {
   height: 100%;
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
+  /* The sidebar keeps its stored width at every window width; only when main
+     would drop below its minimum does the rendered width yield (ADR-0088). */
+  grid-template-columns: clamp(var(--sidebar-width-min), var(--sidebar-width), 100vw - var(--main-min-width)) minmax(0, 1fr);
   grid-template-rows: 1fr var(--bottom-tabs-height);
   grid-template-areas:
     "sidebar main"
@@ -30,6 +32,7 @@
 }
 
 .sidebar {
+  position: relative;
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
   padding: 16px;
@@ -39,6 +42,38 @@
   gap: 12px;
   min-height: 0;
   overflow: hidden;
+}
+
+/* D189 resize handle. Inside the edge: .sidebar clips its overflow. Painted
+   above the sidebar's content because it is its last positioned child. */
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sidebar-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: transparent;
+}
+
+.sidebar-resize-handle:hover::after,
+.sidebar-resize-handle:active::after {
+  background: var(--color-border);
+}
+
+.sidebar-resize-handle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 .sidebar-header {

@@ -6,7 +6,7 @@
  * for hairlines and control edges (DESIGN.md § Tokens) but would silently
  * change any surface that uses the token as a fill. Every fill use in app CSS
  * must therefore be classified:
- * - LINE: a 1px rule drawn as a box. It follows the border change on purpose.
+ * - LINE: a 1px or 2px rule drawn as a box. It follows the border change on purpose.
  * - RETARGET: a real fill, moved to another token by the WI named in `item`.
  * - DEAD: nothing renders the selector; it goes with the TODOS.md entry
  *   "Remove dead App.css and TabBar; fix rule 34's App.css claim".
@@ -68,12 +68,19 @@ const USES: Use[] = [
     kind: "line",
     note: "1px column-resize hairline",
   },
+  {
+    file: S + "app-shell.css",
+    selector: ".sidebar-resize-handle:hover::after, .sidebar-resize-handle:active::after",
+    ...BG,
+    kind: "line",
+    note: "D189: the 2px bar on the sidebar edge while the resize handle is hovered or dragged",
+  },
   { file: S + "app-shell.css", selector: ".split-divider", ...BG, kind: "dead", note: "orphan: no src/ file references split-divider" },
   { file: S + "tab-bar.css", selector: ".tab__close:hover", ...BG, kind: "dead", note: "A8 dead code: only src/components/TabBar/ renders it" },
 ];
 
 /** Expected rows per kind. WI-3.1 moved the one `retarget` row, the About progress track, to `--color-border-subtle`. */
-const KIND_COUNTS: Record<Kind, number> = { line: 2, retarget: 0, dead: 2 };
+const KIND_COUNTS: Record<Kind, number> = { line: 3, retarget: 0, dead: 2 };
 
 /** Rows are pinned by the whole declaration and compared as multisets (audit b129). */
 const keyOf = (u: { file: string; selector: string; property: string; value: string }) =>

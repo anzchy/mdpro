@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interface text uses one four-step size scale: small labels and hints are 12px, dialog and Settings headers 14px, page titles 16px; WYSIWYG tables scale with the editor font (UI redesign Deliverable B)
 
 ### Fixed
+- The sidebar keeps its width when the window is narrow (half or a third of the screen, or high display scaling on Windows). At 960 px or less it used to be squeezed to a sliver when a document was open, and to stretch across most of the window when none was. It now gives way only as far as needed to keep 320 px for the editor (D189, #416)
 - The MCP server no longer loses its connection files or its token when it is switched back on right after it failed while serving (D205). The failed server's late cleanup could delete the new server's `server.port` and `server.token` and clear its token, so clients could not find it or were refused until the next restart
 
 ## [0.3.4] - 2026-10-15

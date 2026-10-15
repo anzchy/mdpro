@@ -23,7 +23,10 @@
   --traffic-lights-end: 0px;
   --traffic-lights-clearance: 0px;
   --traffic-lights-clearance-main: 0px;
+  /* The stored sidebar width; App.tsx sets the user's value inline on .app-shell (D189, ADR-0088) */
   --sidebar-width: 220px;
+  --sidebar-width-min: 180px;
+  --main-min-width: 320px; /* the sidebar's rendered width yields so main keeps this */
   --bottom-tabs-height: 36px;
   /* Content layout constraints */
   --editor-content-width: 780px;
