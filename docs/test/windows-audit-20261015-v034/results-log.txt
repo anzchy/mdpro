@@ -1,0 +1,738 @@
+##### f.log
+=== F1  chord=ctrl+n  line=CTRL control line how=end
+clickat 1578,344
+chord ctrl+n
+08:30:49.149 preferences.set success null 
+08:31:14.721 ui.shortcut.trigger success {"action": "file.new", "shortcut": "Cmd+N"} 
+08:31:14.724 tab.open success {"documentId": "9dd796b4-5ab2-438b-b38e-6b48462ab6e2", "filePath": null, "tabIndex": 1} 
+08:31:14.724 tab.switch success {"fromDocumentId": "4d8db0e4099f4cd1", "toDocumentId": "9dd796b4-5ab2-438b-b38e-6b48462ab6e2"} 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== F6  chord=ctrl+w  line=- how=none
+chord ctrl+w
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+08:32:05.697 ui.shortcut.trigger success {"action": "file.close", "shortcut": "Cmd+W"} 
+08:32:05.700 tab.close success {"documentId": "9dd796b4-5ab2-438b-b38e-6b48462ab6e2", "filePath": null, "wasModified": false} 
+=== F4  chord=ctrl+s  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+s
+08:32:35.994 ui.shortcut.trigger success {"action": "file.save", "shortcut": "Cmd+S"} 
+08:32:35.998 preferences.read success {"outcome": "ok", "purpose": "save_reformat_check"} 
+08:32:35.999 file.save start {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\w.md"} 
+08:32:36.003 file.save success {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\w.md", "fileSizeBytes": 752} 
+08:32:36.003 file.save.notice success {"emitted": 1, "failed": 0, "filePath": "C:\Users\jack\mdpro-audit\fx\v034\w.md", "spellings": 1} 
+08:32:36.033 preferences.set start {"partial": true} 
+08:32:36.037 preferences.set success null 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+=== F5  chord=ctrl+shift+s  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+shift+s
+08:32:36.037 preferences.set success null 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+window 'mdpro' hwnd=49087098 rect=-11,-11,3862,2110
+=== F3  chord=ctrl+o  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+o
+08:33:29.092 ui.shortcut.trigger success {"action": "file.open", "shortcut": "Cmd+O"} 
+08:33:29.093 file.open start {"source": "dialog"} 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+cancelled
+08:33:29.093 file.open start {"source": "dialog"} 
+08:33:45.707 file.open cancel {"source": "dialog"} 
+=== F7  chord=ctrl+comma  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+comma
+08:33:45.707 file.open cancel {"source": "dialog"} 
+08:34:27.318 ui.shortcut.trigger success {"action": "file.preferences", "shortcut": "Cmd+,"} 
+08:34:27.384 preferences.read success {"outcome": "ok", "purpose": "settings_general"} 
+08:34:27.388 preferences.read success {"outcome": "ok", "purpose": "settings_dialog"} 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+"Settings×⚙️General✏️Editor📝Markdown🖼️Image🔗Integrations📤"
+=== F2  chord=ctrl+shift+n  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+shift+n
+08:35:03.231 ui.button.click success {"controlId": "settings.close"} 
+08:35:16.066 ui.shortcut.trigger success {"action": "file.new_window", "shortcut": "Cmd+Shift+N"} 
+08:35:16.077 window.create start {"filePath": null} 
+08:35:16.709 window.create success {"filePath": null, "geometry": "default", "geometryClamped": false, "geometryReason": "no_path", "windowId": "mdpro-359b78a8-1cd7-493b-a722-a96e702f6dbd"} 
+08:35:17.004 preferences.read success {"outcome": "ok", "purpose": "app_hydrate"} 
+08:35:17.351 preferences.read success {"outcome": "ok", "purpose": "view_mode_startup_settle"} 
+08:35:17.352 preferences.last_view_mode success {"outcome": "settled", "reason": "read_applied"} 
+08:35:17.353 view.mode.change success {"fromMode": "wysiwyg", "intent": "programmatic", "source": "setViewMode", "toMode": "source"} 
+{
+ "exception": "ReferenceError: __sc is not defined\n    at <anonymous>:1:38\n    at <anonymous>:1:51"
+}
+
+##### v.log
+=== V3-W  chord=ctrl+shift+l  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+shift+l
+08:36:28.256 ui.shortcut.trigger success {"action": "view.toggle_sidebar", "shortcut": "Cmd+Shift+L"} 
+08:36:28.256 preferences.set start {"partial": true} 
+08:36:28.260 preferences.set success null 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+0
+=== V3-W-back  chord=ctrl+shift+l  line=CTRL control linexy how=end
+clickat 1322,447
+chord ctrl+shift+l
+08:36:28.260 preferences.set success null 
+08:36:53.867 ui.shortcut.trigger success {"action": "view.toggle_sidebar", "shortcut": "Cmd+Shift+L"} 
+08:36:53.868 preferences.set start {"partial": true} 
+08:36:53.874 preferences.set success null 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+220
+=== V5  chord=ctrl+alt+f  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+alt+f
+08:36:53.874 preferences.set success null 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+window 'mdpro' hwnd=49087098 rect=-11,-11,3862,2110
+=== V1  chord=ctrl+slash  line=CTRL control linexy how=end
+clickat 1619,344
+chord ctrl+slash
+08:37:55.219 ui.shortcut.trigger success {"action": "view.cycle", "shortcut": "Cmd+/"} 
+08:37:55.220 view.mode.change success {"fromMode": "wysiwyg", "intent": "user", "source": "cycleViewMode", "toMode": "source"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":1}"
+=== V3-S  chord=ctrl+shift+l  line=CTRL control linexy how=end
+clickat 1702,249
+chord ctrl+shift+l
+08:38:22.465 ui.shortcut.trigger success {"action": "view.toggle_sidebar", "shortcut": "Cmd+Shift+L"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":1}"
+"{\"sb\":0,\"sel\":\"\",\"cmsel\":0}"
+=== V3-S-back  chord=ctrl+shift+l  line=CTRL control linexy how=end
+clickat 1405,352
+chord ctrl+shift+l
+08:38:48.358 ui.shortcut.trigger success {"action": "view.toggle_sidebar", "shortcut": "Cmd+Shift+L"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":1}"
+"{\"sb\":220,\"sel\":\"\",\"cmsel\":0}"
+=== V2  chord=ctrl+slash  line=CTRL control linexy how=end
+clickat 1702,249
+chord ctrl+slash
+08:39:14.616 view.mode.change success {"fromMode": "source", "intent": "user", "source": "cycleViewMode", "toMode": "wysiwyg"} 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":1}"
+=== V6  chord=ctrl+backtick  line=CTRL control line how=end
+clickat 1578,344
+chord ctrl+backtick
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+
+##### d217.log
+08:35:16.077 window.create start {"filePath": null} 
+08:35:16.709 window.create success {"filePath": null, "geometry": "default", "geometryClamped": false, "geometryReason": "no_path", "windowId": "mdpro-359b78a8-1cd7-493b-a722-a96e702f6dbd"} 
+
+##### si.log
+08:39:43.783 file.open.args_filtered success {"accepted": 1, "dropped": {"flag": 0, "non_utf8": 0, "not_markdown": 0, "not_regular_file": 0, "relative_without_cwd": 0, "unresolved": 0}, "source": "single_instance"} 
+08:39:43.783 app.single_instance success {"filePaths": ["C:\Users\jack\mdpro-audit\fx\v034\s.md"]} 
+08:39:43.783 file.open.external start {"filePaths": ["C:\Users\jack\mdpro-audit\fx\v034\s.md"], "source": "single_instance"} 
+08:39:43.784 file.open.route success {"matchCount": 0, "outcome": "broadcast", "source": "single_instance", "windowLabel": null} 
+08:39:43.784 file.open.external success {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\s.md", "source": "single_instance"} 
+08:39:43.792 file.open start {"encodingHint": null, "filePath": "C:\Users\jack\mdpro-audit\fx\v034\s.md"} 
+08:39:43.794 file.open success {"encoding": "UTF-8", "filePath": "C:\Users\jack\mdpro-audit\fx\v034\s.md", "fileSizeBytes": 750} 
+08:39:43.797 tab.open success {"documentId": "3c59685ae6f3e6f6", "filePath": "C:\Users\jack\mdpro-audit\fx\v034\s.md", "tabIndex": 1} 
+
+##### paraW.log
+=== P1-W  chord=ctrl+1  line=P1 heading target how=end
+clickat 1596,446
+chord ctrl+1
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P2-W  chord=ctrl+2  line=P2 heading target how=end
+clickat 1596,614
+chord ctrl+2
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P3-W  chord=ctrl+3  line=P3 heading target how=end
+clickat 1596,744
+chord ctrl+3
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P4-W  chord=ctrl+4  line=P4 heading target how=end
+clickat 1596,857
+chord ctrl+4
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P5-W  chord=ctrl+5  line=P5 heading target how=end
+clickat 1596,964
+chord ctrl+5
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P6-W  chord=ctrl+6  line=P6 heading target how=end
+clickat 1596,1029
+chord ctrl+6
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P7-W  chord=ctrl+0  line=P7 paragraph target how=end
+clickat 2075,1029
+chord ctrl+0
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P8-W  chord=ctrl+equals  line=P8 increase target how=end
+clickat 1695,1030
+chord ctrl+equals
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P9-W  chord=ctrl+minus  line=P9 decrease target how=end
+clickat 1801,1029
+chord ctrl+minus
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P11-W  chord=ctrl+alt+c  line=P11 code target how=end
+clickat 1558,1029
+chord ctrl+alt+c
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P12-W  chord=ctrl+alt+b  line=P12 math target how=end
+clickat 1563,1029
+chord ctrl+alt+b
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P13-W  chord=ctrl+alt+q  line=P13 quote target how=end
+clickat 1577,1030
+chord ctrl+alt+q
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P14-W  chord=ctrl+alt+o  line=P14 ordered target how=end
+clickat 1616,1029
+chord ctrl+alt+o
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P15-W  chord=ctrl+alt+u  line=P15 unordered target how=end
+clickat 1665,1030
+chord ctrl+alt+u
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P16-W  chord=ctrl+rbracket  line=P16 indent item two how=end
+clickat 1802,1030
+chord ctrl+rbracket
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+=== P17-W  chord=ctrl+lbracket  line=P17 outdent item how=end
+clickat 1911,1030
+chord ctrl+lbracket
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+
+##### p10.log
+=== P10-W  chord=ctrl+alt+t  line=T7 image line how=end
+clickat 1511,1072
+chord ctrl+alt+t
+08:47:27.527 ui.shortcut.trigger success {"action": "paragraph.table", "shortcut": "Cmd+Option+T"} 
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":2}"
+
+##### paraS.log
+=== P1-S  chord=ctrl+1  line=P1 heading target how=end
+clickat 1679,387
+chord ctrl+1
+08:49:55.046 ui.shortcut.trigger success {"action": "paragraph.heading1", "shortcut": "Cmd+1"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P2-S  chord=ctrl+2  line=P2 heading target how=end
+clickat 1679,526
+chord ctrl+2
+08:49:55.046 ui.shortcut.trigger success {"action": "paragraph.heading1", "shortcut": "Cmd+1"} 
+08:50:18.699 ui.shortcut.trigger success {"action": "paragraph.heading2", "shortcut": "Cmd+2"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P3-S  chord=ctrl+3  line=P3 heading target how=end
+clickat 1679,664
+chord ctrl+3
+08:50:18.699 ui.shortcut.trigger success {"action": "paragraph.heading2", "shortcut": "Cmd+2"} 
+08:50:40.834 ui.shortcut.trigger success {"action": "paragraph.heading3", "shortcut": "Cmd+3"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P4-S  chord=ctrl+4  line=P4 heading target how=end
+clickat 1679,802
+chord ctrl+4
+08:51:02.812 ui.shortcut.trigger success {"action": "paragraph.heading4", "shortcut": "Cmd+4"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P5-S  chord=ctrl+5  line=P5 heading target how=end
+clickat 1679,940
+chord ctrl+5
+08:51:25.562 ui.shortcut.trigger success {"action": "paragraph.heading5", "shortcut": "Cmd+5"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P6-S  chord=ctrl+6  line=P6 heading target how=end
+clickat 1679,1030
+chord ctrl+6
+08:51:25.562 ui.shortcut.trigger success {"action": "paragraph.heading5", "shortcut": "Cmd+5"} 
+08:51:47.475 ui.shortcut.trigger success {"action": "paragraph.heading6", "shortcut": "Cmd+6"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P7-S  chord=ctrl+0  line=P7 paragraph target how=end
+clickat 1815,1030
+chord ctrl+0
+08:51:47.475 ui.shortcut.trigger success {"action": "paragraph.heading6", "shortcut": "Cmd+6"} 
+08:52:10.192 ui.shortcut.trigger success {"action": "paragraph.paragraph", "shortcut": "Cmd+0"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P8-S  chord=ctrl+equals  line=P8 increase target how=end
+clickat 1774,1029
+chord ctrl+equals
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P9-S  chord=ctrl+minus  line=P9 decrease target how=end
+clickat 1786,1029
+chord ctrl+minus
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P11-S  chord=ctrl+alt+c  line=P11 code target how=end
+clickat 1641,1030
+chord ctrl+alt+c
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P12-S  chord=ctrl+alt+b  line=P12 math target how=end
+clickat 1646,1030
+chord ctrl+alt+b
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P13-S  chord=ctrl+alt+q  line=P13 quote target how=end
+clickat 1660,1029
+chord ctrl+alt+q
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P14-S  chord=ctrl+alt+o  line=P14 ordered target how=end
+clickat 1699,1029
+chord ctrl+alt+o
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P15-S  chord=ctrl+alt+u  line=P15 unordered target how=end
+clickat 1748,1030
+chord ctrl+alt+u
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P16-S  chord=ctrl+rbracket  line=P16 indent item two how=end
+clickat 1770,1029
+chord ctrl+rbracket
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== P17-S  chord=ctrl+lbracket  line=P17 outdent item how=end
+clickat 1740,1029
+chord ctrl+lbracket
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+
+##### fmtW2.log
+=== T5-W  chord=alt+shift+5  line=T5 strike word: echo how=sel:echo
+"echo"
+chord alt+shift+5
+"{\"mode\":\"W\",\"sel\":\"echo\",\"tabs\":2}"
+=== T7-W  chord=ctrl+i  line=T7 image line how=sel:T7 image line
+"T7 image line"
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+chord ctrl+i
+"{\"mode\":\"W\",\"sel\":\"T7 image line\",\"tabs\":2}"
+
+##### fmtS.log
+=== T1-S  chord=ctrl+b  line=T1 bold word: alpha how=sel:alpha
+"alpha"
+chord ctrl+b
+"{\"mode\":\"S\",\"sel\":\"alpha\",\"tabs\":2}"
+=== T2-S  chord=ctrl+i  line=T2 italic word: bravo how=sel:bravo
+"bravo"
+chord ctrl+i
+"{\"mode\":\"S\",\"sel\":\"T2 italic word: bravo\",\"tabs\":2}"
+=== T3-S  chord=ctrl+u  line=T3 underline word: charlie how=sel:charlie
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+"charlie"
+chord ctrl+u
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+=== T4-S  chord=ctrl+shift+backtick  line=T4 code word: delta how=sel:delta
+"delta"
+chord ctrl+shift+backtick
+"{\"mode\":\"S\",\"sel\":\"delta\",\"tabs\":2}"
+=== T5-S  chord=alt+shift+5  line=T5 strike word: echo how=sel:echo
+"echo"
+chord alt+shift+5
+"{\"mode\":\"S\",\"sel\":\"echo\",\"tabs\":2}"
+=== T6-S  chord=ctrl+k  line=T6 link word: foxtrot how=sel:foxtrot
+"foxtrot"
+chord ctrl+k
+10:13:49.415 ui.shortcut.trigger success {"action": "format.hyperlink", "shortcut": "Cmd+K"} 
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+shot C:\Users\jack\mdpro-audit\v034-t6s.png
+"cancelled:true"
+=== T7-S  chord=ctrl+i  line=T7 image line how=sel:T7 image line
+"T7 image line"
+chord ctrl+i
+"{\"mode\":\"S\",\"sel\":\"T7 image line\",\"tabs\":2}"
+=== T8-S  chord=ctrl+backslash  line=T8 clear **golf** format how=sel:T8 clear **golf** format
+false
+chord ctrl+backslash
+"{\"mode\":\"S\",\"sel\":\"T7 image line\",\"tabs\":2}"
+
+##### editS.log
+1009.2593383789062
+clip: 10:21:39.764 clip=SENTINEL-E1S
+=== E1-S  chord=ctrl+shift+c  line=E1 copy source **hotel** line how=sel:hotel
+"hotel"
+chord ctrl+shift+c
+"{\"mode\":\"S\",\"sel\":\"hotel\",\"tabs\":2}"
+kex_exchange_identification: read: Connection reset by peer
+Connection reset by 100.123.111.19 port 22
+clip: 
+== E1-S control ctrl+c
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+clip: 
+=== E2-S  chord=ctrl+shift+v  line=E2 paste target line how=end
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+LINE NOT FOUND
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+=== E3-S  chord=ctrl+l  line=E3 select line how=end
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+LINE NOT FOUND
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+=== E4-S  chord=ctrl+d  line=E4 select word ind how=end
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+LINE NOT FOUND
+
+##### editS2.log
+1009.2593383789062
+1009.2593383789062
+"{\"mode\":\"S\",\"sel\":\"hotel\",\"tabs\":2}"
+clickat 1780,1050
+"hotel"
+== E1-S redo: clip before
+clip: 10:34:22.753 clip=SENTINEL-E1S
+chord ctrl+shift+c
+== E1-S after
+clip: 10:35:33.714 clip=SENTINEL-E1S
+== E1-S control ctrl+c
+chord ctrl+c
+clip: 10:36:05.943 clip=hotel
+=== E2-S  chord=ctrl+shift+v  line=E2 paste target line how=end
+clickat 1704,1188
+chord ctrl+shift+v
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+"DIV:E2 paste target linehotel"
+=== E3-S  chord=ctrl+l  line=E3 select line how=end
+clickat 1584,1326
+chord ctrl+l
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+chord z
+"DIV:E3 select linez target"
+=== E4-S  chord=ctrl+d  line=E4 select word ind how=end
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+chord z
+"DIV:E4 select word india"
+LINK-DOWN after line 19
+
+##### editS3.log
+1009.2593383789062
+=== E4-S  chord=ctrl+d  line=E4 select word ind how=end
+clickat 1685,1464
+chord ctrl+d
+"{\"mode\":\"S\",\"sel\":\"india\",\"tabs\":2}"
+chord z
+"DIV:E4 select word z"
+=== E5-S  chord=ctrl+shift+d  line=E5 delete word juli how=end
+clickat 1690,1603
+chord ctrl+shift+d
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+chord z
+"DIV:E5 delete word julizet"
+=== E6-S  chord=ctrl+up  line=LAST line how=end
+clickat 1513,1879
+chord ctrl+up
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+chord q
+""
+0
+=== E7-S  chord=ctrl+down  line=# Shortcut matrix fixture how=start
+LINE NOT FOUND
+1009.2593383789062
+=== E8-S  chord=ctrl+f  line=LAST line how=end
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+clickat 1513,1879
+chord ctrl+f
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+LINK-DOWN after line 25
+
+##### editS4.log
+shot C:\Users\jack\mdpro-audit\v034-e8s.png
+"{\"panel\":true,\"q\":\"kilo\",\"n\":3}"
+chord ctrl+g
+"E8 find kilo off=8"
+chord ctrl+g
+"E8 find kilo off=14"
+chord ctrl+shift+g
+"E8 find kilo off=8"
+shot C:\Users\jack\mdpro-audit\v034-e10s.png
+"panel:false"
+=== E11-S  chord=ctrl+h  line=LAST line how=end
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+NO OUTPUT from win-desktop (ssh failed? run: ssh win-desktop hostname)
+LINE NOT FOUND
+LINK-DOWN at e11
+
+##### editS5.log
+=== E11-S  chord=ctrl+h  line=LAST line how=end
+clickat 1513,1879
+chord ctrl+h
+"{\"mode\":\"S\",\"sel\":\"\",\"tabs\":2}"
+shot C:\Users\jack\mdpro-audit\v034-e11s.png
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+"{\"panel\":false,\"dialog\":false}"
+LINK-DOWN at e11read
+
+##### editS6.log
+0
+=== E7-S ctrl+down from start of H1
+chord q
+"H1Shortcut matrix fixture | q | CTRL control line | "
+chord ctrl+s
+10:58:59.113 file.save start {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\s.md"} 
+10:58:59.123 file.save success {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\s.md", "fileSizeBytes": 783} 
+2c2
+< 
+---
+> q
+56c56
+< E2 paste target line
+---
+> E2 paste target linehotel
+58c58
+< E3 select line target
+---
+> E3 select linezz target
+60c60
+< E4 select word india
+---
+> E4 select word z
+62c62
+< E5 delete word juliet
+---
+> E5 delete word julizet
+65c65
+< 
+---
+> q
+EDITS-DONE
+
+##### ur.log
+opened C:\Users\jack\mdpro-audit\fx\v034\urw.md
+click 'Source' at 382,130
+"{\"active\":\"urw.md×\",\"mode\":\"S\",\"line\":\"DIV:UR line\"}"
+chord y
+== after typing xy
+"{\"active\":\"urw.md×\",\"mode\":\"S\",\"line\":\"DIV:UR linexy\"}"
+KL: 11:09:46.196 fg=mdpro hkl=0x04090409
+click 'Undo' at 268,84
+== after menu Undo
+"{\"active\":\"urw.md×\",\"mode\":\"S\",\"line\":\"DIV:UR line\"}"
+KL: 11:10:53.047 fg=mdpro hkl=0x04090409
+click 'Redo' at 268,118
+== after menu Redo
+"{\"active\":\"urw.md×\",\"mode\":\"S\",\"line\":\"DIV:UR linexy\"}"
+KL: 11:12:42.400 fg=mdpro hkl=0x04090409
+UR-DONE
+
+##### editW.log
+"w.md×"
+click 'WYSIWYG' at 382,164
+"{\"active\":\"w.md×\",\"mode\":\"W\"}"
+clip: 11:15:01.487 clip=SENTINEL-E1W
+=== E1-W  chord=ctrl+shift+c  line=E1 copy source hotel line how=sel:hotel
+LINE NOT FOUND
+clip: 11:15:35.668 clip=SENTINEL-E1W
+== E1-W control / E2 source: ctrl+c on hotel
+chord ctrl+c
+clip: 11:16:04.819 clip=SENTINEL-E1W
+=== E2-W  chord=ctrl+shift+v  line=E2 paste target line how=end
+clickat 1622,1376
+chord ctrl+shift+v
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+"E2 paste target lineSENTINEL-E1W"
+=== E3-W  chord=ctrl+l  line=E3 select line how=end
+clickat 1501,1478
+chord ctrl+l
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+chord z
+"P:E3 select linez target"
+=== E4-W  chord=ctrl+d  line=E4 select word ind how=end
+clickat 1603,1579
+chord ctrl+d
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+chord z
+"P:E4 select word indzia"
+=== E5-W  chord=ctrl+shift+d  line=E5 delete word juli how=end
+clickat 1608,1681
+chord ctrl+shift+d
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+chord z
+"P:E5 delete word julizet"
+=== E6-W  chord=ctrl+up  line=LAST line how=end
+clickat 1431,1884
+chord ctrl+up
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+chord q
+=== E7-W  chord=ctrl+down  line=Shortcut matrix fixture how=start
+clickat 1256,226
+chord ctrl+down
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+chord q
+""
+=== E8-W  chord=ctrl+f  line=E8 find kilo how=end
+LINE NOT FOUND
+shot C:\Users\jack\mdpro-audit\v034-e8w.png
+EDITW1-DONE
+
+##### editW2.log
+"{\"active\":\"w.md×\",\"mode\":\"W\",\"q\":[\"qCTRL control linexy\",\"E8 find kiqlo, kilo again, last kilo\"]}"
+clip: 11:26:52.168 clip=SENTINEL-E1W2
+clickat 1659,1275
+"hotel"
+=== E1-W ctrl+shift+c
+chord ctrl+shift+c
+clip: 11:28:15.329 clip=SENTINEL-E1W2
+"{\"mode\":\"W\",\"sel\":\"hotel\",\"tabs\":4}"
+=== E1-W control ctrl+c
+chord ctrl+c
+clip: 11:29:10.741 clip=hotel
+=== E2-W ctrl+shift+v at end of E2 line
+chord ctrl+shift+v
+"E2 paste target lineSENTINEL-E1Whotel"
+=== E8-W ctrl+f
+shot C:\Users\jack\mdpro-audit\v034-e8w.png
+"{\"cmsearch\":false,\"dialog\":false,\"focus\":\"ProseMirror editor\"}"
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+/var/folders/_k/kf42wzb57vl8c_1vcs01hp7c0000gn/T//mdpro-win-out/e8-w.png
+EDITW2-DONE
+
+##### findW.log
+=== E8-W type kilo in find bar
+shot C:\Users\jack\mdpro-audit\v034-e8w2.png
+=== E9-W ctrl+g
+shot C:\Users\jack\mdpro-audit\v034-e9w.png
+=== E10-W ctrl+shift+g
+shot C:\Users\jack\mdpro-audit\v034-e10w.png
+=== close find bar (X)
+clickat 3705,141
+=== E11-W  chord=ctrl+h  line=LAST line how=end
+clickat 1431,1884
+chord ctrl+h
+"{\"mode\":\"W\",\"sel\":\"\",\"tabs\":4}"
+shot C:\Users\jack\mdpro-audit\v034-e11w.png
+"{\"dialog\":false,\"last\":\"P:LAST line\"}"
+chord ctrl+s
+11:54:07.680 file.save start {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\w.md"} 
+11:54:07.694 file.save success {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\w.md", "fileSizeBytes": 836} 
+3c3
+< CTRL control linexy
+---
+> qCTRL control linexy
+58c58
+< E2 paste target line
+---
+> E2 paste target lineSENTINEL-E1Whotel
+60c60
+< E3 select line target
+---
+> E3 select linez target
+62c62
+< E4 select word india
+---
+> E4 select word indzia
+64c64
+< E5 delete word juliet
+---
+> E5 delete word julizet
+66c66
+< E8 find kilo, kilo again, last kilo
+---
+> E8 find kiqlo, kilo again, last kilo
+-rw-r--r--  1 jackcheng  wheel  276714 Oct 15 11:56 e10w-findbar.png
+-rw-r--r--  1 jackcheng  wheel  270551 Oct 15 11:56 e11-w.png
+-rw-r--r--  1 jackcheng  wheel  276641 Oct 15 11:55 e8w2-findbar.png
+-rw-r--r--  1 jackcheng  wheel  276674 Oct 15 11:55 e9w-findbar.png
+FINDW-DONE
+
+##### d204.log
+opened C:\Users\jack\mdpro-audit\fx\v034\d204.md
+"{\"active\":\"d204.md×\",\"mode\":\"W\"}"
+chord ctrl+s
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+--- diff vs original
+12c12,13
+< EDIT here
+---
+> EDIT herex
+> 
+D20X-DONE
+
+##### d208.log
+opened C:\Users\jack\mdpro-audit\fx\v034\d208.md
+ssh: connect to host 100.123.111.19 port 22: Operation timed out
+"{\"active\":\"d208.md×\",\"mode\":\"W\"}"
+Read from remote host 100.123.111.19: Operation timed out
+client_loop: send disconnect: Broken pipe
+chord ctrl+s
+12:00:58.963 file.save start {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\d208.md"} 
+12:00:58.969 file.save success {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\d208.md", "fileSizeBytes": 27} 
+12:09:50.255 file.save start {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\d208.md"} 
+12:09:50.261 file.save success {"filePath": "C:\Users\jack\mdpro-audit\fx\v034\d208.md", "fileSizeBytes": 28} 
+--- diff vs original
+4c4,5
+< EDIT here
+---
+> EDIT herexx
+> 
+D20X-DONE
+
+##### about.log
+click 'About' at 196,84
+shot C:\Users\jack\mdpro-audit\v034-about.png
+"no dialog"
+-rw-r--r--  1 jackcheng  wheel  124227 Oct 15 12:17 /private/tmp/claude-501/-Users-jackcheng-Documents-01-Coding-mac-app-mdpro/2111e493-8b51-4074-88cc-fc9924107420/scratchpad/v034/shots/about.png
+ABOUT-DONE
+
+##### upd.log
+click 'Preferences...' at 196,130
+"noabout"
+12:20:36.383 ui.menu.select success {"controlId": "menu.file.preferences", "windowLabel": "main"} 
+12:20:36.438 preferences.read success {"outcome": "ok", "purpose": "settings_general"} 
+12:20:36.438 preferences.read success {"outcome": "ok", "purpose": "settings_dialog"} 
+shot C:\Users\jack\mdpro-audit\v034-settings-about.png
+-rw-r--r--  1 jackcheng  wheel  327328 Oct 15 12:23 /private/tmp/claude-501/-Users-jackcheng-Documents-01-Coding-mac-app-mdpro/2111e493-8b51-4074-88cc-fc9924107420/scratchpad/v034/shots/settings-about.png
+UPD-DONE
+
+##### qg1.log
+"settings:false"
+opened C:\Users\jack\mdpro-audit\fx\v034\qg.md
+chord x
+"{\"active\":\"qg.md×\",\"line\":\"P:QG linex\",\"dirty\":[\"w.md×:false\",\"s.md×:false\",\"urs.md×:false\",\"urw.md×:false\",\"d204.md×:false\",\"d208.md×:false\",\"qg.md×:false\"]}"
+click 'Exit' at 196,176
+shot C:\Users\jack\mdpro-audit\v034-qg-prompt.png
+12:29:50.931 app.quit.request start {"requestId": 1, "windowCount": 1} 
+12:29:50.932 app.quit.menu_exit success {"outcome": "requested", "windowCount": 1} 
+12:29:50.936 editor.milkdown.flush success {"documentId": "4336037c0ce4ea91", "outcome": "clean", "reason": "app-quit"} 
+12:29:50.936 app.quit.check success {"answer": "dirty", "dirtyCount": 3, "discardedUnchangedCount": 0, "flushFailed": false, "phase": "check", "requestId": 1} 
+12:29:50.940 app.quit.answer success {"answer": "dirty", "idCount": 0, "requestId": 1, "round": 0, "windowLabel": "main"} 
+12:29:50.940 app.quit.prompt start {"requestId": 1, "windowLabel": "main"} 
+12:29:50.944 editor.milkdown.flush success {"documentId": "4336037c0ce4ea91", "outcome": "clean", "reason": "app-quit"} 
+12:29:50.944 app.quit.check success {"answer": "dirty", "dirtyCount": 3, "discardedUnchangedCount": 0, "flushFailed": false, "phase": "prompt", "requestId": 1} 
+12:29:50.945 app.quit.answer success {"answer": "delivered", "idCount": 0, "requestId": 1, "round": 0, "windowLabel": "main"} 
+"{\"text\":\"Unsaved changes\n\nQuit without saving?\n\nKeep editing\nDiscard changes\",\"btns\":[\"Keep editing\",\"Discard changes\"]}"
+QG1-DONE
+
+##### qg2.log
+"{\"dialog\":false,\"line\":\"P:QG linex\"}"
+12:30:41.010 ui.dialog.cancel success {"controlId": "dialog.quit.cancel", "requestId": 1, "target": "quit"} 
+12:30:41.011 app.quit.answer success {"answer": "cancel", "idCount": 0, "requestId": 1, "round": 0, "windowLabel": "main"} 
+12:30:41.011 app.quit.cancel cancel {"reason": "cancelled", "requestId": 1, "windowLabel": "main"} 
+tauri-app: 1
+
+LocalAddress OwningProcess
+=== Exit again → Discard
+click 'Exit' at 196,176
+"clicked"
+12:31:15.197 app.quit.request start {"requestId": 2, "windowCount": 1} 
+12:31:15.197 app.quit.menu_exit success {"outcome": "requested", "windowCount": 1} 
+12:31:15.200 editor.milkdown.flush success {"documentId": "4336037c0ce4ea91", "outcome": "clean", "reason": "app-quit"} 
+12:31:15.200 app.quit.check success {"answer": "dirty", "dirtyCount": 3, "discardedUnchangedCount": 0, "flushFailed": false, "phase": "check", "requestId": 2} 
+12:31:15.201 app.quit.answer success {"answer": "dirty", "idCount": 0, "requestId": 2, "round": 0, "windowLabel": "main"} 
+12:31:15.201 app.quit.prompt start {"requestId": 2, "windowLabel": "main"} 
+12:31:15.204 editor.milkdown.flush success {"documentId": "4336037c0ce4ea91", "outcome": "clean", "reason": "app-quit"} 
+12:31:15.205 app.quit.check success {"answer": "dirty", "dirtyCount": 3, "discardedUnchangedCount": 0, "flushFailed": false, "phase": "prompt", "requestId": 2} 
+12:31:15.205 app.quit.answer success {"answer": "delivered", "idCount": 0, "requestId": 2, "round": 0, "windowLabel": "main"} 
+
+   Id
+   --
+24380
+drafts: 3
+
+
+QG2-DONE
+
