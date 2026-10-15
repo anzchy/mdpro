@@ -20,7 +20,7 @@
 
 .settings-title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-size-ui-lg);
   font-weight: 600;
 }
 
@@ -80,6 +80,7 @@
   background: none;
   border: none;
   text-align: left;
+  min-height: 28px;
   padding: 8px 12px;
   border-radius: var(--radius-control);
   cursor: pointer;
@@ -110,7 +111,7 @@
 
 .shortcuts-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-size-title);
 }
 
 .shortcuts-header p {

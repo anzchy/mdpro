@@ -5,13 +5,13 @@
 }
 
 .settings-integrations h3 {
-  font-size: 18px;
+  font-size: var(--font-size-title);
   font-weight: 600;
   margin: 0 0 16px 0;
 }
 
 .settings-integrations h4 {
-  font-size: 15px;
+  font-size: var(--font-size-ui-lg);
   font-weight: 600;
   margin: 0 0 8px 0;
 }
@@ -40,7 +40,7 @@
 
 /* Section label (TYPOGRAPHY, BEHAVIOR) */
 .settings-section-label {
-  font-size: 11px;
+  font-size: var(--font-size-ui-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;

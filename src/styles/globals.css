@@ -54,6 +54,7 @@
   --font-size-ui-sm: 12px;
   --font-size-ui: 13px;
   --font-size-ui-lg: 14px;
+  --font-size-title: 16px; /* WI-3.2: new, the top of the chrome ramp (DR22) */
   --radius-inner: 4px;
   --radius-control: 6px;
   --radius-popover: 10px;

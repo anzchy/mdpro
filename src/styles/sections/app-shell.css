@@ -42,7 +42,7 @@
 }
 
 .sidebar-header {
-  font-size: 11px;
+  font-size: var(--font-size-ui-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -76,7 +76,7 @@
 
 /* View-mode badge (WYSIWYG / SPLIT / EDITOR / PREVIEW) */
 .sidebar-mode-label {
-  font-size: 10px;
+  font-size: var(--font-size-ui-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-muted);

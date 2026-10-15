@@ -138,7 +138,7 @@
 .milkdown-editor .ProseMirror table {
   border-collapse: collapse;
   margin: 0 0 16px;
-  font-size: 14px;
+  font-size: 0.875em;
 }
 
 /* Tables inside .tableWrapper (the normal case): wrapper owns the

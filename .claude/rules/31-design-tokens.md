@@ -35,6 +35,9 @@ in both themes. Roles are in the new design doc's § Tokens.
   rule of three)
 - `--font-size-ui-sm`, `--font-size-ui`, `--font-size-ui-lg`: the chrome type
   ramp
+- `--font-size-title` (16px, WI-3.2): settings page titles and the About
+  app name, the top of the ramp (DR22). Glyph sizes (×, +, ✓, ▸) are not
+  text and stay off the ramp until WI-4.2
 - `--radius-inner`, `--radius-control`, `--radius-popover`: the chrome radii
   (DR23)
 - `--motion-duration-fast`: hover-reveal opacity transitions (DR12)

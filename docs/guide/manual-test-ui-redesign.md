@@ -106,6 +106,13 @@ From the WI-3.0 rulings (delegator, 2026-10-15):
 | 4.9 | Hover the primary button in Settings (MCP **Install**) and in Insert Link | The hover is the accent mixed 12% toward the text colour: darker in light, lighter in dark (it was a fixed dark blue in both) |
 | 4.10 | Settings › Integrations with a connected client; Settings › About after a failed update check | The client's ✓ status is the text colour, not green; the About error text is the theme's danger red; a disabled status is italic in the default colour |
 
+| 4.11 | Sidebar header and mode label; Settings section labels; a table's right-click menu (group labels and shortcut hints); in Source mode, a WYSIWYG marker badge | All 12px (they were 10–11px); the uppercase labels keep their letter-spacing |
+| 4.12 | Any dialog title (Insert Link, unsaved changes); the Settings header; Settings › Integrations card headings | 14px (they were 15–18px) |
+| 4.13 | Settings page titles (General, Advanced…), Integrations and Shortcuts page headings, About › app name | 16px (they were 15–18px) |
+| 4.14 | A WYSIWYG table, then Settings › Editor › font size up and down | Table text is 7/8 of the editor font and follows it (it was a fixed 14px) |
+| 4.15 | TOC rows and the Settings sidebar rows | At least 28px tall (today they are 30px and 39px, so no visible change); the title bar and the bottom tab bar keep their heights |
+| 4.16 | The ×, + and ✓ glyphs, the TOC ▸ and the MCP 📋 button | Unchanged: glyph sizes wait for WI-4.2 |
+
 Code block backgrounds (`--color-code-bg`) are unchanged: review item 15 stays deferred (optional P2, open
 question for STOP 3).
 

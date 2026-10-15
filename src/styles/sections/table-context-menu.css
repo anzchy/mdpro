@@ -31,7 +31,7 @@
 
 .table-context-menu-group-label {
   padding: 6px 8px 2px;
-  font-size: 11px;
+  font-size: var(--font-size-ui-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -77,7 +77,7 @@
 }
 
 .table-context-menu-item-hint {
-  font-size: 11px;
+  font-size: var(--font-size-ui-sm);
   color: var(--color-muted);
   font-family: var(--font-mono);
   margin-left: 12px;
