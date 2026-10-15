@@ -12,6 +12,11 @@
  * - XPASS counts as FAIL until a person confirms it (§4.1); XFAIL counts
  *   towards PASS but is not coverage (that is the ledger gate's concern).
  * - A run in which no journey applied is INCOMPLETE: nothing was proved.
+ * - A case id listed twice is refused, never resolved to one of its verdicts:
+ *   a FAIL followed by a PASS must not aggregate to PASS (audit b149 H1).
+ * - A run is judged against the journey revision it records, not today's
+ *   metadata (b149 H3): adding a required case later must not turn an old
+ *   PASS run INCOMPLETE. `check.mjs` reads that revision from git.
  *
  * @module scripts/journeys/manifest
  * @coordinates-with scripts/journeys/schema.mjs, scripts/journeys/check.mjs
@@ -39,8 +44,19 @@ export function requiredCases(meta, platform) {
     .map((c) => c.id);
 }
 
-/** One journey's verdict on one platform from its case verdicts (`[{ id, verdict }]`). */
+/** The case ids that appear more than once in `results`. */
+function duplicateIds(results) {
+  const seen = new Set();
+  return [...new Set(results.map((r) => r?.id).filter((id) => seen.has(id) || !seen.add(id)))];
+}
+
+/**
+ * One journey's verdict on one platform from its case verdicts (`[{ id, verdict }]`).
+ * Throws when a case id appears twice: the verdict would depend on list order.
+ */
 export function aggregateJourney(meta, platform, results) {
+  const dups = duplicateIds(results);
+  if (dups.length > 0) throw new Error(`case id(s) listed more than once: ${dups.join(", ")}`);
   if (meta.platforms?.[platform]?.status === "n/a") return "N/A";
   const byId = new Map(results.map((r) => [r.id, r.verdict]));
   const required = requiredCases(meta, platform).map((id) => byId.get(id));
@@ -59,10 +75,15 @@ export function aggregateRun(journeyVerdicts) {
 
 /**
  * @param {object} m a parsed manifest
- * @param {Map<string, object>} catalogue journey metadata by id
+ * @param {Map<string, object> | ((id: string, revision: string) => ({ meta: object } | { error: string } | null))} catalogue
+ *   the metadata each journey is judged by: a resolver that returns the
+ *   metadata at the recorded revision (`null` when the id is not in the
+ *   catalogue), or a Map of today's metadata by id
  * @returns {object[]} findings
  */
 export function checkManifest(m, catalogue) {
+  const metaAt =
+    typeof catalogue === "function" ? catalogue : (id) => (catalogue.has(id) ? { meta: catalogue.get(id) } : null);
   const out = [];
   const schema = (message) => out.push(finding("manifest-schema", message));
   const b = m?.build ?? {};
@@ -96,12 +117,23 @@ export function checkManifest(m, catalogue) {
       if (!CASE_VERDICTS.includes(c?.verdict)) schema(`${j.id}/${c?.id}: verdict ${JSON.stringify(c?.verdict)} is not in the vocabulary`);
       if (!Array.isArray(c?.evidence)) schema(`${j.id}/${c?.id}: \`evidence\` must be a list`);
     }
-    const meta = catalogue.get(j.id);
-    if (!meta) {
+    const dups = duplicateIds(j.cases);
+    if (dups.length > 0) {
+      out.push(finding("manifest-case-dup", `${j.id}: case id(s) listed more than once: ${dups.join(", ")}`));
+      journeyVerdicts.push("INCOMPLETE");
+      continue;
+    }
+    const resolved = metaAt(j.id, j.revision);
+    if (!resolved) {
       out.push(finding("manifest-journey", `${j.id} is not in the catalogue`));
       continue;
     }
-    const want = aggregateJourney(meta, b.platform, j.cases);
+    if ("error" in resolved) {
+      out.push(finding("manifest-revision", `${j.id}: revision ${j.revision}: ${resolved.error}`));
+      journeyVerdicts.push("INCOMPLETE");
+      continue;
+    }
+    const want = aggregateJourney(resolved.meta, b.platform, j.cases);
     if (j.verdict !== want) out.push(finding("manifest-verdict", `${j.id} states ${j.verdict} but its cases aggregate to ${want}`));
     journeyVerdicts.push(want);
   }

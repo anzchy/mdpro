@@ -2,7 +2,8 @@
 /**
  * Purpose: The journey-catalogue gate, `pnpm journeys:check` (plan §4.5, §4.8,
  * ADR-0103). Runs the per-file and catalogue rules (`catalogue.mjs`), checks
- * every run manifest under `docs/test/journey-runs/` (`manifest.mjs`), and
+ * every run manifest under `docs/test/journey-runs/` against the journey
+ * revision it records (`manifest.mjs`), and
  * holds the working tree against a base commit (`history.mjs`). Prints each
  * finding and exits 1 if there is any. stdout IS the interface, so
  * `console.log` is correct here (rule 60's no-console rule scopes to `src/`).
@@ -27,6 +28,7 @@ import { fileURLToPath } from "node:url";
 import { README_FILE, checkCatalogue, loadCatalogue, rewriteCount } from "./catalogue.mjs";
 import { checkHistory, gitIn, resolveBase } from "./history.mjs";
 import { RUNS_DIR, checkManifest } from "./manifest.mjs";
+import { parseJourney } from "./parse.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -48,10 +50,35 @@ function writeCount() {
   return 0;
 }
 
+/**
+ * The metadata a run is judged by: the journey file at the git blob the
+ * manifest records (`revision`), not today's file (audit b149 H3). The id
+ * must still be in the catalogue, and the blob must be that journey's file.
+ */
+function metaAtRevision(journeys) {
+  const ids = new Set(journeys.map((j) => j.meta?.id).filter(Boolean));
+  const run = gitIn(ROOT);
+  return (id, revision) => {
+    if (!ids.has(id)) return null;
+    if (!/^[0-9a-f]{40}$/.test(revision ?? "")) return { error: "not a git blob sha" };
+    let text;
+    try {
+      if (run(["cat-file", "-t", revision]) !== "blob") return { error: "not a blob" };
+      text = run(["cat-file", "blob", revision]);
+    } catch {
+      return { error: "not in this repository" };
+    }
+    const { meta } = parseJourney(text);
+    if (!meta) return { error: "has no readable metadata block" };
+    if (meta.id !== id) return { error: `is ${meta.id ?? "an unnamed journey"}'s file, not ${id}'s` };
+    return { meta };
+  };
+}
+
 function checkManifests(journeys) {
   const dir = path.join(ROOT, RUNS_DIR);
   if (!fs.existsSync(dir)) return [];
-  const catalogue = new Map(journeys.filter((j) => j.meta).map((j) => [j.meta.id, j.meta]));
+  const catalogue = metaAtRevision(journeys);
   return fs
     .readdirSync(dir)
     .filter((name) => name.endsWith(".json"))

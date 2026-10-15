@@ -8,7 +8,7 @@
  *
  * Projection file: `{ projectionVersion, events: { "<event>": { fields: [...] } },
  *   ignore?: ["<event>" | "<prefix>.*"], order?: [["<event>", "<event>", ...]] }`
- * Expected record: `{ event, status, fields: {...}, count?: n, atLeast?: n }`
+ * Expected record: `{ event, status, level?: "warn" | "error", fields: {...}, count?: n, atLeast?: n }`
  *
  * Key decisions:
  * - The two ADR-0047 hard rules hold whatever the projection says: every
@@ -22,6 +22,11 @@
  *   `/private/tmp` spellings.
  * - Counts are exact unless the expectation says `atLeast`; order is checked
  *   only along the declared sequences, by first occurrence.
+ * - A record keeps its severity when it is `warn` or `error` (audit b149 H2):
+ *   an expected `app.ready success` is not met by an `app.ready` logged at
+ *   warn, and a warn or error line counts as expected only when the
+ *   expectation names that `level`. `info`, `debug` and a missing level are
+ *   the unmarked case and match an expectation with no `level`.
  *
  * @module scripts/journeys/projection
  * @coordinates-with scripts/journeys/catalogue.mjs
@@ -71,6 +76,8 @@ function ignoreMatcher(entries) {
 }
 
 const isFailure = (l) => l.status === "fail" || l.level === "warn" || l.level === "error";
+/** `warn` / `error` are kept; every other level is the unmarked case. */
+const severity = (level) => (level === "warn" || level === "error" ? level : undefined);
 
 /**
  * @returns {{ projected: object[], unknown: string[], failures: object[], bad: number }}
@@ -99,6 +106,7 @@ export function normalize(lines, projection, { runDir } = {}) {
         if (v !== undefined) fields[key] = value(key, v);
       }
       record = { event: line.event, status: line.status, fields };
+      if (severity(line.level)) record.level = line.level;
       projected.push(record);
     } else if (!ignored(line.event)) {
       unknown.add(line.event);
@@ -109,7 +117,7 @@ export function normalize(lines, projection, { runDir } = {}) {
 }
 
 const keyOf = (r) =>
-  JSON.stringify([r.event, r.status, Object.fromEntries(Object.entries(r.fields ?? {}).sort(([a], [b]) => a.localeCompare(b)))]);
+  JSON.stringify([r.event, r.status, severity(r.level) ?? null, Object.fromEntries(Object.entries(r.fields ?? {}).sort(([a], [b]) => a.localeCompare(b)))]);
 
 /** @returns {object[]} findings: the slice against the journey's expected records */
 export function compareProjection(lines, projection, expected, ctx = {}) {

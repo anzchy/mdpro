@@ -83,8 +83,14 @@ and INCOMPLETE otherwise, including a run in which nothing applied.
 **INCOMPLETE is not green.** It supports no release and no ledger date.
 
 Each run writes `docs/test/journey-runs/<date>-<tier>-<platform>-<sha7>-<n>.json`
-(plan §4.6). The gate checks its schema, recomputes every verdict, and
-requires `incompleteReason` for an INCOMPLETE or interrupted run.
+(plan §4.6). The gate checks its schema, recomputes every verdict against
+the journey file at the `revision` the manifest records (so a later change to
+the journey never re-judges an archived run), refuses a case id listed twice,
+and requires `incompleteReason` for an INCOMPLETE or interrupted run.
+
+In the log oracle (plan §4.4) a `warn` or `error` line matches only an
+expected record that names that `level`; an expectation without `level`
+matches `info` and `debug` lines only.
 
 ## The gate
 
