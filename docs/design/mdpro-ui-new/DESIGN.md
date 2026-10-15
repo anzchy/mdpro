@@ -110,12 +110,17 @@ DR14).
 | `--color-accent-fill` | new | both themes (D222) | Primary-button fill under `--color-on-accent`. Light is the accent; dark is `#1d4ed8` (white 6.70:1), only ~2.82:1 against the dark background, so the button reads by its label, not its edge. User ruling: 「B: deeper fill, white text」 | — | D222 |
 | `--color-accent-fill-hover` | new | both themes (D222) | Primary-button hover. Light mixes the accent 88% toward the text colour; dark mixes the fill 88% toward black (7.96:1) | — | D222 |
 | `--color-control-border` | new | both themes (D227) | Edges of form controls: selects, text and number inputs, steppers, Source find fields. The text colour at 50% (3.34:1 light, 4.46:1 dark on the panel); hairlines stay `--color-border`. User ruling on prototype/p-wi35-a9-controls: 「A: text 50% both (Recommended)」 | — | D227 |
-| `--color-control-off` | new | both themes (D227) | The toggle's off-track, replacing a `#ccc` literal. The text colour mixed into the panel, 55% light and 45% dark (track 3.89 / 3.86, white knob 3.89 / 4.61). User ruling: 「light 55% / dark 45% (Recommended)」 | — | D227 |
-| `--color-danger-text` | new | both themes (D227) | The danger button's label. Light mixes the danger colour 80% with the text colour (6.05:1 at rest, 5.04:1 hovered); dark is the danger colour. User ruling: 「danger-text 80% mix (Recommended)」 | — | D227 |
 | `--color-scrim` | new | `:root` (same in both themes today) | Dialog backdrop. One use: the user overrode the rule of three for it (A10). | — | R6 |
 
 - **`--color-border`:** before redefining it, audit consumers that use it as a
   fill (WI-3.0).
+- **Accepted A9 exceptions (D227):** the toggle's `#ccc` off-track (1.61:1
+  light, and the white knob on it 1.61:1 in both themes), the light danger
+  label hovered (3.76:1), the Keyboard Shortcuts value edge (1.17 / 1.31) and
+  the Insert Table grid-picker cell edge (1.22 / 1.25). User rulings on
+  prototype/p-wi35-a9-controls: 「Accept (today: #ccc)」, 「Accept (today)」 and
+  「Accept as exception」 twice. Changing one needs a new ruling;
+  `tests/contrast-stage3.test.ts` pins the first three.
 - **Retired:** `--settings-btn-hover-bg` and `--settings-btn-active-bg`, once
   the rail migrates (WI-4.7).
 - **Never add:** `--color-syntax-code` (D3).

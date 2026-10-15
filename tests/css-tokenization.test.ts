@@ -151,6 +151,7 @@ const DEFERRED: Deferred[] = [
   d(S + "settings-pages.css", ".settings-dirty-banner", "background", "rgba(245, 158, 11, 0.12)", 4, "WI-4.3"),
   d(S + "settings-pages.css", ".settings-dirty-banner", "border", "1px solid rgba(245, 158, 11, 0.4)", 4, "WI-4.3"),
   d(S + "settings-rows.css", ".settings-stepper button", "font-size", "16px", 4, "WI-4.2"),
+  d(S + "settings-rows.css", ".toggle-slider", "background-color", "#ccc", 4, "item 6 (WI-4.4)"),
   d(S + "settings-shell.css", ".settings-close", "font-size", "24px", 4, "WI-4.2"),
   d(S + "toc-sidebar.css", ".toc-entry__collapse-icon", "font-size", "10px", 4, "WI-4.2"),
 ];
@@ -195,8 +196,7 @@ const UNRENDERED: Unrendered[] = [
 
 /** Expected list sizes per stage and item; a list change has to update this too. */
 const DEFERRED_COUNTS: Record<string, number> = {
-  // 14 since D227 tokenized the toggle off-track (#ccc), ahead of WI-4.4.
-  "stage 4": 14,
+  "stage 4": 15,
 };
 
 const keyOf = (r: Row) => `${r.file} | ${r.selector} | ${r.property} | ${r.value}`;

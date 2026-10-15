@@ -20,10 +20,8 @@
   --color-accent-fill-hover: color-mix(in srgb, var(--color-accent-fill) 88%, #000);
   --color-danger: #f87171;
   --color-danger-soft: color-mix(in srgb, #f87171 18%, transparent);
-  /* D227: form-control edges, the toggle's off-track and the danger label, measured to A9 (tests/contrast-stage3.test.ts) */
+  /* D227: form-control edges, measured to A9 (tests/contrast-stage3.test.ts) */
   --color-control-border: color-mix(in srgb, var(--color-text) 50%, transparent);
-  --color-control-off: color-mix(in srgb, var(--color-text) 45%, var(--color-panel));
-  --color-danger-text: var(--color-danger);
   --color-editor-bg: #0f1115;
   --color-code-bg: #1b2230;
 

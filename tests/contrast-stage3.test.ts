@@ -6,12 +6,12 @@
  * tokens and the rules that paint it, against A9 (WCAG 2.1 AA): 4.5:1 for
  * text, 3:1 for focus indicators and control boundaries.
  *
- * Three pairs fail and were already failing before Stage 3: input borders,
+ * Four pairs were already failing before Stage 3 (D227): input borders,
  * the toggle's off-track and knob, and the light danger button's hover
- * label. They are D227, and the user chooses the fix on
- * prototype/p-wi35-a9-controls. Until then `D227` pins each one at its
- * measured ratio and asserts it is still below the line, so the fix makes
- * this test fail until its row is deleted, and the pair then has to pass.
+ * label. The user ruled on prototype/p-wi35-a9-controls: input borders are
+ * fixed (`--color-control-border`), and the toggle and the danger label are
+ * accepted as exceptions. `ACCEPTED` pins each exception at its measured
+ * ratio, so a change to one fails here and has to be re-ruled.
  *
  * Strategy: colours are read from the declaration that paints them
  * (`fromRule`), not copied, so a changed rule changes the measurement. A
@@ -134,11 +134,16 @@ const PAIRS: Pair[] = [
 ];
 
 /**
- * D227: failing before Stage 3; a row pins a pair at its measured ratio until
- * it is fixed. Empty since the D227 fix (input borders 3.34 / 4.46, toggle
- * off-track 3.89 / 3.86, knob 3.89 / 4.61, light danger hover 5.04).
+ * D227 accepted exceptions: below A9, kept at the user's word on
+ * prototype/p-wi35-a9-controls (2026-10-15, superseding the earlier fix
+ * rulings): toggle off 「Accept (today: #ccc)」, danger hover 「Accept (today)」.
+ * Input borders were fixed instead (3.34 / 4.46), so they are not here.
  */
-const D227: Record<string, Partial<Record<Theme, number>>> = {};
+const ACCEPTED: Record<string, Partial<Record<Theme, number>>> = {
+  "toggle off-track": { light: 1.61 },
+  "toggle knob on the off-track": { light: 1.61, dark: 1.61 },
+  "danger label hovered": { light: 3.76 },
+};
 
 function measure(pair: Pair, theme: Theme): number {
   const tokens = themeTokens(theme);
@@ -154,13 +159,13 @@ describe("Stage 3 contrast table (A9)", () => {
   for (const theme of ["light", "dark"] as const) {
     describe(theme, () => {
       for (const pair of PAIRS) {
-        const known = D227[pair.name]?.[theme];
+        const known = ACCEPTED[pair.name]?.[theme];
         if (known === undefined) {
           it(`${pair.name} is at least ${pair.min}:1`, () => {
             expect(measure(pair, theme)).toBeGreaterThanOrEqual(pair.min);
           });
         } else {
-          it(`${pair.name} still fails at ${known}:1 (D227; delete the row once fixed)`, () => {
+          it(`${pair.name} stays at ${known}:1, an accepted exception (D227)`, () => {
             const ratio = measure(pair, theme);
             expect(ratio).toBeCloseTo(known, 2);
             expect(ratio).toBeLessThan(pair.min);
@@ -170,9 +175,9 @@ describe("Stage 3 contrast table (A9)", () => {
     });
   }
 
-  it("every D227 row names a pair in the table", () => {
+  it("every accepted exception names a pair in the table", () => {
     const names = new Set(PAIRS.map((p) => p.name));
-    expect(Object.keys(D227).filter((n) => !names.has(n))).toEqual([]);
+    expect(Object.keys(ACCEPTED).filter((n) => !names.has(n))).toEqual([]);
   });
 });
 

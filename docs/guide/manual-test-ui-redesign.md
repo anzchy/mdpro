@@ -151,16 +151,19 @@ a packaging check, not a theme check: build once, no theme switch needed.
 
 WI-3.5a measured the A9 contrast table from the tokens
 ([`docs/test/20261015-plan-p-stage3-evidence.md`](../test/20261015-plan-p-stage3-evidence.md)).
-That table found three pre-existing failures, fixed as D227. Check the fix in
-light **and** dark.
+That table found three pre-existing failures (D227). The user had the input
+borders fixed and accepted the toggle and the danger label as exceptions,
+along with two more edges (the shortcut values and the Insert Table grid).
+Check in light **and** dark that the fix is there and the exceptions are
+unchanged.
 
 | # | Where | Expected |
 |---|---|---|
 | 7.1 | Settings › Editor or Advanced: a select; Settings › Export or Image: a text field; Settings › Editor: a − / + stepper | Each control has a clearly visible grey edge against the dialog, darker than the hairline row dividers (was nearly invisible, 1.22:1) |
 | 7.2 | ⌘K in WYSIWYG (Insert Link); Format › Insert Table (the size fields); right-click an image › Custom… | The same visible edge on each input; focusing one still turns it to the accent with the soft ring (rule 33 pattern 1) |
 | 7.3 | Source mode, ⌘F: the find and replace fields | The same visible edge |
-| 7.4 | Settings › Integrations or Markdown: a toggle that is **off** | A mid-grey track the white knob stands out on (was a pale `#ccc` the knob vanished into). In dark the track is a lighter grey on the dark panel. **On** is unchanged (accent) |
-| 7.5 | Settings › Integrations, an installed client: **Remove**, at rest and hovered | Light: the red label is a little darker than before and stays readable on the pink hover fill. Dark: unchanged |
+| 7.4 | Settings › Integrations or Markdown: a toggle that is **off** | Unchanged, an accepted exception: the pale `#ccc` track with the white knob (1.61:1 light). **On** is the accent |
+| 7.5 | Settings › Integrations, an installed client: **Remove**, at rest and hovered | Unchanged, an accepted exception: the light hovered label stays 3.76:1 on the pink fill. Dark: unchanged |
 | 7.6 | Insert Link's URL field and Export's folder field, empty | Read the placeholder's computed colour in Web Inspector, in both themes. The tokens don't set it, so it is WebKit's default. Record the ratio against the field; under 4.5:1 is a new finding, not a D227 regression |
 
 The after-screenshots for the whole Appendix B matrix and the rule 33

@@ -9,6 +9,13 @@ computed heights need the Mac mini (WI-3.5b), and `/qa-only` comes after that
 (WI-3.5c). Measured on branch `test/p-wi35a-contrast-evidence` (plan P
 WI-3.5a, with the D227 fix) by mdpro-a3.
 
+**Amended the same day (D227-WI-3, branch `style/d227-revert-toggle-danger`).**
+The user re-chose on the prototype: the input-border fix stays, and the
+toggle and danger-label fixes are reverted and accepted as exceptions. The
+table below shows the ratios after the revert; the
+[accepted exceptions](#d227-input-borders-fixed-four-controls-accepted-as-exceptions)
+section lists every pair still below A9.
+
 ## Contrast table (A9: 4.5:1 text, 3:1 focus and control boundaries)
 
 Ratios are WCAG 2.x, computed from the real theme tokens and the rules that
@@ -29,8 +36,8 @@ below its threshold fails the unit lane.
 | typed text in a settings input | 4.5:1 | 17.40 | 15.03 |
 | primary label at rest | 4.5:1 | 5.17 | 6.70 |
 | primary label hovered | 4.5:1 | 6.04 | 7.99 |
-| danger label at rest | 4.5:1 | 6.05 | 6.30 |
-| danger label hovered | 4.5:1 | 5.04 | 4.81 |
+| danger label at rest | 4.5:1 | 4.51 | 6.30 |
+| danger label hovered | 4.5:1 | **3.76** (exception) | 4.81 |
 | menu highlight | 4.5:1 | 5.17 | 6.99 |
 | destructive menu item hovered | 4.5:1 | 4.83 | 6.42 |
 | active row over --color-surface | 4.5:1 | 5.19 | 4.64 |
@@ -40,9 +47,9 @@ below its threshold fails the unit lane.
 | focus ring on --color-panel | 3:1 | 5.17 | 6.99 |
 | focus ring on accent-soft | 3:1 | 3.99 | 4.64 |
 | input border | 3:1 | 3.34 | 4.46 |
-| toggle off-track | 3:1 | 3.89 | 3.86 |
+| toggle off-track | 3:1 | **1.61** (exception) | 11.06 |
 | toggle on-track | 3:1 | 5.17 | 6.99 |
-| toggle knob on the off-track | 3:1 | 3.89 | 4.61 |
+| toggle knob on the off-track | 3:1 | **1.61** (exception) | **1.61** (exception) |
 
 How the pairs are drawn:
 
@@ -60,7 +67,7 @@ How the pairs are drawn:
 **Tight but passing:**
 
 - `--color-muted` on `--color-surface`, light: 4.52:1.
-- The danger label at rest was 4.51:1 before D227; it is 6.05:1 now.
+- The light danger label at rest: 4.51:1, back to its pre-D227 colour.
 
 A retune of the light muted colour or the surface would cross the line first.
 
@@ -78,28 +85,37 @@ both themes. If it is under 4.5:1, that is a new finding.
 **Not applicable at this commit:** the segmented control's selected fill
 against its track. No segmented control exists yet; WI-4.5 adds it.
 
-### D227: three failures, fixed in this branch
+### D227: input borders fixed, four controls accepted as exceptions
 
 The first run of this table found three pairs below A9. All three were
 already failing before Stage 3, at about the same ratios. The tokens were
 `#e5e7eb` borders, the `#ccc` track and an unchanged `--color-danger-soft`.
+The user chose fixes on `prototype/p-wi35-a9-controls` (`3159b9c`, verdict
+`b7e5c06`), and all three landed in `d64f291`. The user then re-chose for the
+toggle and the danger label (verdict `2f47214` on the prototype branch, D227-WI-3), so
+those two fixes are reverted. Rulings relayed by mdpro-delegator:
 
-| Pair | Before (light / dark) | After (light / dark) |
+| Pair | Before | Final (light / dark) | Ruling |
+|---|---|---|---|
+| Form-control border on the panel | 1.22 / 1.36 | **3.34 / 4.46**, fixed | 「A: text 50% both (Recommended)」 |
+| Toggle off-track on the panel | 1.61 / 11.06 | 1.61 / 11.06, accepted | 「Accept (today: #ccc)」, superseding 「light 55% / dark 45% (Recommended)」 |
+| White knob on the off-track | 1.61 / 1.61 | 1.61 / 1.61, accepted | the same ruling |
+| Danger label, hovered | 3.76 / 4.81 | 3.76 / 4.81, accepted | 「Accept (today)」, superseding 「danger-text 80% mix (Recommended)」 |
+
+Audit b145 then found two more control edges on the hairline
+`--color-border`. They were shown on the same prototype (`095ff0e`, verdict
+`28f21d7`) and accepted. Each ratio is the lower of edge against the
+surrounding surface and edge against the control's own fill:
+
+| Control | Ratio (light / dark) | Ruling |
 |---|---|---|
-| Form-control border on the panel | 1.22 / 1.36 | 3.34 / 4.46 |
-| Toggle off-track on the panel | 1.61 / 11.06 | 3.89 / 3.86 |
-| White knob on the off-track | 1.61 / 1.61 | 3.89 / 4.61 |
-| Danger label, hovered | 3.76 / 4.81 | 5.04 / 4.81 |
+| Settings › Keyboard Shortcuts value (`.shortcut-value`) | 1.17 / 1.31 | 「Accept as exception」 |
+| Insert Table grid-picker cell (`.grid-picker-cell`) | 1.22 / 1.25 | 「Accept as exception」 |
 
-The user chose each fix on `prototype/p-wi35-a9-controls` (`3159b9c`,
-verdict `b7e5c06`), relayed by mdpro-delegator:
-
-- 「A: text 50% both (Recommended)」
-- 「light 55% / dark 45% (Recommended)」
-- 「danger-text 80% mix (Recommended)」
-
-The [D227 row](../plans/20260912-frontend-backend-sequencing-order.md#d227)
-lists the 8 rules and the three new tokens.
+`tests/contrast-stage3.test.ts` pins the three accepted pairs above at their
+ratios (`ACCEPTED`), so a change to one fails and has to be re-ruled. The
+[D227 row](../plans/20260912-frontend-backend-sequencing-order.md#d227)
+lists the 8 rules that use `--color-control-border` and all four exceptions.
 
 ## Grep proofs
 

@@ -1,16 +1,18 @@
 // @vitest-environment node
 /**
  * @module contrast-d227.test
- * Purpose: D227, three control colours below A9, fixed under the user's
- * rulings on prototype/p-wi35-a9-controls:
+ * Purpose: D227, control colours below A9, as the user ruled on
+ * prototype/p-wi35-a9-controls:
  *   - input borders 「A: text 50% both (Recommended)」 → `--color-control-border`
- *   - toggle off-track 「light 55% / dark 45% (Recommended)」 → `--color-control-off`
- *   - danger button 「danger-text 80% mix (Recommended)」 → `--color-danger-text`
+ *   - toggle off-track 「Accept (today: #ccc)」 and danger hover
+ *     「Accept (today)」: accepted exceptions. These supersede the first
+ *     rulings, whose `--color-control-off` / `--color-danger-text` fix landed
+ *     in d64f291 and is reverted (D227-WI-3).
  *
  * Strategy: the ratios themselves are asserted by the Stage 3 contrast table
- * (`tests/contrast-stage3.test.ts`, whose D227 rows the fix removes). This
- * file pins the ruled values and checks that every control rule uses its
- * token, so a new input that keeps the hairline border fails here.
+ * (`tests/contrast-stage3.test.ts`, which pins the exceptions). This file
+ * pins the ruled values and checks that every control rule uses its token,
+ * so a new input that keeps the hairline border fails here.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -30,14 +32,6 @@ const RULED: Record<string, { light: string; dark: string }> = {
   "--color-control-border": {
     light: "color-mix(in srgb, var(--color-text) 50%, transparent)",
     dark: "color-mix(in srgb, var(--color-text) 50%, transparent)",
-  },
-  "--color-control-off": {
-    light: "color-mix(in srgb, var(--color-text) 55%, var(--color-panel))",
-    dark: "color-mix(in srgb, var(--color-text) 45%, var(--color-panel))",
-  },
-  "--color-danger-text": {
-    light: "color-mix(in srgb, var(--color-danger) 80%, var(--color-text))",
-    dark: "var(--color-danger)",
   },
 };
 
@@ -99,18 +93,24 @@ describe("no form control in the app CSS keeps the hairline edge", () => {
   });
 });
 
-describe("the toggle and the danger button use their tokens", () => {
-  it("the off-track is --color-control-off, no longer the #ccc literal", () => {
-    expect(valueOf("src/styles/sections/settings-rows.css", ".toggle-slider", "background-color")).toBe(
-      "var(--color-control-off)",
-    );
+describe("the toggle and the danger button keep their colours (accepted exceptions)", () => {
+  it("the off-track is the #ccc literal (deferred to WI-4.4)", () => {
+    expect(valueOf("src/styles/sections/settings-rows.css", ".toggle-slider", "background-color")).toBe("#ccc");
   });
 
-  it("the danger label is --color-danger-text; its edge stays --color-danger", () => {
+  it("the danger label and its edge are --color-danger", () => {
     const file = "src/styles/sections/settings-pages.css";
-    expect(valueOf(file, ".toolbar-button.danger", "color")).toBe("var(--color-danger-text)");
+    expect(valueOf(file, ".toolbar-button.danger", "color")).toBe("var(--color-danger)");
     expect(valueOf(file, ".toolbar-button.danger", "border-color")).toBe("var(--color-danger)");
   });
+
+  for (const name of ["--color-control-off", "--color-danger-text"]) {
+    it(`${name} is defined nowhere`, () => {
+      expect(themeTokens("light").has(name)).toBe(false);
+      expect(themeTokens("dark").has(name)).toBe(false);
+      expect(tokenBlock(read("src/styles/globals.css"), ":root").has(name)).toBe(false);
+    });
+  }
 });
 
 describe("the D227 tokens are documented", () => {
