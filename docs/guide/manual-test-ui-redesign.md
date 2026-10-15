@@ -91,7 +91,14 @@ From the WI-3.0 rulings (delegator, 2026-10-15):
 
 ---
 
-## 4. WI-3.2 — Class (b) literals, motion and type ramp (to be written by WI-3.2)
+## 4. WI-3.2 — Class (b) literals, motion and type ramp
+
+| # | Where | Expected |
+|---|---|---|
+| 4.1 | Hover the bottom tabs, the + button, TOC rows and the table grid picker (Format › Insert Table) | The highlight appears and disappears at once, with no fade |
+| 4.2 | Light ↔ dark switch with tabs, TOC and a switch on screen | No fade on tabs, TOC rows, switches or the grid picker (Stage 3 acceptance) |
+| 4.3 | Settings › Editor: flip a switch | The knob slides (150ms); the track colour changes at once |
+| 4.4 | macOS System Settings › Accessibility › Display › Reduce motion on, then repeat 4.3 and hover a tab's × | The knob jumps and the × appears without a fade. The recovery and image-paste spinners still rotate |
 
 ## 5. WI-3.3 — Focus ring (to be written by WI-3.3)
 

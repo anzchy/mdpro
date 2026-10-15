@@ -60,6 +60,13 @@
   --motion-duration-fast: 150ms;
 }
 
+/* DR13: one block zeroes the motion tokens; progress spinners keep rotating (their keyframes are not on the token). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: 0ms;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

@@ -109,7 +109,12 @@ the horizontal scroll (`src/components/Editor/MilkdownEditor.css`).
 - Keep short and functional (modal entry: 0.1s fade + 2px translateY).
 - Don't transition theme-related properties — they cause flickers
   during theme switch.
-- Wrap non-essential motion in `@media (prefers-reduced-motion: no-preference)`.
+- Colours change instantly; only `transform` and `opacity` transition
+  (DR12). Every duration comes from the motion tokens
+  (`--motion-duration-fast`), and one
+  `@media (prefers-reduced-motion: reduce)` block in `globals.css` zeroes
+  them. Progress spinners keep rotating: their keyframes are not on the
+  token (DR13).
 
 ## Scrollbars
 

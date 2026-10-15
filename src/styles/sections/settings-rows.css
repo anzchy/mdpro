@@ -130,7 +130,6 @@
   right: 0;
   bottom: 0;
   background-color: #ccc;
-  transition: 0.2s;
   border-radius: 999px;
 }
 
@@ -142,7 +141,7 @@
   left: 3px;
   bottom: 3px;
   background-color: var(--color-on-accent);
-  transition: 0.2s;
+  transition: transform var(--motion-duration-fast);
   border-radius: 50%;
 }
 

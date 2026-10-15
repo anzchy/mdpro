@@ -39,7 +39,6 @@
   background: var(--color-bg);
   cursor: pointer;
   padding: 0;
-  transition: background 0.05s ease, border-color 0.05s ease;
 }
 
 .grid-picker-cell:hover,

@@ -140,8 +140,6 @@ const d = (file: string, selector: string, property: string, value: string, stag
 /** Class (b): the snap changes pixels, so it waits for its stage. */
 const DEFERRED: Deferred[] = [
   d("components/BottomTabs/BottomTabs.css", ".bottom-tabs__add", "font-size", "18px", 4, "WI-4.2"),
-  d("components/BottomTabs/BottomTabs.css", ".bottom-tabs__add", "transition", "all 0.15s", 3, "WI-3.2 item 11"),
-  d("components/BottomTabs/BottomTabs.css", ".bottom-tab", "transition", "all 0.15s", 3, "WI-3.2 item 11"),
   d("components/BottomTabs/BottomTabs.css", ".bottom-tab--active", "box-shadow", "0 1px 2px rgba(0, 0, 0, 0.05)", 3, "WI-3.2 flat rows and tabs"),
   d("components/BottomTabs/BottomTabs.css", ".bottom-tab__close", "font-size", "14px", 4, "WI-4.2"),
   d("components/BottomTabs/BottomTabs.css", ".bottom-tab__close:hover", "background", "rgba(0, 0, 0, 0.08)", 3, "WI-3.2 hover"),
@@ -172,16 +170,12 @@ const DEFERRED: Deferred[] = [
   d(S + "settings-rows.css", ".settings-section-label", "font-size", "11px", 3, "WI-3.2 item 12"),
   d(S + "settings-rows.css", ".settings-stepper button", "font-size", "16px", 4, "WI-4.2"),
   d(S + "settings-rows.css", ".toggle-slider", "background-color", "#ccc", 4, "item 6 (WI-4.4)"),
-  d(S + "settings-rows.css", ".toggle-slider", "transition", "0.2s", 3, "WI-3.2 item 11"),
-  d(S + "settings-rows.css", ".toggle-slider:before", "transition", "0.2s", 3, "WI-3.2 item 11"),
   d(S + "settings-shell.css", ".settings-title", "font-size", "18px", 3, "WI-3.2 item 12"),
   d(S + "settings-shell.css", ".settings-close", "font-size", "24px", 4, "WI-4.2"),
   d(S + "settings-shell.css", ".shortcuts-header h3", "font-size", "18px", 3, "WI-3.2 item 12"),
   d(S + "settings-shell.css", ".shortcut-value.is-editing", "background", "rgba(37, 99, 235, 0.1)", 3, "WI-3.2 item 1"),
   d(S + "table-context-menu.css", ".table-context-menu-group-label", "font-size", "11px", 3, "WI-3.2 item 12"),
   d(S + "table-context-menu.css", ".table-context-menu-item-hint", "font-size", "11px", 3, "WI-3.2 item 12"),
-  d(S + "table-insert-modal.css", ".grid-picker-cell", "transition", "background 0.05s ease, border-color 0.05s ease", 3, "WI-3.2 item 11"),
-  d(S + "toc-sidebar.css", ".toc-entry__content", "transition", "background 0.15s ease", 3, "WI-3.2 item 11"),
   d(S + "toc-sidebar.css", ".toc-entry__content--active", "background", "rgba(37, 99, 235, 0.1)", 3, "WI-3.2 item 1"),
   d(S + "toc-sidebar.css", ".toc-entry__collapse-icon", "font-size", "10px", 3, "WI-3.2 item 12"),
 ];
@@ -226,7 +220,7 @@ const UNRENDERED: Unrendered[] = [
 
 /** Expected list sizes per stage and item; a list change has to update this too. */
 const DEFERRED_COUNTS: Record<string, number> = {
-  "stage 3": 33,
+  "stage 3": 27,
   "stage 4": 12,
 };
 

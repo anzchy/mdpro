@@ -44,7 +44,6 @@
   padding: 6px 8px;
   border-radius: var(--radius-control);
   cursor: pointer;
-  transition: background 0.15s ease;
 }
 
 .toc-entry__content:hover {
