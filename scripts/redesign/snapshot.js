@@ -458,7 +458,7 @@
 
   // A focus-visible phase: focus the first match with focusVisible, assert
   // :focus-visible, capture only that element, then blur.
-  function focusPhase(sel) {
+  function focusPhase(sel, captures) {
     return phase("focus-visible " + sel, "focus-visible", function () {
       return co(function* () {
         var el = yield must(sel, "focus target " + sel);
@@ -468,7 +468,7 @@
     }, function () {
       var el = q(sel);
       return !!el && document.activeElement === el && el.matches(":focus-visible");
-    }, [sel], true);
+    }, captures || [sel], true);
   }
 
   function settingsSurface(page, extraBase, extraPhases, manual) {
@@ -624,7 +624,8 @@
         phase("base", "dirty tab", null, function () { return qa(".bottom-tab").length === 2 && qa(".bottom-tab__modified").length === 1; },
           cat(CHROME, TABS_OPEN, [".bottom-tabs__divider", ".bottom-tabs__scroll", ".bottom-tab__modified"])),
         focusPhase(".bottom-tabs__add"),
-        focusPhase(".bottom-tab"),
+        // D231: the focusable part of a tab is its select button; the ring is drawn on the tab.
+        focusPhase(".bottom-tab__select", [".bottom-tab", ".bottom-tab__select"]),
         focusPhase(".bottom-tab__close")
       ],
       manual: [".bottom-tab:hover", ".bottom-tab__close:hover", ".bottom-tabs__add:hover"]

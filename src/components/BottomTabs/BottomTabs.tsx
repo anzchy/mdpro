@@ -74,14 +74,17 @@ export function BottomTabs({
         {documents.map((doc) => (
           // D231: the × is a sibling button, not nested in the select button,
           // so Tab reaches it as its own stop and Enter / Space close the tab.
+          // The wrapper selects, so a click in its padding or beside the ×
+          // selects too (audit b160 M); the select button's own click, mouse
+          // or Enter / Space, bubbles here, and the × stops propagation.
           <div
             key={doc.id}
             className={`bottom-tab ${doc.id === activeDocumentId ? "bottom-tab--active" : ""}`}
+            onClick={() => onSelect(doc.id)}
           >
             <button
               type="button"
               className="bottom-tab__select"
-              onClick={() => onSelect(doc.id)}
               title={doc.path || "Untitled"}
             >
               {doc.isModified && <span className="bottom-tab__modified" />}
