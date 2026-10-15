@@ -16,8 +16,8 @@ surface; don't invent a fifth.
 | # | Pattern | Used by | Spec |
 |---|---|---|---|
 | 1 | **Border + soft ring** | text inputs in modals, settings, link/table insert | `border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-soft);` (and `outline: none` is allowed *because* the ring is the replacement) |
-| 2 | **Outline** | toolbar buttons, popover menu items, primary buttons | `:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }` |
-| 3 | **Background highlight** | sidebar rows, tabs, TOC entries, recent dropdown, settings categories | `:focus-visible { background: var(--color-accent-soft); }` (selected items add a border or text-color change so focus and selection are distinguishable) |
+| 2 | **Outline** | toolbar buttons, popover menu items, primary buttons | `:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }`. `--color-focus-ring` is declared in `:root` as `var(--color-accent)`, so it follows the theme and stays at 3:1 or better (DR15) |
+| 3 | **Background highlight** | sidebar rows, tabs, TOC entries, settings categories | `:focus-visible { background: var(--color-accent-soft); }` (selected items add a border or text-color change so focus and selection are distinguishable). TOC rows also add an inset ring: `outline: 2px solid var(--color-focus-ring); outline-offset: -2px;`. Focus lands on the row's link, so the row matches `:has(.toc-entry__link:focus-visible)` and the link draws no ring of its own |
 | 4 | **Editor content widget** | image resize handles, embedded controls inside contenteditable | Each widget defines its own `:focus-visible` — global resets don't reach inside ProseMirror |
 
 ## Hard rules
@@ -42,7 +42,7 @@ surface; don't invent a fifth.
 - [ ] Focus visible at every stop in light **and** dark theme.
 - [ ] DOM order ≈ visual order (focus order is logical).
 - [ ] Modal: Tab and Shift-Tab loop within; Esc returns focus to invocation source.
-- [ ] Focus visibility holds at 200% browser zoom.
+- [ ] Focus visibility holds at the 400×640 minimum window and with `zoom: 2` on `<html>` in Web Inspector.
 
 `tests/focus-trap.test.ts` matches component source text: dialogs handle
 Escape, primary buttons carry `autoFocus` (except `ConfirmDialog`,
