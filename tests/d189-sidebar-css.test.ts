@@ -81,7 +81,7 @@ describe("D189 resize handle (ADR-0088 decision 3)", () => {
   });
 
   it("has a rule 33 pattern 2 outline, inset because the sidebar clips overflow", () => {
-    expect(valuesOf(APP_SHELL, `${H}:focus-visible`, "outline")).toEqual(["2px solid var(--color-accent)"]);
+    expect(valuesOf(APP_SHELL, `${H}:focus-visible`, "outline")).toEqual(["2px solid var(--color-focus-ring)"]); // DR15, WI-3.3
     expect(valuesOf(APP_SHELL, `${H}:focus-visible`, "outline-offset")).toEqual(["-2px"]);
   });
 });
@@ -106,7 +106,7 @@ describe("D189 sidebar toggle (ADR-0088 decision 1, DESIGN.md icon button)", () 
   });
 
   it("has a rule 33 pattern 2 outline", () => {
-    expect(valuesOf(BOTTOM_TABS, `${B}:focus-visible`, "outline")).toEqual(["2px solid var(--color-accent)"]);
+    expect(valuesOf(BOTTOM_TABS, `${B}:focus-visible`, "outline")).toEqual(["2px solid var(--color-focus-ring)"]); // DR15, WI-3.3
     expect(valuesOf(BOTTOM_TABS, `${B}:focus-visible`, "outline-offset")).toEqual(["2px"]);
   });
 });
