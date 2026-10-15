@@ -5,6 +5,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use tokio::runtime::Runtime as TokioRuntime;
 use tokio::sync::RwLock;
 
+pub mod auth;
 pub mod handlers;
 pub mod response;
 pub mod router;
@@ -53,43 +54,32 @@ impl<R: Runtime + 'static> AppState<R> {
     }
 }
 
-/// Start the `WebDriver` HTTP server on the specified port
-pub fn start<R: Runtime + 'static>(app: AppHandle<R>, port: u16) {
+/// Start the `WebDriver` HTTP server on loopback (mdpro patch: authenticated, see `auth`).
+pub fn start<R: Runtime + 'static>(app: AppHandle<R>, config: crate::Config) {
     std::thread::spawn(move || {
+        let report = &config.on_listen;
         let rt = match TokioRuntime::new() {
             Ok(rt) => rt,
-            Err(e) => {
-                tracing::error!("Failed to create Tokio runtime for WebDriver server: {}", e);
-                return;
-            }
+            Err(e) => return report(Err(format!("tokio runtime: {e}"))),
         };
 
         rt.block_on(async {
-            let state = Arc::new(AppState::new(app));
-            let router = router::create_router(state);
-
-            // On Android, bind to all interfaces for WiFi accessibility
-            // On other platforms, bind to localhost only for security
-            #[cfg(target_os = "android")]
-            let addr = SocketAddr::from(([0, 0, 0, 0], port));
-            #[cfg(not(target_os = "android"))]
-            let addr = SocketAddr::from(([127, 0, 0, 1], port));
-
+            let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
             let listener = match tokio::net::TcpListener::bind(addr).await {
                 Ok(l) => l,
-                Err(e) => {
-                    tracing::error!(
-                        "Failed to bind WebDriver server to {} — port may already be in use: {}",
-                        addr, e
-                    );
-                    return;
-                }
+                Err(e) => return report(Err(format!("bind {addr}: {e}"))),
             };
-
-            tracing::info!("WebDriver server listening on http://{}", addr);
+            let bound = match listener.local_addr() {
+                Ok(a) => a,
+                Err(e) => return report(Err(format!("local_addr: {e}"))),
+            };
+            let guard = Arc::new(auth::Guard::new(&config.token, bound.port()));
+            let router = router::create_router(Arc::new(AppState::new(app)), config.allow_eval)
+                .layer(axum::middleware::from_fn_with_state(guard, auth::check));
+            report(Ok(bound));
 
             if let Err(e) = axum::serve(listener, router).await {
-                tracing::error!("WebDriver server error: {}", e);
+                report(Err(format!("serve: {e}")));
             }
         });
     });

@@ -103,6 +103,9 @@ fn main() {
     // One-time legacy-draft migration (best-effort, logged; never blocks startup).
     tauri_app_lib::services::draft::migrate_legacy_drafts_logged();
 
+    // ADR-0047 WI-006 spike: built here because `verified_run` moves into setup.
+    #[cfg(feature = "control-channel")]
+    let control_plugin = tauri_app_lib::services::control_channel::plugin(&verified_run);
     let app = tauri::Builder::default()
         .setup(move |app| {
             // ADR-0047 WI-002: publish instance.json here, not in main().
@@ -386,7 +389,7 @@ fn main() {
     // ADR-0047 WI-006 spike: the control channel registers after every other
     // plugin; single-instance must stay first (S4).
     #[cfg(feature = "control-channel")]
-    let app = app.plugin(tauri_app_lib::services::control_channel::plugin());
+    let app = app.plugin(control_plugin);
     let app = app
         .invoke_handler(tauri_app_lib::commands::handlers())
         .build(tauri::generate_context!());

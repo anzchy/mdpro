@@ -17,32 +17,23 @@ mod webdriver;
 
 pub use error::{Error, Result};
 
-/// Default port for the `WebDriver` HTTP server
-pub const DEFAULT_PORT: u16 = 4445;
+/// Reports the listener's outcome once: the bound address, or why binding failed.
+pub type OnListen = Box<dyn Fn(std::result::Result<std::net::SocketAddr, String>) + Send + Sync>;
 
-/// Environment variable name for configuring the port
-pub const PORT_ENV_VAR: &str = "TAURI_WEBDRIVER_PORT";
-
-/// Initializes the plugin with default settings.
-///
-/// The port is determined in the following order:
-/// 1. `TAURI_WEBDRIVER_PORT` environment variable (if set and valid)
-/// 2. Default port (4445)
-#[must_use]
-pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    let port = std::env::var(PORT_ENV_VAR)
-        .ok()
-        .and_then(|s| s.parse::<u16>().ok())
-        .unwrap_or(DEFAULT_PORT);
-
-    init_with_port(port)
+/// mdpro patch (ADR-0047 WI-006): the server has no unauthenticated mode.
+pub struct Config {
+    /// Loopback port to bind; 0 lets the OS choose (reported through `on_listen`).
+    pub port: u16,
+    /// Bearer token every request must carry.
+    pub token: String,
+    /// Registers the script-execution routes (`/wdio/eval`, `execute/*`); off by default.
+    pub allow_eval: bool,
+    pub on_listen: OnListen,
 }
 
-/// Initializes the plugin with a custom port.
-///
-/// This ignores the `TAURI_WEBDRIVER_PORT` environment variable.
+/// Initializes the plugin. There is no default port and no environment fallback.
 #[must_use]
-pub fn init_with_port<R: Runtime>(port: u16) -> TauriPlugin<R> {
+pub fn init<R: Runtime>(config: Config) -> TauriPlugin<R> {
     Builder::new("wdio-webdriver")
         .setup(move |app, api| {
             #[cfg(mobile)]
@@ -72,8 +63,7 @@ pub fn init_with_port<R: Runtime>(port: u16) -> TauriPlugin<R> {
 
             // Start the WebDriver HTTP server
             let app_handle = app.app_handle().clone();
-            server::start(app_handle, port);
-            tracing::info!("WDIO WebDriver plugin initialized on port {port}");
+            server::start(app_handle, config);
 
             Ok(())
         })

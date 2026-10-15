@@ -76,7 +76,7 @@ objc2-app-kit = { version = "0.3", features = [
 # verify build turns it on, and a feature-off build carries no guard code.
 verify-run = []
 # ADR-0047 WI-006 spike: the agent control channel (candidate A). Default off.
-control-channel = ["dep:tauri-plugin-wdio-webdriver"]
+control-channel = ["verify-run", "dep:tauri-plugin-wdio-webdriver"]
 # WebKit inspector for the S2 key recorder (delegator ruling 2026-10-15). Default off.
 devtools = ["tauri/devtools"]
 

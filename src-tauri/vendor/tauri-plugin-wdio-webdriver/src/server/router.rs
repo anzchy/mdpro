@@ -9,14 +9,16 @@ use tauri::Runtime;
 use super::handlers;
 use super::AppState;
 
-/// Create the `WebDriver` router with all W3C `WebDriver` endpoints
+/// Create the `WebDriver` router.
+///
+/// mdpro patch (ADR-0047 WI-006, S1.3): the script routes exist only when
+/// `allow_eval`; routes that navigate, reload, open or destroy windows, or
+/// print (which can carry script) are not registered at all, so they 404.
 #[allow(clippy::too_many_lines)]
-pub fn create_router<R: Runtime + 'static>(state: Arc<AppState<R>>) -> Router {
-    Router::new()
+pub fn create_router<R: Runtime + 'static>(state: Arc<AppState<R>>, allow_eval: bool) -> Router {
+    let mut router = Router::new()
         // Status
         .route("/status", get(handlers::status::<R>))
-        // wdio-specific non-W3C endpoints
-        .route("/wdio/eval", post(handlers::direct_eval::eval::<R>))
         // =================================================================
         // W3C WebDriver Standard Endpoints
         // =================================================================
@@ -34,23 +36,11 @@ pub fn create_router<R: Runtime + 'static>(state: Arc<AppState<R>>) -> Router {
         // Navigation
         .route(
             "/session/{session_id}/url",
-            get(handlers::navigation::get_url::<R>).post(handlers::navigation::navigate::<R>),
+            get(handlers::navigation::get_url::<R>),
         )
         .route(
             "/session/{session_id}/title",
             get(handlers::navigation::get_title::<R>),
-        )
-        .route(
-            "/session/{session_id}/back",
-            post(handlers::navigation::back::<R>),
-        )
-        .route(
-            "/session/{session_id}/forward",
-            post(handlers::navigation::forward::<R>),
-        )
-        .route(
-            "/session/{session_id}/refresh",
-            post(handlers::navigation::refresh::<R>),
         )
         // Elements
         .route(
@@ -146,15 +136,6 @@ pub fn create_router<R: Runtime + 'static>(state: Arc<AppState<R>>) -> Router {
             "/session/{session_id}/shadow/{shadow_id}/elements",
             post(handlers::shadow::find_elements_in_shadow::<R>),
         )
-        // Execute Script
-        .route(
-            "/session/{session_id}/execute/sync",
-            post(handlers::script::execute_sync::<R>),
-        )
-        .route(
-            "/session/{session_id}/execute/async",
-            post(handlers::script::execute_async::<R>),
-        )
         // Screenshot
         .route(
             "/session/{session_id}/screenshot",
@@ -169,12 +150,7 @@ pub fn create_router<R: Runtime + 'static>(state: Arc<AppState<R>>) -> Router {
         .route(
             "/session/{session_id}/window",
             get(handlers::window::get_window_handle::<R>)
-                .post(handlers::window::switch_to_window::<R>)
-                .delete(handlers::window::close_window::<R>),
-        )
-        .route(
-            "/session/{session_id}/window/new",
-            post(handlers::window::new_window::<R>),
+                .post(handlers::window::switch_to_window::<R>),
         )
         .route(
             "/session/{session_id}/window/handles",
@@ -234,10 +210,18 @@ pub fn create_router<R: Runtime + 'static>(state: Arc<AppState<R>>) -> Router {
             "/session/{session_id}/alert/text",
             get(handlers::alert::get_text::<R>).post(handlers::alert::send_text::<R>),
         )
-        // Print
-        .route(
-            "/session/{session_id}/print",
-            post(handlers::print::print::<R>),
-        )
-        .with_state(state)
+        .fallback(|| async { axum::http::StatusCode::NOT_FOUND });
+    if allow_eval {
+        router = router
+            .route("/wdio/eval", post(handlers::direct_eval::eval::<R>))
+            .route(
+                "/session/{session_id}/execute/sync",
+                post(handlers::script::execute_sync::<R>),
+            )
+            .route(
+                "/session/{session_id}/execute/async",
+                post(handlers::script::execute_async::<R>),
+            );
+    }
+    router.with_state(state)
 }

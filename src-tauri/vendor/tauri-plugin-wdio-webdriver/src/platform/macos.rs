@@ -407,7 +407,9 @@ impl<R: Runtime + 'static> PlatformExecutor<R> for MacOSExecutor<R> {
 }});"#
         );
 
-        const MAX_ATTEMPTS: usize = 3;
+        // mdpro patch (ADR-0047 WI-006, S1.4): never re-dispatch. A re-run executes the script a
+        // second time; a reclaimed completion now waits for a late post until the deadline instead.
+        const MAX_ATTEMPTS: usize = 1;
         // After a reclaim, wait this long for a racing message-handler post before re-running.
         const RECLAIM_GRACE: std::time::Duration = std::time::Duration::from_millis(750);
         let deadline =
