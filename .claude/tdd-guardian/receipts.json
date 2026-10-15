@@ -172170,6 +172170,100 @@
           "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/services/verify_run_publish_exec_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
         }
       ]
+    },
+    {
+      "id": "D236-WI-1",
+      "lane": "unit",
+      "recorded_at": "2026-10-15T11:08:03.508Z",
+      "head_sha": "1ad16602571d34d38265e238a7bb75f0a41881ef",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/d236-placeholder-contrast.test.ts": {
+          "state": "ok",
+          "sha": "8e20b37355a93f3235e5562665dc06f29119c8dc57ef5e83e7b52aae3da9a2cf",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "5663198770231eb2",
+            "817d56b1c1f02eee",
+            "cabd58b502f1f610",
+            "c61e28bb385d1dc8",
+            "732ff22bfb56c20a",
+            "886baf7faf0dcaf6",
+            "684888c0ebb17f37",
+            "9b373483cd313414",
+            "3513e86a9c7cfce2",
+            "55c7577ff9c0ce20",
+            "ed9623369ff082ab",
+            "3f76704725ad1f90",
+            "f84a38b0fd7dfc39",
+            "9c94784f8cfa14e6",
+            "5cb359d17a435523",
+            "152a3fb3d329097b",
+            "f1568d39a0fbb0d3",
+            "4a0a3239c76bc248",
+            "5c7523ddebe8b031",
+            "d44f6ae1876148b0",
+            "da30a2f57448db75",
+            "9eb793b684a01dea",
+            "9d8b2b5670d18da8",
+            "f456efe4855383f0",
+            "c81a37b14c188998",
+            "d10b36aa74a59bcf",
+            "a9fd1ebfb8066b38",
+            "021fb596db81e6d0",
+            "1d830f0ac7197ce5",
+            "77753ba8df53a01e",
+            "e5fd97d3b709a3fb",
+            "c73a1871df049563",
+            "7ea32e80c4fb890a",
+            "e52a1813c4604951",
+            "021fb596db81e6d0",
+            "8905f3c9554a81e7",
+            "d8e30812236737fe",
+            "e94d2c5349f3e549",
+            "7ea32e80c4fb890a",
+            "e52a1813c4604951",
+            "358ba3f2223784d8",
+            "3e86e8bcd71dbd85",
+            "f6bd174f4efc3860",
+            "642223b75670e2c6",
+            "37a2ca425e161db7",
+            "a20dc77dfbb8d3ad",
+            "fa94ae03fa4b8cde",
+            "61606ece24f05393",
+            "29576b54e255e3c9",
+            "d10b36aa74a59bcf",
+            "7f38047d3012bdd4",
+            "6fe5bd8f023eeb80",
+            "29576b54e255e3c9",
+            "a84fb700826408d2",
+            "d93d49806a624ca7",
+            "164b3a07fab0f2ea",
+            "758461180774ff3a",
+            "c49b6335400990dd",
+            "298297968b758e9f",
+            "b44b8a1788f4933a",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-15T11:11:33.626Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D236-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     }
   ]
 }

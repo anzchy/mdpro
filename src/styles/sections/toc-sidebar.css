@@ -119,6 +119,13 @@
   min-width: 160px;
 }
 
+/* WebKit's default placeholder grey was 2.35:1 on white (D236). The muted
+   text token clears 4.5:1 in both themes; opacity 1 stops a UA dimming it. */
+.settings-input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
 .toc-entry__text {
   font-size: var(--font-size-ui);
   white-space: nowrap;
