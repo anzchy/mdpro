@@ -80,7 +80,7 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 
 | Script | Use |
 |---|---|
-| `mac/mdpro.sh debug --yes \| normal --yes \| status \| cleanup` | Restarts mdpro with or without the port. `--yes` is required, given only after the user confirms nothing is unsaved. It refuses to relaunch if mdpro didn't close, maximizes, and checks `innerWidth`. `cleanup` (also run on exit) removes any leftover task. |
+| `mac/mdpro.sh debug --yes \| normal --yes \| status \| cleanup` | Restarts mdpro with or without the port. `--yes` is required, given only after the user confirms nothing is unsaved. It refuses to relaunch if mdpro didn't close, maximizes, and checks `innerWidth`; it exits 0 only when every one of those steps did, and with the failing step's status otherwise (3 for an unknown outcome). `cleanup` (also run on exit) removes any leftover task. |
 | `mac/log.sh mark` / `log.sh since [regex]` | mdpro.log events since the mark. A failed mark is an error, never an empty number. |
 | `mac/push.sh local winpath` | Chunked upload, verified by SHA-256 (`hash ok` / `HASH MISMATCH`). A lost chunk stops it with "partial upload; re-run push" (exit 3); re-running is safe, because it truncates first. |
 | `mac/pull.sh winpath name` | Binary download into `$MDPRO_WIN_OUT`. |

@@ -75,6 +75,40 @@ describe("D228 — a mutation whose response was lost runs once and reports an u
   });
 });
 
+const logB64 = (lines: string[]) => Buffer.from(JSON.stringify(lines), "utf8").toString("base64") + "\r\n";
+const OK = { execute: true } satisfies SshReply;
+
+describe("D228 (audit b151) — a lost step inside a multi-step script fails the whole script", () => {
+  it("H1 deploy.sh: a push that loses a chunk stops the deploy with exit 3; no later file is sent", () => {
+    // mkdir, hash listing (nothing on the PC yet), then the first file's truncate and first chunk.
+    const r = run([OK, { execute: true, stdout: "" }, OK, LOST, OK], "deploy.sh");
+    expect(r.ssh.calls(), r.stderr).toHaveLength(4);
+    expect(r.status).toBe(3);
+    expect(r.stderr).toMatch(/partial upload/);
+  });
+
+  it("H2a mdpro.sh debug: a lost maximize step fails the restart with exit 3, before the width check", () => {
+    // close, close poll, launch, status, then ui.sh's max run, then the cleanup backstops.
+    const r = run([OK, { execute: true, stdout: "0" }, OK, { execute: true, stdout: "tauri-app: 1" }, LOST, OK], "mdpro.sh", "debug", "--yes");
+    expect(count(r.ssh.calls(), "eval64"), "no width check after an unknown maximize").toBe(0);
+    expect(r.status, r.stderr).toBe(3);
+  });
+
+  it("H2b mdpro.sh debug: a lost width check is exit 3, not a printed success", () => {
+    const steps = [OK, { execute: true, stdout: "0" }, OK, { execute: true, stdout: "tauri-app: 1" }];
+    const r = run([...steps, { execute: true, stdout: logB64(["max", "window 'mdpro'"]) }, LOST, OK], "mdpro.sh", "debug", "--yes");
+    expect(count(r.ssh.executed(), "eval64")).toBe(1);
+    expect(r.status, r.stderr).toBe(3);
+    expect(r.stdout).not.toMatch(/page innerWidth/);
+  });
+
+  it("H2c control: mdpro.sh normal with every step ok exits 0", () => {
+    const steps = [OK, { execute: true, stdout: "0" }, OK, { execute: true, stdout: "tauri-app: 1" }];
+    const r = run([...steps, { execute: true, stdout: logB64(["max"]) }, OK], "mdpro.sh", "normal", "--yes");
+    expect(r.status, r.stderr).toBe(0);
+  });
+});
+
 describe("D228 — an idempotent read still retries once on a lost connection", () => {
   it("T4 log.sh mark: 255 without running, then ok", () => {
     const r = run([{ exit: 255 }, { execute: true, stdout: "12\r\n" }], "log.sh", "mark");

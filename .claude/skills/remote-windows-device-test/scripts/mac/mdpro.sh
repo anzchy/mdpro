@@ -18,13 +18,19 @@ case "$1" in
     trap '"$0" cleanup >/dev/null 2>&1' EXIT
     # Stop if a step fails or its outcome is unknown (exit 3): never relaunch over a close that may not have run.
     runi mdpro-audit-close powershell.exe "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"$WIN_DIR\\close.ps1\"" || exit $?
-    left=$(win_read 'for ($i=0; $i -lt 20 -and @(Get-Process tauri-app -ErrorAction SilentlyContinue).Count -gt 0; $i++) { Start-Sleep -Milliseconds 500 }; @(Get-Process tauri-app -ErrorAction SilentlyContinue).Count' | tr -d '\r\n ')
+    left=$(win_read 'for ($i=0; $i -lt 20 -and @(Get-Process tauri-app -ErrorAction SilentlyContinue).Count -gt 0; $i++) { Start-Sleep -Milliseconds 500 }; @(Get-Process tauri-app -ErrorAction SilentlyContinue).Count') || exit $?
+    left=$(printf '%s' "$left" | tr -d '\r\n ')
     if [ "$left" != 0 ]; then echo "mdpro did not close (an unsaved-changes prompt is probably waiting on the PC); not relaunching" >&2; exit 1; fi
     [ "$1" = debug ] && cmd=launch.cmd || cmd=launch-normal.cmd
     runi "mdpro-audit-$1" cmd.exe "/c \"$WIN_DIR\\$cmd\"" || exit $?
-    sleep 4; "$0" status
-    "$D/ui.sh" '[{"op":"max"},{"op":"wait","ms":800},{"op":"windows"}]'
-    [ "$1" = debug ] && echo "page innerWidth: $("$D/cdp.sh" eval 'return innerWidth')  (expect ~1120 maximized at 270%)" ;;
+    # Every later step counts too (audit b151): a lost maximize or width check is not a restart that worked.
+    sleep "${WIN_RELAUNCH_SLEEP:-4}"; "$0" status || exit $?
+    "$D/ui.sh" '[{"op":"max"},{"op":"wait","ms":800},{"op":"windows"}]' || exit $?
+    if [ "$1" = debug ]; then
+      w=$("$D/cdp.sh" eval 'return innerWidth') || { r=$?; [ -n "$w" ] && printf '%s\n' "$w"; exit $r; }
+      echo "page innerWidth: $w  (expect ~1120 maximized at 270%)"
+    fi
+    exit 0 ;;
   status)
     win_read '"tauri-app: " + @(Get-Process tauri-app -ErrorAction SilentlyContinue).Count; Get-NetTCPConnection -State Listen -LocalPort 9222 -ErrorAction SilentlyContinue | Select-Object LocalAddress,OwningProcess | Out-String; try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:9222/json/list).Content } catch { "port 9222 closed" }' ;;
   cleanup)

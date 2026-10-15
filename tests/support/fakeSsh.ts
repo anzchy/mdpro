@@ -76,6 +76,7 @@ export function makeFakeSsh(script: SshReply[]): FakeSsh {
       FAKE_SSH_DIR: dir,
       MDPRO_WIN_OUT: out,
       WIN_RETRY_SLEEP: "0",
+      WIN_RELAUNCH_SLEEP: "0",
     },
     executed: () => readLines(path.join(dir, "ledger.jsonl")),
     calls: () => readLines(path.join(dir, "calls.jsonl")),
