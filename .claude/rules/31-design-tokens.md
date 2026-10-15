@@ -68,8 +68,8 @@ measured in `tests/contrast-d222.test.ts`):
 Per theme, for the edges and labels of controls (D227, WI-3.5a; ratios in
 `tests/contrast-stage3.test.ts`, usage in `tests/contrast-d227.test.ts`):
 
-- `--color-control-border`: the edge of every form control (selects,
-  search, text and number inputs, steppers, the Source find fields). The
+- `--color-control-border`: the edge of every form control (selects, text
+  and number inputs, steppers, the Source find fields). The
   text colour at 50%, 3:1 or better on the panel; hairlines keep
   `--color-border`
 - `--color-control-off`: the toggle's off-track. The text colour mixed into

@@ -46,8 +46,6 @@ function borderColor(value: string): string {
 
 const SEC = "src/styles/sections";
 const rule = {
-  placeholder: () => fromRule(`${SEC}/settings-shell.css`, ".settings-search::placeholder", "color"),
-  searchFill: () => fromRule(`${SEC}/settings-shell.css`, ".settings-search", "background"),
   link: () => fromRule("src/components/Editor/MilkdownEditor.css", ".milkdown-editor .ProseMirror a", "color"),
   buttonFill: () => fromRule(`${SEC}/buttons-dialog.css`, ".toolbar-button", "background"),
   danger: () => fromRule(`${SEC}/settings-pages.css`, ".toolbar-button.danger", "color"),
@@ -89,8 +87,18 @@ const PAIRS: Pair[] = [
       min: TEXT,
     })),
   ),
-  { name: "placeholder on the input fill", fg: rule.placeholder, bg: rule.searchFill, under: v("--color-panel"), min: TEXT },
+  // Placeholder text is not in this table: the two rendered placeholders (Link
+  // insert's URL, Export's folder) have no app ::placeholder rule, so their
+  // colour is WebKit's default, measured on the device (WI-3.5b). The one
+  // ::placeholder rule, `.settings-search`, styles a selector nothing renders.
   { name: "link on the editor background", fg: rule.link, bg: v("--color-editor-bg"), min: TEXT },
+  {
+    name: "typed text in a settings input",
+    fg: () => fromRule(`${SEC}/toc-sidebar.css`, ".settings-input", "color"),
+    bg: () => fromRule(`${SEC}/toc-sidebar.css`, ".settings-input", "background"),
+    under: v("--color-panel"),
+    min: TEXT,
+  },
   // Labels on fills, 4.5:1
   { name: "primary label at rest", fg: v("--color-on-accent"), bg: v("--color-accent-fill"), min: TEXT },
   { name: "primary label hovered", fg: v("--color-on-accent"), bg: v("--color-accent-fill-hover"), min: TEXT },

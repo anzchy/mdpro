@@ -147,4 +147,22 @@ a packaging check, not a theme check: build once, no theme switch needed.
 | 6.2 | Open that build on macOS 13.1 or later | It launches as before |
 | 6.3 | Only if a macOS 13.0 machine is at hand: open the same build there | Finder refuses it with "You can't use this version of the application with this version of macOS". This is the accepted risk in [ADR-0101](../adr/0101-macs-on-macos-13-0-can-be-updated-to-a-build-they-cannot-open.md): the updater still offers the release on 13.0 |
 
-## 7. WI-3.5 — Docs, evidence and QA (to be written by WI-3.5)
+## 7. WI-3.5 — Docs, evidence and QA
+
+WI-3.5a measured the A9 contrast table from the tokens
+([`docs/test/20261015-plan-p-stage3-evidence.md`](../test/20261015-plan-p-stage3-evidence.md)).
+That table found three pre-existing failures, fixed as D227. Check the fix in
+light **and** dark.
+
+| # | Where | Expected |
+|---|---|---|
+| 7.1 | Settings › Editor or Advanced: a select; Settings › Export or Image: a text field; Settings › Editor: a − / + stepper | Each control has a clearly visible grey edge against the dialog, darker than the hairline row dividers (was nearly invisible, 1.22:1) |
+| 7.2 | ⌘K in WYSIWYG (Insert Link); Format › Insert Table (the size fields); right-click an image › Custom… | The same visible edge on each input; focusing one still turns it to the accent with the soft ring (rule 33 pattern 1) |
+| 7.3 | Source mode, ⌘F: the find and replace fields | The same visible edge |
+| 7.4 | Settings › Integrations or Markdown: a toggle that is **off** | A mid-grey track the white knob stands out on (was a pale `#ccc` the knob vanished into). In dark the track is a lighter grey on the dark panel. **On** is unchanged (accent) |
+| 7.5 | Settings › Integrations, an installed client: **Remove**, at rest and hovered | Light: the red label is a little darker than before and stays readable on the pink hover fill. Dark: unchanged |
+| 7.6 | Insert Link's URL field and Export's folder field, empty | Read the placeholder's computed colour in Web Inspector, in both themes. The tokens don't set it, so it is WebKit's default. Record the ratio against the field; under 4.5:1 is a new finding, not a D227 regression |
+
+The after-screenshots for the whole Appendix B matrix and the rule 33
+checklist (default window, 400×640, `zoom: 2`) are WI-3.5b's device run;
+`/qa-only` is WI-3.5c.
