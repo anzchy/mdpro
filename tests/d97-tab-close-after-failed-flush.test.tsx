@@ -18,7 +18,7 @@
  * changes" prompt or leaves the document open.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, screen, within } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { saveHold } = vi.hoisted(() => ({
@@ -145,8 +145,8 @@ function serializerThrows(instance: Editor): boolean {
 
 /** Click the × of the tab whose file name is `name`. */
 async function clickTabClose(name: string): Promise<void> {
-  const tab = screen.getByRole("button", { name: new RegExp(name.replace(".", "\\.")) });
-  const closeX = within(tab).getByRole("button", { name: "×" });
+  // D231: the × is its own button, named for its document.
+  const closeX = screen.getByRole("button", { name: `Close ${name}` });
   await act(async () => {
     await userEvent.click(closeX);
   });

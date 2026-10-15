@@ -50,8 +50,10 @@ const ROWS: Array<[file: string, selector: string, property: string, values: str
   ["components/BottomTabs/BottomTabs.css", ".bottom-tab:hover", "background", ["var(--color-hover)"]],
   ["components/BottomTabs/BottomTabs.css", ".bottom-tab__close:hover", "background", ["var(--color-hover)"]],
   [S + "toc-sidebar.css", ".toc-entry__content:hover", "background", ["var(--color-hover)"]],
-  // flat tabs: the active tab is the one tab with a shadow (proposal :45)
-  ["components/BottomTabs/BottomTabs.css", ".bottom-tab--active", "box-shadow", ["var(--shadow-soft)"]],
+  // flat tabs: the active tab was the one tab with a shadow (proposal :45);
+  // D231 (6c, user-approved) fills it instead, and drops the shadow.
+  ["components/BottomTabs/BottomTabs.css", ".bottom-tab--active", "box-shadow", []],
+  ["components/BottomTabs/BottomTabs.css", ".bottom-tab--active", "background", ["var(--color-tab-active-fill)"]],
 ];
 
 describe("WI-3.2 colour rows", () => {

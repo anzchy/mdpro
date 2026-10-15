@@ -16,6 +16,12 @@
   --color-accent-text: color-mix(in srgb, var(--color-accent) 80%, var(--color-text));
   --color-accent-fill: var(--color-accent);
   --color-accent-fill-hover: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
+  /* D231 (6c): the active document tab is filled, text 16% over the bar
+     surface; its resting × and its ring and unsaved dot stay ≥ 3:1 on it
+     (tests/d231-tab-active-contrast.test.ts). */
+  --color-tab-active-fill: color-mix(in srgb, var(--color-text) 16%, var(--color-surface));
+  --color-tab-active-accent: var(--color-accent);
+  --tab-active-close-opacity: 0.5;
   /* DR15: the solid accent. The theme classes sit on <html> with :root, so it
      follows each theme's accent; theme files do not redefine it. */
   --color-focus-ring: var(--color-accent);

@@ -57,7 +57,12 @@ describe("rule 33 pattern 2: outlines", () => {
         .map((d) => `${f} ${d.selector} { outline: ${d.value} }`),
     );
     expect(outlines.length).toBeGreaterThanOrEqual(5);
-    expect(outlines.filter((o) => !o.endsWith(`{ outline: ${RING} }`))).toEqual([]);
+    // D231 (6c, user-approved): on the active tab's fill, dark's accent ring is
+    // under 3:1, so that one ring uses --color-tab-active-accent, a focus-ring
+    // variant (the accent in light); d231-tab-active-contrast.test.ts measures it.
+    const activeTab = (o: string) =>
+      o.includes(".bottom-tab--active") && o.endsWith("{ outline: 2px solid var(--color-tab-active-accent) }");
+    expect(outlines.filter((o) => !o.endsWith(`{ outline: ${RING} }`) && !activeTab(o))).toEqual([]);
   });
 });
 

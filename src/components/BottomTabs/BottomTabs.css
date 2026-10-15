@@ -75,20 +75,43 @@
   display: none;
 }
 
+/* D231: a wrapper holding two sibling buttons, select and close. The select
+   button carries the left padding and the wrapper the right, so the tab keeps
+   its old geometry (4px 10px, 6px gaps). */
 .bottom-tab {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 0 10px 0 0;
   font-size: var(--font-size-ui-sm);
   font-weight: 500;
   color: var(--color-muted);
   background: transparent;
-  border: none;
   border-radius: var(--radius-control);
-  cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.bottom-tab__select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 4px 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Pattern 2 drawn on the whole tab, inset, so the scroll strip cannot clip it. */
+.bottom-tab__select:focus-visible {
+  outline: none;
+}
+
+.bottom-tab:has(.bottom-tab__select:focus-visible) {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
 }
 
 .bottom-tab:hover {
@@ -96,10 +119,19 @@
   color: var(--color-text);
 }
 
+/* D231 (6c): filled, not lifted. On the fill the ring, the dot and the
+   resting × use the active-tab tokens, which hold 3:1 in dark. */
 .bottom-tab--active {
-  background: var(--color-panel);
+  background: var(--color-tab-active-fill);
   color: var(--color-text);
-  box-shadow: var(--shadow-soft);
+}
+
+.bottom-tab--active:has(.bottom-tab__select:focus-visible) {
+  outline-color: var(--color-tab-active-accent);
+}
+
+.bottom-tab--active .bottom-tab__modified {
+  background: var(--color-tab-active-accent);
 }
 
 .bottom-tab__modified {
@@ -122,15 +154,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
   border-radius: var(--radius-inner);
   font-size: 14px;
   opacity: 0;
   transition: opacity var(--motion-duration-fast);
+  cursor: pointer;
   flex-shrink: 0;
 }
 
-.bottom-tab:hover .bottom-tab__close {
+/* D231 option c: the × shows on hover, while keyboard focus is in its tab,
+   and always on the active tab. */
+.bottom-tab:hover .bottom-tab__close,
+.bottom-tab:focus-within .bottom-tab__close {
   opacity: 0.5;
+}
+
+/* The hover and focus-within forms keep dark's 0.6 when the active tab is
+   hovered or focused; plain (0,2,0) would lose to the rule above. */
+.bottom-tab--active .bottom-tab__close,
+.bottom-tab--active:hover .bottom-tab__close,
+.bottom-tab--active:focus-within .bottom-tab__close {
+  opacity: var(--tab-active-close-opacity);
+}
+
+/* The second selector outranks `.bottom-tab:focus-within .bottom-tab__close`
+   (0,3,0), which also matches while the × itself has focus. */
+.bottom-tab__close:focus-visible,
+.bottom-tab:focus-within .bottom-tab__close:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 0;
+}
+
+/* Outranks the (0,4,0) focus rule above, as that one outranks focus-within. */
+.bottom-tab--active .bottom-tab__close:focus-visible,
+.bottom-tab--active:focus-within .bottom-tab__close:focus-visible {
+  outline: 2px solid var(--color-tab-active-accent);
 }
 
 .bottom-tab__close:hover {

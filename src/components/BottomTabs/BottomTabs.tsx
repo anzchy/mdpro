@@ -72,23 +72,30 @@ export function BottomTabs({
       <div className="bottom-tabs__divider" />
       <div className="bottom-tabs__scroll">
         {documents.map((doc) => (
-          <button
+          // D231: the × is a sibling button, not nested in the select button,
+          // so Tab reaches it as its own stop and Enter / Space close the tab.
+          <div
             key={doc.id}
             className={`bottom-tab ${doc.id === activeDocumentId ? "bottom-tab--active" : ""}`}
-            onClick={() => onSelect(doc.id)}
-            title={doc.path || "Untitled"}
           >
-            {doc.isModified && <span className="bottom-tab__modified" />}
-            <span className="bottom-tab__name">{getDocumentTitle(doc)}</span>
-            <span
+            <button
+              type="button"
+              className="bottom-tab__select"
+              onClick={() => onSelect(doc.id)}
+              title={doc.path || "Untitled"}
+            >
+              {doc.isModified && <span className="bottom-tab__modified" />}
+              <span className="bottom-tab__name">{getDocumentTitle(doc)}</span>
+            </button>
+            <button
+              type="button"
               className="bottom-tab__close"
               onClick={(e) => handleClose(e, doc)}
-              role="button"
-              tabIndex={0}
+              aria-label={`Close ${getDocumentTitle(doc)}`}
             >
               ×
-            </span>
-          </button>
+            </button>
+          </div>
         ))}
       </div>
 
