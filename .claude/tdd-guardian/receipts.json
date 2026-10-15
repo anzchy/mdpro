@@ -166258,9 +166258,15 @@
           "reason": ""
         }
       },
-      "verified_at": null,
-      "verdict": null,
-      "findings": []
+      "verified_at": "2026-10-15T03:07:54.218Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'P-WI-3.3e' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     },
     {
       "id": "P-WI-3.3f",
@@ -166496,9 +166502,15 @@
           "reason": ""
         }
       },
-      "verified_at": null,
-      "verdict": null,
-      "findings": []
+      "verified_at": "2026-10-15T03:10:44.399Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'P-WI-3.3f' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     },
     {
       "id": "P-WI-3.3g",
@@ -166649,9 +166661,20 @@
           "reason": ""
         }
       },
-      "verified_at": null,
-      "verdict": null,
-      "findings": []
+      "verified_at": "2026-10-15T03:13:18.089Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'P-WI-3.3g' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "1 non-test file(s) were already modified when the red was recorded (docs/design/mdpro-ui-new/DESIGN.md). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }
