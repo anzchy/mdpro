@@ -164,8 +164,8 @@ shadow.
 - **Sidebar:** on `--color-surface` with a hairline right edge. The top strip
   clears the traffic lights, using the existing tokens, and carries no text:
   no "Contents" header and no mode badge (D223; the user's ruling 「B: remove
-  everywhere (Recommended)」). The mode lives in the main bar's segmented
-  control and the View menu's check marks.
+  everywhere (Recommended)」). Until the main bar's segmented control is
+  built (WI-4.8), the mode shows only in the View menu's check marks.
   - **Width ([ADR-0088](../../adr/0088-the-sidebar-keeps-its-width-is-resizable-and-is-toggled-by-one-fixed-button.md)):**
     the user sets it by dragging the right edge, 180–480px, default 220
     (`--sidebar-width`, stored as the `sidebarWidth` preference). It keeps
@@ -766,7 +766,7 @@ Leave these open; don't pick an answer while building.
 
 | Date | Decision | Rationale |
 |---|---|---|
-| 2026-10-15 | D223: the sidebar's top band carries no text; the "Table of Contents" header and the WYSIWYG / SOURCE badge are removed, with the sidebar shown or hidden (user: 「Sidebar左上角的Table of Content 和 Mode(WYSIWYG / Source）等文本去掉，让整体界面比较清爽」; prototype ruling 「B: remove everywhere (Recommended)」) | Both repeated what the window already shows: the outline is self-evident, and the mode is in the main bar's segmented control and the View menu's check marks. The bands stay as window drag regions for the traffic lights. |
+| 2026-10-15 | D223: the sidebar's top band carries no text; the "Table of Contents" header and the WYSIWYG / SOURCE badge are removed, with the sidebar shown or hidden (user: 「Sidebar左上角的Table of Content 和 Mode(WYSIWYG / Source）等文本去掉，让整体界面比较清爽」; prototype ruling 「B: remove everywhere (Recommended)」) | The header repeated what the outline already shows. The mode stays visible in the View menu's check marks, and comes back to the window with the main bar's segmented control (WI-4.8, not yet built); until then the window itself does not name it. The bands stay as window drag regions for the traffic lights. |
 | 2026-10-15 | ADR-0088: the sidebar is resizable (180–480px, default 220) and keeps its width at every window width; two new layout tokens, `--sidebar-width-min` (180px) and `--main-min-width` (320px), set the grid's `clamp()`. One fixed toggle leads the bottom tab bar | The width was a fixed 220px and a leftover 960px media query squeezed the sidebar to 33px or stretched it across the window (#416). Hiding it is the user's choice, never a side effect of window size. The tokens name the two limits instead of literals in the grid. |
 | 2026-09-11 | DR23: Radii snap by role to `--radius-control`, `--radius-popover` and a new `--radius-inner` (4px); circles `50%`, pills `999px` | Nested parts need a smaller radius than their container to look concentric, and the proposal already draws 4px for them. Seven ad-hoc values collapse to three roles with no exceptions. |
 | 2026-09-11 | DR22: Off-ramp chrome sizes follow the proposal's roles; one new `--font-size-title` (16px) for page titles; glyph sizes become icons | Every size gets a named role and the guard needs no exceptions. The one size the proposal hard-codes, its 16px page title, becomes a token. |
