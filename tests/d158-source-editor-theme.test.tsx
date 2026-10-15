@@ -387,7 +387,7 @@ describe("D158-WI-2 — dialog close button and lint selection follow the app th
     const light = readAppCssFile("themes/light.css");
     const dark = readAppCssFile("themes/dark.css");
     // A theme-independent token (D233's --radius-inner) is declared once in globals.css :root.
-    const root = readAppCssFile("globals.css").match(/:root\s*\{([^}]*)\}/)?.[1] ?? "";
+    const root = [...readAppCssFile("globals.css").matchAll(/:root\s*\{([^}]*)\}/g)].map((m) => m[1]).join("\n");
     const rules = [...appRulesFor(DIALOG_CLOSE), ...appRulesFor(LINT_SELECTED)];
     expect(rules).not.toHaveLength(0);
     for (const { rule } of rules) {
