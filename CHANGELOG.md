@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - mdpro now requires macOS 13.1 or later (was 10.13 as declared, 13 in practice): the new theme colours use CSS `color-mix()`, which macOS ships from 13.1. On macOS 13.0 the in-app updater still offers this release, and the updated app will not open; update macOS, or reinstall an earlier mdpro from GitHub Releases (UI redesign Deliverable B, ADR-0101)
 
 ### Fixed
+- In the table right-click menu, the current alignment (for example Align left) now shows a visible focus ring when you reach it with the keyboard: a ring in the menu's background colour inside its blue fill. The blue ring used to disappear into the blue fill (D234).
 - The document tab bar: the current tab is now filled with grey instead of a white lift, and its close button (×) is always shown on it. Each × is now a button of its own that Tab can reach, with a visible focus ring, and Enter or Space closes the tab (asking first if it has unsaved changes). It used to take keyboard focus while invisible and could not be pressed from the keyboard (D231).
 - Placeholder text in Settings › Export and in the Insert Link URL field is now readable in Light mode: it used to be a pale grey at 2.35:1 against white, and now uses the muted text colour (D236).
 - While a dialog is open (for example Insert Link), Format › Insert Table (⌘⌥T) and Preferences (⌘,) no longer open a second dialog on top of it (D235).

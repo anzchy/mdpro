@@ -172598,6 +172598,76 @@
           "message": "1 specification file(s) gained lines with every recorded line intact: tests/d231-tab-active-contrast.test.ts. Additions are healthy; only edits to recorded lines are a finding."
         }
       ]
+    },
+    {
+      "id": "D234-WI-1",
+      "lane": "unit",
+      "recorded_at": "2026-10-15T11:40:26.146Z",
+      "head_sha": "c82031f4f329848bd0676ef4b6213d2b1276f3ea",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/d234-align-active-ring.test.ts": {
+          "state": "ok",
+          "sha": "323dfaedbc58960aa7869f0bf71766640478b66acf88fcc5a88bc52679a11bc1",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "68452f4ee554426d",
+            "efd1f5beb6408951",
+            "7a9d9d5284ea133e",
+            "220c1b0af45ea3a9",
+            "eac8c1cb87b02a3c",
+            "684888c0ebb17f37",
+            "95ca9e81cf77de0e",
+            "ed9623369ff082ab",
+            "7571c7236d81e917",
+            "f84a38b0fd7dfc39",
+            "9c94784f8cfa14e6",
+            "5cb359d17a435523",
+            "8762c52847d59606",
+            "8c1fb0fec7f07d2b",
+            "2ad0c08555c1f822",
+            "9546d6e8e9cdf751",
+            "10ccace64eca926a",
+            "9d8b2b5670d18da8",
+            "e4d04eaa7e16c021",
+            "e49c7a510eda27de",
+            "df3982fd61017359",
+            "428990a5f1fc5b23",
+            "569a648baa52117a",
+            "459b6cea6f434e9d",
+            "c09cbc698b3a6045",
+            "22fb4d2108fc81ee",
+            "29576b54e255e3c9",
+            "2ee9ec57afff70dc",
+            "37a2ca425e161db7",
+            "abc8246d6f62c5aa",
+            "0ac301ba8ada125a",
+            "56f873b028f7b046",
+            "29576b54e255e3c9",
+            "b0d0546ce68aba1d",
+            "efa8650f5b75afa5",
+            "ea5250537c7aa18f",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-15T11:45:44.993Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D234-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     }
   ]
 }

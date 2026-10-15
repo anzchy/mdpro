@@ -76,6 +76,14 @@
   outline-offset: -2px;
 }
 
+/* D234 (user option a): the current alignment's accent fill swallowed the
+   accent ring, so on it the ring is the panel colour, inset 4px, framed by a
+   2px band of fill (tests/d234-align-active-ring.test.ts). */
+.table-context-menu-item.is-active:focus-visible {
+  outline-color: var(--color-panel);
+  outline-offset: -4px;
+}
+
 .table-context-menu-item-hint {
   font-size: var(--font-size-ui-sm);
   color: var(--color-muted);
