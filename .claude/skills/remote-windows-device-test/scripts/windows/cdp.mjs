@@ -5,6 +5,8 @@
 //   node cdp.mjs eval64 <base64>    same, expression base64-encoded (no quoting issues; ssh line ~8 KB)
 //   node cdp.mjs evalfile <path>    same, expression read from a UTF-8 file (no size limit)
 //   node cdp.mjs shot <out.png>     capture the page viewport
+// Exit: 0 ok; 1 the expression threw (the JSON {exception} is still printed); 2 usage / no page;
+// 3 CDP_TIMEOUT (the eval may have run); 4 the port is closed.
 // Env: MDPRO_CDP_PORT (default 9222), MDPRO_CDP_URL_PREFIX (default http://tauri.localhost).
 // The expression may use `return`; it runs inside an async function. Helpers on window.__a
 // (trusted CDP input; installed on every run):
@@ -88,11 +90,13 @@ const helpers = `(() => { if (window.__a) return; let seq = 0; const pend = new 
       img.onload = () => fin(true); img.onerror = () => fin(false); img.src = url + (url.includes("?") ? "&" : "?") + "probe=" + Date.now(); setTimeout(() => fin(false), 4000); }),
   }; })()`;
 await send("Runtime.evaluate", { expression: helpers });
+let code = 0;
 if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
   const expr = mode === "eval64" ? Buffer.from(arg, "base64").toString("utf8") : mode === "evalfile" ? fs.readFileSync(arg, "utf8") : arg;
   const r = await send("Runtime.evaluate", { expression: `(async () => { ${/\breturn\b/.test(expr) ? expr : "return (" + expr + ")"} })()`, awaitPromise: true, returnByValue: true });
   const v = r.result?.exceptionDetails ? { exception: r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text } : r.result?.result?.value;
   console.log(JSON.stringify(v, null, 1));
+  if (r.result?.exceptionDetails) code = 1; // a thrown eval fails its caller (cdp.sh eval … && next)
 } else if (mode === "shot") {
   const r = await send("Page.captureScreenshot", { format: "png" });
   fs.writeFileSync(arg, Buffer.from(r.result.data, "base64"));
@@ -100,4 +104,4 @@ if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
 } else {
   console.error("usage: node cdp.mjs eval|eval64|evalfile|shot <arg>"); process.exit(2);
 }
-ws.close(); process.exit(0);
+ws.close(); process.exit(code);

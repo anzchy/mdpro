@@ -5,8 +5,12 @@ this file changes in the same commit.
 
 ## Desktop-session driver: `scripts/mac/ui.sh '<json steps>'`
 
-Each step logs one line, and an error logs `ERROR <op>: …` and the run continues. Coordinates
-are **physical screen pixels**, the same space as a `shot` with `"screen":true`.
+Each step logs one line. **An error stops the run**: it logs `ERROR <op>: …` and then
+`ABORTED at step N`, no later step runs, and `ui.sh` exits 1 after printing the log. So
+`ui.sh '[…click…, …type…]' && cdp.sh eval …` never types or evaluates after a failed click. A
+read-only step can opt out with `"onError":"continue"`, e.g. `{"op":"windows","onError":"continue"}`:
+its error is logged and the run goes on. Coordinates are **physical screen pixels**, the same space
+as a `shot` with `"screen":true`.
 
 | Op | Arguments | What it does |
 |---|---|---|
@@ -41,6 +45,8 @@ cdp.sh evalf file.js      # any size: pushes the file, then node cdp.mjs evalfil
 cdp.sh shot name          # page viewport PNG -> $MDPRO_WIN_OUT/name.png
 ```
 
+An expression that throws prints `{"exception": "…"}` **and exits 1**, so `cdp.sh eval … && next`
+stops there.
 `"CDP_PORT_CLOSED: …"` means mdpro is running without the debugging port: run `mdpro.sh debug`.
 `"CDP_TIMEOUT"` means no answer within 25 s; see the triage in `pitfalls.md`.
 
@@ -68,6 +74,20 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 - Page elements are in **CSS** px. Inside the WebView, physical = client origin + css × `devicePixelRatio`
   (2.7 at 270 %). On a maximized window the menu bar sits at y ≈ 47 and the window rect starts at
   -11,-11. Prefer `cdp.sh` clicks for page elements, and convert only when you need real input.
+
+## Exit codes (every Mac-side wrapper)
+
+| Code | Meaning | What to do |
+|---|---|---|
+| 0 | Done. | — |
+| 1 | It ran and failed: an eval threw, a `ui.sh` step failed (`ABORTED at step N`), a restart step failed, or the output was empty (`NO OUTPUT`). | Read the printed log or exception. |
+| 2 | Refused before running: usage, a validator, a missing `--yes`, no page. | Fix the call. |
+| 3 | **Unknown outcome**: the connection dropped after the command was sent (`UNKNOWN OUTCOME`), or `cdp.mjs` timed out (`CDP_TIMEOUT`). The command may or may not have run. | Check the state on the PC before anything else (pitfalls 21). |
+| 4 | The DevTools port is closed. | `mdpro.sh debug --yes`. |
+| 124 | `ui.sh`: no log came back before the timeout. | The steps may have partly run; check, then re-run. |
+| 255 | ssh never got through, even after the one retry a read gets. | `ssh win-desktop hostname`. |
+
+A read never returns 0 with an empty answer: a failed read keeps ssh's status.
 
 ## Safety rules in the scripts
 

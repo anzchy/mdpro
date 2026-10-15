@@ -1,8 +1,10 @@
 # Purpose: drive mdpro's native window from the user's interactive desktop session
 # (SSH has no desktop). Reads a JSON step list, runs each step, writes a JSON log.
 # Run it through ui-run.ps1 (Mac side: scripts/mac/ui.sh), never directly over SSH.
-# Steps: see ../../reference/ops.md (kept in sync with this file). Every step logs one line; an
-# error logs "ERROR <op>: ..." and the run continues with the next step.
+# Steps: see ../../reference/ops.md (kept in sync with this file). Every step logs one line. An
+# error logs "ERROR <op>: ..." and stops the run with "ABORTED at step N", so a step that depends on
+# it never runs; the log is still written, and the script exits 1. A step with "onError":"continue"
+# (for read-only steps such as windows or tree) logs its error and the run goes on.
 # Rule: a native menu must be opened AND its item clicked inside ONE run (menuclick / menuat) —
 # starting the next run's scheduled task dismisses any menu the previous run left open.
 param([string]$Steps, [string]$Out)
@@ -81,7 +83,9 @@ function Tree($el, $d, $pre) {
   $kids = $el.FindAll($TS::Children, [System.Windows.Automation.Condition]::TrueCondition)
   foreach ($k in $kids) { L ("$pre" + $k.Current.ControlType.ProgrammaticName.Replace("ControlType.","") + " '" + $k.Current.Name + "'"); if ($k.Current.ClassName -notmatch "Chrome") { try { Tree $k ($d-1) ("$pre  ") } catch { L "$pre  (skipped)" } } }
 }
+$failed = $false; $n = 0
 foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
+  $n++
   try {
     switch ($s.op) {
       "windows" { foreach ($w in MdproWindows) { L ("window '" + $w.Current.Name + "' hwnd=" + $w.Current.NativeWindowHandle + " rect=" + $w.Current.BoundingRectangle) } }
@@ -156,6 +160,10 @@ foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
       "run"     { Start-Process -FilePath $s.exe -ArgumentList $s.args; L ("ran " + $s.exe) }
       "tree"    { $fg = [W32]::GetForegroundWindow(); $el = $AE::FromHandle($fg); L ("fg '" + $el.Current.Name + "'"); Tree $el ([int]$s.depth) "  " }
     }
-  } catch { L ("ERROR " + $s.op + ": " + $_.Exception.Message) }
+  } catch {
+    L ("ERROR " + $s.op + ": " + $_.Exception.Message)
+    if ($s.onError -ne "continue") { $failed = $true; L ("ABORTED at step " + $n); break }
+  }
 }
 $log | ConvertTo-Json | Set-Content -Encoding UTF8 $Out
+if ($failed) { exit 1 }
