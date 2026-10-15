@@ -103,7 +103,7 @@ From the WI-3.0 rulings (delegator, 2026-10-15):
 | 4.6 | Look at the active bottom tab | It carries the hairline-ring shadow, the same edge as the menus in 4.8 |
 | 4.7 | Click a TOC heading; Settings › Shortcuts, click a shortcut to record it | The active TOC row and the shortcut being recorded share one accent tint (`--color-accent-soft`), slightly stronger than before |
 | 4.8 | Open the table and image context menus, an unsaved-changes dialog, Settings, a recovery toast and, in Source mode, a lint tooltip | No 1px border; the edge is the shadow's hairline ring. A fixed-width box keeps its width and its content gains 2px; a box sized by its content is 2px shorter (expected) |
-| 4.9 | Hover the primary button in Settings (MCP **Install**) and in Insert Link | The hover is the accent mixed 12% toward the text colour: darker in light, lighter in dark (it was a fixed dark blue in both) |
+| 4.9 | Hover the primary button in Settings (MCP **Install**) and in Insert Link | The hover is the accent mixed 12% toward the text colour: darker in light, lighter in dark (it was a fixed dark blue in both). **Dark superseded by 5.8** (D222, WI-3.3) |
 | 4.10 | Settings › Integrations with a connected client; Settings › About after a failed update check | The client's ✓ status is the text colour, not green; the About error text is the theme's danger red; a disabled status is italic in the default colour |
 
 | 4.11 | Sidebar header and mode label; Settings section labels; a table's right-click menu (group labels and shortcut hints); in Source mode, a WYSIWYG marker badge | All 12px (they were 10–11px); the uppercase labels keep their letter-spacing |
@@ -116,7 +116,24 @@ From the WI-3.0 rulings (delegator, 2026-10-15):
 Code block backgrounds (`--color-code-bg`) are unchanged: review item 15 stays deferred (optional P2, open
 question for STOP 3).
 
-## 5. WI-3.3 — Focus ring (to be written by WI-3.3)
+## 5. WI-3.3 — Focus ring and accent contrast
+
+Use the keyboard: click once in the window, then **Tab** / **Shift-Tab**. Do every row in light **and** dark.
+If Tab skips buttons, turn on macOS System Settings › Keyboard › Keyboard navigation.
+
+| # | Where | Expected |
+|---|---|---|
+| 5.1 | Tab to any toolbar button: Settings footer, Insert Link (⌘K) Cancel / Insert, the unsaved-changes dialog | A solid 2px accent outline 2px outside the button. In dark it is the light blue `#60a5fa`, not a dimmed or system ring |
+| 5.2 | Click the same buttons with the mouse | No outline (focus-visible only) |
+| 5.3 | Right-click a WYSIWYG table cell, then arrow through the menu; Format › Insert Table and Tab into the grid; ⌘F in Source mode and Tab to the search buttons | Each focused item shows the same accent outline (inset on menu items, just outside grid cells and search buttons) |
+| 5.4 | Show the TOC and Tab into it | The focused row fills with the accent tint and shows a 2px accent ring **inside** the row's rounded edge. The link text has no second ring of its own |
+| 5.5 | Click a TOC row with the mouse | It jumps and becomes active (tint plus accent text, 4.7) but shows no ring |
+| 5.6 | Tab onto the TOC row that is already active | Ring plus tint: the ring is what tells focus apart from the selection |
+| 5.7 | Light theme: the active TOC row text, and Settings › Shortcuts while a shortcut is being recorded | The blue text is a little darker than the accent (accent mixed 80% with the text colour), easy to read on the tint (5.20:1; was 3.99:1) |
+| 5.8 | Dark theme: Settings MCP **Install** and Insert Link's **Insert**, at rest and hovered | A deeper blue `#1d4ed8` with white text; hover goes darker, not lighter. The button reads by its label: its edge against the dark background is faint (~2.8:1, accepted in the D222 ruling) |
+| 5.9 | Light theme: the same two buttons | Unchanged from 4.9: accent fill, white text, hover slightly darker |
+| 5.10 | Source mode, light theme: hover a lint marker to show its tooltip | No grey 1px border, only the shadow's hairline ring (b136 M1) |
+| 5.11 | Window at its 400×640 minimum, and with `zoom: 2` on `<html>` in Web Inspector, repeat 5.1 and 5.4 | Every ring is still visible and not clipped (rule 33 checklist, DR17) |
 
 ## 6. WI-3.4 — macOS 13.1 floor (to be written by WI-3.4)
 
