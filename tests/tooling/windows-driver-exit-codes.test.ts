@@ -125,7 +125,8 @@ describe("N1 (audit b151 Medium) — a failed read is a failure, never an empty 
   it("R2 log.sh since: a failed read exits non-zero instead of 0 with no lines", () => {
     const ssh = makeFakeSsh([DOWN]);
     made.push(ssh);
-    fs.writeFileSync(path.join(ssh.dir, "out", ".logmark"), "12\n");
+    // A v2 mark (WI-E2E-W item 2): a v1 mark is refused before any read.
+    fs.writeFileSync(path.join(ssh.dir, "out", ".logmark"), "v2 12 638950000000000000-3f2a9c\n");
     const r = spawnSync("bash", [path.join(MAC, "log.sh"), "since"], { env: ssh.env, encoding: "utf8" });
     expect(r.status).toBe(255);
   });

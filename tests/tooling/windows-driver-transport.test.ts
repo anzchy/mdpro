@@ -111,7 +111,8 @@ describe("D228 (audit b151) — a lost step inside a multi-step script fails the
 
 describe("D228 — an idempotent read still retries once on a lost connection", () => {
   it("T4 log.sh mark: 255 without running, then ok", () => {
-    const r = run([{ exit: 255 }, { execute: true, stdout: "12\r\n" }], "log.sh", "mark");
+    // WI-E2E-W item 2: the mark read answers with the size and identity (a v2 mark).
+    const r = run([{ exit: 255 }, { execute: true, stdout: "size 12\r\nid 638950000000000000-3f2a9c\r\n" }], "log.sh", "mark");
     expect(r.ssh.calls()).toHaveLength(2);
     expect(r.status, r.stderr).toBe(0);
   });

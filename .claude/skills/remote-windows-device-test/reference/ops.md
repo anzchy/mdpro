@@ -84,6 +84,7 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 | 2 | Refused before running: usage, a validator, a missing `--yes`, no page. | Fix the call. |
 | 3 | **Unknown outcome**: the connection dropped after the command was sent (`UNKNOWN OUTCOME`), or `cdp.mjs` timed out (`CDP_TIMEOUT`). The command may or may not have run. | Check the state on the PC before anything else (pitfalls 21). |
 | 4 | The DevTools port is closed. | `mdpro.sh debug --yes`. |
+| 7 | `log.sh raw` / `since`: the mark no longer fits the log. It is `truncated` (the file is smaller than the mark), `replaced` (another creation time or first line), a v1 line-count mark, or the bytes returned don't match the size. Nothing is written. | `log.sh mark` again and repeat the action. |
 | 124 | `ui.sh`: no log came back before the timeout. | The steps may have partly run; check, then re-run. |
 | 255 | ssh never got through, even after the one retry a read gets. | `ssh win-desktop hostname`. |
 
@@ -101,7 +102,7 @@ A read never returns 0 with an empty answer: a failed read keeps ssh's status.
 | Script | Use |
 |---|---|
 | `mac/mdpro.sh debug --yes \| normal --yes \| status \| cleanup` | Restarts mdpro with or without the port. `--yes` is required, given only after the user confirms nothing is unsaved. It refuses to relaunch if mdpro didn't close, maximizes, and checks `innerWidth`; it exits 0 only when every one of those steps did, and with the failing step's status otherwise (3 for an unknown outcome). `cleanup` (also run on exit) removes any leftover task. |
-| `mac/log.sh mark` / `log.sh since [regex]` | mdpro.log events since the mark. A failed mark is an error, never an empty number. |
+| `mac/log.sh mark` / `log.sh raw [file]` / `log.sh since [regex]` | `mark` records mdpro.log's byte size and identity (creation time plus the sha256 of its first line) as a v2 mark. `raw` writes the bytes logged since then, unchanged, to `$OUT/<file>` (default `raw-<time>.jsonl`), prints the path, and reports `lines: N malformed: M` on stderr; **judge a run by this file**. `since` is the human view of the same bytes: it reformats each event and skips bad lines, so it is not an oracle. Both refuse with exit 7 when the mark no longer fits. A failed mark is an error, never an empty number. |
 | `mac/push.sh local winpath` | Chunked upload, verified by SHA-256 (`hash ok` / `HASH MISMATCH`). A lost chunk stops it with "partial upload; re-run push" (exit 3); re-running is safe, because it truncates first. |
 | `mac/pull.sh winpath name` | Binary download into `$MDPRO_WIN_OUT`. |
 | `mac/deploy.sh` | Uploads `scripts/windows/*`, skipping unchanged files. Can exceed 120 s: run it in the background. |

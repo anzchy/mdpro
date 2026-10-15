@@ -50,7 +50,8 @@ $S/ui.sh '[{"op":"menuclick","path":["File","Save"]}]'
 $S/ui.sh '[{"op":"menuclick","path":["File","Export HTML..."]},{"op":"wait","ms":1500},{"op":"filedialog","path":"C:\\Users\\jack\\mdpro-audit\\out\\a.html"}]'
 $S/ui.sh '[{"op":"clickat","x":1600,"y":900},{"op":"chord","keys":["ctrl+z"],"nofocus":true}]'   # real keys
 $S/ui.sh '[{"op":"open","path":"C:\\Users\\jack\\mdpro-audit\\fx\\a.md"}]'   # single-instance route
-$S/log.sh mark; …action…; $S/log.sh since 'file.save|menu'
+$S/log.sh mark; …action…; $S/log.sh since 'file.save|menu'   # human view
+$S/log.sh raw run1.jsonl                                       # raw JSONL to judge by
 ```
 
 - **Every op and helper:** [`reference/ops.md`](reference/ops.md).
