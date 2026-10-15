@@ -18,28 +18,25 @@ message.
 
 | Session | Machine | Model | Owns | Commits where |
 |---|---|---|---|---|
-| **mdpro-delegator** | MacBook, main checkout | **Fable** | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `master`, docs only; lands peer commits by `git merge --ff-only` and pushes `origin master` after each landing |
+| **mdpro-delegator** | MacBook, main checkout | Opus | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `master`, docs only; lands peer commits by `git merge --ff-only` and pushes `origin master` after each landing |
 | **mdpro-implementor-\*** (one or more) | MacBook | Opus | The work items the delegator hands it, one area at a time | Its own branch and worktree in `mdpro-wt/`. It runs git only inside that worktree; the delegator does cross-tree git for it |
 | **mdpro-auditor-\*** | MacBook | Opus (the Codex job it dispatches runs `gpt-6.1-sol`) | Audits the user hands it directly (e.g. the branch audit in `docs/audit/`) and the fixes that come out of them. D items it fixes keep their sequencing rows as the authority on status | `isolation: "worktree"` subagents; the fix branch, rebased onto `master`, is handed to the delegator to land |
 | **mdpro-device-harness** | Mac mini | Opus | The device-test tooling itself: ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
 | **real-device-tester** | Mac mini, tmux session | Opus | GUI device checks only, driven by a brief from the delegator. Writes reports, never commits | — |
 
-**The model column is a pairing, not a preference** (user decision,
-2026-10-11). The delegator runs on **Fable** because its work is
-judgment: rulings, scope checks, what to ask the user, and what to relay.
-Every other session runs on **Opus** because its work is execution:
-bulk reading, writing, test runs, device driving. A session started on the
-wrong model says so in its first message to the delegator and is restarted
-(`claude --model fable` for the delegator, `claude --model opus` for the
-rest, alongside its `MDPRO_ROLE`). Family names only, no version: the
-current release of each family is the one meant. **Every subagent the
-delegator dispatches defaults to Opus** (user decision, 2026-10-11): while
-the delegator runs on Fable, each `Agent` call it makes passes
-`model: "opus"` (a `fork` is the one exception, since a fork always runs on
-the parent's model), and its own agent definitions (`mdpro-landing-verifier`,
-`mdpro-number-registrar`) carry `model: opus` in their frontmatter. The same
-holds for every `Agent` call any other session makes for execution work.
-Fable is spent on the delegator's judgment, not inherited by its workers.
+**Every session runs on Opus** (user decision, 2026-10-15: 「Rule 70 says
+the delegator runs on Fable: update it to Opus」; until then the delegator
+was paired with Fable, from 2026-10-11). A session started on another model
+says so in its first message to the delegator and is restarted
+(`claude --model opus`, alongside its `MDPRO_ROLE`). Family names only, no
+version: the current release of the family is the one meant. **Every
+subagent the delegator dispatches runs on Opus** (user decision,
+2026-10-11): each `Agent` call it makes passes `model: "opus"`, because the
+machine-wide default subagent model is Sonnet (a `fork` needs no override,
+since a fork always runs on the parent's model), and its own agent
+definitions (`mdpro-landing-verifier`, `mdpro-number-registrar`) carry
+`model: opus` in their frontmatter. The same holds for every `Agent` call
+any other session makes for execution work.
 
 Every name above except mdpro-delegator is a role. The concrete `ListAgents` or
 tmux name is only an alias; as of 2026-10-10 they are:
