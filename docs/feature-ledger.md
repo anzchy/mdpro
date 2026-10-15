@@ -479,8 +479,8 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 能力 | Windows | 说明 |
 |---|---|---|
 | 原生 macOS 菜单栏 | N/A | Windows 是窗口内原生菜单栏，结构照搬 macOS（含「mdpro」应用菜单，W7）。应用菜单里的 Services / Hide / Hide Others / Show All 只在 macOS 上有（D190 WI-7 已修，真机未验，`app_menu_has_macos_items`） |
-| 重启应用更新 | Unknown | Windows 审计未验证（ead8c30） |
-| 重启前保存守卫 | Unknown | Windows 审计未验证（ead8c30） |
+| 重启应用更新 | Absent | Windows 不提供更新（[D224](plans/20260912-frontend-backend-sequencing-order.md#d224)，[ADR-0102](adr/0102-v0-3-4-ships-with-a-failing-update-check-on-windows-and-linux.md)）：自 D224 修复（`8b29858`，目标 v0.3.5，单元验证，Windows 真机未验）起 About 显示 “Automatic updates coming soon.”、无按钮，这条路径走不到。不是 N/A：Windows 更新上线后它会存在 |
+| 重启前保存守卫 | Absent | Windows 不提供更新（[D224](plans/20260912-frontend-backend-sequencing-order.md#d224)，[ADR-0102](adr/0102-v0-3-4-ships-with-a-failing-update-check-on-windows-and-linux.md)）：自 D224 修复（`8b29858`，目标 v0.3.5，单元验证，Windows 真机未验）起 About 显示 “Automatic updates coming soon.”、无按钮，这条路径走不到。不是 N/A：Windows 更新上线后它会存在 |
 | 退出守卫：原生钩子、逐窗口提示与回复通道 `quit_guard_reply` | Partial | 限制：保存提示里的「保存后退出」一支未在 Windows 真机测。审计时有脏文档 Exit 不提示直接退出（W4）；D190 WI-4 `da93e80` 已修，Windows 真机已验（[Windows 真机记录 2026-10-14](test/20261014-d190-w1-w5-windows-device-check.md)）：弹出保存提示，Cancel 与 Esc 取消退出，Discard 退出，干净时不提示，关闭最后一个窗口可退出 |
 | 退出卡住时的逃生口：mdpro 菜单 → Stop Waiting and Quit…（`menu.app.stop_waiting_quit`） | Unknown | Windows 审计仅部分验证（ead8c30），菜单项在但未点；Exit 已走退出守卫（D190 WI-4，Windows 真机已验） |
 | 协作编辑 | Unknown | Windows 审计未验证（ead8c30） |
