@@ -73,6 +73,18 @@ Per theme, for the edges of controls (D227, WI-3.5a; ratios in
   text colour at 50%, 3:1 or better on the panel; hairlines keep
   `--color-border`
 
+Per theme, for the active document tab (D231, user rulings 2026-10-15:
+「D231 c」, 「Active tab fill: 用方案6」, 「6c OK」; ratios in
+`tests/d231-tab-active-contrast.test.ts`):
+
+- `--color-tab-active-fill`: the active tab's fill, replacing its shadow
+  lift. The text colour at 16% over the surface in light, 30% in dark
+- `--color-tab-active-accent`: the active tab's × focus ring and unsaved
+  dot. The accent in light; `#93c5fd` in dark, because the plain accent is
+  2.81:1 on the dark fill
+- `--tab-active-close-opacity`: the active tab's resting ×, `0.5` light and
+  `0.6` dark, so it stays 3:1 or better on the fill
+
 **Accepted A9 exceptions (D227, user rulings 2026-10-15):** the toggle's
 `#ccc` off-track and its knob, the light danger label hovered, the
 `.shortcut-value` edge and the `.grid-picker-cell` edge stay below A9. Don't
