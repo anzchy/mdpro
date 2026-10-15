@@ -20,10 +20,8 @@ paths:
 - **Keep cross-mode parity.** WYSIWYG (Milkdown) and Source (CodeMirror 6)
   must feel like one product: same fonts, colors, spacing scale, and
   selection / highlight behavior unless there's a stated reason.
-- **Ask a UI question with a prototype.** When a visual choice needs the
-  user, build the options with `/mattpocock-skills:prototype` and let the user
-  pick on it; a prose description of colours or layout is not enough to choose
-  from (user decision, 2026-10-15; details in CLAUDE.md § Design System).
+- **Ask a UI question with a prototype**, not in prose
+  (`/mattpocock-skills:prototype`; rule 70 § Questions and approvals).
 
 ## Universal discipline rules (apply to every UI surface)
 

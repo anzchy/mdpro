@@ -123,10 +123,17 @@ handoff. Each item is tagged `prep` or `impl`.
   confirmations. The delegator puts the exact command and the
   risk to the user and relays the answer **quoting the user's words**. A
   relayed quote counts as the user's approval for that command only.
-- **A UI question reaches the user as a prototype** (CLAUDE.md § Design
-  System). An implementor sends the delegator the options with their
+- **A UI question reaches the user as a prototype, never as prose.** Visual
+  options (colours, layout, spacing, a component's look) are built with
+  `/mattpocock-skills:prototype` so the user can switch between them, then the
+  user chooses (user decision, 2026-10-15: 「for the above two and subsequent
+  UI questions, use /mattpocock-skills:prototype to visualize it, then let me
+  choose」). An implementor sends the delegator the options with their
   measurements; the delegator, or the implementor on the delegator's word,
-  builds the prototype, and the delegator asks the user on it.
+  builds the prototype, and the delegator asks the user on it. The prototype
+  lives on a throwaway `prototype/<id>-<slug>` branch in its own `mdpro-wt/`
+  worktree, never lands on `master`, and records the verdict in a commit
+  there (reference: `prototype/d222-contrast`).
 - **A session the user tasked directly asks the user itself** (never an
   implementor; its questions always go through the delegator) about decisions
   inside that task. Decisions that affect another session's area go through
