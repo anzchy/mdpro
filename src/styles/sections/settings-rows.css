@@ -71,6 +71,18 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+/* D244-WI-2 (「a2: inset rings (Recommended)」): the group is a Tab stop
+   (arrow keys step it) and gets rule 33 pattern 2; − and + are Tab stops too,
+   and draw their ring inside, over their padding, so it never crosses the
+   group's border. */
+.settings-stepper:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+.settings-stepper__step:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
 .settings-stepper span {
   min-width: 40px;
   text-align: center;

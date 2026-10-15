@@ -75,6 +75,7 @@ export function SettingsStepper({ value, min, max, onChange, unit = "" }: Steppe
       tabIndex={0}
     >
       <button
+        className="settings-stepper__step"
         onClick={decrement}
         disabled={displayValue <= min}
         aria-label="Decrease"
@@ -87,6 +88,7 @@ export function SettingsStepper({ value, min, max, onChange, unit = "" }: Steppe
         {unit}
       </span>
       <button
+        className="settings-stepper__step"
         onClick={increment}
         disabled={displayValue >= max}
         aria-label="Increase"

@@ -98,6 +98,15 @@
   background: var(--settings-btn-hover-bg);
 }
 
+/* D244: rule 33 pattern 3, as on the TOC rows: the accent-soft fill plus an
+   inset ring. Declared before .is-active so the current category keeps its
+   own fill; the ring is what marks focus there. */
+.settings-category-btn:focus-visible {
+  background: var(--color-accent-soft);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
 .settings-category-btn.is-active {
   background: var(--settings-btn-active-bg);
   color: var(--color-text);

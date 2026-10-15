@@ -9,9 +9,13 @@
  *   shortcut value, the image menu's Apply and the MCP copy buttons, which
  *   also go to full opacity on focus, as on hover (D231 (c) reveal-on-focus);
  * - the table menu's ring on the image menu's items (inset 2px, and on the
- *   accent-filled current size the panel colour inset 4px, 「D234:a」).
- * A sweep fails on any rendered `<button>` whose classes reach no
- * `:focus-visible` rule, unless it is on the allow-list.
+ *   accent-filled current size the panel colour inset 4px, 「D234:a」);
+ * - D244-WI-2: the Settings font-size stepper's group gets pattern 2 and its
+ *   − / + buttons inset rings (「a2: inset rings (Recommended)」); the Settings
+ *   rail's category buttons get rule 33 pattern 3 (accent-soft fill plus an
+ *   inset ring, as the TOC rows do).
+ * A sweep fails on any rendered `<button>` that satisfies no `:focus-visible`
+ * compound (every class of it among the button's classes).
  *
  * Strategy: source inspection (jsdom has no `:focus-visible`), the pattern of
  * tests/focus-ring-wi33.test.ts; ring contrast is measured against the real
@@ -24,7 +28,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, parseDeclarations } from "./support/cssTokenScan";
 import { contrast, over, resolveColor, themeTokens, type Rgba, type Theme } from "./support/contrast";
-import { focusVisibleClasses, unringedButtons } from "./support/buttonFocusSweep";
+import { focusVisibleCompounds, scanButtons } from "./support/buttonFocusSweep";
 
 const SRC = join(__dirname, "..", "src");
 const files = (readdirSync(SRC, { recursive: true }) as string[]).map((p) => p.split("\\").join("/"));
@@ -60,15 +64,48 @@ const OUTER: { selector: string; behind: string[][] }[] = [
   { selector: ".shortcut-value:focus-visible", behind: [["var(--settings-card-bg)", "var(--color-panel)"]] },
   { selector: ".image-context-menu-apply:focus-visible", behind: [["var(--color-panel)"]] },
   { selector: ".mcp-copy-btn:focus-visible", behind: [["var(--color-bg-secondary)", "var(--color-panel)"]] },
+  { selector: ".settings-stepper:focus-visible", behind: [["var(--color-panel)"]] },
+];
+
+/** Inset rings (offset −2px): the ring and the layers inside the element, top first. */
+const INSET: { selector: string; behind: string[][] }[] = [
+  // The stepper's buttons have no fill of their own.
+  { selector: ".settings-stepper__step:focus-visible", behind: [["var(--color-panel)"]] },
+  {
+    selector: ".settings-category-btn:focus-visible",
+    // A resting category (the focus fill), and the current one (its own fill wins).
+    behind: [
+      ["var(--color-accent-soft)", "var(--settings-sidebar-bg)", "var(--color-panel)"],
+      ["var(--settings-btn-active-bg)", "var(--settings-sidebar-bg)", "var(--color-panel)"],
+    ],
+  },
 ];
 
 function backdrop(layers: string[], t: ReadonlyMap<string, string>): Rgba {
   return layers.reduceRight<Rgba>((under, layer) => over(resolveColor(layer, t), under), [255, 255, 255, 1]);
 }
 
+/**
+ * A layer that is a token holding a `linear-gradient` (the Settings sidebar)
+ * becomes one layer list per colour stop, so the ring is measured on each.
+ */
+function expandGradients(layers: string[], t: ReadonlyMap<string, string>): string[][] {
+  return layers.reduce<string[][]>(
+    (lists, layer) => {
+      const value = t.get(layer.match(/^var\((--[\w-]+)\)$/)?.[1] ?? "") ?? "";
+      const stops = value.startsWith("linear-gradient(") ? (value.match(/rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}/g) ?? []) : [];
+      const options = stops.length > 0 ? stops : [layer];
+      return lists.flatMap((list) => options.map((o) => [...list, o]));
+    },
+    [[]],
+  );
+}
+
+/** The lowest ring contrast over every stop of `layers`. */
 const ringOn = (theme: Theme, colour: string, layers: string[]) => {
   const t = themeTokens(theme);
-  return contrast(resolveColor(colour, t), backdrop(layers, t));
+  const ring = resolveColor(colour, t);
+  return Math.min(...expandGradients(layers, t).map((l) => contrast(ring, backdrop(l, t))));
 };
 
 describe("D244: each button draws rule 33's ring", () => {
@@ -76,6 +113,26 @@ describe("D244: each button draws rule 33's ring", () => {
     const r = rule(selector);
     expect(r.get("outline")).toBe(RING);
     expect(r.get("outline-offset")).toBe("2px");
+  });
+
+  it.each(INSET.map((o) => o.selector))("%s is an inset ring", (selector) => {
+    const r = rule(selector);
+    expect(r.get("outline")).toBe(RING);
+    expect(r.get("outline-offset")).toBe("-2px");
+  });
+
+  it("the stepper's − and + carry the class the inset ring targets", () => {
+    const tsx = read("components/common/settings/SettingsStepper.tsx");
+    expect(tsx.match(/<button\b[^>]*className="settings-stepper__step"/g)).toHaveLength(2);
+  });
+
+  it("a focused Settings category shows the pattern 3 fill, and the current one keeps its own", () => {
+    expect(rule(".settings-category-btn:focus-visible").get("background")).toBe("var(--color-accent-soft)");
+    const css = blankComments(read("styles/sections/settings-shell.css"));
+    expect(css.indexOf(".settings-category-btn:focus-visible")).toBeGreaterThan(-1);
+    expect(css.indexOf(".settings-category-btn:focus-visible")).toBeLessThan(
+      css.indexOf(".settings-category-btn.is-active"),
+    );
   });
 
   it("the + ring is the sidebar toggle's", () => {
@@ -103,7 +160,7 @@ describe("D244: each button draws rule 33's ring", () => {
 
   it.each<Theme>(["light", "dark"])("%s: every ring is ≥ 3:1 against what is behind it", (theme) => {
     const low: string[] = [];
-    for (const { selector, behind } of OUTER) {
+    for (const { selector, behind } of [...OUTER, ...INSET]) {
       for (const layers of behind) {
         const r = ringOn(theme, "var(--color-focus-ring)", layers);
         if (r < 3) low.push(`${selector} on ${layers.join(" over ")}: ${r.toFixed(2)}`);
@@ -123,40 +180,37 @@ describe("D244: each button draws rule 33's ring", () => {
 const DEAD = (p: string) => p.startsWith("components/TabBar/");
 
 /**
- * Rendered buttons with no ring of our own, keyed `file class` with a count.
- * A stale entry fails too, so this list only shrinks.
+ * Fewer rendered buttons than this means the scan broke, not that buttons
+ * went away: 44 on 2026-10-15. Lower it only alongside removing buttons.
  */
-const ALLOWED: Record<string, number> = {
-  // D244-WI-2, awaiting user ruling: the stepper's ring (a1/a2/a3 prototype).
-  "components/common/settings/SettingsStepper.tsx (unclassed)": 2,
-};
+const MIN_BUTTONS = 44;
 
 describe("D244 sweep: every rendered <button> reaches a :focus-visible rule", () => {
-  const ringed = focusVisibleClasses(appCss);
-  const found: Record<string, number> = {};
-  for (const p of files.filter((f) => f.endsWith(".tsx") && !DEAD(f))) {
-    for (const key of unringedButtons(read(p), ringed)) {
-      const k = `${p} ${key}`;
-      found[k] = (found[k] ?? 0) + 1;
-    }
-  }
+  const compounds = focusVisibleCompounds(appCss);
+  const scanned = files
+    .filter((f) => f.endsWith(".tsx") && !DEAD(f))
+    .flatMap((p) => scanButtons(read(p), compounds).map((b) => ({ ...b, file: p })));
 
-  it("finds no button outside the allow-list", () => {
-    expect(Object.keys(found).filter((k) => found[k] > (ALLOWED[k] ?? 0))).toEqual([]);
+  it(`scans at least ${MIN_BUTTONS} buttons`, () => {
+    expect(scanned.length).toBeGreaterThanOrEqual(MIN_BUTTONS);
   });
 
-  it("has no stale allow-list entry", () => {
-    expect(Object.keys(ALLOWED).filter((k) => (found[k] ?? 0) !== ALLOWED[k])).toEqual([]);
+  it("finds no button without a ring", () => {
+    expect(scanned.filter((b) => !b.ringed).map((b) => `${b.file} ${b.key}`)).toEqual([]);
   });
 });
 
 describe("the sweep itself", () => {
-  const ringed = focusVisibleClasses(
-    ".a:focus-visible{} .wrap .b:hover:focus-visible{} .c:has(.d:focus-visible){} /* .e:focus-visible */",
+  const compounds = focusVisibleCompounds(
+    [
+      ".a:focus-visible{} .wrap .b:hover:focus-visible{} .c:has(.d:focus-visible){} /* .e:focus-visible */",
+      ".item.is-active:focus-visible{} .f:not(.g):focus-visible{} button:focus-visible{}",
+    ].join("\n"),
   );
+  const unringed = (tsx: string) => scanButtons(tsx, compounds).filter((b) => !b.ringed).map((b) => b.key);
 
-  it("collects only classes in the compound that carries :focus-visible", () => {
-    expect([...ringed].sort()).toEqual(["a", "b", "d"]);
+  it("collects each compound that carries :focus-visible, without :not() or class-less ones", () => {
+    expect(compounds).toEqual([["a"], ["b"], ["d"], ["item", "is-active"], ["f"]]);
   });
 
   it("flags unclassed and unringed buttons, and skips ringed ones and comments", () => {
@@ -168,6 +222,15 @@ describe("the sweep itself", () => {
       "<button onClick={() => go()}>w</button>",
       '/* <button className="q"> */',
     ].join("\n");
-    expect(unringedButtons(tsx, ringed)).toEqual(["c", "(unclassed)"]);
+    expect(scanButtons(tsx, compounds)).toHaveLength(4);
+    expect(unringed(tsx)).toEqual(["c", "(unclassed)"]);
+  });
+
+  it("does not let one class of a compound ring a button (the rail's `is-active`)", () => {
+    // Matching any single class of any compound passed this button.
+    const rail = "<button className={`rail ${on ? \"is-active\" : \"\"}`}>General</button>";
+    expect(unringed(rail)).toEqual(["rail"]);
+    const item = "<button className={`item ${on ? \"is-active\" : \"\"}`}>16px</button>";
+    expect(unringed(item)).toEqual([]);
   });
 });
