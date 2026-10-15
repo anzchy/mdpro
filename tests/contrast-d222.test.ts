@@ -94,6 +94,29 @@ describe("audit b138 M6: the MCP Starting / Stopping badge is accent text on acc
   });
 });
 
+describe("audit b138 M6: the table-menu hint on a hovered or active item", () => {
+  // User ruling on prototype/p-wi33-table-hint (2928173): 「0.95 (Recommended)」.
+  const ITEM = ".table-context-menu-item.is-active";
+  const HINT = `${ITEM} .table-context-menu-item-hint`;
+  const decl = (selector: string, property: string) =>
+    parseDeclarations(readFileSync(join(S, "table-context-menu.css"), "utf8")).find(
+      (d) => d.property === property && d.selector.split(",").map((x) => x.trim()).includes(selector),
+    )?.value;
+
+  it("dims the hint to 0.95, the ruled value", () => {
+    expect(decl(HINT, "opacity")).toBe("0.95");
+  });
+
+  for (const theme of ["light", "dark"] as const) {
+    it(`${theme}: the hint at its opacity on the item's fill is at least 4.5:1`, () => {
+      const fill = color(theme, decl(ITEM, "background") ?? "");
+      const [r, g, b, a] = color(theme, decl(HINT, "color") ?? "");
+      const hint = over([r, g, b, a * Number(decl(HINT, "opacity"))], fill);
+      expect(contrast(hint, fill)).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+  }
+});
+
 describe("primary buttons: --color-on-accent on --color-accent-fill", () => {
   for (const theme of ["light", "dark"] as const) {
     for (const state of ["--color-accent-fill", "--color-accent-fill-hover"]) {

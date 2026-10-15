@@ -83,10 +83,12 @@
   margin-left: 12px;
 }
 
+/* 0.95 keeps the hint a little dimmer than its label and above 4.5:1 on
+   the accent (light 4.83:1); 0.85 was 4.19:1 (D222, audit b138 M6). */
 .table-context-menu-item:hover:not(.is-disabled) .table-context-menu-item-hint,
 .table-context-menu-item.is-active .table-context-menu-item-hint {
   color: var(--color-panel);
-  opacity: 0.85;
+  opacity: 0.95;
 }
 
 .table-context-menu-group--destructive .table-context-menu-item {
