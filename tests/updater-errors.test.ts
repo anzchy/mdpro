@@ -26,8 +26,8 @@
  * uncertain class: U2, U6, U7, U10 changed; U12 and U13 are new.
  */
 import { describe, it, expect } from "vitest";
-import { isUpdatesDisabledError } from "../src/components/common/settings/updaterErrors";
-import { MALFORMED_METADATA_TEXTS } from "./support/updaterErrorTexts";
+import { classifyCheckRejection, isUpdatesDisabledError } from "../src/components/common/settings/updaterErrors";
+import { MALFORMED_METADATA_TEXTS, PLATFORM_NOT_IN_MANIFEST_TEXTS } from "./support/updaterErrorTexts";
 
 /** tauri-plugin-updater 2.9.0 `Error::EmptyEndpoints` Display text. */
 const REAL_EMPTY_ENDPOINTS = "Updater does not have any endpoints set.";
@@ -265,5 +265,56 @@ describe("isUpdatesDisabledError", () => {
       }
     }
     expect(accepted).toEqual([]);
+  });
+});
+
+/**
+ * D224: plugin 2.13.1's `check()` rejects with `TargetsNotFound` whenever latest.json has no
+ * entry for the client's platform, even when the remote version is not newer. latest.json lists
+ * only darwin (ADR-0102), so off macOS that rejection means "updates are not offered here", the
+ * updates-disabled state (user's ruling 「A: coming soon (Recommended)」). On macOS it means a
+ * broken release and stays an error. Texts pinned in Rust by K3.
+ */
+describe("D224 classifyCheckRejection", () => {
+  const [WINDOWS, LINUX] = PLATFORM_NOT_IN_MANIFEST_TEXTS;
+
+  it("C1: the platform-not-in-manifest texts are platform-not-offered off macOS, an error on macOS", () => {
+    for (const text of PLATFORM_NOT_IN_MANIFEST_TEXTS) {
+      expect(classifyCheckRejection(text, false)).toBe("platform-not-offered");
+      expect(classifyCheckRejection(text, true)).toBe("error");
+    }
+  });
+
+  it("C2: EmptyEndpoints is updates-disabled on every platform", () => {
+    expect(classifyCheckRejection(REAL_EMPTY_ENDPOINTS, false)).toBe("updates-disabled");
+    expect(classifyCheckRejection(REAL_EMPTY_ENDPOINTS, true)).toBe("updates-disabled");
+  });
+
+  it("C3: ReleaseNotFound and every malformed-metadata text stay errors on every platform", () => {
+    for (const text of ["Could not fetch a valid release JSON from the remote", ...MALFORMED_METADATA_TEXTS]) {
+      expect(classifyCheckRejection(text, false), text).toBe("error");
+      expect(classifyCheckRejection(text, true), text).toBe("error");
+    }
+  });
+
+  it.each([
+    ["inside a longer message", `failed: ${WINDOWS}`],
+    ["followed by more text", `${WINDOWS} (retry)`],
+    ["lower-cased", WINDOWS.toLowerCase()],
+    ["without the backticks", WINDOWS.replace(/`/g, "")],
+    ["an empty platform list", "None of the fallback platforms `[]` were found in the response `platforms` object"],
+    ["unquoted entries", "None of the fallback platforms `[windows-x86_64]` were found in the response `platforms` object"],
+    ["the 2.9.0 'on the response' wording", WINDOWS.replace("in the response", "on the response")],
+  ])("C4: a near miss (%s) is an error off macOS", (_label, text) => {
+    expect(classifyCheckRejection(text, false)).toBe("error");
+  });
+
+  it("C5: surrounding whitespace is tolerated, as for EmptyEndpoints", () => {
+    expect(classifyCheckRejection(`  ${LINUX}\n`, false)).toBe("platform-not-offered");
+  });
+
+  it("C6: a single-entry list (no installer suffix) still reads as platform-not-offered", () => {
+    const text = "None of the fallback platforms `[\"linux-x86_64\"]` were found in the response `platforms` object";
+    expect(classifyCheckRejection(text, false)).toBe("platform-not-offered");
   });
 });

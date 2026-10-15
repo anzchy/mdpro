@@ -10,14 +10,15 @@ import { useUpdaterStore } from "../../../stores/updaterStore";
 import type { CacheSafeState } from "../../../stores/updaterStore";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { prepareForRelaunch } from "../../../hooks/useUpdater";
-import { isUpdatesDisabledError } from "./updaterErrors";
+import { isMacPlatform } from "../../../utils/platformLabels";
+import { classifyCheckRejection } from "./updaterErrors";
 
 /**
  * Purpose: Settings → About page: app version, update check via
  * @tauri-apps/plugin-updater, download + install + relaunch. Each non-cached
  * check logs one `ui.about.update_check` start and one terminal line: success,
- * success + `outcome: "updates-disabled"` (no endpoints configured only), or
- * fail (incl. ReleaseNotFound, D85); a cache hit logs none. Finding an update
+ * success + `outcome` "updates-disabled" or (off macOS, no latest.json entry for this
+ * platform, D224) "platform-not-offered", or fail (incl. ReleaseNotFound, D85); a cache hit logs none. Finding an update
  * clears the cached result, so a remount re-checks instead of a stale error.
  * Each check takes a request id from updaterStore and writes the cache only
  * while it is still the newest check; its screen update additionally needs
@@ -25,7 +26,7 @@ import { isUpdatesDisabledError } from "./updaterErrors";
  * Showing a cached result also takes a request id, so a check still in flight
  * from an earlier open can no longer change the cache this panel shows (D166).
  *
- * @coordinates-with updaterErrors (updates-disabled vs network-error detection)
+ * @coordinates-with updaterErrors (updates-disabled / platform-not-offered vs failure)
  * @coordinates-with updaterStore (cache-safe state persistence)
  * @coordinates-with useUpdater (prepareForRelaunch save guard)
  * @coordinates-with ConfirmDialog (restart confirmation)
@@ -107,11 +108,12 @@ export function AboutSettings() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
 
-      // Updates disabled (no endpoints configured) is a definite answer, not an
-      // error: success + `outcome`. ReleaseNotFound (any non-2xx) is a fail (D85).
-      if (isUpdatesDisabledError(msg)) {
+      // No endpoints, or (off macOS) no entry for this platform in latest.json, is a
+      // definite answer, not an error: success + `outcome` (D224). ReleaseNotFound is a fail (D85).
+      const outcome = classifyCheckRejection(msg, isMacPlatform());
+      if (outcome !== "error") {
         commit({ phase: "updates-disabled" });
-        logCheck("success", { outcome: "updates-disabled", error: msg });
+        logCheck("success", { outcome, error: msg });
         return;
       }
 

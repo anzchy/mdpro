@@ -11,6 +11,13 @@
 //! K2 (D85-WI-3): malformed release metadata, run through the plugin's real
 //! `RemoteRelease` deserializer, never carries the disabled marker. It pins
 //! the texts the TS tests reuse (tests/support/updaterErrorTexts.ts).
+//!
+//! K3 (D224): plugin 2.13.1 `TargetsNotFound`, the rejection a client gets when
+//! `latest.json` has no entry for its platform (Windows, Linux), is pinned
+//! character for character: off macOS the About pane reads it as "updates not
+//! offered here", not as a failure. `TargetNotFound` (singular, raised only when
+//! a target is set, which mdpro never does) is pinned as the text the TS tests
+//! use for a malformed-metadata sample.
 
 use serde_json::json;
 use tauri_plugin_updater::{Error, RemoteRelease};
@@ -109,5 +116,41 @@ fn k2_no_malformed_metadata_text_carries_the_disabled_marker() {
             !text.contains(DISABLED_MARKER),
             "malformed metadata {case} would read as updates disabled: {text:?}"
         );
+    }
+}
+
+/// The exact texts `updaterErrors.ts` (`PLATFORM_NOT_IN_MANIFEST`) recognises (D224): plugin
+/// 2.13.1 `Error::TargetsNotFound`, raised by `check()` when `latest.json` has no entry for the
+/// client's platform, even when the remote version is not newer. Shared with the TS tests as
+/// `PLATFORM_NOT_IN_MANIFEST_TEXTS` (tests/support/updaterErrorTexts.ts).
+const TARGETS_NOT_FOUND_WINDOWS: &str = "None of the fallback platforms `[\"windows-x86_64-nsis\", \"windows-x86_64\"]` were found in the response `platforms` object";
+const TARGETS_NOT_FOUND_LINUX: &str = "None of the fallback platforms `[\"linux-x86_64-appimage\", \"linux-x86_64\"]` were found in the response `platforms` object";
+
+#[test]
+fn k3_targets_not_found_wire_text_is_the_full_display_text() {
+    let windows = Error::TargetsNotFound(vec![
+        "windows-x86_64-nsis".to_owned(),
+        "windows-x86_64".to_owned(),
+    ]);
+    let linux = Error::TargetsNotFound(vec![
+        "linux-x86_64-appimage".to_owned(),
+        "linux-x86_64".to_owned(),
+    ]);
+    assert_eq!(wire_text(windows), TARGETS_NOT_FOUND_WINDOWS);
+    assert_eq!(wire_text(linux), TARGETS_NOT_FOUND_LINUX);
+}
+
+#[test]
+fn k3_target_not_found_singular_pins_the_in_the_response_text() {
+    assert_eq!(
+        wire_text(Error::TargetNotFound("darwin-aarch64".to_owned())),
+        "the platform `darwin-aarch64` was not found in the response `platforms` object"
+    );
+}
+
+#[test]
+fn k3_targets_not_found_never_carries_the_disabled_marker() {
+    for text in [TARGETS_NOT_FOUND_WINDOWS, TARGETS_NOT_FOUND_LINUX] {
+        assert!(!text.contains(DISABLED_MARKER), "{text:?}");
     }
 }

@@ -7,7 +7,7 @@
 .about-app-name {
   font-size: var(--font-size-title);
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-text);
 }
 
 .about-version {
