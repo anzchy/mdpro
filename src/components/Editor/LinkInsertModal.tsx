@@ -12,6 +12,8 @@
  *     `[text](url)` in Source mode).
  *   - Calls clearPendingCallback() to hide the modal.
  *   - ESC or "Cancel" calls clearPendingCallback() without applying.
+ *   - Tab and Shift-Tab wrap inside the card (rule 33 modal loop, D230): the
+ *     last enabled control is Cancel while the URL is empty, Insert after.
  *   - useLinkInsertBinding clears the request (the modal unmounts) when the
  *     active document switches or closes, or the view mode changes (D73); that
  *     path logs `ui.link-insert.cancel`, not `ui.link-modal.cancel`.
@@ -28,11 +30,15 @@ import { useEffect, useRef, useState } from "react";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
 import { loggingService } from "../../services/loggingService";
 
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function LinkInsertModal() {
   const pendingCallback = useLinkInsertStore((state) => state.pendingCallback);
   const mode = useLinkInsertStore((state) => state.mode);
   const [urlValue, setUrlValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const isOpen = pendingCallback !== null;
 
@@ -94,6 +100,18 @@ export function LinkInsertModal() {
     } else if (e.key === "Escape") {
       e.preventDefault();
       handleCancel();
+    } else if (e.key === "Tab" && cardRef.current) {
+      const focusable = Array.from(cardRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   };
 
@@ -107,6 +125,7 @@ export function LinkInsertModal() {
       }}
     >
       <div
+        ref={cardRef}
         className="dialog-card link-insert-modal"
         role="dialog"
         aria-modal="true"

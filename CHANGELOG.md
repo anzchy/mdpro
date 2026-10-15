@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - mdpro now requires macOS 13.1 or later (was 10.13 as declared, 13 in practice): the new theme colours use CSS `color-mix()`, which macOS ships from 13.1. On macOS 13.0 the in-app updater still offers this release, and the updated app will not open; update macOS, or reinstall an earlier mdpro from GitHub Releases (UI redesign Deliverable B, ADR-0101)
 
 ### Fixed
+- In the Insert Link dialog, Tab and Shift-Tab now cycle through the dialog's own controls instead of moving focus to the window behind it (D230).
 - On Windows and Linux, Settings › About no longer says "Couldn't get update information" every time it opens (D224). Those platforms are not offered in-app updates yet, so About now says "Automatic updates coming soon.", as it does in builds without an update server. macOS is unchanged.
 - In WYSIWYG, a numbered list that starts at a number other than 1 is shown from that number (D226). A list saved as `5.` / `6.` used to be displayed as 1, 2, though the file was right.
 - The sidebar keeps its width when the window is narrow (half or a third of the screen, or high display scaling on Windows). At 960 px or less it used to be squeezed to a sliver when a document was open, and to stretch across most of the window when none was. It now gives way only as far as needed to keep 320 px for the editor (D189, #416)
