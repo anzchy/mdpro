@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Borders are now a soft mix of the text colour, popovers and dialogs share one lighter hairline-ring shadow, the light theme's selection tint is lighter, and each theme sets `color-scheme` so native scrollbars and controls follow it (UI redesign Deliverable B)
 - Hover highlights and theme switches no longer fade; only the switch knob and hover-revealed buttons animate, and they stop animating when macOS Reduce Motion is on (spinners keep turning) (UI redesign Deliverable B)
-- Hover fills, the active TOC row and the active tab use the new theme tokens; menus, dialogs, Settings and toasts drop their 1px border for the shadow's hairline ring; primary-button hover follows the accent in both themes; the MCP client ✓ status is no longer green (UI redesign Deliverable B)
+- Hover fills, the active TOC row and the active tab use the new theme tokens; menus, dialogs, Settings, toasts and Source-mode tooltips drop their 1px border for the shadow's hairline ring; primary-button hover follows the accent in both themes; the MCP client ✓ status is no longer green (UI redesign Deliverable B)
 - Interface text uses one four-step size scale: small labels and hints are 12px, dialog and Settings headers 14px, page titles 16px; WYSIWYG tables scale with the editor font (UI redesign Deliverable B)
 
 ### Fixed

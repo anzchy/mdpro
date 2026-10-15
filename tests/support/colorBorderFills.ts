@@ -11,9 +11,12 @@
  *   box), `outline*`, `box-shadow` and `column-rule*`. Every other property
  *   that names the token is reported (background, background-image, fill,
  *   stroke, mask, …), so a new kind of fill cannot slip past an allowlist.
- * - `var(` matches case-insensitively, and quoted strings are blanked before
- *   matching, so `content: "var(--color-border)"` is text, not a use, and a
- *   `;` inside a quoted `data:` URL does not end an alias's value (audit b134).
+ * - `var(` matches case-insensitively but the property name does not:
+ *   `--COLOR-BORDER` is another custom property (audit b136). Quoted strings
+ *   (with backslash escapes) are blanked before matching, so
+ *   `content: "var(--color-border)"` is text, not a use, and a `;` inside a
+ *   quoted string or an unquoted `url()` does not end an alias's value
+ *   (audits b134, b136).
  * - Custom-property aliases are followed: `--x: var(--color-border)` makes
  *   `var(--x)` a use, transitively, across the files passed as `context`.
  * - Only the exact token counts: `--color-border-subtle` is another token.
@@ -26,16 +29,23 @@ import { blankComments, parseDeclarations, type CssDeclaration } from "./cssToke
 
 const TOKEN = "--color-border";
 const EDGE_PROPERTIES = /^(border(?!-image)|outline|box-shadow$|column-rule)/;
-/** A custom-property definition; its value may contain quoted strings with `;`, `{` or `}` inside. */
-const CUSTOM_PROPERTY = /(--[\w-]+)\s*:\s*((?:"[^"]*"|'[^']*'|[^;{}"'])*)/g;
+/** A quoted string, honouring backslash escapes. */
+const STRING = String.raw`"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'`;
+/** An unquoted `url(…)`, whose body may hold `;` (a `data:` URL). */
+const BARE_URL = String.raw`url\([^)"']*\)`;
+/**
+ * A custom-property definition; its value may contain quoted strings or an
+ * unquoted `url()` with `;`, `{` or `}` inside.
+ */
+const CUSTOM_PROPERTY = new RegExp(String.raw`(--[\w-]+)\s*:\s*((?:${STRING}|${BARE_URL}|[^;{}"'])*)`, "gi");
 
 /** `value` with the contents of every quoted string blanked. */
-const unquote = (value: string) => value.replace(/"[^"]*"|'[^']*'/g, '""');
+const unquote = (value: string) => value.replace(new RegExp(STRING, "g"), '""');
 
 const escape = (name: string) => name.replace(/[-]/g, "\\-");
-/** Matches `var(<one of names>` followed by `,` or `)`. */
+/** Matches `var(<one of names>` followed by `,` or `)`; `var` in any case, the name exactly. */
 const varOf = (names: ReadonlySet<string>) =>
-  new RegExp(`var\\(\\s*(${[...names].map(escape).join("|")})\\s*[,)]`, "i");
+  new RegExp(`[vV][aA][rR]\\(\\s*(${[...names].map(escape).join("|")})\\s*[,)]`);
 
 /** `--color-border` plus every custom property that resolves to it in `cssTexts`. */
 export function colorBorderAliases(cssTexts: readonly string[]): Set<string> {

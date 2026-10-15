@@ -162,6 +162,23 @@ describe("scanner fixtures", () => {
 .c { background: url('x.svg#var(--color-border)'); }`;
     expect(selectors(css)).toEqual([".a"]);
   });
+
+  it("reads an alias whose quoted string holds an escaped quote and a ; (audit b136)", () => {
+    const css = `.a { --x: "a\\";b" var(--color-border); background: var(--x); }
+.b { --y: 'c\\';d' var(--color-border); background: var(--y); }`;
+    expect(selectors(css)).toEqual([".a", ".b"]);
+  });
+
+  it("reads an alias whose unquoted url() holds a ; (audit b136)", () => {
+    const css = `.a { --track: url(data:image/svg+xml;utf8,x) var(--color-border); background: var(--track); }`;
+    expect(selectors(css)).toEqual([".a"]);
+  });
+
+  it("matches the property name case-sensitively: --COLOR-BORDER is another property (audit b136)", () => {
+    const css = `.a { background: var(--COLOR-BORDER); }
+.b { --Color-Border: red; background: var(--Color-Border); }`;
+    expect(selectors(css)).toEqual([]);
+  });
 });
 
 describe("--color-border fill uses in app CSS", () => {

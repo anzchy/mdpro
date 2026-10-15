@@ -153,8 +153,10 @@
   color: var(--color-text);
 }
 
-/* Lint and autocomplete tooltips: the popover contract. */
+/* Lint and autocomplete tooltips: the popover contract. The ring is part of
+   --shadow-soft, so CodeMirror's light-theme `1px solid #bbb` border goes. */
 .editor-shell .cm-editor .cm-tooltip {
+  border: none;
   background: var(--color-panel);
   color: var(--color-text);
   border-radius: var(--radius-popover);

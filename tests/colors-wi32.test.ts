@@ -6,7 +6,8 @@
  * R3 and R10, the hover fill (`--color-hover`, review item 7), the active
  * tab's single `--shadow-soft`, and DESIGN.md:123: an elevated surface
  * (`box-shadow: var(--shadow-soft)`) adds no separate border, because the
- * ring is part of the shadow (audit b134 M1). Item 15 (`--color-code-bg`)
+ * ring is part of the shadow (audit b134 M1); an elevated CodeMirror surface
+ * also resets the border CodeMirror's own theme draws (audit b136 M1). Item 15 (`--color-code-bg`)
  * stays deferred: tests/design-tokens-retune.test.ts pins it unchanged.
  *
  * Strategy: source inspection, one row per declaration; the elevation rule
@@ -75,6 +76,23 @@ describe("elevated surfaces add no separate border (DESIGN.md:123)", () => {
         .map((d) => d.selector),
     );
     expect(elevated.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("an elevated CodeMirror surface resets the border CodeMirror's base theme draws (audit b136 M1)", () => {
+    // @codemirror/view's light theme gives `.cm-tooltip` `border: 1px solid #bbb`;
+    // declaring no border of our own is not enough, the app rule must remove it.
+    const unreset = files.flatMap((f) => {
+      const decls = parseDeclarations(read(f));
+      const elevated = new Set(
+        decls
+          .filter((d) => d.property === "box-shadow" && d.value === "var(--shadow-soft)" && /\.cm-/.test(d.selector))
+          .map((d) => d.selector),
+      );
+      return [...elevated]
+        .filter((sel) => !decls.some((d) => d.selector === sel && d.property === "border" && NO_EDGE.has(d.value)))
+        .map((sel) => `${f}: ${sel}`);
+    });
+    expect(unreset).toEqual([]);
   });
 
   for (const file of files) {
