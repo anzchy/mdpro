@@ -85,3 +85,41 @@ describe("D226 — the WYSIWYG <ol> carries the list's start number", () => {
     expect(rig.doc().content).toBe("4. a\n5. b\n");
   });
 });
+
+/** Paste HTML into the editor, as P1 / R7 do. */
+async function pasteHtml(html: string) {
+  await rig.open("x\n");
+  const host = document.createElement("div");
+  host.innerHTML = html;
+  const parsed = PmDOMParser.fromSchema(viewOf(rig.editor()).state.schema).parse(host);
+  const kids: PmNode[] = [];
+  parsed.forEach((c) => kids.push(c));
+  rig.replaceWith(() => kids);
+  await rig.settle();
+}
+
+/** `data-order` of every `<ol>` the editor rendered. */
+function renderedDataOrders(): (string | null)[] {
+  return Array.from(viewOf(rig.editor()).dom.querySelectorAll("ol")).map((ol) => ol.getAttribute("data-order"));
+}
+
+describe("D226-WI-2 (audit b144 M1) — the shown start is the one that is saved", () => {
+  it("R8 a pasted start too big for CommonMark shows from 1, as it is saved", async () => {
+    await pasteHtml('<ol start="1000000000"><li><p>a</p></li><li><p>b</p></li></ol>');
+    expect(renderedStarts()).toEqual([null]);
+    expect(renderedDataOrders()).toEqual([null]);
+    expect(rig.doc().content).toBe("1. a\n2. b\n");
+  });
+
+  it("R9 a pasted start that is not a number never renders start=\"NaN\"", async () => {
+    await pasteHtml('<ol start="abc"><li><p>a</p></li></ol>');
+    expect(renderedStarts()).toEqual([null]);
+    expect(renderedDataOrders()).toEqual([null]);
+  });
+
+  it("R10 the largest start CommonMark can write is still shown", async () => {
+    await pasteHtml('<ol start="999999999"><li><p>a</p></li></ol>');
+    expect(renderedStarts()).toEqual(["999999999"]);
+    expect(rig.doc().content).toBe("999999999. a\n");
+  });
+});

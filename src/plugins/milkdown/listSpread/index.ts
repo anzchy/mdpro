@@ -31,7 +31,8 @@
  *     with the default from `listMarker` (`-`, `.`).
  *   - D226: an ordered list not starting at 1 also carries `start` in the DOM, so the
  *     editor numbers it from there (the preset's own `toDOM` spreads a number and emits
- *     nothing). `data-order` stays, and the wrapped parse rule still reads it first.
+ *     nothing). `data-order` stays, and the wrapped parse rule still reads it first. Both carry
+ *     `startOf(order)`, the number the list is saved with, so what is shown is what is written.
  *
  * @coordinates-with src/plugins/milkdown/emptyParagraph/edgeSerializer.ts — registers list_item
  * @coordinates-with src/plugins/milkdown/commonmarkPreset.ts — appends `listSpreadPlugins`
@@ -109,9 +110,12 @@ function listSpreadRule(ordered: boolean) {
           if (!Array.isArray(out) || typeof out[1] !== "object" || out[1] === null || Array.isArray(out[1])) return out;
           const extra: Record<string, string> = {};
           if (node.attrs[attr] != null) extra[`data-${attr}`] = String(node.attrs[attr]);
-          if (ordered && node.attrs.order !== 1) {
-            extra["data-order"] = String(node.attrs.order);
-            extra.start = String(node.attrs.order); // D226: the engine numbers from it
+          // The start the list is saved with (D226-WI-2): a pasted start CommonMark cannot write,
+          // or one that is not a number, shows and saves as 1, so neither attr carries it.
+          const order = ordered ? startOf(node.attrs.order) : 1;
+          if (order !== 1) {
+            extra["data-order"] = String(order);
+            extra.start = String(order); // D226: the engine numbers from it
           }
           return [out[0], { ...(out[1] as Record<string, unknown>), ...extra }, ...out.slice(2)] as DOMOutputSpec;
         },
