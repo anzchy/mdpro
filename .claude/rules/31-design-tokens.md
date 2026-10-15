@@ -65,6 +65,20 @@ measured in `tests/contrast-d222.test.ts`):
   toward the text colour; dark is `#1d4ed8`, hovering toward black, because
   white on `#60a5fa` is 2.54:1
 
+Per theme, for the edges and labels of controls (D227, WI-3.5a; ratios in
+`tests/contrast-stage3.test.ts`, usage in `tests/contrast-d227.test.ts`):
+
+- `--color-control-border`: the edge of every form control (selects,
+  search, text and number inputs, steppers, the Source find fields). The
+  text colour at 50%, 3:1 or better on the panel; hairlines keep
+  `--color-border`
+- `--color-control-off`: the toggle's off-track. The text colour mixed into
+  the panel, 55% light and 45% dark, so the track and the white knob both
+  clear 3:1
+- `--color-danger-text`: the danger button's label. Light mixes the danger
+  colour 80% with the text colour to reach 4.5:1 on its hover fill; dark
+  is the danger colour
+
 ## Authoring rules
 
 1. **Add to both theme files in the same commit.** Light-only or

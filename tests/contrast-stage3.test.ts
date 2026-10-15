@@ -125,13 +125,12 @@ const PAIRS: Pair[] = [
   { name: "toggle knob on the off-track", fg: rule.knob, bg: rule.trackOff, min: UI },
 ];
 
-/** D227: failing before Stage 3, fix pending the user's choice. Ratios as measured at a436b0b. */
-const D227: Record<string, Partial<Record<Theme, number>>> = {
-  "input border": { light: 1.22, dark: 1.36 },
-  "toggle off-track": { light: 1.61 },
-  "toggle knob on the off-track": { light: 1.61, dark: 1.61 },
-  "danger label hovered": { light: 3.76 },
-};
+/**
+ * D227: failing before Stage 3; a row pins a pair at its measured ratio until
+ * it is fixed. Empty since the D227 fix (input borders 3.34 / 4.46, toggle
+ * off-track 3.89 / 3.86, knob 3.89 / 4.61, light danger hover 5.04).
+ */
+const D227: Record<string, Partial<Record<Theme, number>>> = {};
 
 function measure(pair: Pair, theme: Theme): number {
   const tokens = themeTokens(theme);

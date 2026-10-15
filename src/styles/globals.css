@@ -21,6 +21,10 @@
   --color-focus-ring: var(--color-accent);
   --color-danger: #dc2626;
   --color-danger-soft: color-mix(in srgb, #dc2626 12%, transparent);
+  /* D227: form-control edges, the toggle's off-track and the danger label, measured to A9 (tests/contrast-stage3.test.ts) */
+  --color-control-border: color-mix(in srgb, var(--color-text) 50%, transparent);
+  --color-control-off: color-mix(in srgb, var(--color-text) 55%, var(--color-panel));
+  --color-danger-text: color-mix(in srgb, var(--color-danger) 80%, var(--color-text));
   --color-editor-bg: #ffffff;
   --color-code-bg: #f4f4f4;
   --font-sans: "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;

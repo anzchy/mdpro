@@ -100,7 +100,7 @@
 .editor-shell .cm-editor .cm-panels .cm-textfield {
   background: var(--color-bg);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
 }
 
 .editor-shell .cm-editor .cm-panels .cm-textfield:focus {

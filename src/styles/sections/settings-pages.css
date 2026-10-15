@@ -109,7 +109,7 @@
 
 .settings-select {
   background: var(--settings-input-bg);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-control);
   padding: 6px 12px;
   font-size: var(--font-size-ui);
@@ -159,7 +159,7 @@
 }
 
 .toolbar-button.danger {
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   border-color: var(--color-danger);
 }
 
