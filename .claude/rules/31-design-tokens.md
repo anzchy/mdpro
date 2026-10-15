@@ -77,7 +77,8 @@ Per theme, for the edges of controls (D227, WI-3.5a; ratios in
 `#ccc` off-track and its knob, the light danger label hovered, the
 `.shortcut-value` edge and the `.grid-picker-cell` edge stay below A9. Don't
 give them a new token without a new ruling; ratios and quotes are in
-DESIGN.md § Tokens.
+DESIGN.md § Tokens and
+[ADR-0106](../../docs/adr/0106-five-control-colours-are-accepted-below-the-a9-contrast-line.md).
 
 ## Authoring rules
 

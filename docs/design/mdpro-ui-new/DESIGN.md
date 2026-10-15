@@ -119,7 +119,8 @@ DR14).
   label hovered (3.76:1), the Keyboard Shortcuts value edge (1.17 / 1.31) and
   the Insert Table grid-picker cell edge (1.22 / 1.25). User rulings on
   prototype/p-wi35-a9-controls: 「Accept (today: #ccc)」, 「Accept (today)」 and
-  「Accept as exception」 twice. Changing one needs a new ruling;
+  「Accept as exception」 twice. Changing one needs a new ruling
+  ([ADR-0106](../../adr/0106-five-control-colours-are-accepted-below-the-a9-contrast-line.md));
   `tests/contrast-stage3.test.ts` pins the first three.
 - **Retired:** `--settings-btn-hover-bg` and `--settings-btn-active-bg`, once
   the rail migrates (WI-4.7).
