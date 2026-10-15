@@ -16,8 +16,8 @@
  * parse runners copy it (and `start`) into attrs; write — the `toMarkdown` runners coerce
  * `spread` to a boolean (`isSpread`) and pass `start` and `mdproMarker` on the mdast
  * list, which `listMarker`'s wrapped `list` handler writes. The attrs also round-trip
- * through the DOM as `data-marker` / `data-delimiter` / `data-order`, so a copy inside
- * the editor keeps them.
+ * through the DOM as `data-marker` / `data-delimiter` / `data-order` (and `start`),
+ * so a copy inside the editor keeps them.
  *
  * Key decisions:
  *   - Spread is fixed on write, where the string meets the boolean-only writer: the
@@ -28,8 +28,10 @@
  *     `edgeStripRule(listItemSpreadRule(gfm task item))`: a schema id registered
  *     later replaces the earlier spec, so two registrations would drop one rule.
  *   - A list with no recorded marker (built in the editor, pasted as HTML) is written
- *     with the default from `listMarker` (`-`, `.`). `order` is not written to the DOM
- *     as `start`, so the editor's own numbering display is unchanged.
+ *     with the default from `listMarker` (`-`, `.`).
+ *   - D226: an ordered list not starting at 1 also carries `start` in the DOM, so the
+ *     editor numbers it from there (the preset's own `toDOM` spreads a number and emits
+ *     nothing). `data-order` stays, and the wrapped parse rule still reads it first.
  *
  * @coordinates-with src/plugins/milkdown/emptyParagraph/edgeSerializer.ts — registers list_item
  * @coordinates-with src/plugins/milkdown/commonmarkPreset.ts — appends `listSpreadPlugins`
@@ -107,7 +109,10 @@ function listSpreadRule(ordered: boolean) {
           if (!Array.isArray(out) || typeof out[1] !== "object" || out[1] === null || Array.isArray(out[1])) return out;
           const extra: Record<string, string> = {};
           if (node.attrs[attr] != null) extra[`data-${attr}`] = String(node.attrs[attr]);
-          if (ordered && node.attrs.order !== 1) extra["data-order"] = String(node.attrs.order);
+          if (ordered && node.attrs.order !== 1) {
+            extra["data-order"] = String(node.attrs.order);
+            extra.start = String(node.attrs.order); // D226: the engine numbers from it
+          }
           return [out[0], { ...(out[1] as Record<string, unknown>), ...extra }, ...out.slice(2)] as DOMOutputSpec;
         },
         parseMarkdown: {
