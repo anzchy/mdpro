@@ -2,6 +2,10 @@
 
 Test documents for validating mdpro markdown features.
 
+## Folders
+
+Automated tests sit at the root of `tests/` (app behaviour) or in `control/` (the launcher and `scripts/control`), `tooling/` (repo tooling: workflows, hooks, `scripts/{ci,ledger,lint,release,device}`) and `perf/` (the `pnpm perf:d12` heap harness). The rule that picks the folder is in `.claude/rules/10-tdd.md` § File placement (ADR-0098). The documents below are manual test inputs.
+
 ## Files
 
 | File | Purpose |

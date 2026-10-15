@@ -2,7 +2,7 @@
  * RFC 7396 JSON Merge Patch and leaf-path helpers, the test oracle for how
  * `tauri build --config <a> --config <b>` combines configs (ADR-0047 WI-002).
  *
- * Shared by `tests/control-verify-overlay.test.ts` (which self-checks
+ * Shared by `tests/control/control-verify-overlay.test.ts` (which self-checks
  * `mergePatch` against the RFC's Appendix A vectors), the WI-002 build-profile
  * tests, and the fake `pnpm tauri build` in `controlBuildRepo.ts`, which names
  * the bundle after the merged `productName`.

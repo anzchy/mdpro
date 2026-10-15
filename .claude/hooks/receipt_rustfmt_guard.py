@@ -18,7 +18,7 @@
 # Not covered: a record through any entry point other than a `receipt.js` path,
 # backticks, `eval`, scripts that run receipt.js.
 # @coordinates-with receipt-rustfmt-guard.sh (the hook), role_guard_shell.py (parser)
-# Regression tests: tests/d187-receipt-rustfmt-guard.test.ts.
+# Regression tests: tests/tooling/d187-receipt-rustfmt-guard.test.ts.
 import json, os, re, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))

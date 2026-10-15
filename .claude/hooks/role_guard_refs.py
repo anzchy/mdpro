@@ -32,8 +32,8 @@
 # in role_guard_opts.rebase_update_refs; chain is per command.
 # The hook imports this lazily for every implementor Bash call and refuses the call
 # if this module, role_guard_opts.py or role_guard_shell.py fails to import (fail closed).
-# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts,
-# tests/d180-verifier-probes.test.ts, tests/d184-role-guard-*.test.ts.
+# Regression tests: tests/tooling/role-guard-hook.test.ts, tests/tooling/d180-role-guard-*.test.ts,
+# tests/tooling/d180-verifier-probes.test.ts, tests/tooling/d184-role-guard-*.test.ts.
 import fnmatch, os, subprocess
 
 from role_guard_opts import ambiguous_refusal, last_flag, normalize, pull_rebases, rebase_update_refs, staging

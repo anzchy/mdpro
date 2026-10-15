@@ -2,7 +2,7 @@
  * Purpose: Find every `dirs::` call site under `src-tauri/src` and check the
  * set against the checked-in registry `src-tauri/persistence-roots.json`
  * (ADR-0047 WI-002 WI-7, acceptance 1's second half). A new call site that
- * nobody registered fails `tests/control-persistence-roots.test.ts`, so every
+ * nobody registered fails `tests/control/control-persistence-roots.test.ts`, so every
  * path the app can persist to is named, scoped and (for production) mapped to
  * a root id that `services/run_isolation_tests.rs` (WI-8) resolves under a
  * temp HOME.

@@ -1,7 +1,7 @@
 /**
  * The `quit` fixture for the D82-WI-5 lock-release tests: a run R built by a
  * real LA-01 `launch` under a `makeHome()` home, plus quit's own deps. The
- * same shape as `launched()` in `tests/control-launcher-quit.test.ts` (kept
+ * same shape as `launched()` in `tests/control/control-launcher-quit.test.ts` (kept
  * there unedited, since that file's assertions are recorded); `deps.kill` and
  * `deps.procFacts` are the only fakes, the lock and the fs are real.
  *

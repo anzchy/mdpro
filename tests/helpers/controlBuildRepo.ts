@@ -1,6 +1,6 @@
 /**
  * Fixture and fake child-process spawner for the WI-10 (ADR-0047) build-entry
- * tests (`tests/control-build-entry.test.ts`).
+ * tests (`tests/control/control-build-entry.test.ts`).
  *
  * `mkBuildRepo()` is a real tmp git repo inside a `GitSandbox`, laid out like
  * mdpro where the entry looks (ignore rules, `Cargo.lock`, `node_modules`

@@ -46,6 +46,17 @@ passes with it.
 
 **Put frontend tests under `tests/`** — `vitest.config.ts` includes `tests/**/*.test.{ts,tsx}`, so both `.test.ts` and `.test.tsx` are discovered, but only inside `tests/`. A test anywhere else — co-located under `src/`, or in a feature-local folder — never runs.
 
+**Its folder is chosen by the system it tests, never by its filename** ([ADR-0098](../../docs/adr/0098-launcher-tooling-and-perf-tests-move-into-their-own-folders-under-tests.md)):
+
+| Folder | A test goes here when |
+|---|---|
+| `tests/control/` | its system under test is `scripts/control/**` or the launcher (`control-*`, or any file whose imports or read paths reach `scripts/control`) |
+| `tests/tooling/` | it imports nothing from `src/`, and it tests repo tooling: `.github/` workflows and scripts, `.claude/hooks`, `scripts/{ci,ledger,lint,release,device}`, `heavy-lock`, the vitest configs |
+| `tests/perf/` | it is a `*.perf.ts` run by `vitest.perf.config.ts` (`pnpm perf:d12`), or that harness's helper |
+| `tests/` (root) | everything else: app behaviour |
+
+Control wins over tooling, and both apply only when the file imports nothing from `../src/`; a test that reaches app source and tooling stays at the root, as does anything in doubt. `tests/support/`, `tests/helpers/`, `tests/setup.ts` and the fixture folders stay where they are. Old paths in receipts, ADRs and closed rows resolve through `docs/reference/adr-0098-test-move-map.json`.
+
 ## Environment and the slow tier
 
 - **jsdom is the default; a DOM-free file opts into node** with `// @vitest-environment node` as its first line. `tests/setup.ts` then makes any first-party read of `window`, `document`, `navigator` and the rest fail the file — if it trips, remove the marker rather than stubbing around it ([ADR-0049](../../docs/adr/0049-dom-free-test-files-opt-into-the-node-environment.md)).

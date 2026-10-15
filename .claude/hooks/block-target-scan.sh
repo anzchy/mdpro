@@ -14,7 +14,7 @@
 # Input: Claude Code's hook JSON on stdin (`tool_input.command`, `cwd`).
 # Exit 2 + stderr = the call is denied and the message goes back to the model.
 # Everything else (rg, the Grep tool, grep on named dirs) passes untouched.
-# Regression tests: tests/block-target-scan-hook.test.ts.
+# Regression tests: tests/tooling/block-target-scan-hook.test.ts.
 set -euo pipefail
 
 input="$(cat)"

@@ -43,9 +43,9 @@
 # Exit 0 = allowed. Malformed JSON exits 0 (fail open, like block-target-scan.sh):
 # a guard that crashes on input it cannot read would block every tool call in
 # every session, which costs more than the one call it might have caught.
-# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts,
-# tests/d180-verifier-probes.test.ts, tests/d184-role-guard-*.test.ts,
-# tests/d186-*.test.ts.
+# Regression tests: tests/tooling/role-guard-hook.test.ts, tests/tooling/d180-role-guard-*.test.ts,
+# tests/tooling/d180-verifier-probes.test.ts, tests/tooling/d184-role-guard-*.test.ts,
+# tests/tooling/d186-*.test.ts.
 set -euo pipefail
 
 role="${MDPRO_ROLE:-}"

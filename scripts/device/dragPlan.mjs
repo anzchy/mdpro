@@ -21,7 +21,7 @@
  *   every wait) is capped at `MAX_PLAN_MS` (D133). A 400 s drag outlived the
  *   120 s Bash timeout, which killed the executor with the button held; a
  *   capped drag always finishes, and releases, well inside it. `drag.swift`
- *   mirrors the cap (tests/device-drag-release.test.ts pins the two equal).
+ *   mirrors the cap (tests/tooling/device-drag-release.test.ts pins the two equal).
  *
  * @module scripts/device/dragPlan
  * @coordinates-with scripts/device/drag.mjs (CLI that prints the plan)

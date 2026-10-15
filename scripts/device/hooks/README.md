@@ -24,7 +24,7 @@ duplicates and reports any gaps.
 | `wait-dtrack.sh` | MacBook | Blocks until a new event arrives. `-t <secs>` sets a timeout (exit 124 when it expires); `-e <regex>` filters events. The gap lines go to stderr, plus `late seq N (source)` when the event returned is a late one. |
 | `last-dtrack.sh` | MacBook | Prints the latest event, then the gap lines. |
 
-The tests are `tests/d177-*.test.ts`.
+The tests are `tests/tooling/d177-*.test.ts`.
 
 ## Install paths and requirements
 

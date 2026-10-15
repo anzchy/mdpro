@@ -1,0 +1,858 @@
+{
+ "schema": "mdpro-test-move-map/1",
+ "adr": "0098",
+ "phase": 1,
+ "baseline": "4c7784aee62530f6eaa79b1e7e4407c4389c9bfa",
+ "excluded": [
+  {
+   "file": "tests/d182-build-mac-masked-failure.test.ts",
+   "class": "tooling",
+   "reason": "open receipt D182-WI-1 (red kind environment); user decision 2026-10-15: not moved in phase 1"
+  }
+ ],
+ "stays_for_review": [],
+ "overrides": [
+  {
+   "file": "tests/release-workflow-blocks.test.ts",
+   "class": "tooling",
+   "reason": "tests tests/support/workflowBlocks.ts, the reader of .github/workflows/release.yml; no import names the workflow"
+  }
+ ],
+ "moves": [
+  {
+   "from": "perf/d12-heap-2000.perf.ts",
+   "to": "tests/perf/d12-heap-2000.perf.ts",
+   "class": "perf"
+  },
+  {
+   "from": "perf/d12-heap-232981.perf.ts",
+   "to": "tests/perf/d12-heap-232981.perf.ts",
+   "class": "perf"
+  },
+  {
+   "from": "perf/d12-heap-50000.perf.ts",
+   "to": "tests/perf/d12-heap-50000.perf.ts",
+   "class": "perf"
+  },
+  {
+   "from": "perf/d12Heap.ts",
+   "to": "tests/perf/d12Heap.ts",
+   "class": "perf"
+  },
+  {
+   "from": "tests/block-target-scan-hook.test.ts",
+   "to": "tests/tooling/block-target-scan-hook.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/cargo-test-lane.test.ts",
+   "to": "tests/tooling/cargo-test-lane.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/ci-change-scope.test.ts",
+   "to": "tests/tooling/ci-change-scope.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/ci-workflow-gate.test.ts",
+   "to": "tests/tooling/ci-workflow-gate.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/control-build-args.test.ts",
+   "to": "tests/control/control-build-args.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-digests-entries.test.ts",
+   "to": "tests/control/control-build-digests-entries.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-digests.test.ts",
+   "to": "tests/control/control-build-digests.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-entry-artifacts.test.ts",
+   "to": "tests/control/control-build-entry-artifacts.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-entry.test.ts",
+   "to": "tests/control/control-build-entry.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-id-features.test.ts",
+   "to": "tests/control/control-build-id-features.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-id.test.ts",
+   "to": "tests/control/control-build-id.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-identity.test.ts",
+   "to": "tests/control/control-build-identity.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-inputs-guard-forms.test.ts",
+   "to": "tests/control/control-build-inputs-guard-forms.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-inputs-guard.test.ts",
+   "to": "tests/control/control-build-inputs-guard.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-manifest-privacy-username.test.ts",
+   "to": "tests/control/control-build-manifest-privacy-username.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-manifest-privacy.test.ts",
+   "to": "tests/control/control-build-manifest-privacy.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-manifest.test.ts",
+   "to": "tests/control/control-build-manifest.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-redact.test.ts",
+   "to": "tests/control/control-build-redact.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-smoke-checks.test.ts",
+   "to": "tests/control/control-build-smoke-checks.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-source-tree-gitlink-forms.test.ts",
+   "to": "tests/control/control-build-source-tree-gitlink-forms.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-source-tree-guards.test.ts",
+   "to": "tests/control/control-build-source-tree-guards.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-spawn.test.ts",
+   "to": "tests/control/control-build-spawn.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-verify-profile.test.ts",
+   "to": "tests/control/control-build-verify-profile.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-versions-order.test.ts",
+   "to": "tests/control/control-build-versions-order.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-build-versions.test.ts",
+   "to": "tests/control/control-build-versions.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-comment-blanker.test.ts",
+   "to": "tests/control/control-comment-blanker.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-claim-atomic.test.ts",
+   "to": "tests/control/control-launcher-clean-claim-atomic.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-claim.test.ts",
+   "to": "tests/control/control-launcher-clean-claim.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-launch-gap.test.ts",
+   "to": "tests/control/control-launcher-clean-launch-gap.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-order.test.ts",
+   "to": "tests/control/control-launcher-clean-order.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-orphan.test.ts",
+   "to": "tests/control/control-launcher-clean-orphan.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-race.test.ts",
+   "to": "tests/control/control-launcher-clean-race.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-sisock-law.test.ts",
+   "to": "tests/control/control-launcher-clean-sisock-law.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-sisock-lockcheck-law.test.ts",
+   "to": "tests/control/control-launcher-clean-sisock-lockcheck-law.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-sisock-lstat.test.ts",
+   "to": "tests/control/control-launcher-clean-sisock-lstat.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean-sisock.test.ts",
+   "to": "tests/control/control-launcher-clean-sisock.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-clean.test.ts",
+   "to": "tests/control/control-launcher-clean.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-cli-options.test.ts",
+   "to": "tests/control/control-launcher-cli-options.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-cli.test.ts",
+   "to": "tests/control/control-launcher-cli.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-doctor-facts.test.ts",
+   "to": "tests/control/control-launcher-doctor-facts.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-doctor-leftovers-break.test.ts",
+   "to": "tests/control/control-launcher-doctor-leftovers-break.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-doctor-leftovers-verdict.test.ts",
+   "to": "tests/control/control-launcher-doctor-leftovers-verdict.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-doctor-leftovers.test.ts",
+   "to": "tests/control/control-launcher-doctor-leftovers.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-doctor-rm-runnable.test.ts",
+   "to": "tests/control/control-launcher-doctor-rm-runnable.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-doctor.test.ts",
+   "to": "tests/control/control-launcher-doctor.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-into-delivery.test.ts",
+   "to": "tests/control/control-launcher-into-delivery.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-into-window.test.ts",
+   "to": "tests/control/control-launcher-into-window.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-launch-home.test.ts",
+   "to": "tests/control/control-launcher-launch-home.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-launch-modes.test.ts",
+   "to": "tests/control/control-launcher-launch-modes.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-launch-paths.test.ts",
+   "to": "tests/control/control-launcher-launch-paths.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-launch-stderr.test.ts",
+   "to": "tests/control/control-launcher-launch-stderr.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-launch.slow.test.ts",
+   "to": "tests/control/control-launcher-launch.slow.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-launch.test.ts",
+   "to": "tests/control/control-launcher-launch.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-launchcore.test.ts",
+   "to": "tests/control/control-launcher-launchcore.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-exclusive.test.ts",
+   "to": "tests/control/control-launcher-lock-exclusive.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-interrupted-report.test.ts",
+   "to": "tests/control/control-launcher-lock-interrupted-report.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-interrupted.test.ts",
+   "to": "tests/control/control-launcher-lock-interrupted.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-mutex-atomic.test.ts",
+   "to": "tests/control/control-launcher-lock-mutex-atomic.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-mutex.slow.test.ts",
+   "to": "tests/control/control-launcher-lock-mutex.slow.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-mutex.test.ts",
+   "to": "tests/control/control-launcher-lock-mutex.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-release-guards.test.ts",
+   "to": "tests/control/control-launcher-lock-release-guards.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-release.test.ts",
+   "to": "tests/control/control-launcher-lock-release.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-restore.test.ts",
+   "to": "tests/control/control-launcher-lock-restore.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-schedules.test.ts",
+   "to": "tests/control/control-launcher-lock-schedules.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock-tomb-faults.test.ts",
+   "to": "tests/control/control-launcher-lock-tomb-faults.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock.slow.test.ts",
+   "to": "tests/control/control-launcher-lock.slow.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-lock.test.ts",
+   "to": "tests/control/control-launcher-lock.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-main.test.ts",
+   "to": "tests/control/control-launcher-main.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-owner-facts.test.ts",
+   "to": "tests/control/control-launcher-owner-facts.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-ownership.test.ts",
+   "to": "tests/control/control-launcher-ownership.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-preset.test.ts",
+   "to": "tests/control/control-launcher-preset.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-procfacts-argv.test.ts",
+   "to": "tests/control/control-launcher-procfacts-argv.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-procfacts-real.test.ts",
+   "to": "tests/control/control-launcher-procfacts-real.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-procfacts-scan-real.test.ts",
+   "to": "tests/control/control-launcher-procfacts-scan-real.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-procfacts.test.ts",
+   "to": "tests/control/control-launcher-procfacts.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-quit-lock-table.test.ts",
+   "to": "tests/control/control-launcher-quit-lock-table.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-quit-lock.test.ts",
+   "to": "tests/control/control-launcher-quit-lock.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-quit.slow.test.ts",
+   "to": "tests/control/control-launcher-quit.slow.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-quit.test.ts",
+   "to": "tests/control/control-launcher-quit.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-redaction.test.ts",
+   "to": "tests/control/control-launcher-redaction.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-rundir.test.ts",
+   "to": "tests/control/control-launcher-rundir.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-secrets.test.ts",
+   "to": "tests/control/control-launcher-secrets.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-launcher-verdict.test.ts",
+   "to": "tests/control/control-launcher-verdict.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-persistence-roots-scan.test.ts",
+   "to": "tests/control/control-persistence-roots-scan.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-persistence-roots.test.ts",
+   "to": "tests/control/control-persistence-roots.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-verify-overlay.test.ts",
+   "to": "tests/control/control-verify-overlay.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-verify-run-publish-structure.test.ts",
+   "to": "tests/control/control-verify-run-publish-structure.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/control-verify-run-wiring.test.ts",
+   "to": "tests/control/control-verify-run-wiring.test.ts",
+   "class": "control"
+  },
+  {
+   "from": "tests/d175-release-id.test.ts",
+   "to": "tests/tooling/d175-release-id.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h1-lock-reclaim.test.ts",
+   "to": "tests/tooling/d177-h1-lock-reclaim.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h3-receiver-write-failure.test.ts",
+   "to": "tests/tooling/d177-h3-receiver-write-failure.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h4-gap-floor.test.ts",
+   "to": "tests/tooling/d177-h4-gap-floor.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h4-late.test.ts",
+   "to": "tests/tooling/d177-h4-late.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h4-log-fields.test.ts",
+   "to": "tests/tooling/d177-h4-log-fields.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h5-content-length.test.ts",
+   "to": "tests/tooling/d177-h5-content-length.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h5-floor-load.test.ts",
+   "to": "tests/tooling/d177-h5-floor-load.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h5-late-seen.test.ts",
+   "to": "tests/tooling/d177-h5-late-seen.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h5-startup-order.test.ts",
+   "to": "tests/tooling/d177-h5-startup-order.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-h6-safe-seq.test.ts",
+   "to": "tests/tooling/d177-h6-safe-seq.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-no-secrets-scan.test.ts",
+   "to": "tests/tooling/d177-no-secrets-scan.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-orphans-last.test.ts",
+   "to": "tests/tooling/d177-orphans-last.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-orphans-push.test.ts",
+   "to": "tests/tooling/d177-orphans-push.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-orphans-receiver.test.ts",
+   "to": "tests/tooling/d177-orphans-receiver.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-push-core-epoch.test.ts",
+   "to": "tests/tooling/d177-push-core-epoch.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-push-core-race.test.ts",
+   "to": "tests/tooling/d177-push-core-race.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-push-core.test.ts",
+   "to": "tests/tooling/d177-push-core.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-push-script.test.ts",
+   "to": "tests/tooling/d177-push-script.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-receiver-epoch.test.ts",
+   "to": "tests/tooling/d177-receiver-epoch.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-receiver.test.ts",
+   "to": "tests/tooling/d177-receiver.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-settings-builder.test.ts",
+   "to": "tests/tooling/d177-settings-builder.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d177-wait-last.test.ts",
+   "to": "tests/tooling/d177-wait-last.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d180-role-guard-fail-closed.test.ts",
+   "to": "tests/tooling/d180-role-guard-fail-closed.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d180-role-guard-ref-moves-2.test.ts",
+   "to": "tests/tooling/d180-role-guard-ref-moves-2.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d180-role-guard-ref-moves-3.test.ts",
+   "to": "tests/tooling/d180-role-guard-ref-moves-3.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d180-role-guard-ref-moves.test.ts",
+   "to": "tests/tooling/d180-role-guard-ref-moves.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d180-verifier-probes.test.ts",
+   "to": "tests/tooling/d180-verifier-probes.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d181-check-patched-cli.test.ts",
+   "to": "tests/tooling/d181-check-patched-cli.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d181-patch-check.test.ts",
+   "to": "tests/tooling/d181-patch-check.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d183-build-mac-product-checks.test.ts",
+   "to": "tests/tooling/d183-build-mac-product-checks.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d184-role-guard-abbrev-config.test.ts",
+   "to": "tests/tooling/d184-role-guard-abbrev-config.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d184-role-guard-last-flag-wins.test.ts",
+   "to": "tests/tooling/d184-role-guard-last-flag-wins.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d184-role-guard-pull-rebase.test.ts",
+   "to": "tests/tooling/d184-role-guard-pull-rebase.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d186-role-guard-tester-fail-closed.test.ts",
+   "to": "tests/tooling/d186-role-guard-tester-fail-closed.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d186-tester-role-guard-audit.test.ts",
+   "to": "tests/tooling/d186-tester-role-guard-audit.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d186-tester-role-guard-edges.test.ts",
+   "to": "tests/tooling/d186-tester-role-guard-edges.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d186-tester-role-guard.test.ts",
+   "to": "tests/tooling/d186-tester-role-guard.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d187-receipt-rustfmt-guard.test.ts",
+   "to": "tests/tooling/d187-receipt-rustfmt-guard.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d207-receiver-seam-ascii.test.ts",
+   "to": "tests/tooling/d207-receiver-seam-ascii.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/d223-snapshot-selectors.test.ts",
+   "to": "tests/tooling/d223-snapshot-selectors.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/device-drag-cap.test.ts",
+   "to": "tests/tooling/device-drag-cap.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/device-drag-cli.test.ts",
+   "to": "tests/tooling/device-drag-cli.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/device-drag-plan.test.ts",
+   "to": "tests/tooling/device-drag-plan.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/device-drag-release.test.ts",
+   "to": "tests/tooling/device-drag-release.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-ledger-build-time.test.ts",
+   "to": "tests/tooling/feature-ledger-build-time.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-ledger-render-windows.test.ts",
+   "to": "tests/tooling/feature-ledger-render-windows.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-ledger-render.test.ts",
+   "to": "tests/tooling/feature-ledger-render.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-ledger-windows-diff-gate.test.ts",
+   "to": "tests/tooling/feature-ledger-windows-diff-gate.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-ledger-windows-diff-placement.test.ts",
+   "to": "tests/tooling/feature-ledger-windows-diff-placement.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-ledger-windows-diff.test.ts",
+   "to": "tests/tooling/feature-ledger-windows-diff.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-ledger.test.ts",
+   "to": "tests/tooling/feature-ledger.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/feature-loop-body-hash.test.ts",
+   "to": "tests/tooling/feature-loop-body-hash.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/heavy-lock-signal.test.ts",
+   "to": "tests/tooling/heavy-lock-signal.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/lint-no-bare-store-hook.test.ts",
+   "to": "tests/tooling/lint-no-bare-store-hook.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/redesign-snapshot-props.test.ts",
+   "to": "tests/tooling/redesign-snapshot-props.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-asset-set.test.ts",
+   "to": "tests/tooling/release-asset-set.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-asset-size.test.ts",
+   "to": "tests/tooling/release-asset-size.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-collect-assets.test.ts",
+   "to": "tests/tooling/release-collect-assets.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-collect-readdir-errors.test.ts",
+   "to": "tests/tooling/release-collect-readdir-errors.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-gate.test.ts",
+   "to": "tests/tooling/release-gate.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-latest-json-non-object.test.ts",
+   "to": "tests/tooling/release-latest-json-non-object.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-latest-json.test.ts",
+   "to": "tests/tooling/release-latest-json.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-minisign.test.ts",
+   "to": "tests/tooling/release-minisign.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-optional-all-or-none.test.ts",
+   "to": "tests/tooling/release-optional-all-or-none.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-source-check.test.ts",
+   "to": "tests/tooling/release-source-check.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-verify-rehearsal.test.ts",
+   "to": "tests/tooling/release-verify-rehearsal.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-workflow-blocks.test.ts",
+   "to": "tests/tooling/release-workflow-blocks.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-workflow-if-comment-indent.test.ts",
+   "to": "tests/tooling/release-workflow-if-comment-indent.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-workflow-if-fail-closed.test.ts",
+   "to": "tests/tooling/release-workflow-if-fail-closed.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-workflow-shape.test.ts",
+   "to": "tests/tooling/release-workflow-shape.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/release-workflow-step-if.test.ts",
+   "to": "tests/tooling/release-workflow-step-if.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/role-guard-hook.test.ts",
+   "to": "tests/tooling/role-guard-hook.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/session-size-guard-hook.test.ts",
+   "to": "tests/tooling/session-size-guard-hook.test.ts",
+   "class": "tooling"
+  },
+  {
+   "from": "tests/vitest-workers.test.ts",
+   "to": "tests/tooling/vitest-workers.test.ts",
+   "class": "tooling"
+  }
+ ]
+}

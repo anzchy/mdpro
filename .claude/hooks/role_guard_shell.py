@@ -16,8 +16,8 @@
 # Not covered: backticks, `eval`, scripts that run git.
 # Imported lazily by the hook (implementor) and by role_guard_tester.py; a missing or
 # broken copy refuses the call for that role (fail closed).
-# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-*.test.ts,
-# tests/d184-role-guard-*.test.ts, tests/d186-*.test.ts.
+# Regression tests: tests/tooling/role-guard-hook.test.ts, tests/tooling/d180-role-guard-*.test.ts,
+# tests/tooling/d184-role-guard-*.test.ts, tests/tooling/d186-*.test.ts.
 import os, shlex
 
 SEPARATORS = {"&&", "||", "|", ";", ";;", "&", "|&", "\n", "(", ")"}

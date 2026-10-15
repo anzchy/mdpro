@@ -19,7 +19,7 @@
 # - env_denied(), GLOBAL_OK (H2): environment names and git global options the tester may
 #   not use; `-c` / `--config-env` and GIT_CONFIG_* are always refused.
 # Imported by role_guard_tester.py; a missing or broken copy refuses every tester Bash
-# call (fail closed). Regression tests: tests/d186-*.test.ts.
+# call (fail closed). Regression tests: tests/tooling/d186-*.test.ts.
 from role_guard_opts import LONG as IMPL_LONG
 
 def _t(names):

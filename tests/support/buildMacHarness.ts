@@ -1,7 +1,7 @@
 /**
  * Shared harness for the scripts/build-mac.sh tests
  * (tests/d182-build-mac-masked-failure.test.ts,
- * tests/d183-build-mac-product-checks.test.ts).
+ * tests/tooling/d183-build-mac-product-checks.test.ts).
  *
  * The real script is copied into a throwaway project (it locates the project
  * root from its own path) and run with stub `pnpm` / `cargo` / `rustc` on

@@ -17,7 +17,7 @@
 # included), names without the leading `--`. A newer git adding an option can only
 # make a prefix ambiguous where git itself would reject it.
 # Not covered: `rebase.updateRefs` / `pull.rebase` from the repo's config files.
-# Regression tests: tests/d184-role-guard-*.test.ts, tests/d180-verifier-probes.test.ts.
+# Regression tests: tests/tooling/d184-role-guard-*.test.ts, tests/tooling/d180-verifier-probes.test.ts.
 import os, shlex
 
 LONG = {sub: frozenset(names.split()) for sub, names in {

@@ -5,8 +5,8 @@
  * runs its reference patterns over this copy, so a path mentioned in a
  * comment is never reported. Direct importers: `buildInputsGuard.mjs` (WI-5),
  * `persistenceRoots.mjs`, `tests/support/rustSource.ts`,
- * `tests/control-verify-run-wiring.test.ts`, and its own characterisation test
- * `tests/control-comment-blanker.test.ts`. `rustScopes.mjs` consumes its
+ * `tests/control/control-verify-run-wiring.test.ts`, and its own characterisation test
+ * `tests/control/control-comment-blanker.test.ts`. `rustScopes.mjs` consumes its
  * output but does not import it.
  *
  * Key decisions:

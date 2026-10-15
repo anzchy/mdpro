@@ -214,7 +214,7 @@ tableIndex 和光标往返，不允许简单跳过差异。
 
 ### 案例 E：把账簿维护固化，先做可独立运行的门禁，再接自动化
 
-**真实落点**：`scripts/ledger/check.mjs`、`tests/feature-ledger.test.ts`、`CLAUDE.md` 的 Feature Ledger 段落。
+**真实落点**：`scripts/ledger/check.mjs`、`tests/tooling/feature-ledger.test.ts`、`CLAUDE.md` 的 Feature Ledger 段落。
 
 **现状**（已核实）：检查器只验证声明名在 Markdown 中"某处出现"，不证明对应能力行准确。账簿第 149 行说"MCP 驱动的表格编辑 Shipped"，第 231 行说"任何 AI 客户端都无法通过 MCP 走到表格操作"。两行互相矛盾，门禁抓不到。
 

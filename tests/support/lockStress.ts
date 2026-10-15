@@ -1,6 +1,6 @@
 /**
  * Cross-process harness for the K-H1-S lock stress (D82-WI-1, D131) in
- * `tests/control-launcher-lock.slow.test.ts`. Real child processes and the
+ * `tests/control/control-launcher-lock.slow.test.ts`. Real child processes and the
  * real fs; no spies. Returns raw observations; the test owns the invariants.
  *
  * Children: per owned name Aj an owner (`acquireLock(Aj)`), a releaser

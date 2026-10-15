@@ -49,7 +49,7 @@ jobs:
 
             // --- canonicalize + sha256 ---
             // Byte-identical copy of .github/scripts/canonicalize-body.mjs, locked by
-            // tests/feature-loop-body-hash.test.ts (which extracts THIS snippet from the
+            // tests/tooling/feature-loop-body-hash.test.ts (which extracts THIS snippet from the
             // YAML and runs it against the module on shared vectors). The recorder is
             // pure-API (no checkout), so it cannot import the module — keep these in sync.
             const rstrip = (s) => s.replace(/\s+$/u, '');

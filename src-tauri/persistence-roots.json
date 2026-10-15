@@ -1,5 +1,5 @@
 {
-  "$comment": "Every dirs:: call site under src-tauri/src (ADR-0047 WI-002 WI-7). Checked by tests/control-persistence-roots.test.ts via scripts/control/persistenceRoots.mjs; production roots are resolved under a temp HOME by src-tauri/src/services/run_isolation_tests.rs. No line numbers, no absolute paths.",
+  "$comment": "Every dirs:: call site under src-tauri/src (ADR-0047 WI-002 WI-7). Checked by tests/control/control-persistence-roots.test.ts via scripts/control/persistenceRoots.mjs; production roots are resolved under a temp HOME by src-tauri/src/services/run_isolation_tests.rs. No line numbers, no absolute paths.",
   "sites": [
     { "file": "src-tauri/src/bin/mdpro_mcp.rs", "call": "data_dir", "count": 1, "scope": "production", "root": "data/mdpro", "note": "sidecar reads server.port and server.token; a bin, so lib tests cannot call it. Covered by the shared data/mdpro root (http_server::config_dir), not by its own call." },
     { "file": "src-tauri/src/commands/mcp.rs", "call": "home_dir", "count": 1, "scope": "production", "root": ["mcp-client/claude_desktop", "mcp-client/claude_code", "mcp-client/codex_cli", "mcp-client/gemini_cli"], "note": "get_client_config_path builds every MCP client config path from this one call." },

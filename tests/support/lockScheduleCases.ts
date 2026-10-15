@@ -1,5 +1,5 @@
 /**
- * The K-H1-3 schedule domain of `tests/control-launcher-lock-schedules.test.ts`
+ * The K-H1-3 schedule domain of `tests/control/control-launcher-lock-schedules.test.ts`
  * (D82-WI-1, D105-WI-2 EX-3/EX-4): the release under test, the competitors
  * c1..c5 with their protocols, the bases, the message vocabulary and the
  * I1..I6/I8 invariant check. Moved here verbatim (D105, rule 50: the test file

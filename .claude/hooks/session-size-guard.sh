@@ -30,7 +30,7 @@
 # runs after every tool call, and a warning is never worth breaking one.
 # Env overrides for tests: MDPRO_SESSION_SOFT_COMPACTIONS,
 # MDPRO_SESSION_STRONG_COMPACTIONS, MDPRO_SESSION_STRONG_BYTES.
-# Regression tests: tests/session-size-guard-hook.test.ts.
+# Regression tests: tests/tooling/session-size-guard-hook.test.ts.
 set -uo pipefail
 
 SOFT_COMPACTIONS="${MDPRO_SESSION_SOFT_COMPACTIONS:-5}"

@@ -16,8 +16,8 @@
  * a flow value, or continues past its line. Such a step's raw text also counts
  * when deciding whether its job is guarded. A comment line inside a step that sits
  * left of the step's keys is `unparseable` too (D128-WI-3). Pinned by
- * tests/release-workflow-step-if.test.ts, tests/release-workflow-if-fail-closed.test.ts
- * and tests/release-workflow-if-comment-indent.test.ts.
+ * tests/tooling/release-workflow-step-if.test.ts, tests/tooling/release-workflow-if-fail-closed.test.ts
+ * and tests/tooling/release-workflow-if-comment-indent.test.ts.
  */
 import { entry, job, jobIds, stepRun, steps } from "./workflowBlocks";
 

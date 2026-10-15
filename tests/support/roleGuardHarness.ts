@@ -1,6 +1,6 @@
 /**
  * Shared harness for the rule 70 role-guard hook tests
- * (tests/role-guard-hook.test.ts, tests/d180-role-guard-ref-moves.test.ts).
+ * (tests/tooling/role-guard-hook.test.ts, tests/tooling/d180-role-guard-ref-moves.test.ts).
  *
  * Each case spawns the real `.claude/hooks/role-guard.sh` with Claude Code's
  * PreToolUse JSON on stdin; exit 2 means denied, exit 0 allowed. Branch-dependent

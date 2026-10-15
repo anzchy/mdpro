@@ -1,7 +1,7 @@
 name: Release
 
 # Manual dispatch only (D76, ADR-0073, which records why). One fail-closed run: preflight → build → verify → draft
-# (not build-only) → publish (mode=draft only, after verify-release + gate.mjs may-publish pass). Shape: tests/release-workflow-*.test.ts.
+# (not build-only) → publish (mode=draft only, after verify-release + gate.mjs may-publish pass). Shape: tests/tooling/release-workflow-*.test.ts.
 on:
   workflow_dispatch:
     inputs:

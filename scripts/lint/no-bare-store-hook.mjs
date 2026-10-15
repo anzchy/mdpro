@@ -30,11 +30,11 @@
  *   without a fixture directory the scan would then eat as its own input.
  *
  * Usage: node scripts/lint/no-bare-store-hook.mjs [dir]   (default: src/)
- * The binding gate is `tests/lint-no-bare-store-hook.test.ts`, which rides the
+ * The binding gate is `tests/tooling/lint-no-bare-store-hook.test.ts`, which rides the
  * existing `unit` lane; this CLI exists so a human can run it on one directory.
  *
  * @module scripts/lint/no-bare-store-hook
- * @coordinates-with tests/lint-no-bare-store-hook.test.ts
+ * @coordinates-with tests/tooling/lint-no-bare-store-hook.test.ts
  */
 import fs from "node:fs";
 import path from "node:path";

@@ -9,7 +9,7 @@
 # with `python3 -I -B`, so no __pycache__), which fails closed: a missing module,
 # a crash or any exit other than 0/2 denies the call.
 # @coordinates-with receipt_rustfmt_guard.py (logic), role_guard_shell.py (parser)
-# Regression tests: tests/d187-receipt-rustfmt-guard.test.ts.
+# Regression tests: tests/tooling/d187-receipt-rustfmt-guard.test.ts.
 set -uo pipefail
 
 input="$(cat)"

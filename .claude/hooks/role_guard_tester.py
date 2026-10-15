@@ -28,8 +28,8 @@
 # diff.external, textconv drivers, core.fsmonitor run by default); `status` / `diff`
 # refreshing the index (GIT_OPTIONAL_LOCKS=0 avoids it); `remote show` contacting the
 # remote; variables set by `read`, `printf -v` or a sourced file; aliases (refused).
-# Regression tests: tests/role-guard-hook.test.ts, tests/d180-role-guard-ref-moves-3.test.ts,
-# tests/d186-*.test.ts.
+# Regression tests: tests/tooling/role-guard-hook.test.ts, tests/tooling/d180-role-guard-ref-moves-3.test.ts,
+# tests/tooling/d186-*.test.ts.
 import os
 
 from role_guard_shell import SHELLS, git_calls, is_assignment, segments, shell_script

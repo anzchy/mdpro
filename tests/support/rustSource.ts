@@ -2,8 +2,8 @@
  * Purpose: shared readers for the structural Rust-source tests of the
  * verify-run guard (ADR-0047 WI-002): comment-blanked source text, normalised
  * code lines, brace-matched fn bodies, and the brace depth inside a body.
- * Consumed by `tests/control-verify-run-wiring.test.ts` and
- * `tests/control-verify-run-publish-structure.test.ts`; shared here rather
+ * Consumed by `tests/control/control-verify-run-wiring.test.ts` and
+ * `tests/control/control-verify-run-publish-structure.test.ts`; shared here rather
  * than copied (rule 10).
  *
  * Key decisions:

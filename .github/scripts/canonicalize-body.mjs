@@ -8,7 +8,7 @@
 //      to import this module),
 //   2. WI-F1 (the builder) re-check before building,
 //   3. WI-F3 (the verifier) re-check at merge time.
-// tests/feature-loop-body-hash.test.ts pins a known input -> hex so any drift in
+// tests/tooling/feature-loop-body-hash.test.ts pins a known input -> hex so any drift in
 // any copy is caught. Update every copy together.
 
 import { createHash } from "node:crypto";

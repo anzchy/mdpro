@@ -2,8 +2,8 @@
  * Purpose: Find build inputs that reference a path `sourceTree` excludes
  * (`DEFAULT_EXCLUDES` in `sourceTree.mjs`). Such a reference would let a change
  * that does not move `buildId` still change the built app. Consumed by
- * `tests/control-build-inputs-guard.test.ts` (ADR-0047 plan, WI-5) and
- * `tests/control-build-inputs-guard-forms.test.ts` (WI-17).
+ * `tests/control/control-build-inputs-guard.test.ts` (ADR-0047 plan, WI-5) and
+ * `tests/control/control-build-inputs-guard-forms.test.ts` (WI-17).
  *
  * Pipeline: listBuildInputs(repoRoot) → per file findExcludedRefs(relPath,
  *   text, excludes): blank comments → refs from syntactic positions → resolve

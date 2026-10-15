@@ -9,7 +9,7 @@
  * Every function takes a text block and works at that block's own base
  * indentation (the smallest indentation of a non-blank, non-comment line), so
  * a body returned by one call is the input to the next. Pinned by
- * tests/release-workflow-blocks.test.ts (W0).
+ * tests/tooling/release-workflow-blocks.test.ts (W0).
  */
 export interface Entry {
   /** Inline value after `key:`, unquoted and without a trailing comment; null when absent or a block scalar. */

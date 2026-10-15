@@ -27,7 +27,7 @@
 - Run a specific test file in `tests/`: `pnpm test:run -- tests/markdown-editor-core.test.ts`.
 - Edge-case checklist lives in `tests/edge-cases-test.md` and should be used as regression coverage input.
 - Rust backend tests run in `src-tauri/` via `cargo test`.
-- Name test files `*.test.ts` / `*.test.tsx` and put them **directly under `tests/`** — `vitest.config.ts` sets `include: ["tests/**/*.test.{ts,tsx}"]`, so a test in a feature-local folder under `src/` is never discovered and silently never runs.
+- Name test files `*.test.ts` / `*.test.tsx` and put them **under `tests/`**: at the root for app behaviour, or in `tests/control/`, `tests/tooling/` or `tests/perf/` when its system under test puts it there (the table in `.claude/rules/10-tdd.md` § File placement, ADR-0098). `vitest.config.ts` sets `include: ["tests/**/*.test.{ts,tsx}"]`, so a test in a feature-local folder under `src/` is never discovered and silently never runs.
 
 ## Commit & Pull Request Guidelines
 - Commit messages use conventional commits `<type>(<scope>): <short summary>` (e.g., "fix(save): surface write errors"); see CLAUDE.md "Git Commit Conventions".
