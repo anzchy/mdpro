@@ -8,10 +8,14 @@
 //!   (ADR-0040 WI-6); the MCP switch persists through it.
 //! - `verify_run` (ADR-0047 WI-002) exists only with the `verify-run` Cargo
 //!   feature, so a feature-off build carries no guard code.
+//! - `control_channel` (ADR-0047 WI-006 spike) exists only with the
+//!   `control-channel` feature, likewise.
 
 pub mod app_exit;
 pub mod app_ready;
 pub mod build_info;
+#[cfg(feature = "control-channel")]
+pub mod control_channel;
 pub mod draft;
 pub mod encoding;
 pub mod file_watcher;

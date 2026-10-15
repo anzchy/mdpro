@@ -382,7 +382,12 @@ fn main() {
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+    // ADR-0047 WI-006 spike: the control channel registers after every other
+    // plugin; single-instance must stay first (S4).
+    #[cfg(feature = "control-channel")]
+    let app = app.plugin(tauri_app_lib::services::control_channel::plugin());
+    let app = app
         .invoke_handler(tauri_app_lib::commands::handlers())
         .build(tauri::generate_context!());
 
