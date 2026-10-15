@@ -7,7 +7,9 @@
  * Mocked: the DevTools endpoint only.
  */
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { startFakeCdp, type FakeCdp, type FakePage } from "../support/fakeCdp";
@@ -164,5 +166,25 @@ describe("cdp.mjs — WI-E2E-W item 3: a window is chosen by its label, never by
     const r = await cdp(s.port, "eval", "1");
     expect(r.status, r.stderr).toBe(0);
     expect(JSON.parse(r.stdout)).toBe("only");
+  });
+});
+
+describe("cdp.mjs — audit b163 H1: a protocol error is a failure, never `undefined` with exit 0", () => {
+  const destroyed = { code: -32000, message: "Execution context was destroyed." };
+
+  it("C8 an eval answered with a top-level CDP error exits 1 and prints the error", async () => {
+    const s = await serve([{ id: "p1", error: (m, e) => (m === "Runtime.evaluate" && isUserEval(e) ? destroyed : undefined) }]);
+    const r = await cdp(s.port, "eval", "1");
+    expect(r.status, r.stdout).toBe(1);
+    expect(JSON.parse(r.stdout)).toEqual({ error: "CDP_ERROR", code: -32000, message: "Execution context was destroyed." });
+  });
+
+  it("C9 a screenshot answered with a top-level CDP error exits 1 and writes no file", async () => {
+    const s = await serve([{ id: "p1", error: (m) => (m === "Page.captureScreenshot" ? destroyed : undefined) }]);
+    const out = path.join(os.tmpdir(), `cdp-c9-${process.pid}.png`);
+    const r = await cdp(s.port, "shot", out);
+    expect(r.status, r.stdout).toBe(1);
+    expect(r.stdout).toContain("CDP_ERROR");
+    expect(fs.existsSync(out)).toBe(false);
   });
 });

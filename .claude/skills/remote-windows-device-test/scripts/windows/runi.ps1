@@ -4,7 +4,8 @@
 # SSH sessions have no desktop, so screenshots, UI Automation, input and window
 # messages only work from here.
 # Exit: 124 when the task was stopped at the timeout; otherwise the task's own result
-# (LastTaskResult), 0 when it succeeded. A result outside 0-125 exits 1 and prints the number: ssh
+# (LastTaskResult), 0 when it succeeded; 1 when the result cannot be read. A result outside 0-125
+# exits 1 and prints the number: ssh
 # keeps only 8 bits, and 255 would read as a lost connection on the Mac.
 # Notes: the parameter cannot be called $Args (PowerShell automatic variable); the
 # principal must be the resolved identity name ($env:USERDOMAIN\$env:USERNAME fails over SSH).
@@ -21,8 +22,13 @@ try {
   while ($state -eq "Running" -and ((Get-Date) - $t0).TotalSeconds -lt $TimeoutSec)
   if ($state -eq "Running") { Stop-ScheduledTask -TaskName $Name; "runi: $Name stopped after $TimeoutSec s"; $code = 124 }
   else {
-    $code = [int64](Get-ScheduledTaskInfo -TaskName $Name).LastTaskResult
-    if ($code -lt 0 -or $code -gt 125) { "runi: $Name result $code"; $code = 1 }
+    # No readable result is a failure, never 0 (audit b163 H2: [int64]$null is 0).
+    try { $info = Get-ScheduledTaskInfo -TaskName $Name -ErrorAction Stop } catch { $info = $null }
+    if ($null -eq $info -or $null -eq $info.LastTaskResult) { "runi: $Name has no result"; $code = 1 }
+    else {
+      $code = [int64]$info.LastTaskResult
+      if ($code -lt 0 -or $code -gt 125) { "runi: $Name result $code"; $code = 1 }
+    }
   }
 } finally {
   Unregister-ScheduledTask -TaskName $Name -Confirm:$false -ErrorAction SilentlyContinue

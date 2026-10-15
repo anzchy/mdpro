@@ -13,6 +13,8 @@
 // 3 CDP_TIMEOUT (the eval may have run); 4 the port is closed; 5 no page has the label, or its
 // label changed before the eval (WINDOW_NOT_FOUND / WINDOW_MISMATCH); 6 several pages and no label,
 // or several with the label (WINDOW_AMBIGUOUS). 5 and 6 print the candidates and evaluate nothing.
+// A protocol error instead of a result (e.g. "Execution context was destroyed") prints
+// {"error":"CDP_ERROR", code, message} and exits 1: the eval may or may not have run.
 // Env: MDPRO_CDP_PORT (default 9222), MDPRO_CDP_URL_PREFIX (default http://tauri.localhost),
 // MDPRO_CDP_LABEL (same as --window).
 // The expression may use `return`; it runs inside an async function. Helpers on window.__a
@@ -119,14 +121,19 @@ await send("Runtime.evaluate", { expression: helpers });
 // Identity check on the connection that will act: the page must still be the labelled window.
 if (label) { const now = await labelOf(send); if (now !== label) fail(5, "WINDOW_MISMATCH", { label, now }); }
 let code = 0;
+// A top-level CDP `error` is a failed call, never an `undefined` answer (audit b163 H1).
+const cdpError = (r) => { if (r.error || !r.result) fail(1, "CDP_ERROR", { code: r.error?.code ?? null, message: r.error?.message ?? "no result" }); };
 if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
   const expr = mode === "eval64" ? Buffer.from(arg, "base64").toString("utf8") : mode === "evalfile" ? fs.readFileSync(arg, "utf8") : arg;
   const r = await send("Runtime.evaluate", { expression: `(async () => { ${/\breturn\b/.test(expr) ? expr : "return (" + expr + ")"} })()`, awaitPromise: true, returnByValue: true });
+  cdpError(r);
   const v = r.result?.exceptionDetails ? { exception: r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text } : r.result?.result?.value;
   console.log(JSON.stringify(v, null, 1));
   if (r.result?.exceptionDetails) code = 1; // a thrown eval fails its caller (cdp.sh eval … && next)
 } else if (mode === "shot") {
   const r = await send("Page.captureScreenshot", { format: "png" });
+  cdpError(r);
+  if (typeof r.result.data !== "string") fail(1, "CDP_ERROR", { code: null, message: "no screenshot data" });
   fs.writeFileSync(arg, Buffer.from(r.result.data, "base64"));
   console.log("saved", arg);
 } else {

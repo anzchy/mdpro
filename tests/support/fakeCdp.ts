@@ -17,6 +17,11 @@ export interface FakePage {
   type?: string;
   /** The `Runtime.evaluate` response's `result`, e.g. `{ result: { value: 1 } }`. */
   evaluate?: (expression: string) => unknown;
+  /**
+   * A protocol-level error for this call instead of a result (audit b163 H1), e.g.
+   * `{ code: -32000, message: "Execution context was destroyed." }`. Undefined → answer normally.
+   */
+  error?: (method: string, expression: string) => { code: number; message: string } | undefined;
 }
 
 export interface FakeCdp {
@@ -112,6 +117,11 @@ export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
       buf = r.rest;
       for (const text of r.texts) {
         const msg = JSON.parse(text) as { id: number; method: string; params?: { expression?: string } };
+        const err = page.error?.(msg.method, msg.params?.expression ?? "");
+        if (err) {
+          socket.write(frame(JSON.stringify({ id: msg.id, error: err })));
+          continue;
+        }
         let result: unknown = {};
         if (msg.method === "Runtime.evaluate") {
           const expr = msg.params?.expression ?? "";

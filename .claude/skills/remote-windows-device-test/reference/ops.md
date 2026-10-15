@@ -91,7 +91,7 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 | Code | Meaning | What to do |
 |---|---|---|
 | 0 | Done. | — |
-| 1 | It ran and failed: an eval threw, a `ui.sh` step failed (`ABORTED at step N`), a restart step failed, or the output was empty (`NO OUTPUT`). | Read the printed log or exception. |
+| 1 | It ran and failed: an eval threw, the DevTools protocol answered with an error instead of a result (`CDP_ERROR`, e.g. "Execution context was destroyed"; the eval may or may not have run), a `ui.sh` step failed (`ABORTED at step N`), a scheduled task left no readable result (`runi: … has no result`), a restart step failed, a pulled file did not decode or write (`pull failed`), or the output was empty (`NO OUTPUT`). | Read the printed log or exception; after `CDP_ERROR`, check the page's state before re-running. |
 | 2 | Refused before running: usage, a validator, a missing `--yes`, no page. | Fix the call. |
 | 3 | **Unknown outcome**: the connection dropped after the command was sent (`UNKNOWN OUTCOME`), or `cdp.mjs` timed out (`CDP_TIMEOUT`). The command may or may not have run. | Check the state on the PC before anything else (pitfalls 21). |
 | 4 | The DevTools port is closed. | `mdpro.sh debug --yes`. |
