@@ -171218,6 +171218,120 @@
           "message": "6 non-test file(s) were already modified when the red was recorded (.github/workflows/ci.yml, CHANGELOG.md, docs/adr/0107-cargo-audit-runs-in-its-own-job-outside-the-landing-gate.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/.cargo/audit.toml, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
+    },
+    {
+      "id": "D232-WI-1",
+      "lane": "unit",
+      "recorded_at": "2026-10-15T09:37:54.643Z",
+      "head_sha": "913fe7c6aee6121f710c573721617cb6cd4aa3c3",
+      "dirty_source": [
+        "src/components/Editor/menuItemFocus.ts"
+      ],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/d232-menu-arrow-focus-visible.test.ts": {
+          "state": "ok",
+          "sha": "15b0746a17aa2089371ba5c61e984cf4a88f73ab6beb3e0e7e06b6811873870a",
+          "lines": [
+            "8d64a30d9de151b6",
+            "134aa1e9de4babf1",
+            "fba94e395ea3df49",
+            "3199925fa23698e1",
+            "a8d5c715bff97edc",
+            "a7c8bf872d632bb5",
+            "840d973672f75b46",
+            "684888c0ebb17f37",
+            "7d64f4a9d5ce7226",
+            "07ed057c3f41c95d",
+            "ed9623369ff082ab",
+            "f65c42c7bb893830",
+            "4533d8aceb23570f",
+            "b3e7120b9d8e38ea",
+            "ccbfb0ed6416917f",
+            "6e155c7e09b08188",
+            "236dc5a5b88b8040",
+            "9b0df4fa49b2b132",
+            "5835bcc61783622e",
+            "8d021255dfe8ab61",
+            "15b0a0cbe80654d7",
+            "e9b7c5e7d300c6e4",
+            "26375748421d94f0",
+            "d8995d5f0e3bfb10",
+            "29576b54e255e3c9",
+            "0c55af2010a94382",
+            "29576b54e255e3c9",
+            "37d9a300c7b532bb",
+            "4087df9737ea7083",
+            "29576b54e255e3c9",
+            "44b7f6974b97cda7",
+            "88f376016a271558",
+            "9fc68c87f070ae32",
+            "1ccba8dc854df00f",
+            "d0ae7aa73de291ce",
+            "e887597df693157d",
+            "db9a66461a667809",
+            "41135319967d1fa3",
+            "1871485d9e0aa133",
+            "8ac17f317d8ba8ef",
+            "38360a9c13f0bf15",
+            "521f29767f043a26",
+            "e13d587c090e206d",
+            "d91936b5f8c8e1d5",
+            "1c43ac22e3a2a6f2",
+            "3877f2a0437884b0",
+            "29576b54e255e3c9",
+            "21898dd1ae66ba66",
+            "521f29767f043a26",
+            "6eb14d7fd592d0ea",
+            "26c5deb0df2b88bc",
+            "1c43ac22e3a2a6f2",
+            "29576b54e255e3c9",
+            "9e956c914bebf693",
+            "4814e59c42e78dd8",
+            "521f29767f043a26",
+            "d5333cda73766be5",
+            "4a0c8d6dc4b1c21a",
+            "4c352fbeec9acc15",
+            "29576b54e255e3c9",
+            "a8bd1b8c0f5da6b3",
+            "b69f5162fc4ee65a",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9",
+            "772e1fe736e09390",
+            "a13dd843d81ce349",
+            "6fbb91a28fa5cf68",
+            "647cb7c8481a8371",
+            "296109b31fddc54d",
+            "0ae47a13980fb259",
+            "bfa08497d8ba6a09",
+            "b56ffa8ed1fba5fa",
+            "29576b54e255e3c9",
+            "a545682c2fad1dc6",
+            "63f9250faabdb7ba",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-15T09:48:36.220Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D232-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "1 non-test file(s) were already modified when the red was recorded (src/components/Editor/menuItemFocus.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

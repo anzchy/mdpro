@@ -53,10 +53,14 @@ describe("TableContextMenu — listener wiring", () => {
   });
 
   it("supports arrow-key / Home / End / Enter navigation (audit fix M10)", () => {
-    expect(indexSrc).toMatch(/ArrowDown/);
-    expect(indexSrc).toMatch(/ArrowUp/);
-    expect(indexSrc).toMatch(/Home/);
-    expect(indexSrc).toMatch(/End/);
+    // D232: the traversal keys live in the shared menuItemFocus helper.
+    const focusSrc = fs.readFileSync(path.join(ROOT, "src/components/Editor/menuItemFocus.ts"), "utf-8");
+    expect(indexSrc).toMatch(/moveMenuFocus\(items, event\.key\)/);
+    expect(focusSrc).toMatch(/ArrowDown/);
+    expect(focusSrc).toMatch(/ArrowUp/);
+    expect(focusSrc).toMatch(/Home/);
+    expect(focusSrc).toMatch(/End/);
+    expect(indexSrc).toMatch(/Enter/);
   });
 
   it("focuses the first enabled item when the menu opens (audit fix M10)", () => {

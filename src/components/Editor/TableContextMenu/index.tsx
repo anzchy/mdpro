@@ -28,6 +28,7 @@
  *     (see src/plugins/milkdown/table/).
  *
  * @coordinates-with src/plugins/milkdown/table/contextMenu.ts
+ * @coordinates-with src/components/Editor/menuItemFocus.ts — arrow / Home / End, visible focus (D232)
  * @coordinates-with src/stores/milkdownEditorStore.ts
  * @coordinates-with src/components/Editor/TableContextMenu/useClampedMenuPosition.ts
  * @coordinates-with src/components/Editor/TableContextMenu/resolveMenuTarget.ts
@@ -54,6 +55,7 @@ import { ActionList } from "./ActionList";
 import { MENU_WIDTH, type Point } from "./menuPosition";
 import { type MenuTarget, type MenuViewLike, resolveMenuTarget } from "./resolveMenuTarget";
 import { useClampedMenuPosition } from "./useClampedMenuPosition";
+import { moveMenuFocus } from "../menuItemFocus";
 
 interface MenuState {
   /** Raw click point (viewport coords); clamped by `useClampedMenuPosition`. */
@@ -165,19 +167,9 @@ export function TableContextMenu() {
       );
       if (items.length === 0) return;
       const active = document.activeElement;
-      const idx = items.findIndex((el) => el === active);
-      if (event.key === "ArrowDown") {
+      // D232: visible focus on every move (menuItemFocus.ts).
+      if (moveMenuFocus(items, event.key)) {
         event.preventDefault();
-        items[(idx + 1 + items.length) % items.length]?.focus();
-      } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        items[(idx - 1 + items.length) % items.length]?.focus();
-      } else if (event.key === "Home") {
-        event.preventDefault();
-        items[0]?.focus();
-      } else if (event.key === "End") {
-        event.preventDefault();
-        items[items.length - 1]?.focus();
       } else if (event.key === "Enter" || event.key === " ") {
         if (active instanceof HTMLElement && active.matches('button[role="menuitem"]')) {
           event.preventDefault();

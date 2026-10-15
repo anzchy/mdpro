@@ -31,6 +31,7 @@
  *     this component mounts, and the active document can switch.
  *
  * @coordinates-with src/plugins/codemirror/sourceTableContextMenu.ts
+ * @coordinates-with src/components/Editor/menuItemFocus.ts — arrow / Home / End, visible focus (D232)
  * @coordinates-with src/components/Editor/TableContextMenu/ActionList
  * @coordinates-with src/stores/editorStore.ts — `editorView`,
  *   `isSourceTablesWithheld`.
@@ -55,6 +56,7 @@ import { loggingService } from "../../../services/loggingService";
 import { ActionList } from "../TableContextMenu/ActionList";
 import { MENU_WIDTH, type Point } from "../TableContextMenu/menuPosition";
 import { useClampedMenuPosition } from "../TableContextMenu/useClampedMenuPosition";
+import { moveMenuFocus } from "../menuItemFocus";
 
 interface MenuState {
   /** Raw click point (viewport coords); clamped by `useClampedMenuPosition`. */
@@ -153,19 +155,9 @@ export function SourceTableContextMenu() {
       );
       if (items.length === 0) return;
       const active = document.activeElement;
-      const idx = items.findIndex((el) => el === active);
-      if (event.key === "ArrowDown") {
+      // D232: visible focus on every move (menuItemFocus.ts).
+      if (moveMenuFocus(items, event.key)) {
         event.preventDefault();
-        items[(idx + 1 + items.length) % items.length]?.focus();
-      } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        items[(idx - 1 + items.length) % items.length]?.focus();
-      } else if (event.key === "Home") {
-        event.preventDefault();
-        items[0]?.focus();
-      } else if (event.key === "End") {
-        event.preventDefault();
-        items[items.length - 1]?.focus();
       } else if (event.key === "Enter" || event.key === " ") {
         if (
           active instanceof HTMLElement &&
