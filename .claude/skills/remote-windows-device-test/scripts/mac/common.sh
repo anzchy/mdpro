@@ -19,13 +19,23 @@ check_name() { [[ $1 =~ $RE_NAME && $1 != .* ]] || { echo "refusing file name: $
 check_winpath "$WIN_DIR"
 mkdir -p "$OUT"
 
+# win-desktop's OpenSSH runs every command in Windows PowerShell 5.1 (its DefaultShell), which exits 1
+# for any failure, so a native program's own code (ui-run.ps1's 124, cdp.mjs's 3 CDP_TIMEOUT, 4, 5,
+# 6) reached the Mac as 1 (D247). ps_wrap keeps the same rule (the last statement's $?, so a failed
+# cmdlet is still 1 and success 0) but returns a failed native program's $LASTEXITCODE. An explicit
+# `exit N` inside the command still wins. The tail is matched exactly by tests/support/fakeSsh.ts.
+ps_wrap() {
+  printf '%s' '$global:LASTEXITCODE = 0; '"$*"'; $mdproOk = $?; $mdproRc = $LASTEXITCODE; if (-not $mdproOk) { if ($mdproRc) { exit $mdproRc }; exit 1 }; exit 0'
+}
+
 # ssh exits 255 both when it never connected and when the connection dropped after the remote
 # command ran, so a 255 says nothing about whether the command happened (D228).
 # win: a command that changes state (a keystroke, an eval, an append, a restart). Never retried:
 # on 255 it reports an unknown outcome and returns 3; the caller stops, and the state on the PC is
 # checked by hand before anything else runs.
 win() {
-  ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$@"; local r=$?
+  local wrapped; wrapped=$(ps_wrap "$@")
+  ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$wrapped"; local r=$?
   if [ $r -eq 255 ]; then
     echo "UNKNOWN OUTCOME: transport lost after send; reconcile state before continuing" >&2
     return 3
@@ -34,9 +44,10 @@ win() {
 }
 # win_read: an idempotent read (or an overwrite that is safe to repeat). Retried once on 255.
 win_read() {
-  ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$@"; local r=$?
+  local wrapped; wrapped=$(ps_wrap "$@")
+  ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$wrapped"; local r=$?
   if [ $r -eq 255 ]; then
-    sleep "${WIN_RETRY_SLEEP:-2}"; ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$@"; r=$?
+    sleep "${WIN_RETRY_SLEEP:-2}"; ssh -o BatchMode=yes -o ConnectTimeout=10 "$WIN_HOST" "$wrapped"; r=$?
   fi
   return $r
 }

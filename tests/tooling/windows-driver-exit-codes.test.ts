@@ -5,7 +5,8 @@
  * exception and exited 0, and `ui.ps1` logged `ERROR <op>` and carried on.
  *
  * E1–E6 run the real Mac scripts with a fake ssh (tests/support/fakeSsh.ts) that answers as the
- * Windows side now does. P1–P3 guard the PowerShell side by its text: there is no pwsh on the Mac
+ * Windows side now does, in its PowerShell 5.1 mode (`remote`), so a code reaches the Mac only
+ * through the D247 wrapper. P1–P3 guard the PowerShell side by its text: there is no pwsh on the Mac
  * or in CI, and the device run (W2–W4) exercises it for real.
  */
 import { spawnSync } from "node:child_process";
@@ -35,7 +36,7 @@ const EXC = '{\r\n "exception": "ReferenceError: nope is not defined"\r\n}\r\n';
 
 describe("N1 — the Mac wrappers pass a Windows failure on", () => {
   it("E1 cdp.sh eval: an eval exception exits 1 and still prints the error", () => {
-    const r = sh([{ execute: true, exit: 1, stdout: EXC }], '"$S/cdp.sh" eval "nope"');
+    const r = sh([{ execute: true, remote: 1, stdout: EXC }], '"$S/cdp.sh" eval "nope"');
     expect(r.status).toBe(1);
     expect(r.stdout).toContain("ReferenceError: nope is not defined");
   });
@@ -47,7 +48,7 @@ describe("N1 — the Mac wrappers pass a Windows failure on", () => {
     fs.writeFileSync(js, "return nope");
     const hash = spawnSync("shasum", ["-a", "256", js], { encoding: "utf8" }).stdout.split(" ")[0];
     const script: SshReply[] = [{ execute: true }, { execute: true }, { execute: true, stdout: `${hash}\r\n` }];
-    script.push({ execute: true, exit: 1, stdout: EXC });
+    script.push({ execute: true, remote: 1, stdout: EXC });
     fs.writeFileSync(path.join(ssh.dir, "script.json"), JSON.stringify(script));
     const r = spawnSync("bash", [path.join(MAC, "cdp.sh"), "evalf", js], { env: ssh.env, encoding: "utf8" });
     expect(r.status, r.stderr).toBe(1);
@@ -55,7 +56,7 @@ describe("N1 — the Mac wrappers pass a Windows failure on", () => {
   });
 
   it("E3 cdp.sh eval: any other remote status comes through unchanged", () => {
-    const r = sh([{ execute: true, exit: 7, stdout: '"partial"\r\n' }], '"$S/cdp.sh" eval "1"');
+    const r = sh([{ execute: true, remote: 7, stdout: '"partial"\r\n' }], '"$S/cdp.sh" eval "1"');
     expect(r.status).toBe(7);
     expect(r.stdout).toContain("partial");
   });
@@ -63,7 +64,7 @@ describe("N1 — the Mac wrappers pass a Windows failure on", () => {
   it("E4 ui.sh: an aborted run exits 1, prints its log, and a dependent step never runs", () => {
     const log = ["click 'X' at 1,1", "ERROR menuclick: menu item not found: Nope", "ABORTED at step 2"];
     const r = sh(
-      [{ execute: true, exit: 1, stdout: b64(log) }, { execute: true, stdout: "1\r\n" }],
+      [{ execute: true, remote: 1, stdout: b64(log) }, { execute: true, stdout: "1\r\n" }],
       '"$S/ui.sh" \'[{"op":"menuclick","path":["Nope"]}]\' && "$S/cdp.sh" eval "__a.text(\\"x\\")"',
     );
     expect(r.status).toBe(1);
@@ -72,7 +73,7 @@ describe("N1 — the Mac wrappers pass a Windows failure on", () => {
   });
 
   it("E5 ui.sh: a timeout exits 124 and prints the TIMEOUT line", () => {
-    const r = sh([{ execute: true, exit: 124, stdout: b64(["TIMEOUT: no ui-out.json after 90 s"]) }], '"$S/ui.sh" \'[]\'');
+    const r = sh([{ execute: true, remote: 124, stdout: b64(["TIMEOUT: no ui-out.json after 90 s"]) }], '"$S/ui.sh" \'[]\'');
     expect(r.status).toBe(124);
     expect(r.stdout).toContain("TIMEOUT");
   });

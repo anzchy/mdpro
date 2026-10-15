@@ -47,7 +47,7 @@ describe("cdp.sh --window", () => {
 
   it("B3 cdp.mjs's window exits come back to the caller with its JSON", () => {
     const out = '{"error":"WINDOW_AMBIGUOUS","candidates":[]}\r\n';
-    const r = cdpSh([{ execute: true, exit: 6, stdout: out }], "eval", "1");
+    const r = cdpSh([{ execute: true, remote: 6, stdout: out }], "eval", "1");
     expect(r.status).toBe(6);
     expect(r.stdout).toContain("WINDOW_AMBIGUOUS");
   });
