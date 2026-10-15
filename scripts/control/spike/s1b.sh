@@ -28,9 +28,21 @@ wd() { curl -s -m 10 -X "$1" "${A[@]}" -H "$(rid w)" ${3:+-d "$3"} "$B$2"; }
 val() { python3 -c 'import json,sys;v=json.load(sys.stdin)["value"];print(list(v.values())[0] if isinstance(v,dict) else v)' 2>/dev/null; }
 starts() { grep '"preferences.set"' "$LOG" 2>/dev/null | grep -ci '"start"'; }
 new_session() { S=$(wd POST /session '{"capabilities":{}}' | python3 -c 'import json,sys;print(json.load(sys.stdin)["value"]["sessionId"])'); G="/session/$S"; }
-setup_prefs() {  # opens Settings with ⌘, (handled in the webview) and finds the checkbox → CB
+find_el() {  # find_el <json locator>: retries for 5 s, prints the element id or nothing
+  local e
+  for _ in $(seq 1 10); do
+    e=$(wd POST "$G/element" "$1" | val)
+    case "$e" in ""|*"no such"*) sleep 0.5 ;; *) echo "$e"; return 0 ;; esac
+  done
+}
+setup_prefs() {  # opens Settings with ⌘, (handled in the webview), goes to its Markdown page, finds the checkbox → CB
   new_session
   wd POST "$G/actions" '{"actions":[{"type":"key","id":"k","actions":[{"type":"keyDown","value":""},{"type":"keyDown","value":","},{"type":"keyUp","value":","},{"type":"keyUp","value":""}]}]}' >/dev/null
+  [ -n "$(find_el '{"using":"css selector","value":"[role=dialog]"}')" ] || { say setup FAIL "settings dialog did not open after ⌘,"; quit "$R"; exit 1; }
+  # The dialog opens on General; #md-auto-pair lives on the Markdown page.
+  local nav; nav=$(find_el '{"using":"xpath","value":"//button[contains(@class,\"settings-category-btn\") and contains(., \"Markdown\")]"}')
+  [ -n "$nav" ] || { say setup FAIL "Markdown category button not found"; quit "$R"; exit 1; }
+  wd POST "$G/element/$nav/click" '{}' >/dev/null
   CB=""
   for _ in $(seq 1 10); do
     CB=$(wd POST "$G/element" '{"using":"css selector","value":"#md-auto-pair"}' | val)
