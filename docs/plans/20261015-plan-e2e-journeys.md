@@ -2,22 +2,24 @@
 
 - **Opened**：2026-10-15，adr047-verify 起草（delegator 转达用户原话：「关于test fixture/ e2e journey，采纳vmark的思路，看看如何给本project设定e2e journey，同时涵盖各个platform(MacOS/Windows), make a comprehensive plan and save it to docs/plan in md，这个让adr047-verify session去draft plan」）
 - **Revision**：rev3（2026-10-15），base `master` `d2781e6`，补上 Codex 复审 `review-plan-mv94qrr4-rqovhp` 的三处（见 §12 rev3）。rev2（同日，base `42094b2`）：rev1 `b02b059` 经用户选定「Codex review first」后送审：Codex `review-plan-mv9470lo-rsc315`，结论 NEEDS REVISION，25 条发现（0 Critical），§0 的 Q1–Q4 保留但须加限定。逐条处置见 §12
-- **Status**：⬜ 草案，待用户审定 §0。本计划不改 `src/`、`tests/`；每个工作项落地时再按 rule 70 领取范围
+- **Status**：✅ 方向已定（2026-10-15）。用户审定 §0 的四个问题，原话「Q1-Q3 agree」和「Q4 同意」（经 delegator 转达）。工作项都还没开始（⬜），实现要等 delegator 按 rule 70 发放名额。本计划不改 `src/`、`tests/`。
 - **上游**：[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，本地真机旅程 lane）；[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed）与 [控制通道计划](20261002-plan-agent-control-channel.md)；[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)；[ADR-0089](../adr/0089-the-feature-ledger-records-windows-state-in-a-per-area-difference-table.md)（ledger 的 Windows 差异表）
 - **起因**：用户 2026-10-15 问 codex-audit：「当前的Windows和Mac端 device test，每次都是random生成的，我需要固定一组fixture，涵盖App主要的快捷键和各种功能，随着迭代开发，不断完善，fixture需与 feature-ledger 尽量映射，当然有的feature不一定需要UI test。」（[Q&A](../reference/user-question-and-answer.md) 2026-10-15 条）
 
 证据分级沿用控制通道计划：`[实测 …]` 是这次读过的文件或数据，`[推断]` 是推理，未在设备上跑过。
 
-## §0 审核先看（需要用户定的）
+## §0 审核结果（已定，2026-10-15）
 
-| # | 问题 | 推荐（rev2，含 Codex 的限定） | 备选 |
+用户原话：「Q1-Q3 agree，Q4没有听懂，用大白话说明」；delegator 用大白话解释后，用户回复「Q4 同意」。用户对 Q4 的理解是：真机旅程只在 Mac mini 和 win-desktop 上跑，托管 CI 只跑 Tier-0 和门禁。下表四行都按「推荐」一栏执行，Q1 用的是 rev3 的 JSON 形式。
+
+| # | 问题 | 已采纳（rev3 的推荐，含 Codex 的限定） | 未采纳的备选 |
 |---|---|---|---|
 | Q1 | 旅程用什么形式写 | **一旅程一个 Markdown 文件。机器读的元数据放在文件开头一个 ` ```json journey ` 代码块里，步骤表给 agent 和人读**（§4.1）。阶段 A 由 agent 按步骤表执行；把步骤编译成可执行输入**明确推迟**到 WI-E2E-9，接 ADR-0047 WI-011 的 `run-journey` 输入格式，不另造。rev1 写的是 YAML frontmatter，改成 JSON 块是因为仓库里没有门禁脚本能用的 YAML 加载器（锁文件里只有 CodeMirror / Lezer 的 YAML 语法解析，以及 `yaml` 作为可选 peer，都不是给脚本读元数据用的），`prose-checks` 也不装依赖（§4.8），JSON 用 node 自带的解析器就够 | (a) YAML frontmatter：要么加一个 YAML 依赖并在 `prose-checks` 装 pnpm，要么手写 YAML 子集解析器。(b) VMark 式 `.mjs`：技术上可行（现有 SSH / CDP / 原生驱动都能执行动作），不选的理由是取舍：今天的两个执行者（dtrack 的 computer use、Windows SSH 驱动）读的是自然语言步骤，可执行模块要先为两个平台各写适配层，并且会与 WI-011 的编排器重复 |
 | Q2 | ledger 怎么引用旅程 | **格内标记**：inventory 行写在「怎么确认」，Windows 差异表写在「说明」（该表没有「怎么确认」列 `[实测 scripts/ledger/windowsDiff.mjs:39-40]`）。门禁按**每个平台的有效状态**检查，包括 Windows 表里没有的行（ADR-0089：省略等于声称与 macOS 同状态且已在 Windows 验证）；豁免按身份记在一个基线文件里，只许减少（§4.5） | 给 ledger 加一列：185 行 inventory 与 12 张 Windows 表（共 118 行）全部改形 |
 | Q3 | Tier-0 与旅程是否共用期望 | **共用同一份 golden 数据，但每一层只断言它看得见的那一部分**：Tier-0 断言真实编辑器的序列化结果与发往 IPC 的载荷（内容、编码、换行），Rust 测试断言由该载荷写出的字节，真机断言磁盘字节（§4.3）。假 fs 不得自己产出 golden 字节 | 注释链接（VMark 的做法）：ledger 从不引用 Tier-0 文件，计数也已过时（§3.2） |
 | Q4 | 是否在托管 CI 上跑真机旅程 | **阶段 A 不跑**。这是范围与成本上的决定，不是做不到：控制通道选型之前没有驱动能在托管 runner 上操作 WebView，设备时间也要先实测（§9）。CI 只跑 Tier-0 与门禁 | 加 macOS / Windows 托管 runner，周跑 |
 
-需要的 ADR 见 §5.2，编号向 delegator 申请，本计划不预留。
+相应的 ADR：[ADR-0103](../adr/0103-the-e2e-journey-catalogue-is-the-single-source-for-device-checks.md)、[ADR-0104](../adr/0104-the-ledger-gate-requires-a-journey-or-a-tested-exemption-on-each-platform.md)、[ADR-0105](../adr/0105-the-control-channel-runner-and-feature-map-read-the-journey-catalogue.md)（§5.2）。
 
 ## §1 Outcomes
 
@@ -37,7 +39,7 @@
 - ledger 的状态枚举封闭；`Partial` 必须带 `限制：`；Windows 未验证必须写 `Unknown`，差异表里省略的行等于「与 macOS 同状态且已在 Windows 验证」（ADR-0089；`docs/feature-ledger.md` 第 57 行附近的说明）。
 - 日志是 JSONL（`~/.mdpro/mdpro.log`），事件命名见 CLAUDE.md § Logging Rules。mdpro 有结构化日志，rule 70 本来就要求每项给出证明路径的日志行；VMark 的 runner 和 save 旅程不用日志做判据（其余 46 条旅程的实现没读到，不作断言）。
 - 门禁脚本与 `ledger:check` 一样，不引入依赖（§4.8）。
-- 不预留 ADR / D 编号；落地走 rule 70（分支、verifier、审计、CI）。
+- ADR 与 D 编号由 delegator 发放；落地走 rule 70（分支、verifier、审计、CI）。
 
 ## §3 Current Behavior Inventory
 
@@ -283,16 +285,16 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
   - `v*` tag：上一个发布 tag（`git describe --tags --abbrev=0 --match 'v*' <tag>^`）。这样两次发布之间落到 `master` 上的每个提交都被覆盖到，包括 delegator 直接提交的 docs 提交。
   - 手动触发：必须给 `base` 输入，没有默认值。
   - **base 解析不出来，或者解析出来等于 HEAD 时，检查失败，不跳过。**
-- **历史检查在哪里执行**：`master` 的推送按设计不跑 CI（`ci.yml:3-7`），所以合入前的执行点有两个：PR 的 `ci-gate`；以及 delegator 落地前 `mdpro-landing-verifier` 跑一次 `journeys:check --base <当前 master HEAD>`。改动 `tests/journeys/` 或基线文件的提交不走 delegator 的 docs 直提，一律走分支和 PR（ADR 提议 P2 写明）。tag 构建的比较兜住两次发布之间的漏网之鱼。
+- **历史检查在哪里执行**：`master` 的推送按设计不跑 CI（`ci.yml:3-7`），所以合入前的执行点有两个：PR 的 `ci-gate`；以及 delegator 落地前 `mdpro-landing-verifier` 跑一次 `journeys:check --base <当前 master HEAD>`。改动 `tests/journeys/` 或基线文件的提交不走 delegator 的 docs 直提，一律走分支和 PR（[ADR-0104](../adr/0104-the-ledger-gate-requires-a-journey-or-a-tested-exemption-on-each-platform.md)）。tag 构建的比较兜住两次发布之间的漏网之鱼。
 - `scripts/journeys/check.mjs` 与 `ledger:check` 一样不引入依赖，用 `node scripts/journeys/check.mjs` 直接跑，不需要 pnpm。这是 Q1 推荐 JSON 元数据块的原因。
 - 在本机跑时，base 默认取与 `master` 的 merge-base。
 
 ### 4.9 与 ADR-0034、ADR-0047 的关系
 
-- **目录就是 ADR-0034 那条 `app` lane 的内容**（Codex 发现 22）。ADR-0034 是 Proposed。它的决定 3（release profile 的 bundle）、5（每个入口路由一条旅程）、6（看状态和日志，不看像素）与本计划一致；它的决定 7 列出的首批旅程（D29 的三条、D20 G1、ADR-0032 的偏好往返）作为 EJ 条目收进目录（WI-E2E-6）。ADR-0034 的「`pnpm test:app` 一条命令」要等阶段 B 才有执行器；阶段 A 的等价物是「按 tier 跑并产出运行清单」。ADR 提议 P1 写明它与 ADR-0034 的关系：补充或取代哪几条。
+- **目录就是 ADR-0034 那条 `app` lane 的内容**（Codex 发现 22）。ADR-0034 是 Proposed。它的决定 3（release profile 的 bundle）、5（每个入口路由一条旅程）、6（看状态和日志，不看像素）与本计划一致；它的决定 7 列出的首批旅程（D29 的三条、D20 G1、ADR-0032 的偏好往返）作为 EJ 条目收进目录（WI-E2E-6）。ADR-0034 的「`pnpm test:app` 一条命令」要等阶段 B 才有执行器；阶段 A 的等价物是「按 tier 跑并产出运行清单」。[ADR-0103](../adr/0103-the-e2e-journey-catalogue-is-the-single-source-for-device-checks.md) 写明它与 ADR-0034 的关系。
 - **旅程不依赖控制通道就能开始**：目录、fixture、Tier-0、门禁和阶段 A 的执行，都与通道无关。
 - **ADR-0047 的 J1a–J7b 是通道选型的筛选集**（spike 的 S1–S5），不是功能覆盖。它们以 `group: "adr0047-spike"` 的形式按原顺序收进目录（`supersedes` 指向原 id），并保留共享会话的顺序。`docs/test/20261002-adr0047-journeys.md` 仍是 spike 的历史证据；**WI-005 的基线比较做完之前，它的判据冻结**，目录条目只引用它，不改它。
-- **WI-011 与 WI-012 在开工前修订验收**：WI-011 的 `run-journey` 读本目录的文件，WI-E2E-9 是对它的扩展，不另起一个命令；WI-012 的 Feature Map 直接读目录和 ledger 标记，不另建映射。这一点写进 ADR 提议 P3。
+- **WI-011 与 WI-012 在开工前修订验收**：WI-011 的 `run-journey` 读本目录的文件，WI-E2E-9 是对它的扩展，不另起一个命令；WI-012 的 Feature Map 直接读目录和 ledger 标记，不另建映射。这一点由 [ADR-0105](../adr/0105-the-control-channel-runner-and-feature-map-read-the-journey-catalogue.md) 记录。
 - **WI-005 的人工基线**不受影响，照 ADR-0100 执行。
 
 ## §5 Decision Log
@@ -311,29 +313,29 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 | D8 | 聚合规则下 INCOMPLETE 不是绿；`XFAIL` 不算覆盖 | 只要没有 FAIL 就算绿 |
 | D9 | smoke 先附加，与旧门禁等价之后才替代 | 立刻替代 RC 回归：违反 rule 70 的合跑组规则 |
 
-### 5.2 需要的 ADR（提议，编号向 delegator 申请）
+### 5.2 相应的 ADR（编号由 delegator 于 2026-10-15 发放）
 
 | 提议 | 内容 | 为什么要 ADR |
 |---|---|---|
-| P1 | 旅程目录是设备检查与 ledger 映射的唯一来源：格式、永不复用的 id、golden fixture、判定词汇、聚合规则；写明与 ADR-0034（Proposed）的关系 | 约束以后所有设备检查和 brief，会被反复挑战 |
-| P2 | `ledger:check` 按平台有效状态强制旅程标记或带测试的豁免；backlog 按身份只减；`prose-checks` 取完整历史 | 改变 ledger 的门禁契约和 CI |
-| P3 | ADR-0047 WI-011 的 `run-journey` 读本目录；WI-012 的 Feature Map 读目录与 ledger 标记（部分修订 ADR-0047 的相关条款。ADR-0047 仍是 Proposed，也可以在它验收时一并写入） | 两套映射、两个编排器会漂移 |
+| P1 → [ADR-0103](../adr/0103-the-e2e-journey-catalogue-is-the-single-source-for-device-checks.md) | 旅程目录是设备检查与 ledger 映射的唯一来源：格式、永不复用的 id、golden fixture、判定词汇、聚合规则；写明与 ADR-0034（Proposed）的关系 | 约束以后所有设备检查和 brief，会被反复挑战 |
+| P2 → [ADR-0104](../adr/0104-the-ledger-gate-requires-a-journey-or-a-tested-exemption-on-each-platform.md) | `ledger:check` 按平台有效状态强制旅程标记或带测试的豁免；backlog 按身份只减；`prose-checks` 取完整历史 | 改变 ledger 的门禁契约和 CI |
+| P3 → [ADR-0105](../adr/0105-the-control-channel-runner-and-feature-map-read-the-journey-catalogue.md) | ADR-0047 WI-011 的 `run-journey` 读本目录；WI-012 的 Feature Map 读目录与 ledger 标记（部分修订 ADR-0047 的相关条款。ADR-0047 仍是 Proposed，也可以在它验收时一并写入） | 两套映射、两个编排器会漂移 |
 
 ## §6 Work Items
 
 | WI | 名称 | 依赖 | 估计 | 需真机 |
 |---|---|---|---|---|
 | WI-E2E-0 | 区域与不变量矩阵（prep） | 用户审定 §0 | S | 否 |
-| WI-E2E-1 | 旅程格式、REGISTRY、投影归一化器、`journeys:check`、CI 改动 | WI-E2E-0，ADR P1 | M | 否 |
+| WI-E2E-1 | 旅程格式、REGISTRY、投影归一化器、`journeys:check`、CI 改动 | WI-E2E-0，ADR-0103 | M | 否 |
 | WI-E2E-2 | fixture 语料与 golden、生成脚本、CLAUDE.md 补一句 | WI-E2E-1 | S | 否 |
 | WI-E2E-W | Windows 驱动加固：变更不重试、原始日志、窗口绑定、错误码、配置隔离核实 | 无（可与 1、2 并行；由 delegator 指派） | M | 是（Windows） |
 | WI-E2E-3 | 第一批：快捷键矩阵编成旅程，加 Tier-0 与 Rust 对应测试 | WI-E2E-1、2；Windows 腿还依赖 W | L | 是 |
-| WI-E2E-4 | ledger 映射与 `checkJourneyCoverage`、身份基线、rule 60 加一条 | WI-E2E-1，ADR P2 | M | 否 |
+| WI-E2E-4 | ledger 映射与 `checkJourneyCoverage`、身份基线、rule 60 加一条 | WI-E2E-1，ADR-0104 | M | 否 |
 | WI-E2E-5 | 每个平台一次试点实测，定 smoke 集与运行清单，首轮 smoke（附加运行） | WI-E2E-3、W | M | 是 |
 | WI-E2E-6 | 收编 ADR-0034 首批旅程、ADR-0047 spike 组、RC 与 watcher 合跑组；与旧门禁并跑一次 | WI-E2E-1；spike 组还要等 WI-005 比较完成 | M | 是 |
 | WI-E2E-7 | 按区域补齐旅程，清空基线 | WI-E2E-4 | L（分批） | 是 |
 | WI-E2E-8 | 存活报告与工具：skill 和 brief 模板改为读旅程；与用户定存活是否阻塞 | WI-E2E-5 | S | 否 |
-| WI-E2E-9 | 阶段 B：WI-011 `run-journey` 执行旅程 | ADR-0047 WI-011，ADR P3 | M | 是 |
+| WI-E2E-9 | 阶段 B：WI-011 `run-journey` 执行旅程 | ADR-0047 WI-011，ADR-0105 | M | 是 |
 
 ### WI-E2E-0 区域与不变量矩阵（prep）
 - **Goal**：在写任何旅程之前，先知道覆盖要做多大（Codex 发现 24）。
@@ -346,7 +348,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 ### WI-E2E-1 旅程格式、REGISTRY、投影与 `journeys:check`
 - **Goal**：把 §4.1、§4.4、§4.5（`journeys:check` 部分）、§4.6（清单 schema）、§4.8 落成可校验的契约。
 - **Acceptance**
-  1. `tests/journeys/README.md` 写明格式、判定词汇、聚合规则和 id 规则（引用 ADR P1）；README 里的计数由脚本生成。
+  1. `tests/journeys/README.md` 写明格式、判定词汇、聚合规则和 id 规则（引用 ADR-0103）；README 里的计数由脚本生成。
   2. `tests/journeys/REGISTRY.md` 列出所有发放过的 id，包括已退役的。
   3. `scripts/journeys/check.mjs` 和 `pnpm journeys:check`，**每条规则都对应一个先失败后通过的测试**（`tests/journeys-check.test.ts`，node 环境）：坏 JSON；缺字段或枚举非法；`n/a` 没有 reason；id 重复；id 未登记；REGISTRY 删行；删了旅程文件；用例 id 重复或被复用；`supersedes` 指向不存在的 id、成环，或旧 id 仍被当作现行引用；`knownDefect` 指向不存在的 D；fixture 或 golden 的 sha256 不符；生成器 `--check` 失败；`tier0` / `rust` 文件不存在，或没有指回（只有单向引用）；投影文件解析失败；计数不一致；运行清单 schema 不合法，或中断的运行没有写原因。
   4. `scripts/journeys/projection.mjs` 有测试，覆盖归一化、计数、顺序、未知事件报告和意外失败行。
@@ -424,7 +426,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 
 ## §8 Rollout
 
-1. 用户审定 Q1–Q4 和 ADR P1–P3。
+1. ~~用户审定 Q1–Q4~~（2026-10-15 已定）；ADR-0103–0105 中仍为 Proposed 的部分待用户验收。
 2. WI-E2E-0（prep），然后 WI-E2E-1、2（不需真机）；WI-E2E-W 并行进行。
 3. WI-E2E-3（快捷键矩阵，第一批真机）和 WI-E2E-4（ledger 门禁，基线起步）。
 4. WI-E2E-5：试点之后，在下一个 RC 上**附加**跑 smoke。
@@ -517,3 +519,5 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 | Q1 的理由「仓库没有 YAML 依赖」字面上不成立 | Low | §0 Q1 改为「没有门禁脚本能用的 YAML 加载器」 |
 
 另外把「delegator 已另行登记 D 项」都改成了 D228。
+
+**审定**（2026-10-15，base `9d9c000`）：rev3 经 Codex 确认复审，0 条发现。用户审定 §0：「Q1-Q3 agree」，以及听了大白话解释后的「Q4 同意」。状态与 §0 按此改写；提议 P1–P3 落成 ADR-0103、0104、0105。
