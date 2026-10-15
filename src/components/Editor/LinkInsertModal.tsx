@@ -7,7 +7,8 @@
  *
  * Lifecycle:
  *   - Renders when useLinkInsertStore.pendingCallback is set (⌘K pressed).
- *   - User types URL and presses Enter or clicks "Insert".
+ *   - User types URL and presses Enter in the URL field (D230-WI-2; not while
+ *     an IME is composing, D230-WI-3) or clicks "Insert".
  *   - Calls pendingCallback(url) to apply the link (ProseMirror mark, or
  *     `[text](url)` in Source mode).
  *   - Calls clearPendingCallback() to hide the modal.
@@ -29,6 +30,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
 import { loggingService } from "../../services/loggingService";
+
+/** WebKit's keyCode for a keydown that belongs to an input method (also useDialogEscape). */
+const IME_KEY_CODE = 229;
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -97,6 +101,9 @@ export function LinkInsertModal() {
     if (e.key === "Enter") {
       // Only the URL field submits on Enter; on Cancel or Insert, Enter
       // activates that button (D230-WI-2).
+      // An Enter that commits an IME candidate is not a submit (D230-WI-3, the
+      // D219 family): isComposing, or WebKit's keyCode 229 for an IME keydown.
+      if (e.nativeEvent.isComposing || e.keyCode === IME_KEY_CODE) return;
       if (e.target === inputRef.current) {
         e.preventDefault();
         handleSubmit();
