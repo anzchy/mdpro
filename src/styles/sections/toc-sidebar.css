@@ -95,6 +95,19 @@
   color: inherit;
 }
 
+/* Rule 33 pattern 3 (DR15): keyboard focus lands on the link, but the row
+   shows it, with the accent-soft fill and an inset ring, so the link draws
+   no ring of its own. */
+.toc-entry__link:focus-visible {
+  outline: none;
+}
+
+.toc-entry__content:has(.toc-entry__link:focus-visible) {
+  background: var(--color-accent-soft);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
 /* Text input used in settings rows */
 .settings-input {
   padding: 4px 8px;

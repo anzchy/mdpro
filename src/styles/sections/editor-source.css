@@ -73,10 +73,8 @@
 /* D158: CodeMirror's base theme paints this chrome with hard-coded light or dark
    colours (and oneDark with its own). Each rule below sits one class above the
    highest CodeMirror / oneDark rule for the same element and property, so the
-   tokens win in either code theme.
-   Stand-in for a redesign token not in the CSS yet
-   (docs/design/mdpro-ui-new/DESIGN.md § Tokens):
-     --color-focus-ring  → var(--color-accent)   (WI-3.3)
+   tokens win in either code theme. The search buttons' focus outline uses
+   --color-focus-ring (DR15, WI-3.3).
    The active-line and panel-button tints keep their own 4–5% text mixes;
    `--color-hover` (WI-3.1) is the row and tab hover fill. */
 .editor-shell .cm-editor .cm-activeLineGutter {
@@ -124,7 +122,7 @@
 }
 
 .editor-shell .cm-editor .cm-panels .cm-button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

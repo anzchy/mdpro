@@ -254,11 +254,11 @@ describe("D158 — Source editor theme follows the app theme", () => {
       expect(r.decls.get("box-shadow")).toBe("0 0 0 2px var(--color-accent-soft)");
       expect(r.decls.get("outline")).toBe("none");
     }
-    // Pattern 2 (button): 2px accent outline, offset 2px, keyboard only.
+    // Pattern 2 (button): 2px focus-ring outline (DR15), offset 2px, keyboard only.
     const button = find(/^\.cm-button:focus-visible$/);
     expect(button).not.toHaveLength(0);
     for (const r of button) {
-      expect(r.decls.get("outline")).toBe("2px solid var(--color-accent)");
+      expect(r.decls.get("outline")).toBe("2px solid var(--color-focus-ring)");
       expect(r.decls.get("outline-offset")).toBe("2px");
     }
     // Secondary button (new DESIGN.md § Buttons): panel fill, hairline, control radius,
