@@ -158,6 +158,13 @@ shadow.
   - `--color-accent`, `--color-danger`, `--color-danger-soft`.
   - The base neutrals (D4) and the z-index table (rule 31).
 
+### Widths
+
+| Token | Scope | Role | Proposal | Item |
+|---|---|---|---|---|
+| `--sidebar-width-min` | `:root` | The narrowest the resizable sidebar goes (180px); `--sidebar-width` holds the user's stored width | — | D189 |
+| `--main-min-width` | `:root` | The width the sidebar yields to, so the editor keeps at least 320px in a narrow window | — | D189 |
+
 ## Layout
 
 **Main window** (proposal :358-440):

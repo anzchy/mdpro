@@ -8,7 +8,8 @@
  *   or `.theme-dark`: the theme classes sit on `<html>` with `:root` and are
  *   imported after `globals.css`, so a theme's definition wins.
  * - Only the value forms the theme tokens use are understood: `#rgb` /
- *   `#rrggbb`, `black`, `white`, `transparent`, `var(--x)` and
+ *   `#rrggbb`, `black`, `white`, `transparent`, comma `rgb()` / `rgba()`
+ *   (the settings input fills, WI-3.5), `var(--x)` and
  *   `color-mix(in srgb, A p%, B)`. Anything else throws, so a new form fails
  *   the test loudly instead of being measured wrong.
  * - `color-mix` is premultiplied interpolation in sRGB (CSS Color 5), so a
@@ -57,6 +58,8 @@ export function resolveColor(value: string, tokens: ReadonlyMap<string, string>,
   if (named) return named;
   const h = hex(v);
   if (h) return h;
+  const fn = v.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i);
+  if (fn) return [Number(fn[1]), Number(fn[2]), Number(fn[3]), fn[4] === undefined ? 1 : Number(fn[4])];
   const ref = v.match(/^var\(\s*(--[\w-]+)\s*\)$/);
   if (ref) {
     const def = tokens.get(ref[1]);
