@@ -7,6 +7,10 @@ over 「Hand-resolved full revert」, and for the baseline sitting 「Only physi
 (Recommended)」 over 「Walk everything by hand, ~40 min」. The question was put by adr047-verify inside
 the WI-005 prep task the user gave it. ADR-0100 was reserved by mdpro-delegator.
 
+Partially superseded, 2026-10-16: decision 3's "J5 step 3 on both builds" as the baseline's human
+step by [ADR-0113](0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md).
+The control on this patch did not hold with focus on Keep editing; the patch itself stands.
+
 Supersedes one clause of [ADR-0047](0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)
 decision 4: S2's first build, "the spike branch with the `src/` part of `c39dfb1` (the D34 fix)
 reverted". ADR-0047 is still Proposed; every other part of it stands.

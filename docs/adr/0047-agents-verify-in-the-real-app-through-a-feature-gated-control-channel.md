@@ -10,6 +10,10 @@ ADR.
 **Partially superseded** (2026-10-15): decision 4's S2 control build ("the `src/` part of
 `c39dfb1` … reverted") by [ADR-0100](0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md).
 
+**Partially superseded** (2026-10-16): decision 4's "without first focusing the dialog" by
+[ADR-0113](0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md) (one
+backdrop click before the Esc, on every S2 run).
+
 **Reviewed before drafting** (Codex, thread `01a0fa10…`, verdict *needs
 revision*). The review replaced "build an in-repo plugin now" with a spike,
 and added the Tauri version dependency, data isolation, and the evidence
