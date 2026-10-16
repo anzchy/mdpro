@@ -32,6 +32,12 @@
 //!   replacement (a safe save, D107) reports the new file. Exempting `Remove`
 //!   alone was rejected: it fixes only the first order and lets a burst of
 //!   `Remove`s through. A debounced event does not refresh its entry.
+//! - **An emission clears its path's other kinds** (ADR-0111, D246 H-1).
+//!   A change of state restarts the window: after `modified`, `deleted`,
+//!   then a recreate inside 500 ms, the stale (path, `modified`) entry used
+//!   to swallow the recreate and leave the deleted prompt over a file that
+//!   exists. A repeat of the same state is still absorbed, and other paths'
+//!   entries are untouched.
 //! - Gate order in `process_event` (ADR-0068): self-write, then the D32
 //!   unchanged-file drop (`file_watcher_baseline.rs`), then debounce. So
 //!   neither a save nor a dropped event records a debounce entry, and a
@@ -141,7 +147,9 @@ pub(crate) type DebounceMap = Mutex<HashMap<DebounceKey, Instant>>;
 /// Returns `true` if an event for `path` that would emit `kind` should be
 /// suppressed: the same (path, kind) emitted less than `DEBOUNCE_INTERVAL`
 /// ago (D116). Another kind's entry on the same path never suppresses it.
-/// A suppressed event does not refresh the entry; a passing one records it.
+/// A suppressed event does not refresh the entry; a passing one records it
+/// and drops the same path's entries of every other kind (ADR-0111), so the
+/// next change of state is not swallowed by an older one.
 pub(super) fn is_debounced(path: &Path, kind: &'static str, debounce_map: &DebounceMap) -> bool {
     let now = Instant::now();
     let key = (path.to_path_buf(), kind);
@@ -151,6 +159,7 @@ pub(super) fn is_debounced(path: &Path, kind: &'static str, debounce_map: &Debou
                 return true;
             }
         }
+        map.retain(|(p, k), _| p != path || *k == kind);
         map.insert(key, now);
     }
     false

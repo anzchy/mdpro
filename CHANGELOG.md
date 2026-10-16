@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- If an open file is changed, deleted and recreated within half a second (some sync tools and scripts do this), mdpro now ends on the "modified externally" prompt instead of leaving "File was deleted externally" over a file that exists. A file whose folder mdpro can no longer read is no longer reported as deleted; mdpro shows the reload prompt, and the reload says why it failed (D246 follow-up, ADR-0111).
+
 ## [0.3.5] - 2026-10-16
 
 ### Highlights

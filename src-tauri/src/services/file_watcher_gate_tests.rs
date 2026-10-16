@@ -132,7 +132,9 @@ fn o8_debounce_expiry_boundary() {
 
 /// D116: the debounce is keyed by (first path, change type). A different
 /// kind on the same path passes; the same kind inside the interval is still
-/// debounced.
+/// debounced. Since ADR-0111 an emission also clears its path's other kinds,
+/// so a `modified` after a `renamed` on the same path emits again, and each
+/// path keeps only the kind it emitted last.
 #[test]
 fn o9_debounce_is_per_first_path_and_per_kind() {
     // The files exist, so a modify is a `modified` candidate; `p` is removed
@@ -159,25 +161,25 @@ fn o9_debounce_is_per_first_path_and_per_kind() {
         WatchOutcome::EmittedRenamed
     );
     assert_eq!(
+        run(CONTENT, &[&q], &map).1,
+        WatchOutcome::EmittedModified,
+        "a change of state after the rename (ADR-0111)"
+    );
+    assert_eq!(
         run(CONTENT, &[&q], &map),
         (Value::Null, WatchOutcome::Debounced)
     );
     assert_eq!(run(CONTENT, &[&r], &map).1, WatchOutcome::EmittedModified);
     let keys: HashSet<(PathBuf, &str)> = map.lock().unwrap().keys().cloned().collect();
-    let expected = HashSet::from([
-        (p.clone(), "modified"),
-        (p, "deleted"),
-        (q.clone(), "modified"),
-        (q, "renamed"),
-        (r, "modified"),
-    ]);
+    let expected = HashSet::from([(p, "deleted"), (q, "modified"), (r, "modified")]);
     assert_eq!(keys, expected);
 }
 
 /// D116: an emitted Remove records only its `deleted` entry. Rewritten for
 /// D246 (ADR-0109): a modify on the path while it is still gone is a
 /// `deleted` too, so the entry debounces it; once the file exists again a
-/// modify emits `modified` and leaves the `deleted` entry alone.
+/// modify emits `modified`, which since ADR-0111 clears the `deleted` entry
+/// (a change of state restarts the debounce).
 #[test]
 fn o9b_emitted_remove_debounces_a_modify_on_the_gone_path_only() {
     let p = unique_path("o9b");
@@ -194,7 +196,12 @@ fn o9b_emitted_remove_debounces_a_modify_on_the_gone_path_only() {
     );
     std::fs::write(&p, b"recreated").expect("recreate");
     assert_eq!(run(CONTENT, &[&p], &map).1, WatchOutcome::EmittedModified);
-    assert_eq!(entry_of(&map, &p, "deleted"), Some(after_remove));
+    assert!(after_remove <= std::time::Instant::now());
+    assert_eq!(
+        entry_of(&map, &p, "deleted"),
+        None,
+        "cleared by the modified"
+    );
 }
 
 #[test]

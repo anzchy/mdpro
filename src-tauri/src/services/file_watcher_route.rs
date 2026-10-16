@@ -26,6 +26,8 @@
 //! file_watcher_route_windows_atomic_save_tests.rs and
 //! file_watcher_route_windows_modify_any_tests.rs (D190-WI-2, ADR-0093),
 //! file_watcher_route_modify_gone_tests.rs (D246),
+//! file_watcher_route_state_change_tests.rs, file_watcher_route_gone_error_tests.rs
+//! (D246 H-1 / H-2, docs/adr/0111-a-change-of-state-restarts-the-watcher-debounce.md),
 //! docs/adr/0109-a-modify-on-a-gone-watched-path-is-reported-as-deleted.md
 //!
 //! Key decisions:
@@ -67,6 +69,11 @@
 //!   whose first path is gone is now `EmittedDeleted`, `NotChecked`,
 //!   debounced under (path, `deleted`), exactly like a moved-away rename;
 //!   the unchanged check runs only for a `modified` candidate.
+//! - **"Gone" means the lookup said so** (ADR-0111, D246 H-2): `NotFound`,
+//!   or `NotADirectory` when a parent became a file. Any other error (e.g.
+//!   `PermissionDenied` from a parent the user can no longer search) routes
+//!   as present, so the unchanged check fails open (`read_failed`) instead
+//!   of reporting a delete. Links are followed, as `Path::exists` did.
 //! - **No wildcard arm** on the kind match, so a new `EventKind` is a compile
 //!   error here rather than a silent drop; o14 pins it on the source text.
 //! - Split out of `file_watcher.rs` (D68 WI-1) so the parent keeps headroom
@@ -78,6 +85,15 @@ use notify::{Event, EventKind};
 use super::baseline::{is_filtered_kind, BaselineStore, UnchangedCheck};
 use super::gate::{is_debounced, is_self_write, DebounceMap};
 use super::{FileChangedEvent, WatchOutcome};
+use std::path::Path;
+
+/// The watched path is gone: looking it up fails with `NotFound`, or with
+/// `NotADirectory` because a parent became a file (ADR-0111). Any other
+/// error means it may still be there, so it is not gone.
+fn is_gone(path: &Path) -> bool {
+    use std::io::ErrorKind::{NotADirectory, NotFound};
+    matches!(std::fs::metadata(path), Err(e) if matches!(e.kind(), NotFound | NotADirectory))
+}
 
 /// Tauri-free routing for one notify event: the `file:changed` payload to
 /// emit (if any) and the reason. Order matters: the kind is matched first (so
@@ -119,7 +135,7 @@ pub(super) fn process_event_checked(
     timestamp: i64,
 ) -> (Option<FileChangedEvent>, WatchOutcome, UnchangedCheck) {
     let not_checked = UnchangedCheck::NotChecked;
-    let first_exists = || event.paths.first().is_some_and(|p| p.exists());
+    let first_exists = || event.paths.first().is_some_and(|p| !is_gone(p));
     let (change_type, outcome, replaced) = match event.kind {
         EventKind::Modify(ModifyKind::Name(_)) => ("renamed", WatchOutcome::EmittedRenamed, false),
         EventKind::Modify(_) if first_exists() => {
@@ -147,7 +163,7 @@ pub(super) fn process_event_checked(
                 false,
                 Some(to.to_string_lossy().to_string()),
             ),
-            None if path.exists() => ("modified", WatchOutcome::EmittedModified, true, None),
+            None if !is_gone(path) => ("modified", WatchOutcome::EmittedModified, true, None),
             None => ("deleted", WatchOutcome::EmittedDeleted, false, None),
         }
     } else {
@@ -230,3 +246,11 @@ mod windows_modify_any_tests;
 #[cfg(test)]
 #[path = "file_watcher_route_modify_gone_tests.rs"]
 mod modify_gone_tests;
+
+#[cfg(test)]
+#[path = "file_watcher_route_state_change_tests.rs"]
+mod state_change_tests;
+
+#[cfg(all(test, unix))]
+#[path = "file_watcher_route_gone_error_tests.rs"]
+mod gone_error_tests;
