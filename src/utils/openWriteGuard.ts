@@ -22,18 +22,15 @@
  *   candidate still writes (a fresh open is not blocked).
  * - Focus priority: the dirty id match; else the first dirty path match in store
  *   order; else (failed flush) the id match, else the first path match.
- * - D145: with no id match, a clean path match is written IN PLACE as
- *   `{ ...decoded, id: match.id }` and activated, mirroring a clean same-id reload, so
- *   Open Recent / ⌘O / drop never add a second tab on one file (two tabs on a file
- *   overwrite each other; the watcher follows only the active path). Several path
- *   matches: the active one if among them, else the first in store order. An id match
- *   keeps precedence and is written under its id as before.
- * - The guard runs BEFORE `prepareWholesaleReplace`, because preparation discards
- *   pending editor edits unwritten.
- * - Activation writes `activeDocumentId` directly rather than through
- *   `documentStore.setActiveDocumentId`: that action flushes again with reason
- *   "tab-switch", which is redundant — the "reopen" flush above already ran every
- *   live flusher in this same synchronous block.
+ * - D145: with no id match, a clean path match is written IN PLACE as `{ ...decoded, id: match.id }`
+ *   and activated, like a clean same-id reload, so Open Recent / ⌘O / drop never add a second
+ *   tab on one file (two tabs on a file overwrite each other; the watcher follows only the
+ *   active path). Several path matches: the active one if among them, else the first in store
+ *   order. An id match keeps precedence and is written under its id as before.
+ * - The guard runs BEFORE `prepareWholesaleReplace`, which discards pending editor edits unwritten.
+ * - Activation writes `activeDocumentId` directly, not through `setActiveDocumentId`:
+ *   that action flushes again ("tab-switch"), redundant after the "reopen" flush above
+ *   ran every live flusher in this same synchronous block.
  * - D92: when that flush FAILED and the active document's own flusher still fails
  *   (`flushPendingEditsFor`, asked only on that path), activation never moves away
  *   from it — moving would unmount the WYSIWYG editor whose edits the store never
@@ -42,13 +39,14 @@
  *   tab, inactive. Both stores keep the same active id. A failure that belongs to
  *   another document's flusher still focuses as decision 5 says. The refusal log
  *   carries the open's own `ctx.actionId` when it has one (D95).
- * - Callers learn whether the tab became active by reading `activeDocumentId` after
- *   the call (`useDocument.openPathOutcome`, D95); the result shape is unchanged.
+ * - Callers read `activeDocumentId` after the call to learn whether the tab became active (D95).
+ * - D214-WI-6: a write over an open tab whose baseline moved since `ctx.startGeneration`
+ *   (a change recorded during the read) goes in dirty with no baseline: no clean point.
  * - Logs (`file.open.focus_dirty`, `file.open.reload_clean`) carry ids and flags only,
- *   never document content (rule 20). A D145 reload adds `decodedId`, `matchedBy:
- *   "path"` and `pathMatchCount`. Their `success` is the guard's decision; the
- *   `activated` flag says whether the tab actually became active (false after a D92
- *   refusal, which also logs `tab.switch` fail).
+ *   never content (rule 20). A D145 reload adds `decodedId`, `matchedBy: "path"` and
+ *   `pathMatchCount`; a D214-WI-6 demotion adds `demoted`, `reason`. `success` is the
+ *   guard's decision; `activated` says whether the tab became active (false after a
+ *   D92 refusal, which also logs `tab.switch` fail).
  * - D121: an encoding retry whose signal was aborted before its read settled never
  *   reaches the guard. `supersedeRetry` (newer retry aborts the older) and
  *   `encodingRetryCancelled` (`file.open.encoding_retry` cancel log, `cancelled` result)
@@ -66,7 +64,7 @@
  * @module utils/openWriteGuard
  */
 import { loggingService } from "../services/loggingService";
-import { useDocumentStore } from "../stores/documentStore";
+import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
@@ -99,6 +97,8 @@ export type EncodingReopenResult =
 
 export interface OpenWriteContext {
   actionId?: string;
+  /** D214-WI-6: `documentStore.baselineGeneration`, captured before the open's IPC. */
+  startGeneration?: number;
 }
 
 interface Focus {
@@ -177,6 +177,8 @@ function logFocus(
   });
 }
 
+const demotion = (demoted: boolean) => (demoted ? { demoted, reason: "external_change_during_open" } : {});
+
 /**
  * Write the decoded document for an open action, unless a candidate is dirty (or the
  * flush failed while a candidate exists), in which case the existing tab is focused
@@ -203,7 +205,10 @@ export function commitOpenedDocument(
   }
 
   const target = inPlaceTarget(idMatch, pathMatches);
-  const decoded = target ? { ...opened, id: target.id } : opened;
+  const replaced = idMatch ?? target;
+  const demoted = replaced !== undefined && baselineMovedSince(replaced.id, ctx.startGeneration);
+  const placed = target ? { ...opened, id: target.id } : opened;
+  const decoded = demoted ? { ...placed, isModified: true, savedContent: undefined } : placed;
   prepareWholesaleReplace(decoded.id, reason);
   useDocumentStore.getState().upsertDocument(decoded);
   const activated = activate(decoded.id, flushFailed, ctx);
@@ -216,7 +221,7 @@ export function commitOpenedDocument(
       event: "file.open.reload_clean",
       status: "success",
       actionId: ctx.actionId ?? loggingService.generateActionId(),
-      context: { documentId: decoded.id, entry: reason, activated, ...byPath },
+      context: { documentId: decoded.id, entry: reason, activated, ...byPath, ...demotion(demoted) },
     });
   }
   const largeFile = decoded.fileSize !== null && decoded.fileSize > LARGE_FILE_BYTES;

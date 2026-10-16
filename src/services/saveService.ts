@@ -20,8 +20,9 @@
  *   is decided first, so a failed flush never resurrects a closed tab (F7). The
  *   demoted document loses its saved-content baseline (D214): the editor may hold
  *   text the store lacks, so no later write may read clean until a clean point.
- * - D214-WI-5: an external change recorded while the save ran (the caller's captured
- *   baseline epoch moved) demotes it the same way and forces it dirty.
+ * - D214-WI-5/6: an external change or a close recorded while the save ran (the
+ *   document's baseline epoch is past the generation the caller captured) demotes it
+ *   the same way and forces it dirty.
  * - The `file.save` result log carries the document id, a boolean flag and the
  *   caller's actionId, never content, lengths or paths. A `draft.delete` failure
  *   warn also carries the IPC error text, which may name the draft file.
@@ -65,7 +66,7 @@ export interface SaveDeps {
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { useDocumentStore } from "../stores/documentStore";
+import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
 import { ipcErrorMessage } from "../utils/ipcErrorMessage";
@@ -127,7 +128,7 @@ function deleteDraftAfterSave(documentId: string, actionId?: string): void {
   });
 }
 
-/** D214-WI-5: a save demoted because an external change was recorded while it ran. */
+/** D214-WI-5/6: a save demoted because the baseline moved (change or close) while it ran. */
 function logDemotedSave(documentId: string, actionId: string | undefined): void {
   loggingService.logEventSync({
     level: "warn",
@@ -172,8 +173,9 @@ function logUnappliedSave(
  * - `applied` also sets the baseline to `writtenContent` (D214).
  * - `closed`: no store write, no draft call.
  *
- * - D214-WI-5: `startEpoch` is the document's baseline epoch captured before the save
- *   IPC. If it moved (an external change was recorded during the save), the result is
+ * - D214-WI-5/6: `startGeneration` is `documentStore.baselineGeneration` captured
+ *   before the save IPC. If the document's baseline moved since (`baselineMovedSince`:
+ *   an external change, or a close and reopen under the same id), the result is
  *   demoted like a failed settle flush, and also forced dirty: path / lastSaved
  *   recorded, `savedContent: undefined`, draft kept, `file.save` warn logged with
  *   `reason: "external_change_during_save"`. Omitted: no check.
@@ -187,7 +189,7 @@ export function applySaveResult(
   writtenContent: string,
   result: SaveResult,
   actionId?: string,
-  startEpoch?: number,
+  startGeneration?: number,
 ): void {
   const { status } = useMilkdownEditorStore.getState().flushPendingEdits(SETTLE_FLUSH_REASON);
   const store = useDocumentStore.getState();
@@ -208,9 +210,9 @@ export function applySaveResult(
       next: { ...current, path: result.path, lastSaved: result.savedAt, savedContent: undefined },
     };
   }
-  const epochMoved = startEpoch !== undefined && store.getBaselineEpoch(docId) !== startEpoch;
+  const epochMoved = baselineMovedSince(docId, startGeneration);
   if (current && resolution.kind !== "closed" && epochMoved) {
-    // D214-WI-5: an external change was recorded during the save; the disk may not hold
+    // D214-WI-5/6: a change (or close) was recorded during the save; disk may not hold
     // what was written. Same demotion as above, and dirty: the user decides at the prompt.
     resolution = {
       kind: "edited-during-save",

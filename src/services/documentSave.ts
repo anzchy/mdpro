@@ -27,9 +27,10 @@
  *   body throws the same error. Any other target is written. D111: a Save As holds the
  *   watcher events that arrive before its reply and, once the document has moved to the
  *   target, records them and the reply's `changedSinceRead` on it (`fileChangeCapture`).
- * - D214-WI-5: both bodies capture the document's baseline epoch right after the flush
- *   and hand it to `applySaveResult`, which demotes the result to dirty with no
- *   baseline if an external change was recorded before the reply landed.
+ * - D214-WI-5/6: both bodies capture `baselineGeneration` right after the flush and
+ *   hand it to `applySaveResult`, which demotes the result to dirty with no baseline if
+ *   the document's baseline moved before the reply landed (an external change, or a
+ *   close and reopen under the same id).
  *
  * @coordinates-with src/hooks/useDocument.ts — exposes these as the hook's save API
  * @coordinates-with src/services/saveService.ts — flushDocumentForSave, applySaveResult
@@ -106,7 +107,7 @@ const getTitleFromPath = (path: string | null) => {
 async function saveDocumentAsNow(documentId: string, actionId?: string): Promise<SaveResult | null> {
   const doc = flushDocumentForSave(documentId, actionId);
   if (!doc) return null;
-  const epoch = useDocumentStore.getState().getBaselineEpoch(doc.id); // D214-WI-5
+  const startGeneration = useDocumentStore.getState().baselineGeneration; // D214-WI-6
   const refuse = saveAsRefusePath(doc);
   const capture = beginCapture(null); // D111: the dialog picks the target in Rust
   try {
@@ -125,7 +126,7 @@ async function saveDocumentAsNow(documentId: string, actionId?: string): Promise
       throw new ExternalChangePendingError();
     }
     if (result?.success) {
-      applySaveResult(doc.id, doc.content, doc.content, result, actionId, epoch);
+      applySaveResult(doc.id, doc.content, doc.content, result, actionId, startGeneration);
       // D111: after the path moved, so the old path's slot is pruned first.
       capture.settle(saveAsCommitTarget(doc.id, result.path), result.changedSinceRead, actionId);
     }
@@ -142,7 +143,7 @@ async function saveDocumentNow(documentId: string, actionId?: string): Promise<S
   if (!doc.path) {
     return saveDocumentAsNow(documentId, actionId);
   }
-  const epoch = useDocumentStore.getState().getBaselineEpoch(doc.id); // D214-WI-5
+  const startGeneration = useDocumentStore.getState().baselineGeneration; // D214-WI-6
   // Phase 3 WI-3.2: optional auto-reformat-on-save (off by default). Disk gets the
   // formatted text; the store gets it too unless the doc was edited during the save
   // (D19, applySaveResult). Audit-fix H3: isFenced keeps ``` blocks from being
@@ -177,7 +178,7 @@ async function saveDocumentNow(documentId: string, actionId?: string): Promise<S
     actionId,
   });
   if (result?.success) {
-    applySaveResult(doc.id, doc.content, contentToSave, result, actionId, epoch);
+    applySaveResult(doc.id, doc.content, contentToSave, result, actionId, startGeneration);
   }
   return result;
 }

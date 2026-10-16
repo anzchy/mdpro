@@ -383,9 +383,15 @@ describe("D19 guards — pass before and after the fix", () => {
     expect(docAOf(useDocumentStore.getState().documents), "REOPEN-PRECONDITION: tabs").toHaveLength(1);
     expect(held.calls("open_file"), "REOPEN-PRECONDITION: open_file").toHaveLength(1);
     await finish(p, "save_file", ok(A_PATH));
-    expect(docA()).toMatchObject({ content: "BASE", isModified: false, lastSaved: SAVED_AT });
+    // Amended in D214-WI-6 (audit H-A): the close stamps a new baseline generation, so a
+    // save reply landing on a same-id reopen is demoted. The reopen read the disk while
+    // save_file was held and may predate our write, so it is still present (one tab, its
+    // content, lastSaved recorded) but dirty with no baseline, and its draft is kept.
+    // The safe direction: the cost is a false dirty and a kept draft, never a loss
+    // (accepted by mdpro-delegator, 2026-10-16).
+    expect(docA()).toMatchObject({ content: "BASE", isModified: true, lastSaved: SAVED_AT, savedContent: undefined });
     expect(docAOf(useDocumentStore.getState().documents)).toHaveLength(1);
-    expect(held.calls("delete_draft")).toEqual([{ documentId: "doc-a" }]);
+    expect(held.calls("delete_draft")).toEqual([]);
   });
 });
 

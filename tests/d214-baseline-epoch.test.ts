@@ -197,12 +197,16 @@ describe("f) the baseline epoch in documentStore", () => {
     expect(store().getBaselineEpoch("b")).toBe(b0);
   });
 
-  it("closeDocument deletes the document's key", () => {
+  // Amended in D214-WI-6 (audit H-A): deleting the key let a reopened document restart at
+  // 0, so a reply held across close → reopen could match its captured epoch and restore a
+  // stale baseline. A close now stamps a new, never-repeating generation instead.
+  it("closeDocument stamps the document's key with a newer epoch (D214-WI-6)", () => {
     store().upsertDocument(D("a", "A"));
     store().dropBaseline("a");
     expect(store().getBaselineEpoch("a")).toBeGreaterThan(0);
+    const beforeClose = store().getBaselineEpoch("a");
     store().closeDocument("a");
-    expect(Object.prototype.hasOwnProperty.call(store().baselineEpoch, "a")).toBe(false);
-    expect(store().getBaselineEpoch("a")).toBe(0);
+    expect(Object.prototype.hasOwnProperty.call(store().baselineEpoch, "a")).toBe(true);
+    expect(store().getBaselineEpoch("a")).toBeGreaterThan(beforeClose);
   });
 });

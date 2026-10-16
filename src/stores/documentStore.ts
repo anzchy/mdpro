@@ -33,13 +33,30 @@ function differsFromBaseline(doc: Document, content: string): boolean {
   return doc.savedContent === undefined || content !== doc.savedContent;
 }
 
+/** D214-WI-6: the next generation, stamped on `id`'s epoch. */
+function stampEpoch(state: DocumentStore, id: string) {
+  const baselineGeneration = state.baselineGeneration + 1;
+  return { baselineGeneration, baselineEpoch: { ...state.baselineEpoch, [id]: baselineGeneration } };
+}
+
+/** D214-WI-6: has `id`'s baseline been dropped (or the document closed) since `start`?
+ *  `false` when no generation was captured. */
+export function baselineMovedSince(id: string, start: number | undefined): boolean {
+  return start !== undefined && useDocumentStore.getState().getBaselineEpoch(id) > start;
+}
+
 interface DocumentStore {
   documents: Document[];
   /**
-   * D214-WI-5: per document id, how many times its baseline was dropped. A save or a
-   * reload captures it before its IPC; a different value when the reply lands means an
-   * external change was recorded meanwhile, so the reply must not become a clean point.
-   * Only `dropBaseline` (bump) and `closeDocument` (delete) touch it.
+   * D214-WI-6: a window-wide counter that only grows, so no value repeats across a
+   * document's lifetimes. A save, reload or open captures it before its IPC.
+   */
+  baselineGeneration: number;
+  /**
+   * D214-WI-5/6: per document id, the generation of its last baseline drop or close.
+   * Greater than a captured generation (`baselineMovedSince`) means an external change
+   * or a close happened meanwhile, so the reply must not become a clean point. Only
+   * `dropBaseline` and `closeDocument` stamp it; nothing deletes it.
    */
   baselineEpoch: Record<string, number>;
   /** D214-WI-5: `baselineEpoch[id]`, 0 when absent. */
@@ -78,7 +95,8 @@ interface DocumentStore {
    * delete or create, another window's save, an open divergence), so the saved text is
    * no longer known. Sets `savedContent` to `undefined` on `id` only; `isModified` is
    * untouched (clean stays clean; dirty stays dirty, sticky until the next clean point).
-   * Always bumps `baselineEpoch[id]` (D214-WI-5), even when there was no baseline.
+   * Always stamps `baselineEpoch[id]` with a new generation (D214-WI-6), even without
+   * a baseline.
    */
   dropBaseline: (id: string) => void;
   /** Change a document's path; its baseline is kept (D214). */
@@ -101,6 +119,7 @@ interface DocumentStore {
 
 export const useDocumentStore = create<DocumentStore>((set, get) => ({
   documents: [],
+  baselineGeneration: 0,
   baselineEpoch: {},
   getBaselineEpoch: (id) => get().baselineEpoch[id] ?? 0,
   activeDocumentId: null,
@@ -163,17 +182,13 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         doc.id !== id ? doc : isModified ? { ...doc, isModified } : withBaseline({ ...doc, isModified }),
       ),
     })),
-  dropBaseline: (id) => {
-    const baselineEpoch = { ...get().baselineEpoch, [id]: (get().baselineEpoch[id] ?? 0) + 1 };
-    if (get().documents.every((doc) => doc.id !== id || doc.savedContent === undefined)) {
-      set({ baselineEpoch });
-      return;
-    }
+  dropBaseline: (id) =>
     set((state) => ({
-      baselineEpoch,
-      documents: state.documents.map((doc) => (doc.id === id ? { ...doc, savedContent: undefined } : doc)),
-    }));
-  },
+      ...stampEpoch(state, id),
+      documents: state.documents.some((doc) => doc.id === id && doc.savedContent !== undefined)
+        ? state.documents.map((doc) => (doc.id === id ? { ...doc, savedContent: undefined } : doc))
+        : state.documents,
+    })),
   updateDocumentPath: (id, path) =>
     set((state) => ({
       documents: state.documents.map((doc) =>
@@ -234,10 +249,9 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         }
       }
 
-      // D214-WI-5: the epoch lives as long as the document.
-      const baselineEpoch = { ...state.baselineEpoch };
-      delete baselineEpoch[id];
-      return { documents: remaining, activeDocumentId: nextActiveId, baselineEpoch };
+      // D214-WI-6: a close stamps a new generation, so a reply for this id is demoted.
+      const stamp = closingDoc ? stampEpoch(state, id) : {};
+      return { documents: remaining, activeDocumentId: nextActiveId, ...stamp };
     });
   },
 

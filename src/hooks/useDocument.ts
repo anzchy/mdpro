@@ -73,22 +73,21 @@ export function useDocument() {
     return outcome.document;
   }, []);
 
-  // D20 / ADR-0028: every open writes through `commitOpenedDocument` AFTER the read's
-  // await; a dirty target (checked after a "reopen" flush) is focused, never replaced,
-  // and returned so callers still record the path. The decode-failure exit focuses a
-  // dirty open doc via `focusDirtyOpenAt` before it would show EncodingDialog.
-  // D46: any other failure (e.g. FileTooLarge) gets the ⌘O toast and a path-free log
-  // from `reportOpenFailure`, then returns null; no caller adds a toast of its own.
-  // D95: resolves to `{ document, activated }`, so a caller's follow-up (the default
-  // view mode) can skip an open whose activation the D92 guard refused. D126: the one
-  // by-path open; the `openDocumentFromPath` wrapper (document only) was removed.
-  // D111: each open settles its in-flight events and flag on the committed doc (fileChangeCapture).
+  // D20 / ADR-0028: every open writes through `commitOpenedDocument` AFTER the read's await;
+  // a dirty target (after a "reopen" flush) is focused, never replaced, and returned so
+  // callers record the path; `focusDirtyOpenAt` does the same before EncodingDialog. D46: any
+  // other failure gets the ⌘O toast and a path-free log (`reportOpenFailure`), returns null.
+  // D95: resolves to `{ document, activated }` so a follow-up can skip a refused activation.
+  // D126: the one by-path open. D111: each open settles its in-flight events on the committed doc.
+  // D214-WI-6: all three opens capture the store's baseline generation before the IPC and
+  // pass it to the guard, so a tab whose file changed during the read is not marked clean.
   const openPathOutcome = useCallback(
     async (path: string, actionId?: string): Promise<OpenPathOutcome | null> => {
       const capture = beginCapture(path);
+      const startGeneration = useDocumentStore.getState().baselineGeneration;
       try {
         const result = await fileService.openFile(path, undefined, actionId);
-        const opened = commitOpenedDocument(result.document, "file-open", { actionId });
+        const opened = commitOpenedDocument(result.document, "file-open", { actionId, startGeneration });
         return withActivation(applyOpened(capture.settleOpen(opened, result.changedSinceRead, actionId)));
       } catch (error) {
         capture.settle(null);
@@ -129,12 +128,13 @@ export function useDocument() {
 
   const openDocumentFromDialog = useCallback(async (actionId?: string) => {
     const capture = beginCapture(null); // the dialog picks the path in Rust
+    const startGeneration = useDocumentStore.getState().baselineGeneration;
     try {
       const result = await fileService.openFileDialog(actionId);
       if (!result) {
         return null;
       }
-      const opened = commitOpenedDocument(result.document, "file-open", { actionId });
+      const opened = commitOpenedDocument(result.document, "file-open", { actionId, startGeneration });
       return applyOpened(capture.settleOpen(opened, result.changedSinceRead, actionId));
     } catch (error) {
       const encodingError = parseEncodingError(error);
@@ -171,6 +171,7 @@ export function useDocument() {
     ): Promise<EncodingReopenResult> => {
       let result: OpenFileResult;
       const capture = beginCapture(path);
+      const startGeneration = useDocumentStore.getState().baselineGeneration;
       try {
         try {
           result = await fileService.openFile(path, encoding, actionId);
@@ -179,7 +180,7 @@ export function useDocument() {
           throw error;
         }
         if (signal?.aborted) return encodingRetryCancelled(actionId);
-        const committed = commitOpenedDocument(result.document, "encoding-reopen", { actionId });
+        const committed = commitOpenedDocument(result.document, "encoding-reopen", { actionId, startGeneration });
         const outcome = capture.settleOpen(committed, result.changedSinceRead, actionId);
         setEncodingIssue(null);
         if (outcome.kind === "focused-dirty") {
