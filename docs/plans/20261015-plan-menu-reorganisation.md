@@ -1,7 +1,8 @@
 # Plan: reorganise the native menu bar on macOS and Windows
 
 **Status:** revised after the Codex plan review (2026-10-15, § 9). Decisions taken (§ 0);
-no code written.
+no code written. **Scheduled for v0.3.6, merged with [D255](20260912-frontend-backend-sequencing-order.md#d255)**
+(2026-10-16, decision D7 in § 0). Next: a scoped Codex re-review of the § 9 revision, then M2.
 **Base:** written on `master` @ `74a4804`; the review revision re-checked its citations on
 `1d7aa9f`, after #443 moved the app to Tauri 2.12.1 and muda 0.20.0
 (`src-tauri/Cargo.lock:2494-2495`). Crate paths are relative to
@@ -29,6 +30,7 @@ The user answered the first draft's questions; relayed by the coordinator.
 | D4 | Saved preferences (old Q7) | Plan default | A stored value equal to an old default is migrated to the new default |
 | D5 | Label (old Q9) | Plan default | "Settings…" on macOS |
 | D6 | Linux (old Q10) | Plan default | Built with the Windows tree; recorded as untested |
+| D7 | Release, and D255 (2026-10-16) | 「合并进 v0.3.6 (Recommended)」, given in answer to: the plan and D255 (the Mac shortcuts that do nothing, from the [shortcuts audit](../test/20261016-shortcuts-mac-audit.md)) go into v0.3.6 together | D255 is this plan's "fill in the commands" track: an item with no command is **implemented where feasible** (new UI, such as a WYSIWYG ⌘F find panel, goes to the user as a prototype first) and **shown disabled under D3 only where it is not**. D3 is narrowed, not reversed. Default keys follow D2 (VMark), so D255 is built on the new key table, never on today's |
 
 ## 1. Goal
 
