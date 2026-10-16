@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-10-16
+
+### Highlights
+
+- **A calmer, consistent look.** New theme colours, softer borders, one focus-ring colour and neutral grey code backgrounds across WYSIWYG, menus, dialogs and Settings. mdpro now needs macOS 13.1 or later.
+- **A sidebar you can size and hide.** Drag its edge (or use the arrow keys) to resize it, and toggle it from a button at the left of the tab bar.
+- **You can always see keyboard focus.** Buttons, tabs, menus, switches and form fields show mdpro's own focus ring, and an AI write confirmation now waits for an open dialog instead of covering it.
+
 ### Added
 - The sidebar can be resized: drag its right edge, or focus the edge and use the arrow keys (Shift for bigger steps, Home/End for the limits, Enter or double-click to reset). The width stays between 180 and 480 px and is remembered across launches (D189, #453).
 - A button at the left end of the bottom tab bar hides and shows the sidebar. It stays in the same place in both states, so a second click undoes the first (D189, ADR-0088).
