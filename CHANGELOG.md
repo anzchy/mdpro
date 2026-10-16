@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Settings has a calmer category list: each category has a thin outline icon in place of the emoji, rows are a little taller, the selected category is a neutral grey instead of blue, and keyboard focus shows a ring without changing the row's colour. The Close button at the bottom left is gone; close Settings with the × at the top right or Esc (D260).
+
 ### Fixed
+- In a short window or at high display scaling (Windows at 270%), the Settings category list now scrolls, so Advanced and About can be reached instead of being cut off (D262, #487).
 - If an open file is changed, deleted and recreated within half a second (some sync tools and scripts do this), mdpro now ends on the "modified externally" prompt instead of leaving "File was deleted externally" over a file that exists. A file whose folder mdpro can no longer read is no longer reported as deleted; mdpro shows the reload prompt, and the reload says why it failed (D246 follow-up, ADR-0111).
 
 ## [0.3.5] - 2026-10-16

@@ -12,8 +12,10 @@
  *   accent-filled current size the panel colour inset 4px, 「D234:a」);
  * - D244-WI-2: the Settings font-size stepper's group gets pattern 2 and its
  *   − / + buttons inset rings (「a2: inset rings (Recommended)」); the Settings
- *   rail's category buttons get rule 33 pattern 3 (accent-soft fill plus an
- *   inset ring, as the TOC rows do).
+ *   rail's category buttons get an inset ring. D260 retargets the rail: no
+ *   focus fill (DESIGN.md § Settings rail, focus and selection read apart),
+ *   measured over the flat `--color-surface` rail at rest, hovered and
+ *   selected.
  * A sweep fails on any rendered `<button>` that satisfies no `:focus-visible`
  * compound (every class of it among the button's classes).
  *
@@ -73,10 +75,14 @@ const INSET: { selector: string; behind: string[][] }[] = [
   { selector: ".settings-stepper__step:focus-visible", behind: [["var(--color-panel)"]] },
   {
     selector: ".settings-category-btn:focus-visible",
-    // A resting category (the focus fill), and the current one (its own fill wins).
+    // D260 (F1): the focus rule has no fill, so the ring sits on the row's own
+    // background: resting (the rail's surface), hovered, and selected. The old
+    // lists measured the D244 accent-soft focus fill over the gradient
+    // `--settings-sidebar-bg`, both of which D260 removes.
     behind: [
-      ["var(--color-accent-soft)", "var(--settings-sidebar-bg)", "var(--color-panel)"],
-      ["var(--settings-btn-active-bg)", "var(--settings-sidebar-bg)", "var(--color-panel)"],
+      ["var(--color-surface)"],
+      ["var(--color-hover)", "var(--color-surface)"],
+      ["color-mix(in srgb, var(--color-text) 9%, transparent)", "var(--color-surface)"],
     ],
   },
 ];
@@ -126,13 +132,23 @@ describe("D244: each button draws rule 33's ring", () => {
     expect(tsx.match(/<button\b[^>]*className="settings-stepper__step"/g)).toHaveLength(2);
   });
 
-  it("a focused Settings category shows the pattern 3 fill, and the current one keeps its own", () => {
-    expect(rule(".settings-category-btn:focus-visible").get("background")).toBe("var(--color-accent-soft)");
-    const css = blankComments(read("styles/sections/settings-shell.css"));
-    expect(css.indexOf(".settings-category-btn:focus-visible")).toBeGreaterThan(-1);
-    expect(css.indexOf(".settings-category-btn:focus-visible")).toBeLessThan(
-      css.indexOf(".settings-category-btn.is-active"),
-    );
+  // D260 (F3): DESIGN.md § Settings rail supersedes pattern 3's accent-soft
+  // fill here: focus is the inset ring alone, so focus and selection read
+  // apart. The old "focus before .is-active" ordering only protected that fill;
+  // the hover/active ordering is pinned by d260-settings-rail-css.test.ts C6.
+  it("a focused Settings category draws no fill of its own (D260)", () => {
+    const r = rule(".settings-category-btn:focus-visible");
+    expect(r.get("outline")).toBe(RING);
+    expect(r.has("background")).toBe(false);
+    expect(r.has("background-color")).toBe(false);
+  });
+
+  // D260 (F2): the ring on the resting rail, DESIGN.md § Settings rail > Measured.
+  it.each<[Theme, number]>([
+    ["light", 4.83],
+    ["dark", 6.85],
+  ])("%s: the rail's focus ring on the resting surface is %s:1", (theme, ratio) => {
+    expect(ringOn(theme, "var(--color-focus-ring)", ["var(--color-surface)"])).toBeCloseTo(ratio, 2);
   });
 
   it("the + ring is the sidebar toggle's", () => {
@@ -182,8 +198,9 @@ const DEAD = (p: string) => p.startsWith("components/TabBar/");
 /**
  * Fewer rendered buttons than this means the scan broke, not that buttons
  * went away: 44 on 2026-10-15. Lower it only alongside removing buttons.
+ * 43 since D260 (F4): the Settings footer's "Close" button was removed.
  */
-const MIN_BUTTONS = 44;
+const MIN_BUTTONS = 43;
 
 describe("D244 sweep: every rendered <button> reaches a :focus-visible rule", () => {
   const compounds = focusVisibleCompounds(appCss);

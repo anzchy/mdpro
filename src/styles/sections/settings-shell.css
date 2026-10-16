@@ -49,14 +49,20 @@
   min-height: 0;
 }
 
+/* D260: a flat rail (DESIGN.md § Settings rail, prototype D). */
 .settings-sidebar {
   width: 220px;
-  border-right: 1px solid var(--color-border);
-  padding: 16px;
+  border-right: 1px solid var(--color-border-subtle);
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: var(--settings-sidebar-bg);
+  gap: 2px;
+  background: var(--color-surface);
+  /* D262 (#487): a short dialog (Windows at 270%) scrolls the rail rather
+     than clipping it. overflow-y does the scrolling; the row shrinks at
+     .settings-content's min-height: 0, and this min-height: 0 is a guard. */
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .settings-search {
@@ -82,12 +88,17 @@
   margin-top: 8px;
 }
 
+/* The glyph is 19px by its own width/height and takes the label's colour
+   (SettingsRailIcon, DESIGN.md § Icons > Settings rail exceptions). */
 .settings-category-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   background: none;
   border: none;
   text-align: left;
-  min-height: 28px;
-  padding: 8px 12px;
+  min-height: 32px;
+  padding: 0 10px;
   border-radius: var(--radius-control);
   cursor: pointer;
   font-size: var(--font-size-ui-lg);
@@ -95,20 +106,20 @@
 }
 
 .settings-category-btn:hover {
-  background: var(--settings-btn-hover-bg);
+  background: var(--color-hover);
 }
 
-/* D244: rule 33 pattern 3, as on the TOC rows: the accent-soft fill plus an
-   inset ring. Declared before .is-active so the current category keeps its
-   own fill; the ring is what marks focus there. */
+/* D244, retargeted by D260: the inset ring alone, no fill, so focus and
+   selection read apart (DESIGN.md § Settings rail). */
 .settings-category-btn:focus-visible {
-  background: var(--color-accent-soft);
   outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }
 
+/* D260: a neutral grey, not the accent selection, and no weight change.
+   After :hover, so the current row keeps its fill under the pointer. */
 .settings-category-btn.is-active {
-  background: var(--settings-btn-active-bg);
+  background: color-mix(in srgb, var(--color-text) 9%, transparent);
   color: var(--color-text);
 }
 

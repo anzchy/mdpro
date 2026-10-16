@@ -1,7 +1,7 @@
 /**
  * SettingsDialog Component
  *
- * Purpose: the Settings modal — category navigation, focus trap, and the
+ * Purpose: the Settings modal — category rail, focus trap, and the
  * per-open MCP config (`mcp` preferences group) for the Integrations page.
  *
  * Key decisions:
@@ -12,9 +12,12 @@
  *   (ADR-0040, `useMcpServerSwitch`).
  * - Every open lands on General, reset during render: the dialog stays mounted
  *   while closed, and a stale About would mount and re-run its check (D166).
+ * - No footer (D260): the header × and Esc are the dialog's own close
+ *   controls. Each rail row is its label plus a decorative outline glyph.
  *
  * @coordinates-with src/components/common/IntegrationsSettings.tsx — consumes mcpConfig and the lease
  * @coordinates-with src/hooks/useMcpServerSwitch.ts — McpWriteLease contract
+ * @coordinates-with src/components/common/settings/SettingsRailIcon.tsx — rail glyphs, page-id type
  * @module components/common/SettingsDialog
  */
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -33,6 +36,7 @@ import { AppearanceSettings } from "./settings/AppearanceSettings";
 import { AdvancedSettings } from "./settings/AdvancedSettings";
 import { KeyboardShortcutsSettings } from "./settings/KeyboardShortcutsSettings";
 import { AboutSettings } from "./settings/AboutSettings";
+import { SettingsRailIcon, type SettingsPageId } from "./settings/SettingsRailIcon";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -40,22 +44,21 @@ interface SettingsDialogProps {
 }
 
 interface NavItem {
-  id: string;
+  id: SettingsPageId;
   label: string;
-  icon: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "general", label: "General", icon: "⚙️" },
-  { id: "editor", label: "Editor", icon: "✏️" },
-  { id: "markdown", label: "Markdown", icon: "📝" },
-  { id: "image", label: "Image", icon: "🖼️" },
-  { id: "integrations", label: "Integrations", icon: "🔗" },
-  { id: "export", label: "Export", icon: "📤" },
-  { id: "appearance", label: "Appearance", icon: "🎨" },
-  { id: "keyboard-shortcuts", label: "Keyboard Shortcuts", icon: "⌨️" },
-  { id: "advanced", label: "Advanced", icon: "🔧" },
-  { id: "about", label: "About", icon: "ℹ️" },
+  { id: "general", label: "General" },
+  { id: "editor", label: "Editor" },
+  { id: "markdown", label: "Markdown" },
+  { id: "image", label: "Image" },
+  { id: "integrations", label: "Integrations" },
+  { id: "export", label: "Export" },
+  { id: "appearance", label: "Appearance" },
+  { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
+  { id: "advanced", label: "Advanced" },
+  { id: "about", label: "About" },
 ];
 
 const MCP_LOAD_EVENT = "ui.settings.mcp.load";
@@ -73,7 +76,7 @@ function logMcpSave(status: "cancel" | "fail", context: Record<string, string>):
 }
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
-  const [activePage, setActivePage] = useState("general");
+  const [activePage, setActivePage] = useState<SettingsPageId>("general");
   const [seenOpen, setSeenOpen] = useState(open);
   // Reset before any page mounts; the open effect ran one render late (D166).
   if (seenOpen !== open) { setSeenOpen(open); if (open) setActivePage("general"); }
@@ -250,7 +253,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   setActivePage(item.id);
                 }}
               >
-                <span aria-hidden="true" className="settings-nav-icon">{item.icon}</span>
+                <SettingsRailIcon id={item.id} />
                 {item.label}
               </button>
             ))}
@@ -277,20 +280,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             )}
             {activePage === "advanced" && <AdvancedSettings />}
             {activePage === "about" && <AboutSettings />}
-          </div>
-        </div>
-
-        <div className="settings-footer">
-          <div className="settings-footer-right">
-            <button
-              className="toolbar-button"
-              onClick={() => {
-                loggingService.logButtonClick("settings.close");
-                onClose();
-              }}
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>

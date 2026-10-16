@@ -1,0 +1,72 @@
+// @vitest-environment node
+/**
+ * @module d262-settings-rail-scroll.test
+ * Purpose: D262-WI-1 (Windows #487). At 270% scaling the dialog's
+ * `min(600px, 80vh)` height is shorter than the ten rail rows, and the rail was
+ * clipped by `.settings-dialog { overflow: hidden }`. The rail now scrolls.
+ *
+ * Specification: `.claude/tdd-guardian/tests-20261016-142610.md`, R1-R4.
+ * Law: at any dialog height the rail's overflow is contained by the rail
+ * itself: the dialog is bounded, every flex level between it and the rail can
+ * shrink (`min-height: 0`), and the rail is the scroll container.
+ *
+ * Strategy: source inspection with `parseDeclarations`, across all app CSS.
+ * Mock boundary: none. jsdom has no layout, so the scroll itself is a device
+ * check (D262-dev: on a short dialog the About row can be scrolled to and opened).
+ */
+
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { parseDeclarations } from "./support/cssTokenScan";
+
+const SRC = join(__dirname, "..", "src");
+const cssPaths = (readdirSync(SRC, { recursive: true }) as string[])
+  .map((p) => p.split("\\").join("/"))
+  .filter((p) => p.endsWith(".css"));
+const decls = cssPaths.flatMap((p) => parseDeclarations(readFileSync(join(SRC, p), "utf8")));
+
+const parts = (selector: string) => selector.split(",").map((s) => s.trim());
+
+/** Every value `property` takes on exactly `selector`, across all app CSS. */
+const valuesAcross = (selector: string, property: string) =>
+  decls.filter((d) => parts(d.selector).includes(selector) && d.property === property).map((d) => d.value);
+
+/** Every declaration on any selector naming the rail itself (not `.settings-sidebar-title`). */
+const RAIL = /\.settings-sidebar(?![\w-])/;
+const railDecls = decls.filter((d) => RAIL.test(d.selector));
+
+describe("D262: the Settings rail scrolls when the dialog is short", () => {
+  it("R1: the rail scrolls: overflow-y auto and min-height 0", () => {
+    expect(valuesAcross(".settings-sidebar", "overflow-y")).toEqual(["auto"]);
+    expect(valuesAcross(".settings-sidebar", "min-height")).toEqual(["0"]);
+  });
+
+  it("R2: the chain from the dialog to the rail lets the rail scroll at any height", () => {
+    expect(valuesAcross(".settings-dialog", "height")).toEqual(["min(600px, 80vh)"]);
+    expect(valuesAcross(".settings-dialog", "overflow")).toEqual(["hidden"]);
+    expect(valuesAcross(".settings-dialog", "display")).toEqual(["flex"]);
+    expect(valuesAcross(".settings-dialog", "flex-direction")).toEqual(["column"]);
+    expect(valuesAcross(".settings-content", "flex")).toEqual(["1"]);
+    expect(valuesAcross(".settings-content", "min-height")).toEqual(["0"]);
+    expect(valuesAcross(".settings-content", "display")).toEqual(["flex"]);
+  });
+
+  it("R3: nothing sizes or clips the rail itself", () => {
+    expect(railDecls.length).toBeGreaterThan(0);
+    expect(railDecls.filter((d) => d.property === "height" || d.property === "max-height")).toEqual([]);
+    expect(
+      railDecls.filter((d) => d.property.startsWith("overflow")).map((d) => [d.property, d.value]),
+    ).toEqual([["overflow-y", "auto"]]);
+  });
+
+  it("R4: rail rows overflow the rail instead of shrinking to fit", () => {
+    const shrinkers = decls.filter(
+      (d) =>
+        parts(d.selector).includes(".settings-category-btn") &&
+        ["flex", "flex-shrink", "max-height"].includes(d.property),
+    );
+    expect(shrinkers).toEqual([]);
+    expect(valuesAcross(".settings-category-btn", "min-height")).toEqual(["32px"]);
+  });
+});

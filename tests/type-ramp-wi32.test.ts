@@ -4,8 +4,8 @@
  * Purpose: the type and density rows of plan P WI-3.2. Item 12 (DR22) puts
  * every chrome font size on the four-step ramp (`--font-size-ui-sm`, `-ui`,
  * `-ui-lg`, and the new `--font-size-title`, DESIGN.md § Tokens :131),
- * ruling R7 sizes Milkdown tables relative to the editor font, and TOC and
- * settings-nav rows get the 28px row height. Glyph sizes are not text: they
+ * ruling R7 sizes Milkdown tables relative to the editor font, and TOC
+ * rows get the 28px row height (settings-nav rows: 32px since D260). Glyph sizes are not text: they
  * wait for stage 4 WI-4.2 (tests/css-tokenization.test.ts).
  *
  * Strategy: source inspection, one row per declaration.
@@ -62,10 +62,13 @@ describe("R7: Milkdown tables follow the editor font", () => {
 });
 
 describe("row height (DESIGN.md § Heights)", () => {
-  it.each([
-    [S + "toc-sidebar.css", ".toc-entry__content"],
-    [S + "settings-shell.css", ".settings-category-btn"],
-  ])("%s %s is at least 28px tall", (file, selector) => {
+  it.each([[S + "toc-sidebar.css", ".toc-entry__content"]])("%s %s is at least 28px tall", (file, selector) => {
     expect(valuesOf(file, selector, "min-height")).toEqual(["28px"]);
+  });
+
+  // D260 (T1): the Settings rail's rows are 32px, DESIGN.md § Settings rail
+  // (VMark's rail, prototype D), superseding WI-3.2's 28px for this one row.
+  it("settings-shell.css .settings-category-btn is at least 32px tall (D260)", () => {
+    expect(valuesOf(S + "settings-shell.css", ".settings-category-btn", "min-height")).toEqual(["32px"]);
   });
 });

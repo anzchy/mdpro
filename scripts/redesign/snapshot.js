@@ -439,8 +439,8 @@
   var DIALOG = [".dialog-backdrop", ".dialog-card", ".dialog-title", ".dialog-actions", ".dialog-actions .toolbar-button"];
   var SETTINGS = [
     ".settings-dialog", ".settings-header", ".settings-title", ".settings-close", ".settings-content",
-    ".settings-sidebar", ".settings-category-btn", ".settings-category-btn.is-active", ".settings-nav-icon",
-    ".settings-main", ".settings-footer", ".settings-footer .toolbar-button"
+    ".settings-sidebar", ".settings-category-btn", ".settings-category-btn.is-active",
+    ".settings-main"
   ];
   var SETTINGS_PAGE = [".settings-page-header", ".settings-page-title", ".settings-page-desc", ".settings-row", ".settings-row-label", ".settings-row-control"];
 
@@ -819,7 +819,7 @@
     },
 
     "settings-general": settingsSurface("General", cat(SETTINGS_PAGE, [".settings-select"]),
-      [focusPhase(".settings-category-btn"), focusPhase(".settings-close"), focusPhase(".settings-select"), focusPhase(".settings-footer .toolbar-button")]),
+      [focusPhase(".settings-category-btn"), focusPhase(".settings-close"), focusPhase(".settings-select")]),
     "settings-editor": settingsSurface("Editor", cat(SETTINGS_PAGE, [".settings-section-label", ".settings-select", ".settings-stepper", ".settings-stepper button", ".settings-stepper span"]),
       [focusPhase(".settings-stepper button:not(:disabled)")]),
     "settings-markdown": settingsSurface("Markdown", SETTINGS_PAGE, []),

@@ -232,10 +232,12 @@ describe("AppDialogs (D42 WI-3)", () => {
       log: { event: "ui.dialog.cancel", controlId: "dialog.encoding.cancel" },
     },
     {
-      name: "Settings 'Close'",
+      // D260 (A1): the footer "Close" is gone; the header × is the dialog's
+      // close control, with the same handler and the same log.
+      name: "Settings '×'",
       id: "settings",
       initial: { settingsOpen: true },
-      click: (el) => within(el).getByRole("button", { name: "Close" }),
+      click: (el) => within(el).getByRole("button", { name: "×" }),
       call: { handler: "settingsClose" },
       log: { event: "ui.button.click", controlId: "settings.close" },
     },
