@@ -3,7 +3,7 @@
 - **Opened**：2026-10-15，adr047-verify 起草（delegator 转达用户原话：「关于test fixture/ e2e journey，采纳vmark的思路，看看如何给本project设定e2e journey，同时涵盖各个platform(MacOS/Windows), make a comprehensive plan and save it to docs/plan in md，这个让adr047-verify session去draft plan」）
 - **Revision**：rev3（2026-10-15），base `master` `d2781e6`，补上 Codex 复审 `review-plan-mv94qrr4-rqovhp` 的三处（见 §12 rev3）。rev2（同日，base `42094b2`）：rev1 `b02b059` 经用户选定「Codex review first」后送审：Codex `review-plan-mv9470lo-rsc315`，结论 NEEDS REVISION，25 条发现（0 Critical），§0 的 Q1–Q4 保留但须加限定。逐条处置见 §12
 - **Status**：✅ 方向已定（2026-10-15）。用户审定 §0 的四个问题，原话「Q1-Q3 agree」和「Q4 同意」（经 delegator 转达）。WI-E2E-0 已完成，WI-E2E-1 已落地（`f80d2717`，分支 `test/e2e-wi0-wi1-catalogue`，mdpro-a3），WI-E2E-W 已完成；WI-E2E-10、11 在审回填时加入（2026-10-16）；其余工作项未开始（⬜），实现要等 delegator 按 rule 70 发放名额。本计划不改 `src/`。
-- **上游**：[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，本地真机旅程 lane）；[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed）与 [控制通道计划](20261002-plan-agent-control-channel.md)；[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)；[ADR-0089](../adr/0089-the-feature-ledger-records-windows-state-in-a-per-area-difference-table.md)（ledger 的 Windows 差异表）
+- **上游**：[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，本地真机旅程 lane）；[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed）与 [控制通道计划](20261002-plan-agent-control-channel.md)；[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)、[ADR-0113](../adr/0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md)（S2 对照协议：Esc 前点一次 backdrop）；[ADR-0089](../adr/0089-the-feature-ledger-records-windows-state-in-a-per-area-difference-table.md)（ledger 的 Windows 差异表）
 - **起因**：用户 2026-10-15 问 codex-audit：「当前的Windows和Mac端 device test，每次都是random生成的，我需要固定一组fixture，涵盖App主要的快捷键和各种功能，随着迭代开发，不断完善，fixture需与 feature-ledger 尽量映射，当然有的feature不一定需要UI test。」（[Q&A](../reference/user-question-and-answer.md) 2026-10-15 条）
 
 证据分级沿用控制通道计划：`[实测 …]` 是这次读过的文件或数据，`[推断]` 是推理，未在设备上跑过。
@@ -296,7 +296,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 - **旅程不依赖控制通道就能开始**：目录、fixture、Tier-0、门禁和阶段 A 的执行，都与通道无关。
 - **ADR-0047 的 J1a–J7b 是通道选型的筛选集**（spike 的 S1–S5），不是功能覆盖。它们以 `group: "adr0047-spike"` 的形式按原顺序收进目录（`supersedes` 指向原 id），并保留共享会话的顺序。`docs/test/20261002-adr0047-journeys.md` 仍是 spike 的历史证据；**WI-005 的基线比较做完之前，它的判据冻结**，目录条目只引用它，不改它。
 - **WI-011 与 WI-012 在开工前修订验收**：WI-011 的 `run-journey` 读本目录的文件，WI-E2E-9 是对它的扩展，不另起一个命令；WI-012 的 Feature Map 直接读目录和 ledger 标记，不另建映射。这一点由 [ADR-0105](../adr/0105-the-control-channel-runner-and-feature-map-read-the-journey-catalogue.md) 记录。
-- **WI-005 的人工基线**不受影响，照 ADR-0100 执行。
+- **WI-005 的人工基线**不受影响，照 ADR-0100 执行；S2 的对照协议另见 ADR-0113（2026-10-16）。
 
 ## §5 Decision Log
 

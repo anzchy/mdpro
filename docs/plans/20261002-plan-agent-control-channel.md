@@ -571,6 +571,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - **Acceptance**
   1. ~~两个 `verify` 包：**基线头**（含 WI-001–004），和**回退构建**（基线头上回退 `c39dfb1` 的四个 `src/` 文件）。两个包都打开 Tauri 的 `devtools` feature：S2 四项记录里的 DOM 焦点和「哪个窗口收到按键」要靠 Web Inspector 里装的被动记录器读（规程见旅程文档），release 配置的包默认没有它。这一条差异写进 spike 记录的「Builds」。选型之后的包（WI-009 起）不开，改由固定探针读。这四个文件之后没有再被改过 `[实测 git log]`。回退构建只用于 S2，不合入、不跑门禁：D34 的测试在它上面会失败，这是预期的，记在 spike 记录里。~~
      **改为（2026-10-15，[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)，用户选「Minimal ConfirmDialog patch (Recommended)」）**：「这四个文件之后没有再被改过」到 2026-10-15 已不成立（`c39dfb1..9940be9` 里 10 个提交改过它们，`useDialogEscape` 还被 D140 的两个对话框共用）。回退构建改为基线头上只给 `ConfirmDialog` 打一个约 10 行的补丁：去掉它的 `useDialogEscape` 注册，换回 D34 之前挂在 backdrop 上的 `onKeyDown` Escape。补丁不提交、不推送，全文写进 spike 记录的「Builds」。`devtools` 两个包都开，用 mini 工作树里未提交的一行 `devtools = ["tauri/devtools"]`（delegator 2026-10-15 裁定；随 WI-006 的第一个提交正式加入），差异照样写进「Builds」。
+     **补记（2026-10-16，[ADR-0113](../adr/0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md)，用户选「1. Click backdrop, then Esc (Recommended)」）**：按原协议（焦点在 `Keep editing`，卡片内）跑出来两个包都关，对照不成立，S2 作废（spike 记录「Negative control」）。对照补丁不变，协议加 J5 第 2a 步：Esc 前用 computer use 在暗色 backdrop 上点一次，让焦点落到 `<body>`；记录器显示 `inDialog:false`、`active:"BODY."` 的 Esc 才算数。比较一、二已通过，不重跑。
   2. 人在两个包上各做一次 J5 的物理 Esc，四项记录齐全。这一步在装任何驱动之前做，为的是先确认负对照成立，再花 spike 的时间。预期：回退构建上对话框不关，基线头上关。`ConfirmDialog` 的确认按钮带 `autoFocus`，所以回退构建上的结果必须实测，不能假定。**回退构建上若关了，S2 作废，spike 暂停，回来重新设计负对照。**
      **人工部分（2026-10-15，用户选「Only physical Esc, ~12 min (Recommended)」）**：人只按物理 Esc——两个包上 J5 第 3 步各一次，比较二里 release 包上 J5 第 3 步一次；比较一与比较二的其余步骤由 dtrack 经 computer use 走，与 WI-004 第 3 条 2026-10-14 的分法相同。
   3. **比较一**（驱动的影响）：人经启动器在基线头（`control-channel` 关）上手工走全部旅程，语义投影存档。与 WI-004 第 3 条的升级后记录是同一棵树时（`buildId` 相等）直接复用。
@@ -591,7 +592,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
     4. 至多一次（R9），用注入的故障测：响应丢失、完成延迟、连接断开、请求重复。每种情况下，一个有计数效果的操作（J4b 的复选框，看 `preferences.set` 的 start 条数）只发生一次。
     5. 结果契约：请求带关联 id；结果是统一的成功或错误信封；Promise 完成才算完成；超时给 unknown outcome；迟到的结果被丢弃。
     需要的补丁行数记下来，对照维护预算（Q2）。能力文件若需要，确认能做到只在 feature 构建里存在。
-  - **S2**：spike 分支上打两个带驱动的包：spike 头，和 ~~spike 头上回退 `c39dfb1` 的 `src/` 部分（ADR-0047 决定 4 说的就是这两个）~~**改为（2026-10-15，[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)）**：spike 头上打 WI-005 用的同一个 `ConfirmDialog` 补丁（`wi005-br-confirmdialog.patch`，全文在 spike 记录的「Builds」；不提交、不推送）。人先在这两个包上各按一次物理 Esc（驱动编入、通道开着、不发输入），结果须与 WI-005 的基线相同；不同就说明驱动本身改变了键盘行为，S2 记不过。然后驱动各发一次 Esc（J5），结果与人工基线一致——回退构建上不关、spike 头上关。四项记录齐全。
+  - **S2**：spike 分支上打两个带驱动的包：spike 头，和 ~~spike 头上回退 `c39dfb1` 的 `src/` 部分（ADR-0047 决定 4 说的就是这两个）~~**改为（2026-10-15，[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)）**：spike 头上打 WI-005 用的同一个 `ConfirmDialog` 补丁（`wi005-br-confirmdialog.patch`，全文在 spike 记录的「Builds」；不提交、不推送）。人先在这两个包上各按一次物理 Esc（驱动编入、通道开着、不发输入），结果须与 WI-005 的基线相同；不同就说明驱动本身改变了键盘行为，S2 记不过。然后驱动各发一次 Esc（J5），结果与人工基线一致——回退构建上不关、spike 头上关。四项记录齐全。**2026-10-16 起**（[ADR-0113](../adr/0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md)）：人工和驱动的每次 Esc 前都先做 J5 第 2a 步（点一次 backdrop），「不先聚焦对话框」按此理解。
   - **S3**：J2、J3、J4a、J4b 全部走通，以磁盘内容和日志为准。J4b 开设置那一步是 `native`，不算驱动的。
   - **S4**：J1a、J1b、J6、J7a、J7b 走通；`single_instance` 仍是第一个注册的插件，`RunEvent::Opened` 的处理未被绕过（静态核对加日志）。
   - **S5**：全部旅程的语义投影与 WI-005 的比较一相等。
