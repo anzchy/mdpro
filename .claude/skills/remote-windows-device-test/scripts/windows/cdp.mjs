@@ -20,6 +20,9 @@
 // after the close events, aborted Node 24 on Windows in libuv (UV_HANDLE_CLOSING, 0xC0000409)
 // after the answer was printed: the handles are still closing when `close` fires (D248, device
 // re-check). Only a socket that never closes reaches the unref'd fallback exit after 2 s.
+// A connection that drops, or never opens, prints {"error":"CDP_CONNECTION_LOST"} and exits 3: the
+// eval may have run. end() keeps the first code and stops the timer, so nothing that happens during
+// the shutdown (a late CDP_TIMEOUT, a late /json/list failure) prints or changes it (D248-WI-4).
 // MDPRO_CDP_TIMEOUT_MS overrides the 25 s CDP_TIMEOUT (tests).
 // Env: MDPRO_CDP_PORT (default 9222), MDPRO_CDP_URL_PREFIX (default http://tauri.localhost),
 // MDPRO_CDP_LABEL (same as --window).
@@ -43,43 +46,59 @@ if (argv[0] === "--window") { label = argv[1] || ""; argv = argv.slice(2); }
 const [mode, arg] = argv;
 const sockets = new Set();
 const CLOSE_WAIT_MS = 1000;
+// The wait timer is ref'd: a socket that failed before opening may never fire `close`, and an
+// unref'd timer let the loop drain before end() set the code (exit 0; D248-WI-4).
 const closed = (ws) => new Promise((done) => {
   if (ws.readyState === WebSocket.CLOSED) return done();
-  ws.addEventListener("close", () => done(), { once: true });
-  setTimeout(done, CLOSE_WAIT_MS).unref?.();
+  const t = setTimeout(done, CLOSE_WAIT_MS);
+  ws.addEventListener("close", () => { clearTimeout(t); done(); }, { once: true });
   ws.close();
 });
-// Runs once: a later end() (the timeout firing mid-shutdown) joins the first. Once it has started,
-// connect() opens nothing more, so no socket escapes the close (audit b171).
+// Runs once: a later end() joins the first and its code is dropped. Once it has started, connect()
+// opens nothing more, so no socket escapes the close (audit b171), and the timer is cleared, so a
+// CDP_TIMEOUT never follows an answer (audit b174 M2).
 let ending = null;
+let timer = null;
 const DRAIN_FALLBACK_MS = 2000;
-const end = (code) => (ending ??= (async () => { await Promise.all([...sockets].map(closed)); process.exitCode = code; setTimeout(() => process.exit(code), DRAIN_FALLBACK_MS).unref?.(); })());
+const end = (code) => (ending ??= (async () => { clearTimeout(timer); await Promise.all([...sockets].map(closed)); process.exitCode = code; setTimeout(() => process.exit(code), DRAIN_FALLBACK_MS).unref?.(); })());
 // fail() throws Stop; main() turns it into end(code). Nothing is left awaiting at top level, so
 // the drained loop exits with process.exitCode (a pending top-level await would exit 13).
 class Stop { constructor(code) { this.code = code; } }
-setTimeout(() => { console.log(JSON.stringify("CDP_TIMEOUT")); end(3); }, Number(process.env.MDPRO_CDP_TIMEOUT_MS) || 25000).unref?.();
+// The socket dropped or never opened. main() turns it into CDP_CONNECTION_LOST and end(3).
+class ConnLost {}
+timer = setTimeout(() => { console.log(JSON.stringify("CDP_TIMEOUT")); end(3); }, Number(process.env.MDPRO_CDP_TIMEOUT_MS) || 25000);
+timer.unref?.();
 const PORT = process.env.MDPRO_CDP_PORT || "9222";
 const PREFIX = process.env.MDPRO_CDP_URL_PREFIX || "http://tauri.localhost";
-let list;
-try { list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json(); }
-catch { console.log(JSON.stringify(`CDP_PORT_CLOSED: nothing on 127.0.0.1:${PORT}; start mdpro with scripts/mac/mdpro.sh debug`)); process.exit(4); }
-const pages = list.filter((t) => t.type === "page" && t.url.startsWith(PREFIX));
-if (!pages.length) { console.error(`no page starting with ${PREFIX} on port ${PORT}`); process.exit(2); }
-const connect = (url) => new Promise((open) => {
+// Never settles once end() has started: that socket would escape the close. main() is then left
+// pending, which is fine, because end() owns the exit.
+const connect = (url) => new Promise((open, lost) => {
   if (ending) return;
   const ws = new WebSocket(url);
   sockets.add(ws);
-  ws.addEventListener("close", () => sockets.delete(ws));
   let id = 0; const waiting = new Map();
-  ws.addEventListener("message", (m) => { const d = JSON.parse(m.data); if (d.id && waiting.has(d.id)) { waiting.get(d.id)(d); waiting.delete(d.id); } });
-  const send = (method, params = {}) => new Promise((res) => { id += 1; waiting.set(id, res); ws.send(JSON.stringify({ id, method, params })); });
+  const drop = () => { lost(new ConnLost()); for (const w of waiting.values()) w.lost(new ConnLost()); waiting.clear(); };
+  ws.addEventListener("close", () => { sockets.delete(ws); drop(); });
+  ws.addEventListener("error", drop);
+  ws.addEventListener("message", (m) => { const d = JSON.parse(m.data); if (d.id && waiting.has(d.id)) { waiting.get(d.id).res(d); waiting.delete(d.id); } });
+  const send = (method, params = {}) => new Promise((res, rej) => {
+    if (ws.readyState !== WebSocket.OPEN) return rej(new ConnLost());
+    id += 1; waiting.set(id, { res, lost: rej }); ws.send(JSON.stringify({ id, method, params }));
+  });
   ws.onopen = () => open({ ws, send });
 });
 // Tauri 2 puts the window's label in its injected metadata (to be confirmed on WebView2 in demo W6).
 const LABEL_PROBE = "window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label ?? null";
 const labelOf = async (send) => (await send("Runtime.evaluate", { expression: LABEL_PROBE, returnByValue: true })).result?.result?.value ?? null;
-const fail = (code, error, extra) => { console.log(JSON.stringify({ error, ...extra }, null, 1)); throw new Stop(code); };
+// Prints only before end() starts: after it, the outcome is already printed and decided.
+const say = (v) => { if (!ending) console.log(JSON.stringify(v, null, 1)); };
+const fail = (code, error, extra) => { say({ error, ...extra }); throw new Stop(code); };
 async function main() {
+let list;
+try { list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json(); }
+catch { say(`CDP_PORT_CLOSED: nothing on 127.0.0.1:${PORT}; start mdpro with scripts/mac/mdpro.sh debug`); throw new Stop(4); }
+const pages = list.filter((t) => t.type === "page" && t.url.startsWith(PREFIX));
+if (!pages.length) { if (!ending) console.error(`no page starting with ${PREFIX} on port ${PORT}`); throw new Stop(2); }
 let page = pages[0];
 if (label || pages.length > 1) {
   const candidates = [];
@@ -92,7 +111,9 @@ if (label || pages.length > 1) {
 const { ws, send } = await connect(page.webSocketDebuggerUrl);
 // Trusted input goes through CDP Input.* (isTrusted=true), driven from Node via a binding.
 await send("Runtime.addBinding", { name: "__cdpInput" });
-ws.addEventListener("message", async (m) => {
+// A send lost here also fails the eval main() is waiting on, which reports it.
+ws.addEventListener("message", (m) => onBinding(m).catch(() => {}));
+async function onBinding(m) {
   const d = JSON.parse(m.data);
   if (d.method !== "Runtime.bindingCalled" || d.params.name !== "__cdpInput") return;
   const { seq, kind, x, y, text, key, code, mods, vk, button = "left", count = 1 } = JSON.parse(d.params.payload);
@@ -108,7 +129,7 @@ ws.addEventListener("message", async (m) => {
     await send("Input.dispatchKeyEvent", { type: "keyUp", ...base });
   }
   await send("Runtime.evaluate", { expression: `window.__cdpDone && window.__cdpDone(${seq})` });
-});
+}
 const helpers = `(() => { if (window.__a) return; let seq = 0; const pend = new Map();
   window.__cdpDone = (s) => { const r = pend.get(s); if (r) { pend.delete(s); r(); } };
   const call = (o) => new Promise((r) => { seq += 1; pend.set(seq, r); window.__cdpInput(JSON.stringify({ seq, ...o })); });
@@ -154,7 +175,7 @@ if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
   const r = await send("Runtime.evaluate", { expression: `(async () => { ${/\breturn\b/.test(expr) ? expr : "return (" + expr + ")"} })()`, awaitPromise: true, returnByValue: true });
   cdpError(r);
   const v = r.result?.exceptionDetails ? { exception: r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text } : r.result?.result?.value;
-  console.log(JSON.stringify(v, null, 1));
+  say(v);
   if (r.result?.exceptionDetails) code = 1; // a thrown eval fails its caller (cdp.sh eval … && next)
 } else if (mode === "shot") {
   const r = await send("Page.captureScreenshot", { format: "png" });
@@ -167,5 +188,16 @@ if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
 }
 return code;
 }
-// An unexpected error (a bug, a dropped connection mid-call) prints and fails with 1.
-main().then(end, (e) => { if (!(e instanceof Stop)) console.error(e?.stack ?? String(e)); end(e instanceof Stop ? e.code : 1); });
+// A lost connection is 3 (the eval may have run); an unexpected error (a bug) prints and fails with 1.
+main().then(end, (e) => {
+  if (e instanceof ConnLost) { say({ error: "CDP_CONNECTION_LOST" }); return end(3); }
+  if (!(e instanceof Stop) && !ending) console.error(e?.stack ?? String(e));
+  end(e instanceof Stop ? e.code : 1);
+});
+// Belt and braces: the loop drained with no exit code set, because main() was still pending or
+// end() was still waiting. That is an outcome nobody decided, never a success (audit b174 M1).
+process.on("beforeExit", () => {
+  if (process.exitCode !== undefined) return;
+  if (!ending) console.log(JSON.stringify({ error: "CDP_CONNECTION_LOST" }));
+  process.exitCode = 3;
+});

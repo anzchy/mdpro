@@ -136,11 +136,11 @@ describe("D248 (audit b171) — a CDP_TIMEOUT during the probe opens no further 
 });
 
 describe("D248 — cdp.mjs exits only through end(), once a socket may be open (source guard)", () => {
-  it("X9 process.exit appears only before any socket opens (port closed, no page) and inside end()", async () => {
+  it("X9 process.exit appears only inside end() (D248-WI-4: the port and no-page exits throw Stop inside main())", async () => {
     const fs = await import("node:fs");
     const lines = fs.readFileSync(CDP, "utf8").split("\n");
     const exits = lines.filter((l) => l.includes("process.exit(") && !/^\s*\/\//.test(l));
     expect(exits.length).toBeGreaterThan(0);
-    for (const l of exits) expect(l, l).toMatch(/CDP_PORT_CLOSED|no page starting with|^const end = /);
+    for (const l of exits) expect(l, l).toMatch(/^const end = /);
   });
 });

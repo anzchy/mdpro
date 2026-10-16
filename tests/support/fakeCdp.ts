@@ -11,7 +11,8 @@
  * the TCP connection ended (D248). The server answers a close frame with its own, as a real one
  * does, so the client's `close` event can fire. With `closeReplyDelayMs` it holds that reply, and
  * `openAtReply` says whether the client's TCP was still open when it went out: a client that
- * exits while its socket is still CLOSING has already gone (audit b171 H1).
+ * exits while its socket is still CLOSING has already gone (audit b171 H1). `drop` and
+ * `refuseUpgrade` cut the connection without a close frame (D248-WI-4, audit b174 M1).
  */
 import crypto from "node:crypto";
 import http from "node:http";
@@ -30,6 +31,10 @@ export interface FakePage {
   error?: (method: string, expression: string) => { code: number; message: string } | undefined;
   /** Never answer this call (D248: drives cdp.mjs into its CDP_TIMEOUT path). */
   hang?: (method: string, expression: string) => boolean;
+  /** Destroy the TCP connection on this call, with no close frame (D248-WI-4, audit b174 M1). */
+  drop?: (method: string, expression: string) => boolean;
+  /** Destroy the upgrade before the handshake, so the client's socket never opens (b174 M1). */
+  refuseUpgrade?: boolean;
 }
 
 /** One client WebSocket: its page, whether it sent a close frame, and whether TCP has ended. */
@@ -131,7 +136,7 @@ export async function startFakeCdp(pages: FakePage[], opts: FakeCdpOptions = {})
     sockets.add(socket);
     socket.on("close", () => sockets.delete(socket));
     const page = pages.find((p) => req.url === `/devtools/page/${p.id}`);
-    if (!page) return socket.destroy();
+    if (!page || page.refuseUpgrade) return socket.destroy();
     const conn: FakeConnection = { page: page.id, closeFrame: false, ended: false };
     connections.push(conn);
     socket.on("end", () => (conn.ended = true));
@@ -149,6 +154,7 @@ export async function startFakeCdp(pages: FakePage[], opts: FakeCdpOptions = {})
       buf = r.rest;
       for (const text of r.texts) {
         const msg = JSON.parse(text) as { id: number; method: string; params?: { expression?: string } };
+        if (page.drop?.(msg.method, msg.params?.expression ?? "")) return socket.destroy();
         if (page.hang?.(msg.method, msg.params?.expression ?? "")) continue;
         const err = page.error?.(msg.method, msg.params?.expression ?? "");
         if (err) {
