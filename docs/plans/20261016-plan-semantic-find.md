@@ -1,6 +1,6 @@
 # Plan: semantic find ("find with a hunch"), on top of regular find
 
-**Status:** revision 2. S-U1 is answered (below); revised for it and re-reviewed with Codex (§ 11). No code written. Target **v0.3.7**, alongside
+**Status:** revision 3. S-U1 and S-U8 to S-U12 are answered; revised after the user-run full review and re-reviewed with Codex (§ 11). No code written. Target **v0.3.7**, alongside
 Plan P Stage 4. Implementation starts only after v0.3.6's regular find / replace has landed
 (§ 3.3).
 **Base:** `master` @ `9a0aed26` (first written on `33aa6983`).
@@ -30,8 +30,8 @@ stay gated on S0.
 | **S-U6** | **The key** | Hunch uses ⌥F on macOS and Ctrl+Shift+F elsewhere, keeping ⌘F / Ctrl+F for normal find. On macOS ⌥F types a character (ƒ); Ctrl+Shift+F is unassigned in the menu plan's table | Decide with S-U5. The key goes through the menu plan's command table and collision rules (K1–K8) |
 | **S-U7** | **The quality bar** (applied to each engine separately) | S0 proposes per-language numbers: recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 % on absent topics, false "not found" ≤ 15 % on present ones (§ 6, S0). The user accepts or changes them **before** the final test partition is evaluated | Shown with S0's measured numbers, so the trade-off is concrete |
 | **S-U8** | **Consent granularity** (§ 5.13) | A per document per session / B per document, remembered / C every search / D once globally | **Answered: A.** 「Per document per session (Recommended)」. The first cloud search in a document asks; the grant holds until the tab closes or the app quits; nothing about which files were sent is written to disk. "Just this search" stays available |
-| **S-U9** | **Exactly what text is sent** (§ 5.13) | Always the query, the question template and each block's text; choices for front matter, code blocks and HTML comments | **Answered:** 「Blocks + code, no front matter (Recommended)」. Sent: the block text and code blocks. Not sent: YAML front matter. HTML comments: not sent, following the recommended proposal this option carried (the label names front matter only; S1 confirms). Never sent: the file path, file name, title, other documents, images, the key in any body |
-| **S-U10** | **Which Jev version** | A pin an explicit version / B `jev-latest`, which TypeSafe moves (today → 1.13.0; `jev-preview` → 1.14.0) | **Answered: B.** 「jev-latest, 256k cap」. Requests send `jev-latest`. **Cost of this choice:** the 0.4 threshold and S0's quality numbers belong to the version S0 measured, and can drift without notice when TypeSafe moves the alias. **Guard** (cheap; it doesn't override the choice): every response's reported model version is logged (`search.semantic.jev.request` carries it; if responses don't report it, the alias is resolved through `GET /v1/models` once per launch); the Integrations section shows "jev-latest → <version>" and the version S0 measured; when they differ, the section says so and `search.semantic.jev.version_changed` is logged once, as the trigger to re-run S0's held-out set (≈ $1 or less, with the user's key and word). The threshold is not changed automatically |
+| **S-U9** | **Exactly what text is sent** (§ 5.13) | Always the query, the question template and each block's text; choices for front matter, code blocks and HTML comments | **Answered:** 「Blocks + code, no front matter (Recommended)」. Sent: the block text and code blocks. Not sent: YAML front matter. HTML comments: not sent either; the option the user picked said so in its description: 「Never YAML front matter or HTML comments (often metadata or private notes), and never the path, file name or title」. Never sent: the file path, file name, title, other documents, images, the key in any body |
+| **S-U10** | **Which Jev version** | A pin an explicit version / B `jev-latest`, which TypeSafe moves (today → 1.13.0; `jev-preview` → 1.14.0) | **Answered: B.** 「jev-latest, 256k cap」. Requests send `jev-latest`. **Cost of this choice:** the 0.4 threshold and S0's quality numbers belong to the version S0 measured, and can drift without notice when TypeSafe moves the alias. **Guard** (cheap; it doesn't override the choice): every response's top-level `model` field (TypeSafe's API returns e.g. `"model": "jev-1.13.0"` for a `jev-latest` request) is logged on `search.semantic.jev.request`; if it is missing, the version is shown as "unknown", with no extra lookup (`GET /v1/models` stays a Settings-button call, § 5.6). Chunks of one search that report **different** versions mean the alias moved mid-search: the search is discarded and retried once, then falls back with "Jev version changing". The Integrations section shows "jev-latest → <version>" and the version S0 measured; when they differ, the section says so and `search.semantic.jev.version_changed` is logged once, as the trigger to re-run S0's held-out set (≈ $1 or less, with the user's key and word). The threshold is not changed automatically |
 | **S-U11** | **Cloud size and cost cap** (§ 5.12) | A per-search input-token cap above which the backup answers | **Answered: 256 k input tokens per search** (same quote as S-U10), ≈ $0.011 per search at $0.042 / M tokens. Bigger searches go to the backup with "too large to send to Jev". Every query re-sends every block, so cost still scales with searches; S0's token counts show how often the cap bites |
 | **S-U12** | **How the key is entered** (§ 5.14) | A a password field on the Integrations page / B a native prompt from Rust | **Answered: A.** 「Password field; S0 yes, $1 ceiling (Recommended)」. The key crosses the webview once, at entry, and is never sent back (§ 5.14). B stays possible later |
 | **S0-Jev** | **May S0 run Jev with the user's key?** | yes with conditions / no | **Answered: yes** (same quote as S-U12). Conditions: synthetic fixtures only, never the user's documents; a key the user chooses, ideally separate and revocable, supplied by the user when S0 starts; a **$1 spend ceiling** for the run; the key never printed and never stored outside the keychain or that run's environment. S0 is a later implementation grant: mdpro-codex-audit asks the delegator before starting it |
@@ -254,7 +254,8 @@ The attribution and the "text is leaving this Mac" indicator are prototype items
 
 ```
 open semantic find
-  → occurrences = extract(markdown)      one parser for both modes (5.2)
+  → literal = v0.3.6's matcher over the whole document (5.4; no model, no limits)
+  → occurrences = extract(markdown)      in a worker, sliced, cancellable (5.2)
   → backup: index(revision)              embed unique block texts, progressive (5.5, 5.7),
                                          only if the backup may answer this document (5.0)
 query (min length per 5.2, debounce, new input cancels)
@@ -269,17 +270,75 @@ every async result → accepted only if its tags still match (5.5)
 
 ### 5.2 Blocks: one parser, both modes
 
-- **Extraction parses the document's Markdown text once, with the same remark + GFM configuration
-  Milkdown uses**, independent of either editor's parser. Each **occurrence** is
+- **Extraction parses the document's Markdown text once, with the same remark transforms Milkdown
+  runs, in the same order.** `mdproCommonmark` is a `MilkdownPlugin[]`
+  (`src/plugins/milkdown/commonmarkPreset.ts:39`), not a remark processor a worker can import, and
+  the editor also applies `tableParityPlugins` after GFM (`MilkdownEditor.tsx:157`). So S2 first
+  extracts a **worker-safe remark composition**, `src/plugins/milkdown/remarkComposition.ts`: an
+  ordered list of plain remark plugins (remark-parse → the commonmark preset's remark plugins
+  with mdproCommonmark's swaps: link definitions kept, blank-line gaps → remark-gfm → the
+  remark side of `tableParityPlugins` → `remarkHighlightTransformer` from `highlightMarkPlugin`
+  (`==text==` → a highlight node; `MilkdownEditor.tsx:166`, `highlightMarkPlugin.ts:61`)). A test
+  enumerates every remark plugin the mounted editor registers and fails if one is missing from
+  `remarkComposition.ts` or out of order, so a plugin added later can't silently diverge. Milkdown's wiring is rebuilt from that list, so there is
+  one source of truth, and the worker runs the same list. Parity fixtures, both sides: ragged
+  tables, link reference definitions, footnote definitions, blank-line gaps, empty paragraphs and
+  `==highlight==` (with an `=` inside).
+  It is independent of either editor's parser.
+- **Where it runs:** in a dedicated **extraction worker** (separate from the backup's, so
+  terminating one doesn't take the other down). The Markdown text is posted once.
+  - **Admission first:** before posting, the controller reserves the extraction's estimated peak
+    (proposal: 20 × the text's UTF-8 bytes, replaced by S0's measured factor) with `SemMemory`
+    (§ 5.7); a refusal means "Too large for semantic search", and literal find still works.
+  - **Cancellation by termination:** remark's parse is one synchronous call inside the worker, so
+    it can't be interrupted from inside. A cancel (new revision, close, disable) terminates the
+    worker (`worker.terminate()`) and the next extraction starts a fresh one.
+  - **The controller settles a cancelled run itself**; nothing waits for the killed worker, which
+    sends no final message. Each run has an `extractionGeneration`, and its `SemMemory`
+    reservation is keyed by `(documentId, extractionGeneration)`. On cancel the controller, in
+    one step: terminates the worker, resolves the run's promise as `Cancelled`, releases that
+    reservation (`semantic_mem_release` is idempotent by key, so it happens exactly once and an
+    old generation's release can't free a newer run's), and drops its references. A late message
+    from a terminated worker can't arrive; one from a superseded live worker is dropped by
+    generation. Normalising and
+    hashing then run in slices of top-level blocks with a cancellation check between slices. The main thread only reads the
+  editor's block sequence for mapping (below), in budgeted slices of ≤ 8 ms; above the WYSIWYG size threshold
+  the existing scroll code already uses (`src/utils/scrollAnchor/source.ts:11`), mapping is done
+  lazily, for hits only. S0 measures the semantic-open latency, the longest main-thread task and
+  peak extraction memory (§ 5.8). Each **occurrence** is
   `{ occurrenceId, blockKey, text, kind, sourceRange }`, where kind is a paragraph, a heading, a
   list item (its own paragraph, without nested lists), a table row (cells joined with ` | `), a
   blockquote paragraph, or a code block.
 - **Mapping to the editors:** in Source, `sourceRange` *is* the CodeMirror range. In WYSIWYG, the
   occurrence has to be mapped to a ProseMirror position, and **no such mapper exists today**.
   The TOC's `src/utils/tocElementResolution.ts` maps heading keys to DOM elements by sequence
-  and text, which is the nearest precedent and not a source ↔ PM mapper. S2 builds one: walk
-  the PM document's blocks in order, classify them with the same kinds, and align them with the
-  occurrences by sequence and normalised text, giving each occurrence a PM position range.
+  and text, which is the nearest precedent and not a source ↔ PM mapper. S2 builds one, and it
+  **fails closed**:
+  - both sides become sequences of `(kind, normalised text)`, with one normalisation applied to
+    both (mdast `toString` vs PM `textContent`; whitespace collapsed; NFC);
+  - the sequences are aligned as a whole, not by a greedy forward search, so one missing or
+    transformed block doesn't shift every later match. The algorithm is bounded: a **patience
+    diff** first anchors on keys that are unique on both sides (O(n log n)); only the gaps between
+    anchors get a Myers diff, each capped at 2 000 edit steps, and a gap over the cap is left
+    unmapped;
+  - **alignment runs in the extraction worker, not on the main thread**, so its cost and its
+    cancellation are the worker's (terminate, below). The main thread's only share is copying
+    the PM side out, **raw**: normalisation happens in the worker. The copy does **not** use
+    `doc.nodesBetween` or `doc.textBetween`: both rescan earlier siblings from index 0 on every
+    call and can't be stopped part way (prosemirror-model 1.25.4 `fragment.ts`). It walks the
+    tree with its own **persistent cursor**: a stack of ancestor frames `(node, childIndex,
+    pos)` plus an offset inside the current text node, so a slice resumes where the last one
+    stopped without rescanning. Inside a slice, the deadline (≤ 8 ms) and the cancellation flag
+    are checked **during the walk**, after every 256 visited nodes and after every text piece;
+    a text node is copied in pieces of at most 16 KiB (`text.slice(offset, offset + 16384)`). So
+    one huge paragraph, code block, nested list or a paragraph of thousands of differently
+    marked inline nodes is read across many slices. The cursor is valid only for the document
+    it was taken from: any transaction that changes the document discards it and restarts the
+    copy (the extraction generation moves on). Each textblock is sent
+    as `(kind, startPos, raw text pieces)`; the worker joins, normalises and aligns them and
+    returns `occurrenceId → PM position` pairs;
+  - a pair is accepted only if it is unique within its aligned stretch; an ambiguous one (two
+    equal candidates, e.g. a repeated paragraph next to a changed block) stays **unmapped**.
   **Unmappable policy:** an occurrence that doesn't align is logged (count only) and kept in the
   index; in WYSIWYG it isn't highlighted or stepped to, and the verdict says so ("N related
   blocks · k shown in Source only"). It never makes the verdict "nothing".
@@ -289,8 +348,42 @@ every async result → accepted only if its tags still match (5.5)
   3-character query minimum would drop short Chinese headings and a two-character query such as
   「收入」. The proposal: headings are always kept whatever their length; other blocks count CJK
   characters as 2 toward a minimum of 12; the query minimum is 2 for CJK and 3 otherwise.
-- **Long blocks** are split by **tokens**, not characters (§ 5.3): windows of the model's limit
-  minus prefix and special tokens, with overlap. A block's score is its best window's.
+- **Occurrences don't depend on either engine.** Splitting long blocks is per engine, into
+  **windows** with ids `Bnnn.w`:
+  - **Jev windows** by UTF-8 bytes: ≤ 24 000 bytes (§ 5.12), cut at a sentence or whitespace
+    boundary, 10 % overlap; no tokenizer needed, so Jev works with the backup missing;
+  - **backup windows** by the backup's tokenizer: its limit minus prefix and special tokens, with
+    overlap (§ 5.3).
+  A block's score for an engine is the best of its windows' scores.
+- **S-U9's exclusions survive WYSIWYG.** Milkdown has no front-matter plugin: the YAML block
+  becomes a thematic break plus a setext heading (`src/utils/scrollAnchor/anchor.ts:26`), so
+  extracting from the editor's serialised Markdown would send it as ordinary heading text. So:
+  - the front-matter range is computed from the **source text before Milkdown parses it** (on
+    open, reload, and every switch into WYSIWYG);
+  - in WYSIWYG, the PM nodes that range produced are recorded in a ProseMirror plugin state as
+    *excluded*, and the set is mapped through every transaction (`tr.mapping`), so they stay
+    excluded after edits;
+  - **fail closed:** a document is marked `hadFrontMatter` for the session as soon as any of its
+    texts (opened, reloaded, or the current Source text) starts with a front-matter block.
+    Provenance counts as **certain** only in two states: the current Markdown starts with a
+    front-matter block (then that block is excluded by position), or the current WYSIWYG editor
+    generation was seeded from pre-parse source and its plugin state is intact. In any other
+    state for a `hadFrontMatter` document (after a WYSIWYG serialisation turned it into a heading,
+    an editor rebuild, a reload of already-transformed text, or edited values), **Jev is not used
+    for that document**: the backup answers with "On this Mac · front matter can't be separated
+    safely". The document's front matter is never guessed at;
+  - **across saves and restarts:** session state can't help once the transformed text is saved
+    and the app restarts, because the file then has no front matter to detect. Whether a WYSIWYG
+    **edit + save** actually writes front matter back as an ordinary rule and heading is **not
+    verified** (an unedited open is byte-identical,
+    `tests/wysiwyg-edit-persistence.test.tsx:248` "P-clean-open"). **S-FM** (§ 6) checks it first.
+    If it does, that is a data-integrity defect of its own, reported to the delegator for a D
+    number, and its fix (front matter kept as a front-matter node through WYSIWYG, round-tripping
+    byte-exactly) is a **hard prerequisite**: S-C3 doesn't enable Jev until S-FM passes;
+  - HTML comments: comment blocks are never occurrences, and inline comments are stripped from a
+    block's text; comment-like text inside a code block is code, and is sent (S-U9 sends code).
+  S2 tests the **outgoing request body**, not just the occurrence list, after WYSIWYG edits, a
+  mode switch each way, and a reload.
 
 ### 5.3 Model candidates (S-U3, measured in S0)
 
@@ -316,10 +409,17 @@ stage over the embedding top-k (for example 50). It is adopted only if it fits �
 
 ### 5.4 Ranking and the "not in this document" verdict
 
-- **Two tiers, not a bonus:** a block that contains the literal query (v0.3.6's matcher,
-  case-insensitive) is always ranked above any block that doesn't, whatever its similarity. Within
-  each tier, blocks are ordered by similarity. This is what "augmented" means: everything literal
-  find would show, plus the related blocks.
+- **Literal results have their own path.** v0.3.6's literal matcher (case-insensitive) runs over
+  the **whole document text**, independent of occurrences: no minimum length, no S-U9 exclusion,
+  no § 5.7 limit, and no model, so literal results exist even when both engines are unavailable.
+  Each literal match is a range; it is attached to the occurrence that contains it if there is
+  one, and otherwise listed on its own (front matter, a comment, a short line).
+- **Two tiers, not a bonus:** literal entries are always ranked above semantic-only blocks,
+  whatever their similarity. A block with both a literal match and a semantic score appears
+  **once**, in the literal tier. Semantic thresholds and limits never remove a literal entry.
+  Within each tier, entries are ordered by similarity (literal-only entries last, in document
+  order). This is what "augmented" means: everything literal find would show, plus the related
+  blocks.
 - **Jev's threshold:** p ≥ 0.4 on the `noul` answer, as in hunch, re-checked in S0 on the version
   `jev-latest` resolved to at the time, and re-checked when it moves (S-U10's guard).
 - **The backup's threshold:** cosine similarity is not a calibrated probability, the way Jev's `noul`
@@ -342,7 +442,10 @@ stage over the embedding top-k (for example 50). It is adopted only if it fits �
 
 Every index or query result carries tags: `documentId`, `editorGeneration`, `editRevision`,
 `queryGeneration`, `engine` (`jev` / `backup`), `modelId` (the Jev version or the backup model),
-and for Jev the epoch pair `(appEpoch, grantEpoch)` (§ 5.12). Rust bumps `appEpoch` on key set,
+for the backup its `runtimeGeneration`, and for Jev the epoch pair `(appEpoch, grantEpoch)`
+(§ 5.12). The backup's `runtimeGeneration` only increases: it is bumped on disable, model removal,
+model reload and worker replacement, so a completion from before a disable can't match after a
+re-enable of the same model. Rust bumps `appEpoch` on key set,
 key removal and the cloud switch going off, and `grantEpoch` on revoke and tab close, so a
 completion from before any of those can't be accepted after a re-enable. The controller accepts a result only if every tag still matches
 the live state. Otherwise the result is dropped, and a stale result is logged.
@@ -397,8 +500,16 @@ back. That covers:
   `MAX_SEM_VECTOR_MB` of vectors (proposal: 128 MB). Past either limit, semantic find indexes the
   first N blocks and says "Too large for semantic search: searched the first N blocks". Literal
   find is unaffected.
-- **Across the app:** at most `MAX_SEM_TOTAL_MB` (proposal: 256 MB) of indexes, with least-recently-used
-  tabs evicted first. An evicted tab re-indexes when it is searched again.
+- **Across the app:** at most `MAX_SEM_TOTAL_MB` (proposal: 256 MB) of indexes, with
+  least-recently-used tabs evicted first. Windows don't share memory, so the owner is **Rust**,
+  the one process-wide party: a `SemMemory` coordinator in managed state. A window reserves before
+  it builds an index (`semantic_mem_reserve(documentId, bytes)` → granted, or granted after
+  evicting listed indexes, or refused); a window asked to evict frees the index and acknowledges
+  (`semantic_mem_release`); a window's reservations are released when it is destroyed. The
+  reservation counts vectors, occurrence metadata and a transient-copy allowance (2× vectors
+  while results cross the worker or IPC boundary). Under S-U4 B the indexes live in Rust and the
+  coordinator is in-process. An evicted tab re-indexes when it is searched again. S-C3 tests two
+  windows reserving at once at the limit.
 - **Batches:** embedding runs in bounded batches (for example 64 blocks) with a bounded queue, so
   a 10 MiB document never builds one giant tensor or IPC message.
 - Vector size: 512-d × 4 B = 2 KB per block for bge-small-zh, so 50 000 blocks ≈ 100 MB. S0
@@ -421,6 +532,9 @@ case.
 | Query (excluding debounce) | debounce fires → first highlight | ≤ 150 ms with a complete index |
 | Query (including debounce) | last keystroke → first highlight | ≤ 450 ms (300 ms debounce + 150 ms) |
 | Typing while indexing | keydown → next frame painted | p95 ≤ 32 ms (a probe S0 adds; the D12 harness measures heap, not input latency) |
+| Semantic open | the key → bar ready to type | ≤ 100 ms, whatever the document size (extraction continues in the worker) |
+| Longest main-thread task during extraction and mapping | — | ≤ 50 ms on the 10 MiB short-line fixture |
+| Peak extraction memory | worker heap during extraction | measured in S0; feeds § 5.7's reservation |
 
 ### 5.9 UI (options for the prototype; not decided)
 
@@ -441,6 +555,20 @@ For `/mattpocock-skills:prototype`, after v0.3.6's popup exists:
 9. **"Text is leaving this Mac"**: an indicator visible for as long as a Jev request is in
    flight, distinct from the progress text.
 10. **The consent prompt** (S-U8), and the bar's "On this Mac only" choice (§ 5.0 rule 9).
+11. **Who owns the find keys while semantic results show.** A proposal, for the prototype to
+    settle, then tested through the composed keymaps and the menu dispatch in both modes:
+
+    | Input | With the semantic bar open |
+    |---|---|
+    | Enter / Shift+Enter (focus in the bar) | next / previous semantic result |
+    | ⌘G / ⇧⌘G, F3, menu Find Next / Previous | next / previous semantic result while the bar is open; literal find's otherwise |
+    | ⌘F / Ctrl+F, menu Find | closes the semantic bar and opens literal find with the same query |
+    | ⌘H / Ctrl+H, menu Replace | closes the semantic bar and opens replace (semantic find has none) |
+    | Esc | closes the bar and clears its highlights |
+
+    In Source, CodeMirror's own search state (query, panel, selection of matches) is never
+    changed by semantic results: they are separate decorations, and closing the bar leaves
+    CodeMirror's search as it was.
 
 ### 5.10 Failure and recovery
 
@@ -463,8 +591,9 @@ failure never disables Jev, and Jev keeps working with the backup off or missing
 - **Removing the model:** cancels in-flight backup work, unloads the model, then deletes the
   files. A Jev search in flight continues; a search that would fall back during removal gets
   "Semantic search unavailable: backup being removed".
-- **Late completions after disable or removal** are dropped by § 5.5's tags (`modelId` is cleared),
-  so they can't reload the model or recreate an index. S5 and S8 test both.
+- **Late completions after disable or removal** are dropped by § 5.5's `runtimeGeneration`, so
+  they can't reload the model or recreate an index, including after a quick disable → re-enable
+  of the same model. S5 and S8 test both.
 
 ### 5.11 Logging (rule 20)
 
@@ -511,6 +640,19 @@ document or query text.
 - **Where the controller gets the epochs:** `semantic_auth_state(documentId)` returns
   `{ appEpoch, grantEpoch, granted, keyStatus }` for the calling window; the controller calls it
   when the bar opens and before showing a consent prompt. Epochs only increase.
+- **Tab close and window destruction reach Rust.** A tab close is revoked **inside the backend
+  close itself**: `close_document` (`src-tauri/src/commands/file.rs:1580`, which already removes
+  the document from the shadow store once the close is committed) also calls
+  `JevState::close_document(windowLabel, documentId)`, which removes the grants, bumps the grant
+  epoch and cancels the requests in the same call. No separate revoke after the close, so no
+  open-tab check can refuse it; a close that the unsaved-changes prompt cancels never reaches
+  `close_document`, so its grant stays. A
+  window's destruction is handled in Rust, in the existing `on_window_event` hook on `Destroyed`
+  (`src-tauri/src/main.rs:299`, the same event the quit guard uses): every grant of that window
+  is removed, its grant epochs bumped, its requests cancelled and its memory reservations
+  released, so cleanup doesn't depend on a webview that no longer exists. Tests: a committed
+  close; a cancelled close (the grant stays); a close with a consent prompt pending; queued
+  chunks; an IPC call arriving from a destroyed window's label.
 - **Across windows:** after any epoch bump Rust emits `semantic:auth-changed` with
   `{ scope: "app" | "document", windowLabel?, documentId?, appEpoch, grantEpoch? }` to every
   window, carrying the **new** values. Each controller keeps the highest epochs it has seen and
@@ -538,7 +680,8 @@ document or query text.
   - blocks are added in order while: block count ≤ 200, state bytes ≤ 24 000,
     state bytes + Σ `qᵢ` ≤ 60 000 (64 k with a 4 k margin), and state bytes + max `qᵢ` ≤ 30 000
     (32 k per question with margin);
-  - a block whose own text exceeds 24 000 bytes is split into windows first (the § 5.2 split).
+  - a block whose own text exceeds 24 000 bytes is split into Jev windows first (§ 5.2), by bytes,
+    so the backup's tokenizer is never needed.
   With a 200-character CJK query (`qᵢ` ≈ 1 400 bytes) and a full 24 000-byte state that is 25
   blocks per chunk; with short blocks and a short English query, up to 200.
   **Overflow fallback:** a `400` context-length error splits the chunk in half once; a second
@@ -554,7 +697,11 @@ document or query text.
 - **Response validation:** every chunk's answer must name exactly the block ids it was sent, with
   the `noul` type and a finite probability in [0, 1], from a model (`jev-latest` resolves to whatever TypeSafe points it at; the reported version is recorded, S-U10). Anything
   else is `InvalidResponse` (§ 5.0 table); a chunk is never counted as "answered: nothing".
-- **Model:** `jev-latest` (S-U10). The version each response reports, or `/v1/models` resolves, is logged and kept for the Integrations section's drift notice.
+- **Model:** `jev-latest` (S-U10). Each response's `model` field is logged and kept for the Integrations section's drift notice; all chunks of one search must report the same version (S-U10's row).
+- **Progress is a channel.** `semantic_jev_search` takes a Tauri 2 IPC `Channel`; Rust sends
+  `{ requestId, appEpoch, grantEpoch, done, total }` after each chunk, and the controller applies a
+  message only if its request and epochs are current. "Asking Jev… k of n" comes from it. S-C3
+  tests stale and cancelled progress.
 - **Cancellation is a command, not a dropped promise.** Each search registers its `requestId` in
   the registry with a cancellation token; `semantic_jev_cancel(requestId)` cancels its queued
   chunks, retries and active requests. A revoke, switch off, key change or tab close bumps
@@ -563,8 +710,9 @@ document or query text.
   `src/services/semanticFindService.ts`): `semantic_jev_search` → per-block p, or the error enum
   `NotAuthorised | StaleGrant | NoKey | KeyRejected | RateLimited | Unreachable | Timeout |
   TooLarge | BadRequest | ModelUnavailable | InvalidResponse | Partial { cause } | Cancelled`;
-  `semantic_jev_cancel`; `semantic_consent_grant` (document or one-shot, carrying the prompt's app
-  epoch) / `_revoke` (window from Tauri, document id validated against that window's open tabs);
+  `semantic_jev_cancel`; `semantic_consent_grant` (document or one-shot, carrying the prompt's epochs; window from Tauri,
+  document id validated against that window's open tabs) / `_revoke` (the user's "Stop sending";
+  idempotent: revoking a grant that no longer exists is a no-op success);
   `semantic_local_only_set`; `semantic_auth_state`; `semantic_key_set`, `semantic_key_remove`, `semantic_key_status` (returns
   `set` / `not set` / `rejected` only), `semantic_key_test`. Error values never contain the key,
   document text or the query.
@@ -644,11 +792,13 @@ and page style (DESIGN.md). Its layout is a prototype item (S-U5); its contents 
     applies a snapshot only if its revision is higher than the one shown, so an older reply or
     event arriving late can't overwrite a newer group.
   - **Propagation:** after a write Rust emits `preferences:semantic-changed` with the group to
-    every window (a second new event for CLAUDE.md's table); turning `cloudEnabled` off also
-    bumps the app epoch (§ 5.12).
+    every window (a second new event for CLAUDE.md's table). Turning `cloudEnabled` off bumps the
+    app epoch inside the same `JevState` transition as the write (S1b), not after it.
   - **The page:** the section has its own single-flight guard (the Integrations page's existing
     lease is MCP-specific): a section that hasn't loaded the group can't write it; a failed write
-    is shown inline with the switch reverted. Rust reads `cloudEnabled` itself at search time, so
+    follows DESIGN.md's settings contract (`docs/design/mdpro-ui-new/DESIGN.md:723`): the error
+    toast is the only signal and the switch rolls back. Inline text is kept for disabled
+    controls and lasting states ("No key", "Backup not installed"). Rust reads `cloudEnabled` itself at search time, so
     a window with a stale copy can't send.
 - **Keychain access** is a new dependency (the `keyring` crate, or the Security framework and
   Windows Credential Manager directly), decided in S1's ADR. If the keychain is unavailable, the
@@ -688,16 +838,18 @@ Every behaviour WI runs this sequence (rules 10, 20, 60):
 
 | WI | Scope | Files (expected) | Tests (rule 10) | Ledger / ADR |
 |---|---|---|---|---|
-| **S0** | **Spike, throwaway; may run before v0.3.6 lands.** Branch `spike/semantic-find`. **Jev:** the same labelled set is run through the pinned Jev version with the user's own key (the fixtures are synthetic, never the user's documents; the key and the run need the user's word first), recording quality, latency per chunk, token counts and cost for each fixture size, Chinese and English separately. **Backup:** it measures each § 5.3 and § 4.4 candidate under each S-U4 runtime: WKWebView on the current macOS **and** on 13.1, WebView2 (version recorded), and Rust `ort`. Per combination: load time, ms per batch, peak memory, worker or IPC copy cost, installer growth, and the § 5.8 budgets. **Quality:** a labelled set split **by document** into three partitions: *tune* (prompting, windows, minimum lengths), *validate* (choosing the model, the reranker and § 5.4's threshold rule), and a *final test* partition that nobody looks at until the gate, model, rule and threshold are frozen and the user has approved S-U7. It is then evaluated once, and its numbers are the ones S1 records. Chinese and English are reported separately. Queries include paraphrases, questions, absent topics and negations. Reported: recall@5, first-hit accuracy, false "found" rate (on absent topics) and false "not found" rate (on present ones). One reranker is tried as a second stage. **Proposed gate, per language, on the final test partition:** recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 %, false "not found" ≤ 15 %. These are proposals for S-U7; the user may change them before the final evaluation, not after. Each engine is gated separately. If the backup fails, the user chooses between shipping Jev with no backup (the bar says "needs Jev" when it can't be used) and deferring; if Jev fails, S-U1 goes back to the user | spike branch only; the record goes in `docs/test/<date>-sem-s0-spike.md`, fixtures in `tests/manual-fixtures/sem-*.md` and a generator script for the 10 MiB files | none (spike) | none; feeds S-U2 to S-U4 and S-U7 |
-| **S1** | **The ADR and the contracts** (ADR number from the delegator when written). It records S-U1 (quoted), the options weighed, the privacy cost and the new CLAUDE.md § Constraints wording (§ 5.13); S-U2 to S-U4 and S-U7 to S-U12 as answered; the backup model, its licence, delivery and runtime; and the new dependencies (keychain, and the runtime if any). It defines the types: `Occurrence`, the model manifest, the request and result tags (§ 5.5), the index states (§ 5.4), and the lifecycle owner, a `semanticFindController` per window. On acceptance, the same commit updates CLAUDE.md § Constraints | `docs/adr/NNNN-…md`; `src/features/semanticFind/types.ts` | type-only (no tests, rule 10) | ADR **yes** |
-| **S2** | Extraction and mapping (§ 5.2) | `src/features/semanticFind/extract.ts`, `mapToEditor.ts` (or the generalised TOC resolver) | Same Markdown → the same occurrence kinds, texts and grouping in both modes, and each `sourceRange` maps to the right text in each editor. Fixtures: a GFM table (a paragraph to Source's parser, rows here), nested lists, a list item with a nested list, a blockquote, links and images (alt text kept), a repeated paragraph (one key, two occurrences), a short CJK heading, an empty doc, and a 1 500-character CJK paragraph. Mapping: every mappable occurrence's PM range holds its text; a deliberately unalignable block follows the unmappable policy (§ 5.2). Files: `tests/semantic-find-extract.test.ts`, `tests/semantic-find-map.test.tsx` | none |
-| **S3** | The inference service under S1: package load with the manifest check, tokenizer-aware windows, pooling and normalisation per the manifest, batches, cancellation, and the worker or the Tauri command. If Rust: the command returns `Result`, validates count and total size, is registered in `commands/mod.rs`, and has its wrapper in `src/services/semanticFindService.ts` (rule 50 § 2) | `src/features/semanticFind/worker.ts` or `src-tauri/src/commands/semantic.rs` + service, `src/services/semanticFindService.ts` | Mocks only at the worker port or `invoke`. Error paths: a missing file, a hash mismatch, a cancel mid-batch, an oversized input, a worker crash with one restart. A fixed fixture gives the same vectors (within a tolerance) from S0's reference output. A relevant sentence at the **end** of a long CJK block is found, because windows cover it. No-network test (§ 5.6). Logging pairs carry no text. Rust: input validation and the error type. Files: `tests/semantic-find-service.test.ts`, `tests/semantic-find-offline.test.ts`, and `#[cfg(test)]` in `semantic.rs` if Rust | a row for the command, if any |
+| **S0** | **Spike, throwaway; may run before v0.3.6 lands.** Branch `spike/semantic-find`. **Jev:** the same labelled set is run through `jev-latest` (the reported version recorded) with the user's own key (the fixtures are synthetic, never the user's documents; the key and the run need the user's word first). **The $1 ceiling is enforced by the harness:** it keeps a running cost ledger; before every request it reserves that request's worst case (UTF-8 bytes as the token bound × $0.042 / M tokens × (1 + the retries allowed)); it dispatches only while all reservations fit under $0.90, leaving a 10 % margin; concurrent requests reserve before they start; on reaching the limit it stops and the record lists every case not evaluated. Its estimate is compared with TypeSafe's reported usage where available, recording quality, latency per chunk, token counts and cost for each fixture size, Chinese and English separately. **Backup:** it measures each § 5.3 and § 4.4 candidate under each S-U4 runtime: WKWebView on the current macOS **and** on 13.1, WebView2 (version recorded), and Rust `ort`. Per combination: load time, ms per batch, peak memory, worker or IPC copy cost, installer growth, and the § 5.8 budgets. **Quality:** a labelled set split **by document** into three partitions: *tune* (prompting, windows, minimum lengths), *validate* (choosing the model, the reranker and § 5.4's threshold rule), and a *final test* partition that nobody looks at until the gate, model, rule and threshold are frozen and the user has approved S-U7. It is then evaluated once, and its numbers are the ones S1 records. Chinese and English are reported separately. Queries include paraphrases, questions, absent topics and negations. Reported: recall@5, first-hit accuracy, false "found" rate (on absent topics) and false "not found" rate (on present ones). **Definitions, frozen before any run:** the label unit is the unique block (`blockKey`), and results are deduplicated by `blockKey` before the top 5 is taken; recall@5 = |relevant ∩ top 5| / min(5, |relevant|) (capped, so a query with more than 5 relevant blocks can reach 1); first-hit accuracy = the top result is relevant (present queries only); false "found" = share of absent-topic queries with any result above the threshold; false "not found" = share of present queries with none; each is the mean over queries, per language. **Sample size:** at least 10 documents and 60 queries per language in the final test partition (40 present, 20 absent). The capped recall is a definition, not a change of S-U7's numbers; it is shown to the user with them. One reranker is tried as a second stage. **Proposed gate, per language, on the final test partition:** recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 %, false "not found" ≤ 15 %. These are proposals for S-U7; the user may change them before the final evaluation, not after. Each engine is gated separately. If the backup fails, the user chooses between shipping Jev with no backup (the bar says "needs Jev" when it can't be used) and deferring; if Jev fails, S-U1 goes back to the user | spike branch only; the record goes in `docs/test/<date>-sem-s0-spike.md`, fixtures in `tests/manual-fixtures/sem-*.md` and a generator script for the 10 MiB files | none (spike) | none; feeds S-U2 to S-U4 and S-U7 |
+| **S1** | **The ADR and the contracts** (ADR number from the delegator when written). It records S-U1 (quoted), the options weighed, the privacy cost and the new CLAUDE.md § Constraints wording (§ 5.13); S-U2 to S-U4 and S-U7 to S-U12 as answered; the backup model, its licence, delivery and runtime; and the new dependencies (keychain, and the runtime if any). It defines the types: `Occurrence`, windows (§ 5.2), literal entries (§ 5.4), the model manifest, the request and result tags (§ 5.5), the index states (§ 5.4), and the lifecycle owner, a `semanticFindController` per window; and on the Rust side the `JevState` / `SemMemory` interfaces, the command signatures per module, the error enum and the event payloads that S1b implements. On acceptance, the same commit updates CLAUDE.md § Constraints | `docs/adr/NNNN-…md`; `src/features/semanticFind/types.ts` | type-only (no tests, rule 10) | ADR **yes** |
+| **S2** | Extraction and mapping (§ 5.2) | `src/features/semanticFind/extract.ts`, `mapToEditor.ts` (or the generalised TOC resolver) | Same Markdown → the same occurrence kinds, texts and grouping in both modes, and each `sourceRange` maps to the right text in each editor. Fixtures: a GFM table (a paragraph to Source's parser, rows here), nested lists, a list item with a nested list, a blockquote, links and images (alt text kept), a repeated paragraph (one key, two occurrences), a short CJK heading, an empty doc, and a 1 500-character CJK paragraph. Mapping: every mappable occurrence's PM range holds its text; a deliberately unalignable block follows the unmappable policy; a repeated paragraph next to a transformed or omitted block stays unmapped rather than mapping to the wrong copy (§ 5.2). Exclusions: a document with YAML front matter and inline and block HTML comments, edited in WYSIWYG, switched to Source and back, and reloaded — the **outgoing request body** never contains a front-matter line or a comment, and a code block containing `<!-- -->` is sent as code. Windows: a block over 24 000 bytes gets Jev windows with the backup absent. Extraction: runs in the extraction worker; a cancel during the parse terminates it and the next run starts fresh; ten cancels in a row during a parse that never returns leave `SemMemory`'s reservations at their baseline, and the eleventh run completes; an old generation's release doesn't free the current one; admission refuses an oversized text before posting. Front matter: after a WYSIWYG edit turns it into a heading, the next Jev search for that document falls back with the "can't be separated safely" reason and sends nothing. Composition: the parity fixtures produce the same tree from `remarkComposition.ts` and from Milkdown. Alignment: a 10 MiB short-line fixture aligns within the gap cap; a document that is one 5 MiB code block and one 5 MiB paragraph is copied out in slices of ≤ 8 ms each, and a cancel between two slices of the same block stops the copy; a paragraph of 50 000 differently marked inline nodes and a list 20 000 items wide are copied in slices of ≤ 8 ms, the last slice takes no longer than the first (no prefix rescan), and a cancel inside either stops the walk before the next 256 nodes. Files: `tests/semantic-find-extract.test.ts`, `tests/semantic-find-map.test.tsx` | none |
+| **S3** | The inference service under S1: package load with the manifest check, tokenizer-aware windows, pooling and normalisation per the manifest, batches, cancellation, and the worker or the Tauri command. If Rust: the command returns `Result`, validates count and total size, is registered in `commands/mod.rs`, and has its wrapper in `src/services/semanticFindService.ts` (rule 50 § 2) | `src/features/semanticFind/worker.ts` or `src-tauri/src/commands/semantic/backup.rs` + service, `src/services/semanticFindService.ts` | Mocks only at the worker port or `invoke`. Error paths: a missing file, a hash mismatch, a cancel mid-batch, an oversized input, a worker crash with one restart. A fixed fixture gives the same vectors (within a tolerance) from S0's reference output. A relevant sentence at the **end** of a long CJK block is found, because windows cover it. No-network test (§ 5.6). Logging pairs carry no text. Rust: input validation and the error type. Files: `tests/semantic-find-service.test.ts`, `tests/semantic-find-offline.test.ts`, and `#[cfg(test)]` in `semantic/backup.rs` if Rust | a row for the command, if any |
 | **S4** | Ranking and index state, pure: the two tiers, the threshold rule from S1, verdict states, limits and LRU (§ 5.7) | `src/features/semanticFind/rank.ts`, `indexState.ts` | A low-similarity literal hit outranks a high-similarity semantic-only one; ordering is deterministic on fixed vectors; there is no "nothing" verdict while the index is partial; "nothing" appears only on complete coverage with everything below the threshold; limit and eviction boundaries are tested just below, at and above each limit. Files: `tests/semantic-find-rank.test.ts`, `tests/semantic-find-index-state.test.ts` (`// @vitest-environment node`) | none |
 | **S5** | The controller and lifecycle (§ 5.5): per-window ownership, tags, accepting or dropping results, disposal on tab close, incremental re-index on edit | `src/features/semanticFind/controller.ts` (a `useSemanticFind` hook if needed) | Delayed completions across each transition (edit, reload, MCP write, mode switch, tab close, editor rebuild) are dropped and logged `stale`; a closed index is not revived; a completion inside the 200 ms gap after a WYSIWYG edit is dropped (§ 5.5); a late completion after disable or model removal neither reloads the model nor recreates an index; an edit re-embeds only changed `blockKey`s; two windows don't share or cross results. File: `tests/semantic-find-controller.test.ts` | — |
-| **S-C1** | Keychain store and key commands (§ 5.12, § 5.14): `semantic_key_set` / `_remove` / `_status` / `_test` | `src-tauri/src/services/jev/key_store.rs`, `src-tauri/src/commands/semantic.rs`, `src/services/semanticFindService.ts` | Rust: set → status `set`; remove → `not set`; an unavailable keychain gives a typed error and stores nothing; status and every error never contain the key; the log lines for set/remove/test carry no key (a log-capture test). Test against a mock keychain backend at the crate boundary. TS: the wrapper never logs its argument. Files: `src-tauri/src/services/jev/key_store_tests.rs`, `tests/semantic-find-key-service.test.ts` | ledger row for the commands; ADR (from S1) |
+| **S-FM** | **Front matter through WYSIWYG** (§ 5.2), checked first, before S2. Step 1: does a WYSIWYG edit + save + reopen keep YAML front matter byte-exact? If yes, record it with its test and close S-FM. If no, report it to the delegator as a defect (a D number is the delegator's), and fix it here: front matter kept as its own node through Milkdown (parse, edit elsewhere, serialise), round-tripping byte-exactly | `src/plugins/milkdown/` (a front-matter node and its remark transform, joining `remarkComposition.ts`) | A document with front matter, edited in its body in WYSIWYG, saved, reopened: the file's front matter is byte-identical; editing the front matter's own text (if the node allows it) round-trips; the TOC and scroll-anchor counts that assume "hr + setext h2" (`anchor.ts:26`, D14) are updated with it. File: `tests/frontmatter-wysiwyg-roundtrip.test.tsx` | ledger row (WYSIWYG) if behaviour changes |
+| **S1b** | **The Rust semantic core, first**, so the parallel items build on it: `JevState` (grants, both epochs, the rejected-key flag, the cool-down, the request registry), `SemMemory` (§ 5.7), the window `Destroyed` hook, the `semantic:auth-changed` event, and the command modules split one per owner: `src-tauri/src/commands/semantic/{search.rs, consent.rs, key.rs, settings.rs, memory.rs}`. **One ordered transition:** `JevState` is the outer lock and the preferences lock the inner one, never the reverse. `semantic_settings_update` takes `JevState`, then persists under the preferences lock, updates `JevState`'s cached `cloudEnabled`, bumps the app epoch if cloud went off, and only then releases `JevState`. Dispatch reads `cloudEnabled` from that cache under `JevState`, so a search can't see a newer "on" before an older "off" has fenced its grants. No code takes `JevState` while holding the preferences lock | `src-tauri/src/services/jev/state.rs`, `src-tauri/src/services/semantic_memory.rs`, `src-tauri/src/commands/semantic/mod.rs`, `main.rs` (the hook) | Rust: epoch bumps are monotonic and ordered under the lock; `Destroyed` removes the window's grants, cancels its requests and releases its reservations; a stale grant is refused; two windows reserving at the limit get a consistent eviction; a barrier-controlled test of off persisted → on persisted → search → (formerly delayed) off epoch bump dispatches nothing under the old grant; no path takes the locks in reverse (a test that would deadlock otherwise). Files: `src-tauri/src/services/jev/state_tests.rs`, `src-tauri/src/services/semantic_memory_tests.rs` | ADR (from S1) |
+| **S-C1** | Keychain store and key commands (§ 5.12, § 5.14): `semantic_key_set` / `_remove` / `_status` / `_test` | `src-tauri/src/services/jev/key_store.rs`, `src-tauri/src/commands/semantic/key.rs`, `src/services/semanticFindService.ts` | Rust: set → status `set`; remove → `not set`; an unavailable keychain gives a typed error and stores nothing; status and every error never contain the key; the log lines for set/remove/test carry no key (a log-capture test). Test against a mock keychain backend at the crate boundary. TS: the wrapper never logs its argument. Files: `src-tauri/src/services/jev/key_store_tests.rs`, `tests/semantic-find-key-service.test.ts` | ledger row for the commands; ADR (from S1) |
 | **S-C2** | The Jev client (§ 5.12): request building, both context limits, retries, deadline, app-wide concurrency, cancellation registry, transport policy, response validation, the error enum | `src-tauri/src/services/jev/client.rs`, `request.rs`, `validate.rs` | Against a local mock HTTP server: each packing bound (200 blocks; 24 000 state bytes; state + Σ qᵢ ≤ 60 000; state + max qᵢ ≤ 30 000) below / at / above, with a 200-character CJK query; the 400-split-once then `TooLarge`; a single block over the bound is windowed; a `400` context error splits once; every status in § 5.0's table maps to its enum; `Retry-After` honoured; the 20 s deadline; at most 4 in flight across two windows; a terminal chunk failure cancels siblings; `semantic_jev_cancel` stops queued, retrying and active requests; retries count against the cap; malformed `2xx` (missing / duplicate / unknown ids, NaN, 1.2) → `InvalidResponse`; a `3xx` to another host or `http:` is refused and nothing is sent onward; the body has no path or title and only S-U9's text; error values hold no key or text. Files: `src-tauri/src/services/jev/client_tests.rs` | ADR (from S1) |
-| **S-C3** | Engine choice, consent and fallback (§ 5.0, § 5.13): Rust's `JevState` authority and the frontend controller | `src-tauri/src/services/jev/state.rs`, `src/features/semanticFind/engine.ts`, `consent.ts` | Rust: a direct `semantic_jev_search` without a grant → `NotAuthorised`, no request; a grant from window A doesn't authorise window B; revoke during a search cancels it and the epoch drops its late completion even after a re-enable; re-check before a retry stops a revoked search; a one-shot grant is consumed once and expires; a grant answered after a key change is `StaleGrant`; key removal in window A cancels a search in window B (via `semantic:auth-changed`); local-only set in Rust refuses a direct search; the breaker counts `Partial { cause: Timeout }`; a grant carrying the pre-revoke `grantEpoch` (prompt opened, document revoked, prompt answered) is `StaleGrant`, and so is one after tab close; an older `semantic:auth-changed` arriving after a newer reply is ignored. Frontend: every row of § 5.0's table and rules 1–10: each condition false → backup with its reason; cool-down after 3 failures and its expiry; `401` until the key changes; no mixed-engine results; "On this Mac only" never calls Jev; revoke and switch-off abort in-flight requests; a late Jev completion after revoke is dropped; Jev works with the backup off or missing; buffered Jev hits never show before completion; restricted coverage is named in a "nothing" verdict; literal hits in excluded blocks still show. Files: `src-tauri/src/services/jev/state_tests.rs`, `tests/semantic-find-engine.test.ts`, `tests/semantic-find-consent.test.ts` | — |
-| **S-C5** | The `semanticSearch` preferences group (§ 5.14), wired end to end | a new `src-tauri/src/models/semantic_search.rs` (the group and its defaults); in `preferences.rs` one `#[serde(default)]` field and the `UserPreferences::default()` line (the file is far past 300 lines, so nothing else goes there); `semantic_settings_update` in `src-tauri/src/commands/semantic.rs`; `merge_preferences` in `src-tauri/src/services/preferences.rs` (carry the group forward); `src/types/preferences.ts`; `src/services/semanticFindService.ts` | Rust: defaults (`cloudEnabled` false); a config without the group or with unknown fields loads without losing other groups; a `set_preferences` call can't change the group; window A turns `cloudEnabled` off; window B, still showing it on, then patches only `backupEnabled`; `cloudEnabled` stays off; `cloudEnabled` off bumps the app epoch and emits both events; the credential never appears in serialised preferences. TS: an unhydrated section can't write; a failed write reverts the switch; a `preferences:semantic-changed` from another window updates the section; out of order (revision 5's event, then revision 4's reply) the section keeps revision 5; a general `set_preferences` leaves the group byte-identical. Files: `src-tauri/src/models/semantic_search_tests.rs`, `tests/semantic-find-preferences.test.ts` | ledger row (settings) |
+| **S-C3** | Engine choice, consent and fallback (§ 5.0, § 5.13): the consent commands on S1b's `JevState`, the progress channel, and the frontend controller | `src-tauri/src/commands/semantic/consent.rs`, `src/features/semanticFind/engine.ts`, `consent.ts` | Rust: a direct `semantic_jev_search` without a grant → `NotAuthorised`, no request; a grant from window A doesn't authorise window B; revoke during a search cancels it and the epoch drops its late completion even after a re-enable; re-check before a retry stops a revoked search; a one-shot grant is consumed once and expires; a grant answered after a key change is `StaleGrant`; key removal in window A cancels a search in window B (via `semantic:auth-changed`); local-only set in Rust refuses a direct search; the breaker counts `Partial { cause: Timeout }`; a grant carrying the pre-revoke `grantEpoch` (prompt opened, document revoked, prompt answered) is `StaleGrant`, and so is one after tab close; an older `semantic:auth-changed` arriving after a newer reply is ignored. Frontend: every row of § 5.0's table and rules 1–10: each condition false → backup with its reason; cool-down after 3 failures and its expiry; `401` until the key changes; no mixed-engine results; "On this Mac only" never calls Jev; revoke and switch-off abort in-flight requests; a late Jev completion after revoke is dropped; Jev works with the backup off or missing; buffered Jev hits never show before completion; restricted coverage is named in a "nothing" verdict; literal hits in excluded blocks, short lines and past the § 5.7 limit still show, with both engines unavailable too; a block with literal and semantic hits appears once; progress messages from a stale or cancelled request are ignored; two windows reserving memory at the limit get one eviction, acknowledged. Files: `src-tauri/src/services/jev/state_tests.rs`, `tests/semantic-find-engine.test.ts`, `tests/semantic-find-consent.test.ts` | — |
+| **S-C5** | The `semanticSearch` preferences group (§ 5.14), wired end to end | a new `src-tauri/src/models/semantic_search.rs` (the group and its defaults); in `preferences.rs` one `#[serde(default)]` field and the `UserPreferences::default()` line (the file is far past 300 lines, so nothing else goes there); `semantic_settings_update` in `src-tauri/src/commands/semantic/settings.rs`; `merge_preferences` in `src-tauri/src/services/preferences.rs` (carry the group forward); `src/types/preferences.ts`; `src/services/semanticFindService.ts` | Rust: defaults (`cloudEnabled` false); a config without the group or with unknown fields loads without losing other groups; a `set_preferences` call can't change the group; window A turns `cloudEnabled` off; window B, still showing it on, then patches only `backupEnabled`; `cloudEnabled` stays off; `cloudEnabled` off bumps the app epoch and emits both events; the credential never appears in serialised preferences. TS: an unhydrated section can't write; a failed write reverts the switch; a `preferences:semantic-changed` from another window updates the section; out of order (revision 5's event, then revision 4's reply) the section keeps revision 5; a general `set_preferences` leaves the group byte-identical. Files: `src-tauri/src/models/semantic_search_tests.rs`, `tests/semantic-find-preferences.test.ts` | ledger row (settings) |
 | **S-C4** | The Integrations section (§ 5.14) as the user picked it in S-P; S-U12's key entry | `src/components/common/settings/SemanticSearchSection.tsx`, `IntegrationsSettings.tsx` | Component tests (ARIA, `userEvent`): switch disabled without a key and its reason; Save clears the field and shows "Key stored"; Remove; Test outcomes; the input is uncontrolled and cleared after Save; the key never appears in the DOM after Save, in any log call, or in any IPC reply. File: `tests/semantic-find-settings.test.tsx` | ledger row for the section |
 | **S-P** | **Prototype, throwaway**: § 5.9's options, including the Integrations section, the consent prompt, the engine attribution and the indicator, on `prototype/sem-find`, after D255-WI-3c's popup exists; the user picks (S-U5, S-U6) | the prototype branch | none (prototype) | the verdict is committed on the branch; the delegator updates DESIGN.md |
 | **S6** | The find bar as the user picked it: the command in the command table (S-U6's key, through K1–K8), the bar or popup mode, progress, verdict states with the engine and reason (§ 5.0), the indicator, "On this Mac only" and "Stop sending", stepping. (Settings is S-C4 / S-C5.) | the find popup's files from v0.3.6, `src/features/semanticFind/SemanticFind*.tsx` | Component tests (ARIA, `userEvent`): open, type, debounce, a stale result cancelled by new input, Enter / Shift+Enter cycling, Escape closes and clears, each verdict state rendered with its engine and reason, the indicator shown only while a Jev request is in flight; the key reaches the command once in both modes through the composed keymaps. File: `tests/semantic-find-ui.test.tsx` | a new row "语义查找", `Partial` with `限制：` until S8 |
@@ -705,9 +857,10 @@ Every behaviour WI runs this sequence (rules 10, 20, 60):
 | **S8** | Packaging per S-U2 (bundled, or the download with progress, retry, hash check and removal), recovery (§ 5.10), and the cold-start offline release check | the release workflow config, Settings, `src/features/semanticFind/package.ts` | Download (if chosen): a hash mismatch, an interrupted download, and no network each give a clear message, and regular find still works. Removing the model during a search gives the missing-model state. Removal with a completion pending doesn't recreate anything. Installer size is measured in the release build. Offline cold start on both platforms. File: `tests/semantic-find-package.test.ts` | ledger row to `Shipped`, or `Partial` with its limit |
 
 **Order:** S0 (any time after its implementation grant; the Jev run is approved, S0-Jev) → the user
-answers S-U2 to S-U4 and S-U7 → S1 (ADR accepted, CLAUDE.md updated) → [v0.3.6's D255-WI-3c and M1b on
-`master`] → S2, S3, S4, S-C1, S-C2 and S-C5 in parallel against S1's types → S5 with S-C3 → S-P →
-S6, S-C4 → S7 → S8.
+answers S-U2 to S-U4 and S-U7 → S1 (ADR accepted, CLAUDE.md updated; it defines the Rust
+interfaces and the managed state as well as the TS types) → **S-FM** (front matter through WYSIWYG; gates S-C3's Jev path) and **S1b** (the Rust core) → [v0.3.6's
+D255-WI-3c and M1b on `master`] → S2, S3, S4, S-C1, S-C2 and S-C5 in parallel, each in its own
+command module → S5 with S-C3 → S-P → S6, S-C4 → S7 → S8.
 
 ### 6.1 Device checks
 
@@ -866,3 +1019,39 @@ S6, S-C4 → S7 → S8.
   the agreement clause (§ 2.3(b)), the affiliation wording, the keychain wording.
 - **Recorded where the reviewer could not check:** the reviewer couldn't fetch hunch's source. The
   author read it directly: `MAX_CHUNK_BLOCKS = 200` at `c220c73d`, while the README says 160.
+- **Revision 3 (after the full review the user ran with `/cc-suite:review-plan`; the user's word:
+  「Revise now (Recommended)」).** Full review `review-plan-mvaovec8-pad1aq` (thread
+  `01a143c4-4bb2-7c92-8b5c-931d69370ec1`): NEEDS REVISION · Critical 0 · High 8 · Medium 7 · Low 0.
+  The author checked the evidence before revising: front matter does become an hr plus a setext
+  h2 in Milkdown (`anchor.ts:26`), a failed save is toast-only (DESIGN.md:723), `main.rs:299` has
+  the `Destroyed` hook, and Jev's response carries a `model` field. Scoped confirms, Codex
+  `gpt-6.1-sol`, effort high:
+
+  | Pass | Job | Result |
+  |---|---|---|
+  | confirm | `review-plan-mvariz1u-dw4fuz` | 11 closed, 4 partial, 1 new · C0 H4 M1 L0 |
+  | confirm | `review-plan-mvarpdak-hybx0b` | 2 closed, 3 partial, 1 new · C0 H3 M1 L0 |
+  | confirm | `review-plan-mvarv0ux-8g90d9` | 3 closed, #9 partial · C0 H1 M0 L0 |
+  | confirm | `review-plan-mvarxfqt-y82dzh` | #9 partial · C0 H1 M0 L0 |
+  | confirm | `review-plan-mvarze6p-xdpve8` | #9 closed · **READY · Critical 0 · High 0 · Medium 0 · Low 0** |
+
+  How the Highs closed:
+  - **Extraction parity:** a worker-safe remark composition that matches the mounted editor's
+    plugins, enforced by a test, with parity fixtures (§ 5.2).
+  - **Memory:** a Rust `SemMemory` coordinator with admission before work (§ 5.7).
+  - **Mapping:** fail-closed alignment that runs in the worker (§ 5.2).
+  - **Main-thread cost (#9, the last to close):** the PM side is copied raw with a persistent
+    cursor, the deadline and cancel are checked during the walk, text goes in 16 KiB pieces, and
+    `nodesBetween` / `textBetween` are not used because they rescan prefixes.
+  - **Front matter:** provenance is captured before parsing; Jev is not used when it is
+    uncertain; new prerequisite WI **S-FM** checks whether a WYSIWYG edit and save keep front
+    matter byte-exact.
+  - **Lifecycle:** tab close revokes in the backend's `close_document`; the window's
+    `Destroyed` hook cleans up; progress goes over a Tauri `Channel`.
+  - **Ordering:** new WI **S1b** puts the Rust core first, with one lock order (JevState
+    outer, preferences inner) and a barrier test.
+  - **Version drift:** the response's `model` field; mixed versions are discarded and retried
+    once (S-U10).
+  Mediums: S0's metric definitions and the $1 harness; engine-specific windows; literal-match
+  tiers; budget rows; the key-ownership table; DESIGN.md's failed-write pattern; the S-U9 wording.
+
