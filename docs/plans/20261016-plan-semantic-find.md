@@ -1,37 +1,48 @@
 # Plan: semantic find ("find with a hunch"), on top of regular find
 
-**Status:** revised after a Codex plan review (§ 11). No code written. Target **v0.3.7**, alongside
+**Status:** revision 2. S-U1 is answered (below); revised for it and re-reviewed with Codex (§ 11). No code written. Target **v0.3.7**, alongside
 Plan P Stage 4. Implementation starts only after v0.3.6's regular find / replace has landed
 (§ 3.3).
-**Base:** written on `master` @ `33aa6983`.
+**Base:** `master` @ `9a0aed26` (first written on `33aa6983`).
 **Asked by the user** (2026-10-16, relayed by mdpro-delegator): 「v0.3.7 功能: Find feature
 enhancement, 常规的查找之外，加上augmented semantic search using Jev model, 类似的可以看看
 https://github.com/tymscar/hunch/tree/main 这个Chrome 插件的工作机制，这个值得写一个Plan md，但是对应的实现应该是当前常规查找实现之后再添加。这个交给 codex-audit去写」.
+**S-U1 answered by the user** (2026-10-16, relayed by mdpro-delegator), verbatim: 「C Jev in the
+cloud, with a small on-device embedding model as backup, search if there is any open-weight jev
+related model? and with API key, we need to add configs in Settings -> Integrations」.
 **Written by:** mdpro-codex-audit. The hunch facts come from reading its source at `c220c73d`
 (2026-09-27); the Jev facts from TypeSafe's docs and press coverage (§ 10).
 
 ## 0. Decisions for the user
 
-None of these is decided. Where there is a recommendation, it is marked as a proposal, with the
-reason.
+S-U1 is answered. The rest are not decided. Where there is a recommendation, it is marked as a
+proposal, with the reason. S-U2 to S-U4 now concern **only the on-device backup** (§ 5.0), and
+stay gated on S0.
 
 | # | Question | Options | Proposal |
 |---|---|---|---|
-| **S-U1** | **"Jev", and what to build.** Jev is TypeSafe AI's hosted model (`jev-latest`), the one hunch calls. TypeSafe documents no downloadable weights and no local deployment (§ 4.2), so using Jev means sending the document's text to `api.typesafe.ai` on every search. CLAUDE.md § Constraints ("Local files only") rules that out today | **A. Local substitute.** Hunch's *design* (score every block against the query, light up the best, say "not in this document"), with a small on-device model instead of Jev. No network at search time. Quality is lower than Jev's and unmeasured until S0. **B. Defer.** Keep "Jev" as the requirement and build nothing until TypeSafe offers a local option, or until a local model passes S0's gate. **C. Jev in the cloud, opt-in**, with the user's own API key. Needs CLAUDE.md § Constraints changed, a privacy note, a key store and an ADR. **D. A by default, plus C as opt-in** | **A**, as a proposal. It is the one way to ship in v0.3.7 inside today's constraints. The request's 「类似的可以看看…工作机制」 *may* mean "work like hunch" rather than "call TypeSafe", but that is the user's call, not this plan's. A stays conditional on S0 passing its quality gate (§ 6, S0); if it fails, the choice reverts to B, C or D |
-| **S-U2** | **Where the model files come from** (A or D). "Model files" means the whole package: weights, tokenizer, config, and for S-U4 A the ONNX Runtime WASM and the worker script (§ 5.6) | **A. Bundled** in the installer. The model files alone add 24–118 MB (§ 5.3); the installer growth is measured in S0. **B. Downloaded once**, on first use, from a pinned URL with a SHA-256 manifest, into `~/.mdpro/models/`. One-time network use, never at search time | Decide on S0's numbers. B keeps the installer small but adds a download path, a failure state and a "needs the network once" message. (A user-supplied model file was considered and dropped: a weights file alone can't say which tokenizer and pooling it needs; § 8) |
-| **S-U3** | **Which model** | The candidates are in § 5.3: Chinese-first, multilingual, or smallest | Decide on S0's numbers, measured on the user's own kind of documents, Chinese and English separately |
-| **S-U4** | **Where inference runs** | **A. In the webview:** ONNX Runtime Web (WASM) in a Web Worker, via `@huggingface/transformers` or `onnxruntime-web`. **B. In Rust:** the `ort` crate (ONNX Runtime; CoreML on macOS, DirectML or CPU on Windows) or `candle`, behind a Tauri command | Decide on S0, which must include the **minimum supported** macOS 13.1 WebKit (§ 3.4, § 9). A shares code across platforms, but stock ORT Web builds need WASM SIMD, which WebKit gained in Safari 16.4. B avoids that, at the cost of a native dependency in two release builds. **A cannot be chosen without minimum-OS evidence:** either S0 shows the pinned runtime working on macOS 13.1's WebKit, or the user explicitly accepts "semantic find unavailable below macOS X" together with a capability check and its message (the app's minimum stays 13.1) |
-| **S-U5** | **The UI**, to be prototyped later (§ 5.9) | A separate key and bar (hunch's way), a mode switch inside v0.3.6's find popup, or semantic results under the literal ones; plus the highlight style | **Not decided here.** Built with `/mattpocock-skills:prototype` (rule 70 § Questions) after v0.3.6's popup exists |
+| **S-U1** | **"Jev", and what to build** | A local substitute / B defer / C Jev in the cloud, opt-in, with the user's own key / D A by default plus C | **Answered: C, with a local backup.** The user's words are quoted in the header. Jev in the cloud is primary; a small on-device embedding model is the backup (§ 5.0); the key and the switch live in Settings → Integrations (§ 5.14). This sends document text off the machine, so it changes CLAUDE.md § Constraints, through S1's ADR only (§ 5.13). The options weighed are kept for that ADR |
+| **S-U2** | **Where the backup's model files come from.** "Model files" means the whole package: weights, tokenizer, config, and for S-U4 A the ONNX Runtime WASM and the worker script (§ 5.6) | **A. Bundled** in the installer. The model files alone add 24–118 MB (§ 5.3); the installer growth is measured in S0. **B. Downloaded once**, on first use, from a pinned URL with a SHA-256 manifest, into `~/.mdpro/models/`. One-time network use, never at search time | Decide on S0's numbers. B keeps the installer small but adds a download path, a failure state and a "needs the network once" message. (A user-supplied model file was considered and dropped: a weights file alone can't say which tokenizer and pooling it needs; § 8) |
+| **S-U3** | **Which backup model** | The candidates are in § 5.3: Chinese-first, multilingual, smallest, or a community "Jev-style" open model (§ 4.4) | Decide on S0's numbers, measured on the user's own kind of documents, Chinese and English separately |
+| **S-U4** | **Where the backup's inference runs** | **A. In the webview:** ONNX Runtime Web (WASM) in a Web Worker, via `@huggingface/transformers` or `onnxruntime-web`. **B. In Rust:** the `ort` crate (ONNX Runtime; CoreML on macOS, DirectML or CPU on Windows) or `candle`, behind a Tauri command | Decide on S0, which must include the **minimum supported** macOS 13.1 WebKit (§ 3.4, § 9). A shares code across platforms, but stock ORT Web builds need WASM SIMD, which WebKit gained in Safari 16.4. B avoids that, at the cost of a native dependency in two release builds. **A cannot be chosen without minimum-OS evidence:** either S0 shows the pinned runtime working on macOS 13.1's WebKit, or the user explicitly accepts "semantic find unavailable below macOS X" together with a capability check and its message (the app's minimum stays 13.1) |
+| **S-U5** | **The UI**, to be prototyped later (§ 5.9) | A separate key and bar (hunch's way), a mode switch inside v0.3.6's find popup, or semantic results under the literal ones; the highlight style; **which engine answered** and the **"text is leaving this Mac" indicator**; the **consent prompt**; and the **Settings → Integrations section** (§ 5.14) | **Not decided here.** Built with `/mattpocock-skills:prototype` (rule 70 § Questions) after v0.3.6's popup exists |
 | **S-U6** | **The key** | Hunch uses ⌥F on macOS and Ctrl+Shift+F elsewhere, keeping ⌘F / Ctrl+F for normal find. On macOS ⌥F types a character (ƒ); Ctrl+Shift+F is unassigned in the menu plan's table | Decide with S-U5. The key goes through the menu plan's command table and collision rules (K1–K8) |
-| **S-U7** | **The quality bar** | S0 proposes per-language numbers: recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 % on absent topics, false "not found" ≤ 15 % on present ones (§ 6, S0). The user accepts or changes them **before** the final test partition is evaluated | Shown with S0's measured numbers, so the trade-off is concrete |
+| **S-U7** | **The quality bar** (applied to each engine separately) | S0 proposes per-language numbers: recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 % on absent topics, false "not found" ≤ 15 % on present ones (§ 6, S0). The user accepts or changes them **before** the final test partition is evaluated | Shown with S0's measured numbers, so the trade-off is concrete |
+| **S-U8** | **Consent granularity** (§ 5.13) | **A. Per document per session:** the first cloud search in a document asks; the answer holds until the tab closes or the app quits. **B. Per document, remembered** across launches (stored by path in preferences). **C. Every search** asks. **D. Once globally**, in Settings | **A**, as a proposal: it asks once per document, and nothing about which files were sent is written to disk. B saves prompts but stores a list of paths; C is safest and noisiest; D is the switch alone, which the delegator's brief rules out ("per use or per document") |
+| **S-U9** | **Exactly what text is sent** (§ 5.13) | Always: the query, the question template, and the text of each block of the current revision. Choices: **front matter** (YAML) — send / don't; **code blocks** — send / don't; **HTML comments** — send / don't | Proposal: don't send front matter or HTML comments (they often hold metadata and notes); send code blocks. Never sent: the file path, file name, title, other documents, images, the key in any body |
+| **S-U10** | **Which Jev version** | **A. Pin** an explicit version (today `jev-1.13.0`) and move with a re-check of S0's set. **B. `jev-latest`**, which TypeSafe moves (it points to 1.13.0; `jev-preview` is 1.14.0) | **A**, as a proposal: the 0.4 threshold and S0's quality numbers belong to one version |
+| **S-U11** | **Cloud size and cost cap** (§ 5.12) | A per-search token cap above which the search runs on the backup instead; proposal 256 k input tokens (≈ $0.011 per search at $0.042 / M tokens), with a note in the verdict | Decide with S0's token counts for the 100 KB / 1 MiB / 10 MiB fixtures. Every query re-sends every block, so cost scales with document size × searches |
+| **S-U12** | **How the key is entered** (§ 5.14) | **A.** A password field on the Integrations page: the key crosses the webview once, at entry, and is never sent back. **B.** A native prompt from Rust (macOS `NSAlert` with a secure field, Windows Credential UI): it never touches the webview | **A**, as a proposal (simpler, one code path). B is stronger and needs native code on each platform |
 
 ## 1. Goal
 
 Typing a phrase or a question into find highlights the **blocks** (paragraphs, list items,
 headings, table rows) that are *about* it, even when they share no words with the query, ranked
 by relevance. When nothing fits, mdpro says so ("not in this document") instead of showing zero
-literal matches. This works in both editor modes, on one open document, with no network at
-search time.
+literal matches. This works in both editor modes, on one open document. **Jev**, TypeSafe's
+hosted model, answers when the user has turned it on, entered a key and agreed for this
+document; otherwise a small **on-device** model answers, with no network at search time. The
+result always says which one answered.
 
 It sits **beside** regular find, not instead of it. ⌘F / Ctrl+F stays the literal search that
 v0.3.6 delivers.
@@ -42,7 +53,10 @@ v0.3.6 delivers.
   of Jev applies to the substitute too: it scores, it does not generate text.
 - **Not cross-document or folder search.** One open document at a time, as find works today.
 - **No replace.** Semantic hits are blocks, not exact strings.
-- **No cloud by default.** S-U1 C and D are out of scope unless the user picks them.
+- **No cloud without opt-in.** The cloud switch is off by default; nothing is sent without a
+  key, the switch on, and the document's consent (§ 5.13).
+- **No mdpro-run account or proxy.** The user's own TypeSafe key calls TypeSafe directly; mdpro
+  has no server.
 - **No persisted index in v0.3.7.** Embeddings live in memory (§ 5.7); a disk cache is § 8's question.
 
 ## 3. Current state
@@ -52,8 +66,8 @@ v0.3.6 delivers.
 - **Source mode:** CodeMirror's `search({top:true})` and `searchKeymap`, mounted from
   `src/components/Editor/extensions/search.ts`. The keymap binds ⌘F (open the panel), ⌘G / ⇧⌘G,
   ⇧⌘L, ⌥⌘G and ⌘D (`@codemirror/search` `dist/index.js:1031-1037`). It does **not** bind ⌘H;
-  replace is reached inside the panel. (The ledger row `docs/feature-ledger.md:233` says "⌘H 打开替换";
-  that is stale and is reported to the delegator separately. In macOS, ⌘H hides the app today.)
+  replace is reached inside the panel. (The ledger row `docs/feature-ledger.md:233` claimed "⌘H 打开替换"
+  until `12f51e7c` corrected it. In macOS, ⌘H hides the app today.)
 - **WYSIWYG mode:** no find of mdpro's own. `search.ts:15` says *"WYSIWYG (Milkdown) mode search is
   out of scope"* (quoted at `docs/feature-ledger.md:538`). On Windows, WebView2's own find bar answers
   Ctrl+F (menu plan U11, still open).
@@ -81,12 +95,20 @@ run earlier.
 - **CSP:** `connect-src 'self' ipc: http://ipc.localhost` (`src-tauri/tauri.conf.json`), so
   page-initiated `fetch` / XHR / WebSocket to other origins is blocked. That covers the webview
   only. It does **not** govern Rust-side networking, and `img-src` still allows `https:`. So
-  "no network at search time" needs its own enforcement and tests (§ 5.6).
+  "no network" on the backup path, and "only api.typesafe.ai, only with consent" on the Jev path, need their own enforcement and tests (§ 5.6).
 - `script-src 'self' 'unsafe-eval'` allows WASM compilation. **WASM SIMD arrived in WebKit with
   Safari 16.4**, so macOS 13.1's original WebKit may not have it, and ORT Web's multithreading
   needs cross-origin isolation, which mdpro does not set. Both are measured in S0 on the minimum
   OS, not only on a current Mac.
 - The app has **no Web Worker** today; S-U4 A would add the first.
+- **Rust already has an HTTP client:** `reqwest` 0.12 (`src-tauri/Cargo.toml:47`). The Jev call
+  goes from Rust, so the webview's CSP doesn't change and the key never has to reach the page.
+- **No keychain integration exists today**: no direct keychain dependency and no code using one
+  (`security-framework` appears in `Cargo.lock` only as a transitive dependency). Storing the
+  key there is a new dependency, so it goes in S1's ADR.
+- **Settings → Integrations already exists**: `src/components/common/IntegrationsSettings.tsx`,
+  on the rail between Image and Export, holding the MCP server switch and client list. The Jev
+  settings are a new section on that page, not a new page (§ 5.14).
 - **File cap: 10 MiB** (`10 * 1024 * 1024`). Block count is not bounded by it: a valid 10 MiB file
   of 12-character lines has over 700 000 blocks. Budgets and limits follow from that (§ 5.7).
 - **Two Markdown parsers:** Source uses `markdown()` from `@codemirror/lang-markdown` with no GFM
@@ -118,38 +140,128 @@ say "not on this page".
 
 ### 4.2 Jev
 
-- TypeSafe's "flagship model and the first System One model". It evaluates typed questions against
-  a state and returns structured answers, not text (docs.typesafe.ai).
-- **Hosted.** TypeSafe documents no downloadable weights and no local deployment, and publishes
-  no architecture or size. Pricing is published (docs.typesafe.ai/models), and TypeSafe makes
-  latency claims of its own. Neither has been measured for mdpro's use. A private on-prem
-  offering isn't ruled out; it just isn't documented.
-- Hunch's model id is `jev-latest`, called through `@typesafe-ai/sdk` with the user's key.
+- TypeSafe's "flagship model and the first System One model". It evaluates typed questions
+  (`choice`, `score`, `noul`) against a state and returns calibrated answers, not text.
+- **Hosted only.** `POST https://api.typesafe.ai/v1/systemone` with `Authorization: Bearer <key>`;
+  `GET /v1/models` lists models. TypeSafe documents no self-hosting, no on-prem and no open
+  weights, and says the same weights serve every account (docs.typesafe.ai/models, 2026-10-16).
+- **Versions:** `jev-1.13.0` (current) and `jev-1.14.0` (from 2026-10-14); `jev-latest` →
+  1.13.0, `jev-preview` → 1.14.0. Hunch calls `jev-latest` through `@typesafe-ai/sdk`.
+- **Limits:** 64 k tokens per request (state plus all questions), 32 k per question; a
+  `TypeSafe-Danger-Zone-Long-Context: true` header raises both to 262 k, "slower and less
+  accurate". Rate limits per organisation; over-limit is `429`.
+- **Price:** $42 per billion input tokens ($0.042 per million); output tokens free.
+- **Data:** "Jev is not trained on customer requests or responses." Zero data retention is
+  described only for enterprise customers, by reference to the Legal page; retention for an
+  ordinary key is **not stated** there (§ 9). The consent text must not claim more (§ 5.13).
+- **Languages:** English is primary and most accurate; other languages, CJK included, are
+  supported "but less accurate". S0 measures Chinese separately for that reason.
 
 ### 4.3 Side by side
 
-| | Regular find (v0.3.6) | Hunch | This plan (S-U1 A) |
-|---|---|---|---|
-| Matches | exact strings | blocks, by meaning | blocks, by meaning |
-| Model | — | Jev, in the cloud | small local embedding model (§ 5.3) |
-| Network at search time | none | every search | none |
-| "Not in this document" | 0 matches | calibrated verdict | only after the whole revision is indexed, with a threshold S0 sets; weaker than Jev's (§ 5.4) |
-| Modes | both (after v0.3.6) | web pages | both editor modes |
+| | Regular find (v0.3.6) | Hunch | This plan: Jev (primary) | This plan: backup |
+|---|---|---|---|---|
+| Matches | exact strings | blocks, by meaning | blocks, by meaning | blocks, by meaning |
+| Model | — | Jev, in the cloud | Jev, in the cloud, the user's key | small on-device model (§ 5.3) |
+| Network at search time | none | every search | every search, after consent | none |
+| "Not in this document" | 0 matches | calibrated verdict | calibrated verdict, only when every chunk answered (§ 5.4) | only after the whole revision is indexed, threshold from S0; weaker |
+| Modes | both (after v0.3.6) | web pages | both editor modes | both editor modes |
 
 Whether Typora and VMark have semantic find was not re-checked (§ 9).
 
-## 5. Proposed design (for S-U1 A)
+### 4.4 Is there an open-weight Jev? (researched 2026-10-16)
+
+**No official one.** TypeSafe publishes no Jev weights. The Hugging Face org `typesafeAI`
+(self-described "TypeSafe AI", unverified, links to typesafe.ai) has **no public models**, only
+five `evalsafe-*` datasets. A Hugging Face search for "jev" returns about 50 models, all from
+other authors. Of the cards read, DeBERTa's and AutoTrust's explicitly disclaim any TypeSafe
+affiliation and JevEmbed's doesn't mention TypeSafe; the rest were not read. The relevant ones:
+
+| Model | What it is | Licence | Size | Fit as the backup |
+|---|---|---|---|---|
+| `HIT-TMG/JevEmbed-Qwen3-Embedding-0.6B` | An **embedding** model fine-tuned (LoRA, merged) from `Qwen/Qwen3-Embedding-0.6B` to answer Jev-shaped `choice` / `score` / `noul` questions; card reports 94.4 % `noul` accuracy on its own test split. Doesn't mention TypeSafe | Apache-2.0 | 0.6 B, 1 024-d, F32 safetensors (≈ 2.4 GB); no ONNX published | **Candidate.** The closest open thing to Jev's question shape that is also an embedder; Qwen3 is multilingual, but the card states no languages. Needs an ONNX export and int8 quantisation, and is 10–25× bigger than § 5.3's models |
+| `com-kotobalabs/open-jev-deberta-v3-large` | A cross-encoder "independent reproduction of the shape of" Jev: state + typed questions → calibrated probabilities (ECE 0.022 in-domain). "Not affiliated with TypeSafe, uses none of their data or code" | Apache-2.0 (base MIT) | ≈ 0.4 B, F32 (≈ 1.7 GB); 512-token context | **English only**, so not as the sole backup; possible as S0's reranker for English documents |
+| `autotrust/JEV-9B` and family (27B, 35B) | Students **distilled from Jev 1.13's outputs** (via OpenRouter) on Qwen3.5-9B. "Not affiliated with, endorsed by, or a product of TypeSafe AI" | Apache-2.0 | 9 B, 18 GB; served on datacenter GPUs | **Excluded:** far too large for a desktop app, English-centric, and TypeSafe's customer agreement (§ 2.3(b)) restricts using the service or its output for distillation or imitation; whether that binds this third-party release is not established |
+| `chaoliangUNSW/Jev-Style-0.8B-Decision-v3-GGUF` and similar | Small decoder "Jev-style" decision models in GGUF | various | 0.8–2 B | **Excluded for v0.3.7:** a llama.cpp runtime would be a third inference stack |
+
+So S-U3's candidates are § 5.3's three plus `JevEmbed-Qwen3-Embedding-0.6B`, and S0 measures them
+all the same way. A community model carries no promise of matching Jev's calibration, so the
+backup keeps its own threshold (§ 5.4).
+
+## 5. Proposed design
+
+### 5.0 Two engines, and which one answers
+
+**Jev** (cloud) and the **backup** (on-device) share extraction (§ 5.2), the literal tier and the
+UI. They differ in scoring. One search is answered by **one** engine for the whole revision:
+their scores are on different scales and are never mixed in one result list.
+
+**Jev answers a search only when all of these hold.** Rust checks them (§ 5.12), not the page,
+when the search starts and again before every chunk and retry:
+1. the cloud switch (`semanticSearch.cloudEnabled`, read by Rust from preferences) is on;
+2. a key is stored in the OS keychain and isn't marked rejected;
+3. the calling window holds a consent grant for this document at the current `authEpoch`
+   (§ 5.13);
+4. the search fits the cap (S-U11);
+5. Jev is not in a cool-down (rule 6);
+6. the calling window's bar is not in "On this Mac only" mode (rule 9); Rust holds that flag
+   per window too (`semantic_local_only_set`), so it's checked with 1–5.
+
+**Otherwise, the backup answers.** When Jev was chosen but its outcome is anything other than
+"every chunk answered and validated", the query is re-run on the backup, with the reason shown.
+The outcome mapping is exhaustive; an outcome not listed here is a `Bug` and falls back too:
+
+| Jev outcome (Rust error enum) | What happens | The verdict line says |
+|---|---|---|
+| every chunk answered, every response validated (§ 5.12) | Jev's results shown | "Jev (cloud) · N related blocks" |
+| `401` / `403` → `KeyRejected` | no retry; key marked rejected until it is replaced or removed | "On this Mac · Jev key rejected — check Settings → Integrations" |
+| `429` → `RateLimited` | retries per § 5.12; then backup | "On this Mac · Jev busy (rate limit)" |
+| network error, timeout, `5xx` → `Unreachable` / `Timeout` | retries per § 5.12; then backup | "On this Mac · Jev unreachable" |
+| `400` context-length → split the chunk once; still failing → `TooLarge`. `413` → `TooLarge`. Estimate over the cap → `TooLarge` (no request) | backup | "On this Mac · too large to send to Jev" |
+| other `400`, `415`, `422` → `BadRequest`; unknown model or version → `ModelUnavailable` | backup; logged as a bug, not retried | "On this Mac · Jev request failed" / "Jev version unavailable" |
+| `2xx` with missing, duplicate or unknown block ids, wrong question type, or a probability that isn't finite in [0, 1] → `InvalidResponse` | backup; never treated as "nothing found" | "On this Mac · Jev answered incorrectly" |
+| some chunks fine, one fails terminally → `Partial` | siblings cancelled; Jev's answers discarded; backup | "On this Mac · Jev answered only part of the document" |
+| cancelled (new input, edit, close, revoke, switch off, key change) → `Cancelled` | nothing shown from it; no fallback for a superseded query | — |
+
+6. **Cool-down.** Counted per **search**, by its terminal outcome: `Unreachable`, `Timeout` and
+   `RateLimited` count, and so does a `Partial` whose cause (kept in the enum, `Partial { cause }`)
+   is one of them; any successful Jev search resets the count to 0. With chunks in parallel, the
+   **first** terminal failure recorded under `JevState`'s lock decides the search's outcome; the
+   siblings it cancels don't count. After 3 in a row, Jev
+   is skipped app-wide for 60 s (the key is app-wide, so the breaker is too). `KeyRejected` is
+   not a cool-down; it lasts until the key changes. Searches skipped by the cool-down don't count.
+7. **The backup itself unavailable** (switched off, not installed, failed): if Jev can't answer
+   either, the verdict says "Semantic search unavailable: <reason>". Literal results stay.
+8. **One engine per result, no flicker.** Jev's chunk answers are **buffered** until the search
+   completes: while it runs, the bar shows "Asking Jev… k of n" and no Jev hits. So a shown
+   result never changes engine; a fallback starts from an empty semantic list. (The backup still
+   shows hits as its index grows, which is the same engine.)
+9. **"On this Mac only"** is a mode of the open bar: it lasts until the bar closes (the next open
+   is back to normal), survives query edits, and switching it on mid-search cancels the Jev
+   request and re-runs on the backup. It doesn't touch the document's consent; revoking is a
+   separate action (§ 5.13).
+10. **Coverage is said, not implied.** Jev's coverage is the blocks it was sent: S-U9's
+    exclusions are never searched by Jev, and the backup's coverage is § 5.7's. The literal tier
+    always covers the whole document, excluded blocks included. A "nothing" verdict names a
+    restricted coverage ("Nothing among the 412 blocks searched; front matter not searched"), and
+    a fallback never claims more coverage than the backup has.
+
+The attribution and the "text is leaving this Mac" indicator are prototype items (S-U5, § 5.9).
 
 ### 5.1 Pipeline
 
 ```
 open semantic find
   → occurrences = extract(markdown)      one parser for both modes (5.2)
-  → index(revision)                      embed unique block texts, progressive (5.5, 5.7)
+  → backup: index(revision)              embed unique block texts, progressive (5.5, 5.7),
+                                         only if the backup may answer this document (5.0)
 query (min length per 5.2, debounce, new input cancels)
-  → q = embed(query)
+  → choose engine (5.0)
+      Jev:    consent (5.13) → Rust jev client: chunk, send, collect p per block (5.12)
+              → on failure: re-run on the backup (5.0 table)
+      backup: q = embed(query) → cosine per block
   → rank: literal tier first, then semantic (5.4)
-  → highlight occurrences, step, verdict (5.9)
+  → highlight occurrences, step, verdict + engine + indicator (5.9)
 every async result → accepted only if its tags still match (5.5)
 ```
 
@@ -188,6 +300,7 @@ Sentence-embedding models in ONNX form. Sizes are from their Hugging Face file l
 | `BAAI/bge-small-zh-v1.5` (`Xenova/` export) | Chinese-first | 512-d | CLS, normalised | 512 tokens | 23.9 MB | 94.9 MB |
 | `intfloat/multilingual-e5-small` (`Xenova/` export) | ~100 languages | 384-d | masked mean, normalised; `query:` / `passage:` prefixes | 512 tokens | 118 MB | 470 MB |
 | `paraphrase-multilingual-MiniLM-L12-v2` (`Xenova/` export) | 50+ languages | 384-d | mean | 128 tokens (model default) | 118 MB | 470 MB |
+| `HIT-TMG/JevEmbed-Qwen3-Embedding-0.6B` (§ 4.4; Apache-2.0) | not stated (Qwen3 base is multilingual) | 1 024-d | per its JevEmbed config | trained at 1 024 tokens | no ONNX published; S0 exports and quantises (≈ 0.6 GB expected at int8) | ≈ 2.4 GB (safetensors) |
 
 These are model-file sizes. Installer growth also includes the tokenizer and, for S-U4 A, the ORT
 WASM build, and is measured in S0.
@@ -205,7 +318,9 @@ stage over the embedding top-k (for example 50). It is adopted only if it fits �
   case-insensitive) is always ranked above any block that doesn't, whatever its similarity. Within
   each tier, blocks are ordered by similarity. This is what "augmented" means: everything literal
   find would show, plus the related blocks.
-- **Semantic threshold:** cosine similarity is not a calibrated probability, the way Jev's `noul`
+- **Jev's threshold:** p ≥ 0.4 on the `noul` answer, as in hunch, re-checked in S0 on the pinned
+  version (S-U10).
+- **The backup's threshold:** cosine similarity is not a calibrated probability, the way Jev's `noul`
   is. S0 compares a fixed per-model threshold with a relative rule (the top score must clear the
   document's median by a margin) on S0's **validation** partition, and S1 records the winner.
   The final test partition is not used for this choice (§ 6, S0).
@@ -213,7 +328,8 @@ stage over the embedding top-k (for example 50). It is adopted only if it fits �
 
   | Index state | Verdict shown |
   |---|---|
-  | loading / partial | "Searching… N% indexed", plus the hits so far. Never "not in this document" |
+  | loading / partial (backup) | "Searching… N% indexed", plus the backup's hits so far. Never "not in this document" |
+  | chunks outstanding (Jev) | "Asking Jev… k of n", **no hits yet** (§ 5.0 rule 8). Never "not in this document" |
   | complete, hits | "N related blocks" |
   | complete, none above the threshold | "Nothing in this document looks like that" |
   | cancelled / failed | "Semantic search stopped: <reason>". Literal results stay |
@@ -223,7 +339,10 @@ stage over the embedding top-k (for example 50). It is adopted only if it fits �
 ### 5.5 Async results: the acceptance contract
 
 Every index or query result carries tags: `documentId`, `editorGeneration`, `editRevision`,
-`queryGeneration`, and `modelId`. The controller accepts a result only if every tag still matches
+`queryGeneration`, `engine` (`jev` / `backup`), `modelId` (the Jev version or the backup model),
+and for Jev the epoch pair `(appEpoch, grantEpoch)` (§ 5.12). Rust bumps `appEpoch` on key set,
+key removal and the cloud switch going off, and `grantEpoch` on revoke and tab close, so a
+completion from before any of those can't be accepted after a re-enable. The controller accepts a result only if every tag still matches
 the live state. Otherwise the result is dropped, and a stale result is logged.
 
 **`editRevision` is not the store's state.** In WYSIWYG the store is written up to 200 ms after
@@ -244,7 +363,7 @@ back. That covers:
 - a tab close;
 - an editor rebuild (Milkdown's 200 ms delayed serialisation, § 3.4).
 
-### 5.6 Offline packaging and enforcement
+### 5.6 The backup's offline packaging, and egress enforcement for both engines
 
 - **A pinned model package:** the weights, `tokenizer.json`, config, the pooling and prefix
   manifest, and for S-U4 A the exact ORT WASM files and the worker script. Every file is listed
@@ -252,8 +371,21 @@ back. That covers:
 - **No remote fallback:** for transformers.js, `env.allowRemoteModels = false` and local paths
   only. The files load through Tauri's `asset:` protocol or IPC; that route is defined in S3,
   and the CSP is updated in the same commit if it needs to be.
-- **Enforced and tested across boundaries:** a test fails if the semantic path (main thread,
-  worker or Rust command) opens a connection to any non-local origin. That is done with a mocked
+- **Egress, three separate permissions**, each with its own allowlist and tests, all from Rust:
+  1. **Search:** `POST https://api.typesafe.ai/v1/systemone`, only for a search that passed
+     § 5.0's conditions.
+  2. **Key test:** `GET https://api.typesafe.ai/v1/models`, only from the Settings button; it
+     carries the key and nothing from any document.
+  3. **Backup download** (S-U2 B only): `GET` from the pinned package origin, only from the
+     Settings button or the first-use prompt; it carries nothing.
+  The backup's search path reaches nothing.
+- **Transport policy:** the origin and paths are compile-time constants; `reqwest` is built with
+  `redirect::Policy::none()` and `https_only(true)`. A test-only base URL (behind `#[cfg(test)]`)
+  points at a local mock; release builds can't change it. Tests: a `3xx` to another host or to
+  `http:` is refused, and nothing (body or key) is sent onward.
+- **Enforced and tested across boundaries:** a test fails if the backup path (main thread,
+  worker or Rust command) opens a connection to any non-local origin, or if the Jev client is
+  called without consent, with the switch off, or to any other host. That is done with a mocked
   transport at each boundary, not just a main-thread `fetch` spy. The release check proves a cold
   start offline: the network is off, the model loads, and the search works.
 
@@ -300,25 +432,35 @@ For `/mattpocock-skills:prototype`, after v0.3.6's popup exists:
    `.claude/rules/31` and `33`.
 5. **Verdict and progress text:** where it sits and what it says (§ 5.4's states), in English.
 6. **Scroll-bar ticks:** reuse v0.3.6's, if its popup has them.
-7. **Settings:** an on/off switch for semantic find (on by default only if S-U2 is A), the model
-   status and size, and "Remove model" if it was downloaded.
+7. **Settings → Integrations, "Semantic search" section** (§ 5.14): its layout, in D260's rail
+   style.
+8. **Which engine answered:** a badge or wording in the verdict ("Jev (cloud)" / "On this Mac"),
+   and the fallback reasons from § 5.0's table.
+9. **"Text is leaving this Mac"**: an indicator visible for as long as a Jev request is in
+   flight, distinct from the progress text.
+10. **The consent prompt** (S-U8), and the bar's "On this Mac only" choice (§ 5.0 rule 9).
 
 ### 5.10 Failure and recovery
 
-- **Disable switch:** Settings turns semantic find off. That unloads the model and frees every
-  index; regular find is untouched.
-- **Missing or corrupt model package, or a hash mismatch:** the bar says so, semantic find stays
-  off for the session, and regular find works.
+Everything in this section is about the **backup**; Jev's failures are § 5.0's table. A backup
+failure never disables Jev, and Jev keeps working with the backup off or missing (S-C3 tests it).
+
+- **Backup switch** (Settings → Integrations, § 5.14): off unloads the backup model and frees every
+  index; Jev and regular find are untouched. There is no third, global switch: both switches off
+  means semantic find says "turned off in Settings".
+- **Missing or corrupt model package, or a hash mismatch:** the backup stays off for the session
+  with a message; Jev and regular find work.
 - **A worker crash, or an out-of-memory error inside the worker:** the worker is restarted
-  once. If it fails again, semantic find is off for the session with a message. A Rust task
+  once. If it fails again, the backup is off for the session with a message. A Rust task
   error surfaces as the command's `Err`.
 - **What is guaranteed, and what isn't:** for the recoverable failures above, the editor and
   the document are unaffected. A **native** failure is not covered: an ONNX Runtime abort or a
   process-level out-of-memory inside mdpro's own process (S-U4 B, or the webview process under
   A) can take mdpro down. The only defences are § 5.7's limits and S0's worst-case memory
   measurement, and S-U4's choice weighs that risk.
-- **Removing the model:** cancels in-flight work, unloads the model, then deletes the files. A
-  search that starts during removal gets the "missing model" state.
+- **Removing the model:** cancels in-flight backup work, unloads the model, then deletes the
+  files. A Jev search in flight continues; a search that would fall back during removal gets
+  "Semantic search unavailable: backup being removed".
 - **Late completions after disable or removal** are dropped by § 5.5's tags (`modelId` is cleared),
   so they can't reload the model or recreate an index. S5 and S8 test both.
 
@@ -329,11 +471,187 @@ and `.error`. They follow rule 20's start and outcome pairing, with one `actionI
 A cancellation ends the original operation with status **`cancel`** (`LogStatus` in
 `src/types/logging.ts:3`) on the same `actionId` as its `start`, not as a `fail`.
 
-What they carry: counts, milliseconds, the model id, the index state, and the query's **length**.
-Never document text or the query. Each WI that adds a path (S3 load and inference, S5 index and
-stale, S6 Settings switch, S8 download and removal) adds its events and two tests: every `start`
+What they carry: counts, milliseconds, the model id, the engine, the index state, the query's
+**length**, and for Jev the HTTP status class, the number of chunks and the input token count.
+Never document text, the query, the API key, any part of the key, or the `Authorization` header.
+Cloud events: `search.semantic.jev.request`, `.jev.fallback` (with the § 5.0 reason as an
+enum), `.consent` (granted / denied / revoked, never the path), `.key.set` / `.key.remove` /
+`.key.test` (outcome only). Each WI that adds a path (S3 load and inference, S5 index and
+stale, S-C1 key, S-C2 requests, S-C3 consent and fallback, S-C4 and S-C5 settings, S8 download and removal) adds its events and two tests: every `start`
 ends in exactly one `success`, `fail` or `cancel` with the same `actionId`, and no event carries
 document or query text.
+
+### 5.12 The Jev client (Rust)
+
+- **Where:** `src-tauri/src/services/jev/` with `reqwest` (already a dependency). The key is read
+  from the keychain inside Rust and never returned to the page.
+- **Rust is the authority** (rule 60 § IPC trust boundaries). A `JevState` in Tauri managed
+  state, behind a `Mutex`, holds: the consent grants, keyed by `(windowLabel, documentId)`, each
+  with its `authEpoch`; the rejected-key flag; the cool-down counter and expiry; and the request
+  registry. `semantic_jev_search` takes the window from Tauri's `WebviewWindow` argument, not
+  from the payload, and checks § 5.0's conditions 1–5 there; the grant must belong to that
+  window. A webview calling the command directly without a grant gets `NotAuthorised` and
+  nothing is sent.
+- **Two kinds of grant.** "Allow for this document" is a document grant for
+  `(windowLabel, documentId)` that lasts per S-U8. "Just this search" is a **one-shot** grant
+  bound to `(windowLabel, documentId, requestId)`: consumed by the first `semantic_jev_search`
+  with that request id, and expired after 30 s or when that window's query generation moves on.
+  A second search with the same request id gets `NotAuthorised`.
+- **Epochs and ordering.** Two counters, both in `JevState`:
+  - the **app epoch**, bumped by key set, key removal and the cloud switch going off;
+  - a **grant epoch** per `(windowLabel, documentId)`, bumped by revoke and by tab close.
+  A search records both at its start; Rust compares both before each chunk, before each retry
+  and before returning, and a mismatch ends it `Cancelled`. Every grant, revoke, key and switch
+  operation takes the same lock, so they are totally ordered. A grant request carries **both**
+  epochs under which the consent prompt was shown, `(appEpoch, grantEpoch)`; Rust compares both
+  under the lock, and one that arrives after a key change, a switch-off, a revoke or a tab close
+  is refused as `StaleGrant`, so a prompt answered late can't re-authorise anything.
+- **Where the controller gets the epochs:** `semantic_auth_state(documentId)` returns
+  `{ appEpoch, grantEpoch, granted, keyStatus }` for the calling window; the controller calls it
+  when the bar opens and before showing a consent prompt. Epochs only increase.
+- **Across windows:** after any epoch bump Rust emits `semantic:auth-changed` with
+  `{ scope: "app" | "document", windowLabel?, documentId?, appEpoch, grantEpoch? }` to every
+  window, carrying the **new** values. Each controller keeps the highest epochs it has seen and
+  ignores any event, command reply or completion carrying lower ones (events and replies can
+  arrive in either order); on a higher value it cancels its affected searches and closes any
+  open consent prompt. This is a new Rust → frontend
+  event, so it gets a row in CLAUDE.md's events table in S-C3's commit.
+- **What Rust does not verify:** that the block text really came from the granted document. It
+  can't, cheaply: the MCP shadow store lags edits by up to 300 ms (rule 50 § 4). So the webview
+  is trusted for **what** the text is; Rust enforces **where** it goes (one fixed origin), **whether**
+  it may go (switch, key, grant, epochs, local-only), **how much** (the cap) and **from which
+  window**. A compromised webview could send other text from the same window to TypeSafe under
+  the user's own key; S1's ADR records that residual risk.
+- **Payload bounds:** at most `MAX_SEM_BLOCKS` blocks and S-U11's cap in estimated tokens; ids
+  validated; the query ≤ 200 characters; anything else is `BadRequest` before any network use.
+- **Request shape** follows hunch (§ 4.1): the state is the `Bnnn| text` block list (no URL, no
+  title, unlike hunch); one `noul` question per block with hunch's wording translated to
+  "this document"; ≤ 200 blocks per chunk.
+- **Both context limits.** Jev's tokenizer isn't published. The plan **assumes** it produces no
+  more tokens than UTF-8 bytes (true of byte-level BPE, the common case), so it sizes by bytes;
+  S0 checks the assumption against the token counts Jev reports or bills, and the overflow
+  fallback below holds either way. Chunks are packed against **actual encoded sizes**:
+  - the query is ≤ 200 Unicode scalar values (so ≤ 800 UTF-8 bytes);
+  - each block's question size `qᵢ` = the UTF-8 bytes of the template, its id and the query;
+  - blocks are added in order while: block count ≤ 200, state bytes ≤ 24 000,
+    state bytes + Σ `qᵢ` ≤ 60 000 (64 k with a 4 k margin), and state bytes + max `qᵢ` ≤ 30 000
+    (32 k per question with margin);
+  - a block whose own text exceeds 24 000 bytes is split into windows first (the § 5.2 split).
+  With a 200-character CJK query (`qᵢ` ≈ 1 400 bytes) and a full 24 000-byte state that is 25
+  blocks per chunk; with short blocks and a short English query, up to 200.
+  **Overflow fallback:** a `400` context-length error splits the chunk in half once; a second
+  one ends the search `TooLarge`. Tests at every bound, with CJK text (3 bytes per character).
+- **Retries and deadlines:** 15 s per request; retries on `429` / `5xx` / network errors with
+  exponential backoff, honouring `Retry-After`, ≤ 5 per chunk; and a **total search deadline**
+  of 20 s, after which remaining work is cancelled and the outcome is `Timeout`. Rust re-checks
+  the authorisation (conditions 1–5 and the epoch) before each chunk and each retry.
+- **Concurrency:** at most 4 requests in flight **app-wide**, across windows. A terminal failure
+  of one chunk cancels its siblings.
+- **The cap counts every attempt:** retried bytes count against S-U11's cap; a retry that would
+  exceed it isn't sent and the search ends `TooLarge`.
+- **Response validation:** every chunk's answer must name exactly the block ids it was sent, with
+  the `noul` type and a finite probability in [0, 1], from the model version requested. Anything
+  else is `InvalidResponse` (§ 5.0 table); a chunk is never counted as "answered: nothing".
+- **Model:** the version S-U10 pins, sent explicitly.
+- **Cancellation is a command, not a dropped promise.** Each search registers its `requestId` in
+  the registry with a cancellation token; `semantic_jev_cancel(requestId)` cancels its queued
+  chunks, retries and active requests. A revoke, switch off, key change or tab close bumps
+  `authEpoch` and cancels every request in that scope. Late responses are dropped by § 5.5's tags.
+- **Commands** (all return `Result`, are registered in `commands/mod.rs`, with wrappers in
+  `src/services/semanticFindService.ts`): `semantic_jev_search` → per-block p, or the error enum
+  `NotAuthorised | StaleGrant | NoKey | KeyRejected | RateLimited | Unreachable | Timeout |
+  TooLarge | BadRequest | ModelUnavailable | InvalidResponse | Partial { cause } | Cancelled`;
+  `semantic_jev_cancel`; `semantic_consent_grant` (document or one-shot, carrying the prompt's app
+  epoch) / `_revoke` (window from Tauri, document id validated against that window's open tabs);
+  `semantic_local_only_set`; `semantic_auth_state`; `semantic_key_set`, `semantic_key_remove`, `semantic_key_status` (returns
+  `set` / `not set` / `rejected` only), `semantic_key_test`. Error values never contain the key,
+  document text or the query.
+
+### 5.13 Consent, privacy and the constraint change
+
+- **What is sent, exactly:** the query; the question template; and the text of each block of the
+  current revision of **this** document, after S-U9's exclusions, deduplicated. Not sent: the
+  file path or name, the window or tab title, other documents, images, drafts, preferences, or
+  anything when the search runs on the backup. The key travels only in the `Authorization`
+  header.
+- **Who receives it:** TypeSafe AI, at `api.typesafe.ai`, under the user's own account. What
+  TypeSafe states (§ 4.2): not used for training; retention for ordinary keys not stated. The
+  consent text says exactly that, and links to TypeSafe's privacy page.
+- **Consent:** per S-U8. The prompt names the document, says what is sent and to whom, and offers
+  "Allow for this document", "Just this search" and "Search on this Mac instead". Default
+  focus is on the on-device choice. The grant is held in Rust (§ 5.12). **Revoking** is a
+  separate action: "Stop sending this document to Jev" in the bar, the cloud switch off, removing
+  the key, or closing the tab (S-U8 A). Each bumps `authEpoch` and cancels in-flight requests.
+  "On this Mac only" is not a revoke (§ 5.0 rule 9).
+- **Indicator:** while a Jev request is in flight, a visible "Sending to Jev" mark (S-U5 item 9);
+  the verdict then says "Jev (cloud)".
+- **The constraint change.** S1's ADR records the user's decision (quoted in this plan's header),
+  the options weighed (S-U1 A, B, C, D, each with why it lost or won), the privacy cost, and the
+  new wording of CLAUDE.md § Constraints. Proposed wording:
+  > Local files only (no cloud sync). One exception, opt-in (ADR-NNNN): semantic find may send
+  > the open document's block text and the query to TypeSafe's Jev API, with the user's own API
+  > key, only after the user turns it on in Settings → Integrations and agrees for that document.
+  > Nothing else leaves the machine, and every feature works without it.
+
+  CLAUDE.md is edited only when that ADR is **Accepted**, in the same commit. The ADR number is
+  requested from the delegator when S1 starts.
+
+### 5.14 Settings → Integrations: the "Semantic search" section
+
+A new section on the existing Integrations page (§ 3.4), below the MCP section, in D260's rail
+and page style (DESIGN.md). Its layout is a prototype item (S-U5); its contents are:
+
+| Control | Behaviour |
+|---|---|
+| **Use Jev (cloud)** switch | off by default; on needs a stored key (otherwise disabled, with the reason inline, rule 30.4) |
+| **API key** | entered per S-U12 (below). **Save** stores it in the OS keychain (macOS Keychain, Windows Credential Manager); **Remove** deletes it; status reads "Key stored" / "No key" / "Key rejected", never any part of the key |
+| **Test key** | `GET /v1/models`; shows OK / rejected / unreachable |
+| **Jev version** | the pinned version, read-only (S-U10) |
+| **Consent** | S-U8's choice explained; "Forget all document permissions" if S-U8 B |
+| **On-device backup** | status (installed / downloading / missing), size, **Download** / **Remove** per S-U2, and an on/off switch |
+
+- **Where the key passes.** Typing a key into a page field means the key exists in the webview,
+  briefly. The plan's boundary is therefore: **it crosses the webview once, at entry**: an
+  uncontrolled password input (no React state), read once on Save, sent once to
+  `semantic_key_set`, and the field cleared. It is never sent back to the page, never echoed,
+  and never logged by the wrapper or the IPC layer. The stronger "never in the webview" needs
+  native entry, so it is a choice for the user:
+  **S-U12. Key entry:** **A.** the page field above (proposal; simplest, same pattern as other
+  apps' settings); **B.** a native prompt from Rust (on macOS an `NSAlert` with a secure text
+  field, on Windows a Credential UI prompt); the key never touches the webview, at the cost of
+  per-platform native code. Decided in S1.
+- **The key is never** in `config.json`, preferences, drafts, the log (rule 20), MCP responses,
+  crash output or the clipboard. Tests assert that for each.
+- **The non-secret settings** are a new preferences group, `semanticSearch`:
+  `cloudEnabled` (default `false`), `backupEnabled` (default per S-U2: `true` if bundled, `false`
+  until downloaded), and S-U8's consent mode. The credential is not in this group.
+  - **Load:** `#[serde(default)]` on the group and each field, so a config without it, or with
+    unknown fields, loads to defaults without touching other groups; `UserPreferences::default()`
+    (`src-tauri/src/models/preferences.rs:892`, hand-written) gains the group.
+  - **Write:** not through `set_preferences`, whose `merge_preferences` replaces nested groups
+    wholesale (`src-tauri/src/services/preferences.rs:169`), so a stale window writing
+    `backupEnabled` would also restore an old `cloudEnabled`. Instead a dedicated
+    `semantic_settings_update(patch)` takes a **field-level patch** (every field optional),
+    applies it under the preferences write lock, persists, and returns the whole group;
+    `PartialPreferences` (`services/preferences.rs:16`) doesn't carry the group, and
+    `merge_preferences` (which builds a full `UserPreferences` literal) carries it forward
+    unchanged with `semantic_search: current.semantic_search`, so the general path can't
+    overwrite it.
+  - **Ordering:** the group has a `revision`, incremented by every successful
+    `semantic_settings_update`; the command's reply and the event both carry it, and the section
+    applies a snapshot only if its revision is higher than the one shown, so an older reply or
+    event arriving late can't overwrite a newer group.
+  - **Propagation:** after a write Rust emits `preferences:semantic-changed` with the group to
+    every window (a second new event for CLAUDE.md's table); turning `cloudEnabled` off also
+    bumps the app epoch (§ 5.12).
+  - **The page:** the section has its own single-flight guard (the Integrations page's existing
+    lease is MCP-specific): a section that hasn't loaded the group can't write it; a failed write
+    is shown inline with the switch reverted. Rust reads `cloudEnabled` itself at search time, so
+    a window with a stale copy can't send.
+- **Keychain access** is a new dependency (the `keyring` crate, or the Security framework and
+  Windows Credential Manager directly), decided in S1's ADR. If the keychain is unavailable, the
+  key is not stored, the switch stays off, and the section says why; there is no plaintext
+  fallback.
 
 ## 6. Work items
 
@@ -368,19 +686,26 @@ Every behaviour WI runs this sequence (rules 10, 20, 60):
 
 | WI | Scope | Files (expected) | Tests (rule 10) | Ledger / ADR |
 |---|---|---|---|---|
-| **S0** | **Spike, throwaway; may run before v0.3.6 lands.** Branch `spike/semantic-find`. It measures each § 5.3 model under each S-U4 runtime: WKWebView on the current macOS **and** on 13.1, WebView2 (version recorded), and Rust `ort`. Per combination: load time, ms per batch, peak memory, worker or IPC copy cost, installer growth, and the § 5.8 budgets. **Quality:** a labelled set split **by document** into three partitions: *tune* (prompting, windows, minimum lengths), *validate* (choosing the model, the reranker and § 5.4's threshold rule), and a *final test* partition that nobody looks at until the gate, model, rule and threshold are frozen and the user has approved S-U7. It is then evaluated once, and its numbers are the ones S1 records. Chinese and English are reported separately. Queries include paraphrases, questions, absent topics and negations. Reported: recall@5, first-hit accuracy, false "found" rate (on absent topics) and false "not found" rate (on present ones). One reranker is tried as a second stage. **Proposed gate, per language, on the final test partition:** recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 %, false "not found" ≤ 15 %. These are proposals for S-U7; the user may change them before the final evaluation, not after. Failing the gate sends S-U1 back to the user | spike branch only; the record goes in `docs/test/<date>-sem-s0-spike.md`, fixtures in `tests/manual-fixtures/sem-*.md` and a generator script for the 10 MiB files | none (spike) | none; feeds S-U2 to S-U4 and S-U7 |
-| **S1** | **The ADR and the contracts** (ADR number from the delegator when written). It records S-U1 to S-U4 and S-U7 as answered, the model, its licence, how it is delivered, the runtime and the new dependency. It defines the types: `Occurrence`, the model manifest, the request and result tags (§ 5.5), the index states (§ 5.4), and the lifecycle owner, a `semanticFindController` per window. It updates CLAUDE.md § Constraints only if S-U1 is C or D | `docs/adr/NNNN-…md`; `src/features/semanticFind/types.ts` | type-only (no tests, rule 10) | ADR **yes** |
+| **S0** | **Spike, throwaway; may run before v0.3.6 lands.** Branch `spike/semantic-find`. **Jev:** the same labelled set is run through the pinned Jev version with the user's own key (the fixtures are synthetic, never the user's documents; the key and the run need the user's word first), recording quality, latency per chunk, token counts and cost for each fixture size, Chinese and English separately. **Backup:** it measures each § 5.3 and § 4.4 candidate under each S-U4 runtime: WKWebView on the current macOS **and** on 13.1, WebView2 (version recorded), and Rust `ort`. Per combination: load time, ms per batch, peak memory, worker or IPC copy cost, installer growth, and the § 5.8 budgets. **Quality:** a labelled set split **by document** into three partitions: *tune* (prompting, windows, minimum lengths), *validate* (choosing the model, the reranker and § 5.4's threshold rule), and a *final test* partition that nobody looks at until the gate, model, rule and threshold are frozen and the user has approved S-U7. It is then evaluated once, and its numbers are the ones S1 records. Chinese and English are reported separately. Queries include paraphrases, questions, absent topics and negations. Reported: recall@5, first-hit accuracy, false "found" rate (on absent topics) and false "not found" rate (on present ones). One reranker is tried as a second stage. **Proposed gate, per language, on the final test partition:** recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 %, false "not found" ≤ 15 %. These are proposals for S-U7; the user may change them before the final evaluation, not after. Each engine is gated separately. If the backup fails, the user chooses between shipping Jev with no backup (the bar says "needs Jev" when it can't be used) and deferring; if Jev fails, S-U1 goes back to the user | spike branch only; the record goes in `docs/test/<date>-sem-s0-spike.md`, fixtures in `tests/manual-fixtures/sem-*.md` and a generator script for the 10 MiB files | none (spike) | none; feeds S-U2 to S-U4 and S-U7 |
+| **S1** | **The ADR and the contracts** (ADR number from the delegator when written). It records S-U1 (quoted), the options weighed, the privacy cost and the new CLAUDE.md § Constraints wording (§ 5.13); S-U2 to S-U4 and S-U7 to S-U12 as answered; the backup model, its licence, delivery and runtime; and the new dependencies (keychain, and the runtime if any). It defines the types: `Occurrence`, the model manifest, the request and result tags (§ 5.5), the index states (§ 5.4), and the lifecycle owner, a `semanticFindController` per window. On acceptance, the same commit updates CLAUDE.md § Constraints | `docs/adr/NNNN-…md`; `src/features/semanticFind/types.ts` | type-only (no tests, rule 10) | ADR **yes** |
 | **S2** | Extraction and mapping (§ 5.2) | `src/features/semanticFind/extract.ts`, `mapToEditor.ts` (or the generalised TOC resolver) | Same Markdown → the same occurrence kinds, texts and grouping in both modes, and each `sourceRange` maps to the right text in each editor. Fixtures: a GFM table (a paragraph to Source's parser, rows here), nested lists, a list item with a nested list, a blockquote, links and images (alt text kept), a repeated paragraph (one key, two occurrences), a short CJK heading, an empty doc, and a 1 500-character CJK paragraph. Mapping: every mappable occurrence's PM range holds its text; a deliberately unalignable block follows the unmappable policy (§ 5.2). Files: `tests/semantic-find-extract.test.ts`, `tests/semantic-find-map.test.tsx` | none |
 | **S3** | The inference service under S1: package load with the manifest check, tokenizer-aware windows, pooling and normalisation per the manifest, batches, cancellation, and the worker or the Tauri command. If Rust: the command returns `Result`, validates count and total size, is registered in `commands/mod.rs`, and has its wrapper in `src/services/semanticFindService.ts` (rule 50 § 2) | `src/features/semanticFind/worker.ts` or `src-tauri/src/commands/semantic.rs` + service, `src/services/semanticFindService.ts` | Mocks only at the worker port or `invoke`. Error paths: a missing file, a hash mismatch, a cancel mid-batch, an oversized input, a worker crash with one restart. A fixed fixture gives the same vectors (within a tolerance) from S0's reference output. A relevant sentence at the **end** of a long CJK block is found, because windows cover it. No-network test (§ 5.6). Logging pairs carry no text. Rust: input validation and the error type. Files: `tests/semantic-find-service.test.ts`, `tests/semantic-find-offline.test.ts`, and `#[cfg(test)]` in `semantic.rs` if Rust | a row for the command, if any |
 | **S4** | Ranking and index state, pure: the two tiers, the threshold rule from S1, verdict states, limits and LRU (§ 5.7) | `src/features/semanticFind/rank.ts`, `indexState.ts` | A low-similarity literal hit outranks a high-similarity semantic-only one; ordering is deterministic on fixed vectors; there is no "nothing" verdict while the index is partial; "nothing" appears only on complete coverage with everything below the threshold; limit and eviction boundaries are tested just below, at and above each limit. Files: `tests/semantic-find-rank.test.ts`, `tests/semantic-find-index-state.test.ts` (`// @vitest-environment node`) | none |
 | **S5** | The controller and lifecycle (§ 5.5): per-window ownership, tags, accepting or dropping results, disposal on tab close, incremental re-index on edit | `src/features/semanticFind/controller.ts` (a `useSemanticFind` hook if needed) | Delayed completions across each transition (edit, reload, MCP write, mode switch, tab close, editor rebuild) are dropped and logged `stale`; a closed index is not revived; a completion inside the 200 ms gap after a WYSIWYG edit is dropped (§ 5.5); a late completion after disable or model removal neither reloads the model nor recreates an index; an edit re-embeds only changed `blockKey`s; two windows don't share or cross results. File: `tests/semantic-find-controller.test.ts` | — |
-| **S-P** | **Prototype, throwaway**: § 5.9's options on `prototype/sem-find`, after D255-WI-3c's popup exists; the user picks (S-U5, S-U6) | the prototype branch | none (prototype) | the verdict is committed on the branch; the delegator updates DESIGN.md |
-| **S6** | UI as the user picked it: the command in the command table (S-U6's key, through K1–K8), the bar or popup mode, progress, verdict states, stepping, the Settings switch and model status (§ 5.9 item 7) | the find popup's files from v0.3.6, `src/features/semanticFind/SemanticFind*.tsx`, the Settings page | Component tests (ARIA, `userEvent`): open, type, debounce, a stale result cancelled by new input, Enter / Shift+Enter cycling, Escape closes and clears, each verdict state rendered, the switch off unloads (via the controller mock); the key reaches the command once in both modes through the composed keymaps. File: `tests/semantic-find-ui.test.tsx` | a new row "语义查找", `Partial` with `限制：` until S8 |
+| **S-C1** | Keychain store and key commands (§ 5.12, § 5.14): `semantic_key_set` / `_remove` / `_status` / `_test` | `src-tauri/src/services/jev/key_store.rs`, `src-tauri/src/commands/semantic.rs`, `src/services/semanticFindService.ts` | Rust: set → status `set`; remove → `not set`; an unavailable keychain gives a typed error and stores nothing; status and every error never contain the key; the log lines for set/remove/test carry no key (a log-capture test). Test against a mock keychain backend at the crate boundary. TS: the wrapper never logs its argument. Files: `src-tauri/src/services/jev/key_store_tests.rs`, `tests/semantic-find-key-service.test.ts` | ledger row for the commands; ADR (from S1) |
+| **S-C2** | The Jev client (§ 5.12): request building, both context limits, retries, deadline, app-wide concurrency, cancellation registry, transport policy, response validation, the error enum | `src-tauri/src/services/jev/client.rs`, `request.rs`, `validate.rs` | Against a local mock HTTP server: each packing bound (200 blocks; 24 000 state bytes; state + Σ qᵢ ≤ 60 000; state + max qᵢ ≤ 30 000) below / at / above, with a 200-character CJK query; the 400-split-once then `TooLarge`; a single block over the bound is windowed; a `400` context error splits once; every status in § 5.0's table maps to its enum; `Retry-After` honoured; the 20 s deadline; at most 4 in flight across two windows; a terminal chunk failure cancels siblings; `semantic_jev_cancel` stops queued, retrying and active requests; retries count against the cap; malformed `2xx` (missing / duplicate / unknown ids, NaN, 1.2) → `InvalidResponse`; a `3xx` to another host or `http:` is refused and nothing is sent onward; the body has no path or title and only S-U9's text; error values hold no key or text. Files: `src-tauri/src/services/jev/client_tests.rs` | ADR (from S1) |
+| **S-C3** | Engine choice, consent and fallback (§ 5.0, § 5.13): Rust's `JevState` authority and the frontend controller | `src-tauri/src/services/jev/state.rs`, `src/features/semanticFind/engine.ts`, `consent.ts` | Rust: a direct `semantic_jev_search` without a grant → `NotAuthorised`, no request; a grant from window A doesn't authorise window B; revoke during a search cancels it and the epoch drops its late completion even after a re-enable; re-check before a retry stops a revoked search; a one-shot grant is consumed once and expires; a grant answered after a key change is `StaleGrant`; key removal in window A cancels a search in window B (via `semantic:auth-changed`); local-only set in Rust refuses a direct search; the breaker counts `Partial { cause: Timeout }`; a grant carrying the pre-revoke `grantEpoch` (prompt opened, document revoked, prompt answered) is `StaleGrant`, and so is one after tab close; an older `semantic:auth-changed` arriving after a newer reply is ignored. Frontend: every row of § 5.0's table and rules 1–10: each condition false → backup with its reason; cool-down after 3 failures and its expiry; `401` until the key changes; no mixed-engine results; "On this Mac only" never calls Jev; revoke and switch-off abort in-flight requests; a late Jev completion after revoke is dropped; Jev works with the backup off or missing; buffered Jev hits never show before completion; restricted coverage is named in a "nothing" verdict; literal hits in excluded blocks still show. Files: `src-tauri/src/services/jev/state_tests.rs`, `tests/semantic-find-engine.test.ts`, `tests/semantic-find-consent.test.ts` | — |
+| **S-C5** | The `semanticSearch` preferences group (§ 5.14), wired end to end | a new `src-tauri/src/models/semantic_search.rs` (the group and its defaults); in `preferences.rs` one `#[serde(default)]` field and the `UserPreferences::default()` line (the file is far past 300 lines, so nothing else goes there); `semantic_settings_update` in `src-tauri/src/commands/semantic.rs`; `merge_preferences` in `src-tauri/src/services/preferences.rs` (carry the group forward); `src/types/preferences.ts`; `src/services/semanticFindService.ts` | Rust: defaults (`cloudEnabled` false); a config without the group or with unknown fields loads without losing other groups; a `set_preferences` call can't change the group; window A turns `cloudEnabled` off; window B, still showing it on, then patches only `backupEnabled`; `cloudEnabled` stays off; `cloudEnabled` off bumps the app epoch and emits both events; the credential never appears in serialised preferences. TS: an unhydrated section can't write; a failed write reverts the switch; a `preferences:semantic-changed` from another window updates the section; out of order (revision 5's event, then revision 4's reply) the section keeps revision 5; a general `set_preferences` leaves the group byte-identical. Files: `src-tauri/src/models/semantic_search_tests.rs`, `tests/semantic-find-preferences.test.ts` | ledger row (settings) |
+| **S-C4** | The Integrations section (§ 5.14) as the user picked it in S-P; S-U12's key entry | `src/components/common/settings/SemanticSearchSection.tsx`, `IntegrationsSettings.tsx` | Component tests (ARIA, `userEvent`): switch disabled without a key and its reason; Save clears the field and shows "Key stored"; Remove; Test outcomes; the input is uncontrolled and cleared after Save; the key never appears in the DOM after Save, in any log call, or in any IPC reply. File: `tests/semantic-find-settings.test.tsx` | ledger row for the section |
+| **S-P** | **Prototype, throwaway**: § 5.9's options, including the Integrations section, the consent prompt, the engine attribution and the indicator, on `prototype/sem-find`, after D255-WI-3c's popup exists; the user picks (S-U5, S-U6) | the prototype branch | none (prototype) | the verdict is committed on the branch; the delegator updates DESIGN.md |
+| **S6** | The find bar as the user picked it: the command in the command table (S-U6's key, through K1–K8), the bar or popup mode, progress, verdict states with the engine and reason (§ 5.0), the indicator, "On this Mac only" and "Stop sending", stepping. (Settings is S-C4 / S-C5.) | the find popup's files from v0.3.6, `src/features/semanticFind/SemanticFind*.tsx` | Component tests (ARIA, `userEvent`): open, type, debounce, a stale result cancelled by new input, Enter / Shift+Enter cycling, Escape closes and clears, each verdict state rendered with its engine and reason, the indicator shown only while a Jev request is in flight; the key reaches the command once in both modes through the composed keymaps. File: `tests/semantic-find-ui.test.tsx` | a new row "语义查找", `Partial` with `限制：` until S8 |
 | **S7** | Highlights and navigation in both editors, in **the style the user picked**: PM decorations in WYSIWYG, CM decorations in Source, the current hit scrolled into view, ticks if v0.3.6 has them | `src/features/semanticFind/decorations.ts` | Decorations follow edits (an edited hit block moves or drops), a mode switch re-maps or closes cleanly, and the dirty flag never changes. File: `tests/semantic-find-decorations.test.ts` (extracted decoration logic, rule 10 § plugins) | — |
 | **S8** | Packaging per S-U2 (bundled, or the download with progress, retry, hash check and removal), recovery (§ 5.10), and the cold-start offline release check | the release workflow config, Settings, `src/features/semanticFind/package.ts` | Download (if chosen): a hash mismatch, an interrupted download, and no network each give a clear message, and regular find still works. Removing the model during a search gives the missing-model state. Removal with a completion pending doesn't recreate anything. Installer size is measured in the release build. Offline cold start on both platforms. File: `tests/semantic-find-package.test.ts` | ledger row to `Shipped`, or `Partial` with its limit |
 
-**Order:** S0 (any time) → the user answers S-U1 to S-U4 and S-U7 → S1 → [v0.3.6's D255-WI-3c and
-M1b on `master`] → S2, S3 and S4 in parallel against S1's types → S5 → S-P → S6 → S7 → S8.
+**Order:** S0 (any time, with the user's word for the Jev run) → the user answers S-U2 to S-U4 and
+S-U7 to S-U12 → S1 (ADR accepted, CLAUDE.md updated) → [v0.3.6's D255-WI-3c and M1b on
+`master`] → S2, S3, S4, S-C1, S-C2 and S-C5 in parallel against S1's types → S5 with S-C3 → S-P →
+S6, S-C4 → S7 → S8.
 
 ### 6.1 Device checks
 
@@ -389,13 +714,19 @@ M1b on `master`] → S2, S3 and S4 in parallel against S1's types → S5 → S-P
 | macOS (current, Apple Silicon) | dtrack brief, batch "find" | Both modes, both themes: S0's held-out queries, where first-hit accuracy and absent-topic rates meet S-U7's gate. A partial index never shows "nothing". ⌘F stays literal. Typing while indexing the 1 MiB fixture meets § 5.8. Offline cold start: the model loads and searches with the network off. `nettop` shows no connection during a search | below the gate; "nothing" shown on a partial index; any outbound connection; typing over budget; the document marked dirty |
 | macOS 13.1 | A macOS 13.1 VM or spare machine. If none can be found, S-U4 A stays unselectable (S-U4) unless the user accepted the capability-check route; that acceptance is quoted in the ADR | The runtime S1 chose loads, or the capability check shows its "unsupported on this macOS" message and regular find works. mdpro's OS minimum isn't silently raised | a crash, a silent failure, or no evidence at all for the chosen route |
 | Windows | `remote-windows-device-test` skill, CDP page shots | Same queries; the model loads from where S-U2 put it; WebView2's own find doesn't fight the key (U11) | as on macOS |
+| Jev path (macOS and Windows) | same briefs, with a test TypeSafe key the user provides for the run, on synthetic fixtures | Switch off → no request (proxy or `nettop` shows no connection to `api.typesafe.ai`); on, no consent → prompt; "Search on this Mac instead" → no request; allowed → indicator visible while sending, verdict "Jev (cloud)"; network off → "On this Mac · Jev unreachable"; a bad key → "Jev key rejected"; the key is absent from `config.json`, `~/.mdpro/mdpro.log` and the page DOM; it is in Keychain / Credential Manager | any request without consent or with the switch off; any key text on disk outside the keychain or in the log; a fallback without its reason; mixed-engine results |
 | Linux | not available | untested (menu plan D6) | — |
 
 ## 7. Risks
 
 | Risk | Note |
 |---|---|
-| Quality below expectation | A 24–118 MB embedding model is weaker than Jev at "does this block answer the question". S0's gate decides; if it fails, S-U1 goes back to the user |
+| Privacy | Document text leaves the machine. Bounded by the switch, the key, per-document consent, S-U9's exclusions and the indicator; what TypeSafe keeps for ordinary keys is not stated (§ 9) |
+| Key leak | A key in a log, a crash report or `config.json` is a credential leak. Keychain only, with tests per surface (§ 5.14) |
+| Cost | Every search re-sends the whole document: a 10 MiB document is millions of tokens per query. Bounded by S-U11's cap |
+| Vendor change | TypeSafe can change the API, pricing, versions or terms; the waitlist may gate keys. The backup keeps the feature working; S-U10 pins the version |
+| Chinese accuracy on Jev | TypeSafe says CJK is less accurate. S0 measures it separately; if Jev fails the gate for Chinese only, the user may choose the backup for Chinese documents |
+| Backup quality below expectation | A 24–118 MB embedding model (or the 0.6 B JevEmbed) is weaker than Jev. S0's gate decides; if it fails, the user chooses between Jev-only and deferring |
 | Calibration | Cosine has no fixed meaning across documents. Mitigated by the coverage rule (§ 5.4) and S0's held-out thresholds; it can still be wrong both ways |
 | Installer size | The model files are 24–118 MB if bundled, against current installers of about 7 MB |
 | macOS 13.1 WebKit | No SIMD before Safari 16.4, and no threads without cross-origin isolation. This is the main reason S-U4 B exists |
@@ -411,12 +742,23 @@ M1b on `master`] → S2, S3 and S4 in parallel against S1's types → S5 → S-P
    Is that acceptable later?
 3. **A percentage display like hunch's:** only if S0 can calibrate the score (§ 5.4).
 4. **A headings-only "jump to section by meaning" mode:** not in scope unless asked.
+5. **An enterprise / zero-retention key:** if the user has one, the consent text could say so;
+   that needs TypeSafe's Legal page read in full (§ 9).
+6. **Distilled community models** (`autotrust/JEV-*`): excluded. TypeSafe's agreement restricts
+   distillation from its output, so a model distilled from Jev is not adopted even if a small one
+   appears.
 
 ## 9. What this plan could not verify
 
 - **Jev's latency and quality on mdpro's documents:** TypeSafe publishes pricing and its own
-  latency claims, but nothing was run, because a run would send text to the cloud. Its
-  architecture and size are unpublished.
+  latency claims, but nothing was run: a run needs the user's key and sends text to the cloud.
+  Its architecture and size are unpublished.
+- **TypeSafe's retention for ordinary keys:** the legal pages give general retention criteria and
+  enterprise zero retention, but no fixed period for ordinary requests (checked in review).
+- **Whether `typesafeAI` on Hugging Face is TypeSafe's own account:** unverified (no badge). It has
+  no models either way.
+- **The community models' claims** (JevEmbed's 94.4 % `noul` accuracy, open-jev-deberta's ECE)
+  are their authors' numbers on their own test splits.
 - **Every number in § 5.7 and § 5.8:** proposals and targets, not measurements.
 - **WKWebView on macOS 13.1** (SIMD, threads, ORT Web) and **WebView2's** WASM behaviour inside mdpro.
 - **Whether `tocElementResolution.ts` generalises** from headings to every block kind (S2 finds out).
@@ -434,9 +776,16 @@ M1b on `master`] → S2, S3 and S4 in parallel against S1's types → S5 → S-P
 - Models: the Hugging Face listings for `Xenova/bge-small-zh-v1.5`, `Xenova/multilingual-e5-small`
   and `Xenova/paraphrase-multilingual-MiniLM-L12-v2`, and the cards for `BAAI/bge-small-zh-v1.5`
   and `intfloat/multilingual-e5-small`.
+- Open-weight search (2026-10-16): Hugging Face API `models?search=jev` and `?author=typesafeAI`,
+  the org page <https://huggingface.co/TypeSafeAI>, and the cards for
+  <https://huggingface.co/HIT-TMG/JevEmbed-Qwen3-Embedding-0.6B>,
+  <https://huggingface.co/com-kotobalabs/open-jev-deberta-v3-large> and
+  <https://huggingface.co/autotrust/JEV-9B>; madewithjev.com "Is Jev open source?"; geotoolbox.ai
+  "What Is Jev?".
 - WebKit 16.4 release notes (WASM SIMD); ONNX Runtime Web docs (threads need cross-origin
   isolation; deployment artifacts); transformers.js custom usage (`allowRemoteModels`).
-- mdpro: `src-tauri/tauri.conf.json`, `src/components/Editor/extensions/search.ts`,
+- mdpro: `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml:47` (`reqwest`),
+  `src/components/common/IntegrationsSettings.tsx`, `src/components/common/SettingsDialog.tsx:52-61`, `src/components/Editor/extensions/search.ts`,
   `extensions/markdown.ts`, `MilkdownEditor.tsx:154`, `src/plugins/milkdown/editSync/controller.ts:55`,
   `src/stores/milkdownEditorStore.ts:35`, `docs/feature-ledger.md:233, 538`, and the menu
   reorganisation plan (D13, U11, U12, D255-WI-2 and 3c, M1a and M1b).
@@ -491,5 +840,27 @@ M1b on `master`] → S2, S3 and S4 in parallel against S1's types → S5 → S-P
   receipt and Rust commands were prose, and `clippy` / `fmt` were missing. § 6 step 1–3 now give
   the exact commands from the lane config. Result: Critical 0 · High 0 · Medium 1 · Low 0, and that one Medium is now fixed.
   The weighted minimum still dropped a heading like 「收入」 (noted under #7); § 5.2 now always keeps headings.
+- **Revision 2 (S-U1 answered: C with a local backup).** Changed: the header, § 0 (S-U1 answered;
+  S-U2 to S-U4 backup-only; S-U8 to S-U12 new), § 1, § 2, § 3.4, § 4.2 to 4.4 (Jev facts; the
+  open-weight search), § 5.0 (engines and fallback), § 5.12 to 5.14 (the Jev client, consent and
+  the constraint change, Settings → Integrations), WIs S-C1 to S-C5, § 6.1, § 7 to § 10. Scoped
+  reviews with Codex `gpt-6.1-sol`, effort high:
+
+  | Pass | Job | Result |
+  |---|---|---|
+  | changed sections | `review-plan-mvanutdh-bo9lf7` | NEEDS REVISION · Critical 0 · High 5 · Medium 8 · Low 3 |
+  | confirm | `review-plan-mvao50z8-w3jvew` | 10 closed, 6 partial · C0 H3 M2 L1 |
+  | confirm | `review-plan-mvaoaofb-2ergq3` | 4 closed, 2 partial · C0 H1 M1 L0 |
+  | confirm | `review-plan-mvaoe323-6lnjj7` | **READY · Critical 0 · High 0 · Medium 0 · Low 0** |
+
+  The Highs it found and how they closed: the key's path through the webview (now S-U12, with the
+  boundary stated); Rust as the authority for sending (`JevState`, grants per window, re-checks
+  before each chunk); cancellation as a command with a request registry and two epochs, with
+  stale grants refused; both of Jev's context limits by actual encoded size; and a fixed
+  HTTPS origin with redirects off. Mediums: an exhaustive outcome mapping with response
+  validation; the breaker's unit and the search deadline; buffered Jev hits; "On this Mac only"
+  separated from revoking; backup recovery scoped to the backup; the preferences group's
+  wiring and ordering; three separate egress permissions; coverage named in the verdict. Lows:
+  the agreement clause (§ 2.3(b)), the affiliation wording, the keychain wording.
 - **Recorded where the reviewer could not check:** the reviewer couldn't fetch hunch's source. The
   author read it directly: `MAX_CHUNK_BLOCKS = 200` at `c220c73d`, while the README says 160.
