@@ -43,6 +43,10 @@
  *   (`origin.documentId` in the window `origin.windowLabel`) is skipped and its slot
  *   left untouched: an own save never clears or replaces a pending change. Every other
  *   matching document records it, a same-path sibling tab in the saving window too.
+ * - **A content change drops the saved-content baseline (D214-WI-4)** of every
+ *   document it is recorded against (`dropBaseline`), as does an open divergence: the
+ *   disk no longer holds the old text, so undoing back to it must not read clean. A
+ *   rename does not, and the own-save origin is never recorded, so keeps its baseline.
  * - **Nothing global across windows**: each window has its own JS store.
  * - **Two sources, one slot** (D111): `source` says whether a watcher event or an open
  *   or Save As reply's seed check recorded it. Both settle the same way. A reply whose
@@ -156,7 +160,7 @@ function nextSlot(
  * pending rename leads to it (D178), at once, except the origin of this window's own
  * save notice (D173-WI-3), whose slot is left untouched. A rename never replaces a
  * pending content change: the document follows it at once and the change moves to the
- * new path.
+ * new path. A non-rename change drops each recorded document's baseline (D214-WI-4).
  */
 export function recordFileChange(event: FileChangedEvent, actionId: string, now = Date.now()): RecordResult {
   const { documents, activeDocumentId, updateDocumentPaths } = useDocumentStore.getState();
@@ -188,6 +192,8 @@ export function recordFileChange(event: FileChangedEvent, actionId: string, now 
   // After the slots, and in one `set` (b87): the prune below then runs once, against
   // the final paths, and finds every moved slot already at its document's new path.
   if (moves.length > 0) updateDocumentPaths(moves);
+  // D214-WI-4: after the moves, so the prune sees every slot at its document's path.
+  if (event.changeType !== "renamed") for (const doc of owners) useDocumentStore.getState().dropBaseline(doc.id);
   return {
     documentIds: owners.map((doc) => doc.id),
     activeRecorded: owners.some((doc) => doc.id === activeDocumentId),
@@ -201,7 +207,8 @@ export function recordFileChange(event: FileChangedEvent, actionId: string, now 
  * a `modified` change at the document's current path with source `open-check`; like a
  * watcher event it replaces any earlier slot with a newer `seq`, so acknowledging an
  * older change never clears it. Returns false (and records nothing) when the document
- * is not in the store or has no path. Nothing here ever clears a slot.
+ * is not in the store or has no path. Nothing here ever clears a slot. A recorded
+ * divergence drops the document's baseline (D214-WI-4).
  */
 export function recordOpenDivergence(
   documentId: string,
@@ -223,6 +230,7 @@ export function recordOpenDivergence(
   };
   useExternalChangeStore.setState({ pending: { ...useExternalChangeStore.getState().pending, [documentId]: slot } });
   logPending("recorded", documentId, lastSeq, { changeType: "modified", source: "open-check" }, actionId);
+  useDocumentStore.getState().dropBaseline(documentId);
   return true;
 }
 

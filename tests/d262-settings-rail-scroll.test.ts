@@ -70,3 +70,54 @@ describe("D262: the Settings rail scrolls when the dialog is short", () => {
     expect(valuesAcross(".settings-category-btn", "min-height")).toEqual(["32px"]);
   });
 });
+
+/*
+ * D262-WI-2 (b177 Medium, PR #489): R2 read only the chain's own declarations,
+ * so `.settings-content { align-items: flex-start }` survived. With it the rail
+ * takes its content height instead of the row's bounded height, and
+ * `overflow-y: auto` never engages. The cross axis must stay stretched, on every
+ * selector that names the content row or the rail (scoped, compound, @media).
+ */
+const CONTENT = /\.settings-content(?![\w-])/;
+const STRETCH_ITEMS = new Set(["stretch", "normal", "unset"]);
+const STRETCH_SELF = new Set(["unset", "auto", "stretch"]);
+
+/** Declarations that pull the content row or the rail off the stretched cross axis. */
+function crossAxisViolations(all: ReturnType<typeof parseDeclarations>) {
+  return all.filter(
+    (d) =>
+      (CONTENT.test(d.selector) &&
+        (d.property === "align-items" || d.property === "place-items") &&
+        !STRETCH_ITEMS.has(d.value)) ||
+      (RAIL.test(d.selector) &&
+        (d.property === "align-self" || d.property === "place-self") &&
+        !STRETCH_SELF.has(d.value)),
+  );
+}
+
+describe("D262-WI-2: the rail's cross axis stays stretched", () => {
+  it("R2b: the real CSS keeps the content row's cross axis stretched", () => {
+    expect(crossAxisViolations(decls)).toEqual([]);
+  });
+
+  it.each([
+    [".settings-content { align-items: flex-start }", 1],
+    [".settings-content { align-items: center }", 1],
+    [".settings-content { align-items: flex-end }", 1],
+    [".settings-content { align-items: baseline }", 1],
+    [".settings-content { align-items: start }", 1],
+    [".settings-content { align-items: end }", 1],
+    [".settings-content { place-items: center }", 1],
+    [".theme-dark .settings-content { align-items: flex-start }", 1],
+    ["@media (max-width: 600px) { .settings-content { align-items: center } }", 1],
+    [".settings-sidebar { align-self: center }", 1],
+    [".settings-content { display: flex }", 0],
+    [".settings-content { align-items: stretch }", 0],
+    [".settings-content { align-items: normal }", 0],
+    [".settings-content { align-items: unset }", 0],
+    [".settings-content-x { align-items: center }", 0],
+    [".settings-sidebar { align-self: stretch }", 0],
+  ])("R2c: %s → %i violation(s)", (css, count) => {
+    expect(crossAxisViolations(parseDeclarations(css))).toHaveLength(count);
+  });
+});

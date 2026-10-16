@@ -36,13 +36,21 @@
  *   document from outside the editor (file reload, MCP write_document, MCP
  *   insert_content into the WYSIWYG-active document — D35, flushed first) makes this
  *   editor's doc stale; flushing it would write the stale text over the new content.
- * - The controller never sets `isModified` to false. Only save does that.
+ * - The controller sets `isModified` to false in one case only (D214): when it would
+ *   write nothing because the serialisation is unchanged, it re-evaluates the eager
+ *   dirty mark against the owner's baseline using the STORE content
+ *   (`owner.content === owner.savedContent`), never the serialised markdown, which
+ *   can differ from the store text without the store being wrong. So an edit undone
+ *   inside one debounce window reads clean again. With no baseline, or content that
+ *   differs from it, nothing changes and nothing is emitted. A serializer failure
+ *   re-evaluates nothing. Saves and other clean points still own every other clear.
  * - Logging: explicit flushes and destroy log `editor.milkdown.flush` with
  *   `{ reason, documentId, outcome }` only, never markdown, text or length. Timer
  *   writes are silent. A serializer failure logs warn / fail on any path.
  *
  * @coordinates-with src/stores/documentStore.ts — writes via markDocumentModified /
- *   updateDocumentContent on the bound document only
+ *   updateDocumentContent on the bound document only; reads its `savedContent`
+ *   baseline (D214)
  * @coordinates-with src/services/loggingService.ts — `editor.milkdown.flush` events
  * @coordinates-with src/utils/tocElementResolution.ts — the history-less heading-id
  *   sync transactions the `userEdit: false` rule exists for
@@ -50,6 +58,7 @@
  */
 import { useDocumentStore } from "../../../stores/documentStore";
 import { loggingService } from "../../../services/loggingService";
+import type { Document } from "../../../types/document";
 
 /** Trailing debounce between the last doc change and the serialize-and-write. */
 export const EDIT_SYNC_DELAY_MS = 200;
@@ -138,7 +147,19 @@ export function createEditSyncController(
     });
   }
 
-  /** Serialize and write if there is an unsettled revision. Never throws. */
+  /**
+   * D214: the no-write path. The eager mark may be stale (an edit undone inside one
+   * debounce window): clear it when the owner's store content equals its baseline.
+   * Compares `owner.content`, never the serialised markdown. Emits nothing otherwise.
+   */
+  function reevaluateEagerMark(owner: Document): void {
+    if (!owner.isModified || owner.savedContent === undefined) return;
+    if (owner.content !== owner.savedContent) return;
+    useDocumentStore.getState().markDocumentModified(documentId, false);
+  }
+
+  /** Serialize and write if there is an unsettled revision. Never throws. On the
+   *  no-write path, re-evaluates the eager dirty mark (D214). */
   function write(reason: string): EditSyncStatus {
     if (revision <= lastWrittenRevision) return "clean";
     const owner = findOwner();
@@ -157,7 +178,10 @@ export function createEditSyncController(
     lastWrittenRevision = target;
     const unchangedSinceLastWrite =
       markdown === lastWrittenMarkdown && owner.content === expectedStoreContent;
-    if (markdown === owner.content || unchangedSinceLastWrite) return "clean";
+    if (markdown === owner.content || unchangedSinceLastWrite) {
+      reevaluateEagerMark(owner);
+      return "clean";
+    }
     useDocumentStore.getState().updateDocumentContent(documentId, markdown);
     lastWrittenMarkdown = markdown;
     expectedStoreContent = markdown;

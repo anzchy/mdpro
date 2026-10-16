@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings has a calmer category list: each category has a thin outline icon in place of the emoji, rows are a little taller, the selected category is a neutral grey instead of blue, and keyboard focus shows a ring without changing the row's colour. The Close button at the bottom left is gone; close Settings with the × at the top right or Esc (D260).
 
 ### Fixed
+- Undoing your edits back to the last saved text now clears the tab's unsaved mark, in Source mode and in WYSIWYG, and closing the document no longer asks about changes that are not there. A recovered draft, a save that could not finish settling, or a document whose file was changed or deleted by another program still counts as unsaved until you save or reload. An AI (MCP) write that leaves the text exactly as saved also leaves the tab clean (D214).
 - In a short window or at high display scaling (Windows at 270%), the Settings category list now scrolls, so Advanced and About can be reached instead of being cut off (D262, #487).
 - If an open file is changed, deleted and recreated within half a second (some sync tools and scripts do this), mdpro now ends on the "modified externally" prompt instead of leaving "File was deleted externally" over a file that exists. A file whose folder mdpro can no longer read is no longer reported as deleted; mdpro shows the reload prompt, and the reload says why it failed (D246 follow-up, ADR-0111).
 

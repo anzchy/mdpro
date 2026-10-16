@@ -322,7 +322,8 @@ function runA1Rows(): LawRow[] {
             const writtenId = match === "path" ? "doc-x" : "doc-t";
             const written = { ...decoded, id: writtenId };
             expect(result, label).toEqual({ kind: "written", document: written, largeFile: false });
-            expect(docs().filter((d) => d.id === writtenId), label).toEqual([written]);
+            // a clean upsert now derives savedContent (D214)
+            expect(docs().filter((d) => d.id === writtenId), label).toEqual([{ ...written, savedContent: written.content }]);
             if (match === "path") expect(docById("doc-t"), label).toBeUndefined();
             expect(docById("doc-o"), label).toEqual(sPost.find((d) => d.id === "doc-o"));
             const gens = useMilkdownEditorStore.getState().editorGenerations;
@@ -414,7 +415,8 @@ function runA16Rows(): LawRow[] {
               });
             } else {
               expect(result, label).toEqual({ kind: "written", document: decoded, largeFile: false });
-              expect(docById("doc-t"), label).toEqual(decoded);
+              // a clean upsert now derives savedContent (D214)
+              expect(docById("doc-t"), label).toEqual({ ...decoded, savedContent: decoded.content });
               expect(docById("doc-z"), label).toEqual(sPost.find((d) => d.id === "doc-z"));
               expect(docById("doc-o"), label).toEqual(sPost.find((d) => d.id === "doc-o"));
               expect(docs().length, label).toBe(3);
@@ -544,7 +546,8 @@ describe("Unit A — commitOpenedDocument", () => {
     const result = commitOpenedDocument(decoded, "file-open");
 
     expect(result).toEqual({ kind: "written", document: decoded, largeFile: false });
-    expect(docById("doc-t")).toEqual(decoded);
+    // a clean upsert now derives savedContent (D214)
+    expect(docById("doc-t")).toEqual({ ...decoded, savedContent: decoded.content });
     expect(docById("doc-o")).toEqual(docO(true));
     // D92: written but not activated; the active doc-o's flusher still throws.
     expect(activeIds()).toEqual(expectedActive("doc-t", true));
@@ -575,7 +578,8 @@ describe("Unit A — commitOpenedDocument", () => {
     const result = commitOpenedDocument(decoded, "file-open");
 
     expect(result).toEqual({ kind: "written", document: decoded, largeFile: false });
-    expect(docById("doc-t")).toEqual(decoded);
+    // a clean upsert now derives savedContent (D214)
+    expect(docById("doc-t")).toEqual({ ...decoded, savedContent: decoded.content });
     expect(useMilkdownEditorStore.getState().editorGenerations["doc-t"]).toBe(4);
     expect(useTOCStore.getState().documentId).toBeNull();
     expect(useTOCStore.getState().entries).toEqual([]);
@@ -684,7 +688,8 @@ describe("Unit A — commitOpenedDocument", () => {
     const decoded = decodedT();
     commitOpenedDocument(decoded, "file-open");
     expect(eventsSince(start, "file.open.reload_clean").length).toBe(1);
-    expect(docById("doc-t")).toEqual(decoded);
+    // a clean upsert now derives savedContent (D214)
+    expect(docById("doc-t")).toEqual({ ...decoded, savedContent: decoded.content });
     expect(useMilkdownEditorStore.getState().editorGenerations["doc-t"]).toBe(4);
 
     for (const call of sink.logEventSync.mock.calls) {

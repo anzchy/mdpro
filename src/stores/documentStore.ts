@@ -20,6 +20,19 @@ function flushBeforeClose(): void {
   useMilkdownEditorStore.getState().flushPendingEdits("tab-close");
 }
 
+/**
+ * D214: a clean document's baseline is its content. A dirty one keeps `savedContent`
+ * exactly as given (absent = no baseline, i.e. sticky dirty).
+ */
+function withBaseline(doc: Document): Document {
+  return doc.isModified ? doc : { ...doc, savedContent: doc.content };
+}
+
+/** D214: dirty unless a baseline exists and `content` is exactly it. */
+function differsFromBaseline(doc: Document, content: string): boolean {
+  return doc.savedContent === undefined || content !== doc.savedContent;
+}
+
 interface DocumentStore {
   documents: Document[];
   activeDocumentId: string | null;
@@ -32,11 +45,36 @@ interface DocumentStore {
    * must only do so on `true`, so the two stores never disagree.
    */
   setActiveDocumentId: (id: string | null) => boolean;
+  /**
+   * Insert or replace a document. D214: a clean upsert (`isModified: false`) is a clean
+   * point: `savedContent = content`, overriding any value passed. A dirty upsert stores
+   * `savedContent` exactly as passed (absent = no baseline) and never inherits the
+   * baseline of the document it replaces.
+   */
   upsertDocument: (document: Document) => void;
+  /**
+   * Write new content. D214: `isModified = savedContent === undefined || content !==
+   * savedContent` (strict `===`), so writing the saved text back reads clean; a document
+   * without a baseline stays dirty. The baseline itself never changes here.
+   */
   updateDocumentContent: (id: string, content: string) => void;
+  /**
+   * `true` changes the flag only (an eager mark; the baseline is kept, so a later write
+   * equal to it reads clean). `false` is a clean point: the current content becomes the
+   * baseline (D214).
+   */
   markDocumentModified: (id: string, isModified: boolean) => void;
+  /**
+   * D214-WI-4: the file changed on disk without a clean point (an external modify,
+   * delete or create, another window's save, an open divergence), so the saved text is
+   * no longer known. Sets `savedContent` to `undefined` on `id` only; `isModified` is
+   * untouched (clean stays clean; dirty stays dirty, sticky until the next clean point).
+   */
+  dropBaseline: (id: string) => void;
+  /** Change a document's path; its baseline is kept (D214). */
   updateDocumentPath: (id: string, path: string) => void;
-  /** Apply every move in one `set`, so subscribers see only the final paths (b87). */
+  /** Apply every move in one `set`, so subscribers see only the final paths (b87).
+   *  Baselines are kept (D214). */
   updateDocumentPaths: (moves: ReadonlyArray<{ id: string; path: string }>) => void;
   closeDocument: (id: string) => void;
   /** Get a document by its ID */
@@ -79,8 +117,9 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     });
     return true;
   },
-  upsertDocument: (document) =>
+  upsertDocument: (incoming) =>
     set((state) => {
+      const document = withBaseline(incoming);
       const index = state.documents.findIndex((item) => item.id === document.id);
       if (index === -1) {
         loggingService.logEventSync({
@@ -103,15 +142,21 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   updateDocumentContent: (id, content) =>
     set((state) => ({
       documents: state.documents.map((doc) =>
-        doc.id === id ? { ...doc, content, isModified: true } : doc,
+        doc.id === id ? { ...doc, content, isModified: differsFromBaseline(doc, content) } : doc,
       ),
     })),
   markDocumentModified: (id, isModified) =>
     set((state) => ({
       documents: state.documents.map((doc) =>
-        doc.id === id ? { ...doc, isModified } : doc,
+        doc.id !== id ? doc : isModified ? { ...doc, isModified } : withBaseline({ ...doc, isModified }),
       ),
     })),
+  dropBaseline: (id) => {
+    if (get().documents.every((doc) => doc.id !== id || doc.savedContent === undefined)) return;
+    set((state) => ({
+      documents: state.documents.map((doc) => (doc.id === id ? { ...doc, savedContent: undefined } : doc)),
+    }));
+  },
   updateDocumentPath: (id, path) =>
     set((state) => ({
       documents: state.documents.map((doc) =>

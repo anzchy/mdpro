@@ -98,7 +98,8 @@ describe("D145 — a clean path match with a different id is reloaded in place",
     expect(docs().filter((d) => d.path === PATH).length).toBe(1);
     expect(docById(UUID)?.content).toBe("fresh");
     expect(docById(UUID)?.isModified).toBe(false);
-    expect(docById(UUID)).toEqual({ ...decoded(), id: UUID });
+    // a clean upsert now derives savedContent (D214)
+    expect(docById(UUID)).toEqual({ ...decoded(), id: UUID, savedContent: "fresh" });
     expect(activeIds()).toEqual([UUID, UUID]);
     expect(result.kind).toBe("written");
     expect(result.document.id).toBe(UUID);
@@ -144,7 +145,8 @@ describe("D145 — a clean path match with a different id is reloaded in place",
 
     expect(result).toEqual({ kind: "written", document: decoded(), largeFile: false });
     expect(docs().length).toBe(2);
-    expect(docById(PATH_ID)).toEqual(decoded());
+    // a clean upsert now derives savedContent (D214)
+    expect(docById(PATH_ID)).toEqual({ ...decoded(), savedContent: "fresh" });
     expect(activeIds()).toEqual([PATH_ID, PATH_ID]);
     const logs = logsOf("file.open.reload_clean");
     expect(logs).toHaveLength(1);

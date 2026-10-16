@@ -20,6 +20,10 @@
  *   kept only when the store holds exactly `writtenContent`.
  * - Store content equal to the formatted `writtenContent` but not the snapshot is
  *   treated as edited (conservatively dirty).
+ * - D214: a save records what the disk now holds as the baseline (`savedContent =
+ *   writtenContent`), in both `applied` and `edited-during-save`, so undoing back to
+ *   the written text reads clean. A document with no baseline (sticky dirty: a
+ *   recovered draft, a failed settle flush) that stays dirty keeps none.
  * - Pure: no store, service, IPC or logging imports. The caller owns side effects.
  *
  * @coordinates-with src/services/saveService.ts — applies the resolution (D19-WI-3)
@@ -63,8 +67,12 @@ export type SaveResolution =
  * - a dirty → clean transition happens only in `applied`, with `next.content ===
  *   writtenContent`;
  * - `!next.isModified` ⇒ `next.content === writtenContent` (D70);
- * - fields other than `content`, `isModified`, `path` and `lastSaved` are carried
- *   over from `current` unchanged.
+ * - fields other than `content`, `isModified`, `path`, `lastSaved` and `savedContent`
+ *   are carried over from `current` unchanged;
+ * - D214: `next.savedContent ∈ {undefined, writtenContent}`: `applied` ⇒
+ *   `writtenContent`; `edited-during-save` ⇒ `writtenContent`, except `undefined` when
+ *   `current.savedContent === undefined` and `next` stays dirty; `!next.isModified` ⇒
+ *   `next.savedContent === next.content`.
  *
  * Idempotent: resolving again with `current = next` yields a deep-equal `next`.
  * Pure: inputs are not mutated; `next` is always a fresh object.
@@ -79,15 +87,31 @@ export function resolveSaveResult(input: SaveResultInput): SaveResolution {
   if (current.content === snapshotContent) {
     return {
       kind: "applied",
-      next: { ...current, content: writtenContent, isModified: false, path, lastSaved: savedAt },
+      next: {
+        ...current,
+        content: writtenContent,
+        isModified: false,
+        path,
+        lastSaved: savedAt,
+        savedContent: writtenContent,
+      },
     };
   }
 
   // D70: clean content the disk does not hold (an earlier save landing after a newer
   // one marked the buffer clean) is raised to dirty.
   const isModified = current.isModified || current.content !== writtenContent;
+  // D214: the disk now holds `writtenContent`; a sticky document that stays dirty keeps
+  // no baseline (a clean `next` is a clean point, whose baseline is its content).
+  const sticky = current.savedContent === undefined && isModified;
   return {
     kind: "edited-during-save",
-    next: { ...current, isModified, path, lastSaved: savedAt },
+    next: {
+      ...current,
+      isModified,
+      path,
+      lastSaved: savedAt,
+      savedContent: sticky ? undefined : writtenContent,
+    },
   };
 }

@@ -211,7 +211,8 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
           expect(byId("doc-a")?.isModified, label).toBe(true);
           expect(gen("doc-a"), label).toBe(3);
         } else {
-          expect(byId("doc-a"), label).toEqual(decoded);
+          // a clean upsert now derives savedContent (D214)
+          expect(byId("doc-a"), label).toEqual({ ...decoded, savedContent: decoded.content });
           expect(gen("doc-a"), label).toBe(4);
         }
         expect(docs().filter((d) => d.id === "doc-a").length, label).toBe(1);
@@ -337,7 +338,8 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
       held.reply(cmd, () => ({ document: decoded }));
       const out = await call(hook(), run);
       expect(out).toEqual(entry === "encoding" ? { kind: "opened", document: decoded } : decoded);
-      expect(byId("doc-a")).toEqual(decoded);
+      // a clean upsert now derives savedContent (D214)
+      expect(byId("doc-a")).toEqual({ ...decoded, savedContent: decoded.content });
       expect(gen("doc-a")).toBe(4);
       expect(activeIds()).toEqual(["doc-a", "doc-a"]);
     });

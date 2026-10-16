@@ -17,6 +17,15 @@ export interface Document {
   /** Has unsaved changes */
   isModified: boolean;
 
+  /**
+   * D214: the text last known to match disk (the baseline). With a baseline,
+   * `isModified === (content !== savedContent)`, so undoing back to it reads clean.
+   * `undefined` = no baseline (sticky dirty: a recovered draft, an MCP-created
+   * document with content, a failed save): every write reads dirty until the next
+   * clean point. Frontend-only; never sent to Rust.
+   */
+  savedContent?: string;
+
   /** Last saved timestamp (Unix epoch ms) */
   lastSaved: number | null;
 

@@ -14,7 +14,8 @@
  *     rejected (or ran for an id no longer matching) → `collision-draft-check-failed`:
  *     the same second tab, toast and warn line, nothing saved or deleted;
  *   - clean, flush ok, no draft under its id → `merged-into-clean`: the draft's content
- *     into that tab, under its id, modified → `upsertAndActivate`
+ *     into that tab, under its id, modified, with no saved-content baseline (D214) →
+ *     `upsertAndActivate`
  *     (→ `prepareWholesaleReplace(id, "draft-recovery")`, so the WYSIWYG view rebuilds)
  *     → `file.draft.recover.merge` → re-key the draft: `save_draft` under the tab's id, then `delete_draft` of the draft
  *     id → `file.draft.delete` (reason `rekeyed`, the target id and byte count; the
@@ -162,7 +163,8 @@ export function placeRecovered(recovered: Document, check?: OpenIdDraftCheck): R
   }
   return {
     kind: "merged-into-clean",
-    document: { ...open, content: recovered.content, isModified: true },
+    // D214: the draft's text is not on disk, so the tab loses its baseline (sticky dirty).
+    document: { ...open, content: recovered.content, isModified: true, savedContent: undefined },
   };
 }
 

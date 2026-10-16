@@ -17,7 +17,9 @@
  * - The draft is deleted only on `applied`; after an in-flight edit it is the only
  *   persisted copy of the newer text.
  * - A failed settle flush demotes `applied` to `edited-during-save`, but `closed`
- *   is decided first, so a failed flush never resurrects a closed tab (F7).
+ *   is decided first, so a failed flush never resurrects a closed tab (F7). The
+ *   demoted document loses its saved-content baseline (D214): the editor may hold
+ *   text the store lacks, so no later write may read clean until a clean point.
  * - The `file.save` result log carries the document id, a boolean flag and the
  *   caller's actionId, never content, lengths or paths. A `draft.delete` failure
  *   warn also carries the IPC error text, which may name the draft file.
@@ -150,7 +152,11 @@ function logUnappliedSave(
  *   is deleted.
  * - `edited-during-save` (also forced by a failed settle flush): one upsert of path /
  *   lastSaved; content untouched; dirty raised if the store content is not what was
- *   written (D70); the draft is kept.
+ *   written (D70); the baseline becomes `writtenContent` (D214); the draft is kept.
+ *   A failed settle flush instead drops the baseline (`savedContent: undefined`) of a
+ *   dirty document, so it reads dirty on every write until the next clean point. A
+ *   document the store already holds clean is upserted clean, which re-derives it.
+ * - `applied` also sets the baseline to `writtenContent` (D214).
  * - `closed`: no store write, no draft call.
  *
  * Synchronous and returns `undefined`: nothing it does happens after it returns
@@ -174,10 +180,12 @@ export function applySaveResult(
     savedAt: result.savedAt,
   });
   if (status === "failed" && resolution.kind === "applied" && current) {
-    // The editor may hold text the store lacks: keep dirty and keep the draft.
+    // The editor may hold text the store lacks: keep dirty and keep the draft, and
+    // drop the baseline (D214) so no write reads clean until the next clean point
+    // (dirty documents only: a clean upsert re-derives the baseline from content).
     resolution = {
       kind: "edited-during-save",
-      next: { ...current, path: result.path, lastSaved: result.savedAt },
+      next: { ...current, path: result.path, lastSaved: result.savedAt, savedContent: undefined },
     };
   }
 

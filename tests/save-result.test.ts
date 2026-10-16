@@ -51,7 +51,9 @@ describe("resolveSaveResult — named cases", () => {
     );
     expect(r).toEqual({
       kind: "applied",
-      next: { ...current, content: "BASE", isModified: false, lastSaved: SAVED_AT },
+      // D214-WI-2: an applied save records the disk text as the baseline, so the
+      // expected `next` gains savedContent "BASE" (the content this save wrote).
+      next: { ...current, content: "BASE", isModified: false, lastSaved: SAVED_AT, savedContent: "BASE" },
     });
   });
 
@@ -320,5 +322,108 @@ describe("resolveSaveResult — W2-pure", () => {
     if (r1 && r1.kind !== "closed") {
       expect(r1.next).not.toBe(input.current);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D214-WI-2 — the saved-content baseline a save records.
+// Law: `next.savedContent ∈ {undefined, writtenContent}`; applied → writtenContent;
+// edited → writtenContent, except a document with no baseline that stays dirty keeps
+// none (sticky); a clean `next` has `savedContent === content`; idempotent.
+// ---------------------------------------------------------------------------
+
+const BASELINES = ["none", "OLD", "=content"] as const;
+
+function buildBaselineDomain(): Row[] {
+  const rows: Row[] = [];
+  for (const written of [S, W_DIFF]) {
+    for (const path of [OLD_PATH, NEW_PATH]) {
+      rows.push({
+        label: `absent|${written}|${path}`,
+        input: makeInput({ current: undefined, snapshotContent: S, writtenContent: written, path }),
+      });
+    }
+    const shapes: CurrentShape[] = written === S ? ["=S", "other"] : ["=S", "=W≠S", "other"];
+    for (const shape of shapes) {
+      const content = shape === "=S" ? S : shape === "=W≠S" ? W_DIFF : "OTHER";
+      for (const isModified of [true, false]) {
+        for (const baseline of BASELINES) {
+          const savedContent = baseline === "none" ? undefined : baseline === "OLD" ? "OLD" : content;
+          const current = makeDoc({ content, isModified, savedContent });
+          rows.push({
+            label: `${shape}|${isModified}|${written}|baseline=${baseline}`,
+            input: makeInput({ current, snapshotContent: S, writtenContent: written }),
+          });
+        }
+      }
+    }
+  }
+  return rows;
+}
+
+const BASELINE_DOMAIN = buildBaselineDomain();
+
+describe("D214 R1 — savedContent laws over the exhaustive baseline domain (S5)", () => {
+  it("the domain has 34 rows (absent 4 + present 30)", () => {
+    expect(BASELINE_DOMAIN.length).toBe(34);
+  });
+
+  it.each(BASELINE_DOMAIN.map((r) => [r.label, r] as const))("laws hold on %s", (_label, row) => {
+    const { input } = row;
+    const r = resolveSaveResult(input);
+    const current = input.current;
+    if (current === undefined) {
+      expect(r).toEqual({ kind: "closed" });
+      return;
+    }
+    const next = nextOf(r);
+    expect([undefined, input.writtenContent]).toContain(next.savedContent);
+    if (r.kind === "applied") expect(next.savedContent).toBe(input.writtenContent);
+    if (r.kind === "edited-during-save") {
+      if (current.savedContent !== undefined) expect(next.savedContent).toBe(input.writtenContent);
+      else if (next.isModified) expect(next.savedContent).toBeUndefined();
+    }
+    if (!next.isModified) expect(next.savedContent).toBe(next.content);
+    const again = nextOf(resolveSaveResult({ ...input, current: Object.freeze({ ...next }) }));
+    expect(again).toEqual(next);
+    expect(again.savedContent).toBe(next.savedContent);
+  });
+
+  it("non-vacuity: both kinds, a sticky edited row and a baseline-carrying edited row occur", () => {
+    const seen = new Set<string>();
+    for (const { input } of BASELINE_DOMAIN) {
+      const r = resolveSaveResult(input);
+      if (r.kind === "closed" || !input.current) continue;
+      seen.add(r.kind);
+      if (r.kind === "edited-during-save") {
+        seen.add(r.next.savedContent === undefined ? "edited-sticky" : "edited-baseline");
+      }
+    }
+    expect([...seen].sort()).toEqual(["applied", "edited-baseline", "edited-during-save", "edited-sticky"]);
+  });
+});
+
+describe("D214 R2–R4 — named baseline cases", () => {
+  it("R2 in-flight edit: the baseline becomes the written text, the live edit stays dirty", () => {
+    const current = makeDoc({ content: "MID+NEW", isModified: true, savedContent: "OLD" });
+    const r = resolveSaveResult(makeInput({ current, snapshotContent: "MID", writtenContent: "MID" }));
+    expect(r.kind).toBe("edited-during-save");
+    const next = nextOf(r);
+    expect([next.content, next.isModified, next.savedContent]).toEqual(["MID+NEW", true, "MID"]);
+  });
+
+  it("R3 reformat on save: the baseline is the formatted text", () => {
+    const current = makeDoc({ content: "T0", isModified: true, savedContent: "OLD" });
+    const r = resolveSaveResult(makeInput({ current, snapshotContent: "T0", writtenContent: "T0-FMT" }));
+    expect(r.kind).toBe("applied");
+    expect(nextOf(r).savedContent).toBe("T0-FMT");
+  });
+
+  it("R4 a document without a baseline stays without one through an in-flight edit", () => {
+    const current = makeDoc({ content: "MID+NEW", isModified: true, savedContent: undefined });
+    const r = resolveSaveResult(makeInput({ current, snapshotContent: "MID", writtenContent: "MID" }));
+    expect(r.kind).toBe("edited-during-save");
+    expect(nextOf(r).isModified).toBe(true);
+    expect(nextOf(r).savedContent).toBeUndefined();
   });
 });

@@ -312,3 +312,40 @@ describe("D146 (f) the open tab's pending WYSIWYG edits are flushed before it is
     expect(calls("delete_draft")).toEqual([]);
   });
 });
+
+describe("D214 P1/P2 a recovered draft has no saved-content baseline", () => {
+  it("P1 a draft recovered into a new tab reads dirty on every write until a clean point", async () => {
+    routeInvoke({ originalPath: PATH });
+
+    await recover(UUID);
+
+    expect(byId(UUID)?.savedContent).toBeUndefined();
+    useDocumentStore.getState().updateDocumentContent(UUID, "disk text");
+    expect(byId(UUID)?.isModified).toBe(true);
+    useDocumentStore.getState().updateDocumentContent(UUID, "draft text");
+    expect(byId(UUID)?.isModified).toBe(true);
+    useDocumentStore.getState().markDocumentModified(UUID, false);
+    useDocumentStore.getState().updateDocumentContent(UUID, "draft text");
+    expect(byId(UUID)?.isModified).toBe(false);
+  });
+
+  it("P2 a draft merged into a clean tab drops that tab's baseline", async () => {
+    // A clean upsert gives the open tab the baseline "disk text".
+    useDocumentStore.getState().upsertDocument(openClean());
+    expect(byId(PATH_ID)?.savedContent).toBe("disk text");
+    routeInvoke({ originalPath: PATH });
+
+    await recover(UUID);
+
+    expect(byId(UUID)).toBeUndefined();
+    expect(byId(PATH_ID)).toMatchObject({ content: "draft text", isModified: true });
+    expect(byId(PATH_ID)?.savedContent).toBeUndefined();
+    useDocumentStore.getState().updateDocumentContent(PATH_ID, "disk text");
+    expect(byId(PATH_ID)?.isModified).toBe(true);
+    useDocumentStore.getState().updateDocumentContent(PATH_ID, "draft text");
+    expect(byId(PATH_ID)?.isModified).toBe(true);
+    useDocumentStore.getState().markDocumentModified(PATH_ID, false);
+    useDocumentStore.getState().updateDocumentContent(PATH_ID, "draft text");
+    expect(byId(PATH_ID)?.isModified).toBe(false);
+  });
+});
