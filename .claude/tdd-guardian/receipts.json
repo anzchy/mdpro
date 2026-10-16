@@ -178059,9 +178059,25 @@
           "reason": ""
         }
       },
-      "verified_at": null,
-      "verdict": null,
-      "findings": []
+      "verified_at": "2026-10-16T12:02:56.838Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D262-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "5 non-test file(s) were already modified when the red was recorded (scripts/redesign/snapshot.js, src/components/common/SettingsDialog.tsx, src/components/common/settings/SettingsRailIcon.tsx, src/styles/sections/settings-pages.css, src/styles/sections/settings-shell.css). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: tests/d262-settings-rail-scroll.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
     },
     {
       "id": "D260-WI-1",
@@ -179967,9 +179983,20 @@
           "reason": ""
         }
       },
-      "verified_at": null,
-      "verdict": null,
-      "findings": []
+      "verified_at": "2026-10-16T12:02:56.838Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D214-WI-2' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (src/stores/documentStore.ts, src/types/document.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     },
     {
       "id": "D214-WI-3",
@@ -180284,9 +180311,20 @@
           "reason": ""
         }
       },
-      "verified_at": null,
-      "verdict": null,
-      "findings": []
+      "verified_at": "2026-10-16T12:02:56.838Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D214-WI-3' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "5 non-test file(s) were already modified when the red was recorded (src/services/saveService.ts, src/stores/documentStore.ts, src/types/document.ts, src/utils/recoverIntoOpenTab.ts, src/utils/saveResult.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     },
     {
       "id": "D214-WI-1",
@@ -181350,6 +181388,185 @@
           "severity": "medium",
           "code": "weak-red",
           "message": "The red for 'D214-WI-6' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
+    },
+    {
+      "id": "D214-WI-7",
+      "lane": "unit",
+      "recorded_at": "2026-10-16T11:54:13.301Z",
+      "head_sha": "0d2569e06d59e135a97a5b6a300fc56b2dbc649d",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/d214-open-tombstone.test.ts": {
+          "state": "ok",
+          "sha": "9da6c42347c6bdb1c37d30d8cc8bdd2dd9dc9e4c70193af1a4e63a61899fa3ab",
+          "lines": [
+            "8d64a30d9de151b6",
+            "dd7e940cab40feb1",
+            "5acd5bd480070cfe",
+            "684888c0ebb17f37",
+            "a1b42099f59ba9e0",
+            "fe6464a06114f450",
+            "c6ec4e897bbf2a20",
+            "14d8324a2ad5bc7b",
+            "684888c0ebb17f37",
+            "d3a68dd5a3e07a0c",
+            "48ceb756653655fe",
+            "c4ee6b8483ef46e3",
+            "bc4528837b06d0c5",
+            "c9ca8d7a0fbc0715",
+            "684888c0ebb17f37",
+            "def46b8693275298",
+            "3fd6e1a9c61cd81f",
+            "9d334a64d0474bbb",
+            "684888c0ebb17f37",
+            "16d16176435fa633",
+            "eba6f05edb03e1fd",
+            "aae95db43ac5fdcf",
+            "ed9623369ff082ab",
+            "7219763f5e53f0be",
+            "d4083a4a05f75582",
+            "c1952c759096bb60",
+            "d411b02fc42d37a6",
+            "5afe8aa33b5c6a18",
+            "0676d42368759f54",
+            "4e43a61f2f4aa72c",
+            "009fc42d484c3cd8",
+            "885023882c14b80a",
+            "992b22426554fd2c",
+            "95bbf047270ec747",
+            "880e82fc0511bf28",
+            "bd460499f02fd16a",
+            "f4ab88ffa4cc0eef",
+            "99a150d09a1c2cf7",
+            "dde44124f1ee421c",
+            "c6841cd9c02e5620",
+            "2e647fad2697781f",
+            "a09acdab1fe17de7",
+            "357e7f66e918bcbe",
+            "65c49e42a3f7b6ba",
+            "c1d7b1fd1918b0cf",
+            "fa97181c6b6ab77c",
+            "7e118edf4b2828b6",
+            "b2450cd72d658987",
+            "df3982fd61017359",
+            "d10b36aa74a59bcf",
+            "582a08e485da2c17",
+            "f4321ec8f53bc612",
+            "0e360d51b1d82e9d",
+            "d10b36aa74a59bcf",
+            "4227941b3ba45554",
+            "46ca3841eec3c3b5",
+            "02f62487d6f271ed",
+            "878bd6a6c656e50c",
+            "d179d15ba3f7600c",
+            "15e26073b683599b",
+            "9bdcf56600fef225",
+            "e5d2bed0e54fc967",
+            "d10b36aa74a59bcf",
+            "9b0df4fa49b2b132",
+            "1bf66ed094e01c70",
+            "6e558940a310b29a",
+            "54ed54eedb0a998d",
+            "a661c01004e99c72",
+            "29576b54e255e3c9",
+            "e66c00633fb62608",
+            "9fc68c87f070ae32",
+            "0e62f289d89305ca",
+            "be17f5be53cbb632",
+            "23d4ca0a5149fefd",
+            "f513ea73ff22dbd7",
+            "bfaf16004eef21b3",
+            "0df8c160825db5ad",
+            "ae6e00bace227307",
+            "35665600bfd0ad87",
+            "53dbb226a6f2171c",
+            "1d609c2738a92a4e",
+            "6858455e427b274f",
+            "59d4aed77964bad4",
+            "306e61b42463b89e",
+            "cb6e18cf34ea6b17",
+            "31b2fbb6fbaaac97",
+            "b358cbea5d9c4507",
+            "ad0174916557e60a",
+            "3f655bd396148840",
+            "bb56661aaed83a3e",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9",
+            "2bd361f20cd31f67",
+            "be22a65d4b484554",
+            "659bba4b255e3a92",
+            "de622f3711938746",
+            "bb1d306cc03ebaac",
+            "3762a1becfb00586",
+            "a409575a45d37b73",
+            "29576b54e255e3c9",
+            "314cc1afa62b2b71",
+            "de622f3711938746",
+            "3762a1becfb00586",
+            "5b7d47e08a064307",
+            "29576b54e255e3c9",
+            "3aca89fa32d3d38b",
+            "659bba4b255e3a92",
+            "3e8cccc21cb0b55e",
+            "bb1d306cc03ebaac",
+            "de622f3711938746",
+            "3762a1becfb00586",
+            "5b7d47e08a064307",
+            "29576b54e255e3c9",
+            "b65d8944d7014c97",
+            "902cd858b545e555",
+            "de622f3711938746",
+            "cdf39c4dff2686e4",
+            "afbeb61a4ae6ba3b",
+            "3762a1becfb00586",
+            "5b7d47e08a064307",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9",
+            "3cdca55e6f6a3c97",
+            "294f74f73b47ef68",
+            "62b9f5e1eaff61d2",
+            "3e8cccc21cb0b55e",
+            "be27786afd20a8eb",
+            "c6b98ba32e0f4d13",
+            "3a64a9eebf598efc",
+            "bb1d306cc03ebaac",
+            "3f81558fdf387f2e",
+            "615e6919f5a3c6cb",
+            "fda2dbd1ec97c473",
+            "be1064b65912949e",
+            "5ed17dc2c6c2ffb3",
+            "959d4b7d9b3ee70d",
+            "29576b54e255e3c9",
+            "493c38da1322c554",
+            "893a5b35e040f2e7",
+            "b0592e6d1adc489e",
+            "3c6848cd898a3610",
+            "c1d4af0307c7eeaf",
+            "3b5f4d332dd54dd3",
+            "62b9f5e1eaff61d2",
+            "3e8cccc21cb0b55e",
+            "ba695084e9d915d1",
+            "5a627d6e043d7c17",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-16T12:02:56.838Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'D214-WI-7' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
     }

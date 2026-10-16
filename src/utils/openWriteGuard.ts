@@ -40,11 +40,11 @@
  *   another document's flusher still focuses as decision 5 says. The refusal log
  *   carries the open's own `ctx.actionId` when it has one (D95).
  * - Callers read `activeDocumentId` after the call to learn whether the tab became active (D95).
- * - D214-WI-6: a write over an open tab whose baseline moved since `ctx.startGeneration`
- *   (a change recorded during the read) goes in dirty with no baseline: no clean point.
+ * - D214-WI-6/7: if the replaced tab, the opened id or its path had a baseline drop or
+ *   close since `ctx.startGeneration` (`openDemotion.ts`), the write goes in dirty, no baseline.
  * - Logs (`file.open.focus_dirty`, `file.open.reload_clean`) carry ids and flags only,
  *   never content (rule 20). A D145 reload adds `decodedId`, `matchedBy: "path"` and
- *   `pathMatchCount`; a D214-WI-6 demotion adds `demoted`, `reason`. `success` is the
+ *   `pathMatchCount`; a D214 demotion adds `demoted`, `reason` (fresh writes too). `success` is the
  *   guard's decision; `activated` says whether the tab became active (false after a
  *   D92 refusal, which also logs `tab.switch` fail).
  * - D121: an encoding retry whose signal was aborted before its read settled never
@@ -60,16 +60,18 @@
  * @coordinates-with src/stores/editorStore.ts — setActiveDocumentId
  * @coordinates-with src/hooks/useDocument.ts — the three open entry points that call it
  * @coordinates-with src/utils/flushRefusal.ts — refuseTabSwitch (D92)
+ * @coordinates-with src/utils/openDemotion.ts — movedDuringOpen, demotion (D214)
  * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEditsFor (D92)
  * @module utils/openWriteGuard
  */
 import { loggingService } from "../services/loggingService";
-import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
+import { useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
 import { assessWindowUnsaved } from "./dataLossGuards";
 import { refuseTabSwitch } from "./flushRefusal";
+import { demotion, movedDuringOpen } from "./openDemotion";
 import { prepareWholesaleReplace } from "./wholesaleReplace";
 
 /** Files above this size open with a performance warning. */
@@ -177,8 +179,6 @@ function logFocus(
   });
 }
 
-const demotion = (demoted: boolean) => (demoted ? { demoted, reason: "external_change_during_open" } : {});
-
 /**
  * Write the decoded document for an open action, unless a candidate is dirty (or the
  * flush failed while a candidate exists), in which case the existing tab is focused
@@ -205,14 +205,13 @@ export function commitOpenedDocument(
   }
 
   const target = inPlaceTarget(idMatch, pathMatches);
-  const replaced = idMatch ?? target;
-  const demoted = replaced !== undefined && baselineMovedSince(replaced.id, ctx.startGeneration);
+  const demoted = movedDuringOpen(opened, idMatch ?? target, ctx.startGeneration);
   const placed = target ? { ...opened, id: target.id } : opened;
   const decoded = demoted ? { ...placed, isModified: true, savedContent: undefined } : placed;
   prepareWholesaleReplace(decoded.id, reason);
   useDocumentStore.getState().upsertDocument(decoded);
   const activated = activate(decoded.id, flushFailed, ctx);
-  if (idMatch || target) {
+  if (idMatch || target || demoted) {
     const byPath = target
       ? { decodedId: opened.id, matchedBy: "path", pathMatchCount: pathMatches.length }
       : {};

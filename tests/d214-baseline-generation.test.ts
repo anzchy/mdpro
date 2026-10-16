@@ -102,6 +102,9 @@ beforeEach(() => {
   // A fresh store per case: epochs left by an earlier case would make one pass by accident.
   useDocumentStore.setState({ documents: [], activeDocumentId: null, baselineEpoch: {} });
   useDocumentStore.setState({ baselineGeneration: 0 } as never);
+  // Added in D214-WI-7: the path stamps are new state; resetting the generation to 0
+  // without them would leave stamps from earlier cases above every fresh capture.
+  useDocumentStore.setState({ baselinePathEpoch: {} } as never);
   useMilkdownEditorStore.setState({ flushers: {} });
 });
 
