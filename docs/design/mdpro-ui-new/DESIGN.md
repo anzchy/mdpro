@@ -508,6 +508,63 @@ cited proposal lines in both themes.
   `menuitemradio` with the current value checked. A form, like the custom
   width, sits beside the menu, never inside it.
 
+### Native menu bar and Keyboard Shortcuts page (menu plan, v0.3.6)
+
+The native menu bar and Settings › Keyboard Shortcuts after the menu
+reorganisation ([plan](../../plans/20261015-plan-menu-reorganisation.md),
+merged with D255; the user chose prototype A, `prototypes/menu-ui.html`).
+The plan owns the trees, the keys and availability; this block owns how they
+look. Where the two disagree, the plan wins and this block is corrected.
+
+- **Trees:** exactly the plan's § 5.1 (macOS) and § 5.2 (Windows / Linux),
+  rendered from its command table (§ 5.5). No extra nesting. Paragraph
+  headings and lists stay flat. Edit keeps the plan's Selection ▸ and Find ▸
+  submenus.
+- **Native look only:** the menus are drawn by macOS and Win32, not by
+  mdpro's CSS. § Menus above is for in-app menus and does not apply here.
+- **Unavailable items** (no command yet, D3; or the other editor mode, *(W)* /
+  *(S)*):
+  - They stay in place, greyed by the platform's disabled style.
+  - Their key is still shown, greyed with the item.
+  - Nothing tells "not built yet" apart from "switch modes". That is the
+    accepted cost of A (open item 3).
+- **Keyboard Shortcuts page:** every row stays in its group, in the plan's
+  order. The status takes the place of the key or sits under the name:
+  - "Not available" (D3): the row's name is muted and there is no key
+    button, so a click starts no recording. The status text is muted and
+    sits where the key would be.
+  - "WYSIWYG only" / "Source only": the key button stays and works. The
+    capability is a muted `--font-size-ui-sm` line under the name.
+  - System keys (Jump to Top / Bottom, macOS full screen) and fixed keys
+    (Undo, Redo, Quit / Exit) show their key in a non-editable box with a
+    dashed `--color-border` edge, not a button.
+  - A merged entry (Replace) shows "→ Find and Replace" where the key
+    would be.
+- **Changed defaults:** not announced. No banner, no "was …" line, no
+  marker. The new keys show as the keys. The changelog is where the move is
+  recorded.
+- **Open items** (for the plan's § 9 re-review and the user; don't decide
+  them while building):
+  1. Quote has no macOS key until the M2 spike decides ⌥⌘Q (plan open
+     question 1). The row reads "No key".
+  2. F6 alone, or ⌘/ / Ctrl+/ kept as a second key (OQ2). A native item
+     shows one key, so a second key could only appear in Settings.
+  3. *(W)* / *(S)* items draw exactly like "not available" in a native menu.
+  4. Windows, WYSIWYG: Find is greyed while Ctrl+F opens WebView2's own
+     find bar (§ 5.2, OQ7). The menu and the key disagree.
+  5. View order differs: § 5.1 is Source, WYSIWYG, Toggle Source Mode;
+     § 5.2 puts Toggle Source Mode first.
+  6. The menu is "Themes" in the plan; today it is "Theme".
+  7. M7 doesn't say which Settings group takes Export HTML, Highlight,
+     Undo / Redo and Exit. The prototype drew them in File, Format, Edit
+     (fixed) and File.
+  8. Jump to Top / Bottom become fixed "System" rows with no menu item.
+  9. macOS inserts items the plan doesn't draw: the Help search field, the
+     Window menu's window list and View › Enter Full Screen.
+  10. D255 (decision D7) builds what it can, so the "not available" set
+      will shrink from § 5.1's as drawn. The look holds for whatever
+      remains.
+
 ### Toasts (proposal :278-281, :558-564; DR9)
 
 - **Card:** the same card as menus; the icon uses the accent.
@@ -793,11 +850,14 @@ Leave these open; don't pick an answer while building.
     § External change dialog: DR1, DR5)
   - the drag-and-drop target (now specified under § Drop target: DR1, DR7)
   - seven of the ten settings pages. They still follow § Settings rows (WI-4.3).
+- **Native menu bar and Keyboard Shortcuts page:** the ten open items listed
+  under that component, for the menu plan's § 9 re-review and the user.
 
 ## Decisions log
 
 | Date | Decision | Rationale |
 |---|---|---|
+| 2026-10-16 | Menu reorganisation UI: the plan's trees as written. Unavailable items are greyed in place with their keys greyed. Keyboard Shortcuts rows stay in place, marked "Not available" or "WYSIWYG only" / "Source only". Changed defaults are not announced. The user asked for prototypes: 「上面的Menu Reorganization 也涉及到UI修改，重新设计之后的UI形成Prototype （3个备选）」. The user chose 「A · Plan as written, greyed」 | It is the platforms' own disabled look, with nothing for mdpro to build or maintain on top of the plan. The recommended B (nested Paragraph submenus, no key on items with no command, a folded "Not available yet" list and a one-time banner of changed keys) was turned down. What A gives up: a no-command item and a wrong-mode item look the same in the menu, and the 14 moved default keys, among them ⌘H → Find and Replace, are not announced in the app. Prototype: `prototypes/menu-ui.html`, branch `prototype/menu-ui` (VERDICT.md there). |
 | 2026-10-16 | D260: Settings has no footer Close. The rail uses outline icons on Lucide's geometry at 19px, in the label's colour, a neutral grey selected row (text 9%, no accent, no bold) and 32px rows. The user's request: 「在v0.3.6 Settings 中，把左下角的`Close` button去掉，此外 每个Tab的 […] 图标我想换一下」. The user chose variant D, VMark's look: 「D · VMark outline (Recommended)」 | The header × and Esc already close the dialog, so the footer only repeated them. The user first chose Typora's solid glyphs (A), then preferred VMark's outline rail side by side, which keeps § Icons' outline contract, so no ADR. The three rail exceptions in § Icons are the cost: the rail no longer uses the rule 31 accent selection, and its icons are neither muted nor `--icon-size-md`. Prototype: `prototypes/d260-settings-rail.html`, branch `prototype/d260-settings-rail`. |
 | 2026-10-15 | D223: the sidebar's top band carries no text; the "Table of Contents" header and the WYSIWYG / SOURCE badge are removed, with the sidebar shown or hidden (user: 「Sidebar左上角的Table of Content 和 Mode(WYSIWYG / Source）等文本去掉，让整体界面比较清爽」; prototype ruling 「B: remove everywhere (Recommended)」) | The header repeated what the outline already shows. The mode stays visible in the View menu's check marks, and comes back to the window with the main bar's segmented control (WI-4.8, not yet built); until then the window itself does not name it. The bands stay as window drag regions for the traffic lights. |
 | 2026-10-15 | ADR-0088: the sidebar is resizable (180–480px, default 220) and keeps its width at every window width; two new layout tokens, `--sidebar-width-min` (180px) and `--main-min-width` (320px), set the grid's `clamp()`. One fixed toggle leads the bottom tab bar | The width was a fixed 220px and a leftover 960px media query squeezed the sidebar to 33px or stretched it across the window (#416). Hiding it is the user's choice, never a side effect of window size. The tokens name the two limits instead of literals in the grid. |

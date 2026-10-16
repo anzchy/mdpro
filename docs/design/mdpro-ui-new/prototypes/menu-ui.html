@@ -1,0 +1,442 @@
+<!doctype html>
+<!--
+  Menu reorganisation UI prototype, kept as the design reference (DESIGN.md § Native menu bar and Keyboard
+  Shortcuts page, 2026-10-16). The user chose variant A: 「A · Plan as written, greyed」. B and C stay here
+  as the options that were turned down; branch prototype/menu-ui has VERDICT.md. It loads the live
+  src/styles/index.css for the Settings part.
+  The menu reorganisation's UI (docs/plans/20261015-plan-menu-reorganisation.md, v0.3.6, merged with
+  D255 by decision D7): the macOS menu bar (§ 5.1), the Windows / Linux menu bar (§ 5.2), how disabled
+  and "not available" entries look in the menus and in Settings › Keyboard Shortcuts (D3 / M7), and how
+  that page shows the new VMark defaults (D2). Three variants, ?variant=a|b|c, plus the bottom bar.
+
+    a  Plan as written: § 5.1 / 5.2 trees verbatim. Every disabled item stays in place, greyed, its key
+       greyed too (the native default). Settings keeps every row in place: a "Not available" row is
+       greyed with no key button; a mode-only row says so under its name. New defaults are not marked.
+    b  Nested, VMark-style: Paragraph splits into Headings ▸ and Lists ▸ submenus. Items with no command
+       stay in place, greyed, and show no key. Settings gathers them in a closed "Not available yet"
+       disclosure at the end of each group, puts a mode chip before the key, and announces the changed
+       defaults once in a banner with an old → new list.
+    c  Typora-flat, unavailable last: no submenus except Open Recent (Selection and Find items sit in Edit).
+       Each menu ends with its no-command items after a separator, keys hidden; mode-only items stay in
+       place. Settings shows one capability chip on every row that is not "both" and writes "was …" under
+       each changed key.
+
+  Every variant shares one command table (keys from § 5.3.2, availability from § 5.1 / § 5.2). The
+  controls at the top switch platform, theme and the editor mode, so (W) / (S) items enable and disable
+  live. The menus are drawn opened side by side ("exploded"), each panel styled as that platform's native
+  menu. Settings uses the real stylesheets and the real Shortcuts page markup; only the new states are
+  prototype CSS.
+  D7 note: D255 implements the no-command items where it can, so the set marked "n/a" here is the plan's
+  § 5.1 set today and will shrink. The look is what is being chosen, not the set.
+  Run: python3 -m http.server 8742 --bind 127.0.0.1 from the repo root, then open
+       http://127.0.0.1:8742/docs/design/mdpro-ui-new/prototypes/menu-ui.html?variant=a
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PROTOTYPE · menu reorganisation UI</title>
+<link rel="stylesheet" href="../../../../src/styles/index.css">
+<style>
+  .theme-light, .theme-dark { --color-focus-ring: var(--color-accent); }
+  html, body { margin: 0; background: #cfd3da; font-family: var(--font-sans); color: #1a1a1a; }
+  .page { padding: 16px 24px 96px; display: flex; flex-direction: column; gap: 18px; }
+  h1 { font-size: 15px; margin: 0; }
+  .lead { font-size: 13px; margin: 4px 0 0; max-width: 1300px; line-height: 1.45; }
+  .controls { display: flex; gap: 18px; font-size: 13px; align-items: center; flex-wrap: wrap; }
+  .controls .seg { display: inline-flex; border: 1px solid #8a8f98; border-radius: 6px; overflow: hidden; }
+  .controls .seg button { border: 0; background: #fff; padding: 4px 10px; font: inherit; cursor: pointer; }
+  .controls .seg button[aria-pressed="true"] { background: #1a1a1a; color: #fff; }
+  .flags { font-size: 12.5px; background: #fff8db; border: 1px solid #e5c95c; border-radius: 8px; padding: 8px 12px; max-width: 1300px; }
+  .flags ol { margin: 4px 0 0 18px; padding: 0; } .flags li { margin: 2px 0; }
+  .section-title { font: 600 12px var(--font-sans); letter-spacing: .05em; text-transform: uppercase; color: #3b3f46; margin: 0 0 6px; }
+
+  /* ---------- desktop backdrop ---------- */
+  .desk { border-radius: 12px; padding: 0 0 18px; overflow: hidden; }
+  .desk.light { background: linear-gradient(160deg, #c9d6ea, #e8d8e6); }
+  .desk.dark  { background: linear-gradient(160deg, #1d2333, #2b1f2e); }
+  .menus { display: flex; flex-wrap: wrap; gap: 14px; padding: 12px 14px 0; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 6px; }
+  .col .cap { font: 600 11px var(--font-sans); opacity: .7; padding-left: 4px; }
+  .light .col .cap { color: #222; } .dark .col .cap { color: #ddd; }
+
+  /* ---------- macOS menu bar and menus (Sonoma/Sequoia metrics) ---------- */
+  .mac-bar { height: 24px; display: flex; align-items: center; gap: 2px; padding: 0 10px; font: 13px -apple-system, "SF Pro Text", sans-serif; backdrop-filter: blur(20px); }
+  .light .mac-bar { background: rgba(246,246,246,.72); color: #000; }
+  .dark .mac-bar { background: rgba(30,30,30,.6); color: #fff; }
+  .mac-bar span { padding: 1px 8px; border-radius: 4px; }
+  .mac-bar .apple { font-size: 15px; } .mac-bar .app { font-weight: 700; }
+  .mac-menu { min-width: 228px; padding: 5px; border-radius: 10px; font: 13px -apple-system, "SF Pro Text", sans-serif; backdrop-filter: blur(30px) saturate(1.6); }
+  .light .mac-menu { background: rgba(242,242,242,.86); color: rgba(0,0,0,.85); box-shadow: 0 0 0 .5px rgba(0,0,0,.18), 0 10px 30px rgba(0,0,0,.22); }
+  .dark .mac-menu { background: rgba(44,44,46,.86); color: rgba(255,255,255,.88); box-shadow: 0 0 0 .5px rgba(255,255,255,.14), 0 0 0 1px rgba(0,0,0,.6), 0 10px 30px rgba(0,0,0,.5); }
+  .mac-menu .it { display: flex; align-items: center; height: 22px; padding: 0 9px 0 22px; border-radius: 5px; position: relative; white-space: nowrap; cursor: default; }
+  .mac-menu .it .k { margin-left: auto; padding-left: 28px; letter-spacing: .06em; }
+  .light .mac-menu .it .k { color: rgba(0,0,0,.5); } .dark .mac-menu .it .k { color: rgba(255,255,255,.5); }
+  .mac-menu .it.dis { color: rgba(127,127,127,.55); } .mac-menu .it.dis .k { color: rgba(127,127,127,.4); }
+  .mac-menu .it:not(.dis):hover { background: #0a64d8; color: #fff; } .mac-menu .it:not(.dis):hover .k { color: rgba(255,255,255,.85); }
+  .mac-menu .it .chk { position: absolute; left: 7px; font-size: 11px; }
+  .mac-menu .it .sub { margin-left: auto; padding-left: 24px; font-size: 10px; opacity: .7; }
+  .mac-menu .sep { height: 1px; margin: 5px 10px; }
+  .light .mac-menu .sep { background: rgba(0,0,0,.1); } .dark .mac-menu .sep { background: rgba(255,255,255,.12); }
+  .mac-menu .search { margin: 2px 4px 6px; height: 22px; border-radius: 6px; font-size: 12px; display: flex; align-items: center; padding-left: 8px; }
+  .light .mac-menu .search { background: rgba(0,0,0,.06); color: rgba(0,0,0,.4); } .dark .mac-menu .search { background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
+  .mac-menu .hdr { height: 20px; display: flex; align-items: center; padding: 0 9px 0 10px; font-size: 11px; font-weight: 600; opacity: .55; }
+
+  /* ---------- Windows 11 Win32 menu bar and menus ---------- */
+  .win-title { height: 32px; display: flex; align-items: center; padding-left: 12px; font: 12px "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; }
+  .light .win-title { background: #f3f3f3; color: #1a1a1a; } .dark .win-title { background: #202020; color: #fff; }
+  .win-title .ctl { margin-left: auto; display: flex; } .win-title .ctl span { width: 46px; text-align: center; }
+  .win-bar { height: 22px; display: flex; align-items: center; padding: 0 4px; font: 12px "Segoe UI", system-ui, sans-serif; }
+  .light .win-bar { background: #f3f3f3; color: #000; border-bottom: 1px solid #e5e5e5; } .dark .win-bar { background: #202020; color: #fff; border-bottom: 1px solid #333; }
+  .win-bar span { padding: 2px 8px; }
+  .win-menu { min-width: 240px; padding: 4px; border-radius: 8px; font: 12px "Segoe UI", system-ui, sans-serif; }
+  .light .win-menu { background: #f9f9f9; color: #1a1a1a; border: 1px solid #e0e0e0; box-shadow: 0 8px 16px rgba(0,0,0,.14); }
+  .dark .win-menu { background: #2c2c2c; color: #fff; border: 1px solid #3c3c3c; box-shadow: 0 8px 16px rgba(0,0,0,.4); }
+  .win-menu .it { display: flex; align-items: center; height: 28px; padding: 0 12px 0 32px; border-radius: 4px; position: relative; white-space: nowrap; cursor: default; }
+  .win-menu .it .k { margin-left: auto; padding-left: 32px; }
+  .light .win-menu .it .k { color: #5d5d5d; } .dark .win-menu .it .k { color: #c5c5c5; }
+  .light .win-menu .it.dis, .light .win-menu .it.dis .k { color: #a0a0a0; } .dark .win-menu .it.dis, .dark .win-menu .it.dis .k { color: #787878; }
+  .light .win-menu .it:not(.dis):hover { background: #e9e9e9; } .dark .win-menu .it:not(.dis):hover { background: #3a3a3a; }
+  .win-menu .it .chk { position: absolute; left: 12px; }
+  .win-menu .it .sub { margin-left: auto; padding-left: 24px; }
+  .win-menu .sep { height: 1px; margin: 4px 0; } .light .win-menu .sep { background: #e5e5e5; } .dark .win-menu .sep { background: #404040; }
+  .win-menu .hdr { height: 24px; display: flex; align-items: center; padding: 0 12px; font-size: 11px; opacity: .6; }
+
+  /* ---------- Settings › Keyboard Shortcuts: real markup; new states are prototype CSS ---------- */
+  .settings-frame { padding: 20px; border-radius: 12px; background: var(--color-bg); color: var(--color-text); }
+  /* Full length for review; the real dialog scrolls its pane. */
+  .settings-frame .settings-dialog { height: auto; }
+  .settings-frame .settings-main { overflow: visible; }
+  .proto-row-sub { display: block; font-size: var(--font-size-ui-sm); color: var(--color-muted); margin-top: 2px; }
+  .proto-row-was { display: block; font-size: var(--font-size-ui-sm); color: var(--color-muted); margin-top: 3px; text-align: right; }
+  .shortcut-row.is-unavailable .shortcut-label { color: var(--color-muted); }
+  .proto-status { font-size: var(--font-size-ui); color: var(--color-muted); min-width: 140px; text-align: center; padding: 6px 12px; }
+  .proto-fixed { font-size: var(--font-size-ui); font-family: var(--font-mono); color: var(--color-text); min-width: 140px; text-align: center; padding: 6px 12px; border: 1px dashed var(--color-border); border-radius: var(--radius-control); }
+  .proto-chip { font-size: var(--font-size-ui-sm); color: var(--color-muted); border: 1px solid var(--color-border); border-radius: 999px; padding: 1px 8px; margin-right: 8px; white-space: nowrap; }
+  .proto-right { display: flex; align-items: center; }
+  .proto-right-col { display: flex; flex-direction: column; align-items: flex-end; }
+  .proto-banner { border: 1px solid var(--color-border); background: var(--color-accent-soft); color: var(--color-text); border-radius: var(--radius-control); padding: 8px 12px; font-size: var(--font-size-ui); }
+  .proto-banner summary { cursor: pointer; }
+  .proto-banner table { margin-top: 6px; border-collapse: collapse; font-size: var(--font-size-ui-sm); }
+  .proto-banner td { padding: 2px 12px 2px 0; } .proto-banner td.m { font-family: var(--font-mono); }
+  .proto-na { margin-top: 6px; }
+  .proto-na summary { cursor: pointer; font-size: var(--font-size-ui); color: var(--color-muted); padding: 6px 0; }
+  .proto-na summary:focus-visible, .proto-banner summary:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; border-radius: 4px; }
+
+  .proto-bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px;
+    background: #111; color: #fff; border-radius: 999px; padding: 6px 8px; box-shadow: 0 6px 24px rgba(0,0,0,.35); font: 13px var(--font-sans); z-index: 50; }
+  .proto-bar button { background: #333; color: #fff; border: 0; border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: 15px; }
+  .proto-bar button:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+  .proto-bar .lbl { min-width: 320px; text-align: center; padding: 0 8px; }
+  .proto-bar .keys { opacity: .6; font-size: 11px; padding-right: 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div>
+    <h1>PROTOTYPE · menu reorganisation (v0.3.6, with D255): menus, disabled items, Settings › Keyboard Shortcuts</h1>
+    <p class="lead" id="lead"></p>
+  </div>
+  <div class="controls">
+    <span>Platform <span class="seg" data-ctl="plat"><button data-v="mac">macOS</button><button data-v="win">Windows / Linux</button></span></span>
+    <span>Theme <span class="seg" data-ctl="theme"><button data-v="light">Light</button><button data-v="dark">Dark</button></span></span>
+    <span>Editor mode <span class="seg" data-ctl="mode"><button data-v="W">WYSIWYG</button><button data-v="S">Source</button></span></span>
+  </div>
+  <div id="menus"></div>
+  <div>
+    <p class="section-title">Settings › Keyboard Shortcuts</p>
+    <div id="settings"></div>
+  </div>
+  <div class="flags">
+    <strong>Where the plan leaves a choice open (the same in all three variants unless noted):</strong>
+    <ol>
+      <li><b>Quote on macOS has no key</b> (open question 1, K3): drawn keyless until the M2 spike decides ⌥⌘Q.</li>
+      <li><b>F6 alone</b> for Toggle Source Mode (open question 2): ⌘/ / Ctrl+/ is not drawn as a second key. If it is kept, macOS can show only one key per item, so the second key would be Settings-only.</li>
+      <li><b>(W) and (S) items look exactly like "not available" in a native menu.</b> macOS and Win32 have one disabled style. Only b and c can tell them apart, by hiding the key or moving the item.</li>
+      <li><b>Windows, WYSIWYG: Find is greyed while Ctrl+F works</b> (§ 5.2, open question 7): WebView2's find bar opens. The menu says "unavailable" and the key says otherwise.</li>
+      <li><b>View order differs by platform</b>: § 5.1 puts Source, WYSIWYG, then Toggle Source Mode; § 5.2 puts Toggle Source Mode first. Drawn as written.</li>
+      <li><b>The menu is "Themes"</b> in § 5.1 / 5.2 (today: "Theme"). Drawn as written.</li>
+      <li><b>Settings has no row</b> for Export HTML, Highlight, Undo/Redo, Exit or Settings itself today. M7 adds the nine missing contract fields, but the plan doesn't say which group each joins. Drawn here: Export HTML in File, Highlight in Format, Exit in File (Windows), Undo/Redo fixed in Edit.</li>
+      <li><b>Jump to Top / Bottom</b> become "system" rows (§ 5.3.2) with no menu item. Drawn as a fixed, non-editable key.</li>
+      <li><b>Not drawn by the plan, inserted by macOS</b>: the Help search field, the Window menu's list of windows, and View › Enter Full Screen. They are shown here so the menus look as they will.</li>
+      <li><b>D7 (D255 builds what it can)</b> will shrink the "n/a" set. These mock-ups use § 5.1's set as it stands.</li>
+    </ol>
+  </div>
+</div>
+<div class="proto-bar" role="toolbar" aria-label="Prototype variant">
+  <button type="button" id="prev" aria-label="Previous variant">←</button>
+  <span class="lbl" id="vlabel"></span>
+  <button type="button" id="next" aria-label="Next variant">→</button>
+  <span class="keys">← → keys</span>
+</div>
+<script>
+const VARIANTS = [
+  { key: "a", name: "A · Plan as written, greyed in place",
+    lead: "§ 5.1 / 5.2 verbatim. Disabled items (no command, or the other mode's) stay where they are, greyed, with the key greyed too: the native default, no special handling. Settings keeps every row in its group. A \"Not available\" row is greyed, with no key button. A mode-only row says \"WYSIWYG only\" or \"Source only\" under its name. New defaults are not marked." },
+  { key: "b", name: "B · Nested (VMark-style), keyless when unavailable",
+    lead: "Paragraph is split into Headings ▸ and Lists ▸ submenus, as VMark does, so the top level stays short. A no-command item stays in place and greyed, but shows no key, so a key is only ever shown where it does something. (W) / (S) items keep their key. Settings collapses the not-available rows into one \"Not available yet\" disclosure per group, puts a mode chip before the key, and shows one banner, \"N default shortcuts changed in 0.3.6\", with an old → new list." },
+  { key: "c", name: "C · Typora-flat, unavailable items last",
+    lead: "No submenus apart from Open Recent and Services: the Selection and Find items sit directly in Edit, as in Typora. Each menu ends with its no-command items, after a separator and without keys, so the working items sit together at the top. Settings keeps every row in place, with a capability chip on each row that isn't \"both\" (WYSIWYG, Source, System, Not available, Merged) and a muted \"was ⌥⌘T\" line under each changed key." },
+];
+
+// ---- one command table (plan § 5.3.2 keys, § 5.1 / 5.2 availability) ----
+// mac / win: stored notation (Cmd, Ctrl, Option, Shift). win omitted = mac with Cmd→Ctrl, Option→Alt.
+// av: both | W | S | na | fixed | native | system | merged. old*: today's default when it changes.
+const T = {};
+function c(id, label, mac, o = {}) { T[id] = Object.assign({ id, label, mac, av: "both" }, o); }
+c("new", "New", "Cmd+N", { grp: "File" });
+c("newWindow", "New Window", "Shift+Cmd+N", { grp: "File" });
+c("open", "Open…", "Cmd+O", { grp: "File" });
+c("close", "Close", "Cmd+W", { grp: "File" });
+c("save", "Save", "Cmd+S", { grp: "File" });
+c("saveAs", "Save As…", "Shift+Cmd+S", { grp: "File", av: "na" });
+c("export", "Export HTML…", "Shift+Cmd+E", { grp: "File", newRow: true });
+c("settings", "Settings…", "Cmd+,", { grp: "File", setLabel: "Settings (was Preferences)" });
+c("quit", "Quit mdpro", "Cmd+Q", { win: "Ctrl+Q", winLabel: "Exit", av: "fixed", oldWin: "none", grp: "File", newRow: true });
+c("undo", "Undo", "Cmd+Z", { av: "fixed", grp: "Edit", newRow: true });
+c("redo", "Redo", "Shift+Cmd+Z", { av: "fixed", oldWin: "Ctrl+Y", grp: "Edit", newRow: true });
+c("copyMd", "Copy as Markdown", "Shift+Cmd+C", { av: "na", grp: "Edit" });
+c("pastePlain", "Paste as Plain Text", "Shift+Cmd+V", { av: "na", grp: "Edit", winNative: "native in both editors" });
+c("selectLine", "Select Line", "Cmd+L", { av: "na", grp: "Edit" });
+c("selectWord", "Select Word", "Cmd+D", { av: "S", grp: "Edit" });
+c("deleteWord", "Delete Word", "", { av: "na", oldMac: "Shift+Cmd+D", grp: "Edit" });
+c("jumpTop", "Jump to Top", "Cmd+Up", { win: "Ctrl+Home", av: "system", oldWin: "Ctrl+Up", grp: "Edit", noMenu: true });
+c("jumpBottom", "Jump to Bottom", "Cmd+Down", { win: "Ctrl+End", av: "system", oldWin: "Ctrl+Down", grp: "Edit", noMenu: true });
+c("find", "Find and Replace…", "Cmd+F", { av: "S", grp: "Edit", winNative: "WYSIWYG: browser find bar" });
+c("findNext", "Find Next", "Cmd+G", { av: "S", grp: "Edit", winNative: "WYSIWYG: browser find bar" });
+c("findPrev", "Find Previous", "Shift+Cmd+G", { av: "S", grp: "Edit" });
+c("replace", "Replace", "", { av: "merged", oldMac: "Cmd+H", grp: "Edit", noMenu: true, mergedInto: "Find and Replace" });
+for (let i = 1; i <= 6; i++) c("h" + i, "Heading " + i, "Cmd+" + i, { grp: "Paragraph" });
+c("paragraph", "Paragraph", "Shift+Cmd+0", { oldMac: "Cmd+0", grp: "Paragraph" });
+c("incHeading", "Increase Heading", "Option+Cmd+]", { av: "S", oldMac: "Cmd+=", grp: "Paragraph" });
+c("decHeading", "Decrease Heading", "Option+Cmd+[", { av: "S", oldMac: "Cmd+-", grp: "Paragraph" });
+c("table", "Table…", "Shift+Cmd+T", { av: "W", oldMac: "Option+Cmd+T", grp: "Paragraph" });
+c("codeFences", "Code Fences", "Option+Cmd+C", { av: "W", grp: "Paragraph" });
+c("math", "Math Block", "Option+Shift+Cmd+M", { av: "na", oldMac: "Option+Cmd+B", grp: "Paragraph" });
+c("quote", "Quote", "", { win: "Ctrl+Alt+Q", av: "W", oldMac: "Option+Cmd+Q", grp: "Paragraph", macOpen: true });
+c("ol", "Ordered List", "Option+Cmd+O", { av: "W", grp: "Paragraph" });
+c("ul", "Unordered List", "Option+Cmd+U", { av: "W", grp: "Paragraph" });
+c("indent", "Indent", "Cmd+]", { grp: "Paragraph" });
+c("outdent", "Outdent", "Cmd+[", { grp: "Paragraph" });
+c("bold", "Bold", "Cmd+B", { av: "W", grp: "Format" });
+c("italic", "Italic", "Cmd+I", { av: "W", grp: "Format" });
+c("underline", "Underline", "Cmd+U", { av: "na", grp: "Format" });
+c("code", "Code", "Shift+Cmd+`", { av: "W", grp: "Format" });
+c("strike", "Strikethrough", "Shift+Cmd+X", { av: "W", oldMac: "Ctrl+Shift+`", oldWin: "Alt+Shift+5", grp: "Format" });
+c("highlight", "Highlight", "Shift+Cmd+M", { oldMac: "Shift+Cmd+H", grp: "Format", newRow: true });
+c("link", "Link…", "Cmd+K", { grp: "Format", setLabel: "Hyperlink" });
+c("image", "Image…", "Shift+Cmd+I", { av: "na", oldMac: "Ctrl+Cmd+I", oldWin: "Ctrl+I", grp: "Format" });
+c("clear", "Clear Format", "Cmd+\\", { av: "na", grp: "Format" });
+c("source", "Source", "Ctrl+2", { win: "", check: "S", grp: "View" });
+c("wysiwyg", "WYSIWYG", "Ctrl+4", { win: "", check: "W", grp: "View" });
+c("toggleMode", "Toggle Source Mode", "F6", { win: "F6", oldMac: "Cmd+/", oldWin: "Ctrl+/", grp: "View", setLabel: "Toggle Source Mode (was Cycle View Mode)" });
+c("sidebar", "Toggle Sidebar", "Ctrl+Shift+0", { win: "Alt+Shift+0", oldMac: "Shift+Cmd+L", oldWin: "Ctrl+Shift+L", grp: "View" });
+c("switchDocs", "Switch Documents", "Ctrl+Tab", { av: "na", oldMac: "Cmd+`", oldWin: "Ctrl+`", grp: "View", winNoKey: true });
+c("fullscreen", "Toggle Fullscreen", "Ctrl+Cmd+F", { win: "", av: "system", oldMac: "Option+Cmd+F", oldWin: "Ctrl+Alt+F", grp: "View", noMenu: true, macSys: "fn F (system)", winAv: "na" });
+
+const S = { plat: "mac", theme: "light", mode: "W" };
+
+// Modifier order: Windows labels read Ctrl, Alt, Shift; the stored mac string reads Cmd, Ctrl, Option, Shift
+// (preferences.ts, e.g. "Cmd+Shift+H", "Cmd+Ctrl+I"), which is what Settings shows on macOS today.
+function order(stored, mods) {
+  if (!stored) return stored;
+  const p = stored.split("+"), key = p.pop();
+  return [...mods.filter(m => p.includes(m)), key].join("+");
+}
+function winKey(cmd) {
+  if (cmd.win !== undefined) return order(cmd.win, ["Ctrl", "Alt", "Shift"]);
+  const t = cmd.mac.split("+").map(t => t === "Cmd" ? "Ctrl" : t === "Option" ? "Alt" : t)
+    .filter((t, i, a) => t !== "Ctrl" || a.indexOf("Ctrl") === i).join("+");
+  return order(t, ["Ctrl", "Alt", "Shift"]);
+}
+function toWin(stored) { return stored ? winKey({ mac: stored }) : stored; }
+const GL = { Ctrl: "⌃", Option: "⌥", Shift: "⇧", Cmd: "⌘" };
+const KN = { Up: "↑", Down: "↓", Tab: "⇥", Home: "↖", End: "↘" };
+function glyph(stored) {
+  if (!stored) return "";
+  const p = stored.split("+"), key = p.pop();
+  return ["Ctrl", "Option", "Shift", "Cmd"].filter(m => p.includes(m)).map(m => GL[m]).join("") + (KN[key] || key.toUpperCase());
+}
+function keyFor(cmd) { return S.plat === "mac" ? cmd.mac : winKey(cmd); }
+function menuKey(cmd) { const k = keyFor(cmd); if (S.plat === "win" && cmd.winNoKey) return ""; return S.plat === "mac" ? glyph(k) : k; }
+function avail(cmd) { return S.plat === "win" && cmd.winAv ? cmd.winAv : cmd.av; }
+function enabled(cmd) { const a = avail(cmd); return a === "both" || a === "fixed" || a === "native" || a === S.mode; }
+
+// ---- menu trees ----
+// An entry: id (from T), "-" separator, {raw label, k, dis, chk} literal native item, {sub: label, items: [...]}, {hdr} label.
+const R = (label, k = "", o = {}) => Object.assign({ raw: label, k }, o);
+function trees(v) {
+  const mac = S.plat === "mac";
+  const selection = ["selectLine", "selectWord", "deleteWord"], findI = ["find", "findNext", "findPrev"];
+  const editTail = v === "c" ? ["-", ...selection, "-", ...findI]
+    : ["-", { sub: "Selection", items: selection }, "-", { sub: "Find", items: findI }];
+  const undoRedo = [mac ? R("Undo", "⌘Z") : "undo", mac ? R("Redo", "⇧⌘Z") : "redo"];
+  const edit = [...undoRedo, "-", R("Cut", mac ? "⌘X" : "Ctrl+X"), R("Copy", mac ? "⌘C" : "Ctrl+C"), R("Paste", mac ? "⌘V" : "Ctrl+V"),
+    "copyMd", "pastePlain", R("Select All", mac ? "⌘A" : "Ctrl+A"), ...editTail];
+  const heads = ["h1", "h2", "h3", "h4", "h5", "h6", "paragraph"];
+  const paragraph = v === "b"
+    ? [{ sub: "Headings", items: [...heads, "-", "incHeading", "decHeading"] }, "-", "table", "codeFences", "math", "quote", "-",
+       { sub: "Lists", items: ["ol", "ul", "-", "indent", "outdent"] }]
+    : [...heads, "-", "incHeading", "decHeading", "-", "table", "codeFences", "math", "quote", "-", "ol", "ul", "-", "indent", "outdent"];
+  const format = ["bold", "italic", "underline", "code", "strike", "highlight", "-", "link", "image", "-", "clear"];
+  const themes = [R("Light", "", { chk: true }), R("Dark"), R("System")];
+  let view, file, extra = [];
+  if (mac) {
+    file = ["new", "newWindow", "-", "open", { sub: "Open Recent", items: [R("notes.md"), R("todo.md"), "-", R("Clear Menu", "", { dis: true })], recent: true }, "-", "close", "-", "save", "saveAs", "-", "export"];
+    view = ["source", "wysiwyg", "toggleMode", "-", "sidebar", "switchDocs", "-", R("Enter Full Screen", "fn F", { inserted: true })];
+    extra = [
+      { title: "Window", items: [R("Minimize", "⌘M"), R("Zoom"), "-", R("Bring All to Front"), "-", R("notes.md", "", { chk: true, inserted: true })] },
+      { title: "Help", items: [{ search: true }, "-", R("Keyboard Shortcuts…")] },
+    ];
+  } else {
+    file = ["new", "newWindow", "-", "open", { sub: "Open Recent", items: [R("notes.md"), R("todo.md")], recent: true }, "-", "save", "saveAs", "-", "export", "-",
+      "settings", "-", "close", "quit", R("Stop Waiting and Exit…")];
+    view = ["toggleMode", "source", "wysiwyg", "-", "sidebar", "switchDocs", R("Full Screen", "", { dis: true, na: true })];
+    extra = [{ title: "Help", items: [R("Keyboard Shortcuts…"), "-", R("About mdpro")] }];
+  }
+  const menus = [];
+  if (mac) menus.push({ title: "mdpro", app: true, items: [R("About mdpro"), "-", "settings", "-", { sub: "Services", items: [R("No Services Apply", "", { dis: true })] }, "-",
+    R("Hide mdpro", "⌘H"), R("Hide Others", "⌥⌘H"), R("Show All"), "-", R("Quit mdpro", "⌘Q"), R("Stop Waiting and Quit…")] });
+  menus.push({ title: "File", items: file }, { title: "Edit", items: edit }, { title: "Paragraph", items: paragraph },
+    { title: "Format", items: format }, { title: "View", items: view }, { title: "Themes", items: themes }, ...extra);
+  if (v === "c") for (const m of menus) m.items = naLast(m.items);
+  return menus;
+}
+// A submenu entry; not `e.sub`, which every string has (String.prototype.sub).
+const isSub = e => typeof e === "object" && e !== null && typeof e.sub === "string";
+function isNa(e) { return typeof e === "string" && e !== "-" && avail(T[e]) === "na" || (typeof e === "object" && e !== null && e.na === true); }
+// (c): pull no-command items out of each menu (and submenu) and append them after one separator.
+function naLast(items) {
+  const keep = [], na = [];
+  for (const e of items) (isNa(e) ? na : keep).push(isSub(e) ? Object.assign({}, e, { items: naLast(e.items) }) : e);
+  const tidy = keep.filter((e, i, a) => !(e === "-" && (i === 0 || a[i - 1] === "-" || i === a.length - 1)));
+  return na.length ? [...tidy, "-", ...na] : tidy;
+}
+
+function itemHtml(e, v, cls) {
+  if (e === "-") return `<div class="sep"></div>`;
+  if (typeof e === "object" && e.search === true) return `<div class="search">🔍 Search</div>`;
+  if (isSub(e)) return `<div class="it"><span>${e.sub}</span><span class="sub">${S.plat === "mac" ? "▶" : "›"}</span></div>`;
+  if (typeof e === "object" && e.raw !== undefined) {
+    const chk = e.chk ? `<span class="chk">${S.plat === "mac" ? "✓" : "✓"}</span>` : "";
+    const dis = e.dis ? " dis" : "";
+    const k = e.na && v !== "a" ? "" : e.k;
+    return `<div class="it${dis}" ${e.inserted ? 'title="Inserted by macOS"' : ""}>${chk}<span>${e.raw}</span>${k ? `<span class="k">${k}</span>` : ""}</div>`;
+  }
+  const cmd = T[e]; const on = enabled(cmd); const a = avail(cmd);
+  let label = S.plat === "win" && cmd.winLabel ? cmd.winLabel : cmd.label;
+  let k = menuKey(cmd);
+  if (S.plat === "win" && (cmd.id === "source" || cmd.id === "wysiwyg")) k = "";
+  if (a === "na" && v !== "a") k = "";
+  const chk = cmd.check && cmd.check === S.mode ? `<span class="chk">✓</span>` : "";
+  return `<div class="it${on ? "" : " dis"}" title="${a === "na" ? "No command yet (D3)" : a === "W" ? "WYSIWYG only" : a === "S" ? "Source only" : ""}">${chk}<span>${label}</span>${k ? `<span class="k">${k}</span>` : ""}</div>`;
+}
+function panel(items, v, cls) { return `<div class="${cls}">${items.map(e => itemHtml(e, v)).join("")}</div>`; }
+function renderMenus(v) {
+  const mac = S.plat === "mac", cls = mac ? "mac-menu" : "win-menu";
+  const menus = trees(v);
+  const bar = mac
+    ? `<div class="mac-bar"><span class="apple"></span>${menus.map((m, i) => `<span class="${m.app ? "app" : ""}">${m.title}</span>`).join("")}</div>`
+    : `<div class="win-title">notes.md — mdpro<span class="ctl"><span>—</span><span>☐</span><span>✕</span></span></div><div class="win-bar">${menus.map(m => `<span>${m.title}</span>`).join("")}</div>`;
+  const cols = menus.map(m => {
+    const subs = [];
+    (function walk(items) { for (const e of items) if (isSub(e)) { subs.push(e); walk(e.items); } })(m.items);
+    return `<div class="col"><div class="cap">${m.title}</div>${panel(m.items, v, cls)}` +
+      subs.map(s => `<div class="cap">${m.title} › ${s.sub} ▸</div>${panel(s.items, v, cls)}`).join("") + `</div>`;
+  }).join("");
+  document.getElementById("menus").innerHTML =
+    `<p class="section-title">${mac ? "macOS menu bar (§ 5.1)" : "Windows / Linux menu bar (§ 5.2; Linux untested, D6)"} · editor in ${S.mode === "W" ? "WYSIWYG" : "Source"}</p>` +
+    `<div class="desk ${S.theme}">${bar}<div class="menus">${cols}</div></div>`;
+}
+
+// ---- Settings › Keyboard Shortcuts ----
+const GROUPS = ["File", "Edit", "Paragraph", "Format", "View"];
+function setLabelOf(cmd) {
+  if (cmd.setLabel) return cmd.setLabel;
+  if (S.plat === "win" && cmd.winLabel) return cmd.winLabel;
+  return cmd.label.replace(/…$/, "");
+}
+function shown(stored) { return S.plat === "mac" ? order(stored, ["Cmd", "Ctrl", "Option", "Shift"]) : toWin(stored); }
+function oldKey(cmd) {
+  if (S.plat === "win" && cmd.oldWin !== undefined) return cmd.oldWin === "none" ? "no key" : cmd.oldWin;
+  if (cmd.oldMac !== undefined) return shown(cmd.oldMac);
+  return null;
+}
+function capability(cmd) {
+  const a = avail(cmd);
+  if (a === "W") return "WYSIWYG only"; if (a === "S") return "Source only";
+  if (a === "na") return "Not available"; if (a === "system") return "System"; if (a === "merged") return "Merged";
+  if (a === "fixed") return "Fixed"; return "";
+}
+function rowHtml(cmd, v) {
+  const a = avail(cmd), cap = capability(cmd), old = oldKey(cmd);
+  const native = S.plat === "win" && cmd.winNative && S.mode ? cmd.winNative : "";
+  const label = setLabelOf(cmd);
+  let right;
+  if (a === "na") right = v === "a" || v === "b" ? `<span class="proto-status">Not available</span>` : `<span class="proto-status">—</span>`;
+  else if (a === "merged") right = `<span class="proto-status">→ ${cmd.mergedInto}</span>`;
+  else if (a === "system") right = `<span class="proto-fixed" title="Handled by the system; not editable">${S.plat === "mac" && cmd.macSys ? cmd.macSys : shown(keyFor(cmd)) || "—"}</span>`;
+  else if (a === "fixed") right = `<span class="proto-fixed" title="Fixed; not editable">${shown(keyFor(cmd))}</span>`;
+  else {
+    let k = keyFor(cmd);
+    if (S.plat === "win" && (cmd.id === "source" || cmd.id === "wysiwyg")) k = "";
+    if (cmd.id === "quote" && S.plat === "mac") k = "";
+    right = `<button class="shortcut-value">${k ? shown(k) : "No key"}</button>`;
+  }
+  let sub = "", chip = "", was = "";
+  if (v === "a") { if (a === "W" || a === "S") sub = cap; if (native) sub = (sub ? sub + " · " : "") + native; }
+  if (v === "b") { if (a === "W" || a === "S" || a === "system" || a === "fixed") chip = cap; if (native) sub = native; }
+  if (v === "c") { if (cap) chip = cap; if (native) sub = native; if (old && a !== "na" && a !== "merged") was = `was ${old}`; if (a === "merged") was = `was ${old}`; if (a === "na" && old) was = `was ${old}`; }
+  if (cmd.macOpen && S.plat === "mac") sub = (sub ? sub + " · " : "") + "key: open question 1";
+  const chipH = chip ? `<span class="proto-chip">${chip}</span>` : "";
+  const rightH = was ? `<span class="proto-right-col"><span class="proto-right">${chipH}${right}</span><span class="proto-row-was">${was}</span></span>`
+    : `<span class="proto-right">${chipH}${right}</span>`;
+  return `<div class="shortcut-row${a === "na" || a === "merged" ? " is-unavailable" : ""}"><span class="shortcut-label">${label}${sub ? `<span class="proto-row-sub">${sub}</span>` : ""}</span>${rightH}</div>`;
+}
+function renderSettings(v) {
+  const cmds = Object.values(T).filter(cmd => !(S.plat === "mac" && cmd.id === "settings" && false));
+  let banner = "";
+  if (v === "b") {
+    const changed = cmds.filter(cmd => oldKey(cmd) !== null && avail(cmd) !== "na");
+    banner = `<details class="proto-banner"><summary>${changed.length} default shortcuts changed in 0.3.6 to follow VMark. Your own shortcuts were kept. Show changes</summary><table>` +
+      changed.map(cmd => `<tr><td>${setLabelOf(cmd)}</td><td class="m">${oldKey(cmd)}</td><td>→</td><td class="m">${avail(cmd) === "merged" ? "Find and Replace" : (shown(keyFor(cmd)) || (cmd.macOpen ? "no key yet" : "—"))}</td></tr>`).join("") + `</table></details>`;
+  }
+  const sections = GROUPS.map(g => {
+    const rows = cmds.filter(cmd => cmd.grp === g && !(S.plat === "mac" && cmd.id === "quit" && false));
+    if (v === "b") {
+      const live = rows.filter(cmd => avail(cmd) !== "na" && avail(cmd) !== "merged"), na = rows.filter(cmd => !live.includes(cmd));
+      return `<section class="shortcuts-section"><h4>${g}</h4><div class="shortcuts-list">${live.map(cmd => rowHtml(cmd, v)).join("")}</div>` +
+        (na.length ? `<details class="proto-na"><summary>Not available yet (${na.length})</summary><div class="shortcuts-list">${na.map(cmd => rowHtml(cmd, v)).join("")}</div></details>` : "") + `</section>`;
+    }
+    return `<section class="shortcuts-section"><h4>${g}</h4><div class="shortcuts-list">${rows.map(cmd => rowHtml(cmd, v)).join("")}</div></section>`;
+  }).join("");
+  const page = `<div class="shortcuts-layout"><div class="shortcuts-header"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h3>Keyboard Shortcuts</h3><p>Customize shortcuts across the app.</p></div><button class="toolbar-button">Reset to Defaults</button></div></div>${banner}${sections}</div>`;
+  document.getElementById("settings").innerHTML =
+    `<div class="settings-frame theme-${S.theme}"><div role="dialog" aria-label="Settings" class="settings-dialog theme-${S.theme}">` +
+    `<div class="settings-header"><h2 class="settings-title">Settings</h2><button class="settings-close" aria-label="Close">&times;</button></div>` +
+    `<div class="settings-content"><div class="settings-sidebar"><button class="settings-category-btn">General</button><button class="settings-category-btn is-active">Keyboard Shortcuts</button></div>` +
+    `<div class="settings-main">${page}</div></div></div></div>`;
+}
+
+function current() { const k = new URLSearchParams(location.search).get("variant") || "a"; return VARIANTS.find(x => x.key === k) || VARIANTS[0]; }
+function render() {
+  const v = current();
+  document.getElementById("vlabel").textContent = v.name;
+  document.getElementById("lead").textContent = v.lead;
+  document.querySelectorAll(".seg").forEach(seg => seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(S[seg.dataset.ctl] === b.dataset.v))));
+  renderMenus(v.key); renderSettings(v.key);
+}
+document.querySelectorAll(".seg").forEach(seg => seg.addEventListener("click", e => { const b = e.target.closest("button"); if (b) { S[seg.dataset.ctl] = b.dataset.v; render(); } }));
+function go(d) {
+  const i = VARIANTS.indexOf(current()), n = VARIANTS[(i + d + VARIANTS.length) % VARIANTS.length];
+  const u = new URL(location.href); u.searchParams.set("variant", n.key); history.replaceState(null, "", u); render();
+}
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea, select, [contenteditable], .settings-dialog, summary")) return;
+  if (e.key === "ArrowLeft") go(-1); if (e.key === "ArrowRight") go(1);
+});
+render();
+</script>
+</body>
+</html>
