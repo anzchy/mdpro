@@ -17,19 +17,36 @@
  *   content differs, is not covered; one saved meanwhile (no longer dirty) is.
  *   A flush that fails now but did not then is not covered either; one that
  *   already failed when the user chose Discard is.
+ * - **Over a failing flush, the editor's doc is the stamp (audit b180, H3).**
+ *   The store cannot show an edit the serializer could not write (a paste that
+ *   resolves during the save), so the consent also keeps the active Milkdown
+ *   view's `state.doc`. ProseMirror docs are immutable: any doc-changing
+ *   transaction yields a new object, so identity is a revision. It is compared
+ *   only when the flush fails now; otherwise the store's content is exact. No
+ *   editor (source mode, tests) reads as `null` on both sides.
+ *
+ * - **`requestGuardedClose` is `requestWindowClose`'s body** (moved here for the
+ *   300-line limit): it logs, re-checks that no document is open (one may have
+ *   arrived during the caller's awaits), then calls `close()`. In Tauri v2 that
+ *   emits CloseRequested, so the guard's handler decides; `destroy()` would
+ *   skip the flush, the save and the prompt.
  *
  * @module src/hooks/windowCloseAttempt
  * @coordinates-with src/hooks/useWindowCloseGuard.ts — the only caller
  * @coordinates-with src/utils/dataLossGuards.ts — `assessWindowUnsaved`, `windowCloseDecisionAfterFlush`
  */
+import { editorViewCtx, type Editor } from "@milkdown/kit/core";
 import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
+import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import { assessWindowUnsaved, windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
 
 /** What a Discard agreed to throw away. */
 export interface DiscardConsent {
   flushFailed: boolean;
   contents: ReadonlyMap<string, string>;
+  /** The active editor's ProseMirror doc (identity = revision), or `null`. */
+  editorDoc: unknown;
 }
 
 /** The allow latch and where it came from; `null` when no close is latched. */
@@ -41,14 +58,24 @@ export type LatchedDecision = "allow" | "prompt";
 /** Why a prompt went up; logged as the `action` enum. */
 export type PromptAction = "prevented_showing_dialog" | "dirty_after_state_save" | "dirty_after_discard";
 
-function dirtyContents(): { flushFailed: boolean; contents: Map<string, string> } {
+/** The active Milkdown view's doc, or `null` when no editor is mounted or ready. */
+function currentEditorDoc(): unknown {
+  try {
+    const editor = useMilkdownEditorStore.getState().getEditor() as Editor | null;
+    return editor ? editor.action((ctx) => ctx.get(editorViewCtx)).state.doc : null;
+  } catch {
+    return null; // the view is not ready yet: nothing to stamp
+  }
+}
+
+function dirtyContents(): DiscardConsent {
   const assessment = assessWindowUnsaved("window-close");
   const documents = useDocumentStore.getState().documents;
   const contents = new Map<string, string>();
   for (const ref of assessment.dirtyDocuments) {
     contents.set(ref.id, documents.find((doc) => doc.id === ref.id)?.content ?? "");
   }
-  return { flushFailed: assessment.flushFailed, contents };
+  return { flushFailed: assessment.flushFailed, contents, editorDoc: currentEditorDoc() };
 }
 
 /** Flush, then capture the dirty documents the prompt is showing. */
@@ -60,6 +87,8 @@ export function snapshotDiscardConsent(): DiscardConsent {
 export function consentCovers(consent: DiscardConsent): boolean {
   const now = dirtyContents();
   if (now.flushFailed && !consent.flushFailed) return false;
+  // H3: an edit the serializer could not write shows only in the editor.
+  if (now.flushFailed && now.editorDoc !== consent.editorDoc) return false;
   for (const [id, content] of now.contents) {
     if (consent.contents.get(id) !== content) return false;
   }
@@ -101,4 +130,30 @@ export function logCloseCancelled(notified: boolean): void {
     actionId: loggingService.generateActionId(),
     context: { notified },
   });
+}
+
+/**
+ * `useWindowCloseGuard().requestWindowClose`: a logged no-op without a window
+ * handle (web preview) or when a document is open; otherwise `close()` through
+ * the guard. Never rejects.
+ */
+export async function requestGuardedClose(
+  currentWindow: { label: string; close: () => Promise<void> | void } | null,
+  reason: string,
+): Promise<void> {
+  if (!currentWindow) {
+    logCloseRequested("cancel", { action: reason, outcome: "no_window" });
+    return;
+  }
+  const windowLabel = currentWindow.label;
+  if (useDocumentStore.getState().documents.length > 0) {
+    logCloseRequested("cancel", { windowLabel, action: reason, outcome: "not_empty" });
+    return;
+  }
+  logCloseRequested("start", { windowLabel, action: reason });
+  try {
+    await currentWindow.close();
+  } catch {
+    logCloseRequested("fail", { windowLabel, action: reason, reason: "close_rejected" });
+  }
 }

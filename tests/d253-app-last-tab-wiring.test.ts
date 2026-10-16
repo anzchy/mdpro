@@ -59,7 +59,11 @@ describe("App closes an emptied secondary window after every user tab close", ()
   it("(a) the wrapper passes the guard's requestWindowClose and the quit signal", () => {
     const args = mustMatch(/closeWindowIfLastTabClosed\(\{([^}]*)\}\)/, app, "closeWindowIfLastTabClosed({ … })")[1];
     expect(args).toMatch(/requestWindowClose:\s*windowCloseGuard\.requestWindowClose/);
-    expect(args).toMatch(/quitInProgress:\s*quitGuard\.quitPrompt\s*!==?\s*null/);
+    // Amended after the D253 audit (Codex M, Fable M): the quit signal is read
+    // through a ref when the close resolves, not captured by the closure; the
+    // ref must mirror quitGuard.quitPrompt on every render.
+    expect(args).toMatch(/quitInProgress:\s*quitPromptRef\.current\s*!==?\s*null/);
+    expect(app).toMatch(/quitPromptRef\.current\s*=\s*quitGuard\.quitPrompt;/);
   });
 
   it("(b) ⌘W runs it after closing the active document and when nothing is active", () => {

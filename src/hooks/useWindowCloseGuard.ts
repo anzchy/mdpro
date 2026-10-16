@@ -75,15 +75,18 @@
  * - **`requestWindowClose` re-enters the guard (D253, ADR-0112)**: it re-checks
  *   emptiness, then `close()`, which in Tauri v2 emits CloseRequested
  *   (`window.d.ts`; `window.js` destroys only if not prevented). Never `destroy()`.
- * - **The close race is closed under every reading (D253 merged review).** A
- *   latch carries its origin: `clean-save` allows only if the latched pass still
- *   finds nothing unsaved, `discard` only while the dirty set is within the
- *   consent its prompt captured (else `dirty_after_discard`); the save-and-close
- *   path also re-decides right after the save (`dirty_after_state_save`). One
- *   active attempt: each unlatched pass and each `cancelClose` bumps a
- *   generation, and a continuation resuming after the save with a stale one does
- *   nothing. `dataLossGuards.ts` is untouched (the shared rule is called with no
- *   latch; `windowCloseAttempt.ts` applies the origin), so the quit path is too.
+ * - **What the guard guarantees against the close race (D253, audit b180).**
+ *   (1) Clean-save re-decision: the save-and-close path re-decides after the
+ *   save, and its `clean-save` latch allows only if the latched pass still finds
+ *   nothing unsaved (`dirty_after_state_save`). (2) One attempt generation: each
+ *   unlatched pass and each `cancelClose` bumps it; a continuation resuming after
+ *   a save with a stale one does nothing (`superseded`). (3) Consent frozen for
+ *   the prompt's lifetime: snapshotted when the prompt goes up, never replaced
+ *   by a repeat request. (4) Revision-checked Discard: allowed only while the
+ *   dirty set is within the consent, by content, and, over a failing flush, by
+ *   the editor doc's identity (`dirty_after_discard`). `dataLossGuards.ts` is
+ *   untouched: the shared rule is called with no latch and `windowCloseAttempt.ts`
+ *   applies the origin, so the quit path cannot change.
  *
  * @module src/hooks/useWindowCloseGuard
  * @coordinates-with src/App.tsx — renders the ConfirmDialog for `pendingClose`
@@ -99,7 +102,6 @@
  *   global state (main only), per-file geometry, stage-typed fail log
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useDocumentStore } from "../stores/documentStore";
 import { windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
 import { saveWindowStateOnClose } from "./saveWindowStateOnClose";
 import {
@@ -110,6 +112,7 @@ import {
   logCloseCancelled,
   logCloseRequested,
   promptActionFor,
+  requestGuardedClose,
   snapshotDiscardConsent,
 } from "./windowCloseAttempt";
 
@@ -175,7 +178,9 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
   /** Raise the window prompt, capturing what it shows for a later Discard. */
   const raisePrompt = useCallback(
     (windowLabel: string, action: PromptAction) => {
-      consentRef.current = snapshotDiscardConsent();
+      // Frozen while a prompt is on screen (audit H2): a repeat request must not
+      // widen what its Discard covers to documents the user has not been shown.
+      if (pendingCloseRef.current !== "window") consentRef.current = snapshotDiscardConsent();
       setPendingClose("window");
       logCloseRequested("cancel", { windowLabel, action });
     },
@@ -253,7 +258,10 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
     const consent = consentRef.current ?? snapshotDiscardConsent();
     setPendingClose(null);
     await saveWindowState();
-    if (attempt !== attemptRef.current) return; // superseded while saving
+    if (attempt !== attemptRef.current) {
+      logCloseRequested("cancel", { windowLabel: appWindowRef.current?.label ?? "unknown", action: "superseded" });
+      return; // a cancel or a new request voided this Discard while saving
+    }
     allowWindowCloseRef.current = true;
     latchRef.current = { kind: "discard", consent };
     appWindowRef.current?.close();
@@ -271,29 +279,11 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
     callback?.();
   }, [setPendingClose]);
 
-  const requestWindowClose = useCallback(async (reason: WindowCloseRequestReason) => {
-    const currentWindow = appWindowRef.current;
-    if (!currentWindow) {
-      // Web preview, or the window API failed: nothing to close.
-      logCloseRequested("cancel", { action: reason, outcome: "no_window" });
-      return;
-    }
-    const windowLabel = currentWindow.label;
-    // Re-checked here, after every await the caller made: a document that
-    // arrived meanwhile keeps the window (D253).
-    if (useDocumentStore.getState().documents.length > 0) {
-      logCloseRequested("cancel", { windowLabel, action: reason, outcome: "not_empty" });
-      return;
-    }
-    logCloseRequested("start", { windowLabel, action: reason });
-    try {
-      // `close()`, never `destroy()`: Tauri v2 emits CloseRequested, so the
-      // handler above flushes, decides and prompts or saves as for an OS close.
-      await currentWindow.close();
-    } catch {
-      logCloseRequested("fail", { windowLabel, action: reason, reason: "close_rejected" });
-    }
-  }, []);
+  // Logs, re-checks emptiness, then `close()` (never `destroy()`): see the helper.
+  const requestWindowClose = useCallback(
+    (reason: WindowCloseRequestReason) => requestGuardedClose(appWindowRef.current, reason),
+    [],
+  );
 
   return { pendingClose, saveWindowState, confirmClose, cancelClose, requestWindowClose };
 }

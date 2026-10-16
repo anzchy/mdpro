@@ -149,11 +149,11 @@ function App() {
     pendingClose: pendingClose ?? windowCloseGuard.pendingClose,
     quitPrompt: quitGuard.quitPrompt,
   });
-  // D253 (ADR-0112): a user close that empties a secondary window closes it,
-  // through the guard; never while a quit is asking this window.
+  const quitPromptRef = useRef(quitGuard.quitPrompt); // D253 (ADR-0112): emptied secondary windows close, never mid-quit
+  quitPromptRef.current = quitGuard.quitPrompt;
   const closeWindowIfEmptied = useCallback(
-    () => void closeWindowIfLastTabClosed({ requestWindowClose: windowCloseGuard.requestWindowClose, quitInProgress: quitGuard.quitPrompt !== null }),
-    [windowCloseGuard.requestWindowClose, quitGuard.quitPrompt],
+    () => void closeWindowIfLastTabClosed({ requestWindowClose: windowCloseGuard.requestWindowClose, quitInProgress: quitPromptRef.current !== null }),
+    [windowCloseGuard.requestWindowClose],
   );
   const closeTabById = useCallback(
     (id: string, discardChanges: boolean) => closeDocumentById(id, discardChanges).then(closeWindowIfEmptied),
