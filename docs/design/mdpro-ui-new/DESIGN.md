@@ -525,7 +525,9 @@ look. Where the two disagree, the plan wins and this block is corrected.
 - **Unavailable items** (no command yet, D3; or the other editor mode, *(W)* /
   *(S)*):
   - They stay in place, greyed by the platform's disabled style.
-  - Their key is still shown, greyed with the item.
+  - Their key is still shown, greyed with the item, but only where the
+    platform's tree gives one. Windows Switch Documents shows no key: § 5.2
+    gives it none while it has no command, so Ctrl+Tab isn't advertised.
   - Nothing tells "not built yet" apart from "switch modes". That is the
     accepted cost of A (open item 3).
 - **Keyboard Shortcuts page:** every row stays in its group, in the plan's
