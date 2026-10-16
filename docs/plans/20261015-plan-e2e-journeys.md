@@ -2,7 +2,7 @@
 
 - **Opened**：2026-10-15，adr047-verify 起草（delegator 转达用户原话：「关于test fixture/ e2e journey，采纳vmark的思路，看看如何给本project设定e2e journey，同时涵盖各个platform(MacOS/Windows), make a comprehensive plan and save it to docs/plan in md，这个让adr047-verify session去draft plan」）
 - **Revision**：rev3（2026-10-15），base `master` `d2781e6`，补上 Codex 复审 `review-plan-mv94qrr4-rqovhp` 的三处（见 §12 rev3）。rev2（同日，base `42094b2`）：rev1 `b02b059` 经用户选定「Codex review first」后送审：Codex `review-plan-mv9470lo-rsc315`，结论 NEEDS REVISION，25 条发现（0 Critical），§0 的 Q1–Q4 保留但须加限定。逐条处置见 §12
-- **Status**：✅ 方向已定（2026-10-15）。用户审定 §0 的四个问题，原话「Q1-Q3 agree」和「Q4 同意」（经 delegator 转达）。WI-E2E-0 已完成，WI-E2E-1 已实现、待落地（分支 `test/e2e-wi0-wi1-catalogue`，mdpro-a3）；其余工作项未开始（⬜），实现要等 delegator 按 rule 70 发放名额。本计划不改 `src/`。
+- **Status**：✅ 方向已定（2026-10-15）。用户审定 §0 的四个问题，原话「Q1-Q3 agree」和「Q4 同意」（经 delegator 转达）。WI-E2E-0 已完成，WI-E2E-1 已落地（`f80d2717`，分支 `test/e2e-wi0-wi1-catalogue`，mdpro-a3），WI-E2E-W 已完成；WI-E2E-10、11 在审回填时加入（2026-10-16）；其余工作项未开始（⬜），实现要等 delegator 按 rule 70 发放名额。本计划不改 `src/`。
 - **上游**：[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，本地真机旅程 lane）；[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed）与 [控制通道计划](20261002-plan-agent-control-channel.md)；[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)；[ADR-0089](../adr/0089-the-feature-ledger-records-windows-state-in-a-per-area-difference-table.md)（ledger 的 Windows 差异表）
 - **起因**：用户 2026-10-15 问 codex-audit：「当前的Windows和Mac端 device test，每次都是random生成的，我需要固定一组fixture，涵盖App主要的快捷键和各种功能，随着迭代开发，不断完善，fixture需与 feature-ledger 尽量映射，当然有的feature不一定需要UI test。」（[Q&A](../reference/user-question-and-answer.md) 2026-10-15 条）
 
@@ -327,7 +327,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 | WI | 名称 | 依赖 | 估计 | 需真机 |
 |---|---|---|---|---|
 | WI-E2E-0 | 区域与不变量矩阵（prep）✅ 2026-10-15，[矩阵](../reference/20261015-e2e-area-invariant-matrix.md) | 用户审定 §0 | S | 否 |
-| WI-E2E-1 | 旅程格式、REGISTRY、投影归一化器、`journeys:check`、CI 改动 ✅ 已实现并验证，待落地（`test/e2e-wi0-wi1-catalogue`）；tag 与手动触发两种 base 由 delegator 落地后在 CI 上各跑一次 | WI-E2E-0，ADR-0103 | M | 否 |
+| WI-E2E-1 | 旅程格式、REGISTRY、投影归一化器、`journeys:check`、CI 改动 ✅ 已实现并验证，已落地 `f80d2717`（`test/e2e-wi0-wi1-catalogue`）；tag 与手动触发两种 base 由 delegator 落地后在 CI 上各跑一次 | WI-E2E-0，ADR-0103 | M | 否 |
 | WI-E2E-2 | fixture 语料与 golden、生成脚本、CLAUDE.md 补一句 | WI-E2E-1 | S | 否 |
 | WI-E2E-W | Windows 驱动加固：变更不重试、原始日志、窗口绑定、错误码、配置隔离核实。✅ **已完成；Windows 真机演示已做**（代码 2026-10-15，mdpro-a6，落地 `1eece3e8`；演示 2026-10-16，mdpro-codex-audit，构建 `f8f3f664`，[记录](../test/20261016-wi-e2e-w-windows-demos.md)：W1、W2、W3b、W4、W5 通过，W3 与 W6 部分通过，分别登记为 [D247](20260912-frontend-backend-sequencing-order.md#d247)（远程退出码在 Mac 侧都成 1）与 [D248](20260912-frontend-backend-sequencing-order.md#d248)（多窗口探测后 Node 中止）；标签探测在 WebView2 上可用；标签→HWND 两种办法都可行，推荐只读的 (a) 页面框 × dpr 落在 GetWindowRect 内；配置隔离两处 [推断] 已证实：改 APPDATA 传到子进程但 mdpro 仍写真 `%APPDATA%\mdpro`，`/MIR /XF mdpro.log` 不动日志；更正：mdpro 退出时删掉 server.port/token。原代码说明：分支 `fix/e2e-w-n1-exit-codes`，收据 `E2E-W-1`、`E2E-W-1b`、`E2E-W-2`、`E2E-W-3`；不重试部分即 [D228](20260912-frontend-backend-sequencing-order.md#d228)，已落地）。第 1–2 条：N1 退出码一路传到 Mac 侧；第 2 条（§4.7）：`log.sh raw` 按字节取原始 JSONL，截断或换文件退出 7；第 3 条：`cdp.sh --window <label>` 按 Tauri 标签选页并在求值连接上复核，`ui.ps1` 还不能把标签绑到 HWND，故拒绝带窗口的步骤、多窗口无前台时拒绝猜，Windows 多窗口用例仍记 `BLOCKED`；配置隔离：`dirs` 在 Windows 走 Known Folder API，改环境变量无效，改为写明快照与恢复步骤（skill `reference/config-isolation.md`），真正的隔离要改应用代码，需另立项。审计 b163 的三个 High 已修（收据 `E2E-W-4`）：CDP 顶层 `error` 改为 `CDP_ERROR` 退出 1；`runi.ps1` 读不到任务结果退出 1；`pull.sh` 解码或写入失败退出 1、不留文件。**已知限制**（b163 Medium，未修）：① 标签复核与用户求值是两次请求，中间页面换掉（导航、重载）的窗口未关；② `log.sh raw` 发现不了「截短到首行与标记之间、再长回标记之上」的日志（大小与首行哈希都不变）；mdpro 自己从不截短日志，只有外部操作会触发 | 无（可与 1、2 并行；由 delegator 指派） | M | 是（Windows） |
 | WI-E2E-3 | 第一批：快捷键矩阵编成旅程，加 Tier-0 与 Rust 对应测试 | WI-E2E-1、2；Windows 腿还依赖 W | L | 是 |
@@ -337,6 +337,8 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 | WI-E2E-7 | 按区域补齐旅程，清空基线 | WI-E2E-4 | L（分批） | 是 |
 | WI-E2E-8 | 存活报告与工具：skill 和 brief 模板改为读旅程；与用户定存活是否阻塞 | WI-E2E-5 | S | 否 |
 | WI-E2E-9 | 阶段 B：WI-011 `run-journey` 执行旅程 | ADR-0047 WI-011，ADR-0105 | M | 是 |
+| WI-E2E-10 | 驱动能力：富剪贴板（两个平台；文本、HTML、图片、多文件） | WI-E2E-1（✅）、WI-E2E-W（✅） | S–M | 是 |
+| WI-E2E-11 | 只在验证构建里生效的更新源覆盖，加一份 ADR（编号待申请） | 该 ADR 被 Accepted；ADR-0047 的验证构建配置 | M | 是（只 macOS） |
 
 ### WI-E2E-0 区域与不变量矩阵（prep）
 - **Goal**：在写任何旅程之前，先知道覆盖要做多大（Codex 发现 24）。
@@ -431,6 +433,32 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
   3. 失败路径测试：变更超时 → 结果未知，不重试；`native` / `human` 步上停下；中断的运行要在清单里写原因。
   4. 在同一个构建上，与阶段 A 的执行结果做投影比较，相等才算完成。ADR-0047 若选「只读探针」，本项改为只自动化判据部分。
 
+### WI-E2E-10 驱动能力：富剪贴板
+- **Goal**：粘贴类旅程（矩阵的 PJ-09 图片粘贴、PJ-12 粘贴 HTML）要按类型往剪贴板里放内容，复制后还要按类型读回。今天两个平台的驱动都只有纯文本（[矩阵](../reference/20261015-e2e-area-invariant-matrix.md) §4 的 clip+ 一行）。
+- **Acceptance**
+  1. macOS：`scripts/device/` 下一个辅助脚本（与 `drag.swift` / `drag.sh` 同样的形态，调用 `NSPasteboard`），能按类型写入并读回纯文本、HTML、PNG、GIF，以及一个或多个文件 URL（PJ-09 的批量多图），每个类型输出 sha256。
+  2. Windows：在 `ui.ps1` 里加一个步骤，在桌面会话（STA）中设置 Unicode 文本、CF_HTML、图片（CF_DIB 或 PNG 格式）和 CF_HDROP 文件列表，并按格式读回；遵守 WI-E2E-W 的退出码与「变更不重试」规则。
+  3. 「写入后立即读回」先自检，自检不过就记 `BLOCKED`，不能把读不到当成被测应用的问题。
+  4. 两个平台各用两个粘贴用例演示：PJ-12 的 HTML，和 PJ-09 的一张图片（6 MB PNG 或 GIF）。产出运行清单。
+- **Tests (first)**：放 `tests/tooling/`（[ADR-0098](../adr/0098-launcher-tooling-and-perf-tests-move-into-their-own-folders-under-tests.md)）：辅助脚本的参数与输出契约、`ui.ps1` 新步骤的源码守卫；macOS 按类型往返的测试只在 darwin 上跑，其他平台跳过并写明原因。
+- **Touched**：`scripts/device/`、`tests/tooling/`、`.claude/skills/remote-windows-device-test/`、`.claude/skills/gui-acceptance/` 的说明。
+- **Risks**：从网页复制的形态因来源而异，所以 fixture 必须写明 HTML 的原文；macOS 上剪贴板的读写受隐私设置影响，辅助脚本要报出拒绝，而不是悄悄返回空值；6 MB 图片要经 ssh 传到 Windows 桌面会话，这段时间计入运行时间。
+
+### WI-E2E-11 只在验证构建里生效的更新源覆盖
+- **Goal**：让更新旅程（PJ-35：发现新版本、下载、带脏文档重启）在发版前就能在设备上跑。本 WI 落地、它的 ADR 被 Accepted 之前，PJ-35 按 Q3 的裁定只在发版金丝雀上跑。
+- **前置**：一份 ADR（编号待申请，开工时向 delegator 申请），写明以下四点：
+  - 覆盖只存在于验证 feature 构建，例如由 `verify-run` 或 ADR-0047 的 `control-channel` 门控；
+  - 发布构建在 ADR-0034 决定 4 的各层检查（feature 图、`dist`、探针）里都证明没有它；
+  - 覆盖的端点只允许 loopback，且清单必须用测试密钥签名，**绝不用发布密钥**；
+  - 备选方案及其落选理由：只在金丝雀跑；用环境变量开关但不做 feature 门控，落选是因为会进入发布构建。
+- **Acceptance**
+  1. 一个本地 HTTPS 或 loopback 清单服务器，加一个测试签名的更新包，都由脚本生成，不入库。
+  2. 验证构建读取运行目录里的覆盖配置；发布构建的 feature 图里没有这段代码（cargo tree 或符号检查），探针也连不上它。
+  3. 测试：Rust 侧（`src-tauri/` 内的单元测试）验证「没有覆盖时走原端点」「覆盖只接受 loopback」「签名不对就拒绝」；启动器与 `scripts/control/` 部分的测试放 `tests/control/`（rule 10）；发布构建上的洁净检查用例。
+  4. 用 PJ-35 在 macOS 上演示一次。Windows 按 [D224](20260912-frontend-backend-sequencing-order.md#d224) / ADR-0102 不提供更新，所以是 `N/A`。
+- **Touched**：`src-tauri/`（更新插件的配置路径）、`scripts/control/`、`tests/control/`、一份新 ADR、ledger 的更新行（真机验证日期）。
+- **Risks**：更新插件的端点和公钥是在构建时还是运行时读取，决定了覆盖能否只在运行时生效，这一点要读 2.13.x 的源码（`[推断]`）；如果只能在构建时生效，就要单独打一个验证包，成本上升。
+
 ## §7 Testing Procedures
 
 - 计划本身没有代码。各 WI 的门禁按 rule 10、rule 60、rule 70 执行。
@@ -445,6 +473,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 4. WI-E2E-5：试点之后，在下一个 RC 上**附加**跑 smoke。
 5. WI-E2E-6：合跑组迁入并与旧门禁并跑，等价之后才替代。WI-E2E-7 按区域推进，WI-E2E-8 收尾。
 6. WI-E2E-9 等 ADR-0047 WI-011。
+7. WI-E2E-10 排在 WI-E2E-7 的编辑 / 粘贴批次之前；WI-E2E-11 在它的 ADR 被 Accepted 之后开工。两者都不占 rule 70 的实现名额，除非 delegator 发放。
 
 与在途工作的先后：不抢 ADR-0047 WI-005 的人工基线；不占 rule 70 的实现名额，除非 delegator 发放；真机部分的排期服从 dtrack 和 win-desktop 的可用时间。
 
@@ -455,7 +484,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 | 类 | 估计 |
 |---|---|
 | 实现工时 | WI-E2E-1、4 各约 1–2 天；W 约 1–2 天；每条旅程连同 Tier-0 和 Rust 对应测试约半天到一天；阶段 B 另计 |
-| 无人值守耗时 | smoke 11 条，约 35–55 分钟/平台/RC；full 39 条约 217 分钟/平台 ≈ 5 批 × 45 分钟 × 2 个平台 ≈ **每次发版 7–8 设备小时**（[WI-E2E-0 矩阵](../reference/20261015-e2e-area-invariant-matrix.md) §3；rev3 估 4–6 批、6–9 小时），这还没算合跑组、ADR-0034 首批与 spike 组，也没算构建、传输安装、准备、对照、物理输入、重试、证据审阅和清理。Windows 今天能跑的远少于此：富剪贴板、拖入、多窗口与配置隔离在 WI-E2E-W 和 Q3 的两个 WI 之前都是 BLOCKED |
+| 无人值守耗时 | smoke 11 条，约 35–55 分钟/平台/RC；full 39 条约 217 分钟/平台 ≈ 5 批 × 45 分钟 × 2 个平台 ≈ **每次发版 7–8 设备小时**（[WI-E2E-0 矩阵](../reference/20261015-e2e-area-invariant-matrix.md) §3；rev3 估 4–6 批、6–9 小时），这还没算合跑组、ADR-0034 首批与 spike 组，也没算构建、传输安装、准备、对照、物理输入、重试、证据审阅和清理。受阻的用例还要另算：富剪贴板在 WI-E2E-10 之前两个平台都是 BLOCKED；假更新源在 WI-E2E-11 之前是 BLOCKED，PJ-35 只在发版金丝雀上跑（Windows 按 [D224](20260912-frontend-backend-sequencing-order.md#d224) 为 `N/A`）；拖入文件在两个平台都是 `human` 步（Q3，ADR-0075），不算 BLOCKED。Windows 上还更少：多窗口在 `ui.ps1` 能把标签绑到 HWND 之前是 BLOCKED（WI-E2E-W 一行，[D248](20260912-frontend-backend-sequencing-order.md#d248)）；真正的配置隔离要改应用代码，还没有 WI，在此之前只能快照加恢复 |
 | 操作者时间 | `human` 步（IME、物理 Esc）每次运行都要有人在场；delegator 写 brief、审记录的时间 |
 | 稀缺设备时间 | mini 和 win-desktop 同时只能跑一个运行；参照：v0.3.4 的 Windows 检查从 08:23 跑到 12:35，含额外检查 |
 
@@ -538,3 +567,5 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 **测试位置**（2026-10-15，base `73cda31`）：按 [ADR-0098](../adr/0098-launcher-tooling-and-perf-tests-move-into-their-own-folders-under-tests.md) 改了测试文件的位置，不设例外（delegator 裁定）。Tier-0 对应测试改为 `tests/ej-NNN-<slug>.test.ts(x)`（根目录），门禁脚本的测试改为 `tests/tooling/journeys-check.test.ts`。旅程文件、fixture 和投影仍在 `tests/journeys/` 下。
 
 **WI-E2E-0 回填**（2026-10-15，mdpro-a3，分支 `test/e2e-wi0-wi1-catalogue`，Q5 由 adr047-verify 审）：§6 表加完成标记；WI-E2E-0 写入结果与 Q1–Q7 裁定；WI-E2E-1 写入实现说明（Q-a 至 Q-c）；WI-E2E-2 第 1 条注明与 WI-E2E-1 的分工；§9 无人值守耗时按矩阵重估；§11 相应改写。
+
+**WI-E2E-10、11**（2026-10-16，adr047-verify，审 a3 的回填 `f80d2717`，base `05dc6b8e`）：按 Q3 加入 WI-E2E-10（富剪贴板，范围含 PJ-09 的图片与多文件）和 WI-E2E-11（验证构建的更新源覆盖，ADR 编号待申请）；§8 加第 7 步；§9 中受阻用例那一句按 Q3 与 WI-E2E-W 的结果改写；状态行与 §6 的 WI-E2E-1 改为已落地 `f80d2717`。
