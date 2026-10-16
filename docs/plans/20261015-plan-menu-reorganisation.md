@@ -1,10 +1,10 @@
 # Plan: reorganise the native menu bar on macOS and Windows
 
-**Status:** revised a second time after the scoped Codex re-review (2026-10-16, § 10). Decisions
+**Status:** revised after the scoped Codex re-review and confirmed clean (C0 · H0 · M0 · L0, 2026-10-16, §§ 10–11). Decisions
 taken (§ 0, including the user's answers to U1–U9); U10–U12 are still open, listed next; no code written.
 **Scheduled for v0.3.6, merged with [D255](20260912-frontend-backend-sequencing-order.md#d255)**
 (2026-10-16, decision D7 in § 0) and owning [D261](20260912-frontend-backend-sequencing-order.md#d261).
-Next: mdpro-codex-audit confirms the § 11 fixes; U10 and U11 wait for M2 and U12 for the prototype; then M2.
+Next: M2. U10 and U11 wait for M2's record and U12 for the prototype.
 **Base:** written on `master` @ `74a4804`; the review revision re-checked its citations on
 `1d7aa9f`, after #443 moved the app to Tauri 2.12.1 and muda 0.20.0
 (`src-tauri/Cargo.lock:2494-2495`). Crate paths are relative to
@@ -66,7 +66,7 @@ The user answered the first draft's questions; relayed by the coordinator.
 | D10 | Quote on macOS (U2, 2026-10-16) | 「C · ⇧⌘B (Recommended)」 | Quote is ⇧⌘B on macOS, Milkdown's own `Mod-Shift-b`; ⌥⌘Q stays unassigned; M2(a) is dropped |
 | D11 | View toggle (U3, 2026-10-16) | 「C · ⌘/ first, F6 second」 | ⌘/ / Ctrl+/ is the menu's key (ADR-0096's clause stands); F6 is a fixed second key on both platforms. Departs from D2 for this item |
 | D12 | Toggle Sidebar (U4, 2026-10-16) | 「B · Keep ⇧⌘L (Recommended)」 | ⇧⌘L / Ctrl+Shift+L stay; CodeMirror's `Mod-Shift-l` (select-all-matches) is removed from Source. Departs from D2 for this item |
-| D13 | Replace keys (U5, 2026-10-16) | 「Mac ⌘H  for Replace, ⌘F for find, Ctrl + H for replace on Windows」 | Find ⌘F / Ctrl+F and Replace ⌘H / Ctrl+H are two items. On macOS ⌘H leaves the Hide item: Hide mdpro becomes a custom item with no key (C2). No ⌥⌘F. `editReplace` keeps its version-1 default, so the migration leaves it alone, and the `<merged:editFind>` state is dropped |
+| D13 | Replace keys (U5, 2026-10-16) | 「Mac ⌘H  for Replace, ⌘F for find, Ctrl + H for replace on Windows」 | Find ⌘F / Ctrl+F and Replace ⌘H / Ctrl+H are two items. On macOS ⌘H leaves the Hide item: Hide mdpro becomes a custom item with no key (C2); the user accepted that consequence: 「Accept: Hide has no key (Recommended)」 (2026-10-16). No ⌥⌘F. `editReplace` keeps its version-1 default, so the migration leaves it alone, and the `<merged:editFind>` state is dropped |
 | D14 | Settings groups (U6, 2026-10-16) | 「A · As prototype A drew it (Recommended)」 | Export HTML in File, Highlight in Format, Undo / Redo in Edit (fixed), Exit in File (M7) |
 | D15 | Windows / Linux full screen (U7, 2026-10-16) | 「B · Build F11 full screen (Recommended)」 | D255-WI-3d builds F11 off-Mac (§ 5.8 row 2); macOS keeps the system fn F item |
 | D16 | Insert Table (U8, 2026-10-16) | 「A · ⇧⌘T / Ctrl+Shift+T (Recommended)」 | Insert Table leaves ⌥⌘T / Ctrl+Alt+T. D9's "table keys" that stay on Ctrl+Alt are the six in-table row and column keys, a different set, so the two answers do not overlap |
@@ -963,11 +963,15 @@ states (`<merged:editFind>` dropped), § 5.8 rows 2 and 26, M2(a), M0, M1b, M7 a
 D13 is not one of U5's options: it keeps ⌘H for Replace, which the plan had ruled out as
 OS-owned. It is not: ⌘H is the key of mdpro's own predefined Hide item
 (`muda-0.20.0/src/items/predefined.rs:655`), so C2 replaces that item with a keyless custom
-one that calls `AppHandle::hide()`, and M2(a) probes the result. D16 and D9 do not overlap:
+one that calls `AppHandle::hide()`, and M2(a) probes the result. Asked about that consequence, the user answered 「Accept: Hide has no key (Recommended)」 (2026-10-16). Hide Others keeps ⌥⌘H. D16 and D9 do not overlap:
 D9's Ctrl+Alt "table keys" are the six in-table row and column keys; Insert Table is a
 separate action and moves to ⇧⌘T / Ctrl+Shift+T.
 
 DESIGN.md's Keyboard Shortcuts block still describes a merged Replace row ("→ Find and
-Replace"). D13 makes that stale. DESIGN.md is outside this file's grant, so the correction is
-handed to the delegator.
+Replace"). D13 makes that stale. DESIGN.md is outside this file's grant; the delegator takes
+the correction after this plan lands.
+
+mdpro-codex-audit's final scoped confirm on `fae62649` (`review-plan-mvaj4tfa-qm3vnm`) is
+**C0 · H0 · M0 · L0**: #8, #10, #15, #28 and #38 closed at plan level, and D13 is feasible
+(`AppHandle::hide()` is the same NSApplication `hide:` as muda's predefined item).
 
