@@ -65,14 +65,28 @@
   color: var(--color-text);
 }
 
+/* D250: rule 33 pattern 1, as the Insert Link URL field, in place of WebKit's
+   pale default ring. */
+.image-context-menu-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  outline: none;
+}
+
+/* D250: D222's primary fill and text, as Settings' primary buttons; the plain
+   accent was the colour of its own focus ring in dark. */
 .image-context-menu-apply {
   min-height: 30px;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-accent-fill);
   border-radius: var(--radius-control);
   padding: 0 10px;
-  background: var(--color-accent);
-  color: var(--color-panel);
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
   cursor: pointer;
+}
+
+.image-context-menu-apply:hover:not(:disabled) {
+  background: var(--color-accent-fill-hover);
 }
 
 /* D244: keyboard focus gets rule 33 pattern 2, not WebKit's default ring. */

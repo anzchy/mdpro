@@ -164,3 +164,10 @@
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
+
+/* D250: the checkbox is 0×0 and transparent, so the track shows its keyboard
+   focus: rule 33 pattern 2. */
+.toggle-switch input:focus-visible + .toggle-slider {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
