@@ -1,0 +1,299 @@
+{
+  "$README": "M1a WI-4 (ADR-0114): the saved <-> applied contract for `get_applied_shortcuts`. `stored` is a full `keyboardShortcuts` group as `get_preferences` returns it; `applied` is the `AppliedShortcuts` the backend resolves from it (version 1, source loaded). Rule: \"<unassigned>\" -> unassigned, \"<system>\" -> system, anything else -> bound with that chord verbatim (fileClose holds the near-miss \"<UNASSIGNED>\"). Asserted by src-tauri/src/services/applied_shortcuts_tests.rs (A7/A8) and tests/preferences-contract-parity.test.ts (T4/T5). Hand-maintained: never regenerate `applied` from the implementation.",
+  "stored": {
+    "fileNew": "Cmd+N",
+    "fileNewWindow": "Cmd+Shift+N",
+    "fileOpen": "Cmd+Alt+O",
+    "fileOpenQuickly": "Cmd+Shift+O",
+    "fileSave": "<unassigned>",
+    "fileSaveAs": "Cmd+Shift+S",
+    "fileClose": "<UNASSIGNED>",
+    "filePreferences": "Cmd+,",
+    "editCopyAsMarkdown": "Cmd+Shift+C",
+    "editPasteAsPlainText": "Cmd+Shift+V",
+    "editSelectLine": "Cmd+L",
+    "editSelectWord": "Cmd+D",
+    "editDeleteWord": "Cmd+Shift+D",
+    "editJumpToTop": "<system>",
+    "editJumpToBottom": "Cmd+Down",
+    "editFind": "Cmd+F",
+    "editFindNext": "Cmd+G",
+    "editFindPrevious": "Cmd+Shift+G",
+    "editReplace": "Cmd+H",
+    "paragraphHeading1": "Cmd+1",
+    "paragraphHeading2": "Cmd+2",
+    "paragraphHeading3": "Cmd+3",
+    "paragraphHeading4": "Cmd+4",
+    "paragraphHeading5": "Cmd+5",
+    "paragraphHeading6": "Cmd+6",
+    "paragraphParagraph": "Cmd+0",
+    "paragraphIncreaseHeading": "Cmd+=",
+    "paragraphDecreaseHeading": "Cmd+-",
+    "paragraphTable": "Cmd+Option+T",
+    "paragraphCodeFences": "Cmd+Option+C",
+    "paragraphMathBlock": "Cmd+Option+B",
+    "paragraphQuote": "Cmd+Option+Q",
+    "paragraphOrderedList": "Cmd+Option+O",
+    "paragraphUnorderedList": "Cmd+Option+U",
+    "paragraphIndent": "Cmd+]",
+    "paragraphOutdent": "Cmd+[",
+    "formatStrong": "Cmd+B",
+    "formatEmphasis": "Cmd+I",
+    "formatUnderline": "Cmd+U",
+    "formatCode": "Cmd+Shift+`",
+    "formatStrike": "Ctrl+Shift+`",
+    "formatHyperlink": "Cmd+K",
+    "formatImage": "Cmd+Ctrl+I",
+    "formatHighlight": "Cmd+Shift+H",
+    "formatClearFormat": "Cmd+\\",
+    "fileExportHtml": "Cmd+Shift+E",
+    "viewSource": "Ctrl+2",
+    "viewWysiwyg": "Ctrl+4",
+    "viewToggleSidebar": "Cmd+Shift+L",
+    "viewCycleViewMode": "Cmd+/",
+    "viewToggleFullscreen": "Cmd+Option+F",
+    "viewSwitchDocuments": "Cmd+`",
+    "tableInsertRowAbove": "Cmd+Option+Up",
+    "tableInsertRowBelow": "Cmd+Option+Down",
+    "tableInsertColumnLeft": "Cmd+Option+Left",
+    "tableInsertColumnRight": "Cmd+Option+Right",
+    "tableDeleteRow": "Cmd+Option+Backspace",
+    "tableDeleteColumn": "Cmd+Option+Shift+Backspace"
+  },
+  "applied": {
+    "keyboardShortcutsVersion": 1,
+    "source": "loaded",
+    "bindings": {
+      "editCopyAsMarkdown": {
+        "state": "bound",
+        "chord": "Cmd+Shift+C"
+      },
+      "editDeleteWord": {
+        "state": "bound",
+        "chord": "Cmd+Shift+D"
+      },
+      "editFind": {
+        "state": "bound",
+        "chord": "Cmd+F"
+      },
+      "editFindNext": {
+        "state": "bound",
+        "chord": "Cmd+G"
+      },
+      "editFindPrevious": {
+        "state": "bound",
+        "chord": "Cmd+Shift+G"
+      },
+      "editJumpToBottom": {
+        "state": "bound",
+        "chord": "Cmd+Down"
+      },
+      "editJumpToTop": {
+        "state": "system"
+      },
+      "editPasteAsPlainText": {
+        "state": "bound",
+        "chord": "Cmd+Shift+V"
+      },
+      "editReplace": {
+        "state": "bound",
+        "chord": "Cmd+H"
+      },
+      "editSelectLine": {
+        "state": "bound",
+        "chord": "Cmd+L"
+      },
+      "editSelectWord": {
+        "state": "bound",
+        "chord": "Cmd+D"
+      },
+      "fileClose": {
+        "state": "bound",
+        "chord": "<UNASSIGNED>"
+      },
+      "fileExportHtml": {
+        "state": "bound",
+        "chord": "Cmd+Shift+E"
+      },
+      "fileNew": {
+        "state": "bound",
+        "chord": "Cmd+N"
+      },
+      "fileNewWindow": {
+        "state": "bound",
+        "chord": "Cmd+Shift+N"
+      },
+      "fileOpen": {
+        "state": "bound",
+        "chord": "Cmd+Alt+O"
+      },
+      "fileOpenQuickly": {
+        "state": "bound",
+        "chord": "Cmd+Shift+O"
+      },
+      "filePreferences": {
+        "state": "bound",
+        "chord": "Cmd+,"
+      },
+      "fileSave": {
+        "state": "unassigned"
+      },
+      "fileSaveAs": {
+        "state": "bound",
+        "chord": "Cmd+Shift+S"
+      },
+      "formatClearFormat": {
+        "state": "bound",
+        "chord": "Cmd+\\"
+      },
+      "formatCode": {
+        "state": "bound",
+        "chord": "Cmd+Shift+`"
+      },
+      "formatEmphasis": {
+        "state": "bound",
+        "chord": "Cmd+I"
+      },
+      "formatHighlight": {
+        "state": "bound",
+        "chord": "Cmd+Shift+H"
+      },
+      "formatHyperlink": {
+        "state": "bound",
+        "chord": "Cmd+K"
+      },
+      "formatImage": {
+        "state": "bound",
+        "chord": "Cmd+Ctrl+I"
+      },
+      "formatStrike": {
+        "state": "bound",
+        "chord": "Ctrl+Shift+`"
+      },
+      "formatStrong": {
+        "state": "bound",
+        "chord": "Cmd+B"
+      },
+      "formatUnderline": {
+        "state": "bound",
+        "chord": "Cmd+U"
+      },
+      "paragraphCodeFences": {
+        "state": "bound",
+        "chord": "Cmd+Option+C"
+      },
+      "paragraphDecreaseHeading": {
+        "state": "bound",
+        "chord": "Cmd+-"
+      },
+      "paragraphHeading1": {
+        "state": "bound",
+        "chord": "Cmd+1"
+      },
+      "paragraphHeading2": {
+        "state": "bound",
+        "chord": "Cmd+2"
+      },
+      "paragraphHeading3": {
+        "state": "bound",
+        "chord": "Cmd+3"
+      },
+      "paragraphHeading4": {
+        "state": "bound",
+        "chord": "Cmd+4"
+      },
+      "paragraphHeading5": {
+        "state": "bound",
+        "chord": "Cmd+5"
+      },
+      "paragraphHeading6": {
+        "state": "bound",
+        "chord": "Cmd+6"
+      },
+      "paragraphIncreaseHeading": {
+        "state": "bound",
+        "chord": "Cmd+="
+      },
+      "paragraphIndent": {
+        "state": "bound",
+        "chord": "Cmd+]"
+      },
+      "paragraphMathBlock": {
+        "state": "bound",
+        "chord": "Cmd+Option+B"
+      },
+      "paragraphOrderedList": {
+        "state": "bound",
+        "chord": "Cmd+Option+O"
+      },
+      "paragraphOutdent": {
+        "state": "bound",
+        "chord": "Cmd+["
+      },
+      "paragraphParagraph": {
+        "state": "bound",
+        "chord": "Cmd+0"
+      },
+      "paragraphQuote": {
+        "state": "bound",
+        "chord": "Cmd+Option+Q"
+      },
+      "paragraphTable": {
+        "state": "bound",
+        "chord": "Cmd+Option+T"
+      },
+      "paragraphUnorderedList": {
+        "state": "bound",
+        "chord": "Cmd+Option+U"
+      },
+      "tableDeleteColumn": {
+        "state": "bound",
+        "chord": "Cmd+Option+Shift+Backspace"
+      },
+      "tableDeleteRow": {
+        "state": "bound",
+        "chord": "Cmd+Option+Backspace"
+      },
+      "tableInsertColumnLeft": {
+        "state": "bound",
+        "chord": "Cmd+Option+Left"
+      },
+      "tableInsertColumnRight": {
+        "state": "bound",
+        "chord": "Cmd+Option+Right"
+      },
+      "tableInsertRowAbove": {
+        "state": "bound",
+        "chord": "Cmd+Option+Up"
+      },
+      "tableInsertRowBelow": {
+        "state": "bound",
+        "chord": "Cmd+Option+Down"
+      },
+      "viewCycleViewMode": {
+        "state": "bound",
+        "chord": "Cmd+/"
+      },
+      "viewSource": {
+        "state": "bound",
+        "chord": "Ctrl+2"
+      },
+      "viewSwitchDocuments": {
+        "state": "bound",
+        "chord": "Cmd+`"
+      },
+      "viewToggleFullscreen": {
+        "state": "bound",
+        "chord": "Cmd+Option+F"
+      },
+      "viewToggleSidebar": {
+        "state": "bound",
+        "chord": "Cmd+Shift+L"
+      },
+      "viewWysiwyg": {
+        "state": "bound",
+        "chord": "Ctrl+4"
+      }
+    }
+  }
+}

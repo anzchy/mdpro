@@ -1,7 +1,7 @@
 /**
  * Purpose: typed IPC wrapper for the user-preferences commands
  *   (`get_preferences`, `set_preferences`, `get_system_theme`,
- *   `save_window_state`), with a browser-mode fallback for `pnpm dev`.
+ *   `save_window_state`, `get_applied_shortcuts`), with a browser-mode fallback for `pnpm dev`.
  *
  * Key decisions:
  *   - Branch selection uses `isTauri()` from `@tauri-apps/api/core`, evaluated
@@ -23,13 +23,20 @@
  *     path or error text. Reads raise no toast. The browser branch logs nothing,
  *     so it stays at zero `invoke` calls.
  *
+ *   - `getAppliedShortcuts()` (M1a WI-4, ADR-0114) reads the run's applied
+ *     shortcut snapshot. Like `getPreferences` it logs one enum-only
+ *     `preferences.shortcuts.applied.read` entry and rethrows without a toast;
+ *     the browser branch builds every default as bound, fresh per call.
+ *
  * @coordinates-with src-tauri/src/commands/preferences.rs — the IPC commands
+ * @coordinates-with src-tauri/src/commands/shortcuts.rs — `get_applied_shortcuts`
  * @coordinates-with src/services/loggingService.ts — read log and fail log sink
  * @coordinates-with src/stores/toastStore.ts — the save-failure toast
  * @module services/preferencesService
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { UserPreferences, WindowState } from "../types/preferences";
+import type { AppliedShortcuts } from "../types/keyboardShortcuts";
 import { useToastStore } from "../stores/toastStore";
 import { loggingService } from "./loggingService";
 import {
@@ -110,6 +117,35 @@ function logRead(purpose: PreferenceReadPurpose, ok: boolean): void {
   });
 }
 
+/**
+ * The browser-mode applied snapshot: every default bound to its chord, as a
+ * fresh object on each call.
+ */
+function browserAppliedShortcuts(): AppliedShortcuts {
+  const bindings = Object.fromEntries(
+    Object.entries(DEFAULT_KEYBOARD_SHORTCUTS).map(([field, chord]) => [
+      field,
+      { state: "bound", chord },
+    ]),
+  ) as AppliedShortcuts["bindings"];
+  return {
+    keyboardShortcutsVersion: DEFAULT_PREFERENCES.keyboardShortcutsVersion,
+    source: "loaded",
+    bindings,
+  };
+}
+
+/** One `preferences.shortcuts.applied.read` entry; enum-only context. */
+function logAppliedRead(ok: boolean): void {
+  loggingService.logEventSync({
+    level: ok ? "info" : "warn",
+    event: "preferences.shortcuts.applied.read",
+    status: ok ? "success" : "fail",
+    actionId: loggingService.generateActionId(),
+    context: ok ? { outcome: "ok" } : { outcome: "failed", reason: "invoke_rejected" },
+  });
+}
+
 export const preferencesService = {
   async getPreferences(purpose: PreferenceReadPurpose): Promise<UserPreferences> {
     if (!isTauri()) {
@@ -149,6 +185,26 @@ export const preferencesService = {
       useToastStore.getState().showToast("Failed to save preferences");
       throw error;
     }
+  },
+
+  /**
+   * The keyboard shortcuts this run applied at startup (`get_applied_shortcuts`,
+   * ADR-0114): fixed for the run, so it can differ from the saved preferences
+   * until a restart. No consumer in M1a.
+   */
+  async getAppliedShortcuts(): Promise<AppliedShortcuts> {
+    if (!isTauri()) {
+      return browserAppliedShortcuts();
+    }
+    let applied: AppliedShortcuts;
+    try {
+      applied = await invoke<AppliedShortcuts>("get_applied_shortcuts", {});
+    } catch (error) {
+      logAppliedRead(false);
+      throw error;
+    }
+    logAppliedRead(true);
+    return applied;
   },
 
   async getSystemTheme(): Promise<"light" | "dark"> {

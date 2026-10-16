@@ -12,6 +12,7 @@ use tauri_app_lib::models::{
     LogEntryPayload, LogLevel, LogStatus, SharedServerConfig, SharedShadowStore,
 };
 use tauri_app_lib::services::app_exit;
+use tauri_app_lib::services::applied_shortcuts::{self, AppliedShortcutsState};
 use tauri_app_lib::services::file_watcher::{self, FileWatcher};
 use tauri_app_lib::services::mcp_confirm::{
     self,
@@ -114,6 +115,12 @@ fn main() {
             // publish_or_exit prints its own line and exits 78.
             #[cfg(feature = "verify-run")]
             tauri_app_lib::services::verify_run::publish_or_exit(&verified_run, BUILD_ID_RAW);
+            // M1a WI-4 (ADR-0114): the run's applied shortcuts, resolved once
+            // and managed first, before `build_menu` and before any window
+            // can invoke `get_applied_shortcuts`. Fixed for the run.
+            app.manage(AppliedShortcutsState::new(
+                applied_shortcuts::snapshot_at_startup(),
+            ));
             let watcher = FileWatcher::new(app.handle().clone())
                 .map_err(Box::<dyn std::error::Error>::from)?;
             app.manage(watcher);

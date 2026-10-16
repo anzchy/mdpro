@@ -9,11 +9,14 @@
 //! - `prefs_guard` is the held form of `preferences::preferences_rw_lock`; it
 //!   marks its thread so a nested preferences load is refused instead of
 //!   deadlocking (ADR-0114, M1a WI-1).
+//! - `applied_shortcuts` holds the run's applied keyboard-shortcut snapshot,
+//!   resolved once at startup and fixed for the run (ADR-0114, M1a WI-4).
 //! - `verify_run` (ADR-0047 WI-002) exists only with the `verify-run` Cargo
 //!   feature, so a feature-off build carries no guard code.
 
 pub mod app_exit;
 pub mod app_ready;
+pub mod applied_shortcuts;
 pub mod build_info;
 pub mod draft;
 pub mod encoding;

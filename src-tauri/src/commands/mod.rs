@@ -13,6 +13,7 @@ pub mod menu;
 pub mod preferences;
 pub mod quit_guard;
 pub mod save_as_watch;
+pub mod shortcuts;
 pub mod toc;
 pub mod updater;
 pub mod watch_hold;
@@ -42,6 +43,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         preferences::get_system_theme,
         window_state::save_window_state,
         preferences::pick_export_folder,
+        shortcuts::get_applied_shortcuts,
         launch::get_launch_paths,
         menu::sync_recent_files_menu,
         draft::save_draft,

@@ -33,6 +33,8 @@ import {
 import {
   SYSTEM_BINDING,
   UNASSIGNED_BINDING,
+  type AppliedBinding,
+  type AppliedShortcuts,
   type KeyboardShortcutState,
 } from "../src/types/keyboardShortcuts";
 
@@ -317,5 +319,64 @@ describe("WI-8 — cross-language preference contract parity (TS half)", () => {
       autoApproveEdits: true,
     };
     expect(Object.keys(DEFAULT_MCP_CONFIG).sort()).toEqual(Object.keys(MCP_CONFIG_KEYS).sort());
+  });
+});
+
+/**
+ * M1a WI-4 (ADR-0114, delegator ruling 3) — the TS half of the saved ↔ applied
+ * contract. `tests/fixtures/applied-shortcuts-contract.json` pairs a stored
+ * `keyboardShortcuts` group with the `AppliedShortcuts` the backend resolves
+ * from it; `src-tauri/src/services/applied_shortcuts_tests.rs::a7_a8_…` holds
+ * the Rust serialiser to the same bytes. M7's "pending = saved ≠ applied"
+ * comparison relies on both sides agreeing on keys and the pointwise rule.
+ */
+describe("M1a WI-4 — applied-shortcuts contract (TS half)", () => {
+  function readAppliedContract(): { stored: Record<string, string>; applied: unknown } {
+    const testPath = expect.getState().testPath;
+    expect(testPath).toBeTruthy();
+    const fixturePath = resolve(
+      dirname(testPath as string),
+      "fixtures/applied-shortcuts-contract.json",
+    );
+    return JSON.parse(readFileSync(fixturePath, "utf8")) as {
+      stored: Record<string, string>;
+      applied: unknown;
+    };
+  }
+
+  /** The pointwise rule, written with the TS sentinel constants. */
+  function predict(stored: string): AppliedBinding {
+    if (stored === UNASSIGNED_BINDING) return { state: "unassigned" };
+    if (stored === SYSTEM_BINDING) return { state: "system" };
+    return { state: "bound", chord: stored };
+  }
+
+  it("T5: keys agree three ways and the TS rule predicts every applied binding", () => {
+    const { stored, applied } = readAppliedContract();
+    const bindings = (applied as AppliedShortcuts).bindings as Record<string, AppliedBinding>;
+    const defaultKeys = Object.keys(DEFAULT_KEYBOARD_SHORTCUTS).sort();
+
+    expect(Object.keys(stored).sort()).toEqual(defaultKeys);
+    expect(Object.keys(bindings).sort()).toEqual(defaultKeys);
+    for (const [k, value] of Object.entries(stored)) {
+      expect(bindings[k], k).toEqual(predict(value));
+    }
+    expect(stored.fileClose).toBe("<UNASSIGNED>");
+    expect(bindings.fileClose).toEqual({ state: "bound", chord: "<UNASSIGNED>" });
+  });
+
+  it("T4: the AppliedShortcuts type parses the fixture and covers every state", () => {
+    const a: AppliedShortcuts = readAppliedContract().applied as AppliedShortcuts;
+    const STATES: Record<AppliedBinding["state"], true> = {
+      bound: true,
+      unassigned: true,
+      system: true,
+    };
+
+    const seen = new Set(Object.values(a.bindings).map((b) => b.state));
+    for (const state of seen) expect(Object.keys(STATES)).toContain(state);
+    expect([...seen].sort()).toEqual(Object.keys(STATES).sort());
+    expect(["loaded", "defaultsAfterLoadFailure"]).toContain(a.source);
+    expect(a.keyboardShortcutsVersion).toBe(1);
   });
 });
