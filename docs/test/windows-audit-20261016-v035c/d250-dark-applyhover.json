@@ -1,0 +1,39 @@
+{
+ "theme": "theme-dark",
+ "active": "image-context-menu-apply",
+ "menuBg": "rgb(20, 24, 33)",
+ "input": {
+  "cls": "image-context-menu-input",
+  "focus": false,
+  "focusVisible": false,
+  "border": "color(srgb 0.898039 0.905882 0.921569 / 0.5)",
+  "shadow": "none",
+  "outline": "none 2.77778px rgb(229, 231, 235)",
+  "offset": "0px",
+  "bg": "rgb(15, 17, 21)",
+  "color": "rgb(229, 231, 235)",
+  "rect": [
+   1516,
+   1732,
+   1775,
+   1840
+  ]
+ },
+ "apply": {
+  "cls": "image-context-menu-apply",
+  "focus": true,
+  "focusVisible": true,
+  "border": "rgb(29, 78, 216)",
+  "shadow": "none",
+  "outline": "solid 1.94444px rgb(96, 165, 250)",
+  "offset": "1.94444px",
+  "bg": "color(srgb 0.100078 0.269176 0.745412)",
+  "color": "rgb(255, 255, 255)",
+  "rect": [
+   1796,
+   1732,
+   1994,
+   1840
+  ]
+ }
+}

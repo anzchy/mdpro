@@ -1,0 +1,79 @@
+{
+ "dpr": 3.5999999046325684,
+ "theme": "theme-dark",
+ "pre": "color(srgb 0.109176 0.11702 0.132706)",
+ "codes": [
+  {
+   "ctx": "plain",
+   "text": "inline code",
+   "color": "rgb(229, 231, 235)",
+   "bg": "color(srgb 0.109176 0.11702 0.132706)",
+   "rect": [
+    1596,
+    338,
+    1942,
+    411
+   ]
+  },
+  {
+   "ctx": "quote",
+   "text": "quoted code",
+   "color": "color(srgb 0.633333 0.669412 0.720392)",
+   "bg": "color(srgb 0.109176 0.11702 0.132706)",
+   "rect": [
+    1409,
+    477,
+    1754,
+    549
+   ]
+  },
+  {
+   "ctx": "quote",
+   "text": "linked code",
+   "color": "color(srgb 0.633333 0.669412 0.720392)",
+   "bg": "color(srgb 0.109176 0.11702 0.132706)",
+   "rect": [
+    2155,
+    477,
+    2501,
+    549
+   ]
+  },
+  {
+   "ctx": "h6",
+   "text": "h6 code",
+   "color": "color(srgb 0.633333 0.669412 0.720392)",
+   "bg": "color(srgb 0.109176 0.11702 0.132706)",
+   "rect": [
+    1254,
+    607,
+    1470,
+    673
+   ]
+  },
+  {
+   "ctx": "h6",
+   "text": "h6 linked code",
+   "color": "color(srgb 0.633333 0.669412 0.720392)",
+   "bg": "color(srgb 0.109176 0.11702 0.132706)",
+   "rect": [
+    1587,
+    607,
+    1991,
+    673
+   ]
+  },
+  {
+   "ctx": "fenced",
+   "text": "const fenced = 1;",
+   "color": "rgb(229, 231, 235)",
+   "bg": "color(srgb 0.109176 0.11702 0.132706)",
+   "rect": [
+    1100,
+    787,
+    1619,
+    860
+   ]
+  }
+ ]
+}

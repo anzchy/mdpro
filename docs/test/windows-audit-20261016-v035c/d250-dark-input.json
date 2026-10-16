@@ -1,0 +1,39 @@
+{
+ "theme": "theme-dark",
+ "active": "image-context-menu-input",
+ "menuBg": "rgb(20, 24, 33)",
+ "input": {
+  "cls": "image-context-menu-input",
+  "focus": true,
+  "focusVisible": true,
+  "border": "rgb(96, 165, 250)",
+  "shadow": "color(srgb 0.376471 0.647059 0.980392 / 0.22) 0px 0px 0px 2px",
+  "outline": "none 2.77778px rgb(229, 231, 235)",
+  "offset": "0px",
+  "bg": "rgb(15, 17, 21)",
+  "color": "rgb(229, 231, 235)",
+  "rect": [
+   1516,
+   1732,
+   1775,
+   1840
+  ]
+ },
+ "apply": {
+  "cls": "image-context-menu-apply",
+  "focus": false,
+  "focusVisible": false,
+  "border": "rgb(29, 78, 216)",
+  "shadow": "none",
+  "outline": "none 2.77778px rgb(255, 255, 255)",
+  "offset": "0px",
+  "bg": "rgb(29, 78, 216)",
+  "color": "rgb(255, 255, 255)",
+  "rect": [
+   1796,
+   1732,
+   1994,
+   1840
+  ]
+ }
+}
