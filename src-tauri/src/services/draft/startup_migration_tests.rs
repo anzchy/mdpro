@@ -53,8 +53,9 @@ impl Fixture {
         fs::create_dir_all(&prime).expect("create prime home");
         fs::create_dir_all(&home).expect("create fixture home");
         let restorer = HomeRestorer(prev_home);
-        // F3: the settings cache's first init calls load_preferences(), which
-        // may write $HOME/.mdpro/config.json — let it land in `prime`.
+        // F3: the settings cache's first init reads $HOME/.mdpro/config.json.
+        // Since M1a WI-1 that read is read-only and never creates the file, but
+        // priming under `prime` still keeps the read off the fixture home.
         set_home(&prime);
         let prev_settings = get_log_settings();
         set_log_settings(LogSettings {

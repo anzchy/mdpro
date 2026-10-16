@@ -21,7 +21,10 @@
 
 use crate::models::WindowGeometry;
 use crate::services::open_route::lookup::{canonical, same_file};
-use crate::services::preferences::{load_preferences, preferences_rw_lock, PreferencesError};
+use crate::services::preferences::{
+    load_preferences_locked, preferences_rw_lock, PreferencesError,
+};
+use crate::services::prefs_guard::{GuardError, PrefsGuard};
 use crate::services::window_geometry::{
     resolve_window_geometry, ResolvedGeometry, WorkArea, FALLBACK_WORK_AREA, MIN_WINDOW_SIZE,
 };
@@ -134,12 +137,17 @@ pub(crate) fn decide_window_geometry(
     }
 }
 
-/// Read `path`'s stored geometry, holding `lock` only while `config.json` is
-/// loaded.
+/// Message of the `Io` error a reentrant read becomes. It decides exactly as
+/// any other read failure does (`ReadFailed`), and carries no path.
+const REENTRANT: &str = "ReentrantLoad";
+
+/// Read `path`'s stored geometry, holding `lock` (as a `PrefsGuard`) only while
+/// `config.json` is loaded.
 ///
 /// The seam behind [`read_stored_geometry`]: tests inject a genuinely
 /// poisoned mutex here instead of poisoning the process-global one. A poisoned
-/// lock is `LockPoisoned` — never read through with `into_inner`. A parse or
+/// lock is `LockPoisoned` — never read through with `into_inner`; a thread
+/// that already holds a guard is refused, not deadlocked. A parse or
 /// I/O failure is returned as-is; nothing here writes `config.json` back, so a
 /// corrupt file is left byte-for-byte alone.
 ///
@@ -152,10 +160,14 @@ pub(crate) fn read_stored_geometry_in(
     path: &str,
 ) -> Result<Option<WindowGeometry>, RestoreReadError> {
     let prefs = {
-        let _guard = lock.lock().map_err(|_| RestoreReadError::LockPoisoned)?;
-        load_preferences().map_err(|e| match e {
+        let guard = PrefsGuard::acquire_in(lock).map_err(|e| match e {
+            GuardError::Poisoned => RestoreReadError::LockPoisoned,
+            GuardError::Reentrant => RestoreReadError::Io(REENTRANT.to_string()),
+        })?;
+        load_preferences_locked(&guard).map_err(|e| match e {
             PreferencesError::IoError { message } => RestoreReadError::Io(message),
             PreferencesError::ParseError { message } => RestoreReadError::Parse(message),
+            PreferencesError::ReentrantLoad => RestoreReadError::Io(REENTRANT.to_string()),
         })?
     };
     Ok(find_stored_geometry(&prefs.window_states, path))

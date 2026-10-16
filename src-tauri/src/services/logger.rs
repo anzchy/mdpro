@@ -1,12 +1,12 @@
 use chrono::Local;
 use serde_json::{json, Value};
 use std::fs::{create_dir_all, OpenOptions};
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
-use crate::models::{LogEntry, LogEntryPayload, LogLevel, LogSettings, LogStatus};
-use crate::services::preferences::load_preferences;
+use crate::models::{LogEntry, LogEntryPayload, LogLevel, LogSettings, LogStatus, UserPreferences};
+use crate::services::preferences::config_path;
 
 /// `~/.mdpro/mdpro.log`, creating `~/.mdpro` when missing. `pub(crate)` so
 /// the run-isolation test (ADR-0047 WI-002 WI-8) can resolve it under a temp HOME.
@@ -28,11 +28,12 @@ pub(crate) fn log_path() -> Option<PathBuf> {
 /// from a healthy fresh install. `level` carries no such meaning and stays at
 /// the ordinary default.
 ///
-/// A fresh install does NOT reach this value. `load_preferences`
-/// (`crate::services::preferences`) treats a MISSING config.json as the success
-/// path — it writes defaults and returns `Ok` — so a first launch arrives at
+/// A fresh install does NOT reach this value. [`read_initial_logging`] treats
+/// a MISSING config.json (`NotFound`) as the success path — it returns
+/// `LogSettings::default()` and writes nothing — so a first launch arrives at
 /// `enabled: true` through the success branch. Reaching this constant means
-/// config.json exists and is genuinely unreadable or unparseable.
+/// config.json exists and is genuinely unreadable or unparseable (or is not a
+/// file at all, or the home directory cannot be resolved).
 ///
 /// Deliberately separate from `LogSettings::default()` rather than a change to
 /// it: `models/log_entry.rs`'s
@@ -48,9 +49,10 @@ const FAIL_CLOSED_SETTINGS: LogSettings = LogSettings {
     level: LogLevel::Info,
 };
 
-/// Decide the log-settings cache's initial value from the preferences load.
+/// Decide the log-settings cache's initial value from the settings read.
 ///
-/// `None` means `load_preferences()` failed. Extracted from `settings_cache`
+/// `None` means [`read_initial_logging`] could not read the stored settings.
+/// Extracted from `settings_cache`
 /// because that cache is a `OnceLock`: it initialises exactly once per
 /// process, and six other test modules in this crate touch `$HOME` before it
 /// might be reached, so the failure branch is not reachable from a test
@@ -87,12 +89,46 @@ fn write_settings(cache: &Mutex<LogSettings>, settings: LogSettings) {
     }
 }
 
+/// The stored logging settings, read without the preferences lock and without
+/// writing anything (M1a WI-1).
+///
+/// The settings cache initialises on the first log line, and a log line can
+/// come from inside a held `PrefsGuard` span. Calling the public
+/// `load_preferences` there would be refused as a re-entrant load (or wait on
+/// the lock), and a refusal would fail closed and silence the log. So this
+/// read takes no lock, never repairs or migrates, and never materialises a
+/// missing file.
+///
+/// It agrees with the loader on every existing document: the **whole**
+/// document is parsed as `UserPreferences` and `.logging` is taken, so any
+/// document the loader refuses (corrupt JSON, an ill-typed sibling field) is
+/// `None` here and the logger fails closed (ADR-0042 decision 6). Parsing only
+/// the `logging` section would turn logging back on for such a file.
+///
+/// - missing file (`NotFound`) → `Some(LogSettings::default())`;
+/// - any other I/O error (a directory in its place, no permission) → `None`;
+/// - unparseable → `None`; no resolvable home directory → `None`.
+pub(crate) fn read_initial_logging() -> Option<LogSettings> {
+    let path = config_path().ok()?;
+    match std::fs::read_to_string(&path) {
+        Ok(contents) => serde_json::from_str::<UserPreferences>(&contents)
+            .ok()
+            .map(|prefs| prefs.logging),
+        Err(err) if err.kind() == ErrorKind::NotFound => Some(LogSettings::default()),
+        Err(_) => None,
+    }
+}
+
+/// The settings cache's initial value: [`read_initial_logging`] through the
+/// fail-closed decision. What `settings_cache` installs, extracted so a test
+/// can run it on a thread that holds a `PrefsGuard`.
+pub(crate) fn initial_settings() -> LogSettings {
+    resolve_initial_settings(read_initial_logging())
+}
+
 fn settings_cache() -> &'static Mutex<LogSettings> {
     static CACHE: OnceLock<Mutex<LogSettings>> = OnceLock::new();
-    CACHE.get_or_init(|| {
-        let loaded = load_preferences().map(|prefs| prefs.logging).ok();
-        Mutex::new(resolve_initial_settings(loaded))
-    })
+    CACHE.get_or_init(|| Mutex::new(initial_settings()))
 }
 
 pub fn get_log_settings() -> LogSettings {
@@ -177,6 +213,10 @@ pub fn log_line(message: &str) {
         error: None,
     });
 }
+
+#[cfg(test)]
+#[path = "logger_settings_read_tests.rs"]
+mod logger_settings_read_tests;
 
 #[cfg(test)]
 #[path = "logger_corrupt_config_tests.rs"]

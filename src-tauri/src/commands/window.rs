@@ -1,6 +1,11 @@
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, WindowGeometry};
 use crate::services::logger;
-use crate::services::preferences::{load_preferences, preferences_rw_lock, save_preferences};
+use crate::services::preferences::{load_preferences_locked, save_preferences};
+use crate::services::prefs_guard::{GuardError, PrefsGuard};
+// `window_tests.rs` and `window_locked_get_tests.rs` reach these through
+// `use super::*`; production code here loads through `load_preferences_locked`.
+#[cfg(test)]
+use crate::services::preferences::{load_preferences, preferences_rw_lock};
 use crate::services::quit_guard::{effects::AppQuitGuard, window_gate::new_window_gate};
 use crate::services::window_restore;
 use serde::{Deserialize, Serialize};
@@ -131,11 +136,12 @@ pub async fn save_window_geometry(
     // and `height` are `u32`, so `0` is representable and used to be accepted.
     let mut geo = sanitize_geometry(geometry).map_err(|e| e.to_string())?;
 
-    let _lock = preferences_rw_lock()
-        .lock()
-        .map_err(|_| "preferences lock poisoned".to_string())?;
+    let guard = PrefsGuard::acquire().map_err(|e| match e {
+        GuardError::Poisoned => "preferences lock poisoned".to_string(),
+        GuardError::Reentrant => "ReentrantLoad".to_string(),
+    })?;
 
-    let mut prefs = load_preferences().map_err(|e| format!("{:?}", e))?;
+    let mut prefs = load_preferences_locked(&guard).map_err(|e| format!("{:?}", e))?;
 
     // Update geometry with current timestamp
     geo.last_accessed = chrono::Utc::now().timestamp();

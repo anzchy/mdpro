@@ -1,4 +1,5 @@
 use crate::models::{LogEntryPayload, LogSettings, UserPreferences};
+use crate::services::prefs_guard::{GuardError, PrefsGuard};
 use crate::services::{logger, preferences};
 
 /// Maximum serialized payload size in bytes (64 KB).
@@ -54,10 +55,10 @@ pub async fn get_logging_settings() -> Result<LogSettings, String> {
 ///
 /// # Locking
 ///
-/// The entire read-modify-write is serialised on `preferences_rw_lock()`, the
-/// same guard `set_preferences` and `save_window_state` take — all three write
-/// the same `~/.mdpro/config.json`. A single `_lock` binding spans
-/// `load_preferences`, the struct update, `save_preferences` **and**
+/// The entire read-modify-write is serialised on `preferences_rw_lock()`, held
+/// as a `PrefsGuard` — the same guard `set_preferences` and `save_window_state`
+/// take, all writing the same `~/.mdpro/config.json`. A single `guard` binding
+/// spans `load_preferences_locked`, the struct update, `save_preferences` **and**
 /// `logger::set_log_settings`; narrowing it to a subset reintroduces the lost
 /// update, because another writer could then interleave inside this
 /// function's read→write window and have its change silently discarded.
@@ -65,10 +66,13 @@ pub async fn get_logging_settings() -> Result<LogSettings, String> {
 /// **Lock ordering: `preferences_rw_lock` first, then the logger
 /// settings-cache mutex** (`services/logger.rs::settings_cache`, taken inside
 /// `set_log_settings`). There is no inverse ordering anywhere and therefore no
-/// deadlock: `services/logger.rs` imports only `load_preferences` and never
-/// takes `preferences_rw_lock`. That fact is what makes holding this guard
-/// across `set_log_settings` safe, and it is why the disk write and the
-/// in-process cache update can be one atomic unit.
+/// deadlock: `services/logger.rs` takes neither `preferences_rw_lock` nor a
+/// `PrefsGuard`, and never calls the preferences loader. Its first-use
+/// initialisation reads `config.json` lock-free and read-only
+/// (`read_initial_logging`, M1a WI-1), so it cannot wait on, or be refused by,
+/// the guard held here. That fact is what makes holding this guard across
+/// `set_log_settings` safe, and it is why the disk write and the in-process
+/// cache update can be one atomic unit.
 ///
 /// The guard is never held across an `.await` — this function is synchronous,
 /// which is precisely why the read-modify-write was extracted out of the
@@ -96,12 +100,13 @@ fn apply_logging_settings(
         // needs a pause hook in production code, which is a worse trade than
         // this comment. Do not re-attempt it without reading that result first:
         // docs/adr/0005-lock-span-invariant-is-review-enforced.md.
-        let _lock = preferences::preferences_rw_lock().lock().map_err(|_| {
-            preferences::PreferencesError::IoError {
+        let guard = PrefsGuard::acquire().map_err(|e| match e {
+            GuardError::Poisoned => preferences::PreferencesError::IoError {
                 message: "preferences lock poisoned".to_string(),
-            }
+            },
+            GuardError::Reentrant => preferences::PreferencesError::ReentrantLoad,
         })?;
-        let current = preferences::load_preferences().map_err(|e| {
+        let current = preferences::load_preferences_locked(&guard).map_err(|e| {
             preferences::PreferencesError::IoError {
                 message: format!("Failed to load preferences: {:?}", e),
             }
@@ -754,8 +759,10 @@ mod tests {
     ///   then re-reads `222` and writes `{222, false/warn}` → GREEN.
     ///
     /// Deadlock check: the main thread never calls `apply_logging_settings`
-    /// (`std::sync::Mutex` is not reentrant). It calls `load_preferences` /
-    /// `save_preferences`, neither of which takes the lock.
+    /// (`std::sync::Mutex` is not reentrant). It holds a `PrefsGuard` and
+    /// calls `load_preferences_locked(&guard)` / `save_preferences`, neither of
+    /// which takes the lock. (M1a WI-1: the public `load_preferences()` now
+    /// takes it, so this test no longer calls that one under the guard.)
     ///
     /// **What this does NOT pin**: guard *span*. A guard scoped to the load
     /// alone, with `save_preferences` left outside, passes this green. Span is
@@ -799,14 +806,16 @@ mod tests {
         let save_res;
         let handle;
         {
-            let _prefs_lock = preferences::preferences_rw_lock()
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            // Taking the guard cannot panic under it: a refusal panics before
+            // anything is held.
+            let Ok(_prefs_lock) = crate::services::prefs_guard::PrefsGuard::acquire() else {
+                panic!("the preferences lock must be free and unpoisoned");
+            };
 
             // Non-panicking bind: the guard is dropped *before* any panic, so a
             // bad seed fails this test without poisoning the lock for the rest
             // of the binary.
-            let load_res = preferences::load_preferences();
+            let load_res = preferences::load_preferences_locked(&_prefs_lock);
             let Ok(mut snapshot) = load_res else {
                 drop(_prefs_lock);
                 panic!("seed config must load");

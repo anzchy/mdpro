@@ -50,7 +50,7 @@ async fn d25_issue2_corrupt_config_starts_mcp_reports_unreadable_and_logs_nothin
     assert!(!log_file.exists(), "precondition: no log file yet");
 
     // (c) logger: the settings the launch-time cache would resolve to.
-    let loaded = load_preferences().map(|prefs| prefs.logging).ok();
+    let loaded = read_initial_logging();
     assert!(
         loaded.is_none(),
         "precondition: load_preferences must fail on the corrupt fixture"

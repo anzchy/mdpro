@@ -138,8 +138,9 @@ impl Run {
     }
 
     /// `valid()` with the logger forced on at Info. The settings cache is
-    /// primed under a throwaway HOME outside `root` first (matrix F3), so
-    /// `load_preferences()` writes neither the fixture nor the real `~/.mdpro`.
+    /// primed under a throwaway HOME outside `root` first (matrix F3), so its
+    /// first-use read (`logger::read_initial_logging`, read-only since M1a
+    /// WI-1) touches neither the fixture nor the real `~/.mdpro`.
     pub(super) fn logged() -> Self {
         Self::build(true, true)
     }

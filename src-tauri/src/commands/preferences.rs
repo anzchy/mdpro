@@ -5,9 +5,10 @@ use tauri::Window;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, UserPreferences, WindowState};
 use crate::services::logger;
 use crate::services::preferences::{
-    load_preferences, merge_preferences, preferences_rw_lock, save_preferences, PartialPreferences,
-    PreferencesError,
+    load_preferences, load_preferences_locked, merge_preferences, save_preferences,
+    PartialPreferences, PreferencesError,
 };
+use crate::services::prefs_guard::{GuardError, PrefsGuard};
 
 #[tauri::command]
 pub async fn get_preferences() -> Result<UserPreferences, String> {
@@ -27,6 +28,18 @@ fn error_kind(e: &PreferencesError) -> &'static str {
     match e {
         PreferencesError::IoError { .. } => "IoError",
         PreferencesError::ParseError { .. } => "ParseError",
+        PreferencesError::ReentrantLoad => "ReentrantLoad",
+    }
+}
+
+/// The two writers' mapping of a refused [`PrefsGuard`]: a poisoned lock stays
+/// the `IoError` it has always been; a reentrant one is `ReentrantLoad`.
+fn guard_error(e: GuardError) -> PreferencesError {
+    match e {
+        GuardError::Poisoned => PreferencesError::IoError {
+            message: "preferences lock poisoned".to_string(),
+        },
+        GuardError::Reentrant => PreferencesError::ReentrantLoad,
     }
 }
 
@@ -68,15 +81,12 @@ pub async fn set_preferences(
         error: None,
     });
 
-    // Hold the lock for the entire read → merge → write to prevent concurrent
-    // calls from overwriting each other's changes.
+    // Hold the guard for the entire read → merge → write to prevent concurrent
+    // calls from overwriting each other's changes; the load runs under it
+    // through `load_preferences_locked` (M1a WI-1).
     let result = (|| {
-        let _lock = preferences_rw_lock()
-            .lock()
-            .map_err(|_| PreferencesError::IoError {
-                message: "preferences lock poisoned".to_string(),
-            })?;
-        let current = load_preferences()?;
+        let guard = PrefsGuard::acquire().map_err(guard_error)?;
+        let current = load_preferences_locked(&guard)?;
         let next = merge_preferences(current, preferences);
         save_preferences(&next)?;
         Ok(next)
@@ -165,15 +175,11 @@ pub(crate) async fn save_window_state(window_state: WindowState) -> Result<(), P
         error: None,
     });
 
-    // Hold the lock for the entire read → update → write, as set_preferences
+    // Hold the guard for the entire read → update → write, as set_preferences
     // does: all writers share ~/.mdpro/config.json.
     let result = (|| {
-        let _lock = preferences_rw_lock()
-            .lock()
-            .map_err(|_| PreferencesError::IoError {
-                message: "preferences lock poisoned".to_string(),
-            })?;
-        let current = load_preferences()?;
+        let guard = PrefsGuard::acquire().map_err(guard_error)?;
+        let current = load_preferences_locked(&guard)?;
         let next = UserPreferences {
             window_state,
             ..current

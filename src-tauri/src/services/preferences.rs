@@ -6,9 +6,11 @@ use std::sync::{Mutex, OnceLock};
 use crate::models::sidebar_width::clamp_sidebar_width;
 use crate::models::{
     AppearanceConfig, AutoSaveConfig, EditorConfig, ExportConfig, ImageConfig, KeyboardShortcuts,
-    LogSettings, MarkdownConfig, McpConfig, TabBarConfig, ThemeMode, UserPreferences, ViewMode,
-    WindowGeometry, WindowState,
+    LogEntryPayload, LogLevel, LogSettings, LogStatus, MarkdownConfig, McpConfig, TabBarConfig,
+    ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState,
 };
+use crate::services::logger;
+use crate::services::prefs_guard::{reentry_check, GuardError, PrefsGuard};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,13 +44,33 @@ pub struct PartialPreferences {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PreferencesError {
-    IoError { message: String },
-    ParseError { message: String },
+    IoError {
+        message: String,
+    },
+    ParseError {
+        message: String,
+    },
+    /// The public [`load_preferences`] was called on a thread that already
+    /// holds a [`PrefsGuard`]; waiting would deadlock on its own lock. A unit
+    /// variant, so it serialises as the bare string `"ReentrantLoad"` and
+    /// carries no path or OS text across IPC.
+    ReentrantLoad,
 }
 
-/// Global mutex that serialises the load → merge → save cycle in
-/// `set_preferences` and `save_window_state`. Prevents concurrent writes from
-/// silently overwriting each other's changes.
+/// Global mutex that serialises every load → update → save of
+/// `~/.mdpro/config.json`, so concurrent writers cannot silently overwrite
+/// each other's changes.
+///
+/// Held through a [`PrefsGuard`], which marks its thread. Six callers hold it
+/// across the whole cycle and load with [`load_preferences_locked`]:
+/// `set_preferences` and `save_window_state` (`commands/preferences.rs`),
+/// `apply_logging_settings` (`commands/logging.rs`), `save_window_geometry`
+/// (`commands/window.rs`), `read_stored_geometry_in`
+/// (`services/window_restore.rs`) and `persist_server_enabled`
+/// (`services/preferences_mcp.rs`). The public [`load_preferences`] takes it
+/// for the read alone. `services/mcp_launch.rs` and
+/// `services/mcp_controller/switch.rs` take it raw for raw-byte reads (see
+/// `services/prefs_guard.rs`).
 pub(crate) fn preferences_rw_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| Mutex::new(()))
@@ -67,7 +89,47 @@ pub(crate) fn config_path() -> Result<PathBuf, PreferencesError> {
     Ok(preferences_dir()?.join("config.json"))
 }
 
-/// Reads `~/.mdpro/config.json`, materialising defaults on first run.
+/// Reads `~/.mdpro/config.json` under the preferences lock.
+///
+/// Takes a [`PrefsGuard`] for the read and calls [`load_preferences_locked`].
+/// On a thread that already holds a guard it does not wait on itself: it logs
+/// one `preferences.load` Fail record (`error: "ReentrantLoad"`, no path),
+/// fires a `debug_assert!`, and in release builds returns
+/// [`PreferencesError::ReentrantLoad`]. A caller that holds the guard across a
+/// load → update → save calls [`load_preferences_locked`] instead.
+pub fn load_preferences() -> Result<UserPreferences, PreferencesError> {
+    // Logged before the assertion, so the record exists in debug builds too.
+    let check = reentry_check();
+    if check.is_err() {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Error,
+            event: "preferences.load".to_string(),
+            status: LogStatus::Fail,
+            action_id: Some(uuid::Uuid::new_v4().to_string()),
+            context: None,
+            duration_ms: None,
+            error: Some("ReentrantLoad".to_string()),
+        });
+    }
+    debug_assert!(
+        check.is_ok(),
+        "load_preferences() on a thread that holds a PrefsGuard; use load_preferences_locked"
+    );
+    check?;
+    let guard = PrefsGuard::acquire().map_err(|e| match e {
+        GuardError::Poisoned => PreferencesError::IoError {
+            message: "preferences lock poisoned".to_string(),
+        },
+        GuardError::Reentrant => PreferencesError::ReentrantLoad,
+    })?;
+    load_preferences_locked(&guard)
+}
+
+/// Reads `~/.mdpro/config.json` under the caller's guard, materialising
+/// defaults on first run.
+///
+/// The `&PrefsGuard` parameter is the proof the lock is held; the caller keeps
+/// it across its update and save (ADR-0005, GS-1).
 ///
 /// # Empty shortcut bindings are repaired here (ADR-0031 step 4, decision D-b)
 ///
@@ -83,7 +145,9 @@ pub(crate) fn config_path() -> Result<PathBuf, PreferencesError> {
 /// on every read. `models/preferences_wi7_tests.rs::wi7_g_…` pins that exact
 /// invariant; see the doc comment on the method for why the stronger write-side
 /// claim was not taken.
-pub fn load_preferences() -> Result<UserPreferences, PreferencesError> {
+pub fn load_preferences_locked(
+    _guard: &PrefsGuard<'_>,
+) -> Result<UserPreferences, PreferencesError> {
     let path = config_path()?;
     if !path.exists() {
         let defaults = UserPreferences::default();

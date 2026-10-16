@@ -217,6 +217,7 @@ async fn run_failure_rows(home: &Path, event: &str, window_state: bool) -> (usiz
         let got = match &res {
             Err(PreferencesError::ParseError { .. }) => "ParseError",
             Err(PreferencesError::IoError { .. }) => "IoError",
+            Err(PreferencesError::ReentrantLoad) => "ReentrantLoad",
             Ok(()) => panic!("{row}: a failed load must surface as Err"),
         };
         assert_eq!(got, expected_error(kind), "{row}: precondition");

@@ -68,3 +68,11 @@ describe("ipcErrorMessage — other shapes", () => {
     },
   );
 });
+
+// M1a WI-1 G8: `PreferencesError::ReentrantLoad` is a unit variant, so serde sends the
+// bare string; the toast shows the variant name and nothing else (no path, no OS text).
+describe("ipcErrorMessage — PreferencesError::ReentrantLoad", () => {
+  it("renders the unit variant as its name", async () => {
+    expect(await ipcErrorMessage("ReentrantLoad")).toBe("ReentrantLoad");
+  });
+});

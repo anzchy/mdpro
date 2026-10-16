@@ -6,6 +6,9 @@
 //!   calls into it rather than writing the files itself.
 //! - `preferences_mcp` is the locked write path for `mcp.serverEnabled`
 //!   (ADR-0040 WI-6); the MCP switch persists through it.
+//! - `prefs_guard` is the held form of `preferences::preferences_rw_lock`; it
+//!   marks its thread so a nested preferences load is refused instead of
+//!   deadlocking (ADR-0114, M1a WI-1).
 //! - `verify_run` (ADR-0047 WI-002) exists only with the `verify-run` Cargo
 //!   feature, so a feature-off build carries no guard code.
 
@@ -27,6 +30,7 @@ pub mod open_route;
 pub mod path_plain;
 pub mod preferences;
 pub mod preferences_mcp;
+pub mod prefs_guard;
 pub mod quit_guard;
 pub mod release_info;
 #[cfg(test)]
