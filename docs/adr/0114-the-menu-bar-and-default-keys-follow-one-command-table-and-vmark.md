@@ -1,7 +1,8 @@
 # 0114. The menu bar and the default keys follow one command table and VMark's keys
 
 **Status**: Proposed (2026-10-16; revised the same day after Codex review
-`review-plan-mvawf13f-abenbn`, C0 · H4 · M7 · L0). Drafted by mdpro-a6 as
+`review-plan-mvawf13f-abenbn`, C0 · H4 · M7 · L0, and again after
+`review-plan-mvawsvrd-4f6afe`, C0 · H1 · M5 · L0). Drafted by mdpro-a6 as
 WI-M0 of the [menu reorganisation plan](../plans/20261015-plan-menu-reorganisation.md),
 number reserved by mdpro-delegator. Every decision quoted below was already
 taken by the user (relayed by the delegator, plan § 0); this record collects
@@ -21,9 +22,11 @@ gated, not decided (§ Decision 8).
   editor keymaps (`typoraKeymapPlugin.ts:165-174`, `headingPlugin.ts:101-112`,
   `Editor.tsx:95-109`, all literal chords) are written independently, so
   nothing keeps them in step (plan §§ 3, 5.4).
-- **Rebinding is inert today.** The window reads the stored keys once at
-  hydration (`App.tsx:117, 219-220`) and only the hook consumes them; Settings'
-  save does not update that copy; the native menu does not read them at all.
+- **Rebinding barely works today.** Each window reads the stored keys once at
+  hydration (`App.tsx:117, 219-220`) and only the hook consumes them. Settings'
+  save does not update the running window's copy, so a rebind reaches only
+  windows mounted after it; the editors' own literal keys and the native menu
+  never see it.
   Settings highlights duplicate chords but saves them
   (`KeyboardShortcutsSettings.tsx:124-134, 183-191`).
 - **26 menu actions do nothing on macOS** (D255, the
@@ -69,7 +72,8 @@ gated, not decided (§ Decision 8).
   refused; a Settings save followed by an unrelated menu rebuild would put a
   new key on the menu while the editors still run the old one.
 - **Two custom values on one chord.** (a) **Neither binds; both are kept and
-  flagged**: chosen; see Decision 5. (b) A winner by table order: lost; it
+  flagged, with a notice at each launch until repaired**: chosen; see
+  Decision 5. (b) A winner by table order: lost; it
   silently picks for the user and the loser's key still looks bound in the
   file. (c) Rewrite one to `<unassigned>` on load: lost; it changes a value
   the user set.
@@ -151,9 +155,23 @@ gated, not decided (§ Decision 8).
    replaces the literal and `<unassigned>` removes it in every one, preset
    fallbacks included: an unassigned Bold leaves ⌘B doing nothing in W and S.
    A Settings save writes the file and takes effect at the next launch, for
-   every window and the menu together; Settings says so on the changed rows.
-   Live activation is WI-M8. M1b owns the consumer change and its tests,
-   through the composed editors.
+   every window and the menu together. **A window opened later in the run
+   gets the run's snapshot, not the saved file**: this changes today's
+   behaviour, where a newly mounted window hydrates the saved values. Live
+   activation is WI-M8. M1b owns the consumer change and its tests, through
+   the composed editors.
+
+   **Pending state is saved versus applied.** A row is "pending" when its
+   saved value differs from the applied snapshot, whatever the Settings
+   dialog's unsaved state is (today's Save clears the dirty flag and closes,
+   `KeyboardShortcutsSettings.tsx:183-191`, so "dirty" cannot carry it). Such
+   a row shows the active key and the pending one ("Active: ⌘K · after
+   restart: ⇧⌘K"), in every window, until the next launch applies it. M7
+   owns this, with acceptance cases: Save, then reopen Settings; Save, then
+   open a new window and its Settings; repair a suppressed duplicate (still
+   pending, still suppressed until restart). M7 lands before M1b (plan § 6
+   order) and reads the applied set through M1a's IPC, so the pending
+   display is in place when M1b first binds from the snapshot.
 5. **Stored keys** (plan § 5.6): `keyboardShortcutsVersion` (absent = 1)
    migrates on Rust's load path only, replacing a value that equals a v1
    default with the v2 default; the version moves to 2 only with the full
@@ -163,11 +181,29 @@ gated, not decided (§ Decision 8).
    - custom vs a new default: the custom value wins, the default is stored
      `<unassigned>`;
    - custom vs a fixed, native, reserved or editor-owned chord: stored, not
-     bound, flagged "Conflicts with …, not active";
+     bound, flagged "Conflicts with …, not active", and named by the same
+     launch notice as below;
    - **custom vs custom** in a shared context (already possible in files
      written today): **both stay stored, neither binds**, both rows are
      flagged, and the menu shows neither key; Settings refuses to save a new
-     duplicate, so the state only arises from older files;
+     duplicate, so the state only arises from older files. **This can stop
+     a key that works today** (two custom values on one chord run whichever
+     branch the hook tests first, `useKeyboardShortcuts.ts:164-193`, e.g.
+     New over Save), so it is never silent: while any suppressed conflict
+     exists, each launch shows a **conflict notice** in the focused window
+     naming the chord and the commands ("⌘K is set for New and Save, so
+     neither runs"), with an action that opens Settings at the Keyboard
+     Shortcuts page on those rows, dismissible for that launch only. The
+     commands keep their menu items (enabled wherever the command is
+     available), so each is still reachable.
+     The notice ships in M1b, the commit that first suppresses; its look
+     follows DESIGN.md, and goes to the user as a prototype if DESIGN.md has
+     no matching component. It differs from D8's rejected banner: that
+     banner would have announced changed defaults to every user; this notice
+     appears only when a value the user set no longer runs, names it, and
+     goes away when it is repaired. Test: upgrade from a file with a
+     duplicate → notice names both → repair in Settings (shown pending) →
+     restart → both keys run, no notice;
    - an **unavailable command's default still reserves its chord**, so a
      command built later is enabled without a conflict; it binds nothing
      while unavailable, and a custom value on that chord wins as above.
@@ -201,20 +237,29 @@ gated, not decided (§ Decision 8).
      U10; D255-WI-2/3c build no WYSIWYG find before U12.
    - **K3** (does a greyed item that carries a key still take its chord):
      owner mdpro-a6; evidence: the spike rebuilt with a chord the OS does not
-     take (Ctrl+Shift+9 reached the page in M2(d1)), run on macOS and Windows,
-     `spike.m2.k3.fired` absent and `spike.m2.key` `capture` present while
-     greyed. M1a may land without it. **M4 and M5 render a disabled item with
+     take (Ctrl+Shift+9 reached the page in M2(d1)), run on macOS and Windows
+     in three steps, each in the editor with the webview focused: **enabled**
+     (the accelerator works: `spike.m2.k3.fired` present), **greyed**
+     (`k3.fired` absent; record whether `spike.m2.key` `capture` is present),
+     **re-enabled** (`k3.fired` present again). The run counts only if both
+     enabled steps fire; without them a "greyed, nothing fired" result could
+     mean the accelerator was never installed. M1a may land without it. **M4 and M5 render a disabled item with
      its accelerator only after it passes**; until then, or if it fails, a
      disabled item carries **no** native accelerator and Settings shows its
      key.
    - **K4, native-window focus** (does a menu accelerator fire, once, with
      WebView2 unfocused): owner mdpro-a6; evidence: a Windows probe that
      really takes focus out of WebView2 (the title-bar click did not). M1a and
-     M1b may land without it. **Until it passes, M5 keeps today's
-     arbitration** (native accelerator plus the DOM keymap, which the
-     2026-10-14 Windows runs showed running each command once with the webview
-     focused), and the native-focus case is recorded as unverified in the
-     ledger rows M5 writes.
+     M1b may land without it. M5 keeps today's arbitration (native
+     accelerator plus the DOM keymap, which the 2026-10-14 Windows runs showed
+     running each command once **with the webview focused**). That is a
+     provisional choice, **not** K4's guarantee: the native-focus case stays
+     unverified on M5's changed items, and M5's ledger rows say so, until the
+     probe runs on M5's build. If the probe shows a command running **twice**,
+     that is a BLOCK on M5: the off-Mac native item drops its accelerator for
+     every command a DOM keymap owns, and the label moves to the item text. If
+     it runs **zero** times, it is registered as a D item and recorded as a
+     known limitation (the menu click still works), and M5 may land.
 9. **Each WI asserts only what holds at its commit.** The table carries the
    **v1 defaults** (today's keys, also the migration's "old default" side)
    and the **v2 defaults** (§ 5.3.2), inert until M1b. From M1a, the K5
@@ -222,6 +267,17 @@ gated, not decided (§ Decision 8).
    data; the editor-owned inventory is read from today's composed keymaps.
    From M1b, when v2 becomes active and the editor keys are removed or
    rebound, both run on the active table and the post-M1b keymaps.
+
+   **The persisted version covers configurable entries only.** `fixed`
+   entries are never stored, so they are not migrated: each changes its key
+   in the WI that builds its consumer. Off-Mac Redo keeps Ctrl+Y as its
+   primary until M5's custom item makes Ctrl+Shift+Z the primary and Ctrl+Y
+   the secondary; Exit has no key until M6's `request_quit` adds Ctrl+Q. A
+   configurable entry whose command arrives later is `unavailable` until
+   then (it reserves its chord and binds nothing, Decision 5). M1b's tests
+   pin the applied table as it stands right after M1b: Redo off-Mac Ctrl+Y
+   primary (Ctrl+Shift+Z still redoes through the editors' own keymaps), Exit
+   with no key.
 
 ## Consequences
 
@@ -250,9 +306,10 @@ gated, not decided (§ Decision 8).
     a `<u>` pair split across other inline HTML, nesting with other marks,
     and byte-identical save of documents without underline are permanent test
     obligations (D255-WI-3b).
-  - **A rebind waits for a restart** until WI-M8, and two custom values on
-    one chord silently stop working until the user fixes them in Settings
-    (the rows say so).
+  - **A rebind waits for a restart** until WI-M8, and a window opened later
+    in the run no longer picks up a saved rebind. Two custom values on one
+    chord stop working until the user repairs them; a notice says so at each
+    launch, and the menu items still run the commands.
   - **Departures from VMark** (⌘/ first, ⇧⌘L, ⌘H / Ctrl+H Replace, ⇧⌘B,
     Ctrl+Shift keys off-Mac) mean "follows VMark" is a policy with a written
     exception list, not a sync.
