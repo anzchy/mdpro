@@ -80,6 +80,10 @@ mod menu_submenus;
 
 #[path = "menu_about.rs"]
 mod menu_about;
+
+// M2 spike only (never landed).
+#[path = "menu_spike.rs"]
+mod menu_spike;
 use menu_about::about_metadata_for;
 pub(crate) use menu_quit::{app_menu_has_macos_items, log_menu_exit, quit_item_for, QuitItem};
 
@@ -130,7 +134,7 @@ pub fn build_menu(
         app_menu
             .item(&PredefinedMenuItem::services(app, None)?)
             .separator()
-            .item(&PredefinedMenuItem::hide(app, None)?)
+            .item(&menu_spike::hide_item(app)?)
             .item(&PredefinedMenuItem::hide_others(app, None)?)
             .item(&PredefinedMenuItem::show_all(app, None)?)
             .separator()
@@ -225,12 +229,16 @@ pub fn build_menu(
     menu.append(&theme_menu)?;
     menu.append(&window_menu)?;
     menu.append(&help_menu)?;
+    menu.append(&menu_spike::spike_menu(app)?)?;
 
     Ok(menu)
 }
 
 pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
     let id = event.id().as_ref();
+    if menu_spike::handle(app, id, |action| emit_menu_action(app, action, None)) {
+        return;
+    }
     match id {
         MENU_APP_STOP_WAITING_QUIT => {
             quit_guard::deliver_escape(app.try_state::<AppQuitGuard>().as_deref())
