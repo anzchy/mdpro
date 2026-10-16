@@ -35,6 +35,15 @@ function differsFromBaseline(doc: Document, content: string): boolean {
 
 interface DocumentStore {
   documents: Document[];
+  /**
+   * D214-WI-5: per document id, how many times its baseline was dropped. A save or a
+   * reload captures it before its IPC; a different value when the reply lands means an
+   * external change was recorded meanwhile, so the reply must not become a clean point.
+   * Only `dropBaseline` (bump) and `closeDocument` (delete) touch it.
+   */
+  baselineEpoch: Record<string, number>;
+  /** D214-WI-5: `baselineEpoch[id]`, 0 when absent. */
+  getBaselineEpoch: (id: string) => number;
   activeDocumentId: string | null;
   setDocuments: (documents: Document[]) => void;
   /**
@@ -69,6 +78,7 @@ interface DocumentStore {
    * delete or create, another window's save, an open divergence), so the saved text is
    * no longer known. Sets `savedContent` to `undefined` on `id` only; `isModified` is
    * untouched (clean stays clean; dirty stays dirty, sticky until the next clean point).
+   * Always bumps `baselineEpoch[id]` (D214-WI-5), even when there was no baseline.
    */
   dropBaseline: (id: string) => void;
   /** Change a document's path; its baseline is kept (D214). */
@@ -91,6 +101,8 @@ interface DocumentStore {
 
 export const useDocumentStore = create<DocumentStore>((set, get) => ({
   documents: [],
+  baselineEpoch: {},
+  getBaselineEpoch: (id) => get().baselineEpoch[id] ?? 0,
   activeDocumentId: null,
   setDocuments: (documents) => set({ documents }),
   setActiveDocumentId: (id) => {
@@ -152,8 +164,13 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       ),
     })),
   dropBaseline: (id) => {
-    if (get().documents.every((doc) => doc.id !== id || doc.savedContent === undefined)) return;
+    const baselineEpoch = { ...get().baselineEpoch, [id]: (get().baselineEpoch[id] ?? 0) + 1 };
+    if (get().documents.every((doc) => doc.id !== id || doc.savedContent === undefined)) {
+      set({ baselineEpoch });
+      return;
+    }
     set((state) => ({
+      baselineEpoch,
       documents: state.documents.map((doc) => (doc.id === id ? { ...doc, savedContent: undefined } : doc)),
     }));
   },
@@ -217,7 +234,10 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         }
       }
 
-      return { documents: remaining, activeDocumentId: nextActiveId };
+      // D214-WI-5: the epoch lives as long as the document.
+      const baselineEpoch = { ...state.baselineEpoch };
+      delete baselineEpoch[id];
+      return { documents: remaining, activeDocumentId: nextActiveId, baselineEpoch };
     });
   },
 

@@ -20,6 +20,8 @@
  *   is decided first, so a failed flush never resurrects a closed tab (F7). The
  *   demoted document loses its saved-content baseline (D214): the editor may hold
  *   text the store lacks, so no later write may read clean until a clean point.
+ * - D214-WI-5: an external change recorded while the save ran (the caller's captured
+ *   baseline epoch moved) demotes it the same way and forces it dirty.
  * - The `file.save` result log carries the document id, a boolean flag and the
  *   caller's actionId, never content, lengths or paths. A `draft.delete` failure
  *   warn also carries the IPC error text, which may name the draft file.
@@ -125,6 +127,17 @@ function deleteDraftAfterSave(documentId: string, actionId?: string): void {
   });
 }
 
+/** D214-WI-5: a save demoted because an external change was recorded while it ran. */
+function logDemotedSave(documentId: string, actionId: string | undefined): void {
+  loggingService.logEventSync({
+    level: "warn",
+    event: "file.save",
+    status: "success",
+    actionId: actionId ?? loggingService.generateActionId(),
+    context: { documentId, demoted: true, reason: "external_change_during_save" },
+  });
+}
+
 /** Log a save whose result was not applied as written (ids and flags only). */
 function logUnappliedSave(
   documentId: string,
@@ -159,6 +172,12 @@ function logUnappliedSave(
  * - `applied` also sets the baseline to `writtenContent` (D214).
  * - `closed`: no store write, no draft call.
  *
+ * - D214-WI-5: `startEpoch` is the document's baseline epoch captured before the save
+ *   IPC. If it moved (an external change was recorded during the save), the result is
+ *   demoted like a failed settle flush, and also forced dirty: path / lastSaved
+ *   recorded, `savedContent: undefined`, draft kept, `file.save` warn logged with
+ *   `reason: "external_change_during_save"`. Omitted: no check.
+ *
  * Synchronous and returns `undefined`: nothing it does happens after it returns
  * except the fire-and-forget draft deletion.
  */
@@ -168,6 +187,7 @@ export function applySaveResult(
   writtenContent: string,
   result: SaveResult,
   actionId?: string,
+  startEpoch?: number,
 ): void {
   const { status } = useMilkdownEditorStore.getState().flushPendingEdits(SETTLE_FLUSH_REASON);
   const store = useDocumentStore.getState();
@@ -187,6 +207,16 @@ export function applySaveResult(
       kind: "edited-during-save",
       next: { ...current, path: result.path, lastSaved: result.savedAt, savedContent: undefined },
     };
+  }
+  const epochMoved = startEpoch !== undefined && store.getBaselineEpoch(docId) !== startEpoch;
+  if (current && resolution.kind !== "closed" && epochMoved) {
+    // D214-WI-5: an external change was recorded during the save; the disk may not hold
+    // what was written. Same demotion as above, and dirty: the user decides at the prompt.
+    resolution = {
+      kind: "edited-during-save",
+      next: { ...current, path: result.path, lastSaved: result.savedAt, isModified: true, savedContent: undefined },
+    };
+    logDemotedSave(docId, actionId);
   }
 
   switch (resolution.kind) {

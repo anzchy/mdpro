@@ -24,6 +24,11 @@
  *   site `tests/wholesale-path-partition.test.ts` classifies; this module only decides
  *   what is written.
  * - A failed `reload_file` is logged and rethrown; the caller toasts.
+ * - D214-WI-5: the target's baseline epoch is captured before `reload_file`. If an
+ *   external change was recorded during the read (the epoch moved), the reloaded
+ *   bytes go in dirty with no baseline (`savedContent: undefined`) instead of clean,
+ *   and the success log carries `demoted: true, reason: "external_change_during_reload"`.
+ *   Nothing here acknowledges a change, so the newer one's prompt stays pending.
  * - Logs carry ids and enums only, never the path: `file.reload` success / fail with
  *   `documentId` (and `reloadedId` when the result's id differs), cancel with
  *   `reason: "no-target"`.
@@ -69,7 +74,8 @@ function logReload(
 
 /**
  * Reload the active document whose path is `path` from disk, in place (D138).
- * Rejects with `reload_file`'s error, after logging it.
+ * Rejects with `reload_file`'s error, after logging it. If an external change was
+ * recorded during the read, the result goes in dirty with no baseline (D214-WI-5).
  */
 export async function reloadActiveFromDisk(
   path: string,
@@ -81,6 +87,7 @@ export async function reloadActiveFromDisk(
     logReload("cancel", actionId, { reason: "no-target" });
     return { kind: "no-target" };
   }
+  const epoch = useDocumentStore.getState().getBaselineEpoch(target.id); // D214-WI-5
   let reloaded: Document;
   try {
     reloaded = await fileService.reloadFile(path);
@@ -94,10 +101,15 @@ export async function reloadActiveFromDisk(
     logReload("cancel", actionId, { reason: "no-target", documentId: target.id });
     return { kind: "no-target" };
   }
-  replaceDocument(reloadedInPlace(current, reloaded));
+  // D214-WI-5: a change recorded during the read: the bytes may already be stale, so
+  // they go in dirty with no baseline; the newer change's prompt stays pending.
+  const overtaken = useDocumentStore.getState().getBaselineEpoch(target.id) !== epoch;
+  const next = reloadedInPlace(current, reloaded);
+  replaceDocument(overtaken ? { ...next, isModified: true, savedContent: undefined } : next);
   logReload("success", actionId, {
     documentId: target.id,
     ...(reloaded.id !== target.id ? { reloadedId: reloaded.id } : {}),
+    ...(overtaken ? { demoted: true, reason: "external_change_during_reload" } : {}),
   });
   return { kind: "reloaded", documentId: target.id };
 }
