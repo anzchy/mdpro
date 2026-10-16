@@ -331,7 +331,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "27 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "27 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -1328,7 +1328,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "28 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "28 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -2217,7 +2217,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "30 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "30 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -2411,7 +2411,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (src/components/Editor/MilkdownEditor.tsx, src/hooks/useMilkdownDebugLogging.ts, src/hooks/useMilkdownScrollRestore.ts, src/utils/scrollAnchor/anchor.ts, src/utils/scrollAnchor/capture.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (src/components/Editor/MilkdownEditor.tsx, src/hooks/useMilkdownDebugLogging.ts, src/hooks/useMilkdownScrollRestore.ts, src/utils/scrollAnchor/anchor.ts, src/utils/scrollAnchor/capture.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -3685,7 +3685,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "22 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "22 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -4048,7 +4048,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "20 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "20 non-test file(s) were already modified when the red was recorded (.claude/scheduled_tasks.lock, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20250329-mecha-im-bots-for-mdpro.md, docs/plans/20260402-plan-auto-updater.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -4067,7 +4067,7 @@
       "red": {
         "red": false,
         "kind": "environment",
-        "reason": "Status 'runner-error' is an environment failure, not a failing test. A broken runner is not a red test — fix the runner, then record the red again."
+        "reason": "Status 'runner-error' is an environment failure, not a failing test. A broken runner is not a red test \u2014 fix the runner, then record the red again."
       },
       "test_files": {
         "src-tauri/src/services/build_info_tests.rs": {
@@ -4661,7 +4661,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, src-tauri/src/services/app_ready.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, src-tauri/src/services/app_ready.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -5396,7 +5396,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "9 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/sourceTree.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "9 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/sourceTree.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -5567,7 +5567,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "10 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "10 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -5917,7 +5917,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "11 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "11 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -6139,7 +6139,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "12 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "12 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -6739,7 +6739,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "13 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "13 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/buildId.mjs, scripts/control/buildInputsGuard.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -6988,7 +6988,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "14 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/args.mjs, scripts/control/buildId.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "14 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/args.mjs, scripts/control/buildId.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -7593,7 +7593,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "15 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/args.mjs, scripts/control/build.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "15 non-test file(s) were already modified when the red was recorded (docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/plans/20261002-plan-agent-control-channel.md, scripts/control/args.mjs, scripts/control/build.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -12143,7 +12143,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -16963,7 +16963,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -22165,7 +22165,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -27449,7 +27449,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -32880,7 +32880,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -38531,7 +38531,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "20 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0034-a-local-real-app-journey-lane-runs-before-release.md, docs/adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md, docs/feature-ledger.html, docs/feature-ledger.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -47368,7 +47368,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/control/launchDeps.mjs, scripts/control/ownership.mjs, scripts/control/preset.mjs, scripts/control/presets/verify-preferences.json, scripts/control/runDir.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/control/launchDeps.mjs, scripts/control/ownership.mjs, scripts/control/preset.mjs, scripts/control/presets/verify-preferences.json, scripts/control/runDir.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -48545,7 +48545,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "8 non-test file(s) were already modified when the red was recorded (scripts/control/launchDeps.mjs, scripts/control/lock.mjs, scripts/control/ownership.mjs, scripts/control/preset.mjs, scripts/control/presets/verify-preferences.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "8 non-test file(s) were already modified when the red was recorded (scripts/control/launchDeps.mjs, scripts/control/lock.mjs, scripts/control/ownership.mjs, scripts/control/preset.mjs, scripts/control/presets/verify-preferences.json, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -50216,7 +50216,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "10 non-test file(s) were already modified when the red was recorded (scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launchDeps.mjs, scripts/control/lock.mjs, scripts/control/ownership.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "10 non-test file(s) were already modified when the red was recorded (scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launchDeps.mjs, scripts/control/lock.mjs, scripts/control/ownership.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -53088,7 +53088,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "11 non-test file(s) were already modified when the red was recorded (scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchDeps.mjs, scripts/control/lock.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "11 non-test file(s) were already modified when the red was recorded (scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchDeps.mjs, scripts/control/lock.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -56439,7 +56439,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "17 non-test file(s) were already modified when the red was recorded (scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchCore.mjs, scripts/control/launchDeps.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "17 non-test file(s) were already modified when the red was recorded (scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchCore.mjs, scripts/control/launchDeps.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -60151,7 +60151,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "18 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchCore.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "18 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchCore.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -64702,7 +64702,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "18 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchCore.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "18 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/launch.mjs, scripts/control/launchCore.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -69653,7 +69653,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "24 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20261002-plan-agent-control-channel.md, package.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "24 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20261002-plan-agent-control-channel.md, package.json, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -75023,7 +75023,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "24 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20261002-plan-agent-control-channel.md, package.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "24 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20261002-plan-agent-control-channel.md, package.json, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -78139,7 +78139,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0066-file-watcher-drops-extended-attribute-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0066-file-watcher-drops-extended-attribute-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -80719,7 +80719,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0066-file-watcher-drops-extended-attribute-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0066-file-watcher-drops-extended-attribute-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -83801,7 +83801,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "9 non-test file(s) were already modified when the red was recorded (docs/adr/0066-file-watcher-drops-extended-attribute-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "9 non-test file(s) were already modified when the red was recorded (docs/adr/0066-file-watcher-drops-extended-attribute-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -87317,7 +87317,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "10 non-test file(s) were already modified when the red was recorded (docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "10 non-test file(s) were already modified when the red was recorded (docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, src-tauri/src/commands/file.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -91531,7 +91531,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "13 non-test file(s) were already modified when the red was recorded (docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, src-tauri/src/commands/draft_recover_watch.rs, src-tauri/src/commands/file.rs, src-tauri/src/commands/file_save_fixture.rs, src-tauri/src/commands/mod.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "13 non-test file(s) were already modified when the red was recorded (docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, src-tauri/src/commands/draft_recover_watch.rs, src-tauri/src/commands/file.rs, src-tauri/src/commands/file_save_fixture.rs, src-tauri/src/commands/mod.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -96024,7 +96024,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "18 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "18 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -101333,7 +101333,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, scripts/control/intoDelivery.mjs, scripts/control/launchProcess.mjs, scripts/control/launcherCli.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, scripts/control/intoDelivery.mjs, scripts/control/launchProcess.mjs, scripts/control/launcherCli.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -101523,7 +101523,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, scripts/control/intoDelivery.mjs, scripts/control/launchProcess.mjs, scripts/control/launcherCli.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, scripts/control/intoDelivery.mjs, scripts/control/launchProcess.mjs, scripts/control/launcherCli.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -101795,7 +101795,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "15 non-test file(s) were already modified when the red was recorded (docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "15 non-test file(s) were already modified when the red was recorded (docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -105205,7 +105205,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, src-tauri/src/services/file_watcher_baseline_gen.rs, src-tauri/src/services/file_watcher_baseline_race_fixture.rs, src-tauri/src/services/file_watcher_baseline_read.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/services/file_watcher_baseline.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, src-tauri/src/services/file_watcher_baseline_gen.rs, src-tauri/src/services/file_watcher_baseline_race_fixture.rs, src-tauri/src/services/file_watcher_baseline_read.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -106837,7 +106837,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "15 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/file.rs, src-tauri/src/commands/file_open_seed.rs, src-tauri/src/commands/mod.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "15 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/file.rs, src-tauri/src/commands/file_open_seed.rs, src-tauri/src/commands/mod.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -109758,7 +109758,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (src/App.tsx, src/hooks/useDocument.ts, src/stores/documentStore.ts, src/stores/editorStore.ts, src/utils/flushRefusal.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (src/App.tsx, src/hooks/useDocument.ts, src/stores/documentStore.ts, src/stores/editorStore.ts, src/utils/flushRefusal.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -111002,7 +111002,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "8 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/latestJson.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "8 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/latestJson.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -111453,7 +111453,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "10 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/gate.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "10 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/gate.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -111693,7 +111693,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "11 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/gate.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "11 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/gate.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -112169,7 +112169,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "11 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/gate.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "11 non-test file(s) were already modified when the red was recorded (scripts/release/assetNames.mjs, scripts/release/assetSet.mjs, scripts/release/check-source.mjs, scripts/release/collect-assets.mjs, scripts/release/gate.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -122525,7 +122525,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline_claims.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, src-tauri/src/services/file_watcher_gate.rs, src-tauri/src/services/file_watcher_outcome.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline_claims.rs, src-tauri/src/services/file_watcher_baseline_fixture.rs, src-tauri/src/services/file_watcher_gate.rs, src-tauri/src/services/file_watcher_outcome.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -132216,7 +132216,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, scripts/control/launch.mjs, scripts/control/lock.mjs, scripts/control/lockTomb.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/control/clean.mjs, scripts/control/cleanSocket.mjs, scripts/control/launch.mjs, scripts/control/lock.mjs, scripts/control/lockTomb.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -134864,7 +134864,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, docs/adr/0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md, docs/feature-ledger.md, src-tauri/src/services/file_watcher_baseline_fixture.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0068-file-watcher-drops-metadata-and-content-events-when-the-file-is-unchanged.md, docs/adr/0080-permission-and-ownership-changes-on-an-unchanged-file-do-not-prompt.md, docs/feature-ledger.md, src-tauri/src/services/file_watcher_baseline_fixture.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -137397,7 +137397,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (docs/adr/0081-external-changes-are-kept-per-document-and-an-open-reports-a-change-since-its-read.md, src/App.tsx, src/hooks/useExternalChangePrompt.ts, src/stores/externalChangeStore.ts, src/types/fileChange.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (docs/adr/0081-external-changes-are-kept-per-document-and-an-open-reports-a-change-since-its-read.md, src/App.tsx, src/hooks/useExternalChangePrompt.ts, src/stores/externalChangeStore.ts, src/types/fileChange.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -137610,7 +137610,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0081-external-changes-are-kept-per-document-and-an-open-reports-a-change-since-its-read.md, src/App.tsx, src/hooks/useExternalChangePrompt.ts, src/hooks/usePresentedFileChange.ts, src/stores/externalChangeStore.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (docs/adr/0081-external-changes-are-kept-per-document-and-an-open-reports-a-change-since-its-read.md, src/App.tsx, src/hooks/useExternalChangePrompt.ts, src/hooks/usePresentedFileChange.ts, src/stores/externalChangeStore.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -138218,7 +138218,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (scripts/control/cleanClaim.mjs, scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/doctorLeftovers.mjs, scripts/control/lock.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (scripts/control/cleanClaim.mjs, scripts/control/doctor.mjs, scripts/control/doctorChecks.mjs, scripts/control/doctorLeftovers.mjs, scripts/control/lock.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -140294,7 +140294,7 @@
       "red": {
         "red": false,
         "kind": "environment",
-        "reason": "Status 'runner-missing' is an environment failure, not a failing test. A broken runner is not a red test — fix the runner, then record the red again."
+        "reason": "Status 'runner-missing' is an environment failure, not a failing test. A broken runner is not a red test \u2014 fix the runner, then record the red again."
       },
       "test_files": {
         "tests/d182-build-mac-masked-failure.test.ts": {
@@ -142047,7 +142047,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "11 non-test file(s) were already modified when the red was recorded (.github/workflows/release.yml, CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "11 non-test file(s) were already modified when the red was recorded (.github/workflows/release.yml, CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -143493,7 +143493,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/device/hooks/build-mini-settings.mjs, scripts/device/hooks/last-dtrack.sh, scripts/device/hooks/push.mjs, scripts/device/hooks/pushCore.mjs, scripts/device/hooks/receiver.py, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/device/hooks/build-mini-settings.mjs, scripts/device/hooks/last-dtrack.sh, scripts/device/hooks/push.mjs, scripts/device/hooks/pushCore.mjs, scripts/device/hooks/receiver.py, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -144228,7 +144228,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/device/hooks/build-mini-settings.mjs, scripts/device/hooks/last-dtrack.sh, scripts/device/hooks/push.mjs, scripts/device/hooks/pushCore.mjs, scripts/device/hooks/receiver.py, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/device/hooks/build-mini-settings.mjs, scripts/device/hooks/last-dtrack.sh, scripts/device/hooks/push.mjs, scripts/device/hooks/pushCore.mjs, scripts/device/hooks/receiver.py, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -144618,7 +144618,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/device/hooks/build-mini-settings.mjs, scripts/device/hooks/last-dtrack.sh, scripts/device/hooks/push.mjs, scripts/device/hooks/pushCore.mjs, scripts/device/hooks/receiver.py, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (scripts/device/hooks/build-mini-settings.mjs, scripts/device/hooks/last-dtrack.sh, scripts/device/hooks/push.mjs, scripts/device/hooks/pushCore.mjs, scripts/device/hooks/receiver.py, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -144897,7 +144897,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "15 non-test file(s) were already modified when the red was recorded (docs/adr/0087-device-check-hook-events-are-spooled-on-the-mini-and-replayed-in-sequence.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, scripts/device/hooks/README.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "15 non-test file(s) were already modified when the red was recorded (docs/adr/0087-device-check-hook-events-are-spooled-on-the-mini-and-replayed-in-sequence.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, scripts/device/hooks/README.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -146111,7 +146111,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "14 non-test file(s) were already modified when the red was recorded (docs/adr/0086-a-save-tells-every-other-holder-and-the-watch-is-owned-per-canonical-group.md, docs/reference/20261012-d173-notify-fsevents-watch-semantics.md, src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "14 non-test file(s) were already modified when the red was recorded (docs/adr/0086-a-save-tells-every-other-holder-and-the-watch-is-owned-per-canonical-group.md, docs/reference/20261012-d173-notify-fsevents-watch-semantics.md, src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -146486,7 +146486,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "14 non-test file(s) were already modified when the red was recorded (docs/adr/0086-a-save-tells-every-other-holder-and-the-watch-is-owned-per-canonical-group.md, docs/reference/20261012-d173-notify-fsevents-watch-semantics.md, src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "14 non-test file(s) were already modified when the red was recorded (docs/adr/0086-a-save-tells-every-other-holder-and-the-watch-is-owned-per-canonical-group.md, docs/reference/20261012-d173-notify-fsevents-watch-semantics.md, src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -148327,7 +148327,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_save_notice.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_save_notice.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -148707,7 +148707,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_save_notice.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_save_notice.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -150878,7 +150878,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "12 non-test file(s) were already modified when the red was recorded (docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "12 non-test file(s) were already modified when the red was recorded (docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/commands/mod.rs, src-tauri/src/commands/save_as_watch.rs, src-tauri/src/services/file_watcher.rs, src-tauri/src/services/file_watcher_baseline.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -156468,7 +156468,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/menu_submenus.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/menu_submenus.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -156584,7 +156584,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/menu_submenus.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/menu_submenus.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -156673,7 +156673,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/export.rs, src-tauri/src/menu.rs, src-tauri/src/menu_quit.rs, src/components/BottomTabs/BottomTabs.tsx, src/components/common/RecoveryDialog.tsx, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/export.rs, src-tauri/src/menu.rs, src-tauri/src/menu_quit.rs, src/components/BottomTabs/BottomTabs.tsx, src/components/common/RecoveryDialog.tsx, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -156904,7 +156904,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/export.rs, src-tauri/src/menu.rs, src-tauri/src/menu_quit.rs, src/components/BottomTabs/BottomTabs.tsx, src/components/common/RecoveryDialog.tsx, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/export.rs, src-tauri/src/menu.rs, src-tauri/src/menu_quit.rs, src/components/BottomTabs/BottomTabs.tsx, src/components/common/RecoveryDialog.tsx, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -157024,7 +157024,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/export.rs, src-tauri/src/menu.rs, src-tauri/src/menu_quit.rs, src/components/BottomTabs/BottomTabs.tsx, src/components/common/RecoveryDialog.tsx, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/export.rs, src-tauri/src/menu.rs, src-tauri/src/menu_quit.rs, src/components/BottomTabs/BottomTabs.tsx, src/components/common/RecoveryDialog.tsx, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -157396,7 +157396,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/mcp.rs, src-tauri/src/commands/mcp_sync_cap.rs, src-tauri/src/models/mcp.rs, src-tauri/src/services/http_server.rs, src-tauri/src/services/http_server_over_limit.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/mcp.rs, src-tauri/src/commands/mcp_sync_cap.rs, src-tauri/src/models/mcp.rs, src-tauri/src/services/http_server.rs, src-tauri/src/services/http_server_over_limit.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -164833,7 +164833,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "12 non-test file(s) were already modified when the red was recorded (src-tauri/src/models/mod.rs, src-tauri/src/models/preferences.rs, src-tauri/src/models/sidebar_width.rs, src-tauri/src/services/preferences.rs, src/components/BottomTabs/SidebarToggleButton.tsx, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "12 non-test file(s) were already modified when the red was recorded (src-tauri/src/models/mod.rs, src-tauri/src/models/preferences.rs, src-tauri/src/models/sidebar_width.rs, src-tauri/src/services/preferences.rs, src/components/BottomTabs/SidebarToggleButton.tsx, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -167424,7 +167424,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (src/App.tsx, src/components/BottomTabs/BottomTabs.tsx, src/components/BottomTabs/SidebarToggleButton.tsx, src/components/Sidebar/SidebarResizeHandle.tsx, src/hooks/useSidebarResize.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (src/App.tsx, src/components/BottomTabs/BottomTabs.tsx, src/components/BottomTabs/SidebarToggleButton.tsx, src/components/Sidebar/SidebarResizeHandle.tsx, src/hooks/useSidebarResize.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -170320,7 +170320,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (scripts/journeys/catalogue.mjs, scripts/journeys/check.mjs, scripts/journeys/history.mjs, scripts/journeys/manifest.mjs, scripts/journeys/parse.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (scripts/journeys/catalogue.mjs, scripts/journeys/check.mjs, scripts/journeys/history.mjs, scripts/journeys/manifest.mjs, scripts/journeys/parse.mjs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "info",
@@ -171215,7 +171215,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (.github/workflows/ci.yml, CHANGELOG.md, docs/adr/0107-cargo-audit-runs-in-its-own-job-outside-the-landing-gate.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/.cargo/audit.toml, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (.github/workflows/ci.yml, CHANGELOG.md, docs/adr/0107-cargo-audit-runs-in-its-own-job-outside-the-landing-gate.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/.cargo/audit.toml, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -180905,7 +180905,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "10 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src/plugins/milkdown/editSync/controller.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "10 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src/plugins/milkdown/editSync/controller.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -183160,7 +183160,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "7 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/logging.rs, src-tauri/src/commands/preferences.rs, src-tauri/src/services/logger.rs, src-tauri/src/services/mod.rs, src-tauri/src/services/preferences.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "7 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/logging.rs, src-tauri/src/commands/preferences.rs, src-tauri/src/services/logger.rs, src-tauri/src/services/mod.rs, src-tauri/src/services/preferences.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -185500,7 +185500,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "9 non-test file(s) were already modified when the red was recorded (src-tauri/src/models/keyboard_shortcuts.rs, src-tauri/src/models/keyboard_shortcuts_version.rs, src-tauri/src/models/mod.rs, src-tauri/src/models/preferences.rs, src-tauri/src/services/mod.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "9 non-test file(s) were already modified when the red was recorded (src-tauri/src/models/keyboard_shortcuts.rs, src-tauri/src/models/keyboard_shortcuts_version.rs, src-tauri/src/models/mod.rs, src-tauri/src/models/preferences.rs, src-tauri/src/services/mod.rs, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -186730,7 +186730,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/mod.rs, src-tauri/src/commands/shortcuts.rs, src-tauri/src/services/applied_shortcuts.rs, src-tauri/src/services/mod.rs, src/services/preferencesService.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/mod.rs, src-tauri/src/commands/shortcuts.rs, src-tauri/src/services/applied_shortcuts.rs, src-tauri/src/services/mod.rs, src/services/preferencesService.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -187057,7 +187057,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/mod.rs, src-tauri/src/commands/window_recovery.rs, src-tauri/src/services/mod.rs, src-tauri/src/services/window_recovery.rs, src/hooks/useWindowCloseGuard.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/mod.rs, src-tauri/src/commands/window_recovery.rs, src-tauri/src/services/mod.rs, src-tauri/src/services/window_recovery.rs, src/hooks/useWindowCloseGuard.ts, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         },
         {
           "severity": "high",
@@ -189483,7 +189483,7 @@
         {
           "severity": "medium",
           "code": "implementation-already-present",
-          "message": "11 non-test file(s) were already modified when the red was recorded (.claude/rules/31-design-tokens.md, CHANGELOG.md, docs/design/mdpro-ui-new/DESIGN.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+          "message": "11 non-test file(s) were already modified when the red was recorded (.claude/rules/31-design-tokens.md, CHANGELOG.md, docs/design/mdpro-ui-new/DESIGN.md, docs/feature-ledger.html, docs/feature-ledger.md, \u2026). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     },
@@ -189593,6 +189593,620 @@
           "severity": "medium",
           "code": "weak-red",
           "message": "The red for 'D258-WI-2' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
+    },
+    {
+      "id": "M1A-WI-3d",
+      "lane": "rust",
+      "recorded_at": "2026-10-16T15:27:18.310Z",
+      "head_sha": "cd3d048924bf2d805eac458b2b57c7409895cbdf",
+      "dirty_source": [
+        "src-tauri/src/models/keyboard_shortcuts_version.rs",
+        "src-tauri/src/services/logger.rs",
+        "src-tauri/src/services/logger_settings_read.rs",
+        "src-tauri/src/services/mod.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "2 of 1795 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/services/logger_settings_read_tests.rs": {
+          "state": "ok",
+          "sha": "083b08fdec995fd280e4e117fb384bcb9d380ada96c95d51d11398b31962315c",
+          "lines": [
+            "e73757b2a8d6394f",
+            "82ab855e8d968d3b",
+            "604ead677dea5d87",
+            "21fa65b0db9c2b35",
+            "afe4d9fcb344cdc8",
+            "82ab855e8d968d3b",
+            "c97267f5b5dc78c7",
+            "f1b1e765bbf6a23f",
+            "c7bc9af5fb9e74aa",
+            "80f42b555531c229",
+            "24e1e0f53a8f3bca",
+            "82ab855e8d968d3b",
+            "2b24ad076973d04f",
+            "87f80a6e05676413",
+            "df1fb510b21459d3",
+            "7f14c90b7375cf9f",
+            "70d59445832c31fa",
+            "b36340788f357fe7",
+            "450538e8113f2260",
+            "cafaee80d98c2f74",
+            "e61c589a19bfd257",
+            "3bdfbd36a31e34ce",
+            "df3982fd61017359",
+            "40d97ff6d5911d05",
+            "9716e7183834a0a2",
+            "859b2bd2ae6f9a98",
+            "793e8a66363c4f9b",
+            "ffb8cd1c0920a869",
+            "d10b36aa74a59bcf",
+            "0eed7e3ad1327a23",
+            "e6dc9373d0e09698",
+            "826dbc85a0847d08",
+            "2c58b0f2b094944d",
+            "d10b36aa74a59bcf",
+            "5840d04aafe5dc83",
+            "072b99ac94609b15",
+            "f4687fda8c19e42f",
+            "bf06b8a3a86057e6",
+            "772a5324cdcc33de",
+            "8ce72fdec8271871",
+            "953329a74418bd1c",
+            "49924159e39e77da",
+            "0297c17571000ce6",
+            "de74312866872e1c",
+            "50fa7cb077150aa0",
+            "95d79b78f6745a91",
+            "ab3e793055da112c",
+            "29576b54e255e3c9",
+            "721284ce24173248",
+            "1ff8f7cbd0e00f3d",
+            "5191f33c25a60dcb",
+            "d10b36aa74a59bcf",
+            "0497db517ef058cb",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "7ba10c333c1b1263",
+            "742601dbcee6df46",
+            "d8dd20fec673a8f9",
+            "60aa4624e42d9459",
+            "0c2d3de82c4f9bfb",
+            "2c757329124058b5",
+            "ef9c4fbc40e55d14",
+            "65ebc32dec2610c6",
+            "5afe8aa33b5c6a18",
+            "535d3a5f07326af3",
+            "0722a986e2f5644f",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "50005ca1608efecf",
+            "989946751a7e1859",
+            "d8dd20fec673a8f9",
+            "fb30c0a0212bbbbf",
+            "f09e59e82a2e07f7",
+            "14c94d0b90230ec3",
+            "8ce72fdec8271871",
+            "75acbcbe23f6ae34",
+            "7649b684bd2aba24",
+            "29576b54e255e3c9",
+            "f7b564014c15b4f4",
+            "37195966f9e95bbc",
+            "c30d74e5f1a12d42",
+            "53179298c4879d25",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "b6ed5642382fc938",
+            "6e9d909c8fe99967",
+            "a38302f709b598e3",
+            "d92e59605c23415d",
+            "06983dc0baaa619a",
+            "9d8b2b5670d18da8",
+            "d7c5ccd4cea5c7d2",
+            "52dcef102ba4e206",
+            "07bc5fae962aadc7",
+            "a38302f709b598e3",
+            "d92e59605c23415d",
+            "f04b7e80164694f2",
+            "9d8b2b5670d18da8",
+            "d10b36aa74a59bcf",
+            "bdd4e856dffcd636",
+            "a211cc54fb2e890b",
+            "65776867ab37540b",
+            "cce2cd27f718dcfc",
+            "803b28982e61ea1a",
+            "d6abf4e721d93010",
+            "d10b36aa74a59bcf",
+            "ff6a9013a221f450",
+            "3f2e6757da72e906",
+            "32ebb1abcc1c601c",
+            "1fb6e88627a87cac",
+            "3a3ceaa12930d69b",
+            "bb01c44bd646ab29",
+            "32ebb1abcc1c601c",
+            "c5342db7b360f5c8",
+            "3d692f9585158fb5",
+            "bb01c44bd646ab29",
+            "8ce18e57723802d6",
+            "cfae0d4248f7142f",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "94258a6a0b8f04b8",
+            "5bd24a74c8a29524",
+            "5ddc1054b6b120fd",
+            "ba5c2a03f4985ae2",
+            "d7c5ccd4cea5c7d2",
+            "fdafa9a96b121605",
+            "fc2c0394d8db737b",
+            "bbcdde058c33054d",
+            "d0dd0b3ca7dab41d",
+            "dc31f1934c34a898",
+            "ddb0a6ada0b3e839",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "920127bec242668f",
+            "7ceeba1972dfb4aa",
+            "35242f98977cb9c0",
+            "d7c5ccd4cea5c7d2",
+            "fc2c0394d8db737b",
+            "3f66d77d5baad90c",
+            "05e5deb8b7c29b16",
+            "32ed9581fef0f851",
+            "82262de98975716a",
+            "d10b36aa74a59bcf",
+            "1e57eb989531c794",
+            "232e0731c7186882",
+            "5766e305aa4d775c",
+            "3aac2e670d6cc30f",
+            "a3c70b32d12cdd4a",
+            "d10b36aa74a59bcf",
+            "12d540034f9018d6",
+            "fd69cf2b15dcee3f",
+            "83b70d996c7931e5",
+            "0cc5e0a842754667",
+            "06b4529b9837cbc9",
+            "fcb42a0fa170f440",
+            "8ab318642f51f9bd",
+            "38ab228daa4266c3",
+            "a33be7255de6f5ba",
+            "fe5afae381d9b203",
+            "0c049cf1444bfb9b",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "fcb42a0fa170f440",
+            "446a0e565a3ac003",
+            "41dda41851a816b0",
+            "fcb42a0fa170f440",
+            "08ce47d897daf093",
+            "e7834a40f6bce7e5",
+            "fcb42a0fa170f440",
+            "dc4cd06357bba527",
+            "08ae3ef459373036",
+            "38af581c3e47a8c1",
+            "1c667098590d3e66",
+            "753a431fc56eb59f",
+            "021fb596db81e6d0",
+            "cc45fc692174c094",
+            "d10b36aa74a59bcf",
+            "231813d74ade8f6d",
+            "fcb42a0fa170f440",
+            "11fed7964b5b15ad",
+            "942ac36a39dff34d",
+            "5ddc1054b6b120fd",
+            "416df437035094c9",
+            "d10b36aa74a59bcf",
+            "fcb42a0fa170f440",
+            "c421a19973586802",
+            "dc4cd06357bba527",
+            "83eb4af3db0a9956",
+            "69c91d95bb16a346",
+            "33769dc4afffa01a",
+            "46b42b4229cd7a39",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "3d0ac6bbc8ed52c9",
+            "d1a8e4d62704f08b",
+            "6ec9a2f9429ac8db",
+            "0b5deebf07041c9c",
+            "a0d86a4de757110c",
+            "463750be6087405f",
+            "524545568bbc047e",
+            "42405a1bcc1b9d97",
+            "1e93c09e460e8a31",
+            "e31ff7ac573e9399",
+            "a1a631873dff0f38",
+            "6afbb0c4c38dae37",
+            "dc937b59892604f5",
+            "d10b36aa74a59bcf",
+            "df3982fd61017359",
+            "4f5a5f09afab9c5a",
+            "8671629fcc64c2a1",
+            "1239f2aa8d8e2b91",
+            "17a193867d38f34f",
+            "f058dd44b65a8a04",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "09cf52a54a67e664",
+            "3b2bdb0015f90787",
+            "5b5f9445328fb748",
+            "e41bc5032696d4f4",
+            "0c049cf1444bfb9b",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "d04d8f96fc5bd926",
+            "6dfba40c4d98f99a",
+            "aa445b486dfecfa4",
+            "82819df8f4a5da67",
+            "4a499fd8250b7c08",
+            "df3982fd61017359",
+            "00f1fd94df63b829",
+            "b48259a46c0437dd",
+            "8671629fcc64c2a1",
+            "21704aaf81a8895e",
+            "9e7a68ce1f9803fe",
+            "a4c2b62d6b9d94e7",
+            "bf91ed21cb6b4156",
+            "119fe0b5b92fc3f6",
+            "3c50a3a0a42da12f",
+            "4a2d3056aa362349",
+            "cdf1ccb50eca4dde",
+            "9d8b2b5670d18da8",
+            "119fe0b5b92fc3f6",
+            "4c86cf4ff4a2d2d7",
+            "a131e3cab4efbd8b",
+            "cdf1ccb50eca4dde",
+            "9d8b2b5670d18da8",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "2ed6da6b9b013932",
+            "f07c49ffab81788a",
+            "d8dd20fec673a8f9",
+            "e75e3b6c2a75342a",
+            "24966f51dab418be",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf",
+            "36f09d9a871844dc",
+            "b13599e197b91716",
+            "f542e472ce3ea5c6",
+            "57d33f4687d6f1f0",
+            "fa446a9ff7394384",
+            "2acc9fdd4ff1642a",
+            "88d524fe23b33284",
+            "d8dd20fec673a8f9",
+            "f0c3831752a388d8",
+            "cfb1172ad8db3a24",
+            "42ee091a5e334fc9",
+            "8ce72fdec8271871",
+            "953329a74418bd1c",
+            "97e47f61f6f67001",
+            "a3636aa23a1d0370",
+            "26f918a6cdef774e",
+            "1e17abdaa72213a0",
+            "de74312866872e1c",
+            "95d79b78f6745a91",
+            "2d44fafe4709558d",
+            "29576b54e255e3c9",
+            "721284ce24173248",
+            "1ff8f7cbd0e00f3d",
+            "5191f33c25a60dcb",
+            "d10b36aa74a59bcf",
+            "119fe0b5b92fc3f6",
+            "9fec5ed2ed52b43d",
+            "154270cdb0ef4086",
+            "9d8b2b5670d18da8",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-16T15:32:52.502Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "4 non-test file(s) were already modified when the red was recorded (src-tauri/src/models/keyboard_shortcuts_version.rs, src-tauri/src/services/logger.rs, src-tauri/src/services/logger_settings_read.rs, src-tauri/src/services/mod.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "M1A-WI-3c",
+      "lane": "rust",
+      "recorded_at": "2026-10-16T15:14:54.061Z",
+      "head_sha": "cd3d048924bf2d805eac458b2b57c7409895cbdf",
+      "dirty_source": [
+        "src-tauri/src/services/logger.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "5 of 1795 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/services/logger_settings_read_tests.rs": {
+          "state": "ok",
+          "sha": "574be6e1c3847a7a71dadcd5a2675634a13b1a5684464dd8d414cd93648e2714",
+          "lines": [
+            "e73757b2a8d6394f",
+            "82ab855e8d968d3b",
+            "604ead677dea5d87",
+            "21fa65b0db9c2b35",
+            "afe4d9fcb344cdc8",
+            "82ab855e8d968d3b",
+            "c97267f5b5dc78c7",
+            "f1b1e765bbf6a23f",
+            "c7bc9af5fb9e74aa",
+            "80f42b555531c229",
+            "24e1e0f53a8f3bca",
+            "82ab855e8d968d3b",
+            "2b24ad076973d04f",
+            "87f80a6e05676413",
+            "df1fb510b21459d3",
+            "7f14c90b7375cf9f",
+            "70d59445832c31fa",
+            "b36340788f357fe7",
+            "450538e8113f2260",
+            "cafaee80d98c2f74",
+            "e61c589a19bfd257",
+            "3bdfbd36a31e34ce",
+            "df3982fd61017359",
+            "40d97ff6d5911d05",
+            "9716e7183834a0a2",
+            "859b2bd2ae6f9a98",
+            "793e8a66363c4f9b",
+            "ffb8cd1c0920a869",
+            "d10b36aa74a59bcf",
+            "0eed7e3ad1327a23",
+            "e6dc9373d0e09698",
+            "826dbc85a0847d08",
+            "2c58b0f2b094944d",
+            "d10b36aa74a59bcf",
+            "5840d04aafe5dc83",
+            "072b99ac94609b15",
+            "f4687fda8c19e42f",
+            "bf06b8a3a86057e6",
+            "772a5324cdcc33de",
+            "8ce72fdec8271871",
+            "953329a74418bd1c",
+            "49924159e39e77da",
+            "0297c17571000ce6",
+            "de74312866872e1c",
+            "50fa7cb077150aa0",
+            "95d79b78f6745a91",
+            "ab3e793055da112c",
+            "29576b54e255e3c9",
+            "721284ce24173248",
+            "1ff8f7cbd0e00f3d",
+            "5191f33c25a60dcb",
+            "d10b36aa74a59bcf",
+            "0497db517ef058cb",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "7ba10c333c1b1263",
+            "742601dbcee6df46",
+            "d8dd20fec673a8f9",
+            "60aa4624e42d9459",
+            "0c2d3de82c4f9bfb",
+            "2c757329124058b5",
+            "ef9c4fbc40e55d14",
+            "65ebc32dec2610c6",
+            "5afe8aa33b5c6a18",
+            "535d3a5f07326af3",
+            "0722a986e2f5644f",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "50005ca1608efecf",
+            "989946751a7e1859",
+            "d8dd20fec673a8f9",
+            "fb30c0a0212bbbbf",
+            "f09e59e82a2e07f7",
+            "14c94d0b90230ec3",
+            "8ce72fdec8271871",
+            "75acbcbe23f6ae34",
+            "7649b684bd2aba24",
+            "29576b54e255e3c9",
+            "f7b564014c15b4f4",
+            "37195966f9e95bbc",
+            "c30d74e5f1a12d42",
+            "53179298c4879d25",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "b6ed5642382fc938",
+            "6e9d909c8fe99967",
+            "a38302f709b598e3",
+            "d92e59605c23415d",
+            "06983dc0baaa619a",
+            "9d8b2b5670d18da8",
+            "d7c5ccd4cea5c7d2",
+            "52dcef102ba4e206",
+            "07bc5fae962aadc7",
+            "a38302f709b598e3",
+            "d92e59605c23415d",
+            "f04b7e80164694f2",
+            "9d8b2b5670d18da8",
+            "d10b36aa74a59bcf",
+            "bdd4e856dffcd636",
+            "a211cc54fb2e890b",
+            "65776867ab37540b",
+            "cce2cd27f718dcfc",
+            "803b28982e61ea1a",
+            "d6abf4e721d93010",
+            "d10b36aa74a59bcf",
+            "ff6a9013a221f450",
+            "3f2e6757da72e906",
+            "32ebb1abcc1c601c",
+            "1fb6e88627a87cac",
+            "3a3ceaa12930d69b",
+            "bb01c44bd646ab29",
+            "32ebb1abcc1c601c",
+            "c5342db7b360f5c8",
+            "3d692f9585158fb5",
+            "bb01c44bd646ab29",
+            "8ce18e57723802d6",
+            "cfae0d4248f7142f",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "94258a6a0b8f04b8",
+            "5bd24a74c8a29524",
+            "5ddc1054b6b120fd",
+            "ba5c2a03f4985ae2",
+            "d7c5ccd4cea5c7d2",
+            "fdafa9a96b121605",
+            "fc2c0394d8db737b",
+            "bbcdde058c33054d",
+            "d0dd0b3ca7dab41d",
+            "dc31f1934c34a898",
+            "ddb0a6ada0b3e839",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "920127bec242668f",
+            "7ceeba1972dfb4aa",
+            "35242f98977cb9c0",
+            "d7c5ccd4cea5c7d2",
+            "fc2c0394d8db737b",
+            "3f66d77d5baad90c",
+            "05e5deb8b7c29b16",
+            "32ed9581fef0f851",
+            "82262de98975716a",
+            "d10b36aa74a59bcf",
+            "5766e305aa4d775c",
+            "3aac2e670d6cc30f",
+            "a3c70b32d12cdd4a",
+            "d10b36aa74a59bcf",
+            "12d540034f9018d6",
+            "fd69cf2b15dcee3f",
+            "83b70d996c7931e5",
+            "0cc5e0a842754667",
+            "06b4529b9837cbc9",
+            "fcb42a0fa170f440",
+            "8ab318642f51f9bd",
+            "38ab228daa4266c3",
+            "a33be7255de6f5ba",
+            "fe5afae381d9b203",
+            "0c049cf1444bfb9b",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "fcb42a0fa170f440",
+            "446a0e565a3ac003",
+            "41dda41851a816b0",
+            "fcb42a0fa170f440",
+            "08ce47d897daf093",
+            "e7834a40f6bce7e5",
+            "fcb42a0fa170f440",
+            "dc4cd06357bba527",
+            "08ae3ef459373036",
+            "38af581c3e47a8c1",
+            "1c667098590d3e66",
+            "753a431fc56eb59f",
+            "021fb596db81e6d0",
+            "cc45fc692174c094",
+            "d10b36aa74a59bcf",
+            "231813d74ade8f6d",
+            "fcb42a0fa170f440",
+            "11fed7964b5b15ad",
+            "942ac36a39dff34d",
+            "5ddc1054b6b120fd",
+            "416df437035094c9",
+            "d10b36aa74a59bcf",
+            "69c91d95bb16a346",
+            "33769dc4afffa01a",
+            "46b42b4229cd7a39",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "3d0ac6bbc8ed52c9",
+            "d1a8e4d62704f08b",
+            "6ec9a2f9429ac8db",
+            "0b5deebf07041c9c",
+            "a0d86a4de757110c",
+            "463750be6087405f",
+            "524545568bbc047e",
+            "42405a1bcc1b9d97",
+            "1e93c09e460e8a31",
+            "e31ff7ac573e9399",
+            "a1a631873dff0f38",
+            "6afbb0c4c38dae37",
+            "dc937b59892604f5",
+            "d10b36aa74a59bcf",
+            "df3982fd61017359",
+            "4f5a5f09afab9c5a",
+            "8671629fcc64c2a1",
+            "1239f2aa8d8e2b91",
+            "17a193867d38f34f",
+            "f058dd44b65a8a04",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "09cf52a54a67e664",
+            "3b2bdb0015f90787",
+            "5b5f9445328fb748",
+            "e41bc5032696d4f4",
+            "0c049cf1444bfb9b",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "00690dda7b5fea03",
+            "6dfba40c4d98f99a",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "2ed6da6b9b013932",
+            "f07c49ffab81788a",
+            "d8dd20fec673a8f9",
+            "e75e3b6c2a75342a",
+            "24966f51dab418be",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf",
+            "36f09d9a871844dc",
+            "b13599e197b91716",
+            "f542e472ce3ea5c6",
+            "57d33f4687d6f1f0",
+            "fa446a9ff7394384",
+            "2acc9fdd4ff1642a",
+            "88d524fe23b33284",
+            "d8dd20fec673a8f9",
+            "f0c3831752a388d8",
+            "cfb1172ad8db3a24",
+            "42ee091a5e334fc9",
+            "8ce72fdec8271871",
+            "953329a74418bd1c",
+            "97e47f61f6f67001",
+            "a3636aa23a1d0370",
+            "26f918a6cdef774e",
+            "1e17abdaa72213a0",
+            "de74312866872e1c",
+            "95d79b78f6745a91",
+            "2d44fafe4709558d",
+            "29576b54e255e3c9",
+            "721284ce24173248",
+            "1ff8f7cbd0e00f3d",
+            "5191f33c25a60dcb",
+            "d10b36aa74a59bcf",
+            "119fe0b5b92fc3f6",
+            "9fec5ed2ed52b43d",
+            "154270cdb0ef4086",
+            "9d8b2b5670d18da8",
+            "086a7fe66e224a3a",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-16T15:16:44.055Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "1 non-test file(s) were already modified when the red was recorded (src-tauri/src/services/logger.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
     }

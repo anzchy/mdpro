@@ -24,6 +24,7 @@ pub mod file_watcher;
 pub mod html_template;
 pub mod http_server;
 pub mod logger;
+pub mod logger_settings_read;
 pub mod markdown;
 pub mod markdown_ext;
 pub mod mcp_confirm;

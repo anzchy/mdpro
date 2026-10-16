@@ -10,6 +10,10 @@
 //!   `ParseError`. Anything that is not a positive integer reads as 1, and an
 //!   integer above `u32::MAX` saturates there, so a stamp from a later build is
 //!   never read as an older one.
+//! - The logger's lock-free settings read (`services/logger_settings_read.rs`)
+//!   parses the whole document as `UserPreferences` too, so a hard error on a
+//!   bad stamp such as `{}` would also make logging fail closed for that file.
+//!   That is a second reason the read stays lenient.
 //!
 //! @coordinates-with services/preferences_migration.rs — moves a stored stamp
 //!   from one version to the next

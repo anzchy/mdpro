@@ -207,6 +207,8 @@ fn seed_unversioned(h: &TestHome) -> Vec<u8> {
 
 fn m11_writer(label: &str, call: impl FnOnce() -> Result<(), String> + Send + 'static) {
     let h = TestHome::new(label);
+    // Read and restored under `HOME_LOCK`: bound after `h`, so it drops first.
+    let _restore = LoggerSettingsRestorer(logger::get_log_settings());
     seed_unversioned(&h);
     let got = bounded(call);
     assert_eq!(got, Ok(Ok(())), "{label}");
@@ -217,7 +219,6 @@ fn m11_writer(label: &str, call: impl FnOnce() -> Result<(), String> + Send + 's
 
 #[test]
 fn m11_the_five_writers_finish_and_stamp_version_one() {
-    let _restore = LoggerSettingsRestorer(logger::get_log_settings());
     m11_writer("m11_c1", || {
         let partial: PartialPreferences =
             serde_json::from_value(json!({ "showSidebar": false })).expect("partial");

@@ -16,8 +16,9 @@
 use super::*;
 use crate::models::UserPreferences;
 use crate::services::mcp_controller::test_support::GENEROUS;
+use crate::services::preferences::PreferencesError;
 use crate::services::preferences::{load_preferences, preferences_rw_lock};
-use crate::services::prefs_guard::PrefsGuard;
+use crate::services::prefs_guard::{reentry_check, PrefsGuard};
 use crate::services::window_restore::test_home::{
     config_file, read_config_bytes, seed_config, write_raw_config, TestHome,
 };
@@ -164,6 +165,9 @@ fn l7_a_directory_in_place_of_config_json_fails_closed() {
     assert!(config_file(&h.dir).is_dir(), "the directory was replaced");
 }
 
+/// M1A-WI-3d: a malformed stamp the read must stay lenient on.
+const STAMP_OBJECT: &str = "keyboardShortcutsVersion: {}";
+
 enum Doc {
     Raw(String),
     Directory,
@@ -204,6 +208,10 @@ fn domain() -> Vec<(String, Doc)> {
     for (label, raw) in ill_typed_docs() {
         docs.push((label.into(), Doc::Raw(raw)));
     }
+    let mut v = defaults();
+    v["keyboardShortcutsVersion"] = json!({});
+    v["logging"] = json!({ "enabled": false, "level": "error" });
+    docs.push((STAMP_OBJECT.into(), Doc::Raw(v.to_string())));
     docs.push(("not JSON".into(), Doc::Raw("{ not json".into())));
     docs.push(("config.json is a directory".into(), Doc::Directory));
     docs
@@ -240,8 +248,30 @@ fn l4_l6_the_logger_read_agrees_with_the_loader_on_every_document() {
             ));
         }
     }
-    assert_eq!(docs.len(), 17, "the enumerated domain changed size");
+    assert_eq!(docs.len(), 18, "the enumerated domain changed size");
     assert!(mismatches.is_empty(), "{mismatches:#?}");
+
+    // M1A-WI-3d, by value: both reads see `{}` as version 1, not a ParseError.
+    let Some((_, Doc::Raw(raw))) = docs.iter().find(|(l, _)| l == STAMP_OBJECT) else {
+        panic!("{STAMP_OBJECT} is missing from the domain");
+    };
+    let _ = std::fs::remove_dir(config_file(&h.dir));
+    let before = write_raw_config(&h.dir, raw);
+    let logger_read = read_initial_logging().map(pair);
+    assert_eq!(read_config_bytes(&h.dir), before, "{STAMP_OBJECT}: bytes");
+    let loaded = load_preferences()
+        .ok()
+        .map(|p| (pair(p.logging), p.keyboard_shortcuts_version));
+    assert_eq!(
+        logger_read,
+        Some((false, LogLevel::Error)),
+        "{STAMP_OBJECT}"
+    );
+    assert_eq!(
+        loaded,
+        Some(((false, LogLevel::Error), 1)),
+        "{STAMP_OBJECT}"
+    );
 }
 
 #[test]
@@ -255,15 +285,36 @@ fn l8_initial_settings_on_a_marked_thread_is_the_stored_value() {
     assert_eq!(read_config_bytes(&h.dir), before, "bytes unchanged");
 }
 
+/// M1A-WI-3c: under a real, held global `PrefsGuard` the read still returns
+/// the stored value, while the public loader refuses on that thread. A read
+/// that delegated to the loader returns `None`; one that waited on the lock
+/// times out.
 #[test]
-fn l8_the_logger_source_never_calls_the_preferences_loader() {
-    let code: String = include_str!("logger.rs")
-        .lines()
-        .map(|l| l.find("//").map_or(l, |i| &l[..i]))
-        .collect::<Vec<_>>()
-        .join("\n");
-    assert!(
-        !code.contains("load_preferences"),
-        "services/logger.rs names load_preferences outside a comment"
+fn l8_a_read_under_the_held_global_guard_returns_the_stored_value() {
+    let h = TestHome::new("l8_global_guard");
+    let before = seed_warn_off(&h);
+    // Warm the process-wide cache first, so the loader's `ReentrantLoad` log
+    // record can never be the cache's first initialisation.
+    let _ = get_log_settings();
+
+    let (tx, rx) = mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        let g = PrefsGuard::acquire();
+        let pre = matches!(reentry_check(), Err(PreferencesError::ReentrantLoad));
+        let r = catch_unwind(|| read_initial_logging().map(pair)).ok();
+        let loader = catch_unwind(|| load_preferences().map(|_| ())).is_err();
+        let held = g.is_ok();
+        drop(g);
+        let _ = tx.send((held, pre, r, loader));
+    });
+    let got = rx.recv_timeout(GENEROUS);
+    if got.is_ok() {
+        let _ = worker.join();
+    }
+
+    assert_eq!(
+        got,
+        Ok((true, true, Some(Some((false, LogLevel::Warn))), true))
     );
+    assert_eq!(read_config_bytes(&h.dir), before, "bytes unchanged");
 }
