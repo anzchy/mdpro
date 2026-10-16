@@ -4,7 +4,7 @@ description: Always-on guardrails — pause and confirm before rm -rf, force-pus
 
 # 25 - Destructive Command Guardrails (Always On)
 
-Before running any bash command that matches the patterns below, **pause and confirm with the user** using `AskUserQuestion` (a session that may not use it asks through the delegator, rule 70, which shows the user the same command and risk). Show the exact command and the risk. Do not proceed until the user explicitly approves.
+**Pause and confirm with the user before running any bash command that matches the patterns below**, using `AskUserQuestion` (a session that may not use it asks through the delegator, rule 70, which shows the user the same command and risk). Show the exact command and the risk. Do not proceed until the user explicitly approves.
 
 This rule is **always active** — it is not session-scoped.
 

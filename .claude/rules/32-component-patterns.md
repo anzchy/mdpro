@@ -81,10 +81,14 @@ Text inputs use focus pattern 1 (border + soft ring) from `33-focus-indicators.m
 
 ## Tab bar
 
-- `min-width: 80px; max-width: 180px;` with truncation.
-- Active tab uses `--color-panel` background + subtle shadow.
-- Dirty indicator: italic title + `•` (`--color-accent`).
-- Close button: opacity 0 by default, opacity 1 on `.tab:hover` or `.tab--active`.
+- The tab name truncates at `max-width: 150px` (`.bottom-tab__name`).
+- Active tab is filled, not lifted: `--color-tab-active-fill`, no shadow
+  (D231 6c; tokens in `31-design-tokens.md`).
+- Dirty indicator: a 6px dot, `--color-accent`; on the active tab
+  `--color-tab-active-accent`.
+- Close button: opacity 0 at rest, 0.5 on hover or keyboard focus within the
+  tab, and always shown on the active tab at `--tab-active-close-opacity`.
+- Source of truth: `src/components/BottomTabs/BottomTabs.css`.
 
 ## Code block
 

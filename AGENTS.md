@@ -6,6 +6,12 @@
 - `public/` is for static assets served by Vite.
 - `specs/` includes product docs and contracts; the active MVP spec is under `specs/001-mdpro-mvp/`.
 
+## Prerequisites
+- **pnpm 10.26.1**, pinned by `packageManager` in `package.json`.
+- **Rust stable toolchain** via `rustup` (`src-tauri/Cargo.toml` is edition 2021; no toolchain file pins a version).
+- **Xcode Command Line Tools**, required by Tauri to build on macOS.
+- Target: macOS 13+ on Apple Silicon (ARM64).
+
 ## Build, Test, and Development Commands
 - This repo uses **pnpm** (`package.json` declares `"packageManager": "pnpm@10.26.1"`; `pnpm-lock.yaml` is tracked). Never run `npm`/`yarn`.
 - `pnpm dev`: starts the Vite dev server for the web UI.
