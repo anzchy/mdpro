@@ -5,6 +5,7 @@
   "windows": ["main", "mdpro-*"],
   "permissions": [
     "core:default",
+    "core:app:allow-set-app-theme",
     "core:window:allow-create",
     "core:window:allow-close",
     "core:window:allow-destroy",

@@ -219,6 +219,9 @@ beforeEach(() => {
   // (property 3) and `useTheme`'s catch would set "light" — making every
   // system-mode baseline accidental rather than chosen.
   recorder.set("get_system_theme", "light");
+  // D238: every mode change also sets the native appearance; stubbed so the
+  // recorder does not reject it (property 3) and add a native-appearance fail log.
+  recorder.set("plugin:app|set_app_theme", null);
   // jsdom has no matchMedia; only reachable if `isTauri()` somehow reads false.
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   // Force the Tauri branch of the REAL preferencesService (matrix § 0, plan

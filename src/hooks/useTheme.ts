@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { loggingService } from "../services/loggingService";
+import { applyNativeAppearance } from "../services/nativeAppearance";
 import { preferencesService } from "../services/preferencesService";
 import type { ThemeMode } from "../stores/themeStore";
 import { useThemeStore } from "../stores/themeStore";
@@ -58,9 +59,16 @@ export function useTheme() {
     }
   }, [setResolvedTheme]);
 
+  // D238: the native appearance (pop-up menus, Open / Save panels) follows the
+  // mode. System releases it (null) and only then reads the system theme, so a
+  // forced appearance is never read back as the OS theme; the read is dropped
+  // if the mode moved off System meanwhile.
   useEffect(() => {
     if (mode === "system") {
-      void applySystemTheme();
+      void applyNativeAppearance("system").then(() => {
+        if (useThemeStore.getState().mode === "system") return applySystemTheme();
+        return undefined;
+      });
       // Assigned only after an await. `cancelled` is what makes a teardown that
       // beats it still remove the handler the boundary registers afterwards.
       let cancelled = false;
@@ -85,6 +93,7 @@ export function useTheme() {
         if (unlisten) unlisten();
       };
     }
+    void applyNativeAppearance(mode);
     setResolvedTheme(mode === "dark" ? "dark" : "light");
     return undefined;
   }, [applySystemTheme, mode, setResolvedTheme]);
