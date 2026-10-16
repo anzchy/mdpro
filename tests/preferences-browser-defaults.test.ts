@@ -60,6 +60,7 @@ const SINGLE_KEY_PATCHES: Array<Partial<UserPreferences>> = [
   { export: { defaultFolder: "/out", htmlIncludeStyles: false } },
   { autoSave: { ...DEFAULT_AUTO_SAVE_CONFIG, enabled: false } },
   { tabBar: { ...DEFAULT_TAB_BAR_CONFIG, position: "bottom" } },
+  { keyboardShortcutsVersion: 2 },
 ];
 
 const PATCHES: Array<{ name: string; patch: Partial<UserPreferences> }> = [
@@ -82,7 +83,7 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  it("B2: the default key set is exactly the 20 UserPreferences keys", async () => {
+  it("B2: the default key set is exactly the 21 UserPreferences keys", async () => {
     const prefs = await preferencesService.getPreferences("app_hydrate");
 
     expect(Object.keys(prefs).sort()).toEqual([
@@ -95,6 +96,7 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
       "export",
       "image",
       "keyboardShortcuts",
+      "keyboardShortcutsVersion",
       "lastViewMode",
       "logging",
       "markdown",
@@ -141,11 +143,11 @@ describe("preferencesService — browser-branch defaults (migrated fence A–C)"
 
 describe("preferencesService — browser-branch setPreferences merge law", () => {
   it("B4: right-biased merge over every single-key patch, the migrated row, a 3-key patch and {}", async () => {
-    expect(SINGLE_KEY_PATCHES).toHaveLength(20);
-    expect(PATCHES).toHaveLength(23);
+    expect(SINGLE_KEY_PATCHES).toHaveLength(21);
+    expect(PATCHES).toHaveLength(24);
     const defaults = await preferencesService.getPreferences("app_hydrate");
     const defaultKeys = Object.keys(defaults).sort();
-    expect(defaultKeys).toHaveLength(20);
+    expect(defaultKeys).toHaveLength(21);
     expect(new Set(SINGLE_KEY_PATCHES.map((p) => Object.keys(p)[0]))).toEqual(new Set(defaultKeys));
 
     for (const { name, patch } of PATCHES) {

@@ -1,5 +1,6 @@
 //! Purpose: the `KeyboardShortcuts` preference group: its 58 bindings, the
-//! hand-written `Default` and the empty-binding repair (D-b).
+//! hand-written `Default`, the empty-binding repair (D-b) and the two
+//! non-chord binding states `<unassigned>` / `<system>` (ADR-0114 Decision 7).
 //! Split out of `models/preferences.rs` (M1a WI-0, rule 50 § 6); behaviour
 //! unchanged. Re-exported as `crate::models::KeyboardShortcuts`.
 //!
@@ -9,6 +10,14 @@
 use serde::{Deserialize, Serialize};
 
 use super::keyboard_shortcut_defaults::*;
+
+/// A binding the user deliberately left without a chord (ADR-0114 Decision 7).
+/// Stored verbatim in place of a chord; the TS twin is
+/// `src/types/keyboardShortcuts.ts`, and both are held to the contract
+/// fixture's `$keyboardShortcutStates`.
+pub const UNASSIGNED_BINDING: &str = "<unassigned>";
+/// A binding left to the system's own handling (ADR-0114 Decision 7).
+pub const SYSTEM_BINDING: &str = "<system>";
 
 /// Keyboard shortcut definitions
 /// Maps action names to key combinations
@@ -248,10 +257,15 @@ impl KeyboardShortcuts {
     /// user's real binding beside an empty one survives untouched, which
     /// "replace the whole group with defaults" would destroy.
     ///
-    /// # Recorded cost
+    /// # Recorded cost, and how ADR-0114 extends it
     ///
-    /// A user can never deliberately unbind a shortcut to nothing. That
-    /// capability does not exist today; reversing this needs a new ADR.
+    /// `""` still means "use the default", so `""` can never unbind a shortcut.
+    /// ADR-0114 Decision 7 **extends** D-b rather than reversing it: a
+    /// deliberate unbinding is stored as [`UNASSIGNED_BINDING`] and a binding
+    /// left to the system as [`SYSTEM_BINDING`]. Both are ordinary non-empty
+    /// strings here, so this repair passes them through untouched, as it does
+    /// near-misses such as `"<UNASSIGNED>"`
+    /// (`models/keyboard_shortcuts_state_tests.rs`).
     ///
     /// Infallible by construction, and on the impossible serde error it
     /// returns `self` unchanged rather than panicking on user-supplied data.
@@ -270,3 +284,7 @@ impl KeyboardShortcuts {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "keyboard_shortcuts_state_tests.rs"]
+mod keyboard_shortcuts_state_tests;

@@ -60,6 +60,7 @@ export const BASE_PREFERENCES: UserPreferences = {
     isMaximized: false,
   },
   keyboardShortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS },
+  keyboardShortcutsVersion: 1,
   logging: { enabled: true, level: "info" },
   windowStates: {
     "/base/one.md": { x: 10, y: 20, width: 900, height: 700 },

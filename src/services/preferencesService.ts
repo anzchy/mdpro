@@ -56,6 +56,8 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   recentFiles: [],
   windowState: { width: 1200, height: 800, x: 100, y: 100, isMaximized: false },
   keyboardShortcuts: DEFAULT_KEYBOARD_SHORTCUTS,
+  // Rust's CURRENT_KEYBOARD_SHORTCUTS_VERSION (models/keyboard_shortcuts_version.rs).
+  keyboardShortcutsVersion: 1,
   logging: { enabled: true, level: "info" },
   windowStates: {},
   mcp: DEFAULT_MCP_CONFIG,

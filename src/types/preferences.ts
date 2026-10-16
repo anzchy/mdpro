@@ -32,6 +32,12 @@ export interface UserPreferences {
   /** Custom keyboard shortcuts */
   keyboardShortcuts: KeyboardShortcuts;
 
+  /**
+   * The shortcut-defaults version the stored bindings were migrated to
+   * (ADR-0114 Decision 9). Rust owns it: `set_preferences` ignores it.
+   */
+  readonly keyboardShortcutsVersion: number;
+
   /** Logging settings */
   logging: LogSettings;
 

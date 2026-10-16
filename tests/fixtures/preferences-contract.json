@@ -85,6 +85,7 @@
     "tableDeleteRow": "Contract+tableDeleteRow",
     "tableDeleteColumn": "Contract+tableDeleteColumn"
   },
+  "keyboardShortcutsVersion": 7,
   "logging": {
     "enabled": false,
     "level": "debug"
@@ -204,5 +205,6 @@
     "tableInsertColumnRight": "Cmd+Option+Right",
     "tableDeleteRow": "Cmd+Option+Backspace",
     "tableDeleteColumn": "Cmd+Option+Shift+Backspace"
-  }
+  },
+  "$keyboardShortcutStates": ["<unassigned>", "<system>"]
 }

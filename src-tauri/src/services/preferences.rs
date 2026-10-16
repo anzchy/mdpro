@@ -10,6 +10,9 @@ use crate::models::{
     ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState,
 };
 use crate::services::logger;
+use crate::services::preferences_migration::{
+    migrate_loaded, MigrationOutcome, MigrationPlan, PRODUCTION_PLAN,
+};
 use crate::services::prefs_guard::{reentry_check, GuardError, PrefsGuard};
 use std::collections::HashMap;
 
@@ -131,6 +134,9 @@ pub fn load_preferences() -> Result<UserPreferences, PreferencesError> {
 /// The `&PrefsGuard` parameter is the proof the lock is held; the caller keeps
 /// it across its update and save (ADR-0005, GS-1).
 ///
+/// Runs the production shortcut migration ([`load_preferences_locked_with`]);
+/// with M1a's empty map and CURRENT = 1 it never moves or writes a document.
+///
 /// # Empty shortcut bindings are repaired here (ADR-0031 step 4, decision D-b)
 ///
 /// Every `config.json` a shipped build ever wrote holds 58 empty
@@ -146,13 +152,27 @@ pub fn load_preferences() -> Result<UserPreferences, PreferencesError> {
 /// invariant; see the doc comment on the method for why the stronger write-side
 /// claim was not taken.
 pub fn load_preferences_locked(
-    _guard: &PrefsGuard<'_>,
+    guard: &PrefsGuard<'_>,
 ) -> Result<UserPreferences, PreferencesError> {
+    load_preferences_locked_with(guard, &PRODUCTION_PLAN).map(|(prefs, _)| prefs)
+}
+
+/// [`load_preferences_locked`] with the migration plan as a parameter, so the
+/// write-back is testable with a non-empty map while the shipped one is empty.
+///
+/// After the D-b repair it runs the plan through `migrate_loaded`
+/// (`services/preferences_migration.rs`): repair first, so a `""` migrates as
+/// the default it stands for. A missing file materialises the defaults, which
+/// are already at CURRENT, and is not migrated.
+pub(crate) fn load_preferences_locked_with(
+    guard: &PrefsGuard<'_>,
+    plan: &MigrationPlan,
+) -> Result<(UserPreferences, MigrationOutcome), PreferencesError> {
     let path = config_path()?;
     if !path.exists() {
         let defaults = UserPreferences::default();
         save_preferences(&defaults)?;
-        return Ok(defaults);
+        return Ok((defaults, MigrationOutcome::Unchanged));
     }
 
     let contents = fs::read_to_string(&path).map_err(|err| PreferencesError::IoError {
@@ -166,7 +186,7 @@ pub fn load_preferences_locked(
     preferences.keyboard_shortcuts = preferences
         .keyboard_shortcuts
         .with_empty_bindings_defaulted();
-    Ok(preferences)
+    Ok(migrate_loaded(guard, preferences, plan))
 }
 
 pub fn save_preferences(preferences: &UserPreferences) -> Result<(), PreferencesError> {
@@ -231,7 +251,8 @@ pub fn save_preferences(preferences: &UserPreferences) -> Result<(), Preferences
 }
 
 /// Nested groups are replaced wholesale, except `mcp.serverEnabled`, which is
-/// kept from disk: only `persist_server_enabled` writes it (ADR-0040).
+/// kept from disk: only `persist_server_enabled` writes it (ADR-0040). The
+/// `keyboardShortcutsVersion` stamp is kept from disk the same way.
 pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) -> UserPreferences {
     UserPreferences {
         theme_mode: updates.theme_mode.unwrap_or(current.theme_mode),
@@ -257,6 +278,9 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
         keyboard_shortcuts: updates
             .keyboard_shortcuts
             .unwrap_or(current.keyboard_shortcuts),
+        // Kept from disk: only the loader's migration moves it, and
+        // `PartialPreferences` has no such field (ADR-0114 Decision 9).
+        keyboard_shortcuts_version: current.keyboard_shortcuts_version,
         window_states: updates.window_states.unwrap_or(current.window_states),
         logging: updates.logging.unwrap_or(current.logging),
         auto_save: updates.auto_save.unwrap_or(current.auto_save),

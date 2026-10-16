@@ -78,6 +78,7 @@ fn seeded() -> UserPreferences {
             is_maximized: true,
         },
         keyboard_shortcuts: KeyboardShortcuts::default(),
+        keyboard_shortcuts_version: 4,
         window_states: std::collections::HashMap::new(),
         logging: LogSettings {
             enabled: false,

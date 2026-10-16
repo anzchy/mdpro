@@ -30,6 +30,11 @@ import {
   type McpConfig,
   type WindowGeometry,
 } from "../src/types/preferences";
+import {
+  SYSTEM_BINDING,
+  UNASSIGNED_BINDING,
+  type KeyboardShortcutState,
+} from "../src/types/keyboardShortcuts";
 
 const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -254,6 +259,42 @@ describe("WI-8 — cross-language preference contract parity (TS half)", () => {
     }
 
     expect(disagreements).toEqual([]);
+  });
+
+  /**
+   * D1 (M1a WI-2) — the browser defaults carry the shortcut-defaults version
+   * Rust's `CURRENT_KEYBOARD_SHORTCUTS_VERSION` is at, which is 1. The key's
+   * presence on both sides is WI8-C's claim (CF3); this is the value.
+   */
+  it("D1: getPreferences in the browser reports keyboardShortcutsVersion 1", async () => {
+    const { preferencesService } = await import("../src/services/preferencesService");
+    const defaults = await preferencesService.getPreferences("app_hydrate");
+
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(defaults.keyboardShortcutsVersion).toBe(1);
+  });
+
+  /**
+   * CF4 (M1a WI-2) — the TS binding states equal the fixture's
+   * `$keyboardShortcutStates`, which `keyboard_shortcuts_state_tests.rs::cf2_…`
+   * holds the Rust constants to. The `Record<KeyboardShortcutState, true>`
+   * literal fails `pnpm typecheck:tests` when a state is added to the type
+   * without being listed here.
+   */
+  it("CF4: the TS sentinel constants equal the fixture's $keyboardShortcutStates", () => {
+    const STATES: Record<KeyboardShortcutState, true> = {
+      [UNASSIGNED_BINDING]: true,
+      [SYSTEM_BINDING]: true,
+    };
+    const fixture = readContractFixture();
+    const states = fixture.$keyboardShortcutStates;
+    expect(Array.isArray(states)).toBe(true);
+    expect(states as unknown[]).toHaveLength(2);
+
+    const sortedFixture = [...(states as string[])].sort();
+    expect([UNASSIGNED_BINDING, SYSTEM_BINDING].sort()).toEqual(sortedFixture);
+    expect(Object.keys(STATES).sort()).toEqual(sortedFixture);
+    expect(UNASSIGNED_BINDING).not.toBe(SYSTEM_BINDING);
   });
 
   /**

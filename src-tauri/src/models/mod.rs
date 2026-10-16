@@ -19,4 +19,5 @@ pub use preferences::{
     AppearanceConfig, AutoSaveConfig, CloseFocusBehavior, CodeTheme, ContentWidth, EditorConfig,
     ExportConfig, ImageConfig, KeyboardShortcuts, MarkdownConfig, McpConfig, TabBarConfig,
     TabBarPosition, ThemeMode, UserPreferences, ViewMode, WindowGeometry, WindowState,
+    CURRENT_KEYBOARD_SHORTCUTS_VERSION, SYSTEM_BINDING, UNASSIGNED_BINDING,
 };

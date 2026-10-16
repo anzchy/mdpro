@@ -189,3 +189,85 @@ fn c6_persist_server_enabled_completes_and_flips_the_flag() {
     assert_eq!(v["mcp"]["serverEnabled"], json!(false));
     assert_eq!(v["autoSaveInterval"], json!(111));
 }
+
+// ---- M11 (M1a WI-2): the six callers on the migration path ----------------
+//
+// The same six callers on a seed without `keyboardShortcutsVersion`, i.e. the
+// path a v0.3.5 file takes. Each still finishes within `GENEROUS`; a writer
+// stamps version 1 (the production plan never moves it), and the reader
+// leaves the bytes, and so the missing key, alone.
+
+fn seed_unversioned(h: &TestHome) -> Vec<u8> {
+    seed_111(h, |v| {
+        v.as_object_mut()
+            .expect("object")
+            .remove("keyboardShortcutsVersion");
+    })
+}
+
+fn m11_writer(label: &str, call: impl FnOnce() -> Result<(), String> + Send + 'static) {
+    let h = TestHome::new(label);
+    seed_unversioned(&h);
+    let got = bounded(call);
+    assert_eq!(got, Ok(Ok(())), "{label}");
+    let v = on_disk(&h);
+    assert_eq!(v["keyboardShortcutsVersion"], json!(1), "{label}");
+    assert_eq!(v["autoSaveInterval"], json!(111), "{label}");
+}
+
+#[test]
+fn m11_the_five_writers_finish_and_stamp_version_one() {
+    let _restore = LoggerSettingsRestorer(logger::get_log_settings());
+    m11_writer("m11_c1", || {
+        let partial: PartialPreferences =
+            serde_json::from_value(json!({ "showSidebar": false })).expect("partial");
+        block_on(set_preferences(partial))
+            .map(|_| ())
+            .map_err(|e| format!("{e:?}"))
+    });
+    m11_writer("m11_c2", || {
+        let state = WindowState {
+            width: 1234,
+            height: 800,
+            x: 10,
+            y: 20,
+            is_maximized: false,
+        };
+        block_on(save_window_state(state)).map_err(|e| format!("{e:?}"))
+    });
+    m11_writer("m11_c3", || {
+        block_on(set_logging_settings(LogSettings {
+            enabled: false,
+            level: LogLevel::Warn,
+        }))
+        .map(|_| ())
+        .map_err(|e| format!("{e:?}"))
+    });
+    m11_writer("m11_c4", || {
+        let geometry = WindowGeometry {
+            x: 5,
+            y: 6,
+            width: 700,
+            height: 500,
+            last_accessed: 0,
+        };
+        block_on(save_window_geometry("/tmp/m11.md".into(), geometry))
+    });
+    m11_writer("m11_c6", || {
+        persist_server_enabled(false).map_err(|e| format!("{e:?}"))
+    });
+}
+
+#[test]
+fn m11_the_reader_finishes_and_leaves_the_key_absent() {
+    let h = TestHome::new("m11_c5");
+    let before = seed_unversioned(&h);
+    let got = bounded(|| {
+        read_stored_geometry_in(preferences_rw_lock(), "/tmp/absent.md")
+            .map(|g| g.is_none())
+            .map_err(|e| format!("{e:?}"))
+    });
+    assert_eq!(got, Ok(Ok(true)));
+    assert_eq!(read_config_bytes(&h.dir), before, "bytes unchanged");
+    assert!(on_disk(&h).get("keyboardShortcutsVersion").is_none());
+}

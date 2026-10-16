@@ -32,6 +32,14 @@ pub struct UserPreferences {
     /// Custom keyboard shortcuts (action -> shortcut)
     #[serde(default)]
     pub keyboard_shortcuts: KeyboardShortcuts,
+    /// The shortcut-defaults version the stored bindings were last migrated
+    /// to (ADR-0114 Decision 9). Read leniently; only the loader's migration
+    /// moves it, never `set_preferences`.
+    #[serde(
+        default = "keyboard_shortcuts_version::default_keyboard_shortcuts_version",
+        deserialize_with = "keyboard_shortcuts_version::deserialize_stored_version"
+    )]
+    pub keyboard_shortcuts_version: u32,
 
     /// Logging settings (enabled + minimum level)
     #[serde(default)]
@@ -100,7 +108,10 @@ pub struct WindowGeometry {
 mod keyboard_shortcut_defaults;
 #[path = "keyboard_shortcuts.rs"]
 mod keyboard_shortcuts;
-pub use keyboard_shortcuts::KeyboardShortcuts;
+#[path = "keyboard_shortcuts_version.rs"]
+mod keyboard_shortcuts_version;
+pub use keyboard_shortcuts::{KeyboardShortcuts, SYSTEM_BINDING, UNASSIGNED_BINDING};
+pub use keyboard_shortcuts_version::CURRENT_KEYBOARD_SHORTCUTS_VERSION;
 
 fn default_last_view_mode() -> ViewMode {
     ViewMode::Wysiwyg
@@ -466,6 +477,7 @@ impl Default for UserPreferences {
                 is_maximized: false,
             },
             keyboard_shortcuts: KeyboardShortcuts::default(),
+            keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
             logging: LogSettings::default(),
             window_states: HashMap::new(),
             auto_save: AutoSaveConfig::default(),

@@ -30,6 +30,7 @@ pub mod open_route;
 pub mod path_plain;
 pub mod preferences;
 pub mod preferences_mcp;
+pub mod preferences_migration;
 pub mod prefs_guard;
 pub mod quit_guard;
 pub mod release_info;
