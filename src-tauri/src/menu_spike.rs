@@ -84,8 +84,16 @@ pub(super) fn spike_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
 pub(super) fn handle(app: &AppHandle<Wry>, id: &str, emit: impl Fn(&str)) -> bool {
     match id {
         SPIKE_HIDE => {
-            let result = app.hide();
-            log_spike("spike.m2.hide", json!({ "ok": result.is_ok() }));
+            // `AppHandle::hide` exists on macOS only (tauri 2.12.1); the item is only
+            // built there, so off-Mac this arm is unreachable and logs `ok: false`.
+            #[cfg(target_os = "macos")]
+            let ok = app.hide().is_ok();
+            #[cfg(not(target_os = "macos"))]
+            let ok = {
+                let _ = app;
+                false
+            };
+            log_spike("spike.m2.hide", json!({ "ok": ok }));
         }
         SPIKE_K3 => log_spike("spike.m2.k3.fired", json!({ "accel": SPIKE_K3_ACCEL })),
         SPIKE_K3_TOGGLE => {
