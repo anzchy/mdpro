@@ -1,6 +1,6 @@
 # 0090. Windows and Linux quit through the quit guard from a custom Exit item, with a headless fallback
 
-**Status**: Proposed (2026-10-13). Drafted by mdpro-a3 for [D190](../plans/20260912-frontend-backend-sequencing-order.md#d190)-WI-4, on the delegator's rulings for the stuck-quit escape (parity with macOS, no new dialog) and the ADR number.
+**Status**: Proposed (2026-10-13). Drafted by mdpro-a3 for [D190](../plans/20260912-frontend-backend-sequencing-order.md#d190)-WI-4, on the delegator's rulings for the stuck-quit escape (parity with macOS, no new dialog) and the ADR number. Partially superseded (2026-10-16) by [ADR-0114](0114-the-menu-bar-and-default-keys-follow-one-command-table-and-vmark.md): Exit and its escape move from the off-Mac app menu to File, and Exit takes Ctrl+Q; the quit guard, the escape order, cleanup and the headless fallback stand.
 
 ## Context
 

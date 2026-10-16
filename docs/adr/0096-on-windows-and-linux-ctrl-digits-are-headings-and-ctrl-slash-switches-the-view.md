@@ -2,7 +2,9 @@
 
 **Status**: Accepted (2026-10-14). Decided by the user, relayed by
 mdpro-delegator: 「Headings win, Ctrl+/ toggles (Recommended)」. Implemented by
-mdpro-a3 as D190-WI-6. macOS is unchanged.
+mdpro-a3 as D190-WI-6. macOS is unchanged. Partially superseded
+(2026-10-16) by [ADR-0114](0114-the-menu-bar-and-default-keys-follow-one-command-table-and-vmark.md): the strikethrough clause and the
+"stored preference strings are not changed" clause.
 
 ## Context
 

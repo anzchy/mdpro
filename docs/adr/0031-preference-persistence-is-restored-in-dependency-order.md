@@ -2,7 +2,10 @@
 
 ## Status
 
-**Accepted** (2026-09-23; Proposed earlier the same day). Supersedes the scope fence recorded in the
+**Accepted** (2026-09-23; Proposed earlier the same day). Extended (2026-10-16)
+by [ADR-0114](0114-the-menu-bar-and-default-keys-follow-one-command-table-and-vmark.md): the step 4 empty-binding repair (decision D-b,
+recorded in `models/preferences.rs`) stands, and an explicit `"<unassigned>"`
+state adds the deliberate unbind it could not offer. Supersedes the scope fence recorded in the
 `CHANGELOG.md` entry "Frontend structured logging no longer stops shortly after
 startup" — specifically its bullet beginning "**Scope, deliberately narrow**".
 That bullet is a decision record living in a changelog; this ADR replaces it and

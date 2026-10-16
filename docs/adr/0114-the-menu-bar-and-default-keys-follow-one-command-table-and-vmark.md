@@ -1,13 +1,18 @@
 # 0114. The menu bar and the default keys follow one command table and VMark's keys
 
-**Status**: Proposed (2026-10-16; revised the same day after Codex review
-`review-plan-mvawf13f-abenbn`, C0 · H4 · M7 · L0, and again after
-`review-plan-mvawsvrd-4f6afe`, C0 · H1 · M5 · L0). Drafted by mdpro-a6 as
-WI-M0 of the [menu reorganisation plan](../plans/20261015-plan-menu-reorganisation.md),
-number reserved by mdpro-delegator. Every decision quoted below was already
-taken by the user (relayed by the delegator, plan § 0); this record collects
-them, with the rules and contracts the plan derived from them, so M1a can be
-built against one accepted record. Partially supersedes ADR-0096 and ADR-0090,
+**Status**: Accepted (2026-10-16; Proposed earlier the same day). Decided by
+the user, relayed by mdpro-delegator: 「Accept as written (Recommended)」; on
+when a rebind takes effect, 「Next launch (Recommended)」 (Decision 4); on two
+custom values on one chord, 「Neither runs + notice (Recommended)」
+(Decision 5). Review trail: Codex `review-plan-mvawf13f-abenbn` on `e20727e8`
+(C0 · H4 · M7 · L0), `review-plan-mvawsvrd-4f6afe` on `da7f083b`
+(C0 · H1 · M5 · L0), `review-plan-mvax20m8-4rxjj8` on `079979ce`
+(C0 · H0 · M0 · L0, ready). Drafted by mdpro-a6 as WI-M0 of the
+[menu reorganisation plan](../plans/20261015-plan-menu-reorganisation.md),
+number reserved by mdpro-delegator. The decisions quoted below were taken by
+the user (relayed by the delegator, plan § 0); this record collects them,
+with the rules and contracts the plan derived from them, so M1a is built
+against one accepted record. Partially supersedes ADR-0096 and ADR-0090,
 and extends the empty-binding repair documented under ADR-0031 step 4
 (§ Decision 7). U10, U11 and U12 are open; K3 and K4's native-focus case are
 gated, not decided (§ Decision 8).
@@ -65,15 +70,15 @@ gated, not decided (§ Decision 8).
   user departed from VMark item by item where a different key had a stronger
   convention (D9, D10, D11, D12, D13).
 - **When a changed binding takes effect.** (a) **One applied snapshot per
-  run**: chosen; see Decision 4. (b) Live activation, coordinated across the
+  run**: chosen by the user, 「Next launch (Recommended)」; see Decision 4. (b) Live activation, coordinated across the
   windows, the editors and a native menu rebuild: deferred to WI-M8; it needs
   muda accelerator re-registration and a cross-window broadcast, and today
   nothing is live anyway. (c) Each consumer reads the file when it builds:
   refused; a Settings save followed by an unrelated menu rebuild would put a
   new key on the menu while the editors still run the old one.
 - **Two custom values on one chord.** (a) **Neither binds; both are kept and
-  flagged, with a notice at each launch until repaired**: chosen; see
-  Decision 5. (b) A winner by table order: lost; it
+  flagged, with a notice at each launch until repaired**: chosen by the user,
+  「Neither runs + notice (Recommended)」; see Decision 5. (b) A winner by table order: lost; it
   silently picks for the user and the loser's key still looks bound in the
   file. (c) Rewrite one to `<unassigned>` on load: lost; it changes a value
   the user set.
