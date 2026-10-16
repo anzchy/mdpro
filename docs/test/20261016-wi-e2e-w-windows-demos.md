@@ -163,3 +163,57 @@
 - 与开始时的不同：开始时打开着 d226.md、d208.md 两个标签（上一晚 v0.3.5 检查留下的 fixture 副本），现在 mdpro 启动后没有打开的文档。演示中的两个 Untitled 新文档是空的，随 mdpro 关闭而消失。
 - 输入法没有改动。
 - `C:\Users\jack\mdpro-audit\` 新增：`snap\e2e-20261016-1\`（**含 MCP token**）、`fakeappdata\`（空）、`launch-appdata.cmd`、`envprobe.cmd`、`out\childenv.txt`、`out\e124.ps1`。删除这些、删除整个文件夹，以及删除上一晚中止上传的安装包，都属于 rule 25，等用户确认，没有做。
+
+## 5. D247 落地后复查（2026-10-16 07:44–07:47，驱动取自 `05dc6b8e`）
+
+驱动用 `git archive 05dc6b8e` 取到 scratchpad 再部署（主 checkout 未动）。`deploy.sh` 报告 Windows 侧 9 个脚本全部 `same`（D247 只改了 Mac 侧 `common.sh`）。开始时 PC 上 **mdpro 没有在运行**（`mdpro.sh status`：`tauri-app: 0`，9222 关闭）；与 § 4 记录的「普通模式运行」不同，是这期间被关掉的，本次没有启动它。
+
+| 码 | 动作 | 到 Mac 的退出码 | 证据 | 结论 |
+|---|---|---|---|---|
+| 4 | `cdp.sh eval 1`（9222 关闭） | 4 | 输出 `"CDP_PORT_CLOSED: nothing on 127.0.0.1:9222; …"` | 通过（修复前是 1） |
+| 5 | `cdp.sh --window nope eval 1` | 4 | 同上 `CDP_PORT_CLOSED`：`cdp.mjs` 先查端口，mdpro 没开就走不到窗口查找 | 未验证（没走到 WINDOW_NOT_FOUND 路径；要走到需以 debug 模式启动 mdpro） |
+| 124 | `ui.sh '[{"op":"wait","ms":100000}]'`（runi.ps1 90 s 超时） | 124 | 输出 `TIMEOUT: no ui-out.json after 90 s`，07:45:18 → 07:46:56 | 通过（修复前是 1，见 § 1 W3） |
+| 1 | `pull.sh` 一个不存在的文件 | 1 | PowerShell 的 `FileNotFoundException`（`MethodInvocationException`），报错里能看到包装头 `…ITCODE = 0; [Convert]::ToBase64String(…`；本地没有生成文件 | 通过（失败的 cmdlet/方法仍是 1） |
+| 0 | `pull.sh C:\Users\jack\mdpro-audit\runi.ps1`；`mdpro.sh status`、`deploy.sh` | 0 | 拉回文件的 sha256 与 `05dc6b8e` 的 `runi.ps1` 相同（`6f08e316ca21d003…`） | 通过 |
+
+- 124 那一步之后：没有 `mdpro-audit-*` 计划任务，`steps.json`、`ui-out.json` 都不在；被停的任务没有留下进程（07:45–07:47 之间没有新建的 powershell/cmd 进程）。
+- 没有改 mdpro 的设置，也没有向桌面发送任何输入（wait 步骤只是睡眠）。
+- PC 上没有新增文件：`deploy.sh` 全部 `same`，没有复制任何脚本。
+
+## 6. D248 落地后复查，并补 D247 的码 5（2026-10-16 09:29–09:37，驱动取自 `dfac490f`）
+
+用户原话（经 delegator 转达）：「OK,Restarting mdpro on the Windows PC」。驱动用 `git archive dfac490f` 取到 scratchpad 再部署（主 checkout 未动），`deploy.sh` 只更新了 `cdp.mjs`（`hash ok`），其余 8 个 `same`。PC 上 Node v24.15.0。开始时 mdpro **没有运行**（`tauri-app: 0`，9222 关闭）；`config.json` 为 `F417022A…`，先复制一份到 `out\d248-config.json`。`mdpro.sh debug --yes` 退出 0（一页，标签 `main`，`maximized`，innerWidth 1067）。
+
+**结论：D248 在真机上没有修好。** 只要一次运行里开过两个以上 WebSocket，答案打印之后 Node 仍然以 `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` 中止（PC 上 `$LASTEXITCODE` = -1073740791，即 0xC0000409）。D248 的 70 映射是生效的：Mac 一律收到 70，不再是 1 或 9。
+
+| 检查 | 窗口数 | 到 Mac 的退出码 | 证据 | 结论 |
+|---|---|---|---|---|
+| `cdp.sh --window main eval 1 && echo next` ×3 | 1 | 70、70、70；`next` 一次也没打印 | 每次先打印 `1`，然后是上面的 Assertion | **Windows 不通过** |
+| `cdp.sh --window nope eval 1`（D247 遗留的码 5） | 1 | 5 | `WINDOW_NOT_FOUND`，候选只有 `main`；没有 Assertion | 通过（只开了一个探测连接） |
+| `cdp.sh eval 1 && echo next` ×3（对照：不带标签，单页） | 1 | 0、0、0；`next` 每次都打印 | 没有 Assertion | 通过 |
+| 两个窗口、不带标签 `cdp.sh eval 1` | 2 | 70（应为 6） | 先打印 `WINDOW_AMBIGUOUS` 和两个候选（`main`、`mdpro-7f1bcb85-…`），然后 Assertion | **Windows 不通过** |
+| 两个窗口 `--window nope` | 2 | 70（应为 5） | 先打印 `WINDOW_NOT_FOUND`，然后 Assertion | **Windows 不通过** |
+| 两个窗口 `--window main eval 1 && echo next` ×3 | 2 | 70、70、70；`next` 一次也没打印 | 同上 | **Windows 不通过** |
+| 两个窗口 `--window mdpro-7f1bcb85-… eval 'return location.href'` | 2 | 70 | 绑对了（`"http://tauri.localhost/"`），然后 Assertion | **Windows 不通过** |
+| PC 上直接运行 `node cdp.mjs --window main eval64 MQ==` | 1 | — | `$LASTEXITCODE=-1073740791` | 同上，确认不是 Mac 侧问题 |
+
+第二个窗口由真实的 Ctrl+Shift+N 打开（`window.create success`，标签 `mdpro-7f1bcb85-7019-4ea5-807b-34f92627ab2e`，`windows` 列出两个 hwnd）。
+
+**诊断（PC 上的临时脚本 `out\d248diag.mjs`，已删除）**：依次对同一页打开 N 个 WebSocket，每个都 `close()` 并等到 `close` 事件，再按不同方式退出。
+
+| N | 退出方式 | 3 次的 `$LASTEXITCODE` |
+|---|---|---|
+| 1 | 收到 close 事件后立即 `process.exit(0)` | 0（1 次） |
+| 2 | 收到 close 事件后立即 `process.exit(0)` | -1073740791 ×3 |
+| 2 | 500 ms 后再 `process.exit(0)` | 0 ×3 |
+| 2 | 不调用 `process.exit`，设 `process.exitCode = 0` 让事件循环自然结束 | 0 ×3 |
+| 3 | 同上，自然结束 | 0 ×3 |
+
+每个 `close` 事件都在 5–7 ms 内到达，所以「等到 close 事件」本身做到了；问题是 close 事件到达时 libuv 的句柄还没有关完，此时调用 `process.exit` 仍然触发断言。修法方向（交给负责人 mdpro-a6）：关闭之后不要立即 `process.exit`，改为设 `process.exitCode` 并让事件循环自然结束（仍需为挂住的连接保留一个有界的兜底退出），或在退出前留出一段延迟。macOS 上的测试（`windows-driver-cdp-clean-exit.test.ts`）无法复现这一点：它证明的是「等到了 close」，而 Windows 上这还不够。
+
+**恢复与清理**
+
+- 第二个窗口按标签用 `plugin:window|close` 关闭（`no_unsaved_closing`、`allowed_close`）；随后 `runi.ps1` + `close.ps1` 关闭 mdpro（`allowed_close`、`app.quit success`），`tauri-app` 为 0，9222 关闭。结束状态与开始时相同：**mdpro 未运行**。
+- `config.json` 被本次运行改成 `24EEC63A…`，已用开始时的副本恢复为 `F417022A…`，副本随后删除。
+- 没有 `mdpro-audit-*` 计划任务，没有草稿（`%APPDATA%\mdpro\drafts` 为空）。`out\d248diag.mjs` 已删除；PC 上留下的只有更新后的 `cdp.mjs`（即 `dfac490f` 的版本）。
+- 附注：这次最大化窗口的 rect 为 `-13,-13,3866,2090`，与 § 1 W6 记录的 `2548×1138` 不同，PC 的显示设置在此期间有变化；innerWidth 为 1067。
