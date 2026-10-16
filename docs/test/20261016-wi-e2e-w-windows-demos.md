@@ -217,3 +217,28 @@
 - `config.json` 被本次运行改成 `24EEC63A…`，已用开始时的副本恢复为 `F417022A…`，副本随后删除。
 - 没有 `mdpro-audit-*` 计划任务，没有草稿（`%APPDATA%\mdpro\drafts` 为空）。`out\d248diag.mjs` 已删除；PC 上留下的只有更新后的 `cdp.mjs`（即 `dfac490f` 的版本）。
 - 附注：这次最大化窗口的 rect 为 `-13,-13,3866,2090`，与 § 1 W6 记录的 `2548×1138` 不同，PC 的显示设置在此期间有变化；innerWidth 为 1067。
+
+## 7. D248 第二次修复后复查（2026-10-16 10:08–10:13，驱动取自 `5e0dd18e`）
+
+用户原话（经 delegator 转达）：「Yes, restart (Recommended)」，只覆盖这次复查的 mdpro 重启。驱动用 `git archive 5e0dd18e` 取到 scratchpad 再部署，`deploy.sh` 只更新了 `cdp.mjs`。开始时 mdpro **没有运行**，9222 关闭，没有计划任务，`config.json` 为 `F417022A…`（先复制一份）。`mdpro.sh debug --yes` 退出 0（一页 `main`，`maximized`，innerWidth 1067）。
+
+**结论：D248 在真机上修好了。** 所有路径都没有出现 `Assertion failed … UV_HANDLE_CLOSING`，也没有 0xC0000409 或 70。
+
+| 检查 | 窗口数 | 到 Mac 的退出码 | 证据 | 结论 |
+|---|---|---|---|---|
+| `cdp.sh --window main eval 1 && echo next` ×3 | 1 | 0、0、0；每次都打印 `next` | 打印 `1` | 通过 |
+| `cdp.sh --window nope eval 1` | 1 | 5 | `WINDOW_NOT_FOUND` | 通过 |
+| `cdp.sh eval 1 && echo next`（对照） | 1 | 0 | 打印 `1`、`next` | 通过 |
+| 不带标签 `cdp.sh eval 1` | 2 | 6 | `WINDOW_AMBIGUOUS`，候选 `main` 与 `mdpro-6c0e4940-…` | 通过 |
+| `cdp.sh --window nope eval 1` | 2 | 5 | `WINDOW_NOT_FOUND` | 通过 |
+| `cdp.sh --window main eval 1 && echo next` ×3 | 2 | 0、0、0；每次都打印 `next` | 打印 `1` | 通过 |
+| `cdp.sh --window mdpro-6c0e4940-… eval 'return location.href' && echo next` | 2 | 0 | `"http://tauri.localhost/"`、`next` | 通过 |
+| PC 上直接运行 `node cdp.mjs --window main eval64 MQ==`，两窗口 | 2 | — | `$LASTEXITCODE=0`，耗时 187 ms（远在 2 s 兜底之前，即靠事件循环排空结束）；不带标签 `$LASTEXITCODE=6` | 通过，确认不是被包装层掩盖 |
+
+第二个窗口由真实的 Ctrl+Shift+N 打开（`window.create success`，标签 `mdpro-6c0e4940-e585-4e80-8f42-977cc617034d`，`windows` 列出两个 hwnd）。
+
+**恢复与清理**
+
+- 第二个窗口按标签用 `plugin:window|close` 关闭（`no_unsaved_closing`、`allowed_close`；这次 `cdp.sh` 本身也以 0 退出）；随后 `runi.ps1` + `close.ps1` 关闭 mdpro（`app.quit success`），`tauri-app` 为 0，9222 关闭。结束状态与开始时相同：**mdpro 未运行**。
+- `config.json` 被本次运行改成 `24EEC63A…`，已用开始时的副本恢复为 `F417022A…`，副本随后删除。
+- 没有 `mdpro-audit-*` 计划任务，没有草稿。PC 上留下的只有更新后的 `cdp.mjs`（`5e0dd18e` 的版本）。
