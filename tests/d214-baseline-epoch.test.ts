@@ -92,6 +92,10 @@ beforeEach(() => {
   held.clear();
   resetFileChanges();
   useDocumentStore.setState({ documents: [], activeDocumentId: null });
+  // Added in D214-WI-8: a fresh generation state per case. Path moves (case d's Save As)
+  // now advance the generation without stamping "a", so case f's "a0 + 1" would see
+  // the generation left by earlier cases instead of its own.
+  useDocumentStore.setState({ baselineGeneration: 0, baselineEpoch: {}, baselinePathEpoch: {} });
   useMilkdownEditorStore.setState({ flushers: {} });
 });
 

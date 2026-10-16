@@ -3,7 +3,8 @@ import type { Document } from "../types/document";
 import { loggingService } from "../services/loggingService";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
 import { activeFlushFailed, refuseTabSwitch } from "../utils/flushRefusal";
-import { INITIAL_BASELINE_EPOCHS, movedSince, stampBaseline, type BaselineEpochs } from "./baselineEpoch";
+import { INITIAL_BASELINE_EPOCHS, movedSince, stampBaseline, stampPathMoves } from "./baselineEpoch";
+import type { BaselineEpochs } from "./baselineEpoch";
 
 /**
  * D15: a tab transition pushes the outgoing editor's pending WYSIWYG edits into this
@@ -32,6 +33,11 @@ function withBaseline(doc: Document): Document {
 /** D214: dirty unless a baseline exists and `content` is exactly it. */
 function differsFromBaseline(doc: Document, content: string): boolean {
   return doc.savedContent === undefined || content !== doc.savedContent;
+}
+
+/** D214-WI-8: the old → new path of every document `to` moves (by id). */
+function pathMoves(documents: Document[], to: ReadonlyMap<string, string>) {
+  return documents.filter((doc) => to.has(doc.id)).map((doc) => ({ from: doc.path, to: to.get(doc.id) ?? null }));
 }
 
 /** D214-WI-6: has `id`'s baseline been dropped (or the document closed) since `start`? */
@@ -64,7 +70,8 @@ interface DocumentStore extends BaselineEpochs {
    * Insert or replace a document. D214: a clean upsert (`isModified: false`) is a clean
    * point: `savedContent = content`, overriding any value passed. A dirty upsert stores
    * `savedContent` exactly as passed (absent = no baseline) and never inherits the
-   * baseline of the document it replaces.
+   * baseline of the document it replaces. Replacing a document at another path stamps
+   * both paths (D214-WI-8).
    */
   upsertDocument: (document: Document) => void;
   /**
@@ -88,10 +95,10 @@ interface DocumentStore extends BaselineEpochs {
    * a baseline.
    */
   dropBaseline: (id: string) => void;
-  /** Change a document's path; its baseline is kept (D214). */
+  /** Change a document's path; its baseline is kept (D214); both paths are stamped (WI-8). */
   updateDocumentPath: (id: string, path: string) => void;
   /** Apply every move in one `set`, so subscribers see only the final paths (b87).
-   *  Baselines are kept (D214). */
+   *  Baselines are kept (D214); every old and new path is stamped, one generation (WI-8). */
   updateDocumentPaths: (moves: ReadonlyArray<{ id: string; path: string }>) => void;
   closeDocument: (id: string) => void;
   /** Get a document by its ID */
@@ -156,7 +163,8 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       }
       const next = [...state.documents];
       next[index] = document;
-      return { documents: next };
+      const moved = stampPathMoves(state, [{ from: state.documents[index].path, to: document.path }]);
+      return { documents: next, ...moved };
     }),
   updateDocumentContent: (id, content) =>
     set((state) => ({
@@ -179,6 +187,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     })),
   updateDocumentPath: (id, path) =>
     set((state) => ({
+      ...stampPathMoves(state, pathMoves(state.documents, new Map([[id, path]]))),
       documents: state.documents.map((doc) =>
         doc.id === id ? { ...doc, path } : doc,
       ),
@@ -187,6 +196,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     if (moves.length === 0) return;
     const to = new Map(moves.map(({ id, path }) => [id, path]));
     set((state) => ({
+      ...stampPathMoves(state, pathMoves(state.documents, to)),
       documents: state.documents.map((doc) => {
         const path = to.get(doc.id);
         return path === undefined ? doc : { ...doc, path };
