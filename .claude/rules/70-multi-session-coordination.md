@@ -65,12 +65,16 @@ The hook is a backstop, not the rule: everything else in this file still
 binds a session whatever its `MDPRO_ROLE`. No role set means no checks, so
 the delegator and the user's own sessions run unchanged.
 
-The delegator has two subagents of its own:
+The delegator has three subagents of its own:
 `mdpro-landing-verifier` re-checks a handoff (ancestry, scope, that
 `receipts.json` keeps every record of the parent, the named lanes in a
-detached `verify-<sha7>` worktree) before `git merge --ff-only`, and
-`mdpro-number-registrar` finds the next free ADR and D numbers. Neither
-merges or reserves; the delegator does.
+detached `verify-<sha7>` worktree) before `git merge --ff-only`;
+`mdpro-fable-auditor` is the second auditor of item 4, beside the Codex
+audit; and `mdpro-number-registrar` finds the next free ADR and D numbers.
+None of them merges, rules on the gate or reserves; the delegator does.
+**`mdpro-fable-auditor` runs on Fable**, the one exception to the Opus rule
+above, because its value is a second model
+([ADR-0115](../../docs/adr/0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md)).
 
 ## How work is assigned
 
@@ -157,7 +161,7 @@ handoff. Each item is tagged `prep` or `impl`.
    `git diff-tree --no-ext-diff --stat -r <parent> <sha>` (the external diff
    wrapper garbles plain `git diff`), then dispatches two independent checks
    on that SHA at once: `mdpro-landing-verifier` (lanes, receipts, tree
-   identity) and the mini audit of item 4. It also pushes that SHA as the
+   identity) and the two audits of item 4. It also pushes that SHA as the
    PR's head, so CI tests what will land. When the branch was rebased or fixed
    after an earlier push, it re-pushes with
    `git push --force-with-lease=<branch>:<old head>`, a standing exception to
@@ -166,7 +170,8 @@ handoff. Each item is tagged `prep` or `impl`.
    runs `git merge --ff-only <sha>` in the main checkout, and right after it
    `git push origin master`, only when all three hold:
    - the verifier says PASS;
-   - the audit counts zero Critical and zero High findings;
+   - the merged verdict of both audits counts zero Critical and zero High
+     findings;
    - the PR's head is that SHA and its required `ci-gate` check is green on it.
 
    A red result from a registered intermittent test (D196) may be rerun once
@@ -199,12 +204,41 @@ handoff. Each item is tagged `prep` or `impl`.
    reaches it, posted next to the finding on the PR and in the report.
    Without one, the finding stays High and fails the gate (user decision,
    2026-10-16: 「后续每次降级都附上复现或者反证」). The
-   auditor reports to the delegator, not to the implementor. **Zero Critical
-   and zero High is the landing condition.** A Critical or High goes to the
-   owner on the same branch: the owner fixes it there (new SHA, rebased if
-   `master` moved, decisive tests re-run), the auditor confirms the fix on
-   the new SHA (scoped to its findings, not a fresh full audit), the
-   verifier re-checks by tree identity, and then the delegator lands. A
+   auditor reports to the delegator, not to the implementor.
+
+   **Every audit runs twice, on the same dimensions**
+   ([ADR-0115](../../docs/adr/0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md);
+   user decision, 2026-10-16: 「除了让 codex-audit 来启用 codex Audit 之外，
+   还应当由 subagent 启动 fable 进行 Audit，维度参考 Codex audit 的维度，
+   保持维度相同，才能互相 challenge」):
+   - In the message that sends the Codex request, the delegator dispatches
+     `mdpro-fable-auditor` in `audit` mode, with the same range and the same
+     dimension set (mini's five unless the request names full's nine).
+   - **Round one is blind** (「不能，先各自单独审」). Neither auditor sees the
+     other's verdict, and the delegator forwards nothing between them until
+     both are in.
+   - **The delegator merges** the Critical and High findings, one by one:
+     - A finding both raise stands.
+     - A finding only one raises is challenged. The other auditor gets that
+       one finding (Fable in `challenge` mode, Codex by `/cc-suite:continue`
+       on its thread) and returns CONFIRMED or REFUTED. A refutation needs a
+       reproduction or a counter-proof. Without one, the finding stands.
+     - A disagreement that survives the challenge stands too: the gate fails
+       closed.
+   - The delegator posts the merged verdict on the PR: both count lines, each
+     challenge and its outcome, and the merged count.
+   - **ADRs and plans**: an ADR before the user is asked to accept it, and a
+     plan before its first `impl` grant, get Codex `/cc-suite:review-plan`
+     and the Fable auditor in `plan` mode, blind and merged the same way.
+
+   **Zero Critical and zero High in the merged verdict is the landing
+   condition.** A Critical or High goes to the owner on the same branch: the
+   owner fixes it there (new SHA, rebased if `master` moved, decisive tests
+   re-run). **Both** auditors then confirm the fix on the new SHA (Fable in
+   `confirm` mode), each scoped to every open finding from either side, not
+   a fresh full audit (「Both, scoped (Recommended)」). One auditor's OPEN or
+   PARTIAL is challenged like a one-sided finding. Then the verifier
+   re-checks by tree identity, and the delegator lands. A
    partial fix does not land; deferring a Critical or High instead of fixing
    it needs the user's word, quoted in the row. Audits requested before
    2026-10-12 on already-landed ranges finish under the old order: a

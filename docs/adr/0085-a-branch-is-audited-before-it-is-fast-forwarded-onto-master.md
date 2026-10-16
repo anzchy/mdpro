@@ -1,6 +1,9 @@
 # 0085. A branch is audited before it is fast-forwarded onto `master`, and lands only with no Critical or High finding
 
-**Status**: Accepted (2026-10-12). User's words: 「只有分支branch 经过Codex audit
+**Status**: Accepted (2026-10-12). Partially superseded (2026-10-16) by
+[ADR-0115](0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md):
+Decisions 1 and 2's single Codex audit and its confirm round become two
+audits, Codex and Fable, merged by the delegator. User's words: 「只有分支branch 经过Codex audit
 并且修复，没有critical / high severity findings之后，才允许ff 到master」, given
 when asked whether rule 70 already said so (it did not). Decided by the user,
 recorded by mdpro-delegator. Partially supersedes
