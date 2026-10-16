@@ -1,0 +1,336 @@
+<!doctype html>
+<!--
+  D260 prototype, kept as the design reference (integrated into DESIGN.md § Settings rail on 2026-10-16).
+  The user chose variant D: 「D · VMark outline (Recommended)」. Full prototype with variants A, B, C and the
+  baseline: branch prototype/d260-settings-rail @ 218c86f7 (VERDICT.md there). This copy keeps D, A for
+  comparison, and the A|D view. It loads the live src/styles/index.css, so once WI-4.2 ships the rail, the
+  page's overrides sit on top of the shipped CSS.
+  D260: the Settings dialog without the footer Close button, and the rail's ten emoji replaced by
+  monochrome icons. Three variants of the rail on one page, switchable by ?variant= and the bottom bar:
+
+    ?variant=today  baseline: the shipped dialog (emoji, footer Close, gradient rail, blue-tinted selection)
+    ?variant=a      Typora solid: filled single-colour glyphs, 20px, mid grey; a neutral grey selected row,
+                    the icon stays grey; 32px rows
+    ?variant=b      DESIGN.md outline: today's § Icons contract (24 viewBox, 1.75 stroke, currentColor), 16px,
+                    muted; selection is the rule 31 pattern, accent-soft fill with accent text and icon; 28px rows
+    ?variant=c      Duotone: the outline plus a 22% tint of the same colour inside each shape, 18px; a neutral
+                    selected row with only the icon turning accent, and the label going semibold; 30px rows
+
+    ?variant=d      VMark-style: outline icons on Lucide's geometry (the DESIGN.md § Icons contract: 24 viewBox,
+                    stroke, currentColor, no fill) at 19px, in the label's own colour rather than muted; the same
+                    neutral grey selected row as A, no accent and no bold; 32px rows
+    ?variant=ad     A and D side by side at the same scale, light and dark, full and narrow
+
+  All four variants: no footer (the rail and the pane run to the dialog's bottom edge; the header × and
+  Esc still close), the rail on flat --color-surface with a --color-border-subtle edge (DESIGN.md § Settings
+  rail), focus = the inset --color-focus-ring ring (DR15). Narrow = the dialog at a 400×640 window:
+  icons only, each name kept visually hidden and as a tooltip (DESIGN.md:209, :446).
+
+  Loads the real stylesheets (src/styles/index.css) and the real Settings markup; overrides only what a
+  variant changes. One geometry per glyph drives all three styles, so the styles differ and the shapes do not.
+  Inline SVG only, no icon dependency (A7). Readouts under each dialog are measured live in the page.
+  Run: python3 -m http.server 8741 --bind 127.0.0.1 from the repo root, then open
+       http://127.0.0.1:8741/docs/design/mdpro-ui-new/prototypes/d260-settings-rail.html?variant=d
+-->
+<html lang="en" class="theme-light">
+<head>
+<meta charset="utf-8">
+<title>PROTOTYPE · D260 Settings rail</title>
+<link rel="stylesheet" href="../../../../src/styles/index.css">
+<style>
+  /* Prototype harness only. --color-focus-ring is declared on :root as var(--color-accent) and resolved
+     there, so a nested .theme-dark frame would inherit the light accent; the app puts the theme class on
+     <html>, which this page cannot do for two themes at once. */
+  .theme-light, .theme-dark { --color-focus-ring: var(--color-accent); }
+  /* --icon-size-md is DESIGN.md's planned token (§ Tokens :147), not in globals.css yet. */
+  :root { --icon-size-md: 16px; }
+  html, body { margin: 0; background: #d9dbe0; font-family: var(--font-sans); }
+  .page { padding: 20px 24px 96px; display: flex; flex-direction: column; gap: 28px; }
+  .page h1 { font-size: 15px; margin: 0; color: #1a1a1a; }
+  .page .lead { font-size: 13px; margin: 4px 0 0; color: #333; max-width: 1180px; line-height: 1.45; }
+  .row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+  /* The app's <body> carries the theme's text colour; the dialog inherits it. */
+  .frame { padding: 20px; border-radius: 12px; background: var(--color-bg); color: var(--color-text); }
+  .frame.theme-dark { background: #05070a; }
+  .frame-label { font: 600 12px var(--font-sans); color: var(--color-muted); margin: 0 0 10px; letter-spacing: .04em; text-transform: uppercase; }
+  .frame .settings-dialog { height: 600px; }
+  .frame.narrow .settings-dialog { width: 360px; height: 512px; }
+  .readout { font: 12px/1.5 var(--font-mono); color: var(--color-text); margin: 10px 0 0; white-space: pre; }
+  .readout .bad { color: var(--color-danger); font-weight: 600; }
+
+  /* ---- shared by a, b, c, d ---- */
+  [data-v="a"] .settings-footer, [data-v="b"] .settings-footer, [data-v="c"] .settings-footer, [data-v="d"] .settings-footer { display: none; }
+  [data-v="a"] .settings-sidebar, [data-v="b"] .settings-sidebar, [data-v="c"] .settings-sidebar, [data-v="d"] .settings-sidebar {
+    background: var(--color-surface); border-right-color: var(--color-border-subtle); padding: 12px 8px; gap: 2px;
+  }
+  [data-v="a"] .settings-category-btn, [data-v="b"] .settings-category-btn, [data-v="c"] .settings-category-btn, [data-v="d"] .settings-category-btn {
+    display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: var(--font-size-ui-lg);
+  }
+  [data-v] .settings-nav-icon svg { display: block; }
+  [data-v="a"] .settings-nav-icon, [data-v="b"] .settings-nav-icon, [data-v="c"] .settings-nav-icon, [data-v="d"] .settings-nav-icon { margin: 0; color: var(--color-muted); flex: none; }
+  [data-v="a"] .settings-category-btn:hover, [data-v="b"] .settings-category-btn:hover, [data-v="c"] .settings-category-btn:hover, [data-v="d"] .settings-category-btn:hover { background: var(--color-hover); }
+  /* Focus: the inset ring only (DR15); the fill stays the row's own, so focus and selection read apart. */
+  [data-v="a"] .settings-category-btn:is(:focus-visible, .is-kbd-focus),
+  [data-v="b"] .settings-category-btn:is(:focus-visible, .is-kbd-focus),
+  [data-v="c"] .settings-category-btn:is(:focus-visible, .is-kbd-focus),
+  [data-v="d"] .settings-category-btn:is(:focus-visible, .is-kbd-focus) {
+    background: var(--proto-row-bg, transparent); outline: 2px solid var(--color-focus-ring); outline-offset: -2px;
+  }
+  /* Baseline: mirrors today's .settings-category-btn:focus-visible (settings-shell.css), for the static focus row. */
+  [data-v="today"] .settings-category-btn.is-kbd-focus { background: var(--color-accent-soft); outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+  [data-v]:not([data-v="today"]) .settings-category-btn.is-active { --proto-row-bg: var(--proto-sel-bg); background: var(--proto-sel-bg); }
+
+  /* (a) Typora solid */
+  [data-v="a"] { --proto-sel-bg: color-mix(in srgb, var(--color-text) 9%, transparent); }
+  [data-v="a"] .settings-category-btn { min-height: 32px; }
+  [data-v="a"] .settings-category-btn.is-active { color: var(--color-text); }
+
+  /* (b) DESIGN.md outline, rule 31 selection */
+  [data-v="b"] { --proto-sel-bg: var(--color-accent-soft); }
+  [data-v="b"] .settings-category-btn { min-height: 28px; gap: 8px; }
+  [data-v="b"] .settings-category-btn.is-active { color: var(--color-accent-text); font-weight: 500; }
+  [data-v="b"] .settings-category-btn.is-active .settings-nav-icon { color: var(--color-accent-text); }
+
+  /* (c) duotone, neutral row, accent icon */
+  [data-v="c"] { --proto-sel-bg: color-mix(in srgb, var(--color-text) 7%, transparent); }
+  [data-v="c"] .settings-category-btn { min-height: 30px; }
+  [data-v="c"] .settings-category-btn.is-active { color: var(--color-text); font-weight: 600; }
+  [data-v="c"] .settings-category-btn.is-active .settings-nav-icon { color: var(--color-accent-text); }
+
+  /* Narrow: icons only, names visually hidden (DESIGN.md:446), rows wrap (:209). */
+  .narrow[data-v="a"] .settings-sidebar, .narrow[data-v="b"] .settings-sidebar, .narrow[data-v="c"] .settings-sidebar, .narrow[data-v="d"] .settings-sidebar { width: auto; padding: 12px 6px; }
+  .narrow[data-v="a"] .settings-category-btn, .narrow[data-v="b"] .settings-category-btn, .narrow[data-v="c"] .settings-category-btn, .narrow[data-v="d"] .settings-category-btn { justify-content: center; padding: 0; width: var(--proto-narrow-w); }
+  .narrow[data-v="a"] { --proto-narrow-w: 40px; }
+  .narrow[data-v="b"] { --proto-narrow-w: 32px; }
+  .narrow[data-v="c"] { --proto-narrow-w: 36px; }
+  .narrow[data-v="d"] { --proto-narrow-w: 40px; }
+
+  /* (d) VMark-style: Lucide-geometry outline, icon in the label's colour, neutral selected row, 32px rows */
+  [data-v="d"] { --proto-sel-bg: color-mix(in srgb, var(--color-text) 9%, transparent); }
+  [data-v="d"] .settings-category-btn { min-height: 32px; }
+  [data-v="d"] .settings-nav-icon { color: inherit; }
+  [data-v="d"] .settings-category-btn.is-active { color: var(--color-text); }
+  .narrow:not([data-v="today"]) .proto-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .narrow[data-v] .settings-row { flex-wrap: wrap; gap: 8px; }
+  .narrow[data-v="today"] .settings-row { flex-wrap: nowrap; }
+
+  /* Prototype switcher: obviously not part of the design. */
+  .proto-bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px;
+    background: #111; color: #fff; border-radius: 999px; padding: 6px 8px; box-shadow: 0 6px 24px rgba(0,0,0,.35); font: 13px var(--font-sans); z-index: 50; }
+  .proto-bar button { background: #333; color: #fff; border: 0; border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: 15px; }
+  .proto-bar button:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+  .proto-bar .lbl { min-width: 280px; text-align: center; padding: 0 8px; }
+  .proto-bar .keys { opacity: .6; font-size: 11px; padding-right: 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div>
+    <h1>PROTOTYPE · D260 · Settings: no footer Close, monochrome rail icons</h1>
+    <p class="lead" id="lead"></p>
+  </div>
+  <div class="row" id="light-row"></div>
+  <div class="row" id="dark-row"></div>
+</div>
+<div class="proto-bar" role="toolbar" aria-label="Prototype variant">
+  <button type="button" id="prev" aria-label="Previous variant">←</button>
+  <span class="lbl" id="vlabel"></span>
+  <button type="button" id="next" aria-label="Next variant">→</button>
+  <span class="keys">← → keys</span>
+</div>
+<script>
+const VARIANTS = [
+  { key: "a", name: "A · Typora solid", size: 20, style: "solid",
+    lead: "Filled single-colour glyphs at 20px in mid grey (--color-muted), details knocked out of the fill, as in Typora's preferences. Selected = a neutral grey row (text 9%), the label turns full text colour, the icon stays grey. 32px rows." },
+  { key: "d", name: "D · VMark-style outline", size: 19, style: "lucide",
+    lead: "VMark's look: outline icons on Lucide's geometry (DESIGN.md § Icons: stroke, currentColor, no fill) at 19px, drawn in the label's own deep grey rather than muted. Selected = the same neutral grey row as A (text 9%): no accent, no bold. 32px rows. The ten metaphors stay (no printer); Lucide's file-text, pencil, image, plug, share, paint-bucket, keyboard and info shapes are borrowed, and the M↓ badge and four dots are drawn to match." },
+  { key: "ad", name: "A vs D · side by side", compare: ["a", "d"],
+    lead: "A (Typora solid, grey icons) and D (VMark-style outline, icons in the label colour), at the same scale, both with the neutral grey selected row and no footer." },
+];
+
+// One geometry per glyph (24 viewBox). shapes: closed areas (filled in solid, stroked in outline);
+// strokes: lines drawn in every style; cuts: details stroked in outline, knocked out of the fill in solid.
+const GLYPHS = {
+  general:  { shapes: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>',
+              cuts: '<path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/>' },
+  editor:   { shapes: '<path d="M16 3.5l4.5 4.5L9 19.5l-5.5 1 1-5.5z"/>', cuts: '<path d="M13.5 6l4.5 4.5"/>' },
+  markdown: { shapes: '<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/>',
+              cuts: '<path d="M6.5 15V9l2.5 3 2.5-3v6"/><path d="M16.5 9v6"/><path d="M14.25 12.75 16.5 15l2.25-2.25"/>' },
+  image:    { shapes: '<rect x="3" y="4.5" width="18" height="15" rx="2"/>',
+              cuts: '<circle cx="8.5" cy="9.5" r="1.5"/><path d="M20.5 15.5 16 11l-8.5 8.5"/>' },
+  integrations: { shapes: '<path d="M6.5 9h11v2.5a5.5 5.5 0 0 1-11 0z"/>',
+              strokes: '<path d="M9.5 3.5V9"/><path d="M14.5 3.5V9"/><path d="M12 17v4"/>' },
+  export:   { shapes: '<rect x="4" y="10" width="16" height="10" rx="1.75"/>',
+              strokes: '<path d="M12 11V3"/><path d="M8.5 6.5 12 3l3.5 3.5"/>', cuts: '<path d="M12 16.5V10"/>' },
+  appearance: { shapes: '<path d="M10.5 4.5l8 8-6 6a2 2 0 0 1-2.83 0l-5.17-5.17a2 2 0 0 1 0-2.83z"/><path d="M20 15.5s-1.75 2.1-1.75 3.25a1.75 1.75 0 0 0 3.5 0c0-1.15-1.75-3.25-1.75-3.25z"/>',
+              cuts: '<path d="M5.5 12.5h12"/>' },
+  "keyboard-shortcuts": { shapes: '<rect x="2.5" y="6" width="19" height="12" rx="2"/>',
+              cuts: '<path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>' },
+  advanced: { shapes: '<circle cx="7" cy="7" r="2.75"/><circle cx="17" cy="7" r="2.75"/><circle cx="7" cy="17" r="2.75"/><circle cx="17" cy="17" r="2.75"/>' },
+  about:    { shapes: '<circle cx="12" cy="12" r="9"/>', cuts: '<path d="M12 11v5"/><path d="M12 7.75h.01"/>' },
+};
+const NAV = [
+  ["general", "General", "⚙️"], ["editor", "Editor", "✏️"], ["markdown", "Markdown", "📝"], ["image", "Image", "🖼️"],
+  ["integrations", "Integrations", "🔗"], ["export", "Export", "📤"], ["appearance", "Appearance", "🎨"],
+  ["keyboard-shortcuts", "Keyboard Shortcuts", "⌨️"], ["advanced", "Advanced", "🔧"], ["about", "About", "ℹ️"],
+];
+const PAGES = {
+  general: ["General", "App behavior and startup preferences."], editor: ["Editor", "Typography and editing behaviour."],
+  markdown: ["Markdown", "Syntax options for parsing and rendering."], image: ["Image", "Where pasted and dropped images go."],
+  integrations: ["Integrations", "The MCP server and AI clients."], export: ["Export", "HTML export options."],
+  appearance: ["Appearance", "Theme and window chrome."], "keyboard-shortcuts": ["Keyboard Shortcuts", "Rebind any command."],
+  advanced: ["Advanced", "Diagnostics and developer options."], about: ["About", "Version and updates."],
+};
+
+// D: Lucide geometry (ISC), drawn inline like DESIGN.md's sidebar glyphs; markdown and advanced are drawn to match.
+const LUCIDE = {
+  general: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  editor: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  markdown: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 15V9l2.5 3L11 9v6"/><path d="M16.5 9v6"/><path d="m14 12.5 2.5 2.5 2.5-2.5"/>',
+  image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+  integrations: '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',
+  export: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6 12 2 8 6"/><path d="M12 2v13"/>',
+  appearance: '<path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/>',
+  "keyboard-shortcuts": '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',
+  advanced: '<circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="7" r="2.5"/><circle cx="7" cy="17" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
+  about: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+};
+
+let uid = 0;
+function icon(id, style, size) {
+  const g = GLYPHS[id], s = g.shapes || "", k = g.strokes || "", c = g.cuts || "";
+  const open = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" focusable="false"`;
+  const line = 'fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
+  if (style === "lucide") return `${open} ${line}>${LUCIDE[id]}</svg>`;
+  if (style === "outline") return `${open} ${line}>${s}${k}${c}</svg>`;
+  if (style === "duotone") return `${open}><g fill="currentColor" fill-opacity=".22">${s}</g><g ${line}>${s}${k}${c}</g></svg>`;
+  const m = `m${++uid}`;
+  return `${open}><defs><mask id="${m}" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect width="24" height="24" fill="white"/>` +
+    `<g fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${c}</g></mask></defs>` +
+    `<g mask="url(#${m})"><g fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">${s}</g>` +
+    `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${k}</g></g></svg>`;
+}
+
+// The real General page markup (GeneralSettings.tsx), static.
+function generalPage() {
+  const row = (h, p, opts) => `<div class="settings-row"><div class="settings-row-label"><h4>${h}</h4><p>${p}</p></div>` +
+    `<div class="settings-row-control"><select class="settings-select">${opts.map(o => `<option>${o}</option>`).join("")}</select></div></div>`;
+  return `<div><div class="settings-page-header"><h3 class="settings-page-title">General</h3><p class="settings-page-desc">App behavior and startup preferences.</p></div>` +
+    row("Default View Mode", "New documents open in this mode.", ["WYSIWYG", "Source"]) +
+    row("Auto-save Interval", "How often modified documents are automatically saved.", ["30 seconds", "Off", "1 minute", "2 minutes", "5 minutes"]) + `</div>`;
+}
+function page(id) {
+  if (id === "general") return generalPage();
+  const [t, d] = PAGES[id];
+  return `<div><div class="settings-page-header"><h3 class="settings-page-title">${t}</h3><p class="settings-page-desc">${d}</p></div>` +
+    `<p class="settings-page-desc">(This page's rows are not part of the prototype.)</p></div>`;
+}
+
+const state = { active: "general", focus: "image" };
+function dialog(v, theme, narrow) {
+  const nav = NAV.map(([id, label, emoji]) => {
+    const cls = `settings-category-btn ${state.active === id ? "is-active" : ""} ${state.focus === id ? "is-kbd-focus" : ""}`;
+    const glyph = v.style === "emoji" ? emoji : icon(id, v.style, v.size);
+    const tip = narrow && v.style !== "emoji" ? ` title="${label}"` : "";
+    return `<button class="${cls}" data-id="${id}"${tip}><span aria-hidden="true" class="settings-nav-icon">${glyph}</span><span class="proto-label">${label}</span></button>`;
+  }).join("");
+  return `<div role="dialog" aria-modal="true" aria-label="Settings" class="settings-dialog theme-${theme}">` +
+    `<div class="settings-header"><h2 class="settings-title">Settings</h2><button class="settings-close" aria-label="Close">&times;</button></div>` +
+    `<div class="settings-content"><div class="settings-sidebar" role="tablist" aria-orientation="vertical" aria-label="Settings">${nav}</div>` +
+    `<div class="settings-main">${page(state.active)}</div></div>` +
+    `<div class="settings-footer"><div class="settings-footer-right"><button class="toolbar-button">Close</button></div></div></div>`;
+}
+
+// ---- contrast ----
+function parse(c) {
+  let m = c && c.match(/^rgba?\(([^)]+)\)$/);
+  if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
+  m = c && c.match(/^color\(srgb ([^)]+)\)$/);
+  if (m) { const q = m[1].split(/[ /]+/).filter(Boolean).map(Number); return [q[0] * 255, q[1] * 255, q[2] * 255, q.length > 3 ? q[3] : 1]; }
+  return null;
+}
+const over = (f, b) => [0, 1, 2].map(i => f[i] * f[3] + b[i] * (1 - f[3])).concat(1);
+const lum = c => [0, 1, 2].map(i => { const v = c[i] / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+  .reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const hex = c => "#" + c.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+function bgOf(el) {
+  const layers = [];
+  for (let n = el; n; n = n.parentElement) {
+    const s = getComputedStyle(n);
+    let c = parse(s.backgroundColor);
+    if ((!c || c[3] === 0) && s.backgroundImage.includes("gradient")) { // today's rail: its top stop
+      const g = s.backgroundImage.match(/rgba?\([^)]+\)/); c = g && parse(g[0]);
+    }
+    if (c && c[3] > 0) { layers.push(c); if (c[3] >= 1) break; }
+  }
+  return layers.reduceRight((b, l) => over(l, b), [255, 255, 255, 1]);
+}
+function measure(frame) {
+  const rail = frame.querySelector(".settings-sidebar");
+  const rest = frame.querySelector(`.settings-category-btn:not(.is-active):not(.is-kbd-focus)`);
+  const sel = frame.querySelector(".settings-category-btn.is-active");
+  const foc = frame.querySelector(".settings-category-btn.is-kbd-focus");
+  const lines = [];
+  const fmt = (name, fg, bg, need) => {
+    const r = ratio(fg, bg); const ok = r >= need;
+    return `${name.padEnd(30)} ${hex(fg)} on ${hex(bg)}  ${r.toFixed(2).padStart(5)}${ok ? "" : `  < ${need}`}`;
+  };
+  const railBg = bgOf(rail);
+  const isEmoji = !rest.querySelector("svg");
+  if (!isEmoji) {
+    const ic = el => over(parse(getComputedStyle(el.querySelector(".settings-nav-icon")).color), bgOf(el));
+    lines.push(fmt("icon, rest row (≥3)", ic(rest), railBg, 3));
+    lines.push(fmt("icon, selected row (≥3)", ic(sel), bgOf(sel), 3));
+  } else lines.push("icons: emoji (colour bitmaps; no contrast measure)");
+  lines.push(fmt("label, rest row (≥4.5)", parse(getComputedStyle(rest).color), railBg, 4.5));
+  lines.push(fmt("label, selected row (≥4.5)", over(parse(getComputedStyle(sel).color), bgOf(sel)), bgOf(sel), 4.5));
+  lines.push(fmt("selected fill vs rail (info)", bgOf(sel), railBg, 1));
+  const ring = parse(getComputedStyle(foc).outlineColor);
+  if (ring && getComputedStyle(foc).outlineStyle !== "none") lines.push(fmt("focus ring vs its row (≥3)", ring, bgOf(foc), 3));
+  const content = frame.querySelector(".settings-content").getBoundingClientRect().height;
+  const footer = frame.querySelector(".settings-footer");
+  const fh = footer.offsetParent ? footer.getBoundingClientRect().height : 0;
+  lines.push(`body height ${Math.round(content)}px, footer ${Math.round(fh)}px; rail width ${Math.round(rail.getBoundingClientRect().width)}px`);
+  frame.querySelector(".readout").innerHTML = lines.map(l => /< \d/.test(l) ? `<span class="bad">${l}</span>` : l).join("\n");
+}
+
+function current() {
+  const k = new URLSearchParams(location.search).get("variant") || "d";
+  return VARIANTS.find(v => v.key === k) || VARIANTS.find(v => v.key === "d");
+}
+function render() {
+  const v = current();
+  document.getElementById("vlabel").textContent = v.name;
+  document.getElementById("lead").textContent = v.lead +
+    " Each dialog: General selected; the Image row shows the keyboard-focus state (a static class mirroring :focus-visible). Click a row to select it; Tab moves real focus.";
+  const shownV = v.compare ? v.compare.map(k => VARIANTS.find(x => x.key === k)) : [v];
+  const frame = (fv, theme, narrow) =>
+    `<div class="frame theme-${theme} ${narrow ? "narrow" : ""}" data-v="${fv.key}">` +
+    `<p class="frame-label">${v.compare ? fv.name + " · " : ""}${theme} · ${narrow ? "narrow (400×640 window)" : "full"}</p>${dialog(fv, theme, narrow)}<div class="readout"></div></div>`;
+  for (const theme of ["light", "dark"]) {
+    const row = document.getElementById(`${theme}-row`);
+    row.innerHTML = v.compare
+      ? [false, true].map(narrow => shownV.map(fv => frame(fv, theme, narrow)).join("")).join("")
+      : [false, true].map(narrow => frame(v, theme, narrow)).join("");
+  }
+  document.querySelectorAll(".frame").forEach(measure);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".settings-category-btn");
+  if (b) { state.active = b.dataset.id; render(); }
+});
+function go(d) {
+  const i = VARIANTS.indexOf(current()), n = VARIANTS[(i + d + VARIANTS.length) % VARIANTS.length];
+  const u = new URL(location.href); u.searchParams.set("variant", n.key); history.replaceState(null, "", u); render();
+}
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea, select, [contenteditable], .settings-dialog")) return;
+  if (e.key === "ArrowLeft") go(-1); if (e.key === "ArrowRight") go(1);
+});
+render();
+</script>
+</body>
+</html>

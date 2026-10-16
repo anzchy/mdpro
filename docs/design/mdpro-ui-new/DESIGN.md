@@ -144,7 +144,7 @@ shadow.
 | `--font-size-ui` | `:root` | TOC rows, menus, row titles, buttons, inputs | :31, :598 | 12 |
 | `--font-size-ui-sm` | `:root` | Tabs, status strip, descriptions, section labels, segmented control | :30, :599 | 12 |
 | `--source-font-family` | `:root` mono default; set at runtime from `sourceFont` | Source-mode content | :27, :59 | 3 |
-| `--icon-size-md` | `:root` | Settings rail, menus, toolbar, toasts | :36 | 4 |
+| `--icon-size-md` | `:root` | Menus, toolbar, toasts (the Settings rail's icons are 19px, D260) | :36 | 4 |
 | `--icon-size-sm` | `:root` | Tab close, TOC carets, new-tab button | :35 | 4 |
 | `--radius-control` | `:root` | Buttons, inputs, segmented control, icon buttons; the hover and selected fill of rows and tabs | :33 | 15 |
 | `--radius-popover` | `:root` | Menus, dialogs, toasts, grouped sections inside dialogs (DR23) | :34, :261 | 15 |
@@ -233,8 +233,9 @@ read past.
 - **Header:** title and a close icon button.
 - **Body:** a flat rail beside the pane.
 - **Pane:** page title, lead line, section labels, rows.
-- **Footer:** one secondary Close button.
-- Header and footer are divided by `--color-border-subtle`.
+- **No footer** (D260). The rail and the pane run to the dialog's bottom
+  edge. The header's close button and Esc close the dialog.
+- The header is divided from the body by `--color-border-subtle`.
 
 ## Components
 
@@ -252,6 +253,14 @@ cited proposal lines in both themes.
   replace text carets. No emoji or text glyphs as icons. Plan WI-4.2 lists
   every site. Shortcut symbols (⌘, ⌥) are text, not icons.
 - **Accessible names:** icon-only controls always have one.
+- **Settings rail exceptions (D260).** The rail keeps the outline contract
+  above, drawn on Lucide's geometry (file-text, pencil, image, plug, share,
+  paint-bucket, keyboard, info), plus an M↓ badge and four dots drawn to
+  match. Three things differ from the defaults, and they are recorded
+  decisions, not drift:
+  1. The selected row is a neutral grey, not `--color-accent-soft` (§ Settings rail).
+  2. The icon takes the row label's colour, not `--color-muted`.
+  3. The icon is 19px, not `--icon-size-md`.
 - **Sidebar glyphs (ADR-0088):** `panel-left-close` (rect `3,3,18,18 rx2`,
   `M9 3v18`, `m16 15-3-3 3-3`) while the sidebar is shown, and `panel-left`
   (the rect and divider only) while it is hidden. Same geometry as lucide,
@@ -434,13 +443,20 @@ cited proposal lines in both themes.
 ### Settings rail (item 14; proposal :232-240)
 
 - **Surface:** flat `--color-surface` with a `--color-border-subtle` edge.
-- **Items:** min-height 28px, `--radius-control`, a medium-size icon in muted.
+- **Items:** min-height 32px, `--radius-control`, a 19px outline icon in the
+  label's colour (§ Icons, D260).
 - **States:**
   - Hover: `--color-hover`.
-  - Active: `--color-accent-soft` fill with `--color-accent` text and icon,
-    medium weight (the rule 31 selection pattern).
-  - Focus: the inset `--color-focus-ring` ring (DR15). Focus always sits on
-    the selected tab, so a fill can't show it.
+  - Active: a neutral grey fill, `color-mix(in srgb, var(--color-text) 9%,
+    transparent)`, with the label and icon in `--color-text`. No accent and no
+    weight change (D260, VMark's rail). This departs from the rule 31
+    selection pattern on purpose.
+  - Focus: the inset `--color-focus-ring` ring (DR15) and no fill change, so
+    focus and selection read apart. Focus always sits on the selected tab.
+- **Measured** (prototype D, `prototypes/d260-settings-rail.html`):
+  - Icon and label at rest: 16.26:1 light, 14.08:1 dark.
+  - Icon and label on the selected fill: 13.58:1 and 11.24:1.
+  - Focus ring: 4.83:1 and 6.85:1.
 - **Semantics:** a vertical tab list named "Settings"; the page is its tab
   panel (WI-4.7). One Tab stop; arrow keys and Home/End change the page.
 - **Narrow dialog:** icons only (DR16). Each tab keeps its name, visually
@@ -657,7 +673,7 @@ Rule 33's four patterns stay; only the color source changes.
 |---|---|---|---|
 | 1 | Border + soft ring | Text inputs | Accent border + accent-soft ring, as drawn at proposal :255 |
 | 2 | Outline | Buttons, icon buttons, switches, segments, toolbar buttons | 2px `--color-focus-ring` outline (proposal :120, :165, :189, :201). Adds the missing `.toolbar-button:focus-visible` (item 7). |
-| 3 | Background | TOC rows, tabs, settings rail | `--color-accent-soft` fill. Selected items keep accent text, so focus ≠ selection. TOC rows and the settings rail add an inset `--color-focus-ring` ring; on the rail, focus always sits on the selected tab (WI-4.7). |
+| 3 | Background | TOC rows, tabs, settings rail | `--color-accent-soft` fill. Selected items keep accent text, so focus ≠ selection. TOC rows add an inset `--color-focus-ring` ring. The settings rail draws the inset ring only, over its neutral selected fill, and focus always sits on the selected tab (WI-4.7, D260). |
 | 4 | Editor widgets | Image handles and similar | Unchanged |
 
 - **Focus ring token (DR15):** `--color-focus-ring` equals the solid accent
@@ -748,7 +764,7 @@ These are for calibration, unchanged from the current design system.
 | 31 § Acceptable hardcoded values | `50%` for circles | Adds `999px` for pills (DR23) | WI-2.1 |
 | 32 § Context menu contract | Dismissal and ARIA roles; no keyboard contract | Adds one keyboard contract and names the shared hook | WI-4.15 |
 | 32 § Tab bar | Describes the unmounted `TabBar` classes | Describes the bottom tabs: a sibling close button named "Close *name*", also shown while focus is inside the tab | WI-4.2 |
-| 33 pattern 3 | Settings categories use the fill; lists "recent dropdown" | The settings rail adds the inset `--color-focus-ring` ring; "recent dropdown" removed | WI-4.7, WI-3.3 |
+| 33 pattern 3 | Settings categories use the fill; lists "recent dropdown" | The settings rail draws the inset `--color-focus-ring` ring only, over its neutral selected fill (D260); "recent dropdown" removed | WI-4.7, WI-3.3, D260 |
 | 33 checklist | "Focus visibility holds at 200% browser zoom" | Holds at the 400×640 minimum window and with `zoom: 2` on `<html>` in Web Inspector (DR17) | WI-3.3 |
 | 32 § Single source of truth | App shell, sidebar, dialog backdrop, toast and settings live in `globals.css` | Each surface names its CSS partial, per the approved file map | WI-1.2 |
 | 32 § Toast | Position and "one toast at a time" only | Adds the variant contract: error toasts are alerts, stay until dismissed or replaced, and have a "Dismiss" button (DR9) | WI-4.13 |
@@ -782,6 +798,7 @@ Leave these open; don't pick an answer while building.
 
 | Date | Decision | Rationale |
 |---|---|---|
+| 2026-10-16 | D260: Settings has no footer Close. The rail uses outline icons on Lucide's geometry at 19px, in the label's colour, a neutral grey selected row (text 9%, no accent, no bold) and 32px rows. The user's request: 「在v0.3.6 Settings 中，把左下角的`Close` button去掉，此外 每个Tab的 […] 图标我想换一下」. The user chose variant D, VMark's look: 「D · VMark outline (Recommended)」 | The header × and Esc already close the dialog, so the footer only repeated them. The user first chose Typora's solid glyphs (A), then preferred VMark's outline rail side by side, which keeps § Icons' outline contract, so no ADR. The three rail exceptions in § Icons are the cost: the rail no longer uses the rule 31 accent selection, and its icons are neither muted nor `--icon-size-md`. Prototype: `prototypes/d260-settings-rail.html`, branch `prototype/d260-settings-rail`. |
 | 2026-10-15 | D223: the sidebar's top band carries no text; the "Table of Contents" header and the WYSIWYG / SOURCE badge are removed, with the sidebar shown or hidden (user: 「Sidebar左上角的Table of Content 和 Mode(WYSIWYG / Source）等文本去掉，让整体界面比较清爽」; prototype ruling 「B: remove everywhere (Recommended)」) | The header repeated what the outline already shows. The mode stays visible in the View menu's check marks, and comes back to the window with the main bar's segmented control (WI-4.8, not yet built); until then the window itself does not name it. The bands stay as window drag regions for the traffic lights. |
 | 2026-10-15 | ADR-0088: the sidebar is resizable (180–480px, default 220) and keeps its width at every window width; two new layout tokens, `--sidebar-width-min` (180px) and `--main-min-width` (320px), set the grid's `clamp()`. One fixed toggle leads the bottom tab bar | The width was a fixed 220px and a leftover 960px media query squeezed the sidebar to 33px or stretched it across the window (#416). Hiding it is the user's choice, never a side effect of window size. The tokens name the two limits instead of literals in the grid. |
 | 2026-09-11 | DR23: Radii snap by role to `--radius-control`, `--radius-popover` and a new `--radius-inner` (4px); circles `50%`, pills `999px` | Nested parts need a smaller radius than their container to look concentric, and the proposal already draws 4px for them. Seven ad-hoc values collapse to three roles with no exceptions. |
