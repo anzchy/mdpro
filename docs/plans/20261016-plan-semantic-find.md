@@ -15,7 +15,8 @@ related model? and with API key, we need to add configs in Settings -> Integrati
 
 ## 0. Decisions for the user
 
-S-U1 is answered. The rest are not decided. Where there is a recommendation, it is marked as a
+S-U1 and S-U8 to S-U12 are answered (the user's words quoted in each row, relayed by
+mdpro-delegator on 2026-10-16), and so is S0's Jev run. The rest are not decided. Where there is a recommendation, it is marked as a
 proposal, with the reason. S-U2 to S-U4 now concern **only the on-device backup** (§ 5.0), and
 stay gated on S0.
 
@@ -28,11 +29,12 @@ stay gated on S0.
 | **S-U5** | **The UI**, to be prototyped later (§ 5.9) | A separate key and bar (hunch's way), a mode switch inside v0.3.6's find popup, or semantic results under the literal ones; the highlight style; **which engine answered** and the **"text is leaving this Mac" indicator**; the **consent prompt**; and the **Settings → Integrations section** (§ 5.14) | **Not decided here.** Built with `/mattpocock-skills:prototype` (rule 70 § Questions) after v0.3.6's popup exists |
 | **S-U6** | **The key** | Hunch uses ⌥F on macOS and Ctrl+Shift+F elsewhere, keeping ⌘F / Ctrl+F for normal find. On macOS ⌥F types a character (ƒ); Ctrl+Shift+F is unassigned in the menu plan's table | Decide with S-U5. The key goes through the menu plan's command table and collision rules (K1–K8) |
 | **S-U7** | **The quality bar** (applied to each engine separately) | S0 proposes per-language numbers: recall@5 ≥ 0.80, first-hit accuracy ≥ 0.60, false "found" ≤ 10 % on absent topics, false "not found" ≤ 15 % on present ones (§ 6, S0). The user accepts or changes them **before** the final test partition is evaluated | Shown with S0's measured numbers, so the trade-off is concrete |
-| **S-U8** | **Consent granularity** (§ 5.13) | **A. Per document per session:** the first cloud search in a document asks; the answer holds until the tab closes or the app quits. **B. Per document, remembered** across launches (stored by path in preferences). **C. Every search** asks. **D. Once globally**, in Settings | **A**, as a proposal: it asks once per document, and nothing about which files were sent is written to disk. B saves prompts but stores a list of paths; C is safest and noisiest; D is the switch alone, which the delegator's brief rules out ("per use or per document") |
-| **S-U9** | **Exactly what text is sent** (§ 5.13) | Always: the query, the question template, and the text of each block of the current revision. Choices: **front matter** (YAML) — send / don't; **code blocks** — send / don't; **HTML comments** — send / don't | Proposal: don't send front matter or HTML comments (they often hold metadata and notes); send code blocks. Never sent: the file path, file name, title, other documents, images, the key in any body |
-| **S-U10** | **Which Jev version** | **A. Pin** an explicit version (today `jev-1.13.0`) and move with a re-check of S0's set. **B. `jev-latest`**, which TypeSafe moves (it points to 1.13.0; `jev-preview` is 1.14.0) | **A**, as a proposal: the 0.4 threshold and S0's quality numbers belong to one version |
-| **S-U11** | **Cloud size and cost cap** (§ 5.12) | A per-search token cap above which the search runs on the backup instead; proposal 256 k input tokens (≈ $0.011 per search at $0.042 / M tokens), with a note in the verdict | Decide with S0's token counts for the 100 KB / 1 MiB / 10 MiB fixtures. Every query re-sends every block, so cost scales with document size × searches |
-| **S-U12** | **How the key is entered** (§ 5.14) | **A.** A password field on the Integrations page: the key crosses the webview once, at entry, and is never sent back. **B.** A native prompt from Rust (macOS `NSAlert` with a secure field, Windows Credential UI): it never touches the webview | **A**, as a proposal (simpler, one code path). B is stronger and needs native code on each platform |
+| **S-U8** | **Consent granularity** (§ 5.13) | A per document per session / B per document, remembered / C every search / D once globally | **Answered: A.** 「Per document per session (Recommended)」. The first cloud search in a document asks; the grant holds until the tab closes or the app quits; nothing about which files were sent is written to disk. "Just this search" stays available |
+| **S-U9** | **Exactly what text is sent** (§ 5.13) | Always the query, the question template and each block's text; choices for front matter, code blocks and HTML comments | **Answered:** 「Blocks + code, no front matter (Recommended)」. Sent: the block text and code blocks. Not sent: YAML front matter. HTML comments: not sent, following the recommended proposal this option carried (the label names front matter only; S1 confirms). Never sent: the file path, file name, title, other documents, images, the key in any body |
+| **S-U10** | **Which Jev version** | A pin an explicit version / B `jev-latest`, which TypeSafe moves (today → 1.13.0; `jev-preview` → 1.14.0) | **Answered: B.** 「jev-latest, 256k cap」. Requests send `jev-latest`. **Cost of this choice:** the 0.4 threshold and S0's quality numbers belong to the version S0 measured, and can drift without notice when TypeSafe moves the alias. **Guard** (cheap; it doesn't override the choice): every response's reported model version is logged (`search.semantic.jev.request` carries it; if responses don't report it, the alias is resolved through `GET /v1/models` once per launch); the Integrations section shows "jev-latest → <version>" and the version S0 measured; when they differ, the section says so and `search.semantic.jev.version_changed` is logged once, as the trigger to re-run S0's held-out set (≈ $1 or less, with the user's key and word). The threshold is not changed automatically |
+| **S-U11** | **Cloud size and cost cap** (§ 5.12) | A per-search input-token cap above which the backup answers | **Answered: 256 k input tokens per search** (same quote as S-U10), ≈ $0.011 per search at $0.042 / M tokens. Bigger searches go to the backup with "too large to send to Jev". Every query re-sends every block, so cost still scales with searches; S0's token counts show how often the cap bites |
+| **S-U12** | **How the key is entered** (§ 5.14) | A a password field on the Integrations page / B a native prompt from Rust | **Answered: A.** 「Password field; S0 yes, $1 ceiling (Recommended)」. The key crosses the webview once, at entry, and is never sent back (§ 5.14). B stays possible later |
+| **S0-Jev** | **May S0 run Jev with the user's key?** | yes with conditions / no | **Answered: yes** (same quote as S-U12). Conditions: synthetic fixtures only, never the user's documents; a key the user chooses, ideally separate and revocable, supplied by the user when S0 starts; a **$1 spend ceiling** for the run; the key never printed and never stored outside the keychain or that run's environment. S0 is a later implementation grant: mdpro-codex-audit asks the delegator before starting it |
 
 ## 1. Goal
 
@@ -318,8 +320,8 @@ stage over the embedding top-k (for example 50). It is adopted only if it fits �
   case-insensitive) is always ranked above any block that doesn't, whatever its similarity. Within
   each tier, blocks are ordered by similarity. This is what "augmented" means: everything literal
   find would show, plus the related blocks.
-- **Jev's threshold:** p ≥ 0.4 on the `noul` answer, as in hunch, re-checked in S0 on the pinned
-  version (S-U10).
+- **Jev's threshold:** p ≥ 0.4 on the `noul` answer, as in hunch, re-checked in S0 on the version
+  `jev-latest` resolved to at the time, and re-checked when it moves (S-U10's guard).
 - **The backup's threshold:** cosine similarity is not a calibrated probability, the way Jev's `noul`
   is. S0 compares a fixed per-model threshold with a relative rule (the top score must clear the
   document's median by a margin) on S0's **validation** partition, and S1 records the winner.
@@ -550,9 +552,9 @@ document or query text.
 - **The cap counts every attempt:** retried bytes count against S-U11's cap; a retry that would
   exceed it isn't sent and the search ends `TooLarge`.
 - **Response validation:** every chunk's answer must name exactly the block ids it was sent, with
-  the `noul` type and a finite probability in [0, 1], from the model version requested. Anything
+  the `noul` type and a finite probability in [0, 1], from a model (`jev-latest` resolves to whatever TypeSafe points it at; the reported version is recorded, S-U10). Anything
   else is `InvalidResponse` (§ 5.0 table); a chunk is never counted as "answered: nothing".
-- **Model:** the version S-U10 pins, sent explicitly.
+- **Model:** `jev-latest` (S-U10). The version each response reports, or `/v1/models` resolves, is logged and kept for the Integrations section's drift notice.
 - **Cancellation is a command, not a dropped promise.** Each search registers its `requestId` in
   the registry with a cancellation token; `semantic_jev_cancel(requestId)` cancels its queued
   chunks, retries and active requests. A revoke, switch off, key change or tab close bumps
@@ -581,7 +583,7 @@ document or query text.
   "Allow for this document", "Just this search" and "Search on this Mac instead". Default
   focus is on the on-device choice. The grant is held in Rust (§ 5.12). **Revoking** is a
   separate action: "Stop sending this document to Jev" in the bar, the cloud switch off, removing
-  the key, or closing the tab (S-U8 A). Each bumps `authEpoch` and cancels in-flight requests.
+  the key, or closing the tab (S-U8 is A). Each bumps `authEpoch` and cancels in-flight requests.
   "On this Mac only" is not a revoke (§ 5.0 rule 9).
 - **Indicator:** while a Jev request is in flight, a visible "Sending to Jev" mark (S-U5 item 9);
   the verdict then says "Jev (cloud)".
@@ -606,8 +608,8 @@ and page style (DESIGN.md). Its layout is a prototype item (S-U5); its contents 
 | **Use Jev (cloud)** switch | off by default; on needs a stored key (otherwise disabled, with the reason inline, rule 30.4) |
 | **API key** | entered per S-U12 (below). **Save** stores it in the OS keychain (macOS Keychain, Windows Credential Manager); **Remove** deletes it; status reads "Key stored" / "No key" / "Key rejected", never any part of the key |
 | **Test key** | `GET /v1/models`; shows OK / rejected / unreachable |
-| **Jev version** | the pinned version, read-only (S-U10) |
-| **Consent** | S-U8's choice explained; "Forget all document permissions" if S-U8 B |
+| **Jev version** | read-only: "jev-latest → <version last seen>", the version S0 measured, and a notice when they differ (S-U10's guard) |
+| **Consent** | S-U8 A explained: permissions last until the tab closes; nothing is remembered |
 | **On-device backup** | status (installed / downloading / missing), size, **Download** / **Remove** per S-U2, and an on/off switch |
 
 - **Where the key passes.** Typing a key into a page field means the key exists in the webview,
@@ -616,7 +618,7 @@ and page style (DESIGN.md). Its layout is a prototype item (S-U5); its contents 
   `semantic_key_set`, and the field cleared. It is never sent back to the page, never echoed,
   and never logged by the wrapper or the IPC layer. The stronger "never in the webview" needs
   native entry, so it is a choice for the user:
-  **S-U12. Key entry:** **A.** the page field above (proposal; simplest, same pattern as other
+  **S-U12. Key entry** (answered: A): **A.** the page field above (simplest, same pattern as other
   apps' settings); **B.** a native prompt from Rust (on macOS an `NSAlert` with a secure text
   field, on Windows a Credential UI prompt); the key never touches the webview, at the cost of
   per-platform native code. Decided in S1.
@@ -702,8 +704,8 @@ Every behaviour WI runs this sequence (rules 10, 20, 60):
 | **S7** | Highlights and navigation in both editors, in **the style the user picked**: PM decorations in WYSIWYG, CM decorations in Source, the current hit scrolled into view, ticks if v0.3.6 has them | `src/features/semanticFind/decorations.ts` | Decorations follow edits (an edited hit block moves or drops), a mode switch re-maps or closes cleanly, and the dirty flag never changes. File: `tests/semantic-find-decorations.test.ts` (extracted decoration logic, rule 10 § plugins) | — |
 | **S8** | Packaging per S-U2 (bundled, or the download with progress, retry, hash check and removal), recovery (§ 5.10), and the cold-start offline release check | the release workflow config, Settings, `src/features/semanticFind/package.ts` | Download (if chosen): a hash mismatch, an interrupted download, and no network each give a clear message, and regular find still works. Removing the model during a search gives the missing-model state. Removal with a completion pending doesn't recreate anything. Installer size is measured in the release build. Offline cold start on both platforms. File: `tests/semantic-find-package.test.ts` | ledger row to `Shipped`, or `Partial` with its limit |
 
-**Order:** S0 (any time, with the user's word for the Jev run) → the user answers S-U2 to S-U4 and
-S-U7 to S-U12 → S1 (ADR accepted, CLAUDE.md updated) → [v0.3.6's D255-WI-3c and M1b on
+**Order:** S0 (any time after its implementation grant; the Jev run is approved, S0-Jev) → the user
+answers S-U2 to S-U4 and S-U7 → S1 (ADR accepted, CLAUDE.md updated) → [v0.3.6's D255-WI-3c and M1b on
 `master`] → S2, S3, S4, S-C1, S-C2 and S-C5 in parallel against S1's types → S5 with S-C3 → S-P →
 S6, S-C4 → S7 → S8.
 
@@ -724,7 +726,7 @@ S6, S-C4 → S7 → S8.
 | Privacy | Document text leaves the machine. Bounded by the switch, the key, per-document consent, S-U9's exclusions and the indicator; what TypeSafe keeps for ordinary keys is not stated (§ 9) |
 | Key leak | A key in a log, a crash report or `config.json` is a credential leak. Keychain only, with tests per surface (§ 5.14) |
 | Cost | Every search re-sends the whole document: a 10 MiB document is millions of tokens per query. Bounded by S-U11's cap |
-| Vendor change | TypeSafe can change the API, pricing, versions or terms; the waitlist may gate keys. The backup keeps the feature working; S-U10 pins the version |
+| Vendor change | TypeSafe can change the API, pricing, versions or terms; the waitlist may gate keys. The backup keeps the feature working. With `jev-latest` (S-U10) a version move can shift quality and the threshold silently; the guard surfaces it and triggers a re-run of S0's set |
 | Chinese accuracy on Jev | TypeSafe says CJK is less accurate. S0 measures it separately; if Jev fails the gate for Chinese only, the user may choose the backup for Chinese documents |
 | Backup quality below expectation | A 24–118 MB embedding model (or the 0.6 B JevEmbed) is weaker than Jev. S0's gate decides; if it fails, the user chooses between Jev-only and deferring |
 | Calibration | Cosine has no fixed meaning across documents. Mitigated by the coverage rule (§ 5.4) and S0's held-out thresholds; it can still be wrong both ways |
