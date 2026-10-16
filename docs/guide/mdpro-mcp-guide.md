@@ -86,6 +86,41 @@ the button has no effect for Claude Code. This comes from my knowledge of the
 Claude Code docs, not a fetched copy, and was not tested on this machine. Use
 `claude mcp add`.
 
+**Codex CLI: approve the tools, and check Gatekeeper** (D252, 2026-10-16).
+
+- **Approve each tool, or `approval_policy = "never"` refuses every call.**
+  Codex then refuses each MCP tool call ("MCP tool call requires approval, but
+  approval policy is never") unless that tool is approved for the server. Add
+  one table per tool you want unattended:
+
+  ```toml
+  [mcp_servers.mdpro.tools.get_open_documents]
+  approval_mode = "approve"
+
+  [mcp_servers.mdpro.tools.read_document]
+  approval_mode = "approve"
+  ```
+
+  On `codex exec` the same is
+  `-c 'mcp_servers.mdpro.tools.read_document.approval_mode="approve"'`.
+  Approve `write_document` / `insert_content` only if you mean to; mdpro still
+  asks in the app before any write (§ 7).
+- **On macOS, Gatekeeper can block a Homebrew-cask Codex.** Its binaries are
+  unnotarized and quarantined, including the `codex-code-mode-host` helper it
+  starts for MCP tools. On the Mac mini (0.160.0, then 0.162.1) this showed as
+  "timed out negotiating with the code-mode host" / "code-mode host exited
+  during handshake", or as a start that waits silently, even on
+  `codex --version`. Look for a '"codex" Not Opened' dialog, or allow the
+  binary under System Settings › Privacy & Security. Turning the host off
+  (`features.code_mode_host=false`) makes Codex fail closed, so it is not a
+  workaround.
+- **Known good:** Codex 0.159.1 on the MacBook listed and called a stand-in
+  server that answers exactly as `mdpro_mcp` does. If Codex can't reach mdpro
+  but `claude mcp` or a raw stdio client can, the client is the place to look.
+- **No `mcp.*` line in mdpro's log does not mean the client never connected.**
+  `tools/list` is answered by `mdpro_mcp` alone; only tool calls reach the app
+  and log `mcp.list` / `mcp.read`.
+
 ## 4. Tool reference
 
 Every tool is defined in `src-tauri/src/bin/mdpro_mcp.rs`; there are no others.
