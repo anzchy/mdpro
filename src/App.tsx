@@ -19,6 +19,7 @@ import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
 import { useQuitGuard } from "./hooks/useQuitGuard";
 import { useWindowCloseGuard } from "./hooks/useWindowCloseGuard";
+import { closeWindowIfLastTabClosed } from "./utils/lastTabClose";
 import { useMcpSync } from "./hooks/useMcpSync";
 import { useOpenInWindow } from "./hooks/useOpenInWindow";
 import { useMcpEvents } from "./hooks/useMcpEvents";
@@ -148,6 +149,16 @@ function App() {
     pendingClose: pendingClose ?? windowCloseGuard.pendingClose,
     quitPrompt: quitGuard.quitPrompt,
   });
+  // D253 (ADR-0112): a user close that empties a secondary window closes it,
+  // through the guard; never while a quit is asking this window.
+  const closeWindowIfEmptied = useCallback(
+    () => void closeWindowIfLastTabClosed({ requestWindowClose: windowCloseGuard.requestWindowClose, quitInProgress: quitGuard.quitPrompt !== null }),
+    [windowCloseGuard.requestWindowClose, quitGuard.quitPrompt],
+  );
+  const closeTabById = useCallback(
+    (id: string, discardChanges: boolean) => closeDocumentById(id, discardChanges).then(closeWindowIfEmptied),
+    [closeDocumentById, closeWindowIfEmptied],
+  );
 
   // MCP hooks for Claude Code / Codex CLI integration. The sync also feeds
   // external-open routing, gated on this window's listener (ADR-0033).
@@ -698,6 +709,7 @@ function App() {
     }
     if (target === "document") {
       await closeActiveDocument(true);
+      closeWindowIfEmptied();
     }
   };
 
@@ -714,10 +726,11 @@ function App() {
       closeTargetRef.current = "document";
       setPendingClose("document");
     } else if (decision === "close") {
-      void closeActiveDocument(true);
+      void closeActiveDocument(true).then(closeWindowIfEmptied);
+    } else {
+      closeWindowIfEmptied(); // "noop": no active document; an empty secondary window closes (D253)
     }
-    // "noop" — no active document
-  }, [closeActiveDocument]);
+  }, [closeActiveDocument, closeWindowIfEmptied]);
 
   // Both ⌘⌥T (useKeyboardShortcuts) and Format → Insert Table (useMenuEvents)
   // dispatch through the same flow: open TableInsertModal via
@@ -932,7 +945,7 @@ function App() {
         documents={documents}
         activeDocumentId={activeDocument?.id ?? null}
         onSelect={setActiveDocumentById}
-        onClose={closeDocumentById}
+        onClose={closeTabById}
         onNewDocument={createDocument}
         sidebarShown={showSidebar}
         onToggleSidebar={sidebarPreference.toggle}

@@ -118,6 +118,9 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   ...INITIAL_BASELINE_EPOCHS,
   getBaselineEpoch: (id) => get().baselineEpoch[id] ?? 0,
   activeDocumentId: null,
+  // No caller in src/ (D214-WI-8 inventory). It replaces documents without the
+  // baseline stamps closeDocument / dropBaseline / path moves write, so a new
+  // caller must route removals and path changes through those instead.
   setDocuments: (documents) => set({ documents }),
   setActiveDocumentId: (id) => {
     const from = get().activeDocumentId;

@@ -4,10 +4,13 @@
  * and the confirm latch. Extracted from App.tsx (D16 WI-6), where the same
  * effect leaked close handlers on every edit.
  *
- * Pipeline: OS close request → `windowCloseDecisionAfterFlush` (the ONE shared
- * exit rule, ADR-0025) → `allow` passes through and spends the latch | `prompt`
- * prevents the close and raises `pendingClose` for App's ConfirmDialog |
- * `save-and-close` persists window state, latches and closes.
+ * Pipeline: OS close request or `requestWindowClose` → (no latch: a new
+ * attempt) `windowCloseDecisionAfterFlush` (the ONE shared exit rule, ADR-0025)
+ * → `prompt` prevents the close and raises `pendingClose` for App's
+ * ConfirmDialog | `save-and-close` persists window state, re-decides, latches
+ * `clean-save` and closes → the re-entered pass with a latch takes the final
+ * decision (`decideLatchedPass`): `allow` lets the close through, `prompt`
+ * prompts again.
  *
  * Key decisions:
  * - **Subscribe exactly once.** The effect has empty deps and reads everything
@@ -69,20 +72,46 @@
  *   subscribe-once effect, and it fires only when a window prompt was pending —
  *   read through a ref, because App also calls `cancelClose` for a ⌘W document
  *   prompt and `cancelClose` is created once.
+ * - **`requestWindowClose` re-enters the guard (D253, ADR-0112)**: it re-checks
+ *   emptiness, then `close()`, which in Tauri v2 emits CloseRequested
+ *   (`window.d.ts`; `window.js` destroys only if not prevented). Never `destroy()`.
+ * - **The close race is closed under every reading (D253 merged review).** A
+ *   latch carries its origin: `clean-save` allows only if the latched pass still
+ *   finds nothing unsaved, `discard` only while the dirty set is within the
+ *   consent its prompt captured (else `dirty_after_discard`); the save-and-close
+ *   path also re-decides right after the save (`dirty_after_state_save`). One
+ *   active attempt: each unlatched pass and each `cancelClose` bumps a
+ *   generation, and a continuation resuming after the save with a stale one does
+ *   nothing. `dataLossGuards.ts` is untouched (the shared rule is called with no
+ *   latch; `windowCloseAttempt.ts` applies the origin), so the quit path is too.
  *
  * @module src/hooks/useWindowCloseGuard
  * @coordinates-with src/App.tsx — renders the ConfirmDialog for `pendingClose`
  *   and routes its confirm/cancel back to `confirmClose` / `cancelClose`;
- *   passes `useMcpSync().forceSync` as `onCloseCancelled`
+ *   calls `requestWindowClose` when a user close empties a secondary window
+ *   (via `src/utils/lastTabClose.ts`); passes `useMcpSync().forceSync` as
+ *   `onCloseCancelled`
  * @coordinates-with src/hooks/useMcpSync.ts — `forceSync`, the re-registration
  * @coordinates-with src/utils/dataLossGuards.ts — `windowCloseDecisionAfterFlush`
+ * @coordinates-with src/hooks/windowCloseAttempt.ts — latch origin, Discard
+ *   consent, the latched pass's decision, the log lines
  * @coordinates-with src/hooks/saveWindowStateOnClose.ts — the save body:
  *   global state (main only), per-file geometry, stage-typed fail log
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { loggingService } from "../services/loggingService";
+import { useDocumentStore } from "../stores/documentStore";
 import { windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
 import { saveWindowStateOnClose } from "./saveWindowStateOnClose";
+import {
+  type CloseLatch,
+  type DiscardConsent,
+  type PromptAction,
+  decideLatchedPass,
+  logCloseCancelled,
+  logCloseRequested,
+  promptActionFor,
+  snapshotDiscardConsent,
+} from "./windowCloseAttempt";
 
 /** `"window"` while the unsaved-changes dialog for an OS close request is open. */
 export type WindowClosePending = "window" | null;
@@ -92,11 +121,21 @@ export interface WindowCloseGuard {
   pendingClose: WindowClosePending;
   /** Persist window state (`main` only) + the active document's geometry, read at call time. */
   saveWindowState: () => Promise<void>;
-  /** The user chose Discard: save state, latch the allow, close the window. */
+  /** The user chose Discard: save state, latch the allow (for the prompted documents only), close. */
   confirmClose: () => Promise<void>;
-  /** The user chose Cancel: drop the prompt, leave the window open. */
+  /** The user chose Cancel: drop the prompt, supersede the attempt, leave the window open. */
   cancelClose: () => void;
+  /**
+   * Ask this window to close through the guard (D253, ADR-0112): re-check that
+   * no document is open, then `close()`, which emits CloseRequested, so the same
+   * flush → decide → prompt | save-and-close runs as for an OS close. A logged
+   * no-op without a window handle or when a document arrived. Never rejects.
+   */
+  requestWindowClose: (reason: WindowCloseRequestReason) => Promise<void>;
 }
+
+/** Why the app itself asks for a window close. Logged as the `action` enum. */
+export type WindowCloseRequestReason = "last_tab_closed";
 
 export interface WindowCloseGuardOptions {
   /** Called once each time the user cancels a pending window-close prompt. */
@@ -116,11 +155,32 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
   useLayoutEffect(() => {
     onCloseCancelledRef.current = onCloseCancelled;
   }, [onCloseCancelled]);
+  // The allow latch, and (D253) where it came from: see `windowCloseAttempt.ts`.
   const allowWindowCloseRef = useRef(false);
-  const appWindowRef = useRef<{ close: () => void } | null>(null);
+  const latchRef = useRef<CloseLatch>(null);
+  // What the prompt on screen showed, for its Discard (D253 consent).
+  const consentRef = useRef<DiscardConsent | null>(null);
+  // The active close attempt. A continuation whose generation is stale does nothing.
+  const attemptRef = useRef(0);
+  const appWindowRef = useRef<{ label: string; close: () => Promise<void> | void } | null>(null);
 
   // Body lives in `saveWindowStateOnClose.ts`; the identity is stable.
   const saveWindowState = useCallback(() => saveWindowStateOnClose(), []);
+
+  const setLatch = useCallback((latch: CloseLatch) => {
+    latchRef.current = latch;
+    allowWindowCloseRef.current = latch !== null;
+  }, []);
+
+  /** Raise the window prompt, capturing what it shows for a later Discard. */
+  const raisePrompt = useCallback(
+    (windowLabel: string, action: PromptAction) => {
+      consentRef.current = snapshotDiscardConsent();
+      setPendingClose("window");
+      logCloseRequested("cancel", { windowLabel, action });
+    },
+    [setPendingClose],
+  );
 
   useEffect(() => {
     // Assigned only after two awaits. `cancelled` is what makes a teardown that
@@ -135,55 +195,41 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
         appWindowRef.current = currentWindow;
         const dispose = await currentWindow.onCloseRequested(async (event) => {
           const windowLabel = currentWindow.label;
+          // A latched pass is the continuation of the attempt that set it; any
+          // other pass is a new request and supersedes the one in flight.
+          const latch = latchRef.current;
+          setLatch(null);
+          const attempt = latch ? attemptRef.current : ++attemptRef.current;
           // D15/D16: flush pending WYSIWYG edits, then decide on the fresh
-          // any-tab-modified state through the one shared exit rule.
-          const decision = windowCloseDecisionAfterFlush({
-            allowWindowClose: allowWindowCloseRef.current,
-          });
-          loggingService.logEventSync({
-            level: "info",
-            event: "window.close_requested",
-            status: "start",
-            actionId: loggingService.generateActionId(),
-            context: { windowLabel, decision, allowWindowClose: allowWindowCloseRef.current },
-          });
+          // any-tab-modified state through the one shared exit rule. A latch
+          // only lets the close through if this pass still agrees (D253).
+          const decision = latch ? decideLatchedPass(latch) : windowCloseDecisionAfterFlush({ allowWindowClose: false });
+          logCloseRequested("start", { windowLabel, decision, allowWindowClose: latch !== null, latch: latch?.kind ?? "none" });
 
           if (decision === "allow") {
-            // State already saved by confirmClose; allow the close through.
-            allowWindowCloseRef.current = false;
-            loggingService.logEventSync({
-              level: "info",
-              event: "window.close_requested",
-              status: "success",
-              actionId: loggingService.generateActionId(),
-              context: { windowLabel, action: "allowed_close" },
-            });
+            logCloseRequested("success", { windowLabel, action: "allowed_close" });
             return;
           }
           // Prevent close in all other cases until we finish async work.
           event.preventDefault();
           if (decision === "prompt") {
-            setPendingClose("window");
-            loggingService.logEventSync({
-              level: "info",
-              event: "window.close_requested",
-              status: "cancel",
-              actionId: loggingService.generateActionId(),
-              context: { windowLabel, action: "prevented_showing_dialog" },
-            });
-          } else {
-            // No unsaved changes — save state then allow close.
-            await saveWindowState();
-            allowWindowCloseRef.current = true;
-            void currentWindow.close();
-            loggingService.logEventSync({
-              level: "info",
-              event: "window.close_requested",
-              status: "success",
-              actionId: loggingService.generateActionId(),
-              context: { windowLabel, action: "no_unsaved_closing" },
-            });
+            raisePrompt(windowLabel, promptActionFor(latch));
+            return;
           }
+          // No unsaved changes — save state, then re-decide before latching:
+          // a dirty document may have arrived during the save (D253).
+          await saveWindowState();
+          if (attempt !== attemptRef.current) {
+            logCloseRequested("cancel", { windowLabel, action: "superseded" });
+            return;
+          }
+          if (windowCloseDecisionAfterFlush({ allowWindowClose: false }) === "prompt") {
+            raisePrompt(windowLabel, "dirty_after_state_save");
+            return;
+          }
+          setLatch({ kind: "clean-save" });
+          void currentWindow.close();
+          logCloseRequested("success", { windowLabel, action: "no_unsaved_closing" });
         });
         if (cancelled) {
           dispose();
@@ -200,29 +246,54 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
       cancelled = true;
       if (unlisten) unlisten();
     };
-  }, [saveWindowState, setPendingClose]);
+  }, [saveWindowState, setLatch, raisePrompt]);
 
   const confirmClose = useCallback(async () => {
+    const attempt = attemptRef.current;
+    const consent = consentRef.current ?? snapshotDiscardConsent();
     setPendingClose(null);
     await saveWindowState();
+    if (attempt !== attemptRef.current) return; // superseded while saving
     allowWindowCloseRef.current = true;
+    latchRef.current = { kind: "discard", consent };
     appWindowRef.current?.close();
   }, [saveWindowState, setPendingClose]);
 
   const cancelClose = useCallback(() => {
     const wasWindowPrompt = pendingCloseRef.current === "window";
+    // Supersede any attempt in flight. The latch is left alone: a latched pass
+    // re-decides (clean-save) or checks its consent (discard) anyway.
+    attemptRef.current += 1;
     setPendingClose(null);
     if (!wasWindowPrompt) return;
     const callback = onCloseCancelledRef.current;
-    loggingService.logEventSync({
-      level: "info",
-      event: "window.close_cancelled",
-      status: "success",
-      actionId: loggingService.generateActionId(),
-      context: { notified: callback !== undefined },
-    });
+    logCloseCancelled(callback !== undefined);
     callback?.();
   }, [setPendingClose]);
 
-  return { pendingClose, saveWindowState, confirmClose, cancelClose };
+  const requestWindowClose = useCallback(async (reason: WindowCloseRequestReason) => {
+    const currentWindow = appWindowRef.current;
+    if (!currentWindow) {
+      // Web preview, or the window API failed: nothing to close.
+      logCloseRequested("cancel", { action: reason, outcome: "no_window" });
+      return;
+    }
+    const windowLabel = currentWindow.label;
+    // Re-checked here, after every await the caller made: a document that
+    // arrived meanwhile keeps the window (D253).
+    if (useDocumentStore.getState().documents.length > 0) {
+      logCloseRequested("cancel", { windowLabel, action: reason, outcome: "not_empty" });
+      return;
+    }
+    logCloseRequested("start", { windowLabel, action: reason });
+    try {
+      // `close()`, never `destroy()`: Tauri v2 emits CloseRequested, so the
+      // handler above flushes, decides and prompts or saves as for an OS close.
+      await currentWindow.close();
+    } catch {
+      logCloseRequested("fail", { windowLabel, action: reason, reason: "close_rejected" });
+    }
+  }, []);
+
+  return { pendingClose, saveWindowState, confirmClose, cancelClose, requestWindowClose };
 }
