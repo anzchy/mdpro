@@ -9,7 +9,9 @@
  *
  * `connections` records each WebSocket the client opened and whether it sent a close frame before
  * the TCP connection ended (D248). The server answers a close frame with its own, as a real one
- * does, so the client's `close` event can fire.
+ * does, so the client's `close` event can fire. With `closeReplyDelayMs` it holds that reply, and
+ * `openAtReply` says whether the client's TCP was still open when it went out: a client that
+ * exits while its socket is still CLOSING has already gone (audit b171 H1).
  */
 import crypto from "node:crypto";
 import http from "node:http";
@@ -35,6 +37,13 @@ export interface FakeConnection {
   page: string;
   closeFrame: boolean;
   ended: boolean;
+  /** The client's TCP was still open when the server's close reply went out. */
+  openAtReply?: boolean;
+}
+
+export interface FakeCdpOptions {
+  /** Hold the server's close reply this long after the client's close frame. */
+  closeReplyDelayMs?: number;
 }
 
 export interface FakeCdp {
@@ -95,7 +104,7 @@ function unframe(buf: Buffer): { texts: string[]; rest: Buffer; closed: boolean 
   return { texts, rest: buf.subarray(off), closed };
 }
 
-export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
+export async function startFakeCdp(pages: FakePage[], opts: FakeCdpOptions = {}): Promise<FakeCdp> {
   const evaluated = new Map<string, string[]>(pages.map((p) => [p.id, []]));
   const sockets = new Set<Socket>();
   const connections: FakeConnection[] = [];
@@ -156,7 +165,12 @@ export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
       }
       if (r.closed) {
         conn.closeFrame = true;
-        socket.end(CLOSE_FRAME);
+        const reply = () => {
+          conn.openAtReply = !conn.ended && !socket.destroyed;
+          if (conn.openAtReply) socket.end(CLOSE_FRAME);
+        };
+        if (opts.closeReplyDelayMs) setTimeout(reply, opts.closeReplyDelayMs);
+        else reply();
       }
     });
   });
@@ -165,7 +179,7 @@ export async function startFakeCdp(pages: FakePage[]): Promise<FakeCdp> {
     port: (server.address() as AddressInfo).port,
     evaluated,
     connections,
-    settled: async (ms = 2000) => {
+    settled: async (ms = 3000) => {
       const until = Date.now() + ms;
       while (connections.some((c) => !c.ended) && Date.now() < until) await new Promise((r) => setTimeout(r, 10));
     },

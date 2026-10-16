@@ -12,7 +12,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { startFakeCdp, type FakeCdp, type FakePage } from "../support/fakeCdp";
+import { startFakeCdp, type FakeCdp, type FakeConnection, type FakePage } from "../support/fakeCdp";
 
 const CDP = path.resolve(__dirname, "../../.claude/skills/remote-windows-device-test/scripts/windows/cdp.mjs");
 
@@ -41,8 +41,11 @@ const page = (id: string, label: string, extra: Partial<FakePage> = {}): FakePag
   ...extra,
 });
 
+/** The server holds its close reply this long; a client that exits before it has not waited. */
+const CLOSE_REPLY_DELAY_MS = 200;
+
 async function run(pages: FakePage[], args: string[], env: Record<string, string> = {}) {
-  const s = await startFakeCdp(pages);
+  const s = await startFakeCdp(pages, { closeReplyDelayMs: CLOSE_REPLY_DELAY_MS });
   servers.push(s);
   const r = await cdp(s.port, env, ...args);
   await s.settled();
@@ -50,11 +53,16 @@ async function run(pages: FakePage[], args: string[], env: Record<string, string
 }
 
 /** Every socket the client opened ended with its close frame, never a dropped TCP connection. */
-function expectAllClosedCleanly(connections: { page: string; closeFrame: boolean; ended: boolean }[]) {
+/**
+ * Every socket the client opened sent its close frame and then stayed open until the server's
+ * delayed close reply: the client waited for the close instead of exiting while CLOSING.
+ */
+function expectAllClosedCleanly(connections: FakeConnection[]) {
   expect(connections.length).toBeGreaterThan(0);
   for (const c of connections) {
     expect(c.ended, `${c.page}: connection ended`).toBe(true);
     expect(c.closeFrame, `${c.page}: close frame before the end`).toBe(true);
+    expect(c.openAtReply, `${c.page}: still open when the close reply went out`).toBe(true);
   }
 }
 
@@ -112,6 +120,18 @@ describe("D248 — cdp.mjs closes every socket before it exits", () => {
     expect(r.status).toBe(3);
     expect(r.stdout).toContain("CDP_TIMEOUT");
     expectAllClosedCleanly(r.connections);
+  });
+});
+
+describe("D248 (audit b171) — a CDP_TIMEOUT during the probe opens no further socket", () => {
+  it("X3b the timeout fires while a probe socket is closing: exit 3, no socket for the next page", async () => {
+    const pages = [page("p1", "main"), page("p2", "mdpro-abc"), page("p3", "mdpro-def")];
+    const s = await startFakeCdp(pages, { closeReplyDelayMs: 600 });
+    servers.push(s);
+    const r = await cdp(s.port, { MDPRO_CDP_TIMEOUT_MS: "300" }, "--window", "mdpro-def", "eval", "1");
+    await s.settled();
+    expect(r.status).toBe(3);
+    expect(s.connections.map((c) => c.page)).toEqual(["p1"]);
   });
 });
 

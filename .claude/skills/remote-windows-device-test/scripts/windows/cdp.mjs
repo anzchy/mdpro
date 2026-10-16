@@ -47,7 +47,10 @@ const closed = (ws) => new Promise((done) => {
   setTimeout(done, CLOSE_WAIT_MS).unref?.();
   ws.close();
 });
-const end = async (code) => { await Promise.all([...sockets].map(closed)); process.exit(code); };
+// Runs once: a later end() (the timeout firing mid-shutdown) joins the first. Once it has started,
+// connect() opens nothing more, so no socket escapes the close (audit b171).
+let ending = null;
+const end = (code) => (ending ??= (async () => { await Promise.all([...sockets].map(closed)); process.exit(code); })());
 // Never resolves: the caller stops here while end() closes the sockets and exits.
 const stop = (code) => { end(code); return new Promise(() => {}); };
 setTimeout(() => { console.log(JSON.stringify("CDP_TIMEOUT")); end(3); }, Number(process.env.MDPRO_CDP_TIMEOUT_MS) || 25000).unref?.();
@@ -59,6 +62,7 @@ catch { console.log(JSON.stringify(`CDP_PORT_CLOSED: nothing on 127.0.0.1:${PORT
 const pages = list.filter((t) => t.type === "page" && t.url.startsWith(PREFIX));
 if (!pages.length) { console.error(`no page starting with ${PREFIX} on port ${PORT}`); process.exit(2); }
 const connect = (url) => new Promise((open) => {
+  if (ending) return;
   const ws = new WebSocket(url);
   sockets.add(ws);
   ws.addEventListener("close", () => sockets.delete(ws));
