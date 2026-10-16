@@ -1,6 +1,13 @@
 # 0112. Closing a secondary window's last tab closes the window, and closing the last window quits
 
-**Status**: Proposed (2026-10-16, revision 3). Number reserved by
+**Status**: Accepted (2026-10-16). The user decided, asked through
+mdpro-delegator "Accept ADR-0112 (D253) as written?": 「Accept as written
+(Recommended)」. Review trail under ADR-0115: three revisions, each reviewed
+by Codex (review-plan) and Fable (plan review), blind. Revision 1 (`e6ce879f`):
+NEEDS REVISION from both (Codex C0 H10 M6, Fable C0 H1 M6 L2), on a false
+premise about the last window. Revision 2 (`02a0efd8`): Codex C0 H1 M5, Fable
+C0 H0 M3 L2. Revision 3 (`4e7416ad`): READY from both (Codex C0 H0 M0 L0,
+Fable C0 H0 M2 L3). Previously: Proposed (2026-10-16, revision 3). Number reserved by
 mdpro-delegator for
 [D253](../plans/20260912-frontend-backend-sequencing-order.md#d253). Drafted
 by mdpro-a3. The user's answers, relayed by mdpro-delegator on 2026-10-16. All
