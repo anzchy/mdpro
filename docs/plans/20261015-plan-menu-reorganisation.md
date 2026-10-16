@@ -1,8 +1,10 @@
 # Plan: reorganise the native menu bar on macOS and Windows
 
-**Status:** revised after the Codex plan review (2026-10-15, § 9). Decisions taken (§ 0);
-no code written. **Scheduled for v0.3.6, merged with [D255](20260912-frontend-backend-sequencing-order.md#d255)**
-(2026-10-16, decision D7 in § 0). Next: a scoped Codex re-review of the § 9 revision, then M2.
+**Status:** revised a second time after the scoped Codex re-review (2026-10-16, § 10). Decisions
+taken (§ 0); the decisions still open are listed next, numbered U1–U12; no code written.
+**Scheduled for v0.3.6, merged with [D255](20260912-frontend-backend-sequencing-order.md#d255)**
+(2026-10-16, decision D7 in § 0) and owning [D261](20260912-frontend-backend-sequencing-order.md#d261).
+Next: mdpro-codex-audit confirms the § 10 fixes; the user answers U1–U12; then M2.
 **Base:** written on `master` @ `74a4804`; the review revision re-checked its citations on
 `1d7aa9f`, after #443 moved the app to Tauri 2.12.1 and muda 0.20.0
 (`src-tauri/Cargo.lock:2494-2495`). Crate paths are relative to
@@ -18,6 +20,32 @@ no code written. **Scheduled for v0.3.6, merged with [D255](20260912-frontend-ba
 [ADR-0090](../adr/0090-windows-and-linux-quit-through-the-quit-guard.md),
 [`feature-ledger.md`](../feature-ledger.md) Part 2–3.
 
+## Decisions for the user
+
+Collected for the delegator to put to the user. Each says which work item waits on it. Nothing
+below has been decided by this plan; where the plan needs a value to be written against, it uses
+the recommendation and marks the row "(U*n*)". A "before M1b" decision changes a default key,
+so M1b cannot land until it is answered.
+
+| # | Question | Options | Recommendation | Waits |
+|---|---|---|---|---|
+| U1 | **Ctrl+Alt chords off-Mac on AltGr layouts** (old open question 3; survey R11; review #34). Code Fences, both lists, Quote, Increase / Decrease Heading, Math Block and the six table keys are Ctrl+Alt off-Mac. On German, French, Polish and similar layouts Ctrl+Alt is AltGr, and mdpro's matcher refuses AltGr (`useKeyboardShortcuts.ts:72`), so those keys never fire there. Pre-existing since `e895e4d5` | **A.** Accept it, as VMark does; Settings says "may not work on AltGr layouts". **B.** Windows/Linux variants from Typora's set where they are collision-free: Code Fences Ctrl+Shift+K, Quote Ctrl+Shift+Q, Ordered / Unordered List Ctrl+Shift+[ / ] (then CodeMirror fold keeps no off-Mac key, C12). Math Block cannot take Typora's Ctrl+Shift+M, which is Highlight (§ 5.3.2), so it stays Ctrl+Alt+Shift+M and disabled until D255 builds it. Heading level and the table keys keep Ctrl+Alt. M2(e) checks that WebView2 leaves Ctrl+Shift+K / Q to the page. **C.** B, plus moving heading level and the table keys off Ctrl+Alt too | **B.** It fixes the four keys that type characters on those layouts, with no collision in § 5.3.2. Heading level and table keys are rarer, and arrows and brackets under AltGr vary by layout. Either way, M1b's acceptance needs evidence on an AltGr layout that the key types its character in the editor and that the command runs (§ 6.1) | before M1b |
+| U2 | **The macOS key for Quote** (survey R5; old open question 1). ⌥⌘Q ran Quit on device (P13, [audit](../test/20261016-shortcuts-mac-audit.md)) | **A.** Keep VMark's ⌥⌘Q only if the M2 spike shows an explicit Quote item wins, enabled and disabled (K3); otherwise menu-only. **B.** Menu-only now, no key. **C.** ⇧⌘B, Milkdown's own blockquote key (preset `:764`), free in § 5.3.2 and not on K5's reserved list. Then K4's removal of `Mod-Shift-b` becomes a rebind to the same command | **C.** It already runs Quote in WYSIWYG today, so the change is a menu label and a Source command. A depends on beating an OS key, which R5 advises against. Avoid ⇧⌘Q (log out) | before M1b; M2(a) still runs if A is chosen |
+| U3 | **F6 for Toggle Source Mode** (survey R6; old open question 2) | **A.** F6 only (VMark). **B.** F6 in the menu, plus ⌘/ / Ctrl+/ kept as a fixed second key (Settings shows both; a native item shows one). **C.** ⌘/ / Ctrl+/ stays the menu key, F6 the second key | **B.** It follows D2 and keeps the device-verified ⌘/ (ADR-0096) for people who use it. F6 needs Fn on Mac laptops and is "next pane" in WebView2 (C16) | before M1b |
+| U4 | **Toggle Sidebar ⌃⇧0 / Alt+Shift+0** (survey R7) | **A.** VMark's ⌃⇧0 / Alt+Shift+0, freeing ⇧⌘L for CodeMirror's select-all-matches (C11). **B.** Keep ⇧⌘L / Ctrl+Shift+L (device-verified, Typora's), and take CodeMirror's `Mod-Shift-l` off the Source keymap instead | **B.** Apple's HIG discourages ⌃ chords, Alt+Shift is the Windows layout switch, and A needs K8's shifted-digit fix. Select-all-matches has no menu item and no Settings row today. B departs from D2, so it needs the user's word | before M1b |
+| U5 | **Replace keys** (survey R2, R3; review #32, #33). The plan merges Replace into Find and Replace ⌘F / Ctrl+F and drops ⌘H (which hides the app) | **A.** As written: no Replace key. **B.** Windows keeps Ctrl+H as a second key that opens Find and Replace with the replace field focused (R3). **C.** B, and macOS gets ⌥⌘F the same way (R2); ⌥⌘F is free once Toggle Fullscreen becomes the system item (C5) | **C.** Ctrl+H is the Windows convention (Microsoft's accelerator table, Word, VS Code), and ⌥⌘F is the Mac editors' key (VS Code, Obsidian, iA, Bear). Neither collides in § 5.3.2. Today Ctrl+H is advertised but bound to nothing (no `Mod-h` in `searchKeymap`), so this adds a working key, not a kept one | before M1b |
+| U6 | **Settings groups for the entries M7 adds** (DESIGN open item 7; review #36) | **A.** As prototype A drew them: Export HTML in File, Highlight in Format, Undo / Redo in Edit (fixed), Exit in File. **B.** A separate "System" group for every fixed and system row | **A.** It is what the chosen prototype shows, and it keeps each command beside its menu | before M7 |
+| U7 | **Windows full screen F11** (survey R14). D255 lists Toggle Fullscreen among its no-effect keys | **A.** Disabled off-Mac, as written. **B.** D255 builds it: F11 toggles `setFullscreen` on the window off-Mac; macOS keeps the system fn F item | **B.** Tauri's window API already does it, and Typora and VS Code use F11 | D255 triage |
+| U8 | **Insert Table ⇧⌘T / Ctrl+Shift+T** (survey R12) | **A.** VMark's ⇧⌘T / Ctrl+Shift+T, as written. **B.** Keep ⌥⌘T / Ctrl+Alt+T (device-verified; off-Mac it is an AltGr chord, U1) | **A.** mdpro binds no reopen-tab key (`tabStore.undoCloseTab` exists but nothing calls it), and B keeps an AltGr chord. If a Reopen Closed Tab command is added later, it needs a different key | before M1b |
+| U9 | **Windows strikethrough** (survey R8) | **A.** Ctrl+Shift+X (VMark, the same shape as macOS ⇧⌘X). **B.** Keep Alt+Shift+5 (Typora, Google Docs; passed on device) | **A**, for D2. A close call: B is device-verified | before M1b |
+| U10 | **Clipboard items on Windows** (old open question 6; C10) | **A.** Keep the predefined items unless M2(c) shows VMark #1354's symptoms. **B.** Build VMark's custom items anyway, for parity | **A.** Custom items need the § 5.7 adapter, the riskiest code in the plan | after M2 |
+| U11 | **Native keys in WYSIWYG on Windows** (old open question 7) | **A.** Keep WebView2's own Ctrl+F find bar and Ctrl+Shift+V plain paste and say so in Settings until D255 ships mdpro's find. **B.** Suppress them until then | **A.** Nothing that works today stops working. Once D255's WYSIWYG find lands, it takes Ctrl+F in WYSIWYG on both platforms | after M2 |
+| U12 | **The D255 prototypes** (D7; the user's 2026-10-16 words in [D255](20260912-frontend-backend-sequencing-order.md#d255)) | Variants of the WYSIWYG find / replace popup (and of any other new UI the triage finds, e.g. an image picker), built with `/mattpocock-skills:prototype` on a `prototype/d255-*` branch | The user picks on the running prototype (rule 70 § Questions) | D255-WI-2 |
+
+Still open after M2, and not the user's until the spike reports: **Ctrl+Shift+0** for
+Paragraph on Windows (old open question 4); the **table keys** (old open question 5),
+whose ownership conflict is now a defect with an owner (C17) rather than a question.
+
 ## 0. Decisions (2026-10-15)
 
 The user answered the first draft's questions; relayed by the coordinator.
@@ -30,7 +58,8 @@ The user answered the first draft's questions; relayed by the coordinator.
 | D4 | Saved preferences (old Q7) | Plan default | A stored value equal to an old default is migrated to the new default |
 | D5 | Label (old Q9) | Plan default | "Settings…" on macOS |
 | D6 | Linux (old Q10) | Plan default | Built with the Windows tree; recorded as untested |
-| D7 | Release, and D255 (2026-10-16) | 「合并进 v0.3.6 (Recommended)」, given in answer to: the plan and D255 (the Mac shortcuts that do nothing, from the [shortcuts audit](../test/20261016-shortcuts-mac-audit.md)) go into v0.3.6 together | D255 is this plan's "fill in the commands" track: an item with no command is **implemented where feasible** (new UI, such as a WYSIWYG ⌘F find panel, goes to the user as a prototype first) and **shown disabled under D3 only where it is not**. D3 is narrowed, not reversed. Default keys follow D2 (VMark), so D255 is built on the new key table, never on today's |
+| D7 | Release, and D255 (2026-10-16) | 「合并进 v0.3.6 (Recommended)」, given in answer to: the plan and D255 (the Mac shortcuts that do nothing, from the [shortcuts audit](../test/20261016-shortcuts-mac-audit.md)) go into v0.3.6 together | D255 is this plan's "fill in the commands" track: an item with no command is **implemented where feasible** (new UI, such as a WYSIWYG ⌘F find panel, goes to the user as a prototype first) and **shown disabled under D3 only where it is not**. D3 is narrowed, not reversed. Default keys follow D2 (VMark), so D255 is built on the new key table, never on today's. § 5.8 gives each of D255's 26 actions a disposition and an owner; D255-WI-1…3 (§ 6) carry it out; M0 records D7 |
+| D8 | Menu and Settings look (2026-10-16) | 「A · Plan as written, greyed」 ([DESIGN.md](../design/mdpro-ui-new/DESIGN.md) § Native menu bar and Keyboard Shortcuts page, `d907a3f6`) | The trees as drawn; unavailable items greyed in place; no banner for changed defaults. DESIGN's block is normative for M4, M5 and M7 |
 
 ## 1. Goal
 
@@ -48,10 +77,11 @@ The user answered the first draft's questions; relayed by the coordinator.
 
 ## 2. Non-goals
 
-- **No new editor features.** Underline, Image, Clear Format, Math Block,
-  Copy as Markdown, Paste as Plain Text, Select Line, Delete Word, Save As, mdpro-owned
-  WYSIWYG find, off-Mac full screen and document switching are not built here. They get
-  their VMark key and a **disabled** menu item (D3), so building one later only enables it.
+- **No new editor features outside D255.** The M-items build no command. D255's track
+  (D7, § 5.8, D255-WI-1…3) is the exception: it triages each of D255's 26 actions, builds
+  the feasible ones (Save As, the Source-mode marks, mdpro's WYSIWYG find and the rest of
+  § 5.8's "build" rows), and leaves the rest disabled under D3. Until a D255 WI lands, every
+  such item has its VMark key and a **disabled** menu item, so building it only enables it.
 - **"No command" means no command in the loaded editors, not "no key today".** The
   inventory is of commands, not of advertised shortcuts. Quote and both lists are **not**
   in the list above: the loaded Milkdown preset already has them
@@ -59,8 +89,12 @@ The user answered the first draft's questions; relayed by the coordinator.
   `@milkdown/preset-commonmark@7.18.0/lib/index.js:764` blockquote `Mod-Shift-b`, `:1377`
   ordered list `Mod-Alt-7`, `:1273` bullet list `Mod-Alt-8`, `:891` code block `Mod-Alt-c`).
   They are wired to the menu and to their § 5.3.2 key in WYSIWYG (mode: W), not disabled.
-  Their old Milkdown keys are a K4 question (§ 5.3.1). Image has no command in either editor
-  (only the paste and drop plugins), so it stays disabled.
+  Their old Milkdown keys are a K4 question (§ 5.3.1). **Image has a command but no UI**: the
+  preset's `insertImageCommand` (`lib/index.js:975`, in its `commands` list `:1775-1783`, kept
+  by `mdproCommonmark`, `commonmarkPreset.ts:39`) inserts a node from a payload, but nothing
+  asks the user for the image: only the paste and drop plugins insert images
+  (`imagePastePlugin.ts:142, 192`). The missing piece is the picker, so Image goes to D255's
+  triage (§ 5.8) instead of being "no command".
 - **HTML export only.** No PDF, Word or Pandoc items (CLAUDE.md § Constraints).
 - No localisation of menu labels, no menu icons.
 - No live re-registration of menu accelerators after a rebind (VMark's `accelerators.rs`).
@@ -245,7 +279,8 @@ Keys are the proposed defaults of § 5.3. Every item carries its own annotation;
 without one works in both modes. *(W)* = enabled only in WYSIWYG, *(S)* = enabled only in
 Source, *(n/a)* = disabled in both modes until the command is built (D3). The trees are
 rendered from the availability table of § 5.5, not maintained by hand; where they differ,
-the table wins.
+the table wins. They show the state before D255's builds: each row § 5.8 builds turns its
+*(n/a)* or single-mode mark into the modes it enables.
 
 ```
 mdpro      About mdpro · — · Settings… ⌘, · — · Services ▸ · — · Hide mdpro ⌘H ·
@@ -259,7 +294,7 @@ Edit       Undo ⌘Z · Redo ⇧⌘Z · — · Cut · Copy · Paste · Copy as M
 Paragraph  Heading 1…6 ⌘1…⌘6 · Paragraph ⇧⌘0 · — ·
            Increase Heading ⌥⌘] (S) · Decrease Heading ⌥⌘[ (S) · — ·
            Table… ⇧⌘T (W) · Code Fences ⌥⌘C (W) · Math Block ⌥⇧⌘M (n/a) ·
-           Quote (key: open question 1) (W) · — · Ordered List ⌥⌘O (W) · Unordered List ⌥⌘U (W) · — ·
+           Quote (key: U2) (W) · — · Ordered List ⌥⌘O (W) · Unordered List ⌥⌘U (W) · — ·
            Indent ⌘] · Outdent ⌘[
 Format     Bold ⌘B (W) · Italic ⌘I (W) · Underline ⌘U (n/a) · Code ⇧⌘` (W) · Strikethrough ⇧⌘X (W) ·
            Highlight ⇧⌘M · — · Link… ⌘K · Image… ⇧⌘I (n/a) · — · Clear Format ⌘\ (n/a)
@@ -313,7 +348,8 @@ Help       Keyboard Shortcuts… · — · About mdpro
   bar, and Ctrl+Shift+V pastes plain text natively in both editors. The Find items stay
   *(S)*, because the menu cannot drive WebView2's find bar. The Settings rows say
   "WYSIWYG: browser find bar" and "native" rather than "Not available". The key is not
-  suppressed (open question 7).
+  suppressed (U11). Once D255's WYSIWYG find lands, the items become *both* and mdpro's
+  find takes the key in WYSIWYG.
 
 ### 5.3 Accelerator policy: follow VMark
 
@@ -333,7 +369,7 @@ fixed keys (`localized/edit_menu.rs:194-206`, `file_menu.rs:178-181`).
 | K1 | **Default = VMark's default for the same action**, on both platforms, read from the pinned SHA above. `Mod` → ⌘ / Ctrl, `Alt` → ⌥ / Alt. VMark's `defaultKeyOther` applies off-Mac. | D2 |
 | K2 | **VMark has no binding for the action:** keep mdpro's key if it is not OS-owned and not used by VMark for another action; otherwise leave it unassigned. | D2, closest consistent choice |
 | K3 | **VMark's key is OS-owned on a platform:** keep VMark's key only if the WI-M2 spike shows mdpro's explicit item wins, **with the item enabled and with it disabled**. The chord then goes on K5's exception list by name. Otherwise it is unassigned on that platform, and the action stays menu-only. | ⌘H / ⌥⌘Q device results |
-| K4 | **One owner per chord, per platform and per focus context** (editor W, editor S, modal or Settings input, shortcut recorder, native window or menu focus). Exactly one keymap acts on a chord in each context. The menu shows the chord, and handles it only where no DOM keymap does. A key the loaded editors already bind for another purpose is **removed or rebound in the same WI** that assigns the chord: CodeMirror's fold keys (C12), the table arrows against add-cursor (open question 5), and Milkdown's `Mod-Shift-b` / `Mod-Alt-0…8` once the menu owns Quote, lists and headings. The § 3.1 routing is an observation per context, not an event-order guarantee; the tests and device checks cover every context listed here. | § 3.1, review #2, #12 |
+| K4 | **One owner per chord, per platform and per focus context** (editor W, editor S, modal or Settings input, shortcut recorder, native window or menu focus). Exactly one keymap acts on a chord in each context. The menu shows the chord, and handles it only where no DOM keymap does. A key the loaded editors already bind for another purpose is **removed or rebound in the same WI** that assigns the chord: CodeMirror's fold keys (C12), the table arrows against add-cursor (C17), and Milkdown's `Mod-Shift-b` / `Mod-Alt-0…8` once the menu owns Quote, lists and headings. The § 3.1 routing is an observation per context, not an event-order guarantee; the tests and device checks cover every context listed here. | § 3.1, review #2, #12 |
 | K5 | **No OS-owned default for an editor command.** macOS: ⌘H, ⌥⌘H, ⌘M, ⌘Q, ⌥⌘Q, ⌃⌘F, ⌘\`, ⌘Tab, ⌘Space, ⇧⌘Q, ⇧⌘3/4/5. Windows/Linux: Win-key chords, Alt+F4. **Native items keep their OS key**: Quit ⌘Q, Hide ⌘H, Hide Others ⌥⌘H, Minimize ⌘M and the macOS-inserted Full Screen are not editor commands. A test pins the list (WI-M1a), checks only editor-command defaults, and accepts a K3 exception only by name. | C1, C2, C4, C5 |
 | K6 | **Menu label, binding and availability come from one command table**, per platform. Its format is fixed in § 5.5. | `menu.rs` literals and `preferences.ts` are independent today |
 | K7 | **mdpro does not track VMark automatically.** A later VMark change is adopted by a new plan row, not by re-syncing. | A pinned SHA is reviewable; a moving target is not |
@@ -359,7 +395,7 @@ runs or is shown there (`platformLabels.ts:36-58`, `predefined.rs:306-346`).
 | Export HTML | — (menu only) | — | ⇧⌘E | Ctrl+Shift+E | ⇧⌘E / Ctrl+Shift+E | K2: device-verified on both; VMark does not use the chord |
 | Quit / Exit | ⌘Q | Ctrl+Q | ⌘Q | none | ⌘Q / **Ctrl+Q** | Supersedes ADR-0090 clause |
 | Undo | ⌘Z | Ctrl+Z | ⌘Z | Ctrl+Z | same | |
-| Redo | ⇧⌘Z | Ctrl+Shift+Z | ⇧⌘Z | Ctrl+Y | ⇧⌘Z / **Ctrl+Shift+Z** | Off-Mac this needs custom Undo / Redo items (§ 5.7, C14). Ctrl+Y stays a working second key if both editors still accept it (the review reports they do; M6 tests it) |
+| Redo | ⇧⌘Z | Ctrl+Shift+Z | ⇧⌘Z | Ctrl+Y | ⇧⌘Z / **Ctrl+Shift+Z** | Off-Mac this needs custom Undo / Redo items (§ 5.7, C14). **Ctrl+Y stays a working second key, required**: both editors bind it today (`Editor.tsx:79-84` `Mod-y` and `Mod-Shift-z`; `@milkdown/plugin-history@7.18.0/lib/index.js:40` `["Mod-y", "Shift-Mod-z"]`). Losing it fails M5's acceptance |
 | Copy As Markdown | ⇧⌘C (Copy as HTML) | Ctrl+Shift+C | ⇧⌘C | Ctrl+Shift+C | same, disabled | Same chord, VMark's action differs |
 | Paste As Plain Text | ⇧⌘V | Ctrl+Shift+V | ⇧⌘V | Ctrl+Shift+V | same, disabled | |
 | Select Line | ⌘L | Ctrl+L | ⌘L | Ctrl+L | same, disabled | |
@@ -367,17 +403,17 @@ runs or is shown there (`platformLabels.ts:36-58`, `predefined.rs:306-346`).
 | Delete Word | — (⇧⌘D = Skip Occurrence) | — | ⇧⌘D | Ctrl+Shift+D | **— / —**, disabled | K2: VMark spends the chord elsewhere |
 | Jump to Top / Bottom | — (native) | — | ⌘↑ / ⌘↓ | Ctrl+↑ / Ctrl+↓ | **system** ⌘↑ ⌘↓ / Ctrl+Home Ctrl+End, not editable | K2: native editing keys, no menu item |
 | Find (and Replace) | ⌘F | Ctrl+F | ⌘F | Ctrl+F | same | VMark has one Find and Replace item |
-| Find Next | ⌘G | Ctrl+G | ⌘G | Ctrl+G | same | Replaces the first draft's F3 |
-| Find Previous | ⇧⌘G | Ctrl+Shift+G | ⇧⌘G | Ctrl+Shift+G | same | |
-| Replace | — (part of ⌘F) | — | ⌘H (hides the app) | Ctrl+H | **— / —** | C2: merged into Find and Replace ⌘F. The `editReplace` field is kept, deprecated, with the `merged` state of § 5.6 |
+| Find Next | ⌘G | Ctrl+G | ⌘G | Ctrl+G | same; **F3 kept as a second key in Source** | CodeMirror's `searchKeymap` already binds F3 / Shift+F3 (`@codemirror/search/dist/index.js:1032`), and Microsoft's table uses F3 (survey R4). M1b's tests pin both; Settings shows F3 as a fixed second key |
+| Find Previous | ⇧⌘G | Ctrl+Shift+G | ⇧⌘G | Ctrl+Shift+G | same; **Shift+F3** kept as above | |
+| Replace | — (part of ⌘F) | — | ⌘H (hides the app) | Ctrl+H (bound to nothing) | **— / —**, or **⌥⌘F / Ctrl+H** opening the replace field (U5) | C2: merged into Find and Replace ⌘F. The `editReplace` field is kept with the `merged` state of § 5.6; under U5 B or C it also stores the platform's second key |
 | Heading 1–6 | ⌘1–6 | Ctrl+1–6 | ⌘1–6 | Ctrl+1–6 | same | ADR-0096 unchanged |
-| Paragraph | ⇧⌘0 | Ctrl+Shift+0 | ⌘0 | Ctrl+0 | **⇧⌘0 / Ctrl+Shift+0** | Needs K8 (C13). Open question 4 (Windows) |
+| Paragraph | ⇧⌘0 | Ctrl+Shift+0 | ⌘0 | Ctrl+0 | **⇧⌘0 / Ctrl+Shift+0** | Needs K8 (C13). Windows: M2(d) probes it |
 | Increase Heading | ⌥⌘] | Ctrl+Alt+] | ⌘= | Ctrl+= | **⌥⌘] / Ctrl+Alt+]** | VMark uses ⌘= for zoom. Collides with CodeMirror's fold keys in S (C12) |
 | Decrease Heading | ⌥⌘[ | Ctrl+Alt+[ | ⌘- | Ctrl+- | **⌥⌘[ / Ctrl+Alt+[** | C12 |
 | Table | ⇧⌘T | Ctrl+Shift+T | ⌥⌘T | Ctrl+Alt+T | **⇧⌘T / Ctrl+Shift+T** | Replaces the device-verified Ctrl+Alt+T |
 | Code Fences | ⌥⌘C | Ctrl+Alt+C | ⌥⌘C | Ctrl+Alt+C | same | |
 | Math Block | ⌥⇧⌘M | Ctrl+Alt+Shift+M | ⌥⌘B | Ctrl+Alt+B | **⌥⇧⌘M / Ctrl+Alt+Shift+M**, disabled | VMark's ⌥⌘B is Bookmark |
-| Quote | ⌥⌘Q | Ctrl+Alt+Q | ⌥⌘Q (runs Quit) | Ctrl+Alt+Q | **open** / Ctrl+Alt+Q, (W) | K3, open question 1. Milkdown's blockquote command, today under `Mod-Shift-b` |
+| Quote | ⌥⌘Q | Ctrl+Alt+Q | ⌥⌘Q (runs Quit) | Ctrl+Alt+Q | **U2** / Ctrl+Alt+Q or Ctrl+Shift+Q (U1) | K3, U2 (recommended ⇧⌘B). Milkdown's blockquote command, today under `Mod-Shift-b`. Source gets a command through D255 (§ 5.8) |
 | Ordered List | ⌥⌘O | Ctrl+Alt+O | ⌥⌘O | Ctrl+Alt+O | same, (W) | Milkdown's command, today under `Mod-Alt-7` |
 | Unordered List | ⌥⌘U | Ctrl+Alt+U | ⌥⌘U | Ctrl+Alt+U | same, (W) | Milkdown's command, today under `Mod-Alt-8` |
 | Indent | ⌘] | Ctrl+] | ⌘] | Ctrl+] | same | |
@@ -393,25 +429,28 @@ runs or is shown there (`platformLabels.ts:36-58`, `predefined.rs:306-346`).
 | Clear Format | ⌘\\ | Ctrl+\\ | ⌘\\ | Ctrl+\\ | same, disabled | |
 | Source | — | — | ⌃2 | none (ADR-0096) | ⌃2 / none | K2: VMark has no direct-mode key; ⌃2 is free in VMark |
 | WYSIWYG | — | — | ⌃4 | none | ⌃4 / none | K2 |
-| Toggle Source Mode (Cycle) | F6 | F6 | ⌘/ | Ctrl+/ | **F6 / F6** | Supersedes ADR-0096's Ctrl+/ clause; open question 2. The recorder refuses a key with no modifier (`platformLabels.ts:72-74`), so M7 lets it record F1–F12 alone |
-| Toggle Sidebar | ⌃⇧0 | Alt+Shift+0 | ⇧⌘L | Ctrl+Shift+L | **⌃⇧0 / Alt+Shift+0** | Frees ⇧⌘L for CodeMirror's select-all-matches (C11); the key is VMark's. Needs K8 (C13). VMark binds it in its keymap only and has no Toggle Sidebar menu item (`shortcutDefinitions.ts:134`: a Rust accelerator would clash with Paragraph's Mod-Shift-0 off-Mac). mdpro keeps the menu item, because its off-Mac key is Alt+Shift+0, not Ctrl+Shift+0, so the clash does not arise. Changes ADR-0088's tooltip text |
-| Toggle Fullscreen | system item (⌃⌘F) | none | ⌥⌘F (unbound) | Ctrl+Alt+F (unbound) | **system fn F / —**, disabled off-Mac (VMark also relies on the system-added fn F item) | C5 |
-| Switch Documents | ⌃Tab (Last Used Tab) | Ctrl+Tab | ⌘\` (macOS window cycling) | Ctrl+\` | **⌃Tab / Ctrl+Tab** reserved, disabled, **not bound** | C4. The key is stored as the future default but no keymap consumes it until the command exists (§ 5.2) |
-| Table: insert row above / below, column left / right | — | — | ⌥⌘↑ ↓ ← → | Ctrl+Alt+arrows | same | K2. VMark's ⌥⌘↑/↓ is Add Cursor; CodeMirror binds it too (`@codemirror/commands/dist/index.js:1747-1748`). Open question 5 |
+| Toggle Source Mode (Cycle) | F6 | F6 | ⌘/ | Ctrl+/ | **F6 / F6** (U3: ⌘/ / Ctrl+/ as a fixed second key recommended) | Supersedes ADR-0096's Ctrl+/ clause unless U3 C. The recorder refuses a key with no modifier (`platformLabels.ts:72-74`), so M7 lets it record F1–F12 alone |
+| Toggle Sidebar | ⌃⇧0 | Alt+Shift+0 | ⇧⌘L | Ctrl+Shift+L | **⌃⇧0 / Alt+Shift+0**, or ⇧⌘L / Ctrl+Shift+L kept (U4, recommended) | Under U4 A it frees ⇧⌘L for CodeMirror's select-all-matches (C11); the key is VMark's. Needs K8 (C13). VMark binds it in its keymap only and has no Toggle Sidebar menu item (`shortcutDefinitions.ts:134`: a Rust accelerator would clash with Paragraph's Mod-Shift-0 off-Mac). mdpro keeps the menu item, because its off-Mac key is Alt+Shift+0, not Ctrl+Shift+0, so the clash does not arise. Changes ADR-0088's tooltip text |
+| Toggle Fullscreen | system item (⌃⌘F) | none | ⌥⌘F (unbound) | Ctrl+Alt+F (unbound) | **system fn F / —**, disabled off-Mac, or **F11** off-Mac through D255 (U7) | C5. VMark also relies on the system-added fn F item |
+| Switch Documents | ⌃Tab (Last Used Tab) | Ctrl+Tab | ⌘\` (macOS window cycling) | Ctrl+\` | **⌃Tab / Ctrl+Tab** reserved, disabled, **not bound** until D255-WI-3d | C4. The key is stored as the future default but no keymap consumes it until the command exists (§ 5.2) |
+| Table: insert row above / below, column left / right | — | — | ⌥⌘↑ ↓ ← → | Ctrl+Alt+arrows | same | K2. VMark's ⌥⌘↑/↓ is Add Cursor; CodeMirror's `defaultKeymap` binds it (`@codemirror/commands/dist/index.js:1769`). Today both run in Source: C17 |
 | Table: delete row / column | — | — | ⌥⌘⌫ / ⌥⇧⌘⌫ | Ctrl+Alt+Backspace / +Shift | same | K2 |
 
 #### 5.3.3 Where following VMark still leaves a choice
 
-- **Quote ⌥⌘Q** is VMark's key and quit mdpro on device (P13). K3 decides it after the
-  WI-M2 spike. Open question 1.
+- **Quote ⌥⌘Q** is VMark's key and quit mdpro on device (P13). U2.
 - **F6** needs Fn on a Mac keyboard unless "Use F1, F2… as standard function keys" is on
-  (VMark's own guide says so). Open question 2: keep ⌘/ / Ctrl+/ as a fixed second key?
+  (VMark's own guide says so). U3.
 - **Ctrl+Alt chords off-Mac** (Code Fences, lists, Quote, heading level, Math, table keys)
   are AltGr on many European layouts. mdpro's matcher refuses AltGr
-  (`useKeyboardShortcuts.ts:69-72`); VMark has no AltGr handling in
-  `src/utils/shortcutMatch.ts`. Open question 3.
+  (`useKeyboardShortcuts.ts:72`); VMark has no AltGr handling in
+  `src/utils/shortcutMatch.ts`. U1, **decided before M1b**: M1b sets the off-Mac defaults, so
+  it cannot ship them while the question is open (review #34).
 - **Ctrl+Shift+0** (Paragraph, Windows): some Windows installs give it to the input
-  language hotkey. From memory, not checked. Open question 4.
+  language hotkey. From memory, not checked. M2(d) probes it; the question goes to the user
+  only if it fails.
+- **Toggle Sidebar, Replace, Table, strikethrough**: the survey's R7, R2 / R3, R12 and R8
+  argue for a different key than VMark's. U4, U5, U8, U9.
 
 #### 5.3.4 What this does to ADR-0096 and ADR-0090
 
@@ -421,7 +460,7 @@ runs or is shown there (`platformLabels.ts:36-58`, `predefined.rs:306-346`).
 | ADR-0096: inline code Ctrl+Shift+\` off-Mac | K1 PASS | **No** |
 | ADR-0096: Source / WYSIWYG items carry no key off-Mac | K5 PASS | **No** |
 | ADR-0096: strikethrough Alt+Shift+5 off-Mac, ⌃⇧\` on macOS | K2 PASS | **Yes** → ⇧⌘X / Ctrl+Shift+X |
-| ADR-0096: view switch is Ctrl+/ off-Mac | K4 PASS | **Yes** → F6 (unless open question 2 keeps Ctrl+/ as a second key) |
+| ADR-0096: view switch is Ctrl+/ off-Mac | K4 PASS | **Yes** → F6 (U3 B keeps Ctrl+/ as a second key; U3 C reverses the change) |
 | ADR-0090: Exit has no accelerator | (W4: Exit itself verified) | **Yes** → Ctrl+Q |
 
 A new ADR (WI-M0) records D2 and supersedes those three clauses by name. ADR-0096 and
@@ -431,22 +470,23 @@ ADR-0090 get only a forward link in their Status lines (CLAUDE.md § ADR).
 
 | # | Defect | Source | Fix | WI |
 |---|---|---|---|---|
-| C1 | ⌥⌘Q (Quote) runs Quit | `preferences.ts:200`, `preferences.rs:451`; device P13 W/S (`…mac-device-check.md:136, 212, 274`) | K3 after the M2 spike; meanwhile Paragraph › Quote is enabled in W with no key on macOS | M2, M1b |
+| C1 | ⌥⌘Q (Quote) runs Quit | `preferences.ts:200`, `preferences.rs:451`; device P13 W/S (`…mac-device-check.md:136, 212, 274`) | U2, decided before M1b (recommended ⇧⌘B). Until then Paragraph › Quote is enabled in W with no key on macOS | M1b (M2(a) only under U2 A) |
 | C2 | ⌘H (Replace) hides mdpro; CodeMirror has no `Mod-h` either | `preferences.ts:185`, `preferences.rs:411`; `predefined.rs:330`; `search/dist/index.js:1030-1037`; device E11 (`:401, 471`) | Replace merges into Find and Replace ⌘F (VMark). Fix the stale comment `search.ts:10` | M1b |
 | C3 | ⌘W on two mac items: File › Close and Window › Close Window | `menu.rs:166`; `menu_submenus.rs:114`; `predefined.rs:336-338` | Drop the predefined Close Window on macOS | M1b |
-| C4 | Switch Documents ⌘\` is macOS window cycling | `preferences.ts:226`; device V6 (`:49`) | ⌃Tab / Ctrl+Tab (VMark), item disabled | M1b |
+| C4 | Switch Documents ⌘\` is macOS window cycling | `preferences.ts:226`; device V6 (`:49`) | ⌃Tab / Ctrl+Tab (VMark), item disabled until D255-WI-3d builds it (§ 5.8 row 24) | M1b |
 | C5 | Toggle Fullscreen ⌥⌘F binds nothing; macOS supplies ⌃⌘F / fn F | `preferences.ts:225`; `predefined.rs:326-329`; device V5 (`:48, 57`) | macOS: system item, entry shown "(system)"; off-Mac: disabled | M1b, M7 |
 | C6 | Off-Mac, Image `Cmd+Ctrl+I` shows as "Ctrl+I", the Italic key | `preferences.ts:213`; `platformLabels.ts:36-40`; `…wi6-wi7…:91` | ⇧⌘I / Ctrl+Shift+I (VMark) | M1b |
-| C7 | Off-Mac, ⌥⌘ chords are Ctrl+Alt = AltGr on international layouts | `preferences.ts:197-202, 231-236`; `useKeyboardShortcuts.ts:69-80` | Follows VMark (keeps Ctrl+Alt). Open question 3 | M6 |
+| C7 | Off-Mac, ⌥⌘ chords are Ctrl+Alt = AltGr on international layouts; the matcher refuses them there | `preferences.ts:200-203, 233-236`; `useKeyboardShortcuts.ts:72` | Per U1, decided before M1b. M1b ships the chosen off-Mac defaults with the rest of the table; K8 keeps refusing AltGr for character input | M1b |
 | C8 | Help › mdpro Help is permanently disabled | `menu_submenus.rs:118-127` | Replace with Keyboard Shortcuts… | M4 |
 | C9 | Themes has no checkmark | `menu_submenus.rs:98-107` | `CheckMenuItem`, as View already does (`:63-79`) | M4 |
-| C10 | Windows predefined clipboard items enter the Win32 accelerator table; VMark #1354 saw lost keys and broken IME from it | `menu_submenus.rs:21-25`; `predefined.rs:308-321`; VMark `localized/edit_menu.rs:209-222` | Follow VMark: accelerator-free custom Cut / Copy / Paste / Select All **on Windows only** (VMark's override is Windows-only; Linux keeps the predefined items), routed to the clipboard path. M2 records whether mdpro showed the symptom | M5 |
+| C10 | Windows predefined clipboard items enter the Win32 accelerator table; VMark #1354 saw lost keys and broken IME from it | `menu_submenus.rs:21-25`; `predefined.rs:308-321`; VMark `localized/edit_menu.rs:209-222` | **Conditional, one rule with § 5.7:** M2(c) records whether mdpro shows the symptom. If it does, or U10 B is chosen, M5 builds accelerator-free custom Cut / Copy / Paste / Select All **on Windows only** (VMark's override is Windows-only; Linux keeps the predefined items) through the § 5.7 adapter. Otherwise the predefined items stay on every platform | M2, M5 |
 | C11 | ⇧⌘L also matches CodeMirror `Mod-Shift-l` | `index.js:1035` | Gone once Toggle Sidebar moves to ⌃⇧0 | M1b |
-| C12 | The new heading-level keys are CodeMirror fold keys: ⌥⌘[ / ] fold / unfold code on macOS, Ctrl+Alt+[ / ] fold / unfold all off-Mac; the basic setup loads `foldKeymap` | `@codemirror/language/dist/index.js:1502-1506`; `@uiw/codemirror-extensions-basic-setup/esm/index.js:65-66` | Pass `foldKeymap: false` to the basic setup and re-add fold under its off-Mac keys only (Ctrl+Shift+[ / ]), or drop fold keys. A composed-keymap test proves one action per chord in S (K4) | M1b |
+| C12 | The new heading-level keys are CodeMirror fold keys: ⌥⌘[ / ] fold / unfold code on macOS, Ctrl+Alt+[ / ] fold / unfold all off-Mac; the basic setup loads `foldKeymap` | `@codemirror/language/dist/index.js:1502-1506`; `@uiw/codemirror-extensions-basic-setup/esm/index.js:65-66` | Pass `foldKeymap: false` to the basic setup and re-add fold under its off-Mac keys only (Ctrl+Shift+[ / ]), or drop fold keys. Under U1 B the lists take Ctrl+Shift+[ / ] off-Mac, so fold keeps no off-Mac key. A composed-keymap test proves one action per chord in S (K4) | M1b |
 | C13 | Shift+digit and shifted-symbol bindings never match: ⇧0 arrives as `event.key ")"` | `useKeyboardShortcuts.ts:91-103`; review #13 (the matcher run in memory) | K8: physical-key fallback for Shift bindings | M1a |
 | C14 | Off-Mac predefined Undo / Redo: a click is replayed as synthetic Ctrl+Z / Ctrl+Y through `SendInput`, Tauri documents them as unsupported, and the label cannot become Ctrl+Shift+Z | § 3.2 Undo / Redo row | Custom Undo / Redo items routed to the focused editor's history (§ 5.7) | M5 |
 | C15 | The Insert Table dialog title hardcodes `⌘⌥T` on every platform | `src/components/Editor/TableInsertModal/index.tsx:191`; Windows shortcut run `:75` (the delegator's P10 item) | Render the effective chord for the platform from the command table | M1b |
 | C16 | WebView2 owns some browser keys: Ctrl+Shift+I may open DevTools depending on build and settings; F6 moves focus between browser panes | `wry-0.57.0/src/webview2/mod.rs:649-651` (`SetAreBrowserAcceleratorKeysEnabled`); [Microsoft's WebView2 shortcut list](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/browser-features#additional-keyboard-shortcuts-information) | M2 probes release and dev builds. Ctrl+Tab and Ctrl+Shift+T are not assumed taken, because WebView2 turns their browser actions off | M2, M6 |
+| C17 | **One chord, two actions in Source.** ⌥⌘↑ / ↓ (Ctrl+Alt+↑ / ↓ off-Mac) runs CodeMirror's `addCursorAbove` / `Below` on the editor element, then bubbles to the hook's window listener, whose table branch has no `inCodeMirror` check (`useKeyboardShortcuts.ts:223-243`, listener `:254`) and calls `dispatchSourceTableAction` (`App.tsx` `handleTableShortcut`). Inside a Source table the user gets a new cursor **and** a new row; outside it, a cursor and a logged no-op table action | `@codemirror/commands/dist/index.js:1769` (`defaultKeymap`); review #12 | One owner per context (K4): the table key acts only when the selection is inside a table, and then CodeMirror's add-cursor does not run (the table binding moves into a CodeMirror keymap at higher precedence that returns `false` outside a table); outside a table, add-cursor alone. WYSIWYG keeps the table key alone (ProseMirror binds no add-cursor). A composed-keymap test proves one action per chord, inside and outside a table, in both modes | M1b |
 
 ### 5.5 Command table, availability and dispatch
 
@@ -461,7 +501,7 @@ gets the menu part as a generated, committed JSON file (`src-tauri/src/menu_layo
 | `menu` | path per platform (`macos`, `windows`, `linux`), or `none` |
 | `key` | default per platform; `fixed` (Undo, Redo, Quit, Exit: not editable) or `configurable` |
 | `availability` | `both` / `W` / `S` / `none` |
-| `route` | `frontend` (a `menu:action` the dispatcher runs), `native` (a predefined item; no log line from the frontend), `rust-quit` (Exit and the escape item, handled in Rust, logged there), `unavailable` (never dispatched) |
+| `route` | **per platform**: `frontend` (a `menu:action` the dispatcher runs), `native` (a predefined item; no log line from the frontend), `rust-quit` (Exit and the escape item, handled in Rust, logged there), `unavailable` (never dispatched). Undo / Redo are `native` on macOS and `frontend` off-Mac (§ 5.7); Cut / Copy / Paste / Select All are `native` unless C10 builds the Windows items |
 | `nativeBehaviour` | optional text for Settings, e.g. "WYSIWYG: browser find bar" (§ 5.2) |
 
 - **Routes are exhaustive.** The dispatcher and the Rust id → action map both `match` on
@@ -470,14 +510,33 @@ gets the menu part as a generated, committed JSON file (`src-tauri/src/menu_layo
 - **Ledger discovery**: the ledger scanner reads `MENU_*` ids from `menu.rs` only
   (`scripts/ledger/declared.mjs:95-98`). The WI that moves ids out of `menu.rs` extends
   the scanner to the new file in the same commit.
-- **Availability follows the focused window.** Rust keeps one "last view mode reported by
-  any window" today (`menu_recent.rs:50-54, 112-128`), and focusing a window does not
-  refresh it. The menu is app-wide on macOS. The menu state becomes per window: each window
-  reports its mode on focus and on every mode change, and Rust re-enables items from the
-  **focused** window's mode. A window that closes or never reported leaves the items
-  enabled as `both` would, with a log line. Off-Mac the plan keeps one app-wide menu as
-  today; per-window menus are not needed, because each window's hook checks its own mode
-  before it acts.
+- **Accelerators come from the stored keys, at menu build.** The generated JSON carries
+  defaults only. When Rust builds the menu (startup, and every rebuild M4 / M5 already do),
+  each `configurable` item's accelerator is resolved from the loaded, migrated preferences:
+  a stored chord → that chord; `<unassigned>`, `<merged:…>` and `<system>` → no
+  accelerator; a value that fails to parse → no accelerator and a `ui.menu.accelerator`
+  warn line. `fixed` items keep the table's key. A rebind made in Settings reaches the menu
+  label at the next build, not live; live re-registration stays M8. Until then Settings says
+  so under the recorder ("the menu shows the new key after restart").
+- **Availability follows the focused window, and fails closed.** Rust keeps one "last view
+  mode reported by any window" today (`menu_recent.rs:50-55, 110-128`), and focusing a
+  window does not refresh it. The menu state becomes per window: each window reports its
+  mode on focus and on every mode change, and Rust enables items from the **focused**
+  window's mode. With no focused window that has reported (none focused, the reporter closed,
+  a report not yet arrived), **mode-limited items are disabled**; `both` items stay enabled.
+  A failed `set_enabled` is logged (`ui.menu.availability` fail) and is not fatal, because
+  the click-time check below still refuses the action.
+- **A click is bound to its window and checked again there**
+  ([D261](20260912-frontend-backend-sequencing-order.md#d261), owned by D261-WI-1, before
+  M3). Rust resolves the target window when the menu event arrives, synchronously, and sends
+  the action to that window only (`emit_to`); the frontend's async `isFocused()` query and
+  its fail-open branch (`useMenuEvents.ts:120-126`) go. The target window pins the active
+  document id and the editor instance when it receives the event. After any await, it checks
+  both again and abandons the action with a `ui.menu.select` `stale` line if either changed.
+  It also checks the mode before acting: an item that the menu showed enabled but the mode
+  no longer allows is refused with the existing Source-mode toast pattern (`App.tsx:732-737`, `triggerTableInsert`),
+  never silently. The same check covers off-Mac, where the menu stays one app-wide menu as
+  today: a menu's enabled state is a hint there, and the click-time check is the guard.
 - **Settings shows capability, not the current mode.** Each row says "WYSIWYG only",
   "Source only", "Not available" or its `nativeBehaviour` text, whatever mode the window is
   in (M7).
@@ -491,20 +550,55 @@ repairs them (`services/preferences.rs:85-100`). The frontend has its own defaul
 - **One migration boundary: Rust's load path.** A `keyboardShortcutsVersion` field
   (absent = 1) marks the table. On load, version 1 → 2 replaces each value that equals a
   version-1 default with the version-2 default, keeps every other value, and writes the
-  file back once, under `preferences_rw_lock` (`services/preferences.rs:43-48`, which today
-  serialises only `set_preferences` and `save_window_state`; the migrating load takes it
-  too, so two windows starting at once migrate once). A failed write leaves the in-memory
-  result migrated and retries on the next load. A corrupt file follows today's parse-error
-  path unchanged. A second load is a no-op. A downgraded build reads version 2 as it reads
-  any file, and keeps the migrated values, which it treats as custom. That is the accepted
-  cost. The frontend never migrates.
+  file back once. A failed write leaves the in-memory result migrated and retries on the
+  next load. A corrupt file follows today's parse-error path unchanged. A second load is a
+  no-op. The frontend never migrates.
+- **Two loaders, so the lock is taken once** (review #28). `preferences_rw_lock`
+  (`services/preferences.rs:49-55`) is a non-reentrant `std::sync::Mutex`, and its three
+  writers already hold it when they call `load_preferences()`: `set_preferences`
+  (`commands/preferences.rs:73-80`), `save_window_state` (`:170-176`) and
+  `persist_server_enabled` (`services/preferences_mcp.rs:43-46`). A load that took the lock
+  again would deadlock them. So M1a splits the loader: a public `load_preferences()` takes
+  the lock and calls an internal `load_preferences_locked(&guard)`, which reads, migrates
+  and writes back under the caller's guard. The three writers call the internal one with
+  the guard they hold; every other caller keeps the public one. Two windows starting at once
+  still migrate once. Tests drive the migration through each real writer and through a
+  plain load, and one test holds the lock in a writer while a second thread loads (it waits;
+  it does not deadlock).
+- **The version moves only when the map is complete** (review #29). M1a lands the
+  migration code with `CURRENT_KEYBOARD_SHORTCUTS_VERSION = 1` and an empty map: a load
+  writes nothing and never stamps version 2. M1b sets the constant to 2 and installs the
+  full v1 → v2 map in the same commit. A test loads a v0.3.5 file under M1a's code (unchanged,
+  still version 1, byte-identical) and then under M1b's (migrated once).
+- **Downgrade is tested with a real old-build write** (review #7). A v0.3.5 build's Rust
+  struct has no version field and repairs only `""`: it reads version 2's values as custom
+  ones, reads `"<unassigned>"` and the other § 5.6 states as unparseable chords that match
+  nothing, and drops `keyboardShortcutsVersion` the next time it writes. Re-upgrading then
+  sees version 1 again and re-runs the map, which changes only values still equal to a
+  version-1 default. That is the accepted cost. M1b commits, as a fixture, a file written by
+  a v0.3.5 build after it read a version-2 file (`tests/fixtures/`, captured on device), and
+  tests the re-upgrade from it.
 - **Collisions are refused, not introduced.** After migration, each chord is normalised
-  per platform (`Cmd+I` and `Cmd+Ctrl+I` off-Mac are the same chord, C6). If a kept custom
-  value now collides with a new default, for example a custom Save on ⇧⌘T against Table,
-  the **default** loses: that command is stored `unassigned`, and Settings shows the
-  conflict once. The custom value is never changed. Settings' own conflict check
-  (`KeyboardShortcutsSettings.tsx:124-134, 183-191`) uses the same normalisation and
-  refuses Save on a conflict between available commands.
+  per platform (`Cmd+I` and `Cmd+Ctrl+I` off-Mac are the same chord, C6). Two commands
+  collide when they share a chord in a shared context: their availability (`both` / `W` /
+  `S`) intersects, so a W-only and an S-only command may share one. The check covers three
+  kinds of owner, not only defaults (review #8):
+  - **a new configurable default**: if a kept custom value now collides with one, for
+    example a custom Save on ⇧⌘T against Table, the **default** loses. That command is
+    stored `<unassigned>`, and Settings shows the conflict once. The custom value is never
+    changed.
+  - **a fixed, native or reserved chord** (Undo, Redo, Quit / Exit, Cut / Copy / Paste /
+    Select All, the native items and K5's list): the custom value cannot win, because the
+    OS or the editor's own history keeps the chord. It stays stored, is **not bound**, and
+    its Settings row shows "Conflicts with Undo, not active" until the user rebinds it. A
+    custom Save on ⌘Z is this case.
+  - **an editor-owned binding** that stays after M1b (CodeMirror's `defaultKeymap` and
+    `searchKeymap` entries without a Settings row, such as `Mod-d`, and Milkdown's
+    remaining preset keys): treated as fixed, as above. M1a's table lists them, read from
+    the composed keymaps, and a test fails when one is added without a row.
+
+  Settings' own conflict check (`KeyboardShortcutsSettings.tsx:124-134, 183-191`) uses the
+  same normalisation and owner list, and refuses Save on any of these conflicts.
 - **New persisted states.** Today an empty string is repaired to the default on every read
   (`models/preferences.rs:310-352`, ADR-0031 step 4, decision D-b, whose recorded cost
   says reversing it needs a new ADR). The new states are explicit values, not `""`:
@@ -525,20 +619,76 @@ repairs them (`services/preferences.rs:85-100`). The frontend has its own defaul
   **not** also bind them, so a key press never runs history twice. macOS keeps the
   predefined items.
 - **Clipboard (C10) is conditional on M2.** There is no shared clipboard dispatcher today:
-  paste is handled by editor plugins (`MilkdownEditor.tsx:164-165`, `imagePastePlugin.ts`,
-  `table/pasteWidenAlignment.ts`). Custom items are built only if M2(c) shows mdpro has
-  VMark #1354's symptoms, or the user asks for parity (open question 6). If they are built,
-  each item runs through the focused editor itself: one editor transaction, and for Paste
-  the editor's existing paste pipeline, so HTML sanitising, table and image handling and
-  undo history still apply. A text-only clipboard write is not acceptable in WYSIWYG. Cut removes text only after the clipboard
-  write resolved. A failed write leaves the selection intact and logs it. Composition
-  (IME) in progress refuses the action. Otherwise the predefined items stay.
+  paste is handled by editor plugins (`MilkdownEditor.tsx:164-165`, `imagePastePlugin.ts`
+  `handlePaste` `:241`, `table/pasteWidenAlignment.ts`), and no first-party code calls
+  `navigator.clipboard` or `execCommand` for the editors. Custom items are built only if M2(c)
+  shows mdpro has VMark #1354's symptoms, or the user chooses parity (U10 B). If they are
+  built, this is the adapter:
+  - **Formats.** WYSIWYG Copy / Cut write `text/html` and `text/plain` from ProseMirror's
+    own `view.serializeForClipboard(slice)` (`prosemirror-view@1.41.5`, `dist/index.js:5768`),
+    the serializer a keyboard copy uses. Source writes `text/plain` of the selection.
+    WYSIWYG Paste reads `text/html` when present, else `text/plain`, and hands it to
+    `view.pasteHTML` / `view.pasteText` (`:5751`, `:5757`), which run the same `handlePaste`
+    props and `transformPasted` a keyboard paste runs, so sanitising and table handling
+    apply. Image **files** on the clipboard are out of scope for the menu item (the keyboard
+    path keeps them); the item says so in its log line. Source Paste inserts `text/plain`
+    as one CodeMirror transaction.
+  - **API and permission: decided by M2(c), not assumed.** A menu click is not a user
+    activation inside the webview, so the async Clipboard API may refuse it. M2(c) tries,
+    in WebView2 release and dev builds: `navigator.clipboard.write` / `read` with
+    `ClipboardItem`, and `document.execCommand("copy" | "cut")` on the focused editor. If
+    neither works without a prompt, the adapter uses Tauri's `clipboard-manager` plugin. That
+    is a new dependency, so it needs its own ADR and the capability entries
+    (`clipboard-manager:allow-read-text`, `allow-write-text`, `allow-write-html`). The record
+    names the API chosen and the permission it needs. M5 does not start on the clipboard
+    items without it.
+  - **Revalidation across awaits.** Before the first await the adapter pins the window
+    label, the active document id, the editor instance and the selection (WYSIWYG: `from`,
+    `to` and the doc; Source: the main range and the doc length). After every await it
+    checks them again. If any changed, Copy has already written and stops; Cut and Paste
+    abandon without touching the document and log `stale`. Cut deletes only after the write
+    resolved, as one transaction and one undo step. A failed write leaves the selection
+    intact and logs it. Composition (IME) in progress refuses the action.
+
+  Otherwise the predefined items stay.
 - **Exit Ctrl+Q needs a new IPC command.** The frontend can only reply to a quit request
   (`quitGuardService.ts:94-122`, `quit_guard_reply`). The request itself is private Rust
   (`menu.rs:259-269`). M6 adds `request_quit`: a `#[tauri::command]` that calls the same
   `request_guarded_quit` path, a typed wrapper in `quitGuardService.ts`, a
   `app.quit.request` log line, a ledger row and the CLAUDE.md "Key commands" entry. A
   second request while one is in flight joins it; it never starts a second round.
+
+### 5.8 D255: what each no-effect action becomes
+
+D255's 26 actions (the [audit](../test/20261016-shortcuts-mac-audit.md)'s "no effect" set) with
+the key from § 5.3.2 and a **proposed** disposition. "Build" means the command is feasible with
+what the code already has; "triage" means D255-WI-1 must establish it first; "disabled" stays
+under D3. **D255-WI-1 confirms or corrects every row before any D255 implementation starts**, in
+a docs commit to this section; the row's WI then owns the code and its tests. An enabled row
+changes the command table's `availability`, and M4 / M5 / M7 render it from there.
+
+| # | Action (gap) | Key (mac / Win) | Proposed disposition | Basis | Owner |
+|---|---|---|---|---|---|
+| 1 | Save As (both) | ⇧⌘S / Ctrl+Shift+S | **Build**, both modes | Untitled ⌘S already runs `save_file_dialog` (ledger `:75`); Save As reuses it for a titled document (`fileService.ts:109`, D111's Save As fields) | D255-WI-3d |
+| 2 | Toggle Fullscreen (both) | system fn F / F11 (U7) | macOS: the system item (C5). Off-Mac: **build** if U7 B | Tauri's window `setFullscreen`; needs the `core:window:allow-set-fullscreen` capability | D255-WI-3d |
+| 3 | Math Block (both) | ⌥⇧⌘M / per U1 | **Build in Source** (insert a `$$` block); **disabled in WYSIWYG** | WYSIWYG has no math node (CLAUDE.md § Typora-Parity Phase 1) | D255-WI-3a |
+| 4 | Ordered List (both) | ⌥⌘O / per U1 | WYSIWYG through M3 (preset command); **build in Source** (toggle `1. ` on the selected lines) | preset `:1377` | M3; D255-WI-3a |
+| 5 | Unordered List (both) | ⌥⌘U / per U1 | As 4, with `- ` | preset `:1273` | M3; D255-WI-3a |
+| 6 | Underline (both) | ⌘U / Ctrl+U | **Triage**, likely disabled | Markdown has no underline; Milkdown has no mark. Source could wrap `<u>…</u>` only if the export sanitizer keeps it and WYSIWYG shows it | D255-WI-1 |
+| 7 | Image (both) | ⇧⌘I / Ctrl+Shift+I | **Build** with a native file picker: WYSIWYG `insertImageCommand`, Source `![](path)`; the file copied as the paste plugin copies it. A URL / alt-text popup, if wanted, is a U12 prototype | `lib/index.js:975`; `imagePastePlugin.ts:142, 192`; `rfd` is already a dependency (`commands/export.rs:78`) | D255-WI-3b |
+| 8 | Clear Format (both) | ⌘\\ / Ctrl+\\ | **Build in WYSIWYG** (remove every mark in the selection); **triage** Source (stripping inline syntax by pattern can damage text) | ProseMirror `removeMark` | D255-WI-3b |
+| 9 | Copy as Markdown (both) | ⇧⌘C / Ctrl+Shift+C | **Triage**: WYSIWYG serialises the selection with Milkdown's serializer; Source is a plain copy. Needs a clipboard write without a user activation (M2(c)) | as § 5.7 | D255-WI-1 |
+| 10 | Paste as Plain Text (both) | ⇧⌘V / Ctrl+Shift+V | **Triage**: WYSIWYG `view.pasteText`; Source pastes plain text already. Needs a clipboard read (M2(c)). Windows WYSIWYG already does it natively (§ 5.2) | as § 5.7 | D255-WI-1 |
+| 11 | Select Line (both) | ⌘L / Ctrl+L | **Build**: Source CodeMirror `selectLine` (`@codemirror/commands/dist/index.js:1057`); WYSIWYG selects the enclosing text block | — | D255-WI-3a, 3b |
+| 12 | Delete Word (both) | unassigned | **Build in Source** (`deleteGroupBackward`, `:1244`), menu-only; WYSIWYG **triage** (⌥⌫ / Ctrl+Backspace already delete a word natively) | — | D255-WI-3a |
+| 13–16 | Bold, Italic, Code, Strikethrough (Source) | ⌘B, ⌘I, ⇧⌘\`, ⇧⌘X | **Build**: toggle `**`, `*`, `` ` ``, `~~` around the selection | — | D255-WI-3a |
+| 17 | Code Fences (Source) | ⌥⌘C / per U1 | **Build**: wrap the selected lines in a fence | — | D255-WI-3a |
+| 18–19 | Increase / Decrease Heading (WYSIWYG) | ⌥⌘] / ⌥⌘[ | **Build**: heading level ± 1 through `headingPlugin` | `headingPlugin.ts:109-111` | D255-WI-3b |
+| 20 | Select Word (WYSIWYG) | ⌘D / Ctrl+D | **Build**: select the word at the cursor | — | D255-WI-3b |
+| 21–23 | Find, Find Next, Find Previous (WYSIWYG) | ⌘F, ⌘G, ⇧⌘G | **Build after the prototype**: mdpro's find / replace popup, picked by the user (U12). Settles U11 | D255 row: the user's words | D255-WI-2, 3c |
+| 24 | Switch Documents (OS-owned ⌘\`) | ⌃Tab / Ctrl+Tab | **Build**: switch to the most recently used tab | `tabStore.ts` `switchToTab` `:230`, MRU `:106` | D255-WI-3d |
+| 25 | Quote (OS-owned ⌥⌘Q) | U2 / per U1 | WYSIWYG through M3; **build in Source** (toggle `> `) | preset `:764` | M3; D255-WI-3a |
+| 26 | Replace (OS-owned ⌘H) | merged into ⌘F; U5 second keys | Source: CodeMirror's panel already has replace; WYSIWYG: the popup of 21–23 | — | D255-WI-3c |
 
 ## 6. Work items
 
@@ -549,7 +699,10 @@ delegator (rule 70). The D or WI prefix for receipts comes from the delegator.
 every consumer of it: the command table, the Rust menu literal, the CodeMirror and Milkdown
 keymaps, Settings, the Table dialog hint (C15), the sidebar tooltip
 (ADR-0088), the migration and the ledger row. No intermediate commit advertises a key that
-does not run.
+does not run. A default whose consumer arrives in a later WI moves with that WI
+(review #24): the Windows Redo label Ctrl+Shift+Z ships with M5's custom items, and Exit
+Ctrl+Q with M6's `request_quit`. F6, the sidebar key and U1's off-Mac variants need only hook
+and keymap bindings, so they ship in M1b with those bindings.
 
 **Rule 50 § 6 extraction is assigned, not incidental.** Already over 300 lines:
 `typoraKeymapPlugin.ts` (317), `src/types/preferences.ts` (399),
@@ -562,21 +715,30 @@ factories out of `typoraKeymapPlugin.ts` (M1b), the action table out of `useMenu
 
 | WI | Scope | Files (expected) | Tests (rule 10) | Ledger rows to rewrite | ADR |
 |---|---|---|---|---|---|
-| **M2** | **Disposable spike, never landed.** A `spike/menu-m2` branch with temporary handlers and items: (a) ⌥⌘Q with an explicit Quote item, enabled and disabled, and with a DOM handler; (b) ⌃Tab, F6 and ⌃⇧0 reach the webview on macOS; (c) Windows typing, IME and paste after a menu Copy and after Ctrl+C (C10); (d) Ctrl+Shift+0 and an AltGr layout on Windows; (e) Ctrl+Shift+I, F6 and Ctrl+Tab in WebView2, release and dev builds (C16); (f) whether a menu accelerator fires on Windows with focus on the native window rather than the webview (K4) | the spike branch, deleted after the record lands (rule 25); brief under `docs/pending/`, record under `docs/test/` | none (spike) | none | Feeds M0 |
-| **M0** | Write the ADR **after M2's record**: D1–D6, rules K1–K8, the § 5.3.2 table by reference, the § 5.5 table format, the § 5.6 states, and the superseded clauses of § 5.3.4 plus ADR-0031 step 4 D-b | `docs/adr/NNNN-…md` (number from the delegator when it is written); Status-line forward links in ADR-0096, ADR-0090 and ADR-0031 | none (docs) | none | **Yes**, this one |
-| **M1a** | The contract, **no default changes**: the command table (§ 5.5) with today's keys; the generated Rust JSON and its parity test; the matcher's K8 fix (C13); the reserved-chord test (K5); `keyboardShortcutsVersion`, the § 5.6 states and normalised collision detection; migration code with an empty v1 → v2 map | new `src/commands/commandTable.ts`, `src-tauri/src/menu_layout.json`, `src/hooks/useKeyboardShortcuts.ts`, `src/types/preferences.ts` (extracted), `src-tauri/src/models/preferences.rs` (extracted), `src-tauri/src/services/preferences.rs`, `tests/fixtures/preferences-contract.json`, `KeyboardShortcutsSettings.tsx` (conflict check only) | Matcher: real `event.key` / `event.code` pairs for ⇧0, ⌃⇧0, Alt+Shift+0, ⇧⌘`, a German layout's shifted symbols, and AltGr refused. Migration: missing field, legacy `""`, a stored old default, a custom value, a custom value that collides with a new default, a second load (no-op), a failed write-back, two windows loading at once, a corrupt file, a version-2 file read by the code before M1a's migration ran (downgrade). States survive load, save and Reset. Parity: TS table = Rust JSON | "快捷键改键" `:416` (states and conflicts) | Needs M0 accepted |
-| **M3** | Editor command dispatcher: `menu:action` `editor.<command>` routed to Milkdown in W and CodeMirror in S, reusing existing commands (`typoraKeymapPlugin.ts:61-113`, `headingPlugin`, `insertLinkCommand`, `triggerTableInsert`, highlight, **Milkdown's blockquote and list commands**). Availability per § 5.5, per window | new `src/utils/editorMenuCommands.ts`, `src/hooks/useMenuEvents.ts` (split out `menuActionTable.ts`), `src-tauri/src/menu.rs`, `src-tauri/src/menu_recent.rs` (per-window mode) | TS: command × mode matrix, through the composed editor keymaps rather than a single `keydownHandler`, with the hook's window listener attached (it runs in its mode, is refused and logged in the other); an `unavailable` id is never dispatched; every route is matched with no wildcard. Focus: two windows in different modes, focus switches, a window closing, the mode reported late; a menu event while a modal or the Settings recorder has focus is not applied to the editor. Rust: id → action covers every `MENU_*` id | menu route added to `:122`–`:125` | No |
-| **M1b** | Default keys § 5.3.2 on both platforms, C1–C6, C11, C12, C15; the v1 → v2 migration map; drop the mac Close Window (C3); remove or rebind the editor keys K4 names (fold, `Mod-Shift-b`, `Mod-Alt-0…8`); each changed key with **every** consumer (see above), including `highlightPlugin.ts:65-68` and `headingPlugin.ts:109-111` | the command table, `typoraKeymapPlugin.ts` (extracted), `highlightPlugin.ts`, `headingPlugin.ts`, the CodeMirror basic-setup options, `menu.rs` / `menu_submenus.rs`, `TableInsertModal/index.tsx`, the sidebar tooltip, `search.ts` (comment) | Every changed key fires its command once and the old key no longer fires, through the composed keymaps in both modes; ⌥⌘] / Ctrl+Alt+] changes the heading level and folds nothing; migration of each changed default; `window_menu_has_close(os)` | "粗体 / 斜体" `:122`, "标题 1–6 与正文" `:123`, "删除线" `:125`, "高亮选区" `:129`, "查找与替换" `:233`, "视图模式切换" `:292`, "原生 Window 菜单" `:442`, "插入表格对话框" `:188`, "快捷键改键" `:416` | Covered by M0 |
-| **M4** | macOS tree § 5.1, rendered from the command table, every *(n/a)* item and Save As disabled (D3), C8, C9, Bring All to Front, "Settings…" (D5) | `src-tauri/src/menu.rs`, new `menu_paragraph.rs` / `menu_format.rs` / `menu_edit.rs`, `menu_submenus.rs`, `scripts/ledger/declared.mjs` (scan the new files) | Rust: the production builder consumes `menu_layout.json`, and `menu_layout_for("macos")` → titles, ids, enabled flags as data is that same output; each *(n/a)* id present and disabled; each new `MENU_*` id handled | "原生 macOS 菜单栏" `:460`, "应用菜单基础项" `:461`, "另存为" `:75` (disabled menu item), "浅色 / 深色 / 跟随系统" `:326`, a row per new `MENU_*` id (`pnpm ledger:check`) | Covered by M0 |
-| **M5** | Windows/Linux tree § 5.2: no app menu, no Window menu, Settings / Exit / escape in File, About in Help, disabled items as M4; custom Undo / Redo (C14, § 5.7); clipboard items only if M2(c) or open question 6 says so | `src-tauri/src/menu.rs`, `menu_quit.rs`, `menu_submenus.rs`; the editor history and (if built) clipboard adapters | Rust: `menu_layout_for("windows")` and `("linux")` from the production builder; Exit still routes to `request_guarded_quit` (`menu.rs:225, 259-269`); escape item directly after Exit (`menu_escape_order_tests.rs`). TS: a menu Undo / Redo click runs the focused editor's history once, in W and in S, and a Ctrl+Z press runs it once (no hook double-run). If the clipboard items are built: WYSIWYG copy keeps formatting, paste goes through the sanitiser and table/image handling, Cut keeps the text when the clipboard write fails, nothing runs during IME composition, each action is one undo step | "原生 macOS 菜单栏" Windows row `:480`, `:467` and its Windows row, `:468`, "撤销 / 重做" `:145` | Covered by M0 |
-| **M6** | Off-Mac specifics: Exit Ctrl+Q through the new `request_quit` command (§ 5.7); F6 bound in the hook; Ctrl+Y kept as a second Redo key if the editors accept it; VMark's `defaultKeyOther` cases (Alt+Shift+0); the AltGr decision (open question 3); Settings labels | `src-tauri/src/commands/quit_guard.rs` + `commands/mod.rs` (registration), `src/services/quitGuardService.ts`, `src/hooks/useKeyboardShortcuts.ts`, `src/utils/platformLabels.ts`, CLAUDE.md "Key commands" | Rust: `request_quit` with no guard exits as the menu path does; a second request while one is in flight joins it. TS: Ctrl+Q calls `request_quit` once, never `app.exit`; IPC failure is logged and surfaced. Real keydowns, as M1b; AltGr per the decision; Ctrl+Shift+I does nothing in a release build (C16) | "快捷键改键" Windows row `:427`, "插入表格对话框" Windows row `:212`, quit-guard Windows rows, a row for `request_quit` | Covered by M0 |
-| **M7** | Settings shows every entry (D3) with its capability (§ 5.5): "Not available" (greyed, recorder disabled), "WYSIWYG only" / "Source only", "(system)", `nativeBehaviour` text; `<merged:…>` rows show what they merged into. The recorder accepts F1–F12 alone. The 9 contract fields missing from the page (ledger `:416`) are added the same way | `src/components/common/settings/KeyboardShortcutsSettings.tsx` (split), `src/utils/platformLabels.ts` | Component: role/name of a disabled row, `aria-disabled`, clicking it starts no recording, Save does not write it, Reset restores `<unassigned>` where that is the default; F6 records; conflict detection ignores unavailable rows | "快捷键改键" `:416` and `:427` | No |
+| **M2** | **Disposable spike, never landed.** A `spike/menu-m2` branch with temporary handlers and items: (a) ⌥⌘Q with an explicit Quote item, enabled and disabled, and with a DOM handler (only if U2 A); (b) ⌃Tab, F6 and ⌃⇧0 reach the webview on macOS; (c) Windows typing, IME and paste after a menu Copy and after Ctrl+C (C10), **and the clipboard API probe of § 5.7** (async Clipboard API and `execCommand` from a menu click, release and dev builds); (d) Ctrl+Shift+0 on Windows, and on an AltGr layout (German) **both** that each Ctrl+Alt chord types its character in the editor and whether U1's variants run their command; (e) Ctrl+Shift+I, F6, Ctrl+Tab, and under U1 B Ctrl+Shift+K / Ctrl+Shift+Q, in WebView2 release and dev builds (C16); (f) whether a menu accelerator fires on Windows with focus on the native window rather than the webview (K4) | the spike branch, deleted after the record lands (rule 25); brief under `docs/pending/`, record under `docs/test/` | none (spike) | none | Feeds M0 |
+| **D255-WI-1** | **Triage, docs only.** Confirms or corrects every § 5.8 row with a code read or a probe on the spike, records the clipboard API from M2(c), and names the rows that need a prototype (U12) | this plan § 5.8 | none (docs) | none | Feeds M0 |
+| **M0** | Write the ADR **after M2's record and D255-WI-1**: D1–D8, the answers to U1–U12, rules K1–K8, the § 5.3.2 table and § 5.8 dispositions by reference, the § 5.5 table format, the § 5.6 states, and the superseded clauses of § 5.3.4 plus ADR-0031 step 4 D-b | `docs/adr/NNNN-…md` (number from the delegator when it is written); Status-line forward links in ADR-0096, ADR-0090 and ADR-0031 | none (docs) | none | **Yes**, this one |
+| **M1a** | The contract, **no default changes**: the command table (§ 5.5) with today's keys and per-platform routes; the generated Rust JSON and its parity test; the matcher's K8 fix (C13); the reserved-chord test (K5); the editor-owned chord list (§ 5.6); `keyboardShortcutsVersion` with `CURRENT_KEYBOARD_SHORTCUTS_VERSION = 1`, the § 5.6 states and the three-owner collision check; the loader split (`load_preferences` / `load_preferences_locked`) and the migration code with an empty map | new `src/commands/commandTable.ts`, `src-tauri/src/menu_layout.json`, `src/hooks/useKeyboardShortcuts.ts`, `src/types/preferences.ts` (extracted), `src-tauri/src/models/preferences.rs` (extracted), `src-tauri/src/services/preferences.rs`, `src-tauri/src/commands/preferences.rs`, `src-tauri/src/services/preferences_mcp.rs`, `tests/fixtures/preferences-contract.json`, `KeyboardShortcutsSettings.tsx` (conflict check only) | Matcher: real `event.key` / `event.code` pairs for ⇧0, ⌃⇧0, Alt+Shift+0, ⇧⌘\`, a German layout's shifted symbols, and AltGr refused. Loader: each of the three writers runs a load under its own guard without deadlock; a writer holding the lock while a second thread loads (it waits). Migration with the empty map: a v0.3.5 file stays byte-identical and version 1; missing field, legacy `""`, a corrupt file. Collisions: a custom value against a new default, against a fixed key (custom Save on ⌘Z: kept, not bound, flagged), against an editor-owned chord, and two commands sharing a chord in disjoint modes (allowed). States survive load, save and Reset. Parity: TS table = Rust JSON | "快捷键改键" `:416` (states and conflicts) | Needs M0 accepted |
+| **D261-WI-1** | [D261](20260912-frontend-backend-sequencing-order.md#d261): a menu action is bound to its window. Rust resolves the focused window when the menu event arrives and `emit_to`s it; the frontend drops the async `isFocused()` query and its fail-open branch, pins document id and editor instance, and re-checks them after each await (§ 5.5) | `src-tauri/src/menu.rs` (event → target window), `src/hooks/useMenuEvents.ts` | Rust: the target is the window focused at event time; with none focused, editor and document actions are dropped with a log line and app-level ones (New, New Window, Open, Settings) keep today's handling. TS: focus changes after the click and before the handler runs → the action runs in the clicked window only; the document is switched during an await → `stale`, nothing applied; two windows → exactly one acts. Receipts `D261-WI-*` | the menu rows that cite `useMenuEvents` (`:122`–`:125`) | No |
+| **M3** | Editor command dispatcher: `menu:action` `editor.<command>` routed to Milkdown in W and CodeMirror in S, reusing existing commands (`typoraKeymapPlugin.ts:61-113`, `headingPlugin`, `insertLinkCommand`, `triggerTableInsert`, highlight, **Milkdown's blockquote and list commands**). Availability per § 5.5, per window, failing closed; the mode re-checked at click time | new `src/utils/editorMenuCommands.ts`, `src/hooks/useMenuEvents.ts` (split out `menuActionTable.ts`), `src-tauri/src/menu.rs`, `src-tauri/src/menu_recent.rs` (per-window mode) | TS: command × mode matrix, through the composed editor keymaps rather than a single `keydownHandler`, with the hook's window listener attached (it runs in its mode, is refused with a toast and logged in the other); an `unavailable` id is never dispatched; every route is matched with no wildcard. Focus: two windows in different modes, focus switches, a window closing, the mode reported late, **no focused window (mode-limited items disabled)**; a menu event while a modal or the Settings recorder has focus is not applied to the editor. Rust: id → action covers every `MENU_*` id; **a failed `set_enabled` is logged and the click-time check still refuses** | menu route added to `:122`–`:125` | No |
+| **M7** | Settings shows every entry (D3) with its capability (§ 5.5), as DESIGN.md's block **specifies normatively** (D8), grouped per U6. Before M1b, so the new states have a presentation when M1b first stores them. The recorder accepts F1–F12 alone. The 9 contract fields missing from the page (ledger `:416`) are added the same way | `src/components/common/settings/KeyboardShortcutsSettings.tsx` (split), `src/utils/platformLabels.ts` | Component, one case per row state of DESIGN's block: "Not available" (muted name, no key button, a click starts no recording, Save does not write it); "WYSIWYG only" / "Source only" (key button works, capability line under the name); system and fixed rows (key in a non-editable dashed box, not a button); merged Replace ("→ Find and Replace"); a conflict flagged by § 5.6; second keys (F3, and U3 / U5 if chosen) shown as fixed. No changed-default banner. Reset restores `<unassigned>` where that is the default; F6 records; conflict detection ignores unavailable rows; the group of each added entry matches U6 | "快捷键改键" `:416` and `:427` | No |
+| **M1b** | Default keys § 5.3.2 on both platforms, with U1–U5, U8 and U9 applied; C1–C7, C11, C12, C15, C17; `CURRENT_KEYBOARD_SHORTCUTS_VERSION = 2` and the full v1 → v2 map in one commit; drop the mac Close Window (C3); remove or rebind the editor keys K4 names (fold, `Mod-Shift-b` per U2, `Mod-Alt-0…8`); F6 and the U3 second key bound in the hook; the sidebar key per U4; each changed key with **every** consumer (see above), including `highlightPlugin.ts:65-68` and `headingPlugin.ts:109-111`. Not here: the Windows Redo label (M5) and Exit Ctrl+Q (M6) | the command table, `typoraKeymapPlugin.ts` (extracted), `highlightPlugin.ts`, `headingPlugin.ts`, the CodeMirror basic-setup options and a table keymap for C17, `menu.rs` / `menu_submenus.rs`, `TableInsertModal/index.tsx`, the sidebar tooltip, `search.ts` (comment), `src/hooks/useKeyboardShortcuts.ts` | Per changed chord, through the composed keymaps in both modes, the § 6.1 per-chord table: the new key runs its command once; **the old mdpro assignment no longer runs its command**, and what the old chord does instead is its expected owner (native Hide on ⌘H, CodeMirror's select-all-matches on ⇧⌘L under U4 A, otherwise nothing). ⌥⌘] / Ctrl+Alt+] changes the heading level and folds nothing; F3 / Shift+F3 still step the Source search; ⌥⌘↑ inside a Source table inserts a row and adds no cursor, outside it adds a cursor and logs no table action (C17). Migration: an upgrade through M1a's and M1b's code, each changed default, and the re-upgrade from the v0.3.5-written fixture (§ 5.6); `window_menu_has_close(os)` | "粗体 / 斜体" `:122`, "标题 1–6 与正文" `:123`, "删除线" `:125`, "高亮选区" `:129`, "查找与替换" `:233`, "视图模式切换" `:292`, "原生 Window 菜单" `:442`, "插入表格对话框" `:188`, "快捷键改键" `:416` | Covered by M0 |
+| **M4** | macOS tree § 5.1, rendered from the command table, every item the table marks unavailable at that commit disabled (D3), C8, C9, Bring All to Front, "Settings…" (D5) | `src-tauri/src/menu.rs`, new `menu_paragraph.rs` / `menu_format.rs` / `menu_edit.rs`, `menu_submenus.rs`, `scripts/ledger/declared.mjs` (scan the new files) | Rust: the production builder consumes `menu_layout.json` and the stored keys (§ 5.5: custom chord, `<unassigned>` → none, unparseable → none and logged), and `menu_layout_for("macos")` → titles, ids, enabled flags as data is that same output; each unavailable id present and disabled, each available one enabled; each new `MENU_*` id handled. The comparison excludes what macOS inserts (DESIGN open item 9: the Help search field, the Window menu's window list, View › Enter Full Screen); the device brief lists them as expected extras | "原生 macOS 菜单栏" `:460`, "应用菜单基础项" `:461`, "另存为" `:75` (disabled menu item), "浅色 / 深色 / 跟随系统" `:326`, a row per new `MENU_*` id (`pnpm ledger:check`) | Covered by M0 |
+| **M5** | Windows/Linux tree § 5.2: no app menu, no Window menu, Settings / Exit / escape in File, About in Help, disabled items as M4; custom Undo / Redo (C14, § 5.7) with the Ctrl+Shift+Z label; clipboard items only if M2(c) or U10 B says so, and only with the API M2(c) recorded | `src-tauri/src/menu.rs`, `menu_quit.rs`, `menu_submenus.rs`; the editor history and (if built) clipboard adapters | Rust: `menu_layout_for("windows")` and `("linux")` from the production builder; Exit still routes to `request_guarded_quit` (`menu.rs:225, 259-269`); escape item directly after Exit (`menu_escape_order_tests.rs`). TS: a menu Undo / Redo click runs the focused editor's history once, in W and in S; a Ctrl+Z press runs it once (no hook double-run); **Ctrl+Y and Ctrl+Shift+Z each redo exactly once in both editors** (required, R15). If the clipboard items are built: the § 5.7 formats, sanitiser and table handling on paste, Cut keeps the text when the write fails, a document or selection change during an await abandons Cut and Paste, nothing runs during IME composition, each action is one undo step | "原生 macOS 菜单栏" Windows row `:480`, `:467` and its Windows row, `:468`, "撤销 / 重做" `:145` | Covered by M0 |
+| **M6** | Off-Mac Exit: Ctrl+Q through the new `request_quit` command (§ 5.7), its default and its binding in one commit; Settings labels for the off-Mac rows | `src-tauri/src/commands/quit_guard.rs` + `commands/mod.rs` (registration), `src/services/quitGuardService.ts`, `src/hooks/useKeyboardShortcuts.ts`, `src/utils/platformLabels.ts`, CLAUDE.md "Key commands" | Rust: `request_quit` with no guard exits as the menu path does; a second request while one is in flight joins it; **two windows, both dirty**: one round prompts each in turn, exactly as the menu Exit does. TS: Ctrl+Q calls `request_quit` once, never `app.exit`; IPC failure is logged and surfaced; Ctrl+Shift+I does nothing in a release build (C16) | "快捷键改键" Windows row `:427`, "插入表格对话框" Windows row `:212`, quit-guard Windows rows, a row for `request_quit` | Covered by M0 |
+| **D255-WI-2** | **Prototypes (U12), throwaway.** The WYSIWYG find / replace popup in several variants, and any other new UI D255-WI-1 names, built with `/mattpocock-skills:prototype` on `prototype/d255-<slug>`; the user picks; the verdict is committed there and folded into DESIGN.md by the delegator's word | the prototype branch, its own `mdpro-wt/` worktree; never lands (rule 70 § Questions) | none (prototype) | none | — |
+| **D255-WI-3a…d** | **D255's builds, from § 5.8 as D255-WI-1 left it**, in four batches: **a** Source commands (marks, fences, lists, Quote, Math, Select Line, Delete Word); **b** WYSIWYG commands (heading level, Select Word, Select Line, Clear Format, Image); **c** WYSIWYG find and replace from the chosen prototype; **d** file and app (Save As, Switch Documents, off-Mac full screen under U7). Each flips its rows' `availability` in the command table, so the menus and Settings follow | per batch: `editorMenuCommands.ts` and new command modules under `src/utils/` or `src/plugins/`, the command table, `fileService.ts` (Save As), `tabStore.ts` consumers (Switch Documents), Tauri capabilities (full screen) | Per row: the command through the menu and through its key, in each mode the row enables, runs once and is one undo step; disabled modes stay refused with a toast; Save As writes the new path and leaves the old file untouched, cancel writes nothing; Switch Documents follows MRU order with one tab and with none; find / replace: next and previous wrap, replace and replace-all are each one undo step, Escape closes and returns focus. Receipts `D255-WI-3a-*` etc. | per row: "另存为" `:75`, the D255 rows of "快捷键改键" `:416`, "查找与替换" `:233`, and one row per new capability | c: the WYSIWYG find scope and look (D255's row: "可能值得一份 ADR") |
 | **M8** | (Follow-up, not scheduled) Menu accelerators rebuilt from stored preferences on save, as VMark's `accelerators.rs` does | `menu.rs`, a new Tauri command | to be designed | `:416` | Yes |
 
-Order: **M2 (spike) → M0 → M1a → M3 → M1b → M4 and M5 in parallel → M6 → M7.** M2 must
-finish before M0 is written, because its results decide K3, C10 and C16. M1a lands the
-contract before any key changes; M3 lands the dispatcher before the menu advertises new
-commands; M1b then changes keys with all their consumers at once. M8 is outside this plan.
+Order: **M2 (spike) → D255-WI-1 → M0 → M1a → D261-WI-1 → M3 → M7 → M1b → M4, M5 and
+D255-WI-3a…d in parallel → M6.** D255-WI-2 runs any time after D255-WI-1 and must finish
+before D255-WI-3c. M2 and D255-WI-1 must finish before M0 is written, because they decide
+K3, C10, C16 and the § 5.8 dispositions. M1a lands the contract before any key changes.
+D261-WI-1 lands before M3 adds editor commands to the menu path. M3 lands the dispatcher
+before the menu advertises new commands. M7 lands before M1b, so the states M1b stores first
+have a presentation. U1–U5, U8 and U9 must be answered before M1b; U6 before M7. M1b then
+changes keys with all their consumers at once. D255's builds follow M1b, because they are
+built on the new key table. M8 is outside this plan.
 
 Every behaviour WI rewrites its ledger rows and `CHANGELOG.md` `## [Unreleased]` in the
 same commit and runs `pnpm ledger:check` (and `pnpm ledger:build`). Logging follows the
@@ -594,33 +756,39 @@ the window minimises); an `unavailable` item is greyed and a click does nothing.
 is pressed in each focus context of K4 that applies: the editor in W, the editor in S, an
 open modal, the Settings recorder.
 
+**Each brief carries a per-chord table** (review #31), generated from the command table of the
+build under test: chord, context, expected owner (`hook`, `codemirror`, `milkdown`, `native`,
+`none`), expected effect, and the evidence line. "Unavailable" means unavailable **in that
+build's table**: an item D255 has built is expected enabled, and an old *(n/a)* marking from
+§ 5.1 is not a failure once its row is built.
+
 | Platform | How | What |
 |---|---|---|
-| macOS | dtrack brief (rule 70 § Device-check batches), batch "menu bar" | Click every item of § 5.1 in W and in S: each shows its route's evidence, or is greyed as § 5.1 marks it. Two windows in different modes: the menu follows the focused one. Press every changed key of § 5.3.2 in both modes; the old key does nothing; ⌥⌘] / ⌥⌘[ fold nothing in S. Re-run P13, E11, V5, V6, F6. Failure: any key that hides or quits the app, any enabled `frontend` item without a log line, any *(n/a)* item enabled, any key that acts twice |
-| Windows | `remote-windows-device-test` skill, `menuclick` per item, `menus.txt` dump | `menus.txt` equals § 5.2 with the disabled flags. Each changed key fires once through the hook (`ui.shortcut.trigger`). Ctrl+Q goes through `request_quit` and the quit guard. Menu Undo / Redo in W and S. C10 (if built): type, paste and use IME after a menu Copy. Ctrl+Shift+I and F6 in the release build (C16). Settings shows the capability rows. AltGr layout if one can be installed |
+| macOS | dtrack brief (rule 70 § Device-check batches), batch "menu bar" | Click every item of § 5.1 in W and in S: each shows its route's evidence, or is greyed as that build's table marks it. Two windows in different modes: the menu follows the focused one; with no window focused, mode-limited items are greyed. A click followed at once by a focus change acts in the clicked window only (D261). Press every changed key of § 5.3.2 in both modes: it runs its command once, and the old chord does what the per-chord table expects (⌘H hides the app, as native Hide should; the old mdpro assignment no longer runs). ⌥⌘] / ⌥⌘[ fold nothing in S; ⌥⌘↑ in and out of a Source table (C17). Re-run P13, E11, V5, V6, F6. Failure: **an editor-command chord** that hides or quits the app (native ⌘H, ⌘Q, ⌥⌘H keep their meaning), any enabled `frontend` item without a log line, any item enabled that the build's table marks unavailable, any chord that acts twice |
+| Windows | `remote-windows-device-test` skill, `menuclick` per item, `menus.txt` dump | `menus.txt` equals § 5.2 with the build's disabled flags. Each changed key runs its command once through its K4 owner: `ui.shortcut.trigger` for hook-owned keys, the editor's effect for editor-owned ones (Undo / Redo, the search keys). Ctrl+Y and Ctrl+Shift+Z redo once in W and in S. Ctrl+Q goes through `request_quit` and the quit guard, with two dirty windows. Menu Undo / Redo in W and S. C10 (if built): type, paste and use IME after a menu Copy. Ctrl+Shift+I and F6 in the release build (C16). Settings shows the capability rows. **AltGr layout required** (German, installed for the run): each U1-affected chord types its character in the editor, and the command runs from its chosen key. Without that layout the batch is recorded incomplete, not passed |
 | Linux | not available | Recorded as untested (D6) |
+
+### 6.2 DESIGN.md's open items: owners
+
+DESIGN.md's menu block lists ten open items (§ Native menu bar and Keyboard Shortcuts page).
+Items 1–6 and 8 are owned as review r2b found. The three without an owner:
+
+| DESIGN item | Owner | How it closes |
+|---|---|---|
+| 7. Settings groups for Export HTML, Highlight, Undo / Redo, Exit | **U6** decides; **M7** implements and tests the group of each entry | U6's answer is quoted in M0 and in M7's test |
+| 9. Items macOS inserts (Help search, the Window list, View › Enter Full Screen) | **M4** | M4's builder test compares only mdpro's own items; the macOS brief lists the three as expected extras, checked present, not compared |
+| 10. D255 shrinks the "not available" set | **D255-WI-1** sets the set; **M4, M5, M7** render it | Every item's state comes from the command table of the build, so DESIGN's look applies to whatever remains unavailable |
+
+DESIGN's rule "their key is still shown" misses one exception the plan makes: Windows Switch
+Documents shows no key while it is unavailable (§ 5.2; review #37). DESIGN.md is outside this
+revision's file grant, so the fix is handed to the delegator: qualify the rule to "show an
+unavailable item's key only where the platform tree gives one".
 
 ## 7. Open questions for the user
 
-1. **Quote on macOS.** VMark's ⌥⌘Q quit mdpro on device. If the M2 spike shows an explicit
-   Paragraph › Quote item takes ⌥⌘Q, keep it; if not, leave Quote unassigned on macOS
-   (menu-only), or pick another key?
-2. **View toggle.** VMark's F6 needs Fn on most Mac keyboards. Keep ⌘/ / Ctrl+/ (ADR-0096,
-   device-verified) as a fixed second key beside F6, or F6 only?
-3. **AltGr.** VMark keeps Ctrl+Alt chords off-Mac. On German and similar layouts those keys
-   type characters, and mdpro's guard refuses them. Accept that (as VMark does), or give
-   those actions an off-Mac variant?
-4. **Ctrl+Shift+0** (Paragraph, Windows) may be taken by the Windows input-language hotkey.
-   Keep VMark's key if M2 shows it reaches mdpro, otherwise which?
-5. **Table row / column keys** (⌥⌘arrows, kept from mdpro): VMark and CodeMirror use
-   ⌥⌘↑ / ↓ for Add Cursor. Keep mdpro's, or move them? Either way K4 needs one owner per
-   context: inside a table the table key, outside it add-cursor.
-6. **Clipboard items on Windows** (C10, § 5.7). If M2 shows no #1354 symptom in mdpro, keep
-   the predefined items (recommended: no adapter to build and no editing risk), or build
-   VMark's custom items anyway for parity?
-7. **Native keys in WYSIWYG on Windows** (§ 5.2). Ctrl+F / Ctrl+G open WebView2's find bar
-   and Ctrl+Shift+V pastes plain text. Keep them and say so in Settings (recommended), or
-   suppress them until mdpro has its own?
+Moved to **Decisions for the user** at the top (U1–U12), with options and a recommendation
+each. The old numbering maps as: 1 → U2, 2 → U3, 3 → U1, 4 → after M2 (M2(d)), 5 → C17
+(now a defect with an owner), 6 → U10, 7 → U11.
 
 ## 8. What this plan could not verify
 
@@ -635,9 +803,9 @@ open modal, the Settings recorder.
 - The macOS reserved chords in K5 not device-tested in mdpro: all but ⌘H, ⌥⌘Q and ⌘\`.
 - **A menu action is not pinned to the window and document it was clicked in.**
   `menu:action` is broadcast, and each window asks `isFocused()` and acts if the check fails
-  (`useMenuEvents.ts:114-121`, fail-open). That is today's behaviour, not something this
-  plan introduces, so it is reported to the delegator for a D number rather than fixed
-  here. M3 must not make it worse: it adds editor actions to the same path.
+  (`useMenuEvents.ts:120-126`, fail-open). Registered as
+  [D261](20260912-frontend-backend-sequencing-order.md#d261) (`8452319c`); **D261-WI-1
+  owns the fix and lands before M3** (§ 5.5, § 6).
 - VMark's keys are read from its source and guide at `e0a982d`. **macOS checked live (2026-10-15, mdpro-codex-audit)**: the running VMark 0.9.99 on the Mac mini (e0a982d is v0.9.99 plus two CI/dependency-only commits) shows the § 4.1 layout and every macOS key in § 5.3.2 that has a VMark menu item, read from its menu tree with System Events (archive `~/.mdpro-redesign/handoff/mdpro-codex-audit-20261015-vmark-0.9.99-menus.txt`). Three corrections came from it: Toggle Sidebar is keymap-only in VMark; its full screen is the system fn F item, not ⌃⌘F; and its clipboard override is Windows-only. The Windows and Linux columns are still source-only.
 
 ## 9. Review revision (2026-10-15)
@@ -679,3 +847,42 @@ mdpro-codex-audit triaged it and, on the user's instruction (「按照你建议�
 
 Also corrected: muda 0.17.1 / Tauri 2.9.5 citations (the app is on muda 0.20.0 and
 Tauri 2.12.1 since #443), and the dangling "(C12)" in the Toggle Sidebar row (now C11).
+
+## 10. Scoped re-review revision (2026-10-16)
+
+mdpro-codex-audit re-reviewed the § 9 revision on `525c14c6` (`/cc-suite:review-plan`, two
+runs: `review-plan-mvahd3bm-l0gfvz`, thread `01a14303-dcb1-7dd3-9776-3ac7d227efb6`, against
+the plan; and r2b against the [shortcut survey](../reference/20261016-keyboard-shortcut-best-practice-survey.md)
+and DESIGN.md). Archives: `~/.mdpro-redesign/handoff/mdpro-codex-audit-20261016-1247-review-plan-menu-r2.json`
+and `…-1251-review-plan-menu-r2b.json`. Verdict **NEEDS REVISION**, C0 · H13 · M7 · L1 after
+mdpro-codex-audit downgraded #34 to Medium (counter-proof
+`~/.mdpro-redesign/handoff/mdpro-codex-audit-v035-wip/menu-r2b-d34-counterproof.txt`).
+mdpro-a6 revised the plan on the delegator's grant; every finding was checked in code first.
+✔ = confirmed in code for this revision.
+
+| # | Sev. | Verified | Where it is addressed |
+|---|---|---|---|
+| 1 | High | ✔ `insertImageCommand` is in the preset's `commands` (`lib/index.js:975, 1775-1783`) and kept by `mdproCommonmark` | § 2 (a command without a picker), § 5.8 row 7 |
+| 7 | High | ✔ A v0.3.5 struct drops the version field on write | § 5.6 downgrade bullet; M1b fixture test |
+| 8 | High | ✔ The rule covered only defaults | § 5.6 three-owner collisions; M1a tests |
+| 9 | High | ✔ `last_view_mode` is app-wide and never refreshed on focus | § 5.5 fail-closed availability, click-time mode check; M3 tests |
+| 10 | High | ✔ (`useMenuEvents.ts:120-126`) | D261-WI-1 before M3; § 5.5; § 8 |
+| 12 | High | ✔ **Worse than reported**: in Source ⌥⌘↑ runs add-cursor and then the hook's table action | C17; M1b tests |
+| 15 | High | ✔ No clipboard code exists to reuse | § 5.7 formats, API probe, revalidation; M2(c); M5 |
+| 18 | High | ✔ The JSON carried defaults only | § 5.5 accelerators from stored keys; per-platform `route`; M4 test |
+| 24 | High | ✔ M1b preceded M5's Redo item, M6's F6 / sidebar and M7 | § 6 coherence rule; F6 / sidebar / U1 in M1b; M7 before M1b; new order |
+| 25 | High | ✔ | Tests of D261-WI-1, M3 (install failure), M6 (two dirty windows), M1b (downgrade fixture), D255-WI-3 |
+| 27 | High | ✔ § 2, M4 and § 6.1 forbade what D7 asked for | § 2 amended; § 5.8; D255-WI-1…3; M0 records D7; M4 and § 6.1 judge by the build's table |
+| 28 | High | ✔ Three writers hold the non-reentrant lock when they load | § 5.6 loader split; M1a tests |
+| 29 | High | ✔ | § 5.6 version constant; M1a / M1b |
+| 30 | Medium | ✔ | C10 rewritten to § 5.7's condition |
+| 31 | Medium | ✔ | § 6.1 per-chord table and owner-based oracles; M1b tests |
+| 32, 33 | Medium | ✔ Ctrl+H is advertised and bound to nothing today | U5 (survey R3, R2); § 5.3.2 Replace row |
+| 34 | Medium (was High) | ✔ (`useKeyboardShortcuts.ts:72`) | U1 decided before M1b; C7 moves to M1b; M2(d) and § 6.1 require an AltGr layout |
+| 35 | Medium | ✔ Both editors bind Mod-y | § 5.3.2 Redo row; M5 requires it |
+| 36 | Medium | ✔ | M7 normative on DESIGN, per-state cases, U6; § 6.2 |
+| 37 | Low | ✔ | § 6.2, handed to the delegator (DESIGN.md is outside the grant) |
+
+Also: the user's menu UI pick is recorded as D8; F3 / Shift+F3 kept as Source second keys
+(survey R4); the user's open choices are collected at the top as U1–U12.
+
