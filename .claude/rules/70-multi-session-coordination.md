@@ -192,7 +192,13 @@ handoff. Each item is tagged `prep` or `impl`.
    and High findings** and drops Medium and Low ones, keeping just their
    count; the verdict ends with one line counting Critical, High, Medium and
    Low, and the delegator reads the gate off that line. Nobody registers
-   Medium or Low findings as D items (user decision, 2026-10-10). The
+   Medium or Low findings as D items (user decision, 2026-10-10). **A
+   Critical or High the auditor downgrades carries a reproduction or a
+   counter-proof**: the command and its decisive output, or a run, a
+   measured value or a file:line trace showing the ordinary path never
+   reaches it, posted next to the finding on the PR and in the report.
+   Without one, the finding stays High and fails the gate (user decision,
+   2026-10-16: 「后续每次降级都附上复现或者反证」). The
    auditor reports to the delegator, not to the implementor. **Zero Critical
    and zero High is the landing condition.** A Critical or High goes to the
    owner on the same branch: the owner fixes it there (new SHA, rebased if
