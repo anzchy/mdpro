@@ -48,6 +48,11 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - bottom tabs (userEvent, by role): each tab is a button named by its title beside a "Close *name*" button, and no button contains another interactive element. Enter on "Close" closes the tab, with the Discard confirmation when it has unsaved edits. Only the active tab has `aria-current`
 
 ### WI-4.3 — Settings row contract and ToggleSwitch (item 5, E4) — M
+- **Split for review (2026-10-17, mdpro-delegator):** this item lands as three PRs, in order:
+  - **4.3a**: row markup and ToggleSwitch, including the Tests that cover them;
+  - **4.3b**: States, Busy labels, Integrations empty/partial and Disabled reasons;
+  - **4.3c**: the unsaved banner and its interim-token deletion, together with WI-4.4.
+  Line cites below that point at `globals.css` predate D278's move into section partials. Today the banner is at `settings-pages.css:19-37`, the badge at `settings-mcp.css:13-16`, and the toggle at `settings-rows.css:138-176`. Preflight re-reads them.
 - **Row markup** (DESIGN.md § Settings rows; review :131-134 offered selectors or migration, and this plan migrates):
   - All eight panels with rows move to one markup, whether or not the proposal draws them (it draws Integrations, Export and Editor): Advanced, Appearance, Editor, Export, General, Image, Markdown and Integrations.
   - Markup: `.settings-row` › `.settings-row-content` › `.settings-row-label` (an `h4` title with an id, then an optional `p` description) and `.settings-row-control`.
@@ -58,7 +63,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - Extract `src/components/common/ToggleSwitch.tsx`:
   - it renders the label, the input and `.toggle-slider`
   - it exposes `role="switch"` with `aria-checked`, and gets its accessible name through `aria-labelledby` pointing at the visible row heading
-  - its visually hidden input gets a keyboard focus ring: add `.toggle-switch input:focus-visible + .toggle-slider` using the rule 33 pattern (there is none today, `globals.css:1319-1362`)
+  - its visually hidden input gets a keyboard focus ring: add `.toggle-switch input:focus-visible + .toggle-slider` using the rule 33 pattern (a `.toggle-switch input:focus-visible` rule already exists in `settings-rows.css`, so check it against rule 33 and the `+ .toggle-slider` target rather than adding a second one)
   - it replaces every checkbox input in Settings: nine inputs in six files (re-count in preflight)
     - the three Integrations toggles, which now share one checkbox in `McpToggleRow` (`McpToggleRow.tsx:53`)
     - six native checkboxes in the other five files: `EditorSettings`, `MarkdownSettings` ×2, `ImageSettings`, `ExportSettings`, `AdvancedSettings`
@@ -78,6 +83,8 @@ Each work item captures before/after screenshots per item × theme, and the stag
     - Remove the second, inline signals: Image `:75-76`, Export `:49-50`, and the Shortcuts `saveError` (`:212-213`, `:248`).
     - Switches and selects roll back to the saved value, as `MarkdownSettings.tsx:30-39` already does. The page stays usable. A failed Shortcuts save keeps the unsaved banner and the dialog open.
     - The unsaved banner (`.settings-dirty-banner`, `globals.css:1064-1073`) drops its amber for `--color-accent-soft` fill and a `--color-accent` border, matching the tab's unsaved dot (DR21). Its text stays `--color-text`. D278 moved the amber into the interim token `--color-banner-unsaved`; this item deletes it: the token in all three token blocks, its consumers, its DESIGN.md § Tokens row and its `INTERIM` entry in `tests/design-token-parity.test.ts`.
+    - **Look chosen by the user (2026-10-17): 「B1 (Recommended)」**: a solid `--color-accent` border and `--color-text` text, measured at 14.3 / 9.7 for the text and 5.2 / 7.0 for the border (light / dark). Prototype `prototype/wi43-44-colour` @ `cac945b1`; local only, it never lands.
+    - `tests/design-token-parity.test.ts` P5 (`:231-235`) and S2 (`:333-338`) use `--color-banner-unsaved` as their live interim example. Re-point them to a synthetic token in the same commit, and name those recorded lines in the handoff.
   - **Logging settings:** `AdvancedSettings` drops its inline `saveError` (`:22`, `:37`, `:53`, `:64`), rolls the control back and relies on the error toast. WI-4.13 makes the service reject, so this catch runs at all.
   - **MCP config read:** done in `8050803` (ADR-0039): the `getPreferences()` read now has a catch (`SettingsDialog.tsx:140-158`), and `8b9d8d3` made its log enum-only. The Integrations toggles show the lasting reason. Keep its test (`tests/settings-dialog-mcp-load-failures.test.tsx`).
   - **Busy labels:** the Integrations action buttons read "..." while busy (`McpClientList.tsx:74`, `:81`, `:90`). They become "Updating…", "Removing…" and "Installing…" (rule 30 rule 4).
@@ -107,7 +114,8 @@ Each work item captures before/after screenshots per item × theme, and the stag
 
 ### WI-4.4 — Running badge and toggle track (item 6) — S
 - `.mcp-status-badge.running` (`globals.css:1375-1378`): a dot plus muted text, no fill (review :146). D278 moved its literals into the interim tokens `--color-running-fill` and `--color-running-text`; this item deletes both: the tokens in all three token blocks, their consumers, their DESIGN.md § Tokens rows and their `INTERIM` entries in `tests/design-token-parity.test.ts`.
-- Toggle off-track (the `#ccc` at `globals.css:1339`): a text-based `color-mix` (review :147). This removes the last `stage: 4` deferred entry.
+  - **Look chosen by the user (2026-10-17): 「R1 (Recommended)」**: a 6px `--color-accent` dot and a `--color-muted` label. The label measures 4.83 / 7.04 on the panel, but only 4.52 in light on `--color-surface`, so the badge stays on the panel or group background.
+- ~~Toggle off-track (the `#ccc` at `globals.css:1339`): a text-based `color-mix` (review :147). This removes the last `stage: 4` deferred entry.~~ **Struck 2026-10-17:** it contradicts [ADR-0106](../../adr/0106-five-control-colours-are-accepted-below-the-a9-contrast-line.md), which records the user's 「Accept (today: #ccc)」, and the ADR wins. D278 has already tokenized the track as `--color-toggle-track-off: #cccccc`, so no deferred entry is left. Retuning it needs a new ADR.
 - No semantic green token unless the user asks (review :146).
 - **Tests:** the tokenization test covers the literals; the badge keeps its text label, so status is not conveyed by color only (rule 33 hard rule).
 
