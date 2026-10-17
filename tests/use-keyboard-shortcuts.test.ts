@@ -16,10 +16,10 @@ import * as fs from "fs";
 import * as path from "path";
 
 const SRC = path.resolve(__dirname, "../src");
-const src = fs.readFileSync(
-  path.join(SRC, "hooks/useKeyboardShortcuts.ts"),
-  "utf-8",
-);
+// The matcher moved to utils/shortcutMatch.ts (M1A-WI-9a); read both files.
+const src =
+  fs.readFileSync(path.join(SRC, "hooks/useKeyboardShortcuts.ts"), "utf-8") +
+  fs.readFileSync(path.join(SRC, "utils/shortcutMatch.ts"), "utf-8");
 
 describe("useKeyboardShortcuts — source structure", () => {
   it("accepts a shortcuts parameter with DEFAULT_KEYBOARD_SHORTCUTS as default", () => {

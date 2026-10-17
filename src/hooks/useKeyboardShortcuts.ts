@@ -15,6 +15,7 @@ import {
 } from "../plugins/codemirror/headingPlugin";
 import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
 import { refuseModalOpenWhileModalOpen, refuseTabActionWhileModalOpen } from "../utils/modalTabActionGuard";
+import { matchesShortcut as matchKeyEvent } from "../utils/shortcutMatch";
 
 export type { TableShortcutAction } from "./useKeyboardShortcuts.types";
 
@@ -29,78 +30,10 @@ const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform
 const relaxedPass = new WeakSet<KeyboardEvent>();
 const matched = new WeakSet<KeyboardEvent>();
 
-/** Test a live KeyboardEvent against a stored shortcut string (e.g. "Cmd+Shift+K").
- *
- *  Modifier tokens:
- *   "Cmd"    → primary modifier: metaKey on macOS, ctrlKey on other platforms
- *   "Ctrl"   → ctrlKey. On macOS a modifier distinct from Cmd; off-Mac it is
- *              the primary modifier too, so "Cmd+S", "Ctrl+S" and
- *              "Cmd+Ctrl+S" all mean Ctrl+S there (D190; D50).
- *   "Option" → altKey
- *   "Shift"  → shiftKey
- *
- *  Off-Mac a pressed metaKey (Windows/Super key), or AltGr
- *  (`getModifierState("AltGraph")`), never matches any binding.
- *  On the off-Mac second pass only, a symbol key bound without Shift also
- *  matches when the layout needs Shift to type it (`event.key` is the symbol
- *  itself, e.g. "/" as Shift+7 on German); letters keep the exact Shift
- *  check. The pass runs only when no binding matched exactly, so a binding
- *  that wants the Shift wins (audit b121).
- *
- *  Key tokens: uppercase letters/digits map case-insensitively; arrow
- *  abbreviations (Up/Down/Left/Right) map to ArrowX; "Space" maps to " ".
- */
+/** Match one keydown against one binding (src/utils/shortcutMatch.ts), feeding
+ *  this hook's off-Mac second-pass state in and recording a hit for it. */
 function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
-  const parts = shortcut.split("+");
-  let wantCmd = false,
-    wantCtrl = false,
-    wantOption = false,
-    wantShift = false;
-  let keyPart = "";
-
-  for (const p of parts) {
-    if (p === "Cmd") wantCmd = true;
-    else if (p === "Ctrl") wantCtrl = true;
-    else if (p === "Option") wantOption = true;
-    else if (p === "Shift") wantShift = true;
-    else keyPart = p; // last non-modifier segment is the key
-  }
-
-  // Off-Mac, AltGr arrives as ctrlKey + altKey, the same flags a "Cmd+Option+…"
-  // binding wants there. It is a character-input key, never a shortcut chord
-  // (#38 excluded it; D190 audit b98). macOS Option is not AltGr: untouched.
-  if (!isMac && event.getModifierState?.("AltGraph")) return false;
-
-  const primaryMod = isMac ? event.metaKey : event.ctrlKey;
-  const secondaryMod = isMac ? event.ctrlKey : event.metaKey;
-  const wantPrimary = isMac ? wantCmd : wantCmd || wantCtrl;
-  const wantSecondary = isMac ? wantCtrl : false;
-  if (wantPrimary !== primaryMod) return false;
-  if (wantSecondary !== secondaryMod) return false;
-  if (wantOption !== event.altKey) return false;
-
-  // Normalize the stored key name to what event.key produces
-  let normalizedKey: string;
-  if (keyPart === "Space") normalizedKey = " ";
-  else if (keyPart === "Up") normalizedKey = "ArrowUp";
-  else if (keyPart === "Down") normalizedKey = "ArrowDown";
-  else if (keyPart === "Left") normalizedKey = "ArrowLeft";
-  else if (keyPart === "Right") normalizedKey = "ArrowRight";
-  else normalizedKey = keyPart;
-
-  // Off-Mac, a symbol the layout types with Shift ("/" is Shift+7 on German)
-  // arrives as that symbol with shiftKey set; a binding without Shift still
-  // matches it on the second pass. Letters keep the exact check (D190-WI-7,
-  // audits b120, b121).
-  const shiftTypedSymbol =
-    relaxedPass.has(event) && !wantShift && normalizedKey.length === 1 && !/[a-z]/i.test(normalizedKey) && event.key === normalizedKey;
-  if (wantShift !== event.shiftKey && !shiftTypedSymbol) return false;
-
-  // Single-character keys: compare case-insensitively
-  const hit =
-    normalizedKey.length === 1
-      ? event.key.toUpperCase() === normalizedKey.toUpperCase()
-      : event.key === normalizedKey;
+  const hit = matchKeyEvent(event, shortcut, { isMac, relaxed: relaxedPass.has(event) });
   if (hit) matched.add(event);
   return hit;
 }

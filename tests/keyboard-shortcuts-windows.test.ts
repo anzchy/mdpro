@@ -24,7 +24,8 @@ function readHook(relPath: string): string {
 // ---------------------------------------------------------------------------
 
 describe("useKeyboardShortcuts source — Windows Ctrl key guard", () => {
-  const src = readHook("hooks/useKeyboardShortcuts.ts");
+  // The matcher moved to utils/shortcutMatch.ts (M1A-WI-9a); read both files.
+  const src = readHook("hooks/useKeyboardShortcuts.ts") + readHook("utils/shortcutMatch.ts");
 
   it("uses an OS-aware primary modifier (isMac ? metaKey : ctrlKey)", () => {
     // The fix must detect the OS and select the platform-primary modifier.
