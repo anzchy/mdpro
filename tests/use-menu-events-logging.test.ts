@@ -8,9 +8,10 @@
  *   - one `ui.menu.listen` line per `listen()` attempt: `success` when it
  *     resolves while the mount is live, `cancel` when it resolves after cleanup,
  *     `fail` when it rejects — whether or not cleanup already ran (D2, D3);
- *   - one `ui.menu.focus_check` `fail` line per event whose `isFocused()`
- *     rejects, while the gate keeps failing open (C2, C3);
- *   - an unfocused window runs nothing and logs nothing (C1, characterization).
+ *   - a payload addressed to another window runs nothing and writes one
+ *     `ui.menu.select` `cancel` / `wrong_target` line (C1, D261);
+ *   - no `ui.menu.focus_check` line is ever written: D261 removed the focus
+ *     query and its fail-open path (C2, and D4 invariant 3).
  *
  * Law L-D (outcome conservation, per outcome) is asserted at S5 by D3, which
  * runs in the slow tier: `use-menu-events-logging.slow.test.ts` (ADR-0050, D124).
@@ -20,14 +21,11 @@
  *
  * Mock boundary: only the three Tauri modules, shared with
  * `tests/use-menu-events-subscription.test.ts` (WI-1) through
- * `tests/support/menuEventsHarness.ts`. The event module is a real in-memory
- * bus with deferred resolution; `loggingService` and `loggingStore` are real;
- * `invoke("log_event")` captures the JSONL payload. The hook-side helpers come
- * from `tests/support/menuEventsDomain.ts`.
- *
- * Not modelled here: two windows receiving one broadcast click. jsdom has one
- * module-global `getCurrentWindow`, and the Tauri JS mocks do not target a
- * window (D30). That case is covered only by the E2E-D31-device run.
+ * `tests/support/menuEventsHarness.ts`. The window module's `listen` is a real
+ * in-memory, label-routed bus with deferred resolution; `loggingService` and
+ * `loggingStore` are real; `invoke("log_event")` captures the JSONL payload.
+ * The hook-side helpers come from `tests/support/menuEventsDomain.ts`. Two
+ * windows are modelled in `tests/d261-menu-target-routing.test.ts`.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -38,7 +36,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
   invoke: (await import("./support/menuEventsHarness")).invokeCapturingLogs,
 }));
 
-import { bus, logs, win } from "./support/menuEventsHarness";
+import { bus, win } from "./support/menuEventsHarness";
 import {
   calls,
   collectAndClearLogs,
@@ -105,85 +103,55 @@ describe("useMenuEvents — ui.menu.select carries windowLabel (WI-2)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// C — the focus gate
+// C — the target filter (D261; replaces the focus gate)
 // ---------------------------------------------------------------------------
 
-describe("useMenuEvents — focus gate (WI-2)", () => {
-  it("C1: an unfocused window runs no handler and writes no select line (characterization)", async () => {
-    win.focus = "false";
+// Rule-12 reason for C1–C3 (D261-WI-1c): the fail-open spec (act when
+// isFocused() rejects) is the defect D261 removes; the focus query no longer
+// exists. C1 ("an unfocused window runs nothing and logs nothing") becomes the
+// target filter, which logs one wrong_target cancel; C2 and C3 (one
+// focus_check fail line per rejected focus check, with a fixed reason) are
+// replaced by "no focus_check line is ever written", since a spec about the
+// focus check's failure has no subject.
+describe("useMenuEvents — target filter (D261)", () => {
+  it("C1: a payload for another window runs no handler and writes one wrong_target cancel each", async () => {
+    win.label = "mdpro-3";
     const h = mountHook(makeHandlers(0));
     await flush();
     for (const action of ["file.new_window", "file.save", "theme.light"]) {
-      bus.emit(EVT, { action });
+      bus.emitAny(EVT, { action, target: "mdpro-9" });
       await flush();
     }
 
     expect(calls).toEqual([]);
-    expect(menuLogs("ui.menu.select")).toHaveLength(0);
-    expect(menuLogs("ui.menu.focus_check")).toHaveLength(0);
+    const select = menuLogs("ui.menu.select");
+    expect(select.map((l) => [l.payload.status, l.payload.context])).toEqual(
+      Array(3).fill(["cancel", { windowLabel: "mdpro-3", reason: "wrong_target" }]),
+    );
 
-    // Positive control: the same mount acts once focused.
-    win.focus = "true";
+    // Positive control: the same mount acts on a payload addressed to it.
     bus.emit(EVT, { action: "file.save" });
     await flush();
     expect(calls).toEqual([{ gen: 0, key: "onSave", args: [expect.any(String)] }]);
-    expect(menuLogs("ui.menu.select")).toHaveLength(1);
+    expect(menuLogs("ui.menu.select").filter((l) => l.payload.status === "success")).toHaveLength(1);
     h.unmount();
   });
 
-  it("C2: a rejected isFocused() fails open and logs one focus_check fail per event (RED before WI-2)", async () => {
+  it("C2: no ui.menu.focus_check line is ever written, acting or refusing", async () => {
     win.label = "mdpro-3";
-    win.focus = "reject";
-    win.rejectWith = new Error("ipc down");
     const h = mountHook(makeHandlers(0));
     await flush();
     for (let i = 0; i < 3; i++) {
       bus.emit(EVT, { action: "file.new" });
+      bus.emitAny(EVT, { action: "file.new", target: "mdpro-2" });
+      bus.emitAny(EVT, { action: "file.new" });
       await flush();
     }
 
     expect(calls).toHaveLength(3);
-    expect(calls.every((c) => c.key === "onNew")).toBe(true);
-    const checks = menuLogs("ui.menu.focus_check");
-    expect(checks).toHaveLength(3);
-    for (const line of checks) {
-      expect(line.payload.status).toBe("fail");
-      expect(line.payload.level).toBe("info");
-      expect(line.payload.context).toEqual({ windowLabel: "mdpro-3" });
-    }
-    expect(menuLogs("ui.menu.select")).toHaveLength(3);
+    expect(menuLogs("ui.menu.select")).toHaveLength(9);
+    expect(menuLogs("ui.menu.focus_check")).toHaveLength(0);
     h.unmount();
-  });
-
-  it("C3 METAMORPHIC: the focus_check error is a fixed reason, independent of the raw error", async () => {
-    const runOnce = async (rejectWith: unknown) => {
-      logs.length = 0;
-      win.focusChecks = 0;
-      bus.state.delivered = 0;
-      win.focus = "reject";
-      win.rejectWith = rejectWith;
-      const h = mountHook(makeHandlers(0));
-      await flush();
-      bus.emit(EVT, { action: "file.new" });
-      await flush();
-      const checks = menuLogs("ui.menu.focus_check");
-      expect(checks).toHaveLength(1);
-      const payload = checks[0].payload;
-      h.unmount();
-      await flush();
-      collectAndClearLogs();
-      return payload;
-    };
-
-    const run1 = await runOnce(new Error("/Users/alice/secret.md EACCES"));
-    const run2 = await runOnce("plain string");
-
-    expect(typeof run1.error).toBe("string");
-    expect(run1.error.length).toBeGreaterThan(0);
-    expect(run1.error).toBe(run2.error);
-    const serialized = JSON.stringify(run1);
-    expect(serialized).not.toContain("/Users/alice");
-    expect(serialized).not.toContain("EACCES");
   });
 });
 
@@ -279,7 +247,7 @@ describe("useMenuEvents — ui.menu.listen lifecycle lines (WI-2)", () => {
 // ---------------------------------------------------------------------------
 
 describe("useMenuEvents — D4 property: every ui.menu.* line has the allowed shape (runs last)", () => {
-  it("D4: every captured ui.menu.* line obeys invariants 1-5", () => {
+  it("D4: every captured ui.menu.* line obeys invariants 1-6", () => {
     const lines = collected.filter((l) => String(l.payload.event).startsWith("ui.menu."));
 
     // Non-vacuity: every event/status class the earlier cases produce is present.
@@ -289,7 +257,9 @@ describe("useMenuEvents — D4 property: every ui.menu.* line has the allowed sh
       "ui.menu.listen/success",
       "ui.menu.listen/cancel",
       "ui.menu.listen/fail",
-      "ui.menu.focus_check/fail",
+      // D261: focus_check/fail no longer exists (rule-12 reason at C above);
+      // the wrong_target cancel is the class that took its place.
+      "ui.menu.select/cancel",
     ]) {
       expect(kinds.has(kind), `collected lines include ${kind}`).toBe(true);
     }

@@ -44,9 +44,8 @@ const { menuBus, mcpBus, logs, subscribe } = vi.hoisted(() => {
   };
 });
 
-vi.mock("@tauri-apps/api/event", () => ({ listen: subscribe(menuBus) }));
 vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({ label: "main", isFocused: async () => true }),
+  getCurrentWindow: () => ({ label: "main", listen: subscribe(menuBus) }),
 }));
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => ({ label: "main", listen: subscribe(mcpBus) }),
@@ -90,7 +89,8 @@ async function deliver(bus: Map<string, Set<Cb>>, name: string, payload: unknown
   });
 }
 
-const menu = (action: string, value: string | null = null) => deliver(menuBus, "menu:action", { action, value });
+const menu = (action: string, value: string | null = null) =>
+  deliver(menuBus, "menu:action", { action, value, target: "main" });
 
 function doc(id: string): Document {
   return { id, path: `/x/${id}.md`, content: "", encoding: "UTF-8", lineEnding: "lf", isModified: false, lastSaved: null, fileSize: 0 };

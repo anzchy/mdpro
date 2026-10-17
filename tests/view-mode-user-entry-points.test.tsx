@@ -57,14 +57,10 @@ const { bus } = vi.hoisted(() => {
   return { bus };
 });
 
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: (evt: string, handler: (event: { payload: unknown }) => void) => bus.listen(evt, handler),
-}));
-
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     label: "main",
-    isFocused: (): Promise<boolean> => Promise.resolve(true),
+    listen: (evt: string, handler: (event: { payload: unknown }) => void) => bus.listen(evt, handler),
   }),
 }));
 
@@ -92,7 +88,7 @@ async function settle(): Promise<void> {
 }
 
 async function dispatchMenu(payload: { action: string; value?: string }): Promise<void> {
-  bus.emit(MENU_EVENT, payload);
+  bus.emit(MENU_EVENT, { ...payload, target: "main" });
   await settle();
 }
 

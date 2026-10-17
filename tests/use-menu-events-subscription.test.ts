@@ -13,26 +13,23 @@
  *   L-A1 (conservation of subscriptions) — once every pending `listen()` has
  *     settled, the live `menu:action` handler count is `mounted ? 1 : 0`.
  *   L-A2 (exactly-once dispatch) — each emit delivered while the current mount
- *     is registered and the focus gate passes produces exactly one handler call,
- *     on the newest rendered handler identity.
+ *     is registered and addressed to its window produces exactly one handler
+ *     call, on the newest rendered handler identity.
  *
  * Mock boundary: only the three Tauri modules, through
  * `tests/support/menuEventsHarness.ts` (shared with the logging suite and the
  * slow sibling).
- *   - `@tauri-apps/api/event` is a REAL in-memory bus with deferred resolution
- *     (shaped after `tests/use-theme-listener-cancellation.test.ts:34-91`), so
- *     "live subscriptions" is the bus's own `Set` size, never a call record.
- *   - `@tauri-apps/api/window` supplies `{ label, isFocused }`.
+ *   - `@tauri-apps/api/window` supplies `{ label, listen }`; its `listen` is a
+ *     REAL in-memory, label-routed bus with deferred resolution (shaped after
+ *     `tests/use-theme-listener-cancellation.test.ts:34-91`), so "live
+ *     subscriptions" is the bus's own `Set` size, never a call record.
  *   - `@tauri-apps/api/core` `invoke` captures `log_event` payloads — the JSONL
  *     line the app writes. `loggingService` and `loggingStore` are real.
  * The hook-side helpers and the dispatch table come from
  * `tests/support/menuEventsDomain.ts`.
  *
- * Not modelled here: two windows receiving one broadcast click. jsdom has one
- * module-global `getCurrentWindow`, and the Tauri JS mocks do not target a
- * window (D30). That case is covered only by the E2E-D31-device run.
+ * Two windows are modelled in `tests/d261-menu-target-routing.test.ts` (D261).
  */
-import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/event", async () => (await import("./support/menuEventsHarness")).eventModuleMock());
@@ -194,18 +191,21 @@ describe("useMenuEvents — subscription lifecycle (D31)", () => {
     }
   });
 
-  it("A7: the handler identity is read after the focus-check await, not before (RED before D31)", async () => {
-    win.focus = "deferred";
+  // Rule-12 reason for A7 and A7b (D261-WI-1c): the fail-open spec (act when
+  // isFocused() rejects) is the defect D261 removes; the focus query no longer
+  // exists, so there is no focus await to park on. Both now park on a deferred
+  // listen() resolve instead, the one await left on the subscription path.
+  it("A7: the handler identity is read at dispatch, not at subscribe (deferred listen)", async () => {
+    bus.state.autoResolve = false;
     const h = mountHook(makeHandlers(0));
     await flush();
-    bus.emit(EVT, { action: "file.export_html" });
-    await flush();
-    expect(win.deferreds.length, "precondition: parked on isFocused()").toBe(1);
+    expect(bus.state.pending.length, "precondition: parked on listen()").toBe(1);
 
     h.rerender({ h: makeHandlers(1) });
-    await act(async () => {
-      win.deferreds[0](true);
-    });
+    await flush();
+    bus.drain();
+    await flush();
+    bus.emit(EVT, { action: "file.export_html" });
     await flush();
 
     expect(calls).toEqual([{ gen: 1, key: "onExportHtml", args: [expect.any(String)] }]);
@@ -215,22 +215,20 @@ describe("useMenuEvents — subscription lifecycle (D31)", () => {
     h.unmount();
   });
 
-  it("A7b: an event parked on the focus check when the window unmounts dispatches nothing", async () => {
-    win.focus = "deferred";
+  it("A7b: an event delivered after unmount, before the late listen() is unlistened, dispatches nothing", async () => {
+    bus.state.autoResolve = false;
     const h = mountHook(makeHandlers(0));
     await flush();
-    bus.emit(EVT, { action: "file.save" });
-    await flush();
-    expect(win.deferreds.length, "precondition: parked on isFocused()").toBe(1);
+    expect(bus.state.pending.length, "precondition: parked on listen()").toBe(1);
 
     h.unmount();
-    await act(async () => {
-      win.deferreds[0](true);
-    });
+    bus.drain();
+    bus.emit(EVT, { action: "file.save" });
     await flush();
 
     expect(calls).toEqual([]);
     expect(menuLogs("ui.menu.select")).toHaveLength(0);
+    expect(bus.count(EVT)).toBe(0);
   });
 
   it.each([1, 3])(
