@@ -540,32 +540,31 @@ look. Where the two disagree, the plan wins and this block is corrected.
   - System keys (Jump to Top / Bottom, macOS full screen) and fixed keys
     (Undo, Redo, Quit / Exit) show their key in a non-editable box with a
     dashed `--color-border` edge, not a button.
-  - A merged entry (Replace) shows "→ Find and Replace" where the key
-    would be.
+  - Find and Replace are two rows with two keys (plan D13: ⌘F / ⌘H,
+    Ctrl+F / Ctrl+H). There is no merged entry.
 - **Changed defaults:** not announced. No banner, no "was …" line, no
   marker. The new keys show as the keys. The changelog is where the move is
   recorded.
-- **Open items** (for the plan's § 9 re-review and the user; don't decide
-  them while building):
-  1. Quote has no macOS key until the M2 spike decides ⌥⌘Q (plan open
-     question 1). The row reads "No key".
-  2. F6 alone, or ⌘/ / Ctrl+/ kept as a second key (OQ2). A native item
-     shows one key, so a second key could only appear in Settings.
+- **Items settled by the plan's decisions** (2026-10-16; the plan's § 0 is
+  the record):
+  1. Quote is ⇧⌘B on macOS (D10). ⌥⌘Q stays unassigned.
+  2. ⌘/ / Ctrl+/ is the menu's key and F6 a fixed second key (D11).
   3. *(W)* / *(S)* items draw exactly like "not available" in a native menu.
-  4. Windows, WYSIWYG: Find is greyed while Ctrl+F opens WebView2's own
-     find bar (§ 5.2, OQ7). The menu and the key disagree.
-  5. View order differs: § 5.1 is Source, WYSIWYG, Toggle Source Mode;
-     § 5.2 puts Toggle Source Mode first.
-  6. The menu is "Themes" in the plan; today it is "Theme".
-  7. M7 doesn't say which Settings group takes Export HTML, Highlight,
-     Undo / Redo and Exit. The prototype drew them in File, Format, Edit
-     (fixed) and File.
-  8. Jump to Top / Bottom become fixed "System" rows with no menu item.
-  9. macOS inserts items the plan doesn't draw: the Help search field, the
-     Window menu's window list and View › Enter Full Screen.
-  10. D255 (decision D7) builds what it can, so the "not available" set
-      will shrink from § 5.1's as drawn. The look holds for whatever
-      remains.
+     This is the accepted cost of A (D8), not an open item.
+  4. The View order follows each platform's tree as drawn (§ 5.1, § 5.2),
+     and the menu is "Themes" on both.
+  5. Export HTML is in File, Highlight in Format, Undo / Redo in Edit
+     (fixed) and Exit in File (D14, as prototype A drew them).
+  6. Jump to Top / Bottom are fixed "System" rows with no menu item
+     (§ 5.3.2, K2).
+- **Still open:**
+  1. Windows, WYSIWYG: while Ctrl+F opens WebView2's own find bar, Settings
+     says "WYSIWYG: browser find bar" (§ 5.2). Whether to keep or suppress
+     that key until D255's find lands is the user's U11.
+  2. Items macOS inserts (the Help search field, the Window menu's window
+     list, View › Enter Full Screen) are expected extras, owned by M4.
+  3. D255 (D7) builds what it can, so the "not available" set shrinks from
+     § 5.1's as drawn. The look holds for whatever remains.
 
 ### Toasts (proposal :278-281, :558-564; DR9)
 
