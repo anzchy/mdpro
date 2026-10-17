@@ -357,6 +357,12 @@ it. (User decision, 2026-10-10.)
   dtrack. If the MacBook's Tailscale IP changes, re-run
   `build-mini-settings.py` and rsync the result. The hook token is a
   secret like the MCP token: never print it. (User decision, 2026-10-11.)
+- **Dim text in the tester's input box is Claude Code's prompt suggestion,
+  not anything the user typed.** Read the box with `capture-pane -ep`: a
+  suggestion is wrapped in `ESC[2m`. Never submit it or report it as the
+  user's answer. On 2026-10-17 a suggestion was taken for the user's S2
+  answer and sent; the user had pressed no Esc (「I did not hit Esc」), and
+  the run was recorded as not exercised.
 - **A long `send-keys` string needs `C-m`, not `Enter`, to submit**, and
   nothing goes through while a read-only viewer (`tmux attach -r`) is the
   session's most recent client: `send-keys` answers "client is read-only"
