@@ -90,7 +90,7 @@ class Ch:
     def call(self, cmd, args=None, token=None, rid=None, window="main", sock=None, timeout=10):
         self.n += 1
         return ctl.call(sock or self.sock, self.token if token is None else token, cmd, args, window,
-                        rid or f"s1b-{cmd}-{self.n}-{time.time_ns() % 10**9}", timeout=timeout)
+                        rid if rid is not None else f"s1b-{cmd}-{self.n}-{time.time_ns() % 10**9}", timeout=timeout)
 
 
 def code(rep):
@@ -247,6 +247,7 @@ def s15_eval_on(on_wt, stale_token):
     if not (pid and wait_handoff(run)):
         return say("e0", "FAIL", "eval-on launch failed")
     ch = Ch(run)
+    settle(run)  # a page script sent while the page still loads fails as script_error (seen 2026-10-17)
     with open(os.path.join(RUNS, run, "control.json")) as f:
         say("e0", "PASS" if json.load(f)["eval"] is True else "FAIL", "eval flag in control.json")
     say("a4", "PASS" if code(ch.call("ping", token=stale_token)) == "unauthorized" else "FAIL", "previous run's token refused")

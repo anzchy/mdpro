@@ -25,7 +25,7 @@ def load(run_id=None, control_json=None):
 
 
 def call(sock_path, token, cmd, args=None, window="main", rid=None, timeout=CLIENT_TIMEOUT_S):
-    req = {"token": token, "id": rid or f"ctl-{random.getrandbits(48):012x}", "cmd": cmd, "window": window,
+    req = {"token": token, "id": rid if rid is not None else f"ctl-{random.getrandbits(48):012x}", "cmd": cmd, "window": window,
            "args": args or {}}
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.settimeout(timeout)
