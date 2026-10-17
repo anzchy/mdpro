@@ -111,9 +111,10 @@ handoff. Each item is tagged `prep` or `impl`.
   revised grant first.
 - **Deferred items stay `prep`** until the user's priority order makes them
   current.
-- **Cap**: one unlanded implementation item per session and three machine-wide
-  (a trial, [ADR-0118](../../docs/adr/0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md);
-  user decision, 2026-10-17: 「Slot 改为3个试试」).
+- **Cap**: one unlanded implementation item per session and four machine-wide
+  ([ADR-0119](../../docs/adr/0119-four-implementation-slots-machine-wide.md), superseding
+  ADR-0118's three; user decision, 2026-10-17: 「slot increase to 4 now, so that
+  mdpro-design can continue doing its work」).
   Dirty, committed, waiting and fix work all count; the auditor's audits do not.
 - **Precedence**: audit fixes on your own work, then the current priority
   item, then a pull.

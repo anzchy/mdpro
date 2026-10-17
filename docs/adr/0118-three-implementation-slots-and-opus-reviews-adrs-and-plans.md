@@ -12,6 +12,8 @@ Partially supersedes:
   "the Fable auditor in `plan` mode" for an ADR before acceptance and a plan before its first
   `impl` grant. Fable keeps every PR audit, confirm and challenge.
 
+Partially superseded, 2026-10-17: decision 1's "three machine-wide", now four, by [ADR-0119](0119-four-implementation-slots-machine-wide.md).
+
 ## Context
 
 ADR-0097 capped unlanded implementation items at two machine-wide, "chosen as a conservative
