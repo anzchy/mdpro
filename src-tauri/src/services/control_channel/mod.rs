@@ -4,7 +4,9 @@
 //!
 //! Key decisions:
 //! - `proto`: the request contract, with no I/O. `handoff`: the token,
-//!   `control.json` and the socket, inside the verified run dir.
+//!   `control.json` and the socket, inside the verified run dir. `optin`:
+//!   the launcher's marker, without which the channel stays closed.
 
 pub mod handoff;
+pub mod optin;
 pub mod proto;
