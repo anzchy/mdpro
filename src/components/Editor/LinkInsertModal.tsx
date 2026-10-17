@@ -18,6 +18,13 @@
  *   - useLinkInsertBinding clears the request (the modal unmounts) when the
  *     active document switches or closes, or the view mode changes (D73); that
  *     path logs `ui.link-insert.cancel`, not `ui.link-modal.cancel`.
+ *   - Every close gives focus back (D259): the card is mounted only while a
+ *     request is pending, so `useReturnFocusOnClose` captures what held focus
+ *     at open (the editor) and returns it at unmount, or the active WYSIWYG
+ *     editor's end if that element is gone. Source mode's own return
+ *     (linkPlugin) runs first; the hook then leaves focus alone. The cancel
+ *     and submit lines are logged at unmount, after that return, with
+ *     `focusReturned`.
  *
  * @coordinates-with src/stores/linkInsertStore.ts
  * @coordinates-with src/plugins/milkdown/typoraKeymapPlugin.ts
@@ -25,11 +32,15 @@
  * @coordinates-with src/components/Editor/SplitView.tsx — Source mode mount (D55)
  * @coordinates-with src/plugins/codemirror/linkPlugin.ts
  * @coordinates-with src/hooks/useLinkInsertBinding.ts — closes it on a stale request (D73)
+ * @coordinates-with src/hooks/useReturnFocusOnClose.ts — the return on close (D259)
+ * @coordinates-with src/utils/focusActiveMilkdownAtEnd.ts — its fallback
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useReturnFocusOnClose } from "../../hooks/useReturnFocusOnClose";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
 import { loggingService } from "../../services/loggingService";
+import { focusActiveMilkdownAtEnd } from "../../utils/focusActiveMilkdownAtEnd";
 
 /** WebKit's keyCode for a keydown that belongs to an input method (also useDialogEscape). */
 const IME_KEY_CODE = 229;
@@ -37,64 +48,77 @@ const IME_KEY_CODE = 229;
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/** Whether focus left the closing card for a real element (not `<body>`). */
+function focusReturnedFrom(card: HTMLElement | null): boolean {
+  const active = document.activeElement;
+  return active instanceof HTMLElement && active !== document.body && !card?.contains(active);
+}
+
 export function LinkInsertModal() {
   const pendingCallback = useLinkInsertStore((state) => state.pendingCallback);
+  if (pendingCallback === null) return null;
+  return <LinkInsertCard />;
+}
+
+function LinkInsertCard() {
   const mode = useLinkInsertStore((state) => state.mode);
   const [urlValue, setUrlValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  // The close's log line, written at unmount once focus has been returned (D259).
+  const logOnClose = useRef<((focusReturned: boolean) => void) | null>(null);
+  useReturnFocusOnClose(cardRef, focusActiveMilkdownAtEnd);
+  // Declared after the hook, so its cleanup runs after the hook's return.
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    return () => logOnClose.current?.(focusReturnedFrom(card));
+  }, []);
 
-  const isOpen = pendingCallback !== null;
-
-  // Reset input and focus when modal opens
+  // Focus the URL field once the card is mounted.
   useEffect(() => {
-    if (isOpen) {
-      setUrlValue("");
-      // Defer focus to next tick so the element is in the DOM
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-      loggingService.logEventSync({
-        level: "info",
-        event: "ui.link-modal.open",
-        status: "success",
-        actionId: loggingService.generateActionId(),
-        context: { screen: mode },
-      });
-    }
-  }, [isOpen, mode]);
-
-  if (!isOpen) return null;
+    // Defer focus to next tick so the element is in the DOM
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    loggingService.logEventSync({
+      level: "info",
+      event: "ui.link-modal.open",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: { screen: mode },
+    });
+  }, [mode]);
 
   const handleSubmit = () => {
     const url = urlValue.trim();
     if (!url) return;
 
     const cb = useLinkInsertStore.getState().pendingCallback;
+    logOnClose.current = (focusReturned) =>
+      loggingService.logEventSync({
+        level: "info",
+        event: "ui.link-modal.submit",
+        status: "success",
+        actionId: loggingService.generateActionId(),
+        context: { screen: mode, urlLength: url.length, focusReturned },
+      });
     useLinkInsertStore.getState().clearPendingCallback();
 
     if (cb) {
       cb(url);
     }
-
-    loggingService.logEventSync({
-      level: "info",
-      event: "ui.link-modal.submit",
-      status: "success",
-      actionId: loggingService.generateActionId(),
-      context: { screen: mode, urlLength: url.length },
-    });
   };
 
   const handleCancel = () => {
+    logOnClose.current = (focusReturned) =>
+      loggingService.logEventSync({
+        level: "info",
+        event: "ui.link-modal.cancel",
+        status: "cancel",
+        actionId: loggingService.generateActionId(),
+        context: { screen: mode, focusReturned },
+      });
     useLinkInsertStore.getState().clearPendingCallback();
-    loggingService.logEventSync({
-      level: "info",
-      event: "ui.link-modal.cancel",
-      status: "cancel",
-      actionId: loggingService.generateActionId(),
-      context: { screen: mode },
-    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -12,6 +12,12 @@
  *   - Cancel (Esc / Cancel button / backdrop click) → `clearPending()`.
  *   - Inline error region (role=alert) surfaces when the callback
  *     returns false (cursor inside an existing table).
+ *   - Every close gives focus back (D259): the card is mounted only while a
+ *     request is pending, so `useReturnFocusOnClose` captures what held focus
+ *     at open (the editor) and returns it at unmount, or the active editor's
+ *     end if that element is gone. The cancel and successful submit lines are
+ *     logged at unmount, after that return, with `focusReturned`; a failed
+ *     submit keeps the dialog open and logs `focusReturned: false` at once.
  *
  * Semantics: `rows = N` means N **body** rows. The resulting GFM
  * table has `rows + 1` total rows because the header row is always
@@ -20,11 +26,15 @@
  * @coordinates-with src/stores/tableInsertStore.ts
  * @coordinates-with src/plugins/milkdown/table/insertTable.ts
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
+ * @coordinates-with src/hooks/useReturnFocusOnClose.ts — the return on close (D259)
+ * @coordinates-with src/utils/focusActiveMilkdownAtEnd.ts — its fallback
  */
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useReturnFocusOnClose } from "../../../hooks/useReturnFocusOnClose";
 import { useTableInsertStore } from "../../../stores/tableInsertStore";
 import { loggingService } from "../../../services/loggingService";
+import { focusActiveMilkdownAtEnd } from "../../../utils/focusActiveMilkdownAtEnd";
 import { GridPicker } from "./GridPicker";
 
 const DEFAULT_ROWS = 3;
@@ -39,35 +49,46 @@ function clampDim(value: number): number {
   return Math.max(ABS_MIN, Math.min(ABS_MAX, Math.round(value)));
 }
 
+/** Whether focus left the closing card for a real element (not `<body>`). */
+function focusReturnedFrom(card: HTMLElement | null): boolean {
+  const active = document.activeElement;
+  return active instanceof HTMLElement && active !== document.body && !card?.contains(active);
+}
+
 export function TableInsertModal() {
   const pendingCallback = useTableInsertStore((state) => state.pendingCallback);
+  if (pendingCallback === null) return null;
+  return <TableInsertCard />;
+}
+
+function TableInsertCard() {
   const [rows, setRows] = useState<number>(DEFAULT_ROWS);
   const [cols, setCols] = useState<number>(DEFAULT_COLS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const rowsInputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const countId = useId();
+  const cardRef = useRef<HTMLDivElement>(null);
+  // The close's log line, written at unmount once focus has been returned (D259).
+  const logOnClose = useRef<((focusReturned: boolean) => void) | null>(null);
+  useReturnFocusOnClose(cardRef, focusActiveMilkdownAtEnd);
+  // Declared after the hook, so its cleanup runs after the hook's return.
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    return () => logOnClose.current?.(focusReturnedFrom(card));
+  }, []);
 
-  const isOpen = pendingCallback !== null;
-
-  // Reset state and focus the rows input when the modal opens.
+  // Focus the rows input once the card is mounted (state starts at the defaults).
   useEffect(() => {
-    if (isOpen) {
-      setRows(DEFAULT_ROWS);
-      setCols(DEFAULT_COLS);
-      setErrorMessage(null);
-      requestAnimationFrame(() => rowsInputRef.current?.focus());
-      loggingService.logEventSync({
-        level: "info",
-        event: "ui.table-modal.open",
-        status: "success",
-        actionId: loggingService.generateActionId(),
-        context: { screen: "wysiwyg" },
-      });
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+    requestAnimationFrame(() => rowsInputRef.current?.focus());
+    loggingService.logEventSync({
+      level: "info",
+      event: "ui.table-modal.open",
+      status: "success",
+      actionId: loggingService.generateActionId(),
+      context: { screen: "wysiwyg" },
+    });
+  }, []);
 
   const handleSubmit = () => {
     const cb = useTableInsertStore.getState().pendingCallback;
@@ -94,15 +115,17 @@ export function TableInsertModal() {
       errorText = err instanceof Error ? err.message : String(err);
     }
 
-    loggingService.logEventSync({
-      level: succeeded ? "info" : "warn",
-      event: "ui.table-modal.submit",
-      status: succeeded ? "success" : "fail",
-      actionId: loggingService.generateActionId(),
-      context: { screen: "wysiwyg", rows: safeRows, cols: safeCols, error: errorText },
-    });
+    const logSubmit = (focusReturned: boolean) =>
+      loggingService.logEventSync({
+        level: succeeded ? "info" : "warn",
+        event: "ui.table-modal.submit",
+        status: succeeded ? "success" : "fail",
+        actionId: loggingService.generateActionId(),
+        context: { screen: "wysiwyg", rows: safeRows, cols: safeCols, error: errorText, focusReturned },
+      });
 
     if (!succeeded) {
+      logSubmit(false);
       // WI-1.1 acceptance: failure shows inline error, modal does NOT auto-close.
       setErrorMessage(
         errorText
@@ -112,18 +135,20 @@ export function TableInsertModal() {
       return;
     }
 
+    logOnClose.current = logSubmit;
     useTableInsertStore.getState().clearPending();
   };
 
   const handleCancel = () => {
+    logOnClose.current = (focusReturned) =>
+      loggingService.logEventSync({
+        level: "info",
+        event: "ui.table-modal.cancel",
+        status: "cancel",
+        actionId: loggingService.generateActionId(),
+        context: { screen: "wysiwyg", focusReturned },
+      });
     useTableInsertStore.getState().clearPending();
-    loggingService.logEventSync({
-      level: "info",
-      event: "ui.table-modal.cancel",
-      status: "cancel",
-      actionId: loggingService.generateActionId(),
-      context: { screen: "wysiwyg" },
-    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -179,6 +204,7 @@ export function TableInsertModal() {
       }}
     >
       <div
+        ref={cardRef}
         className="dialog-card table-insert-modal"
         role="dialog"
         aria-modal="true"

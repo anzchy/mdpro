@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings has a calmer category list: each category has a thin outline icon in place of the emoji, rows are a little taller, the selected category is a neutral grey instead of blue, and keyboard focus shows a ring without changing the row's colour. The Close button at the bottom left is gone; close Settings with the × at the top right or Esc (D260).
 
 ### Fixed
+- After you close Insert Link (⌘K) or Insert Table (⌘⌥T) in WYSIWYG mode, with Esc, Cancel, a click outside or by inserting, keyboard focus goes back to the editor where your cursor was, so you can keep typing (D259).
 - The "Recover drafts" prompt at startup no longer appears on top of another dialog, such as Settings or an AI (MCP) write confirmation. It waits until they close, checks the drafts again, and then shows. An AI write confirmation that arrives while the prompt is open waits until you have recovered or discarded every draft (D241).
 - The "Recover drafts" prompt now puts keyboard focus on the first Recover button, keeps Tab and Shift+Tab inside the prompt, moves focus to the next draft after you recover or discard one, and returns focus to where it was once the last draft is handled (D273).
 - Highlighted text (`==text==`) is easier to read in Dark mode: the pink behind it is fainter and the text uses the theme's text colour instead of black (D256).
