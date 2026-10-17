@@ -21,6 +21,10 @@
  * 4.5, 4.8 (i), 4.9, 4.10, 4.11, 4.14, 4.16 and 4.20 (a) were rewritten to that behaviour; the
  * expected orders apply the hold through `heldApply` in `tests/support/d42DialogDriver.ts`.
  *
+ * D241 (ADR-0116 Decision 6): startup Recovery opening while another dialog is up, or an MCP
+ * request is held, is held too, and is admitted on its re-list once nothing holds it. The
+ * 4.10 and 4.11 pairs where Recovery opens second became "held under X"; `heldApply` models it.
+ *
  * Mock boundaries (MB-T): `@tauri-apps/api/webviewWindow` (a fake bus) and
  * `@tauri-apps/api/core` `invoke`, routed: `log_event` → `logs`, `mcp_confirm_reply` →
  * recorded, the SettingsDialog loads → fixtures. `loggingService` / `loggingStore`, every
@@ -712,6 +716,16 @@ describe("D42: exhaustive pairs", () => {
         expect(order).toEqual(["mcp"]);
         return;
       }
+      if (y === "recovery") {
+        // D241 (ADR-0116 Decision 6): Recovery opening second is held under X
+        // until X closes, then admitted on its re-list.
+        expect(order).toEqual([x]);
+        expect(dialogFor("recovery")).toBeNull();
+        order = await applyDomainEvent(h, order, { kind: "close", id: x }, check);
+        watcher.stop();
+        expect(order).toEqual(["recovery"]);
+        return;
+      }
       watcher.stop();
       expect(order).toEqual([x, y]);
     },
@@ -767,6 +781,25 @@ describe("D42: exhaustive pairs", () => {
       expect(escapeLines().length - esc0).toBe(ON_STACK.has(x) ? 1 : 0);
       return;
     }
+    if (y === "recovery") {
+      // D241 (ADR-0116 Decision 6): Recovery is held under X, so X is the top
+      // dialog and Escape is X's; Recovery shows once X has gone.
+      expect(dialogFor("recovery")).toBeNull();
+      const inX = within(dialog(x)).getByRole("button", { name: FOCUS_IN[x] });
+      act(() => inX.focus());
+      const calls0 = [...h.calls];
+      const replies0 = replies().length;
+      const esc0 = escapeLines().length;
+      await user.keyboard("{Escape}");
+      await settle();
+      const effect = EFFECT[x];
+      expect(h.calls.slice(calls0.length)).toEqual(effect ? [{ handler: effect }] : []);
+      expect(replies().length - replies0).toBe(x === "mcp" ? 1 : 0);
+      expect(dialogFor(x)).toBeNull();
+      expect(dialogFor("recovery")).not.toBeNull();
+      expect(escapeLines().length - esc0).toBe(ON_STACK.has(x) ? 1 : 0);
+      return;
+    }
     const target = within(dialog(y)).getByRole("button", { name: FOCUS_IN[y] });
     act(() => target.focus());
     expect(target).toHaveFocus();
@@ -777,16 +810,11 @@ describe("D42: exhaustive pairs", () => {
     await user.keyboard("{Escape}");
     await settle();
     expect(dialogFor(x)).not.toBeNull();
-    if (y === "recovery") {
-      expect(dialogFor(y)).not.toBeNull();
-      expect(h.calls).toEqual(calls0);
-      expect(replies()).toHaveLength(replies0);
-    } else {
-      expect(dialogFor(y)).toBeNull();
-      const effect = EFFECT[y];
-      expect(h.calls.slice(calls0.length)).toEqual(effect ? [{ handler: effect }] : []);
-      expect(replies().slice(replies0)).toStrictEqual([]);
-    }
+    // Recovery is never second here: it is held under X (the branch above).
+    expect(dialogFor(y)).toBeNull();
+    const effect = EFFECT[y];
+    expect(h.calls.slice(calls0.length)).toEqual(effect ? [{ handler: effect }] : []);
+    expect(replies().slice(replies0)).toStrictEqual([]);
     // D140: Reload and Encoding joined the `useDialogEscape` stack, so they log `ui.dialog.escape` too.
     expect(escapeLines().length - esc0).toBe(ON_STACK.has(y) ? 1 : 0);
   });

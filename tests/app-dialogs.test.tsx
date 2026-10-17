@@ -129,6 +129,8 @@ describe("AppDialogs (D42 WI-3)", () => {
   it("3.1: Recovery shows with one draft and is absent with []", async () => {
     const h = makeHarness();
     render(<h.Harness initial={{ drafts: [draft("d1")] }} />);
+    // D241 (ADR-0116 Decision 3): Recovery shows once its re-list returns.
+    await settle();
     expect(dialogFor("recovery")).not.toBeNull();
     act(() => h.set({ drafts: [] }));
     expect(dialogFor("recovery")).toBeNull();
@@ -161,7 +163,13 @@ describe("AppDialogs (D42 WI-3)", () => {
     expect(within(dialog("confirm")).getByText(QUIT_DIALOG_MESSAGE)).toBeInTheDocument();
     expect(within(dialog("confirm")).queryByText(CLOSE_DIALOG_MESSAGE)).toBeNull();
 
+    // D241 (ADR-0116 Decision 6): drafts arriving under reload, encoding and
+    // confirm are held under them, and reach Recovery once those close.
     act(() => h.set({ drafts: [draft("d1", "One"), draft("d2", "Two")] }));
+    await settle();
+    expect(dialogFor("recovery")).toBeNull();
+    act(() => h.set({ reloadMessage: null, encodingIssue: null, pendingClose: null, quitPrompt: null }));
+    await settle();
     expect(within(dialog("recovery")).getByText("One")).toBeInTheDocument();
     expect(within(dialog("recovery")).getByText("Two")).toBeInTheDocument();
   });

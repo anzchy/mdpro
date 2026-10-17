@@ -6,7 +6,9 @@
  * Renders nothing while no prompt is shown. Mounted once per window (through
  * `AppDialogs.tsx`, which every window renders), so each window shows only its
  * own prompts. An optional `onPromptChange` reports the shown prompt's id to
- * the parent, which uses it to stack the dialog in open order (D42).
+ * the parent, which uses it to stack the dialog in open order (D42). An
+ * optional `recoveryLink` is handed to the hook, so startup Recovery and this
+ * queue see each other (D241, ADR-0116).
  *
  * Key decisions:
  * - **Keyed by `requestId`**, so the next queued prompt mounts a fresh dialog
@@ -27,16 +29,18 @@
  * @coordinates-with src/components/AppDialogs.tsx — the parent; consumes `onPromptChange` for open order
  */
 import { useLayoutEffect, useRef } from "react";
-import { useMcpConfirm } from "../../hooks/useMcpConfirm";
+import { useMcpConfirm, type McpRecoveryLink } from "../../hooks/useMcpConfirm";
 import { McpWriteConfirmDialog } from "./McpWriteConfirmDialog";
 
 export interface McpWriteConfirmProps {
   /** Called with the shown prompt's `requestId`, or `null` when none is shown. */
   onPromptChange?: (requestId: string | null) => void;
+  /** The link `useRecoveryAdmission` owns: MCP-pending flag, Recovery slot, republish. */
+  recoveryLink?: McpRecoveryLink;
 }
 
-export function McpWriteConfirm({ onPromptChange }: McpWriteConfirmProps = {}) {
-  const { prompt, approve, reject } = useMcpConfirm();
+export function McpWriteConfirm({ onPromptChange, recoveryLink }: McpWriteConfirmProps = {}) {
+  const { prompt, approve, reject } = useMcpConfirm(recoveryLink);
   const shownId = prompt?.requestId ?? null;
 
   // Declared before the report effect, so it updates first in the same commit.

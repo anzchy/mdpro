@@ -31,12 +31,18 @@
  *   committed render and settles under a StrictMode double render.
  * - One `ui.dialog.stack` log, `{ order }` only, per change of the open order
  *   while two or more dialogs are open — never titles, paths or messages.
+ * - **Recovery waits for admission (D241, ADR-0116).** `useRecoveryAdmission`
+ *   holds it while another modal is open or a received MCP request is live,
+ *   re-lists the drafts, and yields the admitted rows; Recovery's token is
+ *   open only while it has rows. It shares a link with `McpWriteConfirm` so
+ *   no MCP prompt mounts in the gap before Recovery's commit.
  * - The Sidebar and BottomTabs ConfirmDialogs are not part of this composition.
  *
  * @module components/AppDialogs
  * @coordinates-with src/App.tsx — renders `<AppDialogs/>` once, between BottomTabs and Toast
  * @coordinates-with src/utils/quitDialogModel.ts — supplies `confirmDialog`
  * @coordinates-with src/components/common/McpWriteConfirm.tsx — the MCP prompt container
+ * @coordinates-with src/hooks/useRecoveryAdmission.ts — when Recovery shows, and its rows
  * @coordinates-with src/utils/dialogOpenOrder.ts — the pure open-order model
  * @coordinates-with tests/support/appDialogsHarness.tsx — the stateful test parent
  */
@@ -47,6 +53,7 @@ import { McpWriteConfirm } from "./common/McpWriteConfirm";
 import { RecoveryDialog } from "./common/RecoveryDialog";
 import { ReloadDialog } from "./common/ReloadDialog";
 import { SettingsDialog } from "./common/SettingsDialog";
+import { useRecoveryAdmission } from "../hooks/useRecoveryAdmission";
 import type { DraftMetadata } from "../services/draftService";
 import { loggingService } from "../services/loggingService";
 import {
@@ -65,7 +72,7 @@ export interface AppEncodingIssue {
 }
 
 export interface AppDialogsProps {
-  /** Drafts awaiting recovery; the Recovery dialog shows while non-empty. */
+  /** Drafts awaiting recovery; Recovery shows the admitted ones (D241). */
   drafts: DraftMetadata[];
   onRecoverDraft: (draftId: string) => void;
   onDiscardDraft: (draftId: string) => void;
@@ -111,9 +118,10 @@ export function AppDialogs({
   onSettingsClose,
 }: AppDialogsProps) {
   const [mcpRequestId, setMcpRequestId] = useState<string | null>(null);
+  const { rows: recoveryRows, mcpLink } = useRecoveryAdmission(drafts);
   const [openOrder, setOpenOrder] = useState<OpenDialogEntry[]>([]);
   const tokens: AppDialogTokens = {
-    recovery: drafts.length > 0 ? OPEN_TOKEN : null,
+    recovery: recoveryRows.length > 0 ? OPEN_TOKEN : null,
     reload: reloadMessage ? OPEN_TOKEN : null,
     encoding: encodingIssue ? OPEN_TOKEN : null,
     confirm: confirmDialog.open ? OPEN_TOKEN : null,
@@ -139,7 +147,7 @@ export function AppDialogs({
   const slot = (id: AppDialogId): ReactNode => {
     switch (id) {
       case "recovery":
-        return <RecoveryDialog drafts={drafts} onRecover={onRecoverDraft} onDiscard={onDiscardDraft} />;
+        return <RecoveryDialog drafts={recoveryRows} onRecover={onRecoverDraft} onDiscard={onDiscardDraft} />;
       case "reload":
         return (
           <ReloadDialog
@@ -176,7 +184,7 @@ export function AppDialogs({
       case "mcp":
         // ADR-0042: this window's MCP write-confirmation prompt. Every window
         // renders App, so each owns its prompt.
-        return <McpWriteConfirm onPromptChange={setMcpRequestId} />;
+        return <McpWriteConfirm onPromptChange={setMcpRequestId} recoveryLink={mcpLink} />;
       default: {
         const unreachable: never = id;
         return unreachable;

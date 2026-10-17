@@ -18,6 +18,10 @@
  * - `set(patch)` changes state **without** `act`, so a test can batch several
  *   changes into one commit inside its own `act`. `commits` counts `AppDialogs`
  *   commits through a React `Profiler`, so a batched swap can prove it was one.
+ * - **`open("recovery")` flushes the re-list** (D241, ADR-0116): Recovery is
+ *   admitted only when a fresh `list_drafts` returns with nothing holding it.
+ *   Opened while another modal or an MCP request is up, it stays held, so
+ *   `openIds()` still counts it (the harness's input, not the DOM).
  * - `domDialogOrder()` maps every `role="dialog"` to its id and checks each
  *   consecutive pair with `compareDocumentPosition`.
  */
@@ -78,6 +82,9 @@ export const CLOSED_STATE: HarnessState = {
 export function draft(id: string, title = `Draft ${id}`): DraftMetadata {
   return { id, originalPath: null, lastModified: "2026-10-08 12:00", recovered: false, title };
 }
+
+/** Microtasks `open("recovery")` flushes so its `list_drafts` re-list returns (D241). */
+const RELIST_TICKS = 8;
 
 /** The state a plain `open(id)` sets for each non-MCP slot. */
 const OPEN_PATCH: Record<Exclude<HarnessDialogId, "mcp">, Partial<HarnessState>> = {
@@ -186,6 +193,14 @@ export function createAppDialogsHarness(options: AppDialogsHarnessOptions) {
   async function open(id: HarnessDialogId): Promise<void> {
     if (id === "mcp") {
       if (mcpQueue.length === 0) await requestNext();
+      return;
+    }
+    if (id === "recovery") {
+      // D241: Recovery shows only once its re-list returns, so flush it.
+      await act(async () => {
+        patch(OPEN_PATCH[id]);
+        for (let i = 0; i < RELIST_TICKS; i += 1) await Promise.resolve();
+      });
       return;
     }
     act(() => patch(OPEN_PATCH[id]));

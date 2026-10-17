@@ -17,6 +17,11 @@
  *   When the last non-MCP dialog closes it is appended. `heldApply` layers that
  *   on the oracle's transition. The pure open-order helper is unchanged, so
  *   `dialogOpenOrderOracle.ts` is too.
+ * - D241 (ADR-0116): until its first admission, Recovery opened while any dialog
+ *   is on screen or an MCP request is held is held itself: off screen and not
+ *   in the order. It is appended once nothing is on screen and no MCP request
+ *   is held (a held MCP request shows first). Once admitted it never waits
+ *   again, and a held Recovery does not hold an MCP request.
  *
  * Independence: expected orders come from `dialogOpenOrderOracle.ts`, never from
  * `src/utils/dialogOpenOrder.ts`. Not a `*.test.ts`, so vitest does not collect it.
@@ -38,6 +43,10 @@ import {
 export interface HeldState {
   order: OracleDialogId[];
   mcpHeld: boolean;
+  /** Recovery is open in the harness but not yet admitted (D241). */
+  recoveryHeld?: boolean;
+  /** Recovery was admitted once; admission never clears (ADR-0116 Decision 4). */
+  recoveryAdmitted?: boolean;
 }
 
 const hasNonMcp = (order: readonly OracleDialogId[]) => order.some((id) => id !== "mcp");
@@ -49,6 +58,24 @@ const hasNonMcp = (order: readonly OracleDialogId[]) => order.some((id) => id !=
  * `reopen` queues the next and resolves the head.
  */
 export function heldApply(state: HeldState, kind: EventKind, id: OracleDialogId): HeldState {
+  const recoveryHeld = state.recoveryHeld ?? false;
+  const recoveryAdmitted = state.recoveryAdmitted ?? false;
+  if (id === "recovery" && !recoveryAdmitted) {
+    const opening = kind !== "close";
+    return admitRecovery({ ...state, order: [...state.order], recoveryHeld: opening, recoveryAdmitted });
+  }
+  const next = mcpHeldApply(state, kind, id);
+  return admitRecovery({ ...next, recoveryHeld, recoveryAdmitted });
+}
+
+/** D241: a held Recovery is admitted once nothing is on screen and no MCP request is held. */
+function admitRecovery(state: HeldState): HeldState {
+  if (!state.recoveryHeld || state.order.length > 0 || state.mcpHeld) return state;
+  return { ...state, order: ["recovery"], recoveryHeld: false, recoveryAdmitted: true };
+}
+
+/** The D240 transition: the oracle's, with an MCP request held under a non-MCP dialog. */
+function mcpHeldApply(state: HeldState, kind: EventKind, id: OracleDialogId): HeldState {
   const { order, mcpHeld } = state;
   if (id === "mcp") {
     const shown = order.includes("mcp");
@@ -63,8 +90,8 @@ export function heldApply(state: HeldState, kind: EventKind, id: OracleDialogId)
   return { order: next, mcpHeld };
 }
 
-/** Whether each harness has an MCP request held off screen. */
-const held = new WeakMap<AppDialogsHarness, boolean>();
+/** Each harness's held state beyond its order: the MCP and Recovery holds. */
+const held = new WeakMap<AppDialogsHarness, Omit<HeldState, "order">>();
 
 /** One snapshot a domain event produced, as the checker sees it. */
 export interface DriverStep {
@@ -90,9 +117,9 @@ export async function applyDomainEvent(
   const { kind, id } = event;
   const isOpen = order.includes(id);
   const step = (from: readonly OracleDialogId[], k: EventKind): OracleDialogId[] => {
-    const next = heldApply({ order: [...from], mcpHeld: held.get(h) ?? false }, k, id);
-    held.set(h, next.mcpHeld);
-    return next.order;
+    const { order: next, ...rest } = heldApply({ mcpHeld: false, ...held.get(h), order: [...from] }, k, id);
+    held.set(h, rest);
+    return next;
   };
   if (kind === "reopen" && id !== "mcp" && isOpen) {
     await h.close(id);

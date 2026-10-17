@@ -171,6 +171,7 @@ describe("D42 slow: open order over real dialogs", () => {
               { kind: "open", id: x },
             ]);
             // ADR-0108: an MCP prompt arriving under another dialog is held until it closes.
+            // D241 (ADR-0116): so is Recovery before its first admission.
             const want = [
               { kind: "open", id: x },
               { kind: "open", id: y },
