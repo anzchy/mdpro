@@ -10,12 +10,14 @@
   drift is the markup: it copies the component JSX by hand (sources named on
   each scene). Re-check a scene's markup when its component changes.
 
-  Open it from the repo checkout (it links ../src/...). Snapshot: master
-  dd603780, 2026-10-17.
+  Open it from the repo checkout (it links ../src/...). Snapshot: S1–S6 at
+  master dd603780, S7–S13 at f41ea7b8 (2026-10-17); the CSS did not change
+  between the two.
 -->
 <link rel="stylesheet" href="../src/styles/index.css">
 <link rel="stylesheet" href="../src/components/BottomTabs/BottomTabs.css">
 <link rel="stylesheet" href="../src/components/Editor/MilkdownEditor.css">
+<link rel="stylesheet" href="../src/components/Editor/ImageContextMenu.css">
 <style>
   /* Mockup page chrome only. Everything inside .mk-window is app CSS. */
   html, body { height: auto; }
@@ -86,7 +88,7 @@
     <button type="button" data-notes="on" aria-pressed="true">Notes on</button>
     <button type="button" data-notes="off" aria-pressed="false">Notes off</button>
   </span>
-  <span class="mk-note">Drawn with the app's own CSS from <code>src/</code> at master <code>dd603780</code> (2026-10-17). The orange numbered pins are the mockup's; everything else is the app's styling. Target design: <a href="DESIGN.md">DESIGN.md</a>.</span>
+  <span class="mk-note">Drawn with the app's own CSS from <code>src/</code> at master <code>f41ea7b8</code> (2026-10-17). The orange numbered pins are the mockup's; everything else is the app's styling. Target design: <a href="DESIGN.md">DESIGN.md</a>.</span>
 </div>
 
 <div class="mk-body">
@@ -145,7 +147,55 @@
     </ol>
   </section>
 
-  <p class="mk-gap">Not drawn yet: an external change to the file (reload prompt), draft recovery after a crash, an MCP write waiting for approval, the encoding prompt, the image and link menus.</p>
+  <section class="mk-journey">
+    <h3>J7 · The file changed in another app</h3>
+    <ol>
+      <li>Another app saves the open file. The prompt opens with focus on Reload. <a data-go="s7">S7</a></li>
+      <li>Ignore (or Esc) keeps the text on screen; Reload replaces it with the disk version. <a data-go="s1">S1</a></li>
+    </ol>
+  </section>
+
+  <section class="mk-journey">
+    <h3>J8 · Get work back after a crash</h3>
+    <ol>
+      <li>Launch after a crash or a forced quit. Every unsaved draft is listed with its path and time. <a data-go="s8">S8</a></li>
+      <li>Recover opens a draft as a tab; Discard deletes it. <a data-go="s1">S1</a></li>
+    </ol>
+  </section>
+
+  <section class="mk-journey">
+    <h3>J9 · Let an AI client edit a document</h3>
+    <ol>
+      <li>Turn on the MCP server in Settings › Integrations. <a data-go="s6">S6</a></li>
+      <li>A client asks to write: the prompt names the document and the change, with focus on Reject. Esc or a backdrop click rejects. <a data-go="s9">S9</a></li>
+    </ol>
+  </section>
+
+  <section class="mk-journey">
+    <h3>J10 · Open a file that isn't UTF-8</h3>
+    <ol>
+      <li>Open it. mdpro says it can't read it as UTF-8 and offers a UTF-16 retry; focus is on Cancel. <a data-go="s10">S10</a></li>
+    </ol>
+  </section>
+
+  <section class="mk-journey">
+    <h3>J11 · Resize an image</h3>
+    <ol>
+      <li>Paste or drop an image into a saved document. <a data-go="s11">S11</a></li>
+      <li>Right-click it: 25 / 50 / 75 / 100 %, or Custom… with a number. The width is written back to the Markdown. <a data-go="s11">S11</a></li>
+    </ol>
+  </section>
+
+  <section class="mk-journey">
+    <h3>J12 · Insert a table or a link</h3>
+    <ol>
+      <li>⌘⌥T opens Insert Table: hover the grid or type rows and columns. <a data-go="s12">S12</a></li>
+      <li>⌘K opens Insert Link on the selection. <a data-go="s13">S13</a></li>
+      <li>Then edit the table from its menu. <a data-go="s5">S5</a></li>
+    </ol>
+  </section>
+
+  <p class="mk-gap">Not drawn yet: the Source-mode table menu, the export toasts, the settings pages beyond the four in S6 (prototype 012 has Keyboard Shortcuts). Target designs with no shipped UI yet (main bar and status strip, empty state, the redesigned external change dialog, the drop target) are in the Stitch project and <a href="DESIGN.md">DESIGN.md</a>, not here.</p>
 </aside>
 
 <!-- ============ Scenes ============ -->
@@ -191,6 +241,55 @@
   <header><h2>S6 · Settings (click the rail)</h2>
     <span class="mk-src">SettingsDialog.tsx · SettingsRailIcon.tsx · settings/*Settings.tsx · settings-*.css</span></header>
   <div class="mk-pair" data-scene="s6"></div>
+</section>
+
+<!-- S7 -->
+<section class="mk-scene" id="s7">
+  <header><h2>S7 · The file changed on disk</h2>
+    <span class="mk-src">ReloadDialog.tsx · dataLossGuards.ts</span></header>
+  <div class="mk-pair" data-scene="s7"></div>
+</section>
+
+<!-- S8 -->
+<section class="mk-scene" id="s8">
+  <header><h2>S8 · Recover drafts at launch</h2>
+    <span class="mk-src">RecoveryDialog.tsx · recovery-toast.css</span></header>
+  <div class="mk-pair" data-scene="s8"></div>
+</section>
+
+<!-- S9 -->
+<section class="mk-scene" id="s9">
+  <header><h2>S9 · An MCP client asks to write</h2>
+    <span class="mk-src">McpWriteConfirmDialog.tsx · mcpConfirmModel.ts</span></header>
+  <div class="mk-pair" data-scene="s9"></div>
+</section>
+
+<!-- S10 -->
+<section class="mk-scene" id="s10">
+  <header><h2>S10 · A file that isn't UTF-8</h2>
+    <span class="mk-src">EncodingDialog.tsx · encodingDialogCopy.ts</span></header>
+  <div class="mk-pair" data-scene="s10"></div>
+</section>
+
+<!-- S11 -->
+<section class="mk-scene" id="s11">
+  <header><h2>S11 · Image resize menu</h2>
+    <span class="mk-src">ImageContextMenu.tsx · ImageContextMenu.css</span></header>
+  <div class="mk-pair" data-scene="s11"></div>
+</section>
+
+<!-- S12 -->
+<section class="mk-scene" id="s12">
+  <header><h2>S12 · Insert Table</h2>
+    <span class="mk-src">TableInsertModal/index.tsx · GridPicker.tsx · table-insert-modal.css</span></header>
+  <div class="mk-pair" data-scene="s12"></div>
+</section>
+
+<!-- S13 -->
+<section class="mk-scene" id="s13">
+  <header><h2>S13 · Insert Link</h2>
+    <span class="mk-src">LinkInsertModal.tsx · link-insert-modal.css</span></header>
+  <div class="mk-pair" data-scene="s13"></div>
 </section>
 
 </main>
@@ -337,6 +436,115 @@ distance: 6.4 km</code></pre>
   <div class="toast" role="status" aria-live="polite"><span>Saved river-walk.md</span></div>
 </template>
 
+<template id="t-reload">
+  <div class="dialog-backdrop" role="presentation">
+    <div class="dialog-card" role="dialog" aria-modal="true" aria-label="Reload file">
+      <h3 class="dialog-title">External change detected</h3>
+      <p class="dialog-message">File was modified externally. Reload to update content?</p>
+      <div class="dialog-actions">
+        <button class="toolbar-button" type="button">Ignore</button>
+        <button class="toolbar-button" type="button" data-mk-focus>Reload</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="t-recovery">
+  <div class="dialog-backdrop" role="presentation">
+    <div class="dialog-card" role="dialog" aria-modal="true" aria-label="Recover drafts">
+      <h3 class="dialog-title">Recover drafts</h3>
+      <p class="dialog-message">We found unsaved drafts. Recover or discard them before continuing.</p>
+      <div class="recovery-list">
+        <div class="recovery-item">
+          <div class="recovery-info"><div class="recovery-title">river-walk.md</div><div class="recovery-path">/Users/you/Notes/river-walk.md</div><div class="recovery-time">10/17/2026, 9:42:10 AM</div></div>
+          <div class="recovery-actions"><button class="toolbar-button" type="button">Recover</button><button class="toolbar-button" type="button">Discard</button></div>
+        </div>
+        <div class="recovery-item">
+          <div class="recovery-info"><div class="recovery-title">Untitled</div><div class="recovery-path">Unsaved document</div><div class="recovery-time">10/17/2026, 9:40:55 AM</div></div>
+          <div class="recovery-actions"><button class="toolbar-button" type="button">Recover</button><button class="toolbar-button" type="button">Discard</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="t-mcp">
+  <div class="dialog-backdrop" role="presentation">
+    <div class="dialog-card mcp-confirm-dialog" role="dialog" aria-modal="true" aria-label="MCP write confirmation">
+      <h3 class="dialog-title">MCP write confirmation</h3>
+      <p class="dialog-message">An MCP client wants to replace all of the content of “river-walk.md”.</p>
+      <div class="dialog-actions">
+        <button class="toolbar-button" type="button" data-mk-focus>Reject</button>
+        <button class="toolbar-button toolbar-button--primary" type="button">Approve</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="t-encoding">
+  <div class="dialog-backdrop" role="presentation">
+    <div class="dialog-card" role="dialog" aria-modal="true" aria-label="Select encoding">
+      <h3 class="dialog-title">Can't open this file as UTF-8</h3>
+      <p class="dialog-message">This file isn't valid UTF-8. Files in legacy encodings such as GBK, Big5 or Shift-JIS can't be opened yet.</p>
+      <p class="dialog-message">If it was saved as UTF-16 without a byte-order mark, you can retry as UTF-16. mdpro checks the result and won't open the file if it doesn't look like UTF-16.</p>
+      <div class="encoding-path">/Users/you/Notes/old-notes.md</div>
+      <div class="encoding-options">
+        <button class="toolbar-button" type="button">UTF-16LE</button>
+        <button class="toolbar-button" type="button">UTF-16BE</button>
+        <button class="toolbar-button" type="button" data-mk-focus>Cancel</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="t-image-menu">
+  <div class="image-context-menu" role="menu" style="left:260px;top:150px">
+    <div class="image-context-menu-label">Resize Image</div>
+    <button class="image-context-menu-button" role="menuitem" type="button"><span>25%</span></button>
+    <button class="image-context-menu-button is-active" role="menuitem" type="button"><span>50%</span></button>
+    <button class="image-context-menu-button" role="menuitem" type="button"><span>75%</span></button>
+    <button class="image-context-menu-button" role="menuitem" type="button"><span>100%</span></button>
+    <button class="image-context-menu-button" role="menuitem" type="button"><span>Custom…</span></button>
+    <form class="image-context-menu-custom" onsubmit="return false">
+      <input aria-label="Custom image width percentage" class="image-context-menu-input" max="200" min="1" type="number" value="60">
+      <button class="image-context-menu-apply" type="submit">Apply</button>
+    </form>
+  </div>
+</template>
+
+<template id="t-table-insert">
+  <div class="dialog-backdrop" role="presentation">
+    <div class="dialog-card table-insert-modal" role="dialog" aria-modal="true" aria-label="Insert Table">
+      <h3 class="dialog-title">Insert Table<span class="dialog-title-hint">⌘⌥T</span></h3>
+      <div class="grid-picker" role="grid" aria-label="Pick a grid size — currently 3 by 4" data-mk-grid="3x4"></div>
+      <div class="table-insert-count" aria-live="polite">3 × 4 (header + 3 body rows × 4 cols)</div>
+      <div class="table-insert-divider">— or specify —</div>
+      <div class="table-insert-numeric">
+        <label class="table-insert-label">Rows <input type="number" min="1" max="50" value="3" class="table-insert-input"></label>
+        <label class="table-insert-label">Cols <input type="number" min="1" max="50" value="4" class="table-insert-input"></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="toolbar-button" type="button">Cancel</button>
+        <button class="toolbar-button toolbar-button--primary" type="button">Insert</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="t-link">
+  <div class="dialog-backdrop" role="presentation">
+    <div class="dialog-card link-insert-modal" role="dialog" aria-modal="true" aria-label="Insert link">
+      <h3 class="dialog-title">Insert Link</h3>
+      <label class="link-insert-label" for="link-insert-url">URL</label>
+      <input class="link-insert-input" type="text" placeholder="https://example.com" value="https://tides.example" autocomplete="off" spellcheck="false">
+      <div class="dialog-actions">
+        <button class="toolbar-button" type="button">Cancel</button>
+        <button class="toolbar-button toolbar-button--primary" type="button">Insert</button>
+      </div>
+    </div>
+  </div>
+</template>
+
 <template id="t-settings">
   <div class="dialog-backdrop">
     <div role="dialog" aria-modal="true" aria-labelledby="settings-dialog-title" class="settings-dialog">
@@ -439,7 +647,31 @@ distance: 6.4 km</code></pre>
     s6: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-settings"], settings: "editor", notes: [
       [60, 70, "Rail: 19 px Lucide icons with labels, flat items (D260). Pages apply at once; no footer Close."],
     ]},
+    s7: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-reload"], notes: [
+      [300, 200, "Focus starts on Reload; Esc takes Ignore. Today's title and copy; the redesign (WI-4.10) splits it into three states with “Keep my version” on the left."],
+    ]},
+    s8: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-recovery"], notes: [
+      [90, 110, "One row per draft, with its full path and local time. No Esc and no backdrop close: each draft must be recovered or discarded."],
+    ]},
+    s9: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-mcp"], notes: [
+      [300, 200, "Focus starts on Reject; Esc and a backdrop click reject. The request expires and closes on its own (ADR-0042)."],
+    ]},
+    s10: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-encoding"], notes: [
+      [300, 200, "Shows the file's full path, as the recovery list does (S8). Focus starts on Cancel."],
+    ]},
+    s11: { sidebar: true, editor: "t-wysiwyg", image: true, overlays: ["t-image-menu"], notes: [
+      [248, 138, "The current width takes the solid accent. Custom… opens the number field (1–200 %)."],
+    ]},
+    s12: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-table-insert"], notes: [
+      [110, 96, "A 10 × 10 grid for quick picks, numbers up to 50 for the rest. The title carries its shortcut."],
+    ]},
+    s13: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-link"], notes: [
+      [300, 200, "Insert stays disabled while the URL is empty."],
+    ]},
   };
+
+  // A landscape image for S11, drawn inline so the mockup needs no asset file.
+  const MK_IMAGE = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300"><rect width="640" height="300" fill="#9fb8c9"/><path d="M0 220 160 120l120 90 110-70 250 160H0z" fill="#5f7f6b"/><circle cx="520" cy="70" r="34" fill="#f2e3b3"/></svg>');
 
   const tpl = (id) => document.getElementById(id).content.cloneNode(true);
 
@@ -494,6 +726,28 @@ distance: 6.4 km</code></pre>
     }
     shell.appendChild(tabs);
     for (const o of s.overlays) shell.appendChild(tpl(o));
+    if (s.image) {
+      const intro = shell.querySelector(".ProseMirror h1");
+      const p = document.createElement("p");
+      p.innerHTML = `<img src="${MK_IMAGE}" alt="The weir at eight" style="width:50%;min-width:180px">`;
+      intro.after(p);
+    }
+    for (const grid of shell.querySelectorAll("[data-mk-grid]")) {
+      const [rows, cols] = grid.dataset.mkGrid.split("x").map(Number);
+      for (let r = 1; r <= 10; r++) {
+        const row = document.createElement("div");
+        row.className = "grid-picker-row";
+        row.setAttribute("role", "row");
+        for (let c = 1; c <= 10; c++) {
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.setAttribute("role", "gridcell");
+          cell.className = "grid-picker-cell" + (r <= rows && c <= cols ? " is-highlighted" : "");
+          row.appendChild(cell);
+        }
+        grid.appendChild(row);
+      }
+    }
     win.appendChild(shell);
 
     const dlg = win.querySelector(".settings-dialog");
