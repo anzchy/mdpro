@@ -125,6 +125,7 @@ fn main() {
                 .map_err(Box::<dyn std::error::Error>::from)?;
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
+            app.manage(tauri_app_lib::menu::MenuFocus::default());
 
             // The quit guard. Managed state, so the ack timer and the reply
             // command both reach the one guard without an Arc cycle.
@@ -383,6 +384,7 @@ fn main() {
                     if let Some(watcher) = window.try_state::<FileWatcher>() {
                         watcher.release_window(window.label());
                     }
+                    tauri_app_lib::menu::forget_window(window, window.label());
                 }
                 _ => {}
             }
@@ -499,7 +501,8 @@ fn main() {
         } = event
         {
             let store = app_handle.try_state::<SharedShadowStore>();
-            window_focus::on_focus_event(store.as_deref(), label, focused);
+            let menu_focus = app_handle.try_state::<tauri_app_lib::menu::MenuFocus>();
+            window_focus::on_focus_event(store.as_deref(), menu_focus.as_deref(), label, focused);
         }
 
         // Exit is the only cleanup site. The request-stage event that precedes

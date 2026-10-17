@@ -60,14 +60,14 @@ fn d217_a_late_main_blur_does_not_clear_the_new_window() {
 #[test]
 fn d217_on_focus_event_applies_to_a_managed_store() {
     let store = create_shadow_store();
-    on_focus_event(Some(&store), "mdpro-b", true);
+    on_focus_event(Some(&store), None, "mdpro-b", true);
     assert_eq!(focused(&store).as_deref(), Some("mdpro-b"));
-    on_focus_event(Some(&store), "mdpro-b", false);
+    on_focus_event(Some(&store), None, "mdpro-b", false);
     assert_eq!(focused(&store), None);
 }
 
 #[test]
 fn d217_on_focus_event_without_a_store_does_not_panic() {
-    on_focus_event(None, "main", true);
-    on_focus_event(None, "main", false);
+    on_focus_event(None, None, "main", true);
+    on_focus_event(None, None, "main", false);
 }
