@@ -20,7 +20,8 @@ use rand::RngCore;
 use serde_json::json;
 
 pub const HANDOFF_FILE: &str = "control.json";
-pub const SOCKET_FILE: &str = "c.sock";
+/// The name `scripts/control/runDir.mjs` budgets the runs path for.
+pub const SOCKET_FILE: &str = "ctl.sock";
 /// `sizeof(sockaddr_un.sun_path)` on macOS, including the terminating NUL.
 pub const SUN_PATH_MAX: usize = 104;
 const TOKEN_BYTES: usize = 32;
@@ -57,6 +58,13 @@ pub fn bind(socket: &Path) -> std::io::Result<UnixListener> {
     let listener = UnixListener::bind(socket)?;
     std::fs::set_permissions(socket, std::fs::Permissions::from_mode(0o600))?;
     Ok(listener)
+}
+
+/// Removes the socket and `control.json` at exit; either may already be gone.
+pub fn remove_handoff(run_dir: &Path) {
+    for name in [SOCKET_FILE, HANDOFF_FILE] {
+        let _ = std::fs::remove_file(run_dir.join(name));
+    }
 }
 
 #[cfg(test)]
