@@ -4,6 +4,12 @@
  * second-pass bookkeeping and passes them in (plan M1A-WI-9a); this module
  * holds no state.
  *
+ * K8 (plan M1A-WI-9b): a binding with Shift whose key is a digit or a
+ * non-letter symbol also matches on the key's physical `event.code`, so ⇧⌘0
+ * reaches "Cmd+Shift+0" whether the layout types ")" (US) or "=" (German).
+ * The code match sits in the exact pass, so a Shift binding wins before the
+ * off-Mac relaxed pass runs.
+ *
  * @coordinates-with src/hooks/useKeyboardShortcuts.ts — the only caller; it
  *   decides `relaxed` and records hits for the off-Mac second pass
  */
@@ -19,6 +25,13 @@ export interface MatchOptions {
   /** The off-Mac second pass, run only when no binding matched exactly. */
   readonly relaxed: boolean;
 }
+
+/** K8: the physical `event.code` of each digit and non-letter symbol key. */
+const PHYSICAL_CODE: ReadonlyMap<string, string> = new Map([
+  ...Array.from({ length: 10 }, (_, d): [string, string] => [String(d), `Digit${d}`]),
+  ["`", "Backquote"], ["-", "Minus"], ["=", "Equal"], ["[", "BracketLeft"], ["]", "BracketRight"],
+  ["\\", "Backslash"], [";", "Semicolon"], ["'", "Quote"], [",", "Comma"], [".", "Period"], ["/", "Slash"],
+]);
 
 /** Test a keydown against a stored shortcut string (e.g. "Cmd+Shift+K").
  *
@@ -37,6 +50,10 @@ export interface MatchOptions {
  *  the symbol itself, e.g. "/" as Shift+7 on German); letters keep the exact
  *  Shift check. The pass runs only when no binding matched exactly, so a
  *  binding that wants the Shift wins (audit b121).
+ *
+ *  A Shift binding on a digit or symbol key also matches the key's physical
+ *  `event.code` (K8), so the shifted character the layout produces does not
+ *  matter; modifiers stay exact and letters never match by code.
  *
  *  Key tokens: uppercase letters/digits map case-insensitively; arrow
  *  abbreviations (Up/Down/Left/Right) map to ArrowX; "Space" maps to " ".
@@ -87,6 +104,12 @@ export function matchesShortcut(event: KeyLike, shortcut: string, opts: MatchOpt
   const shiftTypedSymbol =
     relaxed && !wantShift && normalizedKey.length === 1 && !/[a-z]/i.test(normalizedKey) && event.key === normalizedKey;
   if (wantShift !== event.shiftKey && !shiftTypedSymbol) return false;
+
+  // K8: Shift + digit/symbol also matches the physical key. Shift is already
+  // known to be held here, so a binding without Shift never matches by code.
+  // An event without a code (undefined or "") never takes this path.
+  const physical = PHYSICAL_CODE.get(normalizedKey);
+  if (wantShift && physical !== undefined && event.code === physical) return true;
 
   // Single-character keys: compare case-insensitively
   return normalizedKey.length === 1
