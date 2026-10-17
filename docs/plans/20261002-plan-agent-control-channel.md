@@ -276,7 +276,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 | PD4 | 自动化靠握手文件确认进程身份，不靠 `app.ready` 日志行 | 等日志行出现 | 日志可以被用户关掉，也可能写失败；`app.ready` 也不代表窗口就绪 |
 | PD5 | J2、J3 的落盘证据用草稿自动保存 | `⌘S` | `⌘S` 是原生加速键，在驱动够不着的那一层 |
 | PD6 | `quit` 默认保留运行目录，删除是单独的 `clean` 命令 | 退出即删 | 运行目录里是证据（日志、草稿、偏好）；删除要过所有权检查 |
-| PD7 | 第三阶段先给与驱动无关的验收；驱动相关的细节在 WI-008 之后补写 | 现在就写满 | 驱动没选出来，写了也是猜 |
+| PD7 | 第三阶段先给与驱动无关的验收；驱动相关的细节在 WI-008 之后补写（2026-10-17 已按候选 B 补写，见 WI-009–WI-011 的「驱动相关」各条） | 现在就写满 | 驱动没选出来，写了也是猜 |
 | PD8 | Tauri 升级前先做一次不合入的试探 | 直接升级 | 升级的风险在键盘和焦点上，越早知道越好；试探同时给出要钉的那组版本 |
 
 ## 6. Work Items（工作项）
@@ -348,7 +348,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   3. `docs/test/<日期>-adr0047-spike.md` 建好骨架：每个候选一张 S1–S6 的表，每格是「结论 + 证据类别 + 证据位置」。
   4. S2 的人工基线规程写好：四项记录（原生 key window、DOM 焦点、收到按键的窗口、日志行），以及「回退构建上物理 Esc 也关了对话框」时怎么办（S2 作废，暂停）。
   5. **升级试探**（不合入）：在 `mdpro-wt/chore-d30-tauri-upgrade-trial` 上把 Tauri 升到候选版本，跑 `pnpm test:run`、`pnpm build`、`cargo test`，打一个包，由人做 J1a 和 J5 的物理 Esc。产出两样：坏了什么；要钉的那一组版本（tauri、tauri-build、wry、tao、四个插件、`@tauri-apps/api`、`@tauri-apps/cli`）。
-     **结果（2026-10-02）**：升到 Tauri 2.12.1，源码和 `Cargo.toml` 一行没改，只动了两个 lock 文件和 `package.json` 里五个 `@tauri-apps/*` 的版本范围。升级前后门禁结果相同（`pnpm test:run` 4378 过、`pnpm typecheck:tests`、`pnpm build`、`cargo test` 1112 过、clippy 无警告）。包打出来了；`pnpm tauri build` 以 1 退出只是因为本机没有更新签名的私钥。版本组和细节在 [spike 记录](../test/20261002-adr0047-spike.md)的「Pinned versions」。**没核的**：2.9.5 到 2.12.1 之间 `RunEvent::Opened` 和建窗口的改动没有比对。**真机（2026-10-02）**：J1a 和 J5 在试探包上都通过。J5 的 Esc 是你按的物理键（输入法 ABC），日志里 `ui.dialog.cancel` 和 `ui.dialog.escape` 两条都有，对话框关闭，标签仍在且未保存；其余点击和输入由 computer-use 完成。这与 D34 在 2.9.5 上的真机记录相同，停止条件没有触发；键盘行为只验了 Esc 这一处，其余留给 WI-004 的全旅程对照。真机跑出一处预测错误（打开文件不写 `tab.switch`），已在旅程文档里改正。逐行证据在 spike 记录的「Upgrade trial」。
+     **结果（2026-10-02）**：升到 Tauri 2.12.1，源码和 `Cargo.toml` 一行没改，只动了两个 lock 文件和 `package.json` 里五个 `@tauri-apps/*` 的版本范围。升级前后门禁结果相同（`pnpm test:run` 4378 过、`pnpm typecheck:tests`、`pnpm build`、`cargo test` 1112 过、clippy 无警告）。包打出来了；`pnpm tauri build` 以 1 退出只是因为本机没有更新签名的私钥。版本组和细节在 [spike 记录](../test/20261002-adr0047-spike.md)的「Pinned versions」。**没核的**：2.9.5 到 2.12.1 之间 `RunEvent::Opened` 和建窗口的改动没有比对。**真机（2026-10-02）**：J1a 和 J5 在试探包上都通过。J5 的 Esc 是你在 MacBook 上按、经 UU Remote 转发的键（`remote key`，不是物理键；2026-10-17 更正，spike 记录「Upgrade trial」一行已如此记），输入法 ABC，日志里 `ui.dialog.cancel` 和 `ui.dialog.escape` 两条都有，对话框关闭，标签仍在且未保存；其余点击和输入由 computer-use 完成。这与 D34 在 2.9.5 上的真机记录相同，停止条件没有触发；键盘行为只验了 Esc 这一处，其余留给 WI-004 的全旅程对照。真机跑出一处预测错误（打开文件不写 `tab.switch`），已在旅程文档里改正。逐行证据在 spike 记录的「Upgrade trial」。
   6. **读候选 A 的源码**（不构建）：取 `tauri-plugin-wdio-webdriver` 1.4.0 这个 crate 本身，列出它开的每个监听、每条能执行脚本或发输入的路由、恢复时重放脚本的逻辑。ADR 里标「二手」的几条由此变成 `[实测]` 或被推翻。若读完就能判定补丁超出维护预算，候选 A 直接记「S1 不过」，时间盒不启动。
 - **Tests (first)**：无代码。
 - **Dependencies**：第 5 条需要你做两次物理按键。
@@ -563,7 +563,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - **Estimate**：M。
 - **结果（2026-10-14，adr047-verify，代码完成、真机未验；分支 `chore/adr47-wi004-tauri-upgrade`，按 delegator 裁定在 v0.3.3 发布后合入、单独发版）**：lock 与 spike 记录的钉死表逐项相等（tauri 2.12.1、tauri-build 2.7.1、wry 0.57.0、tao 0.37.1、single-instance 2.5.2、updater 2.13.1、process 2.4.0、opener 2.7.0、`@tauri-apps/api` 与 `cli` 2.12.1），`@tauri-apps/api` 在 lock 里只剩一份。`eval_with_callback` 在 2.12.1 存在（`webview/mod.rs:2185`、`webview_window.rs:2584`）。源码与 `Cargo.toml` 未改。源码对读（只读）发现两处真实变化，都进真机项：single-instance 2.5.2 把套接字的 bind 挪进异步任务（`platform_impl/macos.rs:100`），冷启动后极短窗口内的第二次启动可能成为第二个主进程（verify 构建由 `instance.json` 的排他链接挡住，普通构建挡不住）；原生菜单 muda 0.17.1 → 0.20.0，快捷键解析重写。updater 2.9 客户端只读 `darwin-*` 键，新签名的 trusted comment 多一个它不解析的 `version:` 字段，所以 0.3.x 仍能更新；发布脚本不需改，但 build-only 运行要确认产物文件名。
 - **真机第一轮（2026-10-15，dtrack，`a6131ec`）**：A1、A2、A4、A5（重跑）、A6 通过；A3 快捷键 94 行里 93 行与 v0.3.3 相同，F2 不同：⌘⇧N 开出的窗口没有 `window.focus`。原因是我们的接线有竞态（v0.3.3 也有，只是赢了），登记为 [D217](20260912-frontend-backend-sequencing-order.md#d217)，修在本分支的第二个提交：焦点改由 `app.run` 记录。WI-004 因此不再是「源码未改」：`main.rs` 与新的 `services/window_focus.rs` 有改动。真机复查 F2 与一次外部打开，等新的 mini 包。
-- **落地（2026-10-15，delegator）**：`df2a879`（依赖钉死）+ `9940be9`（D217）经 PR #443 快进到 `master`；verifier PASS，审计 b130 C0/H0/M1，CI 绿。真机：F2 复查 R1 对照 3/3 复现、R2 5/5、R3、R4 通过；A7 第 5 部分 33 段语义投影相等（第 3 条）；A8.1 更新签名离线校验通过；第 4 条的人工那一次：D34 物理 Esc、D41 Tab 由用户按过，通过；⌘Q 保存提示按用户要求由 dtrack 脚本按键代按，通过；中文输入法组字中 Esc 不取消，v0.3.3 同样如此（TextEdit 对照会取消），不是升级回归，登记 [D219](20260912-frontend-backend-sequencing-order.md#d219)。记录：[`docs/test/20261015-wi004-tauri-upgrade-device-check.md`](../test/20261015-wi004-tauri-upgrade-device-check.md)。
+- **落地（2026-10-15，delegator）**：`df2a879`（依赖钉死）+ `9940be9`（D217）经 PR #443 快进到 `master`；verifier PASS，审计 b130 C0/H0/M1，CI 绿。真机：F2 复查 R1 对照 3/3 复现、R2 5/5、R3、R4 通过；A7 第 5 部分 33 段语义投影相等（第 3 条）；A8.1 更新签名离线校验通过；第 4 条的人工那一次：D34 的 Esc、D41 的 Tab 由用户按过，通过（类别 `remote key`：在 MacBook 上按、经 UU 转发，不是物理键；2026-10-17 用户确认「Yes, through UU」，原记作物理）；⌘Q 保存提示按用户要求由 dtrack 脚本按键代按，通过；中文输入法组字中 Esc 不取消，v0.3.3 同样如此（TextEdit 对照会取消），不是升级回归，登记 [D219](20260912-frontend-backend-sequencing-order.md#d219)。记录：[`docs/test/20261015-wi004-tauri-upgrade-device-check.md`](../test/20261015-wi004-tauri-upgrade-device-check.md)。
 
 ### WI-005 两个构建与人工基线
 
@@ -572,8 +572,8 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   1. ~~两个 `verify` 包：**基线头**（含 WI-001–004），和**回退构建**（基线头上回退 `c39dfb1` 的四个 `src/` 文件）。两个包都打开 Tauri 的 `devtools` feature：S2 四项记录里的 DOM 焦点和「哪个窗口收到按键」要靠 Web Inspector 里装的被动记录器读（规程见旅程文档），release 配置的包默认没有它。这一条差异写进 spike 记录的「Builds」。选型之后的包（WI-009 起）不开，改由固定探针读。这四个文件之后没有再被改过 `[实测 git log]`。回退构建只用于 S2，不合入、不跑门禁：D34 的测试在它上面会失败，这是预期的，记在 spike 记录里。~~
      **改为（2026-10-15，[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)，用户选「Minimal ConfirmDialog patch (Recommended)」）**：「这四个文件之后没有再被改过」到 2026-10-15 已不成立（`c39dfb1..9940be9` 里 10 个提交改过它们，`useDialogEscape` 还被 D140 的两个对话框共用）。回退构建改为基线头上只给 `ConfirmDialog` 打一个约 10 行的补丁：去掉它的 `useDialogEscape` 注册，换回 D34 之前挂在 backdrop 上的 `onKeyDown` Escape。补丁不提交、不推送，全文写进 spike 记录的「Builds」。`devtools` 两个包都开，用 mini 工作树里未提交的一行 `devtools = ["tauri/devtools"]`（delegator 2026-10-15 裁定；随 WI-006 的第一个提交正式加入），差异照样写进「Builds」。
      **补记（2026-10-16，[ADR-0113](../adr/0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md)，用户选「1. Click backdrop, then Esc (Recommended)」）**：按原协议（焦点在 `Keep editing`，卡片内）跑出来两个包都关，对照不成立，S2 作废（spike 记录「Negative control」）。对照补丁不变，协议加 J5 第 2a 步：Esc 前用 computer use 在暗色 backdrop 上点一次，让焦点落到 `<body>`；记录器显示 `inDialog:false`、`active` 以 `BODY.` 开头（macOS 上是 `BODY.tauri-macos`） 的 Esc 才算数。比较一、二已通过，不重跑。
-  2. 人在两个包上各做一次 J5 的物理 Esc，四项记录齐全。这一步在装任何驱动之前做，为的是先确认负对照成立，再花 spike 的时间。预期：回退构建上对话框不关，基线头上关。`ConfirmDialog` 的确认按钮带 `autoFocus`，所以回退构建上的结果必须实测，不能假定。**回退构建上若关了，S2 作废，spike 暂停，回来重新设计负对照。**
-     **人工部分（2026-10-15，用户选「Only physical Esc, ~12 min (Recommended)」）**：人只按物理 Esc——两个包上 J5 第 3 步各一次，比较二里 release 包上 J5 第 3 步一次；比较一与比较二的其余步骤由 dtrack 经 computer use 走，与 WI-004 第 3 条 2026-10-14 的分法相同。
+  2. 人在两个包上各做一次 J5 的物理 Esc，四项记录齐全。这一步在装任何驱动之前做，为的是先确认负对照成立，再花 spike 的时间。预期：回退构建上对话框不关，基线头上关。`ConfirmDialog` 的确认按钮带 `autoFocus`，所以回退构建上的结果必须实测，不能假定。**回退构建上若关了，S2 作废，spike 暂停，回来重新设计负对照。**[ADR-0117](../adr/0117-a-relayed-remote-key-stands-for-the-physical-esc-in-the-spikes-s2-runs.md)（Proposed）：ADR-0113 下的那次对照和两个候选的 S2.1，用经 UU Remote 转发的 `remote key` Esc 代替物理 Esc，类别仍记 `remote key`；之后每次 S2，选型后的复验在内，都要物理 Esc。
+     **人工部分（2026-10-15，用户选「Only physical Esc, ~12 min (Recommended)」）**：人只按物理 Esc——两个包上 J5 第 3 步各一次，比较二里 release 包上 J5 第 3 步一次；比较一与比较二的其余步骤由 dtrack 经 computer use 走，与 WI-004 第 3 条 2026-10-14 的分法相同。实际这几次 Esc 都经 UU Remote 转发（`remote key`）；release 包上的那一次不在 ADR-0117 准入之列，S5 的生产样本仍缺物理 Esc，留给复验。
   3. **比较一**（驱动的影响）：人经启动器在基线头（`control-channel` 关）上手工走全部旅程，语义投影存档。与 WI-004 第 3 条的升级后记录是同一棵树时（`buildId` 相等）直接复用。
   4. **比较二**（打包配置的影响）：人在 `release` 配置的包上手工走 J1a、J2、J5，启动时把 `HOME` 指到临时目录，**日常 mdpro 关着**（同一个 identifier 和端口）。与比较一的同名旅程对比语义投影。差异逐条写进记录。
 - **Tests (first)**：无代码。
@@ -592,7 +592,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
     4. 至多一次（R9），用注入的故障测：响应丢失、完成延迟、连接断开、请求重复。每种情况下，一个有计数效果的操作（J4b 的复选框，看 `preferences.set` 的 start 条数）只发生一次。
     5. 结果契约：请求带关联 id；结果是统一的成功或错误信封；Promise 完成才算完成；超时给 unknown outcome；迟到的结果被丢弃。
     需要的补丁行数记下来，对照维护预算（Q2）。能力文件若需要，确认能做到只在 feature 构建里存在。
-  - **S2**：spike 分支上打两个带驱动的包：spike 头，和 ~~spike 头上回退 `c39dfb1` 的 `src/` 部分（ADR-0047 决定 4 说的就是这两个）~~**改为（2026-10-15，[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)）**：spike 头上打 WI-005 用的同一个 `ConfirmDialog` 补丁（`wi005-br-confirmdialog.patch`，全文在 spike 记录的「Builds」；不提交、不推送）。人先在这两个包上各按一次物理 Esc（驱动编入、通道开着、不发输入），结果须与 WI-005 的基线相同；不同就说明驱动本身改变了键盘行为，S2 记不过。然后驱动各发一次 Esc（J5），结果与人工基线一致——回退构建上不关、spike 头上关。四项记录齐全。**2026-10-16 起**（[ADR-0113](../adr/0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md)）：人工和驱动的每次 Esc 前都先做 J5 第 2a 步（点一次 backdrop），「不先聚焦对话框」按此理解。
+  - **S2**：spike 分支上打两个带驱动的包：spike 头，和 ~~spike 头上回退 `c39dfb1` 的 `src/` 部分（ADR-0047 决定 4 说的就是这两个）~~**改为（2026-10-15，[ADR-0100](../adr/0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md)）**：spike 头上打 WI-005 用的同一个 `ConfirmDialog` 补丁（`wi005-br-confirmdialog.patch`，全文在 spike 记录的「Builds」；不提交、不推送）。人先在这两个包上各按一次物理 Esc（驱动编入、通道开着、不发输入；A、B 这一次由 ADR-0117 准入 `remote key`），结果须与 WI-005 的基线相同；不同就说明驱动本身改变了键盘行为，S2 记不过。然后驱动各发一次 Esc（J5），结果与人工基线一致——回退构建上不关、spike 头上关。四项记录齐全。**2026-10-16 起**（[ADR-0113](../adr/0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md)）：人工和驱动的每次 Esc 前都先做 J5 第 2a 步（点一次 backdrop），「不先聚焦对话框」按此理解。
   - **S3**：J2、J3、J4a、J4b 全部走通，以磁盘内容和日志为准。J4b 开设置那一步是 `native`，不算驱动的。
   - **S4**：J1a、J1b、J6、J7a、J7b 走通；`single_instance` 仍是第一个注册的插件，`RunEvent::Opened` 的处理未被绕过（静态核对加日志）。
   - **S5**：全部旅程的语义投影与 WI-005 的比较一相等。
@@ -609,7 +609,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   补丁估计 225–290 行（监听、鉴权、路由表之内），~~预算约 300 行（Q2）~~。UI delegate 改成按需安装另需 30–60 行，且在这三处之外，~~做不做待定~~。
 
   **用户裁定（2026-10-15，经 delegator 转达，WI-006 开工前）**：
-  - **B1 预算**：「Raise to ~400」。候选 A 的补丁预算改为约 400 行，仍只限监听、鉴权、路由表三处。ADR-0047 决定 6 写的是「300 lines at most」；ADR-0047 仍是 Proposed，所以由本计划修订这个数字，ADR 的文字在 WI-008 把它改为 Accepted 时一并更正。
+  - **B1 预算**：「Raise to ~400」。候选 A 的补丁预算改为约 400 行，仍只限监听、鉴权、路由表三处。ADR-0047 决定 5 写的是「300 lines at most」；ADR-0047 仍是 Proposed，所以由本计划修订这个数字，ADR 的文字在 WI-008 把它改为 Accepted 时一并更正。
   - **B2 ⌘K**：「Accept as known diff (Recommended)」。不做按需安装的补丁。带驱动的包里 Source 模式 ⌘K 卡住约 30 秒，记为**只属于测试包的已知差异**，写进 spike 记录；旅程（含 e2e 旅程目录，ADR-0103）一律不在 Source 模式走 ⌘K。发布包不带驱动，不受影响。
   - **B4 取得 crate**：「Vendor as a local path (Recommended)」。把钉死的 1.4.0 下载一次放进 spike 分支，用 `[patch.crates-io]` 指向本地路径；补丁就是对这份副本的一个可审的 diff。用户的这句话涵盖这一次联网下载。
   - **B3** 已于 2026-10-15 落地（S2 的对照改用 ADR-0100 的补丁，见上面 S2 一条）。
@@ -633,9 +633,10 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   2. 结论是三者之一：WebdriverIO 插件、自研插件、只读探针（输入全部保持人工）。
   3. **spike 的补丁、分支、提交号、构建清单都留着**，直到 WI-011 的重验通过。
   4. ADR-0047 的 Status 改为 Accepted 并注明日期；维护预算的数字在这时定下。
-  5. 选中了驱动时，新写一份依赖 ADR（编号取当时 `docs/adr/` 的下一个）。
+  5. 选中了驱动时，新写一份依赖 ADR（编号取当时 `docs/adr/` 的下一个）。候选 B 不新增 crate（只多用现有 `objc2-app-kit` 的三个 feature，`Cargo.lock` 不变），所以写不写由用户在选择时一并决定：Codex 的审阅主张写（为自有的 AppKit 事件构造留档），Fable 的审阅认为可以不写。用户的决定和原话写进 ADR-0047 的 Accepted 一行。
   6. 排序文档 D30 行加上 ADR-0047、本计划、spike 记录的链接，状态字符串沿用该登记表邻行的写法。
   7. 回到本计划，补写 WI-009–WI-011 中与驱动相关的验收（PD7）。
+- **结果（2026-10-17，delegator）**：第 1、2、4、5、6 条完成。ADR-0047 Accepted，选自研插件（候选 B），用户原话「Accept, select B (Recommended)」；依赖 ADR 不写，用户原话「Waive it (Recommended)」，记在 ADR-0047 的 Accepted 一行。ADR-0117 同日 Accepted（「Accept (Recommended)」）。D30 行已加链接。第 3 条（spike 产物留存）与第 7 条（补写 WI-009–WI-011 的驱动验收）归 adr047-verify。
 - **Tests (first)**：无代码；只改文档。
 - **Estimate**：S。
 
@@ -656,6 +657,15 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   11. 插件注册不改变 `single_instance` 的首位，不绕过 `RunEvent::Opened`。
   12. 新增的命令或路由在 `docs/feature-ledger.md` 有自己的行；`pnpm ledger:check` 通过。
   13. 有结构化日志：通道开启、关闭、被拒绝的请求、被丢弃的迟到结果（都不含凭证）。
+- **Acceptance（驱动相关；选定自研插件即候选 B 时适用，WI-008 后补写）** 依据 spike 记录 § Candidate B。
+  14. 传输只有运行目录里的 Unix 套接字，不开 HTTP 监听，所以第 4 条的 HTTP 部分不适用，记「不适用」。套接字路径要放得进 `sun_path`（macOS 104 字节，含结尾 NUL）；放不下时通道不开，记 `control.listen` fail，不挪到运行目录外。
+  15. 第 2 条的运行时开关要真正实现：两个候选的 spike 都没有它（候选 B 的 `open()` 不做任何检查就绑定套接字，`control_channel/mod.rs:106-120` @ `79bde78a`），每个 `control-channel` 验证运行一启动就开通道。最终实现只在启动器显式开启时才开（ADR-0047 决定 6）；重验的 S1 要加「feature 开、开关没给」这一格，套接字和 `control.json` 都不存在才算过。
+  16. 依赖：不新增 crate。用到的 `objc2-app-kit` feature（spike 是 `NSEvent`、`NSGraphicsContext`、`NSWindow`）只经 `control-channel` 打开，默认 feature 图不变（spike 把它们放在无条件的 macOS 依赖列表里，这一条就是要改掉它）；`Cargo.lock` 的变化逐行列在提交说明里。
+  17. 输入是每个按键、每个鼠标键一个 `NSEvent`，在主线程经 `-[NSWindow sendEvent:]` 发给按标签找到的窗口。Objective-C 互操作集中在一个模块里，行数记进重验记录（spike 是 274 行）。只支持 macOS；其他平台上输入命令返回明确的不支持，而不是编译失败或静默成功。
+  18. 键表按 ANSI（ABC）布局，覆盖旅程用到的键；修饰键 `shift`、`cmd`、`ctrl`、`alt`。验收是 S3 的那几样在两个编辑器里都成立：Shift+方向键选中、⌘B、⌘Z、⌘1（spike 的 J2、J3）。
+  19. `activate` 只激活 app、让窗口成为 key window，不向页面发事件（用户裁定「Allow activate, record it (Recommended)」，2026-10-17 经 mdpro-delegator 转达）；它产生的 `window.focus` 由调用方记录。
+  20. 页面命令经 `eval_with_callback`，Promise 用页面里的槽位加轮询等结果；超时的槽位打墓碑，迟到结果被丢弃（第 6 条）。**页面还在加载时发出的页面命令**，spike 里得到的是 `script_error`；最终实现要把它报成与第 7 条同类的 driver failure（页面未就绪或代号已变），不能是 pass，也不能与脚本自身的错误混在一起。
+  21. 至多一次在整个运行期内成立：已接受的 id 在运行结束前不被忘记（spike 只记最近 1,024 个，候选 A 4,096 个，被挤掉的旧 id 会再执行一次）。用无上限的集合，或写进运行目录；测试覆盖「超过旧容量之后重发最早的 id」。
 - **Tests (first)**：凭证生命周期；逐路由的拒绝矩阵（无凭证、错凭证、错 Host、错 Origin、未开 `eval`）；重复 id 不执行；迟到结果被丢弃；窗口代号；无开关不监听；feature 关闭时相关符号不存在；洁净检查脚本和监听清单解析的单测放 `tests/`。
 - **Rollback**：feature 默认关闭，回退提交即可。
 - **Estimate**：L。
@@ -676,6 +686,10 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   4. 脏标记读自 DOM（由 store 直接渲染），不经 300 ms 防抖的 shadow store。
   5. `release` 包与 `verify` 包的 `dist` 摘要相等（并入 WI-009 第 10 条的第二层）。
   6. 新增的 ARIA 有组件测试：按 role 和 name 查得到活动标签和脏标签。
+- **Acceptance（驱动相关；选定候选 B 时适用，WI-008 后补写）**
+  7. 探针模板是 Rust 侧的常量脚本，调用方数据只以 JSON 字面量进入，从不作为源码拼接（spike 的 S1.3 a7）。
+  8. 读文本的字段写明用 `textContent` 还是 `innerText`。spike 用 `innerText`，J3 第 6 步读到 `beta`，旅程文档写的是 ` beta`；v1 选定一种并让旅程文档的「State after」与之一致。
+  9. 标签栏的关闭控件已在 D231 挪成标签的兄弟节点（`.bottom-tab__select`、`.bottom-tab__close`），设计里「可能要调整 DOM 结构」这一步按现状核对，不重做。
 - **Tests (first)**：`tests/control-console-buffer.test.ts`（序号单调、容量、溢出计数、先于应用模块安装）；`tests/control-probes-readonly.test.ts`（第 3 条的四个不变量，探针脚本在 jsdom 里对着渲染出来的界面跑）；`tests/control-probes-version.test.ts`；`tests/bottom-tabs-aria.test.tsx`。
 - **Touched areas**：Rust 插件里的探针脚本；`src/components/BottomTabs/BottomTabs.tsx`；应用外壳的 `aria-busy`。
 - **Risks + mitigations**
@@ -705,6 +719,11 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   5. **重验**：在最终实现上重跑 S1–S5，包括 S2 的两个构建、WI-005 的比较一。结论与 spike 记录逐关对照，写进 `docs/test/<日期>-adr0047-reverify.md`。任何一关与 spike 不一致，这个工作项不算完成。
   6. 「只读探针」结论下，第 5 条改为：编排器跑全部旅程，输入步骤全部是 `human`，探针和落盘检查由 CLI 做；S2、S3 记「不适用」。
   7. 重验通过之后，spike 的工作树和分支可以清理。删除分支到时单独问你。
+- **Acceptance（驱动相关；选定候选 B 时适用，WI-008 后补写）**
+  8. `press` 映射到驱动的按键加修饰键；`type` 只接受可打印 ASCII，其他字符是用法错误，并提示改用 `human` 步骤（IME 仍是人工，ADR-0047 决定 8）。
+  9. 每个输入类命令先做 `activate`，响应里报告它的结果。证据类别按发送方写 `driver input`：候选 B 的键在页面里也是 `isTrusted: true`，不能拿这个字段区分人和驱动。
+  10. `launch` 到 L3 之前 CLI 不发页面命令（spike 的 S1 第一轮就是在页面加载时发了脚本，得到 `script_error`）。
+  11. 第 5 条的重验里，S2 用候选 B 的两个构建，按 ADR-0113 的协议加 `activate`；S3–S5 与 spike 记录逐关对照，基线的应用侧差异（如 D260 去掉设置页脚）与驱动侧差异分开写。
 - **Tests (first)**：`tests/control-cli-*.test.ts`——参数解析；响应结构；退出码映射；目标定位的零个、多个、隐藏、模态四种情况；`wait` 的每个条件和超时；变更串行；输出上限；`run-journey` 在非 `cli` 步骤上停下；输出里无凭证。传输层在边界处 mock。
 - **Touched areas**：`scripts/control/`；`package.json`。
 - **Estimate**：L。
@@ -749,16 +768,16 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 
 ## 9. Manual Test Checklist（人工检查清单）
 
-- [x] WI-000：试探包上的 J1a 和 J5 物理 Esc（2026-10-02 通过）
+- [x] WI-000：试探包上的 J1a 和 J5 Esc（2026-10-02 通过；Esc 是 `remote key`，经 UU）
 - [x] WI-002：双击验证包，它退出，真实目录没有变化（2026-10-07，真机记录验收 2）
 - [x] WI-002：开着日常 mdpro 起隔离运行，日常那边没有多出窗口或标签（2026-10-07，真机记录验收 4）
 - [x] WI-002：Finder 里 `.md` 的默认打开方式没变；验证包点「检查更新」不会装上正式版（前半已过，真机记录验收 8。后半：2026-10-09 查明没有单独的「检查更新」按钮，About 打开即自动检查；空地址的报错原先被误判成网络错误，`e457cdb` 已修（`updaterErrors.ts`）。同日在 mini 上用 `e457cdb` 的验证包（buildId `13b68953…`）真机看过：About 显示 “Automatic updates coming soon.”，没有 Check Again，也没有安装按钮；日志只有一条 `ui.about.update_check` start，没有 fail。记录：[`docs/test/20261009-adr0047-wi002-about-updater-device.md`](../test/20261009-adr0047-wi002-about-updater-device.md)）
 - [x] WI-003：故意不杀旧进程再 `launch`，被拒绝（2026-10-09，真机 Check H：运行活着时重打再 `launch`，以已有运行被拒；重打的包与原包逐字节相同，`buildId` 不符这一支没触发。记录 [`docs/test/20261009-adr0047-wi003-device.md`](../test/20261009-adr0047-wi003-device.md)）
 - [x] WI-004：升级前后两个包各走一遍全部旅程（2026-10-15，dtrack，33 段相等；记录 [`docs/test/20261015-wi004-tauri-upgrade-device-check.md`](../test/20261015-wi004-tauri-upgrade-device-check.md)）
-- [x] WI-004：D34 的 Esc、D41 的 Tab 物理重测（2026-10-15，用户按键，通过；同一记录 H2、H3）
-- [ ] WI-005：两个包上的物理 Esc 基线（回退构建不关、基线头关）
+- [x] WI-004：D34 的 Esc、D41 的 Tab 重测（2026-10-15，用户按键，通过；类别 `remote key`，经 UU 转发，2026-10-17 用户确认「Yes, through UU」，原误记为物理；同一记录 H2、H3）
+- [ ] WI-005：两个包上的物理 Esc 基线（回退构建不关、基线头关；ADR-0113 下的对照由 ADR-0117 准入 `remote key`）
 - [ ] WI-005：比较一（驱动关的全部旅程）、比较二（`release` 包的 J1a、J2、J5，日常 mdpro 关着）
-- [ ] WI-006 / WI-007：每个候选的两个带驱动的包上，各按一次物理 Esc
+- [ ] WI-006 / WI-007：每个候选的两个带驱动的包上，各按一次物理 Esc（S2.1 由 ADR-0117 准入 `remote key`）
 - [ ] WI-009：对发布包带运行时开关启动，监听清单里没有控制通道
 - [ ] WI-011：重验里的 S2 两个构建
 - [ ] WI-012：一个真实工作项的试跑
@@ -774,7 +793,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 | WI-004 | 门禁输出；升级前后的语义投影；D34、D41 重测记录 |
 | WI-005 | 两份物理基线（各四项）；比较一、比较二的投影与差异说明 |
 | WI-006 / 007 | spike 记录的 S1–S6 表，每格带证据类别；补丁与行数 |
-| WI-008 | 接受后的 ADR-0047；依赖 ADR；D30 行；保留的 spike 产物清单 |
+| WI-008 | 接受后的 ADR-0047；依赖 ADR（用户 2026-10-17 免写）；D30 行；保留的 spike 产物清单 |
 | WI-009 | 拒绝矩阵测试；监听清单；洁净检查四层输出；ledger 行 |
 | WI-010 | 四个测试文件的红、绿输出；两种包的 `dist` 摘要 |
 | WI-011 | CLI 测试；重验记录 |

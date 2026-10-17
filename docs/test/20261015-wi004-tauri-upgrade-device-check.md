@@ -52,8 +52,8 @@ the signing path is the same.
 | Row | Verdict | Proof |
 |---|---|---|
 | H1 Esc cancels a Chinese IME composition | **Not a WI-004 regression**; defect registered as **D219** | User over UU加速器: Esc left the Doubao Pinyin candidate open, nothing inserted. Control (dtrack, report `20261015-wi004-h1-ime-esc.md`, scripted Esc key code 53 in one atomic probe per target, Doubao Pinyin): TextEdit **cancelled**; OLD v0.3.3 and FIX both **not cancelled**, the same. Shots `h1ime-*` |
-| H2 Esc on "Unsaved changes" | PASS (user) | L26429 `ui.dialog.escape {dialog:"confirm", outcome:"cancel"}` at 06:15:49; the tab stayed open and dirty |
-| H3 Tab in a Source table | PASS (user) | the cursor moved between cells; no text inserted (ADR-0046) |
+| H2 Esc on "Unsaved changes" | PASS (user; class `remote key`, pressed on the MacBook and relayed by UU, not physical: the user confirmed 「Yes, through UU」 on 2026-10-17) | L26429 `ui.dialog.escape {dialog:"confirm", outcome:"cancel"}` at 06:15:49; the tab stayed open and dirty |
+| H3 Tab in a Source table | PASS (user; class `remote key`, relayed by UU, confirmed 2026-10-17 as for H2) | the cursor moved between cells; no text inserted (ADR-0046) |
 | H4 ⌘Q with a dirty document | PASS (scripted ⌘Q via dtrack's `key.sh`, at the user's request: 「do it for me」) | L26479 `app.quit.request` → L26480 `app.quit.check dirty` → L26482 `app.quit.prompt` → Keep editing → L26490 `app.quit.cancel`. A scripted key, not a physical one; it goes through the same key-equivalent path |
 
 ## Changes to the mini's as-found state

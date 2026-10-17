@@ -2,10 +2,15 @@
 
 ## Status
 
-**Proposed** (2026-10-02). Becomes Accepted when the spike in Decision 4 has
-run, its record is in `docs/test/`, and the selection rule in Decision 5 has
-named a driver or the fallback. The chosen driver then gets its own dependency
-ADR.
+**Accepted** (2026-10-17). Decided by the user, who chose 「Accept, select B
+(Recommended)」 when mdpro-delegator asked. The spike in decision 4 ran
+(record: `docs/test/20261002-adr0047-spike.md`), and decision 5 named the
+in-repo plugin (candidate B). The maintenance budget is about 400 lines
+(decision 5); it bound candidate A only. The in-repo plugin adds no crate, so
+no dependency ADR is written: the user waived it, 「Waive it (Recommended)」
+(2026-10-17). Accepted after Codex `/cc-suite:review-plan` and the Fable
+auditor in `plan` mode (rule 70), both with no Critical or High left on r5.
+Proposed 2026-10-02.
 
 **Partially superseded** (2026-10-15): decision 4's S2 control build ("the `src/` part of
 `c39dfb1` … reverted") by [ADR-0100](0100-the-s2-negative-control-is-a-minimal-confirmdialog-patch.md).
@@ -13,6 +18,46 @@ ADR.
 **Partially superseded** (2026-10-16): decision 4's "without first focusing the dialog" by
 [ADR-0113](0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md) (one
 backdrop click before the Esc, on every S2 run).
+
+**Spike result** (2026-10-17). Candidate A passed S1 and S2 and failed S3: its
+driver builds arrow, Backspace and Enter keys without modifier flags, so
+Shift+← never selects. Candidate B, the in-repo plugin, has recorded passes on
+S1 to S5 inside its time box. S6 measured its cost: 864 changed lines (863
+added, 1 deleted), 274 of them Objective-C interop, and no upstream patch.
+Decision 5 therefore gives the in-repo plugin. Record:
+[`docs/test/20261002-adr0047-spike.md`](../test/20261002-adr0047-spike.md)
+§ Candidate B and § Selection. Four limits on that result:
+
+- **S5 crossed two trees.** It compared B on `70cc9d2d` with WI-005's hand
+  baseline on `9940be9`, and no production sample was taken on B's tree. The
+  re-verification in decision 5 runs S5 on one tree.
+- **Two contracts were not met by either candidate.** Neither has decision
+  6's runtime opt-in (a feature-enabled verify run opens the channel whenever
+  it starts), and both remember only a bounded set of request ids (B 1,024,
+  A 4,096), so decision 4's at-most-once holds only until an id is evicted.
+  S1's recorded passes stand; the implementation meets both before its
+  re-verification counts.
+- **Release separation is designed, not verified.** Decision 6's clean-release
+  check and runtime activation against a release bundle were not run.
+- **Every person's Esc in S2 was relayed.** The 2026-10-16 control, candidate
+  A's S2.1 and candidate B's S2.1 were Esc presses made on the MacBook and
+  relayed by UU Remote (`remote key`), not physical ones.
+  [ADR-0117](0117-a-relayed-remote-key-stands-for-the-physical-esc-in-the-spikes-s2-runs.md) (Accepted 2026-10-17; the user chose 「Accept the
+  remote key」 the same day) admits them for those runs. No physical Esc is in
+  this selection's evidence. It does not admit comparison two's J5 step 3 on
+  the production sample (`9940be9`, 2026-10-16, also `remote key`), so S5's
+  production sample still lacks the physical Esc ADR-0100 asks for; the
+  re-verification in decision 5 takes it, with a physical Esc in S2 as well.
+
+B's driver activates the app before its input (the user's 「Allow activate,
+record it (Recommended)」, relayed by mdpro-delegator on 2026-10-17); like
+ADR-0113's ⌘-Tab and Dock, that sends no event into the page and is not a
+focus on the dialog. The in-repo plugin adds no crate: it uses three more
+features (`NSEvent`, `NSGraphicsContext`, `NSWindow`) of the existing
+`objc2-app-kit` dependency, and `Cargo.lock` is unchanged. The user waived
+the dependency ADR at acceptance (see the Accepted line): there is no crate
+to decide, and the AppKit event construction owned here is recorded in the
+spike record § Selection.
 
 **Reviewed before drafting** (Codex, thread `01a0fa10…`, verdict *needs
 revision*). The review replaced "build an in-repo plugin now" with a spike,
@@ -144,7 +189,11 @@ this per-work-item wait.
    `tauri-plugin-wdio-webdriver` goes first. An in-repo plugin is spiked only
    if the first does not qualify under Decision 5.
    `tauri-plugin-mcp-bridge` is not a candidate while #36 is open. The time
-   box is two working days per candidate, to be confirmed at acceptance. The
+   box is two working days per candidate, ending at the time of day it was
+   granted. A was granted Thu 2026-10-15 16:10 and its box ran to Mon
+   2026-10-19 16:10 (the user's 「Calendar, end Mon 16:10 (Recommended)」,
+   relayed by mdpro-delegator on 2026-10-17); B was granted Sat 2026-10-17
+   15:20, to Tue 2026-10-20 15:20. The
    screens run in this order, and a candidate that fails one stops there:
    - **S1, compatibility, security and execution safety.**
      - It builds as a release-profile bundle behind one off-by-default Cargo
@@ -153,9 +202,10 @@ this per-work-item wait.
        pinned crate's source, and each one requires the credential.
      - With `eval` not enabled, the server refuses arbitrary script on every
        one of those routes.
-     - A mutating request runs at most once. This is tested with injected
-       faults: a lost response, a delayed completion, a disconnect and a
-       duplicate request.
+     - A mutating request runs at most once, for the life of the run: an
+       accepted id is never forgotten while the run lives. This is tested
+       with injected faults: a lost response, a delayed completion, a
+       disconnect and a duplicate request.
      - A request has a defined result: a correlation id, an error envelope,
        a timeout, and a late result that is discarded.
    - **S2, input against a physical baseline.** One build is the spike
@@ -167,7 +217,10 @@ this per-work-item wait.
      spike goes on. The driver's Esc must then give the same result on
      both, failure included, without first focusing the dialog. The record
      holds the native key window, DOM focus, the receiving window and the
-     log line.
+     log line. For the spike's control under ADR-0113 and both candidates'
+     S2.1, [ADR-0117](0117-a-relayed-remote-key-stands-for-the-physical-esc-in-the-spikes-s2-runs.md) (Accepted 2026-10-17) admits a relayed
+     `remote key` Esc in place of the physical one; any later S2 run, the
+     re-verification included, needs a physical Esc.
    - **S3, the editors.** In CodeMirror and in Milkdown: typing, selection,
      undo, a modifier shortcut, and a click that triggers asynchronous IPC.
    - **S4, ADR-0034's three criteria.** It drives a packaged `.app` on macOS
@@ -184,8 +237,9 @@ this per-work-item wait.
 5. **Selection rule, fixed before the spike starts.**
    - The WebdriverIO plugin is chosen if it passes S1 to S5 and what this
      repo must carry stays inside a maintenance budget: a patch of about
-     300 lines at most, limited to the listener, authentication and the
-     route table. The number is confirmed at acceptance. Sending the patch
+     400 lines at most, limited to the listener, authentication and the
+     route table (raised from about 300 on 2026-10-15, user ruling B1:
+     「Raise to ~400」). Sending the patch
      upstream does not end ownership of it.
    - The in-repo plugin is chosen if the WebdriverIO plugin does not
      qualify, at whichever screen, and the in-repo plugin passes S1 to S5.
@@ -225,6 +279,9 @@ this per-work-item wait.
 8. **Every result names its evidence class.**
    - Driver input is recorded as driver input. It never discharges the
      physical-key rule in `progress.md`, and IME stays manual.
+   - The class comes from who sent the input, never from the page's
+     `isTrusted`: a native event sent through `-[NSWindow sendEvent:]`
+     reaches the page as trusted, as a physical key does.
    - A verdict is one of: pass, fail, driver failure, unknown outcome,
      NOT VERIFIED.
    - A mutating command that timed out is an unknown outcome. The CLI does
@@ -271,7 +328,22 @@ this per-work-item wait.
   - **The verification build is not a usable app.** It refuses to start
     when opened by hand outside a run.
   - **Something is maintained either way:** a patch against upstream, or
-    Objective-C interop owned here.
+    Objective-C interop owned here. With the in-repo plugin it is the
+    interop: 274 lines of `NSEvent` construction and an ANSI keyCode table
+    that nobody upstream maintains, and an AppKit or WebKit change to how a
+    synthesised event is handled breaks it here first.
+  - **The in-repo channel is macOS-only as written.** It imports Unix
+    sockets and AppKit unconditionally, so a `control-channel` build exists
+    only on macOS, and choosing it gives up the WebdriverIO crate's Windows
+    and Linux implementations (not verified here). The keyCode table assumes
+    the ANSI (ABC) layout; the briefs check the input source, the code does
+    not. `type` takes printable ASCII only.
+  - **The added `objc2-app-kit` features are not behind the feature.** They
+    sit in the unconditional macOS dependency list; only the channel's code
+    is gated.
+  - **A driver step activates the app**, so it can take focus from whatever
+    the person is doing on that machine. It rests on
+    `activateIgnoringOtherApps`, deprecated since macOS 14.
   - **The spike can end with two half-built tools.** Running the candidates
     in order, and the stop conditions, are the only guard.
   - **The screens are run twice:** once to choose, once on what is built.

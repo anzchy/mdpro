@@ -11,6 +11,11 @@ Partially superseded, 2026-10-16: decision 3's "J5 step 3 on both builds" as the
 step by [ADR-0113](0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md).
 The control on this patch did not hold with focus on Keep editing; the patch itself stands.
 
+Partially superseded, 2026-10-17: the decision's "If a physical Esc closes the dialog on the control
+build …" and "WI-005's human baseline is cut to the physical Esc presses …", for the spike's S2
+runs only (the 2026-10-16 control and both candidates' S2.1), by
+[ADR-0117](0117-a-relayed-remote-key-stands-for-the-physical-esc-in-the-spikes-s2-runs.md).
+
 Supersedes one clause of [ADR-0047](0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)
 decision 4: S2's first build, "the spike branch with the `src/` part of `c39dfb1` (the D34 fix)
 reverted". ADR-0047 is still Proposed; every other part of it stands.

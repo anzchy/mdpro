@@ -14,6 +14,11 @@ Supersedes, for S2 only:
 
 The control build itself, ADR-0100's patch, is unchanged.
 
+Partially superseded, 2026-10-17: the decision's "What re-runs. The physical Esc is re-taken …" and
+the consequence "The physical class still applies to the Esc alone", for the spike's S2 runs only
+(the 2026-10-16 control and both candidates' S2.1), by
+[ADR-0117](0117-a-relayed-remote-key-stands-for-the-physical-esc-in-the-spikes-s2-runs.md).
+
 ## Context
 
 On 2026-10-16 the S2 negative control did not hold (spike record, "Negative control (WI-005)"). One
