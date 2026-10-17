@@ -6,7 +6,7 @@ taken (§ 0, including the user's answers to U1–U9); U10 and U11 were answered
 (2026-10-16, decision D7 in § 0) and owning [D261](20260912-frontend-backend-sequencing-order.md#d261).
 M2 is recorded ([record](../test/20261016-m2-menu-spike-device-check.md)), D255-WI-1 is done, and M0 is
 [ADR-0114](../adr/0114-the-menu-bar-and-default-keys-follow-one-command-table-and-vmark.md) (Accepted, 2026-10-16).
-M1a has landed (handoff 1 `e5c82d22`; handoff 2, WI-3 to WI-10 with two audit-fix rounds, `e4610a15`, 2026-10-17). Next: D261-WI-1 (mdpro-a6), then M3; M7 waits only for M1a and lands before M1b. U12 waits for the prototype.
+M1a has landed (handoff 1 `e5c82d22`; handoff 2, WI-3 to WI-10 with two audit-fix rounds, `e4610a15`, 2026-10-17). Next: D261-WI-1 (mdpro-a6), then M3; M7 waits only for M1a and lands before M1b. M7 is implemented and unit-verified on `feat/m7-shortcuts-every-entry` (mdpro-a3, 2026-10-17), not yet landed and not checked on a device. U12 waits for the prototype.
 **Base:** written on `master` @ `74a4804`; the review revision re-checked its citations on
 `1d7aa9f`, after #443 moved the app to Tauri 2.12.1 and muda 0.20.0
 (`src-tauri/Cargo.lock:2494-2495`). Crate paths are relative to

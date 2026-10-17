@@ -1,99 +1,39 @@
+/**
+ * Purpose: Settings › Keyboard Shortcuts. Every command-table entry in its
+ * D14 group with its capability (plan § 6 M7; DESIGN.md "Native menu bar
+ * and Keyboard Shortcuts page"), the recorder, and Save / Discard / Reset.
+ *
+ * Pipeline: get_preferences (saved) + get_applied_shortcuts (the run's
+ * snapshot) → shortcutSections → rowStateOf per row → ShortcutRow. Save is
+ * refused while findSettingsConflicts reports any conflict (M1A-WI-10).
+ *
+ * Key decisions:
+ * - Pending rows compare saved with applied, never the unsaved edit
+ *   (ADR-0114 Decision 4). A missing snapshot only hides that line.
+ * - Reset restores the table's defaults for the stored version.
+ *
+ * @coordinates-with src/components/common/settings/shortcuts/shortcutGroups.ts — groups and labels
+ * @coordinates-with src/components/common/settings/shortcuts/rowState.ts — the row states
+ * @coordinates-with src/commands/settingsConflicts.ts — the Save check
+ */
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { KeyboardShortcuts } from "../../../types/preferences";
-import { DEFAULT_KEYBOARD_SHORTCUTS } from "../../../types/preferences";
+import type { AppliedShortcuts } from "../../../types/keyboardShortcuts";
 import { preferencesService } from "../../../services/preferencesService";
 import { loggingService } from "../../../services/loggingService";
-import { displayedShortcut, isMacPlatform, recordedShortcut } from "../../../utils/platformLabels";
+import { isMacPlatform, recordedShortcut } from "../../../utils/platformLabels";
 import { findSettingsConflicts, settingsConflictLines, settingsPlatform } from "../../../commands/settingsConflicts";
+import { FIELD_LABELS, shortcutSections } from "./shortcuts/shortcutGroups";
+import { resetDefaults } from "./shortcuts/resetDefaults";
+import { rowStateOf } from "./shortcuts/rowState";
+import { ShortcutRow } from "./shortcuts/ShortcutRow";
+
+/** What a key button shows while the recorder waits for a chord. */
+const RECORDING_PROMPT = "Press keys...";
 
 interface KeyboardShortcutsSettingsProps {
   onClose: () => void;
 }
-
-interface ShortcutCategory {
-  name: string;
-  shortcuts: Array<{
-    key: keyof KeyboardShortcuts;
-    label: string;
-  }>;
-}
-
-const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
-  {
-    name: "File",
-    shortcuts: [
-      { key: "fileNew", label: "New" },
-      { key: "fileNewWindow", label: "New Window" },
-      { key: "fileOpen", label: "Open" },
-      { key: "fileSave", label: "Save" },
-      { key: "fileSaveAs", label: "Save As" },
-      { key: "fileClose", label: "Close" },
-      { key: "filePreferences", label: "Preferences" },
-    ],
-  },
-  {
-    name: "Edit",
-    shortcuts: [
-      { key: "editCopyAsMarkdown", label: "Copy As Markdown" },
-      { key: "editPasteAsPlainText", label: "Paste As Plain Text" },
-      { key: "editSelectLine", label: "Select Line" },
-      { key: "editSelectWord", label: "Select Word" },
-      { key: "editDeleteWord", label: "Delete Word" },
-      { key: "editJumpToTop", label: "Jump to Top" },
-      { key: "editJumpToBottom", label: "Jump to Bottom" },
-      { key: "editFind", label: "Find" },
-      { key: "editFindNext", label: "Find Next" },
-      { key: "editFindPrevious", label: "Find Previous" },
-      { key: "editReplace", label: "Replace" },
-    ],
-  },
-  {
-    name: "Paragraph",
-    shortcuts: [
-      { key: "paragraphHeading1", label: "Heading 1" },
-      { key: "paragraphHeading2", label: "Heading 2" },
-      { key: "paragraphHeading3", label: "Heading 3" },
-      { key: "paragraphHeading4", label: "Heading 4" },
-      { key: "paragraphHeading5", label: "Heading 5" },
-      { key: "paragraphHeading6", label: "Heading 6" },
-      { key: "paragraphParagraph", label: "Paragraph" },
-      { key: "paragraphIncreaseHeading", label: "Increase Heading" },
-      { key: "paragraphDecreaseHeading", label: "Decrease Heading" },
-      { key: "paragraphTable", label: "Table" },
-      { key: "paragraphCodeFences", label: "Code Fences" },
-      { key: "paragraphMathBlock", label: "Math Block" },
-      { key: "paragraphQuote", label: "Quote" },
-      { key: "paragraphOrderedList", label: "Ordered List" },
-      { key: "paragraphUnorderedList", label: "Unordered List" },
-      { key: "paragraphIndent", label: "Indent" },
-      { key: "paragraphOutdent", label: "Outdent" },
-    ],
-  },
-  {
-    name: "Format",
-    shortcuts: [
-      { key: "formatStrong", label: "Bold" },
-      { key: "formatEmphasis", label: "Italic" },
-      { key: "formatUnderline", label: "Underline" },
-      { key: "formatCode", label: "Code" },
-      { key: "formatStrike", label: "Strikethrough" },
-      { key: "formatHyperlink", label: "Hyperlink" },
-      { key: "formatImage", label: "Image" },
-      { key: "formatClearFormat", label: "Clear Format" },
-    ],
-  },
-  {
-    name: "View",
-    shortcuts: [
-      { key: "viewSource", label: "Source" },
-      { key: "viewWysiwyg", label: "WYSIWYG" },
-      { key: "viewToggleSidebar", label: "Toggle Sidebar" },
-      { key: "viewCycleViewMode", label: "Cycle View Mode" },
-      { key: "viewToggleFullscreen", label: "Toggle Fullscreen" },
-      { key: "viewSwitchDocuments", label: "Switch Documents" },
-    ],
-  },
-];
 
 export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettingsProps) {
   const [savedShortcuts, setSavedShortcuts] = useState<KeyboardShortcuts | null>(null);
@@ -103,6 +43,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [version, setVersion] = useState(1);
+  const [applied, setApplied] = useState<AppliedShortcuts["bindings"] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +51,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
       .getPreferences("settings_shortcuts")
       .then((p) => {
         if (cancelled) return;
-        const merged = { ...DEFAULT_KEYBOARD_SHORTCUTS, ...p.keyboardShortcuts };
+        const merged = { ...resetDefaults(settingsPlatform(), p.keyboardShortcutsVersion), ...p.keyboardShortcuts };
         setSavedShortcuts(merged);
         setLocalShortcuts(merged);
         setVersion(p.keyboardShortcutsVersion);
@@ -119,16 +60,26 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         if (!cancelled)
           setLoadError(err instanceof Error ? err.message : "Failed to load shortcuts");
       });
+    // The run's applied snapshot, for pending rows. Without one the rows
+    // show no pending line; the page still edits and saves.
+    Promise.resolve()
+      .then(() => preferencesService.getAppliedShortcuts())
+      .then((a) => {
+        if (!cancelled && a?.bindings) setApplied(a.bindings);
+      })
+      .catch(() => {
+        loggingService.logUiEvent("ui.settings.shortcuts.applied", { status: "fail" });
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
   /** Save-refusing conflicts by field, plus hidden-only notices (M1A-WI-10). */
-  const found = useMemo(() => {
-    const labels = Object.fromEntries(SHORTCUT_CATEGORIES.flatMap((c) => c.shortcuts.map((s) => [s.key, s.label])));
-    return findSettingsConflicts(settingsPlatform(), version, localShortcuts ?? {}, labels);
-  }, [localShortcuts, version]);
+  const found = useMemo(
+    () => findSettingsConflicts(settingsPlatform(), version, localShortcuts ?? {}, FIELD_LABELS),
+    [localShortcuts, version],
+  );
   const conflicts = found.refusing;
   const lines = settingsConflictLines(found, settingsPlatform());
 
@@ -169,7 +120,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
 
   const handleReset = () => {
     loggingService.logButtonClick("settings.shortcuts.reset");
-    setLocalShortcuts(DEFAULT_KEYBOARD_SHORTCUTS);
+    setLocalShortcuts(resetDefaults(settingsPlatform(), version));
     setIsDirty(true);
   };
 
@@ -203,6 +154,11 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     }
   };
 
+  const startEditing = (field: keyof KeyboardShortcuts) => {
+    loggingService.logButtonClick(`settings.shortcuts.edit.${String(field)}`);
+    setEditingKey(field);
+  };
+
   if (loadError) {
     return (
       <div className="shortcuts-layout">
@@ -219,6 +175,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     );
   }
 
+  const platform = settingsPlatform();
   return (
     <div className="shortcuts-layout">
       <div className="shortcuts-header">
@@ -262,30 +219,25 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         <p className="settings-form-hint" role="status">{lines.notices.join(" · ")}</p>
       )}
 
-      {SHORTCUT_CATEGORIES.map((category) => (
-        <section key={category.name} className="shortcuts-section">
-          <h4>{category.name}</h4>
+      {shortcutSections(platform, version).map((section) => (
+        <section key={section.name} className="shortcuts-section">
+          <h4>{section.name}</h4>
           <div className="shortcuts-list">
-            {category.shortcuts.map((item) => {
-              const shortcutValue = localShortcuts[item.key];
-              const isConflict = conflicts.has(item.key);
+            {section.entries.map(({ row, label }) => {
+              const input = { row, platform, version, local: localShortcuts, saved: savedShortcuts ?? localShortcuts };
+              const state = rowStateOf({ ...input, applied, conflicts });
+              if (state === null) return null;
               return (
-                <div key={item.key} className={`shortcut-row${isConflict ? " has-conflict" : ""}`}>
-                  <span className="shortcut-label">{item.label}</span>
-                  <button
-                    className={`shortcut-value ${editingKey === item.key ? "is-editing" : ""}`}
-                    onClick={() => {
-                      loggingService.logButtonClick(
-                        `settings.shortcuts.edit.${String(item.key)}`,
-                      );
-                      setEditingKey(item.key);
-                    }}
-                  >
-                    {editingKey === item.key
-                      ? "Press keys..."
-                      : displayedShortcut(item.key, shortcutValue, isMacPlatform())}
-                  </button>
-                </div>
+                <ShortcutRow
+                  key={row.id}
+                  label={label}
+                  field={row.prefField}
+                  state={state}
+                  isMac={isMacPlatform()}
+                  editing={row.prefField !== undefined && editingKey === row.prefField}
+                  recordingPrompt={RECORDING_PROMPT}
+                  onEdit={startEditing}
+                />
               );
             })}
           </div>
