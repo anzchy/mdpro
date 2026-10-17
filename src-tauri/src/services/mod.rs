@@ -17,6 +17,7 @@
 pub mod app_exit;
 pub mod app_ready;
 pub mod applied_shortcuts;
+pub mod binding_conflicts;
 pub mod build_info;
 pub mod draft;
 pub mod encoding;

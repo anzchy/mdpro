@@ -18,7 +18,8 @@
 //! - M1a resolves stored values only: `"<unassigned>"` → unassigned,
 //!   `"<system>"` → system, `""` → bound to the default (defensive: the D-b
 //!   repair already removed it), anything else → bound verbatim. The conflict
-//!   filter comes in handoff 2.
+//!   filter (`services/binding_conflicts.rs`, M1a WI-8) exists but is inert;
+//!   M1b wires it in.
 //! - Logs carry the source and counts only: never a chord, a sentinel or a path.
 //!
 //! @coordinates-with services/preferences.rs — `load_preferences`, the run's
