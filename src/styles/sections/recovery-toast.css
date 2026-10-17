@@ -71,9 +71,20 @@
   gap: 12px;
   box-shadow: var(--shadow-soft);
   z-index: 30;
+  /* D245: a message with a full path made the toast ~730px wide, and in a
+     narrow window its left edge left the window. Capped so that, with the
+     fixed right: 20px, 20px stays clear on the left at any width. */
+  max-width: min(480px, calc(100vw - 40px));
+}
+
+/* D245: the message shrinks inside the cap and wraps a path with no breaks. */
+.toast > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .toast-close {
+  flex-shrink: 0;
   border: none;
   background: none;
   font-size: 18px;

@@ -118,9 +118,11 @@
   min-width: 140px;
 }
 
+/* D258: rule 33 pattern 1, as the text inputs; the ring replaces the outline. */
 .settings-select:focus {
   outline: none;
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
 .settings-form-hint {
