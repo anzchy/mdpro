@@ -40,9 +40,11 @@
  *   already shown renders nothing, takes no focus and registers no Escape. A
  *   prompt already on screen stays when a dialog opens over it (ADR-0062).
  * - **Rust's deadline, never restarted.** A held request keeps arrival +
- *   `expiresInMs`. One past it is dropped without a reply when the queue next
- *   publishes, so Rust's own timeout (408) ends it: never a reject, never an
+ *   `expiresInMs`. A timer at the earliest deadline drops it without a reply
+ *   (ADR-0116), so Rust's own timeout (408) ends it: never a reject, never an
  *   approve. Rust's `confirm_resolved` usually drops it first.
+ * - **Startup Recovery waits for it** (D241, ADR-0116), through the optional
+ *   `McpRecoveryLink`; while its `recoverySlot` is set, a head waits as behind a modal.
  * - **Logs carry the request id and operation only** — never the document title,
  *   its id, or content. A malformed payload logs `{ reason: "malformed" }`.
  *
@@ -51,6 +53,7 @@
  * @coordinates-with src/services/mcpConfirmService.ts — the `mcp_confirm_reply` IPC
  * @coordinates-with src/utils/mcpConfirmModel.ts — payload guards and types
  * @coordinates-with src/utils/modalTabActionGuard.ts — `isModalOpen`, what holds a prompt
+ * @coordinates-with src/hooks/mcpRecoveryLink.ts — the D241 link to startup Recovery
  */
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -65,6 +68,9 @@ import {
   type ConfirmRequest,
   type ConfirmResolved,
 } from "../utils/mcpConfirmModel";
+import type { McpRecoveryLink } from "./mcpRecoveryLink";
+
+export { createMcpRecoveryLink, type McpRecoveryLink } from "./mcpRecoveryLink";
 
 /** The two events `services/mcp_confirm` emits to the owning window. */
 export const MCP_CONFIRM_REQUEST_EVENT = "mcp:confirm_request";
@@ -102,7 +108,7 @@ function logMalformed(event: string): void {
   });
 }
 
-export function useMcpConfirm(): McpConfirm {
+export function useMcpConfirm(link?: McpRecoveryLink): McpConfirm {
   const [prompt, setPrompt] = useState<ConfirmRequest | null>(null);
   const queueRef = useRef<ConfirmRequest[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
@@ -113,9 +119,28 @@ export function useMcpConfirm(): McpConfirm {
   // The prompt last committed to the screen: what the user can be answering.
   const shownRef = useRef<ConfirmRequest | null>(null);
 
+  const linkRef = useRef(link);
+  linkRef.current = link;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const publishRef = useRef<() => void>(() => {});
+
   useLayoutEffect(() => {
     shownRef.current = prompt;
   }, [prompt]);
+
+  // Every queue change goes through here: the pending flag and the deadline timer follow it.
+  const setQueue = useCallback((next: ConfirmRequest[]) => {
+    queueRef.current = next;
+    const current = linkRef.current;
+    if (current && current.pending.current !== next.length > 0) {
+      current.pending.current = next.length > 0;
+      current.onPendingChange?.();
+    }
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    const earliest = Math.min(...next.map((req) => deadlineRef.current.get(req.requestId) ?? Infinity));
+    const wait = Math.max(0, earliest - Date.now());
+    timerRef.current = earliest === Infinity ? null : setTimeout(() => publishRef.current(), wait);
+  }, []);
 
   // A request leaving the queue drops its deadline and held mark with it.
   const forget = useCallback((requestId: string) => {
@@ -131,9 +156,10 @@ export function useMcpConfirm(): McpConfirm {
       logHeld("ui.mcp_confirm.expired", req);
       forget(req.requestId);
     }
-    queueRef.current = live;
+    setQueue(live);
     const head = live[0] ?? null;
-    if (head && head.requestId !== shownRef.current?.requestId && isModalOpen(OWN_CARD_SELECTOR)) {
+    const held = isModalOpen(OWN_CARD_SELECTOR) || Boolean(linkRef.current?.recoverySlot.current);
+    if (head && head.requestId !== shownRef.current?.requestId && held) {
       if (!heldRef.current.has(head.requestId)) {
         heldRef.current.add(head.requestId);
         logHeld("ui.mcp_confirm.held", head);
@@ -142,17 +168,27 @@ export function useMcpConfirm(): McpConfirm {
       return;
     }
     setPrompt(head);
-  }, [forget]);
+  }, [forget, setQueue]);
+  publishRef.current = publish;
+
+  useEffect(() => {
+    const current = link;
+    if (current) current.republish.current = publish;
+    return () => {
+      if (current) current.republish.current = null;
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, [link, publish]);
 
   const handleRequest = useCallback(
     (req: ConfirmRequest) => {
       if (seenRef.current.has(req.requestId)) return;
       seenRef.current.add(req.requestId);
       deadlineRef.current.set(req.requestId, Date.now() + req.expiresInMs);
-      queueRef.current = [...queueRef.current, req];
+      setQueue([...queueRef.current, req]);
       if (queueRef.current.length === 1) publish();
     },
-    [publish],
+    [publish, setQueue],
   );
 
   const handleResolved = useCallback(
@@ -161,11 +197,11 @@ export function useMcpConfirm(): McpConfirm {
       const queue = queueRef.current;
       const index = queue.findIndex((req) => req.requestId === requestId);
       if (index < 0) return;
-      queueRef.current = queue.filter((_, i) => i !== index);
       forget(requestId);
+      setQueue(queue.filter((_, i) => i !== index));
       if (index === 0) publish();
     },
-    [forget, publish],
+    [forget, publish, setQueue],
   );
 
   const answer = useCallback(
@@ -173,8 +209,8 @@ export function useMcpConfirm(): McpConfirm {
       const shown = shownRef.current;
       const head = queueRef.current[0];
       if (!shown || !head || head.requestId !== shown.requestId) return;
-      queueRef.current = queueRef.current.slice(1);
       forget(head.requestId);
+      setQueue(queueRef.current.slice(1));
       publish();
       const { requestId, operation } = head;
       loggingService.logUiEvent(
@@ -185,7 +221,7 @@ export function useMcpConfirm(): McpConfirm {
       // lost reply is not an unhandled rejection. Rust's timeout ends it.
       void mcpConfirmService.reply(requestId, approved).catch(() => {});
     },
-    [forget, publish],
+    [forget, publish, setQueue],
   );
 
   const approve = useCallback(() => answer(true), [answer]);
