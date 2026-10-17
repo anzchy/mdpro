@@ -1,9 +1,9 @@
 /**
  * M1A-WI-10: Settings → Keyboard Shortcuts refuses Save on a conflict that
- * involves a custom value with a shown side, names it in the banner, and
- * lets a hidden-only conflict through with a non-blocking notice (matrix
- * § M1A-WI-10, R1-12, SD13, SD14; user ruling 2026-10-16
- * 「A: custom only (Recommended)」).
+ * involves a custom value and names it in the banner (matrix § M1A-WI-10,
+ * R1-12, SD13; user ruling 2026-10-16 「A: custom only (Recommended)」).
+ * Since M7 every field has a row, so SD14's hidden-only notice is gone and
+ * a conflict between the 9 fields it hid is refused like any other.
  *
  * Real component, real preferences and logging services. Mock boundary:
  * `@tauri-apps/api/core` only, as a stateful fake (F9): `get_preferences`
@@ -236,21 +236,22 @@ describe("M1A-WI-10 allowed Saves", () => {
     expect(fake.state.writes).toHaveLength(1);
   });
 
-  it("R1-12b hidden vs hidden is a status notice, and Save still works and keeps both values", async () => {
-    const { closed, user } = await open({ store: { formatHighlight: F_A, fileExportHtml: F_A } });
-    const notice = screen.getByRole("status");
-    expect(notice.textContent).toMatch(/Highlight/);
-    expect(notice.textContent).toMatch(/Export HTML/);
-    expect(conflictAlert()).toBeUndefined();
+  // M7: SD14's notice went with the hidden set; the two fields now have rows.
+  it("R1-12b (M7) two formerly hidden fields on one chord are refused, with no status notice", async () => {
+    const { closed, user, before } = await open({ store: { formatHighlight: F_A, fileExportHtml: F_A } });
+    expect(screen.queryByRole("status")).toBeNull();
+    const text = conflictAlert()?.textContent ?? "";
+    expect(text).toMatch(/Highlight/);
+    expect(text).toMatch(/Export HTML/);
+    expect(row("Highlight").classList.contains("has-conflict")).toBe(true);
+    expect(row("Export HTML").classList.contains("has-conflict")).toBe(true);
     await record(user, "Find Next", MAC_KEYS[F_B] as string);
     await clickSave(user);
-    await waitFor(() => expect(closed).toHaveLength(1));
-    expect(fake.state.store.formatHighlight).toBe(F_A);
-    expect(fake.state.store.fileExportHtml).toBe(F_A);
-    expect(fake.state.store.editFindNext).toBe(F_B);
-    const hidden = fake.state.logs.filter((l: LogPayload) => l.event === "ui.settings.shortcut_conflict_hidden");
-    expect(hidden.length).toBeGreaterThan(0);
-    expectNoChord(hidden[0]?.context ?? {});
+    expect(fake.state.store).toEqual(before);
+    expect(closed).toHaveLength(0);
+    expect(fake.state.logs.some((l: LogPayload) => l.event === "ui.settings.shortcut_conflict_hidden")).toBe(false);
+    expect(refusedLogs()).toHaveLength(1);
+    expect(refusedLogs()[0]?.context).toEqual({ status: "refused", refusing: 2 });
   });
 });
 

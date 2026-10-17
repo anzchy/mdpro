@@ -75,7 +75,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     };
   }, []);
 
-  /** Save-refusing conflicts by field, plus hidden-only notices (M1A-WI-10). */
+  /** Save-refusing conflicts by field (M1A-WI-10). */
   const found = useMemo(
     () => findSettingsConflicts(settingsPlatform(), version, localShortcuts ?? {}, FIELD_LABELS),
     [localShortcuts, version],
@@ -134,13 +134,8 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     if (!localShortcuts) return;
     loggingService.logButtonClick("settings.shortcuts.save");
     if (conflicts.size > 0) {
-      const counts = { refusing: conflicts.size, notices: found.notices.length };
-      loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "refused", ...counts });
+      loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "refused", refusing: conflicts.size });
       return;
-    }
-    if (found.notices.length > 0) {
-      const fields = found.notices.flatMap((n) => n.fields);
-      loggingService.logUiEvent("ui.settings.shortcut_conflict_hidden", { notices: found.notices.length, fields });
     }
     setSaveError(null);
     try {
@@ -214,9 +209,6 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
           Conflicting shortcuts detected — Save is blocked until they are resolved.
           {lines.alerts.map((line) => <div key={line}>{line}</div>)}
         </div>
-      )}
-      {lines.notices.length > 0 && (
-        <p className="settings-form-hint" role="status">{lines.notices.join(" · ")}</p>
       )}
 
       {shortcutSections(platform, version).map((section) => (

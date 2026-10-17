@@ -170,7 +170,8 @@ describe("F1 Settings refuses the overlap and names both commands", () => {
   it("the French pair outside the table is not refused (stated limit)", () => {
     for (const p of PLATFORMS) {
       const found = findSettingsConflicts(p, 1, { fileNew: "Cmd+Shift+.", fileClose: "Cmd+Shift+/" });
-      expect({ p, n: found.refusing.size, notices: found.notices }).toEqual({ p, n: 0, notices: [] });
+      // M7: SD14's notices are gone, so only the refusing count is checked.
+      expect({ p, n: found.refusing.size }).toEqual({ p, n: 0 });
     }
   });
 });
