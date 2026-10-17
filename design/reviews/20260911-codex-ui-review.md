@@ -3,10 +3,10 @@
 - **Date:** 2026-09-11
 - **mdpro commit:** `0a3675e`
 - **Reference:** a local style study of the Codex desktop app, not committed. This review keeps only screenshot measurements and paraphrased observations of Codex. It does not reproduce Codex source, token names or token values.
-- **Target:** the artboards in `docs/design/mdpro-ui/` (`canvas.json`, `Main`, `Wysiwyg`, `Sidebar`, `Settings`, `Components`, `DirectionA/B/C` `.dc.html`), now in `docs/design/mdpro-ui-old/`. The boards record the current UI and are kept outside git; the committed proposal is `docs/design/mdpro-ui-new/proposal-ab.html`.
+- **Target:** the artboards in `docs/design/mdpro-ui/` (`canvas.json`, `Main`, `Wysiwyg`, `Sidebar`, `Settings`, `Components`, `DirectionA/B/C` `.dc.html`), now in `design/archive/20260920-mdpro-ui-old/`. The boards record the current UI and are kept outside git; the committed proposal is `design/archive/20260911-proposal-ab.html`.
 - **Method:** a read-only review. Citations were spot-checked against the files at the commit above (16 of 16 matched).
 - **Rule 31:** mdpro's current token values are cited by `path:line` only. Codex observations are paraphrased or screenshot-measured.
-- **`DESIGN.md:N` citations** point at the file as of the commit above. It now lives at `docs/design/mdpro-ui-old/DESIGN.md`.
+- **`DESIGN.md:N` citations** point at the file as of the commit above. It now lives at `design/archive/20260920-mdpro-ui-old/DESIGN.md`.
 
 ## Decisions
 
@@ -19,7 +19,7 @@
 
 The owner decided D2–D4 after consulting Codex. The reasoning is recorded in the DESIGN.md decisions log.
 
-The companion artifact `docs/design/mdpro-ui-new/proposal-ab.html` renders the decided state. The D2 and D3 toggles remain, so the alternatives that were not chosen can still be compared.
+The companion artifact `design/archive/20260911-proposal-ab.html` renders the decided state. The D2 and D3 toggles remain, so the alternatives that were not chosen can still be compared.
 
 ## 1. Direction: A's register with B's structure
 

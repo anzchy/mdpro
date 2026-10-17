@@ -796,7 +796,7 @@ and page style (DESIGN.md). Its layout is a prototype item (S-U5); its contents 
     app epoch inside the same `JevState` transition as the write (S1b), not after it.
   - **The page:** the section has its own single-flight guard (the Integrations page's existing
     lease is MCP-specific): a section that hasn't loaded the group can't write it; a failed write
-    follows DESIGN.md's settings contract (`docs/design/mdpro-ui-new/DESIGN.md:723`): the error
+    follows DESIGN.md's settings contract (`design/DESIGN.md:723`): the error
     toast is the only signal and the switch rolls back. Inline text is kept for disabled
     controls and lasting states ("No key", "Backup not installed"). Rust reads `cloudEnabled` itself at search time, so
     a window with a stale copy can't send.

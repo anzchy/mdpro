@@ -13,7 +13,7 @@
  * - Decorative: `aria-hidden`, so a row's accessible name is its label alone.
  * - `GLYPHS` is keyed by `SettingsPageId`, so a page without a glyph fails `tsc`.
  * - Inline, no icon dependency (plan A7). Geometry source of truth:
- *   docs/design/mdpro-ui-new/prototypes/d260-settings-rail.html `LUCIDE`.
+ *   design/prototypes/011-d260-settings-rail.html `LUCIDE`.
  *
  * @coordinates-with src/components/common/SettingsDialog.tsx — renders one per rail row
  * @module components/common/settings/SettingsRailIcon

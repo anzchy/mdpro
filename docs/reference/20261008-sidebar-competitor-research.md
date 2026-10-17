@@ -13,7 +13,7 @@
 | 工作区 | 无。文件树 / vault 记为 Absent | `docs/feature-ledger.md` 「文件树 / vault」行 |
 | 死代码 | `Sidebar.tsx` + `FileItem.tsx`：「Open Files」竖向列表，内容和 BottomTabs 重复。关闭按钮是文本 `x`，没有 aria-label；脏标记是标题后缀 ` *`，和 BottomTabs 的圆点不一致；没有键盘导航，也没有 listbox 角色 | 源码；计划 P A8 |
 | 死代码的牵连 | `index.tsx` 里 `export { Sidebar }`；`tests/discard-dialog-focus-wiring.test.tsx` 的 DW-2 仍渲染它；`globals.css:130-190` 的 `.sidebar-empty` / `.sidebar-list` / `.file-item*` 只有它在用；ledger「文件树 / 工作区」○ 行引用了 `FileItem` / `Sidebar` | grep |
-| 设计目标 | 新 DESIGN 的布局是「Sidebar(Contents/TOC) + main + bottom tabs」。阅读顺序第 3 条：「sidebar contents and the bottom tabs: where you are, and what else is open」。即侧栏负责「在哪」，底部标签负责「还开了什么」 | `docs/design/mdpro-ui-new/DESIGN.md` § Layout |
+| 设计目标 | 新 DESIGN 的布局是「Sidebar(Contents/TOC) + main + bottom tabs」。阅读顺序第 3 条：「sidebar contents and the bottom tabs: where you are, and what else is open」。即侧栏负责「在哪」，底部标签负责「还开了什么」 | `design/DESIGN.md` § Layout |
 
 额外发现：计划 P 的 A8 写着「Deletion is tracked in TODOS.md」，但 `TODOS.md` 里**没有任何** Sidebar / FileItem 条目。另外，sequencing doc（2026-10-02 决定 ②）记录这两个文件「仍在 HEAD，不重开阶段 2」。所以这两份死代码目前没有任何删除归属。
 
@@ -122,4 +122,4 @@
 
 ### mdpro 内部
 
-`src/components/Sidebar/{index,Sidebar,FileItem,TOCSidebar}.tsx`；`src/components/BottomTabs/BottomTabs.tsx`；`src/hooks/useSidebarPreference.ts`；`src/styles/globals.css:23,81,108-190`；`tests/discard-dialog-focus-wiring.test.tsx:5,28,65-68`；`docs/plans/20260911-plan-ui-redesign.md`（A8 及 § Amendments ~:449）；`docs/plans/20260912-frontend-backend-sequencing-order.md:222`（决定 ②）、`:436`（D48 F-3 未跑）；`docs/feature-ledger.md:193-207,414`；`docs/plans/archive/20260628-plan-workspace-vault.md:28-38,56-58,78-85,147-149`；`docs/design/mdpro-ui-new/DESIGN.md` § Layout；`TODOS.md`（无 Sidebar 条目）。
+`src/components/Sidebar/{index,Sidebar,FileItem,TOCSidebar}.tsx`；`src/components/BottomTabs/BottomTabs.tsx`；`src/hooks/useSidebarPreference.ts`；`src/styles/globals.css:23,81,108-190`；`tests/discard-dialog-focus-wiring.test.tsx:5,28,65-68`；`docs/plans/20260911-plan-ui-redesign.md`（A8 及 § Amendments ~:449）；`docs/plans/20260912-frontend-backend-sequencing-order.md:222`（决定 ②）、`:436`（D48 F-3 未跑）；`docs/feature-ledger.md:193-207,414`；`docs/plans/archive/20260628-plan-workspace-vault.md:28-38,56-58,78-85,147-149`；`design/DESIGN.md` § Layout；`TODOS.md`（无 Sidebar 条目）。

@@ -28,7 +28,7 @@
 | MDN browser-compat-data | `css/types/color.json` | `f0e862b` | not checked | Safari support: `light-dark()` since 17.5, `color-mix()` since 16.2 | inferred (third-party compat data) |
 | Lucide | `lucide-icons/lucide` `LICENSE`; `packages/lucide-react/package.json:5,29` | `5d592a9` | ISC | License of the icon library Codex ships, which this doc proposes as a dependency | inferred |
 | Screenshots of the running app | ChatGPT.app, window 1380×949pt at @2x; `screencapture -l` plus accessibility-tree frames; navigation via AXPress only | app 26.903.71938, captured 2026-09-11 | proprietary; captures kept outside the repo | **Done with user approval** (view only, no messages sent, dark theme reverted to System). Rendered surfaces, text, borders, controls, geometry and Appearance theme settings in light and dark (section 2.11). Not captured: row-level diff view, theme-switch animation | screenshot-measured |
-| mdpro | `src/styles/`, `src/components/`, `DESIGN.md`, `.claude/rules/31,34`, `docs/design/mdpro-ui-old/canvas.json`, `src-tauri/Cargo.lock` | `0a3675e` | project | mdpro's current state, cited by path:line | mdpro-observed |
+| mdpro | `src/styles/`, `src/components/`, `DESIGN.md`, `.claude/rules/31,34`, `design/archive/20260920-mdpro-ui-old/canvas.json`, `src-tauri/Cargo.lock` | `0a3675e` | project | mdpro's current state, cited by path:line | mdpro-observed |
 
 **Re-checking the pre-written prompt's claims (2026-09-11).**
 - **Confirmed:**
@@ -426,7 +426,7 @@ Anchors in DESIGN.md:
 - "The memorable thing": the editor **respects the file** (DESIGN.md:35-43).
 - Aesthetic register: quiet, system-native, minimal decoration, single accent (DESIGN.md:57-71).
 
-Canvas directions, as described in `docs/design/mdpro-ui-old/DirectionA/B/C.dc.html`:
+Canvas directions, as described in `design/archive/20260920-mdpro-ui-old/DirectionA/B/C.dc.html`:
 - **A — Quiet paper:** chrome drops to tone and space.
 - **B — Command surface:** keyboard-first, denser, mono readouts.
 - **C — Focus canvas:** chrome appears on demand.

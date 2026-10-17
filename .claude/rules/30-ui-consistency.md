@@ -10,7 +10,7 @@ paths:
 
 > Index. Detailed specs in `31-design-tokens.md`, `32-component-patterns.md`,
 > `33-focus-indicators.md`, `34-dark-theme.md`. Design register and decisions
-> log: root `DESIGN.md`, an index into `docs/design/`.
+> log: root `DESIGN.md`, an index into `design/`.
 
 ## Core principles
 

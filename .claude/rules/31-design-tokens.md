@@ -19,9 +19,9 @@ For the actual token values, **read those files**. Don't mirror them
 here — the doc would silently rot.
 
 Token rationale and the decisions log live in the design doc that root
-`DESIGN.md` marks as current (today `docs/design/mdpro-ui-old/DESIGN.md`).
+`DESIGN.md` marks as current (today `design/archive/20260920-mdpro-ui-old/DESIGN.md`).
 While the UI redesign is in progress, its new and redefined tokens are
-logged in `docs/design/mdpro-ui-new/DESIGN.md` § Tokens instead; any other
+logged in `design/DESIGN.md` § Tokens instead; any other
 token still goes to the current doc (DR14; plan P WI-5.5 removes this
 clause).
 

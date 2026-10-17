@@ -193,7 +193,7 @@ describe("the resolver reads the rgba() fills the settings inputs use", () => {
 });
 
 describe("DESIGN.md § Tokens names the D189 layout tokens (WI-3.5)", () => {
-  const design = readFileSync(join(root, "docs/design/mdpro-ui-new/DESIGN.md"), "utf8");
+  const design = readFileSync(join(root, "design/DESIGN.md"), "utf8");
   const tokens = design.slice(design.indexOf("## Tokens"), design.indexOf("## Layout"));
 
   for (const name of ["--sidebar-width-min", "--main-min-width"]) {

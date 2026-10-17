@@ -15,11 +15,11 @@ See [`progress.md`](./progress.md) for accumulated implementation lessons — bu
 ## Design System
 
 **The design every UI decision references is
-[`docs/design/mdpro-ui-new/DESIGN.md`](./docs/design/mdpro-ui-new/DESIGN.md)**
+[`design/DESIGN.md`](design/DESIGN.md)**
 (user decision, 2026-10-11: 「mark 这个就是最后所有的 UI 设计都参考的设计方案」).
 Read it before making any visual or UI decision; the root
-[`DESIGN.md`](./DESIGN.md) is only the index into `docs/design/`, and
-`docs/design/mdpro-ui-old/DESIGN.md` describes the UI as shipped, not where it
+[`DESIGN.md`](./DESIGN.md) is only the index into `design/`, and
+`design/archive/20260920-mdpro-ui-old/DESIGN.md` describes the UI as shipped, not where it
 is going. Aesthetic register, "memorable thing", token names and component
 contracts live in the new file. Enforceable rules live in `.claude/rules/30-34`
 and win any conflict with it:

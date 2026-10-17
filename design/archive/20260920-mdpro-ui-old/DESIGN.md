@@ -3,9 +3,9 @@
 A local-first Markdown editor for macOS. Tauri 2.0 + React 19 + Milkdown +
 CodeMirror 6.
 
-> **Location.** Moved from the repo root to `docs/design/mdpro-ui-old/` on
+> **Location.** Moved from the repo root to `design/archive/20260920-mdpro-ui-old/` on
 > 2026-09-11. It is still the authoritative design system for the shipped UI
-> until the redesign in `docs/design/mdpro-ui-new/` lands. The root
+> until the redesign in `design/` lands. The root
 > `DESIGN.md` is an index.
 
 This file captures the **aesthetic register**, the user-facing posture, and
@@ -119,8 +119,8 @@ Concrete consequences:
 | 2026-05-02 | Single accent (`--color-accent`) + soft variant (`--color-accent-soft`) | Multiple accents create implicit hierarchy. mdpro doesn't have categories of action that warrant it. |
 | 2026-05-02 | No primitive spacing scale yet (`--space-*`) | Rule of three: introduce semantic tokens when 3+ unrelated sites share the value. Premature primitive scales are noise. |
 | 2026-05-03 | Added `--color-accent-soft`, `--color-danger`, `--color-danger-soft` (table-CRUD WI-1.9) | Migrates 7 hardcoded `rgba(37, 99, 235, …)` and `#dc2626` sites to tokens. `*-soft` variants use `color-mix(in srgb, base N%, transparent)` so a future accent rebrand stays local. Unblocks the destructive-action treatment in WI-1.3 (table context menu) and the cell-highlight in WI-1.6. |
-| 2026-09-11 | UI direction: canvas Direction A's register (Quiet paper) with Direction B's structure (Command surface) | Tone, space and hairlines keep the quiet register. B's mode switch, command palette and status readouts serve keyboard users without its 2px boxes or density. Concrete edits: `docs/design/mdpro-ui-new/mdpro-ui-codex-review.md` §1. |
-| 2026-09-11 | Source mode defaults to monospace on new installs; a "Source font" preference (Monospace / Follow editor font) keeps existing profiles on the editor font | "Respects the file": aligned tables and visible whitespace. `fontFamily: "system"` can't tell an untouched default from an explicit choice, so an upgrade must not change fonts silently. CJK falls back to the system CJK face, so tables containing CJK still won't align exactly. Revises the "same fonts" clause under The memorable thing. Codex was consulted; see `docs/design/mdpro-ui-new/mdpro-ui-codex-review.md` item 3. |
+| 2026-09-11 | UI direction: canvas Direction A's register (Quiet paper) with Direction B's structure (Command surface) | Tone, space and hairlines keep the quiet register. B's mode switch, command palette and status readouts serve keyboard users without its 2px boxes or density. Concrete edits: `design/reviews/20260911-codex-ui-review.md` §1. |
+| 2026-09-11 | Source mode defaults to monospace on new installs; a "Source font" preference (Monospace / Follow editor font) keeps existing profiles on the editor font | "Respects the file": aligned tables and visible whitespace. `fontFamily: "system"` can't tell an untouched default from an explicit choice, so an upgrade must not change fonts silently. CJK falls back to the system CJK face, so tables containing CJK still won't align exactly. Revises the "same fonts" clause under The memorable thing. Codex was consulted; see `design/reviews/20260911-codex-ui-review.md` item 3. |
 | 2026-09-11 | No second hue in Source syntax highlighting: markers use the accent, meta uses muted, code uses text | Keeps the single-accent register (2026-05-02 entry). Green already signals success and diff additions, so a green code hue would carry two meanings. Code stays distinguishable through fences, the code background and the mono face. |
 | 2026-09-11 | Keep the current cool neutral family; adopt only derived mechanics (text-mixed borders and hover) | The cool cast matches the blue accent, and "system-native" is about behavior, not equal RGB channels. Untinted grays would move from borrowing Codex's mechanics to copying its look, at a large QA cost. |
 | 2026-09-12 | Removed `--color-preview-bg` from `globals.css` and both theme files | Its only reader was `ImageRenderer.tsx`, deleted with the Preview pane in the stage-2 dead-code cleanup (`15b9d35`). A token that is declared but never read invites a future surface to adopt a color chosen for a pane that no longer exists. Rule 31 requires both theme files to change together, so all three declaration sites go in one commit. Recover the values with `git show 15b9d35^:src/styles/themes/dark.css`. |

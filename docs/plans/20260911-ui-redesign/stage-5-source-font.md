@@ -63,7 +63,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - Runs last, after the other Stage 5 items.
 - Root `DESIGN.md`: the new doc becomes the current design system, and the old doc becomes the record of the pre-redesign UI. The old doc itself is not edited.
 - Rule 31: remove the DR14 interim clause, and name the new doc in the "today" parenthetical.
-- `docs/design/mdpro-ui-new/DESIGN.md`: wording that calls it a target state or unshipped now describes the shipped UI. Open questions still open move to `TODOS.md`.
+- `design/DESIGN.md`: wording that calls it a target state or unshipped now describes the shipped UI. Open questions still open move to `TODOS.md`.
 - CLAUDE.md links root `DESIGN.md` only, so it needs no change. Confirm with a grep for `mdpro-ui-old`.
 
 ### Stage 5 acceptance criteria

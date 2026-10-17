@@ -158,7 +158,7 @@ describe("primary buttons: --color-on-accent on --color-accent-fill", () => {
 describe("the D222 and focus-ring tokens are documented", () => {
   const root = join(__dirname, "..");
   const rule31 = readFileSync(join(root, ".claude/rules/31-design-tokens.md"), "utf8");
-  const design = readFileSync(join(root, "docs/design/mdpro-ui-new/DESIGN.md"), "utf8");
+  const design = readFileSync(join(root, "design/DESIGN.md"), "utf8");
   const designTokens = design.slice(design.indexOf("## Tokens"), design.indexOf("## Layout"));
 
   for (const name of ["--color-accent-text", "--color-accent-fill", "--color-accent-fill-hover", "--color-focus-ring"]) {

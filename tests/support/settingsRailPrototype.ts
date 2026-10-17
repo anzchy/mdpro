@@ -1,7 +1,7 @@
 /**
  * @module tests/support/settingsRailPrototype
  * Purpose: the D260 geometry oracle. Reads the accepted prototype
- * (`docs/design/mdpro-ui-new/prototypes/d260-settings-rail.html`, variant D)
+ * (`design/prototypes/011-d260-settings-rail.html`, variant D)
  * and exposes its `NAV` list and its `LUCIDE` glyph map, so the rail is
  * checked against the design artefact rather than against a copy of itself.
  *
@@ -16,7 +16,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const PROTOTYPE = join(__dirname, "..", "..", "docs", "design", "mdpro-ui-new", "prototypes", "d260-settings-rail.html");
+const PROTOTYPE = join(__dirname, "..", "..", "design", "prototypes", "011-d260-settings-rail.html");
 const html = readFileSync(PROTOTYPE, "utf8");
 
 /** The literal assigned to `const <name> =`, up to its closing `];` / `};` line. */

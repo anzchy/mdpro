@@ -5,7 +5,7 @@ CodeMirror 6.
 
 > **Status: target design, not shipped yet.** This file describes the UI
 > after `docs/plans/20260911-plan-ui-redesign.md` lands. Until then:
-> - `docs/design/mdpro-ui-old/DESIGN.md` governs the shipped UI.
+> - `design/archive/20260920-mdpro-ui-old/DESIGN.md` governs the shipped UI.
 > - `.claude/rules/30-34` win any conflict.
 >
 > When the last stage lands, this file replaces the old one and the root
@@ -28,7 +28,7 @@ they live in the proposal's token block; after it ships they live in
 | Proposed token values | proposal :21-61. Never :63-69, the rejected code hue. |
 | Order of work, gates, tests | `docs/plans/20260911-plan-ui-redesign.md` |
 | Enforceable rules | `.claude/rules/30-34` |
-| The UI as shipped today | `docs/design/mdpro-ui-old/DESIGN.md` |
+| The UI as shipped today | `design/archive/20260920-mdpro-ui-old/DESIGN.md` |
 
 ## Product context
 
@@ -103,7 +103,7 @@ DR14).
 | `--color-focus-ring` | new | `:root`, equal to the accent (DR15) | Focus outlines and inset rings (see [Focus](#focus)) | :24, not its mix | 7 |
 | `--color-syntax-markup` | new | `:root`, from accent | Source markers: heading, list, quote, emphasis, fence, backtick, table pipe, link brackets | :25 | 2 |
 | `--color-syntax-meta` | new | `:root`, from muted | Link targets, URLs, fence info strings, HTML | :26 | 2 |
-| `--color-code-bg` | redefined as an editor-bg mix | both themes | Code surfaces. Neutral, by the user's choice at STOP 3 ([ADR-0110](../../adr/0110-code-surfaces-take-the-neutral-derived-background.md)), which drops D4's cool tint here | review item 15 | 15 |
+| `--color-code-bg` | redefined as an editor-bg mix | both themes | Code surfaces. Neutral, by the user's choice at STOP 3 ([ADR-0110](../docs/adr/0110-code-surfaces-take-the-neutral-derived-background.md)), which drops D4's cool tint here | review item 15 | 15 |
 | `--settings-sidebar-bg` | points at `--color-surface` | both themes | Settings rail | — | 14 |
 | `--color-on-accent` | new | `:root` (same in both themes today) | Labels and the switch knob on an accent fill. Any per-theme value is Stage 3's contrast table. | — | R2 |
 | `--color-accent-text` | new | both themes (D222) | Selected-state text on accent-soft: active TOC row, the shortcut being recorded. Light is the accent mixed 80% with the text colour (5.20:1 on the TOC row); dark is the accent. User ruling on prototype/d222-contrast: 「A: derived accent text (Recommended)」 | — | D222 |
@@ -122,7 +122,7 @@ DR14).
   the Insert Table grid-picker cell edge (1.22 / 1.25). User rulings on
   prototype/p-wi35-a9-controls: 「Accept (today: #ccc)」, 「Accept (today)」 and
   「Accept as exception」 twice. Changing one needs a new ruling
-  ([ADR-0106](../../adr/0106-five-control-colours-are-accepted-below-the-a9-contrast-line.md));
+  ([ADR-0106](../docs/adr/0106-five-control-colours-are-accepted-below-the-a9-contrast-line.md));
   `tests/contrast-stage3.test.ts` pins the first three.
 - **Retired:** `--settings-btn-hover-bg` and `--settings-btn-active-bg`, once
   the rail migrates (WI-4.7).
@@ -184,7 +184,7 @@ shadow.
   no "Contents" header and no mode badge (D223; the user's ruling 「B: remove
   everywhere (Recommended)」). Until the main bar's segmented control is
   built (WI-4.8), the mode shows only in the View menu's check marks.
-  - **Width ([ADR-0088](../../adr/0088-the-sidebar-keeps-its-width-is-resizable-and-is-toggled-by-one-fixed-button.md)):**
+  - **Width ([ADR-0088](../docs/adr/0088-the-sidebar-keeps-its-width-is-resizable-and-is-toggled-by-one-fixed-button.md)):**
     the user sets it by dragging the right edge, 180–480px, default 220
     (`--sidebar-width`, stored as the `sidebarWidth` preference). It keeps
     that width at every window width and never collapses because the window
@@ -513,7 +513,7 @@ cited proposal lines in both themes.
 ### Native menu bar and Keyboard Shortcuts page (menu plan, v0.3.6)
 
 The native menu bar and Settings › Keyboard Shortcuts after the menu
-reorganisation ([plan](../../plans/20261015-plan-menu-reorganisation.md),
+reorganisation ([plan](../docs/plans/20261015-plan-menu-reorganisation.md),
 merged with D255; the user chose prototype A, `prototypes/menu-ui.html`).
 The plan owns the trees, the keys and availability; this block owns how they
 look. Where the two disagree, the plan wins and this block is corrected.

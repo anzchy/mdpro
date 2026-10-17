@@ -271,4 +271,4 @@ has had — ideal time to capture them.
 **Depends on:** Settings panel full polish PR (establishes `.settings-row`, stepper, section patterns)
 **Blocked by:** Nothing
 
-**Completed:** `DESIGN.md` was added in `850b21e` (2026-05-03), backed by rules 30–34. Moved here 2026-09-11. The same day the file itself moved to `docs/design/mdpro-ui-old/DESIGN.md`; the root `DESIGN.md` is now an index.
+**Completed:** `DESIGN.md` was added in `850b21e` (2026-05-03), backed by rules 30–34. Moved here 2026-09-11. The same day the file itself moved to `design/archive/20260920-mdpro-ui-old/DESIGN.md`; the root `DESIGN.md` is now an index.

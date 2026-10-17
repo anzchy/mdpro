@@ -21,7 +21,7 @@ const root = tokenBlock(readAppCssFile("globals.css"), ":root");
 const light = readAppCssFile("themes/light.css");
 const dark = readAppCssFile("themes/dark.css");
 const rule31 = readFileSync(join(ROOT, ".claude/rules/31-design-tokens.md"), "utf8");
-const design = readFileSync(join(ROOT, "docs/design/mdpro-ui-new/DESIGN.md"), "utf8");
+const design = readFileSync(join(ROOT, "design/DESIGN.md"), "utf8");
 const designTokens = design.slice(design.indexOf("## Tokens"), design.indexOf("## Layout"));
 
 /** Each token and the value its Stage 2 sites render today (Appendix A). */
@@ -56,7 +56,7 @@ describe("WI-2.2 tokens are documented in the same commit", () => {
   }
 
   it("rule 31 logs redesign tokens in the new design doc while the redesign runs (DR14)", () => {
-    expect(rule31).toContain("docs/design/mdpro-ui-new/DESIGN.md");
+    expect(rule31).toContain("design/DESIGN.md");
     expect(rule31).toMatch(/While the UI redesign is in progress/);
   });
 });

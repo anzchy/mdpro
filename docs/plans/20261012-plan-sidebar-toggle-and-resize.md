@@ -2,11 +2,11 @@
 
 **Status:** for review (2026-10-13). Decisions recorded; no code written.
 **Base:** `master` @ `b722653`.
-**Prototype:** [`docs/design/mdpro-ui-new/prototypes/sidebar-toggle.html`](../design/mdpro-ui-new/prototypes/sidebar-toggle.html)
+**Prototype:** [`design/prototypes/001-adr0088-sidebar-toggle.html`](../../design/prototypes/001-adr0088-sidebar-toggle.html)
 (open it in a browser; the URL accepts `?open=0&variant=b&width=756&theme=dark`).
 **Decision record:** [ADR-0088](../adr/0088-the-sidebar-keeps-its-width-is-resizable-and-is-toggled-by-one-fixed-button.md) (Accepted 2026-10-12).
 **Related:** issue [#416](https://github.com/anzchy/mdpro/issues/416) / D189 (sidebar collapses at
-≤960 px), [`DESIGN.md`](../design/mdpro-ui-new/DESIGN.md) (the design contract).
+≤960 px), [`DESIGN.md`](../../design/DESIGN.md) (the design contract).
 
 ## 1. Goal
 
@@ -105,7 +105,7 @@ Branch per item, `<type>/<id>-<slug>` off `master` in its own worktree, landed b
 
 | WI | Scope | Files (expected) | Tests (rule 10) |
 |---|---|---|---|
-| **SB-0** | DESIGN.md edits (§ 4.4) + prototype updated to variant B only, with a resize handle. ADR-0088 itself is done. | `docs/design/mdpro-ui-new/DESIGN.md`, the prototype | none (docs) |
+| **SB-0** | DESIGN.md edits (§ 4.4) + prototype updated to variant B only, with a resize handle. ADR-0088 itself is done. | `design/DESIGN.md`, the prototype | none (docs) |
 | **SB-1** | #416 fix: drop the media-query override, pin the column | `src/styles/sections/responsive.css`, `app-shell.css` | Layout test: rendered sidebar width at 1512 / 961 / 960 / 756 / 504 px equals `--sidebar-width` (jsdom has no layout, so this belongs in the Milkdown/browser suite or a headless-Chrome check like the #416 repro) |
 | **SB-2** | Toggle button (variant B) | `src/components/BottomTabs/BottomTabs.tsx` + `.css`, a small `SidebarToggleButton.tsx`, icon SVGs, `App.tsx` wiring | Component: role/name/`aria-expanded`/`aria-controls`, label swaps, click calls the hook's `toggle` once, focus stays; SB8 pin still green |
 | **SB-3** | `sidebarWidth` preference end to end | `src-tauri/src/models/preferences.rs` (+ tests), `src/types/preferences.ts`, `src/services/preferencesService.ts`, `src/stores/editorStore.ts` | Rust: default, clamp on read, round-trip; TS: hydration policy P1 for width, the write count |

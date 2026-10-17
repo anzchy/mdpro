@@ -115,7 +115,7 @@ describe("the toggle and the danger button keep their colours (accepted exceptio
 
 describe("the D227 tokens are documented", () => {
   const rule31 = read(".claude/rules/31-design-tokens.md");
-  const design = read("docs/design/mdpro-ui-new/DESIGN.md");
+  const design = read("design/DESIGN.md");
   const tokens = design.slice(design.indexOf("## Tokens"), design.indexOf("## Layout"));
 
   for (const name of Object.keys(RULED)) {

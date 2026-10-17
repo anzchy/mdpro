@@ -7,7 +7,7 @@ Last updated: 2026-10-15
 ## Overview
 
 Plan P ([`docs/plans/20260911-plan-ui-redesign.md`](../plans/20260911-plan-ui-redesign.md)) restyles mdpro
-against [`docs/design/mdpro-ui-new/DESIGN.md`](../design/mdpro-ui-new/DESIGN.md) in stages. This guide is
+against [`design/DESIGN.md`](../../design/DESIGN.md) in stages. This guide is
 the manual check for every surface a work item changes (assumption A11). It was created by WI-3.0, the
 first Stage 3 work item; each later work item adds or updates its own section in the same commit.
 
