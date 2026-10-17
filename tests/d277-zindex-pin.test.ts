@@ -330,3 +330,30 @@ describe("D277-FIX-2: every table row is well formed", () => {
     );
   });
 });
+
+// D277-FIX-3 (user ruling 「Accidental drift only (Recommended)」): the last two shape gaps.
+describe("D277-FIX-3: @keyframes holds only keyframe selectors", () => {
+  it("a rule selector inside @keyframes throws", () => {
+    expect(() => zIndexDeclarations({ "x.css": "@keyframes k { .toast { z-index: 30; } }" })).toThrow(/keyframe/);
+    expect(() => zIndexDeclarations({ "x.css": "@keyframes k { from { opacity: 0; } .x, to { opacity: 1; } }" })).toThrow(/keyframe/);
+  });
+
+  it("from, to and percentages are read", () => {
+    const css = "@keyframes k { from { opacity: 0; } 50% { opacity: 0.5; } 0%, 100% { opacity: 1; } to { opacity: 1; } 12.5% { opacity: 0.2; } }";
+    expect(() => zIndexDeclarations({ "x.css": css })).not.toThrow();
+  });
+});
+
+describe("D277-FIX-3: the table's rows and header are all there", () => {
+  const rows = ["| Base | `auto` | Editor |", "| Toast | `30` | `.toast` |"];
+
+  it("a row without its leading pipe throws", () => {
+    const md = ["## Z-index hierarchy", "| Layer | z-index | Used by |", "|---|---|---|", ...rows, "Tooltip | `50` | `.tooltip` |"].join("\n");
+    expect(() => zIndexTable(md)).toThrow(/leading \|/);
+  });
+
+  it("a missing header row throws", () => {
+    expect(() => zIndexTable(["## Z-index hierarchy", "|---|---|---|", ...rows].join("\n"))).toThrow(/header/);
+    expect(() => zIndexTable(["## Z-index hierarchy", ...rows].join("\n"))).toThrow(/header/);
+  });
+});

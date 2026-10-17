@@ -5,6 +5,12 @@
  * app's CSS and every inline z-index in its TS and TSX, and report where
  * they disagree with the table.
  *
+ * Scope (user ruling relayed by mdpro-delegator, 2026-10-17: 「Accidental
+ * drift only (Recommended)」): the guard catches accidental drift. Deliberately
+ * obfuscated writes are out of scope: property names built at runtime
+ * (`Object.assign`, `Reflect.set`, `style[key]` with a joined key) and XML or
+ * CSS character escapes in SVG or CSS.
+ *
  * Key decisions (D277-FIX-1, Codex H1-H3 and Fable's Mediums on PR #501):
  * - Every unstruck table row must name a backticked selector, except the
  *   Base row and the `(reserved)` row, so a row cannot silently pin nothing.
@@ -28,11 +34,7 @@ export const LOCAL_STACKING = [
   },
 ];
 
-export interface Layer {
-  layer: string;
-  value: string;
-  selectors: string[];
-}
+export interface Layer { layer: string; value: string; selectors: string[] }
 
 const STRUCK = /^~~[^~]+~~$/;
 
@@ -51,13 +53,22 @@ export function zIndexTable(markdown: string): Layer[] {
   const next = markdown.indexOf("\n## ", start + 1);
   const section = markdown.slice(start, next < 0 ? undefined : next);
   const layers: Layer[] = [];
+  let header = false;
   for (const raw of section.split("\n")) {
     const line = raw.trim();
-    if (!line.startsWith("|")) continue;
+    if (!line.startsWith("|")) {
+      if (line.includes("|")) throw new Error(`rule 31 z-index row has no leading |: ${line}`);
+      continue;
+    }
     if (!line.endsWith("|")) throw new Error(`rule 31 z-index row does not end in |: ${line}`);
     const cells = line.split("|").slice(1, -1).map((c) => c.trim());
     if (cells.length !== 3) throw new Error(`rule 31 z-index row has ${cells.length} cells, not 3 cells: ${line}`);
-    if (cells.join("|") === "Layer|z-index|Used by" || cells.every((c) => /^:?-+:?$/.test(c))) continue;
+    if (cells.join("|") === "Layer|z-index|Used by") {
+      header = true;
+      continue;
+    }
+    if (!header) throw new Error(`rule 31 z-index table has no header row before: ${line}`);
+    if (cells.every((c) => /^:?-+:?$/.test(c))) continue;
     if (line.includes("~~")) {
       const retired = STRUCK.test(cells[0]) && STRUCK.test(cells[1]) && !cells[2].includes("~~");
       if (!retired) throw new Error(`rule 31 z-index row has a ~~ that does not wrap its layer and value cells whole: ${line}`);
@@ -71,18 +82,12 @@ export function zIndexTable(markdown: string): Layer[] {
       throw new Error(`rule 31 z-index row "${cells[0]}" names no backticked selector: ${cells[2]}`);
     }
   }
+  if (!header) throw new Error("rule 31 z-index table has no header row");
   return layers;
 }
 
 /** One z-index declaration: `selector` is its rule's own selector (a list stays whole), `atRules` the wrappers around it. */
-export interface Placed {
-  file: string;
-  line: number;
-  selector: string;
-  atRules: string[];
-  property: string;
-  value: string;
-}
+export interface Placed { file: string; line: number; selector: string; atRules: string[]; property: string; value: string }
 
 /** Every z-index declaration in the given CSS files; throws on a nested rule. */
 export function zIndexDeclarations(files: Record<string, string>): Placed[] {
@@ -113,14 +118,9 @@ function walk(file: string, css: string): Placed[] {
     const property = raw.slice(0, colon).trim().toLowerCase();
     if (property !== "z-index") return;
     const lead = raw.slice(0, raw.length - raw.trimStart().length);
-    out.push({
-      file,
-      line: bufLine + (lead.match(/\n/g)?.length ?? 0),
-      selector: rule,
-      atRules: stack.filter((s) => s.startsWith("@")),
-      property,
-      value: raw.slice(colon + 1).replace(/\s+/g, " ").trim(),
-    });
+    const declLine = bufLine + (lead.match(/\n/g)?.length ?? 0);
+    const atRules = stack.filter((s) => s.startsWith("@"));
+    out.push({ file, line: declLine, selector: rule, atRules, property, value: raw.slice(colon + 1).replace(/\s+/g, " ").trim() });
   };
   for (let i = 0; i < text.length; i += 1) {
     const ch = text[i];
@@ -152,6 +152,9 @@ function walk(file: string, css: string): Placed[] {
       const prelude = buf.replace(/\s+/g, " ").trim();
       if (prelude.startsWith("@") && !BLOCK_AT_RULES.has(atRuleName(prelude))) {
         throw new Error(`${file}:${line}: at-rule \`${prelude}\` not supported by this guard (only @media and @keyframes blocks)`);
+      }
+      if (atRuleName(stack[stack.length - 1] ?? "") === "keyframes" && !splitSelectors(prelude).every((k) => /^(from|to|\d+(\.\d+)?%)$/i.test(k))) {
+        throw new Error(`${file}:${line}: \`${prelude}\` inside @keyframes is not a keyframe selector (from, to or a percentage)`);
       }
       const parent = stack.filter((s) => !s.startsWith("@")).pop();
       if (parent !== undefined) {
