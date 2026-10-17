@@ -62,8 +62,11 @@ objc2-app-kit = { version = "0.3", features = [
     "NSApplication",
     "NSButton",
     "NSControl",
+    "NSEvent",
+    "NSGraphicsContext",
     "NSResponder",
     "NSView",
+    "NSWindow",
 ] }
 
 # The paused clock (`start_paused`, `time::advance`) for the ADR-0042
@@ -73,6 +76,10 @@ objc2-app-kit = { version = "0.3", features = [
 # ADR-0047 WI-002: the agent-verification launch guard. Default off; only the
 # verify build turns it on, and a feature-off build carries no guard code.
 verify-run = []
+# ADR-0047 WI-007 spike: candidate B, the in-repo control channel. Default off.
+control-channel = ["verify-run"]
+# WebKit inspector for the S2 key recorder (delegator ruling 2026-10-15). Default off.
+devtools = ["tauri/devtools"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }

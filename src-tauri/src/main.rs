@@ -87,6 +87,9 @@ fn move_cache() -> &'static Mutex<HashMap<String, MoveState>> {
 fn main() {
     #[cfg(feature = "verify-run")]
     let verified_run = tauri_app_lib::services::verify_run::enforce();
+    // ADR-0047 WI-007 spike: built here because `verified_run` moves into setup.
+    #[cfg(feature = "control-channel")]
+    let control_plugin = tauri_app_lib::services::control_channel::plugin(&verified_run);
     let startup = std::time::Instant::now();
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -389,7 +392,12 @@ fn main() {
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+    // ADR-0047 WI-007 spike: the control channel registers after every other
+    // plugin; single-instance must stay first (S4).
+    #[cfg(feature = "control-channel")]
+    let app = app.plugin(control_plugin);
+    let app = app
         .invoke_handler(tauri_app_lib::commands::handlers())
         .build(tauri::generate_context!());
 
