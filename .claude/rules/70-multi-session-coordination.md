@@ -217,6 +217,11 @@ handoff. Each item is tagged `prep` or `impl`.
    - **Round one is blind** (「不能，先各自单独审」). Neither auditor sees the
      other's verdict, and the delegator forwards nothing between them until
      both are in.
+   - **Fable's round-one report gets its own PR comment**, the way the
+     Codex auditor posts its own. The delegator posts it as written, once
+     both round-one verdicts are in, so the PR never shows it to Codex
+     while Codex is still auditing (user decision, 2026-10-17:
+     「第一轮fable的audit report，也单独写到对应pr作为comment，其他的不变」).
    - **The delegator merges** the Critical and High findings, one by one:
      - A finding both raise stands.
      - A finding only one raises is challenged. The other auditor gets that
