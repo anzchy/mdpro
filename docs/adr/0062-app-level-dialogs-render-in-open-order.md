@@ -9,6 +9,9 @@ and ADR-0045's Context statement that the MCP prompt always paints on top no
 longer holds. ADR-0045 is otherwise unchanged.
 Partially superseded: Decision 1 for arriving MCP prompts, by
 [ADR-0108](0108-an-mcp-prompt-waits-while-another-modal-is-open.md) (2026-10-15).
+Partially superseded: Decision 1 for startup Recovery before its first
+admission, and Decision 3 narrowed (Recovery's token is `null` while held), by
+[ADR-0116](0116-the-startup-recovery-prompt-waits-while-another-modal-or-a-received-mcp-prompt-is-pending.md) (2026-10-17).
 
 ## Context
 
