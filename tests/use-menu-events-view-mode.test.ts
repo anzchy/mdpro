@@ -15,8 +15,12 @@ import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 
-const SRC_PATH = path.resolve(__dirname, "../src/hooks/useMenuEvents.ts");
-const src = fs.readFileSync(SRC_PATH, "utf-8");
+// D261-WI-1a moved the action switch into menuActionTable.ts; the hook and its
+// table are read together so both invariants still cover the whole menu path.
+const SRC_PATHS = ["../src/hooks/useMenuEvents.ts", "../src/hooks/menuActionTable.ts"].map((p) =>
+  path.resolve(__dirname, p),
+);
+const src = SRC_PATHS.map((p) => fs.readFileSync(p, "utf-8")).join("\n");
 
 // ---------------------------------------------------------------------------
 // Dead code — must NOT be present after the refactor

@@ -6,10 +6,11 @@
  * the slow property draws from exactly the rows, handlers, labels and focus
  * results the unit cases pin.
  *
- * Contents: `EVT`, `HANDLER_KEYS`, `calls` / `makeHandlers` / `mountHook`,
+ * Contents: `EVT`, `calls` / `makeHandlers` / `mountHook`,
  * `flush` / `macrotask`, the log readers (`menuLogs`, `statuses`,
  * `uiMenuLines`, `collected`, `collectAndClearLogs`), `resetMenuHarness`, the
- * dispatch table `ROWS` / `payloadOf`, the property pools `FOCI` / `LABELS`,
+ * dispatch table `ROWS` / `payloadOf` and `HANDLER_KEYS` (re-exported from
+ * menuActionRows.ts), the property pools `FOCI` / `LABELS`,
  * `mulberry32`, and `expectMenuLineShape` (D4's invariants 1-5).
  *
  * Callers must mock `@tauri-apps/api/event`, `@tauri-apps/api/window` and
@@ -19,6 +20,7 @@
  * Not a `*.test.ts`, so vitest does not collect it.
  *
  * @coordinates-with tests/support/menuEventsHarness.ts — bus, win and logs
+ * @coordinates-with tests/support/menuActionRows.ts — the dispatch table rows
  */
 import { StrictMode } from "react";
 import { expect } from "vitest";
@@ -27,29 +29,17 @@ import { act, renderHook } from "@testing-library/react";
 import { useMenuEvents } from "../../src/hooks/useMenuEvents";
 import { useLoggingStore } from "../../src/stores/loggingStore";
 import { bus, logs, win, type Captured } from "./menuEventsHarness";
+import { HANDLER_KEYS, type HandlerKey } from "./menuActionRows";
+
+// The dispatch table and handler keys live in menuActionRows.ts (no src/ imports),
+// re-exported here so the useMenuEvents suites import them unchanged (D261-WI-1a).
+export { HANDLER_KEYS, ROWS, payloadOf, type HandlerKey, type Row } from "./menuActionRows";
 
 export { mulberry32 } from "./seededRandom";
 
 export const EVT = "menu:action";
 const QUIESCE_MAX_TURNS = 500;
 
-export const HANDLER_KEYS = [
-  "onNew",
-  "onNewWindow",
-  "onOpen",
-  "onSave",
-  "onClose",
-  "onExportHtml",
-  "onOpenRecent",
-  "onToggleSidebar",
-  "onHighlight",
-  "onInsertTable",
-  "onViewModeChange",
-  "onCycleViewMode",
-  "onThemeModeChange",
-  "onOpenPreferences",
-] as const;
-export type HandlerKey = (typeof HANDLER_KEYS)[number];
 export type Call = { gen: number; key: HandlerKey; args: unknown[] };
 export type Handlers = Parameters<typeof useMenuEvents>[0];
 
@@ -112,43 +102,6 @@ export const resetMenuHarness = () => {
   calls.length = 0;
   useLoggingStore.setState({ enabled: true, level: "info" });
 };
-
-// ---------------------------------------------------------------------------
-// Dispatch table (menu.rs:254-277 plus file.open_recent)
-// ---------------------------------------------------------------------------
-
-export type Row = {
-  n: number;
-  action: string;
-  value?: string;
-  key: HandlerKey;
-  args: unknown[];
-  controlId: string;
-  extra: Record<string, unknown>;
-};
-
-export const ROWS: Row[] = [
-  { n: 1, action: "file.new", key: "onNew", args: [], controlId: "menu.file.new", extra: {} },
-  { n: 2, action: "file.new_window", key: "onNewWindow", args: [], controlId: "menu.file.new_window", extra: {} },
-  { n: 3, action: "file.open", key: "onOpen", args: [], controlId: "menu.file.open", extra: {} },
-  { n: 4, action: "file.save", key: "onSave", args: [], controlId: "menu.file.save", extra: {} },
-  { n: 5, action: "file.close", key: "onClose", args: [], controlId: "menu.file.close", extra: {} },
-  { n: 6, action: "file.export_html", key: "onExportHtml", args: [], controlId: "menu.file.export_html", extra: {} },
-  { n: 7, action: "file.preferences", key: "onOpenPreferences", args: [], controlId: "menu.file.preferences", extra: {} },
-  { n: 8, action: "cycle-view-mode", key: "onCycleViewMode", args: [], controlId: "menu.view.cycle", extra: {} },
-  { n: 9, action: "set-view-mode", value: "source", key: "onViewModeChange", args: ["source"], controlId: "menu.view.set_mode", extra: { mode: "source" } },
-  { n: 10, action: "set-view-mode", value: "wysiwyg", key: "onViewModeChange", args: ["wysiwyg"], controlId: "menu.view.set_mode", extra: { mode: "wysiwyg" } },
-  { n: 11, action: "view.toggle_sidebar", key: "onToggleSidebar", args: [], controlId: "menu.view.toggle_sidebar", extra: {} },
-  { n: 12, action: "format.highlight", key: "onHighlight", args: [], controlId: "menu.format.highlight", extra: {} },
-  { n: 13, action: "paragraph.table", key: "onInsertTable", args: [], controlId: "menu.format.insert_table", extra: {} },
-  { n: 14, action: "theme.light", key: "onThemeModeChange", args: ["light"], controlId: "menu.theme.light", extra: {} },
-  { n: 15, action: "theme.dark", key: "onThemeModeChange", args: ["dark"], controlId: "menu.theme.dark", extra: {} },
-  { n: 16, action: "theme.system", key: "onThemeModeChange", args: ["system"], controlId: "menu.theme.system", extra: {} },
-  { n: 17, action: "file.open_recent", value: "/tmp/a.md", key: "onOpenRecent", args: ["/tmp/a.md"], controlId: "menu.file.open_recent", extra: { filePath: "/tmp/a.md" } },
-];
-
-export const payloadOf = (row: Row) =>
-  row.value === undefined ? { action: row.action } : { action: row.action, value: row.value };
 
 // ---------------------------------------------------------------------------
 // Property pools (A9, D3)

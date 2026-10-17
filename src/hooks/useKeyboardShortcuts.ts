@@ -99,7 +99,7 @@ export function useKeyboardShortcuts({
       }
 
       // App-level shortcuts — evaluated with exact modifier matching via matchesShortcut.
-      // "Highlight" has no entry in KeyboardShortcuts yet; keep hardcoded default.
+      // Highlight reads `shortcuts.formatHighlight` (default Cmd+Shift+H) like the rest.
       if (onNew && matchesShortcut(event, shortcuts.fileNew)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileNew, { action: "file.new" });
