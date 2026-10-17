@@ -89,6 +89,21 @@ Per theme, for the active document tab (D231, user rulings 2026-10-15:
 - `--tab-active-close-opacity`: the active tab's resting ×, `0.5` light and
   `0.6` dark, so it stays 3:1 or better on the fill
 
+Per theme, for the editor highlight and the Settings error text (D256, D257;
+user rulings 2026-10-17 on prototype/d256-d257-contrast:
+「B · fainter dark pink (Recommended)」, 「B1 · darker red, dark unchanged
+(Recommended)」; ratios in `tests/d256-highlight-contrast.test.ts` and
+`tests/d257-settings-error-contrast.test.ts`):
+
+- `--color-highlight`: the `==highlight==` fill in WYSIWYG, with the marked
+  text in `--color-text`. The pink `rgba(255, 85, 130, …)` at 0.65 in light
+  (8.19:1), 0.40 in dark (8.02:1)
+- `--color-error-text`: error text on `--color-danger-soft` (the Settings
+  error panel only). `#b91c1c` in light (5.37:1, where `--color-danger` is
+  4.01:1); `#f87171` in dark, the same as `--color-danger` (4.92:1). Not
+  named `--color-danger-text`: ADR-0106 reverted a token of that name, and it
+  does not extend to the danger button, which keeps `--color-danger`
+
 **Accepted A9 exceptions (D227, user rulings 2026-10-15):** the toggle's
 `#ccc` off-track and its knob, the light danger label hovered, the
 `.shortcut-value` edge and the `.grid-picker-cell` edge stay below A9. Don't

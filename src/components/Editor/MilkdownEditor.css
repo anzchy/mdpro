@@ -262,8 +262,10 @@
   outline-offset: 2px;
 }
 
+/* D256: per-theme fill, and the theme's text colour rather than the UA black. */
 .milkdown-editor .ProseMirror mark {
-  background: rgba(255, 85, 130, 0.65);
+  background: var(--color-highlight);
+  color: var(--color-text);
   padding: 0 2px;
   border-radius: var(--radius-inner);
 }

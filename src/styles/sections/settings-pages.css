@@ -118,8 +118,9 @@
   min-width: 140px;
 }
 
-/* D258: rule 33 pattern 1, as the text inputs; the ring replaces the outline. */
-.settings-select:focus {
+/* D258: rule 33 pattern 1, as the text inputs; the ring replaces the outline.
+   On :focus-visible (rule 33 hard rule 6), so a mouse click paints no ring. */
+.settings-select:focus-visible {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px var(--color-accent-soft);

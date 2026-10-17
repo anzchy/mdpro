@@ -98,9 +98,11 @@ describe("hardcoded → token migration in globals.css", () => {
     );
   });
 
-  it("settings-error uses --color-danger / --color-danger-soft tokens", () => {
+  // D257: the text moved to --color-error-text (user, prototype/d256-d257-contrast:
+  // 「B1 · darker red, dark unchanged (Recommended)」); the fill stays danger-soft.
+  it("settings-error uses --color-error-text / --color-danger-soft tokens", () => {
     expect(globalsCss).toMatch(
-      /\.settings-error[^}]*color:\s*var\(--color-danger\)/s,
+      /\.settings-error[^}]*color:\s*var\(--color-error-text\)/s,
     );
     expect(globalsCss).toMatch(
       /\.settings-error[^}]*background:\s*var\(--color-danger-soft\)/s,

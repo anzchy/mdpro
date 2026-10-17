@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings has a calmer category list: each category has a thin outline icon in place of the emoji, rows are a little taller, the selected category is a neutral grey instead of blue, and keyboard focus shows a ring without changing the row's colour. The Close button at the bottom left is gone; close Settings with the × at the top right or Esc (D260).
 
 ### Fixed
-- The Settings drop-downs now show a focus ring when you Tab to them, like the text fields do (D258).
+- Highlighted text (`==text==`) is easier to read in Dark mode: the pink behind it is fainter and the text uses the theme's text colour instead of black (D256).
+- The red error message at the top of a Settings page is darker in Light mode, so it is easier to read (D257).
+- The Settings drop-downs now show a focus ring when you Tab to them, like the text fields do, and no ring when you click them (D258).
 - A notification with a long message, such as a save failure naming a full path, now stays inside a narrow window and wraps the path instead of running off the left edge (D245).
 - In Dark mode, native pop-up menus (such as the Settings drop-downs) and the Open panel are now dark too, and in System mode they follow macOS (D238).
 - Closing the last tab of a secondary window (⌘W, File → Close or the tab's ×) now closes that window instead of leaving it empty; the main window still keeps its empty state, and ⌘W on an empty secondary window closes it. Closing a window also no longer loses a document that became unsaved while the window was closing (for example one an AI tool created): you are asked first (D253).

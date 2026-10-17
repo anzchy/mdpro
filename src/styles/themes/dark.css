@@ -25,6 +25,10 @@
   --tab-active-close-opacity: 0.6;
   --color-danger: #f87171;
   --color-danger-soft: color-mix(in srgb, #f87171 18%, transparent);
+  /* D257: the danger red already reads on danger-soft here (4.92:1) */
+  --color-error-text: #f87171;
+  /* D256: a fainter pink, so light text on it reaches 8.02:1 (0.65 gave 4.77) */
+  --color-highlight: rgba(255, 85, 130, 0.40);
   /* D227: form-control edges, measured to A9 (tests/contrast-stage3.test.ts) */
   --color-control-border: color-mix(in srgb, var(--color-text) 50%, transparent);
   --color-editor-bg: #0f1115;

@@ -6,6 +6,9 @@
  * forbids (hard rules 1 and 5): an outline removed without a replacement ring.
  * They now take rule 33 pattern 1, the text inputs' accent border plus soft
  * ring, as the Insert Link URL field and D250's Custom… input do.
+ * Follow-up (both audits on PR #494, one shared Medium): the ring is drawn on
+ * `:focus-visible`, not `:focus`, so a mouse click on a select paints none
+ * (rule 33 hard rule 6); cases 1 and 2 moved to that selector for that reason.
  *
  * Strategy: source inspection (jsdom has no focus rendering), with contrast
  * measured from the theme tokens, as tests/d250-toggle-input-apply-focus.test.ts
@@ -34,7 +37,7 @@ const THEMES: Theme[] = ["light", "dark"];
 
 describe("D258: the Settings select takes the text-input focus pattern", () => {
   it("is rule 33 pattern 1: accent border plus the soft ring, which replaces the outline", () => {
-    const r = rule(PAGES, ".settings-select:focus");
+    const r = rule(PAGES, ".settings-select:focus-visible");
     expect(r.get("border-color")).toBe("var(--color-accent)");
     expect(r.get("box-shadow")).toBe("0 0 0 2px var(--color-accent-soft)");
     expect(r.get("outline")).toBe("none");
@@ -42,7 +45,7 @@ describe("D258: the Settings select takes the text-input focus pattern", () => {
 
   it("matches the Insert Link URL field's focus", () => {
     const link = rule("styles/sections/link-insert-modal.css", ".link-insert-input:focus");
-    const select = rule(PAGES, ".settings-select:focus");
+    const select = rule(PAGES, ".settings-select:focus-visible");
     expect(select.get("border-color")).toBe(link.get("border-color"));
     expect(select.get("box-shadow")).toBe(link.get("box-shadow"));
   });
@@ -57,6 +60,15 @@ describe("D258: the Settings select takes the text-input focus pattern", () => {
       expect(sameRule.some((x) => x.property === "box-shadow" && x.value.includes("var(--color-accent-soft)"))).toBe(true);
     }
     expect(outlineOff.length).toBeGreaterThan(0);
+  });
+
+  it("no rule on plain :focus draws the ring or zeroes the outline, so a click paints nothing", () => {
+    const onFocus = cssFiles().flatMap((f) =>
+      parseDeclarations(read(f))
+        .filter((d) => /\.settings-select:focus(?![\w-])/.test(d.selector))
+        .map((d) => `${f} ${d.selector} { ${d.property}: ${d.value} }`),
+    );
+    expect(onFocus).toEqual([]);
   });
 
   it.each(THEMES)("%s: the focused border reads at least 3:1 on the select and on the soft ring", (theme) => {

@@ -25,6 +25,11 @@
   --tab-active-close-opacity: 0.5;
   --color-danger: #dc2626;
   --color-danger-soft: color-mix(in srgb, #dc2626 12%, transparent);
+  /* D257: error text on danger-soft, 5.37:1 (#dc2626 there is 4.01:1). Not
+     --color-danger-text, which ADR-0106 reverted for the danger button. */
+  --color-error-text: #b91c1c;
+  /* D256: the ==highlight== fill; marked text takes --color-text on it */
+  --color-highlight: rgba(255, 85, 130, 0.65);
   /* D227: form-control edges, measured to A9 (tests/contrast-stage3.test.ts) */
   --color-control-border: color-mix(in srgb, var(--color-text) 50%, transparent);
   --color-editor-bg: #ffffff;

@@ -21,7 +21,8 @@
   background: var(--color-danger-soft);
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-control);
-  color: var(--color-danger);
+  /* D257: --color-danger is 4.01:1 on the soft fill in light */
+  color: var(--color-error-text);
   font-size: var(--font-size-ui);
   margin-bottom: 16px;
 }

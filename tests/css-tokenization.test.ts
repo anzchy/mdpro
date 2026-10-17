@@ -14,7 +14,8 @@
  * scanner bug cannot pass silently.
  *
  * Lists (Appendix A, `docs/plans/20260911-ui-redesign/appendix-a-literals.md`):
- * - EXCEPTIONS: the five 2026-10-03 exception rows (Q10, R4 ×2, R8, R9 `pre`).
+ * - EXCEPTIONS: the 2026-10-03 exception rows (Q10, R4 ×2, R9 `pre`). R8, the
+ *   highlight fill, left with D256: it is the `--color-highlight` token now.
  * - DEFERRED: class (b) literals, each tagged with the stage and item that
  *   owns the snap. A listed literal passes; anything else fails.
  * - UNRENDERED: literals whose selector nothing renders, A8 dead code
@@ -99,17 +100,6 @@ const EXCEPTIONS: Exception[] = [
     line: 24,
     reason: "spinner keeps rotating (DR13); the zeroed motion token cannot carry it",
     source: "R4, 2026-10-03",
-  },
-  {
-    ...row(
-      "components/Editor/MilkdownEditor.css",
-      ".milkdown-editor .ProseMirror mark",
-      "background",
-      "rgba(255, 85, 130, 0.65)",
-    ),
-    line: 266,
-    reason: "highlight fill",
-    source: "R8, 2026-10-03",
   },
   {
     ...row("components/Editor/MilkdownEditor.css", ".milkdown-editor .ProseMirror pre", "border-radius", "8px"),
@@ -302,8 +292,8 @@ describe("the lists stay exact", () => {
     expect(keys.length).toBe(new Set(keys).size);
   });
 
-  it("the exceptions are exactly the five ruled rows, at their lines", () => {
-    expect(EXCEPTIONS).toHaveLength(5);
+  it("the exceptions are exactly the four ruled rows, at their lines", () => {
+    expect(EXCEPTIONS).toHaveLength(4);
     for (const e of EXCEPTIONS) {
       const hit = findingsOf(e.file).find((x) => keyOf({ ...x, file: e.file }) === keyOf(e));
       expect(hit?.line, keyOf(e)).toBe(e.line);
