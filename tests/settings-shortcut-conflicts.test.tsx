@@ -141,11 +141,15 @@ describe("M1A-WI-10 v1 defaults show no conflict and save an unrelated rebind", 
     expect(fake.state.store.editFindNext).toBe("Cmd+J");
   });
 
-  it("shows 49 rows: the 9 hidden fields have none (SD14)", async () => {
+  // M7 renders every command-table entry (plan § 6 M7): the 9 fields SD14 hid
+  // get rows, beside the 58 configurable entries the macOS v1 page shows 12
+  // fixed rows (user verdict 「A: every fixed row with a key」).
+  it("shows 70 rows on macOS v1: every configurable field plus 12 fixed rows (M7)", async () => {
     await open();
-    expect(document.querySelectorAll(".shortcut-row")).toHaveLength(49);
-    for (const label of ["Highlight", "Highlight Selection", "Export HTML", "Open Quickly", "Insert Row Above"])
-      expect(screen.queryByText(label, { selector: ".shortcut-label" })).toBeNull();
+    expect(document.querySelectorAll(".shortcut-row")).toHaveLength(70);
+    for (const label of ["Highlight", "Export HTML", "Open Quickly", "Insert Row Above"])
+      expect(screen.getByText(label, { selector: ".shortcut-label" })).toBeTruthy();
+    expect(screen.queryByText("Highlight Selection", { selector: ".shortcut-label" })).toBeNull();
   });
 });
 

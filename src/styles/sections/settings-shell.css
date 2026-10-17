@@ -207,3 +207,55 @@
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
+
+/* M7: row states (DESIGN.md, Native menu bar and Keyboard Shortcuts page). */
+.shortcut-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcut-capability,
+.shortcut-pending {
+  font-size: var(--font-size-ui-sm);
+  color: var(--color-muted);
+}
+
+.shortcut-row.is-unavailable .shortcut-label {
+  color: var(--color-muted);
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shortcut-status {
+  font-size: var(--font-size-ui);
+  color: var(--color-muted);
+  min-width: 140px;
+  text-align: center;
+}
+
+/* Fixed and system keys: not buttons, so no hover and no focus. */
+.shortcut-fixed {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 6px 12px;
+  font-size: var(--font-size-ui);
+  font-family: var(--font-mono);
+  min-width: 140px;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.shortcut-fixed.is-second {
+  min-width: 0;
+  color: var(--color-muted);
+}
+
+/* A key that conflicts (§ 5.6); the banner above names the other side. */
+.shortcut-row.has-conflict .shortcut-value {
+  border-color: var(--color-danger);
+}
