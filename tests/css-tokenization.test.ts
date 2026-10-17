@@ -590,3 +590,83 @@ describe("D278-FIX-3: the token files match a closed grammar", () => {
     expect(() => validateTokenFile(read("styles/themes/dark.css"), "dark", { requireBlock: true })).not.toThrow();
   });
 });
+
+describe("D278-FIX-4: a token file declares each property once, never !important, never empty", () => {
+  const exempt = (rel: string, css: string) => () => exemptTokenDeclarations(rel, css);
+  const LIGHT = "styles/themes/light.css";
+  const GLOBALS = "styles/globals.css";
+
+  it("a property declared twice in one block throws, in the default block and in the @media", () => {
+    expect(exempt(LIGHT, ".theme-light {\n  --color-group-bg: rgba(246, 247, 251, 0.8);\n  --color-group-bg: rgba(1, 2, 3, 0.59);\n}")).toThrow(/declared twice/);
+    expect(exempt(GLOBALS, ":root { --motion-duration-fast: 150ms; }\n@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; --motion-duration-fast: 1ms; } }")).toThrow(/declared twice/);
+    expect(() => tokenBlock(".theme-light { --a: #fff; --a: #000; }", ".theme-light")).toThrow(/declared twice/);
+  });
+
+  it("!important anywhere in a token file throws (audit confirm 3, finding 1)", () => {
+    expect(exempt(LIGHT, ".theme-light {\n  --color-group-bg: rgba(1, 2, 3, 0.59) !important;\n  --color-x: #fff;\n}")).toThrow(/!important/);
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; }\n.x { color: var(--a) ! important; }")).toThrow(/!important/);
+  });
+
+  it("an empty or whitespace-only value throws (audit confirm 3, finding 2)", () => {
+    expect(exempt(LIGHT, ".theme-light {\n  --color-group-bg: rgba(246, 247, 251, 0.8);\n  --color-y:;\n}")).toThrow(/empty value/);
+    expect(exempt(LIGHT, ".theme-light { --a:   ; }")).toThrow(/empty value/);
+    expect(exempt(LIGHT, ".theme-light { --a: /* gone */; }")).toThrow(/empty value/);
+  });
+
+  it("the reduced-motion fixtures of FIX-1 and FIX-2 really are exempted, not merely finding-free", () => {
+    const fix1 = ":root { --motion-duration-fast: 150ms; }\n@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; } }";
+    const fix2 = ":root { --motion-duration-fast: 150ms; }\n@media (prefers-reduced-motion: reduce) {\n  :root { --motion-duration-fast: 0ms; }\n}";
+    for (const css of [fix1, fix2]) {
+      const out = exemptTokenDeclarations(GLOBALS, css);
+      expect(out).not.toMatch(/--motion-duration-fast/);
+      expect(out.length).toBe(css.length);
+      expect(out.match(/:root \{/g)).toHaveLength(2);
+    }
+  });
+});
+
+describe("D278-FIX-4: tokenBlock and the exemption read the block the grammar parsed (Fable F1)", () => {
+  const LIGHT = "styles/themes/light.css";
+  const GLOBALS = "styles/globals.css";
+
+  it("a selector list ending in the block, above the real block, is never taken for it: it throws", () => {
+    const css = ".x,\n.theme-light { --color-text: var(--color-ink); }\n.theme-light { --color-text: #eeeeee; }";
+    expect(() => tokenBlock(css, ".theme-light")).toThrow(/root element/);
+    const listed = ".x,\n.theme-light { --c: #fff; }\n.theme-light { --c: #000; }";
+    expect(() => findingsIn(LIGHT, listed)).toThrow(/root element/);
+  });
+
+  it("the reduced-motion @media above the default :root throws", () => {
+    const css = "@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; } }\n:root { --motion-duration-fast: 150ms; }";
+    expect(() => tokenBlock(css, ":root")).toThrow(/before the default block/);
+    expect(() => exemptTokenDeclarations(GLOBALS, css)).toThrow(/before the default block/);
+  });
+
+  it("a block that follows another rule on the same line is read", () => {
+    const css = ".y { --a: 1px; }.theme-light { --b: #fff; }";
+    expect([...tokenBlock(css, ".theme-light")]).toEqual([["--b", "#fff"]]);
+    expect(findingsIn(LIGHT, ".y { --a: #fff; }.theme-light { --b: #fff; }").map((x) => `${x.selector} ${x.property}`)).toEqual([".y --a"]);
+  });
+
+  it("a custom-property name outside [\\w-] throws", () => {
+    expect(() => exemptTokenDeclarations(LIGHT, ".theme-light { --色: #fff; }")).toThrow(/name/);
+    expect(() => exemptTokenDeclarations(LIGHT, ".theme-light { --a: #fff; }\n.x { --b.c: 1px; }")).toThrow(/name/);
+  });
+});
+
+describe("D278-FIX-4: no rule but the default block sets tokens on the root element", () => {
+  const exempt = (rel: string, css: string) => () => exemptTokenDeclarations(rel, css);
+  const LIGHT = "styles/themes/light.css";
+  const GLOBALS = "styles/globals.css";
+
+  it("a later rule reaching the root element cannot override a token unseen by tokenBlock", () => {
+    expect(exempt(LIGHT, ".theme-light { --color-text: #1a1a1a; }\n.x,\n.theme-light { --color-text: var(--color-danger); }")).toThrow(/root element/);
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\nhtml { --a: 2px; }")).toThrow(/root element/);
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\n:root.theme-dark { --a: 2px; }")).toThrow(/root element/);
+    expect(() => tokenBlock(".theme-dark { --a: 1px; }\nhtml.theme-dark { --a: 2px; }", ".theme-dark")).toThrow(/root element/);
+  });
+
+  it("other rules may still set custom properties, and root rules may set ordinary properties", () => {
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\nbody.tauri-macos { --t: 78px; }\nhtml,\nbody { height: 100%; }")).not.toThrow();
+  });
+});

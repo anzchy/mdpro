@@ -399,7 +399,9 @@ export function scanCss(css: string, declared?: ReadonlySet<string>): CssFinding
  * Only a rule whose whole selector is the block counts: the selector must
  * start after a `}`, a `{` (inside `@media`) or the start of the file, so a
  * list (`.x, .theme-light`, `.theme-light, .x`) or a compound or descendant
- * selector is scanned like any other rule (D278-FIX-2).
+ * selector is scanned like any other rule (D278-FIX-2). Since D278-FIX-4 the
+ * exemption blanks from the grammar's parse instead; this regex blanker is
+ * kept only for its own scanner fixture in css-tokenization.test.ts.
  */
 export function blankTokenDeclarations(css: string, blocks: readonly string[] = Object.values(DEFAULT_BLOCK)): string {
   const text = blankComments(css);
@@ -419,13 +421,20 @@ export function blankTokenDeclarations(css: string, blocks: readonly string[] = 
  * exempted: only the three token files, and in each only its own block, so a
  * `:root { --x: #fff }` in a section file is still a finding (D278-FIX-1).
  * A token file must first match the closed token-file grammar, or this
- * throws (D278-FIX-3, `tokenFileGrammar.ts`).
+ * throws (D278-FIX-3); the custom properties blanked are the ones that parse
+ * found in the default block and the reduced-motion `:root`, by their source
+ * spans, so there is one parse and no second search for the block (D278-FIX-4).
  */
 export function exemptTokenDeclarations(rel: string, css: string): string {
   const file = tokenFileOfPath(rel);
   if (!file) return css;
-  validateTokenFile(css, file);
-  return blankTokenDeclarations(css, [DEFAULT_BLOCK[file]]);
+  const { block, motion } = validateTokenFile(css, file);
+  let out = css;
+  for (const d of [...(block?.declarations ?? []), ...(motion?.declarations ?? [])]) {
+    if (!d.property.startsWith("--")) continue;
+    out = out.slice(0, d.start) + out.slice(d.start, d.end + 1).replace(/[^\n]/g, " ") + out.slice(d.end + 1);
+  }
+  return out;
 }
 
 /** Every custom property name (`--x`) declared anywhere in `cssTexts`. */
@@ -438,21 +447,17 @@ export function declaredTokens(cssTexts: readonly string[]): Set<string> {
 }
 
 /**
- * `name → value` for the custom properties declared in the first
- * `selector { … }` block. For a token file's default block the file must
+ * `name → value` for the custom properties of a token file's default block
+ * (`selector` is `:root`, `.theme-light` or `.theme-dark`). The file must
  * match the closed token-file grammar with exactly one such block, or this
- * throws (D278-FIX-3).
+ * throws (D278-FIX-3); the map is built from that parse, never a second
+ * search for the block (D278-FIX-4).
  */
 export function tokenBlock(css: string, selector: string): Map<string, string> {
   const file = tokenFileOfBlock(selector);
-  if (file) validateTokenFile(css, file, { requireBlock: true });
-  const text = blankComments(css);
-  const at = text.search(new RegExp(`(^|\\n)\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{`));
-  const out = new Map<string, string>();
-  if (at < 0) return out;
-  const body = text.slice(text.indexOf("{", at) + 1, text.indexOf("}", at));
-  for (const m of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out.set(m[1], m[2].replace(/\s+/g, " ").trim());
-  return out;
+  if (!file) throw new Error(`tokenBlock reads a token file's default block, not \`${selector}\``);
+  const { block } = validateTokenFile(css, file, { requireBlock: true });
+  return new Map((block?.declarations ?? []).filter((d) => d.property.startsWith("--")).map((d) => [d.property, d.value]));
 }
 
 /**
