@@ -27,7 +27,7 @@ Bring the shipped UI in line with the proposal and the review, and leave app CSS
    - B: visual retune
    - C: components
    - D: `sourceFont`
-3. **Mandatory visual sign-off** by the user after the retune (end of Stage 3) and after the component changes (end of Stage 4), against the `proposal-ab.html` boards.
+3. **Mandatory visual sign-off** by the user after the retune (end of Stage 3) and after the component changes (end of Stage 4), against the `design/archive/20260911-proposal-ab.html` boards.
 
 ## Decided (do not re-litigate)
 
@@ -198,7 +198,7 @@ Read this file first, then only the stage file you are working on.
   - the current neutrals (D4)
   - the title-bar and tab-bar heights
   - the editor font size and `--editor-line-height`
-- **No `--color-syntax-code`**; never copy `proposal-ab.html:63-69`.
+- **No `--color-syntax-code`**; never copy `design/archive/20260911-proposal-ab.html:63-69`.
 - **No behavior changes** outside the numbered review items, WI-4.8 (DR2), WI-4.9 (DR3), WI-4.10 (DR5), WI-4.11 (DR6), WI-4.12 (DR7), WI-4.13 (DR9), WI-4.14 (DR11) the WI-4.6 dialog fix (DR8) and the WI-4.6b Recovery and Encoding dialog shell (run 2). WI-4.6b supersedes DESIGN.md § States › "Unchanged: draft recovery and the encoding dialog" for keyboard and focus behaviour; their copy and actions stay unchanged. Do not build a command palette (Q11). Do not edit `design/archive/20260920-mdpro-ui-old/*` or `design/archive/20260911-proposal-ab.html`.
 - **Do not delete** the dead-code candidates (A8).
 - **No commits or pushes** unless the user asks. Never commit screenshots.

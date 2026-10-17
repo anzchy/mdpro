@@ -47,7 +47,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
   - **Docs in the same commit (required):** the commit that introduces `--color-on-accent` and `--color-scrim` also adds both to `.claude/rules/31-design-tokens.md` and to DESIGN.md § Tokens. A follow-up docs pass is not enough: a token that ships without its rule 31 row is a token the rules do not know about.
 - **Rule edit (DR14), in the first token commit:** rule 31's "Token rationale and the decisions log live in the design doc that root `DESIGN.md` marks as current" gains an interim clause. While the UI redesign is in progress, its new and redefined tokens are logged in `design/DESIGN.md` § Tokens. Any other token still goes to the current doc. WI-5.5 removes the clause.
 - Add or confirm each new token's row in DESIGN.md § Tokens (rule 31 authoring rule 4, with the DR14 clause) without mirroring values (rule 31's "read those files" preamble).
-- Don't copy any value into this plan or DESIGN.md; cite `proposal-ab.html:21-61`.
+- Don't copy any value into this plan or DESIGN.md; cite `design/archive/20260911-proposal-ab.html:21-61`.
 
 ### WI-2.3 — Migrate class (a) literals, file by file — M
 - Replace class (a) literals with the equal-value tokens. Leave class (b) literals, which stay on the deferred list.
