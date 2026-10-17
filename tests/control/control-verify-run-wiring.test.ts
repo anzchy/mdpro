@@ -127,15 +127,22 @@ describe("WI5-T18: Cargo.lock versions are in the read set of Findings 1-3", () 
   });
 });
 
+const CONTROL_CFG_LINE = '#[cfg(feature = "control-channel")]';
+
 describe("WI5-T13: no ungated verify_run reference outside services/verify_run*.rs", () => {
   // Recorded change (tests-20261007-230837.md, WI-3): main.rs gains the
   // cfg-gated `publish_or_exit` call in `.setup`, so two main.rs references.
+  // Recorded change (ADR-0047 WI-009): services/control_channel/** is skipped
+  // like services/verify_run*.rs. The whole module is compiled only under
+  // `control-channel`, which implies `verify-run`; the next case pins both,
+  // so its references are gated without a per-line attribute.
   it("has exactly the mod.rs declaration and the two main.rs calls, each under the cfg", () => {
     const srcRoot = path.join(SRC_TAURI, "src");
     const found: string[] = [];
     for (const file of rustFiles(srcRoot)) {
       const rel = path.relative(srcRoot, file).split(path.sep).join("/");
       if (/^services\/verify_run[^/]*\.rs$/.test(rel)) continue;
+      if (rel.startsWith("services/control_channel/")) continue;
       const lines = blankComments(fs.readFileSync(file, "utf8"), "rust").split("\n") as string[];
       lines.forEach((line, i) => {
         const hits = line.match(/\bverify_run\b/g) ?? [];
@@ -154,6 +161,16 @@ describe("WI5-T13: no ungated verify_run reference outside services/verify_run*.
       `main.rs|${CFG_LINE}`,
       `services/mod.rs|${CFG_LINE}`,
     ]);
+  });
+
+  it("compiles services/control_channel only under a feature that implies verify-run", () => {
+    const lines = codeLines(readBlankedRust("src/services/mod.rs"));
+    const at = lines.indexOf("pub mod control_channel;");
+    expect(at, "services/mod.rs declares `pub mod control_channel;`").toBeGreaterThan(0);
+    expect(lines[at - 1]).toBe(CONTROL_CFG_LINE);
+    const toml = fs.readFileSync(path.join(SRC_TAURI, "Cargo.toml"), "utf8");
+    const entries = (tomlTable(toml, "features") ?? []).map((l) => l.replace(/\s+/g, ""));
+    expect(entries).toContain('control-channel=["verify-run"]');
   });
 });
 
