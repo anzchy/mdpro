@@ -63,3 +63,21 @@ fn the_socket_is_bound_0600() {
     assert_eq!(mode(&sock), 0o600);
     std::fs::remove_dir_all(&d).ok();
 }
+
+#[test]
+fn the_socket_is_named_like_the_launchers_budget() {
+    // `scripts/control/runDir.mjs` sizes the runs path for `ctl.sock`.
+    assert_eq!(SOCKET_FILE, "ctl.sock");
+}
+
+#[test]
+fn removing_the_handoff_takes_the_socket_and_control_json_and_tolerates_absence() {
+    let d = scratch("rm");
+    let sock = d.join(SOCKET_FILE);
+    let _listener = bind(&sock).expect("bound");
+    write_handoff(&d.join(HANDOFF_FILE), &sock, "tok", false).expect("written");
+    remove_handoff(&d);
+    assert!(!sock.exists() && !d.join(HANDOFF_FILE).exists());
+    remove_handoff(&d);
+    std::fs::remove_dir_all(&d).ok();
+}

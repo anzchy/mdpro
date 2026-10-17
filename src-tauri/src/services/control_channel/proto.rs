@@ -50,12 +50,16 @@ impl Request {
     }
 }
 
-/// An error reply: `{id, ok:false, error:{code, message}}`, plus extra fields.
+/// An error reply: `{id, ok:false, error:{code, message[, class]}[, outcome]}`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Failure {
     pub code: &'static str,
     pub message: String,
+    /// The command may or may not have taken effect.
     pub unknown_outcome: bool,
+    /// The app moved under the request (page not ready, reloaded, closed),
+    /// not the request's own error: `error.class` is `driver_failure`.
+    pub driver_failure: bool,
 }
 
 impl Failure {
@@ -64,14 +68,29 @@ impl Failure {
             code,
             message: message.into(),
             unknown_outcome: false,
+            driver_failure: false,
+        }
+    }
+
+    pub fn driver(code: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            driver_failure: true,
+            ..Self::new(code, message)
         }
     }
 
     pub fn timeout() -> Self {
         Self {
-            code: "timeout",
-            message: "no result before the timeout".into(),
             unknown_outcome: true,
+            ..Self::new("timeout", "no result before the timeout")
+        }
+    }
+
+    /// The same failure, with the outcome left unknown.
+    pub fn outcome_unknown(self) -> Self {
+        Self {
+            unknown_outcome: true,
+            ..self
         }
     }
 }
@@ -82,6 +101,9 @@ pub fn reply_ok(id: &str, value: Value) -> Value {
 
 pub fn reply_err(id: &str, f: &Failure) -> Value {
     let mut v = json!({ "id": id, "ok": false, "error": { "code": f.code, "message": f.message } });
+    if f.driver_failure {
+        v["error"]["class"] = json!("driver_failure");
+    }
     if f.unknown_outcome {
         v["outcome"] = json!("unknown");
     }
