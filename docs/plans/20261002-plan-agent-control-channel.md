@@ -644,6 +644,11 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 ### WI-009 驱动接入
 
 - **Goal**：把选定的通道按 R3、R4、R5、R9、R10 正式接进来，测试先行。
+- **实现说明（2026-10-17，delegator 裁定，adr047-verify 记）**：
+  - 决定 6 的「explicit opt-in」做成运行目录里的标记文件 `control-optin.json`，由 `pnpm control:launch --control on|eval` 在启动 app 之前写入（`wx`、0600，内容 `{"eval": bool}`）。
+  - app 只认这个标记，失败即关：符号链接、属主不是本 uid、权限宽于 0600、内容不是恰好 `{"eval": bool}`，一律不开通道。
+  - `eval` 走同一个标记，`MDPRO_CONTROL_EVAL` 取消。不另写 ADR，这在决定 6 的措辞之内。
+  - ADR-0047 Status 里「多用现有 `objc2-app-kit` 的三个 feature」一句不准确：这三个早已经由 `default` 打开，见 spike 记录 § Selection 的更正（2026-10-17）。
 - **Acceptance（与驱动无关的部分）**
   1. `Cargo.toml` 的 `control-channel` 默认关闭，依赖 `verify-run`；驱动依赖是它的可选依赖。
   2. `control-channel` 构建不带运行时开关启动时，没有控制通道的监听和套接字。用监听清单验证：按 pid 列出全部 TCP 监听和 Unix 套接字，逐个对上用途（MCP 服务、single-instance、控制通道）。不带开关时只有前两个。
@@ -660,8 +665,8 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   13. 有结构化日志：通道开启、关闭、被拒绝的请求、被丢弃的迟到结果（都不含凭证）。
 - **Acceptance（驱动相关；选定自研插件即候选 B 时适用，WI-008 后补写）** 依据 spike 记录 § Candidate B。
   14. 传输只有运行目录里的 Unix 套接字，不开 HTTP 监听，所以第 4 条的 HTTP 部分不适用，记「不适用」。套接字路径要放得进 `sun_path`（macOS 104 字节，含结尾 NUL）；放不下时通道不开，记 `control.listen` fail，不挪到运行目录外。
-  15. 第 2 条的运行时开关要真正实现：两个候选的 spike 都没有它（候选 B 的 `open()` 不做任何检查就绑定套接字，`control_channel/mod.rs:106-120` @ `79bde78a`），每个 `control-channel` 验证运行一启动就开通道。最终实现只在启动器显式开启时才开（ADR-0047 决定 6）；重验的 S1 要加「feature 开、开关没给」这一格，套接字和 `control.json` 都不存在才算过。
-  16. 依赖：不新增 crate。用到的 `objc2-app-kit` feature（spike 是 `NSEvent`、`NSGraphicsContext`、`NSWindow`）只经 `control-channel` 打开，默认 feature 图不变（spike 把它们放在无条件的 macOS 依赖列表里，这一条就是要改掉它）；`Cargo.lock` 的变化逐行列在提交说明里。
+  15. 第 2 条的运行时开关要真正实现：两个候选的 spike 都没有它（候选 B 的 `open()` 不做任何检查就绑定套接字，`control_channel/mod.rs:106-120` @ `79bde78a`），每个 `control-channel` 验证运行一启动就开通道。最终实现只在启动器显式开启时才开（ADR-0047 决定 6；做法见上面的实现说明，即 `--control` 写的标记文件）；重验的 S1 要加「feature 开、开关没给」这一格，套接字和 `control.json` 都不存在才算过。
+  16. 依赖：不新增 crate，`Cargo.lock` 不变（有变化就逐行列在提交说明里）。**更正（2026-10-17）**：原文要求把 `NSEvent`、`NSGraphicsContext`、`NSWindow` 三个 `objc2-app-kit` feature 只经 `control-channel` 打开。但 `tauri-app` 本身已开 `objc2-app-kit` 的 `default`，三个早在默认构建里（`cargo tree -e features -i objc2-app-kit` 可见），把名字挪到 feature 下不改变任何东西。真正的门是模块上的 `cfg(feature = "control-channel")`：默认构建里没有通道的代码。
   17. 输入是每个按键、每个鼠标键一个 `NSEvent`，在主线程经 `-[NSWindow sendEvent:]` 发给按标签找到的窗口。Objective-C 互操作集中在一个模块里，行数记进重验记录（spike 是 274 行）。只支持 macOS；其他平台上输入命令返回明确的不支持，而不是编译失败或静默成功。
   18. 键表按 ANSI（ABC）布局，覆盖旅程用到的键；修饰键 `shift`、`cmd`、`ctrl`、`alt`。验收是 S3 的那几样在两个编辑器里都成立：Shift+方向键选中、⌘B、⌘Z、⌘1（spike 的 J2、J3）。
   19. `activate` 只激活 app、让窗口成为 key window，不向页面发事件（用户裁定「Allow activate, record it (Recommended)」，2026-10-17 经 mdpro-delegator 转达）；它产生的 `window.focus` 由调用方记录。

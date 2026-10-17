@@ -19,7 +19,8 @@
  * - Flags are looked up with `Object.hasOwn`, never `in`, so inherited keys
  *   (`toString`, `constructor`, `__proto__`) are plain positionals (D82 L1).
  * - Value checks that belong to a driver stay there (`--view-mode`, the run
- *   name grammar); the parser only checks shape, and `--via` against `open`.
+ *   name grammar); the parser only checks shape, `--via` against `open`, and
+ *   `--control` against `on|eval` and against `--into` (ADR-0047 WI-009).
  * - Every stdout line passes through `redact` with the repo root and home
  *   (a printed path reads `./…` / `~/…`). Secrets are already redacted by
  *   the drivers, which alone know them. The home here is display-only: the
@@ -34,6 +35,7 @@
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isControlMode } from "./controlOptin.mjs";
 import { formatError, redact } from "./launcherFormat.mjs";
 
 const PNPM_SEPARATOR = "--";
@@ -94,10 +96,17 @@ export function parseDoctorArgs(argv) {
   return {};
 }
 
-/** @param {string[]} argv @returns {{ into?: string, via?: string, viewMode?: string, file?: string }} */
+/** @param {string[]} argv @returns {{ into?: string, via?: string, viewMode?: string, control?: string, file?: string }} */
 export function parseLaunchArgs(argv) {
-  const { out, positional } = split("launch", argv, { "--into": "into", "--via": "via", "--view-mode": "viewMode" });
+  const flags = { "--into": "into", "--via": "via", "--view-mode": "viewMode", "--control": "control" };
+  const { out, positional } = split("launch", argv, flags);
   if (out.via !== undefined && out.via !== "open") throw new UsageError("launch", `unknown --via ${out.via}`);
+  if (out.control !== undefined && out.into !== undefined) {
+    throw new UsageError("launch", "--control applies only to a new run");
+  }
+  if (out.control !== undefined && !isControlMode(out.control)) {
+    throw new UsageError("launch", `unknown --control ${out.control}`);
+  }
   if (positional.length > 1) throw new UsageError("launch", "at most one file");
   return positional.length === 1 ? { ...out, file: positional[0] } : out;
 }
