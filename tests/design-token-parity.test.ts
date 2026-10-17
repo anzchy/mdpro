@@ -25,6 +25,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, tokenBlock } from "./support/cssTokenScan";
 import { resolveColor, type Rgba } from "./support/contrast";
+import { colourHex, COLOURS, firstDifference, frontMatter, mappedTokens, mappingDefects, readSidecar, sectionKeys, splitSidecar, stylesheetTokens, writeFrontMatter } from "./support/stitchSidecar";
 
 const ROOT = join(__dirname, "..");
 const SRC = join(ROOT, "src");
@@ -324,5 +325,77 @@ describe("D278-WI-1 fixtures: each check catches its defect", () => {
 
   it("the reduced-motion block is found", () => {
     expect(reducedMotionTokens(GLOBALS)).toEqual(["--motion-duration-fast"]);
+  });
+});
+
+// D278-WI-3: design/DESIGN.stitch.md, the Stitch-format sidecar. Its front
+// matter is generated from the tokens (tests/support/stitchSidecar.ts);
+// `MDPRO_WRITE_SIDECAR=1` writes it instead of comparing.
+describe("D278-WI-3: the Stitch sidecar matches the tokens", () => {
+  it("S1 the generator reproduces the committed front matter byte for byte", () => {
+    const generated = frontMatter();
+    if (process.env.MDPRO_WRITE_SIDECAR === "1") writeFrontMatter(generated);
+    const committed = readSidecar();
+    expect(committed, "design/DESIGN.stitch.md exists").toBeDefined();
+    const front = splitSidecar(committed ?? "").front;
+    expect(firstDifference(front, generated), "stale key; regenerate with MDPRO_WRITE_SIDECAR=1").toBeUndefined();
+    expect(front).toBe(generated);
+  });
+
+  it("S2 every mapped token is declared, and none is Interim", () => {
+    expect(mappingDefects(mappedTokens(), declared, INTERIM)).toEqual([]);
+  });
+
+  it("S3 every token design/DESIGN.stitch.md maps is documented", () => {
+    expect(undocumented(mappedTokens(), DESIGN, RULE31), "mapped by design/DESIGN.stitch.md but undocumented").toEqual([]);
+  });
+
+  it("S4 colors and colors-dark have the same keys, and no dark-* key", () => {
+    const front = splitSidecar(readSidecar() ?? "").front;
+    const keys = COLOURS.map(([k]) => k);
+    expect(sectionKeys(front, "colors")).toEqual(keys);
+    expect(sectionKeys(front, "colors-dark")).toEqual(keys);
+    expect(keys.filter((k) => k.startsWith("dark-"))).toEqual([]);
+  });
+
+  it("S5 values match hand-computed hex: opaque, translucent, and a var() chain", () => {
+    const { light, dark } = stylesheetTokens();
+    expect(colourHex("--color-accent", light)).toBe("#2563eb");
+    expect(colourHex("--color-accent", dark)).toBe("#60a5fa");
+    // rgba(15, 23, 42, 0.35): alpha round(0.35 × 255) = 89 = 0x59.
+    expect(colourHex("--color-scrim", light)).toBe("#0f172a59");
+    expect(colourHex("--color-scrim", dark)).toBe("#0f172a59");
+    expect(colourHex("--color-bg-secondary", light)).toBe("#f6f7fb");
+    const chain = new Map([["--color-surface", "#f6f7fb"], ["--color-bg-secondary", "var(--color-surface)"]]);
+    expect(colourHex("--color-bg-secondary", chain)).toBe("#f6f7fb");
+  });
+});
+
+describe("D278-WI-3 fixtures: the sidecar gate catches its defects", () => {
+  const sets = stylesheetTokens();
+  const retuned = (set: ReadonlyMap<string, string>) => new Map([...set, ["--color-accent", "#2563ec"]]);
+
+  it("S1 names the colors key when a light value changes", () => {
+    expect(firstDifference(frontMatter(sets), frontMatter({ ...sets, light: retuned(sets.light) }))).toBe("colors.primary");
+  });
+
+  it("S1 names the colors-dark key when a dark value changes", () => {
+    expect(firstDifference(frontMatter(sets), frontMatter({ ...sets, dark: retuned(sets.dark) }))).toBe("colors-dark.primary");
+  });
+
+  it("S2 names an undeclared and an Interim token", () => {
+    expect(mappingDefects(["--color-undeclared", "--color-banner-unsaved"], declared, INTERIM)).toEqual([
+      "--color-undeclared: not declared",
+      "--color-banner-unsaved: Interim (WI-4.3)",
+    ]);
+  });
+
+  it("the generator throws on a mapped token that is undeclared or not a colour", () => {
+    expect(() => colourHex("--color-x", new Map())).toThrow(/not declared/);
+    expect(() => colourHex("--color-x", new Map([["--color-x", "linear-gradient(#fff, #000)"]]))).toThrow();
+  });
+
+  it("splitSidecar refuses a file without front matter", () => {
+    expect(() => splitSidecar("# no front matter\n")).toThrow(/front matter/);
   });
 });
