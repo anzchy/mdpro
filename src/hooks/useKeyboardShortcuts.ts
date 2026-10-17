@@ -28,7 +28,8 @@ const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform
 // Dispatch passes: 1 logical only; 2 the K8 physical-key match, only when no
 // binding matched logically, so a logical match on any binding beats a
 // physical one on any other (audit b186 F1); 3 off-Mac, the Shift-typed
-// symbol fallback (audit b121). The sets mark the pass an event is in and
+// symbol fallback (audit b121). Passes 2 and 3 skip a keydown an editor
+// already consumed (defaultPrevented). The sets mark the pass an event is in and
 // whether some binding has matched it.
 const physicalPass = new WeakSet<KeyboardEvent>();
 const relaxedPass = new WeakSet<KeyboardEvent>();
@@ -184,7 +185,11 @@ export function useKeyboardShortcuts({
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       dispatch(event);
-      if (matched.has(event)) return;
+      // A keydown an editor keymap consumed never reaches a fallback pass
+      // (audit b186 round 2: Milkdown's Mod-Shift-` on German Shift+Equal).
+      // The logical pass above still runs, as CodeMirror's Mod-Shift-l and
+      // Mod-Alt-Arrow consume hook chords today (C11, C17; M1b removes them).
+      if (matched.has(event) || event.defaultPrevented) return;
       physicalPass.add(event);
       dispatch(event);
       if (isMac || matched.has(event)) return;
