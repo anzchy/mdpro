@@ -1,5 +1,7 @@
 //! Purpose: records which window has focus: one `window.focus` /
-//! `window.blur` log line and the MCP shadow store's focused window (D217).
+//! `window.blur` log line, the MCP shadow store's focused window (D217) and
+//! the menu's `MenuFocus`, which picks the window a menu action goes to
+//! (D261).
 //!
 //! Key decisions: `main.rs` calls this from `app.run`'s
 //! `RunEvent::WindowEvent`, never from `Builder::on_window_event`. Tauri
@@ -10,8 +12,14 @@
 //! event is lost; the app-level callback is invoked for every window the
 //! runtime knows, with no registration step.
 //!
+//! The two stores are fed the same event but kept apart: the shadow store's
+//! copy is also cleared on the vetoable `CloseRequested`, `MenuFocus` only on
+//! `Destroyed`.
+//!
 //! @coordinates-with main.rs (the `app.run` callback), shadow_store.rs
+//! @coordinates-with menu_target.rs (`MenuFocus`)
 
+use crate::menu::MenuFocus;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::{logger, shadow_store};
 use serde_json::json;
@@ -36,9 +44,14 @@ pub fn apply_focus(store: &SharedShadowStore, label: &str, focused: bool) -> Res
     }
 }
 
-/// Logs the focus change and applies it to the shadow store when one is
-/// managed.
-pub fn on_focus_event(store: Option<&SharedShadowStore>, label: &str, focused: bool) {
+/// Logs the focus change and applies it to the shadow store and to the
+/// menu's `MenuFocus`, each when it is managed.
+pub fn on_focus_event(
+    store: Option<&SharedShadowStore>,
+    menu_focus: Option<&MenuFocus>,
+    label: &str,
+    focused: bool,
+) {
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
         event: focus_event_name(focused).to_string(),
@@ -53,6 +66,9 @@ pub fn on_focus_event(store: Option<&SharedShadowStore>, label: &str, focused: b
     });
     if let Some(store) = store {
         let _ = apply_focus(store, label, focused);
+    }
+    if let Some(menu_focus) = menu_focus {
+        menu_focus.apply(label, focused);
     }
 }
 

@@ -20,10 +20,11 @@ const menuRs = fs.readFileSync(
   path.join(ROOT, "src-tauri/src/menu.rs"),
   "utf-8",
 );
-const useMenuEvents = fs.readFileSync(
-  path.join(ROOT, "src/hooks/useMenuEvents.ts"),
-  "utf-8",
-);
+// D261-WI-1a moved the action switch into menuActionTable.ts; read the hook
+// and its table together.
+const useMenuEvents = ["src/hooks/useMenuEvents.ts", "src/hooks/menuActionTable.ts"]
+  .map((p) => fs.readFileSync(path.join(ROOT, p), "utf-8"))
+  .join("\n");
 const appTsx = fs.readFileSync(path.join(ROOT, "src/App.tsx"), "utf-8");
 const shortcutDocs = fs.readFileSync(
   path.join(ROOT, "docs/guide/keyboard-shortcuts.md"),

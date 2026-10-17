@@ -40,8 +40,27 @@ describe("MilkdownEditor source — highlightRequest wiring (fix for #26)", () =
   });
 
   it("accepts highlightRequest prop in MilkdownEditorInner", () => {
-    // The inner component must receive and use highlightRequest
-    expect(milkdownEditorSrc).toMatch(/highlightRequest\?:\s*number/);
+    // The inner component must receive and use highlightRequest.
+    // Re-pinned in D261-WI-1d (policy rule 12): the prop shape changed by design
+    // from a bare counter (`number`) to `HighlightRequest = { seq, token }`, so
+    // the request carries the menu-target token the effect checks before it
+    // touches the view. The bare number re-fired into the next document on a
+    // remount; the specification (the prop exists and drives the effect) holds.
+    expect(milkdownEditorSrc).toMatch(/highlightRequest\?:\s*HighlightRequest/);
+    const tokenSrc = readSrc("utils/menuTargetToken.ts");
+    expect(tokenSrc).toMatch(
+      /export interface HighlightRequest \{\s*seq: number;\s*token: MenuTargetToken;\s*\}/,
+    );
+  });
+
+  it("checks the token (abandonIfStale) before calling milkdownHighlightCommand in the effect", () => {
+    // Added in D261-WI-1d: a stale request must not reach the view.
+    const effect = milkdownEditorSrc.match(/useEffect\(\(\) => \{([\s\S]*?)\}, \[highlightRequest\]\);/);
+    expect(effect).not.toBeNull();
+    const body = effect![1];
+    const check = body.search(/abandonIfStale\(/);
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(body.search(/milkdownHighlightCommand\(/));
   });
 
   it("has a useEffect that reacts to highlightRequest", () => {
@@ -54,6 +73,8 @@ describe("MilkdownEditor source — highlightRequest wiring (fix for #26)", () =
   });
 
   it("passes highlightRequest from MilkdownEditor wrapper to inner component", () => {
+    // D261-WI-1d (rule 12): unchanged pass-through; the value is now a
+    // HighlightRequest ({ seq, token }) rather than a number.
     expect(milkdownEditorSrc).toMatch(/highlightRequest=\{highlightRequest\}/);
   });
 
@@ -67,6 +88,7 @@ describe("App.tsx — passes highlightRequest to MilkdownEditor (fix for #26)", 
   const appSrc = readSrc("App.tsx");
 
   it("passes highlightRequest prop to MilkdownEditor", () => {
+    // D261-WI-1d (rule 12): unchanged pass-through of the { seq, token } request.
     expect(appSrc).toMatch(/MilkdownEditor\s+highlightRequest=\{highlightRequest\}/);
   });
 });

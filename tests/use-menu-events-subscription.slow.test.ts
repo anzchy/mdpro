@@ -8,6 +8,11 @@
  * The Tauri fakes and hook-side helpers are shared with the unit file through
  * `tests/support/menuEventsHarness.ts` and `tests/support/menuEventsDomain.ts`;
  * only the hoisted `vi.mock` declarations are per file.
+ *
+ * D261-WI-1c replaced the `FOCI` pool with `TARGETS` (self, other, missing).
+ * Rule-12 reason: the fail-open spec (act when isFocused() rejects) is the
+ * defect D261 removes; the focus query no longer exists. An emit now produces
+ * a call iff it is addressed to the registered mount's window.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -22,7 +27,6 @@ import { bus, logs, win } from "./support/menuEventsHarness";
 import {
   calls,
   EVT,
-  FOCI,
   flush,
   LABELS,
   makeHandlers,
@@ -32,6 +36,7 @@ import {
   payloadOf,
   resetMenuHarness,
   ROWS,
+  TARGETS,
 } from "./support/menuEventsDomain";
 
 beforeEach(() => {
@@ -78,14 +83,15 @@ async function runLifecycleSequence(seed: number, seq: number): Promise<void> {
     await flush();
   };
 
-  const emitAndCheck = async (payload: { action: string; value?: string }, known: boolean, focus: (typeof FOCI)[number]) => {
-    win.focus = focus;
+  const emitAndCheck = async (payload: { action: string; value?: string }, known: boolean, target: (typeof TARGETS)[number]) => {
     const before = calls.length;
-    const expected = registered() && focus !== "false" && known ? 1 : 0;
-    bus.emit(EVT, payload);
+    const expected = registered() && target === "self" && known ? 1 : 0;
+    if (target === "self") bus.emit(EVT, payload);
+    else if (target === "other") bus.emitAny(EVT, { ...payload, target: `not-${win.label}` });
+    else bus.emitAny(EVT, payload);
     await flush();
     const produced = calls.slice(before);
-    expect(produced.length, `emit ${JSON.stringify(payload)} focus=${focus}: ${where()}`).toBe(expected);
+    expect(produced.length, `emit ${JSON.stringify(payload)} target=${target}: ${where()}`).toBe(expected);
     expect(produced.every((c) => c.gen === currentGen), `newest identity: ${where()}`).toBe(true);
     expectedTotal += expected;
   };
@@ -115,9 +121,9 @@ async function runLifecycleSequence(seed: number, seq: number): Promise<void> {
       bus.state.autoResolve = v;
     } else if (op === "emit") {
       const e = pick(EMIT_POOL);
-      const focus = pick(FOCI);
-      ops.push(`emit(${e.payload.action},${focus})`);
-      await emitAndCheck(e.payload, e.known, focus);
+      const target = pick(TARGETS);
+      ops.push(`emit(${e.payload.action},${target})`);
+      await emitAndCheck(e.payload, e.known, target);
     } else if (op === "unmount" && hook) {
       ops.push("unmount");
       (hook as ReturnType<typeof mountHook>).unmount();
@@ -138,9 +144,11 @@ async function runLifecycleSequence(seed: number, seq: number): Promise<void> {
   expect(bus.count(EVT), `L-A1 after settle-all: ${where()}`).toBe(hook ? 1 : 0);
 
   ops.push("final-emit");
-  await emitAndCheck({ action: "file.new" }, true, "true");
+  await emitAndCheck({ action: "file.new" }, true, "self");
 
-  const select = menuLogs("ui.menu.select");
+  // Success lines only: a non-self emit now writes a wrong_target cancel select
+  // line (D261), which dispatches nothing and so pairs with no call.
+  const select = menuLogs("ui.menu.select").filter((l) => l.payload.status === "success");
   expect(calls.length, `total calls: ${where()}`).toBe(expectedTotal);
   expect(select.length, `total select logs: ${where()}`).toBe(expectedTotal);
   const callIds = calls.map((c) => c.args[c.args.length - 1] as string).sort();

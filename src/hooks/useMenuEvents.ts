@@ -1,100 +1,69 @@
 /**
  * @module hooks/useMenuEvents
- * Purpose: Subscribe the window to the native menu's `menu:action` broadcast
- * and dispatch each action to the matching App handler, logging one
- * `ui.menu.select` per dispatched action (with this window's `windowLabel`).
+ * Purpose: Subscribe this window to the native menu's `menu:action` events,
+ * which Rust sends with `emit_to` to exactly one window (D261), and hand each
+ * one addressed to this window to `dispatchMenuAction` (menuActionTable.ts)
+ * with a menu-target token captured at receipt. The table runs the matching
+ * App handler and logs one `ui.menu.select` per dispatched action, with this
+ * window's `windowLabel`.
  *
- * Device evidence (D31 WI-2, info level, labels and counts only — no content,
- * no new path fields):
+ * Device evidence (D31 WI-2, D261; info level, labels and counts only — no
+ * content, no new path fields):
  *   - `ui.menu.select` context carries `windowLabel`, so a device log shows
  *     which window acted on each click.
+ *   - one `ui.menu.select` `cancel` line `{ windowLabel, reason: "wrong_target" }`
+ *     per payload whose `target` is not this window's label (missing included).
  *   - one `ui.menu.listen` line per `listen()` attempt: `success` when it
  *     resolves while mounted, `cancel` when it resolves after cleanup (and is
- *     unlistened at once), `fail` when it rejects — cancelled or not.
- *   - one `ui.menu.focus_check` `fail` line per event whose focus check throws.
- *   Error fields are fixed reason strings, never the raw error. The `fail`
- *   lines stay at info level on purpose: both failures are recovered (no menu
- *   events, or fail-open), and the device check counts them, not alerts on them.
+ *     unlistened at once), `fail` when it rejects — cancelled or not. The `fail`
+ *     reason is a fixed string, never the raw error, and stays at info level:
+ *     it is recovered (no menu events) and counted, not alerted on.
  *
  * Key decisions:
  *   - Subscribe ONCE per mount (`useEffect` with `[]` deps). Keying the
  *     subscription on handler identity re-subscribed on every App render, and
  *     each re-subscribe raced `listen()`; the leaked subscriptions made one
  *     click run its handler N times (D31).
+ *   - Subscribe through `getCurrentWindow().listen`, never the global `listen`
+ *     of `@tauri-apps/api/event`: a global (`Any`) listener matches every
+ *     targeted emit, so it would hear clicks meant for other windows.
+ *   - Fail closed on the target: the label is read once at mount (a window's
+ *     label never changes), and a payload whose `target` differs, or is
+ *     missing, runs nothing. There is no focus query: Rust already chose the
+ *     window, and focus may have moved since the click.
+ *   - The token is captured synchronously at each receipt, before anything can
+ *     await, and passed to every handler after its actionId. Handlers that
+ *     mutate later check it with `abandonIfStale` (menuTargetToken.ts).
  *   - Handlers live in a ref updated in `useLayoutEffect` (never during
- *     render), and `handleMenuAction` reads the ref AFTER the focus-check
- *     await, so the newest handlers run and no event is dropped across a
- *     re-render. An event still parked on that await at unmount is dropped.
+ *     render), read at dispatch, so the newest handlers run.
  *   - A `cancelled` flag makes a `listen()` that resolves after cleanup call
- *     its unlisten at once (same shape as `useTheme.ts`), so StrictMode and
- *     fast unmounts leave nothing live.
- *   - The focus check fails open: if `isFocused()` throws, the window acts,
- *     and the failure is logged so a device run can see it.
- *   - The label is read per log line from `getCurrentWindow()` (a static
- *     import, like `useMcpSync.ts`); outside Tauri it falls back to "unknown".
- *   - Tab-changing actions (close, new, open, open recent), and Insert Table and
- *     Preferences, which open a modal of their own (D235), are refused while a
- *     modal is open (D165): on macOS the accelerator reaches this handler
- *     whatever the DOM does, so the check is here, after the `ui.menu.select`
- *     line, which the refusal line shares its actionId with.
- *   - Not unit-testable: two windows receiving one broadcast click (jsdom has
- *     one global `getCurrentWindow`, D30) — covered by the device run.
+ *     its unlisten at once (same shape as `useTheme.ts`), and stops an event
+ *     delivered in that gap from dispatching, so StrictMode and fast unmounts
+ *     leave nothing live.
+ *   - The action table (which action reaches which handler, the D165 / D235
+ *     modal refusals, the Open Recent and view-mode value checks) lives in
+ *     `menuActionTable.ts` (D261-WI-1a).
  *
- * @coordinates-with src-tauri/src/menu.rs — emits `menu:action` to every webview
+ * @coordinates-with src-tauri/src/menu_target.rs — resolves the target window and `emit_to`s it
+ * @coordinates-with src-tauri/src/menu.rs — the menu items and their action strings
  * @coordinates-with src/App.tsx — supplies the handlers
- * @coordinates-with src/utils/modalTabActionGuard.ts — the D165 / D235 modal refusals
+ * @coordinates-with src/hooks/menuActionTable.ts — dispatchMenuAction, the action table and modal refusals
+ * @coordinates-with src/utils/menuTargetToken.ts — captureToken, the token handlers receive
  */
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { ViewMode } from "../types/editor";
-import type { UserPreferences } from "../types/preferences";
 import { loggingService } from "../services/loggingService";
-import {
-  refuseModalOpenWhileModalOpen,
-  refuseTabActionWhileModalOpen,
-  type ModalOpeningAction,
-  type TabChangingAction,
-} from "../utils/modalTabActionGuard";
-
-interface MenuActionPayload {
-  action: string;
-  value?: string | null;
-}
-
-interface MenuHandlers {
-  onNew?: (actionId?: string) => void;
-  onNewWindow?: (actionId?: string) => void;
-  onOpen?: (actionId?: string) => void;
-  onSave?: (actionId?: string) => void;
-  onClose?: (actionId?: string) => void;
-  onExportHtml?: (actionId?: string) => void;
-  onOpenRecent?: (path: string, actionId?: string) => void;
-  onToggleSidebar?: (actionId?: string) => void;
-  onHighlight?: (actionId?: string) => void;
-  onInsertTable?: (actionId?: string) => void;
-  onViewModeChange?: (mode: ViewMode, actionId?: string) => void;
-  onCycleViewMode?: (actionId?: string) => void;
-  onThemeModeChange?: (mode: UserPreferences["themeMode"], actionId?: string) => void;
-  onOpenPreferences?: (actionId?: string) => void;
-}
+import { currentWindowLabel } from "../utils/currentWindowLabel";
+import { captureToken } from "../utils/menuTargetToken";
+import { dispatchMenuAction, type MenuActionPayload, type MenuHandlers } from "./menuActionTable";
 
 const LISTEN_FAIL_REASON = "menu:action listen() rejected";
-const FOCUS_CHECK_FAIL_REASON = "isFocused() rejected; failing open";
-
-/** This window's label; "unknown" outside Tauri, where the getter throws. */
-function windowLabel(): string {
-  try {
-    return getCurrentWindow().label;
-  } catch {
-    return "unknown";
-  }
-}
 
 /** One `ui.menu.<event>` line carrying only the window label. */
-function logMenuLifecycle(
-  event: "ui.menu.listen" | "ui.menu.focus_check",
+function logMenuLine(
+  event: "ui.menu.listen" | "ui.menu.select",
   status: "success" | "cancel" | "fail",
+  context: Record<string, unknown>,
   error?: string,
 ) {
   loggingService.logEventSync({
@@ -102,9 +71,18 @@ function logMenuLifecycle(
     event,
     status,
     actionId: loggingService.generateActionId(),
-    context: { windowLabel: windowLabel() },
+    context,
     ...(error ? { error } : {}),
   });
+}
+
+/** `getCurrentWindow().listen`, with a synchronous throw turned into a rejection. */
+function listenOnThisWindow(onPayload: (payload: MenuActionPayload) => void): Promise<() => void> {
+  try {
+    return getCurrentWindow().listen<MenuActionPayload>("menu:action", (event) => onPayload(event.payload));
+  } catch (error) {
+    return Promise.reject(error);
+  }
 }
 
 export function useMenuEvents(menuHandlers: MenuHandlers) {
@@ -116,147 +94,37 @@ export function useMenuEvents(menuHandlers: MenuHandlers) {
   useEffect(() => {
     let cancelled = false;
     let unlisten: (() => void) | null = null;
-
-    const shouldHandleMenuAction = async () => {
-      try {
-        return await getCurrentWindow().isFocused();
-      } catch {
-        logMenuLifecycle("ui.menu.focus_check", "fail", FOCUS_CHECK_FAIL_REASON);
-        return true;
-      }
-    };
+    // Once per mount: a real window's label never changes.
+    const label = currentWindowLabel();
 
     const logMenuSelect = (controlId: string, context: Record<string, unknown> = {}) =>
-      loggingService.logMenuSelect(controlId, { ...context, windowLabel: windowLabel() });
+      loggingService.logMenuSelect(controlId, { ...context, windowLabel: label });
 
-    /**
-     * A tab-changing action: nothing (not even the select line) without a handler,
-     * as the optional call did before; refused while a modal is open (D165).
-     */
-    const runTabAction = (
-      action: TabChangingAction,
-      controlId: string,
-      run: ((actionId: string) => void) | undefined,
-      context: Record<string, unknown> = {},
-    ) => {
-      if (!run) return;
-      const actionId = logMenuSelect(controlId, context);
-      if (!refuseTabActionWhileModalOpen(action, "menu", actionId)) run(actionId);
-    };
-
-    /** An action that opens its own modal: refused while one is already open (D235). */
-    const runModalAction = (
-      action: ModalOpeningAction,
-      controlId: string,
-      run: ((actionId: string) => void) | undefined,
-    ) => {
-      if (!run) return;
-      const actionId = logMenuSelect(controlId);
-      if (!refuseModalOpenWhileModalOpen(action, "menu", actionId)) run(actionId);
-    };
-
-    const handleMenuAction = async ({ action, value }: MenuActionPayload) => {
-      const canHandle = await shouldHandleMenuAction();
-      // An event parked on the focus check must not act after unmount.
-      if (!canHandle || cancelled) return;
-      // Read after the await: the newest handlers, not the ones at emit time.
-      const handlers = handlersRef.current;
-      switch (action) {
-        case "file.new":
-          runTabAction("file.new", "menu.file.new", handlers.onNew);
-          break;
-        case "file.new_window":
-          handlers.onNewWindow?.(logMenuSelect("menu.file.new_window"));
-          break;
-        case "file.open":
-          runTabAction("file.open", "menu.file.open", handlers.onOpen);
-          break;
-        case "file.save":
-          handlers.onSave?.(logMenuSelect("menu.file.save"));
-          break;
-        case "file.close":
-          runTabAction("file.close", "menu.file.close", handlers.onClose);
-          break;
-        case "file.export_html":
-          handlers.onExportHtml?.(logMenuSelect("menu.file.export_html"));
-          break;
-        case "file.preferences":
-          runModalAction("file.preferences", "menu.file.preferences", handlers.onOpenPreferences);
-          break;
-        case "file.open_recent":
-          if (value) {
-            // Logged even without a handler, as before D165.
-            runTabAction(
-              "file.open_recent",
-              "menu.file.open_recent",
-              (actionId) => handlers.onOpenRecent?.(value, actionId),
-              { filePath: value },
-            );
-          }
-          break;
-        case "cycle-view-mode":
-          handlers.onCycleViewMode?.(logMenuSelect("menu.view.cycle"));
-          break;
-        case "set-view-mode": {
-          if (!value) break;
-          const mode = value as ViewMode;
-          if (mode === "wysiwyg" || mode === "source") {
-            handlers.onViewModeChange?.(
-              mode,
-              logMenuSelect("menu.view.set_mode", { mode }),
-            );
-          }
-          break;
-        }
-        case "view.toggle_sidebar":
-          handlers.onToggleSidebar?.(logMenuSelect("menu.view.toggle_sidebar"));
-          break;
-        case "format.highlight":
-          handlers.onHighlight?.(logMenuSelect("menu.format.highlight"));
-          break;
-        case "paragraph.table":
-          // Wired to the same insert-table flow as the ⌘⌥T shortcut; both
-          // open TableInsertModal via tableInsertStore.requestInsert.
-          runModalAction("paragraph.table", "menu.format.insert_table", handlers.onInsertTable);
-          break;
-        case "theme.light":
-          handlers.onThemeModeChange?.(
-            "light",
-            logMenuSelect("menu.theme.light"),
-          );
-          break;
-        case "theme.dark":
-          handlers.onThemeModeChange?.(
-            "dark",
-            logMenuSelect("menu.theme.dark"),
-          );
-          break;
-        case "theme.system":
-          handlers.onThemeModeChange?.(
-            "system",
-            logMenuSelect("menu.theme.system"),
-          );
-          break;
-        default:
-          break;
+    const handleMenuAction = (payload: MenuActionPayload) => {
+      // Delivered between a late resolve and its unlisten: this mount is gone.
+      if (cancelled) return;
+      if (payload.target !== label) {
+        logMenuLine("ui.menu.select", "cancel", { windowLabel: label, reason: "wrong_target" });
+        return;
       }
+      // Synchronously at receipt: the document and editor the click was made against.
+      const token = captureToken(label);
+      dispatchMenuAction(payload, handlersRef.current, logMenuSelect, token);
     };
 
-    listen<MenuActionPayload>("menu:action", (event) => {
-      void handleMenuAction(event.payload);
-    })
+    listenOnThisWindow(handleMenuAction)
       .then((fn) => {
         if (cancelled) {
           fn();
-          logMenuLifecycle("ui.menu.listen", "cancel");
+          logMenuLine("ui.menu.listen", "cancel", { windowLabel: label });
         } else {
           unlisten = fn;
-          logMenuLifecycle("ui.menu.listen", "success");
+          logMenuLine("ui.menu.listen", "success", { windowLabel: label });
         }
       })
       .catch(() => {
         // Menu events unavailable: nothing to dispatch; logged even after cleanup.
-        logMenuLifecycle("ui.menu.listen", "fail", LISTEN_FAIL_REASON);
+        logMenuLine("ui.menu.listen", "fail", { windowLabel: label }, LISTEN_FAIL_REASON);
       });
 
     return () => {

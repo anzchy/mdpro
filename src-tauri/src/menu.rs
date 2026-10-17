@@ -2,6 +2,8 @@
 //! `menu:action` dispatch.
 //!
 //! Key decisions:
+//! - Each `menu:action` goes to one window, `emit_to` the target `route`
+//!   resolves in `menu_target.rs` (D261); nothing broadcasts it.
 //! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`;
 //!   the Edit, View, Theme, Window and Help submenus in `menu_submenus.rs`.
 //!   `MenuState::publish_op` merges a window's op under a sync lock and
@@ -22,6 +24,7 @@
 //!   without it muda's About does nothing on Windows and Linux.
 //!
 //! @coordinates-with src/menu_about.rs
+//! @coordinates-with src/menu_target.rs
 //! @coordinates-with src/menu_quit.rs
 //! @coordinates-with src/menu_submenus.rs
 //! @coordinates-with src/menu_recent.rs
@@ -29,10 +32,10 @@
 //! @coordinates-with src/commands/menu.rs
 //! @coordinates-with src-tauri/src/services/quit_guard/driver_escape.rs
 
-use serde::Serialize;
 use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
+use crate::services::logger;
 use crate::services::quit_guard::{self, effects::AppQuitGuard};
 
 const MENU_FILE_NEW: &str = "menu.file.new";
@@ -81,21 +84,19 @@ mod menu_submenus;
 #[path = "menu_about.rs"]
 mod menu_about;
 use menu_about::about_metadata_for;
-pub(crate) use menu_quit::{app_menu_has_macos_items, log_menu_exit, quit_item_for, QuitItem};
 
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct MenuActionPayload {
-    action: String,
-    value: Option<String>,
-}
+#[path = "menu_target.rs"]
+pub mod menu_target;
+pub(crate) use menu_quit::{app_menu_has_macos_items, log_menu_exit, quit_item_for, QuitItem};
+pub use menu_target::{forget_window, MenuFocus};
+use menu_target::{route, MenuActionPayload, UNMANAGED_FOCUS};
 
 fn emit_menu_action(app: &AppHandle, action: &str, value: Option<String>) {
-    let payload = MenuActionPayload {
-        action: action.to_string(),
-        value,
-    };
-    let _ = app.emit("menu:action", payload);
+    let managed = app.try_state::<MenuFocus>();
+    let focus = managed.as_deref().unwrap_or(&UNMANAGED_FOCUS);
+    let live: Vec<String> = app.webview_windows().into_keys().collect();
+    let emit = |label: &str, p: &MenuActionPayload| app.emit_to(label, "menu:action", p);
+    route(action, value, focus, &live, emit, logger::log_event);
 }
 
 pub fn build_menu(

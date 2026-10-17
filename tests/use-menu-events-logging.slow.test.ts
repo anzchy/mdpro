@@ -10,6 +10,12 @@
  * the same invariants (`expectMenuLineShape`) over every line D3 captured,
  * after D3.
  *
+ * D261-WI-1c rewrote invariant 5 and the `FOCI` pool. Rule-12 reason: the
+ * fail-open spec (act when isFocused() rejects) is the defect D261 removes; the
+ * focus query no longer exists. The pool is now `TARGETS` (self, other,
+ * missing), and invariant 5 counts `wrong_target` cancels instead of
+ * `focus_check` fails, with `focus_check` lines pinned at zero.
+ *
  * The Tauri fakes and hook-side helpers are shared with the unit file through
  * `tests/support/menuEventsHarness.ts` and `tests/support/menuEventsDomain.ts`;
  * only the hoisted `vi.mock` declarations are per file.
@@ -30,7 +36,6 @@ import {
   collected,
   EVT,
   expectMenuLineShape,
-  FOCI,
   flush,
   LABELS,
   macrotask,
@@ -42,6 +47,7 @@ import {
   resetMenuHarness,
   ROWS,
   statuses,
+  TARGETS,
   uiMenuLines,
 } from "./support/menuEventsDomain";
 
@@ -77,7 +83,8 @@ async function runLoggingSequence(seed: number, seq: number): Promise<void> {
   let hook: ReturnType<typeof mountHook> | null = null;
   let gen = 0;
   let mountId = 0;
-  let expectedFocusFails = 0;
+  let expectedWrongTargets = 0;
+  let expectedSuccesses = 0;
   const registered = () => hook !== null && bus.state.settledTags.has(mountId);
 
   const mount = async () => {
@@ -89,10 +96,12 @@ async function runLoggingSequence(seed: number, seq: number): Promise<void> {
     await flush();
   };
 
-  const emit = async (payload: { action: string; value?: string }, focus: (typeof FOCI)[number]) => {
-    win.focus = focus;
-    if (registered() && focus === "reject") expectedFocusFails += 1;
-    bus.emit(EVT, payload);
+  const emit = async (payload: { action: string; value?: string }, target: (typeof TARGETS)[number]) => {
+    if (registered() && target !== "self") expectedWrongTargets += 1;
+    if (registered() && target === "self" && payload.action !== "x.unknown") expectedSuccesses += 1;
+    if (target === "self") bus.emit(EVT, payload);
+    else if (target === "other") bus.emitAny(EVT, { ...payload, target: `not-${win.label}` });
+    else bus.emitAny(EVT, payload);
     await flush();
   };
 
@@ -126,9 +135,9 @@ async function runLoggingSequence(seed: number, seq: number): Promise<void> {
       bus.state.failure = v ? new Error(`/Users/x/secret-${seq} boom`) : null;
     } else if (op === "emit") {
       const payload = pick(EMIT_POOL);
-      const focus = pick(FOCI);
-      ops.push(`emit(${payload.action},${focus})`);
-      await emit(payload, focus);
+      const target = pick(TARGETS);
+      ops.push(`emit(${payload.action},${target})`);
+      await emit(payload, target);
     } else if (op === "unmount" && hook) {
       ops.push("unmount");
       bus.state.liveTags.delete(mountId);
@@ -149,7 +158,7 @@ async function runLoggingSequence(seed: number, seq: number): Promise<void> {
   await macrotask();
 
   ops.push("final-emit");
-  await emit({ action: "file.new" }, "true");
+  await emit({ action: "file.new" }, "self");
 
   const listenStatuses = statuses("ui.menu.listen");
   const n = (status: string) => listenStatuses.filter((s) => s === status).length;
@@ -163,8 +172,16 @@ async function runLoggingSequence(seed: number, seq: number): Promise<void> {
   expect(listenStatuses.length, `invariant 4 (one outcome per attempt): ${where()}`).toBe(
     bus.state.subscribeCount,
   );
-  const focusFails = menuLogs("ui.menu.focus_check").filter((l) => l.payload.status === "fail");
-  expect(focusFails.length, `invariant 5 (#focus_check fail): ${where()}`).toBe(expectedFocusFails);
+  const selects = menuLogs("ui.menu.select");
+  const wrongTargets = selects.filter((l) => l.payload.status === "cancel" && l.payload.context?.reason === "wrong_target");
+  expect(wrongTargets.length, `invariant 5 (#wrong_target === non-self deliveries): ${where()}`).toBe(
+    expectedWrongTargets,
+  );
+  expect(
+    selects.filter((l) => l.payload.status === "success").length,
+    `invariant 5b (#select success === known self deliveries): ${where()}`,
+  ).toBe(expectedSuccesses);
+  expect(menuLogs("ui.menu.focus_check"), `invariant 5c (no focus_check): ${where()}`).toHaveLength(0);
 
   if (hook) (hook as ReturnType<typeof mountHook>).unmount();
   await flush();
@@ -185,18 +202,18 @@ describe("useMenuEvents — D3 property: listen outcome conservation", () => {
 // ---------------------------------------------------------------------------
 
 describe("useMenuEvents — D4 invariants over the D3 lifecycles (runs last)", () => {
-  it("D4 (slow): every ui.menu.* line D3 captured obeys invariants 1-5", () => {
+  it("D4 (slow): every ui.menu.* line D3 captured obeys invariants 1-6", () => {
     const lines = collected.filter((l) => String(l.payload.event).startsWith("ui.menu."));
 
     // Non-vacuity: the random lifecycles produce every listen outcome and both
-    // select and focus_check lines.
+    // select classes (success, and D261's wrong_target cancel).
     const kinds = new Set(lines.map((l) => `${l.payload.event}/${l.payload.status}`));
     for (const kind of [
       "ui.menu.select/success",
       "ui.menu.listen/success",
       "ui.menu.listen/cancel",
       "ui.menu.listen/fail",
-      "ui.menu.focus_check/fail",
+      "ui.menu.select/cancel",
     ]) {
       expect(kinds.has(kind), `collected lines include ${kind}`).toBe(true);
     }

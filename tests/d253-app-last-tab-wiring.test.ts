@@ -76,10 +76,15 @@ describe("App closes an emptied secondary window after every user tab close", ()
 
   it("(c) the dialog's Discard for a document runs it after the close", () => {
     const name = wrapperName();
+    // Rule 12: D261-WI-1d (ruling Q4) routes this Discard through
+    // confirmDocumentClose, which closes only while the prompt's target token
+    // is current; D253's contract (the wrapper runs after the close) is kept.
     mustMatch(
-      new RegExp(`if \\(target === "document"\\) \\{\\s*await closeActiveDocument\\(true\\);\\s*(?:void\\s+)?${escape(name)}\\(\\);`),
+      new RegExp(
+        `if \\(target === "document"\\) \\{[\\s\\S]*?if \\(await confirmDocumentClose\\([^)]*closeActiveDocument\\)\\)\\s*(?:void\\s+)?${escape(name)}\\(\\);`,
+      ),
       app,
-      "Discard → closeActiveDocument(true); wrapper()",
+      "Discard → if (await confirmDocumentClose(token, closeActiveDocument)) wrapper()",
     );
   });
 

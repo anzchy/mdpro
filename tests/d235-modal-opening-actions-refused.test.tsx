@@ -32,9 +32,8 @@ const { menuBus, logs, subscribe } = vi.hoisted(() => {
   };
 });
 
-vi.mock("@tauri-apps/api/event", () => ({ listen: subscribe(menuBus) }));
 vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({ label: "main", isFocused: async () => true }),
+  getCurrentWindow: () => ({ label: "main", listen: subscribe(menuBus) }),
 }));
 vi.mock("@tauri-apps/api/core", async () => ({
   ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
@@ -51,7 +50,7 @@ import { useLinkInsertStore } from "../src/stores/linkInsertStore";
 
 async function menu(action: string): Promise<void> {
   await act(async () => {
-    for (const cb of [...(menuBus.get("menu:action") ?? [])]) cb({ payload: { action, value: null } });
+    for (const cb of [...(menuBus.get("menu:action") ?? [])]) cb({ payload: { action, value: null, target: "main" } });
     for (let i = 0; i < 6; i += 1) await Promise.resolve();
   });
 }
