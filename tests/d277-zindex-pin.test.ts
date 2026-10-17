@@ -11,80 +11,11 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { type CssDeclaration, parseDeclarations } from "./support/cssTokenScan";
+import { LOCAL_STACKING, type Layer, inlineZIndex, zIndexDeclarations, zIndexDrift, zIndexTable } from "./support/zIndexGuard";
 
 const ROOT = join(__dirname, "..");
 const SRC = join(ROOT, "src");
 const RULE31 = join(ROOT, ".claude/rules/31-design-tokens.md");
-
-/** A z-index outside the table that is not a floating surface, with its reason (rule 31 Q10). */
-const LOCAL_STACKING = [
-  {
-    file: "components/Editor/MilkdownEditor.css",
-    selector: ".milkdown-editor .ProseMirror .column-resize-handle",
-    value: "1",
-    reason: "local stacking inside the table, not a floating surface",
-  },
-];
-
-interface Layer {
-  layer: string;
-  value: string;
-  selectors: string[];
-}
-
-/**
- * The rows of rule 31 § Z-index hierarchy that name selectors. A struck-out
- * row (`~~…~~`) is retired, and a row naming no selector (Base, the reserved
- * 9999) pins nothing.
- */
-function zIndexTable(markdown: string): Layer[] {
-  const start = markdown.indexOf("## Z-index hierarchy");
-  if (start < 0) throw new Error("rule 31 has no § Z-index hierarchy");
-  const next = markdown.indexOf("\n## ", start + 1);
-  const section = markdown.slice(start, next < 0 ? undefined : next);
-  const layers: Layer[] = [];
-  for (const line of section.split("\n")) {
-    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
-    if (cells.length !== 3 || cells[0] === "Layer" || /^-+$/.test(cells[0]) || cells[0].startsWith("~~")) continue;
-    const value = cells[1].replace(/`/g, "");
-    const selectors = [...cells[2].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-    if (selectors.length > 0) layers.push({ layer: cells[0], value, selectors });
-  }
-  return layers;
-}
-
-interface Placed extends CssDeclaration {
-  file: string;
-}
-
-/** Every z-index declaration in the given CSS files. */
-function zIndexDeclarations(files: Record<string, string>): Placed[] {
-  return Object.entries(files).flatMap(([file, css]) =>
-    parseDeclarations(css)
-      .filter((d) => d.property === "z-index")
-      .map((d) => ({ ...d, file })),
-  );
-}
-
-/** What disagrees with the table: a pinned selector with another value or none, or a z-index the table does not name. */
-function zIndexDrift(layers: Layer[], decls: Placed[]): string[] {
-  const out: string[] = [];
-  for (const { layer, value, selectors } of layers) {
-    for (const selector of selectors) {
-      const found = decls.filter((d) => d.selector === selector);
-      if (found.length === 0) out.push(`${selector} (${layer}) sets no z-index`);
-      for (const d of found) if (d.value !== value) out.push(`${selector} is ${d.value} in ${d.file}:${d.line}; ${layer} is ${value}`);
-    }
-  }
-  const pinned = new Set(layers.flatMap((l) => l.selectors));
-  for (const d of decls) {
-    if (pinned.has(d.selector) || d.value === "auto") continue;
-    if (LOCAL_STACKING.some((x) => x.file === d.file && x.selector === d.selector && x.value === d.value)) continue;
-    out.push(`${d.selector} sets z-index ${d.value} in ${d.file}:${d.line}, a surface rule 31's table does not name`);
-  }
-  return out;
-}
 
 const cssFiles = Object.fromEntries(
   (readdirSync(SRC, { recursive: true }) as string[])
@@ -141,12 +72,7 @@ describe("D277: every z-index in src/ matches its rule 31 layer", () => {
 
   it("no TS or TSX sets a z-index inline", () => {
     const sources = (readdirSync(SRC, { recursive: true }) as string[]).filter((p) => /\.tsx?$/.test(p));
-    const offenders = sources.filter((p) => {
-      const code = readFileSync(join(SRC, p), "utf8")
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/\/\/.*$/gm, "");
-      return /\bzIndex\b|z-index\s*:/.test(code);
-    });
+    const offenders = sources.filter((p) => inlineZIndex(readFileSync(join(SRC, p), "utf8"), p).length > 0);
     expect(offenders).toEqual([]);
   });
 });
@@ -191,5 +117,62 @@ describe("D277: the drift check rejects what it should", () => {
     expect(zIndexDrift(layers, [...decls(base), ...decls(handle, "components/Editor/MilkdownEditor.css")])).toEqual([]);
     expect(zIndexDrift(layers, [...decls(base), ...decls(handle, "styles/other.css")])).toHaveLength(1);
     expect(LOCAL_STACKING.every((x) => x.reason.length > 0)).toBe(true);
+  });
+});
+
+// D277-FIX-1 (Codex H1-H3 and Fable's Mediums on PR #501).
+describe("D277-FIX-1: inline z-index in TS and TSX", () => {
+  it("a URL earlier on the line does not hide a zIndex", () => {
+    expect(inlineZIndex('const u = "https://x.dev"; el.style.zIndex = "5";', "a.ts")).not.toEqual([]);
+  });
+
+  it("setProperty with either quote, cssText, and a JSX style object are caught", () => {
+    expect(inlineZIndex('el.style.setProperty("z-index", "5");', "a.ts")).not.toEqual([]);
+    expect(inlineZIndex("el.style.setProperty('z-index', '5');", "a.ts")).not.toEqual([]);
+    expect(inlineZIndex("el.style.cssText = `position: fixed; z-index: ${n}`;", "a.ts")).not.toEqual([]);
+    expect(inlineZIndex("export const A = () => <div style={{ zIndex: 3 }} />;", "a.tsx")).not.toEqual([]);
+  });
+
+  it("comments are not code", () => {
+    expect(inlineZIndex("// el.style.zIndex = 5\n/* z-index: 3; setProperty('z-index') */\nconst a = 1;", "a.ts")).toEqual([]);
+  });
+});
+
+describe("D277-FIX-1: nested CSS, at-rules and selector lists", () => {
+  const layers: Layer[] = [
+    { layer: "Toast", value: "30", selectors: [".toast"] },
+    { layer: "Inline context menu", value: "1000", selectors: [".image-context-menu", ".table-context-menu"] },
+  ];
+
+  it("rejects a nested rule outright", () => {
+    expect(() => zIndexDeclarations({ "x.css": ".unlisted-parent { .toast { z-index: 30; } }" })).toThrow(/nested CSS not supported by this guard/);
+    expect(() => zIndexDeclarations({ "x.css": ".toast { @media (max-width: 1px) { z-index: 20; } }" })).toThrow(/nested CSS not supported by this guard/);
+  });
+
+  it("an at-rule wrapper keeps the rule's own selector, range syntax included", () => {
+    const decls = zIndexDeclarations({ "x.css": "@media (width > 600px) { .toast > .x, .toast { z-index: 30; } }" });
+    expect(decls.map((d) => d.selector)).toEqual([".toast > .x, .toast"]);
+    expect(zIndexDrift(layers, decls.concat(zIndexDeclarations({ "y.css": ".image-context-menu, .table-context-menu { z-index: 1000; }" })))).toEqual([
+      ".toast > .x sets z-index 30 in x.css:1, a surface rule 31's table does not name",
+    ]);
+  });
+
+  it("checks each selector of a list", () => {
+    const decls = zIndexDeclarations({ "x.css": ".toast, .other { z-index: 30; } .image-context-menu, .table-context-menu { z-index: 1000; }" });
+    expect(zIndexDrift(layers, decls)).toEqual([".other sets z-index 30 in x.css:1, a surface rule 31's table does not name"]);
+  });
+});
+
+describe("D277-FIX-1: every unstruck table row names its selectors", () => {
+  const md = (row: string) =>
+    ["## Z-index hierarchy", "| Layer | z-index | Used by |", "|---|---|---|", "| Base | `auto` | Editor |", "| Toast | `30` | `.toast` |", row, "| Future portaled modal | `9999` | (reserved) |"].join("\n");
+
+  it("throws on a row whose selector is not backticked", () => {
+    expect(() => zIndexTable(md("| Tooltip | `50` | .tooltip |"))).toThrow(/Tooltip/);
+  });
+
+  it("exempts only Base and the (reserved) row", () => {
+    expect(() => zIndexTable(md("| Overlay | `auto` | Editor chrome |"))).toThrow(/Overlay/);
+    expect(zIndexTable(md("| Tooltip | `50` | `.tooltip` |")).map((l) => l.layer)).toEqual(["Toast", "Tooltip"]);
   });
 });
