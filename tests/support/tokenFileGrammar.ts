@@ -15,11 +15,14 @@
  * - Structure: plain rules with declarations only (no nesting), every
  *   declaration ending in `;`, none empty, none `!important`, none declared
  *   twice in one rule, custom-property names within `[\w-]` (D278-FIX-4).
- *   In a file with its default block, no other rule may set a custom
- *   property on the root element (`html`, `:root` or a theme class in its
- *   selector), so no rule overrides a token that `tokenBlock` does not see
- *   (D278-FIX-4). A snippet without the block exempts nothing, so its
- *   rules are only scanned.
+ *   In a file with its default block, which rules may exist beside it is a
+ *   closed allowlist, not a selector match (D278-FIX-5; a name match missed
+ *   `[class]`, `:Root`, `body` and the like): a theme file holds only its
+ *   default block; `globals.css` may hold ordinary rules, but sets custom
+ *   properties only in `:root`, the reduced-motion `:root`, and exactly
+ *   `body.tauri-macos` with the three `--traffic-lights-*` tokens. So no rule
+ *   overrides a token that `tokenBlock` does not see. A snippet without the
+ *   block exempts nothing, so its rules are only scanned.
  *   At most one rule whose whole selector is the
  *   file's default block (`:root`, `.theme-light`, `.theme-dark`), holding
  *   only custom properties, plus `color-scheme` in a theme file; `tokenBlock`
@@ -39,6 +42,9 @@ export const DEFAULT_BLOCK: Record<TokenFile, string> = { globals: ":root", ligh
 
 const REDUCED_MOTION = "@media (prefers-reduced-motion: reduce)";
 const TIME = /^\d+(\.\d+)?m?s$/;
+/** The one rule besides `:root` that may set custom properties in globals.css, and the ones it may set. */
+const TRAFFIC_LIGHTS_RULE = "body.tauri-macos";
+const TRAFFIC_LIGHTS = new Set(["--traffic-lights-end", "--traffic-lights-clearance", "--traffic-lights-clearance-main"]);
 
 /** A declaration; `start` and `end` are the source offsets of its first character and its `;`. */
 export interface Declaration {
@@ -179,11 +185,7 @@ export function validateTokenFile(css: string, file: TokenFile, options: { requi
   const defaults = rules.filter((r) => r.selector === block);
   if (defaults.length > 1) fail(file, defaults[1].line, `a second default block \`${block}\``);
   if (options.requireBlock && defaults.length === 0) fail(file, 1, `no default block \`${block}\``);
-  for (const r of rules) {
-    if (defaults.length === 0 || r.selector === block || !reachesRoot(r.selector)) continue;
-    const token = r.declarations.find((d) => d.property.startsWith("--"));
-    if (token) fail(file, token.line, `\`${r.selector}\` reaches the root element and sets \`${token.property}\`; only \`${block}\` may`);
-  }
+  if (defaults.length > 0) checkAllowlist(rules, block, file);
   for (const r of defaults) {
     for (const d of r.declarations) {
       const allowed = d.property.startsWith("--") || (file !== "globals" && d.property === "color-scheme");
@@ -216,14 +218,17 @@ function checkReducedMotion(media: AtRule, root: Rule | undefined, file: TokenFi
   }
 }
 
-/**
- * True when some selector in the list may match the root element, which
- * carries the tokens: any mention of `html`, `:root`, `.theme-light` or
- * `.theme-dark`. Deliberately broad; a rule like that may set ordinary
- * properties, never a custom property (D278-FIX-4).
- */
-function reachesRoot(selector: string): boolean {
-  return /(^|[^\w-])(html|:root|\.theme-light|\.theme-dark)(?![\w-])/.test(selector);
+/** Every top-level rule besides the default block must be on the allowlist (D278-FIX-5). */
+function checkAllowlist(rules: Rule[], block: string, file: TokenFile): void {
+  for (const r of rules) {
+    if (r.selector === block) continue;
+    if (file !== "globals") fail(file, r.line, `\`${r.selector}\` is outside the token blocks; a theme file holds only its default block \`${block}\``);
+    for (const d of r.declarations) {
+      if (!d.property.startsWith("--")) continue;
+      if (r.selector === TRAFFIC_LIGHTS_RULE && TRAFFIC_LIGHTS.has(d.property)) continue;
+      fail(file, d.line, `\`${r.selector}\` sets \`${d.property}\` outside the token blocks; only \`${block}\`, the reduced-motion :root and ${TRAFFIC_LIGHTS_RULE}'s --traffic-lights-* may`);
+    }
+  }
 }
 
 /** The token file a path under `src/` names, if any. */

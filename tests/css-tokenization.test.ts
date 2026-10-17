@@ -507,7 +507,8 @@ describe("D278-FIX-2: only a rule whose whole selector is the token block is exe
   });
 
   it("the block itself stays exempt, after another rule and inside @media", () => {
-    expect(props("styles/themes/light.css", ".a { color: var(--x); }\n.theme-light { --x: #fff; }")).toEqual([]);
+    // D278-FIX-5: a theme file holds only its block, so "after another rule" is shown in globals.css.
+    expect(props("styles/globals.css", ".a { color: var(--x); }\n:root { --x: #fff; }")).toEqual([]);
     // D278-FIX-3: the reduced-motion block may only re-time an existing --motion-* token.
     expect(props("styles/globals.css", ":root { --motion-duration-fast: 150ms; }\n@media (prefers-reduced-motion: reduce) {\n  :root { --motion-duration-fast: 0ms; }\n}")).toEqual([]);
   });
@@ -631,9 +632,9 @@ describe("D278-FIX-4: tokenBlock and the exemption read the block the grammar pa
 
   it("a selector list ending in the block, above the real block, is never taken for it: it throws", () => {
     const css = ".x,\n.theme-light { --color-text: var(--color-ink); }\n.theme-light { --color-text: #eeeeee; }";
-    expect(() => tokenBlock(css, ".theme-light")).toThrow(/root element/);
+    expect(() => tokenBlock(css, ".theme-light")).toThrow(/outside the token blocks/);
     const listed = ".x,\n.theme-light { --c: #fff; }\n.theme-light { --c: #000; }";
-    expect(() => findingsIn(LIGHT, listed)).toThrow(/root element/);
+    expect(() => findingsIn(LIGHT, listed)).toThrow(/outside the token blocks/);
   });
 
   it("the reduced-motion @media above the default :root throws", () => {
@@ -643,9 +644,10 @@ describe("D278-FIX-4: tokenBlock and the exemption read the block the grammar pa
   });
 
   it("a block that follows another rule on the same line is read", () => {
-    const css = ".y { --a: 1px; }.theme-light { --b: #fff; }";
-    expect([...tokenBlock(css, ".theme-light")]).toEqual([["--b", "#fff"]]);
-    expect(findingsIn(LIGHT, ".y { --a: #fff; }.theme-light { --b: #fff; }").map((x) => `${x.selector} ${x.property}`)).toEqual([".y --a"]);
+    // D278-FIX-5: a theme file holds only its block, so the other rule is shown in globals.css.
+    const css = ".y { color: inherit; }:root { --b: #fff; }";
+    expect([...tokenBlock(css, ":root")]).toEqual([["--b", "#fff"]]);
+    expect(findingsIn(GLOBALS, ".y { color: #fff; }:root { --b: #fff; }").map((x) => `${x.selector} ${x.property}`)).toEqual([".y color"]);
   });
 
   it("a custom-property name outside [\\w-] throws", () => {
@@ -660,13 +662,64 @@ describe("D278-FIX-4: no rule but the default block sets tokens on the root elem
   const GLOBALS = "styles/globals.css";
 
   it("a later rule reaching the root element cannot override a token unseen by tokenBlock", () => {
-    expect(exempt(LIGHT, ".theme-light { --color-text: #1a1a1a; }\n.x,\n.theme-light { --color-text: var(--color-danger); }")).toThrow(/root element/);
-    expect(exempt(GLOBALS, ":root { --a: 1px; }\nhtml { --a: 2px; }")).toThrow(/root element/);
-    expect(exempt(GLOBALS, ":root { --a: 1px; }\n:root.theme-dark { --a: 2px; }")).toThrow(/root element/);
-    expect(() => tokenBlock(".theme-dark { --a: 1px; }\nhtml.theme-dark { --a: 2px; }", ".theme-dark")).toThrow(/root element/);
+    expect(exempt(LIGHT, ".theme-light { --color-text: #1a1a1a; }\n.x,\n.theme-light { --color-text: var(--color-danger); }")).toThrow(/outside the token blocks/);
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\nhtml { --a: 2px; }")).toThrow(/outside the token blocks/);
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\n:root.theme-dark { --a: 2px; }")).toThrow(/outside the token blocks/);
+    expect(() => tokenBlock(".theme-dark { --a: 1px; }\nhtml.theme-dark { --a: 2px; }", ".theme-dark")).toThrow(/outside the token blocks/);
   });
 
   it("other rules may still set custom properties, and root rules may set ordinary properties", () => {
-    expect(exempt(GLOBALS, ":root { --a: 1px; }\nbody.tauri-macos { --t: 78px; }\nhtml,\nbody { height: 100%; }")).not.toThrow();
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\nbody.tauri-macos { --traffic-lights-end: 78px; }\nhtml,\nbody { height: 100%; }")).not.toThrow();
+  });
+});
+
+// D278-FIX-5 (Codex confirm 4 on PR #498): which rules may set custom properties in a token file
+// is a closed allowlist, not a name match: a theme file holds only its default block, and
+// globals.css sets custom properties only in :root, the reduced-motion :root and
+// body.tauri-macos's three traffic-light tokens.
+describe("D278-FIX-5: custom properties in the token files come from a closed allowlist", () => {
+  const exempt = (rel: string, css: string) => () => exemptTokenDeclarations(rel, css);
+  const LIGHT = "styles/themes/light.css";
+  const GLOBALS = "styles/globals.css";
+  const BYPASSES = ["[class~=theme-light]", "[class*=theme]", "*", "body", ".app", ".app-shell", "HTML", ":ROOT"];
+
+  it.each(BYPASSES)("light.css: `%s` beside the block throws", (sel) => {
+    expect(exempt(LIGHT, `.theme-light { --color-group-bg: #fff; }\n${sel} { --color-group-bg: var(--color-danger); }`)).toThrow(/outside the token blocks/);
+  });
+
+  it.each(BYPASSES)("globals.css: `%s` setting a token throws", (sel) => {
+    expect(exempt(GLOBALS, `:root { --color-group-bg: #fff; }\n${sel} { --color-group-bg: var(--color-danger); }`)).toThrow(/outside the token blocks/);
+  });
+
+  // Fable's confirm on 0d8ec30d: selectors that may match the root element without naming it.
+  const FABLE = ["[class]", "[lang]", '[lang="en"]', ":lang(en)", ":not(body)", ":first-child", ":scope", ":has(body)", ":Root"];
+
+  it.each(FABLE)("light.css and globals.css: `%s` setting a token throws", (sel) => {
+    expect(exempt(LIGHT, `.theme-light { --color-text: #000; }\n${sel} { --color-text: var(--color-danger); }`)).toThrow(/outside the token blocks/);
+    expect(exempt(GLOBALS, `:root { --color-text: #000; }\n${sel} { --color-text: var(--color-danger); }`)).toThrow(/outside the token blocks/);
+  });
+
+  it("globals.css: `body { --color-text }` throws; ordinary body declarations do not", () => {
+    expect(exempt(GLOBALS, ":root { --color-text: #000; }\nbody { --color-text: var(--color-danger); }")).toThrow(/outside the token blocks/);
+    expect(exempt(GLOBALS, ":root { --color-text: #000; }\nbody { margin: 0; color: var(--color-text); }")).not.toThrow();
+  });
+
+  it("a theme file rejects any other rule, even one with no custom property", () => {
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; }\n.x { color: inherit; }")).toThrow(/outside the token blocks/);
+    expect(() => tokenBlock(".theme-dark { --a: #fff; }\nbody { margin: 0; }", ".theme-dark")).toThrow(/outside the token blocks/);
+  });
+
+  it("`.theme-light .x { --local: 1px }` is fine in a section file, and another rule in a theme file", () => {
+    expect(findingsIn("styles/sections/settings-mcp.css", ".theme-light .x { --local: 1px; }")).toEqual([]);
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; }\n.theme-light .x { --local: 1px; }")).toThrow(/outside the token blocks/);
+  });
+
+  it("globals.css keeps its ordinary rules, and body.tauri-macos exactly its three tokens", () => {
+    const three = "body.tauri-macos {\n  --traffic-lights-end: 78px;\n  --traffic-lights-clearance: calc(var(--traffic-lights-end) - 16px);\n  --traffic-lights-clearance-main: calc(var(--traffic-lights-end) + 2px);\n}";
+    expect(exempt(GLOBALS, `:root { --a: 1px; }\n* { box-sizing: border-box; }\nhtml,\nbody { height: 100%; }\n${three}\na { color: inherit; }`)).not.toThrow();
+    const four = three.replace("\n}", "\n  --traffic-lights-extra: 4px;\n}");
+    expect(exempt(GLOBALS, `:root { --a: 1px; }\n${four}`)).toThrow(/outside the token blocks/);
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\nbody.tauri-macos.x { --traffic-lights-end: 78px; }")).toThrow(/outside the token blocks/);
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\nbody.tauri-macos { --color-text: red; }")).toThrow(/outside the token blocks/);
   });
 });
