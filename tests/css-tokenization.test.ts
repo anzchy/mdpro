@@ -38,6 +38,7 @@ import {
   tokenBlock,
   type CssFinding,
 } from "./support/cssTokenScan";
+import { validateTokenFile } from "./support/tokenFileGrammar";
 import { resolveColor, themeTokens, toHex } from "./support/contrast";
 
 const ROOT = join(__dirname, "..");
@@ -467,7 +468,8 @@ describe("D278-FIX-1: the token exemption belongs to the token files and their o
   it("each token file is exempt only in its own block", () => {
     const sel = (rel: string, css: string) => findingsIn(rel, css).map((x) => x.selector);
     expect(sel("styles/globals.css", rogue)).toEqual([]);
-    expect(sel("styles/globals.css", "@media (prefers-reduced-motion: reduce) { :root { --b: #000; } }")).toEqual([]);
+    // D278-FIX-3: the reduced-motion block may only re-time an existing --motion-* token.
+    expect(sel("styles/globals.css", ":root { --motion-duration-fast: 150ms; }\n@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; } }")).toEqual([]);
     expect(sel("styles/globals.css", ".theme-dark { --x: #fff; }")).toEqual([".theme-dark"]);
     expect(sel("styles/themes/light.css", ".theme-light { --x: #fff; }")).toEqual([]);
     expect(sel("styles/themes/light.css", ":root { --x: #fff; }")).toEqual([":root"]);
@@ -506,6 +508,85 @@ describe("D278-FIX-2: only a rule whose whole selector is the token block is exe
 
   it("the block itself stays exempt, after another rule and inside @media", () => {
     expect(props("styles/themes/light.css", ".a { color: var(--x); }\n.theme-light { --x: #fff; }")).toEqual([]);
-    expect(props("styles/globals.css", "@media (prefers-reduced-motion: reduce) {\n  :root { --b: 0ms; --c: #000; }\n}")).toEqual([]);
+    // D278-FIX-3: the reduced-motion block may only re-time an existing --motion-* token.
+    expect(props("styles/globals.css", ":root { --motion-duration-fast: 150ms; }\n@media (prefers-reduced-motion: reduce) {\n  :root { --motion-duration-fast: 0ms; }\n}")).toEqual([]);
+  });
+});
+
+// D278-FIX-3 (user: 「Let Codex weigh in」; Codex A+, adopted by the delegator): the three
+// token files must match a closed grammar, enforced inside the exemption and tokenBlock()
+// themselves, so unsupported syntax throws instead of being misread.
+describe("D278-FIX-3: the token files match a closed grammar", () => {
+  const exempt = (rel: string, css: string) => () => exemptTokenDeclarations(rel, css);
+  const LIGHT = "styles/themes/light.css";
+  const GLOBALS = "styles/globals.css";
+  const MOTION_ROOT = ":root { --motion-duration-fast: 150ms; }\n";
+  const media = (body: string) => `${MOTION_ROOT}@media (prefers-reduced-motion: reduce) {\n  :root { ${body} }\n}`;
+
+  it("(1a) a nested rule inside a token block throws", () => {
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; .x { --b: #000; } }")).toThrow(/nested rule/);
+  });
+
+  it("(1b) a quoted } in a token value throws", () => {
+    expect(exempt(LIGHT, '.theme-light { --a: "}"; }\n.x { color: red; }')).toThrow(/string contains/);
+  });
+
+  it("(2) a token block inside @supports or another @media throws", () => {
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\n@supports (color: red) { :root { --b: #fff; } }")).toThrow(/at-rule/);
+    expect(exempt(GLOBALS, ":root { --a: 1px; }\n@media (min-width: 1px) { :root { --b: #fff; } }")).toThrow(/at-rule/);
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; }\n@media (prefers-reduced-motion: reduce) { .theme-light { --b: #fff; } }")).toThrow(/at-rule/);
+  });
+
+  it("(3) a quoted ; throws", () => {
+    expect(exempt(LIGHT, '.theme-light { --font-sans: "a;b"; }\n.x { color: red; }')).toThrow(/string contains/);
+  });
+
+  it("(4) a declaration without its ; throws", () => {
+    expect(exempt(LIGHT, ".theme-light {\n  --g: rgba(246, 247, 251, 0.8);\n  --g: rgba(1, 2, 3, 0.59)\n}")).toThrow(/without ;/);
+  });
+
+  it("rejects broken lexing: unterminated string or comment, unbalanced braces or parens", () => {
+    expect(exempt(LIGHT, '.theme-light { --a: "x; }')).toThrow(/unterminated string/);
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; } /* open")).toThrow(/unterminated comment/);
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; }}")).toThrow(/unbalanced/);
+    expect(exempt(LIGHT, ".theme-light { --a: #fff;")).toThrow(/unbalanced/);
+    expect(exempt(LIGHT, ".theme-light { --a: calc(1px; }")).toThrow(/unbalanced/);
+  });
+
+  it("rejects comment delimiters in strings, backslashes and url( in any form", () => {
+    expect(exempt(LIGHT, '.theme-light { --a: "/* x */"; }')).toThrow(/string contains/);
+    expect(exempt(LIGHT, ".theme-light { --a: \\66 ff; }")).toThrow(/backslash/);
+    expect(exempt(LIGHT, '.theme-light { --a: "a\\"b"; }')).toThrow(/backslash/);
+    expect(exempt(LIGHT, ".theme-light { --a: url(x.svg); }")).toThrow(/url\(/);
+    expect(exempt(LIGHT, '.theme-light { --a: URL("x.svg"); }')).toThrow(/url\(/);
+  });
+
+  it("the default block holds only custom properties, plus color-scheme in a theme file", () => {
+    expect(exempt(LIGHT, ".theme-light { color-scheme: light; --a: #fff; }")).not.toThrow();
+    expect(exempt(LIGHT, ".theme-light { color: red; }")).toThrow(/not a token declaration/);
+    expect(exempt(GLOBALS, ":root { color-scheme: light; }")).toThrow(/not a token declaration/);
+  });
+
+  it("a file has at most one default block, and tokenBlock() needs exactly one", () => {
+    expect(exempt(LIGHT, ".theme-light { --a: #fff; }\n.theme-light { --a: #000; }")).toThrow(/default block/);
+    expect(() => tokenBlock(".x { --a: #fff; }", ".theme-light")).toThrow(/default block/);
+    expect(() => tokenBlock(".theme-light { --a: #fff; .x { --b: #000; } }", ".theme-light")).toThrow(/nested rule/);
+  });
+
+  it("allows exactly the reduced-motion @media: one :root re-timing existing --motion-* tokens", () => {
+    expect(exempt(GLOBALS, media("--motion-duration-fast: 0ms;"))).not.toThrow();
+    expect(exempt(GLOBALS, media("--motion-duration-fast: 0.1s;"))).not.toThrow();
+    expect(exempt(GLOBALS, media("--motion-rogue: #fff;"))).toThrow(/--motion-rogue/);
+    expect(exempt(GLOBALS, media("--motion-duration-fast: #fff;"))).toThrow(/not a time/);
+    expect(exempt(GLOBALS, media("--motion-rogue: 0ms;"))).toThrow(/not declared in the default :root/);
+    expect(exempt(GLOBALS, media("--color-x: #fff;"))).toThrow(/--motion-\*/);
+    expect(exempt(GLOBALS, `${MOTION_ROOT}@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; } .theme-light { --a: 0ms; } }`)).toThrow(/:root/);
+    expect(exempt(GLOBALS, `${media("--motion-duration-fast: 0ms;")}\n@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; } }`)).toThrow(/at-rule/);
+  });
+
+  it("the three real token files pass, with and without tokenBlock()", () => {
+    expect(() => validateTokenFile(read("styles/globals.css"), "globals", { requireBlock: true })).not.toThrow();
+    expect(() => validateTokenFile(read("styles/themes/light.css"), "light", { requireBlock: true })).not.toThrow();
+    expect(() => validateTokenFile(read("styles/themes/dark.css"), "dark", { requireBlock: true })).not.toThrow();
   });
 });

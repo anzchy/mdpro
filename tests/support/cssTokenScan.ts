@@ -23,7 +23,9 @@
  *   files: `exemptTokenDeclarations(rel, css)` blanks the custom properties
  *   inside `globals.css :root`, `light.css .theme-light` and
  *   `dark.css .theme-dark`, and scans everything else, a `:root` block in a
- *   section file included (D278-FIX-1).
+ *   section file included (D278-FIX-1). Both it and `tokenBlock` first
+ *   check the token file against the closed grammar in `tokenFileGrammar.ts`
+ *   and throw on anything outside it (D278-FIX-3).
  * - Custom-property declarations outside the token blocks are scanned like
  *   any other (`parseDeclarations(css, { customProperties: true })`).
  * - `scanTsColours` is the TS/TSX pass: colour literals in string and
@@ -35,6 +37,8 @@
  *   when `--x` is declared (audit b125).
  * - Pure functions over strings; the test supplies file contents.
  */
+
+import { DEFAULT_BLOCK, tokenFileOfBlock, tokenFileOfPath, validateTokenFile } from "./tokenFileGrammar";
 
 /** One CSS declaration, with the line its property name starts on. */
 export interface CssDeclaration {
@@ -387,12 +391,6 @@ export function scanCss(css: string, declared?: ReadonlySet<string>): CssFinding
   });
 }
 
-/** The token block each token file may declare tokens in (rule 31), keyed by its path under `src/`. */
-const TOKEN_BLOCKS: Record<string, string> = {
-  "styles/globals.css": ":root",
-  "styles/themes/light.css": ".theme-light",
-  "styles/themes/dark.css": ".theme-dark",
-};
 
 /**
  * `css` with the custom-property declarations inside the `blocks` (default
@@ -403,7 +401,7 @@ const TOKEN_BLOCKS: Record<string, string> = {
  * list (`.x, .theme-light`, `.theme-light, .x`) or a compound or descendant
  * selector is scanned like any other rule (D278-FIX-2).
  */
-export function blankTokenDeclarations(css: string, blocks: readonly string[] = Object.values(TOKEN_BLOCKS)): string {
+export function blankTokenDeclarations(css: string, blocks: readonly string[] = Object.values(DEFAULT_BLOCK)): string {
   const text = blankComments(css);
   let out = css;
   const heads = blocks.map((b) => b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
@@ -420,10 +418,14 @@ export function blankTokenDeclarations(css: string, blocks: readonly string[] = 
  * `css`, the file `rel` (relative to `src/`), with its token declarations
  * exempted: only the three token files, and in each only its own block, so a
  * `:root { --x: #fff }` in a section file is still a finding (D278-FIX-1).
+ * A token file must first match the closed token-file grammar, or this
+ * throws (D278-FIX-3, `tokenFileGrammar.ts`).
  */
 export function exemptTokenDeclarations(rel: string, css: string): string {
-  const block = TOKEN_BLOCKS[rel];
-  return block ? blankTokenDeclarations(css, [block]) : css;
+  const file = tokenFileOfPath(rel);
+  if (!file) return css;
+  validateTokenFile(css, file);
+  return blankTokenDeclarations(css, [DEFAULT_BLOCK[file]]);
 }
 
 /** Every custom property name (`--x`) declared anywhere in `cssTexts`. */
@@ -435,8 +437,15 @@ export function declaredTokens(cssTexts: readonly string[]): Set<string> {
   return names;
 }
 
-/** `name → value` for the custom properties declared in the first `selector { … }` block. */
+/**
+ * `name → value` for the custom properties declared in the first
+ * `selector { … }` block. For a token file's default block the file must
+ * match the closed token-file grammar with exactly one such block, or this
+ * throws (D278-FIX-3).
+ */
 export function tokenBlock(css: string, selector: string): Map<string, string> {
+  const file = tokenFileOfBlock(selector);
+  if (file) validateTokenFile(css, file, { requireBlock: true });
   const text = blankComments(css);
   const at = text.search(new RegExp(`(^|\\n)\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{`));
   const out = new Map<string, string>();
