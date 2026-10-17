@@ -1,5 +1,5 @@
 import "./MilkdownEditor.css";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { ImageContextMenu } from "./ImageContextMenu";
 import { LinkInsertModal } from "./LinkInsertModal";
@@ -36,6 +36,7 @@ import { useMilkdownDebugLogging } from "../../hooks/useMilkdownDebugLogging";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useMilkdownEditorStore } from "../../stores/milkdownEditorStore";
 import { loggingService } from "../../services/loggingService";
+import { abandonIfStale, type HighlightRequest } from "../../utils/menuTargetToken";
 import { getImageResizeDomAttrs } from "../../plugins/milkdown/imageResizePlugin";
 
 // ---------------------------------------------------------------------------
@@ -105,7 +106,7 @@ const tableNodeViewPlugin = $prose(
 
 
 interface MilkdownEditorInnerProps {
-  highlightRequest?: number;
+  highlightRequest?: HighlightRequest;
   /** The generation this instance was keyed with (D37 FR-1): a prop, never a store read. */
   generation: number;
 }
@@ -188,11 +189,15 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
   // store's registerEditor now returns its own cleanup function that only
   // clears the slot when our getter is still active. The previous code
   // captured the pre-register snapshot, so its identity check never matched
-  // and the cleanup never fired.
+  // and the cleanup never fired. D261: registered once per mount through a ref,
+  // because `useEditor` returns a new object every render and each new getter
+  // bumps the editor generation, which would stale every menu-target token.
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
   useEffect(() => {
-    const getter = () => editor.get() ?? null;
+    const getter = () => editorRef.current.get() ?? null;
     return useMilkdownEditorStore.getState().registerEditor(getter);
-  }, [editor]);
+  }, []);
 
   // Resolve local image paths to Tauri asset:// URLs after Milkdown renders
   useMilkdownImages(editor, activeDocument?.path ?? null, activeDocumentId);
@@ -211,10 +216,14 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
 
   // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
   // In source/split mode the CodeMirror highlightCommand handles this instead
-  // (see Editor.tsx). When highlightRequest increments we obtain the
-  // ProseMirror view through the Milkdown editor's action API and delegate.
+  // (see Editor.tsx). Each new highlightRequest ({ seq, token }, D261) first has
+  // its menu-target token checked: a request whose document or editor has gone
+  // since it was made (a switch, or this editor remounting with a request it
+  // already saw) changes nothing. Otherwise we obtain the ProseMirror view
+  // through the Milkdown editor's action API and delegate.
   useEffect(() => {
     if (highlightRequest === undefined) return;
+    if (abandonIfStale(highlightRequest.token, "highlight", loggingService.generateActionId())) return;
     const instance = editor.get();
     if (!instance) return;
     let applied = false;
@@ -227,7 +236,7 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
       event: "editor.milkdown.highlight",
       status: applied ? "success" : "fail",
       actionId: loggingService.generateActionId(),
-      context: { highlightRequest },
+      context: { seq: highlightRequest.seq },
     });
   }, [highlightRequest]);
 
@@ -240,7 +249,7 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
 }
 
 interface MilkdownEditorProps {
-  highlightRequest?: number;
+  highlightRequest?: HighlightRequest;
 }
 
 export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {

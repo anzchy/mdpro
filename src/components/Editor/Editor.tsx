@@ -29,12 +29,15 @@ import {
 } from "../../utils/cursorSync/table";
 import { linesFromText } from "../../plugins/codemirror/textLineSource";
 import { restoreSourceScrollAnchor } from "../../utils/scrollAnchor/source";
+import { loggingService } from "../../services/loggingService";
+import { abandonIfStale, type HighlightRequest } from "../../utils/menuTargetToken";
 
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
-  highlightRequest?: number;
+  /** ⌘⇧H: each new value wraps the selection in ==…== once, if its token is current (D261). */
+  highlightRequest?: HighlightRequest;
   /** D203: focus the view once it is created (a tab switch made while Source had focus). */
   focusOnMount?: boolean;
 }
@@ -160,8 +163,11 @@ export function Editor({
     [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt, viewModeKeymap, sourceTablesWithheld],
   );
 
+  // A request whose document or editor has gone since it was made (a switch,
+  // or this editor remounting with a request it already saw) changes nothing.
   useEffect(() => {
     if (highlightRequest === undefined) return;
+    if (abandonIfStale(highlightRequest.token, "highlight", loggingService.generateActionId())) return;
     if (viewRef.current) {
       highlightCommand(viewRef.current);
     }

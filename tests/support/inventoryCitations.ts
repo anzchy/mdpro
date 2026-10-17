@@ -56,7 +56,7 @@ const typora = (key: string, id: string, line: number, name: string): CitedImple
 
 export const IMPLEMENTS_CITED: readonly CitedImplements[] = [
   { source: "mdpro:Editor.viewModeKeymap", key: "Mod-/", implements: "view.cycleViewMode",
-    citation: "src/components/Editor/Editor.tsx:100" },
+    citation: "src/components/Editor/Editor.tsx:103" },
   { source: "mdpro:highlightPlugin", key: "Mod-Shift-h", implements: "format.highlight",
     citation: "src/plugins/codemirror/highlightPlugin.ts:67" },
   { source: cm("emphasisKeymap"), key: "Mod-i", implements: "format.emphasis", citation: `${CM}:113`, name: "ToggleEmphasis" },

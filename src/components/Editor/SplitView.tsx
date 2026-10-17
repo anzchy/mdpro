@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useEditorStore } from "../../stores/editorStore";
+import type { HighlightRequest } from "../../utils/menuTargetToken";
 import { Editor } from "./Editor";
 import { LinkInsertModal } from "./LinkInsertModal";
 import { SourceTableContextMenu } from "./SourceTableContextMenu";
@@ -9,7 +10,8 @@ interface SplitViewProps {
   markdown: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
-  highlightRequest?: number;
+  /** Passed through to the Source editor (D261: carries the menu-target token). */
+  highlightRequest?: HighlightRequest;
 }
 
 export function SplitView({

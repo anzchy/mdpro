@@ -18,10 +18,18 @@
  *   - `abandonIfStale` logs `ui.menu.select` with status `cancel` and
  *     `{ windowLabel, reason: "stale", stage }`. The status union is not
  *     widened, and no document id, path or content is logged.
+ *   - The deferred mutations check at their final mutation (D261-WI-1d):
+ *     `confirmDocumentClose` (stage `close_confirm`, against the token stored
+ *     when the close prompt opened) and `saveIfCurrent` (stage `save_entry`).
+ *     Neither captures a token itself, and a missing token fails closed.
+ *     Table submit (`tableInsertTrigger.ts`) and the highlight effects call
+ *     `abandonIfStale` directly; `HighlightRequest` carries the token to them.
  *
  * @coordinates-with src/hooks/useMenuEvents.ts — captures the token at receipt
  * @coordinates-with src/stores/editorGeneration.ts — the generation compared
  * @coordinates-with src/utils/currentWindowLabel.ts — this window's label
+ * @coordinates-with src/utils/tableInsertTrigger.ts — table_submit check
+ * @coordinates-with src/App.tsx — close_confirm and save_entry callers, HighlightRequest
  */
 import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
@@ -59,12 +67,68 @@ export function isTokenCurrent(token: MenuTargetToken): boolean {
  */
 export function abandonIfStale(token: MenuTargetToken, stage: string, actionId: string): boolean {
   if (isTokenCurrent(token)) return false;
+  logStale(token.windowLabel, stage, actionId);
+  return true;
+}
+
+function logStale(windowLabel: string, stage: string, actionId: string): void {
   loggingService.logEventSync({
     level: "info",
     event: "ui.menu.select",
     status: "cancel",
     actionId,
-    context: { windowLabel: token.windowLabel, reason: "stale", stage },
+    context: { windowLabel, reason: "stale", stage },
   });
+}
+
+/**
+ * One ⌘⇧H / Format → Highlight for the editors. `seq` makes each request a new
+ * value; `token` is checked by the editor's effect before it touches the view,
+ * so a request seen again after a remount or a switch changes nothing.
+ */
+export interface HighlightRequest {
+  seq: number;
+  token: MenuTargetToken;
+}
+
+/**
+ * The Discard of a document-close prompt. Closes the active document (with
+ * `discardChanges`) and resolves true only if `storedToken`, the token stored
+ * when the prompt opened, is still current. A null token (nothing was stored)
+ * fails closed. Never captures a token of its own: one taken now would always
+ * be current. Stale or null resolves false and logs `stage:"close_confirm"`.
+ */
+export async function confirmDocumentClose(
+  storedToken: MenuTargetToken | null,
+  closeActiveDocument: (discardChanges: boolean) => Promise<unknown>,
+): Promise<boolean> {
+  const actionId = loggingService.generateActionId();
+  if (storedToken === null) {
+    logStale(currentWindowLabel(), "close_confirm", actionId);
+    return false;
+  }
+  if (abandonIfStale(storedToken, "close_confirm", actionId)) return false;
+  await closeActiveDocument(true);
+  return true;
+}
+
+/**
+ * The menu Save's entry check. Runs `run` (the save, which then commits by the
+ * id it reads at entry) and resolves true only if `token` is current; a stale
+ * or missing token saves nothing, resolves false and logs `stage:"save_entry"`.
+ * Never captures a token of its own.
+ */
+export async function saveIfCurrent(
+  token: MenuTargetToken | null | undefined,
+  actionId: string | undefined,
+  run: () => Promise<unknown>,
+): Promise<boolean> {
+  const id = actionId ?? loggingService.generateActionId();
+  if (!token) {
+    logStale(currentWindowLabel(), "save_entry", id);
+    return false;
+  }
+  if (abandonIfStale(token, "save_entry", id)) return false;
+  await run();
   return true;
 }

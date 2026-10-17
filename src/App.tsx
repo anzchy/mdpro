@@ -54,9 +54,7 @@ import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
 import { isSourceTablesWithheld, useEditorStore, userViewModeCommands } from "./stores/editorStore";
 import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
-import { useTableInsertStore } from "./stores/tableInsertStore";
 import { useToastStore } from "./stores/toastStore";
-import { runInsertTable } from "./plugins/milkdown/table/insertTable";
 import { dispatchTableActionFromKeyboard } from "./plugins/milkdown/table/contextMenu";
 import { dispatchSourceTableAction } from "./plugins/codemirror/sourceTableContextMenu";
 import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
@@ -68,6 +66,10 @@ import { OPEN_FAILED_MESSAGE } from "./utils/openFailure";
 import { recoverDraft, discardRecoveryDraft } from "./services/draftService";
 import { draftRecoveryOutcome, type DraftActionOutcome } from "./utils/draftRecoveryOutcome";
 import { applyRecoveredDocument } from "./utils/recoverIntoOpenTab";
+import { currentWindowLabel } from "./utils/currentWindowLabel";
+import { captureToken, confirmDocumentClose, saveIfCurrent } from "./utils/menuTargetToken";
+import type { HighlightRequest, MenuTargetToken } from "./utils/menuTargetToken";
+import { triggerTableInsert } from "./utils/tableInsertTrigger";
 
 /**
  * What an open ConfirmDialog is about. Only `"document"` originates here now —
@@ -102,7 +104,7 @@ function App() {
   const sidebarPreference = useSidebarPreference();
   const sidebarWidth = useEditorStore((s) => s.sidebarWidth);
   const { resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
-  const [highlightRequest, setHighlightRequest] = useState<number | undefined>(undefined);
+  const [highlightRequest, setHighlightRequest] = useState<HighlightRequest | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
   const autoSaveInterval = useEditorStore((s) => s.autoSaveInterval);
@@ -119,6 +121,8 @@ function App() {
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
+  // D261: the menu-target token of the close that opened the prompt; Discard closes only while it is current.
+  const closeTokenRef = useRef<MenuTargetToken | null>(null);
   const openDialogLockRef = useRef(false);
   const openDialogCooldownRef = useRef(0);
   const launchPathsRetryRef = useRef(0);
@@ -691,6 +695,7 @@ function App() {
       if (confirmDialog.clearsPendingClose) {
         setPendingClose(null);
         closeTargetRef.current = null;
+        closeTokenRef.current = null;
         windowCloseGuard.cancelClose();
       }
       quitGuard.confirmQuit();
@@ -698,8 +703,10 @@ function App() {
     }
 
     const target = closeTargetRef.current;
+    const storedToken = closeTokenRef.current;
     setPendingClose(null);
     closeTargetRef.current = null;
+    closeTokenRef.current = null;
 
     // A window-close prompt is the guard hook's: it holds the latch, the window
     // handle and the state save (D16 WI-6).
@@ -707,23 +714,26 @@ function App() {
       await windowCloseGuard.confirmClose();
       return;
     }
+    // D261: closes the prompted document only if the stored token is still current.
     if (target === "document") {
-      await closeActiveDocument(true);
-      closeWindowIfEmptied();
+      if (await confirmDocumentClose(storedToken, closeActiveDocument)) closeWindowIfEmptied();
     }
   };
 
   const handleCancelClose = () => {
     setPendingClose(null);
     closeTargetRef.current = null;
+    closeTokenRef.current = null;
     windowCloseGuard.cancelClose();
     if (confirmDialog.target === "quit") quitGuard.cancelQuit();
   };
 
-  const handleCloseRequest = useCallback((_actionId?: string) => {
+  // ⌘W passes no token, so one is captured when the prompt opens (D261).
+  const handleCloseRequest = useCallback((_actionId?: string, token?: MenuTargetToken) => {
     const decision = decideCloseRequest(activeDocumentAfterFlush()); // D15: flushed, fresh
     if (decision === "prompt") {
       closeTargetRef.current = "document";
+      closeTokenRef.current = token ?? captureToken(currentWindowLabel());
       setPendingClose("document");
     } else if (decision === "close") {
       void closeActiveDocument(true).then(closeWindowIfEmptied);
@@ -732,33 +742,10 @@ function App() {
     }
   }, [closeActiveDocument, closeWindowIfEmptied]);
 
-  // Both ⌘⌥T (useKeyboardShortcuts) and Format → Insert Table (useMenuEvents)
-  // dispatch through the same flow: open TableInsertModal via
-  // tableInsertStore.requestInsert, with the modal's submit callback
-  // resolving the live Milkdown editor and running insertTableCommand.
-  // Extract once so the menu and the shortcut behave identically.
-  const triggerTableInsert = useCallback(() => {
-    // Audit fix M11: gate on WYSIWYG viewMode. Source mode renders
-    // CodeMirror, not Milkdown, so the modal would only fail on submit
-    // (no Milkdown editor to dispatch into). Phase 2 WI-2.3 will add
-    // the source-mode insertion path; until then, no-op outside WYSIWYG.
-    const currentViewMode = useEditorStore.getState().viewMode;
-    if (currentViewMode === "source") {
-      // Toast + log so the user gets feedback that the shortcut/menu is
-      // intentionally inert in source mode.
-      useToastStore.getState().showToast("Insert Table is available in WYSIWYG mode");
-      return;
-    }
-    if (useTableInsertStore.getState().pendingCallback) {
-      // Defensive: clear any stale pending callback from a previous open.
-      useTableInsertStore.getState().clearPending();
-    }
-    useTableInsertStore.getState().requestInsert((rows, cols) => {
-      const editor = useMilkdownEditorStore.getState().getEditor();
-      if (!editor) return false;
-      return runInsertTable(editor as Parameters<typeof runInsertTable>[0], rows, cols);
-    });
-  }, []);
+  // ⌘⌥T and Format → Insert Table share one flow: triggerTableInsert
+  // (utils/tableInsertTrigger) opens TableInsertModal via
+  // tableInsertStore.requestInsert, and its submit inserts only while the
+  // token is current (D261). The keyboard path mints its token at open.
 
   // Phase 1.5 follow-up — keyboard shortcuts for in-table actions.
   // Routes the shortcut to the right dispatcher based on the active
@@ -788,7 +775,10 @@ function App() {
   useKeyboardShortcuts({
     onNew: () => void createDocument(),
     onNewWindow: () => void openNewWindow(),
-    onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
+    onHighlight: () => {
+      const token = captureToken(currentWindowLabel());
+      setHighlightRequest((prev) => ({ seq: (prev?.seq ?? 0) + 1, token }));
+    },
     onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpen: (actionId) => void handleOpenDialog(actionId),
     onSave: (actionId) => void handleSave(actionId),
@@ -796,7 +786,7 @@ function App() {
     onToggleSidebar: sidebarPreference.toggle,
     onCycleViewMode: userViewModeCommands.cycle,
     onOpenPreferences: handleOpenSettings,
-    onInsertTable: triggerTableInsert,
+    onInsertTable: () => triggerTableInsert(),
     onTableAction: handleTableShortcut,
     shortcuts: keyboardShortcuts,
   });
@@ -805,13 +795,16 @@ function App() {
     onNew: () => void createDocument(),
     onNewWindow: () => void openNewWindow(),
     onOpen: (actionId) => void handleOpenDialog(actionId),
-    onSave: (actionId) => void handleSave(actionId),
+    onSave: (actionId, token) => void saveIfCurrent(token, actionId, () => handleSave(actionId)),
     onClose: handleCloseRequest,
     onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpenRecent: handleOpenRecent,
     onToggleSidebar: sidebarPreference.toggle,
-    onHighlight: () => setHighlightRequest((prev) => (prev ?? 0) + 1),
-    onInsertTable: triggerTableInsert,
+    onHighlight: (_actionId, receipt) => {
+      const token = receipt ?? captureToken(currentWindowLabel());
+      setHighlightRequest((prev) => ({ seq: (prev?.seq ?? 0) + 1, token }));
+    },
+    onInsertTable: (_actionId, token) => triggerTableInsert(token),
     onViewModeChange: userViewModeCommands.set,
     onCycleViewMode: userViewModeCommands.cycle,
     onThemeModeChange: (mode) => void setThemeMode(mode),
