@@ -3,7 +3,7 @@
 Opened 2026-10-02
 Branch: `master`（ADR-0083；各工作项在 `mdpro-wt/` 下的短分支上做，由 delegator 以 `--ff-only` 落地。2026-10-12 之前是 `frontend-backend-redesign`，现已冻结）
 Repo: anzchy/mdpro
-Status: **执行中（2026-10-15：WI-000–WI-004 已完成并验证，WI-004 为 `9940be9`；WI-005 构建已备、人工基线待 dtrack 排期；WI-006 已获实现名额。此前：WI-000–WI-003 已完成并验证；WI-003 真机验收 2026-10-08 夜至 2026-10-09 晨跑过、Check D 修复后 2026-10-09 复测通过）**
+Status: **执行中（2026-10-17：WI-000–WI-005 已完成并验证；WI-006 候选 A 的 S2 在 [ADR-0113](../adr/0113-the-s2-control-takes-focus-out-of-the-dialog-with-one-backdrop-click.md) 的协议下通过（对照成立，S2.1–S2.3 pass），S1 已跑、行待填，下一步 S3–S6。2026-10-15：WI-000–WI-004 已完成并验证，WI-004 为 `9940be9`；WI-005 构建已备；WI-006 已获实现名额。此前：WI-000–WI-003 已完成并验证；WI-003 真机验收 2026-10-08 夜至 2026-10-09 晨跑过、Check D 修复后 2026-10-09 复测通过）**
 上游记录：[ADR-0047](../adr/0047-agents-verify-in-the-real-app-through-a-feature-gated-control-channel.md)（Proposed，2026-10-02 已修订）、[ADR-0034](../adr/0034-a-local-real-app-journey-lane-runs-before-release.md)（Proposed，2026-10-02 已修订）、排序文档 [D30 行](./20260912-frontend-backend-sequencing-order.md#d30)
 
 **分工**：ADR-0047 是决定，本文只写工作项、验收和测试。两者冲突时以 ADR 为准，改的是本文。
