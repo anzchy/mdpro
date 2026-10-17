@@ -21,26 +21,26 @@ Sources: [`20261017-study-meta-astryx.md`](20261017-study-meta-astryx.md), [`202
 - **`light-dark()` (OpenAI).** Your DESIGN.md rules it out explicitly ("No … `light-dark()`").
 - **Multi-owner approval gates and a Storybook monorepo (Astryx, OpenAI).** They are oversized for a single-app repo.
 
-## Proposed layout for docs/design/mdpro-ui-new/
+## Proposed layout for design/
 
 | File | Diátaxis type | Holds | Source |
 |---|---|---|---|
 | `DESIGN.md` | Explanation and reference (the entry) | A summary up front, then product context, the "memorable thing", the aesthetic register, and component contracts, states, focus, theme and motion. **§ Tokens and § Layout keep their headings** (tests read them). | trimmed from today's file |
 | `tokens.md` | Reference, **generated** | Name, `:root` value, light value, dark value as written in the CSS (no computed hex), the line that declares it, and the role taken from DESIGN.md § Tokens. A check fails CI when it's stale. | Astryx and Codex |
 | `decisions.md` | Explanation | What we deliberately don't do (each item with its reason), what other editors get wrong, the rule changes this design needs, and the decisions log. Each decision links to its ADR. | Google, Astryx |
-| `prototypes/README.md` | Reference | One row per prototype: the question it answered, its options, your verdict (quoted), the D or WI it fed, whether it has shipped, and its branch. | Astryx |
-| `archive/` (or a status line) | — | `proposal-ab.html` and the two Codex reviews, each marked frozen with its date. | Astryx `authority: archived` |
+| `design/prototypes/README.md` | Reference | One row per prototype: the question it answered, its options, your verdict (quoted), the D or WI it fed, whether it has shipped, and its branch. | Astryx |
+| `archive/` (or a status line) | — | `design/archive/20260911-proposal-ab.html` and the two Codex reviews, each marked frozen with its date. | Astryx `authority: archived` |
 
 ## Order of work
 
 1. **Docs only, now (waiting on the delegator):**
    - Add the summary up front.
    - Move the decisions material to `decisions.md`.
-   - Add `prototypes/README.md`.
+   - Add `design/prototypes/README.md`.
    - Add the missing D231 rows to § Tokens.
    - Fix the root index's "not committed" claim.
    - Then run `tests/design-tokens-redesign.test.ts` and `tests/contrast-stage3.test.ts` locally. CI skips them on a change that touches only docs.
 2. **A work item, later.** It needs an ADR amending rule 31, an implementation grant and tests:
-   - a `tokens.md` generator with a `--check` mode, wired into CI so that changes to either `src/styles/` or `docs/design/` trigger it;
+   - a `tokens.md` generator with a `--check` mode, wired into CI so that changes to either `src/styles/` or `design/` trigger it;
    - a lint on the shape of `DESIGN.md`: section order, and § Tokens names matched to the CSS in both directions.
 3. **Code fixes, separately:** the C1–C9 drift items from [`20261017-css-drift-report.md`](20261017-css-drift-report.md).

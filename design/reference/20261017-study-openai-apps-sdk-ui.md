@@ -82,7 +82,7 @@ The guidelines page holds no token values: no hex, no px, only rules such as "3โ
    - Add a lint rule that a component file may not read a base token.
 2. **A naming grammar instead of a list.** The pattern `--color-{role}-{intent}-{variant}-{state}` lets DESIGN.md's ยง Tokens state the grammar plus its exceptions rather than a row for every token. The tests keep reading `## Tokens`.
 3. **A live token page.** Answer to your question: yes, but only in the *live* form, which OpenAI itself only half achieves.
-   - Build an un-shipped dev page, e.g. `docs/design/tokens.html`, served by Vite. It imports `globals.css` and the theme files and lists every `--*` from `document.styleSheets`.
+   - Build an un-shipped dev page, e.g. `design/tokens.html`, served by Vite. It imports `globals.css` and the theme files and lists every `--*` from `document.styleSheets`.
    - For each token, show the name, the declared expression and `getComputedStyle()` under `.theme-light` and `.theme-dark` side by side, with a swatch painted from `var(--name)`.
    - That shows values without copying them.
    - OpenAI's `tokens.ts` is the anti-pattern: 11 of 257 entries have drifted. Never generate a static table from it.

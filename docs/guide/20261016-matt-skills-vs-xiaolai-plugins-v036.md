@@ -256,7 +256,7 @@ verdict "D VMark-style outline rail").
 | 2 | Build the options | implementor (mdpro-a3) | `/mattpocock-skills:prototype` → UI.md branch: variants A–C, then D, switchable on one page; worktree `mdpro-wt/`, branch `prototype/d260-settings-rail` | rules 30, 70 § Questions (prototype, never prose) |
 | 3 | The user picks | delegator asks | AskUserQuestion on the running prototype | rule 70: only the user's quoted words count |
 | 4 | Record the verdict on the prototype branch | implementor | commit (`218c86f7`); the branch never lands | prototype SKILL rule 6; rule 70 |
-| 5 | Fold into the design | implementor (mdpro-a3), landed by the delegator | `design/DESIGN.md` § Settings dialog and § Icons, prototype HTML as `prototypes/d260-settings-rail.html` (done: `56d824b1`) | CLAUDE.md § Design System |
+| 5 | Fold into the design | implementor (mdpro-a3), landed by the delegator | `design/DESIGN.md` § Settings dialog and § Icons, prototype HTML as `design/prototypes/011-d260-settings-rail.html` (done: `56d824b1`) | CLAUDE.md § Design System |
 | 6 | ADR if a convention changes | delegator (number) + author | an ADR only if outline → solid; verdict D kept outline, so "no ADR; three rail exceptions in DESIGN.md" | CLAUDE.md § ADR |
 | 7 | Plan the implementation | implementor | the existing plan P WI-4.2 row; add to-spec-style **Testing Decisions** (seams: the rail's ARIA tree, the dialog's close paths) | — |
 | 8 | Implement | implementor | `/tdd-guardian:workflow` (or `:implement` per WI), receipt `D260-WI-n` | rule 10; global CLAUDE.md |

@@ -1,7 +1,7 @@
 # Drift report: shipped CSS vs the target design
 
 - **Code:** `master` `0bd1f1b1`, 27 CSS files (2,893 lines) under `src/styles/`, `src/components/`, `src/plugins/`.
-- **Compared with:** `docs/design/mdpro-ui-new/DESIGN.md` (last commit `647b3d32`, 2026-10-17) and `proposal-ab.html` (last commit `fbe7f4ab`, 2026-09-11).
+- **Compared with:** `design/DESIGN.md` (last commit `647b3d32`, 2026-10-17) and `design/archive/20260911-proposal-ab.html` (last commit `fbe7f4ab`, 2026-09-11).
 - **Method:** I read the token and theme files in full, then scanned every other CSS file for colour, size, radius, motion and z-index values that are typed out by hand instead of using a token. Comments were stripped before scanning. I didn't build or render the app.
 
 ## Headline
@@ -45,7 +45,7 @@ The Source-mode rows matter most. DESIGN.md's "memorable thing" says *Source mod
 
 ## D. Corrections to what I told you earlier
 
-- I said the D222 / D231 tokens were missing from the design docs. **That was wrong for DESIGN.md**: its § Tokens table already lists `--color-accent-text`, `--color-accent-fill*` and `--color-control-border`, with their rulings. They are missing only from `proposal-ab.html`, which is expected: it's frozen at 2026-09-11.
+- I said the D222 / D231 tokens were missing from the design docs. **That was wrong for DESIGN.md**: its § Tokens table already lists `--color-accent-text`, `--color-accent-fill*` and `--color-control-border`, with their rulings. They are missing only from `design/archive/20260911-proposal-ab.html`, which is expected: it's frozen at 2026-09-11.
 - The real gap is narrower than I said. DESIGN.md names every token but keeps no **values**. For tokens added after 2026-09-11 there is no design-side value at all, only `globals.css`. The YAML block at the top of `DESIGN.md` next to this file is what that values table could look like.
 
 ## Suggested order

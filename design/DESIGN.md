@@ -12,8 +12,8 @@ CodeMirror 6.
 > `DESIGN.md` index points here.
 
 This file distills two sources:
-- `mdpro-ui-codex-review.md`: the change list, cited as "item N".
-- `proposal-ab.html`: the rendered target, cited as "proposal :N".
+- `reviews/20260911-codex-ui-review.md`: the change list, cited as "item N".
+- `archive/20260911-proposal-ab.html`: the rendered target, cited as "proposal :N".
 
 If this file disagrees with either source, treat it as a bug here and stop
 and ask. Token **values** are not repeated (rule 31). Before the redesign ships
@@ -23,8 +23,8 @@ they live in the proposal's token block; after it ships they live in
 | If you need… | Read |
 |---|---|
 | The aesthetic, the component contracts, and the reasons behind them | this file |
-| What changes and why, item by item | `mdpro-ui-codex-review.md` |
-| What it looks like in both themes | `proposal-ab.html` in a browser. Query params: `?theme=dark`, `?page=editor`, `?page=integrations`, `?page=export`, `?annot=off` |
+| What changes and why, item by item | `reviews/20260911-codex-ui-review.md` |
+| What it looks like in both themes | `archive/20260911-proposal-ab.html` in a browser. Query params: `?theme=dark`, `?page=editor`, `?page=integrations`, `?page=export`, `?annot=off` |
 | Proposed token values | proposal :21-61. Never :63-69, the rejected code hue. |
 | Order of work, gates, tests | `docs/plans/20260911-plan-ui-redesign.md` |
 | Enforceable rules | `.claude/rules/30-34` |
@@ -455,7 +455,7 @@ cited proposal lines in both themes.
     selection pattern on purpose.
   - Focus: the inset `--color-focus-ring` ring (DR15) and no fill change, so
     focus and selection read apart. Focus always sits on the selected tab.
-- **Measured** (prototype D, `prototypes/d260-settings-rail.html`):
+- **Measured** (prototype D, `prototypes/011-d260-settings-rail.html`):
   - Icon and label at rest: 16.26:1 light, 14.08:1 dark.
   - Icon and label on the selected fill: 13.58:1 and 11.24:1.
   - Focus ring: 4.83:1 and 6.85:1.
@@ -514,7 +514,7 @@ cited proposal lines in both themes.
 
 The native menu bar and Settings › Keyboard Shortcuts after the menu
 reorganisation ([plan](../docs/plans/20261015-plan-menu-reorganisation.md),
-merged with D255; the user chose prototype A, `prototypes/menu-ui.html`).
+merged with D255; the user chose prototype A, `prototypes/012-menu-ui.html`).
 The plan owns the trees, the keys and availability; this block owns how they
 look. Where the two disagree, the plan wins and this block is corrected.
 
@@ -754,7 +754,7 @@ Rule 33's four patterns stay; only the color source changes.
 - **Base neutrals keep their values** (D4): `--color-bg`, `--color-surface`,
   `--color-panel`, `--color-text`, `--color-muted`. Only borders, hover, code
   surface and shadow become derived.
-- **Review:** use `proposal-ab.html?theme=dark` or the Side by side view.
+- **Review:** use `archive/20260911-proposal-ab.html?theme=dark` or the Side by side view.
   Sign-off screenshots come from `pnpm tauri dev` (E5).
 
 ## Motion
@@ -860,8 +860,8 @@ Leave these open; don't pick an answer while building.
 
 | Date | Decision | Rationale |
 |---|---|---|
-| 2026-10-16 | Menu reorganisation UI: the plan's trees as written. Unavailable items are greyed in place with their keys greyed. Keyboard Shortcuts rows stay in place, marked "Not available" or "WYSIWYG only" / "Source only". Changed defaults are not announced. The user asked for prototypes: 「上面的Menu Reorganization 也涉及到UI修改，重新设计之后的UI形成Prototype （3个备选）」. The user chose 「A · Plan as written, greyed」 | It is the platforms' own disabled look, with nothing for mdpro to build or maintain on top of the plan. The recommended B (nested Paragraph submenus, no key on items with no command, a folded "Not available yet" list and a one-time banner of changed keys) was turned down. What A gives up: a no-command item and a wrong-mode item look the same in the menu, and the 14 moved default keys, among them ⌘H → Find and Replace, are not announced in the app. Prototype: `prototypes/menu-ui.html`, branch `prototype/menu-ui` (VERDICT.md there). |
-| 2026-10-16 | D260: Settings has no footer Close. The rail uses outline icons on Lucide's geometry at 19px, in the label's colour, a neutral grey selected row (text 9%, no accent, no bold) and 32px rows. The user's request: 「在v0.3.6 Settings 中，把左下角的`Close` button去掉，此外 每个Tab的 […] 图标我想换一下」. The user chose variant D, VMark's look: 「D · VMark outline (Recommended)」 | The header × and Esc already close the dialog, so the footer only repeated them. The user first chose Typora's solid glyphs (A), then preferred VMark's outline rail side by side, which keeps § Icons' outline contract, so no ADR. The three rail exceptions in § Icons are the cost: the rail no longer uses the rule 31 accent selection, and its icons are neither muted nor `--icon-size-md`. Prototype: `prototypes/d260-settings-rail.html`, branch `prototype/d260-settings-rail`. |
+| 2026-10-16 | Menu reorganisation UI: the plan's trees as written. Unavailable items are greyed in place with their keys greyed. Keyboard Shortcuts rows stay in place, marked "Not available" or "WYSIWYG only" / "Source only". Changed defaults are not announced. The user asked for prototypes: 「上面的Menu Reorganization 也涉及到UI修改，重新设计之后的UI形成Prototype （3个备选）」. The user chose 「A · Plan as written, greyed」 | It is the platforms' own disabled look, with nothing for mdpro to build or maintain on top of the plan. The recommended B (nested Paragraph submenus, no key on items with no command, a folded "Not available yet" list and a one-time banner of changed keys) was turned down. What A gives up: a no-command item and a wrong-mode item look the same in the menu, and the 14 moved default keys, among them ⌘H → Find and Replace, are not announced in the app. Prototype: `prototypes/012-menu-ui.html`, branch `prototype/menu-ui` (VERDICT.md there). |
+| 2026-10-16 | D260: Settings has no footer Close. The rail uses outline icons on Lucide's geometry at 19px, in the label's colour, a neutral grey selected row (text 9%, no accent, no bold) and 32px rows. The user's request: 「在v0.3.6 Settings 中，把左下角的`Close` button去掉，此外 每个Tab的 […] 图标我想换一下」. The user chose variant D, VMark's look: 「D · VMark outline (Recommended)」 | The header × and Esc already close the dialog, so the footer only repeated them. The user first chose Typora's solid glyphs (A), then preferred VMark's outline rail side by side, which keeps § Icons' outline contract, so no ADR. The three rail exceptions in § Icons are the cost: the rail no longer uses the rule 31 accent selection, and its icons are neither muted nor `--icon-size-md`. Prototype: `prototypes/011-d260-settings-rail.html`, branch `prototype/d260-settings-rail`. |
 | 2026-10-15 | D223: the sidebar's top band carries no text; the "Table of Contents" header and the WYSIWYG / SOURCE badge are removed, with the sidebar shown or hidden (user: 「Sidebar左上角的Table of Content 和 Mode(WYSIWYG / Source）等文本去掉，让整体界面比较清爽」; prototype ruling 「B: remove everywhere (Recommended)」) | The header repeated what the outline already shows. The mode stays visible in the View menu's check marks, and comes back to the window with the main bar's segmented control (WI-4.8, not yet built); until then the window itself does not name it. The bands stay as window drag regions for the traffic lights. |
 | 2026-10-15 | ADR-0088: the sidebar is resizable (180–480px, default 220) and keeps its width at every window width; two new layout tokens, `--sidebar-width-min` (180px) and `--main-min-width` (320px), set the grid's `clamp()`. One fixed toggle leads the bottom tab bar | The width was a fixed 220px and a leftover 960px media query squeezed the sidebar to 33px or stretched it across the window (#416). Hiding it is the user's choice, never a side effect of window size. The tokens name the two limits instead of literals in the grid. |
 | 2026-09-11 | DR23: Radii snap by role to `--radius-control`, `--radius-popover` and a new `--radius-inner` (4px); circles `50%`, pills `999px` | Nested parts need a smaller radius than their container to look concentric, and the proposal already draws 4px for them. Seven ad-hoc values collapse to three roles with no exceptions. |
@@ -912,5 +912,5 @@ as the choice.
   authoring rule 4).
 - **When the redesign lands:**
   - Make this file authoritative.
-  - Retire `mdpro-ui-old/DESIGN.md`.
+  - Retire `archive/20260920-mdpro-ui-old/DESIGN.md`.
   - Update the root index and the rule 30–34 pointers.

@@ -65,17 +65,17 @@ Stories are the exception: they are centralised in `apps/storybook/stories/<Name
 ## 6. Prototypes, templates, deprecations, changelog, versioning
 
 - **Prototypes**: no prototype folder in `docs/`. Exploratory UI lives in `apps/sandbox` (e.g. `motion-lab/proposed/`) and `apps/template-viewer`. `docs/pr-assets/<PR#>/` holds PR screenshots, which are explicitly not authority.
-- **Normative design images** belong in `docs/design/assets/<design-id>/`, each with alt text, state, theme, viewport and the decision it shows. *Not verified:* the folder does not exist yet in the tree.
+- **Normative design images** belong in `design/assets/<design-id>/`, each with alt text, state, theme, viewport and the decision it shows. *Not verified:* the folder does not exist yet in the tree.
 - **Deprecations** are inline `DEP-NNNN` tables in the component spec, paired with `CLN-NNNN` cleanups (`Banner.spec.md`: surface, old contract, replacement, codemod, state, target plan). Codemods are in `packages/cli/assets/codemods/`, run by `astryx upgrade`.
 - **Changelog**: one Changesets file per change in `.changeset/*.md` with a `[feat]`-style tag. `check-changesets.mjs` enforces the format, and per-package `CHANGELOG.md` files are generated at release. Versioning is a fixed group from a frozen `release/vX.Y.Z` branch (`docs/release.md`).
 
 ## 7. Worth copying, and what to leave
 
-1. **Token docs as a generated projection with a `--check` drift gate.** For mdpro: generate the § Tokens table of `docs/design/mdpro-ui-new/DESIGN.md` (names, roles, and optionally the light/dark values) from `src/styles/globals.css` and `themes/{light,dark}.css`, between markers, and add a `design:check` to the gate. The "never copy values" rule then becomes "values are copied only by the generator". The `## Tokens` and `## Layout` headings stay, so existing tests still pass.
+1. **Token docs as a generated projection with a `--check` drift gate.** For mdpro: generate the § Tokens table of `design/DESIGN.md` (names, roles, and optionally the light/dark values) from `src/styles/globals.css` and `themes/{light,dark}.css`, between markers, and add a `design:check` to the gate. The "never copy values" rule then becomes "values are copied only by the generator". The `## Tokens` and `## Layout` headings stay, so existing tests still pass.
 2. **Split by kind and owner, with typed ids and cross-links.** Break the ~900-line DESIGN.md into `design/` records (states, focus, theme, motion), `components/<name>.md` contracts, and a product-context page, with DESIGN.md as a short entry point. Use ids like `design:focus/DR2` that rules 30–34 and tests can cite.
 3. **`applies_to` / `verified_by` frontmatter.** Each design record names the CSS and TSX files it governs and the tests that prove it. `ledger:check` already resolves path claims, so it could resolve these too. This also makes test coverage of a design rule visible.
 4. **A frozen template per record kind, plus a schema check.** A `docs/templates/` component-contract template (Intent, Anatomy, State table, Focus, Verification, Open questions) and a design-record template. A small check enforces the required headings, generalising the current hard-coded "## Tokens must exist" test.
-5. **Visual references with metadata and an index.** Give `docs/design/mdpro-ui-new/prototypes/` a README index (question, options, verdict, ADR link, status `open/decided/discarded`). Move the normative images to `assets/<record>/` with state, theme and viewport. Mark `proposal-ab.html` explicitly as frozen evidence, not authority.
+5. **Visual references with metadata and an index.** Give `design/prototypes/` a README index (question, options, verdict, ADR link, status `open/decided/discarded`). Move the normative images to `assets/<record>/` with state, theme and viewport. Mark `design/archive/20260911-proposal-ab.html` explicitly as frozen evidence, not authority.
 
 Would **not** fit:
 

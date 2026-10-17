@@ -52,7 +52,7 @@ motion:
 
 > Extracted from the code, not from the design docs. It describes what the
 > app renders on `master` today. The target design is
-> `docs/design/mdpro-ui-new/DESIGN.md`; the differences are in
+> `design/DESIGN.md`; the differences are in
 > [`20261017-css-drift-report.md`](20261017-css-drift-report.md).
 
 ## 1. Visual Theme & Atmosphere
