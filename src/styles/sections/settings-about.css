@@ -88,7 +88,7 @@
 }
 
 .about-progress-bar::-webkit-progress-value {
-  background: var(--color-accent, #007aff);
+  background: var(--color-accent);
   border-radius: 999px;
 }
 

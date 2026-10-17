@@ -106,9 +106,11 @@ user rulings 2026-10-17 on prototype/d256-d257-contrast:
 
 **Accepted A9 exceptions (D227, user rulings 2026-10-15):** the toggle's
 `#ccc` off-track and its knob, the light danger label hovered, the
-`.shortcut-value` edge and the `.grid-picker-cell` edge stay below A9. Don't
-give them a new token without a new ruling; ratios and quotes are in
-DESIGN.md § Tokens and
+`.shortcut-value` edge and the `.grid-picker-cell` edge stay below A9. The
+toggle's off-track lives in `--color-toggle-track-off` at the accepted value
+(user Q3, 2026-10-17: 「Every literal, rgba too」). Holding an accepted value
+unchanged in a token is allowed; retuning any of these still needs a new
+ruling. Ratios and quotes are in DESIGN.md § Tokens and
 [ADR-0106](../../docs/adr/0106-five-control-colours-are-accepted-below-the-a9-contrast-line.md).
 
 ## Authoring rules
@@ -147,9 +149,14 @@ and its own exception and deferred lists (plan P WI-2.1).
 - `999px` for pills (DR23)
 - Animation keyframe percentages
 - `transform: scale()/translate()` arithmetic
-- `rgba()` lines that precede `color-mix()` lines (browser fallback)
-- Defensive `var(--xyz, #fallback)` fallbacks, when `--xyz` is declared
-  (an undeclared token's fallback is what renders, so it is a literal)
+
+**Colour literals live only as values of token declarations** in the three
+token files (user Q3, 2026-10-17: 「Every literal, rgba too」; D278). No
+`#hex`, `rgb()` / `rgba()`, other colour function, named or system colour,
+`var(--x, <colour>)` fallback, or colour inside an SVG `data:` URI anywhere
+else, TS and TSX included; `tests/css-tokenization.test.ts` enforces it. The
+one exemption is document content (the highlight `<mark>` tag mdpro writes
+into the user's file), listed with its reason in that test.
 
 Spacing literals from the ad-hoc scale (4 / 6 / 8 / 12 / 16 / 20 /
 24 / 32 / 40px) are also acceptable. Don't introduce a primitive

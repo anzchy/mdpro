@@ -22,7 +22,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, parseDeclarations } from "./support/cssTokenScan";
-import { contrast, over, resolveColor, rootTokens, themeTokens, type Rgba } from "./support/contrast";
+import { contrast, over, resolveColor, rootTokens, themeTokens, toHex, type Rgba } from "./support/contrast";
 
 const SRC = join(__dirname, "..", "src");
 const SEC = "styles/sections";
@@ -142,5 +142,96 @@ describe("D278-WI-4: text on the Settings fills (characterisation)", () => {
 
   it("the check fails a fill that drops muted text below 4.5:1", () => {
     expect(reaches("var(--color-muted)", ["color-mix(in srgb, var(--color-muted) 60%, transparent)", PANEL], "light", 4.5)).toBe(false);
+  });
+});
+
+const ACCENT_LIGHT: Rgba = [37, 99, 235, 1];
+const ACCENT_DARK: Rgba = [96, 165, 250, 1];
+const same = (c: Rgba) => ({ root: c, light: c, dark: c });
+/** The colour after a border's `1px solid `, which the row also pins. */
+const afterSolid = (v: string) => {
+  expect(v.startsWith("1px solid ")).toBe(true);
+  return v.slice("1px solid ".length);
+};
+
+/** WI-2 and D275: the remaining colour literals, now tokens; nothing renders differently. */
+const LITERAL_MOVES: Row[] = [
+  { file: `${SEC}/settings-mcp.css`, selector: ".mcp-status-badge.running", property: "background", expect: same([220, 252, 231, 1]) },
+  { file: `${SEC}/settings-mcp.css`, selector: ".mcp-status-badge.running", property: "color", expect: same([22, 163, 74, 1]) },
+  { file: `${SEC}/settings-rows.css`, selector: ".toggle-slider", property: "background-color", expect: same([204, 204, 204, 1]) },
+  { file: `${SEC}/settings-pages.css`, selector: ".settings-dirty-banner", property: "background", expect: same([245, 158, 11, 0.12]) },
+  {
+    file: `${SEC}/settings-pages.css`,
+    selector: ".settings-dirty-banner",
+    property: "border",
+    colour: afterSolid,
+    expect: same([245, 158, 11, 0.4]),
+  },
+  {
+    file: `${SEC}/settings-about.css`,
+    selector: ".about-progress-bar::-webkit-progress-value",
+    property: "background",
+    expect: { root: ACCENT_LIGHT, light: ACCENT_LIGHT, dark: ACCENT_DARK },
+  },
+];
+
+describe("D278-WI-2: the moved colour literals keep their colours", () => {
+  checkRows(LITERAL_MOVES);
+
+  it("each moved literal goes through its token", () => {
+    const via = (file: string, selector: string, property: string) => valueOf(`${SEC}/${file}`, selector, property);
+    expect(via("settings-mcp.css", ".mcp-status-badge.running", "background")).toBe("var(--color-running-fill)");
+    expect(via("settings-mcp.css", ".mcp-status-badge.running", "color")).toBe("var(--color-running-text)");
+    expect(via("settings-rows.css", ".toggle-slider", "background-color")).toBe("var(--color-toggle-track-off)");
+    expect(via("settings-pages.css", ".settings-dirty-banner", "background")).toBe(
+      "color-mix(in srgb, var(--color-banner-unsaved) 12%, transparent)",
+    );
+    expect(via("settings-pages.css", ".settings-dirty-banner", "border")).toBe(
+      "1px solid color-mix(in srgb, var(--color-banner-unsaved) 40%, transparent)",
+    );
+    expect(via("settings-about.css", ".about-progress-bar::-webkit-progress-value", "background")).toBe("var(--color-accent)");
+  });
+
+  it("--color-danger-soft derives from --color-danger at today's values (D275 C9)", () => {
+    const expected = { root: [220, 38, 38, 0.12], light: [220, 38, 38, 0.12], dark: [248, 113, 113, 0.18] } as Record<Frame, Rgba>;
+    for (const frame of Object.keys(FRAMES) as Frame[]) {
+      const raw = FRAMES[frame].get("--color-danger-soft") ?? "";
+      expect(raw, frame).toMatch(/^color-mix\(in srgb, var\(--color-danger\) \d+%, transparent\)$/);
+      expectRgba(resolveColor(raw, FRAMES[frame]), expected[frame], `--color-danger-soft ${frame}`);
+    }
+  });
+
+  it("the checked toggle still overrides the off-track (static order and specificity)", () => {
+    const decls = parseDeclarations(read(`${SEC}/settings-rows.css`));
+    const off = decls.find((d) => d.selector === ".toggle-slider" && d.property === "background-color");
+    const on = decls.find(
+      (d) => d.selector === ".toggle-switch input:checked + .toggle-slider" && d.property === "background-color",
+    );
+    expect(on?.value).toBe("var(--color-accent)");
+    expect(on!.line).toBeGreaterThan(off!.line);
+  });
+
+  it("the dead TabBar's active shadow is --shadow-soft: an expected change, red on master by construction", () => {
+    expect(valueOf(`${SEC}/tab-bar.css`, ".tab--active", "box-shadow")).toBe("var(--shadow-soft)");
+  });
+});
+
+describe("D278: the resolver reads what the baselines need", () => {
+  const t = FRAMES.light;
+
+  it("resolves a var() fallback only when the token is undeclared (C8 baseline)", () => {
+    expect(resolveColor("var(--undeclared, #007aff)", t)).toEqual([0, 122, 255, 1]);
+    expect(resolveColor("var(--color-accent, #007aff)", t)).toEqual(ACCENT_LIGHT);
+  });
+
+  it("parses 4- and 8-digit hex with alpha", () => {
+    expectRgba(resolveColor("#ff5582a6", t), [255, 85, 130, 166 / 255], "#ff5582a6");
+    expectRgba(resolveColor("#fff8", t), [255, 255, 255, 0x88 / 255], "#fff8");
+  });
+
+  it("toHex keeps alpha: 6 digits when opaque, 8 otherwise, lowercase", () => {
+    expect(toHex([37, 99, 235, 1])).toBe("#2563eb");
+    expect(toHex([15, 23, 42, 0.35])).toBe("#0f172a59");
+    expect(toHex([255, 85, 130, 0.65])).toBe("#ff5582a6");
   });
 });

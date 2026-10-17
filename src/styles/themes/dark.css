@@ -24,7 +24,7 @@
   --color-tab-active-accent: #93c5fd;
   --tab-active-close-opacity: 0.6;
   --color-danger: #f87171;
-  --color-danger-soft: color-mix(in srgb, #f87171 18%, transparent);
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 18%, transparent);
   /* D257: the danger red already reads on danger-soft here (4.92:1) */
   --color-error-text: #f87171;
   /* D256: a fainter pink, so light text on it reaches 8.02:1 (0.65 gave 4.77) */
@@ -35,6 +35,13 @@
   /* STOP 3 S2 (ADR-0110): derived, neutral; drops D4's cool cast on code */
   --color-code-bg: color-mix(in srgb, var(--color-editor-bg) 94%, var(--color-text));
 
+  /* D278 (user Q3, 「Every literal, rgba too」): today's literals as tokens, same value in every block.
+     The toggle's off-track holds the accepted A9 colour (ADR-0106); the other three are interim:
+     WI-4.4 item 6 deletes the running pair, WI-4.3 the banner colour. */
+  --color-toggle-track-off: #cccccc;
+  --color-running-fill: #dcfce7;
+  --color-running-text: #16a34a;
+  --color-banner-unsaved: #f59e0b;
   /* Settings fills (D278): today's dark values, kept as token values (rule 34). */
   --color-group-bg: rgba(15, 18, 28, 0.6);
   --color-input-bg: rgba(15, 18, 28, 0.9);

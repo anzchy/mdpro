@@ -199,8 +199,11 @@ macOS NSSpellChecker via a Tauri command.
 
 ## Remove dead App.css and TabBar; fix rule 34's App.css claim
 
-**What:** Delete `src/App.css` and `src/components/TabBar/`. Rewrite `.claude/rules/34-dark-theme.md:22`, which says
-`prefers-color-scheme` is used "only in `App.css` for the pre-React paint flash".
+**Done in D278 (2026-10-17):** `src/App.css` is deleted, rule 34's `App.css` line is rewritten, and
+the TabBar shadow and the two `.settings-placeholder-card` rows left the `UNRENDERED` list. What remains
+is TabBar: the title is kept because `tests/color-border-fills.test.ts` cites this entry by it.
+
+**What:** Delete `src/components/TabBar/`.
 
 **Why:** `App.css` is imported nowhere (not from `index.html`, `src/` or the Vite config), so the
 mechanism rule 34 describes never runs. `TabBar` is re-exported only by its own `index.ts`; `BottomTabs`

@@ -11,8 +11,8 @@
 }
 
 .mcp-status-badge.running {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--color-running-fill);
+  color: var(--color-running-text);
 }
 
 /* ADR-0039 launch states — existing tokens only, so both themes follow. */

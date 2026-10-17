@@ -21,7 +21,7 @@ scrollbars and form controls follow the theme in WKWebView (plan P WI-3.1).
 |---|---|
 | `.theme-light` / `.theme-dark` | **Use these** |
 | `[data-theme]` | Don't use — different convention; would force migrating App.tsx |
-| `@media (prefers-color-scheme: dark)` | Limited — only in `App.css` for the pre-React paint flash |
+| `@media (prefers-color-scheme: dark)` | Don't use — the class on `<html>` decides (`App.css`, its only user, was dead and is deleted, D278) |
 
 `prefers-color-scheme` is honored at the **preference resolution
 layer** (`preferencesService.ts`) when the user picks "system"; the
@@ -40,8 +40,10 @@ Most cases need **no override** — tokens swap automatically:
 ```
 
 Override only when:
-1. You use raw `rgba()` for translucency and the source color must
-   change (light: black-with-alpha, dark: white-with-alpha).
+1. You need per-theme translucency (light: black-with-alpha, dark:
+   white-with-alpha). Raw `rgba()` lives **only as a token value** in
+   `themes/light.css` / `themes/dark.css` (and its `:root` copy), never in
+   a consumer rule (D278, user Q3: 「Every literal, rgba too」).
 2. A specific effect needs different opacity for readability against
    a dark background.
 3. No token exists for the case — **add the token to both theme files
@@ -56,7 +58,8 @@ Prefer `color-mix()` with `var(--color-text)` over raw rgba:
 ```
 
 This adapts naturally to both themes. Only fall back to per-theme rgba
-when `color-mix()` won't work.
+when `color-mix()` won't work, and then as a token value in the theme
+files, never in the consumer rule.
 
 ## Inverted text
 

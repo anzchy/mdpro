@@ -142,7 +142,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: var(--color-toggle-track-off);
   border-radius: 999px;
 }
 

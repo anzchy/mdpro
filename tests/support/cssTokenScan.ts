@@ -12,14 +12,21 @@
  *   value), so `transition: a 0.15s ease, b 0.15s ease` is one finding.
  * - Comments are blanked to spaces (newlines kept) before parsing, so line
  *   numbers stay true and a literal inside a comment is never a finding.
- * - `var(--x, fallback)` fallbacks are dropped before the colour check when
- *   `--x` is declared (rule 31: defensive fallbacks are allowed). When `--x`
- *   is declared nowhere the fallback is what renders, so it is a finding.
- *   `color-mix()` is scanned like any other value, so a literal argument
- *   inside it is a finding.
- * - A literal colour declaration directly followed, in the same block, by
- *   the same property set through `color-mix()` is the rule 31 browser
- *   fallback and is allowed.
+ * - Every colour literal is a finding (D278, user Q3: 「Every literal, rgba
+ *   too」): hex and colour functions on any property, after quoted strings
+ *   are blanked; named and system colours on colour-bearing properties and
+ *   custom properties; a `var(--x, <colour>)` fallback, declared or not; and
+ *   colours inside an SVG `data:` URI (percent-encoded or base64). There is
+ *   no browser-fallback exemption any more. `color-mix()` is scanned like
+ *   any other value, so a literal argument inside it is a finding.
+ * - Token values are exempt only as declarations: `blankTokenDeclarations`
+ *   blanks the custom properties inside `:root`, `.theme-light` and
+ *   `.theme-dark` blocks, and the rest of those files is scanned.
+ * - Custom-property declarations outside the token blocks are scanned like
+ *   any other (`parseDeclarations(css, { customProperties: true })`).
+ * - `scanTsColours` is the TS/TSX pass: colour literals in string and
+ *   template literals, and named colours in inline style objects and
+ *   `style.setProperty` values.
  * - A `font` shorthand passes only when its size and its family are each a
  *   `var()`, and a whole-value `var(--x, fallback)` counts as a token only
  *   when `--x` is declared (audit b125).
@@ -49,7 +56,7 @@ const ALLOWED_RADIUS = new Set(["0", "50%", "999px", "inherit", "initial", "unse
 
 const KEYWORDS_OK = new Set(["inherit", "initial", "unset", "none", "transparent", "currentcolor"]);
 
-/** CSS Color 4 named colours, lower case. */
+/** CSS Color 4 named colours and the CSS system colours, lower case. */
 const NAMED_COLOURS = new Set(
   (
     "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue " +
@@ -68,11 +75,31 @@ const NAMED_COLOURS = new Set(
     "palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum " +
     "powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown " +
     "seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen " +
-    "steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen"
+    "steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen " +
+    "canvas canvastext buttonface buttontext buttonborder field fieldtext highlight highlighttext " +
+    "linktext visitedtext activetext graytext mark marktext accentcolor accentcolortext selecteditem " +
+    "selecteditemtext"
   ).split(" "),
 );
 
+/** Properties whose words can be colours: named colours count here (hex and functions count everywhere). */
 const COLOUR_PROPERTIES = new Set([
+  "text-shadow",
+  "background-image",
+  "filter",
+  "backdrop-filter",
+  "accent-color",
+  "column-rule",
+  "column-rule-color",
+  "-webkit-text-fill-color",
+  "-webkit-text-stroke",
+  "-webkit-text-stroke-color",
+  "scrollbar-color",
+  "flood-color",
+  "stop-color",
+  "lighting-color",
+  "mask",
+  "mask-image",
   "color",
   "background",
   "background-color",
@@ -116,8 +143,13 @@ export function blankComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
 }
 
-/** Every declaration in `css`, in source order. */
-export function parseDeclarations(css: string): CssDeclaration[] {
+/**
+ * Every declaration in `css`, in source order. Custom-property declarations
+ * (`--x: …`) are skipped unless `customProperties` is set: callers that read
+ * rendered rules rely on that (colorBorderFills, motion-dr12); `scanCss` sets
+ * it so a local `--x: #fff` outside the token blocks is scanned (D278).
+ */
+export function parseDeclarations(css: string, { customProperties = false } = {}): CssDeclaration[] {
   const text = blankComments(css);
   const out: CssDeclaration[] = [];
   const stack: string[] = [];
@@ -133,7 +165,8 @@ export function parseDeclarations(css: string): CssDeclaration[] {
     const colon = raw.indexOf(":");
     if (colon < 0 || stack.length === 0) return;
     const property = raw.slice(0, colon).trim().toLowerCase();
-    if (!/^-?[a-z][a-z0-9-]*$/.test(property)) return;
+    const custom = customProperties && /^--[\w-]+$/.test(property);
+    if (!custom && !/^-?[a-z][a-z0-9-]*$/.test(property)) return;
     const value = raw.slice(colon + 1).replace(/\s+/g, " ").trim();
     const lead = raw.slice(0, raw.length - raw.trimStart().length);
     const declLine = bufLine + (lead.match(/\n/g)?.length ?? 0);
@@ -221,15 +254,59 @@ export function dropVarFallbacks(value: string, declared?: ReadonlySet<string>):
   return out;
 }
 
-/** True when the value carries a colour literal outside `var()` fallbacks. */
-export function hasColourLiteral(value: string, declared?: ReadonlySet<string>): boolean {
-  const v = dropVarFallbacks(value, declared).replace(/var\(--[\w-]+\)/g, " ");
-  if (/#[0-9a-fA-F]{3,8}\b/.test(v)) return true;
-  if (/\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/i.test(v)) return true;
-  return v
+const HEX = /(?<![\w&])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![\w-])/gi;
+const COLOUR_FN = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/i;
+
+/** True when `text` has a named or system colour among its words. */
+function hasNamedColour(text: string): boolean {
+  return text
     .toLowerCase()
     .split(/[^a-z-]+/)
     .some((word) => NAMED_COLOURS.has(word));
+}
+
+/** The payload of a `data:image/svg+xml` URI, decoded, or null. */
+function svgPayload(uri: string): string | null {
+  const m = /^data:image\/svg\+xml(;base64)?,([\s\S]*)$/i.exec(uri.trim());
+  if (!m) return null;
+  if (m[1]) return atob(m[2].trim());
+  try {
+    return decodeURIComponent(m[2]);
+  } catch {
+    return m[2];
+  }
+}
+
+/** True when an SVG document paints with a colour literal. */
+function svgHasColour(svg: string): boolean {
+  if (new RegExp(HEX.source, "i").test(svg) || COLOUR_FN.test(svg)) return true;
+  const paint = /\b(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*[:=]\s*["']?([^"';>\s]+)/gi;
+  return [...svg.matchAll(paint)].some((m) => hasNamedColour(m[1]));
+}
+
+/**
+ * True when `property: value` carries a colour literal (D278, Q3). A `var()`
+ * fallback counts, declared token or not; quoted strings are blanked; an SVG
+ * `data:` URI is decoded and scanned.
+ */
+export function colourLiteralIn(property: string, value: string): boolean {
+  let v = value.replace(/\s*!important$/i, "");
+  let svg = false;
+  v = v.replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)'"]*))\s*\)/g, (_, a, b, c) => {
+    const payload = svgPayload(a ?? b ?? c ?? "");
+    if (payload !== null && svgHasColour(payload)) svg = true;
+    return " ";
+  });
+  if (svg) return true;
+  v = v.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, " ").replace(/var\(\s*--[\w-]+/g, "var(");
+  if (new RegExp(HEX.source, "i").test(v) || COLOUR_FN.test(v)) return true;
+  const named = COLOUR_PROPERTIES.has(property) || property.startsWith("border") || property.startsWith("--");
+  return named && hasNamedColour(v);
+}
+
+/** True when the value carries a colour literal, read as a colour property (`var()` fallbacks included). */
+export function hasColourLiteral(value: string, _declared?: ReadonlySet<string>): boolean {
+  return colourLiteralIn("color", value);
 }
 
 /**
@@ -273,7 +350,7 @@ export function categorize(
 ): CssFinding["category"] | null {
   const { property, selector } = decl;
   const value = decl.value.replace(/\s*!important$/i, "");
-  if (COLOUR_PROPERTIES.has(property) && hasColourLiteral(value, declared)) return "colour";
+  if (colourLiteralIn(property, value)) return "colour";
   if (property === "font-size") {
     if (onlyVarOrKeyword(value, declared)) return null;
     if (/^[\d.]+(em|%)$/.test(value) && CONTENT_SELECTOR.test(selector)) return null;
@@ -299,36 +376,29 @@ export function categorize(
   return null;
 }
 
-/**
- * Every A5 finding in `css`. A literal colour declaration directly followed
- * in the same block by the same property through `color-mix()` is the rule
- * 31 browser fallback and is left out.
- */
+/** Every A5 finding in `css`. There is no browser-fallback exemption (D278, Q3). */
 export function scanCss(css: string, declared?: ReadonlySet<string>): CssFinding[] {
-  const decls = parseDeclarations(css);
-  const findings: CssFinding[] = [];
-  decls.forEach((decl, i) => {
+  return parseDeclarations(css, { customProperties: true }).flatMap((decl) => {
     const category = categorize(decl, declared);
-    if (!category) return;
-    const next = decls[i + 1];
-    if (
-      category === "colour" &&
-      next &&
-      next.selector === decl.selector &&
-      next.property === decl.property &&
-      /color-mix\(/.test(next.value) &&
-      !hasColourLiteral(next.value, declared)
-    ) {
-      return;
-    }
-    findings.push({ ...decl, category });
+    return category ? [{ ...decl, category }] : [];
   });
-  return findings;
 }
 
-/** The text of `:root { … }` blocks blanked out (token definitions, A5-excluded). */
-export function blankRootBlocks(css: string): string {
-  return css.replace(/(^|\n)(\s*):root\s*\{[^}]*\}/g, (m) => m.replace(/[^\n]/g, " "));
+/**
+ * `css` with the custom-property declarations inside `:root`, `.theme-light`
+ * and `.theme-dark` blocks blanked (newlines kept): token values are exempt
+ * as declarations, and anything else in the token files is scanned (D278).
+ */
+export function blankTokenDeclarations(css: string): string {
+  const text = blankComments(css);
+  let out = css;
+  for (const m of text.matchAll(/(?:^|[\s{}])(:root|\.theme-light|\.theme-dark)\s*\{/g)) {
+    const open = (m.index ?? 0) + m[0].length;
+    const close = text.indexOf("}", open);
+    const body = text.slice(open, close).replace(/--[\w-]+\s*:[^;{}]*;?/g, (d) => d.replace(/[^\n]/g, " "));
+    out = out.slice(0, open) + body + out.slice(close);
+  }
+  return out;
 }
 
 /** Every custom property name (`--x`) declared anywhere in `cssTexts`. */
@@ -349,4 +419,75 @@ export function tokenBlock(css: string, selector: string): Map<string, string> {
   const body = text.slice(text.indexOf("{", at) + 1, text.indexOf("}", at));
   for (const m of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out.set(m[1], m[2].replace(/\s+/g, " ").trim());
   return out;
+}
+
+/** The string and template literals of TS source with their start offsets, comments and regex literals skipped. */
+function tsStrings(src: string): { at: number; text: string }[] {
+  const out: { at: number; text: string }[] = [];
+  let prev = "";
+  for (let i = 0; i < src.length; i += 1) {
+    const ch = src[i];
+    if (ch === "/" && src[i + 1] === "/") {
+      i = src.indexOf("\n", i);
+      if (i < 0) break;
+      continue;
+    }
+    if (ch === "/" && src[i + 1] === "*") {
+      i = src.indexOf("*/", i + 2) + 1;
+      if (i <= 0) break;
+      continue;
+    }
+    if (ch === "/" && /^$|[(,=:[!&|?{};]/.test(prev)) {
+      let inClass = false;
+      for (i += 1; i < src.length && src[i] !== "\n"; i += 1) {
+        if (src[i] === "\\") i += 1;
+        else if (src[i] === "[") inClass = true;
+        else if (src[i] === "]") inClass = false;
+        else if (src[i] === "/" && !inClass) break;
+      }
+      prev = "/";
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const start = i;
+      for (i += 1; i < src.length && src[i] !== ch; i += 1) if (src[i] === "\\") i += 1;
+      out.push({ at: start, text: src.slice(start + 1, i) });
+      prev = ch;
+      continue;
+    }
+    if (!/\s/.test(ch)) prev = ch;
+  }
+  return out;
+}
+
+/** CSS property names, kebab case, for an inline style key. */
+const kebab = (key: string) => key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+
+/**
+ * Colour literals in TS/TSX source (D278, Q3): hex and colour functions in
+ * string and template literals, and named colours in the values of inline
+ * style objects and `style.setProperty(name, value)` where `name` is a colour
+ * property or a custom property.
+ */
+export function scanTsColours(source: string): { line: number; literal: string }[] {
+  const lineAt = (at: number) => source.slice(0, at).split("\n").length;
+  const found = new Map<string, { line: number; literal: string }>();
+  const add = (at: number, literal: string) => found.set(`${at}:${literal}`, { line: lineAt(at), literal });
+  for (const { at, text } of tsStrings(source)) {
+    for (const m of text.matchAll(HEX)) add(at, m[0]);
+    for (const m of text.matchAll(/\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(\s*[\d.]|\bcolor\(\s*(?:srgb|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz)/gi)) add(at, m[0]);
+  }
+  for (const m of source.matchAll(/style=\{\{([\s\S]*?)\}\}/g)) {
+    for (const kv of m[1].matchAll(/(\w+)\s*:\s*["'`]([^"'`]*)["'`]/g)) {
+      const property = kebab(kv[1]);
+      const named = COLOUR_PROPERTIES.has(property) || property.startsWith("border");
+      if (named && hasNamedColour(kv[2].replace(/var\(\s*--[\w-]+/g, "var("))) add((m.index ?? 0) + (kv.index ?? 0), kv[2]);
+    }
+  }
+  for (const m of source.matchAll(/\.setProperty\(\s*["'`]([^"'`]+)["'`]\s*,\s*["'`]([^"'`]*)["'`]/g)) {
+    const property = m[1];
+    const named = COLOUR_PROPERTIES.has(property) || property.startsWith("border") || property.startsWith("--");
+    if (named && hasNamedColour(m[2].replace(/var\(\s*--[\w-]+/g, "var("))) add(m.index ?? 0, m[2]);
+  }
+  return [...found.values()];
 }

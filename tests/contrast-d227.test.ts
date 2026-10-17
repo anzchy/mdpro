@@ -19,7 +19,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseDeclarations, tokenBlock } from "./support/cssTokenScan";
-import { themeTokens } from "./support/contrast";
+import { resolveColor, rootTokens, themeTokens } from "./support/contrast";
 
 const root = join(__dirname, "..");
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
@@ -94,8 +94,14 @@ describe("no form control in the app CSS keeps the hairline edge", () => {
 });
 
 describe("the toggle and the danger button keep their colours (accepted exceptions)", () => {
-  it("the off-track is the #ccc literal (deferred to WI-4.4)", () => {
-    expect(valueOf("src/styles/sections/settings-rows.css", ".toggle-slider", "background-color")).toBe("#ccc");
+  it("the off-track is --color-toggle-track-off at the accepted #ccc, in every block (D278, Q3)", () => {
+    expect(valueOf("src/styles/sections/settings-rows.css", ".toggle-slider", "background-color")).toBe(
+      "var(--color-toggle-track-off)",
+    );
+    const blocks = { root: rootTokens(), light: themeTokens("light"), dark: themeTokens("dark") };
+    for (const [name, tokens] of Object.entries(blocks)) {
+      expect(resolveColor("var(--color-toggle-track-off)", tokens), name).toEqual([204, 204, 204, 1]);
+    }
   });
 
   it("the danger label and its edge are --color-danger", () => {

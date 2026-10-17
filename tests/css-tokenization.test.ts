@@ -30,18 +30,23 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  blankRootBlocks,
+  blankTokenDeclarations,
   declaredTokens,
   scanCss,
+  scanTsColours,
   tokenBlock,
   type CssFinding,
 } from "./support/cssTokenScan";
+import { resolveColor, themeTokens, toHex } from "./support/contrast";
 
 const ROOT = join(__dirname, "..");
 const SRC = join(ROOT, "src");
 
-/** A5 exclusions: token definition files and the A8 dead-code candidate `App.css`. */
-const EXCLUDED = new Set(["App.css", "styles/themes/light.css", "styles/themes/dark.css"]);
+/**
+ * A5 file exclusions: none (D278). The token files are scanned too; only their
+ * token declarations are exempt (`blankTokenDeclarations`).
+ */
+const EXCLUDED = new Set<string>();
 
 const allCss = (readdirSync(SRC, { recursive: true }) as string[])
   .filter((p) => p.endsWith(".css"))
@@ -53,7 +58,7 @@ const declared = declaredTokens(allCss.map(read));
 
 /** The A5 findings of one in-scope file; `globals.css :root` is a token file. */
 function findingsOf(rel: string): CssFinding[] {
-  const css = rel === "styles/globals.css" ? blankRootBlocks(read(rel)) : read(rel);
+  const css = blankTokenDeclarations(read(rel));
   return scanCss(css, declared);
 }
 
@@ -133,15 +138,10 @@ const DEFERRED: Deferred[] = [
   d("components/BottomTabs/BottomTabs.css", ".bottom-tab__close", "font-size", "14px", 4, "WI-4.2"),
   d(S + "recovery-toast.css", ".toast-close", "font-size", "18px", 4, "WI-4.2"),
   d(S + "settings-mcp.css", ".mcp-status-badge", "border-radius", "12px", 4, "item 6 (WI-4.4)"),
-  d(S + "settings-mcp.css", ".mcp-status-badge.running", "background", "#dcfce7", 4, "item 6 (WI-4.4)"),
-  d(S + "settings-mcp.css", ".mcp-status-badge.running", "color", "#16a34a", 4, "item 6 (WI-4.4)"),
   d(S + "settings-mcp.css", ".mcp-copy-btn", "font-size", "14px", 4, "WI-4.2"),
   d(S + "settings-mcp.css", ".mcp-copy-btn.small", "font-size", "11px", 4, "WI-4.2"),
   d(S + "settings-mcp.css", ".mcp-client-status", "font-size", "16px", 4, "WI-4.2"),
-  d(S + "settings-pages.css", ".settings-dirty-banner", "background", "rgba(245, 158, 11, 0.12)", 4, "WI-4.3"),
-  d(S + "settings-pages.css", ".settings-dirty-banner", "border", "1px solid rgba(245, 158, 11, 0.4)", 4, "WI-4.3"),
   d(S + "settings-rows.css", ".settings-stepper button", "font-size", "16px", 4, "WI-4.2"),
-  d(S + "settings-rows.css", ".toggle-slider", "background-color", "#ccc", 4, "item 6 (WI-4.4)"),
   d(S + "settings-shell.css", ".settings-close", "font-size", "24px", 4, "WI-4.2"),
   d(S + "toc-sidebar.css", ".toc-entry__collapse-icon", "font-size", "10px", 4, "WI-4.2"),
 ];
@@ -173,7 +173,6 @@ const UNRENDERED: Unrendered[] = [
   u(S + "tab-bar.css", ".tab-bar__new-tab", "font-size", "18px", DEAD_TABBAR),
   u(S + "tab-bar.css", ".tab", "border-radius", "6px", DEAD_TABBAR),
   u(S + "tab-bar.css", ".tab", "transition", "background 0.15s ease, opacity 0.3s ease", DEAD_TABBAR),
-  u(S + "tab-bar.css", ".tab--active", "box-shadow", "0 1px 3px rgba(0, 0, 0, 0.08)", DEAD_TABBAR),
   u(S + "tab-bar.css", ".tab__title", "font-size", "13px", DEAD_TABBAR),
   u(S + "tab-bar.css", ".tab__close", "border-radius", "4px", DEAD_TABBAR),
   u(S + "tab-bar.css", ".tab__close", "font-size", "14px", DEAD_TABBAR),
@@ -184,7 +183,7 @@ const UNRENDERED: Unrendered[] = [
 
 /** Expected list sizes per stage and item; a list change has to update this too. */
 const DEFERRED_COUNTS: Record<string, number> = {
-  "stage 4": 15,
+  "stage 4": 10,
 };
 
 const keyOf = (r: Row) => `${r.file} | ${r.selector} | ${r.property} | ${r.value}`;
@@ -211,9 +210,10 @@ describe("scanner fixtures", () => {
     expect(count("@keyframes k { from { color: red; } to { opacity: 1; } }")).toBe(1);
   });
 
-  it("allows a var() fallback for a declared token and flags one for an undeclared token", () => {
-    expect(count(".a { color: var(--x, #fff); }", ["--x"])).toBe(0);
+  it("flags a colour fallback in var() whether or not the token is declared (D278, Q3)", () => {
+    expect(count(".a { color: var(--x, #fff); }", ["--x"])).toBe(1);
     expect(count(".a { color: var(--y, #fff); }", ["--x"])).toBe(1);
+    expect(count(".a { color: var(--x); }", ["--x"])).toBe(0);
   });
 
   it("flags a literal argument to color-mix() and allows one over var()s", () => {
@@ -221,8 +221,8 @@ describe("scanner fixtures", () => {
     expect(count(".a { background: color-mix(in srgb, var(--a) 10%, transparent); }")).toBe(0);
   });
 
-  it("allows an rgba() line directly before the same property in color-mix() (rule 31 fallback)", () => {
-    expect(count(".a { background: rgba(0, 0, 0, 0.1); background: color-mix(in srgb, var(--a) 10%, transparent); }")).toBe(0);
+  it("flags an rgba() line before the same property in color-mix(): no browser-fallback exemption (D278, Q3)", () => {
+    expect(count(".a { background: rgba(0, 0, 0, 0.1); background: color-mix(in srgb, var(--a) 10%, transparent); }")).toBe(1);
   });
 
   it("holds radii, z-index and motion to the allowlists", () => {
@@ -260,6 +260,108 @@ describe("scanner fixtures (audit b125)", () => {
   it("flags a signed motion time", () => {
     expect(count(".a { transition-delay: -0.2s; }")).toBe(1);
     expect(count(".a { animation-delay: -.5s; }")).toBe(1);
+  });
+});
+
+describe("scanner fixtures: every colour literal (D278, Q3 「Every literal, rgba too」)", () => {
+  const colours = (css: string) => scanCss(css).filter((x) => x.category === "colour").length;
+
+  it("checks hex and colour functions on every property", () => {
+    expect(colours(".a { text-shadow: 0 0 1px #fff; }")).toBe(1);
+    expect(colours(".a { background-image: linear-gradient(#fff, #000); }")).toBe(1);
+    expect(colours(".a { filter: drop-shadow(0 0 1px red); }")).toBe(1);
+    expect(colours(".a { mask: linear-gradient(rgb(0 0 0 / 50%), transparent); }")).toBe(1);
+  });
+
+  it("knows color() and the other colour functions", () => {
+    expect(colours(".a { color: color(display-p3 1 0 0); }")).toBe(1);
+    expect(colours(".a { color: oklch(0.6 0.1 200); }")).toBe(1);
+  });
+
+  it("scans custom properties declared outside the token blocks, named colours included", () => {
+    expect(colours(".a { --local: #fff; color: var(--local); }")).toBe(1);
+    expect(colours(".a { --c: red; color: var(--c); }")).toBe(1);
+    expect(colours(".a { --gap: 4px; }")).toBe(0);
+  });
+
+  it("knows the CSS system colours", () => {
+    expect(colours(".a { color: Canvas; }")).toBe(1);
+    expect(colours(".a { border-color: ButtonBorder; }")).toBe(1);
+  });
+
+  it("decodes SVG data URIs", () => {
+    expect(colours(`.a { background: url("data:image/svg+xml,%3Csvg fill='%23fff'%3E%3C/svg%3E"); }`)).toBe(1);
+    const b64 = Buffer.from("<svg><path fill='#fff'/></svg>").toString("base64");
+    expect(colours(`.a { background: url("data:image/svg+xml;base64,${b64}"); }`)).toBe(1);
+    expect(colours(`.a { background: url("data:image/svg+xml,<svg><stop style='stop-color:red'/></svg>"); }`)).toBe(1);
+    expect(colours(`.a { background: url("data:image/svg+xml,<svg><path fill='none'/></svg>"); }`)).toBe(0);
+  });
+
+  it("ignores quoted strings that are not colours", () => {
+    expect(colours('.a::before { content: "#"; }')).toBe(0);
+    expect(colours('.a::before { content: "#fff"; }')).toBe(0);
+  });
+
+  it("exempts token declarations in the token blocks only, not the files that hold them", () => {
+    const theme = ".theme-dark { --color-x: rgba(15, 18, 28, 0.6); }\n.theme-dark .x { color: rgba(15, 18, 28, 0.6); }";
+    expect(scanCss(blankTokenDeclarations(theme)).map((x) => x.selector)).toEqual([".theme-dark .x"]);
+    const root = ":root { --a: #fff; }\n@media (prefers-reduced-motion: reduce) { :root { --b: #000; } }\nbody { color: #fff; }";
+    expect(scanCss(blankTokenDeclarations(root)).map((x) => x.selector)).toEqual(["body"]);
+  });
+});
+
+describe("TS and TSX carry no colour literal (D278, Q3)", () => {
+  it("finds hex and colour functions in string and template literals, not in comments", () => {
+    expect(scanTsColours('const a = "#abcdef";')).toHaveLength(1);
+    expect(scanTsColours("const a = `rgba(0, 0, 0, ${x})`;")).toHaveLength(1);
+    expect(scanTsColours('// "#abcdef"\nconst a = "#root";')).toHaveLength(0);
+    expect(scanTsColours('const a = "#add-button";')).toHaveLength(0);
+  });
+
+  it("finds named colours where the value is a colour", () => {
+    expect(scanTsColours('<p style={{ color: "red" }} />')).toHaveLength(1);
+    expect(scanTsColours('el.style.setProperty("color", "red");')).toHaveLength(1);
+    expect(scanTsColours('el.style.setProperty("--x", "red");')).toHaveLength(1);
+    expect(scanTsColours('el.style.setProperty("--editor-font-family", "Menlo");')).toHaveLength(0);
+    expect(scanTsColours('<p style={{ color: "var(--color-muted)" }} />')).toHaveLength(0);
+  });
+
+  /** Literals written into the user's document, not app chrome: they must render outside mdpro. */
+  const DOCUMENT_CONTENT = [
+    {
+      file: "plugins/core/pluginConfig.ts",
+      literal: "#FF5582A6",
+      reason: "the highlight openTag, inserted into the user's Markdown (highlightPlugin.ts:37)",
+    },
+  ];
+
+  it("app source holds exactly the document-content literals", () => {
+    const sources = (readdirSync(SRC, { recursive: true }) as string[])
+      .map((p) => p.split("\\").join("/"))
+      .filter((p) => /\.(ts|tsx)$/.test(p))
+      .sort();
+    const found = sources.flatMap((p) => scanTsColours(read(p)).map((x) => `${p}: ${x.literal}`));
+    expect(found).toEqual(DOCUMENT_CONTENT.map((d) => `${d.file}: ${d.literal}`));
+  });
+
+  it("the highlight literal serialises like light --color-highlight", () => {
+    const literal = DOCUMENT_CONTENT[0].literal.toLowerCase();
+    expect(literal).toBe("#ff5582a6");
+    expect(toHex(resolveColor(themeTokens("light").get("--color-highlight") ?? "", themeTokens("light")))).toBe(literal);
+  });
+});
+
+describe("no listed literal is a colour (D278, Q3)", () => {
+  it("EXCEPTIONS, DEFERRED and UNRENDERED carry no colour value", () => {
+    const coloured = [...EXCEPTIONS, ...DEFERRED, ...UNRENDERED]
+      .filter((r) => scanCss(`.x { ${r.property}: ${r.value}; }`).some((x) => x.category === "colour"))
+      .map(keyOf);
+    expect(coloured).toEqual([]);
+  });
+
+  it("only the token declarations of the three token files are exempt", () => {
+    expect(EXCLUDED.size).toBe(0);
+    expect(inScope).toEqual(expect.arrayContaining(["styles/themes/light.css", "styles/themes/dark.css"]));
   });
 });
 
@@ -328,28 +430,24 @@ describe("theme parity (Q2)", () => {
 });
 
 describe("dead-code guard (A8, temporary)", () => {
-  // Delete this block when TODOS.md "Remove dead App.css and TabBar; fix rule
-  // 34's App.css claim" lands.
+  // D278 deleted App.css (「delete App.css, fold it into D278」). Delete this
+  // block when TODOS.md "Remove dead TabBar" lands.
   const sources = (readdirSync(SRC, { recursive: true }) as string[])
     .map((p) => p.split("\\").join("/"))
-    .filter((p) => /\.(tsx?|css)$/.test(p) && p !== "App.css" && !p.startsWith("components/TabBar/"));
+    .filter((p) => /\.(tsx?|css)$/.test(p) && !p.startsWith("components/TabBar/"));
   const importers = (pattern: RegExp) => [
     ...sources.filter((p) => pattern.test(read(p))),
     ...(pattern.test(readFileSync(join(ROOT, "index.html"), "utf8")) ? ["../index.html"] : []),
   ];
   const message =
-    'App.css and TabBar/ are A8 dead code; an import brings them into tokenization scope. See TODOS.md "Remove dead App.css and TabBar; fix rule 34\'s App.css claim".';
-
-  it("nothing imports src/App.css", () => {
-    expect(importers(/(import|@import)[^;\n]*["'][^"']*\bApp\.css["']/), message).toEqual([]);
-  });
+    'TabBar/ is A8 dead code; an import brings it into tokenization scope. See TODOS.md "Remove dead TabBar".';
 
   it("nothing imports src/components/TabBar/", () => {
     expect(importers(/(from|import)\s*\(?\s*["'][^"']*\/TabBar(\/[^"']*)?["']/), message).toEqual([]);
   });
 
-  it("the files it guards still exist", () => {
-    expect(existsSync(join(SRC, "App.css"))).toBe(true);
+  it("App.css is deleted and TabBar/ still exists (D278)", () => {
+    expect(existsSync(join(SRC, "App.css"))).toBe(false);
     expect(existsSync(join(SRC, "components/TabBar/TabBar.tsx"))).toBe(true);
   });
 });

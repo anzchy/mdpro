@@ -22,8 +22,8 @@
   gap: 8px;
   padding: 8px 12px;
   margin-bottom: 12px;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: color-mix(in srgb, var(--color-banner-unsaved) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-banner-unsaved) 40%, transparent);
   border-radius: var(--radius-control);
   font-size: var(--font-size-ui);
 }

@@ -26,7 +26,7 @@
      follows each theme's accent; theme files do not redefine it. */
   --color-focus-ring: var(--color-accent);
   --color-danger: #dc2626;
-  --color-danger-soft: color-mix(in srgb, #dc2626 12%, transparent);
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
   /* D257: error text on danger-soft, 5.37:1 (#dc2626 there is 4.01:1). Not
      --color-danger-text, which ADR-0106 reverted for the danger button. */
   --color-error-text: #b91c1c;
@@ -59,6 +59,13 @@
   --editor-font-size: 16px;
   --editor-line-height: 1.6;
 
+  /* D278 (user Q3, 「Every literal, rgba too」): today's literals as tokens, same value in every block.
+     The toggle's off-track holds the accepted A9 colour (ADR-0106); the other three are interim:
+     WI-4.4 item 6 deletes the running pair, WI-4.3 the banner colour. */
+  --color-toggle-track-off: #cccccc;
+  --color-running-fill: #dcfce7;
+  --color-running-text: #16a34a;
+  --color-banner-unsaved: #f59e0b;
   /* Settings fills (D278): light follows the surface and panel. */
   --color-group-bg: color-mix(in srgb, var(--color-surface) 80%, transparent);
   --color-input-bg: color-mix(in srgb, var(--color-panel) 90%, transparent);
