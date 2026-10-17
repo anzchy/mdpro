@@ -945,3 +945,13 @@ fn d261_emit_menu_action_supplies_managed_focus_live_labels_and_the_logger() {
         "the real logger: {last_arg}"
     );
 }
+
+#[test]
+fn d261_only_the_three_emitted_theme_actions_are_app_class() {
+    for action in ["theme.light", "theme.dark", "theme.system"] {
+        assert_eq!(classify(action), ActionClass::App, "{action}");
+    }
+    for action in ["theme.", "theme.bogus", "theme.dark ", "theme.Light"] {
+        assert_eq!(classify(action), ActionClass::Window, "{action:?}");
+    }
+}

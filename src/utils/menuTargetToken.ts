@@ -34,7 +34,13 @@
 import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
 import { getEditorGeneration } from "../stores/editorGeneration";
+import { useToastStore } from "../stores/toastStore";
 import { currentWindowLabel } from "./currentWindowLabel";
+
+/** Shown when a menu Save is refused because its document changed (D261). */
+export const STALE_SAVE_TOAST = "Document changed; not saved";
+/** Shown when a close prompt's Confirm is refused because its document changed (D261). */
+export const STALE_CLOSE_TOAST = "Document changed; nothing closed";
 
 /** Which window, document and editor a menu action was received against. */
 export interface MenuTargetToken {
@@ -96,18 +102,19 @@ export interface HighlightRequest {
  * `discardChanges`) and resolves true only if `storedToken`, the token stored
  * when the prompt opened, is still current. A null token (nothing was stored)
  * fails closed. Never captures a token of its own: one taken now would always
- * be current. Stale or null resolves false and logs `stage:"close_confirm"`.
+ * be current. Stale or null resolves false, logs `stage:"close_confirm"` and
+ * shows `STALE_CLOSE_TOAST`, so the refusal is not silent.
  */
 export async function confirmDocumentClose(
   storedToken: MenuTargetToken | null,
   closeActiveDocument: (discardChanges: boolean) => Promise<unknown>,
 ): Promise<boolean> {
   const actionId = loggingService.generateActionId();
-  if (storedToken === null) {
-    logStale(currentWindowLabel(), "close_confirm", actionId);
+  if (storedToken === null || abandonIfStale(storedToken, "close_confirm", actionId)) {
+    if (storedToken === null) logStale(currentWindowLabel(), "close_confirm", actionId);
+    useToastStore.getState().showToast(STALE_CLOSE_TOAST);
     return false;
   }
-  if (abandonIfStale(storedToken, "close_confirm", actionId)) return false;
   await closeActiveDocument(true);
   return true;
 }
@@ -115,7 +122,8 @@ export async function confirmDocumentClose(
 /**
  * The menu Save's entry check. Runs `run` (the save, which then commits by the
  * id it reads at entry) and resolves true only if `token` is current; a stale
- * or missing token saves nothing, resolves false and logs `stage:"save_entry"`.
+ * or missing token saves nothing, resolves false, logs `stage:"save_entry"`
+ * and shows `STALE_SAVE_TOAST` (rule 60: a save is never dropped silently).
  * Never captures a token of its own.
  */
 export async function saveIfCurrent(
@@ -124,11 +132,11 @@ export async function saveIfCurrent(
   run: () => Promise<unknown>,
 ): Promise<boolean> {
   const id = actionId ?? loggingService.generateActionId();
-  if (!token) {
-    logStale(currentWindowLabel(), "save_entry", id);
+  if (!token || abandonIfStale(token, "save_entry", id)) {
+    if (!token) logStale(currentWindowLabel(), "save_entry", id);
+    useToastStore.getState().showToast(STALE_SAVE_TOAST);
     return false;
   }
-  if (abandonIfStale(token, "save_entry", id)) return false;
   await run();
   return true;
 }

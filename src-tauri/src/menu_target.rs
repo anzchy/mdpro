@@ -115,10 +115,8 @@ pub enum ActionClass {
 /// included, is Window-class and so fails closed.
 pub fn classify(action: &str) -> ActionClass {
     match action {
-        "file.new" | "file.new_window" | "file.open" | "file.open_recent" | "file.preferences" => {
-            ActionClass::App
-        }
-        _ if action.starts_with("theme.") => ActionClass::App,
+        "file.new" | "file.new_window" | "file.open" | "file.open_recent" | "file.preferences"
+        | "theme.light" | "theme.dark" | "theme.system" => ActionClass::App,
         _ => ActionClass::Window,
     }
 }
