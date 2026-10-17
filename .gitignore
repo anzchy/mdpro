@@ -82,3 +82,6 @@ dist-release/
 # Session handoffs and device briefs in flight (D215). Each session keeps its own;
 # the committed record of a decision lives in docs/adr, docs/plans or docs/test.
 docs/pending/
+
+# Stitch API key for /stitch-design:upload-to-stitch. A secret: never commit it.
+.stitch-api-key
