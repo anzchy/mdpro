@@ -26,6 +26,7 @@
     "control:launch": "node scripts/control/launch.mjs",
     "control:quit": "node scripts/control/quit.mjs",
     "control:clean": "node scripts/control/clean.mjs",
+    "control:release-clean": "node scripts/control/releaseClean.mjs",
     "build:mac": "bash scripts/build-mac.sh",
     "build:mac:fast": "bash scripts/build-mac.sh --skip-tests --open",
     "build:windows": "bash scripts/build-windows.sh"
