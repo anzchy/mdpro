@@ -361,3 +361,16 @@ describe("D278-FIX-1 fixtures: P4 matches whole names, P5 rejects malformed mark
     expect(markerDefects(d, new Set(["--a", "--c"]), {})).toEqual(["--a: malformed marker", "--b: malformed marker"]);
   });
 });
+
+describe("D278-FIX-2 fixtures: a marker needs a WI id", () => {
+  const design = (rows: string) => `# x\n\n## Tokens\n\n| Token | Change |\n|---|---|\n${rows}\n\n## Layout\n`;
+
+  it("P5 names `Interim (WI- )` and `Planned (WI-)` as malformed", () => {
+    const d = design("| `--a` | Interim (WI- ) | x |\n| `--b` | Planned (WI-) | x |\n| `--c` | Interim (WI-4.3) | x |");
+    expect(markerDefects(d, new Set(["--a", "--c"]), {})).toEqual(["--a: malformed marker", "--b: malformed marker"]);
+  });
+
+  it("P2 does not honour a Planned marker with no id", () => {
+    expect(undeclaredRows(design("| `--b` | Planned (WI- ) | x |"), new Set())).toEqual(["--b"]);
+  });
+});

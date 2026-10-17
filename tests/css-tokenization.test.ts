@@ -484,3 +484,28 @@ describe("D278-FIX-1: the token exemption belongs to the token files and their o
     expect(scanTsColours('// el.style.setProperty("color", "red");\n/* <a style={{ color: "red" }} /> */\n')).toEqual([]);
   });
 });
+
+describe("D278-FIX-2: only a rule whose whole selector is the token block is exempt", () => {
+  const rogue = (selector: string) => `${selector} { --rogue: #fff; }\n.settings-dialog { color: var(--rogue); }`;
+  const props = (rel: string, css: string) => findingsIn(rel, css).map((x) => x.property);
+
+  it("a selector list ending in the block is scanned (audit H2 residual on PR #498)", () => {
+    expect(props("styles/themes/light.css", rogue(".settings-dialog, .theme-light"))).toEqual(["--rogue"]);
+    expect(props("styles/globals.css", rogue(".x,:root"))).toEqual(["--rogue"]);
+  });
+
+  it("a selector list starting with the block is scanned", () => {
+    expect(props("styles/themes/dark.css", rogue(".theme-dark, .settings-dialog"))).toEqual(["--rogue"]);
+  });
+
+  it("a compound or descendant selector containing the block is scanned", () => {
+    expect(props("styles/themes/light.css", rogue(".theme-light .x"))).toEqual(["--rogue"]);
+    expect(props("styles/themes/light.css", rogue(".x .theme-light"))).toEqual(["--rogue"]);
+    expect(props("styles/themes/light.css", rogue(".theme-light.x"))).toEqual(["--rogue"]);
+  });
+
+  it("the block itself stays exempt, after another rule and inside @media", () => {
+    expect(props("styles/themes/light.css", ".a { color: var(--x); }\n.theme-light { --x: #fff; }")).toEqual([]);
+    expect(props("styles/globals.css", "@media (prefers-reduced-motion: reduce) {\n  :root { --b: 0ms; --c: #000; }\n}")).toEqual([]);
+  });
+});

@@ -398,12 +398,16 @@ const TOKEN_BLOCKS: Record<string, string> = {
  * `css` with the custom-property declarations inside the `blocks` (default
  * `:root`, `.theme-light` and `.theme-dark`) blanked, newlines kept: token
  * values are exempt as declarations, and anything else is scanned (D278).
+ * Only a rule whose whole selector is the block counts: the selector must
+ * start after a `}`, a `{` (inside `@media`) or the start of the file, so a
+ * list (`.x, .theme-light`, `.theme-light, .x`) or a compound or descendant
+ * selector is scanned like any other rule (D278-FIX-2).
  */
 export function blankTokenDeclarations(css: string, blocks: readonly string[] = Object.values(TOKEN_BLOCKS)): string {
   const text = blankComments(css);
   let out = css;
   const heads = blocks.map((b) => b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  for (const m of text.matchAll(new RegExp(`(?:^|[\\s{}])(${heads})\\s*\\{`, "g"))) {
+  for (const m of text.matchAll(new RegExp(`(?:^|[{}])\\s*(${heads})\\s*\\{`, "g"))) {
     const open = (m.index ?? 0) + m[0].length;
     const close = text.indexOf("}", open);
     const body = text.slice(open, close).replace(/--[\w-]+\s*:[^;{}]*;?/g, (d) => d.replace(/[^\n]/g, " "));

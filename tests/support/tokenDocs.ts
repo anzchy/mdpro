@@ -24,7 +24,8 @@ export function tableRows(design: string): Map<string, string> {
   return rows;
 }
 
-export const MARKER = /\b(Planned|Interim) \((WI-[^)]+)\)/;
+/** `Planned (WI-…)` / `Interim (WI-…)`; the WI id starts with a digit, so `(WI- )` is not a marker (D278-FIX-2). */
+export const MARKER = /\b(Planned|Interim) \((WI-\d[^)]*)\)/;
 
 /** P2: rows naming an undeclared token without a `Planned` marker. */
 export function undeclaredRows(design: string, tokens: ReadonlySet<string>): string[] {
