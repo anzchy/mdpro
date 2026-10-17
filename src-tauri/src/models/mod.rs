@@ -1,3 +1,4 @@
+pub mod chord;
 pub mod document;
 pub mod draft;
 pub mod log_entry;
