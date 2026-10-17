@@ -13,12 +13,16 @@
 //!   resolved once at startup and fixed for the run (ADR-0114, M1a WI-4).
 //! - `verify_run` (ADR-0047 WI-002) exists only with the `verify-run` Cargo
 //!   feature, so a feature-off build carries no guard code.
+//! - `control_channel` (ADR-0047 WI-009) exists only with the
+//!   `control-channel` feature, likewise.
 
 pub mod app_exit;
 pub mod app_ready;
 pub mod applied_shortcuts;
 pub mod binding_conflicts;
 pub mod build_info;
+#[cfg(feature = "control-channel")]
+pub mod control_channel;
 pub mod draft;
 pub mod encoding;
 pub mod file_watcher;
