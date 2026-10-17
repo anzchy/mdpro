@@ -14,6 +14,8 @@ alone. Everything else in ADR-0085 stands.
 
 **Partially superseded** (2026-10-17): Decision's "the Fable auditor in `plan` mode" for ADR and plan reviews, now an Opus reviewer, by [ADR-0118](0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md). Fable keeps every PR audit, confirm and challenge.
 
+**Partially superseded** (2026-10-17): the unbounded fix-and-confirm loop, now capped at three rounds (an audit and two confirms) before the user rules, by [ADR-0120](0120-a-pre-landing-audit-runs-at-most-three-rounds-then-the-user-rules.md).
+
 ## Context
 
 - Since ADR-0085 (2026-10-12) one Codex audit (`/cc-suite:audit --mini`,

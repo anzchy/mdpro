@@ -252,7 +252,13 @@ handoff. Each item is tagged `prep` or `impl`.
    `confirm` mode), each scoped to every open finding from either side, not
    a fresh full audit (「Both, scoped (Recommended)」). One auditor's OPEN or
    PARTIAL is challenged like a one-sided finding. Then the verifier
-   re-checks by tree identity, and the delegator lands. A
+   re-checks by tree identity, and the delegator lands. **At most three
+   rounds**: the first audit and two confirms
+   ([ADR-0120](../../docs/adr/0120-a-pre-landing-audit-runs-at-most-three-rounds-then-the-user-rules.md);
+   user decision, 2026-10-17: 「规定以后codex audit最多2个round」, settled as
+   「Audit + 2 confirms」 for both auditors). A Critical or High still open after
+   round three gets no fourth round. The delegator brings it to the user, who
+   rules, and the ruling is quoted in the row. A
    partial fix does not land; deferring a Critical or High instead of fixing
    it needs the user's word, quoted in the row. Audits requested before
    2026-10-12 on already-landed ranges finish under the old order: a
