@@ -20,7 +20,8 @@ export type SuppressReason =
   | "customDuplicate"
   | "yieldedToCustom"
   | "unavailable"
-  | "unparseable";
+  | "unparseable"
+  | "physicalOverlap";
 
 export type Resolution =
   | { readonly kind: "bound"; readonly chord: string }

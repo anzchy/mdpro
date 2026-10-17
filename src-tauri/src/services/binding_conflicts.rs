@@ -10,8 +10,9 @@
 //!
 //! Pipeline: hard-owner index → classify each row (sentinel, unparseable,
 //! unavailable, default, custom) → customs vs hard owners and each other →
-//! defaults yield to bound customs → unavailable rows record who took their
-//! chord.
+//! defaults yield to bound customs → a bound row whose K8 physical key types
+//! another bound row's chord yields to it (`binding_conflicts_physical.rs`) →
+//! unavailable rows record who took their chord.
 //!
 //! Key decisions (matrix SD4–SD16):
 //! - "Custom" = the normal form differs from the row's default (SD4).
@@ -39,6 +40,8 @@ use std::sync::Arc;
 
 #[path = "binding_conflicts_owners.rs"]
 mod owners;
+#[path = "binding_conflicts_physical.rs"]
+mod physical;
 
 const UNASSIGNED: &str = "<unassigned>";
 const SYSTEM: &str = "<system>";
@@ -55,6 +58,7 @@ pub enum SuppressReason {
     YieldedToCustom,
     Unavailable,
     Unparseable,
+    PhysicalOverlap,
 }
 
 /// What one configurable row resolves to; the same JSON as TS `Resolution`.
@@ -141,12 +145,7 @@ pub fn resolve_with(
             continue;
         };
         let key = on(&row.key, platform);
-        let def = if v2 {
-            &key.defaults.v2
-        } else {
-            &key.defaults.v1
-        };
-        let def = def.as_deref().unwrap_or_default();
+        let def = key.default_at(v2).unwrap_or_default();
         let value = stored.get(&field).map_or(def, String::as_str);
         let avail = on(&row.availability, platform);
         let ov = overrides.get(&field).copied();
@@ -250,6 +249,7 @@ pub fn resolve_with(
             suppressed(SuppressReason::Unavailable, takers(e, &e.reserve), false),
         );
     }
+    physical::apply(&live, &mut out, &mut bound);
     let reservers = reservers.iter().map(|e| holder(e, &e.reserve)).collect();
     BindingState {
         resolutions: out,

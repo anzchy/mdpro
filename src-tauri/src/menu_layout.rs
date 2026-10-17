@@ -85,10 +85,14 @@ pub struct PerPlatform<T> {
     pub linux: T,
 }
 
+/// One value per defaults version. Both entries are required, even when `T`
+/// is an `Option` (`deserialize_with` turns off serde's missing-is-`None`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, bound(deserialize = "T: Deserialize<'de>"))]
 pub struct Versioned<T> {
+    #[serde(deserialize_with = "Deserialize::deserialize")]
     pub v1: T,
+    #[serde(deserialize_with = "Deserialize::deserialize")]
     pub v2: T,
 }
 
@@ -113,13 +117,58 @@ pub enum KeyKind {
     Fixed,
 }
 
-/// A key per version. `defaults` is `null` only on a fixed key with no chord.
+/// A key per version. `defaults` is `null` only on a fixed key with no chord;
+/// a configurable key has a string at both versions, as the TS schema says
+/// (audit b186 F2), and the parse refuses anything else.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "RawKeySpec")]
 pub struct KeySpec {
     pub kind: KeyKind,
     pub defaults: Versioned<Option<String>>,
     pub secondaries: Versioned<Vec<String>>,
+}
+
+/// `KeySpec` as written in the file, before the configurable-default check.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawKeySpec {
+    kind: KeyKind,
+    defaults: Versioned<Option<String>>,
+    secondaries: Versioned<Vec<String>>,
+}
+
+impl TryFrom<RawKeySpec> for KeySpec {
+    type Error = String;
+
+    fn try_from(raw: RawKeySpec) -> Result<Self, String> {
+        let RawKeySpec {
+            kind,
+            defaults,
+            secondaries,
+        } = raw;
+        let unset = defaults.v1.is_none() || defaults.v2.is_none();
+        match kind {
+            KeyKind::Configurable if unset => {
+                Err("a configurable key needs a string default at v1 and v2".to_string())
+            }
+            KeyKind::Configurable | KeyKind::Fixed => Ok(KeySpec {
+                kind,
+                defaults,
+                secondaries,
+            }),
+        }
+    }
+}
+
+impl KeySpec {
+    /// The default for one defaults version (`v2` true selects v2).
+    pub fn default_at(&self, v2: bool) -> Option<&str> {
+        if v2 {
+            self.defaults.v2.as_deref()
+        } else {
+            self.defaults.v1.as_deref()
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -198,3 +247,7 @@ pub fn menu_layout() -> Result<&'static MenuLayout, String> {
 #[cfg(test)]
 #[path = "menu_layout_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "menu_layout_reject_tests.rs"]
+mod reject_tests;

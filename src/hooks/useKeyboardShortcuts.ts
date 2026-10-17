@@ -25,15 +25,20 @@ export type { TableShortcutAction } from "./useKeyboardShortcuts.types";
 // never a shortcut modifier.
 const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
 
-// Off-Mac second pass (audit b121): events being re-dispatched with the
-// Shift-typed symbol fallback, and events some binding has matched.
+// Dispatch passes: 1 logical only; 2 the K8 physical-key match, only when no
+// binding matched logically, so a logical match on any binding beats a
+// physical one on any other (audit b186 F1); 3 off-Mac, the Shift-typed
+// symbol fallback (audit b121). The sets mark the pass an event is in and
+// whether some binding has matched it.
+const physicalPass = new WeakSet<KeyboardEvent>();
 const relaxedPass = new WeakSet<KeyboardEvent>();
 const matched = new WeakSet<KeyboardEvent>();
 
 /** Match one keydown against one binding (src/utils/shortcutMatch.ts), feeding
- *  this hook's off-Mac second-pass state in and recording a hit for it. */
+ *  this hook's pass state in and recording a hit for the next pass. */
 function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
-  const hit = matchKeyEvent(event, shortcut, { isMac, relaxed: relaxedPass.has(event) });
+  const opts = { isMac, relaxed: relaxedPass.has(event), physical: physicalPass.has(event) };
+  const hit = matchKeyEvent(event, shortcut, opts);
   if (hit) matched.add(event);
   return hit;
 }
@@ -178,6 +183,9 @@ export function useKeyboardShortcuts({
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
+      dispatch(event);
+      if (matched.has(event)) return;
+      physicalPass.add(event);
       dispatch(event);
       if (isMac || matched.has(event)) return;
       relaxedPass.add(event);

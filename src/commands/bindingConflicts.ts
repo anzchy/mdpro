@@ -11,8 +11,9 @@
  * Pipeline: hard-owner index (fixed keys and secondaries, reserved chords,
  * the editor inventory) → classify each row (sentinel, unparseable,
  * unavailable, default, custom) → customs vs hard owners and each other →
- * defaults yield to bound customs → unavailable rows record who took their
- * chord.
+ * defaults yield to bound customs → a bound row whose K8 physical key types
+ * another bound row's chord yields to it (`physicalOverlap.ts`) →
+ * unavailable rows record who took their chord.
  *
  * Key decisions (matrix SD4–SD16):
  * - "Custom" = the normal form differs from the row's default (SD4).
@@ -32,6 +33,7 @@ import { COMMAND_TABLE } from "./commandTable";
 import type { Availability, CommandRow, OwnershipContext, Platform } from "./commandTable.types";
 import { normaliseStored } from "./chord";
 import { EDITOR_OWNED_CHORDS } from "./editorOwnedChords";
+import { physicallyShadowedBy } from "./physicalOverlap";
 import { RESERVED_CHORDS } from "./reservedChords";
 import { type HardOwner, hardOwnerIndex, minId, secondaryOwners, topOwner } from "./bindingOwners";
 import type {
@@ -144,6 +146,15 @@ export function resolveWith(
     out[e.field] = by.length > 0
       ? suppressed({ kind: "suppressed", reason: "yieldedToCustom", conflictsWith: sorted(by), flagged: false })
       : { kind: "bound", chord: e.chord ?? "" };
+  }
+  const preBound = live.filter((e) => out[e.field]?.kind === "bound");
+  for (const a of preBound) {
+    const by = preBound.filter(
+      (b) => b !== a && (a.custom || b.custom) && intersects(a.active, b.active) && physicallyShadowedBy(a.chord ?? "", b.chord ?? ""),
+    );
+    if (by.length === 0) continue;
+    const ids = sorted(by.map((b) => b.row.id));
+    out[a.field] = suppressed({ kind: "suppressed", reason: "physicalOverlap", conflictsWith: ids, flagged: true });
   }
   for (const e of reservers) {
     const by = sorted(takers(e, e.reserve));

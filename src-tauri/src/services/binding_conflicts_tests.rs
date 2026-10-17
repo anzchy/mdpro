@@ -134,7 +134,7 @@ fn guards_46_cases_three_platforms_eight_reasons() {
         .collect();
     reasons.sort();
     reasons.dedup();
-    assert_eq!(reasons.len(), 8, "{reasons:?}");
+    assert_eq!(reasons.len(), 9, "{reasons:?}");
 }
 
 #[test]

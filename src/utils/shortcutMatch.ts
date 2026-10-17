@@ -7,11 +7,13 @@
  * K8 (plan M1A-WI-9b): a binding with Shift whose key is a digit or a
  * non-letter symbol also matches on the key's physical `event.code`, so ⇧⌘0
  * reaches "Cmd+Shift+0" whether the layout types ")" (US) or "=" (German).
- * The code match sits in the exact pass, so a Shift binding wins before the
- * off-Mac relaxed pass runs.
+ * The code match runs only when `physical` is set: the hook runs a logical
+ * pass over every binding first, so a logical match on any binding beats a
+ * physical match on any other (audit b186 F1), and the physical pass still
+ * runs before the off-Mac relaxed pass.
  *
  * @coordinates-with src/hooks/useKeyboardShortcuts.ts — the only caller; it
- *   decides `relaxed` and records hits for the off-Mac second pass
+ *   decides `relaxed` and `physical` and records hits between its passes
  */
 
 /** The parts of a KeyboardEvent the matcher reads. */
@@ -24,6 +26,9 @@ export interface MatchOptions {
   readonly isMac: boolean;
   /** The off-Mac second pass, run only when no binding matched exactly. */
   readonly relaxed: boolean;
+  /** K8: also match a Shift binding on its physical `event.code`. Omitted
+   *  means true (K8's original contract); the hook always passes it. */
+  readonly physical?: boolean;
 }
 
 /** K8: the physical `event.code` of each digit and non-letter symbol key. */
@@ -51,15 +56,16 @@ const PHYSICAL_CODE: ReadonlyMap<string, string> = new Map([
  *  Shift check. The pass runs only when no binding matched exactly, so a
  *  binding that wants the Shift wins (audit b121).
  *
- *  A Shift binding on a digit or symbol key also matches the key's physical
- *  `event.code` (K8), so the shifted character the layout produces does not
- *  matter; modifiers stay exact and letters never match by code.
+ *  With `physical`, a Shift binding on a digit or symbol key also matches the
+ *  key's physical `event.code` (K8), so the shifted character the layout
+ *  produces does not matter; modifiers stay exact and letters never match by
+ *  code.
  *
  *  Key tokens: uppercase letters/digits map case-insensitively; arrow
  *  abbreviations (Up/Down/Left/Right) map to ArrowX; "Space" maps to " ".
  */
 export function matchesShortcut(event: KeyLike, shortcut: string, opts: MatchOptions): boolean {
-  const { isMac, relaxed } = opts;
+  const { isMac, relaxed, physical: byCode = true } = opts;
   const parts = shortcut.split("+");
   let wantCmd = false,
     wantCtrl = false,
@@ -109,7 +115,7 @@ export function matchesShortcut(event: KeyLike, shortcut: string, opts: MatchOpt
   // known to be held here, so a binding without Shift never matches by code.
   // An event without a code (undefined or "") never takes this path.
   const physical = PHYSICAL_CODE.get(normalizedKey);
-  if (wantShift && physical !== undefined && event.code === physical) return true;
+  if (byCode && wantShift && physical !== undefined && event.code === physical) return true;
 
   // Single-character keys: compare case-insensitively
   return normalizedKey.length === 1

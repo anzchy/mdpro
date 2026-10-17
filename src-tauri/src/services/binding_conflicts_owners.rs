@@ -120,7 +120,8 @@ fn precedence(reason: SuppressReason) -> u8 {
         | SuppressReason::CustomDuplicate
         | SuppressReason::YieldedToCustom
         | SuppressReason::Unavailable
-        | SuppressReason::Unparseable => 3,
+        | SuppressReason::Unparseable
+        | SuppressReason::PhysicalOverlap => 3,
     }
 }
 

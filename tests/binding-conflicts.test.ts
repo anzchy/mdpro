@@ -35,7 +35,7 @@ const TEXT = readFileSync(FIXTURE_PATH, "utf8");
 const RAW: unknown = JSON.parse(TEXT);
 const { cases: CASES } = loadBindingFixture(RAW);
 const ver = (v: number) => (v >= 2 ? "v2" : "v1");
-const REASONS = ["fixed", "native", "reserved", "editorOwned", "customDuplicate", "yieldedToCustom", "unavailable", "unparseable"];
+const REASONS = ["fixed", "native", "reserved", "editorOwned", "customDuplicate", "yieldedToCustom", "unavailable", "unparseable", "physicalOverlap"];
 
 const stateOf = (c: BindingCase, tables: BindingTables = TABLES) =>
   resolveWith(tables, c.platform, c.defaultsVersion, c.stored, c.availabilityOverride ?? {});

@@ -12,7 +12,8 @@
  *
  * Key decisions:
  * - Refused: a custom duplicate, a custom on a fixed / native / reserved /
- *   editor-owned chord, a custom taking an available row's default.
+ *   editor-owned chord, a custom taking an available row's default, and a
+ *   K8 physical overlap with a custom side (US/German layouts only).
  * - Allowed: default vs default (v1 data defects), default vs editor-owned,
  *   custom vs an unavailable row's default (ADR-0114 Decision 5). The
  *   filter never flags those, so nothing here has to exempt them.
@@ -25,12 +26,13 @@
  */
 import { displayedShortcut, isMacPlatform, isWindowsPlatform } from "../utils/platformLabels";
 import { resolveBindings } from "./bindingConflicts";
-import type { BindingField } from "./bindingConflicts.types";
+import { assertNever } from "./assertNever";
+import type { BindingField, SuppressReason } from "./bindingConflicts.types";
 import { normaliseStored } from "./chord";
 import { rowById, rowByPrefField } from "./commandTable";
 import type { CommandRow, Platform } from "./commandTable.types";
 
-export type SettingsConflictKind = "hard" | "duplicate" | "takesDefault";
+export type SettingsConflictKind = "hard" | "duplicate" | "takesDefault" | "physicalOverlap";
 
 /** One field whose value refuses Save. */
 export interface SettingsConflict {
@@ -103,6 +105,26 @@ function nameOf(id: string, p: Platform, labels: SettingsLabels): string {
 
 const fieldOf = (id: string): BindingField | null => rowById(id)?.prefField ?? null;
 
+/** The Settings kind of a flagged suppression (never called for `unparseable`). */
+function conflictKind(reason: SuppressReason): SettingsConflictKind {
+  switch (reason) {
+    case "customDuplicate":
+      return "duplicate";
+    case "physicalOverlap":
+      return "physicalOverlap";
+    case "fixed":
+    case "native":
+    case "reserved":
+    case "editorOwned":
+    case "yieldedToCustom":
+    case "unavailable":
+    case "unparseable":
+      return "hard";
+    default:
+      return assertNever(reason);
+  }
+}
+
 /**
  * The conflicts in `local` (the stored map Settings is editing) on
  * `platform` at defaults `version`. `labels` names the shown fields.
@@ -147,9 +169,10 @@ export function findSettingsConflicts(
     const sides = [field, ...otherFields];
     const visible = sides.some(shown);
     if (r.flagged && r.reason !== "unparseable") {
-      const kind: SettingsConflictKind = r.reason === "customDuplicate" ? "duplicate" : "hard";
+      const kind = conflictKind(r.reason);
       if (visible) refuse(field, kind, r.conflictsWith);
       else if (kind === "duplicate") notice(`dup:${normaliseStored(valueOf(field), platform) ?? ""}`, sides, [], field);
+      else if (kind === "physicalOverlap") notice(`overlap:${field}`, sides, [], field);
       else notice(`hard:${field}`, [field], r.conflictsWith.filter((id) => fieldOf(id) === null), field);
     } else if (r.reason === "yieldedToCustom") {
       const yielderId = idOf(field);
@@ -174,6 +197,9 @@ export function settingsConflictLines(
     const chord = displayedShortcut(c.field, c.value, isMac);
     const others = c.names.join(" and ");
     if (c.kind === "hard") alerts.push(`${c.name} conflicts with ${others}, not active`);
+    else if (c.kind === "physicalOverlap") {
+      alerts.push(`${chord}: ${c.name} is the same key as ${others} on some keyboard layouts, not active`);
+    }
     else if (c.kind === "takesDefault") alerts.push(`${chord}: ${c.name} would take ${others}'s key`);
     else {
       const key = normaliseStored(c.value, platform) ?? c.value;
