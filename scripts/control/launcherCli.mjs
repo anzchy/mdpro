@@ -45,7 +45,7 @@ const EXIT_FAIL = 1;
 /** The one-line synopsis per verb; the usage line is `usage: <synopsis>`. */
 export const SYNOPSIS = {
   doctor: "pnpm control:doctor",
-  launch: "pnpm control:launch [--into <run>] [--via open] [--view-mode source|wysiwyg] [<file>]",
+  launch: "pnpm control:launch [--into <run>] [--via open] [--view-mode source|wysiwyg] [--control on|eval] [<file>]",
   quit: "pnpm control:quit [<run>]",
   clean: "pnpm control:clean <run>",
 };
