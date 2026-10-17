@@ -12,6 +12,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LOCAL_STACKING, type Layer, inlineZIndex, zIndexDeclarations, zIndexDrift, zIndexTable } from "./support/zIndexGuard";
+import { inventoryDefects, sourceInventory } from "./support/zIndexGuard";
 
 const ROOT = join(__dirname, "..");
 const SRC = join(ROOT, "src");
@@ -174,5 +175,158 @@ describe("D277-FIX-1: every unstruck table row names its selectors", () => {
   it("exempts only Base and the (reserved) row", () => {
     expect(() => zIndexTable(md("| Overlay | `auto` | Editor chrome |"))).toThrow(/Overlay/);
     expect(zIndexTable(md("| Tooltip | `50` | `.tooltip` |")).map((l) => l.layer)).toEqual(["Toast", "Tooltip"]);
+  });
+});
+
+// D277-FIX-2 (Codex confirm on 14552a34): the guard fails closed on whatever it does not model.
+describe("D277-FIX-2: the source inventory is closed", () => {
+  it("rejects any extension outside .ts, .tsx, .css and .svg", () => {
+    const inv = sourceInventory([
+      "src/a.js",
+      "src/b.mts",
+      "src/c.ts",
+      "src/d.css",
+      "src/e.svg",
+      "src/f.d.ts",
+      "src/g.tsx",
+      "src/h.jsx",
+      "src/i.cts",
+    ]);
+    expect(inv.rejected).toEqual([
+      "src/a.js",
+      "src/b.mts",
+      "src/h.jsx",
+      "src/i.cts",
+    ]);
+    expect(inv.ts).toEqual(["src/c.ts", "src/f.d.ts", "src/g.tsx"]);
+  });
+
+  it("an empty inventory is a defect", () => {
+    expect(inventoryDefects(sourceInventory([]))).toEqual([
+      "no TS or TSX source found",
+      "no CSS found",
+    ]);
+  });
+
+  it("src/ itself: nothing rejected, both inventories non-empty, no inline z-index anywhere", () => {
+    const files = (
+      readdirSync(SRC, {
+        recursive: true,
+        withFileTypes: true,
+      }) as import("node:fs").Dirent[]
+    )
+      .filter((d) => d.isFile() && d.name !== ".DS_Store")
+      .map((d) => join(d.parentPath, d.name));
+    const inv = sourceInventory(files);
+    expect(inv.rejected).toEqual([]);
+    expect(inventoryDefects(inv)).toEqual([]);
+    expect(
+      inv.ts.flatMap((f) => inlineZIndex(readFileSync(f, "utf8"), f)),
+    ).toEqual([]);
+    expect(
+      inv.svg.filter((f) => /z-?index/i.test(readFileSync(f, "utf8"))),
+    ).toEqual([]);
+  });
+});
+
+describe("D277-FIX-2: TS and TSX fail closed", () => {
+  const caught = (src: string, file = "a.ts") =>
+    expect(inlineZIndex(src, file)).not.toEqual([]);
+
+  it("a quoted zIndex key or element access", () => {
+    caught('el.style["zIndex"] = "9999";');
+    caught('const s = { "zIndex": 9999 };');
+  });
+
+  it("a z-index built from pieces", () => {
+    caught('el.style.setProperty("z-" + "index", "5");');
+    caught('el.style.setProperty(`z-${"index"}`, "5");');
+    caught('el.style.cssText = "position: fixed; z-" + "index: 5";');
+    caught('Object.assign(el.style, { ["z" + "Index"]: 5 });');
+  });
+
+  it("setProperty with a non-literal name, and style[...] with a non-literal key", () => {
+    caught('el.style.setProperty(name, "5");');
+    caught('el.style[key] = "5";');
+  });
+
+  it("a file that does not parse", () => {
+    caught("export const A = () => <div>; el.style.zIndex = 9999;", "a.tsx");
+    caught("const a = <div>;", "a.tsx");
+  });
+
+  it("literal property names that are not z-index pass", () => {
+    expect(
+      inlineZIndex(
+        'el.style.setProperty("color", "red"); el.style["color"] = "x"; const o = { "a-b": 1 };',
+        "a.ts",
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("D277-FIX-2: CSS at-rules are on an allowlist", () => {
+  it("@scope, @supports, @layer and @container throw", () => {
+    for (const css of [
+      "@scope (.unlisted-parent) { .toast { z-index: 30; } }",
+      "@supports (display: grid) { .toast { z-index: 30; } }",
+      "@layer base;",
+      "@container (min-width: 1px) { .toast { z-index: 30; } }",
+      "@SCOPE (.p) { .toast { z-index: 30; } }",
+    ]) {
+      expect(() => zIndexDeclarations({ "x.css": css }), css).toThrow(
+        /at-rule/,
+      );
+    }
+  });
+
+  it("@import, @media and @keyframes are read", () => {
+    const css =
+      '@import "./a.css";\n@media (max-width: 1px) { .toast { z-index: 30; } }\n@keyframes k { from { opacity: 0; } }';
+    expect(zIndexDeclarations({ "x.css": css }).map((d) => d.selector)).toEqual(
+      [".toast"],
+    );
+  });
+});
+
+describe("D277-FIX-2: every table row is well formed", () => {
+  const md = (row: string) =>
+    [
+      "## Z-index hierarchy",
+      "| Layer | z-index | Used by |",
+      "|---|---|---|",
+      "| Base | `auto` | Editor |",
+      "| Toast | `30` | `.toast` |",
+      row,
+    ].join("\n");
+
+  it("a row with other than three cells throws", () => {
+    expect(() =>
+      zIndexTable(md("| Tooltip | `9999` | `.tooltip` | extra |")),
+    ).toThrow(/3 cells/);
+    expect(() => zIndexTable(md("| Tooltip | `9999` |"))).toThrow(/3 cells/);
+  });
+
+  it("strike-through must wrap the layer and value cells whole", () => {
+    expect(() => zIndexTable(md("| ~~Tooltip | `50` | `.tooltip` |"))).toThrow(
+      /~~/,
+    );
+    expect(() =>
+      zIndexTable(md("| ~~Tooltip~~ | `50` | `.tooltip` |")),
+    ).toThrow(/~~/);
+    expect(() =>
+      zIndexTable(md("| Tooltip | `50` | ~~`.tooltip`~~ |")),
+    ).toThrow(/~~/);
+    expect(
+      zIndexTable(
+        md("| ~~Old~~ | ~~`100`~~ | none: `.gone` was removed |"),
+      ).map((l) => l.layer),
+    ).toEqual(["Toast"]);
+  });
+
+  it("a value that is not auto or a whole number throws", () => {
+    expect(() => zIndexTable(md("| Tooltip | `high` | `.tooltip` |"))).toThrow(
+      /value/,
+    );
   });
 });
