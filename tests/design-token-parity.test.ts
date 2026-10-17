@@ -347,3 +347,17 @@ describe("D278-WI-3 fixtures: the sidecar gate catches its defects", () => {
     expect(() => splitSidecar("# no front matter\n")).toThrow(/front matter/);
   });
 });
+
+describe("D278-FIX-1 fixtures: P4 matches whole names, P5 rejects malformed markers", () => {
+  const design = (rows: string) => `# x\n\n## Tokens\n\n| Token | Change |\n|---|---|\n${rows}\n\n## Layout\n`;
+
+  it("P4 does not count var(--ab) or \"--ab\" as consuming --a", () => {
+    expect(unconsumed(["--a", "--ab"], ["x { color: var(--ab); }", 'el.style.setProperty("--ab", v)'])).toEqual(["--a"]);
+    expect(unconsumed(["--a"], ["x { color: var(--a, #fff); }"])).toEqual([]);
+  });
+
+  it("P5 names a marker keyword without a WI", () => {
+    const d = design("| `--a` | Interim | x |\n| `--b` | Planned: soon | x |\n| `--c` | Interim (WI-4.3) | x |");
+    expect(markerDefects(d, new Set(["--a", "--c"]), {})).toEqual(["--a: malformed marker", "--b: malformed marker"]);
+  });
+});

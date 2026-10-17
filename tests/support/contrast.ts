@@ -103,6 +103,16 @@ export function contrast(a: Rgba, b: Rgba): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/**
+ * True when two colours are the same: channels within float noise (a mix's
+ * arithmetic, e.g. 37 × 0.8 + 26 × 0.2), alpha exactly, because D278's
+ * parity contract keeps alpha and `0.5999999` is not `0.6` (D278-FIX-1).
+ */
+export function rgbaEquals(actual: Rgba, expected: Rgba): boolean {
+  const CHANNEL_NOISE = 1e-9;
+  return [0, 1, 2].every((i) => Math.abs(actual[i] - expected[i]) < CHANNEL_NOISE) && actual[3] === expected[3];
+}
+
 /** `c` as lowercase hex: `#rrggbb` when opaque, `#rrggbbaa` otherwise (D278). */
 export function toHex(c: Rgba): string {
   const byte = (n: number) => Math.min(255, Math.max(0, Math.round(n))).toString(16).padStart(2, "0");

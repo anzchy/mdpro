@@ -19,14 +19,17 @@
  *   colours inside an SVG `data:` URI (percent-encoded or base64). There is
  *   no browser-fallback exemption any more. `color-mix()` is scanned like
  *   any other value, so a literal argument inside it is a finding.
- * - Token values are exempt only as declarations: `blankTokenDeclarations`
- *   blanks the custom properties inside `:root`, `.theme-light` and
- *   `.theme-dark` blocks, and the rest of those files is scanned.
+ * - Token values are exempt only as declarations, and only in the token
+ *   files: `exemptTokenDeclarations(rel, css)` blanks the custom properties
+ *   inside `globals.css :root`, `light.css .theme-light` and
+ *   `dark.css .theme-dark`, and scans everything else, a `:root` block in a
+ *   section file included (D278-FIX-1).
  * - Custom-property declarations outside the token blocks are scanned like
  *   any other (`parseDeclarations(css, { customProperties: true })`).
  * - `scanTsColours` is the TS/TSX pass: colour literals in string and
- *   template literals, and named colours in inline style objects and
- *   `style.setProperty` values.
+ *   template literals (a colour function whatever its first argument), and
+ *   named colours in inline style objects and `style.setProperty` values
+ *   outside comments.
  * - A `font` shorthand passes only when its size and its family are each a
  *   `var()`, and a whole-value `var(--x, fallback)` counts as a token only
  *   when `--x` is declared (audit b125).
@@ -384,21 +387,39 @@ export function scanCss(css: string, declared?: ReadonlySet<string>): CssFinding
   });
 }
 
+/** The token block each token file may declare tokens in (rule 31), keyed by its path under `src/`. */
+const TOKEN_BLOCKS: Record<string, string> = {
+  "styles/globals.css": ":root",
+  "styles/themes/light.css": ".theme-light",
+  "styles/themes/dark.css": ".theme-dark",
+};
+
 /**
- * `css` with the custom-property declarations inside `:root`, `.theme-light`
- * and `.theme-dark` blocks blanked (newlines kept): token values are exempt
- * as declarations, and anything else in the token files is scanned (D278).
+ * `css` with the custom-property declarations inside the `blocks` (default
+ * `:root`, `.theme-light` and `.theme-dark`) blanked, newlines kept: token
+ * values are exempt as declarations, and anything else is scanned (D278).
  */
-export function blankTokenDeclarations(css: string): string {
+export function blankTokenDeclarations(css: string, blocks: readonly string[] = Object.values(TOKEN_BLOCKS)): string {
   const text = blankComments(css);
   let out = css;
-  for (const m of text.matchAll(/(?:^|[\s{}])(:root|\.theme-light|\.theme-dark)\s*\{/g)) {
+  const heads = blocks.map((b) => b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  for (const m of text.matchAll(new RegExp(`(?:^|[\\s{}])(${heads})\\s*\\{`, "g"))) {
     const open = (m.index ?? 0) + m[0].length;
     const close = text.indexOf("}", open);
     const body = text.slice(open, close).replace(/--[\w-]+\s*:[^;{}]*;?/g, (d) => d.replace(/[^\n]/g, " "));
     out = out.slice(0, open) + body + out.slice(close);
   }
   return out;
+}
+
+/**
+ * `css`, the file `rel` (relative to `src/`), with its token declarations
+ * exempted: only the three token files, and in each only its own block, so a
+ * `:root { --x: #fff }` in a section file is still a finding (D278-FIX-1).
+ */
+export function exemptTokenDeclarations(rel: string, css: string): string {
+  const block = TOKEN_BLOCKS[rel];
+  return block ? blankTokenDeclarations(css, [block]) : css;
 }
 
 /** Every custom property name (`--x`) declared anywhere in `cssTexts`. */
@@ -421,19 +442,27 @@ export function tokenBlock(css: string, selector: string): Map<string, string> {
   return out;
 }
 
-/** The string and template literals of TS source with their start offsets, comments and regex literals skipped. */
-function tsStrings(src: string): { at: number; text: string }[] {
+/**
+ * The string and template literals of TS source with their start offsets,
+ * comments and regex literals skipped, and the comment ranges `[start, end)`.
+ */
+function tsScan(src: string): { strings: { at: number; text: string }[]; comments: [number, number][] } {
   const out: { at: number; text: string }[] = [];
+  const comments: [number, number][] = [];
   let prev = "";
   for (let i = 0; i < src.length; i += 1) {
     const ch = src[i];
     if (ch === "/" && src[i + 1] === "/") {
+      const start = i;
       i = src.indexOf("\n", i);
+      comments.push([start, i < 0 ? src.length : i]);
       if (i < 0) break;
       continue;
     }
     if (ch === "/" && src[i + 1] === "*") {
+      const start = i;
       i = src.indexOf("*/", i + 2) + 1;
+      comments.push([start, i <= 0 ? src.length : i + 1]);
       if (i <= 0) break;
       continue;
     }
@@ -457,6 +486,13 @@ function tsStrings(src: string): { at: number; text: string }[] {
     }
     if (!/\s/.test(ch)) prev = ch;
   }
+  return { strings: out, comments };
+}
+
+/** `src` with its comments blanked, newlines and offsets kept. */
+function blankTsComments(src: string, comments: [number, number][]): string {
+  let out = src;
+  for (const [a, b] of comments) out = out.slice(0, a) + out.slice(a, b).replace(/[^\n]/g, " ") + out.slice(b);
   return out;
 }
 
@@ -473,18 +509,22 @@ export function scanTsColours(source: string): { line: number; literal: string }
   const lineAt = (at: number) => source.slice(0, at).split("\n").length;
   const found = new Map<string, { line: number; literal: string }>();
   const add = (at: number, literal: string) => found.set(`${at}:${literal}`, { line: lineAt(at), literal });
-  for (const { at, text } of tsStrings(source)) {
+  const { strings, comments } = tsScan(source);
+  // The named-colour passes read code only: a colour in a comment is not a literal (D278-FIX-1).
+  const code = blankTsComments(source, comments);
+  for (const { at, text } of strings) {
     for (const m of text.matchAll(HEX)) add(at, m[0]);
-    for (const m of text.matchAll(/\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(\s*[\d.]|\bcolor\(\s*(?:srgb|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz)/gi)) add(at, m[0]);
+    // Any argument, signed or interpolated: `hsl(-20 …)` and `rgb(${r}, …)` are colours too (D278-FIX-1).
+    for (const m of text.matchAll(/\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(|\bcolor\(\s*(?:srgb|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz)/gi)) add(at, m[0]);
   }
-  for (const m of source.matchAll(/style=\{\{([\s\S]*?)\}\}/g)) {
+  for (const m of code.matchAll(/style=\{\{([\s\S]*?)\}\}/g)) {
     for (const kv of m[1].matchAll(/(\w+)\s*:\s*["'`]([^"'`]*)["'`]/g)) {
       const property = kebab(kv[1]);
       const named = COLOUR_PROPERTIES.has(property) || property.startsWith("border");
       if (named && hasNamedColour(kv[2].replace(/var\(\s*--[\w-]+/g, "var("))) add((m.index ?? 0) + (kv.index ?? 0), kv[2]);
     }
   }
-  for (const m of source.matchAll(/\.setProperty\(\s*["'`]([^"'`]+)["'`]\s*,\s*["'`]([^"'`]*)["'`]/g)) {
+  for (const m of code.matchAll(/\.setProperty\(\s*["'`]([^"'`]+)["'`]\s*,\s*["'`]([^"'`]*)["'`]/g)) {
     const property = m[1];
     const named = COLOUR_PROPERTIES.has(property) || property.startsWith("border") || property.startsWith("--");
     if (named && hasNamedColour(m[2].replace(/var\(\s*--[\w-]+/g, "var("))) add(m.index ?? 0, m[2]);

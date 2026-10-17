@@ -31,6 +31,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   blankTokenDeclarations,
+  exemptTokenDeclarations,
   declaredTokens,
   scanCss,
   scanTsColours,
@@ -58,8 +59,12 @@ const declared = declaredTokens(allCss.map(read));
 
 /** The A5 findings of one in-scope file; `globals.css :root` is a token file. */
 function findingsOf(rel: string): CssFinding[] {
-  const css = blankTokenDeclarations(read(rel));
-  return scanCss(css, declared);
+  return findingsIn(rel, read(rel));
+}
+
+/** The findings of `css` as if it were the file `rel`: the token exemption depends on the path (D278-FIX-1). */
+function findingsIn(rel: string, css: string): CssFinding[] {
+  return scanCss(exemptTokenDeclarations(rel, css), declared);
 }
 
 interface Row {
@@ -449,5 +454,33 @@ describe("dead-code guard (A8, temporary)", () => {
   it("App.css is deleted and TabBar/ still exists (D278)", () => {
     expect(existsSync(join(SRC, "App.css"))).toBe(false);
     expect(existsSync(join(SRC, "components/TabBar/TabBar.tsx"))).toBe(true);
+  });
+});
+
+describe("D278-FIX-1: the token exemption belongs to the token files and their own block", () => {
+  const rogue = ":root { --rogue: #fff; }\n.a { color: var(--rogue); }";
+
+  it("a :root token block in a section file is scanned (audit H2 on PR #498)", () => {
+    expect(findingsIn("styles/sections/settings-mcp.css", rogue).map((x) => x.selector)).toEqual([":root"]);
+  });
+
+  it("each token file is exempt only in its own block", () => {
+    const sel = (rel: string, css: string) => findingsIn(rel, css).map((x) => x.selector);
+    expect(sel("styles/globals.css", rogue)).toEqual([]);
+    expect(sel("styles/globals.css", "@media (prefers-reduced-motion: reduce) { :root { --b: #000; } }")).toEqual([]);
+    expect(sel("styles/globals.css", ".theme-dark { --x: #fff; }")).toEqual([".theme-dark"]);
+    expect(sel("styles/themes/light.css", ".theme-light { --x: #fff; }")).toEqual([]);
+    expect(sel("styles/themes/light.css", ":root { --x: #fff; }")).toEqual([":root"]);
+    expect(sel("styles/themes/dark.css", ".theme-dark { --x: #fff; }")).toEqual([]);
+    expect(sel("styles/themes/dark.css", ".theme-light { --x: #fff; }")).toEqual([".theme-light"]);
+  });
+
+  it("TS colour functions are found whatever their first argument", () => {
+    expect(scanTsColours('const c = "hsl(-20 100% 50%)";').map((x) => x.literal)).toHaveLength(1);
+    expect(scanTsColours('const c = `rgb(${r}, 0, 0)`;').map((x) => x.literal)).toHaveLength(1);
+  });
+
+  it("named colours in TS comments are not literals", () => {
+    expect(scanTsColours('// el.style.setProperty("color", "red");\n/* <a style={{ color: "red" }} /> */\n')).toEqual([]);
   });
 });

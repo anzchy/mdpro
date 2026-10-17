@@ -22,7 +22,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, parseDeclarations } from "./support/cssTokenScan";
-import { contrast, over, resolveColor, rootTokens, themeTokens, toHex, type Rgba } from "./support/contrast";
+import { contrast, over, resolveColor, rgbaEquals, rootTokens, themeTokens, toHex, type Rgba } from "./support/contrast";
 
 const SRC = join(__dirname, "..", "src");
 const SEC = "styles/sections";
@@ -41,7 +41,7 @@ const FRAMES = { root: rootTokens(), light: themeTokens("light"), dark: themeTok
 type Frame = keyof typeof FRAMES;
 
 function expectRgba(actual: Rgba, expected: Rgba, label: string) {
-  actual.forEach((c, i) => expect(c, `${label} channel ${i}`).toBeCloseTo(expected[i], 6));
+  expect(rgbaEquals(actual, expected), `${label}: [${actual.join(", ")}] vs [${expected.join(", ")}]`).toBe(true);
 }
 
 interface Row {
@@ -233,5 +233,47 @@ describe("D278: the resolver reads what the baselines need", () => {
     expect(toHex([37, 99, 235, 1])).toBe("#2563eb");
     expect(toHex([15, 23, 42, 0.35])).toBe("#0f172a59");
     expect(toHex([255, 85, 130, 0.65])).toBe("#ff5582a6");
+  });
+});
+
+// D278-FIX-1 (audit H1 on PR #498): every state and pseudo row of the plan's
+// matrix resolves to its colour in all three frames, not only the base fills.
+const ACCENT_SOFT = { root: [37, 99, 235, 0.14], light: [37, 99, 235, 0.14], dark: [96, 165, 250, 0.22] } as Record<Frame, Rgba>;
+const ACCENT = { root: ACCENT_LIGHT, light: ACCENT_LIGHT, dark: ACCENT_DARK };
+const MUTED = { root: [107, 114, 128, 1], light: [107, 114, 128, 1], dark: [154, 164, 178, 1] } as Record<Frame, Rgba>;
+// light: the accent 80% with the text #1a1a1a; dark: the accent.
+const ACCENT_TEXT = { root: [34.8, 84.4, 193.2, 1], light: [34.8, 84.4, 193.2, 1], dark: ACCENT_DARK } as Record<Frame, Rgba>;
+/** The colour after a fixed prefix, which the row also pins. */
+const after = (prefix: string) => (v: string) => {
+  expect(v.startsWith(prefix), `${v} starts with ${prefix}`).toBe(true);
+  return v.slice(prefix.length);
+};
+
+const STATE_ROWS: Row[] = [
+  { file: `${SEC}/settings-rows.css`, selector: ".toggle-switch input:checked + .toggle-slider", property: "background-color", expect: ACCENT },
+  { file: `${SEC}/settings-rows.css`, selector: ".toggle-slider:before", property: "background-color", expect: same([255, 255, 255, 1]) },
+  { file: `${SEC}/settings-rows.css`, selector: ".toggle-switch input:focus-visible + .toggle-slider", property: "outline", colour: after("2px solid "), expect: ACCENT },
+  { file: `${SEC}/settings-pages.css`, selector: ".settings-select:focus-visible", property: "border-color", expect: ACCENT },
+  { file: `${SEC}/settings-pages.css`, selector: ".settings-select:focus-visible", property: "box-shadow", colour: after("0 0 0 2px "), expect: ACCENT_SOFT },
+  { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value:hover", property: "border-color", expect: ACCENT },
+  { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value.is-editing", property: "background", expect: ACCENT_SOFT },
+  { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value.is-editing", property: "border-color", expect: ACCENT },
+  { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value.is-editing", property: "color", expect: ACCENT_TEXT },
+  { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value:focus-visible", property: "outline", colour: after("2px solid "), expect: ACCENT },
+  { file: `${SEC}/toc-sidebar.css`, selector: ".settings-input::placeholder", property: "color", expect: MUTED },
+  { file: `${SEC}/settings-shell.css`, selector: ".settings-search::placeholder", property: "color", expect: MUTED },
+];
+
+describe("D278-FIX-1: the state and pseudo rows keep their colours", () => {
+  checkRows(STATE_ROWS);
+
+  it(".settings-input::placeholder keeps opacity 1", () => {
+    expect(valueOf(`${SEC}/toc-sidebar.css`, ".settings-input::placeholder", "opacity")).toBe("1");
+  });
+
+  it("alpha is compared exactly: 0.5999999 is not 0.6", () => {
+    expect(rgbaEquals([245, 158, 11, 0.5999999], [245, 158, 11, 0.6])).toBe(false);
+    expect(rgbaEquals([245, 158, 11, 0.6], [245, 158, 11, 0.6])).toBe(true);
+    expect(rgbaEquals([34.8 + 1e-12, 84.4, 193.2, 1], [34.8, 84.4, 193.2, 1])).toBe(true);
   });
 });

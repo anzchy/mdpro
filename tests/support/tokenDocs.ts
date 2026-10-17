@@ -37,9 +37,8 @@ export function undeclaredRows(design: string, tokens: ReadonlySet<string>): str
 /** P4: declared tokens nothing consumes. `sources` are app source texts, comments blanked. */
 export function unconsumed(tokens: Iterable<string>, sources: string[]): string[] {
   const text = sources.join("\n");
-  return [...tokens]
-    .filter((t) => !text.includes(`var(${t}`) && !text.includes(`"${t}"`) && !text.includes(`'${t}'`))
-    .sort();
+  const used = new Set([...text.matchAll(/var\(\s*(--[\w-]+)|["'](--[\w-]+)["']/g)].map((m) => m[1] ?? m[2]));
+  return [...tokens].filter((t) => !used.has(t)).sort();
 }
 
 /** P5: marker defects, and required Interim markers that are missing. */
@@ -47,6 +46,10 @@ export function markerDefects(design: string, tokens: ReadonlySet<string>, inter
   const out: string[] = [];
   const rows = tableRows(design);
   for (const [t, row] of rows) {
+    // Every Planned / Interim keyword must open a full marker, `Planned (WI-…)` (D278-FIX-1).
+    const keywords = row.match(/\b(?:Planned|Interim)\b/g)?.length ?? 0;
+    const markers = row.match(new RegExp(MARKER.source, "g"))?.length ?? 0;
+    if (keywords > markers) out.push(`${t}: malformed marker`);
     const m = MARKER.exec(row);
     if (!m) continue;
     if (m[1] === "Planned" && tokens.has(t)) out.push(`${t}: Planned but declared`);
