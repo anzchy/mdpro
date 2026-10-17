@@ -1,0 +1,1235 @@
+[
+ {
+  "id": "badge-running",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(220, 252, 231)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "badge-running",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "color",
+  "value": "rgb(22, 163, 74)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(204, 204, 204)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "root",
+  "state": null,
+  "pseudo": "::before",
+  "property": "background-color",
+  "value": "rgb(255, 255, 255)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "root",
+  "state": null,
+  "pseudo": "::before",
+  "property": "transition-duration",
+  "value": "0.15s",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-on",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.960784 0.619608 0.0431373 / 0.12)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.960784 0.619608 0.0431373 / 0.4)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-width",
+  "value": "1px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-style",
+  "value": "solid",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcuts-section",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.964706 0.968627 0.984314 / 0.8)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "form-row",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.964706 0.968627 0.984314 / 0.8)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.101961 0.101961 0.101961 / 0.5)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "none",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.101961 0.101961 0.101961 / 0.1)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "outline-color",
+  "value": "rgb(26, 26, 26)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "outline-style",
+  "value": "none",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.145098 0.388235 0.921569 / 0.14)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "color",
+  "value": "color(srgb 0.136471 0.33098 0.757647)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "search",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "search",
+  "theme": "root",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "color",
+  "value": "rgb(107, 114, 128)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "root",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "color",
+  "value": "rgb(107, 114, 128)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "root",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "opacity",
+  "value": "1",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "progress",
+  "theme": "root",
+  "state": null,
+  "pseudo": "::-webkit-progress-value",
+  "property": "background-color",
+  "value": "rgba(0, 0, 0, 0)",
+  "status": "NOT_SUPPORTED",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "error",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.862745 0.14902 0.14902 / 0.12)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "placeholder-card",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(0, 0, 0, 0)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "tab-active",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "color(srgb 0.101961 0.101961 0.101961 / 0.12) 0px 0px 0px 0.5px, color(srgb 0.101961 0.101961 0.101961 / 0.08) 0px 8px 24px 0px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "tab-active",
+  "theme": "root",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(255, 255, 255)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "reduced-motion",
+  "theme": "root",
+  "via": "CSSOM",
+  "found": [
+   {
+    "selector": ":root",
+    "value": "0ms"
+   }
+  ]
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": ":hover",
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "root",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "root",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "color(srgb 0.145098 0.388235 0.921569 / 0.14) 0px 0px 0px 2px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "root",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-style",
+  "value": "solid",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "root",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-width",
+  "value": "2px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "badge-running",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(220, 252, 231)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "badge-running",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "color",
+  "value": "rgb(22, 163, 74)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(204, 204, 204)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "light",
+  "state": null,
+  "pseudo": "::before",
+  "property": "background-color",
+  "value": "rgb(255, 255, 255)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "light",
+  "state": null,
+  "pseudo": "::before",
+  "property": "transition-duration",
+  "value": "0.15s",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-on",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.960784 0.619608 0.0431373 / 0.12)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.960784 0.619608 0.0431373 / 0.4)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-width",
+  "value": "1px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-style",
+  "value": "solid",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcuts-section",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.964706 0.968627 0.984314 / 0.8)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "form-row",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.964706 0.968627 0.984314 / 0.8)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.101961 0.101961 0.101961 / 0.5)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "none",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.101961 0.101961 0.101961 / 0.1)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "outline-color",
+  "value": "rgb(26, 26, 26)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "outline-style",
+  "value": "none",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.145098 0.388235 0.921569 / 0.14)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "color",
+  "value": "color(srgb 0.136471 0.33098 0.757647)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "search",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "search",
+  "theme": "light",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "color",
+  "value": "rgb(107, 114, 128)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "light",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "color",
+  "value": "rgb(107, 114, 128)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "light",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "opacity",
+  "value": "1",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "progress",
+  "theme": "light",
+  "state": null,
+  "pseudo": "::-webkit-progress-value",
+  "property": "background-color",
+  "value": "rgba(0, 0, 0, 0)",
+  "status": "NOT_SUPPORTED",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "error",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.862745 0.14902 0.14902 / 0.12)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "placeholder-card",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(0, 0, 0, 0)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "tab-active",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "color(srgb 0.101961 0.101961 0.101961 / 0.12) 0px 0px 0px 0.5px, color(srgb 0.101961 0.101961 0.101961 / 0.08) 0px 8px 24px 0px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "tab-active",
+  "theme": "light",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(255, 255, 255)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "reduced-motion",
+  "theme": "light",
+  "via": "CSSOM",
+  "found": [
+   {
+    "selector": ":root",
+    "value": "0ms"
+   }
+  ]
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": ":hover",
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "light",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "light",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "color(srgb 0.145098 0.388235 0.921569 / 0.14) 0px 0px 0px 2px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "light",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 1 1 1 / 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-color",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-style",
+  "value": "solid",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "light",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-width",
+  "value": "2px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "badge-running",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(220, 252, 231)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "badge-running",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "color",
+  "value": "rgb(22, 163, 74)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(204, 204, 204)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "dark",
+  "state": null,
+  "pseudo": "::before",
+  "property": "background-color",
+  "value": "rgb(255, 255, 255)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-off",
+  "theme": "dark",
+  "state": null,
+  "pseudo": "::before",
+  "property": "transition-duration",
+  "value": "0.15s",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "toggle-on",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(96, 165, 250)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.960784 0.619608 0.0431373 / 0.12)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.960784 0.619608 0.0431373 / 0.4)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-width",
+  "value": "1px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "banner",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-style",
+  "value": "solid",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcuts-section",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(15, 18, 28, 0.6)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "form-row",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(15, 18, 28, 0.6)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(15, 18, 28, 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.898039 0.905882 0.921569 / 0.5)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "none",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(15, 18, 28, 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "color(srgb 0.898039 0.905882 0.921569 / 0.12)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "outline-color",
+  "value": "rgb(229, 231, 235)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "outline-style",
+  "value": "none",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.376471 0.647059 0.980392 / 0.22)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(96, 165, 250)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-editing",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "color",
+  "value": "rgb(96, 165, 250)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "search",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(15, 18, 28, 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "search",
+  "theme": "dark",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "color",
+  "value": "rgb(154, 164, 178)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(15, 18, 28, 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "dark",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "color",
+  "value": "rgb(154, 164, 178)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "input",
+  "theme": "dark",
+  "state": null,
+  "pseudo": "::placeholder",
+  "property": "opacity",
+  "value": "1",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "progress",
+  "theme": "dark",
+  "state": null,
+  "pseudo": "::-webkit-progress-value",
+  "property": "background-color",
+  "value": "rgba(0, 0, 0, 0)",
+  "status": "NOT_SUPPORTED",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "error",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "color(srgb 0.972549 0.443137 0.443137 / 0.18)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "placeholder-card",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(0, 0, 0, 0)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "tab-active",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "color(srgb 0.898039 0.905882 0.921569 / 0.16) 0px 0px 0px 0.5px, color(srgb 0 0 0 / 0.45) 0px 8px 24px 0px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "tab-active",
+  "theme": "dark",
+  "state": null,
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgb(20, 24, 33)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "reduced-motion",
+  "theme": "dark",
+  "via": "CSSOM",
+  "found": [
+   {
+    "selector": ":root",
+    "value": "0ms"
+   }
+  ]
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": ":hover",
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(96, 165, 250)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "dark",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "border-top-color",
+  "value": "rgb(96, 165, 250)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "dark",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "box-shadow",
+  "value": "color(srgb 0.376471 0.647059 0.980392 / 0.22) 0px 0px 0px 2px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "select",
+  "theme": "dark",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "background-color",
+  "value": "rgba(15, 18, 28, 0.9)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-color",
+  "value": "rgb(96, 165, 250)",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-style",
+  "value": "solid",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "shortcut-value",
+  "theme": "dark",
+  "state": ":focus-visible",
+  "pseudo": null,
+  "property": "outline-width",
+  "value": "2px",
+  "status": "OK",
+  "via": "getComputedStyle"
+ },
+ {
+  "id": "progress",
+  "theme": "root",
+  "state": null,
+  "pseudo": "::-webkit-progress-value",
+  "property": "pixel (centre)",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "pixel"
+ },
+ {
+  "id": "progress",
+  "theme": "light",
+  "state": null,
+  "pseudo": "::-webkit-progress-value",
+  "property": "pixel (centre)",
+  "value": "rgb(37, 99, 235)",
+  "status": "OK",
+  "via": "pixel"
+ },
+ {
+  "id": "progress",
+  "theme": "dark",
+  "state": null,
+  "pseudo": "::-webkit-progress-value",
+  "property": "pixel (centre)",
+  "value": "rgb(96, 165, 250)",
+  "status": "OK",
+  "via": "pixel"
+ }
+]

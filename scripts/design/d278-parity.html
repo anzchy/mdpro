@@ -1,0 +1,123 @@
+<!doctype html>
+<!--
+  D278 layer-2 evidence page (evidence only; no test, lane or gate reads it).
+  Serve the repo root statically and open
+  /scripts/design/d278-parity.html?theme=root|light|dark. Only index.css is
+  loaded, so the seven module-loaded sheets are absent (see the record,
+  docs/test/20261017-d278-parity.md). `collect()` reads every static row;
+  `readRow(id)` reads one row after the driver has set its state (:hover by
+  pointer, :focus-visible by Tab from the anchor before it).
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>D278 parity</title>
+<script>
+  // The theme class sits on <html>, as main.tsx puts it; "root" is first paint, no class.
+  const theme = new URLSearchParams(location.search).get("theme") || "root";
+  if (theme !== "root") document.documentElement.className = `theme-${theme}`;
+</script>
+<link rel="stylesheet" href="../../src/styles/index.css">
+<style>
+  /* Layout only: no colour, so nothing here can mask a row. */
+  .cell { margin: 8px; display: block; }
+</style>
+</head>
+<body>
+<span class="mcp-status-badge running cell" data-row="badge-running">running</span>
+
+<label class="toggle-switch cell"><input type="checkbox"><span class="toggle-slider" data-row="toggle-off"></span></label>
+<label class="toggle-switch cell"><input type="checkbox" checked><span class="toggle-slider" data-row="toggle-on"></span></label>
+
+<div class="settings-dirty-banner cell" data-row="banner">Unsaved changes</div>
+<div class="shortcuts-section cell" data-row="shortcuts-section">group</div>
+<div class="settings-form-row cell" data-row="form-row">row</div>
+
+<a href="#" id="before-select">anchor</a>
+<select class="settings-select cell" data-row="select"><option>One</option></select>
+
+<a href="#" id="before-shortcut">anchor</a>
+<span class="shortcut-value cell" tabindex="0" data-row="shortcut-value">⌘S</span>
+<span class="shortcut-value is-editing cell" data-row="shortcut-editing">⌘S</span>
+
+<input class="settings-search cell" placeholder="Search" data-row="search">
+<input class="settings-input cell" placeholder="Value" data-row="input">
+
+<progress class="about-progress-bar cell" value="1" max="1" data-row="progress" style="width: 200px; height: 12px"></progress>
+<div class="settings-error cell" data-row="error">Error</div>
+<div class="settings-placeholder-card cell" data-row="placeholder-card">placeholder</div>
+<div class="tab tab--active cell" data-row="tab-active">tab</div>
+
+<script>
+  const ROWS = [
+    ["badge-running", null, ["background-color", "color"]],
+    ["toggle-off", null, ["background-color"]],
+    ["toggle-off", "::before", ["background-color", "transition-duration"]],
+    ["toggle-on", null, ["background-color"]],
+    ["banner", null, ["background-color", "border-top-color", "border-top-width", "border-top-style"]],
+    ["shortcuts-section", null, ["background-color"]],
+    ["form-row", null, ["background-color"]],
+    ["select", null, ["background-color", "border-top-color", "box-shadow"]],
+    ["shortcut-value", null, ["background-color", "border-top-color", "outline-color", "outline-style"]],
+    ["shortcut-editing", null, ["background-color", "border-top-color", "color"]],
+    ["search", null, ["background-color"]],
+    ["search", "::placeholder", ["color"]],
+    ["input", null, ["background-color"]],
+    ["input", "::placeholder", ["color", "opacity"]],
+    ["progress", "::-webkit-progress-value", ["background-color"]],
+    ["error", null, ["background-color"]],
+    ["placeholder-card", null, ["background-color"]],
+    ["tab-active", null, ["box-shadow", "background-color"]],
+  ];
+  const SENTINEL = "rgb(1, 2, 3)";
+
+  /** One row's values; `state` names the state the driver set, checked with el.matches. */
+  function readRow(id, state = null, pseudo = null, props = null) {
+    const el = document.querySelector(`[data-row="${id}"]`);
+    if (!el) return [{ id, theme, state, pseudo, status: "MISSING" }];
+    if (state && !el.matches(state)) return [{ id, theme, state, pseudo, status: "NOT_REACHED" }];
+    const wanted = props || ROWS.filter(([r, p]) => r === id && p === pseudo).flatMap(([, , ps]) => ps);
+    const cs = getComputedStyle(el, pseudo);
+    return wanted.map((property) => {
+      const value = cs.getPropertyValue(property);
+      // A pseudo the engine cannot read returns its host's value. ::-webkit-progress-value is
+      // never trusted from getComputedStyle; the driver reads it by pixel instead.
+      const unsupported = pseudo === "::-webkit-progress-value" || (pseudo && value === SENTINEL);
+      return { id, theme, state, pseudo, property, value, status: unsupported ? "NOT_SUPPORTED" : "OK", via: "getComputedStyle" };
+    });
+  }
+
+  /** Every static row. */
+  function collect() {
+    const seen = new Set();
+    const out = [];
+    for (const [id, pseudo] of ROWS) {
+      const key = `${id}|${pseudo}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(...readRow(id, null, pseudo));
+    }
+    return out;
+  }
+
+  /** The reduced-motion block's --motion-duration-fast, read from the CSSOM (no media emulation available). */
+  function reducedMotion() {
+    const found = [];
+    const walk = (rules) => {
+      for (const r of rules) {
+        if (r.media && /prefers-reduced-motion:\s*reduce/.test(r.media.mediaText)) {
+          for (const inner of r.cssRules) {
+            const v = inner.style && inner.style.getPropertyValue("--motion-duration-fast");
+            if (v) found.push({ selector: inner.selectorText, value: v.trim() });
+          }
+        }
+        if (r.styleSheet) walk(r.styleSheet.cssRules);
+        else if (r.cssRules && !r.media) walk(r.cssRules);
+      }
+    };
+    for (const s of document.styleSheets) walk(s.cssRules);
+    return { id: "reduced-motion", theme, via: "CSSOM", found };
+  }
+</script>
+</body>
+</html>
