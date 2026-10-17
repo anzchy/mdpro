@@ -80,7 +80,8 @@ STEPS = {
     "j4a.1": lambda r: (r.call("click", css("button.bottom-tabs__add")), r.probe("tabs"))[1],
     "j4b.2": lambda r: (r.call("click", xpath("//button[contains(@class,'settings-category-btn') and contains(., 'Markdown')]")), r.probe("dialog"))[1],
     "j4b.3": lambda r: (r.call("click", css("#md-auto-pair")), r.probe("dialog"))[1],
-    "j4b.4": lambda r: (r.call("click", xpath("//div[contains(@class,'settings-footer')]//button[normalize-space(.)='Close']")), r.probe("dialog"))[1],
+    # The footer Close went with D260 (9a0aed26, after P2's 9940be9); the header x logs the same settings.close.
+    "j4b.4": lambda r: (r.call("click", css("button.settings-close")), r.probe("dialog"))[1],
     "j5.1": lambda r: (r.call("click", dict(CM_LAST_LINE, at="end")), r.call("type", {"text": "x"}), r.probe("cm"))[2],
     "j5.2": lambda r: (r.call("click", css(".bottom-tab--active .bottom-tab__close")), r.probe("dialog"))[1],
     "j5.ke": lambda r: (r.call("click", xpath("//div[contains(@class,'dialog-card')]//button[normalize-space(.)='Keep editing']")), r.probe("dialog"))[1],
