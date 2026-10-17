@@ -637,6 +637,7 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   6. 排序文档 D30 行加上 ADR-0047、本计划、spike 记录的链接，状态字符串沿用该登记表邻行的写法。
   7. 回到本计划，补写 WI-009–WI-011 中与驱动相关的验收（PD7）。
 - **结果（2026-10-17，delegator）**：第 1、2、4、5、6 条完成。ADR-0047 Accepted，选自研插件（候选 B），用户原话「Accept, select B (Recommended)」；依赖 ADR 不写，用户原话「Waive it (Recommended)」，记在 ADR-0047 的 Accepted 一行。ADR-0117 同日 Accepted（「Accept (Recommended)」）。D30 行已加链接。第 3 条（spike 产物留存）与第 7 条（补写 WI-009–WI-011 的驱动验收）归 adr047-verify。
+- **结果（2026-10-17，adr047-verify）**：第 3 条完成：留存清单在 spike 记录 § Kept until the re-verification passes（两个 spike 分支与工作树、上游补丁、S1.4 故障注入脚本、旅程与 S2 脚本、ADR-0100 的对照补丁、各构建的清单与 mini 上六个工作树本身、真机报告与运行输出、真机 brief），在 WI-011 第 5 条通过前一样不删。第 7 条完成：WI-009 第 14–21 条、WI-010 第 7–9 条、WI-011 第 8–11 条已于 2026-10-17 按候选 B 补写，WI-011 另加第 12–13 条（ADR-0117 与 ADR-0047 限制带来的物理 Esc 和单树 S5）。
 - **Tests (first)**：无代码；只改文档。
 - **Estimate**：S。
 
@@ -724,6 +725,8 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
   9. 每个输入类命令先做 `activate`，响应里报告它的结果。证据类别按发送方写 `driver input`：候选 B 的键在页面里也是 `isTrusted: true`，不能拿这个字段区分人和驱动。
   10. `launch` 到 L3 之前 CLI 不发页面命令（spike 的 S1 第一轮就是在页面加载时发了脚本，得到 `script_error`）。
   11. 第 5 条的重验里，S2 用候选 B 的两个构建，按 ADR-0113 的协议加 `activate`；S3–S5 与 spike 记录逐关对照，基线的应用侧差异（如 D260 去掉设置页脚）与驱动侧差异分开写。
+  12. 重验里人按的每一次 Esc 都是物理键（[ADR-0117](../adr/0117-a-relayed-remote-key-stands-for-the-physical-esc-in-the-spikes-s2-runs.md) 只准入 spike 里点名的几次 `remote key`，brief 不能豁免）：S2 的两个构建各一次，生产样本上 J5 第 3 步一次（ADR-0100；spike 里那一次是 `remote key`，未准入）。mini 目前没接键盘，brief 先要求接一个，并记录键是在哪块键盘上按的，不推断。
+  13. S5 在同一棵树上跑：最终实现的 verify 包与同一提交的生产样本对比（ADR-0047 Status 的第一条限制：spike 的 S5 跨了 `70cc9d2d` 与 `9940be9` 两棵树）。
 - **Tests (first)**：`tests/control-cli-*.test.ts`——参数解析；响应结构；退出码映射；目标定位的零个、多个、隐藏、模态四种情况；`wait` 的每个条件和超时；变更串行；输出上限；`run-journey` 在非 `cli` 步骤上停下；输出里无凭证。传输层在边界处 mock。
 - **Touched areas**：`scripts/control/`；`package.json`。
 - **Estimate**：L。
@@ -775,9 +778,9 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - [x] WI-003：故意不杀旧进程再 `launch`，被拒绝（2026-10-09，真机 Check H：运行活着时重打再 `launch`，以已有运行被拒；重打的包与原包逐字节相同，`buildId` 不符这一支没触发。记录 [`docs/test/20261009-adr0047-wi003-device.md`](../test/20261009-adr0047-wi003-device.md)）
 - [x] WI-004：升级前后两个包各走一遍全部旅程（2026-10-15，dtrack，33 段相等；记录 [`docs/test/20261015-wi004-tauri-upgrade-device-check.md`](../test/20261015-wi004-tauri-upgrade-device-check.md)）
 - [x] WI-004：D34 的 Esc、D41 的 Tab 重测（2026-10-15，用户按键，通过；类别 `remote key`，经 UU 转发，2026-10-17 用户确认「Yes, through UU」，原误记为物理；同一记录 H2、H3）
-- [ ] WI-005：两个包上的物理 Esc 基线（回退构建不关、基线头关；ADR-0113 下的对照由 ADR-0117 准入 `remote key`）
-- [ ] WI-005：比较一（驱动关的全部旅程）、比较二（`release` 包的 J1a、J2、J5，日常 mdpro 关着）
-- [ ] WI-006 / WI-007：每个候选的两个带驱动的包上，各按一次物理 Esc（S2.1 由 ADR-0117 准入 `remote key`）
+- [x] WI-005：两个包上的 Esc 基线（回退构建不关、基线头关；2026-10-16，ADR-0113 下的对照，类别 `remote key`，由 ADR-0117 准入；记录见 spike 记录 WI-005 一节）
+- [x] WI-005：比较一（驱动关的全部旅程）、比较二（`release` 包的 J1a、J2、J5，日常 mdpro 关着）（2026-10-16 跑完；比较二的 J5 第 3 步是 `remote key`，不在 ADR-0117 准入之列，生产样本的物理 Esc 仍欠，归 WI-011 第 12 条）
+- [x] WI-006 / WI-007：每个候选的两个带驱动的包上，各按一次 Esc（S2.1，类别 `remote key`，由 ADR-0117 准入；记录见 spike 记录 § Candidate A、§ Candidate B）
 - [ ] WI-009：对发布包带运行时开关启动，监听清单里没有控制通道
 - [ ] WI-011：重验里的 S2 两个构建
 - [ ] WI-012：一个真实工作项的试跑
