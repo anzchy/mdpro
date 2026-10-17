@@ -1,8 +1,9 @@
 /**
  * Purpose: the editor-owned chord inventory (plan M1A-WI-6, ADR-0114 K4): one
  * row per chord a loaded editor keymap binds today, in WYSIWYG (`W`, Milkdown)
- * or Source (`S`, CodeMirror), with what M1b does about it. Data only and inert
- * in M1a: no production module imports it. Tests hold it in two-way bijection
+ * or Source (`S`, CodeMirror), with what M1b does about it. Data only; in M1a
+ * production reads it only through Settings' conflict check (M1A-WI-10).
+ * Tests hold it in two-way bijection
  * with the composed keymaps.
  *
  * @coordinates-with src/commands/chord.ts — chords are compared in normal form

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Settings › Keyboard Shortcuts no longer saves a shortcut that clashes with another: a key you set that another of your shortcuts, a built-in or system key, or another command's default already uses. The warning now says which commands clash, and Save stays refused until you change one of them. Clashes that come only from mdpro's own defaults still save as before (M1a).
 - Settings has a calmer category list: each category has a thin outline icon in place of the emoji, rows are a little taller, the selected category is a neutral grey instead of blue, and keyboard focus shows a ring without changing the row's colour. The Close button at the bottom left is gone; close Settings with the × at the top right or Esc (D260).
 
 ### Fixed

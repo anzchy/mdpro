@@ -4,6 +4,7 @@ import { DEFAULT_KEYBOARD_SHORTCUTS } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { loggingService } from "../../../services/loggingService";
 import { displayedShortcut, isMacPlatform, recordedShortcut } from "../../../utils/platformLabels";
+import { findSettingsConflicts, settingsConflictLines, settingsPlatform } from "../../../commands/settingsConflicts";
 
 interface KeyboardShortcutsSettingsProps {
   onClose: () => void;
@@ -101,6 +102,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const [isDirty, setIsDirty] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [version, setVersion] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +113,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         const merged = { ...DEFAULT_KEYBOARD_SHORTCUTS, ...p.keyboardShortcuts };
         setSavedShortcuts(merged);
         setLocalShortcuts(merged);
+        setVersion(p.keyboardShortcutsVersion);
       })
       .catch((err: unknown) => {
         if (!cancelled)
@@ -121,17 +124,13 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     };
   }, []);
 
-  /** Shortcut string → list of action keys that share it (only entries with length > 1). */
-  const conflicts = useMemo<Map<string, (keyof KeyboardShortcuts)[]>>(() => {
-    if (!localShortcuts) return new Map();
-    const seen = new Map<string, (keyof KeyboardShortcuts)[]>();
-    for (const [k, v] of Object.entries(localShortcuts)) {
-      const list = seen.get(v) ?? [];
-      list.push(k as keyof KeyboardShortcuts);
-      seen.set(v, list);
-    }
-    return new Map([...seen.entries()].filter(([, keys]) => keys.length > 1));
-  }, [localShortcuts]);
+  /** Save-refusing conflicts by field, plus hidden-only notices (M1A-WI-10). */
+  const found = useMemo(() => {
+    const labels = Object.fromEntries(SHORTCUT_CATEGORIES.flatMap((c) => c.shortcuts.map((s) => [s.key, s.label])));
+    return findSettingsConflicts(settingsPlatform(), version, localShortcuts ?? {}, labels);
+  }, [localShortcuts, version]);
+  const conflicts = found.refusing;
+  const lines = settingsConflictLines(found, settingsPlatform());
 
   const handleKeyCapture = useCallback(
     (event: KeyboardEvent) => {
@@ -183,6 +182,15 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const handleSave = async () => {
     if (!localShortcuts) return;
     loggingService.logButtonClick("settings.shortcuts.save");
+    if (conflicts.size > 0) {
+      const counts = { refusing: conflicts.size, notices: found.notices.length };
+      loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "refused", ...counts });
+      return;
+    }
+    if (found.notices.length > 0) {
+      const fields = found.notices.flatMap((n) => n.fields);
+      loggingService.logUiEvent("ui.settings.shortcut_conflict_hidden", { notices: found.notices.length, fields });
+    }
     setSaveError(null);
     try {
       await preferencesService.setPreferences({ keyboardShortcuts: localShortcuts });
@@ -246,8 +254,12 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
 
       {conflicts.size > 0 && (
         <div className="settings-error" role="alert">
-          Conflicting shortcuts detected — duplicate assignments are highlighted below.
+          Conflicting shortcuts detected — Save is blocked until they are resolved.
+          {lines.alerts.map((line) => <div key={line}>{line}</div>)}
         </div>
+      )}
+      {lines.notices.length > 0 && (
+        <p className="settings-form-hint" role="status">{lines.notices.join(" · ")}</p>
       )}
 
       {SHORTCUT_CATEGORIES.map((category) => (
@@ -256,7 +268,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
           <div className="shortcuts-list">
             {category.shortcuts.map((item) => {
               const shortcutValue = localShortcuts[item.key];
-              const isConflict = conflicts.has(shortcutValue);
+              const isConflict = conflicts.has(item.key);
               return (
                 <div key={item.key} className={`shortcut-row${isConflict ? " has-conflict" : ""}`}>
                   <span className="shortcut-label">{item.label}</span>

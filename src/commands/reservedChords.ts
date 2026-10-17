@@ -1,6 +1,7 @@
 /**
  * Purpose: ADR-0114 K5's reserved chords per platform, which no editor-command
- * default may take, and K3's named exceptions. Data only and inert in M1a.
+ * default may take, and K3's named exceptions. Data only; in M1a production
+ * reads it only through Settings' conflict check (M1A-WI-10).
  *
  * @coordinates-with src/commands/commandTable.ts — the defaults K5 is checked on
  */

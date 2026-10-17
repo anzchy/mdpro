@@ -672,8 +672,20 @@ repairs them (`services/preferences.rs:85-100`). The frontend has its own defaul
     is enabled without a conflict; it binds nothing while unavailable, and a custom value on
     that chord wins as in the first case.
 
-  Settings' own conflict check (`KeyboardShortcutsSettings.tsx:124-134, 183-191`) uses the
-  same normalisation and owner list, and refuses Save on any of these conflicts.
+  Settings' own conflict check (`KeyboardShortcutsSettings.tsx`, logic in
+  `src/commands/settingsConflicts.ts`, M1a WI-10) uses the same normalisation and owner
+  list. **It refuses Save only on a conflict that involves a custom value** (user decision,
+  2026-10-16: 「A: custom only (Recommended)」): custom vs custom, including a new
+  duplicate; custom vs a fixed, native, reserved or editor-owned chord; and custom vs
+  another **available** row's current default, because saving would silently take that
+  row's key. It does not refuse default vs default (the v1 data's own collisions, such as
+  ⌘W twice on macOS), default vs editor-owned, or custom vs an **unavailable** row's
+  default, where the custom value wins as above. Refusing every conflict in the list would
+  have left v1 users unable to save at all. Hidden fields, the delegator's reading of
+  「A: custom only」 (2026-10-16): a conflict refuses Save only if at least one side is a
+  field the Settings page shows; a conflict between two hidden fields gets a non-blocking
+  notice and a log line (`ui.settings.shortcut_conflict_hidden`) instead, since the user
+  has no row to repair it on.
 - **New persisted states.** Today an empty string is repaired to the default on every read
   (`models/preferences.rs:315-345`: decision D-b, taken under ADR-0031 step 4 and recorded
   in that code comment, not in the ADR; its recorded cost says reversing it needs a new ADR). The new states are explicit values, not `""`:

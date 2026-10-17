@@ -2,8 +2,8 @@
  * Purpose: parse a stored shortcut string into a chord and normalise it per
  * platform (plan M1A-WI-5, C6). The Rust twin is
  * `src-tauri/src/models/chord.rs`; both are held to the `parse` rows of
- * `tests/fixtures/binding-owner-cases.json`. Inert until M1b: no production
- * module imports it yet.
+ * `tests/fixtures/binding-owner-cases.json`. In M1a its only production use
+ * is Settings' conflict check (M1A-WI-10); M1b wires the rest.
  *
  * Grammar: `+`-separated; modifiers `Cmd | Ctrl | Option | Shift` (exact
  * case, each at most once) then exactly one key. A key is one printable ASCII

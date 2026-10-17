@@ -2,7 +2,8 @@
  * Purpose: the hard owners the binding conflict filter checks a custom value
  * against (plan M1A-WI-8, matrix SD5, SD7, SD8): fixed keys and secondaries,
  * K5's reserved chords, and the editor-owned inventory, indexed by normal
- * form. Inert until M1b.
+ * form. Reached in production only through Settings' conflict check
+ * (M1A-WI-10) until M1b.
  *
  * Key decisions:
  * - Precedence fixed (0) > native (1) > reserved (2) > editorOwned (3).

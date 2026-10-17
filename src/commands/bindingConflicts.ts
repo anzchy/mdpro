@@ -4,8 +4,9 @@
  * and defaults version into a `Resolution`, and answers who owns a chord in
  * a context. The Rust twin is `src-tauri/src/services/binding_conflicts.rs`;
  * both are held to `tests/fixtures/binding-owner-cases.json` (`cases`, and
- * the generated `sweep`). Inert until M1b: no production module imports it,
- * and nothing feeds the menu, the hook or the applied snapshot from it.
+ * the generated `sweep`). Its one production caller in M1a is Settings'
+ * conflict check (`settingsConflicts.ts`, M1A-WI-10); the menu, the hook and
+ * the applied snapshot are fed from it in M1b.
  *
  * Pipeline: hard-owner index (fixed keys and secondaries, reserved chords,
  * the editor inventory) → classify each row (sentinel, unparseable,
