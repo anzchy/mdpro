@@ -11,10 +11,13 @@
  *   to one "Ctrl". The recorder stores Ctrl as "Cmd" off-Mac and refuses a
  *   chord with the Windows key or AltGr, neither of which triggers a shortcut
  *   there (audit b121).
+ * - The recorder needs a modifier, except F1–F12, which record alone (M7,
+ *   D11: F6).
  * - ADR-0096's three off-Mac keys (Source, WYSIWYG, strikethrough) are shown
  *   in place of their stored defaults, which bind nothing.
  *
  * @coordinates-with src/components/common/settings/KeyboardShortcutsSettings.tsx
+ * @coordinates-with src/components/common/settings/shortcuts/ShortcutRow.tsx
  * @coordinates-with src/components/common/settings/AdvancedSettings.tsx
  * @coordinates-with src/components/BottomTabs/BottomTabs.tsx
  * @coordinates-with src/components/BottomTabs/SidebarToggleButton.tsx
@@ -69,10 +72,15 @@ const NON_ACTIONABLE_KEYS = new Set([
   "Dead", "Unidentified", "CapsLock", "Fn", "Process", "OS", "Win",
 ]);
 
+/** F1–F12, the keys that record with no modifier. */
+const FUNCTION_KEY = /^F([1-9]|1[0-2])$/;
+
 /** The shortcut string the recorder stores for a keydown, or null to keep waiting. */
 export function recordedShortcut(event: RecordedKey, isMac: boolean): string | null {
   if (NON_ACTIONABLE_KEYS.has(event.key)) return null;
-  if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) return null;
+  const bare = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+  // F1–F12 record alone (M7, D11: F6); every other key needs a modifier.
+  if (bare) return FUNCTION_KEY.test(event.key) ? event.key : null;
   // Off-Mac the Windows / Super key is never a shortcut modifier.
   if (!isMac && event.metaKey) return null;
   // Off-Mac AltGr (Ctrl+Alt) types characters; the matcher refuses it, so a

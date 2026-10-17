@@ -38,6 +38,9 @@ const kbSrc = fs.readFileSync(
 );
 // The recorder's key → string logic moved to utils/platformLabels.ts (D190-WI-7).
 const labelsSrc = fs.readFileSync(path.join(SRC, "utils/platformLabels.ts"), "utf-8");
+// M7: the groups come from the command table (shortcuts/shortcutGroups.ts).
+const groupsPath = path.join(SRC, "components/common/settings/shortcuts/shortcutGroups.ts");
+const groupsSrc = fs.existsSync(groupsPath) ? fs.readFileSync(groupsPath, "utf-8") : "";
 
 // ---------------------------------------------------------------------------
 // Source structure
@@ -71,8 +74,10 @@ describe("KeyboardShortcutsSettings — source structure", () => {
     expect(kbSrc).toContain("Save");
   });
 
-  it("handleReset sets localShortcuts to DEFAULT_KEYBOARD_SHORTCUTS and isDirty=true", () => {
-    expect(kbSrc).toContain("DEFAULT_KEYBOARD_SHORTCUTS");
+  // M7: Reset restores the command table's defaults for the stored version
+  // (resetDefaults), no longer the v1-only DEFAULT_KEYBOARD_SHORTCUTS.
+  it("handleReset sets localShortcuts to the table's defaults and isDirty=true", () => {
+    expect(kbSrc).toContain("resetDefaults(");
     expect(kbSrc).toContain("setIsDirty(true)");
   });
 
@@ -91,11 +96,11 @@ describe("KeyboardShortcutsSettings — source structure", () => {
   });
 
   it("renders all defined shortcut categories", () => {
-    expect(kbSrc).toContain('"File"');
-    expect(kbSrc).toContain('"Edit"');
-    expect(kbSrc).toContain('"Paragraph"');
-    expect(kbSrc).toContain('"Format"');
-    expect(kbSrc).toContain('"View"');
+    expect(groupsSrc).toContain('"File"');
+    expect(groupsSrc).toContain('"Edit"');
+    expect(groupsSrc).toContain('"Paragraph"');
+    expect(groupsSrc).toContain('"Format"');
+    expect(groupsSrc).toContain('"View"');
   });
 
   it("shows 'Press keys...' when a shortcut is being edited", () => {

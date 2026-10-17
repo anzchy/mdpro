@@ -4,9 +4,11 @@
  * (matrix § M1A-WI-10, SD13, SD14, R1-12, R2-3; user ruling 2026-10-16
  * 「A: custom only (Recommended)」).
  *
- * Refused: a conflict involving a custom value with at least one side shown
- * in Settings. Allowed: default vs default, default vs editor-owned, custom
- * vs an unavailable row's default. A conflict with no shown side is a notice.
+ * Refused: a conflict involving a custom value. Allowed: default vs
+ * default, default vs editor-owned, custom vs an unavailable row's default.
+ *
+ * M7: Settings now shows every field, so SD14's hidden set and its
+ * non-blocking notices are gone; the 9 fields it hid refuse like the rest.
  *
  * The oracle for the relation sweep is `resolveBindings` (WI-8), read
  * directly; nothing here is mocked.
@@ -17,8 +19,8 @@ import type { Resolution } from "../src/commands/bindingConflicts.types";
 import { normaliseStored } from "../src/commands/chord";
 import { COMMAND_TABLE } from "../src/commands/commandTable";
 import type { OwnershipContext, Platform } from "../src/commands/commandTable.types";
+import * as settingsConflicts from "../src/commands/settingsConflicts";
 import {
-  SETTINGS_HIDDEN_FIELDS,
   findSettingsConflicts,
   settingsConflictLines,
   type SettingsConflicts,
@@ -32,7 +34,7 @@ const CONTEXTS: readonly OwnershipContext[] = [
   "editorW", "editorS", "tableW", "tableS", "modal", "recorder", "nativeFocus",
 ];
 
-/** SD14: the 9 fields Settings does not show. Literal, not read from src/. */
+/** The 9 fields SD14 hid until M7 gave them rows. Literal, not read from src/. */
 const HIDDEN: readonly string[] = [
   "fileOpenQuickly", "fileExportHtml", "formatHighlight",
   "tableInsertRowAbove", "tableInsertRowBelow", "tableInsertColumnLeft",
@@ -44,20 +46,20 @@ const v2Defaults = (p: Platform): Record<string, string> =>
 
 const keysOf = (r: SettingsConflicts) => [...r.refusing.keys()].map(String).sort();
 
-describe("M1A-WI-10 the hidden set (SD14)", () => {
-  it("is exactly the 9 fields Settings does not show, all of them real fields", () => {
-    expect([...SETTINGS_HIDDEN_FIELDS].map(String).sort()).toEqual([...HIDDEN].sort());
+describe("M7 no hidden set: every field is shown", () => {
+  it("exports no hidden set, and a result carries only refusing conflicts", () => {
+    expect(settingsConflicts).not.toHaveProperty("SETTINGS_HIDDEN_FIELDS");
     expect(FIELDS.length).toBe(58);
     for (const f of HIDDEN) expect(FIELDS).toContain(f);
+    expect(Object.keys(findSettingsConflicts("macos", 1, { formatHighlight: "Cmd+J", fileExportHtml: "Cmd+J" }))).toEqual(["refusing"]);
   });
 });
 
 describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
-  it("u1–u3 v1 defaults on every platform: nothing refused, no notice", () => {
+  it("u1–u3 v1 defaults on every platform: nothing refused", () => {
     for (const p of PLATFORMS) {
       const r = findSettingsConflicts(p, 1, {});
       expect(r.refusing.size, p).toBe(0);
-      expect(r.notices, p).toEqual([]);
     }
   });
 
@@ -70,21 +72,18 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     expect(norm("formatImage")).not.toBeNull();
     const r = findSettingsConflicts("windows", 1, {});
     expect(r.refusing.size).toBe(0);
-    expect(r.notices).toEqual([]);
   });
 
   it("u4 / u16 macOS: Toggle Sidebar vs the editor's Mod-Shift-l and ⌘W held by Close and Close Window are allowed", () => {
     expect(ownerOf("macos", 1, {}, "editorW", "Cmd+W")).toBe("window.closeWindow");
     const r = findSettingsConflicts("macos", 1, {});
     expect(r.refusing.size).toBe(0);
-    expect(r.notices).toEqual([]);
   });
 
   it("u5 Save = ⌘Z is refused as hard, naming Undo", () => {
     const r = findSettingsConflicts("macos", 1, { fileSave: "Cmd+Z" });
     expect(keysOf(r)).toEqual(["fileSave"]);
     expect(r.refusing.get("fileSave")).toMatchObject({ kind: "hard", with: ["edit.undo"], names: ["Undo"], value: "Cmd+Z" });
-    expect(r.notices).toEqual([]);
   });
 
   it("u6 a new duplicate of two customs refuses both rows, each naming the other", () => {
@@ -98,7 +97,6 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     const r = findSettingsConflicts("macos", 1, { fileSave: "Cmd+N" });
     expect(keysOf(r)).toEqual(["fileSave"]);
     expect(r.refusing.get("fileSave")).toMatchObject({ kind: "takesDefault", with: ["file.new"], names: ["New"] });
-    expect(r.notices).toEqual([]);
   });
 
   it("u8 Save = ⌘K is refused as hard, naming Hyperlink (Milkdown Mod-k implements it)", () => {
@@ -111,47 +109,43 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     expect(resolveBindings("macos", 1, {}).fileSaveAs).toMatchObject({ kind: "suppressed", reason: "unavailable" });
     const r = findSettingsConflicts("macos", 1, { fileSave: "Cmd+Shift+S" });
     expect(r.refusing.size).toBe(0);
-    expect(r.notices).toEqual([]);
   });
 
   it("u10 an unparseable value and <unassigned> refuse nothing", () => {
     for (const v of ["Cmd++", "<unassigned>"]) {
       const r = findSettingsConflicts("macos", 1, { fileSave: v });
       expect(r.refusing.size, v).toBe(0);
-      expect(r.notices, v).toEqual([]);
     }
   });
 
   it("u11 swapping New and Save is allowed", () => {
     const r = findSettingsConflicts("macos", 1, { fileNew: "Cmd+S", fileSave: "Cmd+N" });
     expect(r.refusing.size).toBe(0);
-    expect(r.notices).toEqual([]);
   });
 
   it("u12 the same custom on a W-only and an S-only row is allowed (no shared context)", () => {
     const r = findSettingsConflicts("macos", 1, { formatStrong: "Cmd+J", paragraphIncreaseHeading: "Cmd+J" });
     expect(r.refusing.size).toBe(0);
-    expect(r.notices).toEqual([]);
   });
 
   it("u13 v2: Save = ⇧⌘T takes Table's v2 default and is refused as takesDefault", () => {
     const r = findSettingsConflicts("macos", 2, { ...v2Defaults("macos"), fileSave: "Cmd+Shift+T" }, { paragraphTable: "Table" });
     expect(keysOf(r)).toEqual(["fileSave"]);
     expect(r.refusing.get("fileSave")).toMatchObject({ kind: "takesDefault", with: ["paragraph.table"], names: ["Table"] });
-    expect(r.notices).toEqual([]);
   });
 
   it("u14 the same local read as v1: Save and Table are a custom duplicate (the version matters)", () => {
     const r = findSettingsConflicts("macos", 1, { ...v2Defaults("macos"), fileSave: "Cmd+Shift+T" });
     // Matrix u14 lists only fileSave / paragraphTable. On this data the v2
     // values read as v1 customs also put Increase / Decrease Heading on
-    // CodeMirror's fold keys (shown → refused) and Highlight on the lint
-    // panel key (hidden vs editor → notice). Pinned as the data has it.
-    expect(keysOf(r)).toEqual(["fileSave", "paragraphDecreaseHeading", "paragraphIncreaseHeading", "paragraphTable"]);
+    // CodeMirror's fold keys and Highlight on the lint panel key; all are
+    // refused (Highlight was a notice until M7 showed it). Pinned as the
+    // data has it.
+    expect(keysOf(r)).toEqual(["fileSave", "formatHighlight", "paragraphDecreaseHeading", "paragraphIncreaseHeading", "paragraphTable"]);
     expect(r.refusing.get("fileSave")).toMatchObject({ kind: "duplicate", with: ["paragraph.table"] });
     expect(r.refusing.get("paragraphTable")).toMatchObject({ kind: "duplicate", with: ["file.save"] });
     expect(r.refusing.get("paragraphIncreaseHeading")?.kind).toBe("hard");
-    expect(r.notices.map((n) => n.fields)).toEqual([["formatHighlight"]]);
+    expect(r.refusing.get("formatHighlight")?.kind).toBe("hard");
   });
 
   it("u15 Windows: Save = Ctrl+N normalises to New's default and is refused as takesDefault", () => {
@@ -165,34 +159,26 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     expect(keysOf(r)).toEqual(["fileSave", "formatHighlight"]);
     expect(r.refusing.get("fileSave")?.names.join()).toMatch(/Highlight/);
     expect(r.refusing.get("formatHighlight")?.names).toEqual(["Save"]);
-    expect(r.notices).toEqual([]);
   });
 
-  it("u18 hidden vs hidden duplicate is one notice naming Highlight and Export HTML", () => {
+  it("u18 (M7) a duplicate between two formerly hidden fields is refused on both sides", () => {
     const r = findSettingsConflicts("macos", 1, { formatHighlight: "Cmd+J", fileExportHtml: "Cmd+J" });
-    expect(r.refusing.size).toBe(0);
-    expect(r.notices).toHaveLength(1);
-    expect(r.notices[0]?.fields).toEqual(["fileExportHtml", "formatHighlight"]);
-    expect(r.notices[0]?.names.join()).toMatch(/Highlight/);
-    expect(r.notices[0]?.names.join()).toMatch(/Export HTML/);
-    expect(r.notices[0]?.value).toBe("Cmd+J");
+    expect(keysOf(r)).toEqual(["fileExportHtml", "formatHighlight"]);
+    expect(r.refusing.get("formatHighlight")).toMatchObject({ kind: "duplicate", names: ["Export HTML"], value: "Cmd+J" });
+    // No panel labels passed here, so Highlight is named by its menu item.
+    expect(r.refusing.get("fileExportHtml")).toMatchObject({ kind: "duplicate", names: ["Highlight Selection"] });
   });
 
-  it("u19 hidden vs a hard owner is one notice naming Highlight and Undo", () => {
+  it("u19 (M7) Highlight on a hard owner's key is refused, naming Undo", () => {
     const r = findSettingsConflicts("macos", 1, { formatHighlight: "Cmd+Z" });
-    expect(r.refusing.size).toBe(0);
-    expect(r.notices).toHaveLength(1);
-    expect(r.notices[0]?.fields).toEqual(["formatHighlight"]);
-    expect(r.notices[0]?.names).toContain("Undo");
-    expect(r.notices[0]?.names.join()).toMatch(/Highlight/);
+    expect(keysOf(r)).toEqual(["formatHighlight"]);
+    expect(r.refusing.get("formatHighlight")).toMatchObject({ kind: "hard", names: ["Undo"] });
   });
 
-  it("u20 a hidden custom displacing a hidden default is one notice naming Highlight and Export HTML", () => {
+  it("u20 (M7) Highlight taking Export HTML's default is refused as takesDefault", () => {
     const r = findSettingsConflicts("macos", 1, { formatHighlight: "Cmd+Shift+E" });
-    expect(r.refusing.size).toBe(0);
-    expect(r.notices).toHaveLength(1);
-    expect(r.notices[0]?.fields).toEqual(["fileExportHtml", "formatHighlight"]);
-    expect(r.notices[0]?.names.join()).toMatch(/Export HTML/);
+    expect(keysOf(r)).toEqual(["formatHighlight"]);
+    expect(r.refusing.get("formatHighlight")).toMatchObject({ kind: "takesDefault", with: ["file.exportHtml"] });
   });
 
   it("a hidden custom taking a shown default is refused (hidden vs visible through a yield)", () => {
@@ -211,15 +197,13 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     const a = findSettingsConflicts("macos", 1, local);
     const b = findSettingsConflicts("macos", 1, { ...local });
     expect([...a.refusing.entries()]).toEqual([...b.refusing.entries()]);
-    expect(a.notices).toEqual(b.notices);
   });
 });
 
 describe("M1A-WI-10 banner lines (SD13)", () => {
   it("hard: '{A} conflicts with {B}, not active'", () => {
     const lines = settingsConflictLines(findSettingsConflicts("macos", 1, { fileSave: "Cmd+Z" }), "macos");
-    expect(lines.alerts).toEqual(["Save conflicts with Undo, not active"]);
-    expect(lines.notices).toEqual([]);
+    expect(lines).toEqual({ alerts: ["Save conflicts with Undo, not active"] });
   });
 
   it("duplicate: one line per chord, '{chord}: {A} conflicts with {B}'", () => {
@@ -234,11 +218,9 @@ describe("M1A-WI-10 banner lines (SD13)", () => {
     expect(win.alerts).toEqual(["Ctrl+N: Save would take New's key"]);
   });
 
-  it("hidden-only: '{A} and {B} share {chord} (not shown on this page)'", () => {
+  it("(M7) two formerly hidden fields on one chord give one duplicate alert and no 'not shown' line", () => {
     const lines = settingsConflictLines(findSettingsConflicts("macos", 1, { formatHighlight: "Cmd+J", fileExportHtml: "Cmd+J" }), "macos");
-    expect(lines.alerts).toEqual([]);
-    expect(lines.notices).toHaveLength(1);
-    expect(lines.notices[0]).toMatch(/^.*Export HTML.* and .*Highlight.* share Cmd\+J \(not shown on this page\)$/);
+    expect(lines).toEqual({ alerts: ["Cmd+J: Export HTML conflicts with Highlight Selection"] });
   });
 });
 
@@ -248,7 +230,6 @@ const fieldOfId = new Map(COMMAND_TABLE.flatMap((r) => (r.prefField === undefine
 
 interface Expected {
   refusing: string[];
-  notice: boolean;
   via: Set<string>;
 }
 
@@ -257,7 +238,6 @@ function expected(p: Platform, v: number, local: Record<string, string>): Expect
   const res: Record<string, Resolution> = resolveBindings(p, v, local);
   const refusing = new Set<string>();
   const via = new Set<string>();
-  let notice = false;
   for (const [field, r] of Object.entries(res)) {
     if (r.kind !== "suppressed") continue;
     const flag = r.flagged && r.reason !== "unparseable";
@@ -265,22 +245,16 @@ function expected(p: Platform, v: number, local: Record<string, string>): Expect
     if (!flag && !yieldTo) continue;
     const others = r.conflictsWith.flatMap((id) => (fieldOfId.has(id) ? [fieldOfId.get(id) as string] : []));
     const sides = [field, ...others];
-    const shown = sides.some((f) => !HIDDEN.includes(f));
-    const hidden = sides.some((f) => HIDDEN.includes(f));
-    if (!shown) {
-      notice = true;
-      via.add(flag ? "notice-flag" : "notice-yield");
-      continue;
-    }
     via.add(flag ? "refused-flag" : "refused-yield");
-    if (hidden) via.add("refused-hidden-visible");
+    if (sides.some((f) => HIDDEN.includes(f))) via.add("refused-formerly-hidden");
+    if (sides.every((f) => HIDDEN.includes(f))) via.add("refused-formerly-hidden-only");
     if (flag) refusing.add(field);
     else for (const f of others) refusing.add(f);
   }
-  return { refusing: [...refusing].sort(), notice, via };
+  return { refusing: [...refusing].sort(), via };
 }
 
-describe("M1A-WI-10 law: refused iff a custom-involving conflict has a shown side (S4)", () => {
+describe("M1A-WI-10 law: refused iff a conflict involves a custom value (S4; M7: every side is shown)", () => {
   const SWEEP_POOL = [...POOL, "Cmd+Shift+E"];
 
   it("holds over 58 fields × 20 values × 3 platforms × v1/v2, plus every hidden pair on Cmd+J", () => {
@@ -294,9 +268,8 @@ describe("M1A-WI-10 law: refused iff a custom-involving conflict has a shown sid
       const got = findSettingsConflicts(p, v, local);
       const label = `${p}@${v} ${JSON.stringify(local)}`;
       expect(keysOf(got), label).toEqual(want.refusing);
-      expect(got.notices.length > 0, label).toBe(want.notice);
       for (const k of want.via) bump(k);
-      if (want.refusing.length === 0 && !want.notice) bump("empty");
+      if (want.refusing.length === 0) bump("empty");
     };
     for (const p of PLATFORMS)
       for (const v of [1, 2]) {
@@ -307,7 +280,7 @@ describe("M1A-WI-10 law: refused iff a custom-involving conflict has a shown sid
             check(p, v, { ...base, [HIDDEN[i] as string]: "Cmd+J", [HIDDEN[j] as string]: "Cmd+J" });
       }
     expect(n).toBe(6960 + 216);
-    for (const k of ["refused-flag", "refused-yield", "refused-hidden-visible", "notice-flag", "notice-yield", "empty"])
+    for (const k of ["refused-flag", "refused-yield", "refused-formerly-hidden", "refused-formerly-hidden-only", "empty"])
       expect(partitions.get(k) ?? 0, k).toBeGreaterThan(0);
   });
 

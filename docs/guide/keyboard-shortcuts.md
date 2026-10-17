@@ -205,6 +205,38 @@ MenuItem::with_id_and_accelerator(app, "save", "Save", "CmdOrCtrl+S")?;
 
 Shortcuts can be customized via the Settings dialog:
 
+### The Settings › Keyboard Shortcuts page (M7)
+
+The page is built from the command table (`src/commands/commandTable.ts`), not
+from a list of its own, so every entry has a row
+(`src/components/common/settings/shortcuts/`):
+
+- **Groups** follow D14: File, Edit, Paragraph, Format, View, Table, then the
+  mdpro and Window groups. Export HTML is in File, Highlight in Format, Undo
+  and Redo in Edit, and off-Mac Exit in File. Rows keep the table's order.
+- **Configurable rows** (all 58 preference fields) have a key button. A
+  WYSIWYG-only or Source-only command has that line, muted, under its name.
+  The line states what the command can do, not the mode you are in.
+- **Not available** rows have muted names and no key button, so clicking
+  them records nothing. Their stored value is saved unchanged.
+- **Fixed rows** show their key in a dashed box that is not a button. That
+  is every built-in item with a key on the platform: Undo, Redo, Cut, Copy,
+  Paste and Select All everywhere; on macOS also Quit, Hide, Hide Others,
+  Minimize, Close Window and Enter Full Screen; on Windows, Minimize and
+  Close Window. **System rows** (Jump to Top / Bottom once defaults v2
+  apply) show "System" the same way. Fixed second keys, such as F6 on Cycle
+  View Mode, sit beside the main key in a dashed box of their own.
+- **Pending:** a key change applies at the next launch. Until then, a row
+  whose saved key differs from the one the app is running with shows
+  "Active: … · after restart: …". It compares the saved key with the run's
+  applied snapshot (`get_applied_shortcuts`), never with unsaved edits.
+- **Recording:** a key needs a modifier, except F1–F12, which record alone.
+- **Reset to Defaults** restores the table's defaults for the stored
+  defaults version, `<unassigned>` and `<system>` included.
+- **Save** is refused while any conflict remains (M1a); the banner names
+  both sides.
+
+
 ```typescript
 // See src/types/preferences.ts for the full interface
 interface KeyboardShortcuts {
