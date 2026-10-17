@@ -174,6 +174,11 @@ def checkbox_state(s):
             "dialog": len(s.find_all("css selector", "[role=dialog]"))}
 
 
+def dialog_state(s):
+    cards = s.find_all("css selector", ".dialog-card[role=dialog]")
+    return {"dialog": [s.attr(c, "aria-label") for c in cards], "tabs": tabs(s)}
+
+
 def all_windows(s):
     out = {}
     for label in s.handles():
@@ -201,6 +206,11 @@ STEPS = {
     "j4b.2": lambda s: (s.click(s.find("xpath", "//button[contains(@class,'settings-category-btn') and contains(., 'Markdown')]")), checkbox_state(s))[1],
     "j4b.3": lambda s: (s.click(s.find("css selector", "#md-auto-pair")), checkbox_state(s))[1],
     "j4b.4": lambda s: (s.click(settings_close(s)), checkbox_state(s))[1],
+    # J5 in S5 (no step 2a; step 3 is MANUAL/SKIP there): type one character, click the active tab's ×,
+    # and afterwards close the still-open dialog with Keep editing. Never Discard.
+    "j5.1": lambda s: (s.send_keys(cm_el(s), "x"), cm_state(s))[1],
+    "j5.2": lambda s: (s.click(s.find("css selector", ".bottom-tab--active .bottom-tab__close")), dialog_state(s))[1],
+    "j5.ke": lambda s: (s.click(s.find("xpath", "//div[contains(@class,'dialog-card')]//button[normalize-space(.)='Keep editing']")), dialog_state(s))[1],
     # J6 steps 2-4 and the reads after J7a/J7b: one session per window label, read only.
     "probe": all_windows,
 }
