@@ -397,7 +397,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
 - [ ] **Contrast table, Stage 4 additions** (A9, both themes): Source syntax roles on the editor background (4.5:1, WI-4.1); the Running badge; status strip labels and values; the breadcrumb folder and name; the empty state text and drop line; the drop target label and edge; toast text and the error edge; the dirty dot on active and inactive tabs (3:1); the Shortcuts unsaved banner text on its accent-soft fill (4.5:1, DR21)
 - [ ] New UI events log per rule 20
 - [ ] `CHANGELOG.md` Unreleased entry for Deliverable C
-- [ ] **STOP (Deliverable C) — mandatory visual sign-off:** the user compares the after-shots with the matching `proposal-ab.html` boards (main window Source, Settings, components and states) and explicitly approves before Stage 5; the report is posted and the commit split is proposed
+- [ ] **STOP (Deliverable C) — mandatory visual sign-off:** the user compares the after-shots with the matching `design/archive/20260911-proposal-ab.html` boards (main window Source, Settings, components and states) and explicitly approves before Stage 5; the report is posted and the commit split is proposed
 
 **Proposed commit split (C, proposal only, one per item):**
 - `feat(editor): mdpro Source HighlightStyle`

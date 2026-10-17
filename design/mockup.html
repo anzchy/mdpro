@@ -46,6 +46,10 @@
   .mk-both .mk-pair { grid-template-columns: 1fr 1fr; }
   .mk-pair > .theme-light { display: var(--mk-light, block); }
   .mk-pair > .theme-dark { display: var(--mk-dark, block); }
+  /* --color-focus-ring is declared once on :root as var(--color-accent), so it
+     resolves to the light accent there and a dark frame would inherit that.
+     The real app puts the theme class on <html>; here each frame rebinds it. */
+  .mk-window { --color-focus-ring: var(--color-accent); }
   /* A window: a fixed-size frame. transform makes it the containing block for
      the app's position:fixed dialogs, menus and toasts. */
   .mk-window { position: relative; height: 620px; border-radius: 10px; overflow: hidden; transform: translateZ(0);

@@ -42,6 +42,8 @@ describe("ADR95-WI-1 classifyPaths", () => {
     ["a prose prefix nested below the root", "src/docs/adr/x.md"],
     ["a sibling that only shares the prefix's letters", "docs/adrx/y.md"],
     ["a prose root file name in a subdirectory", "docs/CLAUDE.md"],
+    ["the design doc, which four tests read", "design/DESIGN.md"],
+    ["a design prototype, which a test helper reads", "design/prototypes/011-d260-settings-rail.html"],
   ])("answers code for %s", (_label, p) => {
     expect(classifyPaths([p])).toBe("code");
     expect(classifyPaths(["docs/adr/0095-x.md", p])).toBe("code");

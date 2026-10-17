@@ -14,7 +14,7 @@ Part of [the UI redesign plan](../20260911-plan-ui-redesign.md), which holds the
 - Either way, WI-3.1 then changes borders only.
 
 ### WI-3.1 — Theme token retune (items 1, 7, 8, 10, 15) — M
-- In both `light.css` and `dark.css`, apply `proposal-ab.html:40-57`:
+- In both `light.css` and `dark.css`, apply `design/archive/20260911-proposal-ab.html:40-57`:
   - `color-scheme`
   - `--color-accent-soft` retune
   - `--color-border` as a text mix
