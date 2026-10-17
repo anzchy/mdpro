@@ -74,7 +74,9 @@ audit; and `mdpro-number-registrar` finds the next free ADR and D numbers.
 None of them merges, rules on the gate or reserves; the delegator does.
 **`mdpro-fable-auditor` runs on Fable**, the one exception to the Opus rule
 above, because its value is a second model
-([ADR-0115](../../docs/adr/0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md)).
+([ADR-0115](../../docs/adr/0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md)),
+on PR audits only; in `plan` mode it is dispatched with `model: "opus"`
+([ADR-0118](../../docs/adr/0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md)).
 
 ## How work is assigned
 
@@ -109,7 +111,9 @@ handoff. Each item is tagged `prep` or `impl`.
   revised grant first.
 - **Deferred items stay `prep`** until the user's priority order makes them
   current.
-- **Cap**: one unlanded implementation item per session and two machine-wide.
+- **Cap**: one unlanded implementation item per session and three machine-wide
+  (a trial, [ADR-0118](../../docs/adr/0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md);
+  user decision, 2026-10-17: 「Slot 改为3个试试」).
   Dirty, committed, waiting and fix work all count; the auditor's audits do not.
 - **Precedence**: audit fixes on your own work, then the current priority
   item, then a pull.
@@ -234,7 +238,11 @@ handoff. Each item is tagged `prep` or `impl`.
      challenge and its outcome, and the merged count.
    - **ADRs and plans**: an ADR before the user is asked to accept it, and a
      plan before its first `impl` grant, get Codex `/cc-suite:review-plan`
-     and the Fable auditor in `plan` mode, blind and merged the same way.
+     and an **Opus** reviewer: the `mdpro-fable-auditor` definition in `plan`
+     mode, dispatched with `model: "opus"`. Blind and merged the same way.
+     Fable itself reviews PRs only
+     ([ADR-0118](../../docs/adr/0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md);
+     user decision, 2026-10-17: 「Fable只参与审计pr，不参与adr等其他的」).
 
    **Zero Critical and zero High in the merged verdict is the landing
    condition.** A Critical or High goes to the owner on the same branch: the

@@ -6,6 +6,8 @@ Accepted, 2026-10-15. Decided by the user. The user's question:
 「现在我经常发现 a3、a6 以及 ADR 047 等 session 经常 idle。那么根据最佳实践，之后它们 idle 的时候，是否可以派遣其他一些任务，让它们开始做准备工作，或者直接进入 implement 的状态？」.
 The user chose 「Let Codex weigh in」. After the Codex review the user chose 「Adopt revised (Recommended)」.
 
+Partially superseded, 2026-10-17: the Cap's "two machine-wide", now three, by [ADR-0118](0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md).
+
 ## Context
 
 Implementors (`mdpro-a3`, `mdpro-a6`) and the device harness (`adr047-verify`) waited for an

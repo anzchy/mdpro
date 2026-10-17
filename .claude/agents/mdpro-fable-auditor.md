@@ -6,7 +6,8 @@ description: >-
   or `/cc-suite:review-plan` for an ADR or plan), without seeing the Codex result, and reports
   Critical and High findings with evidence and a four-severity count line. Four modes: `audit`
   (first round), `confirm` (re-check named findings on a fix SHA), `challenge` (rule on a finding
-  only the other auditor raised), `plan` (review an ADR or plan). Use it whenever the delegator
+  only the other auditor raised), `plan` (review an ADR or plan; dispatched with `model: "opus"`,
+  ADR-0118, so Fable itself reviews PRs only). Use it whenever the delegator
   sends a handoff to mdpro-codex-audit. Not for fixing findings, ruling on the gate, or landing:
   the owner fixes, the delegator merges the two verdicts and lands.
 
