@@ -77,7 +77,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - **Save failed:** the `preferencesService` error toast (WI-4.13) is the only signal (rule 30 rule 5).
     - Remove the second, inline signals: Image `:75-76`, Export `:49-50`, and the Shortcuts `saveError` (`:212-213`, `:248`).
     - Switches and selects roll back to the saved value, as `MarkdownSettings.tsx:30-39` already does. The page stays usable. A failed Shortcuts save keeps the unsaved banner and the dialog open.
-    - The unsaved banner (`.settings-dirty-banner`, `globals.css:1064-1073`) drops its amber literals for `--color-accent-soft` fill and a `--color-accent` border, matching the tab's unsaved dot (DR21). Its text stays `--color-text`.
+    - The unsaved banner (`.settings-dirty-banner`, `globals.css:1064-1073`) drops its amber for `--color-accent-soft` fill and a `--color-accent` border, matching the tab's unsaved dot (DR21). Its text stays `--color-text`. D278 moved the amber into the interim token `--color-banner-unsaved`; this item deletes it: the token in all three token blocks, its consumers, its DESIGN.md § Tokens row and its `INTERIM` entry in `tests/design-token-parity.test.ts`.
   - **Logging settings:** `AdvancedSettings` drops its inline `saveError` (`:22`, `:37`, `:53`, `:64`), rolls the control back and relies on the error toast. WI-4.13 makes the service reject, so this catch runs at all.
   - **MCP config read:** done in `8050803` (ADR-0039): the `getPreferences()` read now has a catch (`SettingsDialog.tsx:140-158`), and `8b9d8d3` made its log enum-only. The Integrations toggles show the lasting reason. Keep its test (`tests/settings-dialog-mcp-load-failures.test.tsx`).
   - **Busy labels:** the Integrations action buttons read "..." while busy (`McpClientList.tsx:74`, `:81`, `:90`). They become "Updating…", "Removing…" and "Installing…" (rule 30 rule 4).
@@ -106,7 +106,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
   - Source inspection: `.mcp-copy-btn:focus-visible` exists and uses `--color-focus-ring`
 
 ### WI-4.4 — Running badge and toggle track (item 6) — S
-- `.mcp-status-badge.running` (`globals.css:1375-1378`): a dot plus muted text, no fill (review :146).
+- `.mcp-status-badge.running` (`globals.css:1375-1378`): a dot plus muted text, no fill (review :146). D278 moved its literals into the interim tokens `--color-running-fill` and `--color-running-text`; this item deletes both: the tokens in all three token blocks, their consumers, their DESIGN.md § Tokens rows and their `INTERIM` entries in `tests/design-token-parity.test.ts`.
 - Toggle off-track (the `#ccc` at `globals.css:1339`): a text-based `color-mix` (review :147). This removes the last `stage: 4` deferred entry.
 - No semantic green token unless the user asks (review :146).
 - **Tests:** the tokenization test covers the literals; the badge keeps its text label, so status is not conveyed by color only (rule 33 hard rule).

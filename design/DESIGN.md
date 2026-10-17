@@ -101,10 +101,9 @@ DR14).
 | `--color-border` | redefined as a text mix | both themes | Hairlines and control edges | :43, :52 | 7 |
 | `--color-border-subtle` | new | both themes | Row dividers, dialog header/footer, rail edge | :44, :53 | 5, 8 |
 | `--color-focus-ring` | new | `:root`, equal to the accent (DR15) | Focus outlines and inset rings (see [Focus](#focus)) | :24, not its mix | 7 |
-| `--color-syntax-markup` | new | `:root`, from accent | Source markers: heading, list, quote, emphasis, fence, backtick, table pipe, link brackets | :25 | 2 |
-| `--color-syntax-meta` | new | `:root`, from muted | Link targets, URLs, fence info strings, HTML | :26 | 2 |
+| `--color-syntax-markup` | Planned (WI-4.1): new | `:root`, from accent | Source markers: heading, list, quote, emphasis, fence, backtick, table pipe, link brackets | :25 | 2 |
+| `--color-syntax-meta` | Planned (WI-4.1): new | `:root`, from muted | Link targets, URLs, fence info strings, HTML | :26 | 2 |
 | `--color-code-bg` | redefined as an editor-bg mix | both themes | Code surfaces. Neutral, by the user's choice at STOP 3 ([ADR-0110](../docs/adr/0110-code-surfaces-take-the-neutral-derived-background.md)), which drops D4's cool tint here | review item 15 | 15 |
-| `--settings-sidebar-bg` | points at `--color-surface` | both themes | Settings rail | — | 14 |
 | `--color-on-accent` | new | `:root` (same in both themes today) | Labels and the switch knob on an accent fill. Any per-theme value is Stage 3's contrast table. | — | R2 |
 | `--color-accent-text` | new | both themes (D222) | Selected-state text on accent-soft: active TOC row, the shortcut being recorded. Light is the accent mixed 80% with the text colour (5.20:1 on the TOC row); dark is the accent. User ruling on prototype/d222-contrast: 「A: derived accent text (Recommended)」 | — | D222 |
 | `--color-accent-fill` | new | both themes (D222) | Primary-button fill under `--color-on-accent`. Light is the accent; dark is `#1d4ed8` (white 6.70:1), only ~2.82:1 against the dark background, so the button reads by its label, not its edge. User ruling: 「B: deeper fill, white text」 | — | D222 |
@@ -113,6 +112,24 @@ DR14).
 | `--color-highlight` | new | both themes (D256) | The WYSIWYG `==highlight==` fill; the marked text takes `--color-text`. The pink `rgba(255, 85, 130, …)` at 0.65 in light (8.19:1), 0.40 in dark (8.02:1; at 0.65 it was 4.77:1, and the UA's black text 3.56:1). User ruling on prototype/d256-d257-contrast: 「B · fainter dark pink (Recommended)」 | — | D256 |
 | `--color-error-text` | new | both themes (D257) | Error text on `--color-danger-soft`: the Settings error panel only (not the danger button; ADR-0106 reverted a `--color-danger-text` for that). Light `#b91c1c` (5.37:1; `--color-danger` was 4.01:1); dark `#f87171`, unchanged (4.92:1). The panel's border and fill keep `--color-danger` / `--color-danger-soft`. User ruling: 「B1 · darker red, dark unchanged (Recommended)」 | — | D257 |
 | `--color-scrim` | new | `:root` (same in both themes today) | Dialog backdrop. One use: the user overrode the rule of three for it (A10). | — | R6 |
+| `--color-bg` | unchanged (D4) | both themes | App background behind the panes; the source pane's own fill | — | D278 |
+| `--color-surface` | unchanged (D4) | both themes | Sidebar, tab strip, Settings rail; the light group fill's base | — | D278 |
+| `--color-panel` | unchanged (D4) | both themes | Dialog and Settings content background; the light input fill's base | — | D278 |
+| `--color-editor-bg` | unchanged (D4) | both themes | Editor canvas; the base `--color-code-bg` mixes from | — | D278 |
+| `--color-text` | unchanged (D4) | both themes | Body and chrome text; the base of the derived mixes | — | D278 |
+| `--color-muted` | unchanged (D4) | both themes | Secondary text: descriptions, section labels, placeholders | — | D278 |
+| `--color-text-secondary` | unchanged, an alias | both themes | Older name for `--color-muted`; light points at it | — | D278 |
+| `--color-bg-secondary` | unchanged, an alias | both themes | Older name for `--color-surface`; both themes point at it | — | D278 |
+| `--color-bg-tertiary` | unchanged | both themes | The MCP settings info-value field fill | — | D278 |
+| `--color-accent` | unchanged | both themes | The accent: selection, focus, primary actions, the progress bar | — | D278 |
+| `--color-danger` | unchanged | both themes | Destructive actions and error edges | — | D278 |
+| `--color-danger-soft` | now mixes `--color-danger` (D275) | both themes | The error panel and danger fill; light 12%, dark 18% | — | D278 |
+| `--color-group-bg` | new (D278), replaces `--settings-card-bg` | both themes | Settings grouped sections (Keyboard Shortcuts groups). Light follows `--color-surface` at 80%; dark is today's `rgba` and does not follow a dark retune | — | D278 |
+| `--color-input-bg` | new (D278), replaces `--settings-input-bg` | both themes | Settings inputs, selects and shortcut values. Light follows `--color-panel` at 90%; dark is today's `rgba` and does not follow a dark retune | — | D278 |
+| `--color-toggle-track-off` | new (D278) | both themes, same value | The toggle's off-track: the accepted A9 `#ccc` (ADR-0106), held unchanged; retuning needs a new ruling | — | D278 |
+| `--color-running-fill` | Interim (WI-4.4 item 6): today's literal | both themes, same value | The MCP running badge fill. The target badge has no fill (§ MCP status), so WI-4.4 item 6 deletes it | — | D278 |
+| `--color-running-text` | Interim (WI-4.4 item 6): today's literal | both themes, same value | The MCP running badge label. Not `--color-success`, which is reserved for a `color-mix()` pair; WI-4.4 item 6 deletes it | — | D278 |
+| `--color-banner-unsaved` | Interim (WI-4.3): today's literal | both themes, same value | The Shortcuts unsaved banner's amber, mixed 12% for the fill and 40% for the border. DR21 rules out a warning colour, so WI-4.3 moves the banner to `--color-accent-soft` and deletes it | — | D278 |
 
 - **`--color-border`:** before redefining it, audit consumers that use it as a
   fill (WI-3.0).
@@ -124,8 +141,8 @@ DR14).
   「Accept as exception」 twice. Changing one needs a new ruling
   ([ADR-0106](../docs/adr/0106-five-control-colours-are-accepted-below-the-a9-contrast-line.md));
   `tests/contrast-stage3.test.ts` pins the first three.
-- **Retired:** `--settings-btn-hover-bg` and `--settings-btn-active-bg`, once
-  the rail migrates (WI-4.7).
+- **Retired** (D278): every `--settings-*` token. Settings fills use
+  `--color-group-bg` and `--color-input-bg`.
 - **Never add:** `--color-syntax-code` (D3).
 
 ### Elevation
@@ -145,14 +162,18 @@ shadow.
 | `--font-size-title` | `:root` | Settings page title, About app name (DR22) | :242 (a 16px literal there) | 12 |
 | `--font-size-ui` | `:root` | TOC rows, menus, row titles, buttons, inputs | :31, :598 | 12 |
 | `--font-size-ui-sm` | `:root` | Tabs, status strip, descriptions, section labels, segmented control | :30, :599 | 12 |
-| `--source-font-family` | `:root` mono default; set at runtime from `sourceFont` | Source-mode content | :27, :59 | 3 |
-| `--icon-size-md` | `:root` | Menus, toolbar, toasts (the Settings rail's icons are 19px, D260) | :36 | 4 |
-| `--icon-size-sm` | `:root` | Tab close, TOC carets, new-tab button | :35 | 4 |
+| `--source-font-family` | Planned (WI-4.1): `:root` mono default; set at runtime from `sourceFont` | Source-mode content | :27, :59 | 3 |
+| `--icon-size-md` | Planned (WI-4.2): `:root` | Menus, toolbar, toasts (the Settings rail's icons are 19px, D260) | :36 | 4 |
+| `--icon-size-sm` | Planned (WI-4.2): `:root` | Tab close, TOC carets, new-tab button | :35 | 4 |
 | `--radius-control` | `:root` | Buttons, inputs, segmented control, icon buttons; the hover and selected fill of rows and tabs | :33 | 15 |
 | `--radius-popover` | `:root` | Menus, dialogs, toasts, grouped sections inside dialogs (DR23) | :34, :261 | 15 |
 | `--radius-inner` | `:root` | Parts nested inside a rounded container: segment buttons, menu items, tab close, stepper buttons, table cells (DR23) | :116, :206 (4px literals there) | 15 |
 | `--motion-duration-fast` | `:root`; zeroed under reduced motion | The switch knob and hover-reveal opacity transitions (DR12) | :28, :60 | 11 |
-| `--motion-ease-out` | `:root` | The same two transitions | :29 | 11 |
+| `--font-sans` | `:root`, unchanged | Chrome font. The proposal's `--font-ui` (:17) is only a placeholder for it | — | D278 |
+| `--font-mono` | `:root`, unchanged | Code, shortcut values, Source mode until `--source-font-family` lands | — | D278 |
+| `--editor-font-family` | `:root`; set at runtime from Settings | Editor content font | — | D278 |
+| `--editor-font-size` | `:root`; set at runtime from Settings | Editor content size | — | D278 |
+| `--editor-line-height` | `:root`; set at runtime from Settings | Editor content line height | — | D278 |
 
 - **Chrome font floor:** nothing in chrome goes below the small step.
 - **Rows and tabs stay flat:** TOC rows, settings rail items and tabs have no
@@ -161,13 +182,9 @@ shadow.
   (proposal :45). Nothing in the chrome becomes a card.
 - **`color-scheme`:** a property, not a token. `.theme-light` and `.theme-dark`
   set it (proposal :41, :50; item 10).
-- **Unchanged tokens:**
-  - `--font-sans`. The proposal's `--font-ui` (:17) is only a placeholder for
-    it.
-  - `--font-mono`, `--editor-font-*`, `--title-bar-height`,
-    `--bottom-tabs-height`.
-  - `--color-accent`, `--color-danger`, `--color-danger-soft`.
-  - The base neutrals (D4) and the z-index table (rule 31).
+- **Unchanged tokens** have rows too, marked `unchanged` (D278), so every
+  declared token has one; `tests/design-token-parity.test.ts` checks it. The
+  z-index table stays in rule 31.
 
 ### Widths
 
@@ -175,6 +192,14 @@ shadow.
 |---|---|---|---|---|
 | `--sidebar-width-min` | `:root` | The narrowest the resizable sidebar goes (180px); `--sidebar-width` holds the user's stored width | — | D189 |
 | `--main-min-width` | `:root` | The width the sidebar yields to, so the editor keeps at least 320px in a narrow window | — | D189 |
+| `--sidebar-width` | `:root`; set at runtime | The sidebar's width: the user's stored width on `.app-shell`, and the resize handle during a drag (ADR-0088) | — | D278 |
+| `--editor-content-width` | `:root`; set at runtime from Settings | The editor's measure | — | D278 |
+| `--content-padding` | `:root` | The editor's side padding, in both modes | — | D278 |
+| `--title-bar-height` | `:root` | The title bar strip | — | D278 |
+| `--bottom-tabs-height` | `:root` | The bottom tab strip | — | D278 |
+| `--traffic-lights-clearance` | `:root`; toggled by `body.tauri-macos` | Room left of top-of-window chrome for the macOS traffic lights | — | D278 |
+| `--traffic-lights-clearance-main` | `:root`; toggled by `body.tauri-macos` | The same room for the main pane's header | — | D278 |
+| `--traffic-lights-end` | `:root`; toggled by `body.tauri-macos` | Where the traffic lights end; the two clearances derive from it | — | D278 |
 
 ## Layout
 
@@ -763,7 +788,7 @@ Rule 33's four patterns stay; only the color source changes.
   - the switch knob's `transform`
   - the `opacity` of controls revealed on hover: the tab close button and
     the MCP copy button
-  Both use `--motion-duration-fast` and `--motion-ease-out`. Spinners keep
+  Both use `--motion-duration-fast` with the default `ease`. Spinners keep
   their continuous rotation.
 - **Colors change instantly** on hover, selection, press and theme switch.
   No transition lists `background-color`, `color`, `border-color`,

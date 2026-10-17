@@ -25,6 +25,11 @@ logged in `design/DESIGN.md` § Tokens instead; any other
 token still goes to the current doc (DR14; plan P WI-5.5 removes this
 clause).
 
+**Every declared token has a row in `design/DESIGN.md` § Tokens, and every
+row names a declared token** unless it is marked `Planned (WI-…)`;
+`tests/design-token-parity.test.ts` enforces both, plus the theme parity
+below (D278).
+
 ## Redesign tokens (plan P)
 
 Declared once in `globals.css :root`, because today they have the same value
