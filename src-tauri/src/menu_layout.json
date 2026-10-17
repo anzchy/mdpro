@@ -1,0 +1,9019 @@
+{
+  "$generated": "Generated from src/commands/ by tests/menu-layout-freshness.test.ts; do not edit. Regenerate: MDPRO_WRITE_MENU_LAYOUT=1 pnpm exec vitest run tests/menu-layout-freshness.test.ts",
+  "rows": [
+    {
+      "id": "app.about",
+      "menu": {
+        "macos": [
+          "mdpro",
+          "About mdpro"
+        ],
+        "windows": [
+          "mdpro",
+          "About mdpro"
+        ],
+        "linux": [
+          "mdpro",
+          "About mdpro"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "app.hide",
+      "menu": {
+        "macos": [
+          "mdpro",
+          "Hide mdpro"
+        ],
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+H",
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "app.hideOthers",
+      "menu": {
+        "macos": [
+          "mdpro",
+          "Hide Others"
+        ],
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+Option+H",
+            "v2": "Cmd+Option+H"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "app.quit",
+      "menuId": "menu.app.quit",
+      "menu": {
+        "macos": [
+          "mdpro",
+          "Quit mdpro"
+        ],
+        "windows": [
+          "mdpro",
+          "Exit"
+        ],
+        "linux": [
+          "mdpro",
+          "Exit"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+Q",
+            "v2": "Cmd+Q"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "rust-quit",
+        "linux": "rust-quit"
+      }
+    },
+    {
+      "id": "app.showAll",
+      "menu": {
+        "macos": [
+          "mdpro",
+          "Show All"
+        ],
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "app.stopWaitingQuit",
+      "menuId": "menu.app.stop_waiting_quit",
+      "menu": {
+        "macos": [
+          "mdpro",
+          "Stop Waiting and Quit…"
+        ],
+        "windows": [
+          "mdpro",
+          "Stop Waiting and Quit…"
+        ],
+        "linux": [
+          "mdpro",
+          "Stop Waiting and Quit…"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "rust-quit",
+        "windows": "rust-quit",
+        "linux": "rust-quit"
+      }
+    },
+    {
+      "id": "edit.copy",
+      "menu": {
+        "macos": [
+          "Edit",
+          "Copy"
+        ],
+        "windows": [
+          "Edit",
+          "Copy"
+        ],
+        "linux": [
+          "Edit",
+          "Copy"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+C",
+            "v2": "Cmd+C"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+C",
+            "v2": "Cmd+C"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+C",
+            "v2": "Cmd+C"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "edit.copyAsMarkdown",
+      "prefField": "editCopyAsMarkdown",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+C",
+            "v2": "Cmd+Shift+C"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+C",
+            "v2": "Cmd+Shift+C"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+C",
+            "v2": "Cmd+Shift+C"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "edit.cut",
+      "menu": {
+        "macos": [
+          "Edit",
+          "Cut"
+        ],
+        "windows": [
+          "Edit",
+          "Cut"
+        ],
+        "linux": [
+          "Edit",
+          "Cut"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+X",
+            "v2": "Cmd+X"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+X",
+            "v2": "Cmd+X"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+X",
+            "v2": "Cmd+X"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "edit.deleteWord",
+      "prefField": "editDeleteWord",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+D",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+D",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+D",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "edit.find",
+      "prefField": "editFind",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+F",
+            "v2": "Cmd+F"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+F",
+            "v2": "Cmd+F"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+F",
+            "v2": "Cmd+F"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "windows": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "linux": {
+          "v1": "S",
+          "v2": "S"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "edit.findNext",
+      "prefField": "editFindNext",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+G",
+            "v2": "Cmd+G"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "F3"
+            ]
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+G",
+            "v2": "Cmd+G"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "F3"
+            ]
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+G",
+            "v2": "Cmd+G"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "F3"
+            ]
+          }
+        }
+      },
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "windows": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "linux": {
+          "v1": "S",
+          "v2": "S"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "edit.findPrevious",
+      "prefField": "editFindPrevious",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+G",
+            "v2": "Cmd+Shift+G"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "Shift+F3"
+            ]
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+G",
+            "v2": "Cmd+Shift+G"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "Shift+F3"
+            ]
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+G",
+            "v2": "Cmd+Shift+G"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "Shift+F3"
+            ]
+          }
+        }
+      },
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "windows": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "linux": {
+          "v1": "S",
+          "v2": "S"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "edit.jumpToBottom",
+      "prefField": "editJumpToBottom",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Down",
+            "v2": "<system>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Down",
+            "v2": "<system>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Down",
+            "v2": "<system>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "edit.jumpToTop",
+      "prefField": "editJumpToTop",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Up",
+            "v2": "<system>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Up",
+            "v2": "<system>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Up",
+            "v2": "<system>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "edit.paste",
+      "menu": {
+        "macos": [
+          "Edit",
+          "Paste"
+        ],
+        "windows": [
+          "Edit",
+          "Paste"
+        ],
+        "linux": [
+          "Edit",
+          "Paste"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+V",
+            "v2": "Cmd+V"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+V",
+            "v2": "Cmd+V"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+V",
+            "v2": "Cmd+V"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "edit.pasteAsPlainText",
+      "prefField": "editPasteAsPlainText",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+V",
+            "v2": "Cmd+Shift+V"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+V",
+            "v2": "Cmd+Shift+V"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+V",
+            "v2": "Cmd+Shift+V"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "edit.redo",
+      "menu": {
+        "macos": [
+          "Edit",
+          "Redo"
+        ],
+        "windows": [
+          "Edit",
+          "Redo"
+        ],
+        "linux": [
+          "Edit",
+          "Redo"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+Shift+Z",
+            "v2": "Cmd+Shift+Z"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Ctrl+Y",
+            "v2": "Ctrl+Y"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Ctrl+Y",
+            "v2": "Ctrl+Y"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "edit.replace",
+      "prefField": "editReplace",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+H",
+            "v2": "Cmd+H"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+H",
+            "v2": "Cmd+H"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+H",
+            "v2": "Cmd+H"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "S"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "S"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "S"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "edit.selectAll",
+      "menu": {
+        "macos": [
+          "Edit",
+          "Select All"
+        ],
+        "windows": [
+          "Edit",
+          "Select All"
+        ],
+        "linux": [
+          "Edit",
+          "Select All"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+A",
+            "v2": "Cmd+A"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+A",
+            "v2": "Cmd+A"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+A",
+            "v2": "Cmd+A"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "edit.selectLine",
+      "prefField": "editSelectLine",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+L",
+            "v2": "Cmd+L"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+L",
+            "v2": "Cmd+L"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+L",
+            "v2": "Cmd+L"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "edit.selectWord",
+      "prefField": "editSelectWord",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+D",
+            "v2": "Cmd+D"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+D",
+            "v2": "Cmd+D"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+D",
+            "v2": "Cmd+D"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "windows": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "linux": {
+          "v1": "S",
+          "v2": "S"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "edit.undo",
+      "menu": {
+        "macos": [
+          "Edit",
+          "Undo"
+        ],
+        "windows": [
+          "Edit",
+          "Undo"
+        ],
+        "linux": [
+          "Edit",
+          "Undo"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+Z",
+            "v2": "Cmd+Z"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+Z",
+            "v2": "Cmd+Z"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+Z",
+            "v2": "Cmd+Z"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "file.close",
+      "prefField": "fileClose",
+      "menuId": "menu.file.close",
+      "menu": {
+        "macos": [
+          "File",
+          "Close"
+        ],
+        "windows": [
+          "File",
+          "Close"
+        ],
+        "linux": [
+          "File",
+          "Close"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+W",
+            "v2": "Cmd+W"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+W",
+            "v2": "Cmd+W"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+W",
+            "v2": "Cmd+W"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "file.exportHtml",
+      "prefField": "fileExportHtml",
+      "menuId": "menu.file.export_html",
+      "menu": {
+        "macos": [
+          "File",
+          "Export HTML..."
+        ],
+        "windows": [
+          "File",
+          "Export HTML..."
+        ],
+        "linux": [
+          "File",
+          "Export HTML..."
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+E",
+            "v2": "Cmd+Shift+E"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+E",
+            "v2": "Cmd+Shift+E"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+E",
+            "v2": "Cmd+Shift+E"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "file.new",
+      "prefField": "fileNew",
+      "menuId": "menu.file.new",
+      "menu": {
+        "macos": [
+          "File",
+          "New"
+        ],
+        "windows": [
+          "File",
+          "New"
+        ],
+        "linux": [
+          "File",
+          "New"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+N",
+            "v2": "Cmd+N"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+N",
+            "v2": "Cmd+N"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+N",
+            "v2": "Cmd+N"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "file.newWindow",
+      "prefField": "fileNewWindow",
+      "menuId": "menu.file.new_window",
+      "menu": {
+        "macos": [
+          "File",
+          "New Window"
+        ],
+        "windows": [
+          "File",
+          "New Window"
+        ],
+        "linux": [
+          "File",
+          "New Window"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+N",
+            "v2": "Cmd+Shift+N"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+N",
+            "v2": "Cmd+Shift+N"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+N",
+            "v2": "Cmd+Shift+N"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "file.open",
+      "prefField": "fileOpen",
+      "menuId": "menu.file.open",
+      "menu": {
+        "macos": [
+          "File",
+          "Open..."
+        ],
+        "windows": [
+          "File",
+          "Open..."
+        ],
+        "linux": [
+          "File",
+          "Open..."
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+O",
+            "v2": "Cmd+O"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+O",
+            "v2": "Cmd+O"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+O",
+            "v2": "Cmd+O"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "file.openQuickly",
+      "prefField": "fileOpenQuickly",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+O",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+O",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+O",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "file.preferences",
+      "prefField": "filePreferences",
+      "menuId": "menu.file.preferences",
+      "menu": {
+        "macos": [
+          "mdpro",
+          "Preferences..."
+        ],
+        "windows": [
+          "mdpro",
+          "Preferences..."
+        ],
+        "linux": [
+          "mdpro",
+          "Preferences..."
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+,",
+            "v2": "Cmd+,"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+,",
+            "v2": "Cmd+,"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+,",
+            "v2": "Cmd+,"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "file.save",
+      "prefField": "fileSave",
+      "menuId": "menu.file.save",
+      "menu": {
+        "macos": [
+          "File",
+          "Save"
+        ],
+        "windows": [
+          "File",
+          "Save"
+        ],
+        "linux": [
+          "File",
+          "Save"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+S",
+            "v2": "Cmd+S"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+S",
+            "v2": "Cmd+S"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+S",
+            "v2": "Cmd+S"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "file.saveAs",
+      "prefField": "fileSaveAs",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+S",
+            "v2": "Cmd+Shift+S"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+S",
+            "v2": "Cmd+Shift+S"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+S",
+            "v2": "Cmd+Shift+S"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "format.clearFormat",
+      "prefField": "formatClearFormat",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+\\",
+            "v2": "Cmd+\\"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+\\",
+            "v2": "Cmd+\\"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+\\",
+            "v2": "Cmd+\\"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "format.code",
+      "prefField": "formatCode",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+`",
+            "v2": "Cmd+Shift+`"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+`",
+            "v2": "Cmd+Shift+`"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+`",
+            "v2": "Cmd+Shift+`"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "W",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "format.emphasis",
+      "prefField": "formatEmphasis",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+I",
+            "v2": "Cmd+I"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+I",
+            "v2": "Cmd+I"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+I",
+            "v2": "Cmd+I"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "W",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "format.highlight",
+      "prefField": "formatHighlight",
+      "menuId": "menu.format.highlight",
+      "menu": {
+        "macos": [
+          "Format",
+          "Highlight Selection"
+        ],
+        "windows": [
+          "Format",
+          "Highlight Selection"
+        ],
+        "linux": [
+          "Format",
+          "Highlight Selection"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+H",
+            "v2": "Cmd+Shift+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+H",
+            "v2": "Cmd+Shift+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+H",
+            "v2": "Cmd+Shift+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "format.hyperlink",
+      "prefField": "formatHyperlink",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+K",
+            "v2": "Cmd+K"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+K",
+            "v2": "Cmd+K"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+K",
+            "v2": "Cmd+K"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "format.image",
+      "prefField": "formatImage",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Ctrl+I",
+            "v2": "Cmd+Shift+I"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Ctrl+I",
+            "v2": "Cmd+Shift+I"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Ctrl+I",
+            "v2": "Cmd+Shift+I"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "format.strike",
+      "prefField": "formatStrike",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+Shift+`",
+            "v2": "Cmd+Shift+X"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+Shift+`",
+            "v2": "Cmd+Shift+X"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+Shift+`",
+            "v2": "Cmd+Shift+X"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "W",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "format.strong",
+      "prefField": "formatStrong",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+B",
+            "v2": "Cmd+B"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+B",
+            "v2": "Cmd+B"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+B",
+            "v2": "Cmd+B"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "W",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "format.underline",
+      "prefField": "formatUnderline",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+U",
+            "v2": "Cmd+U"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+U",
+            "v2": "Cmd+U"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+U",
+            "v2": "Cmd+U"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "help.mdproHelp",
+      "menuId": "menu.help.placeholder",
+      "menu": {
+        "macos": [
+          "Help",
+          "mdpro Help"
+        ],
+        "windows": [
+          "Help",
+          "mdpro Help"
+        ],
+        "linux": [
+          "Help",
+          "mdpro Help"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "paragraph.codeFences",
+      "prefField": "paragraphCodeFences",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+C",
+            "v2": "Cmd+Option+C"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+C",
+            "v2": "Cmd+Shift+K"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+C",
+            "v2": "Cmd+Shift+K"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "W",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.decreaseHeading",
+      "prefField": "paragraphDecreaseHeading",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+-",
+            "v2": "Cmd+Option+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+-",
+            "v2": "Cmd+Option+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+-",
+            "v2": "Cmd+Option+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "windows": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "linux": {
+          "v1": "S",
+          "v2": "S"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.heading1",
+      "prefField": "paragraphHeading1",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+1",
+            "v2": "Cmd+1"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+1",
+            "v2": "Cmd+1"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+1",
+            "v2": "Cmd+1"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.heading2",
+      "prefField": "paragraphHeading2",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+2",
+            "v2": "Cmd+2"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+2",
+            "v2": "Cmd+2"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+2",
+            "v2": "Cmd+2"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.heading3",
+      "prefField": "paragraphHeading3",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+3",
+            "v2": "Cmd+3"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+3",
+            "v2": "Cmd+3"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+3",
+            "v2": "Cmd+3"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.heading4",
+      "prefField": "paragraphHeading4",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+4",
+            "v2": "Cmd+4"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+4",
+            "v2": "Cmd+4"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+4",
+            "v2": "Cmd+4"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.heading5",
+      "prefField": "paragraphHeading5",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+5",
+            "v2": "Cmd+5"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+5",
+            "v2": "Cmd+5"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+5",
+            "v2": "Cmd+5"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.heading6",
+      "prefField": "paragraphHeading6",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+6",
+            "v2": "Cmd+6"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+6",
+            "v2": "Cmd+6"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+6",
+            "v2": "Cmd+6"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.increaseHeading",
+      "prefField": "paragraphIncreaseHeading",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+=",
+            "v2": "Cmd+Option+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+=",
+            "v2": "Cmd+Option+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+=",
+            "v2": "Cmd+Option+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "windows": {
+          "v1": "S",
+          "v2": "S"
+        },
+        "linux": {
+          "v1": "S",
+          "v2": "S"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.indent",
+      "prefField": "paragraphIndent",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+]",
+            "v2": "Cmd+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+]",
+            "v2": "Cmd+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+]",
+            "v2": "Cmd+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.mathBlock",
+      "prefField": "paragraphMathBlock",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+B",
+            "v2": "Cmd+Option+Shift+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+B",
+            "v2": "Cmd+Option+Shift+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+B",
+            "v2": "Cmd+Option+Shift+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "paragraph.orderedList",
+      "prefField": "paragraphOrderedList",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+O",
+            "v2": "Cmd+Option+O"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+O",
+            "v2": "Cmd+Shift+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+O",
+            "v2": "Cmd+Shift+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "paragraph.outdent",
+      "prefField": "paragraphOutdent",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+[",
+            "v2": "Cmd+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+[",
+            "v2": "Cmd+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+[",
+            "v2": "Cmd+["
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.paragraph",
+      "prefField": "paragraphParagraph",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+0",
+            "v2": "Cmd+Shift+0"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+0",
+            "v2": "Cmd+Shift+0"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+0",
+            "v2": "Cmd+Shift+0"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.quote",
+      "prefField": "paragraphQuote",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Q",
+            "v2": "Cmd+Shift+B"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Q",
+            "v2": "Cmd+Shift+Q"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Q",
+            "v2": "Cmd+Shift+Q"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "paragraph.table",
+      "prefField": "paragraphTable",
+      "menuId": "menu.format.insert_table",
+      "menu": {
+        "macos": [
+          "Format",
+          "Insert Table"
+        ],
+        "windows": [
+          "Format",
+          "Insert Table"
+        ],
+        "linux": [
+          "Format",
+          "Insert Table"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+T",
+            "v2": "Cmd+Shift+T"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+T",
+            "v2": "Cmd+Shift+T"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+T",
+            "v2": "Cmd+Shift+T"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "W",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "W",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "paragraph.unorderedList",
+      "prefField": "paragraphUnorderedList",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+U",
+            "v2": "Cmd+Option+U"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+U",
+            "v2": "Cmd+Shift+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+U",
+            "v2": "Cmd+Shift+]"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "W"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "W"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "W"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "table.deleteColumn",
+      "prefField": "tableDeleteColumn",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Shift+Backspace",
+            "v2": "Cmd+Option+Shift+Backspace"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Shift+Backspace",
+            "v2": "Cmd+Option+Shift+Backspace"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Shift+Backspace",
+            "v2": "Cmd+Option+Shift+Backspace"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "table.deleteRow",
+      "prefField": "tableDeleteRow",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Backspace",
+            "v2": "Cmd+Option+Backspace"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Backspace",
+            "v2": "Cmd+Option+Backspace"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Backspace",
+            "v2": "Cmd+Option+Backspace"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "table.insertColumnLeft",
+      "prefField": "tableInsertColumnLeft",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Left",
+            "v2": "Cmd+Option+Left"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Left",
+            "v2": "Cmd+Option+Left"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Left",
+            "v2": "Cmd+Option+Left"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "table.insertColumnRight",
+      "prefField": "tableInsertColumnRight",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Right",
+            "v2": "Cmd+Option+Right"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Right",
+            "v2": "Cmd+Option+Right"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Right",
+            "v2": "Cmd+Option+Right"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "table.insertRowAbove",
+      "prefField": "tableInsertRowAbove",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Up",
+            "v2": "Cmd+Option+Up"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Up",
+            "v2": "Cmd+Option+Up"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Up",
+            "v2": "Cmd+Option+Up"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "table.insertRowBelow",
+      "prefField": "tableInsertRowBelow",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Down",
+            "v2": "Cmd+Option+Down"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Down",
+            "v2": "Cmd+Option+Down"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+Down",
+            "v2": "Cmd+Option+Down"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "theme.dark",
+      "menuId": "menu.theme.dark",
+      "menu": {
+        "macos": [
+          "Theme",
+          "Dark"
+        ],
+        "windows": [
+          "Theme",
+          "Dark"
+        ],
+        "linux": [
+          "Theme",
+          "Dark"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "theme.light",
+      "menuId": "menu.theme.light",
+      "menu": {
+        "macos": [
+          "Theme",
+          "Light"
+        ],
+        "windows": [
+          "Theme",
+          "Light"
+        ],
+        "linux": [
+          "Theme",
+          "Light"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "theme.system",
+      "menuId": "menu.theme.system",
+      "menu": {
+        "macos": [
+          "Theme",
+          "System"
+        ],
+        "windows": [
+          "Theme",
+          "System"
+        ],
+        "linux": [
+          "Theme",
+          "System"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "view.cycleViewMode",
+      "prefField": "viewCycleViewMode",
+      "menuId": "menu.view.cycle",
+      "menu": {
+        "macos": [
+          "View",
+          "Cycle View Mode"
+        ],
+        "windows": [
+          "View",
+          "Cycle View Mode"
+        ],
+        "linux": [
+          "View",
+          "Cycle View Mode"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+/",
+            "v2": "Cmd+/"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "F6"
+            ]
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+/",
+            "v2": "Cmd+/"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "F6"
+            ]
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+/",
+            "v2": "Cmd+/"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": [
+              "F6"
+            ]
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "view.enterFullScreen",
+      "menu": {
+        "macos": [
+          "View",
+          "Enter Full Screen"
+        ],
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+Ctrl+F",
+            "v2": "Cmd+Ctrl+F"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "view.sidebar",
+      "prefField": "viewToggleSidebar",
+      "menuId": "menu.view.toggle_sidebar",
+      "menu": {
+        "macos": [
+          "View",
+          "Toggle Sidebar"
+        ],
+        "windows": [
+          "View",
+          "Toggle Sidebar"
+        ],
+        "linux": [
+          "View",
+          "Toggle Sidebar"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+L",
+            "v2": "Cmd+Shift+L"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+L",
+            "v2": "Cmd+Shift+L"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Shift+L",
+            "v2": "Cmd+Shift+L"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "view.source",
+      "prefField": "viewSource",
+      "menuId": "menu.view.source",
+      "menu": {
+        "macos": [
+          "View",
+          "Source"
+        ],
+        "windows": [
+          "View",
+          "Source"
+        ],
+        "linux": [
+          "View",
+          "Source"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+2",
+            "v2": "Ctrl+2"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+2",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+2",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "view.switchDocuments",
+      "prefField": "viewSwitchDocuments",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+`",
+            "v2": "Ctrl+Tab"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+`",
+            "v2": "Cmd+Tab"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+`",
+            "v2": "Cmd+Tab"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "view.toggleFullscreen",
+      "prefField": "viewToggleFullscreen",
+      "menu": {
+        "macos": "none",
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+F",
+            "v2": "<system>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+F",
+            "v2": "F11"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Cmd+Option+F",
+            "v2": "F11"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "unavailable",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "view.wysiwyg",
+      "prefField": "viewWysiwyg",
+      "menuId": "menu.view.wysiwyg",
+      "menu": {
+        "macos": [
+          "View",
+          "WYSIWYG"
+        ],
+        "windows": [
+          "View",
+          "WYSIWYG"
+        ],
+        "linux": [
+          "View",
+          "WYSIWYG"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+4",
+            "v2": "Ctrl+4"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+4",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "configurable",
+          "defaults": {
+            "v1": "Ctrl+4",
+            "v2": "<unassigned>"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
+      }
+    },
+    {
+      "id": "window.closeWindow",
+      "menu": {
+        "macos": [
+          "Window",
+          "Close Window"
+        ],
+        "windows": [
+          "Window",
+          "Close Window"
+        ],
+        "linux": [
+          "Window",
+          "Close Window"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+W",
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Option+F4",
+            "v2": "Option+F4"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Option+F4",
+            "v2": "Option+F4"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "window.minimize",
+      "menu": {
+        "macos": [
+          "Window",
+          "Minimize"
+        ],
+        "windows": [
+          "Window",
+          "Minimize"
+        ],
+        "linux": [
+          "Window",
+          "Minimize"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+M",
+            "v2": "Cmd+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+M",
+            "v2": "Cmd+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": "Cmd+M",
+            "v2": "Cmd+M"
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    },
+    {
+      "id": "window.zoom",
+      "menu": {
+        "macos": [
+          "Window",
+          "Zoom"
+        ],
+        "windows": [
+          "Window",
+          "Maximize"
+        ],
+        "linux": [
+          "Window",
+          "Maximize"
+        ]
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "linux": {
+          "v1": "both",
+          "v2": "both"
+        }
+      },
+      "route": {
+        "macos": "native",
+        "windows": "native",
+        "linux": "native"
+      }
+    }
+  ],
+  "reserved": {
+    "macos": [
+      "Cmd+Ctrl+F",
+      "Cmd+M",
+      "Cmd+Option+H",
+      "Cmd+Option+Q",
+      "Cmd+Q",
+      "Cmd+Shift+3",
+      "Cmd+Shift+4",
+      "Cmd+Shift+5",
+      "Cmd+Shift+Q",
+      "Cmd+Space",
+      "Cmd+Tab",
+      "Cmd+`"
+    ],
+    "windows": [
+      "Option+F4"
+    ],
+    "linux": [
+      "Option+F4"
+    ]
+  },
+  "editorOwned": [
+    {
+      "editor": "S",
+      "source": "codemirror:completionKeymap",
+      "key": "Alt-`",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:completionKeymap",
+      "key": "Alt-i",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:completionKeymap",
+      "key": "Ctrl-Space",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-A",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-ArrowDown",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-ArrowLeft",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-ArrowRight",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-ArrowUp",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-Backspace",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-Delete",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Alt-l",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Cmd-ArrowDown",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.jumpToBottom"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Cmd-ArrowLeft",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Cmd-ArrowRight",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Cmd-ArrowUp",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.jumpToTop"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-Alt-h",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-ArrowDown",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-ArrowLeft",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-ArrowRight",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-ArrowUp",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-a",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-b",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-d",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-e",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-f",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-h",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-k",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-l",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-m",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "D272"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-n",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-o",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-p",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-t",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Ctrl-v",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-/",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "shadowed",
+        "by": "mdpro:Editor.viewModeKeymap"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Alt-ArrowDown",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C17"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Alt-ArrowUp",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C17"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Alt-\\",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Alt-\\",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "D264"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-ArrowLeft",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-ArrowRight",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Backspace",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Delete",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-End",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.jumpToBottom"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Enter",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-Home",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.jumpToTop"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-[",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.outdent"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-]",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.indent"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-a",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.selectAll"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Mod-i",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "latent": "D268"
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Alt-ArrowDown",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Alt-ArrowLeft",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Alt-ArrowRight",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Alt-ArrowUp",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Alt-m",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-ArrowDown",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-ArrowLeft",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-ArrowRight",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-ArrowUp",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Backspace",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Cmd-ArrowDown",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Cmd-ArrowLeft",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Cmd-ArrowRight",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Cmd-ArrowUp",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-ArrowDown",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-ArrowLeft",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-ArrowRight",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-ArrowUp",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-a",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-b",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-e",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-f",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-n",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Ctrl-p",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-End",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Enter",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Home",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Mod-ArrowLeft",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Mod-ArrowRight",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Mod-End",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Mod-Home",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Mod-\\",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-Mod-k",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "latent": "D267"
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-PageDown",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:defaultKeymap",
+      "key": "Shift-PageUp",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Cmd-Alt-[",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C12"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Cmd-Alt-]",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C12"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Ctrl-Alt-[",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Ctrl-Alt-[",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C12"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Ctrl-Alt-]",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Ctrl-Alt-]",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C12"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Ctrl-Shift-[",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C12"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:foldKeymap",
+      "key": "Ctrl-Shift-]",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C12"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:historyKeymap",
+      "key": "Alt-u",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:historyKeymap",
+      "key": "Ctrl-Shift-z",
+      "platforms": [
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.redo"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:historyKeymap",
+      "key": "Mod-Shift-u",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:historyKeymap",
+      "key": "Mod-Shift-z",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.redo"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:historyKeymap",
+      "key": "Mod-u",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "latent": "D270"
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:historyKeymap",
+      "key": "Mod-y",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.redo"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:historyKeymap",
+      "key": "Mod-z",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.undo"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:indentWithTab",
+      "key": "Shift-Tab",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:lintKeymap",
+      "key": "F8",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:lintKeymap",
+      "key": "Mod-Shift-m",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "D269"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "F3",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.findNext"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "Mod-Alt-g",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "Mod-Shift-l",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "C11"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "Mod-d",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.selectWord"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "Mod-f",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.find"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "Mod-g",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.findNext"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "Shift-F3",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.findPrevious"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "codemirror:searchKeymap",
+      "key": "Shift-Mod-g",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.findPrevious"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:Editor.undoRedo",
+      "key": "Mod-Shift-z",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.redo"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:Editor.undoRedo",
+      "key": "Mod-y",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.redo"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:Editor.undoRedo",
+      "key": "Mod-z",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.undo"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:Editor.viewModeKeymap",
+      "key": "Mod-/",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "view.cycleViewMode"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:Editor.viewModeKeymap",
+      "key": "Mod-Alt-/",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod--",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.decreaseHeading"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-0",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.paragraph"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-1",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading1"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-2",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading2"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-3",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading3"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-4",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading4"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-5",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading5"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-6",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading6"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:headingPlugin",
+      "key": "Mod-=",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.increaseHeading"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:highlightPlugin",
+      "key": "Mod-Shift-h",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.highlight"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:linkPlugin",
+      "key": "Mod-k",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.hyperlink"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceTableTabNav",
+      "key": "Shift-Tab",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:inlineEditPlugin",
+      "key": "Ctrl-`",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Alt-Shift-5",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strike"
+      },
+      "names": [
+        "strikethrough"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Ctrl-Shift-`",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strike"
+      },
+      "names": [
+        "strikethrough"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-0",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.paragraph"
+      },
+      "names": [
+        "paragraph"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-1",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading1"
+      },
+      "names": [
+        "heading1"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-2",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading2"
+      },
+      "names": [
+        "heading2"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-3",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading3"
+      },
+      "names": [
+        "heading3"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-4",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading4"
+      },
+      "names": [
+        "heading4"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-5",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading5"
+      },
+      "names": [
+        "heading5"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-6",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.heading6"
+      },
+      "names": [
+        "heading6"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-Shift-`",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.code"
+      },
+      "names": [
+        "inlineCode"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-b",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strong"
+      },
+      "names": [
+        "bold"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-i",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.emphasis"
+      },
+      "names": [
+        "italic"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-k",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.hyperlink"
+      },
+      "names": [
+        "link"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Shift-Tab",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "names": [
+        "codeBlockOutdent",
+        "tableShiftTab"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Alt-Backspace",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Alt-Delete",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Alt-d",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Ctrl-Alt-Backspace",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Ctrl-a",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Ctrl-d",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Ctrl-e",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Ctrl-h",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Mod-Backspace",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Mod-Delete",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Mod-Enter",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Mod-a",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.selectAll"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:core/baseKeymap",
+      "key": "Shift-Backspace",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:plugin-history/historyKeymap",
+      "key": "Mod-y",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.redo"
+      },
+      "names": [
+        "Redo"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:plugin-history/historyKeymap",
+      "key": "Mod-z",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.undo"
+      },
+      "names": [
+        "Undo"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:plugin-history/historyKeymap",
+      "key": "Shift-Mod-z",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.redo"
+      },
+      "names": [
+        "Redo"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/blockquoteKeymap",
+      "key": "Mod-Shift-b",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.quote"
+      },
+      "names": [
+        "WrapInBlockquote"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/blockquoteKeymap",
+      "key": "Mod-Shift-b",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "WrapInBlockquote"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/bulletListKeymap",
+      "key": "Mod-Alt-8",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "WrapInBulletList"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/codeBlockKeymap",
+      "key": "Mod-Alt-c",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.codeFences"
+      },
+      "names": [
+        "CreateCodeBlock"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/codeBlockKeymap",
+      "key": "Mod-Alt-c",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "names": [
+        "CreateCodeBlock"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/emphasisKeymap",
+      "key": "Mod-i",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.emphasis"
+      },
+      "names": [
+        "ToggleEmphasis"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/hardbreakKeymap",
+      "key": "Shift-Enter",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "names": [
+        "InsertHardbreak"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/headingKeymap",
+      "key": "Mod-Alt-1",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "TurnIntoH1"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/headingKeymap",
+      "key": "Mod-Alt-2",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "TurnIntoH2"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/headingKeymap",
+      "key": "Mod-Alt-3",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "TurnIntoH3"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/headingKeymap",
+      "key": "Mod-Alt-4",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "TurnIntoH4"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/headingKeymap",
+      "key": "Mod-Alt-5",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "TurnIntoH5"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/headingKeymap",
+      "key": "Mod-Alt-6",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "TurnIntoH6"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/inlineCodeKeymap",
+      "key": "Mod-e",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.code"
+      },
+      "names": [
+        "ToggleInlineCode"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/listItemKeymap",
+      "key": "Mod-[",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.outdent"
+      },
+      "names": [
+        "LiftListItem"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/listItemKeymap",
+      "key": "Mod-]",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.indent"
+      },
+      "names": [
+        "SinkListItem"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/listItemKeymap",
+      "key": "Shift-Tab",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "names": [
+        "LiftListItem"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/orderedListKeymap",
+      "key": "Mod-Alt-7",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "WrapInOrderedList"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/paragraphKeymap",
+      "key": "Mod-Alt-0",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "K4"
+      },
+      "names": [
+        "TurnIntoText"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-commonmark/strongKeymap",
+      "key": "Mod-b",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strong"
+      },
+      "names": [
+        "ToggleBold"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-gfm/strikethroughKeymap",
+      "key": "Mod-Alt-x",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strike"
+      },
+      "names": [
+        "ToggleStrikethrough"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-gfm/tableKeymap",
+      "key": "Mod-Enter",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "names": [
+        "ExitTable"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-gfm/tableKeymap",
+      "key": "Mod-[",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "D271"
+      },
+      "names": [
+        "PrevCell"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-gfm/tableKeymap",
+      "key": "Mod-]",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "removeInM1b",
+        "id": "D271"
+      },
+      "names": [
+        "NextCell"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "milkdown:preset-gfm/tableKeymap",
+      "key": "Shift-Tab",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      },
+      "names": [
+        "PrevCell"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "prosemirror-tables:tableEditing",
+      "key": "Mod-Backspace",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "prosemirror-tables:tableEditing",
+      "key": "Mod-Delete",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "prosemirror-tables:tableEditing",
+      "key": "Shift-ArrowDown",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "prosemirror-tables:tableEditing",
+      "key": "Shift-ArrowLeft",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "prosemirror-tables:tableEditing",
+      "key": "Shift-ArrowRight",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    },
+    {
+      "editor": "W",
+      "source": "prosemirror-tables:tableEditing",
+      "key": "Shift-ArrowUp",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "editorOwned"
+      }
+    }
+  ]
+}

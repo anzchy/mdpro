@@ -286,5 +286,8 @@ fn request_guarded_quit(app: &AppHandle<Wry>) {
 mod tests;
 
 #[cfg(test)]
+#[path = "menu_layout_parity_tests.rs"]
+mod menu_layout_parity_tests;
+#[cfg(test)]
 #[path = "menu_quit_tests.rs"]
 mod quit_tests;
