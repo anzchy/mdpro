@@ -66,7 +66,7 @@ describe("D82-WI-4 CLI-M3-2 through main", () => {
     expect(await cli.main("launch", ["--view-mode", "--into", R], io)).toBe(2);
     expect(err).toEqual(["launch: --view-mode needs a value"]);
     expect(out.at(-1)).toBe(
-      "usage: pnpm control:launch [--into <run>] [--via open] [--view-mode source|wysiwyg] [<file>]",
+      "usage: pnpm control:launch [--into <run>] [--via open] [--view-mode source|wysiwyg] [--control on|eval] [<file>]",
     );
     expect(calls).toBe(0);
   });

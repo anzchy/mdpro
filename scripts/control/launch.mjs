@@ -8,7 +8,8 @@
  *   `evaluate`) → `checkBudget(realpath(passwdHome))` → name + nonce → runs
  *   parent at 0700 → `acquireLock` (`wx`, then `mkdir` run dir, never reused,
  *   in the same `.lock.mutex` section) →
- *   `launch.json` (`wx`, 0600) + preferences → spawn (direct, or `open -n
+ *   `launch.json` (`wx`, 0600) + preferences [+ `control-optin.json` with
+ *   `--control`, controlOptin.mjs] → spawn (direct, or `open -n
  *   --env …`) → `awaitHandshake` (`instance.json`) → `verifyIdentity` →
  *   `owner.json` (`wx`, 0600) → `ready: L1 run <R> pid <P>` → `verdict: pass`.
  *
@@ -58,6 +59,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { buildLayout } from "./buildSteps.mjs";
 import { collectFacts, defaultDeps as doctorDeps } from "./doctor.mjs";
+import { isControlMode, writeOptin } from "./controlOptin.mjs";
 import { evaluate } from "./doctorChecks.mjs";
 import { errCode, errMessage, HANDSHAKE_TIMEOUT_MS, openArgv, reporter } from "./launchCore.mjs";
 import { newNonce, newRunName } from "./launchDeps.mjs";
@@ -137,7 +139,7 @@ async function doctorGate(d, rep) {
 
 /**
  * Run `launch`.
- * @param {{ file?: string, via?: string, into?: string, viewMode?: string }} args
+ * @param {{ file?: string, via?: string, into?: string, viewMode?: string, control?: string }} args
  * @param {Record<string, unknown>} [deps]
  * @returns {Promise<{ exit: 0 | 1, lines: string[] }>} exit 0 pass, 1 otherwise
  */
@@ -145,6 +147,12 @@ export async function run(args = {}, deps = {}) {
   const d = /** @type {any} */ ({ ...defaultDeps(), ...deps });
   if (d.mainBinary === undefined) d.mainBinary = buildLayout(d.repoRoot, "verify").mainBinary;
   if (args.via !== undefined && args.via !== "open") return reporter(d, []).verdict("fail", `unknown --via ${args.via}`);
+  if (args.control !== undefined && !isControlMode(args.control)) {
+    return reporter(d, []).verdict("fail", `unknown --control ${args.control}`);
+  }
+  if (args.into !== undefined && args.control !== undefined) {
+    return reporter(d, []).verdict("fail", "--control applies only to a new run");
+  }
   if (args.into !== undefined) return runInto(args, d);
 
   const secrets = /** @type {string[]} */ ([]);
@@ -186,6 +194,7 @@ export async function run(args = {}, deps = {}) {
     const body = launchJsonBody({ nonce, buildId, mainBinary: d.mainBinary });
     fs.writeFileSync(lay.launchJson, JSON.stringify(body), { flag: "wx", mode: FILE_MODE });
     await writePreferences(lay, { viewMode: args.viewMode ?? "source" });
+    if (args.control !== undefined) writeOptin(lay.runDir, args.control);
   } catch (e) {
     return fail(ctx, null, errMessage(e));
   }
