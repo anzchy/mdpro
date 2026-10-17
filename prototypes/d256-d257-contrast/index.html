@@ -1,0 +1,164 @@
+<!doctype html>
+<!--
+  PROTOTYPE, throwaway. Branch prototype/d256-d257-contrast, never lands on master.
+  Question: which contrast fix for
+    D256: ==highlight== text in dark (UA black on rgba(255,85,130,0.65) over the editor = 3.56:1), and
+    D257: the Settings error box in light (#dc2626 on --color-danger-soft = 4.01:1)?
+  Loads mdpro's real stylesheets (src/styles/index.css + MilkdownEditor.css) and the real markup
+  (.milkdown-editor .ProseMirror paragraph with <mark>, .settings-dialog > .settings-main > .settings-error),
+  then overrides per option. Ratios under each sample are measured live from the computed styles.
+  Run: open prototypes/d256-d257-contrast/index.html   (?hl=now|A|B|C&err=now|A|B1|B2&view=both|light|dark)
+  Keys: ←/→ highlight option, ⇧←/⇧→ error option, T cycles the theme view.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PROTOTYPE · D256 / D257 contrast</title>
+<link rel="stylesheet" href="../../src/styles/index.css">
+<link rel="stylesheet" href="../../src/components/Editor/MilkdownEditor.css">
+<style id="variant"></style>
+<style>
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #888; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  body[data-view="light"] .panes, body[data-view="dark"] .panes { grid-template-columns: 1fr; }
+  body[data-view="light"] .pane.theme-dark, body[data-view="dark"] .pane.theme-light { display: none; }
+  .pane { background: var(--color-bg); color: var(--color-text); padding: 20px 24px 140px; }
+  .pane > h2 { font-size: 13px; color: var(--color-muted); font-weight: 500; margin: 18px 0 8px; letter-spacing: .02em; }
+  .pane > h2:first-child { margin-top: 0; }
+  /* host boxes only: give the real components a static place to sit */
+  .editor-host { height: auto; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
+  .editor-host .ProseMirror { min-height: 0 !important; }
+  .pane .settings-dialog { width: 100%; height: auto; }
+  .pane .settings-content { min-height: 0; }
+  .ratio { font: 11px/1.5 ui-monospace, Menlo, monospace; color: var(--color-muted); margin: 6px 2px 0; }
+  .ratio b.ok { color: #16a34a; } .ratio b.bad { color: #dc2626; } .ratio b.info { color: inherit; }
+  #bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9999;
+         background: #111; color: #fff; border-radius: 999px; padding: 8px 14px; display: flex; gap: 14px;
+         box-shadow: 0 6px 24px rgba(0,0,0,.35); font: 13px -apple-system, sans-serif; align-items: center; }
+  #bar button { background: #333; color: #fff; border: 0; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+  #bar .lab { min-width: 250px; text-align: center; }
+  #bar small { color: #aaa; display: block; font-size: 11px; }
+  #bar .sep { width: 1px; height: 28px; background: #444; }
+</style>
+</head>
+<body data-view="both">
+<div class="panes">
+  <section class="pane theme-light"></section>
+  <section class="pane theme-dark"></section>
+</div>
+
+<template id="pane">
+  <h2 data-title="hl">D256 · ==highlight== in the WYSIWYG editor</h2>
+  <div class="editor-host">
+    <div class="milkdown-editor"><div><div class="milkdown"><div class="ProseMirror" contenteditable="false">
+      <p>Plain text before. <mark data-measure="hl">This sentence is highlighted with ==text==</mark>, and plain text after it.</p>
+      <p>A second paragraph with a <mark>short highlight</mark> in the middle of a line.</p>
+    </div></div></div></div>
+  </div>
+  <div class="ratio" data-out="hl"></div>
+
+  <h2>D257 · the Settings error box (Keyboard Shortcuts page)</h2>
+  <div class="settings-dialog" role="presentation">
+    <div class="settings-header"><h2 class="settings-title">Settings</h2><button class="settings-close" aria-label="Close settings">×</button></div>
+    <div class="settings-content">
+      <div class="settings-main">
+        <div class="settings-page-header">
+          <h3 class="settings-page-title">Keyboard Shortcuts</h3>
+          <p class="settings-page-desc">Customize keyboard shortcuts for common actions.</p>
+        </div>
+        <p class="settings-error" data-measure="err">Couldn't save shortcuts. The settings file could not be written.</p>
+        <div class="settings-error" role="alert">Conflicting shortcuts detected — duplicate assignments are highlighted below.</div>
+        <div class="settings-row">
+          <div class="settings-row-label"><span>Save</span></div>
+          <div class="settings-row-control"><span>⌘S</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ratio" data-out="err"></div>
+</template>
+
+<div id="bar">
+  <button data-dim="hl" data-d="-1">←</button>
+  <div class="lab" id="lab-hl"></div>
+  <button data-dim="hl" data-d="1">→</button>
+  <div class="sep"></div>
+  <button data-dim="err" data-d="-1">⇧←</button>
+  <div class="lab" id="lab-err"></div>
+  <button data-dim="err" data-d="1">⇧→</button>
+  <div class="sep"></div>
+  <button id="view">T</button>
+  <div class="lab" id="lab-view" style="min-width:90px"></div>
+</div>
+
+<script>
+// Measured offline with tests/support/contrast.ts on master 4aede074 tokens (text on composited fill).
+const HL = {
+  now: ['Today · UA black on pink 0.65', 'light 9.88 · dark 3.56 ✗', ''],
+  A:   ['A · same pink, text --color-text', 'light 8.19 · dark 4.77',
+        `.milkdown-editor .ProseMirror mark{color:var(--color-text)}`],
+  B:   ['B · theme-split --color-highlight, dark 0.40 (recommended)', 'light 8.19 · dark 8.02',
+        `:root{--color-highlight:rgba(255,85,130,0.65)} .theme-dark{--color-highlight:rgba(255,85,130,0.40)}
+         .milkdown-editor .ProseMirror mark{background:var(--color-highlight);color:var(--color-text)}`],
+  C:   ['C · black text, dark opaque pink', 'light 9.88 · dark 6.87',
+        `.theme-dark .milkdown-editor .ProseMirror mark{background:rgb(255,85,130)}`],
+};
+const ERR = {
+  now: ['Today · --color-danger text', 'light 4.01 ✗ · dark 4.92', ''],
+  A:   ['A · text --color-text, red border + fill kept', 'light 14.44 · dark 10.98',
+        `.settings-error{color:var(--color-text)}`],
+  B1:  ['B · --color-danger-text #b91c1c / dark #f87171 (recommended)', 'light 5.37 · dark 4.92',
+        `:root{--color-danger-text:#b91c1c} .theme-dark{--color-danger-text:#f87171} .settings-error{color:var(--color-danger-text)}`],
+  B2:  ['B · --color-danger-text #b91c1c / dark #fca5a5 (recommended)', 'light 5.37 · dark 7.17',
+        `:root{--color-danger-text:#b91c1c} .theme-dark{--color-danger-text:#fca5a5} .settings-error{color:var(--color-danger-text)}`],
+};
+const VIEWS = ['both', 'light', 'dark'];
+
+const tpl = document.getElementById('pane');
+document.querySelectorAll('.pane').forEach(p => p.appendChild(tpl.content.cloneNode(true)));
+
+const q = new URLSearchParams(location.search);
+let H = q.get('hl') in HL ? q.get('hl') : 'now';
+let E = q.get('err') in ERR ? q.get('err') : 'now';
+let V = VIEWS.includes(q.get('view')) ? q.get('view') : 'both';
+
+function rgb(s){ const c=document.createElement('canvas').getContext('2d'); c.fillStyle='#000'; c.fillStyle=s; c.fillRect(0,0,1,1); return [...c.getImageData(0,0,1,1).data]; }
+function lum([r,g,b]){ return [r,g,b].map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0); }
+function ratio(a,b){ const l1=lum(a), l2=lum(b); return (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05); }
+function over(top, under){ const a=top[3]/255; return [0,1,2].map(i=>Math.round(top[i]*a+under[i]*(1-a))).concat(255); }
+function effectiveBg(el){ const chain=[]; for(let e=el;e;e=e.parentElement){ const c=getComputedStyle(e).backgroundColor; if(c && c!=='rgba(0, 0, 0, 0)') chain.push(rgb(c)); if(chain.length && chain[chain.length-1][3]===255) break; } let base=[255,255,255,255]; for(let i=chain.length-1;i>=0;i--) base=over(chain[i],base); return base; }
+const tag = (r, t) => `<b class="${r>=t?'ok':'bad'}">${r.toFixed(2)}:1</b>`;
+function measure(){
+  document.querySelectorAll('.pane').forEach(pane => {
+    const theme = pane.classList.contains('theme-dark') ? 'dark' : 'light';
+    const mark = pane.querySelector('[data-measure="hl"]');
+    const fg = rgb(getComputedStyle(mark).color), bg = effectiveBg(mark), ed = effectiveBg(mark.parentElement);
+    pane.querySelector('[data-out="hl"]').innerHTML =
+      `${theme} · text on highlight ${tag(ratio(fg,bg),4.5)} (target 4.5) · highlight vs editor <b class="info">${ratio(bg,ed).toFixed(2)}:1</b> (how much it stands out)`;
+    const err = pane.querySelector('[data-measure="err"]');
+    const efg = rgb(getComputedStyle(err).color), ebg = effectiveBg(err);
+    const border = rgb(getComputedStyle(err).borderTopColor), panel = effectiveBg(err.parentElement);
+    pane.querySelector('[data-out="err"]').innerHTML =
+      `${theme} · error text on its fill ${tag(ratio(efg,ebg),4.5)} (target 4.5) · red border vs panel ${tag(ratio(border,panel),3)} (target 3)`;
+  });
+}
+function apply(){
+  document.getElementById('variant').textContent = HL[H][2] + '\n' + ERR[E][2];
+  document.body.dataset.view = V;
+  document.getElementById('lab-hl').innerHTML = `D256 highlight: ${H}<small>${HL[H][0]}<br>${HL[H][1]}</small>`;
+  document.getElementById('lab-err').innerHTML = `D257 error: ${E}<small>${ERR[E][0]}<br>${ERR[E][1]}</small>`;
+  document.getElementById('lab-view').innerHTML = `Theme<small>${V}</small>`;
+  history.replaceState(null,'',`?hl=${H}&err=${E}&view=${V}`);
+  requestAnimationFrame(measure);
+}
+function step(dim,d){ const M = dim==='hl'?HL:ERR; const keys=Object.keys(M); const cur = dim==='hl'?H:E;
+  const n = keys[(keys.indexOf(cur)+d+keys.length)%keys.length]; if(dim==='hl') H=n; else E=n; apply(); }
+document.querySelectorAll('#bar button[data-dim]').forEach(b=>b.onclick=()=>step(b.dataset.dim,+b.dataset.d));
+document.getElementById('view').onclick=()=>{ V=VIEWS[(VIEWS.indexOf(V)+1)%3]; apply(); };
+addEventListener('keydown',e=>{ if(e.target.closest('input,textarea,[contenteditable="true"]')) return;
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ step(e.shiftKey?'err':'hl', e.key==='ArrowLeft'?-1:1); e.preventDefault(); }
+  if(e.key==='t'||e.key==='T'){ V=VIEWS[(VIEWS.indexOf(V)+1)%3]; apply(); } });
+addEventListener('load', apply);
+</script>
+</body>
+</html>
