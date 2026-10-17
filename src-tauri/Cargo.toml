@@ -76,6 +76,11 @@ objc2-app-kit = { version = "0.3", features = [
 # ADR-0047 WI-002: the agent-verification launch guard. Default off; only the
 # verify build turns it on, and a feature-off build carries no guard code.
 verify-run = []
+# ADR-0047 WI-009: the agent control channel. Default off; implies the guard,
+# so it only ever runs inside a verified run dir. The AppKit types it uses are
+# already compiled through `objc2-app-kit`'s default features, so the gate is
+# the module's cfg, not a dependency feature.
+control-channel = ["verify-run"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }

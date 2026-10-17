@@ -211231,6 +211231,90 @@
           "message": "The red for 'D284-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
         }
       ]
+    },
+    {
+      "id": "ADR47-WI009-1",
+      "lane": "unit",
+      "recorded_at": "2026-10-17T12:36:52.095Z",
+      "head_sha": "59b57683816605b8e1501b122b09d9e0fa3088ac",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/tooling/adr47-wi009-control-channel-feature.test.ts": {
+          "state": "ok",
+          "sha": "f6fc5418231264252f207bc75a45982c88dea0284dc60b860afb1035f1fff146",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "b1e7ae69f72c1b57",
+            "684888c0ebb17f37",
+            "a562d9e33b65d4a1",
+            "72c919c135e3c955",
+            "b6fef53cdb089ca1",
+            "dca05b40edd69049",
+            "fae37c3745da1eca",
+            "ed9623369ff082ab",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "9c94784f8cfa14e6",
+            "87f9333363545245",
+            "82f2388cc45f585d",
+            "06edf4078273e929",
+            "31e70b1311d0b26e",
+            "0efb1abb736396e0",
+            "a47769ad130945da",
+            "1bc21e84a5ea8d1b",
+            "7dcf5027ffe2d35e",
+            "a69418bafa7eb910",
+            "d10b36aa74a59bcf",
+            "b2f42356fd3dafad",
+            "5f99369f4e4b79cf",
+            "b0b15d4f1699b8b7",
+            "79a56845fc73bdc4",
+            "6af9297a3a2750a3",
+            "0033f218b769934e",
+            "7c3e4fc6d6f02c47",
+            "67ba90d198dbd1ff",
+            "d10b36aa74a59bcf",
+            "444c2947eeb82124",
+            "c24bd1accee25a79",
+            "63d80b9d71b53db7",
+            "29576b54e255e3c9",
+            "24686b1005dce50c",
+            "9b2f72674cfa6a30",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9",
+            "2c64ba9282a80735",
+            "e58260c6c6a448e9",
+            "2c1341babbce775c",
+            "4f6142d6e221fab7",
+            "19a7620365f035b5",
+            "62da6b22b4a164e0",
+            "ad4c32c54547054c",
+            "98cc21a2683fee7f",
+            "7fda7ca48f3b2283",
+            "29576b54e255e3c9",
+            "8ccfcc2190f727e7",
+            "bf8da21c3b688fa6",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-17T12:50:00.550Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'ADR47-WI009-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     }
   ]
 }

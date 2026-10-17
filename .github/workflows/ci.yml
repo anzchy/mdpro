@@ -148,6 +148,10 @@ jobs:
 
       - run: cargo test --manifest-path src-tauri/Cargo.toml
 
+      # ADR-0047 WI-009: the control-channel build compiles here too. On
+      # ubuntu-latest this is the non-macOS arm of its cfg split.
+      - run: cargo check --manifest-path src-tauri/Cargo.toml --features control-channel
+
   # ADR-0107: cargo audit runs on its own and is not in ci-gate's `needs`. A
   # new RustSec advisory says nothing about the diff under review, so on a PR
   # it shows as a red check without blocking the landing; on a tag or manual
