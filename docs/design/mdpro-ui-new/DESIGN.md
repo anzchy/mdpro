@@ -559,13 +559,13 @@ look. Where the two disagree, the plan wins and this block is corrected.
      (fixed) and Exit in File (D14, as prototype A drew them).
   6. Jump to Top / Bottom are fixed "System" rows with no menu item
      (§ 5.3.2, K2).
+  7. Windows, WYSIWYG: Ctrl+F keeps opening WebView2's own find bar until
+     D255's find lands, and Settings says "WYSIWYG: browser find bar" (D19,
+     2026-10-17: 「A · Keep, say so in Settings (Recommended)」).
 - **Still open:**
-  1. Windows, WYSIWYG: while Ctrl+F opens WebView2's own find bar, Settings
-     says "WYSIWYG: browser find bar" (§ 5.2). Whether to keep or suppress
-     that key until D255's find lands is the user's U11.
-  2. Items macOS inserts (the Help search field, the Window menu's window
+  1. Items macOS inserts (the Help search field, the Window menu's window
      list, View › Enter Full Screen) are expected extras, owned by M4.
-  3. D255 (D7) builds what it can, so the "not available" set shrinks from
+  2. D255 (D7) builds what it can, so the "not available" set shrinks from
      § 5.1's as drawn. The look holds for whatever remains.
 
 ### Toasts (proposal :278-281, :558-564; DR9)

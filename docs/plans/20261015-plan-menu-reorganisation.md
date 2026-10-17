@@ -1,12 +1,12 @@
 # Plan: reorganise the native menu bar on macOS and Windows
 
 **Status:** revised after the scoped Codex re-review and confirmed clean (C0 · H0 · M0 · L0, 2026-10-16, §§ 10–11). Decisions
-taken (§ 0, including the user's answers to U1–U9); U10–U12 are still open, listed next; no code written.
+taken (§ 0, including the user's answers to U1–U9); U10 and U11 were answered on 2026-10-17 (D18, D19); U12 is still open.
 **Scheduled for v0.3.6, merged with [D255](20260912-frontend-backend-sequencing-order.md#d255)**
 (2026-10-16, decision D7 in § 0) and owning [D261](20260912-frontend-backend-sequencing-order.md#d261).
 M2 is recorded ([record](../test/20261016-m2-menu-spike-device-check.md)), D255-WI-1 is done, and M0 is
 [ADR-0114](../adr/0114-the-menu-bar-and-default-keys-follow-one-command-table-and-vmark.md) (Accepted, 2026-10-16).
-Next: M1a. U10 and U11 are the user's, now that M2 has reported; U12 waits for the prototype.
+Next: M1a. U12 waits for the prototype.
 **Base:** written on `master` @ `74a4804`; the review revision re-checked its citations on
 `1d7aa9f`, after #443 moved the app to Tauri 2.12.1 and muda 0.20.0
 (`src-tauri/Cargo.lock:2494-2495`). Crate paths are relative to
@@ -26,7 +26,7 @@ Next: M1a. U10 and U11 are the user's, now that M2 has reported; U12 waits for t
 
 Collected for the delegator to put to the user. Each says which work item waits on it.
 **U1–U9 were answered on 2026-10-16** (relayed by the delegator, quoted in the Waits column
-and in § 0 as D9–D17) and are applied through the plan. U10 and U11 wait for M2's record;
+and in § 0 as D9–D17) and are applied through the plan. U10 and U11 were answered on 2026-10-17 after M2's record (D18, D19);
 U12 is a choice on the prototype. Nothing below has
 been decided by this plan; where the plan needs a value to be written against, it uses
 the recommendation and marks the row "(U*n*)". A "before M1b" decision changes a default key,
@@ -75,6 +75,8 @@ The user answered the first draft's questions; relayed by the coordinator.
 | D16 | Insert Table (U8, 2026-10-16) | 「A · ⇧⌘T / Ctrl+Shift+T (Recommended)」 | Insert Table leaves ⌥⌘T / Ctrl+Alt+T. D9's "table keys" that stay on Ctrl+Alt are the six in-table row and column keys, a different set, so the two answers do not overlap |
 | D17 | Windows strikethrough (U9, 2026-10-16) | 「A · Ctrl+Shift+X (Recommended)」 | ADR-0096's Alt+Shift+5 clause is superseded, as § 5.3.4 says |
 | D8 | Menu and Settings look (2026-10-16) | 「A · Plan as written, greyed」 ([DESIGN.md](../design/mdpro-ui-new/DESIGN.md) § Native menu bar and Keyboard Shortcuts page, `d907a3f6`) | The trees as drawn; unavailable items greyed in place; no banner for changed defaults. DESIGN's block is normative for M4, M5 and M7 |
+| D18 | Windows clipboard items (U10, 2026-10-17) | 「A · Keep built-in items (Recommended)」 | Edit › Cut / Copy / Paste stay the predefined items off-Mac. M2(c) found none of VMark #1354's symptoms (10/10, Microsoft Pinyin included, [record](../test/20261016-m2-menu-spike-device-check.md)), so § 5.7's custom clipboard adapter is not built |
+| D19 | Native keys in WYSIWYG on Windows (U11, 2026-10-17) | 「A · Keep, say so in Settings (Recommended)」 | Ctrl+F (WebView2's find bar) and Ctrl+Shift+V (plain paste) keep working in WYSIWYG off-Mac. Settings marks Find "WYSIWYG: browser find bar" (§ 5.2, M7). When D255's WYSIWYG find lands, it takes Ctrl+F in WYSIWYG |
 
 ## 1. Goal
 
