@@ -59,15 +59,6 @@
   gap: 12px;
 }
 
-.settings-placeholder-card {
-  border: var(--settings-card-border);
-  border-radius: 12px;
-  padding: 16px;
-  color: var(--color-muted);
-  font-size: 13px;
-  background: var(--settings-card-bg);
-}
-
 .settings-placeholder-note {
   margin-top: 16px;
   font-size: 12px;
@@ -97,7 +88,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  background: var(--settings-card-bg);
+  background: var(--color-group-bg);
   border: 1px solid var(--color-border);
   border-radius: 10px;
 }
@@ -108,7 +99,7 @@
 }
 
 .settings-select {
-  background: var(--settings-input-bg);
+  background: var(--color-input-bg);
   border: 1px solid var(--color-control-border);
   border-radius: var(--radius-control);
   padding: 6px 12px;

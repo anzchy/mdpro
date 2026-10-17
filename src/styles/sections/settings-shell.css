@@ -67,7 +67,7 @@
 
 .settings-search {
   border: 1px solid var(--color-control-border);
-  background: var(--settings-input-bg);
+  background: var(--color-input-bg);
   color: var(--color-text);
   border-radius: 10px;
   padding: 8px 12px;
@@ -147,7 +147,7 @@
 }
 
 .shortcuts-section {
-  background: var(--settings-card-bg);
+  background: var(--color-group-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-popover);
   padding: 12px 14px;
@@ -180,7 +180,7 @@
 }
 
 .shortcut-value {
-  background: var(--settings-input-bg);
+  background: var(--color-input-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   padding: 6px 12px;

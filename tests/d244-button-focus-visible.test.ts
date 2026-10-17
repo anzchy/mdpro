@@ -61,9 +61,10 @@ const OUTER: { selector: string; behind: string[][] }[] = [
   { selector: ".toast-close:focus-visible", behind: [["var(--color-panel)"]] },
   {
     selector: ".settings-dirty-banner__discard:focus-visible",
-    behind: [["rgba(245, 158, 11, 0.12)", "var(--color-panel)"]],
+    // The banner's own fill, read from the CSS, so a banner change moves the measurement (D278).
+    behind: [[rule(".settings-dirty-banner").get("background") ?? "", "var(--color-panel)"]],
   },
-  { selector: ".shortcut-value:focus-visible", behind: [["var(--settings-card-bg)", "var(--color-panel)"]] },
+  { selector: ".shortcut-value:focus-visible", behind: [["var(--color-group-bg)", "var(--color-panel)"]] },
   { selector: ".image-context-menu-apply:focus-visible", behind: [["var(--color-panel)"]] },
   { selector: ".mcp-copy-btn:focus-visible", behind: [["var(--color-bg-secondary)", "var(--color-panel)"]] },
   { selector: ".settings-stepper:focus-visible", behind: [["var(--color-panel)"]] },

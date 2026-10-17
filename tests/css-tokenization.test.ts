@@ -162,8 +162,6 @@ const UNRENDERED: Unrendered[] = [
   u(S + "settings-shell.css", ".settings-sidebar-title", "font-size", "11px", ORPHAN),
   u(S + "settings-pages.css", ".settings-placeholder h3", "font-size", "18px", ORPHAN),
   u(S + "settings-pages.css", ".settings-placeholder p", "font-size", "13px", ORPHAN),
-  u(S + "settings-pages.css", ".settings-placeholder-card", "border-radius", "12px", ORPHAN),
-  u(S + "settings-pages.css", ".settings-placeholder-card", "font-size", "13px", ORPHAN),
   u(S + "settings-pages.css", ".settings-placeholder-note", "font-size", "12px", ORPHAN),
   u(S + "settings-pages.css", ".settings-general h3", "font-size", "18px", ORPHAN),
   u(S + "settings-pages.css", ".settings-general p", "font-size", "13px", ORPHAN),

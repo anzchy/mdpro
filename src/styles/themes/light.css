@@ -36,13 +36,9 @@
   /* STOP 3 S2 (ADR-0110): derived, neutral; drops D4's cool cast on code */
   --color-code-bg: color-mix(in srgb, var(--color-editor-bg) 94%, var(--color-text));
 
-  /* Settings dialog specific */
-  --settings-sidebar-bg: linear-gradient(180deg, rgba(246, 247, 251, 0.95), rgba(240, 241, 245, 0.98));
-  --settings-input-bg: rgba(255, 255, 255, 0.9);
-  --settings-card-bg: rgba(246, 247, 251, 0.8);
-  --settings-card-border: 1px dashed rgba(0, 0, 0, 0.12);
-  --settings-btn-hover-bg: rgba(37, 99, 235, 0.08);
-  --settings-btn-active-bg: rgba(37, 99, 235, 0.15);
+  /* Settings fills (D278): light follows the surface and panel. */
+  --color-group-bg: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  --color-input-bg: color-mix(in srgb, var(--color-panel) 90%, transparent);
 
   /* Semantic aliases */
   --color-text-secondary: var(--color-muted);

@@ -26,6 +26,11 @@ export type Theme = "light" | "dark";
 const STYLES = join(__dirname, "..", "..", "src", "styles");
 const read = (rel: string) => readFileSync(join(STYLES, rel), "utf8");
 
+/** The custom properties of `:root` alone: first paint, before a theme class is set (D278). */
+export function rootTokens(): Map<string, string> {
+  return tokenBlock(read("globals.css"), ":root");
+}
+
 /** The custom properties in effect on `<html>` in `theme`. */
 export function themeTokens(theme: Theme): Map<string, string> {
   const root = tokenBlock(read("globals.css"), ":root");
