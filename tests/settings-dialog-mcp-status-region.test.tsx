@@ -183,7 +183,9 @@ describe("WI-6 McpServerStatus", () => {
     render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
 
-    expect(await screen.findByText("x")).toBeInTheDocument();
+    // WI-4.3b: the shared status-failure line, never the raw message.
+    expect(await screen.findByText("Failed to load MCP status")).toBeInTheDocument();
+    expect(screen.queryByText("x")).toBeNull();
     expect(screen.queryByText(/^Off$/)).toBeNull();
     expect(screen.queryByText(/Running/)).toBeNull();
     expect(screen.queryByText(/restart/i)).toBeNull();

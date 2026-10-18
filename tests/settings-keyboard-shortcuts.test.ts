@@ -17,8 +17,8 @@
  *  10. WI-9: NON_ACTIONABLE_KEYS expanded (Dead, Unidentified, CapsLock, etc.).
  *  11. WI-9: Modifier requirement — bare key capture rejected.
  *  12. WI-9: Conflict detection with UI warning.
- *  13. WI-9: Save error surfaced in UI.
- *  14. WI-9: Load error handling with cancellation guard.
+ *  13. WI-9, revised by WI-4.3b: a failed save is signalled by the service toast only.
+ *  14. WI-9, revised by WI-4.3b: load failure flag, shared failure line, cancellation guard.
  *
  * Edge cases:
  *   - Space key normalized to "Space".
@@ -152,23 +152,16 @@ describe("KeyboardShortcutsSettings — source structure", () => {
     expect(kbSrc).toContain("Conflicting shortcuts detected");
   });
 
-  it("save error state is tracked", () => {
-    expect(kbSrc).toContain("saveError");
-    expect(kbSrc).toContain("setSaveError");
+  it("keeps no saveError state: the service toast signals a failed save (WI-4.3b)", () => {
+    expect(kbSrc).not.toContain("saveError");
   });
 
-  it("save error is rendered in UI", () => {
-    expect(kbSrc).toContain("{saveError &&");
+  it("handleSave logs a failed save instead of rendering it inline (WI-4.3b)", () => {
+    expect(kbSrc).toContain('"ui.settings.shortcuts.save", { status: "fail" }');
   });
 
-  it("handleSave surfaces errors in saveError state", () => {
-    // Must set saveError on catch, not just log
-    expect(kbSrc).toContain("setSaveError(");
-  });
-
-  it("load error state is tracked", () => {
-    expect(kbSrc).toContain("loadError");
-    expect(kbSrc).toContain("setLoadError");
+  it("load failure is tracked as a flag (WI-4.3b)", () => {
+    expect(kbSrc).toContain("const [loadFailed, setLoadFailed]");
   });
 
   it("useEffect load has a cancellation guard", () => {
@@ -176,9 +169,8 @@ describe("KeyboardShortcutsSettings — source structure", () => {
     expect(kbSrc).toContain("cancelled = true");
   });
 
-  it("renders load error state", () => {
-    expect(kbSrc).toContain("loadError");
-    expect(kbSrc).toContain("settings-error");
+  it("renders the shared load-failure line, not an inline error (WI-4.3b)", () => {
+    expect(kbSrc).toContain("<SettingsLoadFailed />");
   });
 });
 

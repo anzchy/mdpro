@@ -97,7 +97,9 @@ describe("MCP-FIX-C1 load and refresh failures", () => {
     mcp.switchReplies = [{ reject: "status_unavailable" }];
     await user.click(toggle(SERVER));
 
-    expect(await screen.findByText("status down")).toBeInTheDocument();
+    // WI-4.3b: the shared status-failure line, never the raw message.
+    expect(await screen.findByText("Failed to load MCP status")).toBeInTheDocument();
+    expect(screen.queryByText("status down")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
     expect(screen.queryByText(/Running/)).toBeNull();
     expect(screen.queryByText(/restart/i)).toBeNull();

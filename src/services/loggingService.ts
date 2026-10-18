@@ -1,6 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { LogContext, LogEntryPayload, LogLevel, LogSettings } from "../types/logging";
 import { useLoggingStore } from "../stores/loggingStore";
+import { useToastStore } from "../stores/toastStore";
+
+/** The one save-failure toast, shared with `preferencesService.setPreferences`. */
+const SAVE_FAILED_TOAST = "Failed to save preferences";
 
 const levelRank: Record<LogLevel, number> = {
   debug: 0,
@@ -136,8 +140,29 @@ export const loggingService = {
     useLoggingStore.getState().setSettings(settings);
     return settings;
   },
+  /**
+   * Write the logging settings and return what the backend stored.
+   *
+   * Rejects when the write fails (WI-4.3b, the logging slice of WI-4.13). It
+   * used to map an IPC rejection to the settings it was asked to write, so a
+   * failed write looked saved and no caller could tell. Like
+   * `preferencesService.setPreferences`, it raises the one save toast (rule 30
+   * rule 5), logs an enum-only `fail` (the rejection text can carry paths) and
+   * re-throws, so the caller keeps the saved value.
+   */
   async setLoggingSettings(settings: LogSettings): Promise<LogSettings> {
-    const result = await safeInvoke<LogSettings>("set_logging_settings", { settings });
-    return result ?? settings;
+    try {
+      return await invoke<LogSettings>("set_logging_settings", { settings });
+    } catch (error) {
+      logEventSync({
+        level: "error",
+        event: "ui.logging.settings.save",
+        status: "fail",
+        actionId: generateActionId(),
+        context: { reason: "invoke_rejected" },
+      });
+      useToastStore.getState().showToast(SAVE_FAILED_TOAST);
+      throw error;
+    }
   },
 };

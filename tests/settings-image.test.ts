@@ -7,7 +7,7 @@
  * Covers:
  *   1. isValidAssetFolder rejects absolute paths, traversal, and control chars.
  *   2. isValidAssetFolder accepts valid relative paths.
- *   3. error state and cancellation guard in useEffect.
+ *   3. load-failure flag and cancellation guard in useEffect.
  *   4. Async rollback for handleBoolChange.
  *   5. Debounced folder text save (500 ms) with path validation gate.
  *   6. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a) on both controls.
@@ -44,8 +44,8 @@ describe("ImageSettings — source structure", () => {
     expect(src).toContain("\\x00-\\x1f");
   });
 
-  it("tracks error state", () => {
-    expect(src).toContain("const [error, setError]");
+  it("tracks a load failure as a flag, not raw text (WI-4.3b)", () => {
+    expect(src).toContain("const [loadFailed, setLoadFailed]");
   });
 
   it("useEffect has a cancellation guard", () => {

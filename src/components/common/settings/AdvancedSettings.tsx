@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLoggingStore } from "../../../stores/loggingStore";
 import type { LogLevel } from "../../../types/logging";
 import { loggingService } from "../../../services/loggingService";
@@ -26,10 +25,10 @@ export function AdvancedSettings() {
   const loggingLevel = useLoggingStore((state) => state.level);
   const setEnabled = useLoggingStore((state) => state.setEnabled);
   const setLevel = useLoggingStore((state) => state.setLevel);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
+  // A rejected write leaves the store, and so the control, at the saved value;
+  // `setLoggingSettings` raises the one save toast (rule 30 rule 5).
   const handleLoggingToggle = async (next: boolean) => {
-    setSaveError(null);
     loggingService.logUiEvent("ui.toggle.change", {
       controlId: "settings.advanced.logging.enabled",
       newValue: next,
@@ -40,14 +39,13 @@ export function AdvancedSettings() {
     try {
       await loggingService.setLoggingSettings({ enabled: next, level });
       setEnabled(next);
-    } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save logging settings");
+    } catch {
+      // Already signalled and logged by the service.
     }
   };
 
   const handleLogLevelChange = async (rawValue: string) => {
     if (!isLogLevel(rawValue)) return;
-    setSaveError(null);
     loggingService.logUiEvent("ui.select.change", {
       controlId: "settings.advanced.logging.level",
       newValue: rawValue,
@@ -56,8 +54,8 @@ export function AdvancedSettings() {
     try {
       await loggingService.setLoggingSettings({ enabled, level: rawValue });
       setLevel(rawValue);
-    } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save logging settings");
+    } catch {
+      // Already signalled and logged by the service.
     }
   };
 
@@ -67,8 +65,6 @@ export function AdvancedSettings() {
         <h3 className="settings-page-title">Advanced</h3>
         <p className="settings-page-desc">Logging and diagnostic settings.</p>
       </div>
-
-      {saveError && <p className="settings-error">{saveError}</p>}
 
       <div className="settings-row">
         <div className="settings-row-content">

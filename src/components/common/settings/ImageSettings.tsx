@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ImageConfig, UserPreferences } from "../../../types/preferences";
 import { DEFAULT_IMAGE_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
+import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { ToggleSwitch } from "../ToggleSwitch";
 
 interface ImageSlice {
@@ -32,7 +33,7 @@ export function ImageSettings() {
    * timer replay a stale `copyExternalImages` over the newer toggle (WI-2).
    */
   const prefsRef = useRef<ImageSlice | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const textSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
@@ -95,7 +96,7 @@ export function ImageSettings() {
       //
       // WI2-I's defect was the pane being *destroyed* on failure, not the
       // absence of an inline message: the controls below stay mounted, operable
-      // and holding the user's value. `error` is load-failure only, where no
+      // and holding the user's value. `loadFailed` is load-failure only, where no
       // toast is raised and it is therefore the sole signal.
       return false;
     }
@@ -114,9 +115,9 @@ export function ImageSettings() {
             p.image?.copyExternalImages ?? DEFAULT_IMAGE_CONFIG.copyExternalImages,
         });
       })
-      .catch((err: unknown) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to load settings");
+      .catch(() => {
+        // The service has logged the failure (enum-only); the raw message stays out of the UI.
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
@@ -178,21 +179,10 @@ export function ImageSettings() {
         <p className="settings-page-desc">Image handling and paste behavior.</p>
       </div>
 
-      {error ? (
-        <p className="settings-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-
       {!prefs ? (
-        // A load failure leaves no values to render, so the busy note is
-        // suppressed once the error is showing; a save failure keeps the
-        // controls mounted above.
-        error ? null : (
-          <div aria-busy="true" style={{ opacity: 0.5 }}>
-            Loading…
-          </div>
-        )
+        // A load failure leaves no values to render, so it replaces the busy
+        // line; a save failure keeps the controls mounted.
+        loadFailed ? <SettingsLoadFailed /> : <SettingsLoading />
       ) : (
         <>
           <div className="settings-row">

@@ -5,7 +5,7 @@
  * Strategy: source inspection.
  *
  * Covers:
- *   1. error state and cancellation guard in useEffect.
+ *   1. load-failure flag and cancellation guard in useEffect.
  *   2. Async rollback for handleBoolChange.
  *   3. Debounced folder text save (500 ms).
  *   4. handleBrowse uses exportService.pickFolder with rollback.
@@ -26,8 +26,8 @@ describe("ExportSettings — source structure", () => {
     expect(src).toContain("export function ExportSettings");
   });
 
-  it("tracks error state", () => {
-    expect(src).toContain("const [error, setError]");
+  it("tracks a load failure as a flag, not raw text (WI-4.3b)", () => {
+    expect(src).toContain("const [loadFailed, setLoadFailed]");
   });
 
   it("useEffect has a cancellation guard", () => {
@@ -35,8 +35,10 @@ describe("ExportSettings — source structure", () => {
     expect(src).toContain("cancelled = true");
   });
 
-  it("renders error state", () => {
-    expect(src).toContain("settings-error");
+  it("renders the shared load-failure line, not an inline error (WI-4.3b)", () => {
+    expect(src).toContain("<SettingsLoadFailed />");
+    // The box comes from SettingsPageState; the page renders none of its own.
+    expect(src).not.toContain("settings-error");
   });
 
   it("handleBoolChange rolls back prefs on save failure", () => {

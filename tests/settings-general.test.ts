@@ -67,8 +67,8 @@ describe("GeneralSettings — source structure", () => {
     expect(generalSettingsSrc).toContain("autoSaveInterval");
   });
 
-  it("shows aria-busy loading state while prefs are null", () => {
-    expect(generalSettingsSrc).toContain('aria-busy="true"');
+  it("shows the shared busy loading line while prefs are null (WI-4.3b)", () => {
+    expect(generalSettingsSrc).toContain("<SettingsLoading />");
   });
 });
 

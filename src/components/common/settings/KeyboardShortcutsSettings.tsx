@@ -27,6 +27,7 @@ import { FIELD_LABELS, shortcutSections } from "./shortcuts/shortcutGroups";
 import { resetDefaults } from "./shortcuts/resetDefaults";
 import { rowStateOf } from "./shortcuts/rowState";
 import { ShortcutRow } from "./shortcuts/ShortcutRow";
+import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 
 /** What a key button shows while the recorder waits for a chord. */
 const RECORDING_PROMPT = "Press keys...";
@@ -40,8 +41,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts | null>(null);
   const [editingKey, setEditingKey] = useState<keyof KeyboardShortcuts | null>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [version, setVersion] = useState(1);
   const [applied, setApplied] = useState<AppliedShortcuts["bindings"] | null>(null);
 
@@ -56,9 +56,9 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         setLocalShortcuts(merged);
         setVersion(p.keyboardShortcutsVersion);
       })
-      .catch((err: unknown) => {
-        if (!cancelled)
-          setLoadError(err instanceof Error ? err.message : "Failed to load shortcuts");
+      .catch(() => {
+        // The service has logged the failure (enum-only); the raw message stays out of the UI.
+        if (!cancelled) setLoadFailed(true);
       });
     // The run's applied snapshot, for pending rows. Without one the rows
     // show no pending line; the page still edits and saves.
@@ -127,7 +127,6 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const handleDiscard = () => {
     setLocalShortcuts(savedShortcuts);
     setIsDirty(false);
-    setSaveError(null);
   };
 
   const handleSave = async () => {
@@ -137,14 +136,14 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
       loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "refused", refusing: conflicts.size });
       return;
     }
-    setSaveError(null);
     try {
       await preferencesService.setPreferences({ keyboardShortcuts: localShortcuts });
       setSavedShortcuts(localShortcuts);
       setIsDirty(false);
       onClose();
-    } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save shortcuts");
+    } catch {
+      // The service's toast is the one signal (rule 30 rule 5); the banner stays,
+      // so the edit can be saved again or discarded.
       loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "fail" });
     }
   };
@@ -154,10 +153,10 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     setEditingKey(field);
   };
 
-  if (loadError) {
+  if (loadFailed) {
     return (
       <div className="shortcuts-layout">
-        <p className="settings-error">{loadError}</p>
+        <SettingsLoadFailed />
       </div>
     );
   }
@@ -165,7 +164,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   if (!localShortcuts) {
     return (
       <div className="shortcuts-layout">
-        <p style={{ color: "var(--color-muted)" }}>Loading shortcuts…</p>
+        <SettingsLoading />
       </div>
     );
   }
@@ -184,8 +183,6 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
           </button>
         </div>
       </div>
-
-      {saveError && <p className="settings-error">{saveError}</p>}
 
       {isDirty && (
         <div className="settings-dirty-banner" role="alert">

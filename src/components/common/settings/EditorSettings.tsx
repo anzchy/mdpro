@@ -2,11 +2,22 @@ import { useEffect, useState } from "react";
 import type { EditorConfig, ContentWidth } from "../../../types/preferences";
 import { DEFAULT_EDITOR_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
+import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { applyEditorPref } from "./editorPrefApply";
-import { SettingsStepper } from "./SettingsStepper";
+import { SettingsStepper, type StepperBound } from "./SettingsStepper";
 import { ToggleSwitch } from "../ToggleSwitch";
 
+const FONT_SIZE_MIN = 12;
+const FONT_SIZE_MAX = 24;
+const FONT_SIZE_REASON_ID = "editor-font-size-reason";
+/** Why − or + is disabled (copy chosen by the user, 2026-10-18). */
+const FONT_SIZE_REASON: Record<Exclude<StepperBound, null>, string> = {
+  min: `Smallest size is ${FONT_SIZE_MIN}px`,
+  max: `Largest size is ${FONT_SIZE_MAX}px`,
+};
+
 export function EditorSettings() {
+  const [fontSizeBound, setFontSizeBound] = useState<StepperBound>(null);
   const [prefs, setPrefs] = useState<EditorConfig | null>(null);
   const [loadError, setLoadError] = useState(false);
 
@@ -46,9 +57,7 @@ export function EditorSettings() {
         <div className="settings-page-header">
           <h3 className="settings-page-title">Editor</h3>
         </div>
-        <p style={{ color: "var(--color-text-secondary)" }}>
-          Failed to load preferences. Please close and reopen settings.
-        </p>
+        <SettingsLoadFailed />
       </div>
     );
   }
@@ -61,9 +70,7 @@ export function EditorSettings() {
       </div>
 
       {!prefs ? (
-        <div aria-busy="true" style={{ opacity: 0.5 }}>
-          Loading…
-        </div>
+        <SettingsLoading />
       ) : (
         <>
           <div className="settings-section-label">TYPOGRAPHY</div>
@@ -99,13 +106,16 @@ export function EditorSettings() {
             <div className="settings-row-content">
               <div className="settings-row-label">
                 <h4 id="editor-font-size-label">Font Size</h4>
+                {fontSizeBound && <p id={FONT_SIZE_REASON_ID}>{FONT_SIZE_REASON[fontSizeBound]}</p>}
               </div>
               <div className="settings-row-control">
                 <SettingsStepper
                   labelledBy="editor-font-size-label"
                   value={prefs.fontSize}
-                  min={12}
-                  max={24}
+                  min={FONT_SIZE_MIN}
+                  max={FONT_SIZE_MAX}
+                  reasonId={FONT_SIZE_REASON_ID}
+                  onBoundChange={setFontSizeBound}
                   unit="px"
                   onChange={(v) => void handleChange("fontSize", v)}
                 />

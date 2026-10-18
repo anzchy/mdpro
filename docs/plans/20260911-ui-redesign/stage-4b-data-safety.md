@@ -96,6 +96,7 @@ WI-4.10, WI-4.11, WI-4.13 and WI-4.14 came out of the design review. The last th
   - The large-file warning can't fire: it warns above 10 MB (`LARGE_FILE_BYTES`, `openWriteGuard.ts:46`, `:149`; set at `useDocument.ts:59`; shown at `App.tsx:332-336`), and the backend refuses those files first (`file.rs:16`). It is a dead-code candidate (A8); list it, don't delete it.
 - **Export success:** "Exported HTML to *path*" (`App.tsx:464`) puts an absolute path in primary UI (rule 30 rule 3). It becomes "Exported *name*" with the DR4 helper; the path goes to the log only.
 - **Logging settings save:** `loggingService.setLoggingSettings` (`loggingService.ts:82-85`) goes through `safeInvoke`, which returns `null` on any failure (`:17-23`). The call then resolves with the requested settings, so a failed save looks saved. It calls `invoke` directly and rejects instead; the `AdvancedSettings` change is in WI-4.3.
+  - **Status (2026-10-18, mdpro-design):** ✅ this slice landed with WI-4.3b (delegator grant, Q2 (a); receipt `WI43B-1`): the service rejects, logs `ui.logging.settings.save` `fail` and raises the "Failed to save preferences" toast itself. The rest of WI-4.13 is untouched.
 - **Rule 32:** § Toast gains the variant contract in the same commit (DESIGN.md § Rule changes).
 - **Tests** (through tdd-guardian, RED first):
   - The store, with fake timers: `info` clears after 3000 ms; `error` is still set long after; `error` after `info` cancels the pending timer; `info` after `error` replaces it and starts a timer

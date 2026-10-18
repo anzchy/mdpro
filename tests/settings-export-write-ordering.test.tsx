@@ -96,9 +96,10 @@ const DEBOUNCE_MS = 500;
  * vacuous: it stays green whether or not the panel renders an inline note, and
  * it stays green if someone re-adds one under different wording — which is the
  * exact regression it was supposed to prevent. The role is the stable contract;
- * the wording is not.
+ * the wording is not. Since WI-4.3b the load-failure line is the shared
+ * `SettingsLoadFailed`, an alert (it was a status note before).
  */
-const inlineNote = () => screen.queryByRole("status");
+const inlineNote = () => screen.queryByRole("alert");
 
 /** The single signal `preferencesService` raises for a failed write. */
 const SERVICE_TOAST = /failed to save preferences/i;
@@ -534,10 +535,12 @@ describe("ExportSettings — failure paths keep the panel honest", () => {
     recorder.failCommand("get_preferences", new Error("EACCES reading config"));
     await mountPanel();
 
-    // Present, and carrying the reason — not a bare "something went wrong".
+    // Present, with the shared copy; the raw reason goes to the log only
+    // (WI-4.3b, rule 30 rule 3).
     const note = inlineNote();
     expect(note).not.toBeNull();
-    expect(note).toHaveTextContent(/EACCES reading config/);
+    expect(note).toHaveTextContent("Failed to load preferences. Please close and reopen settings.");
+    expect(note).not.toHaveTextContent(/EACCES/);
 
     // Sole signal: nothing else fired for this event.
     expect(toastMessages).toHaveLength(0);

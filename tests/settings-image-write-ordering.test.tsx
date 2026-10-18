@@ -527,7 +527,9 @@ describe("ImageSettings — a failed debounced write must not destroy the panel 
 
     const alert = screen.queryByRole("alert");
     expect(alert).not.toBeNull();
-    expect(alert).toHaveTextContent(/EACCES reading config/);
+    // The shared copy; the raw reason goes to the log only (WI-4.3b).
+    expect(alert).toHaveTextContent("Failed to load preferences. Please close and reopen settings.");
+    expect(alert).not.toHaveTextContent(/EACCES/);
 
     // Sole signal: nothing else fired for this event, so the inline note here is
     // compliant with rule 30 §5 for exactly the reason it is forbidden on the

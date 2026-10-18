@@ -8,11 +8,23 @@
  * Key decisions:
  * - Only the config file name is shown; the full path is behind the copy
  *   button (rule 30.3, no absolute paths in primary UI).
+ * - The running action's button says what it is doing ("Installing…",
+ *   "Updating…", "Removing…"); the client's other buttons keep their names and
+ *   are disabled (rule 30 rule 4, WI-4.3b).
+ * - A failed list read shows the shared failure line in the list's place, and
+ *   an empty list one muted line; Test Connection is the refresh.
  *
  * @coordinates-with src/components/common/IntegrationsSettings.tsx — owns installations and the actions
  * @module components/common/McpClientList
  */
 import type { McpClient, McpInstallation } from "../../services/mcpService";
+import { SettingsLoadFailed } from "./settings/SettingsPageState";
+
+/** The client action in flight, so only its button reads busy. */
+export interface McpClientBusy {
+  client: McpClient;
+  action: "install" | "update" | "remove";
+}
 
 const CLIENT_INFO: Record<McpClient, { name: string; configFile: string }> = {
   claude_desktop: { name: "Claude Desktop", configFile: "claude_desktop_config.json" },
@@ -23,14 +35,16 @@ const CLIENT_INFO: Record<McpClient, { name: string; configFile: string }> = {
 
 interface McpClientListProps {
   installations: McpInstallation[];
-  /** The client whose action is in flight; its buttons are disabled. */
-  actionLoading: McpClient | null;
-  onInstall: (client: McpClient) => void;
+  /** The installations read failed; the list shows the failure line. */
+  failed: boolean;
+  /** The action in flight; that client's buttons are disabled. */
+  actionLoading: McpClientBusy | null;
+  onInstall: (client: McpClient, action: "install" | "update") => void;
   onRemove: (client: McpClient) => void;
   onCopy: (text: string) => void;
 }
 
-export function McpClientList({ installations, actionLoading, onInstall, onRemove, onCopy }: McpClientListProps) {
+export function McpClientList({ installations, failed, actionLoading, onInstall, onRemove, onCopy }: McpClientListProps) {
   return (
     <div className="mcp-installations">
       <h4>Install MCP Configuration</h4>
@@ -38,10 +52,13 @@ export function McpClientList({ installations, actionLoading, onInstall, onRemov
         Configure AI assistants to connect to mdpro MCP server.
       </p>
 
-      <div className="mcp-client-list">
+      {failed && <SettingsLoadFailed />}
+      {!failed && installations.length === 0 && <p className="mcp-clients-empty">No MCP clients detected</p>}
+      {!failed && installations.length > 0 && <div className="mcp-client-list">
         {installations.map((installation) => {
           const info = CLIENT_INFO[installation.client];
-          const isLoading = actionLoading === installation.client;
+          const isLoading = actionLoading?.client === installation.client;
+          const busy = actionLoading && isLoading ? actionLoading.action : null;
 
           return (
             <div key={installation.client} className="mcp-client-row">
@@ -68,33 +85,33 @@ export function McpClientList({ installations, actionLoading, onInstall, onRemov
                   <>
                     <button
                       className="toolbar-button small"
-                      onClick={() => onInstall(installation.client)}
+                      onClick={() => onInstall(installation.client, "update")}
                       disabled={isLoading}
                     >
-                      {isLoading ? "..." : "Update"}
+                      {busy === "update" ? "Updating…" : "Update"}
                     </button>
                     <button
                       className="toolbar-button small danger"
                       onClick={() => onRemove(installation.client)}
                       disabled={isLoading}
                     >
-                      {isLoading ? "..." : "Remove"}
+                      {busy === "remove" ? "Removing…" : "Remove"}
                     </button>
                   </>
                 ) : (
                   <button
                     className="toolbar-button small primary"
-                    onClick={() => onInstall(installation.client)}
+                    onClick={() => onInstall(installation.client, "install")}
                     disabled={isLoading}
                   >
-                    {isLoading ? "..." : "Install"}
+                    {busy === "install" ? "Installing…" : "Install"}
                   </button>
                 )}
               </div>
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }

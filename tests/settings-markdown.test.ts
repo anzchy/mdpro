@@ -5,7 +5,7 @@
  * Strategy: source inspection.
  *
  * Covers:
- *   1. error state and cancellation guard in useEffect.
+ *   1. load-failure flag and cancellation guard in useEffect.
  *   2. Async rollback: reverts prefs and editor state on save failure.
  *   3. applyAutoPair is called with rollback value on failure.
  *   4. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a).
@@ -25,8 +25,8 @@ describe("MarkdownSettings — source structure", () => {
     expect(src).toContain("export function MarkdownSettings");
   });
 
-  it("tracks error state", () => {
-    expect(src).toContain("const [error, setError]");
+  it("tracks a load failure as a flag, not raw text (WI-4.3b)", () => {
+    expect(src).toContain("const [loadFailed, setLoadFailed]");
   });
 
   it("useEffect has a cancellation guard", () => {
@@ -34,8 +34,10 @@ describe("MarkdownSettings — source structure", () => {
     expect(src).toContain("cancelled = true");
   });
 
-  it("renders error state", () => {
-    expect(src).toContain("settings-error");
+  it("renders the shared load-failure line, not an inline error (WI-4.3b)", () => {
+    expect(src).toContain("<SettingsLoadFailed />");
+    // The box comes from SettingsPageState; the page renders none of its own.
+    expect(src).not.toContain("settings-error");
   });
 
   it("handleChange rolls back prefs on save failure", () => {

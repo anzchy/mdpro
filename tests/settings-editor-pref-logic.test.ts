@@ -64,8 +64,8 @@ describe("EditorSettings — source structure", () => {
     expect(editorSettingsSrc).toContain('"fontSize"');
   });
 
-  it("shows aria-busy loading state when prefs are null", () => {
-    expect(editorSettingsSrc).toContain('aria-busy="true"');
+  it("shows the shared busy loading line when prefs are null (WI-4.3b)", () => {
+    expect(editorSettingsSrc).toContain("<SettingsLoading />");
   });
 
   it("exports EditorSettings as a named export", () => {

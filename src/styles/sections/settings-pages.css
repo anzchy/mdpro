@@ -65,6 +65,20 @@
   color: var(--color-muted);
 }
 
+/* WI-4.3b: the shared page states (SettingsPageState.tsx). */
+.settings-loading {
+  margin: 0;
+  font-size: var(--font-size-ui);
+  color: var(--color-muted);
+}
+
+/* Integrations: the empty client list (WI-4.3b). */
+.mcp-clients-empty {
+  margin: 0;
+  font-size: var(--font-size-ui);
+  color: var(--color-muted);
+}
+
 /* Settings General Page */
 .settings-general h3 {
   margin: 0;

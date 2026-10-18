@@ -48,6 +48,7 @@ import type { ExportConfig } from "../../../types/preferences";
 import { DEFAULT_EXPORT_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { exportService } from "../../../services/exportService";
+import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { ToggleSwitch } from "../ToggleSwitch";
 
 /**
@@ -58,22 +59,20 @@ import { ToggleSwitch } from "../ToggleSwitch";
  */
 const FOLDER_SAVE_DEBOUNCE_MS = 500;
 
-/**
- * Load failure only — a save failure deliberately sets nothing here.
- *
- * This state used to be set on *both* events, and the render used to replace the
- * entire pane with a bare error paragraph, so one transient save failure left the
- * user with no controls, no retry, and no way to clear the message. The controls
- * now stay mounted and operable on a save failure, and the service's toast is
- * that event's single signal (rule 30 §5). See {@link persistExport}.
- *
- * A load failure raises no toast, so this note is its *sole* signal and stays.
- */
-const LOAD_ERROR = "Failed to load settings";
-
 export function ExportSettings() {
   const [prefs, setPrefs] = useState<ExportConfig | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  /**
+   * Load failure only — a save failure deliberately sets nothing here.
+   *
+   * This state used to be set on *both* events, and the render used to replace
+   * the entire pane with a bare error paragraph, so one transient save failure
+   * left the user with no controls, no retry, and no way to clear the message.
+   * The controls now stay mounted and operable on a save failure, and the
+   * service's toast is that event's single signal (rule 30 §5). See
+   * {@link persistExport}. A load failure raises no toast, so the shared
+   * failure line is its *sole* signal (WI-4.3b: never the raw message).
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
   const textSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
@@ -127,8 +126,9 @@ export function ExportSettings() {
         if (cancelled) return;
         commitPrefs({ ...DEFAULT_EXPORT_CONFIG, ...p.export });
       })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : LOAD_ERROR);
+      .catch(() => {
+        // The service has logged the failure (enum-only); the raw message stays out of the UI.
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
@@ -169,7 +169,7 @@ export function ExportSettings() {
       //
       // The defect this replaced was the pane being *destroyed* on failure, not
       // the absence of an inline message: the controls below stay mounted,
-      // operable, and holding the user's value. `error` remains load-failure
+      // operable, and holding the user's value. `loadFailed` remains load-failure
       // only, where no toast is raised and it is therefore the sole signal.
       return false;
     }
@@ -249,17 +249,7 @@ export function ExportSettings() {
         <p className="settings-page-desc">HTML export output settings.</p>
       </div>
 
-      {error !== null && (
-        <p className="settings-error" role="status">
-          {error}
-        </p>
-      )}
-
-      {prefs === null && error === null && (
-        <div aria-busy="true" style={{ opacity: 0.5 }}>
-          Loading…
-        </div>
-      )}
+      {prefs === null && (loadFailed ? <SettingsLoadFailed /> : <SettingsLoading />)}
 
       {prefs !== null && (
         <>

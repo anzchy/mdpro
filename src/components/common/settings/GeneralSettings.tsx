@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { UserPreferences } from "../../../types/preferences";
 import type { ViewMode } from "../../../types/editor";
 import { preferencesService } from "../../../services/preferencesService";
+import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { useEditorStore } from "../../../stores/editorStore";
 import { migrateViewMode } from "../../../utils/viewModeUtils";
 
@@ -69,9 +70,7 @@ export function GeneralSettings() {
         <div className="settings-page-header">
           <h3 className="settings-page-title">General</h3>
         </div>
-        <p style={{ color: "var(--color-text-secondary)" }}>
-          Failed to load preferences. Please close and reopen settings.
-        </p>
+        <SettingsLoadFailed />
       </div>
     );
   }
@@ -84,9 +83,7 @@ export function GeneralSettings() {
       </div>
 
       {!prefs ? (
-        <div aria-busy="true" style={{ opacity: 0.5 }}>
-          Loading…
-        </div>
+        <SettingsLoading />
       ) : (
         <>
           <div className="settings-row">

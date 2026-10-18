@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import type { MarkdownConfig } from "../../../types/preferences";
 import { DEFAULT_MARKDOWN_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
+import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { applyAutoPair } from "./editorPrefApply";
 import { ToggleSwitch } from "../ToggleSwitch";
 
 export function MarkdownSettings() {
   const [prefs, setPrefs] = useState<MarkdownConfig | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -17,9 +18,9 @@ export function MarkdownSettings() {
         if (cancelled) return;
         setPrefs({ ...DEFAULT_MARKDOWN_CONFIG, ...p.markdown });
       })
-      .catch((err: unknown) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to load settings");
+      .catch(() => {
+        // The service has logged the failure (enum-only); the raw message stays out of the UI.
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
@@ -41,13 +42,13 @@ export function MarkdownSettings() {
     }
   };
 
-  if (error) {
+  if (loadFailed) {
     return (
       <div>
         <div className="settings-page-header">
           <h3 className="settings-page-title">Markdown</h3>
         </div>
-        <p className="settings-error">{error}</p>
+        <SettingsLoadFailed />
       </div>
     );
   }
@@ -60,9 +61,7 @@ export function MarkdownSettings() {
       </div>
 
       {!prefs ? (
-        <div aria-busy="true" style={{ opacity: 0.5 }}>
-          Loading…
-        </div>
+        <SettingsLoading />
       ) : (
         <>
           <div className="settings-row">

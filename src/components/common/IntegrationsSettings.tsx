@@ -17,7 +17,10 @@
  * - The status region gets the hook's `switchResult`, `null` while a switch is
  *   in flight, so a just-requested value is never compared against a stale
  *   status (ADR-0031 5b, N5).
- * - A failed status fetch shows the error and no badge (rule 30.2).
+ * - A failed status fetch shows the error and no badge (rule 30.2). The two
+ *   reads settle apart, so a failed client list shows the shared failure line in
+ *   the list's place and leaves the status and toggles (WI-4.3b). Failure copy is
+ *   fixed; raw messages are never shown (rule 30 rule 3).
  * - `mcpConfig === null` (not loaded this open, F3): all three toggles are
  *   disabled and described by an inline reason (rule 30.4); toggling is a no-op.
  *   The saved value is unknown, so the server switch mirrors the live phase
@@ -45,7 +48,8 @@ import { loggingService } from "../../services/loggingService";
 import { McpServerStatus } from "./McpServerStatus";
 import { McpToggleRow } from "./McpToggleRow";
 import { McpServerInfo } from "./McpServerInfo";
-import { McpClientList } from "./McpClientList";
+import { McpClientList, type McpClientBusy } from "./McpClientList";
+import { SettingsLoading } from "./settings/SettingsPageState";
 import { useMcpServerSwitch, type McpWriteLease } from "../../hooks/useMcpServerSwitch";
 import { mcpStatusView } from "../../utils/mcpStatusView";
 
@@ -64,6 +68,8 @@ interface IntegrationsSettingsProps {
 
 const MCP_REASON_ID = "mcp-config-reason";
 const MCP_NOTE_ID = "mcp-status-note";
+/** The status read failed; its raw message goes to the log only (rule 30 rule 3). */
+const STATUS_FAILED = "Failed to load MCP status";
 
 export function IntegrationsSettings({
   mcpConfig,
@@ -74,25 +80,30 @@ export function IntegrationsSettings({
 }: IntegrationsSettingsProps) {
   const [status, setStatus] = useState<McpStatus | null>(null);
   const [installations, setInstallations] = useState<McpInstallation[]>([]);
+  const [installationsFailed, setInstallationsFailed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<McpClient | null>(null);
+  const [actionLoading, setActionLoading] = useState<McpClientBusy | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // The two reads settle apart (WI-4.3b): a failed client list leaves the
+  // status and toggles showing, and a failed status read leaves the list.
   const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [statusResult, installationsResult] = await Promise.all([
-        mcpService.getStatus(),
-        mcpService.getInstallations(),
-      ]);
-      setStatus(statusResult);
-      setInstallations(installationsResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load MCP status");
-    } finally {
-      setLoading(false);
+    setLoading(true);
+    setError(null);
+    const [statusRead, installationsRead] = await Promise.allSettled([
+      mcpService.getStatus(),
+      mcpService.getInstallations(),
+    ]);
+    if (statusRead.status === "fulfilled") setStatus(statusRead.value);
+    else {
+      setStatus(null);
+      setError(STATUS_FAILED);
+      loggingService.logUiEvent("ui.settings.integrations.read", { read: "status" }, "error", "fail");
     }
+    if (installationsRead.status === "fulfilled") setInstallations(installationsRead.value);
+    else loggingService.logUiEvent("ui.settings.integrations.read", { read: "installations" }, "error", "fail");
+    setInstallationsFailed(installationsRead.status === "rejected");
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -104,9 +115,9 @@ export function IntegrationsSettings({
     try {
       setStatus(await mcpService.getStatus());
       setError(null);
-    } catch (err) {
+    } catch {
       setStatus(null);
-      setError(err instanceof Error ? err.message : "Failed to load MCP status");
+      setError(STATUS_FAILED);
     }
   }, []);
 
@@ -132,14 +143,14 @@ export function IntegrationsSettings({
     return onMcpConfigChange({ ...mcpConfig, [key]: value });
   };
 
-  const handleInstall = async (client: McpClient) => {
+  const handleInstall = async (client: McpClient, action: "install" | "update") => {
     try {
-      setActionLoading(client);
+      setActionLoading({ client, action });
       loggingService.logButtonClick(`settings.integrations.mcp.install.${client}`);
       await mcpService.installConfig(client);
       await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to install config");
+    } catch {
+      setError(action === "update" ? "Failed to update config" : "Failed to install config");
     } finally {
       setActionLoading(null);
     }
@@ -147,12 +158,12 @@ export function IntegrationsSettings({
 
   const handleRemove = async (client: McpClient) => {
     try {
-      setActionLoading(client);
+      setActionLoading({ client, action: "remove" });
       loggingService.logButtonClick(`settings.integrations.mcp.remove.${client}`);
       await mcpService.removeConfig(client);
       await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove config");
+    } catch {
+      setError("Failed to remove config");
     } finally {
       setActionLoading(null);
     }
@@ -190,7 +201,7 @@ export function IntegrationsSettings({
     return (
       <div className="settings-integrations">
         <h3>Integrations</h3>
-        <p>Loading MCP server status...</p>
+        <SettingsLoading />
       </div>
     );
   }
@@ -252,8 +263,9 @@ export function IntegrationsSettings({
 
       <McpClientList
         installations={installations}
+        failed={installationsFailed}
         actionLoading={actionLoading}
-        onInstall={(client) => void handleInstall(client)}
+        onInstall={(client, action) => void handleInstall(client, action)}
         onRemove={(client) => void handleRemove(client)}
         onCopy={copyToClipboard}
       />

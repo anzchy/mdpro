@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 interface StepperProps {
   value: number;
@@ -8,7 +8,14 @@ interface StepperProps {
   unit?: string;
   /** id of the row title that names the group; without it the value names it. */
   labelledBy?: string;
+  /** id of the visible line saying why − or + is disabled (rule 30 rule 4). */
+  reasonId?: string;
+  /** Called with the bound the shown value sits at, so the owner can show the reason. */
+  onBoundChange?: (bound: StepperBound) => void;
 }
+
+/** Which end of the range the shown value sits at, if either. */
+export type StepperBound = "min" | "max" | null;
 
 /**
  * A +/− stepper control used for numeric settings like font size.
@@ -20,7 +27,9 @@ interface StepperProps {
  * With `labelledBy`, the group is named by its row title (WI-4.3a) and the
  * current value becomes its description, so it is still announced.
  */
-export function SettingsStepper({ value, min, max, onChange, unit = "", labelledBy }: StepperProps) {
+export function SettingsStepper({
+  value, min, max, onChange, unit = "", labelledBy, reasonId, onBoundChange,
+}: StepperProps) {
   const valueId = useId();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // pendingRef tracks the optimistic value between rapid clicks
@@ -32,6 +41,15 @@ export function SettingsStepper({ value, min, max, onChange, unit = "", labelled
     pendingRef.current = value;
     setDisplayValue(value);
   }, [value]);
+
+  // Report the bound from the shown value, so a reason appears with the step
+  // that disables the button, not after the debounced write. A layout effect,
+  // so the owner's reason line is in the DOM before the first paint at a bound.
+  const atMin = displayValue <= min;
+  const atMax = displayValue >= max;
+  useLayoutEffect(() => {
+    onBoundChange?.(atMin ? "min" : atMax ? "max" : null);
+  }, [atMin, atMax, onBoundChange]);
 
   // Clean up any pending timer on unmount.
   useEffect(() => {
@@ -86,6 +104,7 @@ export function SettingsStepper({ value, min, max, onChange, unit = "", labelled
         className="settings-stepper__step"
         onClick={decrement}
         disabled={displayValue <= min}
+        aria-describedby={atMin ? reasonId : undefined}
         aria-label="Decrease"
         type="button"
       >
@@ -99,6 +118,7 @@ export function SettingsStepper({ value, min, max, onChange, unit = "", labelled
         className="settings-stepper__step"
         onClick={increment}
         disabled={displayValue >= max}
+        aria-describedby={atMax ? reasonId : undefined}
         aria-label="Increase"
         type="button"
       >

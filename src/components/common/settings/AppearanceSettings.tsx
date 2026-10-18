@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AppearanceConfig, CodeTheme } from "../../../types/preferences";
 import { DEFAULT_APPEARANCE_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
+import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { applyCodeTheme } from "./editorPrefApply";
 
 const CODE_THEMES: CodeTheme[] = ["default", "oneDark"];
@@ -12,7 +13,7 @@ function isCodeTheme(v: string): v is CodeTheme {
 
 export function AppearanceSettings() {
   const [prefs, setPrefs] = useState<AppearanceConfig | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -22,9 +23,9 @@ export function AppearanceSettings() {
         if (cancelled) return;
         setPrefs({ ...DEFAULT_APPEARANCE_CONFIG, ...p.appearance });
       })
-      .catch((err: unknown) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to load settings");
+      .catch(() => {
+        // The service has logged the failure (enum-only); the raw message stays out of the UI.
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
@@ -45,13 +46,13 @@ export function AppearanceSettings() {
     }
   };
 
-  if (error) {
+  if (loadFailed) {
     return (
       <div>
         <div className="settings-page-header">
           <h3 className="settings-page-title">Appearance</h3>
         </div>
-        <p className="settings-error">{error}</p>
+        <SettingsLoadFailed />
       </div>
     );
   }
@@ -64,9 +65,7 @@ export function AppearanceSettings() {
       </div>
 
       {!prefs ? (
-        <div aria-busy="true" style={{ opacity: 0.5 }}>
-          Loading…
-        </div>
+        <SettingsLoading />
       ) : (
         <div className="settings-row">
           <div className="settings-row-content">
