@@ -16,8 +16,11 @@
  *   wait, since the channel opens only after `setup`.
  * - `removeRun` deletes only a dir this module made under the temp dir.
  * - `stop` sends SIGTERM, so the app's exit hooks never remove its
- *   single-instance socket; once the app is gone `stop` unlinks it. That
- *   socket is ours: layer 4 refuses to launch while it exists.
+ *   single-instance socket. Once the app is gone `stop` unlinks it, but
+ *   only if it is still the socket `waitReady` saw (same dev and ino):
+ *   another mdpro may have bound the path since (round-2 H1).
+ * - `launch` records the child's start time and executable; `stop` signals
+ *   only while the pid still has them (`releaseCleanStop.mjs`, round-2 H2).
  * - Each lsof run goes through `lsofOutput`: exit 1 counts as an empty
  *   listing only with nothing on stderr.
  *
@@ -26,6 +29,7 @@
  * @coordinates-with scripts/control/buildSteps.mjs (buildLayout)
  * @coordinates-with scripts/control/runDir.mjs (childEnv)
  * @coordinates-with scripts/control/controlOptin.mjs (writeOptin)
+ * @coordinates-with scripts/control/releaseCleanStop.mjs (stopOwned, sockId, ownsSock)
  */
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -35,7 +39,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildLayout } from "./buildSteps.mjs";
 import { writeOptin } from "./controlOptin.mjs";
+import { defaultProcFacts } from "./doctor.mjs";
 import { lsofOutput, SI_SOCK_RELEASE } from "./releaseCleanChecks.mjs";
+import { ownsSock, processId, sockId, stopOwned } from "./releaseCleanStop.mjs";
 import { childEnv } from "./runDir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -58,12 +64,12 @@ const exists = (p) => {
   }
 };
 
-/** @param {string} p */
-const isSocket = (p) => {
+/** @param {string} p @returns {fs.Stats | null} */
+const lstatOrNull = (p) => {
   try {
-    return fs.lstatSync(p).isSocket();
+    return fs.lstatSync(p);
   } catch {
-    return false;
+    return null;
   }
 };
 
@@ -101,6 +107,11 @@ function walk(root, dir = root) {
 export function defaultDeps() {
   const lay = buildLayout(REPO, "release");
   const tmpRoot = fs.realpathSync(os.tmpdir());
+  const procFacts = defaultProcFacts();
+  /** @type {Promise<import("./releaseCleanStop.mjs").ProcId | null>} */
+  let owner = Promise.resolve(null);
+  /** @type {import("./releaseCleanStop.mjs").SockId | null} */
+  let ownSock = null;
   return {
     cargoTree: () =>
       run("cargo", ["tree", "-e", "features", "-i", "tauri-app", "--prefix", "none", "--manifest-path", "src-tauri/Cargo.toml"])
@@ -123,6 +134,7 @@ export function defaultDeps() {
       });
       child.unref();
       if (child.pid === undefined) throw new Error(`could not spawn ${lay.mainBinary}`);
+      owner = processId(procFacts, child.pid).catch(() => null);
       return child.pid;
     },
     waitReady: async (/** @type {number} */ pid) => {
@@ -132,6 +144,7 @@ export function defaultDeps() {
         if (Date.now() > deadline) throw new Error(`no ${SI_SOCK_RELEASE} after ${READY_TIMEOUT_MS / 1000} s`);
         await sleep(POLL_MS);
       }
+      ownSock = sockId(lstatOrNull(SI_SOCK_RELEASE));
       await sleep(SETTLE_MS);
       if (!alive(pid)) throw new Error("the release app exited while settling");
     },
@@ -140,15 +153,10 @@ export function defaultDeps() {
       unix: lsofOutput(run("lsof", ["-nP", "-a", "-p", String(pid), "-U", "-F", "n"], [0, 1])),
     }),
     stop: async (/** @type {number} */ pid) => {
-      if (!alive(pid)) return;
-      process.kill(pid, "SIGTERM");
-      const deadline = Date.now() + STOP_TIMEOUT_MS;
-      while (alive(pid) && Date.now() < deadline) await sleep(POLL_MS);
-      if (alive(pid)) process.kill(pid, "SIGKILL");
-      const killDeadline = Date.now() + STOP_TIMEOUT_MS;
-      while (alive(pid) && Date.now() < killDeadline) await sleep(POLL_MS);
-      if (alive(pid)) throw new Error(`the release app (pid ${pid}) did not exit after SIGKILL`);
-      if (isSocket(SI_SOCK_RELEASE)) fs.unlinkSync(SI_SOCK_RELEASE);
+      const kill = (/** @type {number} */ p, /** @type {NodeJS.Signals} */ sig) => process.kill(p, sig);
+      const timing = { sleep: () => sleep(POLL_MS), now: Date.now, termMs: STOP_TIMEOUT_MS, killMs: STOP_TIMEOUT_MS };
+      await stopOwned({ procFacts, kill, ...timing }, pid, await owner);
+      if (ownsSock(ownSock, sockId(lstatOrNull(SI_SOCK_RELEASE)))) fs.unlinkSync(SI_SOCK_RELEASE);
     },
     listRun: (/** @type {string} */ dir) => walk(dir),
     removeRun: (/** @type {string} */ dir) => {
