@@ -12,6 +12,9 @@
  *   channel out of a default build.
  * - The markers are strings only the channel's code carries: the page slot
  *   `__mdproCtl`, the opt-in file name and the plugin name.
+ * - Layer 4 must see the single-instance socket the caller waited for: a
+ *   listing without it proves lsof saw nothing, not that nothing listens
+ *   (Codex round-1 M2 on PR #500).
  *
  * @module scripts/control/releaseCleanChecks
  * @coordinates-with scripts/control/releaseClean.mjs (reads each layer, calls these)
@@ -75,9 +78,25 @@ const names = (out) =>
 /** Whether `lsof -F` output names a process at all. @param {string} out */
 const hasProcess = (out) => out.split("\n").some((l) => /^p\d+$/.test(l));
 
-/** An unnamed peer end (`->0x…`), or the single-instance socket under either spelling of /tmp. */
-const allowedUnix = (/** @type {string} */ n) =>
-  n === "" || n.startsWith("->") || n === SI_SOCK_RELEASE || n === `/private${SI_SOCK_RELEASE}`;
+/** The single-instance socket under either spelling of /tmp. */
+const isSiSock = (/** @type {string} */ n) => n === SI_SOCK_RELEASE || n === `/private${SI_SOCK_RELEASE}`;
+
+/** An unnamed peer end (`->0x…`), or the single-instance socket. */
+const allowedUnix = (/** @type {string} */ n) => n === "" || n.startsWith("->") || isSiSock(n);
+
+/**
+ * The stdout of one lsof run. Exit 1 with nothing on stderr is lsof's "no
+ * matching files"; any other non-zero exit, or exit 1 with stderr, is a
+ * failure of the read, never an empty listing.
+ * @param {{ status: number | null, stdout: string, stderr: string }} r
+ * @returns {string}
+ */
+export function lsofOutput(r) {
+  if (r.status === 0) return r.stdout;
+  if (r.status === 1 && r.stderr.trim() === "") return r.stdout;
+  const err = r.stderr.trim();
+  throw new Error(`lsof exited ${r.status}${err === "" ? "" : `: ${err}`}`);
+}
 
 /**
  * Layer 4: the release app's listeners with the opt-in placed.
@@ -91,8 +110,10 @@ export function listenerFinding(tcpOut, unixOut) {
   if (tcp.length > 1) return `layer 4: ${tcp.length} TCP listeners, expected at most 1 (MCP)`;
   const offLoopback = tcp.find((n) => !LOOPBACK.some((p) => n.startsWith(p)));
   if (offLoopback !== undefined) return `layer 4: TCP listener ${offLoopback} is not on loopback`;
-  const unexpected = names(unixOut).find((n) => !allowedUnix(n));
-  return unexpected === undefined ? null : `layer 4: unexpected socket ${unexpected}`;
+  const unix = names(unixOut);
+  const unexpected = unix.find((n) => !allowedUnix(n));
+  if (unexpected !== undefined) return `layer 4: unexpected socket ${unexpected}`;
+  return unix.some(isSiSock) ? null : `layer 4: lsof did not list ${SI_SOCK_RELEASE}`;
 }
 
 /**

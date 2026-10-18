@@ -17,6 +17,9 @@
  * - Exit 0 only when all four layers ran clean; 1 on any finding; 2 when
  *   layers 1–3 are clean and layer 4 did not run. A check that did not run
  *   never passes.
+ * - The exit is read off each layer's status, never off its text, so a read
+ *   that throws a message ending in ": clean" is still a finding (Codex
+ *   round-1 M1 on PR #500).
  * - Layer 4 runs only with `--launch`, and only on the Mac mini (the user's
  *   choice, relayed by the delegator 2026-10-17): a release app would take
  *   the daily app's single-instance socket, so it refuses while any mdpro
@@ -43,29 +46,35 @@ import {
 export const USAGE = "usage: pnpm control:release-clean [--launch]";
 const NOT_RUN = "layer 4: not run (pass --launch, on the Mac mini)";
 
+/** @typedef {{ layer: number, status: "clean" | "finding" | "not-run", line: string }} LayerResult */
+
+/** @param {number} n @param {string | null} finding @returns {LayerResult} */
+const judged = (n, finding) =>
+  finding === null ? { layer: n, status: "clean", line: `layer ${n}: clean` } : { layer: n, status: "finding", line: finding };
+
 /** @param {unknown} e */
 const message = (e) => (e instanceof Error ? e.message : String(e));
 
 /**
- * One layer's line: its finding, `clean`, or the read's error.
- * @param {number} n @param {() => string | null | Promise<string | null>} judge
- * @returns {Promise<string>}
+ * One layer's result: clean, its finding, or the read's error as a finding.
+ * @param {number} n @param {() => string | null} judge
+ * @returns {LayerResult}
  */
-async function layer(n, judge) {
+function layer(n, judge) {
   try {
-    return (await judge()) ?? `layer ${n}: clean`;
+    return judged(n, judge());
   } catch (e) {
-    return `layer ${n}: could not read: ${message(e)}`;
+    return judged(n, `layer ${n}: could not read: ${message(e)}`);
   }
 }
 
 /**
- * Layer 4's findings: the refusals, else one launch on a fresh run dir.
- * @param {any} d @returns {Promise<string[]>}
+ * Layer 4's results: a refusal, else one launch on a fresh run dir.
+ * @param {any} d @returns {Promise<LayerResult[]>}
  */
 async function launchLayer(d) {
-  if (d.mdproRunning()) return ["layer 4: refused: an mdpro process is running"];
-  if (d.siSockExists()) return [`layer 4: refused: ${SI_SOCK_RELEASE} exists`];
+  if (d.mdproRunning()) return [judged(4, "layer 4: refused: an mdpro process is running")];
+  if (d.siSockExists()) return [judged(4, `layer 4: refused: ${SI_SOCK_RELEASE} exists`)];
   const dir = d.makeRun();
   /** @type {number | undefined} */
   let pid;
@@ -79,9 +88,9 @@ async function launchLayer(d) {
     pid = undefined;
     const home = homeFinding(d.listRun(dir));
     const found = [listeners, home].filter((f) => f !== null);
-    return found.length > 0 ? found : ["layer 4: clean"];
+    return found.length > 0 ? found.map((f) => judged(4, f)) : [judged(4, null)];
   } catch (e) {
-    return [`layer 4: could not read: ${message(e)}`];
+    return [judged(4, `layer 4: could not read: ${message(e)}`)];
   } finally {
     if (pid !== undefined) await d.stop(pid);
     d.removeRun(dir);
@@ -92,19 +101,23 @@ async function launchLayer(d) {
  * Run the check.
  * @param {any} d the deps (see the test's `deps()` for the shape)
  * @param {{ launch: boolean }} opts
- * @returns {Promise<{ exit: 0 | 1 | 2, lines: string[] }>}
+ * @returns {Promise<{ exit: 0 | 1 | 2, layers: LayerResult[], lines: string[] }>}
  */
 export async function releaseClean(d, { launch }) {
-  const lines = [
-    await layer(1, () => featureGraphFinding(d.cargoTree())),
-    await layer(2, () => distFinding(d.distFiles())),
-    await layer(3, () => binaryFinding(d.binaryBytes())),
-    ...(launch ? await launchLayer(d) : [NOT_RUN]),
+  /** @type {LayerResult[]} */
+  const layers = [
+    layer(1, () => featureGraphFinding(d.cargoTree())),
+    layer(2, () => distFinding(d.distFiles())),
+    layer(3, () => binaryFinding(d.binaryBytes())),
+    ...(launch ? await launchLayer(d) : [{ layer: 4, status: /** @type {const} */ ("not-run"), line: NOT_RUN }]),
   ];
-  const findings = lines.filter((l) => !l.endsWith(": clean") && l !== NOT_RUN);
-  if (findings.length > 0) return { exit: 1, lines: [...lines, `release-clean: ${findings.length} finding(s)`] };
-  if (!launch) return { exit: 2, lines: [...lines, "release-clean: incomplete, layer 4 did not run"] };
-  return { exit: 0, lines: [...lines, "release-clean: all four layers clean"] };
+  const lines = layers.map((l) => l.line);
+  const findings = layers.filter((l) => l.status === "finding").length;
+  if (findings > 0) return { exit: 1, layers, lines: [...lines, `release-clean: ${findings} finding(s)`] };
+  if (layers.some((l) => l.status === "not-run")) {
+    return { exit: 2, layers, lines: [...lines, "release-clean: incomplete, layer 4 did not run"] };
+  }
+  return { exit: 0, layers, lines: [...lines, "release-clean: all four layers clean"] };
 }
 
 /* v8 ignore start -- only reached in a real `node scripts/control/releaseClean.mjs` process */

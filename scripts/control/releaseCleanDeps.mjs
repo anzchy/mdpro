@@ -15,6 +15,11 @@
  * - Ready means the release single-instance socket exists, then a settle
  *   wait, since the channel opens only after `setup`.
  * - `removeRun` deletes only a dir this module made under the temp dir.
+ * - `stop` sends SIGTERM, so the app's exit hooks never remove its
+ *   single-instance socket; once the app is gone `stop` unlinks it. That
+ *   socket is ours: layer 4 refuses to launch while it exists.
+ * - Each lsof run goes through `lsofOutput`: exit 1 counts as an empty
+ *   listing only with nothing on stderr.
  *
  * @module scripts/control/releaseCleanDeps
  * @coordinates-with scripts/control/releaseClean.mjs (calls these)
@@ -30,7 +35,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildLayout } from "./buildSteps.mjs";
 import { writeOptin } from "./controlOptin.mjs";
-import { SI_SOCK_RELEASE } from "./releaseCleanChecks.mjs";
+import { lsofOutput, SI_SOCK_RELEASE } from "./releaseCleanChecks.mjs";
 import { childEnv } from "./runDir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -48,6 +53,15 @@ const exists = (p) => {
   try {
     fs.lstatSync(p);
     return true;
+  } catch {
+    return false;
+  }
+};
+
+/** @param {string} p */
+const isSocket = (p) => {
+  try {
+    return fs.lstatSync(p).isSocket();
   } catch {
     return false;
   }
@@ -122,8 +136,8 @@ export function defaultDeps() {
       if (!alive(pid)) throw new Error("the release app exited while settling");
     },
     lsof: (/** @type {number} */ pid) => ({
-      tcp: run("lsof", ["-nP", "-a", "-p", String(pid), "-iTCP", "-sTCP:LISTEN", "-F", "n"], [0, 1]).stdout,
-      unix: run("lsof", ["-nP", "-a", "-p", String(pid), "-U", "-F", "n"], [0, 1]).stdout,
+      tcp: lsofOutput(run("lsof", ["-nP", "-a", "-p", String(pid), "-iTCP", "-sTCP:LISTEN", "-F", "n"], [0, 1])),
+      unix: lsofOutput(run("lsof", ["-nP", "-a", "-p", String(pid), "-U", "-F", "n"], [0, 1])),
     }),
     stop: async (/** @type {number} */ pid) => {
       if (!alive(pid)) return;
@@ -131,6 +145,10 @@ export function defaultDeps() {
       const deadline = Date.now() + STOP_TIMEOUT_MS;
       while (alive(pid) && Date.now() < deadline) await sleep(POLL_MS);
       if (alive(pid)) process.kill(pid, "SIGKILL");
+      const killDeadline = Date.now() + STOP_TIMEOUT_MS;
+      while (alive(pid) && Date.now() < killDeadline) await sleep(POLL_MS);
+      if (alive(pid)) throw new Error(`the release app (pid ${pid}) did not exit after SIGKILL`);
+      if (isSocket(SI_SOCK_RELEASE)) fs.unlinkSync(SI_SOCK_RELEASE);
     },
     listRun: (/** @type {string} */ dir) => walk(dir),
     removeRun: (/** @type {string} */ dir) => {
