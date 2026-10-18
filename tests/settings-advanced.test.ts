@@ -6,8 +6,9 @@
  *
  * Covers:
  *   1. isLogLevel type guard prevents invalid enum values.
- *   2. Stale-closure race fixed: handlers call useLoggingStore.getState() for fresh values.
- *   3. Optimistic update order: setEnabled/setLevel called AFTER await succeeds.
+ *   2. Both controls write through one queued useSettingsWriter, so neither
+ *      sends the other's stale value (PR #508 F508-1; behaviour in wi43b-overlap-logging).
+ *   3. The store moves only on a confirmed write (onConfirm), never optimistically.
  *   4. No inline save error: a failed write is signalled by the service toast (WI-4.3b).
  *   5. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a) on both controls.
  */
@@ -35,19 +36,17 @@ describe("AdvancedSettings — source structure", () => {
     expect(src).toContain("useLoggingStore.getState()");
   });
 
-  it("awaits setLoggingSettings before calling setEnabled (no premature optimistic update)", () => {
-    // setEnabled must appear AFTER the await, not before
-    const awaitIdx = src.indexOf("await loggingService.setLoggingSettings");
-    const setEnabledIdx = src.indexOf("setEnabled(next)");
-    expect(awaitIdx).toBeGreaterThan(-1);
-    expect(setEnabledIdx).toBeGreaterThan(awaitIdx);
+  it("writes through the queued writer with setLoggingSettings", () => {
+    expect(src).toContain("useSettingsWriter<LogSettings>");
+    expect(src).toContain("save: (next) => loggingService.setLoggingSettings(next)");
   });
 
-  it("awaits setLoggingSettings before calling setLevel", () => {
-    const awaitIdx = src.lastIndexOf("await loggingService.setLoggingSettings");
-    const setLevelIdx = src.indexOf("setLevel(rawValue)");
-    expect(awaitIdx).toBeGreaterThan(-1);
-    expect(setLevelIdx).toBeGreaterThan(awaitIdx);
+  it("moves the store only on a confirmed write (no premature optimistic update)", () => {
+    const confirmIdx = src.indexOf("onConfirm: (confirmed) =>");
+    expect(confirmIdx).toBeGreaterThan(-1);
+    expect(src.indexOf("setEnabled(confirmed.enabled)")).toBeGreaterThan(confirmIdx);
+    expect(src.indexOf("setLevel(confirmed.level)")).toBeGreaterThan(confirmIdx);
+    expect(src).not.toContain("setEnabled(next)");
   });
 
   it("keeps no saveError state: the service toast signals a failed write (WI-4.3b)", () => {

@@ -3,6 +3,7 @@ import type { UserPreferences } from "../../../types/preferences";
 import type { ViewMode } from "../../../types/editor";
 import { preferencesService } from "../../../services/preferencesService";
 import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
+import { useSettingsWriter } from "./useSettingsWriter";
 import { useEditorStore } from "../../../stores/editorStore";
 import { migrateViewMode } from "../../../utils/viewModeUtils";
 
@@ -25,15 +26,23 @@ const AUTOSAVE_OPTIONS: { value: number; label: string }[] = [
 ];
 
 export function GeneralSettings() {
-  const [prefs, setPrefs] = useState<GeneralSlice | null>(null);
   const [loadError, setLoadError] = useState(false);
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
+  // One write at a time; a failed write returns to the last confirmed value (F508-2).
+  const writer = useSettingsWriter<GeneralSlice>({
+    // Only the changed scalar is sent; the rest of the slice is already saved.
+    save: (_next, patch) => preferencesService.setPreferences(patch as Partial<UserPreferences>),
+    apply: (key, value) => {
+      if (key === "autoSaveInterval") setAutoSaveInterval(value as number);
+    },
+  });
+  const prefs = writer.value;
 
   useEffect(() => {
     let mounted = true;
     preferencesService.getPreferences("settings_general").then((p: UserPreferences) => {
       if (!mounted) return;
-      setPrefs({
+      writer.load({
         defaultViewMode: migrateViewMode(p.defaultViewMode as string),
         autoSaveInterval: p.autoSaveInterval ?? 30,
       });
@@ -44,24 +53,8 @@ export function GeneralSettings() {
     return () => { mounted = false; };
   }, []);
 
-  const handleChange = async (key: keyof GeneralSlice, value: ViewMode | number) => {
-    if (!prefs) return;
-    const prevPrefs = { ...prefs };
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    if (key === "autoSaveInterval") {
-      setAutoSaveInterval(value as number);
-    }
-    try {
-      // Send only the changed scalar field to avoid whole-object snapshot races
-      await preferencesService.setPreferences({ [key]: value } as Partial<UserPreferences>);
-    } catch {
-      // Rollback on save failure
-      setPrefs(prevPrefs);
-      if (key === "autoSaveInterval") {
-        setAutoSaveInterval(prevPrefs.autoSaveInterval);
-      }
-    }
+  const handleChange = (key: keyof GeneralSlice, value: ViewMode | number) => {
+    void writer.write({ [key]: value } as Partial<GeneralSlice>);
   };
 
   if (loadError) {

@@ -6,9 +6,9 @@
  *
  * Covers:
  *   1. load-failure flag and cancellation guard in useEffect.
- *   2. Async rollback for handleBoolChange.
+ *   2. Writes go through useSettingsWriter (one at a time, rollback to the confirmed value).
  *   3. Debounced folder text save (500 ms).
- *   4. handleBrowse uses exportService.pickFolder with rollback.
+ *   4. handleBrowse uses exportService.pickFolder; its write rolls back like a switch.
  *   5. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a) on both controls.
  */
 import { describe, it, expect } from "vitest";
@@ -41,8 +41,9 @@ describe("ExportSettings — source structure", () => {
     expect(src).not.toContain("settings-error");
   });
 
-  it("handleBoolChange rolls back prefs on save failure", () => {
-    expect(src).toContain("setPrefs(prev)");
+  it("writes through useSettingsWriter; the folder text write keeps typed text on failure (PR #508)", () => {
+    expect(src).toContain("useSettingsWriter<ExportConfig>");
+    expect(src).toContain("{ rollback: false }");
   });
 
   it("handleFolderChange debounces the save by 500 ms", () => {

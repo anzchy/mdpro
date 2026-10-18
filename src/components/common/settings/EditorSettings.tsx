@@ -4,6 +4,7 @@ import { DEFAULT_EDITOR_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { applyEditorPref } from "./editorPrefApply";
+import { useSettingsWriter } from "./useSettingsWriter";
 import { SettingsStepper, type StepperBound } from "./SettingsStepper";
 import { ToggleSwitch } from "../ToggleSwitch";
 
@@ -18,14 +19,19 @@ const FONT_SIZE_REASON: Record<Exclude<StepperBound, null>, string> = {
 
 export function EditorSettings() {
   const [fontSizeBound, setFontSizeBound] = useState<StepperBound>(null);
-  const [prefs, setPrefs] = useState<EditorConfig | null>(null);
+  // One write at a time; a failed write returns to the last confirmed value (F508-2).
+  const writer = useSettingsWriter<EditorConfig>({
+    save: (next) => preferencesService.setPreferences({ editor: next }),
+    apply: (key, value) => applyEditorPref(key, value),
+  });
+  const prefs = writer.value;
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     preferencesService.getPreferences("settings_editor").then((p) => {
       if (!mounted) return;
-      setPrefs({ ...DEFAULT_EDITOR_CONFIG, ...p.editor });
+      writer.load({ ...DEFAULT_EDITOR_CONFIG, ...p.editor });
     }).catch(() => {
       if (!mounted) return;
       setLoadError(true);
@@ -33,22 +39,8 @@ export function EditorSettings() {
     return () => { mounted = false; };
   }, []);
 
-  const handleChange = async (
-    key: keyof EditorConfig,
-    value: EditorConfig[keyof EditorConfig],
-  ) => {
-    if (!prefs) return;
-    const prevPrefs = { ...prefs };
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    applyEditorPref(key, value);
-    try {
-      await preferencesService.setPreferences({ editor: next });
-    } catch {
-      // Rollback UI and applied pref on save failure
-      setPrefs(prevPrefs);
-      applyEditorPref(key, prevPrefs[key]);
-    }
+  const handleChange = (key: keyof EditorConfig, value: EditorConfig[keyof EditorConfig]) => {
+    void writer.write({ [key]: value });
   };
 
   if (loadError) {

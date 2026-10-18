@@ -4,6 +4,7 @@ import { DEFAULT_APPEARANCE_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { applyCodeTheme } from "./editorPrefApply";
+import { useSettingsWriter } from "./useSettingsWriter";
 
 const CODE_THEMES: CodeTheme[] = ["default", "oneDark"];
 
@@ -12,7 +13,14 @@ function isCodeTheme(v: string): v is CodeTheme {
 }
 
 export function AppearanceSettings() {
-  const [prefs, setPrefs] = useState<AppearanceConfig | null>(null);
+  // One write at a time; a failed write returns to the last confirmed value (F508-2).
+  const writer = useSettingsWriter<AppearanceConfig>({
+    save: (next) => preferencesService.setPreferences({ appearance: next }),
+    apply: (key, value) => {
+      if (key === "codeTheme") applyCodeTheme(value as CodeTheme);
+    },
+  });
+  const prefs = writer.value;
   const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
@@ -21,7 +29,7 @@ export function AppearanceSettings() {
       .getPreferences("settings_appearance")
       .then((p) => {
         if (cancelled) return;
-        setPrefs({ ...DEFAULT_APPEARANCE_CONFIG, ...p.appearance });
+        writer.load({ ...DEFAULT_APPEARANCE_CONFIG, ...p.appearance });
       })
       .catch(() => {
         // The service has logged the failure (enum-only); the raw message stays out of the UI.
@@ -32,18 +40,9 @@ export function AppearanceSettings() {
     };
   }, []);
 
-  const handleCodeThemeChange = async (rawValue: string) => {
+  const handleCodeThemeChange = (rawValue: string) => {
     if (!prefs || !isCodeTheme(rawValue)) return;
-    const prev = { ...prefs };
-    const next: AppearanceConfig = { ...prefs, codeTheme: rawValue };
-    setPrefs(next);
-    applyCodeTheme(rawValue);
-    try {
-      await preferencesService.setPreferences({ appearance: next });
-    } catch {
-      setPrefs(prev);
-      applyCodeTheme(prev.codeTheme);
-    }
+    void writer.write({ codeTheme: rawValue });
   };
 
   if (loadFailed) {

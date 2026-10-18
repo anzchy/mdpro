@@ -6,7 +6,7 @@
  *
  * Covers:
  *   1. isCodeTheme type guard validates enum before applying.
- *   2. Async rollback: reverts prefs and code theme on save failure.
+ *   2. Writes go through useSettingsWriter, which reverts prefs and the applied code theme on failure.
  *   3. load-failure flag and cancellation guard in useEffect.
  *   4. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a).
  */
@@ -34,9 +34,9 @@ describe("AppearanceSettings — source structure", () => {
     expect(src).toContain("isCodeTheme(rawValue)");
   });
 
-  it("rolls back prefs and code theme on save failure", () => {
-    expect(src).toContain("setPrefs(prev)");
-    expect(src).toContain("applyCodeTheme(prev.codeTheme)");
+  it("writes through useSettingsWriter, which re-applies the code theme on rollback (PR #508)", () => {
+    expect(src).toContain("useSettingsWriter<AppearanceConfig>");
+    expect(src).toContain("applyCodeTheme(value as CodeTheme)");
   });
 
   it("tracks a load failure as a flag, not raw text (WI-4.3b)", () => {

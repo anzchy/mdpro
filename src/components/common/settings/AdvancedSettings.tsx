@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { useLoggingStore } from "../../../stores/loggingStore";
-import type { LogLevel } from "../../../types/logging";
+import type { LogLevel, LogSettings } from "../../../types/logging";
 import { loggingService } from "../../../services/loggingService";
 import { isWindowsPlatform, logFileHint } from "../../../utils/platformLabels";
 import { ToggleSwitch } from "../ToggleSwitch";
+import { useSettingsWriter } from "./useSettingsWriter";
 
 const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string }[] = [
   { value: "debug", label: "Debug" },
@@ -21,42 +23,46 @@ export function AdvancedSettings() {
   // Per-field selectors, not a whole-store destructure (rule 50 §1). A bare
   // `useLoggingStore()` subscribes to the state object's identity, so any field
   // this panel never reads would still re-render it.
-  const loggingEnabled = useLoggingStore((state) => state.enabled);
-  const loggingLevel = useLoggingStore((state) => state.level);
+  const storeEnabled = useLoggingStore((state) => state.enabled);
+  const storeLevel = useLoggingStore((state) => state.level);
   const setEnabled = useLoggingStore((state) => state.setEnabled);
   const setLevel = useLoggingStore((state) => state.setLevel);
 
-  // A rejected write leaves the store, and so the control, at the saved value;
+  // The switch and Log Level share one queued writer: each write is built when
+  // it is sent from the confirmed pair, so neither carries the other's stale
+  // value (PR #508 F508-1). The store moves only on a confirmed write; a
+  // rejected one leaves it, and so the controls, at the saved value, and
   // `setLoggingSettings` raises the one save toast (rule 30 rule 5).
-  const handleLoggingToggle = async (next: boolean) => {
+  const writer = useSettingsWriter<LogSettings>({
+    save: (next) => loggingService.setLoggingSettings(next),
+    onConfirm: (confirmed) => {
+      setEnabled(confirmed.enabled);
+      setLevel(confirmed.level);
+    },
+  });
+  // Seed from the store once; mount-only, since the writer owns the value after.
+  useEffect(() => {
+    const { enabled, level } = useLoggingStore.getState();
+    writer.load({ enabled, level });
+  }, []);
+  const loggingEnabled = writer.value?.enabled ?? storeEnabled;
+  const loggingLevel = writer.value?.level ?? storeLevel;
+
+  const handleLoggingToggle = (next: boolean) => {
     loggingService.logUiEvent("ui.toggle.change", {
       controlId: "settings.advanced.logging.enabled",
       newValue: next,
     });
-    // Read the latest level from the store (not the captured closure value) to
-    // avoid a stale-state race when toggle and level change fire in quick succession.
-    const { level } = useLoggingStore.getState();
-    try {
-      await loggingService.setLoggingSettings({ enabled: next, level });
-      setEnabled(next);
-    } catch {
-      // Already signalled and logged by the service.
-    }
+    void writer.write({ enabled: next });
   };
 
-  const handleLogLevelChange = async (rawValue: string) => {
+  const handleLogLevelChange = (rawValue: string) => {
     if (!isLogLevel(rawValue)) return;
     loggingService.logUiEvent("ui.select.change", {
       controlId: "settings.advanced.logging.level",
       newValue: rawValue,
     });
-    const { enabled } = useLoggingStore.getState();
-    try {
-      await loggingService.setLoggingSettings({ enabled, level: rawValue });
-      setLevel(rawValue);
-    } catch {
-      // Already signalled and logged by the service.
-    }
+    void writer.write({ level: rawValue });
   };
 
   return (

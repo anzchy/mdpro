@@ -6,8 +6,8 @@
  *
  * Covers:
  *   1. load-failure flag and cancellation guard in useEffect.
- *   2. Async rollback: reverts prefs and editor state on save failure.
- *   3. applyAutoPair is called with rollback value on failure.
+ *   2. Writes go through useSettingsWriter, which reverts prefs on failure.
+ *   3. applyAutoPair runs for every shown change of autoPair, a rollback included.
  *   4. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a).
  */
 import { describe, it, expect } from "vitest";
@@ -40,12 +40,12 @@ describe("MarkdownSettings — source structure", () => {
     expect(src).not.toContain("settings-error");
   });
 
-  it("handleChange rolls back prefs on save failure", () => {
-    expect(src).toContain("setPrefs(prev)");
+  it("handleChange writes through useSettingsWriter (PR #508)", () => {
+    expect(src).toContain("useSettingsWriter<MarkdownConfig>");
   });
 
-  it("handleChange rolls back editor state (applyAutoPair) on save failure", () => {
-    expect(src).toContain("applyAutoPair(prev.autoPair)");
+  it("the writer re-applies applyAutoPair on rollback (PR #508)", () => {
+    expect(src).toContain("applyAutoPair(value as boolean)");
   });
 
   it("ARIA: auto-pair switch is named by its row title via aria-labelledby", () => {

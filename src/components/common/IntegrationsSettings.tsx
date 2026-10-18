@@ -21,6 +21,9 @@
  *   reads settle apart, so a failed client list shows the shared failure line in
  *   the list's place and leaves the status and toggles (WI-4.3b). Failure copy is
  *   fixed; raw messages are never shown (rule 30 rule 3).
+ * - One client action (install, update, remove) at a time across all clients:
+ *   two could overlap on one config file, and a shared busy slot let one
+ *   action's `finally` clear another's (PR #508 F508-4).
  * - `mcpConfig === null` (not loaded this open, F3): all three toggles are
  *   disabled and described by an inline reason (rule 30.4); toggling is a no-op.
  *   The saved value is unknown, so the server switch mirrors the live phase
@@ -41,7 +44,7 @@
  * @module components/common/IntegrationsSettings
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { mcpService, type McpClient, type McpStatus, type McpInstallation } from "../../services/mcpService";
 import type { McpConfig } from "../../types/preferences";
 import { loggingService } from "../../services/loggingService";
@@ -83,6 +86,8 @@ export function IntegrationsSettings({
   const [installationsFailed, setInstallationsFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<McpClientBusy | null>(null);
+  // One client action at a time (F508-4); the ref refuses a second click before re-render.
+  const actionRunning = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   // The two reads settle apart (WI-4.3b): a failed client list leaves the
@@ -144,6 +149,8 @@ export function IntegrationsSettings({
   };
 
   const handleInstall = async (client: McpClient, action: "install" | "update") => {
+    if (actionRunning.current) return;
+    actionRunning.current = true;
     try {
       setActionLoading({ client, action });
       loggingService.logButtonClick(`settings.integrations.mcp.install.${client}`);
@@ -152,11 +159,14 @@ export function IntegrationsSettings({
     } catch {
       setError(action === "update" ? "Failed to update config" : "Failed to install config");
     } finally {
+      actionRunning.current = false;
       setActionLoading(null);
     }
   };
 
   const handleRemove = async (client: McpClient) => {
+    if (actionRunning.current) return;
+    actionRunning.current = true;
     try {
       setActionLoading({ client, action: "remove" });
       loggingService.logButtonClick(`settings.integrations.mcp.remove.${client}`);
@@ -165,6 +175,7 @@ export function IntegrationsSettings({
     } catch {
       setError("Failed to remove config");
     } finally {
+      actionRunning.current = false;
       setActionLoading(null);
     }
   };

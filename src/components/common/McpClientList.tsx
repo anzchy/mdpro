@@ -9,8 +9,9 @@
  * - Only the config file name is shown; the full path is behind the copy
  *   button (rule 30.3, no absolute paths in primary UI).
  * - The running action's button says what it is doing ("Installing…",
- *   "Updating…", "Removing…"); the client's other buttons keep their names and
- *   are disabled (rule 30 rule 4, WI-4.3b).
+ *   "Updating…", "Removing…"), and that label is the reason every other
+ *   client's buttons are disabled too: one action at a time, since two could
+ *   overlap on one config file (rule 30 rule 4, WI-4.3b, PR #508 F508-4).
  * - A failed list read shows the shared failure line in the list's place, and
  *   an empty list one muted line; Test Connection is the refresh.
  *
@@ -37,7 +38,7 @@ interface McpClientListProps {
   installations: McpInstallation[];
   /** The installations read failed; the list shows the failure line. */
   failed: boolean;
-  /** The action in flight; that client's buttons are disabled. */
+  /** The action in flight; every client's buttons are disabled while it runs. */
   actionLoading: McpClientBusy | null;
   onInstall: (client: McpClient, action: "install" | "update") => void;
   onRemove: (client: McpClient) => void;
@@ -57,8 +58,8 @@ export function McpClientList({ installations, failed, actionLoading, onInstall,
       {!failed && installations.length > 0 && <div className="mcp-client-list">
         {installations.map((installation) => {
           const info = CLIENT_INFO[installation.client];
-          const isLoading = actionLoading?.client === installation.client;
-          const busy = actionLoading && isLoading ? actionLoading.action : null;
+          const isLoading = actionLoading !== null;
+          const busy = actionLoading?.client === installation.client ? actionLoading.action : null;
 
           return (
             <div key={installation.client} className="mcp-client-row">

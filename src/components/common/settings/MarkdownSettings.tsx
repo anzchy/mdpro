@@ -4,10 +4,18 @@ import { DEFAULT_MARKDOWN_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
 import { applyAutoPair } from "./editorPrefApply";
+import { useSettingsWriter } from "./useSettingsWriter";
 import { ToggleSwitch } from "../ToggleSwitch";
 
 export function MarkdownSettings() {
-  const [prefs, setPrefs] = useState<MarkdownConfig | null>(null);
+  // One write at a time; a failed write returns to the last confirmed value (F508-2).
+  const writer = useSettingsWriter<MarkdownConfig>({
+    save: (next) => preferencesService.setPreferences({ markdown: next }),
+    apply: (key, value) => {
+      if (key === "autoPair") applyAutoPair(value as boolean);
+    },
+  });
+  const prefs = writer.value;
   const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
@@ -16,7 +24,7 @@ export function MarkdownSettings() {
       .getPreferences("settings_markdown")
       .then((p) => {
         if (cancelled) return;
-        setPrefs({ ...DEFAULT_MARKDOWN_CONFIG, ...p.markdown });
+        writer.load({ ...DEFAULT_MARKDOWN_CONFIG, ...p.markdown });
       })
       .catch(() => {
         // The service has logged the failure (enum-only); the raw message stays out of the UI.
@@ -27,19 +35,8 @@ export function MarkdownSettings() {
     };
   }, []);
 
-  const handleChange = async (key: keyof MarkdownConfig, value: boolean) => {
-    if (!prefs) return;
-    const prev = { ...prefs };
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    if (key === "autoPair") applyAutoPair(value);
-    try {
-      await preferencesService.setPreferences({ markdown: next });
-    } catch {
-      // Rollback UI and editor state on save failure.
-      setPrefs(prev);
-      if (key === "autoPair") applyAutoPair(prev.autoPair);
-    }
+  const handleChange = (key: keyof MarkdownConfig, value: boolean) => {
+    void writer.write({ [key]: value });
   };
 
   if (loadFailed) {

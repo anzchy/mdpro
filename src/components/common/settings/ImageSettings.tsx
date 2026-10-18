@@ -3,6 +3,7 @@ import type { ImageConfig, UserPreferences } from "../../../types/preferences";
 import { DEFAULT_IMAGE_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
+import { useSettingsWriter } from "./useSettingsWriter";
 import { ToggleSwitch } from "../ToggleSwitch";
 
 interface ImageSlice {
@@ -24,47 +25,8 @@ function isValidAssetFolder(path: string): boolean {
 
 export function ImageSettings() {
   const cachedFullPrefs = useRef<UserPreferences | null>(null);
-  const [prefs, setPrefs] = useState<ImageSlice | null>(null);
-  /**
-   * The same value as `prefs`, readable synchronously.
-   *
-   * The debounced write reads this at *fire* time instead of sending a snapshot
-   * captured when the keystroke happened. A captured snapshot is what made the
-   * timer replay a stale `copyExternalImages` over the newer toggle (WI-2).
-   */
-  const prefsRef = useRef<ImageSlice | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const textSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  /**
-   * Per-leaf monotonic token: "which write most recently claimed this field".
-   *
-   * Rolling back against the *latest* slice protects a **sibling** the user
-   * edited while the failing write was open (WI2-G′). It does not protect the
-   * failing field itself: toggle a switch three times with the first write
-   * still in flight and that write's rollback restores a value the boundary has
-   * already superseded twice, with no further event to correct it.
-   *
-   * So a write may only roll its leaf back while it is still the leaf's latest
-   * claimant. Twin of `leafIntents` in `ExportSettings.tsx`, same device as
-   * `latestThemeIntent` in `src/hooks/useTheme.ts`.
-   *
-   * Found at review, 2026-09-24; pinned by WI2-L.
-   */
-  const leafIntents = useRef<Partial<Record<keyof ImageSlice, number>>>({});
-  const nextLeafIntent = useRef(0);
-
-  /** Mark `key` as claimed by a new write and return that write's token. */
-  const claimLeaf = (key: keyof ImageSlice): number => {
-    nextLeafIntent.current += 1;
-    leafIntents.current[key] = nextLeafIntent.current;
-    return nextLeafIntent.current;
-  };
-
-  const commitSlice = (slice: ImageSlice) => {
-    prefsRef.current = slice;
-    setPrefs(slice);
-  };
 
   /**
    * Build the whole `image` group for a write.
@@ -82,25 +44,24 @@ export function ImageSettings() {
     ...slice,
   });
 
-  const saveSlice = async (slice: ImageSlice): Promise<boolean> => {
-    try {
-      await preferencesService.setPreferences({ image: buildImagePayload(slice) });
-      return true;
-    } catch {
-      // No inline notice here, deliberately — matches ExportSettings exactly.
-      // `preferencesService` already raises the one toast for this event, and
-      // rule 30 §5 allows a single event exactly one of toast / banner / inline
-      // note / modal, never two. The toast is also the only signal that still
-      // reaches the user when this write was dispatched and the dialog closed
-      // before it rejected; an inline note is a no-op on an unmounted panel.
-      //
-      // WI2-I's defect was the pane being *destroyed* on failure, not the
-      // absence of an inline message: the controls below stay mounted, operable
-      // and holding the user's value. `loadFailed` is load-failure only, where no
-      // toast is raised and it is therefore the sole signal.
-      return false;
-    }
-  };
+  /**
+   * One write at a time, each built when sent from the last confirmed slice
+   * (F508-2). The writer also owns what `prefsRef` and the per-leaf intents did
+   * here before: the debounced write reads the shown value at fire time (WI-2),
+   * a failed write rolls back only its own leaf (WI2-G′), and only while no
+   * later edit has claimed it (WI2-L) — now to the confirmed value, not to a
+   * snapshot that may itself never have been saved.
+   *
+   * No inline notice on failure, deliberately: `preferencesService` raises the
+   * one toast for the event (rule 30 §5), and it is the only signal that still
+   * reaches the user when the dialog closed before the write rejected. WI2-I's
+   * defect was the pane being destroyed on failure; the controls stay mounted,
+   * operable and holding the saved value. `loadFailed` is load-failure only.
+   */
+  const writer = useSettingsWriter<ImageSlice>({
+    save: (next) => preferencesService.setPreferences({ image: buildImagePayload(next) }),
+  });
+  const prefs = writer.value;
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +70,7 @@ export function ImageSettings() {
       .then((p) => {
         if (cancelled) return;
         cachedFullPrefs.current = p;
-        commitSlice({
+        writer.load({
           assetFolder: p.image?.assetFolder ?? DEFAULT_IMAGE_CONFIG.assetFolder,
           copyExternalImages:
             p.image?.copyExternalImages ?? DEFAULT_IMAGE_CONFIG.copyExternalImages,
@@ -131,44 +92,27 @@ export function ImageSettings() {
     };
   }, []);
 
-  /** Switch toggle — immediate async save, rolling back only this control. */
-  const handleBoolChange = async (key: keyof ImageSlice, value: boolean) => {
-    const current = prefsRef.current;
-    if (!current) return;
-    const previousValue = current[key];
-    const intent = claimLeaf(key);
-    const next = { ...current, [key]: value };
-    commitSlice(next);
-
-    const saved = await saveSlice(next);
-    if (saved) return;
-    // A later write has claimed this leaf since; its value is newer than ours,
-    // so ours is not the one to restore (WI2-L).
-    if (leafIntents.current[key] !== intent) return;
-    // Roll back this control only, against the *latest* state: the rejection can
-    // land after the user has edited another field, and a whole-slice snapshot
-    // would revert that edit under them (WI2-G′).
-    const latest = prefsRef.current ?? next;
-    commitSlice({ ...latest, [key]: previousValue });
+  /** Switch toggle — saved after any earlier write; rolls back only this control. */
+  const handleBoolChange = (key: keyof ImageSlice, value: boolean) => {
+    void writer.write({ [key]: value });
   };
 
   /** Text input — validates the path, updates local state, debounces the save. */
   const handleFolderChange = (value: string) => {
-    const current = prefsRef.current;
-    if (!current) return;
+    if (writer.current() === null) return;
     // A rejected keystroke changes nothing — including the pending timer, which
     // must still fire with the last *valid* folder (WI2-D).
     if (value !== "" && !isValidAssetFolder(value)) return;
     // Every accepted keystroke claims the leaf, so a write already in flight
     // against it can no longer roll the user's typing back (WI2-L).
-    claimLeaf("assetFolder");
-    commitSlice({ ...current, assetFolder: value });
+    writer.edit({ assetFolder: value });
 
     if (textSaveTimer.current) clearTimeout(textSaveTimer.current);
     textSaveTimer.current = setTimeout(() => {
       textSaveTimer.current = null;
-      const slice = prefsRef.current;
-      if (slice) void saveSlice(slice);
+      const slice = writer.current();
+      // No rollback: a failed save keeps the typed folder shown (WI2-I); the toast says it failed.
+      if (slice) void writer.write({ assetFolder: slice.assetFolder }, { rollback: false });
     }, SAVE_DEBOUNCE_MS);
   };
 

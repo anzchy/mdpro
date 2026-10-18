@@ -6,7 +6,8 @@
  * LineHeight select, ContentWidth select, TabSize select, and WordWrap checkbox.
  * We verify:
  *   1. The component wires every EditorConfig key through handleChange.
- *   2. handleChange calls applyEditorPref before setPreferences.
+ *   2. handleChange queues the write through useSettingsWriter, which calls
+ *      applyEditorPref for every shown change, including a rollback (PR #508).
  *   3. cachedFullPrefs is used to merge (editor nested inside full prefs object).
  *   4. Source exports the component correctly.
  *
@@ -34,9 +35,8 @@ describe("EditorSettings — source structure", () => {
     expect(editorSettingsSrc).toContain("preferencesService");
   });
 
-  it("handleChange is async (await setPreferences)", () => {
-    // handleChange is async so it can await the save and rollback on failure
-    expect(editorSettingsSrc).toContain("const handleChange = async");
+  it("handleChange queues the write through the page's writer (PR #508)", () => {
+    expect(editorSettingsSrc).toContain("void writer.write({ [key]: value })");
   });
 
   it("calls applyEditorPref(key, value) inside handleChange", () => {
@@ -48,10 +48,10 @@ describe("EditorSettings — source structure", () => {
     expect(editorSettingsSrc).toContain("setPreferences({ editor: next })");
   });
 
-  it("rolls back prefs and applied editor pref on save failure", () => {
-    // On catch: restore previous local state and re-apply previous pref value
-    expect(editorSettingsSrc).toContain("setPrefs(prevPrefs)");
-    expect(editorSettingsSrc).toContain("applyEditorPref(key, prevPrefs[key])");
+  it("the writer re-applies the editor pref on rollback (PR #508)", () => {
+    // useSettingsWriter calls `apply` for every shown change, a rollback included.
+    expect(editorSettingsSrc).toContain("useSettingsWriter<EditorConfig>");
+    expect(editorSettingsSrc).toContain("apply: (key, value) => applyEditorPref(key, value)");
   });
 
   it("renders wordWrap as a ToggleSwitch", () => {

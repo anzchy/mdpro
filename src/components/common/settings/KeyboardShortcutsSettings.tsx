@@ -11,12 +11,15 @@
  * - Pending rows compare saved with applied, never the unsaved edit
  *   (ADR-0114 Decision 4). A missing snapshot only hides that line.
  * - Reset restores the table's defaults for the stored version.
+ * - One save at a time: Save reads "Saving…" and is disabled, with Discard,
+ *   while a save runs. A save that lands after a newer edit keeps the dialog
+ *   open and the banner up, so that edit is not closed away (PR #508 F508-3).
  *
  * @coordinates-with src/components/common/settings/shortcuts/shortcutGroups.ts — groups and labels
  * @coordinates-with src/components/common/settings/shortcuts/rowState.ts — the row states
  * @coordinates-with src/commands/settingsConflicts.ts — the Save check
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { KeyboardShortcuts } from "../../../types/preferences";
 import type { AppliedShortcuts } from "../../../types/keyboardShortcuts";
 import { preferencesService } from "../../../services/preferencesService";
@@ -41,6 +44,10 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const [localShortcuts, setLocalShortcuts] = useState<KeyboardShortcuts | null>(null);
   const [editingKey, setEditingKey] = useState<keyof KeyboardShortcuts | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  /** Counts local edits, so a finished save knows whether one came after it started. */
+  const editCount = useRef(0);
   const [loadFailed, setLoadFailed] = useState(false);
   const [version, setVersion] = useState(1);
   const [applied, setApplied] = useState<AppliedShortcuts["bindings"] | null>(null);
@@ -102,6 +109,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
       if (shortcut === null) return;
 
       setLocalShortcuts((prev) => (prev ? { ...prev, [editingKey]: shortcut } : prev));
+      editCount.current += 1;
       setIsDirty(true);
       setEditingKey(null);
     },
@@ -121,11 +129,13 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const handleReset = () => {
     loggingService.logButtonClick("settings.shortcuts.reset");
     setLocalShortcuts(resetDefaults(settingsPlatform(), version));
+    editCount.current += 1;
     setIsDirty(true);
   };
 
   const handleDiscard = () => {
     setLocalShortcuts(savedShortcuts);
+    editCount.current += 1;
     setIsDirty(false);
   };
 
@@ -136,15 +146,26 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
       loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "refused", refusing: conflicts.size });
       return;
     }
+    if (savingRef.current) return;
+    const snapshot = localShortcuts;
+    const editsAtStart = editCount.current;
+    savingRef.current = true;
+    setSaving(true);
     try {
-      await preferencesService.setPreferences({ keyboardShortcuts: localShortcuts });
-      setSavedShortcuts(localShortcuts);
-      setIsDirty(false);
-      onClose();
+      await preferencesService.setPreferences({ keyboardShortcuts: snapshot });
+      setSavedShortcuts(snapshot);
+      // An edit made while saving is not in this save: keep it, the banner and the dialog.
+      if (editCount.current === editsAtStart) {
+        setIsDirty(false);
+        onClose();
+      }
     } catch {
       // The service's toast is the one signal (rule 30 rule 5); the banner stays,
       // so the edit can be saved again or discarded.
       loggingService.logUiEvent("ui.settings.shortcuts.save", { status: "fail" });
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -188,15 +209,16 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
         <div className="settings-dirty-banner" role="alert">
           <span aria-hidden="true">⚠️</span>
           <span>Unsaved shortcut changes</span>
-          <button className="settings-dirty-banner__discard" onClick={handleDiscard}>
+          <button className="settings-dirty-banner__discard" onClick={handleDiscard} disabled={saving}>
             Discard
           </button>
           <button
             className="toolbar-button primary"
             style={{ marginLeft: "auto" }}
             onClick={() => void handleSave()}
+            disabled={saving}
           >
-            Save
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       )}

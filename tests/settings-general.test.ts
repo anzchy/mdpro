@@ -44,14 +44,13 @@ describe("GeneralSettings — source structure", () => {
     expect(generalSettingsSrc).toContain('"autoSaveInterval"');
   });
 
-  it("handleChange is async (await setPreferences)", () => {
-    // handleChange is async so it can await the save and rollback on failure
-    expect(generalSettingsSrc).toContain("const handleChange = async");
+  it("handleChange queues the write through the page's writer (PR #508)", () => {
+    expect(generalSettingsSrc).toContain("useSettingsWriter<GeneralSlice>");
   });
 
   it("sends only the changed scalar field to setPreferences (prevents snapshot races)", () => {
-    // Sends { [key]: value } directly — not a full-object snapshot
-    expect(generalSettingsSrc).toContain("setPreferences({ [key]: value }");
+    // Sends the write's own patch — not a full-object snapshot
+    expect(generalSettingsSrc).toContain("setPreferences(patch as Partial<UserPreferences>)");
   });
 
   it("imports useEditorStore to propagate live autoSaveInterval changes", () => {

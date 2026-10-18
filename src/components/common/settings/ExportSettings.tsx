@@ -15,8 +15,9 @@
  *    capture the whole export group when they were *scheduled* and send that
  *    snapshot later, so toggling the checkbox inside the debounce window sent
  *    the new value and was then silently reverted by the stale timer. Every
- *    deferred writer now reads {@link prefsRef}, which is updated synchronously
- *    by every writer, so the payload always carries the user's latest choice.
+ *    deferred writer now reads the shown value through `writer.current()` when
+ *    it fires, and the write itself is built when it is *sent*, from the last
+ *    confirmed group plus its own leaf (`useSettingsWriter`, WI-4.3b F508-2).
  *
  * 2. **Payloads are whole-group, never per-leaf.** `merge_preferences` replaces
  *    a top-level group wholesale, and `ExportConfig.html_include_styles` carries
@@ -24,24 +25,24 @@
  *    would resurrect `true` over a user's `false` — the same revert, relocated
  *    into the serde layer where it is far harder to see.
  *
- * 3. **Rollback is field-scoped AND intent-guarded.** A failed write restores
- *    only the leaf that failed. Restoring a whole-group snapshot taken before
- *    the request would also revert a *sibling* the user changed while it was in
- *    flight. Field scoping alone does not cover the failing leaf itself, which
- *    a second writer may have changed in the meantime — that is what
- *    `leafIntents` is for. (The earlier version of this note claimed field
- *    scoping was sufficient on its own; it was wrong, and the same-leaf case it
- *    missed is pinned by WI1-L. Corrected 2026-09-24.)
+ * 3. **Rollback is field-scoped AND intent-guarded, to the confirmed value.** A
+ *    failed write restores only the leaf that failed, so a *sibling* the user
+ *    changed while it was in flight survives (WI1-E′), and only while no later
+ *    edit has claimed that leaf (WI1-L). It restores the value the backend last
+ *    confirmed, not the value shown before the request, which may itself have
+ *    been an unsaved optimistic one (PR #508 F508-2). Writes go one at a time.
+ *    All of this lives in `useSettingsWriter`.
  *
  * 4. **A failed write never removes the controls**, and reports through the
  *    service's toast rather than an inline note — one signal per event, rule
- *    30 §5. See {@link persistExport}.
+ *    30 §5.
  *
  * Pinned by `tests/settings-export-write-ordering.test.tsx` (behaviour) and
  * `tests/settings-export.test.ts` (structure).
  *
  * @module components/common/settings/ExportSettings
  * @coordinates-with src/services/preferencesService.ts, src/services/exportService.ts
+ * @coordinates-with src/components/common/settings/useSettingsWriter.ts
  */
 import { useEffect, useRef, useState } from "react";
 import type { ExportConfig } from "../../../types/preferences";
@@ -49,6 +50,7 @@ import { DEFAULT_EXPORT_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { exportService } from "../../../services/exportService";
 import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
+import { useSettingsWriter } from "./useSettingsWriter";
 import { ToggleSwitch } from "../ToggleSwitch";
 
 /**
@@ -60,7 +62,6 @@ import { ToggleSwitch } from "../ToggleSwitch";
 const FOLDER_SAVE_DEBOUNCE_MS = 500;
 
 export function ExportSettings() {
-  const [prefs, setPrefs] = useState<ExportConfig | null>(null);
   /**
    * Load failure only — a save failure deliberately sets nothing here.
    *
@@ -68,55 +69,22 @@ export function ExportSettings() {
    * the entire pane with a bare error paragraph, so one transient save failure
    * left the user with no controls, no retry, and no way to clear the message.
    * The controls now stay mounted and operable on a save failure, and the
-   * service's toast is that event's single signal (rule 30 §5). See
-   * {@link persistExport}. A load failure raises no toast, so the shared
+   * service's toast is that event's single signal (rule 30 §5). A load failure raises no toast, so the shared
    * failure line is its *sole* signal (WI-4.3b: never the raw message).
    */
   const [loadFailed, setLoadFailed] = useState(false);
   const textSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
-   * The latest export group, readable synchronously.
-   *
-   * `prefs` cannot serve this purpose: a deferred callback closes over the
-   * render in which it was created, so by the time it runs it sees a value that
-   * may be several user actions old. Every writer below updates this ref in the
-   * same statement it calls `setPrefs`, so the two never disagree.
+   * Whole-group writes, one at a time (decisions 1–3). No inline notice on
+   * failure, deliberately: `preferencesService` raises the one toast for the
+   * event (rule 30 §5), and it is the only signal that still reaches the user
+   * when the dialog closed before the write rejected.
    */
-  const prefsRef = useRef<ExportConfig | null>(null);
-
-  /**
-   * Per-leaf monotonic token: "which write most recently claimed this field".
-   *
-   * Field-scoped rollback rebuilds siblings from the current group, so a
-   * *sibling* edit made while a write was in flight already survives (WI1-E′).
-   * It does not protect the failing leaf itself, and two writers target
-   * `defaultFolder` — {@link handleBrowse} and the debounce — while a switch
-   * can be toggled three times with the first write still open. Restoring that
-   * leaf's schedule-time value then reverts a newer edit *and*, if a debounce is
-   * armed, persists the reverted value, so screen and disk agree on something
-   * the user never chose and nothing is left to reconcile them.
-   *
-   * A write may therefore only roll its leaf back if no later write has claimed
-   * it. Same device as `latestThemeIntent` in `src/hooks/useTheme.ts`.
-   *
-   * Found at review, 2026-09-24; pinned by WI1-L.
-   */
-  const leafIntents = useRef<Partial<Record<keyof ExportConfig, number>>>({});
-  const nextLeafIntent = useRef(0);
-
-  /** Mark `key` as claimed by a new write and return that write's token. */
-  const claimLeaf = (key: keyof ExportConfig): number => {
-    nextLeafIntent.current += 1;
-    leafIntents.current[key] = nextLeafIntent.current;
-    return nextLeafIntent.current;
-  };
-
-  const commitPrefs = (next: ExportConfig): ExportConfig => {
-    prefsRef.current = next;
-    setPrefs(next);
-    return next;
-  };
+  const writer = useSettingsWriter<ExportConfig>({
+    save: (next) => preferencesService.setPreferences({ export: next }),
+  });
+  const prefs = writer.value;
 
   useEffect(() => {
     let cancelled = false;
@@ -124,7 +92,7 @@ export function ExportSettings() {
       .getPreferences("settings_export")
       .then((p) => {
         if (cancelled) return;
-        commitPrefs({ ...DEFAULT_EXPORT_CONFIG, ...p.export });
+        writer.load({ ...DEFAULT_EXPORT_CONFIG, ...p.export });
       })
       .catch(() => {
         // The service has logged the failure (enum-only); the raw message stays out of the UI.
@@ -149,97 +117,34 @@ export function ExportSettings() {
     };
   }, []);
 
-  /**
-   * Send the whole export group and report the outcome.
-   *
-   * Whole-group by contract (decision 2 above). Returns whether the write
-   * landed, so callers can roll their leaf back.
-   */
-  const persistExport = async (group: ExportConfig): Promise<boolean> => {
-    try {
-      await preferencesService.setPreferences({ export: group });
-      return true;
-    } catch {
-      // No inline notice here, deliberately. `preferencesService` already raises
-      // the one toast for this event, and rule 30 §5 allows a single event
-      // exactly one of toast / banner / inline note / modal — never two. The
-      // toast is also the only signal that still reaches the user when this
-      // write was dispatched and the dialog closed before it rejected; an
-      // inline note would be a no-op on an unmounted panel.
-      //
-      // The defect this replaced was the pane being *destroyed* on failure, not
-      // the absence of an inline message: the controls below stay mounted,
-      // operable, and holding the user's value. `loadFailed` remains load-failure
-      // only, where no toast is raised and it is therefore the sole signal.
-      return false;
-    }
+  /** Switch toggle — saved after any earlier write; rolls back only this leaf. */
+  const handleBoolChange = (key: keyof ExportConfig, value: boolean) => {
+    void writer.write({ [key]: value });
   };
 
-  /**
-   * Restore a single leaf after its write failed.
-   *
-   * Field-scoped on purpose: it rebuilds from the *current* group, so a value
-   * the user changed in a **sibling** field while the failing request was in
-   * flight survives. The failing field itself needs {@link leafIntents} — this
-   * rebuild would otherwise stamp a schedule-time value over a newer edit to
-   * that same field.
-   */
-  const rollbackLeaf = (
-    key: keyof ExportConfig,
-    value: ExportConfig[keyof ExportConfig],
-    intent: number,
-  ): void => {
-    // A later write has claimed this leaf. Its value — whether already landed
-    // or still pending — is newer than ours, so ours is not the one to restore.
-    if (leafIntents.current[key] !== intent) return;
-    const latest = prefsRef.current;
-    if (latest === null) return;
-    const prev = { ...latest, [key]: value };
-    prefsRef.current = prev;
-    setPrefs(prev);
-  };
-
-  /** Switch toggle — immediate async save with rollback. */
-  const handleBoolChange = async (key: keyof ExportConfig, value: boolean) => {
-    const current = prefsRef.current;
-    if (!current) return;
-    const previousValue = current[key];
-    const intent = claimLeaf(key);
-    const next = commitPrefs({ ...current, [key]: value });
-    const saved = await persistExport(next);
-    if (!saved) rollbackLeaf(key, previousValue, intent);
-  };
-
-  /** Text input — debounced save; the callback reads state at fire time. */
+  /** Text input — debounced save; the callback reads the shown value at fire time. */
   const handleFolderChange = (value: string) => {
-    const current = prefsRef.current;
-    if (!current) return;
+    if (writer.current() === null) return;
     // Every keystroke claims the leaf, so a write already in flight against it
     // can no longer roll the user's typing back (WI1-L).
-    claimLeaf("defaultFolder");
-    commitPrefs({ ...current, defaultFolder: value });
+    writer.edit({ defaultFolder: value });
     if (textSaveTimer.current) clearTimeout(textSaveTimer.current);
     textSaveTimer.current = setTimeout(() => {
       textSaveTimer.current = null;
-      const latest = prefsRef.current;
+      const latest = writer.current();
       if (latest === null) return;
-      void persistExport(latest);
+      // No rollback: a failed save keeps the typed folder shown (WI1-J); the toast says it failed.
+      void writer.write({ defaultFolder: latest.defaultFolder }, { rollback: false });
     }, FOLDER_SAVE_DEBOUNCE_MS);
   };
 
   const handleBrowse = async () => {
     const folder = await exportService.pickFolder();
     if (folder === null) return;
-    // Read AFTER the await. The picker owns the screen for an unbounded time,
-    // and anything the user changed in the meantime lives in the ref — not in
-    // the closure this function started with.
-    const current = prefsRef.current;
-    if (!current) return;
-    const previousFolder = current.defaultFolder;
-    const intent = claimLeaf("defaultFolder");
-    const next = commitPrefs({ ...current, defaultFolder: folder });
-    const saved = await persistExport(next);
-    if (!saved) rollbackLeaf("defaultFolder", previousFolder, intent);
+    // The picker owns the screen for an unbounded time; the write is built when
+    // it is sent, so anything changed meanwhile is not overwritten.
+    if (writer.current() === null) return;
+    void writer.write({ defaultFolder: folder });
   };
 
   return (
