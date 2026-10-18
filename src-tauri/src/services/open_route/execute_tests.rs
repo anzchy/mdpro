@@ -535,3 +535,47 @@ fn executor_conservation_exhaustive() {
     }
     assert_eq!(visited, 1296, "every cell visited");
 }
+
+/// D279 ruling R4: the broadcast group is sent before any
+/// `file:open-in-window` emit, and each path's log follows in input order.
+/// One shared trace, since the harness above records each closure apart.
+#[test]
+fn d279_r4_broadcast_send_precedes_open_in_window_emits() {
+    use std::cell::RefCell;
+    let lookups = lk(vec![
+        ("/in/p1", hit("main", "d1", "/in/p1", 1)),
+        ("/in/p2", miss()),
+    ]);
+    let plan = plan_route(Source::SingleInstance, &lookups, false);
+    let trace = RefCell::new(Vec::<String>::new());
+    execute_plan(
+        &plan,
+        Source::SingleInstance,
+        &main_focused(),
+        |t: &RouteTarget| {
+            trace.borrow_mut().push(format!("emit:{}", t.path));
+            Ok(())
+        },
+        |p: String| trace.borrow_mut().push(format!("new:{p}")),
+        |label: &str, g: Vec<String>| {
+            trace
+                .borrow_mut()
+                .push(format!("send:{label}:{}", g.join(",")));
+            Ok(())
+        },
+        |v: Value, _e: Option<String>| {
+            trace
+                .borrow_mut()
+                .push(format!("log:{}", v["outcome"].as_str().unwrap_or("?")));
+        },
+    );
+    assert_eq!(
+        trace.into_inner(),
+        vec![
+            "send:main:/in/p2",
+            "emit:/in/p1",
+            "log:existing-window",
+            "log:broadcast",
+        ]
+    );
+}

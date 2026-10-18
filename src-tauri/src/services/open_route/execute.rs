@@ -19,7 +19,11 @@
 //!   opened, and each broadcast path is logged with `no_live_window`.
 //! - **A failed send falls back per path** (D279 R2, ADR-0033 decision 7):
 //!   a new window each, or `refused-quit-pending` under a live quit (D74).
-//!   The line keeps the resolved `via` and carries the send error.
+//!   The line keeps the resolved `via` and carries the send error. A send
+//!   fails only when the window was already gone at the glue's lookup; a
+//!   window that closes between that lookup and `emit_to` still reports
+//!   success, so its open is dropped and logged `broadcast`, as before D279
+//!   (closing it needs a delivery ack, an IPC change left to its own D item).
 //! - **The logged `matchCount` is the plan entry's**, never recomputed. A
 //!   `new-window` log with `matchCount > 0` is therefore a failed emit.
 use super::plan::{

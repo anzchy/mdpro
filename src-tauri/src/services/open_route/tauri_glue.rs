@@ -11,11 +11,14 @@
 //! - **No decision lives here.** The shim builds the live-label set, reads
 //!   the focus snapshot and builds the four closures, and nothing else; every
 //!   branch is in `plan_route`, `broadcast_target` and `execute_plan`.
-//! - **Both sends return `Err` when the window is gone.** `emit_to_window`
-//!   and the `file:open` closure look the window up with
+//! - **Both sends return `Err` when the window is already gone at lookup.**
+//!   `emit_to_window` and the `file:open` closure look the window up with
 //!   `get_webview_window` first, because `emit_to` a missing label is not an
 //!   error: without the lookup a window closed between building the live set
-//!   and the send would silently swallow the open. The `file:open` send goes
+//!   and the send would silently swallow the open. The lookup and `emit_to`
+//!   are two steps on this task, so a window closed on the main thread
+//!   between them (⌘W) still swallows it: `emit_to` returns `Ok` (D279 F1;
+//!   only a delivery ack would close that). The `file:open` send goes
 //!   to the label it looked up and to no other window (D279); its `Err` is
 //!   what reaches `execute_plan`'s send-failure fallback.
 //! - **The route log's level and status come from `route_log_severity`**:

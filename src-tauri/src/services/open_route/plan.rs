@@ -189,6 +189,11 @@ pub fn route_log_context(
 }
 
 /// The one window the broadcast group goes to (D279): D261's App-class
+/// rule, whose "lowest live label" compares labels as text (`main` <
+/// `main-10` < `main-2`). The planner only broadcasts when no window holds a
+/// document, i.e. with no window or only `main` live, so in practice the
+/// target is `main`.
+///
 /// resolution over the live labels, sorted, with no rule of its own.
 pub fn broadcast_target(snapshot: &FocusSnapshot, live: &HashSet<String>) -> Resolved {
     let mut labels: Vec<String> = live.iter().cloned().collect();
