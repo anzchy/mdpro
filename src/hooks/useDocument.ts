@@ -15,6 +15,7 @@ import {
 } from "../utils/openWriteGuard";
 import { parseEncodingError, reportOpenFailure } from "../utils/openFailure";
 import { beginCapture } from "../utils/fileChangeCapture";
+import { commitDocumentClose } from "./documentCloseCommit";
 
 export { supersedeRetry } from "../utils/openWriteGuard";
 
@@ -248,12 +249,8 @@ export function useDocument() {
   const closeActiveDocument = useCallback(
     async (discardChanges: boolean) => {
       if (!activeDocument) return null;
-      await fileService.closeDocument(activeDocument.id, discardChanges);
-      // WI-3.5.5 eviction: close→reopen returns the same path-derived id.
-      useTOCStore.getState().resetCoordination(activeDocument.id);
-      useDocumentStore.getState().closeDocument(activeDocument.id);
-      // D96: follow the neighbour documentStore moved to, so the two stores agree.
-      setEditorActiveDocumentId(useDocumentStore.getState().activeDocumentId);
+      // D261 H1: removes it only if this is still the lifetime the close began on.
+      await commitDocumentClose(activeDocument.id, discardChanges, setEditorActiveDocumentId);
       return;
     },
     [activeDocument, setEditorActiveDocumentId],
@@ -261,13 +258,8 @@ export function useDocument() {
 
   const closeDocumentById = useCallback(
     async (id: string, discardChanges: boolean) => {
-      await fileService.closeDocument(id, discardChanges); // D173: holds go via watchHolds
-      // WI-3.5.5 eviction: the tab-bar X, which never reaches closeActiveDocument.
-      useTOCStore.getState().resetCoordination(id);
-      useDocumentStore.getState().closeDocument(id);
-      // D96: closeDocument has already moved the active id off `id`, so re-read it
-      // rather than compare against `id`, which was never true here.
-      setEditorActiveDocumentId(useDocumentStore.getState().activeDocumentId);
+      // The tab-bar X, which never reaches closeActiveDocument; same commit and H1 guard.
+      await commitDocumentClose(id, discardChanges, setEditorActiveDocumentId);
       return;
     },
     [setEditorActiveDocumentId],
