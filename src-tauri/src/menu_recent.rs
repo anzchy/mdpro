@@ -13,8 +13,8 @@
 //! - The sync mutex is separate from the **data mutex** the menu-click handler
 //!   (`menu.rs` `handle_menu_event`) reads, so a menu event fired during
 //!   `set_menu` cannot deadlock. No menu event handler calls `publish_op`.
-//! - The sync mutex guards the last view mode any op reported; every install
-//!   builds with it, so a list-only op never resets the View checkmark.
+//! - View modes are keyed by the injected caller window. The focused label
+//!   comes from `MenuFocus`; a missing focus or report fails closed.
 //! - `publish_op` logs `menu.recent_files.sync` with `{op, count, outcome}`
 //!   only, never paths; a `seed` with `stored: None` logs a warn with
 //!   `outcome: "hydration_failed"` (the line a device run can see while
@@ -26,6 +26,7 @@
 //! @coordinates-with src/menu_recent_merge.rs
 //! @coordinates-with src/commands/menu.rs
 
+use super::menu_availability::{MenuModes, ViewMode};
 use super::menu_recent_merge::{apply_recent_op, sanitize_recent_op, RecentOp, PATH_TOO_LONG};
 use super::MENU_FILE_RECENT_PREFIX;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
@@ -44,17 +45,46 @@ const SYNC_EVENT: &str = "menu.recent_files.sync";
 #[derive(Default)]
 pub struct MenuState {
     recent_files: Mutex<Vec<String>>,
+    modes: Mutex<MenuModes>,
     sync: Mutex<SyncState>,
 }
 
 /// Guarded by `MenuState::sync`, never by the data mutex.
 #[derive(Default)]
 struct SyncState {
-    /// The most recent `Some` view mode any op reported; `None` until then.
-    last_view_mode: Option<String>,
+    focused: Option<String>,
+}
+
+/// A mode report bound to the injected Tauri caller, never a frontend label.
+pub struct ModeReport {
+    pub window: String,
+    pub mode: String,
 }
 
 impl MenuState {
+    pub fn set_focused(&self, label: Option<String>) {
+        let mut sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
+        sync.focused = label;
+    }
+
+    pub fn forget_window(&self, label: &str) {
+        let mut sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
+        self.modes
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .forget(label);
+        if sync.focused.as_deref() == Some(label) {
+            sync.focused = None;
+        }
+    }
+
+    pub fn mode_for_window(&self, label: &str) -> Option<ViewMode> {
+        self.modes
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .for_focused(Some(label))
+    }
+
     pub fn set_recent_files(&self, recent_files: Vec<String>) {
         if let Ok(mut data) = self.recent_files.lock() {
             *data = recent_files;
@@ -72,16 +102,16 @@ impl MenuState {
     /// and publish it. Returns the published list.
     ///
     /// The op is sanitised first (`sanitize_recent_op`); a rejection installs
-    /// nothing and changes nothing. Then, under the sync mutex: a `Some`
-    /// `view_mode` becomes the remembered mode (kept even if install fails),
-    /// the merge runs against the current list, `install(merged, remembered)`
+    /// nothing and changes nothing. Then, under the sync mutex: a report
+    /// updates only its window (kept even if install fails),
+    /// the merge runs against the current list, `install(merged, focused mode)`
     /// runs while the old list is still published (and may read it through
     /// `recent_files()`), and the merged list is published only on `Ok`.
     /// On `Err` the old list stays and the install error is returned.
     pub fn publish_op(
         &self,
         op: RecentOp,
-        view_mode: Option<String>,
+        report: Option<ModeReport>,
         install: impl FnOnce(&[String], Option<&str>) -> Result<(), String>,
     ) -> Result<Vec<String>, String> {
         let started = Instant::now();
@@ -108,10 +138,24 @@ impl MenuState {
             }
         };
 
-        // Poison only means another sync panicked; the remembered mode is intact.
-        let mut sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
-        if view_mode.is_some() {
-            sync.last_view_mode = view_mode;
+        // Poison only means another sync panicked; the mode map is intact.
+        let sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(report) = report {
+            if let Err(reason) = self
+                .modes
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .report(&report.window, &report.mode)
+            {
+                log_sync(
+                    LogLevel::Error,
+                    LogStatus::Fail,
+                    json!({ "op": kind }),
+                    Some(reason),
+                    None,
+                );
+                return Err(reason.to_string());
+            }
         }
         let current = match self.recent_files.lock() {
             Ok(data) => data.clone(),
@@ -124,8 +168,13 @@ impl MenuState {
             log_sync(LogLevel::Warn, LogStatus::Fail, context, None, None);
         }
 
-        let mode = sync.last_view_mode.clone();
-        match publish_after(self, merged.clone(), |list| install(list, mode.as_deref())) {
+        let mode = self
+            .modes
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .for_focused(sync.focused.as_deref())
+            .map(ViewMode::as_str);
+        match publish_after(self, merged.clone(), |list| install(list, mode)) {
             Ok(()) => {
                 let elapsed = u64::try_from(started.elapsed().as_millis()).ok();
                 let context = json!({ "op": kind, "count": merged.len() });

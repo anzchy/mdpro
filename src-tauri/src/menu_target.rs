@@ -101,6 +101,9 @@ pub fn forget_window<R: Runtime, M: Manager<R>>(manager: &M, label: &str) {
     if let Some(focus) = manager.try_state::<MenuFocus>() {
         focus.forget(label);
     }
+    if let Some(menus) = manager.try_state::<super::MenuState>() {
+        menus.forget_window(label);
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

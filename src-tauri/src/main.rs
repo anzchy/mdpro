@@ -388,6 +388,7 @@ fn main() {
                         watcher.release_window(window.label());
                     }
                     tauri_app_lib::menu::forget_window(window, window.label());
+                    tauri_app_lib::menu::refresh_menu_for_focus(window.app_handle());
                 }
                 _ => {}
             }
@@ -497,10 +498,8 @@ fn main() {
             }
         }
 
-        // D217: focus is recorded here, not in `on_window_event`. That
-        // listener is registered on a new window after it is built and made
-        // key, so a runtime-created window's first focus could arrive before
-        // it and be lost; this callback sees every known window's events.
+        // D217: the app callback sees every focus event; a new window's first
+        // event can precede its own `on_window_event` listener registration.
         if let RunEvent::WindowEvent {
             ref label,
             event: WindowEvent::Focused(focused),
@@ -510,6 +509,7 @@ fn main() {
             let store = app_handle.try_state::<SharedShadowStore>();
             let menu_focus = app_handle.try_state::<tauri_app_lib::menu::MenuFocus>();
             window_focus::on_focus_event(store.as_deref(), menu_focus.as_deref(), label, focused);
+            tauri_app_lib::menu::refresh_menu_for_focus(app_handle);
         }
 
         // Exit is the only cleanup site. The request-stage event that precedes

@@ -25,6 +25,7 @@
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { loggingService } from "./loggingService";
+import type { ViewMode } from "../types/editor";
 
 /** A change to the session's Recent Files list, as sent over IPC. */
 export type RecentOp =
@@ -45,7 +46,7 @@ const isStringArray = (value: unknown): value is string[] =>
  */
 export async function syncRecentFilesMenu(
   op: RecentOp,
-  viewMode: string | null,
+  viewMode: ViewMode | null,
 ): Promise<string[] | null> {
   if (!isTauri()) return null;
   try {

@@ -11,17 +11,9 @@
 //!   the click handler below reads the list through the data mutex only.
 //! - The pure session-list merge (`RecentOp`, `apply_recent_op`) lives in
 //!   `menu_recent_merge.rs` (D43), shared by Rust and TS through a fixture.
-//! - "Stop Waiting and Quit…" sits directly after Quit in the app menu: always
-//!   enabled, no shortcut (ADR-0036). Its arm calls only
-//!   `quit_guard::deliver_escape` and emits no `menu:action`, so it works when
-//!   every webview is wedged (ADR-0030).
-//! - Off macOS the Quit item is a custom "Exit" (`MENU_APP_QUIT`, ADR-0090):
-//!   muda's predefined Quit posts `WM_QUIT` on Windows and bypasses the quit
-//!   guard. Its arm calls `QuitGuard::request_quit` and emits no `menu:action`;
-//!   the escape item follows it as it follows Quit on macOS.
-//!
-//! - The predefined About carries metadata off macOS (`menu_about.rs`, D225):
-//!   without it muda's About does nothing on Windows and Linux.
+//! - The quit escape follows Quit; off macOS Exit uses the quit guard.
+//! - Insert Table is enabled only for the focused WYSIWYG window and checked
+//!   again against the resolved target when clicked (M3a).
 //!
 //! @coordinates-with src/menu_about.rs
 //! @coordinates-with src/menu_target.rs
@@ -66,14 +58,17 @@ pub const MENU_APP_STOP_WAITING_QUIT: &str = "menu.app.stop_waiting_quit";
 /// "Exit" — the guarded quit off macOS (D190-WI-4, ADR-0090). Routed in Rust
 /// only, into `QuitGuard::request_quit`.
 pub const MENU_APP_QUIT: &str = "menu.app.quit";
-
 #[path = "menu_recent.rs"]
 mod menu_recent;
 use menu_recent::build_recent_submenu;
-pub use menu_recent::{publish_after, MenuState};
+pub use menu_recent::{publish_after, MenuState, ModeReport};
 
 #[path = "menu_recent_merge.rs"]
 pub mod menu_recent_merge;
+
+#[path = "menu_availability.rs"]
+mod menu_availability;
+pub use menu_availability::refresh_menu_for_focus;
 
 #[path = "menu_quit.rs"]
 mod menu_quit;
@@ -95,7 +90,12 @@ fn emit_menu_action(app: &AppHandle, action: &str, value: Option<String>) {
     let managed = app.try_state::<MenuFocus>();
     let focus = managed.as_deref().unwrap_or(&UNMANAGED_FOCUS);
     let live: Vec<String> = app.webview_windows().into_keys().collect();
-    let emit = |label: &str, p: &MenuActionPayload| app.emit_to(label, "menu:action", p);
+    let emit = |label: &str, p: &MenuActionPayload| {
+        if action == "paragraph.table" && !menu_availability::table_action_allowed(app, label) {
+            return Err(());
+        }
+        app.emit_to(label, "menu:action", p).map_err(|_| ())
+    };
     route(action, value, focus, &live, emit, logger::log_event);
 }
 
@@ -206,7 +206,7 @@ pub fn build_menu(
         app,
         MENU_FORMAT_INSERT_TABLE,
         "Insert Table",
-        true,
+        active_view_mode == Some("wysiwyg"),
         Some("CmdOrCtrl+Alt+T"),
     )?;
     let format_menu = SubmenuBuilder::new(app, "Format")

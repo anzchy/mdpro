@@ -77,7 +77,7 @@ fn cs02_command_routes_through_publish_op_and_builds_from_its_closure_args() {
             let tokens = arg_tokens(args);
             tokens.get(1) == Some(list) && tokens.iter().skip(2).any(|t| t == mode)
         }),
-        "build_menu must take the closure's list (2nd arg) and remembered mode: {closures:?}"
+        "build_menu must take the closure's list (2nd arg) and focused mode: {closures:?}"
     );
     assert!(
         closures
@@ -85,6 +85,9 @@ fn cs02_command_routes_through_publish_op_and_builds_from_its_closure_args() {
             .all(|(_, _, args)| !arg_tokens(args).iter().any(|t| t == "view_mode")),
         "the command's own view_mode must go to publish_op, not build_menu"
     );
+    assert!(COMMAND_SRC.contains("window: WebviewWindow<Wry>"));
+    assert!(COMMAND_SRC.contains("window.label().to_string()"));
+    assert!(!COMMAND_SRC.contains("window_label:"));
     assert!(
         !COMMAND_SRC.contains("set_recent_files_menu"),
         "old command removed"

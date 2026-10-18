@@ -216174,6 +216174,392 @@
           "message": "6 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/window.rs, src-tauri/src/services/open_route/execute.rs, src-tauri/src/services/open_route/mod.rs, src-tauri/src/services/open_route/plan.rs, src-tauri/src/services/open_route/tauri_glue.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
+    },
+    {
+      "id": "M3-WI-1",
+      "lane": "rust",
+      "recorded_at": "2026-10-18T14:56:48.642Z",
+      "head_sha": "10806dcaca15906ff2e95460923489d1aa2f4c94",
+      "dirty_source": [
+        ".codex/rules/mdpro.rules",
+        "AGENTS.md",
+        "src-tauri/src/menu.rs",
+        "src-tauri/src/menu_availability.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 1889 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/menu_availability_tests.rs": {
+          "state": "ok",
+          "sha": "4394ba1d88bcb2fdb047f25979c7a5993dcdd4aeda0e41f04727f24e76482b2a",
+          "lines": [
+            "a3c9624c0d2560cd",
+            "fa446a9ff7394384",
+            "a09d5c3d05ca8148",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "f0583c4e3b1b39be",
+            "f538e7f9f0d6dbcc",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "cc65ebd1446592f3",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "5464ec9c147f7eb7",
+            "2835441e4711dd3d",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "812e627513957850",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "b4a4002e8525baed",
+            "10e1ea138a5363fe",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "d162f27c306f236e",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-18T15:20:36.786Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "4 non-test file(s) were already modified when the red was recorded (.codex/rules/mdpro.rules, AGENTS.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/menu_availability_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
+    },
+    {
+      "id": "M3-WI-2",
+      "lane": "rust",
+      "recorded_at": "2026-10-18T14:57:48.941Z",
+      "head_sha": "10806dcaca15906ff2e95460923489d1aa2f4c94",
+      "dirty_source": [
+        ".codex/rules/mdpro.rules",
+        "AGENTS.md",
+        "src-tauri/src/menu.rs",
+        "src-tauri/src/menu_availability.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 1889 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/menu_availability_tests.rs": {
+          "state": "ok",
+          "sha": "4394ba1d88bcb2fdb047f25979c7a5993dcdd4aeda0e41f04727f24e76482b2a",
+          "lines": [
+            "a3c9624c0d2560cd",
+            "fa446a9ff7394384",
+            "a09d5c3d05ca8148",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "f0583c4e3b1b39be",
+            "f538e7f9f0d6dbcc",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "cc65ebd1446592f3",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "5464ec9c147f7eb7",
+            "2835441e4711dd3d",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "812e627513957850",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "b4a4002e8525baed",
+            "10e1ea138a5363fe",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "d162f27c306f236e",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-18T15:20:36.786Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "4 non-test file(s) were already modified when the red was recorded (.codex/rules/mdpro.rules, AGENTS.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/menu_availability_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
+    },
+    {
+      "id": "M3-WI-3",
+      "lane": "rust",
+      "recorded_at": "2026-10-18T14:58:48.697Z",
+      "head_sha": "10806dcaca15906ff2e95460923489d1aa2f4c94",
+      "dirty_source": [
+        ".codex/rules/mdpro.rules",
+        "AGENTS.md",
+        "src-tauri/src/menu.rs",
+        "src-tauri/src/menu_availability.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 1889 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/menu_availability_tests.rs": {
+          "state": "ok",
+          "sha": "4394ba1d88bcb2fdb047f25979c7a5993dcdd4aeda0e41f04727f24e76482b2a",
+          "lines": [
+            "a3c9624c0d2560cd",
+            "fa446a9ff7394384",
+            "a09d5c3d05ca8148",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "f0583c4e3b1b39be",
+            "f538e7f9f0d6dbcc",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "cc65ebd1446592f3",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "5464ec9c147f7eb7",
+            "2835441e4711dd3d",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "812e627513957850",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "b4a4002e8525baed",
+            "10e1ea138a5363fe",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "d162f27c306f236e",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-18T15:20:36.786Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "4 non-test file(s) were already modified when the red was recorded (.codex/rules/mdpro.rules, AGENTS.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/menu_availability_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
+    },
+    {
+      "id": "M3-WI-4",
+      "lane": "rust",
+      "recorded_at": "2026-10-18T14:59:43.371Z",
+      "head_sha": "10806dcaca15906ff2e95460923489d1aa2f4c94",
+      "dirty_source": [
+        ".codex/rules/mdpro.rules",
+        "AGENTS.md",
+        "src-tauri/src/menu.rs",
+        "src-tauri/src/menu_availability.rs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 1889 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "src-tauri/src/menu_availability_tests.rs": {
+          "state": "ok",
+          "sha": "4394ba1d88bcb2fdb047f25979c7a5993dcdd4aeda0e41f04727f24e76482b2a",
+          "lines": [
+            "a3c9624c0d2560cd",
+            "fa446a9ff7394384",
+            "a09d5c3d05ca8148",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "f0583c4e3b1b39be",
+            "f538e7f9f0d6dbcc",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "cc65ebd1446592f3",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "5464ec9c147f7eb7",
+            "2835441e4711dd3d",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "812e627513957850",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "b4a4002e8525baed",
+            "10e1ea138a5363fe",
+            "d10b36aa74a59bcf",
+            "fa446a9ff7394384",
+            "d162f27c306f236e",
+            "c99ec3ce1dd3a617",
+            "8092c33d413625a7",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "6e1a3e012341ace6",
+            "be170eb1eadcce6b",
+            "d10b36aa74a59bcf"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-18T15:20:36.786Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "4 non-test file(s) were already modified when the red was recorded (.codex/rules/mdpro.rules, AGENTS.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/menu_availability_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
+    },
+    {
+      "id": "M3-WI-9",
+      "lane": "unit",
+      "recorded_at": "2026-10-18T15:34:39.616Z",
+      "head_sha": "10806dcaca15906ff2e95460923489d1aa2f4c94",
+      "dirty_source": [
+        ".codex/rules/mdpro.rules",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "docs/feature-ledger.html",
+        "docs/feature-ledger.md",
+        "docs/plans/20261015-plan-menu-reorganisation.md",
+        "src-tauri/src/commands/menu.rs",
+        "src-tauri/src/main.rs",
+        "src-tauri/src/menu.rs",
+        "src-tauri/src/menu_availability.rs",
+        "src-tauri/src/menu_recent.rs",
+        "src-tauri/src/menu_target.rs",
+        "src/services/recentFilesMenuService.ts"
+      ],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/menu-mode-reporting.test.ts": {
+          "state": "ok",
+          "sha": "c85b36261415ec0c9e0fe7ecd117179118b58fac737e3f9702a60de787ccedac",
+          "lines": [
+            "07f350e862940412",
+            "4a20e5e9ab8aff00",
+            "6b1209179f96974f",
+            "c6cc529d1059b9b7",
+            "5e94ed93625110c6",
+            "ba3224e5a2f123db",
+            "8e73114759828a32",
+            "5afe8aa33b5c6a18",
+            "d4083a4a05f75582",
+            "c1952c759096bb60",
+            "6ac9aee937be24d5",
+            "5afe8aa33b5c6a18",
+            "f5baf1fbc13322ef",
+            "587cbedbfb397a60",
+            "5fc3cb0ba5941d2e",
+            "a5079dac346fb933",
+            "5c7d5c92c1464eeb",
+            "e52a1813c4604951",
+            "aa3733e587564c9f",
+            "5afe8aa33b5c6a18",
+            "6fbbb7aa8c0fc593",
+            "254a453d3d80d58d",
+            "84dd0daafb5d7092",
+            "9b0df4fa49b2b132",
+            "746c5a2a0f9106dd",
+            "a3347c6b17006c3a",
+            "977baea87d0c82e8",
+            "7f5fcf02a5fe26f1",
+            "29576b54e255e3c9",
+            "fd1db74cfd2ff3e6",
+            "a673b60c7d8700c4",
+            "ad5a9b5eec88f9b0",
+            "847853bf56007af3",
+            "dcfea64fb26d37fd",
+            "3dd6c772e74c14ff",
+            "e58aee442e942b22",
+            "4d37d0ed4f749d4f",
+            "847853bf56007af3",
+            "4f20a4087a7c4086",
+            "4ce84c6f7115e064",
+            "24531a841b92a388",
+            "37ed46d5b313aa96",
+            "847853bf56007af3",
+            "69f554146b592f2f",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-18T15:40:20.567Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'M3-WI-9' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        },
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "13 non-test file(s) were already modified when the red was recorded (.codex/rules/mdpro.rules, AGENTS.md, CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }
