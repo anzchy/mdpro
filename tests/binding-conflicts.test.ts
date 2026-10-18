@@ -6,8 +6,8 @@
  * runs the same `cases` and replays the generated `sweep` of
  * `tests/fixtures/binding-owner-cases.json`.
  *
- * Laws: at most one owner (single-custom sweep here, pair sweep in the slow
- * sibling); unassigning never unbinds another row; the M1b rewrite is stable;
+ * Laws: at most one owner, unassign/rewrite exhaustive sweeps in the slow
+ * sibling; fixture-scale representatives here;
  * input and table order change nothing; locality against all-defaults.
  *
  * Sweep regeneration: MDPRO_WRITE_BINDING_SWEEP=1 pnpm exec vitest run tests/binding-conflicts.test.ts
@@ -24,7 +24,7 @@ import { rowByPrefField } from "../src/commands/commandTable";
 import type { OwnershipContext, Platform } from "../src/commands/commandTable.types";
 import { type BindingCase, loadBindingFixture, rawCaseAssertionCount } from "./support/bindingFixture";
 import {
-  CONTEXTS, FIELDS, PLATFORMS, POOL, TABLES, VERSIONS, boundSet, lawOneViolations, rewriteYields,
+  CONTEXTS, FIELDS, PLATFORMS, TABLES, VERSIONS, boundSet, lawOneViolations, rewriteYields,
   singleCustomInputs,
 } from "./support/bindingSweep";
 import { committedSweepTail, serializeSweepTail, withSweep } from "./support/bindingSweepFile";
@@ -135,60 +135,30 @@ describe("all defaults at v2, every platform", () => {
   });
 });
 
-describe("law 1: at most one owner, single-custom sweep (S4)", () => {
-  it("holds on all 6 612 inputs", () => {
-    const inputs = singleCustomInputs();
-    expect(inputs.length).toBe(58 * 19 * 3 * 2);
-    expect(POOL.length).toBe(19);
-    const violations = inputs.flatMap((i) => {
-      const s = resolveWith(TABLES, i.platform, i.v, i.stored);
-      return lawOneViolations(i, s.resolutions, (c, k) => s.ownerOf(c, k));
-    });
-    expect(violations).toEqual([]);
+describe("law 1–3 fixture-scale representatives (S4/S5/S6)", () => {
+  it("one custom binding has at most one owner", () => {
+    const input = { platform: "macos" as const, v: 1, stored: { fileSave: "Cmd+J" } };
+    const state = resolveWith(TABLES, input.platform, input.v, input.stored);
+    expect(lawOneViolations(input, state.resolutions, (c, k) => state.ownerOf(c, k))).toEqual([]);
   });
-});
 
-describe("law 2: unassigning never unbinds another row (S6)", () => {
-  it("holds over 234 bases × 58 fields", () => {
-    const bases: { p: Platform; v: number; stored: Record<string, string> }[] = [];
-    for (const p of PLATFORMS) for (const v of VERSIONS) {
-      bases.push({ p, v, stored: {} });
-      for (const x of POOL) bases.push({ p, v, stored: { fileSave: x } }, { p, v, stored: { fileNew: x } });
-    }
-    expect(bases.length).toBe(234);
-    const broken: string[] = [];
-    for (const b of bases) {
-      const before = resolveBindings(b.p, b.v, b.stored);
-      for (const f of FIELDS) {
-        const after = resolveBindings(b.p, b.v, { ...b.stored, [f]: "<unassigned>" });
-        for (const g of FIELDS) {
-          const r = before[g];
-          if (g === f || r?.kind !== "bound") continue;
-          if (JSON.stringify(after[g]) !== JSON.stringify(r)) broken.push(`${b.p}@${b.v} ${JSON.stringify(b.stored)} −${f}: ${g}`);
-        }
-      }
-    }
-    expect(broken).toEqual([]);
+  it("unassigning New leaves a separately bound Save unchanged", () => {
+    const stored = { fileSave: "Cmd+J" };
+    const before = resolveBindings("macos", 1, stored);
+    const after = resolveBindings("macos", 1, { ...stored, fileNew: "<unassigned>" });
+    expect(before.fileSave).toMatchObject({ kind: "bound", chord: "Cmd+J" });
+    expect(after.fileSave).toEqual(before.fileSave);
   });
-});
 
-describe("law 3: the M1b rewrite is stable (S5)", () => {
-  it("rewriting yields to <unassigned> keeps the bound set, leaves no yield, and is idempotent", () => {
-    let yields = 0;
-    const broken: string[] = [];
-    for (const i of singleCustomInputs()) {
-      const res = resolveBindings(i.platform, i.v, i.stored);
-      const once = rewriteYields(i.stored, res);
-      if (Object.keys(once).length > Object.keys(i.stored).length) yields++;
-      const res1 = resolveBindings(i.platform, i.v, once);
-      const twice = rewriteYields(once, res1);
-      const res2 = resolveBindings(i.platform, i.v, twice);
-      const leftover = Object.values(res1).some((r) => r.kind === "suppressed" && r.reason === "yieldedToCustom");
-      if (JSON.stringify(boundSet(res)) !== JSON.stringify(boundSet(res1)) || leftover || JSON.stringify(res2) !== JSON.stringify(res1))
-        broken.push(`${i.platform}@${i.v} ${JSON.stringify(i.stored)}`);
-    }
-    expect(yields).toBeGreaterThanOrEqual(50);
-    expect(broken).toEqual([]);
+  it("rewriting one yield is idempotent and preserves the bound set", () => {
+    const stored = { fileSave: "Cmd+N" };
+    const before = resolveBindings("macos", 1, stored);
+    const once = rewriteYields(stored, before);
+    const after = resolveBindings("macos", 1, once);
+    expect(Object.values(before).some((r) => r.kind === "suppressed" && r.reason === "yieldedToCustom")).toBe(true);
+    expect(once).not.toEqual(stored);
+    expect(boundSet(after)).toEqual(boundSet(before));
+    expect(rewriteYields(once, after)).toEqual(once);
   });
 });
 

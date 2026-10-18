@@ -10,41 +10,20 @@
  * M7: Settings now shows every field, so SD14's hidden set and its
  * non-blocking notices are gone; the 9 fields it hid refuse like the rest.
  *
- * The oracle for the relation sweep is `resolveBindings` (WI-8), read
- * directly; nothing here is mocked.
+ * The exhaustive relation sweep and its independent oracle live in the slow
+ * sibling and tests/support/settingsConflictDomain.ts; nothing is mocked.
  */
 import { describe, expect, it } from "vitest";
 import { ownerOf, resolveBindings } from "../src/commands/bindingConflicts";
-import type { Resolution } from "../src/commands/bindingConflicts.types";
 import { normaliseStored } from "../src/commands/chord";
-import { COMMAND_TABLE } from "../src/commands/commandTable";
-import type { OwnershipContext, Platform } from "../src/commands/commandTable.types";
 import * as settingsConflicts from "../src/commands/settingsConflicts";
 import {
   findSettingsConflicts,
   settingsConflictLines,
-  type SettingsConflicts,
 } from "../src/commands/settingsConflicts";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
-import { FIELDS, POOL } from "./support/bindingSweep";
-import { V2_DEFAULTS } from "./support/bindingV2Defaults";
-
-const PLATFORMS: readonly Platform[] = ["macos", "windows", "linux"];
-const CONTEXTS: readonly OwnershipContext[] = [
-  "editorW", "editorS", "tableW", "tableS", "modal", "recorder", "nativeFocus",
-];
-
-/** The 9 fields SD14 hid until M7 gave them rows. Literal, not read from src/. */
-const HIDDEN: readonly string[] = [
-  "fileOpenQuickly", "fileExportHtml", "formatHighlight",
-  "tableInsertRowAbove", "tableInsertRowBelow", "tableInsertColumnLeft",
-  "tableInsertColumnRight", "tableDeleteRow", "tableDeleteColumn",
-];
-
-const v2Defaults = (p: Platform): Record<string, string> =>
-  Object.fromEntries(Object.entries(V2_DEFAULTS).map(([f, [mac, off]]) => [f, p === "macos" ? mac : off]));
-
-const keysOf = (r: SettingsConflicts) => [...r.refusing.keys()].map(String).sort();
+import { FIELDS } from "./support/bindingSweep";
+import { CONTEXTS, HIDDEN, PLATFORMS, keysOf, v2Defaults } from "./support/settingsConflictDomain";
 
 describe("M7 no hidden set: every field is shown", () => {
   it("exports no hidden set, and a result carries only refusing conflicts", () => {
@@ -224,66 +203,7 @@ describe("M1A-WI-10 banner lines (SD13)", () => {
   });
 });
 
-// ---- The relation (S4): refusing ⇔ a custom-involving conflict with a shown side ----
-
-const fieldOfId = new Map(COMMAND_TABLE.flatMap((r) => (r.prefField === undefined ? [] : [[r.id, String(r.prefField)] as const])));
-
-interface Expected {
-  refusing: string[];
-  via: Set<string>;
-}
-
-/** The oracle: read off `resolveBindings` alone. */
-function expected(p: Platform, v: number, local: Record<string, string>): Expected {
-  const res: Record<string, Resolution> = resolveBindings(p, v, local);
-  const refusing = new Set<string>();
-  const via = new Set<string>();
-  for (const [field, r] of Object.entries(res)) {
-    if (r.kind !== "suppressed") continue;
-    const flag = r.flagged && r.reason !== "unparseable";
-    const yieldTo = r.reason === "yieldedToCustom";
-    if (!flag && !yieldTo) continue;
-    const others = r.conflictsWith.flatMap((id) => (fieldOfId.has(id) ? [fieldOfId.get(id) as string] : []));
-    const sides = [field, ...others];
-    via.add(flag ? "refused-flag" : "refused-yield");
-    if (sides.some((f) => HIDDEN.includes(f))) via.add("refused-formerly-hidden");
-    if (sides.every((f) => HIDDEN.includes(f))) via.add("refused-formerly-hidden-only");
-    if (flag) refusing.add(field);
-    else for (const f of others) refusing.add(f);
-  }
-  return { refusing: [...refusing].sort(), via };
-}
-
 describe("M1A-WI-10 law: refused iff a conflict involves a custom value (S4; M7: every side is shown)", () => {
-  const SWEEP_POOL = [...POOL, "Cmd+Shift+E"];
-
-  it("holds over 58 fields × 20 values × 3 platforms × v1/v2, plus every hidden pair on Cmd+J", () => {
-    expect(SWEEP_POOL).toHaveLength(20);
-    const partitions = new Map<string, number>();
-    const bump = (k: string) => partitions.set(k, (partitions.get(k) ?? 0) + 1);
-    let n = 0;
-    const check = (p: Platform, v: number, local: Record<string, string>) => {
-      n += 1;
-      const want = expected(p, v, local);
-      const got = findSettingsConflicts(p, v, local);
-      const label = `${p}@${v} ${JSON.stringify(local)}`;
-      expect(keysOf(got), label).toEqual(want.refusing);
-      for (const k of want.via) bump(k);
-      if (want.refusing.length === 0) bump("empty");
-    };
-    for (const p of PLATFORMS)
-      for (const v of [1, 2]) {
-        const base = v === 2 ? v2Defaults(p) : {};
-        for (const field of FIELDS) for (const value of SWEEP_POOL) check(p, v, { ...base, [field]: value });
-        for (let i = 0; i < HIDDEN.length; i += 1)
-          for (let j = i + 1; j < HIDDEN.length; j += 1)
-            check(p, v, { ...base, [HIDDEN[i] as string]: "Cmd+J", [HIDDEN[j] as string]: "Cmd+J" });
-      }
-    expect(n).toBe(6960 + 216);
-    for (const k of ["refused-flag", "refused-yield", "refused-formerly-hidden", "refused-formerly-hidden-only", "empty"])
-      expect(partitions.get(k) ?? 0, k).toBeGreaterThan(0);
-  });
-
   it("free chords used by the component tests are unowned in all 7 contexts (macOS v1 / v2, Windows v1)", () => {
     for (const c of ["Cmd+J", "Cmd+Shift+J", "Cmd+Option+J"])
       for (const ctx of CONTEXTS) {
