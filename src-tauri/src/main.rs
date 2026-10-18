@@ -395,8 +395,7 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init());
-    // ADR-0047 WI-009 item 11: the control channel registers after every
-    // other plugin; single-instance stays first.
+    // ADR-0047 WI-009 item 11: registered last; single-instance stays first.
     #[cfg(feature = "control-channel")]
     let app = app.plugin(control_plugin);
     let app = app
