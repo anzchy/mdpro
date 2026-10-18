@@ -53,7 +53,7 @@ Each work item captures before/after screenshots per item × theme, and the stag
     - **Status (2026-10-18, mdpro-design):** ✅ implemented and unit-verified on `feat/wi43a-settings-rows` (receipt `WI43A-1`); not device-verified. The SHA is recorded at landing. Preflight confirmed nine switches in six files, and found:
       - General and Editor controls had no accessible name at all; they now take their row title.
       - The Font Size stepper needed an optional `labelledBy` prop (`SettingsStepper.tsx`, grant widened 2026-10-18); its value moved from its name to its description.
-      - `.settings-integrations h4` reached no element (no Integrations part renders an `h4`), so it was deleted rather than scoped, like `.settings-general p`.
+      - `.settings-integrations h4` was deleted, like the orphan `.settings-general p`, because a panel-wide rule would reach the new row titles. Correction (audit round 1, Fable M): it did reach one element, the client list's "Install MCP Configuration" heading (`McpClientList.tsx:36`); the preflight grep that said otherwise ran through the output wrapper. That heading is now styled by `.mcp-installations > h4` (`settings-mcp.css`), with the same values, pinned by `tests/wi43a-mcp-installations-heading.test.tsx` (receipt `WI43A-2`).
       - The Integrations lock reason was the one `settings-row-description` outside a row; it is now `.settings-lock-reason`, same type.
       - The title and description keep the old `strong` / `.settings-row-description` values (`--font-size-ui-lg`, `--color-text-secondary`); DESIGN.md § Settings rows' `--font-size-ui` title and muted description are left to the visual pass.
   - **4.3b**: States, Busy labels, Integrations empty/partial and Disabled reasons;

@@ -211004,6 +211004,76 @@
           "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/support/settingsRowSites.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
         }
       ]
+    },
+    {
+      "id": "WI43A-2",
+      "lane": "unit",
+      "recorded_at": "2026-10-18T02:10:36.962Z",
+      "head_sha": "11a3e466e61533f82f0e0dd3fe9ce56342a8ae43",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "opaque-failure",
+        "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+      },
+      "test_files": {
+        "tests/wi43a-mcp-installations-heading.test.tsx": {
+          "state": "ok",
+          "sha": "8341246922fd44779dae2cb007bbe10a441c357b8530eea54e6670ad404717a1",
+          "lines": [
+            "8d64a30d9de151b6",
+            "a667305e37244a1c",
+            "2d1982457c4f609c",
+            "ffdf56133c3cbd5a",
+            "87d3f13293816a06",
+            "6ad92b463a284aba",
+            "ed9623369ff082ab",
+            "d3fae2cb9e41d7cf",
+            "fb1b0b3d774a160a",
+            "1a97dab9aa40f78d",
+            "0acef81955c8b4ff",
+            "7883dcb47a7a116f",
+            "37d9a300c7b532bb",
+            "a8063ac96eeafcf0",
+            "917c26d392862b74",
+            "29576b54e255e3c9",
+            "30076b1a5560af7f",
+            "c2ba3bf570736663",
+            "aa2311d7698c5fc8",
+            "a5a40e2462ab2f3a",
+            "2ffaccad7623d39b",
+            "0303beb74dd7bb44",
+            "9d8b2b5670d18da8",
+            "d10b36aa74a59bcf",
+            "466f6cba631fcc8e",
+            "f12ecbd709287aa7",
+            "d63d13efb9b50069",
+            "acc29dc86393b8d8",
+            "afa0068385dc4be2",
+            "cde4c496997724d9",
+            "29576b54e255e3c9",
+            "07c4b97624547a52",
+            "8d333b5c6a6cf8f0",
+            "6933dbc4bed1f39b",
+            "717e9471e4ef1376",
+            "2ad3a6c1091fb8d1",
+            "8af52bb49a518f7f",
+            "abccd812b990eaec",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-18T02:36:26.833Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "weak-red",
+          "message": "The red for 'WI43A-2' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+        }
+      ]
     }
   ]
 }

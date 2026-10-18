@@ -128,6 +128,14 @@
   border-top: 1px solid var(--color-border);
 }
 
+.mcp-installations > h4 {
+  font-size: var(--font-size-ui-lg);
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  /* WI-4.3a, the client list's heading. Scoped to the list, never panel-wide,
+     so it cannot reach the settings row titles (.settings-row-label h4). */
+}
+
 .mcp-installations-description {
   font-size: var(--font-size-ui);
   color: var(--color-text-secondary);
