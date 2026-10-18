@@ -1,6 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { DevToolbar } from "./components/DevToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
@@ -29,6 +28,7 @@ import { useRecentFilesMenuRefresh } from "./hooks/useRecentFilesMenuRefresh";
 import { useSidebarPreference } from "./hooks/useSidebarPreference";
 import { useOpenUrlParam } from "./hooks/useOpenUrlParam";
 import { useOpenPaths } from "./hooks/useOpenPaths";
+import { useFileOpenEvent } from "./hooks/useFileOpenEvent";
 import { useStartupDrafts } from "./hooks/useStartupDrafts";
 import { useLastViewModePersistence } from "./hooks/useLastViewModePersistence";
 import { exportService } from "./services/exportService";
@@ -44,7 +44,6 @@ import {
   decideCloseRequest,
 } from "./utils/dataLossGuards";
 import { buildLargeDocumentDegradeLog } from "./utils/largeDocumentDegradeLog";
-import { onFirstSuccess } from "./utils/onFirstSuccess";
 import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
 import { buildSourceTablesWithheldLog } from "./utils/sourceTableWithheldLog";
 import { shouldEvaluateGuard, sourceTableVerdictOf } from "./utils/sourceTableVerdict";
@@ -480,17 +479,6 @@ function App() {
     clearEncodingIssue();
   }, [clearEncodingIssue]);
 
-  const shouldHandleWindowEvent = useCallback(async () => {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const currentWindow = getCurrentWindow();
-      const isFocused = await currentWindow.isFocused();
-      return isFocused;
-    } catch {
-      return true;
-    }
-  }, []);
-
   const openNewWindow = useCallback(
     async (openPath?: string, notifyOnError = true) => {
       try {
@@ -862,34 +850,9 @@ function App() {
     void checkLaunchPaths();
   }, [defaultViewMode, openPaths, preferencesLoaded, setViewMode]);
 
-  const handleFileOpenEvent = useCallback(
-    async (paths: string[]) => {
-      if (!paths || paths.length === 0) return;
-      const canHandle = await shouldHandleWindowEvent();
-      if (!canHandle) return;
-      // When opening from Finder while app is running, the default view mode from
-      // preferences applies once a file has opened; if every open fails, the current
-      // document keeps its mode (D51).
-      void openPaths(paths, onFirstSuccess(() => setViewMode(defaultViewMode)));
-    },
-    [defaultViewMode, openPaths, setViewMode, shouldHandleWindowEvent],
-  );
-
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    listen<string[]>("file:open", (event) => {
-      void handleFileOpenEvent(event.payload);
-    })
-      .then((fn) => {
-        unlisten = fn;
-      })
-      .catch(() => {
-        // Ignore if running outside Tauri.
-      });
-    return () => {
-      if (unlisten) unlisten();
-    };
-  }, [handleFileOpenEvent]);
+  // A second launch with a path while running (single instance): Rust sends
+  // `file:open` to this one window (D279).
+  useFileOpenEvent({ defaultViewMode, openPaths, setViewMode });
 
   return (
     <div

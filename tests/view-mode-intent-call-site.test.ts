@@ -43,8 +43,11 @@
  *                drop's open loop there from App.tsx `handleFileDrop`)
  *   launch paths `const checkLaunchPaths`
  *                → `[defaultViewMode, openPaths, preferencesLoaded, setViewMode]`
- *   Finder open  `const handleFileOpenEvent`
- *                → `[defaultViewMode, openPaths, setViewMode, shouldHandleWindowEvent]`
+ *   Finder open  `const handleFileOpenEvent` in hooks/useFileOpenEvent.ts
+ *                → `[defaultViewMode, openPaths, setViewMode]` (D279 deleted the
+ *                focus gate `shouldHandleWindowEvent` and moved the listener out of
+ *                App.tsx into the hook; App's call site is pinned by SP-1 in
+ *                tests/d279-file-open-window-listener-source.test.ts)
  *   Editor       `const viewModeKeymap`          → next `[],` (the useMemo deps)
  *
  * CORRECTIONS to the matrix's anchors (recorded, not quietly applied):
@@ -134,9 +137,10 @@ describe("UEP-03 App.tsx and Editor.tsx call sites (source text, supplement)", (
     },
     {
       label: "Finder open",
-      file: "App.tsx",
+      // D279: the listener and its handler moved into the hook; the focus gate is deleted.
+      file: "hooks/useFileOpenEvent.ts",
       start: "const handleFileOpenEvent",
-      end: "[defaultViewMode, openPaths, setViewMode, shouldHandleWindowEvent]",
+      end: "[defaultViewMode, openPaths, setViewMode]",
       anchor: "setViewMode(defaultViewMode)",
     },
   ])("the $label stays programmatic", ({ label, file, start, end, anchor }) => {

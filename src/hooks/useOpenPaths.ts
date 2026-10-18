@@ -23,7 +23,8 @@
  * @coordinates-with src/hooks/useDocument.ts — openPathOutcome
  * @coordinates-with src/utils/onFirstSuccess.ts — the once-only view-mode latch
  * @coordinates-with src/utils/openActivationLog.ts — the outcome log's activation fields
- * @coordinates-with src/App.tsx — handleOpenRecent, handleFileDrop, checkLaunchPaths, handleFileOpenEvent
+ * @coordinates-with src/App.tsx — handleOpenRecent, handleFileDrop, checkLaunchPaths
+ * @coordinates-with src/hooks/useFileOpenEvent.ts — handleFileOpenEvent (Finder open while running)
  */
 import { useCallback } from "react";
 import type { OpenPathOutcome } from "./useDocument";
