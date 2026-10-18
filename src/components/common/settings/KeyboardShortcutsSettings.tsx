@@ -14,6 +14,8 @@
  * - One save at a time: Save reads "Saving…" and is disabled, with Discard,
  *   while a save runs. A save that lands after a newer edit keeps the dialog
  *   open and the banner up, so that edit is not closed away (PR #508 F508-3).
+ *   A save that lands after this page was closed touches nothing: `onClose`
+ *   would close the dialog the user has since reopened.
  *
  * @coordinates-with src/components/common/settings/shortcuts/shortcutGroups.ts — groups and labels
  * @coordinates-with src/components/common/settings/shortcuts/rowState.ts — the row states
@@ -48,6 +50,14 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
   const savingRef = useRef(false);
   /** Counts local edits, so a finished save knows whether one came after it started. */
   const editCount = useRef(0);
+  /** False once this instance unmounts; a late save must not close a reopened dialog. */
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const [loadFailed, setLoadFailed] = useState(false);
   const [version, setVersion] = useState(1);
   const [applied, setApplied] = useState<AppliedShortcuts["bindings"] | null>(null);
@@ -153,6 +163,7 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     setSaving(true);
     try {
       await preferencesService.setPreferences({ keyboardShortcuts: snapshot });
+      if (!alive.current) return;
       setSavedShortcuts(snapshot);
       // An edit made while saving is not in this save: keep it, the banner and the dialog.
       if (editCount.current === editsAtStart) {

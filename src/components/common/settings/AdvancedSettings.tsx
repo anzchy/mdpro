@@ -34,17 +34,21 @@ export function AdvancedSettings() {
   // rejected one leaves it, and so the controls, at the saved value, and
   // `setLoggingSettings` raises the one save toast (rule 30 rule 5).
   const writer = useSettingsWriter<LogSettings>({
+    group: "logging",
     save: (next) => loggingService.setLoggingSettings(next),
     onConfirm: (confirmed) => {
       setEnabled(confirmed.enabled);
       setLevel(confirmed.level);
     },
   });
-  // Seed from the store once; mount-only, since the writer owns the value after.
+  // Track the store until this page writes: App's hydrateSettings can land
+  // after Settings opened, and a write must not be built on the store's
+  // pre-hydration value (PR #508 N2). While a write is queued or in flight the
+  // writer owns the value; its confirmed result reaches the store through
+  // onConfirm and is re-seeded here, which changes nothing.
   useEffect(() => {
-    const { enabled, level } = useLoggingStore.getState();
-    writer.load({ enabled, level });
-  }, []);
+    if (!writer.busy()) writer.load({ enabled: storeEnabled, level: storeLevel });
+  }, [storeEnabled, storeLevel]);
   const loggingEnabled = writer.value?.enabled ?? storeEnabled;
   const loggingLevel = writer.value?.level ?? storeLevel;
 

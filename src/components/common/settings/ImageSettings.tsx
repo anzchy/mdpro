@@ -59,6 +59,7 @@ export function ImageSettings() {
    * operable and holding the saved value. `loadFailed` is load-failure only.
    */
   const writer = useSettingsWriter<ImageSlice>({
+    group: "image",
     save: (next) => preferencesService.setPreferences({ image: buildImagePayload(next) }),
   });
   const prefs = writer.value;

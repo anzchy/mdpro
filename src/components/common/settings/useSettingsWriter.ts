@@ -25,10 +25,14 @@
  * - Every write or edit claims the keys it touches. A failed write rolls back
  *   only the keys it still holds; a newer edit to the same key (typing, a
  *   second toggle) is the user's latest intent and stays shown.
- * - Unmounting does not cancel the queue: every write already queued is sent
- *   once, so closing Settings loses no change the user made. Only React state
- *   stops updating; `apply` and `onConfirm` still run, because they reach the
- *   live app (theme, editor, logging store), which must end at the saved value.
+ * - Closing the page drops its queued, not-yet-sent writes: discard, don't
+ *   flush, as the debounced text fields already do. Sending them later would
+ *   put an old instance's write over a newer one's after Settings is reopened
+ *   (PR #508 N1). The write already in flight cannot be recalled; its late
+ *   result still reaches the live app (`onConfirm`, and `apply` back to the
+ *   confirmed value for every key the page left unsaved), but only while no
+ *   newer instance of the same `group` is mounted. A newer instance read the
+ *   saved value itself and owns the live app from then on.
  * - Failure signalling stays with the save function (`preferencesService`,
  *   `loggingService` raise the one toast); the hook adds no second signal.
  *
@@ -37,7 +41,13 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+/** Latest mount per `group`, so a closed instance can tell it was replaced. */
+const latestMount = new Map<string, number>();
+let mountSeq = 0;
+
 export interface SettingsWriterOptions<S extends object> {
+  /** The preferences group this page writes; instances of one page share it. */
+  group?: string;
   /** Persist `next` (the confirmed value plus `patch`); reject on failure. */
   save: (next: S, patch: Partial<S>) => Promise<unknown>;
   /** Side effect for each key whose shown value changes (optimistic or rollback). */
@@ -57,6 +67,8 @@ export interface SettingsWriter<S extends object> {
   write: (patch: Partial<S>, opts?: { rollback?: boolean }) => Promise<boolean>;
   /** The shown value, readable synchronously (timers, after an await). */
   current: () => S | null;
+  /** True while a write is queued or in flight, or an edit is unsaved. */
+  busy: () => boolean;
 }
 
 export function useSettingsWriter<S extends object>(options: SettingsWriterOptions<S>): SettingsWriter<S> {
@@ -69,6 +81,8 @@ export function useSettingsWriter<S extends object>(options: SettingsWriterOptio
   const lastClaim = useRef(0);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const mounted = useRef(true);
+  const mountId = useRef(0);
+  const pending = useRef(0);
 
   useLayoutEffect(() => {
     optionsRef.current = options;
@@ -76,10 +90,30 @@ export function useSettingsWriter<S extends object>(options: SettingsWriterOptio
 
   useEffect(() => {
     mounted.current = true;
+    mountSeq += 1;
+    mountId.current = mountSeq;
+    const { group } = optionsRef.current;
+    if (group !== undefined) latestMount.set(group, mountSeq);
     return () => {
       mounted.current = false;
     };
   }, []);
+
+  /** No newer instance of this page's group has mounted since this one. */
+  const isLatest = () => {
+    const { group } = optionsRef.current;
+    return group === undefined || latestMount.get(group) === mountId.current;
+  };
+
+  /** After close: bring the live app back to the confirmed value for every key left unsaved. */
+  const reconcileClosed = () => {
+    const base = confirmed.current;
+    const now = shown.current;
+    if (base === null || now === null) return;
+    for (const key of Object.keys(base) as (keyof S)[]) {
+      if (now[key] !== base[key]) optionsRef.current.apply?.(key, base[key]);
+    }
+  };
 
   const show = (next: S) => {
     shown.current = next;
@@ -140,14 +174,38 @@ export function useSettingsWriter<S extends object>(options: SettingsWriterOptio
     if (shown.current === null || confirmed.current === null) return Promise.resolve(false);
     const token = claim(patch, false);
     showPatch(patch);
+    pending.current += 1;
     const send = async (): Promise<boolean> => {
+      try {
+        return await sendOnce();
+      } finally {
+        pending.current -= 1;
+      }
+    };
+    const sendOnce = async (): Promise<boolean> => {
+      // Closed before its turn: dropped, never sent (N1).
+      if (!mounted.current) return false;
       const base = confirmed.current;
       if (base === null) return false;
       const carried = unsavedEdits();
       const next = { ...base, ...carried, ...patch };
+      let saved = true;
       try {
         await optionsRef.current.save(next, patch);
       } catch {
+        saved = false;
+      }
+      if (!mounted.current) {
+        // Closed while in flight: the backend's answer is still the truth, but
+        // only reaches the live app if no newer instance has taken over.
+        if (saved) confirmed.current = next;
+        if (isLatest()) {
+          if (saved) optionsRef.current.onConfirm?.(next);
+          reconcileClosed();
+        }
+        return saved;
+      }
+      if (!saved) {
         if (opts.rollback === false) {
           for (const key of heldBy(patch, token)) claims.current.set(key, { token, unsaved: true });
         } else {
@@ -169,5 +227,8 @@ export function useSettingsWriter<S extends object>(options: SettingsWriterOptio
     return result;
   };
 
-  return { value, load, edit, write, current: () => shown.current };
+  const busy = () =>
+    pending.current > 0 || [...claims.current.values()].some((c) => c.unsaved);
+
+  return { value, load, edit, write, current: () => shown.current, busy };
 }

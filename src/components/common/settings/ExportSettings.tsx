@@ -82,6 +82,7 @@ export function ExportSettings() {
    * when the dialog closed before the write rejected.
    */
   const writer = useSettingsWriter<ExportConfig>({
+    group: "export",
     save: (next) => preferencesService.setPreferences({ export: next }),
   });
   const prefs = writer.value;

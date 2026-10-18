@@ -15,6 +15,7 @@ function isCodeTheme(v: string): v is CodeTheme {
 export function AppearanceSettings() {
   // One write at a time; a failed write returns to the last confirmed value (F508-2).
   const writer = useSettingsWriter<AppearanceConfig>({
+    group: "appearance",
     save: (next) => preferencesService.setPreferences({ appearance: next }),
     apply: (key, value) => {
       if (key === "codeTheme") applyCodeTheme(value as CodeTheme);

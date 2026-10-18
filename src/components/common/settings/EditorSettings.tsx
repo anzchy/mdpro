@@ -21,6 +21,7 @@ export function EditorSettings() {
   const [fontSizeBound, setFontSizeBound] = useState<StepperBound>(null);
   // One write at a time; a failed write returns to the last confirmed value (F508-2).
   const writer = useSettingsWriter<EditorConfig>({
+    group: "editor",
     save: (next) => preferencesService.setPreferences({ editor: next }),
     apply: (key, value) => applyEditorPref(key, value),
   });

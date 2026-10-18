@@ -10,7 +10,9 @@
  * - A failed write rolls back, to the last confirmed value, only the keys no
  *   later edit or write has claimed.
  * - `onConfirm` sees each confirmed value; `apply` sees every shown change.
- * - Unmounting mid-queue drops no queued write and sends none twice.
+ * - Unmounting mid-queue sends the write already in flight once and drops the
+ *   queued ones (round 3, PR #508 N1: sending them later put a closed page's
+ *   write over a reopened one's). Cross-mount cases: wi43b-cross-mount.
  *
  * Mock boundary: the `save` function passed in; it stands for the IPC call.
  */
@@ -149,7 +151,7 @@ describe("WI-4.3b: useSettingsWriter", () => {
     await expect(second).resolves.toBe(false);
   });
 
-  it("unmounting mid-queue sends every queued write exactly once and sets no state", async () => {
+  it("unmounting mid-queue sends the in-flight write once, drops the queued one, and sets no state", async () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const { save, sent } = controlledSave();
     const { result, unmount, onConfirm } = mount(save);
@@ -159,10 +161,8 @@ describe("WI-4.3b: useSettingsWriter", () => {
     unmount();
     sent[0].resolve();
     await settle();
-    sent[1].reject();
-    await settle();
-    expect(save).toHaveBeenCalledTimes(2);
-    expect(sent.map((s) => s.next)).toEqual([{ a: 1, b: 0 }, { a: 1, b: 2 }]);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(sent.map((s) => s.next)).toEqual([{ a: 1, b: 0 }]);
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(errors).not.toHaveBeenCalled();
   });

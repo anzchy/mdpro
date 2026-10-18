@@ -32,8 +32,8 @@ describe("AdvancedSettings — source structure", () => {
     expect(src).toContain("is LogLevel");
   });
 
-  it("uses useLoggingStore.getState() to avoid stale closures in toggle handler", () => {
-    expect(src).toContain("useLoggingStore.getState()");
+  it("re-seeds the writer from the store until it writes, so a late hydrate is not missed (PR #508 N2)", () => {
+    expect(src).toContain("if (!writer.busy()) writer.load({ enabled: storeEnabled, level: storeLevel })");
   });
 
   it("writes through the queued writer with setLoggingSettings", () => {

@@ -30,6 +30,7 @@ export function GeneralSettings() {
   const setAutoSaveInterval = useEditorStore((s) => s.setAutoSaveInterval);
   // One write at a time; a failed write returns to the last confirmed value (F508-2).
   const writer = useSettingsWriter<GeneralSlice>({
+    group: "general",
     // Only the changed scalar is sent; the rest of the slice is already saved.
     save: (_next, patch) => preferencesService.setPreferences(patch as Partial<UserPreferences>),
     apply: (key, value) => {

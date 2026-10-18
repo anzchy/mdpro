@@ -10,6 +10,7 @@ import { ToggleSwitch } from "../ToggleSwitch";
 export function MarkdownSettings() {
   // One write at a time; a failed write returns to the last confirmed value (F508-2).
   const writer = useSettingsWriter<MarkdownConfig>({
+    group: "markdown",
     save: (next) => preferencesService.setPreferences({ markdown: next }),
     apply: (key, value) => {
       if (key === "autoPair") applyAutoPair(value as boolean);
