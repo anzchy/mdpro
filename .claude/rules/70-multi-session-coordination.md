@@ -175,8 +175,8 @@ handoff. Each item is tagged `prep` or `impl`.
    runs `git merge --ff-only <sha>` in the main checkout, and right after it
    `git push origin master`, only when all three hold:
    - the verifier says PASS;
-   - the merged verdict of both audits counts zero Critical and zero High
-     findings;
+   - the merged verdict counts zero **blocking** Critical and High findings
+     (ADR-0121: a proven pre-existing High is counted but does not block);
    - the PR's head is that SHA and its required `ci-gate` check is green on it.
 
    A red result from a registered intermittent test (D196) may be rerun once
@@ -258,8 +258,35 @@ handoff. Each item is tagged `prep` or `impl`.
    user decision, 2026-10-17: 「规定以后codex audit最多2个round」, settled as
    「Audit + 2 confirms」 for both auditors). A Critical or High still open after
    round three gets no fourth round. The delegator brings it to the user, who
-   rules, and the ruling is quoted in the row. A
-   partial fix does not land; deferring a Critical or High instead of fixing
+   rules, and the ruling is quoted in the row.
+
+   **Effort follows risk** ([ADR-0121](../../docs/adr/0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md); user decision,
+   2026-10-18: 「Accept with revisions (Recommended)」):
+   - **Tier.** The delegator names a tier for each range in the audit request, and either auditor
+     may raise it:
+     - **High** (document save, close, draft or sync behaviour, MCP approval, preference writes,
+       `src-tauri`, `src/services`, CI, release, gate tooling, dependencies, any unlisted path):
+       both auditors on full's nine dimensions, plus `/security-review` run by mdpro-codex-audit.
+     - **Medium** (other `src/`): both auditors on mini, as above.
+     - **Low** (CSS, docs, presentation-only tests): Codex mini alone, with Fable challenging each
+       Critical or High it raises.
+   - **Base.** The base is the PR's fork point on `master` (`git merge-base`). It moves with each
+     rebase.
+   - **Pre-existing.** A *Pre-existing* High needs three things before it stops blocking:
+     - proof: the code is unchanged at the base, a caller trace shows the PR does not reach or
+       worsen it, and the PR claims no such property;
+     - the other auditor's affirmative confirmation;
+     - a linked D row with an owner.
+
+     A pre-existing Critical still goes to the user.
+   - **Confirms** review the fix diff (a `git range-diff` across a rebase) and every open finding.
+     A Critical or High that any PR commit introduced blocks, whatever round finds it.
+   - **Count line.** It carries raw counts plus a blocking count, and the gate reads the blocking
+     count.
+   - **Records.** The delegator records every audited range in `docs/audit/audit-log.md` and every
+     escaped defect in `docs/audit/escapes.md`.
+
+   A partial fix does not land; deferring a Critical or High instead of fixing
    it needs the user's word, quoted in the row. Audits requested before
    2026-10-12 on already-landed ranges finish under the old order: a
    Critical or High there gets a D number and goes to the owner, and the

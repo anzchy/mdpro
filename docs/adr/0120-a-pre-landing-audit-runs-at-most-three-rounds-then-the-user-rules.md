@@ -12,6 +12,10 @@ and [ADR-0085](0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.
 unbounded "fix, then confirm again" loop. Everything else in them stands: two blind auditors, merging,
 challenges, and zero Critical and zero High to land.
 
+Partially superseded (2026-10-18) by [ADR-0121](0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md): Decision 1's round is Codex alone plus any Fable
+challenge in the Low tier; Decision 2's escalation concerns open blocking findings. The cap and the
+user's authority to rule are unchanged.
+
 ## Context
 
 Since ADR-0085, a Critical or High finding goes back to the owner, and the auditors confirm the fix.

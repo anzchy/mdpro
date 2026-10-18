@@ -64,7 +64,7 @@ Findings in this category are **blockers**. Do not commit until resolved.
 
 | Label | Meaning | Action |
 |-------|---------|--------|
-| **BLOCK** | Data loss, security, or silent failure | Must fix before commit |
+| **BLOCK** | Data loss, security, or silent failure | Must fix before commit (a proven pre-existing High, per ADR-0121, becomes a D item instead) |
 | **MUST** | Rule violation or correctness issue | Fix in this PR |
 | **SHOULD** | Code quality or test gap | Fix now if cheap; file issue if not |
 | **NOTE** | Observation, no action required | Document in PR description |

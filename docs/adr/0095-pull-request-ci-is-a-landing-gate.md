@@ -6,6 +6,8 @@ CI, then adopted five practices with 「这些建议采纳，看看是否要提�
 Asked about the two choices this left open, the user answered
 「Yes, enforce on GitHub (Recommended)」 (branch protection) and
 「Standing force-with-lease (Recommended)」 (re-pushing a rebased head).
+Partially superseded (2026-10-18) by [ADR-0121](0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md): Decision 5's "zero Critical and zero High"
+means zero blocking findings.
 Settles Decision 4 of [ADR-0092](0092-every-landing-has-a-pull-request-as-its-record-and-lands-by-fast-forward.md),
 which was still open: CI is blocking, not just reported. Adds one landing
 condition to [ADR-0085](0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md)'s

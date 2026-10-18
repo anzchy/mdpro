@@ -37,8 +37,10 @@ anything, and never run a heavy command (tests, `tsc`, builds): you read code. T
 
 ## Input (any missing item → BLOCKED)
 - mode: `audit` | `confirm` | `challenge` | `plan`
-- `audit` / `confirm`: the range `<parent>..<sha>`, the item id and owner, and the dimension set
-  (`mini` or `full`, the same one the Codex audit uses)
+- `audit` / `confirm`: the range `<base>..<sha>`, where the base is the PR's fork point on
+  `master` and moves with each rebase; the item id and owner; the risk tier (High, Medium or Low,
+  ADR-0121); and the dimension set (`mini` or `full`, the same one the Codex audit uses). You may
+  raise the tier, with a reason, but never lower it.
 - `confirm`: the findings to re-check, each with its id, text and file:line, from **both**
   auditors' previous rounds
 - `challenge`: one finding the other auditor raised and you did not, with its evidence
@@ -80,7 +82,20 @@ never reaches it).
   file at `<sha>` (`git show <sha>:<path>`) and its callers. Audit the change, not the whole
   file: a defect in untouched code counts only when the change makes it reachable.
 - **confirm**: for each named finding, CLOSED, PARTIAL or OPEN, with evidence at the new SHA.
-  Then name any new Critical or High that the fix itself introduced. Do not re-audit the rest.
+  Review the fix diff from the previous audited SHA, or a `git range-diff` across a rebase.
+  - **A class:** a finding names its bug class and every instance, and any instance left unfixed
+    makes it PARTIAL.
+  - **Regressions:** any Critical or High that a commit in `<base>..<sha>` introduced, exposed or
+    worsened is reported, whichever round finds it.
+  - **No repeats:** never re-post a finding.
+- **Pre-existing** (ADR-0121 Decision 3): tag a Critical or High `[Pre-existing]` only with all
+  three of these:
+  - (a) the code at fault is identical at `<base>`, shown with `git diff-tree` or `git blame`;
+  - (b) a caller trace from the PR's changed lines, showing it does not reach, expose or worsen
+    the fault;
+  - (c) the PR claims no property the fault violates.
+
+  In `challenge` mode on such a tag, CONFIRM it only when all three hold.
 - **challenge**: you may read the one finding you were given. Either CONFIRM it (it holds, with
   your own trace) or REFUTE it (a reproduction or counter-proof that the path is unreachable or
   harmless). "Unlikely" or "narrow timing" is not a refutation.
@@ -95,7 +110,8 @@ FINDINGS
       fix: <one line>
 CONFIRM   (confirm mode) <finding id>: CLOSED|PARTIAL|OPEN — <evidence>
 CHALLENGE (challenge mode) CONFIRMED|REFUTED — <trace, repro or counter-proof>
-COUNT     C<n> H<n> M<n> L<n>
+COUNT     C<n> H<n> M<n> L<n>   BLOCKING C<n> H<n>
 ```
+BLOCKING leaves out Highs tagged Pre-existing.
 The COUNT line is the gate input; a verdict without it is incomplete. Medium and Low are counts
 only, never listed.

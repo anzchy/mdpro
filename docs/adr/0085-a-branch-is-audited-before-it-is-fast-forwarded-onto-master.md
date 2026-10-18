@@ -5,7 +5,9 @@
 Decisions 1 and 2's single Codex audit and its confirm round become two
 audits, Codex and Fable, merged by the delegator. Partially superseded (2026-10-17) by
 [ADR-0120](0120-a-pre-landing-audit-runs-at-most-three-rounds-then-the-user-rules.md):
-the fix-and-confirm loop is capped at three rounds, then the user rules. User's words: 「只有分支branch 经过Codex audit
+the fix-and-confirm loop is capped at three rounds, then the user rules. Partially superseded (2026-10-18) by
+[ADR-0121](0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md): Decision 1 and Decision 3's gate reading use the blocking count; Decision 2's deferral
+clause for proven pre-existing Highs, and its confirm scope (the fix diff plus open findings). User's words: 「只有分支branch 经过Codex audit
 并且修复，没有critical / high severity findings之后，才允许ff 到master」, given
 when asked whether rule 70 already said so (it did not). Decided by the user,
 recorded by mdpro-delegator. Partially supersedes

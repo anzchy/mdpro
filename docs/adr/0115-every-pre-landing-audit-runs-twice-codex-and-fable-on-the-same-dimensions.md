@@ -16,6 +16,8 @@ alone. Everything else in ADR-0085 stands.
 
 **Partially superseded** (2026-10-17): the unbounded fix-and-confirm loop, now capped at three rounds (an audit and two confirms) before the user rules, by [ADR-0120](0120-a-pre-landing-audit-runs-at-most-three-rounds-then-the-user-rules.md).
 
+**Partially superseded** (2026-10-18) by [ADR-0121](0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md): Decision 4's gate is the blocking count; Decisions 1, 3, 5 and 6 give way to risk tiers (Low: Codex alone plus a Fable challenge; High: full dimensions plus `/security-review`).
+
 ## Context
 
 - Since ADR-0085 (2026-10-12) one Codex audit (`/cc-suite:audit --mini`,
