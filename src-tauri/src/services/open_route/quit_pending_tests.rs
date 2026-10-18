@@ -2,12 +2,15 @@
 //! window: the request snapshotted its windows at `begin` and would neither
 //! prompt nor wait for a new one. Routing to a window that already exists is
 //! unaffected. Pure; the side effects are recording closures.
+//! D279 WI-2: the broadcast is kept under a quit and goes to the one resolved
+//! window; if that send fails, its paths are refused rather than opened.
+use crate::menu::menu_target::{Resolved, Via};
 use crate::models::{LogLevel, LogStatus};
 use crate::services::open_route::{
     execute_plan, plan_route, route_log_context, route_log_severity, Outcome, PlanEntry,
     RouteLookup, RouteTarget, Source,
 };
-use serde_json::Value;
+use serde_json::{json, Value};
 
 type Lookups = Vec<(String, Result<RouteLookup, String>)>;
 
@@ -46,16 +49,41 @@ fn lookups() -> Lookups {
 struct Calls {
     emits: Vec<String>,
     new_windows: Vec<String>,
-    broadcasts: Vec<Vec<String>>,
+    /// Every broadcast send, as (target label, group).
+    broadcasts: Vec<(String, Vec<String>)>,
     logs: Vec<(Value, Option<String>)>,
 }
 
 fn run(source: Source, has_docs: bool, quit_pending: bool, emit_ok: bool) -> Calls {
-    let plan = plan_route(source, &lookups(), has_docs).with_quit_pending(quit_pending);
+    let target = Ok(("main".to_string(), Via::Focused));
+    run_with(
+        &lookups(),
+        source,
+        has_docs,
+        quit_pending,
+        emit_ok,
+        &target,
+        None,
+    )
+}
+
+/// `run` with the D279 knobs: the lookups, the broadcast target and the
+/// send's error (`None` = the send succeeds).
+fn run_with(
+    lookups: &Lookups,
+    source: Source,
+    has_docs: bool,
+    quit_pending: bool,
+    emit_ok: bool,
+    broadcast_target: &Resolved,
+    send_err: Option<&str>,
+) -> Calls {
+    let plan = plan_route(source, lookups, has_docs).with_quit_pending(quit_pending);
     let mut calls = Calls::default();
     execute_plan(
         &plan,
         source,
+        broadcast_target,
         |t: &RouteTarget| {
             calls.emits.push(t.window_label.clone());
             if emit_ok {
@@ -65,7 +93,10 @@ fn run(source: Source, has_docs: bool, quit_pending: bool, emit_ok: bool) -> Cal
             }
         },
         |p: String| calls.new_windows.push(p),
-        |g: Vec<String>| calls.broadcasts.push(g),
+        |label: &str, g: Vec<String>| {
+            calls.broadcasts.push((label.to_string(), g));
+            send_err.map_or(Ok(()), |e| Err(e.to_string()))
+        },
         |v: Value, e: Option<String>| calls.logs.push((v, e)),
     );
     calls
@@ -126,6 +157,82 @@ fn d74_a_broadcast_is_not_a_new_window_and_is_kept() {
     let plan = plan_route(Source::SingleInstance, &lookups(), false).with_quit_pending(true);
     assert!(matches!(plan.entries[1], PlanEntry::Broadcast { .. }));
     assert!(matches!(plan.entries[2], PlanEntry::Broadcast { .. }));
+
+    // EX-5 (D279): executed, the kept group goes once to the one resolved
+    // window, and no window is created.
+    let target = Ok(("main".to_string(), Via::LastFocused));
+    let calls = run_with(
+        &lookups(),
+        Source::SingleInstance,
+        false,
+        true,
+        true,
+        &target,
+        None,
+    );
+    assert_eq!(calls.emits, vec!["A".to_string()]);
+    assert_eq!(
+        calls.broadcasts,
+        vec![(
+            "main".to_string(),
+            vec!["/b.md".to_string(), "/c.md".to_string()]
+        )]
+    );
+    assert!(calls.new_windows.is_empty(), "{:?}", calls.new_windows);
+    let bc = json!({"source":"single_instance","outcome":"broadcast",
+        "windowLabel":"main","matchCount":0,"via":"last_focused"});
+    let routed = json!({"source":"single_instance","outcome":"existing-window",
+        "windowLabel":"A","matchCount":1,"via":null});
+    assert_eq!(
+        calls.logs,
+        vec![(routed, None), (bc.clone(), None), (bc, None)]
+    );
+}
+
+// EX-4 (D279 R2 under D74): a failed send while quitting opens nothing; each
+// path is refused with the send error and the resolved `via`.
+#[test]
+fn d279_a_failed_send_while_quitting_refuses_each_path() {
+    let misses: Lookups = ["p1", "p2"]
+        .iter()
+        .map(|p| {
+            (
+                p.to_string(),
+                Ok(RouteLookup {
+                    target: None,
+                    match_count: 0,
+                }),
+            )
+        })
+        .collect();
+    let target = Ok(("mdpro-b".to_string(), Via::AnyLive));
+    let calls = run_with(
+        &misses,
+        Source::SingleInstance,
+        false,
+        true,
+        true,
+        &target,
+        Some("send-err"),
+    );
+    assert_eq!(
+        calls.broadcasts,
+        vec![(
+            "mdpro-b".to_string(),
+            vec!["p1".to_string(), "p2".to_string()]
+        )]
+    );
+    assert!(calls.new_windows.is_empty(), "{:?}", calls.new_windows);
+    let line = json!({"source":"single_instance","outcome":"refused-quit-pending",
+        "windowLabel":null,"matchCount":0,"via":"any_live"});
+    let err = Some("send-err".to_string());
+    assert_eq!(calls.logs, vec![(line.clone(), err.clone()), (line, err)]);
+    for (ctx, e) in &calls.logs {
+        assert_eq!(
+            route_log_severity(ctx, e.as_deref()),
+            (LogLevel::Warn, LogStatus::Fail)
+        );
+    }
 }
 
 #[test]

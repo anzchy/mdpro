@@ -302,17 +302,19 @@ fn empty_input_plans_nothing() {
 }
 
 #[test]
+// D279 Q3: every `file.open.route` line gains `via`; for these calls,
+// which resolve no target, it is null. Recorded literals edited for that reason.
 fn route_log_context_exact_json_per_outcome() {
     assert_eq!(
         route_log_context(Source::Finder, Outcome::ExistingWindow, Some("mdpro-a"), 2),
-        json!({"source":"finder","outcome":"existing-window","windowLabel":"mdpro-a","matchCount":2})
+        json!({"source":"finder","outcome":"existing-window","windowLabel":"mdpro-a","matchCount":2,"via":null})
     );
     assert_eq!(
         route_log_context(Source::SingleInstance, Outcome::NewWindow, None, 0),
-        json!({"source":"single_instance","outcome":"new-window","windowLabel":null,"matchCount":0})
+        json!({"source":"single_instance","outcome":"new-window","windowLabel":null,"matchCount":0,"via":null})
     );
     assert_eq!(
         route_log_context(Source::SingleInstance, Outcome::Broadcast, None, 0),
-        json!({"source":"single_instance","outcome":"broadcast","windowLabel":null,"matchCount":0})
+        json!({"source":"single_instance","outcome":"broadcast","windowLabel":null,"matchCount":0,"via":null})
     );
 }

@@ -11,21 +11,34 @@
 //!   entry only logs `refused-quit-pending`, and when
 //!   `plan.new_windows_refused` an emit failure logs that outcome with its
 //!   error instead of falling back to a new window.
-//! - **`broadcast` is called at most once**, after the loop, and never with
-//!   an empty group.
+//! - **The broadcast group is delivered at most once, to one label, before
+//!   the per-path logs** (D279): only when `broadcast_target` resolved a
+//!   window and the group is non-empty, and never retried. It is therefore
+//!   sent before any `file:open-in-window` emit (ruling R4).
+//! - **No live window drops the group** (D279 Q1): nothing is sent or
+//!   opened, and each broadcast path is logged with `no_live_window`.
+//! - **A failed send falls back per path** (D279 R2, ADR-0033 decision 7):
+//!   a new window each, or `refused-quit-pending` under a live quit (D74).
+//!   The line keeps the resolved `via` and carries the send error.
 //! - **The logged `matchCount` is the plan entry's**, never recomputed. A
 //!   `new-window` log with `matchCount > 0` is therefore a failed emit.
-use super::plan::{route_log_context, Outcome, PlanEntry, RoutePlan, Source};
+use super::plan::{
+    broadcast_route_log_context, fallback_route_log_context, route_log_context, Outcome, PlanEntry,
+    RoutePlan, Source,
+};
 use super::RouteTarget;
+use crate::menu::menu_target::Resolved;
 use serde_json::Value;
 
 /// Carry out `plan`. `emit` delivers to an existing window and returns `Err`
-/// when it could not; `new_window` opens one path; `broadcast` sends the
-/// `file:open` group; `log` receives one `route_log_context` per path, plus
+/// when it could not; `new_window` opens one path; `broadcast(label, group)`
+/// sends the `file:open` group to the window `broadcast_target` resolved and
+/// returns `Err` when it could not; `log` receives one context per path, plus
 /// the error text when that path's route failed (`None` otherwise).
 pub fn execute_plan<E, N, B, L>(
     plan: &RoutePlan,
     source: Source,
+    broadcast_target: &Resolved,
     mut emit: E,
     mut new_window: N,
     mut broadcast: B,
@@ -33,10 +46,24 @@ pub fn execute_plan<E, N, B, L>(
 ) where
     E: FnMut(&RouteTarget) -> Result<(), String>,
     N: FnMut(String),
-    B: FnMut(Vec<String>),
+    B: FnMut(&str, Vec<String>) -> Result<(), String>,
     L: FnMut(Value, Option<String>),
 {
-    let mut group = Vec::new();
+    let group: Vec<String> = plan
+        .entries
+        .iter()
+        .filter_map(|entry| match entry {
+            PlanEntry::Broadcast { path, .. } => Some(path.clone()),
+            PlanEntry::ExistingWindow { .. }
+            | PlanEntry::NewWindow { .. }
+            | PlanEntry::Refused { .. } => None,
+        })
+        .collect();
+    // The one delivery: `None` when nothing was sent, else the send's error.
+    let send_error = match broadcast_target {
+        Ok((label, _)) if !group.is_empty() => broadcast(label, group).err(),
+        Ok(_) | Err(_) => None,
+    };
     for entry in &plan.entries {
         match entry {
             PlanEntry::ExistingWindow {
@@ -79,16 +106,35 @@ pub fn execute_plan<E, N, B, L>(
                 None,
             ),
             PlanEntry::Broadcast { path, match_count } => {
-                group.push(path.clone());
-                log(
-                    route_log_context(source, Outcome::Broadcast, None, *match_count),
-                    None,
-                );
+                let context = broadcast_route_log_context(source, broadcast_target, *match_count);
+                match (broadcast_target, &send_error) {
+                    (Err(reason), _) => log(context, Some(reason.as_str().to_string())),
+                    (Ok(_), None) => log(context, None),
+                    // D279 R2 under D74: the fallback window is refused too.
+                    (Ok((_, via)), Some(error)) if plan.new_windows_refused => log(
+                        fallback_route_log_context(
+                            source,
+                            Outcome::RefusedQuitPending,
+                            *via,
+                            *match_count,
+                        ),
+                        Some(error.clone()),
+                    ),
+                    (Ok((_, via)), Some(error)) => {
+                        new_window(path.clone());
+                        log(
+                            fallback_route_log_context(
+                                source,
+                                Outcome::NewWindow,
+                                *via,
+                                *match_count,
+                            ),
+                            Some(error.clone()),
+                        );
+                    }
+                }
             }
         }
-    }
-    if !group.is_empty() {
-        broadcast(group);
     }
 }
 

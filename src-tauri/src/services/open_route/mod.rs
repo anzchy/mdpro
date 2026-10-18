@@ -4,9 +4,11 @@
 //! Pipeline: incoming paths -> `lookup` per path (which live, routable window
 //! holds a document at this path, from the MCP shadow store) -> `RouteLookup`
 //! -> `plan_route` (existing window, or today's fallback, per path) ->
-//! `execute_plan` (emit / new window / one broadcast, one `file.open.route`
-//! log per path). `tauri_glue::route_external_open` binds the executor's side
-//! effects to the Tauri runtime; `main.rs` calls it from `RunEvent::Opened`
+//! `execute_plan` (emit / new window / one delivery of the broadcast group to
+//! the App-class target that `plan::broadcast_target` resolves from the
+//! `MenuFocus` snapshot (D279), one `file.open.route` log per path).
+//! `tauri_glue::route_external_open` binds the executor's side effects to the
+//! Tauri runtime; `main.rs` calls it from `RunEvent::Opened`
 //! (app ready) and from the single-instance callback.
 //!
 //! Key decisions:
@@ -44,6 +46,8 @@ pub use plan::{
 };
 pub use tauri_glue::{has_windows_with_documents, open_file_in_new_window, route_external_open};
 
+#[cfg(test)]
+mod file_open_emit_pin_tests;
 #[cfg(test)]
 mod plan_lookup_all_tests;
 

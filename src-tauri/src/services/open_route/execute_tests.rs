@@ -1,10 +1,13 @@
-//! Tests for `open_route::execute_plan` (D29 WI-3). Every plan comes from the
-//! real `plan_route`; the four side effects are recording closures.
+//! Tests for `open_route::execute_plan` (D29 WI-3, D279 WI-2). Every plan
+//! comes from the real `plan_route`; the four side effects are recording
+//! closures standing in for the Tauri runtime.
 use super::execute_plan;
+use crate::menu::menu_target::{CancelReason, Resolved, Via};
+use crate::services::open_route::plan::broadcast_route_log_context;
 use crate::services::open_route::{
     plan_route, route_log_context, Outcome, RouteLookup, RouteTarget, Source,
 };
-use serde_json::Value;
+use serde_json::{json, Value};
 
 type Lookups = Vec<(String, Result<RouteLookup, String>)>;
 
@@ -35,22 +38,49 @@ fn lk(items: Vec<(&str, Result<RouteLookup, String>)>) -> Lookups {
 }
 
 /// Everything the four closures saw.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 struct Calls {
     emits: Vec<RouteTarget>,
     new_windows: Vec<String>,
-    broadcasts: Vec<Vec<String>>,
+    /// Every broadcast send, as (target label, group), attempts included.
+    broadcasts: Vec<(String, Vec<String>)>,
     logs: Vec<Value>,
     /// The error passed alongside each log, in the same order as `logs`.
-    // Recorded so a failing assert's `{:?}` of `Calls` shows it; no test reads it.
-    #[allow(dead_code)]
     log_errors: Vec<Option<String>>,
 }
 
+/// The default broadcast target of the D29-era cases (D279 harness default).
+fn main_focused() -> Resolved {
+    Ok(("main".to_string(), Via::Focused))
+}
+
 /// Plan with `plan_route`, then execute with recording closures. `emit`
-/// succeeds for a target iff `emit_ok` returns true for its label.
+/// succeeds for a target iff `emit_ok` returns true for its label. The
+/// broadcast target is `main` (focused) and the send succeeds.
 fn run(source: Source, has_docs: bool, lookups: &Lookups, emit_ok: impl Fn(&str) -> bool) -> Calls {
-    let plan = plan_route(source, lookups, has_docs);
+    run_with(
+        source,
+        has_docs,
+        false,
+        lookups,
+        emit_ok,
+        &main_focused(),
+        None,
+    )
+}
+
+/// `run` with the D279 knobs: a live quit, the broadcast target, and the
+/// send's error (`None` = the send succeeds).
+fn run_with(
+    source: Source,
+    has_docs: bool,
+    quit_pending: bool,
+    lookups: &Lookups,
+    emit_ok: impl Fn(&str) -> bool,
+    broadcast_target: &Resolved,
+    send_err: Option<&str>,
+) -> Calls {
+    let plan = plan_route(source, lookups, has_docs).with_quit_pending(quit_pending);
     let mut emits = Vec::new();
     let mut new_windows = Vec::new();
     let mut broadcasts = Vec::new();
@@ -59,6 +89,7 @@ fn run(source: Source, has_docs: bool, lookups: &Lookups, emit_ok: impl Fn(&str)
     execute_plan(
         &plan,
         source,
+        broadcast_target,
         |t: &RouteTarget| {
             emits.push(t.clone());
             if emit_ok(&t.window_label) {
@@ -68,7 +99,13 @@ fn run(source: Source, has_docs: bool, lookups: &Lookups, emit_ok: impl Fn(&str)
             }
         },
         |p: String| new_windows.push(p),
-        |g: Vec<String>| broadcasts.push(g),
+        |label: &str, g: Vec<String>| {
+            broadcasts.push((label.to_string(), g));
+            match send_err {
+                None => Ok(()),
+                Some(e) => Err(e.to_string()),
+            }
+        },
         |v: Value, e: Option<String>| {
             logs.push(v);
             log_errors.push(e);
@@ -141,12 +178,14 @@ fn executor_emit_failure_single_instance_no_docs_never_broadcasts() {
     let c = run(Source::SingleInstance, false, &lookups, |_| false);
     assert_eq!(c.emits, vec![target("main", "id-1", "p1")]);
     assert_eq!(c.new_windows, strs(&["p1"]));
-    assert_eq!(c.broadcasts, vec![strs(&["p2"])]);
+    // D279 Q3: the group goes to the one resolved window (`main`, the harness
+    // default), and its line carries that window and `via`.
+    assert_eq!(c.broadcasts, vec![("main".to_string(), strs(&["p2"]))]);
     assert_eq!(
         c.logs,
         vec![
             route_log_context(Source::SingleInstance, Outcome::NewWindow, None, 1),
-            route_log_context(Source::SingleInstance, Outcome::Broadcast, None, 0),
+            broadcast_route_log_context(Source::SingleInstance, &main_focused(), 0),
         ]
     );
 
@@ -203,96 +242,296 @@ const CONTEXTS: [(Source, bool, &str); 3] = [
     (Source::SingleInstance, false, "single_instance-no-docs"),
 ];
 
+/// The `file.open.route` context, built here from literals so the oracle is
+/// independent of the production builders (D279 test matrix, EX-L5).
+fn want_ctx(
+    source: Source,
+    outcome: &str,
+    label: Option<&str>,
+    mc: usize,
+    via: Option<&str>,
+) -> Value {
+    let source = match source {
+        Source::Finder => "finder",
+        Source::SingleInstance => "single_instance",
+    };
+    json!({
+        "source": source,
+        "outcome": outcome,
+        "windowLabel": label,
+        "matchCount": mc,
+        "via": via,
+    })
+}
+
+fn via_str(via: Via) -> &'static str {
+    match via {
+        Via::Focused => "focused",
+        Via::LastFocused => "last_focused",
+        Via::AnyLive => "any_live",
+    }
+}
+
+// EX-1 (D279 regression): the whole group goes once, to the one window.
+#[test]
+fn d279_one_window_receives_the_whole_group() {
+    let lookups = lk(vec![("p1", miss()), ("p2", miss())]);
+    let target = Ok(("main".to_string(), Via::LastFocused));
+    let c = run_with(
+        Source::SingleInstance,
+        false,
+        false,
+        &lookups,
+        |_| true,
+        &target,
+        None,
+    );
+    assert_eq!(
+        c.broadcasts,
+        vec![("main".to_string(), strs(&["p1", "p2"]))]
+    );
+    assert_eq!(c.new_windows, Vec::<String>::new());
+    assert_eq!(c.emits, vec![]);
+    let line = json!({"source":"single_instance","outcome":"broadcast",
+        "windowLabel":"main","matchCount":0,"via":"last_focused"});
+    assert_eq!(c.logs, vec![line.clone(), line]);
+    assert_eq!(c.log_errors, vec![None, None]);
+}
+
+// EX-6: the routed path is emitted, the rest go as one send, and the logs
+// stay in input order with broadcast lines before and after the routed one.
+#[test]
+fn d279_mixed_plan_emits_sends_once_and_logs_in_input_order() {
+    let lookups = lk(vec![
+        ("p0", miss()),
+        ("p1", hit("main", "id-1", "/s/p1", 1)),
+        ("p2", miss()),
+    ]);
+    let c = run_with(
+        Source::SingleInstance,
+        false,
+        false,
+        &lookups,
+        |_| true,
+        &main_focused(),
+        None,
+    );
+    assert_eq!(c.emits, vec![target("main", "id-1", "/s/p1")]);
+    assert_eq!(
+        c.broadcasts,
+        vec![("main".to_string(), strs(&["p0", "p2"]))]
+    );
+    assert_eq!(c.new_windows, Vec::<String>::new());
+    let bc = json!({"source":"single_instance","outcome":"broadcast",
+        "windowLabel":"main","matchCount":0,"via":"focused"});
+    let routed = json!({"source":"single_instance","outcome":"existing-window",
+        "windowLabel":"main","matchCount":1,"via":null});
+    assert_eq!(c.logs, vec![bc.clone(), routed, bc]);
+    assert_eq!(c.log_errors, vec![None, None, None]);
+}
+
+// EX-7: a plan with no broadcast entries sends nothing, whatever the target,
+// and never logs `no_live_window`.
+#[test]
+fn d279_no_broadcast_entries_no_send_whatever_the_target() {
+    let lookups = lk(vec![("pa", hit("A", "id-a", "pa", 1)), ("pb", miss())]);
+    let targets: [Resolved; 2] = [main_focused(), Err(CancelReason::NoLiveWindow)];
+    for t in &targets {
+        let c = run_with(Source::Finder, true, false, &lookups, |_| true, t, None);
+        assert_eq!(c.broadcasts, vec![], "{:?}", t);
+        assert_eq!(c.new_windows, strs(&["pb"]), "{:?}", t);
+        assert_eq!(
+            c.logs,
+            vec![
+                json!({"source":"finder","outcome":"existing-window",
+                    "windowLabel":"A","matchCount":1,"via":null}),
+                json!({"source":"finder","outcome":"new-window",
+                    "windowLabel":null,"matchCount":0,"via":null}),
+            ],
+            "{:?}",
+            t
+        );
+        assert_eq!(c.log_errors, vec![None, None], "{:?}", t);
+    }
+}
+
+/// Three distinct labels, so a hard-coded label fails, plus no live window.
+fn targets() -> [Resolved; 4] {
+    [
+        Ok(("w-z".to_string(), Via::Focused)),
+        Ok(("main".to_string(), Via::LastFocused)),
+        Ok(("mdpro-b".to_string(), Via::AnyLive)),
+        Err(CancelReason::NoLiveWindow),
+    ]
+}
+
+/// The expected record of one cell, from the test-local oracle.
+fn oracle(
+    source: Source,
+    has_docs: bool,
+    quit: bool,
+    states: [State; 3],
+    paths: &[&str; 3],
+    target: &Resolved,
+    send_err: Option<&str>,
+) -> Calls {
+    let broadcast_ctx = source == Source::SingleInstance && !has_docs;
+    let resolved = target.as_ref().ok().map(|(l, v)| (l.as_str(), via_str(*v)));
+    let mut want = Calls::default();
+    let mut group = Vec::new();
+    for (i, s) in states.iter().enumerate() {
+        let path = paths[i].to_string();
+        let mc = if *s == State::Unrouted { 0 } else { i + 1 };
+        let (outcome, label, via, err) = match s {
+            State::EmitOk | State::EmitErr => {
+                want.emits.push(target_of(i));
+                match s {
+                    State::EmitOk => ("existing-window", Some(format!("w{}", i)), None, None),
+                    _ if quit => ("refused-quit-pending", None, None, Some("webview gone")),
+                    _ => {
+                        want.new_windows.push(path);
+                        ("new-window", None, None, Some("webview gone"))
+                    }
+                }
+            }
+            State::Unrouted if !broadcast_ctx && quit => ("refused-quit-pending", None, None, None),
+            State::Unrouted if !broadcast_ctx => {
+                want.new_windows.push(path);
+                ("new-window", None, None, None)
+            }
+            State::Unrouted => {
+                group.push(path.clone());
+                match (resolved, send_err) {
+                    (None, _) => ("broadcast", None, None, Some("no_live_window")),
+                    (Some((l, v)), None) => ("broadcast", Some(l.to_string()), Some(v), None),
+                    // D279 R2: a failed send falls back; the line keeps `via`.
+                    (Some((_, v)), Some(e)) if quit => {
+                        ("refused-quit-pending", None, Some(v), Some(e))
+                    }
+                    (Some((_, v)), Some(e)) => {
+                        want.new_windows.push(path);
+                        ("new-window", None, Some(v), Some(e))
+                    }
+                }
+            }
+        };
+        want.logs
+            .push(want_ctx(source, outcome, label.as_deref(), mc, via));
+        want.log_errors.push(err.map(String::from));
+    }
+    if let (false, Some((l, _))) = (group.is_empty(), resolved) {
+        want.broadcasts.push((l.to_string(), group));
+    }
+    want
+}
+
+fn target_of(i: usize) -> RouteTarget {
+    target(
+        &format!("w{}", i),
+        &format!("id-{}", i),
+        &format!("/stored/p{}", i),
+    )
+}
+
+// EX-L5/L6/L7/L8 (D279 WI-2), extending the D29 conservation law. Stated
+// reason for the changed expected broadcast lines: D279 Q3, the group goes
+// to one resolved window and its line names that window and `via`.
 #[test]
 fn executor_conservation_exhaustive() {
     let paths = ["/in/p0", "/in/p1", "/in/p2"];
+    let mut visited = 0;
     for (source, has_docs, ctx) in CONTEXTS {
         for s0 in STATES {
             for s1 in STATES {
                 for s2 in STATES {
-                    let states = [s0, s1, s2];
-                    let cell = format!("{} {:?}", ctx, states);
-                    // Stored paths differ from incoming ones, so a fallback
-                    // that used the stored path would show up here.
-                    let lookups: Lookups = states
-                        .iter()
-                        .enumerate()
-                        .map(|(i, s)| {
-                            let l = match s {
-                                State::Unrouted => miss(),
-                                _ => hit(
-                                    &format!("w{}", i),
-                                    &format!("id-{}", i),
-                                    &format!("/stored/p{}", i),
-                                    i + 1,
-                                ),
-                            };
-                            (paths[i].to_string(), l)
-                        })
-                        .collect();
-                    let ok_labels: Vec<String> = (0..3)
-                        .filter(|i| states[*i] == State::EmitOk)
-                        .map(|i| format!("w{}", i))
-                        .collect();
-                    let c = run(source, has_docs, &lookups, |l| {
-                        ok_labels.iter().any(|o| o == l)
-                    });
+                    for target in targets() {
+                        for send_err in [None, Some("send-err")] {
+                            for quit in [false, true] {
+                                visited += 1;
+                                let states = [s0, s1, s2];
+                                let cell = format!(
+                                    "{} {:?} {:?} send={:?} quit={}",
+                                    ctx, states, target, send_err, quit
+                                );
+                                // Stored paths differ from incoming ones, so a
+                                // fallback that used the stored path would show.
+                                let lookups: Lookups = states
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, s)| {
+                                        let l = match s {
+                                            State::Unrouted => miss(),
+                                            _ => hit(
+                                                &format!("w{}", i),
+                                                &format!("id-{}", i),
+                                                &format!("/stored/p{}", i),
+                                                i + 1,
+                                            ),
+                                        };
+                                        (paths[i].to_string(), l)
+                                    })
+                                    .collect();
+                                let ok_labels: Vec<String> = (0..3)
+                                    .filter(|i| states[*i] == State::EmitOk)
+                                    .map(|i| format!("w{}", i))
+                                    .collect();
+                                let go = || {
+                                    run_with(
+                                        source,
+                                        has_docs,
+                                        quit,
+                                        &lookups,
+                                        |l| ok_labels.iter().any(|o| o == l),
+                                        &target,
+                                        send_err,
+                                    )
+                                };
+                                let c = go();
+                                // L8: the same cell twice gives the same record.
+                                assert_eq!(c, go(), "determinism {}", cell);
 
-                    let broadcast_ctx = source == Source::SingleInstance && !has_docs;
-                    let mut want_emits = Vec::new();
-                    let mut want_new = Vec::new();
-                    let mut want_bc = Vec::new();
-                    let mut want_logs = Vec::new();
-                    for (i, s) in states.iter().enumerate() {
-                        let mc = if *s == State::Unrouted { 0 } else { i + 1 };
-                        if *s != State::Unrouted {
-                            want_emits.push(target(
-                                &format!("w{}", i),
-                                &format!("id-{}", i),
-                                &format!("/stored/p{}", i),
-                            ));
+                                let want = oracle(
+                                    source, has_docs, quit, states, &paths, &target, send_err,
+                                );
+                                assert_eq!(c.emits, want.emits, "emits {}", cell);
+                                assert_eq!(c.new_windows, want.new_windows, "new {}", cell);
+                                assert_eq!(c.broadcasts, want.broadcasts, "sends {}", cell);
+                                // L7: one log per path, in input order.
+                                assert_eq!(c.logs.len(), paths.len(), "log count {}", cell);
+                                assert_eq!(c.logs, want.logs, "logs {}", cell);
+                                assert_eq!(c.log_errors, want.log_errors, "errors {}", cell);
+
+                                // L6: at most one send, never empty, only to
+                                // the resolved label, only when resolved.
+                                assert!(c.broadcasts.len() <= 1, "one send {}", cell);
+                                if let Some((label, group)) = c.broadcasts.first() {
+                                    assert!(!group.is_empty(), "empty send {}", cell);
+                                    let resolved = target.as_ref().ok().map(|(l, _)| l);
+                                    assert_eq!(Some(label), resolved, "send label {}", cell);
+                                }
+
+                                // L5: each input path ends in exactly one place.
+                                let sent_ok = send_err.is_none();
+                                for (i, p) in paths.iter().enumerate() {
+                                    let places = [
+                                        c.logs[i]["outcome"] == "existing-window",
+                                        sent_ok
+                                            && c.broadcasts
+                                                .iter()
+                                                .any(|(_, g)| g.iter().any(|x| x == p)),
+                                        c.new_windows.iter().filter(|x| x == p).count() == 1,
+                                        c.logs[i]["outcome"] == "refused-quit-pending",
+                                        c.log_errors[i].as_deref() == Some("no_live_window"),
+                                    ];
+                                    let n = places.iter().filter(|b| **b).count();
+                                    assert_eq!(n, 1, "partition {} path {} {:?}", cell, p, places);
+                                }
+                            }
                         }
-                        let (outcome, label) = match s {
-                            State::EmitOk => (Outcome::ExistingWindow, Some(format!("w{}", i))),
-                            State::EmitErr => (Outcome::NewWindow, None),
-                            State::Unrouted if broadcast_ctx => (Outcome::Broadcast, None),
-                            State::Unrouted => (Outcome::NewWindow, None),
-                        };
-                        match outcome {
-                            Outcome::NewWindow => want_new.push(paths[i].to_string()),
-                            Outcome::Broadcast => want_bc.push(paths[i].to_string()),
-                            // This oracle never plans under a live quit (D74).
-                            Outcome::ExistingWindow | Outcome::RefusedQuitPending => {}
-                        }
-                        want_logs.push(route_log_context(source, outcome, label.as_deref(), mc));
                     }
-
-                    assert_eq!(c.emits, want_emits, "emits {}", cell);
-                    assert_eq!(c.new_windows, want_new, "new_window {}", cell);
-                    let want_broadcasts = if want_bc.is_empty() {
-                        vec![]
-                    } else {
-                        vec![want_bc]
-                    };
-                    assert_eq!(c.broadcasts, want_broadcasts, "broadcast {}", cell);
-                    assert!(
-                        c.broadcasts.iter().all(|g| !g.is_empty()),
-                        "empty broadcast {}",
-                        cell
-                    );
-                    assert_eq!(c.logs, want_logs, "logs {}", cell);
-
-                    // Partition: each input path ends in exactly one place.
-                    let delivered = states.iter().filter(|s| **s == State::EmitOk).count();
-                    let flat_bc: usize = c.broadcasts.iter().map(Vec::len).sum();
-                    assert_eq!(
-                        delivered + c.new_windows.len() + flat_bc,
-                        paths.len(),
-                        "partition {}",
-                        cell
-                    );
                 }
             }
         }
     }
+    assert_eq!(visited, 1296, "every cell visited");
 }

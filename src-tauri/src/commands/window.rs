@@ -37,6 +37,10 @@ pub struct GetWindowGeometryResponse {
 
 /// Create a new mdpro window, optionally with a file to open.
 ///
+/// The file is sent as `file:open` to the new window's own label, so the
+/// new window is the only recipient (D279). Whether it is listening yet when
+/// the send happens is D283.
+///
 /// While a quit request is live this returns
 /// `Err(quit_guard::window_gate::QUIT_PENDING_REFUSAL)` and builds nothing
 /// (D74); `windowService.createWindow` treats that error as a quiet `null`.
@@ -102,9 +106,10 @@ pub async fn create_window(
         err_msg
     })?;
 
-    // If file path provided, emit event to new window to open the file
+    // If a file path was provided, send `file:open` to the new window alone
+    // (D279): a global `emit` would also open it in every other window.
     if let Some(ref path) = file_path {
-        let _ = window.emit("file:open", vec![path.clone()]);
+        let _ = app.emit_to(window.label(), "file:open", vec![path.clone()]);
     }
 
     let elapsed = start.elapsed().as_millis() as u64;

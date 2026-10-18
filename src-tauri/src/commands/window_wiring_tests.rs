@@ -141,3 +141,52 @@ fn wg1_old_lookup_is_gone_and_services_do_not_depend_on_commands() {
         );
     }
 }
+
+/// D279-WI-3 case CW-1: `create_window` addresses `file:open` to the window
+/// it just built (`window.label()`, or a local bound from it) and to no
+/// other. Source text, a supplement; the real check is device item D279-b.
+/// Deriving the label another way (e.g. `&window_id`) breaks this on
+/// purpose; accepting it is a stated one-line widening.
+#[test]
+fn cw1_create_window_sends_file_open_to_its_own_label() {
+    const FILE_OPEN: &str = "\"file:open\"";
+    let body = create_body();
+    assert!(
+        !body.contains(concat!(".emit(", "\"file:open\"")),
+        "create_window still emits file:open to every window:\n{body}"
+    );
+    // Every `emit_to(` statement that mentions file:open.
+    let sends: Vec<&str> = body
+        .match_indices("emit_to(")
+        .map(|(at, _)| {
+            let rest = &body[at + "emit_to(".len()..];
+            &rest[..rest.find(';').unwrap_or(rest.len())]
+        })
+        .filter(|stmt| stmt.contains(FILE_OPEN))
+        .collect();
+    assert_eq!(sends.len(), 1, "one addressed file:open send:\n{body}");
+    let stmt = sends[0].trim_start();
+    // The first argument, then `, "file:open"`.
+    let comma = stmt
+        .find(',')
+        .unwrap_or_else(|| panic!("emit_to has one argument: {stmt}"));
+    let first = stmt[..comma].trim();
+    assert!(
+        stmt[comma + 1..].trim_start().starts_with(FILE_OPEN),
+        "file:open is emit_to's event argument: {stmt}"
+    );
+    let own_label = first == "window.label()" || {
+        let local = first.trim_start_matches('&').trim();
+        let is_ident = !local.is_empty()
+            && local.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+            && !local.starts_with(|c: char| c.is_ascii_digit());
+        is_ident
+            && ["", ".to_string()", ".to_owned()"]
+                .iter()
+                .any(|suffix| body.contains(&format!("let {local} = window.label(){suffix};")))
+    };
+    assert!(
+        own_label,
+        "emit_to's target `{first}` is not window.label() or a local bound from it"
+    );
+}

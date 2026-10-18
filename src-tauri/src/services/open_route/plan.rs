@@ -1,6 +1,6 @@
 //! Pure route planner (D29 WI-3): for each incoming path, either go to the
 //! window that holds it or keep today's fallback. Also the `file.open.route`
-//! log context.
+//! log context, and the one window the broadcast group goes to.
 //!
 //! Key decisions:
 //! - **Paths are planned one by one, in input order** (ADR-0033 decision 6).
@@ -8,15 +8,21 @@
 //!   duplicated or reordered, and the executor can log in input order.
 //! - **The fallback is today's behaviour** (decision 7). Finder with the app
 //!   ready opens a new window. Single instance opens a new window when the
-//!   app has documents, otherwise the unrouted paths are broadcast as one
-//!   `file:open` group. A lookup `Err` counts as unrouted.
+//!   app has documents, otherwise the unrouted paths go as one `file:open`
+//!   group, delivered to one window chosen by D261's App-class rule
+//!   (`broadcast_target`; D279). A lookup `Err` counts as unrouted.
 //! - **Every entry carries its own lookup's `match_count`**: 0 for no match
 //!   and 0 for a lookup `Err`. The executor logs it and computes nothing.
-//! - **The log context carries no path and no content** (decision 8).
+//! - **The log context carries no path and no content** (decision 8). Every
+//!   line has the same five keys; `via` names how the broadcast window was
+//!   resolved, kept on a send-failure fallback line (D279 R2), else null.
 //! - **A live quit request refuses new windows** (D74):
 //!   `RoutePlan::with_quit_pending` turns `NewWindow` into `Refused` and
 //!   disables the emit-failure fallback; see `quit_guard::window_gate`.
+//!
+//! @coordinates-with src-tauri/src/menu_target.rs (`resolve_target`, D261)
 use super::{lookup_in_shared, RouteLookup, RouteTarget};
+use crate::menu::menu_target::{resolve_target, ActionClass, FocusSnapshot, Resolved, Via};
 use crate::models::{LogLevel, LogStatus, SharedShadowStore};
 use serde_json::{json, Value};
 use std::collections::HashSet;
@@ -171,18 +177,59 @@ fn fallback(path: String, match_count: usize, broadcast: bool) -> PlanEntry {
 }
 
 /// Context of one `file.open.route` log: exactly `source`, `outcome`,
-/// `windowLabel` (null unless delivered to a window) and `matchCount`.
+/// `windowLabel` (null unless delivered to a window), `matchCount` and `via`
+/// (null here: no window was resolved through D261's chain).
 pub fn route_log_context(
     source: Source,
     outcome: Outcome,
     window_label: Option<&str>,
     match_count: usize,
 ) -> Value {
+    context(source, outcome, window_label, match_count, None)
+}
+
+/// The one window the broadcast group goes to (D279): D261's App-class
+/// resolution over the live labels, sorted, with no rule of its own.
+pub fn broadcast_target(snapshot: &FocusSnapshot, live: &HashSet<String>) -> Resolved {
+    let mut labels: Vec<String> = live.iter().cloned().collect();
+    labels.sort();
+    resolve_target(snapshot, ActionClass::App, &labels)
+}
+
+/// Context of a broadcast line: the resolved window and its `via`, or both
+/// null when no window was resolved.
+pub fn broadcast_route_log_context(source: Source, target: &Resolved, match_count: usize) -> Value {
+    let resolved = target.as_ref().ok();
+    let label = resolved.map(|(label, _)| label.as_str());
+    let via = resolved.map(|(_, via)| *via);
+    context(source, Outcome::Broadcast, label, match_count, via)
+}
+
+/// Context of the line for a broadcast path whose send to the resolved
+/// window failed (D279 ruling R2): `outcome` is the fallback taken,
+/// `windowLabel` null, and `via` the one the target was resolved through.
+pub fn fallback_route_log_context(
+    source: Source,
+    outcome: Outcome,
+    via: Via,
+    match_count: usize,
+) -> Value {
+    context(source, outcome, None, match_count, Some(via))
+}
+
+fn context(
+    source: Source,
+    outcome: Outcome,
+    window_label: Option<&str>,
+    match_count: usize,
+    via: Option<Via>,
+) -> Value {
     json!({
         "source": source.as_str(),
         "outcome": outcome.as_str(),
         "windowLabel": window_label,
         "matchCount": match_count,
+        "via": via.map(Via::as_str),
     })
 }
 
@@ -205,6 +252,9 @@ pub fn lookup_all(
         .collect()
 }
 
+#[cfg(test)]
+#[path = "broadcast_target_tests.rs"]
+mod broadcast_target_tests;
 #[cfg(test)]
 #[path = "plan_tests.rs"]
 mod plan_tests;

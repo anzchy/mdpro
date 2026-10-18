@@ -1,14 +1,23 @@
 //! Tauri shim for D29 routing: binds the tested planner and executor to the
-//! runtime. Not unit-testable; covered by the G-D29-1..7 GUI checks.
+//! runtime. Not unit-testable; covered by the G-D29-1..7 GUI checks and the
+//! D279 device items, with source pins in `file_open_emit_pin_tests.rs`.
+//!
+//! Pipeline: live-label set -> `lookup_all` -> `plan_route` (+ the D74 quit
+//! gate) -> the `MenuFocus` snapshot (read once, `UNMANAGED_FOCUS` when
+//! unmanaged) -> `broadcast_target` -> `execute_plan`, which makes one
+//! delivery of the broadcast group to that App-class target (D279).
 //!
 //! Key decisions:
-//! - **No decision lives here.** The shim builds the live-label set and the
-//!   four closures, and nothing else; every branch is in `plan_route` and
-//!   `execute_plan`.
-//! - **`emit` returns `Err` when the window is gone.** It looks the window up
-//!   with `get_webview_window` first, because `emit_to` a missing label is
-//!   not an error: without the lookup a window closed between building the
-//!   live set and the emit would silently swallow the open.
+//! - **No decision lives here.** The shim builds the live-label set, reads
+//!   the focus snapshot and builds the four closures, and nothing else; every
+//!   branch is in `plan_route`, `broadcast_target` and `execute_plan`.
+//! - **Both sends return `Err` when the window is gone.** `emit_to_window`
+//!   and the `file:open` closure look the window up with
+//!   `get_webview_window` first, because `emit_to` a missing label is not an
+//!   error: without the lookup a window closed between building the live set
+//!   and the send would silently swallow the open. The `file:open` send goes
+//!   to the label it looked up and to no other window (D279); its `Err` is
+//!   what reaches `execute_plan`'s send-failure fallback.
 //! - **The route log's level and status come from `route_log_severity`**:
 //!   Info/Success, Warn/Fail with the text when the executor passes an emit
 //!   error, Warn/Cancel for a path refused under a pending quit.
@@ -24,10 +33,13 @@
 //!   default and logs `window.open` at Warn with `geometryReason: "read_failed"`.
 //!
 //! @coordinates-with src-tauri/src/main.rs, services/window_restore.rs
+use super::plan::broadcast_target;
 use super::{
     execute_plan, lookup_all, plan_route, route_log_severity, OpenInWindowPayload, RouteTarget,
     Source, OPEN_IN_WINDOW_EVENT,
 };
+use crate::menu::menu_target::UNMANAGED_FOCUS;
+use crate::menu::MenuFocus;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::logger;
 use crate::services::quit_guard::{effects::AppQuitGuard, window_gate::new_window_gate};
@@ -47,13 +59,22 @@ pub fn route_external_open(app: &AppHandle, paths: Vec<String>, source: Source) 
     let quit_pending = new_window_gate(app.try_state::<AppQuitGuard>().as_deref()).is_err();
     let plan = plan_route(source, &lookups, has_windows_with_documents(app))
         .with_quit_pending(quit_pending);
+    // D279: the broadcast group goes to the one App-class target (D261).
+    let focus = app.try_state::<MenuFocus>();
+    let snapshot = focus.as_deref().unwrap_or(&UNMANAGED_FOCUS).snapshot();
+    let target = broadcast_target(&snapshot, &live);
     execute_plan(
         &plan,
         source,
+        &target,
         |target: &RouteTarget| emit_to_window(app, target),
         |path: String| open_file_in_new_window(app, path),
-        |group: Vec<String>| {
-            let _ = app.emit("file:open", group);
+        |label: &str, group: Vec<String>| {
+            // `emit_to` a missing label is not an error, so look it up first.
+            app.get_webview_window(label)
+                .ok_or_else(|| format!("window {label} is gone"))?;
+            app.emit_to(label, "file:open", group)
+                .map_err(|e| e.to_string())
         },
         |context, error: Option<String>| {
             let (level, status) = route_log_severity(&context, error.as_deref());
