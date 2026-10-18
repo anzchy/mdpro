@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - The update checker no longer includes the `zip` library, which clears three RustSec advisories (RUSTSEC-2026-0367, -0368 and -0369). The library only unpacked update packages in the older Tauri v1 format, which mdpro never publishes, so updates work as before (D274, ADR-0122).
+- Updated the bundled HTML sanitizer to ammonia 4.1.8, which clears RustSec advisory RUSTSEC-2026-0373. mdpro's HTML export never let the affected CSS through, so exported files are unchanged (D284).
 
 ## [0.3.5] - 2026-10-16
 
