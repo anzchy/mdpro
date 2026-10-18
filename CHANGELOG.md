@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In a short window or at high display scaling (Windows at 270%), the Settings category list now scrolls, so Advanced and About can be reached instead of being cut off (D262, #487).
 - If an open file is changed, deleted and recreated within half a second (some sync tools and scripts do this), mdpro now ends on the "modified externally" prompt instead of leaving "File was deleted externally" over a file that exists. A file whose folder mdpro can no longer read is no longer reported as deleted; mdpro shows the reload prompt, and the reload says why it failed (D246 follow-up, ADR-0111).
 
+### Security
+- The update checker no longer includes the `zip` library, which clears three RustSec advisories (RUSTSEC-2026-0367, -0368 and -0369). The library only unpacked update packages in the older Tauri v1 format, which mdpro never publishes, so updates work as before (D274, ADR-0122).
+
 ## [0.3.5] - 2026-10-16
 
 ### Highlights

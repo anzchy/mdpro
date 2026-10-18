@@ -22,7 +22,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
-tauri-plugin-updater = "2"
+# The default `zip` feature is off (D274, ADR-0122): it only unpacks Tauri v1
+# update bundles, which mdpro never publishes, and it pulled in `zip` 4.x with
+# RUSTSEC-2026-0367/0368/0369. The other two defaults are kept as they were.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls", "system-proxy"] }
 tauri-plugin-process = "2"
 pulldown-cmark = "0.11"
 ammonia = "4"
