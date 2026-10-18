@@ -113,7 +113,36 @@ export function listenerFinding(tcpOut, unixOut) {
   const unix = names(unixOut);
   const unexpected = unix.find((n) => !allowedUnix(n));
   if (unexpected !== undefined) return `layer 4: unexpected socket ${unexpected}`;
-  return unix.some(isSiSock) ? null : `layer 4: lsof did not list ${SI_SOCK_RELEASE}`;
+  return siSockHeld(unixOut) ? null : `layer 4: lsof did not list ${SI_SOCK_RELEASE}`;
+}
+
+/**
+ * Whether an `lsof -U -F n` listing (one pid's, or system-wide) names the
+ * single-instance socket: someone holds it. lsof reads the kernel's tables,
+ * so asking costs a live mdpro nothing; a connect would hand it an empty
+ * second-instance launch (round 4, H1).
+ * @param {string} unixOut
+ */
+export function siSockHeld(unixOut) {
+  return names(unixOut).some(isSiSock);
+}
+
+/**
+ * The note for a single-instance socket still on disk after our app exited,
+ * or null. Never a finding: SIGTERM skips the plugin's exit hook, and the
+ * plugin removes a stale socket itself on the next launch, so the script
+ * never unlinks it (round 4, H1).
+ * @param {"ours" | "other" | null} left whose socket is there now
+ * @returns {string | null}
+ */
+export function leftoverNote(left) {
+  if (left === "ours") {
+    return `note: ${SI_SOCK_RELEASE} was left by this run's app (SIGTERM skips its exit hook); not a finding, the next mdpro launch cleans it up`;
+  }
+  if (left === "other") {
+    return `note: ${SI_SOCK_RELEASE} now belongs to another process and was left untouched; not a finding`;
+  }
+  return null;
 }
 
 /**

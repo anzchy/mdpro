@@ -11,7 +11,8 @@
  *
  * Pipeline: layers 1–3 → (if --launch) refuse if mdpro runs or the release
  *   single-instance socket exists → makeRun → placeOptin → launch →
- *   waitReady → lsof → stop → listRun → removeRun → verdict line → exit.
+ *   waitReady → lsof → stop (its leftover note) → listRun → removeRun →
+ *   verdict line → exit.
  *
  * Key decisions:
  * - Exit 0 only when all four layers ran clean; 1 on any finding; 2 when
@@ -25,8 +26,11 @@
  *   the daily app's single-instance socket, so it refuses while any mdpro
  *   process runs or that socket exists.
  * - A read that throws is a finding of its layer, never clean. The app is
- *   always stopped and the run dir always removed once they exist.
+ *   always stopped and the run dir always removed once they exist, and a
+ *   failure of either is one more finding, never a replacement.
  * - Every read is an injected dep; `releaseCleanDeps.mjs` has the real ones.
+ * - A single-instance socket our app leaves (SIGTERM skips its exit hook) is
+ *   a note line, not a finding, and never changes the exit (round 4, H1).
  *
  * @module scripts/control/releaseClean
  * @coordinates-with scripts/control/releaseCleanChecks.mjs (every judgement)
@@ -39,6 +43,7 @@ import {
   distFinding,
   featureGraphFinding,
   homeFinding,
+  leftoverNote,
   listenerFinding,
   SI_SOCK_RELEASE,
 } from "./releaseCleanChecks.mjs";
@@ -69,32 +74,50 @@ function layer(n, judge) {
 }
 
 /**
- * Layer 4's results: a refusal, else one launch on a fresh run dir.
- * @param {any} d @returns {Promise<LayerResult[]>}
+ * Layer 4's results and notes: a refusal, else one launch on a fresh run
+ * dir. A failed stop retry or run-dir removal adds its own finding; it
+ * never replaces the one already caught (Fable round-3 M2).
+ * @param {any} d @returns {Promise<{ results: LayerResult[], notes: string[] }>}
  */
 async function launchLayer(d) {
-  if (d.mdproRunning()) return [judged(4, "layer 4: refused: an mdpro process is running")];
-  if (d.siSockExists()) return [judged(4, `layer 4: refused: ${SI_SOCK_RELEASE} exists`)];
+  if (d.mdproRunning()) return { results: [judged(4, "layer 4: refused: an mdpro process is running")], notes: [] };
+  if (d.siSockExists()) return { results: [judged(4, `layer 4: refused: ${SI_SOCK_RELEASE} exists`)], notes: [] };
   const dir = d.makeRun();
   /** @type {number | undefined} */
   let pid;
+  /** @type {LayerResult[]} */
+  let results;
+  /** @type {string[]} */
+  const notes = [];
   try {
     d.placeOptin(dir);
     pid = d.launch(dir);
     await d.waitReady(pid);
     const { tcp, unix } = d.lsof(pid);
     const listeners = listenerFinding(tcp, unix);
-    await d.stop(pid);
+    const note = leftoverNote((await d.stop(pid))?.left ?? null);
     pid = undefined;
+    if (note !== null) notes.push(note);
     const home = homeFinding(d.listRun(dir));
     const found = [listeners, home].filter((f) => f !== null);
-    return found.length > 0 ? found.map((f) => judged(4, f)) : [judged(4, null)];
+    results = found.length > 0 ? found.map((f) => judged(4, f)) : [judged(4, null)];
   } catch (e) {
-    return [judged(4, `layer 4: could not read: ${message(e)}`)];
-  } finally {
-    if (pid !== undefined) await d.stop(pid);
-    d.removeRun(dir);
+    results = [judged(4, `layer 4: could not read: ${message(e)}`)];
   }
+  if (pid !== undefined) {
+    try {
+      await d.stop(pid);
+    } catch (e) {
+      results.push(judged(4, `layer 4: could not stop the app: ${message(e)}`));
+    }
+  }
+  try {
+    d.removeRun(dir);
+  } catch (e) {
+    results.push(judged(4, `layer 4: could not remove ${dir}: ${message(e)}`));
+  }
+  if (results.some((r) => r.status === "finding")) results = results.filter((r) => r.status === "finding");
+  return { results, notes };
 }
 
 /**
@@ -104,14 +127,17 @@ async function launchLayer(d) {
  * @returns {Promise<{ exit: 0 | 1 | 2, layers: LayerResult[], lines: string[] }>}
  */
 export async function releaseClean(d, { launch }) {
-  /** @type {LayerResult[]} */
-  const layers = [
+  const first = [
     layer(1, () => featureGraphFinding(d.cargoTree())),
     layer(2, () => distFinding(d.distFiles())),
     layer(3, () => binaryFinding(d.binaryBytes())),
-    ...(launch ? await launchLayer(d) : [{ layer: 4, status: /** @type {const} */ ("not-run"), line: NOT_RUN }]),
   ];
-  const lines = layers.map((l) => l.line);
+  const four = launch
+    ? await launchLayer(d)
+    : { results: [{ layer: 4, status: /** @type {const} */ ("not-run"), line: NOT_RUN }], notes: [] };
+  /** @type {LayerResult[]} */
+  const layers = [...first, ...four.results];
+  const lines = [...layers.map((l) => l.line), ...four.notes];
   const findings = layers.filter((l) => l.status === "finding").length;
   if (findings > 0) return { exit: 1, layers, lines: [...lines, `release-clean: ${findings} finding(s)`] };
   if (layers.some((l) => l.status === "not-run")) {

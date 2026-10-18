@@ -1,21 +1,27 @@
 /**
  * Purpose: how `releaseClean`'s layer 4 stops the release app it launched
- * and removes the single-instance socket it left, touching nothing it did
- * not create (PR #500 round-2 audit, H1 and H2).
+ * and tells whose single-instance socket is left, touching nothing it did
+ * not create (PR #500 round-2 audit, H1 and H2; round 4).
  *
  * Pipeline: launch → `processId` (owner) → … → `stopOwned`: alive? →
  *   identity check → SIGTERM → poll → identity check → SIGKILL → poll.
- *   `waitReady` → `sockId` (recorded) → … after stop → `ownsSock` → unlink.
+ *   `lsof` shows our pid holds the socket → `sockId` (recorded) → … after
+ *   stop → `ownsSock` → the leftover is "ours", "other" or none.
  *
  * Key decisions:
  * - The socket path is global, so a socket there after our app exits may
- *   belong to another mdpro. It is unlinked only when it still has the dev
- *   and ino `waitReady` recorded; one never seen is left alone (H1).
- * - A pid can be reused, so every signal is preceded by a check that the
- *   pid's start time and executable are still those recorded at launch,
- *   the facts `quit.mjs` re-checks before its SIGKILL (H2). A mismatch
- *   means our process is gone: no signal. An unknown identity is not a
- *   match: no signal, and the stop fails so layer 4 reports it.
+ *   belong to another mdpro: it is "ours" only while it still has the dev
+ *   and ino recorded when lsof showed our pid holding it (H1).
+ * - Signals go only through the ChildProcess handle (`handleKill`). Node
+ *   clears the handle in the same callback that reaps the child, so once
+ *   the pid can be reused the handle can no longer signal it (round 4, H2).
+ * - As a second check, every signal is preceded by one that the pid's start
+ *   time and executable are still those recorded at launch, the facts
+ *   `quit.mjs` re-checks (round 2, H2). A mismatch means our process is
+ *   gone: no signal. An unknown identity is not a match: no signal, and
+ *   the stop fails so layer 4 reports it.
+ * - `sockId` and `ownsSock` only tell whose socket is left after the run;
+ *   nothing here or in the deps unlinks it (round 4, H1).
  * - Every boundary is injected (`procFacts`, `kill`, `sleep`, `now`), so the
  *   order of checks and signals is tested without a real process.
  *
@@ -45,6 +51,16 @@ export function sockId(st) {
  */
 export function ownsSock(recorded, current) {
   return recorded !== null && current !== null && recorded.dev === current.dev && recorded.ino === current.ino;
+}
+
+/**
+ * A kill that reaches only `child`, through its handle. False, and no
+ * signal, for any other pid, for no child, and once Node has reaped it.
+ * @param {{ pid?: number, kill: (sig: string) => boolean } | null} child
+ * @returns {(pid: number, sig: string) => boolean}
+ */
+export function handleKill(child) {
+  return (pid, sig) => (child !== null && child.pid === pid ? child.kill(sig) : false);
 }
 
 /**

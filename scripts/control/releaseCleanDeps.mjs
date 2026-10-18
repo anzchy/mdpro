@@ -12,15 +12,21 @@
  *   app sees every signal a verify run gives a control-channel build.
  * - "mdpro is running" is any process named `tauri-app`: the daily, dev and
  *   verify builds all keep the cargo name.
- * - Ready means the release single-instance socket exists, then a settle
- *   wait, since the channel opens only after `setup`.
+ * - Ready means lsof shows our pid holding the release single-instance
+ *   socket, then a settle wait, since the channel opens only after `setup`.
+ *   A stale file at the path is not ready: the app replaces it on startup.
  * - `removeRun` deletes only a dir this module made under the temp dir.
- * - `stop` sends SIGTERM, so the app's exit hooks never remove its
- *   single-instance socket. Once the app is gone `stop` unlinks it, but
- *   only if it is still the socket `waitReady` saw (same dev and ino):
- *   another mdpro may have bound the path since (round-2 H1).
- * - `launch` records the child's start time and executable; `stop` signals
- *   only while the pid still has them (`releaseCleanStop.mjs`, round-2 H2).
+ * - Nothing here unlinks the single-instance socket (round 4, H1). `stop`
+ *   sends SIGTERM, which skips the app's exit hook, so the socket stays;
+ *   `stop` reports it as "ours" (still the dev and ino `waitReady` saw) or
+ *   "other", and the next mdpro launch replaces a stale one itself.
+ * - The preflight refuses while anything holds the socket, read from a
+ *   system-wide `lsof -U`, never by connecting: the plugin takes any
+ *   connection for a second launch, so a probe would reach a live mdpro.
+ *   A stale file nobody holds is no refusal; an lsof failure is.
+ * - Signals go only through the spawned ChildProcess (`handleKill`), and
+ *   only while the pid still has the start time and executable `launch`
+ *   recorded (`releaseCleanStop.mjs`, round 2 and round 4, H2).
  * - Each lsof run goes through `lsofOutput`: exit 1 counts as an empty
  *   listing only with nothing on stderr.
  *
@@ -29,7 +35,7 @@
  * @coordinates-with scripts/control/buildSteps.mjs (buildLayout)
  * @coordinates-with scripts/control/runDir.mjs (childEnv)
  * @coordinates-with scripts/control/controlOptin.mjs (writeOptin)
- * @coordinates-with scripts/control/releaseCleanStop.mjs (stopOwned, sockId, ownsSock)
+ * @coordinates-with scripts/control/releaseCleanStop.mjs (stopOwned, handleKill, sockId, ownsSock)
  */
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -40,8 +46,8 @@ import { fileURLToPath } from "node:url";
 import { buildLayout } from "./buildSteps.mjs";
 import { writeOptin } from "./controlOptin.mjs";
 import { defaultProcFacts } from "./doctor.mjs";
-import { lsofOutput, SI_SOCK_RELEASE } from "./releaseCleanChecks.mjs";
-import { ownsSock, processId, sockId, stopOwned } from "./releaseCleanStop.mjs";
+import { lsofOutput, SI_SOCK_RELEASE, siSockHeld } from "./releaseCleanChecks.mjs";
+import { handleKill, ownsSock, processId, sockId, stopOwned } from "./releaseCleanStop.mjs";
 import { childEnv } from "./runDir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -53,16 +59,6 @@ const STOP_TIMEOUT_MS = 10_000;
 const NONCE_BYTES = 32;
 
 const sleep = (/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms));
-
-/** @param {string} p */
-const exists = (p) => {
-  try {
-    fs.lstatSync(p);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 /** @param {string} p @returns {fs.Stats | null} */
 const lstatOrNull = (p) => {
@@ -94,6 +90,19 @@ function run(cmd, args, ok = [0]) {
   return r;
 }
 
+/** The unix sockets lsof lists, for one pid or (no pid) every process. @param {number} [pid] */
+const lsofUnix = (pid) =>
+  lsofOutput(run("lsof", ["-nP", ...(pid === undefined ? [] : ["-a", "-p", String(pid)]), "-U", "-F", "n"], [0, 1]));
+
+/** Whether anything holds the socket; an lsof failure counts as held. */
+const siSockBusy = () => {
+  try {
+    return siSockHeld(lsofUnix());
+  } catch {
+    return true;
+  }
+};
+
 /** Every file under `dir`, path relative to `root`. @param {string} root @param {string} [dir] @returns {string[]} */
 function walk(root, dir = root) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -112,6 +121,8 @@ export function defaultDeps() {
   let owner = Promise.resolve(null);
   /** @type {import("./releaseCleanStop.mjs").SockId | null} */
   let ownSock = null;
+  /** @type {import("node:child_process").ChildProcess | null} */
+  let child = null;
   return {
     cargoTree: () =>
       run("cargo", ["tree", "-e", "features", "-i", "tauri-app", "--prefix", "none", "--manifest-path", "src-tauri/Cargo.toml"])
@@ -122,12 +133,12 @@ export function defaultDeps() {
         .map((rel) => ({ path: rel, text: fs.readFileSync(path.join(lay.dist, rel)).toString("latin1") })),
     binaryBytes: () => fs.readFileSync(lay.mainBinary),
     mdproRunning: () => run("pgrep", ["-x", "tauri-app"], [0, 1]).status === 0,
-    siSockExists: () => exists(SI_SOCK_RELEASE),
+    siSockExists: () => lstatOrNull(SI_SOCK_RELEASE) !== null && siSockBusy(),
     makeRun: () => fs.realpathSync(fs.mkdtempSync(path.join(tmpRoot, RUN_PREFIX))),
     placeOptin: (/** @type {string} */ dir) => writeOptin(dir, "eval"),
     launch: (/** @type {string} */ dir) => {
       const nonce = randomBytes(NONCE_BYTES).toString("hex");
-      const child = spawn(lay.mainBinary, [], {
+      child = spawn(lay.mainBinary, [], {
         detached: true,
         stdio: "ignore",
         env: childEnv({ baseEnv: process.env, runDirReal: dir, nonce }),
@@ -139,7 +150,7 @@ export function defaultDeps() {
     },
     waitReady: async (/** @type {number} */ pid) => {
       const deadline = Date.now() + READY_TIMEOUT_MS;
-      while (!exists(SI_SOCK_RELEASE)) {
+      while (!siSockHeld(lsofUnix(pid))) {
         if (!alive(pid)) throw new Error("the release app exited before it was ready");
         if (Date.now() > deadline) throw new Error(`no ${SI_SOCK_RELEASE} after ${READY_TIMEOUT_MS / 1000} s`);
         await sleep(POLL_MS);
@@ -150,13 +161,13 @@ export function defaultDeps() {
     },
     lsof: (/** @type {number} */ pid) => ({
       tcp: lsofOutput(run("lsof", ["-nP", "-a", "-p", String(pid), "-iTCP", "-sTCP:LISTEN", "-F", "n"], [0, 1])),
-      unix: lsofOutput(run("lsof", ["-nP", "-a", "-p", String(pid), "-U", "-F", "n"], [0, 1])),
+      unix: lsofUnix(pid),
     }),
     stop: async (/** @type {number} */ pid) => {
-      const kill = (/** @type {number} */ p, /** @type {NodeJS.Signals} */ sig) => process.kill(p, sig);
       const timing = { sleep: () => sleep(POLL_MS), now: Date.now, termMs: STOP_TIMEOUT_MS, killMs: STOP_TIMEOUT_MS };
-      await stopOwned({ procFacts, kill, ...timing }, pid, await owner);
-      if (ownsSock(ownSock, sockId(lstatOrNull(SI_SOCK_RELEASE)))) fs.unlinkSync(SI_SOCK_RELEASE);
+      await stopOwned({ procFacts, kill: handleKill(child), ...timing }, pid, await owner);
+      const left = sockId(lstatOrNull(SI_SOCK_RELEASE));
+      return { left: left === null ? null : ownsSock(ownSock, left) ? "ours" : "other" };
     },
     listRun: (/** @type {string} */ dir) => walk(dir),
     removeRun: (/** @type {string} */ dir) => {
