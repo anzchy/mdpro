@@ -39,8 +39,18 @@ if (hasDom) {
    */
   const { cleanup } = await import("@testing-library/react");
   await import("@testing-library/jest-dom/vitest");
+  /*
+   * The settings writer registry is module state that outlives a page (WI-4.3b
+   * round 4). A write a test left unsettled would keep its group busy into the
+   * next test, and its timeout could fire there. The module imports nothing,
+   * so loading it here binds no mock early.
+   */
+  const { resetSettingsWriterRegistry } = await import(
+    "../src/components/common/settings/settingsWriterRegistry"
+  );
   afterEach(() => {
     cleanup();
+    resetSettingsWriterRegistry();
   });
 } else {
   /*

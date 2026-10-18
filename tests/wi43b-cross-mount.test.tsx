@@ -2,9 +2,10 @@
  * WI-4.3b round 3 (PR #508): settings writes across a close and reopen.
  *
  * Closing Settings unmounts every page; reopening mounts a new instance.
- * - N1: a closed page's queued, not-yet-sent writes are dropped, never sent
- *   later over a newer instance's write. Its in-flight write's late result
- *   reaches the live app only while no newer instance of the page is mounted.
+ * - N1: a closed page's queued writes are still sent, in order, ahead of a
+ *   newer instance's; the group's writer outlives the page (round 4, PR #508:
+ *   round 3 dropped them, which left the live app on a value never saved).
+ *   More cases: wi43b-writer-registry.
  * - F508-3: a Shortcuts save that resolves after the dialog was closed and
  *   reopened does not close the new dialog or lose its edit.
  *
@@ -68,7 +69,7 @@ function mountWriter(group: string, save: (next: Slice) => Promise<unknown>) {
 }
 
 describe("N1: the writer across unmount", () => {
-  it("drops queued writes that were not sent when the page closed", async () => {
+  it("still sends the queued writes, in order, after the page closed", async () => {
     const { save, sent } = controlled<Slice>();
     const first = mountWriter(`g${(groupSeq += 1)}`, save);
     act(() => void first.result.current.write({ a: 1 }));
@@ -77,11 +78,14 @@ describe("N1: the writer across unmount", () => {
     first.unmount();
     sent[0].resolve();
     await settle();
-    expect(save).toHaveBeenCalledTimes(1);
-    expect(sent.map((s) => s.value)).toEqual([{ a: 1, b: 0 }]);
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(sent.map((s) => s.value)).toEqual([
+      { a: 1, b: 0 },
+      { a: 2, b: 0 },
+    ]);
   });
 
-  it("with no newer instance, a closed page's late result still reaches the live app, and dropped keys return to confirmed", async () => {
+  it("with no newer instance, a closed page's late results reach the live app, the queued one included", async () => {
     const { save, sent } = controlled<Slice>();
     const first = mountWriter(`g${(groupSeq += 1)}`, save);
     act(() => void first.result.current.write({ a: 1 }));
@@ -90,8 +94,11 @@ describe("N1: the writer across unmount", () => {
     first.unmount();
     sent[0].resolve();
     await settle();
+    sent[1].resolve();
+    await settle();
     expect(first.onConfirm).toHaveBeenCalledWith({ a: 1, b: 0 });
-    expect(first.apply).toHaveBeenLastCalledWith("b", 0);
+    expect(first.onConfirm).toHaveBeenLastCalledWith({ a: 1, b: 2 });
+    expect(first.apply).not.toHaveBeenCalledWith("b", 0);
   });
 
   it("with no newer instance, a closed page's failed write returns the live app to confirmed", async () => {
@@ -166,16 +173,16 @@ describe("N1: General closed with two interval writes pending, then reopened", (
     return { held, reopened };
   }
 
-  it("the old instance's 60 lands, its queued 120 is never sent, and the page and store end at 300", async () => {
+  it("the old instance's 60 lands, its queued 120 is sent next, and the page and store end at 300", async () => {
     const { held, reopened } = await scenario("resolve");
-    expect(held.map((h) => h.value)).toEqual([60, 300]);
+    expect(held.map((h) => h.value)).toEqual([60, 120, 300]);
     expect(reopened).toHaveValue("300");
     expect(useEditorStore.getState().autoSaveInterval).toBe(300);
   });
 
   it("the old instance's 60 is rejected, and its rollback does not reach the store under the new instance", async () => {
     const { held, reopened } = await scenario("reject");
-    expect(held.map((h) => h.value)).toEqual([60, 300]);
+    expect(held.map((h) => h.value)).toEqual([60, 120, 300]);
     expect(reopened).toHaveValue("300");
     expect(useEditorStore.getState().autoSaveInterval).toBe(300);
   });

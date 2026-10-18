@@ -41,14 +41,16 @@ export function AdvancedSettings() {
       setLevel(confirmed.level);
     },
   });
-  // Track the store until this page writes: App's hydrateSettings can land
+  // Track the store whenever the group is idle: App's hydrateSettings can land
   // after Settings opened, and a write must not be built on the store's
   // pre-hydration value (PR #508 N2). While a write is queued or in flight the
-  // writer owns the value; its confirmed result reaches the store through
-  // onConfirm and is re-seeded here, which changes nothing.
+  // writer owns the value; `idle` is a dependency so a store change skipped
+  // then is picked up once the group drains, whether its write was confirmed
+  // (onConfirm already moved the store) or rejected (round 4, N2 reject variant).
+  const idle = !writer.busy();
   useEffect(() => {
     if (!writer.busy()) writer.load({ enabled: storeEnabled, level: storeLevel });
-  }, [storeEnabled, storeLevel]);
+  }, [storeEnabled, storeLevel, idle]);
   const loggingEnabled = writer.value?.enabled ?? storeEnabled;
   const loggingLevel = writer.value?.level ?? storeLevel;
 
