@@ -675,6 +675,11 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 - **Tests (first)**：凭证生命周期；逐路由的拒绝矩阵（无凭证、错凭证、错 Host、错 Origin、未开 `eval`）；重复 id 不执行；迟到结果被丢弃；窗口代号；无开关不监听；feature 关闭时相关符号不存在；洁净检查脚本和监听清单解析的单测放 `tests/`。
 - **Rollback**：feature 默认关闭，回退提交即可。
 - **Estimate**：L。
+- **结果（2026-10-18，adr047-verify，未落地）**：六个子项实现完，分支 `feat/adr0047-wi009-control-channel`，PR #500；提交 SHA 在落地时补。
+  - WI 1–4：feature 与 CI 检查、请求契约与 handoff、`--control` 写的 0600 开关标记、服务端（Unix 套接字、凭证、至多一次、迟到结果丢弃、窗口代号、页面命令、输入、插件注册）。CI 的 ubuntu `cargo check --features control-channel` 通过。
+  - WI 5：第 10 条做成 `pnpm control:release-clean [--launch]`。四层都跑且干净才退出 0，有发现 1，第 4 层没跑 2。第 4 层只在 `--launch` 时跑、只在 Mac mini 上跑（用户选「Run it on the Mac mini instead」，2026-10-17 经 delegator 转达）；有 mdpro 进程或 `/tmp/com_mdpro_app_si.sock` 时拒绝。第 11 条由 `tests/control/control-plugin-order.test.ts` 钉住。
+  - WI5-T13 的已记录断言改了一处：跳过 `services/control_channel/**`，另加一格钉住模块的 cfg 与 `control-channel = ["verify-run"]`（delegator 批准）。
+  - 还没做：第 10 条第 3、4 层在真发布包上的运行（mini）；第 2、15、18 条的真机部分随 WI-011 的 S1–S5 重验。
 
 ### WI-010 固定探针 v1 与控制台缓冲
 

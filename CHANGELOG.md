@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Development tooling only; the app you install is unchanged. Verification builds can be built with a control channel that lets an agent drive the app, opened only when `pnpm control:launch --control on|eval` asks for it, and `pnpm control:release-clean` checks that a release build carries none of it (ADR-0047 WI-009).
+
 ### Changed
 - Every on/off setting in Settings is now the same switch, which screen readers announce as a switch that is on or off, and Space or a click flips it. Before, only the three Integrations toggles were switches and the others were plain checkboxes. Every Settings row now has the same title-and-description layout, and each control is named by its row title, so screen readers read the drop-downs and the font size control on the General and Editor pages by name, which they did not before (WI-4.3a).
 - When no mdpro window is focused (for example while another app is in front), New, New Window, Open, Open Recent, Settings and Theme from the menu bar now act in the mdpro window you used last, or in another open one if that window has closed. Before, nothing happened. Commands that edit a document still do nothing until you click into a window (D261).
