@@ -60,6 +60,17 @@ describe("findFencedRanges — happy path", () => {
 });
 
 describe("findFencedRanges — edge cases", () => {
+  // CommonMark 4.5: a backtick fence's info string cannot contain a backtick.
+  it("rejects a backtick opener with a backtick in its info string", () => {
+    const md = "pre\n```la`ng\ntext\n";
+    expect(findFencedRanges(md)).toEqual([]);
+  });
+
+  it("allows a tilde opener with a backtick in its info string", () => {
+    const md = "~~~la`ng\nx\n~~~\n";
+    expect(findFencedRanges(md)).toEqual([{ start: 0, end: 15 }]);
+  });
+
   it("respects up to 3 leading spaces of indent on the opening fence", () => {
     const md = "   ```\ncode\n   ```\n";
     expect(findFencedRanges(md)).toHaveLength(1);

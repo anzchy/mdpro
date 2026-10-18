@@ -13,7 +13,8 @@
  *
  * Recognizes ` ``` ` and `~~~` fences per CommonMark:
  * - Opener: up to 3 leading spaces, then 3+ backticks (or tildes),
- *   optional info string after.
+ *   optional info string after. A backtick opener's info string must not
+ *   contain a backtick; a tilde opener may contain one.
  * - Closer: same fence char, at least as many of them, only
  *   whitespace after on the line.
  * - Mismatched fence chars don't close (` ``` ` doesn't close `~~~`).
@@ -55,7 +56,11 @@ export function findFencedRanges(source: string): FenceRange[] {
     const lineText = source.slice(i, lineEnd);
     const m = lineText.match(FENCE_OPEN_RE);
 
-    if (!inFence && m) {
+    if (
+      !inFence &&
+      m &&
+      (m[2][0] === "~" || !lineText.slice(m[0].length).includes("`"))
+    ) {
       // Opening fence.
       inFence = true;
       fenceChar = m[2][0] as "`" | "~";
