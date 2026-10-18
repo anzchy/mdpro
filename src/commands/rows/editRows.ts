@@ -71,6 +71,7 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     v1: "Cmd+F",
     v2: "Cmd+F",
     availability: ["S", "S"],
+    nativeBehaviour: "WYSIWYG: browser find bar",
   }),
   configurable({
     id: "edit.findNext",

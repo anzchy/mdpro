@@ -82,6 +82,10 @@ export interface CommandRow {
   readonly availability: PerPlatform<Versioned<Availability>>;
   /** Today's route. */
   readonly route: PerPlatform<Route>;
-  /** Settings text for behaviour the platform provides itself. */
+  /**
+   * Settings text for behaviour the platform provides itself, shown off-Mac
+   * only (Windows and Linux): e.g. WebView2's find bar (D19). On macOS the
+   * row keeps its availability text.
+   */
   readonly nativeBehaviour?: string;
 }

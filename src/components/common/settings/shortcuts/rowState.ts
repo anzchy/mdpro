@@ -7,9 +7,12 @@
  * - `unavailable` (availability `none`): no key button. `fixed` (a fixed key)
  *   and `system` (a configurable row whose default is `<system>`): the key
  *   in a non-editable box. Everything else is `configurable`.
- * - The capability line is the row's `nativeBehaviour` text, else
- *   "WYSIWYG only" / "Source only"; it states what the command can do,
- *   never the window's current mode (§ 5.5).
+ * - The capability line is the row's `nativeBehaviour` text off-Mac (D19:
+ *   Find's "WYSIWYG: browser find bar"), else "WYSIWYG only" / "Source
+ *   only"; it states what the command can do, never the window's current
+ *   mode (§ 5.5).
+ * - The key-kind branch is an exhaustive switch ending in `assertNever`
+ *   (rule 60).
  * - Pending compares the saved value with the run's applied snapshot, never
  *   the unsaved edit (ADR-0114 Decision 4). Before M1b nothing is suppressed
  *   at startup, so a suppressed duplicate is not a state here; M1b adds it.
@@ -112,11 +115,17 @@ export function rowStateOf(input: RowStateInput): RowState | null {
   const availability = row.availability[platform][ver];
   const key = row.key[platform];
   const secondaries = key.secondaries[ver];
-  if (key.kind === "fixed") {
-    const fixedKey = key.defaults[ver];
-    if (fixedKey === null) return null;
-    if (availability === "none") return { kind: "unavailable" };
-    return { kind: "fixed", key: fixedKey, secondaries };
+  switch (key.kind) {
+    case "fixed": {
+      const fixedKey = key.defaults[ver];
+      if (fixedKey === null) return null;
+      if (availability === "none") return { kind: "unavailable" };
+      return { kind: "fixed", key: fixedKey, secondaries };
+    }
+    case "configurable":
+      break;
+    default:
+      return assertNever(key);
   }
   if (availability === "none") return { kind: "unavailable" };
   const fallback = key.defaults[ver];
@@ -126,7 +135,11 @@ export function rowStateOf(input: RowStateInput): RowState | null {
   return {
     kind: "configurable",
     value: input.local[field] ?? fallback,
-    capability: row.nativeBehaviour ?? capabilityText(availability),
+    // nativeBehaviour is off-Mac text (D19): macOS has no browser find bar.
+    capability:
+      platform !== "macos" && row.nativeBehaviour !== undefined
+        ? row.nativeBehaviour
+        : capabilityText(availability),
     secondaries,
     conflict: input.conflicts.has(field),
     pending: pendingOf(input, field, fallback),

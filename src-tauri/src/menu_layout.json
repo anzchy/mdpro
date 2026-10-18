@@ -828,7 +828,8 @@
         "macos": "frontend",
         "windows": "frontend",
         "linux": "frontend"
-      }
+      },
+      "nativeBehaviour": "WYSIWYG: browser find bar"
     },
     {
       "id": "edit.findNext",
