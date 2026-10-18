@@ -50,6 +50,12 @@ Each work item captures before/after screenshots per item × theme, and the stag
 ### WI-4.3 — Settings row contract and ToggleSwitch (item 5, E4) — M
 - **Split for review (2026-10-17, mdpro-delegator):** this item lands as three PRs, in order:
   - **4.3a**: row markup and ToggleSwitch, including the Tests that cover them;
+    - **Status (2026-10-18, mdpro-design):** ✅ implemented and unit-verified on `feat/wi43a-settings-rows` (receipt `WI43A-1`); not device-verified. The SHA is recorded at landing. Preflight confirmed nine switches in six files, and found:
+      - General and Editor controls had no accessible name at all; they now take their row title.
+      - The Font Size stepper needed an optional `labelledBy` prop (`SettingsStepper.tsx`, grant widened 2026-10-18); its value moved from its name to its description.
+      - `.settings-integrations h4` reached no element (no Integrations part renders an `h4`), so it was deleted rather than scoped, like `.settings-general p`.
+      - The Integrations lock reason was the one `settings-row-description` outside a row; it is now `.settings-lock-reason`, same type.
+      - The title and description keep the old `strong` / `.settings-row-description` values (`--font-size-ui-lg`, `--color-text-secondary`); DESIGN.md § Settings rows' `--font-size-ui` title and muted description are left to the visual pass.
   - **4.3b**: States, Busy labels, Integrations empty/partial and Disabled reasons;
   - **4.3c**: the unsaved banner and its interim-token deletion, together with WI-4.4.
   Line cites below that point at `globals.css` predate D278's move into section partials. Today the banner is at `settings-pages.css:19-37`, the badge at `settings-mcp.css:13-16`, and the toggle at `settings-rows.css:138-176`. Preflight re-reads them.

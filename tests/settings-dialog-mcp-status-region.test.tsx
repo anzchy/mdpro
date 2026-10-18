@@ -96,7 +96,7 @@ async function route(cmd: unknown, args: unknown): Promise<unknown> {
 
 async function openIntegrations(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Integrations" }));
-  await screen.findByRole("checkbox", { name: SERVER });
+  await screen.findByRole("switch", { name: SERVER });
 }
 
 beforeEach(() => {
@@ -146,7 +146,7 @@ describe("WI-6 McpServerStatus", () => {
     statusReply = status({ running: false, port: null, phase: "disabled", configured: "disabled" });
     const view = render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
-    const server = screen.getByRole("checkbox", { name: SERVER });
+    const server = screen.getByRole("switch", { name: SERVER });
     await waitFor(() => expect(server).toBeEnabled());
     await waitFor(() => expect(server).not.toBeChecked());
 
@@ -170,7 +170,7 @@ describe("WI-6 McpServerStatus", () => {
     view.rerender(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Off"));
-    const reopened = screen.getByRole("checkbox", { name: SERVER });
+    const reopened = screen.getByRole("switch", { name: SERVER });
     await waitFor(() => expect(reopened).toBeEnabled());
     await waitFor(() => expect(reopened).not.toBeChecked());
     expect(within(screen.getByRole("status")).queryByText(NOT_SAVED_NOTE)).toBeNull();
@@ -197,7 +197,7 @@ describe("WI-6 McpServerStatus", () => {
     statusReply = status({ running: false, port: null, phase: "disabled", configured: "disabled" });
     render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
-    const server = screen.getByRole("checkbox", { name: SERVER });
+    const server = screen.getByRole("switch", { name: SERVER });
     await waitFor(() => expect(server).toBeEnabled());
     await waitFor(() => expect(server).not.toBeChecked());
 
@@ -276,8 +276,8 @@ describe("WI-6 McpServerStatus", () => {
     switchReply = { reject: "persist_failed" };
     render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
-    const server = screen.getByRole("checkbox", { name: SERVER });
-    await waitFor(() => expect(screen.getByRole("checkbox", { name: /Start on launch/i })).toBeChecked());
+    const server = screen.getByRole("switch", { name: SERVER });
+    await waitFor(() => expect(screen.getByRole("switch", { name: /Start on launch/i })).toBeChecked());
 
     await user.click(server);
     // ADR-0040 migration: was set_preferences × 1, then a second mcp_get_status (no re-fetch now).
@@ -298,7 +298,7 @@ describe("WI-6 McpServerStatus", () => {
     switchReply = { reject: "persist_failed" };
     render(<SettingsDialog open onClose={noop} />);
     await openIntegrations(user);
-    const server = screen.getByRole("checkbox", { name: SERVER });
+    const server = screen.getByRole("switch", { name: SERVER });
     await waitFor(() => expect(server).toBeEnabled());
     await waitFor(() => expect(server).toBeChecked());
 

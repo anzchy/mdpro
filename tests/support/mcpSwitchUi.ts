@@ -28,7 +28,7 @@ export function dialog(open: boolean) {
 }
 
 export function server(): HTMLElement {
-  return screen.getByRole("checkbox", { name: SERVER });
+  return screen.getByRole("switch", { name: SERVER });
 }
 
 export function region(): HTMLElement {
@@ -38,7 +38,7 @@ export function region(): HTMLElement {
 /** Navigate to Integrations and wait until the toggles are hydrated and the status shows. */
 export async function openIntegrations(user: User): Promise<void> {
   await user.click(screen.getByRole("button", { name: "Integrations" }));
-  const toggle = await screen.findByRole("checkbox", { name: SERVER });
+  const toggle = await screen.findByRole("switch", { name: SERVER });
   await waitFor(() => expect(toggle).toBeEnabled());
   await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
 }

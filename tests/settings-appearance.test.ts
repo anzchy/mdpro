@@ -8,7 +8,7 @@
  *   1. isCodeTheme type guard validates enum before applying.
  *   2. Async rollback: reverts prefs and code theme on save failure.
  *   3. error state and cancellation guard in useEffect.
- *   4. ARIA: label htmlFor wired to control id.
+ *   4. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a).
  */
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
@@ -52,8 +52,9 @@ describe("AppearanceSettings — source structure", () => {
     expect(src).toContain("settings-error");
   });
 
-  it("ARIA: code theme label is linked to its select via htmlFor/id", () => {
-    expect(src).toContain('htmlFor="appearance-code-theme"');
+  it("ARIA: code theme select is named by its row title via aria-labelledby", () => {
+    expect(src).toContain('<h4 id="appearance-code-theme-label">');
+    expect(src).toMatch(/(aria-labelledby|labelledBy)="appearance-code-theme-label"/);
     expect(src).toContain('id="appearance-code-theme"');
   });
 });

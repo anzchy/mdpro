@@ -33,7 +33,7 @@ const noop = () => {};
 
 async function openIntegrations(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Integrations" }));
-  await screen.findByRole("checkbox", { name: /Enable MCP Server/i });
+  await screen.findByRole("switch", { name: /Enable MCP Server/i });
   await screen.findByRole("status");
 }
 

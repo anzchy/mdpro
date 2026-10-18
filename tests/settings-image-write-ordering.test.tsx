@@ -71,7 +71,7 @@ function folderInput(): HTMLInputElement {
 }
 
 function copyCheckbox(): HTMLInputElement {
-  return screen.getByRole("checkbox", { name: COPY_NAME }) as HTMLInputElement;
+  return screen.getByRole("switch", { name: COPY_NAME }) as HTMLInputElement;
 }
 
 /**
@@ -539,7 +539,7 @@ describe("ImageSettings — a failed debounced write must not destroy the panel 
     // save path, where their absence was the defect. The busy note is suppressed
     // too, so the error is not competing with a spinner.
     expect(screen.queryByRole("textbox", { name: /Image Folder/i })).toBeNull();
-    expect(screen.queryByRole("checkbox", { name: /Copy Images/i })).toBeNull();
+    expect(screen.queryByRole("switch", { name: /Copy Images/i })).toBeNull();
     expect(document.querySelector("[aria-busy='true']")).toBeNull();
 
     // Nothing is written off a failed load. Sending defaults here is precisely

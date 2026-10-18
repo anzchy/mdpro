@@ -148,7 +148,7 @@ async function clickThrough(
   mcp.switchGate = write;
   mcp.switchReplies = [row.write === "ok" ? status(row.post) : { reject: "persist_failed" }];
 
-  await user.click(screen.getByRole("checkbox", { name: SERVER }));
+  await user.click(screen.getByRole("switch", { name: SERVER }));
   await waitFor(() => expect(callsFor("mcp_set_server_enabled")).toBe(switchBase + 1));
   expect(callsFor("mcp_get_status")).toBe(statusBase);
   sample("P0");
@@ -198,7 +198,7 @@ describe("N5 the note is never Changed elsewhere from the click until the post-w
     mcp.status = status(row.initial);
     render(<SettingsDialog open onClose={noop} />);
     await user.click(screen.getByRole("button", { name: "Integrations" }));
-    const server = await screen.findByRole("checkbox", { name: SERVER });
+    const server = await screen.findByRole("switch", { name: SERVER });
     await waitFor(() => expect(server).toBeEnabled());
     await waitFor(() => expect(region()).toBeInTheDocument());
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ImageConfig, UserPreferences } from "../../../types/preferences";
 import { DEFAULT_IMAGE_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
+import { ToggleSwitch } from "../ToggleSwitch";
 
 interface ImageSlice {
   assetFolder: string;
@@ -39,7 +40,7 @@ export function ImageSettings() {
    *
    * Rolling back against the *latest* slice protects a **sibling** the user
    * edited while the failing write was open (WI2-G′). It does not protect the
-   * failing field itself: toggle a checkbox three times with the first write
+   * failing field itself: toggle a switch three times with the first write
    * still in flight and that write's rollback restores a value the boundary has
    * already superseded twice, with no further event to correct it.
    *
@@ -129,7 +130,7 @@ export function ImageSettings() {
     };
   }, []);
 
-  /** Checkbox toggle — immediate async save, rolling back only this control. */
+  /** Switch toggle — immediate async save, rolling back only this control. */
   const handleBoolChange = async (key: keyof ImageSlice, value: boolean) => {
     const current = prefsRef.current;
     if (!current) return;
@@ -197,14 +198,13 @@ export function ImageSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <label htmlFor="img-asset-folder">
-                  <h4>Image Folder</h4>
-                  <p>Relative path to store images (from the document location).</p>
-                </label>
+                <h4 id="img-asset-folder-label">Image Folder</h4>
+                <p>Relative path to store images (from the document location).</p>
               </div>
               <div className="settings-row-control">
                 <input
                   id="img-asset-folder"
+                  aria-labelledby="img-asset-folder-label"
                   type="text"
                   className="settings-input"
                   value={prefs.assetFolder}
@@ -217,18 +217,16 @@ export function ImageSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <label htmlFor="img-copy-external">
-                  <h4>Copy Images to Folder on Paste</h4>
-                  <p>Automatically copy external images to the image folder.</p>
-                </label>
+                <h4 id="img-copy-external-label">Copy Images to Folder on Paste</h4>
+                <p>Automatically copy external images to the image folder.</p>
               </div>
               <div className="settings-row-control">
-                <input
+                <ToggleSwitch
                   id="img-copy-external"
-                  type="checkbox"
+                  labelledBy="img-copy-external-label"
                   checked={prefs.copyExternalImages}
-                  onChange={(e) => {
-                    void handleBoolChange("copyExternalImages", e.target.checked);
+                  onChange={(v) => {
+                    void handleBoolChange("copyExternalImages", v);
                   }}
                 />
               </div>

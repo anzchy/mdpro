@@ -58,12 +58,12 @@ function logCalls(): LogEntryPayload[] {
 }
 
 function toggle(name: RegExp) {
-  return screen.getByRole("checkbox", { name });
+  return screen.getByRole("switch", { name });
 }
 
 async function openIntegrations(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Integrations" }));
-  await screen.findByRole("checkbox", { name: SERVER });
+  await screen.findByRole("switch", { name: SERVER });
 }
 
 async function expectFailedLoad() {

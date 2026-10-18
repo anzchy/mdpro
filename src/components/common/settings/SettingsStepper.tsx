@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 interface StepperProps {
   value: number;
@@ -6,6 +6,8 @@ interface StepperProps {
   max: number;
   onChange: (value: number) => void;
   unit?: string;
+  /** id of the row title that names the group; without it the value names it. */
+  labelledBy?: string;
 }
 
 /**
@@ -14,8 +16,12 @@ interface StepperProps {
  * before the parent has re-rendered with the new prop.  Debounces the
  * onChange callback by 150ms so the preferences service is not hammered on
  * every keypress or click.
+ *
+ * With `labelledBy`, the group is named by its row title (WI-4.3a) and the
+ * current value becomes its description, so it is still announced.
  */
-export function SettingsStepper({ value, min, max, onChange, unit = "" }: StepperProps) {
+export function SettingsStepper({ value, min, max, onChange, unit = "", labelledBy }: StepperProps) {
+  const valueId = useId();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // pendingRef tracks the optimistic value between rapid clicks
   const pendingRef = useRef(value);
@@ -70,7 +76,9 @@ export function SettingsStepper({ value, min, max, onChange, unit = "" }: Steppe
     <div
       className="settings-stepper"
       role="group"
-      aria-label={`Value: ${displayValue}${unit}`}
+      aria-label={labelledBy ? undefined : `Value: ${displayValue}${unit}`}
+      aria-labelledby={labelledBy}
+      aria-describedby={labelledBy ? valueId : undefined}
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
@@ -83,7 +91,7 @@ export function SettingsStepper({ value, min, max, onChange, unit = "" }: Steppe
       >
         −
       </button>
-      <span>
+      <span id={valueId}>
         {displayValue}
         {unit}
       </span>

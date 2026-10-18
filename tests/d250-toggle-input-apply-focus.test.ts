@@ -49,7 +49,7 @@ describe("D250 (O1): the MCP toggles show keyboard focus", () => {
   });
 
   it("the checkbox is the track's previous sibling, so the `+` combinator reaches it", () => {
-    const tsx = read("components/common/McpToggleRow.tsx");
+    const tsx = read("components/common/ToggleSwitch.tsx");
     expect(tsx).toMatch(/<label className="toggle-switch">\s*<input\b[^>]*type="checkbox"[\s\S]*?\/>\s*<span className="toggle-slider" \/>/);
   });
 

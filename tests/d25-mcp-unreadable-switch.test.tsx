@@ -69,7 +69,7 @@ async function openIntegrations() {
   const user = userEvent.setup();
   render(<SettingsDialog open onClose={noop} />);
   await user.click(screen.getByRole("button", { name: "Integrations" }));
-  return screen.findByRole("checkbox", { name: SERVER });
+  return screen.findByRole("switch", { name: SERVER });
 }
 
 function panel(): HTMLElement {
@@ -108,7 +108,7 @@ describe("D25-1 corrupt config: the switch mirrors the server and one note is sh
     expect(countOccurrences(panel().textContent ?? "", UNREADABLE_NOTE)).toBe(1);
     expect(screen.queryByText(LOAD_FAILED_REASON)).toBeNull();
     for (const name of TOGGLES) {
-      const toggle = screen.getByRole("checkbox", { name });
+      const toggle = screen.getByRole("switch", { name });
       expect(toggle).toBeDisabled();
       expect(describedText(toggle)).toBe(UNREADABLE_NOTE);
     }

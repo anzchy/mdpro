@@ -3,6 +3,7 @@ import { useLoggingStore } from "../../../stores/loggingStore";
 import type { LogLevel } from "../../../types/logging";
 import { loggingService } from "../../../services/loggingService";
 import { isWindowsPlatform, logFileHint } from "../../../utils/platformLabels";
+import { ToggleSwitch } from "../ToggleSwitch";
 
 const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string }[] = [
   { value: "debug", label: "Debug" },
@@ -70,42 +71,43 @@ export function AdvancedSettings() {
       {saveError && <p className="settings-error">{saveError}</p>}
 
       <div className="settings-row">
-        <div className="settings-row-label">
-          <label htmlFor="adv-logging-enabled">
-            <h4>Enable Logging</h4>
+        <div className="settings-row-content">
+          <div className="settings-row-label">
+            <h4 id="adv-logging-enabled-label">Enable Logging</h4>
             <p>{logFileHint(isWindowsPlatform())}</p>
-          </label>
-        </div>
-        <div className="settings-row-control">
-          <input
-            id="adv-logging-enabled"
-            type="checkbox"
-            checked={loggingEnabled}
-            onChange={(e) => void handleLoggingToggle(e.target.checked)}
-          />
+          </div>
+          <div className="settings-row-control">
+            <ToggleSwitch
+              id="adv-logging-enabled"
+              labelledBy="adv-logging-enabled-label"
+              checked={loggingEnabled}
+              onChange={(v) => void handleLoggingToggle(v)}
+            />
+          </div>
         </div>
       </div>
 
       <div className="settings-row">
-        <div className="settings-row-label">
-          <label htmlFor="adv-logging-level">
-            <h4>Log Level</h4>
+        <div className="settings-row-content">
+          <div className="settings-row-label">
+            <h4 id="adv-logging-level-label">Log Level</h4>
             <p>Minimum severity level to record.</p>
-          </label>
-        </div>
-        <div className="settings-row-control">
-          <select
-            id="adv-logging-level"
-            className="settings-select"
-            value={loggingLevel}
-            onChange={(e) => void handleLogLevelChange(e.target.value)}
-          >
-            {LOG_LEVEL_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          </div>
+          <div className="settings-row-control">
+            <select
+              id="adv-logging-level"
+              aria-labelledby="adv-logging-level-label"
+              className="settings-select"
+              value={loggingLevel}
+              onChange={(e) => void handleLogLevelChange(e.target.value)}
+            >
+              {LOG_LEVEL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
     </div>

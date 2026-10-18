@@ -9,7 +9,7 @@
  *   2. Async rollback for handleBoolChange.
  *   3. Debounced folder text save (500 ms).
  *   4. handleBrowse uses exportService.pickFolder with rollback.
- *   5. ARIA: label htmlFor wired to control id on both controls.
+ *   5. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a) on both controls.
  */
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
@@ -52,13 +52,15 @@ describe("ExportSettings — source structure", () => {
     expect(src).toContain("exportService.pickFolder");
   });
 
-  it("ARIA: default folder label is linked to its input via htmlFor/id", () => {
-    expect(src).toContain('htmlFor="export-default-folder"');
+  it("ARIA: default folder input is named by its row title via aria-labelledby", () => {
+    expect(src).toContain('<h4 id="export-default-folder-label">');
+    expect(src).toMatch(/(aria-labelledby|labelledBy)="export-default-folder-label"/);
     expect(src).toContain('id="export-default-folder"');
   });
 
-  it("ARIA: include styles label is linked to its checkbox via htmlFor/id", () => {
-    expect(src).toContain('htmlFor="export-include-styles"');
+  it("ARIA: include styles switch is named by its row title via aria-labelledby", () => {
+    expect(src).toContain('<h4 id="export-include-styles-label">');
+    expect(src).toMatch(/(aria-labelledby|labelledBy)="export-include-styles-label"/);
     expect(src).toContain('id="export-include-styles"');
   });
 });

@@ -186,7 +186,7 @@ async function mountPanel() {
 const folderInput = () =>
   screen.getByRole("textbox", { name: /Default Export Folder/i });
 const stylesCheckbox = () =>
-  screen.getByRole("checkbox", { name: /Include Styles/i });
+  screen.getByRole("switch", { name: /Include Styles/i });
 const browseButton = () => screen.getByRole("button", { name: /Browse/i });
 
 type ActionId = "T" | "B" | "P";
@@ -546,7 +546,7 @@ describe("ExportSettings — failure paths keep the panel honest", () => {
     // unlike the save path, where their absence was the defect. The busy note is
     // suppressed too, so the error is not competing with a spinner.
     expect(screen.queryByRole("textbox", { name: /Default Export Folder/i })).toBeNull();
-    expect(screen.queryByRole("checkbox", { name: /Include Styles/i })).toBeNull();
+    expect(screen.queryByRole("switch", { name: /Include Styles/i })).toBeNull();
     expect(document.querySelector("[aria-busy='true']")).toBeNull();
 
     // No write is attempted off a failed load — the panel has nothing to send,

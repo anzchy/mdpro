@@ -5,7 +5,7 @@
  *
  * Pipeline: `get_preferences` → local `ExportConfig` state → one whole-group
  * `set_preferences` payload per user action (the text field debounced, the
- * checkbox and the folder picker immediate).
+ * switch and the folder picker immediate).
  *
  * Key decisions:
  *
@@ -48,6 +48,7 @@ import type { ExportConfig } from "../../../types/preferences";
 import { DEFAULT_EXPORT_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { exportService } from "../../../services/exportService";
+import { ToggleSwitch } from "../ToggleSwitch";
 
 /**
  * Debounce window for the free-text folder field.
@@ -91,7 +92,7 @@ export function ExportSettings() {
    * Field-scoped rollback rebuilds siblings from the current group, so a
    * *sibling* edit made while a write was in flight already survives (WI1-E′).
    * It does not protect the failing leaf itself, and two writers target
-   * `defaultFolder` — {@link handleBrowse} and the debounce — while a checkbox
+   * `defaultFolder` — {@link handleBrowse} and the debounce — while a switch
    * can be toggled three times with the first write still open. Restoring that
    * leaf's schedule-time value then reverts a newer edit *and*, if a debounce is
    * armed, persists the reverted value, so screen and disk agree on something
@@ -198,7 +199,7 @@ export function ExportSettings() {
     setPrefs(prev);
   };
 
-  /** Checkbox toggle — immediate async save with rollback. */
+  /** Switch toggle — immediate async save with rollback. */
   const handleBoolChange = async (key: keyof ExportConfig, value: boolean) => {
     const current = prefsRef.current;
     if (!current) return;
@@ -263,50 +264,42 @@ export function ExportSettings() {
       {prefs !== null && (
         <>
           <div className="settings-row">
-            <div className="settings-row-label">
-              <label htmlFor="export-default-folder">
-                <h4>Default Export Folder</h4>
-                <p>
-                  Where exported HTML files are saved by default. Leave empty to
-                  prompt each time.
-                </p>
-              </label>
-            </div>
-            <div className="settings-row-control" style={{ display: "flex", gap: 6 }}>
-              <input
-                id="export-default-folder"
-                type="text"
-                className="settings-input"
-                value={prefs.defaultFolder}
-                onChange={(e) => handleFolderChange(e.target.value)}
-                placeholder="(prompt on export)"
-              />
-              <button
-                className="toolbar-button"
-                type="button"
-                onClick={() => void handleBrowse()}
-              >
-                Browse…
-              </button>
+            <div className="settings-row-content">
+              <div className="settings-row-label">
+                <h4 id="export-default-folder-label">Default Export Folder</h4>
+                <p>Where exported HTML files are saved by default. Leave empty to prompt each time.</p>
+              </div>
+              <div className="settings-row-control">
+                <input
+                  id="export-default-folder"
+                  aria-labelledby="export-default-folder-label"
+                  type="text"
+                  className="settings-input"
+                  value={prefs.defaultFolder}
+                  onChange={(e) => handleFolderChange(e.target.value)}
+                  placeholder="(prompt on export)"
+                />
+                <button className="toolbar-button" type="button" onClick={() => void handleBrowse()}>
+                  Browse…
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="settings-row">
-            <div className="settings-row-label">
-              <label htmlFor="export-include-styles">
-                <h4>Include Styles in HTML Export</h4>
+            <div className="settings-row-content">
+              <div className="settings-row-label">
+                <h4 id="export-include-styles-label">Include Styles in HTML Export</h4>
                 <p>Embed CSS styles directly in the exported HTML file.</p>
-              </label>
-            </div>
-            <div className="settings-row-control">
-              <input
-                id="export-include-styles"
-                type="checkbox"
-                checked={prefs.htmlIncludeStyles}
-                onChange={(e) => {
-                  void handleBoolChange("htmlIncludeStyles", e.target.checked);
-                }}
-              />
+              </div>
+              <div className="settings-row-control">
+                <ToggleSwitch
+                  id="export-include-styles"
+                  labelledBy="export-include-styles-label"
+                  checked={prefs.htmlIncludeStyles}
+                  onChange={(v) => void handleBoolChange("htmlIncludeStyles", v)}
+                />
+              </div>
             </div>
           </div>
         </>

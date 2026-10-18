@@ -206,7 +206,7 @@ export function IntegrationsSettings({
       )}
 
       {lockReason && (
-        <p id={MCP_REASON_ID} className="settings-row-description">{lockReason}</p>
+        <p id={MCP_REASON_ID} className="settings-lock-reason">{lockReason}</p>
       )}
       <McpToggleRow
         labelId="mcp-toggle-server-label"

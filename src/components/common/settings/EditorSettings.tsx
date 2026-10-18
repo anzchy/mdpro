@@ -4,6 +4,7 @@ import { DEFAULT_EDITOR_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { applyEditorPref } from "./editorPrefApply";
 import { SettingsStepper } from "./SettingsStepper";
+import { ToggleSwitch } from "../ToggleSwitch";
 
 export function EditorSettings() {
   const [prefs, setPrefs] = useState<EditorConfig | null>(null);
@@ -71,10 +72,11 @@ export function EditorSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <h4>Font Family</h4>
+                <h4 id="editor-font-family-label">Font Family</h4>
               </div>
               <div className="settings-row-control">
                 <select
+                  aria-labelledby="editor-font-family-label"
                   className="settings-select"
                   value={prefs.fontFamily}
                   onChange={(e) =>
@@ -96,10 +98,11 @@ export function EditorSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <h4>Font Size</h4>
+                <h4 id="editor-font-size-label">Font Size</h4>
               </div>
               <div className="settings-row-control">
                 <SettingsStepper
+                  labelledBy="editor-font-size-label"
                   value={prefs.fontSize}
                   min={12}
                   max={24}
@@ -114,10 +117,11 @@ export function EditorSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <h4>Line Height</h4>
+                <h4 id="editor-line-height-label">Line Height</h4>
               </div>
               <div className="settings-row-control">
                 <select
+                  aria-labelledby="editor-line-height-label"
                   className="settings-select"
                   value={prefs.lineHeightX10}
                   onChange={(e) =>
@@ -138,10 +142,11 @@ export function EditorSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <h4>Content Width</h4>
+                <h4 id="editor-content-width-label">Content Width</h4>
               </div>
               <div className="settings-row-control">
                 <select
+                  aria-labelledby="editor-content-width-label"
                   className="settings-select"
                   value={prefs.contentWidth}
                   onChange={(e) =>
@@ -165,10 +170,11 @@ export function EditorSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <h4>Tab Size</h4>
+                <h4 id="editor-tab-size-label">Tab Size</h4>
               </div>
               <div className="settings-row-control">
                 <select
+                  aria-labelledby="editor-tab-size-label"
                   className="settings-select"
                   value={prefs.tabSize}
                   onChange={(e) =>
@@ -186,13 +192,13 @@ export function EditorSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <h4>Word Wrap</h4>
+                <h4 id="editor-word-wrap-label">Word Wrap</h4>
               </div>
               <div className="settings-row-control">
-                <input
-                  type="checkbox"
+                <ToggleSwitch
+                  labelledBy="editor-word-wrap-label"
                   checked={prefs.wordWrap}
-                  onChange={(e) => void handleChange("wordWrap", e.target.checked)}
+                  onChange={(v) => void handleChange("wordWrap", v)}
                 />
               </div>
             </div>

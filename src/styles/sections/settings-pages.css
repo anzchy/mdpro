@@ -71,12 +71,6 @@
   font-size: 18px;
 }
 
-.settings-general p {
-  margin: 6px 0 16px;
-  color: var(--color-muted);
-  font-size: 13px;
-}
-
 .settings-form {
   display: flex;
   flex-direction: column;

@@ -33,7 +33,7 @@ const ROLES: Array<[file: string, selector: string, token: string]> = [
   ["plugins/codemirror/wysiwygDecorationsPlugin.css", ".wysiwyg-marker", "--font-size-ui-sm"],
   [S + "buttons-dialog.css", ".dialog-title", "--font-size-ui-lg"],
   [S + "settings-shell.css", ".settings-title", "--font-size-ui-lg"],
-  [S + "settings-rows.css", ".settings-integrations h4", "--font-size-ui-lg"],
+  [S + "settings-rows.css", ".settings-row-label h4", "--font-size-ui-lg"],
   [S + "settings-pages.css", ".settings-page-title", "--font-size-title"],
   [S + "settings-about.css", ".about-app-name", "--font-size-title"],
   [S + "settings-rows.css", ".settings-integrations h3", "--font-size-title"],

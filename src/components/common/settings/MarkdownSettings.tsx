@@ -3,6 +3,7 @@ import type { MarkdownConfig } from "../../../types/preferences";
 import { DEFAULT_MARKDOWN_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { applyAutoPair } from "./editorPrefApply";
+import { ToggleSwitch } from "../ToggleSwitch";
 
 export function MarkdownSettings() {
   const [prefs, setPrefs] = useState<MarkdownConfig | null>(null);
@@ -67,18 +68,16 @@ export function MarkdownSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <label htmlFor="md-auto-pair">
-                  <h4>Auto-pair Brackets &amp; Quotes</h4>
-                  <p>Automatically close brackets, parentheses, and quotes.</p>
-                </label>
+                <h4 id="md-auto-pair-label">Auto-pair Brackets &amp; Quotes</h4>
+                <p>Automatically close brackets, parentheses, and quotes.</p>
               </div>
               <div className="settings-row-control">
-                <input
+                <ToggleSwitch
                   id="md-auto-pair"
-                  type="checkbox"
+                  labelledBy="md-auto-pair-label"
                   checked={prefs.autoPair}
-                  onChange={(e) => {
-                    void handleChange("autoPair", e.target.checked);
+                  onChange={(v) => {
+                    void handleChange("autoPair", v);
                   }}
                 />
               </div>
@@ -88,25 +87,20 @@ export function MarkdownSettings() {
           <div className="settings-row">
             <div className="settings-row-content">
               <div className="settings-row-label">
-                <label htmlFor="md-auto-reformat-tables">
-                  <h4>Auto-Reformat Tables on Save</h4>
-                  <p>
-                    Pretty-print GFM tables (column-aligned pipes) every
-                    time the document is saved. Off by default — produces
-                    noisy diffs in version-controlled files.
-                  </p>
-                </label>
+                <h4 id="md-auto-reformat-tables-label">Auto-Reformat Tables on Save</h4>
+                <p>
+                  Pretty-print GFM tables (column-aligned pipes) every
+                  time the document is saved. Off by default — produces
+                  noisy diffs in version-controlled files.
+                </p>
               </div>
               <div className="settings-row-control">
-                <input
+                <ToggleSwitch
                   id="md-auto-reformat-tables"
-                  type="checkbox"
+                  labelledBy="md-auto-reformat-tables-label"
                   checked={prefs.autoReformatTablesOnSave}
-                  onChange={(e) => {
-                    void handleChange(
-                      "autoReformatTablesOnSave",
-                      e.target.checked,
-                    );
+                  onChange={(v) => {
+                    void handleChange("autoReformatTablesOnSave", v);
                   }}
                 />
               </div>

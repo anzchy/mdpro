@@ -71,14 +71,13 @@ export function AppearanceSettings() {
         <div className="settings-row">
           <div className="settings-row-content">
             <div className="settings-row-label">
-              <label htmlFor="appearance-code-theme">
-                <h4>Code Block Theme</h4>
-                <p>Applies in Source mode.</p>
-              </label>
+              <h4 id="appearance-code-theme-label">Code Block Theme</h4>
+              <p>Applies in Source mode.</p>
             </div>
             <div className="settings-row-control">
               <select
                 id="appearance-code-theme"
+                aria-labelledby="appearance-code-theme-label"
                 className="settings-select"
                 value={prefs.codeTheme}
                 onChange={(e) => {

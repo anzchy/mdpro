@@ -145,7 +145,7 @@ describe("WI-10 the server toggle goes through mcp_set_server_enabled", () => {
     mcp.prefsMcp = { serverEnabled: true, startOnLaunch: false, autoApproveEdits: false };
     await renderIntegrations(user);
 
-    await user.click(screen.getByRole("checkbox", { name: LAUNCH }));
+    await user.click(screen.getByRole("switch", { name: LAUNCH }));
     await waitFor(() => expect(calls("set_preferences")).toHaveLength(1));
     await flush();
 

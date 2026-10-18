@@ -9,7 +9,7 @@
  *   2. Stale-closure race fixed: handlers call useLoggingStore.getState() for fresh values.
  *   3. Optimistic update order: setEnabled/setLevel called AFTER await succeeds.
  *   4. saveError state surfaces persistence failures.
- *   5. ARIA: label htmlFor wired to control id on both controls.
+ *   5. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a) on both controls.
  */
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
@@ -59,13 +59,15 @@ describe("AdvancedSettings — source structure", () => {
     expect(src).toContain("{saveError &&");
   });
 
-  it("ARIA: Enable Logging label is linked to its checkbox via htmlFor/id", () => {
-    expect(src).toContain('htmlFor="adv-logging-enabled"');
+  it("ARIA: Enable Logging switch is named by its row title via aria-labelledby", () => {
+    expect(src).toContain('<h4 id="adv-logging-enabled-label">');
+    expect(src).toMatch(/(aria-labelledby|labelledBy)="adv-logging-enabled-label"/);
     expect(src).toContain('id="adv-logging-enabled"');
   });
 
-  it("ARIA: Log Level label is linked to its select via htmlFor/id", () => {
-    expect(src).toContain('htmlFor="adv-logging-level"');
+  it("ARIA: Log Level select is named by its row title via aria-labelledby", () => {
+    expect(src).toContain('<h4 id="adv-logging-level-label">');
+    expect(src).toMatch(/(aria-labelledby|labelledBy)="adv-logging-level-label"/);
     expect(src).toContain('id="adv-logging-level"');
   });
 });

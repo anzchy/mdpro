@@ -170,7 +170,6 @@ const UNRENDERED: Unrendered[] = [
   u(S + "settings-pages.css", ".settings-placeholder p", "font-size", "13px", ORPHAN),
   u(S + "settings-pages.css", ".settings-placeholder-note", "font-size", "12px", ORPHAN),
   u(S + "settings-pages.css", ".settings-general h3", "font-size", "18px", ORPHAN),
-  u(S + "settings-pages.css", ".settings-general p", "font-size", "13px", ORPHAN),
   u(S + "settings-pages.css", ".settings-form-row", "border-radius", "10px", ORPHAN),
   u(S + "settings-pages.css", ".settings-form-row label", "font-size", "14px", ORPHAN),
   u(S + "settings-pages.css", ".settings-form-hint", "font-size", "12px", ORPHAN),

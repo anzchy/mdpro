@@ -90,46 +90,52 @@ export function GeneralSettings() {
       ) : (
         <>
           <div className="settings-row">
-            <div className="settings-row-label">
-              <h4>Default View Mode</h4>
-              <p>New documents open in this mode.</p>
-            </div>
-            <div className="settings-row-control">
-              <select
-                className="settings-select"
-                value={prefs.defaultViewMode}
-                onChange={(e) =>
-                  void handleChange("defaultViewMode", e.target.value as ViewMode)
-                }
-              >
-                {VIEW_MODE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+            <div className="settings-row-content">
+              <div className="settings-row-label">
+                <h4 id="general-default-view-mode-label">Default View Mode</h4>
+                <p>New documents open in this mode.</p>
+              </div>
+              <div className="settings-row-control">
+                <select
+                  aria-labelledby="general-default-view-mode-label"
+                  className="settings-select"
+                  value={prefs.defaultViewMode}
+                  onChange={(e) =>
+                    void handleChange("defaultViewMode", e.target.value as ViewMode)
+                  }
+                >
+                  {VIEW_MODE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           <div className="settings-row">
-            <div className="settings-row-label">
-              <h4>Auto-save Interval</h4>
-              <p>How often modified documents are automatically saved.</p>
-            </div>
-            <div className="settings-row-control">
-              <select
-                className="settings-select"
-                value={prefs.autoSaveInterval}
-                onChange={(e) =>
-                  void handleChange("autoSaveInterval", Number(e.target.value))
-                }
-              >
-                {AUTOSAVE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+            <div className="settings-row-content">
+              <div className="settings-row-label">
+                <h4 id="general-autosave-interval-label">Auto-save Interval</h4>
+                <p>How often modified documents are automatically saved.</p>
+              </div>
+              <div className="settings-row-control">
+                <select
+                  aria-labelledby="general-autosave-interval-label"
+                  className="settings-select"
+                  value={prefs.autoSaveInterval}
+                  onChange={(e) =>
+                    void handleChange("autoSaveInterval", Number(e.target.value))
+                  }
+                >
+                  {AUTOSAVE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </>

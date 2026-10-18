@@ -49,3 +49,20 @@ describe("settings-row base layout", () => {
     expect(block).toContain("align-items: center");
   });
 });
+
+// WI-4.3a: the row title is an `h4` and its description a `p`; the old
+// `strong` / `.settings-row-description` rules go, and no panel-scoped rule
+// reaches a row title.
+describe("settings-row-label title and description (WI-4.3a)", () => {
+  it("styles the h4 title and the p description", () => {
+    expect(extractBlock(globalsCss, ".settings-row-label h4")).toContain("font-size: var(--font-size-ui-lg)");
+    expect(extractBlock(globalsCss, ".settings-row-label p")).toContain("color: var(--color-text-secondary)");
+  });
+
+  it.each([".settings-row-label strong", ".settings-row-description", ".settings-integrations h4", ".settings-general p"])(
+    "no longer declares %s",
+    (selector) => {
+      expect(extractBlock(globalsCss, selector)).toBe("");
+    },
+  );
+});

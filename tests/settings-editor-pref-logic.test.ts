@@ -54,8 +54,8 @@ describe("EditorSettings — source structure", () => {
     expect(editorSettingsSrc).toContain("applyEditorPref(key, prevPrefs[key])");
   });
 
-  it("renders wordWrap as a checkbox input", () => {
-    expect(editorSettingsSrc).toContain('type="checkbox"');
+  it("renders wordWrap as a ToggleSwitch", () => {
+    expect(editorSettingsSrc).toContain("<ToggleSwitch");
     expect(editorSettingsSrc).toContain("wordWrap");
   });
 

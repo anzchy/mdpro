@@ -10,12 +10,6 @@
   margin: 0 0 16px 0;
 }
 
-.settings-integrations h4 {
-  font-size: var(--font-size-ui-lg);
-  font-weight: 600;
-  margin: 0 0 8px 0;
-}
-
 .settings-error {
   padding: 10px 12px;
   background: var(--color-danger-soft);
@@ -104,12 +98,23 @@
   gap: 2px;
 }
 
-.settings-row-label strong {
+/* WI-4.3a: one row markup in every panel, an h4 title and an optional p
+   description. The values are the old strong / .settings-row-description
+   ones; no panel-scoped rule may reach these. */
+.settings-row-label h4 {
+  margin: 0;
   font-size: var(--font-size-ui-lg);
   font-weight: 500;
 }
 
-.settings-row-description {
+.settings-row-label p {
+  margin: 0;
+  font-size: var(--font-size-ui-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Why the MCP toggles are locked (rule 30.4); sits above the rows. */
+.settings-lock-reason {
   font-size: var(--font-size-ui-sm);
   color: var(--color-text-secondary);
 }

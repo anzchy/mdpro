@@ -8,7 +8,7 @@
  *   1. error state and cancellation guard in useEffect.
  *   2. Async rollback: reverts prefs and editor state on save failure.
  *   3. applyAutoPair is called with rollback value on failure.
- *   4. ARIA: label htmlFor wired to control id.
+ *   4. ARIA: row title (h4 id) wired to the control by aria-labelledby (WI-4.3a).
  */
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
@@ -46,8 +46,9 @@ describe("MarkdownSettings — source structure", () => {
     expect(src).toContain("applyAutoPair(prev.autoPair)");
   });
 
-  it("ARIA: auto-pair label is linked to its checkbox via htmlFor/id", () => {
-    expect(src).toContain('htmlFor="md-auto-pair"');
+  it("ARIA: auto-pair switch is named by its row title via aria-labelledby", () => {
+    expect(src).toContain('<h4 id="md-auto-pair-label">');
+    expect(src).toMatch(/(aria-labelledby|labelledBy)="md-auto-pair-label"/);
     expect(src).toContain('id="md-auto-pair"');
   });
 });
