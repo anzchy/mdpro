@@ -1,17 +1,22 @@
 /** D291 fix round 1: the seven already-approved recovery focus matrix cases. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { undoDepth as proseUndoDepth } from "@milkdown/kit/prose/history";
 import { undoDepth as cmUndoDepth } from "@codemirror/commands";
 
-const { logs } = vi.hoisted(() => ({ logs: [] as Array<{ event: string; status: string; context?: Record<string, unknown> }> }));
+const { logs, route } = vi.hoisted(() => ({
+  logs: [] as Array<{ event: string; status: string; context?: Record<string, unknown> }>,
+  route: { current: null as null | ((command: string, args?: { documentId?: string }) => unknown) },
+}));
 vi.mock("@tauri-apps/api/core", async () => ({
   ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
   invoke: vi.fn(async (command: string, args?: { payload?: typeof logs[number] }) => {
     if (command === "log_event" && args?.payload) logs.push(args.payload);
+    // @ts-expect-error Routed IPC calls have command-specific argument shapes.
+    if (route.current) return route.current(command, args);
     if (command === "recover_draft") return { content: "Other", originalPath: null, title: "Draft B" };
     return null;
   }),
@@ -35,6 +40,7 @@ import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { makeDoc } from "./helpers/milkdownEditorHarness";
 import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
+import { draft as placementDraft, RecoveryPlacementHarness } from "./support/d291RecoveryPlacementFixture";
 
 const releases: Array<() => void> = [];
 const views: Array<{ destroy: () => void }> = [];
@@ -51,6 +57,7 @@ beforeEach(() => {
   installIntersectionObserverDouble();
   restoreGeometry = installRangeGeometry();
   logs.length = 0;
+  route.current = null;
   useLoggingStore.setState({ enabled: true, level: "info" });
   resetFocusStores();
 });
@@ -216,5 +223,77 @@ describe("D291 fix round 1 matrix", () => {
     expect(view.state.doc.toString()).toBe("Hqo");
     expect(useDocumentStore.getState().documents[0].isModified).toBe(true);
     expect(cmUndoDepth(view.state)).toBe(before + 1);
+  });
+
+  it.each(["B-last", "C-last"] as const)("D291-WI-5 overlapping recoveries %s focus the final committed destination", async (order) => {
+    const user = userEvent.setup();
+    const bCheck = (() => { let resolve!: (value: unknown) => void; const promise = new Promise<unknown>((yes) => { resolve = yes; }); return { promise, resolve }; })();
+    const cRecover = (() => { let resolve!: (value: unknown) => void; const promise = new Promise<unknown>((yes) => { resolve = yes; }); return { promise, resolve }; })();
+    let bCheckStarted = false;
+    route.current = (command, args) => {
+      if (command === "recover_draft" && args?.documentId === "draft-b") return { content: "Recovered B", originalPath: "/x/b.md", title: "B" };
+      if (command === "recover_draft" && args?.documentId === "draft-c") return order === "C-last" ? cRecover.promise : { content: "Recovered C", originalPath: null, title: "C" };
+      if (command === "get_draft") { bCheckStarted = true; return bCheck.promise; }
+      if (command === "save_draft") return { success: true };
+      return null;
+    };
+    resetFocusStores("Alpha", "source");
+    useDocumentStore.setState({ documents: [makeDoc("a", "Alpha"), makeDoc("b", "Old B", "/x/b.md")], activeDocumentId: "a" });
+    const aView = mountSource("Alpha", "a"); views.push(aView); releases.push(sourceReady("a", aView));
+    render(<RecoveryPlacementHarness rows={[placementDraft("draft-b"), placementDraft("draft-c", null)]} />);
+    const button = (id: string) => within(screen.getByText(id).closest(".recovery-item") as HTMLElement).getByRole("button", { name: "Recover" });
+    await user.click(button("draft-b"));
+    await waitFor(() => expect(bCheckStarted).toBe(true));
+    const c = button("draft-c");
+    expect(c.getAttribute("aria-disabled")).toBe("false");
+    await user.click(c);
+    if (order === "B-last") act(() => bCheck.resolve(null));
+    else {
+      act(() => bCheck.resolve(null));
+      await waitFor(() => expect(useDocumentStore.getState().getDocumentById("b")?.content).toBe("Recovered B"));
+      act(() => cRecover.resolve({ content: "Recovered C", originalPath: null, title: "C" }));
+    }
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Recover drafts" })).toBeNull());
+    const finalId = order === "B-last" ? "b" : "draft-c";
+    await waitFor(() => expect(useDocumentStore.getState().activeDocumentId).toBe(finalId));
+    const finalView = mountSource(useDocumentStore.getState().getDocumentById(finalId)!.content, finalId); views.push(finalView);
+    releases.push(sourceReady(finalId, finalView));
+    await waitFor(() => expect(finalView.hasFocus).toBe(true));
+    await user.keyboard("q");
+    expect(useDocumentStore.getState().getDocumentById(finalId)?.content).toContain("q");
+    expect(useDocumentStore.getState().getDocumentById("a")?.content).toBe("Alpha");
+    expect(useDocumentStore.getState().getDocumentById("b")?.content).toContain("Recovered B");
+    expect(useDocumentStore.getState().getDocumentById("draft-c")?.content).toContain("Recovered C");
+  });
+  it("D291-WI-5 cancellation stays final across duplicate destination readiness", async () => {
+    const user = userEvent.setup();
+    const check = (() => { let resolve!: (value: unknown) => void; const promise = new Promise<unknown>((yes) => { resolve = yes; }); return { promise, resolve }; })();
+    route.current = (command) => command === "recover_draft" ? { content: "Recovered B", originalPath: "/x/b.md", title: "B" }
+      : command === "get_draft" ? check.promise : null;
+    resetFocusStores("Alpha", "source");
+    useDocumentStore.setState({ documents: [makeDoc("a", "Alpha"), makeDoc("b", "Old B", "/x/b.md")], activeDocumentId: "a" });
+    const a = mountSource("Alpha", "a"); views.push(a); releases.push(sourceReady("a", a));
+    render(<RecoveryPlacementHarness rows={[placementDraft("draft-b")]} />);
+    await user.click(screen.getByRole("button", { name: "Recover" }));
+    const outside = document.createElement("button"); document.body.append(outside); await user.click(outside); outside.remove();
+    act(() => check.resolve(null));
+    await waitFor(() => expect(useDocumentStore.getState().getDocumentById("b")?.content).toBe("Recovered B"));
+    const b = mountSource("Recovered B", "b"); views.push(b);
+    const selection = b.state.selection; releases.push(sourceReady("b", b)); releases.push(sourceReady("b", b));
+    await user.keyboard("q");
+    expect(document.body).toHaveFocus(); expect(b.hasFocus).toBe(false);
+    expect(b.state.selection.eq(selection)).toBe(true);
+    expect(useDocumentStore.getState().getDocumentById("a")?.content).toBe("Alpha");
+    expect(useDocumentStore.getState().getDocumentById("b")?.content).toBe("Recovered B");
+    expect(canceled().map((entry) => entry.context)).toEqual([{ reason: "moved" }]);
+  });
+  it("D291-WI-5 failed recover keeps its row, toast and usable controls", async () => {
+    const user = userEvent.setup();
+    route.current = (command) => { if (command === "recover_draft") throw Error("backend unavailable"); return null; };
+    render(<RecoveryPlacementHarness rows={[placementDraft("draft-b")]} />);
+    await user.click(screen.getByRole("button", { name: "Recover" }));
+    expect(screen.getByRole("dialog", { name: "Recover drafts" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Recover" }).getAttribute("aria-disabled")).toBe("false");
+    expect(screen.getByText("Failed to recover draft")).toBeInTheDocument();
   });
 });

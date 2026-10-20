@@ -10,7 +10,8 @@
  * - **Return target captured at the first populated commit** by
  *   `useReturnFocusOnClose`; when the last row goes, focus returns there, or
  *   to the active editor in either mode if that element is gone or the card
- *   opened from body (D291).
+ *   opened from body (D291). A Recover placement in flight defers that body
+ *   return until its destination commits, never focusing the outgoing tab.
  * - **Visible initial focus on the first row's Recover** (rule 33), unless
  *   another modal is already open when the card first renders.
  * - **Tab and Shift+Tab loop inside the card** (rule 32). No Escape and no
@@ -23,20 +24,20 @@
  * @module components/common/RecoveryDialog
  * @coordinates-with src/components/AppDialogs.tsx — passes the admitted rows (D241)
  * @coordinates-with src/hooks/useReturnFocusOnClose.ts — the return on close
- * @coordinates-with src/utils/focusActiveEditor.ts — mode-aware editor target
+ * @coordinates-with src/utils/recoveryPlacementFocus.ts — pending placement return
  */
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useReturnFocusOnClose } from "../../hooks/useReturnFocusOnClose";
 import { useVisibleInitialFocus } from "../../hooks/useVisibleInitialFocus";
 import type { DraftMetadata } from "../../services/draftService";
 import { loggingService } from "../../services/loggingService";
-import { requestActiveEditorFocus } from "../../utils/focusActiveEditor";
+import { beginRecoveryFocus, recoveryCardOpened, returnFocusAfterRecoveryClose, runRecoveryCallback, settleRecoverAction, useRecoveryPendingIds } from "../../utils/recoveryPlacementFocus";
 import { isModalOpen } from "../../utils/modalTabActionGuard";
 import { draftTimeLabel } from "../../utils/platformLabels";
 
 interface RecoveryDialogProps {
   drafts: DraftMetadata[];
-  onRecover: (draftId: string) => void;
+  onRecover: (draftId: string) => void | Promise<void>;
   onDiscard: (draftId: string) => void;
 }
 
@@ -63,8 +64,9 @@ function RecoveryCard({ drafts, onRecover, onDiscard }: RecoveryDialogProps) {
   const firstRecoverRef = useRef<HTMLButtonElement>(null);
   const lastFocus = useRef<LastFocus | null>(null);
   // Read at the first render, before this card is in the document.
-  const [focusOnOpen] = useState(() => !isModalOpen());
-  useReturnFocusOnClose(cardRef, () => requestActiveEditorFocus("ui.recovery.focus.cancel"), { fromBody: true });
+  const [focusOnOpen] = useState(() => { recoveryCardOpened(); return !isModalOpen(); });
+  const pendingIds = useRecoveryPendingIds();
+  useReturnFocusOnClose(cardRef, returnFocusAfterRecoveryClose, { fromBody: true });
   useVisibleInitialFocus(firstRecoverRef, focusOnOpen);
 
   const recoverAt = (index: number): HTMLElement | null => {
@@ -142,15 +144,18 @@ function RecoveryCard({ drafts, onRecover, onDiscard }: RecoveryDialogProps) {
                 <div className="recovery-time">{draftTimeLabel(draft.lastModified)}</div>
               </div>
               <div className="recovery-actions">
+                {pendingIds.has(draft.id) ? <span className="recovery-pending">Recovering…</span> : null}
                 <button
                   ref={index === 0 ? firstRecoverRef : undefined}
                   className="toolbar-button recovery-recover"
                   type="button"
+                  aria-disabled={pendingIds.has(draft.id)}
                   onClick={() => {
+                    if (!beginRecoveryFocus(draft.id)) return;
                     loggingService.logDialogAction("dialog.recovery.recover", "success", {
                       draftId: draft.id,
                     });
-                    onRecover(draft.id);
+                    void Promise.resolve(runRecoveryCallback(() => onRecover(draft.id))).finally(() => settleRecoverAction(draft.id));
                   }}
                 >
                   Recover
@@ -158,7 +163,9 @@ function RecoveryCard({ drafts, onRecover, onDiscard }: RecoveryDialogProps) {
                 <button
                   className="toolbar-button"
                   type="button"
+                  aria-disabled={pendingIds.has(draft.id)}
                   onClick={() => {
+                    if (pendingIds.has(draft.id)) return;
                     loggingService.logDialogAction("dialog.recovery.discard", "cancel", {
                       draftId: draft.id,
                     });

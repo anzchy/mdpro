@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Resolving Recovery's last draft from a body-focused startup now returns the first keystroke to the current WYSIWYG or Source document. If its editor is still loading, focus waits for that document's current editor and cancels when the user moves focus, switches documents, or opens another dialog (D291; device check pending).
+- Resolving Recovery's last draft from a body-focused startup now returns the first keystroke to the committed WYSIWYG or Source document. If Recovery is still checking which open tab receives the draft, it does not focus the outgoing tab; after placement, it waits for that document's current editor and cancels when the user moves focus, switches documents, opens another dialog, or placement fails (D291; device check pending).
 - Saving a file after ignoring its deletion now asks whether to recreate it, save elsewhere, or cancel. Cancel keeps the edits and asks again on the next Save. A Save waiting for preferences stops if its document closes, moves, or is replaced by Reload, even when the user types after Reload. Save and Restart checks each document again before writing it (D290; device check pending).
 - A logging preference read started before a successful change can no longer restore the old switch value or frontend logging state after the save finishes (D293).
 

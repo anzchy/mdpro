@@ -22,6 +22,9 @@
  *     audit line for the one draft deletion outside the recovery dialog, WI-2) →
  *     `file.draft.rekey`;
  *   - no match, or no path → `new`: today's tab under the draft id, nothing logged here.
+ *   D291: Recovery's return-focus guard starts before the draft IPC and is
+ *   committed only after this placement activates its chosen document; an
+ *   async `get_draft` never lets the closing dialog focus the outgoing tab.
  *
  * Key decisions:
  * - Neither version's unsaved text is ever discarded: a dirty tab is never overwritten,
@@ -69,6 +72,7 @@ import { useDocumentStore } from "../stores/documentStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
 import { extractTitle } from "./draftTitle";
+import { recoveryPlacementCommitted, recoveryPlacementFailed, recoveryPlacementStarted, recoveryWillActivate } from "./recoveryPlacementFocus";
 
 /** Whether a draft is stored under the open tab's id (D151): `get_draft`'s answer. */
 export type DraftUnderOpenId = "absent" | "present" | "check-failed";
@@ -240,11 +244,21 @@ export async function applyRecoveredDocument(
   draftId: string,
   recovered: Document,
   deps: RecoverIntoStoreDeps,
-): Promise<RecoverPlacement["kind"]> {
-  const match = findOpenMatch(recovered);
-  const check = match ? await checkDraftUnder(match.id) : undefined;
-  const placement = placeRecovered(recovered, check);
-  deps.upsertAndActivate(placement.document);
+): Promise<RecoverPlacement["kind"] | "failed"> {
+  recoveryPlacementStarted(draftId);
+  let placement: RecoverPlacement;
+  try {
+    const match = findOpenMatch(recovered);
+    const check = match ? await checkDraftUnder(match.id) : undefined;
+    placement = placeRecovered(recovered, check);
+    recoveryWillActivate(draftId, placement.document.id);
+    deps.upsertAndActivate(placement.document);
+    recoveryPlacementCommitted(draftId, placement.document.id);
+  } catch {
+    recoveryPlacementFailed(draftId);
+    deps.showToast("Failed to recover draft");
+    return "failed";
+  }
   switch (placement.kind) {
     case "new":
       return placement.kind;
