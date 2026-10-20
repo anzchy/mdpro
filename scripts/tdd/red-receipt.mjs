@@ -83,12 +83,18 @@ function find(store, id) {
   return store.receipts.find((receipt) => receipt.id === id);
 }
 
-function withSelection(cwd, files, callback) {
+function withSelection(cwd, files, callback, expectedReceipt = null) {
   const folder = mkdtempSync(join(tmpdir(), "mdpro-unit-red-marker-"));
   const marker = join(folder, "selection.json");
   const logPointer = `${marker}.log`;
   const nonce = randomUUID();
-  writeFileSync(marker, JSON.stringify({ nonce, files }), { mode: 0o600 });
+  const receipt = expectedReceipt ? {
+    id: expectedReceipt.id,
+    lane: expectedReceipt.lane,
+    redKind: expectedReceipt.red?.kind,
+    test_files: expectedReceipt.test_files,
+  } : null;
+  writeFileSync(marker, JSON.stringify({ nonce, files, receipt }), { mode: 0o600 });
   try {
     const result = callback({
       ...process.env,
@@ -149,7 +155,7 @@ function verify(args) {
     throw usageError("Verify selector differs from the recorded selection.");
   }
   const snapshot = JSON.stringify(receipt.test_files);
-  const status = withSelection(args.cwd, files, (env) => callGuardian(args.cwd, ["verify", "--id", args.id], env));
+  const status = withSelection(args.cwd, files, (env) => callGuardian(args.cwd, ["verify", "--id", args.id], env), receipt);
   const after = find(currentStore(args.cwd), args.id);
   if (!after || JSON.stringify(after.test_files) !== snapshot) throw usageError("Receipt selection changed during verification.");
   if (status !== 0 || after.verdict !== "SEPARATION-HELD") {

@@ -1,17 +1,19 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
-const guardian = "/Users/jackcheng/.claude/plugins/cache/xiaolai/tdd-guardian/0.10.2/scripts/tdd-guardian/receipt.js";
+const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
+const version = existsSync(cache) ? readdirSync(cache).filter((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js"))).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0] : null;
+const guardian = version ? join(cache, version, "scripts/tdd-guardian/receipt.js") : "";
 const require = createRequire(import.meta.url);
-const guardianExec = require(join(guardian, "../lib/exec.js"));
-const classifyRedRun = require(join(guardian, "../lib/verification.js")).classifyRedRun;
+const guardianExec = version ? require(join(guardian, "../lib/exec.js")) : null;
+const classifyRedRun = version ? require(join(guardian, "../lib/verification.js")).classifyRedRun : null;
 let root: string;
 
 function run(command: string, args: string[], env: Record<string, string> = {}) {
@@ -68,7 +70,7 @@ vi.setConfig({ testTimeout: 30_000 });
 
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-describe("red-receipt entry", () => {
+describe.skipIf(!version)("red-receipt entry", () => {
   it("rejects invalid file selections before running or storing", () => {
     const good = fixture("good", 'import { it } from "vitest"; it("fails", () => { throw Error("red"); });');
     mkdirSync(join(root, "tests/directory"));
@@ -91,7 +93,6 @@ describe("red-receipt entry", () => {
     symlinkSync("good.test.ts", join(root, "tests/l.test.ts"));
     expect(command("record", "--id", "A", "--test", "tests/l.test.ts").status).toBe(64);
   });
-
   it("requires an id and the recorded selector for verify", () => {
     const a = fixture("a", 'import { it } from "vitest"; it("a", () => { throw Error("red"); });');
     const b = fixture("b", 'import { it } from "vitest"; it("b", () => { throw Error("red"); });');
@@ -102,7 +103,6 @@ describe("red-receipt entry", () => {
     expect(Object.keys(store()[0].test_files).sort()).toEqual([a, b]);
     expect(command("verify", "--id", "A").status).not.toBe(0);
   });
-
   it("accepts a counted assertion failure and settles only the named receipt", () => {
     const a = fixture("a", 'import { it, expect } from "vitest"; import { readFileSync } from "node:fs"; it("a", () => { expect(readFileSync(new URL("./state.txt", import.meta.url), "utf8")).toBe("green"); });');
     writeFileSync(join(root, "tests/state.txt"), "red");

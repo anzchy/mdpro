@@ -1,17 +1,21 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { vi } from "vitest";
+vi.setConfig({ testTimeout: 30_000 });
 
 const repo = resolve(import.meta.dirname, "../..");
 const lane = join(repo, "scripts/tdd/unit-red-lane.mjs");
-const guardian = "/Users/jackcheng/.claude/plugins/cache/xiaolai/tdd-guardian/0.10.2/scripts/tdd-guardian/lib";
+const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
+const version = existsSync(cache) ? readdirSync(cache).filter((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js"))).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0] : null;
+const guardian = version ? join(cache, version, "scripts/tdd-guardian/lib") : "";
 const require = createRequire(import.meta.url);
-const exec = require(join(guardian, "exec.js"));
-const classifyRedRun = require(join(guardian, "verification.js")).classifyRedRun;
+const exec = version ? require(join(guardian, "exec.js")) : null;
+const classifyRedRun = version ? require(join(guardian, "verification.js")).classifyRedRun : null;
 let root: string;
 
 function fixture(name: string, body: string) {
@@ -24,17 +28,28 @@ function run(files?: string[], extra: Record<string, string> = {}) {
   const nonce = "fixture-nonce";
   const marker = join(root, "run-marker.json");
   if (files) writeFileSync(marker, JSON.stringify({ nonce, files }));
+  const inherited = { ...process.env };
+  delete inherited.MDPRO_UNIT_RED_FILES;
+  delete inherited.MDPRO_UNIT_RED_MARKER;
+  delete inherited.MDPRO_UNIT_RED_NONCE;
   const result = spawnSync(process.execPath, [lane], {
     cwd: root,
     encoding: "utf8",
     timeout: 60_000,
     env: {
-      ...process.env,
+      ...inherited,
       ...(files ? { MDPRO_UNIT_RED_FILES: JSON.stringify(files), MDPRO_UNIT_RED_MARKER: marker, MDPRO_UNIT_RED_NONCE: nonce } : {}),
       ...extra,
     },
   });
   return { status: result.status, stdout: result.stdout || "", stderr: result.stderr || "", output: `${result.stdout || ""}\n${result.stderr || ""}` };
+}
+
+function scenario(name: string) {
+  const script = join(repo, "tests/tooling/fixtures/unit-red/scenarios.mjs");
+  const result = spawnSync(process.execPath, [script, name, repo], { cwd: repo, encoding: "utf8", timeout: 60_000 });
+  expect(result.status, result.stderr).toBe(0);
+  return JSON.parse(result.stdout);
 }
 
 beforeEach(() => {
@@ -57,7 +72,7 @@ describe("unit-red lane child", () => {
     expect(run(["tests/a.test.ts"], { MDPRO_UNIT_RED_NONCE: "wrong" }).status).toBe(64);
   });
 
-  it("uses JSON counts and hides fake summaries from both output streams", () => {
+  it.skipIf(!version)("uses JSON counts and hides fake summaries from both output streams", () => {
     const failing = fixture("fail", 'it("fails", () => { console.error("Tests 999 passed (999)"); throw Error("red"); });');
     const red = run([failing]);
     expect(red.status).toBe(1);
@@ -80,6 +95,7 @@ describe("unit-red lane child", () => {
     expect(run([a, b]).status).toBe(1);
     const skipped = fixture("skipped", 'it.skip("skip", () => {});');
     expect(run([a, skipped]).status).toBe(64);
+    const todo = fixture("todo", 'it.todo("later");'); expect(run([a, todo]).status).toBe(64);
   });
 
   it("rejects zero tests, setup errors and extra substring-matched suites", () => {
@@ -92,7 +108,7 @@ describe("unit-red lane child", () => {
     expect(run([a]).status).toBe(0);
   });
 
-  it("captures error-looking assertion failures in its log", () => {
+  it.skipIf(!version)("captures error-looking assertion failures in its log", () => {
     const file = fixture("enoent", 'it("ENOENT assertion", () => { expect(() => { throw Error(["No such", "file or directory"].join(" ")); }).not.toThrow(); });');
     const result = run([file]);
     expect(result.status).toBe(1);
@@ -120,6 +136,7 @@ describe("unit-red lane child", () => {
     const result = run([a]);
     expect([0, 64]).toContain(result.status);
     if (result.status === 0) expect(result.stdout).toMatch(/0 failed \| 1 passed \(1\)/);
+    const overlap = scenario("substring_overlap"); expect([0, 64]).toContain(overlap.status); if (overlap.status === 0) expect(overlap.summary).toMatch(/0 failed \| 1 passed \(1\)/);
   });
 
   it("rejects an unhandled error even when assertions pass", () => {
@@ -140,7 +157,7 @@ describe("unit-red lane child", () => {
     expect(readFileSync(capture, "utf8")).toMatch(/--maxWorkers(?:=|\n)2/);
   });
 
-  it("configures unit-red as an unlocked manual-only lane without coverage", () => {
+  it.skipIf(!version)("configures unit-red as an unlocked manual-only lane without coverage", () => {
     const configPath = join(repo, ".claude/tdd-guardian/config.json");
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     const laneConfig = config.lanes.find((item: { name: string }) => item.name === "unit-red");
@@ -203,4 +220,79 @@ describe("unit-red lane child", () => {
     const result = spawnSync(process.execPath, [join(repo, "scripts/tdd/red-receipt.mjs"), "check-pending", "--cwd", root], { cwd: root, encoding: "utf8" });
     expect(result.status).toBe(0);
   });
+
+  it("rejects failed hooks even when Vitest counts a failed test", () => {
+    const before = fixture("before", 'import { beforeEach } from "vitest"; beforeEach(() => { throw Error("setup broke"); }); it("never runs", () => { throw Error("body ran"); });');
+    const after = fixture("after", 'import { afterAll } from "vitest"; afterAll(() => { throw Error("teardown broke"); }); it("fails", () => { throw Error("red"); });');
+    expect(run([before]).status).toBe(64);
+    expect(run([after]).status).toBe(64);
+  });
+
+  it("does not mistake ordinary output mentioning an unhandled rejection for a runner error", () => {
+    const file = fixture("handled", 'it("passes", () => { console.error("handled an unhandled rejection example"); });');
+    expect(run([file]).status).toBe(0);
+  });
+
+  it.skipIf(!version)("refuses a receipt selection changed inside the plugin lane", () => {
+    mkdirSync(join(root, ".claude/tdd-guardian"), { recursive: true });
+    mkdirSync(join(root, "scripts/tdd"), { recursive: true });
+    symlinkSync(lane, join(root, "scripts/tdd/unit-red-lane.mjs"));
+    const configPath = join(root, ".claude/tdd-guardian/config.json");
+    const config = JSON.parse(readFileSync(join(repo, ".claude/tdd-guardian/config.json"), "utf8"));
+    writeFileSync(configPath, JSON.stringify(config));
+    writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
+    const spec = fixture("a", 'import { readFileSync } from "node:fs"; it("state", () => { expect(readFileSync(new URL("./state.txt", import.meta.url), "utf8")).toBe("green"); });');
+    fixture("b", 'it("other", () => {});');
+    writeFileSync(join(root, "tests/state.txt"), "red");
+    const git = (args: string[]) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
+    git(["init", "-q", "-b", "master"]); git(["config", "user.email", "test@example.com"]); git(["config", "user.name", "Test"]);
+    git(["add", "."]); expect(git(["commit", "-qm", "specs"]).status).toBe(0); git(["switch", "-qc", "feature"]);
+    const entry = join(repo, "scripts/tdd/red-receipt.mjs");
+    const invoke = (...args: string[]) => spawnSync(process.execPath, [entry, ...args, "--cwd", root], { cwd: root, encoding: "utf8" });
+    expect(invoke("record", "--id", "A", "--test", spec).status).toBe(0);
+    writeFileSync(join(root, "tests/state.txt"), "green");
+    const wrapper = 'import { readFileSync, writeFileSync } from "node:fs"; import { spawnSync } from "node:child_process"; const p = ".claude/tdd-guardian/receipts.json"; const s = JSON.parse(readFileSync(p, "utf8")); s.receipts[0].test_files["tests/b.test.ts"] = s.receipts[0].test_files["tests/a.test.ts"]; writeFileSync(p, JSON.stringify(s)); const r = spawnSync(process.execPath, ["scripts/tdd/unit-red-lane.mjs"], { stdio: "inherit", env: process.env }); process.exit(r.status ?? 64);';
+    writeFileSync(join(root, "scripts/tdd/verify-wrapper.mjs"), wrapper);
+    config.lanes.find((item: { name: string }) => item.name === "unit-red").command = "node scripts/tdd/verify-wrapper.mjs";
+    writeFileSync(configPath, JSON.stringify(config));
+    expect(invoke("verify", "--id", "A").status).toBe(64);
+  });
+
+  it.skipIf(!version)("binds a successful two-file RED and GREEN", () => {
+    expect(scenario("multi_cycle")).toMatchObject({ red: 0, green: 0, repeat: 64, verdict: "SEPARATION-HELD", files: ["tests/a.test.ts", "tests/b.test.ts"] });
+  });
+  it.skipIf(!version)("refuses absolute, traversal, comma, duplicate and empty selectors before running", () => { expect(scenario("invalid_paths")).toMatchObject({ statuses: [64, 64, 64, 64, 64, 64, 64, 64, 64], unchanged: true, ran: false }); });
+  it.skipIf(!version)("refuses wrong lanes, master discard and invalid retry", () => {
+    expect(scenario("wrong_lane")).toMatchObject({ first: 0, second: 0, verify: 64, discard: 64, other: null });
+    expect(scenario("master_discard")).toMatchObject({ discard: 64 });
+    expect(scenario("existing_bad_retry")).toMatchObject({ first: 0, retry: 64, unchanged: true });
+    expect(scenario("settled_record")).toMatchObject({ red: 0, green: 0, retry: 64, unchanged: true }); expect(scenario("pending_store")).toMatchObject({ discard: 64, unchanged: true });
+  });
+  it.skipIf(!version)("ignores inherited pending receipts but refuses malformed stores", () => {
+    expect(scenario("inherited_pending")).toMatchObject({ recorded: 0, inherited: 0, malformed: 64 });
+  });
+  it.skipIf(!version)("stores an assertion RED despite module-like assertion text", () => {
+    expect(scenario("module_message")).toMatchObject({ status: 0, kind: "assertion-failure" });
+  });
+  it.skipIf(!version)("leaves bare plugin record bound to the existing unit lane", () => {
+    expect(scenario("bare_record")).toMatchObject({ status: 0, lane: "unit" });
+  });
+  it.skipIf(!version)("keeps parallel record logs and receipts independent", () => {
+    const result = scenario("concurrent_records");
+    expect(result.one.status).toBe(0); expect(result.two.status).toBe(64);
+    expect(result.one.log).not.toBe(result.two.log);
+    expect(result.receipts.sort()).toEqual([["A", "assertion-failure"], ["B", "green"]]);
+  });
+  it.skipIf(!version)("preserves B recorded while A verification waits", () => {
+    expect(scenario("concurrent_verify")).toMatchObject({ red: 0, other: 0, verify: 0, receipts: [["A", "SEPARATION-HELD"], ["B", null]] });
+  });
+  it.skipIf(!version)("preserves concurrent B while discarding A under the receipt lock", () => {
+    expect(scenario("concurrent_discard")).toMatchObject({ first: 0, blocked: true, discard: 0, recordB: 0, ids: ["B"] });
+  });
+  it("refuses contradictory JSON, absent suite and interrupted runner", () => {
+    for (const name of ["bad_report", "absent_suite", "interrupt", "bad_tmp"]) expect(scenario(name).status).toBe(64);
+    expect(readdirSync(join(repo, "tests/tooling/fixtures/unit-red")).every((name) => !/\.tsx?$/.test(name))).toBe(true);
+  });
+  it("rejects preconstructed, non-Error and async hook failures", () => { expect(scenario("precreated_hooks").statuses).toEqual([64, 64, 64]); });
+  it("rejects a colored real unhandled error alongside a failed test", () => { expect(scenario("colored_unhandled")).toMatchObject({ status: 64, colored: true, unhandled: true }); });
 });
