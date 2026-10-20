@@ -6,6 +6,10 @@ import { useToastStore } from "../stores/toastStore";
 /** The one save-failure toast, shared with `preferencesService.setPreferences`. */
 const SAVE_FAILED_TOAST = "Failed to save preferences";
 
+// A read captures this before IPC. Only a confirmed backend write advances it;
+// a rejected write must still allow the pending read to hydrate the store.
+let confirmedWriteGeneration = 0;
+
 const levelRank: Record<LogLevel, number> = {
   debug: 0,
   info: 1,
@@ -128,15 +132,27 @@ export const loggingService = {
    * without guarding the rest of its work. `App.tsx#loadPreferences` relies on
    * that non-rejection contract.
    *
-   * Writes the store on BOTH paths: a failed read actively sets the store
-   * disabled rather than leaving the store's initial `enabled: true` in place.
-   * The value written is always exactly the value returned.
+   * Writes the store on BOTH read outcomes, including the fail-closed fallback,
+   * unless a logging write was confirmed after this read began. A late read
+   * then leaves the confirmed store value alone, even if Advanced is closed.
+   * The returned value remains the read result for existing callers.
    *
    * Uses `loggingService.` rather than `this.` so the method stays callable when
    * destructured off the service object.
    */
   async hydrateSettings(): Promise<LogSettings> {
+    const startGeneration = confirmedWriteGeneration;
     const settings = await loggingService.getLoggingSettings();
+    if (startGeneration !== confirmedWriteGeneration) {
+      logEventSync({
+        level: "info",
+        event: "ui.logging.settings.hydrate",
+        status: "cancel",
+        actionId: generateActionId(),
+        context: { reason: "confirmed_write_since_read" },
+      });
+      return settings;
+    }
     useLoggingStore.getState().setSettings(settings);
     return settings;
   },
@@ -152,7 +168,9 @@ export const loggingService = {
    */
   async setLoggingSettings(settings: LogSettings): Promise<LogSettings> {
     try {
-      return await invoke<LogSettings>("set_logging_settings", { settings });
+      const saved = await invoke<LogSettings>("set_logging_settings", { settings });
+      confirmedWriteGeneration += 1;
+      return saved;
     } catch (error) {
       logEventSync({
         level: "error",
@@ -170,7 +188,9 @@ export const loggingService = {
   async patchLoggingSettings(patch: Partial<LogSettings>, browserSnapshot: LogSettings): Promise<LogSettings> {
     if (!isTauri()) return this.setLoggingSettings({ ...browserSnapshot, ...patch });
     try {
-      return await invoke<LogSettings>("patch_settings_group", { group: "logging", patch });
+      const saved = await invoke<LogSettings>("patch_settings_group", { group: "logging", patch });
+      confirmedWriteGeneration += 1;
+      return saved;
     } catch (error) {
       logEventSync({
         level: "error", event: "ui.logging.settings.save", status: "fail",

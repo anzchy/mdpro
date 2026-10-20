@@ -253,3 +253,47 @@ describe("WI-2-G — callable when destructured off the service object", () => {
     expect(readStore()).toEqual({ enabled: false, level: "warn" });
   });
 });
+
+describe("D293 — logging read generation", () => {
+  it("applies a fresh read started after a confirmed write", async () => {
+    const saved: LogSettings = { enabled: true, level: "debug" };
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === "set_logging_settings") return saved;
+      if (command === "get_logging_settings") return saved;
+      return undefined;
+    });
+
+    await loggingService.setLoggingSettings(saved);
+    useLoggingStore.setState({ enabled: false, level: "warn" });
+    await loggingService.hydrateSettings();
+    expect(readStore()).toEqual(saved);
+  });
+
+  it("records one enum-only cancellation when a confirmed write supersedes a read", async () => {
+    const old: LogSettings = { enabled: false, level: "info" };
+    const saved: LogSettings = { enabled: true, level: "info" };
+    let releaseRead: () => void = () => {};
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_logging_settings") {
+        return new Promise((resolve) => { releaseRead = () => resolve(old); });
+      }
+      if (command === "set_logging_settings") return Promise.resolve(saved);
+      return Promise.resolve(undefined);
+    });
+
+    const pending = loggingService.hydrateSettings();
+    await loggingService.setLoggingSettings(saved);
+    useLoggingStore.setState(saved);
+    releaseRead();
+    await pending;
+    expect(readStore()).toEqual(saved);
+    const events = callsFor("log_event");
+    expect(events).toHaveLength(1);
+    expect(events[0][1]).toMatchObject({ payload: {
+      event: "ui.logging.settings.hydrate",
+      status: "cancel",
+      context: { reason: "confirmed_write_since_read" },
+    } });
+    expect(Object.keys((events[0][1] as { payload: { context: object } }).payload.context)).toEqual(["reason"]);
+  });
+});
