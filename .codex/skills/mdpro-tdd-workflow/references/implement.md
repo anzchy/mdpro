@@ -38,6 +38,13 @@ recorded after the code is already green is false, and worse than none.
    - For Rust: `cargo fmt`, then run the test and see it fail.
 3. **Record the RED** with the CLI above, before touching production code. A non-zero exit means
    the RED proved nothing: fix the cause and record again.
+   Then check the recorded kind. If the old full-lane CLI records `opaque-failure`:
+   - keep the receipt;
+   - keep the focused run's counted assertion output as the evidence;
+   - name `weak-red` in the handoff;
+   - mark any brief AC that requires `assertion-failure` as unmet.
+
+   Never re-record to replace an opaque receipt once production code exists.
 4. **Write the minimal production change** that makes the cases pass. Follow the path rules in
    `AGENTS.md` step 3 (logging, UI, tokens, shortcuts) and rule 50:
    - files under 300 lines;

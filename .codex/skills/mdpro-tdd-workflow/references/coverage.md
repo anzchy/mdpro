@@ -12,7 +12,9 @@ and reuse it if the tree doesn't change in between:
 scripts/heavy-lock.sh pnpm exec vitest run --coverage
 ```
 
-It writes `coverage/coverage-summary.json` (totals and per file) and `coverage/coverage-final.json`.
+It writes `coverage/coverage-summary.json` (totals and per file). If `coverage/coverage-final.json`
+is absent (the repo's reporter set may not include `json`), say that statement-map inspection was
+unavailable. Don't infer uncovered line ranges from the summary alone.
 
 ## Check
 
@@ -23,7 +25,7 @@ It writes `coverage/coverage-summary.json` (totals and per file) and `coverage/c
    and each match must meet that entry's thresholds. A glob matching nothing is a FAIL.
 3. **Changed files.** For every `src/` file your diff changes (`git diff --name-only <base>`), report
    lines and branches as covered/total and %. Then list the uncovered line ranges that fall inside
-   your changed hunks, read from `coverage-final.json`'s `statementMap`/`s` and
+   your changed hunks, read from `coverage-final.json` when it exists's `statementMap`/`s` and
    `branchMap`/`b`. Each one is either closed with a test (Step 4 rules), or justified as
    unreachable with the reason.
 4. **`v8 ignore`** in changed files: only the range form, each with a reason.
