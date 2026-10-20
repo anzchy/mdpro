@@ -9,6 +9,8 @@
 - 「次数」是该词在多少句话里出现过，大致说明它在这个项目里有多常用。
 - 有几个词是本项目自己的用法（lane、receipt、ledger、gate 的具体含义），会在说明里注明。
 
+**第二轮（2026-10-20，claude-imple-1，用 `/echo-sleuth:lessons`）：** 补充了 2026-10-16 到 10-20 的 25 个 session，以及 Codex 实现者 gpt-imple-1 和 gpt-imple-2 的 11 个会话，新增 72 个词，另加「八、调试与排查」「九、发布与 CI」「Codex 的说法」三节，见文末的「补充（第二轮）」。用这些说法做事的完整例子，见 [`dev-practices-from-sessions.md`](./dev-practices-from-sessions.md)。
+
 **用法建议：** 每次想写一句话时，先想左列的大白话，再换成中间列的词。不必背全表，先熟悉「一」和「二」，它们是你每天都在说的。
 
 ## 零、把你常说的话改得更专业（取自你自己的消息）
@@ -222,3 +224,157 @@
 - **带上限定。** "known limit", "caveat", "in practice"，让结论的边界清楚。
 - **动词要具体。** land / rebase / spot-check / downgrade / defer，比 do / handle / fix it 更准确。
 - **用对方能直接执行的形式。** 给出 SHA、文件:行号、确切命令，而不是"那个提交""那个文件"。
+
+---
+
+# 补充（第二轮，2026-10-20）：最近五天的 session 和 Codex 实现者
+
+**来源：**
+- 2026-10-16 到 10-20 的 25 个 Claude session。
+- Codex 实现者 gpt-imple-1 和 gpt-imple-2 的 11 个 rollout 文件，在 `~/.codex/sessions/2026/10/18–20/`。先用 `herdr agent list` 找到它们当前的 session id，再按 brief 路径（`herdr-spike/gpt-imple-N`）找出更早的会话。gpt-auditor 的会话不算在内。
+
+只取 agent 自己写的文字：6 542 段，拆成 35 344 句，其中 Claude 34 448 句、Codex 896 句，共扫描 380 MB。
+
+**怎么做的：** 前面各节已有的词都剔除了（剔除清单在本节末尾）。Claude 的例句后面写 `session id 前 8 位 · 日期`。Codex 的例句写 `codex <rollout id 前 8 位> · 日期`，括号里注明是哪个实现者。「次数」：Claude 的行数的是 Claude 的句子，「Codex 的说法」一节数的是 Codex 的句子。整理时抽查了 7 条例句，原文里都能找到，一字不差。
+
+### 一、Git 与分支（补充）
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 检查它是不是从对的提交长出来的 | **ancestry (check)** | 核对一个提交的祖先链：它确实基于预期的 parent，中间没有混进别的提交。这是落地前的标准检查 | "The verifier passed all 8 lanes, ancestry and receipts on `c60657e3`, but flagged one scope issue." `bf21b910 · 2026-10-18` | 11 |
+| git 还不认识的新文件 / 被忽略的文件 | **untracked / gitignored** | untracked 指没被 git 跟踪的新文件；gitignored 指被 .gitignore 故意排除的文件，新建的 worktree 里不会自动有 | "It has no uncommitted or untracked files, and its last commit is already on master." `a5e8a91c · 2026-10-17` | 25 |
+| rebase 不会冲突 | **applies cleanly / rebased cleanly** | 补丁或 rebase 一次成功、没有冲突。比"没问题"更准确 | "I'll only check, without rebasing, that the master commit is what they described and that a later rebase will apply cleanly." `df62d528 · 2026-10-18` | 32 |
+| 冲突没解决干净，留下 <<<< 符号 | **conflict markers** | `<<<<<<<` / `=======` / `>>>>>>>` 这几行。把它们误提交进去是常见事故 | "The receipts merge script didn't run (bad path), so the commit carries conflict markers in `receipts.json`." `c731c9b5 · 2026-10-16` | 9 |
+| 还没合进主干的工作 | **unlanded** | 已经提交、但还没落到 master 的工作。和 uncommitted（连提交都没有）不同 | "I have no unlanded work, so it fits within the one-item limit." `348d8ac2 · 2026-10-15` | 19 |
+
+### 二、协作与沟通（补充）
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 把问题过一遍、分轻重 | **triage** | 对一批新报告逐条判断：是不是真问题、多严重、交给谁、先后顺序。不等于马上修 | "When its report arrives, I'll triage it the same way, including the two extra Recovery-dialog checks." `098d2f57 · 2026-10-15` | 75 |
+| 允许你改哪些文件 | **grant / granted paths** | 正式授予的改动范围。在本项目里特指 impl grant 列出的文件，超出范围就要申请 revised grant | "Fixture loader: the matrix names a shared file under `tests/support/`, which was outside its granted paths, so the loader lives inside each test file instead." `d31233f5 · 2026-10-17` | 273 |
+| 以前说好的、一直有效的规定 | **standing order / standing rule** | 长期有效的授权或指令，每次照办，不用再问 | "I can't show they're unreachable, so they stay High under the standing order." `562a1986 · 2026-10-17` | 13 |
+| 给这件事限定时间 | **time-box** | 事先定好时间上限，到点就停下来评估，不管做没做完 | "The time-box rule now reads "two working days, ending at the time of day it was granted"." `8c14920b · 2026-10-17` | 19 |
+| 对方回个"收到" | **acknowledge / ack** | 确认收到。在协议里指接收方的回执，没收到 ack 就重发 | "Each event gets a sequence number and is spooled on the mini until the MacBook acknowledges it." `4cee58f4 · 2026-10-12` | 42 |
+| 还欠着没做的 | **owed / still owed** | 承诺过、还没交付的检查或工作。比 "not done yet" 更明确地表示这是欠下的 | "This has only been checked in code and tests; typing pinyin into Insert Link on a real Mac and Windows machine is still owed." `2111e493 · 2026-10-15` | 42 |
+| 还没定的问题 | **open question** | 需要别人回答或拍板、目前悬而未决的问题。计划文档里常有专门一节 | "The open question is how to move focus there without a click, for example a scripted `blur()`, which would be recorded as moving focus first." `046b7b59 · 2026-10-16` | 32 |
+| 一开始就主动说清楚 | **disclose (up front)** | 主动、提前说明超出范围的改动或已知问题，让审查的人不必自己去发现 | "The edited test-harness file was disclosed up front and is a justified fix." `8c14920b · 2026-10-18` | 6 |
+
+### 三、质量、审查与缺陷（补充）
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 再加固一下 | **hardening** | 功能已经能用，再去堵住边角的漏洞、提高健壮性。不是修 bug，也不是加新功能 | "Neither hardening fix was reached: the delete→recreate→edit sequence never produced a delete event, and locking the parent folder produced no watcher event." `35d809c7 · 2026-10-20` | 57 |
+| 证明这个问题不存在 | **refute / refutation** | 用证据推翻一条 finding。反义词是 confirm | "Deadlock and destroyed-window candidates are both refuted by the Tauri runtime source, so there is no Critical or High." `c7790baa · 2026-10-20` | 33 |
+| 两人各审各的、互相不看 | **blind (review)** | 独立评审：先不看对方的结论，免得被带偏 | "I'm not reading it out until Codex's review arrives, because the two reviews must stay blind to each other." `4cf5249a · 2026-10-18` | 42 |
+| 以前就有的问题 | **pre-existing** | 本次改动之前代码里就有的问题，不是这个 PR 引入的 | "One High is pre-existing. Both auditors agree the logging race was already in the code before this PR." `8c14920b · 2026-10-18` | 53 |
+| 产品的毛病 | **defect** | 比 bug 更正式，常用来把"产品缺陷"和"测试或工具自己的问题"分开 | "My probe sent a script that never signals it has finished, so the server waits out its 30 s default; that's a fault in the probe, not a defect." `4cee58f4 · 2026-10-15` | 87 |
+| 证据不太够 | **weaker evidence** | 有证据，但证明力打了折扣，比如失败记录里没有用例计数。要说明弱在哪里 | "…the test runner's failing run before the fix printed no test counts, so its receipt rests on weaker evidence." `fc72c634 · 2026-10-15` | 10 |
+| 话说得太满了 | **overstate / overclaim** | 文档或结论声称的超出了实际能保证的 | ""Never stuck, only delayed" overstates it: if a modal stays open, Recovery may never appear." `562a1986 · 2026-10-17` | 10 |
+| 只是样子不好看 | **cosmetic** | 只影响外观，不影响数据和功能，通常不挡合入 | "It's a cosmetic glitch, not data loss, so it doesn't block." `8c14920b · 2026-10-16` | 3 |
+| 不影响合入的意见 | **non-blocking** | 记下来、建议改，但不挡 landing。和 blocking 相对 | "One non-blocking note (SHOULD): all five new REDs are recorded as weak." `4cf5249a · 2026-10-20` | 15 |
+| 多出来的、不该有的东西 | **stray** | 意外留下的文件、分支或输出行 | "It shouldn't write anything on a Print, but I'm checking that it didn't create a stray file in that worktree." `35d809c7 · 2026-10-20` | 33 |
+| 绕过检查的写法 | **bypass** | 能绕开某道检查的路径或写法。测试时常故意植入 bypass，看检查能不能抓到 | "Bypasses on the real files: I injected 7 bypasses into the actual `light.css`, `dark.css` and `globals.css`, and all 7 were rejected." `a5e8a91c · 2026-10-17` | 72 |
+
+### 四、测试（补充）
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 要测哪些情况的表 | **test matrix** | 把输入、状态、平台等维度交叉列出来的用例表，在写代码之前设计 | "Next, a review that tries to break the test matrix before any code exists." `d31233f5 · 2026-10-16` | 17 |
+| 怎样算做完 | **acceptance criteria** | 逐条、可以验证的完成标准，每条都要有对应的证明 | "Every grant and every fix round gets a brief file in six parts: background (quoting your decisions), scope, numbered acceptance criteria, out of scope, gates, and a self-acceptance table." `4cf5249a · 2026-10-18` | 13 |
+| 判断对错的标准答案 | **(test) oracle** | 测试用来判定"正确结果是什么"的依据，可以是一张期望值表，也可以是一个参考实现 | "That order's test oracle and harnesses list exactly six dialogs, and they weren't in its grant." `4cf5249a · 2026-10-20` | 9 |
+| 全部扫一遍 | **sweep** | 对代码或文件做一次系统性的全量排查，不是抽查 | "While Codex works, I'll run my own independent sweep of every write to the document list, to check a3's inventory." `84b9f940 · 2026-10-16` | 42 |
+| 先写测试 | **test-first** | 写代码之前先写测试，并看到它因为对的原因失败。red → green 说的是过程，test-first 说的是顺序 | "Test-first: its tests failed for the right reason before any code was written: 12 failures, all broken assertions, none a missing module." `d31233f5 · 2026-10-16` | 27 |
+| 所有情况都试一遍 | **exhaustive (test / check)** | 对一个有限的输入集合逐一穷举。没有 property-testing 库时的替代办法 | "Seven units have laws, each covered by an exhaustive check over a fixed finite set of inputs, since neither Rust nor TypeScript here has a property-testing library." `e1be5a4c · 2026-10-18` | 10 |
+| 临时顶替的假服务 | **stand-in** | 测试里代替真实服务或进程的简化版本。比 mock 完整，能真正接收请求 | "P3 and P4, on the MacBook: I used Codex 0.159.1 against small stand-in servers." `c5f1d832 · 2026-10-16` | 15 |
+| 正常使用时走的那条路 | **ordinary path / happy path** | 用户正常操作时的代码路线。证明一个问题在正常路径上到不了，是降级 finding 的常见理由 | "A refutation needs a reproduction or a trace showing the ordinary path never reaches it; otherwise F1 stands and blocks." `4cf5249a · 2026-10-18` | 7 |
+
+### 五、工程概念（补充）
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 读到的是旧值 | **stale (read / state)** | 数据已经过期，但还在被使用。stale read 是并发 bug 的常见形态 | "The stale-read fix covers six Settings pages but not Advanced (logging)." `4cf5249a · 2026-10-20` | 145 |
+| 跟着主程序一起发的辅助程序 | **sidecar** | 随主应用一起打包、单独运行的辅助二进制，在这里就是 MCP server | "The Rust build needs the gitignored MCP sidecar binary." `c731c9b5 · 2026-10-16` | 38 |
+| 用版本号判断是不是新的 | **generation (counter)** | 每次有效写入就加一的计数器，用来丢弃过时的异步结果 | "Only a resolved write advances the generation, so a rejected write still lets the read hydrate." `c7790baa · 2026-10-20` | 13 |
+| 启动时把存储的数据填进界面 | **hydrate / hydration** | 用持久化的数据初始化前端状态。它和随后的写入抢先后时，容易出 race | "Reading the existing hydrate test to build a variant that delivers the startup hydration after the write has confirmed." `c7790baa · 2026-10-20` | 14 |
+| 事件来了就调用的函数 | **callback / listener** | listener 是订阅事件的那一方；callback 是稍后才会被调用的函数。忘记移除 listener 会造成 leak | "If the component unmounts before `listen()` resolves, the listener is never removed, so a later event could open a file twice." `e1be5a4c · 2026-10-18` | 47 |
+| 默认关、要主动打开 | **opt-in** | 默认不启用，必须显式打开。反义词是 opt-out | "How the run turns the channel on. The ADR requires an explicit opt-in at launch." `046b7b59 · 2026-10-17` | 14 |
+| 对整个应用 / 每个窗口生效 | **app-wide / per-window** | 状态或动作的作用范围 | "If the last-focused window closes and no window has focus, app-wide actions (New, Open, theme) are dropped and logged." `d31233f5 · 2026-10-17` | 38 |
+| 组件被重新创建 | **mount / unmount / remount** | React 组件的挂载、卸载、重新挂载。remount 会丢掉组件内部的状态 | "A tab switch or editor remount errs on the side of asking again." `8c14920b · 2026-10-16` | 42 |
+| 接上、连通 | **wire in / wiring** | 把已经写好的部件接进调用链。"写了但没接上"是常见的遗漏 | "I added two cases for it myself: one routes every log line through a single function that the tests can capture, the other checks the real logger is wired in." `d31233f5 · 2026-10-17` | 46 |
+| 谁在用这个函数 | **caller / call site** | 调用方和调用位置。改一个函数之前，先查它的 callers | "The one store function that could replace the document list without stamping, `setDocuments`, has no callers today." `c731c9b5 · 2026-10-16` | 29 |
+| 只发生一次 | **exactly once** | 不丢也不重复。比 "at least once" 更严格的保证 | "Switching focus between windows still logs each change exactly once, and a file opened from Finder into a new window logs its focus too." `4cee58f4 · 2026-10-14` | 14 |
+| 回复来晚了 | **late reply / late event** | 状态已经变了，异步结果才到达。这是 race 的典型来源 | "The late reply then closes the reopened copy and loses whatever was typed into it." `d31233f5 · 2026-10-17` | 24 |
+| 界面卡住的那个线程 | **main thread** | UI 所在的线程。在上面做重活，界面就会卡顿 | "Main-thread stall: extracting text from a 10 MiB document can stall the main thread." `aa1beb71 · 2026-10-16` | 10 |
+| 把第三方代码拷进仓库 | **vendored** | 把依赖的源码直接放进自己的仓库管理（可以打本地补丁），而不是从包管理器拉取 | "Next I'll read the vendored plugin's init API before wiring it in." `4cee58f4 · 2026-10-15` | 10 |
+| 两边表现一致 | **parity** | 两个实现或两个平台的功能和表现对齐，例如 feature parity。本项目也用它指颜色对齐检查（parity gate） | "The parity gap is real but small, and mdpro already rejects every colour literal that isn't on an approved list." `816a1bc8 · 2026-10-17` | 39 |
+
+### 六、常用说法与句式（补充）
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 不管怎样 | **either way** | 两种结果下结论都一样，所以不必等 | "Either way, the worktrees stay until each landing is confirmed." `aa1beb71 · 2026-10-16` | 22 |
+| 之前的结果还能用 | **carries over** | 前一次的验证结果在新提交上依然有效，因为相关代码没变 | "Its code is identical to what was audited, so the clean audit result carries over." `fc72c634 · 2026-10-15` | 33 |
+| 按字面意思 | **as written** | 按原文的字面理解。"false as written" 是说照现在的写法它是错的 | "Codex's M3 says my ledger sentence "requests to old generations are rejected" is false as written." `bf21b910 · 2026-10-18` | 37 |
+| 后来发现原来是 | **turns out / turned out** | 查证之后，得出了和预想不同的结论 | "All 44 failures turned out to be outdated mocks, and every one has an old→new assertion mapping." `4cf5249a · 2026-10-20` | 12 |
+| 不归这次管 | **out of scope** | 明确不在本次范围内，记下来但不处理。descope 是动词，指"移出范围" | "Out of scope, noted only: Insert Link's disabled button gives no reason, and the Table Insert grid adds 100 Tab stops." `098d2f57 · 2026-10-16` | 9 |
+| 改起来很容易 | **cheap to fix / cheaper than** | 修复成本低。常用来决定是顺手修掉，还是去争论它 | "Codex Highs 2 and 3: adr047 fixes both in the text, since that's cheaper than arguing them." `8c14920b · 2026-10-17` | 31 |
+| 少承诺一点 | **promise (less) / narrow the promise** | 把文档或接口承诺的保证收窄到真正做得到的范围 | "After that, the ADR comes to you with one choice: whether Rust reports when more approvals are waiting, or the ADR promises less." `8c14920b · 2026-10-17` | 38 |
+| 照现在这样 | **as it stands** | 就当前状态而言，不做额外改动 | "The build script won't pass Tauri's devtools option through as it stands." `4cee58f4 · 2026-10-14` | 7 |
+
+### 八、调试与排查
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 写个小东西试探一下 | **probe** | 为回答一个具体问题而做的小测试、脚本或请求 | "One oddity, not a defect: in one trial the probe in flight took about 5 s to come back." `bf21b910 · 2026-10-18` | 138 |
+| 顺着代码一路找 | **trace (the path)** | 沿着调用链一步步跟踪数据或控制流，确认问题会不会发生 | "It traces the path and confirms or refutes the bug, lists other commands that bypass read-only the same way, and proposes a fix and test matrix." `4cf5249a · 2026-10-18` | 67 |
+| 原因是 | **The cause: …** | 先单独给出直接原因，再展开。比用 "because" 的句子更醒目 | "The cause: zsh doesn't split an unquoted `$F`, so vitest got one bogus path." `348d8ac2 · 2026-10-15` | 22 |
+| 崩溃的记录 | **crash report / stack trace** | 系统生成的崩溃报告，里面有出错线程的调用栈 | "That's a significant finding, so I'm collecting evidence myself: the crash report, the log lines around it, and the process state." `35d809c7 · 2026-10-20` | 7 |
+| 程序返回的数字 | **exit code** | 进程的退出码：0 是成功，非 0 是各种失败。脚本靠它判断成败 | "That request moves inside the main flow, so the first exit code always wins." `c5f1d832 · 2026-10-16` | 51 |
+| 浏览器那个调试面板 | **DevTools / Web Inspector** | webview 的开发者工具，用来看 DOM、样式的计算值和 console | "In the Windows batch W-3, it will read the actual computed colour through DevTools." `4cf5249a · 2026-10-20` | 31 |
+| 看时机碰巧 | **timing (argument / -dependent)** | 依赖事件的先后和时间长短。"timing argument" 说的是"通常来得及"，那不等于证明 | "But that's a timing argument, not proof it can't happen." `84b9f940 · 2026-10-16` | 48 |
+
+### 九、发布与 CI
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 准备发布的那个版本 | **release candidate (RC)** | 打算作为正式版发布的候选构建。最后一轮回归测试就跑在它上面 | "The update and release batch waits for the 0.3.6 release candidate." `4cf5249a · 2026-10-20` | 12 |
+| 构建出来的安装包 | **(build) artifact** | CI 或构建产出的文件：安装包、签名、manifest | "Auto-update (A8): before release, I check the new signatures from the build artifacts myself." `4cee58f4 · 2026-10-14` | 9 |
+| 先建一个不公开的发布 | **draft release** | GitHub 上还没公开的发布，核对之后再 publish | "Once its report arrives, I'll ask you to approve the v0.3.4 draft release run." `fc72c634 · 2026-10-15` | 8 |
+| 正式放出去 | **publish** | 让用户能看到、能下载到。要和 build、draft 分开说 | "v0.3.2 was published today at 17:39, so under your rule all development is now paused." `4cee58f4 · 2026-10-14` | 42 |
+| 签名校验 | **signature (verification)** | 校验更新包的签名，没通过就不安装 | "It unpacks only a downloaded update that has already passed signature verification." `df62d528 · 2026-10-18` | 18 |
+| macOS 不让打开 | **Gatekeeper / notarized / quarantine flag** | macOS 的安全机制：下载的文件带隔离标记，没有公证（unnotarized）的会被 Gatekeeper 拦下 | "Confirmed: on the mini, both `codex` and `codex-code-mode-host` carry the quarantine flag, and Gatekeeper rejects them ("Unnotarized Developer ID")." `fc72c634 · 2026-10-16` | 19 |
+| 还没发版的改动记录 | **Unreleased (section)** | CHANGELOG 顶部记录未发布改动的一节，发版时改成版本号 | "Git auto-merged the changelog line into the released 0.3.3 section, so I'm moving it back under Unreleased." `4cee58f4 · 2026-10-14` | 22 |
+| CI 必须过的那项 | **required check** | 分支保护要求必须变绿的 CI 检查 | "Neither audit found a Critical or High issue, the verifier passed and CI's required check is green." `8c14920b · 2026-10-17` | 4 |
+| 再跑一次 | **rerun (the failed job)** | 重跑 CI job。只有登记过的 flaky 测试才允许重跑 | "What I did: that test wasn't on the list of known flaky tests, and the rules only allow a rerun for one that is." `fc72c634 · 2026-10-16` | 46 |
+| 依赖有安全漏洞的通告 | **(security) advisory** | 依赖库的公开漏洞公告（RUSTSEC、CVE），会写明受影响的版本范围 | "The one advisory left (rmcp, RUSTSEC-2026-0189) has no fix short of a major version bump, and it sits in a feature mdpro doesn't compile." `c5f1d832 · 2026-10-15` | 75 |
+
+### Codex 的说法（gpt-imple-1 / gpt-imple-2）
+
+| 你会说的 | 专业说法 | 意思和区别 | 例句（session · 日期） | 次数 |
+|---|---|---|---|---|
+| 正式代码（不是测试） | **production code / production edits** | 和测试代码相对的产品代码。Codex 几乎每条进度汇报都会说明它碰没碰过（Claude 只用过 5 次） | "I'm recording its guardian receipt now, before touching production code." `codex 01a14f78 · 2026-10-20`（gpt-imple-1） | 40 |
+| 只跑相关的那几个测试 | **focused test / focused run** | 只跑和本次改动直接相关的测试，区别于 full suite（Claude 用过 4 次） | "All four focused regression files pass, 89 tests total." `codex 01a14f78 · 2026-10-20`（gpt-imple-1） | 25 |
+| 针对这个问题跑一下 | **targeted run / targeted RED** | 指定文件或用例的运行，用来确认某个 RED 或 GREEN | "The targeted run is green: 18 tests passed, including the five new cases." `codex 01a14d4d · 2026-10-18`（gpt-imple-1） | 6 |
+| 证明 bug 存在的测试 | **witness** | 能让 bug 现形的最小测试用例，这个词取自逻辑学里的"见证"。Claude 从未用过 | "All four focused witnesses now fail on the old behavior, and each has a receipt." `codex 01a14f82 · 2026-10-20`（gpt-imple-2） | 7 |
+| 中间转接的那层 | **adapter** | 把一个接口转换成另一个接口的薄层（适配器模式） | "After the five RED records finish, I'll start with exact-ID lookup, availability refusal, then the editor adapters and link final-write guards." `codex 01a14f78 · 2026-10-20`（gpt-imple-1） | 4 |
+| 碰到授权范围的边了 | **scope boundary** | 再做下去就要改授权范围以外的文件，必须先停下来报告 | "I found a scope boundary before editing: the new dialog must join the shared open order, but the existing dialog order tests pin an independent six-dialog oracle." `codex 01a157e5 · 2026-10-20`（gpt-imple-2） | 3 |
+| 拿到锁了 | **acquire (the lock)** | 获得互斥锁，开始独占执行。Claude 多说 "under the lock" | "Our full coverage lane has acquired the lock and is running." `codex 01a14f78 · 2026-10-20`（gpt-imple-1） | 3 |
+| 还在跑，一切正常 | **progressing (normally)** | 长任务中途的进度汇报，顺带说明目前没有失败 | "The full suite is progressing normally through its test files; no failure has appeared in the captured output." `codex 01a14f78 · 2026-10-20`（gpt-imple-1） | 4 |
+| 没动过 | **remains untouched** | 明确声明某部分在这段时间里没被修改 | "Production code remains untouched while it completes." `codex 01a14f78 · 2026-10-20`（gpt-imple-1） | 6 |
+| 先把改动挪开 | **set aside** | 暂时撤下改动（例如为了重新记录 RED），之后再放回 | "I'll re-record the RED receipts with production edits set aside, run the gates, and rebase onto `f1bac1cd` before the commit." `codex 01a14f82 · 2026-10-20`（gpt-imple-2） | 5 |
+| rebase 之后又跑了一遍 | **post-rebase (checks)** | rebase 之后重新跑的验证 | "Post-rebase checks passed: 220 decisive tests, 12,036 full-suite tests, typecheck, build, and ledger check." `codex 01a14f78 · 2026-10-20`（gpt-imple-1） | 4 |
+| 仔细看一下 | **inspect** | 有针对性地查看某个具体的失败或文件。Claude 一次都没用过，通常说 "check" 或 "read" | "The receipt verifier found a failure in the full Rust lane despite the affected Rust suites passing, so I'll inspect the exact failure and fix it before the final gates." `codex 01a14f78 · 2026-10-18`（gpt-imple-1） | 10 |
+
+（Codex 会话的时间戳是 UTC。一个 rollout 可能跨好几天，所以例句的日期是那条消息的日期，不是 rollout 文件名里的日期。）
+
+### 写作习惯（补充）
+
+- **用 "X, not Y" 给问题定性。** 一句话里同时说出它是什么、不是什么。例句："It's a cosmetic glitch, not data loss, so it doesn't block."，"that's a fault in the probe, not a defect."
+- **用加粗的标签开头。** 例如 "**Cause:** …"、"**Out of scope, noted only:** …"、"**Pre-flight passed.** …"。读者扫一眼就知道这一段讲什么。
+- **用次数和比例代替形容词。** 写 "the next key you type is lost (2 of 2 tries)"、"12 failures, all broken assertions, none a missing module"，不写 "often"、"mostly"。
+- **主动更正自己。** 例句："One correction of my own: I gave adr047 a date … from memory, and I'm not sure it's right."，"So my "Codex stalls over ssh" theory was wrong."
+- **说明哪些没跑、为什么没跑。** 例句："The Rust code is unchanged, so its tests weren't rerun." 跳过一步时要给出理由，别让人以为它跑过了。
+- **说明哪些没动（Codex 的习惯）。** 例句："Production code remains untouched while it completes." 另外，Codex 一律用美式拼写 "behavior"（16 次），Claude 一律用英式 "behaviour"（"behavior" 0 次）。同一份文档里最好统一用一种。
+
+**已经在前面各节里、因此剔除的候选：** log line（第七节已有 "the log line shows"）、by design（约等于 working as intended）、false positive / false alarm、dry run / dry-ran（约等于 rehearsal / dry run）、build-only（约等于 rehearsal）、test rig（约等于 harness）、regression set（约等于 regression test）、mutate（约等于 mutation testing）、contract、fingerprint、edge case、settle、in flight、decisive、spike、drift、cap、verbatim、in practice、flaky（rerun 的语境里）、lock / hold the lock。

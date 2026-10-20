@@ -3,6 +3,7 @@
 写于 2026-10-16，给想学会资深开发者工作习惯的人看，不是给想背命令的人。每一条都回答四个问题：
 **它说的是什么**（白话）、**出自哪里**、**它防止了什么失败**、**mdpro 里在哪里已经这样做**，最后给一句
 **资深开发者会怎么说**。词汇对照见同目录的 [`dev-vocabulary.md`](./dev-vocabulary.md)。
+mdpro 自己最近五天的实例见 [`dev-practices-from-sessions.md`](./dev-practices-from-sessions.md)。
 
 **来源**（由两个调研 subagent 读原文整理，作者抽查过引文和 mdpro 路径）：
 - Matt Pocock 的 skills：本机安装的 `mattpocock-skills` **1.3.1**
