@@ -1,4 +1,6 @@
 /** D290: ignored deletion must ask before a Save can recreate the old path. */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +16,7 @@ import { saveAfterIgnoredDeletionChoice } from "../src/services/documentSave";
 import { performSave } from "../src/services/saveService";
 import { performRecreateChoice } from "../src/services/saveService";
 import { ignoredDeletionFor, pendingFileChangeFor } from "../src/stores/externalChangeStore";
+import { acknowledgeFileChange, recordFileChange } from "../src/stores/externalChangeStore";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { resetHarness } from "./helpers/fileWatcherLogHarness";
@@ -47,6 +50,12 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("D290 ignored deletion save choice", () => {
+  it("App connects the Save result to the same recreate dialog and choice handler", () => {
+    const app = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
+    expect(app).toContain("onRecreateRequired: setRecreateRequest");
+    expect(app).toContain("recreateRequest={recreateRequest}");
+    expect(app).toContain("onRecreateChoice={(choice) => void handleRecreateChoice(choice)}");
+  });
   it.each(["move", "delete"])("D290-WI-1 asks before saving after %s + Ignore", async () => {
     await mountPrompt();
     emitChange(B.path!, "deleted");
@@ -80,6 +89,13 @@ describe("D290 ignored deletion save choice", () => {
     expect(onChoice).toHaveBeenCalledWith("cancel");
     expect(ipcCount("save_file")).toBe(0);
     expect(useDocumentStore.getState().getDocumentById("b")?.isModified).toBe(true);
+    let askedAgain = false;
+    await flush(() => performSave("retry-after-cancel", {
+      saveActiveDocument, updateRecentFiles: () => {}, showToast: () => {},
+      onRecreateRequired: () => { askedAgain = true; },
+    }));
+    expect(askedAgain).toBe(true);
+    expect(ipcCount("save_file")).toBe(0);
   });
 
   it("explicit original choice writes once for the captured document and clears its marker", async () => {
@@ -93,6 +109,22 @@ describe("D290 ignored deletion save choice", () => {
     expect(ipcCalls.find((call) => call.cmd === "save_file")?.args).toMatchObject({ documentId: "b", path: B.path });
     expect(ignoredDeletionFor("b")).toBeUndefined();
     expect(useDocumentStore.getState().getDocumentById("b")?.isModified).toBe(false);
+  });
+
+  it("recreating B leaves A's ignored-deletion marker intact", async () => {
+    useDocumentStore.setState({ documents: [A, DIRTY], activeDocumentId: "b" });
+    recordFileChange({ path: A.path!, changeType: "deleted", timestamp: 1 }, "delete-a");
+    acknowledgeFileChange("a", pendingFileChangeFor("a")!.seq, "ignored");
+    await mountPrompt();
+    emitChange(B.path!, "deleted");
+    advance(300);
+    act(() => view.current?.handleIgnoreReload());
+    const markerA = ignoredDeletionFor("a")!;
+    const markerB = ignoredDeletionFor("b")!;
+    await flush(() => saveAfterIgnoredDeletionChoice(markerB, "original", "choice-b"));
+    expect(ignoredDeletionFor("a")).toEqual(markerA);
+    expect(ignoredDeletionFor("b")).toBeUndefined();
+    expect(ipcCount("save_file")).toBe(1);
   });
 
   it("Save As cancellation keeps the marker; success moves the path only after the reply", async () => {
