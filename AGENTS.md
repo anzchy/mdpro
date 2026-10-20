@@ -26,7 +26,8 @@ Codex loads only this file. It does not load `CLAUDE.md` or `.claude/rules/`, an
 |---|---|
 | `AskUserQuestion`, or `SendMessage` to `mdpro-delegator` | Stop and put the question in your final message. The delegator drives you through herdr and reads your pane. Never ask the user directly. |
 | A rule-25 confirmation | Same: stop and name the exact command and what it could lose. |
-| `/tdd-guardian:*`, other `/` skills, `Agent` subagents | Run the lanes in rule 10's tables yourself, through `scripts/heavy-lock.sh`, and report each command and its result. |
+| `/tdd-guardian:workflow` and its steps | Run the project skill `$mdpro-tdd-workflow` (`.codex/skills/mdpro-tdd-workflow/`). It spawns the custom agents `mdpro-spec-adversary` and `mdpro-tdd-reviewer` from `.codex/agents/`. |
+| Other `/` skills, `Agent` subagents | Run the lanes in rule 10's tables yourself, through `scripts/heavy-lock.sh`, and report each command and its result. |
 | Hooks (`.claude/hooks/*`) | Not run. `.codex/rules/mdpro.rules` covers the command guards. |
 | A handoff or report "in a file" | Write it under `~/.mdpro-redesign/herdr-spike/<your herdr agent name>/` and give the path in your final message. |
 

@@ -15,7 +15,8 @@ Replaced here:
 Added here, for Codex implementors:
 - the brief;
 - the attacked test matrix;
-- the self-acceptance table.
+- the self-acceptance table;
+- `$mdpro-tdd-workflow`, the skill that runs them.
 
 Unchanged from rule 70:
 - the slot cap, which is two everywhere (ADR-0124);
@@ -168,9 +169,13 @@ were cases nobody had tested:
 - D290 H1: a close while a save awaited;
 - D290 H2: a deletion ignored mid-batch.
 
-It works in four steps:
+It works in four steps, all inside the implementor's run of
+[`$mdpro-tdd-workflow`](../../.codex/skills/mdpro-tdd-workflow/SKILL.md)
+(user decision, 2026-10-20: 「创建 .codex/skills/mdpro-tdd-workflow/，尽可能将当前 /tdd-guardian:workflow
+中的迁移过去，使得这个skill self-contained, test-matrix attack 仍然由对应的Implementor 用subagent来产生」):
 1. **The implementor writes the matrix.** It reads the brief and writes
-   `~/.mdpro-redesign/herdr-spike/<name>/<item>-test-matrix.md`. For each AC it lists the cases:
+   `~/.mdpro-redesign/herdr-spike/<name>/<item>-test-matrix.md`, following the skill's
+   `references/test-matrix.md`. For each AC it lists the cases:
    - success;
    - boundary (empty, max, CJK);
    - invalid input;
@@ -180,15 +185,27 @@ It works in four steps:
    - platform, where it applies.
 
    Each case names its assertion (document, state or IPC effect, not a boolean) and its test file.
-   Then the implementor goes idle. Writing the matrix is prep and needs no slot.
-2. **The delegator has it attacked.** It dispatches `tdd-guardian:tdd-spec-adversary` with
-   `model: "opus"`, giving it the brief, the matrix and the code paths. The adversary returns:
+2. **The implementor has it attacked by a subagent.** It spawns the Codex custom agent
+   `mdpro-spec-adversary` (`.codex/agents/mdpro-spec-adversary.toml`: `gpt-6-astra`, effort high,
+   read-only, a fresh context). It gives the agent the brief, the plan, the matrix and the code
+   paths, and writes the report verbatim to `<item>-attack.md`. The adversary returns:
    - each wrong implementation that would pass every case;
    - the case that would catch it.
-3. **The delegator amends the brief.** The adversary's cases are added to the matching ACs, as a
-   brief amendment.
+
+   The implementor must not run the attack itself. If the agent can't be spawned, it writes
+   `ATTACK-NOT-RUN` and stops, and the delegator has an Opus `tdd-guardian:tdd-spec-adversary` attack
+   the matrix instead.
+3. **The implementor amends the matrix.** It adds each gap's case, or rejects the gap in the attack
+   file with a counter-proof: an existing case that kills it, or the brief's Out of scope. If it added
+   cases, it re-attacks once. It stops and asks the delegator about:
+   - a gap still open after round two;
+   - a gap the adversary marks NEEDS RULING (it asks for more than the brief).
 4. **The implementor writes the tests and records the REDs.** Only after that does it touch
    production code.
+
+The delegator checks the attack file and the matrix when it confirms the handoff. The workflow's
+other steps (plan, the per-WI receipts, the coverage self-check, the `mdpro-tdd-reviewer` subagent,
+the gates and the handoff table) are in the skill.
 
 The step applies to every grant. On a fix round it applies when the finding is a missed case,
 which covers all three Highs above. A fix the brief fully specifies with its regression test can
