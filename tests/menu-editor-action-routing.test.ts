@@ -18,6 +18,7 @@ import { useLinkInsertStore } from "../src/stores/linkInsertStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import { useTableInsertStore } from "../src/stores/tableInsertStore";
 import { LinkInsertModal } from "../src/components/Editor/LinkInsertModal";
+import { TableInsertModal } from "../src/components/Editor/TableInsertModal";
 import { bus, logs, win } from "./support/menuEventsHarness";
 import { flush, mountHook, resetMenuHarness } from "./support/menuEventsDomain";
 import { seedStores } from "./support/editorGenerationDomain";
@@ -43,6 +44,7 @@ afterEach(async () => {
   await milkdown?.destroy();
   milkdown = null;
   useLinkInsertStore.getState().clearPendingCallback();
+  useTableInsertStore.getState().clearPending();
 });
 
 async function setupEditors() {
@@ -262,5 +264,36 @@ it("AC-2: a menu Table dialog submitted after a mode switch inserts nothing", as
   await act(async () => submit?.(2, 2));
   expect(milkdown!.view.state.doc.firstChild?.type.name).toBe("paragraph");
   expect(selectLines().filter(({ payload }) => payload.context?.reason === "stale")).toHaveLength(1);
+  hook.unmount();
+});
+it("F1: failed in-table insert stays open; retry outside inserts and closes", async () => {
+  milkdown = await mountMilkdownMenuRig("| A | B |\n| --- | --- |\n| x | y |\n\noutside");
+  unregister = useMilkdownEditorStore.getState().registerEditor(() => milkdown?.editor ?? null);
+  const view = milkdown.view;
+  let cell = -1;
+  view.state.doc.descendants((node, pos) => { if (cell < 0 && node.type.name === "table_cell") cell = pos; });
+  expect(cell).toBeGreaterThanOrEqual(0);
+  view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(cell + 2))));
+  const before = view.state.doc;
+  const hook = mountHook({});
+  render(createElement(TableInsertModal));
+  await flush();
+  bus.emitTo("main", EVENT, { action: "editor.paragraph.table", target: "main" });
+  await flush();
+  await userEvent.click(screen.getByRole("button", { name: "Insert" }));
+  expect(view.state.doc.eq(before)).toBe(true);
+  expect(screen.getByRole("alert").textContent).toContain("Cursor is inside another table");
+  expect(screen.getByRole("dialog", { name: /Insert Table/ })).toBeTruthy();
+  const submits = () => logs.filter(({ payload }) => payload.event === "ui.table-modal.submit");
+  expect(submits().map(({ payload }) => payload.status)).toEqual(["fail"]);
+  let outside = -1;
+  view.state.doc.descendants((node, pos) => { if (node.type.name === "paragraph" && node.textContent === "outside") outside = pos + 1; });
+  expect(outside).toBeGreaterThanOrEqual(0);
+  view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(outside))));
+  await userEvent.click(screen.getByRole("button", { name: "Insert" }));
+  await flush();
+  expect(view.state.doc.eq(before)).toBe(false);
+  expect(screen.queryByRole("dialog", { name: /Insert Table/ })).toBeNull();
+  expect(submits().map(({ payload }) => payload.status)).toEqual(["fail", "success"]);
   hook.unmount();
 });

@@ -112,9 +112,10 @@ function runMilkdownCommand(
       return runProse(view, makeParagraphCommand());
     case "paragraph.table": {
       triggerTableInsert(token);
-      const pending = useTableInsertStore.getState().pendingCallback;
+      const pending = useTableInsertStore.getState().pendingCallback as
+        ((rows: number, cols: number) => boolean | void) | null;
       if (!pending) return refused("no_change");
-      useTableInsertStore.getState().requestInsert((rows, cols) => {
+      useTableInsertStore.getState().requestInsert((rows, cols): boolean | void => {
         if (useEditorStore.getState().viewMode !== "wysiwyg") {
           loggingService.logEventSync({
             level: "info", event: "ui.menu.select", status: "cancel", actionId,
@@ -123,7 +124,7 @@ function runMilkdownCommand(
           useTableInsertStore.getState().clearPending();
           return;
         }
-        pending(rows, cols);
+        return pending(rows, cols);
       });
       return { status: "opened" };
     }
