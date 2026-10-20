@@ -47,10 +47,12 @@
  *   document it is recorded against (`dropBaseline`), as does an open divergence: the
  *   disk no longer holds the old text, so undoing back to it must not read clean. A
  *   rename does not, and the own-save origin is never recorded, so keeps its baseline.
- * - **Nothing global across windows**: each window has its own JS store.
- * - **Two sources, one slot** (D111): `source` says whether a watcher event or an open
- *   or Save As reply's seed check recorded it. Both settle the same way. A reply whose
- *   flag is false records nothing and clears nothing.
+ * - **Window-local**: each window has its own JS store.
+ * - **Ignored deletions remain guarded (D290).** Ignore moves a deleted slot to
+ *   `ignoredDeletions`; a new event, path change, close, reload or listener reset
+ *   retires it. An explicit save clears only a matching document/path/seq marker.
+ * - **Two sources, one slot** (D111): `source` distinguishes watcher and open-check;
+ *   a false reply flag records nothing. Both sources settle the same way.
  * - Logs (`file.change.pending`) carry the document id, `seq`, an action and a reason,
  *   never the path or content.
  *
@@ -62,6 +64,7 @@
  * @coordinates-with src/utils/fileChangeCapture.ts — `recordOpenDivergence` and the
  *   replay of events held during an open or Save As (D111)
  * @coordinates-with src/utils/fileChangeOrigin.ts — the save-notice origin filter
+ * @coordinates-with src/utils/externalChangeSlot.ts — rename transition
  * @module stores/externalChangeStore
  */
 import { create } from "zustand";
@@ -69,6 +72,7 @@ import { loggingService } from "../services/loggingService";
 import type { Document } from "../types/document";
 import type { FileChangedEvent, PendingFileChange } from "../types/fileChange";
 import { skipOrigin } from "../utils/fileChangeOrigin";
+import { nextSlot, pendingRenameTarget } from "../utils/externalChangeSlot";
 import { useDocumentStore } from "./documentStore";
 
 /** Why a slot was settled; `acknowledged` for a user answer, `cleared` otherwise. */
@@ -85,11 +89,13 @@ export type PendingLogAction = "recorded" | "acknowledged" | "cleared" | "save-b
 
 interface ExternalChangeState {
   pending: Record<string, PendingFileChange>;
+  ignoredDeletions: Record<string, IgnoredDeletion>;
   /** Per document, the highest `seq` the user answered (Reload / Ignore / rename). */
   settled: Record<string, number>;
 }
 
-export const useExternalChangeStore = create<ExternalChangeState>(() => ({ pending: {}, settled: {} }));
+export interface IgnoredDeletion { documentId: string; path: string; seq: number }
+export const useExternalChangeStore = create<ExternalChangeState>(() => ({ pending: {}, settled: {}, ignoredDeletions: {} }));
 
 let lastSeq = 0;
 
@@ -119,40 +125,6 @@ export interface RecordResult {
   /** D173-WI-3: set (only) when the event was this window's own save of a matching
    *  document, which was skipped (`utils/fileChangeOrigin.ts`). */
   ownSkipped?: true;
-}
-
-/** A slot that is only a rename not yet followed: the path it will move to, else undefined. */
-function pendingRenameTarget(slot: PendingFileChange | undefined): string | undefined {
-  return slot?.event.changeType === "renamed" ? slot.event.newPath : undefined;
-}
-
-/** The slot `event` leaves for `doc`, and the path the document moves to now, if any (D178). */
-function nextSlot(
-  doc: Document & { path: string },
-  prior: PendingFileChange | undefined,
-  event: FileChangedEvent,
-  base: Omit<PendingFileChange, "path" | "event">,
-): { slot: PendingFileChange; moveTo?: string } {
-  const newPath = event.changeType === "renamed" ? event.newPath : undefined;
-  if (newPath !== undefined && prior && pendingRenameTarget(prior) === undefined) {
-    // A content change is pending: follow the rename now and carry the change to the
-    // new path as a `modified` there (a file exists at it), presented without a new wait.
-    const carried: FileChangedEvent = { path: newPath, changeType: "modified", timestamp: event.timestamp };
-    return {
-      slot: { ...base, path: newPath, event: carried, receivedAt: prior.receivedAt, source: prior.source },
-      moveTo: newPath,
-    };
-  }
-  if (doc.path !== event.path) {
-    // Matched through a rename not yet followed (`pendingRenameTarget`).
-    if (newPath !== undefined) {
-      // A rename of the target chains: still one rename, from the document's own path.
-      return { slot: { ...base, path: doc.path, event: { ...event, path: doc.path } } };
-    }
-    // A change at the target: follow the rename now so the change is recorded at its path.
-    return { slot: { ...base, path: event.path, event }, moveTo: event.path };
-  }
-  return { slot: { ...base, path: event.path, event } };
 }
 
 /**
@@ -188,7 +160,9 @@ export function recordFileChange(event: FileChangedEvent, actionId: string, now 
       actionId,
     );
   }
-  useExternalChangeStore.setState({ pending: next });
+  const ignoredDeletions = { ...useExternalChangeStore.getState().ignoredDeletions };
+  for (const doc of owners) delete ignoredDeletions[doc.id];
+  useExternalChangeStore.setState({ pending: next, ignoredDeletions });
   // After the slots, and in one `set` (b87): the prune below then runs once, against
   // the final paths, and finds every moved slot already at its document's new path.
   if (moves.length > 0) updateDocumentPaths(moves);
@@ -228,26 +202,50 @@ export function recordOpenDivergence(
     actionId,
     source: "open-check",
   };
-  useExternalChangeStore.setState({ pending: { ...useExternalChangeStore.getState().pending, [documentId]: slot } });
+  const { pending, ignoredDeletions } = useExternalChangeStore.getState();
+  const nextIgnored = { ...ignoredDeletions };
+  delete nextIgnored[documentId];
+  useExternalChangeStore.setState({ pending: { ...pending, [documentId]: slot }, ignoredDeletions: nextIgnored });
   logPending("recorded", documentId, lastSeq, { changeType: "modified", source: "open-check" }, actionId);
   useDocumentStore.getState().dropBaseline(documentId);
   return true;
 }
-
 /** The unresolved change of `documentId`, if any. */
 export function pendingFileChangeFor(documentId: string): PendingFileChange | undefined {
   return useExternalChangeStore.getState().pending[documentId];
 }
 
+/** An answered deletion still requiring a choice before recreating the original path. */
+export function ignoredDeletionFor(documentId: string): IgnoredDeletion | undefined {
+  return useExternalChangeStore.getState().ignoredDeletions[documentId];
+}
+
+/** One-shot retirement, only if the choice still names this marker. */
+export function clearIgnoredDeletion(marker: IgnoredDeletion): boolean {
+  const state = useExternalChangeStore.getState();
+  const current = state.ignoredDeletions[marker.documentId];
+  if (!current || current.path !== marker.path || current.seq !== marker.seq) return false;
+  const ignoredDeletions = { ...state.ignoredDeletions };
+  delete ignoredDeletions[marker.documentId];
+  useExternalChangeStore.setState({ ignoredDeletions });
+  return true;
+}
+
 function removeSlot(documentId: string, reason: PendingSettleReason): void {
-  const { pending, settled } = useExternalChangeStore.getState();
+  const { pending, settled, ignoredDeletions } = useExternalChangeStore.getState();
   const slot = pending[documentId];
   if (!slot) return;
   const next = { ...pending };
   delete next[documentId];
   const nextSettled = { ...settled };
   delete nextSettled[documentId];
-  useExternalChangeStore.setState({ pending: next, settled: nextSettled });
+  const nextIgnored = { ...ignoredDeletions };
+  if (reason === "ignored" && slot.event.changeType === "deleted") {
+    nextIgnored[documentId] = { documentId, path: slot.path, seq: slot.seq };
+  } else if (reason === "reloaded" || reason === "closed" || reason === "path-changed" || reason === "listener-reset") {
+    delete nextIgnored[documentId];
+  }
+  useExternalChangeStore.setState({ pending: next, settled: nextSettled, ignoredDeletions: nextIgnored });
   logPending(ACKNOWLEDGING.has(reason) ? "acknowledged" : "cleared", documentId, slot.seq, { reason });
 }
 
@@ -280,6 +278,7 @@ export function forgetFileChange(documentId: string, reason: PendingSettleReason
 export function resetFileChanges(): void {
   const ids = Object.keys(useExternalChangeStore.getState().pending);
   for (const id of ids) removeSlot(id, "listener-reset");
+  useExternalChangeStore.setState({ ignoredDeletions: {} });
 }
 
 /** Close and path change: drop each slot whose document left or moved to another path. */
@@ -289,6 +288,10 @@ function pruneAgainst(documents: Document[]): void {
     const doc = documents.find((d) => d.id === slot.documentId);
     if (!doc) removeSlot(slot.documentId, "closed");
     else if (doc.path !== slot.path) removeSlot(slot.documentId, "path-changed");
+  }
+  for (const marker of Object.values(useExternalChangeStore.getState().ignoredDeletions)) {
+    const doc = documents.find((d) => d.id === marker.documentId);
+    if (!doc || doc.path !== marker.path) clearIgnoredDeletion(marker);
   }
 }
 

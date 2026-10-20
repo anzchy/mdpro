@@ -187,7 +187,7 @@ describe("D42 slow: open order over real dialogs", () => {
           }
         }
       }
-      expect(runs).toBe(120);
+      expect(runs).toBe(210);
     },
     SLOW_BUDGET_MS,
   );

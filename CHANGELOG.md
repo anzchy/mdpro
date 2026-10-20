@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Saving a file after ignoring its deletion now asks whether to recreate it, save elsewhere, or cancel. Cancel keeps the edits and asks again on the next Save (D290; device check pending).
 - A logging preference read started before a successful change can no longer restore the old switch value or frontend logging state after the save finishes (D293).
 
 ### Added

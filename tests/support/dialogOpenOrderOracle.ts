@@ -26,6 +26,7 @@ export { mulberry32 } from "./tableCorpus";
 export type OracleDialogId =
   | "recovery"
   | "reload"
+  | "recreate"
   | "encoding"
   | "confirm"
   | "settings"
@@ -35,6 +36,7 @@ export type OracleDialogId =
 export const ORACLE_CANONICAL: readonly OracleDialogId[] = [
   "recovery",
   "reload",
+  "recreate",
   "encoding",
   "confirm",
   "settings",
@@ -53,6 +55,7 @@ export type Tokens = Record<OracleDialogId, string | null>;
 export const ALL_CLOSED: Readonly<Tokens> = Object.freeze({
   recovery: null,
   reload: null,
+  recreate: null,
   encoding: null,
   confirm: null,
   settings: null,
@@ -65,7 +68,7 @@ export interface DomainEvent {
   id: OracleDialogId;
 }
 
-/** Event domain E: 6 ids × 3 kinds = 18 events. */
+/** Event domain E: 7 ids × 3 kinds = 21 events. */
 export const EVENTS: readonly DomainEvent[] = ORACLE_CANONICAL.flatMap((id) =>
   (["open", "close", "reopen"] as const).map((kind) => ({ kind, id })),
 );

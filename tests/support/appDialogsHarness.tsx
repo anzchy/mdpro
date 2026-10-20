@@ -35,11 +35,12 @@ import {
   type QuitDialogPrompt,
 } from "../../src/utils/quitDialogModel";
 
-export type HarnessDialogId = "recovery" | "reload" | "encoding" | "confirm" | "settings" | "mcp";
+export type HarnessDialogId = "recovery" | "reload" | "recreate" | "encoding" | "confirm" | "settings" | "mcp";
 
 export const HARNESS_DIALOG_IDS: readonly HarnessDialogId[] = [
   "recovery",
   "reload",
+  "recreate",
   "encoding",
   "confirm",
   "settings",
@@ -50,6 +51,7 @@ export const HARNESS_DIALOG_IDS: readonly HarnessDialogId[] = [
 export const DIALOG_NAME: Record<HarnessDialogId, string | RegExp> = {
   recovery: "Recover drafts",
   reload: "Reload file",
+  recreate: "Recreate file",
   encoding: "Select encoding",
   confirm: "Unsaved changes",
   settings: "Settings",
@@ -64,6 +66,7 @@ export interface HarnessCall {
 export interface HarnessState {
   drafts: DraftMetadata[];
   reloadMessage: string | null;
+  recreateRequest: { documentId: string; path: string; seq: number; actionId: string } | null;
   encodingIssue: AppEncodingIssue | null;
   pendingClose: QuitDialogPendingClose;
   quitPrompt: QuitDialogPrompt | null;
@@ -73,6 +76,7 @@ export interface HarnessState {
 export const CLOSED_STATE: HarnessState = {
   drafts: [],
   reloadMessage: null,
+  recreateRequest: null,
   encodingIssue: null,
   pendingClose: null,
   quitPrompt: null,
@@ -90,6 +94,7 @@ const RELIST_TICKS = 8;
 const OPEN_PATCH: Record<Exclude<HarnessDialogId, "mcp">, Partial<HarnessState>> = {
   recovery: { drafts: [draft("d1")] },
   reload: { reloadMessage: "notes.md changed on disk" },
+  recreate: { recreateRequest: { documentId: "doc", path: "/tmp/doc.md", seq: 1, actionId: "d290" } },
   encoding: { encodingIssue: { path: "/x/notes.md", detected: "GBK" } },
   confirm: { pendingClose: "document" },
   settings: { settingsOpen: true },
@@ -98,6 +103,7 @@ const OPEN_PATCH: Record<Exclude<HarnessDialogId, "mcp">, Partial<HarnessState>>
 const CLOSE_PATCH: Record<Exclude<HarnessDialogId, "mcp">, Partial<HarnessState>> = {
   recovery: { drafts: [] },
   reload: { reloadMessage: null },
+  recreate: { recreateRequest: null },
   encoding: { encodingIssue: null },
   confirm: { pendingClose: null, quitPrompt: null },
   settings: { settingsOpen: false },
@@ -157,6 +163,11 @@ export function createAppDialogsHarness(options: AppDialogsHarnessOptions) {
           onIgnoreReload={() => {
             record("ignoreReload");
             set((prev) => ({ ...prev, reloadMessage: null }));
+          }}
+          recreateRequest={state.recreateRequest}
+          onRecreateChoice={() => {
+            record("recreateChoice");
+            set((prev) => ({ ...prev, recreateRequest: null }));
           }}
           encodingIssue={state.encodingIssue}
           onEncodingSelect={(encoding) => {
@@ -230,6 +241,7 @@ export function createAppDialogsHarness(options: AppDialogsHarnessOptions) {
     const open: Record<HarnessDialogId, boolean> = {
       recovery: s.drafts.length > 0,
       reload: Boolean(s.reloadMessage),
+      recreate: Boolean(s.recreateRequest),
       encoding: Boolean(s.encodingIssue),
       confirm: s.pendingClose !== null || s.quitPrompt !== null,
       settings: s.settingsOpen,

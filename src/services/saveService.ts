@@ -26,6 +26,8 @@
  * - The `file.save` result log carries the document id, a boolean flag and the
  *   caller's actionId, never content, lengths or paths. A `draft.delete` failure
  *   warn also carries the IPC error text, which may name the draft file.
+ * - D290: an ignored deletion routes to the App's choice dialog without a
+ *   Saved toast; each decision logs one enum-only result.
  *
  * Extracted so it can be unit-tested without mounting the App component (#377).
  * The save path intentionally omits the busy-indicator lifecycle — toggling
@@ -41,6 +43,7 @@ export interface SaveDeps {
   ) => Promise<{ path?: string | null; success?: boolean } | null | undefined>;
   updateRecentFiles: (path: string) => void;
   showToast: (message: string) => void;
+  onRecreateRequired?: (request: { documentId: string; path: string; seq: number; actionId: string }) => void;
 }
 
 /**
@@ -69,10 +72,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
+import { RecreateChoiceRequiredError } from "../utils/externalChangeGuard";
 import { ipcErrorMessage } from "../utils/ipcErrorMessage";
 import { resolveSaveResult, type SaveResolution } from "../utils/saveResult";
 import type { SaveResult } from "./fileService";
 import { loggingService } from "./loggingService";
+import type { RecreateChoice } from "../components/common/RecreateFileDialog";
 
 /**
  * Flush pending WYSIWYG edits, then read document `documentId` from the store
@@ -103,8 +108,46 @@ export async function performSave(
     if (result?.path) deps.updateRecentFiles(result.path);
     if (result?.success) deps.showToast("Saved");
   } catch (err) {
+    if (err instanceof RecreateChoiceRequiredError && deps.onRecreateRequired) {
+      deps.onRecreateRequired({ ...err.marker, actionId: err.actionId });
+      return;
+    }
     // D163: a rejected save IPC is a serialized `FileError` object, not an `Error`.
     deps.showToast(`Save failed: ${ipcErrorMessage(err)}`);
+  }
+}
+
+/** One enum-only decision log, including cancelled pickers and failed writes. */
+export async function performRecreateChoice(
+  request: { documentId: string; path: string; seq: number; actionId: string },
+  choice: RecreateChoice,
+  deps: {
+    saveDecision: (choice: "original" | "save-as") => Promise<{ success?: boolean; path?: string | null } | null>;
+    updateRecentFiles: (path: string) => void;
+    showToast: (message: string) => void;
+  },
+): Promise<void> {
+  let outcome: "written" | "cancelled" | "failed" = "cancelled";
+  try {
+    if (choice !== "cancel") {
+      const result = await deps.saveDecision(choice);
+      if (result?.success) {
+        outcome = "written";
+        if (result.path) deps.updateRecentFiles(result.path);
+        deps.showToast("Saved");
+      }
+    }
+  } catch (error) {
+    outcome = "failed";
+    deps.showToast(`Save failed: ${ipcErrorMessage(error)}`);
+  } finally {
+    loggingService.logEventSync({
+      level: outcome === "failed" ? "error" : "info",
+      event: "file.save.recreate_choice",
+      status: outcome === "failed" ? "fail" : outcome === "cancelled" ? "cancel" : "success",
+      actionId: request.actionId,
+      context: { choice, outcome },
+    });
   }
 }
 

@@ -2,7 +2,7 @@
  * AppDialogs Component
  *
  * Purpose: the App-level dialog composition — Recovery, Reload, Encoding, the
- * one "Unsaved changes" ConfirmDialog, Settings and the per-window MCP write
+ * one "Unsaved changes" ConfirmDialog, Settings, the D290 recreate choice and the per-window MCP write
  * confirmation — extracted from App.tsx (D42 WI-3). Presentational: App owns
  * every piece of state and every handler and passes them in; this component
  * only decides how each input maps onto its dialog's props.
@@ -12,7 +12,7 @@
  *   `handleEncodingSelect` / `handleConfirmClose` / `handleCancelClose` and the
  *   d46 suites keep reading App.tsx; `tests/app-dialogs-wiring.test.ts` pins
  *   which App expression each prop here is bound to.
- * - **Every dialog stays mounted**, each returning null while closed, as in App
+ * - **Every slot stays mounted**, each dialog returning null while closed, as in App
  *   before the move. SettingsDialog keeps its state while closed, and
  *   `McpWriteConfirm`'s `useMcpConfirm` subscription exists before any prompt.
  * - **Open order, not source order (D42, ADR-0062).** All share
@@ -23,8 +23,8 @@
  *   therefore already renders after every open one before the order catches
  *   up, and React moves keyed slots without remounting them. MCP is not pinned
  *   on top; a covered MCP prompt can time out unseen (ADR-0062's cost).
- * - **Tokens**: non-MCP slots pass the constant `"open"`, so they re-raise only
- *   after a closed render; MCP passes the shown `requestId`, reported by
+ * - **Tokens**: ordinary non-MCP slots pass `"open"`; recreate passes its document
+ *   and sequence so a newer deletion re-raises it. MCP passes the shown `requestId`, reported by
  *   `McpWriteConfirm`'s `onPromptChange`, so a queued replacement re-raises.
  * - **The open order is adjusted during render** (React's "storing information
  *   from previous renders"), compared before it is set, so it costs no extra
@@ -51,6 +51,7 @@ import { ConfirmDialog } from "./common/ConfirmDialog";
 import { EncodingDialog } from "./common/EncodingDialog";
 import { McpWriteConfirm } from "./common/McpWriteConfirm";
 import { RecoveryDialog } from "./common/RecoveryDialog";
+import { RecreateFileDialog, type RecreateChoice, type RecreateRequest } from "./common/RecreateFileDialog";
 import { ReloadDialog } from "./common/ReloadDialog";
 import { SettingsDialog } from "./common/SettingsDialog";
 import { useRecoveryAdmission } from "../hooks/useRecoveryAdmission";
@@ -80,6 +81,8 @@ export interface AppDialogsProps {
   reloadMessage: string | null;
   onReload: () => void;
   onIgnoreReload: () => void;
+  recreateRequest?: RecreateRequest | null;
+  onRecreateChoice?: (choice: RecreateChoice) => void;
   /** The undecodable file; the Encoding dialog shows while set. */
   encodingIssue: AppEncodingIssue | null;
   onEncodingSelect: (encoding: string) => void;
@@ -108,6 +111,8 @@ export function AppDialogs({
   reloadMessage,
   onReload,
   onIgnoreReload,
+  recreateRequest = null,
+  onRecreateChoice = () => {},
   encodingIssue,
   onEncodingSelect,
   onEncodingCancel,
@@ -123,6 +128,7 @@ export function AppDialogs({
   const tokens: AppDialogTokens = {
     recovery: recoveryRows.length > 0 ? OPEN_TOKEN : null,
     reload: reloadMessage ? OPEN_TOKEN : null,
+    recreate: recreateRequest ? `${recreateRequest.documentId}:${recreateRequest.seq}` : null,
     encoding: encodingIssue ? OPEN_TOKEN : null,
     confirm: confirmDialog.open ? OPEN_TOKEN : null,
     settings: settingsOpen ? OPEN_TOKEN : null,
@@ -157,6 +163,8 @@ export function AppDialogs({
             onIgnore={onIgnoreReload}
           />
         );
+      case "recreate":
+        return <RecreateFileDialog request={recreateRequest} onChoice={onRecreateChoice} />;
       case "encoding":
         return (
           <EncodingDialog

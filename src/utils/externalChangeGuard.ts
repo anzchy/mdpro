@@ -1,5 +1,5 @@
 /**
- * Purpose: the save-time check for an unresolved external change (D171, ADR-0081).
+ * Purpose: save-time checks for pending changes (D171) and ignored deletions (D290).
  * Every route that writes a document's file through `save_file` asks here right
  * before the write, so an external change recorded while the save waited (D70 queue,
  * `get_preferences`) still stops it.
@@ -18,13 +18,15 @@
  *   toast names the reason.
  * - The `file.change.pending` `save-blocked` line carries the document id, the pending
  *   `seq` and the route, never the path.
+ * - An ignored deletion asks on ordinary Save, blocks relaunch, and makes Save As
+ *   refuse the old path until a new target is chosen.
  *
  * @coordinates-with src/stores/externalChangeStore.ts — `pendingFileChangeFor`
  * @coordinates-with src/services/documentSave.ts — the ⌘S body
  * @coordinates-with src/hooks/useUpdater.ts — the relaunch save
  * @module utils/externalChangeGuard
  */
-import { logPending, pendingFileChangeFor } from "../stores/externalChangeStore";
+import { ignoredDeletionFor, logPending, pendingFileChangeFor, type IgnoredDeletion } from "../stores/externalChangeStore";
 
 export type GuardedSaveRoute = "save" | "relaunch" | "save-as";
 
@@ -40,6 +42,14 @@ export class ExternalChangePendingError extends Error {
   }
 }
 
+/** A Save needs a specific choice before writing an ignored deletion's old path. */
+export class RecreateChoiceRequiredError extends Error {
+  constructor(readonly marker: IgnoredDeletion, readonly actionId: string) {
+    super("save requires a recreate choice");
+    this.name = "RecreateChoiceRequiredError";
+  }
+}
+
 /**
  * True (and logged) when `documentId` has an unresolved external change, so the
  * caller must not write. False when it may write.
@@ -50,8 +60,9 @@ export function saveBlockedByPendingChange(
   actionId?: string,
 ): boolean {
   const slot = pendingFileChangeFor(documentId);
-  if (!slot) return false;
-  logPending("save-blocked", documentId, slot.seq, { route }, actionId);
+  const ignored = route === "relaunch" ? ignoredDeletionFor(documentId) : undefined;
+  if (!slot && !ignored) return false;
+  logPending("save-blocked", documentId, (slot ?? ignored)!.seq, { route }, actionId);
   return true;
 }
 
@@ -63,7 +74,8 @@ export function saveBlockedByPendingChange(
 export function saveAsRefusePath(doc: { id: string; path: string | null }): { path: string; seq: number } | null {
   if (!doc.path) return null;
   const slot = pendingFileChangeFor(doc.id);
-  return slot ? { path: doc.path, seq: slot.seq } : null;
+  const ignored = ignoredDeletionFor(doc.id);
+  return slot ? { path: doc.path, seq: slot.seq } : ignored && ignored.path === doc.path ? { path: doc.path, seq: ignored.seq } : null;
 }
 
 /** D111-WI-1: log a Save As that Rust refused onto the own path (route `save-as`). */

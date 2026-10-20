@@ -149,7 +149,7 @@ describe("dialogOpenOrder module shape", () => {
 
 describe("nextDialogOpenOrder", () => {
   it("1.1 + 1.3: equals the event-log oracle, is a permutation of open ids, and is idempotent, over every event sequence of length <= 4", () => {
-    expect(walk(4)).toBe(18 + 324 + 5832 + 104976);
+    expect(walk(4)).toBe(21 + 441 + 9261 + 194481);
   });
 
   it("1.2: multi-id snapshots append in canonical order, from every path of length <= 2", () => {
@@ -182,7 +182,7 @@ describe("nextDialogOpenOrder", () => {
         }
       }
     }
-    expect(checks).toBe(paths.length * 96);
+    expect(checks).toBe(paths.length * 192);
   });
 
   it("1.4: never mutates its inputs, and equal inputs give equal outputs", () => {
@@ -230,18 +230,19 @@ describe("nextDialogOpenOrder", () => {
   const boundaryRows: [string, Partial<Tokens>[], AppDialogId[][]][] = [
     ["1. everything closed", [{}], [[]]],
     [
-      "2. all six open in one snapshot",
+      "2. all seven open in one snapshot",
       [
         {
           recovery: "open",
           reload: "open",
+          recreate: "open",
           encoding: "open",
           confirm: "open",
           settings: "open",
           mcp: "r1",
         },
       ],
-      [["recovery", "reload", "encoding", "confirm", "settings", "mcp"]],
+      [["recovery", "reload", "recreate", "encoding", "confirm", "settings", "mcp"]],
     ],
     ["3. only settings open", [{ settings: "open" }], [["settings"]]],
     [
@@ -361,7 +362,7 @@ describe("nextDialogOpenOrder", () => {
         }
       }
     }
-    expect(runs).toBe(5 * 20);
+    expect(runs).toBe(6 * 30);
   });
 });
 
@@ -375,14 +376,14 @@ describe("dialogRenderOrder", () => {
       }
     };
     grow([]);
-    expect(subsets.length).toBe(1957);
+    expect(subsets.length).toBe(13700);
     for (const input of subsets) {
       const result = dialogRenderOrder(input);
       const k = input.length;
       expect(result.slice(0, k)).toEqual(input);
       expect(result.slice(k)).toEqual(ORACLE_CANONICAL.filter((id) => !input.includes(id)));
-      expect(result.length).toBe(6);
-      expect(new Set(result).size).toBe(6);
+      expect(result.length).toBe(7);
+      expect(new Set(result).size).toBe(7);
     }
   });
 
@@ -392,6 +393,7 @@ describe("dialogRenderOrder", () => {
       "mcp",
       "recovery",
       "reload",
+      "recreate",
       "encoding",
       "confirm",
       "settings",
@@ -400,13 +402,14 @@ describe("dialogRenderOrder", () => {
     expect(dialogRenderOrder(reversed)).toEqual(reversed);
   });
 
-  it("1.9 guard (added in implementation): repeated and unknown ids still give a permutation of all six", () => {
+  it("1.9 guard (added in implementation): repeated and unknown ids still give a permutation of all seven", () => {
     const input = ["confirm", "bogus", "confirm", "mcp"] as unknown as AppDialogId[];
     expect(dialogRenderOrder(input)).toEqual([
       "confirm",
       "mcp",
       "recovery",
       "reload",
+      "recreate",
       "encoding",
       "settings",
     ]);

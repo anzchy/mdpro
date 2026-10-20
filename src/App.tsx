@@ -7,6 +7,8 @@ import { TOCSidebarContainer } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
 import { AppDialogs } from "./components/AppDialogs";
+import type { RecreateChoice, RecreateRequest } from "./components/common/RecreateFileDialog";
+import { saveAfterIgnoredDeletionChoice } from "./services/documentSave";
 import { LoadingSpinner } from "./components/common/LoadingSpinner";
 import { Toast } from "./components/common/Toast";
 import { supersedeRetry, useDocument } from "./hooks/useDocument";
@@ -36,7 +38,7 @@ import { preferencesService } from "./services/preferencesService";
 import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/common/settings/editorPrefApply";
 import { loggingService } from "./services/loggingService";
 import { buildImageMarkdown } from "./services/imageService";
-import { performSave } from "./services/saveService";
+import { performRecreateChoice, performSave } from "./services/saveService";
 import { applyWindowState } from "./services/windowStateApplier";
 import type { Document } from "./types/document";
 import {
@@ -115,6 +117,7 @@ function App() {
   const showToast = useToastStore((s) => s.showToast);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [recreateRequest, setRecreateRequest] = useState<RecreateRequest | null>(null);
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
   const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
@@ -397,8 +400,19 @@ function App() {
   );
 
   const handleSave = useCallback(async (actionId?: string) => {
-    await performSave(actionId, { saveActiveDocument, updateRecentFiles, showToast });
+    await performSave(actionId, { saveActiveDocument, updateRecentFiles, showToast, onRecreateRequired: setRecreateRequest });
   }, [saveActiveDocument, showToast, updateRecentFiles]);
+
+  const handleRecreateChoice = useCallback(async (choice: RecreateChoice) => {
+    const request = recreateRequest;
+    if (!request) return;
+    setRecreateRequest(null);
+    await performRecreateChoice(request, choice, {
+      saveDecision: (decision) => saveAfterIgnoredDeletionChoice(request, decision, request.actionId),
+      updateRecentFiles,
+      showToast,
+    });
+  }, [recreateRequest, showToast, updateRecentFiles]);
 
   const handleExportHtml = useCallback(async (_actionId?: string) => {
     if (!activeDocument) return;
@@ -916,6 +930,8 @@ function App() {
         reloadMessage={reloadMessage}
         onReload={handleReloadFile}
         onIgnoreReload={handleIgnoreReload}
+        recreateRequest={recreateRequest}
+        onRecreateChoice={(choice) => void handleRecreateChoice(choice)}
         encodingIssue={encodingIssue}
         onEncodingSelect={handleEncodingSelect}
         onEncodingCancel={handleEncodingCancel}

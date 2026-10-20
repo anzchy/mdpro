@@ -1,17 +1,19 @@
 /**
  * @module src/utils/dialogOpenOrder
- * Purpose: the pure open-order model for the six App-level dialogs (D42).
+ * Purpose: the pure open-order model for the seven App-level dialogs (D42/D290).
  * Given the previous open order and this render's per-dialog open tokens, it
  * returns the next open order; `dialogRenderOrder` turns that into the slot
  * order to render, so the most recently opened dialog paints last (on top).
  *
  * Key decisions (ADR-0062, written in D42 WI-5):
- * - All six dialogs follow open order; MCP is not pinned on top. A covered MCP
+ * - All seven dialogs follow open order; recreate sits beside Reload because
+ *   both answer external file changes. MCP is not pinned on top. A covered MCP
  *   prompt can time out unseen, which ADR-0062 records as the cost.
  * - Tokens: `null` (or a missing key) means closed; any other string, including
  *   `""`, means open. An id whose token differs from the one carried for it
  *   counts as a reopen and moves to the end. Non-MCP slots pass the constant
- *   `"open"`, so they re-raise only after a closed render; MCP passes its
+ *   `"open"`, so they re-raise only after a closed render; recreate passes its
+ *   document and sequence token; MCP passes its
  *   `requestId`, so a queued replacement re-raises without one.
  * - Carry-token API shape: `prev` is `readonly OpenDialogEntry[]` (`{ id, token }`
  *   in open order) and the result has the same shape, so the output feeds
@@ -36,6 +38,7 @@
 export type AppDialogId =
   | "recovery"
   | "reload"
+  | "recreate"
   | "encoding"
   | "confirm"
   | "settings"
@@ -45,6 +48,7 @@ export type AppDialogId =
 export const APP_DIALOG_CANONICAL_ORDER: readonly AppDialogId[] = [
   "recovery",
   "reload",
+  "recreate",
   "encoding",
   "confirm",
   "settings",
@@ -93,7 +97,7 @@ export function nextDialogOpenOrder(
 /**
  * Render order (closed-after-open): the open ids in the given order, then the
  * remaining slots in canonical order. Unknown and repeated ids are ignored, so
- * the result is always a permutation of all six slots.
+ * the result is always a permutation of all seven slots.
  */
 export function dialogRenderOrder(openOrder: readonly AppDialogId[]): AppDialogId[] {
   const open = [...new Set(openOrder)].filter(isAppDialogId);

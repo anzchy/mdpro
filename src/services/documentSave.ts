@@ -27,6 +27,8 @@
  *   body throws the same error. Any other target is written. D111: a Save As holds the
  *   watcher events that arrive before its reply and, once the document has moved to the
  *   target, records them and the reply's `changedSinceRead` on it (`fileChangeCapture`).
+ * - D290: an ignored deletion requires a document/path/sequence-bound choice.
+ *   Save As refuses the old path and a cancelled picker keeps the marker.
  * - D214-WI-5/6: both bodies capture `baselineGeneration` right after the flush and
  *   hand it to `applySaveResult`, which demotes the result to dirty with no baseline if
  *   the document's baseline moved before the reply landed (an external change, or a
@@ -38,9 +40,11 @@
  * @module services/documentSave
  */
 import { useDocumentStore } from "../stores/documentStore";
+import { clearIgnoredDeletion, ignoredDeletionFor, pendingFileChangeFor, type IgnoredDeletion } from "../stores/externalChangeStore";
 import { makeIsFenced } from "../utils/fenceRanges";
 import {
   ExternalChangePendingError,
+  RecreateChoiceRequiredError,
   logSaveAsBlocked,
   saveAsRefusePath,
   saveBlockedByPendingChange,
@@ -137,7 +141,7 @@ async function saveDocumentAsNow(documentId: string, actionId?: string): Promise
 }
 
 /** Save body for `documentId` (Save As when untitled). The caller holds the queue slot. */
-async function saveDocumentNow(documentId: string, actionId?: string): Promise<SaveResult | null> {
+async function saveDocumentNow(documentId: string, actionId?: string, consent?: IgnoredDeletion): Promise<SaveResult | null> {
   const doc = flushDocumentForSave(documentId, actionId);
   if (!doc) return null;
   if (!doc.path) {
@@ -169,6 +173,13 @@ async function saveDocumentNow(documentId: string, actionId?: string): Promise<S
   // D171: checked here, at the write, not at ⌘S — a change recorded while this save
   // waited (queue, get_preferences) must stop it too.
   if (saveBlockedByPendingChange(doc.id, "save", actionId)) throw new ExternalChangePendingError();
+  const ignored = ignoredDeletionFor(doc.id);
+  if (ignored && ignored.path === doc.path && (!consent || consent.path !== ignored.path || consent.seq !== ignored.seq)) {
+    throw new RecreateChoiceRequiredError(ignored, actionId ?? loggingService.generateActionId());
+  }
+  if (consent && (!ignored || ignored.path !== consent.path || ignored.seq !== consent.seq || doc.path !== consent.path)) {
+    return null; // A newer event, close or path change invalidated the old answer.
+  }
   const result = await fileService.saveFile({
     documentId: doc.id,
     content: contentToSave,
@@ -178,6 +189,7 @@ async function saveDocumentNow(documentId: string, actionId?: string): Promise<S
     actionId,
   });
   if (result?.success) {
+    if (consent) clearIgnoredDeletion(consent);
     applySaveResult(doc.id, doc.content, contentToSave, result, actionId, startGeneration);
   }
   return result;
@@ -195,4 +207,22 @@ export function saveActiveDocumentAs(actionId?: string): Promise<SaveResult | nu
   const id = useDocumentStore.getState().activeDocumentId;
   if (!id) return Promise.resolve(null);
   return runSerializedSave(id, actionId, () => saveDocumentAsNow(id, actionId));
+}
+
+/** Apply a dialog decision to the captured document, never to the active tab. */
+export function saveAfterIgnoredDeletionChoice(
+  marker: IgnoredDeletion,
+  choice: "original" | "save-as",
+  actionId?: string,
+): Promise<SaveResult | null> {
+  return runSerializedSave(marker.documentId, actionId, () => {
+    const doc = useDocumentStore.getState().getDocumentById(marker.documentId);
+    const current = ignoredDeletionFor(marker.documentId);
+    if (!doc || doc.path !== marker.path || !current || current.seq !== marker.seq || pendingFileChangeFor(marker.documentId)) {
+      return Promise.resolve(null);
+    }
+    return choice === "original"
+      ? saveDocumentNow(marker.documentId, actionId, marker)
+      : saveDocumentAsNow(marker.documentId, actionId);
+  });
 }

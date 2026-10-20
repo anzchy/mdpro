@@ -733,6 +733,7 @@ describe("D42: exhaustive pairs", () => {
 
   const FOCUS_IN: Record<HarnessDialogId, string> = {
     reload: "Ignore",
+    recreate: "Cancel",
     confirm: "Keep editing",
     settings: "General",
     mcp: "Reject",
@@ -741,13 +742,14 @@ describe("D42: exhaustive pairs", () => {
   };
   const EFFECT: Partial<Record<HarnessDialogId, string>> = {
     reload: "ignoreReload",
+    recreate: "recreateChoice",
     confirm: "cancelClose",
     settings: "settingsClose",
     // D52 / ADR-0057 decision 1: Escape on the encoding dialog takes Cancel.
     encoding: "encodingCancel",
   };
 
-  const ON_STACK: ReadonlySet<HarnessDialogId> = new Set(["confirm", "mcp", "reload", "encoding"]);
+  const ON_STACK: ReadonlySet<HarnessDialogId> = new Set(["confirm", "mcp", "reload", "recreate", "encoding"]);
 
   it.each(PAIRS)("4.11: open %s then %s, focus in the top one — Escape affects only the top", async (x, y) => {
     if (x === "settings" || y === "settings") vi.mocked(isTauri).mockReturnValue(true);

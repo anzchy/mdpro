@@ -32,6 +32,7 @@ import {
   onIpc,
   reloadMessage,
   resetExternalChangeHarness,
+  view,
 } from "./support/externalChangeHarness";
 import { saveActiveDocumentAs } from "../src/services/documentSave";
 import { useDocumentStore } from "../src/stores/documentStore";
@@ -84,6 +85,18 @@ afterEach(() => {
 });
 
 describe("D111-WI-1 — Save As onto the own path with a pending change", () => {
+  it("D290: ignored deletion still refuses Save As onto its original path", async () => {
+    await mountPrompt();
+    emitChange(B.path!, "deleted");
+    advance(300);
+    act(() => view.current?.handleIgnoreReload());
+    refusingDialog();
+    let error: unknown;
+    await flush(() => saveActiveDocumentAs("d290-own-path").catch((caught: unknown) => { error = caught; }));
+    expect(dialogArgs()[0].refusePath).toBe(B.path);
+    expect(error).toBeInstanceOf(ExternalChangePendingError);
+    expect(useDocumentStore.getState().getDocumentById("b")?.isModified).toBe(true);
+  });
   it("sends the own path as refusePath, and a refused reply writes nothing and shows the prompt", async () => {
     await mountPrompt();
     emitChange(B.path!);

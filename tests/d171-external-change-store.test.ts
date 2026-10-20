@@ -24,6 +24,9 @@ import type { FileChangedEvent } from "../src/types/fileChange";
 const A = makeDoc({ id: "a", path: "/tmp/a.md" });
 const B = makeDoc({ id: "b", path: "/tmp/b.md" });
 const ev = (path: string, timestamp = 1): FileChangedEvent => ({ path, changeType: "modified", timestamp });
+const ignoredDeletion = (id: string) => (useExternalChangeStore.getState() as unknown as {
+  ignoredDeletions?: Record<string, { documentId: string; path: string; seq: number }>;
+}).ignoredDeletions?.[id];
 
 beforeEach(() => {
   resetFileChanges();
@@ -33,6 +36,35 @@ beforeEach(() => {
 });
 
 describe("D171 externalChangeStore", () => {
+  it("D290-WI-3 retains an ignored deletion until explicit clearing or a path change", () => {
+    recordFileChange({ path: B.path!, changeType: "deleted", timestamp: 1 }, "delete-1");
+    const seq = pendingFileChangeFor("b")!.seq;
+    expect(acknowledgeFileChange("b", seq, "ignored")).toBe(true);
+    expect(ignoredDeletion("b")).toMatchObject({ documentId: "b", path: B.path, seq });
+    useDocumentStore.getState().updateDocumentPath("b", "/tmp/b-new.md");
+    expect(ignoredDeletion("b")).toBeUndefined();
+  });
+
+  it("D290-WI-3 supersedes an old ignored deletion with a new event", () => {
+    recordFileChange({ path: B.path!, changeType: "deleted", timestamp: 1 }, "delete-1");
+    const seq = pendingFileChangeFor("b")!.seq;
+    acknowledgeFileChange("b", seq, "ignored");
+    recordFileChange(ev(B.path!, 2), "modify-2");
+    expect(ignoredDeletion("b")).toBeUndefined();
+    expect(pendingFileChangeFor("b")!.seq).toBeGreaterThan(seq);
+  });
+
+  it("D290-WI-3 clears an ignored deletion on close or listener reset", () => {
+    recordFileChange({ path: B.path!, changeType: "deleted", timestamp: 1 }, "delete-close");
+    acknowledgeFileChange("b", pendingFileChangeFor("b")!.seq, "ignored");
+    useDocumentStore.getState().closeDocument("b");
+    expect(ignoredDeletion("b")).toBeUndefined();
+    useDocumentStore.setState({ documents: [A, B] });
+    recordFileChange({ path: B.path!, changeType: "deleted", timestamp: 2 }, "delete-reset");
+    acknowledgeFileChange("b", pendingFileChangeFor("b")!.seq, "ignored");
+    resetFileChanges();
+    expect(ignoredDeletion("b")).toBeUndefined();
+  });
   it("records against the matching open document only, with an increasing seq", () => {
     const first = recordFileChange(ev(B.path!), "x1");
     expect(first).toEqual({ documentIds: ["b"], activeRecorded: false });
