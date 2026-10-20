@@ -9,7 +9,8 @@
  * Key decisions:
  * - **Return target captured at the first populated commit** by
  *   `useReturnFocusOnClose`; when the last row goes, focus returns there, or
- *   to the active editor at its end if that element is gone.
+ *   to the active editor in either mode if that element is gone or the card
+ *   opened from body (D291).
  * - **Visible initial focus on the first row's Recover** (rule 33), unless
  *   another modal is already open when the card first renders.
  * - **Tab and Shift+Tab loop inside the card** (rule 32). No Escape and no
@@ -22,14 +23,14 @@
  * @module components/common/RecoveryDialog
  * @coordinates-with src/components/AppDialogs.tsx — passes the admitted rows (D241)
  * @coordinates-with src/hooks/useReturnFocusOnClose.ts — the return on close
- * @coordinates-with src/utils/focusActiveMilkdownAtEnd.ts — the editor fallback
+ * @coordinates-with src/utils/focusActiveEditor.ts — mode-aware editor target
  */
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useReturnFocusOnClose } from "../../hooks/useReturnFocusOnClose";
 import { useVisibleInitialFocus } from "../../hooks/useVisibleInitialFocus";
 import type { DraftMetadata } from "../../services/draftService";
 import { loggingService } from "../../services/loggingService";
-import { focusActiveMilkdownAtEnd } from "../../utils/focusActiveMilkdownAtEnd";
+import { requestActiveEditorFocus } from "../../utils/focusActiveEditor";
 import { isModalOpen } from "../../utils/modalTabActionGuard";
 import { draftTimeLabel } from "../../utils/platformLabels";
 
@@ -63,7 +64,7 @@ function RecoveryCard({ drafts, onRecover, onDiscard }: RecoveryDialogProps) {
   const lastFocus = useRef<LastFocus | null>(null);
   // Read at the first render, before this card is in the document.
   const [focusOnOpen] = useState(() => !isModalOpen());
-  useReturnFocusOnClose(cardRef, focusActiveMilkdownAtEnd);
+  useReturnFocusOnClose(cardRef, () => requestActiveEditorFocus("ui.recovery.focus.cancel"), { fromBody: true });
   useVisibleInitialFocus(firstRecoverRef, focusOnOpen);
 
   const recoverAt = (index: number): HTMLElement | null => {

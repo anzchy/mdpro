@@ -17,9 +17,9 @@ import {
   type FocusFallback,
 } from "../src/hooks/useReturnFocusOnClose";
 
-function Probe({ label = "steal", fallback }: { label?: string; fallback?: FocusFallback }) {
+function Probe({ label = "steal", fallback, fromBody = false }: { label?: string; fallback?: FocusFallback; fromBody?: boolean }) {
   const container = useRef<HTMLDivElement>(null);
-  useReturnFocusOnClose(container, fallback);
+  useReturnFocusOnClose(container, fallback, { fromBody });
   return (
     <div ref={container} data-testid="container">
       <button type="button" autoFocus>
@@ -203,6 +203,7 @@ describe("useReturnFocusOnClose", () => {
       const { unmount } = render(<Probe fallback={fallback} />);
       unmount();
       expect(fallback).not.toHaveBeenCalled();
+      expect(document.body).toHaveFocus();
     });
   });
 
@@ -218,4 +219,41 @@ describe("useReturnFocusOnClose", () => {
     inner.unmount();
     expect(document.activeElement).toBe(outer);
   });
+
+  it("D291 body opt-in returns focus once to fallback target", () => {
+    const target = outside(`<button type="button">target</button>`).querySelector("button")!;
+    const fallback = vi.fn(() => target);
+    const { unmount } = render(<Probe fallback={fallback} fromBody />);
+    unmount();
+    expect(target).toHaveFocus();
+    expect(fallback).toHaveBeenCalledTimes(1);
+  });
+
+  it("D291 opt-in still honors a connected prior", () => {
+    const prior = focusPrior();
+    const fallback = vi.fn(() => null);
+    const { unmount } = render(<Probe fallback={fallback} fromBody />);
+    unmount();
+    expect(prior).toHaveFocus();
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it("D291 opt-in leaves outside focus alone", () => {
+    const fallback = vi.fn(() => null);
+    const { unmount } = render(<Probe fallback={fallback} fromBody />);
+    const other = outside(`<button type="button">other</button>`).querySelector("button")!;
+    other.focus();
+    unmount();
+    expect(other).toHaveFocus();
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, () => null, () => { throw Error("missing view"); }])(
+    "D291 opt-in contains missing/null/throwing fallback %#",
+    (fallback) => {
+      const { unmount } = render(<Probe fallback={fallback} fromBody />);
+      expect(() => unmount()).not.toThrow();
+      expect(document.body).toHaveFocus();
+    },
+  );
 });

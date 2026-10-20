@@ -18,7 +18,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Schema } from "@milkdown/kit/prose/model";
 import { EditorState } from "@milkdown/kit/prose/state";
@@ -53,6 +53,11 @@ vi.mock("@tauri-apps/api/core", async () => ({
 }));
 
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
+import { useDocumentStore } from "../src/stores/documentStore";
+import { useEditorStore } from "../src/stores/editorStore";
+import { Editor } from "../src/components/Editor/Editor";
+import { RecoveryDialog } from "../src/components/common/RecoveryDialog";
+import { makeDoc } from "./helpers/milkdownEditorHarness";
 import { createAppDialogsHarness, dialogFor, draft } from "./support/appDialogsHarness";
 
 const fx = JSON.parse(
@@ -241,5 +246,33 @@ describe("D273-WI-1 Recovery focus (ADR-0116 Decision 5)", () => {
     act(() => h.set({ reloadMessage: null }));
     await flush();
     expect(recoverOf("One")).toHaveFocus();
+  });
+
+  it("D291 same-document Source replacement returns to the still-live CodeMirror view", async () => {
+    const user = userEvent.setup();
+    for (const name of ["getClientRects", "getBoundingClientRect"] as const) {
+      if (typeof Range.prototype[name] !== "function") {
+        Object.defineProperty(Range.prototype, name, { configurable: true, value: () => [] });
+      }
+    }
+    useDocumentStore.setState({ documents: [makeDoc("a", "Hello")], activeDocumentId: "a" });
+    useEditorStore.setState({ viewMode: "source", editorView: null });
+    const editor = render(<Editor value="Hello" onChange={(value) => useDocumentStore.getState().updateDocumentContent("a", value)} />);
+    await waitFor(() => expect(useEditorStore.getState().editorView).not.toBeNull());
+    const view = useEditorStore.getState().editorView!;
+    const row = draft("d1", "One");
+    let recovery: ReturnType<typeof render>;
+    const close = () => {
+      useMilkdownEditorStore.getState().reloadEditor("a", "draft-recovery");
+      recovery.rerender(<RecoveryDialog drafts={[]} onRecover={close} onDiscard={close} />);
+    };
+    recovery = render(<RecoveryDialog drafts={[row]} onRecover={close} onDiscard={close} />);
+    await user.click(within(screen.getByRole("dialog", { name: "Recover drafts" })).getByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(view.hasFocus).toBe(true));
+    await user.keyboard("q");
+    expect(view.state.doc.toString()).toContain("q");
+    expect(useDocumentStore.getState().documents[0].content).toContain("q");
+    recovery.unmount();
+    editor.unmount();
   });
 });

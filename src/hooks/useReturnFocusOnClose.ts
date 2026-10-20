@@ -23,8 +23,8 @@
  *   at close wins. A container that stays open keeps focus (RF-10).
  * - **Never steals** (RF-4): focus that moved outside the container is left alone, and
  *   the fallback is not even called.
- * - **Fallback only when a prior element existed but is gone** (RF-9): opened from body →
- *   nothing to return to, so nothing is focused.
+ * - **Body fallback is opt-in** (D291): ordinary dialogs keep RF-9's body-open
+ *   no-focus behavior; Recovery explicitly opts in to target its editor.
  * - **Never throws**: a throwing fallback or focus call is contained.
  * - **Queryable and redirectable** (D38, ADR-0060):`pendingReturnTarget` tells the D37 focus capture
  *   where an open container holding focus will return it; `redirectReturnFocus` lets the
@@ -141,8 +141,8 @@ function focusOrBodyIn(container: HTMLElement): boolean {
   return !active || active === document.body || container.contains(active);
 }
 
-function returnFocus(container: HTMLElement, priors: readonly HTMLElement[], fallback?: FocusFallback): void {
-  if (priors.length === 0 || !focusOrBodyIn(container)) return;
+function returnFocus(container: HTMLElement, priors: readonly HTMLElement[], fallback?: FocusFallback, fromBody = false): void {
+  if ((priors.length === 0 && !fromBody) || !focusOrBodyIn(container)) return;
   try {
     const target = priors.find((el) => el.isConnected) ?? fallback?.() ?? null;
     target?.focus({ preventScroll: true });
@@ -159,6 +159,7 @@ function returnFocus(container: HTMLElement, priors: readonly HTMLElement[], fal
 export function useReturnFocusOnClose(
   containerRef: RefObject<HTMLElement | null>,
   fallback?: FocusFallback,
+  options?: { fromBody?: boolean },
 ): void {
   const [priors] = useState(capturePriors);
   const fallbackRef = useRef(fallback);
@@ -174,7 +175,7 @@ export function useReturnFocusOnClose(
     openContainers.add(entry);
     return () => {
       openContainers.delete(entry);
-      returnFocus(container, entry.priors, fallbackRef.current);
+      returnFocus(container, entry.priors, fallbackRef.current, options?.fromBody);
     };
-  }, [containerRef, priors]);
+  }, [containerRef, priors, options?.fromBody]);
 }

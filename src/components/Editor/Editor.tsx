@@ -111,6 +111,19 @@ export function Editor({
       ),
     [],
   );
+  const releaseReadyRef = useRef<(() => void) | null>(null);
+  const readyDocumentId = useDocumentStore((state) => state.activeDocumentId);
+  const readyGeneration = useMilkdownEditorStore((state) =>
+    readyDocumentId ? (state.editorGenerations[readyDocumentId] ?? 0) : 0);
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view || !readyDocumentId) return;
+    releaseReadyRef.current?.();
+    releaseReadyRef.current = registerReadyEditor({
+      documentId: readyDocumentId, generation: readyGeneration, mode: "source", element: view.contentDOM,
+      focus: () => { if (!view.dom.isConnected) return null; view.focus(); return view.contentDOM; },
+    });
+  }, [readyDocumentId, readyGeneration]);
 
   // Source-mode table Tab / Shift-Tab (Phase 2 WI-2.3, D40). @uiw/react-codemirror
   // puts its default `keymap.of([indentWithTab])` ahead of every extension we
@@ -175,6 +188,8 @@ export function Editor({
 
   useEffect(() => {
     return () => {
+      releaseReadyRef.current?.();
+      releaseReadyRef.current = null;
       setEditorView(null);
       if (initializedRef.current) {
         pluginRegistry.cleanup();
@@ -197,6 +212,15 @@ export function Editor({
         }}
         onCreateEditor={(view) => {
           viewRef.current = view;
+          const readyDocumentId = useDocumentStore.getState().activeDocumentId;
+          releaseReadyRef.current?.();
+          if (readyDocumentId) {
+            const generation = useMilkdownEditorStore.getState().editorGenerations[readyDocumentId] ?? 0;
+            releaseReadyRef.current = registerReadyEditor({
+              documentId: readyDocumentId, generation, mode: "source", element: view.contentDOM,
+              focus: () => { if (!view.dom.isConnected) return null; view.focus(); return view.contentDOM; },
+            });
+          }
           setEditorView(view);
           // Sync compartments with persisted prefs (handles both first mount and remount)
           reapplyEditorPrefs(view);
@@ -247,3 +271,7 @@ export function Editor({
     </div>
   );
 }
+
+// Keep the source keymap's cited line stable (tests/editor-owned-inventory.test.tsx).
+import { registerReadyEditor } from "../../utils/focusActiveEditor";
+import { useMilkdownEditorStore } from "../../stores/milkdownEditorStore";
