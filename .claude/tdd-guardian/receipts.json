@@ -227077,6 +227077,145 @@
           "message": "2 non-test file(s) were already modified when the red was recorded (scripts/tdd/red-receipt.mjs, scripts/tdd/unit-red-lane.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
+    },
+    {
+      "id": "ADR0125-FIX2-WI-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-20T16:43:37.214Z",
+      "head_sha": "d76fc0bb50d4796a7c37d72c630043dc0e7dfde8",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 22 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/unit-red-phase-soft.test.ts": {
+          "state": "ok",
+          "sha": "855d9a4360e9e90199f34f430beb5d12c533b90bd44cd51f33c21f16f07650f3",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "b8cbd764da70a65b",
+            "e05fabb2b0d7bcbc",
+            "2dd42f124779333e",
+            "d5dbb991a39a63fa",
+            "096b44f386db1877",
+            "e5d3126656ba054a",
+            "cc0875649af25c74",
+            "db7aff77d73bbdb6",
+            "4f7f4b4676792fa8",
+            "553b14fbbfa01827",
+            "c5dacc078e16d96f",
+            "86ae6a67111b954e",
+            "796a2997ee0e1ef2",
+            "cbdd857e695c141f",
+            "8b9f453806b31261",
+            "0882c6ae5cc539db",
+            "da18a810062df7f2",
+            "00d16a758dae3a2f",
+            "df3982fd61017359",
+            "d10b36aa74a59bcf",
+            "f010117650c103a2",
+            "c2ab6c2090018af8",
+            "85e092acaf01f3fd",
+            "e2c3b6e3f7dd0393",
+            "85ae62680e91d15c",
+            "ff01c3ae2f1aac4d",
+            "29576b54e255e3c9",
+            "66d20550a5c9ddd5",
+            "d96d4add25d55558",
+            "e2c3b6e3f7dd0393",
+            "85ae62680e91d15c",
+            "ff01c3ae2f1aac4d",
+            "29576b54e255e3c9",
+            "fd9856e1a7000f53",
+            "d7d8a133ab87707e",
+            "e2c3b6e3f7dd0393",
+            "7865fcae4438d964",
+            "89c43aeb409bae20",
+            "29576b54e255e3c9",
+            "4c7f4c40930ff305",
+            "b816e105021fd6c1",
+            "e2c3b6e3f7dd0393",
+            "0f2ae4d08d5ff072",
+            "85ae62680e91d15c",
+            "ff01c3ae2f1aac4d",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-20T16:45:47.833Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": []
+    },
+    {
+      "id": "ADR0125-FIX2-WI-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-20T16:53:41.862Z",
+      "head_sha": "d76fc0bb50d4796a7c37d72c630043dc0e7dfde8",
+      "dirty_source": [
+        "scripts/tdd/phase-runner-source.mjs",
+        "scripts/tdd/unit-red-lane.mjs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/unit-red-phase-delayed-soft.test.ts": {
+          "state": "ok",
+          "sha": "0a6e28b7d80a2c1a9825d547b49ecc416698261a360bce112e929985a21c6110",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "b8cbd764da70a65b",
+            "e05fabb2b0d7bcbc",
+            "2dd42f124779333e",
+            "d5dbb991a39a63fa",
+            "096b44f386db1877",
+            "e5d3126656ba054a",
+            "cc0875649af25c74",
+            "db7aff77d73bbdb6",
+            "bc92bf4aa41e8ca9",
+            "c5dacc078e16d96f",
+            "a70a8a7995c5f438",
+            "796a2997ee0e1ef2",
+            "bd2225b3c6002a09",
+            "d10b36aa74a59bcf",
+            "11cf5a082794aef0",
+            "0defe391c220c1c8",
+            "b30ad2de94af30c0",
+            "e2c3b6e3f7dd0393",
+            "85ae62680e91d15c",
+            "ff01c3ae2f1aac4d",
+            "29576b54e255e3c9",
+            "b69024b4a2cf5e06",
+            "29d3e2de4a1dd7d8",
+            "e2c3b6e3f7dd0393",
+            "7865fcae4438d964",
+            "89c43aeb409bae20",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-20T16:58:57.907Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (scripts/tdd/phase-runner-source.mjs, scripts/tdd/unit-red-lane.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/unit-red-phase-delayed-soft.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
     }
   ]
 }

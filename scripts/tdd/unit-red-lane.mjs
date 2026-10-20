@@ -4,6 +4,7 @@ import { join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import { phaseRunnerSource } from "./phase-runner-source.mjs";
 const TEST_FILE = /^tests\/(?:[^/]+\/)*[^/]+\.test\.(?:ts|tsx)$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 export default class UnitRedEvidenceReporter {
@@ -166,71 +167,7 @@ function instrumentedConfig(cwd, runnerDir) {
   const configPath = join(runnerDir, "vitest.config.mjs");
   const runnersUrl = import.meta.resolve("vitest/runners");
   const getFnUrl = pathToFileURL(createRequire(runnersUrl).resolve("@vitest/runner")).href;
-  writeFileSync(runnerPath, `
-import { VitestTestRunner } from ${JSON.stringify(runnersUrl)};
-import { getCurrentTest, getFn, test as baseTest } from ${JSON.stringify(getFnUrl)};
-import { AsyncLocalStorage } from "node:async_hooks"; const attemptContext = new AsyncLocalStorage(), patched = new WeakSet();
-function instrumentTest(api) {
-  const target = api.fn || api; if (patched.has(target)) return api; patched.add(target);
-  const extend = target.extend, guardedExtend = function(fixtures) {
-    const wrapped = Object.fromEntries(Object.entries(fixtures).map(([name, value]) => {
-      const array = Array.isArray(value), fn = array ? value[0] : value; if (typeof fn !== "function") return [name, value];
-      const guarded = function(context, use) {
-        const mark = () => { const attempt = attemptContext.getStore() || (context?.task || getCurrentTest())?.meta?.__unitRed?.attempts?.at(-1); if (attempt) attempt.nonBody = true; };
-        try { return Promise.resolve(fn.call(this, context, use)).catch(error => { mark(); throw error; }); }
-        catch (error) { mark(); throw error; }
-      };
-      guarded.toString = () => fn.toString(); if ("__VITEST_FIXTURE_INDEX__" in fn) guarded.__VITEST_FIXTURE_INDEX__ = fn.__VITEST_FIXTURE_INDEX__;
-      return [name, array ? [guarded, value[1]] : guarded]; }));
-    return instrumentTest(extend.call(this, wrapped));
-  };
-  target.extend = guardedExtend; api.extend = guardedExtend;
-  return api;
-}
-export default class PhaseRunner extends VitestTestRunner {
-  constructor(config) { super(config); instrumentTest(baseTest); } current(test) { return test.meta.__unitRed?.attempts.at(-1); }
-  finish(test) {
-    const attempt = this.current(test);
-    if (attempt?.boundary !== undefined && (test.result.errors?.length || 0) > attempt.boundary) attempt.nonBody = true;
-  }
-  onBeforeTryTask(test, info) {
-    this.finish(test);
-    (test.meta.__unitRed ??= { attempts: [] }).attempts.push({ retry: info.retry, repeats: info.repeats });
-    return super.onBeforeTryTask(test, info);
-  }
-  async runTask(test) {
-    const attempt = this.current(test);
-    attempt.started = true;
-    attempt.bodyStartErrors = test.result.errors?.length || 0;
-    const fn = getFn(test);
-    if (!fn) { attempt.nonBody = true; throw Error("Test function missing"); }
-    const timeout = Number(test.timeout);
-    let timer;
-    const deadline = new Promise((_, reject) => {
-      if (Number.isFinite(timeout) && timeout > 0) timer = setTimeout(() => { attempt.nonBody = true; reject(Error("Test body timed out")); }, timeout);
-    });
-    try { const body = attemptContext.run(attempt, () => fn()); if (timer) await Promise.race([deadline, body]); else await body; }
-    catch (error) {
-      if (test.context?.signal?.aborted && test.context.signal.reason === error) attempt.nonBody = true;
-      else if (!attempt.nonBody) attempt.bodyFailure = true;
-      throw error;
-    }
-    finally { clearTimeout(timer); attempt.completed = true; }
-  }
-  onAfterTryTask(test, info) {
-    try { return super.onAfterTryTask(test, info); }
-    catch (error) { this.current(test).countFailure = true; throw error; }
-  }
-  onTaskFinished(test) {
-    const attempt = this.current(test);
-    if (!attempt) return;
-    if (!attempt.started) attempt.nonBody = true;
-    if (attempt.completed && (test.result.errors?.length || 0) > attempt.bodyStartErrors) attempt.bodyFailure = true;
-    attempt.boundary = test.result.errors?.length || 0;
-  }
-  onAfterRunTask(test) { this.finish(test); return super.onAfterRunTask(test); }
-}
-`);
+  writeFileSync(runnerPath, phaseRunnerSource(runnersUrl, getFnUrl));
   const viteUrl = import.meta.resolve("vite");
   writeFileSync(configPath, `import { loadConfigFromFile, mergeConfig } from ${JSON.stringify(viteUrl)}; const loaded = await loadConfigFromFile({ command: "serve", mode: "test" }, ${JSON.stringify(join(cwd, base))}); if (!loaded) throw Error("Vitest config did not load"); export default mergeConfig(loaded.config, { root: ${JSON.stringify(cwd)}, test: { runner: ${JSON.stringify(runnerPath)} } });\n`);
   return configPath;
