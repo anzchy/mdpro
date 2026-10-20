@@ -1,6 +1,6 @@
 /**
  * Purpose: typed IPC wrapper for the user-preferences commands
- *   (`get_preferences`, `set_preferences`, `get_system_theme`,
+ *   (`get_preferences`, `set_preferences`, `patch_settings_group`, `get_system_theme`,
  *   `save_window_state`, `get_applied_shortcuts`), with a browser-mode fallback for `pnpm dev`.
  *
  * Key decisions:
@@ -105,6 +105,8 @@ export type PreferenceReadPurpose =
   | "settings_image"
   | "settings_shortcuts";
 
+export type PatchableGroup = "editor" | "markdown" | "image" | "export";
+
 function logRead(purpose: PreferenceReadPurpose, ok: boolean): void {
   loggingService.logEventSync({
     level: ok ? "info" : "warn",
@@ -179,6 +181,30 @@ export const preferencesService = {
         level: "error",
         event: "ui.preferences.save",
         status: "fail",
+        actionId: loggingService.generateActionId(),
+        context: { reason: "invoke_rejected" },
+      });
+      useToastStore.getState().showToast("Failed to save preferences");
+      throw error;
+    }
+  },
+
+  /** Persist only named leaves; the Rust command merges them under PrefsGuard. */
+  async patchPreferences<K extends PatchableGroup>(
+    group: K,
+    patch: Partial<UserPreferences[K]>,
+    browserSnapshot?: UserPreferences[K],
+  ): Promise<UserPreferences[K]> {
+    if (!isTauri()) {
+      const next = { ...(browserSnapshot ?? browserDefaults()[group]), ...patch };
+      const saved = await this.setPreferences({ [group]: next });
+      return saved[group];
+    }
+    try {
+      return await invoke<UserPreferences[K]>("patch_settings_group", { group, patch });
+    } catch (error) {
+      loggingService.logEventSync({
+        level: "error", event: "ui.preferences.save", status: "fail",
         actionId: loggingService.generateActionId(),
         context: { reason: "invoke_rejected" },
       });

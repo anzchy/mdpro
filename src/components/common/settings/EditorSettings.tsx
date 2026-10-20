@@ -22,7 +22,7 @@ export function EditorSettings() {
   // One write at a time; a failed write returns to the last confirmed value (F508-2).
   const writer = useSettingsWriter<EditorConfig>({
     group: "editor",
-    save: (next) => preferencesService.setPreferences({ editor: next }),
+    save: (next, patch) => preferencesService.patchPreferences("editor", patch, next),
     apply: (key, value) => applyEditorPref(key, value),
   });
   const prefs = writer.value;
@@ -30,9 +30,10 @@ export function EditorSettings() {
 
   useEffect(() => {
     let mounted = true;
+    const ticket = writer.readTicket();
     preferencesService.getPreferences("settings_editor").then((p) => {
       if (!mounted) return;
-      writer.load({ ...DEFAULT_EDITOR_CONFIG, ...p.editor });
+      writer.load({ ...DEFAULT_EDITOR_CONFIG, ...p.editor }, ticket);
     }).catch(() => {
       if (!mounted) return;
       setLoadError(true);

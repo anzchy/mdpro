@@ -30,21 +30,22 @@ interface Settings {
 }
 
 const HYDRATED: Settings = { enabled: false, level: "warn" };
-let sent: Settings[] = [];
+let sent: Partial<Settings>[] = [];
 let releaseHydrate: () => void = () => {};
 
 beforeEach(() => {
   sent = [];
   invokeMock.mockReset();
-  invokeMock.mockImplementation((command: string, args?: { settings: Settings }) => {
+  invokeMock.mockImplementation((command: string, args?: { group: string; patch: Partial<Settings> }) => {
     if (command === "get_logging_settings") {
       return new Promise((resolve) => {
         releaseHydrate = () => resolve({ ...HYDRATED });
       });
     }
-    if (command === "set_logging_settings" && args) {
-      sent.push(args.settings);
-      return Promise.resolve(args.settings);
+    if (command === "patch_settings_group" && args) {
+      expect(args.group).toBe("logging");
+      sent.push(args.patch);
+      return Promise.resolve({ ...HYDRATED, ...args.patch });
     }
     return Promise.resolve(undefined);
   });
@@ -81,7 +82,7 @@ describe("N2: Advanced mounted before hydrateSettings lands", () => {
 
     await user.selectOptions(select, "error");
     await settle();
-    expect(sent).toEqual([{ enabled: false, level: "error" }]);
+    expect(sent).toEqual([{ level: "error" }]);
     expect(useLoggingStore.getState()).toMatchObject({ enabled: false, level: "error" });
   });
 });

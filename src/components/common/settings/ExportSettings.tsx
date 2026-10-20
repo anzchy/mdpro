@@ -83,17 +83,18 @@ export function ExportSettings() {
    */
   const writer = useSettingsWriter<ExportConfig>({
     group: "export",
-    save: (next) => preferencesService.setPreferences({ export: next }),
+    save: (next, patch) => preferencesService.patchPreferences("export", patch, next),
   });
   const prefs = writer.value;
 
   useEffect(() => {
     let cancelled = false;
+    const ticket = writer.readTicket();
     preferencesService
       .getPreferences("settings_export")
       .then((p) => {
         if (cancelled) return;
-        writer.load({ ...DEFAULT_EXPORT_CONFIG, ...p.export });
+        writer.load({ ...DEFAULT_EXPORT_CONFIG, ...p.export }, ticket);
       })
       .catch(() => {
         // The service has logged the failure (enum-only); the raw message stays out of the UI.

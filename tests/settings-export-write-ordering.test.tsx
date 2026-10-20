@@ -1,59 +1,11 @@
 /**
- * WI-1 (+ WI-5's export half) — the ordering law for `ExportSettings`.
- *
- * ## The law
- *
- * *Last action wins, per field.* Fold every **resolved** `set_preferences`
- * payload in issue order over the preferences `get_preferences` returned; for
- * every field the user acted on, the folded value must equal the value of the
- * user's **most recent** action on that field. Plus *conservation*: no group the
- * user did not touch may differ from what was loaded, and no payload may carry a
- * group the user did not touch.
- *
- * The law has two halves and a naive fix satisfies only one:
- *
- * - **no-stale-revert** — the fold must not carry a pre-change value for a field
- *   changed later (defeated by today's code: the 500 ms debounce captures the
- *   whole export group and replays the stale snapshot over a newer sibling write);
- * - **no-lost-update** — the fold must still carry the final text value
- *   (defeated by a "just `clearTimeout` in the bool handler and stop" fix).
- *
- * It is stated as a fold rather than per-call payload equality on purpose: a
- * legitimate fix may change write count or timing. It may **not** change write
- * *granularity*. `merge_preferences` is a whole-group replace and
- * `ExportConfig.html_include_styles` carries `#[serde(default = …)] → true`, so a
- * per-leaf payload `{ export: { defaultFolder } }` silently resurrects `true` over
- * a user's `false` — the very defect under repair, relocated into the serde layer.
- * `recorder.fold()` runs `assertGroupsComplete` first, so a per-leaf fix fails
- * every case here. That backend fact is pinned from the Rust side by F-D in
- * `src-tauri/src/services/preferences_fold_contract_tests.rs`.
- *
- * ## WI-5's intent, stated because the two outcomes are indistinguishable
- *
- * On unmount the pending debounced write is **DISCARDED, not flushed**. A flush
- * would also produce "no state update on an unmounted component", so nothing in
- * the observable behaviour distinguishes the two without a stated intent. Discard
- * is chosen to match the rest of the settings dialog's posture: *no write the
- * user cannot see the result of*. Closing the dialog mid-keystroke abandons the
- * keystroke; it does not silently commit it after the surface is gone.
- *
- * ## Scope — what a green suite here proves
- *
- * These tests set the `isTauri` spy (`tests/support/tauriCoreMock.ts`) true in
- * `beforeEach` to force the real `preferencesService` down its Tauri branch and
- * make the boundary observable. Since ADR-0031 step 5b (D24) the shipping app
- * takes that branch too, so these payloads are what reaches `set_preferences`.
- * Whether the packaged WebView carries the `isTauri` marker is verified only by
- * the ADR-0032 GUI run; the Rust half is `commands/preferences_tests.rs`
- * (matrix § 0.6).
- *
- * ## Mock boundary
- *
- * Exactly one: `@tauri-apps/api/core#invoke`, a genuine system boundary, answered
- * by the shared recorder (`tests/support/preferenceRecorder.ts`). `exportService`,
- * `preferencesService`, `toastStore` and `loggingService` are all **real** — the
- * `pick_export_folder` call is answered by the same recorder, so the picker path
- * exercises the real service too.
+ * WI-1 / WI-5: ExportSettings last action wins per leaf. Fold resolved patches
+ * over the loaded preferences: every touched field ends at its latest action,
+ * and untouched leaves and groups stay intact. The local recorder retains the
+ * old final-state fold but exposes actual narrow payloads to per-sequence
+ * stale-value assertions. A rejected or pending write is never folded.
+ * Unmount discards an unsent debounced edit. Tauri invoke is the sole mock;
+ * services, stores and component are real.
  */
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -61,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isTauri } from "@tauri-apps/api/core";
 
 import type { ExportConfig, UserPreferences } from "../src/types/preferences";
-import type { PreferenceRecorder, UserAction } from "./support/preferenceRecorder";
+import type { PreferenceRecorder, RecordedWrite, UserAction } from "./support/preferenceRecorder";
 
 let recorder: PreferenceRecorder;
 
@@ -107,13 +59,38 @@ const SERVICE_TOAST = /failed to save preferences/i;
 /** The stored export group every case starts from. */
 const EXPORT_BASE: ExportConfig = { defaultFolder: "/old", htmlIncludeStyles: true };
 
+/** Keep the disk fold while exposing the actual leaf patch at every call. */
+function createPatchRecorder(base: UserPreferences): PreferenceRecorder {
+  const disk = createRecorder(base);
+  const patches = new Map<number, Partial<UserPreferences>>();
+  const writes = (): RecordedWrite[] => disk.allWrites().map((write) => ({
+    ...write, payload: patches.get(write.seq) ?? write.payload,
+  }));
+  return {
+    ...disk,
+    invoke(cmd, args) {
+      if (cmd !== "patch_settings_group") return disk.invoke(cmd, args);
+      const { group, patch } = args as { group: string; patch: Partial<ExportConfig> };
+      if (group !== "export" || Object.keys(patch).some((key) => !["defaultFolder", "htmlIncludeStyles"].includes(key))) {
+        return Promise.reject(new Error("export patch contains an unrelated leaf"));
+      }
+      const seq = disk.calls.length;
+      patches.set(seq, { export: structuredClone(patch) as ExportConfig });
+      const next = { ...EXPORT_BASE, ...disk.foldUnchecked().export, ...patch };
+      return disk.invoke("set_preferences", { preferences: { export: next } }).then(() => next);
+    },
+    allWrites: writes,
+    writes: () => writes().filter((write) => write.outcome === "resolved").map((write) => write.payload),
+  };
+}
+
 let basePrefs: UserPreferences;
 let toastMessages: string[];
 let unsubscribeToast: (() => void) | null;
 
 function setupRecorder(exportGroup: ExportConfig = { ...EXPORT_BASE }): void {
   basePrefs = makePreferences({ export: { ...exportGroup } });
-  recorder = createRecorder(basePrefs);
+  recorder = createPatchRecorder(basePrefs);
 }
 
 function setupUser() {

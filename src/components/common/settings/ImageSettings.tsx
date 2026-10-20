@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ImageConfig, UserPreferences } from "../../../types/preferences";
+import type { ImageConfig } from "../../../types/preferences";
 import { DEFAULT_IMAGE_CONFIG } from "../../../types/preferences";
 import { preferencesService } from "../../../services/preferencesService";
 import { SettingsLoadFailed, SettingsLoading } from "./SettingsPageState";
@@ -24,25 +24,10 @@ function isValidAssetFolder(path: string): boolean {
 }
 
 export function ImageSettings() {
-  const cachedFullPrefs = useRef<UserPreferences | null>(null);
+  // Browser preview still uses the legacy whole-group fallback; Tauri patches only named leaves.
+  const browserImage = useRef<ImageConfig>(DEFAULT_IMAGE_CONFIG);
   const [loadFailed, setLoadFailed] = useState(false);
   const textSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  /**
-   * Build the whole `image` group for a write.
-   *
-   * Seeded from `DEFAULT_IMAGE_CONFIG`, not from `cachedFullPrefs.current.image`:
-   * the loaded preferences may carry no `image` group at all (the load path below
-   * handles exactly that), and spreading `undefined` would emit a two-leaf group.
-   * `ImageConfig` declares no serde defaults, so a partial group fails to
-   * deserialize and the write dies at the backend (WI2-J). The backend replaces a
-   * group wholesale, so every write must carry all four leaves.
-   */
-  const buildImagePayload = (slice: ImageSlice): ImageConfig => ({
-    ...DEFAULT_IMAGE_CONFIG,
-    ...cachedFullPrefs.current?.image,
-    ...slice,
-  });
 
   /**
    * One write at a time, each built when sent from the last confirmed slice
@@ -60,22 +45,25 @@ export function ImageSettings() {
    */
   const writer = useSettingsWriter<ImageSlice>({
     group: "image",
-    save: (next) => preferencesService.setPreferences({ image: buildImagePayload(next) }),
+    save: (next, patch) => preferencesService.patchPreferences("image", patch, {
+      ...browserImage.current, ...next,
+    }),
   });
   const prefs = writer.value;
 
   useEffect(() => {
     let cancelled = false;
+    const ticket = writer.readTicket();
     preferencesService
       .getPreferences("settings_image")
       .then((p) => {
         if (cancelled) return;
-        cachedFullPrefs.current = p;
+        browserImage.current = { ...DEFAULT_IMAGE_CONFIG, ...p.image };
         writer.load({
           assetFolder: p.image?.assetFolder ?? DEFAULT_IMAGE_CONFIG.assetFolder,
           copyExternalImages:
             p.image?.copyExternalImages ?? DEFAULT_IMAGE_CONFIG.copyExternalImages,
-        });
+        }, ticket);
       })
       .catch(() => {
         // The service has logged the failure (enum-only); the raw message stays out of the UI.

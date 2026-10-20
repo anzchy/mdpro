@@ -11,7 +11,7 @@ export function MarkdownSettings() {
   // One write at a time; a failed write returns to the last confirmed value (F508-2).
   const writer = useSettingsWriter<MarkdownConfig>({
     group: "markdown",
-    save: (next) => preferencesService.setPreferences({ markdown: next }),
+    save: (next, patch) => preferencesService.patchPreferences("markdown", patch, next),
     apply: (key, value) => {
       if (key === "autoPair") applyAutoPair(value as boolean);
     },
@@ -21,11 +21,12 @@ export function MarkdownSettings() {
 
   useEffect(() => {
     let cancelled = false;
+    const ticket = writer.readTicket();
     preferencesService
       .getPreferences("settings_markdown")
       .then((p) => {
         if (cancelled) return;
-        writer.load({ ...DEFAULT_MARKDOWN_CONFIG, ...p.markdown });
+        writer.load({ ...DEFAULT_MARKDOWN_CONFIG, ...p.markdown }, ticket);
       })
       .catch(() => {
         // The service has logged the failure (enum-only); the raw message stays out of the UI.

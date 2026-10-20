@@ -12,21 +12,24 @@
  * Mock boundary: `@tauri-apps/api/core` and spies on `preferencesService`; the
  * hook cases use a controlled `save` function.
  */
-import { act, cleanup, renderHook, screen } from "@testing-library/react";
+import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", async () => (await import("./support/tauriCoreMock")).createTauriCoreMock());
 
+import { ImageSettings } from "../src/components/common/settings/ImageSettings";
+import { resetSettingsWriterRegistry } from "../src/components/common/settings/settingsWriterRegistry";
 import { useSettingsWriter } from "../src/components/common/settings/useSettingsWriter";
 import { preferencesService } from "../src/services/preferencesService";
 import { useEditorStore } from "../src/stores/editorStore";
-import { installBoundary } from "./support/settingsRowSites";
+import { installBoundary, LOADED } from "./support/settingsRowSites";
 import { renderStatePage, stubAppliedShortcuts } from "./support/settingsStatePages";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  resetSettingsWriterRegistry();
   delete (navigator as unknown as { platform?: string }).platform;
 });
 
@@ -223,4 +226,37 @@ describe("F508-3: a Shortcuts save that resolves after close and reopen", () => 
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText("Unsaved shortcut changes")).toBeInTheDocument();
   });
+});
+
+it("Image queued before close preserves hidden nondefault leaves when a new mount has not loaded", async () => {
+  const user = userEvent.setup();
+  installBoundary();
+  let persisted = structuredClone(LOADED);
+  persisted.image = { ...persisted.image, showPastePreview: false, maxDimension: 2048 };
+  let readCount = 0;
+  vi.mocked(preferencesService.getPreferences).mockImplementation(() => {
+    readCount += 1;
+    return readCount === 1 ? Promise.resolve(structuredClone(persisted)) : new Promise(() => {});
+  });
+  let release!: () => void;
+  let writes = 0;
+  vi.mocked(preferencesService.setPreferences).mockImplementation(async (patch) => {
+    writes += 1;
+    if (writes === 1) await new Promise<void>((resolve) => { release = resolve; });
+    persisted = { ...persisted, ...patch, image: patch.image ?? persisted.image };
+    return structuredClone(persisted);
+  });
+  const first = render(<ImageSettings />);
+  const toggle = await screen.findByRole("switch", { name: "Copy Images to Folder on Paste" });
+  await user.click(toggle);
+  await user.click(toggle);
+  await act(async () => { await Promise.resolve(); });
+  first.unmount();
+  render(<ImageSettings />);
+  await act(async () => { release(); await new Promise((resolve) => setTimeout(resolve, 0)); });
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+  expect(writes).toBe(2);
+  expect(persisted.image.showPastePreview).toBe(false);
+  expect(persisted.image.maxDimension).toBe(2048);
+  expect(persisted.image.copyExternalImages).toBe(false);
 });

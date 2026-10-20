@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { LogContext, LogEntryPayload, LogLevel, LogSettings } from "../types/logging";
 import { useLoggingStore } from "../stores/loggingStore";
 import { useToastStore } from "../stores/toastStore";
@@ -160,6 +160,21 @@ export const loggingService = {
         status: "fail",
         actionId: generateActionId(),
         context: { reason: "invoke_rejected" },
+      });
+      useToastStore.getState().showToast(SAVE_FAILED_TOAST);
+      throw error;
+    }
+  },
+
+  /** Patch only changed logging leaves in the desktop app. */
+  async patchLoggingSettings(patch: Partial<LogSettings>, browserSnapshot: LogSettings): Promise<LogSettings> {
+    if (!isTauri()) return this.setLoggingSettings({ ...browserSnapshot, ...patch });
+    try {
+      return await invoke<LogSettings>("patch_settings_group", { group: "logging", patch });
+    } catch (error) {
+      logEventSync({
+        level: "error", event: "ui.logging.settings.save", status: "fail",
+        actionId: generateActionId(), context: { reason: "invoke_rejected" },
       });
       useToastStore.getState().showToast(SAVE_FAILED_TOAST);
       throw error;

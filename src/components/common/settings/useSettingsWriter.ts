@@ -26,9 +26,7 @@
  *   no-ops, so a callback that outlives the page (a folder picker) cannot
  *   start a write nobody can see.
  * - Failure signalling stays with the save function (`preferencesService`,
- *   `loggingService` raise the one toast). The one exception is a save that
- *   never settles: the registry gives up on it after SETTINGS_WRITE_TIMEOUT_MS
- *   and this hook raises the same toast, since the service never will.
+ *   `loggingService` raise the one toast). A pending save stays pending.
  * - Without a `group` the writer is private to this instance (hook tests).
  *
  * @coordinates-with src/components/common/settings/settingsWriterRegistry.ts
@@ -36,13 +34,8 @@
  * @module components/common/settings/useSettingsWriter
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { loggingService } from "../../../services/loggingService";
-import { useToastStore } from "../../../stores/toastStore";
 import * as registry from "./settingsWriterRegistry";
 import type { GroupHandlers } from "./settingsWriterRegistry";
-
-/** The toast every settings save failure raises (rule 30 §5). */
-const SAVE_FAILED_TOAST = "Failed to save preferences";
 
 export interface SettingsWriterOptions<S extends object> {
   /** The preferences group this page writes; every instance of the page shares it. */
@@ -59,7 +52,9 @@ export interface SettingsWriter<S extends object> {
   /** The value to render; null until loaded. */
   value: S | null;
   /** Seed the shown and confirmed value from a successful read (ignored while the group is busy). */
-  load: (slice: S) => void;
+  load: (slice: S, ticket?: number) => void;
+  /** Capture when the read starts, before awaiting the service. */
+  readTicket: () => number;
   /** Show and claim a change without saving it yet (e.g. while typing). */
   edit: (patch: Partial<S>) => void;
   /** Show and claim a change, and queue its save. Resolves true when it saved. */
@@ -68,17 +63,6 @@ export interface SettingsWriter<S extends object> {
   current: () => S | null;
   /** True while a write is queued or in flight, or an edit is unsaved. */
   busy: () => boolean;
-}
-
-function signalTimeout(): void {
-  loggingService.logEventSync({
-    level: "error",
-    event: "ui.settings.write",
-    status: "fail",
-    actionId: loggingService.generateActionId(),
-    context: { reason: "timeout", timeoutMs: registry.SETTINGS_WRITE_TIMEOUT_MS },
-  });
-  useToastStore.getState().showToast(SAVE_FAILED_TOAST);
 }
 
 export function useSettingsWriter<S extends object>(options: SettingsWriterOptions<S>): SettingsWriter<S> {
@@ -96,7 +80,6 @@ export function useSettingsWriter<S extends object>(options: SettingsWriterOptio
     save: (next, patch) => optionsRef.current.save(next, patch),
     apply: (k, v) => optionsRef.current.apply?.(k, v),
     onConfirm: (confirmed) => optionsRef.current.onConfirm?.(confirmed),
-    onTimeout: signalTimeout,
   }));
 
   useEffect(() => {
@@ -113,9 +96,10 @@ export function useSettingsWriter<S extends object>(options: SettingsWriterOptio
 
   return {
     value: registry.shownValue<S>(key),
-    load: (slice) => {
-      if (mounted.current) registry.load(key, slice);
+    load: (slice, ticket) => {
+      if (mounted.current) registry.load(key, slice, ticket);
     },
+    readTicket: () => registry.readTicket(key),
     edit: (patch) => {
       if (mounted.current) registry.edit(key, patch);
     },

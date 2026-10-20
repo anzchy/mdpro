@@ -26,11 +26,12 @@ export function AppearanceSettings() {
 
   useEffect(() => {
     let cancelled = false;
+    const ticket = writer.readTicket();
     preferencesService
       .getPreferences("settings_appearance")
       .then((p) => {
         if (cancelled) return;
-        writer.load({ ...DEFAULT_APPEARANCE_CONFIG, ...p.appearance });
+        writer.load({ ...DEFAULT_APPEARANCE_CONFIG, ...p.appearance }, ticket);
       })
       .catch(() => {
         // The service has logged the failure (enum-only); the raw message stays out of the UI.

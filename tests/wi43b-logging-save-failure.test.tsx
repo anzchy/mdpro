@@ -34,7 +34,7 @@ let stopToasts: () => void = () => {};
 beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation(async (command: string) => {
-    if (command === "set_logging_settings") throw new Error(SECRET);
+    if (command === "set_logging_settings" || command === "patch_settings_group") throw new Error(SECRET);
     return undefined;
   });
   useLoggingStore.setState({ enabled: false, level: "info" });
@@ -77,7 +77,7 @@ describe("WI-4.3b: Advanced on a rejected logging save", () => {
     const { container } = render(<AdvancedSettings />);
     const sw = screen.getByRole("switch", { name: "Enable Logging" });
     await user.click(sw);
-    await waitFor(() => expect(invokeMock.mock.calls.some(([c]) => c === "set_logging_settings")).toBe(true));
+    await waitFor(() => expect(invokeMock.mock.calls.some(([c]) => c === "patch_settings_group")).toBe(true));
     await settle();
     expect(sw).toHaveAttribute("aria-checked", "false");
     expect(useLoggingStore.getState().enabled).toBe(false);
@@ -91,7 +91,7 @@ describe("WI-4.3b: Advanced on a rejected logging save", () => {
     const { container } = render(<AdvancedSettings />);
     const select = screen.getByRole("combobox", { name: "Log Level" });
     await user.selectOptions(select, "error");
-    await waitFor(() => expect(invokeMock.mock.calls.some(([c]) => c === "set_logging_settings")).toBe(true));
+    await waitFor(() => expect(invokeMock.mock.calls.some(([c]) => c === "patch_settings_group")).toBe(true));
     await settle();
     expect(select).toHaveValue("info");
     expect(toasts).toEqual([SAVE_FAILED_TOAST]);

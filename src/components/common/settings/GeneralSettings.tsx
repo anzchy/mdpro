@@ -41,12 +41,13 @@ export function GeneralSettings() {
 
   useEffect(() => {
     let mounted = true;
+    const ticket = writer.readTicket();
     preferencesService.getPreferences("settings_general").then((p: UserPreferences) => {
       if (!mounted) return;
       writer.load({
         defaultViewMode: migrateViewMode(p.defaultViewMode as string),
         autoSaveInterval: p.autoSaveInterval ?? 30,
-      });
+      }, ticket);
     }).catch(() => {
       if (!mounted) return;
       setLoadError(true);

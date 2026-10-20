@@ -9,8 +9,7 @@
  *   from the confirmed value;
  * - a page reopened while its group is writing shows the live value, and its
  *   load is ignored until the group is idle;
- * - a write that never settles counts as failed after
- *   SETTINGS_WRITE_TIMEOUT_MS (toast and rollback), and the queue moves on;
+ * - a pending save waits for its real backend result;
  * - typing not yet saved is discarded on close, as before;
  * - a write from a closed instance is refused.
  *
@@ -26,7 +25,6 @@ vi.mock("@tauri-apps/api/core", async () => (await import("./support/tauriCoreMo
 import { AdvancedSettings } from "../src/components/common/settings/AdvancedSettings";
 import {
   resetSettingsWriterRegistry,
-  SETTINGS_WRITE_TIMEOUT_MS,
 } from "../src/components/common/settings/settingsWriterRegistry";
 import { useSettingsWriter } from "../src/components/common/settings/useSettingsWriter";
 import { loggingService } from "../src/services/loggingService";
@@ -161,31 +159,7 @@ describe("the group writer across close and reopen", () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it("a write that never settles counts as failed after the timeout: toast, rollback, and the queue moves on", async () => {
-    vi.useFakeTimers();
-    const sent: Slice[] = [];
-    const save = vi.fn((next: Slice) => {
-      sent.push(next);
-      return sent.length === 1 ? new Promise<void>(() => {}) : Promise.resolve();
-    });
-    const { result, apply } = mountWriter("r6", save);
-    act(() => void result.current.write({ a: 1 }));
-    act(() => void result.current.write({ b: 2 }));
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(SETTINGS_WRITE_TIMEOUT_MS - 1);
-    });
-    expect(sent).toHaveLength(1);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1);
-    });
-    expect(useToastStore.getState().message).toBe("Failed to save preferences");
-    expect(apply).toHaveBeenCalledWith("a", 0);
-    expect(sent).toEqual([
-      { a: 1, b: 0 },
-      { a: 0, b: 2 },
-    ]);
-    expect(result.current.value).toEqual({ a: 0, b: 2 });
-  });
+
 });
 
 function holdPreferences(): Held<number | undefined>[] {

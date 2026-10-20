@@ -8,7 +8,7 @@
  *   1. The component wires every EditorConfig key through handleChange.
  *   2. handleChange queues the write through useSettingsWriter, which calls
  *      applyEditorPref for every shown change, including a rollback (PR #508).
- *   3. cachedFullPrefs is used to merge (editor nested inside full prefs object).
+ *   3. Editor writes name only the changed leaf; Rust merges against disk.
  *   4. Source exports the component correctly.
  *
  * Non-goals: full React render (no @testing-library/react installed).
@@ -43,9 +43,9 @@ describe("EditorSettings — source structure", () => {
     expect(editorSettingsSrc).toContain("applyEditorPref(key, value)");
   });
 
-  it("sends only the editor slice to setPreferences (not full-object snapshot)", () => {
-    // Sending only { editor: next } prevents whole-object snapshot race conditions
-    expect(editorSettingsSrc).toContain("setPreferences({ editor: next })");
+  it("sends only the edited leaf to the patch wrapper", () => {
+    expect(editorSettingsSrc).toContain('patchPreferences("editor", patch, next)');
+    expect(editorSettingsSrc).not.toContain("setPreferences({ editor: next })");
   });
 
   it("the writer re-applies the editor pref on rollback (PR #508)", () => {

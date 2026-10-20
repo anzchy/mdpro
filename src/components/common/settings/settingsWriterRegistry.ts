@@ -9,10 +9,9 @@
  * value instead of an older read.
  *
  * Pipeline: write(patch) → show patch + claim its keys → queue →
- *   (when sent) save(confirmed ⊕ unsaved edits ⊕ patch), bounded by
- *   SETTINGS_WRITE_TIMEOUT_MS
- *     → success: confirmed = that value, onConfirm
- *     → failure or timeout: keys this write still holds back to confirmed
+ *   (when sent) save(confirmed ⊕ unsaved edits ⊕ patch)
+ *     → success: confirmed = backend result, onConfirm
+ *     → failure: keys this write still holds back to confirmed
  *       (or, with `rollback: false`, kept shown as unsaved edits)
  *   → the queue drains with no page mounted: the live app is reconciled to the
  *     confirmed value and the group is forgotten (the next mount reads afresh)
@@ -21,23 +20,16 @@
  * - A save is built when it is *sent* (confirmed ⊕ unsaved edits ⊕ its patch),
  *   so a sibling that failed earlier never rides along. Every write or edit
  *   claims its keys; a failed write rolls back only the keys it still holds.
- * - `load` is ignored while the group is busy: a read issued by a page reopened
- *   mid-write predates the write and would show an older value.
+ * - `load` accepts only a read ticket still current when its reply arrives.
  * - Closing the last page discards unsaved edits (typing inside a debounce
  *   window), as the pages' own timers already do; accepted writes are never
  *   dropped.
- * - A save that has not settled after SETTINGS_WRITE_TIMEOUT_MS counts as
- *   failed (`onTimeout` raises the toast) and the queue moves on, so one hung
- *   IPC call cannot block its group until restart. Its late answer is ignored.
- * - The handlers are the latest mounted page's; they only call services and
- *   store setters, so they stay valid after that page closes.
+ * - A pending save waits for its real result; a never-settling call keeps the
+ *   group queue pending. Each accepted write keeps its accepting mount's save.
  *
  * @coordinates-with src/components/common/settings/useSettingsWriter.ts
  * @module components/common/settings/settingsWriterRegistry
  */
-
-/** How long one group write may stay unsettled before it counts as failed. */
-export const SETTINGS_WRITE_TIMEOUT_MS = 10_000;
 
 export type GroupKey = string | symbol;
 
@@ -45,7 +37,6 @@ export interface GroupHandlers<S extends object> {
   save: (next: S, patch: Partial<S>) => Promise<unknown>;
   apply: (key: keyof S, value: S[keyof S]) => void;
   onConfirm: (confirmed: S) => void;
-  onTimeout: () => void;
 }
 
 interface Claim {
@@ -67,7 +58,6 @@ interface Group<S extends object> {
 const groups = new Map<GroupKey, Group<object>>();
 const listeners = new Map<GroupKey, Set<() => void>>();
 const versions = new Map<GroupKey, number>();
-const timers = new Set<ReturnType<typeof setTimeout>>();
 
 function notify(key: GroupKey): void {
   versions.set(key, (versions.get(key) ?? 0) + 1);
@@ -183,10 +173,15 @@ function forget<S extends object>(key: GroupKey, group: Group<S>): void {
   groups.delete(key);
 }
 
-/** Seed the shown and confirmed value from a read; ignored while the group is busy. */
-export function load<S extends object>(key: GroupKey, slice: S): void {
+/** Capture at read start; a write or group replacement invalidates this ticket. */
+export function readTicket(key: GroupKey): number {
+  return version(key);
+}
+
+/** Seed from a read only while its start ticket is current and the group is idle. */
+export function load<S extends object>(key: GroupKey, slice: S, ticket = readTicket(key)): void {
   const group = find<S>(key);
-  if (!group || isBusy(key)) return;
+  if (!group || isBusy(key) || ticket !== version(key)) return;
   group.confirmed = slice;
   group.shown = slice;
   notify(key);
@@ -201,27 +196,6 @@ export function edit<S extends object>(key: GroupKey, patch: Partial<S>): void {
   notify(key);
 }
 
-type Outcome = "saved" | "failed" | "timeout";
-
-function settleWithin(promise: Promise<unknown>): Promise<Outcome> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      timers.delete(timer);
-      resolve("timeout");
-    }, SETTINGS_WRITE_TIMEOUT_MS);
-    timers.add(timer);
-    const done = (outcome: Outcome) => {
-      clearTimeout(timer);
-      timers.delete(timer);
-      resolve(outcome);
-    };
-    promise.then(
-      () => done("saved"),
-      () => done("failed"),
-    );
-  });
-}
-
 /** Show and claim a change, and queue its save. Resolves true when it saved. */
 export function write<S extends object>(
   key: GroupKey,
@@ -230,6 +204,7 @@ export function write<S extends object>(
 ): Promise<boolean> {
   const group = find<S>(key);
   if (!group || group.shown === null || group.confirmed === null) return Promise.resolve(false);
+  const acceptedHandlers = group.handlers;
   const token = claim(group, patch, false);
   showPatch(group, patch);
   group.pending += 1;
@@ -240,14 +215,10 @@ export function write<S extends object>(
     if (base === null) return false;
     const carried = unsavedEdits(group);
     const next = { ...base, ...carried, ...patch };
-    let outcome: Outcome;
+    let saved: unknown;
     try {
-      outcome = await settleWithin(group.handlers.save(next, patch));
+      saved = await acceptedHandlers.save(next, { ...carried, ...patch });
     } catch {
-      outcome = "failed";
-    }
-    if (outcome === "timeout") group.handlers.onTimeout();
-    if (outcome !== "saved") {
       if (opts.rollback === false) {
         for (const k of heldBy(group, patch, token)) group.claims.set(k, { token, unsaved: true });
       } else {
@@ -259,13 +230,27 @@ export function write<S extends object>(
       }
       return false;
     }
+    const returned = saved && typeof saved === "object" ? saved as Partial<S> : null;
+    const confirmed = { ...next };
+    if (returned) {
+      for (const k of Object.keys(confirmed) as (keyof S)[]) {
+        if (k in returned) confirmed[k] = returned[k] as S[keyof S];
+      }
+    }
     // Carried edits are saved now; one the user changed again stays unsaved.
     for (const k of Object.keys(carried) as (keyof S)[]) {
       const c = group.claims.get(k);
       if (c?.unsaved && group.shown?.[k] === next[k]) group.claims.set(k, { ...c, unsaved: false });
     }
-    group.confirmed = next;
-    group.handlers.onConfirm(next);
+    group.confirmed = confirmed;
+    const reconcile: Partial<S> = {};
+    for (const k of Object.keys(confirmed) as (keyof S)[]) {
+      if ((group.claims.get(k)?.token ?? 0) <= token && group.shown?.[k] !== confirmed[k]) {
+        reconcile[k] = confirmed[k];
+      }
+    }
+    showPatch(group, reconcile);
+    group.handlers.onConfirm(confirmed);
     return true;
   };
 
@@ -287,10 +272,8 @@ export function write<S extends object>(
   return result;
 }
 
-/** Tests only: forget every group and cancel every pending timeout. */
+/** Tests only: forget every group. */
 export function resetSettingsWriterRegistry(): void {
-  for (const timer of timers) clearTimeout(timer);
-  timers.clear();
   groups.clear();
   versions.clear();
 }

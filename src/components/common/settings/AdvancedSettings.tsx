@@ -32,10 +32,10 @@ export function AdvancedSettings() {
   // it is sent from the confirmed pair, so neither carries the other's stale
   // value (PR #508 F508-1). The store moves only on a confirmed write; a
   // rejected one leaves it, and so the controls, at the saved value, and
-  // `setLoggingSettings` raises the one save toast (rule 30 rule 5).
+  // `patchLoggingSettings` raises the one save toast (rule 30 rule 5).
   const writer = useSettingsWriter<LogSettings>({
     group: "logging",
-    save: (next) => loggingService.setLoggingSettings(next),
+    save: (next, patch) => loggingService.patchLoggingSettings(patch, next),
     onConfirm: (confirmed) => {
       setEnabled(confirmed.enabled);
       setLevel(confirmed.level);
@@ -49,7 +49,7 @@ export function AdvancedSettings() {
   // (onConfirm already moved the store) or rejected (round 4, N2 reject variant).
   const idle = !writer.busy();
   useEffect(() => {
-    if (!writer.busy()) writer.load({ enabled: storeEnabled, level: storeLevel });
+    if (!writer.busy()) writer.load({ enabled: storeEnabled, level: storeLevel }, writer.readTicket());
   }, [storeEnabled, storeLevel, idle]);
   const loggingEnabled = writer.value?.enabled ?? storeEnabled;
   const loggingLevel = writer.value?.level ?? storeLevel;

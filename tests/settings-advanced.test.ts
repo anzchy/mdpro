@@ -33,12 +33,13 @@ describe("AdvancedSettings — source structure", () => {
   });
 
   it("re-seeds the writer from the store until it writes, so a late hydrate is not missed (PR #508 N2)", () => {
-    expect(src).toContain("if (!writer.busy()) writer.load({ enabled: storeEnabled, level: storeLevel })");
+    expect(src).toContain("if (!writer.busy()) writer.load({ enabled: storeEnabled, level: storeLevel }, writer.readTicket())");
   });
 
-  it("writes through the queued writer with setLoggingSettings", () => {
+  it("writes only changed logging leaves through the queued writer", () => {
     expect(src).toContain("useSettingsWriter<LogSettings>");
-    expect(src).toContain("save: (next) => loggingService.setLoggingSettings(next)");
+    expect(src).toContain("save: (next, patch) => loggingService.patchLoggingSettings(patch, next)");
+    expect(src).not.toContain("save: (next) => loggingService.setLoggingSettings(next)");
   });
 
   it("moves the store only on a confirmed write (no premature optimistic update)", () => {

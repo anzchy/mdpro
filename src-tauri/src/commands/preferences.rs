@@ -10,6 +10,9 @@ use crate::services::preferences::{
 };
 use crate::services::prefs_guard::{GuardError, PrefsGuard};
 
+#[path = "../services/preferences_patch.rs"]
+mod preferences_patch;
+
 #[tauri::command]
 pub async fn get_preferences() -> Result<UserPreferences, String> {
     load_preferences().map_err(|e| format!("Failed to load preferences: {:?}", e))
@@ -113,6 +116,56 @@ pub async fn set_preferences(
             error: Some(error_kind(e).to_string()),
         }),
     }
+    result
+}
+
+/// Atomically applies a validated Settings-page leaf patch to the latest disk state.
+#[tauri::command]
+pub async fn patch_settings_group(
+    group: String,
+    patch: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    const MAX_PATCH_BYTES: usize = 64 * 1024;
+    let action_id = uuid::Uuid::new_v4().to_string();
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "preferences.patch".to_string(),
+        status: LogStatus::Start,
+        action_id: Some(action_id.clone()),
+        context: None,
+        duration_ms: None,
+        error: None,
+    });
+    let result = (|| {
+        if group.len() > 32 || patch.to_string().len() > MAX_PATCH_BYTES {
+            return Err("invalid_patch_size".to_string());
+        }
+        let guard = PrefsGuard::acquire().map_err(|_| "lock_failed".to_string())?;
+        let mut current = load_preferences_locked(&guard).map_err(|_| "load_failed".to_string())?;
+        let saved_group = preferences_patch::apply_patch(&mut current, &group, patch)?;
+        save_preferences(&current).map_err(|_| "save_failed".to_string())?;
+        if group == "logging" {
+            logger::set_log_settings(current.logging);
+        }
+        Ok(saved_group)
+    })();
+    logger::log_event(LogEntryPayload {
+        level: if result.is_ok() {
+            LogLevel::Info
+        } else {
+            LogLevel::Error
+        },
+        event: "preferences.patch".to_string(),
+        status: if result.is_ok() {
+            LogStatus::Success
+        } else {
+            LogStatus::Fail
+        },
+        action_id: Some(action_id),
+        context: None,
+        duration_ms: None,
+        error: result.as_ref().err().cloned(),
+    });
     result
 }
 

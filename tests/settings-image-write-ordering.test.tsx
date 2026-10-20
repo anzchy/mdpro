@@ -1,30 +1,9 @@
 /**
- * WI-2 (+ WI-5's image half) — the preference write-ordering law for `ImageSettings`.
- *
- * **Law**: for any interleaving of the debounced asset-folder edit and the
- * immediate *Copy Images* toggle, folding every `set_preferences` payload in
- * issue order over the loaded preferences must yield, for every field the user
- * touched, the value of the user's **most recent** action on that field — and
- * must leave every group the user did not touch exactly as loaded. Panel-specific
- * additions: `cachedFullPrefs` may never resurrect a value the boundary already
- * superseded, and every emitted `image` payload carries **all four**
- * `ImageConfig` leaves.
- *
- * **Scope (matrix § 0.6).** These cases set the `isTauri` spy
- * (`tests/support/tauriCoreMock.ts`) true to force `preferencesService` down its
- * Tauri branch and observe the *payload sequence* that crosses the boundary.
- * Since ADR-0031 step 5b the running app takes the same branch; whether the
- * packaged WebView carries the marker is verified only by the ADR-0032 GUI run.
- *
- * **WI-5 intent, stated because the two are indistinguishable without it:
- * unmounting inside the debounce window DISCARDS the pending write. It is not
- * flushed.** That matches the dialog's "no write the user cannot see the result
- * of" posture; a flush-on-unmount implementation is a different product decision
- * and would fail WI2-H deliberately.
- *
- * Mock boundary: `@tauri-apps/api/core#invoke` only. `preferencesService`,
- * `useToastStore` and the component are real. No `fs` and no IPC transport exist
- * in this process, so no case here can reach `~/.mdpro/config.json`.
+ * WI-2 / WI-5: ImageSettings last action wins per leaf, and unrelated stored
+ * image leaves survive every patch. The local recorder folds each patch into
+ * the latest resolved fake disk group, while allWrites exposes the actual
+ * narrow payload to the stale-value assertions. Unmount discards unsaved typing.
+ * The only mocked boundary is Tauri invoke; services and component are real.
  */
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -44,7 +23,7 @@ import { DEFAULT_IMAGE_CONFIG } from "../src/types/preferences";
 import type { ImageConfig, UserPreferences } from "../src/types/preferences";
 import { makePreferences } from "./support/preferenceFixtures";
 import { assertNoSupersededPayload, createRecorder } from "./support/preferenceRecorder";
-import type { PreferenceRecorder, UserAction } from "./support/preferenceRecorder";
+import type { PreferenceRecorder, RecordedWrite, UserAction } from "./support/preferenceRecorder";
 
 /** Mirrors `SAVE_DEBOUNCE_MS` in the component; a magic 500 here would drift. */
 const SAVE_DEBOUNCE_MS = 500;
@@ -56,6 +35,31 @@ const IMAGE_BASE: ImageConfig = {
   showPastePreview: true,
   maxDimension: null,
 };
+
+/** Adapt the old disk fold to the new command while exposing actual patch payloads. */
+function createPatchRecorder(base: UserPreferences): PreferenceRecorder {
+  const disk = createRecorder(base);
+  const patches = new Map<number, Partial<UserPreferences>>();
+  const writes = (): RecordedWrite[] => disk.allWrites().map((write) => ({
+    ...write, payload: patches.get(write.seq) ?? write.payload,
+  }));
+  return {
+    ...disk,
+    invoke(cmd, args) {
+      if (cmd !== "patch_settings_group") return disk.invoke(cmd, args);
+      const { group, patch } = args as { group: string; patch: Partial<ImageConfig> };
+      if (group !== "image" || Object.keys(patch).some((key) => !["assetFolder", "copyExternalImages"].includes(key))) {
+        return Promise.reject(new Error("image patch contains an unrelated leaf"));
+      }
+      const seq = disk.calls.length;
+      patches.set(seq, { image: structuredClone(patch) as ImageConfig });
+      const next = { ...DEFAULT_IMAGE_CONFIG, ...disk.foldUnchecked().image, ...patch };
+      return disk.invoke("set_preferences", { preferences: { image: next } }).then(() => next);
+    },
+    allWrites: writes,
+    writes: () => writes().filter((write) => write.outcome === "resolved").map((write) => write.payload),
+  };
+}
 
 const FOLDER_NAME = /Image Folder/i;
 const COPY_NAME = /Copy Images to Folder on Paste/i;
@@ -74,23 +78,7 @@ function copyCheckbox(): HTMLInputElement {
   return screen.getByRole("switch", { name: COPY_NAME }) as HTMLInputElement;
 }
 
-/**
- * MEASURED HARNESS FACT, and a correction to matrix § 0.4.
- *
- * `advanceTimers` is necessary but **not sufficient** in this repo: with it alone
- * every `userEvent` call deadlocks to the 5 s timeout (measured: 23/23 cases in
- * this file timed out at 5004 ms before this shim existed).
- * `@testing-library/react`'s `asyncWrapper` wraps every `userEvent` API in a
- * `setTimeout(resolve, 0)` and only pumps it when `jestFakeTimersAreEnabled()`,
- * which short-circuits on `typeof jest !== "undefined"`. Under Vitest there is no
- * `jest` global, so RTL schedules that timeout onto the **fake** clock and never
- * advances it.
- *
- * The shim makes RTL's own detection true and hands it a working pump. It changes
- * nothing about the component. `vitest.config.ts` sets `unstubGlobals: true`.
- * Identical to the shim in `tests/settings-export-write-ordering.test.tsx` — the
- * two panels share one harness so their diffs stay comparable.
- */
+/** RTL's fake-timer pump checks for `jest`; Vitest needs this shim to drain userEvent. */
 function installTimerPump(): void {
   vi.stubGlobal("jest", {
     advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms),
@@ -116,7 +104,7 @@ async function advanceDebounce(): Promise<void> {
 
 /** Mount the panel against a recorder and wait out the initial `get_preferences`. */
 async function mount(base: UserPreferences): Promise<Harness> {
-  const recorder = createRecorder(base);
+  const recorder = createPatchRecorder(base);
   invokeMock.mockImplementation((cmd: string, args?: unknown) => recorder.invoke(cmd, args));
   // `advanceTimers` is mandatory under fake timers (userEvent deadlocks without
   // it); `delay: null` keeps the coalescing cases from firing the debounce
@@ -552,7 +540,7 @@ describe("ImageSettings — a failed debounced write must not destroy the panel 
 });
 
 describe("ImageSettings — preferences with no image group (WI2-J)", () => {
-  it("still emits a complete four-leaf image payload", async () => {
+  it("sends only the edited leaf and preserves the complete stored image group", async () => {
     const base = makePreferences();
     delete (base as Partial<UserPreferences>).image;
     const { recorder, user } = await mount(base as UserPreferences);
@@ -560,6 +548,7 @@ describe("ImageSettings — preferences with no image group (WI2-J)", () => {
     await user.type(folderInput(), "x");
     await advanceDebounce();
 
+    expect(recorder.allWrites()[0].payload).toEqual({ image: { assetFolder: `${DEFAULT_IMAGE_CONFIG.assetFolder}x` } });
     expect(() => recorder.fold()).not.toThrow();
     expect(recorder.fold().image).toEqual({
       ...DEFAULT_IMAGE_CONFIG,

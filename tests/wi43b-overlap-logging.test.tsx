@@ -29,20 +29,26 @@ interface Settings {
   level: string;
 }
 
-let sent: Settings[] = [];
+let sent: Partial<Settings>[] = [];
 let held: { resolve: () => void; reject: () => void }[] = [];
+let persisted: Settings;
 let toasts: string[] = [];
 let stopToasts: () => void = () => {};
 
 beforeEach(() => {
   sent = [];
   held = [];
+  persisted = { enabled: false, level: "info" };
   invokeMock.mockReset();
-  invokeMock.mockImplementation((command: string, args?: { settings: Settings }) => {
-    if (command !== "set_logging_settings" || !args) return Promise.resolve(undefined);
-    sent.push(args.settings);
+  invokeMock.mockImplementation((command: string, args?: { group: string; patch: Partial<Settings> }) => {
+    if (command !== "patch_settings_group" || !args) return Promise.resolve(undefined);
+    expect(args.group).toBe("logging");
+    sent.push(args.patch);
     return new Promise((resolve, reject) => {
-      held.push({ resolve: () => resolve(args.settings), reject: () => reject(new Error("write failed")) });
+      held.push({
+        resolve: () => { persisted = { ...persisted, ...args.patch }; resolve({ ...persisted }); },
+        reject: () => reject(new Error("write failed")),
+      });
     });
   });
   useLoggingStore.setState({ enabled: false, level: "info" });
@@ -78,11 +84,11 @@ async function toggleThenLevel() {
 describe("F508-1: Advanced's overlapping logging writes", () => {
   it("the second write carries the first one's confirmed value, and the UI ends at the backend's", async () => {
     const { sw, select } = await toggleThenLevel();
-    expect(sent).toEqual([{ enabled: true, level: "info" }]);
+    expect(sent).toEqual([{ enabled: true }]);
 
     held[0].resolve();
     await settle();
-    expect(sent[1]).toEqual({ enabled: true, level: "error" });
+    expect(sent[1]).toEqual({ level: "error" });
     held[1].resolve();
     await settle();
 
@@ -96,7 +102,7 @@ describe("F508-1: Advanced's overlapping logging writes", () => {
     const { sw, select } = await toggleThenLevel();
     held[0].reject();
     await settle();
-    expect(sent[1]).toEqual({ enabled: false, level: "error" });
+    expect(sent[1]).toEqual({ level: "error" });
     held[1].resolve();
     await settle();
 

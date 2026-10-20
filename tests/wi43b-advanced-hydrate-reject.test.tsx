@@ -30,27 +30,28 @@ interface Settings {
 }
 
 const HYDRATED: Settings = { enabled: false, level: "warn" };
-let sent: Settings[] = [];
+let sent: Partial<Settings>[] = [];
 let releaseHydrate: () => void = () => {};
 let rejectFirstWrite: () => void = () => {};
 
 beforeEach(() => {
   sent = [];
   invokeMock.mockReset();
-  invokeMock.mockImplementation((command: string, args?: { settings: Settings }) => {
+  invokeMock.mockImplementation((command: string, args?: { group: string; patch: Partial<Settings> }) => {
     if (command === "get_logging_settings") {
       return new Promise((resolve) => {
         releaseHydrate = () => resolve({ ...HYDRATED });
       });
     }
-    if (command === "set_logging_settings" && args) {
-      sent.push(args.settings);
+    if (command === "patch_settings_group" && args) {
+      expect(args.group).toBe("logging");
+      sent.push(args.patch);
       if (sent.length === 1) {
         return new Promise((_resolve, reject) => {
           rejectFirstWrite = () => reject(new Error("write failed"));
         });
       }
-      return Promise.resolve(args.settings);
+      return Promise.resolve({ ...HYDRATED, ...args.patch });
     }
     return Promise.resolve(undefined);
   });
@@ -77,7 +78,7 @@ describe("N2: hydrateSettings lands under a write that is then rejected", () => 
     const select = screen.getByRole("combobox", { name: "Log Level" });
     await user.selectOptions(select, "error");
     await settle();
-    expect(sent).toEqual([{ enabled: true, level: "error" }]);
+    expect(sent).toEqual([{ level: "error" }]);
 
     releaseHydrate();
     await act(async () => {
@@ -93,6 +94,6 @@ describe("N2: hydrateSettings lands under a write that is then rejected", () => 
 
     await user.selectOptions(select, "debug");
     await settle();
-    expect(sent[1]).toEqual({ enabled: false, level: "debug" });
+    expect(sent[1]).toEqual({ level: "debug" });
   });
 });

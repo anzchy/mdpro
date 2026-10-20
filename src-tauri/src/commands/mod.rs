@@ -40,6 +40,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         logging::set_logging_settings,
         preferences::get_preferences,
         preferences::set_preferences,
+        preferences::patch_settings_group,
         preferences::get_system_theme,
         window_state::save_window_state,
         preferences::pick_export_folder,
