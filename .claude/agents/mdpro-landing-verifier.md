@@ -50,6 +50,11 @@ artefacts there. Never edit, stage, commit, merge, rebase or fast-forward anythi
      2026-10-10 merge a930097 lost 6 records this way)
    - any `id` that appears more than once at the SHA
    Use a short `python3` script for this; print the failing ids.
+   Run `node scripts/tdd/red-receipt.mjs check-pending --cwd .` in the detached
+   checkout. Flag every branch `unit-red` receipt that is unsettled, has a RED
+   kind other than `assertion-failure`, or has a verdict other than
+   `SEPARATION-HELD`. A settled exception requires the delegator's explicit
+   handoff ruling; the verifier reports it as an issue for that ruling.
 5. Lanes: create `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro-wt/verify-<sha7>` with
    `git worktree add --detach <dir> <SHA>`. If it already exists, return
    `BLOCKED: worktree exists` and do not touch it. Run `pnpm install --frozen-lockfile` there if a
@@ -66,10 +71,11 @@ VERDICT   PASS | ISSUES | BLOCKED        @ <sha>  (parent <parent7>)
 ANCESTRY  ok | not a descendant of <parent7>
 SCOPE     clean | <n> unclaimed paths: <paths>
 RECEIPTS  ok (<n> parent records kept) | missing: <ids> | changed: <ids> | duplicate: <ids>
+FOCUSED-RECEIPTS  ok | pending or invalid: <ids>
 LANES     <lane>: exit <code> ... | not run: <reason>
 FINDINGS
   1. [BLOCK|MUST|SHOULD] <what> — evidence: <command + output line> — fix: <one line>
 NOTES     <flakes and their re-run count, anything the delegator must rule on>
 ```
-PASS requires all of: ancestry ok, scope clean, receipts ok, every lane exit 0. Style remarks go
+PASS requires all of: ancestry ok, scope clean, receipts ok, focused receipts ok, every lane exit 0. Style remarks go
 in NOTES only.

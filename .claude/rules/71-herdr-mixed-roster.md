@@ -113,15 +113,17 @@ alias here.
   The delegator copies both into every worktree it creates for a Codex agent, uncommitted, and
   checks they are there after a rebase. The prefix rules are a backstop only: `git -C <dir> push`
   slips past them.
-- **Receipts are recorded, as for any implementor (rule 10).** The tdd-guardian CLI is a plain
-  Node script:
+- **Receipts are recorded, as for any implementor (rule 10).** Frontend REDs use
+  the repository entry script, unlocked with at most 2 workers:
 
   ```
-  node ~/.claude/plugins/cache/xiaolai/tdd-guardian/<ver>/scripts/tdd-guardian/receipt.js record --id <ID> --lane <unit|rust> --files <test files> --cwd .
-  node … receipt.js verify --id <ID> --cwd .
+  node scripts/tdd/red-receipt.mjs record --id <ID> --test tests/<file>.test.ts
+  node scripts/tdd/red-receipt.mjs verify --id <ID>
   ```
 
-  It runs under `scripts/heavy-lock.sh`, after `cargo fmt` for a Rust red. No exemption applies.
+  Rust REDs still use `receipt.js record/verify --lane rust` under
+  `scripts/heavy-lock.sh`, after `cargo fmt`. The full frontend coverage lane
+  also keeps the heavy lock.
   **Record the red before the production change it tests.** A receipt that carries
   `implementation-already-present` is named in the handoff (M3a, 2026-10-20).
 - **Restart.** A Codex conversation does not survive a restart or a move to another worktree.

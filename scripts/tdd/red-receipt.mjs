@@ -1,0 +1,207 @@
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { randomUUID } from "node:crypto";
+import { usageError, validateFiles, validateId } from "./unit-red-lane.mjs";
+
+const require = createRequire(import.meta.url);
+const RECEIPTS = ".claude/tdd-guardian/receipts.json";
+
+function guardianPath() {
+  const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
+  const versions = readdirSync(cache).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+  const version = versions.find((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js")));
+  if (!version) throw usageError("The installed tdd-guardian receipt.js was not found.");
+  return join(cache, version, "scripts/tdd-guardian/receipt.js");
+}
+
+function parse(argv) {
+  const [action, ...tail] = argv;
+  if (!["record", "verify", "discard", "check-pending"].includes(action)) throw usageError("Use record, verify, discard or check-pending.");
+  const args = { action, cwd: process.cwd(), tests: [] };
+  for (let index = 0; index < tail.length; index++) {
+    const flag = tail[index];
+    if (!["--id", "--test", "--cwd"].includes(flag)) throw usageError(`Unknown option: ${flag}.`);
+    const value = tail[++index];
+    if (!value || value.startsWith("--")) throw usageError(`Missing value for ${flag}.`);
+    if (flag === "--test") args.tests.push(value);
+    else if (flag === "--id") {
+      if (args.id !== undefined) throw usageError("--id may appear only once.");
+      args.id = value;
+    } else {
+      if (args.cwd !== process.cwd()) throw usageError("--cwd may appear only once.");
+      args.cwd = resolve(value);
+    }
+  }
+  if (action !== "check-pending") validateId(args.id);
+  else if (args.id || args.tests.length) throw usageError("check-pending takes no id or test selector.");
+  if (["discard"].includes(action) && args.tests.length) throw usageError("discard takes no test selector.");
+  args.cwd = resolve(args.cwd);
+  if (action === "record") args.tests = validateFiles(args.cwd, args.tests);
+  return args;
+}
+
+function git(cwd, args) {
+  return spawnSync("git", args, { cwd, encoding: "utf8", timeout: 15000, maxBuffer: 64 * 1024 * 1024 });
+}
+
+function masterReceipts(cwd) {
+  if (git(cwd, ["rev-parse", "--verify", "refs/heads/master^{commit}"]).status !== 0) {
+    throw usageError("master ref is missing; receipt ownership cannot be checked.");
+  }
+  const listing = git(cwd, ["ls-tree", "-r", "--name-only", "master", "--", RECEIPTS]);
+  if (listing.status !== 0) throw usageError("Cannot inspect master receipts.");
+  if (!listing.stdout.trim()) return [];
+  const shown = git(cwd, ["show", `master:${RECEIPTS}`]);
+  if (shown.status !== 0) throw usageError("Cannot read master receipts.");
+  return parseStore(shown.stdout).receipts;
+}
+
+function parseStore(raw) {
+  let store;
+  try {
+    store = JSON.parse(raw);
+  } catch {
+    throw usageError("receipts.json is not valid JSON.");
+  }
+  if (store?.schemaVersion !== 2 || !Array.isArray(store.receipts) ||
+      store.receipts.some((receipt) => !receipt || typeof receipt.id !== "string" || !receipt.lane || !receipt.red || !receipt.test_files) ||
+      new Set(store.receipts.map((receipt) => receipt.id)).size !== store.receipts.length) {
+    throw usageError("receipts.json contains malformed or duplicate records.");
+  }
+  return store;
+}
+
+function currentStore(cwd) {
+  const file = join(cwd, RECEIPTS);
+  return existsSync(file) ? parseStore(readFileSync(file, "utf8")) : { schemaVersion: 2, receipts: [] };
+}
+
+function find(store, id) {
+  return store.receipts.find((receipt) => receipt.id === id);
+}
+
+function withSelection(cwd, files, callback) {
+  const folder = mkdtempSync(join(tmpdir(), "mdpro-unit-red-marker-"));
+  const marker = join(folder, "selection.json");
+  const logPointer = `${marker}.log`;
+  const nonce = randomUUID();
+  writeFileSync(marker, JSON.stringify({ nonce, files }), { mode: 0o600 });
+  try {
+    const result = callback({
+      ...process.env,
+      MDPRO_UNIT_RED_FILES: JSON.stringify(files),
+      MDPRO_UNIT_RED_MARKER: marker,
+      MDPRO_UNIT_RED_NONCE: nonce,
+    });
+    if (existsSync(logPointer)) process.stdout.write(`[red-receipt] log: ${readFileSync(logPointer, "utf8")}\n`);
+    return result;
+  } finally {
+    if (existsSync(logPointer)) unlinkSync(logPointer);
+    unlinkSync(marker);
+    rmdirSync(folder);
+  }
+}
+
+function callGuardian(cwd, args, env) {
+  const result = spawnSync(process.execPath, [guardianPath(), ...args, "--cwd", cwd], {
+    cwd,
+    env,
+    encoding: "utf8",
+    timeout: 660_000,
+    maxBuffer: 2 * 1024 * 1024,
+  });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  if (result.error || result.signal) throw usageError("tdd-guardian did not finish.");
+  return result.status;
+}
+
+function record(args) {
+  const before = currentStore(args.cwd);
+  const master = masterReceipts(args.cwd);
+  if (master.some((receipt) => receipt.id === args.id)) throw usageError("Receipt id is already on master.");
+  const existing = find(before, args.id);
+  if (existing?.verdict || existing?.red?.kind === "assertion-failure") {
+    throw usageError("Receipt id already has valid or settled evidence.");
+  }
+  const started = Date.now();
+  const status = withSelection(args.cwd, args.tests, (env) =>
+    callGuardian(args.cwd, ["record", "--id", args.id, "--lane", "unit-red", "--files", args.tests.join(",")], env));
+  const receipt = find(currentStore(args.cwd), args.id);
+  if (status !== 0 || !receipt || receipt.lane !== "unit-red" ||
+      JSON.stringify(Object.keys(receipt.test_files)) !== JSON.stringify(args.tests) ||
+      Date.parse(receipt.recorded_at) < started || receipt.red?.kind !== "assertion-failure") {
+    throw usageError(`Record refused: ${receipt?.red?.kind || "missing"} is not a counted assertion RED for this selection. Use discard for stale evidence.`);
+  }
+  process.stdout.write(`Recorded ${args.id}: assertion-failure in ${args.tests.join(", ")}\n`);
+}
+
+function verify(args) {
+  const receipt = find(currentStore(args.cwd), args.id);
+  if (!receipt || receipt.lane !== "unit-red") throw usageError("No unit-red receipt has that id.");
+  if (receipt.verdict) throw usageError("Receipt is already settled.");
+  if (receipt.red?.kind !== "assertion-failure") throw usageError(`RED kind ${receipt.red?.kind || "missing"} is not assertion-failure; verify refused before plugin invocation.`);
+  const files = validateFiles(args.cwd, Object.keys(receipt.test_files));
+  if (args.tests.length && JSON.stringify(validateFiles(args.cwd, args.tests)) !== JSON.stringify(files)) {
+    throw usageError("Verify selector differs from the recorded selection.");
+  }
+  const snapshot = JSON.stringify(receipt.test_files);
+  const status = withSelection(args.cwd, files, (env) => callGuardian(args.cwd, ["verify", "--id", args.id], env));
+  const after = find(currentStore(args.cwd), args.id);
+  if (!after || JSON.stringify(after.test_files) !== snapshot) throw usageError("Receipt selection changed during verification.");
+  if (status !== 0 || after.verdict !== "SEPARATION-HELD") {
+    throw usageError(`Verification did not hold: ${after.verdict || "PENDING"}.`);
+  }
+  process.stdout.write(`${args.id}: SEPARATION-HELD\n`);
+}
+
+function discard(args) {
+  const branch = git(args.cwd, ["branch", "--show-current"]);
+  if (branch.status !== 0 || !branch.stdout.trim() || branch.stdout.trim() === "master") {
+    throw usageError("Discard requires a current non-master branch.");
+  }
+  if (masterReceipts(args.cwd).some((receipt) => receipt.id === args.id)) throw usageError("Cannot discard a receipt inherited from master.");
+  const verification = require(join(dirname(guardianPath()), "lib/verification.js"));
+  const loaded = verification.loadReceipts(args.cwd);
+  if (loaded.error || loaded.problems.length) throw usageError("Receipt store is malformed; discard refused.");
+  const receipt = find(loaded.store, args.id);
+  if (!receipt || receipt.lane !== "unit-red" || receipt.verdict) throw usageError("Discard requires an unsettled branch unit-red receipt.");
+  if (receipt.red?.kind === "assertion-failure") {
+    const now = verification.fingerprintFiles(Object.keys(receipt.test_files), args.cwd);
+    const diff = verification.diffFingerprints(receipt.test_files, now);
+    if (diff.modified.length || diff.removed.length || diff.unknown.length) {
+      throw usageError("Recorded test lines changed; discard refused.");
+    }
+  }
+  verification.updateReceipts(args.cwd, (fresh) => {
+    if (fresh.error || fresh.problems.length) throw usageError("Receipt store changed or is malformed.");
+    const target = find(fresh.store, args.id);
+    if (!target || target.verdict || target.lane !== "unit-red") throw usageError("Receipt changed before discard.");
+    return { ...fresh.store, receipts: fresh.store.receipts.filter((item) => item.id !== args.id) };
+  });
+  process.stdout.write(`Discarded ${args.id} (unit-red, unsettled).\n`);
+}
+
+function checkPending(args) {
+  const master = new Set(masterReceipts(args.cwd).map((receipt) => receipt.id));
+  const branch = currentStore(args.cwd).receipts.filter((receipt) => receipt.lane === "unit-red" && !master.has(receipt.id));
+  const bad = branch.filter((receipt) => receipt.red?.kind !== "assertion-failure" || receipt.verdict !== "SEPARATION-HELD");
+  if (bad.length) {
+    process.stderr.write(`Branch unit-red receipts need review: ${bad.map((receipt) => receipt.id).join(", ")}\n`);
+    process.exitCode = 1;
+  } else process.stdout.write("No unsettled or invalid branch unit-red receipts.\n");
+}
+
+try {
+  const args = parse(process.argv.slice(2));
+  if (args.action === "record") record(args);
+  else if (args.action === "verify") verify(args);
+  else if (args.action === "discard") discard(args);
+  else checkPending(args);
+} catch (error) {
+  process.stderr.write(`[red-receipt] ${error.message}\n`);
+  process.exitCode = error.code === 64 ? 64 : 64;
+}

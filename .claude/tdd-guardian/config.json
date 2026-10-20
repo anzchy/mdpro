@@ -20,6 +20,14 @@
       "timeoutMs": 600000
     },
     {
+      "name": "unit-red",
+      "description": "Focused, selection-bound Vitest RED receipt lane. Use only through scripts/tdd/red-receipt.mjs; no coverage and at most two workers.",
+      "command": "node scripts/tdd/unit-red-lane.mjs",
+      "gateOn": ["manual"],
+      "coverage": "none",
+      "timeoutMs": 180000
+    },
+    {
       "name": "slow",
       "description": "Vitest slow tier (tests/**/*.slow.test.{ts,tsx}): exhaustive, property and cost-enumeration sweeps excluded from the unit lane (ADR-0050). Coverage stays with the unit lane.",
       "command": "scripts/heavy-lock.sh pnpm exec vitest run --config vitest.slow.config.ts",

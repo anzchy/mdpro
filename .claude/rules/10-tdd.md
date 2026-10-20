@@ -69,6 +69,12 @@ later reformat breaks it for good (D187). The PreToolUse hook
 `.claude/hooks/receipt-rustfmt-guard.sh` enforces this: it refuses the record
 and names each Rust file that is not `rustfmt`-clean.
 
+For frontend RED receipts, run `node scripts/tdd/red-receipt.mjs record --id <ID> --test tests/<file>.test.ts`;
+after GREEN, run `node scripts/tdd/red-receipt.mjs verify --id <ID>`. The focused
+`unit-red` lane is unlocked and uses at most 2 workers; the full unit coverage
+lane still runs before commit. Using direct receipt.js bypasses the entry script's
+selection guard and is a residual risk, so it is not a supported frontend path.
+
 ## How much to run, and when
 
 Several sessions share one machine, so **run the full suite once per commit,
