@@ -5,6 +5,16 @@ import { tmpdir, homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      MDPRO_UNIT_RED_FILES?: string;
+      MDPRO_UNIT_RED_MARKER?: string;
+      MDPRO_UNIT_RED_NONCE?: string;
+    }
+  }
+}
+
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
