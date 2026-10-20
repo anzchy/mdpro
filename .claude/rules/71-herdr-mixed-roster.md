@@ -12,7 +12,10 @@ Replaced here:
 - who posts round-one reports: here the delegator posts both, where rule 70 has the Codex
   auditor post its own.
 
-Added here, for Codex implementors: the brief and the self-acceptance table.
+Added here, for Codex implementors:
+- the brief;
+- the attacked test matrix;
+- the self-acceptance table.
 
 Unchanged from rule 70:
 - the slot cap, which is two everywhere (ADR-0124);
@@ -76,6 +79,31 @@ alias here.
 - **No `SendMessage`, and not in `ListAgents`.**
   - The delegator reads their files and watches `herdr agent list`.
   - The test of rule 70's "delegator present" is `herdr agent list` showing `herdr-delegator`.
+- **The delegator is woken when a Codex agent settles; it does not poll** (user question,
+  2026-10-20: 「如何enabl panes auto-notify，最佳实践是什么，相关实践要写入rule 71」). herdr pushes
+  nothing to another session. Its Codex integration (`herdr integration status` shows `codex:
+  current`) only reports the agent's session, so herdr can classify the pane as `working`, `idle`,
+  `blocked` or `done`. The wake-up therefore comes from a background command that exits when the
+  agent's state changes:
+  - **Every prompt to a Codex agent runs in the background with `--wait`**:
+    `herdr agent prompt <name> '<text>' --wait --timeout 7200000`, as a `run_in_background` Bash
+    call. Its exit re-invokes the delegator. Use single quotes, because backticks in double quotes
+    run in the delegator's shell.
+  - **Never arm a bare `herdr agent wait` right after a prompt.** Without `--until`, it returns at
+    once if the agent is still `idle`, which it is until the turn starts. Only `prompt --wait`
+    first requires observed activity (`agent_prompt_stalled` otherwise). Use a bare `agent wait
+    <name>` only for an agent that `herdr agent list` already shows as `working`. That covers
+    re-arming after a restart of the delegator.
+  - **On wake, the state is not the result.** A settled agent may have stopped mid-task: an output
+    limit stalled gpt-imple-2 for two days (2026-10-18). Read the expected report file. If it is
+    missing, read the pane (`herdr agent read <name> --source recent-unwrapped --lines 80`). On
+    `blocked`, read the dialog and decide, or ask the user; never answer it blind.
+  - **A timeout re-arms; it does not resend.** A timed-out wait proves nothing about delivery.
+    Check `herdr agent get`, then arm a bare `agent wait` if the agent is `working`.
+  - **One wait per dispatched agent.** A polling loop over `herdr agent list` is only a stopgap
+    for agents dispatched before the delegator restarted.
+  - The user sees the same completions as herdr's Done badge. `herdr notification show` is only
+    for something the user must act on, such as a `blocked` agent or a ruling.
 - **The guard.** `role-guard.sh` does not run for Codex. In its place:
   - `AGENTS.md` § "Read first (Codex)", which lists this rule;
   - `.codex/rules/mdpro.rules`, which forbids push, blanket staging, branch and worktree deletion,
@@ -131,6 +159,41 @@ six sections:
 6. **Self-acceptance.** The handoff ends with an `AC | evidence | verdict` table: each AC with the
    command or test it ran, its decisive output line, and its receipt and verdict. Then come the
    lanes, the tree SHAs and the paths changed.
+
+**A test matrix is attacked before any RED is recorded** (user decision, 2026-10-20: 「加上，
+gpt-imple-1, gpt-imple-2都适用」, after the delegator found that the herdr flow skipped
+`/tdd-guardian:workflow`'s design-tests and spec-adversary steps). That day all three blocking Highs
+were cases nobody had tested:
+- M3b H1: a submit that fails inside a table;
+- D290 H1: a close while a save awaited;
+- D290 H2: a deletion ignored mid-batch.
+
+It works in four steps:
+1. **The implementor writes the matrix.** It reads the brief and writes
+   `~/.mdpro-redesign/herdr-spike/<name>/<item>-test-matrix.md`. For each AC it lists the cases:
+   - success;
+   - boundary (empty, max, CJK);
+   - invalid input;
+   - lifecycle and timing: close, reopen, switch or replace during an `await`, a stale token, a
+     queued or batched operation, and a second event mid-way;
+   - every caller or entry path that reaches the changed behaviour;
+   - platform, where it applies.
+
+   Each case names its assertion (document, state or IPC effect, not a boolean) and its test file.
+   Then the implementor goes idle. Writing the matrix is prep and needs no slot.
+2. **The delegator has it attacked.** It dispatches `tdd-guardian:tdd-spec-adversary` with
+   `model: "opus"`, giving it the brief, the matrix and the code paths. The adversary returns:
+   - each wrong implementation that would pass every case;
+   - the case that would catch it.
+3. **The delegator amends the brief.** The adversary's cases are added to the matching ACs, as a
+   brief amendment.
+4. **The implementor writes the tests and records the REDs.** Only after that does it touch
+   production code.
+
+The step applies to every grant. On a fix round it applies when the finding is a missed case,
+which covers all three Highs above. A fix the brief fully specifies with its regression test can
+skip it, and the fix brief says so. A grant already past its first RED when this rule took effect
+writes its matrix for the ACs not yet RED, and has that matrix attacked.
 
 An implementor does not hand off with an AC unproved unless it names that AC, says why, and says
 what it needs. An AC that conflicts with another is recorded, resolved toward the plan and the
