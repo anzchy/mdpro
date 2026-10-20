@@ -1,12 +1,11 @@
-import { mkdtempSync, readFileSync, writeFileSync, lstatSync, readdirSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, lstatSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
-
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
 const TEST_FILE = /^tests\/(?:[^/]+\/)*[^/]+\.test\.(?:ts|tsx)$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
-
 export default class UnitRedEvidenceReporter {
   constructor() { this.activeHooks = new Map(); }
   key(hook) { return `${hook.name}:${hook.entity.id}`; }
@@ -20,25 +19,35 @@ export default class UnitRedEvidenceReporter {
     if (count <= 1) this.activeHooks.delete(key);
     else this.activeHooks.set(key, count - 1);
   }
-  onTestRunEnd(_modules, unhandledErrors) {
+  onTestRunEnd(modules, unhandledErrors) {
+    const phaseFailures = [];
+    for (const module of modules) {
+      if (module.errors().length) phaseFailures.push(`module:${module.moduleId}`);
+      for (const suite of module.children.allSuites()) {
+        if (suite.errors().length) phaseFailures.push(`suite:${suite.id}`);
+      }
+      for (const test of module.children.allTests()) {
+        const attempts = test.meta().__unitRed?.attempts || [];
+        if (attempts.some((attempt) => attempt.nonBody)) phaseFailures.push(`test:${test.id}`);
+        if (test.result().state === "failed" && !attempts.some((attempt) => attempt.bodyFailure || attempt.countFailure)) {
+          phaseFailures.push(`unattributed:${test.id}`);
+        }
+      }
+    }
     writeFileSync(process.env.MDPRO_UNIT_RED_META_PATH, JSON.stringify({
       activeHooks: [...this.activeHooks],
       unhandledErrors: unhandledErrors.length,
+      phaseFailures,
     }));
   }
 }
-
 export function usageError(message) {
-  const error = new Error(message);
-  error.code = 64;
-  return error;
+  const error = new Error(message); error.code = 64; return error;
 }
-
 export function validateId(id) {
   if (typeof id !== "string" || !ID.test(id)) throw usageError("A valid --id is required.");
   return id;
 }
-
 export function validateFiles(cwd, input) {
   if (!Array.isArray(input) || input.length === 0 || input.length > 4) {
     throw usageError("Give one to four --test files under tests/.");
@@ -75,7 +84,6 @@ export function validateFiles(cwd, input) {
   }
   return files;
 }
-
 function selectedFiles() {
   const markerPath = process.env.MDPRO_UNIT_RED_MARKER;
   const nonce = process.env.MDPRO_UNIT_RED_NONCE;
@@ -97,7 +105,6 @@ function selectedFiles() {
   }
   return { files: validateFiles(process.cwd(), files), marker };
 }
-
 function checkReceiptSelection(marker, cwd) {
   if (!marker.receipt) return;
   let stored;
@@ -112,11 +119,18 @@ function checkReceiptSelection(marker, cwd) {
     throw usageError("Receipt selection or identity changed during the focused run.");
   }
 }
-
-function countsFromReport(report, files, cwd) {
-  if (!report || !Array.isArray(report.testResults) || report.testResults.length !== files.length) {
-    throw usageError("Vitest did not report exactly the selected files.");
+function phaseBarrier(name) {
+  const directory = process.env.MDPRO_UNIT_RED_BARRIER_DIR;
+  if (!directory) return;
+  writeFileSync(join(directory, `${name}.ready`), "ready");
+  const release = join(directory, `${name}.go`), deadline = Date.now() + 10_000;
+  while (!existsSync(release)) {
+    if (Date.now() > deadline) throw usageError(`Barrier ${name} timed out.`);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
   }
+}
+function countsFromReport(report, files, cwd) {
+  if (!report || !Array.isArray(report.testResults) || report.testResults.length !== files.length) throw usageError("Vitest did not report exactly the selected files.");
   const wanted = new Set(files);
   let failed = 0;
   let passed = 0;
@@ -145,7 +159,82 @@ function countsFromReport(report, files, cwd) {
   }
   return { failed, passed, total };
 }
-
+function instrumentedConfig(cwd, runnerDir) {
+  const base = ["vitest.config.ts", "vitest.config.mjs", "vitest.config.js"].find((name) => existsSync(join(cwd, name)));
+  if (!base) throw usageError("The repository Vitest config is missing.");
+  const runnerPath = join(runnerDir, "phase-runner.mjs");
+  const configPath = join(runnerDir, "vitest.config.mjs");
+  const runnersUrl = import.meta.resolve("vitest/runners");
+  const getFnUrl = pathToFileURL(createRequire(runnersUrl).resolve("@vitest/runner")).href;
+  writeFileSync(runnerPath, `
+import { VitestTestRunner } from ${JSON.stringify(runnersUrl)};
+import { getCurrentTest, getFn, test as baseTest } from ${JSON.stringify(getFnUrl)};
+import { AsyncLocalStorage } from "node:async_hooks"; const attemptContext = new AsyncLocalStorage(), patched = new WeakSet();
+function instrumentTest(api) {
+  const target = api.fn || api; if (patched.has(target)) return api; patched.add(target);
+  const extend = target.extend, guardedExtend = function(fixtures) {
+    const wrapped = Object.fromEntries(Object.entries(fixtures).map(([name, value]) => {
+      const array = Array.isArray(value), fn = array ? value[0] : value; if (typeof fn !== "function") return [name, value];
+      const guarded = function(context, use) {
+        const mark = () => { const attempt = attemptContext.getStore() || (context?.task || getCurrentTest())?.meta?.__unitRed?.attempts?.at(-1); if (attempt) attempt.nonBody = true; };
+        try { return Promise.resolve(fn.call(this, context, use)).catch(error => { mark(); throw error; }); }
+        catch (error) { mark(); throw error; }
+      };
+      guarded.toString = () => fn.toString(); if ("__VITEST_FIXTURE_INDEX__" in fn) guarded.__VITEST_FIXTURE_INDEX__ = fn.__VITEST_FIXTURE_INDEX__;
+      return [name, array ? [guarded, value[1]] : guarded]; }));
+    return instrumentTest(extend.call(this, wrapped));
+  };
+  target.extend = guardedExtend; api.extend = guardedExtend;
+  return api;
+}
+export default class PhaseRunner extends VitestTestRunner {
+  constructor(config) { super(config); instrumentTest(baseTest); } current(test) { return test.meta.__unitRed?.attempts.at(-1); }
+  finish(test) {
+    const attempt = this.current(test);
+    if (attempt?.boundary !== undefined && (test.result.errors?.length || 0) > attempt.boundary) attempt.nonBody = true;
+  }
+  onBeforeTryTask(test, info) {
+    this.finish(test);
+    (test.meta.__unitRed ??= { attempts: [] }).attempts.push({ retry: info.retry, repeats: info.repeats });
+    return super.onBeforeTryTask(test, info);
+  }
+  async runTask(test) {
+    const attempt = this.current(test);
+    attempt.started = true;
+    attempt.bodyStartErrors = test.result.errors?.length || 0;
+    const fn = getFn(test);
+    if (!fn) { attempt.nonBody = true; throw Error("Test function missing"); }
+    const timeout = Number(test.timeout);
+    let timer;
+    const deadline = new Promise((_, reject) => {
+      if (Number.isFinite(timeout) && timeout > 0) timer = setTimeout(() => { attempt.nonBody = true; reject(Error("Test body timed out")); }, timeout);
+    });
+    try { const body = attemptContext.run(attempt, () => fn()); if (timer) await Promise.race([deadline, body]); else await body; }
+    catch (error) {
+      if (test.context?.signal?.aborted && test.context.signal.reason === error) attempt.nonBody = true;
+      else if (!attempt.nonBody) attempt.bodyFailure = true;
+      throw error;
+    }
+    finally { clearTimeout(timer); attempt.completed = true; }
+  }
+  onAfterTryTask(test, info) {
+    try { return super.onAfterTryTask(test, info); }
+    catch (error) { this.current(test).countFailure = true; throw error; }
+  }
+  onTaskFinished(test) {
+    const attempt = this.current(test);
+    if (!attempt) return;
+    if (!attempt.started) attempt.nonBody = true;
+    if (attempt.completed && (test.result.errors?.length || 0) > attempt.bodyStartErrors) attempt.bodyFailure = true;
+    attempt.boundary = test.result.errors?.length || 0;
+  }
+  onAfterRunTask(test) { this.finish(test); return super.onAfterRunTask(test); }
+}
+`);
+  const viteUrl = import.meta.resolve("vite");
+  writeFileSync(configPath, `import { loadConfigFromFile, mergeConfig } from ${JSON.stringify(viteUrl)}; const loaded = await loadConfigFromFile({ command: "serve", mode: "test" }, ${JSON.stringify(join(cwd, base))}); if (!loaded) throw Error("Vitest config did not load"); export default mergeConfig(loaded.config, { root: ${JSON.stringify(cwd)}, test: { runner: ${JSON.stringify(runnerPath)} } });\n`);
+  return configPath;
+}
 function main() {
   const { files, marker } = selectedFiles();
   const cwd = process.cwd();
@@ -154,9 +243,15 @@ function main() {
   const reportPath = join(outputDir, "vitest.json");
   const metaPath = join(outputDir, "vitest-meta.json");
   const logPath = join(outputDir, "vitest.log");
+  mkdirSync(join(cwd, ".claude/tdd-guardian"), { recursive: true });
+  const runnerDir = mkdtempSync(join(cwd, ".claude/tdd-guardian/.mdpro-unit-red-"));
+  let configPath;
+  try { configPath = instrumentedConfig(cwd, runnerDir); }
+  catch (error) { rmSync(runnerDir, { recursive: true, force: true }); throw error; }
+  phaseBarrier("runner-created");
   writeFileSync(`${process.env.MDPRO_UNIT_RED_MARKER}.log`, logPath, { mode: 0o600 });
   const args = [
-    "exec", "vitest", "run", "--maxWorkers=2", "--coverage.enabled=false",
+    "exec", "vitest", "run", `--config=${configPath}`, "--maxWorkers=2", "--coverage.enabled=false",
     "--reporter=default", "--reporter=json", `--reporter=${fileURLToPath(import.meta.url)}`, `--outputFile.json=${reportPath}`,
     ...files,
   ];
@@ -165,10 +260,12 @@ function main() {
     encoding: "utf8",
     timeout: 120_000,
     maxBuffer: 16 * 1024 * 1024,
-    env: { ...process.env, VITEST_MAX_WORKERS: "2", MDPRO_HEAVY_LOCK_HELD: "", MDPRO_UNIT_RED_META_PATH: metaPath },
+    env: { ...process.env, VITEST_MAX_WORKERS: "2", MDPRO_HEAVY_LOCK_HELD: "", MDPRO_UNIT_RED_FLOCK_FD: "", MDPRO_UNIT_RED_META_PATH: metaPath },
   });
+  rmSync(runnerDir, { recursive: true, force: true });
   writeFileSync(logPath, `${run.stdout || ""}${run.stderr || ""}`);
   checkReceiptSelection(marker, cwd);
+  phaseBarrier("lane-after-read");
   process.stderr.write(`[unit-red] log: ${logPath}\n`);
   if (run.error || run.signal || ![0, 1].includes(run.status)) {
     throw usageError("Vitest did not finish as a test run.");
@@ -182,8 +279,8 @@ function main() {
     throw usageError("Vitest JSON or execution evidence is missing or unreadable.");
   }
   const counts = countsFromReport(report, files, cwd);
-  if (!Array.isArray(meta.activeHooks) || !Number.isInteger(meta.unhandledErrors) ||
-      meta.activeHooks.length || meta.unhandledErrors > 0) {
+  if (!Array.isArray(meta.activeHooks) || !Number.isInteger(meta.unhandledErrors) || !Array.isArray(meta.phaseFailures) ||
+      meta.activeHooks.length || meta.unhandledErrors > 0 || meta.phaseFailures.length) {
     throw usageError("Vitest reported a failed hook or unhandled error.");
   }
   if ((run.status === 0) !== (counts.failed === 0) || (run.status === 0 && report.success !== true)) {
@@ -192,7 +289,6 @@ function main() {
   process.stdout.write(`Tests  ${counts.failed} failed | ${counts.passed} passed (${counts.total})\n`);
   return run.status;
 }
-
 if (process.argv[1] && realpathSync.native(resolve(process.argv[1])) === fileURLToPath(import.meta.url)) {
   try {
     process.exitCode = main();
