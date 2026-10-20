@@ -50,11 +50,24 @@ work and the device harness's verification runs, from device briefs. Rule 70's �
 - the MCP and hook tokens are never printed;
 - every item states its failure condition and the log line proving its path was reached.
 
+**On the Mac mini, claude-imple-1 drives dtrack** (user decision, 2026-10-20: 「claude-imple-1
+drives dtrack (Recommended)」). SSH sessions have no Screen Recording or Accessibility grant, so
+dtrack, on the mini's console, runs the GUI steps. claude-imple-1 sends each brief following rule 70
+§ The Mac mini:
+- `capture-pane` once before sending;
+- `/clear` before each brief;
+- `wait-dtrack.sh` for the hook event, not screen polling;
+- the session-scoped mdpro grant only.
+
+dtrack writes the report, and claude-imple-1 checks it against the cards before reporting to the
+delegator. A verify ref reaches the mini because the delegator pushes it to the `mac-mini` remote
+(`git push mac-mini <sha>:refs/verify/<sha>`); the mini has no GitHub access.
+
 It writes reports, never commits, and does not develop the ADR-0047 harness itself. That tooling
 work waits for a device-harness session.
 
 When a role is offline, the work that needs it waits; nobody stands in for it. The rule 70
-device-harness session has been gone since the 2026-10-18 reboot, and dtrack is no longer driven.
+device-harness session has been gone since the 2026-10-18 reboot.
 To bring a role back, the delegator asks the user to restart it from its handoff, and records the
 alias here.
 

@@ -23,7 +23,7 @@ backfilled.
 | #512 | M3a | High | `9b485752` → `c575e2e4` | 1 | C0 H0 M3 L1 (gpt-auditor) | C0 H0 M6 L6 (fable-auditor) | C0 H0 M0 L0 (Opus fork) | C0 H0 | PR #512 comments (Codex r1, Fable r1, security-review, merged r1) | landed `c575e2e4` |
 | #511 | D289 | High | `10806dca` → `9b485752` | 1 | C0 H0 M1 L1 (gpt-auditor) | C0 H0 M3 L4 | C0 H0 M0 L0 (Opus fork) | C0 H0 | PR #511 comments (Fable r1, merged r1, security-review) | landed `9b485752` |
 | #510 | D286 | High | `af72940d` → `10806dca` | 1 | C0 H0 M0 L1 (gpt-auditor) | C0 H0 M2 L1 | C0 H0 M0 L0 (Opus fork, run after landing) | C0 H0 | PR #510 comments (Fable r1, merged r1, security-review) | landed `10806dca` |
-| #508 | WI-4.3b | High | … → `098d339d` (base `af72940d` at round 4) | 4 + round 5 open | round 4: C0 H3 M1 | round 4: C0 H0 M3 L3, confirmed all three Highs on challenge | — | C0 H3 | PR #508 comment 6251108116 (merged r4) | open: round 5 granted past ADR-0120's cap, user: 「Fix now, gpt-imple-2」 |
+| #508 | WI-4.3b | High | … → `098d339d` (base `af72940d`, r4) → `aecb0165` (base `f1bac1cd`, r5) | 5 | r4: C0 H3 M1; r5: C0 H1 M2 L1 | r4: C0 H0 M3 L3, confirmed all three on challenge; r5: C0 H0 M3 L4, then CONFIRMED F508-1b on challenge (reproduced) | r5: C0 H0 M0 L1 (Opus fork) | r5: C0 H1 | PR #508 comments (merged r4 6251108116; r5 reports and merged r5) | landed `aecb0165` with F508-1b deferred as D293, user: 「Land now, defer as a D item」 |
 | #507 | D284 | High | `06308c46` → `286eae60` | 1 | C0 H0 M0 L0 | C0 H0 M1 L1 | C0 H0 M0 L0 | C0 H0 | PR #507 comments (Codex, security-review, Fable r1, merged r1) | landed `286eae60` |
 | #506 | D274 | High | `e04f35f0` → `76d5f04b` | 1 | C0 H0 M0 L0 | C0 H0 M0 L2 | C0 H0 M0 L0 | C0 H0 | PR #506 comments (Codex, security-review, Fable r1, merged r1) | landed `76d5f04b` |
 
@@ -38,6 +38,6 @@ backfilled.
 
 | Id | PR | Severity | Detectors | Class | file:line | Outcome |
 |---|---|---|---|---|---|---|
-| F508-1 | #508 | High | Codex; Fable confirmed | a late or stale settings read/write overrides a newer confirmed value (1a: timeout rollback after a late success; 1b: an older read applied after newer writes) | `src/components/common/settings/settingsWriterRegistry.ts` | open (round 5) |
-| F508-2 | #508 | High | Codex; Fable confirmed | a remounted Image page's queued write resets sibling leaves to defaults | `settingsWriterRegistry.ts`, Image settings page | open (round 5) |
-| F508-3 | #508 | High | Codex; Fable confirmed | a whole-group write from one window overwrites another window's newer save | `settingsWriterRegistry.ts`, `src-tauri/src/commands/preferences.rs` | open (round 5) |
+| F508-1 | #508 | High | Codex; Fable confirmed | a late or stale settings read/write overrides a newer confirmed value (1a: timeout rollback after a late success; 1b: an older read applied after newer writes) | `src/components/common/settings/settingsWriterRegistry.ts`; r5 remainder `AdvancedSettings.tsx:50-53`, `loggingService.ts:138-141` | 1a fixed `aecb0165`; 1b partial, deferred D293 (user: 「Land now, defer as a D item」) |
+| F508-2 | #508 | High | Codex; Fable confirmed | a remounted Image page's queued write resets sibling leaves to defaults | `settingsWriterRegistry.ts`, Image settings page | fixed `aecb0165` |
+| F508-3 | #508 | High | Codex; Fable confirmed | a whole-group write from one window overwrites another window's newer save | `settingsWriterRegistry.ts`, `src-tauri/src/commands/preferences.rs` | fixed `aecb0165` |
