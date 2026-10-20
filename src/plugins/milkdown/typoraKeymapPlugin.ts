@@ -1,15 +1,15 @@
 /**
  * Typora-style Keymap Plugin for Milkdown WYSIWYG mode
  *
- * Purpose: Register ⌘1-6 heading shortcuts, ⌘0 paragraph, ⌘B bold,
- * ⌘I italic, ⌘K link, and code-block Tab indentation in the Milkdown editor.
+ * Purpose: register Typora-style heading, paragraph, mark, link, table and
+ * code-block keys in Milkdown. Shared command factories live in
+ * `typoraCommandFactories.ts`; the link modal flow lives in
+ * `typoraLinkCommand.ts` for menu and keyboard use (M3b).
  *
- * Root cause of issue #31:
- * The editor is initialised with `.use(gfm)` only — the GFM preset does NOT
- * include the commonmark preset.  Commands like `wrapInHeadingCommand` live in
- * commonmark's command registry and are therefore NOT registered.  Calling
- * `commands.call(wrapInHeadingCommand.key, N)` throws `contextNotFound` at
- * runtime, causing the shortcut to silently do nothing.
+ * Historical issue #31: the editor once loaded only `.use(gfm)`, so the
+ * commonmark heading command was missing and `commands.call` failed. The
+ * current editor also loads `mdproCommonmark`; these direct ProseMirror
+ * factories remain shared with the menu dispatcher.
  *
  * Fix:
  * Bypass the Milkdown command registry entirely for heading/paragraph/bold/
@@ -45,73 +45,23 @@ import {
   addRowAfterCommand,
   exitTable,
 } from "@milkdown/kit/preset/gfm";
-import {
-  setBlockType,
-  toggleMark,
-} from "@milkdown/kit/prose/commands";
 import { isInTable } from "@milkdown/kit/prose/tables";
 import type { Command } from "@milkdown/kit/prose/state";
 
 type EditorStateLike = Parameters<Command>[0];
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
-import { refuseModalOpenWhileModalOpen } from "../../utils/modalTabActionGuard";
 import { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
+import {
+  makeBoldCommand,
+  makeHeadingCommand,
+  makeItalicCommand,
+  makeParagraphCommand,
+} from "./typoraCommandFactories";
+import { makeTyporaLinkPendingCallback } from "./typoraLinkCommand";
 
 export { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
-
-// ---------------------------------------------------------------------------
-// Exported command factories (used directly in tests and in the keymap below)
-// ---------------------------------------------------------------------------
-
-/**
- * Returns a ProseMirror Command that converts the current block to a heading
- * of the given level using `state.schema.nodes.heading`.
- * Returns `false` (no-op) if the heading node type is not in the schema.
- */
-export function makeHeadingCommand(level: number): Command {
-  return (state, dispatch) => {
-    const headingType = state.schema.nodes["heading"];
-    if (!headingType) return false;
-    return setBlockType(headingType, { level })(state, dispatch);
-  };
-}
-
-/**
- * Returns a ProseMirror Command that converts the current block to a paragraph.
- * Returns `false` (no-op) if the paragraph node type is not in the schema.
- */
-export function makeParagraphCommand(): Command {
-  return (state, dispatch) => {
-    const paragraphType = state.schema.nodes["paragraph"];
-    if (!paragraphType) return false;
-    return setBlockType(paragraphType)(state, dispatch);
-  };
-}
-
-/**
- * Returns a ProseMirror Command that toggles the `strong` mark (bold).
- * Returns `false` if the mark is not in the schema.
- */
-export function makeBoldCommand(): Command {
-  return (state, dispatch) => {
-    const strongMark = state.schema.marks["strong"];
-    if (!strongMark) return false;
-    return toggleMark(strongMark)(state, dispatch);
-  };
-}
-
-/**
- * Returns a ProseMirror Command that toggles the `emphasis` mark (italic).
- * Returns `false` if the mark is not in the schema.
- */
-export function makeItalicCommand(): Command {
-  return (state, dispatch) => {
-    const emphasisMark = state.schema.marks["emphasis"];
-    if (!emphasisMark) return false;
-    return toggleMark(emphasisMark)(state, dispatch);
-  };
-}
+export { makeBoldCommand, makeHeadingCommand, makeItalicCommand, makeParagraphCommand } from "./typoraCommandFactories";
 
 // ---------------------------------------------------------------------------
 // Keymap config — exported for unit testing via TYPORA_KEYMAP_CONFIG
@@ -240,43 +190,8 @@ const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
   link: {
     shortcuts: "Mod-k",
     command: () => (state: Parameters<Command>[0], dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
-      const linkMark = state.schema.marks["link"];
-      if (!linkMark) return false;
-      // D235-WI-2: not over another open modal (Recovery, Settings, …).
-      if (refuseModalOpenWhileModalOpen("format.hyperlink", "shortcut")) return false;
-
-      // Snapshot ProseMirror state/dispatch/view at keypress time.
-      // ProseMirror state is immutable so this snapshot is safe; dispatch and
-      // view refs remain stable across transactions.
-      useLinkInsertStore.getState().setPendingCallback((rawUrl: string) => {
-        let url = rawUrl.trim();
-
-        // Block dangerous protocols before applying the mark
-        const lower = url.toLowerCase().replace(/\s+/g, "");
-        if (
-          lower.startsWith("javascript:") ||
-          lower.startsWith("data:") ||
-          lower.startsWith("vbscript:")
-        ) {
-          return;
-        }
-
-        // Normalize bare hostnames to https://
-        if (
-          !/^https?:\/\//i.test(url) &&
-          !url.startsWith("mailto:") &&
-          !url.startsWith("#") &&
-          !url.startsWith("/")
-        ) {
-          url = "https://" + url;
-        }
-
-        if (view?.isDestroyed) return;
-        toggleMark(linkMark, { href: url })(state, dispatch, view);
-      });
-
-      // Return false so ProseMirror does not consume the event — the React
-      // modal will handle the user interaction asynchronously.
+      const pending = makeTyporaLinkPendingCallback(state, dispatch, view, { source: "shortcut" });
+      if (pending) useLinkInsertStore.getState().setPendingCallback(pending);
       return false;
     },
   },

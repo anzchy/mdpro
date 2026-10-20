@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A logging preference read started before a successful change can no longer restore the old switch value or frontend logging state after the save finishes (D293).
 
 ### Added
+- The editor menu dispatcher now recognizes command-table actions in WYSIWYG and Source, with current-mode and document checks. The new menu items themselves arrive in M4/M5; Quote and list actions remain unavailable in v1 (M3b).
 - Development tooling only; the app you install is unchanged. Verification builds can be built with a control channel that lets an agent drive the app, opened only when `pnpm control:launch --control on|eval` asks for it, and `pnpm control:release-clean` checks that a release build carries none of it (ADR-0047 WI-009).
 
 ### Changed

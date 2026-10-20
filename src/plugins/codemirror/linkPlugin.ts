@@ -16,6 +16,8 @@
  *
  * - ⌘K while another modal is open (Recovery, Settings, …) is refused and logged
  *   by `refuseModalOpenWhileModalOpen`, as Insert Table is (D235-WI-2).
+ * - A menu-origin request carries D261's token through the modal; its final
+ *   `view.dispatch` refuses a changed document/editor (M3b).
  *
  * @coordinates-with src/stores/linkInsertStore.ts
  * @coordinates-with src/utils/modalTabActionGuard.ts — the D235 refusal
@@ -29,9 +31,26 @@ import { keymap } from "@codemirror/view";
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
 import { refuseModalOpenWhileModalOpen } from "../../utils/modalTabActionGuard";
+import { abandonIfStale, type MenuTargetToken } from "../../utils/menuTargetToken";
+import { useEditorStore } from "../../stores/editorStore";
+import { loggingService } from "../../services/loggingService";
+
+export interface SourceLinkOrigin {
+  source: "menu" | "shortcut";
+  token?: MenuTargetToken;
+  actionId?: string;
+}
+
+function logMenuRefusal(origin: SourceLinkOrigin, reason: "stale" | "unsafe_url"): void {
+  if (!origin.token || !origin.actionId) return;
+  loggingService.logEventSync({
+    level: "info", event: "ui.menu.select", status: "cancel", actionId: origin.actionId,
+    context: { windowLabel: origin.token.windowLabel, reason, stage: "link_submit" },
+  });
+}
 
 /** Insert `[text](url)` over every selection range; a blocked URL inserts nothing. */
-const applyLink = (view: EditorView, href: string): void => {
+const applyLink = (view: EditorView, href: string): boolean => {
   const rawUrl = href.trim();
   // Block dangerous protocols
   const lower = rawUrl.toLowerCase().replace(/\s+/g, "");
@@ -40,7 +59,7 @@ const applyLink = (view: EditorView, href: string): void => {
     lower.startsWith("data:") ||
     lower.startsWith("vbscript:")
   ) {
-    return;
+    return false;
   }
   const url =
     rawUrl.length > 0 &&
@@ -69,18 +88,31 @@ const applyLink = (view: EditorView, href: string): void => {
   });
 
   view.dispatch(state.update(transaction, { scrollIntoView: true, userEvent: "input" }));
+  return true;
 };
 
-export const insertLinkCommand = (view: EditorView): boolean => {
+export const insertLinkCommand = (
+  view: EditorView,
+  origin: SourceLinkOrigin = { source: "shortcut" },
+): boolean => {
   if (view.state.readOnly) return false;
 
   const store = useLinkInsertStore.getState();
   if (store.pendingCallback !== null) return true;
   // D235-WI-2: not over another open modal (Recovery, Settings, …).
-  if (refuseModalOpenWhileModalOpen("format.hyperlink", "shortcut")) return true;
+  if (refuseModalOpenWhileModalOpen("format.hyperlink", origin.source, origin.actionId)) return true;
 
   const apply = (href: string) => {
-    if (view.dom.isConnected) applyLink(view, href);
+    if (origin.token && origin.actionId && abandonIfStale(origin.token, "link_submit", origin.actionId)) return;
+    if (origin.token && useEditorStore.getState().viewMode !== "source") {
+      logMenuRefusal(origin, "stale");
+      return;
+    }
+    if (!view.dom.isConnected) {
+      logMenuRefusal(origin, "stale");
+      return;
+    }
+    if (!applyLink(view, href)) logMenuRefusal(origin, "unsafe_url");
   };
   store.setPendingCallback(apply, "source");
 

@@ -2,8 +2,8 @@
  * Purpose: the command table (plan docs/plans/20261015-plan-menu-reorganisation.md
  * § 5.5, ADR-0114 K6): one row per command with its menu path, v1 / v2 keys,
  * ownership contexts, availability and route per platform. Data only; in M1a
- * production reads it only through Settings' conflict check (M1A-WI-10),
- * and nothing consumes v2 until M1b (ADR-0114 Decision 9). `menu_layout.json` is generated from
+ * production reads v1 through Settings' conflict check (M1A-WI-10) and the
+ * M3b editor dispatcher; nothing consumes v2 until M1b (ADR-0114 Decision 9). `menu_layout.json` is generated from
  * it (M1A-WI-7).
  *
  * @coordinates-with src/commands/rows/*.ts — the rows, one file per group
@@ -40,6 +40,18 @@ const BY_FIELD = new Map<keyof KeyboardShortcuts, CommandRow>(
 
 export function rowById(id: CommandId): CommandRow | undefined {
   return BY_ID.get(id);
+}
+
+/** `editor.<table id>` is a wire alias, never a second semantic command ID. */
+export function rowByEditorWireAction(action: string): CommandRow | undefined {
+  if (!action.startsWith("editor.")) return undefined;
+  const id = action.slice("editor.".length);
+  const group = id.split(".", 1)[0];
+  if (group !== "paragraph" && group !== "format" && group !== "edit" && group !== "table") {
+    return undefined;
+  }
+  const row = BY_ID.get(id);
+  return row?.id === id ? row : undefined;
 }
 
 export function rowByPrefField(field: keyof KeyboardShortcuts): CommandRow | undefined {

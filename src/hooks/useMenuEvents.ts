@@ -4,13 +4,13 @@
  * which Rust sends with `emit_to` to exactly one window (D261), and hand each
  * one addressed to this window to `dispatchMenuAction` (menuActionTable.ts)
  * with a menu-target token captured at receipt. The table runs the matching
- * App handler and logs one `ui.menu.select` per dispatched action, with this
- * window's `windowLabel`.
+ * App handler or M3b's mode-aware editor dispatcher. Each accepted click has
+ * one `ui.menu.select` actionId; editor refusals carry enum-only reasons.
  *
  * Device evidence (D31 WI-2, D261; info level, labels and counts only — no
  * content, no new path fields):
- *   - `ui.menu.select` context carries `windowLabel`, so a device log shows
- *     which window acted on each click.
+ *   - Existing App-action `ui.menu.select` context carries `windowLabel`;
+ *     M3b editor outcomes carry the table controlId and enum-only reason.
  *   - one `ui.menu.select` `cancel` line `{ windowLabel, reason: "wrong_target" }`
  *     per payload whose `target` is not this window's label (missing included).
  *   - one `ui.menu.listen` line per `listen()` attempt: `success` when it
@@ -42,7 +42,7 @@
  *     leave nothing live.
  *   - The action table (which action reaches which handler, the D165 / D235
  *     modal refusals, the Open Recent and view-mode value checks) lives in
- *     `menuActionTable.ts` (D261-WI-1a).
+ *     `menuActionTable.ts` (D261-WI-1a); M3b's editor alias branch is its sibling.
  *
  * @coordinates-with src-tauri/src/menu_target.rs — resolves the target window and `emit_to`s it
  * @coordinates-with src-tauri/src/menu.rs — the menu items and their action strings

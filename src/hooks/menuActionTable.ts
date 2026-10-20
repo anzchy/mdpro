@@ -27,6 +27,8 @@
  *     appended only when the caller passes one; `useMenuEvents` always does.
  *
  * Extracted from `useMenuEvents.ts` unchanged in behaviour (D261-WI-1a).
+ * M3b routes exact `editor.<table id>` aliases through the sibling editor
+ * table while the existing native Highlight/Table action strings remain here.
  *
  * @coordinates-with src/hooks/useMenuEvents.ts — subscribes and calls dispatchMenuAction
  * @coordinates-with src-tauri/src/menu.rs — emits the action strings this table matches
@@ -42,6 +44,7 @@ import {
   type ModalOpeningAction,
   type TabChangingAction,
 } from "../utils/modalTabActionGuard";
+import { dispatchEditorMenuAction } from "./editorMenuActionTable";
 
 /** The `menu:action` event payload `menu.rs` emits to one window (D261). */
 export interface MenuActionPayload {
@@ -180,7 +183,9 @@ export function dispatchMenuAction(
       handlers.onThemeModeChange?.("system", logMenuSelect("menu.theme.system"), ...t);
       break;
     default:
-      // An action this build does not know: no handler, no select line.
+      // Synthetic editor aliases share this listener and its D261 token.
+      // Unknown aliases retain the no-handler, no-select-line behavior.
+      if (action.startsWith("editor.")) dispatchEditorMenuAction(action, token);
       break;
   }
 }
