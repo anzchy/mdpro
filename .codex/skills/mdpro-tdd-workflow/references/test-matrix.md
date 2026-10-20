@@ -10,6 +10,12 @@ Before writing cases for a unit (a function, store action, hook or service path)
 have a law? See `policy.md`. If it does, at least one case is S4–S6 and covers that law. If it
 doesn't, write `Law: none: <why>`.
 
+A finite list of named values is S2, even when the test loops over it. Label a case S4 only when
+the test generates a declared input domain, and state its bounds and generator. For S5, name the
+input domain the law holds over, and check that the brief is consistent with it. If the input domain
+or the order of guards is ambiguous in the brief, flag it NEEDS RULING before Step 3; don't settle
+it yourself.
+
 ## Case categories (every AC, every unit)
 
 1. **Success.**
