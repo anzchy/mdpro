@@ -3,7 +3,7 @@ import type { Document } from "../types/document";
 import { loggingService } from "../services/loggingService";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
 import { activeFlushFailed, refuseTabSwitch } from "../utils/flushRefusal";
-import { INITIAL_BASELINE_EPOCHS, movedSince, stampBaseline, stampPathMoves } from "./baselineEpoch";
+import { INITIAL_BASELINE_EPOCHS, movedSince, stampBaseline, stampLifetime, stampPathMoves } from "./baselineEpoch";
 import type { BaselineEpochs } from "./baselineEpoch";
 
 /**
@@ -162,7 +162,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
             tabIndex: state.documents.length,
           },
         });
-        return { documents: [...state.documents, document] };
+        return { documents: [...state.documents, document], ...stampLifetime(state, document.id) };
       }
       const next = [...state.documents];
       next[index] = document;
@@ -252,7 +252,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
       // D214-WI-6/7: a close stamps id and path, so a reply for either is demoted.
       const stamp = closingDoc ? stampBaseline(state, id, closingDoc.path) : {};
-      return { documents: remaining, activeDocumentId: nextActiveId, ...stamp };
+      return { documents: remaining, activeDocumentId: nextActiveId, ...stamp, ...(closingDoc ? stampLifetime(state, id) : {}) };
     });
   },
 

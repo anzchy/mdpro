@@ -12,6 +12,8 @@
  * Key decisions:
  * - One window-wide generation that only grows, so a stamp never repeats across a
  *   document's lifetimes (WI-6, audit H-A). Stamps are never deleted: a close stamps.
+ * - D290 keeps a separate per-id lifetime counter: only open and close advance it;
+ *   an external baseline drop must not cancel a still-open Save before its guard.
  * - Two maps, never mixed (WI-7, audit H-B partial): by id (`baselineEpoch`) and by path
  *   (`baselinePathEpoch`). The path map covers a reply whose tab is gone or whose id is
  *   a UUID matched only by path (D145). A null path stamps nothing.
@@ -35,13 +37,21 @@ export interface BaselineEpochs {
   baselineEpoch: Record<string, number>;
   /** Per path: the generation of the last baseline drop or close of a document at it. */
   baselinePathEpoch: Record<string, number>;
+  /** Per-id open/close counter, independent of external baseline changes (D290). */
+  lifetimeEpoch: Record<string, number>;
 }
 
 export const INITIAL_BASELINE_EPOCHS: BaselineEpochs = {
   baselineGeneration: 0,
   baselineEpoch: {},
   baselinePathEpoch: {},
+  lifetimeEpoch: {},
 };
+
+/** Advance one document's lifetime on open or close, without moving its baseline. */
+export function stampLifetime(state: BaselineEpochs, id: string): Pick<BaselineEpochs, "lifetimeEpoch"> {
+  return { lifetimeEpoch: { ...state.lifetimeEpoch, [id]: (state.lifetimeEpoch[id] ?? 0) + 1 } };
+}
 
 /** Stamp `id` (and `path`, when non-null) with the next generation. */
 export function stampBaseline(state: BaselineEpochs, id: string, path: string | null): BaselineEpochs {
@@ -49,6 +59,7 @@ export function stampBaseline(state: BaselineEpochs, id: string, path: string | 
   return {
     baselineGeneration,
     baselineEpoch: { ...state.baselineEpoch, [id]: baselineGeneration },
+    lifetimeEpoch: state.lifetimeEpoch,
     baselinePathEpoch:
       path === null ? state.baselinePathEpoch : { ...state.baselinePathEpoch, [path]: baselineGeneration },
   };

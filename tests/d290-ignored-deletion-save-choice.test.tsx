@@ -263,6 +263,37 @@ describe("D290 ignored deletion save choice", () => {
       expect(ipcCount("save_file")).toBe(interleaving === "tab-switch" ? 1 : 0);
       expect(toasts.includes("Saved")).toBe(interleaving === "tab-switch");
       expect(choiceCount).toBe(0);
+      if (interleaving !== "tab-switch") {
+        const stale = logLines("file.save.stale_cancelled");
+        expect(stale).toHaveLength(1);
+        expect(stale[0].context).toEqual({ reason: interleaving === "close" ? "closed" : interleaving === "path-change" ? "path_moved" : "reopened" });
+      }
+    },
+  );
+  it.each(["modified-ignore", "deleted-ignore", "modified-pending", "unrelated", "reload"] as const)(
+    "D290-WI-6 held Save handles %s during preferences", async (scenario) => {
+      useDocumentStore.setState({ documents: [A, DIRTY], activeDocumentId: "b" });
+      await mountPrompt();
+      const held = deferred<unknown>(); vi.mocked(coreModule.isTauri).mockReturnValue(true); onIpc("get_preferences", () => held.promise);
+      const requests: Request[] = [];
+      let save: Promise<void> = Promise.resolve();
+      await flush(() => { save = performSave("event-during-prefs", { saveActiveDocument, updateRecentFiles: () => {}, showToast: (message) => toasts.push(message), onRecreateRequired: (request) => requests.push(request) }); });
+      expect(ipcCount("get_preferences")).toBe(1);
+      if (scenario === "unrelated") recordFileChange({ path: A.path!, changeType: "modified", timestamp: 1 }, "change-a");
+      else {
+        emitChange(B.path!, scenario === "deleted-ignore" ? "deleted" : "modified");
+        if (scenario === "reload") { act(() => useDocumentStore.getState().upsertDocument({ ...DIRTY, content: "disk-new", isModified: false })); acknowledgeFileChange("b", pendingFileChangeFor("b")!.seq, "reloaded"); }
+        else if (scenario !== "modified-pending") { advance(300); act(() => view.current?.handleIgnoreReload()); }
+      }
+      await flush(() => held.resolve({ markdown: { autoReformatTablesOnSave: false } }));
+      await flush(() => save);
+      const writes = scenario === "modified-ignore" || scenario === "unrelated" ? 1 : 0;
+      expect(ipcCount("save_file")).toBe(writes);
+      expect(toasts.includes("Saved")).toBe(writes === 1);
+      expect(requests).toHaveLength(scenario === "deleted-ignore" ? 1 : 0);
+      if (scenario === "deleted-ignore") { dialog(requests[0], () => {}); expect(screen.getByRole("dialog", { name: "Recreate file" })).toBeTruthy(); }
+      if (scenario === "modified-pending") { expect(toasts.some((message) => message.includes("changed on disk"))).toBe(true); expect(logLines("file.change.pending").filter((line) => (line.context as { action?: string }).action === "save-blocked")).toHaveLength(1); }
+      if (scenario === "reload") expect(logLines("file.save.stale_cancelled")[0].context).toEqual({ reason: "reloaded" });
     },
   );
 });

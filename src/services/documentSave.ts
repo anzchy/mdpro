@@ -29,8 +29,9 @@
  *   target, records them and the reply's `changedSinceRead` on it (`fileChangeCapture`).
  * - D290: an ignored deletion requires a document/path/sequence-bound choice.
  *   Save As refuses the old path and a cancelled picker keeps the marker.
- * - D290 fix round 1: after preferences, Save rechecks the captured document's
- *   lifetime and path before treating a pruned marker as write permission.
+ * - D290: after preferences, Save rechecks a separate open/close lifetime and
+ *   path. Baseline drops still reach the pending or recreate guard; a reloaded
+ *   buffer is cancelled with an enum-only stale-save log.
  * - D214-WI-5/6: both bodies capture `baselineGeneration` right after the flush and
  *   hand it to `applySaveResult`, which demotes the result to dirty with no baseline if
  *   the document's baseline moved before the reply landed (an external change, or a
@@ -60,6 +61,17 @@ import { applySaveResult, flushDocumentForSave } from "./saveService";
 
 /** Tail of each document's save queue; settles (never rejects) when its last save ends. */
 const saveQueues = new Map<string, Promise<void>>();
+
+type StaleSaveReason = "closed" | "reopened" | "path_moved" | "reloaded" | "stale_choice";
+
+/** A stale captured save writes nothing and leaves one path-free diagnostic. */
+function staleSave(reason: StaleSaveReason, actionId?: string): null {
+  loggingService.logEventSync({
+    level: "info", event: "file.save.stale_cancelled", status: "cancel",
+    actionId: actionId ?? loggingService.generateActionId(), context: { reason },
+  });
+  return null;
+}
 
 /**
  * Run `task` (one whole save of `documentId`) after every earlier save of the same
@@ -112,7 +124,7 @@ const getTitleFromPath = (path: string | null) => {
 /** Save As body for `documentId`. The caller holds the document's queue slot. */
 async function saveDocumentAsNow(documentId: string, actionId?: string): Promise<SaveResult | null> {
   const doc = flushDocumentForSave(documentId, actionId);
-  if (!doc) return null;
+  if (!doc) return staleSave("closed", actionId);
   const startGeneration = useDocumentStore.getState().baselineGeneration; // D214-WI-6
   const refuse = saveAsRefusePath(doc);
   const capture = beginCapture(null); // D111: the dialog picks the target in Rust
@@ -145,11 +157,12 @@ async function saveDocumentAsNow(documentId: string, actionId?: string): Promise
 /** Save body for `documentId` (Save As when untitled). The caller holds the queue slot. */
 async function saveDocumentNow(documentId: string, actionId?: string, consent?: IgnoredDeletion): Promise<SaveResult | null> {
   const doc = flushDocumentForSave(documentId, actionId);
-  if (!doc) return null;
+  if (!doc) return staleSave("closed", actionId);
   if (!doc.path) {
     return saveDocumentAsNow(documentId, actionId);
   }
   const startGeneration = useDocumentStore.getState().baselineGeneration; // D214-WI-6
+  const startLifetime = useDocumentStore.getState().lifetimeEpoch[doc.id] ?? 0;
   // Phase 3 WI-3.2: optional auto-reformat-on-save (off by default). Disk gets the
   // formatted text; the store gets it too unless the doc was edited during the save
   // (D19, applySaveResult). Audit-fix H3: isFenced keeps ``` blocks from being
@@ -172,10 +185,12 @@ async function saveDocumentNow(documentId: string, actionId?: string, consent?: 
   } catch {
     // Preference read failed — fall through with original content.
   }
-  // Close/reopen stamps the id epoch; a move changes the live path. Neither
-  // turns a vanished deletion marker into permission for this suspended Save.
+  // Close/reopen stamps only the lifetime counter; an external baseline drop
+  // must still reach the D171/recreate guards below when the document survives.
   const current = useDocumentStore.getState().getDocumentById(doc.id);
-  if (!current || current.path !== doc.path || baselineMovedSince(doc.id, startGeneration)) return null;
+  if (!current) return staleSave("closed", actionId);
+  if (current.path !== doc.path) return staleSave("path_moved", actionId);
+  if ((useDocumentStore.getState().lifetimeEpoch[doc.id] ?? 0) !== startLifetime) return staleSave("reopened", actionId);
   // D171: checked here, at the write, not at ⌘S — a change recorded while this save
   // waited (queue, get_preferences) must stop it too.
   if (saveBlockedByPendingChange(doc.id, "save", actionId)) throw new ExternalChangePendingError();
@@ -183,8 +198,13 @@ async function saveDocumentNow(documentId: string, actionId?: string, consent?: 
   if (ignored && ignored.path === doc.path && (!consent || consent.path !== ignored.path || consent.seq !== ignored.seq)) {
     throw new RecreateChoiceRequiredError(ignored, actionId ?? loggingService.generateActionId());
   }
+  // A clean replacement is a reload; a still-dirty edit during Save remains
+  // D19's edited-during-save case and must not be mistaken for that reload.
+  if (baselineMovedSince(doc.id, startGeneration) && !current.isModified && current.content !== doc.content) {
+    return staleSave("reloaded", actionId);
+  }
   if (consent && (!ignored || ignored.path !== consent.path || ignored.seq !== consent.seq || doc.path !== consent.path)) {
-    return null; // A newer event, close or path change invalidated the old answer.
+    return staleSave("stale_choice", actionId);
   }
   const result = await fileService.saveFile({
     documentId: doc.id,
@@ -225,7 +245,7 @@ export function saveAfterIgnoredDeletionChoice(
     const doc = useDocumentStore.getState().getDocumentById(marker.documentId);
     const current = ignoredDeletionFor(marker.documentId);
     if (!doc || doc.path !== marker.path || !current || current.seq !== marker.seq || pendingFileChangeFor(marker.documentId)) {
-      return Promise.resolve(null);
+      return Promise.resolve(staleSave(!doc ? "closed" : doc.path !== marker.path ? "path_moved" : "stale_choice", actionId));
     }
     return choice === "original"
       ? saveDocumentNow(marker.documentId, actionId, marker)
