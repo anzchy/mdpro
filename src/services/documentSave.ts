@@ -29,9 +29,9 @@
  *   target, records them and the reply's `changedSinceRead` on it (`fileChangeCapture`).
  * - D290: an ignored deletion requires a document/path/sequence-bound choice.
  *   Save As refuses the old path and a cancelled picker keeps the marker.
- * - D290: after preferences, Save rechecks a separate open/close lifetime and
- *   path. Baseline drops still reach the pending or recreate guard; a reloaded
- *   buffer is cancelled with an enum-only stale-save log.
+ * - D290: after preferences, Save rechecks path, open/close lifetime and in-place
+ *   replacement lifetime. Baseline drops still reach the pending/recreate guard;
+ *   a replaced buffer cancels even after later typing, with an enum-only log.
  * - D214-WI-5/6: both bodies capture `baselineGeneration` right after the flush and
  *   hand it to `applySaveResult`, which demotes the result to dirty with no baseline if
  *   the document's baseline moved before the reply landed (an external change, or a
@@ -42,7 +42,7 @@
  * @coordinates-with src/utils/externalChangeGuard.ts — the pending-change check (D171)
  * @module services/documentSave
  */
-import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
+import { useDocumentStore } from "../stores/documentStore";
 import { clearIgnoredDeletion, ignoredDeletionFor, pendingFileChangeFor, type IgnoredDeletion } from "../stores/externalChangeStore";
 import { makeIsFenced } from "../utils/fenceRanges";
 import {
@@ -163,6 +163,7 @@ async function saveDocumentNow(documentId: string, actionId?: string, consent?: 
   }
   const startGeneration = useDocumentStore.getState().baselineGeneration; // D214-WI-6
   const startLifetime = useDocumentStore.getState().lifetimeEpoch[doc.id] ?? 0;
+  const startReplacement = useDocumentStore.getState().replacementEpoch[doc.id] ?? 0;
   // Phase 3 WI-3.2: optional auto-reformat-on-save (off by default). Disk gets the
   // formatted text; the store gets it too unless the doc was edited during the save
   // (D19, applySaveResult). Audit-fix H3: isFenced keeps ``` blocks from being
@@ -190,6 +191,7 @@ async function saveDocumentNow(documentId: string, actionId?: string, consent?: 
   const current = useDocumentStore.getState().getDocumentById(doc.id);
   if (!current) return staleSave("closed", actionId);
   if (current.path !== doc.path) return staleSave("path_moved", actionId);
+  if ((useDocumentStore.getState().replacementEpoch[doc.id] ?? 0) !== startReplacement) return staleSave("reloaded", actionId);
   if ((useDocumentStore.getState().lifetimeEpoch[doc.id] ?? 0) !== startLifetime) return staleSave("reopened", actionId);
   // D171: checked here, at the write, not at ⌘S — a change recorded while this save
   // waited (queue, get_preferences) must stop it too.
@@ -197,11 +199,6 @@ async function saveDocumentNow(documentId: string, actionId?: string, consent?: 
   const ignored = ignoredDeletionFor(doc.id);
   if (ignored && ignored.path === doc.path && (!consent || consent.path !== ignored.path || consent.seq !== ignored.seq)) {
     throw new RecreateChoiceRequiredError(ignored, actionId ?? loggingService.generateActionId());
-  }
-  // A clean replacement is a reload; a still-dirty edit during Save remains
-  // D19's edited-during-save case and must not be mistaken for that reload.
-  if (baselineMovedSince(doc.id, startGeneration) && !current.isModified && current.content !== doc.content) {
-    return staleSave("reloaded", actionId);
   }
   if (consent && (!ignored || ignored.path !== consent.path || ignored.seq !== consent.seq || doc.path !== consent.path)) {
     return staleSave("stale_choice", actionId);

@@ -3,7 +3,7 @@ import type { Document } from "../types/document";
 import { loggingService } from "../services/loggingService";
 import { useMilkdownEditorStore } from "./milkdownEditorStore";
 import { activeFlushFailed, refuseTabSwitch } from "../utils/flushRefusal";
-import { INITIAL_BASELINE_EPOCHS, movedSince, stampBaseline, stampLifetime, stampPathMoves } from "./baselineEpoch";
+import { INITIAL_BASELINE_EPOCHS, movedSince, stampBaseline, stampLifetime, stampPathMoves, stampReplacement } from "./baselineEpoch";
 import type { BaselineEpochs } from "./baselineEpoch";
 
 /**
@@ -70,8 +70,8 @@ interface DocumentStore extends BaselineEpochs {
    * Insert or replace a document. D214: a clean upsert (`isModified: false`) is a clean
    * point: `savedContent = content`, overriding any value passed. A dirty upsert stores
    * `savedContent` exactly as passed (absent = no baseline) and never inherits the
-   * baseline of the document it replaces. Replacing a document at another path stamps
-   * both paths (D214-WI-8).
+   * baseline of the document it replaces. An in-place replacement starts a new
+   * lifetime (D290); a path change stamps both paths (D214-WI-8).
    */
   upsertDocument: (document: Document) => void;
   /**
@@ -167,7 +167,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       const next = [...state.documents];
       next[index] = document;
       const moved = stampPathMoves(state, [{ from: state.documents[index].path, to: document.path }]);
-      return { documents: next, ...moved };
+      return { documents: next, ...moved, ...stampReplacement(state, document.id) };
     }),
   updateDocumentContent: (id, content) =>
     set((state) => ({

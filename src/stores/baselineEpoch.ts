@@ -12,8 +12,9 @@
  * Key decisions:
  * - One window-wide generation that only grows, so a stamp never repeats across a
  *   document's lifetimes (WI-6, audit H-A). Stamps are never deleted: a close stamps.
- * - D290 keeps a separate per-id lifetime counter: only open and close advance it;
- *   an external baseline drop must not cancel a still-open Save before its guard.
+ * - D290 keeps separate per-id lifetime and replacement counters. Open, close and
+ *   in-place upsert advance lifetime; only upsert advances replacement. An
+ *   external baseline drop advances neither, preserving the pending/Ignore guard.
  * - Two maps, never mixed (WI-7, audit H-B partial): by id (`baselineEpoch`) and by path
  *   (`baselinePathEpoch`). The path map covers a reply whose tab is gone or whose id is
  *   a UUID matched only by path (D145). A null path stamps nothing.
@@ -24,7 +25,7 @@
  * - Pure: no store import. documentStore owns the state and applies the result.
  *
  * @coordinates-with src/stores/documentStore.ts — holds the state, stamps (drop, close,
- *   path moves), and wraps
+ *   replacement, path moves), and wraps
  *   `movedSince` as `baselineMovedSince` / `baselinePathMovedSince`
  * @module stores/baselineEpoch
  */
@@ -37,8 +38,10 @@ export interface BaselineEpochs {
   baselineEpoch: Record<string, number>;
   /** Per path: the generation of the last baseline drop or close of a document at it. */
   baselinePathEpoch: Record<string, number>;
-  /** Per-id open/close counter, independent of external baseline changes (D290). */
+  /** Per-id open/close/replacement counter, independent of baseline drops (D290). */
   lifetimeEpoch: Record<string, number>;
+  /** Per-id in-place upsert counter; distinguishes replacement from close/reopen. */
+  replacementEpoch: Record<string, number>;
 }
 
 export const INITIAL_BASELINE_EPOCHS: BaselineEpochs = {
@@ -46,11 +49,20 @@ export const INITIAL_BASELINE_EPOCHS: BaselineEpochs = {
   baselineEpoch: {},
   baselinePathEpoch: {},
   lifetimeEpoch: {},
+  replacementEpoch: {},
 };
 
 /** Advance one document's lifetime on open or close, without moving its baseline. */
 export function stampLifetime(state: BaselineEpochs, id: string): Pick<BaselineEpochs, "lifetimeEpoch"> {
   return { lifetimeEpoch: { ...state.lifetimeEpoch, [id]: (state.lifetimeEpoch[id] ?? 0) + 1 } };
+}
+
+/** Every in-place upsert starts a replacement lifetime, even for identical text. */
+export function stampReplacement(state: BaselineEpochs, id: string): Pick<BaselineEpochs, "lifetimeEpoch" | "replacementEpoch"> {
+  return {
+    ...stampLifetime(state, id),
+    replacementEpoch: { ...state.replacementEpoch, [id]: (state.replacementEpoch[id] ?? 0) + 1 },
+  };
 }
 
 /** Stamp `id` (and `path`, when non-null) with the next generation. */
@@ -60,6 +72,7 @@ export function stampBaseline(state: BaselineEpochs, id: string, path: string | 
     baselineGeneration,
     baselineEpoch: { ...state.baselineEpoch, [id]: baselineGeneration },
     lifetimeEpoch: state.lifetimeEpoch,
+    replacementEpoch: state.replacementEpoch,
     baselinePathEpoch:
       path === null ? state.baselinePathEpoch : { ...state.baselinePathEpoch, [path]: baselineGeneration },
   };
