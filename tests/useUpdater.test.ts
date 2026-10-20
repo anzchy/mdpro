@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useDocumentStore } from "../src/stores/documentStore";
+import { acknowledgeFileChange, ignoredDeletionFor, pendingFileChangeFor, recordFileChange, resetFileChanges } from "../src/stores/externalChangeStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import { useToastStore } from "../src/stores/toastStore";
 import type { Document } from "../src/types/document";
@@ -120,6 +121,45 @@ describe("prepareForRelaunch", () => {
     expect(result).toBe(false);
     expect(mockSaveFile).not.toHaveBeenCalled();
   });
+});
+
+describe("D290-WI-5 — relaunch rechecks each write after earlier awaits", () => {
+  beforeEach(() => {
+    resetWorld();
+    resetFileChanges();
+  });
+
+  it.each(["deleted-ignored", "modified-pending", "path-change", "close-reopen"] as const)(
+    "refuses B after A's held write when B has %s",
+    async (interleaving) => {
+      const a = makeDoc({ id: "a", path: "/tmp/a.md", content: "A edited", isModified: true });
+      const b = makeDoc({ id: "b", path: "/tmp/b.md", content: "B edited", isModified: true });
+      useDocumentStore.setState({ documents: [a, b], activeDocumentId: "b" });
+      let releaseA!: (value: unknown) => void;
+      const heldA = new Promise((resolve) => { releaseA = resolve; });
+      mockSaveFile.mockImplementationOnce(() => heldA);
+      mockSaveFile.mockResolvedValue({ success: true });
+      const run = prepareForRelaunch();
+      expect(mockSaveFile).toHaveBeenCalledTimes(1);
+      if (interleaving === "deleted-ignored" || interleaving === "modified-pending") {
+        recordFileChange({ path: b.path!, changeType: interleaving === "deleted-ignored" ? "deleted" : "modified", timestamp: 1 }, "mid-batch");
+        if (interleaving === "deleted-ignored") {
+          acknowledgeFileChange("b", pendingFileChangeFor("b")!.seq, "ignored");
+        }
+      } else if (interleaving === "path-change") {
+        useDocumentStore.getState().updateDocumentPath("b", "/tmp/b-new.md");
+      } else {
+        useDocumentStore.getState().closeDocument("b");
+        useDocumentStore.getState().upsertDocument(b);
+      }
+      releaseA({ success: true });
+      expect(await run).toBe(false);
+      expect(mockSaveFile).toHaveBeenCalledTimes(1);
+      expect(useDocumentStore.getState().getDocumentById("b")?.content).toBe("B edited");
+      if (interleaving === "deleted-ignored") expect(ignoredDeletionFor("b")).toBeDefined();
+      if (interleaving === "modified-pending") expect(pendingFileChangeFor("b")).toBeDefined();
+    },
+  );
 });
 
 /* ------------------------------------------------------------------ *

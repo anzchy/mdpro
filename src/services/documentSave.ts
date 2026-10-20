@@ -29,6 +29,8 @@
  *   target, records them and the reply's `changedSinceRead` on it (`fileChangeCapture`).
  * - D290: an ignored deletion requires a document/path/sequence-bound choice.
  *   Save As refuses the old path and a cancelled picker keeps the marker.
+ * - D290 fix round 1: after preferences, Save rechecks the captured document's
+ *   lifetime and path before treating a pruned marker as write permission.
  * - D214-WI-5/6: both bodies capture `baselineGeneration` right after the flush and
  *   hand it to `applySaveResult`, which demotes the result to dirty with no baseline if
  *   the document's baseline moved before the reply landed (an external change, or a
@@ -39,7 +41,7 @@
  * @coordinates-with src/utils/externalChangeGuard.ts — the pending-change check (D171)
  * @module services/documentSave
  */
-import { useDocumentStore } from "../stores/documentStore";
+import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
 import { clearIgnoredDeletion, ignoredDeletionFor, pendingFileChangeFor, type IgnoredDeletion } from "../stores/externalChangeStore";
 import { makeIsFenced } from "../utils/fenceRanges";
 import {
@@ -170,6 +172,10 @@ async function saveDocumentNow(documentId: string, actionId?: string, consent?: 
   } catch {
     // Preference read failed — fall through with original content.
   }
+  // Close/reopen stamps the id epoch; a move changes the live path. Neither
+  // turns a vanished deletion marker into permission for this suspended Save.
+  const current = useDocumentStore.getState().getDocumentById(doc.id);
+  if (!current || current.path !== doc.path || baselineMovedSince(doc.id, startGeneration)) return null;
   // D171: checked here, at the write, not at ⌘S — a change recorded while this save
   // waited (queue, get_preferences) must stop it too.
   if (saveBlockedByPendingChange(doc.id, "save", actionId)) throw new ExternalChangePendingError();

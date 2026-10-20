@@ -1,4 +1,4 @@
-import { useDocumentStore } from "../stores/documentStore";
+import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
 import { useToastStore } from "../stores/toastStore";
 import { fileService } from "../services/fileService";
 import { loggingService } from "../services/loggingService";
@@ -15,6 +15,8 @@ import type { Document } from "../types/document";
  * using the content the flush wrote into documentStore. Blocks relaunch when
  * the flush failed, when a dirty document is untitled, when a dirty document has
  * an unresolved external change (D171), or when a save fails.
+ * D290 fix round 1 rechecks the guard and document lifetime/path before each
+ * batch write, because an earlier save may have awaited a new external event.
  *
  * Reading `isModified` without flushing first would answer "clean" for an edit
  * still inside the edit-sync delay and silently discard it at relaunch.
@@ -50,6 +52,7 @@ export async function prepareForRelaunch(): Promise<boolean> {
   const byId = new Map(
     useDocumentStore.getState().documents.map((doc) => [doc.id, doc] as const),
   );
+  const startGeneration = useDocumentStore.getState().baselineGeneration;
   const modified = assessment.dirtyDocuments
     .map((ref) => byId.get(ref.id))
     .filter((doc): doc is Document => doc !== undefined);
@@ -97,6 +100,25 @@ export async function prepareForRelaunch(): Promise<boolean> {
 
   for (const doc of modified) {
     const path = doc.path as string;
+    // A new pending change or ignored deletion may arrive during the previous
+    // document's awaited write; the batch-entry guard cannot authorize this one.
+    if (saveBlockedByPendingChange(doc.id, "relaunch", actionId)) {
+      useToastStore.getState().showToast("A file changed on disk. Reload or ignore that change before updating.");
+      loggingService.logEventSync({
+        level: "warn", event: "updater.prepare_relaunch", status: "fail", actionId,
+        context: { reason: "pending_external_change", documentId: doc.id },
+      });
+      return false;
+    }
+    const current = useDocumentStore.getState().getDocumentById(doc.id);
+    if (!current || current.path !== path || baselineMovedSince(doc.id, startGeneration) || current.content !== doc.content) {
+      useToastStore.getState().showToast("A document changed while preparing the update. Update cancelled.");
+      loggingService.logEventSync({
+        level: "warn", event: "updater.prepare_relaunch", status: "fail", actionId,
+        context: { reason: "document_changed_during_relaunch", documentId: doc.id },
+      });
+      return false;
+    }
     try {
       await fileService.saveFile({
         documentId: doc.id,

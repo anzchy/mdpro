@@ -10,6 +10,7 @@ vi.mock("@tauri-apps/api/window", async () => (await import("./helpers/fileWatch
 vi.mock("@tauri-apps/api/core", async () => (await import("./support/externalChangeIpc")).coreModule);
 
 import { AppDialogs } from "../src/components/AppDialogs";
+import { commitDocumentClose } from "../src/hooks/documentCloseCommit";
 import { prepareForRelaunch } from "../src/hooks/useUpdater";
 import { saveActiveDocument } from "../src/services/documentSave";
 import { saveAfterIgnoredDeletionChoice } from "../src/services/documentSave";
@@ -23,6 +24,7 @@ import { resetHarness } from "./helpers/fileWatcherLogHarness";
 import { logLines } from "./helpers/fileWatcherLogHarness";
 import { B, advance, emitChange, flush, ipcCount, mountPrompt, resetExternalChangeHarness, toasts, view } from "./support/externalChangeHarness";
 import { A, deferred, ipcCalls, onIpc } from "./support/externalChangeHarness";
+import { coreModule } from "./support/externalChangeIpc";
 
 const DIRTY = { ...B, content: "# edited\n", isModified: true };
 type Request = { documentId: string; path: string; seq: number; actionId: string };
@@ -225,4 +227,42 @@ describe("D290 ignored deletion save choice", () => {
     expect(ipcCount("save_file")).toBe(0);
     expect(ignoredDeletionFor("b")).toBeDefined();
   });
+
+  it.each(["close", "close-reopen", "path-change", "tab-switch"] as const)(
+    "D290-WI-4 held Save revalidates B after %s during preferences",
+    async (interleaving) => {
+      useDocumentStore.setState({ documents: [A, DIRTY], activeDocumentId: "b" });
+      await mountPrompt();
+      if (interleaving !== "tab-switch") {
+        emitChange(B.path!, "deleted");
+        advance(300);
+        act(() => view.current?.handleIgnoreReload());
+      }
+      const held = deferred<unknown>();
+      vi.mocked(coreModule.isTauri).mockReturnValue(true);
+      onIpc("get_preferences", () => held.promise);
+      let save: Promise<void> = Promise.resolve();
+      let choiceCount = 0;
+      await flush(() => { save = performSave("held-save", {
+        saveActiveDocument, updateRecentFiles: () => {}, showToast: (message) => toasts.push(message),
+        onRecreateRequired: () => { choiceCount += 1; },
+      }); });
+      expect(ipcCount("get_preferences")).toBe(1);
+      if (interleaving === "close" || interleaving === "close-reopen") {
+        await flush(() => commitDocumentClose("b", true, () => {}));
+        if (interleaving === "close-reopen") {
+          act(() => useDocumentStore.getState().upsertDocument(DIRTY));
+        }
+      } else if (interleaving === "path-change") {
+        act(() => useDocumentStore.getState().updateDocumentPath("b", "/tmp/b-moved.md"));
+      } else {
+        act(() => view.current?.api.setActiveDocumentById("a"));
+      }
+      await flush(() => held.resolve({ markdown: { autoReformatTablesOnSave: false } }));
+      await flush(() => save);
+      expect(ipcCount("save_file")).toBe(interleaving === "tab-switch" ? 1 : 0);
+      expect(toasts.includes("Saved")).toBe(interleaving === "tab-switch");
+      expect(choiceCount).toBe(0);
+    },
+  );
 });
