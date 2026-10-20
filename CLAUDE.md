@@ -195,28 +195,50 @@ Before each commit, verify:
 
 ## User questions and answers
 
-**Every question the user asks a session, and the session's answer, goes into
-[`docs/reference/user-question-and-answer.md`](./docs/reference/user-question-and-answer.md)**
-(user decisions, 2026-10-14: 「目前我在本session和各个session直接问的问题的回答会被很多消息淹没掉，之后你单独维护一个md文档」;
-「排除系统自带askuserquestion tool引发的，一定是user来问的，才记录」).
+**A question the user asks a session goes into
+[`docs/reference/user-question-and-answer.md`](./docs/reference/user-question-and-answer.md)
+when its answer is still worth finding a week later**
+(user decisions: 2026-10-14, 「目前我在本session和各个session直接问的问题的回答会被很多消息淹没掉，之后你单独维护一个md文档」
+and 「排除系统自带askuserquestion tool引发的，一定是user来问的，才记录」; 2026-10-20, 「也不是所有问题都要如实记录，问开发进度这个就不用记录了」
+and 「Archive status rows, tag the rest (Recommended)」).
 Answers given in a chat get buried under peer messages; this file is where the
-user finds them again.
+user finds them again. It is an index for routing: the knowledge itself lives
+in the ADR, rule, guide or row each entry points to.
 
+- **Record five kinds**, written in the **Kind** column:
+  - `Decision`: the answer led to a decision, or explains one;
+  - `How-to`: how a tool, rule or subsystem works;
+  - `Diagnosis`: the root cause of something surprising;
+  - `Assessment`: a feasibility or trade-off judgment later planning cites;
+  - `Correction`: an earlier claim turned out wrong.
+- **Don't record:**
+  - progress or status snapshots (「进度如何」, 「X 在做什么」, 「都通过了吗」, 「can PR N merge」). The
+    timeline, the sequencing doc and the PR already hold that answer;
+  - yes/no questions about the current state;
+  - questions whose whole answer is a pointer to an existing file.
+
+  A status question whose answer turned up an anomaly is recorded as a `Diagnosis` of that cause.
 - **Only questions the user asked.** A question a session puts to the user
   (AskUserQuestion or prose) is not recorded there; its answer lives in the
   ADR, row or rule it decided. Instructions and slash commands are not
   questions.
+- **Topic** is one of a closed set, listed in the file's header. A new topic is added to the header
+  first.
+- **Where to read more points at the durable home.** A reusable how-to answer that has no home yet
+  gets one under `docs/guide/` or `docs/knowledge/`, in the same commit.
 - **The delegator maintains it** and commits it to `master` as a docs-only
   commit. It batches these commits while a code handoff is in flight, so
   `master` does not move under the handoff.
 - **Every other session reports its own.** When the user asks a session a
   question directly, that session answers, then sends the delegator one
   message: the question verbatim, the answer condensed to one to four
-  sentences, and a pointer to anything longer. The delegator records it.
-- **One entry per question, newest first, append-only**: date, the session
-  it was asked in, the question quoted exactly, the condensed answer, and
-  where to read more. A corrected answer is a new entry naming the one it
-  corrects.
+  sentences, and a pointer to anything longer. The delegator applies the
+  criteria above and records it or not.
+- **One entry per question, newest first.** Each entry has the date, the session it was asked in,
+  Kind, Topic, the question quoted exactly, the condensed answer, and where to read more.
+  A corrected answer is a new `Correction` entry naming the one it corrects.
+  Rows are not edited after commit. The one-off 2026-10-20 cleanup moved status rows,
+  verbatim, to `docs/reference/user-question-and-answer-archive.md`.
 
 ## Plan Status Tracking (UI redesign × Markdown consolidation)
 
