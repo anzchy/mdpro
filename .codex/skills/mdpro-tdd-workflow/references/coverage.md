@@ -25,8 +25,8 @@ unavailable. Don't infer uncovered line ranges from the summary alone.
    and each match must meet that entry's thresholds. A glob matching nothing is a FAIL.
 3. **Changed files.** For every `src/` file your diff changes (`git diff --name-only <base>`), report
    lines and branches as covered/total and %. Then list the uncovered line ranges that fall inside
-   your changed hunks, read from `coverage-final.json` when it exists's `statementMap`/`s` and
-   `branchMap`/`b`. Each one is either closed with a test (Step 4 rules), or justified as
+   your changed hunks, read from `coverage-final.json`'s `statementMap`/`s` and `branchMap`/`b`
+   when that file exists. Each one is either closed with a test (Step 4 rules), or justified as
    unreachable with the reason.
 4. **`v8 ignore`** in changed files: only the range form, each with a reason.
 5. Rust has no coverage lane here. State "Rust: not measured".
