@@ -8,6 +8,8 @@ by Codex `review-plan` and by Opus (`mdpro-fable-auditor`, plan mode) over three
 final verdict was READY. Opus's last High (the base moving across a rebase) is answered in
 Decision 3.
 
+Partially superseded 2026-10-20 by [ADR-0124](0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md), under herdr only: `/security-review` on the High tier is run by an Opus fork of herdr-delegator, not mdpro-codex-audit.
+
 The new rules apply to every audit requested after the commit that accepts this ADR. WI-009 and
 WI-4.3a, already in audit, finish under the earlier rules.
 

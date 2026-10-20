@@ -9,6 +9,12 @@ stay inside its scope, and send everything that crosses a scope through the
 delegator.** Two sessions editing the same file without knowing it, or taking
 the same ADR number, cost a rebase or a renumbering every time.
 
+**Under herdr-delegator, [rule 71](71-herdr-mixed-roster.md) replaces only the clauses it
+lists: the roster (device roles included), how Codex agents get work and report, their guard, who runs each audit
+half and `/security-review`, and who posts round-one reports**
+([ADR-0124](../../docs/adr/0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md)).
+Everything else here still binds, including landing, the verdict merge, receipts, the Mac mini and device-check batches.
+
 Session names are the `ListAgents` names. Socket addresses change between
 runs, so look them up; don't copy them from an old message. If the delegator is
 not in the listing, stop and wait; do not ask the user directly or act on an old
@@ -39,12 +45,12 @@ definitions (`mdpro-landing-verifier`, `mdpro-number-registrar`) carry
 any other session makes for execution work.
 
 Every name above except herdr-delegator is a role. The concrete `ListAgents` or
-tmux name is only an alias; as of 2026-10-18 they are:
+tmux name is only an alias; as of 2026-10-20 they are:
 
 | Role | Alias |
 |---|---|
-| mdpro-implementor-\* | `mdpro-a6` (took over from `mdpro-a5`, retired 2026-10-10); `gpt-imple-1`, a herdr agent (took over from `mdpro-a3`, retired by the user 2026-10-18: 「retire @mdpro-a3 whose job now is taken by impl-1」); `gpt-imple-2`, a herdr agent (added 2026-10-18: 「add gpt-imple-2 too」) |
-| mdpro-auditor-\* | `mdpro-codex-audit` |
+| mdpro-implementor-\* | `gpt-imple-1`, a herdr agent (took over from `mdpro-a3`, retired by the user 2026-10-18: 「retire @mdpro-a3 whose job now is taken by impl-1」); `gpt-imple-2`, a herdr agent (added 2026-10-18: 「add gpt-imple-2 too」). `mdpro-a6` and `mdpro-design` ended with the 2026-10-18 reboot |
+| mdpro-auditor-\* | under herdr, `gpt-auditor` (Codex) and `fable-auditor` (Fable), rule 71; `mdpro-codex-audit` ended with the 2026-10-18 reboot |
 | mdpro-device-harness | `adr047-verify` (renamed from `mdpro-85` by the user, 2026-10-11) |
 | real-device-tester | tmux session `dtrack` |
 
@@ -121,10 +127,10 @@ handoff. Each item is tagged `prep` or `impl`.
   revised grant first.
 - **Deferred items stay `prep`** until the user's priority order makes them
   current.
-- **Cap**: one unlanded implementation item per session and four machine-wide
-  ([ADR-0119](../../docs/adr/0119-four-implementation-slots-machine-wide.md), superseding
-  ADR-0118's three; user decision, 2026-10-17: 「slot increase to 4 now, so that
-  mdpro-design can continue doing its work」).
+- **Cap**: one unlanded implementation item per session and two machine-wide
+  ([ADR-0124](../../docs/adr/0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md),
+  superseding ADR-0119's four, with or without herdr; user decision, 2026-10-18: 「decrease slot
+  (parallel implementor to 2)」, accepted 2026-10-20). Items already over the cap finish first.
   Dirty, committed, waiting and fix work all count; the auditor's audits do not.
 - **Precedence**: audit fixes on your own work, then the current priority
   item, then a pull.

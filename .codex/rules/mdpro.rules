@@ -1,0 +1,113 @@
+# mdpro command rules for Codex (execpolicy, Starlark).
+#
+# Codex port of the command guards in .claude/rules/25-careful-mode.md and the
+# implementor limits that .claude/hooks/role-guard.sh enforces for Claude Code
+# (rule 70). Codex does not run that hook, so these prefix rules stand in for it.
+# Instruction-only rules (10, 20, 22, 30-34, 40, 41, 50, 60) cannot be expressed
+# as command prefixes; AGENTS.md § "Rules Codex must read" routes Codex to them.
+#
+# Loaded only when this project's .codex/ layer is trusted
+# (https://learn.chatgpt.com/docs/agent-configuration/rules).
+# Test: codex execpolicy check --pretty --rules .codex/rules/mdpro.rules -- git push
+#
+# Limits: a rule matches the argv prefix only. `git -C <dir> push`, or a shell
+# script using $(...), redirection or variables, is not split and slips past.
+# These rules are a backstop, not the boundary; AGENTS.md still binds.
+
+# --- Rule 25: destructive commands ------------------------------------------
+
+prefix_rule(
+    pattern = ["rm", ["-rf", "-fr", "-r", "-R", "--recursive", "-Rf", "-fR"]],
+    decision = "forbidden",
+    justification = "Rule 25: recursive delete needs the user's confirmation. Ask the delegator, naming the exact path.",
+    match = ["rm -rf src", "rm -r docs/old", "rm --recursive tmp"],
+    not_match = ["rm -f a.txt", "rm a.txt"],
+)
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "forbidden",
+    justification = "Rule 70: only the delegator pushes. Commit on your branch and hand the SHA to the delegator.",
+    match = ["git push", "git push -f origin master", "git push origin fix/d1-x"],
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Rule 25: destroys uncommitted work. Use `git stash` and ask the delegator.",
+    match = ["git reset --hard HEAD~1"],
+    not_match = ["git reset --soft HEAD~1", "git reset HEAD file.ts"],
+)
+
+prefix_rule(
+    pattern = ["git", ["checkout", "restore"], "."],
+    decision = "forbidden",
+    justification = "Rule 25: discards all local changes. Use `git stash`, or restore named paths only.",
+    match = ["git checkout .", "git restore ."],
+    not_match = ["git checkout src/a.ts", "git restore src/a.ts"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean", ["-f", "-fd", "-df", "-fdx", "-xdf", "-fx", "-xf", "-ffdx"]],
+    decision = "forbidden",
+    justification = "Rule 25: removes untracked files permanently. Ask the delegator.",
+    match = ["git clean -f", "git clean -fd", "git clean -fdx"],
+    not_match = ["git clean -n"],
+)
+
+prefix_rule(
+    pattern = ["git", "branch", ["-D", "--delete", "-d"]],
+    decision = "forbidden",
+    justification = "Rule 25 / rule 70: branches are deleted by the delegator after landing.",
+    match = ["git branch -D fix/x", "git branch -d fix/x"],
+    not_match = ["git branch --show-current", "git branch"],
+)
+
+prefix_rule(
+    pattern = ["git", "worktree", "remove"],
+    decision = "forbidden",
+    justification = "CLAUDE.md § Worktrees / rule 25: the delegator removes worktrees with the user's confirmation.",
+    match = ["git worktree remove ../mdpro-wt/x"],
+    not_match = ["git worktree list"],
+)
+
+# --- Rule 70: implementor limits (role-guard.sh equivalents) -----------------
+
+prefix_rule(
+    pattern = ["git", "add", ["-A", "--all", ".", "-u", "--update"]],
+    decision = "forbidden",
+    justification = "Rule 70: stage only paths you can name (`git add <path>...`), never the user's dirty files.",
+    match = ["git add -A", "git add .", "git add -u"],
+    not_match = ["git add src/a.ts tests/a.test.ts"],
+)
+
+prefix_rule(
+    pattern = ["git", "commit", ["-a", "-am", "--all"]],
+    decision = "forbidden",
+    justification = "Rule 70: no blanket staging. Stage named paths, then `git commit -m`.",
+    match = ["git commit -a -m x", "git commit -am x"],
+    not_match = ["git commit -m 'fix(save): x'"],
+)
+
+prefix_rule(
+    pattern = ["git", ["checkout", "switch"], ["master", "frontend-backend-redesign"]],
+    decision = "forbidden",
+    justification = "Rule 70: never work on master or the frozen branch. Stay on your own branch in your worktree.",
+    match = ["git checkout master", "git switch master"],
+    not_match = ["git checkout -b fix/d1-x", "git switch fix/d1-x"],
+)
+
+prefix_rule(
+    pattern = ["gh", ["release", "workflow"]],
+    decision = "forbidden",
+    justification = "Rule 40 / ADR-0073: releases and workflow dispatch belong to the delegator.",
+    match = ["gh release create v1", "gh workflow run release.yml"],
+)
+
+prefix_rule(
+    pattern = ["gh", "pr", ["merge", "create", "close"]],
+    decision = "forbidden",
+    justification = "Rule 70: the delegator opens, merges and closes PRs.",
+    match = ["gh pr merge 12", "gh pr create"],
+    not_match = ["gh pr view 12", "gh pr diff 12"],
+)

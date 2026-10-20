@@ -5,6 +5,8 @@
 Accepted, 2026-10-17. Decided by the user, recorded by mdpro-delegator. The user's words:
 「Slot 改为3个试试，目前有几个implementer，codex-audit因为用cli，可以同时接很多个需求，不会成为瓶颈。另外Fable只参与审计pr，不参与adr等其他的，adr原先由fable审计的，改为由opus审计。」
 
+Decision 2 partially superseded 2026-10-20 by [ADR-0124](0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md), under herdr only: the Codex review of ADRs and plans is run by gpt-auditor, not mdpro-codex-audit.
+
 Partially supersedes:
 - [ADR-0097](0097-idle-sessions-pull-prep-from-a-queue-and-implement-only-under-a-grant.md),
   the Cap's "two machine-wide" (the per-session cap of one stays);

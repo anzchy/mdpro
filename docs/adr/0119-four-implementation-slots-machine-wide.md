@@ -5,6 +5,8 @@
 Accepted, 2026-10-17. Decided by the user, recorded by mdpro-delegator. The user's words:
 「slot increase to 4 now, so that mdpro-design can continue doing its work」.
 
+Partially superseded 2026-10-20 by [ADR-0124](0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md): "four machine-wide" becomes two.
+
 Partially supersedes [ADR-0118](0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md)
 decision 1, "three machine-wide" (the per-session cap of one, and everything else in ADR-0118,
 stand).

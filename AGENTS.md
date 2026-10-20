@@ -1,5 +1,35 @@
 # Repository Guidelines
 
+## Read first (Codex)
+
+Codex loads only this file. It does not load `CLAUDE.md` or `.claude/rules/`, and it does not follow links by itself, so read them yourself:
+
+1. **At the start of every session, read [`CLAUDE.md`](./CLAUDE.md) in full.** It is the project's main instruction file; this file only summarises parts of it.
+2. **Then read the always-on rules**: [`10-tdd`](.claude/rules/10-tdd.md), [`22-comment-maintenance`](.claude/rules/22-comment-maintenance.md), [`25-careful-mode`](.claude/rules/25-careful-mode.md), [`50-codebase-conventions`](.claude/rules/50-codebase-conventions.md), [`60-review-checklist`](.claude/rules/60-review-checklist.md), [`70-multi-session-coordination`](.claude/rules/70-multi-session-coordination.md), and [`71-herdr-mixed-roster`](.claude/rules/71-herdr-mixed-roster.md), which replaces the rule 70 clauses it names and adds what applies to you (the brief and self-acceptance table, receipts with the Node CLI, how you report).
+3. **Before editing a file, read the rules its path triggers.** Claude Code loads these automatically from each rule's `paths:` frontmatter; Codex must do it by hand:
+
+   | You are about to edit | Read first |
+   |---|---|
+   | `src-tauri/src/commands/**/*.rs`, `src/services/**/*.ts`, `src/hooks/**/*.ts`, `src/components/**/*.tsx` | [`20-logging-and-docs`](.claude/rules/20-logging-and-docs.md) |
+   | `src/**/*.css`, `src/**/*.tsx`, `src/plugins/**/*.ts` | [`30-ui-consistency`](.claude/rules/30-ui-consistency.md), [`32-component-patterns`](.claude/rules/32-component-patterns.md), [`33-focus-indicators`](.claude/rules/33-focus-indicators.md), and [`design/DESIGN.md`](design/DESIGN.md) |
+   | `src/**/*.css`, `src/App.tsx`, `src/main.tsx` | [`31-design-tokens`](.claude/rules/31-design-tokens.md), [`34-dark-theme`](.claude/rules/34-dark-theme.md) |
+   | `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` | [`40-version-bump`](.claude/rules/40-version-bump.md) |
+   | `src-tauri/src/menu.rs`, `src/types/preferences.ts`, `src/hooks/useKeyboardShortcuts.ts`, `src/components/common/settings/KeyboardShortcutsSettings.tsx`, `docs/guide/keyboard-shortcuts.md` | [`41-keyboard-shortcuts`](.claude/rules/41-keyboard-shortcuts.md) |
+
+4. **Command guards.** [`.codex/rules/mdpro.rules`](.codex/rules/mdpro.rules) forbids the rule 25 commands (`rm -r`, `git reset --hard`, `git clean -f`, …) and the rule 70 implementor limits (`git push`, blanket `git add`, switching to `master`, …). It replaces `.claude/hooks/role-guard.sh`, which Codex does not run. A forbidden command means *ask*, not *find another spelling* (`git -C`, a wrapper script).
+
+### Claude Code features Codex does not have
+
+`CLAUDE.md` and the rules name tools that exist only in Claude Code. Use these instead:
+
+| The rules say | In Codex |
+|---|---|
+| `AskUserQuestion`, or `SendMessage` to `mdpro-delegator` | Stop and put the question in your final message. The delegator drives you through herdr and reads your pane. Never ask the user directly. |
+| A rule-25 confirmation | Same: stop and name the exact command and what it could lose. |
+| `/tdd-guardian:*`, other `/` skills, `Agent` subagents | Run the lanes in rule 10's tables yourself, through `scripts/heavy-lock.sh`, and report each command and its result. |
+| Hooks (`.claude/hooks/*`) | Not run. `.codex/rules/mdpro.rules` covers the command guards. |
+| A handoff or report "in a file" | Write it under `~/.mdpro-redesign/herdr-spike/<your herdr agent name>/` and give the path in your final message. |
+
 ## Project Structure & Module Organization
 - `src/` holds the React + TypeScript UI (entry in `src/main.tsx`, main component in `src/App.tsx`).
 - `src-tauri/` contains the Rust backend, Tauri config (`src-tauri/tauri.conf.json`), and app icons.
