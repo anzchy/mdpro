@@ -1,0 +1,210 @@
+[
+  {
+    "file": "tests/control/control-build-digests-entries.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-build-entry.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-build-redact.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-clean-claim-atomic.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-clean-claim.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-cli.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-doctor-leftovers.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-doctor-rm-runnable.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-launch.slow.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-lock-interrupted.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-lock-mutex-atomic.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-lock-mutex.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/control/control-launcher-procfacts-scan-real.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/helpers/controlGitRepo.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/support/buildMacHarness.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/support/d177H4Py.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/support/journeysFixture.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/support/roleGuardHarness.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/adr128-ci-comparator.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/adr128-conditional-lint.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/adr128-critical-coverage.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/block-target-scan-hook.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/ci-change-scope.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/d177-h6-safe-seq.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/d177-orphans-last.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/d177-settings-builder.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/d181-check-patched-cli.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/d183-build-mac-product-checks.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/d187-receipt-rustfmt-guard.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/device-drag-cap.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/device-drag-cli.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/feature-ledger-build-time.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/feature-ledger-windows-diff-gate.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/feature-ledger.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/heavy-lock-signal.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/journeys-b149.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/journeys-check.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/red-receipt-boundary.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/red-receipt-flock.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/red-receipt-race.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/release-collect-assets.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/release-source-check.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/session-size-guard-hook.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/unit-red-phase-provenance.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/unit-red-phase-review.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/unit-red-runner-hygiene.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/windows-driver-log-raw.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/windows-driver-native-crash.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/windows-driver-ps51-exit.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/windows-driver-transport.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  },
+  {
+    "file": "tests/tooling/windows-driver-window-binding.test.ts",
+    "reason": "Pre-existing synchronous subprocess in a short or separately gated test; D302 stress proof remains required."
+  }
+]
